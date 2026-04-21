@@ -305,11 +305,35 @@ case class UserInfoJsonV600(
     is_deleted: Boolean,
     last_marketing_agreement_signed_date: Option[Date],
     is_locked: Boolean,
-    last_activity_date: Option[Date],
-    recent_operation_ids: List[String]
+    created_date: Option[Date],
+    updated_date: Option[Date],
+    email_validated: Option[Boolean],
+    last_used_locale: Option[String]
 )
 
 case class UsersInfoJsonV600(users: List[UserInfoJsonV600])
+
+case class UserInfoDetailJsonV600(
+    user_id: String,
+    email: String,
+    provider_id: String,
+    provider: String,
+    username: String,
+    first_name: String,
+    last_name: String,
+    entitlements: EntitlementJSONs,
+    views: Option[ViewsJSON300],
+    agreements: Option[List[UserAgreementJson]],
+    is_deleted: Boolean,
+    last_marketing_agreement_signed_date: Option[Date],
+    is_locked: Boolean,
+    created_date: Option[Date],
+    updated_date: Option[Date],
+    email_validated: Option[Boolean],
+    last_used_locale: Option[String],
+    last_activity_date: Option[Date],
+    recent_operation_ids: List[String]
+)
 
 case class CreateUserJsonV600(
     email: String,
@@ -421,7 +445,9 @@ case class MetricJsonV600(
     source_ip: String,
     target_ip: String,
     response_body: net.liftweb.json.JValue,
-    operation_id: String
+    status_code: Int,
+    operation_id: String,
+    api_instance_id: String
 )
 case class MetricsJsonV600(metrics: List[MetricJsonV600])
 
@@ -1191,14 +1217,14 @@ case class ChatRoomJsonV600(
   name: String,
   description: String,
   joining_key: String,
-  created_by: String,
+  created_by_user_id: String,
   created_by_username: String,
   created_by_provider: String,
   is_open_room: Boolean,
   is_archived: Boolean,
   last_message_at: Option[java.util.Date],
   last_message_preview: Option[String],
-  last_message_sender: Option[String],
+  last_message_sender_username: Option[String],
   unread_count: Option[Long],
   created_at: java.util.Date,
   updated_at: java.util.Date,
@@ -1389,8 +1415,9 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       isLocked: Boolean,
       lastActivityDate: Option[Date],
       recentOperationIds: List[String]
-  ): UserInfoJsonV600 = {
-    UserInfoJsonV600(
+  ): UserInfoDetailJsonV600 = {
+    val authUser = AuthUser.find(By(AuthUser.user, user.userPrimaryKey.value))
+    UserInfoDetailJsonV600(
       user_id = user.userId,
       email = user.emailAddress,
       username = stringOrNull(user.name),
@@ -1409,28 +1436,47 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       last_marketing_agreement_signed_date =
         user.lastMarketingAgreementSignedDate,
       is_locked = isLocked,
+      created_date = authUser.map(_.createdAt.get),
+      updated_date = authUser.map(_.updatedAt.get),
+      email_validated = authUser.map(_.validated.get),
+      last_used_locale = user.lastUsedLocale,
       last_activity_date = lastActivityDate,
       recent_operation_ids = recentOperationIds
     )
   }
 
+  /**
+   * Build UsersInfoJsonV600 from Doobie-joined rows (single-SQL path).
+   *
+   * The LEFT JOIN in DoobieUserQueries.searchUsers already gave us
+   * first_name / last_name / is_locked / metadata dates in a single
+   * round-trip, so there are no per-user AuthUser lookups here.
+   */
   def createUsersInfoJsonV600(
       users: List[
-        (ResourceUser, Box[List[Entitlement]], Option[List[UserAgreement]])
+        (code.users.DoobieUserQueries.UserSearchRow, List[Entitlement], List[UserAgreement])
       ]
   ): UsersInfoJsonV600 = {
     UsersInfoJsonV600(
-      users.map { t =>
-        val authUser = AuthUser.find(By(AuthUser.user, t._1.id.get))
-        createUserInfoJsonV600(
-          t._1,
-          authUser.map(_.firstName.get).getOrElse(""),
-          authUser.map(_.lastName.get).getOrElse(""),
-          t._2.getOrElse(Nil),
-          t._3,
-          LoginAttempt.userIsLocked(t._1.provider, t._1.name),
-          None,
-          List.empty
+      users.map { case (row, entitlements, agreements) =>
+        UserInfoJsonV600(
+          user_id = row.userId,
+          email = row.email.getOrElse(""),
+          username = stringOrNull(row.username.orNull),
+          provider_id = row.providerId.getOrElse(""),
+          provider = stringOrNull(row.provider.orNull),
+          first_name = row.firstName.getOrElse(""),
+          last_name = row.lastName.getOrElse(""),
+          entitlements = JSONFactory200.createEntitlementJSONs(entitlements),
+          views = None,
+          agreements = Some(agreements.map(a => UserAgreementJson(`type` = a.agreementType, text = a.agreementText))),
+          is_deleted = row.isDeleted.getOrElse(false),
+          last_marketing_agreement_signed_date = row.lastMarketingAgreementSignedDate.map(d => new Date(d.getTime)),
+          is_locked = row.isLocked,
+          created_date = row.createdDate.map(t => new Date(t.getTime)),
+          updated_date = row.updatedDate.map(t => new Date(t.getTime)),
+          email_validated = row.emailValidated,
+          last_used_locale = row.lastUsedLocale
         )
       }
     )
@@ -1600,7 +1646,9 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       source_ip = metric.getSourceIp(),
       target_ip = metric.getTargetIp(),
       response_body = net.liftweb.json.parseOpt(metric.getResponseBody()).getOrElse(net.liftweb.json.JString("Not enabled")),
-      operation_id = operationId
+      status_code = metric.getHttpCode(),
+      operation_id = operationId,
+      api_instance_id = metric.getApiInstanceId()
     )
   }
 
@@ -2978,7 +3026,7 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
     unreadCount: Option[Long] = None,
     participantCount: Long = 0L
   ): ChatRoomJsonV600 = {
-    val creator = code.users.Users.users.vend.getUserByUserId(room.createdBy)
+    val creator = code.users.Users.users.vend.getUserByUserId(room.createdByUserId)
     val hasLastMessage = room.lastMessageAt.isDefined
     ChatRoomJsonV600(
       chat_room_id = room.chatRoomId,
@@ -2986,14 +3034,14 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       name = room.name,
       description = room.description,
       joining_key = room.joiningKey,
-      created_by = room.createdBy,
+      created_by_user_id = room.createdByUserId,
       created_by_username = creator.map(_.name).getOrElse(""),
       created_by_provider = creator.map(_.provider).getOrElse(""),
       is_open_room = room.isOpenRoom,
       is_archived = room.isArchived,
       last_message_at = room.lastMessageAt,
       last_message_preview = if (hasLastMessage) Some(room.lastMessagePreview) else None,
-      last_message_sender = if (hasLastMessage) Some(room.lastMessageSender) else None,
+      last_message_sender_username = if (hasLastMessage) Some(room.lastMessageSenderUsername) else None,
       unread_count = unreadCount,
       created_at = room.createdDate,
       updated_at = room.updatedDate,

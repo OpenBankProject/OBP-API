@@ -267,7 +267,7 @@ class elasticsearchMetrics extends elasticsearch {
     }
   }
 
-  def indexMetric(userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String, correlationId: String) {
+  def indexMetric(userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String, correlationId: String, apiInstanceId: String) {
     if (APIUtil.getPropsAsBoolValue("allow_elasticsearch", false) && APIUtil.getPropsAsBoolValue("allow_elasticsearch_metrics", false) ) {
       try {
         // we must import the dsl
@@ -281,7 +281,8 @@ class elasticsearchMetrics extends elasticsearch {
             "userName" -> userName,
             "appName" -> appName,
             "developerEmail" -> developerEmail,
-            "correlationId" -> correlationId
+            "correlationId" -> correlationId,
+            "apiInstanceId" -> apiInstanceId
             )
         }
       }

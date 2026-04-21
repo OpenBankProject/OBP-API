@@ -142,8 +142,19 @@ object ApiProto extends _root_.scalapb.GeneratedFileObject {
     _root_.scalapb.descriptors.FileDescriptor.buildFrom(scalaProto, dependencies.map(_.scalaDescriptor))
   }
   lazy val javaDescriptor: com.google.protobuf.Descriptors.FileDescriptor = {
+    import scala.collection.JavaConverters._
     val javaProto = com.google.protobuf.DescriptorProtos.FileDescriptorProto.parseFrom(ProtoBytes)
-    com.google.protobuf.Descriptors.FileDescriptor.buildFrom(javaProto, Array(
+    // Filter ObpService to expose only getBanks. The other methods
+    // (getPrivateAccountsAtOneBank, getBankAccountsBalances,
+    // getCoreTransactionsForBankAccount) are temporarily disabled — see
+    // api.proto and ObpServiceGrpc.scala for the matching changes.
+    val enabledMethods = Set("getBanks")
+    val filteredServices = javaProto.getServiceList.asScala.map { svc =>
+      val kept = svc.getMethodList.asScala.filter(m => enabledMethods.contains(m.getName))
+      svc.toBuilder.clearMethod().addAllMethod(kept.asJava).build()
+    }
+    val filteredProto = javaProto.toBuilder.clearService().addAllService(filteredServices.asJava).build()
+    com.google.protobuf.Descriptors.FileDescriptor.buildFrom(filteredProto, Array(
       com.google.protobuf.empty.EmptyProto.javaDescriptor,
       com.google.protobuf.timestamp.TimestampProto.javaDescriptor
     ))

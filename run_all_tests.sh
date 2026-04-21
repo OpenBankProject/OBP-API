@@ -1031,16 +1031,16 @@ record_phase_time "end"
 
 log_message ""
 log_message "Logs saved to:"
-log_message "  ${DETAIL_LOG}"
-log_message "  ${SUMMARY_LOG}"
+log_message "  $(realpath "${DETAIL_LOG}")"
+log_message "  $(realpath "${SUMMARY_LOG}")"
 if [ -f "${FAILED_TESTS_FILE}" ]; then
-    log_message "  ${FAILED_TESTS_FILE}"
+    log_message "  $(realpath "${FAILED_TESTS_FILE}")"
 fi
 if [ -d "${LOG_DIR}/html-reports" ]; then
     log_message ""
     log_message "HTML Reports:"
     for report in "${LOG_DIR}/html-reports"/*.html; do
-        [ -f "$report" ] && log_message "  $report"
+        [ -f "$report" ] && log_message "  $(realpath "$report")"
     done
 fi
 echo ""

@@ -107,7 +107,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
       responseGetObp.code should equal(200)
       responseDocs.resource_docs.head.implemented_by.technology shouldBe Some(Constant.TECHNOLOGY_LIFTWEB)
       //This should not throw any exceptions
-      responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
+      responseDocs.resource_docs.take(3).foreach(doc => stringToNodeSeq(doc.description))
     }
     scenario(s"We will test ${ApiEndpoint1.name} Api -$fq600", ApiEndpoint1, VersionOfApi) {
       val requestGetObp = (ResourceDocsV6_0Request / "resource-docs" / fq600 / "obp").GET
@@ -116,7 +116,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
       responseGetObp.code should equal(200)
       //This should not throw any exceptions
-      responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
+      responseDocs.resource_docs.take(3).foreach(doc => stringToNodeSeq(doc.description))
     }
     scenario(s"We will test ${ApiEndpoint1.name} Api -$v500", ApiEndpoint1, VersionOfApi) {
       val requestGetObp = (ResourceDocsV5_0Request / "resource-docs" / v500 / "obp").GET
@@ -126,7 +126,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
       responseGetObp.code should equal(200)
       responseDocs.resource_docs.head.implemented_by.technology shouldBe None
       //This should not throw any exceptions
-      responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
+      responseDocs.resource_docs.take(3).foreach(doc => stringToNodeSeq(doc.description))
     }
     
     scenario("Test OpenAPI endpoint with valid parameters", ApiEndpoint1, VersionOfApi) {
@@ -181,7 +181,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
       responseGetObp.code should equal(200)
       //This should not throw any exceptions
-      responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
+      responseDocs.resource_docs.take(3).foreach(doc => stringToNodeSeq(doc.description))
     }
 
     scenario(s"We will test ${ApiEndpoint1.name} Api -$fq500", ApiEndpoint1, VersionOfApi) {
@@ -191,7 +191,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
       responseGetObp.code should equal(200)
       //This should not throw any exceptions
-      responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
+      responseDocs.resource_docs.take(3).foreach(doc => stringToNodeSeq(doc.description))
     }
     
     scenario(s"We will test ${ApiEndpoint1.name} Api -$v400", ApiEndpoint1, VersionOfApi) {
@@ -201,7 +201,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
       responseGetObp.code should equal(200)
       //This should not throw any exceptions
-      responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
+      responseDocs.resource_docs.take(3).foreach(doc => stringToNodeSeq(doc.description))
     }
 
     scenario(s"We will test ${ApiEndpoint1.name} Api -$fq400", ApiEndpoint1, VersionOfApi) {
@@ -211,7 +211,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
       responseGetObp.code should equal(200)
       //This should not throw any exceptions
-      responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
+      responseDocs.resource_docs.take(3).foreach(doc => stringToNodeSeq(doc.description))
     }
 
     scenario(s"We will test ${ApiEndpoint1.name} Api -$v310", ApiEndpoint1, VersionOfApi) {
@@ -222,7 +222,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
       org.scalameta.logger.elem(responseGetObp)
       responseGetObp.code should equal(200)
       //This should not throw any exceptions
-      responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
+      responseDocs.resource_docs.take(3).foreach(doc => stringToNodeSeq(doc.description))
     }
 
     scenario(s"We will test ${ApiEndpoint1.name} Api -$fq310", ApiEndpoint1, VersionOfApi) {
@@ -232,7 +232,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
       responseGetObp.code should equal(200)
       //This should not throw any exceptions
-      responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
+      responseDocs.resource_docs.take(3).foreach(doc => stringToNodeSeq(doc.description))
     }
 
     scenario(s"We will test ${ApiEndpoint1.name} Api -$v300", ApiEndpoint1, VersionOfApi) {
@@ -242,7 +242,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
       responseGetObp.code should equal(200)
       //This should not throw any exceptions
-      responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
+      responseDocs.resource_docs.take(3).foreach(doc => stringToNodeSeq(doc.description))
     }
 
     scenario(s"We will test ${ApiEndpoint1.name} Api -$fq300", ApiEndpoint1, VersionOfApi) {
@@ -252,7 +252,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
       responseGetObp.code should equal(200)
       //This should not throw any exceptions
-      responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
+      responseDocs.resource_docs.take(3).foreach(doc => stringToNodeSeq(doc.description))
     }
 
     scenario(s"We will test ${ApiEndpoint1.name} Api -$v220", ApiEndpoint1, VersionOfApi) {
@@ -262,7 +262,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
       responseGetObp.code should equal(200)
       //This should not throw any exceptions
-      responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
+      responseDocs.resource_docs.take(3).foreach(doc => stringToNodeSeq(doc.description))
     }
 
     scenario(s"We will test ${ApiEndpoint1.name} Api -$fq220", ApiEndpoint1, VersionOfApi) {
@@ -272,7 +272,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
       responseGetObp.code should equal(200)
       //This should not throw any exceptions
-      responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
+      responseDocs.resource_docs.take(3).foreach(doc => stringToNodeSeq(doc.description))
     }
 
     scenario(s"We will test ${ApiEndpoint1.name} Api -$v210", ApiEndpoint1, VersionOfApi) {
@@ -282,7 +282,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
       responseGetObp.code should equal(200)
       //This should not throw any exceptions
-      responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
+      responseDocs.resource_docs.take(3).foreach(doc => stringToNodeSeq(doc.description))
     }
 
     scenario(s"We will test ${ApiEndpoint1.name} Api -$fq210", ApiEndpoint1, VersionOfApi) {
@@ -292,7 +292,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
       responseGetObp.code should equal(200)
       //This should not throw any exceptions
-      responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
+      responseDocs.resource_docs.take(3).foreach(doc => stringToNodeSeq(doc.description))
     }
 
     scenario(s"We will test ${ApiEndpoint1.name} Api -$v200", ApiEndpoint1, VersionOfApi) {
@@ -302,7 +302,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
       responseGetObp.code should equal(200)
       //This should not throw any exceptions
-      responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
+      responseDocs.resource_docs.take(3).foreach(doc => stringToNodeSeq(doc.description))
     }
 
     scenario(s"We will test ${ApiEndpoint1.name} Api -$fq200", ApiEndpoint1, VersionOfApi) {
@@ -312,7 +312,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
       responseGetObp.code should equal(200)
       //This should not throw any exceptions
-      responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
+      responseDocs.resource_docs.take(3).foreach(doc => stringToNodeSeq(doc.description))
     }
 
     scenario(s"We will test ${ApiEndpoint1.name} Api -$v140", ApiEndpoint1, VersionOfApi) {
@@ -330,7 +330,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
       responseGetObp.code should equal(200)
       //This should not throw any exceptions
-      responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
+      responseDocs.resource_docs.take(3).foreach(doc => stringToNodeSeq(doc.description))
     }
     
     scenario(s"We will test ${ApiEndpoint1.name} Api -$v130", ApiEndpoint1, VersionOfApi) {
@@ -340,7 +340,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
       responseGetObp.code should equal(200)
       //This should not throw any exceptions
-      responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
+      responseDocs.resource_docs.take(3).foreach(doc => stringToNodeSeq(doc.description))
     }
 
     scenario(s"We will test ${ApiEndpoint1.name} Api -$fq130", ApiEndpoint1, VersionOfApi) {
@@ -350,7 +350,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
       responseGetObp.code should equal(200)
       //This should not throw any exceptions
-      responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
+      responseDocs.resource_docs.take(3).foreach(doc => stringToNodeSeq(doc.description))
     }
 
     scenario(s"We will test ${ApiEndpoint1.name} Api -$v121", ApiEndpoint1, VersionOfApi) {
@@ -360,7 +360,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
       responseGetObp.code should equal(200)
       //This should not throw any exceptions
-      responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
+      responseDocs.resource_docs.take(3).foreach(doc => stringToNodeSeq(doc.description))
     }
 
     scenario(s"We will test ${ApiEndpoint1.name} Api -$fq121", ApiEndpoint1, VersionOfApi) {
@@ -370,7 +370,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
       responseGetObp.code should equal(200)
       //This should not throw any exceptions
-      responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
+      responseDocs.resource_docs.take(3).foreach(doc => stringToNodeSeq(doc.description))
     }
 
     scenario(s"We will test ${ApiEndpoint1.name} Api -v1.3", ApiEndpoint1, VersionOfApi) {
@@ -380,7 +380,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
       responseGetObp.code should equal(200)
       //This should not throw any exceptions
-      responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
+      responseDocs.resource_docs.take(3).foreach(doc => stringToNodeSeq(doc.description))
     }
     
     scenario(s"We will test ${ApiEndpoint1.name} Api -BGv1.3", ApiEndpoint1, VersionOfApi) {
@@ -390,7 +390,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
       responseGetObp.code should equal(200)
       //This should not throw any exceptions
-      responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
+      responseDocs.resource_docs.take(3).foreach(doc => stringToNodeSeq(doc.description))
     }
 
     scenario(s"We will test ${ApiEndpoint1.name} Api -v3.1", ApiEndpoint1, VersionOfApi) {
@@ -400,7 +400,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
       responseGetObp.code should equal(200)
       //This should not throw any exceptions
-      responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
+      responseDocs.resource_docs.take(3).foreach(doc => stringToNodeSeq(doc.description))
     }
     
     scenario(s"We will test ${ApiEndpoint1.name} Api -UKv3.1", ApiEndpoint1, VersionOfApi) {
@@ -410,7 +410,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
       responseGetObp.code should equal(200)
       //This should not throw any exceptions
-      responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
+      responseDocs.resource_docs.take(3).foreach(doc => stringToNodeSeq(doc.description))
     }
 
     scenario(s"We will test ${ApiEndpoint1.name} Api -$v400 - resource_docs_requires_role props", ApiEndpoint1, VersionOfApi) {
@@ -448,7 +448,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
       responseGetObp.code should equal(200)
       //This should not throw any exceptions
-      responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
+      responseDocs.resource_docs.take(3).foreach(doc => stringToNodeSeq(doc.description))
     }
     scenario(s"We will test ${ApiEndpoint2.name} Api -$fq600", ApiEndpoint1, VersionOfApi) {
       val requestGetObp = (ResourceDocsV1_4Request /"banks"/ testBankId1.value/ "resource-docs" / fq600 / "obp").GET
@@ -457,7 +457,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
       responseGetObp.code should equal(200)
       //This should not throw any exceptions
-      responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
+      responseDocs.resource_docs.take(3).foreach(doc => stringToNodeSeq(doc.description))
     }
     scenario(s"We will test ${ApiEndpoint2.name} Api -$v500/$v400", ApiEndpoint1, VersionOfApi) {
       val requestGetObp = (ResourceDocsV1_4Request /"banks"/ testBankId1.value/ "resource-docs" / v500 / "obp").GET
@@ -466,7 +466,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
       responseGetObp.code should equal(200)
       //This should not throw any exceptions
-      responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
+      responseDocs.resource_docs.take(3).foreach(doc => stringToNodeSeq(doc.description))
     }
 
     scenario(s"We will test ${ApiEndpoint2.name} Api -$v400", ApiEndpoint1, VersionOfApi) {
@@ -476,7 +476,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
       responseGetObp.code should equal(200)
       //This should not throw any exceptions
-      responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
+      responseDocs.resource_docs.take(3).foreach(doc => stringToNodeSeq(doc.description))
     }
 
     scenario(s"We will test ${ApiEndpoint2.name} Api -$fq400", ApiEndpoint1, VersionOfApi) {
@@ -486,7 +486,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
       responseGetObp.code should equal(200)
       //This should not throw any exceptions
-      responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
+      responseDocs.resource_docs.take(3).foreach(doc => stringToNodeSeq(doc.description))
     }
 
     scenario(s"We will test ${ApiEndpoint2.name} Api -$v310", ApiEndpoint1, VersionOfApi) {
@@ -497,7 +497,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
       org.scalameta.logger.elem(responseGetObp)
       responseGetObp.code should equal(200)
       //This should not throw any exceptions
-      responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
+      responseDocs.resource_docs.take(3).foreach(doc => stringToNodeSeq(doc.description))
     }
 
     scenario(s"We will test ${ApiEndpoint2.name} Api -$fq310", ApiEndpoint1, VersionOfApi) {
@@ -507,7 +507,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
       responseGetObp.code should equal(200)
       //This should not throw any exceptions
-      responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
+      responseDocs.resource_docs.take(3).foreach(doc => stringToNodeSeq(doc.description))
     }
 
     scenario(s"We will test ${ApiEndpoint2.name} Api -$v300", ApiEndpoint1, VersionOfApi) {
@@ -517,7 +517,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
       responseGetObp.code should equal(200)
       //This should not throw any exceptions
-      responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
+      responseDocs.resource_docs.take(3).foreach(doc => stringToNodeSeq(doc.description))
     }
 
     scenario(s"We will test ${ApiEndpoint2.name} Api -$fq300", ApiEndpoint1, VersionOfApi) {
@@ -527,7 +527,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
       responseGetObp.code should equal(200)
       //This should not throw any exceptions
-      responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
+      responseDocs.resource_docs.take(3).foreach(doc => stringToNodeSeq(doc.description))
     }
 
     scenario(s"We will test ${ApiEndpoint2.name} Api -$v220", ApiEndpoint1, VersionOfApi) {
@@ -537,7 +537,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
       responseGetObp.code should equal(200)
       //This should not throw any exceptions
-      responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
+      responseDocs.resource_docs.take(3).foreach(doc => stringToNodeSeq(doc.description))
     }
 
     scenario(s"We will test ${ApiEndpoint2.name} Api -$fq220", ApiEndpoint1, VersionOfApi) {
@@ -547,7 +547,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
       responseGetObp.code should equal(200)
       //This should not throw any exceptions
-      responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
+      responseDocs.resource_docs.take(3).foreach(doc => stringToNodeSeq(doc.description))
     }
 
     scenario(s"We will test ${ApiEndpoint2.name} Api -$v210", ApiEndpoint1, VersionOfApi) {
@@ -557,7 +557,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
       responseGetObp.code should equal(200)
       //This should not throw any exceptions
-      responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
+      responseDocs.resource_docs.take(3).foreach(doc => stringToNodeSeq(doc.description))
     }
 
     scenario(s"We will test ${ApiEndpoint2.name} Api -$fq210", ApiEndpoint1, VersionOfApi) {
@@ -567,7 +567,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
       responseGetObp.code should equal(200)
       //This should not throw any exceptions
-      responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
+      responseDocs.resource_docs.take(3).foreach(doc => stringToNodeSeq(doc.description))
     }
 
     scenario(s"We will test ${ApiEndpoint2.name} Api -$v200", ApiEndpoint1, VersionOfApi) {
@@ -577,7 +577,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
       responseGetObp.code should equal(200)
       //This should not throw any exceptions
-      responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
+      responseDocs.resource_docs.take(3).foreach(doc => stringToNodeSeq(doc.description))
     }
 
     scenario(s"We will test ${ApiEndpoint2.name} Api -$fq200", ApiEndpoint1, VersionOfApi) {
@@ -587,7 +587,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
       responseGetObp.code should equal(200)
       //This should not throw any exceptions
-      responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
+      responseDocs.resource_docs.take(3).foreach(doc => stringToNodeSeq(doc.description))
     }
 
     scenario(s"We will test ${ApiEndpoint2.name} Api -$v140", ApiEndpoint1, VersionOfApi) {
@@ -605,7 +605,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
       responseGetObp.code should equal(200)
       //This should not throw any exceptions
-      responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
+      responseDocs.resource_docs.take(3).foreach(doc => stringToNodeSeq(doc.description))
     }
 
     scenario(s"We will test ${ApiEndpoint2.name} Api -$v130", ApiEndpoint1, VersionOfApi) {
@@ -615,7 +615,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
       responseGetObp.code should equal(200)
       //This should not throw any exceptions
-      responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
+      responseDocs.resource_docs.take(3).foreach(doc => stringToNodeSeq(doc.description))
     }
 
     scenario(s"We will test ${ApiEndpoint2.name} Api -$fq130", ApiEndpoint1, VersionOfApi) {
@@ -625,7 +625,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
       responseGetObp.code should equal(200)
       //This should not throw any exceptions
-      responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
+      responseDocs.resource_docs.take(3).foreach(doc => stringToNodeSeq(doc.description))
     }
 
     scenario(s"We will test ${ApiEndpoint2.name} Api -$v121", ApiEndpoint1, VersionOfApi) {
@@ -635,7 +635,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
       responseGetObp.code should equal(200)
       //This should not throw any exceptions
-      responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
+      responseDocs.resource_docs.take(3).foreach(doc => stringToNodeSeq(doc.description))
     }
 
     scenario(s"We will test ${ApiEndpoint2.name} Api -$fq121", ApiEndpoint1, VersionOfApi) {
@@ -645,7 +645,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
       responseGetObp.code should equal(200)
       //This should not throw any exceptions
-      responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
+      responseDocs.resource_docs.take(3).foreach(doc => stringToNodeSeq(doc.description))
     }
 
     scenario(s"We will test ${ApiEndpoint2.name} Api -v1.3", ApiEndpoint1, VersionOfApi) {
@@ -655,7 +655,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
       responseGetObp.code should equal(200)
       //This should not throw any exceptions
-      responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
+      responseDocs.resource_docs.take(3).foreach(doc => stringToNodeSeq(doc.description))
     }
 
     scenario(s"We will test ${ApiEndpoint2.name} Api -BGv1.3", ApiEndpoint1, VersionOfApi) {
@@ -665,7 +665,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
       responseGetObp.code should equal(200)
       //This should not throw any exceptions
-      responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
+      responseDocs.resource_docs.take(3).foreach(doc => stringToNodeSeq(doc.description))
     }
 
     scenario(s"We will test ${ApiEndpoint2.name} Api -v3.1", ApiEndpoint1, VersionOfApi) {
@@ -675,7 +675,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
       responseGetObp.code should equal(200)
       //This should not throw any exceptions
-      responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
+      responseDocs.resource_docs.take(3).foreach(doc => stringToNodeSeq(doc.description))
     }
 
     scenario(s"We will test ${ApiEndpoint2.name} Api -UKv3.1", ApiEndpoint1, VersionOfApi) {
@@ -685,7 +685,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
       responseGetObp.code should equal(200)
       //This should not throw any exceptions
-      responseDocs.resource_docs.map(responseDoc => stringToNodeSeq(responseDoc.description))
+      responseDocs.resource_docs.take(3).foreach(doc => stringToNodeSeq(doc.description))
     }
 
     scenario(s"We will test ${ApiEndpoint2.name} Api -$v400 - resource_docs_requires_role props", ApiEndpoint1, VersionOfApi) {

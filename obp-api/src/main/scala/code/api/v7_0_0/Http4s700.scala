@@ -2,22 +2,26 @@ package code.api.v7_0_0
 
 import cats.data.{Kleisli, OptionT}
 import cats.effect._
+import code.api.Constant
 import code.api.Constant._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.ResourceDocs1_4_0.{ResourceDocs140, ResourceDocsAPIMethodsUtil}
 import code.api.util.APIUtil.{EmptyBody, _}
 import code.api.util.{APIUtil, ApiRole, ApiVersionUtils, CallContext, CustomJsonFormats, NewStyle}
-import code.api.util.ApiRole.{canCreateEntitlementAtAnyBank, canCreateEntitlementAtOneBank, canDeleteEntitlementAtAnyBank, canGetAnyUser, canGetCardsForBank, canGetCustomersAtOneBank}
+import code.api.util.ApiRole.{canCreateEntitlementAtAnyBank, canCreateEntitlementAtOneBank, canDeleteEntitlementAtAnyBank, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetCardsForBank, canGetConnectorHealth, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMigrations}
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
-import code.api.util.http4s.{ErrorResponseConverter, Http4sRequestAttributes, ResourceDocMiddleware}
+import code.api.util.http4s.{ErrorResponseConverter, Http4sRequestAttributes, RequestScopeConnection, ResourceDocMiddleware}
 import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps}
 import code.api.util.newstyle.ViewNewStyle
 import code.api.v1_3_0.JSONFactory1_3_0
 import code.api.v1_4_0.JSONFactory1_4_0
 import code.api.v2_0_0.{BasicViewJson, CreateEntitlementJSON, JSONFactory200}
 import code.api.v4_0_0.JSONFactory400
-import code.api.v6_0_0.{BasicAccountJsonV600, BasicAccountsJsonV600, BankJsonV600, ConnectorInfoJsonV600, ConnectorsJsonV600, FeaturesJsonV600, JSONFactory600, UserV600}
+import code.api.v6_0_0.{BasicAccountJsonV600, BasicAccountsJsonV600, BankJsonV600, CacheConfigJsonV600, CacheInfoJsonV600, CacheNamespaceInfoJsonV600, CacheNamespaceJsonV600, CacheNamespacesJsonV600, ConnectorInfoJsonV600, ConnectorsJsonV600, DatabasePoolInfoJsonV600, FeaturesJsonV600, InMemoryCacheStatusJsonV600, JSONFactory600, RedisCacheStatusJsonV600, StoredProcedureConnectorHealthJsonV600, UserV600}
+import code.api.cache.Redis
+import code.bankconnectors.storedprocedure.StoredProcedureUtils
+import code.migration.MigrationScriptLogProvider
 import code.bankconnectors.{Connector => BankConnector}
 import code.entitlement.Entitlement
 import code.metadata.tags.Tags
@@ -218,15 +222,9 @@ object Http4s700 {
             ) {
               ApiVersionUtils.valueOf(requestedApiVersionString)
             }
-            _ <- Helper.booleanToFuture(
-              failMsg = s"$InvalidApiVersionString This server supports only ${ApiVersion.v7_0_0}. Current value: $requestedApiVersionString",
-              failCode = 400,
-              cc = Some(cc)
-            ) {
-              requestedApiVersion == ApiVersion.v7_0_0
-            }
-            http4sOnlyDocs = ResourceDocsAPIMethodsUtil.filterResourceDocs(resourceDocs.toList, tags, functions)
-          } yield JSONFactory1_4_0.createResourceDocsJson(http4sOnlyDocs, isVersion4OrHigher = true, localeParam, includeTechnology = true)
+            allDocs = ResourceDocs140.ImplementationsResourceDocs.getResourceDocsList(requestedApiVersion).getOrElse(Nil)
+            filteredDocs = ResourceDocsAPIMethodsUtil.filterResourceDocs(allDocs, tags, functions)
+          } yield JSONFactory1_4_0.createResourceDocsJson(filteredDocs, isVersion4OrHigher = true, localeParam, includeTechnology = true)
         }
     }
 
@@ -645,8 +643,8 @@ object Http4s700 {
           for {
             httpParams <- NewStyle.function.extractHttpParamsFromUrl(req.uri.renderString)
             (obpQueryParams, _) <- createQueriesByHttpParamsFuture(httpParams, cc.callContext)
-            users <- UserVend.users.vend.getUsers(obpQueryParams)
-          } yield JSONFactory600.createUsersInfoJsonV600(users)
+            rows <- UserVend.users.vend.getUsersV600F(obpQueryParams)
+          } yield JSONFactory600.createUsersInfoJsonV600(rows)
         }
     }
 
@@ -1925,6 +1923,269 @@ object Http4s700 {
     )
 
     // ── End Market Endpoints (Phase 2) ─────────────────────────────────────
+
+    // ── Phase 1 batch 3 — system endpoints ──────────────────────────────────
+
+    // Route: GET /obp/v7.0.0/system/cache/config
+    val getCacheConfig: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "system" / "cache" / "config" =>
+        EndpointHelpers.withUser(req) { (_, cc) =>
+          Future.successful(JSONFactory600.createCacheConfigJsonV600())
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(getCacheConfig),
+      "GET",
+      "/system/cache/config",
+      "Get Cache Configuration",
+      """Returns cache configuration including Redis status, in-memory cache status, instance ID, environment and global prefix.""",
+      EmptyBody,
+      CacheConfigJsonV600(
+        redis_status = RedisCacheStatusJsonV600(available = true, url = "127.0.0.1", port = 6379, use_ssl = false),
+        in_memory_status = InMemoryCacheStatusJsonV600(available = true, current_size = 42),
+        instance_id = "obp",
+        environment = "dev",
+        global_prefix = "obp_dev_"
+      ),
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      apiTagCache :: apiTagSystem :: apiTagApi :: Nil,
+      Some(List(canGetCacheConfig)),
+      http4sPartialFunction = Some(getCacheConfig)
+    )
+
+    // Route: GET /obp/v7.0.0/system/cache/info
+    val getCacheInfo: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "system" / "cache" / "info" =>
+        EndpointHelpers.withUser(req) { (_, cc) =>
+          Future.successful(JSONFactory600.createCacheInfoJsonV600())
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(getCacheInfo),
+      "GET",
+      "/system/cache/info",
+      "Get Cache Information",
+      """Returns detailed cache information for all namespaces including key counts, TTL info and storage location.""",
+      EmptyBody,
+      CacheInfoJsonV600(
+        namespaces = List(CacheNamespaceInfoJsonV600(
+          namespace_id = "call_counter",
+          prefix = "obp_dev_call_counter_1_",
+          current_version = 1,
+          key_count = 42,
+          description = "Rate limit call counters",
+          category = "Rate Limiting",
+          storage_location = "redis",
+          ttl_info = "range 60s to 86400s (avg 3600s)"
+        )),
+        total_keys = 42,
+        redis_available = true
+      ),
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      apiTagCache :: apiTagSystem :: apiTagApi :: Nil,
+      Some(List(canGetCacheInfo)),
+      http4sPartialFunction = Some(getCacheInfo)
+    )
+
+    // Route: GET /obp/v7.0.0/system/database/pool
+    val getDatabasePoolInfo: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "system" / "database" / "pool" =>
+        EndpointHelpers.withUser(req) { (_, cc) =>
+          Future.successful(JSONFactory600.createDatabasePoolInfoJsonV600())
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(getDatabasePoolInfo),
+      "GET",
+      "/system/database/pool",
+      "Get Database Pool Information",
+      """Returns HikariCP connection pool information including active/idle connections, pool size and timeouts.""",
+      EmptyBody,
+      DatabasePoolInfoJsonV600(
+        pool_name = "HikariPool-1",
+        active_connections = 5,
+        idle_connections = 3,
+        total_connections = 8,
+        threads_awaiting_connection = 0,
+        maximum_pool_size = 10,
+        minimum_idle = 2,
+        connection_timeout_ms = 30000,
+        idle_timeout_ms = 600000,
+        max_lifetime_ms = 1800000,
+        keepalive_time_ms = 0
+      ),
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      apiTagSystem :: apiTagApi :: Nil,
+      Some(List(canGetDatabasePoolInfo)),
+      http4sPartialFunction = Some(getDatabasePoolInfo)
+    )
+
+    // Route: GET /obp/v7.0.0/system/connectors/stored_procedure_vDec2019/health
+    val getStoredProcedureConnectorHealth: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "system" / "connectors" / "stored_procedure_vDec2019" / "health" =>
+        EndpointHelpers.withUser(req) { (_, cc) =>
+          Future {
+            val health = StoredProcedureUtils.getHealth()
+            StoredProcedureConnectorHealthJsonV600(
+              status = health.status,
+              server_name = health.serverName,
+              server_ip = health.serverIp,
+              database_name = health.databaseName,
+              response_time_ms = health.responseTimeMs,
+              error_message = health.errorMessage
+            )
+          }
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(getStoredProcedureConnectorHealth),
+      "GET",
+      "/system/connectors/stored_procedure_vDec2019/health",
+      "Get Stored Procedure Connector Health",
+      """Returns health status of the stored procedure connector including connection status, server name and response time.""",
+      EmptyBody,
+      StoredProcedureConnectorHealthJsonV600(
+        status = "ok",
+        server_name = Some("DBSERVER01"),
+        server_ip = Some("10.0.1.50"),
+        database_name = Some("obp_adapter"),
+        response_time_ms = 45,
+        error_message = None
+      ),
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      apiTagConnector :: apiTagSystem :: apiTagApi :: Nil,
+      Some(List(canGetConnectorHealth)),
+      http4sPartialFunction = Some(getStoredProcedureConnectorHealth)
+    )
+
+    // Route: GET /obp/v7.0.0/system/migrations
+    val getMigrations: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "system" / "migrations" =>
+        EndpointHelpers.withUser(req) { (_, cc) =>
+          Future {
+            val migrations = MigrationScriptLogProvider.migrationScriptLogProvider.vend.getMigrationScriptLogs()
+            JSONFactory600.createMigrationScriptLogsJsonV600(migrations)
+          }
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(getMigrations),
+      "GET",
+      "/system/migrations",
+      "Get Database Migrations",
+      """Get all database migration script logs. Returns information about all migration scripts that have been executed or attempted.""",
+      EmptyBody,
+      migrationScriptLogsJsonV600,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      apiTagSystem :: apiTagApi :: Nil,
+      Some(List(canGetMigrations)),
+      http4sPartialFunction = Some(getMigrations)
+    )
+
+    // Route: GET /obp/v7.0.0/system/cache/namespaces
+    val getCacheNamespaces: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "system" / "cache" / "namespaces" =>
+        EndpointHelpers.withUser(req) { (_, cc) =>
+          Future {
+            val namespaces = List(
+              (Constant.CALL_COUNTER_PREFIX,                   "Rate limiting counters per consumer and time period", "varies",                                             "Rate Limiting"),
+              (Constant.RATE_LIMIT_ACTIVE_PREFIX,              "Active rate limit configurations",                   Constant.RATE_LIMIT_ACTIVE_CACHE_TTL.toString,        "Rate Limiting"),
+              (Constant.LOCALISED_RESOURCE_DOC_PREFIX,         "Localized resource documentation",                  Constant.CREATE_LOCALISED_RESOURCE_DOC_JSON_TTL.toString, "Resource Documentation"),
+              (Constant.DYNAMIC_RESOURCE_DOC_CACHE_KEY_PREFIX, "Dynamic resource documentation",                    Constant.GET_DYNAMIC_RESOURCE_DOCS_TTL.toString,      "Resource Documentation"),
+              (Constant.STATIC_RESOURCE_DOC_CACHE_KEY_PREFIX,  "Static resource documentation",                    Constant.GET_STATIC_RESOURCE_DOCS_TTL.toString,       "Resource Documentation"),
+              (Constant.ALL_RESOURCE_DOC_CACHE_KEY_PREFIX,     "All resource documentation",                        Constant.GET_STATIC_RESOURCE_DOCS_TTL.toString,       "Resource Documentation"),
+              (Constant.STATIC_SWAGGER_DOC_CACHE_KEY_PREFIX,   "Swagger documentation",                            Constant.GET_STATIC_RESOURCE_DOCS_TTL.toString,       "Resource Documentation"),
+              (Constant.CONNECTOR_PREFIX,                      "Connector method names and metadata",               "3600",                                                "Connector"),
+              (Constant.METRICS_STABLE_PREFIX,                 "Stable metrics (historical)",                       "86400",                                               "Metrics"),
+              (Constant.METRICS_RECENT_PREFIX,                 "Recent metrics",                                    "7",                                                   "Metrics"),
+              (Constant.ABAC_RULE_PREFIX,                      "ABAC rule cache",                                   "indefinite",                                          "ABAC")
+            ).map { case (prefix, description, ttl, category) =>
+              JSONFactory600.createCacheNamespaceJsonV600(
+                prefix, description, ttl, category,
+                Redis.countKeys(s"${prefix}*"),
+                Redis.getSampleKey(s"${prefix}*")
+              )
+            }
+            JSONFactory600.createCacheNamespacesJsonV600(namespaces)
+          }
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(getCacheNamespaces),
+      "GET",
+      "/system/cache/namespaces",
+      "Get Cache Namespaces",
+      """Returns information about all cache namespaces in the system including key counts, TTL and example keys.""",
+      EmptyBody,
+      CacheNamespacesJsonV600(List(
+        CacheNamespaceJsonV600(
+          prefix = "obp_dev_call_counter_1_",
+          description = "Rate limiting counters per consumer and time period",
+          ttl_seconds = "varies",
+          category = "Rate Limiting",
+          key_count = 42,
+          example_key = "obp_dev_call_counter_1_consumer123_PER_MINUTE"
+        )
+      )),
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      apiTagCache :: apiTagSystem :: apiTagApi :: Nil,
+      Some(List(canGetCacheNamespaces)),
+      http4sPartialFunction = Some(getCacheNamespaces)
+    )
+
+    // ── End Phase 1 batch 3 ──────────────────────────────────────────────────
+
+    // ── Test-only rollback endpoint ───────────────────────────────────────────
+    // Enabled only in Lift test mode (Props.testMode == true, i.e. -Drun.mode=test).
+    // Props.testMode is set from the JVM system property before any props file loads,
+    // so it is reliably available at object-initialization time unlike file-based props.
+    // POST /obp/v7.0.0/test/rollback-check: writes one entitlement to DB via
+    // RequestScopeConnection.fromFuture, then raises IO.raiseError so the middleware
+    // hits Outcome.Errored → rollback.  Used by Http4s700TransactionTest to verify
+    // that data written inside a failed request is never committed.
+    if (net.liftweb.util.Props.testMode) {
+      val testRollbackEndpoint: HttpRoutes[IO] = HttpRoutes.of[IO] {
+        case req @ POST -> `prefixPath` / "test" / "rollback-check" =>
+          val cc = req.callContext
+          cc.user.toOption match {
+            case Some(user) =>
+              RequestScopeConnection.fromFuture(
+                Future(Entitlement.entitlement.vend.addEntitlement("", user.userId, "TestRollbackSentinel"))
+              ).flatMap(_ => IO.raiseError[Response[IO]](new RuntimeException("[test] intentional rollback")))
+            case None =>
+              IO.pure(Response[IO](Status.Unauthorized))
+          }
+      }
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        "testRollbackEndpoint",
+        "POST", "/test/rollback-check", "Test rollback", "Test-only: write then throw to verify rollback",
+        EmptyBody, EmptyBody,
+        List($AuthenticatedUserIsRequired, UnknownError),
+        Nil,
+        None,
+        http4sPartialFunction = Some(testRollbackEndpoint)
+      )
+    }
 
     // All routes combined (without middleware - for direct use).
     //

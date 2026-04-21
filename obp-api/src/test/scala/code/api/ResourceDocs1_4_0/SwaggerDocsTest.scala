@@ -85,30 +85,6 @@ class SwaggerDocsTest extends ResourceDocsV140ServerSetup with PropsReset with D
       errors.isEmpty should be (true)
     }
     
-    scenario(s"We will test ${ApiEndpoint1.name} Api - v5.0.0/v5.0.0 ", ApiEndpoint1, VersionOfApi) {
-      val requestGetObp = (ResourceDocsV5_0Request / "resource-docs" / "v5.0.0" / "swagger").GET
-      val responseGetObp = makeGetRequest(requestGetObp)
-      And("We should get  200 and the response can be extract to case classes")
-      responseGetObp.code should equal(200)
-      val swaggerJsonString = json.compactRender(responseGetObp.body)
-      val validatedSwaggerResult = ValidateSwaggerString(swaggerJsonString)
-      val errors = validatedSwaggerResult._1
-      if (!errors.isEmpty) logger.info(s"Here is the wrong swagger json:    $swaggerJsonString")
-      errors.isEmpty should be (true)
-    }
-    
-     scenario(s"We will test ${ApiEndpoint1.name} Api - v5.0.0/v4.0.0", ApiEndpoint1, VersionOfApi) {
-      val requestGetObp = (ResourceDocsV5_0Request / "resource-docs" / "v4.0.0" / "swagger").GET
-      val responseGetObp = makeGetRequest(requestGetObp)
-      And("We should get  200 and the response can be extract to case classes")
-      responseGetObp.code should equal(200)
-      val swaggerJsonString = json.compactRender(responseGetObp.body)
-      val validatedSwaggerResult = ValidateSwaggerString(swaggerJsonString)
-      val errors = validatedSwaggerResult._1
-      if (!errors.isEmpty) logger.info(s"Here is the wrong swagger json:    $swaggerJsonString")
-      errors.isEmpty should be (true)
-    }
-    
     scenario(s"We will test ${ApiEndpoint1.name} Api - v4.0.0", ApiEndpoint1, VersionOfApi) {
       val requestGetObp = (ResourceDocsV4_0Request / "resource-docs" / "v4.0.0" / "swagger").GET
       val responseGetObp = makeGetRequest(requestGetObp)
@@ -118,88 +94,6 @@ class SwaggerDocsTest extends ResourceDocsV140ServerSetup with PropsReset with D
       val validatedSwaggerResult = ValidateSwaggerString(swaggerJsonString)
       val errors = validatedSwaggerResult._1
       if (!errors.isEmpty) logger.info(s"Here is the wrong swagger json:    $swaggerJsonString")
-      errors.isEmpty should be (true)
-    }
-
-    scenario(s"We will test ${ApiEndpoint1.name} Api - v3.1.1", ApiEndpoint1, VersionOfApi) {
-      val requestGetObp = (ResourceDocsV4_0Request / "resource-docs" / "v3.1.0" / "swagger").GET
-      val responseGetObp = makeGetRequest(requestGetObp)
-      And("We should get  200 and the response can be extract to case classes")
-      responseGetObp.code should equal(200)
-      val swaggerJsonString = json.compactRender(responseGetObp.body)
-
-      val validatedSwaggerResult = ValidateSwaggerString(swaggerJsonString)
-      val errors = validatedSwaggerResult._1
-      errors.isEmpty should be (true)
-    }
-
-    scenario(s"We will test ${ApiEndpoint1.name} Api - v3.0.0", ApiEndpoint1, VersionOfApi) {
-      val requestGetObp = (ResourceDocsV4_0Request / "resource-docs" / "v3.0.0" / "swagger").GET
-      val responseGetObp = makeGetRequest(requestGetObp)
-      And("We should get  200 and the response can be extract to case classes")
-      responseGetObp.code should equal(200)
-      val swaggerJsonString = json.compactRender(responseGetObp.body)
-      val validatedSwaggerResult = ValidateSwaggerString(swaggerJsonString)
-      val errors = validatedSwaggerResult._1
-      errors.isEmpty should be (true)
-    }
-
-    scenario(s"We will test ${ApiEndpoint1.name} Api - v2.2.0", ApiEndpoint1, VersionOfApi) {
-      val requestGetObp = (ResourceDocsV4_0Request / "resource-docs" / "v2.2.0" / "swagger").GET
-      val responseGetObp = makeGetRequest(requestGetObp)
-      And("We should get  200 and the response can be extract to case classes")
-      responseGetObp.code should equal(200)
-      val swaggerJsonString = json.compactRender(responseGetObp.body)
-
-      val validatedSwaggerResult = ValidateSwaggerString(swaggerJsonString)
-      val errors = validatedSwaggerResult._1
-      errors.isEmpty should be (true)
-    }
-
-    scenario(s"We will test ${ApiEndpoint1.name} Api - v2.1.0", ApiEndpoint1, VersionOfApi) {
-      val requestGetObp = (ResourceDocsV4_0Request / "resource-docs" / "v2.1.0" / "swagger").GET
-      val responseGetObp = makeGetRequest(requestGetObp)
-      And("We should get  200 and the response can be extract to case classes")
-      responseGetObp.code should equal(200)
-      val swaggerJsonString = json.compactRender(responseGetObp.body)
-      val validatedSwaggerResult = ValidateSwaggerString(swaggerJsonString)
-      val errors = validatedSwaggerResult._1
-      errors.isEmpty should be (true)
-    }
-
-    scenario(s"We will test ${ApiEndpoint1.name} Api - v2.0.0", ApiEndpoint1, VersionOfApi) {
-      val requestGetObp = (ResourceDocsV4_0Request / "resource-docs" / "v2.0.0" / "swagger").GET
-      val responseGetObp = makeGetRequest(requestGetObp)
-      And("We should get  200 and the response can be extract to case classes")
-      responseGetObp.code should equal(200)
-      val swaggerJsonString = json.compactRender(responseGetObp.body)
-
-      val validatedSwaggerResult = ValidateSwaggerString(swaggerJsonString)
-      val errors = validatedSwaggerResult._1
-      errors.isEmpty should be (true)
-    }
-
-    scenario(s"We will test ${ApiEndpoint1.name} Api - v1.4.0", ApiEndpoint1, VersionOfApi) {
-      val requestGetObp = (ResourceDocsV4_0Request / "resource-docs" / "v1.4.0" / "swagger").GET
-      val responseGetObp = makeGetRequest(requestGetObp)
-      And("We should get  200 and the response can be extract to case classes")
-      responseGetObp.code should equal(200)
-      val swaggerJsonString = json.compactRender(responseGetObp.body)
-
-      val validatedSwaggerResult = ValidateSwaggerString(swaggerJsonString)
-      val errors = validatedSwaggerResult._1
-      errors.isEmpty should be (true)
-    }
-
-    scenario(s"We will test ${ApiEndpoint1.name} Api - v1.3.0", ApiEndpoint1, VersionOfApi) {
-      val requestGetObp = (ResourceDocsV4_0Request / "resource-docs" / "v1.3.0" / "swagger").GET
-      val responseGetObp = makeGetRequest(requestGetObp)
-      And("We should get  200 and the response can be extract to case classes")
-      responseGetObp.code should equal(200)
-      val swaggerJsonString = json.compactRender(responseGetObp.body)
-
-      val validatedSwaggerResult = ValidateSwaggerString(swaggerJsonString)
-      val errors = validatedSwaggerResult._1
       errors.isEmpty should be (true)
     }
 

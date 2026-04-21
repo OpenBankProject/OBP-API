@@ -4,7 +4,7 @@ import code.api.util.Consent.logger
 
 import java.util.Date
 import code.api.util._
-import code.entitlement.Entitlement
+import code.entitlement.{Entitlement, MappedEntitlement}
 import code.loginattempts.LoginAttempt.maxBadLoginAttempts
 import code.loginattempts.MappedBadLoginAttempt
 import code.model.dataAccess.{AuthUser, ResourceUser}
@@ -221,7 +221,72 @@ object LiftUsers extends Users with MdcLoggable{
       }
     }
   }
-  
+
+  override def getUsersV600F(queryParams: List[OBPQueryParam])
+    : Future[List[(DoobieUserQueries.UserSearchRow, List[Entitlement], List[UserAgreement])]] = Future {
+
+    val provider:   Option[String]  = queryParams.collectFirst { case OBPProvider(v) => v }
+    val username:   Option[String]  = queryParams.collectFirst { case OBPUsername(v) => v }
+    val email:      Option[String]  = queryParams.collectFirst { case OBPEmail(v) => v }
+    val userId:     Option[String]  = queryParams.collectFirst { case OBPUserId(v) => v }
+    val isDeleted:  Option[Boolean] = queryParams.collectFirst { case OBPIsDeleted(v) => v }
+    val lockedStat: Option[String]  = queryParams.collectFirst { case OBPLockedStatus(v) => v }
+    val roleName:   Option[String]  = queryParams.collectFirst { case OBPRoleName(v) => v }
+    val bankId:     Option[String]  = queryParams.collectFirst { case OBPBankId(v) => v }
+    val ordering:   Option[OBPOrdering] = queryParams.collectFirst { case o: OBPOrdering => o }
+    val sortBy:     Option[String]  = ordering.flatMap(_.field)
+    // When no sort_by is supplied we fall back to `ru.id ASC` for stable pagination.
+    // When sort_by IS supplied we honour sort_direction, which defaults to DESC per OBP convention.
+    val sortAsc:    Boolean         =
+      if (sortBy.isEmpty) true
+      else ordering.exists(_.order == OBPAscending)
+    val limit:  Int = queryParams.collectFirst { case OBPLimit(v) => v }.getOrElse(100)
+    val offset: Int = queryParams.collectFirst { case OBPOffset(v) => v }.getOrElse(0)
+
+    logger.info(
+      s"getUsersV600F says: filters provider=$provider username=$username email=$email userId=$userId " +
+      s"isDeleted=$isDeleted lockedStatus=$lockedStat roleName=$roleName bankId=$bankId " +
+      s"sortBy=$sortBy sortAsc=$sortAsc limit=$limit offset=$offset"
+    )
+
+    val started = System.currentTimeMillis()
+    val rows = DoobieUserQueries.getUsers(provider, username, email, userId, isDeleted, lockedStat, roleName, bankId, sortBy, sortAsc, limit, offset)
+    logger.info(s"getUsersV600F says: DoobieUserQueries.getUsers returned ${rows.size} row(s) in ${System.currentTimeMillis() - started}ms")
+
+    if (rows.isEmpty) Nil
+    else {
+      val userIds = rows.map(_.userId)
+
+      // Batch-fetch entitlements for all returned users (single IN query).
+      val entitlementsByUserId: Map[String, List[Entitlement]] =
+        MappedEntitlement.findAll(ByList(MappedEntitlement.mUserId, userIds))
+          .groupBy(_.userId)
+          .map { case (uid, ents) => uid -> ents.sortBy(_.roleName).toList }
+
+      // Batch-fetch agreements, then reduce to most-recent per (userId, agreementType).
+      val agreementsByUserId: Map[String, List[UserAgreement]] =
+        UserAgreement.findAll(ByList(UserAgreement.UserId, userIds))
+          .groupBy(_.userId)
+          .map { case (uid, all) =>
+            uid -> all.groupBy(_.agreementType)
+              .values
+              .flatMap(_.sortBy(_.Date.get)(Ordering[Date].reverse).headOption)
+              .toList
+          }
+
+      val totalEntitlements = entitlementsByUserId.values.map(_.size).sum
+      val totalAgreements = agreementsByUserId.values.map(_.size).sum
+      logger.info(
+        s"getUsersV600F says: batched $totalEntitlements entitlement(s) and $totalAgreements agreement(s) across ${userIds.size} user(s)"
+      )
+
+      rows.map { r =>
+        (r, entitlementsByUserId.getOrElse(r.userId, Nil), agreementsByUserId.getOrElse(r.userId, Nil))
+      }
+    }
+  }
+
+
 
   override def createResourceUser(provider: String,
                                   providerId: Option[String],

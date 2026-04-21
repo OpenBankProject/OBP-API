@@ -17,6 +17,7 @@ import org.http4s._
 import org.http4s.headers.`Content-Type`
 
 import scala.collection.mutable.ArrayBuffer
+import scala.util.control.NonFatal
 
 /**
  * ResourceDoc-driven validation middleware for http4s.
@@ -98,11 +99,32 @@ object ResourceDocMiddleware extends MdcLoggable {
           case Some(resourceDoc) =>
             val ccWithDoc = ResourceDocMatcher.attachToCallContext(cc, resourceDoc)
             val pathParams = ResourceDocMatcher.extractPathParams(req.uri.path, resourceDoc)
-            // Run full validation chain
-            OptionT(validateRequest(req, resourceDoc, pathParams, ccWithDoc, routes).map(Option(_)))
+            // Validate first (read-only, outside any transaction), then run business logic.
+            // GET/HEAD are safe methods — no writes, no transaction needed; they run on
+            // auto-commit vendor connections (same as validation).  All other methods
+            // (POST/PUT/DELETE/PATCH) wrap routes.run in withBusinessDBTransaction.
+            OptionT(
+              validateOnly(req, resourceDoc, pathParams, ccWithDoc).flatMap {
+                case Left(errorResponse) =>
+                  IO.pure(Option(errorResponse))
+                case Right(enrichedReq) =>
+                  val routeIO =
+                    routes.run(enrichedReq)
+                      .map(ensureJsonContentType)
+                      .getOrElseF(IO.pure(ensureJsonContentType(Response[IO](org.http4s.Status.NotFound))))
+                  val executed =
+                    if (req.method == Method.GET || req.method == Method.HEAD) routeIO
+                    else withBusinessDBTransaction(routeIO)
+                  executed.map(Option(_))
+              }
+            )
 
           case None =>
-            // No matching ResourceDoc: fallback to original route
+            // No matching ResourceDoc: fallback to original route (NO transaction scope opened).
+            // ResourceDocMatcher.findResourceDoc already logged a WARN with full key/index detail.
+            // Any background DB calls triggered by the Lift bridge for this request will use
+            // RequestAwareConnectionManager, which now falls back to a fresh vendor connection
+            // when the TTL-stale proxy is detected as closed.
             routes.run(req)
         }
       }
@@ -110,21 +132,69 @@ object ResourceDocMiddleware extends MdcLoggable {
   }
 
   /**
-   * Executes the full validation chain for the request.
-   * Returns either an error Response or enriched request routed to the handler.
+   * Wraps the business-logic IO in a request-scoped DB transaction.
+   *
+   * Called only for mutating methods (POST/PUT/DELETE/PATCH) after validateOnly succeeds.
+   * GET/HEAD bypass this entirely and run on auto-commit vendor connections, avoiding
+   * a pool borrow + empty-commit overhead on every read request.
+   *
+   * Borrows a Connection from HikariCP via Resource.make so close() is guaranteed
+   * even if commit/rollback throws or the fiber is cancelled.  The proxy prevents
+   * Lift's internal DB.use lifecycle from committing or returning the connection
+   * prematurely.
+   *
+   * currentProxy (TTL) is NOT set here.  Every DB call goes through
+   * RequestScopeConnection.fromFuture, which atomically sets + submits + clears the
+   * TTL within a single IO.defer block on the compute thread, so the thread is never
+   * left dirty after the fromFuture call returns.
+   *
+   * On success: commits, then Resource finalizer closes.
+   * On error/cancellation: rolls back (errors swallowed to preserve original cause),
+   *   then Resource finalizer closes.
+   *
+   * Metric writes (IO.blocking in recordMetric) run on the blocking pool where
+   * currentProxy is not set — they get their own pool connection and commit
+   * independently, matching v6 behaviour.
    */
-  private def validateRequest(
-                               req: Request[IO],
-                               resourceDoc: ResourceDoc,
-                               pathParams: Map[String, String],
-                               cc: CallContext,
-                               routes: HttpRoutes[IO]
-                             ): IO[Response[IO]] = {
+  private def withBusinessDBTransaction(io: IO[Response[IO]]): IO[Response[IO]] =
+    Resource.make(
+      IO.blocking(APIUtil.vendor.HikariDatasource.ds.getConnection())
+    )(conn =>
+      IO.blocking { try { conn.close() } catch { case _: Exception => () } }
+    ).use { realConn =>
+      val proxy = RequestScopeConnection.makeProxy(realConn)
+      for {
+        _ <- RequestScopeConnection.requestProxyLocal.set(Some(proxy))
+        // Note: currentProxy (TTL) is NOT set here.  Every DB call goes through
+        // RequestScopeConnection.fromFuture, which atomically sets + submits + clears
+        // the TTL within a single IO.defer block on the compute thread.
+        result <- io.guaranteeCase {
+                    case Outcome.Succeeded(_) =>
+                      RequestScopeConnection.requestProxyLocal.set(None) *>
+                        IO.blocking { realConn.commit() }
+                    case _ =>
+                      RequestScopeConnection.requestProxyLocal.set(None) *>
+                        IO.blocking { try { realConn.rollback() } catch { case _: Exception => () } }
+                  }
+      } yield result
+    }
 
-    // Initial context with just CallContext
+  /**
+   * Runs the full validation chain (auth → roles → bank → account → view → counterparty)
+   * and returns either an error Response or an enriched Request ready for the handler.
+   *
+   * All steps are read-only and execute outside any DB transaction, so no locks are
+   * held during validation.  The caller opens a transaction only after this returns Right.
+   */
+  private def validateOnly(
+                            req: Request[IO],
+                            resourceDoc: ResourceDoc,
+                            pathParams: Map[String, String],
+                            cc: CallContext
+                          ): IO[Either[Response[IO], Request[IO]]] = {
+
     val initialContext = ValidationContext(callContext = cc)
 
-    // Compose all validation steps using EitherT
     val result: Validation[ValidationContext] = for {
       context <- authenticate(req, resourceDoc, initialContext)
       context <- authorizeRoles(resourceDoc, pathParams, context)
@@ -134,12 +204,11 @@ object ResourceDocMiddleware extends MdcLoggable {
       context <- validateCounterparty(pathParams, context)
     } yield context
 
-    // Convert Validation result to Response
-    result.value.flatMap {
-      case Left(errorResponse) => IO.pure(ensureJsonContentType(errorResponse)) // Ensure all error responses are JSON
+    result.value.map {
+      case Left(errorResponse) =>
+        Left(ensureJsonContentType(errorResponse))
       case Right(validCtx) =>
-        // Enrich request with validated CallContext
-        val enrichedReq = req.withAttribute(
+        Right(req.withAttribute(
           Http4sRequestAttributes.callContextKey,
           validCtx.callContext.copy(
             bank = validCtx.bank,
@@ -147,10 +216,7 @@ object ResourceDocMiddleware extends MdcLoggable {
             view = validCtx.view,
             counterparty = validCtx.counterparty
           )
-        )
-        routes.run(enrichedReq)
-          .map(ensureJsonContentType) // Ensure routed response has JSON content type
-          .getOrElseF(IO.pure(ensureJsonContentType(Response[IO](org.http4s.Status.NotFound))))
+        ))
     }
   }
 
