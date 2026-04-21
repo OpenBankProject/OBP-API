@@ -2,6 +2,7 @@ package code.api.util.http4s
 
 import cats.data.{EitherT, Kleisli, OptionT}
 import cats.effect._
+import code.api.Constant
 import code.api.v7_0_0.Http4s700
 import code.api.APIFailureNewStyle
 import code.api.util.APIUtil.ResourceDoc
@@ -18,6 +19,7 @@ import org.http4s.headers.`Content-Type`
 
 import java.sql.Connection
 import scala.collection.mutable.ArrayBuffer
+import scala.concurrent.duration._
 import scala.util.control.NonFatal
 
 /**
@@ -40,6 +42,10 @@ object ResourceDocMiddleware extends MdcLoggable {
 
   /** Type alias for http4s OptionT route effect */
   type HttpF[A] = OptionT[IO, A]
+
+  // Same prop as FutureUtil.defaultTimeout — one setting controls both v6 and v7.
+  // Default 55 s.  Override with long_endpoint_timeout in props.
+  private def endpointTimeoutMs: Long = Constant.longEndpointTimeoutInMillis
 
   /** Type alias for validation effect using EitherT */
   type Validation[A] = EitherT[IO, Response[IO], A]
@@ -104,7 +110,7 @@ object ResourceDocMiddleware extends MdcLoggable {
             // GET/HEAD are safe methods — no writes, no transaction needed; they run on
             // auto-commit vendor connections (same as validation).  All other methods
             // (POST/PUT/DELETE/PATCH) wrap routes.run in withBusinessDBTransaction.
-            OptionT(
+            val work: IO[Option[Response[IO]]] =
               validateOnly(req, resourceDoc, pathParams, ccWithDoc).flatMap {
                 case Left(errorResponse) =>
                   IO.pure(Option(errorResponse))
@@ -118,7 +124,7 @@ object ResourceDocMiddleware extends MdcLoggable {
                     else withBusinessDBTransaction(routeIO)
                   executed.map(Option(_))
               }
-            )
+            OptionT(work.timeoutTo(endpointTimeoutMs.millis, endpointTimeoutResponse(req)))
 
           case None =>
             // No matching ResourceDoc: fallback to original route (NO transaction scope opened).
@@ -130,6 +136,18 @@ object ResourceDocMiddleware extends MdcLoggable {
         }
       }
     }
+  }
+
+  /** 504 response emitted when endpointTimeoutMs elapses before the handler completes. */
+  private def endpointTimeoutResponse(req: Request[IO]): IO[Option[Response[IO]]] = IO {
+    logger.warn(
+      s"[ResourceDocMiddleware] Endpoint timeout after ${endpointTimeoutMs}ms: " +
+      s"${req.method.name} ${req.uri.renderString}"
+    )
+    val body = s"""{"message":"Request timeout: backend service did not respond within ${endpointTimeoutMs}ms."}"""
+    Some(ensureJsonContentType(
+      Response[IO](org.http4s.Status.GatewayTimeout).withEntity(body.getBytes("UTF-8"))
+    ))
   }
 
   /**
