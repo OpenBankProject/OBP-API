@@ -1,5 +1,6 @@
 package code.api.util.http4s
 
+import cats.effect.{IO, IOLocal}
 import cats.effect.unsafe.IORuntime
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.db.ConnectionManager
@@ -28,8 +29,10 @@ class RequestScopeConnectionTest extends FeatureSpec with Matchers with GivenWhe
   implicit val runtime: IORuntime   = IORuntime.global
 
   after {
-    // Reset global TTL state so tests are independent.
+    // Reset global TTL state and fiber-locals so tests are independent.
     RequestScopeConnection.currentProxy.set(null)
+    RequestScopeConnection.requestProxyLocal.set(None).unsafeRunSync()
+    RequestScopeConnection.requestLazyAcquire.set(None).unsafeRunSync()
   }
 
   // ─── helpers ─────────────────────────────────────────────────────────────────
@@ -240,6 +243,47 @@ class RequestScopeConnectionTest extends FeatureSpec with Matchers with GivenWhe
 
       Then("The Future sees null in the TTL — no proxy was propagated")
       seen shouldBe null
+    }
+
+    scenario("Future observes the proxy via TTL when acquired lazily through requestLazyAcquire") {
+      Given("requestProxyLocal is None but requestLazyAcquire holds an acquisition IO")
+      val proxy = RequestScopeConnection.makeProxy(trackingConn(new ConnectionTracker))
+      val acquireIO: IO[Connection] = IO.pure(proxy)
+
+      val program = for {
+        _    <- RequestScopeConnection.requestLazyAcquire.set(Some(acquireIO))
+        seen <- RequestScopeConnection.fromFuture {
+                  Future { RequestScopeConnection.currentProxy.get() }
+                }
+      } yield seen
+
+      When("fromFuture is executed with only requestLazyAcquire populated")
+      val seen = program.unsafeRunSync()
+
+      Then("The Future observed the proxy acquired lazily through the TransmittableThreadLocal")
+      seen should be theSameInstanceAs proxy
+    }
+
+    scenario("Lazy acquisition is skipped when requestProxyLocal already holds a proxy") {
+      Given("requestProxyLocal already holds a cached proxy")
+      val cachedProxy  = RequestScopeConnection.makeProxy(trackingConn(new ConnectionTracker))
+      var acquireCalled = false
+      val acquireIO: IO[Connection] = IO { acquireCalled = true; cachedProxy }
+
+      val program = for {
+        _    <- RequestScopeConnection.requestProxyLocal.set(Some(cachedProxy))
+        _    <- RequestScopeConnection.requestLazyAcquire.set(Some(acquireIO))
+        seen <- RequestScopeConnection.fromFuture {
+                  Future { RequestScopeConnection.currentProxy.get() }
+                }
+      } yield seen
+
+      When("fromFuture is executed")
+      val seen = program.unsafeRunSync()
+
+      Then("The cached proxy is used and the acquisition IO is never called")
+      seen should be theSameInstanceAs cachedProxy
+      acquireCalled shouldBe false
     }
 
     scenario("fromFuture returns the value produced by the Future") {
