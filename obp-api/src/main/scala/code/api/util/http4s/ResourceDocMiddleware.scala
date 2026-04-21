@@ -99,19 +99,23 @@ object ResourceDocMiddleware extends MdcLoggable {
           case Some(resourceDoc) =>
             val ccWithDoc = ResourceDocMatcher.attachToCallContext(cc, resourceDoc)
             val pathParams = ResourceDocMatcher.extractPathParams(req.uri.path, resourceDoc)
-            // Validate first (read-only, outside any transaction), then open a transaction
-            // only for the business logic so we hold no locks during auth / bank / account
-            // lookups.
+            // Validate first (read-only, outside any transaction), then run business logic.
+            // GET/HEAD are safe methods — no writes, no transaction needed; they run on
+            // auto-commit vendor connections (same as validation).  All other methods
+            // (POST/PUT/DELETE/PATCH) wrap routes.run in withRequestTransaction.
             OptionT(
               validateOnly(req, resourceDoc, pathParams, ccWithDoc).flatMap {
                 case Left(errorResponse) =>
                   IO.pure(Option(errorResponse))
                 case Right(enrichedReq) =>
-                  withRequestTransaction(
+                  val routeIO =
                     routes.run(enrichedReq)
                       .map(ensureJsonContentType)
                       .getOrElseF(IO.pure(ensureJsonContentType(Response[IO](org.http4s.Status.NotFound))))
-                  ).map(Option(_))
+                  val executed =
+                    if (req.method == Method.GET || req.method == Method.HEAD) routeIO
+                    else withRequestTransaction(routeIO)
+                  executed.map(Option(_))
               }
             )
 
@@ -130,9 +134,9 @@ object ResourceDocMiddleware extends MdcLoggable {
   /**
    * Wraps the business-logic IO in a request-scoped DB transaction.
    *
-   * Called only after validateOnly succeeds — validation (auth, roles, entity lookups)
-   * runs outside any transaction on auto-commit vendor connections, so no locks are
-   * held while those read-only queries execute.
+   * Called only for mutating methods (POST/PUT/DELETE/PATCH) after validateOnly succeeds.
+   * GET/HEAD bypass this entirely and run on auto-commit vendor connections, avoiding
+   * a pool borrow + empty-commit overhead on every read request.
    *
    * Borrows a Connection from HikariCP via Resource.make so close() is guaranteed
    * even if commit/rollback throws or the fiber is cancelled.  The proxy prevents
