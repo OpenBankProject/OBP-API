@@ -160,7 +160,7 @@ class RequestAwareConnectionManager(delegate: ConnectionManager) extends Connect
     if (proxy != null) {
       // Guard: if the underlying connection is already closed, the proxy is stale — it
       // was captured in a TtlRunnable submitted during a prior request and that request's
-      // withRequestTransaction has already committed and closed the real connection.
+      // withBusinessDBTransaction has already committed and closed the real connection.
       // Returning a stale proxy would throw "Connection is closed" inside the caller's
       // DB.use and, if that caller is inside authenticate, would be caught as Left(_)
       // and silently turned into a 401 response.
@@ -182,7 +182,7 @@ class RequestAwareConnectionManager(delegate: ConnectionManager) extends Connect
   }
 
   /**
-   * If conn is our request proxy, skip release — it is managed by withRequestTransaction.
+   * If conn is our request proxy, skip release — it is managed by withBusinessDBTransaction.
    * Otherwise delegate to the original vendor (which does HikariCP ProxyConnection.close()).
    *
    * Reference equality is safe: one proxy instance per request, same object throughout.
@@ -190,7 +190,7 @@ class RequestAwareConnectionManager(delegate: ConnectionManager) extends Connect
   override def releaseConnection(conn: Connection): Unit = {
     val proxy = RequestScopeConnection.currentProxy.get()
     if (proxy != null && (conn eq proxy.asInstanceOf[AnyRef])) {
-      // Skip release — this connection is managed by withRequestTransaction.
+      // Skip release — this connection is managed by withBusinessDBTransaction.
     } else {
       delegate.releaseConnection(conn)
     }

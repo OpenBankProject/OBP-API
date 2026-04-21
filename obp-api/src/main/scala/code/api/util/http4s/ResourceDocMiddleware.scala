@@ -102,7 +102,7 @@ object ResourceDocMiddleware extends MdcLoggable {
             // Validate first (read-only, outside any transaction), then run business logic.
             // GET/HEAD are safe methods — no writes, no transaction needed; they run on
             // auto-commit vendor connections (same as validation).  All other methods
-            // (POST/PUT/DELETE/PATCH) wrap routes.run in withRequestTransaction.
+            // (POST/PUT/DELETE/PATCH) wrap routes.run in withBusinessDBTransaction.
             OptionT(
               validateOnly(req, resourceDoc, pathParams, ccWithDoc).flatMap {
                 case Left(errorResponse) =>
@@ -114,7 +114,7 @@ object ResourceDocMiddleware extends MdcLoggable {
                       .getOrElseF(IO.pure(ensureJsonContentType(Response[IO](org.http4s.Status.NotFound))))
                   val executed =
                     if (req.method == Method.GET || req.method == Method.HEAD) routeIO
-                    else withRequestTransaction(routeIO)
+                    else withBusinessDBTransaction(routeIO)
                   executed.map(Option(_))
               }
             )
@@ -156,7 +156,7 @@ object ResourceDocMiddleware extends MdcLoggable {
    * currentProxy is not set — they get their own pool connection and commit
    * independently, matching v6 behaviour.
    */
-  private def withRequestTransaction(io: IO[Response[IO]]): IO[Response[IO]] =
+  private def withBusinessDBTransaction(io: IO[Response[IO]]): IO[Response[IO]] =
     Resource.make(
       IO.blocking(APIUtil.vendor.HikariDatasource.ds.getConnection())
     )(conn =>
