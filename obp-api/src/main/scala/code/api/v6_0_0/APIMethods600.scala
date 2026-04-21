@@ -3,7 +3,9 @@ package code.api.v6_0_0
 import scala.language.reflectiveCalls
 import code.accountattribute.AccountAttributeX
 import code.api.Constant._
-import code.api.{Constant, DirectLogin, ObpApiFailure}
+import code.api.{Constant, DirectLogin, JsonResponseException, ObpApiFailure}
+import code.api.dynamic.endpoint.helper.CompiledObjects
+import code.dynamicResourceDoc.JsonDynamicResourceDoc
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.cache.{Caching, Redis, RedisMessaging}
 import code.api.util.APIUtil._
@@ -69,7 +71,7 @@ import org.apache.commons.lang3.StringUtils
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.{Extraction, JsonParser}
-import net.liftweb.json.JsonAST.{JArray, JField, JObject, JString, JValue}
+import net.liftweb.json.JsonAST.{JArray, JField, JNothing, JObject, JString, JValue}
 import net.liftweb.json.JsonDSL._
 import net.liftweb.mapper.{By, Descending, MaxRows, NullRef, OrderBy}
 import code.api.util.ExampleValue
@@ -7893,6 +7895,111 @@ trait APIMethods600 {
             }
           } yield {
             (validationResult, HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      validateDynamicResourceDoc,
+      implementedInApiVersion,
+      nameOf(validateDynamicResourceDoc),
+      "POST",
+      "/management/dynamic-resource-docs/validate",
+      "Validate Dynamic Resource Doc",
+      s"""Dry-run validation of a Dynamic Resource Doc. Send the same payload you would send to `Create Dynamic Resource Doc` and this endpoint will:
+         |
+         |- Parse `method_body` (URL-decoded) as Scala code and run the ToolBox compiler against it, wrapped in the same template used at runtime (request/response case classes generated from `example_request_body` / `success_response_body`).
+         |- Run the OBP compilation-dependency guard (when the OBP prop `dynamic_code_compile_validate_enable` is set to `true`).
+         |
+         |Always returns HTTP 200. Inspect the `valid` field in the response:
+         |
+         |* `true`  — the Scala compiles and all referenced OBP methods are on the allowlist.
+         |* `false` — the response includes `error` (raw compiler / guard message), `message` (OBP error constant) and `details.error_type` — one of:
+         |  * `CompilationError` — `method_body` failed to compile.
+         |  * `DependencyError` — compiled, but references OBP types/methods that the admin has not allowed in `dynamic_code_compile_validate_dependencies`.
+         |  * `UnknownError` — any other unexpected exception.
+         |
+         |Nothing is persisted and no endpoint is served as a result of calling this.
+         |
+         |${userAuthenticationMessage(true)}
+         |""".stripMargin,
+      jsonDynamicResourceDoc.copy(dynamicResourceDocId = None),
+      ValidateDynamicResourceDocSuccessJsonV600(
+        valid = true,
+        message = "Dynamic Resource Doc method body is valid Scala and uses allowed dependencies."
+      ),
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagDynamicResourceDoc),
+      Some(List(canCreateDynamicResourceDoc))
+    )
+
+    lazy val validateDynamicResourceDoc: OBPEndpoint = {
+      case "management" :: "dynamic-resource-docs" :: "validate" :: Nil JsonPost json -> _ => {
+        cc =>
+          implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(user), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", user.userId, canCreateDynamicResourceDoc, callContext)
+            body <- NewStyle.function.tryons(
+              s"$InvalidJsonFormat The Json body should be the $JsonDynamicResourceDoc",
+              400,
+              callContext
+            ) {
+              json.extract[JsonDynamicResourceDoc]
+            }
+            _ <- Helper.booleanToFuture(
+              failMsg = s"""$InvalidJsonFormat The request_verb must be one of ["POST", "PUT", "GET", "DELETE"]""",
+              cc = callContext
+            ) {
+              Set("POST", "PUT", "GET", "DELETE").contains(body.requestVerb)
+            }
+            _ <- Helper.booleanToFuture(
+              failMsg = s"""$InvalidJsonFormat When request_verb is "GET" or "DELETE", the example_request_body must be a blank String "" or just totally omit the field""",
+              cc = callContext
+            ) {
+              (body.requestVerb, body.exampleRequestBody) match {
+                case ("GET" | "DELETE", Some(JString(s))) => StringUtils.isBlank(s)
+                case ("GET" | "DELETE", Some(rb)) => rb == JNothing
+                case _ => true
+              }
+            }
+            result = try {
+              CompiledObjects(body.exampleRequestBody, body.successResponseBody, body.methodBody)
+                .validateDependency()
+              ValidateDynamicResourceDocSuccessJsonV600(
+                valid = true,
+                message = "Dynamic Resource Doc method body is valid Scala and uses allowed dependencies."
+              )
+            } catch {
+              case e: JsonResponseException =>
+                // validateDependency throws JsonResponseException (OBP-40046) when the compiled
+                // code references types/methods outside the compile-time allowlist. The useful
+                // error text is in the response body, not getMessage.
+                val errorText = e.jsonResponse match {
+                  case JsonResponseExtractor(msg, _) => msg
+                  case _ => ""
+                }
+                ValidateDynamicResourceDocFailureJsonV600(
+                  valid = false,
+                  error = errorText,
+                  message = DynamicResourceDocMethodDependency,
+                  details = ValidateDynamicResourceDocErrorDetailsJsonV600(error_type = "DependencyError")
+                )
+              case e: Exception =>
+                ValidateDynamicResourceDocFailureJsonV600(
+                  valid = false,
+                  error = Option(e.getMessage).getOrElse(""),
+                  message = DynamicCodeCompileFail,
+                  details = ValidateDynamicResourceDocErrorDetailsJsonV600(error_type = "CompilationError")
+                )
+            }
+          } yield {
+            (result, HttpCode.`200`(callContext))
           }
       }
     }

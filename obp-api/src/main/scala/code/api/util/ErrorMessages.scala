@@ -769,18 +769,18 @@ object ErrorMessages {
 
   val ConnectorMethodNotFound = "OBP-40036: ConnectorMethod not found, please specify valid CONNECTOR_METHOD_ID. "
   val ConnectorMethodAlreadyExists = "OBP-40037: ConnectorMethod already exists. "
-  val ConnectorMethodBodyCompileFail = "OBP-40038: ConnectorMethod methodBody is illegal scala code, compilation failed. "
-  val DynamicResourceDocAlreadyExists = "OBP-40039: DynamicResourceDoc already exists."
+  val ConnectorMethodBodyCompileFail = "OBP-40038: ConnectorMethod methodBody is not valid Scala code, compilation failed. "
+  val DynamicResourceDocAlreadyExists = "OBP-40039: DynamicResourceDoc already exists. "
   val DynamicResourceDocNotFound = "OBP-40040: DynamicResourceDoc not found, please specify valid DYNAMIC_RESOURCE_DOC_ID. "
-  val DynamicResourceDocDeleteError = "OBP-40041: DynamicResourceDoc can not be deleted. "
+  val DynamicResourceDocDeleteError = "OBP-40041: DynamicResourceDoc could not be deleted. "
 
-  val DynamicMessageDocAlreadyExists = "OBP-40042: DynamicMessageDoc already exists."
+  val DynamicMessageDocAlreadyExists = "OBP-40042: DynamicMessageDoc already exists. "
   val DynamicMessageDocNotFound = "OBP-40043: DynamicMessageDoc not found, please specify valid DYNAMIC_MESSAGE_DOC_ID. "
-  val DynamicMessageDocDeleteError = "OBP-40044: DynamicMessageDoc can not be deleted. "
-  val DynamicCodeCompileFail = "OBP-40045: The code to do compile is illegal scala code, compilation failed. "
+  val DynamicMessageDocDeleteError = "OBP-40044: DynamicMessageDoc could not be deleted. "
+  val DynamicCodeCompileFail = "OBP-40045: The code to compile is not valid Scala code, compilation failed. "
 
-  val DynamicResourceDocMethodDependency = "OBP-40046: DynamicResourceDoc method call forbidden methods. "
-  val DynamicResourceDocMethodPermission = "OBP-40047: DynamicResourceDoc method have no enough permissions. "
+  val DynamicResourceDocMethodDependency = "OBP-40046: DynamicResourceDoc method calls a forbidden method. "
+  val DynamicResourceDocMethodPermission = "OBP-40047: DynamicResourceDoc method does not have sufficient permissions. "
   val DynamicCodeLangNotSupport = "OBP-40049: This language of dynamic code is not supported. "
 
   val InvalidOperationId = "OBP-40048: Invalid operation_id, please specify valid operation_id."

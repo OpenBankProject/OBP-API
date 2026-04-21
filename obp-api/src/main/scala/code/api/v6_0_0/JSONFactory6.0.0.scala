@@ -840,6 +840,22 @@ case class ValidateAbacRuleFailureJsonV600(
     details: ValidateAbacRuleErrorDetailsJsonV600
 )
 
+case class ValidateDynamicResourceDocSuccessJsonV600(
+    valid: Boolean,
+    message: String
+)
+
+case class ValidateDynamicResourceDocErrorDetailsJsonV600(
+    error_type: String
+)
+
+case class ValidateDynamicResourceDocFailureJsonV600(
+    valid: Boolean,
+    error: String,
+    message: String,
+    details: ValidateDynamicResourceDocErrorDetailsJsonV600
+)
+
 case class AbacParameterJsonV600(
     name: String,
     `type`: String,
