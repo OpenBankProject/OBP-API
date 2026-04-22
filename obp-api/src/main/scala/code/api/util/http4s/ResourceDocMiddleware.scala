@@ -2,6 +2,7 @@ package code.api.util.http4s
 
 import cats.data.{EitherT, Kleisli, OptionT}
 import cats.effect._
+import code.api.Constant
 import code.api.v7_0_0.Http4s700
 import code.api.APIFailureNewStyle
 import code.api.util.APIUtil.ResourceDoc
@@ -16,7 +17,9 @@ import net.liftweb.common.{Box, Empty, Full}
 import org.http4s._
 import org.http4s.headers.`Content-Type`
 
+import java.sql.Connection
 import scala.collection.mutable.ArrayBuffer
+import scala.concurrent.duration._
 import scala.util.control.NonFatal
 
 /**
@@ -39,6 +42,10 @@ object ResourceDocMiddleware extends MdcLoggable {
 
   /** Type alias for http4s OptionT route effect */
   type HttpF[A] = OptionT[IO, A]
+
+  // Same prop as FutureUtil.defaultTimeout — one setting controls both v6 and v7.
+  // Default 55 s.  Override with long_endpoint_timeout in props.
+  private def endpointTimeoutMs: Long = Constant.longEndpointTimeoutInMillis
 
   /** Type alias for validation effect using EitherT */
   type Validation[A] = EitherT[IO, Response[IO], A]
@@ -103,7 +110,7 @@ object ResourceDocMiddleware extends MdcLoggable {
             // GET/HEAD are safe methods — no writes, no transaction needed; they run on
             // auto-commit vendor connections (same as validation).  All other methods
             // (POST/PUT/DELETE/PATCH) wrap routes.run in withBusinessDBTransaction.
-            OptionT(
+            val work: IO[Option[Response[IO]]] =
               validateOnly(req, resourceDoc, pathParams, ccWithDoc).flatMap {
                 case Left(errorResponse) =>
                   IO.pure(Option(errorResponse))
@@ -117,7 +124,7 @@ object ResourceDocMiddleware extends MdcLoggable {
                     else withBusinessDBTransaction(routeIO)
                   executed.map(Option(_))
               }
-            )
+            OptionT(work.timeoutTo(endpointTimeoutMs.millis, endpointTimeoutResponse(req)))
 
           case None =>
             // No matching ResourceDoc: fallback to original route (NO transaction scope opened).
@@ -131,52 +138,71 @@ object ResourceDocMiddleware extends MdcLoggable {
     }
   }
 
+  /** 504 response emitted when endpointTimeoutMs elapses before the handler completes. */
+  private def endpointTimeoutResponse(req: Request[IO]): IO[Option[Response[IO]]] = IO {
+    logger.warn(
+      s"[ResourceDocMiddleware] Endpoint timeout after ${endpointTimeoutMs}ms: " +
+      s"${req.method.name} ${req.uri.renderString}"
+    )
+    val body = s"""{"message":"Request timeout: backend service did not respond within ${endpointTimeoutMs}ms."}"""
+    Some(ensureJsonContentType(
+      Response[IO](org.http4s.Status.GatewayTimeout).withEntity(body.getBytes("UTF-8"))
+    ))
+  }
+
   /**
-   * Wraps the business-logic IO in a request-scoped DB transaction.
+   * Activates a lazy request-scoped DB transaction for mutating methods
+   * (POST/PUT/DELETE/PATCH).  GET/HEAD bypass this entirely.
    *
-   * Called only for mutating methods (POST/PUT/DELETE/PATCH) after validateOnly succeeds.
-   * GET/HEAD bypass this entirely and run on auto-commit vendor connections, avoiding
-   * a pool borrow + empty-commit overhead on every read request.
+   * NO connection is borrowed upfront.  Instead, a once-only acquisition IO is
+   * installed in requestLazyAcquire.  The first fromFuture call that actually needs
+   * a DB connection triggers the acquisition; endpoints that only call external REST
+   * or SOAP connectors never touch the pool at all.
    *
-   * Borrows a Connection from HikariCP via Resource.make so close() is guaranteed
-   * even if commit/rollback throws or the fiber is cancelled.  The proxy prevents
-   * Lift's internal DB.use lifecycle from committing or returning the connection
-   * prematurely.
+   * Concurrent acquisition (rare — most handlers are sequential for-comprehensions):
+   * the inner Deferred serialises callers.  The first fiber to complete it wins;
+   * any concurrent loser closes its own connection immediately and shares the winner's
+   * proxy.  All fibers use one underlying Connection and one transaction.
    *
    * currentProxy (TTL) is NOT set here.  Every DB call goes through
    * RequestScopeConnection.fromFuture, which atomically sets + submits + clears the
-   * TTL within a single IO.defer block on the compute thread, so the thread is never
-   * left dirty after the fromFuture call returns.
+   * TTL within a single IO.defer block on the compute thread.
    *
-   * On success: commits, then Resource finalizer closes.
-   * On error/cancellation: rolls back (errors swallowed to preserve original cause),
-   *   then Resource finalizer closes.
-   *
-   * Metric writes (IO.blocking in recordMetric) run on the blocking pool where
-   * currentProxy is not set — they get their own pool connection and commit
-   * independently, matching v6 behaviour.
+   * On success (connection was acquired): commit, then close.
+   * On error/cancel (connection was acquired): rollback (errors swallowed), then close.
+   * If no DB call was made: deferred is never completed → nothing to commit or close.
    */
   private def withBusinessDBTransaction(io: IO[Response[IO]]): IO[Response[IO]] =
-    Resource.make(
-      IO.blocking(APIUtil.vendor.HikariDatasource.ds.getConnection())
-    )(conn =>
-      IO.blocking { try { conn.close() } catch { case _: Exception => () } }
-    ).use { realConn =>
-      val proxy = RequestScopeConnection.makeProxy(realConn)
-      for {
-        _ <- RequestScopeConnection.requestProxyLocal.set(Some(proxy))
-        // Note: currentProxy (TTL) is NOT set here.  Every DB call goes through
-        // RequestScopeConnection.fromFuture, which atomically sets + submits + clears
-        // the TTL within a single IO.defer block on the compute thread.
-        result <- io.guaranteeCase {
-                    case Outcome.Succeeded(_) =>
-                      RequestScopeConnection.requestProxyLocal.set(None) *>
-                        IO.blocking { realConn.commit() }
-                    case _ =>
-                      RequestScopeConnection.requestProxyLocal.set(None) *>
-                        IO.blocking { try { realConn.rollback() } catch { case _: Exception => () } }
-                  }
-      } yield result
+    Deferred[IO, (Connection, Connection)].flatMap { deferred =>
+      // acquireOnce: idempotent across concurrent callers via the Deferred.
+      // The loser of the complete() race discards its own connection and awaits
+      // the winner's proxy so all fibers share one transaction.
+      val acquireOnce: IO[Connection] = for {
+        realConn <- IO.blocking(APIUtil.vendor.HikariDatasource.ds.getConnection())
+        _        <- IO.blocking { realConn.setAutoCommit(false) }
+        proxy    =  RequestScopeConnection.makeProxy(realConn)
+        ok       <- deferred.complete((realConn, proxy))
+        _        <- if (!ok) IO.blocking { try { realConn.close() } catch { case _: Exception => () } }
+                    else IO.unit
+        p        <- deferred.get.map(_._2)
+      } yield p
+
+      RequestScopeConnection.requestLazyAcquire.set(Some(acquireOnce)).bracket(_ =>
+        io.guaranteeCase { outcome =>
+          deferred.tryGet.flatMap {
+            case None => IO.unit   // no DB calls — pool unaffected
+            case Some((realConn, _)) =>
+              RequestScopeConnection.requestProxyLocal.set(None) *>
+                (outcome match {
+                  case Outcome.Succeeded(_) =>
+                    IO.blocking { realConn.commit() }
+                  case _ =>
+                    IO.blocking { try { realConn.rollback() } catch { case _: Exception => () } }
+                }) *>
+                IO.blocking { try { realConn.close() } catch { case _: Exception => () } }
+          }
+        }
+      )(_ => RequestScopeConnection.requestLazyAcquire.set(None))
     }
 
   /**

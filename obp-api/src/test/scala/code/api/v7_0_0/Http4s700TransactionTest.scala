@@ -18,9 +18,10 @@ import scala.concurrent.duration._
 /**
  * Integration tests for the v7 request-scoped transaction feature.
  *
- * Each HTTP request handled by the http4s stack runs inside
+ * Each mutating HTTP request handled by the http4s stack runs inside
  * `ResourceDocMiddleware.withBusinessDBTransaction`, which:
- *   - Borrows one real JDBC connection from HikariCP
+ *   - Lazily borrows one real JDBC connection from HikariCP on the first DB call
+ *     (endpoints that only call external REST/SOAP connectors never touch the pool)
  *   - Wraps it in a non-closing proxy so Lift Mapper cannot commit early
  *   - Commits on Outcome.Succeeded (HTTP 2xx or error response)
  *   - Rolls back on Outcome.Errored / Outcome.Canceled (uncaught exception)

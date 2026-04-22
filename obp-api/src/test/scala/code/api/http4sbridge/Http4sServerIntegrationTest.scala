@@ -42,6 +42,17 @@ class Http4sServerIntegrationTest extends ServerSetup with DefaultUsers with Ser
     AccountAccess.bulkDelete_!!()
   }
 
+  private def makeHttp4sGetRequestFull(path: String, reqHeaders: Map[String, String] = Map.empty): (Int, String, Option[String]) = {
+    val request = url(s"$baseUrl$path")
+    val requestWithHeaders = reqHeaders.foldLeft(request) { case (req, (key, value)) =>
+      req.addHeader(key, value)
+    }
+    val response = Http.default(requestWithHeaders.setHeader("Accept", "*/*") > as.Response(p =>
+      (p.getStatusCode, p.getResponseBody, Option(p.getHeader("X-OBP-Version-Served")).filter(_.nonEmpty))
+    ))
+    Await.result(response, 10.seconds)
+  }
+
   private def makeHttp4sGetRequest(path: String, headers: Map[String, String] = Map.empty): (Int, String) = {
     val request = url(s"$baseUrl$path")
     val requestWithHeaders = headers.foldLeft(request) { case (req, (key, value)) =>
@@ -234,13 +245,30 @@ class Http4sServerIntegrationTest extends ServerSetup with DefaultUsers with Ser
     scenario("GET /obp/v7.0.0/resource-docs/v7.0.0/obp returns resource docs", Http4sServerIntegrationTag) {
       When("We request resource documentation")
       val (status, body) = makeHttp4sGetRequest("/obp/v7.0.0/resource-docs/v7.0.0/obp")
-      
+
       Then("We should get a 200 response")
       status should equal(200)
-      
+
       And("Response should contain resource docs array")
       val json = parse(body)
       json \ "resource_docs" should not equal JObject(Nil)
+    }
+
+    scenario("v7.0.0 unmigrated path falls back to v6.0.0 via Lift bridge", Http4sServerIntegrationTag) {
+      When("We request an unmigrated v7.0.0 endpoint (/consumers/current exists in v6 but not v7)")
+      val (status, body, versionServed) = makeHttp4sGetRequestFull("/obp/v7.0.0/consumers/current")
+
+      Then("We get a proper OBP error response, not a version-not-found 404")
+      status should (equal(401) or equal(200) or equal(403))
+
+      And("X-OBP-Version-Served header indicates the fallback version")
+      versionServed should equal(Some("v6.0.0"))
+
+      When("We request a native v7.0.0 endpoint (/banks is migrated)")
+      val (_, _, nativeVersionServed) = makeHttp4sGetRequestFull("/obp/v7.0.0/banks")
+
+      Then("Native v7 endpoints do not set X-OBP-Version-Served")
+      nativeVersionServed should equal(None)
     }
   }
 
