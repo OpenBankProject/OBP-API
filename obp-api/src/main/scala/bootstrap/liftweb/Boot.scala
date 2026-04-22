@@ -110,7 +110,7 @@ import code.productAttributeattribute.MappedProductAttribute
 import code.productcollection.MappedProductCollection
 import code.productcollectionitem.MappedProductCollectionItem
 import code.productfee.ProductFee
-import code.products.MappedProduct
+import code.products.{MappedProduct, ProductTag}
 import code.ratelimiting.RateLimiting
 import code.regulatedentities.MappedRegulatedEntity
 import code.regulatedentities.attribute.RegulatedEntityAttribute
@@ -1149,6 +1149,7 @@ object ToSchemify {
     DynamicMessageDoc,
     EndpointTag,
     ProductFee,
+    ProductTag,
     ViewPermission,
     UserInitAction,
     CounterpartyLimit,

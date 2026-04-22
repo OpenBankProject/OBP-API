@@ -2560,13 +2560,31 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
   override def getProducts(bankId: BankId, params: List[GetProductsParam], callContext: Option[CallContext]): OBPReturnType[Box[List[Product]]] = {
     Future{Box !! {
-      if (params.isEmpty) {
-        MappedProduct.findAll(By(MappedProduct.mBankId, bankId.value))
+      // `tag` params are resolved via the ProductTag table (AND semantics when repeated); the rest
+      // continue to be treated as MappedProductAttribute filters.
+      val (tagParams, attributeParams) = params.partition(_.name.toLowerCase == "tag")
+      val requestedTags = tagParams.flatMap(_.value).map(_.trim).filter(_.nonEmpty)
+      val codesFromTags: Option[Set[String]] =
+        if (requestedTags.isEmpty) None
+        else Some(code.products.ProductTagsProvider.getProductCodesWithAllTags(bankId, requestedTags))
+
+      // Short-circuit if the tag filter yielded no matches.
+      if (codesFromTags.exists(_.isEmpty)) Nil
+      else if (attributeParams.isEmpty) {
+        codesFromTags match {
+          case Some(codes) =>
+            MappedProduct.findAll(
+              By(MappedProduct.mBankId, bankId.value),
+              ByList(MappedProduct.mCode, codes.toList)
+            )
+          case None =>
+            MappedProduct.findAll(By(MappedProduct.mBankId, bankId.value))
+        }
       } else {
-        val paramList: List[(String, List[String])] = params.map(it => it.name -> it.value)
+        val paramList: List[(String, List[String])] = attributeParams.map(it => it.name -> it.value)
         val parameters: List[String] = MappedProductAttribute.getParameters(paramList)
         val sqlParametersFilter = MappedProductAttribute.getSqlParametersFilter(paramList)
-        val productIdList = paramList.isEmpty match {
+        val codesFromAttrs: List[String] = paramList.isEmpty match {
           case true =>
             MappedProductAttribute.findAll(
               By(MappedProductAttribute.mBankId, bankId.value)
@@ -2577,7 +2595,11 @@ object LocalMappedConnector extends Connector with MdcLoggable {
               BySql(sqlParametersFilter, IHaveValidatedThisSQL("developer","2020-06-28"), parameters:_*)
             ).map(_.productCode.value)
         }
-        MappedProduct.findAll(ByList(MappedProduct.mCode, productIdList))
+        val finalCodes = codesFromTags match {
+          case Some(tagSet) => codesFromAttrs.filter(tagSet.contains)
+          case None => codesFromAttrs
+        }
+        MappedProduct.findAll(ByList(MappedProduct.mCode, finalCodes))
       }
     }
   }}.map(products => (products, callContext))
@@ -3070,7 +3092,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                      details: String,
                                      description: String,
                                      metaLicenceId: String,
-                                     metaLicenceName: String, 
+                                     metaLicenceName: String,
                                      callContext: Option[CallContext]): OBPReturnType[Box[Product]] = Future{
 
     //check the product existence and update or insert data

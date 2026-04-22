@@ -408,6 +408,12 @@ object ApiRole extends MdcLoggable{
   case class CanCreateProductAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
   lazy val canCreateProductAtAnyBank = CanCreateProductAtAnyBank()
 
+  case class CanUpdateProductTagsAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canUpdateProductTagsAtOneBank = CanUpdateProductTagsAtOneBank()
+
+  case class CanUpdateProductTagsAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canUpdateProductTagsAtAnyBank = CanUpdateProductTagsAtAnyBank()
+
   case class CanCreateFxRate(requiresBankId: Boolean = true) extends ApiRole
   lazy val canCreateFxRate = CanCreateFxRate()
 
