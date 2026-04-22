@@ -655,6 +655,15 @@ object JSONFactory1_4_0 extends MdcLoggable{
     }
   }
   
+  // Helper function to detect nested arrays (JArray containing JArray)
+  def isNestedArray(value: Any): Boolean = value match {
+    case JArray(List(f, _*)) => f match {
+      case _: JArray => true
+      case _ => false
+    }
+    case _ => false
+  }
+
   //please check issue first: https://github.com/OpenBankProject/OBP-API/issues/877
   //change: 
   // { "first_name": "George"} -->  {"type": "object","properties": {"first_name": {"type": "string" }
@@ -672,10 +681,37 @@ object JSONFactory1_4_0 extends MdcLoggable{
       case v => v
     }
 
+    // Early return for JArray - handle both nested arrays and primitive arrays
+    // This prevents JArray's internal "arr" field from being extracted by reflection
+    extractedEntity match {
+      case JArray(List(f, _*)) if isNestedArray(extractedEntity) =>
+        // Nested array: recursively generate nested array schema
+        val innerSchema = translateEntity(f, false)
+        return """{"type": "array", "items": """ + innerSchema + "}"
+      case JArray(List(f, _*)) =>
+        // Non-nested array: generate array schema with primitive or object items
+        val itemType = f match {
+          case _: JInt => """{"type": "integer"}"""
+          case _: JDouble => """{"type": "number"}"""
+          case _: JBool => """{"type": "boolean"}"""
+          case _: JString => """{"type": "string"}"""
+          case _: JArray => 
+            // This is a nested array - recursively handle it
+            translateEntity(f, false)
+          case _ => translateEntity(f, false) // For objects or other complex types
+        }
+        return """{"type": "array", "items": """ + itemType + "}"
+      case JArray(List()) =>
+        // Empty array
+        return """{"type": "array"}"""
+      case _ => // Continue with normal processing
+    }
+
     val mapOfFields: Map[String, Any] = extractedEntity match {
 
       case ListResult(name, results) => Map((name, results))
       case JObject(jFields) => jFields.map(it => (it.name, it.value)).toMap
+      case _: JArray => Map.empty // Don't extract fields from JArray - it has internal "arr" field
       case _ => ReflectUtils.getFieldValues(extractedEntity.asInstanceOf[AnyRef])()
     }
 
@@ -754,6 +790,12 @@ object JSONFactory1_4_0 extends MdcLoggable{
         case Some(List(i: BigDecimal, _*)) => "\""  + key + """": {"type": "array","items": {"type": "number"}}"""
 
         //List case classes.
+        // Handle nested arrays (JArray containing JArray) - generate pure nested array schema
+        case JArray(List(f,_*)) if f.isInstanceOf[JArray] => 
+          // For nested arrays, recursively generate nested array schema
+          // The recursive call will handle further nesting
+          val innerSchema = translateEntity(f, false)
+          "\""  + key + """": {"type": "array", "items": """ + innerSchema + "}"
         case JArray(List(f,_*))            => "\""  + key + """":""" +translateEntity(f,true)
         case List(f)                       => "\""  + key + """":""" +translateEntity(f,true)
         case List(f,_*)                    => "\""  + key + """":""" +translateEntity(f,true)
