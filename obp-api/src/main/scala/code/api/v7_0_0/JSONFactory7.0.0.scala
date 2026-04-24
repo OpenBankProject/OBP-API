@@ -2,12 +2,38 @@ package code.api.v7_0_0
 
 import code.api.Constant
 import code.api.util.APIUtil
+import code.api.util.ErrorMessages
 import code.api.util.ErrorMessages.MandatoryPropertyIsNotSet
 import code.api.v4_0_0.{EnergySource400, HostedAt400, HostedBy400}
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.util.ApiVersion
 
 object JSONFactory700 extends MdcLoggable {
+
+  case class ErrorMessageEntryJsonV700(code: String, name: String, message: String)
+
+  // Cached for server lifetime: ErrorMessages is a static catalog of `val X = "OBP-NNNNN: ..."`
+  // strings, so reflecting over it once at first access is sufficient. Filters:
+  //  - only String-typed fields (skips synthetic lazy-val bitmaps and helper defs)
+  //  - only values starting with "OBP-" (skips helper strings that don't carry a code)
+  lazy val errorMessagesCatalog: List[ErrorMessageEntryJsonV700] = {
+    ErrorMessages.getClass.getDeclaredFields.toList
+      .filter(f => f.getType == classOf[String])
+      .flatMap { f =>
+        f.setAccessible(true)
+        Option(f.get(ErrorMessages)).collect { case s: String => s }
+          .filter(_.startsWith("OBP-"))
+          .map { msg =>
+            val colonIdx = msg.indexOf(':')
+            val (code, text) =
+              if (colonIdx > 0) (msg.substring(0, colonIdx), msg.substring(colonIdx + 1).trim)
+              else ("", msg)
+            ErrorMessageEntryJsonV700(code = code, name = f.getName, message = text)
+          }
+      }
+      .sortBy(e => (e.code, e.name))
+  }
+
 
   case class APIInfoJsonV700(
     version: String,

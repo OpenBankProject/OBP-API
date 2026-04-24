@@ -609,6 +609,44 @@ object Http4s700 {
       http4sPartialFunction = Some(getConnectors)
     )
 
+    // Route: GET /obp/v7.0.0/api/error-messages
+    val getErrorMessages: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "api" / "error-messages" =>
+        EndpointHelpers.executeAndRespond(req) { _ =>
+          Future.successful(ListResult("error_messages", JSONFactory700.errorMessagesCatalog))
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(getErrorMessages),
+      "GET",
+      "/api/error-messages",
+      "Get Error Messages",
+      """Returns the catalog of OBP error codes and messages defined in this API instance.
+        |
+        |Each entry has the OBP error code (e.g. `OBP-00001`), the internal name of the
+        |constant, and the human-readable message text.
+        |
+        |The catalog is derived by reflecting over `ErrorMessages` at first access and
+        |cached for the lifetime of the server.
+        |
+        |No Authentication is Required.""".stripMargin,
+      EmptyBody,
+      ListResult(
+        "error_messages",
+        List(JSONFactory700.ErrorMessageEntryJsonV700(
+          code    = "OBP-00001",
+          name    = "HostnameNotSpecified",
+          message = "Hostname not specified. Could not get hostname from Props."
+        ))
+      ),
+      List(UnknownError),
+      apiTagDocumentation :: apiTagApi :: Nil,
+      http4sPartialFunction = Some(getErrorMessages)
+    )
+
     // Route: GET /obp/v7.0.0/providers
     val getProviders: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ GET -> `prefixPath` / "providers" =>
