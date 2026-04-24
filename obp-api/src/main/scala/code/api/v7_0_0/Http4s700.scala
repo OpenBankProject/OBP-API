@@ -911,7 +911,9 @@ object Http4s700 {
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/trading/offers",
       "Create Trading Offer",
-      """Create a new trading offer to buy or sell digital assets.
+      """**WORK IN PROGRESS**
+        |
+        |Create a new trading offer to buy or sell digital assets.
         |
         |The offer will be matched against existing offers in the order book.
         |The offer_id is automatically generated as a UUID.
@@ -972,7 +974,9 @@ object Http4s700 {
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/trading/offers/OFFER_ID",
       "Get Trading Offer",
-      """Get details of a specific trading offer including execution history.
+      """**WORK IN PROGRESS**
+        |
+        |Get details of a specific trading offer including execution history.
         |
         |Authentication is required.""",
       EmptyBody,
@@ -1037,7 +1041,9 @@ object Http4s700 {
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/trading/offers",
       "Get Trading Offers",
-      """Get a list of trading offers for a specific account.
+      """**WORK IN PROGRESS**
+        |
+        |Get a list of trading offers for a specific account.
         |
         |Optional query parameters:
         |- status: Filter by offer status (e.g., "active", "cancelled", "filled", "expired")
@@ -1117,7 +1123,9 @@ object Http4s700 {
       "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/trading/offers/OFFER_ID",
       "Update Trading Offer",
-      """Update an existing trading offer.
+      """**WORK IN PROGRESS**
+        |
+        |Update an existing trading offer.
         |
         |Only certain fields can be updated:
         |- price_amount: New price per unit
@@ -1179,7 +1187,9 @@ object Http4s700 {
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/trading/offers/OFFER_ID",
       "Cancel Trading Offer",
-      """Cancel an active trading offer.
+      """**WORK IN PROGRESS**
+        |
+        |Cancel an active trading offer.
         |
         |This operation is idempotent - canceling an already-cancelled offer returns success.
         |
@@ -1249,7 +1259,9 @@ object Http4s700 {
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/market/orders",
       "Create Market Order",
-      """Create a new market order to buy or sell assets.
+      """**WORK IN PROGRESS**
+        |
+        |Create a new market order to buy or sell assets.
         |
         |The order will be matched against existing orders in the order book.
         |The order_id is automatically generated as a UUID.
@@ -1305,7 +1317,9 @@ object Http4s700 {
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/market/orders/ORDER_ID",
       "Get Market Order",
-      """Get details of a specific market order.
+      """**WORK IN PROGRESS**
+        |
+        |Get details of a specific market order.
         |
         |Authentication is required.""",
       EmptyBody,
@@ -1352,7 +1366,9 @@ object Http4s700 {
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/market/orders/ORDER_ID",
       "Cancel Market Order",
-      """Cancel an active market order.
+      """**WORK IN PROGRESS**
+        |
+        |Cancel an active market order.
         |
         |This operation is idempotent - canceling an already-cancelled order returns success.
         |
@@ -1418,7 +1434,9 @@ object Http4s700 {
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/market/matches",
       "Create Market Match",
-      """Create a match between two market orders.
+      """**WORK IN PROGRESS**
+        |
+        |Create a match between two market orders.
         |
         |This creates a MarketMatch and automatically generates a corresponding MarketTrade.
         |
@@ -1470,7 +1488,9 @@ object Http4s700 {
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/market/trades/TRADE_ID",
       "Get Market Trade",
-      """Get details of a specific market trade.
+      """**WORK IN PROGRESS**
+        |
+        |Get details of a specific market trade.
         |
         |Authentication is required.""",
       EmptyBody,
@@ -1517,7 +1537,9 @@ object Http4s700 {
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/market/settlements",
       "Request Settlement",
-      """Request settlement for a completed trade.
+      """**WORK IN PROGRESS**
+        |
+        |Request settlement for a completed trade.
         |
         |Authentication is required.""",
       JSONFactory700.RequestSettlementJson(
@@ -1584,7 +1606,9 @@ object Http4s700 {
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/market/deposits",
       "Notify Deposit",
-      """Record a blockchain deposit notification.
+      """**WORK IN PROGRESS**
+        |
+        |Record a blockchain deposit notification.
         |
         |Authentication is required.""",
       JSONFactory700.NotifyDepositJson(
@@ -1651,7 +1675,9 @@ object Http4s700 {
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/market/withdrawals",
       "Request Withdrawal",
-      """Request a withdrawal to a blockchain address.
+      """**WORK IN PROGRESS**
+        |
+        |Request a withdrawal to a blockchain address.
         |
         |The withdrawal_id is automatically generated as a UUID.
         |Each request creates a new withdrawal with a unique withdrawal_id.
@@ -1722,7 +1748,9 @@ object Http4s700 {
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/market/payment-auths",
       "Create Payment Authorization (TCC Preauth)",
-      """Create a payment authorization for a trade settlement using the Try-Confirm-Cancel (TCC) pattern.
+      """**WORK IN PROGRESS**
+        |
+        |Create a payment authorization for a trade settlement using the Try-Confirm-Cancel (TCC) pattern.
         |
         |This creates a PREAUTH state authorization that freezes funds for the trade.
         |The auth_id is automatically generated as a UUID.
@@ -1786,7 +1814,9 @@ object Http4s700 {
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/market/payment-auths/AUTH_ID/capture",
       "Capture Payment Authorization (TCC Confirm)",
-      """Capture a payment authorization to complete the trade settlement.
+      """**WORK IN PROGRESS**
+        |
+        |Capture a payment authorization to complete the trade settlement.
         |
         |This transitions the authorization from PREAUTH to CAPTURED state.
         |Funds are actually deducted from the buyer's account.
@@ -1841,7 +1871,9 @@ object Http4s700 {
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/market/payment-auths/AUTH_ID/release",
       "Release Payment Authorization (TCC Cancel)",
-      """Release a payment authorization to cancel the trade settlement.
+      """**WORK IN PROGRESS**
+        |
+        |Release a payment authorization to cancel the trade settlement.
         |
         |This transitions the authorization to RELEASED state.
         |Frozen funds are unfrozen (if PREAUTH) or refunded (if CAPTURED).
@@ -1896,7 +1928,9 @@ object Http4s700 {
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/market/payment-auths/AUTH_ID",
       "Get Payment Authorization",
-      """Get details of a payment authorization.
+      """**WORK IN PROGRESS**
+        |
+        |Get details of a payment authorization.
         |
         |Returns the current state and details of the authorization.
         |
