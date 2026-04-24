@@ -840,6 +840,22 @@ case class ValidateAbacRuleFailureJsonV600(
     details: ValidateAbacRuleErrorDetailsJsonV600
 )
 
+case class ValidateDynamicResourceDocSuccessJsonV600(
+    valid: Boolean,
+    message: String
+)
+
+case class ValidateDynamicResourceDocErrorDetailsJsonV600(
+    error_type: String
+)
+
+case class ValidateDynamicResourceDocFailureJsonV600(
+    valid: Boolean,
+    error: String,
+    message: String,
+    details: ValidateDynamicResourceDocErrorDetailsJsonV600
+)
+
 case class AbacParameterJsonV600(
     name: String,
     `type`: String,
@@ -1035,7 +1051,8 @@ case class PostPutApiProductJsonV600(
   per_hour_call_limit: Option[Long],
   per_day_call_limit: Option[Long],
   per_week_call_limit: Option[Long],
-  per_month_call_limit: Option[Long]
+  per_month_call_limit: Option[Long],
+  tags: Option[List[String]]
 )
 
 case class ApiProductJsonV600(
@@ -1057,10 +1074,30 @@ case class ApiProductJsonV600(
   per_day_call_limit: Long,
   per_week_call_limit: Long,
   per_month_call_limit: Long,
+  tags: List[String],
   attributes: Option[List[ApiProductAttributeResponseJsonV600]]
 )
 
 case class ApiProductsJsonV600(api_products: List[ApiProductJsonV600])
+
+// Financial Product (v6.0.0) — adds `tags` on top of the v4.0.0 shape.
+case class ProductJsonV600(
+  bank_id: String,
+  product_code: String,
+  parent_product_code: String,
+  name: String,
+  more_info_url: String,
+  terms_and_conditions_url: String,
+  description: String,
+  meta: MetaJsonV140,
+  tags: List[String],
+  attributes: Option[List[ProductAttributeResponseWithoutBankIdJson]],
+  fees: Option[List[ProductFeeJsonV400]]
+)
+
+case class ProductsJsonV600(products: List[ProductJsonV600])
+
+case class ProductTagsJsonV600(tags: List[String])
 
 case class ApiProductAttributeJsonV600(
   name: String,
@@ -2277,7 +2314,9 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       Constant.CONNECTOR_NAMESPACE -> ("Connector cache", "Connector"),
       Constant.METRICS_STABLE_NAMESPACE -> ("Stable metrics data", "Metrics"),
       Constant.METRICS_RECENT_NAMESPACE -> ("Recent metrics data", "Metrics"),
-      Constant.ABAC_RULE_NAMESPACE -> ("ABAC rule cache", "Authorization")
+      Constant.ABAC_RULE_NAMESPACE -> ("ABAC rule cache", "Authorization"),
+      Constant.FINANCIAL_PRODUCTS_NAMESPACE -> ("Financial product list (bank-scoped and all-banks)", "Products"),
+      Constant.API_PRODUCTS_NAMESPACE -> ("Api product list (all banks)", "Products")
     )
 
     var redisAvailable = true
@@ -2739,6 +2778,7 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       per_day_call_limit = product.perDayCallLimit,
       per_week_call_limit = product.perWeekCallLimit,
       per_month_call_limit = product.perMonthCallLimit,
+      tags = product.tags,
       attributes = attributes.map(_.map(createApiProductAttributeResponseJsonV600))
     )
   }
@@ -2747,6 +2787,30 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
     products: List[ApiProductTrait]
   ): ApiProductsJsonV600 = {
     ApiProductsJsonV600(products.map(p => createApiProductJsonV600(p, None)))
+  }
+
+  def createProductJsonV600(product: Product, tags: List[String]): ProductJsonV600 = {
+    ProductJsonV600(
+      bank_id = product.bankId.value,
+      product_code = product.code.value,
+      parent_product_code = product.parentProductCode.value,
+      name = product.name,
+      more_info_url = product.moreInfoUrl,
+      terms_and_conditions_url = product.termsAndConditionsUrl,
+      description = product.description,
+      meta = createMetaJson(product.meta),
+      tags = tags,
+      attributes = None,
+      fees = None
+    )
+  }
+
+  def createProductsJsonV600(products: List[Product], tagsByCode: Map[String, List[String]]): ProductsJsonV600 = {
+    ProductsJsonV600(products.map(p => createProductJsonV600(p, tagsByCode.getOrElse(p.code.value, Nil))))
+  }
+
+  def createProductTagsJsonV600(tags: List[String]): ProductTagsJsonV600 = {
+    ProductTagsJsonV600(tags = tags)
   }
 
   def createConnectorTraceJsonV600(trace: ConnectorTrace): ConnectorTraceJsonV600 = {

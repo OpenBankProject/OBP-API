@@ -76,4 +76,3 @@ class MappedProduct extends Product with LongKeyedMapper[MappedProduct] with IdP
 object MappedProduct extends MappedProduct with LongKeyedMetaMapper[MappedProduct] {
   override def dbIndexes = UniqueIndex(mBankId, mCode) :: Index(mBankId) :: super.dbIndexes
 }
-

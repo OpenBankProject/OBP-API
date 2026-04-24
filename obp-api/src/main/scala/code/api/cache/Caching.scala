@@ -88,6 +88,29 @@ object Caching extends MdcLoggable {
   def setStaticSwaggerDocCache(key:String, value: String)= {
     use(JedisMethod.SET, (STATIC_SWAGGER_DOC_CACHE_KEY_PREFIX+key).intern(), Some(GET_STATIC_RESOURCE_DOCS_TTL), Some(value))
   }
+  // Fail-safe wrappers around Redis.use for product caches. If Redis is unreachable (dev without a
+  // running Redis, transient failure, etc.) we treat it as a miss and recompute instead of failing
+  // the whole request.
+  private def tryGet(prefix: String, key: String, ttlSeconds: Int): Option[String] =
+    try use(JedisMethod.GET, (prefix + key).intern(), Some(ttlSeconds))
+    catch { case e: Throwable => logger.debug(s"Cache GET failed for $prefix$key: ${e.getMessage}"); None }
+
+  private def trySet(prefix: String, key: String, ttlSeconds: Int, value: String): Unit =
+    try { use(JedisMethod.SET, (prefix + key).intern(), Some(ttlSeconds), Some(value)); () }
+    catch { case e: Throwable => logger.debug(s"Cache SET failed for $prefix$key: ${e.getMessage}") }
+
+  def getFinancialProductsCache(key: String, ttlSeconds: Int): Option[String] =
+    tryGet(FINANCIAL_PRODUCTS_PREFIX, key, ttlSeconds)
+
+  def setFinancialProductsCache(key: String, value: String, ttlSeconds: Int): Unit =
+    trySet(FINANCIAL_PRODUCTS_PREFIX, key, ttlSeconds, value)
+
+  def getApiProductsCache(key: String, ttlSeconds: Int): Option[String] =
+    tryGet(API_PRODUCTS_PREFIX, key, ttlSeconds)
+
+  def setApiProductsCache(key: String, value: String, ttlSeconds: Int): Unit =
+    trySet(API_PRODUCTS_PREFIX, key, ttlSeconds, value)
+
   /**
    * Invalidate all rate limit cache entries for a specific consumer.
    * Uses pattern matching to delete all cache keys with prefix: rl_active_{consumerId}_*

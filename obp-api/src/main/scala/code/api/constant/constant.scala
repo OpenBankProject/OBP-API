@@ -223,6 +223,8 @@ object Constant extends MdcLoggable {
   final val ABAC_RULE_NAMESPACE = "abac_rule"
   final val CONNECTOR_OUTBOUND_NAMESPACE = "connector_outbound"
   final val CONNECTOR_INBOUND_NAMESPACE = "connector_inbound"
+  final val FINANCIAL_PRODUCTS_NAMESPACE = "financial_products"
+  final val API_PRODUCTS_NAMESPACE = "api_products"
 
   // List of all versioned cache namespaces
   final val ALL_CACHE_NAMESPACES = List(
@@ -238,7 +240,9 @@ object Constant extends MdcLoggable {
     METRICS_RECENT_NAMESPACE,
     ABAC_RULE_NAMESPACE,
     CONNECTOR_OUTBOUND_NAMESPACE,
-    CONNECTOR_INBOUND_NAMESPACE
+    CONNECTOR_INBOUND_NAMESPACE,
+    FINANCIAL_PRODUCTS_NAMESPACE,
+    API_PRODUCTS_NAMESPACE
   )
 
   // Cache key prefixes with global namespace and versioning for easy invalidation
@@ -273,6 +277,11 @@ object Constant extends MdcLoggable {
   // Connector Metrics Redis Counter Prefixes (with global namespace and versioning)
   def CONNECTOR_OUTBOUND_PREFIX: String = getVersionedCachePrefix(CONNECTOR_OUTBOUND_NAMESPACE)
   def CONNECTOR_INBOUND_PREFIX: String = getVersionedCachePrefix(CONNECTOR_INBOUND_NAMESPACE)
+
+  // Financial Product list cache (bank-scoped and all-banks share this namespace).
+  def FINANCIAL_PRODUCTS_PREFIX: String = getVersionedCachePrefix(FINANCIAL_PRODUCTS_NAMESPACE)
+  // Api Product list cache.
+  def API_PRODUCTS_PREFIX: String = getVersionedCachePrefix(API_PRODUCTS_NAMESPACE)
 
   // ABAC Policy Constants
   final val ABAC_POLICY_ACCOUNT_ACCESS = "account-access"

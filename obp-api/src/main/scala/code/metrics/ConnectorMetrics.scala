@@ -15,16 +15,19 @@ object ConnectorMetrics extends ConnectorMetricsProvider {
   val cachedAllConnectorMetrics = APIUtil.getPropsValue(s"ConnectorMetrics.cache.ttl.seconds.getAllConnectorMetrics", "7").toInt
 
   override def saveConnectorMetric(connectorName: String, functionName: String, correlationId: String, date: Date, duration: Long,
-                                   requestParams: String, isSuccessful: Boolean): Unit = {
-    MappedConnectorMetric.create
-      .connectorName(connectorName)
-      .functionName(functionName)
-      .date(date)
-      .duration(duration)
-      .correlationId(correlationId)
-      .requestParams(requestParams)
-      .isSuccessful(isSuccessful)
-      .save
+                                   requestParams: String, isSuccessful: Boolean, apiInstanceId: String): Unit = {
+    ConnectorMetricBatchWriter.enqueue(
+      ConnectorMetricBatchWriter.ConnectorMetricRow(
+        connectorName = connectorName,
+        functionName = functionName,
+        correlationId = correlationId,
+        date = date,
+        duration = duration,
+        requestParams = requestParams,
+        isSuccessful = isSuccessful,
+        apiInstanceId = apiInstanceId
+      )
+    )
   }
 
   override def getAllConnectorMetrics(queryParams: List[OBPQueryParam]): List[MappedConnectorMetric] = {
@@ -76,6 +79,7 @@ class MappedConnectorMetric extends ConnectorMetric with LongKeyedMapper[MappedC
   object duration extends MappedLong(this)
   object requestParams extends MappedString(this, 1024)
   object isSuccessful extends MappedBoolean(this)
+  object apiInstanceId extends MappedString(this, 255)
 
   override def getConnectorName(): String = connectorName.get
   override def getFunctionName(): String = functionName.get
@@ -84,6 +88,7 @@ class MappedConnectorMetric extends ConnectorMetric with LongKeyedMapper[MappedC
   override def getDuration(): Long = duration.get
   override def getRequestParams(): String = requestParams.get
   override def getIsSuccessful(): Boolean = isSuccessful.get
+  override def getApiInstanceId(): String = apiInstanceId.get
 }
 
 object MappedConnectorMetric extends MappedConnectorMetric with LongKeyedMetaMapper[MappedConnectorMetric] {

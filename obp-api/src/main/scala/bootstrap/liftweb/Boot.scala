@@ -110,7 +110,7 @@ import code.productAttributeattribute.MappedProductAttribute
 import code.productcollection.MappedProductCollection
 import code.productcollectionitem.MappedProductCollectionItem
 import code.productfee.ProductFee
-import code.products.MappedProduct
+import code.products.{MappedProduct, ProductTag}
 import code.ratelimiting.RateLimiting
 import code.regulatedentities.MappedRegulatedEntity
 import code.regulatedentities.attribute.RegulatedEntityAttribute
@@ -543,6 +543,7 @@ class Boot extends MdcLoggable {
     // If set to true we will write each URL with params to a datastore / log file
     if (APIUtil.getPropsAsBoolValue("write_connector_metrics", false)) {
       logger.info("writeConnectorMetrics is true. We will write connector metrics")
+      code.metrics.ConnectorMetricBatchWriter.start()
     } else {
       logger.info("writeConnectorMetrics is false. We will NOT write connector metrics")
     }
@@ -1149,6 +1150,7 @@ object ToSchemify {
     DynamicMessageDoc,
     EndpointTag,
     ProductFee,
+    ProductTag,
     ViewPermission,
     UserInitAction,
     CounterpartyLimit,

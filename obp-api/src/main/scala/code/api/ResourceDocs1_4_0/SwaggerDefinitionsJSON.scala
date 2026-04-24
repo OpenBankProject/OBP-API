@@ -5344,7 +5344,8 @@ object SwaggerDefinitionsJSON {
     per_hour_call_limit = Some(1000L),
     per_day_call_limit = Some(10000L),
     per_week_call_limit = Some(50000L),
-    per_month_call_limit = Some(200000L)
+    per_month_call_limit = Some(200000L),
+    tags = Some(List("featured", "beta"))
   )
   lazy val apiProductJsonV600 = ApiProductJsonV600(
     api_product_id = "api-product-id-123",
@@ -5365,9 +5366,27 @@ object SwaggerDefinitionsJSON {
     per_day_call_limit = 10000L,
     per_week_call_limit = 50000L,
     per_month_call_limit = 200000L,
+    tags = List("featured", "beta"),
     attributes = Some(List(apiProductAttributeResponseJsonV600))
   )
   lazy val apiProductsJsonV600 = ApiProductsJsonV600(List(apiProductJsonV600))
+
+  lazy val productJsonV600 = ProductJsonV600(
+    bank_id = bankIdExample.value,
+    product_code = productCodeExample.value,
+    parent_product_code = "parent",
+    name = "product name",
+    more_info_url = "www.example.com/prod1/more-info.html",
+    terms_and_conditions_url = "www.example.com/prod1/terms.html",
+    description = "Description",
+    meta = metaJson,
+    tags = List("featured", "new"),
+    attributes = None,
+    fees = None
+  )
+  lazy val productsJsonV600 = ProductsJsonV600(products = List(productJsonV600))
+
+  lazy val productTagsJsonV600 = ProductTagsJsonV600(tags = List("featured", "new"))
 
   lazy val featuresJsonV600 = FeaturesJsonV600(
     allow_public_views = true,

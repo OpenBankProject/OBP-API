@@ -3949,6 +3949,10 @@ object NewStyle extends MdcLoggable{
       Future(MappedApiProductsProvider.getApiProductsByBankId(bankId), callContext)
     }
 
+    def getApiProductsByBankId(bankId: String, tag: Option[String], callContext: Option[CallContext]): OBPReturnType[List[ApiProductTrait]] = {
+      Future(MappedApiProductsProvider.getApiProductsByBankId(bankId, tag), callContext)
+    }
+
     def createOrUpdateApiProduct(
       bankId: String,
       apiProductCode: String,
@@ -3967,6 +3971,7 @@ object NewStyle extends MdcLoggable{
       perDayCallLimit: Long,
       perWeekCallLimit: Long,
       perMonthCallLimit: Long,
+      tags: List[String],
       callContext: Option[CallContext]
     ): OBPReturnType[ApiProductTrait] = {
       Future(MappedApiProductsProvider.createOrUpdateApiProduct(
@@ -3974,7 +3979,8 @@ object NewStyle extends MdcLoggable{
         moreInfoUrl, termsAndConditionsUrl, description,
         collectionId, monthlySubscriptionCurrency, monthlySubscriptionAmount,
         perSecondCallLimit, perMinuteCallLimit, perHourCallLimit,
-        perDayCallLimit, perWeekCallLimit, perMonthCallLimit
+        perDayCallLimit, perWeekCallLimit, perMonthCallLimit,
+        tags
       )) map {
         i => (unboxFullOrFail(i, callContext, CreateApiProductError), callContext)
       }

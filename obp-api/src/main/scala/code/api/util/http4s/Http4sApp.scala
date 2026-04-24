@@ -55,6 +55,7 @@ object Http4sApp {
    */
   private def baseServices: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { req: Request[IO] =>
     corsHandler.run(req)
+      .orElse(AppsPage.routes.run(req))
       .orElse(StatusPage.routes.run(req))
       .orElse(code.api.v5_0_0.Http4s500.wrappedRoutesV500Services.run(req))
       .orElse(code.api.v7_0_0.Http4s700.wrappedRoutesV700Services.run(req))

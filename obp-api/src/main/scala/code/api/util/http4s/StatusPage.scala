@@ -1,24 +1,36 @@
 package code.api.util.http4s
 
+import java.lang.management.ManagementFactory
+
 import cats.effect.IO
-import code.api.util.APIUtil
+import code.api.cache.Redis
+import code.api.util.DoobieUtil
+import code.util.Helper.MdcLoggable
+import doobie._
+import doobie.implicits._
 import org.http4s._
 import org.http4s.dsl.io._
 import org.http4s.headers.{Accept, `Content-Type`}
+import org.http4s.Charset
 
-object StatusPage {
+object StatusPage extends MdcLoggable {
 
-  private def appDiscoveryPairs = APIUtil.getAppDiscoveryPairs
+  private lazy val gitProps: java.util.Properties = {
+    val props = new java.util.Properties()
+    val is = getClass.getResourceAsStream("/git.properties")
+    if (is != null) {
+      try props.load(is) finally is.close()
+    }
+    props
+  }
 
-  private val acronyms = Set("obp", "api", "mcp")
+  private def gitCommit: String =
+    Option(gitProps.getProperty("git.commit.id")).getOrElse("unknown")
 
-  private def humanName(key: String): String =
-    key.stripPrefix("public_")
-      .stripSuffix("_url")
-      .replace("_", " ")
-      .split(" ")
-      .map(w => if (acronyms.contains(w.toLowerCase)) w.toUpperCase else w.capitalize)
-      .mkString(" ")
+  private def apiInstanceId: String = code.api.Constant.ApiInstanceId
+
+  private def uptimeSeconds: Long =
+    ManagementFactory.getRuntimeMXBean.getUptime / 1000L
 
   private def prefersJson(req: Request[IO]): Boolean =
     req.headers.get[Accept].exists { accept =>
@@ -27,89 +39,98 @@ object StatusPage {
       }
     }
 
-  val routes: HttpRoutes[IO] = HttpRoutes.of[IO] {
-    case req @ GET -> Root =>
-      if (prefersJson(req)) jsonResponse else htmlResponse
+  private case class Checks(database: String, redis: String) {
+    def allOk: Boolean = database == "ok" && redis == "ok"
   }
 
-  private def jsonResponse: IO[Response[IO]] = {
-    val pairs = appDiscoveryPairs
-    val appDirectory = pairs.map { case (name, url) =>
-      s"""    {"name": "${humanName(name)}", "key": "$name", "url": "$url"}"""
-    }.mkString(",\n")
+  private def runChecks: IO[Checks] = IO {
+    val db = try {
+      DoobieUtil.runQuery(sql"SELECT 1".query[Int].unique)
+      "ok"
+    } catch {
+      case e: Throwable =>
+        logger.warn(s"StatusPage says: database check failed: ${e.getMessage}")
+        "fail"
+    }
+    val redis = try {
+      if (Redis.isRedisReady) "ok" else "fail"
+    } catch {
+      case e: Throwable =>
+        logger.warn(s"StatusPage says: redis check failed: ${e.getMessage}")
+        "fail"
+    }
+    Checks(db, redis)
+  }
 
+  val routes: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    case req @ GET -> Root / "status" =>
+      runChecks.flatMap { checks =>
+        val response = if (prefersJson(req)) jsonResponse(checks) else htmlResponse(checks)
+        if (checks.allOk) response
+        else response.map(_.withStatus(Status.ServiceUnavailable))
+      }
+
+    // Liveness probe: the process is running and can respond to HTTP.
+    // Does not touch DB or Redis — those belong in /status (readiness).
+    case GET -> Root / "health" =>
+      Ok("""{"status":"ok"}""").map(_.withContentType(`Content-Type`(MediaType.application.json, Charset.`UTF-8`)))
+  }
+
+  private def jsonResponse(checks: Checks): IO[Response[IO]] = {
+    val status = if (checks.allOk) "ok" else "degraded"
     val json =
       s"""{
-         |  "app_directory": [
-         |$appDirectory
-         |  ],
-         |  "discovery_endpoints": {
-         |    "api_info": "/obp/v6.0.0/root",
-         |    "resource_docs": "/obp/v6.0.0/resource-docs/v6.0.0/obp",
-         |    "well_known": "/obp/v5.1.0/well-known",
-         |    "banks": "/obp/v6.0.0/banks"
-         |  },
-         |  "links": {
-         |    "github": "https://github.com/OpenBankProject/OBP-API",
-         |    "tesobe": "https://www.tesobe.com",
-         |    "open_bank_project": "https://www.openbankproject.com"
-         |  },
-         |  "copyright": "Copyright TESOBE GmbH 2010-2026"
+         |  "status": "$status",
+         |  "api_instance_id": "$apiInstanceId",
+         |  "git_commit": "$gitCommit",
+         |  "uptime_seconds": $uptimeSeconds,
+         |  "checks": {
+         |    "database": "${checks.database}",
+         |    "redis": "${checks.redis}"
+         |  }
          |}""".stripMargin
-
-    Ok(json).map(_.withContentType(`Content-Type`(MediaType.application.json)))
+    Ok(json).map(_.withContentType(`Content-Type`(MediaType.application.json, Charset.`UTF-8`)))
   }
 
-  private def htmlResponse: IO[Response[IO]] = {
-    val appDiscoveryLinks = appDiscoveryPairs.map { case (name, url) =>
-      s"""        <li><a href="$url">${humanName(name)}</a> <small>($name)</small></li>"""
-    }.mkString("\n")
+  private def htmlResponse(checks: Checks): IO[Response[IO]] = {
+    val overall = if (checks.allOk) "ok" else "degraded"
+    val overallColor = if (checks.allOk) "#2e7d32" else "#c62828"
+    def badge(v: String): String = {
+      val color = if (v == "ok") "#2e7d32" else "#c62828"
+      s"""<span style="color: $color; font-weight: bold;">$v</span>"""
+    }
 
     val html =
       s"""<!DOCTYPE html>
          |<html>
          |<head>
-         |  <title>OBP API - Status Page</title>
+         |  <title>OBP API - Status</title>
          |  <style>
          |    body { font-family: sans-serif; max-width: 800px; margin: 40px auto; padding: 0 20px; }
          |    h1 { color: #333; }
          |    h2 { color: #555; margin-top: 30px; }
-         |    ul { line-height: 2; }
-         |    a { color: #0066cc; }
-         |    small { color: #999; }
+         |    table { border-collapse: collapse; }
+         |    th, td { padding: 6px 12px; text-align: left; border-bottom: 1px solid #eee; }
          |  </style>
          |</head>
          |<body>
-         |  <h1>Welcome to the OBP API technical discovery page</h1>
-         |  <p>OBP API is a headless open source Open Banking API stack. Navigate to the Apps below to interact with the APIs or see the Discovery Endpoints.</p>
+         |  <h1>OBP API Status: <span style="color: $overallColor;">$overall</span></h1>
          |
-         |  <h2>App Directory</h2>
-         |  <ul>
-         |$appDiscoveryLinks
-         |  </ul>
+         |  <h2>Instance</h2>
+         |  <table>
+         |    <tr><th>api_instance_id</th><td>$apiInstanceId</td></tr>
+         |    <tr><th>git_commit</th><td>$gitCommit</td></tr>
+         |    <tr><th>uptime_seconds</th><td>$uptimeSeconds</td></tr>
+         |  </table>
          |
-         |  <h2>Discovery Endpoints</h2>
-         |<p>See also API Explorer, Portal or MCP Server above.</p>
-         |  <ul>
-         |    <li><a href="/obp/v6.0.0/root">API Info</a></li>
-         |    <li><a href="/obp/v6.0.0/resource-docs/v6.0.0/obp">API Documentation</a></li>
-         |    <li><a href="/obp/v5.1.0/well-known">Well Known URIs</a></li>
-         |    <li><a href="/obp/v6.0.0/banks">Banks</a></li>
-         |  </ul>
-         |
-         |  <h2>Links</h2>
-         |  <ul>
-         |    <li><a href="https://github.com/OpenBankProject/OBP-API">OBP-API on GitHub</a></li>
-         |    <li><a href="https://www.tesobe.com">TESOBE</a></li>
-         |    <li><a href="https://www.openbankproject.com">Open Bank Project</a></li>
-         |  </ul>
-         |
-         |  <footer style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #ddd; color: #999; font-size: 0.9em;">
-         |    Copyright TESOBE GmbH 2010-2026
-         |  </footer>
+         |  <h2>Checks</h2>
+         |  <table>
+         |    <tr><th>database</th><td>${badge(checks.database)}</td></tr>
+         |    <tr><th>redis</th><td>${badge(checks.redis)}</td></tr>
+         |  </table>
          |</body>
          |</html>""".stripMargin
 
-    Ok(html).map(_.withContentType(`Content-Type`(MediaType.text.html)))
+    Ok(html).map(_.withContentType(`Content-Type`(MediaType.text.html, Charset.`UTF-8`)))
   }
 }
