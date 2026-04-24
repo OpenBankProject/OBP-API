@@ -13,11 +13,26 @@ object AppsPage {
 
   private val acronyms = Set("obp", "api", "mcp")
 
-  // Apps that expose their own /status endpoint (same contract as OBP-API's /status).
-  private val appsWithStatus = Set("public_obp_portal_url", "public_obp_api_manager_url", "public_obp_oidc_url")
+  // Render order for probe endpoints (also controls which endpoints are known).
+  private val probeEndpoints = List("status", "health", "ready")
 
-  private def statusUrlFor(key: String, url: String): Option[String] =
-    if (appsWithStatus.contains(key)) Some(s"${url.stripSuffix("/")}/status") else None
+  // For each app-key, which probe endpoints it exposes. Rendered as JSON fields
+  // (e.g. "status_url") and HTML links (e.g. [status]) in `probeEndpoints` order.
+  private val appProbes: Map[String, Set[String]] = Map(
+    "public_obp_portal_url"       -> Set("status"),
+    "public_obp_api_manager_url"  -> Set("status"),
+    "public_obp_oidc_url"         -> Set("status"),
+    "public_obp_api_url"          -> Set("status", "health"),
+    "public_obp_opey_url"         -> Set("status", "health"),
+    "public_obp_api_explorer_url" -> Set("status", "health"),
+    "public_obp_mcp_url"          -> Set("status", "health", "ready"),
+  )
+
+  private def probesFor(key: String): List[String] =
+    appProbes.get(key).map(s => probeEndpoints.filter(s.contains)).getOrElse(Nil)
+
+  private def probeUrl(baseUrl: String, endpoint: String): String =
+    s"${baseUrl.stripSuffix("/")}/$endpoint"
 
   private def humanName(key: String): String =
     key.stripPrefix("public_")
@@ -44,8 +59,10 @@ object AppsPage {
   private def jsonResponse: IO[Response[IO]] = {
     val pairs = appDiscoveryPairs
     val appDirectory = pairs.map { case (name, url) =>
-      val statusField = statusUrlFor(name, url).map(s => s""", "status_url": "$s"""").getOrElse("")
-      s"""    {"name": "${humanName(name)}", "key": "$name", "url": "$url"$statusField}"""
+      val probeFields = probesFor(name)
+        .map(ep => s""", "${ep}_url": "${probeUrl(url, ep)}"""")
+        .mkString
+      s"""    {"name": "${humanName(name)}", "key": "$name", "url": "$url"$probeFields}"""
     }.mkString(",\n")
 
     val json =
@@ -72,10 +89,10 @@ object AppsPage {
 
   private def htmlResponse: IO[Response[IO]] = {
     val appDiscoveryLinks = appDiscoveryPairs.map { case (name, url) =>
-      val statusLink = statusUrlFor(name, url)
-        .map(s => s""" <a href="$s">[status]</a>""")
-        .getOrElse("")
-      s"""        <li><a href="$url">${humanName(name)}</a> <small>($name)</small>$statusLink</li>"""
+      val probeLinks = probesFor(name)
+        .map(ep => s""" <a href="${probeUrl(url, ep)}">[$ep]</a>""")
+        .mkString
+      s"""        <li><a href="$url">${humanName(name)}</a> <small>($name)</small>$probeLinks</li>"""
     }.mkString("\n")
 
     val html =
