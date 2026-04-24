@@ -1479,82 +1479,82 @@ object Http4s700 {
     )
 
     // Route: POST /obp/v7.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/market/deposits
-    val notifyDeposit: HttpRoutes[IO] = HttpRoutes.of[IO] {
-      case req @ POST -> `prefixPath` / "banks" / bankId / "accounts" / accountId / "views" / viewId / "market" / "deposits" =>
-        EndpointHelpers.withUserAndBodyCreated[JSONFactory700.NotifyDepositJson, JSONFactory700.DepositJson](req) { (user, depositJson, cc) =>
-          for {
-            // Validate bank and account
-            (_, callContext) <- NewStyle.function.getBankAccount(BankId(bankId), AccountId(accountId), Some(cc))
-
-            // Validate amount
-            _ <- Helper.booleanToFuture(
-              failMsg = InvalidTradingAmount,
-              failCode = 400,
-              cc = callContext
-            )(depositJson.amount > 0)
-
-            // Validate confirmations
-            _ <- Helper.booleanToFuture(
-              failMsg = InvalidMatchParameters,
-              failCode = 400,
-              cc = callContext
-            )(depositJson.confirmations >= 0)
-
-            // Invoke connector
-            (deposit, callContext2) <- NewStyle.function.notifyDeposit(
-              BankId(bankId),
-              AccountId(accountId),
-              depositJson.tx_hash,
-              depositJson.from,
-              depositJson.to,
-              depositJson.amount,
-              depositJson.confirmations,
-              12,  // Ethereum mainnet standard: 12 confirmations required
-              callContext
-            )
-          } yield JSONFactory700.createDepositJson(deposit)
-        }
-    }
-
-    resourceDocs += ResourceDoc(
-      null,
-      implementedInApiVersion,
-      nameOf(notifyDeposit),
-      "POST",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/market/deposits",
-      "Notify Deposit",
-      """**WORK IN PROGRESS**
-        |
-        |Record a blockchain deposit notification.
-        |
-        |Authentication is required.""",
-      JSONFactory700.NotifyDepositJson(
-        tx_hash = "0x123abc",
-        from = "0xsender",
-        to = "0xreceiver",
-        amount = BigDecimal("100.0"),
-        confirmations = 6
-      ),
-      JSONFactory700.DepositJson(
-        deposit_id = "deposit-202",
-        tx_hash = "0x123abc",
-        from = "0xsender",
-        to = "0xreceiver",
-        amount = BigDecimal("100.0"),
-        confirmations = 6,
-        required_confirmations = 12,
-        status = "pending",
-        nonce = Some(123456L),
-        gas_used = Some(21000L),
-        error_message = None,
-        user_id = "user-abc-123",
-        consent_id = None,
-        created_at = "2026-04-16T00:50:00Z"
-      ),
-      List(InvalidJsonFormat, InvalidTradingAmount, InvalidMatchParameters, $AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
-      apiTagMarket :: Nil,
-      http4sPartialFunction = Some(notifyDeposit)
-    )
+//    val notifyDeposit: HttpRoutes[IO] = HttpRoutes.of[IO] {
+//      case req @ POST -> `prefixPath` / "banks" / bankId / "accounts" / accountId / "views" / viewId / "market" / "deposits" =>
+//        EndpointHelpers.withUserAndBodyCreated[JSONFactory700.NotifyDepositJson, JSONFactory700.DepositJson](req) { (user, depositJson, cc) =>
+//          for {
+//            // Validate bank and account
+//            (_, callContext) <- NewStyle.function.getBankAccount(BankId(bankId), AccountId(accountId), Some(cc))
+//
+//            // Validate amount
+//            _ <- Helper.booleanToFuture(
+//              failMsg = InvalidTradingAmount,
+//              failCode = 400,
+//              cc = callContext
+//            )(depositJson.amount > 0)
+//
+//            // Validate confirmations
+//            _ <- Helper.booleanToFuture(
+//              failMsg = InvalidMatchParameters,
+//              failCode = 400,
+//              cc = callContext
+//            )(depositJson.confirmations >= 0)
+//
+//            // Invoke connector
+//            (deposit, callContext2) <- NewStyle.function.notifyDeposit(
+//              BankId(bankId),
+//              AccountId(accountId),
+//              depositJson.tx_hash,
+//              depositJson.from,
+//              depositJson.to,
+//              depositJson.amount,
+//              depositJson.confirmations,
+//              12,  // Ethereum mainnet standard: 12 confirmations required
+//              callContext
+//            )
+//          } yield JSONFactory700.createDepositJson(deposit)
+//        }
+//    }
+//
+//    resourceDocs += ResourceDoc(
+//      null,
+//      implementedInApiVersion,
+//      nameOf(notifyDeposit),
+//      "POST",
+//      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/market/deposits",
+//      "Notify Deposit",
+//      """**WORK IN PROGRESS**
+//        |
+//        |Record a blockchain deposit notification.
+//        |
+//        |Authentication is required.""",
+//      JSONFactory700.NotifyDepositJson(
+//        tx_hash = "0x123abc",
+//        from = "0xsender",
+//        to = "0xreceiver",
+//        amount = BigDecimal("100.0"),
+//        confirmations = 6
+//      ),
+//      JSONFactory700.DepositJson(
+//        deposit_id = "deposit-202",
+//        tx_hash = "0x123abc",
+//        from = "0xsender",
+//        to = "0xreceiver",
+//        amount = BigDecimal("100.0"),
+//        confirmations = 6,
+//        required_confirmations = 12,
+//        status = "pending",
+//        nonce = Some(123456L),
+//        gas_used = Some(21000L),
+//        error_message = None,
+//        user_id = "user-abc-123",
+//        consent_id = None,
+//        created_at = "2026-04-16T00:50:00Z"
+//      ),
+//      List(InvalidJsonFormat, InvalidTradingAmount, InvalidMatchParameters, $AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
+//      apiTagMarket :: Nil,
+//      http4sPartialFunction = Some(notifyDeposit)
+//    )
 
     // Route: POST /obp/v7.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/market/withdrawals
     val requestWithdrawal: HttpRoutes[IO] = HttpRoutes.of[IO] {
