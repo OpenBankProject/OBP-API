@@ -988,18 +988,18 @@ case class SepaCreditTransfersBerlinGroupV13(
 
 case class InstantCreditTransfersMdV1(
   endToEndIdentification: Option[String] = None,
-  instructedAmount: AmountOfMoneyJsonV121,              // сумма + валюта
-  debtorAccount: Option[PaymentAccount] = None,         // опциональный
-  creditorAccount: PaymentAccountMd,                    // обязательный (msisdn)
+  instructedAmount: AmountOfMoneyJsonV121,
+  debtorAccount: Option[PaymentAccount] = None,
+  creditorAccount: PaymentAccountMd,
   purposeCode: Option[String] = None,
   remittanceInformationUnstructured: Option[String] = None
 )
 
 case class DomesticCreditTransfersMdV1(
    endToEndIdentification: Option[String] = None,
-   instructedAmount: AmountOfMoneyJsonV121,              // сумма + валюта
-   debtorAccount: Option[PaymentAccount] = None,         // опциональный
-   creditorAccount: PaymentAccount,                    // обязательный (msisdn)
+   instructedAmount: AmountOfMoneyJsonV121,
+   debtorAccount: Option[PaymentAccount] = None,
+   creditorAccount: PaymentAccount,
    instructionPriority: String,
    remittanceInformationUnstructured: Option[String] = None,
    creditorName: String,
@@ -1008,7 +1008,7 @@ case class DomesticCreditTransfersMdV1(
  )
 
 case class PaymentAccountMd(
- msisdn: String                                       // вместо iban — телефон
+ msisdn: String
 )
 case class PeriodicSepaCreditTransfersBerlinGroupV13( 
   endToEndIdentification: Option[String] = None,
@@ -1132,8 +1132,8 @@ case class TransactionRequestBGV1(
 
 case class InstantPaymentInformation(
                                       paymentId: String,
-                                      instructedAmount: AmountOfMoneyJsonV121,              // сумма + валюта
-                                      debtorAccount: Option[PaymentAccount] = None,         // опциональный
+                                      instructedAmount: AmountOfMoneyJsonV121,
+                                      debtorAccount: Option[PaymentAccount] = None,
                                       creditorAccount: PaymentAccountMd,
                                       remittanceInformationUnstructured: Option[String] = None,
                                       transactionStatus: String
@@ -1141,11 +1141,11 @@ case class InstantPaymentInformation(
 
 case class DomesticPaymentInformation(
                                       paymentId: String,
-                                      instructedAmount: AmountOfMoneyJsonV121,              // сумма + валюта
-                                      debtorAccount: Option[PaymentAccount] = None,         // опциональный
+                                      instructedAmount: AmountOfMoneyJsonV121,
+                                      debtorAccount: Option[PaymentAccount] = None,
                                       creditorAccount: PaymentAccount,
                                       remittanceInformationUnstructured: Option[String] = None,
-                                      transactionStatus: String,                  // обязательный (msisdn)
+                                      transactionStatus: String,
                                       instructionPriority: String,
                                       creditorName: String,
                                       creditorCtryOfRes: String,
@@ -1155,8 +1155,8 @@ case class DomesticPaymentInformation(
 
 case class DomesticPaymentInformationResponse(
                                        paymentId: String,
-                                       instructedAmount: AmountOfMoneyJsonV121,              // сумма + валюта
-                                       debtorAccount: Option[PaymentAccount] = None,         // опциональный
+                                       instructedAmount: AmountOfMoneyJsonV121,
+                                       debtorAccount: Option[PaymentAccount] = None,
                                        creditorAccount: PaymentAccount,
                                        remittanceInformationUnstructured: Option[String] = None,
                                        transactionStatus: String,

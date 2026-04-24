@@ -286,7 +286,6 @@ Returns the content of a payment object""",
   lazy val getPaymentInformationMD: OBPEndpoint = {
     case "payments" :: paymentProduct :: paymentId :: Nil JsonGet _ => {
       cc =>
-        // Вызов метода длѝ получениѝ информации о платёжной транзакции
         getPaymentInformationImplementationMD(paymentProduct, paymentId, false, cc)
     }
   }
@@ -310,7 +309,6 @@ Returns the content of a payment object""",
   lazy val getPaymentInformationStatusMD: OBPEndpoint = {
     case "payments" :: paymentProduct :: paymentId :: "status" :: Nil JsonGet _ => {
       cc =>
-        // Вызов метода длѝ получениѝ информации о платёжной транзакции
         getPaymentInformationImplementationMD(paymentProduct, paymentId, true, cc)
     }
   }
@@ -319,12 +317,9 @@ Returns the content of a payment object""",
   def getPaymentInformationImplementationMD(paymentProduct: String, paymentId: String, getStatus: Boolean, cc: CallContext) = {
     for {
       (u, callContext) <- applicationAccess(cc); _ <- passesPsd2Pisp(callContext)
-      // Проверка типа платёжного продукта
       transactionRequestType <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct), 404, callContext) {
         TransactionRequestTypes.withName(paymentProduct.replaceAll("-", "_").toUpperCase)
       }
-
-      // --- Вызов коннектора длѝ получениѝ транзакции по ID длѝ INSTANT_CREDIT_TRANSFERS_MD ---
       (paymentResponse, callContext) <- transactionRequestType match {
         case TransactionRequestTypes.INSTANT_CREDIT_TRANSFERS_MD =>
           NewStyle.function.getInstantPaymentInformationMdBGV1(
@@ -340,27 +335,19 @@ Returns the content of a payment object""",
           Future.failed(new RuntimeException("Unsupported transaction type"))
       }
 
-      // Определяем тело ответа в зависимости от значения getStatus
       paymentResponseBody = if (getStatus) {
         paymentResponse match {
           case instantPayment: InstantPaymentInformation =>
-            // Обрабатываем статус для InstantPaymentInformation
-            InstantPaymentStatus(mapTransactionStatusMdV1(instantPayment.transactionStatus))  // Используем transactionStatus для Instant
-
+            InstantPaymentStatus(mapTransactionStatusMdV1(instantPayment.transactionStatus))  
           case domesticPayment: DomesticPaymentInformationResponse =>
-            // Обрабатываем статус для DomesticPaymentInformation
-            InstantPaymentStatus(mapTransactionStatusMdV1(domesticPayment.transactionStatus))  // Используем transactionStatus для Domestic
-
+            InstantPaymentStatus(mapTransactionStatusMdV1(domesticPayment.transactionStatus)) 
           case _ =>
-            // Обработка неподдерживаемого типа
             InstantPaymentStatus("Unsupported payment response type")
         }
       } else {
-        // Если getStatus = false, возвращаем саму транзакцию
         paymentResponse
       }
     } yield {
-      // Возвращаем данные транзакции в формате JSON
       (paymentResponseBody, callContext)
     }
   }
@@ -680,7 +667,6 @@ Check the transaction status of a payment initiation.""",
     }
   }
 
-  // компактный адаптер под твой Helper: падаем при Failure, игнорим значение при Success
   private def assertF(msg: String, code: Int = 400, cc: Option[CallContext])(cond: => Boolean): Future[Unit] =
     Helper.booleanToFuture(msg, code, cc)(cond).map(_ => ())
 
@@ -740,7 +726,6 @@ Check the transaction status of a payment initiation.""",
   }
 
 
-  // 2) Специфичные проверки для InstantCreditTransfersMdV1
   private def validateInstantOnly(m: InstantCreditTransfersMdV1, cc: Option[CallContext]): Future[Unit] = {
     for {
       _ <- assertF(s"$MandatoryError Msisdn is required", 400, cc)(
@@ -767,7 +752,6 @@ Check the transaction status of a payment initiation.""",
     } yield ()
   }
 
-  // 3) Специфичные проверки для DomesticCreditTransfersMdV1
   private def validateDomesticOnly(m: DomesticCreditTransfersMdV1, cc: Option[CallContext]): Future[Unit] = {
     for {
       _ <- assertF(s"$MandatoryError Iban is required", 400, cc)(

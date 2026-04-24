@@ -64,7 +64,6 @@ class ConfirmPaymentRequest {
 
     val debtorIban = payment.map(_.mDebtorAccountIban.get).openOr("")
 
-    // Получаем балансы для всех счетов юзера
     val provider = BankAccountBalanceX.bankAccountBalanceProvider.vend
     val balancesMap: Map[String, (BigDecimal, String)] = userAccounts.flatMap { acc =>
       val balanceList = Await.result(provider.getBankAccountBalances(acc.accountId), 5.seconds).openOr(Nil)
@@ -77,17 +76,15 @@ class ConfirmPaymentRequest {
       } else {
         SHtml.select(
           PurposeType.values.toList.map(v => (v.toString, v.toString)),
-          Full(PurposeType.Donation.toString), // значение по умолчанию
-          _ => (), // обработчик можно опустить, если читаешь через S.param
+          Full(PurposeType.Donation.toString), 
+          _ => (), 
           ("name", "purposeType"), ("id", "purposeType"), ("class", "form-control")
         )
       }
     }
 
-    // Формируем HTML для Debtor IBAN
     val debtorIbanHtml: NodeSeq =
       if (debtorIban == null || debtorIban.trim.isEmpty) {
-        // Debtor IBAN не указан — показываем список для выбора с балансом
         <div>
           <p style="margin-top:10px"><strong>Select Debtor IBAN:</strong></p>
           {
@@ -104,7 +101,6 @@ class ConfirmPaymentRequest {
           }.toMap
 
 
-          // Соединяем радиокнопки и скрытое поле в один NodeSeq
           radioButtons = ibans.map { iban =>
             <label>
               <input type="radio" name="ibanChoice" value={iban} id={iban}/>
@@ -114,15 +110,12 @@ class ConfirmPaymentRequest {
           }
         </div>
       } else {
-        // Debtor IBAN указан — проверяем валидность
         if (!userIbans.contains(debtorIban)) {
           <div class="alert alert-danger" style="margin-top: 5px;">
             Invalid Debtor IBAN: {debtorIban}
           </div>
         } else {
-          // IBAN валиден — показываем IBAN + баланс и валюту
           val balanceInfo: String = if (alreadyApproved) {
-            "" // или "Approved" или просто не показывать
           } else {
             balancesMap.collectFirst {
               case (accId, (amount, amountType)) if BankAccountRouting.find(
@@ -175,7 +168,6 @@ class ConfirmPaymentRequest {
 
       }
     }
-    // Вычисление комиссии и общего количества
     val instructedAmount = payment.map(_.mInstructedAmountAmount.get).openOr("0").toDouble
     val commission = (instructedAmount * 0.03).formatted("%.2f")
     val totalAmount = instructedAmount.formatted("%.2f")

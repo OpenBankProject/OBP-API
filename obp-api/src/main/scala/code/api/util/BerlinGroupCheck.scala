@@ -96,12 +96,12 @@ object BerlinGroupCheck extends MdcLoggable {
     }
 
     val resultWithWrongPsuGeoLocationHeaderCheck: Option[(Box[User], Option[CallContext])] = {
-      val geoLocationHeaderName = "psu-geo-location" // либо константа RequestHeader.PSU_GEO_LOCATION.toLowerCase
+      val geoLocationHeaderName = "psu-geo-location"
       val geoLocation: Option[String] =
         headerMap.get(geoLocationHeaderName).flatMap(_.values.headOption)
 
       if (geoLocation.isDefined && !GeoLocationUtil.isValidPsuGeoLocation(geoLocation.get)) {
-        val message = ErrorMessages.NotValidPsuGeoLocation // добавь свою константу в ErrorMessages
+        val message = ErrorMessages.NotValidPsuGeoLocation 
         Some(
           (
             fullBoxOrException(

@@ -1207,15 +1207,15 @@ case class OutBoundCreateTransactionRequestInstantCreditTransfersMdV1(
 case class InBoundCreateTransactionRequestInstantCreditTransfersMdV1(inboundAdapterCallContext: InboundAdapterCallContext, status: Status, data: TransactionRequestBGV1) extends InBoundTrait[TransactionRequestBGV1]
 
 case class OutBoundGetInstantPaymentInformationMdV1(
-                                                     outboundAdapterCallContext: OutboundAdapterCallContext,  // Контекст вызова
-                                                     paymentId: String,  // ID платежа, который необходимо получить
-                                                     headers: List[HTTPParam] = Nil  // Дополнительные заголовки, если необходимы
+                                                     outboundAdapterCallContext: OutboundAdapterCallContext,
+                                                     paymentId: String,
+                                                     headers: List[HTTPParam] = national_identifier
                                                    ) extends TopicTrait
 
 case class InBoundGetInstantPaymentInformationMdV1(
-  inboundAdapterCallContext: InboundAdapterCallContext,  // Контекст входящего вызова
-  status: Status,  // Статус ответа (например, SUCCESS, ERROR)
-  data: InstantPaymentInformation  // Данные о платеже, которые были получены
+  inboundAdapterCallContext: InboundAdapterCallContext,
+  status: Status,
+  data: InstantPaymentInformation
 ) extends InBoundTrait[InstantPaymentInformation]
 
 //////////Domestic/////////
@@ -1233,15 +1233,15 @@ case class InBoundCreateTransactionRequestDomesticCreditTransfersMdV1(
  status: Status, data: TransactionRequestBGV1) extends InBoundTrait[TransactionRequestBGV1]
 
 case class OutBoundGetDomesticPaymentInformationMdV1(
-   outboundAdapterCallContext: OutboundAdapterCallContext,  // Контекст вызова
-   paymentId: String,  // ID платежа, который необходимо получить
-   headers: List[HTTPParam] = Nil  // Дополнительные заголовки, если необходимы
+   outboundAdapterCallContext: OutboundAdapterCallContext,
+   paymentId: String,
+   headers: List[HTTPParam] = Nil
  ) extends TopicTrait
 
 case class InBoundGetDomesticPaymentInformationMdV1(
-  inboundAdapterCallContext: InboundAdapterCallContext,  // Контекст входящего вызова
-  status: Status,  // Статус ответа (например, SUCCESS, ERROR)
-  data: DomesticPaymentInformationResponse  // Данные о платеже, которые были получены
+  inboundAdapterCallContext: InboundAdapterCallContext,
+  status: Status
+  data: DomesticPaymentInformationResponse
 ) extends InBoundTrait[DomesticPaymentInformationResponse]
 
 

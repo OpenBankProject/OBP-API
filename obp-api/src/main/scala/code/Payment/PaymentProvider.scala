@@ -50,7 +50,6 @@ object MappedPaymentProvider extends PaymentProvider {
     MappedPayment.find(By(MappedPayment.mEndToEndIdentification, endToEndIdentification))
 
   override def getPayments(queryParams: List[OBPQueryParam] = Nil): List[MappedPayment] = {
-    // Можно добавить фильтры по статусу / типу из queryParams, если нужно
     MappedPayment.findAll()
   }
 
@@ -108,13 +107,10 @@ object MappedPaymentProvider extends PaymentProvider {
   }
 
   def approvePaymentRequestProcess(paymentId: String, debtorIban: String, purposeType: String): Unit = {
-    // Ищем платеж в базе
     MappedPaymentProvider.getPaymentById(paymentId) match {
       case Full(payment) =>
-        // Обновляем IBAN платежа и статус
         MappedPaymentProvider.updatePayment(paymentId, Some(TransactionStatus.ACCP), debtorAccountIban = Some(debtorIban), purposeType = Some(purposeType)) match {
           case Full(updatedPayment) =>
-            // Перенаправляем пользователя на страницу с подтверждением
             S.redirectTo(s"$redirectUriValue?PAYMENT_ID=${paymentId}")
           case _ =>
             S.error("Failed to update payment status")
@@ -125,13 +121,10 @@ object MappedPaymentProvider extends PaymentProvider {
   }
 
   def cancelPaymentRequestProcess(paymentId: String): Unit = {
-    // Ищем платеж в базе
     MappedPaymentProvider.getPaymentById(paymentId) match {
       case Full(payment) =>
-        // Обновляем IBAN платежа и статус
         MappedPaymentProvider.updatePayment(paymentId, Some(TransactionStatus.CANC)) match {
           case Full(updatedPayment) =>
-            // Перенаправляем пользователя на страницу с подтверждением
             S.redirectTo(s"$redirectUriValue?PAYMENT_ID=${paymentId}")
           case _ =>
             S.error("Failed to update payment status")
@@ -144,7 +137,6 @@ object MappedPaymentProvider extends PaymentProvider {
   object PurposeType extends Enumeration {
     type PurposeType = Value
 
-    // Перечисление значений
     val Donation = Value("Donation/Free help")
     val RefundOfErroneousPayment = Value("Refund of erroneous payment")
     val LoanOrFinancialHelp = Value("Loan/Financial help")
@@ -153,7 +145,6 @@ object MappedPaymentProvider extends PaymentProvider {
     val PersonalTransferFamilyExpenses = Value("Personal transfer-family expenses")
     val PaymentsToBudget = Value("Payments to the budget")
 
-    // Маппинг на описание
     def description(purpose: PurposeType): String = purpose match {
       case Donation => "Donation/Free help (Дарение/Безвозмездная помощь)"
       case RefundOfErroneousPayment => "Refund of erroneous payment (Возврат неверно зачисленного платежа)"

@@ -245,7 +245,6 @@ object LocalMappedConnectorInternal extends MdcLoggable {
     val tppNokRedirectUri = findHeader(RequestHeader.`TPP-Nok-Redirect-URI`)
 
     for {
-      // 2. Сериализуем тело запроса
       transDetailsSerialized <- NewStyle.function.tryons(
         s"$UnknownError Can not serialize in request Json",
         400,
@@ -253,8 +252,6 @@ object LocalMappedConnectorInternal extends MdcLoggable {
       ) {
         write(transactionRequestBody)(Serialization.formats(NoTypeHints))
       }
-
-      // 3. Извлекаем дебетовый IBAN (если есть)
       transactionRequest <- {
         val fromAccountIbanOpt: Option[String] =
           for {
@@ -268,10 +265,8 @@ object LocalMappedConnectorInternal extends MdcLoggable {
             .mInstructedAmountCurrency(transactionRequestBody.instructedAmount.currency)
             .mInstructedAmountAmount(transactionRequestBody.instructedAmount.amount)
 
-          // Устанавливаем IBAN, если есть
           fromAccountIbanOpt.foreach(payment.mDebtorAccountIban(_))
 
-          // Остальные поля + сохранение
           val savedPayment = payment
             .mCreditorAccountMsisdn(transactionRequestBody.creditorAccount.msisdn)
             .mPurposeCode(transactionRequestBody.purposeCode.getOrElse(""))
@@ -321,7 +316,6 @@ object LocalMappedConnectorInternal extends MdcLoggable {
     val tppNokRedirectUri = findHeader(RequestHeader.`TPP-Nok-Redirect-URI`)
 
     for {
-      // 2. Сериализуем тело запроса
       transDetailsSerialized <- NewStyle.function.tryons(
         s"$UnknownError Can not serialize in request Json",
         400,
@@ -330,7 +324,6 @@ object LocalMappedConnectorInternal extends MdcLoggable {
         write(transactionRequestBody)(Serialization.formats(NoTypeHints))
       }
 
-      // 3. Извлекаем дебетовый IBAN (если есть)
       transactionRequest <- {
         val fromAccountIbanOpt: Option[String] =
           for {
@@ -344,10 +337,8 @@ object LocalMappedConnectorInternal extends MdcLoggable {
             .mInstructedAmountCurrency(transactionRequestBody.instructedAmount.currency)
             .mInstructedAmountAmount(transactionRequestBody.instructedAmount.amount)
 
-          // Устанавливаем IBAN, если есть
           fromAccountIbanOpt.foreach(payment.mDebtorAccountIban(_))
 
-          // Остальные поля + сохранение
           val savedPayment = payment
             .mCreditorAccountIban(transactionRequestBody.creditorAccount.iban)
             .mCreditorName(transactionRequestBody.creditorName)

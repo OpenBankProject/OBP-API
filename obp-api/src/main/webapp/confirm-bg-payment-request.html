@@ -6,7 +6,6 @@
     </div>
 
     <style>
-      /* Общие стили для всего контента */
       .payment-details {
         max-width: 800px;
         margin: 0 auto;
@@ -17,7 +16,6 @@
         font-family: 'Arial', sans-serif;
       }
 
-      /* Заголовок */
       .transaction-title {
         text-align: center;
         font-size: 24px;
@@ -26,7 +24,6 @@
         margin-bottom: 20px;
       }
 
-      /* Стили для каждого ряда */
       .data-row {
         display: flex;
         justify-content: space-between;
@@ -35,70 +32,60 @@
         border-bottom: 1px solid #ddd;
       }
 
-      /* Стили для лейблов (наименований) */
       .data-row strong {
         font-size: 16px;
-        color: #888; /* Серый цвет для наименований */
+        color: #888; 
       }
 
-      /* Стили для значений */
       .value {
         font-size: 16px;
         font-weight: bold;
-        color: #333; /* Темный цвет для значений */
+        color: #333; 
       }
 
-      /* Контейнер для списка IBAN */
       .toggle-container {
         margin: 15px 0;
       }
 
-      /* Подпись над списком */
       .toggle-container p {
         font-weight: bold;
         margin-bottom: 10px;
         color: #333;
       }
 
-      /* Каждая строка с радиокнопкой */
+
       .toggle-container label {
         display: flex;
-        align-items: center;       /* выравниваем радиокнопку и текст по центру */
+        align-items: center;
         cursor: pointer;
         font-size: 14px;
-        color: #333;               /* тёмный текст по умолчанию */
+        color: #333;
         margin-bottom: 8px;
         transition: font-weight 0.2s, color 0.2s;
       }
 
-      /* Радиокнопка */
       .toggle-container input[type="radio"] {
         margin-right: 10px;
         vertical-align: middle;
         cursor: pointer;
       }
 
-      /* При наведении */
       .toggle-container label:hover {
-        font-weight: bold;          /* делаем текст жирным */
-        color: #000;                /* меняем цвет на черный */
-      }
-
-      /* Значок выбранного IBAN */
-      .toggle-container input[type="radio"]:checked + .toggle-label {
-        font-weight: bold;           /* текст выбранного IBAN тоже жирный */
+        font-weight: bold;
         color: #000;
       }
 
-      /* Контейнер для кнопок подтверждения */
+      .toggle-container input[type="radio"]:checked + .toggle-label {
+        font-weight: bold;
+        color: #000;
+      }
+
       .button-container {
         display: flex;
         justify-content: flex-end;
         margin-top: 20px;
       }
 
-
-      /* Кнопки */
       .btn {
         padding: 10px 20px;
         border-radius: 5px;
@@ -118,14 +105,12 @@
         border: none;
       }
 
-      /* Контейнер для кнопок */
       .button-container {
         display: flex;
         justify-content: flex-end;
         margin-top: 20px;
       }
 
-      /* Для сообщения об ошибке или информации */
       .alert-info {
         background-color: #e7f5ff;
         border: 1px solid #c7e3f7;

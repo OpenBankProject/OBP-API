@@ -276,13 +276,11 @@ trait Connector extends MdcLoggable {
     val boxedResult = inbound match {
       case Full(in) if (in.status.hasNoError) => Full(in.data)
       case Full(inbound) if (inbound.status.hasError) => {
-        // Извлекаем только errorCode и backendMessages
         val errorCode: Int = try {
           inbound.status.errorCode.toInt
         } catch {
           case _: Throwable => 400
         }
-        // Получаем первый элемент из backendMessages и извлекаем его поле text
         val firstErrorMessage = inbound.status.backendMessages.headOption.map(_.text).getOrElse("No error message available")
 
         val errorMessage = inbound.status.backendMessages.mkString(", ")

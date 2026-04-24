@@ -877,7 +877,7 @@ object JSONFactory210{
 
   def createUserJSON(user : Box[User], entitlements: Box[List[Entitlement]]) : UserJsonV200 = {
     (user, entitlements) match {
-      case (Full(u), Full(е)) => createUserJSON(u, е)
+      case (Full(u), Full(e)) => createUserJSON(u, e)
       case _ => null
     }
   }

@@ -3568,7 +3568,7 @@ trait APIMethods510 {
         UnknownError
       ),
       List(apiTagConsumer),
-      Some(List(canCreateConsumer)) // на апдей2т возможно создадим новую роль
+      Some(List(canCreateConsumer))
     )
 
     lazy val updateConsumer: OBPEndpoint = {
