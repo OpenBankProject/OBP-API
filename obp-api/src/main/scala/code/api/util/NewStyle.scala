@@ -4569,6 +4569,237 @@ object NewStyle extends MdcLoggable{
     ) map {
       i => (unboxFullOrFail(i._1, callContext, s"$DeleteCounterpartyLimitError"), i._2)
     }
+
+    // Trading Methods
+    def createTradingOffer(
+      bankId: BankId,
+      accountId: AccountId,
+      offerType: String,
+      assetCode: String,
+      assetAmount: BigDecimal,
+      priceCurrency: String,
+      priceAmount: BigDecimal,
+      settlementAccountId: String,
+      callContext: Option[CallContext]
+    ): OBPReturnType[com.openbankproject.commons.model.TradingOffer] = {
+      Connector.connector.vend.createTradingOffer(
+        bankId, accountId, offerType, assetCode, assetAmount,
+        priceCurrency, priceAmount, settlementAccountId, callContext
+      ) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$OfferNotFound"), i._2)
+      }
+    }
+
+    def getTradingOffer(
+      offerId: String,
+      callContext: Option[CallContext]
+    ): OBPReturnType[com.openbankproject.commons.model.TradingOffer] = {
+      Connector.connector.vend.getTradingOffer(offerId, callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$OfferNotFound"), i._2)
+      }
+    }
+
+    def cancelTradingOffer(
+      offerId: String,
+      callContext: Option[CallContext]
+    ): OBPReturnType[com.openbankproject.commons.model.TradingOffer] = {
+      Connector.connector.vend.cancelTradingOffer(offerId, callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$OfferNotFound"), i._2)
+      }
+    }
+
+    def updateTradingOffer(
+      offerId: String,
+      priceAmount: Option[BigDecimal],
+      expiryDatetime: Option[Date],
+      minimumFill: Option[BigDecimal],
+      callContext: Option[CallContext]
+    ): OBPReturnType[com.openbankproject.commons.model.TradingOffer] = {
+      Connector.connector.vend.updateTradingOffer(offerId, priceAmount, expiryDatetime, minimumFill, callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$OfferNotFound"), i._2)
+      }
+    }
+
+    def getTradingOffers(
+      bankId: BankId,
+      accountId: AccountId,
+      status: Option[String],
+      offerType: Option[String],
+      callContext: Option[CallContext]
+    ): OBPReturnType[List[com.openbankproject.commons.model.TradingOffer]] = {
+      Connector.connector.vend.getTradingOffers(bankId, accountId, status, offerType, callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$BankAccountNotFound"), i._2)
+      }
+    }
+
+    // Market Methods
+    def createMarketOrder(
+      bankId: BankId,
+      accountId: AccountId,
+      side: String,
+      price: BigDecimal,
+      quantity: BigDecimal,
+      settlementAccountId: String,
+      callContext: Option[CallContext]
+    ): OBPReturnType[com.openbankproject.commons.model.MarketOrder] = {
+      Connector.connector.vend.createMarketOrder(
+        bankId, accountId, side, price, quantity, settlementAccountId, callContext
+      ) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$OrderNotFound"), i._2)
+      }
+    }
+
+    def getMarketOrder(
+      bankId: BankId,
+      accountId: AccountId,
+      orderId: String,
+      callContext: Option[CallContext]
+    ): OBPReturnType[com.openbankproject.commons.model.MarketOrder] = {
+      Connector.connector.vend.getMarketOrder(bankId, accountId, orderId, callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$OrderNotFound"), i._2)
+      }
+    }
+
+    def cancelMarketOrder(
+      bankId: BankId,
+      accountId: AccountId,
+      orderId: String,
+      callContext: Option[CallContext]
+    ): OBPReturnType[com.openbankproject.commons.model.MarketOrder] = {
+      Connector.connector.vend.cancelMarketOrder(bankId, accountId, orderId, callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$OrderNotFound"), i._2)
+      }
+    }
+
+    def createMarketMatch(
+      bankId: BankId,
+      accountId: AccountId,
+      orderId: String,
+      counterOrderId: String,
+      amount: BigDecimal,
+      price: BigDecimal,
+      callContext: Option[CallContext]
+    ): OBPReturnType[com.openbankproject.commons.model.MarketMatch] = {
+      Connector.connector.vend.createMarketMatch(
+        bankId, accountId, orderId, counterOrderId, amount, price, callContext
+      ) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$InvalidMatchParameters"), i._2)
+      }
+    }
+
+    def getMarketTrade(
+      bankId: BankId,
+      accountId: AccountId,
+      tradeId: String,
+      callContext: Option[CallContext]
+    ): OBPReturnType[com.openbankproject.commons.model.MarketTrade] = {
+      Connector.connector.vend.getMarketTrade(bankId, accountId, tradeId, callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$TradeNotFound"), i._2)
+      }
+    }
+
+    def requestSettlement(
+      bankId: BankId,
+      accountId: AccountId,
+      tradeId: String,
+      step: Option[String],
+      callContext: Option[CallContext]
+    ): OBPReturnType[com.openbankproject.commons.model.Settlement] = {
+      Connector.connector.vend.requestSettlement(bankId, accountId, tradeId, step, callContext) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$SettlementFailed"), i._2)
+      }
+    }
+
+    def notifyDeposit(
+      bankId: BankId,
+      accountId: AccountId,
+      txHash: String,
+      from: String,
+      to: String,
+      amount: BigDecimal,
+      confirmations: Int,
+      requiredConfirmations: Int,
+      callContext: Option[CallContext]
+    ): OBPReturnType[com.openbankproject.commons.model.Deposit] = {
+      Connector.connector.vend.notifyDeposit(
+        bankId, accountId, txHash, from, to, amount, confirmations, requiredConfirmations, callContext
+      ) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$InvalidTradingAmount"), i._2)
+      }
+    }
+
+    def requestWithdrawal(
+      bankId: BankId,
+      accountId: AccountId,
+      settlementAccountId: String,
+      amount: BigDecimal,
+      address: String,
+      requiredConfirmations: Int,
+      callContext: Option[CallContext]
+    ): OBPReturnType[com.openbankproject.commons.model.Withdrawal] = {
+      Connector.connector.vend.requestWithdrawal(
+        bankId, accountId, settlementAccountId, amount, address, requiredConfirmations, callContext
+      ) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$WithdrawalFailed"), i._2)
+      }
+    }
+
+    // TCC Payment Authorization NewStyle Wrappers
+    def createPaymentAuth(
+      bankId: BankId,
+      accountId: AccountId,
+      tradeId: String,
+      buyerAccountId: String,
+      sellerAccountId: String,
+      amountFiat: BigDecimal,
+      currency: String,
+      callContext: Option[CallContext]
+    ): OBPReturnType[com.openbankproject.commons.model.PaymentAuth] = {
+      Connector.connector.vend.createPaymentAuth(
+        bankId, accountId, tradeId, buyerAccountId, sellerAccountId, amountFiat, currency, callContext
+      ) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$CreatePaymentAuthError"), i._2)
+      }
+    }
+
+    def capturePaymentAuth(
+      bankId: BankId,
+      accountId: AccountId,
+      authId: String,
+      callContext: Option[CallContext]
+    ): OBPReturnType[com.openbankproject.commons.model.PaymentAuth] = {
+      Connector.connector.vend.capturePaymentAuth(
+        bankId, accountId, authId, callContext
+      ) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$InvalidPaymentAuthState"), i._2)
+      }
+    }
+
+    def releasePaymentAuth(
+      bankId: BankId,
+      accountId: AccountId,
+      authId: String,
+      callContext: Option[CallContext]
+    ): OBPReturnType[com.openbankproject.commons.model.PaymentAuth] = {
+      Connector.connector.vend.releasePaymentAuth(
+        bankId, accountId, authId, callContext
+      ) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$InvalidPaymentAuthState"), i._2)
+      }
+    }
+
+    def getPaymentAuth(
+      bankId: BankId,
+      accountId: AccountId,
+      authId: String,
+      callContext: Option[CallContext]
+    ): OBPReturnType[com.openbankproject.commons.model.PaymentAuth] = {
+      Connector.connector.vend.getPaymentAuth(
+        bankId, accountId, authId, callContext
+      ) map {
+        i => (unboxFullOrFail(i._1, callContext, s"$PaymentAuthNotFound"), i._2)
+      }
+    }
   }
 
 }

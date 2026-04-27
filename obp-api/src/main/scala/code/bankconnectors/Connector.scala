@@ -2092,4 +2092,182 @@ trait Connector extends MdcLoggable {
     panelId: String,
     callContext: Option[CallContext]
   ): OBPReturnType[Box[Boolean]] = Future{(Failure(setUnimplementedError(nameOf(deleteSignatoryPanel _))), callContext)}
+
+  // Trading Methods
+  def createTradingOffer(
+    bankId: BankId,
+    accountId: AccountId,
+    offerType: String,
+    assetCode: String,
+    assetAmount: BigDecimal,
+    priceCurrency: String,
+    priceAmount: BigDecimal,
+    settlementAccountId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[TradingOffer]] = Future {
+    (Failure(setUnimplementedError(nameOf(createTradingOffer _))), callContext)
+  }
+
+  def getTradingOffer(
+    offerId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[TradingOffer]] = Future {
+    (Empty, callContext)
+  }
+
+  def cancelTradingOffer(
+    offerId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[TradingOffer]] = Future {
+    (Failure(setUnimplementedError(nameOf(cancelTradingOffer _))), callContext)
+  }
+
+  def updateTradingOffer(
+    offerId: String,
+    priceAmount: Option[BigDecimal],
+    expiryDatetime: Option[Date],
+    minimumFill: Option[BigDecimal],
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[TradingOffer]] = Future {
+    (Failure(setUnimplementedError(nameOf(updateTradingOffer _))), callContext)
+  }
+
+  def getTradingOffers(
+    bankId: BankId,
+    accountId: AccountId,
+    status: Option[String],
+    offerType: Option[String],
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[List[TradingOffer]]] = Future {
+    (Full(List.empty), callContext)
+  }
+
+  // Market Trading Methods
+  def createMarketOrder(
+    bankId: BankId,
+    accountId: AccountId,
+    side: String,
+    price: BigDecimal,
+    quantity: BigDecimal,
+    settlementAccountId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[MarketOrder]] = Future {
+    (Failure(setUnimplementedError(nameOf(createMarketOrder _))), callContext)
+  }
+
+  def getMarketOrder(
+    bankId: BankId,
+    accountId: AccountId,
+    orderId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[MarketOrder]] = Future {
+    (Empty, callContext)
+  }
+
+  def cancelMarketOrder(
+    bankId: BankId,
+    accountId: AccountId,
+    orderId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[MarketOrder]] = Future {
+    (Failure(setUnimplementedError(nameOf(cancelMarketOrder _))), callContext)
+  }
+
+  def createMarketMatch(
+    bankId: BankId,
+    accountId: AccountId,
+    orderId: String,
+    counterOrderId: String,
+    amount: BigDecimal,
+    price: BigDecimal,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[MarketMatch]] = Future {
+    (Failure(setUnimplementedError(nameOf(createMarketMatch _))), callContext)
+  }
+
+  def getMarketTrade(
+    bankId: BankId,
+    accountId: AccountId,
+    tradeId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[MarketTrade]] = Future {
+    (Empty, callContext)
+  }
+
+  def requestSettlement(
+    bankId: BankId,
+    accountId: AccountId,
+    tradeId: String,
+    step: Option[String],
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[Settlement]] = Future {
+    (Failure(setUnimplementedError(nameOf(requestSettlement _))), callContext)
+  }
+
+  def notifyDeposit(
+    bankId: BankId,
+    accountId: AccountId,
+    txHash: String,
+    from: String,
+    to: String,
+    amount: BigDecimal,
+    confirmations: Int,
+    requiredConfirmations: Int,  // Number of confirmations required
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[Deposit]] = Future {
+    (Failure(setUnimplementedError(nameOf(notifyDeposit _))), callContext)
+  }
+
+  def requestWithdrawal(
+    bankId: BankId,
+    accountId: AccountId,
+    settlementAccountId: String,
+    amount: BigDecimal,
+    address: String,
+    requiredConfirmations: Int,  // Number of confirmations required
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[Withdrawal]] = Future {
+    (Failure(setUnimplementedError(nameOf(requestWithdrawal _))), callContext)
+  }
+
+  // TCC Payment Authorization Methods
+  def createPaymentAuth(
+    bankId: BankId,
+    accountId: AccountId,
+    tradeId: String,
+    buyerAccountId: String,
+    sellerAccountId: String,
+    amountFiat: BigDecimal,
+    currency: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[PaymentAuth]] = Future {
+    (Failure(setUnimplementedError(nameOf(createPaymentAuth _))), callContext)
+  }
+
+  def capturePaymentAuth(
+    bankId: BankId,
+    accountId: AccountId,
+    authId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[PaymentAuth]] = Future {
+    (Failure(setUnimplementedError(nameOf(capturePaymentAuth _))), callContext)
+  }
+
+  def releasePaymentAuth(
+    bankId: BankId,
+    accountId: AccountId,
+    authId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[PaymentAuth]] = Future {
+    (Failure(setUnimplementedError(nameOf(releasePaymentAuth _))), callContext)
+  }
+
+  def getPaymentAuth(
+    bankId: BankId,
+    accountId: AccountId,
+    authId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[PaymentAuth]] = Future {
+    (Failure(setUnimplementedError(nameOf(getPaymentAuth _))), callContext)
+  }
 }
