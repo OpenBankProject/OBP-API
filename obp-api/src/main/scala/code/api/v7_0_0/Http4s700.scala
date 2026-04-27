@@ -990,7 +990,7 @@ object Http4s700 {
         updated_at = "2026-04-15T10:30:00Z"
       ),
       List(InvalidJsonFormat, InvalidOfferType, InvalidTradingAmount, $AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
-      apiTagTrading :: Nil,
+      apiTagTrading :: apiTagTrade :: Nil,
       http4sPartialFunction = Some(createTradingOffer)
     )
     
@@ -1043,7 +1043,7 @@ object Http4s700 {
         updated_at = "2026-04-15T10:30:00Z"
       ),
       List(OfferNotFound, $AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
-      apiTagTrading :: Nil,
+      apiTagTrading :: apiTagTrade :: Nil,
       http4sPartialFunction = Some(getTradingOffer)
     )
 
@@ -1120,7 +1120,7 @@ object Http4s700 {
         )
       ),
       List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
-      apiTagTrading :: Nil,
+      apiTagTrading :: apiTagTrade :: Nil,
       http4sPartialFunction = Some(getTradingOffers)
     )
     
@@ -1155,7 +1155,7 @@ object Http4s700 {
         status = "cancelled"
       ),
       List(OfferNotFound, $AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
-      apiTagTrading :: Nil,
+      apiTagTrading :: apiTagTrade :: Nil,
       http4sPartialFunction = Some(cancelTradingOffer)
     )
 
@@ -1242,7 +1242,7 @@ object Http4s700 {
         updated_at = "2026-04-16T00:30:00Z"
       ),
       List(InvalidJsonFormat, InvalidOrderSide, InvalidTradingAmount, $AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
-      apiTagMarket :: Nil,
+      apiTagTrading :: apiTagMarket :: Nil,
       http4sPartialFunction = Some(createMarketOrder)
     )
 
@@ -1291,7 +1291,7 @@ object Http4s700 {
         updated_at = "2026-04-16T00:30:00Z"
       ),
       List(OrderNotFound, $AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
-      apiTagMarket :: Nil,
+      apiTagTrading :: apiTagMarket :: Nil,
       http4sPartialFunction = Some(getMarketOrder)
     )
 
@@ -1342,7 +1342,7 @@ object Http4s700 {
         updated_at = "2026-04-16T00:35:00Z"
       ),
       List(OrderNotFound, $AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
-      apiTagMarket :: Nil,
+      apiTagTrading :: apiTagMarket :: Nil,
       http4sPartialFunction = Some(cancelMarketOrder)
     )
 
@@ -1413,7 +1413,7 @@ object Http4s700 {
         created_at = "2026-04-16T00:40:00Z"
       ),
       List(InvalidJsonFormat, InvalidMatchParameters, $AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
-      apiTagMarket :: Nil,
+      apiTagTrading :: apiTagMarket :: Nil,
       http4sPartialFunction = Some(createMarketMatch)
     )
 
@@ -1461,7 +1461,7 @@ object Http4s700 {
         created_at = "2026-04-16T00:40:00Z"
       ),
       List(TradeNotFound, $AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
-      apiTagMarket :: Nil,
+      apiTagTrading :: apiTagMarket :: Nil,
       http4sPartialFunction = Some(getMarketTrade)
     )
 
@@ -1512,7 +1512,7 @@ object Http4s700 {
         completed_at = None
       ),
       List(InvalidJsonFormat, SettlementFailed, $AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
-      apiTagMarket :: Nil,
+      apiTagTrading :: apiTagMarket :: Nil,
       http4sPartialFunction = Some(requestSettlement)
     )
 
@@ -1590,7 +1590,7 @@ object Http4s700 {
 //        created_at = "2026-04-16T00:50:00Z"
 //      ),
 //      List(InvalidJsonFormat, InvalidTradingAmount, InvalidMatchParameters, $AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
-//      apiTagMarket :: Nil,
+//      apiTagTrading :: apiTagMarket :: Nil,
 //      http4sPartialFunction = Some(notifyDeposit)
 //    )
 
@@ -1660,7 +1660,7 @@ object Http4s700 {
         created_at = "2026-04-16T00:55:00Z"
       ),
       List(InvalidJsonFormat, InvalidTradingAmount, WithdrawalFailed, $AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
-      apiTagMarket :: Nil,
+      apiTagTrading :: apiTagMarket :: Nil,
       http4sPartialFunction = Some(requestWithdrawal)
     )
 
@@ -1739,7 +1739,7 @@ object Http4s700 {
 //        updated_at = "2026-04-17T10:00:00Z"
 //      ),
 //      List(InvalidJsonFormat, InvalidTradingAmount, CreatePaymentAuthError, $AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
-//      apiTagMarket :: Nil,
+//      apiTagTrading :: apiTagMarket :: Nil,
 //      http4sPartialFunction = Some(createPaymentAuth)
 //    )
 //
@@ -1796,7 +1796,7 @@ object Http4s700 {
 //        updated_at = "2026-04-17T10:05:00Z"
 //      ),
 //      List(PaymentAuthNotFound, InvalidPaymentAuthState, PaymentAuthAlreadyCaptured, $AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
-//      apiTagMarket :: Nil,
+//      apiTagTrading :: apiTagMarket :: Nil,
 //      http4sPartialFunction = Some(capturePaymentAuth)
 //    )
 //
@@ -1853,7 +1853,7 @@ object Http4s700 {
 //        updated_at = "2026-04-17T10:10:00Z"
 //      ),
 //      List(PaymentAuthNotFound, InvalidPaymentAuthState, PaymentAuthAlreadyReleased, $AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
-//      apiTagMarket :: Nil,
+//      apiTagTrading :: apiTagMarket :: Nil,
 //      http4sPartialFunction = Some(releasePaymentAuth)
 //    )
 //
@@ -1907,7 +1907,7 @@ object Http4s700 {
 //        updated_at = "2026-04-17T10:00:00Z"
 //      ),
 //      List(PaymentAuthNotFound, $AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
-//      apiTagMarket :: Nil,
+//      apiTagTrading :: apiTagMarket :: Nil,
 //      http4sPartialFunction = Some(getPaymentAuth)
 //    )
 
