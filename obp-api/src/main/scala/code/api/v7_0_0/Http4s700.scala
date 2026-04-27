@@ -11,7 +11,7 @@ import code.api.util.{APIUtil, ApiRole, ApiVersionUtils, CallContext, CustomJson
 import code.api.util.ApiRole.{canCreateEntitlementAtAnyBank, canCreateEntitlementAtOneBank, canDeleteEntitlementAtAnyBank, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetCardsForBank, canGetConnectorHealth, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMigrations}
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
-import code.api.util.http4s.{ErrorResponseConverter, Http4sRequestAttributes, RequestScopeConnection, ResourceDocMiddleware}
+import code.api.util.http4s.{ErrorResponseConverter, Http4sRequestAttributes, IdempotencyMiddleware, RequestScopeConnection, ResourceDocMiddleware}
 import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps}
 import code.api.util.newstyle.ViewNewStyle
 import code.api.v1_3_0.JSONFactory1_3_0
@@ -2199,9 +2199,12 @@ object Http4s700 {
       }
     }
 
-    // Routes wrapped with ResourceDocMiddleware for automatic validation
+    // Routes wrapped with ResourceDocMiddleware for automatic validation.
+    // IdempotencyMiddleware is nested inside so that auth/CallContext is populated
+    // before the idempotency scope key is computed; on a cache hit the inner
+    // routes (and any DB transaction) are skipped.
     val allRoutesWithMiddleware: HttpRoutes[IO] =
-      ResourceDocMiddleware.apply(resourceDocs)(allRoutes)
+      ResourceDocMiddleware.apply(resourceDocs)(IdempotencyMiddleware(allRoutes))
   }
 
   // Routes with ResourceDocMiddleware - provides automatic validation based on ResourceDoc metadata
