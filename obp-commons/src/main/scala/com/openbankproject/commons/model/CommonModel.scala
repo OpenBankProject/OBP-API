@@ -1375,3 +1375,140 @@ case class ListResult[+T <: List[_] : TypeTag](name: String, results: T) {
   def itemType: Type = implicitly[TypeTag[T]].tpe
 
 }
+
+// Trading Offer Models
+case class TradingOffer(
+  offerId: String,
+  offerType: String,  // "BUY" | "SELL"
+  status: String,     // "active" | "cancelled" | "filled" | "expired"
+  offerDetails: TradingOfferDetails,
+  accountInfo: TradingAccountInfo,
+  executions: List[OfferExecution],
+  userId: String,     // Audit: User who created the offer
+  consentId: Option[String],  // Audit: Consent ID if applicable
+  createdAt: Date,
+  updatedAt: Date
+)
+
+case class TradingOfferDetails(
+  assetCode: String,
+  assetAmount: BigDecimal,
+  priceCurrency: String,
+  priceAmount: BigDecimal,
+  settlementAccountId: String,
+  expiryDatetime: Option[Date],
+  minimumFill: Option[BigDecimal]
+)
+
+case class TradingAccountInfo(
+  bankId: String,
+  accountId: String,
+  viewId: String
+)
+
+case class OfferExecution(
+  executionId: String,
+  executedAmount: BigDecimal,
+  executedPrice: BigDecimal,
+  executedAt: Date,
+  counterpartOfferId: String
+)
+
+// Market Trading Models
+case class MarketOrder(
+  orderId: String,
+  side: String,              // "BUY" | "SELL"
+  price: BigDecimal,
+  quantity: BigDecimal,
+  accountId: String,
+  status: String,            // "active" | "cancelled" | "filled"
+  userId: String,            // Audit: User who created the order
+  consentId: Option[String], // Audit: Consent ID if applicable
+  createdAt: Date,
+  updatedAt: Date
+)
+
+case class MarketMatch(
+  matchId: String,
+  orderId: String,
+  counterOrderId: String,
+  amount: BigDecimal,
+  price: BigDecimal,
+  userId: String,            // Audit: User who created the match
+  consentId: Option[String], // Audit: Consent ID if applicable
+  createdAt: Date
+)
+
+case class MarketTrade(
+  tradeId: String,
+  buyOrderId: String,
+  sellOrderId: String,
+  amount: BigDecimal,
+  price: BigDecimal,
+  status: String,            // "pending" | "settled"
+  userId: String,            // Audit: User who initiated the trade
+  consentId: Option[String], // Audit: Consent ID if applicable
+  createdAt: Date
+)
+
+case class Settlement(
+  settlementId: String,
+  tradeId: String,
+  step: Option[String],
+  status: String,            // "pending" | "completed" | "failed"
+  userId: String,            // Audit: User who requested settlement
+  consentId: Option[String], // Audit: Consent ID if applicable
+  createdAt: Date,
+  completedAt: Option[Date]
+)
+
+case class Deposit(
+  depositId: String,
+  txHash: String,
+  from: String,
+  to: String,
+  amount: BigDecimal,
+  confirmations: Int,
+  requiredConfirmations: Int,  // Number of confirmations required (e.g., 12 for Ethereum mainnet)
+  status: String,              // "confirmed" | "pending"
+  nonce: Option[Long],         // Transaction nonce from blockchain
+  gasUsed: Option[Long],       // Gas consumed by the transaction
+  errorMessage: Option[String], // Error details if transaction failed
+  userId: String,              // Audit: User who notified the deposit
+  consentId: Option[String],   // Audit: Consent ID if applicable
+  createdAt: Date
+)
+
+// TCC (Try-Confirm-Cancel) Payment Authorization for atomic settlement
+case class PaymentAuth(
+  authId: String,
+  tradeId: String,                    // Link to the trade being settled
+  buyerAccountId: String,             // Buyer's fiat account (EUR)
+  sellerAccountId: String,            // Seller's fiat account (EUR)
+  amountFiat: BigDecimal,             // Amount to authorize in fiat currency
+  currency: String,                   // Currency code (e.g., "EUR")
+  state: String,                      // "PREAUTH" | "CAPTURED" | "RELEASED" | "FAILED"
+  holdId: Option[String],             // Link to OBP Account Hold (P5 integration)
+  errorMessage: Option[String],       // Error details if state is FAILED
+  userId: String,                     // Audit: User who created the authorization
+  consentId: Option[String],          // Audit: Consent ID if applicable
+  createdAt: Date,
+  updatedAt: Date
+)
+
+case class Withdrawal(
+  withdrawalId: String,
+  accountId: String,
+  amount: BigDecimal,
+  address: String,
+  status: String,              // "pending" | "completed" | "failed"
+  txHash: Option[String],
+  confirmations: Option[Int],  // Current number of confirmations (if tx submitted)
+  requiredConfirmations: Int,  // Number of confirmations required
+  nonce: Option[Long],         // Transaction nonce from blockchain
+  gasUsed: Option[Long],       // Gas consumed by the transaction
+  errorMessage: Option[String], // Error details if transaction failed
+  userId: String,              // Audit: User who requested withdrawal
+  consentId: Option[String],   // Audit: Consent ID if applicable
+  createdAt: Date
+)
