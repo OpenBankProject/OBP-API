@@ -663,6 +663,59 @@ object JSONFactory1_4_0 extends MdcLoggable{
     }
     case _ => false
   }
+  
+  // Helper function to calculate array nesting depth
+  // Returns the depth of nested arrays (1 for simple array, 2 for array of arrays, etc.)
+  def getArrayDepth(value: Any): Int = value match {
+    case JArray(List(f, _*)) if f.isInstanceOf[JArray] => 1 + getArrayDepth(f)
+    case JArray(_) => 1
+    case _ => 0
+  }
+  
+  // Helper function to check if an array structure represents GeoJSON MultiPolygon coordinates
+  // GeoJSON MultiPolygon has 4 levels: MultiPolygon > Polygon > LinearRing > Coordinate
+  // The innermost level (coordinate pairs) should have minItems/maxItems: 2
+  def isGeoJSONMultiPolygonStructure(value: Any): Boolean = {
+    getArrayDepth(value) == 4
+  }
+  
+  // Helper function to add minItems and maxItems constraints to the innermost array in a nested schema
+  // This is used for GeoJSON MultiPolygon coordinates where the 4th level (position arrays) needs constraints
+  // 
+  // IMPORTANT: We use maxItems: 2 (2D coordinates only) instead of maxItems: 3 for the following reasons:
+  // 1. Cadastral datasets typically don't provide elevation data
+  // 2. Allowing elevation would require defining a vertical coordinate reference system
+  // 3. RFC 7946 requires all positions in a geometry to have the same number of coordinates,
+  //    but JSON Schema cannot enforce this cross-element constraint
+  // 4. Restricting to 2D simplifies API mocking and client implementation
+  // 
+  // According to RFC 7946 Section 3.1.1:
+  // - "A position is an array of numbers. There MUST be two or more elements." (minItems: 2)
+  // - For cadastral use case: we enforce exactly 2 elements (longitude, latitude)
+  // 
+  // @param schema The JSON schema string (nested array structure)
+  // @param depth The total depth of the nested array structure
+  // @return The schema with minItems: 2 and maxItems: 2 constraints added at the appropriate level
+  def addGeoJSONConstraints(schema: String, depth: Int): String = {
+    // For a 4-level nested array, we need to add constraints at the 3rd level
+    // (the level that contains arrays of numbers)
+    // The schema structure is: array -> array -> array -> array(with items: number)
+    // We want to add constraints to the 3rd level: array -> array -> array[minItems: 2, maxItems: 2] -> number
+    
+    // Count how many levels deep we need to go
+    // For depth=4, we want to modify the 3rd "items" level
+    if (depth == 4) {
+      // Find the pattern: "items": {"type": "array", "items": {"type": "number"}}
+      // And replace with: "items": {"type": "array", "items": {"type": "number"}, "minItems": 2, "maxItems": 2}
+      // This enforces 2D coordinates only (longitude, latitude) for cadastral data
+      schema.replaceAll(
+        """"items":\s*\{"type":\s*"array",\s*"items":\s*\{"type":\s*"number"\}\}""",
+        """"items": {"type": "array", "items": {"type": "number"}, "minItems": 2, "maxItems": 2}"""
+      )
+    } else {
+      schema
+    }
+  }
 
   //please check issue first: https://github.com/OpenBankProject/OBP-API/issues/877
   //change: 
@@ -688,18 +741,20 @@ object JSONFactory1_4_0 extends MdcLoggable{
         // Nested array: recursively generate nested array schema
         val innerSchema = translateEntity(f, false)
         return """{"type": "array", "items": """ + innerSchema + "}"
-      case JArray(List(f, _*)) =>
+      case JArray(elements) if elements.nonEmpty =>
         // Non-nested array: generate array schema with primitive or object items
-        val itemType = f match {
+        val firstElement = elements.head
+        val itemType = firstElement match {
           case _: JInt => """{"type": "integer"}"""
           case _: JDouble => """{"type": "number"}"""
           case _: JBool => """{"type": "boolean"}"""
           case _: JString => """{"type": "string"}"""
           case _: JArray => 
             // This is a nested array - recursively handle it
-            translateEntity(f, false)
-          case _ => translateEntity(f, false) // For objects or other complex types
+            translateEntity(firstElement, false)
+          case _ => translateEntity(firstElement, false) // For objects or other complex types
         }
+        
         return """{"type": "array", "items": """ + itemType + "}"
       case JArray(List()) =>
         // Empty array
@@ -793,9 +848,19 @@ object JSONFactory1_4_0 extends MdcLoggable{
         // Handle nested arrays (JArray containing JArray) - generate pure nested array schema
         case JArray(List(f,_*)) if f.isInstanceOf[JArray] => 
           // For nested arrays, recursively generate nested array schema
-          // The recursive call will handle further nesting
+          // Check if this is a GeoJSON MultiPolygon structure (4 levels deep)
+          val depth = getArrayDepth(value)
+          val isGeoJSON = depth == 4
           val innerSchema = translateEntity(f, false)
-          "\""  + key + """": {"type": "array", "items": """ + innerSchema + "}"
+          
+          // If this is GeoJSON MultiPolygon, add minItems/maxItems to the innermost array
+          val schemaWithConstraints = if (isGeoJSON) {
+            addGeoJSONConstraints(innerSchema, depth)
+          } else {
+            innerSchema
+          }
+          
+          "\""  + key + """": {"type": "array", "items": """ + schemaWithConstraints + "}"
         case JArray(List(f,_*))            => "\""  + key + """":""" +translateEntity(f,true)
         case List(f)                       => "\""  + key + """":""" +translateEntity(f,true)
         case List(f,_*)                    => "\""  + key + """":""" +translateEntity(f,true)

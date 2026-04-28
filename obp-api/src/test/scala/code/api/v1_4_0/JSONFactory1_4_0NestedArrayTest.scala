@@ -140,6 +140,17 @@ class JSONFactory1_4_0NestedArrayTest extends FeatureSpec
       
       val itemsLevel4 = (itemsLevel3 \ "items")
       (itemsLevel4 \ "type").extract[String] shouldBe "number"
+      
+      // Verify that position arrays (innermost arrays) have minItems and maxItems constraints
+      // For cadastral data, we enforce 2D coordinates only (longitude, latitude)
+      // Reasons for maxItems: 2 instead of RFC 7946's optional 3rd element:
+      // 1. Cadastral datasets typically don't provide elevation data
+      // 2. Allowing elevation would require defining a vertical coordinate reference system
+      // 3. RFC 7946 requires all positions in a geometry to have the same number of coordinates,
+      //    but JSON Schema cannot enforce this cross-element constraint
+      // 4. Restricting to 2D simplifies API mocking and client implementation
+      (itemsLevel3 \ "minItems").extractOpt[Int] shouldBe Some(2)
+      (itemsLevel3 \ "maxItems").extractOpt[Int] shouldBe Some(2)
     }
     
     scenario("Empty nested array should be handled gracefully") {
