@@ -140,6 +140,14 @@ class JSONFactory1_4_0NestedArrayTest extends FeatureSpec
       
       val itemsLevel4 = (itemsLevel3 \ "items")
       (itemsLevel4 \ "type").extract[String] shouldBe "number"
+      
+      // Verify that coordinate pairs (innermost arrays) have minItems constraint
+      // Per RFC 7946 Section 3.1.1: "A position is an array of numbers. There MUST be two or more elements."
+      // The first two elements are longitude and latitude (required)
+      // The third element is altitude (optional)
+      // Therefore: minItems: 2 is correct, but maxItems should NOT be set (allows 3 elements)
+      (itemsLevel3 \ "minItems").extractOpt[Int] shouldBe Some(2)
+      (itemsLevel3 \ "maxItems").extractOpt[Int] shouldBe None
     }
     
     scenario("Empty nested array should be handled gracefully") {
