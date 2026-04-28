@@ -709,8 +709,8 @@ object OpenAPI31JSONFactory extends MdcLoggable {
         }
 
         // Extract array validation constraints
-        // Note: For GeoJSON coordinates, we only extract minItems (not maxItems)
-        // because positions can have 2 or 3 elements (lon, lat, optional altitude)
+        // Note: For GeoJSON cadastral coordinates, we enforce 2D only (minItems: 2, maxItems: 2)
+        // This ensures coordinate dimension consistency and simplifies API usage
         val minItems = fieldMap.get("minItems").collect { case JInt(v) => v.toInt }
         val maxItems = fieldMap.get("maxItems").collect { case JInt(v) => v.toInt }
 

@@ -681,29 +681,36 @@ object JSONFactory1_4_0 extends MdcLoggable{
   
   // Helper function to add minItems and maxItems constraints to the innermost array in a nested schema
   // This is used for GeoJSON MultiPolygon coordinates where the 4th level (position arrays) needs constraints
+  // 
+  // IMPORTANT: We use maxItems: 2 (2D coordinates only) instead of maxItems: 3 for the following reasons:
+  // 1. Cadastral datasets typically don't provide elevation data
+  // 2. Allowing elevation would require defining a vertical coordinate reference system
+  // 3. RFC 7946 requires all positions in a geometry to have the same number of coordinates,
+  //    but JSON Schema cannot enforce this cross-element constraint
+  // 4. Restricting to 2D simplifies API mocking and client implementation
+  // 
   // According to RFC 7946 Section 3.1.1:
   // - "A position is an array of numbers. There MUST be two or more elements." (minItems: 2)
-  // - "Altitude or elevation MAY be included as an optional third element." (allows 3 elements)
-  // - "Implementations SHOULD NOT extend positions beyond three elements" (maxItems: 3)
-  // Therefore: minItems: 2, maxItems: 3
+  // - For cadastral use case: we enforce exactly 2 elements (longitude, latitude)
+  // 
   // @param schema The JSON schema string (nested array structure)
   // @param depth The total depth of the nested array structure
-  // @return The schema with minItems and maxItems constraints added at the appropriate level
+  // @return The schema with minItems: 2 and maxItems: 2 constraints added at the appropriate level
   def addGeoJSONConstraints(schema: String, depth: Int): String = {
     // For a 4-level nested array, we need to add constraints at the 3rd level
     // (the level that contains arrays of numbers)
     // The schema structure is: array -> array -> array -> array(with items: number)
-    // We want to add constraints to the 3rd level: array -> array -> array[minItems, maxItems] -> number
+    // We want to add constraints to the 3rd level: array -> array -> array[minItems: 2, maxItems: 2] -> number
     
     // Count how many levels deep we need to go
     // For depth=4, we want to modify the 3rd "items" level
     if (depth == 4) {
       // Find the pattern: "items": {"type": "array", "items": {"type": "number"}}
-      // And replace with: "items": {"type": "array", "items": {"type": "number"}, "minItems": 2, "maxItems": 3}
-      // This enforces RFC 7946: positions must have 2-3 elements (lon, lat, optional altitude)
+      // And replace with: "items": {"type": "array", "items": {"type": "number"}, "minItems": 2, "maxItems": 2}
+      // This enforces 2D coordinates only (longitude, latitude) for cadastral data
       schema.replaceAll(
         """"items":\s*\{"type":\s*"array",\s*"items":\s*\{"type":\s*"number"\}\}""",
-        """"items": {"type": "array", "items": {"type": "number"}, "minItems": 2, "maxItems": 3}"""
+        """"items": {"type": "array", "items": {"type": "number"}, "minItems": 2, "maxItems": 2}"""
       )
     } else {
       schema
