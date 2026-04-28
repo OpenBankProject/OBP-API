@@ -19,8 +19,8 @@ object AppsPage {
   // For each app-key, which probe endpoints it exposes. Rendered as JSON fields
   // (e.g. "status_url") and HTML links (e.g. [status]) in `probeEndpoints` order.
   private val appProbes: Map[String, Set[String]] = Map(
-    "public_obp_portal_url"       -> Set("status"),
-    "public_obp_api_manager_url"  -> Set("status"),
+    "public_obp_portal_url"       -> Set("status", "health"),
+    "public_obp_api_manager_url"  -> Set("status", "health"),
     "public_obp_oidc_url"         -> Set("status"),
     "public_obp_api_url"          -> Set("status", "health"),
     "public_obp_opey_url"         -> Set("status", "health"),

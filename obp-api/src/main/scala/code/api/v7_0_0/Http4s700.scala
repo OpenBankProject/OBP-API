@@ -11,7 +11,7 @@ import code.api.util.{APIUtil, ApiRole, ApiVersionUtils, CallContext, CustomJson
 import code.api.util.ApiRole.{canCreateEntitlementAtAnyBank, canCreateEntitlementAtOneBank, canDeleteEntitlementAtAnyBank, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetCardsForBank, canGetConnectorHealth, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMigrations}
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
-import code.api.util.http4s.{ErrorResponseConverter, Http4sRequestAttributes, RequestScopeConnection, ResourceDocMiddleware}
+import code.api.util.http4s.{ErrorResponseConverter, Http4sRequestAttributes, IdempotencyMiddleware, RequestScopeConnection, ResourceDocMiddleware}
 import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps}
 import code.api.util.newstyle.ViewNewStyle
 import code.api.v1_3_0.JSONFactory1_3_0
@@ -706,6 +706,44 @@ object Http4s700 {
       http4sPartialFunction = Some(getConnectors)
     )
 
+    // Route: GET /obp/v7.0.0/api/error-messages
+    val getErrorMessages: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "api" / "error-messages" =>
+        EndpointHelpers.executeAndRespond(req) { _ =>
+          Future.successful(ListResult("error_messages", JSONFactory700.errorMessagesCatalog))
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(getErrorMessages),
+      "GET",
+      "/api/error-messages",
+      "Get Error Messages",
+      """Returns the catalog of OBP error codes and messages defined in this API instance.
+        |
+        |Each entry has the OBP error code (e.g. `OBP-00001`), the internal name of the
+        |constant, and the human-readable message text.
+        |
+        |The catalog is derived by reflecting over `ErrorMessages` at first access and
+        |cached for the lifetime of the server.
+        |
+        |No Authentication is Required.""".stripMargin,
+      EmptyBody,
+      ListResult(
+        "error_messages",
+        List(JSONFactory700.ErrorMessageEntryJsonV700(
+          code    = "OBP-00001",
+          name    = "HostnameNotSpecified",
+          message = "Hostname not specified. Could not get hostname from Props."
+        ))
+      ),
+      List(UnknownError),
+      apiTagDocumentation :: apiTagApi :: Nil,
+      http4sPartialFunction = Some(getErrorMessages)
+    )
+
     // Route: GET /obp/v7.0.0/providers
     val getProviders: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ GET -> `prefixPath` / "providers" =>
@@ -1049,7 +1087,7 @@ object Http4s700 {
         updated_at = "2026-04-15T10:30:00Z"
       ),
       List(InvalidJsonFormat, InvalidOfferType, InvalidTradingAmount, $AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
-      apiTagTrading :: Nil,
+      apiTagTrading :: apiTagTrade :: Nil,
       http4sPartialFunction = Some(createTradingOffer)
     )
     
@@ -1102,7 +1140,7 @@ object Http4s700 {
         updated_at = "2026-04-15T10:30:00Z"
       ),
       List(OfferNotFound, $AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
-      apiTagTrading :: Nil,
+      apiTagTrading :: apiTagTrade :: Nil,
       http4sPartialFunction = Some(getTradingOffer)
     )
 
@@ -1179,7 +1217,7 @@ object Http4s700 {
         )
       ),
       List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
-      apiTagTrading :: Nil,
+      apiTagTrading :: apiTagTrade :: Nil,
       http4sPartialFunction = Some(getTradingOffers)
     )
     
@@ -1214,7 +1252,7 @@ object Http4s700 {
         status = "cancelled"
       ),
       List(OfferNotFound, $AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
-      apiTagTrading :: Nil,
+      apiTagTrading :: apiTagTrade :: Nil,
       http4sPartialFunction = Some(cancelTradingOffer)
     )
 
@@ -1301,7 +1339,7 @@ object Http4s700 {
         updated_at = "2026-04-16T00:30:00Z"
       ),
       List(InvalidJsonFormat, InvalidOrderSide, InvalidTradingAmount, $AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
-      apiTagMarket :: Nil,
+      apiTagTrading :: apiTagMarket :: Nil,
       http4sPartialFunction = Some(createMarketOrder)
     )
 
@@ -1350,7 +1388,7 @@ object Http4s700 {
         updated_at = "2026-04-16T00:30:00Z"
       ),
       List(OrderNotFound, $AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
-      apiTagMarket :: Nil,
+      apiTagTrading :: apiTagMarket :: Nil,
       http4sPartialFunction = Some(getMarketOrder)
     )
 
@@ -1401,7 +1439,7 @@ object Http4s700 {
         updated_at = "2026-04-16T00:35:00Z"
       ),
       List(OrderNotFound, $AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
-      apiTagMarket :: Nil,
+      apiTagTrading :: apiTagMarket :: Nil,
       http4sPartialFunction = Some(cancelMarketOrder)
     )
 
@@ -1472,7 +1510,7 @@ object Http4s700 {
         created_at = "2026-04-16T00:40:00Z"
       ),
       List(InvalidJsonFormat, InvalidMatchParameters, $AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
-      apiTagMarket :: Nil,
+      apiTagTrading :: apiTagMarket :: Nil,
       http4sPartialFunction = Some(createMarketMatch)
     )
 
@@ -1520,7 +1558,7 @@ object Http4s700 {
         created_at = "2026-04-16T00:40:00Z"
       ),
       List(TradeNotFound, $AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
-      apiTagMarket :: Nil,
+      apiTagTrading :: apiTagMarket :: Nil,
       http4sPartialFunction = Some(getMarketTrade)
     )
 
@@ -1571,7 +1609,7 @@ object Http4s700 {
         completed_at = None
       ),
       List(InvalidJsonFormat, SettlementFailed, $AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
-      apiTagMarket :: Nil,
+      apiTagTrading :: apiTagMarket :: Nil,
       http4sPartialFunction = Some(requestSettlement)
     )
 
@@ -1649,7 +1687,7 @@ object Http4s700 {
 //        created_at = "2026-04-16T00:50:00Z"
 //      ),
 //      List(InvalidJsonFormat, InvalidTradingAmount, InvalidMatchParameters, $AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
-//      apiTagMarket :: Nil,
+//      apiTagTrading :: apiTagMarket :: Nil,
 //      http4sPartialFunction = Some(notifyDeposit)
 //    )
 
@@ -1719,7 +1757,7 @@ object Http4s700 {
         created_at = "2026-04-16T00:55:00Z"
       ),
       List(InvalidJsonFormat, InvalidTradingAmount, WithdrawalFailed, $AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
-      apiTagMarket :: Nil,
+      apiTagTrading :: apiTagMarket :: Nil,
       http4sPartialFunction = Some(requestWithdrawal)
     )
 
@@ -1798,7 +1836,7 @@ object Http4s700 {
 //        updated_at = "2026-04-17T10:00:00Z"
 //      ),
 //      List(InvalidJsonFormat, InvalidTradingAmount, CreatePaymentAuthError, $AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
-//      apiTagMarket :: Nil,
+//      apiTagTrading :: apiTagMarket :: Nil,
 //      http4sPartialFunction = Some(createPaymentAuth)
 //    )
 //
@@ -1855,7 +1893,7 @@ object Http4s700 {
 //        updated_at = "2026-04-17T10:05:00Z"
 //      ),
 //      List(PaymentAuthNotFound, InvalidPaymentAuthState, PaymentAuthAlreadyCaptured, $AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
-//      apiTagMarket :: Nil,
+//      apiTagTrading :: apiTagMarket :: Nil,
 //      http4sPartialFunction = Some(capturePaymentAuth)
 //    )
 //
@@ -1912,7 +1950,7 @@ object Http4s700 {
 //        updated_at = "2026-04-17T10:10:00Z"
 //      ),
 //      List(PaymentAuthNotFound, InvalidPaymentAuthState, PaymentAuthAlreadyReleased, $AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
-//      apiTagMarket :: Nil,
+//      apiTagTrading :: apiTagMarket :: Nil,
 //      http4sPartialFunction = Some(releasePaymentAuth)
 //    )
 //
@@ -1966,7 +2004,7 @@ object Http4s700 {
 //        updated_at = "2026-04-17T10:00:00Z"
 //      ),
 //      List(PaymentAuthNotFound, $AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
-//      apiTagMarket :: Nil,
+//      apiTagTrading :: apiTagMarket :: Nil,
 //      http4sPartialFunction = Some(getPaymentAuth)
 //    )
 
@@ -2258,9 +2296,12 @@ object Http4s700 {
       }
     }
 
-    // Routes wrapped with ResourceDocMiddleware for automatic validation
+    // Routes wrapped with ResourceDocMiddleware for automatic validation.
+    // IdempotencyMiddleware is nested inside so that auth/CallContext is populated
+    // before the idempotency scope key is computed; on a cache hit the inner
+    // routes (and any DB transaction) are skipped.
     val allRoutesWithMiddleware: HttpRoutes[IO] =
-      ResourceDocMiddleware.apply(resourceDocs)(allRoutes)
+      ResourceDocMiddleware.apply(resourceDocs)(IdempotencyMiddleware(allRoutes))
   }
 
   // Routes with ResourceDocMiddleware - provides automatic validation based on ResourceDoc metadata

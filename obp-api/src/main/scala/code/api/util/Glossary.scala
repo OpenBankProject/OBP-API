@@ -5316,6 +5316,138 @@ object Glossary extends MdcLoggable  {
 				 |
 """)
 
+	glossaryItems += GlossaryItem(
+		title = "OBP-MCP",
+		description =
+			s"""
+				 |# OBP-MCP
+				 |
+				 |**OBP-MCP** is a [Model Context Protocol](https://modelcontextprotocol.io) server for the Open Bank Project API. It lets AI assistants (Claude, Opey, IDE agents, custom LLM tooling) discover and call OBP-API endpoints as MCP *tools*, without hard-coding any knowledge of the 600+ endpoints.
+				 |
+				 |Repository: [github.com/OpenBankProject/OBP-MCP](https://github.com/OpenBankProject/OBP-MCP)
+				 |
+				 |## What it does
+				 |
+				 |OBP-MCP is a thin protocol bridge. AI clients speak **MCP** to it; it speaks **HTTPS / REST** to OBP-API on their behalf, attaching the user's OAuth token or Consent-JWT.
+				 |
+				 |```
+				 |┌──────────────────┐   MCP    ┌────────────────────────┐   HTTPS    ┌──────────────┐
+				 |│  AI client       │ ───────▶ │      OBP-MCP           │ ─────────▶ │   OBP-API    │
+				 |│  (Claude, Opey,  │ ◀─────── │   (FastMCP server)     │ ◀───────── │              │
+				 |│   IDE agent)     │  tools   │                        │  JSON      │              │
+				 |└──────────────────┘          └────────────────────────┘            └──────────────┘
+				 |```
+				 |
+				 |## Three-step discovery + call (no RAG, no vector DB)
+				 |
+				 |OBP-MCP avoids embedding the 4 MB OpenAPI spec into the LLM's context. Instead it exposes three tools that work together:
+				 |
+				 |1. **`list_endpoints_by_tag(tags)`** — returns lightweight summaries (~50–100 tokens each) from a local `endpoint_index.json`. Lets the LLM narrow down to a handful of candidate endpoints by tag (e.g. `Account`, `Transaction-Request`, `Consent`).
+				 |2. **`get_endpoint_schema(endpoint_id)`** — lazy-loads the full OpenAPI schema for one endpoint from a local `endpoint_schemas.json`.
+				 |3. **`call_obp_api(endpoint_id, path_params, query_params, body, headers)`** — actually executes the HTTP request against the live OBP-API.
+				 |
+				 |Two further tools cover the glossary itself: **`list_glossary_terms(search_query)`** and **`get_glossary_term(term_id)`**, backed by a local `glossary_index.json` of 800+ banking terms.
+				 |
+				 |## Three kinds of traffic
+				 |
+				 |It is important to understand that OBP-MCP is **not** a documentation lookup tool — it makes real, authenticated business calls:
+				 |
+				 |- **Documentation / discovery** — `list_endpoints_by_tag`, `get_endpoint_schema`, glossary tools. Served from local JSON, no network.
+				 |- **Business calls** — `call_obp_api` proxies whatever the endpoint declares: `GET /banks/{BANK_ID}/accounts`, `POST .../transaction-requests/SEPA`, `PUT /accounts/{ACC}/label`, `DELETE /my/consents/{CONSENT_ID}`, etc. Real money / data moves.
+				 |- **Index refresh** — at startup and on a timer, OBP-MCP re-fetches OBP's resource-docs and swagger to rebuild the local indexes, so discovery stays fast and offline.
+				 |
+				 |## Authentication and authorization
+				 |
+				 |OBP-MCP supports several modes via the `AUTH_PROVIDER` environment variable for client-to-MCP auth:
+				 |
+				 || Mode           | Use case                              | Notes                                              |
+				 ||----------------|---------------------------------------|----------------------------------------------------|
+				 || `bearer-only`  | Internal agents (e.g. Opey)           | JWT validation only, multi-issuer                  |
+				 || `obp-oidc`     | External MCP clients                  | Full OAuth 2.1 + Dynamic Client Registration       |
+				 || `keycloak`     | External MCP clients                  | OAuth 2.1 + minimal DCR proxy workaround           |
+				 || `none`         | Development / testing                 | No auth required                                   |
+				 |
+				 |For onward calls to OBP-API, `OBP_AUTHORIZATION_VIA` selects:
+				 |
+				 |- **`oauth`** — pulls the access token from the MCP request context and sends `Authorization: Bearer ...`.
+				 |- **`consent`** — if the endpoint declares any required roles and no `Consent-JWT` is supplied, the tool returns a `consent_required` payload listing the required roles and bank scope, so the client can elicit user approval and come back with a `Consent-JWT` header. Public / no-role endpoints skip this and call straight through.
+				 |- **`none`** — calls OBP unauthenticated (only useful for genuinely public endpoints).
+				 |
+				 |This means the consent flow is enforced at the MCP layer, not just at OBP-API: an agent cannot accidentally call a privileged endpoint without explicit user consent.
+				 |
+				 |## Why it matters
+				 |
+				 |OBP-MCP is the canonical way to make Open Bank Project endpoints **agent-callable**. Instead of teaching every LLM about every endpoint up front, the LLM is given five generic tools and lets the indexes and schemas guide it to the right call at runtime. The same server can serve internal agents (Opey) and external clients (Claude Desktop, IDE plugins, third-party agents) by switching auth providers.
+				 |
+				 |See also: [Opey](/glossary#Opey), [Consent](/glossary#Consent), [Authentication: OAuth 2.0](/glossary#Authentication:-OAuth-2.0).
+				 |
+""")
+
+
+	glossaryItems += GlossaryItem(
+		title = "Opey",
+		description =
+			s"""
+				 |# Opey
+				 |
+				 |**Opey** (current generation: **Opey II**) is the Open Bank Project's agentic AI assistant — a chatbot that lets users explore and operate the OBP API in natural language. It is built on [LangGraph](https://www.langchain.com/langgraph), is provider-agnostic across LLMs (Anthropic, OpenAI, Ollama), and is the chat backend used by **OBP-Portal**.
+				 |
+				 |Repository: [github.com/OpenBankProject/OBP-Opey-II](https://github.com/OpenBankProject/OBP-Opey-II)
+				 |
+				 |## Opey is an agent. OBP-MCP is its tool surface.
+				 |
+				 |Since [OBP-MCP](/glossary#OBP-MCP) was introduced, Opey has been refactored from a self-contained chatbot (with its own endpoint search, glossary search, and OBP HTTP client baked in) into a focused **agent** that *consumes* OBP-MCP as its primary tool source.
+				 |
+				 |Opey's `mcp_servers.json` typically points at a running OBP-MCP instance:
+				 |
+				 |```json
+				 |{
+				 |  "servers": [
+				 |    {
+				 |      "name": "obp",
+				 |      "url": "http://0.0.0.0:9100/mcp",
+				 |      "transport": "http",
+				 |      "requires_auth": true
+				 |    }
+				 |  ]
+				 |}
+				 |```
+				 |
+				 |The Opey README puts it bluntly: *"As a minimum, Opey should be connected to OBP-MCP, or it won't know anything about the Open Bank Project except for what you put in the system prompt."*
+				 |
+				 |## What OBP-MCP took over
+				 |
+				 |Subsystems that used to live in Opey are now generic MCP tools any client can use:
+				 |
+				 || Old Opey responsibility                                                              | Now in OBP-MCP                                              |
+				 ||--------------------------------------------------------------------------------------|-------------------------------------------------------------|
+				 || Endpoint Retrieval RAG pipeline (vector store of swagger, query reformulation, etc.) | `list_endpoints_by_tag` + `get_endpoint_schema`             |
+				 || Glossary Retrieval RAG pipeline                                                      | `list_glossary_terms` + `get_glossary_term`                 |
+				 || `OBPClient` (aiohttp + OAuth + consent JWT) — the actual HTTP layer to OBP-API       | `call_obp_api` (`oauth` / `consent` / `none` modes)         |
+				 || "Which endpoint should I call?" logic baked into the agent                           | Externalised — any MCP client can now discover and call     |
+				 |
+				 |## What Opey still uniquely does
+				 |
+				 |OBP-MCP is stateless and has no model — it cannot reason, plan, or hold a conversation. Everything below is what makes Opey *Opey*:
+				 |
+				 |- **The LLM loop itself.** Opey runs the actual reasoning via a LangGraph state machine (`START → Opey Agent → Tools → Sanitize → Opey → Summarize → END`), with **task follow-through**: when a tool call fails (e.g. missing entitlement), Opey reuses tools to self-correct instead of bouncing the problem back to the user.
+				 |- **Human-in-the-loop approval — richer than MCP's `consent_required`.** A `ToolRegistry` classifies operations as **SAFE / MODERATE / DANGEROUS / CRITICAL**. An `ApprovalManager` persists "approve once / session / user / workspace" decisions with TTLs. The human-review node only interrupts when truly needed. OBP-MCP just *says* consent is required; Opey decides **how** to ask, **whether** to ask again, and **remembers** the answer.
+				 |- **Conversation state.** SQLite-backed LangGraph checkpoints (`checkpoints.db`), token counting, automatic summarisation when approaching the model context limit, and graceful degradation in long sessions.
+				 |- **The streaming chat service.** FastAPI endpoints (`POST /invoke`, `POST /stream` SSE, `POST /submit_approval`, `GET /user/consent`, `GET /status`) — this is what OBP-Portal's chat UI actually talks to. Streaming events are produced by dedicated processors (token, tool, human-review, metadata, end).
+				 |- **Session, auth, usage.** OBP user session management, consent-JWT parsing for user identification, rate limiting, usage tracking, and an admin-client singleton for system-level operations.
+				 |- **Domain-tuned system prompt.** Behavioural guidelines such as *Tool-First / Knowledge-Second*, *No Hallucination*, *Proactive Verification*, and *Transparent Errors*. Configurable via `OPEY_SYSTEM_PROMPT`.
+				 |- **Model abstraction.** Provider-agnostic via `MODEL_PROVIDER` / `MODEL_NAME` — swap Claude for GPT or a local Ollama model without touching the graph. New models are registered in `MODEL_CONFIGS` (`src/agent/utils/model_factory.py`).
+				 |- **Evaluation framework.** Parameter-sweep experiments over batch size, k-value, retry thresholds; CSV export of precision / recall / latency P50–P99; combined scoring (e.g. 70% recall + 30% speed) to find sweet spots. Something a tool surface like MCP has no concept of.
+				 |
+				 |## One-line summary
+				 |
+				 |**OBP-MCP is the *tool surface* over OBP-API. Opey II is the *agent* that drives it.** Before OBP-MCP, Opey had to be both. Now OBP-MCP provides discovery and authenticated calls as a generic, multi-client surface (Claude Desktop, IDE plugins, third-party agents can all use it), and Opey II becomes a thinner, more focused orchestrator: planning, approvals, conversation state, streaming, and the chat UX that OBP-Portal embeds.
+				 |
+				 |See also: [OBP-MCP](/glossary#OBP-MCP), [Consent](/glossary#Consent), [Authentication: OAuth 2.0](/glossary#Authentication:-OAuth-2.0).
+				 |
+""")
+
+
 	///////////////////////////////////////////////////////////////////
 	// NOTE! Some glossary items are generated in ExampleValue.scala
 //////////////////////////////////////////////////////////////////
