@@ -708,13 +708,21 @@ object OpenAPI31JSONFactory extends MdcLoggable {
           case JArray(values) => values.collect { case JString(v) => v }
         }
 
+        // Extract array validation constraints
+        // Note: For GeoJSON coordinates, we only extract minItems (not maxItems)
+        // because positions can have 2 or 3 elements (lon, lat, optional altitude)
+        val minItems = fieldMap.get("minItems").collect { case JInt(v) => v.toInt }
+        val maxItems = fieldMap.get("maxItems").collect { case JInt(v) => v.toInt }
+
         SchemaJson(
           `type` = schemaType,
           format = format,
           properties = properties,
           items = items,
           required = required,
-          enum = enum
+          enum = enum,
+          minItems = minItems,
+          maxItems = maxItems
         )
 
       case _ =>
