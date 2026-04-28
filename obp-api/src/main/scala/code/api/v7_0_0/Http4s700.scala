@@ -106,8 +106,10 @@ object Http4s700 {
    * - For each doc, check if (requestUrl, requestVerb) has been seen
    * - If not seen, add to result (this keeps the newest version)
    * - If seen, skip (this omits older versions of the same endpoint)
+   * 
+   * Performance: Computed once and cached (lazy val) to avoid recomputation on every request.
    */
-  def allResourceDocs: ArrayBuffer[ResourceDoc] = {
+  lazy val allResourceDocs: ArrayBuffer[ResourceDoc] = {
     // Import v6.0.0's aggregated docs (v6.0.0 + v5.1.0 + ... + v1.3.0)
     import code.api.v6_0_0.OBPAPI6_0_0
     
