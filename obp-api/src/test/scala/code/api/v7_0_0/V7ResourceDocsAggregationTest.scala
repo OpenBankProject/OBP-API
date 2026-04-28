@@ -665,5 +665,69 @@ class V7ResourceDocsAggregationTest extends ServerSetupWithTestData {
       info("**Expected Outcome**: This test PASSES on unfixed code (baseline behavior)")
       info("**Validates**: Requirements 3.4 - JSON response format unchanged")
     }
+
+    scenario("Property 2.10: V7 specifiedUrl Uses V7 Version for Aggregated Docs (MUST PASS AFTER FIX)", V7ResourceDocsAggregationTag) {
+      Given("The v7.0.0 resource-docs endpoint is called")
+      setPropsValues("resource_docs_requires_role" -> "false")
+
+      When("Making GET /obp/v7.0.0/resource-docs/v7.0.0/obp request")
+      val (statusCode, json, _) = makeHttpRequest("/obp/v7.0.0/resource-docs/v7.0.0/obp")
+
+      Then("Response should be 200 OK")
+      statusCode shouldBe 200
+
+      And("All resource docs should have specifiedUrl with v7.0.0 version")
+      val resourceDocs = extractResourceDocs(json)
+      info(s"Total endpoint count: ${resourceDocs.size}")
+
+      // Check that all docs have specifiedUrl field set
+      val docsWithSpecifiedUrl = resourceDocs.filter { doc =>
+        val fieldMap = toFieldMap(doc.obj)
+        fieldMap.get("specified_url") match {
+          case Some(JString(url)) => url.nonEmpty
+          case _ => false
+        }
+      }
+      info(s"Docs with non-empty specifiedUrl: ${docsWithSpecifiedUrl.size}")
+      docsWithSpecifiedUrl.size shouldBe resourceDocs.size
+
+      // Check that all specifiedUrl values use v7.0.0 version
+      val docsWithV7SpecifiedUrl = resourceDocs.filter { doc =>
+        val fieldMap = toFieldMap(doc.obj)
+        fieldMap.get("specified_url") match {
+          case Some(JString(url)) => url.contains("/v7.0.0/")
+          case _ => false
+        }
+      }
+      info(s"Docs with v7.0.0 in specifiedUrl: ${docsWithV7SpecifiedUrl.size}")
+      docsWithV7SpecifiedUrl.size shouldBe resourceDocs.size
+
+      // Verify a specific v6.0.0 endpoint has correct specifiedUrl
+      val v6Endpoint = resourceDocs.find { doc =>
+        getOperationId(doc) match {
+          case Some(opId) => opId == "OBPv6.0.0-getScannedApiVersions"
+          case None => false
+        }
+      }
+
+      v6Endpoint match {
+        case Some(doc) =>
+          val fieldMap = toFieldMap(doc.obj)
+          fieldMap.get("specified_url") match {
+            case Some(JString(url)) =>
+              info(s"getScannedApiVersions specifiedUrl: $url")
+              url should include("/v7.0.0/")
+              url should not include("/v6.0.0/")
+            case _ =>
+              fail("Expected specifiedUrl field in getScannedApiVersions doc")
+          }
+        case None =>
+          info("Warning: getScannedApiVersions endpoint not found in aggregated docs")
+      }
+
+      info("**Expected Outcome**: This test PASSES after specifiedUrl fix")
+      info("**Validates**: specifiedUrl correctly uses v7.0.0 for all aggregated docs")
+    }
   }
 }
+

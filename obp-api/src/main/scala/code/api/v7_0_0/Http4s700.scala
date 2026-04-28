@@ -307,7 +307,16 @@ object Http4s700 {
             }
             // Use aggregated docs for v7.0.0, version-specific docs for other versions
             allDocs = if (requestedApiVersion == ApiVersion.v7_0_0) {
-              allResourceDocs.toList
+              // For v7.0.0, update requestUrl and specifiedUrl for all aggregated docs
+              // This mirrors the logic in ResourceDocsAPIMethods.getResourceDocsList
+              allResourceDocs.toList.map { doc =>
+                // Save original requestUrl before modification (it's in short form like "/banks")
+                val originalRequestUrl = doc.requestUrl
+                doc.copy(
+                  requestUrl = s"/${doc.implementedInApiVersion.urlPrefix}/${doc.implementedInApiVersion.vDottedApiVersion}${originalRequestUrl}",
+                  specifiedUrl = Some(s"/${doc.implementedInApiVersion.urlPrefix}/${requestedApiVersion.vDottedApiVersion}${originalRequestUrl}")
+                )
+              }
             } else {
               ResourceDocs140.ImplementationsResourceDocs.getResourceDocsList(requestedApiVersion).getOrElse(Nil)
             }
