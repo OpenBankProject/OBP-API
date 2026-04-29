@@ -37,6 +37,14 @@ class V7ResourceDocsAggregationTest extends ServerSetupWithTestData {
 
   object V7ResourceDocsAggregationTag extends Tag("V7ResourceDocsAggregation")
 
+  // Test message constants (to avoid SonarCube duplication warnings)
+  private val MSG_RESPONSE_200_OK = "Response should be 200 OK"
+  private val MSG_GIVEN_V7_ENDPOINT = "The v7.0.0 resource-docs endpoint is called"
+  private val MSG_GIVEN_V6_ENDPOINT = "The v6.0.0 resource-docs endpoint is called"
+  private val MSG_GIVEN_V5_ENDPOINT = "The v5.1.0 resource-docs endpoint is called"
+  private val MSG_GIVEN_V4_ENDPOINT = "The v4.0.0 resource-docs endpoint is called"
+  private val MSG_GIVEN_NON_RESOURCE_DOCS = "A non-resource-docs v7.0.0 endpoint is called"
+
   // Use Http4sTestServer for full integration testing
   private val http4sServer = Http4sTestServer
   private val baseUrl = s"http://${http4sServer.host}:${http4sServer.port}"
@@ -102,13 +110,13 @@ class V7ResourceDocsAggregationTest extends ServerSetupWithTestData {
   feature("Bug Condition Exploration - V7 Resource Docs Aggregation") {
 
     scenario("Property 1: Bug Condition - V7 Resource Docs Returns Only V7 Endpoints (EXPECTED TO FAIL)", V7ResourceDocsAggregationTag) {
-      Given("The v7.0.0 resource-docs endpoint is called")
+      Given(MSG_GIVEN_V7_ENDPOINT)
       setPropsValues("resource_docs_requires_role" -> "false")
 
       When("Making GET /obp/v7.0.0/resource-docs/v7.0.0/obp request")
       val (statusCode, json, _) = makeHttpRequest("/obp/v7.0.0/resource-docs/v7.0.0/obp")
 
-      Then("Response should be 200 OK")
+      Then(MSG_RESPONSE_200_OK)
       statusCode shouldBe 200
 
       And("Response should contain aggregated docs from all versions (v7.0.0 + v6.0.0 + v5.1.0 + ... + v1.3.0)")
@@ -182,13 +190,13 @@ class V7ResourceDocsAggregationTest extends ServerSetupWithTestData {
     }
 
     scenario("Baseline - V6 Resource Docs Returns Aggregated Endpoints (SHOULD PASS)", V7ResourceDocsAggregationTag) {
-      Given("The v6.0.0 resource-docs endpoint is called")
+      Given(MSG_GIVEN_V6_ENDPOINT)
       setPropsValues("resource_docs_requires_role" -> "false")
 
       When("Making GET /obp/v6.0.0/resource-docs/v6.0.0/obp request")
       val (statusCode, json, _) = makeHttpRequest("/obp/v6.0.0/resource-docs/v6.0.0/obp")
 
-      Then("Response should be 200 OK")
+      Then(MSG_RESPONSE_200_OK)
       statusCode shouldBe 200
 
       And("Response should contain aggregated docs from v6.0.0 and earlier versions")
@@ -230,7 +238,7 @@ class V7ResourceDocsAggregationTest extends ServerSetupWithTestData {
       When("Making GET /obp/v7.0.0/resource-docs/v6.0.0/obp request")
       val (statusCode, json, _) = makeHttpRequest("/obp/v7.0.0/resource-docs/v6.0.0/obp")
 
-      Then("Response should be 200 OK")
+      Then(MSG_RESPONSE_200_OK)
       statusCode shouldBe 200
 
       And("Response should contain v6.0.0 aggregated docs")
@@ -249,7 +257,7 @@ class V7ResourceDocsAggregationTest extends ServerSetupWithTestData {
       When("Making GET /obp/v7.0.0/resource-docs/v7.0.0/obp?functions=getScannedApiVersions request")
       val (statusCode, json, _) = makeHttpRequest("/obp/v7.0.0/resource-docs/v7.0.0/obp?functions=getScannedApiVersions")
 
-      Then("Response should be 200 OK")
+      Then(MSG_RESPONSE_200_OK)
       statusCode shouldBe 200
 
       And("Response should contain the getScannedApiVersions endpoint")
@@ -291,13 +299,13 @@ class V7ResourceDocsAggregationTest extends ServerSetupWithTestData {
   feature("Preservation Property Tests - Non-V7 Resource Docs Behavior") {
 
     scenario("Property 2.1: V6 Resource Docs Aggregation Preserved (MUST PASS)", V7ResourceDocsAggregationTag) {
-      Given("The v6.0.0 resource-docs endpoint is called")
+      Given(MSG_GIVEN_V6_ENDPOINT)
       setPropsValues("resource_docs_requires_role" -> "false")
 
       When("Making GET /obp/v6.0.0/resource-docs/v6.0.0/obp request")
       val (statusCode, json, _) = makeHttpRequest("/obp/v6.0.0/resource-docs/v6.0.0/obp")
 
-      Then("Response should be 200 OK")
+      Then(MSG_RESPONSE_200_OK)
       statusCode shouldBe 200
 
       And("Response should contain aggregated docs from v6.0.0 and earlier versions")
@@ -345,13 +353,13 @@ class V7ResourceDocsAggregationTest extends ServerSetupWithTestData {
     }
 
     scenario("Property 2.2: V5.1 Resource Docs Aggregation Preserved (MUST PASS)", V7ResourceDocsAggregationTag) {
-      Given("The v5.1.0 resource-docs endpoint is called")
+      Given(MSG_GIVEN_V5_ENDPOINT)
       setPropsValues("resource_docs_requires_role" -> "false")
 
       When("Making GET /obp/v5.1.0/resource-docs/v5.1.0/obp request")
       val (statusCode, json, _) = makeHttpRequest("/obp/v5.1.0/resource-docs/v5.1.0/obp")
 
-      Then("Response should be 200 OK")
+      Then(MSG_RESPONSE_200_OK)
       statusCode shouldBe 200
 
       And("Response should contain aggregated docs from v5.1.0 and earlier versions")
@@ -397,13 +405,13 @@ class V7ResourceDocsAggregationTest extends ServerSetupWithTestData {
     }
 
     scenario("Property 2.3: V4 Resource Docs Aggregation Preserved (MUST PASS)", V7ResourceDocsAggregationTag) {
-      Given("The v4.0.0 resource-docs endpoint is called")
+      Given(MSG_GIVEN_V4_ENDPOINT)
       setPropsValues("resource_docs_requires_role" -> "false")
 
       When("Making GET /obp/v4.0.0/resource-docs/v4.0.0/obp request")
       val (statusCode, json, _) = makeHttpRequest("/obp/v4.0.0/resource-docs/v4.0.0/obp")
 
-      Then("Response should be 200 OK")
+      Then(MSG_RESPONSE_200_OK)
       statusCode shouldBe 200
 
       And("Response should contain aggregated docs from v4.0.0 and earlier versions")
@@ -455,7 +463,7 @@ class V7ResourceDocsAggregationTest extends ServerSetupWithTestData {
       When("Making GET /obp/v6.0.0/resource-docs/v6.0.0/obp?functions=getScannedApiVersions request")
       val (statusCode, json, _) = makeHttpRequest("/obp/v6.0.0/resource-docs/v6.0.0/obp?functions=getScannedApiVersions")
 
-      Then("Response should be 200 OK")
+      Then(MSG_RESPONSE_200_OK)
       statusCode shouldBe 200
 
       And("Response should contain only the filtered endpoint")
@@ -487,7 +495,7 @@ class V7ResourceDocsAggregationTest extends ServerSetupWithTestData {
       When("Making GET /obp/v6.0.0/resource-docs/v6.0.0/obp?tags=Account request")
       val (statusCode, json, _) = makeHttpRequest("/obp/v6.0.0/resource-docs/v6.0.0/obp?tags=Account")
 
-      Then("Response should be 200 OK")
+      Then(MSG_RESPONSE_200_OK)
       statusCode shouldBe 200
 
       And("Response should contain only endpoints tagged with Account")
@@ -518,12 +526,12 @@ class V7ResourceDocsAggregationTest extends ServerSetupWithTestData {
     }
 
     scenario("Property 2.6: Non-Resource-Docs V7 Endpoints Unchanged - Root (MUST PASS)", V7ResourceDocsAggregationTag) {
-      Given("A non-resource-docs v7.0.0 endpoint is called")
+      Given(MSG_GIVEN_NON_RESOURCE_DOCS)
 
       When("Making GET /obp/v7.0.0/root request")
       val (statusCode, json, _) = makeHttpRequest("/obp/v7.0.0/root")
 
-      Then("Response should be 200 OK")
+      Then(MSG_RESPONSE_200_OK)
       statusCode shouldBe 200
 
       And("Response should contain expected root endpoint data")
@@ -542,12 +550,12 @@ class V7ResourceDocsAggregationTest extends ServerSetupWithTestData {
     }
 
     scenario("Property 2.7: Non-Resource-Docs V7 Endpoints Unchanged - Banks (MUST PASS)", V7ResourceDocsAggregationTag) {
-      Given("A non-resource-docs v7.0.0 endpoint is called")
+      Given(MSG_GIVEN_NON_RESOURCE_DOCS)
 
       When("Making GET /obp/v7.0.0/banks request")
       val (statusCode, json, _) = makeHttpRequest("/obp/v7.0.0/banks")
 
-      Then("Response should be 200 OK")
+      Then(MSG_RESPONSE_200_OK)
       statusCode shouldBe 200
 
       And("Response should contain expected banks data structure")
@@ -565,13 +573,13 @@ class V7ResourceDocsAggregationTest extends ServerSetupWithTestData {
     }
 
     scenario("Property 2.8: Deduplication Keeps Newest Version (MUST PASS)", V7ResourceDocsAggregationTag) {
-      Given("The v6.0.0 resource-docs endpoint is called")
+      Given(MSG_GIVEN_V6_ENDPOINT)
       setPropsValues("resource_docs_requires_role" -> "false")
 
       When("Making GET /obp/v6.0.0/resource-docs/v6.0.0/obp request")
       val (statusCode, json, _) = makeHttpRequest("/obp/v6.0.0/resource-docs/v6.0.0/obp")
 
-      Then("Response should be 200 OK")
+      Then(MSG_RESPONSE_200_OK)
       statusCode shouldBe 200
 
       And("For endpoints with same URL+method, deduplication should work for most endpoints")
@@ -618,13 +626,13 @@ class V7ResourceDocsAggregationTest extends ServerSetupWithTestData {
     }
 
     scenario("Property 2.9: JSON Response Format Preserved (MUST PASS)", V7ResourceDocsAggregationTag) {
-      Given("The v6.0.0 resource-docs endpoint is called")
+      Given(MSG_GIVEN_V6_ENDPOINT)
       setPropsValues("resource_docs_requires_role" -> "false")
 
       When("Making GET /obp/v6.0.0/resource-docs/v6.0.0/obp request")
       val (statusCode, json, _) = makeHttpRequest("/obp/v6.0.0/resource-docs/v6.0.0/obp")
 
-      Then("Response should be 200 OK")
+      Then(MSG_RESPONSE_200_OK)
       statusCode shouldBe 200
 
       And("Response should have expected JSON structure")
@@ -667,13 +675,13 @@ class V7ResourceDocsAggregationTest extends ServerSetupWithTestData {
     }
 
     scenario("Property 2.10: V7 specifiedUrl Uses V7 Version for Aggregated Docs (MUST PASS AFTER FIX)", V7ResourceDocsAggregationTag) {
-      Given("The v7.0.0 resource-docs endpoint is called")
+      Given(MSG_GIVEN_V7_ENDPOINT)
       setPropsValues("resource_docs_requires_role" -> "false")
 
       When("Making GET /obp/v7.0.0/resource-docs/v7.0.0/obp request")
       val (statusCode, json, _) = makeHttpRequest("/obp/v7.0.0/resource-docs/v7.0.0/obp")
 
-      Then("Response should be 200 OK")
+      Then(MSG_RESPONSE_200_OK)
       statusCode shouldBe 200
 
       And("All resource docs should have specifiedUrl with v7.0.0 version")
