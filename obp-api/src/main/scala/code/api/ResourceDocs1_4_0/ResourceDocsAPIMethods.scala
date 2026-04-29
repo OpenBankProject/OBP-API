@@ -122,7 +122,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       logger.debug(s"getResourceDocsList says requestedApiVersion is $requestedApiVersion")
 
       val resourceDocs = requestedApiVersion match {
-        case ApiVersion.v7_0_0 =>  code.api.v7_0_0.Http4s700.resourceDocs
+        case ApiVersion.v7_0_0 =>  code.api.v7_0_0.Http4s700.allResourceDocs  // Use aggregated docs for v7.0.0
         case ConstantsBG.`berlinGroupVersion2` => code.api.berlin.group.v2.Http4sBGv2.resourceDocs
         case ApiVersion.v6_0_0 => OBPAPI6_0_0.allResourceDocs
         case ApiVersion.v5_1_0 => OBPAPI5_1_0.allResourceDocs

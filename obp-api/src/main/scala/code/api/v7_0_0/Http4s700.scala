@@ -59,6 +59,91 @@ object Http4s700 {
   val versionStatus = ApiVersionStatus.STABLE.toString
   val resourceDocs = ArrayBuffer[ResourceDoc]()
 
+  /* 
+   * IMPORTANT: Endpoint Exclusion Pattern
+   * 
+   * excludeEndpoints is used to filter out old endpoints when v7.0.0 has a DIFFERENT URL pattern.
+   * 
+   * WHEN TO EXCLUDE:
+   * - Old and new endpoints have DIFFERENT URLs (e.g., v4.0.0: /users/:username vs v7.0.0: /providers/:provider/users/:username)
+   * - The old endpoint should not be accessible via v7.0.0 at all
+   * 
+   * WHEN NOT TO EXCLUDE:
+   * - Old and new endpoints have the SAME URL and HTTP method (e.g., GET /api/versions)
+   * - In this case, collectResourceDocs() automatically deduplicates by (URL, method) and keeps newest version
+   * - Excluding by function name would remove BOTH versions since they share the same name!
+   * 
+   * Why? The routing works as follows:
+   * 1. allResourceDocs = collectResourceDocs() deduplicates docs by (URL, method), keeps newest
+   * 2. excludeEndpoints filters ResourceDocs by partialFunctionName (removes by name, not by version)
+   * 3. The filtered docs determine which endpoints are available
+   * 
+   * Pattern: Add nameOf(Implementations{version}.endpointName) :: with a comment explaining why
+   * 
+   * NOTE: Currently empty - no v7-specific exclusions have been identified yet.
+   * As v7.0.0 introduces endpoints with different URL patterns than previous versions,
+   * add those old endpoint names here with explanatory comments.
+   */
+  lazy val excludeEndpoints: List[String] = 
+    // Add exclusions here when v7.0.0 replaces old endpoints with different URLs
+    // Example: nameOf(Implementations3_0_0.getUserByUsername) :: // v7.0.0 uses /providers/:provider/users/:username
+    Nil
+
+  /**
+   * Aggregated resource docs from all API versions (v7.0.0 + v6.0.0 + v5.1.0 + ... + v1.3.0)
+   * 
+   * This method implements the resource docs aggregation pattern for v7.0.0:
+   * 1. Takes OBPAPI6_0_0.allResourceDocs (which already contains v6.0.0 + v5.1.0 + ... + v1.3.0)
+   * 2. Adds v7.0.0's own resourceDocs
+   * 3. Deduplicates by (requestUrl, requestVerb), keeping the newest version
+   * 4. Filters out explicitly excluded old endpoints
+   * 
+   * Note: We cannot extend OBPRestHelper (Lift framework) in Http4s700 (Http4s framework)
+   * due to type incompatibilities. Instead, we implement the collectResourceDocs logic inline.
+   * 
+   * The deduplication algorithm:
+   * - Sort all docs by API version (descending: v7.0.0, v6.0.0, v5.1.0, ...)
+   * - For each doc, check if (requestUrl, requestVerb) has been seen
+   * - If not seen, add to result (this keeps the newest version)
+   * - If seen, skip (this omits older versions of the same endpoint)
+   * 
+   * Performance: Computed once and cached (lazy val) to avoid recomputation on every request.
+   */
+  lazy val allResourceDocs: ArrayBuffer[ResourceDoc] = {
+    // Import v6.0.0's aggregated docs (v6.0.0 + v5.1.0 + ... + v1.3.0)
+    import code.api.v6_0_0.OBPAPI6_0_0
+    
+    // Combine v6.0.0's aggregated docs with v7.0.0's docs
+    val allDocs = OBPAPI6_0_0.allResourceDocs ++ resourceDocs
+    
+    // Deduplicate by (requestUrl, requestVerb), keeping newest version
+    // Sort by API version (descending) so newer versions come first
+    implicit val ordering = new Ordering[ScannedApiVersion] {
+      override def compare(x: ScannedApiVersion, y: ScannedApiVersion): Int = 
+        y.toString().compareTo(x.toString())
+    }
+    
+    val sortedDocs = allDocs.sortBy(_.implementedInApiVersion)
+    
+    val result = ArrayBuffer[ResourceDoc]()
+    val urlAndMethods = scala.collection.mutable.Set[(String, String)]()
+    
+    for (doc <- sortedDocs) {
+      val urlAndMethod = (doc.requestUrl, doc.requestVerb)
+      if (!urlAndMethods.contains(urlAndMethod)) {
+        urlAndMethods.add(urlAndMethod)
+        result += doc
+      }
+    }
+    
+    // Filter out explicitly excluded old endpoints
+    if (excludeEndpoints.isEmpty) {
+      result
+    } else {
+      result.filterNot(it => it.partialFunctionName.matches(excludeEndpoints.mkString("|")))
+    }
+  }
+
   object Implementations7_0_0 {
 
     // Common prefix: /obp/v7.0.0
@@ -222,7 +307,21 @@ object Http4s700 {
             ) {
               ApiVersionUtils.valueOf(requestedApiVersionString)
             }
-            allDocs = ResourceDocs140.ImplementationsResourceDocs.getResourceDocsList(requestedApiVersion).getOrElse(Nil)
+            // Use aggregated docs for v7.0.0, version-specific docs for other versions
+            allDocs = if (requestedApiVersion == ApiVersion.v7_0_0) {
+              // For v7.0.0, update requestUrl and specifiedUrl for all aggregated docs
+              // This mirrors the logic in ResourceDocsAPIMethods.getResourceDocsList
+              allResourceDocs.toList.map { doc =>
+                // Save original requestUrl before modification (it's in short form like "/banks")
+                val originalRequestUrl = doc.requestUrl
+                doc.copy(
+                  requestUrl = s"/${doc.implementedInApiVersion.urlPrefix}/${doc.implementedInApiVersion.vDottedApiVersion}${originalRequestUrl}",
+                  specifiedUrl = Some(s"/${doc.implementedInApiVersion.urlPrefix}/${requestedApiVersion.vDottedApiVersion}${originalRequestUrl}")
+                )
+              }
+            } else {
+              ResourceDocs140.ImplementationsResourceDocs.getResourceDocsList(requestedApiVersion).getOrElse(Nil)
+            }
             filteredDocs = ResourceDocsAPIMethodsUtil.filterResourceDocs(allDocs, tags, functions)
           } yield JSONFactory1_4_0.createResourceDocsJson(filteredDocs, isVersion4OrHigher = true, localeParam, includeTechnology = true)
         }
