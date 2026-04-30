@@ -11,6 +11,21 @@ object AppsPage {
 
   private def appDiscoveryPairs = APIUtil.getAppDiscoveryPairs
 
+  // List of all known public_*_url props with each value as Some(url) only when the
+  // prop is explicitly configured. None means the prop has only a registered default
+  // (e.g. localhost) and was not set by the operator — rendered as "Public URL is not set".
+  private def appDiscoveryEntries: List[(String, Option[String])] = {
+    APIUtil.getRegisteredDefaults.toList
+      .filter { case (key, _) => key.startsWith("public_") && key.endsWith("_url") }
+      .sortBy(_._1)
+      .map { case (key, _) =>
+        val explicit: Option[String] = APIUtil.getPropsValue(key).toOption
+          .filter(_.nonEmpty)
+          .map(v => APIUtil.maskSensitivePropValue(key, v))
+        (key, explicit)
+      }
+  }
+
   private val acronyms = Set("obp", "api", "mcp")
 
   // Render order for probe endpoints (also controls which endpoints are known).
@@ -88,11 +103,14 @@ object AppsPage {
   }
 
   private def htmlResponse: IO[Response[IO]] = {
-    val appDiscoveryLinks = appDiscoveryPairs.map { case (name, url) =>
-      val probeLinks = probesFor(name)
-        .map(ep => s""" <a href="${probeUrl(url, ep)}">[$ep]</a>""")
-        .mkString
-      s"""        <li><a href="$url">${humanName(name)}</a> <small>($name)</small>$probeLinks</li>"""
+    val appDiscoveryLinks = appDiscoveryEntries.map {
+      case (name, Some(url)) =>
+        val probeLinks = probesFor(name)
+          .map(ep => s""" <a href="${probeUrl(url, ep)}">[$ep]</a>""")
+          .mkString
+        s"""        <li><a href="$url">${humanName(name)}</a> <small>($name)</small>$probeLinks</li>"""
+      case (name, None) =>
+        s"""        <li>${humanName(name)} <small>($name)</small> <em>Public URL is not set</em></li>"""
     }.mkString("\n")
 
     val html =

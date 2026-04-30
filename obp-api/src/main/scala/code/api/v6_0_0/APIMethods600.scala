@@ -11040,6 +11040,7 @@ trait APIMethods600 {
       List(
         $AuthenticatedUserIsRequired,
         InvalidJsonFormat,
+        InvalidSignalChannelName,
         UnknownError
       ),
       List(apiTagAiAgent, apiTagSignal, apiTagSignalling, apiTagChannel))
@@ -11053,7 +11054,7 @@ trait APIMethods600 {
             postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the PostSignalMessageJsonV600", 400, callContext) {
               json.extract[PostSignalMessageJsonV600]
             }
-            _ <- Helper.booleanToFuture(failMsg = "Invalid channel name. Use alphanumeric characters, dots, hyphens, underscores. Max 128 chars.", cc = callContext) {
+            _ <- Helper.booleanToFuture(failMsg = InvalidSignalChannelName, cc = callContext) {
               RedisMessaging.validateChannelName(channelName)
             }
             channelMessageCount <- Future {
@@ -11118,6 +11119,7 @@ trait APIMethods600 {
       signalMessagesJsonV600,
       List(
         $AuthenticatedUserIsRequired,
+        InvalidSignalChannelName,
         UnknownError
       ),
       List(apiTagAiAgent, apiTagSignal, apiTagSignalling, apiTagChannel))
@@ -11128,7 +11130,7 @@ trait APIMethods600 {
           implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
-            _ <- Helper.booleanToFuture(failMsg = "Invalid channel name.", cc = callContext) {
+            _ <- Helper.booleanToFuture(failMsg = InvalidSignalChannelName, cc = callContext) {
               RedisMessaging.validateChannelName(channelName)
             }
             httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
@@ -11244,6 +11246,7 @@ trait APIMethods600 {
       signalChannelInfoJsonV600,
       List(
         $AuthenticatedUserIsRequired,
+        InvalidSignalChannelName,
         UnknownError
       ),
       List(apiTagAiAgent, apiTagSignal, apiTagSignalling, apiTagChannel))
@@ -11254,7 +11257,7 @@ trait APIMethods600 {
           implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
-            _ <- Helper.booleanToFuture(failMsg = "Invalid channel name.", cc = callContext) {
+            _ <- Helper.booleanToFuture(failMsg = InvalidSignalChannelName, cc = callContext) {
               RedisMessaging.validateChannelName(channelName)
             }
             info <- Future {
@@ -11294,6 +11297,7 @@ trait APIMethods600 {
       signalChannelDeletedJsonV600,
       List(
         $AuthenticatedUserIsRequired,
+        InvalidSignalChannelName,
         UnknownError
       ),
       List(apiTagAiAgent, apiTagSignal, apiTagSignalling, apiTagChannel))
@@ -11364,7 +11368,7 @@ trait APIMethods600 {
           implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
-            _ <- Helper.booleanToFuture(failMsg = "Invalid channel name.", cc = callContext) {
+            _ <- Helper.booleanToFuture(failMsg = InvalidSignalChannelName, cc = callContext) {
               RedisMessaging.validateChannelName(channelName)
             }
             deleted <- Future {

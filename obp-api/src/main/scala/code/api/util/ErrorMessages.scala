@@ -140,6 +140,9 @@ object ErrorMessages {
   val InvalidFunctionsParameter = "OBP-10054: Invalid functions parameter. Functions cannot be empty when provided"
   val InvalidApiCollectionIdParameter = "OBP-10055: Invalid api-collection-id parameter. API collection ID cannot be empty when provided"
   val IncompleteServerConfiguration = "OBP-10056: A required server configuration property is missing. "
+  val InvalidSignalChannelName = "OBP-10057: Invalid Signal Channel name. " +
+    "Signal Channel names must use only alphanumeric characters, dots, hyphens, and underscores, " +
+    "and be between 1 and 128 characters long."
 
 
 
@@ -198,6 +201,7 @@ object ErrorMessages {
   val GatewayLoginCannotGetCbsToken = "OBP-20044: Cannot get the CBSToken response from South side"
   val GatewayLoginCannotGetOrCreateUser = "OBP-20045: Cannot get or create user during GatewayLogin process."
   val GatewayLoginNoJwtForResponse = "OBP-20046: There is no useful value for JWT."
+  val GatewayLoginIsDisabled = "OBP-20406: Gateway Login is disabled. Set allow_gateway_login=true to enable."
 
   val UserLacksPermissionCanGrantAccessToViewForTargetAccount =
     s"OBP-20047: If target viewId is system view,  the current view.can_grant_access_to_views does not contains it. Or" +
@@ -234,6 +238,8 @@ object ErrorMessages {
   val DAuthNoJwtForResponse = "OBP-20070: There is no useful value for JWT."
   val DAuthJwtTokenIsNotValid = "OBP-20071: The DAuth JWT is corrupted/changed during a transport."
   val InvalidDAuthHeaderToken = "OBP-20072: DAuth Header value should be one single string."
+  val DAuthIsDisabled = "OBP-20407: DAuth is disabled. Set allow_dauth=true to enable."
+  val OpenIDConnectIsDisabled = "OBP-20408: OpenID Connect is disabled. Set allow_openid_connect=true to enable."
 
   val InvalidProviderUrl = "OBP-20079: Cannot match the local identity provider."
 
