@@ -568,7 +568,7 @@ object Http4s700 {
                    UserHasMissingRoles + s" $canCreateEntitlementAtOneBank or $canCreateEntitlementAtAnyBank")(
                    body.bank_id, user.userId,
                    canCreateEntitlementAtOneBank :: canCreateEntitlementAtAnyBank :: Nil, Some(cc)).map(_ => ())
-            _ <- Helper.booleanToFuture(failMsg = EntitlementAlreadyExists, cc = Some(cc))(
+            _ <- Helper.booleanToFuture(failMsg = EntitlementAlreadyExists, failCode = 409, cc = Some(cc))(
               !hasEntitlement(body.bank_id, userId, role))
             entitlement <- Future(Entitlement.entitlement.vend.addEntitlement(body.bank_id, userId, body.role_name))
               .map(e => unboxFull(e))

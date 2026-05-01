@@ -5,7 +5,7 @@ import code.api.Constant.SYSTEM_OWNER_VIEW_ID
 import code.api.ResponseHeader
 import code.api.util.APIUtil
 import code.api.util.ApiRole.{canCreateEntitlementAtAnyBank, canDeleteEntitlementAtAnyBank, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetCardsForBank, canGetConnectorHealth, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMigrations, canReadResourceDoc}
-import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, BankNotFound, UserHasMissingRoles, UserNotFoundByUserId}
+import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, BankNotFound, EntitlementAlreadyExists, UserHasMissingRoles, UserNotFoundByUserId}
 import code.customer.CustomerX
 import code.entitlement.Entitlement
 import code.metadata.counterparties.Counterparties
@@ -1210,6 +1210,29 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
 
       Then("Response is 400")
       statusCode shouldBe 400
+    }
+
+    scenario("Return 409 when the entitlement already exists for the user", Http4s700RoutesTag) {
+      Given("canCreateEntitlementAtAnyBank role granted and the target entitlement already created")
+      addEntitlement("", resourceUser1.userId, canCreateEntitlementAtAnyBank.toString)
+      addEntitlement("", resourceUser1.userId, canGetAnyUser.toString)
+
+      When("POST /obp/v7.0.0/users/USER_ID/entitlements with the same (bank_id, role_name)")
+      val body = s"""{"bank_id":"","role_name":"CanGetAnyUser"}"""
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequestWithBody(
+        "POST", s"/obp/v7.0.0/users/${resourceUser1.userId}/entitlements", body, headers)
+
+      Then("Response is 409 with EntitlementAlreadyExists message")
+      statusCode shouldBe 409
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") match {
+            case Some(JString(msg)) => msg should include(EntitlementAlreadyExists)
+            case _ => fail("Expected message field")
+          }
+        case _ => fail("Expected JSON object")
+      }
     }
   }
 

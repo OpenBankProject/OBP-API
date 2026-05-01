@@ -635,18 +635,28 @@ trait APIMethods500 {
       "/consumer/consent-requests",
       "Create Consent Request",
       s"""
-         |Client Authentication (mandatory)
+         |Create a Consent Request — the first step of the OBP Consent flow.
          |
-         |It is used when applications request an access token to access their own resources, not on behalf of a user.
+         |The calling application (TPP) authenticates with Client Credentials and posts the consent details (entitlements, account_access, VRP fields, etc.). The User then completes the flow by calling Create Consent By CONSENT_REQUEST_ID.
          |
-         |The client needs to authenticate themselves for this request.
-         |In case of public client we use client_id and private key to obtain access token, otherwise we use client_id and client_secret.
-         |The obtained access token is used in the HTTP Bearer auth header of our request.
+         |The Consent Request is recorded against the calling consumer (its creator).
+         |
+         |Optional body fields of note:
+         |
+         |- `consumer_id`: if set, the resulting Consent (created when the User answers this request) will be pinned to this consumer instead of the creator. Use only when the consent is intended for a different application than the one creating the request. Most TPPs should omit this field — when omitted, the resulting Consent is pinned to the creator. Note: this override is being deprecated; v6.0.0 will pin the resulting Consent to the creator unconditionally.
+         |- `email` / `phone_number`: surface in the SCA challenge if the User chooses EMAIL or SMS at answer time.
+         |- `valid_from` / `time_to_live`: control the lifetime of the resulting Consent.
+         |
+         |Authentication:
+         |
+         |The client needs to authenticate themselves for this request. In case of public client we use client_id and private key to obtain access token; otherwise we use client_id and client_secret. The obtained access token is used in the HTTP Bearer auth header of our request.
          |
          |Example:
          |Authorization: Bearer eXtneO-THbQtn3zvK_kQtXXfvOZyZFdBCItlPDbR2Bk.dOWqtXCtFX-tqGTVR0YrIjvAolPIVg7GZ-jz83y6nA0
          |
-         |After successfully creating the VRP consent request, you need to call the `Create Consent By CONSENT_REQUEST_ID` endpoint to finalize the consent.
+         |After successfully creating the Consent Request, call Create Consent By CONSENT_REQUEST_ID to finalize.
+         |
+         |See Glossary entry "Authentication: Consent OBP Flow Example" for an end-to-end walk-through.
          |
          |${applicationAccessMessage(true)}
          |
@@ -703,7 +713,16 @@ trait APIMethods500 {
       "GET",
       "/consumer/consent-requests/CONSENT_REQUEST_ID",
       "Get Consent Request",
-      s"""""",
+      s"""
+         |Return the full payload of a previously-created Consent Request — the JSON the TPP submitted to Create Consent Request, plus the consent_request_id and the creating consumer_id.
+         |
+         |Use this endpoint to verify the contents of a Consent Request before the User answers it.
+         |
+         |Authentication: Application access (any registered consumer/application can read any Consent Request by ID).
+         |
+         |Note: this endpoint will be restricted to the creating consumer in v6.0.0. Until then, treat CONSENT_REQUEST_IDs as sensitive — they reveal entitlements, account routings, and contact details (email/phone) submitted at creation.
+         |
+         |""".stripMargin,
       EmptyBody,
       consentRequestResponseJson,
       List(
@@ -817,12 +836,19 @@ trait APIMethods500 {
       "/consumer/consent-requests/CONSENT_REQUEST_ID/EMAIL/consents",
       "Create Consent By CONSENT_REQUEST_ID (EMAIL)",
       s"""
+         |Answer a Consent Request and create the resulting Consent, with an EMAIL Strong Customer Authentication challenge.
          |
-         |This endpoint continues the process of creating a Consent.
+         |After the TPP has called Create Consent Request (Client Credentials), the User authenticates and answers the request via this endpoint. This creates the Consent (the credential the consumer will use to access OBP on the User's behalf).
          |
-         |It starts the SCA flow which changes the status of the consent from INITIATED to ACCEPTED or REJECTED.
+         |An SCA challenge code is sent to the email address that was supplied in the Create Consent Request body. The User then completes SCA via Answer Consent Challenge, which moves the Consent from INITIATED to ACCEPTED.
          |
-         |Please note that the Consent cannot elevate the privileges of the logged in user.
+         |Pinning: the resulting Consent is pinned to a single consumer at creation. The pinned consumer is taken from the `consumer_id` field of the original Create Consent Request body if present, otherwise from the consumer that created the Request. After creation, only that consumer can present the resulting Consent JWT — any other consumer presenting it gets ConsentNotFound (consumer mismatch).
+         |
+         |Each Consent Request can be answered exactly once. A second call returns ConsentRequestIsInvalid.
+         |
+         |The Consent's authority is bounded by the answering User's own entitlements — it cannot grant access beyond what that User already has.
+         |
+         |Authentication: Any authenticated User may answer a Consent Request whose CONSENT_REQUEST_ID they know. This will be tightened in v6.0.0; until then, treat CONSENT_REQUEST_IDs as sensitive.
          |
          |""",
       EmptyBody,
@@ -849,11 +875,19 @@ trait APIMethods500 {
       "/consumer/consent-requests/CONSENT_REQUEST_ID/SMS/consents",
       "Create Consent By CONSENT_REQUEST_ID (SMS)",
       s"""
+         |Answer a Consent Request and create the resulting Consent, with an SMS Strong Customer Authentication challenge.
          |
-         |This endpoint continues the process of creating a Consent. It starts the SCA flow which changes the status of the consent from INITIATED to ACCEPTED or REJECTED.
+         |After the TPP has called Create Consent Request (Client Credentials), the User authenticates and answers the request via this endpoint. This creates the Consent (the credential the consumer will use to access OBP on the User's behalf).
          |
-         |Please note that the Consent you are creating cannot exceed the entitlements that the User creating this consents already has.
+         |An SCA challenge code is sent to the phone number that was supplied in the Create Consent Request body. The User then completes SCA via Answer Consent Challenge, which moves the Consent from INITIATED to ACCEPTED.
          |
+         |Pinning: the resulting Consent is pinned to a single consumer at creation. The pinned consumer is taken from the `consumer_id` field of the original Create Consent Request body if present, otherwise from the consumer that created the Request. After creation, only that consumer can present the resulting Consent JWT — any other consumer presenting it gets ConsentNotFound (consumer mismatch).
+         |
+         |Each Consent Request can be answered exactly once. A second call returns ConsentRequestIsInvalid.
+         |
+         |The Consent's authority is bounded by the answering User's own entitlements — it cannot grant access beyond what that User already has.
+         |
+         |Authentication: Any authenticated User may answer a Consent Request whose CONSENT_REQUEST_ID they know. This will be tightened in v6.0.0; until then, treat CONSENT_REQUEST_IDs as sensitive.
          |
          |""",
       EmptyBody,
@@ -883,9 +917,19 @@ trait APIMethods500 {
       "/consumer/consent-requests/CONSENT_REQUEST_ID/IMPLICIT/consents",
       "Create Consent By CONSENT_REQUEST_ID (IMPLICIT)",
       s"""
+         |Answer a Consent Request and create the resulting Consent, without a Strong Customer Authentication challenge — the Consent is moved directly from INITIATED to ACCEPTED.
          |
-         |This endpoint continues the process of creating a Consent. It starts the SCA flow which changes the status of the consent from INITIATED to ACCEPTED or REJECTED.
-         |Please note that the Consent cannot elevate the privileges logged in user already have. 
+         |After the TPP has called Create Consent Request (Client Credentials), the User authenticates and answers the request via this endpoint. This creates the Consent (the credential the consumer will use to access OBP on the User's behalf).
+         |
+         |IMPLICIT means no SCA challenge is sent. The Consent is immediately ACCEPTED. Use only in flows where the User has already been strongly authenticated by upstream means; for production use behind a public TPP, prefer EMAIL or SMS.
+         |
+         |Pinning: the resulting Consent is pinned to a single consumer at creation. The pinned consumer is taken from the `consumer_id` field of the original Create Consent Request body if present, otherwise from the consumer that created the Request. After creation, only that consumer can present the resulting Consent JWT — any other consumer presenting it gets ConsentNotFound (consumer mismatch).
+         |
+         |Each Consent Request can be answered exactly once. A second call returns ConsentRequestIsInvalid.
+         |
+         |The Consent's authority is bounded by the answering User's own entitlements — it cannot grant access beyond what that User already has.
+         |
+         |Authentication: Any authenticated User may answer a Consent Request whose CONSENT_REQUEST_ID they know. This will be tightened in v6.0.0; until then, treat CONSENT_REQUEST_IDs as sensitive.
          |
          |""",
       EmptyBody,
