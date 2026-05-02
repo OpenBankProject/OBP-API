@@ -86,6 +86,7 @@ import code.etag.MappedETag
 import code.featuredapicollection.FeaturedApiCollection
 import code.fx.{MappedCurrency, MappedFXRate}
 import code.group.Group
+import code.organisation.MappedOrganisation
 import code.kycchecks.MappedKycCheck
 import code.kycdocuments.MappedKycDocument
 import code.kycmedias.MappedKycMedia
@@ -1210,6 +1211,7 @@ object ToSchemify {
     CounterpartyAttributeMapper,
     BankAccountBalance,
     Group,
+    MappedOrganisation,
     AccountAccessRequest,
     code.chat.ChatRoom,
     code.chat.Participant,

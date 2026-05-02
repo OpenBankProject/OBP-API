@@ -444,4 +444,91 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
       updated_at = auth.updatedAt.toInstant.toString
     )
   }
+
+  // Account-access decision diagnostic — returned by GET /banks/.../views/.../users/.../account-access-trace
+  case class AccountAccessLookupJsonV700(
+    has_account_access_for_view: Boolean,
+    account_access_view_ids: List[String]
+  )
+
+  case class EntitlementTraceJsonV700(
+    has_can_execute_abac_rule: Boolean
+  )
+
+  case class AbacRuleTraceJsonV700(
+    rule_id: String,
+    rule_name: String,
+    is_active: Boolean,
+    result: String,                 // "PASS" | "FAIL" | "ERROR"
+    error_message: Option[String]
+  )
+
+  case class AbacEvaluationTraceJsonV700(
+    policy: String,
+    allow_abac_account_access: Boolean,
+    standalone_abac_result: Boolean,
+    rules_evaluated: List[AbacRuleTraceJsonV700]
+  )
+
+  case class AccountAccessTraceJsonV700(
+    user_id: String,
+    bank_id: String,
+    account_id: String,
+    view_id: String,
+    has_access: Boolean,
+    access_source: String,    // "ACCOUNT_ACCESS" | "ABAC" | "NONE"
+    account_access_trace: AccountAccessLookupJsonV700,
+    entitlement_trace: EntitlementTraceJsonV700,
+    abac_trace: AbacEvaluationTraceJsonV700
+  )
+
+  // Organisation JSON case classes
+  case class PostOrganisationJsonV700(
+      organisation_id: String,
+      name: String,
+      website: Option[String],
+      logo_url: Option[String],
+      status: Option[String],
+      visibility: Option[String]
+  )
+
+  case class PutOrganisationJsonV700(
+      name: Option[String],
+      website: Option[String],
+      logo_url: Option[String],
+      status: Option[String],
+      visibility: Option[String]
+  )
+
+  case class OrganisationJsonV700(
+      organisation_id: String,
+      name: String,
+      website: Option[String],
+      logo_url: Option[String],
+      status: String,
+      visibility: String,
+      created_by_user_id: String,
+      created_at: java.util.Date,
+      updated_at: java.util.Date
+  )
+
+  case class OrganisationsJsonV700(organisations: List[OrganisationJsonV700])
+
+  def createOrganisationJsonV700(o: code.organisation.OrganisationTrait): OrganisationJsonV700 = {
+    OrganisationJsonV700(
+      organisation_id = o.organisationId,
+      name = o.name,
+      website = o.website,
+      logo_url = o.logoUrl,
+      status = o.status,
+      visibility = o.visibility,
+      created_by_user_id = o.createdByUserId,
+      created_at = o.createdAt,
+      updated_at = o.updatedAt
+    )
+  }
+
+  def createOrganisationsJsonV700(orgs: List[code.organisation.OrganisationTrait]): OrganisationsJsonV700 = {
+    OrganisationsJsonV700(orgs.map(createOrganisationJsonV700))
+  }
 }

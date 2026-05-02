@@ -460,6 +460,15 @@ object ErrorMessages {
   val CreateApiProductAttributeError = "OBP-30504: Could not create ApiProductAttribute."
   val DeleteApiProductAttributeError = "OBP-30505: Could not delete ApiProductAttribute."
 
+  val OrganisationNotFound = "OBP-30506: Organisation not found. Please specify a valid value for ORGANISATION_ID."
+  val OrganisationAlreadyExists = "OBP-30507: Organisation already exists. Please specify a different value for ORGANISATION_ID."
+  val InvalidOrganisationIdFormat = "OBP-30508: Invalid Organisation Id. The ORGANISATION_ID should only contain 0-9/a-z/A-Z/'-'/'.'/'_', and be between 2 and 64 characters in length."
+  val InvalidOrganisationStatus = "OBP-30509: Invalid Organisation status. Allowed values are: active, suspended, archived."
+  val InvalidOrganisationVisibility = "OBP-30510: Invalid Organisation visibility. Allowed values are: public, unlisted, private."
+  val CreateOrganisationError = "OBP-30511: Could not create Organisation."
+  val UpdateOrganisationError = "OBP-30512: Could not update Organisation."
+  val DeleteOrganisationError = "OBP-30513: Could not delete Organisation."
+
   val FeaturedApiCollectionNotFound = "OBP-30400: FeaturedApiCollection not found. Please specify a valid value for API_COLLECTION_ID."
   val CreateFeaturedApiCollectionError = "OBP-30401: Could not create FeaturedApiCollection."
   val UpdateFeaturedApiCollectionError = "OBP-30402: Could not update FeaturedApiCollection."
