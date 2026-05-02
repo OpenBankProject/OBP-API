@@ -2245,8 +2245,8 @@ trait APIMethods600 {
               !`checkIfContains::::`(postJson.bank_id)
             }
             (banks, callContext) <- NewStyle.function.getBanks(cc.callContext)
-            _ <- Helper.booleanToFuture(failMsg = ErrorMessages.bankIdAlreadyExists, failCode = 409, cc = cc.callContext) {
-              !banks.exists { b => postJson.bank_id.contains(b.bankId.value) }
+            _ <- Helper.booleanToFuture(failMsg = ErrorMessages.bankIdAlreadyExists, cc = cc.callContext) {
+              !banks.exists { b => b.bankId.value == postJson.bank_id }
             }
             (success, callContext) <- NewStyle.function.createOrUpdateBank(
               postJson.bank_id,
