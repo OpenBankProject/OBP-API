@@ -2245,7 +2245,7 @@ trait APIMethods600 {
               !`checkIfContains::::`(postJson.bank_id)
             }
             (banks, callContext) <- NewStyle.function.getBanks(cc.callContext)
-            _ <- Helper.booleanToFuture(failMsg = ErrorMessages.bankIdAlreadyExists, cc = cc.callContext) {
+            _ <- Helper.booleanToFuture(failMsg = ErrorMessages.bankIdAlreadyExists, failCode = 409, cc = cc.callContext) {
               !banks.exists { b => b.bankId.value == postJson.bank_id }
             }
             (success, callContext) <- NewStyle.function.createOrUpdateBank(
@@ -10576,7 +10576,7 @@ trait APIMethods600 {
             // Validate target user exists
             (_, callContext) <- NewStyle.function.findByUserId(postJson.target_user_id, callContext)
             // Check for existing INITIATED request for same user/account/view
-            _ <- Helper.booleanToFuture(failMsg = AccountAccessRequestAlreadyExists, cc = callContext) {
+            _ <- Helper.booleanToFuture(failMsg = AccountAccessRequestAlreadyExists, failCode = 409, cc = callContext) {
               code.accountaccessrequest.AccountAccessRequestTrait.accountAccessRequest.vend
                 .getByUserAccountView(postJson.target_user_id, bankId.value, accountId.value, postJson.view_id)
                 .isEmpty
@@ -11040,6 +11040,7 @@ trait APIMethods600 {
       List(
         $AuthenticatedUserIsRequired,
         InvalidJsonFormat,
+        InvalidSignalChannelName,
         UnknownError
       ),
       List(apiTagAiAgent, apiTagSignal, apiTagSignalling, apiTagChannel))
@@ -11053,7 +11054,7 @@ trait APIMethods600 {
             postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the PostSignalMessageJsonV600", 400, callContext) {
               json.extract[PostSignalMessageJsonV600]
             }
-            _ <- Helper.booleanToFuture(failMsg = "Invalid channel name. Use alphanumeric characters, dots, hyphens, underscores. Max 128 chars.", cc = callContext) {
+            _ <- Helper.booleanToFuture(failMsg = InvalidSignalChannelName, cc = callContext) {
               RedisMessaging.validateChannelName(channelName)
             }
             channelMessageCount <- Future {
@@ -11118,6 +11119,7 @@ trait APIMethods600 {
       signalMessagesJsonV600,
       List(
         $AuthenticatedUserIsRequired,
+        InvalidSignalChannelName,
         UnknownError
       ),
       List(apiTagAiAgent, apiTagSignal, apiTagSignalling, apiTagChannel))
@@ -11128,7 +11130,7 @@ trait APIMethods600 {
           implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
-            _ <- Helper.booleanToFuture(failMsg = "Invalid channel name.", cc = callContext) {
+            _ <- Helper.booleanToFuture(failMsg = InvalidSignalChannelName, cc = callContext) {
               RedisMessaging.validateChannelName(channelName)
             }
             httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
@@ -11244,6 +11246,7 @@ trait APIMethods600 {
       signalChannelInfoJsonV600,
       List(
         $AuthenticatedUserIsRequired,
+        InvalidSignalChannelName,
         UnknownError
       ),
       List(apiTagAiAgent, apiTagSignal, apiTagSignalling, apiTagChannel))
@@ -11254,7 +11257,7 @@ trait APIMethods600 {
           implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
-            _ <- Helper.booleanToFuture(failMsg = "Invalid channel name.", cc = callContext) {
+            _ <- Helper.booleanToFuture(failMsg = InvalidSignalChannelName, cc = callContext) {
               RedisMessaging.validateChannelName(channelName)
             }
             info <- Future {
@@ -11294,6 +11297,7 @@ trait APIMethods600 {
       signalChannelDeletedJsonV600,
       List(
         $AuthenticatedUserIsRequired,
+        InvalidSignalChannelName,
         UnknownError
       ),
       List(apiTagAiAgent, apiTagSignal, apiTagSignalling, apiTagChannel))
@@ -11364,7 +11368,7 @@ trait APIMethods600 {
           implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
-            _ <- Helper.booleanToFuture(failMsg = "Invalid channel name.", cc = callContext) {
+            _ <- Helper.booleanToFuture(failMsg = InvalidSignalChannelName, cc = callContext) {
               RedisMessaging.validateChannelName(channelName)
             }
             deleted <- Future {
@@ -13262,7 +13266,7 @@ trait APIMethods600 {
               json.extract[PostChatRoomJsonV600]
             }
             existingRoom <- Future(code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoomByBankIdAndName(bankId.value, postJson.name))
-            _ <- Helper.booleanToFuture(failMsg = ChatRoomAlreadyExists, cc = callContext) {
+            _ <- Helper.booleanToFuture(failMsg = ChatRoomAlreadyExists, failCode = 409, cc = callContext) {
               existingRoom.isEmpty
             }
             room <- Future {
@@ -13333,7 +13337,7 @@ trait APIMethods600 {
               json.extract[PostChatRoomJsonV600]
             }
             existingRoom <- Future(code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoomByBankIdAndName("", postJson.name))
-            _ <- Helper.booleanToFuture(failMsg = ChatRoomAlreadyExists, cc = callContext) {
+            _ <- Helper.booleanToFuture(failMsg = ChatRoomAlreadyExists, failCode = 409, cc = callContext) {
               existingRoom.isEmpty
             }
             room <- Future {
@@ -14167,7 +14171,7 @@ trait APIMethods600 {
               !room.isArchived
             }
             existingParticipant <- Future(code.chat.ChatPermissions.isParticipant(room.chatRoomId, u.userId))
-            _ <- Helper.booleanToFuture(failMsg = ChatRoomParticipantAlreadyExists, cc = callContext) {
+            _ <- Helper.booleanToFuture(failMsg = ChatRoomParticipantAlreadyExists, failCode = 409, cc = callContext) {
               existingParticipant.isEmpty
             }
             participant <- Future {
@@ -14236,7 +14240,7 @@ trait APIMethods600 {
               !room.isArchived
             }
             existingParticipant <- Future(code.chat.ChatPermissions.isParticipant(room.chatRoomId, u.userId))
-            _ <- Helper.booleanToFuture(failMsg = ChatRoomParticipantAlreadyExists, cc = callContext) {
+            _ <- Helper.booleanToFuture(failMsg = ChatRoomParticipantAlreadyExists, failCode = 409, cc = callContext) {
               existingParticipant.isEmpty
             }
             participant <- Future {
@@ -14425,7 +14429,7 @@ trait APIMethods600 {
               if (userId.nonEmpty) code.chat.ChatPermissions.isParticipant(chatRoomId, userId)
               else code.chat.ChatPermissions.isParticipantByConsumerId(chatRoomId, consumerId)
             }
-            _ <- Helper.booleanToFuture(failMsg = ChatRoomParticipantAlreadyExists, cc = callContext) {
+            _ <- Helper.booleanToFuture(failMsg = ChatRoomParticipantAlreadyExists, failCode = 409, cc = callContext) {
               existingParticipant.isEmpty
             }
             participant <- Future {
@@ -14512,7 +14516,7 @@ trait APIMethods600 {
               if (userId.nonEmpty) code.chat.ChatPermissions.isParticipant(chatRoomId, userId)
               else code.chat.ChatPermissions.isParticipantByConsumerId(chatRoomId, consumerId)
             }
-            _ <- Helper.booleanToFuture(failMsg = ChatRoomParticipantAlreadyExists, cc = callContext) {
+            _ <- Helper.booleanToFuture(failMsg = ChatRoomParticipantAlreadyExists, failCode = 409, cc = callContext) {
               existingParticipant.isEmpty
             }
             participant <- Future {
@@ -16107,7 +16111,7 @@ trait APIMethods600 {
               x => unboxFullOrFail(x, callContext, ChatMessageNotFound, 404)
             }
             existingReaction <- Future(code.chat.ReactionTrait.reactionProvider.vend.getReaction(chatMessageId, u.userId, postJson.emoji))
-            _ <- Helper.booleanToFuture(failMsg = ReactionAlreadyExists, cc = callContext) {
+            _ <- Helper.booleanToFuture(failMsg = ReactionAlreadyExists, failCode = 409, cc = callContext) {
               existingReaction.isEmpty
             }
             reaction <- Future {
@@ -16182,7 +16186,7 @@ trait APIMethods600 {
               x => unboxFullOrFail(x, callContext, ChatMessageNotFound, 404)
             }
             existingReaction <- Future(code.chat.ReactionTrait.reactionProvider.vend.getReaction(chatMessageId, u.userId, postJson.emoji))
-            _ <- Helper.booleanToFuture(failMsg = ReactionAlreadyExists, cc = callContext) {
+            _ <- Helper.booleanToFuture(failMsg = ReactionAlreadyExists, failCode = 409, cc = callContext) {
               existingReaction.isEmpty
             }
             reaction <- Future {

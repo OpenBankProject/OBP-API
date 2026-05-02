@@ -433,6 +433,8 @@ import net.liftweb.util.Helpers._
   val usernameLockedStateCode = Long.MaxValue
   /**Marking the email not validated state to show different error message */
   val userEmailNotValidatedStateCode = Long.MaxValue - 1
+  /**Marking the auth-rate-limit-exceeded state to render a 429 instead of a 401 */
+  val rateLimitExceededStateCode = Long.MaxValue - 2
 
   val connector = code.api.Constant.CONNECTOR.openOrThrowException(s"$MandatoryPropertyIsNotSet. The missing prop is `connector` ")
   val starConnectorSupportedTypes = APIUtil.getPropsValue("starConnector_supported_types","")
@@ -851,7 +853,17 @@ import net.liftweb.util.Helpers._
     }
     
     logger.info(s"getResourceUserId says: starting for username: $username, provider: $normalizedProvider")
-    
+
+    // ========================================================================
+    // PRE-CREDENTIAL RATE LIMIT
+    // Disabled by default; controlled via auth.rate_limit.* props.
+    // Returns sentinel for 429 translation; never blocks auth on Redis outage.
+    // ========================================================================
+    AuthRateLimiter.check(getRemoteIpAddress(), normalizedProvider, username) match {
+      case Left(_)  => return Full(rateLimitExceededStateCode)
+      case Right(_) => // continue
+    }
+
     // ========================================================================
     // ROUTE DECISION: Local or External Provider?
     // ========================================================================

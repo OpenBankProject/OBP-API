@@ -64,8 +64,8 @@ object OBPAPI6_0_0 extends OBPRestHelper
   with APIMethods400 
   with APIMethods500 
   with APIMethods510 
-  with APIMethods600 
-  with MdcLoggable 
+  with APIMethods600
+  with MdcLoggable
   with VersionedOBPApis{
 
   val version : ApiVersion = ApiVersion.v6_0_0

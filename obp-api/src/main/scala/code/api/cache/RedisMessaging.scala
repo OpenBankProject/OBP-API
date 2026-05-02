@@ -41,6 +41,8 @@ object RedisMessaging extends MdcLoggable {
       jedis.ltrim(key, -channelMaxMessages.toLong, -1)
       // Refresh TTL on every publish
       jedis.expire(key, channelTtlSeconds)
+      // Pub/sub notification for live gRPC subscribers — fire-and-forget, no persistence
+      jedis.publish(s"obp_signal:$channelName", messageJson)
       length
     } catch {
       case e: Throwable =>

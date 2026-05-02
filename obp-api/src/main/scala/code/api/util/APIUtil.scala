@@ -762,6 +762,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     def check408(message: String): Boolean = {
       message.contains(extractErrorMessageCode(requestTimeout))
     }
+    def check429(message: String): Boolean = {
+      message.contains(extractErrorMessageCode(TooManyRequests))
+    }
     val (code, responseHeaders) =
       message match {
         case msg if check401(msg) =>
@@ -773,6 +776,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
           (403, getHeaders() ::: headers.list)
         case msg if check408(msg) =>
           (408, getHeaders() ::: headers.list ::: List((ResponseHeader.Connection, "close")))
+        case msg if check429(msg) =>
+          (429, getHeaders() ::: headers.list)
         case _ =>
           (httpCode, getHeaders() ::: headers.list)
       }
@@ -2655,9 +2660,24 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    */
   def getCorrelationId(): String = S.containerSession.map(_.sessionId).openOr("")
   /**
-   * @return - the remote address of the client or the last seen proxy.
+   * @return - the trusted client IP address.
+   *
+   * By default returns the immediate TCP peer (proxy IP if behind a proxy, real client if direct).
+   * When `trust.proxy.enabled = true`, consults `trust.proxy.header` (default "X-Real-IP").
+   * See [[RemoteIpUtil]] for configuration details and proxy-trust caveats.
    */
-  def getRemoteIpAddress(): String = S.containerRequest.map(_.remoteAddress).openOr("Unknown")
+  def getRemoteIpAddress(): String = {
+    val socketPeer = S.containerRequest.map(_.remoteAddress).openOr("Unknown")
+    RemoteIpUtil.resolveClientIp(socketPeer, getLiftRequestHeader)
+  }
+
+  private def getLiftRequestHeader(name: String): Option[String] = {
+    S.request.toOption.flatMap { req =>
+      req.request.headers
+        .find(_.name.equalsIgnoreCase(name))
+        .flatMap(_.values.headOption)
+    }
+  }
   /**
    * @return - the fully qualified name of the client host or last seen proxy
    */

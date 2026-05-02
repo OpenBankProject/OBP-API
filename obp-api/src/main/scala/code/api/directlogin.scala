@@ -168,6 +168,9 @@ object DirectLogin extends RestHelper with MdcLoggable {
       } else if (userId == AuthUser.userEmailNotValidatedStateCode) {
         message = ErrorMessages.UserEmailNotValidated
         httpCode = 401
+      } else if (userId == AuthUser.rateLimitExceededStateCode) {
+        message = ErrorMessages.TooManyRequests
+        httpCode = 429
       } else {
         val jwtPayloadAsJson =
           """{

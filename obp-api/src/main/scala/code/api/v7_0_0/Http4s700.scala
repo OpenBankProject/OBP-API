@@ -7,8 +7,8 @@ import code.api.Constant._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.ResourceDocs1_4_0.{ResourceDocs140, ResourceDocsAPIMethodsUtil}
 import code.api.util.APIUtil.{EmptyBody, _}
-import code.api.util.{APIUtil, ApiRole, ApiVersionUtils, CallContext, CustomJsonFormats, NewStyle}
-import code.api.util.ApiRole.{canCreateEntitlementAtAnyBank, canCreateEntitlementAtOneBank, canDeleteEntitlementAtAnyBank, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetCardsForBank, canGetConnectorHealth, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMigrations}
+import code.api.util.{APIUtil, ApiRole, ApiVersionUtils, CallContext, CustomJsonFormats, Glossary, NewStyle}
+import code.api.util.ApiRole.{canCreateEntitlementAtAnyBank, canCreateEntitlementAtOneBank, canCreateOrganisation, canDeleteEntitlementAtAnyBank, canDeleteOrganisation, canGetAccountAccessTrace, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetCardsForBank, canGetConnectorHealth, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMigrations, canUpdateOrganisation}
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.http4s.{ErrorResponseConverter, Http4sRequestAttributes, IdempotencyMiddleware, RequestScopeConnection, ResourceDocMiddleware}
@@ -24,6 +24,7 @@ import code.bankconnectors.storedprocedure.StoredProcedureUtils
 import code.migration.MigrationScriptLogProvider
 import code.bankconnectors.{Connector => BankConnector}
 import code.entitlement.Entitlement
+import code.organisation.OrganisationX
 import code.metadata.tags.Tags
 import code.views.Views
 import code.accountattribute.AccountAttributeX
@@ -568,7 +569,7 @@ object Http4s700 {
                    UserHasMissingRoles + s" $canCreateEntitlementAtOneBank or $canCreateEntitlementAtAnyBank")(
                    body.bank_id, user.userId,
                    canCreateEntitlementAtOneBank :: canCreateEntitlementAtAnyBank :: Nil, Some(cc)).map(_ => ())
-            _ <- Helper.booleanToFuture(failMsg = EntitlementAlreadyExists, cc = Some(cc))(
+            _ <- Helper.booleanToFuture(failMsg = EntitlementAlreadyExists, failCode = 409, cc = Some(cc))(
               !hasEntitlement(body.bank_id, userId, role))
             entitlement <- Future(Entitlement.entitlement.vend.addEntitlement(body.bank_id, userId, body.role_name))
               .map(e => unboxFull(e))
@@ -590,6 +591,169 @@ object Http4s700 {
       apiTagEntitlement :: apiTagRole :: apiTagUser :: Nil,
       Some(List(canCreateEntitlementAtOneBank, canCreateEntitlementAtAnyBank)),
       http4sPartialFunction = Some(addEntitlement)
+    )
+
+    // ── Account Access Trace ────────────────────────────────────────────────
+    //
+    // Path uses TARGET_VIEW_ID and TARGET_USER_ID (not VIEW_ID / USER_ID) on
+    // purpose: the middleware's VIEW_ID validation runs an access check on the
+    // CALLING user, which is wrong for a diagnostic that asks about ANOTHER user.
+    // The caller's authority comes from CanGetAccountAccessTrace.
+    val getAccountAccessTrace: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / "views" / targetViewIdStr / "users" / targetUserIdStr / "account-access-trace" =>
+        EndpointHelpers.withBankAccount(req) { (_, account, cc) =>
+          val bankIdAccountId = BankIdAccountId(account.bankId, account.accountId)
+          val targetViewId    = ViewId(targetViewIdStr)
+          for {
+            // Validate target view exists (custom or system)
+            _ <- {
+              Views.views.vend.customViewFuture(targetViewId, bankIdAccountId).flatMap {
+                case Full(v) => Future.successful(Full(v))
+                case _       => Views.views.vend.systemViewFuture(targetViewId)
+              }
+            }.map(unboxFullOrFail(_, Some(cc), s"$ViewNotFound Current ViewId is $targetViewIdStr"))
+
+            // Validate target user exists
+            targetUser <- UserVend.users.vend.getUserByUserIdFuture(targetUserIdStr).map(
+              x => unboxFullOrFail(x, Some(cc), s"$UserNotFoundByUserId Current USER_ID($targetUserIdStr)", 404)
+            )
+
+            // Step A — AccountAccess trace
+            permissions      <- Future(Views.views.vend.permissions(bankIdAccountId))
+            targetUserPerm    = permissions.find(_.user.userId == targetUser.userId)
+            accountAccessViewIds   = targetUserPerm.toList.flatMap(_.views.map(_.viewId.value))
+            hasAccountAccessForView = accountAccessViewIds.contains(targetViewIdStr)
+
+            // Step B — Entitlement trace (mirrors APIUtil.checkAbacAccountAccess gate)
+            entitlementBox        = Entitlement.entitlement.vend.getEntitlement("", targetUser.userId, ApiRole.canExecuteAbacRule.toString)
+            hasCanExecuteAbacRule = entitlementBox.isDefined
+
+            // Step C — ABAC per-rule trace (lists ALL rules under the policy, active or not)
+            allRules     = code.abacrule.MappedAbacRuleProvider.getAbacRulesByPolicy(ABAC_POLICY_ACCOUNT_ACCESS)
+            ruleTraces  <- Future.sequence(allRules.map { rule =>
+              if (!rule.isActive) {
+                Future.successful(JSONFactory700.AbacRuleTraceJsonV700(
+                  rule_id = rule.abacRuleId, rule_name = rule.ruleName,
+                  is_active = false, result = "SKIPPED",
+                  error_message = Some("Rule is not active")
+                ))
+              } else {
+                code.abacrule.AbacRuleEngine.executeRule(
+                  ruleId = rule.abacRuleId,
+                  authenticatedUserId = targetUser.userId,
+                  callContext = cc,
+                  bankId  = Some(account.bankId.value),
+                  accountId = Some(account.accountId.value),
+                  viewId  = Some(targetViewIdStr)
+                ).map {
+                  case Full(true)  => JSONFactory700.AbacRuleTraceJsonV700(rule.abacRuleId, rule.ruleName, true, "PASS", None)
+                  case Full(false) => JSONFactory700.AbacRuleTraceJsonV700(rule.abacRuleId, rule.ruleName, true, "FAIL", None)
+                  case net.liftweb.common.Failure(msg, _, _) =>
+                                      JSONFactory700.AbacRuleTraceJsonV700(rule.abacRuleId, rule.ruleName, true, "ERROR", Some(msg))
+                  case _           => JSONFactory700.AbacRuleTraceJsonV700(rule.abacRuleId, rule.ruleName, true, "ERROR", Some("empty result"))
+                }.recover { case ex =>
+                  JSONFactory700.AbacRuleTraceJsonV700(rule.abacRuleId, rule.ruleName, true, "ERROR", Some(ex.getMessage))
+                }
+              }
+            })
+
+            allowAbacProp     = APIUtil.getPropsAsBoolValue("allow_abac_account_access", false)
+            anyRulePassed     = ruleTraces.exists(_.result == "PASS")
+            // Mirrors enforcement: prop ON + entitlement + at least one PASS
+            standaloneAbacResult  = allowAbacProp && hasCanExecuteAbacRule && anyRulePassed
+
+            hasAccess     = hasAccountAccessForView || standaloneAbacResult
+            accessSource       =
+              if      (hasAccountAccessForView) "ACCOUNT_ACCESS"
+              else if (standaloneAbacResult)        "ABAC"
+              else                              "NONE"
+          } yield {
+            JSONFactory700.AccountAccessTraceJsonV700(
+              user_id      = targetUser.userId,
+              bank_id      = account.bankId.value,
+              account_id   = account.accountId.value,
+              view_id      = targetViewIdStr,
+              has_access      = hasAccess,
+              access_source = accessSource,
+              account_access_trace = JSONFactory700.AccountAccessLookupJsonV700(
+                has_account_access_for_view = hasAccountAccessForView,
+                account_access_view_ids = accountAccessViewIds
+              ),
+              entitlement_trace = JSONFactory700.EntitlementTraceJsonV700(
+                has_can_execute_abac_rule = hasCanExecuteAbacRule
+              ),
+              abac_trace = JSONFactory700.AbacEvaluationTraceJsonV700(
+                policy = ABAC_POLICY_ACCOUNT_ACCESS,
+                allow_abac_account_access = allowAbacProp,
+                standalone_abac_result = standaloneAbacResult,
+                rules_evaluated = ruleTraces
+              )
+            )
+          }
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(getAccountAccessTrace),
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/TARGET_VIEW_ID/users/TARGET_USER_ID/account-access-trace",
+      "Get Account Access Trace",
+      s"""Return a diagnostic trace of how a target user's access to a view on an account is decided.
+        |Use this for auditing, debugging "why doesn't user X have access?" support tickets, and
+        |verifying ABAC rule behaviour against real users.
+        |
+        |Top-level verdict:
+        |
+        |* `has_access` — does the target user have access to the named view?
+        |* `access_source` — what actually decided: `"ACCOUNT_ACCESS"` | `"ABAC"` | `"NONE"`.
+        |  Use this (not `standalone_abac_result`) to answer "did ABAC grant this user's access?"
+        |
+        |Three diagnostic sections:
+        |
+        |* `account_access_trace` — what the AccountAccess table says: which views the target user
+        |  holds on this account, and whether the asked view is among them.
+        |* `entitlement_trace` — whether the target user has the `CanExecuteAbacRule` entitlement
+        |  (the runtime opt-in for ABAC fallback).
+        |* `abac_trace` — the ABAC subsystem evaluated standalone: master prop value, the standalone
+        |  verdict, and each active rule under the `account-access` policy with result
+        |  `PASS` / `FAIL` / `ERROR` / `SKIPPED`.
+        |
+        |Path uses `TARGET_VIEW_ID` and `TARGET_USER_ID` (not `VIEW_ID` / `USER_ID`) because the
+        |trace asks about another user, not the caller. The caller's authority to read this comes
+        |from `CanGetAccountAccessTrace`.
+        |
+        |Diagnostic only — does not affect enforcement. For the full runtime gate model, see
+        |${Glossary.getGlossaryItemLink("ABAC_Account_Access_Enforcement")}.
+        |
+        |Authentication is Required.""".stripMargin,
+      EmptyBody,
+      JSONFactory700.AccountAccessTraceJsonV700(
+        user_id = "9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+        bank_id = "gh.29.uk",
+        account_id = "8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
+        view_id    = "owner",
+        has_access      = true,
+        access_source = "ACCOUNT_ACCESS",
+        account_access_trace = JSONFactory700.AccountAccessLookupJsonV700(
+          has_account_access_for_view = true,
+          account_access_view_ids = List("owner")
+        ),
+        entitlement_trace = JSONFactory700.EntitlementTraceJsonV700(
+          has_can_execute_abac_rule = false
+        ),
+        abac_trace = JSONFactory700.AbacEvaluationTraceJsonV700(
+          policy = ABAC_POLICY_ACCOUNT_ACCESS,
+          allow_abac_account_access = false,
+          standalone_abac_result = false,
+          rules_evaluated = Nil
+        )
+      ),
+      List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, ViewNotFound, UserNotFoundByUserId, UnknownError),
+      apiTagABAC :: apiTagAccount :: apiTagView :: Nil,
+      Some(List(canGetAccountAccessTrace)),
+      http4sPartialFunction = Some(getAccountAccessTrace)
     )
 
     // ── Phase 1 — Simple GETs ───────────────────────────────────────────────
@@ -2240,6 +2404,265 @@ object Http4s700 {
     )
 
     // ── End Phase 1 batch 3 ──────────────────────────────────────────────────
+
+    // ── Organisations ─────────────────────────────────────────────────────────
+    // CRUD for the Organisation resource. Migrated from v6.0.0 (Lift) to v7.0.0
+    // (http4s). Path uses ORGANISATION_ID; not resolved by middleware (only BANK_ID
+    // / ACCOUNT_ID / VIEW_ID / COUNTERPARTY_ID are), so endpoints fetch directly
+    // via OrganisationX.organisation.vend.
+
+    private val ValidOrganisationStatuses    = Set("active", "suspended", "archived")
+    private val ValidOrganisationVisibilities = Set("public", "unlisted", "private")
+    private val OrganisationIdRegex          = "^[a-zA-Z0-9._-]{2,64}$".r
+
+    val createOrganisation: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "organisations" =>
+        EndpointHelpers.withUserAndBodyCreated[JSONFactory700.PostOrganisationJsonV700, JSONFactory700.OrganisationJsonV700](req) { (user, body, cc) =>
+          for {
+            _ <- Helper.booleanToFuture(InvalidOrganisationIdFormat, 400, Some(cc)) {
+              OrganisationIdRegex.findFirstIn(body.organisation_id).isDefined
+            }
+            status     = body.status.getOrElse("active")
+            visibility = body.visibility.getOrElse("public")
+            _ <- Helper.booleanToFuture(InvalidOrganisationStatus, 400, Some(cc)) {
+              ValidOrganisationStatuses.contains(status)
+            }
+            _ <- Helper.booleanToFuture(InvalidOrganisationVisibility, 400, Some(cc)) {
+              ValidOrganisationVisibilities.contains(visibility)
+            }
+            existing <- Future(OrganisationX.organisation.vend.getOrganisation(body.organisation_id))
+            _ <- Helper.booleanToFuture(OrganisationAlreadyExists, 409, Some(cc))(existing.isEmpty)
+            created <- Future {
+              OrganisationX.organisation.vend.createOrganisation(
+                body.organisation_id, body.name, body.website, body.logo_url,
+                status, visibility, user.userId
+              )
+            }.map(unboxFullOrFail(_, Some(cc), CreateOrganisationError, 400))
+          } yield JSONFactory700.createOrganisationJsonV700(created)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(createOrganisation),
+      "POST",
+      "/organisations",
+      "Create Organisation",
+      """Create an Organisation.
+        |
+        |The organisation_id must be a URL-safe string (a-z, A-Z, 0-9, '-', '.', '_'), between 2 and 64 characters in length, and is immutable.
+        |
+        |Optional fields:
+        |- status: one of active, suspended, archived (defaults to active)
+        |- visibility: one of public, unlisted, private (defaults to public)
+        |- website, logo_url
+        |
+        |Authentication is Required.""".stripMargin,
+      JSONFactory700.PostOrganisationJsonV700(
+        organisation_id = "tesobe",
+        name = "TESOBE GmbH",
+        website = Some("https://www.tesobe.com"),
+        logo_url = None,
+        status = Some("active"),
+        visibility = Some("public")
+      ),
+      JSONFactory700.OrganisationJsonV700(
+        organisation_id = "tesobe",
+        name = "TESOBE GmbH",
+        website = Some("https://www.tesobe.com"),
+        logo_url = None,
+        status = "active",
+        visibility = "public",
+        created_by_user_id = "9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+        created_at = new java.util.Date(),
+        updated_at = new java.util.Date()
+      ),
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat,
+           InvalidOrganisationIdFormat, InvalidOrganisationStatus,
+           InvalidOrganisationVisibility, OrganisationAlreadyExists,
+           CreateOrganisationError, UnknownError),
+      apiTagOrganisation :: Nil,
+      Some(List(canCreateOrganisation)),
+      http4sPartialFunction = Some(createOrganisation)
+    )
+
+    val getOrganisations: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "organisations" =>
+        EndpointHelpers.withUser(req) { (user, cc) =>
+          for {
+            allOrgs <- OrganisationX.organisation.vend.getAllOrganisations()
+              .map(unboxFullOrFail(_, Some(cc), UnknownError, 500))
+            hasGetAny = APIUtil.hasEntitlement("", user.userId, canGetAnyOrganisation)
+            visible   = if (hasGetAny) allOrgs else allOrgs.filter(_.visibility == "public")
+          } yield JSONFactory700.createOrganisationsJsonV700(visible)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(getOrganisations),
+      "GET",
+      "/organisations",
+      "Get Organisations",
+      """Returns Organisations.
+        |
+        |By default returns only Organisations whose visibility is `public`. Users granted CanGetAnyOrganisation see all Organisations including unlisted and private.
+        |
+        |Authentication is Required.""".stripMargin,
+      EmptyBody,
+      JSONFactory700.OrganisationsJsonV700(organisations = List(
+        JSONFactory700.OrganisationJsonV700(
+          organisation_id = "tesobe",
+          name = "TESOBE GmbH",
+          website = Some("https://www.tesobe.com"),
+          logo_url = None,
+          status = "active",
+          visibility = "public",
+          created_by_user_id = "9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+          created_at = new java.util.Date(),
+          updated_at = new java.util.Date()
+        )
+      )),
+      List($AuthenticatedUserIsRequired, UnknownError),
+      apiTagOrganisation :: Nil,
+      None,
+      http4sPartialFunction = Some(getOrganisations)
+    )
+
+    val getOrganisation: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "organisations" / organisationId =>
+        EndpointHelpers.withUser(req) { (user, cc) =>
+          for {
+            org <- Future(OrganisationX.organisation.vend.getOrganisation(organisationId))
+              .map(unboxFullOrFail(_, Some(cc), OrganisationNotFound, 404))
+            _ <- if (org.visibility == "private")
+                   NewStyle.function.hasEntitlement("", user.userId, canGetAnyOrganisation, Some(cc))
+                 else Future.successful(())
+          } yield JSONFactory700.createOrganisationJsonV700(org)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(getOrganisation),
+      "GET",
+      "/organisations/ORGANISATION_ID",
+      "Get Organisation",
+      """Returns the Organisation specified by ORGANISATION_ID.
+        |
+        |Organisations with visibility `public` or `unlisted` are visible to any authenticated user. Organisations with visibility `private` require CanGetAnyOrganisation.
+        |
+        |Authentication is Required.""".stripMargin,
+      EmptyBody,
+      JSONFactory700.OrganisationJsonV700(
+        organisation_id = "tesobe",
+        name = "TESOBE GmbH",
+        website = Some("https://www.tesobe.com"),
+        logo_url = None,
+        status = "active",
+        visibility = "public",
+        created_by_user_id = "9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+        created_at = new java.util.Date(),
+        updated_at = new java.util.Date()
+      ),
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, OrganisationNotFound, UnknownError),
+      apiTagOrganisation :: Nil,
+      None,
+      http4sPartialFunction = Some(getOrganisation)
+    )
+
+    val updateOrganisation: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ PUT -> `prefixPath` / "organisations" / organisationId =>
+        EndpointHelpers.withUserAndBody[JSONFactory700.PutOrganisationJsonV700, JSONFactory700.OrganisationJsonV700](req) { (_, body, cc) =>
+          for {
+            _ <- Future(OrganisationX.organisation.vend.getOrganisation(organisationId))
+              .map(unboxFullOrFail(_, Some(cc), OrganisationNotFound, 404))
+            _ <- Helper.booleanToFuture(InvalidOrganisationStatus, 400, Some(cc)) {
+              body.status.forall(ValidOrganisationStatuses.contains)
+            }
+            _ <- Helper.booleanToFuture(InvalidOrganisationVisibility, 400, Some(cc)) {
+              body.visibility.forall(ValidOrganisationVisibilities.contains)
+            }
+            updated <- Future {
+              OrganisationX.organisation.vend.updateOrganisation(
+                organisationId, body.name, body.website, body.logo_url, body.status, body.visibility
+              )
+            }.map(unboxFullOrFail(_, Some(cc), UpdateOrganisationError, 400))
+          } yield JSONFactory700.createOrganisationJsonV700(updated)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(updateOrganisation),
+      "PUT",
+      "/organisations/ORGANISATION_ID",
+      "Update Organisation",
+      """Update an Organisation. All body fields are optional. The organisation_id is immutable and cannot be changed.
+        |
+        |Authentication is Required.""".stripMargin,
+      JSONFactory700.PutOrganisationJsonV700(
+        name = Some("TESOBE GmbH"),
+        website = Some("https://www.tesobe.com"),
+        logo_url = None,
+        status = Some("active"),
+        visibility = Some("public")
+      ),
+      JSONFactory700.OrganisationJsonV700(
+        organisation_id = "tesobe",
+        name = "TESOBE GmbH",
+        website = Some("https://www.tesobe.com"),
+        logo_url = None,
+        status = "active",
+        visibility = "public",
+        created_by_user_id = "9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+        created_at = new java.util.Date(),
+        updated_at = new java.util.Date()
+      ),
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat,
+           OrganisationNotFound, InvalidOrganisationStatus,
+           InvalidOrganisationVisibility, UpdateOrganisationError, UnknownError),
+      apiTagOrganisation :: Nil,
+      Some(List(canUpdateOrganisation)),
+      http4sPartialFunction = Some(updateOrganisation)
+    )
+
+    val deleteOrganisation: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ DELETE -> `prefixPath` / "organisations" / organisationId =>
+        EndpointHelpers.withUserDelete(req) { (_, cc) =>
+          for {
+            _ <- Future(OrganisationX.organisation.vend.getOrganisation(organisationId))
+              .map(unboxFullOrFail(_, Some(cc), OrganisationNotFound, 404))
+            _ <- Future(OrganisationX.organisation.vend.deleteOrganisation(organisationId))
+              .map(unboxFullOrFail(_, Some(cc), DeleteOrganisationError, 400))
+          } yield ()
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(deleteOrganisation),
+      "DELETE",
+      "/organisations/ORGANISATION_ID",
+      "Delete Organisation",
+      """Delete the Organisation specified by ORGANISATION_ID.
+        |
+        |Authentication is Required.""".stripMargin,
+      EmptyBody,
+      EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, OrganisationNotFound,
+           DeleteOrganisationError, UnknownError),
+      apiTagOrganisation :: Nil,
+      Some(List(canDeleteOrganisation)),
+      http4sPartialFunction = Some(deleteOrganisation)
+    )
+
+    // ── End Organisations ─────────────────────────────────────────────────────
 
     // ── Test-only rollback endpoint ───────────────────────────────────────────
     // Enabled only in Lift test mode (Props.testMode == true, i.e. -Drun.mode=test).

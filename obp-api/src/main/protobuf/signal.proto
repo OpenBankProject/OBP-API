@@ -1,0 +1,82 @@
+syntax = "proto3";
+package code.obp.grpc.signal.g1;
+
+import "google/protobuf/timestamp.proto";
+
+// Mirrors SignalMessageJsonV600. The payload field carries the JSON-encoded
+// message body verbatim — proto has no native JValue, and round-tripping
+// through google.protobuf.Struct can reorder/lose nesting.
+message SignalMessage {
+  string message_id = 1;
+  string channel_name = 2;
+  string sender_consumer_id = 3;
+  string sender_user_id = 4;
+  string to_user_id = 5;            // empty string = broadcast
+  google.protobuf.Timestamp timestamp = 6;
+  string message_type = 7;
+  string payload_json = 8;          // JSON-encoded payload
+}
+
+// Mirrors SignalChannelInfoJsonV600
+message SignalChannelInfo {
+  string channel_name = 1;
+  int64 message_count = 2;
+  int64 ttl_seconds = 3;
+}
+
+// --- Publish: 1:1 with POST /signal/channels/{name}/messages ---
+
+message PublishRequest {
+  string channel_name = 1;
+  string to_user_id = 2;            // empty = broadcast
+  string message_type = 3;
+  string payload_json = 4;          // JSON-encoded payload
+}
+
+message PublishResponse {
+  string message_id = 1;
+  string channel_name = 2;
+  google.protobuf.Timestamp timestamp = 3;
+  int64 channel_message_count = 4;
+}
+
+// --- Fetch: 1:1 with GET /signal/channels/{name}/messages ---
+// Privacy filter applied server-side: caller sees broadcasts plus messages
+// to/from themselves. Same logic as REST.
+
+message FetchRequest {
+  string channel_name = 1;
+  int32 offset = 2;
+  int32 limit = 3;
+}
+
+message FetchResponse {
+  string channel_name = 1;
+  repeated SignalMessage messages = 2;
+  int64 total_count = 3;
+  bool has_more = 4;
+}
+
+// --- ListChannels: 1:1 with GET /signal/channels ---
+// Returns broadcast-visible channels only, matching REST behaviour.
+
+message ListChannelsRequest {}
+
+message ListChannelsResponse {
+  repeated SignalChannelInfo channels = 1;
+}
+
+// --- Subscribe: live-only stream of new messages ---
+// No catch-up, no replay. Late joiners ask other agents.
+// Privacy filter applied server-side, same as REST Fetch.
+
+message SubscribeRequest {
+  string channel_name = 1;
+}
+
+service SignalChannelsService {
+  rpc Publish(PublishRequest) returns (PublishResponse);
+  rpc Fetch(FetchRequest) returns (FetchResponse);
+  rpc ListChannels(ListChannelsRequest) returns (ListChannelsResponse);
+  rpc Subscribe(SubscribeRequest) returns (stream SignalMessage);
+}

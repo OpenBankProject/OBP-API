@@ -4215,6 +4215,7 @@ object Glossary extends MdcLoggable  {
 				 |- ABAC_Parameters_Summary - Complete list of all 18 parameters
 				 |- ABAC_Object_Properties_Reference - Detailed property reference
 				 |- ABAC_Testing_Examples - More testing examples
+				 |- ABAC_Account_Access_Enforcement - Runtime gate model
 				 |""".stripMargin)
 
 	glossaryItems += GlossaryItem(
@@ -4276,6 +4277,7 @@ object Glossary extends MdcLoggable  {
 				 |**Related Documentation:**
 				 |- ABAC_Simple_Guide - Getting started guide
 				 |- ABAC_Object_Properties_Reference - Detailed property reference
+				 |- ABAC_Account_Access_Enforcement - Runtime gate model
 				 |""".stripMargin)
 
 	glossaryItems += GlossaryItem(
@@ -4442,6 +4444,7 @@ object Glossary extends MdcLoggable  {
 				 |**Related Documentation:**
 				 |- ABAC_Simple_Guide - Getting started guide
 				 |- ABAC_Parameters_Summary - Complete parameter list
+				 |- ABAC_Account_Access_Enforcement - Runtime gate model
 				 |""".stripMargin)
 
 	glossaryItems += GlossaryItem(
@@ -4587,6 +4590,172 @@ object Glossary extends MdcLoggable  {
 				 |- ABAC_Simple_Guide - Getting started guide
 				 |- ABAC_Parameters_Summary - Complete parameter list
 				 |- ABAC_Object_Properties_Reference - Property reference
+				 |- ABAC_Account_Access_Enforcement - Runtime gate model
+				 |""".stripMargin)
+
+	glossaryItems += GlossaryItem(
+		title = "ABAC_Account_Access_Enforcement",
+		description =
+			s"""
+				 |# ABAC Account Access Enforcement
+				 |
+				 |How OBP decides whether the ABAC subsystem grants account access at runtime, and
+				 |how that's kept separate from rule management. For writing rules, see
+				 |ABAC_Simple_Guide — this entry is for operators, security reviewers, and anyone
+				 |tracing why a request did or did not succeed.
+				 |
+				 |## Two distinct guard surfaces
+				 |
+				 |**Management plane** — controls who can author and run rules:
+				 |
+				 |- `CanCreateAbacRule` — POST `/management/abac-rules`, validate
+				 |- `CanGetAbacRule` — GET rule(s), schema, list policies
+				 |- `CanUpdateAbacRule` — PUT rule (also flips `is_active`)
+				 |- `CanDeleteAbacRule` — DELETE rule
+				 |- `CanExecuteAbacRule` — POST `/management/abac-rules/{id}/execute` and `…/abac-policies/{policy}/execute`
+				 |
+				 |**Runtime gate** — controls whether ABAC fallback can grant access on a real API
+				 |call. Implemented in `APIUtil.checkAbacAccountAccess`. None of the management
+				 |roles above are involved at request time, with the deliberate exception of
+				 |`CanExecuteAbacRule` (see "dual purpose" below).
+				 |
+				 |## Fallback ordering
+				 |
+				 |ABAC is **only consulted as a fallback** after normal access checks fail.
+				 |`APIUtil.hasAccountAccess` evaluates in this order:
+				 |
+				 |1. Public view → grant
+				 |2. User has firehose access → grant
+				 |3. User has the view via the AccountAccess table → grant
+				 |4. **None of the above and a user is present → try ABAC**
+				 |5. No user → deny
+				 |
+				 |Consequence: ABAC can only ever **widen** access. It cannot deny a user who
+				 |already has access through a normal mechanism, and it cannot revoke a granted
+				 |view. Removing a rule never breaks an existing access path; adding a rule never
+				 |restricts one.
+				 |
+				 |## Six conditions for ABAC to grant access
+				 |
+				 |All six must hold. If any one fails, the runtime gate returns `false` and the
+				 |request is denied at the access layer.
+				 |
+				 |1. **Normal checks failed.** ABAC was reached via the fallback ordering above.
+				 |   If any earlier check granted, ABAC is never invoked.
+				 |
+				 |2. **Master switch on.** Props key `allow_abac_account_access=true`. Default is
+				 |   **false** — ABAC is off out of the box. When false,
+				 |   `checkAbacAccountAccess` returns `Full(false)` immediately; no rules execute.
+				 |
+				 |3. **Target user opted in.** The user being evaluated must hold the
+				 |   `CanExecuteAbacRule` system-level entitlement (bankId=`""`). Without it the
+				 |   runtime returns `Full(false)`. Granting this entitlement is the act that
+				 |   subjects a user to the ABAC subsystem at runtime.
+				 |
+				 |4. **CallContext present.** Internal — `None` returns `Full(false)`.
+				 |
+				 |5. **At least one active rule PASSes.**
+				 |   `AbacRuleEngine.executeRulesByPolicyDetailed(ABAC_POLICY_ACCOUNT_ACCESS, ...)`
+				 |   evaluates every rule whose `is_active=true` under the `account-access`
+				 |   policy. OR semantics — one PASS is enough. Inactive rules are skipped
+				 |   entirely. If no rule passes but at least one explicitly denied, the call
+				 |   surfaces a `Failure` naming the failing rule IDs instead of a silent deny.
+				 |
+				 |6. **No timeout, no exception.** Rule evaluation is awaited for at most
+				 |   10 seconds, wrapped in try/catch. Any timeout, thrown exception, or engine
+				 |   error → `Full(false)` (fail closed).
+				 |
+				 |## Dual purpose of `CanExecuteAbacRule`
+				 |
+				 |The same role gates two unrelated capabilities:
+				 |
+				 |- **Manual testing** — invoking `/management/abac-rules/{id}/execute` or
+				 |  `/management/abac-policies/{policy}/execute` to dry-run a rule.
+				 |- **Runtime opt-in** — being eligible for ABAC fallback on real account access
+				 |  decisions (condition #3 above).
+				 |
+				 |Deliberate: a user has to be allowed to invoke a rule manually before they can
+				 |be subject to one automatically. But it means revoking "can test rules" also
+				 |revokes "can be granted access via ABAC" — keep this coupling in mind when
+				 |building admin UIs or splitting roles.
+				 |
+				 |## Diagnosing a decision
+				 |
+				 |```
+				 |GET $getObpApiRoot/v7.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/views/TARGET_VIEW_ID/users/TARGET_USER_ID/account-access-trace
+				 |```
+				 |
+				 |Returns a structured trace with each of the six conditions surfaced:
+				 |
+				 |- `account_access_trace.has_account_access_for_view` — whether condition #1
+				 |  even matters (true means normal access already grants, ABAC not reached)
+				 |- `entitlement_trace.has_can_execute_abac_rule` — condition #3
+				 |- `abac_trace.allow_abac_account_access` — condition #2
+				 |- `abac_trace.rules_evaluated[].result` — condition #5, per rule (see below)
+				 |- `abac_trace.standalone_abac_result` — the AND of #2, #3, and "at least one
+				 |  PASS". This is the verdict ABAC would produce **on its own**, ignoring the
+				 |  AccountAccess table. It is **not** the same as "ABAC granted this user's
+				 |  access" — see "Standalone vs decisive" below.
+				 |- `has_access` and `access_source` — `"ACCOUNT_ACCESS"` |
+				 |  `"ABAC"` | `"NONE"`. `access_source` is what actually decided.
+				 |
+				 |### Standalone vs decisive
+				 |
+				 |`standalone_abac_result` answers the question "if ABAC were the only mechanism,
+				 |would it grant?" It is computed independently of the AccountAccess lookup.
+				 |
+				 |To answer "did ABAC actually grant **this** user's access?", use
+				 |`access_source == "ABAC"` instead.
+				 |
+				 |Worked example: a user holds the `owner` view directly via the AccountAccess
+				 |table, AND every ABAC condition holds (prop on, has `CanExecuteAbacRule`, a
+				 |rule PASSes). The trace will show:
+				 |
+				 |- `account_access_trace.has_account_access_for_view: true`
+				 |- `standalone_abac_result: true`
+				 |- `access_source: "ACCOUNT_ACCESS"`
+				 |
+				 |ABAC didn't grant anything for this user — AccountAccess did. ABAC was simply
+				 |evaluated in parallel and would also have granted if asked. UIs rendering an
+				 |"ABAC access" column should read `access_source`, not
+				 |`standalone_abac_result`.
+				 |
+				 |### Per-rule `result` values
+				 |
+				 |`result` is a four-state string (not a boolean — `FAIL` and `ERROR` are not the
+				 |same thing, and a disabled rule is not the same as a rejecting rule):
+				 |
+				 |- `PASS` — rule executed and returned `true`. Counts toward access being granted.
+				 |- `FAIL` — rule executed and returned `false`. Clean rejection; no error.
+				 |- `ERROR` — rule threw an exception, returned a `Failure`, or returned an empty
+				 |  result. `error_message` is populated. Investigate as a bug or upstream
+				 |  outage — the rule did not produce a decision.
+				 |- `SKIPPED` — rule has `is_active=false`. Engine never ran it.
+				 |  `error_message` is `"Rule is not active"`.
+				 |
+				 |Only `PASS` contributes to granting access. `FAIL`, `ERROR`, and `SKIPPED` all
+				 |mean "this rule did not grant" but are intentionally distinct in the trace so
+				 |operators can tell a rejecting rule from a broken one from an inactive one.
+				 |
+				 |The trace endpoint is **diagnostic only** — it does not affect enforcement. It
+				 |is gated by `CanGetAccountAccessTrace`, a read-only audit role distinct from
+				 |the management and runtime roles above.
+				 |
+				 |## Enabling ABAC in a deployment
+				 |
+				 |1. Set `allow_abac_account_access=true` in props.
+				 |2. Grant `CanCreateAbacRule` to a rule author and create at least one active
+				 |   rule under the `account-access` policy.
+				 |3. Grant `CanExecuteAbacRule` to each user who should be eligible for ABAC
+				 |   fallback. Without this, rules never run for them.
+				 |4. Grant `CanGetAccountAccessTrace` to anyone who needs to debug decisions
+				 |   (audit, support, compliance).
+				 |
+				 |**Related Documentation:**
+				 |- ABAC_Simple_Guide - Writing rules
+				 |- ABAC_Parameters_Summary - Rule parameters
+				 |- ABAC_Object_Properties_Reference - Object properties in rules
+				 |- ABAC_Testing_Examples - Testing patterns
 				 |""".stripMargin)
 
 	glossaryItems += GlossaryItem(

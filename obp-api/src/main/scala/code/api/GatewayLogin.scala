@@ -238,6 +238,12 @@ object GatewayLogin extends RestHelper with MdcLoggable {
   def getOrCreateResourceUser(jwtPayload: String, callContext: Option[CallContext]) : Box[(User, Option[String], Option[CallContext])] = {
     val username = getFieldFromPayloadJson(jwtPayload, "login_user_name")
     logger.debug("login_user_name: " + username)
+    // Pre-credential rate limit. Disabled by default; controlled via auth.rate_limit.* props.
+    // In shadow mode trips are logged and Right is returned; only enforce mode produces Left.
+    AuthRateLimiter.check(APIUtil.getRemoteIpAddress(), gateway, username) match {
+      case Left(_)  => return Failure(ErrorMessages.TooManyRequests)
+      case Right(_) => // continue
+    }
     val cbsAndCallContextBox = refreshBankAccounts(jwtPayload, callContext)
     for {
       tuple <- cbsAndCallContextBox match {
@@ -303,6 +309,11 @@ object GatewayLogin extends RestHelper with MdcLoggable {
     val jti = getFieldFromPayloadJson(jwtPayload, "jti")
     val consentId = if (jti.isEmpty) None else Some(jti)
     logger.debug("login_user_name: " + username)
+    // Pre-credential rate limit. Disabled by default; controlled via auth.rate_limit.* props.
+    AuthRateLimiter.check(APIUtil.getRemoteIpAddress(), gateway, username) match {
+      case Left(_)  => return Future.successful(Failure(ErrorMessages.TooManyRequests))
+      case Right(_) => // continue
+    }
     val cbsAndCallContextF = refreshBankAccountsFuture(jwtPayload, callContext)
     for {
       cbs <- cbsAndCallContextF
