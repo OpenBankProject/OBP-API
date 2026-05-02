@@ -19,7 +19,7 @@ object MappedOrganisationProvider extends OrganisationProvider {
     createdByUserId: String
   ): Box[OrganisationTrait] = {
     tryo {
-      MappedOrganisation.create
+      Organisation.create
         .OrganisationId(organisationId)
         .Name(name)
         .Website(website.getOrElse(""))
@@ -32,12 +32,12 @@ object MappedOrganisationProvider extends OrganisationProvider {
   }
 
   override def getOrganisation(organisationId: String): Box[OrganisationTrait] = {
-    MappedOrganisation.find(By(MappedOrganisation.OrganisationId, organisationId))
+    Organisation.find(By(Organisation.OrganisationId, organisationId))
   }
 
   override def getAllOrganisations(): Future[Box[List[OrganisationTrait]]] = {
     Future {
-      tryo { MappedOrganisation.findAll() }
+      tryo { Organisation.findAll() }
     }
   }
 
@@ -49,7 +49,7 @@ object MappedOrganisationProvider extends OrganisationProvider {
     status: Option[String],
     visibility: Option[String]
   ): Box[OrganisationTrait] = {
-    MappedOrganisation.find(By(MappedOrganisation.OrganisationId, organisationId)).flatMap { org =>
+    Organisation.find(By(Organisation.OrganisationId, organisationId)).flatMap { org =>
       tryo {
         name.foreach(v => org.Name(v))
         website.foreach(v => org.Website(v))
@@ -63,15 +63,15 @@ object MappedOrganisationProvider extends OrganisationProvider {
   }
 
   override def deleteOrganisation(organisationId: String): Box[Boolean] = {
-    MappedOrganisation.find(By(MappedOrganisation.OrganisationId, organisationId)).flatMap { org =>
+    Organisation.find(By(Organisation.OrganisationId, organisationId)).flatMap { org =>
       tryo { org.delete_! }
     }
   }
 }
 
-class MappedOrganisation extends OrganisationTrait with LongKeyedMapper[MappedOrganisation] with IdPK {
+class Organisation extends OrganisationTrait with LongKeyedMapper[Organisation] with IdPK {
 
-  def getSingleton = MappedOrganisation
+  def getSingleton = Organisation
 
   object OrganisationId extends MappedString(this, 64)
   object Name extends MappedString(this, 255)
@@ -104,7 +104,7 @@ class MappedOrganisation extends OrganisationTrait with LongKeyedMapper[MappedOr
   override def updatedAt: java.util.Date = LastUpdate.get
 }
 
-object MappedOrganisation extends MappedOrganisation with LongKeyedMetaMapper[MappedOrganisation] {
+object Organisation extends Organisation with LongKeyedMetaMapper[Organisation] {
   override def dbTableName = "Organisation"
   override def dbIndexes = UniqueIndex(OrganisationId) :: super.dbIndexes
 }
