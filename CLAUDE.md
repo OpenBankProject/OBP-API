@@ -2,18 +2,19 @@
 
 ## Working Style
 - Never blame pre-existing issues or other commits. No excuses, no finger-pointing — diagnose and resolve.
+- Never add `Co-Authored-By` trailers to commit messages.
 
 ## Architecture (Onboarding)
 
-v7.0.0 is a Lift Web → http4s migration. Not a replacement for v6.0.0 yet — 27 of 633 endpoints migrated.
+v7.0.0 is a Lift Web → http4s migration. Not a replacement for v6.0.0 yet — 45 of 633 endpoints migrated.
 
 **Request priority chain** (Http4sServer): `corsHandler` (OPTIONS) → StatusPage → Http4s500 → Http4s700 → Http4sBGv2 → Http4sLiftWebBridge (Lift fallback). Unhandled `/obp/v7.0.0/*` paths fall through silently to Lift — they do not 404.
 
-**Key files**: `Http4s700.scala` (endpoints), `Http4sSupport.scala` (EndpointHelpers + recordMetric), `ResourceDocMiddleware.scala` (auth, entity resolution, transaction wrapper), `RequestScopeConnection.scala` (DB transaction propagation to Futures).
+**Key files**: `Http4s700.scala` (endpoints), `Http4sSupport.scala` (EndpointHelpers + recordMetric), `ResourceDocMiddleware.scala` (auth, entity resolution, transaction wrapper), `IdempotencyMiddleware.scala` (Redis-backed idempotency, opt-in via `Idempotency-Key` header, nested inside ResourceDocMiddleware), `RequestScopeConnection.scala` (DB transaction propagation to Futures).
 
-**Migrated endpoints** (27): root, getBanks, getCards, getCardsForBank, getResourceDocsObpV700, getBank, getCurrentUser, getCoreAccountById, getPrivateAccountByIdFull, getExplicitCounterpartyById, deleteEntitlement, addEntitlement, getFeatures, getScannedApiVersions, getConnectors, getProviders, getUsers, getCustomersAtOneBank, getCustomerByCustomerId, getAccountsAtBank, getUserByUserId, getCacheConfig, getCacheInfo, getDatabasePoolInfo, getStoredProcedureConnectorHealth, getMigrations, getCacheNamespaces.
+**Migrated endpoints** (45): root, getBanks, getCards, getCardsForBank, getResourceDocsObpV700, getBank, getCurrentUser, getCoreAccountById, getPrivateAccountByIdFull, getExplicitCounterpartyById, deleteEntitlement, addEntitlement, getAccountAccessTrace, getFeatures, getScannedApiVersions, getConnectors, getErrorMessages, getProviders, getUsers, getUserByUserId, getCustomersAtOneBank, getCustomerByCustomerId, getAccountsAtBank, createTradingOffer, getTradingOffer, getTradingOffers, cancelTradingOffer, createMarketOrder, getMarketOrder, cancelMarketOrder, createMarketMatch, getMarketTrade, requestSettlement, requestWithdrawal, getCacheConfig, getCacheInfo, getDatabasePoolInfo, getStoredProcedureConnectorHealth, getMigrations, getCacheNamespaces, createOrganisation, getOrganisations, getOrganisation, updateOrganisation, deleteOrganisation.
 
-**Tests**: `Http4s700RoutesTest` (93 scenarios, port 8087). `makeHttpRequest` returns `(Int, JValue, Map[String, String])`. `makeHttpRequestWithBody(method, path, body, headers)` for POST/PUT.
+**Tests**: `Http4s700RoutesTest` (111 scenarios, port 8087). `makeHttpRequest` returns `(Int, JValue, Map[String, String])`. `makeHttpRequestWithBody(method, path, body, headers)` for POST/PUT.
 
 ## Migrating a v6.0.0 Endpoint to v7.0.0
 
@@ -147,9 +148,10 @@ Compile times are consistent across all three shards — Zinc cache restores cor
 
 At the integration level both frameworks are similarly server/DB-bound (~0.32–0.45 s/test). The real http4s gain is the **unit/pure tier** — tests that don't need a running server are 54× faster. As more logic moves into pure functions (request parsing, response building, auth checks) these unit tests replace integration tests and the savings compound.
 
-The 5 integration suites (160 tests, 66.9s total):
+The 6 integration suites (pre-merge timings; Http4s700RoutesTest has grown to 111 scenarios):
 - `obp-api/src/test/scala/code/api/http4sbridge/Http4sLiftBridgePropertyTest.scala` — 51 tests, 31.9s
-- `obp-api/src/test/scala/code/api/v7_0_0/Http4s700RoutesTest.scala` — 75 tests, 23.8s
+- `obp-api/src/test/scala/code/api/v7_0_0/Http4s700RoutesTest.scala` — 111 tests (was 75, 23.8s pre-merge)
+- `obp-api/src/test/scala/code/api/v7_0_0/V7ResourceDocsAggregationTest.scala` — intentionally failing until resource-docs aggregation bug is fixed
 - `obp-api/src/test/scala/code/api/http4sbridge/Http4sServerIntegrationTest.scala` — 16 tests, 5.0s
 - `obp-api/src/test/scala/code/api/v5_0_0/Http4s500SystemViewsTest.scala` — 13 tests, 4.4s
 - `obp-api/src/test/scala/code/api/v7_0_0/Http4s700TransactionTest.scala` — 5 tests, 1.9s
@@ -215,6 +217,7 @@ Body helpers and DELETE 204 helpers ready. Velocity: 6–8 endpoints/day.
 Dynamic entities, ABAC rules, mandate workflows, polymorphic bodies. ~45–60 min each.
 
 ### Other TODOs
-- **OBP-Trading** (at `/home/marko/Tesobe/GitHub/constantine2nd/OBP-Trading`): pending team decision — port trading endpoints into `Http4s700.scala` or keep as a separate service that OBP-API proxies to. Connectors (`ObpApiUserConnector`, `ObpPaymentsConnector`) are currently in-memory stubs.
+- **OBP-Trading**: trading endpoints (createTradingOffer, getTradingOffer, getTradingOffers, cancelTradingOffer, createMarketOrder, getMarketOrder, cancelMarketOrder, createMarketMatch, getMarketTrade, requestSettlement, requestWithdrawal) are now in `Http4s700.scala`. 5 payment-auth endpoints remain commented out (notifyDeposit, createPaymentAuth, capturePaymentAuth, releasePaymentAuth, getPaymentAuth) — see `ideas/CAPTURE_RELEASE_TRANSACTION_REQUEST_TYPES.md`.
 - **CI speed-up** (not done): two-tier fast gate + full suite; surefire parallel forks.
 - **Disabled tests to fix**: `Http4s500RoutesTest` (@Ignore, in-process issue), `RootAndBanksTest` (@Ignore), `V500ContractParityTest` (@Ignore), `CardTest` (fully commented out). `v5_0_0`: 13 skipped tests (setup cost paid, no value).
+- **`V7ResourceDocsAggregationTest`**: intentionally failing — encodes the fix for the resource-docs aggregation bug (v7 endpoint returns only ~10 own docs instead of 500+ aggregated). Fix the bug to make this suite pass.
