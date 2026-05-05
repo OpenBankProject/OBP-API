@@ -3,10 +3,14 @@
 ## Working Style
 - Never blame pre-existing issues or other commits. No excuses, no finger-pointing — diagnose and resolve.
 - Never add `Co-Authored-By` trailers to commit messages.
+- **Goal is full http4s migration** — eliminate Lift Web and all deprecated libraries entirely. Treat Lift code as temporary scaffolding to be removed, not maintained. When fixing bugs or adding features, always prefer the http4s path.
+- **Versioning is tech-agnostic** — API version numbers reflect API signature changes (new/changed fields, new behaviour), never the underlying framework. A framework migration (Lift → http4s) happens in-place at the existing version; it does not justify a version bump.
 
 ## Architecture (Onboarding)
 
-v7.0.0 is a Lift Web → http4s migration. Not a replacement for v6.0.0 yet — 45 of 633 endpoints migrated.
+> **Migration plan**: see [`MIGRATION.md`](MIGRATION.md) for the full in-place Lift → http4s strategy, file order, auth stack workstream, and progress tracker.
+
+The goal is a full http4s migration — replace Lift Web across all version files and remove it entirely. **API versions are tech-agnostic**: a version bump means a changed/new API signature, never a framework change. Framework migration happens in-place inside the existing version file. v7.0.0 currently serves 45 endpoints; most arrived there for historical reasons and stay as-is.
 
 **Request priority chain** (Http4sServer): `corsHandler` (OPTIONS) → StatusPage → Http4s500 → Http4s700 → Http4sBGv2 → Http4sLiftWebBridge (Lift fallback). Unhandled `/obp/v7.0.0/*` paths fall through silently to Lift — they do not 404.
 
@@ -16,7 +20,9 @@ v7.0.0 is a Lift Web → http4s migration. Not a replacement for v6.0.0 yet — 
 
 **Tests**: `Http4s700RoutesTest` (111 scenarios, port 8087). `makeHttpRequest` returns `(Int, JValue, Map[String, String])`. `makeHttpRequestWithBody(method, path, body, headers)` for POST/PUT.
 
-## Migrating a v6.0.0 Endpoint to v7.0.0
+## Migrating a Lift Endpoint to http4s
+
+Rules apply regardless of which version file the endpoint lives in. Use v7.0.0 only when the API signature is new or changed; otherwise migrate in-place in the original version file.
 
 ### Rule 1 — ResourceDoc registration
 ```scala
