@@ -137,6 +137,11 @@ object DAuth extends RestHelper with MdcLoggable {
     val userName = getFieldFromPayloadJson(jwtPayload, "smart_contract_address")
     val provider = "dauth."+getFieldFromPayloadJson(jwtPayload, "network_name")
     logger.debug("login_user_name: " + userName)
+    // Pre-credential rate limit. Disabled by default; controlled via auth.rate_limit.* props.
+    AuthRateLimiter.check(APIUtil.getRemoteIpAddress(), provider, userName) match {
+      case Left(_)  => return Failure(ErrorMessages.TooManyRequests)
+      case Right(_) => // continue
+    }
     for {
       tuple <-
         UserX.getOrCreateDauthResourceUser(provider, userName) match {
@@ -157,7 +162,12 @@ object DAuth extends RestHelper with MdcLoggable {
     val username = getFieldFromPayloadJson(jwtPayload, "smart_contract_address")
     val provider = "dauth."+ getFieldFromPayloadJson(jwtPayload, "network_name")
     logger.debug("login_user_name: " + username)
-    
+    // Pre-credential rate limit. Disabled by default; controlled via auth.rate_limit.* props.
+    AuthRateLimiter.check(APIUtil.getRemoteIpAddress(), provider, username) match {
+      case Left(_)  => return Future.successful(Failure(ErrorMessages.TooManyRequests))
+      case Right(_) => // continue
+    }
+
     for {
       tuple <- Future { UserX.getOrCreateDauthResourceUser(provider, username)} map {
           case (Full(u)) =>

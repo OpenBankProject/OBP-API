@@ -3282,6 +3282,24 @@ object Glossary extends MdcLoggable  {
 |*Create a Guard with a named Role on the Endpoint to protect it from unauthorised users.
 |*Grant you an Entitlement to the required Role so you can call the endpoint and pass its Guard.
 |
+|### Served URL
+|
+|Dynamic Endpoints are served under a dedicated path prefix, *not* under `/obp/vX.Y.Z/`:
+|
+|`/obp/dynamic-endpoint` + optional `dynamic_endpoints_url_prefix` (from props) + the path declared in the uploaded Swagger file.
+|
+|For example, if your Swagger declares `/fashion-brand-list/{brandId}` and `dynamic_endpoints_url_prefix` is unset (the default), the endpoint will be available at:
+|
+|`/obp/dynamic-endpoint/fashion-brand-list/{brandId}`
+|
+|For Bank / Space level Dynamic Endpoints, OBP automatically prepends `/banks/BANK_ID` to each path in the Swagger file at creation time. So a Swagger path of `/fashion-brand-list` created for bank `gh.29.uk` is served at:
+|
+|`/obp/dynamic-endpoint/banks/gh.29.uk/fashion-brand-list`
+|
+|(plus `dynamic_endpoints_url_prefix` if set.)
+|
+|Note: the `/obp/vX.Y.Z/management/banks/BANK_ID/dynamic-endpoints` routes are only the administrative CRUD endpoints for creating and managing Dynamic Endpoints — they are not the served URLs of the endpoints themselves.
+|
 |The following videos are available:
 |
 |	* [Introduction to Dynamic Endpoints](https://vimeo.com/426235612)
@@ -3302,6 +3320,50 @@ object Glossary extends MdcLoggable  {
    |Once the `host` is thus set, you can use the Endpoint Mapping endpoints to map the Dynamic Endpoint fields to Dynamic Entity data.
    |
    |See the [Create Endpoint Mapping](/index#OBPv4.0.0-createEndpointMapping) JSON body. You will need to know the operation_id in advance and you can prepare the request_mapping and response_mapping objects. You can get the operation ID from the API Explorer or Get Dynamic Endpoints endpoints.
+   |
+   |### Mapping structure
+   |
+   |Each entry in `request_mapping` / `response_mapping` is keyed by the JSON field name you want in the Dynamic Endpoint's request or response payload, and its value is an object of the form:
+   |
+   |```
+   |"<jsonFieldName>": {
+   |  "entity": "<DynamicEntityName>",
+   |  "field":  "<dynamicEntityFieldName>",
+   |  "query":  "<dynamicEntityLookupField>"
+   |}
+   |```
+   |
+   |What each key does at runtime:
+   |
+   |* **`entity`** — the name of the Dynamic Entity to read from / write to. The current implementation only supports **one entity per mapping**; only the first `entity` value encountered is used.
+   |* **`field`** — the Dynamic Entity field whose value populates the `<jsonFieldName>` in the output JSON. When the Dynamic Endpoint URL includes a query string (e.g. `?status=available`), `field` is also the Dynamic Entity field used to filter records.
+   |* **`query`** — the Dynamic Entity field used as the **lookup key** when the URL has a path parameter whose name contains "id" (e.g. `/pet/{petId}`). OBP uses the **first** `query` value in the mapping as this lookup key, so by convention all entries in a mapping repeat the same `query` value (it is per-mapping, not per-field, in practice).
+   |
+   |Worked example. Endpoint served URL `/obp/dynamic-endpoint/pet/{petId}` with mapping:
+   |
+   |```
+   |{
+   |  "operation_id": "OBPv4.0.0-dynamicEndpoint_GET_pet_PET_ID",
+   |  "request_mapping": {},
+   |  "response_mapping": {
+   |    "id":     { "entity": "PetEntity", "field": "field1", "query": "field1" },
+   |    "name":   { "entity": "PetEntity", "field": "field4", "query": "field1" },
+   |    "status": { "entity": "PetEntity", "field": "field8", "query": "field1" }
+   |  }
+   |}
+   |```
+   |
+   |When called as `GET /pet/123`, OBP:
+   |
+   |1. Takes the first `query` value — `"field1"` — and the URL path value `123`.
+   |2. Finds the `PetEntity` record where `field1 == 123`.
+   |3. Builds the response body by copying that record's `field1` → `id`, `field4` → `name`, `field8` → `status`.
+   |
+   |Notes and caveats:
+   |
+   |* Non-id-named path parameters (anything that does not contain "id") are not used for lookup.
+   |* URL query-string filtering uses `field`, **not** `query`. A call like `GET /pets?status=available` filters `PetEntity` records by the `field` value on the mapping entry whose key matches `status` — in the example above, by `field8 == "available"`.
+   |* `request_mapping` is used on write operations (POST/PUT) to translate the inbound payload to a Dynamic Entity record; leave it as `{}` for read-only operations.
    |
 	 |For more details and a walk through, please see the following video:
 	 |
@@ -4153,6 +4215,7 @@ object Glossary extends MdcLoggable  {
 				 |- ABAC_Parameters_Summary - Complete list of all 18 parameters
 				 |- ABAC_Object_Properties_Reference - Detailed property reference
 				 |- ABAC_Testing_Examples - More testing examples
+				 |- ABAC_Account_Access_Enforcement - Runtime gate model
 				 |""".stripMargin)
 
 	glossaryItems += GlossaryItem(
@@ -4214,6 +4277,7 @@ object Glossary extends MdcLoggable  {
 				 |**Related Documentation:**
 				 |- ABAC_Simple_Guide - Getting started guide
 				 |- ABAC_Object_Properties_Reference - Detailed property reference
+				 |- ABAC_Account_Access_Enforcement - Runtime gate model
 				 |""".stripMargin)
 
 	glossaryItems += GlossaryItem(
@@ -4380,6 +4444,7 @@ object Glossary extends MdcLoggable  {
 				 |**Related Documentation:**
 				 |- ABAC_Simple_Guide - Getting started guide
 				 |- ABAC_Parameters_Summary - Complete parameter list
+				 |- ABAC_Account_Access_Enforcement - Runtime gate model
 				 |""".stripMargin)
 
 	glossaryItems += GlossaryItem(
@@ -4525,6 +4590,172 @@ object Glossary extends MdcLoggable  {
 				 |- ABAC_Simple_Guide - Getting started guide
 				 |- ABAC_Parameters_Summary - Complete parameter list
 				 |- ABAC_Object_Properties_Reference - Property reference
+				 |- ABAC_Account_Access_Enforcement - Runtime gate model
+				 |""".stripMargin)
+
+	glossaryItems += GlossaryItem(
+		title = "ABAC_Account_Access_Enforcement",
+		description =
+			s"""
+				 |# ABAC Account Access Enforcement
+				 |
+				 |How OBP decides whether the ABAC subsystem grants account access at runtime, and
+				 |how that's kept separate from rule management. For writing rules, see
+				 |ABAC_Simple_Guide — this entry is for operators, security reviewers, and anyone
+				 |tracing why a request did or did not succeed.
+				 |
+				 |## Two distinct guard surfaces
+				 |
+				 |**Management plane** — controls who can author and run rules:
+				 |
+				 |- `CanCreateAbacRule` — POST `/management/abac-rules`, validate
+				 |- `CanGetAbacRule` — GET rule(s), schema, list policies
+				 |- `CanUpdateAbacRule` — PUT rule (also flips `is_active`)
+				 |- `CanDeleteAbacRule` — DELETE rule
+				 |- `CanExecuteAbacRule` — POST `/management/abac-rules/{id}/execute` and `…/abac-policies/{policy}/execute`
+				 |
+				 |**Runtime gate** — controls whether ABAC fallback can grant access on a real API
+				 |call. Implemented in `APIUtil.checkAbacAccountAccess`. None of the management
+				 |roles above are involved at request time, with the deliberate exception of
+				 |`CanExecuteAbacRule` (see "dual purpose" below).
+				 |
+				 |## Fallback ordering
+				 |
+				 |ABAC is **only consulted as a fallback** after normal access checks fail.
+				 |`APIUtil.hasAccountAccess` evaluates in this order:
+				 |
+				 |1. Public view → grant
+				 |2. User has firehose access → grant
+				 |3. User has the view via the AccountAccess table → grant
+				 |4. **None of the above and a user is present → try ABAC**
+				 |5. No user → deny
+				 |
+				 |Consequence: ABAC can only ever **widen** access. It cannot deny a user who
+				 |already has access through a normal mechanism, and it cannot revoke a granted
+				 |view. Removing a rule never breaks an existing access path; adding a rule never
+				 |restricts one.
+				 |
+				 |## Six conditions for ABAC to grant access
+				 |
+				 |All six must hold. If any one fails, the runtime gate returns `false` and the
+				 |request is denied at the access layer.
+				 |
+				 |1. **Normal checks failed.** ABAC was reached via the fallback ordering above.
+				 |   If any earlier check granted, ABAC is never invoked.
+				 |
+				 |2. **Master switch on.** Props key `allow_abac_account_access=true`. Default is
+				 |   **false** — ABAC is off out of the box. When false,
+				 |   `checkAbacAccountAccess` returns `Full(false)` immediately; no rules execute.
+				 |
+				 |3. **Target user opted in.** The user being evaluated must hold the
+				 |   `CanExecuteAbacRule` system-level entitlement (bankId=`""`). Without it the
+				 |   runtime returns `Full(false)`. Granting this entitlement is the act that
+				 |   subjects a user to the ABAC subsystem at runtime.
+				 |
+				 |4. **CallContext present.** Internal — `None` returns `Full(false)`.
+				 |
+				 |5. **At least one active rule PASSes.**
+				 |   `AbacRuleEngine.executeRulesByPolicyDetailed(ABAC_POLICY_ACCOUNT_ACCESS, ...)`
+				 |   evaluates every rule whose `is_active=true` under the `account-access`
+				 |   policy. OR semantics — one PASS is enough. Inactive rules are skipped
+				 |   entirely. If no rule passes but at least one explicitly denied, the call
+				 |   surfaces a `Failure` naming the failing rule IDs instead of a silent deny.
+				 |
+				 |6. **No timeout, no exception.** Rule evaluation is awaited for at most
+				 |   10 seconds, wrapped in try/catch. Any timeout, thrown exception, or engine
+				 |   error → `Full(false)` (fail closed).
+				 |
+				 |## Dual purpose of `CanExecuteAbacRule`
+				 |
+				 |The same role gates two unrelated capabilities:
+				 |
+				 |- **Manual testing** — invoking `/management/abac-rules/{id}/execute` or
+				 |  `/management/abac-policies/{policy}/execute` to dry-run a rule.
+				 |- **Runtime opt-in** — being eligible for ABAC fallback on real account access
+				 |  decisions (condition #3 above).
+				 |
+				 |Deliberate: a user has to be allowed to invoke a rule manually before they can
+				 |be subject to one automatically. But it means revoking "can test rules" also
+				 |revokes "can be granted access via ABAC" — keep this coupling in mind when
+				 |building admin UIs or splitting roles.
+				 |
+				 |## Diagnosing a decision
+				 |
+				 |```
+				 |GET $getObpApiRoot/v7.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/views/TARGET_VIEW_ID/users/TARGET_USER_ID/account-access-trace
+				 |```
+				 |
+				 |Returns a structured trace with each of the six conditions surfaced:
+				 |
+				 |- `account_access_trace.has_account_access_for_view` — whether condition #1
+				 |  even matters (true means normal access already grants, ABAC not reached)
+				 |- `entitlement_trace.has_can_execute_abac_rule` — condition #3
+				 |- `abac_trace.allow_abac_account_access` — condition #2
+				 |- `abac_trace.rules_evaluated[].result` — condition #5, per rule (see below)
+				 |- `abac_trace.standalone_abac_result` — the AND of #2, #3, and "at least one
+				 |  PASS". This is the verdict ABAC would produce **on its own**, ignoring the
+				 |  AccountAccess table. It is **not** the same as "ABAC granted this user's
+				 |  access" — see "Standalone vs decisive" below.
+				 |- `has_access` and `access_source` — `"ACCOUNT_ACCESS"` |
+				 |  `"ABAC"` | `"NONE"`. `access_source` is what actually decided.
+				 |
+				 |### Standalone vs decisive
+				 |
+				 |`standalone_abac_result` answers the question "if ABAC were the only mechanism,
+				 |would it grant?" It is computed independently of the AccountAccess lookup.
+				 |
+				 |To answer "did ABAC actually grant **this** user's access?", use
+				 |`access_source == "ABAC"` instead.
+				 |
+				 |Worked example: a user holds the `owner` view directly via the AccountAccess
+				 |table, AND every ABAC condition holds (prop on, has `CanExecuteAbacRule`, a
+				 |rule PASSes). The trace will show:
+				 |
+				 |- `account_access_trace.has_account_access_for_view: true`
+				 |- `standalone_abac_result: true`
+				 |- `access_source: "ACCOUNT_ACCESS"`
+				 |
+				 |ABAC didn't grant anything for this user — AccountAccess did. ABAC was simply
+				 |evaluated in parallel and would also have granted if asked. UIs rendering an
+				 |"ABAC access" column should read `access_source`, not
+				 |`standalone_abac_result`.
+				 |
+				 |### Per-rule `result` values
+				 |
+				 |`result` is a four-state string (not a boolean — `FAIL` and `ERROR` are not the
+				 |same thing, and a disabled rule is not the same as a rejecting rule):
+				 |
+				 |- `PASS` — rule executed and returned `true`. Counts toward access being granted.
+				 |- `FAIL` — rule executed and returned `false`. Clean rejection; no error.
+				 |- `ERROR` — rule threw an exception, returned a `Failure`, or returned an empty
+				 |  result. `error_message` is populated. Investigate as a bug or upstream
+				 |  outage — the rule did not produce a decision.
+				 |- `SKIPPED` — rule has `is_active=false`. Engine never ran it.
+				 |  `error_message` is `"Rule is not active"`.
+				 |
+				 |Only `PASS` contributes to granting access. `FAIL`, `ERROR`, and `SKIPPED` all
+				 |mean "this rule did not grant" but are intentionally distinct in the trace so
+				 |operators can tell a rejecting rule from a broken one from an inactive one.
+				 |
+				 |The trace endpoint is **diagnostic only** — it does not affect enforcement. It
+				 |is gated by `CanGetAccountAccessTrace`, a read-only audit role distinct from
+				 |the management and runtime roles above.
+				 |
+				 |## Enabling ABAC in a deployment
+				 |
+				 |1. Set `allow_abac_account_access=true` in props.
+				 |2. Grant `CanCreateAbacRule` to a rule author and create at least one active
+				 |   rule under the `account-access` policy.
+				 |3. Grant `CanExecuteAbacRule` to each user who should be eligible for ABAC
+				 |   fallback. Without this, rules never run for them.
+				 |4. Grant `CanGetAccountAccessTrace` to anyone who needs to debug decisions
+				 |   (audit, support, compliance).
+				 |
+				 |**Related Documentation:**
+				 |- ABAC_Simple_Guide - Writing rules
+				 |- ABAC_Parameters_Summary - Rule parameters
+				 |- ABAC_Object_Properties_Reference - Object properties in rules
+				 |- ABAC_Testing_Examples - Testing patterns
 				 |""".stripMargin)
 
 	glossaryItems += GlossaryItem(
@@ -5253,6 +5484,138 @@ object Glossary extends MdcLoggable  {
 				 |See the API Explorer with the **Chat** tag for the full list.
 				 |
 """)
+
+	glossaryItems += GlossaryItem(
+		title = "OBP-MCP",
+		description =
+			s"""
+				 |# OBP-MCP
+				 |
+				 |**OBP-MCP** is a [Model Context Protocol](https://modelcontextprotocol.io) server for the Open Bank Project API. It lets AI assistants (Claude, Opey, IDE agents, custom LLM tooling) discover and call OBP-API endpoints as MCP *tools*, without hard-coding any knowledge of the 600+ endpoints.
+				 |
+				 |Repository: [github.com/OpenBankProject/OBP-MCP](https://github.com/OpenBankProject/OBP-MCP)
+				 |
+				 |## What it does
+				 |
+				 |OBP-MCP is a thin protocol bridge. AI clients speak **MCP** to it; it speaks **HTTPS / REST** to OBP-API on their behalf, attaching the user's OAuth token or Consent-JWT.
+				 |
+				 |```
+				 |┌──────────────────┐   MCP    ┌────────────────────────┐   HTTPS    ┌──────────────┐
+				 |│  AI client       │ ───────▶ │      OBP-MCP           │ ─────────▶ │   OBP-API    │
+				 |│  (Claude, Opey,  │ ◀─────── │   (FastMCP server)     │ ◀───────── │              │
+				 |│   IDE agent)     │  tools   │                        │  JSON      │              │
+				 |└──────────────────┘          └────────────────────────┘            └──────────────┘
+				 |```
+				 |
+				 |## Three-step discovery + call (no RAG, no vector DB)
+				 |
+				 |OBP-MCP avoids embedding the 4 MB OpenAPI spec into the LLM's context. Instead it exposes three tools that work together:
+				 |
+				 |1. **`list_endpoints_by_tag(tags)`** — returns lightweight summaries (~50–100 tokens each) from a local `endpoint_index.json`. Lets the LLM narrow down to a handful of candidate endpoints by tag (e.g. `Account`, `Transaction-Request`, `Consent`).
+				 |2. **`get_endpoint_schema(endpoint_id)`** — lazy-loads the full OpenAPI schema for one endpoint from a local `endpoint_schemas.json`.
+				 |3. **`call_obp_api(endpoint_id, path_params, query_params, body, headers)`** — actually executes the HTTP request against the live OBP-API.
+				 |
+				 |Two further tools cover the glossary itself: **`list_glossary_terms(search_query)`** and **`get_glossary_term(term_id)`**, backed by a local `glossary_index.json` of 800+ banking terms.
+				 |
+				 |## Three kinds of traffic
+				 |
+				 |It is important to understand that OBP-MCP is **not** a documentation lookup tool — it makes real, authenticated business calls:
+				 |
+				 |- **Documentation / discovery** — `list_endpoints_by_tag`, `get_endpoint_schema`, glossary tools. Served from local JSON, no network.
+				 |- **Business calls** — `call_obp_api` proxies whatever the endpoint declares: `GET /banks/{BANK_ID}/accounts`, `POST .../transaction-requests/SEPA`, `PUT /accounts/{ACC}/label`, `DELETE /my/consents/{CONSENT_ID}`, etc. Real money / data moves.
+				 |- **Index refresh** — at startup and on a timer, OBP-MCP re-fetches OBP's resource-docs and swagger to rebuild the local indexes, so discovery stays fast and offline.
+				 |
+				 |## Authentication and authorization
+				 |
+				 |OBP-MCP supports several modes via the `AUTH_PROVIDER` environment variable for client-to-MCP auth:
+				 |
+				 || Mode           | Use case                              | Notes                                              |
+				 ||----------------|---------------------------------------|----------------------------------------------------|
+				 || `bearer-only`  | Internal agents (e.g. Opey)           | JWT validation only, multi-issuer                  |
+				 || `obp-oidc`     | External MCP clients                  | Full OAuth 2.1 + Dynamic Client Registration       |
+				 || `keycloak`     | External MCP clients                  | OAuth 2.1 + minimal DCR proxy workaround           |
+				 || `none`         | Development / testing                 | No auth required                                   |
+				 |
+				 |For onward calls to OBP-API, `OBP_AUTHORIZATION_VIA` selects:
+				 |
+				 |- **`oauth`** — pulls the access token from the MCP request context and sends `Authorization: Bearer ...`.
+				 |- **`consent`** — if the endpoint declares any required roles and no `Consent-JWT` is supplied, the tool returns a `consent_required` payload listing the required roles and bank scope, so the client can elicit user approval and come back with a `Consent-JWT` header. Public / no-role endpoints skip this and call straight through.
+				 |- **`none`** — calls OBP unauthenticated (only useful for genuinely public endpoints).
+				 |
+				 |This means the consent flow is enforced at the MCP layer, not just at OBP-API: an agent cannot accidentally call a privileged endpoint without explicit user consent.
+				 |
+				 |## Why it matters
+				 |
+				 |OBP-MCP is the canonical way to make Open Bank Project endpoints **agent-callable**. Instead of teaching every LLM about every endpoint up front, the LLM is given five generic tools and lets the indexes and schemas guide it to the right call at runtime. The same server can serve internal agents (Opey) and external clients (Claude Desktop, IDE plugins, third-party agents) by switching auth providers.
+				 |
+				 |See also: [Opey](/glossary#Opey), [Consent](/glossary#Consent), [Authentication: OAuth 2.0](/glossary#Authentication:-OAuth-2.0).
+				 |
+""")
+
+
+	glossaryItems += GlossaryItem(
+		title = "Opey",
+		description =
+			s"""
+				 |# Opey
+				 |
+				 |**Opey** (current generation: **Opey II**) is the Open Bank Project's agentic AI assistant — a chatbot that lets users explore and operate the OBP API in natural language. It is built on [LangGraph](https://www.langchain.com/langgraph), is provider-agnostic across LLMs (Anthropic, OpenAI, Ollama), and is the chat backend used by **OBP-Portal**.
+				 |
+				 |Repository: [github.com/OpenBankProject/OBP-Opey-II](https://github.com/OpenBankProject/OBP-Opey-II)
+				 |
+				 |## Opey is an agent. OBP-MCP is its tool surface.
+				 |
+				 |Since [OBP-MCP](/glossary#OBP-MCP) was introduced, Opey has been refactored from a self-contained chatbot (with its own endpoint search, glossary search, and OBP HTTP client baked in) into a focused **agent** that *consumes* OBP-MCP as its primary tool source.
+				 |
+				 |Opey's `mcp_servers.json` typically points at a running OBP-MCP instance:
+				 |
+				 |```json
+				 |{
+				 |  "servers": [
+				 |    {
+				 |      "name": "obp",
+				 |      "url": "http://0.0.0.0:9100/mcp",
+				 |      "transport": "http",
+				 |      "requires_auth": true
+				 |    }
+				 |  ]
+				 |}
+				 |```
+				 |
+				 |The Opey README puts it bluntly: *"As a minimum, Opey should be connected to OBP-MCP, or it won't know anything about the Open Bank Project except for what you put in the system prompt."*
+				 |
+				 |## What OBP-MCP took over
+				 |
+				 |Subsystems that used to live in Opey are now generic MCP tools any client can use:
+				 |
+				 || Old Opey responsibility                                                              | Now in OBP-MCP                                              |
+				 ||--------------------------------------------------------------------------------------|-------------------------------------------------------------|
+				 || Endpoint Retrieval RAG pipeline (vector store of swagger, query reformulation, etc.) | `list_endpoints_by_tag` + `get_endpoint_schema`             |
+				 || Glossary Retrieval RAG pipeline                                                      | `list_glossary_terms` + `get_glossary_term`                 |
+				 || `OBPClient` (aiohttp + OAuth + consent JWT) — the actual HTTP layer to OBP-API       | `call_obp_api` (`oauth` / `consent` / `none` modes)         |
+				 || "Which endpoint should I call?" logic baked into the agent                           | Externalised — any MCP client can now discover and call     |
+				 |
+				 |## What Opey still uniquely does
+				 |
+				 |OBP-MCP is stateless and has no model — it cannot reason, plan, or hold a conversation. Everything below is what makes Opey *Opey*:
+				 |
+				 |- **The LLM loop itself.** Opey runs the actual reasoning via a LangGraph state machine (`START → Opey Agent → Tools → Sanitize → Opey → Summarize → END`), with **task follow-through**: when a tool call fails (e.g. missing entitlement), Opey reuses tools to self-correct instead of bouncing the problem back to the user.
+				 |- **Human-in-the-loop approval — richer than MCP's `consent_required`.** A `ToolRegistry` classifies operations as **SAFE / MODERATE / DANGEROUS / CRITICAL**. An `ApprovalManager` persists "approve once / session / user / workspace" decisions with TTLs. The human-review node only interrupts when truly needed. OBP-MCP just *says* consent is required; Opey decides **how** to ask, **whether** to ask again, and **remembers** the answer.
+				 |- **Conversation state.** SQLite-backed LangGraph checkpoints (`checkpoints.db`), token counting, automatic summarisation when approaching the model context limit, and graceful degradation in long sessions.
+				 |- **The streaming chat service.** FastAPI endpoints (`POST /invoke`, `POST /stream` SSE, `POST /submit_approval`, `GET /user/consent`, `GET /status`) — this is what OBP-Portal's chat UI actually talks to. Streaming events are produced by dedicated processors (token, tool, human-review, metadata, end).
+				 |- **Session, auth, usage.** OBP user session management, consent-JWT parsing for user identification, rate limiting, usage tracking, and an admin-client singleton for system-level operations.
+				 |- **Domain-tuned system prompt.** Behavioural guidelines such as *Tool-First / Knowledge-Second*, *No Hallucination*, *Proactive Verification*, and *Transparent Errors*. Configurable via `OPEY_SYSTEM_PROMPT`.
+				 |- **Model abstraction.** Provider-agnostic via `MODEL_PROVIDER` / `MODEL_NAME` — swap Claude for GPT or a local Ollama model without touching the graph. New models are registered in `MODEL_CONFIGS` (`src/agent/utils/model_factory.py`).
+				 |- **Evaluation framework.** Parameter-sweep experiments over batch size, k-value, retry thresholds; CSV export of precision / recall / latency P50–P99; combined scoring (e.g. 70% recall + 30% speed) to find sweet spots. Something a tool surface like MCP has no concept of.
+				 |
+				 |## One-line summary
+				 |
+				 |**OBP-MCP is the *tool surface* over OBP-API. Opey II is the *agent* that drives it.** Before OBP-MCP, Opey had to be both. Now OBP-MCP provides discovery and authenticated calls as a generic, multi-client surface (Claude Desktop, IDE plugins, third-party agents can all use it), and Opey II becomes a thinner, more focused orchestrator: planning, approvals, conversation state, streaming, and the chat UX that OBP-Portal embeds.
+				 |
+				 |See also: [OBP-MCP](/glossary#OBP-MCP), [Consent](/glossary#Consent), [Authentication: OAuth 2.0](/glossary#Authentication:-OAuth-2.0).
+				 |
+""")
+
 
 	///////////////////////////////////////////////////////////////////
 	// NOTE! Some glossary items are generated in ExampleValue.scala

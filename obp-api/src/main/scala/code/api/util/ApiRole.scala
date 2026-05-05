@@ -408,6 +408,12 @@ object ApiRole extends MdcLoggable{
   case class CanCreateProductAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
   lazy val canCreateProductAtAnyBank = CanCreateProductAtAnyBank()
 
+  case class CanUpdateProductTagsAtOneBank(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canUpdateProductTagsAtOneBank = CanUpdateProductTagsAtOneBank()
+
+  case class CanUpdateProductTagsAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canUpdateProductTagsAtAnyBank = CanUpdateProductTagsAtAnyBank()
+
   case class CanCreateFxRate(requiresBankId: Boolean = true) extends ApiRole
   lazy val canCreateFxRate = CanCreateFxRate()
 
@@ -1309,6 +1315,9 @@ object ApiRole extends MdcLoggable{
   case class CanSeeAccountAccessForAnyUser(requiresBankId: Boolean = false) extends ApiRole
   lazy val canSeeAccountAccessForAnyUser = CanSeeAccountAccessForAnyUser()
 
+  case class CanGetAccountAccessTrace(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetAccountAccessTrace = CanGetAccountAccessTrace()
+
   case class CanGetSystemIntegrity(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetSystemIntegrity = CanGetSystemIntegrity()
   case class CanGetProviders(requiresBankId: Boolean = false) extends ApiRole
@@ -1334,6 +1343,16 @@ object ApiRole extends MdcLoggable{
   lazy val canGetGroupsAtAllBanks = CanGetGroupsAtAllBanks()
   case class CanGetGroupsAtOneBank(requiresBankId: Boolean = true) extends ApiRole
   lazy val canGetGroupsAtOneBank = CanGetGroupsAtOneBank()
+
+  // Organisation management roles
+  case class CanCreateOrganisation(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canCreateOrganisation = CanCreateOrganisation()
+  case class CanGetAnyOrganisation(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetAnyOrganisation = CanGetAnyOrganisation()
+  case class CanUpdateOrganisation(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canUpdateOrganisation = CanUpdateOrganisation()
+  case class CanDeleteOrganisation(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canDeleteOrganisation = CanDeleteOrganisation()
 
   // Group membership management roles
   case class CanAddUserToGroupAtAllBanks(requiresBankId: Boolean = false) extends ApiRole

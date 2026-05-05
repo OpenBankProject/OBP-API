@@ -3,7 +3,9 @@ package code.api.v6_0_0
 import scala.language.reflectiveCalls
 import code.accountattribute.AccountAttributeX
 import code.api.Constant._
-import code.api.{Constant, DirectLogin, ObpApiFailure}
+import code.api.{Constant, DirectLogin, JsonResponseException, ObpApiFailure}
+import code.api.dynamic.endpoint.helper.CompiledObjects
+import code.dynamicResourceDoc.JsonDynamicResourceDoc
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.cache.{Caching, Redis, RedisMessaging}
 import code.api.util.APIUtil._
@@ -32,6 +34,7 @@ import code.api.v5_1_0.{JSONFactory510, PostCustomerLegalNameJsonV510}
 import code.api.dynamic.entity.helper.{DynamicEntityHelper, DynamicEntityInfo}
 import code.api.v6_0_0.JSONFactory600.{AddUserToGroupResponseJsonV600, CleanupOrphanedDynamicEntityResponseJsonV600, DynamicEntityDiagnosticsJsonV600, DynamicEntityIssueJsonV600, OrphanedDynamicEntityJsonV600, GroupEntitlementJsonV600, GroupEntitlementsJsonV600, GroupJsonV600, GroupsJsonV600, ModeratedAccountJSON600, PostGroupJsonV600, PostGroupMembershipJsonV600, PostResetPasswordUrlJsonV600, PostResetPasswordUrlAnonymousJsonV600, PostResetPasswordCompleteJsonV600, PutGroupJsonV600, ReferenceTypeJsonV600, ReferenceTypesJsonV600, ResetPasswordUrlJsonV600, ResetPasswordUrlAnonymousResponseJsonV600, ResetPasswordCompleteResponseJsonV600, RoleWithEntitlementCountJsonV600, RolesWithEntitlementCountsJsonV600, ScannedApiVersionJsonV600, UpdateViewJsonV600, UserGroupMembershipJsonV600, UserGroupMembershipsJsonV600, UserWithViewAccessJsonV600, UsersWithViewAccessJsonV600, ValidateUserEmailJsonV600, ValidateUserEmailResponseJsonV600, ViewJsonV600, ViewPermissionJsonV600, ViewPermissionsJsonV600, ViewsJsonV600, createAbacRuleJsonV600, createAbacRulesJsonV600, createActiveRateLimitsJsonV600, createActiveRateLimitsJsonV600FromCallLimit, createBankAccountJSON600, createCallLimitJsonV600, createConsumerJsonV600, createRedisCallCountersJson, createFeaturedApiCollectionJsonV600, createFeaturedApiCollectionsJsonV600}
 import code.metadata.tags.Tags
+import code.products.ProductTagsProvider
 import code.api.v6_0_0.OBPAPI6_0_0
 import code.abacrule.{AbacRuleEngine, MappedAbacRuleProvider}
 import code.mandate.{MappedMandateProvider}
@@ -69,7 +72,7 @@ import org.apache.commons.lang3.StringUtils
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.{Extraction, JsonParser}
-import net.liftweb.json.JsonAST.{JArray, JField, JObject, JString, JValue}
+import net.liftweb.json.JsonAST.{JArray, JField, JNothing, JObject, JString, JValue}
 import net.liftweb.json.JsonDSL._
 import net.liftweb.mapper.{By, Descending, MaxRows, NullRef, OrderBy}
 import code.api.util.ExampleValue
@@ -2242,8 +2245,8 @@ trait APIMethods600 {
               !`checkIfContains::::`(postJson.bank_id)
             }
             (banks, callContext) <- NewStyle.function.getBanks(cc.callContext)
-            _ <- Helper.booleanToFuture(failMsg = ErrorMessages.bankIdAlreadyExists, cc = cc.callContext) {
-              !banks.exists { b => postJson.bank_id.contains(b.bankId.value) }
+            _ <- Helper.booleanToFuture(failMsg = ErrorMessages.bankIdAlreadyExists, failCode = 409, cc = cc.callContext) {
+              !banks.exists { b => b.bankId.value == postJson.bank_id }
             }
             (success, callContext) <- NewStyle.function.createOrUpdateBank(
               postJson.bank_id,
@@ -7898,6 +7901,111 @@ trait APIMethods600 {
     }
 
     staticResourceDocs += ResourceDoc(
+      validateDynamicResourceDoc,
+      implementedInApiVersion,
+      nameOf(validateDynamicResourceDoc),
+      "POST",
+      "/management/dynamic-resource-docs/validate",
+      "Validate Dynamic Resource Doc",
+      s"""Dry-run validation of a Dynamic Resource Doc. Send the same payload you would send to `Create Dynamic Resource Doc` and this endpoint will:
+         |
+         |- Parse `method_body` (URL-decoded) as Scala code and run the ToolBox compiler against it, wrapped in the same template used at runtime (request/response case classes generated from `example_request_body` / `success_response_body`).
+         |- Run the OBP compilation-dependency guard (when the OBP prop `dynamic_code_compile_validate_enable` is set to `true`).
+         |
+         |Always returns HTTP 200. Inspect the `valid` field in the response:
+         |
+         |* `true`  — the Scala compiles and all referenced OBP methods are on the allowlist.
+         |* `false` — the response includes `error` (raw compiler / guard message), `message` (OBP error constant) and `details.error_type` — one of:
+         |  * `CompilationError` — `method_body` failed to compile.
+         |  * `DependencyError` — compiled, but references OBP types/methods that the admin has not allowed in `dynamic_code_compile_validate_dependencies`.
+         |  * `UnknownError` — any other unexpected exception.
+         |
+         |Nothing is persisted and no endpoint is served as a result of calling this.
+         |
+         |${userAuthenticationMessage(true)}
+         |""".stripMargin,
+      jsonDynamicResourceDoc.copy(dynamicResourceDocId = None),
+      ValidateDynamicResourceDocSuccessJsonV600(
+        valid = true,
+        message = "Dynamic Resource Doc method body is valid Scala and uses allowed dependencies."
+      ),
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagDynamicResourceDoc),
+      Some(List(canCreateDynamicResourceDoc))
+    )
+
+    lazy val validateDynamicResourceDoc: OBPEndpoint = {
+      case "management" :: "dynamic-resource-docs" :: "validate" :: Nil JsonPost json -> _ => {
+        cc =>
+          implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(user), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasEntitlement("", user.userId, canCreateDynamicResourceDoc, callContext)
+            body <- NewStyle.function.tryons(
+              s"$InvalidJsonFormat The Json body should be the $JsonDynamicResourceDoc",
+              400,
+              callContext
+            ) {
+              json.extract[JsonDynamicResourceDoc]
+            }
+            _ <- Helper.booleanToFuture(
+              failMsg = s"""$InvalidJsonFormat The request_verb must be one of ["POST", "PUT", "GET", "DELETE"]""",
+              cc = callContext
+            ) {
+              Set("POST", "PUT", "GET", "DELETE").contains(body.requestVerb)
+            }
+            _ <- Helper.booleanToFuture(
+              failMsg = s"""$InvalidJsonFormat When request_verb is "GET" or "DELETE", the example_request_body must be a blank String "" or just totally omit the field""",
+              cc = callContext
+            ) {
+              (body.requestVerb, body.exampleRequestBody) match {
+                case ("GET" | "DELETE", Some(JString(s))) => StringUtils.isBlank(s)
+                case ("GET" | "DELETE", Some(rb)) => rb == JNothing
+                case _ => true
+              }
+            }
+            result = try {
+              CompiledObjects(body.exampleRequestBody, body.successResponseBody, body.methodBody)
+                .validateDependency()
+              ValidateDynamicResourceDocSuccessJsonV600(
+                valid = true,
+                message = "Dynamic Resource Doc method body is valid Scala and uses allowed dependencies."
+              )
+            } catch {
+              case e: JsonResponseException =>
+                // validateDependency throws JsonResponseException (OBP-40046) when the compiled
+                // code references types/methods outside the compile-time allowlist. The useful
+                // error text is in the response body, not getMessage.
+                val errorText = e.jsonResponse match {
+                  case JsonResponseExtractor(msg, _) => msg
+                  case _ => ""
+                }
+                ValidateDynamicResourceDocFailureJsonV600(
+                  valid = false,
+                  error = errorText,
+                  message = DynamicResourceDocMethodDependency,
+                  details = ValidateDynamicResourceDocErrorDetailsJsonV600(error_type = "DependencyError")
+                )
+              case e: Exception =>
+                ValidateDynamicResourceDocFailureJsonV600(
+                  valid = false,
+                  error = Option(e.getMessage).getOrElse(""),
+                  message = DynamicCodeCompileFail,
+                  details = ValidateDynamicResourceDocErrorDetailsJsonV600(error_type = "CompilationError")
+                )
+            }
+          } yield {
+            (result, HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
       executeAbacRule,
       implementedInApiVersion,
       nameOf(executeAbacRule),
@@ -9418,6 +9526,7 @@ trait APIMethods600 {
               postJson.per_day_call_limit.getOrElse(-1L),
               postJson.per_week_call_limit.getOrElse(-1L),
               postJson.per_month_call_limit.getOrElse(-1L),
+              postJson.tags.getOrElse(Nil),
               callContext
             )
           } yield {
@@ -9479,6 +9588,7 @@ trait APIMethods600 {
               postJson.per_day_call_limit.getOrElse(-1L),
               postJson.per_week_call_limit.getOrElse(-1L),
               postJson.per_month_call_limit.getOrElse(-1L),
+              postJson.tags.getOrElse(Nil),
               callContext
             )
           } yield {
@@ -9542,6 +9652,8 @@ trait APIMethods600 {
       "Get Api Products",
       s"""Get Api Products for the Bank.
          |
+         |Optional query parameter: `tag` — filter to products that have the given tag (e.g. `?tag=featured`). Tag matching is case-insensitive.
+         |
          |${userAuthenticationMessage(!getApiProductsIsPublic)}
          |
          |""".stripMargin,
@@ -9553,7 +9665,7 @@ trait APIMethods600 {
     )
 
     lazy val getApiProducts: OBPEndpoint = {
-      case "banks" :: BankId(bankId) :: "api-products" :: Nil JsonGet _ => {
+      case "banks" :: BankId(bankId) :: "api-products" :: Nil JsonGet req => {
         cc => implicit val ec = EndpointContext(Some(cc))
           for {
             (_, callContext) <- getApiProductsIsPublic match {
@@ -9569,9 +9681,65 @@ trait APIMethods600 {
               Future.successful(callContext)
             }
             _ <- NewStyle.function.getBank(bankId, callContext)
-            (apiProducts, callContext) <- NewStyle.function.getApiProductsByBankId(bankId.value, callContext)
+            tagFilter = req.params.get("tag").flatMap(_.headOption).map(_.trim).filter(_.nonEmpty)
+            (apiProducts, callContext) <- NewStyle.function.getApiProductsByBankId(bankId.value, tagFilter, callContext)
           } yield {
             (JSONFactory600.createApiProductsJsonV600(apiProducts), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getAllApiProductsV600,
+      implementedInApiVersion,
+      nameOf(getAllApiProductsV600),
+      "GET",
+      "/api-products",
+      "Get Api Products At All Banks",
+      s"""Returns the Api Products across every bank, merged into a single list. Each product carries its `bank_id`.
+         |
+         |Optional query parameter `tag` — filter to products that have the given tag (e.g. `?tag=featured`). Tag matching is case-insensitive.
+         |
+         |${userAuthenticationMessage(!getApiProductsIsPublic)}""".stripMargin,
+      EmptyBody,
+      apiProductsJsonV600,
+      List(UnknownError),
+      List(apiTagApi, apiTagApiProduct)
+    )
+
+    lazy val getAllApiProductsV600: OBPEndpoint = {
+      case "api-products" :: Nil JsonGet req => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (_, callContext) <- getApiProductsIsPublic match {
+              case false => authenticatedAccess(cc)
+              case true  => anonymousAccess(cc)
+            }
+            tagFilter = req.params.get("tag").flatMap(_.headOption).map(_.trim).filter(_.nonEmpty)
+            resultJson <- {
+              implicit val formats: net.liftweb.json.Formats = net.liftweb.json.DefaultFormats
+              val cacheKey = s"all:${tagFilter.getOrElse("")}"
+              val cacheTTL = APIUtil.getPropsAsIntValue("getAllApiProductsV600.cache.ttl.seconds", 5)
+              val hit = Caching.getApiProductsCache(cacheKey, cacheTTL)
+                .flatMap(s => try Some(net.liftweb.json.parse(s).extract[ApiProductsJsonV600]) catch { case _: Throwable => None })
+              hit match {
+                case Some(cached) => Future.successful(cached)
+                case None =>
+                  for {
+                    (banks, _) <- NewStyle.function.getBanks(callContext).map(t => (t._1, t._2))
+                    perBank <- Future.sequence(
+                      banks.map(b => NewStyle.function.getApiProductsByBankId(b.bankId.value, tagFilter, callContext).map(_._1))
+                    )
+                    apiProducts = perBank.flatten
+                  } yield {
+                    val result = JSONFactory600.createApiProductsJsonV600(apiProducts)
+                    Caching.setApiProductsCache(cacheKey, net.liftweb.json.compactRender(Extraction.decompose(result)), cacheTTL)
+                    result
+                  }
+              }
+            }
+          } yield {
+            (resultJson, HttpCode.`200`(callContext))
           }
       }
     }
@@ -9612,6 +9780,214 @@ trait APIMethods600 {
             (_, callContext) <- NewStyle.function.deleteApiProduct(bankId.value, apiProductCode, callContext)
           } yield {
             (Full(true), HttpCode.`204`(callContext))
+          }
+      }
+    }
+
+    // Financial Product Endpoints (v6.0.0 — adds tag support)
+
+    staticResourceDocs += ResourceDoc(
+      getProductsV600,
+      implementedInApiVersion,
+      nameOf(getProductsV600),
+      "GET",
+      "/banks/BANK_ID/products",
+      "Get Products",
+      s"""Returns the financial Products offered by the bank specified by BANK_ID. Response includes the new `tags` field.
+         |
+         |Optional query parameter `tag` — filter to products that carry the given tag (case-insensitive). Repeat `tag=` to require multiple tags (e.g. `?tag=featured&tag=new`).
+         |
+         |${userAuthenticationMessage(!getProductsIsPublic)}""".stripMargin,
+      EmptyBody,
+      productsJsonV600,
+      List(
+        BankNotFound,
+        UnknownError
+      ),
+      List(apiTagProduct)
+    )
+
+    lazy val getProductsV600: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "products" :: Nil JsonGet req => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (_, callContext) <- getProductsIsPublic match {
+              case false => authenticatedAccess(cc)
+              case true  => anonymousAccess(cc)
+            }
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            params = req.params.toList.map(kv => GetProductsParam(kv._1, kv._2))
+            resultJson <- {
+              // Short TTL is the freshness guarantee; an admin tag change becomes visible within the TTL.
+              // Redis-backed with versioned namespace prefix so the cache shows up on /system/cache/info
+              // and can be invalidated by bumping the namespace version.
+              implicit val formats: net.liftweb.json.Formats = net.liftweb.json.DefaultFormats
+              val cacheKey = APIMethods600.productsCacheKey(bankId.value, params)
+              val cacheTTL = APIUtil.getPropsAsIntValue("getProductsV600.cache.ttl.seconds", 5)
+              val hit = Caching.getFinancialProductsCache(cacheKey, cacheTTL)
+                .flatMap(s => try Some(net.liftweb.json.parse(s).extract[ProductsJsonV600]) catch { case _: Throwable => None })
+              hit match {
+                case Some(cached) => Future.successful(cached)
+                case None =>
+                  for {
+                    (products, _) <- NewStyle.function.getProducts(bankId, params, callContext)
+                  } yield {
+                    val tagsByCode = ProductTagsProvider.getTagsByProductCodes(bankId, products.map(_.code.value))
+                    val result = JSONFactory600.createProductsJsonV600(products, tagsByCode)
+                    Caching.setFinancialProductsCache(cacheKey, net.liftweb.json.compactRender(Extraction.decompose(result)), cacheTTL)
+                    result
+                  }
+              }
+            }
+          } yield {
+            (resultJson, HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getAllProductsV600,
+      implementedInApiVersion,
+      nameOf(getAllProductsV600),
+      "GET",
+      "/products",
+      "Get Products At All Banks",
+      s"""Returns the financial Products offered by every bank this instance knows about, merged into a single list. Each product carries its `bank_id`.
+         |
+         |Optional query parameter `tag` — filter to products that carry the given tag (e.g. `?tag=featured`). Tag matching is case-insensitive. Repeat `tag=` to require multiple tags.
+         |
+         |${userAuthenticationMessage(!getProductsIsPublic)}""".stripMargin,
+      EmptyBody,
+      productsJsonV600,
+      List(UnknownError),
+      List(apiTagProduct)
+    )
+
+    lazy val getAllProductsV600: OBPEndpoint = {
+      case "products" :: Nil JsonGet req => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (_, callContext) <- getProductsIsPublic match {
+              case false => authenticatedAccess(cc)
+              case true  => anonymousAccess(cc)
+            }
+            params = req.params.toList.map(kv => GetProductsParam(kv._1, kv._2))
+            resultJson <- {
+              implicit val formats: net.liftweb.json.Formats = net.liftweb.json.DefaultFormats
+              val cacheKey = APIMethods600.productsCacheKey("__all__", params)
+              val cacheTTL = APIUtil.getPropsAsIntValue("getAllProductsV600.cache.ttl.seconds", 60)
+              val hit = Caching.getFinancialProductsCache(cacheKey, cacheTTL)
+                .flatMap(s => try Some(net.liftweb.json.parse(s).extract[ProductsJsonV600]) catch { case _: Throwable => None })
+              hit match {
+                case Some(cached) => Future.successful(cached)
+                case None =>
+                  for {
+                    (banks, _) <- NewStyle.function.getBanks(callContext).map(t => (t._1, t._2))
+                    // Fan-out server-side: one getProducts call per bank. The whole fan-out is cached
+                    // so the per-bank cost is paid once per TTL.
+                    perBank <- Future.sequence(
+                      banks.map(b => NewStyle.function.getProducts(b.bankId, params, callContext).map(_._1))
+                    )
+                    products = perBank.flatten
+                  } yield {
+                    val tagsByBank = banks.map { b =>
+                      val codesForBank = products.filter(_.bankId == b.bankId).map(_.code.value)
+                      b.bankId.value -> ProductTagsProvider.getTagsByProductCodes(b.bankId, codesForBank)
+                    }.toMap
+                    val tagsByCode = tagsByBank.values.foldLeft(Map.empty[String, List[String]])(_ ++ _)
+                    val result = JSONFactory600.createProductsJsonV600(products, tagsByCode)
+                    Caching.setFinancialProductsCache(cacheKey, net.liftweb.json.compactRender(Extraction.decompose(result)), cacheTTL)
+                    result
+                  }
+              }
+            }
+          } yield {
+            (resultJson, HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      getProductTagsV600,
+      implementedInApiVersion,
+      nameOf(getProductTagsV600),
+      "GET",
+      "/banks/BANK_ID/products/PRODUCT_CODE/tags",
+      "Get Product Tags",
+      s"""Returns the list of tags currently set on the financial Product.
+         |
+         |${userAuthenticationMessage(!getProductsIsPublic)}""".stripMargin,
+      EmptyBody,
+      productTagsJsonV600,
+      List(
+        BankNotFound,
+        ProductNotFoundByProductCode,
+        UnknownError
+      ),
+      List(apiTagProduct)
+    )
+
+    lazy val getProductTagsV600: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "products" :: ProductCode(productCode) :: "tags" :: Nil JsonGet _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (_, callContext) <- getProductsIsPublic match {
+              case false => authenticatedAccess(cc)
+              case true  => anonymousAccess(cc)
+            }
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (_, callContext) <- NewStyle.function.getProduct(bankId, productCode, callContext)
+            tags = ProductTagsProvider.getTags(bankId, productCode)
+          } yield {
+            (JSONFactory600.createProductTagsJsonV600(tags), HttpCode.`200`(callContext))
+          }
+      }
+    }
+
+    val updateProductTagsEntitlements = canUpdateProductTagsAtOneBank :: canUpdateProductTagsAtAnyBank :: Nil
+    val updateProductTagsEntitlementsRequiredText = UserHasMissingRoles + updateProductTagsEntitlements.mkString(" or ")
+
+    staticResourceDocs += ResourceDoc(
+      updateProductTagsV600,
+      implementedInApiVersion,
+      nameOf(updateProductTagsV600),
+      "PUT",
+      "/banks/BANK_ID/products/PRODUCT_CODE/tags",
+      "Update Product Tags",
+      s"""Replaces the tags on a financial Product. Tags are free-form string labels (e.g. `featured`, `new`, `beta`). Tag matching in queries is case-insensitive.
+         |
+         |Authentication is Required.""".stripMargin,
+      productTagsJsonV600,
+      productTagsJsonV600,
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        BankNotFound,
+        ProductNotFoundByProductCode,
+        UnknownError
+      ),
+      List(apiTagProduct),
+      Some(updateProductTagsEntitlements)
+    )
+
+    lazy val updateProductTagsV600: OBPEndpoint = {
+      case "banks" :: BankId(bankId) :: "products" :: ProductCode(productCode) :: "tags" :: Nil JsonPut json -> _ => {
+        cc => implicit val ec = EndpointContext(Some(cc))
+          for {
+            (Full(u), callContext) <- authenticatedAccess(cc)
+            _ <- NewStyle.function.hasAtLeastOneEntitlement(failMsg = updateProductTagsEntitlementsRequiredText)(bankId.value, u.userId, updateProductTagsEntitlements, callContext)
+            (_, callContext) <- NewStyle.function.getBank(bankId, callContext)
+            (_, callContext) <- NewStyle.function.getProduct(bankId, productCode, callContext)
+            body <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $ProductTagsJsonV600", 400, callContext) {
+              json.extract[ProductTagsJsonV600]
+            }
+            updatedTags <- NewStyle.function.tryons(s"$UpdateProductError", 400, callContext) {
+              ProductTagsProvider.setTags(bankId, productCode, body.tags)
+                .openOrThrowException(UpdateProductError)
+            }
+          } yield {
+            (JSONFactory600.createProductTagsJsonV600(updatedTags), HttpCode.`200`(callContext))
           }
       }
     }
@@ -10200,7 +10576,7 @@ trait APIMethods600 {
             // Validate target user exists
             (_, callContext) <- NewStyle.function.findByUserId(postJson.target_user_id, callContext)
             // Check for existing INITIATED request for same user/account/view
-            _ <- Helper.booleanToFuture(failMsg = AccountAccessRequestAlreadyExists, cc = callContext) {
+            _ <- Helper.booleanToFuture(failMsg = AccountAccessRequestAlreadyExists, failCode = 409, cc = callContext) {
               code.accountaccessrequest.AccountAccessRequestTrait.accountAccessRequest.vend
                 .getByUserAccountView(postJson.target_user_id, bankId.value, accountId.value, postJson.view_id)
                 .isEmpty
@@ -10664,6 +11040,7 @@ trait APIMethods600 {
       List(
         $AuthenticatedUserIsRequired,
         InvalidJsonFormat,
+        InvalidSignalChannelName,
         UnknownError
       ),
       List(apiTagAiAgent, apiTagSignal, apiTagSignalling, apiTagChannel))
@@ -10677,7 +11054,7 @@ trait APIMethods600 {
             postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the PostSignalMessageJsonV600", 400, callContext) {
               json.extract[PostSignalMessageJsonV600]
             }
-            _ <- Helper.booleanToFuture(failMsg = "Invalid channel name. Use alphanumeric characters, dots, hyphens, underscores. Max 128 chars.", cc = callContext) {
+            _ <- Helper.booleanToFuture(failMsg = InvalidSignalChannelName, cc = callContext) {
               RedisMessaging.validateChannelName(channelName)
             }
             channelMessageCount <- Future {
@@ -10742,6 +11119,7 @@ trait APIMethods600 {
       signalMessagesJsonV600,
       List(
         $AuthenticatedUserIsRequired,
+        InvalidSignalChannelName,
         UnknownError
       ),
       List(apiTagAiAgent, apiTagSignal, apiTagSignalling, apiTagChannel))
@@ -10752,7 +11130,7 @@ trait APIMethods600 {
           implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
-            _ <- Helper.booleanToFuture(failMsg = "Invalid channel name.", cc = callContext) {
+            _ <- Helper.booleanToFuture(failMsg = InvalidSignalChannelName, cc = callContext) {
               RedisMessaging.validateChannelName(channelName)
             }
             httpParams <- NewStyle.function.extractHttpParamsFromUrl(cc.url)
@@ -10868,6 +11246,7 @@ trait APIMethods600 {
       signalChannelInfoJsonV600,
       List(
         $AuthenticatedUserIsRequired,
+        InvalidSignalChannelName,
         UnknownError
       ),
       List(apiTagAiAgent, apiTagSignal, apiTagSignalling, apiTagChannel))
@@ -10878,7 +11257,7 @@ trait APIMethods600 {
           implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
-            _ <- Helper.booleanToFuture(failMsg = "Invalid channel name.", cc = callContext) {
+            _ <- Helper.booleanToFuture(failMsg = InvalidSignalChannelName, cc = callContext) {
               RedisMessaging.validateChannelName(channelName)
             }
             info <- Future {
@@ -10918,6 +11297,7 @@ trait APIMethods600 {
       signalChannelDeletedJsonV600,
       List(
         $AuthenticatedUserIsRequired,
+        InvalidSignalChannelName,
         UnknownError
       ),
       List(apiTagAiAgent, apiTagSignal, apiTagSignalling, apiTagChannel))
@@ -10988,7 +11368,7 @@ trait APIMethods600 {
           implicit val ec = EndpointContext(Some(cc))
           for {
             (Full(u), callContext) <- authenticatedAccess(cc)
-            _ <- Helper.booleanToFuture(failMsg = "Invalid channel name.", cc = callContext) {
+            _ <- Helper.booleanToFuture(failMsg = InvalidSignalChannelName, cc = callContext) {
               RedisMessaging.validateChannelName(channelName)
             }
             deleted <- Future {
@@ -12886,7 +13266,7 @@ trait APIMethods600 {
               json.extract[PostChatRoomJsonV600]
             }
             existingRoom <- Future(code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoomByBankIdAndName(bankId.value, postJson.name))
-            _ <- Helper.booleanToFuture(failMsg = ChatRoomAlreadyExists, cc = callContext) {
+            _ <- Helper.booleanToFuture(failMsg = ChatRoomAlreadyExists, failCode = 409, cc = callContext) {
               existingRoom.isEmpty
             }
             room <- Future {
@@ -12957,7 +13337,7 @@ trait APIMethods600 {
               json.extract[PostChatRoomJsonV600]
             }
             existingRoom <- Future(code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoomByBankIdAndName("", postJson.name))
-            _ <- Helper.booleanToFuture(failMsg = ChatRoomAlreadyExists, cc = callContext) {
+            _ <- Helper.booleanToFuture(failMsg = ChatRoomAlreadyExists, failCode = 409, cc = callContext) {
               existingRoom.isEmpty
             }
             room <- Future {
@@ -13791,7 +14171,7 @@ trait APIMethods600 {
               !room.isArchived
             }
             existingParticipant <- Future(code.chat.ChatPermissions.isParticipant(room.chatRoomId, u.userId))
-            _ <- Helper.booleanToFuture(failMsg = ChatRoomParticipantAlreadyExists, cc = callContext) {
+            _ <- Helper.booleanToFuture(failMsg = ChatRoomParticipantAlreadyExists, failCode = 409, cc = callContext) {
               existingParticipant.isEmpty
             }
             participant <- Future {
@@ -13860,7 +14240,7 @@ trait APIMethods600 {
               !room.isArchived
             }
             existingParticipant <- Future(code.chat.ChatPermissions.isParticipant(room.chatRoomId, u.userId))
-            _ <- Helper.booleanToFuture(failMsg = ChatRoomParticipantAlreadyExists, cc = callContext) {
+            _ <- Helper.booleanToFuture(failMsg = ChatRoomParticipantAlreadyExists, failCode = 409, cc = callContext) {
               existingParticipant.isEmpty
             }
             participant <- Future {
@@ -14049,7 +14429,7 @@ trait APIMethods600 {
               if (userId.nonEmpty) code.chat.ChatPermissions.isParticipant(chatRoomId, userId)
               else code.chat.ChatPermissions.isParticipantByConsumerId(chatRoomId, consumerId)
             }
-            _ <- Helper.booleanToFuture(failMsg = ChatRoomParticipantAlreadyExists, cc = callContext) {
+            _ <- Helper.booleanToFuture(failMsg = ChatRoomParticipantAlreadyExists, failCode = 409, cc = callContext) {
               existingParticipant.isEmpty
             }
             participant <- Future {
@@ -14136,7 +14516,7 @@ trait APIMethods600 {
               if (userId.nonEmpty) code.chat.ChatPermissions.isParticipant(chatRoomId, userId)
               else code.chat.ChatPermissions.isParticipantByConsumerId(chatRoomId, consumerId)
             }
-            _ <- Helper.booleanToFuture(failMsg = ChatRoomParticipantAlreadyExists, cc = callContext) {
+            _ <- Helper.booleanToFuture(failMsg = ChatRoomParticipantAlreadyExists, failCode = 409, cc = callContext) {
               existingParticipant.isEmpty
             }
             participant <- Future {
@@ -15731,7 +16111,7 @@ trait APIMethods600 {
               x => unboxFullOrFail(x, callContext, ChatMessageNotFound, 404)
             }
             existingReaction <- Future(code.chat.ReactionTrait.reactionProvider.vend.getReaction(chatMessageId, u.userId, postJson.emoji))
-            _ <- Helper.booleanToFuture(failMsg = ReactionAlreadyExists, cc = callContext) {
+            _ <- Helper.booleanToFuture(failMsg = ReactionAlreadyExists, failCode = 409, cc = callContext) {
               existingReaction.isEmpty
             }
             reaction <- Future {
@@ -15806,7 +16186,7 @@ trait APIMethods600 {
               x => unboxFullOrFail(x, callContext, ChatMessageNotFound, 404)
             }
             existingReaction <- Future(code.chat.ReactionTrait.reactionProvider.vend.getReaction(chatMessageId, u.userId, postJson.emoji))
-            _ <- Helper.booleanToFuture(failMsg = ReactionAlreadyExists, cc = callContext) {
+            _ <- Helper.booleanToFuture(failMsg = ReactionAlreadyExists, failCode = 409, cc = callContext) {
               existingReaction.isEmpty
             }
             reaction <- Future {
@@ -16759,4 +17139,15 @@ object APIMethods600 extends RestHelper with APIMethods600 {
   lazy val newStyleEndpoints: List[(String, String)] = Implementations6_0_0.resourceDocs.map {
     rd => (rd.partialFunctionName, rd.implementedInApiVersion.toString())
   }.toList
+
+  // Canonical cache key for product-list endpoints. Params are sorted by name (and by value within each)
+  // so that `?tag=a&tag=b` and `?tag=b&tag=a` share a cache entry. Bank is "__all__" for the system-level endpoint.
+  def productsCacheKey(bankId: String, params: List[GetProductsParam]): String = {
+    val canonical = params
+      .map(p => p.name -> p.value.sorted)
+      .sortBy(_._1)
+      .map { case (name, values) => s"$name=${values.mkString(",")}" }
+      .mkString("&")
+    s"productsV600:$bankId:$canonical"
+  }
 }

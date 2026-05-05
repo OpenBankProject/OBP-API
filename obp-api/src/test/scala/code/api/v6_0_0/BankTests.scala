@@ -120,6 +120,38 @@ class BankTests extends V600ServerSetup with DefaultUsers {
       And("The error message should indicate BANK_ID validation failed")
       response.body.extract[ErrorMessage].message should include("BANK_ID")
     }
+
+    scenario("Return 409 when creating a bank whose bank_id already exists", ApiEndpoint1, VersionOfApi) {
+      val addedEntitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateBank.toString)
+
+      val bankId = "bank." + randomString(11).toLowerCase
+      val postJson = PostBankJson600(
+        bank_id = bankId,
+        bank_code = "test_code",
+        full_name = Some("Test Bank for Duplicate"),
+        logo = Some("https://example.com/logo.png"),
+        website = Some("https://example.com"),
+        bank_routings = None
+      )
+      val request = (v6_0_0_Request / "banks").POST <@ (user1)
+
+      try {
+        Given("a bank with this bank_id already exists")
+        val firstResponse = makePostRequest(request, write(postJson))
+        firstResponse.code should equal(201)
+
+        When("We POST the same bank_id again")
+        val secondResponse = makePostRequest(request, write(postJson))
+
+        Then("We should get a 409")
+        secondResponse.code should equal(409)
+
+        And("The error message should be bankIdAlreadyExists")
+        secondResponse.body.extract[ErrorMessage].message should equal(ErrorMessages.bankIdAlreadyExists)
+      } finally {
+        Entitlement.entitlement.vend.deleteEntitlement(addedEntitlement)
+      }
+    }
   }
 
 }

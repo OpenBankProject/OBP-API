@@ -3,7 +3,7 @@ package code.api.util.http4s
 import cats.effect._
 import code.api.util.APIUtil.{ResourceDoc, getPropsAsBoolValue}
 import code.api.util.ErrorMessages.InvalidJsonFormat
-import code.api.util.{AuthHeaderParser, CallContext, WriteMetricUtil}
+import code.api.util.{AuthHeaderParser, CallContext, RemoteIpUtil, WriteMetricUtil}
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model.{Bank, BankAccount, CounterpartyTrait, User, View}
 import net.liftweb.common.{Box, Empty, Full}
@@ -490,13 +490,15 @@ object Http4sCallContextBuilder {
   }
   
   /**
-   * Extract IP address from X-Forwarded-For header or request remote address
+   * Extract the trusted client IP. Defaults to the immediate socket peer; consults a
+   * forwarded-for header only when `trust.proxy.enabled = true`. See [[RemoteIpUtil]].
    */
   private def extractIpAddress(request: Request[IO]): String = {
-    request.headers.get(CIString("X-Forwarded-For"))
-      .map(_.head.value.split(",").head.trim)
-      .orElse(request.remoteAddr.map(_.toUriString))
-      .getOrElse("")
+    val socketPeer = request.remoteAddr.map(_.toUriString).getOrElse("")
+    RemoteIpUtil.resolveClientIp(
+      socketPeer,
+      name => request.headers.get(CIString(name)).map(_.head.value)
+    )
   }
   
   /**

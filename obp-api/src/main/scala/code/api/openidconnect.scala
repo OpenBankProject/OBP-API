@@ -100,6 +100,10 @@ object OpenIdConnect extends OBPRestHelper with MdcLoggable {
   }
 
   private def callbackUrlCommonCode(identityProvider: Int): JsonResponse = {
+    if (!APIUtil.getPropsAsBoolValue("allow_openid_connect", true)) {
+      return errorJsonResponse(ErrorMessages.OpenIDConnectIsDisabled, 401)
+    }
+
     val (code, state, sessionState) = extractParams(S)
     logger.debug("(code, state, sessionState) = " + (code, state, sessionState))
     logger.debug("S.receivedCookies = " + S.receivedCookies)

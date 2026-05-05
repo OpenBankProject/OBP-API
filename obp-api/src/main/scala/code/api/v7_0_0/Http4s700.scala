@@ -7,11 +7,11 @@ import code.api.Constant._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.ResourceDocs1_4_0.{ResourceDocs140, ResourceDocsAPIMethodsUtil}
 import code.api.util.APIUtil.{EmptyBody, _}
-import code.api.util.{APIUtil, ApiRole, ApiVersionUtils, CallContext, CustomJsonFormats, NewStyle}
-import code.api.util.ApiRole.{canCreateEntitlementAtAnyBank, canCreateEntitlementAtOneBank, canDeleteEntitlementAtAnyBank, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetCardsForBank, canGetConnectorHealth, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMigrations}
+import code.api.util.{APIUtil, ApiRole, ApiVersionUtils, CallContext, CustomJsonFormats, Glossary, NewStyle}
+import code.api.util.ApiRole.{canCreateEntitlementAtAnyBank, canCreateEntitlementAtOneBank, canCreateOrganisation, canDeleteEntitlementAtAnyBank, canDeleteOrganisation, canGetAccountAccessTrace, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetCardsForBank, canGetConnectorHealth, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMigrations, canUpdateOrganisation}
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
-import code.api.util.http4s.{ErrorResponseConverter, Http4sRequestAttributes, RequestScopeConnection, ResourceDocMiddleware}
+import code.api.util.http4s.{ErrorResponseConverter, Http4sRequestAttributes, IdempotencyMiddleware, RequestScopeConnection, ResourceDocMiddleware}
 import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps}
 import code.api.util.newstyle.ViewNewStyle
 import code.api.v1_3_0.JSONFactory1_3_0
@@ -24,6 +24,7 @@ import code.bankconnectors.storedprocedure.StoredProcedureUtils
 import code.migration.MigrationScriptLogProvider
 import code.bankconnectors.{Connector => BankConnector}
 import code.entitlement.Entitlement
+import code.organisation.OrganisationX
 import code.metadata.tags.Tags
 import code.views.Views
 import code.accountattribute.AccountAttributeX
@@ -58,6 +59,91 @@ object Http4s700 {
   val implementedInApiVersion: ScannedApiVersion = ApiVersion.v7_0_0
   val versionStatus = ApiVersionStatus.STABLE.toString
   val resourceDocs = ArrayBuffer[ResourceDoc]()
+
+  /* 
+   * IMPORTANT: Endpoint Exclusion Pattern
+   * 
+   * excludeEndpoints is used to filter out old endpoints when v7.0.0 has a DIFFERENT URL pattern.
+   * 
+   * WHEN TO EXCLUDE:
+   * - Old and new endpoints have DIFFERENT URLs (e.g., v4.0.0: /users/:username vs v7.0.0: /providers/:provider/users/:username)
+   * - The old endpoint should not be accessible via v7.0.0 at all
+   * 
+   * WHEN NOT TO EXCLUDE:
+   * - Old and new endpoints have the SAME URL and HTTP method (e.g., GET /api/versions)
+   * - In this case, collectResourceDocs() automatically deduplicates by (URL, method) and keeps newest version
+   * - Excluding by function name would remove BOTH versions since they share the same name!
+   * 
+   * Why? The routing works as follows:
+   * 1. allResourceDocs = collectResourceDocs() deduplicates docs by (URL, method), keeps newest
+   * 2. excludeEndpoints filters ResourceDocs by partialFunctionName (removes by name, not by version)
+   * 3. The filtered docs determine which endpoints are available
+   * 
+   * Pattern: Add nameOf(Implementations{version}.endpointName) :: with a comment explaining why
+   * 
+   * NOTE: Currently empty - no v7-specific exclusions have been identified yet.
+   * As v7.0.0 introduces endpoints with different URL patterns than previous versions,
+   * add those old endpoint names here with explanatory comments.
+   */
+  lazy val excludeEndpoints: List[String] = 
+    // Add exclusions here when v7.0.0 replaces old endpoints with different URLs
+    // Example: nameOf(Implementations3_0_0.getUserByUsername) :: // v7.0.0 uses /providers/:provider/users/:username
+    Nil
+
+  /**
+   * Aggregated resource docs from all API versions (v7.0.0 + v6.0.0 + v5.1.0 + ... + v1.3.0)
+   * 
+   * This method implements the resource docs aggregation pattern for v7.0.0:
+   * 1. Takes OBPAPI6_0_0.allResourceDocs (which already contains v6.0.0 + v5.1.0 + ... + v1.3.0)
+   * 2. Adds v7.0.0's own resourceDocs
+   * 3. Deduplicates by (requestUrl, requestVerb), keeping the newest version
+   * 4. Filters out explicitly excluded old endpoints
+   * 
+   * Note: We cannot extend OBPRestHelper (Lift framework) in Http4s700 (Http4s framework)
+   * due to type incompatibilities. Instead, we implement the collectResourceDocs logic inline.
+   * 
+   * The deduplication algorithm:
+   * - Sort all docs by API version (descending: v7.0.0, v6.0.0, v5.1.0, ...)
+   * - For each doc, check if (requestUrl, requestVerb) has been seen
+   * - If not seen, add to result (this keeps the newest version)
+   * - If seen, skip (this omits older versions of the same endpoint)
+   * 
+   * Performance: Computed once and cached (lazy val) to avoid recomputation on every request.
+   */
+  lazy val allResourceDocs: ArrayBuffer[ResourceDoc] = {
+    // Import v6.0.0's aggregated docs (v6.0.0 + v5.1.0 + ... + v1.3.0)
+    import code.api.v6_0_0.OBPAPI6_0_0
+    
+    // Combine v6.0.0's aggregated docs with v7.0.0's docs
+    val allDocs = OBPAPI6_0_0.allResourceDocs ++ resourceDocs
+    
+    // Deduplicate by (requestUrl, requestVerb), keeping newest version
+    // Sort by API version (descending) so newer versions come first
+    implicit val ordering = new Ordering[ScannedApiVersion] {
+      override def compare(x: ScannedApiVersion, y: ScannedApiVersion): Int = 
+        y.toString().compareTo(x.toString())
+    }
+    
+    val sortedDocs = allDocs.sortBy(_.implementedInApiVersion)
+    
+    val result = ArrayBuffer[ResourceDoc]()
+    val urlAndMethods = scala.collection.mutable.Set[(String, String)]()
+    
+    for (doc <- sortedDocs) {
+      val urlAndMethod = (doc.requestUrl, doc.requestVerb)
+      if (!urlAndMethods.contains(urlAndMethod)) {
+        urlAndMethods.add(urlAndMethod)
+        result += doc
+      }
+    }
+    
+    // Filter out explicitly excluded old endpoints
+    if (excludeEndpoints.isEmpty) {
+      result
+    } else {
+      result.filterNot(it => it.partialFunctionName.matches(excludeEndpoints.mkString("|")))
+    }
+  }
 
   object Implementations7_0_0 {
 
@@ -222,7 +308,21 @@ object Http4s700 {
             ) {
               ApiVersionUtils.valueOf(requestedApiVersionString)
             }
-            allDocs = ResourceDocs140.ImplementationsResourceDocs.getResourceDocsList(requestedApiVersion).getOrElse(Nil)
+            // Use aggregated docs for v7.0.0, version-specific docs for other versions
+            allDocs = if (requestedApiVersion == ApiVersion.v7_0_0) {
+              // For v7.0.0, update requestUrl and specifiedUrl for all aggregated docs
+              // This mirrors the logic in ResourceDocsAPIMethods.getResourceDocsList
+              allResourceDocs.toList.map { doc =>
+                // Save original requestUrl before modification (it's in short form like "/banks")
+                val originalRequestUrl = doc.requestUrl
+                doc.copy(
+                  requestUrl = s"/${doc.implementedInApiVersion.urlPrefix}/${doc.implementedInApiVersion.vDottedApiVersion}${originalRequestUrl}",
+                  specifiedUrl = Some(s"/${doc.implementedInApiVersion.urlPrefix}/${requestedApiVersion.vDottedApiVersion}${originalRequestUrl}")
+                )
+              }
+            } else {
+              ResourceDocs140.ImplementationsResourceDocs.getResourceDocsList(requestedApiVersion).getOrElse(Nil)
+            }
             filteredDocs = ResourceDocsAPIMethodsUtil.filterResourceDocs(allDocs, tags, functions)
           } yield JSONFactory1_4_0.createResourceDocsJson(filteredDocs, isVersion4OrHigher = true, localeParam, includeTechnology = true)
         }
@@ -469,7 +569,7 @@ object Http4s700 {
                    UserHasMissingRoles + s" $canCreateEntitlementAtOneBank or $canCreateEntitlementAtAnyBank")(
                    body.bank_id, user.userId,
                    canCreateEntitlementAtOneBank :: canCreateEntitlementAtAnyBank :: Nil, Some(cc)).map(_ => ())
-            _ <- Helper.booleanToFuture(failMsg = EntitlementAlreadyExists, cc = Some(cc))(
+            _ <- Helper.booleanToFuture(failMsg = EntitlementAlreadyExists, failCode = 409, cc = Some(cc))(
               !hasEntitlement(body.bank_id, userId, role))
             entitlement <- Future(Entitlement.entitlement.vend.addEntitlement(body.bank_id, userId, body.role_name))
               .map(e => unboxFull(e))
@@ -491,6 +591,169 @@ object Http4s700 {
       apiTagEntitlement :: apiTagRole :: apiTagUser :: Nil,
       Some(List(canCreateEntitlementAtOneBank, canCreateEntitlementAtAnyBank)),
       http4sPartialFunction = Some(addEntitlement)
+    )
+
+    // ── Account Access Trace ────────────────────────────────────────────────
+    //
+    // Path uses TARGET_VIEW_ID and TARGET_USER_ID (not VIEW_ID / USER_ID) on
+    // purpose: the middleware's VIEW_ID validation runs an access check on the
+    // CALLING user, which is wrong for a diagnostic that asks about ANOTHER user.
+    // The caller's authority comes from CanGetAccountAccessTrace.
+    val getAccountAccessTrace: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / "views" / targetViewIdStr / "users" / targetUserIdStr / "account-access-trace" =>
+        EndpointHelpers.withBankAccount(req) { (_, account, cc) =>
+          val bankIdAccountId = BankIdAccountId(account.bankId, account.accountId)
+          val targetViewId    = ViewId(targetViewIdStr)
+          for {
+            // Validate target view exists (custom or system)
+            _ <- {
+              Views.views.vend.customViewFuture(targetViewId, bankIdAccountId).flatMap {
+                case Full(v) => Future.successful(Full(v))
+                case _       => Views.views.vend.systemViewFuture(targetViewId)
+              }
+            }.map(unboxFullOrFail(_, Some(cc), s"$ViewNotFound Current ViewId is $targetViewIdStr"))
+
+            // Validate target user exists
+            targetUser <- UserVend.users.vend.getUserByUserIdFuture(targetUserIdStr).map(
+              x => unboxFullOrFail(x, Some(cc), s"$UserNotFoundByUserId Current USER_ID($targetUserIdStr)", 404)
+            )
+
+            // Step A — AccountAccess trace
+            permissions      <- Future(Views.views.vend.permissions(bankIdAccountId))
+            targetUserPerm    = permissions.find(_.user.userId == targetUser.userId)
+            accountAccessViewIds   = targetUserPerm.toList.flatMap(_.views.map(_.viewId.value))
+            hasAccountAccessForView = accountAccessViewIds.contains(targetViewIdStr)
+
+            // Step B — Entitlement trace (mirrors APIUtil.checkAbacAccountAccess gate)
+            entitlementBox        = Entitlement.entitlement.vend.getEntitlement("", targetUser.userId, ApiRole.canExecuteAbacRule.toString)
+            hasCanExecuteAbacRule = entitlementBox.isDefined
+
+            // Step C — ABAC per-rule trace (lists ALL rules under the policy, active or not)
+            allRules     = code.abacrule.MappedAbacRuleProvider.getAbacRulesByPolicy(ABAC_POLICY_ACCOUNT_ACCESS)
+            ruleTraces  <- Future.sequence(allRules.map { rule =>
+              if (!rule.isActive) {
+                Future.successful(JSONFactory700.AbacRuleTraceJsonV700(
+                  rule_id = rule.abacRuleId, rule_name = rule.ruleName,
+                  is_active = false, result = "SKIPPED",
+                  error_message = Some("Rule is not active")
+                ))
+              } else {
+                code.abacrule.AbacRuleEngine.executeRule(
+                  ruleId = rule.abacRuleId,
+                  authenticatedUserId = targetUser.userId,
+                  callContext = cc,
+                  bankId  = Some(account.bankId.value),
+                  accountId = Some(account.accountId.value),
+                  viewId  = Some(targetViewIdStr)
+                ).map {
+                  case Full(true)  => JSONFactory700.AbacRuleTraceJsonV700(rule.abacRuleId, rule.ruleName, true, "PASS", None)
+                  case Full(false) => JSONFactory700.AbacRuleTraceJsonV700(rule.abacRuleId, rule.ruleName, true, "FAIL", None)
+                  case net.liftweb.common.Failure(msg, _, _) =>
+                                      JSONFactory700.AbacRuleTraceJsonV700(rule.abacRuleId, rule.ruleName, true, "ERROR", Some(msg))
+                  case _           => JSONFactory700.AbacRuleTraceJsonV700(rule.abacRuleId, rule.ruleName, true, "ERROR", Some("empty result"))
+                }.recover { case ex =>
+                  JSONFactory700.AbacRuleTraceJsonV700(rule.abacRuleId, rule.ruleName, true, "ERROR", Some(ex.getMessage))
+                }
+              }
+            })
+
+            allowAbacProp     = APIUtil.getPropsAsBoolValue("allow_abac_account_access", false)
+            anyRulePassed     = ruleTraces.exists(_.result == "PASS")
+            // Mirrors enforcement: prop ON + entitlement + at least one PASS
+            standaloneAbacResult  = allowAbacProp && hasCanExecuteAbacRule && anyRulePassed
+
+            hasAccess     = hasAccountAccessForView || standaloneAbacResult
+            accessSource       =
+              if      (hasAccountAccessForView) "ACCOUNT_ACCESS"
+              else if (standaloneAbacResult)        "ABAC"
+              else                              "NONE"
+          } yield {
+            JSONFactory700.AccountAccessTraceJsonV700(
+              user_id      = targetUser.userId,
+              bank_id      = account.bankId.value,
+              account_id   = account.accountId.value,
+              view_id      = targetViewIdStr,
+              has_access      = hasAccess,
+              access_source = accessSource,
+              account_access_trace = JSONFactory700.AccountAccessLookupJsonV700(
+                has_account_access_for_view = hasAccountAccessForView,
+                account_access_view_ids = accountAccessViewIds
+              ),
+              entitlement_trace = JSONFactory700.EntitlementTraceJsonV700(
+                has_can_execute_abac_rule = hasCanExecuteAbacRule
+              ),
+              abac_trace = JSONFactory700.AbacEvaluationTraceJsonV700(
+                policy = ABAC_POLICY_ACCOUNT_ACCESS,
+                allow_abac_account_access = allowAbacProp,
+                standalone_abac_result = standaloneAbacResult,
+                rules_evaluated = ruleTraces
+              )
+            )
+          }
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(getAccountAccessTrace),
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/TARGET_VIEW_ID/users/TARGET_USER_ID/account-access-trace",
+      "Get Account Access Trace",
+      s"""Return a diagnostic trace of how a target user's access to a view on an account is decided.
+        |Use this for auditing, debugging "why doesn't user X have access?" support tickets, and
+        |verifying ABAC rule behaviour against real users.
+        |
+        |Top-level verdict:
+        |
+        |* `has_access` — does the target user have access to the named view?
+        |* `access_source` — what actually decided: `"ACCOUNT_ACCESS"` | `"ABAC"` | `"NONE"`.
+        |  Use this (not `standalone_abac_result`) to answer "did ABAC grant this user's access?"
+        |
+        |Three diagnostic sections:
+        |
+        |* `account_access_trace` — what the AccountAccess table says: which views the target user
+        |  holds on this account, and whether the asked view is among them.
+        |* `entitlement_trace` — whether the target user has the `CanExecuteAbacRule` entitlement
+        |  (the runtime opt-in for ABAC fallback).
+        |* `abac_trace` — the ABAC subsystem evaluated standalone: master prop value, the standalone
+        |  verdict, and each active rule under the `account-access` policy with result
+        |  `PASS` / `FAIL` / `ERROR` / `SKIPPED`.
+        |
+        |Path uses `TARGET_VIEW_ID` and `TARGET_USER_ID` (not `VIEW_ID` / `USER_ID`) because the
+        |trace asks about another user, not the caller. The caller's authority to read this comes
+        |from `CanGetAccountAccessTrace`.
+        |
+        |Diagnostic only — does not affect enforcement. For the full runtime gate model, see
+        |${Glossary.getGlossaryItemLink("ABAC_Account_Access_Enforcement")}.
+        |
+        |Authentication is Required.""".stripMargin,
+      EmptyBody,
+      JSONFactory700.AccountAccessTraceJsonV700(
+        user_id = "9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+        bank_id = "gh.29.uk",
+        account_id = "8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
+        view_id    = "owner",
+        has_access      = true,
+        access_source = "ACCOUNT_ACCESS",
+        account_access_trace = JSONFactory700.AccountAccessLookupJsonV700(
+          has_account_access_for_view = true,
+          account_access_view_ids = List("owner")
+        ),
+        entitlement_trace = JSONFactory700.EntitlementTraceJsonV700(
+          has_can_execute_abac_rule = false
+        ),
+        abac_trace = JSONFactory700.AbacEvaluationTraceJsonV700(
+          policy = ABAC_POLICY_ACCOUNT_ACCESS,
+          allow_abac_account_access = false,
+          standalone_abac_result = false,
+          rules_evaluated = Nil
+        )
+      ),
+      List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, ViewNotFound, UserNotFoundByUserId, UnknownError),
+      apiTagABAC :: apiTagAccount :: apiTagView :: Nil,
+      Some(List(canGetAccountAccessTrace)),
+      http4sPartialFunction = Some(getAccountAccessTrace)
     )
 
     // ── Phase 1 — Simple GETs ───────────────────────────────────────────────
@@ -607,6 +870,44 @@ object Http4s700 {
       List(UnknownError),
       apiTagConnector :: apiTagSystem :: apiTagApi :: Nil,
       http4sPartialFunction = Some(getConnectors)
+    )
+
+    // Route: GET /obp/v7.0.0/api/error-messages
+    val getErrorMessages: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "api" / "error-messages" =>
+        EndpointHelpers.executeAndRespond(req) { _ =>
+          Future.successful(ListResult("error_messages", JSONFactory700.errorMessagesCatalog))
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(getErrorMessages),
+      "GET",
+      "/api/error-messages",
+      "Get Error Messages",
+      """Returns the catalog of OBP error codes and messages defined in this API instance.
+        |
+        |Each entry has the OBP error code (e.g. `OBP-00001`), the internal name of the
+        |constant, and the human-readable message text.
+        |
+        |The catalog is derived by reflecting over `ErrorMessages` at first access and
+        |cached for the lifetime of the server.
+        |
+        |No Authentication is Required.""".stripMargin,
+      EmptyBody,
+      ListResult(
+        "error_messages",
+        List(JSONFactory700.ErrorMessageEntryJsonV700(
+          code    = "OBP-00001",
+          name    = "HostnameNotSpecified",
+          message = "Hostname not specified. Could not get hostname from Props."
+        ))
+      ),
+      List(UnknownError),
+      apiTagDocumentation :: apiTagApi :: Nil,
+      http4sPartialFunction = Some(getErrorMessages)
     )
 
     // Route: GET /obp/v7.0.0/providers
@@ -860,7 +1161,1020 @@ object Http4s700 {
       http4sPartialFunction = Some(getAccountsAtBank)
     )
 
+    // ── Trading Endpoints ──────────────────────────────────────────────────
+    
+    // Route: POST /obp/v7.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/trading/offers
+    val createTradingOffer: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "banks" / bankId / "accounts" / accountId / "views" / viewId / "trading" / "offers" =>
+        EndpointHelpers.withUserAndBodyCreated[JSONFactory700.CreateOfferRequestJson, JSONFactory700.TradingOfferJson](req) { (user, createOfferJson, cc) =>
+          for {
+            // Validate offer_type
+            _ <- Helper.booleanToFuture(
+              failMsg = InvalidOfferType,
+              failCode = 400,
+              cc = Some(cc)
+            )(createOfferJson.offer_type == "BUY" || createOfferJson.offer_type == "SELL")
+
+            // Validate asset_amount
+            _ <- Helper.booleanToFuture(
+              failMsg = InvalidTradingAmount,
+              failCode = 400,
+              cc = Some(cc)
+            )(createOfferJson.asset_amount > 0)
+
+            // Validate price_amount
+            _ <- Helper.booleanToFuture(
+              failMsg = InvalidTradingAmount,
+              failCode = 400,
+              cc = Some(cc)
+            )(createOfferJson.price_amount > 0)
+
+            // Invoke connector
+            (offer, callContext) <- NewStyle.function.createTradingOffer(
+              BankId(bankId),
+              AccountId(accountId),
+              createOfferJson.offer_type,
+              createOfferJson.asset_code,
+              createOfferJson.asset_amount,
+              createOfferJson.price_currency,
+              createOfferJson.price_amount,
+              createOfferJson.settlement_account_id,
+              Some(cc)
+            )
+          } yield JSONFactory700.createTradingOfferJson(offer)
+        }
+    }
+    
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(createTradingOffer),
+      "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/trading/offers",
+      "Create Trading Offer",
+      """**WORK IN PROGRESS**
+        |
+        |Create a new trading offer to buy or sell digital assets.
+        |
+        |The offer will be matched against existing offers in the order book.
+        |The offer_id is automatically generated as a UUID.
+        |
+        |Authentication is required.""",
+      JSONFactory700.CreateOfferRequestJson(
+        offer_type = "BUY",
+        asset_code = "OGCR",
+        asset_amount = BigDecimal("100.00"),
+        price_currency = "EUR",
+        price_amount = BigDecimal("1.50"),
+        settlement_account_id = "settlement-account-123"
+      ),
+      JSONFactory700.TradingOfferJson(
+        offer_id = "550e8400-e29b-41d4-a716-446655440000",
+        status = "active",
+        offer_details = JSONFactory700.OfferDetailsJson(
+          offer_type = "BUY",
+          asset_code = "OGCR",
+          asset_amount = BigDecimal("100.00"),
+          price_currency = "EUR",
+          price_amount = BigDecimal("1.50"),
+          settlement_account_id = "settlement-account-123",
+          expiry_datetime = None,
+          minimum_fill = None
+        ),
+        account_info = JSONFactory700.AccountInfoJson(
+          bank_id = "gh.29.uk",
+          account_id = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
+          view_id = "owner"
+        ),
+        executions = List.empty,
+        user_id = "user-abc-123",
+        consent_id = None,
+        created_at = "2026-04-15T10:30:00Z",
+        updated_at = "2026-04-15T10:30:00Z"
+      ),
+      List(InvalidJsonFormat, InvalidOfferType, InvalidTradingAmount, $AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
+      apiTagTrading :: apiTagTrade :: Nil,
+      http4sPartialFunction = Some(createTradingOffer)
+    )
+    
+    // Route: GET /obp/v7.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/trading/offers/OFFER_ID
+    val getTradingOffer: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / bankId / "accounts" / accountId / "views" / viewId / "trading" / "offers" / offerId =>
+        EndpointHelpers.withUser(req) { (user, cc) =>
+          for {
+            // Invoke connector
+            (offer, callContext) <- NewStyle.function.getTradingOffer(offerId, Some(cc))
+          } yield JSONFactory700.createTradingOfferJson(offer)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(getTradingOffer),
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/trading/offers/OFFER_ID",
+      "Get Trading Offer",
+      """**WORK IN PROGRESS**
+        |
+        |Get details of a specific trading offer including execution history.
+        |
+        |Authentication is required.""",
+      EmptyBody,
+      JSONFactory700.TradingOfferJson(
+        offer_id = "550e8400-e29b-41d4-a716-446655440000",
+        status = "active",
+        offer_details = JSONFactory700.OfferDetailsJson(
+          offer_type = "BUY",
+          asset_code = "OGCR",
+          asset_amount = BigDecimal("100.00"),
+          price_currency = "EUR",
+          price_amount = BigDecimal("1.50"),
+          settlement_account_id = "settlement-account-123",
+          expiry_datetime = None,
+          minimum_fill = None
+        ),
+        account_info = JSONFactory700.AccountInfoJson(
+          bank_id = "gh.29.uk",
+          account_id = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
+          view_id = "owner"
+        ),
+        executions = List.empty,
+        user_id = "user-abc-123",
+        consent_id = None,
+        created_at = "2026-04-15T10:30:00Z",
+        updated_at = "2026-04-15T10:30:00Z"
+      ),
+      List(OfferNotFound, $AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
+      apiTagTrading :: apiTagTrade :: Nil,
+      http4sPartialFunction = Some(getTradingOffer)
+    )
+
+    // Route: GET /obp/v7.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/trading/offers
+    val getTradingOffers: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / bankId / "accounts" / accountId / "views" / viewId / "trading" / "offers" =>
+        EndpointHelpers.withUser(req) { (user, cc) =>
+          // Extract query parameters
+          val status = req.uri.query.params.get("status")
+          val offerType = req.uri.query.params.get("offer_type")
+          
+          for {
+            // Invoke connector
+            (offers, callContext) <- NewStyle.function.getTradingOffers(
+              BankId(bankId),
+              AccountId(accountId),
+              status,
+              offerType,
+              Some(cc)
+            )
+          } yield {
+            // Convert to JSON
+            val offersJson = offers.map(JSONFactory700.createTradingOfferJson)
+            JSONFactory700.TradingOffersJson(offersJson)
+          }
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(getTradingOffers),
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/trading/offers",
+      "Get Trading Offers",
+      """**WORK IN PROGRESS**
+        |
+        |Get a list of trading offers for a specific account.
+        |
+        |Optional query parameters:
+        |- status: Filter by offer status (e.g., "active", "cancelled", "filled", "expired")
+        |- offer_type: Filter by offer type ("BUY" or "SELL")
+        |
+        |Results are sorted by creation date (most recent first).
+        |
+        |Authentication is required.""",
+      EmptyBody,
+      JSONFactory700.TradingOffersJson(
+        offers = List(
+          JSONFactory700.TradingOfferJson(
+            offer_id = "550e8400-e29b-41d4-a716-446655440000",
+            status = "active",
+            offer_details = JSONFactory700.OfferDetailsJson(
+              offer_type = "BUY",
+              asset_code = "OGCR",
+              asset_amount = BigDecimal("100.00"),
+              price_currency = "EUR",
+              price_amount = BigDecimal("1.50"),
+              settlement_account_id = "settlement-account-123",
+              expiry_datetime = None,
+              minimum_fill = None
+            ),
+            account_info = JSONFactory700.AccountInfoJson(
+              bank_id = "gh.29.uk",
+              account_id = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
+              view_id = "owner"
+            ),
+            executions = List.empty,
+            user_id = "user-abc-123",
+            consent_id = None,
+            created_at = "2026-04-15T10:30:00Z",
+            updated_at = "2026-04-15T10:30:00Z"
+          )
+        )
+      ),
+      List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
+      apiTagTrading :: apiTagTrade :: Nil,
+      http4sPartialFunction = Some(getTradingOffers)
+    )
+    
+    // Route: DELETE /obp/v7.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/trading/offers/OFFER_ID
+    val cancelTradingOffer: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ DELETE -> `prefixPath` / "banks" / bankId / "accounts" / accountId / "views" / viewId / "trading" / "offers" / offerId =>
+        EndpointHelpers.withUser(req) { (user, cc) =>
+          for {
+            // Invoke connector
+            (offer, callContext) <- NewStyle.function.cancelTradingOffer(offerId, Some(cc))
+          } yield JSONFactory700.createCancelOfferResponseJson(offer)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(cancelTradingOffer),
+      "DELETE",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/trading/offers/OFFER_ID",
+      "Cancel Trading Offer",
+      """**WORK IN PROGRESS**
+        |
+        |Cancel an active trading offer.
+        |
+        |This operation is idempotent - canceling an already-cancelled offer returns success.
+        |
+        |Authentication is required.""",
+      EmptyBody,
+      JSONFactory700.CancelOfferResponseJson(
+        offer_id = "550e8400-e29b-41d4-a716-446655440000",
+        status = "cancelled"
+      ),
+      List(OfferNotFound, $AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
+      apiTagTrading :: apiTagTrade :: Nil,
+      http4sPartialFunction = Some(cancelTradingOffer)
+    )
+
+
     // ── End Phase 1 batch 2 ──────────────────────────────────────────────────
+
+    // ── Market Endpoints (Phase 2) ─────────────────────────────────────────
+
+    // Route: POST /obp/v7.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/market/orders
+    val createMarketOrder: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "banks" / bankId / "accounts" / accountId / "views" / viewId / "market" / "orders" =>
+        EndpointHelpers.withUserAndBodyCreated[JSONFactory700.CreateMarketOrderRequestJson, JSONFactory700.MarketOrderJson](req) { (user, createOrderJson, cc) =>
+          for {
+            // Validate bank and account
+            (_, callContext) <- NewStyle.function.getBankAccount(BankId(bankId), AccountId(accountId), Some(cc))
+
+            // Validate side
+            _ <- Helper.booleanToFuture(
+              failMsg = InvalidOrderSide,
+              failCode = 400,
+              cc = callContext
+            )(createOrderJson.side == "BUY" || createOrderJson.side == "SELL")
+
+            // Validate price
+            _ <- Helper.booleanToFuture(
+              failMsg = InvalidTradingAmount,
+              failCode = 400,
+              cc = callContext
+            )(createOrderJson.price > 0)
+
+            // Validate quantity
+            _ <- Helper.booleanToFuture(
+              failMsg = InvalidTradingAmount,
+              failCode = 400,
+              cc = callContext
+            )(createOrderJson.quantity > 0)
+
+            // Invoke connector
+            (order, callContext2) <- NewStyle.function.createMarketOrder(
+              BankId(bankId),
+              AccountId(accountId),
+              createOrderJson.side,
+              createOrderJson.price,
+              createOrderJson.quantity,
+              createOrderJson.settlement_account_id,
+              callContext
+            )
+          } yield JSONFactory700.createMarketOrderJson(order)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(createMarketOrder),
+      "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/market/orders",
+      "Create Market Order",
+      """**WORK IN PROGRESS**
+        |
+        |Create a new market order to buy or sell assets.
+        |
+        |The order will be matched against existing orders in the order book.
+        |The order_id is automatically generated as a UUID.
+        |Each request creates a new order with a unique order_id.
+        |
+        |Authentication is required.""",
+      JSONFactory700.CreateMarketOrderRequestJson(
+        side = "BUY",
+        price = BigDecimal("25.0"),
+        quantity = BigDecimal("10.0"),
+        settlement_account_id = "buyer-fiat-account"
+      ),
+      JSONFactory700.MarketOrderJson(
+        order_id = "550e8400-e29b-41d4-a716-446655440000",
+        side = "BUY",
+        price = BigDecimal("25.0"),
+        quantity = BigDecimal("10.0"),
+        account_id = "buyer-fiat-account",
+        status = "active",
+        user_id = "user-abc-123",
+        consent_id = None,
+        created_at = "2026-04-16T00:30:00Z",
+        updated_at = "2026-04-16T00:30:00Z"
+      ),
+      List(InvalidJsonFormat, InvalidOrderSide, InvalidTradingAmount, $AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
+      apiTagTrading :: apiTagMarket :: Nil,
+      http4sPartialFunction = Some(createMarketOrder)
+    )
+
+    // Route: GET /obp/v7.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/market/orders/ORDER_ID
+    val getMarketOrder: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / bankId / "accounts" / accountId / "views" / viewId / "market" / "orders" / orderId =>
+        EndpointHelpers.withUser(req) { (user, cc) =>
+          for {
+            // Validate bank and account
+            (_, callContext) <- NewStyle.function.getBankAccount(BankId(bankId), AccountId(accountId), Some(cc))
+
+            // Get order
+            (order, callContext2) <- NewStyle.function.getMarketOrder(
+              BankId(bankId),
+              AccountId(accountId),
+              orderId,
+              callContext
+            )
+          } yield JSONFactory700.createMarketOrderJson(order)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(getMarketOrder),
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/market/orders/ORDER_ID",
+      "Get Market Order",
+      """**WORK IN PROGRESS**
+        |
+        |Get details of a specific market order.
+        |
+        |Authentication is required.""",
+      EmptyBody,
+      JSONFactory700.MarketOrderJson(
+        order_id = "550e8400-e29b-41d4-a716-446655440000",
+        side = "BUY",
+        price = BigDecimal("25.0"),
+        quantity = BigDecimal("10.0"),
+        account_id = "buyer-fiat-account",
+        status = "active",
+        user_id = "user-abc-123",
+        consent_id = None,
+        created_at = "2026-04-16T00:30:00Z",
+        updated_at = "2026-04-16T00:30:00Z"
+      ),
+      List(OrderNotFound, $AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
+      apiTagTrading :: apiTagMarket :: Nil,
+      http4sPartialFunction = Some(getMarketOrder)
+    )
+
+    // Route: DELETE /obp/v7.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/market/orders/ORDER_ID
+    val cancelMarketOrder: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ DELETE -> `prefixPath` / "banks" / bankId / "accounts" / accountId / "views" / viewId / "market" / "orders" / orderId =>
+        EndpointHelpers.withUser(req) { (user, cc) =>
+          for {
+            // Validate bank and account
+            (_, callContext) <- NewStyle.function.getBankAccount(BankId(bankId), AccountId(accountId), Some(cc))
+
+            // Cancel order
+            (order, callContext2) <- NewStyle.function.cancelMarketOrder(
+              BankId(bankId),
+              AccountId(accountId),
+              orderId,
+              callContext
+            )
+          } yield JSONFactory700.createMarketOrderJson(order)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(cancelMarketOrder),
+      "DELETE",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/market/orders/ORDER_ID",
+      "Cancel Market Order",
+      """**WORK IN PROGRESS**
+        |
+        |Cancel an active market order.
+        |
+        |This operation is idempotent - canceling an already-cancelled order returns success.
+        |
+        |Authentication is required.""",
+      EmptyBody,
+      JSONFactory700.MarketOrderJson(
+        order_id = "550e8400-e29b-41d4-a716-446655440000",
+        side = "BUY",
+        price = BigDecimal("25.0"),
+        quantity = BigDecimal("10.0"),
+        account_id = "buyer-fiat-account",
+        status = "cancelled",
+        user_id = "user-abc-123",
+        consent_id = None,
+        created_at = "2026-04-16T00:30:00Z",
+        updated_at = "2026-04-16T00:35:00Z"
+      ),
+      List(OrderNotFound, $AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
+      apiTagTrading :: apiTagMarket :: Nil,
+      http4sPartialFunction = Some(cancelMarketOrder)
+    )
+
+    // Route: POST /obp/v7.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/market/matches
+    val createMarketMatch: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "banks" / bankId / "accounts" / accountId / "views" / viewId / "market" / "matches" =>
+        EndpointHelpers.withUserAndBodyCreated[JSONFactory700.CreateMarketMatchRequestJson, JSONFactory700.MarketMatchJson](req) { (user, createMatchJson, cc) =>
+          for {
+            // Validate bank and account
+            (_, callContext) <- NewStyle.function.getBankAccount(BankId(bankId), AccountId(accountId), Some(cc))
+
+            // Validate amount
+            _ <- Helper.booleanToFuture(
+              failMsg = InvalidMatchParameters,
+              failCode = 400,
+              cc = callContext
+            )(createMatchJson.amount > 0)
+
+            // Validate price
+            _ <- Helper.booleanToFuture(
+              failMsg = InvalidMatchParameters,
+              failCode = 400,
+              cc = callContext
+            )(createMatchJson.price > 0)
+
+            // Invoke connector
+            (matchResult, callContext2) <- NewStyle.function.createMarketMatch(
+              BankId(bankId),
+              AccountId(accountId),
+              createMatchJson.order_id,
+              createMatchJson.counter_order_id,
+              createMatchJson.amount,
+              createMatchJson.price,
+              callContext
+            )
+          } yield JSONFactory700.createMarketMatchJson(matchResult)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(createMarketMatch),
+      "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/market/matches",
+      "Create Market Match",
+      """**WORK IN PROGRESS**
+        |
+        |Create a match between two market orders.
+        |
+        |This creates a MarketMatch and automatically generates a corresponding MarketTrade.
+        |
+        |Authentication is required.""",
+      JSONFactory700.CreateMarketMatchRequestJson(
+        order_id = "order-123",
+        counter_order_id = "order-456",
+        amount = BigDecimal("5.0"),
+        price = BigDecimal("25.0")
+      ),
+      JSONFactory700.MarketMatchJson(
+        match_id = "match-789",
+        order_id = "order-123",
+        counter_order_id = "order-456",
+        amount = BigDecimal("5.0"),
+        price = BigDecimal("25.0"),
+        user_id = "user-abc-123",
+        consent_id = None,
+        created_at = "2026-04-16T00:40:00Z"
+      ),
+      List(InvalidJsonFormat, InvalidMatchParameters, $AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
+      apiTagTrading :: apiTagMarket :: Nil,
+      http4sPartialFunction = Some(createMarketMatch)
+    )
+
+    // Route: GET /obp/v7.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/market/trades/TRADE_ID
+    val getMarketTrade: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / bankId / "accounts" / accountId / "views" / viewId / "market" / "trades" / tradeId =>
+        EndpointHelpers.withUser(req) { (user, cc) =>
+          for {
+            // Validate bank and account
+            (_, callContext) <- NewStyle.function.getBankAccount(BankId(bankId), AccountId(accountId), Some(cc))
+
+            // Get trade
+            (trade, callContext2) <- NewStyle.function.getMarketTrade(
+              BankId(bankId),
+              AccountId(accountId),
+              tradeId,
+              callContext
+            )
+          } yield JSONFactory700.createMarketTradeJson(trade)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(getMarketTrade),
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/market/trades/TRADE_ID",
+      "Get Market Trade",
+      """**WORK IN PROGRESS**
+        |
+        |Get details of a specific market trade.
+        |
+        |Authentication is required.""",
+      EmptyBody,
+      JSONFactory700.MarketTradeJson(
+        trade_id = "trade-789",
+        buy_order_id = "order-123",
+        sell_order_id = "order-456",
+        amount = BigDecimal("5.0"),
+        price = BigDecimal("25.0"),
+        status = "pending",
+        user_id = "user-abc-123",
+        consent_id = None,
+        created_at = "2026-04-16T00:40:00Z"
+      ),
+      List(TradeNotFound, $AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
+      apiTagTrading :: apiTagMarket :: Nil,
+      http4sPartialFunction = Some(getMarketTrade)
+    )
+
+    // Route: POST /obp/v7.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/market/settlements
+    val requestSettlement: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "banks" / bankId / "accounts" / accountId / "views" / viewId / "market" / "settlements" =>
+        EndpointHelpers.withUserAndBodyCreated[JSONFactory700.RequestSettlementJson, JSONFactory700.SettlementJson](req) { (user, requestJson, cc) =>
+          for {
+            // Validate bank and account
+            (_, callContext) <- NewStyle.function.getBankAccount(BankId(bankId), AccountId(accountId), Some(cc))
+
+            // Invoke connector
+            (settlement, callContext2) <- NewStyle.function.requestSettlement(
+              BankId(bankId),
+              AccountId(accountId),
+              requestJson.trade_id,
+              requestJson.step,
+              callContext
+            )
+          } yield JSONFactory700.createSettlementJson(settlement)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(requestSettlement),
+      "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/market/settlements",
+      "Request Settlement",
+      """**WORK IN PROGRESS**
+        |
+        |Request settlement for a completed trade.
+        |
+        |Authentication is required.""",
+      JSONFactory700.RequestSettlementJson(
+        trade_id = "trade-789",
+        step = Some("step1")
+      ),
+      JSONFactory700.SettlementJson(
+        settlement_id = "settlement-101",
+        trade_id = "trade-789",
+        step = Some("step1"),
+        status = "pending",
+        user_id = "user-abc-123",
+        consent_id = None,
+        created_at = "2026-04-16T00:45:00Z",
+        completed_at = None
+      ),
+      List(InvalidJsonFormat, SettlementFailed, $AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
+      apiTagTrading :: apiTagMarket :: Nil,
+      http4sPartialFunction = Some(requestSettlement)
+    )
+
+    // Route: POST /obp/v7.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/market/deposits
+//    val notifyDeposit: HttpRoutes[IO] = HttpRoutes.of[IO] {
+//      case req @ POST -> `prefixPath` / "banks" / bankId / "accounts" / accountId / "views" / viewId / "market" / "deposits" =>
+//        EndpointHelpers.withUserAndBodyCreated[JSONFactory700.NotifyDepositJson, JSONFactory700.DepositJson](req) { (user, depositJson, cc) =>
+//          for {
+//            // Validate bank and account
+//            (_, callContext) <- NewStyle.function.getBankAccount(BankId(bankId), AccountId(accountId), Some(cc))
+//
+//            // Validate amount
+//            _ <- Helper.booleanToFuture(
+//              failMsg = InvalidTradingAmount,
+//              failCode = 400,
+//              cc = callContext
+//            )(depositJson.amount > 0)
+//
+//            // Validate confirmations
+//            _ <- Helper.booleanToFuture(
+//              failMsg = InvalidMatchParameters,
+//              failCode = 400,
+//              cc = callContext
+//            )(depositJson.confirmations >= 0)
+//
+//            // Invoke connector
+//            (deposit, callContext2) <- NewStyle.function.notifyDeposit(
+//              BankId(bankId),
+//              AccountId(accountId),
+//              depositJson.tx_hash,
+//              depositJson.from,
+//              depositJson.to,
+//              depositJson.amount,
+//              depositJson.confirmations,
+//              12,  // Ethereum mainnet standard: 12 confirmations required
+//              callContext
+//            )
+//          } yield JSONFactory700.createDepositJson(deposit)
+//        }
+//    }
+//
+//    resourceDocs += ResourceDoc(
+//      null,
+//      implementedInApiVersion,
+//      nameOf(notifyDeposit),
+//      "POST",
+//      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/market/deposits",
+//      "Notify Deposit",
+//      """**WORK IN PROGRESS**
+//        |
+//        |Record a blockchain deposit notification.
+//        |
+//        |Authentication is required.""",
+//      JSONFactory700.NotifyDepositJson(
+//        tx_hash = "0x123abc",
+//        from = "0xsender",
+//        to = "0xreceiver",
+//        amount = BigDecimal("100.0"),
+//        confirmations = 6
+//      ),
+//      JSONFactory700.DepositJson(
+//        deposit_id = "deposit-202",
+//        tx_hash = "0x123abc",
+//        from = "0xsender",
+//        to = "0xreceiver",
+//        amount = BigDecimal("100.0"),
+//        confirmations = 6,
+//        required_confirmations = 12,
+//        status = "pending",
+//        nonce = Some(123456L),
+//        gas_used = Some(21000L),
+//        error_message = None,
+//        user_id = "user-abc-123",
+//        consent_id = None,
+//        created_at = "2026-04-16T00:50:00Z"
+//      ),
+//      List(InvalidJsonFormat, InvalidTradingAmount, InvalidMatchParameters, $AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
+//      apiTagTrading :: apiTagMarket :: Nil,
+//      http4sPartialFunction = Some(notifyDeposit)
+//    )
+
+    // Route: POST /obp/v7.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/market/withdrawals
+    val requestWithdrawal: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "banks" / bankId / "accounts" / accountId / "views" / viewId / "market" / "withdrawals" =>
+        EndpointHelpers.withUserAndBodyCreated[JSONFactory700.RequestWithdrawalJson, JSONFactory700.WithdrawalJson](req) { (user, withdrawalJson, cc) =>
+          for {
+            // Validate bank and account
+            (_, callContext) <- NewStyle.function.getBankAccount(BankId(bankId), AccountId(accountId), Some(cc))
+
+            // Validate amount
+            _ <- Helper.booleanToFuture(
+              failMsg = InvalidTradingAmount,
+              failCode = 400,
+              cc = callContext
+            )(withdrawalJson.amount > 0)
+
+            // Invoke connector
+            (withdrawal, callContext2) <- NewStyle.function.requestWithdrawal(
+              BankId(bankId),
+              AccountId(accountId),
+              withdrawalJson.settlement_account_id,
+              withdrawalJson.amount,
+              withdrawalJson.address,
+              12,  // Ethereum mainnet standard: 12 confirmations required
+              callContext
+            )
+          } yield JSONFactory700.createWithdrawalJson(withdrawal)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(requestWithdrawal),
+      "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/market/withdrawals",
+      "Request Withdrawal",
+      """**WORK IN PROGRESS**
+        |
+        |Request a withdrawal to a blockchain address.
+        |
+        |The withdrawal_id is automatically generated as a UUID.
+        |Each request creates a new withdrawal with a unique withdrawal_id.
+        |
+        |Authentication is required.""",
+      JSONFactory700.RequestWithdrawalJson(
+        settlement_account_id = "account-123",
+        amount = BigDecimal("50.0"),
+        address = "0xdestination"
+      ),
+      JSONFactory700.WithdrawalJson(
+        withdrawal_id = "withdrawal-303",
+        account_id = "account-123",
+        amount = BigDecimal("50.0"),
+        address = "0xdestination",
+        status = "pending",
+        tx_hash = None,
+        confirmations = None,
+        required_confirmations = 12,
+        nonce = None,
+        gas_used = None,
+        error_message = None,
+        user_id = "user-abc-123",
+        consent_id = None,
+        created_at = "2026-04-16T00:55:00Z"
+      ),
+      List(InvalidJsonFormat, InvalidTradingAmount, WithdrawalFailed, $AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
+      apiTagTrading :: apiTagMarket :: Nil,
+      http4sPartialFunction = Some(requestWithdrawal)
+    )
+
+//    // ── TCC Payment Authorization Endpoints (Phase 3 - P3) ─────────────────
+//
+//    // Route: POST /obp/v7.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/market/payment-auths
+//    val createPaymentAuth: HttpRoutes[IO] = HttpRoutes.of[IO] {
+//      case req @ POST -> `prefixPath` / "banks" / bankId / "accounts" / accountId / "views" / viewId / "market" / "payment-auths" =>
+//        EndpointHelpers.withUserAndBodyCreated[JSONFactory700.CreatePaymentAuthRequestJson, JSONFactory700.PaymentAuthJson](req) { (user, createAuthJson, cc) =>
+//          for {
+//            // Validate bank and account
+//            (_, callContext) <- NewStyle.function.getBankAccount(BankId(bankId), AccountId(accountId), Some(cc))
+//            
+//            // Validate amount
+//            _ <- Helper.booleanToFuture(
+//              failMsg = InvalidTradingAmount,
+//              failCode = 400,
+//              cc = callContext
+//            )(createAuthJson.amount_fiat > 0)
+//            
+//            // Invoke connector to create payment authorization (PREAUTH state)
+//            (auth, callContext2) <- NewStyle.function.createPaymentAuth(
+//              BankId(bankId),
+//              AccountId(accountId),
+//              createAuthJson.trade_id,
+//              createAuthJson.buyer_account_id,
+//              createAuthJson.seller_account_id,
+//              createAuthJson.amount_fiat,
+//              createAuthJson.currency,
+//              callContext
+//            )
+//          } yield JSONFactory700.createPaymentAuthJson(auth)
+//        }
+//    }
+//
+//    resourceDocs += ResourceDoc(
+//      null,
+//      implementedInApiVersion,
+//      nameOf(createPaymentAuth),
+//      "POST",
+//      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/market/payment-auths",
+//      "Create Payment Authorization (TCC Preauth)",
+//      """**WORK IN PROGRESS**
+//        |
+//        |Create a payment authorization for a trade settlement using the Try-Confirm-Cancel (TCC) pattern.
+//        |
+//        |This creates a PREAUTH state authorization that freezes funds for the trade.
+//        |The auth_id is automatically generated as a UUID.
+//        |
+//        |TCC Flow:
+//        |- PREAUTH: Funds are frozen (this endpoint)
+//        |- CAPTURED: Funds are actually deducted (capture endpoint)
+//        |- RELEASED: Funds are unfrozen/refunded (release endpoint)
+//        |
+//        |Authentication is required.""",
+//      JSONFactory700.CreatePaymentAuthRequestJson(
+//        trade_id = "trade-789",
+//        buyer_account_id = "buyer-account-456",
+//        seller_account_id = "seller-account-789",
+//        amount_fiat = BigDecimal("1000.0"),
+//        currency = "EUR"
+//      ),
+//      JSONFactory700.PaymentAuthJson(
+//        auth_id = "auth-101",
+//        trade_id = "trade-789",
+//        buyer_account_id = "buyer-account-456",
+//        seller_account_id = "seller-account-789",
+//        amount_fiat = BigDecimal("1000.0"),
+//        currency = "EUR",
+//        state = "PREAUTH",
+//        hold_id = None,
+//        error_message = None,
+//        user_id = "user-abc-123",
+//        consent_id = None,
+//        created_at = "2026-04-17T10:00:00Z",
+//        updated_at = "2026-04-17T10:00:00Z"
+//      ),
+//      List(InvalidJsonFormat, InvalidTradingAmount, CreatePaymentAuthError, $AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
+//      apiTagTrading :: apiTagMarket :: Nil,
+//      http4sPartialFunction = Some(createPaymentAuth)
+//    )
+//
+//    // Route: POST /obp/v7.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/market/payment-auths/AUTH_ID/capture
+//    val capturePaymentAuth: HttpRoutes[IO] = HttpRoutes.of[IO] {
+//      case req @ POST -> `prefixPath` / "banks" / bankId / "accounts" / accountId / "views" / viewId / "market" / "payment-auths" / authId / "capture" =>
+//        EndpointHelpers.withUser(req) { (user, cc) =>
+//          for {
+//            // Validate bank and account
+//            (_, callContext) <- NewStyle.function.getBankAccount(BankId(bankId), AccountId(accountId), Some(cc))
+//            
+//            // Invoke connector to capture payment (PREAUTH → CAPTURED)
+//            (auth, callContext2) <- NewStyle.function.capturePaymentAuth(
+//              BankId(bankId),
+//              AccountId(accountId),
+//              authId,
+//              callContext
+//            )
+//          } yield JSONFactory700.createPaymentAuthJson(auth)
+//        }
+//    }
+//
+//    resourceDocs += ResourceDoc(
+//      null,
+//      implementedInApiVersion,
+//      nameOf(capturePaymentAuth),
+//      "POST",
+//      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/market/payment-auths/AUTH_ID/capture",
+//      "Capture Payment Authorization (TCC Confirm)",
+//      """**WORK IN PROGRESS**
+//        |
+//        |Capture a payment authorization to complete the trade settlement.
+//        |
+//        |This transitions the authorization from PREAUTH to CAPTURED state.
+//        |Funds are actually deducted from the buyer's account.
+//        |
+//        |Only PREAUTH state authorizations can be captured.
+//        |
+//        |Authentication is required.""",
+//      EmptyBody,
+//      JSONFactory700.PaymentAuthJson(
+//        auth_id = "auth-101",
+//        trade_id = "trade-789",
+//        buyer_account_id = "buyer-account-456",
+//        seller_account_id = "seller-account-789",
+//        amount_fiat = BigDecimal("1000.0"),
+//        currency = "EUR",
+//        state = "CAPTURED",
+//        hold_id = None,
+//        error_message = None,
+//        user_id = "user-abc-123",
+//        consent_id = None,
+//        created_at = "2026-04-17T10:00:00Z",
+//        updated_at = "2026-04-17T10:05:00Z"
+//      ),
+//      List(PaymentAuthNotFound, InvalidPaymentAuthState, PaymentAuthAlreadyCaptured, $AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
+//      apiTagTrading :: apiTagMarket :: Nil,
+//      http4sPartialFunction = Some(capturePaymentAuth)
+//    )
+//
+//    // Route: POST /obp/v7.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/market/payment-auths/AUTH_ID/release
+//    val releasePaymentAuth: HttpRoutes[IO] = HttpRoutes.of[IO] {
+//      case req @ POST -> `prefixPath` / "banks" / bankId / "accounts" / accountId / "views" / viewId / "market" / "payment-auths" / authId / "release" =>
+//        EndpointHelpers.withUser(req) { (user, cc) =>
+//          for {
+//            // Validate bank and account
+//            (_, callContext) <- NewStyle.function.getBankAccount(BankId(bankId), AccountId(accountId), Some(cc))
+//            
+//            // Invoke connector to release payment (PREAUTH/CAPTURED → RELEASED)
+//            (auth, callContext2) <- NewStyle.function.releasePaymentAuth(
+//              BankId(bankId),
+//              AccountId(accountId),
+//              authId,
+//              callContext
+//            )
+//          } yield JSONFactory700.createPaymentAuthJson(auth)
+//        }
+//    }
+//
+//    resourceDocs += ResourceDoc(
+//      null,
+//      implementedInApiVersion,
+//      nameOf(releasePaymentAuth),
+//      "POST",
+//      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/market/payment-auths/AUTH_ID/release",
+//      "Release Payment Authorization (TCC Cancel)",
+//      """**WORK IN PROGRESS**
+//        |
+//        |Release a payment authorization to cancel the trade settlement.
+//        |
+//        |This transitions the authorization to RELEASED state.
+//        |Frozen funds are unfrozen (if PREAUTH) or refunded (if CAPTURED).
+//        |
+//        |Both PREAUTH and CAPTURED state authorizations can be released.
+//        |
+//        |Authentication is required.""",
+//      EmptyBody,
+//      JSONFactory700.PaymentAuthJson(
+//        auth_id = "auth-101",
+//        trade_id = "trade-789",
+//        buyer_account_id = "buyer-account-456",
+//        seller_account_id = "seller-account-789",
+//        amount_fiat = BigDecimal("1000.0"),
+//        currency = "EUR",
+//        state = "RELEASED",
+//        hold_id = None,
+//        error_message = None,
+//        user_id = "user-abc-123",
+//        consent_id = None,
+//        created_at = "2026-04-17T10:00:00Z",
+//        updated_at = "2026-04-17T10:10:00Z"
+//      ),
+//      List(PaymentAuthNotFound, InvalidPaymentAuthState, PaymentAuthAlreadyReleased, $AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
+//      apiTagTrading :: apiTagMarket :: Nil,
+//      http4sPartialFunction = Some(releasePaymentAuth)
+//    )
+//
+//    // Route: GET /obp/v7.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/market/payment-auths/AUTH_ID
+//    val getPaymentAuth: HttpRoutes[IO] = HttpRoutes.of[IO] {
+//      case req @ GET -> `prefixPath` / "banks" / bankId / "accounts" / accountId / "views" / viewId / "market" / "payment-auths" / authId =>
+//        EndpointHelpers.withUser(req) { (user, cc) =>
+//          for {
+//            // Validate bank and account
+//            (_, callContext) <- NewStyle.function.getBankAccount(BankId(bankId), AccountId(accountId), Some(cc))
+//            
+//            // Invoke connector to get payment authorization
+//            (auth, callContext2) <- NewStyle.function.getPaymentAuth(
+//              BankId(bankId),
+//              AccountId(accountId),
+//              authId,
+//              callContext
+//            )
+//          } yield JSONFactory700.createPaymentAuthJson(auth)
+//        }
+//    }
+//
+//    resourceDocs += ResourceDoc(
+//      null,
+//      implementedInApiVersion,
+//      nameOf(getPaymentAuth),
+//      "GET",
+//      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/market/payment-auths/AUTH_ID",
+//      "Get Payment Authorization",
+//      """**WORK IN PROGRESS**
+//        |
+//        |Get details of a payment authorization.
+//        |
+//        |Returns the current state and details of the authorization.
+//        |
+//        |Authentication is required.""",
+//      EmptyBody,
+//      JSONFactory700.PaymentAuthJson(
+//        auth_id = "auth-101",
+//        trade_id = "trade-789",
+//        buyer_account_id = "buyer-account-456",
+//        seller_account_id = "seller-account-789",
+//        amount_fiat = BigDecimal("1000.0"),
+//        currency = "EUR",
+//        state = "PREAUTH",
+//        hold_id = None,
+//        error_message = None,
+//        user_id = "user-abc-123",
+//        consent_id = None,
+//        created_at = "2026-04-17T10:00:00Z",
+//        updated_at = "2026-04-17T10:00:00Z"
+//      ),
+//      List(PaymentAuthNotFound, $AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UnknownError),
+//      apiTagTrading :: apiTagMarket :: Nil,
+//      http4sPartialFunction = Some(getPaymentAuth)
+//    )
+
+    // ── End Market Endpoints (Phase 2) ─────────────────────────────────────
 
     // ── Phase 1 batch 3 — system endpoints ──────────────────────────────────
 
@@ -1091,6 +2405,265 @@ object Http4s700 {
 
     // ── End Phase 1 batch 3 ──────────────────────────────────────────────────
 
+    // ── Organisations ─────────────────────────────────────────────────────────
+    // CRUD for the Organisation resource. Migrated from v6.0.0 (Lift) to v7.0.0
+    // (http4s). Path uses ORGANISATION_ID; not resolved by middleware (only BANK_ID
+    // / ACCOUNT_ID / VIEW_ID / COUNTERPARTY_ID are), so endpoints fetch directly
+    // via OrganisationX.organisation.vend.
+
+    private val ValidOrganisationStatuses    = Set("active", "suspended", "archived")
+    private val ValidOrganisationVisibilities = Set("public", "unlisted", "private")
+    private val OrganisationIdRegex          = "^[a-zA-Z0-9._-]{2,64}$".r
+
+    val createOrganisation: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "organisations" =>
+        EndpointHelpers.withUserAndBodyCreated[JSONFactory700.PostOrganisationJsonV700, JSONFactory700.OrganisationJsonV700](req) { (user, body, cc) =>
+          for {
+            _ <- Helper.booleanToFuture(InvalidOrganisationIdFormat, 400, Some(cc)) {
+              OrganisationIdRegex.findFirstIn(body.organisation_id).isDefined
+            }
+            status     = body.status.getOrElse("active")
+            visibility = body.visibility.getOrElse("public")
+            _ <- Helper.booleanToFuture(InvalidOrganisationStatus, 400, Some(cc)) {
+              ValidOrganisationStatuses.contains(status)
+            }
+            _ <- Helper.booleanToFuture(InvalidOrganisationVisibility, 400, Some(cc)) {
+              ValidOrganisationVisibilities.contains(visibility)
+            }
+            existing <- Future(OrganisationX.organisation.vend.getOrganisation(body.organisation_id))
+            _ <- Helper.booleanToFuture(OrganisationAlreadyExists, 409, Some(cc))(existing.isEmpty)
+            created <- Future {
+              OrganisationX.organisation.vend.createOrganisation(
+                body.organisation_id, body.name, body.website, body.logo_url,
+                status, visibility, user.userId
+              )
+            }.map(unboxFullOrFail(_, Some(cc), CreateOrganisationError, 400))
+          } yield JSONFactory700.createOrganisationJsonV700(created)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(createOrganisation),
+      "POST",
+      "/organisations",
+      "Create Organisation",
+      """Create an Organisation.
+        |
+        |The organisation_id must be a URL-safe string (a-z, A-Z, 0-9, '-', '.', '_'), between 2 and 64 characters in length, and is immutable.
+        |
+        |Optional fields:
+        |- status: one of active, suspended, archived (defaults to active)
+        |- visibility: one of public, unlisted, private (defaults to public)
+        |- website, logo_url
+        |
+        |Authentication is Required.""".stripMargin,
+      JSONFactory700.PostOrganisationJsonV700(
+        organisation_id = "tesobe",
+        name = "TESOBE GmbH",
+        website = Some("https://www.tesobe.com"),
+        logo_url = None,
+        status = Some("active"),
+        visibility = Some("public")
+      ),
+      JSONFactory700.OrganisationJsonV700(
+        organisation_id = "tesobe",
+        name = "TESOBE GmbH",
+        website = Some("https://www.tesobe.com"),
+        logo_url = None,
+        status = "active",
+        visibility = "public",
+        created_by_user_id = "9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+        created_at = new java.util.Date(),
+        updated_at = new java.util.Date()
+      ),
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat,
+           InvalidOrganisationIdFormat, InvalidOrganisationStatus,
+           InvalidOrganisationVisibility, OrganisationAlreadyExists,
+           CreateOrganisationError, UnknownError),
+      apiTagOrganisation :: Nil,
+      Some(List(canCreateOrganisation)),
+      http4sPartialFunction = Some(createOrganisation)
+    )
+
+    val getOrganisations: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "organisations" =>
+        EndpointHelpers.withUser(req) { (user, cc) =>
+          for {
+            allOrgs <- OrganisationX.organisation.vend.getAllOrganisations()
+              .map(unboxFullOrFail(_, Some(cc), UnknownError, 500))
+            hasGetAny = APIUtil.hasEntitlement("", user.userId, canGetAnyOrganisation)
+            visible   = if (hasGetAny) allOrgs else allOrgs.filter(_.visibility == "public")
+          } yield JSONFactory700.createOrganisationsJsonV700(visible)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(getOrganisations),
+      "GET",
+      "/organisations",
+      "Get Organisations",
+      """Returns Organisations.
+        |
+        |By default returns only Organisations whose visibility is `public`. Users granted CanGetAnyOrganisation see all Organisations including unlisted and private.
+        |
+        |Authentication is Required.""".stripMargin,
+      EmptyBody,
+      JSONFactory700.OrganisationsJsonV700(organisations = List(
+        JSONFactory700.OrganisationJsonV700(
+          organisation_id = "tesobe",
+          name = "TESOBE GmbH",
+          website = Some("https://www.tesobe.com"),
+          logo_url = None,
+          status = "active",
+          visibility = "public",
+          created_by_user_id = "9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+          created_at = new java.util.Date(),
+          updated_at = new java.util.Date()
+        )
+      )),
+      List($AuthenticatedUserIsRequired, UnknownError),
+      apiTagOrganisation :: Nil,
+      None,
+      http4sPartialFunction = Some(getOrganisations)
+    )
+
+    val getOrganisation: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "organisations" / organisationId =>
+        EndpointHelpers.withUser(req) { (user, cc) =>
+          for {
+            org <- Future(OrganisationX.organisation.vend.getOrganisation(organisationId))
+              .map(unboxFullOrFail(_, Some(cc), OrganisationNotFound, 404))
+            _ <- if (org.visibility == "private")
+                   NewStyle.function.hasEntitlement("", user.userId, canGetAnyOrganisation, Some(cc))
+                 else Future.successful(())
+          } yield JSONFactory700.createOrganisationJsonV700(org)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(getOrganisation),
+      "GET",
+      "/organisations/ORGANISATION_ID",
+      "Get Organisation",
+      """Returns the Organisation specified by ORGANISATION_ID.
+        |
+        |Organisations with visibility `public` or `unlisted` are visible to any authenticated user. Organisations with visibility `private` require CanGetAnyOrganisation.
+        |
+        |Authentication is Required.""".stripMargin,
+      EmptyBody,
+      JSONFactory700.OrganisationJsonV700(
+        organisation_id = "tesobe",
+        name = "TESOBE GmbH",
+        website = Some("https://www.tesobe.com"),
+        logo_url = None,
+        status = "active",
+        visibility = "public",
+        created_by_user_id = "9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+        created_at = new java.util.Date(),
+        updated_at = new java.util.Date()
+      ),
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, OrganisationNotFound, UnknownError),
+      apiTagOrganisation :: Nil,
+      None,
+      http4sPartialFunction = Some(getOrganisation)
+    )
+
+    val updateOrganisation: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ PUT -> `prefixPath` / "organisations" / organisationId =>
+        EndpointHelpers.withUserAndBody[JSONFactory700.PutOrganisationJsonV700, JSONFactory700.OrganisationJsonV700](req) { (_, body, cc) =>
+          for {
+            _ <- Future(OrganisationX.organisation.vend.getOrganisation(organisationId))
+              .map(unboxFullOrFail(_, Some(cc), OrganisationNotFound, 404))
+            _ <- Helper.booleanToFuture(InvalidOrganisationStatus, 400, Some(cc)) {
+              body.status.forall(ValidOrganisationStatuses.contains)
+            }
+            _ <- Helper.booleanToFuture(InvalidOrganisationVisibility, 400, Some(cc)) {
+              body.visibility.forall(ValidOrganisationVisibilities.contains)
+            }
+            updated <- Future {
+              OrganisationX.organisation.vend.updateOrganisation(
+                organisationId, body.name, body.website, body.logo_url, body.status, body.visibility
+              )
+            }.map(unboxFullOrFail(_, Some(cc), UpdateOrganisationError, 400))
+          } yield JSONFactory700.createOrganisationJsonV700(updated)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(updateOrganisation),
+      "PUT",
+      "/organisations/ORGANISATION_ID",
+      "Update Organisation",
+      """Update an Organisation. All body fields are optional. The organisation_id is immutable and cannot be changed.
+        |
+        |Authentication is Required.""".stripMargin,
+      JSONFactory700.PutOrganisationJsonV700(
+        name = Some("TESOBE GmbH"),
+        website = Some("https://www.tesobe.com"),
+        logo_url = None,
+        status = Some("active"),
+        visibility = Some("public")
+      ),
+      JSONFactory700.OrganisationJsonV700(
+        organisation_id = "tesobe",
+        name = "TESOBE GmbH",
+        website = Some("https://www.tesobe.com"),
+        logo_url = None,
+        status = "active",
+        visibility = "public",
+        created_by_user_id = "9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+        created_at = new java.util.Date(),
+        updated_at = new java.util.Date()
+      ),
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat,
+           OrganisationNotFound, InvalidOrganisationStatus,
+           InvalidOrganisationVisibility, UpdateOrganisationError, UnknownError),
+      apiTagOrganisation :: Nil,
+      Some(List(canUpdateOrganisation)),
+      http4sPartialFunction = Some(updateOrganisation)
+    )
+
+    val deleteOrganisation: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ DELETE -> `prefixPath` / "organisations" / organisationId =>
+        EndpointHelpers.withUserDelete(req) { (_, cc) =>
+          for {
+            _ <- Future(OrganisationX.organisation.vend.getOrganisation(organisationId))
+              .map(unboxFullOrFail(_, Some(cc), OrganisationNotFound, 404))
+            _ <- Future(OrganisationX.organisation.vend.deleteOrganisation(organisationId))
+              .map(unboxFullOrFail(_, Some(cc), DeleteOrganisationError, 400))
+          } yield ()
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(deleteOrganisation),
+      "DELETE",
+      "/organisations/ORGANISATION_ID",
+      "Delete Organisation",
+      """Delete the Organisation specified by ORGANISATION_ID.
+        |
+        |Authentication is Required.""".stripMargin,
+      EmptyBody,
+      EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, OrganisationNotFound,
+           DeleteOrganisationError, UnknownError),
+      apiTagOrganisation :: Nil,
+      Some(List(canDeleteOrganisation)),
+      http4sPartialFunction = Some(deleteOrganisation)
+    )
+
+    // ── End Organisations ─────────────────────────────────────────────────────
+
     // ── Test-only rollback endpoint ───────────────────────────────────────────
     // Enabled only in Lift test mode (Props.testMode == true, i.e. -Drun.mode=test).
     // Props.testMode is set from the JVM system property before any props file loads,
@@ -1148,9 +2721,12 @@ object Http4s700 {
       }
     }
 
-    // Routes wrapped with ResourceDocMiddleware for automatic validation
+    // Routes wrapped with ResourceDocMiddleware for automatic validation.
+    // IdempotencyMiddleware is nested inside so that auth/CallContext is populated
+    // before the idempotency scope key is computed; on a cache hit the inner
+    // routes (and any DB transaction) are skipped.
     val allRoutesWithMiddleware: HttpRoutes[IO] =
-      ResourceDocMiddleware.apply(resourceDocs)(allRoutes)
+      ResourceDocMiddleware.apply(resourceDocs)(IdempotencyMiddleware(allRoutes))
   }
 
   // Routes with ResourceDocMiddleware - provides automatic validation based on ResourceDoc metadata

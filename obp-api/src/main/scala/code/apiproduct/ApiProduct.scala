@@ -24,6 +24,8 @@ class ApiProduct extends ApiProductTrait with LongKeyedMapper[ApiProduct] with I
   object PerDayCallLimit extends MappedLong(this) { override def defaultValue = -1L }
   object PerWeekCallLimit extends MappedLong(this) { override def defaultValue = -1L }
   object PerMonthCallLimit extends MappedLong(this) { override def defaultValue = -1L }
+  // Pipe-delimited list of tags, e.g. "|featured|beta|". Leading/trailing pipes make LIKE filtering exact.
+  object Tags extends MappedString(this, 2000)
 
   override def apiProductId: String = ApiProductId.get
   override def bankId: String = BankId.get
@@ -43,10 +45,26 @@ class ApiProduct extends ApiProductTrait with LongKeyedMapper[ApiProduct] with I
   override def perDayCallLimit: Long = PerDayCallLimit.get
   override def perWeekCallLimit: Long = PerWeekCallLimit.get
   override def perMonthCallLimit: Long = PerMonthCallLimit.get
+  override def tags: List[String] = ApiProduct.decodeTags(Tags.get)
 }
 
 object ApiProduct extends ApiProduct with LongKeyedMetaMapper[ApiProduct] {
   override def dbIndexes = UniqueIndex(BankId, ApiProductCode) :: Index(BankId) :: super.dbIndexes
+
+  // Wire format: List[String]. Storage format: "|tag1|tag2|" (leading/trailing pipes so LIKE '%|foo|%' matches exactly).
+  // Tags are normalised: trimmed, lower-cased, pipe-stripped, de-duplicated, empty entries dropped.
+  def encodeTags(tags: List[String]): String = {
+    val normalised = tags
+      .map(_.trim.toLowerCase.replace("|", ""))
+      .filter(_.nonEmpty)
+      .distinct
+    if (normalised.isEmpty) "" else normalised.mkString("|", "|", "|")
+  }
+
+  def decodeTags(stored: String): List[String] = {
+    if (stored == null || stored.isEmpty) Nil
+    else stored.split('|').toList.filter(_.nonEmpty)
+  }
 }
 
 trait ApiProductTrait {
@@ -68,4 +86,5 @@ trait ApiProductTrait {
   def perDayCallLimit: Long
   def perWeekCallLimit: Long
   def perMonthCallLimit: Long
+  def tags: List[String]
 }

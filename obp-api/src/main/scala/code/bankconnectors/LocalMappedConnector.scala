@@ -88,6 +88,7 @@ import scalikejdbc.{ConnectionPool, ConnectionPoolSettings, MultipleConnectionPo
 import java.util.Date
 import java.util.UUID.randomUUID
 import scala.collection.immutable.{List, Nil}
+import scala.collection.JavaConverters._
 import scala.concurrent._
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -98,6 +99,18 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   //  override type AccountType = MappedBankAccount
   
   val getTransactionsTTL = APIUtil.getPropsValue("connector.cache.ttl.seconds.getTransactions", "0").toInt * 1000 // Miliseconds
+
+  // Trading offer storage
+  private val tradingOffers = new java.util.concurrent.ConcurrentHashMap[String, TradingOffer]()
+
+  // Market trading storage
+  private val marketOrders = new java.util.concurrent.ConcurrentHashMap[String, MarketOrder]()
+  private val marketMatches = new java.util.concurrent.ConcurrentHashMap[String, MarketMatch]()
+  private val marketTrades = new java.util.concurrent.ConcurrentHashMap[String, MarketTrade]()
+  private val settlements = new java.util.concurrent.ConcurrentHashMap[String, Settlement]()
+  private val deposits = new java.util.concurrent.ConcurrentHashMap[String, Deposit]()
+  private val withdrawals = new java.util.concurrent.ConcurrentHashMap[String, Withdrawal]()
+  private val paymentAuths = new java.util.concurrent.ConcurrentHashMap[String, PaymentAuth]()
 
   //This is the implicit parameter for saveConnectorMetric function.
   //eg:  override def getBank(bankId: BankId, callContext: Option[CallContext]) = saveConnectorMetric
@@ -2560,13 +2573,31 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
   override def getProducts(bankId: BankId, params: List[GetProductsParam], callContext: Option[CallContext]): OBPReturnType[Box[List[Product]]] = {
     Future{Box !! {
-      if (params.isEmpty) {
-        MappedProduct.findAll(By(MappedProduct.mBankId, bankId.value))
+      // `tag` params are resolved via the ProductTag table (AND semantics when repeated); the rest
+      // continue to be treated as MappedProductAttribute filters.
+      val (tagParams, attributeParams) = params.partition(_.name.toLowerCase == "tag")
+      val requestedTags = tagParams.flatMap(_.value).map(_.trim).filter(_.nonEmpty)
+      val codesFromTags: Option[Set[String]] =
+        if (requestedTags.isEmpty) None
+        else Some(code.products.ProductTagsProvider.getProductCodesWithAllTags(bankId, requestedTags))
+
+      // Short-circuit if the tag filter yielded no matches.
+      if (codesFromTags.exists(_.isEmpty)) Nil
+      else if (attributeParams.isEmpty) {
+        codesFromTags match {
+          case Some(codes) =>
+            MappedProduct.findAll(
+              By(MappedProduct.mBankId, bankId.value),
+              ByList(MappedProduct.mCode, codes.toList)
+            )
+          case None =>
+            MappedProduct.findAll(By(MappedProduct.mBankId, bankId.value))
+        }
       } else {
-        val paramList: List[(String, List[String])] = params.map(it => it.name -> it.value)
+        val paramList: List[(String, List[String])] = attributeParams.map(it => it.name -> it.value)
         val parameters: List[String] = MappedProductAttribute.getParameters(paramList)
         val sqlParametersFilter = MappedProductAttribute.getSqlParametersFilter(paramList)
-        val productIdList = paramList.isEmpty match {
+        val codesFromAttrs: List[String] = paramList.isEmpty match {
           case true =>
             MappedProductAttribute.findAll(
               By(MappedProductAttribute.mBankId, bankId.value)
@@ -2577,7 +2608,11 @@ object LocalMappedConnector extends Connector with MdcLoggable {
               BySql(sqlParametersFilter, IHaveValidatedThisSQL("developer","2020-06-28"), parameters:_*)
             ).map(_.productCode.value)
         }
-        MappedProduct.findAll(ByList(MappedProduct.mCode, productIdList))
+        val finalCodes = codesFromTags match {
+          case Some(tagSet) => codesFromAttrs.filter(tagSet.contains)
+          case None => codesFromAttrs
+        }
+        MappedProduct.findAll(ByList(MappedProduct.mCode, finalCodes))
       }
     }
   }}.map(products => (products, callContext))
@@ -3070,7 +3105,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                      details: String,
                                      description: String,
                                      metaLicenceId: String,
-                                     metaLicenceName: String, 
+                                     metaLicenceName: String,
                                      callContext: Option[CallContext]): OBPReturnType[Box[Product]] = Future{
 
     //check the product existence and update or insert data
@@ -5876,6 +5911,503 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     callContext: Option[CallContext]
   ): OBPReturnType[Box[Boolean]] = Future {
     (MappedMandateProvider.deleteSignatoryPanel(panelId), callContext)
+  }
+
+  // Trading Methods Implementation
+  override def createTradingOffer(
+    bankId: BankId,
+    accountId: AccountId,
+    offerType: String,
+    assetCode: String,
+    assetAmount: BigDecimal,
+    priceCurrency: String,
+    priceAmount: BigDecimal,
+    settlementAccountId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[TradingOffer]] = Future {
+    // Extract audit fields from CallContext
+    val userId = callContext.flatMap(_.user.map(_.userId)).getOrElse("SYSTEM")
+    val consentId: Option[String] = None  // TODO: Extract from consent when available
+    
+    // Generate offer ID (auto-generated UUID following OBP design pattern)
+    val offerId = randomUUID().toString
+
+    // Create offer
+    val offer = TradingOffer(
+      offerId = offerId,
+      offerType = offerType,
+      status = "active",
+      offerDetails = TradingOfferDetails(
+        assetCode = assetCode,
+        assetAmount = assetAmount,
+        priceCurrency = priceCurrency,
+        priceAmount = priceAmount,
+        settlementAccountId = settlementAccountId,
+        expiryDatetime = None,
+        minimumFill = None
+      ),
+      accountInfo = TradingAccountInfo(
+        bankId = bankId.value,
+        accountId = accountId.value,
+        viewId = "owner" // Default view
+      ),
+      executions = List.empty,
+      userId = userId,
+      consentId = consentId,
+      createdAt = new Date(),
+      updatedAt = new Date()
+    )
+
+    // Store offer
+    tradingOffers.put(offerId, offer)
+
+    (Full(offer), callContext)
+  }
+
+  override def getTradingOffer(
+    offerId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[TradingOffer]] = Future {
+    val offer = Option(tradingOffers.get(offerId))
+    (Box(offer), callContext)
+  }
+
+  override def cancelTradingOffer(
+    offerId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[TradingOffer]] = Future {
+    val offer = Option(tradingOffers.get(offerId))
+
+    offer match {
+      case Some(o) =>
+        val cancelledOffer = o.copy(
+          status = "cancelled",
+          updatedAt = new Date()
+        )
+        tradingOffers.put(offerId, cancelledOffer)
+        (Full(cancelledOffer), callContext)
+      case None =>
+        (Empty, callContext)
+    }
+  }
+
+  override def updateTradingOffer(
+    offerId: String,
+    priceAmount: Option[BigDecimal],
+    expiryDatetime: Option[Date],
+    minimumFill: Option[BigDecimal],
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[TradingOffer]] = Future {
+    val offer = Option(tradingOffers.get(offerId))
+
+    offer match {
+      case Some(o) =>
+        // Update only the fields that are provided
+        val updatedDetails = o.offerDetails.copy(
+          priceAmount = priceAmount.getOrElse(o.offerDetails.priceAmount),
+          expiryDatetime = expiryDatetime.orElse(o.offerDetails.expiryDatetime),
+          minimumFill = minimumFill.orElse(o.offerDetails.minimumFill)
+        )
+        val updatedOffer = o.copy(
+          offerDetails = updatedDetails,
+          updatedAt = new Date()
+        )
+        tradingOffers.put(offerId, updatedOffer)
+        (Full(updatedOffer), callContext)
+      case None =>
+        (Empty, callContext)
+    }
+  }
+
+  override def getTradingOffers(
+    bankId: BankId,
+    accountId: AccountId,
+    status: Option[String],
+    offerType: Option[String],
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[List[TradingOffer]]] = Future {
+    // Get all offers and filter by bankId and accountId
+    val allOffers = tradingOffers.values().asScala.toList
+    
+    val filteredOffers = allOffers
+      .filter(o => o.accountInfo.bankId == bankId.value && o.accountInfo.accountId == accountId.value)
+      .filter(o => status.forall(_ == o.status))
+      .filter(o => offerType.forall(_ == o.offerType))
+      .sortBy(_.createdAt.getTime)(Ordering[Long].reverse) // Most recent first
+    
+    (Full(filteredOffers), callContext)
+  }
+
+  // Market Trading Methods Implementation
+  override def createMarketOrder(
+    bankId: BankId,
+    accountId: AccountId,
+    side: String,
+    price: BigDecimal,
+    quantity: BigDecimal,
+    settlementAccountId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[MarketOrder]] = Future {
+    // Extract audit fields from CallContext
+    val userId = callContext.flatMap(_.user.map(_.userId)).getOrElse("SYSTEM")
+    val consentId: Option[String] = None  // TODO: Extract from consent when available
+    
+    // Generate order ID (auto-generated UUID following OBP design pattern)
+    val orderId = randomUUID().toString
+
+    // Create order
+    val order = MarketOrder(
+      orderId = orderId,
+      side = side,
+      price = price,
+      quantity = quantity,
+      accountId = settlementAccountId,
+      status = "active",
+      userId = userId,
+      consentId = consentId,
+      createdAt = new Date(),
+      updatedAt = new Date()
+    )
+
+    // Store order
+    marketOrders.put(orderId, order)
+
+    (Full(order), callContext)
+  }
+
+  override def getMarketOrder(
+    bankId: BankId,
+    accountId: AccountId,
+    orderId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[MarketOrder]] = Future {
+    val order = Option(marketOrders.get(orderId))
+    (Box(order), callContext)
+  }
+
+  override def cancelMarketOrder(
+    bankId: BankId,
+    accountId: AccountId,
+    orderId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[MarketOrder]] = Future {
+    val order = Option(marketOrders.get(orderId))
+
+    order match {
+      case Some(o) =>
+        val cancelledOrder = o.copy(
+          status = "cancelled",
+          updatedAt = new Date()
+        )
+        marketOrders.put(orderId, cancelledOrder)
+        (Full(cancelledOrder), callContext)
+      case None =>
+        (Empty, callContext)
+    }
+  }
+
+  override def createMarketMatch(
+    bankId: BankId,
+    accountId: AccountId,
+    orderId: String,
+    counterOrderId: String,
+    amount: BigDecimal,
+    price: BigDecimal,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[MarketMatch]] = Future {
+    // Extract audit fields from CallContext
+    val userId = callContext.flatMap(_.user.map(_.userId)).getOrElse("SYSTEM")
+    val consentId: Option[String] = None  // TODO: Extract from consent when available
+    
+    // Generate match ID
+    val matchId = randomUUID().toString
+
+    // Create match
+    val marketMatch = MarketMatch(
+      matchId = matchId,
+      orderId = orderId,
+      counterOrderId = counterOrderId,
+      amount = amount,
+      price = price,
+      userId = userId,
+      consentId = consentId,
+      createdAt = new Date()
+    )
+
+    // Store match
+    marketMatches.put(matchId, marketMatch)
+
+    // Create corresponding trade
+    val tradeId = randomUUID().toString
+    val trade = MarketTrade(
+      tradeId = tradeId,
+      buyOrderId = orderId,
+      sellOrderId = counterOrderId,
+      amount = amount,
+      price = price,
+      status = "pending",
+      userId = userId,
+      consentId = consentId,
+      createdAt = new Date()
+    )
+    marketTrades.put(tradeId, trade)
+
+    (Full(marketMatch), callContext)
+  }
+
+  override def getMarketTrade(
+    bankId: BankId,
+    accountId: AccountId,
+    tradeId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[MarketTrade]] = Future {
+    val trade = Option(marketTrades.get(tradeId))
+    (Box(trade), callContext)
+  }
+
+  override def requestSettlement(
+    bankId: BankId,
+    accountId: AccountId,
+    tradeId: String,
+    step: Option[String],
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[Settlement]] = Future {
+    // Extract audit fields from CallContext
+    val userId = callContext.flatMap(_.user.map(_.userId)).getOrElse("SYSTEM")
+    val consentId: Option[String] = None  // TODO: Extract from consent when available
+    
+    // Generate settlement ID
+    val settlementId = randomUUID().toString
+
+    // Create settlement
+    val settlement = Settlement(
+      settlementId = settlementId,
+      tradeId = tradeId,
+      step = step,
+      status = "pending",
+      userId = userId,
+      consentId = consentId,
+      createdAt = new Date(),
+      completedAt = None
+    )
+
+    // Store settlement
+    settlements.put(settlementId, settlement)
+
+    (Full(settlement), callContext)
+  }
+
+  override def notifyDeposit(
+    bankId: BankId,
+    accountId: AccountId,
+    txHash: String,
+    from: String,
+    to: String,
+    amount: BigDecimal,
+    confirmations: Int,
+    requiredConfirmations: Int,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[Deposit]] = Future {
+    // Extract audit fields from CallContext
+    val userId = callContext.flatMap(_.user.map(_.userId)).getOrElse("SYSTEM")
+    val consentId: Option[String] = None  // TODO: Extract from consent when available
+    
+    // Generate deposit ID
+    val depositId = randomUUID().toString
+
+    // Determine status based on confirmations
+    val status = if (confirmations >= requiredConfirmations) "confirmed" else "pending"
+
+    // Create deposit
+    val deposit = Deposit(
+      depositId = depositId,
+      txHash = txHash,
+      from = from,
+      to = to,
+      amount = amount,
+      confirmations = confirmations,
+      requiredConfirmations = requiredConfirmations,
+      status = status,
+      nonce = None,  // TODO: Extract from blockchain transaction
+      gasUsed = None,  // TODO: Extract from blockchain transaction receipt
+      errorMessage = None,
+      userId = userId,
+      consentId = consentId,
+      createdAt = new Date()
+    )
+
+    // Store deposit
+    deposits.put(depositId, deposit)
+
+    (Full(deposit), callContext)
+  }
+
+  override def requestWithdrawal(
+    bankId: BankId,
+    accountId: AccountId,
+    settlementAccountId: String,
+    amount: BigDecimal,
+    address: String,
+    requiredConfirmations: Int,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[Withdrawal]] = Future {
+    // Extract audit fields from CallContext
+    val userId = callContext.flatMap(_.user.map(_.userId)).getOrElse("SYSTEM")
+    val consentId: Option[String] = None  // TODO: Extract from consent when available
+    
+    // Generate withdrawal ID (auto-generated UUID following OBP design pattern)
+    val withdrawalId = randomUUID().toString
+
+    // Create withdrawal
+    val withdrawal = Withdrawal(
+      withdrawalId = withdrawalId,
+      accountId = settlementAccountId,
+      amount = amount,
+      address = address,
+      status = "pending",
+      txHash = None,  // Will be set when transaction is submitted to blockchain
+      confirmations = None,  // Will be updated as blockchain confirms
+      requiredConfirmations = requiredConfirmations,
+      nonce = None,  // TODO: Will be set when transaction is submitted
+      gasUsed = None,  // TODO: Will be set after transaction is mined
+      errorMessage = None,
+      userId = userId,
+      consentId = consentId,
+      createdAt = new Date()
+    )
+
+    // Store withdrawal
+    withdrawals.put(withdrawalId, withdrawal)
+
+    (Full(withdrawal), callContext)
+  }
+
+  // TCC Payment Authorization Implementation
+  override def createPaymentAuth(
+    bankId: BankId,
+    accountId: AccountId,
+    tradeId: String,
+    buyerAccountId: String,
+    sellerAccountId: String,
+    amountFiat: BigDecimal,
+    currency: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[PaymentAuth]] = Future {
+    // Extract audit fields from CallContext
+    val userId = callContext.flatMap(_.user.map(_.userId)).getOrElse("SYSTEM")
+    val consentId: Option[String] = None  // TODO: Extract from consent when available
+    
+    // Generate auth ID (auto-generated UUID following OBP design pattern)
+    val authId = randomUUID().toString
+    val now = new Date()
+
+    // Create payment authorization in PREAUTH state
+    val auth = PaymentAuth(
+      authId = authId,
+      tradeId = tradeId,
+      buyerAccountId = buyerAccountId,
+      sellerAccountId = sellerAccountId,
+      amountFiat = amountFiat,
+      currency = currency,
+      state = "PREAUTH",  // Initial state: funds are frozen
+      holdId = None,  // TODO: P5 integration - create account hold
+      errorMessage = None,
+      userId = userId,
+      consentId = consentId,
+      createdAt = now,
+      updatedAt = now
+    )
+
+    // Store payment authorization
+    paymentAuths.put(authId, auth)
+
+    (Full(auth), callContext)
+  }
+
+  override def capturePaymentAuth(
+    bankId: BankId,
+    accountId: AccountId,
+    authId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[PaymentAuth]] = Future {
+    // Retrieve existing authorization
+    Option(paymentAuths.get(authId)) match {
+      case Some(auth) =>
+        // Validate state transition: only PREAUTH can be captured
+        auth.state match {
+          case "PREAUTH" =>
+            // Update to CAPTURED state (funds are actually deducted)
+            val updatedAuth = auth.copy(
+              state = "CAPTURED",
+              updatedAt = new Date()
+            )
+            paymentAuths.put(authId, updatedAuth)
+            (Full(updatedAuth), callContext)
+          
+          case "CAPTURED" =>
+            (Failure(ErrorMessages.PaymentAuthAlreadyCaptured), callContext)
+          
+          case "RELEASED" =>
+            (Failure(ErrorMessages.InvalidPaymentAuthState + " Cannot capture a released authorization."), callContext)
+          
+          case "FAILED" =>
+            (Failure(ErrorMessages.InvalidPaymentAuthState + " Cannot capture a failed authorization."), callContext)
+          
+          case _ =>
+            (Failure(ErrorMessages.InvalidPaymentAuthState), callContext)
+        }
+      
+      case None =>
+        (Failure(ErrorMessages.PaymentAuthNotFound), callContext)
+    }
+  }
+
+  override def releasePaymentAuth(
+    bankId: BankId,
+    accountId: AccountId,
+    authId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[PaymentAuth]] = Future {
+    // Retrieve existing authorization
+    Option(paymentAuths.get(authId)) match {
+      case Some(auth) =>
+        // Validate state transition: PREAUTH or CAPTURED can be released
+        auth.state match {
+          case "PREAUTH" | "CAPTURED" =>
+            // Update to RELEASED state (funds are unfrozen/refunded)
+            val updatedAuth = auth.copy(
+              state = "RELEASED",
+              updatedAt = new Date()
+            )
+            paymentAuths.put(authId, updatedAuth)
+            (Full(updatedAuth), callContext)
+          
+          case "RELEASED" =>
+            (Failure(ErrorMessages.PaymentAuthAlreadyReleased), callContext)
+          
+          case "FAILED" =>
+            (Failure(ErrorMessages.InvalidPaymentAuthState + " Cannot release a failed authorization."), callContext)
+          
+          case _ =>
+            (Failure(ErrorMessages.InvalidPaymentAuthState), callContext)
+        }
+      
+      case None =>
+        (Failure(ErrorMessages.PaymentAuthNotFound), callContext)
+    }
+  }
+
+  override def getPaymentAuth(
+    bankId: BankId,
+    accountId: AccountId,
+    authId: String,
+    callContext: Option[CallContext]
+  ): OBPReturnType[Box[PaymentAuth]] = Future {
+    // Retrieve payment authorization
+    Option(paymentAuths.get(authId)) match {
+      case Some(auth) => (Full(auth), callContext)
+      case None => (Failure(ErrorMessages.PaymentAuthNotFound), callContext)
+    }
   }
 
 }

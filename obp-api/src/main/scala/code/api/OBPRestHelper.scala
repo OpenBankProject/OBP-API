@@ -423,7 +423,10 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
         }
       }
     }
-    else if (APIUtil.getPropsAsBoolValue("allow_gateway_login", false) && hasGatewayHeader(authorization)) {
+    else if (hasGatewayHeader(authorization)) {
+      if (!APIUtil.getPropsAsBoolValue("allow_gateway_login", false)) {
+        Full(errorJsonResponse(ErrorMessages.GatewayLoginIsDisabled, 401))
+      } else {
       logger.info("allow_gateway_login-getRemoteIpAddress: " + remoteIpAddress )
       APIUtil.getPropsValue("gateway.host") match {
         case Full(h) if h.split(",").toList.exists(_.equalsIgnoreCase(remoteIpAddress) == true) => // Only addresses from white list can use this feature
@@ -462,8 +465,12 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
         case _ =>
           Failure(ErrorMessages.GatewayLoginUnknownError)
       }
-    } 
-    else if (APIUtil.getPropsAsBoolValue("allow_dauth", false) && hasDAuthHeader(cc.requestHeaders)) {
+      }
+    }
+    else if (hasDAuthHeader(cc.requestHeaders)) {
+      if (!APIUtil.getPropsAsBoolValue("allow_dauth", false)) {
+        Full(errorJsonResponse(ErrorMessages.DAuthIsDisabled, 401))
+      } else {
       logger.info("allow_dauth-getRemoteIpAddress: " + remoteIpAddress )
       APIUtil.getPropsValue("dauth.host") match {
         case Full(h) if h.split(",").toList.exists(_.equalsIgnoreCase(remoteIpAddress) == true) => // Only addresses from white list can use this feature
@@ -499,7 +506,8 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
         case _ =>
           Failure(ErrorMessages.DAuthUnknownError)
       }
-    } 
+      }
+    }
     else {
       fn(cc)
     }
