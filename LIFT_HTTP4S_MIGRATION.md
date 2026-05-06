@@ -1,10 +1,71 @@
-# Lift → http4s Migration Plan
+# Lift → http4s Migration
 
 ## Principle
 
 API version numbers reflect **API contract changes** (new/changed fields, new behaviour). The underlying framework is invisible to clients. Lift → http4s is a refactoring: it happens **in-place** inside the existing version file at the existing URL. No version bump.
 
 Use a new version (e.g. v7.0.0) only when the API contract itself changes — new fields, changed request/response shape, new behaviour.
+
+---
+
+## Current Architecture
+
+OBP-API runs as a **single http4s Ember server** (single process, single port). The application entry point is a Cats Effect `IOApp` (`Http4sServer`). Lift is no longer used as an HTTP server — Jetty and the servlet container have been removed.
+
+Lift still plays two roles:
+
+1. **ORM / Database** — Lift Mapper manages schema creation, migrations, and data access.
+2. **Legacy endpoint dispatch** — Older API versions are handled through a bridge (`Http4sLiftWebBridge`) that converts http4s requests into Lift requests, runs them through Lift's dispatch tables, and converts the responses back.
+
+New API versions are implemented as native http4s routes and do not pass through the bridge.
+
+### Entry point — `Http4sServer.scala`
+
+`Http4sServer` extends `IOApp`. On startup it:
+
+1. Calls `bootstrap.liftweb.Boot().boot()` to initialise Lift Mapper, connectors, and OBP configuration.
+2. Parses the configured `hostname` and `dev.port` props (defaults: `127.0.0.1`, `8080`).
+3. Starts an Ember server with the application defined in `Http4sApp.httpApp`.
+
+### Priority routing
+
+Routes are tried in order: `corsHandler` (OPTIONS) → `StatusPage` → `Http4s500` → `Http4s700` → `Http4sBGv2` → `Http4sLiftWebBridge` (Lift fallback). Unhandled `/obp/v7.0.0/*` paths fall through silently to Lift — they do not 404.
+
+```
+HTTP Request
+    │
+    ▼
+Http4sServer (IOApp / Ember)
+    │
+    ▼
+corsHandler → StatusPage → Http4s500 → Http4s700 → Http4sBGv2 → Http4sLiftWebBridge
+                                                                          │
+                                                               LiftRules.statelessDispatch
+                                                               LiftRules.dispatch (REST API)
+    │
+    ▼
+HTTP Response (with standard headers)
+```
+
+### Lift bridge — `Http4sLiftWebBridge.scala`
+
+Handles any request not matched by a native http4s route:
+
+1. Reads the http4s request body.
+2. Constructs a Lift `Req` from the http4s `Request[IO]`.
+3. Creates a stateless Lift session.
+4. Initialises a Lift `S` context and runs `LiftRules.statelessDispatch` / `LiftRules.dispatch`.
+5. Handles Lift's `ContinuationException` pattern for async responses (timeout: `http4s.continuation.timeout.ms`, default 60 s).
+6. Converts the Lift response back to http4s.
+
+### What Lift still does
+
+| Area | Role |
+|------|------|
+| **Mapper ORM** | Database schema creation, migrations, and all data access (`MappedBank`, `AuthUser`, etc.) |
+| **Boot** | Initialises OBP configuration, connectors, resource docs, and Mapper schemifier |
+| **Dispatch tables** | `LiftRules.statelessDispatch` / `LiftRules.dispatch` hold endpoint definitions for versions not yet ported |
+| **JSON utilities** | Some serialisation helpers from `net.liftweb.json` are still in use |
 
 ---
 
@@ -34,7 +95,7 @@ See `CLAUDE.md § Migrating a Lift Endpoint to http4s` for the full Rule 1–5 r
 
 ---
 
-## Migration order
+## Migration Order
 
 Bottom-up — each version depends on the one below it being done.
 
@@ -57,9 +118,9 @@ Bottom-up — each version depends on the one below it being done.
 
 ---
 
-## Auth stack (separate workstream)
+## Auth Stack (separate workstream)
 
-These are token-generation paths, not version-file endpoints. Each `extends RestHelper` and needs to become an http4s route or middleware independently. Can run in parallel with the APIMethods migration.
+Token-generation paths — not version-file endpoints. Each `extends RestHelper` and needs to become an http4s route or middleware independently. Can run in parallel with the APIMethods migration.
 
 | Component | Path | Notes |
 |---|---|---|
@@ -72,7 +133,7 @@ These are the last hard dependency on Lift Web in the request path. The Lift bri
 
 ---
 
-## Server chain after full migration
+## Server Chain After Full Migration
 
 ```
 corsHandler
@@ -95,7 +156,7 @@ corsHandler
 
 ---
 
-## Done criteria
+## Done Criteria
 
 | Milestone | Condition |
 |---|---|
@@ -103,6 +164,27 @@ corsHandler
 | Lift bridge removable | All 12 APIMethods files done + auth stack done |
 | Lift Web removed | `lift-webkit` removed from `pom.xml`; `Boot.scala` reduced to DB init + scheduler startup |
 | `lift-mapper` | Separate long-term effort — not in scope here |
+
+---
+
+## Why http4s?
+
+- **Non-blocking I/O** — Uses a small fixed thread pool (CPU cores) and suspends fibres on I/O. Thousands of concurrent requests without thread-pool tuning.
+- **Lower memory** — No thread-per-request overhead.
+- **Modern Scala ecosystem** — First-class Cats Effect, fs2 streaming, and functional patterns.
+- **No servlet container** — Removes Jetty and WAR packaging entirely.
+
+---
+
+## Running
+
+```sh
+MAVEN_OPTS="-Xms3G -Xmx6G -XX:MaxMetaspaceSize=2G" \
+  mvn -pl obp-api -am clean package -DskipTests=true -Dmaven.test.skip=true && \
+  java -jar obp-api/target/obp-api.jar
+```
+
+Binds to `hostname` / `dev.port` from your props file (defaults: `127.0.0.1:8080`).
 
 ---
 

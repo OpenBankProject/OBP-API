@@ -8,7 +8,7 @@
 
 ## Architecture (Onboarding)
 
-> **Migration plan**: see [`MIGRATION.md`](MIGRATION.md) for the full in-place Lift → http4s strategy, file order, auth stack workstream, and progress tracker.
+> **Migration plan**: see [`LIFT_HTTP4S_MIGRATION.md`](LIFT_HTTP4S_MIGRATION.md) for the full in-place Lift → http4s strategy, file order, auth stack workstream, and progress tracker.
 
 The goal is a full http4s migration — replace Lift Web across all version files and remove it entirely. **API versions are tech-agnostic**: a version bump means a changed/new API signature, never a framework change. Framework migration happens in-place inside the existing version file. v7.0.0 currently serves 45 endpoints; most arrived there for historical reasons and stay as-is.
 
