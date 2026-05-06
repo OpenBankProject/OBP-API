@@ -235,24 +235,6 @@ class Http4sServerIntegrationTest extends ServerSetup with DefaultUsers with Ser
       json \ "banks" should not equal JObject(Nil)
     }
 
-    scenario("GET /obp/v7.0.0/cards requires authentication", Http4sServerIntegrationTag) {
-      When("We request cards list without authentication")
-      val (status, body) = makeHttp4sGetRequest("/obp/v7.0.0/cards")
-      
-      Then("We should get a 401 response")
-      status should equal(401)
-      info("Authentication is required for this endpoint")
-    }
-
-    scenario("GET /obp/v7.0.0/banks/BANK_ID/cards requires authentication", Http4sServerIntegrationTag) {
-      When("We request cards for a specific bank without authentication")
-      val (status, body) = makeHttp4sGetRequest(s"/obp/v7.0.0/banks/testBank0/cards")
-      
-      Then("We should get a 401 response")
-      status should equal(401)
-      info("Authentication is required for this endpoint")
-    }
-
     scenario("GET /obp/v7.0.0/resource-docs/v7.0.0/obp returns resource docs", Http4sServerIntegrationTag) {
       When("We request resource documentation")
       val (status, body) = makeHttp4sGetRequest("/obp/v7.0.0/resource-docs/v7.0.0/obp")
@@ -407,22 +389,5 @@ class Http4sServerIntegrationTest extends ServerSetup with DefaultUsers with Ser
       headers.exists { case (k, _) => k.equalsIgnoreCase("Access-Control-Allow-Credentials") } should be(true)
     }
 
-    scenario("OPTIONS /obp/v7.0.0/cards returns 204 — no auth required for preflight", Http4sServerIntegrationTag) {
-      When("OPTIONS /obp/v7.0.0/cards — preflight for an authenticated endpoint")
-      val (statusCode, headers) = makeHttp4sOptionsRequest("/obp/v7.0.0/cards")
-
-      Then("Response is 204 No Content without requiring authentication")
-      statusCode should equal(204)
-      headers.exists { case (k, _) => k.equalsIgnoreCase("Access-Control-Allow-Origin") } should be(true)
-    }
-
-    scenario("OPTIONS /obp/v7.0.0/banks/BANK_ID/cards returns 204 with CORS headers", Http4sServerIntegrationTag) {
-      When("OPTIONS /obp/v7.0.0/banks/BANK_ID/cards — preflight for a nested endpoint")
-      val (statusCode, headers) = makeHttp4sOptionsRequest("/obp/v7.0.0/banks/testBank0/cards")
-
-      Then("Response is 204 No Content with CORS headers")
-      statusCode should equal(204)
-      headers.exists { case (k, _) => k.equalsIgnoreCase("Access-Control-Allow-Origin") } should be(true)
-    }
   }
 }

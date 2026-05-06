@@ -236,147 +236,6 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
     }
   }
 
-  // ─── cards ───────────────────────────────────────────────────────────────────
-
-  feature("Http4s700 cards endpoint") {
-
-    scenario("Reject unauthenticated access to cards", Http4s700RoutesTag) {
-      Given("GET /obp/v7.0.0/cards request without auth headers")
-      When("Making HTTP request to server")
-      val (statusCode, json, _) = makeHttpRequest("/obp/v7.0.0/cards")
-
-      Then("Response is 401 Unauthorized with appropriate error message")
-      statusCode shouldBe 401
-      json match {
-        case JObject(fields) =>
-          toFieldMap(fields).get("message") match {
-            case Some(JString(message)) =>
-              message should include(AuthenticatedUserIsRequired)
-            case _ =>
-              fail("Expected message field as JSON string for cards unauthorized response")
-          }
-        case _ =>
-          fail("Expected JSON object for cards unauthorized response")
-      }
-    }
-
-    scenario("Return cards list JSON when authenticated", Http4s700RoutesTag) {
-      Given("GET /obp/v7.0.0/cards request with DirectLogin header")
-      When("Making HTTP request to server")
-      val headers = Map("DirectLogin" -> s"token=${token1.value}")
-      val (statusCode, json, _) = makeHttpRequest("/obp/v7.0.0/cards", headers)
-
-      Then("Response is 200 OK with cards array")
-      statusCode shouldBe 200
-      json match {
-        case JObject(fields) =>
-          toFieldMap(fields).get("cards") match {
-            case Some(JArray(_)) => succeed
-            case _ => fail("Expected cards field to be an array")
-          }
-        case _ => fail("Expected JSON object for cards endpoint")
-      }
-    }
-  }
-
-  // ─── bank cards ──────────────────────────────────────────────────────────────
-
-  feature("Http4s700 bank cards endpoint") {
-
-    scenario("Return bank cards list JSON when authenticated and entitled", Http4s700RoutesTag) {
-      Given("GET /obp/v7.0.0/banks/BANK_ID/cards request with DirectLogin header and role")
-      val bankId = testBankId1.value
-      addEntitlement(bankId, resourceUser1.userId, canGetCardsForBank.toString)
-
-      When("Making HTTP request to server")
-      val headers = Map("DirectLogin" -> s"token=${token1.value}")
-      val (statusCode, json, _) = makeHttpRequest(s"/obp/v7.0.0/banks/$bankId/cards?limit=10&offset=0", headers)
-
-      Then("Response is 200 OK with cards array")
-      statusCode shouldBe 200
-      json match {
-        case JObject(fields) =>
-          toFieldMap(fields).get("cards") match {
-            case Some(JArray(_)) => succeed
-            case _ => fail("Expected cards field to be an array")
-          }
-        case _ => fail("Expected JSON object for bank cards endpoint")
-      }
-    }
-
-    scenario("Return empty cards array when bank has no cards", Http4s700RoutesTag) {
-      Given("GET /obp/v7.0.0/banks/BANK_ID/cards for a bank with no cards")
-      val bankId = testBankId2.value
-      addEntitlement(bankId, resourceUser1.userId, canGetCardsForBank.toString)
-
-      When("Making HTTP request to server")
-      val headers = Map("DirectLogin" -> s"token=${token1.value}")
-      val (statusCode, json, _) = makeHttpRequest(s"/obp/v7.0.0/banks/$bankId/cards", headers)
-
-      Then("Response is 200 OK with empty cards array")
-      statusCode shouldBe 200
-      json match {
-        case JObject(fields) =>
-          toFieldMap(fields).get("cards") match {
-            case Some(JArray(cards)) =>
-              cards shouldBe empty
-            case _ =>
-              fail("Expected cards field to be an array")
-          }
-        case _ =>
-          fail("Expected JSON object")
-      }
-    }
-
-    scenario("Reject bank cards access when missing required role", Http4s700RoutesTag) {
-      Given("GET /obp/v7.0.0/banks/BANK_ID/cards request with DirectLogin header but no role")
-      val bankId = testBankId1.value
-
-      When("Making HTTP request to server")
-      val headers = Map("DirectLogin" -> s"token=${token1.value}")
-      val (statusCode, json, _) = makeHttpRequest(s"/obp/v7.0.0/banks/$bankId/cards", headers)
-
-      Then("Response is 403 Forbidden")
-      statusCode shouldBe 403
-      json match {
-        case JObject(fields) =>
-          toFieldMap(fields).get("message") match {
-            case Some(JString(message)) =>
-              message should include(UserHasMissingRoles)
-              message should include(canGetCardsForBank.toString)
-            case _ =>
-              fail("Expected message field as JSON string for missing-role response")
-          }
-        case _ =>
-          fail("Expected JSON object for missing-role response")
-      }
-    }
-
-    scenario("Return BankNotFound when bank does not exist and user is entitled", Http4s700RoutesTag) {
-      Given("GET /obp/v7.0.0/banks/BANK_ID/cards request for non-existing bank")
-      val bankId = "non-existing-bank-id"
-      addEntitlement(bankId, resourceUser1.userId, canGetCardsForBank.toString)
-
-      When("Making HTTP request to server")
-      val headers = Map("DirectLogin" -> s"token=${token1.value}")
-      val (statusCode, json, _) = makeHttpRequest(s"/obp/v7.0.0/banks/$bankId/cards", headers)
-
-      Then("Response is 404 Not Found with BankNotFound message")
-      statusCode shouldBe 404
-      json match {
-        case JObject(fields) =>
-          toFieldMap(fields).get("message") match {
-            case Some(JString(message)) =>
-              message should include(BankNotFound)
-            case _ =>
-              fail("Expected message field as JSON string for BankNotFound response")
-          }
-        case _ =>
-          fail("Expected JSON object for BankNotFound response")
-      }
-    }
-  }
-
   // ─── resource-docs ───────────────────────────────────────────────────────────
 
   feature("Http4s700 resource-docs endpoint") {
@@ -663,8 +522,8 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
     }
 
     scenario("Error responses also include Correlation-Id header", Http4s700RoutesTag) {
-      Given("GET /obp/v7.0.0/cards without auth (will 401)")
-      val (statusCode, _, headers) = makeHttpRequest("/obp/v7.0.0/cards")
+      Given("GET /obp/v7.0.0/users/current without auth (will 401)")
+      val (statusCode, _, headers) = makeHttpRequest("/obp/v7.0.0/users/current")
 
       Then("401 error response still has Correlation-Id")
       statusCode shouldBe 401
@@ -684,39 +543,17 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
 
   feature("Http4s700 routing priority") {
 
-    scenario("GET /banks/BANK_ID/cards is served by getCardsForBank, not getBanks", Http4s700RoutesTag) {
-      Given("GET /obp/v7.0.0/banks/BANK_ID/cards without auth")
-      val bankId = testBankId1.value
-
-      When("Making HTTP request — if getBanks shadowed getCardsForBank this would return 200 with banks array")
-      val (statusCode, json, _) = makeHttpRequest(s"/obp/v7.0.0/banks/$bankId/cards")
-
-      Then("Response is 401 (auth required) — proving getCardsForBank matched, not getBanks")
-      statusCode shouldBe 401
-      json match {
-        case JObject(fields) =>
-          toFieldMap(fields).get("message") match {
-            case Some(JString(message)) =>
-              message should include(AuthenticatedUserIsRequired)
-            case _ =>
-              fail("Expected message field — if this is a banks list, getBanks is shadowing getCardsForBank")
-          }
-        case _ =>
-          fail("Expected JSON object")
-      }
-    }
-
-    scenario("GET /banks returns banks list, not intercepted by getCardsForBank", Http4s700RoutesTag) {
+    scenario("GET /banks returns banks list", Http4s700RoutesTag) {
       Given("GET /obp/v7.0.0/banks without auth")
       val (statusCode, json, _) = makeHttpRequest("/obp/v7.0.0/banks")
 
-      Then("Response is 200 with banks array — proving getBanks matched")
+      Then("Response is 200 with banks array")
       statusCode shouldBe 200
       json match {
         case JObject(fields) =>
           toFieldMap(fields).get("banks") match {
             case Some(JArray(_)) => succeed
-            case _ => fail("Expected banks array — getBanks may not have matched")
+            case _ => fail("Expected banks array")
           }
         case _ =>
           fail("Expected JSON object")
