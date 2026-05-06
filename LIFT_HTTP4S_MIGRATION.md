@@ -104,7 +104,7 @@ Bottom-up — each version depends on the one below it being done.
 | # | File | Own endpoints | Notes |
 |---|---|---|---|
 | 1 | `APIMethods121` | 70 | Largest; everything inherits from it |
-| 2 | `APIMethods130` | 3 | Small; good smoke-test after #1 |
+| 2 | `APIMethods130` | 3 | Must follow #1 — `OBPAPI1_3_0` mixes in all of `APIMethods121` and registers those ~60 endpoints under the `/obp/v1.3.0/` prefix. Migrating v1.3.0 before v1.2.1 would require porting all inherited endpoints anyway. |
 | 3 | `APIMethods140` | 11 | |
 | 4 | `APIMethods200` | 40 | |
 | 5 | `APIMethods210` | 28 | |
@@ -115,6 +115,42 @@ Bottom-up — each version depends on the one below it being done.
 | 10 | `APIMethods500` | 37 | |
 | 11 | `APIMethods510` | 111 | |
 | 12 | `APIMethods600` | ~244 total | Final Lift endpoint file |
+
+---
+
+## Resource-docs (separate workstream)
+
+Resource-docs endpoints are **version-polymorphic**: `GET /obp/v6.0.0/resource-docs/v3.0.0/obp` returns v3.0.0 docs. The URL prefix is cosmetically version-specific but functionally irrelevant — the `API_VERSION` path segment controls the output. This makes resource-docs a natural candidate for a single centralized http4s service rather than per-version handlers.
+
+### Strategy: centralized `Http4sResourceDocs`
+
+Add one service to `Http4sApp` (above the Lift bridge, before any per-version service) that handles:
+
+```
+GET  /obp/*/resource-docs/API_VERSION/obp   → version-dispatch via getResourceDocsList
+GET  /obp/*/resource-docs/API_VERSION/openapi.yaml
+```
+
+The wildcard prefix means all resource-doc requests are intercepted regardless of which version prefix the client uses. This workstream is **independent of the per-version migration order** — it can land at any time and immediately removes all resource-docs traffic from the Lift bridge.
+
+### Prerequisite: fix the aggregation bug
+
+`V7ResourceDocsAggregationTest` is intentionally failing. The current `getResourceDocsObpV700` has a broken branch for `requestedApiVersion == v7.0.0` that manually iterates `allResourceDocs` (~45 own docs) instead of calling `getResourceDocsList`, which aggregates all 500+. Fix this first — it is the same defect the centralized service must not repeat.
+
+### `openapi.yaml`
+
+Currently served via a raw Lift `serve { case Req(..., "openapi.yaml", ...) }` block that bypasses `registerRoutes` entirely. Needs a dedicated http4s route (no ResourceDocMiddleware) added to the centralized service.
+
+### Caching
+
+`Caching.getStaticSwaggerDocCache()` / `setStaticSwaggerDocCache()` are framework-agnostic and already used from within the http4s path. No migration work needed.
+
+### Steps
+
+1. Fix aggregation bug in `getResourceDocsObpV700` → make `V7ResourceDocsAggregationTest` pass.
+2. Extract shared handler logic into `Http4sResourceDocs` service; wire into `Http4sApp`.
+3. Add `openapi.yaml` route to the same service.
+4. Remove resource-docs from the per-version Lift objects (`ResourceDocs140`–`ResourceDocs600`) once the centralized service covers them.
 
 ---
 
@@ -137,6 +173,7 @@ These are the last hard dependency on Lift Web in the request path. The Lift bri
 
 ```
 corsHandler
+  → Http4sResourceDocs  (/obp/*/resource-docs/*)   ← centralized, all version prefixes
   → Http4s700  (/obp/v7.0.0/*)
   → Http4s600  (/obp/v6.0.0/*)
   → Http4s510  (/obp/v5.1.0/*)
@@ -208,3 +245,10 @@ Binds to `hostname` / `dev.port` from your props file (defaults: `127.0.0.1:8080
 | Auth: GatewayLogin | todo |
 | Auth: DAuth | todo |
 | Auth: OAuth | todo |
+| Resource-docs: aggregation bug fix | done |
+| Resource-docs: `Http4sResourceDocs` service | todo |
+| Resource-docs: `openapi.yaml` route | todo |
+
+### Cleanup done
+
+- `getCards` and `getCardsForBank` removed from `Http4s700` — these had the same API signature as the v1.3.0 originals and belonged in `APIMethods130`, not v7.0.0. The Lift implementation in `APIMethods130` serves them at `/obp/v1.3.0/` until that file is migrated.

@@ -252,20 +252,10 @@ object Http4s700 {
             ) {
               ApiVersionUtils.valueOf(requestedApiVersionString)
             }
-            // Use aggregated docs for v7.0.0, version-specific docs for other versions
-            allDocs = if (requestedApiVersion == ApiVersion.v7_0_0) {
-              // For v7.0.0, update requestUrl and specifiedUrl for all aggregated docs
-              // This mirrors the logic in ResourceDocsAPIMethods.getResourceDocsList
-              allResourceDocs.toList.map { doc =>
-                // Save original requestUrl before modification (it's in short form like "/banks")
-                val originalRequestUrl = doc.requestUrl
-                doc.copy(
-                  requestUrl = s"/${doc.implementedInApiVersion.urlPrefix}/${doc.implementedInApiVersion.vDottedApiVersion}${originalRequestUrl}",
-                  specifiedUrl = Some(s"/${doc.implementedInApiVersion.urlPrefix}/${requestedApiVersion.vDottedApiVersion}${originalRequestUrl}")
-                )
-              }
-            } else {
-              ResourceDocs140.ImplementationsResourceDocs.getResourceDocsList(requestedApiVersion).getOrElse(Nil)
+            allDocs = {
+              val raw = ResourceDocs140.ImplementationsResourceDocs.getResourceDocsList(requestedApiVersion).getOrElse(Nil)
+              val seen = scala.collection.mutable.HashSet[(String, String)]()
+              raw.filter(doc => seen.add((doc.requestVerb, doc.requestUrl)))
             }
             filteredDocs = ResourceDocsAPIMethodsUtil.filterResourceDocs(allDocs, tags, functions)
           } yield JSONFactory1_4_0.createResourceDocsJson(filteredDocs, isVersion4OrHigher = true, localeParam, includeTechnology = true)
