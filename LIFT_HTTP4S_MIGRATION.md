@@ -29,7 +29,7 @@ New API versions are implemented as native http4s routes and do not pass through
 
 ### Priority routing
 
-Routes are tried in order: `corsHandler` (OPTIONS) → `StatusPage` → `Http4s500` → `Http4s700` → `Http4sBGv2` → `Http4s121` → `Http4sLiftWebBridge` (Lift fallback). Unhandled `/obp/v7.0.0/*` paths fall through silently to Lift — they do not 404.
+Routes are tried in order: `corsHandler` (OPTIONS) → `StatusPage` → `Http4s500` → `Http4s700` → `Http4sBGv2` → `Http4s130` → `Http4s121` → `Http4sLiftWebBridge` (Lift fallback). Unhandled `/obp/v7.0.0/*` paths fall through silently to Lift — they do not 404.
 
 ```
 HTTP Request
@@ -38,7 +38,10 @@ HTTP Request
 Http4sServer (IOApp / Ember)
     │
     ▼
-corsHandler → StatusPage → Http4s500 → Http4s700 → Http4sBGv2 → Http4s121 → Http4sLiftWebBridge
+corsHandler → StatusPage → Http4s500 → Http4s700 → Http4sBGv2 → Http4s130 → Http4s121 → Http4sLiftWebBridge
+                                                                      │              │
+                                                                  own routes    v1.2.1 routes
+                                                                  (3 endpoints) (path-rewrite)
                                                                                       │
                                                                            LiftRules.statelessDispatch
                                                                            LiftRules.dispatch (REST API)
@@ -106,7 +109,7 @@ Bottom-up — each version depends on the one below it being done.
 | # | File | Own endpoints | Notes |
 |---|---|---|---|
 | 1 | `APIMethods121` | 70 | **Done** — `Http4s121.scala` serves all endpoints; 323 tests pass |
-| 2 | `APIMethods130` | 3 | Must follow #1 — `OBPAPI1_3_0` mixes in all of `APIMethods121` and registers those ~60 endpoints under the `/obp/v1.3.0/` prefix. Migrating v1.3.0 before v1.2.1 would require porting all inherited endpoints anyway. |
+| 2 | `APIMethods130` | 3 | **Done** — `Http4s130.scala`: 3 own endpoints + path-rewriting bridge to `Http4s121`; 2 PhysicalCardsTest scenarios pass |
 | 3 | `APIMethods140` | 11 | |
 | 4 | `APIMethods200` | 40 | |
 | 5 | `APIMethods210` | 28 | |
@@ -187,8 +190,8 @@ corsHandler
   → Http4s210  (/obp/v2.1.0/*)
   → Http4s200  (/obp/v2.0.0/*)
   → Http4s140  (/obp/v1.4.0/*)
-  → Http4s130  (/obp/v1.3.0/*)
-  → Http4s121  (/obp/v1.2.1/*)
+  → Http4s130  (/obp/v1.3.0/*)   ← done
+  → Http4s121  (/obp/v1.2.1/*)   ← done
   → Http4sBGv2
   ← Lift bridge removed
 ```
@@ -232,7 +235,7 @@ Binds to `hostname` / `dev.port` from your props file (defaults: `127.0.0.1:8080
 | File | Status |
 |---|---|
 | `APIMethods121` | done — `Http4s121.scala` (all 323 API1_2_1Test scenarios pass) |
-| `APIMethods130` | todo |
+| `APIMethods130` | done — `Http4s130.scala` (2 PhysicalCardsTest scenarios pass) |
 | `APIMethods140` | todo |
 | `APIMethods200` | todo |
 | `APIMethods210` | todo |
