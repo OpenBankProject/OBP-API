@@ -325,6 +325,26 @@ object Http4sRequestAttributes {
     }
 
     /**
+     * Execute POST business logic requiring validated User, BankAccount, and View (URL must contain VIEW_ID).
+     * Returns 201 Created on success, converts errors via ErrorResponseConverter.
+     */
+    def withViewCreated[A](req: Request[IO])(f: (User, BankAccount, View, CallContext) => Future[A])(implicit formats: Formats): IO[Response[IO]] = {
+      implicit val cc: CallContext = req.callContext
+      val io = for {
+        user        <- IO.fromOption(cc.user.toOption)(new RuntimeException("User not found in CallContext"))
+        bankAccount <- IO.fromOption(cc.bankAccount)(new RuntimeException("BankAccount not found in CallContext"))
+        view        <- IO.fromOption(cc.view)(new RuntimeException("View not found in CallContext"))
+        result      <- RequestScopeConnection.fromFuture(f(user, bankAccount, view, cc))
+      } yield result
+      io.attempt.flatMap {
+        case Right(result) =>
+          val jsonString = prettyRender(Extraction.decompose(result))
+          Created(jsonString).flatTap(recordMetric(result, _))
+        case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
+      }
+    }
+
+    /**
      * Execute business logic requiring validated User, BankAccount, and View (URL must contain VIEW_ID).
      * Returns 200 OK on success, converts errors via ErrorResponseConverter.
      */

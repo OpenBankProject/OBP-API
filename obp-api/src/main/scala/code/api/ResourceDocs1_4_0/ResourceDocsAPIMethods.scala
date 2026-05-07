@@ -135,7 +135,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
         case ApiVersion.v2_0_0 => Implementations2_0_0.resourceDocs ++ Implementations1_4_0.resourceDocs ++ Implementations1_3_0.resourceDocs ++ Implementations1_2_1.resourceDocs
         case ApiVersion.v1_4_0 => Implementations1_4_0.resourceDocs ++ Implementations1_3_0.resourceDocs ++ Implementations1_2_1.resourceDocs
         case ApiVersion.v1_3_0 => Implementations1_3_0.resourceDocs ++ Implementations1_2_1.resourceDocs
-        case ApiVersion.v1_2_1 => Implementations1_2_1.resourceDocs
+        case ApiVersion.v1_2_1 => code.api.v1_2_1.Http4s121.resourceDocs
         case ApiVersion.`dynamic-endpoint` => OBPAPIDynamicEndpoint.allResourceDocs
         case ApiVersion.`dynamic-entity` => OBPAPIDynamicEntity.allResourceDocs
         case version: ScannedApiVersion => ScannedApis.versionMapScannedApis.get(version).map(_.allResourceDocs).getOrElse(ArrayBuffer.empty[ResourceDoc])
@@ -158,7 +158,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
         case ApiVersion.v2_0_0 => OBPAPI2_0_0.routes
         case ApiVersion.v1_4_0 => OBPAPI1_4_0.routes
         case ApiVersion.v1_3_0 => OBPAPI1_3_0.routes
-        case ApiVersion.v1_2_1 => OBPAPI1_2_1.routes
+        case ApiVersion.v1_2_1 => Nil
         case ApiVersion.`dynamic-endpoint` => OBPAPIDynamicEndpoint.routes
         case ApiVersion.`dynamic-entity` => OBPAPIDynamicEntity.routes
         case version: ScannedApiVersion => ScannedApis.versionMapScannedApis.get(version).map(_.routes).getOrElse(Nil)
@@ -176,6 +176,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       val activeResourceDocs = requestedApiVersion match {
         case ApiVersion.v7_0_0 => resourceDocs
         case ConstantsBG.`berlinGroupVersion2` => resourceDocs
+        case ApiVersion.v1_2_1 => resourceDocs
         case _ => resourceDocs.filter(rd => versionRoutesClasses.contains(rd.partialFunction.getClass))
       }
 

@@ -36,7 +36,10 @@ object ErrorResponseConverter {
     val msg = Option(error.getMessage).getOrElse("").trim
     if (msg.startsWith("{") && msg.contains("\"failCode\"") && msg.contains("\"failMsg\"")) {
       try {
-        Some(parse(msg).extract[APIFailureNewStyle])
+        val jv       = parse(msg)
+        val failCode = (jv \ "failCode").extract[Int]
+        val failMsg  = (jv \ "failMsg").extract[String]
+        Some(APIFailureNewStyle(failMsg, failCode))
       } catch {
         case _: Throwable => None
       }

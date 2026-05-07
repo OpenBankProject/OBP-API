@@ -29,7 +29,7 @@ New API versions are implemented as native http4s routes and do not pass through
 
 ### Priority routing
 
-Routes are tried in order: `corsHandler` (OPTIONS) → `StatusPage` → `Http4s500` → `Http4s700` → `Http4sBGv2` → `Http4sLiftWebBridge` (Lift fallback). Unhandled `/obp/v7.0.0/*` paths fall through silently to Lift — they do not 404.
+Routes are tried in order: `corsHandler` (OPTIONS) → `StatusPage` → `Http4s500` → `Http4s700` → `Http4sBGv2` → `Http4s121` → `Http4sLiftWebBridge` (Lift fallback). Unhandled `/obp/v7.0.0/*` paths fall through silently to Lift — they do not 404.
 
 ```
 HTTP Request
@@ -38,10 +38,10 @@ HTTP Request
 Http4sServer (IOApp / Ember)
     │
     ▼
-corsHandler → StatusPage → Http4s500 → Http4s700 → Http4sBGv2 → Http4sLiftWebBridge
-                                                                          │
-                                                               LiftRules.statelessDispatch
-                                                               LiftRules.dispatch (REST API)
+corsHandler → StatusPage → Http4s500 → Http4s700 → Http4sBGv2 → Http4s121 → Http4sLiftWebBridge
+                                                                                      │
+                                                                           LiftRules.statelessDispatch
+                                                                           LiftRules.dispatch (REST API)
     │
     ▼
 HTTP Response (with standard headers)
@@ -101,9 +101,11 @@ Bottom-up — each version depends on the one below it being done.
 
 **Rule: one file = one PR. A file is either fully Lift or fully http4s — no half-converted state.**
 
+**Note on `APIMethods121`**: v1.2.1 was implemented as a new parallel file `Http4s121.scala` (rather than converting the Lift trait in-place) because `APIMethods121` is a mixin trait inherited by `APIMethods130`, `APIMethods140`, etc. Converting the trait in-place would require all inheriting versions to be migrated simultaneously. The parallel file approach lets v1.2.1 go first — http4s routes take priority in the chain; the Lift trait remains until all inheriting versions are done, at which point the Lift trait can be deleted.
+
 | # | File | Own endpoints | Notes |
 |---|---|---|---|
-| 1 | `APIMethods121` | 70 | Largest; everything inherits from it |
+| 1 | `APIMethods121` | 70 | **Done** — `Http4s121.scala` serves all endpoints; 323 tests pass |
 | 2 | `APIMethods130` | 3 | Must follow #1 — `OBPAPI1_3_0` mixes in all of `APIMethods121` and registers those ~60 endpoints under the `/obp/v1.3.0/` prefix. Migrating v1.3.0 before v1.2.1 would require porting all inherited endpoints anyway. |
 | 3 | `APIMethods140` | 11 | |
 | 4 | `APIMethods200` | 40 | |
@@ -229,7 +231,7 @@ Binds to `hostname` / `dev.port` from your props file (defaults: `127.0.0.1:8080
 
 | File | Status |
 |---|---|
-| `APIMethods121` | todo |
+| `APIMethods121` | done — `Http4s121.scala` (all 323 API1_2_1Test scenarios pass) |
 | `APIMethods130` | todo |
 | `APIMethods140` | todo |
 | `APIMethods200` | todo |

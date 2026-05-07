@@ -12,9 +12,9 @@
 
 The goal is a full http4s migration — replace Lift Web across all version files and remove it entirely. **API versions are tech-agnostic**: a version bump means a changed/new API signature, never a framework change. Framework migration happens in-place inside the existing version file. v7.0.0 currently serves 45 endpoints; most arrived there for historical reasons and stay as-is.
 
-**Request priority chain** (Http4sServer): `corsHandler` (OPTIONS) → StatusPage → Http4s500 → Http4s700 → Http4sBGv2 → Http4sLiftWebBridge (Lift fallback). Unhandled `/obp/v7.0.0/*` paths fall through silently to Lift — they do not 404.
+**Request priority chain** (Http4sServer): `corsHandler` (OPTIONS) → StatusPage → Http4s500 → Http4s700 → Http4sBGv2 → Http4s121 → Http4sLiftWebBridge (Lift fallback). Unhandled `/obp/v7.0.0/*` paths fall through silently to Lift — they do not 404.
 
-**Key files**: `Http4s700.scala` (endpoints), `Http4sSupport.scala` (EndpointHelpers + recordMetric), `ResourceDocMiddleware.scala` (auth, entity resolution, transaction wrapper), `IdempotencyMiddleware.scala` (Redis-backed idempotency, opt-in via `Idempotency-Key` header, nested inside ResourceDocMiddleware), `RequestScopeConnection.scala` (DB transaction propagation to Futures).
+**Key files**: `Http4s700.scala` (v7.0.0 endpoints), `Http4s121.scala` (v1.2.1 endpoints — all 323 API1_2_1Test scenarios), `Http4sSupport.scala` (EndpointHelpers + recordMetric), `ResourceDocMiddleware.scala` (auth, entity resolution, transaction wrapper), `IdempotencyMiddleware.scala` (Redis-backed idempotency, opt-in via `Idempotency-Key` header, nested inside ResourceDocMiddleware), `RequestScopeConnection.scala` (DB transaction propagation to Futures).
 
 **Migrated endpoints** (45): root, getBanks, getCards, getCardsForBank, getResourceDocsObpV700, getBank, getCurrentUser, getCoreAccountById, getPrivateAccountByIdFull, getExplicitCounterpartyById, deleteEntitlement, addEntitlement, getAccountAccessTrace, getFeatures, getScannedApiVersions, getConnectors, getErrorMessages, getProviders, getUsers, getUserByUserId, getCustomersAtOneBank, getCustomerByCustomerId, getAccountsAtBank, createTradingOffer, getTradingOffer, getTradingOffers, cancelTradingOffer, createMarketOrder, getMarketOrder, cancelMarketOrder, createMarketMatch, getMarketTrade, requestSettlement, requestWithdrawal, getCacheConfig, getCacheInfo, getDatabasePoolInfo, getStoredProcedureConnectorHealth, getMigrations, getCacheNamespaces, createOrganisation, getOrganisations, getOrganisation, updateOrganisation, deleteOrganisation.
 
@@ -78,7 +78,7 @@ EndpointHelpers.withBankAccount(req) { (user, account, cc) => ... }            /
 EndpointHelpers.withView(req) { (user, account, view, cc) => ... }             // + VIEW_ID
 EndpointHelpers.withCounterparty(req) { (user, account, view, cp, cc) => ... } // + COUNTERPARTY_ID
 ```
-**POST → 201**: `executeFutureWithBodyCreated[B,A]` / `withUserAndBodyCreated[B,A]` / `withUserAndBankAndBodyCreated[B,A]`  
+**POST → 201**: `executeFutureWithBodyCreated[B,A]` / `withUserAndBodyCreated[B,A]` / `withUserAndBankAndBodyCreated[B,A]` / `withViewCreated[A]` (when view context is needed)  
 **PUT → 200**: `executeFutureWithBody[B,A]` / `withUserAndBody[B,A]` / `withUserAndBankAndBody[B,A]`  
 **DELETE → 204**: `executeDelete` / `withUserDelete` / `withUserAndBankDelete`
 
@@ -121,6 +121,14 @@ EndpointHelpers.withCounterparty(req) { (user, account, view, cp, cc) => ... } /
 3. Authenticated with role + test data → 200 with field shape check
 
 **Creating test data**: use provider directly — e.g. `CustomerX.customerProvider.vend.addCustomer(...)`. Do not call v6 endpoints via HTTP in v7 tests.
+
+**`NewStyle.function.getBankAccount` returns 404**: The `unboxFullOrFail` inside hardcodes code 404. When your endpoint must return 400 for a missing account (e.g. v1.2.1 tests), bypass it: use `Connector.connector.vend.checkBankAccountExists(bankId, accountId, cc)` then `Future { unboxFullOrFail(rawBox, cc, msg) }` — the default code is 400.
+
+**Middleware URL template bypass** (non-standard uppercase vars): `validateAccount` checks `pathParams.get("ACCOUNT_ID")` and `validateView` checks `pathParams.get("VIEW_ID")` by exact key. Any other all-caps segment (e.g. `BANK_ACCOUNT_ID`, `CUSTOM_VIEW_ID`, `GRANT_VIEW_ID`) is still matched as a template variable (wildcard) but skips the 404/403 validation. Use this when your handler does inline validation returning 400 but middleware would return 404 or 403 first.
+
+**`ResourceDoc` description and `needsAuthentication`**: The `ResourceDoc` constructor removes `AuthenticatedUserIsRequired` from `errorResponseBodies` when `description.contains(authenticationIsOptional) && rolesIsEmpty`. `needsAuthentication = errorResponseBodies.contains($AuthenticatedUserIsRequired) || roles.nonEmpty`. If the description embeds `${userAuthenticationMessage(false)}` (which includes `authenticationIsOptional`) and roles are empty, the error is silently removed → `needsAuthentication=false` → anonymous access → unauthenticated requests reach the handler. Fix: remove `${userAuthenticationMessage(false)}` from the description when `AuthenticatedUserIsRequired` must remain in the error list.
+
+**v1.2.1 test framework sends filter params as HTTP headers**: `makeGetRequest(req, params)` puts `params` into `extra_headers`, not the URL query string. This means `obp_limit`, `obp_sort_direction`, `obp_from_date`, etc. arrive as request headers. Do NOT use `createHttpParamsByUrl(req.uri.renderString)` — it only scans the URL for non-prefixed names. Instead: `req.headers.headers.toList.map(h => HTTPParam(h.name.toString, h.value))`, then pass to `createQueriesByHttpParamsFuture`.
 
 **CI**: Tests run with `mvn test -DwildcardSuites="..."`. `hikari.maximumPoolSize=20` required in test props for concurrent tests (`withRequestTransaction` holds 1 connection per request; rate-limit queries need a 2nd → pool of 10 exhausts at 5 concurrent requests).
 
@@ -178,7 +186,7 @@ The 12 pure-unit suites (172 tests, 1.3s total):
 
 ### Known bottlenecks
 
-**`API1_2_1Test`** (Lift v1) — 143s for 323 tests, 36% of shard2's entire test time. Larger than the full http4s v7 budget. The first test in the suite (`"base line URL works"`) takes 0.97s — Lift's lazy init cost. Moving this suite to its own shard would reduce pipeline wall-clock by ~90s.
+**`API1_2_1Test`** (now http4s-backed via `Http4s121`) — was 143s for 323 tests on the Lift path; expected to improve as Lift bridge overhead is eliminated. The suite is in shard 3 (`code.api.v1_2_1` prefix).
 
 **`Http4sLiftBridgePropertyTest`** — 31.9s for 51 tests. Property 7 ("Session and Context Adapter Correctness") accounts for 13.4s of that: three ScalaCheck properties exercise concurrent requests through the Lift/http4s bridge, hitting real lock contention between Lift's session manager and the http4s fiber scheduler. Property 7.4 alone is 8.54s. These are the most meaningful slow tests — they exercise a genuine concurrency boundary.
 
