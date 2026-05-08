@@ -110,7 +110,7 @@ Bottom-up — each version depends on the one below it being done.
 |---|---|---|---|
 | 1 | `APIMethods121` | 70 | **Done** — `Http4s121.scala` serves all endpoints; 323 tests pass |
 | 2 | `APIMethods130` | 3 | **Done** — `Http4s130.scala`: 3 own endpoints + path-rewriting bridge to `Http4s121`; 2 PhysicalCardsTest scenarios pass |
-| 3 | `APIMethods140` | 11 | |
+| 3 | `APIMethods140` | 11 | **Done** — `Http4s140.scala`: 11 own endpoints + path-rewriting bridge to `Http4s130` |
 | 4 | `APIMethods200` | 40 | |
 | 5 | `APIMethods210` | 28 | |
 | 6 | `APIMethods220` | 19 | |
@@ -189,7 +189,7 @@ corsHandler
   → Http4s220  (/obp/v2.2.0/*)
   → Http4s210  (/obp/v2.1.0/*)
   → Http4s200  (/obp/v2.0.0/*)
-  → Http4s140  (/obp/v1.4.0/*)
+  → Http4s140  (/obp/v1.4.0/*)   ← done
   → Http4s130  (/obp/v1.3.0/*)   ← done
   → Http4s121  (/obp/v1.2.1/*)   ← done
   → Http4sBGv2
@@ -236,7 +236,7 @@ Binds to `hostname` / `dev.port` from your props file (defaults: `127.0.0.1:8080
 |---|---|
 | `APIMethods121` | done — `Http4s121.scala` (all 323 API1_2_1Test scenarios pass) |
 | `APIMethods130` | done — `Http4s130.scala` (2 PhysicalCardsTest scenarios pass) |
-| `APIMethods140` | todo |
+| `APIMethods140` | done — `Http4s140.scala` (all 11 own endpoints; path-rewriting bridge to Http4s130) |
 | `APIMethods200` | todo |
 | `APIMethods210` | todo |
 | `APIMethods220` | todo |
