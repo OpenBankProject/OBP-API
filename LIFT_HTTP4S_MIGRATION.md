@@ -111,7 +111,7 @@ Bottom-up — each version depends on the one below it being done.
 | 1 | `APIMethods121` | 70 | **Done** — `Http4s121.scala` serves all endpoints; 323 tests pass |
 | 2 | `APIMethods130` | 3 | **Done** — `Http4s130.scala`: 3 own endpoints + path-rewriting bridge to `Http4s121`; 2 PhysicalCardsTest scenarios pass |
 | 3 | `APIMethods140` | 11 | **Done** — `Http4s140.scala`: 11 own endpoints + path-rewriting bridge to `Http4s130` |
-| 4 | `APIMethods200` | 40 | |
+| 4 | `APIMethods200` | 40 | **Done** — `Http4s200.scala`: 37 own endpoints + path-rewriting bridge to `Http4s140` |
 | 5 | `APIMethods210` | 28 | |
 | 6 | `APIMethods220` | 19 | |
 | 7 | `APIMethods300` | 47 | |
@@ -237,7 +237,7 @@ Binds to `hostname` / `dev.port` from your props file (defaults: `127.0.0.1:8080
 | `APIMethods121` | done — `Http4s121.scala` (all 323 API1_2_1Test scenarios pass) |
 | `APIMethods130` | done — `Http4s130.scala` (2 PhysicalCardsTest scenarios pass) |
 | `APIMethods140` | done — `Http4s140.scala` (all 11 own endpoints; path-rewriting bridge to Http4s130) |
-| `APIMethods200` | todo |
+| `APIMethods200` | done — `Http4s200.scala` (37 own endpoints; path-rewriting bridge to Http4s140) |
 | `APIMethods210` | todo |
 | `APIMethods220` | todo |
 | `APIMethods300` | todo |
