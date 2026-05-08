@@ -114,14 +114,9 @@ object Http4s200 {
           Future {
             val (privateViewsUserCanAccess, privateAccountAccess) = Views.views.vend.privateViewsUserCanAccess(user)
             val privateAccounts = BankAccountX.privateAccounts(privateAccountAccess)
-            val coreAccounts: List[CoreAccountJSON] = privateAccounts.map { account =>
-              val viewsAvailable = privateViewsUserCanAccess
-                .filter(v => v.bankId == account.bankId && v.accountId == account.accountId && v.isPrivate)
-                .map(createBasicViewJSON)
-                .distinct
+            privateAccounts.map { account =>
               createCoreAccountJSON(account, net.liftweb.json.JObject(Nil))
             }
-            CoreAccountsJSON(coreAccounts)
           }
         }
     }
@@ -210,11 +205,8 @@ object Http4s200 {
               Views.views.vend.privateViewsUserCanAccessAtBank(user, bank.bankId)
             }
             (privateAccountsForOneBank, _) <- BankExtended(bank).privateAccountsFuture(privateAccountAccess, Some(cc))
-          } yield {
-            val accounts = privateAccountsForOneBank.map(account =>
-              createCoreAccountJSON(account, net.liftweb.json.JObject(Nil)))
-            CoreAccountsJSON(accounts)
-          }
+          } yield privateAccountsForOneBank.map(account =>
+            createCoreAccountJSON(account, net.liftweb.json.JObject(Nil)))
         }
       case req @ GET -> `prefixPath` / "my" / "banks" / _ / "accounts" / "private" =>
         EndpointHelpers.withUserAndBank(req) { (user, bank, cc) =>
@@ -223,11 +215,8 @@ object Http4s200 {
               Views.views.vend.privateViewsUserCanAccessAtBank(user, bank.bankId)
             }
             (privateAccountsForOneBank, _) <- BankExtended(bank).privateAccountsFuture(privateAccountAccess, Some(cc))
-          } yield {
-            val accounts = privateAccountsForOneBank.map(account =>
-              createCoreAccountJSON(account, net.liftweb.json.JObject(Nil)))
-            CoreAccountsJSON(accounts)
-          }
+          } yield privateAccountsForOneBank.map(account =>
+            createCoreAccountJSON(account, net.liftweb.json.JObject(Nil)))
         }
       case req @ GET -> `prefixPath` / "bank" / "accounts" =>
         EndpointHelpers.withUser(req) { (user, cc) =>
@@ -237,11 +226,8 @@ object Http4s200 {
               Views.views.vend.privateViewsUserCanAccessAtBank(user, bank.bankId)
             }
             (availablePrivateAccounts, _) <- BankExtended(bank).privateAccountsFuture(privateAccountAccess, Some(cc))
-          } yield {
-            val accounts = availablePrivateAccounts.map(account =>
-              createCoreAccountJSON(account, net.liftweb.json.JObject(Nil)))
-            CoreAccountsJSON(accounts)
-          }
+          } yield availablePrivateAccounts.map(account =>
+            createCoreAccountJSON(account, net.liftweb.json.JObject(Nil)))
         }
     }
 

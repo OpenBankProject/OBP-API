@@ -13,7 +13,7 @@ import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.util.ApiShortVersions
 import com.github.dwickern.macros.NameOf.nameOf
-import net.liftweb.common.{Box, Empty, Full}
+import net.liftweb.common.{Box, Empty, Failure, Full}
 import org.http4s._
 import org.http4s.headers.`Content-Type`
 
@@ -257,6 +257,21 @@ object ResourceDocMiddleware extends MdcLoggable {
 
     EitherT(
       io.attempt.flatMap {
+        // Auth succeeded and user is fully resolved — happy path.
+        case Right((Full(user), Some(updatedCC))) =>
+          IO.pure(Right(ctx.copy(user = Full(user), callContext = updatedCC)))
+        case Right((Full(user), None)) =>
+          IO.pure(Right(ctx.copy(user = Full(user))))
+        // Auth returned a Failure box (e.g. UsernameHasBeenLocked, UserIsDeleted).
+        // Old Lift code returned 400 for all unadorned Failure boxes — preserve that.
+        case Right((Failure(msg, _, _), optCC)) if needsAuth =>
+          val cc2 = optCC.getOrElse(ctx.callContext)
+          ErrorResponseConverter.createErrorResponse(400, msg, cc2).map(Left(_))
+        // Empty box — no valid credentials provided.
+        case Right((_, optCC)) if needsAuth =>
+          val cc2 = optCC.getOrElse(ctx.callContext)
+          ErrorResponseConverter.createErrorResponse(401, $AuthenticatedUserIsRequired, cc2).map(Left(_))
+        // Anonymous access (needsAuth=false) — pass any box user through unchanged.
         case Right((boxUser, Some(updatedCC))) =>
           IO.pure(Right(ctx.copy(user = boxUser, callContext = updatedCC)))
         case Right((boxUser, None)) =>
