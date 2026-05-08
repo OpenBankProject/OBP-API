@@ -251,12 +251,12 @@ object ResourceDocMiddleware extends MdcLoggable {
     val needsAuth = ResourceDocMiddleware.needsAuthentication(resourceDoc)
     logger.debug(s"[ResourceDocMiddleware] needsAuthentication for ${resourceDoc.partialFunctionName}: $needsAuth")
 
-    // Always call anonymousAccess to get the raw Box[User].
-    // authenticatedAccess internally calls fullBoxOrException which converts any
-    // non-Full box into a thrown plain Exception(json) with failCode=401, losing
-    // the original error (e.g. UsernameHasBeenLocked should produce 400, not 401).
-    // anonymousAccess already runs all post-auth checks (locked/deleted user,
-    // consumer-disabled, rate-limiting) and returns the Failure box untouched.
+    // anonymousAccess runs all auth checks (user resolution, locked/deleted check, rate limiting,
+    // JWS, BerlinGroup) and returns the Box[User] for authenticated or anonymous requests.
+    // For any Failure box (e.g. UsernameHasBeenLocked, DAuthJwtTokenIsNotValid) it converts the
+    // box to a thrown plain Exception(json_of_APIFailureNewStyle, hardcoded failCode=401) via
+    // fullBoxOrException. We catch that, parse the JSON to recover the original message, and
+    // return 400 — matching Lift Old Style behavior (plain Failure → errorJsonResponse default=400).
     val io = IO.fromFuture(IO(APIUtil.anonymousAccess(ctx.callContext)))
 
     EitherT(
@@ -266,11 +266,6 @@ object ResourceDocMiddleware extends MdcLoggable {
           IO.pure(Right(ctx.copy(user = Full(user), callContext = updatedCC)))
         case Right((Full(user), None)) =>
           IO.pure(Right(ctx.copy(user = Full(user))))
-        // Auth returned a Failure box (e.g. UsernameHasBeenLocked, UserIsDeleted,
-        // ConsumerIsDisabled). Old Lift returned 400 for all unadorned Failure boxes.
-        case Right((Failure(msg, _, _), optCC)) if needsAuth =>
-          val cc2 = optCC.getOrElse(ctx.callContext)
-          ErrorResponseConverter.createErrorResponse(400, msg, cc2).map(Left(_))
         // Empty box — no valid credentials provided, and auth is required.
         case Right((_, optCC)) if needsAuth =>
           val cc2 = optCC.getOrElse(ctx.callContext)
@@ -282,8 +277,15 @@ object ResourceDocMiddleware extends MdcLoggable {
           IO.pure(Right(ctx.copy(user = boxUser)))
         case Left(e: APIFailureNewStyle) =>
           ErrorResponseConverter.createErrorResponse(e.failCode, e.failMsg, ctx.callContext).map(Left(_))
-        case Left(_) =>
-          ErrorResponseConverter.createErrorResponse(401, $AuthenticatedUserIsRequired, ctx.callContext).map(Left(_))
+        case Left(e) =>
+          // anonymousAccess threw a plain Exception(json_of_APIFailureNewStyle) — the JSON
+          // preserves the original error message but hardcodes failCode=401. Parse it to recover
+          // the message and return 400, matching Lift Old Style error handling.
+          val failMsg = scala.util.Try {
+            implicit val formats = net.liftweb.json.DefaultFormats
+            net.liftweb.json.parse(e.getMessage).extract[APIFailureNewStyle].failMsg
+          }.getOrElse($AuthenticatedUserIsRequired)
+          ErrorResponseConverter.createErrorResponse(400, failMsg, ctx.callContext).map(Left(_))
       }
     )
   }
