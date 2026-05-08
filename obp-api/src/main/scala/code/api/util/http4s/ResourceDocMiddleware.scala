@@ -251,27 +251,31 @@ object ResourceDocMiddleware extends MdcLoggable {
     val needsAuth = ResourceDocMiddleware.needsAuthentication(resourceDoc)
     logger.debug(s"[ResourceDocMiddleware] needsAuthentication for ${resourceDoc.partialFunctionName}: $needsAuth")
 
-    val io =
-      if (needsAuth) IO.fromFuture(IO(APIUtil.authenticatedAccess(ctx.callContext)))
-      else IO.fromFuture(IO(APIUtil.anonymousAccess(ctx.callContext)))
+    // Always call anonymousAccess to get the raw Box[User].
+    // authenticatedAccess internally calls fullBoxOrException which converts any
+    // non-Full box into a thrown plain Exception(json) with failCode=401, losing
+    // the original error (e.g. UsernameHasBeenLocked should produce 400, not 401).
+    // anonymousAccess already runs all post-auth checks (locked/deleted user,
+    // consumer-disabled, rate-limiting) and returns the Failure box untouched.
+    val io = IO.fromFuture(IO(APIUtil.anonymousAccess(ctx.callContext)))
 
     EitherT(
       io.attempt.flatMap {
-        // Auth succeeded and user is fully resolved — happy path.
+        // Fully authenticated — happy path.
         case Right((Full(user), Some(updatedCC))) =>
           IO.pure(Right(ctx.copy(user = Full(user), callContext = updatedCC)))
         case Right((Full(user), None)) =>
           IO.pure(Right(ctx.copy(user = Full(user))))
-        // Auth returned a Failure box (e.g. UsernameHasBeenLocked, UserIsDeleted).
-        // Old Lift code returned 400 for all unadorned Failure boxes — preserve that.
+        // Auth returned a Failure box (e.g. UsernameHasBeenLocked, UserIsDeleted,
+        // ConsumerIsDisabled). Old Lift returned 400 for all unadorned Failure boxes.
         case Right((Failure(msg, _, _), optCC)) if needsAuth =>
           val cc2 = optCC.getOrElse(ctx.callContext)
           ErrorResponseConverter.createErrorResponse(400, msg, cc2).map(Left(_))
-        // Empty box — no valid credentials provided.
+        // Empty box — no valid credentials provided, and auth is required.
         case Right((_, optCC)) if needsAuth =>
           val cc2 = optCC.getOrElse(ctx.callContext)
           ErrorResponseConverter.createErrorResponse(401, $AuthenticatedUserIsRequired, cc2).map(Left(_))
-        // Anonymous access (needsAuth=false) — pass any box user through unchanged.
+        // Anonymous endpoint — pass any box user through unchanged.
         case Right((boxUser, Some(updatedCC))) =>
           IO.pure(Right(ctx.copy(user = boxUser, callContext = updatedCC)))
         case Right((boxUser, None)) =>
