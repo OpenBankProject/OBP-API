@@ -87,6 +87,15 @@ EndpointHelpers.withCounterparty(req) { (user, account, view, cp, cc) => ... } /
 
 ## Tricky Parts (Gotchas)
 
+**Conditional role check (403)**: `NewStyle.function.hasEntitlement` uses `booleanToFuture` with default `failCode = 400`, which gives 400 instead of 403 when the role is missing. For conditional checks (e.g. only needed when creating for another user), keep ResourceDoc roles `None` and call `booleanToFuture` directly:
+```scala
+_ <- if (userIdAccountOwner == loggedInUserId) Future.successful(Full(()))
+     else code.util.Helper.booleanToFuture(
+       s"$UserHasMissingRoles $canCreateAccount", failCode = 403, cc = Some(cc)) {
+       APIUtil.hasEntitlement(bankId, loggedInUserId, canCreateAccount)
+     }
+```
+
 **View permissions**: `view.canGetCounterparty` (MappedBoolean) always returns `false` for system views. Use `view.allowed_actions.exists(_ == CAN_GET_COUNTERPARTY)` instead.
 
 **BankExtended**: `privateAccountsFuture`, `privateAccounts`, `publicAccounts` are on `code.model.BankExtended`, not `commons.Bank`. Wrap: `code.model.BankExtended(bank).privateAccountsFuture(...)`.

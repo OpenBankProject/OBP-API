@@ -29,7 +29,7 @@ New API versions are implemented as native http4s routes and do not pass through
 
 ### Priority routing
 
-Routes are tried in order: `corsHandler` (OPTIONS) → `AppsPage` → `StatusPage` → `Http4s500` → `Http4s700` → `Http4sBGv2` → `Http4s210` → `Http4s200` → `Http4s140` → `Http4s130` → `Http4s121` → `Http4sLiftWebBridge` (Lift fallback). Unhandled `/obp/v7.0.0/*` paths fall through silently to Lift — they do not 404.
+Routes are tried in order: `corsHandler` (OPTIONS) → `AppsPage` → `StatusPage` → `Http4s500` → `Http4s700` → `Http4sBGv2` → `Http4s220` → `Http4s210` → `Http4s200` → `Http4s140` → `Http4s130` → `Http4s121` → `Http4sLiftWebBridge` (Lift fallback). Unhandled `/obp/v7.0.0/*` paths fall through silently to Lift — they do not 404.
 
 ```
 HTTP Request
@@ -40,12 +40,12 @@ Http4sServer (IOApp / Ember)
     ▼
 corsHandler → AppsPage → StatusPage → Http4s500 → Http4s700 → Http4sBGv2
                                                                       │
-                              Http4s210 → Http4s200 → Http4s140 → Http4s130 → Http4s121 → Http4sLiftWebBridge
-                                 │           │           │           │              │
-                             v2.1.0      v2.0.0      v1.4.0      v1.3.0        v1.2.1 routes
-                          own routes  own routes  own routes  own routes    (all 323 scenarios)
-                          + v2.0.0    + v1.4.0    + v1.3.0    + v1.2.1
-                          bridge      bridge      bridge       bridge
+                    Http4s220 → Http4s210 → Http4s200 → Http4s140 → Http4s130 → Http4s121 → Http4sLiftWebBridge
+                       │           │           │           │           │              │
+                   v2.2.0      v2.1.0      v2.0.0      v1.4.0      v1.3.0        v1.2.1 routes
+                own routes  own routes  own routes  own routes  own routes    (all 323 scenarios)
+                + v2.1.0    + v2.0.0    + v1.4.0    + v1.3.0    + v1.2.1
+                bridge      bridge      bridge      bridge       bridge
                                                                                       │
                                                                            LiftRules.statelessDispatch
                                                                            LiftRules.dispatch (REST API)
@@ -116,8 +116,8 @@ Bottom-up — each version depends on the one below it being done.
 | 2 | `APIMethods130` | 3 | **Done** — `Http4s130.scala`: 3 own endpoints + path-rewriting bridge to `Http4s121`; 2 PhysicalCardsTest scenarios pass |
 | 3 | `APIMethods140` | 11 | **Done** — `Http4s140.scala`: 11 own endpoints + path-rewriting bridge to `Http4s130` |
 | 4 | `APIMethods200` | 40 | **Done** — `Http4s200.scala`: 37 own endpoints + path-rewriting bridge to `Http4s140` |
-| 5 | `APIMethods210` | 28 | |
-| 6 | `APIMethods220` | 19 | |
+| 5 | `APIMethods210` | 28 | **Done** — `Http4s210.scala`: 25 own endpoints + path-rewriting bridge to `Http4s200`; all 79 v2.1.0 tests pass |
+| 6 | `APIMethods220` | 19 | **Done** — `Http4s220.scala`: 18 own endpoints + path-rewriting bridge to `Http4s210`; all 27 v2.2.0 tests pass |
 | 7 | `APIMethods300` | 47 | |
 | 8 | `APIMethods310` | 102 | |
 | 9 | `APIMethods400` | ~258 total | Largest file; may need splitting into sub-traits |
@@ -243,7 +243,7 @@ Binds to `hostname` / `dev.port` from your props file (defaults: `127.0.0.1:8080
 | `APIMethods140` | done — `Http4s140.scala` (all 11 own endpoints; path-rewriting bridge to Http4s130) |
 | `APIMethods200` | done — `Http4s200.scala` (37 own endpoints; path-rewriting bridge to Http4s140) |
 | `APIMethods210` | done — `Http4s210.scala` (25 own endpoints; path-rewriting bridge to Http4s200) |
-| `APIMethods220` | todo |
+| `APIMethods220` | done — `Http4s220.scala` (18 own endpoints; path-rewriting bridge to Http4s210) |
 | `APIMethods300` | todo |
 | `APIMethods310` | todo |
 | `APIMethods400` | todo |

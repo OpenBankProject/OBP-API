@@ -128,11 +128,8 @@ object ResourceDocMiddleware extends MdcLoggable {
 
           case None =>
             // No matching ResourceDoc: fallback to original route (NO transaction scope opened).
-            // ResourceDocMatcher.findResourceDoc already logged a WARN with full key/index detail.
-            // Any background DB calls triggered by the Lift bridge for this request will use
-            // RequestAwareConnectionManager, which now falls back to a fresh vendor connection
-            // when the TTL-stale proxy is detected as closed.
-            routes.run(req)
+            // Attach the basic CC so req.callContext works in the inner route even without a doc match.
+            routes.run(req.withAttribute(Http4sRequestAttributes.callContextKey, cc))
         }
       }
     }
