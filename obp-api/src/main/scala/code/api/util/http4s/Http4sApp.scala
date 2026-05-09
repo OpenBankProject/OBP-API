@@ -60,6 +60,7 @@ object Http4sApp {
       .orElse(code.api.v5_0_0.Http4s500.wrappedRoutesV500Services.run(req))
       .orElse(code.api.v7_0_0.Http4s700.wrappedRoutesV700Services.run(req))
       .orElse(code.api.berlin.group.v2.Http4sBGv2.wrappedRoutes.run(req))
+      .orElse(code.api.v2_1_0.Http4s210.wrappedRoutesV210Services.run(req))
       .orElse(code.api.v2_0_0.Http4s200.wrappedRoutesV200Services.run(req))
       .orElse(code.api.v1_4_0.Http4s140.wrappedRoutesV140Services.run(req))
       .orElse(code.api.v1_3_0.Http4s130.wrappedRoutesV130Services.run(req))

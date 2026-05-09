@@ -29,7 +29,7 @@ New API versions are implemented as native http4s routes and do not pass through
 
 ### Priority routing
 
-Routes are tried in order: `corsHandler` (OPTIONS) → `StatusPage` → `Http4s500` → `Http4s700` → `Http4sBGv2` → `Http4s130` → `Http4s121` → `Http4sLiftWebBridge` (Lift fallback). Unhandled `/obp/v7.0.0/*` paths fall through silently to Lift — they do not 404.
+Routes are tried in order: `corsHandler` (OPTIONS) → `AppsPage` → `StatusPage` → `Http4s500` → `Http4s700` → `Http4sBGv2` → `Http4s210` → `Http4s200` → `Http4s140` → `Http4s130` → `Http4s121` → `Http4sLiftWebBridge` (Lift fallback). Unhandled `/obp/v7.0.0/*` paths fall through silently to Lift — they do not 404.
 
 ```
 HTTP Request
@@ -38,10 +38,14 @@ HTTP Request
 Http4sServer (IOApp / Ember)
     │
     ▼
-corsHandler → StatusPage → Http4s500 → Http4s700 → Http4sBGv2 → Http4s130 → Http4s121 → Http4sLiftWebBridge
-                                                                      │              │
-                                                                  own routes    v1.2.1 routes
-                                                                  (3 endpoints) (path-rewrite)
+corsHandler → AppsPage → StatusPage → Http4s500 → Http4s700 → Http4sBGv2
+                                                                      │
+                              Http4s210 → Http4s200 → Http4s140 → Http4s130 → Http4s121 → Http4sLiftWebBridge
+                                 │           │           │           │              │
+                             v2.1.0      v2.0.0      v1.4.0      v1.3.0        v1.2.1 routes
+                          own routes  own routes  own routes  own routes    (all 323 scenarios)
+                          + v2.0.0    + v1.4.0    + v1.3.0    + v1.2.1
+                          bridge      bridge      bridge       bridge
                                                                                       │
                                                                            LiftRules.statelessDispatch
                                                                            LiftRules.dispatch (REST API)
@@ -238,7 +242,7 @@ Binds to `hostname` / `dev.port` from your props file (defaults: `127.0.0.1:8080
 | `APIMethods130` | done — `Http4s130.scala` (2 PhysicalCardsTest scenarios pass) |
 | `APIMethods140` | done — `Http4s140.scala` (all 11 own endpoints; path-rewriting bridge to Http4s130) |
 | `APIMethods200` | done — `Http4s200.scala` (37 own endpoints; path-rewriting bridge to Http4s140) |
-| `APIMethods210` | todo |
+| `APIMethods210` | done — `Http4s210.scala` (25 own endpoints; path-rewriting bridge to Http4s200) |
 | `APIMethods220` | todo |
 | `APIMethods300` | todo |
 | `APIMethods310` | todo |
