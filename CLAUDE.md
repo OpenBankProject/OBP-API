@@ -133,7 +133,21 @@ _ <- if (userIdAccountOwner == loggedInUserId) Future.successful(Full(()))
 
 **`NewStyle.function.getBankAccount` returns 404**: The `unboxFullOrFail` inside hardcodes code 404. When your endpoint must return 400 for a missing account (e.g. v1.2.1 tests), bypass it: use `Connector.connector.vend.checkBankAccountExists(bankId, accountId, cc)` then `Future { unboxFullOrFail(rawBox, cc, msg) }` — the default code is 400.
 
-**Middleware URL template bypass** (non-standard uppercase vars): `validateAccount` checks `pathParams.get("ACCOUNT_ID")` and `validateView` checks `pathParams.get("VIEW_ID")` by exact key. Any other all-caps segment (e.g. `BANK_ACCOUNT_ID`, `CUSTOM_VIEW_ID`, `GRANT_VIEW_ID`) is still matched as a template variable (wildcard) but skips the 404/403 validation. Use this when your handler does inline validation returning 400 but middleware would return 404 or 403 first.
+**Middleware URL template bypass** (non-standard uppercase vars): `validateAccount` checks `pathParams.get("ACCOUNT_ID")` and `validateView` checks `pathParams.get("VIEW_ID")` by exact key. Any other all-caps segment (e.g. `BANK_ACCOUNT_ID`, `CUSTOM_VIEW_ID`, `GRANT_VIEW_ID`, `NEW_ACCOUNT_ID`, `VIEW_ACCOUNT_ID`, `UPD_VIEW_ID`) is still matched as a template variable (wildcard) but skips the 404/403 validation. Use this when your handler does inline validation returning 400 but middleware would return 404 or 403 first.
+
+For IO-based handlers that bypass `ACCOUNT_ID`, look up the account inline and return 400 for missing accounts (matching Lift behaviour):
+```scala
+// ResourceDoc URL: "/banks/BANK_ID/accounts/VIEW_ACCOUNT_ID/views"
+case req @ POST -> `prefixPath` / "banks" / _ / "accounts" / accountIdStr / "views" =>
+  implicit val cc: CallContext = req.callContext
+  val io = for {
+    bank    <- IO.fromOption(cc.bank)(new RuntimeException(BankNotFound))
+    rawBox  <- IO.fromFuture(IO(Connector.connector.vend.checkBankAccountExists(bank.bankId, AccountId(accountIdStr), Some(cc)).map(_._1)))
+    account <- IO(unboxFullOrFail(rawBox, Some(cc), BankAccountNotFound))   // default emptyBoxErrorCode=400
+    ...
+  } yield result
+```
+`checkBankAccountExists` returns `OBPReturnType[Box[BankAccount]]` = `Future[(Box[BankAccount], Option[CC])]`. Extract the `Box` with `.map(_._1)`. `unboxFullOrFail` with default `emptyBoxErrorCode=400` throws a JSON-encoded 400 exception that `ErrorResponseConverter` parses correctly.
 
 **`ResourceDoc` description and `needsAuthentication`**: The `ResourceDoc` constructor removes `AuthenticatedUserIsRequired` from `errorResponseBodies` when `description.contains(authenticationIsOptional) && rolesIsEmpty`. `needsAuthentication = errorResponseBodies.contains($AuthenticatedUserIsRequired) || roles.nonEmpty`. If the description embeds `${userAuthenticationMessage(false)}` (which includes `authenticationIsOptional`) and roles are empty, the error is silently removed → `needsAuthentication=false` → anonymous access → unauthenticated requests reach the handler. Fix: remove `${userAuthenticationMessage(false)}` from the description when `AuthenticatedUserIsRequired` must remain in the error list.
 
