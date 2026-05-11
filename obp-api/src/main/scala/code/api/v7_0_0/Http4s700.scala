@@ -8,13 +8,12 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.ResourceDocs1_4_0.{ResourceDocs140, ResourceDocsAPIMethodsUtil}
 import code.api.util.APIUtil.{EmptyBody, _}
 import code.api.util.{APIUtil, ApiRole, ApiVersionUtils, CallContext, CustomJsonFormats, Glossary, NewStyle}
-import code.api.util.ApiRole.{canCreateEntitlementAtAnyBank, canCreateEntitlementAtOneBank, canCreateOrganisation, canDeleteEntitlementAtAnyBank, canDeleteOrganisation, canGetAccountAccessTrace, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetCardsForBank, canGetConnectorHealth, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMigrations, canUpdateOrganisation}
+import code.api.util.ApiRole.{canCreateEntitlementAtAnyBank, canCreateEntitlementAtOneBank, canCreateOrganisation, canDeleteEntitlementAtAnyBank, canDeleteOrganisation, canGetAccountAccessTrace, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetConnectorHealth, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMigrations, canUpdateOrganisation}
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.http4s.{ErrorResponseConverter, Http4sRequestAttributes, IdempotencyMiddleware, RequestScopeConnection, ResourceDocMiddleware}
 import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps}
 import code.api.util.newstyle.ViewNewStyle
-import code.api.v1_3_0.JSONFactory1_3_0
 import code.api.v1_4_0.JSONFactory1_4_0
 import code.api.v2_0_0.{BasicViewJson, CreateEntitlementJSON, JSONFactory200}
 import code.api.v4_0_0.JSONFactory400
@@ -226,61 +225,6 @@ object Http4s700 {
       http4sPartialFunction = Some(getBanks)
     )
 
-    // Route: GET /obp/v7.0.0/cards
-    // Authentication handled by ResourceDocMiddleware based on AuthenticatedUserIsRequired
-    val getCards: HttpRoutes[IO] = HttpRoutes.of[IO] {
-      case req @ GET -> `prefixPath` / "cards" =>
-        EndpointHelpers.withUser(req) { (user, cc) =>
-          for {
-            (cards, callContext) <- NewStyle.function.getPhysicalCardsForUser(user, Some(cc))
-          } yield JSONFactory1_3_0.createPhysicalCardsJSON(cards, user)
-        }
-    }
-
-    resourceDocs += ResourceDoc(
-      null,
-      implementedInApiVersion,
-      nameOf(getCards),
-      "GET",
-      "/cards",
-      "Get cards for the current user",
-      "Returns data about all the physical cards a user has been issued. These could be debit cards, credit cards, etc.",
-      EmptyBody,
-      physicalCardsJSON,
-      List(AuthenticatedUserIsRequired, UnknownError),
-      apiTagCard :: Nil,
-      http4sPartialFunction = Some(getCards)
-    )
-
-    // Route: GET /obp/v7.0.0/banks/BANK_ID/cards
-    // Authentication and bank validation handled by ResourceDocMiddleware
-    val getCardsForBank: HttpRoutes[IO] = HttpRoutes.of[IO] {
-      case req @ GET -> `prefixPath` / "banks" / bankId / "cards" =>
-        EndpointHelpers.withUserAndBank(req) { (user, bank, cc) =>
-          for {
-            httpParams <- NewStyle.function.extractHttpParamsFromUrl(req.uri.renderString)
-            (obpQueryParams, callContext) <- createQueriesByHttpParamsFuture(httpParams, Some(cc))
-            (cards, callContext) <- NewStyle.function.getPhysicalCardsForBank(bank, user, obpQueryParams, callContext)
-          } yield JSONFactory1_3_0.createPhysicalCardsJSON(cards, user)
-        }
-    }
-
-    resourceDocs += ResourceDoc(
-      null,
-      implementedInApiVersion,
-      nameOf(getCardsForBank),
-      "GET",
-      "/banks/BANK_ID/cards",
-      "Get cards for the specified bank",
-      "",
-      EmptyBody,
-      physicalCardsJSON,
-      List(AuthenticatedUserIsRequired, BankNotFound, UnknownError),
-      apiTagCard :: Nil,
-      Some(List(canGetCardsForBank)),
-      http4sPartialFunction = Some(getCardsForBank)
-    )
-
     // Route: GET /obp/v7.0.0/resource-docs/API_VERSION/obp
     val getResourceDocsObpV700: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ GET -> `prefixPath` / "resource-docs" / requestedApiVersionString / "obp" =>
@@ -308,20 +252,10 @@ object Http4s700 {
             ) {
               ApiVersionUtils.valueOf(requestedApiVersionString)
             }
-            // Use aggregated docs for v7.0.0, version-specific docs for other versions
-            allDocs = if (requestedApiVersion == ApiVersion.v7_0_0) {
-              // For v7.0.0, update requestUrl and specifiedUrl for all aggregated docs
-              // This mirrors the logic in ResourceDocsAPIMethods.getResourceDocsList
-              allResourceDocs.toList.map { doc =>
-                // Save original requestUrl before modification (it's in short form like "/banks")
-                val originalRequestUrl = doc.requestUrl
-                doc.copy(
-                  requestUrl = s"/${doc.implementedInApiVersion.urlPrefix}/${doc.implementedInApiVersion.vDottedApiVersion}${originalRequestUrl}",
-                  specifiedUrl = Some(s"/${doc.implementedInApiVersion.urlPrefix}/${requestedApiVersion.vDottedApiVersion}${originalRequestUrl}")
-                )
-              }
-            } else {
-              ResourceDocs140.ImplementationsResourceDocs.getResourceDocsList(requestedApiVersion).getOrElse(Nil)
+            allDocs = {
+              val raw = ResourceDocs140.ImplementationsResourceDocs.getResourceDocsList(requestedApiVersion).getOrElse(Nil)
+              val seen = scala.collection.mutable.HashSet[(String, String)]()
+              raw.filter(doc => seen.add((doc.requestVerb, doc.requestUrl)))
             }
             filteredDocs = ResourceDocsAPIMethodsUtil.filterResourceDocs(allDocs, tags, functions)
           } yield JSONFactory1_4_0.createResourceDocsJson(filteredDocs, isVersion4OrHigher = true, localeParam, includeTechnology = true)

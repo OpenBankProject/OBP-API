@@ -525,11 +525,16 @@ object NewStyle extends MdcLoggable{
       }
       
     def moderatedOtherBankAccount(account: BankAccount,
-                                  counterpartyId: String, 
-                                  view: View, 
-                                  user: Box[User], 
-                                  callContext: Option[CallContext]): OBPReturnType[ModeratedOtherBankAccount] = 
-      account.moderatedOtherBankAccount(counterpartyId, view, BankIdAccountId(account.bankId, account.accountId), user, callContext) map { i =>(connectorEmptyResponse(i._1, i._2), i._2) }
+                                  counterpartyId: String,
+                                  view: View,
+                                  user: Box[User],
+                                  callContext: Option[CallContext]): OBPReturnType[ModeratedOtherBankAccount] =
+      account.moderatedOtherBankAccount(counterpartyId, view, BankIdAccountId(account.bankId, account.accountId), user, callContext)
+        .map { i => (connectorEmptyResponse(i._1, i._2), i._2) }
+        .recoverWith { case _: NoSuchElementException =>
+          val json = s"""{"failCode":400,"failMsg":"${CounterpartyNotFound.replace("\"", "\\\"")}"}"""
+          Future.failed(new Exception(json))
+        }
 
     def getTransactionsCore(bankId: BankId, accountId: AccountId, queryParams:  List[OBPQueryParam], callContext: Option[CallContext]): OBPReturnType[List[TransactionCore]] =
       Connector.connector.vend.getTransactionsCore(bankId: BankId, accountId: AccountId, queryParams:  List[OBPQueryParam], callContext: Option[CallContext]) map { i =>

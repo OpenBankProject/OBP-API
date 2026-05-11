@@ -13,7 +13,7 @@ import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.util.ApiShortVersions
 import com.github.dwickern.macros.NameOf.nameOf
-import net.liftweb.common.{Box, Empty, Full}
+import net.liftweb.common.{Box, Empty, Failure, Full}
 import org.http4s._
 import org.http4s.headers.`Content-Type`
 
@@ -128,11 +128,8 @@ object ResourceDocMiddleware extends MdcLoggable {
 
           case None =>
             // No matching ResourceDoc: fallback to original route (NO transaction scope opened).
-            // ResourceDocMatcher.findResourceDoc already logged a WARN with full key/index detail.
-            // Any background DB calls triggered by the Lift bridge for this request will use
-            // RequestAwareConnectionManager, which now falls back to a fresh vendor connection
-            // when the TTL-stale proxy is detected as closed.
-            routes.run(req)
+            // Attach the basic CC so req.callContext works in the inner route even without a doc match.
+            routes.run(req.withAttribute(Http4sRequestAttributes.callContextKey, cc))
         }
       }
     }
@@ -251,20 +248,48 @@ object ResourceDocMiddleware extends MdcLoggable {
     val needsAuth = ResourceDocMiddleware.needsAuthentication(resourceDoc)
     logger.debug(s"[ResourceDocMiddleware] needsAuthentication for ${resourceDoc.partialFunctionName}: $needsAuth")
 
-    val io =
-      if (needsAuth) IO.fromFuture(IO(APIUtil.authenticatedAccess(ctx.callContext)))
-      else IO.fromFuture(IO(APIUtil.anonymousAccess(ctx.callContext)))
+    // anonymousAccess runs all auth checks (user resolution, locked/deleted check, rate limiting,
+    // JWS, BerlinGroup) and returns the Box[User] for authenticated or anonymous requests.
+    // For any Failure box (e.g. UsernameHasBeenLocked, DAuthJwtTokenIsNotValid) it converts the
+    // box to a thrown plain Exception(json_of_APIFailureNewStyle, hardcoded failCode=401) via
+    // fullBoxOrException. We catch that, parse the JSON to recover the original message, and
+    // return 400 — matching Lift Old Style behavior (plain Failure → errorJsonResponse default=400).
+    val io = IO.fromFuture(IO(APIUtil.anonymousAccess(ctx.callContext)))
 
     EitherT(
       io.attempt.flatMap {
+        // Fully authenticated — happy path.
+        case Right((Full(user), Some(updatedCC))) =>
+          IO.pure(Right(ctx.copy(user = Full(user), callContext = updatedCC)))
+        case Right((Full(user), None)) =>
+          IO.pure(Right(ctx.copy(user = Full(user))))
+        // Empty box — no valid credentials provided, and auth is required.
+        case Right((_, optCC)) if needsAuth =>
+          val cc2 = optCC.getOrElse(ctx.callContext)
+          ErrorResponseConverter.createErrorResponse(401, $AuthenticatedUserIsRequired, cc2).map(Left(_))
+        // Anonymous endpoint — pass any box user through unchanged.
         case Right((boxUser, Some(updatedCC))) =>
           IO.pure(Right(ctx.copy(user = boxUser, callContext = updatedCC)))
         case Right((boxUser, None)) =>
           IO.pure(Right(ctx.copy(user = boxUser)))
         case Left(e: APIFailureNewStyle) =>
           ErrorResponseConverter.createErrorResponse(e.failCode, e.failMsg, ctx.callContext).map(Left(_))
-        case Left(_) =>
-          ErrorResponseConverter.createErrorResponse(401, $AuthenticatedUserIsRequired, ctx.callContext).map(Left(_))
+        case Left(e) =>
+          // anonymousAccess threw a plain Exception(json_of_APIFailureNewStyle).
+          // Parse the JSON to recover the original message and failCode (typically 401).
+          // Old Style endpoints (v1.x, v2.0.0) keep 400 to match Lift Old Style behavior.
+          // New Style endpoints (v2.1.0+) use the original failCode from the exception.
+          val (failMsg, parsedCode) = scala.util.Try {
+            implicit val formats = net.liftweb.json.DefaultFormats
+            val parsed = net.liftweb.json.parse(e.getMessage).extract[APIFailureNewStyle]
+            (parsed.failMsg, parsed.failCode)
+          }.getOrElse(($AuthenticatedUserIsRequired, 401))
+          val oldStyleShortVersions = Set("v1.2.1", "v1.3.0", "v1.4.0", "v2.0.0")
+          val versionStr = resourceDoc.implementedInApiVersion.apiShortVersion
+          val isOldStyle = oldStyleShortVersions.contains(versionStr)
+          val effectiveCode = if (isOldStyle) 400 else parsedCode
+          logger.debug(s"[ResourceDocMiddleware.authenticate] version=$versionStr isOldStyle=$isOldStyle parsedCode=$parsedCode effectiveCode=$effectiveCode")
+          ErrorResponseConverter.createErrorResponse(effectiveCode, failMsg, ctx.callContext).map(Left(_))
       }
     )
   }

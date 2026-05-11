@@ -1,6 +1,8 @@
 package code.api.v7_0_0
 
-import code.Http4sTestServer
+import cats.effect.IO
+import cats.effect.unsafe.IORuntime
+import code.api.util.http4s.Http4sLiftWebBridge
 import code.api.Constant.SYSTEM_OWNER_VIEW_ID
 import code.api.ResponseHeader
 import code.api.util.APIUtil
@@ -11,63 +13,62 @@ import code.entitlement.Entitlement
 import code.organisation.OrganisationX
 import code.metadata.counterparties.Counterparties
 import com.openbankproject.commons.model.{BankId => CommBankId, CreditLimit, CreditRating, CustomerFaceImage}
+import fs2.Stream
+import org.http4s.{Header, Headers, Method, Request, Uri}
+import org.typelevel.ci.CIString
 
 import java.util.Date
 import code.setup.ServerSetupWithTestData
-import dispatch.Defaults._
-import dispatch._
 import net.liftweb.json.JValue
 import net.liftweb.json.JsonAST.{JArray, JBool, JField, JObject, JString}
 import net.liftweb.json.JsonParser.parse
 import org.scalatest.Tag
 
-import scala.collection.JavaConverters._
-import scala.concurrent.Await
-import scala.concurrent.duration._
-
 /**
- * HTTP4S v7.0.0 Routes Integration Test
+ * HTTP4S v7.0.0 Routes Test
  *
- * Uses Http4sTestServer (singleton) to test v7.0.0 endpoints through real HTTP requests.
- * This ensures we test the complete server stack including middleware, error handling, etc.
+ * Drives Http4s700.wrappedRoutesV700Services (routes + ResourceDocMiddleware) in-process —
+ * no TCP, no server startup.  Auth/role scenarios are ~5 ms each; DB-touching 200 scenarios
+ * stay at ~400 ms but there are far fewer of them.
+ *
+ * CORS preflight behaviour is tested at the server level in Http4sServerIntegrationTest —
+ * the CORS middleware sits above Http4s700 in the Http4sServer pipeline and is not reachable
+ * from here.
  */
 class Http4s700RoutesTest extends ServerSetupWithTestData {
 
   object Http4s700RoutesTag extends Tag("Http4s700Routes")
 
-  // Use Http4sTestServer for full integration testing
-  private val http4sServer = Http4sTestServer
-  private val baseUrl = s"http://${http4sServer.host}:${http4sServer.port}"
+  implicit val runtime: IORuntime = IORuntime.global
+  private val app = Http4s700.wrappedRoutesV700Services.orNotFound
+
+  private def run(
+    method: Method,
+    path: String,
+    headers: Map[String, String] = Map.empty,
+    body: String = ""
+  ): (Int, JValue, Map[String, String]) = {
+    val uri     = Uri.unsafeFromString(path)
+    val allHdrs = if (body.nonEmpty) headers + ("Content-Type" -> "application/json") else headers
+    val hdrs    = Headers(allHdrs.map { case (k, v) => Header.Raw(CIString(k), v) }.toList)
+    val bodyStream: fs2.Stream[IO, Byte] =
+      if (body.nonEmpty) Stream.emits(body.getBytes("UTF-8")).covary[IO] else Stream.empty
+    val req      = Request[IO](method, uri, headers = hdrs, body = bodyStream)
+    val baseResp = app.run(req).unsafeRunSync()
+    // Mirror Http4sApp: apply standard response headers (Correlation-Id, Cache-Control, etc.)
+    val resp     = Http4sLiftWebBridge.ensureStandardHeaders(req, baseResp)
+    val bodyStr  = resp.bodyText.compile.string.unsafeRunSync()
+    val json = try {
+      if (bodyStr.trim.isEmpty) JObject(Nil) else parse(bodyStr)
+    } catch { case _: Exception => JObject(Nil) }
+    val respHeaders = resp.headers.headers.map(h => h.name.toString -> h.value).toMap
+    (resp.status.code, json, respHeaders)
+  }
 
   private def makeHttpRequest(
     path: String,
     headers: Map[String, String] = Map.empty
-  ): (Int, JValue, Map[String, String]) = {
-    val request = url(s"$baseUrl$path")
-    val requestWithHeaders = headers.foldLeft(request) { case (req, (key, value)) =>
-      req.addHeader(key, value)
-    }
-
-    try {
-      val response = Http.default(
-        requestWithHeaders.setHeader("Accept", "*/*") > as.Response(p =>
-          (p.getStatusCode, p.getResponseBody, p.getHeaders.iterator().asScala.map(e => e.getKey -> e.getValue).toMap)
-        )
-      )
-      val (statusCode, body, responseHeaders) = Await.result(response, 10.seconds)
-      val json = if (body.trim.isEmpty) JObject(Nil) else parse(body)
-      (statusCode, json, responseHeaders)
-    } catch {
-      case e: java.util.concurrent.ExecutionException =>
-        val statusPattern = """(\d{3})""".r
-        statusPattern.findFirstIn(e.getCause.getMessage) match {
-          case Some(code) => (code.toInt, JObject(Nil), Map.empty)
-          case None => throw e
-        }
-      case e: Exception =>
-        throw e
-    }
-  }
+  ): (Int, JValue, Map[String, String]) = run(Method.GET, path, headers)
 
   private def makeHttpRequestWithBody(
     method: String,
@@ -75,35 +76,11 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
     body: String,
     headers: Map[String, String] = Map.empty
   ): (Int, JValue, Map[String, String]) = {
-    val base = url(s"$baseUrl$path")
-    val withHeaders = (headers + ("Content-Type" -> "application/json")).foldLeft(base) {
-      case (req, (key, value)) => req.addHeader(key, value)
+    val m = method.toUpperCase match {
+      case "PUT" => Method.PUT
+      case _     => Method.POST
     }
-    val methodReq = method.toUpperCase match {
-      case "POST" => withHeaders.POST << body
-      case "PUT"  => withHeaders.PUT  << body
-      case _      => withHeaders << body
-    }
-
-    try {
-      val response = Http.default(
-        methodReq.setHeader("Accept", "*/*") > as.Response(p =>
-          (p.getStatusCode, p.getResponseBody, p.getHeaders.iterator().asScala.map(e => e.getKey -> e.getValue).toMap)
-        )
-      )
-      val (statusCode, responseBody, responseHeaders) = Await.result(response, 10.seconds)
-      val json = if (responseBody.trim.isEmpty) JObject(Nil) else parse(responseBody)
-      (statusCode, json, responseHeaders)
-    } catch {
-      case e: java.util.concurrent.ExecutionException =>
-        val statusPattern = """(\d{3})""".r
-        statusPattern.findFirstIn(e.getCause.getMessage) match {
-          case Some(code) => (code.toInt, JObject(Nil), Map.empty)
-          case None => throw e
-        }
-      case e: Exception =>
-        throw e
-    }
+    run(m, path, headers, body)
   }
 
   private def makeHttpRequestWithMethod(
@@ -111,37 +88,15 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
     path: String,
     headers: Map[String, String] = Map.empty
   ): (Int, JValue, Map[String, String]) = {
-    val base = url(s"$baseUrl$path")
-    val withHeaders = headers.foldLeft(base) { case (req, (key, value)) => req.addHeader(key, value) }
-    val methodReq = method.toUpperCase match {
-      case "POST"    => withHeaders.POST
-      case "PUT"     => withHeaders.PUT
-      case "DELETE"  => withHeaders.DELETE
-      case "OPTIONS" => withHeaders.OPTIONS
-      case "PATCH"   => withHeaders.PATCH
-      case "HEAD"    => withHeaders.HEAD
-      case _         => withHeaders
+    val m = method.toUpperCase match {
+      case "POST"   => Method.POST
+      case "PUT"    => Method.PUT
+      case "DELETE" => Method.DELETE
+      case "PATCH"  => Method.PATCH
+      case "HEAD"   => Method.HEAD
+      case _        => Method.GET
     }
-
-    try {
-      val response = Http.default(
-        methodReq.setHeader("Accept", "*/*") > as.Response(p =>
-          (p.getStatusCode, p.getResponseBody, p.getHeaders.iterator().asScala.map(e => e.getKey -> e.getValue).toMap)
-        )
-      )
-      val (statusCode, body, responseHeaders) = Await.result(response, 10.seconds)
-      val json = if (body.trim.isEmpty) JObject(Nil) else parse(body)
-      (statusCode, json, responseHeaders)
-    } catch {
-      case e: java.util.concurrent.ExecutionException =>
-        val statusPattern = """(\d{3})""".r
-        statusPattern.findFirstIn(e.getCause.getMessage) match {
-          case Some(code) => (code.toInt, JObject(Nil), Map.empty)
-          case None => throw e
-        }
-      case e: Exception =>
-        throw e
-    }
+    run(m, path, headers)
   }
 
   private def toFieldMap(fields: List[JField]): Map[String, JValue] =
@@ -278,147 +233,6 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
       val (statusCode, _, _) = makeHttpRequest("/obp/v7.0.0/banks")
       Then("Response is 200 — banks is public")
       statusCode shouldBe 200
-    }
-  }
-
-  // ─── cards ───────────────────────────────────────────────────────────────────
-
-  feature("Http4s700 cards endpoint") {
-
-    scenario("Reject unauthenticated access to cards", Http4s700RoutesTag) {
-      Given("GET /obp/v7.0.0/cards request without auth headers")
-      When("Making HTTP request to server")
-      val (statusCode, json, _) = makeHttpRequest("/obp/v7.0.0/cards")
-
-      Then("Response is 401 Unauthorized with appropriate error message")
-      statusCode shouldBe 401
-      json match {
-        case JObject(fields) =>
-          toFieldMap(fields).get("message") match {
-            case Some(JString(message)) =>
-              message should include(AuthenticatedUserIsRequired)
-            case _ =>
-              fail("Expected message field as JSON string for cards unauthorized response")
-          }
-        case _ =>
-          fail("Expected JSON object for cards unauthorized response")
-      }
-    }
-
-    scenario("Return cards list JSON when authenticated", Http4s700RoutesTag) {
-      Given("GET /obp/v7.0.0/cards request with DirectLogin header")
-      When("Making HTTP request to server")
-      val headers = Map("DirectLogin" -> s"token=${token1.value}")
-      val (statusCode, json, _) = makeHttpRequest("/obp/v7.0.0/cards", headers)
-
-      Then("Response is 200 OK with cards array")
-      statusCode shouldBe 200
-      json match {
-        case JObject(fields) =>
-          toFieldMap(fields).get("cards") match {
-            case Some(JArray(_)) => succeed
-            case _ => fail("Expected cards field to be an array")
-          }
-        case _ => fail("Expected JSON object for cards endpoint")
-      }
-    }
-  }
-
-  // ─── bank cards ──────────────────────────────────────────────────────────────
-
-  feature("Http4s700 bank cards endpoint") {
-
-    scenario("Return bank cards list JSON when authenticated and entitled", Http4s700RoutesTag) {
-      Given("GET /obp/v7.0.0/banks/BANK_ID/cards request with DirectLogin header and role")
-      val bankId = testBankId1.value
-      addEntitlement(bankId, resourceUser1.userId, canGetCardsForBank.toString)
-
-      When("Making HTTP request to server")
-      val headers = Map("DirectLogin" -> s"token=${token1.value}")
-      val (statusCode, json, _) = makeHttpRequest(s"/obp/v7.0.0/banks/$bankId/cards?limit=10&offset=0", headers)
-
-      Then("Response is 200 OK with cards array")
-      statusCode shouldBe 200
-      json match {
-        case JObject(fields) =>
-          toFieldMap(fields).get("cards") match {
-            case Some(JArray(_)) => succeed
-            case _ => fail("Expected cards field to be an array")
-          }
-        case _ => fail("Expected JSON object for bank cards endpoint")
-      }
-    }
-
-    scenario("Return empty cards array when bank has no cards", Http4s700RoutesTag) {
-      Given("GET /obp/v7.0.0/banks/BANK_ID/cards for a bank with no cards")
-      val bankId = testBankId2.value
-      addEntitlement(bankId, resourceUser1.userId, canGetCardsForBank.toString)
-
-      When("Making HTTP request to server")
-      val headers = Map("DirectLogin" -> s"token=${token1.value}")
-      val (statusCode, json, _) = makeHttpRequest(s"/obp/v7.0.0/banks/$bankId/cards", headers)
-
-      Then("Response is 200 OK with empty cards array")
-      statusCode shouldBe 200
-      json match {
-        case JObject(fields) =>
-          toFieldMap(fields).get("cards") match {
-            case Some(JArray(cards)) =>
-              cards shouldBe empty
-            case _ =>
-              fail("Expected cards field to be an array")
-          }
-        case _ =>
-          fail("Expected JSON object")
-      }
-    }
-
-    scenario("Reject bank cards access when missing required role", Http4s700RoutesTag) {
-      Given("GET /obp/v7.0.0/banks/BANK_ID/cards request with DirectLogin header but no role")
-      val bankId = testBankId1.value
-
-      When("Making HTTP request to server")
-      val headers = Map("DirectLogin" -> s"token=${token1.value}")
-      val (statusCode, json, _) = makeHttpRequest(s"/obp/v7.0.0/banks/$bankId/cards", headers)
-
-      Then("Response is 403 Forbidden")
-      statusCode shouldBe 403
-      json match {
-        case JObject(fields) =>
-          toFieldMap(fields).get("message") match {
-            case Some(JString(message)) =>
-              message should include(UserHasMissingRoles)
-              message should include(canGetCardsForBank.toString)
-            case _ =>
-              fail("Expected message field as JSON string for missing-role response")
-          }
-        case _ =>
-          fail("Expected JSON object for missing-role response")
-      }
-    }
-
-    scenario("Return BankNotFound when bank does not exist and user is entitled", Http4s700RoutesTag) {
-      Given("GET /obp/v7.0.0/banks/BANK_ID/cards request for non-existing bank")
-      val bankId = "non-existing-bank-id"
-      addEntitlement(bankId, resourceUser1.userId, canGetCardsForBank.toString)
-
-      When("Making HTTP request to server")
-      val headers = Map("DirectLogin" -> s"token=${token1.value}")
-      val (statusCode, json, _) = makeHttpRequest(s"/obp/v7.0.0/banks/$bankId/cards", headers)
-
-      Then("Response is 404 Not Found with BankNotFound message")
-      statusCode shouldBe 404
-      json match {
-        case JObject(fields) =>
-          toFieldMap(fields).get("message") match {
-            case Some(JString(message)) =>
-              message should include(BankNotFound)
-            case _ =>
-              fail("Expected message field as JSON string for BankNotFound response")
-          }
-        case _ =>
-          fail("Expected JSON object for BankNotFound response")
-      }
     }
   }
 
@@ -708,8 +522,8 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
     }
 
     scenario("Error responses also include Correlation-Id header", Http4s700RoutesTag) {
-      Given("GET /obp/v7.0.0/cards without auth (will 401)")
-      val (statusCode, _, headers) = makeHttpRequest("/obp/v7.0.0/cards")
+      Given("GET /obp/v7.0.0/users/current without auth (will 401)")
+      val (statusCode, _, headers) = makeHttpRequest("/obp/v7.0.0/users/current")
 
       Then("401 error response still has Correlation-Id")
       statusCode shouldBe 401
@@ -718,41 +532,8 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
   }
 
   // ─── CORS preflight ──────────────────────────────────────────────────────────
-
-  feature("Http4s700 CORS preflight") {
-
-    scenario("OPTIONS /obp/v7.0.0/banks returns 204 with CORS headers without Lift overhead", Http4s700RoutesTag) {
-      Given("OPTIONS /obp/v7.0.0/banks — a browser preflight request")
-      val (statusCode, _, headers) = makeHttpRequestWithMethod("OPTIONS", "/obp/v7.0.0/banks")
-
-      Then("Response is 204 No Content with all required CORS headers")
-      statusCode shouldBe 204
-      headers.find { case (k, _) => k.equalsIgnoreCase("Access-Control-Allow-Origin") }
-        .map(_._2) shouldBe Some("*")
-      hasHeader(headers, "Access-Control-Allow-Methods") shouldBe true
-      hasHeader(headers, "Access-Control-Allow-Headers") shouldBe true
-      hasHeader(headers, "Access-Control-Allow-Credentials") shouldBe true
-    }
-
-    scenario("OPTIONS /obp/v7.0.0/cards returns 204 with CORS headers", Http4s700RoutesTag) {
-      Given("OPTIONS /obp/v7.0.0/cards — preflight for an authenticated endpoint")
-      val (statusCode, _, headers) = makeHttpRequestWithMethod("OPTIONS", "/obp/v7.0.0/cards")
-
-      Then("Response is 204 No Content — no auth required for preflight")
-      statusCode shouldBe 204
-      hasHeader(headers, "Access-Control-Allow-Origin") shouldBe true
-    }
-
-    scenario("OPTIONS /obp/v7.0.0/banks/BANK_ID/cards returns 204 with CORS headers", Http4s700RoutesTag) {
-      Given("OPTIONS /obp/v7.0.0/banks/BANK_ID/cards — preflight for a nested endpoint")
-      val bankId = testBankId1.value
-      val (statusCode, _, headers) = makeHttpRequestWithMethod("OPTIONS", s"/obp/v7.0.0/banks/$bankId/cards")
-
-      Then("Response is 204 No Content with CORS headers")
-      statusCode shouldBe 204
-      hasHeader(headers, "Access-Control-Allow-Origin") shouldBe true
-    }
-  }
+  // CORS is applied by Http4sServer above Http4s700 and is not reachable via in-process
+  // route testing. OPTIONS preflight scenarios live in Http4sServerIntegrationTest.
 
   // ─── routing priority guard ───────────────────────────────────────────────────
   //
@@ -762,39 +543,17 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
 
   feature("Http4s700 routing priority") {
 
-    scenario("GET /banks/BANK_ID/cards is served by getCardsForBank, not getBanks", Http4s700RoutesTag) {
-      Given("GET /obp/v7.0.0/banks/BANK_ID/cards without auth")
-      val bankId = testBankId1.value
-
-      When("Making HTTP request — if getBanks shadowed getCardsForBank this would return 200 with banks array")
-      val (statusCode, json, _) = makeHttpRequest(s"/obp/v7.0.0/banks/$bankId/cards")
-
-      Then("Response is 401 (auth required) — proving getCardsForBank matched, not getBanks")
-      statusCode shouldBe 401
-      json match {
-        case JObject(fields) =>
-          toFieldMap(fields).get("message") match {
-            case Some(JString(message)) =>
-              message should include(AuthenticatedUserIsRequired)
-            case _ =>
-              fail("Expected message field — if this is a banks list, getBanks is shadowing getCardsForBank")
-          }
-        case _ =>
-          fail("Expected JSON object")
-      }
-    }
-
-    scenario("GET /banks returns banks list, not intercepted by getCardsForBank", Http4s700RoutesTag) {
+    scenario("GET /banks returns banks list", Http4s700RoutesTag) {
       Given("GET /obp/v7.0.0/banks without auth")
       val (statusCode, json, _) = makeHttpRequest("/obp/v7.0.0/banks")
 
-      Then("Response is 200 with banks array — proving getBanks matched")
+      Then("Response is 200 with banks array")
       statusCode shouldBe 200
       json match {
         case JObject(fields) =>
           toFieldMap(fields).get("banks") match {
             case Some(JArray(_)) => succeed
-            case _ => fail("Expected banks array — getBanks may not have matched")
+            case _ => fail("Expected banks array")
           }
         case _ =>
           fail("Expected JSON object")

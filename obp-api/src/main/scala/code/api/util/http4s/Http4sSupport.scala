@@ -194,7 +194,7 @@ object Http4sRequestAttributes {
     def executeFutureWithBody[B, A](req: Request[IO])(f: (B, CallContext) => Future[A])(implicit formats: Formats, mf: Manifest[B]): IO[Response[IO]] = {
       implicit val cc: CallContext = req.callContext
       parseBody[B](cc) match {
-        case Left(msg)   => BadRequest(msg).flatTap(recordMetric(msg, _))
+        case Left(msg)   => ErrorResponseConverter.createErrorResponse(400, msg, cc).flatTap(recordMetric(msg, _))
         case Right(body) =>
           RequestScopeConnection.fromFuture(f(body, cc)).attempt.flatMap {
             case Right(result) => toJsonOk(result).flatTap(recordMetric(result, _))
@@ -210,7 +210,7 @@ object Http4sRequestAttributes {
     def executeFutureWithBodyCreated[B, A](req: Request[IO])(f: (B, CallContext) => Future[A])(implicit formats: Formats, mf: Manifest[B]): IO[Response[IO]] = {
       implicit val cc: CallContext = req.callContext
       parseBody[B](cc) match {
-        case Left(msg)   => BadRequest(msg).flatTap(recordMetric(msg, _))
+        case Left(msg)   => ErrorResponseConverter.createErrorResponse(400, msg, cc).flatTap(recordMetric(msg, _))
         case Right(body) =>
           RequestScopeConnection.fromFuture(f(body, cc)).attempt.flatMap {
             case Right(result) =>
@@ -228,7 +228,7 @@ object Http4sRequestAttributes {
     def withUserAndBody[B, A](req: Request[IO])(f: (User, B, CallContext) => Future[A])(implicit formats: Formats, mf: Manifest[B]): IO[Response[IO]] = {
       implicit val cc: CallContext = req.callContext
       parseBody[B](cc) match {
-        case Left(msg) => BadRequest(msg).flatTap(recordMetric(msg, _))
+        case Left(msg) => ErrorResponseConverter.createErrorResponse(400, msg, cc).flatTap(recordMetric(msg, _))
         case Right(body) =>
           val io = for {
             user   <- IO.fromOption(cc.user.toOption)(new RuntimeException("User not found in CallContext"))
@@ -248,7 +248,7 @@ object Http4sRequestAttributes {
     def withUserAndBodyCreated[B, A](req: Request[IO])(f: (User, B, CallContext) => Future[A])(implicit formats: Formats, mf: Manifest[B]): IO[Response[IO]] = {
       implicit val cc: CallContext = req.callContext
       parseBody[B](cc) match {
-        case Left(msg) => BadRequest(msg).flatTap(recordMetric(msg, _))
+        case Left(msg) => ErrorResponseConverter.createErrorResponse(400, msg, cc).flatTap(recordMetric(msg, _))
         case Right(body) =>
           val io = for {
             user   <- IO.fromOption(cc.user.toOption)(new RuntimeException("User not found in CallContext"))
@@ -270,7 +270,7 @@ object Http4sRequestAttributes {
     def withUserAndBankAndBody[B, A](req: Request[IO])(f: (User, Bank, B, CallContext) => Future[A])(implicit formats: Formats, mf: Manifest[B]): IO[Response[IO]] = {
       implicit val cc: CallContext = req.callContext
       parseBody[B](cc) match {
-        case Left(msg) => BadRequest(msg).flatTap(recordMetric(msg, _))
+        case Left(msg) => ErrorResponseConverter.createErrorResponse(400, msg, cc).flatTap(recordMetric(msg, _))
         case Right(body) =>
           val io = for {
             user   <- IO.fromOption(cc.user.toOption)(new RuntimeException("User not found in CallContext"))
@@ -291,7 +291,7 @@ object Http4sRequestAttributes {
     def withUserAndBankAndBodyCreated[B, A](req: Request[IO])(f: (User, Bank, B, CallContext) => Future[A])(implicit formats: Formats, mf: Manifest[B]): IO[Response[IO]] = {
       implicit val cc: CallContext = req.callContext
       parseBody[B](cc) match {
-        case Left(msg) => BadRequest(msg).flatTap(recordMetric(msg, _))
+        case Left(msg) => ErrorResponseConverter.createErrorResponse(400, msg, cc).flatTap(recordMetric(msg, _))
         case Right(body) =>
           val io = for {
             user   <- IO.fromOption(cc.user.toOption)(new RuntimeException("User not found in CallContext"))
@@ -321,6 +321,26 @@ object Http4sRequestAttributes {
       io.attempt.flatMap {
         case Right(result) => toJsonOk(result).flatTap(recordMetric(result, _))
         case Left(err)     => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
+      }
+    }
+
+    /**
+     * Execute POST business logic requiring validated User, BankAccount, and View (URL must contain VIEW_ID).
+     * Returns 201 Created on success, converts errors via ErrorResponseConverter.
+     */
+    def withViewCreated[A](req: Request[IO])(f: (User, BankAccount, View, CallContext) => Future[A])(implicit formats: Formats): IO[Response[IO]] = {
+      implicit val cc: CallContext = req.callContext
+      val io = for {
+        user        <- IO.fromOption(cc.user.toOption)(new RuntimeException("User not found in CallContext"))
+        bankAccount <- IO.fromOption(cc.bankAccount)(new RuntimeException("BankAccount not found in CallContext"))
+        view        <- IO.fromOption(cc.view)(new RuntimeException("View not found in CallContext"))
+        result      <- RequestScopeConnection.fromFuture(f(user, bankAccount, view, cc))
+      } yield result
+      io.attempt.flatMap {
+        case Right(result) =>
+          val jsonString = prettyRender(Extraction.decompose(result))
+          Created(jsonString).flatTap(recordMetric(result, _))
+        case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
       }
     }
 
