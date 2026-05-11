@@ -275,14 +275,21 @@ object ResourceDocMiddleware extends MdcLoggable {
         case Left(e: APIFailureNewStyle) =>
           ErrorResponseConverter.createErrorResponse(e.failCode, e.failMsg, ctx.callContext).map(Left(_))
         case Left(e) =>
-          // anonymousAccess threw a plain Exception(json_of_APIFailureNewStyle) — the JSON
-          // preserves the original error message but hardcodes failCode=401. Parse it to recover
-          // the message and return 400, matching Lift Old Style error handling.
-          val failMsg = scala.util.Try {
+          // anonymousAccess threw a plain Exception(json_of_APIFailureNewStyle).
+          // Parse the JSON to recover the original message and failCode (typically 401).
+          // Old Style endpoints (v1.x, v2.0.0) keep 400 to match Lift Old Style behavior.
+          // New Style endpoints (v2.1.0+) use the original failCode from the exception.
+          val (failMsg, parsedCode) = scala.util.Try {
             implicit val formats = net.liftweb.json.DefaultFormats
-            net.liftweb.json.parse(e.getMessage).extract[APIFailureNewStyle].failMsg
-          }.getOrElse($AuthenticatedUserIsRequired)
-          ErrorResponseConverter.createErrorResponse(400, failMsg, ctx.callContext).map(Left(_))
+            val parsed = net.liftweb.json.parse(e.getMessage).extract[APIFailureNewStyle]
+            (parsed.failMsg, parsed.failCode)
+          }.getOrElse(($AuthenticatedUserIsRequired, 401))
+          val oldStyleShortVersions = Set("v1.2.1", "v1.3.0", "v1.4.0", "v2.0.0")
+          val versionStr = resourceDoc.implementedInApiVersion.apiShortVersion
+          val isOldStyle = oldStyleShortVersions.contains(versionStr)
+          val effectiveCode = if (isOldStyle) 400 else parsedCode
+          logger.debug(s"[ResourceDocMiddleware.authenticate] version=$versionStr isOldStyle=$isOldStyle parsedCode=$parsedCode effectiveCode=$effectiveCode")
+          ErrorResponseConverter.createErrorResponse(effectiveCode, failMsg, ctx.callContext).map(Left(_))
       }
     )
   }
