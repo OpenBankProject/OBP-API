@@ -149,7 +149,28 @@ case req @ POST -> `prefixPath` / "banks" / _ / "accounts" / accountIdStr / "vie
 ```
 `checkBankAccountExists` returns `OBPReturnType[Box[BankAccount]]` = `Future[(Box[BankAccount], Option[CC])]`. Extract the `Box` with `.map(_._1)`. `unboxFullOrFail` with default `emptyBoxErrorCode=400` throws a JSON-encoded 400 exception that `ErrorResponseConverter` parses correctly.
 
-**Auth failure status code — Old Style vs New Style**: `ResourceDocMiddleware.authenticate` returns 400 for auth failures (locked user, invalid DAuth JWT) on Old Style endpoints (v1.2.1, v1.3.0, v1.4.0, v2.0.0) and 401 on New Style endpoints (v2.1.0+). The version check is in the `case Left(e)` branch: `oldStyleShortVersions.contains(resourceDoc.implementedInApiVersion.apiShortVersion)`. `anonymousAccess` always converts Failure boxes to `Exception(json_of_APIFailureNewStyle)` with `failCode=401` via `fullBoxOrException`. The Old Style 400 is a deliberate override for backward compatibility.
+**Auth failure status code — Old Style vs New Style**: `ResourceDocMiddleware.authenticate` returns **400** for auth failures (locked user, invalid DAuth JWT, etc.) on Old Style endpoints (v1.2.1, v1.3.0, v1.4.0, v2.0.0) and **401** on New Style endpoints (v2.1.0+). Internally, `anonymousAccess` always converts Failure boxes to a thrown `Exception(json_of_APIFailureNewStyle)` with `failCode=401` via `fullBoxOrException`. The `case Left(e)` branch in `authenticate` parses the JSON, then overrides to 400 for Old Style versions via `oldStyleShortVersions.contains(resourceDoc.implementedInApiVersion.apiShortVersion)`. If a new version file returns the wrong code, check: (1) `implementedInApiVersion` is set correctly, and (2) the version is/isn't in `oldStyleShortVersions`.
+
+**Prop check before role check (firehose-pattern)**: Some endpoints must enforce a feature-flag prop check (→ 400) *before* a role check (→ 403), and both *before* the bank/account lookup (→ 404). Middleware processes roles then bank, so putting roles in the ResourceDoc causes 403 before the prop runs; using `withUserAndBank` causes 404 for fake bank IDs before either check. The fix:
+1. Use `withUser` (auth only — no bank/account resolution from middleware).
+2. Use non-standard ALL_CAPS vars in the ResourceDoc URL template (`FIREHOSE_BANK_ID`, `FIREHOSE_VIEW_ID`) so middleware skips bank/view validation.
+3. In the handler body: prop check first (booleanToFuture → 400), then role check with `booleanToFuture(failCode=403)` (→ 403), then manual `NewStyle.function.getBank(...)` (→ 404 for unknown bank).
+4. Keep roles **out** of the ResourceDoc (`None` instead of `Some(List(...))`).
+```scala
+EndpointHelpers.withUser(req) { (user, cc) =>
+  val roles = ApiRole.canUseAccountFirehose :: canUseAccountFirehoseAtAnyBank :: Nil
+  val roleMsg = UserHasMissingRoles + roles.mkString(" or ")
+  for {
+    _ <- code.util.Helper.booleanToFuture(AccountFirehoseNotAllowedOnThisInstance, cc = Some(cc)) { allowAccountFirehose }
+    _ <- code.util.Helper.booleanToFuture(roleMsg, failCode = 403, cc = Some(cc)) {
+           APIUtil.hasAtLeastOneEntitlement(bankIdStr, user.userId, roles) }
+    (bank, _) <- NewStyle.function.getBank(BankId(bankIdStr), Some(cc))
+    ...
+  } yield ...
+}
+// ResourceDoc:
+resourceDocs += ResourceDoc(null, ..., "/banks/FIREHOSE_BANK_ID/firehose/...", ..., None, ...)
+```
 
 **`ResourceDoc` description and `needsAuthentication`**: The `ResourceDoc` constructor removes `AuthenticatedUserIsRequired` from `errorResponseBodies` when `description.contains(authenticationIsOptional) && rolesIsEmpty`. `needsAuthentication = errorResponseBodies.contains($AuthenticatedUserIsRequired) || roles.nonEmpty`. If the description embeds `${userAuthenticationMessage(false)}` (which includes `authenticationIsOptional`) and roles are empty, the error is silently removed → `needsAuthentication=false` → anonymous access → unauthenticated requests reach the handler. Fix: remove `${userAuthenticationMessage(false)}` from the description when `AuthenticatedUserIsRequired` must remain in the error list.
 
