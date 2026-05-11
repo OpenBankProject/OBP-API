@@ -11,7 +11,7 @@ import code.api.util.newstyle.ViewNewStyle
 import code.api.util.{APIUtil, ApiRole, CallContext, NewStyle}
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model._
-import com.openbankproject.commons.util.ApiShortVersions
+import com.openbankproject.commons.util.{ApiShortVersions, ScannedApiVersion}
 import com.github.dwickern.macros.NameOf.nameOf
 import net.liftweb.common.{Box, Empty, Failure, Full}
 import org.http4s._
@@ -89,6 +89,28 @@ object ResourceDocMiddleware extends MdcLoggable {
   }
 
   /**
+   * Pure decision: is this ResourceDoc enabled given the four enable/disable Props?
+   *
+   * Semantics — matches `APIUtil.getAllowedResourceDocs` / `versionIsAllowed`:
+   * - if operationId is in disabledOperationIds          → disabled
+   * - if enabledOperationIds non-empty and op not in it  → disabled
+   * - if version is not allowed                          → disabled
+   * - otherwise                                          → enabled
+   *
+   * Extracted from `apply` so the decision can be unit-tested without standing up
+   * a middleware instance or mutating global Props.
+   */
+  def isEndpointEnabled(
+    rd: ResourceDoc,
+    disabledOperationIds: Set[String],
+    enabledOperationIds: Set[String],
+    versionAllowed: ScannedApiVersion => Boolean
+  ): Boolean =
+    !disabledOperationIds.contains(rd.operationId) &&
+      (enabledOperationIds.isEmpty || enabledOperationIds.contains(rd.operationId)) &&
+      versionAllowed(rd.implementedInApiVersion)
+
+  /**
    * Middleware factory: wraps HttpRoutes with ResourceDoc validation.
    * Finds the matching ResourceDoc, validates the request, and enriches CallContext.
    */
@@ -96,6 +118,17 @@ object ResourceDocMiddleware extends MdcLoggable {
     // Build the lookup index once per middleware instance (at startup), not per request.
     val resourceDocIndex = ResourceDocMatcher.buildIndex(resourceDocs)
     Kleisli[HttpF, Request[IO], Response[IO]] { req: Request[IO] =>
+      // Read enable/disable Props per request so runtime changes (e.g. `setPropsValues` in
+      // tests or live config reloads) take effect immediately. Cost is a few Lift Props
+      // lookups — negligible per request, but lets disabled endpoints/versions be toggled
+      // without restarting the server. A disabled endpoint or version yields OptionT.none
+      // so the request falls through to the next handler in the chain (typically the Lift
+      // bridge), mirroring the absent-route behavior of Lift's startup filter.
+      val disabledOperationIds = APIUtil.getDisabledEndpointOperationIds().toSet
+      val enabledOperationIds = APIUtil.getEnabledEndpointOperationIds().toSet
+      def endpointIsEnabled(rd: ResourceDoc): Boolean =
+        isEndpointEnabled(rd, disabledOperationIds, enabledOperationIds,
+          v => APIUtil.versionIsAllowed(v))
       val apiVersionFromPath = req.uri.path.segments.map(_.encoded).toList match {
         case apiPathZero :: version :: _ if apiPathZero == APIUtil.getPropsValue("apiPathZero", "obp") => version
         case _ => ApiShortVersions.`v7.0.0`.toString
@@ -103,6 +136,10 @@ object ResourceDocMiddleware extends MdcLoggable {
       // Build initial CallContext from request
       OptionT.liftF(Http4sCallContextBuilder.fromRequest(req, apiVersionFromPath)).flatMap { cc =>
         ResourceDocMatcher.findResourceDoc(req.method.name, req.uri.path, resourceDocIndex) match {
+          case Some(resourceDoc) if !endpointIsEnabled(resourceDoc) =>
+            // Disabled by api_disabled_endpoints / api_enabled_endpoints / api_disabled_versions /
+            // api_enabled_versions. Fall through so the Lift bridge can serve or 404.
+            OptionT.none[IO, Response[IO]]
           case Some(resourceDoc) =>
             val ccWithDoc = ResourceDocMatcher.attachToCallContext(cc, resourceDoc)
             val pathParams = ResourceDocMatcher.extractPathParams(req.uri.path, resourceDoc)
