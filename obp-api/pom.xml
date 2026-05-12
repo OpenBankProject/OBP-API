@@ -133,6 +133,19 @@
       <artifactId>msal4j</artifactId>
       <version>1.16.2</version>
     </dependency>
+    <!-- Pin log4j-api / log4j-core to override the 2.19.0 pulled in transitively
+         by elasticsearch:8.14.0. Fixes CVE-2025-68161, CVE-2026-34477, CVE-2026-34479,
+         CVE-2026-34480, CVE-2026-34481. (Not Log4Shell — that one was patched long ago.) -->
+    <dependency>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-api</artifactId>
+      <version>2.24.3</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-core</artifactId>
+      <version>2.24.3</version>
+    </dependency>
 
     <dependency>
       <groupId>junit</groupId>
