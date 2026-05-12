@@ -29,7 +29,7 @@ New API versions are implemented as native http4s routes and do not pass through
 
 ### Priority routing
 
-Routes are tried in order: `corsHandler` (OPTIONS) → `AppsPage` → `StatusPage` → `Http4s500` → `Http4s700` → `Http4sBGv2` → `Http4s310` → `Http4s300` → `Http4s220` → `Http4s210` → `Http4s200` → `Http4s140` → `Http4s130` → `Http4s121` → `Http4sLiftWebBridge` (Lift fallback). Unhandled `/obp/v7.0.0/*` paths fall through silently to Lift — they do not 404.
+Routes are tried in order: `corsHandler` (OPTIONS) → `AppsPage` → `StatusPage` → `Http4s500` → `Http4s700` → `Http4sBGv2` → `Http4s400` → `Http4s310` → `Http4s300` → `Http4s220` → `Http4s210` → `Http4s200` → `Http4s140` → `Http4s130` → `Http4s121` → `Http4sLiftWebBridge` (Lift fallback). Unhandled `/obp/v7.0.0/*` paths fall through silently to Lift — they do not 404.
 
 ```
 HTTP Request
@@ -120,7 +120,7 @@ Bottom-up — each version depends on the one below it being done.
 | 6 | `APIMethods220` | 19 | **Done** — `Http4s220.scala`: 18 own endpoints + path-rewriting bridge to `Http4s210`; all 27 v2.2.0 tests pass |
 | 7 | `APIMethods300` | 47 | **Done** — `Http4s300.scala`: 47 own endpoints + path-rewriting bridge to `Http4s220`; all 86 v3.0.0 tests pass |
 | 8 | `APIMethods310` | 102 | **Done** — `Http4s310.scala` has all 100 functional endpoints (42 GET, 10 DELETE, 19 POST, 25 PUT, 1 GET-shaped revoke, 3 SCA aliases) + path-rewriting bridge to `Http4s300`; 181 v3.1.0 tests pass. Two endpoints tracked separately in "Per-version Lift leftovers" (`getMessageDocsSwagger`, `getObpConnectorLoopback`) — they retire via the Resource-docs workstream / bridge-removal PR, not as v3.1.0 follow-up. |
-| 9 | `APIMethods400` | ~258 total | Largest file; may need splitting into sub-traits |
+| 9 | `APIMethods400` | ~258 total | **In progress (47/258 endpoints)** — `Http4s400.scala` scaffolded with `staticResourceDocs`/`resourceDocs` split + bridge to `Http4s310`. **Dynamic-entity family complete** (11/11), **dynamic-endpoint family complete** (12/12), **mainstream batch 1** (`getMapperDatabaseInfo`, `getLogoutLink`, `getBanks`, `getBank`, `ibanChecker`, `callsLimit`, `createBank`, `root`). **Override audit started** (13/35 v4-over-older overrides migrated: `getBanks`, `getBank`, `createBank`, `root`, `getAtms`, `getAtm`, `createAtm`, `getProducts`, `getProduct`, `createProduct`, `createProductAttribute`, `updateProductAttribute`, `callsLimit`). Tests passing: BankTests, BankAttributeTests, MapperDatabaseInfoTest, RateLimitingTest, AtmsTest, ProductTest, DynamicEntityTest, DynamicEndpointsTest et al. **Bridge-cascade hijack gotcha** (see CLAUDE.md): v4 endpoints that *override* a same-URL endpoint from an earlier version must be migrated to `Http4s400` own-routes *before* relying on the bridge — otherwise the bridge cascade rewrites the path down to the older version's handler (which has different behaviour). 22 overrides remain to migrate. |
 | 10 | `APIMethods500` | 37 | |
 | 11 | `APIMethods510` | 111 | |
 | 12 | `APIMethods600` | ~244 total | Final Lift endpoint file |

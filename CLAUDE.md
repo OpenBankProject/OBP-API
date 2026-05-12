@@ -239,6 +239,22 @@ Note: `executeFutureCreated` returns 201; pair it with `cc.user.openOrThrowExcep
 
 **Use `NEW_ACCOUNT_ID` for PUT-creates-account URLs**: When a `PUT /banks/BANK_ID/accounts/ACCOUNT_ID` *creates* the account (it doesn't exist yet), the middleware's `validateAccount` keys off the literal `ACCOUNT_ID` template var and tries to look it up → 404 before the handler runs. Change the ResourceDoc URL template to `/banks/BANK_ID/accounts/NEW_ACCOUNT_ID` (or any non-standard ALL_CAPS variant) — middleware treats it as a wildcard and skips the lookup, but the path still matches the route pattern. The handler can check "already exists" inline with `Connector.connector.vend.checkBankAccountExists(...)` and return 409/400 as needed.
 
+**Bridge-cascade hijack**: when a new version (e.g. v4.0.0) *overrides* an endpoint from an earlier version with the same URL + verb (e.g. v4's `POST /banks` adds entitlement-granting that v2.2.0's `POST /banks` doesn't have), the v4 override **must** be migrated to `Http4s400`'s own-routes **before** wiring `Http4s400` into the chain. Otherwise the path-rewriting bridge cascade silently sends the request to the older handler:
+
+```
+POST /obp/v4.0.0/banks
+  → Http4s400 own-routes  (no POST /banks match — falls through)
+  → v400ToV310Bridge       (rewrites to /obp/v3.1.0/banks, calls Http4s310)
+  → ... cascades down ...
+  → Http4s220              (HAS POST /banks → executes v2.2.0 createBank ✗)
+```
+
+Without the v4 work the chain falls all the way through to the Lift bridge, which honours the `collectResourceDocs` URL+verb dedup that keeps the highest-version handler for each route — so Lift's v4 createBank runs and the test passes. Once you add an `Http4sXYZ` for an in-flight migration, that "Lift dedup" no longer protects you. Cure: before flipping a new version's `wrappedRoutesVxxxServices` into `Http4sApp.baseServices`, audit the version's overrides (Lift's `excludeEndpoints` is *not* the right list — it only names *removed* endpoints, not overrides) and migrate them too.
+
+How to find overrides for a version: grep `lazy val (\w+)` in the target `APIMethods*.scala`, then check whether the same URL + verb also appears in any older `APIMethods*.scala`. The intersection is the override set. Migrate that set as part of the same PR that introduces the bridge; otherwise reviewers will see test failures whose proximate cause (a downstream version's handler running) doesn't match the file the migration touches.
+
+Symptoms in tests: a v4-specific assertion fails (e.g. an entitlement should-be-granted check returns false). The HTTP response is usually a successful 200/201, just from the wrong handler — so it can look like a flaky failure on the surface.
+
 ## CI Performance Profile
 
 Measured from a 3-shard run (2691 tests total, all passing). Numbers are stable across shards.
