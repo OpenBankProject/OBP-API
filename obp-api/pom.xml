@@ -103,7 +103,7 @@
     <dependency>
       <groupId>com.mysql</groupId>
       <artifactId>mysql-connector-j</artifactId>
-      <version>8.0.33</version>
+      <version>8.1.0</version>
     </dependency>
     <!-- Pin protobuf-java to override the 3.21.9 pulled in transitively by mysql-connector-j.
          Fixes CVE-2024-7254 and CVE-2026-0994. -->
