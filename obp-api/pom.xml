@@ -305,6 +305,15 @@
           <groupId>org.web3j</groupId>
           <artifactId>core</artifactId>
           <version>4.9.8</version>
+          <exclusions>
+              <!-- Drop legacy bcprov-jdk15on:1.70 (CVE-2023-33202). The bcprov-jdk18on:1.78.1
+                   we already pull in via bcpg-jdk18on uses the same org.bouncycastle.* package
+                   namespace, so web3j's BC calls resolve against the patched provider. -->
+              <exclusion>
+                  <groupId>org.bouncycastle</groupId>
+                  <artifactId>bcprov-jdk15on</artifactId>
+              </exclusion>
+          </exclusions>
       </dependency>
     <dependency>
       <groupId>com.zaxxer</groupId>
