@@ -191,6 +191,14 @@
       <artifactId>elastic4s-client-esjava_${scala.version}</artifactId>
       <version>8.5.2</version>
     </dependency>
+    <!-- Pin elasticsearch-rest-client to match the elasticsearch core version (8.14.0).
+         elastic4s 8.5.2 brings 8.5.3 transitively, which carries 17 CVEs.
+         The rest-client is a thin Apache-HTTP wrapper; elastic4s uses it as a black box. -->
+    <dependency>
+      <groupId>org.elasticsearch.client</groupId>
+      <artifactId>elasticsearch-rest-client</artifactId>
+      <version>8.14.0</version>
+    </dependency>
     <!-- for LiftConsole -->
     <dependency>
       <groupId>org.scala-lang</groupId>
