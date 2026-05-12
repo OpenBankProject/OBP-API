@@ -531,4 +531,177 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
   def createOrganisationsJsonV700(orgs: List[code.organisation.OrganisationTrait]): OrganisationsJsonV700 = {
     OrganisationsJsonV700(orgs.map(createOrganisationJsonV700))
   }
+
+  // ── Routing Scheme JSON case classes ─────────────────────────────────────────
+
+  case class PostRoutingSchemeJsonV700(
+      scheme: String,
+      country: String,
+      category: String,
+      address_pattern: String,
+      secondary_address_pattern: Option[String],
+      example_address: String,
+      description: String,
+      downstream_rails: Option[List[String]],
+      status: Option[String]
+  )
+
+  case class PutRoutingSchemeJsonV700(
+      address_pattern: Option[String],
+      secondary_address_pattern: Option[String],
+      example_address: Option[String],
+      description: Option[String],
+      downstream_rails: Option[List[String]],
+      status: Option[String]
+  )
+
+  // Full record returned on POST/GET-single/PUT.
+  case class RoutingSchemeJsonV700(
+      scheme: String,
+      country: String,
+      category: String,
+      address_pattern: String,
+      secondary_address_pattern: Option[String],
+      example_address: String,
+      description: String,
+      downstream_rails: List[String],
+      status: String,
+      created_by_user_id: String,
+      created_at: java.util.Date,
+      updated_at: java.util.Date
+  )
+
+  // Trimmed record returned in list responses.
+  case class RoutingSchemeSummaryJsonV700(
+      scheme: String,
+      country: String,
+      category: String,
+      status: String,
+      address_pattern: String,
+      example_address: String
+  )
+
+  case class RoutingSchemePaginationJsonV700(total: Int, limit: Int, offset: Int)
+
+  case class RoutingSchemesJsonV700(
+      routing_schemes: List[RoutingSchemeSummaryJsonV700],
+      pagination: RoutingSchemePaginationJsonV700
+  )
+
+  case class BankSupportedRoutingSchemeJsonV700(
+      scheme: String,
+      bank_notes: Option[String]
+  )
+
+  case class BankSupportedRoutingSchemesJsonV700(
+      bank_id: String,
+      supported_routing_schemes: List[BankSupportedRoutingSchemeJsonV700]
+  )
+
+  case class PutBankSupportedRoutingSchemeJsonV700(
+      bank_notes: Option[String],
+      enabled: Option[Boolean]
+  )
+
+  def createRoutingSchemeJsonV700(r: code.routingscheme.RoutingSchemeTrait): RoutingSchemeJsonV700 =
+    RoutingSchemeJsonV700(
+      scheme = r.scheme,
+      country = r.country,
+      category = r.category,
+      address_pattern = r.addressPattern,
+      secondary_address_pattern = r.secondaryAddressPattern,
+      example_address = r.exampleAddress,
+      description = r.description,
+      downstream_rails = r.downstreamRails,
+      status = r.status,
+      created_by_user_id = r.createdByUserId,
+      created_at = r.createdAt,
+      updated_at = r.updatedAt
+    )
+
+  def createRoutingSchemeSummaryJsonV700(r: code.routingscheme.RoutingSchemeTrait): RoutingSchemeSummaryJsonV700 =
+    RoutingSchemeSummaryJsonV700(
+      scheme = r.scheme,
+      country = r.country,
+      category = r.category,
+      status = r.status,
+      address_pattern = r.addressPattern,
+      example_address = r.exampleAddress
+    )
+
+  def createRoutingSchemesJsonV700(
+      rows: List[code.routingscheme.RoutingSchemeTrait],
+      total: Int,
+      limit: Int,
+      offset: Int
+  ): RoutingSchemesJsonV700 =
+    RoutingSchemesJsonV700(
+      routing_schemes = rows.map(createRoutingSchemeSummaryJsonV700),
+      pagination = RoutingSchemePaginationJsonV700(total = total, limit = limit, offset = offset)
+    )
+
+  def createBankSupportedRoutingSchemesJsonV700(
+      bankId: String,
+      rows: List[code.routingscheme.BankSupportedRoutingSchemeTrait]
+  ): BankSupportedRoutingSchemesJsonV700 =
+    BankSupportedRoutingSchemesJsonV700(
+      bank_id = bankId,
+      supported_routing_schemes = rows.filter(_.enabled).map(r =>
+        BankSupportedRoutingSchemeJsonV700(scheme = r.scheme, bank_notes = r.bankNotes)
+      )
+    )
+
+  // ── Payee Lookup JSON case classes ──────────────────────────────────────────
+
+  case class PayeeIdentityJsonV700(`type`: String, value: String)
+
+  case class PostPayeeLookupJsonV700(
+      identifier_type: String,
+      identifier: String,
+      fsp_id: Option[String]
+  )
+
+  case class PayeeLookupResponseJsonV700(
+      lookup_id: String,
+      expires_at: java.util.Date,
+      identifier_type: String,
+      identifier: String,
+      fsp_id: Option[String],
+      network_provider: Option[String],
+      full_name: String,
+      account_category: Option[String],
+      account_type: Option[String],
+      identity: Option[PayeeIdentityJsonV700]
+  )
+
+  // ── MOBILE_WALLET transaction-request body ─────────────────────────────────
+
+  case class MobileWalletToJsonV700(
+      msisdn: String,
+      fsp_id: Option[String],
+      network_provider: Option[String],
+      full_name: Option[String],
+      account_category: Option[String],
+      account_type: Option[String],
+      identity: Option[PayeeIdentityJsonV700]
+  )
+
+  case class MobileWalletDataFieldJsonV700(name: String, value: String)
+
+  /**
+   * Body for `POST .../transaction-request-types/MOBILE_WALLET/transaction-requests`.
+   *
+   * Implements `TransactionRequestCommonBodyJSON` so it plugs into the existing
+   * v400 transaction-request pipeline (which requires `value` + `description`).
+   */
+  case class TransactionRequestBodyMobileWalletJsonV700(
+      to: MobileWalletToJsonV700,
+      value: com.openbankproject.commons.model.AmountOfMoneyJsonV121,
+      description: String,
+      client_reference: Option[String],
+      verified_payee_lookup_id: Option[String],
+      country_code: Option[String],
+      data_fields: Option[List[MobileWalletDataFieldJsonV700]],
+      charge_policy: Option[String]
+  ) extends com.openbankproject.commons.model.TransactionRequestCommonBodyJSON
 }

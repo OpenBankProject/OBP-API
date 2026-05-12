@@ -87,6 +87,8 @@ import code.featuredapicollection.FeaturedApiCollection
 import code.fx.{MappedCurrency, MappedFXRate}
 import code.group.Group
 import code.organisation.Organisation
+import code.routingscheme.{RoutingScheme, BankSupportedRoutingScheme}
+import code.payeelookup.PayeeLookup
 import code.kycchecks.MappedKycCheck
 import code.kycdocuments.MappedKycDocument
 import code.kycmedias.MappedKycMedia
@@ -281,6 +283,10 @@ class Boot extends MdcLoggable {
 
     // Please note that migration scripts are executed after Lift Mapper Schemifier
     Migration.database.executeScripts(startedBeforeSchemifier = false)
+
+    // Idempotent seed of country-qualified routing schemes (TZ.MSISDN, GePG, Luku, etc.).
+    // Toggle off via routing_schemes.seed_defaults_at_boot=false in environments that don't want defaults.
+    code.routingscheme.RoutingSchemeSeed.runIfEnabled()
 
     if (APIUtil.getPropsAsBoolValue("create_system_views_at_boot", true)) {
       // Create system views
@@ -1212,6 +1218,9 @@ object ToSchemify {
     BankAccountBalance,
     Group,
     Organisation,
+    RoutingScheme,
+    BankSupportedRoutingScheme,
+    PayeeLookup,
     AccountAccessRequest,
     code.chat.ChatRoom,
     code.chat.Participant,

@@ -1354,6 +1354,17 @@ object ApiRole extends MdcLoggable{
   case class CanDeleteOrganisation(requiresBankId: Boolean = false) extends ApiRole
   lazy val canDeleteOrganisation = CanDeleteOrganisation()
 
+  // Routing Scheme registry roles (system-scoped: schemes are global infrastructure)
+  case class CanCreateRoutingScheme(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canCreateRoutingScheme = CanCreateRoutingScheme()
+  case class CanUpdateRoutingScheme(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canUpdateRoutingScheme = CanUpdateRoutingScheme()
+  case class CanDeleteRoutingScheme(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canDeleteRoutingScheme = CanDeleteRoutingScheme()
+  // Per-bank opt-in / opt-out for routing schemes the bank's adapter supports
+  case class CanUpdateBankSupportedRoutingScheme(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canUpdateBankSupportedRoutingScheme = CanUpdateBankSupportedRoutingScheme()
+
   // Group membership management roles
   case class CanAddUserToGroupAtAllBanks(requiresBankId: Boolean = false) extends ApiRole
   lazy val canAddUserToGroupAtAllBanks = CanAddUserToGroupAtAllBanks()
@@ -1459,7 +1470,6 @@ object Util {
         "CanGet",
         "CanUpdate",
         "CanDelete",
-        "CanMaintain",
         "CanSearch",
         "CanEnable",
         "CanDisable"
@@ -1478,7 +1488,8 @@ object Util {
         "CanRefreshUser",
         "CanReadFx",
         "CanSetCallLimits",
-        "CanDeleteRateLimits"
+        "CanDeleteRateLimits",
+        "CanMaintainProductCollection"
       )
     
     val allowed = allowedPrefixes ::: allowedExistingNames

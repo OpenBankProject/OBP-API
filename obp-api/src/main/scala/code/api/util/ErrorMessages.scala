@@ -469,6 +469,34 @@ object ErrorMessages {
   val UpdateOrganisationError = "OBP-30512: Could not update Organisation."
   val DeleteOrganisationError = "OBP-30513: Could not delete Organisation."
 
+  // Routing Scheme registry (OBP-30514 .. OBP-30525)
+  val RoutingSchemeNotFound = "OBP-30514: Routing Scheme not found. Please specify a valid value for SCHEME."
+  val RoutingSchemeAlreadyExists = "OBP-30515: Routing Scheme already exists. Please specify a different value for scheme."
+  val InvalidRoutingSchemeName = "OBP-30516: Invalid Routing Scheme name. Must match ^(?:IBAN|BIC|OBP|[A-Z]{2}(?:\\.[A-Z][A-Z0-9_]*)+)$ — either an allow-listed global scheme (IBAN, BIC, OBP) or a country-qualified name like TZ.MSISDN."
+  val RoutingSchemeCountryMismatch = "OBP-30517: Routing Scheme country prefix does not match the country field."
+  val InvalidRoutingSchemeCategory = "OBP-30518: Invalid Routing Scheme category. Allowed values are: ACCOUNT, BANK, BRANCH, IDENTITY, BILL, UTILITY."
+  val InvalidRoutingSchemeStatus = "OBP-30519: Invalid Routing Scheme status. Allowed values are: ACTIVE, RESERVED, DEPRECATED, RETIRED."
+  val InvalidRoutingSchemeAddressPattern = "OBP-30520: Invalid Routing Scheme address_pattern. The value must be a valid regular expression."
+  val RoutingSchemeExampleAddressMismatch = "OBP-30521: Routing Scheme example_address does not match address_pattern."
+  val CreateRoutingSchemeError = "OBP-30522: Could not create Routing Scheme."
+  val UpdateRoutingSchemeError = "OBP-30523: Could not update Routing Scheme."
+  val DeleteRoutingSchemeError = "OBP-30524: Could not delete Routing Scheme."
+  val RoutingSchemeNotSupportedByBank = "OBP-30525: This bank does not support the requested Routing Scheme."
+
+  // Payee Lookup (OBP-30526 .. OBP-30530)
+  val PayeeLookupIdentifierTypeNotRegistered = "OBP-30526: identifier_type is not a registered Routing Scheme. Register it via POST /routing-schemes first."
+  val PayeeLookupIdentifierTypeWrongCategory = "OBP-30527: identifier_type category is not valid for payee lookup. Allowed categories are: ACCOUNT, BILL, UTILITY."
+  val PayeeLookupAddressMismatch = "OBP-30528: identifier does not match the address_pattern of the identifier_type."
+  val PayeeNotFound = "OBP-30529: No payee was found for the given identifier."
+  val PayeeLookupCreateError = "OBP-30530: Could not create payee lookup."
+
+  // Mobile-Wallet transaction-request (OBP-30531 .. OBP-30535)
+  val PayeeLookupExpiredOrNotFound = "OBP-30531: verified_payee_lookup_id is unknown or has expired. Lookups are valid for 10 minutes."
+  val PayeeLookupMismatch = "OBP-30532: verified_payee_lookup_id does not match the supplied identifier."
+  val MobileWalletDestinationNotFound = "OBP-30533: No mobile-wallet account is registered for the supplied msisdn. In mapped mode the destination must have an account routing for the country-qualified MSISDN scheme (e.g. TZ.MSISDN)."
+  val MobileWalletInvalidMsisdn = "OBP-30534: Invalid msisdn — does not match the address_pattern of the country-qualified MSISDN routing scheme."
+  val MobileWalletPaymentError = "OBP-30535: Could not create MOBILE_WALLET transaction request."
+
   val FeaturedApiCollectionNotFound = "OBP-30400: FeaturedApiCollection not found. Please specify a valid value for API_COLLECTION_ID."
   val CreateFeaturedApiCollectionError = "OBP-30401: Could not create FeaturedApiCollection."
   val UpdateFeaturedApiCollectionError = "OBP-30402: Could not update FeaturedApiCollection."

@@ -92,6 +92,8 @@ object ApiTag {
   val apiTagChat = ResourceDocTag("Chat")
   val apiTagGroup = ResourceDocTag("Group")
   val apiTagOrganisation = ResourceDocTag("Organisation")
+  val apiTagRoutingScheme = ResourceDocTag("Routing-Scheme")
+  val apiTagPayee = ResourceDocTag("Payee")
   val apiTagWebhook = ResourceDocTag("Webhook")
   val apiTagMockedData = ResourceDocTag("Mocked-Data")
   val apiTagConsent = ResourceDocTag("Consent")
