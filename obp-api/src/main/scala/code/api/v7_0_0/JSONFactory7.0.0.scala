@@ -704,4 +704,45 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
       data_fields: Option[List[MobileWalletDataFieldJsonV700]],
       charge_policy: Option[String]
   ) extends com.openbankproject.commons.model.TransactionRequestCommonBodyJSON
+
+  // v7 response shape for MOBILE_WALLET. Mirrors v4's wrapper but binds `details`
+  // to the type-specific request body so resource-doc examples and the live
+  // response no longer advertise the legacy `TransactionRequestBodyAllTypes` union.
+  case class TransactionRequestWithChargeMobileWalletJsonV700(
+      id: String,
+      `type`: String,
+      from: code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140,
+      details: TransactionRequestBodyMobileWalletJsonV700,
+      transaction_ids: List[String],
+      status: String,
+      start_date: java.util.Date,
+      end_date: java.util.Date,
+      challenges: List[code.api.v4_0_0.ChallengeJsonV400],
+      charge: code.api.v2_0_0.TransactionRequestChargeJsonV200,
+      attributes: Option[List[code.api.v4_0_0.BankAttributeBankResponseJsonV400]]
+  )
+
+  def createTransactionRequestWithChargeMobileWalletJsonV700(
+      tr: com.openbankproject.commons.model.TransactionRequest,
+      requestBody: TransactionRequestBodyMobileWalletJsonV700,
+      challenges: List[com.openbankproject.commons.model.ChallengeTrait],
+      transactionRequestAttribute: List[com.openbankproject.commons.model.TransactionRequestAttributeTrait]
+  ): TransactionRequestWithChargeMobileWalletJsonV700 = {
+    val v4 = code.api.v4_0_0.JSONFactory400.createTransactionRequestWithChargeJSON(
+      tr, challenges, transactionRequestAttribute
+    )
+    TransactionRequestWithChargeMobileWalletJsonV700(
+      id = v4.id,
+      `type` = v4.`type`,
+      from = v4.from,
+      details = requestBody,
+      transaction_ids = v4.transaction_ids,
+      status = v4.status,
+      start_date = v4.start_date,
+      end_date = v4.end_date,
+      challenges = v4.challenges,
+      charge = v4.charge,
+      attributes = v4.attributes
+    )
+  }
 }

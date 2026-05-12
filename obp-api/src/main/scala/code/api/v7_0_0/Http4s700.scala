@@ -3128,7 +3128,7 @@ object Http4s700 {
 
     val createTransactionRequestMobileWallet: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ POST -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "transaction-request-types" / "MOBILE_WALLET" / "transaction-requests" =>
-        EndpointHelpers.withViewAndBodyCreated[JSONFactory700.TransactionRequestBodyMobileWalletJsonV700, code.api.v4_0_0.TransactionRequestWithChargeJSON400](req) { (user, fromAccount, view, body, cc) =>
+        EndpointHelpers.withViewAndBodyCreated[JSONFactory700.TransactionRequestBodyMobileWalletJsonV700, JSONFactory700.TransactionRequestWithChargeMobileWalletJsonV700](req) { (user, fromAccount, view, body, cc) =>
           val countryCode = body.country_code.getOrElse("TZ")
           val msisdnScheme = s"${countryCode}.MSISDN"
           val chargePolicy = body.charge_policy.getOrElse("SHARED")
@@ -3184,9 +3184,28 @@ object Http4s700 {
               None,
               callCtx
             )
-          } yield code.api.v4_0_0.JSONFactory400.createTransactionRequestWithChargeJSON(tr, Nil, Nil)
+          } yield JSONFactory700.createTransactionRequestWithChargeMobileWalletJsonV700(tr, body, Nil, Nil)
         }
     }
+
+    val mobileWalletBodyExample = JSONFactory700.TransactionRequestBodyMobileWalletJsonV700(
+      to = JSONFactory700.MobileWalletToJsonV700(
+        msisdn = "255778300336",
+        fsp_id = Some("503"),
+        network_provider = Some("AIRTEL"),
+        full_name = Some("Chinua Achebe"),
+        account_category = Some("PERSON"),
+        account_type = Some("WALLET"),
+        identity = None
+      ),
+      value = com.openbankproject.commons.model.AmountOfMoneyJsonV121(currency = "TZS", amount = "1000"),
+      description = "buy airtime",
+      client_reference = Some("MK45078200"),
+      verified_payee_lookup_id = None,
+      country_code = Some("TZ"),
+      data_fields = Some(List(JSONFactory700.MobileWalletDataFieldJsonV700("fieldName1", "fieldValue1"))),
+      charge_policy = Some("SHARED")
+    )
 
     resourceDocs += ResourceDoc(
       null,
@@ -3204,25 +3223,26 @@ object Http4s700 {
         |**Provider passthrough**: `data_fields` carries arbitrary name/value pairs that adapters can forward to the downstream MNO / TIPS rail without OBP interpretation.
         |
         |Authentication is Required.""".stripMargin,
-      JSONFactory700.TransactionRequestBodyMobileWalletJsonV700(
-        to = JSONFactory700.MobileWalletToJsonV700(
-          msisdn = "255778300336",
-          fsp_id = Some("503"),
-          network_provider = Some("AIRTEL"),
-          full_name = Some("Chinua Achebe"),
-          account_category = Some("PERSON"),
-          account_type = Some("WALLET"),
-          identity = None
+      mobileWalletBodyExample,
+      JSONFactory700.TransactionRequestWithChargeMobileWalletJsonV700(
+        id = "4050046c-63b3-4868-8a22-14b4181d33a6",
+        `type` = "MOBILE_WALLET",
+        from = code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140(
+          bank_id = "gh.29.uk",
+          account_id = "8ca8a7e4-6d02-40e3-a129-0b2bf89de9f1"
         ),
-        value = com.openbankproject.commons.model.AmountOfMoneyJsonV121(currency = "TZS", amount = "1000"),
-        description = "buy airtime",
-        client_reference = Some("MK45078200"),
-        verified_payee_lookup_id = None,
-        country_code = Some("TZ"),
-        data_fields = Some(List(JSONFactory700.MobileWalletDataFieldJsonV700("fieldName1", "fieldValue1"))),
-        charge_policy = Some("SHARED")
+        details = mobileWalletBodyExample,
+        transaction_ids = List("902ba3bb-dedd-45e7-9319-2fd3f2cd98a1"),
+        status = "COMPLETED",
+        start_date = code.api.util.APIUtil.DateWithDayExampleObject,
+        end_date = code.api.util.APIUtil.DateWithDayExampleObject,
+        challenges = Nil,
+        charge = code.api.v2_0_0.TransactionRequestChargeJsonV200(
+          summary = "Total charges for completed transaction",
+          value = com.openbankproject.commons.model.AmountOfMoneyJsonV121(currency = "TZS", amount = "0.00")
+        ),
+        attributes = None
       ),
-      transactionRequestWithChargeJSON400,
       List($AuthenticatedUserIsRequired, InvalidJsonFormat,
            PayeeLookupIdentifierTypeNotRegistered, MobileWalletInvalidMsisdn,
            PayeeLookupExpiredOrNotFound, PayeeLookupMismatch,
