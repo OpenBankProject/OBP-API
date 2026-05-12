@@ -105,6 +105,13 @@
       <artifactId>mysql-connector-j</artifactId>
       <version>8.0.33</version>
     </dependency>
+    <!-- Pin protobuf-java to override the 3.21.9 pulled in transitively by mysql-connector-j.
+         Fixes CVE-2024-7254 and CVE-2026-0994. -->
+    <dependency>
+      <groupId>com.google.protobuf</groupId>
+      <artifactId>protobuf-java</artifactId>
+      <version>3.25.5</version>
+    </dependency>
 
     <dependency>
       <groupId>junit</groupId>
