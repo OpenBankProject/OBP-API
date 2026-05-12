@@ -353,7 +353,7 @@ object ResourceDocMiddleware extends MdcLoggable {
             }
             if (ok) success(ctx)
             else EitherT[IO, Response[IO], ValidationContext](
-              ErrorResponseConverter.createErrorResponse(403, UserHasMissingRoles + roles.mkString(", "), ctx.callContext)
+              ErrorResponseConverter.createErrorResponse(403, UserHasMissingRoles + roles.mkString(" or "), ctx.callContext)
                 .map[Either[Response[IO], ValidationContext]](Left(_))
             )
           case _ =>

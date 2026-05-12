@@ -178,6 +178,66 @@ resourceDocs += ResourceDoc(null, ..., "/banks/FIREHOSE_BANK_ID/firehose/...", .
 
 **CI**: Tests run with `mvn test -DwildcardSuites="..."`. `hikari.maximumPoolSize=20` required in test props for concurrent tests (`withRequestTransaction` holds 1 connection per request; rate-limit queries need a 2nd → pool of 10 exhausts at 5 concurrent requests).
 
+**Running tests for a single API version locally**: `-DwildcardSuites="code.api.v3_1_0"` (just the package prefix, no `.*`) discovers zero tests — the prefix form only works in the CI workflow's piped invocation. From the shell, pass an explicit **comma-separated list of fully qualified suite class names**. Generate it once per version:
+```sh
+ls obp-api/src/test/scala/code/api/v3_1_0/*.scala | xargs -n1 basename | sed 's/\.scala$//' \
+  | grep -v 'ServerSetup' | sed 's/^/code.api.v3_1_0./' | tr '\n' ',' | sed 's/,$//'
+```
+Pipe that into `-DwildcardSuites=`. The `ServerSetup` filter skips the abstract base trait — it has no own tests and listing it makes scalatest abort discovery. Add `-DfailIfNoTests=false` so an empty match doesn't fail the build.
+
+**Surefire reports beat truncated maven output**: When a `mvn test` invocation has hundreds of failures, the run summary at the tail says e.g. `*** 23 TESTS FAILED ***` but the individual failure messages are scrolled off. Don't re-run; mine `obp-api/target/surefire-reports/TEST-*.xml` instead. Suites with failures have `failures=` or `errors=` >0; per-testcase failures are `<failure message="...">` elements. Quick extract:
+```sh
+python3 -c "
+import xml.etree.ElementTree as ET
+t = ET.parse('TEST-code.api.v3_1_0.AccountTest.xml').getroot()
+for tc in t.findall('testcase'):
+    fail = tc.find('failure')
+    if fail is not None:
+        print(tc.get('name')[:120], '--', (fail.get('message') or '')[:200])
+"
+```
+The `<failure>` element's *text* contains the full stack trace + the lift-json `MappingException` body dump — read that when the message alone (`"500 did not equal 400"`) isn't enough to find the failing assertion.
+
+**Empty path segments fall into http4s patterns that should reject them**: A Lift test like `getSystemView("")` builds URL `/system-views/`. http4s's `Path` keeps the trailing empty segment, so `case GET -> prefixPath / "system-views" / viewIdStr` matches with `viewIdStr = ""`. Meanwhile `ResourceDocMatcher.matchesUrlTemplate` filters empty segments via `.split("/").filter(_.nonEmpty)`, so the matcher sees 1 segment vs the template's 2 — no doc match → middleware skips auth/role validation and falls through to your handler with `viewIdStr = ""`. The handler then throws inside the business logic → 500 (test expected 401/403 from middleware). Fix: add a pattern guard so empty viewId doesn't match and the request falls through to the Lift bridge: `case req @ GET -> prefixPath / "system-views" / viewIdStr if viewIdStr.nonEmpty =>`. Apply to GET/PUT/DELETE variants.
+
+**Throwing a `RuntimeException` in Lift returns 500, not 400**: When porting Lift code like:
+```scala
+(fromAccount, _) <- if (...) for { ... } else if (...) for { ... }
+                    else throw new RuntimeException(s"$InvalidJsonFormat ...")
+```
+the `throw` synthesises a 500 response in the http4s path (test expects 400). Lift sometimes converted these to 400 via its exception handler; the http4s migration does not. Replace the throw with an upfront `code.util.Helper.booleanToFuture(failMsg, cc = Some(cc)) { validShape }` *before* the if/else — `booleanToFuture` defaults to `failCode = 400`. This also flattens nested else-branch logic.
+
+**Middleware role check runs before body parsing**: When a ResourceDoc declares `Some(List(canX))`, the middleware enforces the role in the **auth/role validation** phase, which precedes the handler. Tests that send malformed JSON expecting 400 (InvalidJsonFormat) instead get 403 (UserHasMissingRoles) because the user lacks the role. Fix: when a test asserts body-validation 400s should fire *before* role 403s, take the role out of the ResourceDoc (`None` for roles) and check it inline inside the for-comp with `code.util.Helper.booleanToFuture(failMsg, failCode = 403, cc = Some(cc)) { APIUtil.hasEntitlement(...) }`. This is a generalisation of the firehose-pattern documented above — it applies to any POST/PUT where the test ordering is "bad body → 400" before "missing role → 403."
+
+**ResourceDoc role and handler role disagreement is a Lift-only quirk**: Some Lift endpoints declare role X in the `ResourceDoc(...)` metadata but actually check role Y inline via `NewStyle.function.hasEntitlement(Y, ...)`. Example: `updateCustomerBranch` Lift had `Some(canUpdateCustomerIdentity :: Nil)` in the doc but called `hasEntitlement(canUpdateCustomerBranch, ...)` in the handler. Lift never enforced doc roles, so the inline check was the real gate and tests passed by granting role Y. The http4s middleware **does** enforce doc roles, so the discrepancy produces 403 with the wrong message. Always cross-check the test's `.addEntitlement(... CanXyz ...)` calls and put the matching role in the http4s ResourceDoc, OR set roles to `None` and rely on the inline check exclusively.
+
+**Most v3.1.0 DELETEs return 200, not 204**: The CLAUDE.md helper matrix says "DELETE → 204" but in practice many v3.1.0 endpoints return `(Full(deletedThing), HttpCode.\`200\`(cc))` — 200 with a body. Mirror Lift: use `withUser` / `withUserAndBank` (which return 200) for these, **not** `withUserDelete` / `withUserAndBankDelete` (which return 204). Reserve the `*Delete` helpers for endpoints that genuinely return 204 (verified examples in v3.1.0: `deleteProductAttribute`, `deleteCardForBank`). The HTTP method comes from the route pattern (`case req @ DELETE -> ...`), not the helper name.
+
+**Bug-compatibility with Lift error strings**: Some Lift endpoints have copy-paste bugs in their error messages that tests assert on verbatim. Example: `getFirehoseCustomers` (customer firehose) uses the constant `AccountFirehoseNotAllowedOnThisInstance` (account firehose's error message). The test asserts on this exact string. Preserve the bug in the http4s migration — adding a `// Lift used X here despite this being Y — preserve the message verbatim (the test asserts it).` comment is the right move. Fixing the bug means also patching the test, which expands the PR scope.
+
+**`extract[List[X]]` requires a JArray at the top level**: lift-json's extraction is strict about the root shape. If a Lift endpoint returns `Extraction.decompose(myList: List[X])` (root JArray) and the http4s migration changes it to `myList.wrappedIn(Container)` (root JObject), tests doing `response.body.extract[List[X]]` fail with `MappingException: Expected collection but got JObject`. Cross-reference Lift's JSON factory exactly — pay attention to whether it wraps in a case class (`{accounts: [...]}`) or decomposes a raw list (`[...]`). Two examples that look identical but aren't:
+- `/banks/BANK_ID/accounts` → Lift returns raw `List[BasicAccountJSON]` (JArray)
+- `/banks/BANK_ID/accounts/private` → Lift returns `BasicAccountsJSON(accounts)` (JObject)
+
+**Missing-role error message: `" or "` not `", "`**: The middleware joins multiple missing roles with `" or "` to match `NewStyle.function.hasAtLeastOneEntitlement`'s convention, which every test asserts as `UserHasMissingRoles + roles.mkString(" or ")`. If you add a new role-check path bypassing the middleware (e.g. inline `booleanToFuture`), use the same `" or "` joiner.
+
+**Custom JSON body parse error format**: Some tests assert the parse-failure message starts with a specific string like `"OBP-10001: Incorrect json format. The Json body should be the CreateMeetingJson "`. The standard `withUserAndBankAndBodyCreated[B, A]` helper produces a different format (`"$InvalidJsonFormat ${classSimpleName}"` — `"CreateMeetingJsonV310"`, no leading "The Json body should be the..."). When a test asserts the Lift wording verbatim, bypass the body helper and parse manually:
+```scala
+EndpointHelpers.executeFutureCreated(req) {
+  implicit val cc: CallContext = req.callContext
+  val rawBody = cc.httpBody.getOrElse("")
+  for {
+    parsed <- NewStyle.function.tryons(
+      s"$InvalidJsonFormat The Json body should be the ${classOf[ExpectedType].getSimpleName} ",
+      400, Some(cc)) { net.liftweb.json.parse(rawBody).extract[ExpectedType] }
+    ...
+  } yield ...
+}
+```
+Note: `executeFutureCreated` returns 201; pair it with `cc.user.openOrThrowException(...)` / `cc.bank.getOrElse(...)` since middleware has already validated auth/bank.
+
+**Use `NEW_ACCOUNT_ID` for PUT-creates-account URLs**: When a `PUT /banks/BANK_ID/accounts/ACCOUNT_ID` *creates* the account (it doesn't exist yet), the middleware's `validateAccount` keys off the literal `ACCOUNT_ID` template var and tries to look it up → 404 before the handler runs. Change the ResourceDoc URL template to `/banks/BANK_ID/accounts/NEW_ACCOUNT_ID` (or any non-standard ALL_CAPS variant) — middleware treats it as a wildcard and skips the lookup, but the path still matches the route pattern. The handler can check "already exists" inline with `Connector.connector.vend.checkBankAccountExists(...)` and return 409/400 as needed.
+
 ## CI Performance Profile
 
 Measured from a 3-shard run (2691 tests total, all passing). Numbers are stable across shards.
