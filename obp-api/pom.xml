@@ -82,7 +82,7 @@
     <dependency>
       <groupId>org.postgresql</groupId>
       <artifactId>postgresql</artifactId>
-      <version>42.7.3</version>
+      <version>42.7.7</version>
     </dependency>
     <!-- https://mvnrepository.com/artifact/com.oracle.database.jdbc/ojdbc8-production -->
     <dependency>
@@ -104,6 +104,27 @@
       <groupId>com.mysql</groupId>
       <artifactId>mysql-connector-j</artifactId>
       <version>8.0.33</version>
+    </dependency>
+    <!-- Pin protobuf-java to override the 3.21.9 pulled in transitively by mysql-connector-j.
+         Fixes CVE-2024-7254 and CVE-2026-0994. -->
+    <dependency>
+      <groupId>com.google.protobuf</groupId>
+      <artifactId>protobuf-java</artifactId>
+      <version>3.25.5</version>
+    </dependency>
+    <!-- Pin snappy-java to override the 1.1.1.3 pulled in transitively by avro 1.8.2.
+         Fixes CVE-2023-34453, CVE-2023-34454, CVE-2023-34455, CVE-2023-43642. -->
+    <dependency>
+      <groupId>org.xerial.snappy</groupId>
+      <artifactId>snappy-java</artifactId>
+      <version>1.1.10.4</version>
+    </dependency>
+    <!-- Pin commons-beanutils to override the 1.9.2 pulled in transitively via
+         everit json-schema → commons-validator. Fixes CVE-2025-48734, CVE-2019-10086. -->
+    <dependency>
+      <groupId>commons-beanutils</groupId>
+      <artifactId>commons-beanutils</artifactId>
+      <version>1.10.1</version>
     </dependency>
 
     <dependency>
