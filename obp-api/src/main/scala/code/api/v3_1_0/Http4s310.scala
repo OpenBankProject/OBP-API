@@ -2938,9 +2938,11 @@ object Http4s310 {
 
     val refreshUser: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ POST -> `prefixPath` / "users" / userIdStr / "refresh" =>
-        EndpointHelpers.withUser(req) { (user, cc) =>
+        // Lift returns 201 (CREATED) for this POST — middleware has already validated auth
+        // and the canRefreshUser role, so we use executeFutureCreated to preserve the status.
+        EndpointHelpers.executeFutureCreated(req) {
+          implicit val cc: CallContext = req.callContext
           for {
-            _ <- NewStyle.function.hasEntitlement("", user.userId, canRefreshUser, Some(cc))
             startTime <- Future(Helpers.now)
             (subjectUser, _) <- NewStyle.function.findByUserId(userIdStr, Some(cc))
             _ <- AuthUser.refreshUser(subjectUser, Some(cc))

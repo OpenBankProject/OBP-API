@@ -178,12 +178,13 @@ resourceDocs += ResourceDoc(null, ..., "/banks/FIREHOSE_BANK_ID/firehose/...", .
 
 **CI**: Tests run with `mvn test -DwildcardSuites="..."`. `hikari.maximumPoolSize=20` required in test props for concurrent tests (`withRequestTransaction` holds 1 connection per request; rate-limit queries need a 2nd → pool of 10 exhausts at 5 concurrent requests).
 
-**Running tests for a single API version locally**: `-DwildcardSuites="code.api.v3_1_0"` (just the package prefix, no `.*`) discovers zero tests — the prefix form only works in the CI workflow's piped invocation. From the shell, pass an explicit **comma-separated list of fully qualified suite class names**. Generate it once per version:
+**Running tests for a single API version locally**: `-DwildcardSuites="code.api.v3_1_0"` (just the package prefix, no `.*`) discovers zero tests — the prefix form only works in the CI workflow's piped invocation. From the shell, pass an explicit **comma-separated list of fully qualified suite class names**. Generate it by grepping each file for its declared class — a filename-based generator misses cases where the class name doesn't match the file (e.g. `RefreshObpDateTest.scala` declares `class RefreshUserTest`):
 ```sh
-ls obp-api/src/test/scala/code/api/v3_1_0/*.scala | xargs -n1 basename | sed 's/\.scala$//' \
-  | grep -v 'ServerSetup' | sed 's/^/code.api.v3_1_0./' | tr '\n' ',' | sed 's/,$//'
+grep -l '^class.*extends.*ServerSetup' obp-api/src/test/scala/code/api/v3_1_0/*.scala \
+  | xargs -I{} grep -hoP '^class \K[A-Z][A-Za-z0-9_]+' {} \
+  | sed 's/^/code.api.v3_1_0./' | tr '\n' ',' | sed 's/,$//'
 ```
-Pipe that into `-DwildcardSuites=`. The `ServerSetup` filter skips the abstract base trait — it has no own tests and listing it makes scalatest abort discovery. Add `-DfailIfNoTests=false` so an empty match doesn't fail the build.
+Pipe that into `-DwildcardSuites=`. Add `-DfailIfNoTests=false` so an empty match doesn't fail the build. The `extends.*ServerSetup` filter only keeps real suites (skips the abstract base trait itself and any utility helpers in the directory). Don't generate suite names from `basename` — that silently drops suites with class-vs-file name mismatches, which is exactly how a CI failure can slip past a green local run.
 
 **Surefire reports beat truncated maven output**: When a `mvn test` invocation has hundreds of failures, the run summary at the tail says e.g. `*** 23 TESTS FAILED ***` but the individual failure messages are scrolled off. Don't re-run; mine `obp-api/target/surefire-reports/TEST-*.xml` instead. Suites with failures have `failures=` or `errors=` >0; per-testcase failures are `<failure message="...">` elements. Quick extract:
 ```sh
