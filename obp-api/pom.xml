@@ -119,6 +119,13 @@
       <artifactId>snappy-java</artifactId>
       <version>1.1.10.4</version>
     </dependency>
+    <!-- Pin commons-beanutils to override the 1.9.2 pulled in transitively via
+         everit json-schema → commons-validator. Fixes CVE-2025-48734, CVE-2019-10086. -->
+    <dependency>
+      <groupId>commons-beanutils</groupId>
+      <artifactId>commons-beanutils</artifactId>
+      <version>1.10.1</version>
+    </dependency>
 
     <dependency>
       <groupId>junit</groupId>
