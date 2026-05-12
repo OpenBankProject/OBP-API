@@ -19,8 +19,16 @@ Test DB is H2; many integrations are stubbed or absent.
 - **Risk:** Oracle renamed the artifact at this boundary and adopted the "innovation release" cadence. Cross-version protocol regressions are uncommon but possible.
 - **Suggested smoke test:** start OBP-API against a MySQL 8 database (matching whatever a typical deployment runs), exercise a few core read/write endpoints, check transactions commit and connection pool cycles.
 
-### `mssql-jdbc:11.2.0.jre11` (still pinned, not yet bumped — see TODO below)
-- Same gap as MySQL: H2 in tests, real driver path never exercised.
+### `elasticsearch-rest-client` 8.5.3 → 8.14.0 (pinned to override elastic4s transitive)
+- **Untested path:** real Elasticsearch HTTP traffic. The elastic4s wrapper is used in `code/search/search.scala`, but no live ES instance runs in the test suite — the search endpoints return mock/error paths under test.
+- **Risk:** rest-client is a thin Apache-HTTP wrapper with a stable surface; elastic4s 8.5.2 uses it as a black box (instantiation + request/response). The 8.5.3 → 8.14.0 jump should be transparent. The remaining risk is HTTP-level: header handling, TLS defaults, and timeout behaviour may have drifted across 9 minor versions.
+- **Suggested smoke test:** point OBP-API at a real Elasticsearch 8.14+ instance, exercise the `/banks/BANK_ID/transactions/search` endpoint (or whatever invokes the search code), and verify queries hit the cluster and parse responses correctly.
+- **Follow-up:** `elastic4s` itself is still pinned at 8.5.2; latest available for Scala 2.12 is 8.11.5. Bumping `elastic4s` would close any remaining wrapper-level CVEs and align the API. Not done because elastic4s 8.5 → 8.11 is 6 minor versions and could break `search.scala` imports — needs investigation as a separate task.
+
+### `mssql-jdbc` 11.2.0.jre11 → 12.6.4.jre11
+- **Untested path:** any code that opens a real MSSQL connection. Tests run on H2.
+- **Risk:** major-version bump (11 → 12). Microsoft's JDBC driver is API-stable across major lines, but driver-level protocol/TLS behaviour, prepared-statement caching, and connection-string parsing have all evolved between 11 and 12. The new driver also defaults to encrypted connections (`encrypt=true` is the new default) — pre-12 deploys connecting to an MSSQL server without a trusted TLS cert may now fail unless `encrypt=false` or `trustServerCertificate=true` is set in the connection URL.
+- **Suggested smoke test:** open a connection against a real MSSQL instance (matching whatever deployments use), confirm the encryption-default change doesn't break existing connection strings; run a few read/write endpoints; verify connection-pool cycling.
 
 ### `msal4j` 1.13.0 → 1.16.2
 - **Untested path:** Azure AD integrated authentication for MSSQL. Pulled in via `mssql-jdbc`. No Azure tenant in tests.
@@ -64,8 +72,7 @@ Test DB is H2; many integrations are stubbed or absent.
 
 Listed for future reference — these will likely need entries here when applied:
 
-- `mssql-jdbc` 11.2.0.jre11 → 12.6.4.jre11 (CVE-2025-59250) — H2 in tests
-- `hydra-client` 1.7.0 → ? (CVE-2026-33504) — usage unknown
+- `hydra-client` 1.7.0 → 2.x or 25.x (CVE-2026-33504) — ORY rewrote the SDK API at both major boundaries. Used in load-bearing OAuth code (`HydraUtil.scala`, `OAuth2.scala`, `OAuth.scala`, `AuthUser.scala`). Requires a proper SDK migration, not a bump.
 - `jackson-databind` 2.12.7.1 → 2.17.x (CVE-2023-35116) — wide blast radius across JSON deserialization
 - `protobuf-java-util` 3.21.1 → 3.25.5 (matches main protobuf, deferred pending gRPC bump)
 - `oauth2-oidc-sdk` 9.27 → 11.x + `json-smart` 2.4.7 → 2.5.2 (must be coordinated)

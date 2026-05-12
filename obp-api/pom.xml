@@ -191,6 +191,14 @@
       <artifactId>elastic4s-client-esjava_${scala.version}</artifactId>
       <version>8.5.2</version>
     </dependency>
+    <!-- Pin elasticsearch-rest-client to match the elasticsearch core version (8.14.0).
+         elastic4s 8.5.2 brings 8.5.3 transitively, which carries 17 CVEs.
+         The rest-client is a thin Apache-HTTP wrapper; elastic4s uses it as a black box. -->
+    <dependency>
+      <groupId>org.elasticsearch.client</groupId>
+      <artifactId>elasticsearch-rest-client</artifactId>
+      <version>8.14.0</version>
+    </dependency>
     <!-- for LiftConsole -->
     <dependency>
       <groupId>org.scala-lang</groupId>
@@ -438,7 +446,7 @@
     <dependency>
       <groupId>com.microsoft.sqlserver</groupId>
       <artifactId>mssql-jdbc</artifactId>
-      <version>11.2.0.jre${java.version}</version>
+      <version>12.6.4.jre${java.version}</version>
     </dependency>
     <!-- scalikejdbc for call stored procedure end-->
 
@@ -498,7 +506,7 @@
     <dependency>
       <groupId>tools.jackson.dataformat</groupId>
       <artifactId>jackson-dataformat-yaml</artifactId>
-      <version>3.0.3</version>
+      <version>3.0.4</version>
     </dependency>
     <!-- https://mvnrepository.com/artifact/com.squareup.okhttp3/okhttp -->
     <dependency>
