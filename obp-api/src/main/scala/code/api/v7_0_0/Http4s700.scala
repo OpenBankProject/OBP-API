@@ -8,7 +8,7 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.ResourceDocs1_4_0.{ResourceDocs140, ResourceDocsAPIMethodsUtil}
 import code.api.util.APIUtil.{EmptyBody, _}
 import code.api.util.{APIUtil, ApiRole, ApiVersionUtils, CallContext, CustomJsonFormats, Glossary, NewStyle}
-import code.api.util.ApiRole.{canCreateEntitlementAtAnyBank, canCreateEntitlementAtOneBank, canCreateOrganisation, canDeleteEntitlementAtAnyBank, canDeleteOrganisation, canGetAccountAccessTrace, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetConnectorHealth, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMigrations, canUpdateOrganisation}
+import code.api.util.ApiRole.{canCreateEntitlementAtAnyBank, canCreateEntitlementAtOneBank, canCreateOrganisation, canCreateRoutingScheme, canDeleteEntitlementAtAnyBank, canDeleteOrganisation, canDeleteRoutingScheme, canGetAccountAccessTrace, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetConnectorHealth, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMigrations, canUpdateBankSupportedRoutingScheme, canUpdateOrganisation, canUpdateRoutingScheme}
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.http4s.{ErrorResponseConverter, Http4sRequestAttributes, IdempotencyMiddleware, RequestScopeConnection, ResourceDocMiddleware}
@@ -24,11 +24,14 @@ import code.migration.MigrationScriptLogProvider
 import code.bankconnectors.{Connector => BankConnector}
 import code.entitlement.Entitlement
 import code.organisation.OrganisationX
+import code.routingscheme.{RoutingSchemeX, RoutingSchemeValidation}
+import code.payeelookup.PayeeLookupX
 import code.metadata.tags.Tags
 import code.views.Views
 import code.accountattribute.AccountAttributeX
 import code.users.{Users => UserVend}
-import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId, CounterpartyId, CustomerId, ListResult, ViewId}
+import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId, CounterpartyId, CustomerId, ListResult, TransactionRequestType, ViewId}
+import com.openbankproject.commons.model.enums.ChallengeType
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.util.{ApiVersion, ApiVersionStatus, ScannedApiVersion}
@@ -2597,6 +2600,639 @@ object Http4s700 {
     )
 
     // ── End Organisations ─────────────────────────────────────────────────────
+
+    // ── Routing Schemes ───────────────────────────────────────────────────────
+    // A registry of country-qualified routing scheme names (e.g. TZ.MSISDN,
+    // TZ.GEPG_CONTROL_NUMBER) so that downstream adapters and clients agree on
+    // identifier scheme semantics. Two tiers:
+    //   • /routing-schemes              — system catalogue (5 endpoints)
+    //   • /banks/BANK_ID/supported-routing-schemes — per-bank subset (2 endpoints)
+    // Scheme is the resource key. SCHEME segments may contain '.' — http4s
+    // matches path segments by '/', not by '.', so "TZ.MSISDN" is a single
+    // segment.
+
+    val createRoutingScheme: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "routing-schemes" =>
+        EndpointHelpers.withUserAndBodyCreated[JSONFactory700.PostRoutingSchemeJsonV700, JSONFactory700.RoutingSchemeJsonV700](req) { (user, body, cc) =>
+          for {
+            _ <- Helper.booleanToFuture(InvalidRoutingSchemeName, 400, Some(cc)) {
+              RoutingSchemeValidation.isValidSchemeName(body.scheme)
+            }
+            _ <- Helper.booleanToFuture(RoutingSchemeCountryMismatch, 400, Some(cc)) {
+              RoutingSchemeValidation.countryMatchesPrefix(body.scheme, body.country)
+            }
+            _ <- Helper.booleanToFuture(InvalidRoutingSchemeCategory, 400, Some(cc)) {
+              RoutingSchemeValidation.ValidCategories.contains(body.category)
+            }
+            status = body.status.getOrElse("ACTIVE")
+            _ <- Helper.booleanToFuture(InvalidRoutingSchemeStatus, 400, Some(cc)) {
+              RoutingSchemeValidation.ValidStatuses.contains(status)
+            }
+            _ <- Helper.booleanToFuture(InvalidRoutingSchemeAddressPattern, 400, Some(cc)) {
+              RoutingSchemeValidation.isValidRegex(body.address_pattern)
+            }
+            _ <- Helper.booleanToFuture(RoutingSchemeExampleAddressMismatch, 400, Some(cc)) {
+              RoutingSchemeValidation.addressMatchesPattern(body.address_pattern, body.example_address)
+            }
+            existing <- Future(RoutingSchemeX.routingScheme.vend.getRoutingScheme(body.scheme))
+            _ <- Helper.booleanToFuture(RoutingSchemeAlreadyExists, 409, Some(cc))(existing.isEmpty)
+            created <- Future {
+              RoutingSchemeX.routingScheme.vend.createRoutingScheme(
+                scheme = body.scheme,
+                country = body.country,
+                category = body.category,
+                addressPattern = body.address_pattern,
+                secondaryAddressPattern = body.secondary_address_pattern,
+                exampleAddress = body.example_address,
+                description = body.description,
+                downstreamRails = body.downstream_rails.getOrElse(Nil),
+                status = status,
+                createdByUserId = user.userId
+              )
+            }.map(unboxFullOrFail(_, Some(cc), CreateRoutingSchemeError, 400))
+          } yield JSONFactory700.createRoutingSchemeJsonV700(created)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(createRoutingScheme),
+      "POST",
+      "/routing-schemes",
+      "Create Routing Scheme",
+      """Register a new routing scheme.
+        |
+        |Scheme names follow the convention `<COUNTRY>.<LOCAL_SCHEME>` — uppercase ISO 3166-1 alpha-2 country code, a dot, then an uppercase local scheme name (e.g. `TZ.MSISDN`, `TZ.GEPG_CONTROL_NUMBER`).
+        |
+        |Globally-unique schemes `IBAN`, `BIC`, `OBP` are accepted unprefixed; their `country` MUST be the literal `INT`.
+        |
+        |Categories: ACCOUNT, BANK, BRANCH, IDENTITY, BILL, UTILITY. The category constrains which OBP fields may carry a routing of this scheme.
+        |
+        |`address_pattern` is a regex used to validate addresses presented in this scheme. `example_address` MUST match the pattern.
+        |
+        |Authentication is Required.""".stripMargin,
+      JSONFactory700.PostRoutingSchemeJsonV700(
+        scheme = "TZ.MSISDN",
+        country = "TZ",
+        category = "ACCOUNT",
+        address_pattern = "^255[0-9]{9}$",
+        secondary_address_pattern = None,
+        example_address = "255778300336",
+        description = "Tanzanian mobile number, E.164 without leading +.",
+        downstream_rails = Some(List("TIPS", "MNO_DIRECT")),
+        status = Some("ACTIVE")
+      ),
+      JSONFactory700.RoutingSchemeJsonV700(
+        scheme = "TZ.MSISDN",
+        country = "TZ",
+        category = "ACCOUNT",
+        address_pattern = "^255[0-9]{9}$",
+        secondary_address_pattern = None,
+        example_address = "255778300336",
+        description = "Tanzanian mobile number, E.164 without leading +.",
+        downstream_rails = List("TIPS", "MNO_DIRECT"),
+        status = "ACTIVE",
+        created_by_user_id = "9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+        created_at = new java.util.Date(),
+        updated_at = new java.util.Date()
+      ),
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat,
+           InvalidRoutingSchemeName, RoutingSchemeCountryMismatch,
+           InvalidRoutingSchemeCategory, InvalidRoutingSchemeStatus,
+           InvalidRoutingSchemeAddressPattern, RoutingSchemeExampleAddressMismatch,
+           RoutingSchemeAlreadyExists, CreateRoutingSchemeError, UnknownError),
+      apiTagRoutingScheme :: Nil,
+      Some(List(canCreateRoutingScheme)),
+      http4sPartialFunction = Some(createRoutingScheme)
+    )
+
+    val getRoutingSchemes: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "routing-schemes" =>
+        EndpointHelpers.executeAndRespond(req) { cc =>
+          val q = req.uri.query.params
+          val country  = q.get("country").filter(_.nonEmpty)
+          val category = q.get("category").filter(_.nonEmpty)
+          val rail     = q.get("rail").filter(_.nonEmpty)
+          // Default to ACTIVE only; pass status=ALL to include retired/deprecated.
+          val rawStatus = q.get("status").filter(_.nonEmpty).getOrElse("ACTIVE")
+          val statusFilter = if (rawStatus.equalsIgnoreCase("ALL")) None else Some(rawStatus.toUpperCase)
+          val limit  = q.get("limit").flatMap(s => scala.util.Try(s.toInt).toOption).getOrElse(100).max(1).min(500)
+          val offset = q.get("offset").flatMap(s => scala.util.Try(s.toInt).toOption).getOrElse(0).max(0)
+          for {
+            page <- RoutingSchemeX.routingScheme.vend.getRoutingSchemes(country, category, statusFilter, rail, limit, offset)
+              .map(unboxFullOrFail(_, Some(cc), UnknownError, 500))
+            (rows, total) = page
+          } yield JSONFactory700.createRoutingSchemesJsonV700(rows, total, limit, offset)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(getRoutingSchemes),
+      "GET",
+      "/routing-schemes",
+      "Get Routing Schemes",
+      """Lists registered routing schemes.
+        |
+        |Query parameters (all optional):
+        |- `country` — ISO 3166-1 alpha-2, e.g. `TZ`
+        |- `category` — ACCOUNT, BANK, BRANCH, IDENTITY, BILL, UTILITY
+        |- `status` — defaults to `ACTIVE`. Pass `ALL` to include DEPRECATED and RETIRED.
+        |- `rail` — match against the `downstream_rails` list (e.g. `TIPS`, `GEPG`)
+        |- `limit` (default 100, max 500), `offset` (default 0)""".stripMargin,
+      EmptyBody,
+      JSONFactory700.RoutingSchemesJsonV700(
+        routing_schemes = List(
+          JSONFactory700.RoutingSchemeSummaryJsonV700(
+            scheme = "TZ.MSISDN", country = "TZ", category = "ACCOUNT",
+            status = "ACTIVE", address_pattern = "^255[0-9]{9}$",
+            example_address = "255778300336"
+          )
+        ),
+        pagination = JSONFactory700.RoutingSchemePaginationJsonV700(total = 1, limit = 100, offset = 0)
+      ),
+      List(UnknownError),
+      apiTagRoutingScheme :: Nil,
+      None,
+      http4sPartialFunction = Some(getRoutingSchemes)
+    )
+
+    val getRoutingScheme: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "routing-schemes" / schemeName =>
+        EndpointHelpers.executeAndRespond(req) { cc =>
+          for {
+            row <- Future(RoutingSchemeX.routingScheme.vend.getRoutingScheme(schemeName))
+              .map(unboxFullOrFail(_, Some(cc), RoutingSchemeNotFound, 404))
+          } yield JSONFactory700.createRoutingSchemeJsonV700(row)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(getRoutingScheme),
+      "GET",
+      "/routing-schemes/SCHEME",
+      "Get Routing Scheme",
+      """Returns the routing scheme identified by `SCHEME` (e.g. `TZ.MSISDN`).""",
+      EmptyBody,
+      JSONFactory700.RoutingSchemeJsonV700(
+        scheme = "TZ.MSISDN",
+        country = "TZ",
+        category = "ACCOUNT",
+        address_pattern = "^255[0-9]{9}$",
+        secondary_address_pattern = None,
+        example_address = "255778300336",
+        description = "Tanzanian mobile number, E.164 without leading +.",
+        downstream_rails = List("TIPS", "MNO_DIRECT"),
+        status = "ACTIVE",
+        created_by_user_id = "9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+        created_at = new java.util.Date(),
+        updated_at = new java.util.Date()
+      ),
+      List(RoutingSchemeNotFound, UnknownError),
+      apiTagRoutingScheme :: Nil,
+      None,
+      http4sPartialFunction = Some(getRoutingScheme)
+    )
+
+    val updateRoutingScheme: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ PUT -> `prefixPath` / "routing-schemes" / schemeName =>
+        EndpointHelpers.withUserAndBody[JSONFactory700.PutRoutingSchemeJsonV700, JSONFactory700.RoutingSchemeJsonV700](req) { (_, body, cc) =>
+          for {
+            existing <- Future(RoutingSchemeX.routingScheme.vend.getRoutingScheme(schemeName))
+              .map(unboxFullOrFail(_, Some(cc), RoutingSchemeNotFound, 404))
+            _ <- Helper.booleanToFuture(InvalidRoutingSchemeStatus, 400, Some(cc)) {
+              body.status.forall(RoutingSchemeValidation.ValidStatuses.contains)
+            }
+            _ <- Helper.booleanToFuture(InvalidRoutingSchemeAddressPattern, 400, Some(cc)) {
+              body.address_pattern.forall(RoutingSchemeValidation.isValidRegex)
+            }
+            // If either pattern or example is being updated, the post-update
+            // pair must be consistent.
+            effectivePattern = body.address_pattern.getOrElse(existing.addressPattern)
+            effectiveExample = body.example_address.getOrElse(existing.exampleAddress)
+            _ <- Helper.booleanToFuture(RoutingSchemeExampleAddressMismatch, 400, Some(cc)) {
+              RoutingSchemeValidation.addressMatchesPattern(effectivePattern, effectiveExample)
+            }
+            updated <- Future {
+              RoutingSchemeX.routingScheme.vend.updateRoutingScheme(
+                scheme = schemeName,
+                addressPattern = body.address_pattern,
+                secondaryAddressPattern = body.secondary_address_pattern,
+                exampleAddress = body.example_address,
+                description = body.description,
+                downstreamRails = body.downstream_rails,
+                status = body.status
+              )
+            }.map(unboxFullOrFail(_, Some(cc), UpdateRoutingSchemeError, 400))
+          } yield JSONFactory700.createRoutingSchemeJsonV700(updated)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(updateRoutingScheme),
+      "PUT",
+      "/routing-schemes/SCHEME",
+      "Update Routing Scheme",
+      """Updates a routing scheme. All body fields are optional.
+        |
+        |Immutable fields (cannot be changed via this endpoint): `scheme`, `country`, `category`.
+        |
+        |If you tighten `address_pattern`, existing addresses already on the books are not retroactively rejected — the change applies only to new validations.
+        |
+        |Authentication is Required.""".stripMargin,
+      JSONFactory700.PutRoutingSchemeJsonV700(
+        address_pattern = Some("^255[0-9]{9}$"),
+        secondary_address_pattern = None,
+        example_address = Some("255778300336"),
+        description = Some("Tanzanian mobile number, E.164 without leading +."),
+        downstream_rails = Some(List("TIPS", "MNO_DIRECT")),
+        status = Some("ACTIVE")
+      ),
+      JSONFactory700.RoutingSchemeJsonV700(
+        scheme = "TZ.MSISDN",
+        country = "TZ",
+        category = "ACCOUNT",
+        address_pattern = "^255[0-9]{9}$",
+        secondary_address_pattern = None,
+        example_address = "255778300336",
+        description = "Tanzanian mobile number, E.164 without leading +.",
+        downstream_rails = List("TIPS", "MNO_DIRECT"),
+        status = "ACTIVE",
+        created_by_user_id = "9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+        created_at = new java.util.Date(),
+        updated_at = new java.util.Date()
+      ),
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat,
+           RoutingSchemeNotFound, InvalidRoutingSchemeStatus,
+           InvalidRoutingSchemeAddressPattern, RoutingSchemeExampleAddressMismatch,
+           UpdateRoutingSchemeError, UnknownError),
+      apiTagRoutingScheme :: Nil,
+      Some(List(canUpdateRoutingScheme)),
+      http4sPartialFunction = Some(updateRoutingScheme)
+    )
+
+    val deleteRoutingScheme: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ DELETE -> `prefixPath` / "routing-schemes" / schemeName =>
+        EndpointHelpers.withUserDelete(req) { (_, cc) =>
+          for {
+            _ <- Future(RoutingSchemeX.routingScheme.vend.getRoutingScheme(schemeName))
+              .map(unboxFullOrFail(_, Some(cc), RoutingSchemeNotFound, 404))
+            _ <- Future(RoutingSchemeX.routingScheme.vend.deleteRoutingScheme(schemeName))
+              .map(unboxFullOrFail(_, Some(cc), DeleteRoutingSchemeError, 400))
+          } yield ()
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(deleteRoutingScheme),
+      "DELETE",
+      "/routing-schemes/SCHEME",
+      "Delete Routing Scheme",
+      """Soft-deletes the routing scheme — sets its status to `RETIRED`. The row is kept for audit and resolution of historical records that reference it; subsequent attempts to use the scheme in a routing or payment fail with `OBP-30525`.
+        |
+        |Authentication is Required.""".stripMargin,
+      EmptyBody,
+      EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, RoutingSchemeNotFound,
+           DeleteRoutingSchemeError, UnknownError),
+      apiTagRoutingScheme :: Nil,
+      Some(List(canDeleteRoutingScheme)),
+      http4sPartialFunction = Some(deleteRoutingScheme)
+    )
+
+    val getBankSupportedRoutingSchemes: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / _ / "supported-routing-schemes" =>
+        EndpointHelpers.withUserAndBank(req) { (_, bank, cc) =>
+          for {
+            rows <- RoutingSchemeX.routingScheme.vend.getBankSupportedRoutingSchemes(bank.bankId.value)
+              .map(unboxFullOrFail(_, Some(cc), UnknownError, 500))
+          } yield JSONFactory700.createBankSupportedRoutingSchemesJsonV700(bank.bankId.value, rows)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(getBankSupportedRoutingSchemes),
+      "GET",
+      "/banks/BANK_ID/supported-routing-schemes",
+      "Get Bank Supported Routing Schemes",
+      """Returns the subset of routing schemes the bank's adapter routes for, with optional per-bank notes (e.g. cutoff times, downstream rail caveats).
+        |
+        |Use this to gate UI options: a transaction-request creation form should list payee-type choices based on what this bank supports, not the global registry.
+        |
+        |Authentication is Required.""".stripMargin,
+      EmptyBody,
+      JSONFactory700.BankSupportedRoutingSchemesJsonV700(
+        bank_id = "nmb.tz",
+        supported_routing_schemes = List(
+          JSONFactory700.BankSupportedRoutingSchemeJsonV700(
+            scheme = "TZ.MSISDN",
+            bank_notes = Some("Routed via Gateway X to TIPS.")
+          )
+        )
+      ),
+      List($AuthenticatedUserIsRequired, BankNotFound, UnknownError),
+      apiTagRoutingScheme :: apiTagBank :: Nil,
+      None,
+      http4sPartialFunction = Some(getBankSupportedRoutingSchemes)
+    )
+
+    val putBankSupportedRoutingScheme: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ PUT -> `prefixPath` / "banks" / _ / "supported-routing-schemes" / schemeName =>
+        EndpointHelpers.withUserAndBankAndBody[JSONFactory700.PutBankSupportedRoutingSchemeJsonV700, JSONFactory700.BankSupportedRoutingSchemeJsonV700](req) { (_, bank, body, cc) =>
+          for {
+            // Scheme must exist in the global registry (and not be retired)
+            // before a bank can opt in / out of it.
+            scheme <- Future(RoutingSchemeX.routingScheme.vend.getRoutingScheme(schemeName))
+              .map(unboxFullOrFail(_, Some(cc), RoutingSchemeNotFound, 404))
+            _ <- Helper.booleanToFuture(RoutingSchemeNotSupportedByBank, 400, Some(cc)) {
+              scheme.status != "RETIRED"
+            }
+            row <- Future {
+              RoutingSchemeX.routingScheme.vend.putBankSupportedRoutingScheme(
+                bankId = bank.bankId.value,
+                scheme = schemeName,
+                enabled = body.enabled.getOrElse(true),
+                bankNotes = body.bank_notes
+              )
+            }.map(unboxFullOrFail(_, Some(cc), UpdateRoutingSchemeError, 400))
+          } yield JSONFactory700.BankSupportedRoutingSchemeJsonV700(
+            scheme = row.scheme,
+            bank_notes = row.bankNotes
+          )
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(putBankSupportedRoutingScheme),
+      "PUT",
+      "/banks/BANK_ID/supported-routing-schemes/SCHEME",
+      "Set Bank Supported Routing Scheme",
+      """Opt this bank in to (or out of) a registered routing scheme. Set `enabled: false` to opt out without losing the per-bank notes.
+        |
+        |The scheme must exist in the global registry (`GET /routing-schemes/SCHEME`) and not be RETIRED.
+        |
+        |Authentication is Required.""".stripMargin,
+      JSONFactory700.PutBankSupportedRoutingSchemeJsonV700(
+        bank_notes = Some("Routed via Gateway X to TIPS. Daily cutoff 22:00 EAT."),
+        enabled = Some(true)
+      ),
+      JSONFactory700.BankSupportedRoutingSchemeJsonV700(
+        scheme = "TZ.MSISDN",
+        bank_notes = Some("Routed via Gateway X to TIPS. Daily cutoff 22:00 EAT.")
+      ),
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat,
+           BankNotFound, RoutingSchemeNotFound, RoutingSchemeNotSupportedByBank,
+           UpdateRoutingSchemeError, UnknownError),
+      apiTagRoutingScheme :: apiTagBank :: Nil,
+      Some(List(canUpdateBankSupportedRoutingScheme)),
+      http4sPartialFunction = Some(putBankSupportedRoutingScheme)
+    )
+
+    // ── End Routing Schemes ───────────────────────────────────────────────────
+
+    // ── Payee Lookup ──────────────────────────────────────────────────────────
+    // Generic "confirmation-of-payee" / pre-payment lookup. Caller supplies
+    // identifier_type + identifier (e.g. TZ.MSISDN + 255778300336); endpoint
+    // resolves to a payee name and returns a short-lived lookup_id that can be
+    // quoted in a subsequent transaction-request as evidence the payer saw the
+    // resolved name. Auth perimeter is the source account's view: the same
+    // view that lets you pay from this account lets you lookup a payee.
+
+    private val PayeeLookupValidCategories: Set[String] = Set("ACCOUNT", "BILL", "UTILITY")
+    private val PayeeLookupTtlSeconds: Long = 600 // 10 minutes
+
+    val createPayeeLookup: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "payees" / "lookup" =>
+        EndpointHelpers.withViewAndBodyCreated[JSONFactory700.PostPayeeLookupJsonV700, JSONFactory700.PayeeLookupResponseJsonV700](req) { (user, bankAccount, _, body, cc) =>
+          for {
+            // 1. identifier_type must exist in the registry.
+            scheme <- Future(RoutingSchemeX.routingScheme.vend.getRoutingScheme(body.identifier_type))
+              .map(unboxFullOrFail(_, Some(cc), PayeeLookupIdentifierTypeNotRegistered, 400))
+            // 2. Scheme must be in a payee-lookup-valid category.
+            _ <- Helper.booleanToFuture(PayeeLookupIdentifierTypeWrongCategory, 400, Some(cc)) {
+              PayeeLookupValidCategories.contains(scheme.category)
+            }
+            // 3. identifier must match the scheme's address_pattern.
+            _ <- Helper.booleanToFuture(PayeeLookupAddressMismatch, 400, Some(cc)) {
+              RoutingSchemeValidation.addressMatchesPattern(scheme.addressPattern, body.identifier)
+            }
+            // 4. Resolve payee. In mapped mode the destination account is
+            //    located by its account_routing (scheme,address). In adapter
+            //    mode the south-side connector handles this.
+            payeeBox <- BankConnector.connector.vend
+              .getBankAccountByRouting(None, body.identifier_type, body.identifier, Some(cc))
+              .map(_._1)
+            payeeAccount <- Future {
+              unboxFullOrFail(payeeBox, Some(cc), PayeeNotFound, 404)
+            }
+            // 5. Persist a lookup record with a 10-minute TTL.
+            lookupId = APIUtil.generateUUID()
+            stored <- Future {
+              PayeeLookupX.payeeLookup.vend.createPayeeLookup(
+                lookupId = lookupId,
+                identifierType = body.identifier_type,
+                identifier = body.identifier,
+                fspId = body.fsp_id,
+                networkProvider = None,
+                fullName = payeeAccount.label,
+                accountCategory = None,
+                accountType = Some(payeeAccount.accountType),
+                identityType = None,
+                identityValue = None,
+                fromBankId = bankAccount.bankId.value,
+                fromAccountId = bankAccount.accountId.value,
+                createdByUserId = user.userId,
+                ttlSeconds = PayeeLookupTtlSeconds
+              )
+            }.map(unboxFullOrFail(_, Some(cc), PayeeLookupCreateError, 500))
+          } yield JSONFactory700.PayeeLookupResponseJsonV700(
+            lookup_id = stored.lookupId,
+            expires_at = stored.expiresAt,
+            identifier_type = stored.identifierType,
+            identifier = stored.identifier,
+            fsp_id = stored.fspId,
+            network_provider = stored.networkProvider,
+            full_name = stored.fullName,
+            account_category = stored.accountCategory,
+            account_type = stored.accountType,
+            identity = None
+          )
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(createPayeeLookup),
+      "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/payees/lookup",
+      "Create Payee Lookup",
+      """Look up a payee (Confirmation-of-Payee) before initiating a payment.
+        |
+        |The endpoint is **polymorphic on `identifier_type`**: pass any registered routing scheme as the `identifier_type` and the corresponding `identifier`. The scheme's `category` must be one of ACCOUNT, BILL, UTILITY for it to be valid here.
+        |
+        |Examples:
+        |- Mobile-money / TIPS payee: `identifier_type: TZ.MSISDN`, `identifier: 255778300336`, `fsp_id: 503`
+        |- TIPS bank-account name verify: `identifier_type: TZ.BANK_ACCOUNT`, `identifier: 24110000296`
+        |- GePG bill inquiry: `identifier_type: TZ.GEPG_CONTROL_NUMBER`, `identifier: 991043383705`
+        |- Luku meter inquiry: `identifier_type: TZ.LUKU_METER`, `identifier: 24730238417`
+        |
+        |The response includes a `lookup_id` valid for 10 minutes. A subsequent transaction-request can quote it via `verified_payee_lookup_id` to prove the payer saw the resolved name (Confirmation-of-Payee handshake).
+        |
+        |Authentication is Required. The caller must have a view on the source account (`/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID`) — the same authorization perimeter as paying from it.""".stripMargin,
+      JSONFactory700.PostPayeeLookupJsonV700(
+        identifier_type = "TZ.MSISDN",
+        identifier = "255778300336",
+        fsp_id = Some("503")
+      ),
+      JSONFactory700.PayeeLookupResponseJsonV700(
+        lookup_id = "lkp_01HXY7Z8AB9C0D1E2F3G4H5J6K",
+        expires_at = new java.util.Date(System.currentTimeMillis() + 10L * 60 * 1000),
+        identifier_type = "TZ.MSISDN",
+        identifier = "255778300336",
+        fsp_id = Some("503"),
+        network_provider = Some("ZANTEL"),
+        full_name = "ERASTO EMILE MALEMA",
+        account_category = Some("PERSON"),
+        account_type = Some("WALLET"),
+        identity = None
+      ),
+      List($AuthenticatedUserIsRequired, InvalidJsonFormat,
+           PayeeLookupIdentifierTypeNotRegistered, PayeeLookupIdentifierTypeWrongCategory,
+           PayeeLookupAddressMismatch, PayeeNotFound, PayeeLookupCreateError, UnknownError),
+      apiTagPayee :: apiTagAccount :: Nil,
+      None,
+      http4sPartialFunction = Some(createPayeeLookup)
+    )
+
+    // ── End Payee Lookup ──────────────────────────────────────────────────────
+
+    // ── MOBILE_WALLET transaction request ─────────────────────────────────────
+    // POST to a mobile-money wallet identified by an MSISDN. In mapped mode the
+    // destination resolves via the country-qualified MSISDN routing scheme
+    // (defaults to TZ.MSISDN; override via `country_code`). The endpoint plugs
+    // into the existing v400 payment pipeline so the standard transaction-request
+    // response shape is preserved.
+
+    val createTransactionRequestMobileWallet: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "transaction-request-types" / "MOBILE_WALLET" / "transaction-requests" =>
+        EndpointHelpers.withViewAndBodyCreated[JSONFactory700.TransactionRequestBodyMobileWalletJsonV700, code.api.v4_0_0.TransactionRequestWithChargeJSON400](req) { (user, fromAccount, view, body, cc) =>
+          val countryCode = body.country_code.getOrElse("TZ")
+          val msisdnScheme = s"${countryCode}.MSISDN"
+          val chargePolicy = body.charge_policy.getOrElse("SHARED")
+          val callCtx = Some(cc)
+          for {
+            // 1. The MSISDN routing scheme must exist in the registry and
+            //    msisdn must match its address_pattern.
+            scheme <- Future(RoutingSchemeX.routingScheme.vend.getRoutingScheme(msisdnScheme))
+              .map(unboxFullOrFail(_, callCtx, PayeeLookupIdentifierTypeNotRegistered, 400))
+            _ <- Helper.booleanToFuture(MobileWalletInvalidMsisdn, 400, callCtx) {
+              RoutingSchemeValidation.addressMatchesPattern(scheme.addressPattern, body.to.msisdn)
+            }
+            // 2. If the caller provided a verified_payee_lookup_id, validate it
+            //    is unexpired AND matches the supplied msisdn. This is the
+            //    Confirmation-of-Payee handshake.
+            _ <- body.verified_payee_lookup_id match {
+              case Some(lkpId) =>
+                for {
+                  lkp <- Future(PayeeLookupX.payeeLookup.vend.getActivePayeeLookup(lkpId))
+                    .map(unboxFullOrFail(_, callCtx, PayeeLookupExpiredOrNotFound, 400))
+                  _ <- Helper.booleanToFuture(PayeeLookupMismatch, 400, callCtx) {
+                    lkp.identifier == body.to.msisdn && lkp.identifierType == msisdnScheme
+                  }
+                } yield ()
+              case None => Future.successful(())
+            }
+            // 3. Resolve destination account via routing (mapped-mode path).
+            destinationBox <- BankConnector.connector.vend
+              .getBankAccountByRouting(None, msisdnScheme, body.to.msisdn, callCtx)
+              .map(_._1)
+            toAccount <- Future {
+              unboxFullOrFail(destinationBox, callCtx, MobileWalletDestinationNotFound, 404)
+            }
+            // 4. Standard view authorisation check (same as v4 COUNTERPARTY).
+            _ <- NewStyle.function.checkAuthorisationToCreateTransactionRequest(
+              view.viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId), user, callCtx
+            )
+            // 5. Serialise the body to JSON for the connector's audit blob.
+            detailsPlain = prettyRender(Extraction.decompose(body))
+            // 6. Create the transaction request via the standard pipeline.
+            txnReqType = TransactionRequestType("MOBILE_WALLET")
+            (tr, _) <- NewStyle.function.createTransactionRequestv400(
+              user,
+              view.viewId,
+              fromAccount,
+              toAccount,
+              txnReqType,
+              body,
+              detailsPlain,
+              chargePolicy,
+              Some(ChallengeType.OBP_TRANSACTION_REQUEST_CHALLENGE),
+              None,
+              None,
+              callCtx
+            )
+          } yield code.api.v4_0_0.JSONFactory400.createTransactionRequestWithChargeJSON(tr, Nil, Nil)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(createTransactionRequestMobileWallet),
+      "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/MOBILE_WALLET/transaction-requests",
+      "Create Transaction Request (MOBILE_WALLET)",
+      """Initiate a payment to a mobile-money wallet identified by an MSISDN (phone number).
+        |
+        |The destination wallet is resolved via the country-qualified MSISDN routing scheme — by default `TZ.MSISDN`; override via the `country_code` field. The scheme must be registered in the routing-scheme catalogue (`GET /obp/v7.0.0/routing-schemes/TZ.MSISDN`) and the wallet account must have a matching `account_routings` entry.
+        |
+        |**Confirmation-of-Payee handshake** (optional): call `POST /banks/.../accounts/.../payees/lookup` first, then pass the returned `lookup_id` here as `verified_payee_lookup_id`. The endpoint will reject the request if the lookup has expired or does not match the supplied `msisdn`.
+        |
+        |**Provider passthrough**: `data_fields` carries arbitrary name/value pairs that adapters can forward to the downstream MNO / TIPS rail without OBP interpretation.
+        |
+        |Authentication is Required.""".stripMargin,
+      JSONFactory700.TransactionRequestBodyMobileWalletJsonV700(
+        to = JSONFactory700.MobileWalletToJsonV700(
+          msisdn = "255778300336",
+          fsp_id = Some("503"),
+          network_provider = Some("AIRTEL"),
+          full_name = Some("Chinua Achebe"),
+          account_category = Some("PERSON"),
+          account_type = Some("WALLET"),
+          identity = None
+        ),
+        value = com.openbankproject.commons.model.AmountOfMoneyJsonV121(currency = "TZS", amount = "1000"),
+        description = "buy airtime",
+        client_reference = Some("MK45078200"),
+        verified_payee_lookup_id = None,
+        country_code = Some("TZ"),
+        data_fields = Some(List(JSONFactory700.MobileWalletDataFieldJsonV700("fieldName1", "fieldValue1"))),
+        charge_policy = Some("SHARED")
+      ),
+      transactionRequestWithChargeJSON400,
+      List($AuthenticatedUserIsRequired, InvalidJsonFormat,
+           PayeeLookupIdentifierTypeNotRegistered, MobileWalletInvalidMsisdn,
+           PayeeLookupExpiredOrNotFound, PayeeLookupMismatch,
+           MobileWalletDestinationNotFound, MobileWalletPaymentError, UnknownError),
+      apiTagTransactionRequest :: apiTagPayee :: Nil,
+      None,
+      http4sPartialFunction = Some(createTransactionRequestMobileWallet)
+    )
+
+    // ── End MOBILE_WALLET ─────────────────────────────────────────────────────
 
     // ── Test-only rollback endpoint ───────────────────────────────────────────
     // Enabled only in Lift test mode (Props.testMode == true, i.e. -Drun.mode=test).
