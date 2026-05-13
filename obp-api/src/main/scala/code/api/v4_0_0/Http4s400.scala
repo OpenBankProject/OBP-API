@@ -10,8 +10,12 @@ import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.ExampleValue._
 import code.api.util.Glossary
+import code.api.Constant
 import code.api.dynamic.endpoint.helper.DynamicEndpointHelper
 import code.api.dynamic.entity.helper.DynamicEntityInfo
+import code.api.util.newstyle.ViewNewStyle
+import code.users.Users
+import code.views.Views
 import code.api.v1_4_0.JSONFactory1_4_0
 import code.DynamicEndpoint.DynamicEndpointSwagger
 import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps}
@@ -583,6 +587,415 @@ object Http4s400 {
       List(apiTagProduct, apiTagProductAttribute, apiTagAttribute),
       Some(List(canUpdateProductAttribute)),
       http4sPartialFunction = Some(updateProductAttribute))
+
+    // ─── getEntitlements (GET /users/USER_ID/entitlements) — v4 override ────
+
+    val getEntitlements: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "users" / userIdStr / "entitlements" =>
+        EndpointHelpers.withUser(req) { (_, cc) =>
+          for {
+            entitlements <- NewStyle.function.getEntitlementsByUserId(userIdStr, Some(cc))
+          } yield {
+            if (APIUtil.isSuperAdmin(userIdStr)) {
+              code.api.v2_0_0.JSONFactory200.withVirtualEntitlements(
+                entitlements, code.api.v2_0_0.JSONFactory200.superAdminVirtualRoles)
+            } else if (APIUtil.isOidcOperator(userIdStr)) {
+              code.api.v2_0_0.JSONFactory200.withVirtualEntitlements(
+                entitlements, code.api.v2_0_0.JSONFactory200.oidcOperatorVirtualRoles)
+            } else {
+              code.api.v2_0_0.JSONFactory200.createEntitlementJSONs(entitlements)
+            }
+          }
+        }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      null, implementedInApiVersion, "getEntitlements", "GET",
+      "/users/USER_ID/entitlements",
+      "Get Entitlements for User",
+      "",
+      EmptyBody, entitlementsJsonV400,
+      List(AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      List(apiTagRole, apiTagEntitlement, apiTagUser),
+      Some(List(canGetEntitlementsForAnyUserAtAnyBank)),
+      http4sPartialFunction = Some(getEntitlements))
+
+    // ─── getUserByUserId (GET /users/user_id/USER_ID) — v4 override ─────────
+
+    val getUserByUserId: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "users" / "user_id" / userIdStr =>
+        EndpointHelpers.withUser(req) { (_, cc) =>
+          for {
+            user <- Users.users.vend.getUserByUserIdFuture(userIdStr) map { x =>
+              unboxFullOrFail(x, Some(cc), s"$UserNotFoundByUserId Current UserId($userIdStr)")
+            }
+            entitlements <- NewStyle.function.getEntitlementsByUserId(user.userId, Some(cc))
+            acceptMarketingInfo <- NewStyle.function.getAgreementByUserId(user.userId, "accept_marketing_info", Some(cc))
+            termsAndConditions <- NewStyle.function.getAgreementByUserId(user.userId, "terms_and_conditions", Some(cc))
+            privacyConditions <- NewStyle.function.getAgreementByUserId(user.userId, "privacy_conditions", Some(cc))
+            isLocked = code.loginattempts.LoginAttempt.userIsLocked(user.provider, user.name)
+          } yield {
+            val agreements = acceptMarketingInfo.toList ::: termsAndConditions.toList ::: privacyConditions.toList
+            JSONFactory400.createUserInfoJSON(user, entitlements, Some(agreements), isLocked)
+          }
+        }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      null, implementedInApiVersion, "getUserByUserId", "GET",
+      "/users/user_id/USER_ID",
+      "Get User by USER_ID",
+      s"""Get user by USER_ID
+         |
+         |${userAuthenticationMessage(true)}
+         |
+         |CanGetAnyUser entitlement is required,""",
+      EmptyBody, userJsonV400,
+      List(AuthenticatedUserIsRequired, UserHasMissingRoles, UserNotFoundByUserId, UnknownError),
+      List(apiTagUser),
+      Some(List(canGetAnyUser)),
+      http4sPartialFunction = Some(getUserByUserId))
+
+    // ─── getUserByUsername (GET /users/username/USERNAME) — v4 override ─────
+
+    val getUserByUsername: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "users" / "username" / username =>
+        EndpointHelpers.withUser(req) { (_, cc) =>
+          for {
+            user <- Users.users.vend.getUserByProviderAndUsernameFuture(
+              Constant.localIdentityProvider, username) map { x =>
+              unboxFullOrFail(x, Some(cc), UserNotFoundByProviderAndUsername, 404)
+            }
+            entitlements <- NewStyle.function.getEntitlementsByUserId(user.userId, Some(cc))
+            isLocked = code.loginattempts.LoginAttempt.userIsLocked(user.provider, user.name)
+          } yield JSONFactory400.createUserInfoJSON(user, entitlements, None, isLocked)
+        }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      null, implementedInApiVersion, "getUserByUsername", "GET",
+      "/users/username/USERNAME",
+      "Get User by USERNAME",
+      s"""Get user by USERNAME
+         |
+         |${userAuthenticationMessage(true)}
+         |
+         |CanGetAnyUser entitlement is required,""",
+      EmptyBody, userJsonV400,
+      List(AuthenticatedUserIsRequired, UserHasMissingRoles,
+        UserNotFoundByProviderAndUsername, UnknownError),
+      List(apiTagUser),
+      Some(List(canGetAnyUser)),
+      http4sPartialFunction = Some(getUserByUsername))
+
+    // ─── getUsersByEmail (GET /users/email/EMAIL/terminator) — v4 override ──
+
+    val getUsersByEmail: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "users" / "email" / email / "terminator" =>
+        EndpointHelpers.withUser(req) { (_, _) =>
+          for {
+            users <- Users.users.vend.getUsersByEmail(email)
+          } yield JSONFactory400.createUsersJson(users)
+        }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      null, implementedInApiVersion, "getUsersByEmail", "GET",
+      "/users/email/EMAIL/terminator",
+      "Get Users by Email Address",
+      s"""Get users by email address
+         |
+         |${userAuthenticationMessage(true)}
+         |CanGetAnyUser entitlement is required,""",
+      EmptyBody, usersJsonV400,
+      List(AuthenticatedUserIsRequired, UserHasMissingRoles, UserNotFoundByEmail, UnknownError),
+      List(apiTagUser),
+      Some(List(canGetAnyUser)),
+      http4sPartialFunction = Some(getUsersByEmail))
+
+    // ─── getUsers (GET /users) — v4 override ─────────────────────────────────
+
+    val getUsers: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "users" =>
+        EndpointHelpers.withUser(req) { (_, cc) =>
+          val httpParams = req.headers.headers.toList.map(h =>
+            net.liftweb.http.provider.HTTPParam(h.name.toString, h.value)) :::
+            req.uri.query.multiParams.toList.flatMap { case (k, vs) =>
+              vs.map(v => net.liftweb.http.provider.HTTPParam(k, v))
+            }
+          for {
+            (obpQueryParams, _) <- createQueriesByHttpParamsFuture(httpParams, Some(cc))
+            users <- Users.users.vend.getUsers(obpQueryParams)
+          } yield JSONFactory400.createUsersJson(users)
+        }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      null, implementedInApiVersion, "getUsers", "GET",
+      "/users",
+      "Get all Users",
+      s"""Get all users
+         |
+         |${userAuthenticationMessage(true)}
+         |
+         |CanGetAnyUser entitlement is required,""",
+      EmptyBody, usersJsonV400,
+      List(AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      List(apiTagUser),
+      Some(List(canGetAnyUser)),
+      http4sPartialFunction = Some(getUsers))
+
+    // ─── getCustomersByAttributes (GET /banks/BANK_ID/customers) — v4 override
+
+    val getCustomersByAttributes: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / _ / "customers" =>
+        EndpointHelpers.withUserAndBank(req) { (_, bank, cc) =>
+          val params = req.uri.query.multiParams.map { case (k, vs) => k -> vs.toList }
+          for {
+            (customerIds, _) <- NewStyle.function.getCustomerIdsByAttributeNameValues(
+              bank.bankId, params, Some(cc))
+            list <- Future.sequence(customerIds.map { customerId =>
+              val customerFuture = NewStyle.function.getCustomerByCustomerId(customerId.value, Some(cc))
+              customerFuture.flatMap { case (customer, ccc) =>
+                NewStyle.function.getCustomerAttributes(bank.bankId, customerId, ccc)
+                  .map { case (attributes, _) =>
+                    code.api.v3_1_0.JSONFactory310.createCustomerWithAttributesJson(customer, attributes)
+                  }
+              }
+            })
+          } yield ListResult("customers", list)
+        }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      null, implementedInApiVersion, "getCustomersByAttributes", "GET",
+      "/banks/BANK_ID/customers",
+      "Get Customers by ATTRIBUTES",
+      "Gets the Customers specified by attributes",
+      EmptyBody,
+      ListResult("customers", List(customerWithAttributesJsonV310)),
+      List(AuthenticatedUserIsRequired, BankNotFound, UserCustomerLinksNotFoundForUser, UnknownError),
+      List(apiTagCustomer),
+      Some(List(canGetCustomersAtOneBank)),
+      http4sPartialFunction = Some(getCustomersByAttributes))
+
+    // ─── createCustomer (POST /banks/BANK_ID/customers → 201) — v4 override ──
+
+    val createCustomer: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "banks" / _ / "customers" =>
+        EndpointHelpers.withUserAndBankAndBodyCreated[code.api.v3_1_0.PostCustomerJsonV310, Any](req) { (_, bank, postedData, cc) =>
+          for {
+            _ <- code.util.Helper.booleanToFuture(
+              failMsg = InvalidJsonContent + s" The field dependants(${postedData.dependants}) not equal the length(${postedData.dob_of_dependants.length}) of dob_of_dependants array",
+              failCode = 400, cc = Some(cc)) {
+              postedData.dependants == postedData.dob_of_dependants.length
+            }
+            (customer, _) <- NewStyle.function.createCustomer(
+              bank.bankId,
+              postedData.legal_name, postedData.mobile_phone_number, postedData.email,
+              CustomerFaceImage(postedData.face_image.date, postedData.face_image.url),
+              postedData.date_of_birth, postedData.relationship_status,
+              postedData.dependants, postedData.dob_of_dependants,
+              postedData.highest_education_attained, postedData.employment_status,
+              postedData.kyc_status, postedData.last_ok_date,
+              Option(CreditRating(postedData.credit_rating.rating, postedData.credit_rating.source)),
+              Option(CreditLimit(postedData.credit_limit.currency, postedData.credit_limit.amount)),
+              postedData.title, postedData.branch_id, postedData.name_suffix,
+              Some(cc))
+          } yield code.api.v3_1_0.JSONFactory310.createCustomerJson(customer)
+        }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(createCustomer), "POST",
+      "/banks/BANK_ID/customers",
+      "Create Customer",
+      s"""The Customer resource stores the customer number (set by backend), legal name, email, phone number, date of birth, etc.
+         |
+         |${userAuthenticationMessage(true)}""",
+      code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.postCustomerJsonV310,
+      code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.customerJsonV310,
+      List(AuthenticatedUserIsRequired, BankNotFound, InvalidJsonFormat,
+        CustomerNumberAlreadyExists, UserNotFoundById, CustomerAlreadyExistsForUser,
+        CreateCustomerError, UnknownError),
+      List(apiTagCustomer, apiTagPerson),
+      Some(List(canCreateCustomer, canCreateCustomerAtAnyBank)),
+      http4sPartialFunction = Some(createCustomer))
+
+    // ─── getBankAccountsBalancesForCurrentUser (GET /banks/BANK_ID/balances) — v4
+
+    val getBankAccountsBalancesForCurrentUser: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / _ / "balances" =>
+        EndpointHelpers.withUserAndBank(req) { (user, bank, cc) =>
+          for {
+            (allowedAccounts, _) <- code.api.util.newstyle.BalanceNewStyle.getAccountAccessAtBank(user, bank.bankId, Some(cc))
+            (accountsBalances, _) <- code.api.util.newstyle.BalanceNewStyle.getBankAccountsBalances(allowedAccounts, Some(cc))
+          } yield createBalancesJson(accountsBalances)
+        }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getBankAccountsBalancesForCurrentUser), "GET",
+      "/banks/BANK_ID/balances",
+      "Get Accounts Balances",
+      "Get the Balances for the Accounts of the current User at one bank.",
+      EmptyBody, accountBalancesV400Json,
+      List(AuthenticatedUserIsRequired, BankNotFound, UnknownError),
+      apiTagAccount :: apiTagPSD2AIS :: apiTagPsd2 :: Nil, None,
+      http4sPartialFunction = Some(getBankAccountsBalancesForCurrentUser))
+
+    // ─── getCoreAccountById (GET /my/banks/BANK_ID/accounts/ACCOUNT_ID/account)
+
+    val getCoreAccountById: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "my" / "banks" / bankIdStr / "accounts" / accountIdStr / "account" =>
+        EndpointHelpers.withUser(req) { (user, cc) =>
+          for {
+            (_, _) <- NewStyle.function.getBank(BankId(bankIdStr), Some(cc))
+            (account, _) <- NewStyle.function.checkBankAccountExists(BankId(bankIdStr), AccountId(accountIdStr), Some(cc))
+            view <- ViewNewStyle.checkOwnerViewAccessAndReturnOwnerView(user,
+              BankIdAccountId(account.bankId, account.accountId), Some(cc))
+            moderatedAccount <- NewStyle.function.moderatedBankAccountCore(account, view, Full(user), Some(cc))
+          } yield {
+            val availableViews: List[View] =
+              Views.views.vend.privateViewsUserCanAccessForAccount(user,
+                BankIdAccountId(account.bankId, account.accountId))
+            createNewCoreBankAccountJson(moderatedAccount, availableViews)
+          }
+        }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getCoreAccountById), "GET",
+      "/my/banks/BANK_ID/accounts/ACCOUNT_ID/account",
+      "Get Account by Id (Core)",
+      s"""Information returned about the account specified by ACCOUNT_ID.
+         |
+         |${userAuthenticationMessage(true)}""",
+      EmptyBody, moderatedCoreAccountJsonV400,
+      List(AuthenticatedUserIsRequired, BankAccountNotFound, UnknownError),
+      apiTagAccount :: apiTagPSD2AIS :: apiTagPsd2 :: Nil, None,
+      http4sPartialFunction = Some(getCoreAccountById))
+
+    // ─── getPrivateAccountByIdFull (GET /banks/BANK_ID/.../VIEW_ID/account) ──
+
+    val getPrivateAccountByIdFull: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / bankIdStr / "accounts" / _ / _ / "account" =>
+        EndpointHelpers.withView(req) { (user, account, view, cc) =>
+          for {
+            moderatedAccount <- NewStyle.function.moderatedBankAccountCore(account, view, Full(user), Some(cc))
+            (accountAttributes, _) <- NewStyle.function.getAccountAttributesByAccount(
+              account.bankId, account.accountId, Some(cc))
+          } yield {
+            val availableViews = Views.views.vend.privateViewsUserCanAccessForAccount(
+              user, BankIdAccountId(account.bankId, account.accountId))
+            val viewsAvailable = availableViews.map(code.api.v1_2_1.JSONFactory.createViewJSON).sortBy(_.short_name)
+            val tags = code.metadata.tags.Tags.tags.vend.getTagsOnAccount(
+              account.bankId, account.accountId)(view.viewId)
+            createBankAccountJSON(moderatedAccount, viewsAvailable, accountAttributes, tags)
+          }
+        }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getPrivateAccountByIdFull), "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/account",
+      "Get Account by Id (Full)",
+      """Information returned about an account specified by ACCOUNT_ID moderated by the view (VIEW_ID).""",
+      EmptyBody, moderatedAccountJSON400,
+      List(AuthenticatedUserIsRequired, BankNotFound, BankAccountNotFound,
+        UserNoPermissionAccessView, UnknownError),
+      apiTagAccount :: Nil, None,
+      http4sPartialFunction = Some(getPrivateAccountByIdFull))
+
+    // ─── getPrivateAccountsAtOneBank (GET /banks/BANK_ID/accounts) — v4 override
+
+    val getPrivateAccountsAtOneBank: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / _ / "accounts" =>
+        EndpointHelpers.withUserAndBank(req) { (user, bank, cc) =>
+          val params: Map[String, String] = req.uri.query.params
+            .filterNot(_._1 == code.api.Constant.PARAM_TIMESTAMP)
+            .filterNot(_._1 == code.api.Constant.PARAM_LOCALE)
+          val viewsAndAccess: (List[View], List[code.views.system.AccountAccess]) =
+            Views.views.vend.privateViewsUserCanAccessAtBank(user, bank.bankId)
+          val privateViewsUserCanAccessAtOneBank: List[View] = viewsAndAccess._1
+          val privateAccountAccess: List[code.views.system.AccountAccess] = viewsAndAccess._2
+          for {
+            privateAccountAccess2 <-
+              if (params.isEmpty || privateAccountAccess.isEmpty)
+                Future.successful(privateAccountAccess)
+              else
+                code.accountattribute.AccountAttributeX.accountAttributeProvider.vend
+                  .getAccountIdsByParams(bank.bankId, params.map { case (k, v) => k -> List(v) })
+                  .map { boxedAccountIds =>
+                    val accountIds = boxedAccountIds.getOrElse(Nil)
+                    privateAccountAccess.filter(aa => accountIds.contains(aa.account_id.get))
+                  }
+            (availablePrivateAccounts, _) <- code.model.BankExtended(bank).privateAccountsFuture(
+              privateAccountAccess2, Some(cc))
+          } yield code.api.v2_0_0.OBPAPI2_0_0.Implementations2_0_0.processAccounts(
+            privateViewsUserCanAccessAtOneBank, availablePrivateAccounts)
+        }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getPrivateAccountsAtOneBank), "GET",
+      "/banks/BANK_ID/accounts",
+      "Get Accounts at Bank",
+      s"""Returns the list of accounts at BANK_ID that the user has access to.""",
+      EmptyBody, basicAccountsJSON,
+      List(AuthenticatedUserIsRequired, BankNotFound, UnknownError),
+      List(apiTagAccount, apiTagPrivateData, apiTagPublicData), None,
+      http4sPartialFunction = Some(getPrivateAccountsAtOneBank))
+
+    // ─── createUserCustomerLinks (POST → 201) — v4 override ─────────────────
+
+    val createUserCustomerLinks: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "banks" / bankIdStr / "user_customer_links" =>
+        EndpointHelpers.withUserAndBankAndBodyCreated[code.api.v2_0_0.CreateUserCustomerLinkJson, Any](req) { (_, bank, postedData, cc) =>
+          for {
+            _ <- NewStyle.function.tryons(InvalidBankIdFormat, 400, Some(cc)) {
+              assert(isValidID(bank.bankId.value))
+            }
+            _ <- Users.users.vend.getUserByUserIdFuture(postedData.user_id) map { x =>
+              unboxFullOrFail(x, Some(cc), UserNotFoundByUserId, 404)
+            }
+            _ <- code.util.Helper.booleanToFuture(
+              "Field customer_id is not defined in the posted json!",
+              failCode = 400, cc = Some(cc)) {
+              postedData.customer_id.nonEmpty
+            }
+            (customer, _) <- NewStyle.function.getCustomerByCustomerId(postedData.customer_id, Some(cc))
+            _ <- code.util.Helper.booleanToFuture(
+              s"Bank of the customer specified by the CUSTOMER_ID(${customer.bankId}) has to matches BANK_ID(${bank.bankId.value}) in URL",
+              failCode = 400, cc = Some(cc)) {
+              customer.bankId == bank.bankId.value
+            }
+            _ <- code.util.Helper.booleanToFuture(CustomerAlreadyExistsForUser, failCode = 400, cc = Some(cc)) {
+              code.usercustomerlinks.UserCustomerLink.userCustomerLink.vend
+                .getUserCustomerLink(postedData.user_id, postedData.customer_id).isEmpty
+            }
+            userCustomerLink <- Future {
+              code.usercustomerlinks.UserCustomerLink.userCustomerLink.vend.createUserCustomerLink(
+                postedData.user_id, postedData.customer_id, new java.util.Date(), true)
+            } map { x => unboxFullOrFail(x, Some(cc), CreateUserCustomerLinksError, 400) }
+          } yield code.api.v2_0_0.JSONFactory200.createUserCustomerLinkJSON(userCustomerLink)
+        }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      null, implementedInApiVersion, "createUserCustomerLinks", "POST",
+      "/banks/BANK_ID/user_customer_links",
+      "Create User Customer Link",
+      s"""Link a User to a Customer
+         |
+         |${userAuthenticationMessage(true)}""",
+      createUserCustomerLinkJson, userCustomerLinkJson,
+      List(AuthenticatedUserIsRequired, InvalidBankIdFormat, BankNotFound, InvalidJsonFormat,
+        CustomerNotFoundByCustomerId, UserHasMissingRoles, CustomerAlreadyExistsForUser,
+        CreateUserCustomerLinksError, UnknownError),
+      List(apiTagCustomer, apiTagUser),
+      Some(List(canCreateUserCustomerLinkAtAnyBank, canCreateUserCustomerLink)),
+      http4sPartialFunction = Some(createUserCustomerLinks))
 
     // ─── getSystemDynamicEntities ─────────────────────────────────────────────
 
@@ -1386,6 +1799,18 @@ object Http4s400 {
         .orElse(createProduct.run(req))
         .orElse(createProductAttribute.run(req))
         .orElse(updateProductAttribute.run(req))
+        .orElse(getEntitlements.run(req))
+        .orElse(getUserByUserId.run(req))
+        .orElse(getUserByUsername.run(req))
+        .orElse(getUsersByEmail.run(req))
+        .orElse(getUsers.run(req))
+        .orElse(getCustomersByAttributes.run(req))
+        .orElse(createCustomer.run(req))
+        .orElse(getBankAccountsBalancesForCurrentUser.run(req))
+        .orElse(getCoreAccountById.run(req))
+        .orElse(getPrivateAccountByIdFull.run(req))
+        .orElse(getPrivateAccountsAtOneBank.run(req))
+        .orElse(createUserCustomerLinks.run(req))
         .orElse(getSystemDynamicEntities.run(req))
         .orElse(getBankLevelDynamicEntities.run(req))
         .orElse(getMyDynamicEntities.run(req))
