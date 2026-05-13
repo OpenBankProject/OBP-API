@@ -262,6 +262,9 @@ object ResourceDocMiddleware extends MdcLoggable {
     val result: Validation[ValidationContext] = for {
       context <- authenticate(req, resourceDoc, initialContext)
       context <- authorizeRoles(resourceDoc, pathParams, context)
+      context <- processForceError(req, resourceDoc, context)
+      context <- validateAuthType(resourceDoc, context)
+      context <- validateJsonSchema(resourceDoc, context)
       context <- validateBank(pathParams, context)
       context <- validateAccount(pathParams, context)
       context <- validateView(pathParams, context)
@@ -366,6 +369,109 @@ object ResourceDocMiddleware extends MdcLoggable {
             )
         }
       case _ => success(ctx)
+    }
+  }
+
+  /**
+   * Force-Error / Response-Code header processing.
+   *
+   * Port of `APIUtil.afterAuthenticateInterceptors`'s force-error case. Lets a
+   * caller short-circuit the endpoint and synthesize a specific error response,
+   * for testing / contract validation. Off by default; opt-in via the
+   * `enable.force_error` prop. When enabled and a `Force-Error` header is present:
+   *
+   *   - Invalid OBP-error name format → 400 "Force-Error value not correct"
+   *   - Non-numeric `Response-Code` header → 400 "Response-Code value not correct"
+   *   - Error name not in this ResourceDoc's `errorResponseBodies` → 400
+   *     "Invalid Force Error Code"
+   *   - Otherwise → look up the matching error message, return it with the
+   *     ResourceDoc-implied status (or override from Response-Code).
+   *
+   * Without this, migrated endpoints quietly ignore the header and the test that
+   * asserts on the synthesized response sees a 200/201 (success) or a 500
+   * (endpoint side-effect) instead.
+   */
+  private def processForceError(req: Request[IO], resourceDoc: ResourceDoc, ctx: ValidationContext): Validation[ValidationContext] = {
+    import DSL._
+    if (!APIUtil.getPropsAsBoolValue("enable.force_error", false)) success(ctx)
+    else {
+      val headers = req.headers
+      val forceError = headers.get(org.typelevel.ci.CIString("Force-Error")).map(_.head.value)
+      val responseCodeHeader = headers.get(org.typelevel.ci.CIString("Response-Code")).map(_.head.value)
+      forceError match {
+        case None => success(ctx)
+        case Some(errorName) =>
+          val errorNamePrefix = if (errorName.endsWith(":")) errorName else errorName + ":"
+          val correlationId = ctx.callContext.correlationId
+          val cc = ctx.callContext
+          val responseIO: IO[Response[IO]] = {
+            if (!code.api.util.ErrorMessages.isValidName(errorName)) {
+              ErrorResponseConverter.createErrorResponse(
+                400, s"${code.api.util.ErrorMessages.ForceErrorInvalid} Force-Error value not correct: $errorName", cc)
+            } else if (responseCodeHeader.exists(it => !org.apache.commons.lang3.StringUtils.isNumeric(it))) {
+              ErrorResponseConverter.createErrorResponse(
+                400, s"${code.api.util.ErrorMessages.ForceErrorInvalid} Response-Code value not correct: ${responseCodeHeader.orNull}", cc)
+            } else if (!resourceDoc.errorResponseBodies.exists(_.startsWith(errorNamePrefix))) {
+              ErrorResponseConverter.createErrorResponse(
+                400, s"${code.api.util.ErrorMessages.ForceErrorInvalid} Invalid Force Error Code: $errorName", cc)
+            } else {
+              val errorValue = code.api.util.ErrorMessages.getValueMatches(_.startsWith(errorNamePrefix))
+                .getOrElse(throw new RuntimeException(s"force-error code $errorName matched but lookup failed"))
+              val statusCode = responseCodeHeader.map(_.toInt).getOrElse(code.api.util.ErrorMessages.getCode(errorValue))
+              ErrorResponseConverter.createErrorResponse(statusCode, errorValue, cc)
+            }
+          }
+          EitherT[IO, Response[IO], ValidationContext](responseIO.map[Either[Response[IO], ValidationContext]](Left(_)))
+      }
+    }
+  }
+
+  /**
+   * Authentication-type validation. Port of `APIUtil.validateAuthType`. If an
+   * operator has registered allowed auth types for this endpoint via
+   * `AuthenticationTypeValidationProvider`, reject any request whose authType
+   * isn't on the allow-list (anonymous requests skip — they already failed auth
+   * if the endpoint required it).
+   */
+  private def validateAuthType(resourceDoc: ResourceDoc, ctx: ValidationContext): Validation[ValidationContext] = {
+    import DSL._
+    val cc = ctx.callContext
+    val authType = cc.authType
+    if (authType == code.api.util.AuthenticationType.Anonymous) success(ctx)
+    else {
+      val operationId = APIUtil.buildOperationId(resourceDoc.implementedInApiVersion, resourceDoc.partialFunctionName)
+      code.authtypevalidation.AuthenticationTypeValidationProvider.validationProvider.vend.getByOperationId(operationId) match {
+        case Full(v) if !v.authTypes.contains(authType) =>
+          val errorMsg = s"""${code.api.util.ErrorMessages.AuthenticationTypeIllegal} allowed authentication types: ${v.authTypes.mkString("[", ", ", "]")}, current request auth type: $authType"""
+          EitherT[IO, Response[IO], ValidationContext](
+            ErrorResponseConverter.createErrorResponse(400, errorMsg, cc)
+              .map[Either[Response[IO], ValidationContext]](Left(_))
+          )
+        case _ => success(ctx)
+      }
+    }
+  }
+
+  /**
+   * JSON-schema body validation. Port of the json-schema interceptor in
+   * `APIUtil.afterAuthenticateInterceptors`. Only fires when an operator has
+   * registered a schema for this endpoint via `JsonSchemaValidationProvider`. If
+   * the body fails validation, returns 400 with the concatenated schema errors;
+   * otherwise the request continues.
+   */
+  private def validateJsonSchema(resourceDoc: ResourceDoc, ctx: ValidationContext): Validation[ValidationContext] = {
+    import DSL._
+    val operationId = APIUtil.buildOperationId(resourceDoc.implementedInApiVersion, resourceDoc.partialFunctionName)
+    code.util.JsonSchemaUtil.validateRequest(Some(ctx.callContext))(operationId) match {
+      case Some(errorMsg) =>
+        // Mirror Lift's afterAuthenticateInterceptors prefix so tests asserting on
+        // `$InvalidRequestPayload` still pass.
+        val message = s"${code.api.util.ErrorMessages.InvalidRequestPayload} $errorMsg"
+        EitherT[IO, Response[IO], ValidationContext](
+          ErrorResponseConverter.createErrorResponse(400, message, ctx.callContext)
+            .map[Either[Response[IO], ValidationContext]](Left(_))
+        )
+      case None => success(ctx)
     }
   }
 
