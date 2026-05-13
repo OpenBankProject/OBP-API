@@ -25,6 +25,7 @@ import code.api.v4_0_0.JSONFactory400._
 import code.DynamicData.DynamicData
 import code.api.util.migration.Migration
 import code.dynamicEntity.DynamicEntityCommons
+import code.bankconnectors.Connector
 import code.entitlement.Entitlement
 import code.model.BankX
 import code.model.dataAccess.AuthUser
@@ -1929,6 +1930,207 @@ object Http4s400 {
       List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2), None,
       http4sPartialFunction = Some(getConsents))
 
+    // ─── updateAccountLabel (POST /banks/BANK_ID/accounts/ACCOUNT_ID → 200) — v4 override of Http4s121 ─
+
+    val updateAccountLabel: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr =>
+        EndpointHelpers.withUserAndBody[UpdateAccountJsonV400, Any](req) { (user, postedData, cc) =>
+          for {
+            (account, _) <- NewStyle.function.checkBankAccountExists(BankId(bankIdStr), AccountId(accountIdStr), Some(cc))
+            anyViewContainsCanUpdateBankAccountLabelPermission = Views.views.vend
+              .permission(BankIdAccountId(account.bankId, account.accountId), user)
+              .map(_.views.map(_.allowed_actions.exists(_ == CAN_UPDATE_BANK_ACCOUNT_LABEL)))
+              .getOrElse(Nil)
+              .find(_ == true)
+              .getOrElse(false)
+            _ <- code.util.Helper.booleanToFuture(
+              s"${ViewDoesNotPermitAccess} You need the `${CAN_UPDATE_BANK_ACCOUNT_LABEL}` permission on any your views",
+              cc = Some(cc)) {
+              anyViewContainsCanUpdateBankAccountLabelPermission
+            }
+            _ <- Connector.connector.vend.updateAccountLabel(
+              BankId(bankIdStr), AccountId(accountIdStr), postedData.label, Some(cc)
+            ) map { i =>
+              unboxFullOrFail(i._1, i._2,
+                s"$UpdateBankAccountLabelError Current BankId is $bankIdStr and Current AccountId is $accountIdStr", 404)
+            }
+          } yield successMessage
+        }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(updateAccountLabel), "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID",
+      "Update Account Label",
+      s"""Update the label for the account. The label is how the account is known to the account owner e.g. 'My savings account'.
+         |
+         |${userAuthenticationMessage(true)}""",
+      updateAccountJsonV400, successMessage,
+      List(InvalidJsonFormat, $AuthenticatedUserIsRequired, $BankAccountNotFound,
+        "user does not have access to owner view on account", UnknownError),
+      List(apiTagAccount), None,
+      http4sPartialFunction = Some(updateAccountLabel))
+
+    // ─── getExplicitCounterpartiesForAccount (GET .../counterparties) — v4 override ─
+
+    val getExplicitCounterpartiesForAccount: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "counterparties" =>
+        EndpointHelpers.withView(req) { (user, account, view, cc) =>
+          for {
+            _ <- code.util.Helper.booleanToFuture(
+              failMsg = s"${NoViewPermission}can_get_counterparty", failCode = 403, cc = Some(cc)) {
+              view.allowed_actions.exists(_ == CAN_GET_COUNTERPARTY)
+            }
+            (counterparties, _) <- NewStyle.function.getCounterparties(
+              account.bankId, account.accountId, view.viewId, Some(cc))
+            _ <- code.util.Helper.booleanToFuture(CreateOrUpdateCounterpartyMetadataError, 400, cc = Some(cc)) {
+              counterparties.forall { cp =>
+                code.metadata.counterparties.Counterparties.counterparties.vend
+                  .getOrCreateMetadata(account.bankId, account.accountId, cp.counterpartyId, cp.name)
+                  .isDefined
+              }
+            }
+          } yield JSONFactory400.createCounterpartiesJson400(counterparties)
+        }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      null, implementedInApiVersion, "getExplicitCounterpartiesForAccount", "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties",
+      "Get Counterparties (Explicit)",
+      s"""Get the Counterparties that have been explicitly created on the specified Account / View.
+         |
+         |${userAuthenticationMessage(true)}""",
+      EmptyBody, counterpartiesJson400,
+      List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound,
+        $UserNoPermissionAccessView, ViewNotFound, UnknownError),
+      List(apiTagCounterparty, apiTagPSD2PIS, apiTagPsd2, apiTagAccount), None,
+      http4sPartialFunction = Some(getExplicitCounterpartiesForAccount))
+
+    // ─── getExplicitCounterpartyById (GET .../counterparties/COUNTERPARTY_ID) — v4 override ─
+
+    val getExplicitCounterpartyById: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "counterparties" / counterpartyIdStr =>
+        EndpointHelpers.withView(req) { (_, account, view, cc) =>
+          for {
+            _ <- code.util.Helper.booleanToFuture(
+              failMsg = s"${NoViewPermission}can_get_counterparty", failCode = 403, cc = Some(cc)) {
+              view.allowed_actions.exists(_ == CAN_GET_COUNTERPARTY)
+            }
+            (counterparty, _) <- NewStyle.function.getCounterpartyByCounterpartyId(
+              CounterpartyId(counterpartyIdStr), Some(cc))
+            counterpartyMetadata <- NewStyle.function.getMetadata(
+              account.bankId, account.accountId, counterparty.counterpartyId, Some(cc))
+          } yield JSONFactory400.createCounterpartyWithMetadataJson400(counterparty, counterpartyMetadata)
+        }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      null, implementedInApiVersion, "getExplicitCounterpartyById", "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties/EXPLICIT_COUNTERPARTY_ID",
+      "Get Counterparty by Id (Explicit)",
+      s"""This endpoint returns a single Counterparty on an Account View specified by its COUNTERPARTY_ID.
+         |
+         |${userAuthenticationMessage(true)}""",
+      EmptyBody, counterpartyWithMetadataJson400,
+      List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound,
+        $UserNoPermissionAccessView, UnknownError),
+      List(apiTagCounterparty, apiTagPSD2PIS, apiTagPsd2, apiTagCounterpartyMetaData), None,
+      http4sPartialFunction = Some(getExplicitCounterpartyById))
+
+    // ─── createExplicitCounterparty (POST .../counterparties → 201) — v4 override ─
+
+    val createExplicitCounterparty: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / _ / "counterparties" =>
+        EndpointHelpers.withViewCreated(req) { (user, account, view, cc) =>
+          val bodyStr = cc.httpBody.getOrElse("")
+          for {
+            _ <- code.util.Helper.booleanToFuture(InvalidAccountIdFormat, cc = Some(cc)) { isValidID(account.accountId.value) }
+            _ <- code.util.Helper.booleanToFuture(InvalidBankIdFormat, cc = Some(cc)) { isValidID(account.bankId.value) }
+            postJson <- NewStyle.function.tryons(
+              s"$InvalidJsonFormat The Json body should be the PostCounterpartyJson400", 400, Some(cc)) {
+              net.liftweb.json.parse(bodyStr).extract[PostCounterpartyJson400]
+            }
+            _ <- code.util.Helper.booleanToFuture(
+              failMsg = s"$NoViewPermission can_add_counterparty. Please use a view with that permission or add the permission to this view.",
+              failCode = 403, cc = Some(cc)) {
+              view.allowed_actions.exists(_ == CAN_ADD_COUNTERPARTY)
+            }
+            (existingCp, _) <- Connector.connector.vend.checkCounterpartyExists(
+              postJson.name, account.bankId.value, account.accountId.value, view.viewId.value, Some(cc))
+            _ <- code.util.Helper.booleanToFuture(
+              CounterpartyAlreadyExists.replace("value for BANK_ID or ACCOUNT_ID or VIEW_ID or NAME.",
+                s"COUNTERPARTY_NAME(${postJson.name}) for the BANK_ID(${account.bankId.value}) and ACCOUNT_ID(${account.accountId.value}) and VIEW_ID(${view.viewId.value})"),
+              cc = Some(cc)) { existingCp.isEmpty }
+            _ <- code.util.Helper.booleanToFuture(
+              s"$InvalidValueLength. The maximum length of `description` field is ${code.metadata.counterparties.MappedCounterparty.mDescription.maxLen}",
+              cc = Some(cc)) { postJson.description.length <= 36 }
+            _ <- code.util.Helper.booleanToFuture(
+              s"$InvalidISOCurrencyCode Current input is: '${postJson.currency}'",
+              cc = Some(cc)) { APIUtil.isValidCurrencyISOCode(postJson.currency) }
+            (_, _) <-
+              if (postJson.other_bank_routing_scheme.equalsIgnoreCase("OBP")
+                && postJson.other_account_routing_scheme.equalsIgnoreCase("OBP"))
+                for {
+                  (_, c) <- NewStyle.function.getBank(BankId(postJson.other_bank_routing_address), Some(cc))
+                  r      <- NewStyle.function.checkBankAccountExists(BankId(postJson.other_bank_routing_address), AccountId(postJson.other_account_routing_address), c)
+                } yield r
+              else if (postJson.other_bank_routing_scheme.equalsIgnoreCase("OBP")
+                && postJson.other_account_secondary_routing_scheme.equalsIgnoreCase("OBP"))
+                for {
+                  (_, c) <- NewStyle.function.getBank(BankId(postJson.other_bank_routing_address), Some(cc))
+                  r      <- NewStyle.function.checkBankAccountExists(BankId(postJson.other_bank_routing_address), AccountId(postJson.other_account_secondary_routing_address), c)
+                } yield r
+              else if (postJson.other_bank_routing_scheme.equalsIgnoreCase("ACCOUNT_NUMBER")
+                || postJson.other_bank_routing_scheme.equalsIgnoreCase("ACCOUNT_NO"))
+                NewStyle.function.getBankAccountByNumber(
+                  if (postJson.other_bank_routing_address.isEmpty) None else Some(BankId(postJson.other_bank_routing_address)),
+                  postJson.other_bank_routing_address, Some(cc))
+              else Future.successful((Full(()), Some(cc)))
+            otherAccountRoutingSchemeOBPFormat =
+              if (postJson.other_account_routing_scheme.equalsIgnoreCase("AccountNo")) "ACCOUNT_NUMBER"
+              else org.apache.commons.lang3.StringUtils.upperCase(
+                net.liftweb.util.StringHelpers.snakify(postJson.other_account_routing_scheme))
+            (counterparty, _) <- NewStyle.function.createCounterparty(
+              name                              = postJson.name,
+              description                       = postJson.description,
+              currency                          = postJson.currency,
+              createdByUserId                   = user.userId,
+              thisBankId                        = account.bankId.value,
+              thisAccountId                     = account.accountId.value,
+              thisViewId                        = view.viewId.value,
+              otherAccountRoutingScheme         = otherAccountRoutingSchemeOBPFormat,
+              otherAccountRoutingAddress        = postJson.other_account_routing_address,
+              otherAccountSecondaryRoutingScheme = net.liftweb.util.StringHelpers.snakify(postJson.other_account_secondary_routing_scheme).toUpperCase,
+              otherAccountSecondaryRoutingAddress = postJson.other_account_secondary_routing_address,
+              otherBankRoutingScheme            = net.liftweb.util.StringHelpers.snakify(postJson.other_bank_routing_scheme).toUpperCase,
+              otherBankRoutingAddress           = postJson.other_bank_routing_address,
+              otherBranchRoutingScheme          = net.liftweb.util.StringHelpers.snakify(postJson.other_branch_routing_scheme).toUpperCase,
+              otherBranchRoutingAddress         = postJson.other_branch_routing_address,
+              isBeneficiary                     = postJson.is_beneficiary,
+              bespoke                           = postJson.bespoke.map(b => CounterpartyBespoke(b.key, b.value)),
+              callContext                       = Some(cc)
+            )
+            (counterpartyMetadata, _) <- NewStyle.function.getOrCreateMetadata(
+              account.bankId, account.accountId, counterparty.counterpartyId, postJson.name, Some(cc))
+          } yield JSONFactory400.createCounterpartyWithMetadataJson400(counterparty, counterpartyMetadata)
+        }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      null, implementedInApiVersion, "createCounterparty", "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties",
+      "Create Counterparty (Explicit)",
+      s"""Create Counterparty (Explicit) for an Account.
+         |
+         |${userAuthenticationMessage(true)}""",
+      postCounterpartyJson400, counterpartyWithMetadataJson400,
+      List($AuthenticatedUserIsRequired, InvalidAccountIdFormat, InvalidBankIdFormat,
+        InvalidJsonFormat, NoViewPermission, CounterpartyAlreadyExists,
+        InvalidValueLength, InvalidISOCurrencyCode, UnknownError),
+      List(apiTagCounterparty, apiTagPSD2PIS, apiTagPsd2, apiTagAccount), None,
+      http4sPartialFunction = Some(createExplicitCounterparty))
+
     // ─── allRoutes ────────────────────────────────────────────────────────────
 
     private val allOwnRoutes: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { req =>
@@ -1987,6 +2189,10 @@ object Http4s400 {
         .orElse(getScopes.run(req))
         .orElse(addScope.run(req))
         .orElse(getConsents.run(req))
+        .orElse(updateAccountLabel.run(req))
+        .orElse(getExplicitCounterpartiesForAccount.run(req))
+        .orElse(getExplicitCounterpartyById.run(req))
+        .orElse(createExplicitCounterparty.run(req))
     }
 
     val allRoutesWithMiddleware: HttpRoutes[IO] = ResourceDocMiddleware.apply(resourceDocs)(allOwnRoutes)
