@@ -745,4 +745,95 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
       attributes = v4.attributes
     )
   }
+
+  // ── BULK transaction-request body ─────────────────────────────────────────
+
+  case class BulkPaymentItemJsonV700(
+      end_to_end_id: String,
+      routing_scheme: String,
+      address: String,
+      value: com.openbankproject.commons.model.AmountOfMoneyJsonV121,
+      description: String
+  )
+
+  /**
+   * Body for `POST .../transaction-request-types/BULK/transaction-requests`.
+   *
+   * `value` and `description` at this level are the **batch-level rollups** —
+   * `value` is the sum of all items' amounts (server-validated), and `description`
+   * is a free-text label for the batch. Required because we plug into the existing
+   * v400 transaction-request pipeline via `TransactionRequestCommonBodyJSON`.
+   */
+  case class TransactionRequestBodyBulkJsonV700(
+      batch_reference: String,
+      payments: List[BulkPaymentItemJsonV700],
+      requested_execution_date: Option[java.util.Date],
+      value: com.openbankproject.commons.model.AmountOfMoneyJsonV121,
+      description: String,
+      charge_policy: Option[String]
+  ) extends com.openbankproject.commons.model.TransactionRequestCommonBodyJSON
+
+  case class BulkPaymentItemResultJsonV700(
+      end_to_end_id: String,
+      routing_scheme: String,
+      address: String,
+      value: com.openbankproject.commons.model.AmountOfMoneyJsonV121,
+      status: String,                       // SUCCEEDED | FAILED | PENDING
+      transaction_id: Option[String],
+      failure_reason: Option[String]
+  )
+
+  case class BulkTransactionRequestResponseJsonV700(
+      id: String,                            // OBP transaction_request_id
+      batch_reference: String,               // caller-supplied
+      status: String,                        // batch-level rollup: COMPLETED | PARTIALLY_COMPLETED | FAILED | INITIATED
+      from: code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140,
+      total_value: com.openbankproject.commons.model.AmountOfMoneyJsonV121,
+      total_payments: Int,
+      succeeded_count: Int,
+      failed_count: Int,
+      payments: List[BulkPaymentItemResultJsonV700],
+      transaction_ids: List[String],
+      start_date: java.util.Date,
+      end_date: java.util.Date
+  )
+
+  def createBulkTransactionRequestResponseJsonV700(
+      tr: com.openbankproject.commons.model.TransactionRequest,
+      batchReference: String,
+      results: List[code.bulkpayment.BulkPaymentTrait]
+  ): BulkTransactionRequestResponseJsonV700 = {
+    val v4From = code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140(
+      bank_id = tr.from.bank_id, account_id = tr.from.account_id
+    )
+    val succeeded = results.count(_.status == "SUCCEEDED")
+    val failed    = results.count(_.status == "FAILED")
+    val total = tr.body.value
+    BulkTransactionRequestResponseJsonV700(
+      id = tr.id.value,
+      batch_reference = batchReference,
+      status = tr.status,
+      from = v4From,
+      total_value = com.openbankproject.commons.model.AmountOfMoneyJsonV121(
+        currency = total.currency, amount = total.amount
+      ),
+      total_payments = results.size,
+      succeeded_count = succeeded,
+      failed_count = failed,
+      payments = results.map { p =>
+        BulkPaymentItemResultJsonV700(
+          end_to_end_id = p.endToEndId,
+          routing_scheme = p.routingScheme,
+          address = p.address,
+          value = com.openbankproject.commons.model.AmountOfMoneyJsonV121(currency = p.currency, amount = p.amount),
+          status = p.status,
+          transaction_id = p.transactionId,
+          failure_reason = p.failureReason
+        )
+      },
+      transaction_ids = Option(tr.transaction_ids).getOrElse("").split(",").toList.map(_.trim).filter(_.nonEmpty),
+      start_date = tr.start_date,
+      end_date = tr.end_date
+    )
+  }
 }

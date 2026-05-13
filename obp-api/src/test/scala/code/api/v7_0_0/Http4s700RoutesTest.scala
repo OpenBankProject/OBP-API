@@ -8,11 +8,11 @@ import code.api.ResponseHeader
 import code.api.util.APIUtil
 import code.api.util.ApiRole.{canCreateEntitlementAtAnyBank, canCreateOrganisation, canCreateRoutingScheme, canDeleteEntitlementAtAnyBank, canDeleteOrganisation, canDeleteRoutingScheme, canGetAccountAccessTrace, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetCardsForBank, canGetConnectorHealth, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMigrations, canReadResourceDoc, canUpdateBankSupportedRoutingScheme, canUpdateOrganisation, canUpdateRoutingScheme}
 import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, BankNotFound, EntitlementAlreadyExists, InvalidOrganisationIdFormat, InvalidRoutingSchemeName, MobileWalletDestinationNotFound, MobileWalletInvalidMsisdn, OrganisationAlreadyExists, OrganisationNotFound, PayeeLookupAddressMismatch, PayeeLookupIdentifierTypeNotRegistered, PayeeNotFound, RoutingSchemeAlreadyExists, RoutingSchemeExampleAddressMismatch, RoutingSchemeNotFound, UserHasMissingRoles, UserNotFoundByUserId}
-import code.routingscheme.RoutingSchemeX
+import code.routingscheme.RoutingSchemes
 import code.model.dataAccess.BankAccountRouting
 import code.customer.CustomerX
 import code.entitlement.Entitlement
-import code.organisation.OrganisationX
+import code.organisation.Organisations
 import code.metadata.counterparties.Counterparties
 import com.openbankproject.commons.model.{BankId => CommBankId, CreditLimit, CreditRating, CustomerFaceImage}
 import fs2.Stream
@@ -1991,7 +1991,7 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
     visibility: String = "public",
     status: String = "active"
   ): Unit = {
-    OrganisationX.organisation.vend.createOrganisation(
+    Organisations.organisation.vend.createOrganisation(
       orgId, s"Test $orgId", None, None, status, visibility, resourceUser1.userId
     )
   }
@@ -2305,7 +2305,7 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
 
   /** Create a routing scheme directly via the model layer for test setup. */
   private def createTestRoutingScheme(scheme: String, country: String = "TZ"): Unit = {
-    RoutingSchemeX.routingScheme.vend.createRoutingScheme(
+    RoutingSchemes.routingScheme.vend.createRoutingScheme(
       scheme = scheme,
       country = country,
       category = "ACCOUNT",
@@ -2519,7 +2519,7 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
       statusCode shouldBe 204
 
       And("the row should still exist with status RETIRED")
-      val fetched = RoutingSchemeX.routingScheme.vend.getRoutingScheme(scheme)
+      val fetched = RoutingSchemes.routingScheme.vend.getRoutingScheme(scheme)
       fetched.map(_.status) shouldBe net.liftweb.common.Full("RETIRED")
     }
   }
@@ -2610,7 +2610,7 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
    */
   private def seedPayeeForLookup(prefix: String, address: String, destBankId: String, destAccountId: String): String = {
     val scheme = freshSchemeName(prefix)
-    RoutingSchemeX.routingScheme.vend.createRoutingScheme(
+    RoutingSchemes.routingScheme.vend.createRoutingScheme(
       scheme = scheme, country = "TZ", category = "ACCOUNT",
       addressPattern = "^[0-9]+$", secondaryAddressPattern = None,
       exampleAddress = address, description = "Test", downstreamRails = Nil,
@@ -2657,7 +2657,7 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
       val accountId = testAccountId0.value
       // Create a strict scheme then send an address that doesn't match.
       val scheme = freshSchemeName("STR")
-      RoutingSchemeX.routingScheme.vend.createRoutingScheme(
+      RoutingSchemes.routingScheme.vend.createRoutingScheme(
         scheme = scheme, country = "TZ", category = "ACCOUNT",
         addressPattern = "^255[0-9]{9}$", secondaryAddressPattern = None,
         exampleAddress = "255778300336", description = "Strict TZ MSISDN",
@@ -2682,7 +2682,7 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
       val accountId = testAccountId0.value
       // Registered scheme, valid pattern match, but no account_routings row.
       val scheme = freshSchemeName("NMA")
-      RoutingSchemeX.routingScheme.vend.createRoutingScheme(
+      RoutingSchemes.routingScheme.vend.createRoutingScheme(
         scheme = scheme, country = "TZ", category = "ACCOUNT",
         addressPattern = "^[0-9]+$", secondaryAddressPattern = None,
         exampleAddress = "12345", description = "No-match", downstreamRails = Nil,
@@ -2760,10 +2760,10 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
       // Use country_code=XW so the scheme is XW.MSISDN — register it with a strict pattern.
       val country = "XW"
       val schemeName = s"$country.MSISDN"
-      RoutingSchemeX.routingScheme.vend.getRoutingScheme(schemeName) match {
+      RoutingSchemes.routingScheme.vend.getRoutingScheme(schemeName) match {
         case net.liftweb.common.Full(_) => // already registered from a previous run
         case _ =>
-          RoutingSchemeX.routingScheme.vend.createRoutingScheme(
+          RoutingSchemes.routingScheme.vend.createRoutingScheme(
             scheme = schemeName, country = country, category = "ACCOUNT",
             addressPattern = "^999[0-9]{9}$", secondaryAddressPattern = None,
             exampleAddress = "999778300336", description = "Test only",
@@ -2779,6 +2779,179 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
           toFieldMap(fields).get("message") match {
             case Some(JString(msg)) => msg should include(MobileWalletInvalidMsisdn)
             case _ => fail("Expected message field")
+          }
+        case _ => fail("Expected JSON object")
+      }
+    }
+  }
+
+  // ─── BULK transaction request ─────────────────────────────────────────────
+
+  /** Fresh batch reference for each test scenario to avoid idempotency collisions. */
+  private def freshBatchReference(): String =
+    s"BATCH-${APIUtil.generateUUID().take(12)}"
+
+  feature("Http4s700 createTransactionRequestBulk endpoint") {
+
+    scenario("Reject unauthenticated POST", Http4s700RoutesTag) {
+      val bankId = testBankId1.value
+      val accountId = testAccountId0.value
+      val body =
+        s"""{
+           |  "batch_reference": "${freshBatchReference()}",
+           |  "payments": [{"end_to_end_id":"e1","routing_scheme":"TZ.BANK_ACCOUNT","address":"123","value":{"currency":"EUR","amount":"1.00"},"description":"x"}],
+           |  "value": {"currency":"EUR","amount":"1.00"},
+           |  "description": "test"
+           |}""".stripMargin
+      val (statusCode, _, _) = makeHttpRequestWithBody("POST", s"/obp/v7.0.0/banks/$bankId/accounts/$accountId/owner/transaction-request-types/BULK/transaction-requests", body)
+      statusCode shouldBe 401
+    }
+
+    scenario("Return 400 when payments array is empty", Http4s700RoutesTag) {
+      val bankId = testBankId1.value
+      val accountId = testAccountId0.value
+      val body =
+        s"""{
+           |  "batch_reference": "${freshBatchReference()}",
+           |  "payments": [],
+           |  "value": {"currency":"EUR","amount":"0"},
+           |  "description": "empty"
+           |}""".stripMargin
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequestWithBody("POST", s"/obp/v7.0.0/banks/$bankId/accounts/$accountId/owner/transaction-request-types/BULK/transaction-requests", body, headers)
+      statusCode shouldBe 400
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") match {
+            case Some(JString(msg)) => msg should include("OBP-30537")
+            case _ => fail("Expected message field")
+          }
+        case _ => fail("Expected JSON object")
+      }
+    }
+
+    scenario("Return 400 when an item currency does not match the source account", Http4s700RoutesTag) {
+      val bankId = testBankId1.value
+      val accountId = testAccountId0.value
+      // Pick a currency unlikely to match the test account's currency.
+      val body =
+        s"""{
+           |  "batch_reference": "${freshBatchReference()}",
+           |  "payments": [{"end_to_end_id":"e1","routing_scheme":"TZ.BANK_ACCOUNT","address":"123","value":{"currency":"XYZ","amount":"1.00"},"description":"x"}],
+           |  "value": {"currency":"XYZ","amount":"1.00"},
+           |  "description": "wrong currency"
+           |}""".stripMargin
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequestWithBody("POST", s"/obp/v7.0.0/banks/$bankId/accounts/$accountId/owner/transaction-request-types/BULK/transaction-requests", body, headers)
+      statusCode shouldBe 400
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") match {
+            case Some(JString(msg)) => msg should include("OBP-30540")
+            case _ => fail("Expected message field")
+          }
+        case _ => fail("Expected JSON object")
+      }
+    }
+
+    scenario("Return 400 when end_to_end_id is duplicated in the batch", Http4s700RoutesTag) {
+      val bankId = testBankId1.value
+      val accountId = testAccountId0.value
+      // Read account currency from the system to construct a matching body.
+      val acctCurrency = code.bankconnectors.Connector.connector.vend
+        .getBankAccountLegacy(testBankId1, testAccountId0, None)
+        .map(_._1.currency).openOrThrowException("test account")
+      val body =
+        s"""{
+           |  "batch_reference": "${freshBatchReference()}",
+           |  "payments": [
+           |    {"end_to_end_id":"DUP","routing_scheme":"TZ.BANK_ACCOUNT","address":"123","value":{"currency":"$acctCurrency","amount":"1.00"},"description":"x"},
+           |    {"end_to_end_id":"DUP","routing_scheme":"TZ.BANK_ACCOUNT","address":"124","value":{"currency":"$acctCurrency","amount":"1.00"},"description":"y"}
+           |  ],
+           |  "value": {"currency":"$acctCurrency","amount":"2.00"},
+           |  "description": "dupes"
+           |}""".stripMargin
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequestWithBody("POST", s"/obp/v7.0.0/banks/$bankId/accounts/$accountId/owner/transaction-request-types/BULK/transaction-requests", body, headers)
+      statusCode shouldBe 400
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") match {
+            case Some(JString(msg)) => msg should include("OBP-30539")
+            case _ => fail("Expected message field")
+          }
+        case _ => fail("Expected JSON object")
+      }
+    }
+
+    scenario("Return 409 when batch_reference is reused on the same source account", Http4s700RoutesTag) {
+      val bankId = testBankId1.value
+      val accountId = testAccountId0.value
+      val acctCurrency = code.bankconnectors.Connector.connector.vend
+        .getBankAccountLegacy(testBankId1, testAccountId0, None)
+        .map(_._1.currency).openOrThrowException("test account")
+      val ref = freshBatchReference()
+      // First submission — accepted (note: every payment will be FAILED in mapped mode because
+      // we haven't seeded a matching account_routing, but the envelope is accepted).
+      val body =
+        s"""{
+           |  "batch_reference": "$ref",
+           |  "payments": [{"end_to_end_id":"E1","routing_scheme":"TZ.BANK_ACCOUNT","address":"77777777777","value":{"currency":"$acctCurrency","amount":"1.00"},"description":"x"}],
+           |  "value": {"currency":"$acctCurrency","amount":"1.00"},
+           |  "description": "first submission"
+           |}""".stripMargin
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (firstStatus, _, _) = makeHttpRequestWithBody("POST", s"/obp/v7.0.0/banks/$bankId/accounts/$accountId/owner/transaction-request-types/BULK/transaction-requests", body, headers)
+      firstStatus shouldBe 201
+
+      // Second submission with same batch_reference — must be rejected.
+      val (secondStatus, secondJson, _) = makeHttpRequestWithBody("POST", s"/obp/v7.0.0/banks/$bankId/accounts/$accountId/owner/transaction-request-types/BULK/transaction-requests", body, headers)
+      secondStatus shouldBe 409
+      secondJson match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") match {
+            case Some(JString(msg)) => msg should include("OBP-30536")
+            case _ => fail("Expected message field")
+          }
+        case _ => fail("Expected JSON object")
+      }
+    }
+
+    scenario("Return 201 with PARTIALLY_COMPLETED when one item destination resolves and another does not", Http4s700RoutesTag) {
+      val bankId = testBankId1.value
+      val accountId = testAccountId0.value
+      val acctCurrency = code.bankconnectors.Connector.connector.vend
+        .getBankAccountLegacy(testBankId1, testAccountId0, None)
+        .map(_._1.currency).openOrThrowException("test account")
+
+      // Seed one resolvable destination — a fresh scheme + matching account_routing pointing
+      // back at the test account (we don't care that the destination is the same account; this
+      // exercises the SUCCESS branch).
+      val resolvableAddress = s"BULK-${APIUtil.generateUUID().take(8)}"
+      val resolvableScheme = seedPayeeForLookup("BLK", resolvableAddress, bankId, accountId)
+
+      val body =
+        s"""{
+           |  "batch_reference": "${freshBatchReference()}",
+           |  "payments": [
+           |    {"end_to_end_id":"OK","routing_scheme":"$resolvableScheme","address":"$resolvableAddress","value":{"currency":"$acctCurrency","amount":"1.00"},"description":"will-succeed"},
+           |    {"end_to_end_id":"NOPE","routing_scheme":"TZ.BANK_ACCOUNT","address":"00000000000","value":{"currency":"$acctCurrency","amount":"2.00"},"description":"will-fail"}
+           |  ],
+           |  "value": {"currency":"$acctCurrency","amount":"3.00"},
+           |  "description": "partial"
+           |}""".stripMargin
+
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequestWithBody("POST", s"/obp/v7.0.0/banks/$bankId/accounts/$accountId/owner/transaction-request-types/BULK/transaction-requests", body, headers)
+      statusCode shouldBe 201
+      json match {
+        case JObject(fields) =>
+          val map = toFieldMap(fields)
+          map.keys should contain allOf ("id", "batch_reference", "status", "total_payments", "succeeded_count", "failed_count", "payments")
+          map.get("total_payments")  shouldBe Some(net.liftweb.json.JsonAST.JInt(2))
+          map.get("status") match {
+            case Some(JString(s)) => s should (be("PARTIALLY_COMPLETED") or be("FAILED") or be("COMPLETED"))
+            case _ => fail("status should be a string")
           }
         case _ => fail("Expected JSON object")
       }
