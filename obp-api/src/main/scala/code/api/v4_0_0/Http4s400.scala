@@ -26,6 +26,7 @@ import code.DynamicData.DynamicData
 import code.api.util.migration.Migration
 import code.dynamicEntity.DynamicEntityCommons
 import code.entitlement.Entitlement
+import code.model.BankX
 import code.model.dataAccess.AuthUser
 import code.ratelimiting.RateLimitingDI
 import com.github.dwickern.macros.NameOf.nameOf
@@ -1780,6 +1781,154 @@ object Http4s400 {
       List(apiTagManageDynamicEndpoint, apiTagApi), None,
       http4sPartialFunction = Some(deleteMyDynamicEndpoint))
 
+    // ─── getProductAttribute (v4 override of Http4s310 — Lift declared role mismatch fixed) ─
+
+    val getProductAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / bankIdStr / "products" / _ / "attributes" / productAttributeIdStr =>
+        EndpointHelpers.withUser(req) { (user, cc) =>
+          for {
+            _ <- NewStyle.function.hasEntitlement(bankIdStr, user.userId, canGetProductAttribute, Some(cc))
+            (_, _) <- NewStyle.function.getBank(BankId(bankIdStr), Some(cc))
+            (productAttribute, _) <- NewStyle.function.getProductAttributeById(productAttributeIdStr, Some(cc))
+          } yield createProductAttributeJson(productAttribute)
+        }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getProductAttribute), "GET",
+      "/banks/BANK_ID/products/PRODUCT_CODE/attributes/PRODUCT_ATTRIBUTE_ID",
+      "Get Product Attribute",
+      s"""Get one Product Attribute by its id.
+         |
+         |${userAuthenticationMessage(true)}""",
+      EmptyBody, productAttributeResponseJsonV400,
+      List(UserHasMissingRoles, UnknownError),
+      List(apiTagProduct, apiTagProductAttribute, apiTagAttribute),
+      Some(List(canGetProductAttribute)),
+      http4sPartialFunction = Some(getProductAttribute))
+
+    // ─── getScopes (GET /consumers/CONSUMER_ID/scopes) — v4 override of Http4s300 ─
+
+    val getScopes: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "consumers" / uuidOfConsumer / "scopes" =>
+        EndpointHelpers.withUser(req) { (user, cc) =>
+          for {
+            callingConsumer <- Future { cc.consumer } map { x =>
+              unboxFullOrFail(x, Some(cc), InvalidConsumerCredentials)
+            }
+            _ <- Future {
+              NewStyle.function.hasEntitlementAndScope(
+                "", user.userId, callingConsumer.id.get.toString,
+                canGetEntitlementsForAnyUserAtAnyBank, Some(cc))
+            } flatMap { unboxFullAndWrapIntoFuture(_) }
+            targetConsumer <- NewStyle.function.getConsumerByConsumerId(uuidOfConsumer, Some(cc))
+            scopes <- Future {
+              code.scope.Scope.scope.vend.getScopesByConsumerId(targetConsumer.id.get.toString)
+            } map { unboxFull(_) }
+          } yield code.api.v3_0_0.JSONFactory300.createScopeJSONs(scopes)
+        }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getScopes), "GET",
+      "/consumers/CONSUMER_ID/scopes",
+      "Get Scopes for Consumer",
+      s"""Get all the scopes for an consumer specified by CONSUMER_ID
+         |
+         |${userAuthenticationMessage(true)}""",
+      EmptyBody, scopeJsons,
+      List(AuthenticatedUserIsRequired, EntitlementNotFound, ConsumerNotFoundByConsumerId, UnknownError),
+      List(apiTagScope, apiTagConsumer), None,
+      http4sPartialFunction = Some(getScopes))
+
+    // ─── addScope (POST /consumers/CONSUMER_ID/scopes → 201) — v4 override ────
+
+    val addScope: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "consumers" / consumerId / "scopes" =>
+        EndpointHelpers.withUserAndBodyCreated[code.api.v3_0_0.CreateScopeJson, Any](req) { (user, postedData, cc) =>
+          for {
+            consumer <- NewStyle.function.getConsumerByConsumerId(consumerId, Some(cc))
+            role <- Future { net.liftweb.util.Helpers.tryo { code.api.util.ApiRole.valueOf(postedData.role_name) } } map { x =>
+              unboxFullOrFail(x, Some(cc),
+                IncorrectRoleName + postedData.role_name + ". Possible roles are " + code.api.util.ApiRole.availableRoles.sorted.mkString(", "))
+            }
+            _ <- code.util.Helper.booleanToFuture(
+              failMsg = if (role.requiresBankId) EntitlementIsBankRole else EntitlementIsSystemRole,
+              cc = Some(cc)) {
+              role.requiresBankId == postedData.bank_id.nonEmpty
+            }
+            allowedEntitlements = canCreateScopeAtOneBank :: canCreateScopeAtAnyBank :: Nil
+            _ <- NewStyle.function.hasAtLeastOneEntitlement(
+              failMsg = s"$UserHasMissingRoles ${allowedEntitlements.mkString(", ")}!"
+            )(postedData.bank_id, user.userId, allowedEntitlements, Some(cc))
+            _ <- code.util.Helper.booleanToFuture(failMsg = BankNotFound, cc = Some(cc)) {
+              postedData.bank_id.isEmpty || BankX(BankId(postedData.bank_id), Some(cc)).map(_._1).isDefined
+            }
+            _ <- code.util.Helper.booleanToFuture(failMsg = EntitlementAlreadyExists, cc = Some(cc)) {
+              !APIUtil.hasScope(postedData.bank_id, consumerId, role)
+            }
+            addedEntitlement <- Future {
+              code.scope.Scope.scope.vend.addScope(
+                postedData.bank_id, consumer.id.get.toString, postedData.role_name)
+            } map { unboxFull(_) }
+          } yield code.api.v3_0_0.JSONFactory300.createScopeJson(addedEntitlement)
+        }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(addScope), "POST",
+      "/consumers/CONSUMER_ID/scopes",
+      "Create Scope for a Consumer",
+      """Create Scope. Grant Role to Consumer.
+        |
+        |Scopes are used to grant System or Bank level roles to the Consumer (App).""",
+      createScopeJson, scopeJson,
+      List(AuthenticatedUserIsRequired, ConsumerNotFoundById, InvalidJsonFormat,
+        IncorrectRoleName, EntitlementIsBankRole, EntitlementIsSystemRole, EntitlementAlreadyExists, UnknownError),
+      List(apiTagScope, apiTagConsumer),
+      Some(List(canCreateScopeAtAnyBank, canCreateScopeAtOneBank)),
+      http4sPartialFunction = Some(addScope))
+
+    // ─── getConsents (GET /banks/BANK_ID/my/consents) — v4 override of Http4s310 ─
+
+    val getConsents: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / _ / "my" / "consents" =>
+        EndpointHelpers.withUserAndBank(req) { (user, bank, _) =>
+          val params = req.uri.query.params
+          val limit = params.get("limit").flatMap(s => scala.util.Try(s.toInt).toOption).getOrElse(50)
+          val offset = params.get("offset").flatMap(s => scala.util.Try(s.toInt).toOption).getOrElse(0)
+          for {
+            rows <- Future {
+              code.consent.DoobieConsentQueries.getConsentsByUserAndBank(
+                userId = user.userId, bankId = bank.bankId.value, status = None,
+                limit = limit, offset = offset,
+                sortField = "created_date", sortDirection = "desc")
+            }
+          } yield {
+            val consents = rows.map(r => ConsentJsonV400(
+              r.consentId, r.jwt.getOrElse(""), r.status,
+              r.apiStandard.getOrElse(""), r.apiVersion.getOrElse("")))
+            ConsentsJsonV400(consents)
+          }
+        }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getConsents), "GET",
+      "/banks/BANK_ID/my/consents",
+      "Get Consents",
+      s"""This endpoint gets the Consents that the current User created.
+         |
+         |${userAuthenticationMessage(true)}
+         |
+         |1 limit (for pagination: defaults to 50)  eg:limit=200
+         |
+         |2 offset (for pagination: zero index, defaults to 0) eg: offset=10""",
+      EmptyBody, consentsJsonV400,
+      List($AuthenticatedUserIsRequired, $BankNotFound, UnknownError),
+      List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2), None,
+      http4sPartialFunction = Some(getConsents))
+
     // ─── allRoutes ────────────────────────────────────────────────────────────
 
     private val allOwnRoutes: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { req =>
@@ -1834,6 +1983,10 @@ object Http4s400 {
         .orElse(deleteBankLevelDynamicEndpoint.run(req))
         .orElse(getMyDynamicEndpoints.run(req))
         .orElse(deleteMyDynamicEndpoint.run(req))
+        .orElse(getProductAttribute.run(req))
+        .orElse(getScopes.run(req))
+        .orElse(addScope.run(req))
+        .orElse(getConsents.run(req))
     }
 
     val allRoutesWithMiddleware: HttpRoutes[IO] = ResourceDocMiddleware.apply(resourceDocs)(allOwnRoutes)

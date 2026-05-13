@@ -347,10 +347,8 @@ object ResourceDocMiddleware extends MdcLoggable {
         ctx.user match {
           case Full(user) =>
             val bankId = pathParams.getOrElse("BANK_ID", "")
-            val ok = roles.exists { role =>
-              val checkBankId = if (role.requiresBankId) bankId else ""
-              APIUtil.hasEntitlement(checkBankId, user.userId, role)
-            }
+            val consumerId = APIUtil.getConsumerPrimaryKey(Some(ctx.callContext))
+            val ok = APIUtil.handleAccessControlRegardingEntitlementsAndScopes(bankId, user.userId, consumerId, roles)
             if (ok) success(ctx)
             else EitherT[IO, Response[IO], ValidationContext](
               ErrorResponseConverter.createErrorResponse(403, UserHasMissingRoles + roles.mkString(" or "), ctx.callContext)
