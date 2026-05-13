@@ -2200,6 +2200,85 @@ object Http4s400 {
       List(apiTagAccountFirehose, apiTagAccount, apiTagFirehoseData, apiTagAccount), None,
       http4sPartialFunction = Some(getFirehoseAccountsAtOneBank))
 
+    // ─── createTransactionRequest (POST /banks/.../trans-request-types/TYPE/trans-requests → 201) ─
+    //
+    // v4 supports a wider set of trans-request types than v2.1.0 — and even for the
+    // four that overlap (SANDBOX_TAN, COUNTERPARTY, SEPA, FREE_FORM) the v4 response
+    // shape differs: it has a `challenges: List[ChallengeJsonV400]` field that the
+    // v2.1.0 shape doesn't. The bridge cascade would otherwise route SEPA / COUNTERPARTY
+    // / FREE_FORM / SANDBOX_TAN URLs into the v2.1.0 handler and return the v2.1.0 JSON
+    // (no `challenges`), failing every TransactionRequestsTest assertion of the form
+    // `body.challenges.size != 0`.
+    //
+    // All v4 types delegate to the same connector helper —
+    // `LocalMappedConnectorInternal.createTransactionRequest` — which depends on
+    // `SS.user` (Lift's thread-globals). We wrap the call in `SS.init` so the helper's
+    // first synchronous read of `SS.user` captures the cc.user, then the Future chain
+    // runs normally on any thread.
+
+    val createTransactionRequest: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      // GRANT_VIEW_ID in the ResourceDoc URL → middleware skips view validation.
+      // Lift's v4 endpoint does no view-access check upfront; it lets
+      // `checkAuthorisationToCreateTransactionRequest` inside the connector decide
+      // (returns 400 InsufficientAuthorisationToCreateTransactionRequest if the user
+      // has neither the role nor view permission). `withViewCreated` would 403 before
+      // the connector ran, contradicting the test expectation.
+      //
+      // The route matches *any* trans-req-type segment (no guard) so:
+      //   - v4-supported types route to the connector below.
+      //   - Unknown types (e.g. "invalidTransactionRequestType") still hit this route
+      //     and get a 400 from the connector's `transactionRequests_supported_types`
+      //     check, matching the v210 catch-all behavior the test depends on. Without
+      //     this catch, unknown types fall through to Lift → 404.
+      //
+      // Use `executeFutureCreated` so the response is 201; extract user/bank/account
+      // from cc manually (middleware populates them via the BANK_ID and ACCOUNT_ID
+      // template segments).
+      case req @ POST -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / viewIdStr / "transaction-request-types" / transactionRequestTypeStr / "transaction-requests" =>
+        implicit val cc: CallContext = req.callContext
+        EndpointHelpers.executeFutureCreated(req) {
+          val bodyStr = cc.httpBody.getOrElse("")
+          for {
+            user    <- Future { cc.user.openOrThrowException(AuthenticatedUserIsRequired) }
+            bank    <- Future { cc.bank.getOrElse(throw new RuntimeException(BankNotFound)) }
+            account <- Future { cc.bankAccount.getOrElse(throw new RuntimeException(BankAccountNotFound)) }
+            json <- NewStyle.function.tryons(
+              s"$InvalidJsonFormat Empty or invalid request body.", 400, Some(cc)) {
+              net.liftweb.json.parse(bodyStr)
+            }
+            transactionRequestType = TransactionRequestType(transactionRequestTypeStr)
+            view <- Future {
+              Views.views.vend.systemView(ViewId(viewIdStr)).openOrThrowException(
+                s"$ViewNotFound Current view_id($viewIdStr)")
+            }
+            // SS.init populates Lift thread-globals (used by `SS.user` inside the
+            // connector). The connector's first line `SS.user` resolves synchronously
+            // inside this block, capturing the user; subsequent flatMap stages run on
+            // other threads but the value is already bound.
+            innerResult <- APIUtil.SS.init(Full(user), bank, account, view, Some(cc)) {
+              code.bankconnectors.LocalMappedConnectorInternal.createTransactionRequest(
+                BankId(bankIdStr), AccountId(accountIdStr), ViewId(viewIdStr),
+                transactionRequestType, json)
+            }
+          } yield innerResult._1
+        }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      null, implementedInApiVersion, "createTransactionRequestAccount", "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/GRANT_VIEW_ID/transaction-request-types/TRANSACTION_REQUEST_TYPE/transaction-requests",
+      "Create Transaction Request",
+      s"""Create a Transaction Request of the type specified in the URL.
+         |
+         |${userAuthenticationMessage(true)}""",
+      EmptyBody, transactionRequestWithChargeJSON400,
+      List($AuthenticatedUserIsRequired, InvalidJsonFormat, InvalidNumber, NotPositiveAmount,
+        InvalidTransactionRequestType, InvalidISOCurrencyCode,
+        InsufficientAuthorisationToCreateTransactionRequest,
+        InvalidAccountIdFormat, InvalidBankIdFormat, TransactionDisabled, UnknownError),
+      List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2), None,
+      http4sPartialFunction = Some(createTransactionRequest))
+
     // ─── allRoutes ────────────────────────────────────────────────────────────
 
     private val allOwnRoutes: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { req =>
@@ -2263,6 +2342,7 @@ object Http4s400 {
         .orElse(getExplicitCounterpartyById.run(req))
         .orElse(createExplicitCounterparty.run(req))
         .orElse(getFirehoseAccountsAtOneBank.run(req))
+        .orElse(createTransactionRequest.run(req))
     }
 
     val allRoutesWithMiddleware: HttpRoutes[IO] = ResourceDocMiddleware.apply(resourceDocs)(allOwnRoutes)
