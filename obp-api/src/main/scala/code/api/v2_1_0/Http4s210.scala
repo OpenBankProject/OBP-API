@@ -377,7 +377,14 @@ object Http4s210 {
     // ─── answerTransactionRequestChallenge ────────────────────────────────────
 
     val answerTransactionRequestChallenge: HttpRoutes[IO] = HttpRoutes.of[IO] {
-      case req @ POST -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "transaction-request-types" / transactionRequestTypeStr / "transaction-requests" / transReqIdStr / "challenge" =>
+      // Same guard as createTransactionRequest: v4 trans-req types (ACCOUNT, ACCOUNT_OTP,
+      // REFUND, SIMPLE, AGENT_CASH_WITHDRAWAL, CARD, …) need v4's answer-challenge
+      // logic (maker-checker, ChallengeJsonV400 shape, attribute attachment). Routing
+      // them through this handler returns the v2.1.0 shape and skips v4 validation,
+      // so the test sees "400 did not equal 202". Let unknown types fall through to
+      // the Lift fallback where APIMethods400.answerTransactionRequestChallenge runs.
+      case req @ POST -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "transaction-request-types" / transactionRequestTypeStr / "transaction-requests" / transReqIdStr / "challenge"
+          if v210SupportedTransactionRequestTypes.contains(transactionRequestTypeStr) =>
         implicit val cc: CallContext = req.callContext
         val io = for {
           user     <- IO.fromOption(cc.user.toOption)(new RuntimeException(AuthenticatedUserIsRequired))
@@ -395,18 +402,30 @@ object Http4s210 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(answerTransactionRequestChallenge), "POST",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/TRANSACTION_REQUEST_TYPE/transaction-requests/TRANSACTION_REQUEST_ID/challenge",
-      "Answer Transaction Request Challenge",
-      """In Sandbox mode, any string that can be converted to a positive integer will be accepted as an answer.""",
-      challengeAnswerJSON, transactionRequestWithChargeJson,
-      List(AuthenticatedUserIsRequired, InvalidBankIdFormat, InvalidAccountIdFormat, InvalidJsonFormat,
-        BankNotFound, UserNoPermissionAccessView, TransactionRequestStatusNotInitiated,
-        TransactionRequestTypeHasChanged, InvalidTransactionRequestChallengeId,
-        AllowedAttemptsUsedUp, TransactionDisabled, UnknownError),
-      List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2), None,
-      http4sPartialFunction = Some(answerTransactionRequestChallenge))
+    // Register one ResourceDoc per supported type rather than a single
+    // TRANSACTION_REQUEST_TYPE wildcard. The wildcard would also match v4-only
+    // types (ACCOUNT, ACCOUNT_OTP, REFUND, SIMPLE, AGENT_CASH_WITHDRAWAL, CARD),
+    // which the route guard then rejects — leaving the middleware to return 404
+    // instead of letting the request fall through to the Lift fallback that
+    // actually handles those types.
+    private val answerChallengeCommonErrors = List(
+      AuthenticatedUserIsRequired, InvalidBankIdFormat, InvalidAccountIdFormat, InvalidJsonFormat,
+      BankNotFound, UserNoPermissionAccessView, TransactionRequestStatusNotInitiated,
+      TransactionRequestTypeHasChanged, InvalidTransactionRequestChallengeId,
+      AllowedAttemptsUsedUp, TransactionDisabled, UnknownError)
+
+    private val answerChallengeTags = List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2)
+
+    v210SupportedTransactionRequestTypes.foreach { trType =>
+      resourceDocs += ResourceDoc(
+        null, implementedInApiVersion, nameOf(answerTransactionRequestChallenge) + trType.toLowerCase.capitalize, "POST",
+        s"/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/$trType/transaction-requests/TRANSACTION_REQUEST_ID/challenge",
+        s"Answer Transaction Request Challenge ($trType)",
+        """In Sandbox mode, any string that can be converted to a positive integer will be accepted as an answer.""",
+        challengeAnswerJSON, transactionRequestWithChargeJson,
+        answerChallengeCommonErrors, answerChallengeTags, None,
+        http4sPartialFunction = Some(answerTransactionRequestChallenge))
+    }
 
     private def answerChallengeImpl(
       jsonBody: String,
