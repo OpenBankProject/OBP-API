@@ -13,6 +13,7 @@ import code.api.util.Glossary
 import code.api.Constant
 import code.api.dynamic.endpoint.helper.DynamicEndpointHelper
 import code.api.dynamic.entity.helper.DynamicEntityInfo
+import code.api.util.{ApiRole => ApiRoleObj}
 import code.api.util.newstyle.ViewNewStyle
 import code.users.Users
 import code.views.Views
@@ -28,6 +29,7 @@ import code.dynamicEntity.DynamicEntityCommons
 import code.bankconnectors.Connector
 import code.entitlement.Entitlement
 import code.model.BankX
+import code.model._   // implicit BankAccountExtended → moderatedBankAccount
 import code.model.dataAccess.AuthUser
 import code.ratelimiting.RateLimitingDI
 import com.github.dwickern.macros.NameOf.nameOf
@@ -2131,6 +2133,73 @@ object Http4s400 {
       List(apiTagCounterparty, apiTagPSD2PIS, apiTagPsd2, apiTagAccount), None,
       http4sPartialFunction = Some(createExplicitCounterparty))
 
+    // ─── getFirehoseAccountsAtOneBank ─────────────────────────────────────────
+    // v4 override of Http4s300: same business logic, but the response is built by
+    // JSONFactory400.createFirehoseCoreBankAccountJSON which returns
+    // ModeratedFirehoseAccountsJsonV400 (with `accounts`/`product_code` etc.) instead
+    // of v3.0.0's ModeratedCoreAccountsJsonV300 shape that FirehoseTest can't parse.
+
+    val getFirehoseAccountsAtOneBank: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / bankIdStr / "firehose" / "accounts" / "views" / viewIdStr =>
+        EndpointHelpers.withUser(req) { (user, cc) =>
+          val roles = ApiRoleObj.canUseAccountFirehose :: canUseAccountFirehoseAtAnyBank :: Nil
+          val roleMsg = UserHasMissingRoles + roles.mkString(" or ")
+          for {
+            _ <- code.util.Helper.booleanToFuture(AccountFirehoseNotAllowedOnThisInstance, cc = Some(cc)) {
+              allowAccountFirehose
+            }
+            _ <- code.util.Helper.booleanToFuture(roleMsg, failCode = 403, cc = Some(cc)) {
+              APIUtil.hasAtLeastOneEntitlement(bankIdStr, user.userId, roles)
+            }
+            (bank, _) <- NewStyle.function.getBank(BankId(bankIdStr), Some(cc))
+            view <- ViewNewStyle.checkViewAccessAndReturnView(
+              ViewId(viewIdStr), BankIdAccountId(bank.bankId, AccountId("")), Some(user), Some(cc))
+            availableBankIdAccountIdList <- Future {
+              Views.views.vend.getAllFirehoseAccounts(bank.bankId).map(a => BankIdAccountId(a.bankId, a.accountId))
+            }
+            params = req.uri.query.multiParams.filterNot { case (k, _) => k == PARAM_TIMESTAMP || k == PARAM_LOCALE }
+            filteredList <- if (params.isEmpty) {
+              Future.successful(availableBankIdAccountIdList)
+            } else {
+              code.accountattribute.AccountAttributeX.accountAttributeProvider.vend
+                .getAccountIdsByParams(bank.bankId, params.map { case (k, vs) => k -> vs.toList })
+                .map { boxedAccountIds =>
+                  val accountIds = boxedAccountIds.getOrElse(Nil)
+                  availableBankIdAccountIdList.filter(ba => accountIds.contains(ba.accountId.value))
+                }
+            }
+            moderatedAccounts: List[ModeratedBankAccount] = for {
+              bankIdAccountId <- filteredList
+              (bankAccount, callContext) <- Connector.connector.vend
+                .getBankAccountLegacy(bankIdAccountId.bankId, bankIdAccountId.accountId, Some(cc)) ?~!
+                s"$BankAccountNotFound Current Bank_Id(${bankIdAccountId.bankId}), Account_Id(${bankIdAccountId.accountId})"
+              moderatedAccount <- bankAccount.moderatedBankAccount(view, bankIdAccountId, Full(user), Some(cc))
+            } yield moderatedAccount
+            (accountAttributes: Option[List[AccountAttribute]], _) <- if (moderatedAccounts.nonEmpty && params.nonEmpty) {
+              val futures = filteredList.map { bankIdAccount =>
+                NewStyle.function.getAccountAttributesByAccount(bankIdAccount.bankId, bankIdAccount.accountId, Some(cc))
+              }
+              Future.reduceLeft(futures)((r, t) => r.copy(_1 = r._1 ::: t._1))
+                .map(it => (Some(it._1), it._2))
+            } else {
+              Future.successful((None, Some(cc)))
+            }
+          } yield JSONFactory400.createFirehoseCoreBankAccountJSON(moderatedAccounts, accountAttributes)
+        }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getFirehoseAccountsAtOneBank), "GET",
+      "/banks/FIREHOSE_BANK_ID/firehose/accounts/views/FIREHOSE_VIEW_ID",
+      "Get Firehose Accounts at Bank",
+      s"""Get all Accounts at a Bank that have a Firehose View.
+         |
+         |${userAuthenticationMessage(true)}""",
+      EmptyBody, moderatedFirehoseAccountsJsonV400,
+      List(AuthenticatedUserIsRequired, AccountFirehoseNotAllowedOnThisInstance, UnknownError),
+      List(apiTagAccountFirehose, apiTagAccount, apiTagFirehoseData, apiTagAccount), None,
+      http4sPartialFunction = Some(getFirehoseAccountsAtOneBank))
+
     // ─── allRoutes ────────────────────────────────────────────────────────────
 
     private val allOwnRoutes: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { req =>
@@ -2193,6 +2262,7 @@ object Http4s400 {
         .orElse(getExplicitCounterpartiesForAccount.run(req))
         .orElse(getExplicitCounterpartyById.run(req))
         .orElse(createExplicitCounterparty.run(req))
+        .orElse(getFirehoseAccountsAtOneBank.run(req))
     }
 
     val allRoutesWithMiddleware: HttpRoutes[IO] = ResourceDocMiddleware.apply(resourceDocs)(allOwnRoutes)
