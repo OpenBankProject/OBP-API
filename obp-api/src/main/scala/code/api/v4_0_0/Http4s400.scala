@@ -2248,8 +2248,14 @@ object Http4s400 {
             }
             transactionRequestType = TransactionRequestType(transactionRequestTypeStr)
             view <- Future {
-              Views.views.vend.systemView(ViewId(viewIdStr)).openOrThrowException(
-                s"$ViewNotFound Current view_id($viewIdStr)")
+              // System views (owner, accountant, etc.) and custom views (e.g. VRP
+              // `_vrp-…` views) are stored separately. Try system first; fall back
+              // to the account-scoped custom view. SS.init only needs *some* View
+              // instance — the connector reads viewId from the parameter, not the
+              // View object — so a soft fallback is fine here.
+              Views.views.vend.systemView(ViewId(viewIdStr))
+                .or(Views.views.vend.customView(ViewId(viewIdStr), BankIdAccountId(account.bankId, account.accountId)))
+                .openOrThrowException(s"$ViewNotFound Current view_id($viewIdStr)")
             }
             // SS.init populates Lift thread-globals (used by `SS.user` inside the
             // connector). The connector's first line `SS.user` resolves synchronously
