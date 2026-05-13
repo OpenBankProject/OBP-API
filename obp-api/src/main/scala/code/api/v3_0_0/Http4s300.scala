@@ -648,7 +648,7 @@ object Http4s300 {
 
     resourceDocs += ResourceDoc(
       null, implementedInApiVersion, nameOf(getUser), "GET",
-      "/users/email/EMAIL/terminator",
+      "/users/email/USER_EMAIL/terminator",
       "Get Users by Email Address",
       s"""Get users by email address.
          |

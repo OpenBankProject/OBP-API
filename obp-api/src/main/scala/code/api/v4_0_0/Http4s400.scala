@@ -705,7 +705,7 @@ object Http4s400 {
 
     staticResourceDocs += ResourceDoc(
       null, implementedInApiVersion, "getUsersByEmail", "GET",
-      "/users/email/EMAIL/terminator",
+      "/users/email/USER_EMAIL/terminator",
       "Get Users by Email Address",
       s"""Get users by email address
          |

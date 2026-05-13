@@ -236,7 +236,12 @@ object Http4s210 {
          |${userAuthenticationMessage(true)}""",
       transactionRequestBodyFreeFormJSON, transactionRequestWithChargeJSON210,
       commonTxReqErrors, List(apiTagTransactionRequest, apiTagPSD2PIS),
-      Some(List(canCreateAnyTransactionRequest)),
+      // Role kept out of the ResourceDoc: in the Lift implementation
+      // `canCreateAnyTransactionRequest` only bypasses view-permission checks
+      // inside `checkAuthorisationToCreateTransactionRequest` — it is not a
+      // required entitlement. Owner-view users must still be able to create
+      // FREE_FORM requests without holding the role.
+      None,
       http4sPartialFunction = Some(createTransactionRequest))
 
     // (Catch-all ResourceDoc for TRANSACTION_REQUEST_TYPE removed: it caused the v2.1.0
