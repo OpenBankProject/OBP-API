@@ -2279,6 +2279,42 @@ object Http4s400 {
       List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2), None,
       http4sPartialFunction = Some(createTransactionRequest))
 
+    // ─── answerTransactionRequestChallenge (POST .../trans-requests/{id}/challenge → 202) ─
+    //
+    // v4 needs its own handling for this endpoint because the v2.1.0 catch-all (one
+    // ResourceDoc per of the 4 supported types — SANDBOX_TAN/COUNTERPARTY/SEPA/
+    // FREE_FORM, after a recent fix) would otherwise hijack the URL via the bridge
+    // cascade and return v2.1.0's 400 because it doesn't recognize
+    // `ChallengeAnswerJson400`. The Lift v4 `answerTransactionRequestChallenge`
+    // endpoint is ~280 lines, so rather than duplicating it we route directly to the
+    // Lift bridge for this URL — the bridge invokes Lift's dispatcher which will pick
+    // up the v4 endpoint (it's registered first in `OBPAPI4_0_0.routes` via
+    // `endpointsOf4_0_0`).
+    //
+    // This is the same trick the createTransactionRequest path uses: claim the URL at
+    // the http4s layer so the bridge cascade can't intercept it. The difference is we
+    // delegate the body to Lift unchanged.
+
+    val answerTransactionRequestChallenge: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "transaction-request-types" / _ / "transaction-requests" / _ / "challenge" =>
+        code.api.util.http4s.Http4sLiftWebBridge.dispatch(req)
+    }
+
+    staticResourceDocs += ResourceDoc(
+      null, implementedInApiVersion, "answerTransactionRequestChallenge", "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/GRANT_VIEW_ID/transaction-request-types/TRANSACTION_REQUEST_TYPE/transaction-requests/TRANSACTION_REQUEST_ID/challenge",
+      "Answer Transaction Request Challenge",
+      s"""In Sandbox mode, any string that can be converted to a positive integer will be accepted as an answer.
+         |
+         |${userAuthenticationMessage(true)}""",
+      challengeAnswerJson400, transactionRequestWithChargeJSON400,
+      List($AuthenticatedUserIsRequired, InvalidJsonFormat, InvalidBankIdFormat,
+        InvalidAccountIdFormat, InvalidTransactionRequestChallengeId,
+        AllowedAttemptsUsedUp, TransactionRequestStatusNotInitiatedOrPendingOrForwarded,
+        TransactionRequestTypeHasChanged, UnknownError),
+      List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2), None,
+      http4sPartialFunction = Some(answerTransactionRequestChallenge))
+
     // ─── allRoutes ────────────────────────────────────────────────────────────
 
     private val allOwnRoutes: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { req =>
@@ -2343,6 +2379,7 @@ object Http4s400 {
         .orElse(createExplicitCounterparty.run(req))
         .orElse(getFirehoseAccountsAtOneBank.run(req))
         .orElse(createTransactionRequest.run(req))
+        .orElse(answerTransactionRequestChallenge.run(req))
     }
 
     val allRoutesWithMiddleware: HttpRoutes[IO] = ResourceDocMiddleware.apply(resourceDocs)(allOwnRoutes)
