@@ -162,8 +162,16 @@ object Http4s210 {
     // checkAuthorisationToCreateTransactionRequest handles that internally and
     // supports canCreateAnyTransactionRequest role bypass.
 
+    // The 4 transaction request types this version knows how to handle. v4.0.0 adds more
+    // (ACCOUNT, ACCOUNT_OTP, REFUND, SIMPLE, AGENT_CASH_WITHDRAWAL, CARD); the route guard
+    // below keeps unsupported types out of v2.1.0's handler so they fall through the
+    // bridge cascade to the v4 Lift endpoint that knows the type.
+    private val v210SupportedTransactionRequestTypes: Set[String] =
+      Set("SANDBOX_TAN", "COUNTERPARTY", "SEPA", "FREE_FORM")
+
     val createTransactionRequest: HttpRoutes[IO] = HttpRoutes.of[IO] {
-      case req @ POST -> `prefixPath` / "banks" / _ / "accounts" / _ / viewIdStr / "transaction-request-types" / transactionRequestTypeStr / "transaction-requests" =>
+      case req @ POST -> `prefixPath` / "banks" / _ / "accounts" / _ / viewIdStr / "transaction-request-types" / transactionRequestTypeStr / "transaction-requests"
+          if v210SupportedTransactionRequestTypes.contains(transactionRequestTypeStr) =>
         implicit val cc: CallContext = req.callContext
         // Use cc.httpBody (cached by ResourceDocMiddleware via cachedBodyKey) instead of re-reading
         // req.bodyText, which is empty after the bridge cascade has already consumed the stream.
@@ -231,18 +239,10 @@ object Http4s210 {
       Some(List(canCreateAnyTransactionRequest)),
       http4sPartialFunction = Some(createTransactionRequest))
 
-    // Catch-all: handles unknown/invalid transaction request types → 400 from createTransactionRequestImpl
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createTransactionRequest), "POST",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/GRANT_VIEW_ID/transaction-request-types/TRANSACTION_REQUEST_TYPE/transaction-requests",
-      "Create Transaction Request",
-      s"""Create a Transaction Request of the type specified in the URL.
-         |
-         |${userAuthenticationMessage(true)}""",
-      transactionRequestBodyJsonV200, transactionRequestWithChargeJSON210,
-      commonTxReqErrors, List(apiTagTransactionRequest),
-      Some(List(canCreateAnyTransactionRequest)),
-      http4sPartialFunction = Some(createTransactionRequest))
+    // (Catch-all ResourceDoc for TRANSACTION_REQUEST_TYPE removed: it caused the v2.1.0
+    // middleware to auth-check and route every type, including v4-only ones, then return
+    // 400. The four specific docs above cover what v2.1.0 actually supports; v4-only
+    // types miss the route guard and fall through to the Lift bridge.)
 
     private def createTransactionRequestImpl(
       jsonBody: String,
@@ -363,8 +363,11 @@ object Http4s210 {
                 body, serialized, sharedChargePolicy, None, None, Some(cc))
             } yield result
           case other =>
-            // Encode as APIFailureNewStyle JSON so ErrorResponseConverter maps it to 400, not 500.
-            // A plain RuntimeException would fall through to unknownErrorToResponse.
+            // Should be unreachable: the route guard restricts the match to the 4
+            // supported types above, so this branch only fires if a new type is
+            // added to the guard without the corresponding case. Encoded as
+            // APIFailureNewStyle JSON so ErrorResponseConverter maps it to 400,
+            // not 500.
             val af = code.api.APIFailureNewStyle(s"$InvalidTransactionRequestType: '$transactionRequestTypeStr'", 400, Some(cc.toLight))
             Future.failed(new Exception(net.liftweb.json.JsonAST.compactRender(net.liftweb.json.Extraction.decompose(af))))
         }

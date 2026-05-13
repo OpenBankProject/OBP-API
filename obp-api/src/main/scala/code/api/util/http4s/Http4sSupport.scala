@@ -677,8 +677,37 @@ object ResourceDocMatcher extends code.util.Helper.MdcLoggable {
   /**
    * Check if a template segment is a variable (uppercase)
    */
+  /**
+   * All-caps URL-segment literals that historically broke the matcher.
+   *
+   * `isTemplateVariable` originally returned true for every all-caps + underscore +
+   * digit segment. That made literals like `SANDBOX_TAN`, `ACCOUNT`, `SEPA` etc.
+   * indistinguishable from real placeholders like `BANK_ID`, so a ResourceDoc URL
+   * `/banks/BANK_ID/.../transaction-request-types/SANDBOX_TAN/transaction-requests`
+   * matched any trans-req-type URL — including v4-only `ACCOUNT` — and the v4
+   * request never reached the Lift fallback that knows how to handle it.
+   *
+   * We special-case the known literal segments. Anything else stays a wildcard so
+   * the existing non-standard placeholder convention (NEW_ACCOUNT_ID, GRANT_VIEW_ID,
+   * FIREHOSE_BANK_ID, EXPLICIT_COUNTERPARTY_ID, SYS_VIEW_ID, …) keeps working
+   * without an explicit allow-list.
+   *
+   * Add a value here when a new path uses an all-caps literal (e.g. a new
+   * transaction-request type or SCA method).
+   */
+  private val literalAllCapsSegments: Set[String] = Set(
+    // transaction-request types
+    "SANDBOX_TAN", "COUNTERPARTY", "SEPA", "FREE_FORM",
+    "ACCOUNT", "ACCOUNT_OTP", "REFUND", "SIMPLE",
+    "AGENT_CASH_WITHDRAWAL", "CARD",
+    // SCA methods (POST /banks/BANK_ID/my/consents/{EMAIL|SMS|IMPLICIT})
+    "EMAIL", "SMS", "IMPLICIT", "NOT_EMAIL_NEITHER_SMS"
+  )
+
   private def isTemplateVariable(segment: String): Boolean = {
-    segment.nonEmpty && segment.forall(c => c.isUpper || c == '_' || c.isDigit)
+    segment.nonEmpty &&
+      segment.forall(c => c.isUpper || c == '_' || c.isDigit) &&
+      !literalAllCapsSegments.contains(segment)
   }
   
   /**
