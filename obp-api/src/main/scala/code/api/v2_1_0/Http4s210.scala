@@ -165,8 +165,10 @@ object Http4s210 {
     val createTransactionRequest: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ POST -> `prefixPath` / "banks" / _ / "accounts" / _ / viewIdStr / "transaction-request-types" / transactionRequestTypeStr / "transaction-requests" =>
         implicit val cc: CallContext = req.callContext
+        // Use cc.httpBody (cached by ResourceDocMiddleware via cachedBodyKey) instead of re-reading
+        // req.bodyText, which is empty after the bridge cascade has already consumed the stream.
         (for {
-          jsonBody <- req.bodyText.compile.string
+          jsonBody <- IO.pure(cc.httpBody.getOrElse(""))
           user     <- IO.fromOption(cc.user.toOption)(new RuntimeException(AuthenticatedUserIsRequired))
           account  <- IO.fromOption(cc.bankAccount)(new RuntimeException(AccountNotFound))
           result   <- code.api.util.http4s.RequestScopeConnection.fromFuture(
@@ -361,7 +363,10 @@ object Http4s210 {
                 body, serialized, sharedChargePolicy, None, None, Some(cc))
             } yield result
           case other =>
-            Future.failed(new RuntimeException(s"$InvalidTransactionRequestType: '$transactionRequestTypeStr'"))
+            // Encode as APIFailureNewStyle JSON so ErrorResponseConverter maps it to 400, not 500.
+            // A plain RuntimeException would fall through to unknownErrorToResponse.
+            val af = code.api.APIFailureNewStyle(s"$InvalidTransactionRequestType: '$transactionRequestTypeStr'", 400, Some(cc.toLight))
+            Future.failed(new Exception(net.liftweb.json.JsonAST.compactRender(net.liftweb.json.Extraction.decompose(af))))
         }
       } yield JSONFactory210.createTransactionRequestWithChargeJSON(createdTransactionRequest)
     }
@@ -374,7 +379,8 @@ object Http4s210 {
         val io = for {
           user     <- IO.fromOption(cc.user.toOption)(new RuntimeException(AuthenticatedUserIsRequired))
           account  <- IO.fromOption(cc.bankAccount)(new RuntimeException(AccountNotFound))
-          jsonBody <- req.bodyText.compile.string
+          // Use cached body from cc — req.bodyText is empty after upstream bridge cascade.
+          jsonBody <- IO.pure(cc.httpBody.getOrElse(""))
           result   <- code.api.util.http4s.RequestScopeConnection.fromFuture(
             answerChallengeImpl(jsonBody, user, account, transactionRequestTypeStr, transReqIdStr, cc))
         } yield result

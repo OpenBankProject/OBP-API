@@ -135,6 +135,9 @@ object ResourceDocMiddleware extends MdcLoggable {
       }
       // Build initial CallContext from request
       OptionT.liftF(Http4sCallContextBuilder.fromRequest(req, apiVersionFromPath)).flatMap { cc =>
+        // Cache the body so bridge-cascade hops (v400→v310→v300→…) don't re-read the now-empty stream.
+        // First read won the body in fromRequest; we replay it from cc.httpBody onwards.
+        val reqWithCachedBody = req.withAttribute(Http4sRequestAttributes.cachedBodyKey, cc.httpBody)
         ResourceDocMatcher.findResourceDoc(req.method.name, req.uri.path, resourceDocIndex) match {
           case Some(resourceDoc) if !endpointIsEnabled(resourceDoc) =>
             // Disabled by api_disabled_endpoints / api_enabled_endpoints / api_disabled_versions /
@@ -148,7 +151,7 @@ object ResourceDocMiddleware extends MdcLoggable {
             // auto-commit vendor connections (same as validation).  All other methods
             // (POST/PUT/DELETE/PATCH) wrap routes.run in withBusinessDBTransaction.
             val work: IO[Option[Response[IO]]] =
-              validateOnly(req, resourceDoc, pathParams, ccWithDoc).flatMap {
+              validateOnly(reqWithCachedBody, resourceDoc, pathParams, ccWithDoc).flatMap {
                 case Left(errorResponse) =>
                   IO.pure(Option(errorResponse))
                 case Right(enrichedReq) =>
@@ -166,7 +169,8 @@ object ResourceDocMiddleware extends MdcLoggable {
           case None =>
             // No matching ResourceDoc: fallback to original route (NO transaction scope opened).
             // Attach the basic CC so req.callContext works in the inner route even without a doc match.
-            routes.run(req.withAttribute(Http4sRequestAttributes.callContextKey, cc))
+            // Carry the cached body forward so the bridge cascade can still read it.
+            routes.run(reqWithCachedBody.withAttribute(Http4sRequestAttributes.callContextKey, cc))
         }
       }
     }

@@ -121,7 +121,7 @@ object Http4s300 {
           bank   <- IO.fromOption(cc.bank)(new RuntimeException(BankNotFound))
           rawBox <- IO.fromFuture(IO(Connector.connector.vend.checkBankAccountExists(bank.bankId, AccountId(accountIdStr), Some(cc)).map(_._1)))
           account <- IO(unboxFullOrFail(rawBox, Some(cc), BankAccountNotFound, 404))
-          body   <- req.bodyText.compile.string
+          body   <- IO.pure(cc.httpBody.getOrElse(""))
           result <- code.api.util.http4s.RequestScopeConnection.fromFuture(
             createViewImpl300(user, account, body, cc))
         } yield result
@@ -171,7 +171,7 @@ object Http4s300 {
         val io = for {
           user    <- IO.fromOption(cc.user.toOption)(new RuntimeException(AuthenticatedUserIsRequired))
           account <- IO.fromOption(cc.bankAccount)(new RuntimeException(AccountNotFound))
-          body    <- req.bodyText.compile.string
+          body    <- IO.pure(cc.httpBody.getOrElse(""))
           result  <- code.api.util.http4s.RequestScopeConnection.fromFuture(
             updateViewImpl300(user, account, ViewId(viewIdStr), body, cc))
         } yield result
@@ -553,7 +553,7 @@ object Http4s300 {
         implicit val cc: CallContext = req.callContext
         val io = for {
           user     <- IO.fromOption(cc.user.toOption)(new RuntimeException(AuthenticatedUserIsRequired))
-          bodyText <- req.bodyText.compile.string
+          bodyText <- IO.pure(cc.httpBody.getOrElse(""))
           result   <- code.api.util.http4s.RequestScopeConnection.fromFuture {
             for {
               _ <- code.util.Helper.booleanToFuture(ElasticSearchDisabled, cc = Some(cc)) { esw.isEnabled() }
@@ -597,7 +597,7 @@ object Http4s300 {
         implicit val cc: CallContext = req.callContext
         val io = for {
           user     <- IO.fromOption(cc.user.toOption)(new RuntimeException(AuthenticatedUserIsRequired))
-          bodyText <- req.bodyText.compile.string
+          bodyText <- IO.pure(cc.httpBody.getOrElse(""))
           result   <- code.api.util.http4s.RequestScopeConnection.fromFuture {
             for {
               _ <- code.util.Helper.booleanToFuture(ElasticSearchDisabled, cc = Some(cc)) { esw.isEnabled() }

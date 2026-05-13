@@ -3,6 +3,7 @@ package code.api.util.http4s
 import cats.data.{Kleisli, OptionT}
 import cats.effect.IO
 import code.api.util.APIUtil
+import code.api.util.http4s.Http4sRequestAttributes
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
 import org.http4s._
 import org.typelevel.ci.CIString
@@ -73,25 +74,50 @@ object Http4sApp {
   private val v700Routes: HttpRoutes[IO] = gate(ApiVersion.v7_0_0, code.api.v7_0_0.Http4s700.wrappedRoutesV700Services)
 
   /**
-   * Build the base HTTP4S routes with priority-based routing
+   * Build the base HTTP4S routes with priority-based routing.
+   *
+   * Body caching: http4s request bodies are single-shot streams. The first version's
+   * `ResourceDocMiddleware.fromRequest` consumes the body to build CallContext; any later
+   * bridge hop (v400→v310→v300→…→v210) that re-reads `req.bodyText` gets an empty stream
+   * and the eventual handler returns 500 because JSON parsing fails. We pre-read the body
+   * here and stash it in `cachedBodyKey`, so every downstream `fromRequest` reads from the
+   * attribute instead of the (now-drained) stream. GETs/DELETEs/HEADs/OPTIONS skip this.
    */
+  private val noBodyMethods: Set[Method] = Set(Method.GET, Method.DELETE, Method.HEAD, Method.OPTIONS)
+
+  private def cacheBodyOnce(req: Request[IO]): IO[Request[IO]] = {
+    if (req.attributes.lookup(Http4sRequestAttributes.cachedBodyKey).isDefined) IO.pure(req)
+    else if (noBodyMethods.contains(req.method)) IO.pure(req.withAttribute(Http4sRequestAttributes.cachedBodyKey, Option.empty[String]))
+    else req.body.compile.to(Array).map { bytes =>
+      val cached: Option[String] = if (bytes.isEmpty) None else Some(new String(bytes, "UTF-8"))
+      // Replay the bytes on every subsequent stream read so the Lift fallback and any
+      // handler that still reads req.body sees the same payload. fs2.Stream.emits is
+      // pure — re-evaluating it yields a fresh stream of the same bytes.
+      req
+        .withBodyStream(fs2.Stream.emits(bytes).covary[IO])
+        .withAttribute(Http4sRequestAttributes.cachedBodyKey, cached)
+    }
+  }
+
   private def baseServices: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { req: Request[IO] =>
-    corsHandler.run(req)
-      .orElse(AppsPage.routes.run(req))
-      .orElse(StatusPage.routes.run(req))
-      .orElse(v500Routes.run(req))
-      .orElse(v700Routes.run(req))
-      .orElse(code.api.berlin.group.v2.Http4sBGv2.wrappedRoutes.run(req))
-      .orElse(v400Routes.run(req))
-      .orElse(v310Routes.run(req))
-      .orElse(v300Routes.run(req))
-      .orElse(v220Routes.run(req))
-      .orElse(v210Routes.run(req))
-      .orElse(v200Routes.run(req))
-      .orElse(v140Routes.run(req))
-      .orElse(v130Routes.run(req))
-      .orElse(v121Routes.run(req))
-      .orElse(Http4sLiftWebBridge.routes.run(req))
+    OptionT.liftF(cacheBodyOnce(req)).flatMap { req =>
+      corsHandler.run(req)
+        .orElse(AppsPage.routes.run(req))
+        .orElse(StatusPage.routes.run(req))
+        .orElse(v500Routes.run(req))
+        .orElse(v700Routes.run(req))
+        .orElse(code.api.berlin.group.v2.Http4sBGv2.wrappedRoutes.run(req))
+        .orElse(v400Routes.run(req))
+        .orElse(v310Routes.run(req))
+        .orElse(v300Routes.run(req))
+        .orElse(v220Routes.run(req))
+        .orElse(v210Routes.run(req))
+        .orElse(v200Routes.run(req))
+        .orElse(v140Routes.run(req))
+        .orElse(v130Routes.run(req))
+        .orElse(v121Routes.run(req))
+        .orElse(Http4sLiftWebBridge.routes.run(req))
+    }
   }
 
   /**

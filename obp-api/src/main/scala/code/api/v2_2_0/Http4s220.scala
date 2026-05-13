@@ -116,7 +116,7 @@ object Http4s220 {
           bank    <- IO.fromOption(cc.bank)(new RuntimeException(BankNotFound))
           rawBox  <- IO.fromFuture(IO(Connector.connector.vend.checkBankAccountExists(bank.bankId, AccountId(accountIdStr), Some(cc)).map(_._1)))
           account <- IO(unboxFullOrFail(rawBox, Some(cc), BankAccountNotFound))
-          body    <- req.bodyText.compile.string
+          body    <- IO.pure(cc.httpBody.getOrElse(""))
           result  <- code.api.util.http4s.RequestScopeConnection.fromFuture(
             createViewImpl(user, account, body, cc))
         } yield result
@@ -175,7 +175,7 @@ object Http4s220 {
         val io = for {
           user    <- IO.fromOption(cc.user.toOption)(new RuntimeException(AuthenticatedUserIsRequired))
           account <- IO.fromOption(cc.bankAccount)(new RuntimeException(AccountNotFound))
-          body    <- req.bodyText.compile.string
+          body    <- IO.pure(cc.httpBody.getOrElse(""))
           result  <- code.api.util.http4s.RequestScopeConnection.fromFuture(
             updateViewImpl(user, account, ViewId(viewIdStr), body, cc))
         } yield result
@@ -715,7 +715,7 @@ object Http4s220 {
           user    <- IO.fromOption(cc.user.toOption)(new RuntimeException(AuthenticatedUserIsRequired))
           account <- IO.fromOption(cc.bankAccount)(new RuntimeException(AccountNotFound))
           view    <- IO.fromOption(cc.view)(new RuntimeException(ViewNotFound))
-          body    <- req.bodyText.compile.string
+          body    <- IO.pure(cc.httpBody.getOrElse(""))
           result  <- code.api.util.http4s.RequestScopeConnection.fromFuture(
             createCounterpartyImpl(user, account, view, body, cc))
         } yield result

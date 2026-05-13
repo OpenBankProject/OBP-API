@@ -51,8 +51,20 @@ object Http4sRequestAttributes {
    * Vault key for storing CallContext in http4s request attributes.
    * CallContext contains request data and validated entities (user, bank, account, view, counterparty).
    */
-  val callContextKey: Key[CallContext] = 
+  val callContextKey: Key[CallContext] =
     Key.newKey[IO, CallContext].unsafeRunSync()(cats.effect.unsafe.IORuntime.global)
+
+  /**
+   * Vault key for caching the (already-read) request body across bridge cascade hops.
+   *
+   * Http4s body streams are single-shot: `request.bodyText.compile.string` drains the stream.
+   * Without a cache, the first version's middleware reads the body to build the CallContext;
+   * subsequent bridge calls (v400→v310→v300→v220→v210) re-read an empty stream and the
+   * eventual handler sees no body. The first `fromRequest` call stores the body as
+   * `Some(String)` (POSTs/PUTs) or `None` (GETs/etc.) — later calls return it untouched.
+   */
+  val cachedBodyKey: Key[Option[String]] =
+    Key.newKey[IO, Option[String]].unsafeRunSync()(cats.effect.unsafe.IORuntime.global)
   
   /**
    * Implicit class that adds .callContext accessor to Request[IO].
@@ -474,8 +486,12 @@ object Http4sCallContextBuilder {
   def fromRequest(request: Request[IO], apiVersion: String): IO[CallContext] = {
     val noBody = Set(Method.GET, Method.DELETE, Method.HEAD, Method.OPTIONS)
     for {
-      body <- if (noBody.contains(request.method)) IO.pure(None)
-              else request.bodyText.compile.string.map(s => if (s.isEmpty) None else Some(s))
+      body <- request.attributes.lookup(Http4sRequestAttributes.cachedBodyKey) match {
+        case Some(cached) => IO.pure(cached)
+        case None =>
+          if (noBody.contains(request.method)) IO.pure(None)
+          else request.bodyText.compile.string.map(s => if (s.isEmpty) None else Some(s))
+      }
     } yield CallContext(
       url = request.uri.renderString,
       verb = request.method.name,
