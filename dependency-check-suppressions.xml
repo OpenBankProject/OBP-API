@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
+
+    <suppress>
+        <notes><![CDATA[
+            CPE collision. CVE-2026-33504 is a SQL injection in the Ory Hydra server
+            (the Go service, fixed in Hydra v26.2.0). The Java client SDK
+            sh.ory.hydra:hydra-client is a generated HTTP client with no SQL code,
+            so it cannot be affected.
+
+            Tracking the dep itself for eventual removal — integrate_with_hydra
+            defaults to false and TESOBE does not deploy with Hydra enabled.
+        ]]></notes>
+        <packageUrl regex="true">^pkg:maven/sh\.ory\.hydra/hydra-client@.*$</packageUrl>
+        <cve>CVE-2026-33504</cve>
+    </suppress>
+
+</suppressions>
