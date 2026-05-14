@@ -183,21 +183,24 @@
     <dependency>
       <groupId>org.elasticsearch</groupId>
       <artifactId>elasticsearch</artifactId>
-      <version>8.14.0</version>
+      <version>8.19.15</version>
     </dependency>
-    <!-- https://mvnrepository.com/artifact/com.sksamuel.elastic4s/elastic4s-client-esjava -->
+    <!-- elastic4s moved to community fork (nl.gn0s1s) by Philippus after the
+         original com.sksamuel line stopped publishing past 8.11.5. Package
+         names stayed `com.sksamuel.elastic4s.*` so source imports are
+         unchanged. -->
     <dependency>
-      <groupId>com.sksamuel.elastic4s</groupId>
+      <groupId>nl.gn0s1s</groupId>
       <artifactId>elastic4s-client-esjava_${scala.version}</artifactId>
-      <version>8.5.2</version>
+      <version>8.19.1</version>
     </dependency>
-    <!-- Pin elasticsearch-rest-client to match the elasticsearch core version (8.14.0).
-         elastic4s 8.5.2 brings 8.5.3 transitively, which carries 17 CVEs.
-         The rest-client is a thin Apache-HTTP wrapper; elastic4s uses it as a black box. -->
+    <!-- Pin elasticsearch-rest-client to the version elastic4s 8.19.1 expects.
+         The rest-client is a thin Apache-HTTP wrapper; elastic4s uses it as a
+         black box. -->
     <dependency>
       <groupId>org.elasticsearch.client</groupId>
       <artifactId>elasticsearch-rest-client</artifactId>
-      <version>8.14.0</version>
+      <version>8.19.12</version>
     </dependency>
     <!-- for LiftConsole -->
     <dependency>
