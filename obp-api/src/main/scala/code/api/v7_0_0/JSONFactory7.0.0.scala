@@ -652,26 +652,34 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     )
 
   // ── Qualified Identifier ────────────────────────────────────────────────────
-  // A (scheme, value) pair where the scheme qualifies the value's namespace.
-  // Neither is meaningful on its own. Used wherever the API takes or returns
-  // an identifier that belongs to a registered routing-scheme: account
-  // routings, bill references, meter numbers, KYC documents, etc.
-  case class QualifiedIdentifierJsonV700(scheme: String, value: String)
+  // A (scheme, value) triple where the scheme qualifies the value's namespace.
+  // Used wherever the API takes or returns an identifier that belongs to a
+  // registered routing-scheme: account routings, bill references, meter
+  // numbers, KYC documents, etc.
+  //
+  // `fsp_id` is optional and only meaningful for multi-FSP namespaces where
+  // the same value may live with different providers (e.g. mobile money:
+  // TZ.MSISDN portability). When present, it participates in identity:
+  // (scheme + value + fsp_id) uniquely picks one wallet; (scheme + value)
+  // alone may not.
+  case class QualifiedIdentifierJsonV700(
+      scheme: String,
+      value: String,
+      fsp_id: Option[String] = None
+  )
 
   // ── Payee Lookup JSON case classes ──────────────────────────────────────────
 
   case class PayeeIdentityJsonV700(`type`: String, value: String)
 
   case class PostPayeeLookupJsonV700(
-      identifier: QualifiedIdentifierJsonV700,
-      fsp_id: Option[String]
+      identifier: QualifiedIdentifierJsonV700
   )
 
   case class PayeeLookupResponseJsonV700(
       lookup_id: String,
       expires_at: java.util.Date,
       identifier: QualifiedIdentifierJsonV700,
-      fsp_id: Option[String],
       network_provider: Option[String],
       full_name: String,
       account_category: Option[String],

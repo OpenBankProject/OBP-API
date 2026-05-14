@@ -2708,7 +2708,7 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
       val address = s"2557${(System.currentTimeMillis() % 100000000L).toString.reverse.padTo(8, '0').reverse}"
       val scheme = seedPayeeForLookup("HAP", address, bankId, accountId)
 
-      val body = s"""{"identifier":{"scheme":"$scheme","value":"$address"},"fsp_id":"503"}"""
+      val body = s"""{"identifier":{"scheme":"$scheme","value":"$address","fsp_id":"503"}}"""
       val headers = Map("DirectLogin" -> s"token=${token1.value}")
       val (statusCode, json, _) = makeHttpRequestWithBody("POST", s"/obp/v7.0.0/banks/$bankId/accounts/$accountId/owner/payees/lookup", body, headers)
       statusCode shouldBe 201
@@ -2716,14 +2716,15 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
         case JObject(fields) =>
           val map = toFieldMap(fields)
           map.keys should contain allOf ("lookup_id", "expires_at", "identifier", "full_name")
+          map.keys should not contain "fsp_id"  // fsp_id is nested inside identifier, not top-level
           map.get("identifier") match {
             case Some(JObject(idFields)) =>
               val idMap = toFieldMap(idFields)
               idMap.get("scheme") shouldBe Some(JString(scheme))
               idMap.get("value")  shouldBe Some(JString(address))
-            case other => fail(s"Expected identifier to be an object {scheme,value}, got: $other")
+              idMap.get("fsp_id") shouldBe Some(JString("503"))
+            case other => fail(s"Expected identifier to be an object {scheme,value,fsp_id}, got: $other")
           }
-          map.get("fsp_id")          shouldBe Some(JString("503"))
         case _ => fail("Expected JSON object")
       }
     }

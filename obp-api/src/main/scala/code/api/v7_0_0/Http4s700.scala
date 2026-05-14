@@ -3048,7 +3048,7 @@ object Http4s700 {
                 lookupId = lookupId,
                 identifierType = body.identifier.scheme,
                 identifier = body.identifier.value,
-                fspId = body.fsp_id,
+                fspId = body.identifier.fsp_id,
                 networkProvider = None,
                 fullName = payeeAccount.label,
                 accountCategory = None,
@@ -3065,9 +3065,10 @@ object Http4s700 {
             lookup_id = stored.lookupId,
             expires_at = stored.expiresAt,
             identifier = JSONFactory700.QualifiedIdentifierJsonV700(
-              scheme = stored.identifierType, value = stored.identifier
+              scheme = stored.identifierType,
+              value = stored.identifier,
+              fsp_id = stored.fspId
             ),
-            fsp_id = stored.fspId,
             network_provider = stored.networkProvider,
             full_name = stored.fullName,
             account_category = stored.accountCategory,
@@ -3088,10 +3089,10 @@ object Http4s700 {
         |
         |The endpoint is **polymorphic on `identifier.scheme`**: pass any registered routing scheme as the `identifier.scheme` and the corresponding `identifier.value`. The scheme's `category` must be one of ACCOUNT, BILL, UTILITY for it to be valid here.
         |
-        |Scheme and value travel as a pair — neither is meaningful on its own — so they are nested inside `identifier` (a `QualifiedIdentifier`).
+        |The `identifier` is a `QualifiedIdentifier` — `scheme` and `value` travel as a pair because neither is meaningful on its own. Optionally include `fsp_id` (Financial Service Provider) for multi-FSP namespaces where the same value may live with different providers (e.g. TZ.MSISDN); for such namespaces `scheme + value` alone may not uniquely identify the wallet.
         |
         |Examples:
-        |- Mobile-money / TIPS payee: `identifier: { scheme: TZ.MSISDN, value: 255778300336 }`, `fsp_id: 503`
+        |- Mobile-money / TIPS payee: `identifier: { scheme: TZ.MSISDN, value: 255778300336, fsp_id: 503 }`
         |- TIPS bank-account name verify: `identifier: { scheme: TZ.BANK_ACCOUNT, value: 24110000296 }`
         |- GePG bill inquiry: `identifier: { scheme: TZ.GEPG_CONTROL_NUMBER, value: 991043383705 }`
         |- Luku meter inquiry: `identifier: { scheme: TZ.LUKU_METER, value: 24730238417 }`
@@ -3101,17 +3102,15 @@ object Http4s700 {
         |Authentication is Required. The caller must have a view on the source account (`/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID`) — the same authorization perimeter as paying from it.""".stripMargin,
       JSONFactory700.PostPayeeLookupJsonV700(
         identifier = JSONFactory700.QualifiedIdentifierJsonV700(
-          scheme = "TZ.MSISDN", value = "255778300336"
-        ),
-        fsp_id = Some("503")
+          scheme = "TZ.MSISDN", value = "255778300336", fsp_id = Some("503")
+        )
       ),
       JSONFactory700.PayeeLookupResponseJsonV700(
         lookup_id = "lkp_01HXY7Z8AB9C0D1E2F3G4H5J6K",
         expires_at = new java.util.Date(System.currentTimeMillis() + 10L * 60 * 1000),
         identifier = JSONFactory700.QualifiedIdentifierJsonV700(
-          scheme = "TZ.MSISDN", value = "255778300336"
+          scheme = "TZ.MSISDN", value = "255778300336", fsp_id = Some("503")
         ),
-        fsp_id = Some("503"),
         network_provider = Some("ZANTEL"),
         full_name = "ERASTO EMILE MALEMA",
         account_category = Some("PERSON"),
