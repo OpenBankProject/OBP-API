@@ -1701,6 +1701,406 @@ object Http4s510 {
       http4sPartialFunction = Some(getCurrenciesAtBank)
     )
 
+    // ─── Consumer mgmt PUTs (4) + getCallsLimit + createMyConsumer +
+    //     createConsumerDynamicRegistration (7 total) ───────────────────────
+
+    val updateConsumerRedirectURL: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ PUT -> `prefixPath` / "management" / "consumers" / consumerId / "consumer" / "redirect_url" =>
+        EndpointHelpers.executeFuture(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          for {
+            user <- Future.successful(cc.user.openOrThrowException(AuthenticatedUserIsRequired))
+            _ <- APIUtil.getPropsAsBoolValue("consumers_enabled_by_default", false) match {
+              case true  => Future.successful(Full(()))
+              case false => NewStyle.function.hasEntitlement("", user.userId, ApiRole.canUpdateConsumerRedirectUrl, Some(cc))
+            }
+            postJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
+              net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[ConsumerRedirectUrlJSON]
+            }
+            consumer <- NewStyle.function.getConsumerByConsumerId(consumerId, Some(cc))
+            _ <- Helper.booleanToFuture(UserNoPermissionUpdateConsumer, 400, Some(cc)) {
+              consumer.createdByUserId.equals(user.userId)
+            }
+            updatedConsumer <- NewStyle.function.updateConsumer(
+              id = consumer.id.get,
+              isActive = Some(APIUtil.getPropsAsBoolValue("consumers_enabled_by_default", defaultValue = false)),
+              redirectURL = Some(postJson.redirect_url),
+              callContext = Some(cc))
+          } yield JSONFactory510.createConsumerJSON(updatedConsumer)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(updateConsumerRedirectURL), "PUT",
+      "/management/consumers/CONSUMER_ID/consumer/redirect_url", "Update Consumer RedirectURL",
+      "Update an existing redirectUrl for a Consumer specified by CONSUMER_ID.",
+      consumerRedirectUrlJSON, consumerJSON,
+      List(AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      List(apiTagConsumer),
+      Some(List(canUpdateConsumerRedirectUrl)),
+      http4sPartialFunction = Some(updateConsumerRedirectURL)
+    )
+
+    val updateConsumerLogoURL: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ PUT -> `prefixPath` / "management" / "consumers" / consumerId / "consumer" / "logo_url" =>
+        EndpointHelpers.executeFuture(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          for {
+            postJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
+              net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[ConsumerLogoUrlJson]
+            }
+            consumer <- NewStyle.function.getConsumerByConsumerId(consumerId, Some(cc))
+            updatedConsumer <- NewStyle.function.updateConsumer(
+              id = consumer.id.get, logoURL = Some(postJson.logo_url), callContext = Some(cc))
+          } yield JSONFactory510.createConsumerJSON(updatedConsumer)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(updateConsumerLogoURL), "PUT",
+      "/management/consumers/CONSUMER_ID/consumer/logo_url", "Update Consumer LogoURL",
+      "Update an existing logoURL for a Consumer specified by CONSUMER_ID.",
+      consumerLogoUrlJson, consumerJsonV510,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      List(apiTagConsumer),
+      Some(List(canUpdateConsumerLogoUrl)),
+      http4sPartialFunction = Some(updateConsumerLogoURL)
+    )
+
+    val updateConsumerCertificate: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ PUT -> `prefixPath` / "management" / "consumers" / consumerId / "consumer" / "certificate" =>
+        EndpointHelpers.executeFuture(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          for {
+            postJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
+              net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[ConsumerCertificateJson]
+            }
+            consumer <- NewStyle.function.getConsumerByConsumerId(consumerId, Some(cc))
+            updatedConsumer <- NewStyle.function.updateConsumer(
+              id = consumer.id.get, certificate = Some(postJson.certificate), callContext = Some(cc))
+          } yield JSONFactory510.createConsumerJSON(updatedConsumer)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(updateConsumerCertificate), "PUT",
+      "/management/consumers/CONSUMER_ID/consumer/certificate", "Update Consumer Certificate",
+      "Update Certificate for a Consumer specified by CONSUMER_ID.",
+      consumerCertificateJson, consumerJsonV510,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      List(apiTagConsumer),
+      Some(List(canUpdateConsumerCertificate)),
+      http4sPartialFunction = Some(updateConsumerCertificate)
+    )
+
+    val updateConsumerName: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ PUT -> `prefixPath` / "management" / "consumers" / consumerId / "consumer" / "name" =>
+        EndpointHelpers.executeFuture(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          for {
+            postJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
+              net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[ConsumerNameJson]
+            }
+            consumer <- NewStyle.function.getConsumerByConsumerId(consumerId, Some(cc))
+            updatedConsumer <- NewStyle.function.updateConsumer(
+              id = consumer.id.get, name = Some(postJson.app_name), callContext = Some(cc))
+          } yield JSONFactory510.createConsumerJSON(updatedConsumer)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(updateConsumerName), "PUT",
+      "/management/consumers/CONSUMER_ID/consumer/name", "Update Consumer Name",
+      "Update an existing name for a Consumer specified by CONSUMER_ID.",
+      consumerNameJson, consumerJsonV510,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      List(apiTagConsumer),
+      Some(List(canUpdateConsumerName)),
+      http4sPartialFunction = Some(updateConsumerName)
+    )
+
+    val getCallsLimit: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "management" / "consumers" / consumerId / "consumer" / "rate-limits" =>
+        EndpointHelpers.executeFuture(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          for {
+            _ <- NewStyle.function.getConsumerByConsumerId(consumerId, Some(cc))
+            rateLimiting <- RateLimitingDI.rateLimiting.vend.getAllByConsumerId(consumerId, None)
+          } yield createCallLimitJson(rateLimiting)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getCallsLimit), "GET",
+      "/management/consumers/CONSUMER_ID/consumer/rate-limits", "Get Rate Limits for a Consumer",
+      s"Get Calls limits per Consumer.\n\n${userAuthenticationMessage(true)}",
+      EmptyBody, callLimitsJson510Example,
+      List($AuthenticatedUserIsRequired, InvalidJsonFormat, InvalidConsumerId, ConsumerNotFoundByConsumerId,
+        UserHasMissingRoles, UpdateConsumerError, UnknownError),
+      List(apiTagConsumer),
+      Some(List(canReadCallLimits)),
+      http4sPartialFunction = Some(getCallsLimit)
+    )
+
+    val createMyConsumer: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "my" / "consumers" =>
+        EndpointHelpers.executeFutureCreated(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          for {
+            user <- Future.successful(cc.user.openOrThrowException(AuthenticatedUserIsRequired))
+            tup <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
+              val js = net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[CreateConsumerRequestJsonV510]
+              val appType = if (js.app_type.equals("Confidential")) AppType.valueOf("Confidential") else AppType.valueOf("Public")
+              (js, appType)
+            }
+            (postedJson, appType) = tup
+            (consumer, _) <- createConsumerNewStyle(
+              key = Some(Helpers.randomString(40).toLowerCase),
+              secret = Some(Helpers.randomString(40).toLowerCase),
+              isActive = Some(postedJson.enabled),
+              name = Some(postedJson.app_name),
+              appType = Some(appType),
+              description = Some(postedJson.description),
+              developerEmail = Some(postedJson.developer_email),
+              company = Some(postedJson.company),
+              redirectURL = Some(postedJson.redirect_url),
+              createdByUserId = Some(user.userId),
+              clientCertificate = postedJson.client_certificate,
+              logoURL = postedJson.logo_url,
+              Some(cc)
+            )
+          } yield JSONFactory510.createConsumerJsonOnlyForPostResponseV510(consumer, None)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(createMyConsumer), "POST",
+      "/my/consumers", "Create a Consumer",
+      "Create a Consumer (Authenticated access).",
+      createConsumerRequestJsonV510, consumerJsonV510,
+      List(AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
+      List(apiTagConsumer),
+      None,
+      http4sPartialFunction = Some(createMyConsumer)
+    )
+
+    val createConsumerDynamicRegistration: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "dynamic-registration" / "consumers" =>
+        EndpointHelpers.executeFutureCreated(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          for {
+            postedJwt <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
+              net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[ConsumerJwtPostJsonV510]
+            }
+            pem = APIUtil.`getPSD2-CERT`(cc.requestHeaders)
+            _ <- Helper.booleanToFuture(PostJsonIsNotSigned, 400, Some(cc)) {
+              JwtUtil.verifyJwt(postedJwt.jwt, pem.getOrElse(""))
+            }
+            postedJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
+              net.liftweb.json.parse(JwtUtil.getSignedPayloadAsJson(postedJwt.jwt).getOrElse("{}")).extract[ConsumerPostJsonV510]
+            }
+            certificateInfo: CertificateInfoJsonV510 <- Future(X509.getCertificateInfo(pem))
+              .map(unboxFullOrFail(_, Some(cc), X509GeneralError))
+            _ <- Helper.booleanToFuture(RegulatedEntityNotFoundByCertificate, 400, Some(cc)) {
+              MappedRegulatedEntityProvider.getRegulatedEntities()
+                .exists(_.entityCertificatePublicKey.replace("""\n""", "") == pem.getOrElse("").replace("""\n""", ""))
+            }
+            (consumer, _) <- createConsumerNewStyle(
+              key = Some(Helpers.randomString(40).toLowerCase),
+              secret = Some(Helpers.randomString(40).toLowerCase),
+              isActive = Some(true),
+              name = X509.getCommonName(pem).or(postedJson.app_name),
+              appType = postedJson.app_type.map(AppType.valueOf).orElse(Some(AppType.valueOf("Confidential"))),
+              description = Some(postedJson.description),
+              developerEmail = X509.getEmailAddress(pem).or(postedJson.developer_email),
+              company = X509.getOrganization(pem),
+              redirectURL = postedJson.redirect_url,
+              createdByUserId = None,
+              clientCertificate = pem,
+              logoURL = None,
+              Some(cc)
+            )
+          } yield JSONFactory510.createConsumerJSON(consumer, Some(certificateInfo))
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(createConsumerDynamicRegistration), "POST",
+      "/dynamic-registration/consumers", "Create a Consumer(Dynamic Registration)",
+      "Create a Consumer with full certificate validation (mTLS access) — recommended for PSD2/Berlin Group compliance.",
+      ConsumerJwtPostJsonV510(""), consumerJsonV510,
+      List(InvalidJsonFormat, UnknownError),
+      List(apiTagDirectory, apiTagConsumer),
+      Some(Nil),
+      http4sPartialFunction = Some(createConsumerDynamicRegistration)
+    )
+
+    // ─── View access (3) + transaction-request mgmt (2) ───────────────────
+
+    val grantUserAccessToViewById: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / "views" / viewIdStr / "account-access" / "grant" =>
+        EndpointHelpers.executeFutureCreated(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          val bankId = BankId(bankIdStr); val accountId = AccountId(accountIdStr); val viewId = ViewId(viewIdStr)
+          for {
+            user <- Future.successful(cc.user.openOrThrowException(AuthenticatedUserIsRequired))
+            postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostAccountAccessJsonV510 ", 400, Some(cc)) {
+              net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[PostAccountAccessJsonV510]
+            }
+            targetViewId = ViewId(postJson.view_id)
+            msg = getUserLacksGrantPermissionErrorMessage(viewId, targetViewId)
+            _ <- Helper.booleanToFuture(msg, 403, cc = Some(cc)) {
+              APIUtil.canGrantAccessToView(com.openbankproject.commons.model.BankIdAccountIdViewId(bankId, accountId, viewId), targetViewId, user, Some(cc))
+            }
+            (targetUser, _) <- NewStyle.function.findByUserId(postJson.user_id, Some(cc))
+            view <- if (isValidSystemViewId(targetViewId.value)) ViewNewStyle.systemView(targetViewId, Some(cc))
+                    else ViewNewStyle.customView(targetViewId, BankIdAccountId(bankId, accountId), Some(cc))
+            addedView <- JSONFactory400.grantAccountAccessToUser(bankId, accountId, targetUser, view, Some(cc))
+          } yield JSONFactory300.createViewJSON(addedView)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(grantUserAccessToViewById), "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/account-access/grant", "Grant User access to View",
+      "Grants the User identified by USER_ID access to the view on a bank account identified by VIEW_ID.",
+      postAccountAccessJsonV510, viewJsonV300,
+      List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, $UserNoPermissionAccessView,
+        UserLacksPermissionCanGrantAccessToSystemViewForTargetAccount,
+        UserLacksPermissionCanGrantAccessToCustomViewForTargetAccount,
+        InvalidJsonFormat, UserNotFoundById, SystemViewNotFound, ViewNotFound,
+        CannotGrantAccountAccess, UnknownError),
+      List(apiTagAccountAccess, apiTagView, apiTagAccount, apiTagUser, apiTagOwnerRequired),
+      None,
+      http4sPartialFunction = Some(grantUserAccessToViewById)
+    )
+
+    val revokeUserAccessToViewById: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / "views" / viewIdStr / "account-access" / "revoke" =>
+        EndpointHelpers.executeFutureCreated(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          val bankId = BankId(bankIdStr); val accountId = AccountId(accountIdStr); val viewId = ViewId(viewIdStr)
+          for {
+            user <- Future.successful(cc.user.openOrThrowException(AuthenticatedUserIsRequired))
+            postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ${classOf[code.api.v4_0_0.PostAccountAccessJsonV400].getSimpleName} ", 400, Some(cc)) {
+              net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[PostAccountAccessJsonV510]
+            }
+            targetViewId = ViewId(postJson.view_id)
+            msg = getUserLacksRevokePermissionErrorMessage(viewId, targetViewId)
+            _ <- Helper.booleanToFuture(msg, 403, cc = Some(cc)) {
+              APIUtil.canRevokeAccessToView(com.openbankproject.commons.model.BankIdAccountIdViewId(bankId, accountId, viewId), targetViewId, user, Some(cc))
+            }
+            (targetUser, _) <- NewStyle.function.findByUserId(postJson.user_id, Some(cc))
+            view <- if (isValidSystemViewId(targetViewId.value)) ViewNewStyle.systemView(targetViewId, Some(cc))
+                    else ViewNewStyle.customView(targetViewId, BankIdAccountId(bankId, accountId), Some(cc))
+            revoked <- if (isValidSystemViewId(targetViewId.value))
+              ViewNewStyle.revokeAccessToSystemView(bankId, accountId, view, targetUser, Some(cc))
+            else ViewNewStyle.revokeAccessToCustomView(view, targetUser, Some(cc))
+          } yield code.api.v4_0_0.RevokedJsonV400(revoked)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(revokeUserAccessToViewById), "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/account-access/revoke", "Revoke User access to View",
+      "Revoke the User identified by USER_ID access to the view identified.",
+      postAccountAccessJsonV510, revokedJsonV400,
+      List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, $UserNoPermissionAccessView,
+        UserLacksPermissionCanRevokeAccessToCustomViewForTargetAccount,
+        UserLacksPermissionCanRevokeAccessToSystemViewForTargetAccount,
+        InvalidJsonFormat, UserNotFoundById, SystemViewNotFound, ViewNotFound,
+        CannotRevokeAccountAccess, CannotFindAccountAccess, UnknownError),
+      List(apiTagAccountAccess, apiTagView, apiTagAccount, apiTagUser, apiTagOwnerRequired),
+      None,
+      http4sPartialFunction = Some(revokeUserAccessToViewById)
+    )
+
+    val createUserWithAccountAccessById: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / "views" / viewIdStr / "user-account-access" =>
+        EndpointHelpers.executeFutureCreated(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          val bankId = BankId(bankIdStr); val accountId = AccountId(accountIdStr); val viewId = ViewId(viewIdStr)
+          for {
+            user <- Future.successful(cc.user.openOrThrowException(AuthenticatedUserIsRequired))
+            postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostCreateUserAccountAccessJsonV510 ", 400, Some(cc)) {
+              net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[PostCreateUserAccountAccessJsonV510]
+            }
+            _ <- Helper.booleanToFuture(s"$InvalidUserProvider The user.provider must be start with 'dauth.'", cc = Some(cc)) {
+              postJson.provider.startsWith("dauth.")
+            }
+            targetViewId = ViewId(postJson.view_id)
+            msg = getUserLacksGrantPermissionErrorMessage(viewId, targetViewId)
+            _ <- Helper.booleanToFuture(msg, 403, cc = Some(cc)) {
+              APIUtil.canGrantAccessToView(com.openbankproject.commons.model.BankIdAccountIdViewId(bankId, accountId, viewId), targetViewId, user, Some(cc))
+            }
+            (targetUser, _) <- NewStyle.function.getOrCreateResourceUser(postJson.provider, postJson.username, Some(cc))
+            view <- if (isValidSystemViewId(targetViewId.value)) ViewNewStyle.systemView(targetViewId, Some(cc))
+                    else ViewNewStyle.customView(targetViewId, BankIdAccountId(bankId, accountId), Some(cc))
+            addedView <- if (isValidSystemViewId(targetViewId.value))
+              ViewNewStyle.grantAccessToSystemView(bankId, accountId, view, targetUser, Some(cc))
+            else ViewNewStyle.grantAccessToCustomView(view, targetUser, Some(cc))
+          } yield JSONFactory300.createViewJSON(addedView)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(createUserWithAccountAccessById), "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/user-account-access", "Create (DAuth) User with Account Access",
+      "Grant access to account/transaction data to a smart contract on the blockchain.",
+      postCreateUserAccountAccessJsonV400, List(viewJsonV300),
+      List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, $UserNoPermissionAccessView,
+        UserLacksPermissionCanGrantAccessToSystemViewForTargetAccount,
+        UserLacksPermissionCanGrantAccessToCustomViewForTargetAccount,
+        InvalidJsonFormat, SystemViewNotFound, ViewNotFound, CannotGrantAccountAccess, UnknownError),
+      List(apiTagAccountAccess, apiTagView, apiTagAccount, apiTagUser, apiTagOwnerRequired, apiTagDAuth),
+      None,
+      http4sPartialFunction = Some(createUserWithAccountAccessById)
+    )
+
+    val getTransactionRequestById: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "management" / "transaction-requests" / requestIdStr =>
+        EndpointHelpers.executeFuture(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          val requestId = TransactionRequestId(requestIdStr)
+          for {
+            user <- Future.successful(cc.user.openOrThrowException(AuthenticatedUserIsRequired))
+            (transactionRequest, _) <- NewStyle.function.getTransactionRequestImpl(requestId, Some(cc))
+            _ <- NewStyle.function.hasAtLeastOneEntitlement(transactionRequest.from.bank_id, user.userId,
+              canGetTransactionRequestAtOneBank :: canGetTransactionRequestAtAnyBank :: Nil, Some(cc))
+          } yield JSONFactory210.createTransactionRequestWithChargeJSON(transactionRequest)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getTransactionRequestById), "GET",
+      "/management/transaction-requests/TRANSACTION_REQUEST_ID", "Get Transaction Request by ID.",
+      "Returns transaction request specified by TRANSACTION_REQUEST_ID.",
+      EmptyBody, transactionRequestWithChargeJSON210,
+      List($AuthenticatedUserIsRequired, GetTransactionRequestsException, UnknownError),
+      List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2),
+      Some(List(canGetTransactionRequestAtOneBank, canGetTransactionRequestAtAnyBank)),
+      http4sPartialFunction = Some(getTransactionRequestById)
+    )
+
+    val updateTransactionRequestStatus: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ PUT -> `prefixPath` / "management" / "transaction-requests" / requestIdStr =>
+        EndpointHelpers.executeFuture(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          val requestId = TransactionRequestId(requestIdStr)
+          for {
+            user <- Future.successful(cc.user.openOrThrowException(AuthenticatedUserIsRequired))
+            postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostTransactionRequestStatusJsonV510", 400, Some(cc)) {
+              net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[PostTransactionRequestStatusJsonV510]
+            }
+            (existing, _) <- NewStyle.function.getTransactionRequestImpl(requestId, Some(cc))
+            _ <- NewStyle.function.hasAtLeastOneEntitlement(existing.from.bank_id, user.userId,
+              canUpdateTransactionRequestStatusAtOneBank :: canUpdateTransactionRequestStatusAtAnyBank :: Nil, Some(cc))
+            _ <- NewStyle.function.saveTransactionRequestStatusImpl(requestId, postedData.status, Some(cc))
+            (transactionRequest, _) <- NewStyle.function.getTransactionRequestImpl(requestId, Some(cc))
+          } yield TransactionRequestStatusJsonV510(transactionRequest.id.value, transactionRequest.status)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(updateTransactionRequestStatus), "PUT",
+      "/management/transaction-requests/TRANSACTION_REQUEST_ID", "Update Transaction Request Status",
+      s"Update Transaction Request Status.\n\n${userAuthenticationMessage(true)}",
+      PostTransactionRequestStatusJsonV510(TransactionRequestStatus.COMPLETED.toString),
+      PostTransactionRequestStatusJsonV510(TransactionRequestStatus.COMPLETED.toString),
+      List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, InvalidJsonFormat, UnknownError),
+      List(apiTagTransactionRequest),
+      Some(List(canUpdateTransactionRequestStatusAtOneBank, canUpdateTransactionRequestStatusAtAnyBank)),
+      http4sPartialFunction = Some(updateTransactionRequestStatus)
+    )
+
     val allRoutes: HttpRoutes[IO] =
       Kleisli[HttpF, Request[IO], Response[IO]] { req: Request[IO] =>
         root(req)
@@ -1767,6 +2167,18 @@ object Http4s510 {
           .orElse(accountCurrencyCheck(req))
           .orElse(orphanedAccountCheck(req))
           .orElse(getCurrenciesAtBank(req))
+          .orElse(updateConsumerRedirectURL(req))
+          .orElse(updateConsumerLogoURL(req))
+          .orElse(updateConsumerCertificate(req))
+          .orElse(updateConsumerName(req))
+          .orElse(getCallsLimit(req))
+          .orElse(createMyConsumer(req))
+          .orElse(createConsumerDynamicRegistration(req))
+          .orElse(grantUserAccessToViewById(req))
+          .orElse(revokeUserAccessToViewById(req))
+          .orElse(createUserWithAccountAccessById(req))
+          .orElse(getTransactionRequestById(req))
+          .orElse(updateTransactionRequestStatus(req))
       }
 
     val allRoutesWithMiddleware: HttpRoutes[IO] =
