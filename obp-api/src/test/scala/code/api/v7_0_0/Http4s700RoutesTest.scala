@@ -6,8 +6,10 @@ import code.api.util.http4s.Http4sLiftWebBridge
 import code.api.Constant.SYSTEM_OWNER_VIEW_ID
 import code.api.ResponseHeader
 import code.api.util.APIUtil
-import code.api.util.ApiRole.{canCreateEntitlementAtAnyBank, canCreateOrganisation, canDeleteEntitlementAtAnyBank, canDeleteOrganisation, canGetAccountAccessTrace, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetCardsForBank, canGetConnectorHealth, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMigrations, canReadResourceDoc, canUpdateOrganisation}
-import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, BankNotFound, EntitlementAlreadyExists, InvalidOrganisationIdFormat, OrganisationAlreadyExists, OrganisationNotFound, UserHasMissingRoles, UserNotFoundByUserId}
+import code.api.util.ApiRole.{canCreateEntitlementAtAnyBank, canCreateOrganisation, canCreateRoutingScheme, canDeleteEntitlementAtAnyBank, canDeleteOrganisation, canDeleteRoutingScheme, canGetAccountAccessTrace, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetCardsForBank, canGetConnectorHealth, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMigrations, canReadResourceDoc, canUpdateBankSupportedRoutingScheme, canUpdateOrganisation, canUpdateRoutingScheme}
+import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, BankNotFound, EntitlementAlreadyExists, InvalidOrganisationIdFormat, InvalidRoutingSchemeName, MobileWalletDestinationNotFound, MobileWalletInvalidMsisdn, OrganisationAlreadyExists, OrganisationNotFound, PayeeLookupAddressMismatch, PayeeLookupIdentifierTypeNotRegistered, PayeeNotFound, RoutingSchemeAlreadyExists, RoutingSchemeExampleAddressMismatch, RoutingSchemeNotFound, UserHasMissingRoles, UserNotFoundByUserId}
+import code.routingscheme.RoutingSchemeX
+import code.model.dataAccess.BankAccountRouting
 import code.customer.CustomerX
 import code.entitlement.Entitlement
 import code.organisation.OrganisationX
@@ -2296,6 +2298,490 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
 
       Then("Response is 204 with no body")
       statusCode shouldBe 204
+    }
+  }
+
+  // ─── Routing Schemes ──────────────────────────────────────────────────────
+
+  /** Create a routing scheme directly via the model layer for test setup. */
+  private def createTestRoutingScheme(scheme: String, country: String = "TZ"): Unit = {
+    RoutingSchemeX.routingScheme.vend.createRoutingScheme(
+      scheme = scheme,
+      country = country,
+      category = "ACCOUNT",
+      addressPattern = "^[0-9]{3,20}$",
+      secondaryAddressPattern = None,
+      exampleAddress = "12345678",
+      description = s"Test scheme $scheme",
+      downstreamRails = List("TEST"),
+      status = "ACTIVE",
+      createdByUserId = resourceUser1.userId
+    )
+  }
+
+  /** Returns a fresh, unique scheme name in the TZ namespace. */
+  private def freshSchemeName(prefix: String = "TST"): String =
+    s"TZ.${prefix}_${APIUtil.generateUUID().take(6).toUpperCase}"
+
+  feature("Http4s700 createRoutingScheme endpoint") {
+
+    scenario("Reject unauthenticated POST to /routing-schemes", Http4s700RoutesTag) {
+      val body = """{"scheme":"TZ.X1","country":"TZ","category":"ACCOUNT","address_pattern":"^[0-9]+$","example_address":"123","description":"x"}"""
+      val (statusCode, _, _) = makeHttpRequestWithBody("POST", "/obp/v7.0.0/routing-schemes", body)
+      statusCode shouldBe 401
+    }
+
+    scenario("Return 403 when authenticated but missing canCreateRoutingScheme role", Http4s700RoutesTag) {
+      val body = """{"scheme":"TZ.X2","country":"TZ","category":"ACCOUNT","address_pattern":"^[0-9]+$","example_address":"123","description":"x"}"""
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequestWithBody("POST", "/obp/v7.0.0/routing-schemes", body, headers)
+      statusCode shouldBe 403
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") match {
+            case Some(JString(msg)) => msg should include(UserHasMissingRoles)
+            case _ => fail("Expected message field")
+          }
+        case _ => fail("Expected JSON object")
+      }
+    }
+
+    scenario("Return 201 with full routing scheme JSON on happy path", Http4s700RoutesTag) {
+      addEntitlement("", resourceUser1.userId, canCreateRoutingScheme.toString)
+      val scheme = freshSchemeName("OK")
+      val body = s"""{"scheme":"$scheme","country":"TZ","category":"ACCOUNT","address_pattern":"^255[0-9]{9}$$","example_address":"255778300336","description":"Test MSISDN","downstream_rails":["TIPS"]}"""
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+
+      val (statusCode, json, _) = makeHttpRequestWithBody("POST", "/obp/v7.0.0/routing-schemes", body, headers)
+      statusCode shouldBe 201
+      json match {
+        case JObject(fields) =>
+          val map = toFieldMap(fields)
+          map.keys should contain allOf ("scheme", "country", "category", "address_pattern", "example_address", "status", "created_by_user_id")
+          map.get("scheme")   shouldBe Some(JString(scheme))
+          map.get("country")  shouldBe Some(JString("TZ"))
+          map.get("category") shouldBe Some(JString("ACCOUNT"))
+          map.get("status")   shouldBe Some(JString("ACTIVE"))
+        case _ => fail("Expected JSON object")
+      }
+    }
+
+    scenario("Return 400 when scheme name does not match country-qualified convention", Http4s700RoutesTag) {
+      addEntitlement("", resourceUser1.userId, canCreateRoutingScheme.toString)
+      val body = """{"scheme":"msisdn_tz","country":"TZ","category":"ACCOUNT","address_pattern":"^[0-9]+$","example_address":"123","description":"x"}"""
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequestWithBody("POST", "/obp/v7.0.0/routing-schemes", body, headers)
+      statusCode shouldBe 400
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") match {
+            case Some(JString(msg)) => msg should include(InvalidRoutingSchemeName)
+            case _ => fail("Expected message field")
+          }
+        case _ => fail("Expected JSON object")
+      }
+    }
+
+    scenario("Return 400 when example_address does not match address_pattern", Http4s700RoutesTag) {
+      addEntitlement("", resourceUser1.userId, canCreateRoutingScheme.toString)
+      val scheme = freshSchemeName("MIS")
+      // Pattern requires exactly 9 digits; example is letters.
+      val body = s"""{"scheme":"$scheme","country":"TZ","category":"ACCOUNT","address_pattern":"^[0-9]{9}$$","example_address":"not-numeric","description":"x"}"""
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequestWithBody("POST", "/obp/v7.0.0/routing-schemes", body, headers)
+      statusCode shouldBe 400
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") match {
+            case Some(JString(msg)) => msg should include(RoutingSchemeExampleAddressMismatch)
+            case _ => fail("Expected message field")
+          }
+        case _ => fail("Expected JSON object")
+      }
+    }
+
+    scenario("Return 409 when scheme already exists", Http4s700RoutesTag) {
+      addEntitlement("", resourceUser1.userId, canCreateRoutingScheme.toString)
+      val scheme = freshSchemeName("DUP")
+      createTestRoutingScheme(scheme)
+
+      val body = s"""{"scheme":"$scheme","country":"TZ","category":"ACCOUNT","address_pattern":"^[0-9]+$$","example_address":"123","description":"x"}"""
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequestWithBody("POST", "/obp/v7.0.0/routing-schemes", body, headers)
+      statusCode shouldBe 409
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") match {
+            case Some(JString(msg)) => msg should include(RoutingSchemeAlreadyExists)
+            case _ => fail("Expected message field")
+          }
+        case _ => fail("Expected JSON object")
+      }
+    }
+  }
+
+  feature("Http4s700 getRoutingSchemes endpoint") {
+
+    scenario("Public — returns 200 without authentication", Http4s700RoutesTag) {
+      val scheme = freshSchemeName("LST")
+      createTestRoutingScheme(scheme)
+
+      val (statusCode, json, _) = makeHttpRequest("/obp/v7.0.0/routing-schemes")
+      statusCode shouldBe 200
+      json match {
+        case JObject(fields) =>
+          val map = toFieldMap(fields)
+          map.keys should contain allOf ("routing_schemes", "pagination")
+          map.get("routing_schemes") match {
+            case Some(JArray(_)) => succeed
+            case _ => fail("Expected routing_schemes array")
+          }
+        case _ => fail("Expected JSON object")
+      }
+    }
+  }
+
+  feature("Http4s700 getRoutingScheme endpoint") {
+
+    scenario("Return 200 for an existing scheme (no auth required)", Http4s700RoutesTag) {
+      val scheme = freshSchemeName("GET")
+      createTestRoutingScheme(scheme)
+
+      val (statusCode, json, _) = makeHttpRequest(s"/obp/v7.0.0/routing-schemes/$scheme")
+      statusCode shouldBe 200
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("scheme") shouldBe Some(JString(scheme))
+        case _ => fail("Expected JSON object")
+      }
+    }
+
+    scenario("Return 404 when scheme does not exist", Http4s700RoutesTag) {
+      val (statusCode, json, _) = makeHttpRequest("/obp/v7.0.0/routing-schemes/TZ.DOES_NOT_EXIST")
+      statusCode shouldBe 404
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") match {
+            case Some(JString(msg)) => msg should include(RoutingSchemeNotFound)
+            case _ => fail("Expected message field")
+          }
+        case _ => fail("Expected JSON object")
+      }
+    }
+  }
+
+  feature("Http4s700 updateRoutingScheme endpoint") {
+
+    scenario("Reject unauthenticated PUT", Http4s700RoutesTag) {
+      val (statusCode, _, _) = makeHttpRequestWithBody("PUT", "/obp/v7.0.0/routing-schemes/TZ.ANY", """{"status":"DEPRECATED"}""")
+      statusCode shouldBe 401
+    }
+
+    scenario("Return 403 when missing canUpdateRoutingScheme", Http4s700RoutesTag) {
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, _, _) = makeHttpRequestWithBody("PUT", "/obp/v7.0.0/routing-schemes/TZ.ANY", """{"status":"DEPRECATED"}""", headers)
+      statusCode shouldBe 403
+    }
+
+    scenario("Return 200 and persist new status when authenticated with role", Http4s700RoutesTag) {
+      addEntitlement("", resourceUser1.userId, canUpdateRoutingScheme.toString)
+      val scheme = freshSchemeName("UPD")
+      createTestRoutingScheme(scheme)
+
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val body    = """{"status":"DEPRECATED","description":"updated"}"""
+      val (statusCode, json, _) = makeHttpRequestWithBody("PUT", s"/obp/v7.0.0/routing-schemes/$scheme", body, headers)
+      statusCode shouldBe 200
+      json match {
+        case JObject(fields) =>
+          val map = toFieldMap(fields)
+          map.get("status")      shouldBe Some(JString("DEPRECATED"))
+          map.get("description") shouldBe Some(JString("updated"))
+        case _ => fail("Expected JSON object")
+      }
+    }
+  }
+
+  feature("Http4s700 deleteRoutingScheme endpoint") {
+
+    scenario("Reject unauthenticated DELETE", Http4s700RoutesTag) {
+      val (statusCode, _, _) = makeHttpRequestWithMethod("DELETE", "/obp/v7.0.0/routing-schemes/TZ.ANY")
+      statusCode shouldBe 401
+    }
+
+    scenario("Return 204 and soft-delete (status flips to RETIRED) when role granted", Http4s700RoutesTag) {
+      addEntitlement("", resourceUser1.userId, canDeleteRoutingScheme.toString)
+      val scheme = freshSchemeName("DEL")
+      createTestRoutingScheme(scheme)
+
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, _, _) = makeHttpRequestWithMethod("DELETE", s"/obp/v7.0.0/routing-schemes/$scheme", headers)
+      statusCode shouldBe 204
+
+      And("the row should still exist with status RETIRED")
+      val fetched = RoutingSchemeX.routingScheme.vend.getRoutingScheme(scheme)
+      fetched.map(_.status) shouldBe net.liftweb.common.Full("RETIRED")
+    }
+  }
+
+  feature("Http4s700 getBankSupportedRoutingSchemes endpoint") {
+
+    scenario("Reject unauthenticated GET", Http4s700RoutesTag) {
+      val bankId = testBankId1.value
+      val (statusCode, _, _) = makeHttpRequest(s"/obp/v7.0.0/banks/$bankId/supported-routing-schemes")
+      statusCode shouldBe 401
+    }
+
+    scenario("Return 200 with empty/populated list for authenticated user", Http4s700RoutesTag) {
+      val bankId = testBankId1.value
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequest(s"/obp/v7.0.0/banks/$bankId/supported-routing-schemes", headers)
+      statusCode shouldBe 200
+      json match {
+        case JObject(fields) =>
+          val map = toFieldMap(fields)
+          map.get("bank_id") shouldBe Some(JString(bankId))
+          map.get("supported_routing_schemes") match {
+            case Some(JArray(_)) => succeed
+            case _ => fail("Expected supported_routing_schemes array")
+          }
+        case _ => fail("Expected JSON object")
+      }
+    }
+  }
+
+  feature("Http4s700 putBankSupportedRoutingScheme endpoint") {
+
+    scenario("Reject unauthenticated PUT", Http4s700RoutesTag) {
+      val bankId = testBankId1.value
+      val (statusCode, _, _) = makeHttpRequestWithBody("PUT", s"/obp/v7.0.0/banks/$bankId/supported-routing-schemes/TZ.ANY", """{"enabled":true}""")
+      statusCode shouldBe 401
+    }
+
+    scenario("Return 403 when missing canUpdateBankSupportedRoutingScheme role", Http4s700RoutesTag) {
+      val bankId = testBankId1.value
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, _, _) = makeHttpRequestWithBody("PUT", s"/obp/v7.0.0/banks/$bankId/supported-routing-schemes/TZ.ANY", """{"enabled":true}""", headers)
+      statusCode shouldBe 403
+    }
+
+    scenario("Return 404 when scheme does not exist in the registry", Http4s700RoutesTag) {
+      val bankId = testBankId1.value
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, canUpdateBankSupportedRoutingScheme.toString)
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequestWithBody("PUT", s"/obp/v7.0.0/banks/$bankId/supported-routing-schemes/TZ.NOT_REGISTERED", """{"enabled":true}""", headers)
+      statusCode shouldBe 404
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") match {
+            case Some(JString(msg)) => msg should include(RoutingSchemeNotFound)
+            case _ => fail("Expected message field")
+          }
+        case _ => fail("Expected JSON object")
+      }
+    }
+
+    scenario("Return 200 when scheme exists and bank role granted; enabled=true persists notes", Http4s700RoutesTag) {
+      val bankId = testBankId1.value
+      Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, canUpdateBankSupportedRoutingScheme.toString)
+      val scheme = freshSchemeName("BNK")
+      createTestRoutingScheme(scheme)
+
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val body    = """{"enabled":true,"bank_notes":"Routed via Gateway X. Cutoff 22:00."}"""
+      val (statusCode, json, _) = makeHttpRequestWithBody("PUT", s"/obp/v7.0.0/banks/$bankId/supported-routing-schemes/$scheme", body, headers)
+      statusCode shouldBe 200
+      json match {
+        case JObject(fields) =>
+          val map = toFieldMap(fields)
+          map.get("scheme")     shouldBe Some(JString(scheme))
+          map.get("bank_notes") shouldBe Some(JString("Routed via Gateway X. Cutoff 22:00."))
+        case _ => fail("Expected JSON object")
+      }
+    }
+  }
+
+  // ─── Payee Lookup ─────────────────────────────────────────────────────────
+
+  /**
+   * Register a fresh routing scheme AND attach a matching account_routings entry
+   * to the named account, so getBankAccountByRouting(scheme, address) resolves.
+   * Returns the scheme name.
+   */
+  private def seedPayeeForLookup(prefix: String, address: String, destBankId: String, destAccountId: String): String = {
+    val scheme = freshSchemeName(prefix)
+    RoutingSchemeX.routingScheme.vend.createRoutingScheme(
+      scheme = scheme, country = "TZ", category = "ACCOUNT",
+      addressPattern = "^[0-9]+$", secondaryAddressPattern = None,
+      exampleAddress = address, description = "Test", downstreamRails = Nil,
+      status = "ACTIVE", createdByUserId = resourceUser1.userId
+    )
+    BankAccountRouting.create
+      .BankId(destBankId)
+      .AccountId(destAccountId)
+      .AccountRoutingScheme(scheme)
+      .AccountRoutingAddress(address)
+      .saveMe()
+    scheme
+  }
+
+  feature("Http4s700 createPayeeLookup endpoint") {
+
+    scenario("Reject unauthenticated POST to /payees/lookup", Http4s700RoutesTag) {
+      val bankId = testBankId1.value
+      val accountId = testAccountId0.value
+      val body = """{"identifier_type":"TZ.MSISDN","identifier":"255778300336"}"""
+      val (statusCode, _, _) = makeHttpRequestWithBody("POST", s"/obp/v7.0.0/banks/$bankId/accounts/$accountId/owner/payees/lookup", body)
+      statusCode shouldBe 401
+    }
+
+    scenario("Return 400 when identifier_type is not registered", Http4s700RoutesTag) {
+      val bankId = testBankId1.value
+      val accountId = testAccountId0.value
+      val body = """{"identifier_type":"TZ.UNKNOWN_SCHEME","identifier":"123"}"""
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequestWithBody("POST", s"/obp/v7.0.0/banks/$bankId/accounts/$accountId/owner/payees/lookup", body, headers)
+      statusCode shouldBe 400
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") match {
+            case Some(JString(msg)) => msg should include(PayeeLookupIdentifierTypeNotRegistered)
+            case _ => fail("Expected message field")
+          }
+        case _ => fail("Expected JSON object")
+      }
+    }
+
+    scenario("Return 400 when identifier does not match the scheme's address_pattern", Http4s700RoutesTag) {
+      val bankId = testBankId1.value
+      val accountId = testAccountId0.value
+      // Create a strict scheme then send an address that doesn't match.
+      val scheme = freshSchemeName("STR")
+      RoutingSchemeX.routingScheme.vend.createRoutingScheme(
+        scheme = scheme, country = "TZ", category = "ACCOUNT",
+        addressPattern = "^255[0-9]{9}$", secondaryAddressPattern = None,
+        exampleAddress = "255778300336", description = "Strict TZ MSISDN",
+        downstreamRails = Nil, status = "ACTIVE", createdByUserId = resourceUser1.userId
+      )
+      val body = s"""{"identifier_type":"$scheme","identifier":"not-a-phone"}"""
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequestWithBody("POST", s"/obp/v7.0.0/banks/$bankId/accounts/$accountId/owner/payees/lookup", body, headers)
+      statusCode shouldBe 400
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") match {
+            case Some(JString(msg)) => msg should include(PayeeLookupAddressMismatch)
+            case _ => fail("Expected message field")
+          }
+        case _ => fail("Expected JSON object")
+      }
+    }
+
+    scenario("Return 404 when no account has the requested routing", Http4s700RoutesTag) {
+      val bankId = testBankId1.value
+      val accountId = testAccountId0.value
+      // Registered scheme, valid pattern match, but no account_routings row.
+      val scheme = freshSchemeName("NMA")
+      RoutingSchemeX.routingScheme.vend.createRoutingScheme(
+        scheme = scheme, country = "TZ", category = "ACCOUNT",
+        addressPattern = "^[0-9]+$", secondaryAddressPattern = None,
+        exampleAddress = "12345", description = "No-match", downstreamRails = Nil,
+        status = "ACTIVE", createdByUserId = resourceUser1.userId
+      )
+      val body = s"""{"identifier_type":"$scheme","identifier":"99999999999"}"""
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequestWithBody("POST", s"/obp/v7.0.0/banks/$bankId/accounts/$accountId/owner/payees/lookup", body, headers)
+      statusCode shouldBe 404
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") match {
+            case Some(JString(msg)) => msg should include(PayeeNotFound)
+            case _ => fail("Expected message field")
+          }
+        case _ => fail("Expected JSON object")
+      }
+    }
+
+    scenario("Return 201 with lookup_id and payee details when account_routing resolves", Http4s700RoutesTag) {
+      val bankId = testBankId1.value
+      val accountId = testAccountId0.value
+      val address = s"2557${(System.currentTimeMillis() % 100000000L).toString.reverse.padTo(8, '0').reverse}"
+      val scheme = seedPayeeForLookup("HAP", address, bankId, accountId)
+
+      val body = s"""{"identifier_type":"$scheme","identifier":"$address","fsp_id":"503"}"""
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequestWithBody("POST", s"/obp/v7.0.0/banks/$bankId/accounts/$accountId/owner/payees/lookup", body, headers)
+      statusCode shouldBe 201
+      json match {
+        case JObject(fields) =>
+          val map = toFieldMap(fields)
+          map.keys should contain allOf ("lookup_id", "expires_at", "identifier_type", "identifier", "full_name")
+          map.get("identifier_type") shouldBe Some(JString(scheme))
+          map.get("identifier")      shouldBe Some(JString(address))
+          map.get("fsp_id")          shouldBe Some(JString("503"))
+        case _ => fail("Expected JSON object")
+      }
+    }
+  }
+
+  // ─── MOBILE_WALLET transaction request ────────────────────────────────────
+
+  feature("Http4s700 createTransactionRequestMobileWallet endpoint") {
+
+    scenario("Reject unauthenticated POST", Http4s700RoutesTag) {
+      val bankId = testBankId1.value
+      val accountId = testAccountId0.value
+      val body = """{"to":{"msisdn":"255778300336"},"value":{"currency":"TZS","amount":"1000"},"description":"x"}"""
+      val (statusCode, _, _) = makeHttpRequestWithBody("POST", s"/obp/v7.0.0/banks/$bankId/accounts/$accountId/owner/transaction-request-types/MOBILE_WALLET/transaction-requests", body)
+      statusCode shouldBe 401
+    }
+
+    scenario("Return 400 when country-qualified MSISDN scheme is not in the registry", Http4s700RoutesTag) {
+      val bankId = testBankId1.value
+      val accountId = testAccountId0.value
+      // country_code=ZZ ⇒ scheme=ZZ.MSISDN which we never register.
+      val body = """{"to":{"msisdn":"255778300336"},"value":{"currency":"TZS","amount":"1000"},"description":"x","country_code":"ZZ"}"""
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequestWithBody("POST", s"/obp/v7.0.0/banks/$bankId/accounts/$accountId/owner/transaction-request-types/MOBILE_WALLET/transaction-requests", body, headers)
+      statusCode shouldBe 400
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") match {
+            case Some(JString(msg)) => msg should include(PayeeLookupIdentifierTypeNotRegistered)
+            case _ => fail("Expected message field")
+          }
+        case _ => fail("Expected JSON object")
+      }
+    }
+
+    scenario("Return 400 when msisdn does not match the scheme's address_pattern", Http4s700RoutesTag) {
+      val bankId = testBankId1.value
+      val accountId = testAccountId0.value
+      // Use country_code=XW so the scheme is XW.MSISDN — register it with a strict pattern.
+      val country = "XW"
+      val schemeName = s"$country.MSISDN"
+      RoutingSchemeX.routingScheme.vend.getRoutingScheme(schemeName) match {
+        case net.liftweb.common.Full(_) => // already registered from a previous run
+        case _ =>
+          RoutingSchemeX.routingScheme.vend.createRoutingScheme(
+            scheme = schemeName, country = country, category = "ACCOUNT",
+            addressPattern = "^999[0-9]{9}$", secondaryAddressPattern = None,
+            exampleAddress = "999778300336", description = "Test only",
+            downstreamRails = Nil, status = "ACTIVE", createdByUserId = resourceUser1.userId
+          )
+      }
+      val body = s"""{"to":{"msisdn":"not-a-phone"},"value":{"currency":"TZS","amount":"1000"},"description":"x","country_code":"$country"}"""
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequestWithBody("POST", s"/obp/v7.0.0/banks/$bankId/accounts/$accountId/owner/transaction-request-types/MOBILE_WALLET/transaction-requests", body, headers)
+      statusCode shouldBe 400
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") match {
+            case Some(JString(msg)) => msg should include(MobileWalletInvalidMsisdn)
+            case _ => fail("Expected message field")
+          }
+        case _ => fail("Expected JSON object")
+      }
     }
   }
 

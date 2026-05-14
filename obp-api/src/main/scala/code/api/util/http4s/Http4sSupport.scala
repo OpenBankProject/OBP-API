@@ -357,6 +357,30 @@ object Http4sRequestAttributes {
     }
 
     /**
+     * Execute POST business logic with JSON body parsing, requiring validated User, BankAccount, and View.
+     * Returns 201 Created on success, 400 on body parse failure, converts errors via ErrorResponseConverter.
+     */
+    def withViewAndBodyCreated[B, A](req: Request[IO])(f: (User, BankAccount, View, B, CallContext) => Future[A])(implicit formats: Formats, mf: Manifest[B]): IO[Response[IO]] = {
+      implicit val cc: CallContext = req.callContext
+      parseBody[B](cc) match {
+        case Left(msg) => ErrorResponseConverter.createErrorResponse(400, msg, cc).flatTap(recordMetric(msg, _))
+        case Right(body) =>
+          val io = for {
+            user        <- IO.fromOption(cc.user.toOption)(new RuntimeException("User not found in CallContext"))
+            bankAccount <- IO.fromOption(cc.bankAccount)(new RuntimeException("BankAccount not found in CallContext"))
+            view        <- IO.fromOption(cc.view)(new RuntimeException("View not found in CallContext"))
+            result      <- RequestScopeConnection.fromFuture(f(user, bankAccount, view, body, cc))
+          } yield result
+          io.attempt.flatMap {
+            case Right(result) =>
+              val jsonString = prettyRender(Extraction.decompose(result))
+              Created(jsonString).flatTap(recordMetric(result, _))
+            case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
+          }
+      }
+    }
+
+    /**
      * Execute business logic requiring validated User, BankAccount, and View (URL must contain VIEW_ID).
      * Returns 200 OK on success, converts errors via ErrorResponseConverter.
      */
