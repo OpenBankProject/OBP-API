@@ -62,8 +62,10 @@ import net.liftweb.json.{Extraction, Formats, compactRender}
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.{Helpers, Props, StringHelpers}
-import org.http4s.{HttpRoutes, Method, Request, Response, Uri}
+import code.api.util.http4s.{ErrorResponseConverter, RequestScopeConnection}
+import org.http4s.{Header, HttpRoutes, MediaType, Method, Request, Response, Status, Uri}
 import org.http4s.dsl.io._
+import org.typelevel.ci.CIString
 
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
@@ -261,13 +263,156 @@ object Http4s510 {
       http4sPartialFunction = Some(updateAtm)
     )
 
-    // getAtms / getAtm intentionally left to Lift's wrappedWithAuthCheck:
-    // ResponseHeadersTest exercises ETag + If-None-Match + If-Modified-Since on
-    // /banks/BANK_ID/atms (handled by APIUtil.checkConditionalRequest +
-    // getRequestHeadersNewStyle in Lift's response builder). ResourceDocMiddleware
-    // doesn't yet emit ETag headers or honour conditional headers, so migrating
-    // these endpoints here would regress those tests. APIMethods510 still has its
-    // own ResourceDoc, so resource-docs aggregation is unaffected.
+    // ─── getAtms / getAtm ─────────────────────────────────────────────────
+    // ResponseHeadersTest exercises ETag, If-None-Match → 304, and
+    // If-Modified-Since → 304 on these two GETs. We bypass the standard
+    // executeFuture path and inline the ETag/conditional-header logic
+    // (mirror of APIUtil.checkConditionalRequest:470 + getRequestHeadersNewStyle:532).
+
+    private def respondWithETag[A](
+      req: Request[IO],
+      f: code.api.util.CallContext => Future[A]
+    )(implicit formats: Formats): IO[Response[IO]] = {
+      implicit val cc: code.api.util.CallContext = req.callContext
+      RequestScopeConnection.fromFuture(f(cc)).attempt.flatMap {
+        case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc)
+        case Right(result) =>
+          val body = prettyRender(Extraction.decompose(result))
+          val url = cc.url
+          val eTag = code.api.util.HashUtil.calculateETag(url, Full(body))
+
+          // If-None-Match: 304 if matches
+          val ifNoneMatch = req.headers.get(CIString("If-None-Match")).map(_.head.value)
+          val ifModifiedSince = req.headers.get(CIString("If-Modified-Since")).map(_.head.value)
+
+          val maybe304: Option[IO[Response[IO]]] = ifNoneMatch match {
+            case Some(value) if value == eTag =>
+              Some(IO.pure(Response[IO](Status.NotModified)
+                .putHeaders(Header.Raw(CIString(code.api.ResponseHeader.ETag), eTag))))
+            case _ if ifNoneMatch.isDefined => None  // header present but mismatch → fall through
+            case None => ifModifiedSince.map { since =>
+              IO.blocking(checkIfModifiedSinceCached(cc, eTag, since)).map { isCachedFresh =>
+                if (isCachedFresh) Response[IO](Status.NotModified)
+                  .putHeaders(Header.Raw(CIString(code.api.ResponseHeader.ETag), eTag))
+                else Response[IO](Status.Ok).withEntity(body)
+                  .withContentType(org.http4s.headers.`Content-Type`(MediaType.application.json))
+                  .putHeaders(Header.Raw(CIString(code.api.ResponseHeader.ETag), eTag))
+              }
+            }
+          }
+
+          maybe304.getOrElse(
+            IO.pure(Response[IO](Status.Ok).withEntity(body)
+              .withContentType(org.http4s.headers.`Content-Type`(MediaType.application.json))
+              .putHeaders(Header.Raw(CIString(code.api.ResponseHeader.ETag), eTag)))
+          )
+      }
+    }
+
+    // Mirror of APIUtil.checkIfModifiedSinceHeader:390 (without the async-update
+    // race we don't strictly need either — Lift's behaviour is best-effort).
+    // Returns true if the cached ETag is fresh (response 304), false otherwise.
+    private def checkIfModifiedSinceCached(
+      cc: code.api.util.CallContext,
+      currentETag: String,
+      headerValue: String
+    ): Boolean = {
+      val df = new java.text.SimpleDateFormat(DateWithSeconds)
+      val headerEpoch: Long = scala.util.Try(df.parse(headerValue).getTime).getOrElse(0L)
+      val requestHeaders = cc.requestHeaders
+        .filter(i => i.name == "limit" || i.name == "offset").sortBy(_.name)
+      val hashedRequestPayload = code.api.util.HashUtil.Sha256Hash(cc.url + requestHeaders)
+      val consumerId = cc.consumer.map(_.consumerId.get).getOrElse("None")
+      val userId = scala.util.Try(cc.userId).getOrElse("None")
+      val compositeKey =
+        if (consumerId == "None" && userId == "None") "anonymous"
+        else s"consumerId${consumerId}::userId${userId}"
+      val cacheKey = s"$compositeKey::$hashedRequestPayload"
+      code.etag.MappedETag.find(By(code.etag.MappedETag.ETagResource, cacheKey)) match {
+        case Full(row) if row.lastUpdatedMSSinceEpoch < headerEpoch =>
+          val modified = row.eTagValue != currentETag
+          if (modified) {
+            // Async update — match Lift's behaviour
+            scala.concurrent.Future(row.LastUpdatedMSSinceEpoch(System.currentTimeMillis).ETagValue(currentETag).save)
+            false
+          } else true
+        case Empty =>
+          // Async create
+          scala.concurrent.Future(tryo(
+            code.etag.MappedETag.create
+              .ETagResource(cacheKey).ETagValue(currentETag)
+              .LastUpdatedMSSinceEpoch(System.currentTimeMillis).save))
+          false
+        case _ => false
+      }
+    }
+
+    val getAtms: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / bankIdStr / "atms" =>
+        Implementations5_1_0.respondWithETag(req, { cc =>
+          implicit val ccImpl: code.api.util.CallContext = cc
+          val bankId = BankId(bankIdStr)
+          val params = req.uri.query.multiParams
+          val limit: Box[String] = params.get("limit").flatMap(_.headOption).map(Full(_)).getOrElse(Empty)
+          val offset: Box[String] = params.get("offset").flatMap(_.headOption).map(Full(_)).getOrElse(Empty)
+          for {
+            _ <- if (getAtmsIsPublic) Future.successful(Full(())) else Future.successful(Full(cc.user.openOrThrowException(AuthenticatedUserIsRequired)))
+            _ <- Helper.booleanToFuture(s"$InvalidNumber limit:${limit.getOrElse("")}", cc = Some(cc)) {
+              limit match {
+                case Full(i) => i.toList.forall(c => Character.isDigit(c))
+                case _       => true
+              }
+            }
+            _ <- Helper.booleanToFuture(maximumLimitExceeded, cc = Some(cc)) {
+              limit match {
+                case Full(i) if i.toInt > 10000 => false
+                case _                          => true
+              }
+            }
+            (atms, _) <- NewStyle.function.getAtmsByBankId(bankId, offset, limit, Some(cc))
+            atmAndAttrs <- Future.sequence(atms.map(atm =>
+              NewStyle.function.getAtmAttributesByAtm(bankId, atm.atmId, Some(cc)).map(x => (atm, x._1))))
+          } yield JSONFactory510.createAtmsJsonV510(atmAndAttrs)
+        })
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getAtms), "GET",
+      "/banks/BANK_ID/atms", "Get Bank ATMS",
+      s"""Returns information about ATMs for a single bank specified by BANK_ID.
+         |
+         |${userAuthenticationMessage(!getAtmsIsPublic)}""",
+      EmptyBody, atmsJsonV510,
+      List($BankNotFound, UnknownError),
+      List(apiTagATM),
+      None,
+      http4sPartialFunction = Some(getAtms)
+    )
+
+    val getAtm: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / bankIdStr / "atms" / atmIdStr =>
+        Implementations5_1_0.respondWithETag(req, { cc =>
+          implicit val ccImpl: code.api.util.CallContext = cc
+          val bankId = BankId(bankIdStr); val atmId = AtmId(atmIdStr)
+          for {
+            _ <- if (getAtmsIsPublic) Future.successful(Full(())) else Future.successful(Full(cc.user.openOrThrowException(AuthenticatedUserIsRequired)))
+            (_, _) <- NewStyle.function.getBank(bankId, Some(cc))
+            (atm, _) <- NewStyle.function.getAtm(bankId, atmId, Some(cc))
+            (atmAttributes, _) <- NewStyle.function.getAtmAttributesByAtm(bankId, atmId, Some(cc))
+          } yield JSONFactory510.createAtmJsonV510(atm, atmAttributes)
+        })
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getAtm), "GET",
+      "/banks/BANK_ID/atms/ATM_ID", "Get Bank ATM",
+      s"""Returns information about ATM for a single bank specified by BANK_ID and ATM_ID.
+         |
+         |${userAuthenticationMessage(!getAtmsIsPublic)}""",
+      EmptyBody, atmJsonV510,
+      List(AuthenticatedUserIsRequired, BankNotFound, AtmNotFoundByAtmId, UnknownError),
+      List(apiTagATM),
+      None,
+      http4sPartialFunction = Some(getAtm)
+    )
 
     val deleteAtm: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ DELETE -> `prefixPath` / "banks" / bankIdStr / "atms" / atmIdStr =>
@@ -943,15 +1088,32 @@ object Http4s510 {
       http4sPartialFunction = Some(createAgent)
     )
 
-    // updateAgentStatus intentionally left to Lift: AgentTest "wrong Bankid" expects
-    // 404 BankNotFound for unauthorised user1, which means Lift's wrappedWithAuthCheck
-    // role check passes here even though user1 lacks
-    // canUpdateAgentStatusAtAnyBank/canUpdateAgentStatusAtOneBank. ResourceDocMiddleware
-    // applies the same access-control function (with JIT entitlements) and returns 403
-    // — i.e. it's the strict reading of the doc roles. Leaving updateAgentStatus in
-    // Lift preserves the established test contract until the discrepancy is
-    // root-caused (suspect: the Lift test environment has additional entitlements
-    // wired in before this scenario via class-level or default-user fixtures).
+    val updateAgentStatus: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ PUT -> `prefixPath` / "banks" / _ / "agents" / agentId =>
+        EndpointHelpers.executeFuture(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          for {
+            postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostAgentJsonV510 ", 400, Some(cc)) {
+              net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[PutAgentJsonV510]
+            }
+            (_, _) <- NewStyle.function.getAgentByAgentId(agentId, Some(cc))
+            (links, _) <- NewStyle.function.getAgentAccountLinksByAgentId(agentId, Some(cc))
+            link <- NewStyle.function.tryons(AgentAccountLinkNotFound, 400, Some(cc)) { links.head }
+            (bankAccount, _) <- NewStyle.function.getBankAccount(BankId(link.bankId), AccountId(link.accountId), Some(cc))
+            (agent, _) <- NewStyle.function.updateAgentStatus(agentId, postedData.is_pending_agent, postedData.is_confirmed_agent, Some(cc))
+          } yield JSONFactory510.createAgentJson(agent, bankAccount)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(updateAgentStatus), "PUT",
+      "/banks/BANK_ID/agents/AGENT_ID", "Update Agent status",
+      s"${userAuthenticationMessage(true)}",
+      putAgentJsonV510, agentJsonV510,
+      List($AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat, AgentNotFound, AgentAccountLinkNotFound, UnknownError),
+      List(apiTagCustomer, apiTagPerson),
+      Some(canUpdateAgentStatusAtAnyBank :: canUpdateAgentStatusAtOneBank :: Nil),
+      http4sPartialFunction = Some(updateAgentStatus)
+    )
 
     val getAgent: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ GET -> `prefixPath` / "banks" / bankIdStr / "agents" / agentId =>
@@ -1506,10 +1668,86 @@ object Http4s510 {
       http4sPartialFunction = Some(getAccountAccessByUserId)
     )
 
-    // ─── Accounts-held (2) — left to Lift ─────────────────────────────────
-    // getAccountsHeldByUserAtBank / getAccountsHeldByUser depend on
-    // AccountsHelper.getFilteredCoreAccounts which takes a Lift `Req`. Need
-    // to port the filter to http4s before migrating these.
+    // ─── Accounts-held (2) ────────────────────────────────────────────────
+    // Lift's AccountsHelper.getFilteredCoreAccounts takes a `Req`; ported
+    // inline here against http4s' multiParams. Filter shape mirrors
+    // AccountsHelper.filterWithAccountType (v2_0_0/AccountsHelper.scala:39).
+
+    private def filteredCoreAccountsByQueryParams(
+      bankIdAccountIds: List[BankIdAccountId],
+      params: Map[String, Seq[String]],
+      cc: code.api.util.CallContext
+    ): Future[List[com.openbankproject.commons.model.CoreAccount]] = {
+      val filters: List[String] =
+        params.get("account_type_filter").map(_.toList.flatMap(_.split(","))).getOrElse(Nil)
+      val filtersOperation: String =
+        params.get("account_type_filter_operation").flatMap(_.headOption).getOrElse("INCLUDE")
+      val failMsg = s"${ErrorMessages.InvalidFilterParameterFormat}request parameter " +
+        s"account_type_filter_operation must be either INCLUDE or EXCLUDE, current it is: $filtersOperation "
+      unboxFullOrFail(tryo {
+        assume(filtersOperation == "INCLUDE" || filtersOperation == "EXCLUDE")
+      }, Some(cc), failMsg)
+      NewStyle.function.getCoreBankAccountsFuture(bankIdAccountIds, Some(cc)).map { case (coreAccounts, _) =>
+        coreAccounts.filter { account =>
+          (filters, filtersOperation) match {
+            case (f, "INCLUDE") if f.nonEmpty => filters.contains(account.accountType)
+            case (f, "EXCLUDE") if f.nonEmpty => !filters.contains(account.accountType)
+            case _                            => true
+          }
+        }
+      }
+    }
+
+    val getAccountsHeldByUserAtBank: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "users" / userId / "banks" / bankIdStr / "accounts-held" =>
+        EndpointHelpers.executeFuture(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          val bankId = BankId(bankIdStr)
+          for {
+            (u, _) <- NewStyle.function.getUserByUserId(userId, Some(cc))
+            (availableAccounts, _) <- NewStyle.function.getAccountsHeld(bankId, u, Some(cc))
+            (accounts, _) <- NewStyle.function.getBankAccountsHeldFuture(availableAccounts.toList, Some(cc))
+            filteredCore <- Implementations5_1_0.filteredCoreAccountsByQueryParams(availableAccounts.toList, req.uri.query.multiParams, cc)
+            coreIds = filteredCore.map(_.id)
+            accountHelds = accounts.filter(a => coreIds.contains(a.id))
+          } yield JSONFactory300.createCoreAccountsByCoreAccountsJSON(accountHelds)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getAccountsHeldByUserAtBank), "GET",
+      "/users/USER_ID/banks/BANK_ID/accounts-held", "Get Accounts Held By User",
+      "Get Accounts held by the User at the bank, even before owner View is granted.",
+      EmptyBody, coreAccountsHeldJsonV300,
+      List($AuthenticatedUserIsRequired, $BankNotFound, UserNotFoundByUserId, UnknownError),
+      List(apiTagAccount),
+      Some(List(canGetAccountsHeldAtOneBank, canGetAccountsHeldAtAnyBank)),
+      http4sPartialFunction = Some(getAccountsHeldByUserAtBank)
+    )
+
+    val getAccountsHeldByUser: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "users" / userId / "accounts-held" =>
+        EndpointHelpers.executeFuture(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          for {
+            (u, _) <- NewStyle.function.getUserByUserId(userId, Some(cc))
+            (availableAccounts, _) <- NewStyle.function.getAccountsHeldByUser(u, Some(cc))
+            (accounts, _) <- NewStyle.function.getBankAccountsHeldFuture(availableAccounts, Some(cc))
+            filteredCore <- Implementations5_1_0.filteredCoreAccountsByQueryParams(availableAccounts, req.uri.query.multiParams, cc)
+            coreIds = filteredCore.map(_.id)
+            accountHelds = accounts.filter(a => coreIds.contains(a.id))
+          } yield JSONFactory300.createCoreAccountsByCoreAccountsJSON(accountHelds)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getAccountsHeldByUser), "GET",
+      "/users/USER_ID/accounts-held", "Get Accounts Held By User",
+      "Get Accounts held by the User across all banks, even before owner View is granted.",
+      EmptyBody, coreAccountsHeldJsonV300,
+      List($AuthenticatedUserIsRequired, $BankNotFound, UserNotFoundByUserId, UnknownError),
+      List(apiTagAccount),
+      Some(List(canGetAccountsHeldAtAnyBank)),
+      http4sPartialFunction = Some(getAccountsHeldByUser)
+    )
 
     // ─── Customer helpers (2) ─────────────────────────────────────────────
 
@@ -2288,6 +2526,78 @@ object Http4s510 {
       List(apiTagCounterpartyLimits),
       None,
       http4sPartialFunction = Some(getCounterpartyLimit)
+    )
+
+    val getCounterpartyLimitStatus: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / "views" / viewIdStr / "counterparties" / counterpartyIdStr / "limit-status" =>
+        EndpointHelpers.executeFuture(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          val bankId = BankId(bankIdStr); val accountId = AccountId(accountIdStr)
+          val viewId = ViewId(viewIdStr); val counterpartyId = CounterpartyId(counterpartyIdStr)
+          val zoneId = java.time.ZoneId.systemDefault()
+          val today = java.time.LocalDate.now()
+          val firstDayOfMonth = today.withDayOfMonth(1)
+          val lastDayOfMonth = today.withDayOfMonth(today.lengthOfMonth())
+          val firstDayOfYear = today.withDayOfYear(1)
+          val lastDayOfYear = today.withDayOfYear(today.lengthOfYear())
+          val firstCurrentMonthDate: Date = Date.from(firstDayOfMonth.atStartOfDay(zoneId).toInstant)
+          val lastCurrentMonthDate: Date = Date.from(lastDayOfMonth.atTime(23, 59, 59, 999000000).atZone(zoneId).toInstant)
+          val firstCurrentYearDate: Date = Date.from(firstDayOfYear.atStartOfDay(zoneId).toInstant)
+          val lastCurrentYearDate: Date = Date.from(lastDayOfYear.atTime(23, 59, 59, 999000000).atZone(zoneId).toInstant)
+          val defaultFromDate: Date = APIUtil.theEpochTime
+          val defaultToDate: Date = APIUtil.ToDateInFuture
+          for {
+            (counterpartyLimit, _) <- NewStyle.function.getCounterpartyLimit(
+              bankId.value, accountId.value, viewId.value, counterpartyId.value, Some(cc))
+            (fromBankAccount, _) <- NewStyle.function.getBankAccount(bankId, accountId, Some(cc))
+            (sumMonthly, _) <- NewStyle.function.getSumOfTransactionsFromAccountToCounterparty(
+              bankId, accountId, counterpartyId, firstCurrentMonthDate, lastCurrentMonthDate, Some(cc))
+            (countMonthly, _) <- NewStyle.function.getCountOfTransactionsFromAccountToCounterparty(
+              bankId, accountId, counterpartyId, firstCurrentMonthDate, lastCurrentMonthDate, Some(cc))
+            (sumYearly, _) <- NewStyle.function.getSumOfTransactionsFromAccountToCounterparty(
+              bankId, accountId, counterpartyId, firstCurrentYearDate, lastCurrentYearDate, Some(cc))
+            (countYearly, _) <- NewStyle.function.getCountOfTransactionsFromAccountToCounterparty(
+              bankId, accountId, counterpartyId, firstCurrentYearDate, lastCurrentYearDate, Some(cc))
+            (sumAll, _) <- NewStyle.function.getSumOfTransactionsFromAccountToCounterparty(
+              bankId, accountId, counterpartyId, defaultFromDate, defaultToDate, Some(cc))
+            (countAll, _) <- NewStyle.function.getCountOfTransactionsFromAccountToCounterparty(
+              bankId, accountId, counterpartyId, defaultFromDate, defaultToDate, Some(cc))
+          } yield CounterpartyLimitStatusV510(
+            counterparty_limit_id = counterpartyLimit.counterpartyLimitId,
+            bank_id = counterpartyLimit.bankId,
+            account_id = counterpartyLimit.accountId,
+            view_id = counterpartyLimit.viewId,
+            counterparty_id = counterpartyLimit.counterpartyId,
+            currency = counterpartyLimit.currency,
+            max_single_amount = counterpartyLimit.maxSingleAmount.toString(),
+            max_monthly_amount = counterpartyLimit.maxMonthlyAmount.toString(),
+            max_number_of_monthly_transactions = counterpartyLimit.maxNumberOfMonthlyTransactions,
+            max_yearly_amount = counterpartyLimit.maxYearlyAmount.toString(),
+            max_number_of_yearly_transactions = counterpartyLimit.maxNumberOfYearlyTransactions,
+            max_total_amount = counterpartyLimit.maxTotalAmount.toString(),
+            max_number_of_transactions = counterpartyLimit.maxNumberOfTransactions,
+            status = CounterpartyLimitStatus(
+              currency_status = fromBankAccount.currency,
+              max_monthly_amount_status = sumMonthly.amount,
+              max_number_of_monthly_transactions_status = countMonthly,
+              max_yearly_amount_status = sumYearly.amount,
+              max_number_of_yearly_transactions_status = countYearly,
+              max_total_amount_status = sumAll.amount,
+              max_number_of_transactions_status = countAll
+            )
+          )
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getCounterpartyLimitStatus), "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/counterparties/COUNTERPARTY_ID/limit-status",
+      "Get Counterparty Limit Status", "Get Counterparty Limit Status.",
+      EmptyBody, counterpartyLimitStatusV510,
+      List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, $UserNoPermissionAccessView,
+        $CounterpartyNotFoundByCounterpartyId, InvalidJsonFormat, UnknownError),
+      List(apiTagCounterpartyLimits),
+      None,
+      http4sPartialFunction = Some(getCounterpartyLimitStatus)
     )
 
     val deleteCounterpartyLimit: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -3097,6 +3407,8 @@ object Http4s510 {
           .orElse(getAggregateMetrics(req))
           .orElse(createAtm(req))
           .orElse(updateAtm(req))
+          .orElse(getAtms(req))
+          .orElse(getAtm(req))
           .orElse(deleteAtm(req))
           .orElse(createConsumer(req))
           .orElse(getConsumer(req))
@@ -3124,6 +3436,7 @@ object Http4s510 {
           .orElse(updateAtmAttribute(req))
           .orElse(deleteAtmAttribute(req))
           .orElse(createAgent(req))
+          .orElse(updateAgentStatus(req))
           .orElse(getAgent(req))
           .orElse(getAgents(req))
           .orElse(createRegulatedEntityAttribute(req))
@@ -3148,6 +3461,8 @@ object Http4s510 {
           .orElse(lockUserByProviderAndUsername(req))
           .orElse(validateUserByUserId(req))
           .orElse(getAccountAccessByUserId(req))
+          .orElse(getAccountsHeldByUserAtBank(req))
+          .orElse(getAccountsHeldByUser(req))
           .orElse(getCustomersForUserIdsOnly(req))
           .orElse(getCustomersByLegalName(req))
           .orElse(customViewNamesCheck(req))
@@ -3174,6 +3489,7 @@ object Http4s510 {
           .orElse(createCounterpartyLimit(req))
           .orElse(updateCounterpartyLimit(req))
           .orElse(getCounterpartyLimit(req))
+          .orElse(getCounterpartyLimitStatus(req))
           .orElse(deleteCounterpartyLimit(req))
           .orElse(createCustomView(req))
           .orElse(updateCustomView(req))
@@ -3217,14 +3533,30 @@ object Http4s510 {
     }
   }
 
-  // Bridge cascade is currently DISABLED for v5.1.0:
-  // While migrating, unmigrated v5.1.0 endpoints (e.g. updateConsumerRedirectURL)
-  // would otherwise be sent through v510→v500→v400→… and either land on a
-  // wrong-version handler or never reach Lift's OBPAPI5_1_0 dispatch correctly.
-  // Without the bridge, unmatched v5.1.0 URLs fall through to Http4sLiftWebBridge
-  // unchanged, where Lift's dispatch for OBPAPI5_1_0 picks them up. Re-enable
-  // the bridge once ALL v5.1.0 own endpoints (currently 110) are migrated to
-  // Http4s510 — then `.orElse(Implementations5_1_0.v510ToV500Bridge.run(req))`.
+  // Bridge cascade is currently DISABLED — all 111 v5.1.0 own endpoints are
+  // migrated, but enabling `v510ToV500Bridge` surfaces two cross-version
+  // interaction issues that need root-causing first:
+  //
+  //   - MetricTest "include_implemented_by_partial_functions=getBanks" returns
+  //     0 instead of 12. Setup calls /obp/v5.1.0/banks should be hijacked to
+  //     v500.getBanks via the bridge, recording metrics with
+  //     partial_function_name=getBanks. Filter doesn't see them — the metric
+  //     records likely have a different field shape (URL/version) when
+  //     written from the bridged path.
+  //   - VRPConsentRequestTest's "Create Consent By CONSENT_REQUEST_ID (EMAIL)"
+  //     returns 400 instead of 201 (5 scenarios). The v5.1 createVRPConsentRequest
+  //     stores a payload with `consent_type: VRP` merged in, then the test calls
+  //     /obp/v5.1.0/consumer/consent-requests/X/EMAIL/consents which the bridge
+  //     rewrites into v500.createConsentByConsentRequestId. That handler tries
+  //     to parse the payload as PostVRPConsentRequestJsonInternalV510 and
+  //     apparently fails — likely the merged consent_type field.
+  //
+  // Without the bridge, these URLs fall through Http4sApp's chain to
+  // Http4sLiftWebBridge with the original /obp/v5.1.0/ path; Lift's
+  // OBPAPI5_1_0 dispatch picks them up via the inherited APIMethods500
+  // partial functions and serves them correctly. To re-enable the bridge,
+  // append `.orElse(Implementations5_1_0.v510ToV500Bridge.run(req))` and
+  // address the two failures above.
   val wrappedRoutesV510Services: HttpRoutes[IO] =
     Implementations5_1_0.allRoutesWithMiddleware
 }

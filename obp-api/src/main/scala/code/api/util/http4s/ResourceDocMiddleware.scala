@@ -259,13 +259,18 @@ object ResourceDocMiddleware extends MdcLoggable {
 
     val initialContext = ValidationContext(callContext = cc)
 
+    // Validation order MUST match Lift's wrappedWithAuthCheck (APIUtil.scala:1934-1969):
+    //   auth → bank → roles → account → view → counterparty
+    // Per Lift's own comment: "A Bank MUST be checked before Roles. In opposite case
+    // we get next paradox: We set non existing bank → We get error that we don't
+    // have a proper role → We cannot assign the role to non existing bank."
     val result: Validation[ValidationContext] = for {
       context <- authenticate(req, resourceDoc, initialContext)
-      context <- authorizeRoles(resourceDoc, pathParams, context)
       context <- processForceError(req, resourceDoc, context)
       context <- validateAuthType(resourceDoc, context)
       context <- validateJsonSchema(resourceDoc, context)
       context <- validateBank(pathParams, context)
+      context <- authorizeRoles(resourceDoc, pathParams, context)
       context <- validateAccount(pathParams, context)
       context <- validateView(pathParams, context)
       context <- validateCounterparty(pathParams, context)
