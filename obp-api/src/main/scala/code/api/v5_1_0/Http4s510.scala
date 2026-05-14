@@ -48,9 +48,10 @@ import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.{
   AccountId, AccountRouting, AtmId, AtmT, Bank, BankAccount, BankId, BankIdAccountId,
-  CustomerId, ProductCode, TransactionRequestId, User, View, ViewId
+  CustomerId, ListResult, ProductCode, RegulatedEntityId, TransactionRequestId, User,
+  View, ViewId
 }
-import com.openbankproject.commons.model.enums.{StrongCustomerAuthentication, TransactionRequestStatus}
+import com.openbankproject.commons.model.enums.{AtmAttributeType, RegulatedEntityAttributeType, StrongCustomerAuthentication, TransactionRequestStatus, UserAttributeType}
 import com.openbankproject.commons.util.{ApiVersion, ApiVersionStatus, ScannedApiVersion}
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.json
@@ -485,6 +486,763 @@ object Http4s510 {
 
     // ─── allRoutes (chained as endpoints land below) ────────────────────────
 
+    // ─── Simple GETs: suggestedSessionTimeout, well-known, regulatedEntities,
+    //                 waitingForGodot, getApiTags, mtlsClientCertificateInfo
+    //                 (plus log-cache×6, regulated-entities CRUD, getAllApiCollections)
+
+    val suggestedSessionTimeout: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "ui" / "suggested-session-timeout" =>
+        EndpointHelpers.executeFuture(req) {
+          Future(APIUtil.getPropsAsIntValue("session_inactivity_timeout_in_seconds", 300))
+            .map(t => SuggestedSessionTimeoutV510(t.toString))
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(suggestedSessionTimeout), "GET",
+      "/ui/suggested-session-timeout", "Get Suggested Session Timeout",
+      "Returns the suggested session timeout in case of user inactivity.",
+      EmptyBody, SuggestedSessionTimeoutV510("300"),
+      List(UnknownError), apiTagApi :: Nil, None,
+      http4sPartialFunction = Some(suggestedSessionTimeout)
+    )
+
+    val getOAuth2ServerWellKnown: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "well-known" =>
+        EndpointHelpers.executeFuture(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          for {
+            (_, _) <- APIUtil.anonymousAccess(cc)
+          } yield {
+            val providerPropBox = APIUtil.getPropsValue("oauth2.oidc_provider")
+            val availableProviders = Map(
+              "obp-oidc" -> WellKnownUriJsonV510("obp-oidc", code.api.OAuth2Login.OBPOIDC.wellKnownOpenidConfiguration.toURL.toString),
+              "keycloak" -> WellKnownUriJsonV510("keycloak", code.api.OAuth2Login.Keycloak.wellKnownOpenidConfiguration.toURL.toString)
+            )
+            val providersToShow: List[WellKnownUriJsonV510] = providerPropBox match {
+              case Empty => Nil
+              case Full(value) if value.trim.isEmpty => availableProviders.values.toList
+              case Full(value) =>
+                val wanted = value.split(",").map(_.trim.toLowerCase).filter(_.nonEmpty).toSet
+                if (wanted.contains("none")) Nil
+                else availableProviders.filterKeys(wanted.contains).values.toList
+              case _ => Nil
+            }
+            WellKnownUrisJsonV510(providersToShow)
+          }
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, "getOAuth2ServerWellKnown", "GET",
+      "/well-known", "Get Well Known URIs",
+      "Get the OAuth2 server's public Well Known URIs.",
+      EmptyBody, oAuth2ServerJwksUrisJson,
+      List(UnknownError), List(apiTagApi), None,
+      http4sPartialFunction = Some(getOAuth2ServerWellKnown)
+    )
+
+    val regulatedEntities: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "regulated-entities" =>
+        EndpointHelpers.executeFuture(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          for { (entities, _) <- getRegulatedEntitiesNewStyle(Some(cc)) }
+            yield createRegulatedEntitiesJson(entities)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(regulatedEntities), "GET",
+      "/regulated-entities", "Get Regulated Entities",
+      "Returns information about Regulated Entities.",
+      EmptyBody, regulatedEntitiesJsonV510,
+      List(UnknownError), apiTagDirectory :: apiTagApi :: Nil, None,
+      http4sPartialFunction = Some(regulatedEntities)
+    )
+
+    val getRegulatedEntityById: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "regulated-entities" / regulatedEntityId =>
+        EndpointHelpers.executeFuture(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          for { (entity, _) <- getRegulatedEntityByEntityIdNewStyle(regulatedEntityId, Some(cc)) }
+            yield createRegulatedEntityJson(entity)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getRegulatedEntityById), "GET",
+      "/regulated-entities/REGULATED_ENTITY_ID", "Get Regulated Entity",
+      "Get Regulated Entity By REGULATED_ENTITY_ID.",
+      EmptyBody, regulatedEntityJsonV510,
+      List(UnknownError), apiTagDirectory :: apiTagApi :: Nil, None,
+      http4sPartialFunction = Some(getRegulatedEntityById)
+    )
+
+    val createRegulatedEntity: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "regulated-entities" =>
+        EndpointHelpers.executeFutureCreated(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          val parsedBody = net.liftweb.json.parse(cc.httpBody.getOrElse(""))
+          val failMsg = s"$InvalidJsonFormat The Json body should be the $RegulatedEntityPostJsonV510 "
+          for {
+            postedData <- NewStyle.function.tryons(failMsg, 400, Some(cc)) {
+              parsedBody.extract[RegulatedEntityPostJsonV510]
+            }
+            servicesString <- NewStyle.function.tryons(s"$InvalidJsonFormat The `services` field is not valid JSON", 400, Some(cc)) {
+              prettyRender(postedData.services)
+            }
+            (entity, _) <- createRegulatedEntityNewStyle(
+              certificateAuthorityCaOwnerId = Some(postedData.certificate_authority_ca_owner_id),
+              entityCertificatePublicKey = Some(postedData.entity_certificate_public_key),
+              entityName = Some(postedData.entity_name),
+              entityCode = Some(postedData.entity_code),
+              entityType = Some(postedData.entity_type),
+              entityAddress = Some(postedData.entity_address),
+              entityTownCity = Some(postedData.entity_town_city),
+              entityPostCode = Some(postedData.entity_post_code),
+              entityCountry = Some(postedData.entity_country),
+              entityWebSite = Some(postedData.entity_web_site),
+              services = Some(servicesString),
+              Some(cc)
+            )
+          } yield createRegulatedEntityJson(entity)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(createRegulatedEntity), "POST",
+      "/regulated-entities", "Create Regulated Entity",
+      s"""Create Regulated Entity.
+         |
+         |${userAuthenticationMessage(true)}""",
+      regulatedEntityPostJsonV510, regulatedEntityJsonV510,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+      List(apiTagDirectory, apiTagApi),
+      Some(List(canCreateRegulatedEntity)),
+      http4sPartialFunction = Some(createRegulatedEntity)
+    )
+
+    val deleteRegulatedEntity: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ DELETE -> `prefixPath` / "regulated-entities" / regulatedEntityId =>
+        EndpointHelpers.executeFuture(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          for { (deleted, _) <- deleteRegulatedEntityNewStyle(regulatedEntityId, Some(cc)) }
+            yield Full(deleted)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(deleteRegulatedEntity), "DELETE",
+      "/regulated-entities/REGULATED_ENTITY_ID", "Delete Regulated Entity",
+      s"""Delete Regulated Entity specified by REGULATED_ENTITY_ID.
+         |
+         |${userAuthenticationMessage(true)}""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidConnectorResponse, UnknownError),
+      List(apiTagDirectory, apiTagApi),
+      Some(List(canDeleteRegulatedEntity)),
+      http4sPartialFunction = Some(deleteRegulatedEntity)
+    )
+
+    // ─── log-cache×6 (single helper) ───────────────────────────────────────
+
+    private def logCacheHandler(req: Request[IO], level: code.api.cache.RedisLogger.LogLevel.Value): IO[Response[IO]] =
+      EndpointHelpers.executeFuture(req) {
+        implicit val cc: code.api.util.CallContext = req.callContext
+        for {
+          httpParams <- NewStyle.function.extractHttpParamsFromUrl(req.uri.renderString)
+          (obpQueryParams, _) <- createQueriesByHttpParamsFuture(httpParams, Some(cc))
+          limit = obpQueryParams.collectFirst { case OBPLimit(value) => value }
+          offset = obpQueryParams.collectFirst { case OBPOffset(value) => value }
+          logs <- Future(code.api.cache.RedisLogger.getLogTail(level, limit, offset))
+        } yield logs
+      }
+
+    val logCacheTraceEndpoint: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "system" / "log-cache" / "trace" =>
+        logCacheHandler(req, code.api.cache.RedisLogger.LogLevel.TRACE)
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(logCacheTraceEndpoint), "GET",
+      "/system/log-cache/trace", "Get Trace Level Log Cache",
+      "Returns TRACE level logs from the system log cache.",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UnknownError),
+      apiTagSystem :: apiTagApi :: apiTagLogCache :: Nil,
+      Some(List(canGetSystemLogCacheTrace, canGetSystemLogCacheAll)),
+      http4sPartialFunction = Some(logCacheTraceEndpoint)
+    )
+
+    val logCacheDebugEndpoint: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "system" / "log-cache" / "debug" =>
+        logCacheHandler(req, code.api.cache.RedisLogger.LogLevel.DEBUG)
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(logCacheDebugEndpoint), "GET",
+      "/system/log-cache/debug", "Get Debug Level Log Cache",
+      "Returns DEBUG level logs from the system log cache.",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UnknownError),
+      apiTagSystem :: apiTagApi :: apiTagLogCache :: Nil,
+      Some(List(canGetSystemLogCacheDebug, canGetSystemLogCacheAll)),
+      http4sPartialFunction = Some(logCacheDebugEndpoint)
+    )
+
+    val logCacheInfoEndpoint: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "system" / "log-cache" / "info" =>
+        logCacheHandler(req, code.api.cache.RedisLogger.LogLevel.INFO)
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(logCacheInfoEndpoint), "GET",
+      "/system/log-cache/info", "Get Info Level Log Cache",
+      "Returns INFO level logs from the system log cache.",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UnknownError),
+      apiTagSystem :: apiTagApi :: apiTagLogCache :: Nil,
+      Some(List(canGetSystemLogCacheInfo, canGetSystemLogCacheAll)),
+      http4sPartialFunction = Some(logCacheInfoEndpoint)
+    )
+
+    val logCacheWarningEndpoint: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "system" / "log-cache" / "warning" =>
+        logCacheHandler(req, code.api.cache.RedisLogger.LogLevel.WARNING)
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(logCacheWarningEndpoint), "GET",
+      "/system/log-cache/warning", "Get Warning Level Log Cache",
+      "Returns WARNING level logs from the system log cache.",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UnknownError),
+      apiTagSystem :: apiTagApi :: apiTagLogCache :: Nil,
+      Some(List(canGetSystemLogCacheWarning, canGetSystemLogCacheAll)),
+      http4sPartialFunction = Some(logCacheWarningEndpoint)
+    )
+
+    val logCacheErrorEndpoint: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "system" / "log-cache" / "error" =>
+        logCacheHandler(req, code.api.cache.RedisLogger.LogLevel.ERROR)
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(logCacheErrorEndpoint), "GET",
+      "/system/log-cache/error", "Get Error Level Log Cache",
+      "Returns ERROR level logs from the system log cache.",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UnknownError),
+      apiTagSystem :: apiTagApi :: apiTagLogCache :: Nil,
+      Some(List(canGetSystemLogCacheError, canGetSystemLogCacheAll)),
+      http4sPartialFunction = Some(logCacheErrorEndpoint)
+    )
+
+    val logCacheAllEndpoint: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "system" / "log-cache" / "all" =>
+        logCacheHandler(req, code.api.cache.RedisLogger.LogLevel.ALL)
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(logCacheAllEndpoint), "GET",
+      "/system/log-cache/all", "Get All Level Log Cache",
+      "Returns logs of all levels from the system log cache.",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UnknownError),
+      apiTagSystem :: apiTagApi :: apiTagLogCache :: Nil,
+      Some(List(canGetSystemLogCacheAll)),
+      http4sPartialFunction = Some(logCacheAllEndpoint)
+    )
+
+    val waitingForGodot: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "waiting-for-godot" =>
+        EndpointHelpers.executeFuture(req) {
+          val sleep = req.uri.query.params.get("sleep").getOrElse("0")
+          val sleepInMillis: Long = scala.util.Try(sleep.trim.toLong).getOrElse(0L)
+          for { _ <- Future(Thread.sleep(sleepInMillis)) }
+            yield JSONFactory510.waitingForGodot(sleepInMillis)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(waitingForGodot), "GET",
+      "/waiting-for-godot", "Waiting For Godot",
+      "Postpones response by `?sleep=N` ms (default 0).",
+      EmptyBody, WaitingForGodotJsonV510(50),
+      List(UnknownError, MandatoryPropertyIsNotSet),
+      apiTagApi :: Nil, None,
+      http4sPartialFunction = Some(waitingForGodot)
+    )
+
+    val getAllApiCollections: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "management" / "api-collections" =>
+        EndpointHelpers.executeFuture(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          for { (apiCollections, _) <- NewStyle.function.getAllApiCollections(Some(cc)) }
+            yield JSONFactory400.createApiCollectionsJsonV400(apiCollections)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getAllApiCollections), "GET",
+      "/management/api-collections", "Get All API Collections",
+      s"""Get All API Collections.
+         |
+         |${userAuthenticationMessage(true)}""",
+      EmptyBody, apiCollectionsJson400,
+      List(UserHasMissingRoles, UnknownError),
+      List(apiTagApiCollection),
+      Some(canGetAllApiCollections :: Nil),
+      http4sPartialFunction = Some(getAllApiCollections)
+    )
+
+    // ─── ATM attributes (5) ────────────────────────────────────────────────
+
+    val createAtmAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "banks" / bankIdStr / "atms" / atmIdStr / "attributes" =>
+        EndpointHelpers.executeFutureCreated(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          val bankId = BankId(bankIdStr); val atmId = AtmId(atmIdStr)
+          for {
+            (_, _) <- NewStyle.function.getAtm(bankId, atmId, Some(cc))
+            postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $AtmAttributeJsonV510 ", 400, Some(cc)) {
+              net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[AtmAttributeJsonV510]
+            }
+            attrType <- NewStyle.function.tryons(
+              s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
+                s"${AtmAttributeType.DOUBLE}(12.1234), ${AtmAttributeType.STRING}(TAX_NUMBER), ${AtmAttributeType.INTEGER}(123) and ${AtmAttributeType.DATE_WITH_DAY}(2012-04-23)",
+              400, Some(cc)) { AtmAttributeType.withName(postedData.`type`) }
+            (atmAttribute, _) <- NewStyle.function.createOrUpdateAtmAttribute(
+              bankId, atmId, None, postedData.name, attrType, postedData.value, postedData.is_active, Some(cc))
+          } yield JSONFactory510.createAtmAttributeJson(atmAttribute)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(createAtmAttribute), "POST",
+      "/banks/BANK_ID/atms/ATM_ID/attributes", "Create ATM Attribute",
+      "Create ATM Attribute. The type field must be one of STRING/INTEGER/DOUBLE/DATE_WITH_DAY.",
+      atmAttributeJsonV510, atmAttributeResponseJsonV510,
+      List($AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat, UnknownError),
+      List(apiTagATM, apiTagAtmAttribute, apiTagAttribute),
+      Some(List(canCreateAtmAttribute, canCreateAtmAttributeAtAnyBank)),
+      http4sPartialFunction = Some(createAtmAttribute)
+    )
+
+    val getAtmAttributes: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / bankIdStr / "atms" / atmIdStr / "attributes" =>
+        EndpointHelpers.executeFuture(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          val bankId = BankId(bankIdStr); val atmId = AtmId(atmIdStr)
+          for {
+            (_, _) <- NewStyle.function.getAtm(bankId, atmId, Some(cc))
+            (attributes, _) <- NewStyle.function.getAtmAttributesByAtm(bankId, atmId, Some(cc))
+          } yield JSONFactory510.createAtmAttributesJson(attributes)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getAtmAttributes), "GET",
+      "/banks/BANK_ID/atms/ATM_ID/attributes", "Get ATM Attributes", "Get ATM Attributes.",
+      EmptyBody, atmAttributesResponseJsonV510,
+      List($AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat, UnknownError),
+      List(apiTagATM, apiTagAtmAttribute, apiTagAttribute),
+      Some(List(canGetAtmAttribute, canGetAtmAttributeAtAnyBank)),
+      http4sPartialFunction = Some(getAtmAttributes)
+    )
+
+    val getAtmAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / bankIdStr / "atms" / atmIdStr / "attributes" / atmAttributeId =>
+        EndpointHelpers.executeFuture(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          val bankId = BankId(bankIdStr); val atmId = AtmId(atmIdStr)
+          for {
+            (_, _) <- NewStyle.function.getAtm(bankId, atmId, Some(cc))
+            (attribute, _) <- NewStyle.function.getAtmAttributeById(atmAttributeId, Some(cc))
+          } yield JSONFactory510.createAtmAttributeJson(attribute)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getAtmAttribute), "GET",
+      "/banks/BANK_ID/atms/ATM_ID/attributes/ATM_ATTRIBUTE_ID", "Get ATM Attribute By ATM_ATTRIBUTE_ID",
+      "Get ATM Attribute By ATM_ATTRIBUTE_ID.",
+      EmptyBody, atmAttributeResponseJsonV510,
+      List($AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat, UnknownError),
+      List(apiTagATM, apiTagAtmAttribute, apiTagAttribute),
+      Some(List(canGetAtmAttribute, canGetAtmAttributeAtAnyBank)),
+      http4sPartialFunction = Some(getAtmAttribute)
+    )
+
+    val updateAtmAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ PUT -> `prefixPath` / "banks" / bankIdStr / "atms" / atmIdStr / "attributes" / atmAttributeId =>
+        EndpointHelpers.executeFuture(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          val bankId = BankId(bankIdStr); val atmId = AtmId(atmIdStr)
+          for {
+            (_, _) <- NewStyle.function.getAtm(bankId, atmId, Some(cc))
+            postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $AtmAttributeJsonV510 ", 400, Some(cc)) {
+              net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[AtmAttributeJsonV510]
+            }
+            attrType <- NewStyle.function.tryons(
+              s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
+                s"${AtmAttributeType.DOUBLE}(12.1234), ${AtmAttributeType.STRING}(TAX_NUMBER), ${AtmAttributeType.INTEGER}(123) and ${AtmAttributeType.DATE_WITH_DAY}(2012-04-23)",
+              400, Some(cc)) { AtmAttributeType.withName(postedData.`type`) }
+            (_, _) <- NewStyle.function.getAtmAttributeById(atmAttributeId, Some(cc))
+            (atmAttribute, _) <- NewStyle.function.createOrUpdateAtmAttribute(
+              bankId, atmId, Some(atmAttributeId), postedData.name, attrType, postedData.value, postedData.is_active, Some(cc))
+          } yield JSONFactory510.createAtmAttributeJson(atmAttribute)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(updateAtmAttribute), "PUT",
+      "/banks/BANK_ID/atms/ATM_ID/attributes/ATM_ATTRIBUTE_ID", "Update ATM Attribute",
+      "Update an ATM Attribute by its id.",
+      atmAttributeJsonV510, atmAttributeResponseJsonV510,
+      List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
+      List(apiTagATM, apiTagAtmAttribute, apiTagAttribute),
+      Some(List(canUpdateAtmAttribute, canUpdateAtmAttributeAtAnyBank)),
+      http4sPartialFunction = Some(updateAtmAttribute)
+    )
+
+    val deleteAtmAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ DELETE -> `prefixPath` / "banks" / bankIdStr / "atms" / atmIdStr / "attributes" / atmAttributeId =>
+        EndpointHelpers.withUserAndBankDelete(req) { (_, _, cc) =>
+          val bankId = BankId(bankIdStr); val atmId = AtmId(atmIdStr)
+          for {
+            (_, _) <- NewStyle.function.getAtm(bankId, atmId, Some(cc))
+            (deleted, _) <- NewStyle.function.deleteAtmAttribute(atmAttributeId, Some(cc))
+          } yield deleted
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(deleteAtmAttribute), "DELETE",
+      "/banks/BANK_ID/atms/ATM_ID/attributes/ATM_ATTRIBUTE_ID", "Delete ATM Attribute",
+      "Delete an ATM Attribute by its id.",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
+      List(apiTagATM, apiTagAtmAttribute, apiTagAttribute),
+      Some(List(canDeleteAtmAttribute, canDeleteAtmAttributeAtAnyBank)),
+      http4sPartialFunction = Some(deleteAtmAttribute)
+    )
+
+    // ─── Agents (4) ─────────────────────────────────────────────────────────
+
+    val createAgent: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "banks" / bankIdStr / "agents" =>
+        EndpointHelpers.executeFutureCreated(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          val bankId = BankId(bankIdStr)
+          for {
+            putData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostAgentJsonV510 ", 400, Some(cc)) {
+              net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[PostAgentJsonV510]
+            }
+            (available, _) <- NewStyle.function.checkAgentNumberAvailable(bankId, putData.agent_number, Some(cc))
+            _ <- Helper.booleanToFuture(s"$AgentNumberAlreadyExists Current agent_number(${putData.agent_number}) and Current bank_id(${bankId.value})", cc = Some(cc)) { available }
+            (agent, _) <- NewStyle.function.createAgent(bankId.value, putData.legal_name, putData.mobile_phone_number, putData.agent_number, Some(cc))
+            (bankAccount, _) <- NewStyle.function.createBankAccount(
+              bankId, AccountId(APIUtil.generateUUID()), "AGENT", "AGENT",
+              putData.currency, 0, putData.legal_name, null, Nil, Some(cc))
+            _ <- NewStyle.function.createAgentAccountLink(agent.agentId, bankAccount.bankId.value, bankAccount.accountId.value, Some(cc))
+          } yield JSONFactory510.createAgentJson(agent, bankAccount)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(createAgent), "POST",
+      "/banks/BANK_ID/agents", "Create Agent",
+      s"${userAuthenticationMessage(true)}",
+      postAgentJsonV510, agentJsonV510,
+      List($AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat, AgentNumberAlreadyExists, CreateAgentError, UnknownError),
+      List(apiTagCustomer, apiTagPerson),
+      None,
+      http4sPartialFunction = Some(createAgent)
+    )
+
+    // updateAgentStatus intentionally left to Lift: AgentTest "wrong Bankid" expects
+    // 404 BankNotFound for unauthorised user1, which means Lift's wrappedWithAuthCheck
+    // role check passes here even though user1 lacks
+    // canUpdateAgentStatusAtAnyBank/canUpdateAgentStatusAtOneBank. ResourceDocMiddleware
+    // applies the same access-control function (with JIT entitlements) and returns 403
+    // — i.e. it's the strict reading of the doc roles. Leaving updateAgentStatus in
+    // Lift preserves the established test contract until the discrepancy is
+    // root-caused (suspect: the Lift test environment has additional entitlements
+    // wired in before this scenario via class-level or default-user fixtures).
+
+    val getAgent: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / bankIdStr / "agents" / agentId =>
+        EndpointHelpers.executeFuture(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          for {
+            (agent, _) <- NewStyle.function.getAgentByAgentId(agentId, Some(cc))
+            (links, _) <- NewStyle.function.getAgentAccountLinksByAgentId(agentId, Some(cc))
+            link <- NewStyle.function.tryons(AgentAccountLinkNotFound, 400, Some(cc)) { links.head }
+            (bankAccount, _) <- NewStyle.function.getBankAccount(BankId(link.bankId), AccountId(link.accountId), Some(cc))
+          } yield JSONFactory510.createAgentJson(agent, bankAccount)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getAgent), "GET",
+      "/banks/BANK_ID/agents/AGENT_ID", "Get Agent",
+      s"Get Agent.\n\n${userAuthenticationMessage(true)}",
+      EmptyBody, agentJsonV510,
+      List($AuthenticatedUserIsRequired, $BankNotFound, AgentNotFound, AgentAccountLinkNotFound, UnknownError),
+      List(apiTagAccount),
+      None,
+      http4sPartialFunction = Some(getAgent)
+    )
+
+    val getAgents: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / bankIdStr / "agents" =>
+        EndpointHelpers.executeFuture(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          val bankId = BankId(bankIdStr)
+          for {
+            (requestParams, _) <- NewStyle.function.extractQueryParams(req.uri.renderString, List("limit", "offset", "sort_direction"), Some(cc))
+            (agents, _) <- NewStyle.function.getAgents(bankId.value, requestParams, Some(cc))
+          } yield JSONFactory510.createMinimalAgentsJson(agents)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getAgents), "GET",
+      "/banks/BANK_ID/agents", "Get Agents at Bank",
+      s"Get Agents at Bank.\n\n${userAuthenticationMessage(false)}",
+      EmptyBody, minimalAgentsJsonV510,
+      List($BankNotFound, AgentsNotFound, UnknownError),
+      List(apiTagAccount),
+      None,
+      http4sPartialFunction = Some(getAgents)
+    )
+
+    // ─── Regulated entity attributes (5) ───────────────────────────────────
+
+    val createRegulatedEntityAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "regulated-entities" / entityIdStr / "attributes" =>
+        EndpointHelpers.executeFutureCreated(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          for {
+            postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $RegulatedEntityAttributeRequestJsonV510 ", 400, Some(cc)) {
+              net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[RegulatedEntityAttributeRequestJsonV510]
+            }
+            attrType <- NewStyle.function.tryons(
+              s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
+                s"${RegulatedEntityAttributeType.DOUBLE}(12.1234), ${RegulatedEntityAttributeType.STRING}(TAX_NUMBER), ${RegulatedEntityAttributeType.INTEGER}(123) and ${RegulatedEntityAttributeType.DATE_WITH_DAY}(2012-04-23)",
+              400, Some(cc)) { RegulatedEntityAttributeType.withName(postedData.attribute_type) }
+            (attribute, _) <- RegulatedEntityAttributeNewStyle.createOrUpdateRegulatedEntityAttribute(
+              regulatedEntityId = RegulatedEntityId(entityIdStr),
+              regulatedEntityAttributeId = None,
+              name = postedData.name, attributeType = attrType,
+              value = postedData.value, isActive = postedData.is_active,
+              callContext = Some(cc))
+          } yield JSONFactory510.createRegulatedEntityAttributeJson(attribute)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(createRegulatedEntityAttribute), "POST",
+      "/regulated-entities/REGULATED_ENTITY_ID/attributes", "Create Regulated Entity Attribute",
+      "Create a new Regulated Entity Attribute. Type must be STRING/INTEGER/DOUBLE/DATE_WITH_DAY.",
+      regulatedEntityAttributeRequestJsonV510, regulatedEntityAttributeResponseJsonV510,
+      List($AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
+      List(apiTagDirectory, apiTagApi),
+      Some(List(canCreateRegulatedEntityAttribute)),
+      http4sPartialFunction = Some(createRegulatedEntityAttribute)
+    )
+
+    val deleteRegulatedEntityAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ DELETE -> `prefixPath` / "regulated-entities" / entityIdStr / "attributes" / attributeId =>
+        EndpointHelpers.withUserDelete(req) { (_, cc) =>
+          for {
+            (_, _) <- getRegulatedEntityByEntityIdNewStyle(entityIdStr, Some(cc))
+            (deleted, _) <- RegulatedEntityAttributeNewStyle.deleteRegulatedEntityAttribute(attributeId, Some(cc))
+          } yield deleted
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(deleteRegulatedEntityAttribute), "DELETE",
+      "/regulated-entities/REGULATED_ENTITY_ID/attributes/REGULATED_ENTITY_ATTRIBUTE_ID",
+      "Delete Regulated Entity Attribute",
+      "Delete a Regulated Entity Attribute.",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UnknownError),
+      List(apiTagDirectory, apiTagApi),
+      Some(List(canDeleteRegulatedEntityAttribute)),
+      http4sPartialFunction = Some(deleteRegulatedEntityAttribute)
+    )
+
+    val getRegulatedEntityAttributeById: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "regulated-entities" / entityIdStr / "attributes" / attributeId =>
+        EndpointHelpers.executeFuture(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          for {
+            (_, _) <- getRegulatedEntityByEntityIdNewStyle(entityIdStr, Some(cc))
+            (attribute, _) <- RegulatedEntityAttributeNewStyle.getRegulatedEntityAttributeById(attributeId, Some(cc))
+          } yield JSONFactory510.createRegulatedEntityAttributeJson(attribute)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getRegulatedEntityAttributeById), "GET",
+      "/regulated-entities/REGULATED_ENTITY_ID/attributes/REGULATED_ENTITY_ATTRIBUTE_ID",
+      "Get Regulated Entity Attribute By ID", "Get a specific Regulated Entity Attribute by its ID.",
+      EmptyBody, regulatedEntityAttributeResponseJsonV510,
+      List($AuthenticatedUserIsRequired, UnknownError),
+      List(apiTagDirectory, apiTagApi),
+      Some(List(canGetRegulatedEntityAttribute)),
+      http4sPartialFunction = Some(getRegulatedEntityAttributeById)
+    )
+
+    val getAllRegulatedEntityAttributes: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "regulated-entities" / entityIdStr / "attributes" =>
+        EndpointHelpers.executeFuture(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          val entityId = RegulatedEntityId(entityIdStr)
+          for {
+            (_, _) <- getRegulatedEntityByEntityIdNewStyle(entityIdStr, Some(cc))
+            (attributes, _) <- RegulatedEntityAttributeNewStyle.getRegulatedEntityAttributes(entityId, Some(cc))
+          } yield JSONFactory510.createRegulatedEntityAttributesJson(attributes)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getAllRegulatedEntityAttributes), "GET",
+      "/regulated-entities/REGULATED_ENTITY_ID/attributes", "Get All Regulated Entity Attributes",
+      "Get all attributes for the specified Regulated Entity.",
+      EmptyBody, regulatedEntityAttributesJsonV510,
+      List($AuthenticatedUserIsRequired, UnknownError),
+      List(apiTagDirectory, apiTagApi),
+      Some(List(canGetRegulatedEntityAttributes)),
+      http4sPartialFunction = Some(getAllRegulatedEntityAttributes)
+    )
+
+    val updateRegulatedEntityAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ PUT -> `prefixPath` / "regulated-entities" / entityIdStr / "attributes" / attributeId =>
+        EndpointHelpers.executeFuture(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          for {
+            postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $RegulatedEntityAttributeRequestJsonV510 ", 400, Some(cc)) {
+              net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[RegulatedEntityAttributeRequestJsonV510]
+            }
+            attrType <- NewStyle.function.tryons(
+              s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
+                s"${RegulatedEntityAttributeType.DOUBLE}(12.1234), ${RegulatedEntityAttributeType.STRING}(TAX_NUMBER), ${RegulatedEntityAttributeType.INTEGER}(123) and ${RegulatedEntityAttributeType.DATE_WITH_DAY}(2012-04-23)",
+              400, Some(cc)) { RegulatedEntityAttributeType.withName(postedData.attribute_type) }
+            (_, _) <- getRegulatedEntityByEntityIdNewStyle(entityIdStr, Some(cc))
+            (updated, _) <- RegulatedEntityAttributeNewStyle.createOrUpdateRegulatedEntityAttribute(
+              regulatedEntityId = RegulatedEntityId(entityIdStr),
+              regulatedEntityAttributeId = Some(attributeId),
+              name = postedData.name, attributeType = attrType,
+              value = postedData.value, isActive = postedData.is_active,
+              callContext = Some(cc))
+          } yield JSONFactory510.createRegulatedEntityAttributeJson(updated)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(updateRegulatedEntityAttribute), "PUT",
+      "/regulated-entities/REGULATED_ENTITY_ID/attributes/REGULATED_ENTITY_ATTRIBUTE_ID",
+      "Update Regulated Entity Attribute", "Update an existing Regulated Entity Attribute.",
+      regulatedEntityAttributeRequestJsonV510, regulatedEntityAttributeResponseJsonV510,
+      List($AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
+      List(apiTagDirectory, apiTagApi),
+      Some(List(canUpdateRegulatedEntityAttribute)),
+      http4sPartialFunction = Some(updateRegulatedEntityAttribute)
+    )
+
+    // ─── mtls / api-collection / api-tags / metrics / webui-props (5) ─────
+
+    val mtlsClientCertificateInfo: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "my" / "mtls" / "certificate" / "current" =>
+        EndpointHelpers.executeFuture(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          for {
+            info <- Future(X509.getCertificateInfo(APIUtil.`getPSD2-CERT`(cc.requestHeaders)))
+              .map(unboxFullOrFail(_, Some(cc), X509GeneralError))
+          } yield info
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(mtlsClientCertificateInfo), "GET",
+      "/my/mtls/certificate/current", "Provide client's certificate info of a current call",
+      "Provide client's certificate info of a current call specified by PSD2-CERT request header.",
+      EmptyBody, certificateInfoJsonV510,
+      List(AuthenticatedUserIsRequired, BankNotFound, UnknownError),
+      List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2),
+      None,
+      http4sPartialFunction = Some(mtlsClientCertificateInfo)
+    )
+
+    val updateMyApiCollection: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ PUT -> `prefixPath` / "my" / "api-collections" / apiCollectionId =>
+        EndpointHelpers.executeFuture(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          for {
+            putJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ${classOf[code.api.v4_0_0.PostApiCollectionJson400].getSimpleName}", 400, Some(cc)) {
+              net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[code.api.v4_0_0.PostApiCollectionJson400]
+            }
+            (_, _) <- NewStyle.function.getApiCollectionById(apiCollectionId, Some(cc))
+            (apiCollection, _) <- NewStyle.function.updateApiCollection(
+              apiCollectionId, putJson.api_collection_name, putJson.is_sharable, putJson.description.getOrElse(""), Some(cc))
+          } yield JSONFactory400.createApiCollectionJsonV400(apiCollection)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(updateMyApiCollection), "PUT",
+      "/my/api-collections/API_COLLECTION_ID", "Update My Api Collection By API_COLLECTION_ID",
+      s"Update Api Collection for logged in user.\n\n${userAuthenticationMessage(true)}",
+      postApiCollectionJson400, apiCollectionJson400,
+      List($AuthenticatedUserIsRequired, InvalidJsonFormat, UserNotFoundByUserId, UnknownError),
+      List(apiTagApiCollection),
+      None,
+      http4sPartialFunction = Some(updateMyApiCollection)
+    )
+
+    val getApiTags: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "tags" =>
+        EndpointHelpers.executeFuture(req) {
+          Future.successful(code.api.v5_1_0.APITags(code.api.util.ApiTag.allDisplayTagNames.toList))
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getApiTags), "GET",
+      "/tags", "Get API Tags",
+      s"Get API Tags.\n\n${userAuthenticationMessage(false)}",
+      EmptyBody, accountsMinimalJson400,
+      List(UnknownError), List(apiTagApi), None,
+      http4sPartialFunction = Some(getApiTags)
+    )
+
+    val getMetrics: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "management" / "metrics" =>
+        EndpointHelpers.executeFuture(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          for {
+            httpParams <- NewStyle.function.extractHttpParamsFromUrl(req.uri.renderString)
+            (obpQueryParams, _) <- createQueriesByHttpParamsFuture(httpParams, Some(cc))
+            metrics <- Future(APIMetrics.apiMetrics.vend.getAllMetrics(obpQueryParams))
+          } yield JSONFactory510.createMetricsJson(metrics)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getMetrics), "GET",
+      "/management/metrics", "Get Metrics",
+      "Get API metrics rows. Requires CanReadMetrics role.",
+      EmptyBody, metricsJsonV510,
+      List(AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      List(apiTagMetric, apiTagApi),
+      Some(List(canReadMetrics)),
+      http4sPartialFunction = Some(getMetrics)
+    )
+
+    val getWebUiProps: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "webui-props" =>
+        EndpointHelpers.executeFuture(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          val active = req.uri.query.params.get("active").getOrElse("false")
+          for {
+            invalidMsg <- Future.successful(s"$InvalidFilterParameterFormat `active` must be a boolean, but current `active` value is: $active ")
+            isActive <- NewStyle.function.tryons(invalidMsg, 400, Some(cc)) { active.toBoolean }
+            explicitWebUiProps <- Future { MappedWebUiPropsProvider.getAll() }
+            implicitDeduped = if (isActive) {
+              val implicitProps = APIUtil.getWebUIPropsPairs.map(p => WebUiPropsCommons(p._1, p._2, webUiPropsId = Some("default")))
+              if (explicitWebUiProps.nonEmpty) {
+                val dups: List[WebUiPropsCommons] = explicitWebUiProps.flatMap(e => implicitProps.filter(_.name == e.name))
+                implicitProps diff dups
+              } else implicitProps.distinct
+            } else List.empty[WebUiPropsCommons]
+          } yield ListResult("webui_props", explicitWebUiProps ++ implicitDeduped)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getWebUiProps), "GET",
+      "/webui-props", "Get WebUiProps",
+      "Get all WebUiProps key/values. ?active=true also includes implicit (default) props.",
+      EmptyBody,
+      ListResult("webui-props", List(WebUiPropsCommons("webui_api_explorer_url", "https://apiexplorer.openbankproject.com", Some("web-ui-props-id")))),
+      List(UserHasMissingRoles, UnknownError),
+      List(apiTagWebUiProps),
+      None,
+      http4sPartialFunction = Some(getWebUiProps)
+    )
+
     val allRoutes: HttpRoutes[IO] =
       Kleisli[HttpF, Request[IO], Response[IO]] { req: Request[IO] =>
         root(req)
@@ -499,6 +1257,38 @@ object Http4s510 {
           .orElse(getTransactionRequests(req))
           .orElse(getBankAccountsBalances(req))
           .orElse(getAllBankAccountBalances(req))
+          .orElse(suggestedSessionTimeout(req))
+          .orElse(getOAuth2ServerWellKnown(req))
+          .orElse(regulatedEntities(req))
+          .orElse(getRegulatedEntityById(req))
+          .orElse(createRegulatedEntity(req))
+          .orElse(deleteRegulatedEntity(req))
+          .orElse(logCacheTraceEndpoint(req))
+          .orElse(logCacheDebugEndpoint(req))
+          .orElse(logCacheInfoEndpoint(req))
+          .orElse(logCacheWarningEndpoint(req))
+          .orElse(logCacheErrorEndpoint(req))
+          .orElse(logCacheAllEndpoint(req))
+          .orElse(waitingForGodot(req))
+          .orElse(getAllApiCollections(req))
+          .orElse(createAtmAttribute(req))
+          .orElse(getAtmAttributes(req))
+          .orElse(getAtmAttribute(req))
+          .orElse(updateAtmAttribute(req))
+          .orElse(deleteAtmAttribute(req))
+          .orElse(createAgent(req))
+          .orElse(getAgent(req))
+          .orElse(getAgents(req))
+          .orElse(createRegulatedEntityAttribute(req))
+          .orElse(deleteRegulatedEntityAttribute(req))
+          .orElse(getRegulatedEntityAttributeById(req))
+          .orElse(getAllRegulatedEntityAttributes(req))
+          .orElse(updateRegulatedEntityAttribute(req))
+          .orElse(mtlsClientCertificateInfo(req))
+          .orElse(updateMyApiCollection(req))
+          .orElse(getApiTags(req))
+          .orElse(getMetrics(req))
+          .orElse(getWebUiProps(req))
       }
 
     val allRoutesWithMiddleware: HttpRoutes[IO] =
