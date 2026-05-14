@@ -15,12 +15,13 @@ import code.api.util.http4s.ResourceDocMiddleware
 import code.api.util.newstyle.{BalanceNewStyle, RegulatedEntityAttributeNewStyle, ViewNewStyle}
 import code.api.util.newstyle.RegulatedEntityNewStyle.{createRegulatedEntityNewStyle, deleteRegulatedEntityNewStyle, getRegulatedEntitiesNewStyle, getRegulatedEntityByEntityIdNewStyle}
 import code.api.util.newstyle.Consumer.createConsumerNewStyle
-import code.api.util.{APIUtil, ConsentJWT, CustomJsonFormats, JwtUtil, NewStyle, OBPBankId, OBPLimit, OBPOffset, OBPSortBy, X509}
+import code.api.util.{APIUtil, Consent, ConsentJWT, CustomJsonFormats, JwtUtil, NewStyle, OBPBankId, OBPLimit, OBPOffset, OBPSortBy, SecureRandomUtil, X509}
 import code.api.v2_0_0.AccountsHelper
 import code.api.v2_1_0.{ConsumerRedirectUrlJSON, JSONFactory210}
 import code.api.v3_0_0.JSONFactory300
 import code.api.v3_0_0.JSONFactory300.createAggregateMetricJson
-import code.api.v3_1_0.{JSONFactory310, PostConsentBodyCommonJson, PostConsentEntitlementJsonV310, PostConsentViewJsonV310}
+import code.api.v3_1_0.{ConsentChallengeJsonV310, ConsentJsonV310, JSONFactory310, PostConsentBodyCommonJson, PostConsentEmailJsonV310, PostConsentEntitlementJsonV310, PostConsentImplicitJsonV310, PostConsentPhoneJsonV310, PostConsentViewJsonV310}
+import code.api.v4_0_0.{PutConsentStatusJsonV400, PutConsentUserJsonV400}
 import code.api.v3_1_0.JSONFactory310.{createBadLoginStatusJson, createConsumerJSON}
 import code.api.v4_0_0.JSONFactory400
 import code.api.v4_0_0.JSONFactory400.{createAccountBalancesJson, createBalancesJson, createNewCoreBankAccountJson}
@@ -47,11 +48,12 @@ import code.webuiprops.{MappedWebUiPropsProvider, WebUiPropsCommons}
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.{
-  AccountId, AccountRouting, AtmId, AtmT, BalanceId, Bank, BankAccount, BankId,
-  BankIdAccountId, CounterpartyId, CustomerId, ListResult, ProductCode,
+  AccountId, AccountRouting, AccountRoutingJsonV121, AtmId, AtmT, BalanceId,
+  Bank, BankAccount, BankAccountRoutings, BankId, BankIdAccountId, BankRoutingJson,
+  BranchRoutingJsonV141, CounterpartyId, CustomerId, ListResult, ProductCode,
   RegulatedEntityId, TransactionRequestId, User, View, ViewId
 }
-import com.openbankproject.commons.model.enums.{AtmAttributeType, RegulatedEntityAttributeType, StrongCustomerAuthentication, TransactionRequestStatus, UserAttributeType}
+import com.openbankproject.commons.model.enums.{AtmAttributeType, ConsentType, RegulatedEntityAttributeType, StrongCustomerAuthentication, TransactionRequestStatus, UserAttributeType}
 import com.openbankproject.commons.util.{ApiVersion, ApiVersionStatus, ScannedApiVersion}
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.json
@@ -2589,6 +2591,505 @@ object Http4s510 {
       http4sPartialFunction = Some(deleteSystemViewPermission)
     )
 
+    // ─── Consents family (12) ─────────────────────────────────────────────
+
+    val updateConsentStatusByConsent: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ PUT -> `prefixPath` / "management" / "banks" / _ / "consents" / consentId =>
+        EndpointHelpers.executeFuture(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          for {
+            consentJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PutConsentStatusJsonV400 ", 400, Some(cc)) {
+              net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[PutConsentStatusJsonV400]
+            }
+            _ <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId))
+              .map(unboxFullOrFail(_, Some(cc), s"$ConsentNotFound ($consentId)", 404))
+            status = ConsentStatus.withName(consentJson.status)
+            consent <- Future(Consents.consentProvider.vend.updateConsentStatus(consentId, status))
+              .map(i => connectorEmptyResponse(i, Some(cc)))
+          } yield ConsentJsonV310(consent.consentId, consent.jsonWebToken, consent.status)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(updateConsentStatusByConsent), "PUT",
+      "/management/banks/BANK_ID/consents/CONSENT_ID", "Update Consent Status by CONSENT_ID",
+      s"Update the Status of a Consent. States: ${ConsentStatus.values.toList.sorted.mkString(", ")}.",
+      PutConsentStatusJsonV400(status = "AUTHORISED"),
+      ConsentChallengeJsonV310(consent_id = "9d429899-24f5-42c8-8565-943ffa6a7945", jwt = "", status = "AUTHORISED"),
+      List($AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat, ConsentNotFound, InvalidConnectorResponse, UnknownError),
+      apiTagConsent :: apiTagPSD2AIS :: Nil,
+      Some(List(canUpdateConsentStatusAtOneBank, canUpdateConsentStatusAtAnyBank)),
+      http4sPartialFunction = Some(updateConsentStatusByConsent)
+    )
+
+    val updateConsentAccountAccessByConsentId: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ PUT -> `prefixPath` / "management" / "banks" / _ / "consents" / consentId / "account-access" =>
+        EndpointHelpers.executeFuture(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          for {
+            consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId))
+              .map(unboxFullOrFail(_, Some(cc), s"$ConsentNotFound ($consentId)", 404))
+            consentJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PutConsentPayloadJsonV510 ", 400, Some(cc)) {
+              net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[PutConsentPayloadJsonV510]
+            }
+            _ <- Helper.booleanToFuture(s"$InvalidJsonFormat The Json body should be the $PutConsentPayloadJsonV510 ", 400, Some(cc)) {
+              !(consentJson.access.accounts.isEmpty && consentJson.access.balances.isEmpty && consentJson.access.transactions.isEmpty)
+            }
+            consentJWT <- Consent.updateAccountAccessOfBerlinGroupConsentJWT(consentJson.access, consent, Some(cc))
+              .map(i => connectorEmptyResponse(i, Some(cc)))
+            updatedConsent <- Future(Consents.consentProvider.vend.setJsonWebToken(consent.consentId, consentJWT))
+              .map(i => connectorEmptyResponse(i, Some(cc)))
+          } yield ConsentJsonV310(updatedConsent.consentId, updatedConsent.jsonWebToken, updatedConsent.status)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(updateConsentAccountAccessByConsentId), "PUT",
+      "/management/banks/BANK_ID/consents/CONSENT_ID/account-access", "Update Consent Account Access by CONSENT_ID",
+      "Update the Account Access of a Consent.",
+      PutConsentPayloadJsonV510(access = code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.ConsentAccessJson()),
+      ConsentChallengeJsonV310(consent_id = "9d429899-24f5-42c8-8565-943ffa6a7945", jwt = "", status = "AUTHORISED"),
+      List($AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat, ConsentNotFound, InvalidConnectorResponse, UnknownError),
+      apiTagConsent :: apiTagPSD2AIS :: Nil,
+      Some(List(canUpdateConsentAccountAccessAtOneBank, canUpdateConsentAccountAccessAtAnyBank)),
+      http4sPartialFunction = Some(updateConsentAccountAccessByConsentId)
+    )
+
+    val updateConsentUserIdByConsentId: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ PUT -> `prefixPath` / "management" / "banks" / _ / "consents" / consentId / "created-by-user" =>
+        EndpointHelpers.executeFuture(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          for {
+            consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId))
+              .map(unboxFullOrFail(_, Some(cc), s"$ConsentNotFound ($consentId)", 404))
+            consentJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PutConsentUserJsonV400 ", 400, Some(cc)) {
+              net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[PutConsentUserJsonV400]
+            }
+            user <- Users.users.vend.getUserByUserIdFuture(consentJson.user_id)
+              .map(x => unboxFullOrFail(x, Some(cc), s"$UserNotFoundByUserId Current UserId(${consentJson.user_id})"))
+            consent2 <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId))
+              .map(i => connectorEmptyResponse(i, Some(cc)))
+            _ <- Helper.booleanToFuture(ConsentUserAlreadyAdded, cc = Some(cc)) {
+              Option(consent2.userId).forall(_.isBlank)
+            }
+            consent3 <- Future(Consents.consentProvider.vend.updateConsentUser(consentId, user))
+              .map(i => connectorEmptyResponse(i, Some(cc)))
+            consentJWT <- Future(Consent.updateUserIdOfBerlinGroupConsentJWT(consentJson.user_id, consent3, Some(cc)))
+              .map(i => connectorEmptyResponse(i, Some(cc)))
+            updatedConsent <- Future(Consents.consentProvider.vend.setJsonWebToken(consent3.consentId, consentJWT))
+              .map(i => connectorEmptyResponse(i, Some(cc)))
+          } yield ConsentJsonV310(updatedConsent.consentId, updatedConsent.jsonWebToken, updatedConsent.status)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(updateConsentUserIdByConsentId), "PUT",
+      "/management/banks/BANK_ID/consents/CONSENT_ID/created-by-user", "Update Created by User of Consent by CONSENT_ID",
+      "Update the User bound to a consent.",
+      PutConsentUserJsonV400(user_id = "ed7a7c01-db37-45cc-ba12-0ae8891c195c"),
+      ConsentChallengeJsonV310(consent_id = "9d429899-24f5-42c8-8565-943ffa6a7945", jwt = "", status = "AUTHORISED"),
+      List($AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat, ConsentNotFound, InvalidConnectorResponse, UnknownError),
+      apiTagConsent :: apiTagPSD2AIS :: Nil,
+      Some(List(canUpdateConsentUserAtOneBank, canUpdateConsentUserAtAnyBank)),
+      http4sPartialFunction = Some(updateConsentUserIdByConsentId)
+    )
+
+    val getMyConsents: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "my" / "consents" =>
+        EndpointHelpers.executeFuture(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          val params = req.uri.query.multiParams
+          val limitParam = params.get("limit").flatMap(_.headOption).flatMap(s => scala.util.Try(s.toInt).toOption).getOrElse(50)
+          val offsetParam = params.get("offset").flatMap(_.headOption).flatMap(s => scala.util.Try(s.toInt).toOption).getOrElse(0)
+          val statusParam = params.get("status").flatMap(_.headOption)
+          val sortByParam = params.get("sort_by").flatMap(_.headOption).getOrElse("created_date:desc")
+          val sortParts = sortByParam.split(":").map(_.trim.toLowerCase)
+          val sortField = sortParts(0)
+          val sortDirection = sortParts.lift(1).getOrElse("desc")
+          for {
+            user <- Future.successful(cc.user.openOrThrowException(AuthenticatedUserIsRequired))
+            rows <- Future {
+              code.consent.DoobieConsentQueries.getConsentsByUser(
+                userId = user.userId, status = statusParam,
+                limit = limitParam, offset = offsetParam,
+                sortField = sortField, sortDirection = sortDirection)
+            }
+          } yield ConsentsInfoJsonV510(rows.map(Implementations5_1_0.rowToConsentInfoJsonV510))
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getMyConsents), "GET",
+      "/my/consents", "Get My Consents",
+      "Get All Consents that the current User created.",
+      EmptyBody, consentsInfoJsonV510,
+      List($AuthenticatedUserIsRequired, UnknownError),
+      List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2),
+      None,
+      http4sPartialFunction = Some(getMyConsents)
+    )
+
+    val getConsentsAtBank: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "management" / "consents" / "banks" / bankIdStr =>
+        EndpointHelpers.executeFuture(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          val bankId = BankId(bankIdStr)
+          for {
+            httpParams <- NewStyle.function.extractHttpParamsFromUrl(req.uri.renderString)
+            (obpQueryParams, _) <- createQueriesByHttpParamsFuture(httpParams, Some(cc))
+            (consents, totalPages) <- Future(Consents.consentProvider.vend.getConsents(obpQueryParams))
+          } yield {
+            val consentsOfBank = Consent.filterByBankId(consents, bankId)
+            createConsentsJsonV510(consentsOfBank, totalPages)
+          }
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getConsentsAtBank), "GET",
+      "/management/consents/banks/BANK_ID", "Get Consents at Bank",
+      "Gets the Consents at the specified Bank.",
+      EmptyBody, consentsJsonV510,
+      List($AuthenticatedUserIsRequired, $BankNotFound, UnknownError),
+      List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2),
+      Some(List(canGetConsentsAtOneBank, canGetConsentsAtAnyBank)),
+      http4sPartialFunction = Some(getConsentsAtBank)
+    )
+
+    val getConsents: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "management" / "consents" =>
+        EndpointHelpers.executeFuture(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          for {
+            httpParams <- NewStyle.function.extractHttpParamsFromUrl(req.uri.renderString)
+            (obpQueryParams, _) <- createQueriesByHttpParamsFuture(httpParams, Some(cc))
+            (consents, totalPages) <- Future(Consents.consentProvider.vend.getConsents(obpQueryParams))
+          } yield createConsentsJsonV510(consents, totalPages)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getConsents), "GET",
+      "/management/consents", "Get Consents",
+      "Gets the Consents.",
+      EmptyBody, consentsJsonV510,
+      List($AuthenticatedUserIsRequired, $BankNotFound, UnknownError),
+      List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2),
+      Some(List(canGetConsentsAtAnyBank)),
+      http4sPartialFunction = Some(getConsents)
+    )
+
+    val getConsentByConsentId: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "user" / "current" / "consents" / consentId =>
+        EndpointHelpers.executeFuture(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          for {
+            consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId))
+              .map(unboxFullOrFail(_, Some(cc), ConsentNotFound, 404))
+            _ <- Helper.booleanToFuture(failMsg = ConsentNotFound, failCode = 404, cc = Some(cc)) {
+              consent.mUserId == cc.userId
+            }
+          } yield JSONFactory510.getConsentInfoJson(consent)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getConsentByConsentId), "GET",
+      "/user/current/consents/CONSENT_ID", "Get Consent By Consent Id via User",
+      "Gets the Consent specified by CONSENT_ID belonging to the current User.",
+      EmptyBody, consentJsonV510,
+      List($AuthenticatedUserIsRequired, UnknownError),
+      List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2),
+      None,
+      http4sPartialFunction = Some(getConsentByConsentId)
+    )
+
+    val getConsentByConsentIdViaConsumer: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "consumer" / "current" / "consents" / consentId =>
+        EndpointHelpers.executeFuture(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          for {
+            consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId))
+              .map(unboxFullOrFail(_, Some(cc), ConsentNotFound, 404))
+            _ <- Helper.booleanToFuture(failMsg = ConsentNotFound, failCode = 404, cc = Some(cc)) {
+              consent.mConsumerId.get == cc.consumer.map(_.consumerId.get).getOrElse("None")
+            }
+          } yield JSONFactory510.getConsentInfoJson(consent)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getConsentByConsentIdViaConsumer), "GET",
+      "/consumer/current/consents/CONSENT_ID", "Get Consent By Consent Id via Consumer",
+      "Gets the Consent specified by CONSENT_ID belonging to the current Consumer.",
+      EmptyBody, consentJsonV500,
+      List($AuthenticatedUserIsRequired, UnknownError),
+      List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2),
+      None,
+      http4sPartialFunction = Some(getConsentByConsentIdViaConsumer)
+    )
+
+    val revokeConsentAtBank: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ DELETE -> `prefixPath` / "banks" / bankIdStr / "consents" / consentId =>
+        EndpointHelpers.executeFuture(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          val bankId = BankId(bankIdStr)
+          for {
+            user <- Future.successful(cc.user.openOrThrowException(AuthenticatedUserIsRequired))
+            (_, _) <- NewStyle.function.getBank(bankId, Some(cc))
+            consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId))
+              .map(unboxFullOrFail(_, Some(cc), ConsentNotFound))
+            _ <- Helper.booleanToFuture(failMsg = ConsentNotFound, cc = Some(cc)) {
+              consent.mUserId == user.userId
+            }
+            revoked <- Future(Consents.consentProvider.vend.revoke(consentId))
+              .map(i => connectorEmptyResponse(i, Some(cc)))
+          } yield ConsentJsonV310(revoked.consentId, revoked.jsonWebToken, revoked.status)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(revokeConsentAtBank), "DELETE",
+      "/banks/BANK_ID/consents/CONSENT_ID", "Revoke Consent at Bank",
+      "Revoke Consent specified by CONSENT_ID.",
+      EmptyBody, revokedConsentJsonV310,
+      List(AuthenticatedUserIsRequired, BankNotFound, UnknownError),
+      List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2),
+      Some(List(canRevokeConsentAtBank)),
+      http4sPartialFunction = Some(revokeConsentAtBank)
+    )
+
+    val selfRevokeConsent: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ DELETE -> `prefixPath` / "my" / "consent" / "current" =>
+        EndpointHelpers.executeFuture(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          for {
+            _ <- Future.successful(cc.user.openOrThrowException(AuthenticatedUserIsRequired))
+            consentId = APIUtil.getConsentIdRequestHeaderValue(cc.requestHeaders).getOrElse("")
+            _ <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId))
+              .map(unboxFullOrFail(_, Some(cc), ConsentNotFound, 404))
+            consent <- Future(Consents.consentProvider.vend.revoke(consentId))
+              .map(i => connectorEmptyResponse(i, Some(cc)))
+          } yield ConsentJsonV310(consent.consentId, consent.jsonWebToken, consent.status)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(selfRevokeConsent), "DELETE",
+      "/my/consent/current", "Revoke Consent used in the Current Call",
+      "Revoke Consent specified by Consent-Id at Request Header.",
+      EmptyBody, revokedConsentJsonV310,
+      List(AuthenticatedUserIsRequired, BankNotFound, UnknownError),
+      List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2),
+      None,
+      http4sPartialFunction = Some(selfRevokeConsent)
+    )
+
+    // ─── createConsent (IMPLICIT alias) — handles SCA: EMAIL/SMS/IMPLICIT ──
+
+    val revokeMyConsent: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ DELETE -> `prefixPath` / "my" / "consents" / consentId =>
+        EndpointHelpers.executeFuture(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          for {
+            user <- Future.successful(cc.user.openOrThrowException(AuthenticatedUserIsRequired))
+            consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId))
+              .map(unboxFullOrFail(_, Some(cc), ConsentNotFound, 404))
+            _ <- Helper.booleanToFuture(failMsg = ConsentNotFound, cc = Some(cc)) {
+              consent.mUserId == user.userId
+            }
+            revoked <- Future(Consents.consentProvider.vend.revoke(consentId))
+              .map(i => connectorEmptyResponse(i, Some(cc)))
+          } yield ConsentJsonV310(revoked.consentId, revoked.jsonWebToken, revoked.status)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(revokeMyConsent), "DELETE",
+      "/my/consents/CONSENT_ID", "Revoke My Consent",
+      "Revoke a Consent for the current user, specified by CONSENT_ID.",
+      EmptyBody, revokedConsentJsonV310,
+      List($AuthenticatedUserIsRequired, UnknownError),
+      List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2),
+      None,
+      http4sPartialFunction = Some(revokeMyConsent)
+    )
+
+    val createConsentImplicit: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "my" / "consents" / scaMethod
+        if scaMethod == "EMAIL" || scaMethod == "SMS" || scaMethod == "IMPLICIT" =>
+        EndpointHelpers.executeFutureCreated(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          val callContextOpt = Some(cc)
+          for {
+            user <- Future.successful(cc.user.openOrThrowException(AuthenticatedUserIsRequired))
+            _ <- Helper.booleanToFuture(ConsentAllowedScaMethods, cc = callContextOpt) {
+              List(StrongCustomerAuthentication.SMS.toString(),
+                   StrongCustomerAuthentication.EMAIL.toString(),
+                   StrongCustomerAuthentication.IMPLICIT.toString()).contains(scaMethod)
+            }
+            consentJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostConsentBodyCommonJson ", 400, callContextOpt) {
+              net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[PostConsentBodyCommonJson]
+            }
+            maxTimeToLive = APIUtil.getPropsAsIntValue(nameOfProperty = "consents.max_time_to_live", defaultValue = 3600)
+            _ <- Helper.booleanToFuture(s"$ConsentMaxTTL ($maxTimeToLive)", cc = callContextOpt) {
+              consentJson.time_to_live match {
+                case Some(ttl) => ttl <= maxTimeToLive
+                case _         => true
+              }
+            }
+            requestedEntitlements = consentJson.entitlements
+            myEntitlements <- Entitlement.entitlement.vend.getEntitlementsByUserIdFuture(user.userId)
+            _ <- Helper.booleanToFuture(RolesAllowedInConsent, cc = callContextOpt) {
+              requestedEntitlements.forall(re =>
+                myEntitlements.getOrElse(Nil).exists(e => e.roleName == re.role_name && e.bankId == re.bank_id))
+            }
+            requestedViews = consentJson.views
+            (_, assignedViews) <- Future(Views.views.vend.privateViewsUserCanAccess(user))
+            _ <- Helper.booleanToFuture(ViewsAllowedInConsent, cc = callContextOpt) {
+              requestedViews.forall(rv =>
+                assignedViews.exists(e =>
+                  e.view_id == rv.view_id && e.bank_id == rv.bank_id && e.account_id == rv.account_id))
+            }
+            consumerFromBodyTuple <- consentJson.consumer_id match {
+              case Some(id) => NewStyle.function.checkConsumerByConsumerId(id, callContextOpt).map(c => (Some(c), c.description))
+              case None     => Future.successful((None: Option[Consumer], "Any application"))
+            }
+            (consumerFromRequestBody, applicationText) = consumerFromBodyTuple
+            challengeAnswer = Props.mode match {
+              case Props.RunModes.Test => Consent.challengeAnswerAtTestEnvironment
+              case _                   => SecureRandomUtil.numeric()
+            }
+            createdConsent <- Future(Consents.consentProvider.vend.createObpConsent(user, challengeAnswer, None, consumerFromRequestBody))
+              .map(i => connectorEmptyResponse(i, callContextOpt))
+            consentJWT = Consent.createConsentJWT(
+              user, consentJson, createdConsent.secret, createdConsent.consentId,
+              consumerFromRequestBody.map(_.consumerId.get),
+              consentJson.valid_from,
+              consentJson.time_to_live.getOrElse(3600),
+              None
+            )
+            _ <- Future(Consents.consentProvider.vend.setJsonWebToken(createdConsent.consentId, consentJWT))
+              .map(i => connectorEmptyResponse(i, callContextOpt))
+            validUntil = Helper.calculateValidTo(consentJson.valid_from, consentJson.time_to_live.getOrElse(3600))
+            _ <- Future(Consents.consentProvider.vend.setValidUntil(createdConsent.consentId, validUntil))
+              .map(i => connectorEmptyResponse(i, callContextOpt))
+            grantorConsumerId = callContextOpt.flatMap(_.consumer.toOption.map(_.consumerId.get)).getOrElse("Unknown")
+            granteeConsumerId = consentJson.consumer_id.getOrElse("Unknown")
+            shouldSkip = APIUtil.skipConsentScaForConsumerIdPairs.contains(
+              APIUtil.ConsumerIdPair(grantorConsumerId, granteeConsumerId))
+            mappedConsent <- if (shouldSkip) {
+              Future {
+                MappedConsent.find(By(MappedConsent.mConsentId, createdConsent.consentId))
+                  .map(_.mStatus(ConsentStatus.ACCEPTED.toString).saveMe()).head
+              }
+            } else {
+              val challengeText = s"Your consent challenge : ${challengeAnswer}, Application: $applicationText"
+              scaMethod match {
+                case v if v == StrongCustomerAuthentication.EMAIL.toString =>
+                  for {
+                    postEmail <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostConsentEmailJsonV310", 400, callContextOpt) {
+                      net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[PostConsentEmailJsonV310]
+                    }
+                    _ <- NewStyle.function.sendCustomerNotification(
+                      StrongCustomerAuthentication.EMAIL, postEmail.email,
+                      Some("OBP Consent Challenge"), challengeText, callContextOpt)
+                  } yield createdConsent
+                case v if v == StrongCustomerAuthentication.SMS.toString =>
+                  for {
+                    postPhone <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostConsentPhoneJsonV310", 400, callContextOpt) {
+                      net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[PostConsentPhoneJsonV310]
+                    }
+                    _ <- NewStyle.function.sendCustomerNotification(
+                      StrongCustomerAuthentication.SMS, postPhone.phone_number, None, challengeText, callContextOpt)
+                  } yield createdConsent
+                case v if v == StrongCustomerAuthentication.IMPLICIT.toString =>
+                  for {
+                    (consentImplicitSCA, _) <- NewStyle.function.getConsentImplicitSCA(user, callContextOpt)
+                    _ <- consentImplicitSCA.scaMethod match {
+                      case x if x == StrongCustomerAuthentication.EMAIL =>
+                        NewStyle.function.sendCustomerNotification(
+                          StrongCustomerAuthentication.EMAIL, consentImplicitSCA.recipient,
+                          Some("OBP Consent Challenge"), challengeText, callContextOpt)
+                      case x if x == StrongCustomerAuthentication.SMS =>
+                        NewStyle.function.sendCustomerNotification(
+                          StrongCustomerAuthentication.SMS, consentImplicitSCA.recipient,
+                          None, challengeText, callContextOpt)
+                      case _ => Future.successful("Success")
+                    }
+                  } yield createdConsent
+                case _ => Future.successful(createdConsent)
+              }
+            }
+          } yield ConsentJsonV310(mappedConsent.consentId, consentJWT, mappedConsent.status)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(createConsentImplicit), "POST",
+      "/my/consents/IMPLICIT", "Create Consent (IMPLICIT)",
+      "Create a Consent in INITIATED state. SCA challenge is sent OOB based on SCA_METHOD.",
+      postConsentImplicitJsonV310, consentJsonV310,
+      List(AuthenticatedUserIsRequired, BankNotFound, InvalidJsonFormat, ConsentAllowedScaMethods,
+        RolesAllowedInConsent, ViewsAllowedInConsent, ConsumerNotFoundByConsumerId, ConsumerIsDisabled,
+        MissingPropsValueAtThisInstance, SmsServerNotResponding, InvalidConnectorResponse, UnknownError),
+      apiTagConsent :: apiTagPSD2AIS :: apiTagPsd2 :: Nil,
+      None,
+      http4sPartialFunction = Some(createConsentImplicit)
+    )
+
+    // ─── createVRPConsentRequest ────────────────────────────────────────────
+
+    val createVRPConsentRequest: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "consumer" / "vrp-consent-requests" =>
+        EndpointHelpers.executeFutureCreated(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          val rawBody = cc.httpBody.getOrElse("")
+          val parsedBody = net.liftweb.json.parse(rawBody)
+          for {
+            (_, callContextOpt) <- APIUtil.applicationAccess(cc)
+            _ <- APIUtil.passesPsd2Aisp(callContextOpt)
+            postConsentRequestJsonV510 <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostVRPConsentRequestJsonV510 ", 400, callContextOpt) {
+              parsedBody.extract[PostVRPConsentRequestJsonV510]
+            }
+            maxTimeToLive = APIUtil.getPropsAsIntValue(nameOfProperty = "consents.max_time_to_live", defaultValue = 3600)
+            _ <- Helper.booleanToFuture(s"$ConsentMaxTTL ($maxTimeToLive)", cc = callContextOpt) {
+              postConsentRequestJsonV510.time_to_live match {
+                case Some(ttl) => ttl <= maxTimeToLive
+                case _         => true
+              }
+            }
+            fromAccountRoutingScheme = postConsentRequestJsonV510.from_account.account_routing.scheme
+            fromAccountRoutingSchemeOBPFormat = if (fromAccountRoutingScheme.equalsIgnoreCase("AccountNo")) "ACCOUNT_NUMBER"
+              else StringHelpers.snakify(fromAccountRoutingScheme).toUpperCase
+            fromAccountRouting = postConsentRequestJsonV510.from_account.account_routing.copy(scheme = fromAccountRoutingSchemeOBPFormat)
+            fromAccountTweaked = postConsentRequestJsonV510.from_account.copy(account_routing = fromAccountRouting)
+            toAccountRoutingScheme = postConsentRequestJsonV510.to_account.account_routing.scheme
+            toAccountRoutingSchemeOBPFormat = if (toAccountRoutingScheme.equalsIgnoreCase("AccountNo")) "ACCOUNT_NUMBER"
+              else StringHelpers.snakify(toAccountRoutingScheme).toUpperCase
+            toAccountRouting = postConsentRequestJsonV510.to_account.account_routing.copy(scheme = toAccountRoutingSchemeOBPFormat)
+            toAccountTweaked = postConsentRequestJsonV510.to_account.copy(account_routing = toAccountRouting)
+            fromBankAccountRoutings = BankAccountRoutings(
+              bank = BankRoutingJson(
+                postConsentRequestJsonV510.from_account.bank_routing.scheme,
+                postConsentRequestJsonV510.from_account.bank_routing.address),
+              account = BranchRoutingJsonV141(
+                fromAccountRoutingSchemeOBPFormat,
+                postConsentRequestJsonV510.from_account.account_routing.address),
+              branch = AccountRoutingJsonV121(
+                postConsentRequestJsonV510.from_account.branch_routing.scheme,
+                postConsentRequestJsonV510.from_account.branch_routing.address)
+            )
+            consentTypeJ = net.liftweb.json.parse(s"""{"consent_type": "${ConsentType.VRP}"}""")
+            (_, _) <- NewStyle.function.getBankAccountByRoutings(fromBankAccountRoutings, callContextOpt)
+            postConsentRequestJsonTweaked = postConsentRequestJsonV510.copy(
+              from_account = fromAccountTweaked, to_account = toAccountTweaked)
+            createdConsentRequest <- Future(ConsentRequests.consentRequestProvider.vend.createConsentRequest(
+              callContextOpt.flatMap(_.consumer),
+              Some(compactRender(Extraction.decompose(postConsentRequestJsonTweaked) merge consentTypeJ))))
+              .map(i => connectorEmptyResponse(i, callContextOpt))
+          } yield JSONFactory500.createConsentRequestResponseJson(createdConsentRequest)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(createVRPConsentRequest), "POST",
+      "/consumer/vrp-consent-requests", "Create Consent Request VRP",
+      "Create a Variable Recurring Payments (VRP) Consent Request.",
+      postVRPConsentRequestJsonV510, vrpConsentRequestResponseJson,
+      List(InvalidJsonFormat, ConsentMaxTTL, X509CannotGetCertificate, X509GeneralError, InvalidConnectorResponse, UnknownError),
+      apiTagConsent :: apiTagVrp :: apiTagTransactionRequest :: Nil,
+      None,
+      http4sPartialFunction = Some(createVRPConsentRequest)
+    )
+
     val allRoutes: HttpRoutes[IO] =
       Kleisli[HttpF, Request[IO], Response[IO]] { req: Request[IO] =>
         root(req)
@@ -2684,6 +3185,19 @@ object Http4s510 {
           .orElse(deleteBankAccountBalance(req))
           .orElse(addSystemViewPermission(req))
           .orElse(deleteSystemViewPermission(req))
+          .orElse(updateConsentStatusByConsent(req))
+          .orElse(updateConsentAccountAccessByConsentId(req))
+          .orElse(updateConsentUserIdByConsentId(req))
+          .orElse(getMyConsents(req))
+          .orElse(getConsentsAtBank(req))
+          .orElse(getConsents(req))
+          .orElse(getConsentByConsentId(req))
+          .orElse(getConsentByConsentIdViaConsumer(req))
+          .orElse(revokeConsentAtBank(req))
+          .orElse(selfRevokeConsent(req))
+          .orElse(revokeMyConsent(req))
+          .orElse(createConsentImplicit(req))
+          .orElse(createVRPConsentRequest(req))
       }
 
     val allRoutesWithMiddleware: HttpRoutes[IO] =
