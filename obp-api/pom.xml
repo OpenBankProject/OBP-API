@@ -52,7 +52,7 @@
     <dependency>
       <groupId>org.bouncycastle</groupId>
       <artifactId>bcpg-jdk18on</artifactId>
-      <version>1.81</version>
+      <version>1.84</version>
     </dependency>
     <dependency>
       <groupId>org.http4s</groupId>
@@ -67,7 +67,7 @@
     <dependency>
       <groupId>org.bouncycastle</groupId>
       <artifactId>bcpkix-jdk18on</artifactId>
-      <version>1.81</version>
+      <version>1.84</version>
     </dependency>
     <!-- https://mvnrepository.com/artifact/org.apache.commons/commons-lang3 -->
     <dependency>
@@ -120,11 +120,12 @@
       <version>1.1.10.4</version>
     </dependency>
     <!-- Pin commons-beanutils to override the 1.9.2 pulled in transitively via
-         everit json-schema → commons-validator. Fixes CVE-2025-48734, CVE-2019-10086. -->
+         everit json-schema → commons-validator. Fixes CVE-2025-48734, CVE-2019-10086;
+         1.11.0 adds the Improper-Access-Control fix (GHSA on top of those). -->
     <dependency>
       <groupId>commons-beanutils</groupId>
       <artifactId>commons-beanutils</artifactId>
-      <version>1.10.1</version>
+      <version>1.11.0</version>
     </dependency>
     <!-- Pin msal4j to override the 1.13.0 pulled in transitively by mssql-jdbc.
          Fixes CVE-2024-35255. -->
@@ -277,7 +278,7 @@
     <dependency>
       <groupId>com.nimbusds</groupId>
       <artifactId>nimbus-jose-jwt</artifactId>
-      <version>9.48</version>
+      <version>10.5</version>
     </dependency>
     <dependency>
       <groupId>com.github.OpenBankProject</groupId>
@@ -295,7 +296,7 @@
     <dependency>
       <groupId>com.nimbusds</groupId>
       <artifactId>oauth2-oidc-sdk</artifactId>
-      <version>9.27</version>
+      <version>11.37.1</version>
     </dependency>
     <!-- ********** flexmark START ********** -->
     <!-- Library flexmark-all v0.40.8 is replaced with used modules -->
@@ -387,22 +388,22 @@
     <dependency>
       <groupId>io.grpc</groupId>
       <artifactId>grpc-netty-shaded</artifactId>
-      <version>1.71.0</version>
+      <version>1.75.0</version>
     </dependency>
     <dependency>
       <groupId>io.grpc</groupId>
       <artifactId>grpc-protobuf</artifactId>
-      <version>1.71.0</version>
+      <version>1.75.0</version>
     </dependency>
     <dependency>
       <groupId>io.grpc</groupId>
       <artifactId>grpc-stub</artifactId>
-      <version>1.71.0</version>
+      <version>1.75.0</version>
     </dependency>
     <dependency>
       <groupId>io.grpc</groupId>
       <artifactId>grpc-services</artifactId>
-      <version>1.71.0</version>
+      <version>1.75.0</version>
     </dependency>
     <dependency>
       <groupId>org.asynchttpclient</groupId>
