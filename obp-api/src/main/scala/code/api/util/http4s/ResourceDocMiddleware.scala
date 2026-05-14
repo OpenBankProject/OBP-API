@@ -292,13 +292,21 @@ object ResourceDocMiddleware extends MdcLoggable {
     val needsAuth = ResourceDocMiddleware.needsAuthentication(resourceDoc)
     logger.debug(s"[ResourceDocMiddleware] needsAuthentication for ${resourceDoc.partialFunctionName}: $needsAuth")
 
-    // anonymousAccess runs all auth checks (user resolution, locked/deleted check, rate limiting,
-    // JWS, BerlinGroup) and returns the Box[User] for authenticated or anonymous requests.
-    // For any Failure box (e.g. UsernameHasBeenLocked, DAuthJwtTokenIsNotValid) it converts the
-    // box to a thrown plain Exception(json_of_APIFailureNewStyle, hardcoded failCode=401) via
-    // fullBoxOrException. We catch that, parse the JSON to recover the original message, and
-    // return 400 — matching Lift Old Style behavior (plain Failure → errorJsonResponse default=400).
-    val io = IO.fromFuture(IO(APIUtil.anonymousAccess(ctx.callContext)))
+    // Dispatch on authMode the same way Lift's wrappedWithAuthCheck (APIUtil.scala:1783-1788) does:
+    //   ApplicationOnly | UserOrApplication → applicationAccess (returns ApplicationNotIdentified
+    //     when neither user nor consumer credentials are valid; also accepts consumer-only).
+    //   UserOnly | UserAndApplication       → anonymousAccess  (returns AuthenticatedUserIsRequired
+    //     when needsAuth is true and user is missing).
+    // Without this dispatch, every endpoint behaved as UserOnly — breaking
+    // ApplicationNotIdentified semantics for v5.1.0 createConsumer / getConsumers.
+    val isAppMode = resourceDoc.authMode match {
+      case APIUtil.ApplicationOnly | APIUtil.UserOrApplication => true
+      case _ => false
+    }
+    val io = IO.fromFuture(IO(
+      if (isAppMode) APIUtil.applicationAccess(ctx.callContext)
+      else APIUtil.anonymousAccess(ctx.callContext)
+    ))
 
     EitherT(
       io.attempt.flatMap {
@@ -308,7 +316,9 @@ object ResourceDocMiddleware extends MdcLoggable {
         case Right((Full(user), None)) =>
           IO.pure(Right(ctx.copy(user = Full(user))))
         // Empty box — no valid credentials provided, and auth is required.
-        case Right((_, optCC)) if needsAuth =>
+        // For UserOrApplication / ApplicationOnly: applicationAccess already returned
+        // successfully because the consumer is valid (just no user). Pass through.
+        case Right((_, optCC)) if needsAuth && !isAppMode =>
           val cc2 = optCC.getOrElse(ctx.callContext)
           ErrorResponseConverter.createErrorResponse(401, $AuthenticatedUserIsRequired, cc2).map(Left(_))
         // Anonymous endpoint — pass any box user through unchanged.

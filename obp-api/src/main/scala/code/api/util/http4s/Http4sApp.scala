@@ -71,6 +71,7 @@ object Http4sApp {
   private val v310Routes: HttpRoutes[IO] = gate(ApiVersion.v3_1_0, code.api.v3_1_0.Http4s310.wrappedRoutesV310Services)
   private val v400Routes: HttpRoutes[IO] = gate(ApiVersion.v4_0_0, code.api.v4_0_0.Http4s400.wrappedRoutesV400Services)
   private val v500Routes: HttpRoutes[IO] = gate(ApiVersion.v5_0_0, code.api.v5_0_0.Http4s500.wrappedRoutesV500Services)
+  private val v510Routes: HttpRoutes[IO] = gate(ApiVersion.v5_1_0, code.api.v5_1_0.Http4s510.wrappedRoutesV510Services)
   private val v700Routes: HttpRoutes[IO] = gate(ApiVersion.v7_0_0, code.api.v7_0_0.Http4s700.wrappedRoutesV700Services)
 
   /**
@@ -104,6 +105,7 @@ object Http4sApp {
       corsHandler.run(req)
         .orElse(AppsPage.routes.run(req))
         .orElse(StatusPage.routes.run(req))
+        .orElse(v510Routes.run(req))
         .orElse(v500Routes.run(req))
         .orElse(v700Routes.run(req))
         .orElse(code.api.berlin.group.v2.Http4sBGv2.wrappedRoutes.run(req))
