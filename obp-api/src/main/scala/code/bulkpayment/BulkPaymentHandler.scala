@@ -109,8 +109,8 @@ object BulkPaymentHandler {
         transactionRequestId = transactionRequestId,
         itemIndex = idx,
         endToEndId = item.end_to_end_id,
-        routingScheme = item.routing_scheme,
-        address = item.address,
+        routingScheme = item.to_account_routing.scheme,
+        address = item.to_account_routing.address,
         currency = item.value.currency,
         amount = item.value.amount,
         description = item.description,
@@ -120,18 +120,18 @@ object BulkPaymentHandler {
       ).openOrThrowException("BulkPayment write failed")
 
     // 1. Scheme must be registered.
-    val schemeBox = RoutingSchemes.routingScheme.vend.getRoutingScheme(item.routing_scheme)
+    val schemeBox = RoutingSchemes.routingScheme.vend.getRoutingScheme(item.to_account_routing.scheme)
     schemeBox match {
       case Full(scheme) =>
         // 2. Scheme must be ACCOUNT category (BULK only routes between accounts).
         if (scheme.category != "ACCOUNT")
           Future.successful(recordFailure(BulkPaymentRoutingSchemeWrongCategory))
         // 3. Address must match the scheme's pattern.
-        else if (!RoutingSchemeValidation.addressMatchesPattern(scheme.addressPattern, item.address))
+        else if (!RoutingSchemeValidation.addressMatchesPattern(scheme.addressPattern, item.to_account_routing.address))
           Future.successful(recordFailure(BulkPaymentAddressMismatch))
         else {
           // 4. Resolve destination account.
-          BankConnector.connector.vend.getBankAccountByRouting(None, item.routing_scheme, item.address, callContext)
+          BankConnector.connector.vend.getBankAccountByRouting(None, item.to_account_routing.scheme, item.to_account_routing.address, callContext)
             .flatMap { case (destBox, _) =>
               destBox match {
                 case Full(toAccount) =>
@@ -158,8 +158,8 @@ object BulkPaymentHandler {
                           transactionRequestId = transactionRequestId,
                           itemIndex = idx,
                           endToEndId = item.end_to_end_id,
-                          routingScheme = item.routing_scheme,
-                          address = item.address,
+                          routingScheme = item.to_account_routing.scheme,
+                          address = item.to_account_routing.address,
                           currency = item.value.currency,
                           amount = item.value.amount,
                           description = item.description,
@@ -172,7 +172,7 @@ object BulkPaymentHandler {
                     }
                   }
                 case _ =>
-                  Future.successful(recordFailure(s"$PayeeNotFound (scheme=${item.routing_scheme}, address=${item.address})"))
+                  Future.successful(recordFailure(s"$PayeeNotFound (scheme=${item.to_account_routing.scheme}, address=${item.to_account_routing.address})"))
               }
             }
         }

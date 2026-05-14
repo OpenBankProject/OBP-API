@@ -651,21 +651,26 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
       )
     )
 
+  // ── Qualified Identifier ────────────────────────────────────────────────────
+  // A (scheme, value) pair where the scheme qualifies the value's namespace.
+  // Neither is meaningful on its own. Used wherever the API takes or returns
+  // an identifier that belongs to a registered routing-scheme: account
+  // routings, bill references, meter numbers, KYC documents, etc.
+  case class QualifiedIdentifierJsonV700(scheme: String, value: String)
+
   // ── Payee Lookup JSON case classes ──────────────────────────────────────────
 
   case class PayeeIdentityJsonV700(`type`: String, value: String)
 
   case class PostPayeeLookupJsonV700(
-      identifier_type: String,
-      identifier: String,
+      identifier: QualifiedIdentifierJsonV700,
       fsp_id: Option[String]
   )
 
   case class PayeeLookupResponseJsonV700(
       lookup_id: String,
       expires_at: java.util.Date,
-      identifier_type: String,
-      identifier: String,
+      identifier: QualifiedIdentifierJsonV700,
       fsp_id: Option[String],
       network_provider: Option[String],
       full_name: String,
@@ -750,8 +755,7 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
 
   case class BulkPaymentItemJsonV700(
       end_to_end_id: String,
-      routing_scheme: String,
-      address: String,
+      to_account_routing: com.openbankproject.commons.model.AccountRoutingJsonV121,
       value: com.openbankproject.commons.model.AmountOfMoneyJsonV121,
       description: String
   )
@@ -775,8 +779,7 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
 
   case class BulkPaymentItemResultJsonV700(
       end_to_end_id: String,
-      routing_scheme: String,
-      address: String,
+      to_account_routing: com.openbankproject.commons.model.AccountRoutingJsonV121,
       value: com.openbankproject.commons.model.AmountOfMoneyJsonV121,
       status: String,                       // SUCCEEDED | FAILED | PENDING
       transaction_id: Option[String],
@@ -823,8 +826,9 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
       payments = results.map { p =>
         BulkPaymentItemResultJsonV700(
           end_to_end_id = p.endToEndId,
-          routing_scheme = p.routingScheme,
-          address = p.address,
+          to_account_routing = com.openbankproject.commons.model.AccountRoutingJsonV121(
+            scheme = p.routingScheme, address = p.address
+          ),
           value = com.openbankproject.commons.model.AmountOfMoneyJsonV121(currency = p.currency, amount = p.amount),
           status = p.status,
           transaction_id = p.transactionId,

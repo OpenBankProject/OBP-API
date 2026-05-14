@@ -2630,15 +2630,15 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
     scenario("Reject unauthenticated POST to /payees/lookup", Http4s700RoutesTag) {
       val bankId = testBankId1.value
       val accountId = testAccountId0.value
-      val body = """{"identifier_type":"TZ.MSISDN","identifier":"255778300336"}"""
+      val body = """{"identifier":{"scheme":"TZ.MSISDN","value":"255778300336"}}"""
       val (statusCode, _, _) = makeHttpRequestWithBody("POST", s"/obp/v7.0.0/banks/$bankId/accounts/$accountId/owner/payees/lookup", body)
       statusCode shouldBe 401
     }
 
-    scenario("Return 400 when identifier_type is not registered", Http4s700RoutesTag) {
+    scenario("Return 400 when identifier.scheme is not registered", Http4s700RoutesTag) {
       val bankId = testBankId1.value
       val accountId = testAccountId0.value
-      val body = """{"identifier_type":"TZ.UNKNOWN_SCHEME","identifier":"123"}"""
+      val body = """{"identifier":{"scheme":"TZ.UNKNOWN_SCHEME","value":"123"}}"""
       val headers = Map("DirectLogin" -> s"token=${token1.value}")
       val (statusCode, json, _) = makeHttpRequestWithBody("POST", s"/obp/v7.0.0/banks/$bankId/accounts/$accountId/owner/payees/lookup", body, headers)
       statusCode shouldBe 400
@@ -2652,7 +2652,7 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
       }
     }
 
-    scenario("Return 400 when identifier does not match the scheme's address_pattern", Http4s700RoutesTag) {
+    scenario("Return 400 when identifier.value does not match the scheme's address_pattern", Http4s700RoutesTag) {
       val bankId = testBankId1.value
       val accountId = testAccountId0.value
       // Create a strict scheme then send an address that doesn't match.
@@ -2663,7 +2663,7 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
         exampleAddress = "255778300336", description = "Strict TZ MSISDN",
         downstreamRails = Nil, status = "ACTIVE", createdByUserId = resourceUser1.userId
       )
-      val body = s"""{"identifier_type":"$scheme","identifier":"not-a-phone"}"""
+      val body = s"""{"identifier":{"scheme":"$scheme","value":"not-a-phone"}}"""
       val headers = Map("DirectLogin" -> s"token=${token1.value}")
       val (statusCode, json, _) = makeHttpRequestWithBody("POST", s"/obp/v7.0.0/banks/$bankId/accounts/$accountId/owner/payees/lookup", body, headers)
       statusCode shouldBe 400
@@ -2688,7 +2688,7 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
         exampleAddress = "12345", description = "No-match", downstreamRails = Nil,
         status = "ACTIVE", createdByUserId = resourceUser1.userId
       )
-      val body = s"""{"identifier_type":"$scheme","identifier":"99999999999"}"""
+      val body = s"""{"identifier":{"scheme":"$scheme","value":"99999999999"}}"""
       val headers = Map("DirectLogin" -> s"token=${token1.value}")
       val (statusCode, json, _) = makeHttpRequestWithBody("POST", s"/obp/v7.0.0/banks/$bankId/accounts/$accountId/owner/payees/lookup", body, headers)
       statusCode shouldBe 404
@@ -2708,16 +2708,21 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
       val address = s"2557${(System.currentTimeMillis() % 100000000L).toString.reverse.padTo(8, '0').reverse}"
       val scheme = seedPayeeForLookup("HAP", address, bankId, accountId)
 
-      val body = s"""{"identifier_type":"$scheme","identifier":"$address","fsp_id":"503"}"""
+      val body = s"""{"identifier":{"scheme":"$scheme","value":"$address"},"fsp_id":"503"}"""
       val headers = Map("DirectLogin" -> s"token=${token1.value}")
       val (statusCode, json, _) = makeHttpRequestWithBody("POST", s"/obp/v7.0.0/banks/$bankId/accounts/$accountId/owner/payees/lookup", body, headers)
       statusCode shouldBe 201
       json match {
         case JObject(fields) =>
           val map = toFieldMap(fields)
-          map.keys should contain allOf ("lookup_id", "expires_at", "identifier_type", "identifier", "full_name")
-          map.get("identifier_type") shouldBe Some(JString(scheme))
-          map.get("identifier")      shouldBe Some(JString(address))
+          map.keys should contain allOf ("lookup_id", "expires_at", "identifier", "full_name")
+          map.get("identifier") match {
+            case Some(JObject(idFields)) =>
+              val idMap = toFieldMap(idFields)
+              idMap.get("scheme") shouldBe Some(JString(scheme))
+              idMap.get("value")  shouldBe Some(JString(address))
+            case other => fail(s"Expected identifier to be an object {scheme,value}, got: $other")
+          }
           map.get("fsp_id")          shouldBe Some(JString("503"))
         case _ => fail("Expected JSON object")
       }
@@ -2799,7 +2804,7 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
       val body =
         s"""{
            |  "batch_reference": "${freshBatchReference()}",
-           |  "payments": [{"end_to_end_id":"e1","routing_scheme":"TZ.BANK_ACCOUNT","address":"123","value":{"currency":"EUR","amount":"1.00"},"description":"x"}],
+           |  "payments": [{"end_to_end_id":"e1","to_account_routing":{"scheme":"TZ.BANK_ACCOUNT","address":"123"},"value":{"currency":"EUR","amount":"1.00"},"description":"x"}],
            |  "value": {"currency":"EUR","amount":"1.00"},
            |  "description": "test"
            |}""".stripMargin
@@ -2837,7 +2842,7 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
       val body =
         s"""{
            |  "batch_reference": "${freshBatchReference()}",
-           |  "payments": [{"end_to_end_id":"e1","routing_scheme":"TZ.BANK_ACCOUNT","address":"123","value":{"currency":"XYZ","amount":"1.00"},"description":"x"}],
+           |  "payments": [{"end_to_end_id":"e1","to_account_routing":{"scheme":"TZ.BANK_ACCOUNT","address":"123"},"value":{"currency":"XYZ","amount":"1.00"},"description":"x"}],
            |  "value": {"currency":"XYZ","amount":"1.00"},
            |  "description": "wrong currency"
            |}""".stripMargin
@@ -2865,8 +2870,8 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
         s"""{
            |  "batch_reference": "${freshBatchReference()}",
            |  "payments": [
-           |    {"end_to_end_id":"DUP","routing_scheme":"TZ.BANK_ACCOUNT","address":"123","value":{"currency":"$acctCurrency","amount":"1.00"},"description":"x"},
-           |    {"end_to_end_id":"DUP","routing_scheme":"TZ.BANK_ACCOUNT","address":"124","value":{"currency":"$acctCurrency","amount":"1.00"},"description":"y"}
+           |    {"end_to_end_id":"DUP","to_account_routing":{"scheme":"TZ.BANK_ACCOUNT","address":"123"},"value":{"currency":"$acctCurrency","amount":"1.00"},"description":"x"},
+           |    {"end_to_end_id":"DUP","to_account_routing":{"scheme":"TZ.BANK_ACCOUNT","address":"124"},"value":{"currency":"$acctCurrency","amount":"1.00"},"description":"y"}
            |  ],
            |  "value": {"currency":"$acctCurrency","amount":"2.00"},
            |  "description": "dupes"
@@ -2896,7 +2901,7 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
       val body =
         s"""{
            |  "batch_reference": "$ref",
-           |  "payments": [{"end_to_end_id":"E1","routing_scheme":"TZ.BANK_ACCOUNT","address":"77777777777","value":{"currency":"$acctCurrency","amount":"1.00"},"description":"x"}],
+           |  "payments": [{"end_to_end_id":"E1","to_account_routing":{"scheme":"TZ.BANK_ACCOUNT","address":"77777777777"},"value":{"currency":"$acctCurrency","amount":"1.00"},"description":"x"}],
            |  "value": {"currency":"$acctCurrency","amount":"1.00"},
            |  "description": "first submission"
            |}""".stripMargin
@@ -2934,8 +2939,8 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
         s"""{
            |  "batch_reference": "${freshBatchReference()}",
            |  "payments": [
-           |    {"end_to_end_id":"OK","routing_scheme":"$resolvableScheme","address":"$resolvableAddress","value":{"currency":"$acctCurrency","amount":"1.00"},"description":"will-succeed"},
-           |    {"end_to_end_id":"NOPE","routing_scheme":"TZ.BANK_ACCOUNT","address":"00000000000","value":{"currency":"$acctCurrency","amount":"2.00"},"description":"will-fail"}
+           |    {"end_to_end_id":"OK","to_account_routing":{"scheme":"$resolvableScheme","address":"$resolvableAddress"},"value":{"currency":"$acctCurrency","amount":"1.00"},"description":"will-succeed"},
+           |    {"end_to_end_id":"NOPE","to_account_routing":{"scheme":"TZ.BANK_ACCOUNT","address":"00000000000"},"value":{"currency":"$acctCurrency","amount":"2.00"},"description":"will-fail"}
            |  ],
            |  "value": {"currency":"$acctCurrency","amount":"3.00"},
            |  "description": "partial"

@@ -3007,11 +3007,12 @@ object Http4s700 {
 
     // ── Payee Lookup ──────────────────────────────────────────────────────────
     // Generic "confirmation-of-payee" / pre-payment lookup. Caller supplies
-    // identifier_type + identifier (e.g. TZ.MSISDN + 255778300336); endpoint
-    // resolves to a payee name and returns a short-lived lookup_id that can be
-    // quoted in a subsequent transaction-request as evidence the payer saw the
-    // resolved name. Auth perimeter is the source account's view: the same
-    // view that lets you pay from this account lets you lookup a payee.
+    // an identifier { scheme, address } pair (e.g. {TZ.MSISDN, 255778300336});
+    // endpoint resolves to a payee name and returns a short-lived lookup_id
+    // that can be quoted in a subsequent transaction-request as evidence the
+    // payer saw the resolved name. Auth perimeter is the source account's
+    // view: the same view that lets you pay from this account lets you lookup
+    // a payee.
 
     private val PayeeLookupValidCategories: Set[String] = Set("ACCOUNT", "BILL", "UTILITY")
     private val PayeeLookupTtlSeconds: Long = 600 // 10 minutes
@@ -3020,22 +3021,22 @@ object Http4s700 {
       case req @ POST -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "payees" / "lookup" =>
         EndpointHelpers.withViewAndBodyCreated[JSONFactory700.PostPayeeLookupJsonV700, JSONFactory700.PayeeLookupResponseJsonV700](req) { (user, bankAccount, _, body, cc) =>
           for {
-            // 1. identifier_type must exist in the registry.
-            scheme <- Future(RoutingSchemes.routingScheme.vend.getRoutingScheme(body.identifier_type))
+            // 1. identifier.scheme must exist in the registry.
+            scheme <- Future(RoutingSchemes.routingScheme.vend.getRoutingScheme(body.identifier.scheme))
               .map(unboxFullOrFail(_, Some(cc), PayeeLookupIdentifierTypeNotRegistered, 400))
             // 2. Scheme must be in a payee-lookup-valid category.
             _ <- Helper.booleanToFuture(PayeeLookupIdentifierTypeWrongCategory, 400, Some(cc)) {
               PayeeLookupValidCategories.contains(scheme.category)
             }
-            // 3. identifier must match the scheme's address_pattern.
+            // 3. identifier.value must match the scheme's address_pattern.
             _ <- Helper.booleanToFuture(PayeeLookupAddressMismatch, 400, Some(cc)) {
-              RoutingSchemeValidation.addressMatchesPattern(scheme.addressPattern, body.identifier)
+              RoutingSchemeValidation.addressMatchesPattern(scheme.addressPattern, body.identifier.value)
             }
             // 4. Resolve payee. In mapped mode the destination account is
             //    located by its account_routing (scheme,address). In adapter
             //    mode the south-side connector handles this.
             payeeBox <- BankConnector.connector.vend
-              .getBankAccountByRouting(None, body.identifier_type, body.identifier, Some(cc))
+              .getBankAccountByRouting(None, body.identifier.scheme, body.identifier.value, Some(cc))
               .map(_._1)
             payeeAccount <- Future {
               unboxFullOrFail(payeeBox, Some(cc), PayeeNotFound, 404)
@@ -3045,8 +3046,8 @@ object Http4s700 {
             stored <- Future {
               PayeeLookups.payeeLookup.vend.createPayeeLookup(
                 lookupId = lookupId,
-                identifierType = body.identifier_type,
-                identifier = body.identifier,
+                identifierType = body.identifier.scheme,
+                identifier = body.identifier.value,
                 fspId = body.fsp_id,
                 networkProvider = None,
                 fullName = payeeAccount.label,
@@ -3063,8 +3064,9 @@ object Http4s700 {
           } yield JSONFactory700.PayeeLookupResponseJsonV700(
             lookup_id = stored.lookupId,
             expires_at = stored.expiresAt,
-            identifier_type = stored.identifierType,
-            identifier = stored.identifier,
+            identifier = JSONFactory700.QualifiedIdentifierJsonV700(
+              scheme = stored.identifierType, value = stored.identifier
+            ),
             fsp_id = stored.fspId,
             network_provider = stored.networkProvider,
             full_name = stored.fullName,
@@ -3084,27 +3086,31 @@ object Http4s700 {
       "Create Payee Lookup",
       """Look up a payee (Confirmation-of-Payee) before initiating a payment.
         |
-        |The endpoint is **polymorphic on `identifier_type`**: pass any registered routing scheme as the `identifier_type` and the corresponding `identifier`. The scheme's `category` must be one of ACCOUNT, BILL, UTILITY for it to be valid here.
+        |The endpoint is **polymorphic on `identifier.scheme`**: pass any registered routing scheme as the `identifier.scheme` and the corresponding `identifier.value`. The scheme's `category` must be one of ACCOUNT, BILL, UTILITY for it to be valid here.
+        |
+        |Scheme and value travel as a pair — neither is meaningful on its own — so they are nested inside `identifier` (a `QualifiedIdentifier`).
         |
         |Examples:
-        |- Mobile-money / TIPS payee: `identifier_type: TZ.MSISDN`, `identifier: 255778300336`, `fsp_id: 503`
-        |- TIPS bank-account name verify: `identifier_type: TZ.BANK_ACCOUNT`, `identifier: 24110000296`
-        |- GePG bill inquiry: `identifier_type: TZ.GEPG_CONTROL_NUMBER`, `identifier: 991043383705`
-        |- Luku meter inquiry: `identifier_type: TZ.LUKU_METER`, `identifier: 24730238417`
+        |- Mobile-money / TIPS payee: `identifier: { scheme: TZ.MSISDN, value: 255778300336 }`, `fsp_id: 503`
+        |- TIPS bank-account name verify: `identifier: { scheme: TZ.BANK_ACCOUNT, value: 24110000296 }`
+        |- GePG bill inquiry: `identifier: { scheme: TZ.GEPG_CONTROL_NUMBER, value: 991043383705 }`
+        |- Luku meter inquiry: `identifier: { scheme: TZ.LUKU_METER, value: 24730238417 }`
         |
         |The response includes a `lookup_id` valid for 10 minutes. A subsequent transaction-request can quote it via `verified_payee_lookup_id` to prove the payer saw the resolved name (Confirmation-of-Payee handshake).
         |
         |Authentication is Required. The caller must have a view on the source account (`/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID`) — the same authorization perimeter as paying from it.""".stripMargin,
       JSONFactory700.PostPayeeLookupJsonV700(
-        identifier_type = "TZ.MSISDN",
-        identifier = "255778300336",
+        identifier = JSONFactory700.QualifiedIdentifierJsonV700(
+          scheme = "TZ.MSISDN", value = "255778300336"
+        ),
         fsp_id = Some("503")
       ),
       JSONFactory700.PayeeLookupResponseJsonV700(
         lookup_id = "lkp_01HXY7Z8AB9C0D1E2F3G4H5J6K",
         expires_at = new java.util.Date(System.currentTimeMillis() + 10L * 60 * 1000),
-        identifier_type = "TZ.MSISDN",
-        identifier = "255778300336",
+        identifier = JSONFactory700.QualifiedIdentifierJsonV700(
+          scheme = "TZ.MSISDN", value = "255778300336"
+        ),
         fsp_id = Some("503"),
         network_provider = Some("ZANTEL"),
         full_name = "ERASTO EMILE MALEMA",
@@ -3344,8 +3350,8 @@ object Http4s700 {
         |
         |Each item in `payments` is a heterogeneous payment instruction:
         |- `end_to_end_id` — caller-supplied unique reference (ISO 20022 convention). Must be unique within the batch.
-        |- `routing_scheme` — any registered routing scheme of category `ACCOUNT` (e.g. `TZ.BANK_ACCOUNT`, `TZ.MSISDN`).
-        |- `address` — must match the scheme's `address_pattern`.
+        |- `to_account_routing.scheme` — any registered routing scheme of category `ACCOUNT` (e.g. `TZ.BANK_ACCOUNT`, `TZ.MSISDN`).
+        |- `to_account_routing.address` — must match the scheme's `address_pattern`.
         |- `value` + `description` — per-payment amount and label. Currency must match the source account's currency.
         |
         |The envelope `value` must equal the sum of item amounts (caller declares the total; the server validates it).
@@ -3362,15 +3368,17 @@ object Http4s700 {
         payments = List(
           JSONFactory700.BulkPaymentItemJsonV700(
             end_to_end_id = "E2E-0001",
-            routing_scheme = "TZ.BANK_ACCOUNT",
-            address = "24110000296",
+            to_account_routing = com.openbankproject.commons.model.AccountRoutingJsonV121(
+              scheme = "TZ.BANK_ACCOUNT", address = "24110000296"
+            ),
             value = com.openbankproject.commons.model.AmountOfMoneyJsonV121("TZS", "50000.00"),
             description = "Payroll April 2026 — beneficiary 1"
           ),
           JSONFactory700.BulkPaymentItemJsonV700(
             end_to_end_id = "E2E-0002",
-            routing_scheme = "TZ.MSISDN",
-            address = "255778300336",
+            to_account_routing = com.openbankproject.commons.model.AccountRoutingJsonV121(
+              scheme = "TZ.MSISDN", address = "255778300336"
+            ),
             value = com.openbankproject.commons.model.AmountOfMoneyJsonV121("TZS", "25000.00"),
             description = "Payroll April 2026 — beneficiary 2"
           )
@@ -3394,8 +3402,9 @@ object Http4s700 {
         payments = List(
           JSONFactory700.BulkPaymentItemResultJsonV700(
             end_to_end_id = "E2E-0001",
-            routing_scheme = "TZ.BANK_ACCOUNT",
-            address = "24110000296",
+            to_account_routing = com.openbankproject.commons.model.AccountRoutingJsonV121(
+              scheme = "TZ.BANK_ACCOUNT", address = "24110000296"
+            ),
             value = com.openbankproject.commons.model.AmountOfMoneyJsonV121("TZS", "50000.00"),
             status = "SUCCEEDED",
             transaction_id = Some("902ba3bb-dedd-45e7-9319-2fd3f2cd98a1"),
@@ -3403,8 +3412,9 @@ object Http4s700 {
           ),
           JSONFactory700.BulkPaymentItemResultJsonV700(
             end_to_end_id = "E2E-0002",
-            routing_scheme = "TZ.MSISDN",
-            address = "255778300336",
+            to_account_routing = com.openbankproject.commons.model.AccountRoutingJsonV121(
+              scheme = "TZ.MSISDN", address = "255778300336"
+            ),
             value = com.openbankproject.commons.model.AmountOfMoneyJsonV121("TZS", "25000.00"),
             status = "SUCCEEDED",
             transaction_id = Some("a3b40c2c-fff5-462b-924e-ab8eb4c89523"),
