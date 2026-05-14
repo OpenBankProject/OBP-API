@@ -1243,6 +1243,464 @@ object Http4s510 {
       http4sPartialFunction = Some(getWebUiProps)
     )
 
+    // ─── Non-personal user attributes (3) ─────────────────────────────────
+
+    val createNonPersonalUserAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "users" / userId / "non-personal" / "attributes" =>
+        EndpointHelpers.executeFutureCreated(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          for {
+            (user, _) <- NewStyle.function.getUserByUserId(userId, Some(cc))
+            postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $UserAttributeJsonV510 ", 400, Some(cc)) {
+              net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[UserAttributeJsonV510]
+            }
+            attrType <- NewStyle.function.tryons(
+              s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
+                s"${UserAttributeType.DOUBLE}(12.1234), ${UserAttributeType.STRING}(TAX_NUMBER), ${UserAttributeType.INTEGER} (123)and ${UserAttributeType.DATE_WITH_DAY}(2012-04-23)",
+              400, Some(cc)) { UserAttributeType.withName(postedData.`type`) }
+            (userAttribute, _) <- NewStyle.function.createOrUpdateUserAttribute(
+              user.userId, None, postedData.name, attrType, postedData.value, false, Some(cc))
+          } yield JSONFactory510.createUserAttributeJson(userAttribute)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(createNonPersonalUserAttribute), "POST",
+      "/users/USER_ID/non-personal/attributes", "Create Non Personal User Attribute",
+      s"Create Non Personal User Attribute. Type ∈ {STRING, INTEGER, DOUBLE, DATE_WITH_DAY}.\n\n${userAuthenticationMessage(true)}",
+      userAttributeJsonV510, userAttributeResponseJsonV510,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+      List(apiTagUser),
+      Some(List(canCreateNonPersonalUserAttribute)),
+      http4sPartialFunction = Some(createNonPersonalUserAttribute)
+    )
+
+    val deleteNonPersonalUserAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ DELETE -> `prefixPath` / "users" / userId / "non-personal" / "attributes" / userAttributeId =>
+        EndpointHelpers.withUserDelete(req) { (_, cc) =>
+          for {
+            (_, _) <- NewStyle.function.getUserByUserId(userId, Some(cc))
+            (deleted, _) <- Connector.connector.vend.deleteUserAttribute(userAttributeId, Some(cc))
+              .map(i => (connectorEmptyResponse(i._1, Some(cc)), i._2))
+          } yield deleted
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(deleteNonPersonalUserAttribute), "DELETE",
+      "/users/USER_ID/non-personal/attributes/USER_ATTRIBUTE_ID", "Delete Non Personal User Attribute",
+      s"Delete the Non Personal User Attribute.\n\n${userAuthenticationMessage(true)}",
+      EmptyBody, EmptyBody,
+      List(AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidConnectorResponse, UnknownError),
+      List(apiTagUser),
+      Some(List(canDeleteNonPersonalUserAttribute)),
+      http4sPartialFunction = Some(deleteNonPersonalUserAttribute)
+    )
+
+    val getNonPersonalUserAttributes: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "users" / userId / "non-personal" / "attributes" =>
+        EndpointHelpers.executeFuture(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          for {
+            (user, _) <- NewStyle.function.getUserByUserId(userId, Some(cc))
+            (userAttributes, _) <- NewStyle.function.getNonPersonalUserAttributes(user.userId, Some(cc))
+          } yield JSONFactory510.createUserAttributesJson(userAttributes)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getNonPersonalUserAttributes), "GET",
+      "/users/USER_ID/non-personal/attributes", "Get Non Personal User Attributes",
+      s"Get Non Personal User Attributes for a user.\n\n${userAuthenticationMessage(true)}",
+      EmptyBody, EmptyBody,
+      List(AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidConnectorResponse, UnknownError),
+      List(apiTagUser),
+      Some(List(canGetNonPersonalUserAttributes)),
+      http4sPartialFunction = Some(getNonPersonalUserAttributes)
+    )
+
+    // ─── User / lock / sync (8) ───────────────────────────────────────────
+
+    val syncExternalUser: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "users" / provider / providerId / "sync" =>
+        EndpointHelpers.executeFutureCreated(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          for {
+            (user, _) <- NewStyle.function.getOrCreateResourceUser(provider, providerId, Some(cc))
+            _ <- AuthUser.refreshUser(user, Some(cc))
+          } yield JSONFactory510.getSyncedUser(user)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(syncExternalUser), "POST",
+      "/users/PROVIDER/PROVIDER_ID/sync", "Sync User",
+      s"Create or sync an OBP User with User from an external identity provider.\n\n${userAuthenticationMessage(true)}",
+      EmptyBody, refresUserJson,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      List(apiTagUser),
+      Some(List(canSyncUser)),
+      http4sPartialFunction = Some(syncExternalUser)
+    )
+
+    val getEntitlementsAndPermissions: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "users" / userId / "entitlements-and-permissions" =>
+        EndpointHelpers.executeFuture(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          for {
+            (user, _) <- NewStyle.function.getUserByUserId(userId, Some(cc))
+            entitlements <- NewStyle.function.getEntitlementsByUserId(userId, Some(cc))
+          } yield {
+            val permissions: Option[com.openbankproject.commons.model.Permission] =
+              Views.views.vend.getPermissionForUser(user).toOption
+            JSONFactory300.createUserInfoJSON(user, entitlements, permissions)
+          }
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getEntitlementsAndPermissions), "GET",
+      "/users/USER_ID/entitlements-and-permissions", "Get Entitlements and Permissions for a User",
+      "",
+      EmptyBody, userJsonV300,
+      List($AuthenticatedUserIsRequired, UserNotFoundByUserId, UserHasMissingRoles, UnknownError),
+      List(apiTagRole, apiTagEntitlement, apiTagUser),
+      Some(List(canGetEntitlementsForAnyUserAtAnyBank)),
+      http4sPartialFunction = Some(getEntitlementsAndPermissions)
+    )
+
+    val getUserByProviderAndUsername: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "users" / "provider" / provider / "username" / username =>
+        EndpointHelpers.executeFuture(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          for {
+            user <- Users.users.vend.getUserByProviderAndUsernameFuture(URLDecoder.decode(provider, StandardCharsets.UTF_8), username)
+              .map(x => unboxFullOrFail(x, Some(cc), UserNotFoundByProviderAndUsername, 404))
+            entitlements <- NewStyle.function.getEntitlementsByUserId(user.userId, Some(cc))
+            isLocked = LoginAttempt.userIsLocked(user.provider, user.name)
+            authUser = AuthUser.find(By(AuthUser.user, user.userPrimaryKey.value))
+          } yield JSONFactory510.createUserWithNamesJSON(
+            user,
+            authUser.map(_.firstName.get).getOrElse(""),
+            authUser.map(_.lastName.get).getOrElse(""),
+            entitlements, None, isLocked
+          )
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getUserByProviderAndUsername), "GET",
+      "/users/provider/PROVIDER/username/USERNAME", "Get User by Provider and Username",
+      s"Get a User by PROVIDER + USERNAME.\n\n${userAuthenticationMessage(true)}",
+      EmptyBody, userWithNamesJsonV510,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UserNotFoundByProviderAndUsername, UnknownError),
+      List(apiTagUser),
+      Some(List(canGetAnyUser)),
+      http4sPartialFunction = Some(getUserByProviderAndUsername)
+    )
+
+    val getUserLockStatus: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "users" / provider / username / "lock-status" =>
+        EndpointHelpers.executeFuture(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          for {
+            _ <- Users.users.vend.getUserByProviderAndUsernameFuture(provider, username)
+              .map(x => unboxFullOrFail(x, Some(cc), UserNotFoundByProviderAndUsername, 404))
+            badLoginStatus <- Future(LoginAttempt.getOrCreateBadLoginStatus(provider, username))
+              .map(unboxFullOrFail(_, Some(cc), s"$UserNotFoundByProviderAndUsername provider($provider), username($username)", 404))
+          } yield createBadLoginStatusJson(badLoginStatus)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getUserLockStatus), "GET",
+      "/users/PROVIDER/USERNAME/lock-status", "Get User Lock Status",
+      s"Get User Login Status.\n\n${userAuthenticationMessage(true)}",
+      EmptyBody, badLoginStatusJson,
+      List(AuthenticatedUserIsRequired, UserNotFoundByProviderAndUsername, UserHasMissingRoles, UnknownError),
+      List(apiTagUser),
+      Some(List(canReadUserLockedStatus)),
+      http4sPartialFunction = Some(getUserLockStatus)
+    )
+
+    val unlockUserByProviderAndUsername: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ PUT -> `prefixPath` / "users" / provider / username / "lock-status" =>
+        EndpointHelpers.executeFuture(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          for {
+            _ <- Users.users.vend.getUserByProviderAndUsernameFuture(provider, username)
+              .map(x => unboxFullOrFail(x, Some(cc), UserNotFoundByProviderAndUsername, 404))
+            _ <- Future(LoginAttempt.resetBadLoginAttempts(provider, username))
+            _ <- Future(UserLocksProvider.unlockUser(provider, username))
+            badLoginStatus <- Future(LoginAttempt.getOrCreateBadLoginStatus(provider, username))
+              .map(unboxFullOrFail(_, Some(cc), s"$UserNotFoundByProviderAndUsername provider($provider), username($username)", 404))
+          } yield createBadLoginStatusJson(badLoginStatus)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(unlockUserByProviderAndUsername), "PUT",
+      "/users/PROVIDER/USERNAME/lock-status", "Unlock the user",
+      s"Unlock a User (e.g. after multiple failed login attempts).\n\n${userAuthenticationMessage(true)}",
+      EmptyBody, badLoginStatusJson,
+      List(AuthenticatedUserIsRequired, UserNotFoundByProviderAndUsername, UserHasMissingRoles, UnknownError),
+      List(apiTagUser),
+      Some(List(canUnlockUser)),
+      http4sPartialFunction = Some(unlockUserByProviderAndUsername)
+    )
+
+    val lockUserByProviderAndUsername: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "users" / provider / username / "locks" =>
+        EndpointHelpers.executeFuture(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          for {
+            userLocks <- Future(UserLocksProvider.lockUser(provider, username))
+              .map(unboxFullOrFail(_, Some(cc), s"$UserNotFoundByProviderAndUsername provider($provider), username($username)", 404))
+          } yield JSONFactory400.createUserLockStatusJson(userLocks)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(lockUserByProviderAndUsername), "POST",
+      "/users/PROVIDER/USERNAME/locks", "Lock the user",
+      s"Lock a User.\n\n${userAuthenticationMessage(true)}",
+      EmptyBody, userLockStatusJson,
+      List($AuthenticatedUserIsRequired, UserNotFoundByProviderAndUsername, UserHasMissingRoles, UnknownError),
+      List(apiTagUser),
+      Some(List(canLockUser)),
+      http4sPartialFunction = Some(lockUserByProviderAndUsername)
+    )
+
+    val validateUserByUserId: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ PUT -> `prefixPath` / "management" / "users" / userId =>
+        EndpointHelpers.executeFuture(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          for {
+            (user, _) <- NewStyle.function.findByUserId(userId, Some(cc))
+            (userValidated, _) <- NewStyle.function.validateUser(user.userPrimaryKey, Some(cc))
+          } yield UserValidatedJson(userValidated.validated.get)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(validateUserByUserId), "PUT",
+      "/management/users/USER_ID", "Validate a user",
+      "Manually validate a User by USER_ID. Sets is_validated=true.",
+      EmptyBody, UserValidatedJson(is_validated = true),
+      List($AuthenticatedUserIsRequired, UserNotFoundByUserId, UserHasMissingRoles, UnknownError),
+      List(apiTagUser),
+      Some(List(canValidateUser)),
+      http4sPartialFunction = Some(validateUserByUserId)
+    )
+
+    val getAccountAccessByUserId: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "users" / userId / "account-access" =>
+        EndpointHelpers.executeFuture(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          for {
+            (user, _) <- NewStyle.function.getUserByUserId(userId, Some(cc))
+            (_, accountAccess) <- Future(Views.views.vend.privateViewsUserCanAccess(user))
+          } yield JSONFactory400.createAccountsMinimalJson400(accountAccess)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getAccountAccessByUserId), "GET",
+      "/users/USER_ID/account-access", "Get Account Access by USER_ID",
+      s"Get Account Access by USER_ID.\n\n${userAuthenticationMessage(true)}",
+      EmptyBody, accountsMinimalJson400,
+      List($AuthenticatedUserIsRequired, UserNotFoundByUserId, UnknownError),
+      List(apiTagAccount),
+      Some(List(canSeeAccountAccessForAnyUser)),
+      http4sPartialFunction = Some(getAccountAccessByUserId)
+    )
+
+    // ─── Accounts-held (2) — left to Lift ─────────────────────────────────
+    // getAccountsHeldByUserAtBank / getAccountsHeldByUser depend on
+    // AccountsHelper.getFilteredCoreAccounts which takes a Lift `Req`. Need
+    // to port the filter to http4s before migrating these.
+
+    // ─── Customer helpers (2) ─────────────────────────────────────────────
+
+    val getCustomersForUserIdsOnly: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "users" / "current" / "customers" / "customer_ids" =>
+        EndpointHelpers.executeFuture(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          for {
+            (customers, _) <- Connector.connector.vend.getCustomersByUserId(cc.userId, Some(cc))
+              .map(connectorEmptyResponse(_, Some(cc)))
+          } yield JSONFactory510.createCustomersIds(customers)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getCustomersForUserIdsOnly), "GET",
+      "/users/current/customers/customer_ids", "Get Customers for Current User (IDs only)",
+      s"Gets all Customer IDs linked to the current User.\n\n${userAuthenticationMessage(true)}",
+      EmptyBody, customersWithAttributesJsonV300,
+      List($AuthenticatedUserIsRequired, UserCustomerLinksNotFoundForUser, UnknownError),
+      List(apiTagCustomer, apiTagUser),
+      None,
+      http4sPartialFunction = Some(getCustomersForUserIdsOnly)
+    )
+
+    val getCustomersByLegalName: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "banks" / bankIdStr / "customers" / "legal-name" =>
+        EndpointHelpers.executeFuture(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          val bankId = BankId(bankIdStr)
+          for {
+            (bank, _) <- NewStyle.function.getBank(bankId, Some(cc))
+            postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostCustomerLegalNameJsonV510 ", 400, Some(cc)) {
+              net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[PostCustomerLegalNameJsonV510]
+            }
+            (customer, _) <- NewStyle.function.getCustomersByCustomerLegalName(bank.bankId, postedData.legal_name, Some(cc))
+          } yield JSONFactory300.createCustomersJson(customer)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getCustomersByLegalName), "POST",
+      "/banks/BANK_ID/customers/legal-name", "Get Customers by Legal Name",
+      s"Gets the Customers specified by Legal Name.\n\n${userAuthenticationMessage(true)}",
+      postCustomerLegalNameJsonV510, customerJsonV310,
+      List(AuthenticatedUserIsRequired, UserCustomerLinksNotFoundForUser, UnknownError),
+      List(apiTagCustomer, apiTagKyc),
+      Some(List(canGetCustomersAtOneBank)),
+      http4sPartialFunction = Some(getCustomersByLegalName)
+    )
+
+    // ─── System integrity (5) + currencies (1) ────────────────────────────
+
+    val customViewNamesCheck: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "management" / "system" / "integrity" / "custom-view-names-check" =>
+        EndpointHelpers.executeFuture(req) {
+          for {
+            incorrectViews: List[ViewDefinition] <- Future {
+              ViewDefinition.getCustomViews().filterNot(_.viewId.value.startsWith("_"))
+            }
+          } yield JSONFactory510.getCustomViewNamesCheck(incorrectViews)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(customViewNamesCheck), "GET",
+      "/management/system/integrity/custom-view-names-check", "Check Custom View Names",
+      s"Check custom view names.\n\n${userAuthenticationMessage(true)}",
+      EmptyBody, CheckSystemIntegrityJsonV510(true),
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      List(apiTagSystemIntegrity),
+      Some(canGetSystemIntegrity :: Nil),
+      http4sPartialFunction = Some(customViewNamesCheck)
+    )
+
+    val systemViewNamesCheck: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "management" / "system" / "integrity" / "system-view-names-check" =>
+        EndpointHelpers.executeFuture(req) {
+          for {
+            incorrectViews: List[ViewDefinition] <- Future {
+              ViewDefinition.getSystemViews().filter(_.viewId.value.startsWith("_"))
+            }
+          } yield JSONFactory510.getSystemViewNamesCheck(incorrectViews)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(systemViewNamesCheck), "GET",
+      "/management/system/integrity/system-view-names-check", "Check System View Names",
+      s"Check system view names.\n\n${userAuthenticationMessage(true)}",
+      EmptyBody, CheckSystemIntegrityJsonV510(true),
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      List(apiTagSystemIntegrity),
+      Some(canGetSystemIntegrity :: Nil),
+      http4sPartialFunction = Some(systemViewNamesCheck)
+    )
+
+    val accountAccessUniqueIndexCheck: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "management" / "system" / "integrity" / "account-access-unique-index-1-check" =>
+        EndpointHelpers.executeFuture(req) {
+          for {
+            groupedRows: Map[String, List[AccountAccess]] <- Future {
+              AccountAccess.findAll().groupBy { a =>
+                s"${a.bank_id.get}-${a.account_id.get}-${a.view_id.get}-${a.user_fk.get}-${a.consumer_id.get}"
+              }.filter(_._2.size > 1)
+            }
+          } yield JSONFactory510.getAccountAccessUniqueIndexCheck(groupedRows)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(accountAccessUniqueIndexCheck), "GET",
+      "/management/system/integrity/account-access-unique-index-1-check", "Check Unique Index at Account Access",
+      s"Check unique index at account access table.\n\n${userAuthenticationMessage(true)}",
+      EmptyBody, CheckSystemIntegrityJsonV510(true),
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      List(apiTagSystemIntegrity),
+      Some(canGetSystemIntegrity :: Nil),
+      http4sPartialFunction = Some(accountAccessUniqueIndexCheck)
+    )
+
+    val accountCurrencyCheck: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "management" / "system" / "integrity" / "banks" / bankIdStr / "account-currency-check" =>
+        EndpointHelpers.executeFuture(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          val bankId = BankId(bankIdStr)
+          for {
+            currencies: List[String] <- Future {
+              code.model.dataAccess.MappedBankAccount.findAll().map(_.accountCurrency.get).distinct
+            }
+            (bankCurrencies, _) <- NewStyle.function.getCurrentCurrencies(bankId, Some(cc))
+          } yield JSONFactory510.getSensibleCurrenciesCheck(bankCurrencies, currencies)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(accountCurrencyCheck), "GET",
+      "/management/system/integrity/banks/BANK_ID/account-currency-check", "Check for Sensible Currencies",
+      s"Check for sensible currencies at Bank Account model.\n\n${userAuthenticationMessage(true)}",
+      EmptyBody, CheckSystemIntegrityJsonV510(true),
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      List(apiTagSystemIntegrity),
+      Some(canGetSystemIntegrity :: Nil),
+      http4sPartialFunction = Some(accountCurrencyCheck)
+    )
+
+    val orphanedAccountCheck: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "management" / "system" / "integrity" / "banks" / bankIdStr / "orphaned-account-check" =>
+        EndpointHelpers.executeFuture(req) {
+          val bankId = BankId(bankIdStr)
+          for {
+            accountAccesses: List[String] <- Future {
+              AccountAccess.findAll(By(AccountAccess.bank_id, bankId.value)).map(_.account_id.get)
+            }
+            bankAccounts <- Future {
+              code.model.dataAccess.MappedBankAccount.findAll(By(code.model.dataAccess.MappedBankAccount.bank, bankId.value)).map(_.accountId.value)
+            }
+          } yield {
+            val orphaned = accountAccesses.filterNot(bankAccounts.contains)
+            JSONFactory510.getOrphanedAccountsCheck(orphaned)
+          }
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(orphanedAccountCheck), "GET",
+      "/management/system/integrity/banks/BANK_ID/orphaned-account-check", "Check for Orphaned Accounts",
+      s"Check for orphaned accounts at Bank Account model.\n\n${userAuthenticationMessage(true)}",
+      EmptyBody, CheckSystemIntegrityJsonV510(true),
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      List(apiTagSystemIntegrity),
+      Some(canGetSystemIntegrity :: Nil),
+      http4sPartialFunction = Some(orphanedAccountCheck)
+    )
+
+    val getCurrenciesAtBank: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / bankIdStr / "currencies" =>
+        EndpointHelpers.executeFuture(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          val bankId = BankId(bankIdStr)
+          for {
+            _ <- Helper.booleanToFuture(ConsumerHasMissingRoles + CanReadFx, failCode = 403, cc = Some(cc)) {
+              checkScope(bankId.value, getConsumerPrimaryKey(Some(cc)), ApiRole.canReadFx)
+            }
+            (_, _) <- NewStyle.function.getBank(bankId, Some(cc))
+            (currencies, _) <- NewStyle.function.getCurrentCurrencies(bankId, Some(cc))
+          } yield CurrenciesJsonV510(currencies.map(CurrencyJsonV510(_)))
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getCurrenciesAtBank), "GET",
+      "/banks/BANK_ID/currencies", "Get Currencies at a Bank",
+      "Get Currencies specified by BANK_ID.",
+      EmptyBody, currenciesJsonV510,
+      List($AuthenticatedUserIsRequired, UnknownError),
+      List(apiTagFx),
+      None,
+      http4sPartialFunction = Some(getCurrenciesAtBank)
+    )
+
     val allRoutes: HttpRoutes[IO] =
       Kleisli[HttpF, Request[IO], Response[IO]] { req: Request[IO] =>
         root(req)
@@ -1289,6 +1747,26 @@ object Http4s510 {
           .orElse(getApiTags(req))
           .orElse(getMetrics(req))
           .orElse(getWebUiProps(req))
+          .orElse(createNonPersonalUserAttribute(req))
+          .orElse(deleteNonPersonalUserAttribute(req))
+          .orElse(getNonPersonalUserAttributes(req))
+          .orElse(syncExternalUser(req))
+          .orElse(getEntitlementsAndPermissions(req))
+          .orElse(getUserByProviderAndUsername(req))
+          .orElse(getUserLockStatus(req))
+          .orElse(unlockUserByProviderAndUsername(req))
+          .orElse(lockUserByProviderAndUsername(req))
+          .orElse(lockUserByProviderAndUsername(req))
+          .orElse(validateUserByUserId(req))
+          .orElse(getAccountAccessByUserId(req))
+          .orElse(getCustomersForUserIdsOnly(req))
+          .orElse(getCustomersByLegalName(req))
+          .orElse(customViewNamesCheck(req))
+          .orElse(systemViewNamesCheck(req))
+          .orElse(accountAccessUniqueIndexCheck(req))
+          .orElse(accountCurrencyCheck(req))
+          .orElse(orphanedAccountCheck(req))
+          .orElse(getCurrenciesAtBank(req))
       }
 
     val allRoutesWithMiddleware: HttpRoutes[IO] =
