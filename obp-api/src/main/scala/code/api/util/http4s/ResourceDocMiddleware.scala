@@ -261,19 +261,25 @@ object ResourceDocMiddleware extends MdcLoggable {
 
     // Validation order MUST match Lift's wrappedWithAuthCheck (APIUtil.scala:1934-1969):
     //   auth → bank → roles → account → view → counterparty
+    //     → afterAuthenticateInterceptors (= Force-Error / AuthType / JsonSchema)
     // Per Lift's own comment: "A Bank MUST be checked before Roles. In opposite case
     // we get next paradox: We set non existing bank → We get error that we don't
     // have a proper role → We cannot assign the role to non existing bank."
+    // Force-Error / AuthType / JsonSchema interceptors must run LAST so the
+    // natural role/bank/account checks short-circuit first when they fail —
+    // ForceErrorValidationTest expects the role-check error message (with the
+    // doc's role names) when Force-Error: OBP-20006 is sent and the natural
+    // role check would also fail.
     val result: Validation[ValidationContext] = for {
       context <- authenticate(req, resourceDoc, initialContext)
-      context <- processForceError(req, resourceDoc, context)
-      context <- validateAuthType(resourceDoc, context)
-      context <- validateJsonSchema(resourceDoc, context)
       context <- validateBank(pathParams, context)
       context <- authorizeRoles(resourceDoc, pathParams, context)
       context <- validateAccount(pathParams, context)
       context <- validateView(pathParams, context)
       context <- validateCounterparty(pathParams, context)
+      context <- processForceError(req, resourceDoc, context)
+      context <- validateAuthType(resourceDoc, context)
+      context <- validateJsonSchema(resourceDoc, context)
     } yield context
 
     result.value.map {
