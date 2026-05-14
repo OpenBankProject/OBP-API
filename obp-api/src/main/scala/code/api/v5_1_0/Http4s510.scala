@@ -47,9 +47,9 @@ import code.webuiprops.{MappedWebUiPropsProvider, WebUiPropsCommons}
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.{
-  AccountId, AccountRouting, AtmId, AtmT, Bank, BankAccount, BankId, BankIdAccountId,
-  CustomerId, ListResult, ProductCode, RegulatedEntityId, TransactionRequestId, User,
-  View, ViewId
+  AccountId, AccountRouting, AtmId, AtmT, BalanceId, Bank, BankAccount, BankId,
+  BankIdAccountId, CounterpartyId, CustomerId, ListResult, ProductCode,
+  RegulatedEntityId, TransactionRequestId, User, View, ViewId
 }
 import com.openbankproject.commons.model.enums.{AtmAttributeType, RegulatedEntityAttributeType, StrongCustomerAuthentication, TransactionRequestStatus, UserAttributeType}
 import com.openbankproject.commons.util.{ApiVersion, ApiVersionStatus, ScannedApiVersion}
@@ -2101,6 +2101,494 @@ object Http4s510 {
       http4sPartialFunction = Some(updateTransactionRequestStatus)
     )
 
+    // ─── View account/balance reads (3) ───────────────────────────────────
+
+    val getCoreAccountByIdThroughView: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / "views" / viewIdStr =>
+        EndpointHelpers.executeFuture(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          val bankId = BankId(bankIdStr); val accountId = AccountId(accountIdStr); val viewId = ViewId(viewIdStr)
+          for {
+            user <- Future.successful(cc.user.openOrThrowException(AuthenticatedUserIsRequired))
+            (account, _) <- NewStyle.function.checkBankAccountExists(bankId, accountId, Some(cc))
+            view <- ViewNewStyle.checkViewAccessAndReturnView(viewId, BankIdAccountId(bankId, accountId), Full(user), Some(cc))
+            moderatedAccount <- NewStyle.function.moderatedBankAccountCore(account, view, Full(user), Some(cc))
+          } yield {
+            val availableViews: List[View] = Views.views.vend.privateViewsUserCanAccessForAccount(user, BankIdAccountId(bankId, accountId))
+            createNewCoreBankAccountJson(moderatedAccount, availableViews)
+          }
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getCoreAccountByIdThroughView), "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID", "Get Account by Id (Core) through the VIEW_ID",
+      "Information returned about the account through VIEW_ID.",
+      EmptyBody, moderatedCoreAccountJsonV400,
+      List($AuthenticatedUserIsRequired, $BankAccountNotFound, UnknownError),
+      apiTagAccount :: apiTagPSD2AIS :: apiTagPsd2 :: Nil,
+      None,
+      http4sPartialFunction = Some(getCoreAccountByIdThroughView)
+    )
+
+    val getBankAccountBalances: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / "views" / viewIdStr / "balances" =>
+        EndpointHelpers.executeFuture(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          val bankId = BankId(bankIdStr); val accountId = AccountId(accountIdStr); val viewId = ViewId(viewIdStr)
+          val bankIdAccountId = BankIdAccountId(bankId, accountId)
+          for {
+            user <- Future.successful(cc.user.openOrThrowException(AuthenticatedUserIsRequired))
+            view <- ViewNewStyle.checkViewAccessAndReturnView(viewId, bankIdAccountId, Full(user), Some(cc))
+            _ <- Helper.booleanToFuture(
+              ViewDoesNotPermitAccess + s" You need the `${CAN_SEE_BANK_ACCOUNT_BALANCE}` permission on VIEW_ID(${viewId.value})",
+              403, cc = Some(cc)) {
+              view.allowed_actions.exists(_ == CAN_SEE_BANK_ACCOUNT_BALANCE)
+            }
+            (accountBalances, _) <- BalanceNewStyle.getBankAccountBalances(bankIdAccountId, Some(cc))
+          } yield createAccountBalancesJson(accountBalances)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getBankAccountBalances), "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/balances", "Get Account Balances by BANK_ID and ACCOUNT_ID through the VIEW_ID",
+      "Get the Balances for the Account specified by BANK_ID and ACCOUNT_ID through the VIEW_ID.",
+      EmptyBody, accountBalanceV400,
+      List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UserNoPermissionAccessView, UnknownError),
+      apiTagAccount :: apiTagPSD2AIS :: apiTagPsd2 :: Nil,
+      None,
+      http4sPartialFunction = Some(getBankAccountBalances)
+    )
+
+    val getBankAccountsBalancesThroughView: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / bankIdStr / "views" / viewIdStr / "balances" =>
+        EndpointHelpers.executeFuture(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          val bankId = BankId(bankIdStr); val viewId = ViewId(viewIdStr)
+          for {
+            user <- Future.successful(cc.user.openOrThrowException(AuthenticatedUserIsRequired))
+            (allowedAccounts, _) <- BalanceNewStyle.getAccountAccessAtBankThroughView(user, bankId, viewId, Some(cc))
+            (accountsBalances, _) <- BalanceNewStyle.getBankAccountsBalances(allowedAccounts, Some(cc))
+          } yield createBalancesJson(accountsBalances)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getBankAccountsBalancesThroughView), "GET",
+      "/banks/BANK_ID/views/VIEW_ID/balances", "Get Account Balances by BANK_ID through the VIEW_ID",
+      "Get the Balances for the Account specified by BANK_ID through the VIEW_ID.",
+      EmptyBody, accountBalancesV400Json,
+      List($AuthenticatedUserIsRequired, $BankNotFound, UnknownError),
+      apiTagAccount :: apiTagPSD2AIS :: apiTagPsd2 :: Nil,
+      None,
+      http4sPartialFunction = Some(getBankAccountsBalancesThroughView)
+    )
+
+    // ─── Counterparty limits (4 simple) — getCounterpartyLimitStatus deferred (complex)
+
+    val createCounterpartyLimit: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / "views" / viewIdStr / "counterparties" / counterpartyIdStr / "limits" =>
+        EndpointHelpers.executeFutureCreated(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          val bankId = BankId(bankIdStr); val accountId = AccountId(accountIdStr); val viewId = ViewId(viewIdStr); val counterpartyId = CounterpartyId(counterpartyIdStr)
+          for {
+            postLimit <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ${classOf[PostCounterpartyLimitV510]}", 400, Some(cc)) {
+              net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[PostCounterpartyLimitV510]
+            }
+            _ <- Helper.booleanToFuture(s"$InvalidISOCurrencyCode Current input is: '${postLimit.currency}'", cc = Some(cc)) {
+              isValidCurrencyISOCode(postLimit.currency)
+            }
+            (existingBox, _) <- Connector.connector.vend.getCounterpartyLimit(bankId.value, accountId.value, viewId.value, counterpartyId.value, Some(cc))
+            _ <- Helper.booleanToFuture(
+              s"$CounterpartyLimitAlreadyExists Current BANK_ID($bankId), ACCOUNT_ID($accountId), VIEW_ID($viewId),COUNTERPARTY_ID($counterpartyId)",
+              cc = Some(cc)) { existingBox.isEmpty }
+            (counterpartyLimit, _) <- NewStyle.function.createOrUpdateCounterpartyLimit(
+              bankId.value, accountId.value, viewId.value, counterpartyId.value,
+              postLimit.currency,
+              BigDecimal(postLimit.max_single_amount),
+              BigDecimal(postLimit.max_monthly_amount),
+              postLimit.max_number_of_monthly_transactions,
+              BigDecimal(postLimit.max_yearly_amount),
+              postLimit.max_number_of_yearly_transactions,
+              BigDecimal(postLimit.max_total_amount),
+              postLimit.max_number_of_transactions,
+              Some(cc))
+          } yield counterpartyLimit.toJValue
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(createCounterpartyLimit), "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/counterparties/COUNTERPARTY_ID/limits",
+      "Create Counterparty Limit",
+      "Create limits (single + recurring) for a counterparty.",
+      postCounterpartyLimitV510, counterpartyLimitV510,
+      List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, $UserNoPermissionAccessView,
+        $CounterpartyNotFoundByCounterpartyId, InvalidJsonFormat, UnknownError),
+      List(apiTagCounterpartyLimits),
+      None,
+      http4sPartialFunction = Some(createCounterpartyLimit)
+    )
+
+    val updateCounterpartyLimit: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ PUT -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / "views" / viewIdStr / "counterparties" / counterpartyIdStr / "limits" =>
+        EndpointHelpers.executeFuture(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          val bankId = BankId(bankIdStr); val accountId = AccountId(accountIdStr); val viewId = ViewId(viewIdStr); val counterpartyId = CounterpartyId(counterpartyIdStr)
+          for {
+            postLimit <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ${classOf[PostCounterpartyLimitV510]}", 400, Some(cc)) {
+              net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[PostCounterpartyLimitV510]
+            }
+            _ <- Helper.booleanToFuture(s"$InvalidISOCurrencyCode Current input is: '${postLimit.currency}'", cc = Some(cc)) {
+              isValidCurrencyISOCode(postLimit.currency)
+            }
+            (counterpartyLimit, _) <- NewStyle.function.createOrUpdateCounterpartyLimit(
+              bankId.value, accountId.value, viewId.value, counterpartyId.value,
+              postLimit.currency,
+              BigDecimal(postLimit.max_single_amount),
+              BigDecimal(postLimit.max_monthly_amount),
+              postLimit.max_number_of_monthly_transactions,
+              BigDecimal(postLimit.max_yearly_amount),
+              postLimit.max_number_of_yearly_transactions,
+              BigDecimal(postLimit.max_total_amount),
+              postLimit.max_number_of_transactions,
+              Some(cc))
+          } yield counterpartyLimit.toJValue
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(updateCounterpartyLimit), "PUT",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/counterparties/COUNTERPARTY_ID/limits",
+      "Update Counterparty Limit",
+      "Update existing counterparty limits.",
+      postCounterpartyLimitV510, counterpartyLimitV510,
+      List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, $UserNoPermissionAccessView,
+        $CounterpartyNotFoundByCounterpartyId, InvalidJsonFormat, UnknownError),
+      List(apiTagCounterpartyLimits),
+      None,
+      http4sPartialFunction = Some(updateCounterpartyLimit)
+    )
+
+    val getCounterpartyLimit: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / "views" / viewIdStr / "counterparties" / counterpartyIdStr / "limits" =>
+        EndpointHelpers.executeFuture(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          val bankId = BankId(bankIdStr); val accountId = AccountId(accountIdStr); val viewId = ViewId(viewIdStr); val counterpartyId = CounterpartyId(counterpartyIdStr)
+          for {
+            (counterpartyLimit, _) <- NewStyle.function.getCounterpartyLimit(bankId.value, accountId.value, viewId.value, counterpartyId.value, Some(cc))
+          } yield counterpartyLimit.toJValue
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getCounterpartyLimit), "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/counterparties/COUNTERPARTY_ID/limits",
+      "Get Counterparty Limit", "Get Counterparty Limit.",
+      EmptyBody, counterpartyLimitV510,
+      List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, $UserNoPermissionAccessView,
+        $CounterpartyNotFoundByCounterpartyId, InvalidJsonFormat, UnknownError),
+      List(apiTagCounterpartyLimits),
+      None,
+      http4sPartialFunction = Some(getCounterpartyLimit)
+    )
+
+    val deleteCounterpartyLimit: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ DELETE -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / "views" / viewIdStr / "counterparties" / counterpartyIdStr / "limits" =>
+        EndpointHelpers.withUserDelete(req) { (_, cc) =>
+          val bankId = BankId(bankIdStr); val accountId = AccountId(accountIdStr); val viewId = ViewId(viewIdStr); val counterpartyId = CounterpartyId(counterpartyIdStr)
+          for {
+            (counterpartyLimit, _) <- NewStyle.function.deleteCounterpartyLimit(bankId.value, accountId.value, viewId.value, counterpartyId.value, Some(cc))
+          } yield counterpartyLimit
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(deleteCounterpartyLimit), "DELETE",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/counterparties/COUNTERPARTY_ID/limits",
+      "Delete Counterparty Limit", "Delete Counterparty Limit.",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, $UserNoPermissionAccessView,
+        $CounterpartyNotFoundByCounterpartyId, InvalidJsonFormat, UnknownError),
+      List(apiTagCounterpartyLimits),
+      None,
+      http4sPartialFunction = Some(deleteCounterpartyLimit)
+    )
+
+    // ─── Custom view CRUD (4) ─────────────────────────────────────────────
+
+    val createCustomView: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / "views" / viewIdStr / "target-views" =>
+        EndpointHelpers.withViewCreated(req) { (user, account, view, cc) =>
+          val bankId = BankId(bankIdStr); val accountId = AccountId(accountIdStr); val viewId = ViewId(viewIdStr)
+          for {
+            createJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ${classOf[com.openbankproject.commons.model.CreateViewJson]}", 400, Some(cc)) {
+              net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[CreateCustomViewJson]
+            }
+            _ <- Helper.booleanToFuture(InvalidCustomViewFormat + s"Current view_name (${createJson.name})", cc = Some(cc)) {
+              isValidCustomViewName(createJson.name)
+            }
+            permissionsFromSource = view.asInstanceOf[ViewDefinition].allowed_actions.toSet
+            permissionsFromTarget = createJson.allowed_permissions
+            _ <- Helper.booleanToFuture(SourceViewHasLessPermission + s"Current source viewId($viewId) permissions ($permissionsFromSource), target viewName${createJson.name} permissions ($permissionsFromTarget)", cc = Some(cc)) {
+              permissionsFromTarget.toSet.subsetOf(permissionsFromSource)
+            }
+            _ <- Helper.booleanToFuture(s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${CAN_CREATE_CUSTOM_VIEW}` permission on VIEW_ID(${viewId.value})", cc = Some(cc)) {
+              view.allowed_actions.exists(_ == CAN_CREATE_CUSTOM_VIEW)
+            }
+            (newView, _) <- ViewNewStyle.createCustomView(BankIdAccountId(bankId, accountId), createJson.toCreateViewJson, Some(cc))
+          } yield JSONFactory510.createViewJson(newView)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(createCustomView), "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/target-views", "Create Custom View",
+      "Create a custom view on bank account. Name MUST start with `_`.",
+      createCustomViewJson, customViewJsonV510,
+      List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, $UserNoPermissionAccessView, InvalidJsonFormat, UnknownError),
+      List(apiTagView, apiTagAccount),
+      None,
+      http4sPartialFunction = Some(createCustomView)
+    )
+
+    val updateCustomView: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ PUT -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / "views" / viewIdStr / "target-views" / targetViewIdStr =>
+        EndpointHelpers.withView(req) { (user, account, view, cc) =>
+          val bankId = BankId(bankIdStr); val accountId = AccountId(accountIdStr); val viewId = ViewId(viewIdStr); val targetViewId = ViewId(targetViewIdStr)
+          for {
+            updateJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ${classOf[UpdateCustomViewJson]}", 400, Some(cc)) {
+              net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[UpdateCustomViewJson]
+            }
+            _ <- Helper.booleanToFuture(InvalidCustomViewFormat + s"Current TARGET_VIEW_ID (${targetViewId})", cc = Some(cc)) {
+              isValidCustomViewId(targetViewId.value)
+            }
+            permissionsFromSource = view.asInstanceOf[ViewDefinition].allowed_actions.toSet
+            permissionsFromTarget = updateJson.allowed_permissions
+            _ <- Helper.booleanToFuture(SourceViewHasLessPermission + s"Current source view permissions ($permissionsFromSource), target view permissions ($permissionsFromTarget)", cc = Some(cc)) {
+              permissionsFromTarget.toSet.subsetOf(permissionsFromSource)
+            }
+            _ <- Helper.booleanToFuture(s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${CAN_UPDATE_CUSTOM_VIEW}` permission on VIEW_ID(${viewId.value})", cc = Some(cc)) {
+              view.allowed_actions.exists(_ == CAN_CREATE_CUSTOM_VIEW)
+            }
+            (updatedView, _) <- ViewNewStyle.updateCustomView(BankIdAccountId(bankId, accountId), targetViewId, updateJson.toUpdateViewJson, Some(cc))
+          } yield JSONFactory510.createViewJson(updatedView)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(updateCustomView), "PUT",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/target-views/TARGET_VIEW_ID", "Update Custom View",
+      "Update an existing custom view on a bank account.",
+      updateCustomViewJson, customViewJsonV510,
+      List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, $UserNoPermissionAccessView, InvalidJsonFormat, UnknownError),
+      List(apiTagView, apiTagAccount),
+      None,
+      http4sPartialFunction = Some(updateCustomView)
+    )
+
+    val getCustomView: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / "views" / viewIdStr / "target-views" / targetViewIdStr =>
+        EndpointHelpers.withView(req) { (_, _, view, cc) =>
+          val bankId = BankId(bankIdStr); val accountId = AccountId(accountIdStr); val viewId = ViewId(viewIdStr); val targetViewId = ViewId(targetViewIdStr)
+          for {
+            _ <- Helper.booleanToFuture(InvalidCustomViewFormat + s"Current TARGET_VIEW_ID (${targetViewId.value})", cc = Some(cc)) {
+              isValidCustomViewId(targetViewId.value)
+            }
+            _ <- Helper.booleanToFuture(s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${CAN_GET_CUSTOM_VIEW}`permission on any your views. Current VIEW_ID (${viewId.value})", cc = Some(cc)) {
+              view.allowed_actions.exists(_ == CAN_GET_CUSTOM_VIEW)
+            }
+            targetView <- ViewNewStyle.customView(targetViewId, BankIdAccountId(bankId, accountId), Some(cc))
+          } yield JSONFactory510.createViewJson(targetView)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getCustomView), "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/target-views/TARGET_VIEW_ID", "Get Custom View",
+      "Returns the custom view on the account.",
+      EmptyBody, customViewJsonV510,
+      List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, $UserNoPermissionAccessView, UnknownError),
+      List(apiTagView, apiTagAccount),
+      None,
+      http4sPartialFunction = Some(getCustomView)
+    )
+
+    val deleteCustomView: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ DELETE -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / "views" / viewIdStr / "target-views" / targetViewIdStr =>
+        EndpointHelpers.executeDelete(req) { cc =>
+          val bankId = BankId(bankIdStr); val accountId = AccountId(accountIdStr); val viewId = ViewId(viewIdStr); val targetViewId = ViewId(targetViewIdStr)
+          val view = cc.view.getOrElse(throw new RuntimeException(UserNoPermissionAccessView))
+          for {
+            _ <- Helper.booleanToFuture(InvalidCustomViewFormat + s"Current TARGET_VIEW_ID (${targetViewId.value})", cc = Some(cc)) {
+              isValidCustomViewId(targetViewId.value)
+            }
+            _ <- Helper.booleanToFuture(s"${ErrorMessages.ViewDoesNotPermitAccess} You need the `${CAN_DELETE_CUSTOM_VIEW}` permission on any your views.Current VIEW_ID (${viewId.value})", cc = Some(cc)) {
+              view.allowed_actions.exists(_ == CAN_DELETE_CUSTOM_VIEW)
+            }
+            _ <- ViewNewStyle.customView(targetViewId, BankIdAccountId(bankId, accountId), Some(cc))
+            deleted <- ViewNewStyle.removeCustomView(targetViewId, BankIdAccountId(bankId, accountId), Some(cc))
+          } yield deleted
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(deleteCustomView), "DELETE",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/target-views/TARGET_VIEW_ID", "Delete Custom View",
+      "Deletes the custom view.",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, $UserNoPermissionAccessView, UnknownError),
+      List(apiTagView, apiTagAccount),
+      None,
+      http4sPartialFunction = Some(deleteCustomView)
+    )
+
+    // ─── Bank account balance CRUD (4) ────────────────────────────────────
+
+    val createBankAccountBalance: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / "balances" =>
+        EndpointHelpers.executeFutureCreated(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          val bankId = BankId(bankIdStr); val accountId = AccountId(accountIdStr)
+          for {
+            postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $BankAccountBalanceRequestJsonV510 ", 400, Some(cc)) {
+              net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[BankAccountBalanceRequestJsonV510]
+            }
+            balanceAmount <- NewStyle.function.tryons(s"$InvalidNumber Current balance_amount is  ${postedData.balance_amount}", 400, Some(cc)) {
+              BigDecimal(postedData.balance_amount)
+            }
+            (balance, _) <- code.api.util.newstyle.BankAccountBalanceNewStyle.createOrUpdateBankAccountBalance(
+              bankId, accountId, None, postedData.balance_type, balanceAmount, Some(cc))
+          } yield JSONFactory510.createBankAccountBalanceJson(balance)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(createBankAccountBalance), "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/balances", "Create Bank Account Balance",
+      s"Create a new Balance for a Bank Account.\n\n${userAuthenticationMessage(true)}",
+      bankAccountBalanceRequestJsonV510, bankAccountBalanceResponseJsonV510,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+      List(apiTagAccount, apiTagBalance),
+      Some(List(canCreateBankAccountBalance)),
+      http4sPartialFunction = Some(createBankAccountBalance)
+    )
+
+    val getBankAccountBalanceById: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / "balances" / balanceIdStr =>
+        EndpointHelpers.executeFuture(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          for {
+            (balance, _) <- code.api.util.newstyle.BankAccountBalanceNewStyle.getBankAccountBalanceById(BalanceId(balanceIdStr), Some(cc))
+          } yield JSONFactory510.createBankAccountBalanceJson(balance)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getBankAccountBalanceById), "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/balances/BALANCE_ID", "Get Bank Account Balance By ID",
+      "Get a specific Bank Account Balance.",
+      EmptyBody, bankAccountBalanceResponseJsonV510,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      List(apiTagAccount, apiTagBalance),
+      None,
+      http4sPartialFunction = Some(getBankAccountBalanceById)
+    )
+
+    val updateBankAccountBalance: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ PUT -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / "balances" / balanceIdStr =>
+        EndpointHelpers.executeFuture(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          val bankId = BankId(bankIdStr); val accountId = AccountId(accountIdStr); val balanceId = BalanceId(balanceIdStr)
+          for {
+            postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the BankAccountBalanceRequestJsonV510 ", 400, Some(cc)) {
+              net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[BankAccountBalanceRequestJsonV510]
+            }
+            balanceAmount <- NewStyle.function.tryons(s"$InvalidNumber Current balance_amount is  ${postedData.balance_amount}", 400, Some(cc)) {
+              BigDecimal(postedData.balance_amount)
+            }
+            (_, _) <- code.api.util.newstyle.BankAccountBalanceNewStyle.getBankAccountBalanceById(balanceId, Some(cc))
+            (updated, _) <- code.api.util.newstyle.BankAccountBalanceNewStyle.createOrUpdateBankAccountBalance(
+              bankId, accountId, Some(balanceId), postedData.balance_type, balanceAmount, Some(cc))
+          } yield JSONFactory510.createBankAccountBalanceJson(updated)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(updateBankAccountBalance), "PUT",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/balances/BALANCE_ID", "Update Bank Account Balance",
+      "Update an existing Bank Account Balance.",
+      bankAccountBalanceRequestJsonV510, bankAccountBalanceResponseJsonV510,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+      List(apiTagAccount, apiTagBalance),
+      Some(List(canUpdateBankAccountBalance)),
+      http4sPartialFunction = Some(updateBankAccountBalance)
+    )
+
+    val deleteBankAccountBalance: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ DELETE -> `prefixPath` / "banks" / _ / "accounts" / _ / "balances" / balanceIdStr =>
+        EndpointHelpers.withUserDelete(req) { (_, cc) =>
+          val balanceId = BalanceId(balanceIdStr)
+          for {
+            (_, _) <- code.api.util.newstyle.BankAccountBalanceNewStyle.getBankAccountBalanceById(balanceId, Some(cc))
+            (deleted, _) <- code.api.util.newstyle.BankAccountBalanceNewStyle.deleteBankAccountBalance(balanceId, Some(cc))
+          } yield deleted
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(deleteBankAccountBalance), "DELETE",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/balances/BALANCE_ID", "Delete Bank Account Balance",
+      "Delete a Bank Account Balance.",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      List(apiTagAccount, apiTagBalance),
+      Some(List(canDeleteBankAccountBalance)),
+      http4sPartialFunction = Some(deleteBankAccountBalance)
+    )
+
+    // ─── System view permissions (2) ──────────────────────────────────────
+
+    val addSystemViewPermission: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "system-views" / viewIdStr / "permissions" =>
+        EndpointHelpers.executeFutureCreated(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          val viewId = ViewId(viewIdStr)
+          for {
+            createJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $CreateViewPermissionJson ", 400, Some(cc)) {
+              net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[CreateViewPermissionJson]
+            }
+            _ <- Helper.booleanToFuture(s"$InvalidViewPermissionName The current value is ${createJson.permission_name}", 400, Some(cc)) {
+              ALL_VIEW_PERMISSION_NAMES.exists(_ == createJson.permission_name)
+            }
+            _ <- ViewNewStyle.systemView(viewId, Some(cc))
+            _ <- Helper.booleanToFuture(s"$ViewPermissionNameExists The current value is ${createJson.permission_name}", 400, Some(cc)) {
+              ViewPermission.findSystemViewPermission(viewId, createJson.permission_name).isEmpty
+            }
+            (viewPermission, _) <- ViewNewStyle.createSystemViewPermission(viewId, createJson.permission_name, createJson.extra_data, Some(cc))
+          } yield JSONFactory510.createViewPermissionJson(viewPermission)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(addSystemViewPermission), "POST",
+      "/system-views/VIEW_ID/permissions", "Add Permission to a System View",
+      "Add Permission to a System View.",
+      createViewPermissionJson, entitlementJSON,
+      List($AuthenticatedUserIsRequired, InvalidJsonFormat, IncorrectRoleName, EntitlementAlreadyExists, UnknownError),
+      List(apiTagSystemView),
+      Some(List(canCreateSystemViewPermission)),
+      http4sPartialFunction = Some(addSystemViewPermission)
+    )
+
+    val deleteSystemViewPermission: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ DELETE -> `prefixPath` / "system-views" / viewIdStr / "permissions" / permissionName =>
+        EndpointHelpers.withUserDelete(req) { (_, cc) =>
+          val viewId = ViewId(viewIdStr)
+          for {
+            (viewPermission, _) <- ViewNewStyle.findSystemViewPermission(viewId, permissionName, Some(cc))
+            _ <- Helper.booleanToFuture(s"$DeleteViewPermissionError The current value is $permissionName", 400, Some(cc)) {
+              viewPermission.delete_!
+            }
+          } yield true
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(deleteSystemViewPermission), "DELETE",
+      "/system-views/VIEW_ID/permissions/PERMISSION_NAME", "Delete Permission to a System View",
+      "Delete Permission to a System View.",
+      EmptyBody, EmptyBody,
+      List(AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      List(apiTagSystemView),
+      Some(List(canDeleteSystemViewPermission)),
+      http4sPartialFunction = Some(deleteSystemViewPermission)
+    )
+
     val allRoutes: HttpRoutes[IO] =
       Kleisli[HttpF, Request[IO], Response[IO]] { req: Request[IO] =>
         root(req)
@@ -2179,6 +2667,23 @@ object Http4s510 {
           .orElse(createUserWithAccountAccessById(req))
           .orElse(getTransactionRequestById(req))
           .orElse(updateTransactionRequestStatus(req))
+          .orElse(getCoreAccountByIdThroughView(req))
+          .orElse(getBankAccountBalances(req))
+          .orElse(getBankAccountsBalancesThroughView(req))
+          .orElse(createCounterpartyLimit(req))
+          .orElse(updateCounterpartyLimit(req))
+          .orElse(getCounterpartyLimit(req))
+          .orElse(deleteCounterpartyLimit(req))
+          .orElse(createCustomView(req))
+          .orElse(updateCustomView(req))
+          .orElse(getCustomView(req))
+          .orElse(deleteCustomView(req))
+          .orElse(createBankAccountBalance(req))
+          .orElse(getBankAccountBalanceById(req))
+          .orElse(updateBankAccountBalance(req))
+          .orElse(deleteBankAccountBalance(req))
+          .orElse(addSystemViewPermission(req))
+          .orElse(deleteSystemViewPermission(req))
       }
 
     val allRoutesWithMiddleware: HttpRoutes[IO] =
