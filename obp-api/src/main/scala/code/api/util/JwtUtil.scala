@@ -262,7 +262,6 @@ object JwtUtil extends MdcLoggable {
   def validateIdToken(idToken: String, remoteJWKSetUrl: String): Box[IDTokenClaimsSet] = {
     import java.net._
 
-    import com.nimbusds.jose._
     import com.nimbusds.oauth2.sdk.id._
     import com.nimbusds.openid.connect.sdk.validators._
 
