@@ -1904,6 +1904,15 @@ object Http4s600 {
           .orElse(getUsersWithAccountAccess(req))
           .orElse(createRetailCustomer(req))
           .orElse(createCorporateCustomer(req))
+          .orElse(getUserByUserId(req))
+          .orElse(directLoginEndpoint(req))
+          .orElse(validateAbacRule(req))
+          .orElse(executeAbacRule(req))
+          .orElse(executeAbacPolicy(req))
+          .orElse(getAbacRuleSchema(req))
+          .orElse(backupSystemDynamicEntity(req))
+          .orElse(backupBankLevelDynamicEntity(req))
+          .orElse(deleteSystemDynamicEntityCascade(req))
           // createCorporateCustomer + createRetailCustomer deferred — share
           // the 60-line date-parsing/customer-number generation logic of
           // createCustomer (already migrated); will batch as a focused pass.
@@ -6089,6 +6098,612 @@ object Http4s600 {
         http4sPartialFunction = Some(createCorporateCustomer))
     }
     initUserCustomerResourceDocs()
+
+    // ─── Phase 2: Final batch — getUserByUserId, directLogin, ABAC (5), dynamic-entity backup/cascade (3) ─
+
+    lazy val getUserByUserId: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "users" / "user-id" / userId =>
+        EndpointHelpers.withUser(req) { (_, cc) =>
+          for {
+            userBox <- code.users.Users.users.vend.getUserByUserIdFuture(userId)
+            user <- Future(unboxFullOrFail(userBox, Some(cc),
+              s"$UserNotFoundByUserId Current UserId($userId)"))
+            entitlements <- NewStyle.function.getEntitlementsByUserId(user.userId, Some(cc))
+            agreements <- Future {
+              val ami = code.users.UserAgreementProvider.userAgreementProvider.vend.getLastUserAgreement(user.userId, "accept_marketing_info")
+              val tac = code.users.UserAgreementProvider.userAgreementProvider.vend.getLastUserAgreement(user.userId, "terms_and_conditions")
+              val pc = code.users.UserAgreementProvider.userAgreementProvider.vend.getLastUserAgreement(user.userId, "privacy_conditions")
+              val all = ami.toList ::: tac.toList ::: pc.toList
+              if (all.isEmpty) None else Some(all)
+            }
+            isLocked = code.loginattempts.LoginAttempt.userIsLocked(user.provider, user.name)
+            authUser = code.model.dataAccess.AuthUser.find(
+              By(code.model.dataAccess.AuthUser.user, user.userPrimaryKey.value))
+            userMetrics <- Future {
+              code.metrics.MappedMetric.findAll(
+                By(code.metrics.MappedMetric.userId, userId),
+                net.liftweb.mapper.OrderBy(code.metrics.MappedMetric.date, net.liftweb.mapper.Descending),
+                net.liftweb.mapper.MaxRows(5))
+            }
+            lastActivityDate = userMetrics.headOption.map(_.getDate())
+            recentOperationIds = userMetrics.map(_.getImplementedByPartialFunction()).distinct.take(5)
+          } yield JSONFactory600.createUserInfoJsonV600(
+            user,
+            authUser.map(_.firstName.get).getOrElse(""),
+            authUser.map(_.lastName.get).getOrElse(""),
+            entitlements, agreements, isLocked, lastActivityDate, recentOperationIds)
+        }
+    }
+
+    // DirectLogin header parser — mirrors the parsing in code.api.directlogin.DirectLogin.getAllParameters
+    // but reads from http4s headers instead of Lift's thread-local S.request.
+    private def parseDirectLoginParams(req: org.http4s.Request[IO]): Map[String, String] = {
+      val directLoginHeader = req.headers.get(org.typelevel.ci.CIString("DirectLogin")).map(_.head.value)
+      val authHeader = req.headers.get(org.typelevel.ci.CIString("Authorization")).map(_.head.value)
+      val raw = directLoginHeader
+        .orElse(authHeader.filter(h => h.startsWith("DirectLogin") || h.contains("DirectLogin")))
+        .getOrElse("")
+      val cleaned = raw.stripPrefix("DirectLogin").split(",").map(_.trim).toList
+      val keys = Set("consumer_key", "token", "username", "password")
+      cleaned.flatMap { entry =>
+        if (entry.contains("=")) {
+          val s = entry.split("=", 2)
+          val v = s(1).replaceAll("^\"|\"$", "")
+          if (keys.contains(s(0)) && v.nonEmpty) Some(s(0) -> v) else None
+        } else None
+      }.toMap
+    }
+
+    lazy val directLoginEndpoint: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "my" / "logins" / "direct" =>
+        EndpointHelpers.executeFutureCreated(req) {
+          implicit val cc: CallContext = req.callContext
+          val params = parseDirectLoginParams(req)
+          for {
+            triple <- code.api.DirectLogin.createTokenFuture(params)
+            (httpCode, message, userId) = triple
+            _ <- Future(code.api.DirectLogin.grantEntitlementsToUseDynamicEndpointsInSpacesInDirectLogin(userId))
+          } yield {
+            if (httpCode == 200) JSONFactory600.createTokenJSON(message)
+            else unboxFullOrFail(Empty, None, message, httpCode)
+          }
+        }
+    }
+
+    lazy val validateAbacRule: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "management" / "abac-rules" / "validate" =>
+        EndpointHelpers.executeAndRespond(req) { implicit cc =>
+          val rawBody = cc.httpBody.getOrElse("")
+          for {
+            validateJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
+              net.liftweb.json.parse(rawBody).extract[ValidateAbacRuleJsonV600]
+            }
+            _ <- NewStyle.function.tryons(AbacRuleCodeEmpty, 400, Some(cc)) {
+              validateJson.rule_code.trim.nonEmpty
+            }
+            box <- code.abacrule.AbacRuleEngine.validateRuleCodeAsync(validateJson.rule_code)
+          } yield box match {
+            case Full(msg) => ValidateAbacRuleSuccessJsonV600(valid = true, message = msg): Any
+            case Failure(errorMsg, _, _) =>
+              val cleanError = errorMsg.replace("Invalid ABAC rule code: ", "")
+                .replace("Failed to compile ABAC rule: ", "")
+              val (obpMsg, errorType) =
+                if (cleanError.toLowerCase.contains("too permissive") || cleanError.toLowerCase.contains("tautological")) {
+                  val ec = if (cleanError.toLowerCase.contains("statistical"))
+                    AbacRuleStatisticallyTooPermissive else AbacRuleTooPermissive
+                  (ec, "PermissivenessError")
+                } else if (cleanError.toLowerCase.contains("type mismatch") ||
+                  (cleanError.toLowerCase.contains("found:") && cleanError.toLowerCase.contains("required: boolean")))
+                  (AbacRuleTypeMismatch, "TypeError")
+                else if (cleanError.toLowerCase.contains("syntax") || cleanError.toLowerCase.contains("parse"))
+                  (AbacRuleSyntaxError, "SyntaxError")
+                else if (cleanError.toLowerCase.contains("not found") || cleanError.toLowerCase.contains("not a member"))
+                  (AbacRuleFieldReferenceError, "FieldReferenceError")
+                else if (cleanError.toLowerCase.contains("compilation failed") ||
+                  cleanError.toLowerCase.contains("reflective compilation has failed"))
+                  (AbacRuleCompilationFailed, "CompilationError")
+                else (AbacRuleValidationFailed, "ValidationError")
+              ValidateAbacRuleFailureJsonV600(
+                valid = false, error = cleanError, message = obpMsg,
+                details = ValidateAbacRuleErrorDetailsJsonV600(error_type = errorType))
+            case _ =>
+              ValidateAbacRuleFailureJsonV600(
+                valid = false, error = "Unknown validation error",
+                message = AbacRuleValidationFailed,
+                details = ValidateAbacRuleErrorDetailsJsonV600(error_type = "UnknownError"))
+          }
+        }
+    }
+
+    lazy val executeAbacRule: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "management" / "abac-rules" / ruleId / "execute" =>
+        EndpointHelpers.executeAndRespond(req) { implicit cc =>
+          val rawBody = cc.httpBody.getOrElse("")
+          val u = cc.user.openOrThrowException("User not found in CallContext")
+          for {
+            execJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
+              net.liftweb.json.parse(rawBody).extract[ExecuteAbacRuleJsonV600]
+            }
+            ruleBox <- Future(code.abacrule.MappedAbacRuleProvider.getAbacRuleById(ruleId))
+            _ <- Future(unboxFullOrFail(ruleBox, Some(cc), s"ABAC Rule not found with ID: $ruleId", 404))
+            effectiveUserId = execJson.authenticated_user_id.getOrElse(u.userId)
+            result <- code.abacrule.AbacRuleEngine.executeRule(
+              ruleId = ruleId, authenticatedUserId = effectiveUserId,
+              onBehalfOfUserId = execJson.on_behalf_of_user_id, userId = execJson.user_id,
+              callContext = cc, bankId = execJson.bank_id, accountId = execJson.account_id,
+              viewId = execJson.view_id, transactionId = execJson.transaction_id,
+              transactionRequestId = execJson.transaction_request_id, customerId = execJson.customer_id)
+              .map {
+                case Full(allowed) => AbacRuleResultJsonV600(result = allowed)
+                case _ => AbacRuleResultJsonV600(result = false)
+              }
+          } yield result
+        }
+    }
+
+    lazy val executeAbacPolicy: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "management" / "abac-policies" / policy / "execute" =>
+        EndpointHelpers.executeAndRespond(req) { implicit cc =>
+          val rawBody = cc.httpBody.getOrElse("")
+          val u = cc.user.openOrThrowException("User not found in CallContext")
+          for {
+            execJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
+              net.liftweb.json.parse(rawBody).extract[ExecuteAbacRuleJsonV600]
+            }
+            _ <- Future {
+              if (Constant.ABAC_POLICIES.contains(policy)) Full(true)
+              else Failure(s"Policy not found: $policy. Available policies: ${Constant.ABAC_POLICIES.mkString(", ")}")
+            }.map(unboxFullOrFail(_, Some(cc), s"Invalid ABAC Policy: $policy", 404))
+            effectiveUserId = execJson.authenticated_user_id.getOrElse(u.userId)
+            result <- code.abacrule.AbacRuleEngine.executeRulesByPolicy(
+              policy = policy, authenticatedUserId = effectiveUserId,
+              onBehalfOfUserId = execJson.on_behalf_of_user_id, userId = execJson.user_id,
+              callContext = cc, bankId = execJson.bank_id, accountId = execJson.account_id,
+              viewId = execJson.view_id, transactionId = execJson.transaction_id,
+              transactionRequestId = execJson.transaction_request_id, customerId = execJson.customer_id)
+              .map {
+                case Full(allowed) => AbacRuleResultJsonV600(result = allowed)
+                case _ => AbacRuleResultJsonV600(result = false)
+              }
+          } yield result
+        }
+    }
+
+    // 218-line static ABAC schema. Same shape as Lift's. Built once per call (no caching).
+    private def buildAbacRuleSchemaJson(): AbacRuleSchemaJsonV600 = AbacRuleSchemaJsonV600(
+      parameters = List(
+        AbacParameterJsonV600("authenticatedUser", "User", "The logged-in user (always present)", required = true, "User"),
+        AbacParameterJsonV600("authenticatedUserAttributes", "List[UserAttributeTrait]", "Non-personal attributes of authenticated user", required = true, "User"),
+        AbacParameterJsonV600("authenticatedUserAuthContext", "List[UserAuthContext]", "Auth context of authenticated user", required = true, "User"),
+        AbacParameterJsonV600("authenticatedUserEntitlements", "List[Entitlement]", "Entitlements (roles) of authenticated user", required = true, "User"),
+        AbacParameterJsonV600("onBehalfOfUserOpt", "Option[User]", "User being acted on behalf of (delegation)", required = false, "User"),
+        AbacParameterJsonV600("onBehalfOfUserAttributes", "List[UserAttributeTrait]", "Attributes of delegation user", required = false, "User"),
+        AbacParameterJsonV600("onBehalfOfUserAuthContext", "List[UserAuthContext]", "Auth context of delegation user", required = false, "User"),
+        AbacParameterJsonV600("onBehalfOfUserEntitlements", "List[Entitlement]", "Entitlements (roles) of delegation user", required = false, "User"),
+        AbacParameterJsonV600("userOpt", "Option[User]", "Target user being evaluated", required = false, "User"),
+        AbacParameterJsonV600("userAttributes", "List[UserAttributeTrait]", "Attributes of target user", required = false, "User"),
+        AbacParameterJsonV600("bankOpt", "Option[Bank]", "Bank context", required = false, "Bank"),
+        AbacParameterJsonV600("bankAttributes", "List[BankAttributeTrait]", "Bank attributes", required = false, "Bank"),
+        AbacParameterJsonV600("accountOpt", "Option[BankAccount]", "Account context", required = false, "Account"),
+        AbacParameterJsonV600("accountAttributes", "List[AccountAttribute]", "Account attributes", required = false, "Account"),
+        AbacParameterJsonV600("transactionOpt", "Option[Transaction]", "Transaction context", required = false, "Transaction"),
+        AbacParameterJsonV600("transactionAttributes", "List[TransactionAttribute]", "Transaction attributes", required = false, "Transaction"),
+        AbacParameterJsonV600("transactionRequestOpt", "Option[TransactionRequest]", "Transaction request context", required = false, "TransactionRequest"),
+        AbacParameterJsonV600("transactionRequestAttributes", "List[TransactionRequestAttributeTrait]", "Transaction request attributes", required = false, "TransactionRequest"),
+        AbacParameterJsonV600("customerOpt", "Option[Customer]", "Customer context", required = false, "Customer"),
+        AbacParameterJsonV600("customerAttributes", "List[CustomerAttribute]", "Customer attributes", required = false, "Customer"),
+        AbacParameterJsonV600("callContext", "Option[CallContext]", "Request call context with metadata (IP, user agent, etc.)", required = false, "Context")
+      ),
+      object_types = List(
+        AbacObjectTypeJsonV600("User", "User object with profile and authentication information", List(
+          AbacObjectPropertyJsonV600("userId", "String", "Unique user ID"),
+          AbacObjectPropertyJsonV600("emailAddress", "String", "User email address"),
+          AbacObjectPropertyJsonV600("provider", "String", "Authentication provider (e.g., 'obp')"),
+          AbacObjectPropertyJsonV600("name", "String", "User display name"),
+          AbacObjectPropertyJsonV600("idGivenByProvider", "String", "ID given by provider (same as username)"),
+          AbacObjectPropertyJsonV600("createdByConsentId", "Option[String]", "Consent ID that created the user (if any)"),
+          AbacObjectPropertyJsonV600("isDeleted", "Option[Boolean]", "Whether user is deleted")
+        )),
+        AbacObjectTypeJsonV600("Bank", "Bank object", List(
+          AbacObjectPropertyJsonV600("bankId", "BankId", "Bank ID"),
+          AbacObjectPropertyJsonV600("fullName", "String", "Bank full name"),
+          AbacObjectPropertyJsonV600("shortName", "String", "Bank short name"),
+          AbacObjectPropertyJsonV600("logoUrl", "String", "Bank logo URL"),
+          AbacObjectPropertyJsonV600("websiteUrl", "String", "Bank website URL"),
+          AbacObjectPropertyJsonV600("bankRoutingScheme", "String", "Bank routing scheme"),
+          AbacObjectPropertyJsonV600("bankRoutingAddress", "String", "Bank routing address")
+        )),
+        AbacObjectTypeJsonV600("BankAccount", "Bank account object", List(
+          AbacObjectPropertyJsonV600("accountId", "AccountId", "Account ID"),
+          AbacObjectPropertyJsonV600("bankId", "BankId", "Bank ID"),
+          AbacObjectPropertyJsonV600("accountType", "String", "Account type"),
+          AbacObjectPropertyJsonV600("balance", "BigDecimal", "Account balance"),
+          AbacObjectPropertyJsonV600("currency", "String", "Account currency"),
+          AbacObjectPropertyJsonV600("name", "String", "Account name"),
+          AbacObjectPropertyJsonV600("label", "String", "Account label"),
+          AbacObjectPropertyJsonV600("number", "String", "Account number"),
+          AbacObjectPropertyJsonV600("lastUpdate", "Date", "Last update date"),
+          AbacObjectPropertyJsonV600("branchId", "String", "Branch ID"),
+          AbacObjectPropertyJsonV600("accountRoutings", "List[AccountRouting]", "Account routings")
+        )),
+        AbacObjectTypeJsonV600("Transaction", "Transaction object", List(
+          AbacObjectPropertyJsonV600("id", "TransactionId", "Transaction ID"),
+          AbacObjectPropertyJsonV600("uuid", "String", "Universally unique ID"),
+          AbacObjectPropertyJsonV600("thisAccount", "BankAccount", "This account"),
+          AbacObjectPropertyJsonV600("otherAccount", "Counterparty", "Other account/counterparty"),
+          AbacObjectPropertyJsonV600("transactionType", "String", "Transaction type (e.g., cash withdrawal)"),
+          AbacObjectPropertyJsonV600("amount", "BigDecimal", "Transaction amount"),
+          AbacObjectPropertyJsonV600("currency", "String", "Transaction currency (ISO 4217)"),
+          AbacObjectPropertyJsonV600("description", "Option[String]", "Bank provided label"),
+          AbacObjectPropertyJsonV600("startDate", "Date", "Date transaction was initiated"),
+          AbacObjectPropertyJsonV600("finishDate", "Option[Date]", "Date money finished changing hands"),
+          AbacObjectPropertyJsonV600("balance", "BigDecimal", "New balance after transaction"),
+          AbacObjectPropertyJsonV600("status", "Option[String]", "Transaction status")
+        )),
+        AbacObjectTypeJsonV600("TransactionRequest", "Transaction request object", List(
+          AbacObjectPropertyJsonV600("id", "TransactionRequestId", "Transaction request ID"),
+          AbacObjectPropertyJsonV600("type", "String", "Transaction request type"),
+          AbacObjectPropertyJsonV600("from", "TransactionRequestAccount", "From account"),
+          AbacObjectPropertyJsonV600("status", "String", "Transaction request status"),
+          AbacObjectPropertyJsonV600("start_date", "Date", "Start date"),
+          AbacObjectPropertyJsonV600("end_date", "Date", "End date"),
+          AbacObjectPropertyJsonV600("transaction_ids", "String", "Associated transaction IDs"),
+          AbacObjectPropertyJsonV600("charge", "TransactionRequestCharge", "Charge information"),
+          AbacObjectPropertyJsonV600("this_bank_id", "BankId", "This bank ID"),
+          AbacObjectPropertyJsonV600("this_account_id", "AccountId", "This account ID"),
+          AbacObjectPropertyJsonV600("counterparty_id", "CounterpartyId", "Counterparty ID")
+        )),
+        AbacObjectTypeJsonV600("Customer", "Customer object", List(
+          AbacObjectPropertyJsonV600("customerId", "String", "Customer ID (UUID)"),
+          AbacObjectPropertyJsonV600("bankId", "String", "Bank ID"),
+          AbacObjectPropertyJsonV600("number", "String", "Customer number (bank identifier)"),
+          AbacObjectPropertyJsonV600("legalName", "String", "Customer legal name"),
+          AbacObjectPropertyJsonV600("mobileNumber", "String", "Customer mobile number"),
+          AbacObjectPropertyJsonV600("email", "String", "Customer email"),
+          AbacObjectPropertyJsonV600("dateOfBirth", "Date", "Date of birth"),
+          AbacObjectPropertyJsonV600("relationshipStatus", "String", "Relationship status"),
+          AbacObjectPropertyJsonV600("dependents", "Integer", "Number of dependents")
+        )),
+        AbacObjectTypeJsonV600("UserAttributeTrait", "User attribute", List(
+          AbacObjectPropertyJsonV600("name", "String", "Attribute name"),
+          AbacObjectPropertyJsonV600("value", "String", "Attribute value"),
+          AbacObjectPropertyJsonV600("attributeType", "AttributeType", "Attribute type (STRING, INTEGER, DOUBLE, DATE_WITH_DAY)")
+        )),
+        AbacObjectTypeJsonV600("AccountAttribute", "Account attribute", List(
+          AbacObjectPropertyJsonV600("name", "String", "Attribute name"),
+          AbacObjectPropertyJsonV600("value", "String", "Attribute value"),
+          AbacObjectPropertyJsonV600("attributeType", "AttributeType", "Attribute type")
+        )),
+        AbacObjectTypeJsonV600("TransactionAttribute", "Transaction attribute", List(
+          AbacObjectPropertyJsonV600("name", "String", "Attribute name"),
+          AbacObjectPropertyJsonV600("value", "String", "Attribute value"),
+          AbacObjectPropertyJsonV600("attributeType", "AttributeType", "Attribute type")
+        )),
+        AbacObjectTypeJsonV600("CustomerAttribute", "Customer attribute", List(
+          AbacObjectPropertyJsonV600("name", "String", "Attribute name"),
+          AbacObjectPropertyJsonV600("value", "String", "Attribute value"),
+          AbacObjectPropertyJsonV600("attributeType", "AttributeType", "Attribute type")
+        )),
+        AbacObjectTypeJsonV600("Entitlement", "User entitlement (role)", List(
+          AbacObjectPropertyJsonV600("entitlementId", "String", "Entitlement ID"),
+          AbacObjectPropertyJsonV600("roleName", "String", "Role name (e.g., CanCreateAccount, CanReadTransactions)"),
+          AbacObjectPropertyJsonV600("bankId", "String", "Bank ID (empty string for system-wide roles)"),
+          AbacObjectPropertyJsonV600("userId", "String", "User ID this entitlement belongs to")
+        )),
+        AbacObjectTypeJsonV600("CallContext", "Request context with metadata", List(
+          AbacObjectPropertyJsonV600("correlationId", "String", "Correlation ID for request tracking"),
+          AbacObjectPropertyJsonV600("url", "Option[String]", "Request URL"),
+          AbacObjectPropertyJsonV600("verb", "Option[String]", "HTTP verb (GET, POST, etc.)"),
+          AbacObjectPropertyJsonV600("ipAddress", "Option[String]", "Client IP address"),
+          AbacObjectPropertyJsonV600("userAgent", "Option[String]", "Client user agent"),
+          AbacObjectPropertyJsonV600("implementedByPartialFunction", "Option[String]", "Endpoint implementation name"),
+          AbacObjectPropertyJsonV600("startTime", "Option[Date]", "Request start time"),
+          AbacObjectPropertyJsonV600("endTime", "Option[Date]", "Request end time")
+        ))
+      ),
+      examples = List(
+        AbacRuleExampleJsonV600(
+          rule_name = "Branch Manager Internal Account Access",
+          rule_code = "authenticatedUserEntitlements.exists(e => e.roleName == \"CanReadAccountsAtOneBank\") && authenticatedUserAttributes.exists(a => a.name == \"branch\" && accountAttributes.exists(aa => aa.name == \"branch\" && a.value == aa.value)) && callContext.exists(_.verb.exists(_ == \"GET\")) && accountOpt.exists(_.accountType == \"CURRENT\")",
+          description = "Allow GET access to current accounts when user has CanReadAccountsAtOneBank role and branch matches account's branch",
+          policy = "account-access", is_active = true
+        ),
+        AbacRuleExampleJsonV600(
+          rule_name = "Internal Network High-Value Transaction Review",
+          rule_code = "callContext.exists(_.ipAddress.exists(_.startsWith(\"10.\"))) && authenticatedUserEntitlements.exists(e => e.roleName == \"CanReadTransactionsAtOneBank\") && transactionOpt.exists(_.amount > 10000)",
+          description = "Allow users with CanReadTransactionsAtOneBank role on internal network to review high-value transactions over 10,000",
+          policy = "transaction-access", is_active = true
+        ),
+        AbacRuleExampleJsonV600(
+          rule_name = "Department Head Same-Department Account Read where overdrawn",
+          rule_code = "authenticatedUserEntitlements.exists(e => e.roleName == \"CanReadAccountsAtOneBank\") && authenticatedUserAttributes.exists(ua => ua.name == \"department\" && accountAttributes.exists(aa => aa.name == \"department\" && ua.value == aa.value)) && callContext.exists(_.url.exists(_.contains(\"/accounts/\"))) && accountOpt.exists(_.balance < 0)",
+          description = "Allow users with CanReadAccountsAtOneBank role to read overdrawn accounts in their department",
+          policy = "account-access", is_active = true
+        ),
+        AbacRuleExampleJsonV600(
+          rule_name = "Manager Internal Network Transaction Approval",
+          rule_code = "authenticatedUserEntitlements.exists(e => e.roleName == \"CanCreateTransactionRequest\") && callContext.exists(_.ipAddress.exists(ip => ip.startsWith(\"10.\") || ip.startsWith(\"192.168.\"))) && transactionRequestOpt.exists(tr => tr.status == \"PENDING\" && tr.charge.value.toDouble < 50000)",
+          description = "Allow users with CanCreateTransactionRequest role on internal network to approve pending transaction requests under 50,000",
+          policy = "transaction-request", is_active = true
+        ),
+        AbacRuleExampleJsonV600(
+          rule_name = "KYC Officer Customer Creation from Branch",
+          rule_code = "authenticatedUserEntitlements.exists(e => e.roleName == \"CanCreateCustomer\") && authenticatedUserAttributes.exists(a => a.name == \"certification\" && a.value == \"kyc_certified\") && callContext.exists(_.verb.exists(_ == \"POST\")) && callContext.exists(_.ipAddress.exists(_.startsWith(\"10.20.\"))) && customerAttributes.exists(ca => ca.name == \"onboarding_status\" && ca.value == \"pending\")",
+          description = "Allow users with CanCreateCustomer role and KYC certification to create customers via POST from branch network (10.20.x.x) when status is pending",
+          policy = "customer-access", is_active = true
+        ),
+        AbacRuleExampleJsonV600(
+          rule_name = "International Team Foreign Currency Transaction",
+          rule_code = "authenticatedUserEntitlements.exists(e => e.roleName == \"CanReadTransactionsAtOneBank\") && authenticatedUserAttributes.exists(a => a.name == \"team\" && a.value == \"international\") && callContext.exists(_.url.exists(_.contains(\"/transactions/\"))) && transactionOpt.exists(t => t.currency != \"USD\" && t.amount < 100000) && accountOpt.exists(a => accountAttributes.exists(aa => aa.name == \"international_enabled\" && aa.value == \"true\"))",
+          description = "Allow international team users with CanReadTransactionsAtOneBank role to access foreign currency transactions under 100k on international-enabled accounts",
+          policy = "transaction-access", is_active = true
+        ),
+        AbacRuleExampleJsonV600(
+          rule_name = "Assistant with Limited Delegation Account View",
+          rule_code = "onBehalfOfUserOpt.isDefined && onBehalfOfUserEntitlements.exists(e => e.roleName == \"CanReadAccountsAtOneBank\") && authenticatedUserAttributes.exists(a => a.name == \"assistant_of\" && onBehalfOfUserOpt.exists(u => a.value == u.userId)) && callContext.exists(_.verb.exists(_ == \"GET\")) && accountOpt.exists(a => accountAttributes.exists(aa => aa.name == \"tier\" && List(\"gold\", \"platinum\").contains(aa.value)))",
+          description = "Allow assistants to view gold/platinum accounts via GET when acting on behalf of a user with CanReadAccountsAtOneBank role",
+          policy = "account-access", is_active = true
+        ),
+        AbacRuleExampleJsonV600(
+          rule_name = "Fraud Analyst High-Risk Transaction Access",
+          rule_code = "authenticatedUserEntitlements.exists(e => e.roleName == \"CanReadTransactionsAtOneBank\") && callContext.exists(c => c.verb.exists(_ == \"GET\") && c.implementedByPartialFunction.exists(_.contains(\"Transaction\"))) && transactionAttributes.exists(ta => ta.name == \"risk_score\" && ta.value.toInt >= 75) && transactionOpt.exists(_.status.exists(_ != \"COMPLETED\"))",
+          description = "Allow users with CanReadTransactionsAtOneBank role to GET high-risk (score ≥75) non-completed transactions",
+          policy = "transaction-access", is_active = true
+        )
+      ),
+      available_operators = List(
+        "==", "!=", "&&", "||", "!", ">", "<", ">=", "<=",
+        "contains", "startsWith", "endsWith",
+        "isDefined", "isEmpty", "nonEmpty",
+        "exists", "forall", "find", "filter",
+        "get", "getOrElse"
+      ),
+      notes = List(
+        "PARAMETER NAMES: Use authenticatedUser, userOpt, accountOpt, bankOpt, transactionOpt, etc. (NOT user, account, bank)",
+        "PROPERTY NAMES: Use camelCase - userId (NOT user_id), accountId (NOT account_id), emailAddress (NOT email_address)",
+        "OPTION TYPES: Only authenticatedUser is guaranteed to exist. All others are Option types - check isDefined before using .get",
+        "ATTRIBUTES: All attributes are Lists - use Scala collection methods like exists(), find(), filter()",
+        "SAFE OPTION HANDLING: Use pattern matching: userOpt match { case Some(u) => u.userId == ... case None => false }",
+        "RETURN TYPE: Rule must return Boolean - true = access granted, false = access denied",
+        "AUTO-FETCHING: Objects are automatically fetched based on IDs passed to execute endpoint",
+        "COMMON MISTAKE: Writing 'user.user_id' instead of 'userOpt.get.userId' or 'authenticatedUser.userId'"
+      )
+    )
+
+    lazy val getAbacRuleSchema: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "management" / "abac-rules-schema" =>
+        EndpointHelpers.executeAndRespond(req) { implicit cc =>
+          Future.successful(buildAbacRuleSchemaJson())
+        }
+    }
+
+    // Inlined dynamic-entity backup helper (mirrors Lift's private backupDynamicEntity).
+    private def backupDynamicEntityIo(
+        entity: code.dynamicEntity.DynamicEntityT,
+        backupName: String,
+        dataRecords: net.liftweb.json.JsonAST.JArray
+    ): Unit = {
+      code.dynamicEntity.DynamicEntityProvider.connectorMethodProvider.vend
+        .getByEntityName(entity.bankId, backupName).foreach { existingBackup =>
+          code.DynamicData.DynamicDataProvider.connectorMethodProvider.vend
+            .getAll(entity.bankId, backupName, None, false)
+            .foreach { record =>
+              code.DynamicData.DynamicDataProvider.connectorMethodProvider.vend.delete(
+                entity.bankId, backupName, record.dynamicDataId.getOrElse(""), None, false)
+            }
+          code.dynamicEntity.DynamicEntityProvider.connectorMethodProvider.vend.delete(existingBackup)
+        }
+      val originalMetadata = net.liftweb.json.parse(entity.metadataJson).asInstanceOf[net.liftweb.json.JObject]
+      val backupMetadata = net.liftweb.json.JObject(originalMetadata.obj.map {
+        case net.liftweb.json.JField(name, value) if name == entity.entityName =>
+          net.liftweb.json.JField(backupName, value)
+        case other => other
+      })
+      val backupEntity = code.dynamicEntity.DynamicEntityCommons(
+        entityName = backupName,
+        metadataJson = net.liftweb.json.compactRender(backupMetadata),
+        dynamicEntityId = None,
+        userId = entity.userId,
+        bankId = entity.bankId,
+        hasPersonalEntity = entity.hasPersonalEntity)
+      code.dynamicEntity.DynamicEntityProvider.connectorMethodProvider.vend.createOrUpdate(backupEntity)
+      val originalIdField = code.api.dynamic.entity.helper.DynamicEntityHelper.createEntityId(entity.entityName)
+      val backupIdField = code.api.dynamic.entity.helper.DynamicEntityHelper.createEntityId(backupName)
+      dataRecords.arr.foreach { record =>
+        val recordObj = record.asInstanceOf[net.liftweb.json.JObject]
+        val transformedFields = recordObj.obj.map {
+          case net.liftweb.json.JField(name, _) if name == originalIdField =>
+            net.liftweb.json.JField(backupIdField,
+              net.liftweb.json.JString(java.util.UUID.randomUUID().toString))
+          case other => other
+        }
+        code.DynamicData.DynamicDataProvider.connectorMethodProvider.vend.save(
+          entity.bankId, backupName, net.liftweb.json.JObject(transformedFields),
+          Some(entity.userId), entity.hasPersonalEntity)
+      }
+    }
+
+    private def computeBackupNameIo(bankId: Option[String], baseName: String): String = {
+      val first = s"${baseName}_BAK"
+      if (code.dynamicEntity.DynamicEntityProvider.connectorMethodProvider.vend
+        .getByEntityName(bankId, first).isEmpty) first
+      else {
+        var suffix = 2
+        var candidate = s"${baseName}_BAK$suffix"
+        while (code.dynamicEntity.DynamicEntityProvider.connectorMethodProvider.vend
+          .getByEntityName(bankId, candidate).isDefined) {
+          suffix += 1
+          candidate = s"${baseName}_BAK$suffix"
+        }
+        candidate
+      }
+    }
+
+    private def backupDynamicEntityFut(
+        bankIdOpt: Option[String],
+        dynamicEntityId: String,
+        cc: CallContext
+    ): scala.concurrent.Future[code.api.v6_0_0.DynamicEntityDefinitionJsonV600] = {
+      for {
+        (entity, _) <- NewStyle.function.getDynamicEntityById(bankIdOpt, dynamicEntityId, Some(cc))
+        canGetRole = code.api.dynamic.entity.helper.DynamicEntityInfo.canGetRole(entity.entityName, entity.bankId)
+        _ <- NewStyle.function.hasEntitlement(entity.bankId.getOrElse(""), cc.userId, canGetRole, Some(cc))
+        (box, _) <- NewStyle.function.invokeDynamicConnector(
+          com.openbankproject.commons.model.enums.DynamicEntityOperation.GET_ALL,
+          entity.entityName, None, None, entity.bankId, None, None, false, Some(cc))
+        resultList <- Future {
+          box.asInstanceOf[net.liftweb.common.Box[net.liftweb.json.JsonAST.JArray]]
+            .openOrThrowException(s"$UnknownError ")
+        }
+        backupName = computeBackupNameIo(entity.bankId, entity.entityName)
+        _ <- Future(backupDynamicEntityIo(entity, backupName, resultList))
+        backupCanGetRole = code.api.dynamic.entity.helper.DynamicEntityInfo.canGetRole(backupName, entity.bankId)
+        _ <- Future(code.entitlement.Entitlement.entitlement.vend.addEntitlement(
+          entity.bankId.getOrElse(""), cc.userId, backupCanGetRole.toString()))
+        backupEntity <- Future {
+          code.dynamicEntity.DynamicEntityProvider.connectorMethodProvider.vend
+            .getByEntityName(entity.bankId, backupName)
+            .openOrThrowException("Backup entity not found after creation")
+        }
+      } yield {
+        val commonsData: code.dynamicEntity.DynamicEntityCommons = backupEntity
+        JSONFactory600.createMyDynamicEntitiesJson(List(commonsData)).dynamic_entities.head
+      }
+    }
+
+    lazy val backupSystemDynamicEntity: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "management" / "system-dynamic-entities" / dynamicEntityId / "backup" =>
+        EndpointHelpers.executeFutureCreated(req) {
+          implicit val cc: CallContext = req.callContext
+          backupDynamicEntityFut(None, dynamicEntityId, cc)
+        }
+    }
+
+    lazy val backupBankLevelDynamicEntity: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "management" / "banks" / bankIdStr / "dynamic-entities" / dynamicEntityId / "backup" =>
+        EndpointHelpers.executeFutureCreated(req) {
+          implicit val cc: CallContext = req.callContext
+          backupDynamicEntityFut(Some(bankIdStr), dynamicEntityId, cc)
+        }
+    }
+
+    lazy val deleteSystemDynamicEntityCascade: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ DELETE -> `prefixPath` / "management" / "system-dynamic-entities" / "cascade" / dynamicEntityId =>
+        EndpointHelpers.executeAndRespond(req) { implicit cc =>
+          for {
+            (entity, _) <- NewStyle.function.getDynamicEntityById(None, dynamicEntityId, Some(cc))
+            _ <- Helper.booleanToFuture(CannotDeleteCascadePersonalEntity, cc = Some(cc)) {
+              !entity.hasPersonalEntity
+            }
+            (box, _) <- NewStyle.function.invokeDynamicConnector(
+              com.openbankproject.commons.model.enums.DynamicEntityOperation.GET_ALL,
+              entity.entityName, None, None, entity.bankId, None, None, false, Some(cc))
+            resultList <- Future {
+              box.asInstanceOf[net.liftweb.common.Box[net.liftweb.json.JsonAST.JArray]]
+                .openOrThrowException(s"$UnknownError ")
+            }
+            _ <- Future {
+              if (!entity.entityName.startsWith("ZZ_BAK_"))
+                backupDynamicEntityIo(entity, s"ZZ_BAK_${entity.entityName}", resultList)
+            }
+            _ <- Future.sequence {
+              resultList.arr.map { record =>
+                val idField = code.api.dynamic.entity.helper.DynamicEntityHelper.createEntityId(entity.entityName)
+                val recordId = (record \ idField).asInstanceOf[net.liftweb.json.JString].s
+                Future(code.DynamicData.DynamicDataProvider.connectorMethodProvider.vend.delete(
+                  entity.bankId, entity.entityName, recordId, None, false))
+              }
+            }
+            deleted <- NewStyle.function.deleteDynamicEntity(None, dynamicEntityId)
+          } yield deleted
+        }
+    }
+
+    private def initFinal9ResourceDocs(): Unit = {
+      resourceDocs += ResourceDoc(
+        null, implementedInApiVersion, nameOf(getUserByUserId), "GET",
+        "/users/user-id/USER_ID", "Get User By User Id",
+        """Get detailed user info by user_id (entitlements, agreements, recent metrics).""",
+        EmptyBody, EmptyBody,
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UserNotFoundByUserId, UnknownError),
+        apiTagUser :: Nil,
+        Some(canGetAnyUser :: Nil),
+        http4sPartialFunction = Some(getUserByUserId))
+      resourceDocs += ResourceDoc(
+        null, implementedInApiVersion, nameOf(directLoginEndpoint), "POST",
+        "/my/logins/direct", "Direct Login",
+        """Direct Login — exchange username/password/consumer_key for a token (via DirectLogin header).""",
+        EmptyBody, EmptyBody,
+        List(InvalidLoginCredentials, UsernameHasBeenLocked, UnknownError),
+        apiTagUser :: Nil, None,
+        http4sPartialFunction = Some(directLoginEndpoint))
+      resourceDocs += ResourceDoc(
+        null, implementedInApiVersion, nameOf(validateAbacRule), "POST",
+        "/management/abac-rules/validate", "Validate ABAC Rule",
+        """Compile-and-validate an ABAC rule body (dry run, no persistence).""",
+        EmptyBody, EmptyBody,
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat,
+          AbacRuleCodeEmpty, UnknownError),
+        apiTagABAC :: Nil,
+        Some(canCreateAbacRule :: Nil),
+        http4sPartialFunction = Some(validateAbacRule))
+      resourceDocs += ResourceDoc(
+        null, implementedInApiVersion, nameOf(executeAbacRule), "POST",
+        "/management/abac-rules/ABAC_RULE_ID/execute", "Execute ABAC Rule",
+        """Execute an ABAC rule with a specific context.""",
+        EmptyBody, EmptyBody,
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+        apiTagABAC :: Nil,
+        Some(canExecuteAbacRule :: Nil),
+        http4sPartialFunction = Some(executeAbacRule))
+      resourceDocs += ResourceDoc(
+        null, implementedInApiVersion, nameOf(executeAbacPolicy), "POST",
+        "/management/abac-policies/POLICY/execute", "Execute ABAC Policy",
+        """Execute all ABAC rules in a policy (OR logic — first rule that returns true wins).""",
+        EmptyBody, EmptyBody,
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+        apiTagABAC :: Nil,
+        Some(canExecuteAbacRule :: Nil),
+        http4sPartialFunction = Some(executeAbacPolicy))
+      resourceDocs += ResourceDoc(
+        null, implementedInApiVersion, nameOf(getAbacRuleSchema), "GET",
+        "/management/abac-rules-schema", "Get ABAC Rule Schema",
+        """Static schema describing parameters, object types, examples and operators usable in ABAC rules.""",
+        EmptyBody, EmptyBody,
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+        apiTagABAC :: Nil,
+        Some(canGetAbacRule :: Nil),
+        http4sPartialFunction = Some(getAbacRuleSchema))
+      resourceDocs += ResourceDoc(
+        null, implementedInApiVersion, nameOf(backupSystemDynamicEntity), "POST",
+        "/management/system-dynamic-entities/DYNAMIC_ENTITY_ID/backup", "Backup System Level Dynamic Entity",
+        """Create a _BAK backup of a system-level dynamic entity (definition + data).""",
+        EmptyBody, EmptyBody,
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+        apiTagManageDynamicEntity :: apiTagApi :: Nil,
+        Some(canBackupSystemDynamicEntity :: Nil),
+        http4sPartialFunction = Some(backupSystemDynamicEntity))
+      resourceDocs += ResourceDoc(
+        null, implementedInApiVersion, nameOf(backupBankLevelDynamicEntity), "POST",
+        "/management/banks/BANK_ID/dynamic-entities/DYNAMIC_ENTITY_ID/backup", "Backup Bank Level Dynamic Entity",
+        """Create a _BAK backup of a bank-level dynamic entity (definition + data).""",
+        EmptyBody, EmptyBody,
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+        apiTagManageDynamicEntity :: apiTagApi :: Nil,
+        Some(canBackupBankLevelDynamicEntity :: Nil),
+        http4sPartialFunction = Some(backupBankLevelDynamicEntity))
+      resourceDocs += ResourceDoc(
+        null, implementedInApiVersion, nameOf(deleteSystemDynamicEntityCascade), "DELETE",
+        "/management/system-dynamic-entities/cascade/DYNAMIC_ENTITY_ID", "Delete System Dynamic Entity Cascade",
+        """Delete a system-level dynamic entity and all its data records (auto-backs-up to ZZ_BAK_ first).""",
+        EmptyBody, EmptyBody,
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles,
+          CannotDeleteCascadePersonalEntity, UnknownError),
+        apiTagManageDynamicEntity :: apiTagApi :: Nil,
+        Some(canDeleteCascadeSystemDynamicEntity :: Nil),
+        http4sPartialFunction = Some(deleteSystemDynamicEntityCascade))
+    }
+    initFinal9ResourceDocs()
 
     // Route: GET /obp/v6.0.0/banks/BANK_ID/customers/CUSTOMER_ID/investigation-report
     lazy val getCustomerInvestigationReport: HttpRoutes[IO] = HttpRoutes.of[IO] {
