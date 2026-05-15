@@ -99,11 +99,13 @@
       <scope>runtime</scope>
     </dependency>
     <!-- https://mvnrepository.com/artifact/com.mysql/mysql-connector-j -->
-    <!-- Updated from mysql:mysql-connector-java (deprecated) to com.mysql:mysql-connector-j -->
+    <!-- Updated from mysql:mysql-connector-java (deprecated) to com.mysql:mysql-connector-j.
+         9.x requires MySQL server 8.0+ (no 5.x support); only used for the standard
+         JDBC interface so the major bump is API-safe. -->
     <dependency>
       <groupId>com.mysql</groupId>
       <artifactId>mysql-connector-j</artifactId>
-      <version>8.1.0</version>
+      <version>9.7.0</version>
     </dependency>
     <!-- Pin protobuf-java to override the 3.21.9 pulled in transitively by mysql-connector-j.
          Fixes CVE-2024-7254 and CVE-2026-0994. -->
@@ -126,12 +128,14 @@
       <artifactId>commons-beanutils</artifactId>
       <version>1.10.1</version>
     </dependency>
-    <!-- Pin msal4j to override the 1.13.0 pulled in transitively by mssql-jdbc.
-         Fixes CVE-2024-35255. -->
+    <!-- Pin msal4j to override the older version pulled in transitively by
+         mssql-jdbc → azure-identity. Fixes CVE-2024-35255 (elevation of
+         privilege, fixed upstream in 1.15.1). Not used directly in source —
+         only the transitive Azure auth path matters. -->
     <dependency>
       <groupId>com.microsoft.azure</groupId>
       <artifactId>msal4j</artifactId>
-      <version>1.16.2</version>
+      <version>1.24.1</version>
     </dependency>
     <!-- Pin log4j-api / log4j-core to override the 2.19.0 pulled in transitively
          by elasticsearch:8.14.0. Fixes CVE-2025-68161, CVE-2026-34477, CVE-2026-34479,
@@ -449,7 +453,7 @@
     <dependency>
       <groupId>com.microsoft.sqlserver</groupId>
       <artifactId>mssql-jdbc</artifactId>
-      <version>12.6.4.jre${java.version}</version>
+      <version>13.4.0.jre${java.version}</version>
     </dependency>
     <!-- scalikejdbc for call stored procedure end-->
 
