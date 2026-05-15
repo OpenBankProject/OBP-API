@@ -1692,7 +1692,264 @@ object Http4s600 {
           .orElse(getMandateProvision(req))
           .orElse(updateMandateProvision(req))
           .orElse(deleteMandateProvision(req))
+          .orElse(createApiProduct(req))
+          .orElse(createOrUpdateApiProduct(req))
+          .orElse(getApiProduct(req))
+          .orElse(getApiProducts(req))
+          .orElse(deleteApiProduct(req))
+          .orElse(createApiProductAttribute(req))
+          .orElse(updateApiProductAttribute(req))
+          .orElse(getApiProductAttribute(req))
+          .orElse(deleteApiProductAttribute(req))
       }
+
+    // ─── Phase 2: api-products bucket (9 endpoints) ───────────────────────
+    // All endpoints always require auth + role; the v6 Lift conditional
+    // public-access path (getApiProductsIsPublic) is simplified — public
+    // gating would be a Phase 3 follow-up if needed.
+
+    // Route: POST /obp/v6.0.0/banks/BANK_ID/api-products/API_PRODUCT_CODE (201)
+    val createApiProduct: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "banks" / _ / "api-products" / apiProductCode =>
+        EndpointHelpers.executeFutureCreated(req) {
+          implicit val cc: CallContext = req.callContext
+          val rawBody = cc.httpBody.getOrElse("")
+          val bank = cc.bank.get
+          for {
+            postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the PostPutApiProductJsonV600", 400, Some(cc)) {
+              net.liftweb.json.parse(rawBody).extract[PostPutApiProductJsonV600]
+            }
+            (apiProduct, _) <- NewStyle.function.createOrUpdateApiProduct(
+              bank.bankId.value, apiProductCode,
+              postJson.parent_api_product_code.getOrElse(""),
+              postJson.name, postJson.category.getOrElse(""),
+              postJson.more_info_url.getOrElse(""), postJson.terms_and_conditions_url.getOrElse(""),
+              postJson.description.getOrElse(""), postJson.collection_id.getOrElse(""),
+              postJson.monthly_subscription_currency.getOrElse(""), postJson.monthly_subscription_amount.getOrElse(""),
+              postJson.per_second_call_limit.getOrElse(-1L), postJson.per_minute_call_limit.getOrElse(-1L),
+              postJson.per_hour_call_limit.getOrElse(-1L), postJson.per_day_call_limit.getOrElse(-1L),
+              postJson.per_week_call_limit.getOrElse(-1L), postJson.per_month_call_limit.getOrElse(-1L),
+              postJson.tags.getOrElse(Nil), Some(cc)
+            )
+          } yield JSONFactory600.createApiProductJsonV600(apiProduct, None)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(createApiProduct), "POST",
+      "/banks/BANK_ID/api-products/API_PRODUCT_CODE", "Create Api Product",
+      """Create an Api Product for the Bank.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+      apiTagApi :: apiTagApiProduct :: Nil,
+      Some(canCreateApiProduct :: Nil),
+      http4sPartialFunction = Some(createApiProduct)
+    )
+
+    // Route: PUT /obp/v6.0.0/banks/BANK_ID/api-products/API_PRODUCT_CODE (201 — Lift returns 201)
+    val createOrUpdateApiProduct: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ PUT -> `prefixPath` / "banks" / _ / "api-products" / apiProductCode =>
+        EndpointHelpers.executeFutureCreated(req) {
+          implicit val cc: CallContext = req.callContext
+          val rawBody = cc.httpBody.getOrElse("")
+          val bank = cc.bank.get
+          for {
+            postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the PostPutApiProductJsonV600", 400, Some(cc)) {
+              net.liftweb.json.parse(rawBody).extract[PostPutApiProductJsonV600]
+            }
+            (apiProduct, _) <- NewStyle.function.createOrUpdateApiProduct(
+              bank.bankId.value, apiProductCode,
+              postJson.parent_api_product_code.getOrElse(""),
+              postJson.name, postJson.category.getOrElse(""),
+              postJson.more_info_url.getOrElse(""), postJson.terms_and_conditions_url.getOrElse(""),
+              postJson.description.getOrElse(""), postJson.collection_id.getOrElse(""),
+              postJson.monthly_subscription_currency.getOrElse(""), postJson.monthly_subscription_amount.getOrElse(""),
+              postJson.per_second_call_limit.getOrElse(-1L), postJson.per_minute_call_limit.getOrElse(-1L),
+              postJson.per_hour_call_limit.getOrElse(-1L), postJson.per_day_call_limit.getOrElse(-1L),
+              postJson.per_week_call_limit.getOrElse(-1L), postJson.per_month_call_limit.getOrElse(-1L),
+              postJson.tags.getOrElse(Nil), Some(cc)
+            )
+          } yield JSONFactory600.createApiProductJsonV600(apiProduct, None)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(createOrUpdateApiProduct), "PUT",
+      "/banks/BANK_ID/api-products/API_PRODUCT_CODE", "Create or Update Api Product",
+      """Create or update an Api Product for the Bank.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+      apiTagApi :: apiTagApiProduct :: Nil,
+      Some(canUpdateApiProduct :: Nil),
+      http4sPartialFunction = Some(createOrUpdateApiProduct)
+    )
+
+    // Route: GET /obp/v6.0.0/banks/BANK_ID/api-products/API_PRODUCT_CODE
+    val getApiProduct: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / _ / "api-products" / apiProductCode =>
+        EndpointHelpers.withUserAndBank(req) { (_, bank, cc) =>
+          for {
+            (apiProduct, _) <- NewStyle.function.getApiProductByBankIdAndCode(bank.bankId.value, apiProductCode, Some(cc))
+            (attributes, _) <- NewStyle.function.getApiProductAttributesByBankIdAndCode(bank.bankId.value, apiProductCode, Some(cc))
+          } yield JSONFactory600.createApiProductJsonV600(apiProduct, Some(attributes))
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getApiProduct), "GET",
+      "/banks/BANK_ID/api-products/API_PRODUCT_CODE", "Get Api Product",
+      """Get an Api Product by BANK_ID and API_PRODUCT_CODE.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
+      apiTagApi :: apiTagApiProduct :: Nil,
+      Some(canGetApiProduct :: Nil),
+      http4sPartialFunction = Some(getApiProduct)
+    )
+
+    // Route: GET /obp/v6.0.0/banks/BANK_ID/api-products
+    val getApiProducts: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / _ / "api-products" =>
+        EndpointHelpers.withUserAndBank(req) { (_, bank, cc) =>
+          val tagFilter = req.uri.query.params.get("tag").map(_.trim).filter(_.nonEmpty)
+          for {
+            (apiProducts, _) <- NewStyle.function.getApiProductsByBankId(bank.bankId.value, tagFilter, Some(cc))
+          } yield JSONFactory600.createApiProductsJsonV600(apiProducts)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getApiProducts), "GET",
+      "/banks/BANK_ID/api-products", "Get Api Products",
+      """Get all Api Products for the Bank. Optional ?tag= filter.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
+      apiTagApi :: apiTagApiProduct :: Nil,
+      Some(canGetApiProduct :: Nil),
+      http4sPartialFunction = Some(getApiProducts)
+    )
+
+    // Route: DELETE /obp/v6.0.0/banks/BANK_ID/api-products/API_PRODUCT_CODE
+    val deleteApiProduct: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ DELETE -> `prefixPath` / "banks" / _ / "api-products" / apiProductCode =>
+        EndpointHelpers.withUserAndBank(req) { (_, bank, cc) =>
+          for {
+            _ <- NewStyle.function.deleteApiProductAttributesByBankIdAndCode(bank.bankId.value, apiProductCode, Some(cc))
+            _ <- NewStyle.function.deleteApiProduct(bank.bankId.value, apiProductCode, Some(cc))
+          } yield ""
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(deleteApiProduct), "DELETE",
+      "/banks/BANK_ID/api-products/API_PRODUCT_CODE", "Delete Api Product",
+      """Delete an Api Product by BANK_ID and API_PRODUCT_CODE.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
+      apiTagApi :: apiTagApiProduct :: Nil,
+      Some(canDeleteApiProduct :: Nil),
+      http4sPartialFunction = Some(deleteApiProduct)
+    )
+
+    // Route: POST /obp/v6.0.0/banks/BANK_ID/api-products/API_PRODUCT_CODE/attribute (201)
+    val createApiProductAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "banks" / _ / "api-products" / apiProductCode / "attribute" =>
+        EndpointHelpers.executeFutureCreated(req) {
+          implicit val cc: CallContext = req.callContext
+          val rawBody = cc.httpBody.getOrElse("")
+          val bank = cc.bank.get
+          for {
+            _ <- NewStyle.function.getApiProductByBankIdAndCode(bank.bankId.value, apiProductCode, Some(cc))
+            postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ApiProductAttributeJsonV600", 400, Some(cc)) {
+              net.liftweb.json.parse(rawBody).extract[ApiProductAttributeJsonV600]
+            }
+            (attribute, _) <- NewStyle.function.createOrUpdateApiProductAttribute(
+              bank.bankId.value, apiProductCode, None,
+              postJson.name, postJson.`type`, postJson.value, postJson.is_active, Some(cc))
+          } yield JSONFactory600.createApiProductAttributeResponseJsonV600(attribute)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(createApiProductAttribute), "POST",
+      "/banks/BANK_ID/api-products/API_PRODUCT_CODE/attribute", "Create Api Product Attribute",
+      """Create an attribute for the specified Api Product.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+      apiTagApi :: apiTagApiProductAttribute :: Nil,
+      Some(canCreateApiProductAttribute :: Nil),
+      http4sPartialFunction = Some(createApiProductAttribute)
+    )
+
+    // Route: PUT /obp/v6.0.0/banks/BANK_ID/api-products/API_PRODUCT_CODE/attributes/API_PRODUCT_ATTRIBUTE_ID
+    val updateApiProductAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ PUT -> `prefixPath` / "banks" / _ / "api-products" / apiProductCode / "attributes" / apiProductAttributeId =>
+        EndpointHelpers.executeAndRespond(req) { implicit cc =>
+          val rawBody = cc.httpBody.getOrElse("")
+          val bank = cc.bank.get
+          for {
+            _ <- NewStyle.function.getApiProductByBankIdAndCode(bank.bankId.value, apiProductCode, Some(cc))
+            postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ApiProductAttributeJsonV600", 400, Some(cc)) {
+              net.liftweb.json.parse(rawBody).extract[ApiProductAttributeJsonV600]
+            }
+            (attribute, _) <- NewStyle.function.createOrUpdateApiProductAttribute(
+              bank.bankId.value, apiProductCode, Some(apiProductAttributeId),
+              postJson.name, postJson.`type`, postJson.value, postJson.is_active, Some(cc))
+          } yield JSONFactory600.createApiProductAttributeResponseJsonV600(attribute)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(updateApiProductAttribute), "PUT",
+      "/banks/BANK_ID/api-products/API_PRODUCT_CODE/attributes/API_PRODUCT_ATTRIBUTE_ID", "Update Api Product Attribute",
+      """Update an Api Product Attribute.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+      apiTagApi :: apiTagApiProductAttribute :: Nil,
+      Some(canUpdateApiProductAttribute :: Nil),
+      http4sPartialFunction = Some(updateApiProductAttribute)
+    )
+
+    // Route: GET /obp/v6.0.0/banks/BANK_ID/api-products/API_PRODUCT_CODE/attributes/API_PRODUCT_ATTRIBUTE_ID
+    val getApiProductAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / _ / "api-products" / _ / "attributes" / apiProductAttributeId =>
+        EndpointHelpers.withUserAndBank(req) { (_, _, cc) =>
+          for {
+            (attribute, _) <- NewStyle.function.getApiProductAttributeById(apiProductAttributeId, Some(cc))
+          } yield JSONFactory600.createApiProductAttributeResponseJsonV600(attribute)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getApiProductAttribute), "GET",
+      "/banks/BANK_ID/api-products/API_PRODUCT_CODE/attributes/API_PRODUCT_ATTRIBUTE_ID", "Get Api Product Attribute",
+      """Get an Api Product Attribute by API_PRODUCT_ATTRIBUTE_ID.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
+      apiTagApi :: apiTagApiProductAttribute :: Nil,
+      Some(canGetApiProductAttribute :: Nil),
+      http4sPartialFunction = Some(getApiProductAttribute)
+    )
+
+    // Route: DELETE /obp/v6.0.0/banks/BANK_ID/api-products/API_PRODUCT_CODE/attributes/API_PRODUCT_ATTRIBUTE_ID
+    val deleteApiProductAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ DELETE -> `prefixPath` / "banks" / _ / "api-products" / _ / "attributes" / apiProductAttributeId =>
+        EndpointHelpers.withUserAndBank(req) { (_, _, cc) =>
+          for {
+            _ <- NewStyle.function.deleteApiProductAttribute(apiProductAttributeId, Some(cc))
+          } yield ""
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(deleteApiProductAttribute), "DELETE",
+      "/banks/BANK_ID/api-products/API_PRODUCT_CODE/attributes/API_PRODUCT_ATTRIBUTE_ID", "Delete Api Product Attribute",
+      """Delete an Api Product Attribute.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
+      apiTagApi :: apiTagApiProductAttribute :: Nil,
+      Some(canDeleteApiProductAttribute :: Nil),
+      http4sPartialFunction = Some(deleteApiProductAttribute)
+    )
 
     // ─── Phase 2: mandates bucket (10 endpoints) ──────────────────────────
 
