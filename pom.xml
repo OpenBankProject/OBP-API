@@ -73,6 +73,20 @@
         <type>pom</type>
         <scope>import</scope>
       </dependency>
+      <!-- Force json-smart 2.6.0 to override the 2.4.7 pulled in via
+           oauth2-oidc-sdk 9.27. Direct-dep override in obp-api/pom.xml did
+           not take effect — using dependencyManagement here works reliably.
+           Fixes CVE-2023-1370. -->
+      <dependency>
+        <groupId>net.minidev</groupId>
+        <artifactId>json-smart</artifactId>
+        <version>2.6.0</version>
+      </dependency>
+      <dependency>
+        <groupId>net.minidev</groupId>
+        <artifactId>accessors-smart</artifactId>
+        <version>2.6.0</version>
+      </dependency>
       <dependency>
         <groupId>com.tesobe</groupId>
         <artifactId>obp-commons</artifactId>
