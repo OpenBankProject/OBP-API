@@ -4,7 +4,7 @@ import code.api.CertificateConstants
 import code.api.util.CryptoSystem.CryptoSystem
 import code.api.util.SelfSignedCertificateUtil.generateSelfSignedCert
 import code.util.Helper.MdcLoggable
-import com.nimbusds.jose._
+import com.nimbusds.jose.{EncryptionMethod, JWEAlgorithm, JWEHeader, JWSAlgorithm, JWSHeader, JWSSigner}
 import com.nimbusds.jose.crypto.{MACSigner, RSAEncrypter, RSASSASigner}
 import com.nimbusds.jose.util.X509CertUtils
 import com.nimbusds.jwt.{EncryptedJWT, JWTClaimsSet}

@@ -29,7 +29,7 @@ New API versions are implemented as native http4s routes and do not pass through
 
 ### Priority routing
 
-Routes are tried in order: `corsHandler` (OPTIONS) → `AppsPage` → `StatusPage` → `Http4s500` → `Http4s700` → `Http4sBGv2` → `Http4s300` → `Http4s220` → `Http4s210` → `Http4s200` → `Http4s140` → `Http4s130` → `Http4s121` → `Http4sLiftWebBridge` (Lift fallback). Unhandled `/obp/v7.0.0/*` paths fall through silently to Lift — they do not 404.
+Routes are tried in order: `corsHandler` (OPTIONS) → `AppsPage` → `StatusPage` → `Http4s500` → `Http4s700` → `Http4sBGv2` → `Http4s400` → `Http4s310` → `Http4s300` → `Http4s220` → `Http4s210` → `Http4s200` → `Http4s140` → `Http4s130` → `Http4s121` → `Http4sLiftWebBridge` (Lift fallback). Unhandled `/obp/v7.0.0/*` paths fall through silently to Lift — they do not 404.
 
 ```
 HTTP Request
@@ -119,8 +119,8 @@ Bottom-up — each version depends on the one below it being done.
 | 5 | `APIMethods210` | 28 | **Done** — `Http4s210.scala`: 25 own endpoints + path-rewriting bridge to `Http4s200`; all 79 v2.1.0 tests pass |
 | 6 | `APIMethods220` | 19 | **Done** — `Http4s220.scala`: 18 own endpoints + path-rewriting bridge to `Http4s210`; all 27 v2.2.0 tests pass |
 | 7 | `APIMethods300` | 47 | **Done** — `Http4s300.scala`: 47 own endpoints + path-rewriting bridge to `Http4s220`; all 86 v3.0.0 tests pass |
-| 8 | `APIMethods310` | 102 | |
-| 9 | `APIMethods400` | ~258 total | Largest file; may need splitting into sub-traits |
+| 8 | `APIMethods310` | 102 | **Done** — `Http4s310.scala` has all 100 functional endpoints (42 GET, 10 DELETE, 19 POST, 25 PUT, 1 GET-shaped revoke, 3 SCA aliases) + path-rewriting bridge to `Http4s300`; 181 v3.1.0 tests pass. Two endpoints tracked separately in "Per-version Lift leftovers" (`getMessageDocsSwagger`, `getObpConnectorLoopback`) — they retire via the Resource-docs workstream / bridge-removal PR, not as v3.1.0 follow-up. |
+| 9 | `APIMethods400` | ~258 total | **In progress (47/258 endpoints)** — `Http4s400.scala` scaffolded with `staticResourceDocs`/`resourceDocs` split + bridge to `Http4s310`. **Dynamic-entity family complete** (11/11), **dynamic-endpoint family complete** (12/12), **mainstream batch 1** (`getMapperDatabaseInfo`, `getLogoutLink`, `getBanks`, `getBank`, `ibanChecker`, `callsLimit`, `createBank`, `root`). **Override audit started** (13/35 v4-over-older overrides migrated: `getBanks`, `getBank`, `createBank`, `root`, `getAtms`, `getAtm`, `createAtm`, `getProducts`, `getProduct`, `createProduct`, `createProductAttribute`, `updateProductAttribute`, `callsLimit`). Tests passing: BankTests, BankAttributeTests, MapperDatabaseInfoTest, RateLimitingTest, AtmsTest, ProductTest, DynamicEntityTest, DynamicEndpointsTest et al. **Bridge-cascade hijack gotcha** (see CLAUDE.md): v4 endpoints that *override* a same-URL endpoint from an earlier version must be migrated to `Http4s400` own-routes *before* relying on the bridge — otherwise the bridge cascade rewrites the path down to the older version's handler (which has different behaviour). 22 overrides remain to migrate. |
 | 10 | `APIMethods500` | 37 | |
 | 11 | `APIMethods510` | 111 | |
 | 12 | `APIMethods600` | ~244 total | Final Lift endpoint file |
@@ -136,8 +136,9 @@ Resource-docs endpoints are **version-polymorphic**: `GET /obp/v6.0.0/resource-d
 Add one service to `Http4sApp` (above the Lift bridge, before any per-version service) that handles:
 
 ```
-GET  /obp/*/resource-docs/API_VERSION/obp   → version-dispatch via getResourceDocsList
+GET  /obp/*/resource-docs/API_VERSION/obp           → version-dispatch via getResourceDocsList
 GET  /obp/*/resource-docs/API_VERSION/openapi.yaml
+GET  /obp/*/message-docs/CONNECTOR/swagger2.0       → absorbs APIMethods310.getMessageDocsSwagger
 ```
 
 The wildcard prefix means all resource-doc requests are intercepted regardless of which version prefix the client uses. This workstream is **independent of the per-version migration order** — it can land at any time and immediately removes all resource-docs traffic from the Lift bridge.
@@ -159,7 +160,8 @@ Currently served via a raw Lift `serve { case Req(..., "openapi.yaml", ...) }` b
 1. Fix aggregation bug in `getResourceDocsObpV700` → make `V7ResourceDocsAggregationTest` pass.
 2. Extract shared handler logic into `Http4sResourceDocs` service; wire into `Http4sApp`.
 3. Add `openapi.yaml` route to the same service.
-4. Remove resource-docs from the per-version Lift objects (`ResourceDocs140`–`ResourceDocs600`) once the centralized service covers them.
+4. Port `getMessageDocsSwagger` from `APIMethods310` into the same service (currently still served by the Lift bridge — see "Per-version Lift leftovers" below).
+5. Remove resource-docs from the per-version Lift objects (`ResourceDocs140`–`ResourceDocs600`) once the centralized service covers them.
 
 ---
 
@@ -175,6 +177,19 @@ Token-generation paths — not version-file endpoints. Each `extends RestHelper`
 | `OAuth` | OAuth 1.0a token endpoints | Most complex |
 
 These are the last hard dependency on Lift Web in the request path. The Lift bridge cannot be removed until all four are done.
+
+---
+
+## Per-version Lift leftovers
+
+An `APIMethods{version}` file is marked **done** in the progress table when every *functional* endpoint is on http4s and the version's test suite is green. A small number of endpoints are deliberately *not* migrated inline because they belong to a different workstream or have no behaviour worth porting. They continue to be served by the Lift bridge until the workstream that owns them lands; they do **not** create new follow-up work on the per-version file.
+
+| Endpoint | Origin | Why on Lift | Retired by |
+|---|---|---|---|
+| `getMessageDocsSwagger` (`GET /message-docs/CONNECTOR/swagger2.0`) | `APIMethods310` | Same shape as `getResourceDocsObpV700` / `openapi.yaml` — runtime Swagger generation with shared caching | The **Http4sResourceDocs** workstream (step 4) |
+| `getObpConnectorLoopback` (`GET /connector/loopback`) | `APIMethods310` | Deprecated stub that unconditionally throws `IllegalStateException(NotImplemented)`; no functional behaviour | Either a 3-line native http4s route that throws the same exception or outright deletion, decided when the Lift bridge is removed |
+
+Track new leftovers here when later version files are migrated — the bridge-removal milestone in "Done Criteria" only requires the per-version files to be **done** in this table's sense (functional endpoints migrated, tests green). Leftovers folded into the Resource-docs or Auth-stack workstreams retire via those workstreams.
 
 ---
 
@@ -206,10 +221,10 @@ corsHandler
 
 | Milestone | Condition |
 |---|---|
-| Version file done | All endpoints are `HttpRoutes[IO]`; `OBPRestHelper` removed from the file; existing tests pass |
-| Lift bridge removable | All 12 APIMethods files done + auth stack done |
-| Lift Web removed | `lift-webkit` removed from `pom.xml`; `Boot.scala` reduced to DB init + scheduler startup |
-| `lift-mapper` | Separate long-term effort — not in scope here |
+| Version file done | All *functional* endpoints are `HttpRoutes[IO]`; the version's test suite is green. Endpoints folded into the Resource-docs / Auth-stack workstreams or marked as non-functional stubs are listed in "Per-version Lift leftovers" rather than blocking the file's done status. |
+| Lift bridge removable | All 12 APIMethods files done (per the row above) + auth stack done + Resource-docs workstream done. Any remaining stubs from "Per-version Lift leftovers" are ported or deleted in the bridge-removal PR. |
+| Lift Web removed | `lift-webkit` removed from `pom.xml`; `Boot.scala` reduced to DB init + scheduler startup. |
+| `lift-mapper` | Separate long-term effort — not in scope here. |
 
 ---
 
@@ -245,7 +260,7 @@ Binds to `hostname` / `dev.port` from your props file (defaults: `127.0.0.1:8080
 | `APIMethods210` | done — `Http4s210.scala` (25 own endpoints; path-rewriting bridge to Http4s200) |
 | `APIMethods220` | done — `Http4s220.scala` (18 own endpoints; path-rewriting bridge to Http4s210) |
 | `APIMethods300` | done — `Http4s300.scala` (47 own endpoints; path-rewriting bridge to Http4s220; all 86 v3.0.0 tests pass) |
-| `APIMethods310` | todo |
+| `APIMethods310` | done — `Http4s310.scala` (100 own endpoints; path-rewriting bridge to Http4s300; 2 endpoints intentionally left on Lift: `getMessageDocsSwagger`, `getObpConnectorLoopback`) |
 | `APIMethods400` | todo |
 | `APIMethods500` | todo |
 | `APIMethods510` | todo |

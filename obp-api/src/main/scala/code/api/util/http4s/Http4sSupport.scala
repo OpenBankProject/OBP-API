@@ -51,8 +51,20 @@ object Http4sRequestAttributes {
    * Vault key for storing CallContext in http4s request attributes.
    * CallContext contains request data and validated entities (user, bank, account, view, counterparty).
    */
-  val callContextKey: Key[CallContext] = 
+  val callContextKey: Key[CallContext] =
     Key.newKey[IO, CallContext].unsafeRunSync()(cats.effect.unsafe.IORuntime.global)
+
+  /**
+   * Vault key for caching the (already-read) request body across bridge cascade hops.
+   *
+   * Http4s body streams are single-shot: `request.bodyText.compile.string` drains the stream.
+   * Without a cache, the first version's middleware reads the body to build the CallContext;
+   * subsequent bridge calls (v400→v310→v300→v220→v210) re-read an empty stream and the
+   * eventual handler sees no body. The first `fromRequest` call stores the body as
+   * `Some(String)` (POSTs/PUTs) or `None` (GETs/etc.) — later calls return it untouched.
+   */
+  val cachedBodyKey: Key[Option[String]] =
+    Key.newKey[IO, Option[String]].unsafeRunSync()(cats.effect.unsafe.IORuntime.global)
   
   /**
    * Implicit class that adds .callContext accessor to Request[IO].
@@ -498,8 +510,12 @@ object Http4sCallContextBuilder {
   def fromRequest(request: Request[IO], apiVersion: String): IO[CallContext] = {
     val noBody = Set(Method.GET, Method.DELETE, Method.HEAD, Method.OPTIONS)
     for {
-      body <- if (noBody.contains(request.method)) IO.pure(None)
-              else request.bodyText.compile.string.map(s => if (s.isEmpty) None else Some(s))
+      body <- request.attributes.lookup(Http4sRequestAttributes.cachedBodyKey) match {
+        case Some(cached) => IO.pure(cached)
+        case None =>
+          if (noBody.contains(request.method)) IO.pure(None)
+          else request.bodyText.compile.string.map(s => if (s.isEmpty) None else Some(s))
+      }
     } yield CallContext(
       url = request.uri.renderString,
       verb = request.method.name,
@@ -685,8 +701,37 @@ object ResourceDocMatcher extends code.util.Helper.MdcLoggable {
   /**
    * Check if a template segment is a variable (uppercase)
    */
+  /**
+   * All-caps URL-segment literals that historically broke the matcher.
+   *
+   * `isTemplateVariable` originally returned true for every all-caps + underscore +
+   * digit segment. That made literals like `SANDBOX_TAN`, `ACCOUNT`, `SEPA` etc.
+   * indistinguishable from real placeholders like `BANK_ID`, so a ResourceDoc URL
+   * `/banks/BANK_ID/.../transaction-request-types/SANDBOX_TAN/transaction-requests`
+   * matched any trans-req-type URL — including v4-only `ACCOUNT` — and the v4
+   * request never reached the Lift fallback that knows how to handle it.
+   *
+   * We special-case the known literal segments. Anything else stays a wildcard so
+   * the existing non-standard placeholder convention (NEW_ACCOUNT_ID, GRANT_VIEW_ID,
+   * FIREHOSE_BANK_ID, EXPLICIT_COUNTERPARTY_ID, SYS_VIEW_ID, …) keeps working
+   * without an explicit allow-list.
+   *
+   * Add a value here when a new path uses an all-caps literal (e.g. a new
+   * transaction-request type or SCA method).
+   */
+  private val literalAllCapsSegments: Set[String] = Set(
+    // transaction-request types
+    "SANDBOX_TAN", "COUNTERPARTY", "SEPA", "FREE_FORM",
+    "ACCOUNT", "ACCOUNT_OTP", "REFUND", "SIMPLE",
+    "AGENT_CASH_WITHDRAWAL", "CARD",
+    // SCA methods (POST /banks/BANK_ID/my/consents/{EMAIL|SMS|IMPLICIT})
+    "EMAIL", "SMS", "IMPLICIT", "NOT_EMAIL_NEITHER_SMS"
+  )
+
   private def isTemplateVariable(segment: String): Boolean = {
-    segment.nonEmpty && segment.forall(c => c.isUpper || c == '_' || c.isDigit)
+    segment.nonEmpty &&
+      segment.forall(c => c.isUpper || c == '_' || c.isDigit) &&
+      !literalAllCapsSegments.contains(segment)
   }
   
   /**

@@ -951,7 +951,7 @@ trait APIMethods300 {
       implementedInApiVersion,
       nameOf(getUser),
       "GET",
-      "/users/email/EMAIL/terminator",
+      "/users/email/USER_EMAIL/terminator",
       "Get Users by Email Address",
       s"""Get users by email address
         |

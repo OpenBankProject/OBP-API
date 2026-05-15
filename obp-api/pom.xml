@@ -52,7 +52,7 @@
     <dependency>
       <groupId>org.bouncycastle</groupId>
       <artifactId>bcpg-jdk18on</artifactId>
-      <version>1.78.1</version>
+      <version>1.84</version>
     </dependency>
     <dependency>
       <groupId>org.http4s</groupId>
@@ -67,7 +67,7 @@
     <dependency>
       <groupId>org.bouncycastle</groupId>
       <artifactId>bcpkix-jdk18on</artifactId>
-      <version>1.78.1</version>
+      <version>1.84</version>
     </dependency>
     <!-- https://mvnrepository.com/artifact/org.apache.commons/commons-lang3 -->
     <dependency>
@@ -82,7 +82,7 @@
     <dependency>
       <groupId>org.postgresql</groupId>
       <artifactId>postgresql</artifactId>
-      <version>42.7.7</version>
+      <version>42.7.11</version>
     </dependency>
     <!-- https://mvnrepository.com/artifact/com.oracle.database.jdbc/ojdbc8-production -->
     <dependency>
@@ -122,11 +122,12 @@
       <version>1.1.10.4</version>
     </dependency>
     <!-- Pin commons-beanutils to override the 1.9.2 pulled in transitively via
-         everit json-schema → commons-validator. Fixes CVE-2025-48734, CVE-2019-10086. -->
+         everit json-schema → commons-validator. Fixes CVE-2025-48734, CVE-2019-10086;
+         1.11.0 adds the Improper-Access-Control fix (GHSA on top of those). -->
     <dependency>
       <groupId>commons-beanutils</groupId>
       <artifactId>commons-beanutils</artifactId>
-      <version>1.10.1</version>
+      <version>1.11.0</version>
     </dependency>
     <!-- Pin msal4j to override the older version pulled in transitively by
          mssql-jdbc → azure-identity. Fixes CVE-2024-35255 (elevation of
@@ -138,17 +139,19 @@
       <version>1.24.1</version>
     </dependency>
     <!-- Pin log4j-api / log4j-core to override the 2.19.0 pulled in transitively
-         by elasticsearch:8.14.0. Fixes CVE-2025-68161, CVE-2026-34477, CVE-2026-34479,
-         CVE-2026-34480, CVE-2026-34481. (Not Log4Shell — that one was patched long ago.) -->
+         by elasticsearch (the project's logger is logback; log4j2 is only present
+         for ES to load its own appenders). 2.26.0 also fixes the Rfc5424Layout log
+         injection, XmlLayout XML-1.0 silent drop, Socket-Appender TLS hostname
+         non-verification, and verifyHostName silent-ignore advisories that hit 2.24.3. -->
     <dependency>
       <groupId>org.apache.logging.log4j</groupId>
       <artifactId>log4j-api</artifactId>
-      <version>2.24.3</version>
+      <version>2.26.0</version>
     </dependency>
     <dependency>
       <groupId>org.apache.logging.log4j</groupId>
       <artifactId>log4j-core</artifactId>
-      <version>2.24.3</version>
+      <version>2.26.0</version>
     </dependency>
 
     <dependency>
@@ -281,7 +284,7 @@
     <dependency>
       <groupId>com.nimbusds</groupId>
       <artifactId>nimbus-jose-jwt</artifactId>
-      <version>9.37.2</version>
+      <version>10.5</version>
     </dependency>
     <dependency>
       <groupId>com.github.OpenBankProject</groupId>
@@ -299,7 +302,7 @@
     <dependency>
       <groupId>com.nimbusds</groupId>
       <artifactId>oauth2-oidc-sdk</artifactId>
-      <version>9.27</version>
+      <version>11.37.1</version>
     </dependency>
     <!-- json-smart version forced to 2.6.0 via parent pom dependencyManagement
          (fixes CVE-2023-1370). -->
@@ -397,22 +400,22 @@
     <dependency>
       <groupId>io.grpc</groupId>
       <artifactId>grpc-netty-shaded</artifactId>
-      <version>1.68.3</version>
+      <version>1.75.0</version>
     </dependency>
     <dependency>
       <groupId>io.grpc</groupId>
       <artifactId>grpc-protobuf</artifactId>
-      <version>1.68.3</version>
+      <version>1.75.0</version>
     </dependency>
     <dependency>
       <groupId>io.grpc</groupId>
       <artifactId>grpc-stub</artifactId>
-      <version>1.68.3</version>
+      <version>1.75.0</version>
     </dependency>
     <dependency>
       <groupId>io.grpc</groupId>
       <artifactId>grpc-services</artifactId>
-      <version>1.68.3</version>
+      <version>1.75.0</version>
     </dependency>
     <dependency>
       <groupId>org.asynchttpclient</groupId>
@@ -548,10 +551,13 @@
       <scope>test</scope>
     </dependency>
 
+    <!-- com.sun.mail line is abandoned (last release 2.0.2, still vulnerable to
+         CVE-2025-7962 SMTP injection). Migrated to org.eclipse.angus, the official
+         Eclipse successor; jakarta.mail.* API is identical. -->
     <dependency>
-        <groupId>com.sun.mail</groupId>
+        <groupId>org.eclipse.angus</groupId>
         <artifactId>jakarta.mail</artifactId>
-        <version>2.0.1</version>
+        <version>2.0.5</version>
     </dependency>
     <dependency>
         <groupId>jakarta.activation</groupId>

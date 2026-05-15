@@ -135,6 +135,9 @@ object ResourceDocMiddleware extends MdcLoggable {
       }
       // Build initial CallContext from request
       OptionT.liftF(Http4sCallContextBuilder.fromRequest(req, apiVersionFromPath)).flatMap { cc =>
+        // Cache the body so bridge-cascade hops (v400→v310→v300→…) don't re-read the now-empty stream.
+        // First read won the body in fromRequest; we replay it from cc.httpBody onwards.
+        val reqWithCachedBody = req.withAttribute(Http4sRequestAttributes.cachedBodyKey, cc.httpBody)
         ResourceDocMatcher.findResourceDoc(req.method.name, req.uri.path, resourceDocIndex) match {
           case Some(resourceDoc) if !endpointIsEnabled(resourceDoc) =>
             // Disabled by api_disabled_endpoints / api_enabled_endpoints / api_disabled_versions /
@@ -148,7 +151,7 @@ object ResourceDocMiddleware extends MdcLoggable {
             // auto-commit vendor connections (same as validation).  All other methods
             // (POST/PUT/DELETE/PATCH) wrap routes.run in withBusinessDBTransaction.
             val work: IO[Option[Response[IO]]] =
-              validateOnly(req, resourceDoc, pathParams, ccWithDoc).flatMap {
+              validateOnly(reqWithCachedBody, resourceDoc, pathParams, ccWithDoc).flatMap {
                 case Left(errorResponse) =>
                   IO.pure(Option(errorResponse))
                 case Right(enrichedReq) =>
@@ -166,7 +169,8 @@ object ResourceDocMiddleware extends MdcLoggable {
           case None =>
             // No matching ResourceDoc: fallback to original route (NO transaction scope opened).
             // Attach the basic CC so req.callContext works in the inner route even without a doc match.
-            routes.run(req.withAttribute(Http4sRequestAttributes.callContextKey, cc))
+            // Carry the cached body forward so the bridge cascade can still read it.
+            routes.run(reqWithCachedBody.withAttribute(Http4sRequestAttributes.callContextKey, cc))
         }
       }
     }
@@ -255,13 +259,27 @@ object ResourceDocMiddleware extends MdcLoggable {
 
     val initialContext = ValidationContext(callContext = cc)
 
+    // Validation order MUST match Lift's wrappedWithAuthCheck (APIUtil.scala:1934-1969):
+    //   auth → bank → roles → account → view → counterparty
+    //     → afterAuthenticateInterceptors (= Force-Error / AuthType / JsonSchema)
+    // Per Lift's own comment: "A Bank MUST be checked before Roles. In opposite case
+    // we get next paradox: We set non existing bank → We get error that we don't
+    // have a proper role → We cannot assign the role to non existing bank."
+    // Force-Error / AuthType / JsonSchema interceptors must run LAST so the
+    // natural role/bank/account checks short-circuit first when they fail —
+    // ForceErrorValidationTest expects the role-check error message (with the
+    // doc's role names) when Force-Error: OBP-20006 is sent and the natural
+    // role check would also fail.
     val result: Validation[ValidationContext] = for {
       context <- authenticate(req, resourceDoc, initialContext)
-      context <- authorizeRoles(resourceDoc, pathParams, context)
       context <- validateBank(pathParams, context)
+      context <- authorizeRoles(resourceDoc, pathParams, context)
       context <- validateAccount(pathParams, context)
       context <- validateView(pathParams, context)
       context <- validateCounterparty(pathParams, context)
+      context <- processForceError(req, resourceDoc, context)
+      context <- validateAuthType(resourceDoc, context)
+      context <- validateJsonSchema(resourceDoc, context)
     } yield context
 
     result.value.map {
@@ -285,13 +303,21 @@ object ResourceDocMiddleware extends MdcLoggable {
     val needsAuth = ResourceDocMiddleware.needsAuthentication(resourceDoc)
     logger.debug(s"[ResourceDocMiddleware] needsAuthentication for ${resourceDoc.partialFunctionName}: $needsAuth")
 
-    // anonymousAccess runs all auth checks (user resolution, locked/deleted check, rate limiting,
-    // JWS, BerlinGroup) and returns the Box[User] for authenticated or anonymous requests.
-    // For any Failure box (e.g. UsernameHasBeenLocked, DAuthJwtTokenIsNotValid) it converts the
-    // box to a thrown plain Exception(json_of_APIFailureNewStyle, hardcoded failCode=401) via
-    // fullBoxOrException. We catch that, parse the JSON to recover the original message, and
-    // return 400 — matching Lift Old Style behavior (plain Failure → errorJsonResponse default=400).
-    val io = IO.fromFuture(IO(APIUtil.anonymousAccess(ctx.callContext)))
+    // Dispatch on authMode the same way Lift's wrappedWithAuthCheck (APIUtil.scala:1783-1788) does:
+    //   ApplicationOnly | UserOrApplication → applicationAccess (returns ApplicationNotIdentified
+    //     when neither user nor consumer credentials are valid; also accepts consumer-only).
+    //   UserOnly | UserAndApplication       → anonymousAccess  (returns AuthenticatedUserIsRequired
+    //     when needsAuth is true and user is missing).
+    // Without this dispatch, every endpoint behaved as UserOnly — breaking
+    // ApplicationNotIdentified semantics for v5.1.0 createConsumer / getConsumers.
+    val isAppMode = resourceDoc.authMode match {
+      case APIUtil.ApplicationOnly | APIUtil.UserOrApplication => true
+      case _ => false
+    }
+    val io = IO.fromFuture(IO(
+      if (isAppMode) APIUtil.applicationAccess(ctx.callContext)
+      else APIUtil.anonymousAccess(ctx.callContext)
+    ))
 
     EitherT(
       io.attempt.flatMap {
@@ -301,7 +327,9 @@ object ResourceDocMiddleware extends MdcLoggable {
         case Right((Full(user), None)) =>
           IO.pure(Right(ctx.copy(user = Full(user))))
         // Empty box — no valid credentials provided, and auth is required.
-        case Right((_, optCC)) if needsAuth =>
+        // For UserOrApplication / ApplicationOnly: applicationAccess already returned
+        // successfully because the consumer is valid (just no user). Pass through.
+        case Right((_, optCC)) if needsAuth && !isAppMode =>
           val cc2 = optCC.getOrElse(ctx.callContext)
           ErrorResponseConverter.createErrorResponse(401, $AuthenticatedUserIsRequired, cc2).map(Left(_))
         // Anonymous endpoint — pass any box user through unchanged.
@@ -347,13 +375,11 @@ object ResourceDocMiddleware extends MdcLoggable {
         ctx.user match {
           case Full(user) =>
             val bankId = pathParams.getOrElse("BANK_ID", "")
-            val ok = roles.exists { role =>
-              val checkBankId = if (role.requiresBankId) bankId else ""
-              APIUtil.hasEntitlement(checkBankId, user.userId, role)
-            }
+            val consumerId = APIUtil.getConsumerPrimaryKey(Some(ctx.callContext))
+            val ok = APIUtil.handleAccessControlRegardingEntitlementsAndScopes(bankId, user.userId, consumerId, roles)
             if (ok) success(ctx)
             else EitherT[IO, Response[IO], ValidationContext](
-              ErrorResponseConverter.createErrorResponse(403, UserHasMissingRoles + roles.mkString(", "), ctx.callContext)
+              ErrorResponseConverter.createErrorResponse(403, UserHasMissingRoles + roles.mkString(" or "), ctx.callContext)
                 .map[Either[Response[IO], ValidationContext]](Left(_))
             )
           case _ =>
@@ -364,6 +390,109 @@ object ResourceDocMiddleware extends MdcLoggable {
             )
         }
       case _ => success(ctx)
+    }
+  }
+
+  /**
+   * Force-Error / Response-Code header processing.
+   *
+   * Port of `APIUtil.afterAuthenticateInterceptors`'s force-error case. Lets a
+   * caller short-circuit the endpoint and synthesize a specific error response,
+   * for testing / contract validation. Off by default; opt-in via the
+   * `enable.force_error` prop. When enabled and a `Force-Error` header is present:
+   *
+   *   - Invalid OBP-error name format → 400 "Force-Error value not correct"
+   *   - Non-numeric `Response-Code` header → 400 "Response-Code value not correct"
+   *   - Error name not in this ResourceDoc's `errorResponseBodies` → 400
+   *     "Invalid Force Error Code"
+   *   - Otherwise → look up the matching error message, return it with the
+   *     ResourceDoc-implied status (or override from Response-Code).
+   *
+   * Without this, migrated endpoints quietly ignore the header and the test that
+   * asserts on the synthesized response sees a 200/201 (success) or a 500
+   * (endpoint side-effect) instead.
+   */
+  private def processForceError(req: Request[IO], resourceDoc: ResourceDoc, ctx: ValidationContext): Validation[ValidationContext] = {
+    import DSL._
+    if (!APIUtil.getPropsAsBoolValue("enable.force_error", false)) success(ctx)
+    else {
+      val headers = req.headers
+      val forceError = headers.get(org.typelevel.ci.CIString("Force-Error")).map(_.head.value)
+      val responseCodeHeader = headers.get(org.typelevel.ci.CIString("Response-Code")).map(_.head.value)
+      forceError match {
+        case None => success(ctx)
+        case Some(errorName) =>
+          val errorNamePrefix = if (errorName.endsWith(":")) errorName else errorName + ":"
+          val correlationId = ctx.callContext.correlationId
+          val cc = ctx.callContext
+          val responseIO: IO[Response[IO]] = {
+            if (!code.api.util.ErrorMessages.isValidName(errorName)) {
+              ErrorResponseConverter.createErrorResponse(
+                400, s"${code.api.util.ErrorMessages.ForceErrorInvalid} Force-Error value not correct: $errorName", cc)
+            } else if (responseCodeHeader.exists(it => !org.apache.commons.lang3.StringUtils.isNumeric(it))) {
+              ErrorResponseConverter.createErrorResponse(
+                400, s"${code.api.util.ErrorMessages.ForceErrorInvalid} Response-Code value not correct: ${responseCodeHeader.orNull}", cc)
+            } else if (!resourceDoc.errorResponseBodies.exists(_.startsWith(errorNamePrefix))) {
+              ErrorResponseConverter.createErrorResponse(
+                400, s"${code.api.util.ErrorMessages.ForceErrorInvalid} Invalid Force Error Code: $errorName", cc)
+            } else {
+              val errorValue = code.api.util.ErrorMessages.getValueMatches(_.startsWith(errorNamePrefix))
+                .getOrElse(throw new RuntimeException(s"force-error code $errorName matched but lookup failed"))
+              val statusCode = responseCodeHeader.map(_.toInt).getOrElse(code.api.util.ErrorMessages.getCode(errorValue))
+              ErrorResponseConverter.createErrorResponse(statusCode, errorValue, cc)
+            }
+          }
+          EitherT[IO, Response[IO], ValidationContext](responseIO.map[Either[Response[IO], ValidationContext]](Left(_)))
+      }
+    }
+  }
+
+  /**
+   * Authentication-type validation. Port of `APIUtil.validateAuthType`. If an
+   * operator has registered allowed auth types for this endpoint via
+   * `AuthenticationTypeValidationProvider`, reject any request whose authType
+   * isn't on the allow-list (anonymous requests skip — they already failed auth
+   * if the endpoint required it).
+   */
+  private def validateAuthType(resourceDoc: ResourceDoc, ctx: ValidationContext): Validation[ValidationContext] = {
+    import DSL._
+    val cc = ctx.callContext
+    val authType = cc.authType
+    if (authType == code.api.util.AuthenticationType.Anonymous) success(ctx)
+    else {
+      val operationId = APIUtil.buildOperationId(resourceDoc.implementedInApiVersion, resourceDoc.partialFunctionName)
+      code.authtypevalidation.AuthenticationTypeValidationProvider.validationProvider.vend.getByOperationId(operationId) match {
+        case Full(v) if !v.authTypes.contains(authType) =>
+          val errorMsg = s"""${code.api.util.ErrorMessages.AuthenticationTypeIllegal} allowed authentication types: ${v.authTypes.mkString("[", ", ", "]")}, current request auth type: $authType"""
+          EitherT[IO, Response[IO], ValidationContext](
+            ErrorResponseConverter.createErrorResponse(400, errorMsg, cc)
+              .map[Either[Response[IO], ValidationContext]](Left(_))
+          )
+        case _ => success(ctx)
+      }
+    }
+  }
+
+  /**
+   * JSON-schema body validation. Port of the json-schema interceptor in
+   * `APIUtil.afterAuthenticateInterceptors`. Only fires when an operator has
+   * registered a schema for this endpoint via `JsonSchemaValidationProvider`. If
+   * the body fails validation, returns 400 with the concatenated schema errors;
+   * otherwise the request continues.
+   */
+  private def validateJsonSchema(resourceDoc: ResourceDoc, ctx: ValidationContext): Validation[ValidationContext] = {
+    import DSL._
+    val operationId = APIUtil.buildOperationId(resourceDoc.implementedInApiVersion, resourceDoc.partialFunctionName)
+    code.util.JsonSchemaUtil.validateRequest(Some(ctx.callContext))(operationId) match {
+      case Some(errorMsg) =>
+        // Mirror Lift's afterAuthenticateInterceptors prefix so tests asserting on
+        // `$InvalidRequestPayload` still pass.
+        val message = s"${code.api.util.ErrorMessages.InvalidRequestPayload} $errorMsg"
+        EitherT[IO, Response[IO], ValidationContext](
+          ErrorResponseConverter.createErrorResponse(400, message, ctx.callContext)
+            .map[Either[Response[IO], ValidationContext]](Left(_))
+        )
+      case None => success(ctx)
     }
   }
 
