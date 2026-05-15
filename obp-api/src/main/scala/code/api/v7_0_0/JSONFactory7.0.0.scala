@@ -651,22 +651,35 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
       )
     )
 
+  // ── Qualified Identifier ────────────────────────────────────────────────────
+  // A (scheme, value) triple where the scheme qualifies the value's namespace.
+  // Used wherever the API takes or returns an identifier that belongs to a
+  // registered routing-scheme: account routings, bill references, meter
+  // numbers, KYC documents, etc.
+  //
+  // `fsp_id` is optional and only meaningful for multi-FSP namespaces where
+  // the same value may live with different providers (e.g. mobile money:
+  // TZ.MSISDN portability). When present, it participates in identity:
+  // (scheme + value + fsp_id) uniquely picks one wallet; (scheme + value)
+  // alone may not.
+  case class QualifiedIdentifierJsonV700(
+      scheme: String,
+      value: String,
+      fsp_id: Option[String] = None
+  )
+
   // ── Payee Lookup JSON case classes ──────────────────────────────────────────
 
   case class PayeeIdentityJsonV700(`type`: String, value: String)
 
   case class PostPayeeLookupJsonV700(
-      identifier_type: String,
-      identifier: String,
-      fsp_id: Option[String]
+      identifier: QualifiedIdentifierJsonV700
   )
 
   case class PayeeLookupResponseJsonV700(
       lookup_id: String,
       expires_at: java.util.Date,
-      identifier_type: String,
-      identifier: String,
-      fsp_id: Option[String],
+      identifier: QualifiedIdentifierJsonV700,
       network_provider: Option[String],
       full_name: String,
       account_category: Option[String],
@@ -704,4 +717,135 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
       data_fields: Option[List[MobileWalletDataFieldJsonV700]],
       charge_policy: Option[String]
   ) extends com.openbankproject.commons.model.TransactionRequestCommonBodyJSON
+
+  // v7 response shape for MOBILE_WALLET. Mirrors v4's wrapper but binds `details`
+  // to the type-specific request body so resource-doc examples and the live
+  // response no longer advertise the legacy `TransactionRequestBodyAllTypes` union.
+  case class TransactionRequestWithChargeMobileWalletJsonV700(
+      id: String,
+      `type`: String,
+      from: code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140,
+      details: TransactionRequestBodyMobileWalletJsonV700,
+      transaction_ids: List[String],
+      status: String,
+      start_date: java.util.Date,
+      end_date: java.util.Date,
+      challenges: List[code.api.v4_0_0.ChallengeJsonV400],
+      charge: code.api.v2_0_0.TransactionRequestChargeJsonV200,
+      attributes: Option[List[code.api.v4_0_0.BankAttributeBankResponseJsonV400]]
+  )
+
+  def createTransactionRequestWithChargeMobileWalletJsonV700(
+      tr: com.openbankproject.commons.model.TransactionRequest,
+      requestBody: TransactionRequestBodyMobileWalletJsonV700,
+      challenges: List[com.openbankproject.commons.model.ChallengeTrait],
+      transactionRequestAttribute: List[com.openbankproject.commons.model.TransactionRequestAttributeTrait]
+  ): TransactionRequestWithChargeMobileWalletJsonV700 = {
+    val v4 = code.api.v4_0_0.JSONFactory400.createTransactionRequestWithChargeJSON(
+      tr, challenges, transactionRequestAttribute
+    )
+    TransactionRequestWithChargeMobileWalletJsonV700(
+      id = v4.id,
+      `type` = v4.`type`,
+      from = v4.from,
+      details = requestBody,
+      transaction_ids = v4.transaction_ids,
+      status = v4.status,
+      start_date = v4.start_date,
+      end_date = v4.end_date,
+      challenges = v4.challenges,
+      charge = v4.charge,
+      attributes = v4.attributes
+    )
+  }
+
+  // ── BULK transaction-request body ─────────────────────────────────────────
+
+  case class BulkPaymentItemJsonV700(
+      end_to_end_id: String,
+      to_account_routing: com.openbankproject.commons.model.AccountRoutingJsonV121,
+      value: com.openbankproject.commons.model.AmountOfMoneyJsonV121,
+      description: String
+  )
+
+  /**
+   * Body for `POST .../transaction-request-types/BULK/transaction-requests`.
+   *
+   * `value` and `description` at this level are the **batch-level rollups** —
+   * `value` is the sum of all items' amounts (server-validated), and `description`
+   * is a free-text label for the batch. Required because we plug into the existing
+   * v400 transaction-request pipeline via `TransactionRequestCommonBodyJSON`.
+   */
+  case class TransactionRequestBodyBulkJsonV700(
+      batch_reference: String,
+      payments: List[BulkPaymentItemJsonV700],
+      requested_execution_date: Option[java.util.Date],
+      value: com.openbankproject.commons.model.AmountOfMoneyJsonV121,
+      description: String,
+      charge_policy: Option[String]
+  ) extends com.openbankproject.commons.model.TransactionRequestCommonBodyJSON
+
+  case class BulkPaymentItemResultJsonV700(
+      end_to_end_id: String,
+      to_account_routing: com.openbankproject.commons.model.AccountRoutingJsonV121,
+      value: com.openbankproject.commons.model.AmountOfMoneyJsonV121,
+      status: String,                       // SUCCEEDED | FAILED | PENDING
+      transaction_id: Option[String],
+      failure_reason: Option[String]
+  )
+
+  case class BulkTransactionRequestResponseJsonV700(
+      id: String,                            // OBP transaction_request_id
+      batch_reference: String,               // caller-supplied
+      status: String,                        // batch-level rollup: COMPLETED | PARTIALLY_COMPLETED | FAILED | INITIATED
+      from: code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140,
+      total_value: com.openbankproject.commons.model.AmountOfMoneyJsonV121,
+      total_payments: Int,
+      succeeded_count: Int,
+      failed_count: Int,
+      payments: List[BulkPaymentItemResultJsonV700],
+      transaction_ids: List[String],
+      start_date: java.util.Date,
+      end_date: java.util.Date
+  )
+
+  def createBulkTransactionRequestResponseJsonV700(
+      tr: com.openbankproject.commons.model.TransactionRequest,
+      batchReference: String,
+      results: List[code.bulkpayment.BulkPaymentTrait]
+  ): BulkTransactionRequestResponseJsonV700 = {
+    val v4From = code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140(
+      bank_id = tr.from.bank_id, account_id = tr.from.account_id
+    )
+    val succeeded = results.count(_.status == "SUCCEEDED")
+    val failed    = results.count(_.status == "FAILED")
+    val total = tr.body.value
+    BulkTransactionRequestResponseJsonV700(
+      id = tr.id.value,
+      batch_reference = batchReference,
+      status = tr.status,
+      from = v4From,
+      total_value = com.openbankproject.commons.model.AmountOfMoneyJsonV121(
+        currency = total.currency, amount = total.amount
+      ),
+      total_payments = results.size,
+      succeeded_count = succeeded,
+      failed_count = failed,
+      payments = results.map { p =>
+        BulkPaymentItemResultJsonV700(
+          end_to_end_id = p.endToEndId,
+          to_account_routing = com.openbankproject.commons.model.AccountRoutingJsonV121(
+            scheme = p.routingScheme, address = p.address
+          ),
+          value = com.openbankproject.commons.model.AmountOfMoneyJsonV121(currency = p.currency, amount = p.amount),
+          status = p.status,
+          transaction_id = p.transactionId,
+          failure_reason = p.failureReason
+        )
+      },
+      transaction_ids = Option(tr.transaction_ids).getOrElse("").split(",").toList.map(_.trim).filter(_.nonEmpty),
+      start_date = tr.start_date,
+      end_date = tr.end_date
+    )
+  }
 }

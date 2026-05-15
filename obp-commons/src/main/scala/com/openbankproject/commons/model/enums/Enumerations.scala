@@ -125,6 +125,7 @@ object TransactionRequestTypes extends  OBPEnumeration[TransactionRequestTypes]{
   object ETH_SEND_TRANSACTION extends Value
   object ETH_SEND_RAW_TRANSACTION extends Value
   object MOBILE_WALLET extends Value
+  object BULK extends Value
 }
 
 sealed trait StrongCustomerAuthentication extends EnumValue
