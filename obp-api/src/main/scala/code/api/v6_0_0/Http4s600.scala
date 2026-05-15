@@ -5,20 +5,23 @@ import cats.effect._
 import code.api.Constant._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil.{EmptyBody, ResourceDoc}
-import code.api.util.{APIUtil, CustomJsonFormats, NewStyle}
+import code.api.util.{APIUtil, CallContext, CustomJsonFormats, NewStyle}
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.http4s.ResourceDocMiddleware
-import code.api.util.http4s.Http4sRequestAttributes.EndpointHelpers
+import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps}
 import code.api.util.newstyle.ViewNewStyle
 import code.api.v2_0_0.JSONFactory200
 import code.api.v5_1_0.{Http4s510, JSONFactory510}
 import code.api.v6_0_0.JSONFactory600.ScannedApiVersionJsonV600
+import code.api.dynamic.entity.helper.DynamicEntityInfo
 import code.api.util.RateLimitingUtil
 import code.api.v3_1_0.PostCustomerNumberJsonV310
 import code.api.v5_1_0.UserAttributesResponseJsonV510
 import code.api.v5_1_0.PostCustomerLegalNameJsonV510
+import code.api.v6_0_0.JSONFactory600.UpdateViewJsonV600
+import code.util.Helper
 import code.DynamicData.DynamicData
 import code.dynamicEntity.DynamicEntityCommons
 import code.entitlement.Entitlement
@@ -658,6 +661,216 @@ object Http4s600 {
       http4sPartialFunction = Some(getCustomersByLegalName)
     )
 
+    // Inlined helpers — match the v6 Lift private versions in APIMethods600.
+    private val validEntityNamePattern = "^[a-z][a-z0-9_]*$".r.pattern
+    private def validateEntityNameV600(entityName: String, cc: CallContext): Future[Unit] =
+      if (validEntityNamePattern.matcher(entityName).matches()) Future.successful(())
+      else Future.failed(new RuntimeException(s"$InvalidDynamicEntityName Current value: '$entityName'"))
+
+    private def createDynamicEntityV600(cc: CallContext, dynamicEntity: DynamicEntityCommons) = for {
+      Full(result) <- NewStyle.function.createOrUpdateDynamicEntity(dynamicEntity, Some(cc))
+      crudRoles = List(
+        DynamicEntityInfo.canCreateRole(result.entityName, dynamicEntity.bankId),
+        DynamicEntityInfo.canUpdateRole(result.entityName, dynamicEntity.bankId),
+        DynamicEntityInfo.canGetRole(result.entityName, dynamicEntity.bankId),
+        DynamicEntityInfo.canDeleteRole(result.entityName, dynamicEntity.bankId)
+      )
+    } yield {
+      crudRoles.foreach(role =>
+        Entitlement.entitlement.vend.addEntitlement(dynamicEntity.bankId.getOrElse(""), cc.userId, role.toString()))
+      JSONFactory600.createMyDynamicEntitiesJson(List(result: DynamicEntityCommons)).dynamic_entities.head
+    }
+
+    private def updateDynamicEntityV600(cc: CallContext, dynamicEntity: DynamicEntityCommons) = for {
+      Full(result) <- NewStyle.function.createOrUpdateDynamicEntity(dynamicEntity, Some(cc))
+    } yield {
+      JSONFactory600.createMyDynamicEntitiesJson(List(result: DynamicEntityCommons)).dynamic_entities.head
+    }
+
+    // Route: POST /obp/v6.0.0/management/system-dynamic-entities (201)
+    val createSystemDynamicEntity: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "management" / "system-dynamic-entities" =>
+        EndpointHelpers.executeFutureCreated(req) {
+          implicit val cc: CallContext = req.callContext
+          val rawBody = cc.httpBody.getOrElse("")
+          for {
+            request <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
+              net.liftweb.json.parse(rawBody).extract[CreateDynamicEntityRequestJsonV600]
+            }
+            _ <- validateEntityNameV600(request.entity_name, cc)
+            internalJson = JSONFactory600.convertV600RequestToInternal(request)
+            dynamicEntity = DynamicEntityCommons(internalJson, None, cc.userId, None)
+            result <- createDynamicEntityV600(cc, dynamicEntity)
+          } yield result
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(createSystemDynamicEntity), "POST",
+      "/management/system-dynamic-entities", "Create System Level Dynamic Entity",
+      """Create a system-level Dynamic Entity.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+      apiTagManageDynamicEntity :: apiTagApi :: Nil,
+      Some(canCreateSystemLevelDynamicEntity :: Nil),
+      http4sPartialFunction = Some(createSystemDynamicEntity)
+    )
+
+    // Route: POST /obp/v6.0.0/management/banks/BANK_ID/dynamic-entities (201)
+    val createBankLevelDynamicEntity: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "management" / "banks" / bankIdStr / "dynamic-entities" =>
+        EndpointHelpers.executeFutureCreated(req) {
+          implicit val cc: CallContext = req.callContext
+          val rawBody = cc.httpBody.getOrElse("")
+          for {
+            request <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
+              net.liftweb.json.parse(rawBody).extract[CreateDynamicEntityRequestJsonV600]
+            }
+            _ <- validateEntityNameV600(request.entity_name, cc)
+            internalJson = JSONFactory600.convertV600RequestToInternal(request)
+            dynamicEntity = DynamicEntityCommons(internalJson, None, cc.userId, Some(bankIdStr))
+            result <- createDynamicEntityV600(cc, dynamicEntity)
+          } yield result
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(createBankLevelDynamicEntity), "POST",
+      "/management/banks/BANK_ID/dynamic-entities", "Create Bank Level Dynamic Entity",
+      """Create a bank-level Dynamic Entity for the specified bank.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+      apiTagManageDynamicEntity :: apiTagApi :: Nil,
+      Some(canCreateBankLevelDynamicEntity :: Nil),
+      http4sPartialFunction = Some(createBankLevelDynamicEntity)
+    )
+
+    // Route: PUT /obp/v6.0.0/management/system-dynamic-entities/DYNAMIC_ENTITY_ID (200)
+    val updateSystemDynamicEntity: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ PUT -> `prefixPath` / "management" / "system-dynamic-entities" / dynamicEntityId =>
+        EndpointHelpers.executeAndRespond(req) { implicit cc =>
+          val rawBody = cc.httpBody.getOrElse("")
+          for {
+            request <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
+              net.liftweb.json.parse(rawBody).extract[UpdateDynamicEntityRequestJsonV600]
+            }
+            _ <- validateEntityNameV600(request.entity_name, cc)
+            internalJson = JSONFactory600.convertV600UpdateRequestToInternal(request)
+            dynamicEntity = DynamicEntityCommons(internalJson, Some(dynamicEntityId), cc.userId, None)
+            result <- updateDynamicEntityV600(cc, dynamicEntity)
+          } yield result
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(updateSystemDynamicEntity), "PUT",
+      "/management/system-dynamic-entities/DYNAMIC_ENTITY_ID", "Update System Level Dynamic Entity",
+      """Update a system-level Dynamic Entity.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+      apiTagManageDynamicEntity :: apiTagApi :: Nil,
+      Some(canUpdateSystemDynamicEntity :: Nil),
+      http4sPartialFunction = Some(updateSystemDynamicEntity)
+    )
+
+    // Route: PUT /obp/v6.0.0/management/banks/BANK_ID/dynamic-entities/DYNAMIC_ENTITY_ID (200)
+    val updateBankLevelDynamicEntity: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ PUT -> `prefixPath` / "management" / "banks" / bankIdStr / "dynamic-entities" / dynamicEntityId =>
+        EndpointHelpers.executeAndRespond(req) { implicit cc =>
+          val rawBody = cc.httpBody.getOrElse("")
+          for {
+            request <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
+              net.liftweb.json.parse(rawBody).extract[UpdateDynamicEntityRequestJsonV600]
+            }
+            _ <- validateEntityNameV600(request.entity_name, cc)
+            internalJson = JSONFactory600.convertV600UpdateRequestToInternal(request)
+            dynamicEntity = DynamicEntityCommons(internalJson, Some(dynamicEntityId), cc.userId, Some(bankIdStr))
+            result <- updateDynamicEntityV600(cc, dynamicEntity)
+          } yield result
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(updateBankLevelDynamicEntity), "PUT",
+      "/management/banks/BANK_ID/dynamic-entities/DYNAMIC_ENTITY_ID", "Update Bank Level Dynamic Entity",
+      """Update a bank-level Dynamic Entity.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+      apiTagManageDynamicEntity :: apiTagApi :: Nil,
+      Some(canUpdateBankLevelDynamicEntity :: Nil),
+      http4sPartialFunction = Some(updateBankLevelDynamicEntity)
+    )
+
+    // Route: PUT /obp/v6.0.0/my/dynamic-entities/DYNAMIC_ENTITY_ID (200)
+    val updateMyDynamicEntity: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ PUT -> `prefixPath` / "my" / "dynamic-entities" / dynamicEntityId =>
+        EndpointHelpers.executeAndRespond(req) { implicit cc =>
+          val rawBody = cc.httpBody.getOrElse("")
+          for {
+            existingEntity <- Future(
+              NewStyle.function.getDynamicEntitiesByUserId(Some(cc.userId)).find(_.dynamicEntityId.contains(dynamicEntityId))
+            )
+            _ <- Helper.booleanToFuture(s"$DynamicEntityNotFoundByDynamicEntityId dynamicEntityId = $dynamicEntityId", cc = Some(cc)) {
+              existingEntity.isDefined
+            }
+            request <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
+              net.liftweb.json.parse(rawBody).extract[UpdateDynamicEntityRequestJsonV600]
+            }
+            _ <- validateEntityNameV600(request.entity_name, cc)
+            internalJson = JSONFactory600.convertV600UpdateRequestToInternal(request)
+            dynamicEntity = DynamicEntityCommons(internalJson, Some(dynamicEntityId), cc.userId, existingEntity.get.bankId)
+            result <- updateDynamicEntityV600(cc, dynamicEntity)
+          } yield result
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(updateMyDynamicEntity), "PUT",
+      "/my/dynamic-entities/DYNAMIC_ENTITY_ID", "Update My Dynamic Entity",
+      """Update a Dynamic Entity I created.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, DynamicEntityNotFoundByDynamicEntityId, InvalidJsonFormat, UnknownError),
+      apiTagManageDynamicEntity :: apiTagApi :: Nil,
+      None,
+      http4sPartialFunction = Some(updateMyDynamicEntity)
+    )
+
+    // Route: PUT /obp/v6.0.0/system-views/UPD_VIEW_ID (200)
+    // Uses UPD_VIEW_ID (non-standard ALL_CAPS) so middleware skips view validation;
+    // system views aren't in the regular view tables that VIEW_ID resolution checks.
+    val updateSystemView: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ PUT -> `prefixPath` / "system-views" / viewIdStr if viewIdStr.nonEmpty =>
+        EndpointHelpers.executeAndRespond(req) { implicit cc =>
+          val rawBody = cc.httpBody.getOrElse("")
+          for {
+            user <- Future(cc.user.openOrThrowException(AuthenticatedUserIsRequired))
+            _ <- Helper.booleanToFuture(UserHasMissingRoles + canUpdateSystemView, failCode = 403, cc = Some(cc)) {
+              APIUtil.hasEntitlement("", user.userId, canUpdateSystemView)
+            }
+            updateJson <- NewStyle.function.tryons(
+              s"$InvalidJsonFormat The Json body should be the UpdateViewJsonV600", 400, Some(cc)) {
+              net.liftweb.json.parse(rawBody).extract[UpdateViewJsonV600]
+            }
+            _ <- Helper.booleanToFuture(SystemViewCannotBePublicError, failCode = 400, cc = Some(cc)) {
+              updateJson.is_public == false
+            }
+            _ <- ViewNewStyle.systemView(ViewId(viewIdStr), Some(cc))
+            updatedView <- ViewNewStyle.updateSystemView(ViewId(viewIdStr), updateJson.toUpdateViewJson, Some(cc))
+          } yield JSONFactory600.createViewJsonV600(updatedView)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(updateSystemView), "PUT",
+      "/system-views/UPD_VIEW_ID", "Update System View",
+      """Update an existing system view.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, SystemViewCannotBePublicError, UnknownError),
+      apiTagView :: Nil,
+      None,
+      http4sPartialFunction = Some(updateSystemView)
+    )
+
     val allRoutes: HttpRoutes[IO] =
       Kleisli[HttpF, Request[IO], Response[IO]] { req: Request[IO] =>
         root(req)
@@ -677,6 +890,12 @@ object Http4s600 {
           .orElse(getPrivateAccountByIdFull(req))
           .orElse(getCustomerByCustomerNumber(req))
           .orElse(getCustomersByLegalName(req))
+          .orElse(createSystemDynamicEntity(req))
+          .orElse(createBankLevelDynamicEntity(req))
+          .orElse(updateSystemDynamicEntity(req))
+          .orElse(updateBankLevelDynamicEntity(req))
+          .orElse(updateMyDynamicEntity(req))
+          .orElse(updateSystemView(req))
       }
 
     val allRoutesWithMiddleware: HttpRoutes[IO] =
