@@ -16,7 +16,12 @@ import code.api.v2_0_0.JSONFactory200
 import code.api.v5_1_0.{Http4s510, JSONFactory510}
 import code.api.v6_0_0.JSONFactory600.ScannedApiVersionJsonV600
 import code.accountattribute.AccountAttributeX
+import code.api.Constant
 import code.api.Constant.{PARAM_LOCALE, PARAM_TIMESTAMP}
+import code.api.cache.Redis
+import code.bankconnectors.{Connector => BankConnector}
+import code.bankconnectors.storedprocedure.StoredProcedureUtils
+import code.migration.MigrationScriptLogProvider
 import code.api.dynamic.entity.helper.DynamicEntityInfo
 import code.api.util.APIUtil.{createQueriesByHttpParamsFuture, unboxFull, unboxFullOrFail}
 import code.api.util.{ApiVersionUtils, CertificateUtil, CommonsEmailWrapper, RateLimitingUtil}
@@ -1433,6 +1438,205 @@ object Http4s600 {
       http4sPartialFunction = Some(resetPasswordUrl)
     )
 
+    // ─── Phase 2: system bucket (8 GETs) — wholly new in v6, no override risk ────
+
+    // Route: GET /obp/v6.0.0/system/connectors
+    val getConnectors: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "system" / "connectors" =>
+        EndpointHelpers.executeAndRespond(req) { _ =>
+          Future.successful {
+            val connectorNames = BankConnector.nameToConnector.keys.toList :+ "star"
+            val connectorInfos = connectorNames.map { name =>
+              ConnectorInfoJsonV600(
+                connector_name = name,
+                is_available_in_method_routing = NewStyle.function.getConnectorByName(name).isDefined)
+            }
+            JSONFactory600.createConnectorsJson(connectorInfos)
+          }
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getConnectors), "GET",
+      "/system/connectors", "Get Connectors",
+      """Get the list of connectors and their availability for method routing.""",
+      EmptyBody, EmptyBody,
+      List(UnknownError),
+      apiTagConnector :: apiTagSystem :: apiTagApi :: Nil,
+      None,
+      http4sPartialFunction = Some(getConnectors)
+    )
+
+    // Route: GET /obp/v6.0.0/system/cache/config
+    val getCacheConfig: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "system" / "cache" / "config" =>
+        EndpointHelpers.withUser(req) { (_, _) =>
+          Future.successful(JSONFactory600.createCacheConfigJsonV600())
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getCacheConfig), "GET",
+      "/system/cache/config", "Get Cache Configuration",
+      """Returns cache configuration including Redis status, in-memory cache status, instance ID, environment and global prefix.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      apiTagCache :: apiTagSystem :: apiTagApi :: Nil,
+      Some(canGetCacheConfig :: Nil),
+      http4sPartialFunction = Some(getCacheConfig)
+    )
+
+    // Route: GET /obp/v6.0.0/system/cache/info
+    val getCacheInfo: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "system" / "cache" / "info" =>
+        EndpointHelpers.withUser(req) { (_, _) =>
+          Future.successful(JSONFactory600.createCacheInfoJsonV600())
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getCacheInfo), "GET",
+      "/system/cache/info", "Get Cache Information",
+      """Returns detailed cache information for all namespaces.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      apiTagCache :: apiTagSystem :: apiTagApi :: Nil,
+      Some(canGetCacheInfo :: Nil),
+      http4sPartialFunction = Some(getCacheInfo)
+    )
+
+    // Route: GET /obp/v6.0.0/system/cache/namespaces
+    val getCacheNamespaces: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "system" / "cache" / "namespaces" =>
+        EndpointHelpers.withUser(req) { (_, _) =>
+          Future {
+            val namespaces = List(
+              (Constant.CALL_COUNTER_PREFIX, "Rate limiting counters per consumer and time period", "varies", "Rate Limiting"),
+              (Constant.RATE_LIMIT_ACTIVE_PREFIX, "Active rate limit configurations", Constant.RATE_LIMIT_ACTIVE_CACHE_TTL.toString, "Rate Limiting"),
+              (Constant.LOCALISED_RESOURCE_DOC_PREFIX, "Localized resource documentation", Constant.CREATE_LOCALISED_RESOURCE_DOC_JSON_TTL.toString, "Resource Documentation"),
+              (Constant.DYNAMIC_RESOURCE_DOC_CACHE_KEY_PREFIX, "Dynamic resource documentation", Constant.GET_DYNAMIC_RESOURCE_DOCS_TTL.toString, "Resource Documentation"),
+              (Constant.STATIC_RESOURCE_DOC_CACHE_KEY_PREFIX, "Static resource documentation", Constant.GET_STATIC_RESOURCE_DOCS_TTL.toString, "Resource Documentation"),
+              (Constant.ALL_RESOURCE_DOC_CACHE_KEY_PREFIX, "All resource documentation", Constant.GET_STATIC_RESOURCE_DOCS_TTL.toString, "Resource Documentation"),
+              (Constant.STATIC_SWAGGER_DOC_CACHE_KEY_PREFIX, "Swagger documentation", Constant.GET_STATIC_RESOURCE_DOCS_TTL.toString, "Resource Documentation"),
+              (Constant.CONNECTOR_PREFIX, "Connector method names and metadata", "3600", "Connector"),
+              (Constant.METRICS_STABLE_PREFIX, "Stable metrics (historical)", "86400", "Metrics"),
+              (Constant.METRICS_RECENT_PREFIX, "Recent metrics", "7", "Metrics"),
+              (Constant.ABAC_RULE_PREFIX, "ABAC rule cache", "indefinite", "ABAC")
+            ).map { case (prefix, description, ttl, category) =>
+              JSONFactory600.createCacheNamespaceJsonV600(
+                prefix, description, ttl, category,
+                Redis.countKeys(s"${prefix}*"),
+                Redis.getSampleKey(s"${prefix}*"))
+            }
+            JSONFactory600.createCacheNamespacesJsonV600(namespaces)
+          }
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getCacheNamespaces), "GET",
+      "/system/cache/namespaces", "Get Cache Namespaces",
+      """Returns all OBP cache namespaces with their prefixes, descriptions, TTLs, and current key counts.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      apiTagCache :: apiTagSystem :: apiTagApi :: Nil,
+      Some(canGetCacheNamespaces :: Nil),
+      http4sPartialFunction = Some(getCacheNamespaces)
+    )
+
+    // Route: GET /obp/v6.0.0/system/database/pool
+    val getDatabasePoolInfo: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "system" / "database" / "pool" =>
+        EndpointHelpers.withUser(req) { (_, _) =>
+          Future.successful(JSONFactory600.createDatabasePoolInfoJsonV600())
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getDatabasePoolInfo), "GET",
+      "/system/database/pool", "Get Database Pool Information",
+      """Returns HikariCP connection pool information.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      apiTagSystem :: apiTagApi :: Nil,
+      Some(canGetDatabasePoolInfo :: Nil),
+      http4sPartialFunction = Some(getDatabasePoolInfo)
+    )
+
+    // Route: GET /obp/v6.0.0/system/migrations
+    val getMigrations: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "system" / "migrations" =>
+        EndpointHelpers.withUser(req) { (_, _) =>
+          Future {
+            val migrations = MigrationScriptLogProvider.migrationScriptLogProvider.vend.getMigrationScriptLogs()
+            JSONFactory600.createMigrationScriptLogsJsonV600(migrations)
+          }
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getMigrations), "GET",
+      "/system/migrations", "Get Database Migrations",
+      """Get all database migration script logs.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      apiTagSystem :: apiTagApi :: Nil,
+      Some(canGetMigrations :: Nil),
+      http4sPartialFunction = Some(getMigrations)
+    )
+
+    // Route: GET /obp/v6.0.0/system/connectors/stored_procedure_vDec2019/health
+    val getStoredProcedureConnectorHealth: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "system" / "connectors" / "stored_procedure_vDec2019" / "health" =>
+        EndpointHelpers.withUser(req) { (_, _) =>
+          Future {
+            val health = StoredProcedureUtils.getHealth()
+            StoredProcedureConnectorHealthJsonV600(
+              status = health.status,
+              server_name = health.serverName,
+              server_ip = health.serverIp,
+              database_name = health.databaseName,
+              response_time_ms = health.responseTimeMs,
+              error_message = health.errorMessage)
+          }
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getStoredProcedureConnectorHealth), "GET",
+      "/system/connectors/stored_procedure_vDec2019/health", "Get Stored Procedure Connector Health",
+      """Returns health status of the stored procedure connector.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      apiTagConnector :: apiTagSystem :: apiTagApi :: Nil,
+      Some(canGetConnectorHealth :: Nil),
+      http4sPartialFunction = Some(getStoredProcedureConnectorHealth)
+    )
+
+    // Route: GET /obp/v6.0.0/system/connector-method-names
+    // Simplified port — skips the Redis cache wrapper (perf only).
+    val getConnectorMethodNames: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "system" / "connector-method-names" =>
+        EndpointHelpers.withUser(req) { (_, _) =>
+          Future {
+            val connectorName = APIUtil.getPropsValue("connector", "mapped")
+            val connector = code.bankconnectors.Connector.getConnectorInstance(connectorName)
+            JSONFactory600.createConnectorMethodNamesJson(connector.callableMethods.keys.toList)
+          }
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getConnectorMethodNames), "GET",
+      "/system/connector-method-names", "Get Connector Method Names",
+      """Get all callable method names for the configured connector.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      apiTagConnectorMethod :: apiTagSystem :: apiTagMethodRouting :: apiTagApi :: Nil,
+      Some(canGetSystemConnectorMethodNames :: Nil),
+      http4sPartialFunction = Some(getConnectorMethodNames)
+    )
+
     val allRoutes: HttpRoutes[IO] =
       Kleisli[HttpF, Request[IO], Response[IO]] { req: Request[IO] =>
         root(req)
@@ -1470,6 +1674,14 @@ object Http4s600 {
           .orElse(createCustomer(req))
           .orElse(createUser(req))
           .orElse(resetPasswordUrl(req))
+          .orElse(getConnectors(req))
+          .orElse(getCacheConfig(req))
+          .orElse(getCacheInfo(req))
+          .orElse(getCacheNamespaces(req))
+          .orElse(getDatabasePoolInfo(req))
+          .orElse(getMigrations(req))
+          .orElse(getStoredProcedureConnectorHealth(req))
+          .orElse(getConnectorMethodNames(req))
       }
 
     val allRoutesWithMiddleware: HttpRoutes[IO] =
