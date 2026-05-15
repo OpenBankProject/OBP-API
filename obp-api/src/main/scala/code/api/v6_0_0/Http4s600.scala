@@ -16,7 +16,9 @@ import code.api.v2_0_0.JSONFactory200
 import code.api.v5_1_0.{Http4s510, JSONFactory510}
 import code.api.v6_0_0.JSONFactory600.ScannedApiVersionJsonV600
 import code.api.util.RateLimitingUtil
+import code.api.v3_1_0.PostCustomerNumberJsonV310
 import code.api.v5_1_0.UserAttributesResponseJsonV510
+import code.api.v5_1_0.PostCustomerLegalNameJsonV510
 import code.DynamicData.DynamicData
 import code.dynamicEntity.DynamicEntityCommons
 import code.entitlement.Entitlement
@@ -584,6 +586,78 @@ object Http4s600 {
       http4sPartialFunction = Some(getPrivateAccountByIdFull)
     )
 
+    // Route: POST /obp/v6.0.0/banks/BANK_ID/customers/customer-number
+    // POST that GETs (returns 200) — used to fetch a customer by their customer_number.
+    // Body is parsed manually so we preserve v6 Lift's "The Json body should be the …"
+    // wording verbatim, which the test suites assert on.
+    val getCustomerByCustomerNumber: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "banks" / _ / "customers" / "customer-number" =>
+        EndpointHelpers.withUserAndBank(req) { (_, bank, cc) =>
+          val rawBody = cc.httpBody.getOrElse("")
+          for {
+            postedData <- NewStyle.function.tryons(
+              s"$InvalidJsonFormat The Json body should be the ${classOf[PostCustomerNumberJsonV310].getSimpleName}",
+              400, Some(cc)) {
+              net.liftweb.json.parse(rawBody).extract[PostCustomerNumberJsonV310]
+            }
+            (customer, callContext) <- NewStyle.function.getCustomerByCustomerNumber(
+              postedData.customer_number, bank.bankId, Some(cc))
+            (customerAttributes, _) <- NewStyle.function.getCustomerAttributes(
+              bank.bankId, CustomerId(customer.customerId), callContext)
+          } yield JSONFactory600.createCustomerWithAttributesJson(customer, customerAttributes)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(getCustomerByCustomerNumber),
+      "POST",
+      "/banks/BANK_ID/customers/customer-number",
+      "Get Customer by CUSTOMER_NUMBER",
+      """Gets the Customer specified by CUSTOMER_NUMBER.""",
+      EmptyBody,
+      customerWithAttributesJsonV600,
+      List($AuthenticatedUserIsRequired, UserCustomerLinksNotFoundForUser, $BankNotFound, UserHasMissingRoles, UnknownError),
+      apiTagCustomer :: Nil,
+      Some(canGetCustomersAtOneBank :: Nil),
+      http4sPartialFunction = Some(getCustomerByCustomerNumber)
+    )
+
+    // Route: POST /obp/v6.0.0/banks/BANK_ID/customers/legal-name
+    // POST that GETs (returns 200) — fetch customers by legal name.
+    val getCustomersByLegalName: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "banks" / _ / "customers" / "legal-name" =>
+        EndpointHelpers.withUserAndBank(req) { (_, bank, cc) =>
+          val rawBody = cc.httpBody.getOrElse("")
+          for {
+            postedData <- NewStyle.function.tryons(
+              s"$InvalidJsonFormat The Json body should be the ${classOf[PostCustomerLegalNameJsonV510].getSimpleName}",
+              400, Some(cc)) {
+              net.liftweb.json.parse(rawBody).extract[PostCustomerLegalNameJsonV510]
+            }
+            (customers, _) <- NewStyle.function.getCustomersByCustomerLegalName(
+              bank.bankId, postedData.legal_name, Some(cc))
+          } yield JSONFactory600.createCustomersJson(customers)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(getCustomersByLegalName),
+      "POST",
+      "/banks/BANK_ID/customers/legal-name",
+      "Get Customers by Legal Name",
+      """Gets the Customers matching the provided legal name at the specified bank.""",
+      EmptyBody,
+      customerJSONsV600,
+      List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
+      apiTagCustomer :: Nil,
+      Some(canGetCustomersAtOneBank :: Nil),
+      http4sPartialFunction = Some(getCustomersByLegalName)
+    )
+
     val allRoutes: HttpRoutes[IO] =
       Kleisli[HttpF, Request[IO], Response[IO]] { req: Request[IO] =>
         root(req)
@@ -601,6 +675,8 @@ object Http4s600 {
           .orElse(getCustomersAtAllBanks(req))
           .orElse(getUserAttributes(req))
           .orElse(getPrivateAccountByIdFull(req))
+          .orElse(getCustomerByCustomerNumber(req))
+          .orElse(getCustomersByLegalName(req))
       }
 
     val allRoutesWithMiddleware: HttpRoutes[IO] =
