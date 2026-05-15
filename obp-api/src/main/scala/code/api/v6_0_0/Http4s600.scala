@@ -1814,8 +1814,47 @@ object Http4s600 {
           .orElse(updateCounterpartyAttribute(req))
           .orElse(hasAccountAccess(req))
           .orElse(getMyAccountAccessRequests(req))
-          // signal bucket deferred — Redis API signatures + SignalMessageJsonV600
-          // field layout differ from initial port; needs focused follow-up.
+          .orElse(getWebUiProp(req))
+          .orElse(getMessageDocsJsonSchema(req))
+          .orElse(verifyUserCredentials(req))
+          .orElse(getViewPermissions(req))
+          .orElse(getAllApiProductsV600(req))
+          .orElse(getAllProductsV600(req))
+          .orElse(getAccountAccessRequestsForAccount(req))
+          .orElse(getAccountAccessRequestById(req))
+          .orElse(getHoldingAccountByReleaser(req))
+          .orElse(createAccountAccessRequest(req))
+          .orElse(approveAccountAccessRequest(req))
+          .orElse(rejectAccountAccessRequest(req))
+          .orElse(getSignalChannels(req))
+          .orElse(getSignalChannelInfo(req))
+          .orElse(getSignalStats(req))
+          .orElse(publishSignalMessage(req))
+          .orElse(getSignalMessages(req))
+          .orElse(deleteSignalChannel(req))
+          .orElse(getBankChatRooms(req))
+          .orElse(getSystemChatRooms(req))
+          .orElse(getBankChatRoom(req))
+          .orElse(getSystemChatRoom(req))
+          .orElse(getMyChatRooms(req))
+          .orElse(getMyUnreadCounts(req))
+          .orElse(markChatRoomRead(req))
+          .orElse(getMyMentions(req))
+          .orElse(searchChatRooms(req))
+          .orElse(getBulkReactions(req))
+          .orElse(archiveBankChatRoom(req))
+          .orElse(archiveSystemChatRoom(req))
+          .orElse(joinBankChatRoom(req))
+          .orElse(refreshBankJoiningKey(req))
+          .orElse(refreshSystemJoiningKey(req))
+          .orElse(createBankChatRoom(req))
+          .orElse(createSystemChatRoom(req))
+          .orElse(updateBankChatRoom(req))
+          .orElse(updateSystemChatRoom(req))
+          .orElse(deleteBankChatRoom(req))
+          .orElse(deleteSystemChatRoom(req))
+          .orElse(setBankChatRoomOpenRoom(req))
+          .orElse(setSystemChatRoomOpenRoom(req))
           // createCorporateCustomer + createRetailCustomer deferred — share
           // the 60-line date-parsing/customer-number generation logic of
           // createCustomer (already migrated); will batch as a focused pass.
@@ -2880,6 +2919,1371 @@ object Http4s600 {
       List($AuthenticatedUserIsRequired, UnknownError),
       apiTagAccountAccess :: Nil, None,
       http4sPartialFunction = Some(getMyAccountAccessRequests))
+
+    // ─── Phase 2: 3 anonymous/UserOrApplication endpoints ─────────────────
+
+    // GET /obp/v6.0.0/webui-props/WEBUI_PROP_NAME
+    val getWebUiProp: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "webui-props" / webUiPropName =>
+        EndpointHelpers.executeAndRespond(req) { implicit cc =>
+          val active = req.uri.query.params.getOrElse("active", "false")
+          for {
+            isActived <- NewStyle.function.tryons(
+              s"$InvalidFilterParameterFormat `active` must be a boolean, but current `active` value is: $active",
+              400, Some(cc)) {
+              active.toBoolean
+            }
+            explicitWebUiProps <- Future(MappedWebUiPropsProvider.getAll())
+            explicitProp = explicitWebUiProps.find(_.name == webUiPropName)
+            result <- explicitProp match {
+              case Some(prop) =>
+                Future.successful(
+                  WebUiPropsCommons(prop.name, prop.value, prop.webUiPropsId, source = Some("database")))
+              case None if isActived =>
+                val implicitProps = APIUtil.getWebUIPropsPairs.map { case (k, v) =>
+                  WebUiPropsCommons(k, v, webUiPropsId = Some("default"), source = Some("config"))
+                }
+                implicitProps.find(_.name == webUiPropName) match {
+                  case Some(prop) => Future.successful(prop)
+                  case None => Future.failed(new Exception(
+                    s"$WebUiPropsNotFoundByName Current WEBUI_PROP_NAME($webUiPropName)"))
+                }
+              case None =>
+                Future.failed(new Exception(
+                  s"$WebUiPropsNotFoundByName Current WEBUI_PROP_NAME($webUiPropName)"))
+            }
+          } yield result
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getWebUiProp), "GET",
+      "/webui-props/WEBUI_PROP_NAME", "Get WebUiProp by Name",
+      """Get a single WebUiProp by name. Anonymous endpoint.""",
+      EmptyBody, EmptyBody,
+      List(WebUiPropsNotFoundByName, InvalidFilterParameterFormat, UnknownError),
+      apiTagWebUiProps :: Nil, None,
+      http4sPartialFunction = Some(getWebUiProp))
+
+    // GET /obp/v6.0.0/message-docs/CONNECTOR/json-schema
+    val getMessageDocsJsonSchema: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "message-docs" / connector / "json-schema" =>
+        EndpointHelpers.executeAndRespond(req) { implicit cc =>
+          val cacheKey = s"message-docs-json-schema-$connector"
+          val cacheValueFromRedis = code.api.cache.Caching.getStaticSwaggerDocCache(cacheKey)
+          for {
+            jsonSchema <- if (cacheValueFromRedis.isDefined) {
+              NewStyle.function.tryons(s"$UnknownError Cannot parse cached JSON Schema.", 400, Some(cc)) {
+                net.liftweb.json.parse(cacheValueFromRedis.get).asInstanceOf[net.liftweb.json.JObject]
+              }
+            } else {
+              NewStyle.function.tryons(s"$UnknownError Cannot generate JSON Schema.", 400, Some(cc)) {
+                val connectorObjectBox = net.liftweb.util.Helpers.tryo { BankConnector.getConnectorInstance(connector) }
+                val connectorObject = unboxFullOrFail(
+                  connectorObjectBox, Some(cc),
+                  s"$InvalidConnector Current input is: $connector. Valid connectors include: rabbitmq_vOct2024, rest_vMar2019, akka_vDec2018"
+                )
+                val schema = code.api.util.JsonSchemaGenerator.messageDocsToJsonSchema(
+                  connectorObject.messageDocs.toList, connector)
+                val schemaString = net.liftweb.json.compactRender(schema)
+                code.api.cache.Caching.setStaticSwaggerDocCache(cacheKey, schemaString)
+                schema
+              }
+            }
+          } yield jsonSchema
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getMessageDocsJsonSchema), "GET",
+      "/message-docs/CONNECTOR/json-schema", "Get Message Docs as JSON Schema",
+      """Returns the message-docs for a connector as a JSON Schema. Anonymous endpoint.""",
+      EmptyBody, EmptyBody,
+      List(InvalidConnector, UnknownError),
+      apiTagMessageDoc :: apiTagDocumentation :: apiTagApi :: Nil, None,
+      http4sPartialFunction = Some(getMessageDocsJsonSchema))
+
+    // POST /obp/v6.0.0/users/verify-credentials
+    val verifyUserCredentials: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "users" / "verify-credentials" =>
+        EndpointHelpers.executeAndRespond(req) { implicit cc =>
+          val rawBody = cc.httpBody.getOrElse("")
+          for {
+            postedData <- NewStyle.function.tryons(
+              s"$InvalidJsonFormat The Json body should be the PostVerifyUserCredentialsJsonV600", 400, Some(cc)) {
+              net.liftweb.json.parse(rawBody).extract[PostVerifyUserCredentialsJsonV600]
+            }
+            decodedProvider = java.net.URLDecoder.decode(postedData.provider, java.nio.charset.StandardCharsets.UTF_8)
+            resourceUserIdBox = code.model.dataAccess.AuthUser.getResourceUserId(
+              postedData.username, postedData.password, decodedProvider)
+            _ <- Helper.booleanToFuture(UsernameHasBeenLocked, 401, Some(cc)) {
+              resourceUserIdBox != Full(code.model.dataAccess.AuthUser.usernameLockedStateCode)
+            }
+            _ <- Helper.booleanToFuture(UserEmailNotValidated, 401, Some(cc)) {
+              resourceUserIdBox != Full(code.model.dataAccess.AuthUser.userEmailNotValidatedStateCode)
+            }
+            resourceUserId <- Future(resourceUserIdBox).map(
+              unboxFullOrFail(_, Some(cc), s"$InvalidLoginCredentials Failed to authenticate user credentials.", 401))
+            user <- Future(code.users.Users.users.vend.getUserByResourceUserId(resourceUserId)).map(
+              unboxFullOrFail(_, Some(cc), s"$InvalidLoginCredentials User account not found in system.", 401))
+            _ <- Helper.booleanToFuture(s"$InvalidLoginCredentials Authentication provider mismatch.", 401, Some(cc)) {
+              decodedProvider.isEmpty || user.provider == decodedProvider
+            }
+          } yield JSONFactory200.createUserJSON(user)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(verifyUserCredentials), "POST",
+      "/users/verify-credentials", "Verify User Credentials",
+      """Verify a user's credentials (username, password, provider) and return user information if valid.""",
+      EmptyBody, EmptyBody,
+      List(UserHasMissingRoles, InvalidJsonFormat, InvalidLoginCredentials, UsernameHasBeenLocked, UnknownError),
+      apiTagUser :: Nil,
+      Some(canVerifyUserCredentials :: Nil),
+      authMode = code.api.util.APIUtil.UserOrApplication,
+      http4sPartialFunction = Some(verifyUserCredentials))
+
+    // GET /obp/v6.0.0/management/view-permissions
+    val getViewPermissions: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "management" / "view-permissions" =>
+        EndpointHelpers.withUser(req) { (_, cc) =>
+          Future {
+            def categorize(permission: String): String = permission match {
+              case p if p.contains("transaction") && !p.contains("request") => "Transaction"
+              case p if p.contains("bank_account") || p.contains("bank_routing") || p.contains("available_funds") => "Account"
+              case p if p.contains("other_account") || p.contains("other_bank") ||
+                        p.contains("counterparty") || p.contains("more_info") ||
+                        p.contains("url") || p.contains("corporates") ||
+                        p.contains("location") || p.contains("alias") => "Counterparty"
+              case p if p.contains("comment") || p.contains("tag") ||
+                        p.contains("image") || p.contains("where_tag") => "Metadata"
+              case p if p.contains("transaction_request") || p.contains("direct_debit") ||
+                        p.contains("standing_order") => "Transaction Request"
+              case p if p.contains("view") => "View"
+              case p if p.contains("grant") || p.contains("revoke") => "Access Control"
+              case _ => "Other"
+            }
+            val permissions = ALL_VIEW_PERMISSION_NAMES.map { p =>
+              JSONFactory600.ViewPermissionJsonV600(p, categorize(p))
+            }.sortBy(p => (p.category, p.permission))
+            JSONFactory600.ViewPermissionsJsonV600(permissions)
+          }
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getViewPermissions), "GET",
+      "/management/view-permissions", "Get View Permissions",
+      """Get a list of all available view permissions, organised by category.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      apiTagSystemView :: apiTagView :: Nil,
+      Some(canGetViewPermissionsAtAllBanks :: Nil),
+      http4sPartialFunction = Some(getViewPermissions))
+
+    // GET /obp/v6.0.0/api-products  (all banks; auth-required; cached)
+    val getAllApiProductsV600: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "api-products" =>
+        EndpointHelpers.withUser(req) { (_, cc) =>
+          val tagFilter = req.uri.query.params.get("tag").map(_.trim).filter(_.nonEmpty)
+          val cacheKey = s"all:${tagFilter.getOrElse("")}"
+          val cacheTTL = APIUtil.getPropsAsIntValue("getAllApiProductsV600.cache.ttl.seconds", 5)
+          val hit = code.api.cache.Caching.getApiProductsCache(cacheKey, cacheTTL)
+            .flatMap(s => try Some(net.liftweb.json.parse(s).extract[ApiProductsJsonV600])
+                          catch { case _: Throwable => None })
+          hit match {
+            case Some(cached) => Future.successful(cached)
+            case None =>
+              for {
+                (banks, _) <- NewStyle.function.getBanks(Some(cc))
+                perBank <- Future.sequence(
+                  banks.map(b => NewStyle.function.getApiProductsByBankId(b.bankId.value, tagFilter, Some(cc)).map(_._1)))
+                apiProducts = perBank.flatten
+              } yield {
+                val result = JSONFactory600.createApiProductsJsonV600(apiProducts)
+                code.api.cache.Caching.setApiProductsCache(
+                  cacheKey, net.liftweb.json.compactRender(Extraction.decompose(result)), cacheTTL)
+                result
+              }
+          }
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getAllApiProductsV600), "GET",
+      "/api-products", "Get Api Products At All Banks",
+      """Returns the Api Products across every bank, merged into a single list. Each product carries its bank_id.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UnknownError),
+      apiTagApi :: apiTagApiProduct :: Nil, None,
+      http4sPartialFunction = Some(getAllApiProductsV600))
+
+    // GET /obp/v6.0.0/products  (all banks; auth-required; cached)
+    val getAllProductsV600: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "products" =>
+        EndpointHelpers.withUser(req) { (_, cc) =>
+          val params = req.uri.query.multiParams.toList.map { case (k, vs) => GetProductsParam(k, vs.toList) }
+          val cacheKey = APIMethods600.productsCacheKey("__all__", params)
+          val cacheTTL = APIUtil.getPropsAsIntValue("getAllProductsV600.cache.ttl.seconds", 60)
+          val hit = code.api.cache.Caching.getFinancialProductsCache(cacheKey, cacheTTL)
+            .flatMap(s => try Some(net.liftweb.json.parse(s).extract[ProductsJsonV600])
+                          catch { case _: Throwable => None })
+          hit match {
+            case Some(cached) => Future.successful(cached)
+            case None =>
+              for {
+                (banks, _) <- NewStyle.function.getBanks(Some(cc))
+                perBank <- Future.sequence(
+                  banks.map(b => NewStyle.function.getProducts(b.bankId, params, Some(cc)).map(_._1)))
+                products = perBank.flatten
+              } yield {
+                val result = JSONFactory600.createProductsJsonV600(products, Map.empty)
+                code.api.cache.Caching.setFinancialProductsCache(
+                  cacheKey, net.liftweb.json.compactRender(Extraction.decompose(result)), cacheTTL)
+                result
+              }
+          }
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getAllProductsV600), "GET",
+      "/products", "Get Products At All Banks",
+      """Returns the financial Products offered by every bank merged into a single list. Each product carries its bank_id.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UnknownError),
+      apiTagProduct :: Nil, None,
+      http4sPartialFunction = Some(getAllProductsV600))
+
+    // ─── Phase 2: account-access-requests + holding-accounts (3 endpoints) ─
+
+    // GET /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/account-access-requests
+    val getAccountAccessRequestsForAccount: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / "account-access-requests" =>
+        EndpointHelpers.withBankAccount(req) { (_, _, cc) =>
+          val status = req.uri.query.params.get("status")
+          for {
+            requestsBox <- Future {
+              status match {
+                case Some(s) =>
+                  code.accountaccessrequest.AccountAccessRequestTrait.accountAccessRequest.vend
+                    .getByAccountAndStatus(bankIdStr, accountIdStr, s)
+                case _ =>
+                  code.accountaccessrequest.AccountAccessRequestTrait.accountAccessRequest.vend
+                    .getByAccount(bankIdStr, accountIdStr)
+              }
+            }
+            requests <- Future(unboxFullOrFail(requestsBox, Some(cc),
+              s"$UnknownError Cannot get account access requests", 400))
+          } yield JSONFactory600.createAccountAccessRequestsJsonV600(requests)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getAccountAccessRequestsForAccount), "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/account-access-requests",
+      "Get Account Access Requests for Account",
+      """Get all Account Access Requests on the specified account. Optional `status` query param filters by status.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, $BankNotFound, $BankAccountNotFound, UnknownError),
+      apiTagAccountAccess :: Nil,
+      Some(canGetAccountAccessRequestsAtOneBank :: canGetAccountAccessRequestsAtAnyBank :: Nil),
+      http4sPartialFunction = Some(getAccountAccessRequestsForAccount))
+
+    // GET /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/account-access-requests/ACCOUNT_ACCESS_REQUEST_ID
+    val getAccountAccessRequestById: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / "account-access-requests" / requestId =>
+        EndpointHelpers.withBankAccount(req) { (_, _, cc) =>
+          for {
+            requestBox <- Future {
+              code.accountaccessrequest.AccountAccessRequestTrait.accountAccessRequest.vend.getById(requestId)
+            }
+            request <- Future(unboxFullOrFail(requestBox, Some(cc), AccountAccessRequestNotFound, 404))
+            _ <- Helper.booleanToFuture(AccountAccessRequestNotFound, cc = Some(cc)) {
+              request.bankId == bankIdStr && request.accountId == accountIdStr
+            }
+          } yield JSONFactory600.createAccountAccessRequestJsonV600(request)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getAccountAccessRequestById), "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/account-access-requests/ACCOUNT_ACCESS_REQUEST_ID",
+      "Get Account Access Request by Id",
+      """Get a single Account Access Request by its ID.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, $BankNotFound, $BankAccountNotFound, AccountAccessRequestNotFound, UnknownError),
+      apiTagAccountAccess :: Nil,
+      Some(canGetAccountAccessRequestsAtOneBank :: canGetAccountAccessRequestsAtAnyBank :: Nil),
+      http4sPartialFunction = Some(getAccountAccessRequestById))
+
+    // GET /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/holding-accounts
+    val getHoldingAccountByReleaser: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / viewIdStr / "holding-accounts" =>
+        EndpointHelpers.withView(req) { (user, _, view, cc) =>
+          val bankId = BankId(bankIdStr)
+          val accountId = com.openbankproject.commons.model.AccountId(accountIdStr)
+          for {
+            (accountIdsBox, _) <- AccountAttributeX.accountAttributeProvider.vend
+              .getAccountIdsByParams(bankId, Map("RELEASER_ACCOUNT_ID" -> List(accountId.value)))
+              .map(b => (b, Some(cc)))
+            accountIds = accountIdsBox.getOrElse(Nil)
+            holdingOpt <- {
+              def firstHolding(ids: List[String]): Future[Option[com.openbankproject.commons.model.BankAccount]] = ids match {
+                case Nil => Future.successful(None)
+                case id :: tail =>
+                  NewStyle.function.getBankAccount(bankId, com.openbankproject.commons.model.AccountId(id), Some(cc)).flatMap { case (acc, _) =>
+                    if (acc.accountType == "HOLDING") Future.successful(Some(acc)) else firstHolding(tail)
+                  }
+              }
+              firstHolding(accountIds)
+            }
+            holding <- NewStyle.function.tryons($BankAccountNotFound, 404, Some(cc)) { holdingOpt.get }
+            moderatedAccount <- Future {
+              holding.moderatedBankAccount(view,
+                com.openbankproject.commons.model.BankIdAccountId(holding.bankId, holding.accountId),
+                Full(user), Some(cc))
+            }.map(unboxFullOrFail(_, Some(cc), UnknownError))
+            (attributes, _) <- NewStyle.function.getAccountAttributesByAccount(bankId, holding.accountId, Some(cc))
+          } yield JSONFactory300.createFirehoseCoreBankAccountJSON(List(moderatedAccount), Some(attributes))
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getHoldingAccountByReleaser), "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/holding-accounts",
+      "Get Holding Accounts By Releaser",
+      """Return the first Holding Account linked to the given releaser account via account attribute RELEASER_ACCOUNT_ID.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, $UserNoPermissionAccessView, UnknownError),
+      apiTagAccount :: Nil, None,
+      http4sPartialFunction = Some(getHoldingAccountByReleaser))
+
+    // ─── Phase 2: account-access-request lifecycle (3 endpoints) ─────────
+
+    // POST /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/account-access-requests (201)
+    val createAccountAccessRequest: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / "account-access-requests" =>
+        EndpointHelpers.executeFutureCreated(req) {
+          implicit val cc: CallContext = req.callContext
+          val rawBody = cc.httpBody.getOrElse("")
+          val bankId = BankId(bankIdStr)
+          val accountId = com.openbankproject.commons.model.AccountId(accountIdStr)
+          val u = cc.user.openOrThrowException("User not found in CallContext")
+          for {
+            postJson <- NewStyle.function.tryons(
+              s"$InvalidJsonFormat The Json body should be the PostAccountAccessRequestJsonV600", 400, Some(cc)) {
+              net.liftweb.json.parse(rawBody).extract[JSONFactory600.PostAccountAccessRequestJsonV600]
+            }
+            _ <- Helper.booleanToFuture(BusinessJustificationRequired, cc = Some(cc)) {
+              postJson.business_justification.trim.nonEmpty
+            }
+            (_, _) <- NewStyle.function.findByUserId(postJson.target_user_id, Some(cc))
+            _ <- Helper.booleanToFuture(AccountAccessRequestAlreadyExists, 409, Some(cc)) {
+              code.accountaccessrequest.AccountAccessRequestTrait.accountAccessRequest.vend
+                .getByUserAccountView(postJson.target_user_id, bankIdStr, accountIdStr, postJson.view_id)
+                .isEmpty
+            }
+            _ <- if (postJson.is_system_view) {
+              ViewNewStyle.systemView(ViewId(postJson.view_id), Some(cc)).map(_ => ())
+            } else {
+              ViewNewStyle.customView(ViewId(postJson.view_id),
+                com.openbankproject.commons.model.BankIdAccountId(bankId, accountId), Some(cc)).map(_ => ())
+            }
+            requestBox <- Future {
+              code.accountaccessrequest.AccountAccessRequestTrait.accountAccessRequest.vend.createAccountAccessRequest(
+                bankIdStr, accountIdStr, postJson.view_id, postJson.is_system_view,
+                u.userId, postJson.target_user_id, postJson.business_justification)
+            }
+            request <- Future(unboxFullOrFail(requestBox, Some(cc), AccountAccessRequestCannotBeCreated, 400))
+          } yield JSONFactory600.createAccountAccessRequestJsonV600(request)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(createAccountAccessRequest), "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/account-access-requests",
+      "Create Account Access Request",
+      """Create a new Account Access Request (maker step in maker/checker workflow).""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat,
+        $BankNotFound, $BankAccountNotFound, BusinessJustificationRequired,
+        AccountAccessRequestAlreadyExists, AccountAccessRequestCannotBeCreated, UnknownError),
+      apiTagAccountAccess :: Nil,
+      Some(canCreateAccountAccessRequestAtOneBank :: canCreateAccountAccessRequestAtAnyBank :: Nil),
+      http4sPartialFunction = Some(createAccountAccessRequest))
+
+    // POST /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/account-access-requests/.../approval (201)
+    val approveAccountAccessRequest: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / "account-access-requests" / requestIdStr / "approval" =>
+        EndpointHelpers.executeFutureCreated(req) {
+          implicit val cc: CallContext = req.callContext
+          val rawBody = cc.httpBody.getOrElse("")
+          val bankId = BankId(bankIdStr)
+          val accountId = com.openbankproject.commons.model.AccountId(accountIdStr)
+          val u = cc.user.openOrThrowException("User not found in CallContext")
+          for {
+            postJson <- NewStyle.function.tryons(
+              s"$InvalidJsonFormat The Json body should be the PostApproveAccountAccessRequestJsonV600", 400, Some(cc)) {
+              net.liftweb.json.parse(rawBody).extract[JSONFactory600.PostApproveAccountAccessRequestJsonV600]
+            }
+            requestBox <- Future {
+              code.accountaccessrequest.AccountAccessRequestTrait.accountAccessRequest.vend.getById(requestIdStr)
+            }
+            request <- Future(unboxFullOrFail(requestBox, Some(cc), AccountAccessRequestNotFound, 404))
+            _ <- Helper.booleanToFuture(AccountAccessRequestNotFound, cc = Some(cc)) {
+              request.bankId == bankIdStr && request.accountId == accountIdStr
+            }
+            _ <- Helper.booleanToFuture(AccountAccessRequestStatusNotInitiated, cc = Some(cc)) {
+              request.status == com.openbankproject.commons.model.enums.AccountAccessRequestStatus.INITIATED.toString
+            }
+            _ <- Helper.booleanToFuture(MakerCheckerSameUser, cc = Some(cc)) {
+              u.userId != request.requestorUserId
+            }
+            (targetUser, _) <- NewStyle.function.findByUserId(request.targetUserId, Some(cc))
+            _ <- if (request.isSystemView) {
+              ViewNewStyle.systemView(ViewId(request.viewId), Some(cc)).flatMap { view =>
+                ViewNewStyle.grantAccessToSystemView(bankId, accountId, view, targetUser, Some(cc))
+              }
+            } else {
+              ViewNewStyle.customView(ViewId(request.viewId),
+                com.openbankproject.commons.model.BankIdAccountId(bankId, accountId), Some(cc)).flatMap { view =>
+                ViewNewStyle.grantAccessToCustomView(view, targetUser, Some(cc))
+              }
+            }
+            updatedBox <- Future {
+              code.accountaccessrequest.AccountAccessRequestTrait.accountAccessRequest.vend.updateStatus(
+                requestIdStr,
+                com.openbankproject.commons.model.enums.AccountAccessRequestStatus.APPROVED.toString,
+                u.userId,
+                postJson.comment.getOrElse(""))
+            }
+            updated <- Future(unboxFullOrFail(updatedBox, Some(cc), AccountAccessRequestCannotBeUpdated, 400))
+          } yield JSONFactory600.createAccountAccessRequestJsonV600(updated)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(approveAccountAccessRequest), "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/account-access-requests/ACCOUNT_ACCESS_REQUEST_ID/approval",
+      "Approve Account Access Request",
+      """Approve an Account Access Request (checker step in maker/checker workflow).""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat,
+        $BankNotFound, $BankAccountNotFound, AccountAccessRequestNotFound,
+        AccountAccessRequestStatusNotInitiated, MakerCheckerSameUser,
+        AccountAccessRequestCannotBeUpdated, UnknownError),
+      apiTagAccountAccess :: Nil,
+      Some(canUpdateAccountAccessRequestAtOneBank :: canUpdateAccountAccessRequestAtAnyBank :: Nil),
+      http4sPartialFunction = Some(approveAccountAccessRequest))
+
+    // POST /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/account-access-requests/.../rejection (201)
+    val rejectAccountAccessRequest: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / "account-access-requests" / requestIdStr / "rejection" =>
+        EndpointHelpers.executeFutureCreated(req) {
+          implicit val cc: CallContext = req.callContext
+          val rawBody = cc.httpBody.getOrElse("")
+          val u = cc.user.openOrThrowException("User not found in CallContext")
+          for {
+            postJson <- NewStyle.function.tryons(
+              s"$InvalidJsonFormat The Json body should be the PostRejectAccountAccessRequestJsonV600", 400, Some(cc)) {
+              net.liftweb.json.parse(rawBody).extract[JSONFactory600.PostRejectAccountAccessRequestJsonV600]
+            }
+            _ <- Helper.booleanToFuture(CheckerCommentRequiredForRejection, cc = Some(cc)) {
+              postJson.comment.trim.nonEmpty
+            }
+            requestBox <- Future {
+              code.accountaccessrequest.AccountAccessRequestTrait.accountAccessRequest.vend.getById(requestIdStr)
+            }
+            request <- Future(unboxFullOrFail(requestBox, Some(cc), AccountAccessRequestNotFound, 404))
+            _ <- Helper.booleanToFuture(AccountAccessRequestNotFound, cc = Some(cc)) {
+              request.bankId == bankIdStr && request.accountId == accountIdStr
+            }
+            _ <- Helper.booleanToFuture(AccountAccessRequestStatusNotInitiated, cc = Some(cc)) {
+              request.status == com.openbankproject.commons.model.enums.AccountAccessRequestStatus.INITIATED.toString
+            }
+            _ <- Helper.booleanToFuture(MakerCheckerSameUser, cc = Some(cc)) {
+              u.userId != request.requestorUserId
+            }
+            updatedBox <- Future {
+              code.accountaccessrequest.AccountAccessRequestTrait.accountAccessRequest.vend.updateStatus(
+                requestIdStr,
+                com.openbankproject.commons.model.enums.AccountAccessRequestStatus.REJECTED.toString,
+                u.userId, postJson.comment)
+            }
+            updated <- Future(unboxFullOrFail(updatedBox, Some(cc), AccountAccessRequestCannotBeUpdated, 400))
+          } yield JSONFactory600.createAccountAccessRequestJsonV600(updated)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(rejectAccountAccessRequest), "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/account-access-requests/ACCOUNT_ACCESS_REQUEST_ID/rejection",
+      "Reject Account Access Request",
+      """Reject an Account Access Request (checker step in maker/checker workflow).""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat,
+        $BankNotFound, $BankAccountNotFound, AccountAccessRequestNotFound,
+        AccountAccessRequestStatusNotInitiated, MakerCheckerSameUser,
+        CheckerCommentRequiredForRejection, AccountAccessRequestCannotBeUpdated, UnknownError),
+      apiTagAccountAccess :: Nil,
+      Some(canUpdateAccountAccessRequestAtOneBank :: canUpdateAccountAccessRequestAtAnyBank :: Nil),
+      http4sPartialFunction = Some(rejectAccountAccessRequest))
+
+    // ─── Phase 2: Signal bucket (6 endpoints) ────────────────────────────
+
+    // GET /obp/v6.0.0/signal/channels
+    val getSignalChannels: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "signal" / "channels" =>
+        EndpointHelpers.withUser(req) { (_, cc) =>
+          Future {
+            val names = code.api.cache.RedisMessaging.listChannels()
+            val infos = names.flatMap { name =>
+              code.api.cache.RedisMessaging.channelInfo(name).map { case (count, ttl) =>
+                val (messages, _) = code.api.cache.RedisMessaging.fetchMessages(name, 0, count.toInt)
+                val hasBroadcast = messages.exists { s =>
+                  scala.util.Try(net.liftweb.json.parse(s).extract[SignalMessageJsonV600].to_user_id.isEmpty).getOrElse(false)
+                }
+                (name, count, ttl, hasBroadcast)
+              }
+            }
+            val channels = infos.filter(_._4).map { case (name, count, ttl, _) =>
+              SignalChannelInfoJsonV600(name, count, ttl)
+            }
+            SignalChannelsJsonV600(channels)
+          }
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getSignalChannels), "GET",
+      "/signal/channels", "List Signal Channels",
+      """List active signal channels with broadcast messages.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UnknownError),
+      apiTagAiAgent :: apiTagSignal :: apiTagSignalling :: apiTagChannel :: Nil, None,
+      http4sPartialFunction = Some(getSignalChannels))
+
+    // GET /obp/v6.0.0/signal/channels/CHANNEL_NAME/info
+    val getSignalChannelInfo: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "signal" / "channels" / channelName / "info" =>
+        EndpointHelpers.withUser(req) { (_, cc) =>
+          for {
+            _ <- Helper.booleanToFuture(InvalidSignalChannelName, cc = Some(cc)) {
+              code.api.cache.RedisMessaging.validateChannelName(channelName)
+            }
+            info <- Future(code.api.cache.RedisMessaging.channelInfo(channelName))
+            (count, ttl) <- info match {
+              case Some((c, t)) => Future.successful((c, t))
+              case None => Future.failed(new RuntimeException(s"Channel '$channelName' not found"))
+            }
+          } yield SignalChannelInfoJsonV600(channelName, count, ttl)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getSignalChannelInfo), "GET",
+      "/signal/channels/CHANNEL_NAME/info", "Get Signal Channel Info",
+      """Get metadata for a signal channel (message count + remaining TTL).""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, InvalidSignalChannelName, UnknownError),
+      apiTagAiAgent :: apiTagSignal :: apiTagSignalling :: apiTagChannel :: Nil, None,
+      http4sPartialFunction = Some(getSignalChannelInfo))
+
+    // GET /obp/v6.0.0/signal/channels/stats
+    val getSignalStats: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "signal" / "channels" / "stats" =>
+        EndpointHelpers.withUser(req) { (_, cc) =>
+          Future {
+            val names = code.api.cache.RedisMessaging.listChannels()
+            val channels = names.flatMap { name =>
+              code.api.cache.RedisMessaging.channelInfo(name).map { case (count, ttl) =>
+                SignalChannelInfoJsonV600(name, count, ttl)
+              }
+            }
+            SignalStatsJsonV600(
+              total_channels = channels.size,
+              total_messages = channels.map(_.message_count).sum,
+              channels = channels)
+          }
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getSignalStats), "GET",
+      "/signal/channels/stats", "Get Signal Channel Stats",
+      """Stats for all signal channels including private-only.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      apiTagAiAgent :: apiTagSignal :: apiTagSignalling :: apiTagChannel :: Nil,
+      Some(canGetSignalStats :: Nil),
+      http4sPartialFunction = Some(getSignalStats))
+
+    // POST /obp/v6.0.0/signal/channels/CHANNEL_NAME/messages (201)
+    val publishSignalMessage: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "signal" / "channels" / channelName / "messages" =>
+        EndpointHelpers.executeFutureCreated(req) {
+          implicit val cc: CallContext = req.callContext
+          val rawBody = cc.httpBody.getOrElse("")
+          val u = cc.user.openOrThrowException("User not found in CallContext")
+          for {
+            postJson <- NewStyle.function.tryons(
+              s"$InvalidJsonFormat The Json body should be the PostSignalMessageJsonV600", 400, Some(cc)) {
+              net.liftweb.json.parse(rawBody).extract[PostSignalMessageJsonV600]
+            }
+            _ <- Helper.booleanToFuture(InvalidSignalChannelName, cc = Some(cc)) {
+              code.api.cache.RedisMessaging.validateChannelName(channelName)
+            }
+            published <- Future {
+              val consumerId = cc.consumer match { case Full(c) => c.consumerId.get; case _ => "" }
+              val messageId = randomUUID().toString
+              val sdf = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'")
+              sdf.setTimeZone(java.util.TimeZone.getTimeZone("UTC"))
+              val timestamp = sdf.format(new java.util.Date())
+              val envelope = SignalMessageJsonV600(
+                message_id = messageId, channel_name = channelName,
+                sender_consumer_id = consumerId, sender_user_id = u.userId,
+                to_user_id = postJson.to_user_id, timestamp = timestamp,
+                message_type = postJson.message_type.getOrElse(""),
+                payload = postJson.payload)
+              val msgStr = net.liftweb.json.compactRender(Extraction.decompose(envelope))
+              val count = code.api.cache.RedisMessaging.publishMessage(channelName, msgStr)
+              SignalMessagePublishedJsonV600(messageId, channelName, timestamp, count)
+            }
+          } yield published
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(publishSignalMessage), "POST",
+      "/signal/channels/CHANNEL_NAME/messages", "Publish Signal Message",
+      """Publish a message to a signal channel.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, InvalidSignalChannelName, InvalidJsonFormat, UnknownError),
+      apiTagAiAgent :: apiTagSignal :: apiTagSignalling :: apiTagChannel :: Nil, None,
+      http4sPartialFunction = Some(publishSignalMessage))
+
+    // GET /obp/v6.0.0/signal/channels/CHANNEL_NAME/messages
+    val getSignalMessages: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "signal" / "channels" / channelName / "messages" =>
+        EndpointHelpers.withUser(req) { (user, cc) =>
+          for {
+            _ <- Helper.booleanToFuture(InvalidSignalChannelName, cc = Some(cc)) {
+              code.api.cache.RedisMessaging.validateChannelName(channelName)
+            }
+            httpParams = req.headers.headers.toList.map(h =>
+              net.liftweb.http.provider.HTTPParam(h.name.toString, h.value))
+            (obpQueryParams, _) <- createQueriesByHttpParamsFuture(httpParams, Some(cc))
+            limit = obpQueryParams.collectFirst { case code.api.util.OBPLimit(value) => value }.getOrElse(50)
+            offset = obpQueryParams.collectFirst { case code.api.util.OBPOffset(value) => value }.getOrElse(0)
+            (rawMessages, totalCount) <- Future(code.api.cache.RedisMessaging.fetchMessages(channelName, offset, limit))
+          } yield {
+            val parsed = rawMessages.flatMap { s =>
+              scala.util.Try(net.liftweb.json.parse(s).extract[SignalMessageJsonV600]).toOption
+            }
+            val filtered = parsed.filter { msg =>
+              msg.to_user_id.isEmpty ||
+                msg.to_user_id.contains(user.userId) ||
+                msg.sender_user_id == user.userId
+            }
+            SignalMessagesJsonV600(channelName, filtered, totalCount, (offset + limit) < totalCount)
+          }
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getSignalMessages), "GET",
+      "/signal/channels/CHANNEL_NAME/messages", "Get Signal Messages",
+      """Fetch messages from a signal channel with offset/limit pagination.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, InvalidSignalChannelName, UnknownError),
+      apiTagAiAgent :: apiTagSignal :: apiTagSignalling :: apiTagChannel :: Nil, None,
+      http4sPartialFunction = Some(getSignalMessages))
+
+    // DELETE /obp/v6.0.0/signal/channels/CHANNEL_NAME (200 with body — not 204)
+    val deleteSignalChannel: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ DELETE -> `prefixPath` / "signal" / "channels" / channelName =>
+        EndpointHelpers.executeAndRespond(req) { implicit cc =>
+          for {
+            _ <- Helper.booleanToFuture(InvalidSignalChannelName, cc = Some(cc)) {
+              code.api.cache.RedisMessaging.validateChannelName(channelName)
+            }
+            deleted <- Future(code.api.cache.RedisMessaging.deleteChannel(channelName))
+          } yield SignalChannelDeletedJsonV600(channelName, deleted)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(deleteSignalChannel), "DELETE",
+      "/signal/channels/CHANNEL_NAME", "Delete Signal Channel",
+      """Delete a signal channel and all its messages.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, InvalidSignalChannelName, UnknownError),
+      apiTagAiAgent :: apiTagSignal :: apiTagSignalling :: apiTagChannel :: Nil, None,
+      http4sPartialFunction = Some(deleteSignalChannel))
+
+    // ─── Phase 2: Chat-room reads (4 endpoints) ──────────────────────────
+
+    private def computeParticipantCount(chatRoomId: String): Long =
+      code.chat.ParticipantTrait.participantProvider.vend.getParticipants(chatRoomId)
+        .map(_.length.toLong).openOr(0L)
+
+    private def computeParticipantCounts(rooms: List[code.chat.ChatRoomTrait]): Map[String, Long] =
+      rooms.map(room => room.chatRoomId -> computeParticipantCount(room.chatRoomId)).toMap
+
+    private def computeUnreadCounts(rooms: List[code.chat.ChatRoomTrait], userId: String): Map[String, Long] =
+      rooms.flatMap { room =>
+        val participant = code.chat.ChatPermissions.isParticipant(room.chatRoomId, userId)
+        participant.toList.map { p =>
+          val count = if (room.isOpenRoom)
+            code.chat.ChatMessageTrait.chatMessageProvider.vend.getUnreadMentionCount(room.chatRoomId, userId, p.lastReadAt)
+          else
+            code.chat.ChatMessageTrait.chatMessageProvider.vend.getUnreadCount(room.chatRoomId, userId, p.lastReadAt)
+          room.chatRoomId -> count.openOr(0L)
+        }
+      }.toMap
+
+    // GET /obp/v6.0.0/banks/BANK_ID/chat-rooms
+    val getBankChatRooms: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / bankIdStr / "chat-rooms" =>
+        EndpointHelpers.withUserAndBank(req) { (user, _, cc) =>
+          for {
+            roomsBox <- Future(code.chat.ChatRoomTrait.chatRoomProvider.vend
+              .getChatRoomsByBankIdForUser(bankIdStr, user.userId))
+            rooms <- Future(unboxFullOrFail(roomsBox, Some(cc),
+              s"$UnknownError Cannot get chat rooms", 400))
+            unreadCounts <- Future(computeUnreadCounts(rooms, user.userId))
+            participantCounts <- Future(computeParticipantCounts(rooms))
+          } yield JSONFactory600.createChatRoomsJson(rooms, unreadCounts, participantCounts)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getBankChatRooms), "GET",
+      "/banks/BANK_ID/chat-rooms", "Get Bank Chat Rooms",
+      """Get all bank-scoped chat rooms the current user is a participant of.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, $BankNotFound, UnknownError),
+      apiTagChat :: Nil, None,
+      http4sPartialFunction = Some(getBankChatRooms))
+
+    // GET /obp/v6.0.0/chat-rooms
+    val getSystemChatRooms: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "chat-rooms" =>
+        EndpointHelpers.withUser(req) { (user, cc) =>
+          for {
+            roomsBox <- Future(code.chat.ChatRoomTrait.chatRoomProvider.vend
+              .getChatRoomsByBankIdForUser("", user.userId))
+            rooms <- Future(unboxFullOrFail(roomsBox, Some(cc),
+              s"$UnknownError Cannot get chat rooms", 400))
+            unreadCounts <- Future(computeUnreadCounts(rooms, user.userId))
+            participantCounts <- Future(computeParticipantCounts(rooms))
+          } yield JSONFactory600.createChatRoomsJson(rooms, unreadCounts, participantCounts)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getSystemChatRooms), "GET",
+      "/chat-rooms", "Get System Chat Rooms",
+      """Get all system-level chat rooms the current user is a participant of.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UnknownError),
+      apiTagChat :: Nil, None,
+      http4sPartialFunction = Some(getSystemChatRooms))
+
+    // GET /obp/v6.0.0/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID
+    val getBankChatRoom: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / _ / "chat-rooms" / chatRoomId =>
+        EndpointHelpers.withUserAndBank(req) { (user, _, cc) =>
+          for {
+            roomBox <- Future(code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId))
+            room <- Future(unboxFullOrFail(roomBox, Some(cc), ChatRoomNotFound, 404))
+            participantBox <- Future(code.chat.ChatPermissions.isParticipant(chatRoomId, user.userId))
+            _ <- Future(unboxFullOrFail(participantBox, Some(cc), NotChatRoomParticipant, 403))
+          } yield JSONFactory600.createChatRoomJson(room, participantCount = computeParticipantCount(room.chatRoomId))
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getBankChatRoom), "GET",
+      "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID", "Get Bank Chat Room",
+      """Get a specific bank chat room by ID.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, $BankNotFound, ChatRoomNotFound, NotChatRoomParticipant, UnknownError),
+      apiTagChat :: Nil, None,
+      http4sPartialFunction = Some(getBankChatRoom))
+
+    // GET /obp/v6.0.0/chat-rooms/CHAT_ROOM_ID
+    val getSystemChatRoom: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "chat-rooms" / chatRoomId =>
+        EndpointHelpers.withUser(req) { (user, cc) =>
+          for {
+            roomBox <- Future(code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId))
+            room <- Future(unboxFullOrFail(roomBox, Some(cc), ChatRoomNotFound, 404))
+            participantBox <- Future(code.chat.ChatPermissions.isParticipant(chatRoomId, user.userId))
+            _ <- Future(unboxFullOrFail(participantBox, Some(cc), NotChatRoomParticipant, 403))
+          } yield JSONFactory600.createChatRoomJson(room, participantCount = computeParticipantCount(room.chatRoomId))
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getSystemChatRoom), "GET",
+      "/chat-rooms/CHAT_ROOM_ID", "Get System Chat Room",
+      """Get a specific system chat room by ID.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, ChatRoomNotFound, NotChatRoomParticipant, UnknownError),
+      apiTagChat :: Nil, None,
+      http4sPartialFunction = Some(getSystemChatRoom))
+
+    // ─── Phase 2: Chat-room my-views (6 endpoints) ────────────────────────
+
+    // GET /obp/v6.0.0/users/current/chat-rooms
+    val getMyChatRooms: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "users" / "current" / "chat-rooms" =>
+        EndpointHelpers.withUser(req) { (user, cc) =>
+          for {
+            participantBox <- Future(code.chat.ParticipantTrait.participantProvider.vend
+              .getParticipantRoomsByUserId(user.userId))
+            participantRecords <- Future(unboxFullOrFail(participantBox, Some(cc),
+              s"$UnknownError Cannot get participant records", 400))
+            roomsAndCounts <- Future {
+              participantRecords.flatMap { p =>
+                code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(p.chatRoomId).toList.map { room =>
+                  val count = if (room.isOpenRoom)
+                    code.chat.ChatMessageTrait.chatMessageProvider.vend.getUnreadMentionCount(p.chatRoomId, p.userId, p.lastReadAt)
+                  else
+                    code.chat.ChatMessageTrait.chatMessageProvider.vend.getUnreadCount(p.chatRoomId, p.userId, p.lastReadAt)
+                  (room, count.openOr(0L))
+                }
+              }
+            }
+            participantCounts <- Future(computeParticipantCounts(roomsAndCounts.map(_._1)))
+          } yield {
+            val rooms = roomsAndCounts.map(_._1)
+            val unread = roomsAndCounts.map { case (r, c) => r.chatRoomId -> c }.toMap
+            JSONFactory600.createChatRoomsJson(rooms, unread, participantCounts)
+          }
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getMyChatRooms), "GET",
+      "/users/current/chat-rooms", "Get My Chat Rooms",
+      """Get all chat rooms (any bank or system) the current user is a participant of.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UnknownError),
+      apiTagChat :: Nil, None,
+      http4sPartialFunction = Some(getMyChatRooms))
+
+    // GET /obp/v6.0.0/users/current/chat-rooms/unread
+    val getMyUnreadCounts: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "users" / "current" / "chat-rooms" / "unread" =>
+        EndpointHelpers.withUser(req) { (user, cc) =>
+          for {
+            participantBox <- Future(code.chat.ParticipantTrait.participantProvider.vend
+              .getParticipantRoomsByUserId(user.userId))
+            participantRecords <- Future(unboxFullOrFail(participantBox, Some(cc),
+              s"$UnknownError Cannot get participant records", 400))
+            counts <- Future {
+              participantRecords.flatMap { p =>
+                val room = code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(p.chatRoomId)
+                val isOpen = room.map(_.isOpenRoom).openOr(false)
+                val count = if (isOpen)
+                  code.chat.ChatMessageTrait.chatMessageProvider.vend.getUnreadMentionCount(p.chatRoomId, p.userId, p.lastReadAt)
+                else
+                  code.chat.ChatMessageTrait.chatMessageProvider.vend.getUnreadCount(p.chatRoomId, p.userId, p.lastReadAt)
+                count.toList.map(c => UnreadCountJsonV600(chat_room_id = p.chatRoomId, unread_count = c))
+              }
+            }
+          } yield UnreadCountsJsonV600(unread_counts = counts)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getMyUnreadCounts), "GET",
+      "/users/current/chat-rooms/unread", "Get My Unread Counts",
+      """Unread-message counts for every chat room the current user is in.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UnknownError),
+      apiTagChat :: Nil, None,
+      http4sPartialFunction = Some(getMyUnreadCounts))
+
+    // PUT /obp/v6.0.0/users/current/chat-rooms/CHAT_ROOM_ID/read-marker
+    val markChatRoomRead: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ PUT -> `prefixPath` / "users" / "current" / "chat-rooms" / chatRoomId / "read-marker" =>
+        EndpointHelpers.executeAndRespond(req) { implicit cc =>
+          val user = cc.user.openOrThrowException("User not found in CallContext")
+          for {
+            roomBox <- Future(code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId))
+            _ <- Future(unboxFullOrFail(roomBox, Some(cc), ChatRoomNotFound, 404))
+            partBox <- Future(code.chat.ChatPermissions.isParticipant(chatRoomId, user.userId))
+            _ <- Future(unboxFullOrFail(partBox, Some(cc), NotChatRoomParticipant, 403))
+            updBox <- Future(code.chat.ParticipantTrait.participantProvider.vend
+              .updateLastReadAt(chatRoomId, user.userId))
+            updated <- Future(unboxFullOrFail(updBox, Some(cc), s"$UnknownError Cannot mark as read", 400))
+          } yield JSONFactory600.createParticipantJson(updated)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(markChatRoomRead), "PUT",
+      "/users/current/chat-rooms/CHAT_ROOM_ID/read-marker", "Mark Chat Room Read",
+      """Mark all messages in a chat room as read for the current user.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, ChatRoomNotFound, NotChatRoomParticipant, UnknownError),
+      apiTagChat :: Nil, None,
+      http4sPartialFunction = Some(markChatRoomRead))
+
+    // GET /obp/v6.0.0/users/current/mentions
+    val getMyMentions: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "users" / "current" / "mentions" =>
+        EndpointHelpers.withUser(req) { (user, cc) =>
+          val qp = req.uri.query.params
+          val limit = qp.get("limit").flatMap(s => scala.util.Try(s.toInt).toOption).getOrElse(50)
+          val offset = qp.get("offset").flatMap(s => scala.util.Try(s.toInt).toOption).getOrElse(0)
+          for {
+            msgsBox <- Future(code.chat.ChatMessageTrait.chatMessageProvider.vend
+              .getMentionsForUser(user.userId, limit, offset))
+            messages <- Future(unboxFullOrFail(msgsBox, Some(cc),
+              s"$UnknownError Cannot get mentions", 400))
+            allReactions <- Future {
+              messages.map { msg =>
+                val r = code.chat.ReactionTrait.reactionProvider.vend.getReactions(msg.chatMessageId).openOr(List.empty)
+                msg.chatMessageId -> r
+              }.toMap
+            }
+          } yield JSONFactory600.createChatMessagesJson(messages, allReactions)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getMyMentions), "GET",
+      "/users/current/mentions", "Get My Mentions",
+      """Messages where the current user is mentioned. Supports limit/offset query params.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UnknownError),
+      apiTagChat :: Nil, None,
+      http4sPartialFunction = Some(getMyMentions))
+
+    // POST /obp/v6.0.0/chat-rooms/search (200, NOT 201)
+    val searchChatRooms: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "chat-rooms" / "search" =>
+        EndpointHelpers.executeAndRespond(req) { implicit cc =>
+          val rawBody = cc.httpBody.getOrElse("")
+          val user = cc.user.openOrThrowException("User not found in CallContext")
+          for {
+            postJson <- NewStyle.function.tryons(
+              s"$InvalidJsonFormat The Json body should be the ChatRoomSearchRequestJsonV600", 400, Some(cc)) {
+              net.liftweb.json.parse(rawBody).extract[ChatRoomSearchRequestJsonV600]
+            }
+            roomsBox <- Future(code.chat.ChatRoomTrait.chatRoomProvider.vend
+              .searchChatRoomsForUserWithParticipants(user.userId, postJson.with_user_ids,
+                postJson.exact_participants.getOrElse(false)))
+            rooms <- Future(unboxFullOrFail(roomsBox, Some(cc),
+              s"$UnknownError Cannot search chat rooms", 400))
+            unreadCounts <- Future(computeUnreadCounts(rooms, user.userId))
+            participantCounts <- Future(computeParticipantCounts(rooms))
+          } yield JSONFactory600.createChatRoomsJson(rooms, unreadCounts, participantCounts)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(searchChatRooms), "POST",
+      "/chat-rooms/search", "Search Chat Rooms",
+      """Search chat rooms by participant set. POST body lists with_user_ids; response shape matches Get My Chat Rooms.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
+      apiTagChat :: Nil, None,
+      http4sPartialFunction = Some(searchChatRooms))
+
+    // GET /obp/v6.0.0/chat-rooms/CHAT_ROOM_ID/messages/reactions
+    val getBulkReactions: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "chat-rooms" / chatRoomId / "messages" / "reactions" =>
+        EndpointHelpers.withUser(req) { (user, cc) =>
+          for {
+            roomBox <- Future(code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId))
+            _ <- Future(unboxFullOrFail(roomBox, Some(cc), ChatRoomNotFound, 404))
+            partBox <- Future(code.chat.ChatPermissions.isParticipant(chatRoomId, user.userId))
+            _ <- Future(unboxFullOrFail(partBox, Some(cc), NotChatRoomParticipant, 403))
+            messageIds = req.uri.query.params.get("message_ids")
+              .map(_.split(",").map(_.trim).filter(_.nonEmpty).toList).getOrElse(List.empty)
+            reactionsBox <- Future(code.chat.ReactionTrait.reactionProvider.vend
+              .getReactionsForMessages(messageIds))
+            allReactions <- Future(unboxFullOrFail(reactionsBox, Some(cc),
+              s"$UnknownError Cannot get reactions", 400))
+          } yield JSONFactory600.createBulkReactionsJson(allReactions, messageIds)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getBulkReactions), "GET",
+      "/chat-rooms/CHAT_ROOM_ID/messages/reactions", "Get Bulk Reactions",
+      """Get reactions for multiple messages in one call (?message_ids=id1,id2,id3).""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, ChatRoomNotFound, NotChatRoomParticipant, UnknownError),
+      apiTagChat :: Nil, None,
+      http4sPartialFunction = Some(getBulkReactions))
+
+    // ─── Phase 2: Chat-room admin (5 endpoints) ───────────────────────────
+
+    // PUT /obp/v6.0.0/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/archive-status
+    val archiveBankChatRoom: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ PUT -> `prefixPath` / "banks" / _ / "chat-rooms" / chatRoomId / "archive-status" =>
+        EndpointHelpers.withUserAndBank(req) { (_, _, cc) =>
+          for {
+            roomBox <- Future(code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId))
+            _ <- Future(unboxFullOrFail(roomBox, Some(cc), ChatRoomNotFound, 404))
+            archivedBox <- Future(code.chat.ChatRoomTrait.chatRoomProvider.vend.archiveChatRoom(chatRoomId))
+            archived <- Future(unboxFullOrFail(archivedBox, Some(cc),
+              s"$UnknownError Cannot archive chat room", 400))
+          } yield JSONFactory600.createChatRoomJson(archived,
+            participantCount = computeParticipantCount(archived.chatRoomId))
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(archiveBankChatRoom), "PUT",
+      "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/archive-status", "Archive Bank Chat Room",
+      """Archive a bank chat room.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, $BankNotFound, ChatRoomNotFound, UnknownError),
+      apiTagChat :: Nil,
+      Some(canArchiveBankChatRoom :: Nil),
+      http4sPartialFunction = Some(archiveBankChatRoom))
+
+    // PUT /obp/v6.0.0/chat-rooms/CHAT_ROOM_ID/archive-status
+    val archiveSystemChatRoom: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ PUT -> `prefixPath` / "chat-rooms" / chatRoomId / "archive-status" =>
+        EndpointHelpers.withUser(req) { (_, cc) =>
+          for {
+            roomBox <- Future(code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId))
+            _ <- Future(unboxFullOrFail(roomBox, Some(cc), ChatRoomNotFound, 404))
+            archivedBox <- Future(code.chat.ChatRoomTrait.chatRoomProvider.vend.archiveChatRoom(chatRoomId))
+            archived <- Future(unboxFullOrFail(archivedBox, Some(cc),
+              s"$UnknownError Cannot archive chat room", 400))
+          } yield JSONFactory600.createChatRoomJson(archived,
+            participantCount = computeParticipantCount(archived.chatRoomId))
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(archiveSystemChatRoom), "PUT",
+      "/chat-rooms/CHAT_ROOM_ID/archive-status", "Archive System Chat Room",
+      """Archive a system chat room.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, ChatRoomNotFound, UnknownError),
+      apiTagChat :: Nil,
+      Some(canArchiveSystemChatRoom :: Nil),
+      http4sPartialFunction = Some(archiveSystemChatRoom))
+
+    // POST /obp/v6.0.0/banks/BANK_ID/chat-room-participants (201)
+    val joinBankChatRoom: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "banks" / _ / "chat-room-participants" =>
+        EndpointHelpers.executeFutureCreated(req) {
+          implicit val cc: CallContext = req.callContext
+          val rawBody = cc.httpBody.getOrElse("")
+          val u = cc.user.openOrThrowException("User not found in CallContext")
+          for {
+            json <- Future(net.liftweb.json.parse(rawBody))
+            joiningKey = (json \ "joining_key").extractOpt[String].getOrElse("")
+            roomBox <- Future(code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoomByJoiningKey(joiningKey))
+            room <- Future(unboxFullOrFail(roomBox, Some(cc), InvalidJoiningKey, 404))
+            _ <- Helper.booleanToFuture(ChatRoomIsArchived, cc = Some(cc)) { !room.isArchived }
+            existing <- Future(code.chat.ChatPermissions.isParticipant(room.chatRoomId, u.userId))
+            _ <- Helper.booleanToFuture(ChatRoomParticipantAlreadyExists, 409, Some(cc)) {
+              existing.isEmpty
+            }
+            partBox <- Future(code.chat.ParticipantTrait.participantProvider.vend
+              .addParticipant(room.chatRoomId, u.userId, "", List.empty, ""))
+            participant <- Future(unboxFullOrFail(partBox, Some(cc),
+              s"$UnknownError Cannot join chat room", 400))
+          } yield JSONFactory600.createParticipantJson(participant)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(joinBankChatRoom), "POST",
+      "/banks/BANK_ID/chat-room-participants", "Join Bank Chat Room",
+      """Join a bank chat room using a joining key.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, $BankNotFound, InvalidJoiningKey,
+        ChatRoomIsArchived, ChatRoomParticipantAlreadyExists, UnknownError),
+      apiTagChat :: Nil, None,
+      http4sPartialFunction = Some(joinBankChatRoom))
+
+    // PUT /obp/v6.0.0/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/joining-key
+    val refreshBankJoiningKey: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ PUT -> `prefixPath` / "banks" / _ / "chat-rooms" / chatRoomId / "joining-key" =>
+        EndpointHelpers.withUserAndBank(req) { (user, _, cc) =>
+          for {
+            roomBox <- Future(code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId))
+            _ <- Future(unboxFullOrFail(roomBox, Some(cc), ChatRoomNotFound, 404))
+            permBox <- Future(code.chat.ChatPermissions.checkParticipantPermission(
+              chatRoomId, user.userId, code.chat.ChatPermissions.CAN_REFRESH_JOINING_KEY))
+            _ <- Future(unboxFullOrFail(permBox, Some(cc), InsufficientChatPermission, 403))
+            updBox <- Future(code.chat.ChatRoomTrait.chatRoomProvider.vend.refreshJoiningKey(chatRoomId))
+            updated <- Future(unboxFullOrFail(updBox, Some(cc),
+              s"$UnknownError Cannot refresh joining key", 400))
+          } yield JoiningKeyJsonV600(joining_key = updated.joiningKey)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(refreshBankJoiningKey), "PUT",
+      "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/joining-key", "Refresh Bank Chat Room Joining Key",
+      """Refresh the joining key for a bank chat room.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, $BankNotFound, ChatRoomNotFound,
+        InsufficientChatPermission, UnknownError),
+      apiTagChat :: Nil, None,
+      http4sPartialFunction = Some(refreshBankJoiningKey))
+
+    // PUT /obp/v6.0.0/chat-rooms/CHAT_ROOM_ID/joining-key
+    val refreshSystemJoiningKey: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ PUT -> `prefixPath` / "chat-rooms" / chatRoomId / "joining-key" =>
+        EndpointHelpers.withUser(req) { (user, cc) =>
+          for {
+            roomBox <- Future(code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId))
+            _ <- Future(unboxFullOrFail(roomBox, Some(cc), ChatRoomNotFound, 404))
+            permBox <- Future(code.chat.ChatPermissions.checkParticipantPermission(
+              chatRoomId, user.userId, code.chat.ChatPermissions.CAN_REFRESH_JOINING_KEY))
+            _ <- Future(unboxFullOrFail(permBox, Some(cc), InsufficientChatPermission, 403))
+            updBox <- Future(code.chat.ChatRoomTrait.chatRoomProvider.vend.refreshJoiningKey(chatRoomId))
+            updated <- Future(unboxFullOrFail(updBox, Some(cc),
+              s"$UnknownError Cannot refresh joining key", 400))
+          } yield JoiningKeyJsonV600(joining_key = updated.joiningKey)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(refreshSystemJoiningKey), "PUT",
+      "/chat-rooms/CHAT_ROOM_ID/joining-key", "Refresh System Chat Room Joining Key",
+      """Refresh the joining key for a system chat room.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, ChatRoomNotFound,
+        InsufficientChatPermission, UnknownError),
+      apiTagChat :: Nil, None,
+      http4sPartialFunction = Some(refreshSystemJoiningKey))
+
+    // ─── Phase 2: Chat-room mutations (8 endpoints) ───────────────────────
+
+    // POST /obp/v6.0.0/banks/BANK_ID/chat-rooms (201)
+    val createBankChatRoom: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "banks" / bankIdStr / "chat-rooms" =>
+        EndpointHelpers.executeFutureCreated(req) {
+          implicit val cc: CallContext = req.callContext
+          val rawBody = cc.httpBody.getOrElse("")
+          val u = cc.user.openOrThrowException("User not found in CallContext")
+          for {
+            postJson <- NewStyle.function.tryons(
+              s"$InvalidJsonFormat The Json body should be the PostChatRoomJsonV600", 400, Some(cc)) {
+              net.liftweb.json.parse(rawBody).extract[PostChatRoomJsonV600]
+            }
+            existing <- Future(code.chat.ChatRoomTrait.chatRoomProvider.vend
+              .getChatRoomByBankIdAndName(bankIdStr, postJson.name))
+            _ <- Helper.booleanToFuture(ChatRoomAlreadyExists, 409, Some(cc)) { existing.isEmpty }
+            roomBox <- Future(code.chat.ChatRoomTrait.chatRoomProvider.vend
+              .createChatRoom(bankIdStr, postJson.name, postJson.description, u.userId))
+            room <- Future(unboxFullOrFail(roomBox, Some(cc),
+              s"$UnknownError Cannot create chat room", 400))
+            partBox <- Future(code.chat.ParticipantTrait.participantProvider.vend
+              .addParticipant(room.chatRoomId, u.userId, "",
+                code.chat.ChatPermissions.ALL_PERMISSIONS, ""))
+            _ <- Future(unboxFullOrFail(partBox, Some(cc),
+              s"$UnknownError Cannot add creator as participant", 400))
+          } yield JSONFactory600.createChatRoomJson(room,
+            participantCount = computeParticipantCount(room.chatRoomId))
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(createBankChatRoom), "POST",
+      "/banks/BANK_ID/chat-rooms", "Create Bank Chat Room",
+      """Create a new bank-scoped chat room. Creator becomes participant with all permissions.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat,
+        ChatRoomAlreadyExists, UnknownError),
+      apiTagChat :: Nil, None,
+      http4sPartialFunction = Some(createBankChatRoom))
+
+    // POST /obp/v6.0.0/chat-rooms (201)
+    val createSystemChatRoom: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "chat-rooms" =>
+        EndpointHelpers.executeFutureCreated(req) {
+          implicit val cc: CallContext = req.callContext
+          val rawBody = cc.httpBody.getOrElse("")
+          val u = cc.user.openOrThrowException("User not found in CallContext")
+          for {
+            postJson <- NewStyle.function.tryons(
+              s"$InvalidJsonFormat The Json body should be the PostChatRoomJsonV600", 400, Some(cc)) {
+              net.liftweb.json.parse(rawBody).extract[PostChatRoomJsonV600]
+            }
+            existing <- Future(code.chat.ChatRoomTrait.chatRoomProvider.vend
+              .getChatRoomByBankIdAndName("", postJson.name))
+            _ <- Helper.booleanToFuture(ChatRoomAlreadyExists, 409, Some(cc)) { existing.isEmpty }
+            roomBox <- Future(code.chat.ChatRoomTrait.chatRoomProvider.vend
+              .createChatRoom("", postJson.name, postJson.description, u.userId))
+            room <- Future(unboxFullOrFail(roomBox, Some(cc),
+              s"$UnknownError Cannot create chat room", 400))
+            partBox <- Future(code.chat.ParticipantTrait.participantProvider.vend
+              .addParticipant(room.chatRoomId, u.userId, "",
+                code.chat.ChatPermissions.ALL_PERMISSIONS, ""))
+            _ <- Future(unboxFullOrFail(partBox, Some(cc),
+              s"$UnknownError Cannot add creator as participant", 400))
+          } yield JSONFactory600.createChatRoomJson(room,
+            participantCount = computeParticipantCount(room.chatRoomId))
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(createSystemChatRoom), "POST",
+      "/chat-rooms", "Create System Chat Room",
+      """Create a new system-level chat room. Creator becomes participant with all permissions.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, InvalidJsonFormat,
+        ChatRoomAlreadyExists, UnknownError),
+      apiTagChat :: Nil, None,
+      http4sPartialFunction = Some(createSystemChatRoom))
+
+    // PUT /obp/v6.0.0/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID
+    val updateBankChatRoom: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ PUT -> `prefixPath` / "banks" / _ / "chat-rooms" / chatRoomId =>
+        EndpointHelpers.executeAndRespond(req) { implicit cc =>
+          val rawBody = cc.httpBody.getOrElse("")
+          val u = cc.user.openOrThrowException("User not found in CallContext")
+          for {
+            putJson <- NewStyle.function.tryons(
+              s"$InvalidJsonFormat The Json body should be the PutChatRoomJsonV600", 400, Some(cc)) {
+              net.liftweb.json.parse(rawBody).extract[PutChatRoomJsonV600]
+            }
+            roomBox <- Future(code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId))
+            _ <- Future(unboxFullOrFail(roomBox, Some(cc), ChatRoomNotFound, 404))
+            permBox <- Future(code.chat.ChatPermissions.checkParticipantPermission(
+              chatRoomId, u.userId, code.chat.ChatPermissions.CAN_UPDATE_ROOM))
+            _ <- Future(unboxFullOrFail(permBox, Some(cc), InsufficientChatPermission, 403))
+            updBox <- Future(code.chat.ChatRoomTrait.chatRoomProvider.vend
+              .updateChatRoom(chatRoomId, putJson.name, putJson.description))
+            updated <- Future(unboxFullOrFail(updBox, Some(cc),
+              s"$UnknownError Cannot update chat room", 400))
+          } yield JSONFactory600.createChatRoomJson(updated,
+            participantCount = computeParticipantCount(updated.chatRoomId))
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(updateBankChatRoom), "PUT",
+      "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID", "Update Bank Chat Room",
+      """Update the name/description of a bank chat room.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, InvalidJsonFormat,
+        ChatRoomNotFound, NotChatRoomParticipant, InsufficientChatPermission, UnknownError),
+      apiTagChat :: Nil, None,
+      http4sPartialFunction = Some(updateBankChatRoom))
+
+    // PUT /obp/v6.0.0/chat-rooms/CHAT_ROOM_ID
+    val updateSystemChatRoom: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ PUT -> `prefixPath` / "chat-rooms" / chatRoomId =>
+        EndpointHelpers.executeAndRespond(req) { implicit cc =>
+          val rawBody = cc.httpBody.getOrElse("")
+          val u = cc.user.openOrThrowException("User not found in CallContext")
+          for {
+            putJson <- NewStyle.function.tryons(
+              s"$InvalidJsonFormat The Json body should be the PutChatRoomJsonV600", 400, Some(cc)) {
+              net.liftweb.json.parse(rawBody).extract[PutChatRoomJsonV600]
+            }
+            roomBox <- Future(code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId))
+            _ <- Future(unboxFullOrFail(roomBox, Some(cc), ChatRoomNotFound, 404))
+            permBox <- Future(code.chat.ChatPermissions.checkParticipantPermission(
+              chatRoomId, u.userId, code.chat.ChatPermissions.CAN_UPDATE_ROOM))
+            _ <- Future(unboxFullOrFail(permBox, Some(cc), InsufficientChatPermission, 403))
+            updBox <- Future(code.chat.ChatRoomTrait.chatRoomProvider.vend
+              .updateChatRoom(chatRoomId, putJson.name, putJson.description))
+            updated <- Future(unboxFullOrFail(updBox, Some(cc),
+              s"$UnknownError Cannot update chat room", 400))
+          } yield JSONFactory600.createChatRoomJson(updated,
+            participantCount = computeParticipantCount(updated.chatRoomId))
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(updateSystemChatRoom), "PUT",
+      "/chat-rooms/CHAT_ROOM_ID", "Update System Chat Room",
+      """Update the name/description of a system chat room.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, InvalidJsonFormat,
+        ChatRoomNotFound, NotChatRoomParticipant, InsufficientChatPermission, UnknownError),
+      apiTagChat :: Nil, None,
+      http4sPartialFunction = Some(updateSystemChatRoom))
+
+    // DELETE /obp/v6.0.0/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID (204)
+    val deleteBankChatRoom: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ DELETE -> `prefixPath` / "banks" / _ / "chat-rooms" / chatRoomId =>
+        EndpointHelpers.executeDelete(req) { cc =>
+          for {
+            roomBox <- Future(code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId))
+            _ <- Future(unboxFullOrFail(roomBox, Some(cc), ChatRoomNotFound, 404))
+            delBox <- Future(code.chat.ChatRoomTrait.chatRoomProvider.vend.deleteChatRoom(chatRoomId))
+            _ <- Future(unboxFullOrFail(delBox, Some(cc),
+              s"$UnknownError Cannot delete chat room", 400))
+          } yield ()
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(deleteBankChatRoom), "DELETE",
+      "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID", "Delete Bank Chat Room",
+      """Delete a bank chat room.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles,
+        $BankNotFound, ChatRoomNotFound, UnknownError),
+      apiTagChat :: Nil,
+      Some(canDeleteBankChatRoom :: Nil),
+      http4sPartialFunction = Some(deleteBankChatRoom))
+
+    // DELETE /obp/v6.0.0/chat-rooms/CHAT_ROOM_ID (204)
+    val deleteSystemChatRoom: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ DELETE -> `prefixPath` / "chat-rooms" / chatRoomId =>
+        EndpointHelpers.executeDelete(req) { cc =>
+          for {
+            roomBox <- Future(code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId))
+            _ <- Future(unboxFullOrFail(roomBox, Some(cc), ChatRoomNotFound, 404))
+            delBox <- Future(code.chat.ChatRoomTrait.chatRoomProvider.vend.deleteChatRoom(chatRoomId))
+            _ <- Future(unboxFullOrFail(delBox, Some(cc),
+              s"$UnknownError Cannot delete chat room", 400))
+          } yield ()
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(deleteSystemChatRoom), "DELETE",
+      "/chat-rooms/CHAT_ROOM_ID", "Delete System Chat Room",
+      """Delete a system chat room.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles,
+        ChatRoomNotFound, UnknownError),
+      apiTagChat :: Nil,
+      Some(canDeleteSystemChatRoom :: Nil),
+      http4sPartialFunction = Some(deleteSystemChatRoom))
+
+    // PUT /obp/v6.0.0/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/open-room
+    val setBankChatRoomOpenRoom: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ PUT -> `prefixPath` / "banks" / _ / "chat-rooms" / chatRoomId / "open-room" =>
+        EndpointHelpers.withUserAndBank(req) { (_, _, cc) =>
+          val rawBody = cc.httpBody.getOrElse("")
+          for {
+            json <- Future(net.liftweb.json.parse(rawBody))
+            isOpenRoom = (json \ "is_open_room").extractOrElse[Boolean](false)
+            roomBox <- Future(code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId))
+            _ <- Future(unboxFullOrFail(roomBox, Some(cc), ChatRoomNotFound, 404))
+            updBox <- Future(code.chat.ChatRoomTrait.chatRoomProvider.vend
+              .setIsOpenRoom(chatRoomId, isOpenRoom))
+            updated <- Future(unboxFullOrFail(updBox, Some(cc),
+              s"$UnknownError Cannot update chat room", 400))
+          } yield JSONFactory600.createChatRoomJson(updated,
+            participantCount = computeParticipantCount(updated.chatRoomId))
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(setBankChatRoomOpenRoom), "PUT",
+      "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/open-room", "Set Bank Chat Room Open Room",
+      """Mark a bank chat room as open (all bank users implicit participants) or closed.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles,
+        $BankNotFound, ChatRoomNotFound, UnknownError),
+      apiTagChat :: Nil,
+      Some(canSetBankChatRoomIsOpenRoom :: Nil),
+      http4sPartialFunction = Some(setBankChatRoomOpenRoom))
+
+    // PUT /obp/v6.0.0/chat-rooms/CHAT_ROOM_ID/open-room
+    val setSystemChatRoomOpenRoom: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ PUT -> `prefixPath` / "chat-rooms" / chatRoomId / "open-room" =>
+        EndpointHelpers.executeAndRespond(req) { implicit cc =>
+          val rawBody = cc.httpBody.getOrElse("")
+          for {
+            json <- Future(net.liftweb.json.parse(rawBody))
+            isOpenRoom = (json \ "is_open_room").extractOrElse[Boolean](false)
+            roomBox <- Future(code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId))
+            _ <- Future(unboxFullOrFail(roomBox, Some(cc), ChatRoomNotFound, 404))
+            updBox <- Future(code.chat.ChatRoomTrait.chatRoomProvider.vend
+              .setIsOpenRoom(chatRoomId, isOpenRoom))
+            updated <- Future(unboxFullOrFail(updBox, Some(cc),
+              s"$UnknownError Cannot update chat room", 400))
+          } yield JSONFactory600.createChatRoomJson(updated,
+            participantCount = computeParticipantCount(updated.chatRoomId))
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(setSystemChatRoomOpenRoom), "PUT",
+      "/chat-rooms/CHAT_ROOM_ID/open-room", "Set System Chat Room Open Room",
+      """Mark a system chat room as open (all users implicit participants) or closed.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles,
+        ChatRoomNotFound, UnknownError),
+      apiTagChat :: Nil,
+      Some(canSetSystemChatRoomIsOpenRoom :: Nil),
+      http4sPartialFunction = Some(setSystemChatRoomOpenRoom))
 
     // Route: GET /obp/v6.0.0/banks/BANK_ID/customers/CUSTOMER_ID/investigation-report
     val getCustomerInvestigationReport: HttpRoutes[IO] = HttpRoutes.of[IO] {
