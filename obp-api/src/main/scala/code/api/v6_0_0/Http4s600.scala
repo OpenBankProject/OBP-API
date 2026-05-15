@@ -386,7 +386,7 @@ object Http4s600 {
       case req @ GET -> `prefixPath` / "my" / "dynamic-entities" =>
         EndpointHelpers.withUser(req) { (user, _) =>
           for {
-            dynamicEntities <- Future(NewStyle.function.getDynamicEntitiesByUserId(Some(user.userId)))
+            dynamicEntities <- Future(NewStyle.function.getDynamicEntitiesByUserId(user.userId))
           } yield {
             val listCommons: List[DynamicEntityCommons] = dynamicEntities
             JSONFactory600.createMyDynamicEntitiesJson(listCommons)
@@ -736,6 +736,7 @@ object Http4s600 {
       List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
       apiTagManageDynamicEntity :: apiTagApi :: Nil,
       Some(canCreateSystemLevelDynamicEntity :: Nil),
+      authMode = code.api.util.APIUtil.UserOrApplication,
       http4sPartialFunction = Some(createSystemDynamicEntity)
     )
 
@@ -765,6 +766,7 @@ object Http4s600 {
       List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
       apiTagManageDynamicEntity :: apiTagApi :: Nil,
       Some(canCreateBankLevelDynamicEntity :: Nil),
+      authMode = code.api.util.APIUtil.UserOrApplication,
       http4sPartialFunction = Some(createBankLevelDynamicEntity)
     )
 
@@ -831,7 +833,7 @@ object Http4s600 {
           val rawBody = cc.httpBody.getOrElse("")
           for {
             existingEntity <- Future(
-              NewStyle.function.getDynamicEntitiesByUserId(Some(cc.userId)).find(_.dynamicEntityId.contains(dynamicEntityId))
+              NewStyle.function.getDynamicEntitiesByUserId(cc.userId).find(_.dynamicEntityId.contains(dynamicEntityId))
             )
             _ <- Helper.booleanToFuture(s"$DynamicEntityNotFoundByDynamicEntityId dynamicEntityId = $dynamicEntityId", cc = Some(cc)) {
               existingEntity.isDefined
