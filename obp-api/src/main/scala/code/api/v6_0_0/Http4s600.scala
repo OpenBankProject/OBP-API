@@ -1770,9 +1770,1281 @@ object Http4s600 {
           .orElse(getRolesWithEntitlementCountsAtAllBanks(req))
           .orElse(getCustomViewById(req))
           .orElse(invalidateCacheNamespace(req))
+          .orElse(createCustomerLink(req))
+          .orElse(getCustomerLinksByBankId(req))
+          .orElse(getCustomerLinkById(req))
+          .orElse(updateCustomerLink(req))
+          .orElse(deleteCustomerLink(req))
+          .orElse(getCorporateCustomersAtOneBank(req))
+          .orElse(getCorporateCustomerByCustomerId(req))
+          .orElse(getCorporateCustomerSubsidiaries(req))
+          .orElse(getRetailCustomersAtOneBank(req))
+          .orElse(getRetailCustomerByCustomerId(req))
+          .orElse(getCustomerChildren(req))
+          .orElse(getCustomerLinksByCustomerId(req))
+          .orElse(getCustomerInvestigationReport(req))
+          .orElse(getSystemViews(req))
+          .orElse(getSystemViewById(req))
+          .orElse(getAbacPolicies(req))
+          .orElse(getConnectorCallCounts(req))
+          .orElse(getConnectorTraces(req))
+          .orElse(getDynamicEntityDiagnostics(req))
+          .orElse(cleanupOrphanedDynamicEntityRecords(req))
+          .orElse(createOrUpdateWebUiProps(req))
+          .orElse(deleteWebUiProps(req))
+          .orElse(createCustomViewManagement(req))
+          .orElse(getProductTagsV600(req))
+          .orElse(updateProductTagsV600(req))
+          .orElse(getOidcClient(req))
+          .orElse(verifyOidcClient(req))
+          .orElse(getUserAttributeById(req))
+          .orElse(createUserAttribute(req))
+          .orElse(updateUserAttribute(req))
+          .orElse(deleteUserAttribute(req))
+          .orElse(addUserToGroup(req))
+          .orElse(removeUserFromGroup(req))
+          .orElse(deleteEntitlement(req))
+          .orElse(getAvailablePersonalDynamicEntities(req))
+          .orElse(getReferenceTypes(req))
+          .orElse(joinSystemChatRoom(req))
+          .orElse(createCounterpartyAttribute(req))
+          .orElse(deleteCounterpartyAttribute(req))
+          .orElse(getCounterpartyAttributeById(req))
+          .orElse(getAllCounterpartyAttributes(req))
+          .orElse(updateCounterpartyAttribute(req))
+          .orElse(hasAccountAccess(req))
+          .orElse(getMyAccountAccessRequests(req))
           // signal bucket deferred — Redis API signatures + SignalMessageJsonV600
           // field layout differ from initial port; needs focused follow-up.
+          // createCorporateCustomer + createRetailCustomer deferred — share
+          // the 60-line date-parsing/customer-number generation logic of
+          // createCustomer (already migrated); will batch as a focused pass.
       }
+
+    // ─── Phase 2: corporate-customers + retail-customers + banks/customers/* (8) ───
+
+    // Route: GET /obp/v6.0.0/banks/BANK_ID/corporate-customers
+    val getCorporateCustomersAtOneBank: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / _ / "corporate-customers" =>
+        EndpointHelpers.withUserAndBank(req) { (_, bank, cc) =>
+          for {
+            (requestParams, _) <- NewStyle.function.extractQueryParams(
+              req.uri.renderString, List("limit", "offset", "sort_direction"), Some(cc))
+            (customers, _) <- NewStyle.function.getCustomersByCustomerTypes(
+              bank.bankId, List("CORPORATE", "SUBSIDIARY"), Some(cc), requestParams)
+          } yield JSONFactory600.createCustomersJson(customers)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getCorporateCustomersAtOneBank), "GET",
+      "/banks/BANK_ID/corporate-customers", "Get Corporate Customers at Bank",
+      """Get all corporate (and subsidiary) customers at the specified bank.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
+      apiTagCustomer :: Nil,
+      Some(canGetCustomersAtOneBank :: Nil),
+      http4sPartialFunction = Some(getCorporateCustomersAtOneBank)
+    )
+
+    // Route: GET /obp/v6.0.0/banks/BANK_ID/corporate-customers/CUSTOMER_ID
+    val getCorporateCustomerByCustomerId: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / _ / "corporate-customers" / customerId =>
+        EndpointHelpers.withUserAndBank(req) { (_, bank, cc) =>
+          for {
+            (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, Some(cc))
+            _ <- Helper.booleanToFuture(CustomerTypeMismatch, 404, callContext) {
+              customer.customerType.exists(ct => List("CORPORATE", "SUBSIDIARY").contains(ct))
+            }
+            (attrs, _) <- NewStyle.function.getCustomerAttributes(bank.bankId, CustomerId(customerId), callContext)
+          } yield JSONFactory600.createCustomerWithAttributesJson(customer, attrs)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getCorporateCustomerByCustomerId), "GET",
+      "/banks/BANK_ID/corporate-customers/CUSTOMER_ID", "Get Corporate Customer by Id",
+      """Get a corporate customer by CUSTOMER_ID. Returns 404 if the customer
+        |is not of type CORPORATE or SUBSIDIARY.""".stripMargin,
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, CustomerTypeMismatch, UnknownError),
+      apiTagCustomer :: Nil,
+      Some(canGetCustomersAtOneBank :: Nil),
+      http4sPartialFunction = Some(getCorporateCustomerByCustomerId)
+    )
+
+    // Route: GET /obp/v6.0.0/banks/BANK_ID/corporate-customers/CUSTOMER_ID/subsidiaries
+    val getCorporateCustomerSubsidiaries: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / _ / "corporate-customers" / customerId / "subsidiaries" =>
+        EndpointHelpers.withUserAndBank(req) { (_, bank, cc) =>
+          for {
+            (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, Some(cc))
+            _ <- Helper.booleanToFuture(CustomerTypeMismatch, 404, callContext) {
+              customer.customerType.exists(ct => List("CORPORATE", "SUBSIDIARY").contains(ct))
+            }
+            (children, _) <- NewStyle.function.getCustomersByParentCustomerId(bank.bankId, customerId, callContext)
+          } yield JSONFactory600.createCustomersJson(children)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getCorporateCustomerSubsidiaries), "GET",
+      "/banks/BANK_ID/corporate-customers/CUSTOMER_ID/subsidiaries", "Get Subsidiaries",
+      """Get the subsidiaries of a corporate customer.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, CustomerTypeMismatch, UnknownError),
+      apiTagCustomer :: Nil,
+      Some(canGetCustomersAtOneBank :: Nil),
+      http4sPartialFunction = Some(getCorporateCustomerSubsidiaries)
+    )
+
+    // Route: GET /obp/v6.0.0/banks/BANK_ID/retail-customers
+    val getRetailCustomersAtOneBank: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / _ / "retail-customers" =>
+        EndpointHelpers.withUserAndBank(req) { (_, bank, cc) =>
+          for {
+            (requestParams, _) <- NewStyle.function.extractQueryParams(
+              req.uri.renderString, List("limit", "offset", "sort_direction"), Some(cc))
+            (customers, _) <- NewStyle.function.getCustomersByCustomerTypes(
+              bank.bankId, List("INDIVIDUAL"), Some(cc), requestParams)
+          } yield JSONFactory600.createCustomersJson(customers)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getRetailCustomersAtOneBank), "GET",
+      "/banks/BANK_ID/retail-customers", "Get Retail Customers at Bank",
+      """Get all retail (individual) customers at the specified bank.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
+      apiTagCustomer :: Nil,
+      Some(canGetCustomersAtOneBank :: Nil),
+      http4sPartialFunction = Some(getRetailCustomersAtOneBank)
+    )
+
+    // Route: GET /obp/v6.0.0/banks/BANK_ID/retail-customers/CUSTOMER_ID
+    val getRetailCustomerByCustomerId: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / _ / "retail-customers" / customerId =>
+        EndpointHelpers.withUserAndBank(req) { (_, bank, cc) =>
+          for {
+            (customer, callContext) <- NewStyle.function.getCustomerByCustomerId(customerId, Some(cc))
+            _ <- Helper.booleanToFuture(CustomerTypeMismatch, 404, callContext) {
+              customer.customerType.contains("INDIVIDUAL")
+            }
+            (attrs, _) <- NewStyle.function.getCustomerAttributes(bank.bankId, CustomerId(customerId), callContext)
+          } yield JSONFactory600.createCustomerWithAttributesJson(customer, attrs)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getRetailCustomerByCustomerId), "GET",
+      "/banks/BANK_ID/retail-customers/CUSTOMER_ID", "Get Retail Customer by Id",
+      """Get a retail customer by CUSTOMER_ID. Returns 404 if the customer
+        |is not of type INDIVIDUAL.""".stripMargin,
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, CustomerTypeMismatch, UnknownError),
+      apiTagCustomer :: Nil,
+      Some(canGetCustomersAtOneBank :: Nil),
+      http4sPartialFunction = Some(getRetailCustomerByCustomerId)
+    )
+
+    // Route: GET /obp/v6.0.0/banks/BANK_ID/customers/CUSTOMER_ID/children
+    val getCustomerChildren: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / _ / "customers" / customerId / "children" =>
+        EndpointHelpers.withUserAndBank(req) { (_, bank, cc) =>
+          for {
+            _ <- NewStyle.function.getCustomerByCustomerId(customerId, Some(cc))
+            (children, _) <- NewStyle.function.getCustomersByParentCustomerId(bank.bankId, customerId, Some(cc))
+          } yield JSONFactory600.createCustomersJson(children)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getCustomerChildren), "GET",
+      "/banks/BANK_ID/customers/CUSTOMER_ID/children", "Get Customer Children",
+      """Get the child customers for the specified customer.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
+      apiTagCustomer :: Nil,
+      Some(canGetCustomersAtOneBank :: Nil),
+      http4sPartialFunction = Some(getCustomerChildren)
+    )
+
+    // Route: GET /obp/v6.0.0/banks/BANK_ID/customers/CUSTOMER_ID/customer-links
+    val getCustomerLinksByCustomerId: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / _ / "customers" / customerId / "customer-links" =>
+        EndpointHelpers.withUserAndBank(req) { (_, _, cc) =>
+          for {
+            _ <- NewStyle.function.getCustomerByCustomerId(customerId, Some(cc))
+            (links, _) <- NewStyle.function.getCustomerLinksByCustomerId(customerId, Some(cc))
+          } yield JSONFactory600.createCustomerLinksJson(links)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getCustomerLinksByCustomerId), "GET",
+      "/banks/BANK_ID/customers/CUSTOMER_ID/customer-links", "Get Customer Links by Customer Id",
+      """Get all customer links involving the specified customer.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
+      apiTagCustomer :: Nil,
+      Some(canGetCustomerLinks :: Nil),
+      http4sPartialFunction = Some(getCustomerLinksByCustomerId)
+    )
+
+    // ─── Phase 2: six 2-endpoint management/* buckets (9 of 12) ───────────
+    // Deferred: executeAbacPolicy (large response-building chain),
+    // backupSystemDynamicEntity (private backupDynamicEntityMethod helper),
+    // deleteSystemDynamicEntityCascade (private deleteDynamicEntityCascadeMethod).
+
+    // GET /obp/v6.0.0/management/system-views
+    val getSystemViews: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "management" / "system-views" =>
+        EndpointHelpers.withUser(req) { (_, _) =>
+          Views.views.vend.getSystemViews().map(JSONFactory600.createViewsJsonV600)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getSystemViews), "GET",
+      "/management/system-views", "Get System Views",
+      """Get all system views.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      apiTagView :: Nil, Some(canGetSystemViews :: Nil),
+      http4sPartialFunction = Some(getSystemViews))
+
+    // GET /obp/v6.0.0/management/system-views/SYS_VIEW_ID  (non-standard var so middleware skips view validation)
+    val getSystemViewById: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "management" / "system-views" / viewIdStr =>
+        EndpointHelpers.withUser(req) { (_, cc) =>
+          ViewNewStyle.systemView(ViewId(viewIdStr), Some(cc)).map(JSONFactory600.createViewJsonV600)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getSystemViewById), "GET",
+      "/management/system-views/SYS_VIEW_ID", "Get System View by Id",
+      """Get a system view by its VIEW_ID.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      apiTagView :: Nil, Some(canGetSystemViews :: Nil),
+      http4sPartialFunction = Some(getSystemViewById))
+
+    // GET /obp/v6.0.0/management/abac-policies
+    val getAbacPolicies: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "management" / "abac-policies" =>
+        EndpointHelpers.withUser(req) { (_, _) =>
+          Future {
+            val policies = Constant.ABAC_POLICIES.map { p =>
+              AbacPolicyJsonV600(policy = p,
+                description = Constant.ABAC_POLICY_DESCRIPTIONS.getOrElse(p, "No description available"))
+            }
+            AbacPoliciesJsonV600(policies)
+          }
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getAbacPolicies), "GET",
+      "/management/abac-policies", "Get ABAC Policies",
+      """List all available ABAC policies.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      apiTagABAC :: Nil, Some(canGetAbacRule :: Nil),
+      http4sPartialFunction = Some(getAbacPolicies))
+
+    // GET /obp/v6.0.0/management/connector/metrics/counts
+    val getConnectorCallCounts: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "management" / "connector" / "metrics" / "counts" =>
+        EndpointHelpers.withUser(req) { (_, _) =>
+          Future {
+            val counts = code.metrics.ConnectorCountsRedis.getAllCounts()
+            ConnectorCountsJsonV600(
+              enabled = code.metrics.ConnectorCountsRedis.isEnabled,
+              connector_counts = counts.map(c => ConnectorCountJsonV600(
+                connector_name = c.connector_name, method_name = c.method_name,
+                per_hour_outbound_count = c.per_hour_outbound_count,
+                per_hour_inbound_success_count = c.per_hour_inbound_success_count,
+                per_hour_inbound_failure_count = c.per_hour_inbound_failure_count,
+                ttl_seconds = c.ttl_seconds)))
+          }
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getConnectorCallCounts), "GET",
+      "/management/connector/metrics/counts", "Get Connector Call Counts",
+      """Per-hour Redis counters for connector outbound and inbound messages.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      apiTagMetric :: Nil, Some(canReadMetrics :: Nil),
+      http4sPartialFunction = Some(getConnectorCallCounts))
+
+    // GET /obp/v6.0.0/management/connector/traces
+    val getConnectorTraces: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "management" / "connector" / "traces" =>
+        EndpointHelpers.withUser(req) { (_, cc) =>
+          for {
+            httpParams <- NewStyle.function.extractHttpParamsFromUrl(req.uri.renderString)
+            (obpQueryParams, _) <- createQueriesByHttpParamsFuture(httpParams, Some(cc))
+            traces <- Future(code.metrics.ConnectorTraceProvider.getAllConnectorTraces(obpQueryParams))
+          } yield JSONFactory600.createConnectorTracesJsonV600(traces)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getConnectorTraces), "GET",
+      "/management/connector/traces", "Get Connector Traces",
+      """Get recent connector trace records (paginated).""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UnknownError),
+      apiTagMetric :: Nil, None,
+      http4sPartialFunction = Some(getConnectorTraces))
+
+    // GET /obp/v6.0.0/management/diagnostics/dynamic-entities
+    val getDynamicEntityDiagnostics: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "management" / "diagnostics" / "dynamic-entities" =>
+        EndpointHelpers.withUser(req) { (_, _) =>
+          Future {
+            val result = code.api.util.DiagnosticDynamicEntityCheck.checkAllDynamicEntities()
+            val issuesJson = result.issues.map(i => JSONFactory600.DynamicEntityIssueJsonV600(
+              entity_name = i.entityName, bank_id = i.bankId.getOrElse("SYSTEM_LEVEL"),
+              field_name = i.fieldName, example_value = i.exampleValue, error_message = i.errorMessage))
+            val orphanedJson = result.orphanedEntities.map(o =>
+              JSONFactory600.OrphanedDynamicEntityJsonV600(o.entityName, o.bankId, o.recordCount))
+            JSONFactory600.DynamicEntityDiagnosticsJsonV600(result.scannedEntities, issuesJson, result.issues.length, orphanedJson)
+          }
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getDynamicEntityDiagnostics), "GET",
+      "/management/diagnostics/dynamic-entities", "Get Dynamic Entity Diagnostics",
+      """Scan all Dynamic Entities for issues + orphaned data records.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      apiTagManageDynamicEntity :: Nil,
+      Some(canGetDynamicEntityDiagnostics :: Nil),
+      http4sPartialFunction = Some(getDynamicEntityDiagnostics))
+
+    // DELETE /obp/v6.0.0/management/diagnostics/dynamic-entities/orphaned-records
+    val cleanupOrphanedDynamicEntityRecords: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ DELETE -> `prefixPath` / "management" / "diagnostics" / "dynamic-entities" / "orphaned-records" =>
+        EndpointHelpers.withUser(req) { (_, _) =>
+          Future {
+            val definitions = code.dynamicEntity.DynamicEntityProvider.connectorMethodProvider.vend.getDynamicEntities(None, true)
+            val orphaned = code.api.util.DiagnosticDynamicEntityCheck.checkOrphanedRecords(definitions)
+            var totalDeleted: Long = 0
+            orphaned.foreach { orphan =>
+              val records = if (orphan.bankId.isEmpty)
+                DynamicData.findAll(By(DynamicData.DynamicEntityName, orphan.entityName), NullRef(DynamicData.BankId))
+              else
+                DynamicData.findAll(By(DynamicData.DynamicEntityName, orphan.entityName), By(DynamicData.BankId, orphan.bankId))
+              records.foreach { r => r.delete_!; totalDeleted += 1 }
+            }
+            val orphanedJson = orphaned.map(o => JSONFactory600.OrphanedDynamicEntityJsonV600(o.entityName, o.bankId, o.recordCount))
+            JSONFactory600.CleanupOrphanedDynamicEntityResponseJsonV600(orphanedJson, totalDeleted)
+          }
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(cleanupOrphanedDynamicEntityRecords), "DELETE",
+      "/management/diagnostics/dynamic-entities/orphaned-records", "Cleanup Orphaned Dynamic Entity Records",
+      """Delete orphaned dynamic-entity data records (rows whose entityName/bankId has no matching definition).""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      apiTagManageDynamicEntity :: Nil,
+      Some(canCleanupOrphanedDynamicEntityRecords :: Nil),
+      http4sPartialFunction = Some(cleanupOrphanedDynamicEntityRecords))
+
+    // PUT /obp/v6.0.0/management/webui_props/WEBUI_PROP_NAME
+    val createOrUpdateWebUiProps: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ PUT -> `prefixPath` / "management" / "webui_props" / webUiPropName =>
+        EndpointHelpers.executeAndRespond(req) { implicit cc =>
+          val rawBody = cc.httpBody.getOrElse("")
+          val nameLower = webUiPropName.toLowerCase
+          for {
+            _ <- NewStyle.function.tryons(s"$InvalidWebUiProps name must start with webui_, but current name is: $nameLower", 400, Some(cc)) {
+              require(nameLower.startsWith("webui_"))
+            }
+            _ <- NewStyle.function.tryons(s"$InvalidWebUiProps name must contain only alphanumeric characters, underscore, and dot. Current name: $nameLower", 400, Some(cc)) {
+              require(nameLower.matches("^[a-zA-Z0-9_.]+$"))
+            }
+            _ <- NewStyle.function.tryons(s"$InvalidWebUiProps name must not exceed 255 characters. Current length: ${nameLower.length}", 400, Some(cc)) {
+              require(nameLower.length <= 255)
+            }
+            valueJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should contain a value field", 400, Some(cc)) {
+              net.liftweb.json.parse(rawBody).extract[code.webuiprops.WebUiPropsPutJsonV600]
+            }
+            saved <- Future(MappedWebUiPropsProvider.createOrUpdate(WebUiPropsCommons(nameLower, valueJson.value)))
+          } yield {
+            // PUT returns 200 if existed, 201 if created — simplified to 200 here.
+            saved.openOrThrowException("Could not save WebUiProps"): WebUiPropsCommons
+          }
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(createOrUpdateWebUiProps), "PUT",
+      "/management/webui_props/WEBUI_PROP_NAME", "Create or Update WebUiProps",
+      """Create or update a WebUiProps. Name is converted to lowercase, must start with `webui_`.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidWebUiProps, InvalidJsonFormat, UnknownError),
+      apiTagWebUiProps :: Nil,
+      Some(canCreateWebUiProps :: Nil),
+      http4sPartialFunction = Some(createOrUpdateWebUiProps))
+
+    // DELETE /obp/v6.0.0/management/webui_props/WEBUI_PROP_NAME
+    val deleteWebUiProps: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ DELETE -> `prefixPath` / "management" / "webui_props" / webUiPropName =>
+        EndpointHelpers.executeAndRespond(req) { implicit cc =>
+          val nameLower = webUiPropName.toLowerCase
+          for {
+            _ <- NewStyle.function.tryons(s"$InvalidWebUiProps name must start with webui_, but current name is: $nameLower", 400, Some(cc)) {
+              require(nameLower.startsWith("webui_"))
+            }
+            _ <- NewStyle.function.tryons(s"$InvalidWebUiProps name must contain only alphanumeric characters, underscore, and dot. Current name: $nameLower", 400, Some(cc)) {
+              require(nameLower.matches("^[a-zA-Z0-9_.]+$"))
+            }
+            _ <- NewStyle.function.tryons(s"$InvalidWebUiProps name must not exceed 255 characters. Current length: ${nameLower.length}", 400, Some(cc)) {
+              require(nameLower.length <= 255)
+            }
+            existing <- Future(MappedWebUiPropsProvider.getByName(nameLower))
+            _ <- existing match {
+              case Full(prop) => Future(MappedWebUiPropsProvider.delete(prop.webUiPropsId.getOrElse("")))
+              case _ => Future.successful(Full(true))
+            }
+          } yield ""
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(deleteWebUiProps), "DELETE",
+      "/management/webui_props/WEBUI_PROP_NAME", "Delete WebUiProps",
+      """Delete a WebUiProps by name. Idempotent — 204 even if it didn't exist.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidWebUiProps, UnknownError),
+      apiTagWebUiProps :: Nil,
+      Some(canDeleteWebUiProps :: Nil),
+      http4sPartialFunction = Some(deleteWebUiProps))
+
+    // ─── Phase 2: 3 small mixed buckets (5 endpoints) ─────────────────────
+
+    // POST /obp/v6.0.0/management/banks/BANK_ID/accounts/ACCOUNT_ID/views (201)
+    val createCustomViewManagement: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "management" / "banks" / bankIdStr / "accounts" / accountIdStr / "views" =>
+        EndpointHelpers.executeFutureCreated(req) {
+          implicit val cc: CallContext = req.callContext
+          val rawBody = cc.httpBody.getOrElse("")
+          val bankId = BankId(bankIdStr)
+          val accountId = com.openbankproject.commons.model.AccountId(accountIdStr)
+          for {
+            createViewJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the CreateViewJson", 400, Some(cc)) {
+              net.liftweb.json.parse(rawBody).extract[com.openbankproject.commons.model.CreateViewJson]
+            }
+            _ <- Helper.booleanToFuture(InvalidCustomViewFormat + s"Current view_name (${createViewJson.name})", cc = Some(cc)) {
+              APIUtil.isValidCustomViewName(createViewJson.name)
+            }
+            (_, _) <- NewStyle.function.getBankAccount(bankId, accountId, Some(cc))
+            (view, _) <- ViewNewStyle.createCustomView(BankIdAccountId(bankId, accountId), createViewJson, Some(cc))
+          } yield JSONFactory600.createViewJsonV600(view)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(createCustomViewManagement), "POST",
+      "/management/banks/BANK_ID/accounts/ACCOUNT_ID/views", "Create Custom View (Management)",
+      """Create a custom view for an account.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UserHasMissingRoles, InvalidJsonFormat, InvalidCustomViewFormat, UnknownError),
+      apiTagView :: Nil,
+      Some(canCreateCustomView :: Nil),
+      http4sPartialFunction = Some(createCustomViewManagement))
+
+    // GET /obp/v6.0.0/banks/BANK_ID/products/PRODUCT_CODE/tags
+    val getProductTagsV600: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / _ / "products" / productCodeStr / "tags" =>
+        EndpointHelpers.withUserAndBank(req) { (_, bank, cc) =>
+          val productCode = com.openbankproject.commons.model.ProductCode(productCodeStr)
+          for {
+            (_, _) <- NewStyle.function.getProduct(bank.bankId, productCode, Some(cc))
+            tags = code.products.ProductTagsProvider.getTags(bank.bankId, productCode)
+          } yield JSONFactory600.createProductTagsJsonV600(tags)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getProductTagsV600), "GET",
+      "/banks/BANK_ID/products/PRODUCT_CODE/tags", "Get Product Tags",
+      """Get all tags for the specified bank product.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, $BankNotFound, UnknownError),
+      apiTagProduct :: Nil, None,
+      http4sPartialFunction = Some(getProductTagsV600))
+
+    // PUT /obp/v6.0.0/banks/BANK_ID/products/PRODUCT_CODE/tags
+    val updateProductTagsV600: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ PUT -> `prefixPath` / "banks" / _ / "products" / productCodeStr / "tags" =>
+        EndpointHelpers.executeAndRespond(req) { implicit cc =>
+          val rawBody = cc.httpBody.getOrElse("")
+          val bank = cc.bank.get
+          val productCode = com.openbankproject.commons.model.ProductCode(productCodeStr)
+          val updateProductTagsEntitlements = canUpdateProductTagsAtOneBank :: canUpdateProductTagsAtAnyBank :: Nil
+          val user = cc.user.openOrThrowException(AuthenticatedUserIsRequired)
+          for {
+            _ <- NewStyle.function.hasAtLeastOneEntitlement(
+              failMsg = UserHasMissingRoles + updateProductTagsEntitlements.mkString(" or "))(
+              bank.bankId.value, user.userId, updateProductTagsEntitlements, Some(cc))
+            (_, _) <- NewStyle.function.getProduct(bank.bankId, productCode, Some(cc))
+            body <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ProductTagsJsonV600", 400, Some(cc)) {
+              net.liftweb.json.parse(rawBody).extract[ProductTagsJsonV600]
+            }
+            updatedTags <- NewStyle.function.tryons(UpdateProductError, 400, Some(cc)) {
+              code.products.ProductTagsProvider.setTags(bank.bankId, productCode, body.tags)
+                .openOrThrowException(UpdateProductError)
+            }
+          } yield JSONFactory600.createProductTagsJsonV600(updatedTags)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(updateProductTagsV600), "PUT",
+      "/banks/BANK_ID/products/PRODUCT_CODE/tags", "Update Product Tags",
+      """Replace the tags on the specified bank product.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, InvalidJsonFormat, UpdateProductError, UnknownError),
+      apiTagProduct :: Nil, None,
+      http4sPartialFunction = Some(updateProductTagsV600))
+
+    // GET /obp/v6.0.0/oidc/clients/CLIENT_ID
+    val getOidcClient: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "oidc" / "clients" / clientId =>
+        EndpointHelpers.withUser(req) { (_, cc) =>
+          for {
+            consumerBox <- Future(code.consumer.Consumers.consumers.vend.getConsumerByConsumerKey(clientId))
+            consumer <- NewStyle.function.tryons(s"OBP-OIDC-003: Client not found: $clientId", 404, Some(cc)) {
+              consumerBox match {
+                case Full(c) => c
+                case _ => throw new RuntimeException("Client not found")
+              }
+            }
+          } yield {
+            val redirectUris = Option(consumer.redirectURL.get).filter(_.nonEmpty)
+              .map(_.split("[,\\s]+").map(_.trim).filter(_.nonEmpty).toList).getOrElse(List.empty)
+            GetOidcClientResponseJsonV600(
+              client_id = clientId, client_name = consumer.name.get,
+              consumer_id = consumer.consumerId.get,
+              redirect_uris = redirectUris, enabled = consumer.isActive.get)
+          }
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getOidcClient), "GET",
+      "/oidc/clients/CLIENT_ID", "Get OIDC Client",
+      """Get an OIDC/OAuth2 client's metadata by client_id.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      apiTagOIDC :: apiTagConsumer :: apiTagOAuth :: Nil,
+      Some(canGetOidcClient :: Nil),
+      http4sPartialFunction = Some(getOidcClient))
+
+    // POST /obp/v6.0.0/oidc/clients/verify
+    val verifyOidcClient: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "oidc" / "clients" / "verify" =>
+        EndpointHelpers.executeAndRespond(req) { implicit cc =>
+          val rawBody = cc.httpBody.getOrElse("")
+          for {
+            postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the VerifyOidcClientRequestJsonV600", 400, Some(cc)) {
+              net.liftweb.json.parse(rawBody).extract[VerifyOidcClientRequestJsonV600]
+            }
+            consumerBox <- Future(code.consumer.Consumers.consumers.vend.getConsumerByConsumerKey(postedData.client_id))
+          } yield {
+            consumerBox match {
+              case Full(consumer) if consumer.isActive.get && consumer.secret.get == postedData.client_secret =>
+                val redirectUris = Option(consumer.redirectURL.get).filter(_.nonEmpty)
+                  .map(_.split("[,\\s]+").map(_.trim).filter(_.nonEmpty).toList)
+                VerifyOidcClientResponseJsonV600(
+                  valid = true,
+                  client_id = Some(postedData.client_id),
+                  consumer_id = Some(consumer.consumerId.get),
+                  redirect_uris = redirectUris)
+              case _ => VerifyOidcClientResponseJsonV600(valid = false)
+            }
+          }
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(verifyOidcClient), "POST",
+      "/oidc/clients/verify", "Verify OIDC Client",
+      """Verify an OIDC client_id + client_secret pair. Returns valid=true on a successful match.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+      apiTagOIDC :: apiTagConsumer :: apiTagOAuth :: Nil,
+      Some(canVerifyOidcClient :: Nil),
+      http4sPartialFunction = Some(verifyOidcClient))
+
+    // ─── Phase 2: users bucket (6 of 16; chat-room + special-purpose deferred) ───
+
+    // GET /obp/v6.0.0/users/USER_ID/attributes/USER_ATTRIBUTE_ID
+    val getUserAttributeById: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "users" / userIdStr / "attributes" / userAttributeId =>
+        EndpointHelpers.withUser(req) { (_, cc) =>
+          for {
+            (user, callContext) <- NewStyle.function.getUserByUserId(userIdStr, Some(cc))
+            (attributes, _) <- NewStyle.function.getNonPersonalUserAttributes(user.userId, callContext)
+            attribute <- Future(attributes.find(_.userAttributeId == userAttributeId))
+              .map(unboxFullOrFail(_, Some(cc), UserAttributeNotFound, 404))
+          } yield JSONFactory510.createUserAttributeJson(attribute)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getUserAttributeById), "GET",
+      "/users/USER_ID/attributes/USER_ATTRIBUTE_ID", "Get User Attribute by Id",
+      """Get a user attribute by USER_ATTRIBUTE_ID for the specified user.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UserAttributeNotFound, UnknownError),
+      apiTagUser :: apiTagUserAttribute :: Nil,
+      Some(canGetUserAttributes :: Nil),
+      http4sPartialFunction = Some(getUserAttributeById))
+
+    // POST /obp/v6.0.0/users/USER_ID/attributes (201)
+    val createUserAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "users" / userIdStr / "attributes" =>
+        EndpointHelpers.executeFutureCreated(req) {
+          implicit val cc: CallContext = req.callContext
+          val rawBody = cc.httpBody.getOrElse("")
+          for {
+            (user, _) <- NewStyle.function.getUserByUserId(userIdStr, Some(cc))
+            postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the UserAttributeJsonV510", 400, Some(cc)) {
+              net.liftweb.json.parse(rawBody).extract[UserAttributeJsonV510]
+            }
+            userAttributeType <- NewStyle.function.tryons(personalDataTypeErrorMsg, 400, Some(cc)) {
+              UserAttributeType.withName(postedData.`type`)
+            }
+            (userAttribute, _) <- NewStyle.function.createOrUpdateUserAttribute(
+              user.userId, None, postedData.name, userAttributeType, postedData.value, false, Some(cc))
+          } yield JSONFactory510.createUserAttributeJson(userAttribute)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(createUserAttribute), "POST",
+      "/users/USER_ID/attributes", "Create User Attribute",
+      """Create a non-personal user attribute for the specified user.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+      apiTagUser :: apiTagUserAttribute :: Nil,
+      Some(canCreateUserAttribute :: Nil),
+      http4sPartialFunction = Some(createUserAttribute))
+
+    // PUT /obp/v6.0.0/users/USER_ID/attributes/USER_ATTRIBUTE_ID
+    val updateUserAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ PUT -> `prefixPath` / "users" / userIdStr / "attributes" / userAttributeId =>
+        EndpointHelpers.executeAndRespond(req) { implicit cc =>
+          val rawBody = cc.httpBody.getOrElse("")
+          for {
+            (user, callContext) <- NewStyle.function.getUserByUserId(userIdStr, Some(cc))
+            postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the UserAttributeJsonV510", 400, Some(cc)) {
+              net.liftweb.json.parse(rawBody).extract[UserAttributeJsonV510]
+            }
+            userAttributeType <- NewStyle.function.tryons(personalDataTypeErrorMsg, 400, Some(cc)) {
+              UserAttributeType.withName(postedData.`type`)
+            }
+            (attributes, _) <- NewStyle.function.getNonPersonalUserAttributes(user.userId, callContext)
+            _ <- Future(attributes.find(_.userAttributeId == userAttributeId))
+              .map(unboxFullOrFail(_, Some(cc), UserAttributeNotFound, 404))
+            (userAttribute, _) <- NewStyle.function.createOrUpdateUserAttribute(
+              user.userId, Some(userAttributeId), postedData.name, userAttributeType, postedData.value, false, Some(cc))
+          } yield JSONFactory510.createUserAttributeJson(userAttribute)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(updateUserAttribute), "PUT",
+      "/users/USER_ID/attributes/USER_ATTRIBUTE_ID", "Update User Attribute",
+      """Update a user attribute by USER_ATTRIBUTE_ID.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UserAttributeNotFound, UnknownError),
+      apiTagUser :: apiTagUserAttribute :: Nil,
+      Some(canUpdateUserAttribute :: Nil),
+      http4sPartialFunction = Some(updateUserAttribute))
+
+    // DELETE /obp/v6.0.0/users/USER_ID/attributes/USER_ATTRIBUTE_ID
+    val deleteUserAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ DELETE -> `prefixPath` / "users" / userIdStr / "attributes" / userAttributeId =>
+        EndpointHelpers.executeAndRespond(req) { implicit cc =>
+          for {
+            (user, callContext) <- NewStyle.function.getUserByUserId(userIdStr, Some(cc))
+            (attributes, _) <- NewStyle.function.getNonPersonalUserAttributes(user.userId, callContext)
+            _ <- Future(attributes.find(_.userAttributeId == userAttributeId))
+              .map(unboxFullOrFail(_, Some(cc), UserAttributeNotFound, 404))
+            _ <- BankConnector.connector.vend.deleteUserAttribute(userAttributeId, Some(cc))
+          } yield ""
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(deleteUserAttribute), "DELETE",
+      "/users/USER_ID/attributes/USER_ATTRIBUTE_ID", "Delete User Attribute",
+      """Delete a user attribute by USER_ATTRIBUTE_ID.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UserAttributeNotFound, UnknownError),
+      apiTagUser :: apiTagUserAttribute :: Nil,
+      Some(canDeleteUserAttribute :: Nil),
+      http4sPartialFunction = Some(deleteUserAttribute))
+
+    // POST /obp/v6.0.0/users/USER_ID/group-entitlements (201)
+    val addUserToGroup: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "users" / userIdStr / "group-entitlements" =>
+        EndpointHelpers.executeFutureCreated(req) {
+          implicit val cc: CallContext = req.callContext
+          val rawBody = cc.httpBody.getOrElse("")
+          val user = cc.user.openOrThrowException(AuthenticatedUserIsRequired)
+          for {
+            postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the PostGroupMembershipJsonV600", 400, Some(cc)) {
+              net.liftweb.json.parse(rawBody).extract[JSONFactory600.PostGroupMembershipJsonV600]
+            }
+            _ <- NewStyle.function.findByUserId(userIdStr, Some(cc))
+            group <- Future(code.group.GroupTrait.group.vend.getGroup(postJson.group_id))
+              .map(unboxFullOrFail(_, Some(cc), s"$UnknownError Group not found", 404))
+            _ <- groupRoleCheck(group.bankId, user.userId, canAddUserToGroupAtOneBank, canAddUserToGroupAtAllBanks, cc)
+            _ <- Helper.booleanToFuture(s"$UnknownError Group is not enabled", 400, Some(cc))(group.isEnabled)
+            existingEntitlements <- Future(Entitlement.entitlement.vend.getEntitlementsByUserId(userIdStr))
+            entitlementResults <- Future.sequence(group.listOfRoles.map { roleName =>
+              Future {
+                val alreadyHas = existingEntitlements.toOption.exists(_.exists { ent =>
+                  ent.roleName == roleName && ent.bankId == group.bankId.getOrElse("")
+                })
+                if (!alreadyHas) {
+                  Entitlement.entitlement.vend.addEntitlement(
+                    group.bankId.getOrElse(""), userIdStr, roleName, "manual",
+                    None, Some(postJson.group_id), Some("GROUP_MEMBERSHIP"))
+                  (roleName, true)
+                } else (roleName, false)
+              }
+            })
+            entitlementsAdded = entitlementResults.filter(_._2).map(_._1)
+            entitlementsAlreadyPresent = entitlementResults.filterNot(_._2).map(_._1)
+          } yield JSONFactory600.AddUserToGroupResponseJsonV600(
+            group_id = group.groupId, user_id = userIdStr, bank_id = group.bankId,
+            group_name = group.groupName, target_entitlements = group.listOfRoles,
+            entitlements_created = entitlementsAdded,
+            entitlements_skipped = entitlementsAlreadyPresent)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(addUserToGroup), "POST",
+      "/users/USER_ID/group-entitlements", "Add User to Group",
+      """Add a user to a group (grants the group's entitlements to the user).""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+      apiTagGroup :: apiTagUser :: Nil, None,
+      http4sPartialFunction = Some(addUserToGroup))
+
+    // DELETE /obp/v6.0.0/users/USER_ID/group-entitlements/GROUP_ID
+    val removeUserFromGroup: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ DELETE -> `prefixPath` / "users" / userIdStr / "group-entitlements" / groupId =>
+        EndpointHelpers.executeAndRespond(req) { implicit cc =>
+          val user = cc.user.openOrThrowException(AuthenticatedUserIsRequired)
+          for {
+            _ <- NewStyle.function.findByUserId(userIdStr, Some(cc))
+            group <- Future(code.group.GroupTrait.group.vend.getGroup(groupId))
+              .map(unboxFullOrFail(_, Some(cc), s"$UnknownError Group not found", 404))
+            _ <- groupRoleCheck(group.bankId, user.userId, canRemoveUserFromGroupAtOneBank, canRemoveUserFromGroupAtAllBanks, cc)
+            entitlements <- Future(Entitlement.entitlement.vend.getEntitlementsByUserId(userIdStr))
+            groupEntitlements = entitlements.toOption.getOrElse(List.empty).filter(e =>
+              e.groupId == Some(groupId) && e.process == Some("GROUP_MEMBERSHIP"))
+            _ <- Future.sequence(groupEntitlements.map(e =>
+              Future(Entitlement.entitlement.vend.deleteEntitlement(Full(e)))))
+          } yield ""
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(removeUserFromGroup), "DELETE",
+      "/users/USER_ID/group-entitlements/GROUP_ID", "Remove User from Group",
+      """Remove a user from a group (deletes all entitlements that came from the group).""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      apiTagGroup :: apiTagUser :: Nil, None,
+      http4sPartialFunction = Some(removeUserFromGroup))
+
+    // ─── Phase 2: 4 more single-endpoint buckets ──────────────────────────
+
+    // DELETE /obp/v6.0.0/entitlements/ENTITLEMENT_ID
+    val deleteEntitlement: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ DELETE -> `prefixPath` / "entitlements" / entitlementId =>
+        EndpointHelpers.executeAndRespond(req) { implicit cc =>
+          for {
+            entitlementBox <- Future(Entitlement.entitlement.vend.getEntitlementById(entitlementId))
+            _ <- entitlementBox match {
+              case Full(ent) => Future(Entitlement.entitlement.vend.deleteEntitlement(Some(ent)))
+              case _ => Future.successful(Full(()))
+            }
+          } yield ""
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(deleteEntitlement), "DELETE",
+      "/entitlements/ENTITLEMENT_ID", "Delete Entitlement",
+      """Delete an entitlement by ENTITLEMENT_ID. Idempotent.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      apiTagEntitlement :: Nil,
+      Some(canDeleteEntitlementAtAnyBank :: Nil),
+      http4sPartialFunction = Some(deleteEntitlement))
+
+    // GET /obp/v6.0.0/personal-dynamic-entities/available
+    val getAvailablePersonalDynamicEntities: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "personal-dynamic-entities" / "available" =>
+        EndpointHelpers.withUser(req) { (_, _) =>
+          Future(NewStyle.function.getDynamicEntities(None, true))
+            .map(all => JSONFactory600.createMyDynamicEntitiesJson(all.filter(_.hasPersonalEntity)))
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getAvailablePersonalDynamicEntities), "GET",
+      "/personal-dynamic-entities/available", "Get Available Personal Dynamic Entities",
+      """List Dynamic Entities that support personal data storage.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UnknownError),
+      apiTagManageDynamicEntity :: apiTagApi :: Nil, None,
+      http4sPartialFunction = Some(getAvailablePersonalDynamicEntities))
+
+    // GET /obp/v6.0.0/management/dynamic-entities/reference-types
+    val getReferenceTypes: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "management" / "dynamic-entities" / "reference-types" =>
+        EndpointHelpers.withUser(req) { (_, _) =>
+          Future {
+            val referenceTypeNames = code.dynamicEntity.ReferenceType.referenceTypeNames
+            val dynamicEntityNames = NewStyle.function.getDynamicEntities(None, true)
+              .map(e => s"reference:${e.entityName}").toSet
+            val exampleId1 = APIUtil.generateUUID()
+            val exampleId2 = APIUtil.generateUUID()
+            val exampleId3 = APIUtil.generateUUID()
+            val exampleId4 = APIUtil.generateUUID()
+            val reg1 = """reference:([^:]+)""".r
+            val reg2 = """reference:(?:[^:]+):([^&]+)&([^&]+)""".r
+            val reg3 = """reference:(?:[^:]+):([^&]+)&([^&]+)&([^&]+)""".r
+            val reg4 = """reference:(?:[^:]+):([^&]+)&([^&]+)&([^&]+)&([^&]+)""".r
+            val referenceTypes = referenceTypeNames.map { refTypeName =>
+              val example = refTypeName match {
+                case reg1(entityName) =>
+                  val description = if (dynamicEntityNames.contains(refTypeName))
+                    s"Reference to $entityName (dynamic entity)"
+                  else s"Reference to $entityName entity"
+                  (exampleId1, description)
+                case reg2(a, b) =>
+                  (s"$a=$exampleId1&$b=$exampleId2", s"Composite reference with $a and $b")
+                case reg3(a, b, c) =>
+                  (s"$a=$exampleId1&$b=$exampleId2&$c=$exampleId3", s"Composite reference with $a, $b and $c")
+                case reg4(a, b, c, d) =>
+                  (s"$a=$exampleId1&$b=$exampleId2&$c=$exampleId3&$d=$exampleId4", s"Composite reference with $a, $b, $c and $d")
+                case _ => (exampleId1, "Reference type")
+              }
+              JSONFactory600.ReferenceTypeJsonV600(
+                type_name = refTypeName,
+                example_value = example._1,
+                description = example._2)
+            }
+            JSONFactory600.ReferenceTypesJsonV600(referenceTypes)
+          }
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getReferenceTypes), "GET",
+      "/management/dynamic-entities/reference-types", "Get Reference Types for Dynamic Entities",
+      """List all reference types available for use in Dynamic Entity field definitions.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      apiTagManageDynamicEntity :: Nil,
+      Some(canGetDynamicEntityReferenceTypes :: Nil),
+      http4sPartialFunction = Some(getReferenceTypes))
+
+    // POST /obp/v6.0.0/chat-room-participants (201) — join a system chat room by joining_key
+    val joinSystemChatRoom: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "chat-room-participants" =>
+        EndpointHelpers.executeFutureCreated(req) {
+          implicit val cc: CallContext = req.callContext
+          val rawBody = cc.httpBody.getOrElse("")
+          val user = cc.user.openOrThrowException(AuthenticatedUserIsRequired)
+          for {
+            joiningKey <- Future(
+              (net.liftweb.json.parse(rawBody) \ "joining_key").extractOpt[String].getOrElse(""))
+            room <- Future(code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoomByJoiningKey(joiningKey))
+              .map(unboxFullOrFail(_, Some(cc), InvalidJoiningKey, 404))
+            _ <- Helper.booleanToFuture(ChatRoomIsArchived, cc = Some(cc))(!room.isArchived)
+            existing <- Future(code.chat.ChatPermissions.isParticipant(room.chatRoomId, user.userId))
+            _ <- Helper.booleanToFuture(ChatRoomParticipantAlreadyExists, failCode = 409, cc = Some(cc))(existing.isEmpty)
+            participant <- Future(code.chat.ParticipantTrait.participantProvider.vend
+              .addParticipant(room.chatRoomId, user.userId, "", List.empty, ""))
+              .map(unboxFullOrFail(_, Some(cc), s"$UnknownError Cannot join chat room", 400))
+          } yield JSONFactory600.createParticipantJson(participant)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(joinSystemChatRoom), "POST",
+      "/chat-room-participants", "Join Chat Room",
+      """Join a chat room by providing its joining_key.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, InvalidJoiningKey, ChatRoomIsArchived, ChatRoomParticipantAlreadyExists, UnknownError),
+      apiTagChat :: Nil, None,
+      http4sPartialFunction = Some(joinSystemChatRoom))
+
+    // ─── Phase 2: 6 banks/.../accounts subset (counterparty attrs + hasAccountAccess) ───
+
+    private val counterpartyAttributeTypeErrorMsg =
+      s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
+        s"${com.openbankproject.commons.model.enums.CounterpartyAttributeType.DOUBLE}(12.1234), " +
+        s"${com.openbankproject.commons.model.enums.CounterpartyAttributeType.STRING}(TAX_NUMBER), " +
+        s"${com.openbankproject.commons.model.enums.CounterpartyAttributeType.INTEGER}(123) and " +
+        s"${com.openbankproject.commons.model.enums.CounterpartyAttributeType.DATE_WITH_DAY}(2012-04-23)"
+
+    // POST /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID/attributes (201)
+    val createCounterpartyAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "banks" / _ / "accounts" / _ / "counterparties" / counterpartyId / "attributes" =>
+        EndpointHelpers.executeFutureCreated(req) {
+          implicit val cc: CallContext = req.callContext
+          val rawBody = cc.httpBody.getOrElse("")
+          for {
+            postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the CounterpartyAttributeRequestJsonV600", 400, Some(cc)) {
+              net.liftweb.json.parse(rawBody).extract[CounterpartyAttributeRequestJsonV600]
+            }
+            counterpartyAttributeType <- NewStyle.function.tryons(counterpartyAttributeTypeErrorMsg, 400, Some(cc)) {
+              com.openbankproject.commons.model.enums.CounterpartyAttributeType.withName(postedData.attribute_type)
+            }
+            (attribute, _) <- code.api.util.newstyle.CounterpartyAttributeNewStyle.createOrUpdateCounterpartyAttribute(
+              counterpartyId = com.openbankproject.commons.model.CounterpartyId(counterpartyId),
+              counterpartyAttributeId = None,
+              name = postedData.name,
+              attributeType = counterpartyAttributeType,
+              value = postedData.value,
+              isActive = postedData.is_active,
+              callContext = Some(cc))
+          } yield JSONFactory600.createCounterpartyAttributeJson(attribute)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(createCounterpartyAttribute), "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID/attributes", "Create Counterparty Attribute",
+      """Create a new attribute on the specified counterparty.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+      apiTagCounterparty :: Nil,
+      Some(canCreateCounterpartyAttribute :: Nil),
+      http4sPartialFunction = Some(createCounterpartyAttribute))
+
+    // DELETE /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID/attributes/COUNTERPARTY_ATTRIBUTE_ID
+    val deleteCounterpartyAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ DELETE -> `prefixPath` / "banks" / _ / "accounts" / _ / "counterparties" / _ / "attributes" / attributeId =>
+        EndpointHelpers.executeAndRespond(req) { implicit cc =>
+          for {
+            _ <- code.api.util.newstyle.CounterpartyAttributeNewStyle.deleteCounterpartyAttribute(attributeId, Some(cc))
+          } yield ""
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(deleteCounterpartyAttribute), "DELETE",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID/attributes/COUNTERPARTY_ATTRIBUTE_ID",
+      "Delete Counterparty Attribute",
+      """Delete a counterparty attribute.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      apiTagCounterparty :: Nil,
+      Some(canDeleteCounterpartyAttribute :: Nil),
+      http4sPartialFunction = Some(deleteCounterpartyAttribute))
+
+    // GET /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID/attributes/COUNTERPARTY_ATTRIBUTE_ID
+    val getCounterpartyAttributeById: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / "counterparties" / _ / "attributes" / attributeId =>
+        EndpointHelpers.withUser(req) { (_, cc) =>
+          for {
+            (attribute, _) <- code.api.util.newstyle.CounterpartyAttributeNewStyle.getCounterpartyAttributeById(attributeId, Some(cc))
+          } yield JSONFactory600.createCounterpartyAttributeJson(attribute)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getCounterpartyAttributeById), "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID/attributes/COUNTERPARTY_ATTRIBUTE_ID",
+      "Get Counterparty Attribute By Id",
+      """Get a counterparty attribute by its ID.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      apiTagCounterparty :: Nil,
+      Some(canGetCounterpartyAttribute :: Nil),
+      http4sPartialFunction = Some(getCounterpartyAttributeById))
+
+    // GET /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID/attributes
+    val getAllCounterpartyAttributes: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / "counterparties" / counterpartyId / "attributes" =>
+        EndpointHelpers.withUser(req) { (_, cc) =>
+          for {
+            (attributes, _) <- code.api.util.newstyle.CounterpartyAttributeNewStyle.getCounterpartyAttributes(
+              com.openbankproject.commons.model.CounterpartyId(counterpartyId), Some(cc))
+          } yield JSONFactory600.createCounterpartyAttributesJson(attributes)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getAllCounterpartyAttributes), "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID/attributes",
+      "Get All Counterparty Attributes",
+      """Get all attributes for the specified counterparty.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      apiTagCounterparty :: Nil,
+      Some(canGetCounterpartyAttributes :: Nil),
+      http4sPartialFunction = Some(getAllCounterpartyAttributes))
+
+    // PUT /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID/attributes/COUNTERPARTY_ATTRIBUTE_ID
+    val updateCounterpartyAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ PUT -> `prefixPath` / "banks" / _ / "accounts" / _ / "counterparties" / counterpartyId / "attributes" / attributeId =>
+        EndpointHelpers.executeAndRespond(req) { implicit cc =>
+          val rawBody = cc.httpBody.getOrElse("")
+          for {
+            postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the CounterpartyAttributeRequestJsonV600", 400, Some(cc)) {
+              net.liftweb.json.parse(rawBody).extract[CounterpartyAttributeRequestJsonV600]
+            }
+            counterpartyAttributeType <- NewStyle.function.tryons(counterpartyAttributeTypeErrorMsg, 400, Some(cc)) {
+              com.openbankproject.commons.model.enums.CounterpartyAttributeType.withName(postedData.attribute_type)
+            }
+            (updated, _) <- code.api.util.newstyle.CounterpartyAttributeNewStyle.createOrUpdateCounterpartyAttribute(
+              counterpartyId = com.openbankproject.commons.model.CounterpartyId(counterpartyId),
+              counterpartyAttributeId = Some(attributeId),
+              name = postedData.name,
+              attributeType = counterpartyAttributeType,
+              value = postedData.value,
+              isActive = postedData.is_active,
+              callContext = Some(cc))
+          } yield JSONFactory600.createCounterpartyAttributeJson(updated)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(updateCounterpartyAttribute), "PUT",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID/attributes/COUNTERPARTY_ATTRIBUTE_ID",
+      "Update Counterparty Attribute",
+      """Update a counterparty attribute by its ID.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+      apiTagCounterparty :: Nil,
+      Some(canUpdateCounterpartyAttribute :: Nil),
+      http4sPartialFunction = Some(updateCounterpartyAttribute))
+
+    // GET /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/has-account-access
+    val hasAccountAccess: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / "views" / viewIdStr / "has-account-access" =>
+        EndpointHelpers.withUser(req) { (user, cc) =>
+          val bankId = BankId(bankIdStr)
+          val accountId = com.openbankproject.commons.model.AccountId(accountIdStr)
+          val viewId = ViewId(viewIdStr)
+          val bia = BankIdAccountId(bankId, accountId)
+          for {
+            (_, _) <- NewStyle.function.getBank(bankId, Some(cc))
+            _ <- Future {
+              Views.views.vend.customViewFuture(viewId, bia).flatMap {
+                case Full(v) => Future.successful(Full(v))
+                case _ => Views.views.vend.systemViewFuture(viewId)
+              }
+            }.flatten.map(unboxFullOrFail(_, Some(cc), s"$ViewNotFound Current ViewId is ${viewId.value}"))
+            accessOpt <- Future(code.views.system.AccountAccess.findByBankIdAccountIdViewIdUserPrimaryKey(
+              bankId, accountId, viewId, user.userPrimaryKey))
+          } yield accessOpt match {
+            case Full(aa) => JSONFactory600.HasAccountAccessJsonV600(
+              has_account_access = true,
+              access_source = "ACCOUNT_ACCESS",
+              account_access_id = aa.id.get.toString,
+              abac_rule_id = "")
+            case _ => JSONFactory600.HasAccountAccessJsonV600(
+              has_account_access = false, access_source = "",
+              account_access_id = "", abac_rule_id = "")
+          }
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(hasAccountAccess), "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/has-account-access", "Has Account Access",
+      """Check whether the caller has account access via this view.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, $BankNotFound, ViewNotFound, UnknownError),
+      apiTagAccount :: Nil, None,
+      http4sPartialFunction = Some(hasAccountAccess))
+
+    // GET /obp/v6.0.0/my/account-access-requests
+    val getMyAccountAccessRequests: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "my" / "account-access-requests" =>
+        EndpointHelpers.withUser(req) { (user, cc) =>
+          for {
+            requests <- Future(code.accountaccessrequest.AccountAccessRequestTrait
+              .accountAccessRequest.vend.getByRequestorUserId(user.userId))
+              .map(unboxFullOrFail(_, Some(cc), s"$UnknownError Cannot get account access requests", 400))
+          } yield JSONFactory600.createAccountAccessRequestsJsonV600(requests)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getMyAccountAccessRequests), "GET",
+      "/my/account-access-requests", "Get My Account Access Requests",
+      """List account-access requests submitted by the logged-in user.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UnknownError),
+      apiTagAccountAccess :: Nil, None,
+      http4sPartialFunction = Some(getMyAccountAccessRequests))
+
+    // Route: GET /obp/v6.0.0/banks/BANK_ID/customers/CUSTOMER_ID/investigation-report
+    val getCustomerInvestigationReport: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / _ / "customers" / customerId / "investigation-report" =>
+        EndpointHelpers.withUserAndBank(req) { (_, bank, cc) =>
+          val qp = req.uri.query.params
+          for {
+            connectorName <- Future(code.api.Constant.CONNECTOR.openOrThrowException("connector not set"))
+            _ <- Helper.booleanToFuture(InvestigationReportNotAvailable, cc = Some(cc)) {
+              connectorName == "mapped"
+            }
+            (customer, _) <- NewStyle.function.getCustomerByCustomerId(customerId, Some(cc))
+            _ <- Helper.booleanToFuture(
+              s"Customer bank (${customer.bankId}) does not match BANK_ID (${bank.bankId.value})",
+              400, Some(cc))(customer.bankId == bank.bankId.value)
+            fromDate = qp.get("from_date").flatMap(APIUtil.parseDate)
+              .getOrElse(new java.util.Date(System.currentTimeMillis() - 365L * 24 * 60 * 60 * 1000))
+            toDate = qp.get("to_date").flatMap(APIUtil.parseDate).getOrElse(new java.util.Date())
+            limit = qp.get("limit").flatMap(s => scala.util.Try(s.toInt).toOption).getOrElse(500)
+            accounts <- Future(code.investigation.DoobieInvestigationQueries.getAccountsForCustomer(customerId))
+            transactions <- Future(code.investigation.DoobieInvestigationQueries.getTransactionsForAccounts(
+              accounts.map(_.accountId), bank.bankId.value,
+              new java.sql.Timestamp(fromDate.getTime),
+              new java.sql.Timestamp(toDate.getTime), limit))
+            customerLinks <- Future(code.investigation.DoobieInvestigationQueries.getCustomerLinks(customerId))
+            customerRow = code.investigation.DoobieInvestigationQueries.CustomerRow(
+              customerId = customer.customerId, legalName = customer.legalName,
+              email = customer.email, mobileNumber = customer.mobileNumber,
+              kycStatus = customer.kycStatus)
+          } yield JSONFactory600.createInvestigationReportJson(
+            customerRow, bank.bankId.value, accounts, transactions, customerLinks, fromDate, toDate)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getCustomerInvestigationReport), "GET",
+      "/banks/BANK_ID/customers/CUSTOMER_ID/investigation-report", "Get Customer Investigation Report",
+      """Generate an AML/fraud investigation report for the specified customer.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, InvestigationReportNotAvailable, UnknownError),
+      apiTagCustomer :: Nil,
+      Some(canGetInvestigationReport :: Nil),
+      http4sPartialFunction = Some(getCustomerInvestigationReport)
+    )
+
+    // ─── Phase 2: banks/.../customer-links bucket (5 endpoints) ───────────
+
+    // Route: POST /obp/v6.0.0/banks/BANK_ID/customer-links (201)
+    val createCustomerLink: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "banks" / _ / "customer-links" =>
+        EndpointHelpers.executeFutureCreated(req) {
+          implicit val cc: CallContext = req.callContext
+          val rawBody = cc.httpBody.getOrElse("")
+          val bank = cc.bank.get
+          for {
+            postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the PostCustomerLinkJsonV600", 400, Some(cc)) {
+              net.liftweb.json.parse(rawBody).extract[PostCustomerLinkJsonV600]
+            }
+            (customer, _) <- NewStyle.function.getCustomerByCustomerId(postedData.customer_id, Some(cc))
+            _ <- Helper.booleanToFuture(
+              s"Bank of the customer specified by the CUSTOMER_ID(${customer.bankId}) has to match BANK_ID(${bank.bankId.value}) in URL",
+              400, Some(cc))(customer.bankId == bank.bankId.value)
+            (_, _) <- NewStyle.function.getBank(BankId(postedData.other_bank_id), Some(cc))
+            (otherCustomer, _) <- NewStyle.function.getCustomerByCustomerId(postedData.other_customer_id, Some(cc))
+            _ <- Helper.booleanToFuture(
+              s"Bank of the other customer specified by the OTHER_CUSTOMER_ID(${otherCustomer.bankId}) has to match OTHER_BANK_ID(${postedData.other_bank_id})",
+              400, Some(cc))(otherCustomer.bankId == postedData.other_bank_id)
+            (customerLink, _) <- NewStyle.function.createCustomerLink(
+              bank.bankId.value, postedData.customer_id, postedData.other_bank_id,
+              postedData.other_customer_id, postedData.relationship_to, Some(cc))
+          } yield JSONFactory600.createCustomerLinkJson(customerLink)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(createCustomerLink), "POST",
+      "/banks/BANK_ID/customer-links", "Create Customer Link",
+      """Create a link between two customers.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+      apiTagCustomer :: Nil,
+      Some(canCreateCustomerLink :: Nil),
+      http4sPartialFunction = Some(createCustomerLink)
+    )
+
+    // Route: GET /obp/v6.0.0/banks/BANK_ID/customer-links
+    val getCustomerLinksByBankId: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / _ / "customer-links" =>
+        EndpointHelpers.withUserAndBank(req) { (_, bank, cc) =>
+          for {
+            (links, _) <- NewStyle.function.getCustomerLinksByBankId(bank.bankId.value, Some(cc))
+          } yield JSONFactory600.createCustomerLinksJson(links)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getCustomerLinksByBankId), "GET",
+      "/banks/BANK_ID/customer-links", "Get Customer Links by Bank",
+      """Get all customer links for the specified bank.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
+      apiTagCustomer :: Nil,
+      Some(canGetCustomerLinks :: Nil),
+      http4sPartialFunction = Some(getCustomerLinksByBankId)
+    )
+
+    // Route: GET /obp/v6.0.0/banks/BANK_ID/customer-links/CUSTOMER_LINK_ID
+    val getCustomerLinkById: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / _ / "customer-links" / customerLinkId =>
+        EndpointHelpers.withUserAndBank(req) { (_, _, cc) =>
+          for {
+            (link, _) <- NewStyle.function.getCustomerLinkById(customerLinkId, Some(cc))
+          } yield JSONFactory600.createCustomerLinkJson(link)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getCustomerLinkById), "GET",
+      "/banks/BANK_ID/customer-links/CUSTOMER_LINK_ID", "Get Customer Link by Id",
+      """Get a customer link by CUSTOMER_LINK_ID.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
+      apiTagCustomer :: Nil,
+      Some(canGetCustomerLink :: Nil),
+      http4sPartialFunction = Some(getCustomerLinkById)
+    )
+
+    // Route: PUT /obp/v6.0.0/banks/BANK_ID/customer-links/CUSTOMER_LINK_ID
+    val updateCustomerLink: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ PUT -> `prefixPath` / "banks" / _ / "customer-links" / customerLinkId =>
+        EndpointHelpers.executeAndRespond(req) { implicit cc =>
+          val rawBody = cc.httpBody.getOrElse("")
+          for {
+            postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the PutCustomerLinkJsonV600", 400, Some(cc)) {
+              net.liftweb.json.parse(rawBody).extract[PutCustomerLinkJsonV600]
+            }
+            (updated, _) <- NewStyle.function.updateCustomerLinkById(customerLinkId, postedData.relationship_to, Some(cc))
+          } yield JSONFactory600.createCustomerLinkJson(updated)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(updateCustomerLink), "PUT",
+      "/banks/BANK_ID/customer-links/CUSTOMER_LINK_ID", "Update Customer Link",
+      """Update the relationship of an existing customer link.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+      apiTagCustomer :: Nil,
+      Some(canUpdateCustomerLink :: Nil),
+      http4sPartialFunction = Some(updateCustomerLink)
+    )
+
+    // Route: DELETE /obp/v6.0.0/banks/BANK_ID/customer-links/CUSTOMER_LINK_ID
+    val deleteCustomerLink: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ DELETE -> `prefixPath` / "banks" / _ / "customer-links" / customerLinkId =>
+        EndpointHelpers.executeAndRespond(req) { implicit cc =>
+          for {
+            _ <- NewStyle.function.deleteCustomerLinkById(customerLinkId, Some(cc))
+          } yield ""
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(deleteCustomerLink), "DELETE",
+      "/banks/BANK_ID/customer-links/CUSTOMER_LINK_ID", "Delete Customer Link",
+      """Delete a customer link by CUSTOMER_LINK_ID.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
+      apiTagCustomer :: Nil,
+      Some(canDeleteCustomerLink :: Nil),
+      http4sPartialFunction = Some(deleteCustomerLink)
+    )
 
     // Route: GET /obp/v6.0.0/management/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID
     val getCustomViewById: HttpRoutes[IO] = HttpRoutes.of[IO] {
