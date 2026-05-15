@@ -497,6 +497,17 @@ object ErrorMessages {
   val MobileWalletInvalidMsisdn = "OBP-30534: Invalid msisdn — does not match the address_pattern of the country-qualified MSISDN routing scheme."
   val MobileWalletPaymentError = "OBP-30535: Could not create MOBILE_WALLET transaction request."
 
+  // BULK transaction-request (OBP-30536 .. OBP-30544)
+  val BulkBatchReferenceAlreadyUsed = "OBP-30536: batch_reference has already been used for this source account. Use a unique batch_reference per submission."
+  val BulkPaymentsArrayEmpty = "OBP-30537: payments array must contain at least one item."
+  val BulkPaymentsArrayTooLarge = "OBP-30538: payments array exceeds the configured maximum. See `bulk_payments.max_items_per_batch`."
+  val BulkDuplicateEndToEndId = "OBP-30539: Duplicate end_to_end_id within the batch. Each item's end_to_end_id must be unique within a single batch submission."
+  val BulkPaymentCurrencyMismatch = "OBP-30540: One or more payments use a currency that does not match the source account's currency. Cross-currency bulk payments are not supported in v7.0.0."
+  val BulkPaymentRoutingSchemeNotRegistered = "OBP-30541: A payment references a routing_scheme that is not in the Routing-Scheme registry."
+  val BulkPaymentRoutingSchemeWrongCategory = "OBP-30542: A payment's routing_scheme is not an ACCOUNT-category scheme — only ACCOUNT schemes are valid for BULK destinations."
+  val BulkPaymentAddressMismatch = "OBP-30543: A payment's address does not match the address_pattern of its routing_scheme."
+  val BulkPaymentTransactionRequestError = "OBP-30544: Could not create BULK transaction request."
+
   val FeaturedApiCollectionNotFound = "OBP-30400: FeaturedApiCollection not found. Please specify a valid value for API_COLLECTION_ID."
   val CreateFeaturedApiCollectionError = "OBP-30401: Could not create FeaturedApiCollection."
   val UpdateFeaturedApiCollectionError = "OBP-30402: Could not update FeaturedApiCollection."

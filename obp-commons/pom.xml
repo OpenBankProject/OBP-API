@@ -229,6 +229,10 @@
                             <retireJsAnalyzerEnabled>false</retireJsAnalyzerEnabled>
                             <knownExploitedEnabled>false</knownExploitedEnabled>
                             <assemblyAnalyzerEnabled>false</assemblyAnalyzerEnabled>
+
+                            <suppressionFiles>
+                                <suppressionFile>${maven.multiModuleProjectDirectory}/dependency-check-suppressions.xml</suppressionFile>
+                            </suppressionFiles>
                         </configuration>
 
                         <executions>

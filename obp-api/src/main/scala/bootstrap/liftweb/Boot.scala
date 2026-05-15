@@ -89,6 +89,7 @@ import code.group.Group
 import code.organisation.Organisation
 import code.routingscheme.{RoutingScheme, BankSupportedRoutingScheme}
 import code.payeelookup.PayeeLookup
+import code.bulkpayment.{BulkPayment, BulkBatchReference}
 import code.kycchecks.MappedKycCheck
 import code.kycdocuments.MappedKycDocument
 import code.kycmedias.MappedKycMedia
@@ -1221,6 +1222,8 @@ object ToSchemify {
     RoutingScheme,
     BankSupportedRoutingScheme,
     PayeeLookup,
+    BulkPayment,
+    BulkBatchReference,
     AccountAccessRequest,
     code.chat.ChatRoom,
     code.chat.Participant,

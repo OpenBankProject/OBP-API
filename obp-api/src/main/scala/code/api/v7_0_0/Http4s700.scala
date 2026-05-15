@@ -23,9 +23,12 @@ import code.bankconnectors.storedprocedure.StoredProcedureUtils
 import code.migration.MigrationScriptLogProvider
 import code.bankconnectors.{Connector => BankConnector}
 import code.entitlement.Entitlement
-import code.organisation.OrganisationX
-import code.routingscheme.{RoutingSchemeX, RoutingSchemeValidation}
-import code.payeelookup.PayeeLookupX
+import code.organisation.Organisations
+import code.routingscheme.{RoutingSchemes, RoutingSchemeValidation}
+import code.payeelookup.PayeeLookups
+import code.bulkpayment.{BulkPaymentHandler, BulkPayments}
+import code.transactionrequests.MappedTransactionRequestProvider
+import com.openbankproject.commons.model.TransactionRequestCharge
 import code.metadata.tags.Tags
 import code.views.Views
 import code.accountattribute.AccountAttributeX
@@ -2346,7 +2349,7 @@ object Http4s700 {
     // CRUD for the Organisation resource. Migrated from v6.0.0 (Lift) to v7.0.0
     // (http4s). Path uses ORGANISATION_ID; not resolved by middleware (only BANK_ID
     // / ACCOUNT_ID / VIEW_ID / COUNTERPARTY_ID are), so endpoints fetch directly
-    // via OrganisationX.organisation.vend.
+    // via Organisations.organisation.vend.
 
     private val ValidOrganisationStatuses    = Set("active", "suspended", "archived")
     private val ValidOrganisationVisibilities = Set("public", "unlisted", "private")
@@ -2367,10 +2370,10 @@ object Http4s700 {
             _ <- Helper.booleanToFuture(InvalidOrganisationVisibility, 400, Some(cc)) {
               ValidOrganisationVisibilities.contains(visibility)
             }
-            existing <- Future(OrganisationX.organisation.vend.getOrganisation(body.organisation_id))
+            existing <- Future(Organisations.organisation.vend.getOrganisation(body.organisation_id))
             _ <- Helper.booleanToFuture(OrganisationAlreadyExists, 409, Some(cc))(existing.isEmpty)
             created <- Future {
-              OrganisationX.organisation.vend.createOrganisation(
+              Organisations.organisation.vend.createOrganisation(
                 body.organisation_id, body.name, body.website, body.logo_url,
                 status, visibility, user.userId
               )
@@ -2428,7 +2431,7 @@ object Http4s700 {
       case req @ GET -> `prefixPath` / "organisations" =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
-            allOrgs <- OrganisationX.organisation.vend.getAllOrganisations()
+            allOrgs <- Organisations.organisation.vend.getAllOrganisations()
               .map(unboxFullOrFail(_, Some(cc), UnknownError, 500))
             hasGetAny = APIUtil.hasEntitlement("", user.userId, canGetAnyOrganisation)
             visible   = if (hasGetAny) allOrgs else allOrgs.filter(_.visibility == "public")
@@ -2472,7 +2475,7 @@ object Http4s700 {
       case req @ GET -> `prefixPath` / "organisations" / organisationId =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
-            org <- Future(OrganisationX.organisation.vend.getOrganisation(organisationId))
+            org <- Future(Organisations.organisation.vend.getOrganisation(organisationId))
               .map(unboxFullOrFail(_, Some(cc), OrganisationNotFound, 404))
             _ <- if (org.visibility == "private")
                    NewStyle.function.hasEntitlement("", user.userId, canGetAnyOrganisation, Some(cc))
@@ -2515,7 +2518,7 @@ object Http4s700 {
       case req @ PUT -> `prefixPath` / "organisations" / organisationId =>
         EndpointHelpers.withUserAndBody[JSONFactory700.PutOrganisationJsonV700, JSONFactory700.OrganisationJsonV700](req) { (_, body, cc) =>
           for {
-            _ <- Future(OrganisationX.organisation.vend.getOrganisation(organisationId))
+            _ <- Future(Organisations.organisation.vend.getOrganisation(organisationId))
               .map(unboxFullOrFail(_, Some(cc), OrganisationNotFound, 404))
             _ <- Helper.booleanToFuture(InvalidOrganisationStatus, 400, Some(cc)) {
               body.status.forall(ValidOrganisationStatuses.contains)
@@ -2524,7 +2527,7 @@ object Http4s700 {
               body.visibility.forall(ValidOrganisationVisibilities.contains)
             }
             updated <- Future {
-              OrganisationX.organisation.vend.updateOrganisation(
+              Organisations.organisation.vend.updateOrganisation(
                 organisationId, body.name, body.website, body.logo_url, body.status, body.visibility
               )
             }.map(unboxFullOrFail(_, Some(cc), UpdateOrganisationError, 400))
@@ -2572,9 +2575,9 @@ object Http4s700 {
       case req @ DELETE -> `prefixPath` / "organisations" / organisationId =>
         EndpointHelpers.withUserDelete(req) { (_, cc) =>
           for {
-            _ <- Future(OrganisationX.organisation.vend.getOrganisation(organisationId))
+            _ <- Future(Organisations.organisation.vend.getOrganisation(organisationId))
               .map(unboxFullOrFail(_, Some(cc), OrganisationNotFound, 404))
-            _ <- Future(OrganisationX.organisation.vend.deleteOrganisation(organisationId))
+            _ <- Future(Organisations.organisation.vend.deleteOrganisation(organisationId))
               .map(unboxFullOrFail(_, Some(cc), DeleteOrganisationError, 400))
           } yield ()
         }
@@ -2634,10 +2637,10 @@ object Http4s700 {
             _ <- Helper.booleanToFuture(RoutingSchemeExampleAddressMismatch, 400, Some(cc)) {
               RoutingSchemeValidation.addressMatchesPattern(body.address_pattern, body.example_address)
             }
-            existing <- Future(RoutingSchemeX.routingScheme.vend.getRoutingScheme(body.scheme))
+            existing <- Future(RoutingSchemes.routingScheme.vend.getRoutingScheme(body.scheme))
             _ <- Helper.booleanToFuture(RoutingSchemeAlreadyExists, 409, Some(cc))(existing.isEmpty)
             created <- Future {
-              RoutingSchemeX.routingScheme.vend.createRoutingScheme(
+              RoutingSchemes.routingScheme.vend.createRoutingScheme(
                 scheme = body.scheme,
                 country = body.country,
                 category = body.category,
@@ -2720,7 +2723,7 @@ object Http4s700 {
           val limit  = q.get("limit").flatMap(s => scala.util.Try(s.toInt).toOption).getOrElse(100).max(1).min(500)
           val offset = q.get("offset").flatMap(s => scala.util.Try(s.toInt).toOption).getOrElse(0).max(0)
           for {
-            page <- RoutingSchemeX.routingScheme.vend.getRoutingSchemes(country, category, statusFilter, rail, limit, offset)
+            page <- RoutingSchemes.routingScheme.vend.getRoutingSchemes(country, category, statusFilter, rail, limit, offset)
               .map(unboxFullOrFail(_, Some(cc), UnknownError, 500))
             (rows, total) = page
           } yield JSONFactory700.createRoutingSchemesJsonV700(rows, total, limit, offset)
@@ -2763,7 +2766,7 @@ object Http4s700 {
       case req @ GET -> `prefixPath` / "routing-schemes" / schemeName =>
         EndpointHelpers.executeAndRespond(req) { cc =>
           for {
-            row <- Future(RoutingSchemeX.routingScheme.vend.getRoutingScheme(schemeName))
+            row <- Future(RoutingSchemes.routingScheme.vend.getRoutingScheme(schemeName))
               .map(unboxFullOrFail(_, Some(cc), RoutingSchemeNotFound, 404))
           } yield JSONFactory700.createRoutingSchemeJsonV700(row)
         }
@@ -2802,7 +2805,7 @@ object Http4s700 {
       case req @ PUT -> `prefixPath` / "routing-schemes" / schemeName =>
         EndpointHelpers.withUserAndBody[JSONFactory700.PutRoutingSchemeJsonV700, JSONFactory700.RoutingSchemeJsonV700](req) { (_, body, cc) =>
           for {
-            existing <- Future(RoutingSchemeX.routingScheme.vend.getRoutingScheme(schemeName))
+            existing <- Future(RoutingSchemes.routingScheme.vend.getRoutingScheme(schemeName))
               .map(unboxFullOrFail(_, Some(cc), RoutingSchemeNotFound, 404))
             _ <- Helper.booleanToFuture(InvalidRoutingSchemeStatus, 400, Some(cc)) {
               body.status.forall(RoutingSchemeValidation.ValidStatuses.contains)
@@ -2818,7 +2821,7 @@ object Http4s700 {
               RoutingSchemeValidation.addressMatchesPattern(effectivePattern, effectiveExample)
             }
             updated <- Future {
-              RoutingSchemeX.routingScheme.vend.updateRoutingScheme(
+              RoutingSchemes.routingScheme.vend.updateRoutingScheme(
                 scheme = schemeName,
                 addressPattern = body.address_pattern,
                 secondaryAddressPattern = body.secondary_address_pattern,
@@ -2881,9 +2884,9 @@ object Http4s700 {
       case req @ DELETE -> `prefixPath` / "routing-schemes" / schemeName =>
         EndpointHelpers.withUserDelete(req) { (_, cc) =>
           for {
-            _ <- Future(RoutingSchemeX.routingScheme.vend.getRoutingScheme(schemeName))
+            _ <- Future(RoutingSchemes.routingScheme.vend.getRoutingScheme(schemeName))
               .map(unboxFullOrFail(_, Some(cc), RoutingSchemeNotFound, 404))
-            _ <- Future(RoutingSchemeX.routingScheme.vend.deleteRoutingScheme(schemeName))
+            _ <- Future(RoutingSchemes.routingScheme.vend.deleteRoutingScheme(schemeName))
               .map(unboxFullOrFail(_, Some(cc), DeleteRoutingSchemeError, 400))
           } yield ()
         }
@@ -2912,7 +2915,7 @@ object Http4s700 {
       case req @ GET -> `prefixPath` / "banks" / _ / "supported-routing-schemes" =>
         EndpointHelpers.withUserAndBank(req) { (_, bank, cc) =>
           for {
-            rows <- RoutingSchemeX.routingScheme.vend.getBankSupportedRoutingSchemes(bank.bankId.value)
+            rows <- RoutingSchemes.routingScheme.vend.getBankSupportedRoutingSchemes(bank.bankId.value)
               .map(unboxFullOrFail(_, Some(cc), UnknownError, 500))
           } yield JSONFactory700.createBankSupportedRoutingSchemesJsonV700(bank.bankId.value, rows)
         }
@@ -2952,13 +2955,13 @@ object Http4s700 {
           for {
             // Scheme must exist in the global registry (and not be retired)
             // before a bank can opt in / out of it.
-            scheme <- Future(RoutingSchemeX.routingScheme.vend.getRoutingScheme(schemeName))
+            scheme <- Future(RoutingSchemes.routingScheme.vend.getRoutingScheme(schemeName))
               .map(unboxFullOrFail(_, Some(cc), RoutingSchemeNotFound, 404))
             _ <- Helper.booleanToFuture(RoutingSchemeNotSupportedByBank, 400, Some(cc)) {
               scheme.status != "RETIRED"
             }
             row <- Future {
-              RoutingSchemeX.routingScheme.vend.putBankSupportedRoutingScheme(
+              RoutingSchemes.routingScheme.vend.putBankSupportedRoutingScheme(
                 bankId = bank.bankId.value,
                 scheme = schemeName,
                 enabled = body.enabled.getOrElse(true),
@@ -3004,11 +3007,12 @@ object Http4s700 {
 
     // ── Payee Lookup ──────────────────────────────────────────────────────────
     // Generic "confirmation-of-payee" / pre-payment lookup. Caller supplies
-    // identifier_type + identifier (e.g. TZ.MSISDN + 255778300336); endpoint
-    // resolves to a payee name and returns a short-lived lookup_id that can be
-    // quoted in a subsequent transaction-request as evidence the payer saw the
-    // resolved name. Auth perimeter is the source account's view: the same
-    // view that lets you pay from this account lets you lookup a payee.
+    // an identifier { scheme, address } pair (e.g. {TZ.MSISDN, 255778300336});
+    // endpoint resolves to a payee name and returns a short-lived lookup_id
+    // that can be quoted in a subsequent transaction-request as evidence the
+    // payer saw the resolved name. Auth perimeter is the source account's
+    // view: the same view that lets you pay from this account lets you lookup
+    // a payee.
 
     private val PayeeLookupValidCategories: Set[String] = Set("ACCOUNT", "BILL", "UTILITY")
     private val PayeeLookupTtlSeconds: Long = 600 // 10 minutes
@@ -3017,22 +3021,22 @@ object Http4s700 {
       case req @ POST -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "payees" / "lookup" =>
         EndpointHelpers.withViewAndBodyCreated[JSONFactory700.PostPayeeLookupJsonV700, JSONFactory700.PayeeLookupResponseJsonV700](req) { (user, bankAccount, _, body, cc) =>
           for {
-            // 1. identifier_type must exist in the registry.
-            scheme <- Future(RoutingSchemeX.routingScheme.vend.getRoutingScheme(body.identifier_type))
+            // 1. identifier.scheme must exist in the registry.
+            scheme <- Future(RoutingSchemes.routingScheme.vend.getRoutingScheme(body.identifier.scheme))
               .map(unboxFullOrFail(_, Some(cc), PayeeLookupIdentifierTypeNotRegistered, 400))
             // 2. Scheme must be in a payee-lookup-valid category.
             _ <- Helper.booleanToFuture(PayeeLookupIdentifierTypeWrongCategory, 400, Some(cc)) {
               PayeeLookupValidCategories.contains(scheme.category)
             }
-            // 3. identifier must match the scheme's address_pattern.
+            // 3. identifier.value must match the scheme's address_pattern.
             _ <- Helper.booleanToFuture(PayeeLookupAddressMismatch, 400, Some(cc)) {
-              RoutingSchemeValidation.addressMatchesPattern(scheme.addressPattern, body.identifier)
+              RoutingSchemeValidation.addressMatchesPattern(scheme.addressPattern, body.identifier.value)
             }
             // 4. Resolve payee. In mapped mode the destination account is
             //    located by its account_routing (scheme,address). In adapter
             //    mode the south-side connector handles this.
             payeeBox <- BankConnector.connector.vend
-              .getBankAccountByRouting(None, body.identifier_type, body.identifier, Some(cc))
+              .getBankAccountByRouting(None, body.identifier.scheme, body.identifier.value, Some(cc))
               .map(_._1)
             payeeAccount <- Future {
               unboxFullOrFail(payeeBox, Some(cc), PayeeNotFound, 404)
@@ -3040,11 +3044,11 @@ object Http4s700 {
             // 5. Persist a lookup record with a 10-minute TTL.
             lookupId = APIUtil.generateUUID()
             stored <- Future {
-              PayeeLookupX.payeeLookup.vend.createPayeeLookup(
+              PayeeLookups.payeeLookup.vend.createPayeeLookup(
                 lookupId = lookupId,
-                identifierType = body.identifier_type,
-                identifier = body.identifier,
-                fspId = body.fsp_id,
+                identifierType = body.identifier.scheme,
+                identifier = body.identifier.value,
+                fspId = body.identifier.fsp_id,
                 networkProvider = None,
                 fullName = payeeAccount.label,
                 accountCategory = None,
@@ -3060,9 +3064,11 @@ object Http4s700 {
           } yield JSONFactory700.PayeeLookupResponseJsonV700(
             lookup_id = stored.lookupId,
             expires_at = stored.expiresAt,
-            identifier_type = stored.identifierType,
-            identifier = stored.identifier,
-            fsp_id = stored.fspId,
+            identifier = JSONFactory700.QualifiedIdentifierJsonV700(
+              scheme = stored.identifierType,
+              value = stored.identifier,
+              fsp_id = stored.fspId
+            ),
             network_provider = stored.networkProvider,
             full_name = stored.fullName,
             account_category = stored.accountCategory,
@@ -3081,28 +3087,30 @@ object Http4s700 {
       "Create Payee Lookup",
       """Look up a payee (Confirmation-of-Payee) before initiating a payment.
         |
-        |The endpoint is **polymorphic on `identifier_type`**: pass any registered routing scheme as the `identifier_type` and the corresponding `identifier`. The scheme's `category` must be one of ACCOUNT, BILL, UTILITY for it to be valid here.
+        |The endpoint is **polymorphic on `identifier.scheme`**: pass any registered routing scheme as the `identifier.scheme` and the corresponding `identifier.value`. The scheme's `category` must be one of ACCOUNT, BILL, UTILITY for it to be valid here.
+        |
+        |The `identifier` is a `QualifiedIdentifier` — `scheme` and `value` travel as a pair because neither is meaningful on its own. Optionally include `fsp_id` (Financial Service Provider) for multi-FSP namespaces where the same value may live with different providers (e.g. TZ.MSISDN); for such namespaces `scheme + value` alone may not uniquely identify the wallet.
         |
         |Examples:
-        |- Mobile-money / TIPS payee: `identifier_type: TZ.MSISDN`, `identifier: 255778300336`, `fsp_id: 503`
-        |- TIPS bank-account name verify: `identifier_type: TZ.BANK_ACCOUNT`, `identifier: 24110000296`
-        |- GePG bill inquiry: `identifier_type: TZ.GEPG_CONTROL_NUMBER`, `identifier: 991043383705`
-        |- Luku meter inquiry: `identifier_type: TZ.LUKU_METER`, `identifier: 24730238417`
+        |- Mobile-money / TIPS payee: `identifier: { scheme: TZ.MSISDN, value: 255778300336, fsp_id: 503 }`
+        |- TIPS bank-account name verify: `identifier: { scheme: TZ.BANK_ACCOUNT, value: 24110000296 }`
+        |- GePG bill inquiry: `identifier: { scheme: TZ.GEPG_CONTROL_NUMBER, value: 991043383705 }`
+        |- Luku meter inquiry: `identifier: { scheme: TZ.LUKU_METER, value: 24730238417 }`
         |
         |The response includes a `lookup_id` valid for 10 minutes. A subsequent transaction-request can quote it via `verified_payee_lookup_id` to prove the payer saw the resolved name (Confirmation-of-Payee handshake).
         |
         |Authentication is Required. The caller must have a view on the source account (`/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID`) — the same authorization perimeter as paying from it.""".stripMargin,
       JSONFactory700.PostPayeeLookupJsonV700(
-        identifier_type = "TZ.MSISDN",
-        identifier = "255778300336",
-        fsp_id = Some("503")
+        identifier = JSONFactory700.QualifiedIdentifierJsonV700(
+          scheme = "TZ.MSISDN", value = "255778300336", fsp_id = Some("503")
+        )
       ),
       JSONFactory700.PayeeLookupResponseJsonV700(
         lookup_id = "lkp_01HXY7Z8AB9C0D1E2F3G4H5J6K",
         expires_at = new java.util.Date(System.currentTimeMillis() + 10L * 60 * 1000),
-        identifier_type = "TZ.MSISDN",
-        identifier = "255778300336",
-        fsp_id = Some("503"),
+        identifier = JSONFactory700.QualifiedIdentifierJsonV700(
+          scheme = "TZ.MSISDN", value = "255778300336", fsp_id = Some("503")
+        ),
         network_provider = Some("ZANTEL"),
         full_name = "ERASTO EMILE MALEMA",
         account_category = Some("PERSON"),
@@ -3128,7 +3136,7 @@ object Http4s700 {
 
     val createTransactionRequestMobileWallet: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ POST -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "transaction-request-types" / "MOBILE_WALLET" / "transaction-requests" =>
-        EndpointHelpers.withViewAndBodyCreated[JSONFactory700.TransactionRequestBodyMobileWalletJsonV700, code.api.v4_0_0.TransactionRequestWithChargeJSON400](req) { (user, fromAccount, view, body, cc) =>
+        EndpointHelpers.withViewAndBodyCreated[JSONFactory700.TransactionRequestBodyMobileWalletJsonV700, JSONFactory700.TransactionRequestWithChargeMobileWalletJsonV700](req) { (user, fromAccount, view, body, cc) =>
           val countryCode = body.country_code.getOrElse("TZ")
           val msisdnScheme = s"${countryCode}.MSISDN"
           val chargePolicy = body.charge_policy.getOrElse("SHARED")
@@ -3136,7 +3144,7 @@ object Http4s700 {
           for {
             // 1. The MSISDN routing scheme must exist in the registry and
             //    msisdn must match its address_pattern.
-            scheme <- Future(RoutingSchemeX.routingScheme.vend.getRoutingScheme(msisdnScheme))
+            scheme <- Future(RoutingSchemes.routingScheme.vend.getRoutingScheme(msisdnScheme))
               .map(unboxFullOrFail(_, callCtx, PayeeLookupIdentifierTypeNotRegistered, 400))
             _ <- Helper.booleanToFuture(MobileWalletInvalidMsisdn, 400, callCtx) {
               RoutingSchemeValidation.addressMatchesPattern(scheme.addressPattern, body.to.msisdn)
@@ -3147,7 +3155,7 @@ object Http4s700 {
             _ <- body.verified_payee_lookup_id match {
               case Some(lkpId) =>
                 for {
-                  lkp <- Future(PayeeLookupX.payeeLookup.vend.getActivePayeeLookup(lkpId))
+                  lkp <- Future(PayeeLookups.payeeLookup.vend.getActivePayeeLookup(lkpId))
                     .map(unboxFullOrFail(_, callCtx, PayeeLookupExpiredOrNotFound, 400))
                   _ <- Helper.booleanToFuture(PayeeLookupMismatch, 400, callCtx) {
                     lkp.identifier == body.to.msisdn && lkp.identifierType == msisdnScheme
@@ -3184,9 +3192,28 @@ object Http4s700 {
               None,
               callCtx
             )
-          } yield code.api.v4_0_0.JSONFactory400.createTransactionRequestWithChargeJSON(tr, Nil, Nil)
+          } yield JSONFactory700.createTransactionRequestWithChargeMobileWalletJsonV700(tr, body, Nil, Nil)
         }
     }
+
+    val mobileWalletBodyExample = JSONFactory700.TransactionRequestBodyMobileWalletJsonV700(
+      to = JSONFactory700.MobileWalletToJsonV700(
+        msisdn = "255778300336",
+        fsp_id = Some("503"),
+        network_provider = Some("AIRTEL"),
+        full_name = Some("Chinua Achebe"),
+        account_category = Some("PERSON"),
+        account_type = Some("WALLET"),
+        identity = None
+      ),
+      value = com.openbankproject.commons.model.AmountOfMoneyJsonV121(currency = "TZS", amount = "1000"),
+      description = "buy airtime",
+      client_reference = Some("MK45078200"),
+      verified_payee_lookup_id = None,
+      country_code = Some("TZ"),
+      data_fields = Some(List(JSONFactory700.MobileWalletDataFieldJsonV700("fieldName1", "fieldValue1"))),
+      charge_policy = Some("SHARED")
+    )
 
     resourceDocs += ResourceDoc(
       null,
@@ -3204,25 +3231,26 @@ object Http4s700 {
         |**Provider passthrough**: `data_fields` carries arbitrary name/value pairs that adapters can forward to the downstream MNO / TIPS rail without OBP interpretation.
         |
         |Authentication is Required.""".stripMargin,
-      JSONFactory700.TransactionRequestBodyMobileWalletJsonV700(
-        to = JSONFactory700.MobileWalletToJsonV700(
-          msisdn = "255778300336",
-          fsp_id = Some("503"),
-          network_provider = Some("AIRTEL"),
-          full_name = Some("Chinua Achebe"),
-          account_category = Some("PERSON"),
-          account_type = Some("WALLET"),
-          identity = None
+      mobileWalletBodyExample,
+      JSONFactory700.TransactionRequestWithChargeMobileWalletJsonV700(
+        id = "4050046c-63b3-4868-8a22-14b4181d33a6",
+        `type` = "MOBILE_WALLET",
+        from = code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140(
+          bank_id = "gh.29.uk",
+          account_id = "8ca8a7e4-6d02-40e3-a129-0b2bf89de9f1"
         ),
-        value = com.openbankproject.commons.model.AmountOfMoneyJsonV121(currency = "TZS", amount = "1000"),
-        description = "buy airtime",
-        client_reference = Some("MK45078200"),
-        verified_payee_lookup_id = None,
-        country_code = Some("TZ"),
-        data_fields = Some(List(JSONFactory700.MobileWalletDataFieldJsonV700("fieldName1", "fieldValue1"))),
-        charge_policy = Some("SHARED")
+        details = mobileWalletBodyExample,
+        transaction_ids = List("902ba3bb-dedd-45e7-9319-2fd3f2cd98a1"),
+        status = "COMPLETED",
+        start_date = code.api.util.APIUtil.DateWithDayExampleObject,
+        end_date = code.api.util.APIUtil.DateWithDayExampleObject,
+        challenges = Nil,
+        charge = code.api.v2_0_0.TransactionRequestChargeJsonV200(
+          summary = "Total charges for completed transaction",
+          value = com.openbankproject.commons.model.AmountOfMoneyJsonV121(currency = "TZS", amount = "0.00")
+        ),
+        attributes = None
       ),
-      transactionRequestWithChargeJSON400,
       List($AuthenticatedUserIsRequired, InvalidJsonFormat,
            PayeeLookupIdentifierTypeNotRegistered, MobileWalletInvalidMsisdn,
            PayeeLookupExpiredOrNotFound, PayeeLookupMismatch,
@@ -3233,6 +3261,180 @@ object Http4s700 {
     )
 
     // ── End MOBILE_WALLET ─────────────────────────────────────────────────────
+
+    // ── BULK transaction request ──────────────────────────────────────────────
+    // One TransactionRequest with type=BULK serves as the envelope; N actual
+    // Transactions (one per payment) are linked back to it via transaction_ids.
+    // Per-payment outcomes live in BulkPayment so each result can be
+    // mapped back to its end_to_end_id. Validation failures (unknown scheme,
+    // bad address, missing destination) mark the individual payment FAILED but
+    // do not abort the whole batch — matches how real CBS bulk processing
+    // behaves. See BulkPaymentHandler for the orchestration.
+
+    val createTransactionRequestBulk: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "transaction-request-types" / "BULK" / "transaction-requests" =>
+        EndpointHelpers.withViewAndBodyCreated[JSONFactory700.TransactionRequestBodyBulkJsonV700, JSONFactory700.BulkTransactionRequestResponseJsonV700](req) { (user, fromAccount, view, body, cc) =>
+          val callCtx = Some(cc)
+          val chargePolicy = body.charge_policy.getOrElse("SHARED")
+          for {
+            // 1. Envelope-level validation (idempotency, size, currency, totals).
+            _ <- BulkPaymentHandler.validateEnvelope(body, fromAccount, callCtx)
+            // 2. Standard view-based authorisation check.
+            _ <- NewStyle.function.checkAuthorisationToCreateTransactionRequest(
+              view.viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId), user, callCtx
+            )
+            // 3. Create the parent BULK TR row. toAccount = self (envelope only;
+            //    the real destinations live in the per-payment side-table).
+            trId = APIUtil.generateUUID()
+            detailsPlain = prettyRender(Extraction.decompose(body))
+            parentTrBox = MappedTransactionRequestProvider.createTransactionRequestImpl210(
+              com.openbankproject.commons.model.TransactionRequestId(trId),
+              TransactionRequestType("BULK"),
+              fromAccount,
+              fromAccount,
+              body,
+              detailsPlain,
+              "INITIATED",
+              TransactionRequestCharge(
+                "Bulk payment",
+                com.openbankproject.commons.model.AmountOfMoney(fromAccount.currency, "0")
+              ),
+              chargePolicy,
+              None, None, None, None,
+              callCtx
+            )
+            _ <- Future {
+              unboxFullOrFail(parentTrBox, callCtx, BulkPaymentTransactionRequestError, 500)
+            }
+            // 4. Claim the batch_reference for idempotency. After this, a
+            //    second submission with the same batch_reference fails fast.
+            _ <- Future {
+              BulkPayments.bulkPayment.vend.claimBatchReference(
+                fromAccount.bankId.value, fromAccount.accountId.value, body.batch_reference, trId
+              )
+            }
+            // 5. Fan-out — sequential per-payment execution. Returns one row
+            //    per input item (SUCCEEDED / FAILED + reason).
+            itemRows <- BulkPaymentHandler.executeAllItems(body, fromAccount, trId, chargePolicy, callCtx)
+            // 6. Roll up the parent status.
+            rollupStatus = BulkPaymentHandler.computeStatus(itemRows)
+            _ <- Future {
+              MappedTransactionRequestProvider.saveTransactionRequestStatusImpl(
+                com.openbankproject.commons.model.TransactionRequestId(trId), rollupStatus
+              )
+            }
+            // 7. Read back the final TR with rolled-up status + transaction_ids.
+            finalTr <- Future {
+              unboxFullOrFail(
+                MappedTransactionRequestProvider.getTransactionRequest(
+                  com.openbankproject.commons.model.TransactionRequestId(trId)
+                ),
+                callCtx, BulkPaymentTransactionRequestError, 500
+              )
+            }
+          } yield JSONFactory700.createBulkTransactionRequestResponseJsonV700(
+            finalTr, body.batch_reference, itemRows
+          )
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(createTransactionRequestBulk),
+      "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/BULK/transaction-requests",
+      "Create Transaction Request (BULK)",
+      """Submit a batch of payments against a single source account.
+        |
+        |Each item in `payments` is a heterogeneous payment instruction:
+        |- `end_to_end_id` — caller-supplied unique reference (ISO 20022 convention). Must be unique within the batch.
+        |- `to_account_routing.scheme` — any registered routing scheme of category `ACCOUNT` (e.g. `TZ.BANK_ACCOUNT`, `TZ.MSISDN`).
+        |- `to_account_routing.address` — must match the scheme's `address_pattern`.
+        |- `value` + `description` — per-payment amount and label. Currency must match the source account's currency.
+        |
+        |The envelope `value` must equal the sum of item amounts (caller declares the total; the server validates it).
+        |
+        |**Idempotency**: `batch_reference` is unique per (source account, batch). Re-submitting the same batch_reference returns `OBP-30536`.
+        |
+        |**Atomicity**: validation failures (unknown scheme, address mismatch, missing destination) mark the individual payment as `FAILED` and do not abort the batch. The TR-level `status` rolls up to `COMPLETED`, `PARTIALLY_COMPLETED`, or `FAILED` accordingly.
+        |
+        |**Maximum size**: `bulk_payments.max_items_per_batch` (default 1000).
+        |
+        |Authentication is Required.""".stripMargin,
+      JSONFactory700.TransactionRequestBodyBulkJsonV700(
+        batch_reference = "BATCH-2026-05-13-001",
+        payments = List(
+          JSONFactory700.BulkPaymentItemJsonV700(
+            end_to_end_id = "E2E-0001",
+            to_account_routing = com.openbankproject.commons.model.AccountRoutingJsonV121(
+              scheme = "TZ.BANK_ACCOUNT", address = "24110000296"
+            ),
+            value = com.openbankproject.commons.model.AmountOfMoneyJsonV121("TZS", "50000.00"),
+            description = "Payroll April 2026 — beneficiary 1"
+          ),
+          JSONFactory700.BulkPaymentItemJsonV700(
+            end_to_end_id = "E2E-0002",
+            to_account_routing = com.openbankproject.commons.model.AccountRoutingJsonV121(
+              scheme = "TZ.MSISDN", address = "255778300336"
+            ),
+            value = com.openbankproject.commons.model.AmountOfMoneyJsonV121("TZS", "25000.00"),
+            description = "Payroll April 2026 — beneficiary 2"
+          )
+        ),
+        requested_execution_date = None,
+        value = com.openbankproject.commons.model.AmountOfMoneyJsonV121("TZS", "75000.00"),
+        description = "Payroll batch April 2026",
+        charge_policy = Some("SHARED")
+      ),
+      JSONFactory700.BulkTransactionRequestResponseJsonV700(
+        id = "d8839721-ad8f-45dd-9f78-2080414b93f9",
+        batch_reference = "BATCH-2026-05-13-001",
+        status = "COMPLETED",
+        from = code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140(
+          bank_id = "nmb.tz", account_id = "8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0"
+        ),
+        total_value = com.openbankproject.commons.model.AmountOfMoneyJsonV121("TZS", "75000.00"),
+        total_payments = 2,
+        succeeded_count = 2,
+        failed_count = 0,
+        payments = List(
+          JSONFactory700.BulkPaymentItemResultJsonV700(
+            end_to_end_id = "E2E-0001",
+            to_account_routing = com.openbankproject.commons.model.AccountRoutingJsonV121(
+              scheme = "TZ.BANK_ACCOUNT", address = "24110000296"
+            ),
+            value = com.openbankproject.commons.model.AmountOfMoneyJsonV121("TZS", "50000.00"),
+            status = "SUCCEEDED",
+            transaction_id = Some("902ba3bb-dedd-45e7-9319-2fd3f2cd98a1"),
+            failure_reason = None
+          ),
+          JSONFactory700.BulkPaymentItemResultJsonV700(
+            end_to_end_id = "E2E-0002",
+            to_account_routing = com.openbankproject.commons.model.AccountRoutingJsonV121(
+              scheme = "TZ.MSISDN", address = "255778300336"
+            ),
+            value = com.openbankproject.commons.model.AmountOfMoneyJsonV121("TZS", "25000.00"),
+            status = "SUCCEEDED",
+            transaction_id = Some("a3b40c2c-fff5-462b-924e-ab8eb4c89523"),
+            failure_reason = None
+          )
+        ),
+        transaction_ids = List("902ba3bb-dedd-45e7-9319-2fd3f2cd98a1", "a3b40c2c-fff5-462b-924e-ab8eb4c89523"),
+        start_date = new java.util.Date(),
+        end_date = new java.util.Date()
+      ),
+      List($AuthenticatedUserIsRequired, InvalidJsonFormat,
+           BulkPaymentsArrayEmpty, BulkPaymentsArrayTooLarge,
+           BulkPaymentCurrencyMismatch, BulkDuplicateEndToEndId,
+           BulkBatchReferenceAlreadyUsed, BulkPaymentTransactionRequestError,
+           UnknownError),
+      apiTagTransactionRequest :: Nil,
+      None,
+      http4sPartialFunction = Some(createTransactionRequestBulk)
+    )
+
+    // ── End BULK ──────────────────────────────────────────────────────────────
 
     // ── Test-only rollback endpoint ───────────────────────────────────────────
     // Enabled only in Lift test mode (Props.testMode == true, i.e. -Drun.mode=test).

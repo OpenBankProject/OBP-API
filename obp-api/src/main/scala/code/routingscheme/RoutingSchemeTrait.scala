@@ -5,7 +5,7 @@ import net.liftweb.util.SimpleInjector
 
 import scala.concurrent.Future
 
-object RoutingSchemeX extends SimpleInjector {
+object RoutingSchemes extends SimpleInjector {
   val routingScheme = new Inject(buildOne _) {}
 
   def buildOne: RoutingSchemeProvider = MappedRoutingSchemeProvider

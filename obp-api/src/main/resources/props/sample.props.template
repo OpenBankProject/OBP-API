@@ -215,6 +215,8 @@ jwt.use.ssl=false
 write_metrics=false
 ## Enable writing connector metrics (which methods are called)to RDBMS
 write_connector_metrics=false
+## Enable writing connector traces (full outbound/inbound message payloads per call) to RDBMS table `connector_trace`. Verbose — keep off in prod unless debugging.
+write_connector_trace=false
 
 ## ElasticSearch
 #allow_elasticsearch=true
