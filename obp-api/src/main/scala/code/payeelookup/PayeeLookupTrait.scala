@@ -3,7 +3,7 @@ package code.payeelookup
 import net.liftweb.common.Box
 import net.liftweb.util.SimpleInjector
 
-object PayeeLookupX extends SimpleInjector {
+object PayeeLookups extends SimpleInjector {
   val payeeLookup = new Inject(buildOne _) {}
 
   def buildOne: PayeeLookupProvider = MappedPayeeLookupProvider

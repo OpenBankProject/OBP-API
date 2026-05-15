@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
+
+    <suppress>
+        <notes><![CDATA[
+            CPE collision. CVE-2026-33504 is a SQL injection in the Ory Hydra server
+            (the Go service, fixed in Hydra v26.2.0). The Java client SDK
+            sh.ory.hydra:hydra-client is a generated HTTP client with no SQL code,
+            so it cannot be affected.
+
+            Tracking the dep itself for eventual removal — integrate_with_hydra
+            defaults to false and TESOBE does not deploy with Hydra enabled.
+        ]]></notes>
+        <packageUrl regex="true">^pkg:maven/sh\.ory\.hydra/hydra-client@.*$</packageUrl>
+        <cve>CVE-2026-33504</cve>
+    </suppress>
+
+    <suppress>
+        <notes><![CDATA[
+            CPE collision. CVE-2023-37475 is a DoS in Hamba Avro
+            (github.com/hamba/avro/v2, a Go library, fixed in 2.13.0).
+            dep-check matches our Apache Avro Java 1.8.2 and avro4s 1.8.2
+            on the shared cpe:2.3:a:avro_project:avro CPE, but the Java
+            library has none of the affected Unmarshal() code path — that
+            function name exists only in the Go API.
+        ]]></notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.avro/.*@1\.8\.2$</packageUrl>
+        <cve>CVE-2023-37475</cve>
+    </suppress>
+
+    <suppress>
+        <notes><![CDATA[
+            Same CPE collision as the org.apache.avro suppression above —
+            avro4s artifacts (avro4s-core, avro4s-macros, etc.) all get
+            flagged on the same cpe:2.3:a:avro_project:avro CPE.
+        ]]></notes>
+        <packageUrl regex="true">^pkg:maven/com\.sksamuel\.avro4s/.*@1\.8\.2$</packageUrl>
+        <cve>CVE-2023-37475</cve>
+    </suppress>
+
+    <suppress>
+        <notes><![CDATA[
+            False positive — over-broad CPE match. NVD CVE-2024-35255 affects
+            Microsoft Authentication Library for Java < 1.15.1; we are on
+            1.24.1. dep-check matches `cpe:2.3:a:microsoft:authentication_library`
+            across all platforms (Java, .NET, Node, Python, Go, C++) which
+            each have their own fix version, and the generic CPE does not
+            honor the language qualifier. NVD's per-platform CPE properly
+            scopes the Java fix at 1.15.1.
+        ]]></notes>
+        <packageUrl regex="true">^pkg:maven/com\.microsoft\.azure/msal4j@.*$</packageUrl>
+        <cve>CVE-2024-35255</cve>
+    </suppress>
+
+    <suppress>
+        <notes><![CDATA[
+            dep-check is scanning the embedded pom inside avro-1.8.2.jar and
+            reporting the guava@11.0.2 declared there. The actual runtime
+            guava on the classpath is 32.0.0-jre (managed by parent pom
+            dependencyManagement), and all three CVEs are fixed well before:
+              - CVE-2018-10237 fixed in guava 25.0
+              - CVE-2020-8908 fixed in guava 32.0.0
+              - CVE-2023-2976 fixed in guava 32.0.0
+            Maven mediation already resolves the real classpath correctly.
+            The filePath scope ensures this only suppresses the embedded-pom
+            false positive, not a real direct guava 11.0.2 dep if one ever
+            shows up.
+        ]]></notes>
+        <filePath regex="true">.*avro-1\.8\.2\.jar.META-INF.maven.com\.google\.guava.guava.pom\.xml$</filePath>
+        <cve>CVE-2018-10237</cve>
+        <cve>CVE-2020-8908</cve>
+        <cve>CVE-2023-2976</cve>
+    </suppress>
+
+</suppressions>

@@ -11,6 +11,7 @@ import net.liftweb.json.JsonDSL._
 import org.http4s._
 import org.http4s.headers.`Content-Type`
 import org.typelevel.ci.CIString
+import org.slf4j.LoggerFactory
 
 /**
  * Converts OBP errors to http4s Response[IO].
@@ -28,7 +29,8 @@ import org.typelevel.ci.CIString
 object ErrorResponseConverter {
   import net.liftweb.json.Formats
   import code.api.util.CustomJsonFormats
-  
+
+  private val logger = LoggerFactory.getLogger(getClass)
   implicit val formats: Formats = CustomJsonFormats.formats
   private val jsonContentType: `Content-Type` = `Content-Type`(MediaType.application.json)
 
@@ -112,6 +114,7 @@ object ErrorResponseConverter {
    * Returns 500 Internal Server Error.
    */
   def unknownErrorToResponse(e: Throwable, callContext: CallContext): IO[Response[IO]] = {
+    logger.error(s"unknownErrorToResponse says: 500 returned (correlationId=${callContext.correlationId})", e)
     val errorJson = OBPErrorResponse(500, s"$UnknownError: ${e.getMessage}")
     IO.pure(
       Response[IO](org.http4s.Status.InternalServerError)

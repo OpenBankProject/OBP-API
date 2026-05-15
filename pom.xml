@@ -63,6 +63,16 @@
 
   <dependencyManagement>
     <dependencies>
+      <!-- Jackson BOM: forces all com.fasterxml.jackson.* 2.x artifacts to one
+           version. Mixing minor versions (databind 2.12 + core 2.14 + ...) is
+           unsupported and causes subtle runtime failures. -->
+      <dependency>
+        <groupId>com.fasterxml.jackson</groupId>
+        <artifactId>jackson-bom</artifactId>
+        <version>2.18.7</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
       <dependency>
         <groupId>com.tesobe</groupId>
         <artifactId>obp-commons</artifactId>
