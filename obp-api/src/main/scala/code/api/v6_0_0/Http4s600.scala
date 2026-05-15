@@ -3003,12 +3003,14 @@ object Http4s600 {
                 }
                 implicitProps.find(_.name == webUiPropName) match {
                   case Some(prop) => Future.successful(prop)
-                  case None => Future.failed(new Exception(
-                    s"$WebUiPropsNotFoundByName Current WEBUI_PROP_NAME($webUiPropName)"))
+                  case None => Future(unboxFullOrFail[WebUiPropsCommons](
+                    Empty, Some(cc),
+                    s"$WebUiPropsNotFoundByName Current WEBUI_PROP_NAME($webUiPropName)", 400))
                 }
               case None =>
-                Future.failed(new Exception(
-                  s"$WebUiPropsNotFoundByName Current WEBUI_PROP_NAME($webUiPropName)"))
+                Future(unboxFullOrFail[WebUiPropsCommons](
+                  Empty, Some(cc),
+                  s"$WebUiPropsNotFoundByName Current WEBUI_PROP_NAME($webUiPropName)", 400))
             }
           } yield result
         }
@@ -5968,26 +5970,22 @@ object Http4s600 {
               400, Some(cc)) {
               postedData.dependants.getOrElse(0) == postedData.dob_of_dependants.getOrElse(Nil).length
             }
-            dateOfBirth <- Future {
+            dateOfBirth <- NewStyle.function.tryons(
+              s"$InvalidJsonFormat date_of_birth must be in YYYY-MM-DD format (e.g., 1990-05-15)",
+              400, Some(cc)) {
               postedData.date_of_birth.map { ds =>
-                try {
-                  val f = new java.text.SimpleDateFormat("yyyy-MM-dd")
-                  f.setTimeZone(java.util.TimeZone.getTimeZone("UTC"))
-                  f.setLenient(false); f.parse(ds)
-                } catch { case _: Exception =>
-                  throw new Exception(s"$InvalidJsonFormat date_of_birth must be in YYYY-MM-DD format (e.g., 1990-05-15), got: $ds")
-                }
+                val f = new java.text.SimpleDateFormat("yyyy-MM-dd")
+                f.setTimeZone(java.util.TimeZone.getTimeZone("UTC"))
+                f.setLenient(false); f.parse(ds)
               }.orNull
             }
-            dobOfDependants <- Future {
+            dobOfDependants <- NewStyle.function.tryons(
+              s"$InvalidJsonFormat dob_of_dependants must contain dates in YYYY-MM-DD format (e.g., 2010-03-20)",
+              400, Some(cc)) {
               postedData.dob_of_dependants.getOrElse(Nil).map { ds =>
-                try {
-                  val f = new java.text.SimpleDateFormat("yyyy-MM-dd")
-                  f.setTimeZone(java.util.TimeZone.getTimeZone("UTC"))
-                  f.setLenient(false); f.parse(ds)
-                } catch { case _: Exception =>
-                  throw new Exception(s"$InvalidJsonFormat dob_of_dependants must contain dates in YYYY-MM-DD format (e.g., 2010-03-20), got: $ds")
-                }
+                val f = new java.text.SimpleDateFormat("yyyy-MM-dd")
+                f.setTimeZone(java.util.TimeZone.getTimeZone("UTC"))
+                f.setLenient(false); f.parse(ds)
               }
             }
             customerNumber = postedData.customer_number.getOrElse(scala.util.Random.nextInt(Integer.MAX_VALUE).toString)
@@ -6136,10 +6134,14 @@ object Http4s600 {
     }
 
     // DirectLogin header parser — mirrors the parsing in code.api.directlogin.DirectLogin.getAllParameters
-    // but reads from http4s headers instead of Lift's thread-local S.request.
-    private def parseDirectLoginParams(req: org.http4s.Request[IO]): Map[String, String] = {
-      val directLoginHeader = req.headers.get(org.typelevel.ci.CIString("DirectLogin")).map(_.head.value)
-      val authHeader = req.headers.get(org.typelevel.ci.CIString("Authorization")).map(_.head.value)
+    // but reads from CallContext.requestHeaders (populated by the http4s context builder) instead of
+    // Lift's thread-local S.request.
+    private def parseDirectLoginParams(cc: CallContext): Map[String, String] = {
+      def find(name: String): Option[String] = cc.requestHeaders
+        .find(_.name.equalsIgnoreCase(name))
+        .flatMap(_.values.headOption)
+      val directLoginHeader = find("DirectLogin")
+      val authHeader = find("Authorization")
       val raw = directLoginHeader
         .orElse(authHeader.filter(h => h.startsWith("DirectLogin") || h.contains("DirectLogin")))
         .getOrElse("")
@@ -6158,14 +6160,21 @@ object Http4s600 {
       case req @ POST -> `prefixPath` / "my" / "logins" / "direct" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: CallContext = req.callContext
-          val params = parseDirectLoginParams(req)
+          // If the parser found nothing usable, fall back to a single "error" key so that
+          // validatorFutureWithParams returns the MissingDirectLoginHeader message (preserves
+          // Lift's getAllParameters behaviour for the no-header case).
+          val parsed = parseDirectLoginParams(cc)
+          val params =
+            if (parsed.isEmpty) Map("error" -> code.api.util.ErrorMessages.MissingDirectLoginHeader)
+            else parsed
           for {
-            triple <- code.api.DirectLogin.createTokenFuture(params)
-            (httpCode, message, userId) = triple
-            _ <- Future(code.api.DirectLogin.grantEntitlementsToUseDynamicEndpointsInSpacesInDirectLogin(userId))
+            triple <- code.api.DirectLogin.validatorFutureWithParams("authorizationToken", "POST", params)
+            (httpCode, message, dlParams) = triple
+            tokenTriple = code.api.DirectLogin.createTokenCommonPart(httpCode, message, dlParams)
+            _ <- Future(code.api.DirectLogin.grantEntitlementsToUseDynamicEndpointsInSpacesInDirectLogin(tokenTriple._3))
           } yield {
-            if (httpCode == 200) JSONFactory600.createTokenJSON(message)
-            else unboxFullOrFail(Empty, None, message, httpCode)
+            if (tokenTriple._1 == 200) JSONFactory600.createTokenJSON(tokenTriple._2)
+            else unboxFullOrFail(Empty, None, tokenTriple._2, tokenTriple._1)
           }
         }
     }
