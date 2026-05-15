@@ -9,7 +9,7 @@ import code.api.util.{APIUtil, CallContext, CustomJsonFormats, NewStyle}
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
-import code.api.util.http4s.ResourceDocMiddleware
+import code.api.util.http4s.{ErrorResponseConverter, RequestScopeConnection, ResourceDocMiddleware}
 import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps}
 import code.api.util.newstyle.ViewNewStyle
 import code.api.v2_0_0.JSONFactory200
@@ -2155,27 +2155,34 @@ object Http4s600 {
     // PUT /obp/v6.0.0/management/webui_props/WEBUI_PROP_NAME
     val createOrUpdateWebUiProps: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ PUT -> `prefixPath` / "management" / "webui_props" / webUiPropName =>
-        EndpointHelpers.executeAndRespond(req) { implicit cc =>
-          val rawBody = cc.httpBody.getOrElse("")
-          val nameLower = webUiPropName.toLowerCase
-          for {
-            _ <- NewStyle.function.tryons(s"$InvalidWebUiProps name must start with webui_, but current name is: $nameLower", 400, Some(cc)) {
-              require(nameLower.startsWith("webui_"))
-            }
-            _ <- NewStyle.function.tryons(s"$InvalidWebUiProps name must contain only alphanumeric characters, underscore, and dot. Current name: $nameLower", 400, Some(cc)) {
-              require(nameLower.matches("^[a-zA-Z0-9_.]+$"))
-            }
-            _ <- NewStyle.function.tryons(s"$InvalidWebUiProps name must not exceed 255 characters. Current length: ${nameLower.length}", 400, Some(cc)) {
-              require(nameLower.length <= 255)
-            }
-            valueJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should contain a value field", 400, Some(cc)) {
-              net.liftweb.json.parse(rawBody).extract[code.webuiprops.WebUiPropsPutJsonV600]
-            }
-            saved <- Future(MappedWebUiPropsProvider.createOrUpdate(WebUiPropsCommons(nameLower, valueJson.value)))
-          } yield {
-            // PUT returns 200 if existed, 201 if created — simplified to 200 here.
-            saved.openOrThrowException("Could not save WebUiProps"): WebUiPropsCommons
+        implicit val cc: CallContext = req.callContext
+        implicit val formats: Formats = code.api.util.CustomJsonFormats.formats
+        val rawBody = cc.httpBody.getOrElse("")
+        val nameLower = webUiPropName.toLowerCase
+        val fut: Future[(WebUiPropsCommons, Boolean)] = for {
+          _ <- NewStyle.function.tryons(s"$InvalidWebUiProps name must start with webui_, but current name is: $nameLower", 400, Some(cc)) {
+            require(nameLower.startsWith("webui_"))
           }
+          _ <- NewStyle.function.tryons(s"$InvalidWebUiProps name must contain only alphanumeric characters, underscore, and dot. Current name: $nameLower", 400, Some(cc)) {
+            require(nameLower.matches("^[a-zA-Z0-9_.]+$"))
+          }
+          _ <- NewStyle.function.tryons(s"$InvalidWebUiProps name must not exceed 255 characters. Current length: ${nameLower.length}", 400, Some(cc)) {
+            require(nameLower.length <= 255)
+          }
+          existing <- Future(MappedWebUiPropsProvider.getByName(nameLower))
+          resourceExists = existing.isDefined
+          valueJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should contain a value field", 400, Some(cc)) {
+            net.liftweb.json.parse(rawBody).extract[code.webuiprops.WebUiPropsPutJsonV600]
+          }
+          saved <- Future(MappedWebUiPropsProvider.createOrUpdate(WebUiPropsCommons(nameLower, valueJson.value)))
+        } yield (saved.openOrThrowException("Could not save WebUiProps"), resourceExists)
+
+        RequestScopeConnection.fromFuture(fut).attempt.flatMap {
+          case Right((commons, existed)) =>
+            val jsonString = prettyRender(Extraction.decompose(commons))
+            if (existed) Ok(jsonString) else Created(jsonString)
+          case Left(err) =>
+            ErrorResponseConverter.toHttp4sResponse(err, cc)
         }
     }
     resourceDocs += ResourceDoc(
@@ -2191,7 +2198,7 @@ object Http4s600 {
     // DELETE /obp/v6.0.0/management/webui_props/WEBUI_PROP_NAME
     val deleteWebUiProps: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ DELETE -> `prefixPath` / "management" / "webui_props" / webUiPropName =>
-        EndpointHelpers.executeAndRespond(req) { implicit cc =>
+        EndpointHelpers.executeDelete(req) { cc =>
           val nameLower = webUiPropName.toLowerCase
           for {
             _ <- NewStyle.function.tryons(s"$InvalidWebUiProps name must start with webui_, but current name is: $nameLower", 400, Some(cc)) {
@@ -2208,7 +2215,7 @@ object Http4s600 {
               case Full(prop) => Future(MappedWebUiPropsProvider.delete(prop.webUiPropsId.getOrElse("")))
               case _ => Future.successful(Full(true))
             }
-          } yield ""
+          } yield ()
         }
     }
     resourceDocs += ResourceDoc(
@@ -2336,6 +2343,7 @@ object Http4s600 {
       List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
       apiTagOIDC :: apiTagConsumer :: apiTagOAuth :: Nil,
       Some(canGetOidcClient :: Nil),
+      authMode = code.api.util.APIUtil.UserOrApplication,
       http4sPartialFunction = Some(getOidcClient))
 
     // POST /obp/v6.0.0/oidc/clients/verify
@@ -2371,6 +2379,7 @@ object Http4s600 {
       List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
       apiTagOIDC :: apiTagConsumer :: apiTagOAuth :: Nil,
       Some(canVerifyOidcClient :: Nil),
+      authMode = code.api.util.APIUtil.UserOrApplication,
       http4sPartialFunction = Some(verifyOidcClient))
 
     // ─── Phase 2: users bucket (6 of 16; chat-room + special-purpose deferred) ───
@@ -2712,7 +2721,7 @@ object Http4s600 {
     }
     resourceDocs += ResourceDoc(
       null, implementedInApiVersion, nameOf(createCounterpartyAttribute), "POST",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID/attributes", "Create Counterparty Attribute",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID_PARAM/attributes", "Create Counterparty Attribute",
       """Create a new attribute on the specified counterparty.""",
       EmptyBody, EmptyBody,
       List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
@@ -2723,15 +2732,13 @@ object Http4s600 {
     // DELETE /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID/attributes/COUNTERPARTY_ATTRIBUTE_ID
     val deleteCounterpartyAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ DELETE -> `prefixPath` / "banks" / _ / "accounts" / _ / "counterparties" / _ / "attributes" / attributeId =>
-        EndpointHelpers.executeAndRespond(req) { implicit cc =>
-          for {
-            _ <- code.api.util.newstyle.CounterpartyAttributeNewStyle.deleteCounterpartyAttribute(attributeId, Some(cc))
-          } yield ""
+        EndpointHelpers.executeDelete(req) { cc =>
+          code.api.util.newstyle.CounterpartyAttributeNewStyle.deleteCounterpartyAttribute(attributeId, Some(cc))
         }
     }
     resourceDocs += ResourceDoc(
       null, implementedInApiVersion, nameOf(deleteCounterpartyAttribute), "DELETE",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID/attributes/COUNTERPARTY_ATTRIBUTE_ID",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID_PARAM/attributes/COUNTERPARTY_ATTRIBUTE_ID",
       "Delete Counterparty Attribute",
       """Delete a counterparty attribute.""",
       EmptyBody, EmptyBody,
@@ -2751,7 +2758,7 @@ object Http4s600 {
     }
     resourceDocs += ResourceDoc(
       null, implementedInApiVersion, nameOf(getCounterpartyAttributeById), "GET",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID/attributes/COUNTERPARTY_ATTRIBUTE_ID",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID_PARAM/attributes/COUNTERPARTY_ATTRIBUTE_ID",
       "Get Counterparty Attribute By Id",
       """Get a counterparty attribute by its ID.""",
       EmptyBody, EmptyBody,
@@ -2772,7 +2779,7 @@ object Http4s600 {
     }
     resourceDocs += ResourceDoc(
       null, implementedInApiVersion, nameOf(getAllCounterpartyAttributes), "GET",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID/attributes",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID_PARAM/attributes",
       "Get All Counterparty Attributes",
       """Get all attributes for the specified counterparty.""",
       EmptyBody, EmptyBody,
@@ -2806,7 +2813,7 @@ object Http4s600 {
     }
     resourceDocs += ResourceDoc(
       null, implementedInApiVersion, nameOf(updateCounterpartyAttribute), "PUT",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID/attributes/COUNTERPARTY_ATTRIBUTE_ID",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID_PARAM/attributes/COUNTERPARTY_ATTRIBUTE_ID",
       "Update Counterparty Attribute",
       """Update a counterparty attribute by its ID.""",
       EmptyBody, EmptyBody,
@@ -3271,7 +3278,8 @@ object Http4s600 {
       """Get the Consumer used to make this request, including active rate limits and call counters.""",
       EmptyBody, EmptyBody,
       List($AuthenticatedUserIsRequired, InvalidConsumerCredentials, UnknownError),
-      apiTagConsumer :: Nil, None,
+      apiTagConsumer :: Nil,
+      Some(canGetCurrentConsumer :: Nil),
       http4sPartialFunction = Some(getCurrentConsumer)
     )
 
@@ -3863,15 +3871,14 @@ object Http4s600 {
               net.liftweb.json.parse(rawBody).extract[CallLimitPostJsonV600]
             }
             _ <- NewStyle.function.getConsumerByConsumerId(consumerId, Some(cc))
-            _ <- RateLimitingDI.rateLimiting.vend.createConsumerCallLimits(
+            rateLimitingBox <- RateLimitingDI.rateLimiting.vend.createConsumerCallLimits(
               consumerId, postJson.from_date, postJson.to_date,
               postJson.api_version, postJson.api_name, postJson.bank_id,
               Some(postJson.per_second_call_limit), Some(postJson.per_minute_call_limit),
               Some(postJson.per_hour_call_limit), Some(postJson.per_day_call_limit),
               Some(postJson.per_week_call_limit), Some(postJson.per_month_call_limit))
-            date = new java.util.Date()
-            (activeRateLimit, ids) <- RateLimitingUtil.getActiveRateLimitsWithIds(consumerId, date)
-          } yield JSONFactory600.createActiveRateLimitsJsonV600FromCallLimit(activeRateLimit, ids, date)
+            rateLimiting <- Future(unboxFullOrFail(rateLimitingBox, Some(cc), UnknownError, 400))
+          } yield JSONFactory600.createCallLimitJsonV600(rateLimiting)
         }
     }
 
@@ -3922,11 +3929,11 @@ object Http4s600 {
     // Route: DELETE /obp/v6.0.0/management/consumers/CONSUMER_ID/consumer/rate-limits/RATE_LIMITING_ID
     val deleteCallLimits: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ DELETE -> `prefixPath` / "management" / "consumers" / consumerId / "consumer" / "rate-limits" / rateLimitingId =>
-        EndpointHelpers.executeAndRespond(req) { implicit cc =>
+        EndpointHelpers.executeDelete(req) { cc =>
           for {
             _ <- NewStyle.function.getConsumerByConsumerId(consumerId, Some(cc))
-            _ <- Future(RateLimitingDI.rateLimiting.vend.deleteByRateLimitingId(rateLimitingId))
-          } yield ""
+            _ <- RateLimitingDI.rateLimiting.vend.deleteByRateLimitingId(rateLimitingId)
+          } yield ()
         }
     }
 
