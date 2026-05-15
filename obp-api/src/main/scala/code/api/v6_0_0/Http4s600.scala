@@ -1703,7 +1703,113 @@ object Http4s600 {
           .orElse(updateApiProductAttribute(req))
           .orElse(getApiProductAttribute(req))
           .orElse(deleteApiProductAttribute(req))
+          .orElse(createFeaturedApiCollection(req))
+          .orElse(getFeaturedApiCollectionsAdmin(req))
+          .orElse(updateFeaturedApiCollection(req))
+          .orElse(deleteFeaturedApiCollection(req))
       }
+
+    // ─── Phase 2: management/api-collections bucket (4 endpoints) ─────────
+
+    // Route: POST /obp/v6.0.0/management/api-collections/featured (201)
+    val createFeaturedApiCollection: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "management" / "api-collections" / "featured" =>
+        EndpointHelpers.executeFutureCreated(req) {
+          implicit val cc: CallContext = req.callContext
+          val rawBody = cc.httpBody.getOrElse("")
+          for {
+            postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the PostFeaturedApiCollectionJsonV600", 400, Some(cc)) {
+              net.liftweb.json.parse(rawBody).extract[PostFeaturedApiCollectionJsonV600]
+            }
+            (apiCollection, _) <- NewStyle.function.getApiCollectionById(postJson.api_collection_id, Some(cc))
+            _ <- Helper.booleanToFuture(s"$ApiCollectionNotFound The API Collection must be sharable to be featured.", cc = Some(cc)) {
+              apiCollection.isSharable
+            }
+            _ <- NewStyle.function.checkFeaturedApiCollectionDoesNotExist(postJson.api_collection_id, Some(cc))
+            (featured, _) <- NewStyle.function.createFeaturedApiCollection(
+              postJson.api_collection_id, postJson.sort_order, Some(cc))
+          } yield JSONFactory600.createFeaturedApiCollectionJsonV600(featured)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(createFeaturedApiCollection), "POST",
+      "/management/api-collections/featured", "Create Featured Api Collection",
+      """Mark an API collection as featured.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, ApiCollectionNotFound, UnknownError),
+      apiTagApiCollection :: Nil,
+      Some(canManageFeaturedApiCollections :: Nil),
+      http4sPartialFunction = Some(createFeaturedApiCollection)
+    )
+
+    // Route: GET /obp/v6.0.0/management/api-collections/featured
+    val getFeaturedApiCollectionsAdmin: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "management" / "api-collections" / "featured" =>
+        EndpointHelpers.withUser(req) { (_, cc) =>
+          for {
+            (featured, _) <- NewStyle.function.getAllFeaturedApiCollectionsAdmin(Some(cc))
+          } yield JSONFactory600.createFeaturedApiCollectionsJsonV600(featured)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getFeaturedApiCollectionsAdmin), "GET",
+      "/management/api-collections/featured", "Get Featured Api Collections (Admin)",
+      """Get all featured API collections.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      apiTagApiCollection :: Nil,
+      Some(canManageFeaturedApiCollections :: Nil),
+      http4sPartialFunction = Some(getFeaturedApiCollectionsAdmin)
+    )
+
+    // Route: PUT /obp/v6.0.0/management/api-collections/featured/API_COLLECTION_ID
+    val updateFeaturedApiCollection: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ PUT -> `prefixPath` / "management" / "api-collections" / "featured" / apiCollectionId =>
+        EndpointHelpers.executeAndRespond(req) { implicit cc =>
+          val rawBody = cc.httpBody.getOrElse("")
+          for {
+            putJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the PutFeaturedApiCollectionJsonV600", 400, Some(cc)) {
+              net.liftweb.json.parse(rawBody).extract[PutFeaturedApiCollectionJsonV600]
+            }
+            (updated, _) <- NewStyle.function.updateFeaturedApiCollection(
+              apiCollectionId, putJson.sort_order, Some(cc))
+          } yield JSONFactory600.createFeaturedApiCollectionJsonV600(updated)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(updateFeaturedApiCollection), "PUT",
+      "/management/api-collections/featured/API_COLLECTION_ID", "Update Featured Api Collection",
+      """Update the sort order of a featured API collection.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+      apiTagApiCollection :: Nil,
+      Some(canManageFeaturedApiCollections :: Nil),
+      http4sPartialFunction = Some(updateFeaturedApiCollection)
+    )
+
+    // Route: DELETE /obp/v6.0.0/management/api-collections/featured/API_COLLECTION_ID
+    val deleteFeaturedApiCollection: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ DELETE -> `prefixPath` / "management" / "api-collections" / "featured" / apiCollectionId =>
+        EndpointHelpers.executeAndRespond(req) { implicit cc =>
+          for {
+            _ <- NewStyle.function.deleteFeaturedApiCollectionByApiCollectionId(apiCollectionId, Some(cc))
+          } yield ""
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(deleteFeaturedApiCollection), "DELETE",
+      "/management/api-collections/featured/API_COLLECTION_ID", "Delete Featured Api Collection",
+      """Remove a featured API collection.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      apiTagApiCollection :: Nil,
+      Some(canManageFeaturedApiCollections :: Nil),
+      http4sPartialFunction = Some(deleteFeaturedApiCollection)
+    )
 
     // ─── Phase 2: api-products bucket (9 endpoints) ───────────────────────
     // All endpoints always require auth + role; the v6 Lift conditional
