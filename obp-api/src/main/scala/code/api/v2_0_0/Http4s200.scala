@@ -177,7 +177,18 @@ object Http4s200 {
               Views.views.vend.privateViewsUserCanAccessAtBank(user, bank.bankId)
             }
             (availablePrivateAccounts, _) <- BankExtended(bank).privateAccountsFuture(privateAccountAccess, Some(cc))
-          } yield privateBankAccountsListToJson(availablePrivateAccounts, privateViewsUserCanAccessAtOneBank)
+          } yield {
+            // Lift returns a raw List[BasicAccountJSON] here (JArray), not BasicAccountsJSON
+            // (JObject). v3_1_0/AccountTest extracts `List[BasicAccountJSON]` directly, so we
+            // must NOT wrap; the sibling /banks/BANK_ID/accounts/private endpoint does wrap.
+            availablePrivateAccounts.map { account =>
+              val viewsAvailable = privateViewsUserCanAccessAtOneBank
+                .filter(v => v.bankId == account.bankId && v.accountId == account.accountId && v.isPrivate)
+                .map(createBasicViewJSON)
+                .distinct
+              createBasicAccountJSON(account, viewsAvailable)
+            }
+          }
         }
     }
 

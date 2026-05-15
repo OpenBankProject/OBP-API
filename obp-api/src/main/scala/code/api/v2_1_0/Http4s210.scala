@@ -162,11 +162,21 @@ object Http4s210 {
     // checkAuthorisationToCreateTransactionRequest handles that internally and
     // supports canCreateAnyTransactionRequest role bypass.
 
+    // The 4 transaction request types this version knows how to handle. v4.0.0 adds more
+    // (ACCOUNT, ACCOUNT_OTP, REFUND, SIMPLE, AGENT_CASH_WITHDRAWAL, CARD); the route guard
+    // below keeps unsupported types out of v2.1.0's handler so they fall through the
+    // bridge cascade to the v4 Lift endpoint that knows the type.
+    private val v210SupportedTransactionRequestTypes: Set[String] =
+      Set("SANDBOX_TAN", "COUNTERPARTY", "SEPA", "FREE_FORM")
+
     val createTransactionRequest: HttpRoutes[IO] = HttpRoutes.of[IO] {
-      case req @ POST -> `prefixPath` / "banks" / _ / "accounts" / _ / viewIdStr / "transaction-request-types" / transactionRequestTypeStr / "transaction-requests" =>
+      case req @ POST -> `prefixPath` / "banks" / _ / "accounts" / _ / viewIdStr / "transaction-request-types" / transactionRequestTypeStr / "transaction-requests"
+          if v210SupportedTransactionRequestTypes.contains(transactionRequestTypeStr) =>
         implicit val cc: CallContext = req.callContext
+        // Use cc.httpBody (cached by ResourceDocMiddleware via cachedBodyKey) instead of re-reading
+        // req.bodyText, which is empty after the bridge cascade has already consumed the stream.
         (for {
-          jsonBody <- req.bodyText.compile.string
+          jsonBody <- IO.pure(cc.httpBody.getOrElse(""))
           user     <- IO.fromOption(cc.user.toOption)(new RuntimeException(AuthenticatedUserIsRequired))
           account  <- IO.fromOption(cc.bankAccount)(new RuntimeException(AccountNotFound))
           result   <- code.api.util.http4s.RequestScopeConnection.fromFuture(
@@ -226,21 +236,18 @@ object Http4s210 {
          |${userAuthenticationMessage(true)}""",
       transactionRequestBodyFreeFormJSON, transactionRequestWithChargeJSON210,
       commonTxReqErrors, List(apiTagTransactionRequest, apiTagPSD2PIS),
-      Some(List(canCreateAnyTransactionRequest)),
+      // Role kept out of the ResourceDoc: in the Lift implementation
+      // `canCreateAnyTransactionRequest` only bypasses view-permission checks
+      // inside `checkAuthorisationToCreateTransactionRequest` — it is not a
+      // required entitlement. Owner-view users must still be able to create
+      // FREE_FORM requests without holding the role.
+      None,
       http4sPartialFunction = Some(createTransactionRequest))
 
-    // Catch-all: handles unknown/invalid transaction request types → 400 from createTransactionRequestImpl
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createTransactionRequest), "POST",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/GRANT_VIEW_ID/transaction-request-types/TRANSACTION_REQUEST_TYPE/transaction-requests",
-      "Create Transaction Request",
-      s"""Create a Transaction Request of the type specified in the URL.
-         |
-         |${userAuthenticationMessage(true)}""",
-      transactionRequestBodyJsonV200, transactionRequestWithChargeJSON210,
-      commonTxReqErrors, List(apiTagTransactionRequest),
-      Some(List(canCreateAnyTransactionRequest)),
-      http4sPartialFunction = Some(createTransactionRequest))
+    // (Catch-all ResourceDoc for TRANSACTION_REQUEST_TYPE removed: it caused the v2.1.0
+    // middleware to auth-check and route every type, including v4-only ones, then return
+    // 400. The four specific docs above cover what v2.1.0 actually supports; v4-only
+    // types miss the route guard and fall through to the Lift bridge.)
 
     private def createTransactionRequestImpl(
       jsonBody: String,
@@ -361,7 +368,13 @@ object Http4s210 {
                 body, serialized, sharedChargePolicy, None, None, Some(cc))
             } yield result
           case other =>
-            Future.failed(new RuntimeException(s"$InvalidTransactionRequestType: '$transactionRequestTypeStr'"))
+            // Should be unreachable: the route guard restricts the match to the 4
+            // supported types above, so this branch only fires if a new type is
+            // added to the guard without the corresponding case. Encoded as
+            // APIFailureNewStyle JSON so ErrorResponseConverter maps it to 400,
+            // not 500.
+            val af = code.api.APIFailureNewStyle(s"$InvalidTransactionRequestType: '$transactionRequestTypeStr'", 400, Some(cc.toLight))
+            Future.failed(new Exception(net.liftweb.json.JsonAST.compactRender(net.liftweb.json.Extraction.decompose(af))))
         }
       } yield JSONFactory210.createTransactionRequestWithChargeJSON(createdTransactionRequest)
     }
@@ -369,12 +382,20 @@ object Http4s210 {
     // ─── answerTransactionRequestChallenge ────────────────────────────────────
 
     val answerTransactionRequestChallenge: HttpRoutes[IO] = HttpRoutes.of[IO] {
-      case req @ POST -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "transaction-request-types" / transactionRequestTypeStr / "transaction-requests" / transReqIdStr / "challenge" =>
+      // Same guard as createTransactionRequest: v4 trans-req types (ACCOUNT, ACCOUNT_OTP,
+      // REFUND, SIMPLE, AGENT_CASH_WITHDRAWAL, CARD, …) need v4's answer-challenge
+      // logic (maker-checker, ChallengeJsonV400 shape, attribute attachment). Routing
+      // them through this handler returns the v2.1.0 shape and skips v4 validation,
+      // so the test sees "400 did not equal 202". Let unknown types fall through to
+      // the Lift fallback where APIMethods400.answerTransactionRequestChallenge runs.
+      case req @ POST -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "transaction-request-types" / transactionRequestTypeStr / "transaction-requests" / transReqIdStr / "challenge"
+          if v210SupportedTransactionRequestTypes.contains(transactionRequestTypeStr) =>
         implicit val cc: CallContext = req.callContext
         val io = for {
           user     <- IO.fromOption(cc.user.toOption)(new RuntimeException(AuthenticatedUserIsRequired))
           account  <- IO.fromOption(cc.bankAccount)(new RuntimeException(AccountNotFound))
-          jsonBody <- req.bodyText.compile.string
+          // Use cached body from cc — req.bodyText is empty after upstream bridge cascade.
+          jsonBody <- IO.pure(cc.httpBody.getOrElse(""))
           result   <- code.api.util.http4s.RequestScopeConnection.fromFuture(
             answerChallengeImpl(jsonBody, user, account, transactionRequestTypeStr, transReqIdStr, cc))
         } yield result
@@ -386,18 +407,30 @@ object Http4s210 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(answerTransactionRequestChallenge), "POST",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/TRANSACTION_REQUEST_TYPE/transaction-requests/TRANSACTION_REQUEST_ID/challenge",
-      "Answer Transaction Request Challenge",
-      """In Sandbox mode, any string that can be converted to a positive integer will be accepted as an answer.""",
-      challengeAnswerJSON, transactionRequestWithChargeJson,
-      List(AuthenticatedUserIsRequired, InvalidBankIdFormat, InvalidAccountIdFormat, InvalidJsonFormat,
-        BankNotFound, UserNoPermissionAccessView, TransactionRequestStatusNotInitiated,
-        TransactionRequestTypeHasChanged, InvalidTransactionRequestChallengeId,
-        AllowedAttemptsUsedUp, TransactionDisabled, UnknownError),
-      List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2), None,
-      http4sPartialFunction = Some(answerTransactionRequestChallenge))
+    // Register one ResourceDoc per supported type rather than a single
+    // TRANSACTION_REQUEST_TYPE wildcard. The wildcard would also match v4-only
+    // types (ACCOUNT, ACCOUNT_OTP, REFUND, SIMPLE, AGENT_CASH_WITHDRAWAL, CARD),
+    // which the route guard then rejects — leaving the middleware to return 404
+    // instead of letting the request fall through to the Lift fallback that
+    // actually handles those types.
+    private val answerChallengeCommonErrors = List(
+      AuthenticatedUserIsRequired, InvalidBankIdFormat, InvalidAccountIdFormat, InvalidJsonFormat,
+      BankNotFound, UserNoPermissionAccessView, TransactionRequestStatusNotInitiated,
+      TransactionRequestTypeHasChanged, InvalidTransactionRequestChallengeId,
+      AllowedAttemptsUsedUp, TransactionDisabled, UnknownError)
+
+    private val answerChallengeTags = List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2)
+
+    v210SupportedTransactionRequestTypes.foreach { trType =>
+      resourceDocs += ResourceDoc(
+        null, implementedInApiVersion, nameOf(answerTransactionRequestChallenge) + trType.toLowerCase.capitalize, "POST",
+        s"/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/$trType/transaction-requests/TRANSACTION_REQUEST_ID/challenge",
+        s"Answer Transaction Request Challenge ($trType)",
+        """In Sandbox mode, any string that can be converted to a positive integer will be accepted as an answer.""",
+        challengeAnswerJSON, transactionRequestWithChargeJson,
+        answerChallengeCommonErrors, answerChallengeTags, None,
+        http4sPartialFunction = Some(answerTransactionRequestChallenge))
+    }
 
     private def answerChallengeImpl(
       jsonBody: String,

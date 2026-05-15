@@ -235,6 +235,12 @@ jobs:
           echo consents.allowed=true >> obp-api/src/main/resources/props/test.default.props
           echo hikari.maximumPoolSize=20 >> obp-api/src/main/resources/props/test.default.props
           echo write_metrics=false >> obp-api/src/main/resources/props/test.default.props
+          # Log emails instead of opening a real SMTP socket: without this,
+          # LocalMappedConnector.sendCustomerNotification's EMAIL branch calls
+          # CommonsEmailWrapper.sendTextEmail which throws ConnectException because
+          # there's no mail server in CI. That surfaces as 500 in any test that
+          # hits an endpoint triggering the notification (v5 consent flows, etc.).
+          echo mail.test.mode=true >> obp-api/src/main/resources/props/test.default.props
 
       - name: Run tests — shard ${{ matrix.shard }} (${{ matrix.name }})
         run: |
