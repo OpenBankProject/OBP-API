@@ -1682,7 +1682,301 @@ object Http4s600 {
           .orElse(getMigrations(req))
           .orElse(getStoredProcedureConnectorHealth(req))
           .orElse(getConnectorMethodNames(req))
+          .orElse(createMandate(req))
+          .orElse(getMandates(req))
+          .orElse(getMandate(req))
+          .orElse(updateMandate(req))
+          .orElse(deleteMandate(req))
+          .orElse(createMandateProvision(req))
+          .orElse(getMandateProvisions(req))
+          .orElse(getMandateProvision(req))
+          .orElse(updateMandateProvision(req))
+          .orElse(deleteMandateProvision(req))
       }
+
+    // ─── Phase 2: mandates bucket (10 endpoints) ──────────────────────────
+
+    // Parse `yyyy-MM-dd'T'HH:mm:ss'Z'` UTC strings; v6 Lift's exact format.
+    private def parseMandateDate(s: String, field: String, cc: CallContext): Future[java.util.Date] =
+      NewStyle.function.tryons(s"$InvalidDateFormat $field must be in yyyy-MM-dd'T'HH:mm:ss'Z' format", 400, Some(cc)) {
+        val fmt = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'")
+        fmt.setTimeZone(java.util.TimeZone.getTimeZone("UTC"))
+        fmt.setLenient(false)
+        fmt.parse(s)
+      }
+
+    // Route: POST /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/mandates (201)
+    val createMandate: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "banks" / _ / "accounts" / _ / "mandates" =>
+        EndpointHelpers.executeFutureCreated(req) {
+          implicit val cc: CallContext = req.callContext
+          val rawBody = cc.httpBody.getOrElse("")
+          val bank = cc.bank.get
+          val account = cc.bankAccount.get
+          for {
+            createJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
+              net.liftweb.json.parse(rawBody).extract[CreateMandateJsonV600]
+            }
+            validFrom <- parseMandateDate(createJson.valid_from, "valid_from", cc)
+            validTo <- parseMandateDate(createJson.valid_to, "valid_to", cc)
+            (mandate, _) <- BankConnector.connector.vend.createMandate(
+              bank.bankId, account.accountId, createJson.customer_id,
+              createJson.mandate_name, createJson.mandate_reference,
+              createJson.legal_text, createJson.description, createJson.status,
+              validFrom, validTo, cc.userId, Some(cc)
+            ).map(i => (unboxFullOrFail(i._1, Some(cc), "Could not create mandate"), i._2))
+          } yield JSONFactory600.createMandateJsonV600(mandate)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(createMandate), "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/mandates", "Create Mandate",
+      """Create a new mandate for an account.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UserHasMissingRoles, UnknownError),
+      apiTagMandate :: Nil,
+      Some(canCreateMandate :: Nil),
+      http4sPartialFunction = Some(createMandate)
+    )
+
+    // Route: GET /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/mandates
+    val getMandates: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / "mandates" =>
+        EndpointHelpers.withBankAccount(req) { (_, account, cc) =>
+          for {
+            (mandates, _) <- BankConnector.connector.vend.getMandatesByBankAndAccount(
+              account.bankId, account.accountId, Some(cc))
+              .map(i => (unboxFullOrFail(i._1, Some(cc), "Could not get mandates"), i._2))
+          } yield JSONFactory600.createMandatesJsonV600(mandates)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getMandates), "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/mandates", "Get Mandates",
+      """Get all mandates for an account.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UserHasMissingRoles, UnknownError),
+      apiTagMandate :: Nil,
+      Some(canGetMandate :: Nil),
+      http4sPartialFunction = Some(getMandates)
+    )
+
+    // Route: GET /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/mandates/MANDATE_ID
+    val getMandate: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / "mandates" / mandateId =>
+        EndpointHelpers.withBankAccount(req) { (_, _, cc) =>
+          for {
+            (mandate, _) <- BankConnector.connector.vend.getMandateById(mandateId, Some(cc))
+              .map(i => (unboxFullOrFail(i._1, Some(cc), s"Mandate not found. Mandate ID: $mandateId", 404), i._2))
+          } yield JSONFactory600.createMandateJsonV600(mandate)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getMandate), "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/mandates/MANDATE_ID", "Get Mandate",
+      """Get a specific mandate.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UserHasMissingRoles, UnknownError),
+      apiTagMandate :: Nil,
+      Some(canGetMandate :: Nil),
+      http4sPartialFunction = Some(getMandate)
+    )
+
+    // Route: PUT /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/mandates/MANDATE_ID
+    val updateMandate: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ PUT -> `prefixPath` / "banks" / _ / "accounts" / _ / "mandates" / mandateId =>
+        EndpointHelpers.executeAndRespond(req) { implicit cc =>
+          val rawBody = cc.httpBody.getOrElse("")
+          for {
+            updateJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
+              net.liftweb.json.parse(rawBody).extract[UpdateMandateJsonV600]
+            }
+            validFrom <- parseMandateDate(updateJson.valid_from, "valid_from", cc)
+            validTo <- parseMandateDate(updateJson.valid_to, "valid_to", cc)
+            (mandate, _) <- BankConnector.connector.vend.updateMandate(
+              mandateId, updateJson.mandate_name, updateJson.mandate_reference,
+              updateJson.legal_text, updateJson.description, updateJson.status,
+              validFrom, validTo, cc.userId, Some(cc)
+            ).map(i => (unboxFullOrFail(i._1, Some(cc), s"Could not update mandate. Mandate ID: $mandateId"), i._2))
+          } yield JSONFactory600.createMandateJsonV600(mandate)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(updateMandate), "PUT",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/mandates/MANDATE_ID", "Update Mandate",
+      """Update a mandate.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UserHasMissingRoles, UnknownError),
+      apiTagMandate :: Nil,
+      Some(canUpdateMandate :: Nil),
+      http4sPartialFunction = Some(updateMandate)
+    )
+
+    // Route: DELETE /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/mandates/MANDATE_ID (204)
+    val deleteMandate: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ DELETE -> `prefixPath` / "banks" / _ / "accounts" / _ / "mandates" / mandateId =>
+        EndpointHelpers.executeAndRespond(req) { implicit cc =>
+          for {
+            _ <- BankConnector.connector.vend.deleteMandate(mandateId, Some(cc))
+              .map(i => (unboxFullOrFail(i._1, Some(cc), s"Could not delete mandate. Mandate ID: $mandateId"), i._2))
+          } yield ""
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(deleteMandate), "DELETE",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/mandates/MANDATE_ID", "Delete Mandate",
+      """Delete a mandate and all its provisions and signatory panels.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
+      apiTagMandate :: Nil,
+      Some(canDeleteMandate :: Nil),
+      http4sPartialFunction = Some(deleteMandate)
+    )
+
+    // Provision serializer — match Lift exactly.
+    private def serializeSignatoryRequirements(any: Any): String = {
+      net.liftweb.json.Serialization.write(any.asInstanceOf[AnyRef])(net.liftweb.json.DefaultFormats)
+    }
+
+    // Route: POST /obp/v6.0.0/banks/BANK_ID/mandates/MANDATE_ID/provisions (201)
+    val createMandateProvision: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "banks" / _ / "mandates" / mandateId / "provisions" =>
+        EndpointHelpers.executeFutureCreated(req) {
+          implicit val cc: CallContext = req.callContext
+          val rawBody = cc.httpBody.getOrElse("")
+          for {
+            createJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
+              net.liftweb.json.parse(rawBody).extract[CreateMandateProvisionJsonV600]
+            }
+            sigReqJson = serializeSignatoryRequirements(createJson.signatory_requirements)
+            (provision, _) <- BankConnector.connector.vend.createMandateProvision(
+              mandateId, createJson.provision_name, createJson.provision_description,
+              createJson.legal_reference, createJson.provision_type, createJson.conditions,
+              sigReqJson,
+              createJson.linked_view_id.getOrElse(""),
+              createJson.linked_abac_rule_id.getOrElse(""),
+              createJson.linked_challenge_type.getOrElse(""),
+              createJson.is_active, createJson.sort_order, Some(cc)
+            ).map(i => (unboxFullOrFail(i._1, Some(cc), "Could not create mandate provision"), i._2))
+          } yield JSONFactory600.createMandateProvisionJsonV600(provision)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(createMandateProvision), "POST",
+      "/banks/BANK_ID/mandates/MANDATE_ID/provisions", "Create Mandate Provision",
+      """Create a provision under a mandate.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
+      apiTagMandate :: Nil,
+      Some(canCreateMandateProvision :: Nil),
+      http4sPartialFunction = Some(createMandateProvision)
+    )
+
+    // Route: GET /obp/v6.0.0/banks/BANK_ID/mandates/MANDATE_ID/provisions
+    val getMandateProvisions: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / _ / "mandates" / mandateId / "provisions" =>
+        EndpointHelpers.withUserAndBank(req) { (_, _, cc) =>
+          for {
+            (provisions, _) <- BankConnector.connector.vend.getMandateProvisionsByMandateId(mandateId, Some(cc))
+              .map(i => (unboxFullOrFail(i._1, Some(cc), s"Could not get provisions for mandate: $mandateId"), i._2))
+          } yield JSONFactory600.createMandateProvisionsJsonV600(provisions)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getMandateProvisions), "GET",
+      "/banks/BANK_ID/mandates/MANDATE_ID/provisions", "Get Mandate Provisions",
+      """Get all provisions for a mandate.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
+      apiTagMandate :: Nil,
+      Some(canGetMandateProvision :: Nil),
+      http4sPartialFunction = Some(getMandateProvisions)
+    )
+
+    // Route: GET /obp/v6.0.0/banks/BANK_ID/mandates/MANDATE_ID/provisions/PROVISION_ID
+    val getMandateProvision: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / _ / "mandates" / _ / "provisions" / provisionId =>
+        EndpointHelpers.withUserAndBank(req) { (_, _, cc) =>
+          for {
+            (provision, _) <- BankConnector.connector.vend.getMandateProvisionById(provisionId, Some(cc))
+              .map(i => (unboxFullOrFail(i._1, Some(cc), s"Mandate provision not found. Provision ID: $provisionId", 404), i._2))
+          } yield JSONFactory600.createMandateProvisionJsonV600(provision)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getMandateProvision), "GET",
+      "/banks/BANK_ID/mandates/MANDATE_ID/provisions/PROVISION_ID", "Get Mandate Provision",
+      """Get a specific mandate provision.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
+      apiTagMandate :: Nil,
+      Some(canGetMandateProvision :: Nil),
+      http4sPartialFunction = Some(getMandateProvision)
+    )
+
+    // Route: PUT /obp/v6.0.0/banks/BANK_ID/mandates/MANDATE_ID/provisions/PROVISION_ID
+    val updateMandateProvision: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ PUT -> `prefixPath` / "banks" / _ / "mandates" / _ / "provisions" / provisionId =>
+        EndpointHelpers.executeAndRespond(req) { implicit cc =>
+          val rawBody = cc.httpBody.getOrElse("")
+          for {
+            updateJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
+              net.liftweb.json.parse(rawBody).extract[UpdateMandateProvisionJsonV600]
+            }
+            sigReqJson = serializeSignatoryRequirements(updateJson.signatory_requirements)
+            (provision, _) <- BankConnector.connector.vend.updateMandateProvision(
+              provisionId, updateJson.provision_name, updateJson.provision_description,
+              updateJson.legal_reference, updateJson.provision_type, updateJson.conditions,
+              sigReqJson,
+              updateJson.linked_view_id.getOrElse(""),
+              updateJson.linked_abac_rule_id.getOrElse(""),
+              updateJson.linked_challenge_type.getOrElse(""),
+              updateJson.is_active, updateJson.sort_order, Some(cc)
+            ).map(i => (unboxFullOrFail(i._1, Some(cc), s"Could not update provision. Provision ID: $provisionId"), i._2))
+          } yield JSONFactory600.createMandateProvisionJsonV600(provision)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(updateMandateProvision), "PUT",
+      "/banks/BANK_ID/mandates/MANDATE_ID/provisions/PROVISION_ID", "Update Mandate Provision",
+      """Update a mandate provision.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
+      apiTagMandate :: Nil,
+      Some(canUpdateMandateProvision :: Nil),
+      http4sPartialFunction = Some(updateMandateProvision)
+    )
+
+    // Route: DELETE /obp/v6.0.0/banks/BANK_ID/mandates/MANDATE_ID/provisions/PROVISION_ID (204)
+    val deleteMandateProvision: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ DELETE -> `prefixPath` / "banks" / _ / "mandates" / _ / "provisions" / provisionId =>
+        EndpointHelpers.executeAndRespond(req) { implicit cc =>
+          for {
+            _ <- BankConnector.connector.vend.deleteMandateProvision(provisionId, Some(cc))
+              .map(i => (unboxFullOrFail(i._1, Some(cc), s"Could not delete provision. Provision ID: $provisionId"), i._2))
+          } yield ""
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(deleteMandateProvision), "DELETE",
+      "/banks/BANK_ID/mandates/MANDATE_ID/provisions/PROVISION_ID", "Delete Mandate Provision",
+      """Delete a mandate provision.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
+      apiTagMandate :: Nil,
+      Some(canDeleteMandateProvision :: Nil),
+      http4sPartialFunction = Some(deleteMandateProvision)
+    )
 
     val allRoutesWithMiddleware: HttpRoutes[IO] =
       ResourceDocMiddleware.apply(resourceDocs)(allRoutes)
