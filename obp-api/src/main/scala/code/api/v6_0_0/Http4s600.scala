@@ -27,9 +27,20 @@ import code.api.util.APIUtil.{createQueriesByHttpParamsFuture, unboxFull, unboxF
 import code.api.util.{ApiVersionUtils, CertificateUtil, CommonsEmailWrapper, RateLimitingUtil}
 import code.api.v2_0_0.{BasicViewJson, JSONFactory200}
 import code.api.v3_0_0.JSONFactory300
+import code.abacrule.{AbacRuleEngine, MappedAbacRuleProvider}
 import code.api.v3_1_0.PostCustomerNumberJsonV310
+import code.api.v4_0_0.CallLimitPostJsonV400
 import code.api.v5_1_0.UserAttributesResponseJsonV510
 import code.api.v5_1_0.PostCustomerLegalNameJsonV510
+import code.api.v5_1_0.UserAttributeJsonV510
+import code.api.v6_0_0.JSONFactory600.{createAbacRuleJsonV600, createAbacRulesJsonV600}
+import code.api.v6_0_0.JSONFactory600.{GroupEntitlementJsonV600, GroupEntitlementsJsonV600, GroupJsonV600, GroupsJsonV600, PostGroupJsonV600, PutGroupJsonV600}
+import code.group.{GroupTrait => GroupT}
+import code.ratelimiting.RateLimitingDI
+import com.openbankproject.commons.model.enums.UserAttributeType
+
+import java.text.SimpleDateFormat
+import java.util.UUID.randomUUID
 import code.api.v6_0_0.JSONFactory600.UpdateViewJsonV600
 import code.model._
 import code.model.dataAccess.AuthUser
@@ -691,7 +702,16 @@ object Http4s600 {
       else Future.failed(new RuntimeException(s"$InvalidDynamicEntityName Current value: '$entityName'"))
 
     private def createDynamicEntityV600(cc: CallContext, dynamicEntity: DynamicEntityCommons) = for {
+      // Wrap the connector call so a thrown RuntimeException (bad schema, etc.)
+      // becomes a 400 InvalidJsonFormat — matches v6 Lift's dispatch wrapper.
       Full(result) <- NewStyle.function.createOrUpdateDynamicEntity(dynamicEntity, Some(cc))
+        .recoverWith {
+          case e: Throwable if !Option(e.getMessage).exists(_.startsWith("OBP-")) =>
+            val json = net.liftweb.json.Serialization.write(
+              code.api.APIFailureNewStyle(s"$InvalidJsonFormat ${e.getMessage}", 400, Some(cc).map(_.toLight))
+            )(net.liftweb.json.DefaultFormats)
+            Future.failed(new Exception(json))
+        }
       crudRoles = List(
         DynamicEntityInfo.canCreateRole(result.entityName, dynamicEntity.bankId),
         DynamicEntityInfo.canUpdateRole(result.entityName, dynamicEntity.bankId),
@@ -706,6 +726,13 @@ object Http4s600 {
 
     private def updateDynamicEntityV600(cc: CallContext, dynamicEntity: DynamicEntityCommons) = for {
       Full(result) <- NewStyle.function.createOrUpdateDynamicEntity(dynamicEntity, Some(cc))
+        .recoverWith {
+          case e: Throwable if !Option(e.getMessage).exists(_.startsWith("OBP-")) =>
+            val json = net.liftweb.json.Serialization.write(
+              code.api.APIFailureNewStyle(s"$InvalidJsonFormat ${e.getMessage}", 400, Some(cc).map(_.toLight))
+            )(net.liftweb.json.DefaultFormats)
+            Future.failed(new Exception(json))
+        }
     } yield {
       JSONFactory600.createMyDynamicEntitiesJson(List(result: DynamicEntityCommons)).dynamic_entities.head
     }
@@ -721,8 +748,9 @@ object Http4s600 {
               net.liftweb.json.parse(rawBody).extract[CreateDynamicEntityRequestJsonV600]
             }
             _ <- validateEntityNameV600(request.entity_name, cc)
-            internalJson = JSONFactory600.convertV600RequestToInternal(request)
-            dynamicEntity = DynamicEntityCommons(internalJson, None, cc.userId, None)
+            dynamicEntity <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
+              DynamicEntityCommons(JSONFactory600.convertV600RequestToInternal(request), None, cc.userId, None)
+            }
             result <- createDynamicEntityV600(cc, dynamicEntity)
           } yield result
         }
@@ -751,8 +779,9 @@ object Http4s600 {
               net.liftweb.json.parse(rawBody).extract[CreateDynamicEntityRequestJsonV600]
             }
             _ <- validateEntityNameV600(request.entity_name, cc)
-            internalJson = JSONFactory600.convertV600RequestToInternal(request)
-            dynamicEntity = DynamicEntityCommons(internalJson, None, cc.userId, Some(bankIdStr))
+            dynamicEntity <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
+              DynamicEntityCommons(JSONFactory600.convertV600RequestToInternal(request), None, cc.userId, Some(bankIdStr))
+            }
             result <- createDynamicEntityV600(cc, dynamicEntity)
           } yield result
         }
@@ -1707,7 +1736,990 @@ object Http4s600 {
           .orElse(getFeaturedApiCollectionsAdmin(req))
           .orElse(updateFeaturedApiCollection(req))
           .orElse(deleteFeaturedApiCollection(req))
+          .orElse(createPersonalDataField(req))
+          .orElse(getPersonalDataFields(req))
+          .orElse(getPersonalDataFieldById(req))
+          .orElse(updatePersonalDataField(req))
+          .orElse(deletePersonalDataField(req))
+          .orElse(getConsumerCallCounters(req))
+          .orElse(createCallLimits(req))
+          .orElse(updateRateLimits(req))
+          .orElse(deleteCallLimits(req))
+          .orElse(getActiveRateLimitsNow(req))
+          .orElse(getActiveRateLimitsAtDate(req))
+          .orElse(createGroup(req))
+          .orElse(getGroup(req))
+          .orElse(getGroups(req))
+          .orElse(updateGroup(req))
+          .orElse(deleteGroup(req))
+          .orElse(getGroupEntitlements(req))
+          .orElse(createAbacRule(req))
+          .orElse(getAbacRule(req))
+          .orElse(getAbacRules(req))
+          .orElse(getAbacRulesByPolicy(req))
+          .orElse(updateAbacRule(req))
+          .orElse(deleteAbacRule(req))
+          .orElse(getFeatures(req))
+          .orElse(getProviders(req))
+          .orElse(getCurrentConsumer(req))
+          .orElse(getPopularApis(req))
+          .orElse(getAccountDirectory(req))
+          .orElse(getConfigProps(req))
+          .orElse(getAppDirectory(req))
+          .orElse(getCustomViews(req))
+          .orElse(getRolesWithEntitlementCountsAtAllBanks(req))
+          .orElse(getCustomViewById(req))
+          .orElse(invalidateCacheNamespace(req))
+          // signal bucket deferred — Redis API signatures + SignalMessageJsonV600
+          // field layout differ from initial port; needs focused follow-up.
       }
+
+    // Route: GET /obp/v6.0.0/management/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID
+    val getCustomViewById: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "management" / "banks" / bankIdStr / "accounts" / accountIdStr / "views" / viewIdStr =>
+        EndpointHelpers.withUser(req) { (_, cc) =>
+          for {
+            view <- ViewNewStyle.customView(
+              ViewId(viewIdStr),
+              BankIdAccountId(BankId(bankIdStr), com.openbankproject.commons.model.AccountId(accountIdStr)),
+              Some(cc))
+          } yield JSONFactory600.createViewJsonV600(view)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getCustomViewById), "GET",
+      "/management/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID", "Get Custom View by Id",
+      """Get a single custom view by VIEW_ID for the given account.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UnknownError),
+      apiTagView :: Nil, None,
+      http4sPartialFunction = Some(getCustomViewById)
+    )
+
+    // Route: POST /obp/v6.0.0/management/cache/namespaces/invalidate
+    val invalidateCacheNamespace: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "management" / "cache" / "namespaces" / "invalidate" =>
+        EndpointHelpers.executeAndRespond(req) { implicit cc =>
+          val rawBody = cc.httpBody.getOrElse("")
+          for {
+            postJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
+              net.liftweb.json.parse(rawBody).extract[InvalidateCacheNamespaceJsonV600]
+            }
+            namespaceId = postJson.namespace_id
+            _ <- Helper.booleanToFuture(
+              s"$InvalidCacheNamespaceId $namespaceId. Valid values: ${Constant.ALL_CACHE_NAMESPACES.mkString(", ")}",
+              400, Some(cc))(Constant.ALL_CACHE_NAMESPACES.contains(namespaceId))
+            oldVersion = Constant.getCacheNamespaceVersion(namespaceId)
+            newVersionOpt = Constant.incrementCacheNamespaceVersion(namespaceId)
+            _ <- Helper.booleanToFuture(
+              s"Failed to increment cache namespace version for: $namespaceId",
+              500, Some(cc))(newVersionOpt.isDefined)
+          } yield InvalidatedCacheNamespaceJsonV600(
+            namespace_id = namespaceId,
+            old_version = oldVersion,
+            new_version = newVersionOpt.get,
+            status = "invalidated"
+          )
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(invalidateCacheNamespace), "POST",
+      "/management/cache/namespaces/invalidate", "Invalidate Cache Namespace",
+      """Increment the version of the specified cache namespace, invalidating its keys.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+      apiTagCache :: apiTagSystem :: apiTagApi :: Nil,
+      Some(canInvalidateCacheNamespace :: Nil),
+      http4sPartialFunction = Some(invalidateCacheNamespace)
+    )
+
+    // Route: GET /obp/v6.0.0/management/config-props
+    val getConfigProps: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "management" / "config-props" =>
+        EndpointHelpers.withUser(req) { (_, _) =>
+          Future {
+            val props = APIUtil.getConfigPropsPairs.map { case (k, v) =>
+              ConfigPropJsonV600(k, APIUtil.maskSensitivePropValue(k, v))
+            }
+            ListResult("config_props", props)
+          }
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getConfigProps), "GET",
+      "/management/config-props", "Get Config Props",
+      """Return all OBP config-file props (sensitive values masked).""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UnknownError),
+      apiTagApi :: Nil, None,
+      http4sPartialFunction = Some(getConfigProps)
+    )
+
+    // Route: GET /obp/v6.0.0/app-directory
+    val getAppDirectory: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "app-directory" =>
+        EndpointHelpers.executeAndRespond(req) { _ =>
+          Future {
+            val entries = APIUtil.getAppDiscoveryPairs.map { case (k, v) => ConfigPropJsonV600(k, v) }
+            ListResult("app_directory", entries)
+          }
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getAppDirectory), "GET",
+      "/app-directory", "Get App Directory",
+      """Return apps registered in this OBP instance's discovery directory.""",
+      EmptyBody, EmptyBody,
+      List(UnknownError),
+      apiTagApi :: Nil, None,
+      http4sPartialFunction = Some(getAppDirectory)
+    )
+
+    // Route: GET /obp/v6.0.0/management/custom-views
+    val getCustomViews: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "management" / "custom-views" =>
+        EndpointHelpers.withUser(req) { (_, _) =>
+          Future(JSONFactory600.createViewsJsonV600(code.views.system.ViewDefinition.getCustomViews()))
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getCustomViews), "GET",
+      "/management/custom-views", "Get Custom Views",
+      """Get all custom views defined in this instance.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      apiTagView :: Nil,
+      Some(canGetCustomViews :: Nil),
+      http4sPartialFunction = Some(getCustomViews)
+    )
+
+    // Route: GET /obp/v6.0.0/management/roles-with-entitlement-counts
+    val getRolesWithEntitlementCountsAtAllBanks: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "management" / "roles-with-entitlement-counts" =>
+        EndpointHelpers.withUser(req) { (_, _) =>
+          val allRoles = code.api.util.ApiRole.availableRoles.sorted
+          Future.sequence(allRoles.map { role =>
+            Entitlement.entitlement.vend.getEntitlementsByRoleFuture(role).map { box =>
+              (role, box.map(_.length).getOrElse(0))
+            }
+          }).map(JSONFactory600.createRolesWithEntitlementCountsJson)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getRolesWithEntitlementCountsAtAllBanks), "GET",
+      "/management/roles-with-entitlement-counts", "Get Roles with Entitlement Counts",
+      """List all available roles along with how many entitlements each has.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      apiTagRole :: Nil,
+      Some(canGetRolesWithEntitlementCountsAtAllBanks :: Nil),
+      http4sPartialFunction = Some(getRolesWithEntitlementCountsAtAllBanks)
+    )
+
+    // ─── Phase 2: 5 small single-endpoint buckets ─────────────────────────
+
+    // Route: GET /obp/v6.0.0/features
+    val getFeatures: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "features" =>
+        EndpointHelpers.executeAndRespond(req) { _ =>
+          Future.successful(FeaturesJsonV600(
+            allow_public_views = APIUtil.getPropsAsBoolValue("allow_public_views", false),
+            allow_abac_account_access = APIUtil.getPropsAsBoolValue("allow_abac_account_access", false),
+            allow_account_firehose = APIUtil.getPropsAsBoolValue("allow_account_firehose", false),
+            allow_customer_firehose = APIUtil.getPropsAsBoolValue("allow_customer_firehose", false),
+            allow_direct_login = APIUtil.getPropsAsBoolValue("allow_direct_login", true),
+            allow_gateway_login = APIUtil.getPropsAsBoolValue("allow_gateway_login", false),
+            allow_oauth2_login = APIUtil.getPropsAsBoolValue("allow_oauth2_login", true),
+            allow_dauth = APIUtil.getPropsAsBoolValue("allow_dauth", false),
+            allow_sandbox_account_creation = APIUtil.getPropsAsBoolValue("allow_sandbox_account_creation", false),
+            allow_sandbox_data_import = APIUtil.getPropsAsBoolValue("allow_sandbox_data_import", false),
+            allow_account_deletion = APIUtil.getPropsAsBoolValue("allow_account_deletion", false),
+            allow_just_in_time_entitlements = APIUtil.getPropsAsBoolValue("create_just_in_time_entitlements", false)
+          ))
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getFeatures), "GET",
+      "/features", "Get Features",
+      """Returns the enabled features for this OBP instance.""",
+      EmptyBody, EmptyBody,
+      List(UnknownError),
+      apiTagApi :: Nil, None,
+      http4sPartialFunction = Some(getFeatures)
+    )
+
+    // Route: GET /obp/v6.0.0/providers
+    val getProviders: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "providers" =>
+        EndpointHelpers.withUser(req) { (_, _) =>
+          Future(code.model.dataAccess.ResourceUser.getDistinctProviders)
+            .map(JSONFactory600.createProvidersJson)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getProviders), "GET",
+      "/providers", "Get Providers",
+      """Get the distinct list of auth providers that have been used to create users.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UnknownError),
+      apiTagUser :: Nil, None,
+      http4sPartialFunction = Some(getProviders)
+    )
+
+    // Route: GET /obp/v6.0.0/consumers/current
+    val getCurrentConsumer: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "consumers" / "current" =>
+        EndpointHelpers.withUser(req) { (_, cc) =>
+          for {
+            consumer <- Future(cc.consumer match {
+              case Full(c) => Full(c)
+              case _ => Empty
+            }).map(unboxFullOrFail(_, Some(cc), InvalidConsumerCredentials, 401))
+            counters <- Future(RateLimitingUtil.consumerRateLimitState(consumer.consumerId.get).toList)
+            date = new java.util.Date()
+            (activeRateLimit, ids) <- RateLimitingUtil.getActiveRateLimitsWithIds(consumer.consumerId.get, date)
+          } yield CurrentConsumerJsonV600(
+            consumer.name.get, consumer.appType.get, consumer.description.get, consumer.consumerId.get,
+            JSONFactory600.createActiveRateLimitsJsonV600FromCallLimit(activeRateLimit, ids, date),
+            JSONFactory600.createRedisCallCountersJson(counters))
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getCurrentConsumer), "GET",
+      "/consumers/current", "Get Current Consumer",
+      """Get the Consumer used to make this request, including active rate limits and call counters.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, InvalidConsumerCredentials, UnknownError),
+      apiTagConsumer :: Nil, None,
+      http4sPartialFunction = Some(getCurrentConsumer)
+    )
+
+    // Route: GET /obp/v6.0.0/api/popular-endpoints
+    val getPopularApis: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "api" / "popular-endpoints" =>
+        EndpointHelpers.executeAndRespond(req) { implicit cc =>
+          for {
+            httpParams <- NewStyle.function.extractHttpParamsFromUrl(req.uri.renderString)
+            (qp, _) <- createQueriesByHttpParamsFuture(httpParams, Some(cc))
+            withLimit = qp ++ List(code.api.util.OBPLimit(50))
+            topApis <- APIMetrics.apiMetrics.vend.getTopApisFuture(withLimit)
+              .map(unboxFullOrFail(_, Some(cc), UnknownError))
+          } yield {
+            val lookupMap = APIUtil.getAllResourceDocs.map(d => d.partialFunctionName -> d.operationId).toMap
+            val operationIds = topApis.flatMap(api =>
+              lookupMap.get(api.ImplementedByPartialFunction).orElse(
+                scala.util.Try(Some(APIUtil.buildOperationId(
+                  ApiVersionUtils.valueOf(api.implementedInVersion), api.ImplementedByPartialFunction))).getOrElse(None)))
+            PopularApisJsonV600(operationIds)
+          }
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getPopularApis), "GET",
+      "/api/popular-endpoints", "Get Popular Endpoints",
+      """Returns the operation IDs of the 50 most popular endpoints by usage.""",
+      EmptyBody, EmptyBody,
+      List(UnknownError),
+      apiTagApi :: Nil, None,
+      http4sPartialFunction = Some(getPopularApis)
+    )
+
+    // Route: GET /obp/v6.0.0/banks/BANK_ID/account-directory
+    val getAccountDirectory: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / _ / "account-directory" =>
+        EndpointHelpers.withUserAndBank(req) { (_, bank, cc) =>
+          val allowedParams = List("limit", "offset", "sort_direction")
+          for {
+            httpParams <- NewStyle.function.extractHttpParamsFromUrl(req.uri.renderString)
+            (obpQueryParams, _) <- NewStyle.function.createObpParams(httpParams, allowedParams, Some(cc))
+            (accounts, _) <- NewStyle.function.getAccountDirectory(bank.bankId, obpQueryParams, Some(cc))
+          } yield {
+            val viewsPerAccount: Map[BankIdAccountId, List[String]] = accounts.map { a =>
+              val biaId = BankIdAccountId(BankId(a.bankId), com.openbankproject.commons.model.AccountId(a.id))
+              biaId -> Views.views.vend.availableViewsForAccount(biaId).map(_.viewId.value)
+            }.toMap
+            JSONFactory600.createAccountDirectoryJsonV600(accounts, viewsPerAccount)
+          }
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getAccountDirectory), "GET",
+      "/banks/BANK_ID/account-directory", "Get Account Directory",
+      """Get the list of accounts in the bank's account directory (paginated, sortable).""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
+      apiTagAccount :: Nil,
+      Some(canGetAccountDirectoryAtOneBank :: Nil),
+      http4sPartialFunction = Some(getAccountDirectory)
+    )
+
+    // ─── Phase 2: management/groups bucket (6 endpoints) ──────────────────
+    // Doc roles are kept None and the bank-scoped vs system-scoped role check
+    // is done inline (it depends on whether bank_id is supplied in the body or
+    // on the existing group).
+
+    private def groupRoleCheck(bankId: Option[String], userId: String,
+                                bankRole: code.api.util.ApiRole,
+                                allBanksRole: code.api.util.ApiRole,
+                                cc: CallContext): Future[Any] = bankId match {
+      case Some(b) if b.nonEmpty =>
+        NewStyle.function.hasAtLeastOneEntitlement(b, userId, bankRole :: allBanksRole :: Nil, Some(cc))
+      case _ =>
+        NewStyle.function.hasEntitlement("", userId, allBanksRole, Some(cc))
+    }
+
+    private def groupToJsonV600(group: GroupT): GroupJsonV600 =
+      GroupJsonV600(
+        group_id = group.groupId, bank_id = group.bankId,
+        group_name = group.groupName, group_description = group.groupDescription,
+        list_of_roles = group.listOfRoles, is_enabled = group.isEnabled)
+
+    // Route: POST /obp/v6.0.0/management/groups (201)
+    val createGroup: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "management" / "groups" =>
+        EndpointHelpers.executeFutureCreated(req) {
+          implicit val cc: CallContext = req.callContext
+          val rawBody = cc.httpBody.getOrElse("")
+          val user = cc.user.openOrThrowException(AuthenticatedUserIsRequired)
+          for {
+            postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the PostGroupJsonV600", 400, Some(cc)) {
+              net.liftweb.json.parse(rawBody).extract[PostGroupJsonV600]
+            }
+            _ <- Helper.booleanToFuture(s"$InvalidJsonFormat group_name cannot be empty", cc = Some(cc)) {
+              postJson.group_name.nonEmpty
+            }
+            _ <- groupRoleCheck(postJson.bank_id, user.userId, canCreateGroupAtOneBank, canCreateGroupAtAllBanks, cc)
+            group <- Future(code.group.GroupTrait.group.vend.createGroup(
+              postJson.bank_id.filter(_.nonEmpty), postJson.group_name,
+              postJson.group_description, postJson.list_of_roles, postJson.is_enabled
+            )).map(x => unboxFullOrFail(x, Some(cc), s"$UnknownError Cannot create group", 400))
+          } yield groupToJsonV600(group)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(createGroup), "POST",
+      "/management/groups", "Create Group",
+      """Create a new Group.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+      apiTagGroup :: Nil, None,
+      http4sPartialFunction = Some(createGroup)
+    )
+
+    // Route: GET /obp/v6.0.0/management/groups/GROUP_ID
+    val getGroup: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "management" / "groups" / groupId =>
+        EndpointHelpers.withUser(req) { (user, cc) =>
+          for {
+            group <- Future(code.group.GroupTrait.group.vend.getGroup(groupId))
+              .map(x => unboxFullOrFail(x, Some(cc), s"$UnknownError Group not found", 404))
+            _ <- groupRoleCheck(group.bankId, user.userId, canGetGroupsAtOneBank, canGetGroupsAtAllBanks, cc)
+          } yield groupToJsonV600(group)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getGroup), "GET",
+      "/management/groups/GROUP_ID", "Get Group",
+      """Get a Group by ID.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      apiTagGroup :: Nil, None,
+      http4sPartialFunction = Some(getGroup)
+    )
+
+    // Route: GET /obp/v6.0.0/management/groups
+    val getGroups: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "management" / "groups" =>
+        EndpointHelpers.withUser(req) { (user, cc) =>
+          val bankIdParam = req.uri.query.params.get("bank_id")
+          val bankIdFilter = bankIdParam match {
+            case Some("null") | Some("") => None
+            case Some(id) => Some(id)
+            case None => None
+          }
+          for {
+            _ <- groupRoleCheck(bankIdFilter, user.userId, canGetGroupsAtOneBank, canGetGroupsAtAllBanks, cc)
+            groups <- (bankIdFilter match {
+              case Some(b) => code.group.GroupTrait.group.vend.getGroupsByBankId(Some(b))
+              case None if bankIdParam.isDefined => code.group.GroupTrait.group.vend.getGroupsByBankId(None)
+              case None => code.group.GroupTrait.group.vend.getAllGroups()
+            }).map(x => unboxFullOrFail(x, Some(cc), s"$UnknownError Cannot get groups", 400))
+          } yield GroupsJsonV600(groups.map(groupToJsonV600))
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getGroups), "GET",
+      "/management/groups", "Get Groups",
+      """Get all Groups (optional ?bank_id= filter).""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      apiTagGroup :: Nil, None,
+      http4sPartialFunction = Some(getGroups)
+    )
+
+    // Route: PUT /obp/v6.0.0/management/groups/GROUP_ID
+    val updateGroup: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ PUT -> `prefixPath` / "management" / "groups" / groupId =>
+        EndpointHelpers.executeAndRespond(req) { implicit cc =>
+          val rawBody = cc.httpBody.getOrElse("")
+          val user = cc.user.openOrThrowException(AuthenticatedUserIsRequired)
+          for {
+            putJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the PutGroupJsonV600", 400, Some(cc)) {
+              net.liftweb.json.parse(rawBody).extract[PutGroupJsonV600]
+            }
+            existing <- Future(code.group.GroupTrait.group.vend.getGroup(groupId))
+              .map(x => unboxFullOrFail(x, Some(cc), s"$UnknownError Group not found", 404))
+            _ <- groupRoleCheck(existing.bankId, user.userId, canUpdateGroupAtOneBank, canUpdateGroupAtAllBanks, cc)
+            updated <- Future(code.group.GroupTrait.group.vend.updateGroup(
+              groupId, putJson.group_name, putJson.group_description,
+              putJson.list_of_roles, putJson.is_enabled
+            )).map(x => unboxFullOrFail(x, Some(cc), s"$UnknownError Cannot update group", 400))
+          } yield groupToJsonV600(updated)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(updateGroup), "PUT",
+      "/management/groups/GROUP_ID", "Update Group",
+      """Update an existing Group.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+      apiTagGroup :: Nil, None,
+      http4sPartialFunction = Some(updateGroup)
+    )
+
+    // Route: DELETE /obp/v6.0.0/management/groups/GROUP_ID
+    val deleteGroup: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ DELETE -> `prefixPath` / "management" / "groups" / groupId =>
+        EndpointHelpers.executeAndRespond(req) { implicit cc =>
+          val user = cc.user.openOrThrowException(AuthenticatedUserIsRequired)
+          for {
+            existing <- Future(code.group.GroupTrait.group.vend.getGroup(groupId))
+              .map(x => unboxFullOrFail(x, Some(cc), s"$UnknownError Group not found", 404))
+            _ <- groupRoleCheck(existing.bankId, user.userId, canDeleteGroupAtOneBank, canDeleteGroupAtAllBanks, cc)
+            _ <- Future(code.group.GroupTrait.group.vend.deleteGroup(groupId))
+              .map(x => unboxFullOrFail(x, Some(cc), s"$UnknownError Cannot delete group", 400))
+          } yield ""
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(deleteGroup), "DELETE",
+      "/management/groups/GROUP_ID", "Delete Group",
+      """Delete a Group.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      apiTagGroup :: Nil, None,
+      http4sPartialFunction = Some(deleteGroup)
+    )
+
+    // Route: GET /obp/v6.0.0/management/groups/GROUP_ID/entitlements
+    val getGroupEntitlements: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "management" / "groups" / groupId / "entitlements" =>
+        EndpointHelpers.withUser(req) { (_, cc) =>
+          for {
+            _ <- Future(code.group.GroupTrait.group.vend.getGroup(groupId))
+              .map(x => unboxFullOrFail(x, Some(cc), s"$UnknownError Group not found", 404))
+            groupEntitlements <- Entitlement.entitlement.vend.getEntitlementsByGroupId(groupId)
+              .map(x => unboxFullOrFail(x, Some(cc), s"$UnknownError Cannot get entitlements", 400))
+            withUsernames <- Future.sequence(groupEntitlements.map { ent =>
+              Users.users.vend.getUserByUserIdFuture(ent.userId).map { userBox =>
+                GroupEntitlementJsonV600(
+                  entitlement_id = ent.entitlementId, role_name = ent.roleName,
+                  bank_id = ent.bankId, user_id = ent.userId,
+                  username = userBox.map(_.name).getOrElse(""),
+                  group_id = ent.groupId, process = ent.process)
+              }
+            })
+          } yield GroupEntitlementsJsonV600(withUsernames)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getGroupEntitlements), "GET",
+      "/management/groups/GROUP_ID/entitlements", "Get Group Entitlements",
+      """Get all entitlements granted to the specified group.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      apiTagGroup :: Nil,
+      Some(canGetEntitlementsForAnyBank :: Nil),
+      http4sPartialFunction = Some(getGroupEntitlements)
+    )
+
+    // ─── Phase 2: management/abac-rules bucket (6 of 8) ───────────────────
+    // executeAbacRule + validateAbacRule deferred — complex error
+    // classification + rule-engine integration warrants its own batch.
+
+    // Route: POST /obp/v6.0.0/management/abac-rules (201)
+    val createAbacRule: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "management" / "abac-rules" =>
+        EndpointHelpers.executeFutureCreated(req) {
+          implicit val cc: CallContext = req.callContext
+          val rawBody = cc.httpBody.getOrElse("")
+          val user = cc.user.openOrThrowException(AuthenticatedUserIsRequired)
+          for {
+            createJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
+              net.liftweb.json.parse(rawBody).extract[CreateAbacRuleJsonV600]
+            }
+            _ <- Helper.booleanToFuture("Rule name must not be empty", cc = Some(cc)) { createJson.rule_name.nonEmpty }
+            _ <- Helper.booleanToFuture("Rule code must not be empty", cc = Some(cc)) { createJson.rule_code.nonEmpty }
+            _ <- AbacRuleEngine.validateRuleCodeAsync(createJson.rule_code)
+              .map(unboxFullOrFail(_, Some(cc), "Invalid ABAC rule code", 400))
+            rule <- Future(MappedAbacRuleProvider.createAbacRule(
+              ruleName = createJson.rule_name, ruleCode = createJson.rule_code,
+              description = createJson.description, policy = createJson.policy,
+              isActive = createJson.is_active, createdBy = user.userId
+            )).map(unboxFullOrFail(_, Some(cc), "Could not create ABAC rule", 400))
+          } yield createAbacRuleJsonV600(rule)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(createAbacRule), "POST",
+      "/management/abac-rules", "Create ABAC Rule",
+      """Create a new ABAC rule.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+      apiTagABAC :: Nil,
+      Some(canCreateAbacRule :: Nil),
+      http4sPartialFunction = Some(createAbacRule)
+    )
+
+    // Route: GET /obp/v6.0.0/management/abac-rules/ABAC_RULE_ID
+    val getAbacRule: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "management" / "abac-rules" / ruleId =>
+        EndpointHelpers.withUser(req) { (_, cc) =>
+          for {
+            rule <- Future(MappedAbacRuleProvider.getAbacRuleById(ruleId))
+              .map(unboxFullOrFail(_, Some(cc), s"ABAC Rule not found with ID: $ruleId", 404))
+          } yield createAbacRuleJsonV600(rule)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getAbacRule), "GET",
+      "/management/abac-rules/ABAC_RULE_ID", "Get ABAC Rule",
+      """Get a single ABAC rule by ID.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      apiTagABAC :: Nil,
+      Some(canGetAbacRule :: Nil),
+      http4sPartialFunction = Some(getAbacRule)
+    )
+
+    // Route: GET /obp/v6.0.0/management/abac-rules
+    val getAbacRules: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "management" / "abac-rules" =>
+        EndpointHelpers.withUser(req) { (_, _) =>
+          Future(createAbacRulesJsonV600(MappedAbacRuleProvider.getAllAbacRules()))
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getAbacRules), "GET",
+      "/management/abac-rules", "Get ABAC Rules",
+      """Get all ABAC rules.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      apiTagABAC :: Nil,
+      Some(canGetAbacRule :: Nil),
+      http4sPartialFunction = Some(getAbacRules)
+    )
+
+    // Route: GET /obp/v6.0.0/management/abac-rules/policy/POLICY
+    val getAbacRulesByPolicy: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "management" / "abac-rules" / "policy" / policy =>
+        EndpointHelpers.withUser(req) { (_, _) =>
+          Future(createAbacRulesJsonV600(MappedAbacRuleProvider.getAbacRulesByPolicy(policy)))
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getAbacRulesByPolicy), "GET",
+      "/management/abac-rules/policy/POLICY", "Get ABAC Rules by Policy",
+      """Get all ABAC rules for a given policy.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      apiTagABAC :: Nil,
+      Some(canGetAbacRule :: Nil),
+      http4sPartialFunction = Some(getAbacRulesByPolicy)
+    )
+
+    // Route: PUT /obp/v6.0.0/management/abac-rules/ABAC_RULE_ID
+    val updateAbacRule: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ PUT -> `prefixPath` / "management" / "abac-rules" / ruleId =>
+        EndpointHelpers.executeAndRespond(req) { implicit cc =>
+          val rawBody = cc.httpBody.getOrElse("")
+          val user = cc.user.openOrThrowException(AuthenticatedUserIsRequired)
+          for {
+            updateJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
+              net.liftweb.json.parse(rawBody).extract[UpdateAbacRuleJsonV600]
+            }
+            _ <- AbacRuleEngine.validateRuleCodeAsync(updateJson.rule_code)
+              .map(unboxFullOrFail(_, Some(cc), "Invalid ABAC rule code", 400))
+            rule <- Future(MappedAbacRuleProvider.updateAbacRule(
+              ruleId = ruleId, ruleName = updateJson.rule_name,
+              ruleCode = updateJson.rule_code, description = updateJson.description,
+              policy = updateJson.policy, isActive = updateJson.is_active,
+              updatedBy = user.userId
+            )).map(unboxFullOrFail(_, Some(cc), s"Could not update ABAC rule with ID: $ruleId", 400))
+            _ <- Future(AbacRuleEngine.clearRuleFromCache(ruleId))
+          } yield createAbacRuleJsonV600(rule)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(updateAbacRule), "PUT",
+      "/management/abac-rules/ABAC_RULE_ID", "Update ABAC Rule",
+      """Update an existing ABAC rule.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+      apiTagABAC :: Nil,
+      Some(canUpdateAbacRule :: Nil),
+      http4sPartialFunction = Some(updateAbacRule)
+    )
+
+    // Route: DELETE /obp/v6.0.0/management/abac-rules/ABAC_RULE_ID
+    val deleteAbacRule: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ DELETE -> `prefixPath` / "management" / "abac-rules" / ruleId =>
+        EndpointHelpers.executeAndRespond(req) { implicit cc =>
+          for {
+            _ <- Future(MappedAbacRuleProvider.deleteAbacRule(ruleId))
+              .map(unboxFullOrFail(_, Some(cc), s"Could not delete ABAC rule with ID: $ruleId", 400))
+            _ <- Future(AbacRuleEngine.clearRuleFromCache(ruleId))
+          } yield ""
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(deleteAbacRule), "DELETE",
+      "/management/abac-rules/ABAC_RULE_ID", "Delete ABAC Rule",
+      """Delete an ABAC rule.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      apiTagABAC :: Nil,
+      Some(canDeleteAbacRule :: Nil),
+      http4sPartialFunction = Some(deleteAbacRule)
+    )
+
+
+    // ─── Phase 2: my/personal-data-fields bucket (5 endpoints) ────────────
+    // Auth-only; the v6 Lift docs declare `Some(List())` empty role list.
+
+    private val personalDataTypeErrorMsg =
+      s"$InvalidJsonFormat The `type` field can only accept: ${UserAttributeType.DOUBLE}, ${UserAttributeType.STRING}, ${UserAttributeType.INTEGER}, ${UserAttributeType.DATE_WITH_DAY}"
+
+    // Route: POST /obp/v6.0.0/my/personal-data-fields (201)
+    val createPersonalDataField: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "my" / "personal-data-fields" =>
+        EndpointHelpers.executeFutureCreated(req) {
+          implicit val cc: CallContext = req.callContext
+          val rawBody = cc.httpBody.getOrElse("")
+          val user = cc.user.openOrThrowException(AuthenticatedUserIsRequired)
+          for {
+            postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the UserAttributeJsonV510", 400, Some(cc)) {
+              net.liftweb.json.parse(rawBody).extract[UserAttributeJsonV510]
+            }
+            userAttributeType <- NewStyle.function.tryons(personalDataTypeErrorMsg, 400, Some(cc)) {
+              UserAttributeType.withName(postedData.`type`)
+            }
+            (userAttribute, _) <- NewStyle.function.createOrUpdateUserAttribute(
+              user.userId, None, postedData.name, userAttributeType, postedData.value, true, Some(cc))
+          } yield JSONFactory510.createUserAttributeJson(userAttribute)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(createPersonalDataField), "POST",
+      "/my/personal-data-fields", "Create Personal Data Field",
+      """Create a personal data field for the logged-in user.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
+      apiTagUser :: Nil,
+      Some(Nil),
+      http4sPartialFunction = Some(createPersonalDataField)
+    )
+
+    // Route: GET /obp/v6.0.0/my/personal-data-fields
+    val getPersonalDataFields: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "my" / "personal-data-fields" =>
+        EndpointHelpers.withUser(req) { (user, cc) =>
+          for {
+            (attributes, _) <- NewStyle.function.getPersonalUserAttributes(user.userId, Some(cc))
+          } yield UserAttributesResponseJsonV510(attributes.map(JSONFactory510.createUserAttributeJson))
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getPersonalDataFields), "GET",
+      "/my/personal-data-fields", "Get Personal Data Fields",
+      """Get all personal data fields for the logged-in user.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UnknownError),
+      apiTagUser :: Nil,
+      Some(Nil),
+      http4sPartialFunction = Some(getPersonalDataFields)
+    )
+
+    // Route: GET /obp/v6.0.0/my/personal-data-fields/USER_ATTRIBUTE_ID
+    val getPersonalDataFieldById: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "my" / "personal-data-fields" / userAttributeId =>
+        EndpointHelpers.withUser(req) { (user, cc) =>
+          for {
+            (attributes, _) <- NewStyle.function.getPersonalUserAttributes(user.userId, Some(cc))
+            attribute <- Future(attributes.find(_.userAttributeId == userAttributeId))
+              .map(unboxFullOrFail(_, Some(cc), UserAttributeNotFound, 404))
+          } yield JSONFactory510.createUserAttributeJson(attribute)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getPersonalDataFieldById), "GET",
+      "/my/personal-data-fields/USER_ATTRIBUTE_ID", "Get Personal Data Field By Id",
+      """Get a personal data field by USER_ATTRIBUTE_ID for the logged-in user.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UserAttributeNotFound, UnknownError),
+      apiTagUser :: Nil,
+      Some(Nil),
+      http4sPartialFunction = Some(getPersonalDataFieldById)
+    )
+
+    // Route: PUT /obp/v6.0.0/my/personal-data-fields/USER_ATTRIBUTE_ID
+    val updatePersonalDataField: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ PUT -> `prefixPath` / "my" / "personal-data-fields" / userAttributeId =>
+        EndpointHelpers.executeAndRespond(req) { implicit cc =>
+          val rawBody = cc.httpBody.getOrElse("")
+          val user = cc.user.openOrThrowException(AuthenticatedUserIsRequired)
+          for {
+            postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the UserAttributeJsonV510", 400, Some(cc)) {
+              net.liftweb.json.parse(rawBody).extract[UserAttributeJsonV510]
+            }
+            userAttributeType <- NewStyle.function.tryons(personalDataTypeErrorMsg, 400, Some(cc)) {
+              UserAttributeType.withName(postedData.`type`)
+            }
+            (attributes, _) <- NewStyle.function.getPersonalUserAttributes(user.userId, Some(cc))
+            _ <- Future(attributes.find(_.userAttributeId == userAttributeId))
+              .map(unboxFullOrFail(_, Some(cc), UserAttributeNotFound, 404))
+            (userAttribute, _) <- NewStyle.function.createOrUpdateUserAttribute(
+              user.userId, Some(userAttributeId), postedData.name, userAttributeType, postedData.value, true, Some(cc))
+          } yield JSONFactory510.createUserAttributeJson(userAttribute)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(updatePersonalDataField), "PUT",
+      "/my/personal-data-fields/USER_ATTRIBUTE_ID", "Update Personal Data Field",
+      """Update a personal data field by USER_ATTRIBUTE_ID.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, InvalidJsonFormat, UserAttributeNotFound, UnknownError),
+      apiTagUser :: Nil,
+      Some(Nil),
+      http4sPartialFunction = Some(updatePersonalDataField)
+    )
+
+    // Route: DELETE /obp/v6.0.0/my/personal-data-fields/USER_ATTRIBUTE_ID
+    val deletePersonalDataField: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ DELETE -> `prefixPath` / "my" / "personal-data-fields" / userAttributeId =>
+        EndpointHelpers.executeAndRespond(req) { implicit cc =>
+          val user = cc.user.openOrThrowException(AuthenticatedUserIsRequired)
+          for {
+            (attributes, _) <- NewStyle.function.getPersonalUserAttributes(user.userId, Some(cc))
+            _ <- Future(attributes.find(_.userAttributeId == userAttributeId))
+              .map(unboxFullOrFail(_, Some(cc), UserAttributeNotFound, 404))
+            _ <- BankConnector.connector.vend.deleteUserAttribute(userAttributeId, Some(cc))
+          } yield ""
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(deletePersonalDataField), "DELETE",
+      "/my/personal-data-fields/USER_ATTRIBUTE_ID", "Delete Personal Data Field",
+      """Delete a personal data field by USER_ATTRIBUTE_ID.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UserAttributeNotFound, UnknownError),
+      apiTagUser :: Nil,
+      Some(Nil),
+      http4sPartialFunction = Some(deletePersonalDataField)
+    )
+
+    // ─── Phase 2: management/consumers bucket (6 endpoints) ───────────────
+
+    // Route: GET /obp/v6.0.0/management/consumers/CONSUMER_ID/call-counters
+    val getConsumerCallCounters: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "management" / "consumers" / consumerId / "call-counters" =>
+        EndpointHelpers.withUser(req) { (_, cc) =>
+          for {
+            _ <- NewStyle.function.getConsumerByConsumerId(consumerId, Some(cc))
+            counters <- Future(RateLimitingUtil.consumerRateLimitState(consumerId).toList)
+          } yield JSONFactory600.createRedisCallCountersJson(counters)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getConsumerCallCounters), "GET",
+      "/management/consumers/CONSUMER_ID/call-counters", "Get Consumer Call Counters",
+      """Get the current call counters (Redis-backed) for a specific consumer.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      apiTagConsumer :: Nil,
+      Some(canGetRateLimits :: Nil),
+      http4sPartialFunction = Some(getConsumerCallCounters)
+    )
+
+    // Route: POST /obp/v6.0.0/management/consumers/CONSUMER_ID/consumer/rate-limits (201)
+    val createCallLimits: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "management" / "consumers" / consumerId / "consumer" / "rate-limits" =>
+        EndpointHelpers.executeFutureCreated(req) {
+          implicit val cc: CallContext = req.callContext
+          val rawBody = cc.httpBody.getOrElse("")
+          for {
+            postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the CallLimitPostJsonV600", 400, Some(cc)) {
+              net.liftweb.json.parse(rawBody).extract[CallLimitPostJsonV600]
+            }
+            _ <- NewStyle.function.getConsumerByConsumerId(consumerId, Some(cc))
+            _ <- RateLimitingDI.rateLimiting.vend.createConsumerCallLimits(
+              consumerId, postJson.from_date, postJson.to_date,
+              postJson.api_version, postJson.api_name, postJson.bank_id,
+              Some(postJson.per_second_call_limit), Some(postJson.per_minute_call_limit),
+              Some(postJson.per_hour_call_limit), Some(postJson.per_day_call_limit),
+              Some(postJson.per_week_call_limit), Some(postJson.per_month_call_limit))
+            date = new java.util.Date()
+            (activeRateLimit, ids) <- RateLimitingUtil.getActiveRateLimitsWithIds(consumerId, date)
+          } yield JSONFactory600.createActiveRateLimitsJsonV600FromCallLimit(activeRateLimit, ids, date)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(createCallLimits), "POST",
+      "/management/consumers/CONSUMER_ID/consumer/rate-limits", "Create Rate Limits for a Consumer",
+      """Create a rate-limit configuration for a Consumer.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+      apiTagConsumer :: Nil,
+      Some(canCreateRateLimits :: Nil),
+      http4sPartialFunction = Some(createCallLimits)
+    )
+
+    // Route: PUT /obp/v6.0.0/management/consumers/CONSUMER_ID/consumer/rate-limits/RATE_LIMITING_ID
+    val updateRateLimits: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ PUT -> `prefixPath` / "management" / "consumers" / consumerId / "consumer" / "rate-limits" / rateLimitingId =>
+        EndpointHelpers.executeAndRespond(req) { implicit cc =>
+          val rawBody = cc.httpBody.getOrElse("")
+          for {
+            postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the CallLimitPostJsonV400", 400, Some(cc)) {
+              net.liftweb.json.parse(rawBody).extract[CallLimitPostJsonV400]
+            }
+            _ <- NewStyle.function.getConsumerByConsumerId(consumerId, Some(cc))
+            _ <- RateLimitingDI.rateLimiting.vend.updateConsumerCallLimits(
+              rateLimitingId, postJson.from_date, postJson.to_date,
+              postJson.api_version, postJson.api_name, postJson.bank_id,
+              Some(postJson.per_second_call_limit), Some(postJson.per_minute_call_limit),
+              Some(postJson.per_hour_call_limit), Some(postJson.per_day_call_limit),
+              Some(postJson.per_week_call_limit), Some(postJson.per_month_call_limit))
+            date = new java.util.Date()
+            (activeRateLimit, ids) <- RateLimitingUtil.getActiveRateLimitsWithIds(consumerId, date)
+          } yield JSONFactory600.createActiveRateLimitsJsonV600FromCallLimit(activeRateLimit, ids, date)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(updateRateLimits), "PUT",
+      "/management/consumers/CONSUMER_ID/consumer/rate-limits/RATE_LIMITING_ID", "Update Rate Limits for a Consumer",
+      """Update an existing rate-limit configuration for a Consumer.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+      apiTagConsumer :: Nil,
+      Some(canUpdateRateLimits :: Nil),
+      http4sPartialFunction = Some(updateRateLimits)
+    )
+
+    // Route: DELETE /obp/v6.0.0/management/consumers/CONSUMER_ID/consumer/rate-limits/RATE_LIMITING_ID
+    val deleteCallLimits: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ DELETE -> `prefixPath` / "management" / "consumers" / consumerId / "consumer" / "rate-limits" / rateLimitingId =>
+        EndpointHelpers.executeAndRespond(req) { implicit cc =>
+          for {
+            _ <- NewStyle.function.getConsumerByConsumerId(consumerId, Some(cc))
+            _ <- Future(RateLimitingDI.rateLimiting.vend.deleteByRateLimitingId(rateLimitingId))
+          } yield ""
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(deleteCallLimits), "DELETE",
+      "/management/consumers/CONSUMER_ID/consumer/rate-limits/RATE_LIMITING_ID", "Delete Rate Limits for a Consumer",
+      """Delete a rate-limit configuration.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      apiTagConsumer :: Nil,
+      Some(canDeleteRateLimits :: Nil),
+      http4sPartialFunction = Some(deleteCallLimits)
+    )
+
+    // Route: GET /obp/v6.0.0/management/consumers/CONSUMER_ID/active-rate-limits
+    val getActiveRateLimitsNow: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "management" / "consumers" / consumerId / "active-rate-limits" =>
+        EndpointHelpers.withUser(req) { (_, cc) =>
+          for {
+            _ <- NewStyle.function.getConsumerByConsumerId(consumerId, Some(cc))
+            date = new java.util.Date()
+            (rateLimit, ids) <- RateLimitingUtil.getActiveRateLimitsWithIds(consumerId, date)
+          } yield JSONFactory600.createActiveRateLimitsJsonV600FromCallLimit(rateLimit, ids, date)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getActiveRateLimitsNow), "GET",
+      "/management/consumers/CONSUMER_ID/active-rate-limits", "Get Active Rate Limits (now)",
+      """Get the currently active rate limits for a Consumer.""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      apiTagConsumer :: Nil,
+      Some(canGetRateLimits :: Nil),
+      http4sPartialFunction = Some(getActiveRateLimitsNow)
+    )
+
+    // Route: GET /obp/v6.0.0/management/consumers/CONSUMER_ID/active-rate-limits/DATE_WITH_HOUR
+    val getActiveRateLimitsAtDate: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "management" / "consumers" / consumerId / "active-rate-limits" / dateWithHourString =>
+        EndpointHelpers.withUser(req) { (_, cc) =>
+          for {
+            _ <- NewStyle.function.getConsumerByConsumerId(consumerId, Some(cc))
+            date <- NewStyle.function.tryons(
+              s"$InvalidDateFormat Current date format is: $dateWithHourString. Please use this format: YYYY-MM-DD-HH in UTC",
+              400, Some(cc)) {
+              val fmt = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd-HH")
+              val ldt = java.time.LocalDateTime.parse(dateWithHourString, fmt)
+              java.util.Date.from(ldt.atZone(java.time.ZoneOffset.UTC).toInstant())
+            }
+            (rateLimit, ids) <- RateLimitingUtil.getActiveRateLimitsWithIds(consumerId, date)
+          } yield JSONFactory600.createActiveRateLimitsJsonV600FromCallLimit(rateLimit, ids, date)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getActiveRateLimitsAtDate), "GET",
+      "/management/consumers/CONSUMER_ID/active-rate-limits/DATE_WITH_HOUR", "Get Active Rate Limits at Date",
+      """Get the active rate limits for a Consumer at the specified UTC hour (YYYY-MM-DD-HH).""",
+      EmptyBody, EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidDateFormat, UnknownError),
+      apiTagConsumer :: Nil,
+      Some(canGetRateLimits :: Nil),
+      http4sPartialFunction = Some(getActiveRateLimitsAtDate)
+    )
 
     // ─── Phase 2: management/api-collections bucket (4 endpoints) ─────────
 
