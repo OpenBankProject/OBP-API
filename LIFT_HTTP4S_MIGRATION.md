@@ -29,7 +29,7 @@ New API versions are implemented as native http4s routes and do not pass through
 
 ### Priority routing
 
-Routes are tried in order: `corsHandler` (OPTIONS) → `AppsPage` → `StatusPage` → `Http4s500` → `Http4s700` → `Http4sBGv2` → `Http4s400` → `Http4s310` → `Http4s300` → `Http4s220` → `Http4s210` → `Http4s200` → `Http4s140` → `Http4s130` → `Http4s121` → `Http4sLiftWebBridge` (Lift fallback). Unhandled `/obp/v7.0.0/*` paths fall through silently to Lift — they do not 404.
+Routes are tried in order: `corsHandler` (OPTIONS) → `AppsPage` → `StatusPage` → `Http4s510` → `Http4s600` → `Http4s500` → `Http4s700` → `Http4sBGv2` → `Http4s400` → `Http4s310` → `Http4s300` → `Http4s220` → `Http4s210` → `Http4s200` → `Http4s140` → `Http4s130` → `Http4s121` → `Http4sLiftWebBridge` (Lift fallback). Unhandled `/obp/vX.Y.Z/*` paths fall through silently to Lift — they do not 404. The non-numeric ordering (v510 before v600, v500 after v600 etc.) doesn't affect correctness because each per-version service gates on its own version prefix; the ordering only matters when two services overlap on the same URL pattern.
 
 ```
 HTTP Request
@@ -38,17 +38,16 @@ HTTP Request
 Http4sServer (IOApp / Ember)
     │
     ▼
-corsHandler → AppsPage → StatusPage → Http4s500 → Http4s700 → Http4sBGv2
-                                                                      │
-          Http4s300 → Http4s220 → Http4s210 → Http4s200 → Http4s140 → Http4s130 → Http4s121 → Http4sLiftWebBridge
-              │           │           │           │           │           │              │
-          v3.0.0      v2.2.0      v2.1.0      v2.0.0      v1.4.0      v1.3.0        v1.2.1 routes
-        own routes  own routes  own routes  own routes  own routes  own routes    (all 323 scenarios)
-        + v2.2.0    + v2.1.0    + v2.0.0    + v1.4.0    + v1.3.0    + v1.2.1
-                bridge      bridge      bridge      bridge       bridge
-                                                                                      │
-                                                                           LiftRules.statelessDispatch
-                                                                           LiftRules.dispatch (REST API)
+corsHandler → AppsPage → StatusPage → Http4s510 → Http4s600 → Http4s500 → Http4s700 → Http4sBGv2
+                                                                                          │
+          Http4s400 → Http4s310 → Http4s300 → Http4s220 → Http4s210 → Http4s200 → Http4s140 → Http4s130 → Http4s121 → Http4sLiftWebBridge
+              │           │           │           │           │           │           │           │              │
+          v4.0.0      v3.1.0      v3.0.0      v2.2.0      v2.1.0      v2.0.0      v1.4.0      v1.3.0        v1.2.1 routes
+        own routes  own routes  own routes  own routes  own routes  own routes  own routes  own routes    (all 323 scenarios)
+                bridge      bridge      bridge      bridge      bridge      bridge       bridge
+                                                                                          │
+                                                                                LiftRules.statelessDispatch
+                                                                                LiftRules.dispatch (REST API)
     │
     ▼
 HTTP Response (with standard headers)
@@ -120,10 +119,10 @@ Bottom-up — each version depends on the one below it being done.
 | 6 | `APIMethods220` | 19 | **Done** — `Http4s220.scala`: 18 own endpoints + path-rewriting bridge to `Http4s210`; all 27 v2.2.0 tests pass |
 | 7 | `APIMethods300` | 47 | **Done** — `Http4s300.scala`: 47 own endpoints + path-rewriting bridge to `Http4s220`; all 86 v3.0.0 tests pass |
 | 8 | `APIMethods310` | 102 | **Done** — `Http4s310.scala` has all 100 functional endpoints (42 GET, 10 DELETE, 19 POST, 25 PUT, 1 GET-shaped revoke, 3 SCA aliases) + path-rewriting bridge to `Http4s300`; 181 v3.1.0 tests pass. Two endpoints tracked separately in "Per-version Lift leftovers" (`getMessageDocsSwagger`, `getObpConnectorLoopback`) — they retire via the Resource-docs workstream / bridge-removal PR, not as v3.1.0 follow-up. |
-| 9 | `APIMethods400` | ~258 total | **In progress (47/258 endpoints)** — `Http4s400.scala` scaffolded with `staticResourceDocs`/`resourceDocs` split + bridge to `Http4s310`. **Dynamic-entity family complete** (11/11), **dynamic-endpoint family complete** (12/12), **mainstream batch 1** (`getMapperDatabaseInfo`, `getLogoutLink`, `getBanks`, `getBank`, `ibanChecker`, `callsLimit`, `createBank`, `root`). **Override audit started** (13/35 v4-over-older overrides migrated: `getBanks`, `getBank`, `createBank`, `root`, `getAtms`, `getAtm`, `createAtm`, `getProducts`, `getProduct`, `createProduct`, `createProductAttribute`, `updateProductAttribute`, `callsLimit`). Tests passing: BankTests, BankAttributeTests, MapperDatabaseInfoTest, RateLimitingTest, AtmsTest, ProductTest, DynamicEntityTest, DynamicEndpointsTest et al. **Bridge-cascade hijack gotcha** (see CLAUDE.md): v4 endpoints that *override* a same-URL endpoint from an earlier version must be migrated to `Http4s400` own-routes *before* relying on the bridge — otherwise the bridge cascade rewrites the path down to the older version's handler (which has different behaviour). 22 overrides remain to migrate. |
-| 10 | `APIMethods500` | 37 | |
-| 11 | `APIMethods510` | 111 | |
-| 12 | `APIMethods600` | ~244 total | Final Lift endpoint file |
+| 9 | `APIMethods400` | 258 | **Done — 258 / 258 (100%)**. `Http4s400.scala` covers all 253 unique handlers (`lazy val NAME: HttpRoutes[IO]`) plus 8 ResourceDoc aliases for the transaction-request-type variants (ACCOUNT, ACCOUNT_OTP, SEPA, COUNTERPARTY, REFUND, FREE_FORM, SIMPLE, AGENT_CASH_WITHDRAWAL — handled by the shared `createTransactionRequest` wildcard handler; the `literalAllCapsSegments` set in `Http4sSupport.scala` dispatches the matcher to the per-type doc for swagger purposes). Adopts the **lazy val + helper-def init pattern** (Batches 1–19) introduced in v6 to dodge the JVM 64KB `<init>` method-size limit. **Bridge-cascade hijack** historically threatened v4's overrides; resolved by migrating all 35/35 v4-over-older URL+verb overrides. |
+| 10 | `APIMethods500` | 10 | **Done** — `Http4s500.scala` (all v5.0.0 originals migrated) |
+| 11 | `APIMethods510` | 111 | **Done** — `Http4s510.scala`. v5.1.0's `createConsent` Lift handler is exposed in Http4s510 under the alias name `createConsentImplicit` (a single handler with `if scaMethod == "EMAIL" \|\| scaMethod == "SMS" \|\| scaMethod == "IMPLICIT"` guard covers all three SCA-method URLs). |
+| 12 | `APIMethods600` | 243 (35 overrides + 208 originals) | **Done — 243 / 243 (100%)**. `Http4s600.scala` covers all v6 originals and overrides. Wired into `Http4sApp.baseServices` ahead of the Lift bridge. Architecturally introduced the **lazy val + helper-def init pattern** to dodge the JVM 64KB `<init>` method-size limit (`val xxx: HttpRoutes[IO]` ⇒ `lazy val xxx`; `resourceDocs += ResourceDoc(...)` calls grouped into `private def initXxxResourceDocs(): Unit` blocks). Future per-version files should adopt the same pattern from the start. |
 
 ---
 
@@ -188,8 +187,107 @@ An `APIMethods{version}` file is marked **done** in the progress table when ever
 |---|---|---|---|
 | `getMessageDocsSwagger` (`GET /message-docs/CONNECTOR/swagger2.0`) | `APIMethods310` | Same shape as `getResourceDocsObpV700` / `openapi.yaml` — runtime Swagger generation with shared caching | The **Http4sResourceDocs** workstream (step 4) |
 | `getObpConnectorLoopback` (`GET /connector/loopback`) | `APIMethods310` | Deprecated stub that unconditionally throws `IllegalStateException(NotImplemented)`; no functional behaviour | Either a 3-line native http4s route that throws the same exception or outright deletion, decided when the Lift bridge is removed |
+| `testResourceDoc` (`GET /dummy`) | `APIMethods140` | Dev-only stub gated behind `if (Props.devMode) { ... }`. Returns a dummy `APIInfoJSON` payload for testing the resource-doc renderer. Has no production behaviour worth porting. | Deleted in the bridge-removal PR (no native equivalent needed). |
 
 Track new leftovers here when later version files are migrated — the bridge-removal milestone in "Done Criteria" only requires the per-version files to be **done** in this table's sense (functional endpoints migrated, tests green). Leftovers folded into the Resource-docs or Auth-stack workstreams retire via those workstreams.
+
+---
+
+## Migration leftovers (full landscape, beyond per-version files)
+
+Things still on Lift that block the `Http4sLiftWebBridge` from being removed. Use this section as the master TODO for the "remove Lift Web" milestone.
+
+### Auth stack — every handler is its own `RestHelper`
+
+| Handler | File | Routes | Status |
+|---|---|---|---|
+| `DirectLogin` | `code/api/directlogin.scala` | `POST /my/logins/direct` | http4s version inside `Http4s600.scala`; Lift dispatch **still registered** as fallback. Earlier-version paths still hit Lift. The key gotcha: `createTokenFuture(allParameters)` ignores its argument and re-reads from Lift's `S.request` via `getAllParameters`. Use `validatorFutureWithParams(...)` + `createTokenCommonPart(...)` instead — this is the http4s-friendly entry point. |
+| `GatewayLogin` | `code/api/GatewayLogin.scala` | Gateway JWT exchange | Lift only |
+| `DAuth` | `code/api/dauth.scala` | dAuth JWT exchange | Lift only |
+| `OAuth 1.0a` | OAuth files | OAuth 1.0a token endpoints | Lift only |
+| `OAuth2` | `code/api/OAuth2.scala` | OAuth 2.0 token & callback | Lift only |
+| `OpenIdConnect` | `code/api/openidconnect.scala` | OIDC callback — registered via `LiftRules.dispatch.append` | Lift only |
+
+These four (DirectLogin/GatewayLogin/DAuth/OAuth) are the most-complex remaining dependencies on Lift `S.request` and they collectively block bridge removal.
+
+### Resource-docs workstream
+
+Already partly described in the next major section, but counted here for completeness:
+
+- `ResourceDocs140` … `ResourceDocs600` — six separate Lift files, each registered via `LiftRules.statelessDispatch.append` in `Boot.scala`.
+- `getResourceDocsObpV700` aggregation bug fix — landed (`V7ResourceDocsAggregationTest` passes).
+- `openapi.yaml` route — raw `Lift serve { ... }` block, no native http4s handler.
+- `getMessageDocsSwagger` (v3.1.0) — folds into the centralised `Http4sResourceDocs` service when it ships.
+- One-PR opportunity: build `Http4sResourceDocs` above the Lift bridge in `Http4sApp`, intercept all `/obp/*/resource-docs/*` traffic, retire six Lift dispatch entries in a single change.
+
+### Small singleton Lift endpoints
+
+| Endpoint | File | Notes |
+|---|---|---|
+| `aliveCheck` | `code/api/aliveCheck.scala` | One-line liveness probe. Trivial port. |
+| `ImporterAPI` | `code/api/ImporterAPI.scala` (gated by props) | Sandbox data-import endpoint. Single Lift file. |
+| `OpenIdConnect` | (auth-stack table above) | OIDC callback, registered separately from OAuth2. |
+
+### Open-banking standards (large, deferred indefinitely)
+
+Lift implementations of 3rd-party regulatory standards. All currently pass through `Http4sLiftWebBridge` and continue to work; they are *not* OBP API per se but optional regulatory shims. Migrating them is out of scope for the "remove Lift Web" milestone if you accept keeping the bridge for these stacks only. If total Lift removal is the goal, each needs its own workstream.
+
+| Standard | Files / location | Status |
+|---|---|---|
+| Berlin Group v1.3 | `code/api/berlin/group/v1_3/*` — 7 files (AIS / PIS / PIIS / signing baskets / common) | Lift |
+| **Berlin Group v2** | `code/api/berlin/group/v2/Http4sBGv2.scala` | ✅ already on http4s |
+| UK Open Banking v2.0.0 + v3.1.0 | `code/api/UKOpenBanking/*` — ~20 files | Lift |
+| Bahrain OBF v1.0.0 | `code/api/BahrainOBF/*` — ~20 files | Lift |
+| AU OpenBanking v1.0.0 | `code/api/AUOpenBanking/*` — ~10 files | Lift |
+| STET v1.4 | `code/api/STET/v1_4/*` — 4 files | Lift |
+| MxOF v1.0.0 | `code/api/MxOF/*` — 2 files | Lift |
+| Polish v2.1.1.1 | `code/api/Polish/v2_1_1_1/*` — 4 files | Lift |
+| Sandbox / `SandboxApiCalls.scala` | `code/api/sandbox/*` | Lift |
+
+### `Boot.scala` scaffolding
+
+Currently runs on startup and goes away once the Lift bridge is removable:
+
+1. `LiftRules.statelessDispatch.append(...)` registrations: `DirectLogin`, `ImporterAPI`, `ResourceDocs140`–`ResourceDocs600`, `aliveCheck`.
+2. `LiftRules.dispatch.append(OpenIdConnect)`.
+3. `LiftRules.addToPackages("code")` — Lift package scanner.
+4. `LiftRules.exceptionHandler.prepend { ... }` — global exception handler.
+5. `LiftRules.uriNotFound.prepend { ... }` — 404 handler.
+6. `LiftRules.early`, `LiftRules.supplementalHeaders`, `LiftRules.localeCalculator`, etc. — request-path hooks.
+7. `LiftRules.unloadHooks.append(...)` — shutdown hooks (DB pool, Redis).
+8. **Mapper schemifier** — DB schema init. Belongs to the long-term `lift-mapper` removal effort, not the bridge milestone.
+
+Everything in lines 1–7 is request-path-related and will go in the bridge-removal PR. Line 8 stays until lift-mapper is replaced.
+
+### Tests
+
+| Item | Status |
+|---|---|
+| `Http4s500RoutesTest`, `RootAndBanksTest`, `V500ContractParityTest` | `@Ignore`. |
+| `CardTest` | Commented out. |
+| v5.0.0: 13 skipped tests | Setup cost paid, no value. |
+| `V7ResourceDocsAggregationTest` | Was intentionally failing; aggregation bug fix landed → now passes. |
+| `AbacRuleTests` (6 local fails) | Environment-dependent — too few users in local DB triggers `isStatisticallyTooPermissive`. Not a regression. |
+
+### Reusable lessons from v6.0.0
+
+1. **JVM 64KB `<init>` limit** — see CLAUDE.md. Adopt `lazy val xxx: HttpRoutes[IO] = ...` plus `private def initXxxResourceDocs(): Unit` blocks in every per-version file from the start; don't wait until you hit the wall.
+2. **DirectLogin pattern** — `S.request`-bound Lift handlers need an http4s-friendly entry point that accepts pre-parsed parameters. `validatorFutureWithParams` is the model; replicate this for `GatewayLogin` / `OAuth` when their migration starts.
+3. **`Future.failed(new Exception)` produces 500** — use `unboxFullOrFail(Empty, ..., 400)` or `NewStyle.function.tryons(msg, 400, ...)` to return the intended 4xx. Pattern showed up in WebUiProps and RetailCustomer fixes.
+4. **`isStatisticallyTooPermissive` is sample-pool-dependent** — locally, a fresh test DB with a single user causes spurious rejections. Tests built against this check must seed enough users.
+5. **Reserved ALL_CAPS placeholders** in middleware (`BANK_ID`, `ACCOUNT_ID`, `VIEW_ID`, `COUNTERPARTY_ID`) — when an endpoint needs a same-shape var without middleware lookup, rename to a non-reserved variant (e.g. `COUNTERPARTY_ID_PARAM`) in both the http4s and Lift ResourceDocs.
+
+### Suggested ordering for the remaining work
+
+1. ~~**v4.0.0 bulk port**~~ — done (258/258, 100%).
+2. **`aliveCheck`, `ImporterAPI`** — easiest wins, retire two `LiftRules.statelessDispatch` entries.
+3. **`Http4sResourceDocs` centralised service** — single PR removes 6 dispatch entries + the `openapi.yaml` raw-serve block.
+4. **Auth stack: OAuth2 / OpenIdConnect** — smaller and fewer call sites than the others.
+5. **DirectLogin** — already half done in v6; needs to cover earlier versions and retire the `LiftRules.statelessDispatch.append(DirectLogin)` entry.
+6. **GatewayLogin + DAuth + OAuth 1.0a** — biggest remaining auth work.
+7. **Bridge-removal PR** — delete `Http4sLiftWebBridge` + the request-path entries from `Boot.scala` (lines 1–7 above).
+8. **Open-banking standards** — decide whether to migrate or keep a thin Lift remnant. Weeks of work if migrating.
+9. **`lift-mapper`** — separate long-term effort, out of scope here.
 
 ---
 
@@ -260,11 +358,11 @@ Binds to `hostname` / `dev.port` from your props file (defaults: `127.0.0.1:8080
 | `APIMethods210` | done — `Http4s210.scala` (25 own endpoints; path-rewriting bridge to Http4s200) |
 | `APIMethods220` | done — `Http4s220.scala` (18 own endpoints; path-rewriting bridge to Http4s210) |
 | `APIMethods300` | done — `Http4s300.scala` (47 own endpoints; path-rewriting bridge to Http4s220; all 86 v3.0.0 tests pass) |
-| `APIMethods310` | done — `Http4s310.scala` (100 own endpoints; path-rewriting bridge to Http4s300; 2 endpoints intentionally left on Lift: `getMessageDocsSwagger`, `getObpConnectorLoopback`) |
-| `APIMethods400` | todo |
-| `APIMethods500` | todo |
-| `APIMethods510` | todo |
-| `APIMethods600` | todo |
+| `APIMethods310` | done — `Http4s310.scala` (100 own endpoints + `updateCustomerAddress`; path-rewriting bridge to Http4s300; 2 endpoints intentionally left on Lift: `getMessageDocsSwagger`, `getObpConnectorLoopback`) |
+| `APIMethods400` | **done — 258 / 258 (100%)**. `Http4s400.scala` covers all 253 unique handlers + 8 ResourceDoc aliases for transaction-request-type variants (served by the shared wildcard handler). |
+| `APIMethods500` | done — `Http4s500.scala` (all 10 v5.0.0 originals on http4s) |
+| `APIMethods510` | done — `Http4s510.scala` (all 111 v5.1.0 originals on http4s; `createConsent` exposed as `createConsentImplicit` with a guard covering EMAIL/SMS/IMPLICIT SCA methods) |
+| `APIMethods600` | **done — 243 / 243 (100%)**. `Http4s600.scala` covers all 35 overrides + 208 originals. |
 | Auth: DirectLogin | todo |
 | Auth: GatewayLogin | todo |
 | Auth: DAuth | todo |
