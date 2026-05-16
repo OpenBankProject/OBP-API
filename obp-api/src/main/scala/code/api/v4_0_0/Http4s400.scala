@@ -2529,7 +2529,7 @@ object Http4s400 {
 
       staticResourceDocs += ResourceDoc(
         null, implementedInApiVersion, nameOf(getCounterpartyByIdForAnyAccount), "GET",
-        "/management/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties/COUNTERPARTY_ID",
+        "/management/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties/COUNTERPARTY_ID_PARAM",
         "Get Counterparty by Id for any account (Explicit)",
         s"""Get Counterparty by COUNTERPARTY_ID.""".stripMargin,
         EmptyBody, counterpartyWithMetadataJson400,
@@ -2946,10 +2946,7 @@ object Http4s400 {
           for {
             (transactionRequest, _) <- NewStyle.function.getTransactionRequestImpl(
               TransactionRequestId(transactionRequestIdStr), Some(cc))
-            (transactionAttributes, _) <- NewStyle.function.getTransactionRequestAttributes(
-              account.bankId, TransactionRequestId(transactionRequestIdStr), Some(cc))
-          } yield JSONFactory400.createTransactionRequestWithChargeJSON(
-            transactionRequest, List.empty, transactionAttributes)
+          } yield code.api.v2_1_0.JSONFactory210.createTransactionRequestWithChargeJSON(transactionRequest)
         }
     }
 
@@ -3129,7 +3126,7 @@ object Http4s400 {
         EmptyBody, transactionRequestAttributeResponseJson,
         List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, InvalidJsonFormat, UnknownError),
         List(apiTagTransactionRequest, apiTagTransactionRequestAttribute, apiTagAttribute),
-        Some(List(canGetTransactionRequestAttributesAtOneBank)),
+        Some(List(canGetTransactionRequestAttributeAtOneBank)),
         http4sPartialFunction = Some(getTransactionRequestAttributeById))
 
       staticResourceDocs += ResourceDoc(
@@ -3203,7 +3200,7 @@ object Http4s400 {
         postCustomerPhoneNumberJsonV400, customerJsonV310,
         List($AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat, UnknownError),
         List(apiTagCustomer),
-        Some(List(canCreateCustomerAtAnyBank)),
+        Some(List(canGetCustomersAtOneBank)),
         http4sPartialFunction = Some(getCustomersByCustomerPhoneNumber))
 
       staticResourceDocs += ResourceDoc(
@@ -3791,13 +3788,11 @@ object Http4s400 {
     }
 
     lazy val deleteBankAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
-      case req @ DELETE -> `prefixPath` / "banks" / bankIdStr / "attributes" / bankAttributeId =>
-        EndpointHelpers.withUser(req) { (user, cc) =>
+      case req @ DELETE -> `prefixPath` / "banks" / _ / "attributes" / bankAttributeId =>
+        EndpointHelpers.withUserAndBankDelete(req) { (_, _, cc) =>
           for {
-            _ <- NewStyle.function.hasEntitlement(bankIdStr, user.userId, canDeleteBankAttribute, Some(cc))
-            (_, _) <- NewStyle.function.getBank(BankId(bankIdStr), Some(cc))
-            (deleted, _) <- NewStyle.function.deleteBankAttribute(bankAttributeId, Some(cc))
-          } yield deleted
+            (_, _) <- NewStyle.function.deleteBankAttribute(bankAttributeId, Some(cc))
+          } yield ()
         }
     }
 
@@ -4055,7 +4050,7 @@ object Http4s400 {
 
       staticResourceDocs += ResourceDoc(
         null, implementedInApiVersion, nameOf(deleteCustomerAttribute), "DELETE",
-        "/banks/BANK_ID/customers/CUSTOMER_ID/attributes/CUSTOMER_ATTRIBUTE_ID",
+        "/banks/BANK_ID/customers/attributes/CUSTOMER_ATTRIBUTE_ID",
         "Delete Customer Attribute",
         s"""Delete Customer Attribute.
            |
@@ -4063,7 +4058,7 @@ object Http4s400 {
         EmptyBody, EmptyBody,
         List(UserHasMissingRoles, UnknownError),
         List(apiTagCustomer, apiTagCustomerAttribute, apiTagAttribute),
-        Some(List(canDeleteCustomerAttributeAtOneBank)),
+        Some(List(canDeleteCustomerAttributeAtOneBank, canDeleteCustomerAttributeAtAnyBank)),
         http4sPartialFunction = Some(deleteCustomerAttribute))
 
       staticResourceDocs += ResourceDoc(
@@ -4075,7 +4070,8 @@ object Http4s400 {
            |${userAuthenticationMessage(true)}""".stripMargin,
         EmptyBody, EmptyBody,
         List(UserHasMissingRoles, BankNotFound, UnknownError),
-        List(apiTagBank, apiTagBankAttribute, apiTagAttribute), None,
+        List(apiTagBank, apiTagBankAttribute, apiTagAttribute),
+        Some(List(canDeleteBankAttribute)),
         http4sPartialFunction = Some(deleteBankAttribute))
 
       staticResourceDocs += ResourceDoc(
@@ -4329,6 +4325,19 @@ object Http4s400 {
         }
     }
 
+    lazy val createCustomerMessage: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "banks" / _ / "customers" / customerId / "messages" =>
+        EndpointHelpers.withUserAndBankAndBodyCreated[CreateMessageJsonV400, code.api.v1_2_1.SuccessMessage](req) {
+          (_, bank, postedData, cc) =>
+            for {
+              (customer, _) <- NewStyle.function.getCustomerByCustomerId(customerId, Some(cc))
+              (_, _) <- NewStyle.function.createCustomerMessage(
+                customer, bank.bankId, postedData.transport, postedData.message,
+                postedData.from_department, postedData.from_person, Some(cc))
+            } yield successMessage
+        }
+    }
+
     private def initBatch2ResourceDocs(): Unit = {
       staticResourceDocs += ResourceDoc(
         null, implementedInApiVersion, nameOf(getEntitlementsForBank), "GET",
@@ -4338,7 +4347,7 @@ object Http4s400 {
         EmptyBody, entitlementsJsonV400,
         List($AuthenticatedUserIsRequired, BankNotFound, UserHasMissingRoles, UnknownError),
         List(apiTagRole, apiTagEntitlement, apiTagUser, apiTagBank),
-        Some(List(canGetEntitlementsForOneBank)),
+        Some(List(canGetEntitlementsForOneBank, canGetEntitlementsForAnyBank)),
         http4sPartialFunction = Some(getEntitlementsForBank))
 
       staticResourceDocs += ResourceDoc(
@@ -4563,8 +4572,21 @@ object Http4s400 {
            |${userAuthenticationMessage(true)}""".stripMargin,
         EmptyBody, customerMessagesJson,
         List($AuthenticatedUserIsRequired, $BankNotFound, UnknownError),
-        List(apiTagMessage, apiTagCustomer), None,
+        List(apiTagMessage, apiTagCustomer),
+        Some(List(canGetCustomerMessages)),
         http4sPartialFunction = Some(getCustomerMessages))
+
+      staticResourceDocs += ResourceDoc(
+        null, implementedInApiVersion, nameOf(createCustomerMessage), "POST",
+        "/banks/BANK_ID/customers/CUSTOMER_ID/messages",
+        "Create Customer Message",
+        s"""Create a message for the customer specified by CUSTOMER_ID
+           |${userAuthenticationMessage(true)}""".stripMargin,
+        createMessageJsonV400, successMessage,
+        List($AuthenticatedUserIsRequired, $BankNotFound),
+        List(apiTagMessage, apiTagCustomer, apiTagPerson),
+        Some(List(canCreateCustomerMessage)),
+        http4sPartialFunction = Some(createCustomerMessage))
     }
     initBatch2ResourceDocs()
 
@@ -4821,6 +4843,7 @@ object Http4s400 {
         .orElse(getUserCustomerLinksByUserId.run(req))
         .orElse(getUserCustomerLinksByCustomerId.run(req))
         .orElse(getCustomerMessages.run(req))
+        .orElse(createCustomerMessage.run(req))
         // Batch 3 — DELETEs
         .orElse(deleteTransactionAttributeDefinition.run(req))
         .orElse(deleteCustomerAttributeDefinition.run(req))

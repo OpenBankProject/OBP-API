@@ -34,6 +34,8 @@ object ErrorResponseConverter {
   implicit val formats: Formats = CustomJsonFormats.formats
   private val jsonContentType: `Content-Type` = `Content-Type`(MediaType.application.json)
 
+  private val obpErrorCodePrefix = "^OBP-\\d{5}: ".r
+
   private def tryExtractApiFailureFromExceptionMessage(error: Throwable): Option[APIFailureNewStyle] = {
     val msg = Option(error.getMessage).getOrElse("").trim
     if (msg.startsWith("{") && msg.contains("\"failCode\"") && msg.contains("\"failMsg\"")) {
@@ -45,6 +47,9 @@ object ErrorResponseConverter {
       } catch {
         case _: Throwable => None
       }
+    } else if (obpErrorCodePrefix.findFirstIn(msg).isDefined) {
+      // Plain Exception("OBP-XXXXX: ...") thrown by fullBoxOrException(Failure(msg)) — Lift treats these as 400.
+      Some(APIFailureNewStyle(msg, 400))
     } else {
       None
     }
