@@ -1706,6 +1706,39 @@ object Http4s310 {
       List(apiTagCustomer), Some(List(canCreateCustomerAddress)),
       http4sPartialFunction = Some(createCustomerAddress))
 
+    // ─── updateCustomerAddress (PUT) ─────────────────────────────────────────
+
+    val updateCustomerAddress: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ PUT -> `prefixPath` / "banks" / _ / "customers" / customerIdStr / "addresses" / customerAddressIdStr =>
+        EndpointHelpers.withUserAndBankAndBody[PostCustomerAddressJsonV310, Any](req) { (user, bank, postedData, cc) =>
+          for {
+            _ <- NewStyle.function.hasEntitlement(bank.bankId.value, user.userId, canCreateCustomer, Some(cc))
+            (_, _) <- NewStyle.function.getCustomerByCustomerId(customerIdStr, Some(cc))
+            (address, _) <- NewStyle.function.updateCustomerAddress(
+              customerAddressIdStr,
+              postedData.line_1, postedData.line_2, postedData.line_3,
+              postedData.city, postedData.county, postedData.state,
+              postedData.postcode, postedData.country_code,
+              postedData.state,
+              postedData.tags.mkString(","),
+              Some(cc))
+          } yield JSONFactory310.createAddress(address)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(updateCustomerAddress), "PUT",
+      "/banks/BANK_ID/customers/CUSTOMER_ID/addresses/CUSTOMER_ADDRESS_ID",
+      "Update the Address of a Customer",
+      s"""Update an Address of the Customer specified by CUSTOMER_ADDRESS_ID.
+         |
+         |${userAuthenticationMessage(true)}
+         |""",
+      postCustomerAddressJsonV310, customerAddressJsonV310,
+      List(AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+      List(apiTagCustomer), Some(List(canCreateCustomer)),
+      http4sPartialFunction = Some(updateCustomerAddress))
+
     // ─── createUserAuthContext (POST) ────────────────────────────────────────
 
     val createUserAuthContext: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -3581,6 +3614,7 @@ object Http4s310 {
         .orElse(revokeConsent.run(req))
         .orElse(createTaxResidence.run(req))
         .orElse(createCustomerAddress.run(req))
+        .orElse(updateCustomerAddress.run(req))
         .orElse(createUserAuthContext.run(req))
         .orElse(createProductAttribute.run(req))
         .orElse(createAccountWebhook.run(req))
