@@ -86,12 +86,23 @@ object ErrorResponseConverter {
   }
   
   /**
+   * Translate a 400 default with an OBP-prefixed message to the canonical status
+   * Lift assigns (403 for role/view-access codes, 401 for auth codes, etc.) via
+   * ErrorMessages.getCodeByOBPPrefix. Leaves non-400 failCodes (caller set
+   * status explicitly) untouched.
+   */
+  private def resolveStatusCode(failCode: Int, failMsg: String): Int =
+    if (failCode == 400) code.api.util.ErrorMessages.getCodeByOBPPrefix(failMsg)
+    else failCode
+
+  /**
    * Convert APIFailureNewStyle to http4s Response.
    * Uses failCode as HTTP status and failMsg as error message.
    */
   def apiFailureToResponse(failure: APIFailureNewStyle, callContext: CallContext): IO[Response[IO]] = {
-    val errorJson = OBPErrorResponse(failure.failCode, failure.failMsg)
-    val status = org.http4s.Status.fromInt(failure.failCode).getOrElse(org.http4s.Status.BadRequest)
+    val resolvedCode = resolveStatusCode(failure.failCode, failure.failMsg)
+    val errorJson = OBPErrorResponse(resolvedCode, failure.failMsg)
+    val status = org.http4s.Status.fromInt(resolvedCode).getOrElse(org.http4s.Status.BadRequest)
     IO.pure(
       Response[IO](status)
         .withEntity(toJsonString(errorJson))

@@ -1029,6 +1029,19 @@ object ErrorMessages {
    */
   def getCode(errorMsg: String): Int = errorToCode.get(errorMsg).getOrElse(400)
 
+  /**
+   * Resolve HTTP status code for an OBP-prefixed error message that may have a
+   * runtime suffix appended (e.g. "OBP-20020: User does not have access to the view.
+   * Current ViewId is owner"). Extracts the OBP-XXXXX prefix and returns the
+   * canonical status code from errorToCode, or 400 if not found.
+   */
+  def getCodeByOBPPrefix(errorMsg: String): Int = {
+    val prefixOpt = "OBP-\\d{5}".r.findFirstIn(errorMsg)
+    prefixOpt.flatMap { prefix =>
+      errorToCode.find { case (key, _) => key.startsWith(prefix + ":") }.map(_._2)
+    }.getOrElse(400)
+  }
+
   /****** special error message, start with $, mark as do validation according ResourceDoc errorResponseBodies *****/
   /**
    * validate method: APIUtil.authorizedAccess

@@ -2289,6 +2289,165 @@ object Http4s400 {
       List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2), None,
       http4sPartialFunction = Some(createTransactionRequest))
 
+    // ─── per-type transaction-request alias ResourceDocs ───────────────────────
+    // These 9 Lift `lazy val`s (createTransactionRequestAccountOtp/Sepa/Counterparty
+    // /Refund/FreeForm/Simple/AgentCashWithDrawal/Card and the previously-registered
+    // createTransactionRequestAccount) all share the same body — call
+    // `LocalMappedConnectorInternal.createTransactionRequest`. The already-migrated
+    // `createTransactionRequest` http4s route uses a wildcard segment, so adding a
+    // ResourceDoc per type (with the literal type segment — recognised in
+    // `literalAllCapsSegments`) is enough; no new `lazy val` needed.
+    private def initBatch9AliasResourceDocs(): Unit = {
+      staticResourceDocs += ResourceDoc(
+        null, implementedInApiVersion, "createTransactionRequestAccountOtp", "POST",
+        "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/ACCOUNT_OTP/transaction-requests",
+        "Create Transaction Request (ACCOUNT_OTP)",
+        s"""Create Transaction Request (ACCOUNT_OTP).
+           |
+           |${userAuthenticationMessage(true)}""",
+        transactionRequestBodyJsonV200, transactionRequestWithChargeJSON400,
+        List($AuthenticatedUserIsRequired, InvalidJsonFormat, InvalidNumber, NotPositiveAmount,
+          InvalidTransactionRequestType, InvalidISOCurrencyCode,
+          InsufficientAuthorisationToCreateTransactionRequest,
+          InvalidAccountIdFormat, InvalidBankIdFormat, TransactionDisabled, UnknownError),
+        List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2), None,
+        http4sPartialFunction = Some(createTransactionRequest))
+
+      staticResourceDocs += ResourceDoc(
+        null, implementedInApiVersion, "createTransactionRequestSepa", "POST",
+        "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/SEPA/transaction-requests",
+        "Create Transaction Request (SEPA)",
+        s"""Create Transaction Request (SEPA).
+           |
+           |${userAuthenticationMessage(true)}""",
+        transactionRequestBodySEPAJsonV400, transactionRequestWithChargeJSON400,
+        List($AuthenticatedUserIsRequired, InvalidJsonFormat, InvalidNumber, NotPositiveAmount,
+          InvalidTransactionRequestType, InvalidISOCurrencyCode,
+          InsufficientAuthorisationToCreateTransactionRequest,
+          InvalidAccountIdFormat, InvalidBankIdFormat, TransactionDisabled, UnknownError),
+        List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2), None,
+        http4sPartialFunction = Some(createTransactionRequest))
+
+      staticResourceDocs += ResourceDoc(
+        null, implementedInApiVersion, "createTransactionRequestCounterparty", "POST",
+        "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/COUNTERPARTY/transaction-requests",
+        "Create Transaction Request (COUNTERPARTY)",
+        s"""Create Transaction Request (COUNTERPARTY).
+           |
+           |${userAuthenticationMessage(true)}""",
+        transactionRequestBodyCounterpartyJSON, transactionRequestWithChargeJSON400,
+        List($AuthenticatedUserIsRequired, InvalidJsonFormat, InvalidNumber, NotPositiveAmount,
+          InvalidTransactionRequestType, InvalidISOCurrencyCode,
+          InsufficientAuthorisationToCreateTransactionRequest,
+          InvalidAccountIdFormat, InvalidBankIdFormat, TransactionDisabled, UnknownError),
+        List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2), None,
+        http4sPartialFunction = Some(createTransactionRequest))
+
+      staticResourceDocs += ResourceDoc(
+        null, implementedInApiVersion, "createTransactionRequestRefund", "POST",
+        "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/REFUND/transaction-requests",
+        "Create Transaction Request (REFUND)",
+        s"""Create Transaction Request (REFUND).
+           |
+           |${userAuthenticationMessage(true)}""",
+        transactionRequestBodyRefundJsonV400, transactionRequestWithChargeJSON400,
+        List($AuthenticatedUserIsRequired, InvalidJsonFormat, InvalidNumber, NotPositiveAmount,
+          InvalidTransactionRequestType, InvalidISOCurrencyCode,
+          InsufficientAuthorisationToCreateTransactionRequest,
+          InvalidAccountIdFormat, InvalidBankIdFormat, TransactionDisabled, UnknownError),
+        List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2), None,
+        http4sPartialFunction = Some(createTransactionRequest))
+
+      staticResourceDocs += ResourceDoc(
+        null, implementedInApiVersion, "createTransactionRequestFreeForm", "POST",
+        "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/FREE_FORM/transaction-requests",
+        "Create Transaction Request (FREE_FORM)",
+        s"""Create Transaction Request (FREE_FORM).
+           |
+           |${userAuthenticationMessage(true)}""",
+        transactionRequestBodyFreeFormJSON, transactionRequestWithChargeJSON400,
+        List($AuthenticatedUserIsRequired, InvalidJsonFormat, InvalidNumber, NotPositiveAmount,
+          InvalidTransactionRequestType, InvalidISOCurrencyCode,
+          InsufficientAuthorisationToCreateTransactionRequest,
+          InvalidAccountIdFormat, InvalidBankIdFormat, TransactionDisabled, UnknownError),
+        List(apiTagTransactionRequest, apiTagPSD2PIS),
+        Some(List(canCreateAnyTransactionRequest)),
+        http4sPartialFunction = Some(createTransactionRequest))
+
+      staticResourceDocs += ResourceDoc(
+        null, implementedInApiVersion, "createTransactionRequestSimple", "POST",
+        "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/SIMPLE/transaction-requests",
+        "Create Transaction Request (SIMPLE)",
+        s"""Create Transaction Request (SIMPLE).
+           |
+           |${userAuthenticationMessage(true)}""",
+        transactionRequestBodySimpleJsonV400, transactionRequestWithChargeJSON400,
+        List($AuthenticatedUserIsRequired, InvalidJsonFormat, InvalidNumber, NotPositiveAmount,
+          InvalidTransactionRequestType, InvalidISOCurrencyCode,
+          InsufficientAuthorisationToCreateTransactionRequest,
+          InvalidAccountIdFormat, InvalidBankIdFormat, TransactionDisabled, UnknownError),
+        List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2), None,
+        http4sPartialFunction = Some(createTransactionRequest))
+
+      staticResourceDocs += ResourceDoc(
+        null, implementedInApiVersion, "createTransactionRequestAgentCashWithDrawal", "POST",
+        "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/AGENT_CASH_WITHDRAWAL/transaction-requests",
+        "Create Transaction Request (AGENT_CASH_WITHDRAWAL)",
+        s"""Create Transaction Request (AGENT_CASH_WITHDRAWAL).
+           |
+           |${userAuthenticationMessage(true)}""",
+        transactionRequestBodyAgentJsonV400, transactionRequestWithChargeJSON400,
+        List($AuthenticatedUserIsRequired, InvalidJsonFormat, InvalidNumber, NotPositiveAmount,
+          InvalidTransactionRequestType, InvalidISOCurrencyCode,
+          InsufficientAuthorisationToCreateTransactionRequest,
+          InvalidAccountIdFormat, InvalidBankIdFormat, TransactionDisabled, UnknownError),
+        List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2), None,
+        http4sPartialFunction = Some(createTransactionRequest))
+    }
+    initBatch9AliasResourceDocs()
+
+    // createTransactionRequestCard uses a different URL pattern (no bank/account/view)
+    // and the Lift body calls the connector with empty BankId/AccountId. Add as its own
+    // route + ResourceDoc. The connector reads the user via SS.user, so prime SS with
+    // the user only; bank/account/view are connector-resolved from card details.
+    lazy val createTransactionRequestCard: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "transaction-request-types" / "CARD" / "transaction-requests" =>
+        implicit val cc: CallContext = req.callContext
+        EndpointHelpers.executeFutureCreated(req) {
+          val bodyStr = cc.httpBody.getOrElse("")
+          for {
+            user <- Future { cc.user.openOrThrowException(AuthenticatedUserIsRequired) }
+            json <- NewStyle.function.tryons(
+              s"$InvalidJsonFormat Empty or invalid request body.", 400, Some(cc)) {
+              net.liftweb.json.parse(bodyStr)
+            }
+            transactionRequestType = TransactionRequestType("CARD")
+            innerResult <- APIUtil.SS.init(Full(user),
+              null.asInstanceOf[Bank], null.asInstanceOf[BankAccount],
+              null.asInstanceOf[View], Some(cc)) {
+              code.bankconnectors.LocalMappedConnectorInternal.createTransactionRequest(
+                BankId(""), AccountId(""), ViewId(Constant.SYSTEM_OWNER_VIEW_ID),
+                transactionRequestType, json)
+            }
+          } yield innerResult._1
+        }
+    }
+
+    staticResourceDocs += ResourceDoc(
+      null, implementedInApiVersion, "createTransactionRequestCard", "POST",
+      "/transaction-request-types/CARD/transaction-requests",
+      "Create Transaction Request (CARD)",
+      s"""Create Transaction Request (CARD).
+         |
+         |${userAuthenticationMessage(true)}""",
+      transactionRequestBodyCardJsonV400, transactionRequestWithChargeJSON400,
+      List($AuthenticatedUserIsRequired, InvalidJsonFormat, InvalidNumber, NotPositiveAmount,
+        InvalidTransactionRequestType, InvalidISOCurrencyCode,
+        InsufficientAuthorisationToCreateTransactionRequest,
+        InvalidAccountIdFormat, InvalidBankIdFormat, TransactionDisabled, UnknownError),
+      List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2), None,
+      http4sPartialFunction = Some(createTransactionRequestCard))
+
     // ─── answerTransactionRequestChallenge (POST .../trans-requests/{id}/challenge → 202) ─
     //
     // v4 needs its own handling for this endpoint because the v2.1.0 catch-all (one
@@ -2553,6 +2712,1419 @@ object Http4s400 {
         http4sPartialFunction = Some(getCounterpartyByNameForAnyAccount))
     }
     initBatch8ResourceDocs()
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Batch 9 — Remaining v4 migrations
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    // ─── DELETE family ────────────────────────────────────────────────────────
+    // Most v4 DELETEs return 200 with body (Lift `HttpCode.\`200\``); use the
+    // non-Delete helpers.
+
+    lazy val deleteExplicitCounterparty: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ DELETE -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / viewIdStr / "counterparties" / counterpartyIdStr =>
+        EndpointHelpers.withView(req) { (_, account, view, cc) =>
+          for {
+            _ <- code.util.Helper.booleanToFuture(InvalidAccountIdFormat, cc = Some(cc)) { isValidID(accountIdStr) }
+            _ <- code.util.Helper.booleanToFuture(InvalidBankIdFormat, cc = Some(cc)) { isValidID(bankIdStr) }
+            _ <- code.util.Helper.booleanToFuture(
+              s"$NoViewPermission can_delete_counterparty. Please use a view with that permission or add the permission to this view.",
+              failCode = 403, cc = Some(cc)) {
+              view.allowed_actions.exists(_ == code.api.Constant.CAN_DELETE_COUNTERPARTY)
+            }
+            (counterparty, _) <- NewStyle.function.deleteCounterpartyByCounterpartyId(
+              CounterpartyId(counterpartyIdStr), Some(cc))
+            _ <- NewStyle.function.deleteMetadata(
+              account.bankId, account.accountId, counterpartyIdStr, Some(cc))
+          } yield counterparty
+        }
+    }
+
+    lazy val deleteCounterpartyForAnyAccount: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ DELETE -> `prefixPath` / "management" / "banks" / bankIdStr / "accounts" / accountIdStr / _ / "counterparties" / counterpartyIdStr =>
+        EndpointHelpers.withBankAccount(req) { (_, account, cc) =>
+          for {
+            _ <- code.util.Helper.booleanToFuture(InvalidAccountIdFormat, cc = Some(cc)) { isValidID(accountIdStr) }
+            _ <- code.util.Helper.booleanToFuture(InvalidBankIdFormat, cc = Some(cc)) { isValidID(bankIdStr) }
+            (counterparty, _) <- NewStyle.function.deleteCounterpartyByCounterpartyId(
+              CounterpartyId(counterpartyIdStr), Some(cc))
+            _ <- NewStyle.function.deleteMetadata(
+              account.bankId, account.accountId, counterpartyIdStr, Some(cc))
+          } yield counterparty
+        }
+    }
+
+    lazy val deleteTagForViewOnAccount: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ DELETE -> `prefixPath` / "banks" / _ / "accounts" / _ / viewIdStr / "metadata" / "tags" / tagId =>
+        EndpointHelpers.withView(req) { (_, _, view, cc) =>
+          for {
+            _ <- code.util.Helper.booleanToFuture(
+              s"$NoViewPermission can_delete_tag. Current ViewId($viewIdStr)",
+              cc = Some(cc)) {
+              view.allowed_actions.exists(_ == code.api.Constant.CAN_DELETE_TAG)
+            }
+            account = cc.bankAccount.getOrElse(throw new RuntimeException(BankAccountNotFound))
+            deleted <- Future(
+              code.metadata.tags.Tags.tags.vend.deleteTagOnAccount(account.bankId, account.accountId)(tagId))
+          } yield deleted
+        }
+    }
+
+    lazy val getTagsForViewOnAccount: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / _ / viewIdStr / "metadata" / "tags" =>
+        EndpointHelpers.withView(req) { (_, account, view, cc) =>
+          for {
+            _ <- code.util.Helper.booleanToFuture(
+              s"$NoViewPermission can_see_tags. Current ViewId($viewIdStr)",
+              cc = Some(cc)) {
+              view.allowed_actions.exists(_ == code.api.Constant.CAN_SEE_TAGS)
+            }
+            tags <- Future(
+              code.metadata.tags.Tags.tags.vend.getTagsOnAccount(account.bankId, account.accountId)(ViewId(viewIdStr)))
+          } yield JSONFactory400.createAccountTagsJSON(tags)
+        }
+    }
+
+    lazy val addTagForViewOnAccount: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "banks" / _ / "accounts" / _ / viewIdStr / "metadata" / "tags" =>
+        implicit val cc: CallContext = req.callContext
+        EndpointHelpers.executeFutureCreated(req) {
+          val bodyStr = cc.httpBody.getOrElse("")
+          for {
+            user <- Future { cc.user.openOrThrowException(AuthenticatedUserIsRequired) }
+            account <- Future { cc.bankAccount.getOrElse(throw new RuntimeException(BankAccountNotFound)) }
+            view <- Future { cc.view.getOrElse(throw new RuntimeException(s"$ViewNotFound Current ViewId($viewIdStr)")) }
+            _ <- code.util.Helper.booleanToFuture(
+              s"$NoViewPermission can_add_tag. Current ViewId($viewIdStr)",
+              cc = Some(cc)) {
+              view.allowed_actions.exists(_ == code.api.Constant.CAN_ADD_TAG)
+            }
+            tagJson <- NewStyle.function.tryons(
+              s"$InvalidJsonFormat The Json body should be the ${classOf[code.api.v1_2_1.PostTransactionTagJSON].getSimpleName} ",
+              400, Some(cc)) {
+              net.liftweb.json.parse(bodyStr).extract[code.api.v1_2_1.PostTransactionTagJSON]
+            }
+            postedTag <- Future(
+              code.metadata.tags.Tags.tags.vend.addTagOnAccount(account.bankId, account.accountId)(
+                user.userPrimaryKey, ViewId(viewIdStr), tagJson.value, new java.util.Date())
+            ) map { box => unboxFullOrFail(box, Some(cc), "OBP-50000: Unknown Error.", 400) }
+          } yield JSONFactory400.createAccountTagJSON(postedTag)
+        }
+    }
+
+    // ─── simpler GETs ────────────────────────────────────────────────────────
+
+    lazy val getDoubleEntryTransaction: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / _ / "transactions" / transactionIdStr / "double-entry-transaction" =>
+        EndpointHelpers.withView(req) { (_, _, _, cc) =>
+          for {
+            (_, _) <- NewStyle.function.getTransaction(
+              BankId(bankIdStr), AccountId(accountIdStr), TransactionId(transactionIdStr), Some(cc))
+            (doubleEntryTransaction, _) <- NewStyle.function.getDoubleEntryBookTransaction(
+              BankId(bankIdStr), AccountId(accountIdStr), TransactionId(transactionIdStr), Some(cc))
+          } yield JSONFactory400.createDoubleEntryTransactionJson(doubleEntryTransaction)
+        }
+    }
+
+    lazy val getBalancingTransaction: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "transactions" / transactionIdStr / "balancing-transaction" =>
+        EndpointHelpers.withUser(req) { (user, cc) =>
+          for {
+            (doubleEntryTransaction, _) <- NewStyle.function.getBalancingTransaction(
+              TransactionId(transactionIdStr), Some(cc))
+            _ <- ViewNewStyle.checkBalancingTransactionAccountAccessAndReturnView(
+              doubleEntryTransaction, Full(user), Some(cc))
+          } yield JSONFactory400.createDoubleEntryTransactionJson(doubleEntryTransaction)
+        }
+    }
+
+    lazy val getBankAccountBalancesForCurrentUser: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / _ / "accounts" / accountIdStr / "balances" =>
+        EndpointHelpers.withUserAndBank(req) { (user, bank, cc) =>
+          for {
+            (allowedAccounts, _) <- code.api.util.newstyle.BalanceNewStyle.getAccountAccessAtBank(
+              user, bank.bankId, Some(cc))
+            msg = s"$CannotFindAccountAccess AccountId(${accountIdStr})"
+            bankIdAccountId <- NewStyle.function.tryons(msg, 400, Some(cc)) {
+              allowedAccounts.find(_.accountId == AccountId(accountIdStr)).get
+            }
+            (accountBalances, _) <- code.api.util.newstyle.BalanceNewStyle.getBankAccountBalances(
+              bankIdAccountId, Some(cc))
+          } yield JSONFactory400.createAccountBalancesJson(accountBalances)
+        }
+    }
+
+    lazy val getAccountByAccountRouting: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "management" / "accounts" / "account-routing-query" =>
+        EndpointHelpers.withUserAndBody[BankAccountRoutingJson, Any](req) { (user, postJson, cc) =>
+          for {
+            (account, _) <- NewStyle.function.getBankAccountByRouting(
+              postJson.bank_id.map(BankId(_)),
+              postJson.account_routing.scheme,
+              postJson.account_routing.address,
+              Some(cc))
+            view <- ViewNewStyle.checkOwnerViewAccessAndReturnOwnerView(
+              user, BankIdAccountId(account.bankId, account.accountId), Some(cc))
+            moderatedAccount <- NewStyle.function.moderatedBankAccountCore(
+              account, view, Full(user), Some(cc))
+            (accountAttributes, _) <- NewStyle.function.getAccountAttributesByAccount(
+              account.bankId, account.accountId, Some(cc))
+          } yield {
+            val availableViews = Views.views.vend.privateViewsUserCanAccessForAccount(
+              user, BankIdAccountId(account.bankId, account.accountId))
+            val viewsAvailable = availableViews
+              .map(code.api.v1_2_1.JSONFactory.createViewJSON).sortBy(_.short_name)
+            val tags = code.metadata.tags.Tags.tags.vend
+              .getTagsOnAccount(account.bankId, account.accountId)(view.viewId)
+            createBankAccountJSON(moderatedAccount, viewsAvailable, accountAttributes, tags)
+          }
+        }
+    }
+
+    lazy val getAccountsByAccountRoutingRegex: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "management" / "accounts" / "account-routing-regex-query" =>
+        EndpointHelpers.withUserAndBody[BankAccountRoutingJson, Any](req) { (user, postJson, cc) =>
+          for {
+            (accountRoutings, _) <- NewStyle.function.getAccountRoutingsByScheme(
+              postJson.bank_id.map(BankId(_)),
+              postJson.account_routing.scheme,
+              Some(cc))
+            accountRoutingAddressRegex = postJson.account_routing.address.r
+            filteredAccountRoutings = accountRoutings.filter(accountRouting =>
+              accountRoutingAddressRegex.findFirstIn(accountRouting.accountRouting.address).isDefined)
+            accountsJson <- Future.sequence(
+              filteredAccountRoutings.map(accountRouting =>
+                for {
+                  (account, _) <- NewStyle.function.getBankAccount(
+                    accountRouting.bankId, accountRouting.accountId, Some(cc))
+                  view <- ViewNewStyle.checkOwnerViewAccessAndReturnOwnerView(
+                    user, BankIdAccountId(account.bankId, account.accountId), Some(cc))
+                  moderatedAccount <- NewStyle.function.moderatedBankAccountCore(
+                    account, view, Full(user), Some(cc))
+                  (accountAttributes, _) <- NewStyle.function.getAccountAttributesByAccount(
+                    account.bankId, account.accountId, Some(cc))
+                  availableViews = Views.views.vend.privateViewsUserCanAccessForAccount(
+                    user, BankIdAccountId(account.bankId, account.accountId))
+                  viewsAvailable = availableViews
+                    .map(code.api.v1_2_1.JSONFactory.createViewJSON).sortBy(_.short_name)
+                  tags = code.metadata.tags.Tags.tags.vend
+                    .getTagsOnAccount(account.bankId, account.accountId)(view.viewId)
+                } yield createBankAccountJSON(
+                  moderatedAccount, viewsAvailable, accountAttributes, tags)))
+          } yield ModeratedAccountsJSON400(accountsJson)
+        }
+    }
+
+    // ─── lockUser / resetPasswordUrl ─────────────────────────────────────────
+
+    lazy val lockUser: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "users" / username / "locks" =>
+        EndpointHelpers.withUser(req) { (_, cc) =>
+          for {
+            userLocks <- Future {
+              code.userlocks.UserLocksProvider.lockUser(
+                Constant.localIdentityProvider, username)
+            } map { box =>
+              unboxFullOrFail(box, Some(cc),
+                s"$UserNotFoundByProviderAndUsername($username)", 404)
+            }
+          } yield JSONFactory400.createUserLockStatusJson(userLocks)
+        }
+    }
+
+    lazy val resetPasswordUrl: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "management" / "user" / "reset-password-url" =>
+        EndpointHelpers.withUserAndBodyCreated[PostResetPasswordUrlJsonV400, ResetPasswordUrlJsonV400](req) {
+          (_, postedData, cc) =>
+            for {
+              _ <- code.util.Helper.booleanToFuture(
+                failMsg = NotAllowedEndpoint, cc = Some(cc)) {
+                APIUtil.getPropsAsBoolValue("ResetPasswordUrlEnabled", false)
+              }
+              resetLink = AuthUser.passwordResetUrl(
+                postedData.username, postedData.email, postedData.user_id)
+            } yield ResetPasswordUrlJsonV400(resetLink)
+        }
+    }
+
+    // ─── settlement-accounts ────────────────────────────────────────────────
+
+    lazy val getSettlementAccounts: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / bankIdStr / "settlement-accounts" =>
+        EndpointHelpers.withUserAndBank(req) { (user, bank, cc) =>
+          for {
+            _ <- NewStyle.function.hasEntitlement(
+              bankIdStr, user.userId, canGetSettlementAccountAtOneBank, Some(cc))
+            (accounts, _) <- NewStyle.function.getBankSettlementAccounts(bank.bankId, Some(cc))
+            settlementAccounts <- Future.sequence(accounts.map { account =>
+              NewStyle.function.getAccountAttributesByAccount(
+                bank.bankId, account.accountId, Some(cc)
+              ).map { case (accountAttributes, _) =>
+                JSONFactory400.getSettlementAccountJson(account, accountAttributes)
+              }
+            })
+          } yield SettlementAccountsJson(settlementAccounts)
+        }
+    }
+
+    private def initBatch9ResourceDocs(): Unit = {
+      staticResourceDocs += ResourceDoc(
+        null, implementedInApiVersion, nameOf(deleteExplicitCounterparty), "DELETE",
+        "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties/COUNTERPARTY_ID_PARAM",
+        "Delete Counterparty (Explicit)",
+        s"""Delete Counterparty (Explicit).
+           |
+           |${userAuthenticationMessage(true)}""",
+        EmptyBody, EmptyBody,
+        List($AuthenticatedUserIsRequired, $BankAccountNotFound, $BankNotFound,
+          InvalidAccountIdFormat, InvalidBankIdFormat, NoViewPermission, UnknownError),
+        List(apiTagCounterparty, apiTagAccount), None,
+        http4sPartialFunction = Some(deleteExplicitCounterparty))
+
+      staticResourceDocs += ResourceDoc(
+        null, implementedInApiVersion, nameOf(deleteCounterpartyForAnyAccount), "DELETE",
+        "/management/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties/COUNTERPARTY_ID",
+        "Delete Counterparty for any account (Explicit)",
+        s"""Delete Counterparty for any account.
+           |
+           |${userAuthenticationMessage(true)}""",
+        EmptyBody, EmptyBody,
+        List($AuthenticatedUserIsRequired, $BankAccountNotFound, $BankNotFound,
+          InvalidAccountIdFormat, InvalidBankIdFormat, UserHasMissingRoles, UnknownError),
+        List(apiTagCounterparty, apiTagAccount),
+        Some(List(canDeleteCounterparty, canDeleteCounterpartyAtAnyBank)),
+        http4sPartialFunction = Some(deleteCounterpartyForAnyAccount))
+
+      staticResourceDocs += ResourceDoc(
+        null, implementedInApiVersion, "deleteTagForViewOnAccount", "DELETE",
+        "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/metadata/tags/TAG_ID",
+        "Delete a tag on account",
+        s"""Delete a tag on account.
+           |
+           |${userAuthenticationMessage(true)}""",
+        EmptyBody, EmptyBody,
+        List(NoViewPermission, ViewNotFound, $AuthenticatedUserIsRequired,
+          $BankNotFound, $BankAccountNotFound, $UserNoPermissionAccessView, UnknownError),
+        List(apiTagAccountMetadata, apiTagAccount), None,
+        http4sPartialFunction = Some(deleteTagForViewOnAccount))
+
+      staticResourceDocs += ResourceDoc(
+        null, implementedInApiVersion, "getTagsForViewOnAccount", "GET",
+        "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/metadata/tags",
+        "Get tags on account",
+        s"""Get tags on account.
+           |
+           |${userAuthenticationMessage(true)}""",
+        EmptyBody, accountTagsJSON,
+        List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound,
+          NoViewPermission, $UserNoPermissionAccessView, UnknownError),
+        List(apiTagAccountMetadata, apiTagAccount), None,
+        http4sPartialFunction = Some(getTagsForViewOnAccount))
+
+      staticResourceDocs += ResourceDoc(
+        null, implementedInApiVersion, "addTagForViewOnAccount", "POST",
+        "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/metadata/tags",
+        "Create a tag on account",
+        s"""Create a tag on account.
+           |
+           |${userAuthenticationMessage(true)}""",
+        code.api.v1_2_1.PostTransactionTagJSON("tag-value-example"),
+        accountTagJSON,
+        List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound,
+          InvalidJsonFormat, NoViewPermission, $UserNoPermissionAccessView, UnknownError),
+        List(apiTagAccountMetadata, apiTagAccount), None,
+        http4sPartialFunction = Some(addTagForViewOnAccount))
+
+      staticResourceDocs += ResourceDoc(
+        null, implementedInApiVersion, nameOf(getDoubleEntryTransaction), "GET",
+        "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/double-entry-transaction",
+        "Get Double Entry Transaction",
+        s"""Get Double Entry Transaction.
+           |
+           |${userAuthenticationMessage(true)}""",
+        EmptyBody, doubleEntryTransactionJson,
+        List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound,
+          $UserNoPermissionAccessView, InvalidJsonFormat, UnknownError),
+        List(apiTagTransaction),
+        Some(List(canGetDoubleEntryTransactionAtAnyBank, canGetDoubleEntryTransactionAtOneBank)),
+        http4sPartialFunction = Some(getDoubleEntryTransaction))
+
+      staticResourceDocs += ResourceDoc(
+        null, implementedInApiVersion, nameOf(getBalancingTransaction), "GET",
+        "/transactions/TRANSACTION_ID/balancing-transaction",
+        "Get Balancing Transaction",
+        s"""Get Balancing Transaction.
+           |
+           |${userAuthenticationMessage(true)}""",
+        EmptyBody, doubleEntryTransactionJson,
+        List($AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
+        List(apiTagTransaction), Some(List()),
+        http4sPartialFunction = Some(getBalancingTransaction))
+
+      staticResourceDocs += ResourceDoc(
+        null, implementedInApiVersion, nameOf(getBankAccountBalancesForCurrentUser), "GET",
+        "/banks/BANK_ID/accounts/ACCOUNT_ID/balances",
+        "Get Account Balances",
+        """Get the Balances for one Account of the current User at one bank.""",
+        EmptyBody, accountBalanceV400,
+        List($AuthenticatedUserIsRequired, $BankNotFound, CannotFindAccountAccess, UnknownError),
+        apiTagAccount :: apiTagPSD2AIS :: apiTagPsd2 :: Nil, None,
+        http4sPartialFunction = Some(getBankAccountBalancesForCurrentUser))
+
+      staticResourceDocs += ResourceDoc(
+        null, implementedInApiVersion, nameOf(getAccountByAccountRouting), "POST",
+        "/management/accounts/account-routing-query",
+        "Get Account by Account Routing",
+        """Get Account by Account Routing.""",
+        bankAccountRoutingJson, moderatedAccountJSON400,
+        List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound,
+          $UserNoPermissionAccessView, UnknownError),
+        List(apiTagAccount), None,
+        http4sPartialFunction = Some(getAccountByAccountRouting))
+
+      staticResourceDocs += ResourceDoc(
+        null, implementedInApiVersion, nameOf(getAccountsByAccountRoutingRegex), "POST",
+        "/management/accounts/account-routing-regex-query",
+        "Get Accounts by Account Routing Regex",
+        """Get Accounts by Account Routing Regex.""",
+        bankAccountRoutingJson, moderatedAccountsJSON400,
+        List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound,
+          $UserNoPermissionAccessView, UnknownError),
+        List(apiTagAccount), None,
+        http4sPartialFunction = Some(getAccountsByAccountRoutingRegex))
+
+      staticResourceDocs += ResourceDoc(
+        null, implementedInApiVersion, nameOf(lockUser), "POST",
+        "/users/USERNAME/locks",
+        "Lock the user",
+        s"""Lock a User.
+           |
+           |${userAuthenticationMessage(true)}""",
+        EmptyBody, userLockStatusJson,
+        List($AuthenticatedUserIsRequired, UserNotFoundByProviderAndUsername,
+          UserHasMissingRoles, UnknownError),
+        List(apiTagUser),
+        Some(List(canLockUser)),
+        http4sPartialFunction = Some(lockUser))
+
+      staticResourceDocs += ResourceDoc(
+        null, implementedInApiVersion, nameOf(resetPasswordUrl), "POST",
+        "/management/user/reset-password-url",
+        "Create password reset url",
+        s"""Create password reset url.""",
+        PostResetPasswordUrlJsonV400("jobloggs", "jo@gmail.com", "74a8ebcc-10e4-4036-bef3-9835922246bf"),
+        ResetPasswordUrlJsonV400("https://apisandbox.openbankproject.com/user_mgt/reset_password/QOL1CPNJPCZ4BRMPX3Z01DPOX1HMGU3L"),
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+        List(apiTagUser),
+        Some(List(canCreateResetPasswordUrl)),
+        http4sPartialFunction = Some(resetPasswordUrl))
+
+      staticResourceDocs += ResourceDoc(
+        null, implementedInApiVersion, nameOf(getSettlementAccounts), "GET",
+        "/banks/BANK_ID/settlement-accounts",
+        "Get Settlement accounts at Bank",
+        """Get Settlement accounts at Bank.""",
+        EmptyBody, settlementAccountsJson,
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, $BankNotFound, UnknownError),
+        List(apiTagBank, apiTagPsd2),
+        Some(List(canGetSettlementAccountAtOneBank)),
+        http4sPartialFunction = Some(getSettlementAccounts))
+    }
+    initBatch9ResourceDocs()
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Batch 10 — Attribute endpoints (Bank/Customer/Transaction/TransactionRequest/ProductFee)
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    // ─── Bank Attribute ─────────────────────────────────────────────────────
+
+    lazy val createBankAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "banks" / bankIdStr / "attribute" =>
+        EndpointHelpers.withUserAndBankAndBodyCreated[BankAttributeJsonV400, Any](req) { (_, _, postedData, cc) =>
+          for {
+            attrType <- NewStyle.function.tryons(
+              s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
+                s"${com.openbankproject.commons.model.enums.BankAttributeType.DOUBLE}(12.1234), ${com.openbankproject.commons.model.enums.BankAttributeType.STRING}(TAX_NUMBER), ${com.openbankproject.commons.model.enums.BankAttributeType.INTEGER}(123) and ${com.openbankproject.commons.model.enums.BankAttributeType.DATE_WITH_DAY}(2012-04-23)",
+              400, Some(cc)) {
+              com.openbankproject.commons.model.enums.BankAttributeType.withName(postedData.`type`)
+            }
+            (bankAttribute, _) <- NewStyle.function.createOrUpdateBankAttribute(
+              BankId(bankIdStr), None, postedData.name, attrType, postedData.value,
+              postedData.is_active, Some(cc))
+          } yield createBankAttributeJson(bankAttribute)
+        }
+    }
+
+    lazy val updateBankAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ PUT -> `prefixPath` / "banks" / bankIdStr / "attributes" / bankAttributeId =>
+        EndpointHelpers.withUserAndBankAndBody[BankAttributeJsonV400, Any](req) { (user, _, postedData, cc) =>
+          for {
+            _ <- NewStyle.function.hasEntitlement(
+              bankIdStr, user.userId, canUpdateBankAttribute, Some(cc))
+            attrType <- NewStyle.function.tryons(
+              s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
+                s"${com.openbankproject.commons.model.enums.BankAttributeType.DOUBLE}(12.1234), ${com.openbankproject.commons.model.enums.BankAttributeType.STRING}(TAX_NUMBER), ${com.openbankproject.commons.model.enums.BankAttributeType.INTEGER}(123) and ${com.openbankproject.commons.model.enums.BankAttributeType.DATE_WITH_DAY}(2012-04-23)",
+              400, Some(cc)) {
+              com.openbankproject.commons.model.enums.BankAttributeType.withName(postedData.`type`)
+            }
+            (_, _) <- NewStyle.function.getBankAttributeById(bankAttributeId, Some(cc))
+            (bankAttribute, _) <- NewStyle.function.createOrUpdateBankAttribute(
+              BankId(bankIdStr), Some(bankAttributeId), postedData.name, attrType,
+              postedData.value, postedData.is_active, Some(cc))
+          } yield createBankAttributeJson(bankAttribute)
+        }
+    }
+
+    // ─── Customer Attribute ──────────────────────────────────────────────────
+
+    private def checkCustomerBank(customer: com.openbankproject.commons.model.Customer,
+                                   bankId: String, customerId: String, cc: CallContext): Future[Box[Unit]] =
+      code.util.Helper.booleanToFuture(
+        InvalidCustomerBankId
+          .replaceAll("Bank Id.", s"Bank Id ($bankId).")
+          .replaceAll("The Customer", s"The Customer($customerId)"),
+        cc = Some(cc)) { customer.bankId == bankId }
+
+    lazy val createCustomerAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "banks" / bankIdStr / "customers" / customerIdStr / "attribute" =>
+        EndpointHelpers.withUserAndBodyCreated[CustomerAttributeJsonV400, Any](req) { (_, postedData, cc) =>
+          for {
+            attrType <- NewStyle.function.tryons(
+              s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
+                s"${com.openbankproject.commons.model.enums.CustomerAttributeType.DOUBLE}(12.1234), ${com.openbankproject.commons.model.enums.CustomerAttributeType.STRING}(TAX_NUMBER), ${com.openbankproject.commons.model.enums.CustomerAttributeType.INTEGER}(123) and ${com.openbankproject.commons.model.enums.CustomerAttributeType.DATE_WITH_DAY}(2012-04-23)",
+              400, Some(cc)) {
+              com.openbankproject.commons.model.enums.CustomerAttributeType.withName(postedData.`type`)
+            }
+            (customer, _) <- NewStyle.function.getCustomerByCustomerId(customerIdStr, Some(cc))
+            _ <- checkCustomerBank(customer, bankIdStr, customerIdStr, cc)
+            (attr, _) <- NewStyle.function.createOrUpdateCustomerAttribute(
+              BankId(bankIdStr), CustomerId(customerIdStr), None, postedData.name,
+              attrType, postedData.value, Some(cc))
+          } yield JSONFactory400.createCustomerAttributeJson(attr)
+        }
+    }
+
+    lazy val updateCustomerAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ PUT -> `prefixPath` / "banks" / bankIdStr / "customers" / customerIdStr / "attributes" / customerAttributeId =>
+        EndpointHelpers.withUserAndBody[CustomerAttributeJsonV400, Any](req) { (_, postedData, cc) =>
+          for {
+            attrType <- NewStyle.function.tryons(
+              s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
+                s"${com.openbankproject.commons.model.enums.CustomerAttributeType.DOUBLE}(12.1234), ${com.openbankproject.commons.model.enums.CustomerAttributeType.STRING}(TAX_NUMBER), ${com.openbankproject.commons.model.enums.CustomerAttributeType.INTEGER}(123) and ${com.openbankproject.commons.model.enums.CustomerAttributeType.DATE_WITH_DAY}(2012-04-23)",
+              400, Some(cc)) {
+              com.openbankproject.commons.model.enums.CustomerAttributeType.withName(postedData.`type`)
+            }
+            (customer, _) <- NewStyle.function.getCustomerByCustomerId(customerIdStr, Some(cc))
+            _ <- checkCustomerBank(customer, bankIdStr, customerIdStr, cc)
+            (_, _) <- NewStyle.function.getCustomerAttributeById(customerAttributeId, Some(cc))
+            (attr, _) <- NewStyle.function.createOrUpdateCustomerAttribute(
+              BankId(bankIdStr), CustomerId(customerIdStr), Some(customerAttributeId),
+              postedData.name, attrType, postedData.value, Some(cc))
+          } yield JSONFactory400.createCustomerAttributeJson(attr)
+        }
+    }
+
+    // ─── Transaction Attribute ───────────────────────────────────────────────
+
+    lazy val createTransactionAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / "transactions" / transactionIdStr / "attribute" =>
+        EndpointHelpers.withUserAndBankAndBodyCreated[TransactionAttributeJsonV400, Any](req) { (_, bank, postedData, cc) =>
+          for {
+            (_, _) <- NewStyle.function.getTransaction(
+              bank.bankId, AccountId(accountIdStr), TransactionId(transactionIdStr), Some(cc))
+            attrType <- NewStyle.function.tryons(
+              s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
+                s"${com.openbankproject.commons.model.enums.TransactionAttributeType.DOUBLE}(12.1234), ${com.openbankproject.commons.model.enums.TransactionAttributeType.STRING}(TAX_NUMBER), ${com.openbankproject.commons.model.enums.TransactionAttributeType.INTEGER} (123)and ${com.openbankproject.commons.model.enums.TransactionAttributeType.DATE_WITH_DAY}(2012-04-23)",
+              400, Some(cc)) {
+              com.openbankproject.commons.model.enums.TransactionAttributeType.withName(postedData.`type`)
+            }
+            (attr, _) <- NewStyle.function.createOrUpdateTransactionAttribute(
+              bank.bankId, TransactionId(transactionIdStr), None, postedData.name,
+              attrType, postedData.value, Some(cc))
+          } yield JSONFactory400.createTransactionAttributeJson(attr)
+        }
+    }
+
+    lazy val updateTransactionAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ PUT -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / "transactions" / transactionIdStr / "attributes" / transactionAttributeId =>
+        EndpointHelpers.withUserAndBankAndBody[TransactionAttributeJsonV400, Any](req) { (_, bank, postedData, cc) =>
+          for {
+            (_, _) <- NewStyle.function.getTransaction(
+              bank.bankId, AccountId(accountIdStr), TransactionId(transactionIdStr), Some(cc))
+            attrType <- NewStyle.function.tryons(
+              s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
+                s"${com.openbankproject.commons.model.enums.TransactionAttributeType.DOUBLE}(12.1234), ${com.openbankproject.commons.model.enums.TransactionAttributeType.STRING}(TAX_NUMBER), ${com.openbankproject.commons.model.enums.TransactionAttributeType.INTEGER} (123)and ${com.openbankproject.commons.model.enums.TransactionAttributeType.DATE_WITH_DAY}(2012-04-23)",
+              400, Some(cc)) {
+              com.openbankproject.commons.model.enums.TransactionAttributeType.withName(postedData.`type`)
+            }
+            (_, _) <- NewStyle.function.getTransactionAttributeById(transactionAttributeId, Some(cc))
+            (attr, _) <- NewStyle.function.createOrUpdateTransactionAttribute(
+              bank.bankId, TransactionId(transactionIdStr), Some(transactionAttributeId),
+              postedData.name, attrType, postedData.value, Some(cc))
+          } yield JSONFactory400.createTransactionAttributeJson(attr)
+        }
+    }
+
+    // ─── Transaction Request Attribute ───────────────────────────────────────
+
+    lazy val createTransactionRequestAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "banks" / bankIdStr / "accounts" / _ / "transaction-requests" / transactionRequestIdStr / "attribute" =>
+        EndpointHelpers.withUserAndBankAndBodyCreated[TransactionRequestAttributeJsonV400, Any](req) { (_, bank, postedData, cc) =>
+          for {
+            (_, _) <- NewStyle.function.getTransactionRequestImpl(
+              TransactionRequestId(transactionRequestIdStr), Some(cc))
+            attrType <- NewStyle.function.tryons(
+              s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
+                s"${com.openbankproject.commons.model.enums.TransactionRequestAttributeType.DOUBLE}(12.1234), ${com.openbankproject.commons.model.enums.TransactionRequestAttributeType.STRING}(TAX_NUMBER), ${com.openbankproject.commons.model.enums.TransactionRequestAttributeType.INTEGER}(123) and ${com.openbankproject.commons.model.enums.TransactionRequestAttributeType.DATE_WITH_DAY}(2012-04-23)",
+              400, Some(cc)) {
+              com.openbankproject.commons.model.enums.TransactionRequestAttributeType.withName(postedData.attribute_type)
+            }
+            (attr, _) <- NewStyle.function.createOrUpdateTransactionRequestAttribute(
+              bank.bankId, TransactionRequestId(transactionRequestIdStr), None,
+              postedData.name, attrType, postedData.value, Some(cc))
+          } yield JSONFactory400.createTransactionRequestAttributeJson(attr)
+        }
+    }
+
+    lazy val updateTransactionRequestAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ PUT -> `prefixPath` / "banks" / bankIdStr / "accounts" / _ / "transaction-requests" / transactionRequestIdStr / "attributes" / transactionRequestAttributeId =>
+        EndpointHelpers.withUserAndBankAndBody[TransactionRequestAttributeJsonV400, Any](req) { (_, bank, postedData, cc) =>
+          for {
+            (_, _) <- NewStyle.function.getTransactionRequestImpl(
+              TransactionRequestId(transactionRequestIdStr), Some(cc))
+            attrType <- NewStyle.function.tryons(
+              s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
+                s"${com.openbankproject.commons.model.enums.TransactionRequestAttributeType.DOUBLE}(12.1234), ${com.openbankproject.commons.model.enums.TransactionRequestAttributeType.STRING}(TAX_NUMBER), ${com.openbankproject.commons.model.enums.TransactionRequestAttributeType.INTEGER}(123) and ${com.openbankproject.commons.model.enums.TransactionRequestAttributeType.DATE_WITH_DAY}(2012-04-23)",
+              400, Some(cc)) {
+              com.openbankproject.commons.model.enums.TransactionRequestAttributeType.withName(postedData.attribute_type)
+            }
+            (_, _) <- NewStyle.function.getTransactionRequestAttributeById(
+              transactionRequestAttributeId, Some(cc))
+            (attr, _) <- NewStyle.function.createOrUpdateTransactionRequestAttribute(
+              bank.bankId, TransactionRequestId(transactionRequestIdStr),
+              Some(transactionRequestAttributeId), postedData.name, attrType,
+              postedData.value, Some(cc))
+          } yield JSONFactory400.createTransactionRequestAttributeJson(attr)
+        }
+    }
+
+    // ─── Product Fee ─────────────────────────────────────────────────────────
+
+    lazy val createProductFee: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "banks" / bankIdStr / "products" / productCode / "fee" =>
+        EndpointHelpers.withUserAndBodyCreated[ProductFeeJsonV400, Any](req) { (_, postedData, cc) =>
+          for {
+            (_, _) <- NewStyle.function.getProduct(BankId(bankIdStr), ProductCode(productCode), Some(cc))
+            (productFee, _) <- NewStyle.function.createOrUpdateProductFee(
+              BankId(bankIdStr), ProductCode(productCode), None,
+              postedData.name, postedData.is_active, postedData.more_info,
+              postedData.value.currency, postedData.value.amount,
+              postedData.value.frequency, postedData.value.`type`, Some(cc))
+          } yield createProductFeeJson(productFee)
+        }
+    }
+
+    lazy val updateProductFee: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ PUT -> `prefixPath` / "banks" / bankIdStr / "products" / productCode / "fees" / productFeeId =>
+        EndpointHelpers.withUserAndBodyCreated[ProductFeeJsonV400, Any](req) { (_, postedData, cc) =>
+          for {
+            (_, _) <- NewStyle.function.getProduct(BankId(bankIdStr), ProductCode(productCode), Some(cc))
+            (_, _) <- NewStyle.function.getProductFeeById(productFeeId, Some(cc))
+            (productFee, _) <- NewStyle.function.createOrUpdateProductFee(
+              BankId(bankIdStr), ProductCode(productCode), Some(productFeeId),
+              postedData.name, postedData.is_active, postedData.more_info,
+              postedData.value.currency, postedData.value.amount,
+              postedData.value.frequency, postedData.value.`type`, Some(cc))
+          } yield createProductFeeJson(productFee)
+        }
+    }
+
+    // ─── My Personal User Attribute ──────────────────────────────────────────
+
+    lazy val createMyPersonalUserAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "my" / "user" / "attributes" =>
+        EndpointHelpers.withUserAndBodyCreated[UserAttributeJsonV400, Any](req) { (user, postedData, cc) =>
+          for {
+            attrType <- NewStyle.function.tryons(
+              s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
+                s"${com.openbankproject.commons.model.enums.UserAttributeType.DOUBLE}(12.1234), ${com.openbankproject.commons.model.enums.UserAttributeType.STRING}(TAX_NUMBER), ${com.openbankproject.commons.model.enums.UserAttributeType.INTEGER} (123)and ${com.openbankproject.commons.model.enums.UserAttributeType.DATE_WITH_DAY}(2012-04-23)",
+              400, Some(cc)) {
+              com.openbankproject.commons.model.enums.UserAttributeType.withName(postedData.`type`)
+            }
+            (userAttribute, _) <- NewStyle.function.createOrUpdateUserAttribute(
+              user.userId, None, postedData.name, attrType, postedData.value,
+              true, Some(cc))
+          } yield JSONFactory400.createUserAttributeJson(userAttribute)
+        }
+    }
+
+    lazy val updateMyPersonalUserAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ PUT -> `prefixPath` / "my" / "user" / "attributes" / userAttributeId =>
+        EndpointHelpers.withUserAndBody[UserAttributeJsonV400, Any](req) { (user, postedData, cc) =>
+          for {
+            (attributes, _) <- NewStyle.function.getPersonalUserAttributes(user.userId, Some(cc))
+            _ <- NewStyle.function.tryons(UserAttributeNotFound, 400, Some(cc)) {
+              attributes.exists(_.userAttributeId == userAttributeId)
+            }
+            attrType <- NewStyle.function.tryons(
+              s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
+                s"${com.openbankproject.commons.model.enums.UserAttributeType.DOUBLE}(12.1234), ${com.openbankproject.commons.model.enums.UserAttributeType.STRING}(TAX_NUMBER), ${com.openbankproject.commons.model.enums.UserAttributeType.INTEGER} (123)and ${com.openbankproject.commons.model.enums.UserAttributeType.DATE_WITH_DAY}(2012-04-23)",
+              400, Some(cc)) {
+              com.openbankproject.commons.model.enums.UserAttributeType.withName(postedData.`type`)
+            }
+            (userAttribute, _) <- NewStyle.function.createOrUpdateUserAttribute(
+              user.userId, Some(userAttributeId), postedData.name, attrType,
+              postedData.value, true, Some(cc))
+          } yield JSONFactory400.createUserAttributeJson(userAttribute)
+        }
+    }
+
+    private def initBatch10ResourceDocs(): Unit = {
+      staticResourceDocs += ResourceDoc(
+        null, implementedInApiVersion, nameOf(createBankAttribute), "POST",
+        "/banks/BANK_ID/attribute",
+        "Create Bank Attribute",
+        s"""Create Bank Attribute.
+           |
+           |${userAuthenticationMessage(true)}""",
+        bankAttributeJsonV400, bankAttributeResponseJsonV400,
+        List(InvalidJsonFormat, UnknownError),
+        List(apiTagBank, apiTagBankAttribute, apiTagAttribute),
+        Some(List(canCreateBankAttribute)),
+        http4sPartialFunction = Some(createBankAttribute))
+
+      staticResourceDocs += ResourceDoc(
+        null, implementedInApiVersion, nameOf(updateBankAttribute), "PUT",
+        "/banks/BANK_ID/attributes/BANK_ATTRIBUTE_ID",
+        "Update Bank Attribute",
+        s"""Update Bank Attribute.
+           |
+           |${userAuthenticationMessage(true)}""",
+        bankAttributeJsonV400, bankAttributeDefinitionJsonV400,
+        List(UserHasMissingRoles, UnknownError),
+        List(apiTagBank, apiTagBankAttribute, apiTagAttribute),
+        Some(List(canUpdateBankAttribute)),
+        http4sPartialFunction = Some(updateBankAttribute))
+
+      staticResourceDocs += ResourceDoc(
+        null, implementedInApiVersion, nameOf(createCustomerAttribute), "POST",
+        "/banks/BANK_ID/customers/CUSTOMER_ID/attribute",
+        "Create Customer Attribute",
+        s"""Create Customer Attribute.
+           |
+           |${userAuthenticationMessage(true)}""",
+        customerAttributeJsonV400, customerAttributeResponseJson,
+        List($AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat, UnknownError),
+        List(apiTagCustomer, apiTagCustomerAttribute, apiTagAttribute),
+        Some(List(canCreateCustomerAttributeAtOneBank, canCreateCustomerAttributeAtAnyBank)),
+        http4sPartialFunction = Some(createCustomerAttribute))
+
+      staticResourceDocs += ResourceDoc(
+        null, implementedInApiVersion, nameOf(updateCustomerAttribute), "PUT",
+        "/banks/BANK_ID/customers/CUSTOMER_ID/attributes/CUSTOMER_ATTRIBUTE_ID",
+        "Update Customer Attribute",
+        s"""Update Customer Attribute.
+           |
+           |${userAuthenticationMessage(true)}""",
+        customerAttributeJsonV400, customerAttributeResponseJson,
+        List($AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat, UnknownError),
+        List(apiTagCustomer, apiTagCustomerAttribute, apiTagAttribute),
+        Some(List(canUpdateCustomerAttributeAtOneBank, canUpdateCustomerAttributeAtAnyBank)),
+        http4sPartialFunction = Some(updateCustomerAttribute))
+
+      staticResourceDocs += ResourceDoc(
+        null, implementedInApiVersion, nameOf(createTransactionAttribute), "POST",
+        "/banks/BANK_ID/accounts/ACCOUNT_ID/transactions/TRANSACTION_ID/attribute",
+        "Create Transaction Attribute",
+        s"""Create Transaction Attribute.
+           |
+           |${userAuthenticationMessage(true)}""",
+        transactionAttributeJsonV400, transactionAttributeResponseJson,
+        List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound,
+          InvalidJsonFormat, UnknownError),
+        List(apiTagTransaction, apiTagTransactionAttribute, apiTagAttribute),
+        Some(List(canCreateTransactionAttributeAtOneBank)),
+        http4sPartialFunction = Some(createTransactionAttribute))
+
+      staticResourceDocs += ResourceDoc(
+        null, implementedInApiVersion, nameOf(updateTransactionAttribute), "PUT",
+        "/banks/BANK_ID/accounts/ACCOUNT_ID/transactions/TRANSACTION_ID/attributes/ACCOUNT_ATTRIBUTE_ID",
+        "Update Transaction Attribute",
+        s"""Update Transaction Attribute.
+           |
+           |${userAuthenticationMessage(true)}""",
+        transactionAttributeJsonV400, transactionAttributeResponseJson,
+        List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound,
+          InvalidJsonFormat, UnknownError),
+        List(apiTagTransaction, apiTagTransactionAttribute, apiTagAttribute),
+        Some(List(canUpdateTransactionAttributeAtOneBank)),
+        http4sPartialFunction = Some(updateTransactionAttribute))
+
+      staticResourceDocs += ResourceDoc(
+        null, implementedInApiVersion, nameOf(createTransactionRequestAttribute), "POST",
+        "/banks/BANK_ID/accounts/ACCOUNT_ID/transaction-requests/TRANSACTION_REQUEST_ID/attribute",
+        "Create Transaction Request Attribute",
+        s"""Create Transaction Request Attribute.
+           |
+           |${userAuthenticationMessage(true)}""",
+        transactionRequestAttributeJsonV400, transactionRequestAttributeResponseJson,
+        List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound,
+          InvalidJsonFormat, UnknownError),
+        List(apiTagTransactionRequest, apiTagTransactionRequestAttribute, apiTagAttribute),
+        Some(List(canCreateTransactionRequestAttributeAtOneBank)),
+        http4sPartialFunction = Some(createTransactionRequestAttribute))
+
+      staticResourceDocs += ResourceDoc(
+        null, implementedInApiVersion, nameOf(updateTransactionRequestAttribute), "PUT",
+        "/banks/BANK_ID/accounts/ACCOUNT_ID/transaction-requests/TRANSACTION_REQUEST_ID/attributes/ATTRIBUTE_ID",
+        "Update Transaction Request Attribute",
+        s"""Update Transaction Request Attribute.
+           |
+           |${userAuthenticationMessage(true)}""",
+        transactionRequestAttributeJsonV400, transactionRequestAttributeResponseJson,
+        List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound,
+          InvalidJsonFormat, UnknownError),
+        List(apiTagTransactionRequest, apiTagTransactionRequestAttribute, apiTagAttribute),
+        Some(List(canUpdateTransactionRequestAttributeAtOneBank)),
+        http4sPartialFunction = Some(updateTransactionRequestAttribute))
+
+      staticResourceDocs += ResourceDoc(
+        null, implementedInApiVersion, nameOf(createProductFee), "POST",
+        "/banks/BANK_ID/products/PRODUCT_CODE/fee",
+        "Create Product Fee",
+        s"""Create Product Fee.
+           |
+           |${userAuthenticationMessage(true)}""",
+        productFeeJsonV400.copy(product_fee_id = None), productFeeResponseJsonV400,
+        List($AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat, UnknownError),
+        List(apiTagProduct),
+        Some(List(canCreateProductFee)),
+        http4sPartialFunction = Some(createProductFee))
+
+      staticResourceDocs += ResourceDoc(
+        null, implementedInApiVersion, nameOf(updateProductFee), "PUT",
+        "/banks/BANK_ID/products/PRODUCT_CODE/fees/PRODUCT_FEE_ID",
+        "Update Product Fee",
+        s"""Update Product Fee.
+           |
+           |${userAuthenticationMessage(true)}""",
+        productFeeJsonV400.copy(product_fee_id = None), productFeeResponseJsonV400,
+        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
+        List(apiTagProduct),
+        Some(List(canUpdateProductFee)),
+        http4sPartialFunction = Some(updateProductFee))
+
+      staticResourceDocs += ResourceDoc(
+        null, implementedInApiVersion, nameOf(createMyPersonalUserAttribute), "POST",
+        "/my/user/attributes",
+        "Create My Personal User Attribute",
+        s"""Create My Personal User Attribute.
+           |
+           |${userAuthenticationMessage(true)}""",
+        userAttributeJsonV400, userAttributeResponseJson,
+        List($AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
+        List(apiTagUser), Some(List()),
+        http4sPartialFunction = Some(createMyPersonalUserAttribute))
+
+      staticResourceDocs += ResourceDoc(
+        null, implementedInApiVersion, nameOf(updateMyPersonalUserAttribute), "PUT",
+        "/my/user/attributes/USER_ATTRIBUTE_ID",
+        "Update My Personal User Attribute",
+        s"""Update My Personal User Attribute.
+           |
+           |${userAuthenticationMessage(true)}""",
+        userAttributeJsonV400, userAttributeResponseJson,
+        List($AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
+        List(apiTagUser), Some(List()),
+        http4sPartialFunction = Some(updateMyPersonalUserAttribute))
+    }
+    initBatch10ResourceDocs()
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Batch 11 — Account access, user invitations, consents, api collections
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    lazy val getUserInvitationAnonymous: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "banks" / bankIdStr / "user-invitations" =>
+        EndpointHelpers.executeFutureWithBodyCreated[PostUserInvitationAnonymousJsonV400, Any](req) { (postedData, cc) =>
+          for {
+            (invitation, _) <- NewStyle.function.getUserInvitation(
+              BankId(bankIdStr), postedData.secret_key, Some(cc))
+            _ <- code.util.Helper.booleanToFuture(CannotFindUserInvitation, 404, Some(cc)) {
+              invitation.status == "CREATED"
+            }
+            _ <- code.util.Helper.booleanToFuture(CannotFindUserInvitation, 404, Some(cc)) {
+              val validUntil = java.util.Calendar.getInstance
+              validUntil.setTime(invitation.createdAt.get)
+              validUntil.add(java.util.Calendar.HOUR, 24)
+              validUntil.getTime.after(new java.util.Date())
+            }
+          } yield JSONFactory400.createUserInvitationJson(invitation)
+        }
+    }
+
+    lazy val grantUserAccessToView: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / "account-access" / "grant" =>
+        EndpointHelpers.withUserAndBodyCreated[PostAccountAccessJsonV400, Any](req) { (loggedInUser, postJson, cc) =>
+          val bankId = BankId(bankIdStr)
+          val accountId = AccountId(accountIdStr)
+          for {
+            _ <- code.util.Helper.booleanToFuture(
+              UserLacksPermissionCanGrantAccessToViewForTargetAccount +
+                s"Current ViewId(${postJson.view.view_id}) and current UserId(${loggedInUser.userId})",
+              cc = Some(cc)) {
+              APIUtil.canGrantAccessToView(bankId, accountId, ViewId(postJson.view.view_id), loggedInUser, Some(cc))
+            }
+            (targetUser, _) <- NewStyle.function.findByUserId(postJson.user_id, Some(cc))
+            view <- JSONFactory400.getView(bankId, accountId, postJson.view, Some(cc))
+            addedView <- JSONFactory400.grantAccountAccessToUser(bankId, accountId, targetUser, view, Some(cc))
+          } yield code.api.v3_0_0.JSONFactory300.createViewJSON(addedView)
+        }
+    }
+
+    lazy val revokeUserAccessToView: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / "account-access" / "revoke" =>
+        EndpointHelpers.withUserAndBodyCreated[PostAccountAccessJsonV400, Any](req) { (loggedInUser, postJson, cc) =>
+          val bankId = BankId(bankIdStr)
+          val accountId = AccountId(accountIdStr)
+          val viewId = ViewId(postJson.view.view_id)
+          for {
+            _ <- code.util.Helper.booleanToFuture(
+              UserLacksPermissionCanGrantAccessToViewForTargetAccount +
+                s"Current ViewId($viewId) and current UserId(${loggedInUser.userId})",
+              cc = Some(cc)) {
+              APIUtil.canRevokeAccessToView(bankId, accountId, viewId, loggedInUser, Some(cc))
+            }
+            (targetUser, _) <- NewStyle.function.findByUserId(postJson.user_id, Some(cc))
+            view <- if (postJson.view.is_system)
+                      ViewNewStyle.systemView(viewId, Some(cc))
+                    else
+                      ViewNewStyle.customView(viewId, BankIdAccountId(bankId, accountId), Some(cc))
+            revoked <- if (postJson.view.is_system)
+                         ViewNewStyle.revokeAccessToSystemView(bankId, accountId, view, targetUser, Some(cc))
+                       else
+                         ViewNewStyle.revokeAccessToCustomView(view, targetUser, Some(cc))
+          } yield RevokedJsonV400(revoked)
+        }
+    }
+
+    lazy val revokeGrantUserAccessToViews: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ PUT -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / "account-access" =>
+        EndpointHelpers.withUserAndBodyCreated[PostRevokeGrantAccountAccessJsonV400, Any](req) { (loggedInUser, postJson, cc) =>
+          val bankId = BankId(bankIdStr)
+          val accountId = AccountId(accountIdStr)
+          for {
+            _ <- code.util.Helper.booleanToFuture(
+              UserLacksPermissionCanGrantAccessToViewForTargetAccount +
+                s"Current ViewIds(${postJson.views.mkString}) and current UserId(${loggedInUser.userId})",
+              cc = Some(cc)) {
+              APIUtil.canRevokeAccessToAllViews(bankId, accountId, loggedInUser, Some(cc))
+            }
+            _ <- Future(
+              Views.views.vend.revokeAccountAccessByUser(bankId, accountId, loggedInUser, Some(cc))
+            ) map { box => unboxFullOrFail(box, Some(cc), "Cannot revoke") }
+            grantViews = postJson.views.map(viewIdStr =>
+              BankIdAccountIdViewId(bankId, accountId, ViewId(viewIdStr)))
+            _ <- Future(
+              Views.views.vend.grantAccessToMultipleViews(grantViews, loggedInUser, Some(cc))
+            ) map { box =>
+              unboxFullOrFail(box, Some(cc),
+                s"Cannot grant the views: ${postJson.views.mkString(",")}")
+            }
+          } yield RevokedJsonV400(true)
+        }
+    }
+
+    lazy val createMyApiCollection: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "my" / "api-collections" =>
+        EndpointHelpers.withUserAndBodyCreated[PostApiCollectionJson400, Any](req) { (user, postJson, cc) =>
+          for {
+            apiCollection <- Future {
+              code.apicollection.MappedApiCollectionsProvider
+                .getApiCollectionByUserIdAndCollectionName(user.userId, postJson.api_collection_name)
+            }
+            _ <- code.util.Helper.booleanToFuture(
+              s"$ApiCollectionAlreadyExists Current api_collection_name(${postJson.api_collection_name}) is already existing for the log in user.",
+              cc = Some(cc)) {
+              apiCollection.isEmpty
+            }
+            (created, _) <- NewStyle.function.createApiCollection(
+              user.userId, postJson.api_collection_name, postJson.is_sharable,
+              postJson.description.getOrElse(""), Some(cc))
+          } yield JSONFactory400.createApiCollectionJsonV400(created)
+        }
+    }
+
+    lazy val createMyApiCollectionEndpoint: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "my" / "api-collections" / apiCollectionName / "api-collection-endpoints" =>
+        EndpointHelpers.withUserAndBodyCreated[PostApiCollectionEndpointJson400, Any](req) { (user, postJson, cc) =>
+          for {
+            _ <- code.util.Helper.booleanToFuture(
+              s"$InvalidOperationId Current OPERATION_ID(${postJson.operation_id})",
+              cc = Some(cc)) {
+              getAllResourceDocs.find(_.operationId == postJson.operation_id.trim).isDefined
+            }
+            (apiCollection, _) <- NewStyle.function.getApiCollectionByUserIdAndCollectionName(
+              user.userId, apiCollectionName, Some(cc))
+            existing <- Future {
+              code.apicollectionendpoint.MappedApiCollectionEndpointsProvider
+                .getApiCollectionEndpointByApiCollectionIdAndOperationId(
+                  apiCollection.apiCollectionId, postJson.operation_id)
+            }
+            _ <- code.util.Helper.booleanToFuture(
+              s"$ApiCollectionEndpointAlreadyExists Current OPERATION_ID(${postJson.operation_id}) is already in API_COLLECTION_NAME($apiCollectionName) ",
+              cc = Some(cc)) {
+              existing.isEmpty
+            }
+            (apiCollectionEndpoint, _) <- NewStyle.function.createApiCollectionEndpoint(
+              apiCollection.apiCollectionId, postJson.operation_id, Some(cc))
+          } yield JSONFactory400.createApiCollectionEndpointJsonV400(apiCollectionEndpoint)
+        }
+    }
+
+    lazy val createMyApiCollectionEndpointById: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "my" / "api-collection-ids" / apiCollectionIdStr / "api-collection-endpoints" =>
+        EndpointHelpers.withUserAndBodyCreated[PostApiCollectionEndpointJson400, Any](req) { (_, postJson, cc) =>
+          for {
+            _ <- code.util.Helper.booleanToFuture(
+              s"$InvalidOperationId Current OPERATION_ID(${postJson.operation_id})",
+              cc = Some(cc)) {
+              getAllResourceDocs.find(_.operationId == postJson.operation_id.trim).isDefined
+            }
+            (apiCollection, _) <- NewStyle.function.getApiCollectionById(apiCollectionIdStr, Some(cc))
+            existing <- Future {
+              code.apicollectionendpoint.MappedApiCollectionEndpointsProvider
+                .getApiCollectionEndpointByApiCollectionIdAndOperationId(
+                  apiCollection.apiCollectionId, postJson.operation_id)
+            }
+            _ <- code.util.Helper.booleanToFuture(
+              s"$ApiCollectionEndpointAlreadyExists Current OPERATION_ID(${postJson.operation_id}) is already in API_COLLECTION_ID($apiCollectionIdStr) ",
+              cc = Some(cc)) {
+              existing.isEmpty
+            }
+            (apiCollectionEndpoint, _) <- NewStyle.function.createApiCollectionEndpoint(
+              apiCollection.apiCollectionId, postJson.operation_id, Some(cc))
+          } yield JSONFactory400.createApiCollectionEndpointJsonV400(apiCollectionEndpoint)
+        }
+    }
+
+    lazy val updateConsentStatus: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ PUT -> `prefixPath` / "banks" / _ / "consents" / consentId =>
+        EndpointHelpers.withUserAndBankAndBody[PutConsentStatusJsonV400, Any](req) { (_, _, consentJson, cc) =>
+          for {
+            consent <- Future(
+              code.consent.Consents.consentProvider.vend.getConsentByConsentId(consentId)
+            ) map { box => connectorEmptyResponse(box, Some(cc)) }
+            status = code.consent.ConsentStatus.withName(consentJson.status)
+            updated <- APIUtil.getPropsAsBoolValue("consents.sca.enabled", true) match {
+              case true =>
+                Future.successful(consent)
+              case false =>
+                Future(
+                  code.consent.Consents.consentProvider.vend.updateConsentStatus(consentId, status)
+                ) map { box => connectorEmptyResponse(box, Some(cc)) }
+            }
+          } yield code.api.v3_1_0.ConsentJsonV310(updated.consentId, updated.jsonWebToken, updated.status)
+        }
+    }
+
+    lazy val addConsentUser: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ PUT -> `prefixPath` / "banks" / _ / "consents" / consentId / "user-update-request" =>
+        EndpointHelpers.withUserAndBankAndBody[PutConsentUserJsonV400, Any](req) { (_, _, putJson, cc) =>
+          for {
+            user <- code.users.Users.users.vend.getUserByUserIdFuture(putJson.user_id) map { box =>
+              unboxFullOrFail(box, Some(cc),
+                s"$UserNotFoundByUserId Current UserId(${putJson.user_id})")
+            }
+            consent <- Future(
+              code.consent.Consents.consentProvider.vend.getConsentByConsentId(consentId)
+            ) map { box => connectorEmptyResponse(box, Some(cc)) }
+            _ <- code.util.Helper.booleanToFuture(ConsentUserAlreadyAdded, cc = Some(cc)) {
+              Option(consent.userId).forall(_.isBlank)
+            }
+            updated <- Future(
+              code.consent.Consents.consentProvider.vend.updateConsentUser(consentId, user)
+            ) map { box => connectorEmptyResponse(box, Some(cc)) }
+          } yield code.api.v3_1_0.ConsentJsonV310(updated.consentId, updated.jsonWebToken, updated.status)
+        }
+    }
+
+    private def initBatch11ResourceDocs(): Unit = {
+      staticResourceDocs += ResourceDoc(
+        null, implementedInApiVersion, nameOf(getUserInvitationAnonymous), "POST",
+        "/banks/BANK_ID/user-invitations",
+        "Get User Invitation (Anonymous)",
+        s"""Get User Invitation.""",
+        PostUserInvitationAnonymousJsonV400(1L), userInvitationJsonV400,
+        List($BankNotFound, InvalidJsonFormat, UnknownError),
+        List(apiTagUserInvitation), None,
+        http4sPartialFunction = Some(getUserInvitationAnonymous))
+
+      staticResourceDocs += ResourceDoc(
+        null, implementedInApiVersion, "grantUserAccessToView", "POST",
+        "/banks/BANK_ID/accounts/ACCOUNT_ID/account-access/grant",
+        "Grant User access to View",
+        s"""Grant User access to View.
+           |
+           |${userAuthenticationMessage(true)} and the user needs to be account holder.""",
+        postAccountAccessJsonV400, viewJsonV300,
+        List($AuthenticatedUserIsRequired,
+          UserLacksPermissionCanGrantAccessToViewForTargetAccount,
+          InvalidJsonFormat, UserNotFoundById, SystemViewNotFound, ViewNotFound,
+          CannotGrantAccountAccess, UnknownError),
+        List(apiTagAccountAccess, apiTagView, apiTagAccount, apiTagUser, apiTagOwnerRequired), None,
+        http4sPartialFunction = Some(grantUserAccessToView))
+
+      staticResourceDocs += ResourceDoc(
+        null, implementedInApiVersion, "revokeUserAccessToView", "POST",
+        "/banks/BANK_ID/accounts/ACCOUNT_ID/account-access/revoke",
+        "Revoke User access to View",
+        s"""Revoke User access to View.
+           |
+           |${userAuthenticationMessage(true)} and the user needs to be account holder.""",
+        postAccountAccessJsonV400, revokedJsonV400,
+        List($AuthenticatedUserIsRequired,
+          UserLacksPermissionCanRevokeAccessToViewForTargetAccount,
+          InvalidJsonFormat, UserNotFoundById, SystemViewNotFound, ViewNotFound,
+          CannotRevokeAccountAccess, CannotFindAccountAccess, UnknownError),
+        List(apiTagAccountAccess, apiTagView, apiTagAccount, apiTagUser, apiTagOwnerRequired), None,
+        http4sPartialFunction = Some(revokeUserAccessToView))
+
+      staticResourceDocs += ResourceDoc(
+        null, implementedInApiVersion, "revokeGrantUserAccessToViews", "PUT",
+        "/banks/BANK_ID/accounts/ACCOUNT_ID/account-access",
+        "Revoke/Grant User access to View",
+        s"""Revoke/Grant User access to View.
+           |
+           |${userAuthenticationMessage(true)} and the user needs to be an account holder or has owner view access.""",
+        postRevokeGrantAccountAccessJsonV400, revokedJsonV400,
+        List($AuthenticatedUserIsRequired,
+          UserLacksPermissionCanGrantAccessToViewForTargetAccount,
+          InvalidJsonFormat, UserNotFoundById, SystemViewNotFound, ViewNotFound,
+          CannotRevokeAccountAccess, CannotFindAccountAccess, UnknownError),
+        List(apiTagAccountAccess, apiTagView, apiTagAccount, apiTagUser, apiTagOwnerRequired), None,
+        http4sPartialFunction = Some(revokeGrantUserAccessToViews))
+
+      staticResourceDocs += ResourceDoc(
+        null, implementedInApiVersion, nameOf(createMyApiCollection), "POST",
+        "/my/api-collections",
+        "Create My Api Collection",
+        s"""Create My Api Collection.
+           |
+           |${userAuthenticationMessage(true)}""",
+        postApiCollectionJson400, apiCollectionJson400,
+        List($AuthenticatedUserIsRequired, InvalidJsonFormat, UserNotFoundByUserId, UnknownError),
+        List(apiTagApiCollection), None,
+        http4sPartialFunction = Some(createMyApiCollection))
+
+      staticResourceDocs += ResourceDoc(
+        null, implementedInApiVersion, nameOf(createMyApiCollectionEndpoint), "POST",
+        "/my/api-collections/API_COLLECTION_NAME/api-collection-endpoints",
+        "Create My Api Collection Endpoint",
+        s"""Create My Api Collection Endpoint.
+           |
+           |${userAuthenticationMessage(true)}""",
+        postApiCollectionEndpointJson400, apiCollectionEndpointJson400,
+        List($AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
+        List(apiTagApiCollection), None,
+        http4sPartialFunction = Some(createMyApiCollectionEndpoint))
+
+      staticResourceDocs += ResourceDoc(
+        null, implementedInApiVersion, nameOf(createMyApiCollectionEndpointById), "POST",
+        "/my/api-collection-ids/API_COLLECTION_ID/api-collection-endpoints",
+        "Create My Api Collection Endpoint By Id",
+        s"""Create My Api Collection Endpoint By Id.
+           |
+           |${userAuthenticationMessage(true)}""",
+        postApiCollectionEndpointJson400, apiCollectionEndpointJson400,
+        List($AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
+        List(apiTagApiCollection), None,
+        http4sPartialFunction = Some(createMyApiCollectionEndpointById))
+
+      staticResourceDocs += ResourceDoc(
+        null, implementedInApiVersion, nameOf(updateConsentStatus), "PUT",
+        "/banks/BANK_ID/consents/CONSENT_ID",
+        "Update Consent Status",
+        s"""Update Consent Status.
+           |
+           |${userAuthenticationMessage(true)}""",
+        PutConsentStatusJsonV400(status = "AUTHORISED"),
+        code.api.v3_1_0.ConsentChallengeJsonV310(
+          "9d429899-24f5-42c8-8565-943ffa6a7945", "...", "AUTHORISED"),
+        List($AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat,
+          InvalidConnectorResponse, UnknownError),
+        apiTagConsent :: apiTagPSD2AIS :: Nil, None,
+        http4sPartialFunction = Some(updateConsentStatus))
+
+      staticResourceDocs += ResourceDoc(
+        null, implementedInApiVersion, nameOf(addConsentUser), "PUT",
+        "/banks/BANK_ID/consents/CONSENT_ID/user-update-request",
+        "Add User to a Consent",
+        s"""Add User to a Consent.
+           |
+           |${userAuthenticationMessage(true)}""",
+        PutConsentUserJsonV400("uuid-user"),
+        code.api.v3_1_0.ConsentJsonV310("9d429899-24f5-42c8-8565-943ffa6a7945", "...", "AUTHORISED"),
+        List($AuthenticatedUserIsRequired, $BankNotFound, UserNotFoundByUserId,
+          ConsentUserAlreadyAdded, InvalidJsonFormat, ConsentNotFound, UnknownError),
+        apiTagConsent :: apiTagPSD2AIS :: Nil, None,
+        http4sPartialFunction = Some(addConsentUser))
+    }
+    initBatch11ResourceDocs()
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Batch 12 — direct debits, standing orders, webhooks, settlement account
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    private def directDebitImpl(bankIdStr: String, accountIdStr: String,
+                                 postJson: PostDirectDebitJsonV400, cc: CallContext): Future[DirectDebitJsonV400] = {
+      for {
+        (_, _) <- NewStyle.function.getCustomerByCustomerId(postJson.customer_id, Some(cc))
+        _ <- code.users.Users.users.vend.getUserByUserIdFuture(postJson.user_id) map { box =>
+          unboxFullOrFail(box, Some(cc), s"$UserNotFoundByUserId Current UserId(${postJson.user_id})")
+        }
+        (_, _) <- NewStyle.function.getCounterpartyByCounterpartyId(
+          CounterpartyId(postJson.counterparty_id), Some(cc))
+        (directDebit, _) <- NewStyle.function.createDirectDebit(
+          bankIdStr, accountIdStr, postJson.customer_id, postJson.user_id,
+          postJson.counterparty_id,
+          postJson.date_signed.getOrElse(new java.util.Date()),
+          postJson.date_starts, postJson.date_expires, Some(cc))
+      } yield JSONFactory400.createDirectDebitJSON(directDebit)
+    }
+
+    lazy val createDirectDebit: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / viewIdStr / "direct-debit" =>
+        EndpointHelpers.withViewCreated[DirectDebitJsonV400](req) { (_, _, view, cc) =>
+          implicit val ccx: CallContext = cc
+          val bodyStr = cc.httpBody.getOrElse("")
+          for {
+            _ <- code.util.Helper.booleanToFuture(
+              s"$NoViewPermission can_create_direct_debit. Current ViewId($viewIdStr)",
+              cc = Some(cc)) {
+              view.allowed_actions.exists(_ == code.api.Constant.CAN_CREATE_DIRECT_DEBIT)
+            }
+            postJson <- NewStyle.function.tryons(
+              s"$InvalidJsonFormat The Json body should be the ${classOf[PostDirectDebitJsonV400].getSimpleName} ",
+              400, Some(cc)) {
+              net.liftweb.json.parse(bodyStr).extract[PostDirectDebitJsonV400]
+            }
+            result <- directDebitImpl(bankIdStr, accountIdStr, postJson, cc)
+          } yield result
+        }
+    }
+
+    lazy val createDirectDebitManagement: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "management" / "banks" / bankIdStr / "accounts" / accountIdStr / "direct-debit" =>
+        EndpointHelpers.withUserAndBankAndBodyCreated[PostDirectDebitJsonV400, Any](req) { (_, _, postJson, cc) =>
+          directDebitImpl(bankIdStr, accountIdStr, postJson, cc)
+        }
+    }
+
+    private def standingOrderImpl(bankIdStr: String, accountIdStr: String,
+                                   postJson: PostStandingOrderJsonV400, cc: CallContext): Future[StandingOrderJsonV400] = {
+      for {
+        amountValue <- NewStyle.function.tryons(
+          s"$InvalidNumber Current input is  ${postJson.amount.amount} ", 400, Some(cc)) {
+          BigDecimal(postJson.amount.amount)
+        }
+        _ <- code.util.Helper.booleanToFuture(
+          s"${InvalidISOCurrencyCode} Current input is: '${postJson.amount.currency}'",
+          cc = Some(cc)) {
+          APIUtil.isValidCurrencyISOCode(postJson.amount.currency)
+        }
+        (_, _) <- NewStyle.function.getCustomerByCustomerId(postJson.customer_id, Some(cc))
+        _ <- code.users.Users.users.vend.getUserByUserIdFuture(postJson.user_id) map { box =>
+          unboxFullOrFail(box, Some(cc), s"$UserNotFoundByUserId Current UserId(${postJson.user_id})")
+        }
+        (_, _) <- NewStyle.function.getCounterpartyByCounterpartyId(
+          CounterpartyId(postJson.counterparty_id), Some(cc))
+        (order, _) <- NewStyle.function.createStandingOrder(
+          bankIdStr, accountIdStr, postJson.customer_id, postJson.user_id,
+          postJson.counterparty_id, amountValue, postJson.amount.currency,
+          postJson.when.frequency, postJson.when.detail,
+          postJson.date_signed.getOrElse(new java.util.Date()),
+          postJson.date_starts, postJson.date_expires, Some(cc))
+      } yield JSONFactory400.createStandingOrderJSON(order)
+    }
+
+    lazy val createStandingOrder: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / viewIdStr / "standing-order" =>
+        EndpointHelpers.withViewCreated[StandingOrderJsonV400](req) { (_, _, view, cc) =>
+          val bodyStr = cc.httpBody.getOrElse("")
+          for {
+            _ <- code.util.Helper.booleanToFuture(
+              s"$NoViewPermission can_create_standing_order. Current ViewId($viewIdStr)",
+              cc = Some(cc)) {
+              view.allowed_actions.exists(_ == code.api.Constant.CAN_CREATE_STANDING_ORDER)
+            }
+            postJson <- NewStyle.function.tryons(
+              s"$InvalidJsonFormat The Json body should be the ${classOf[PostStandingOrderJsonV400].getSimpleName} ",
+              400, Some(cc)) {
+              net.liftweb.json.parse(bodyStr).extract[PostStandingOrderJsonV400]
+            }
+            result <- standingOrderImpl(bankIdStr, accountIdStr, postJson, cc)
+          } yield result
+        }
+    }
+
+    lazy val createStandingOrderManagement: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "management" / "banks" / bankIdStr / "accounts" / accountIdStr / "standing-order" =>
+        EndpointHelpers.withUserAndBankAndBodyCreated[PostStandingOrderJsonV400, Any](req) { (_, _, postJson, cc) =>
+          standingOrderImpl(bankIdStr, accountIdStr, postJson, cc)
+        }
+    }
+
+    lazy val createSystemAccountNotificationWebhook: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "web-hooks" / "account" / "notifications" / "on-create-transaction" =>
+        EndpointHelpers.withUserAndBodyCreated[AccountNotificationWebhookPostJson, Any](req) { (user, postJson, cc) =>
+          for {
+            _ <- code.util.Helper.booleanToFuture(
+              s"$InvalidHttpMethod Only Support `POST` currently. Current value is (${postJson.http_method})",
+              cc = Some(cc)) { postJson.http_method.equals("POST") }
+            _ <- code.util.Helper.booleanToFuture(
+              s"$InvalidHttpProtocol Only Support `HTTP/1.1` currently. Current value is (${postJson.http_protocol})",
+              cc = Some(cc)) { postJson.http_protocol.equals("HTTP/1.1") }
+            onCreateTransaction = code.api.util.ApiTrigger.onCreateTransaction.toString()
+            wh <- code.webhook.SystemAccountNotificationWebhookTrait
+              .systemAccountNotificationWebhook.vend
+              .createSystemAccountNotificationWebhookFuture(
+                userId = user.userId, triggerName = onCreateTransaction,
+                url = postJson.url, httpMethod = postJson.http_method,
+                httpProtocol = postJson.http_protocol) map {
+                unboxFullOrFail(_, Some(cc), CreateWebhookError)
+              }
+          } yield createSystemLevelAccountWebhookJsonV400(wh)
+        }
+    }
+
+    lazy val createBankAccountNotificationWebhook: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "banks" / bankIdStr / "web-hooks" / "account" / "notifications" / "on-create-transaction" =>
+        EndpointHelpers.withUserAndBankAndBodyCreated[AccountNotificationWebhookPostJson, Any](req) { (user, bank, postJson, cc) =>
+          for {
+            _ <- code.util.Helper.booleanToFuture(
+              s"$InvalidHttpMethod Only Support `POST` currently. Current value is (${postJson.http_method})",
+              cc = Some(cc)) { postJson.http_method.equals("POST") }
+            _ <- code.util.Helper.booleanToFuture(
+              s"$InvalidHttpProtocol Only Support `HTTP/1.1` currently. Current value is (${postJson.http_protocol})",
+              cc = Some(cc)) { postJson.http_protocol.equals("HTTP/1.1") }
+            onCreateTransaction = code.api.util.ApiTrigger.onCreateTransaction.toString()
+            wh <- code.webhook.BankAccountNotificationWebhookTrait
+              .bankAccountNotificationWebhook.vend
+              .createBankAccountNotificationWebhookFuture(
+                bankId = bank.bankId.value, userId = user.userId,
+                triggerName = onCreateTransaction, url = postJson.url,
+                httpMethod = postJson.http_method,
+                httpProtocol = postJson.http_protocol) map {
+                unboxFullOrFail(_, Some(cc), CreateWebhookError)
+              }
+          } yield createBankLevelAccountWebhookJsonV400(wh)
+        }
+    }
+
+    lazy val getFastFirehoseAccountsAtOneBank: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "management" / "banks" / bankIdStr / "fast-firehose" / "accounts" =>
+        EndpointHelpers.withUserAndBank(req) { (_, _, cc) =>
+          for {
+            _ <- code.util.Helper.booleanToFuture(
+              AccountFirehoseNotAllowedOnThisInstance, cc = Some(cc)) {
+              allowAccountFirehose
+            }
+            allowedParams = List("limit", "offset", "sort_direction")
+            httpParams <- NewStyle.function.extractHttpParamsFromUrl(req.uri.renderString)
+            (obpQueryParams, _) <- NewStyle.function.createObpParams(
+              httpParams, allowedParams, Some(cc))
+            (firehoseAccounts, _) <- NewStyle.function.getBankAccountsWithAttributes(
+              BankId(bankIdStr), obpQueryParams, Some(cc))
+          } yield JSONFactory400.createFirehoseBankAccountJSON(firehoseAccounts)
+        }
+    }
+
+    private def initBatch12ResourceDocs(): Unit = {
+      staticResourceDocs += ResourceDoc(
+        null, implementedInApiVersion, nameOf(createDirectDebit), "POST",
+        "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/direct-debit",
+        "Create Direct Debit",
+        s"""Create direct debit for an account.""",
+        postDirectDebitJsonV400, directDebitJsonV400,
+        List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound,
+          NoViewPermission, InvalidJsonFormat, CustomerNotFoundByCustomerId,
+          UserNotFoundByUserId, CounterpartyNotFoundByCounterpartyId, UnknownError),
+        List(apiTagDirectDebit, apiTagAccount), None,
+        http4sPartialFunction = Some(createDirectDebit))
+
+      staticResourceDocs += ResourceDoc(
+        null, implementedInApiVersion, nameOf(createDirectDebitManagement), "POST",
+        "/management/banks/BANK_ID/accounts/ACCOUNT_ID/direct-debit",
+        "Create Direct Debit (management)",
+        s"""Create direct debit for an account.""",
+        postDirectDebitJsonV400, directDebitJsonV400,
+        List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound,
+          NoViewPermission, InvalidJsonFormat, CustomerNotFoundByCustomerId,
+          UserNotFoundByUserId, CounterpartyNotFoundByCounterpartyId, UnknownError),
+        List(apiTagDirectDebit, apiTagAccount),
+        Some(List(canCreateDirectDebitAtOneBank)),
+        http4sPartialFunction = Some(createDirectDebitManagement))
+
+      staticResourceDocs += ResourceDoc(
+        null, implementedInApiVersion, nameOf(createStandingOrder), "POST",
+        "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/standing-order",
+        "Create Standing Order",
+        s"""Create standing order for an account.""",
+        postStandingOrderJsonV400, standingOrderJsonV400,
+        List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound,
+          NoViewPermission, InvalidJsonFormat, InvalidNumber, InvalidISOCurrencyCode,
+          CustomerNotFoundByCustomerId, UserNotFoundByUserId, UnknownError),
+        List(apiTagStandingOrder, apiTagAccount), None,
+        http4sPartialFunction = Some(createStandingOrder))
+
+      staticResourceDocs += ResourceDoc(
+        null, implementedInApiVersion, nameOf(createStandingOrderManagement), "POST",
+        "/management/banks/BANK_ID/accounts/ACCOUNT_ID/standing-order",
+        "Create Standing Order (management)",
+        s"""Create standing order for an account.""",
+        postStandingOrderJsonV400, standingOrderJsonV400,
+        List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound,
+          NoViewPermission, InvalidJsonFormat, InvalidNumber, InvalidISOCurrencyCode,
+          CustomerNotFoundByCustomerId, UserNotFoundByUserId, UnknownError),
+        List(apiTagStandingOrder, apiTagAccount),
+        Some(List(canCreateStandingOrderAtOneBank)),
+        http4sPartialFunction = Some(createStandingOrderManagement))
+
+      staticResourceDocs += ResourceDoc(
+        null, implementedInApiVersion, nameOf(createSystemAccountNotificationWebhook), "POST",
+        "/web-hooks/account/notifications/on-create-transaction",
+        "Create System Level Account Notification Webhook",
+        s"""Create System Level Account Notification Webhook.""",
+        accountNotificationWebhookPostJson, systemAccountNotificationWebhookJson,
+        List(UnknownError),
+        apiTagWebhook :: apiTagBank :: Nil,
+        Some(List(canCreateSystemAccountNotificationWebhook)),
+        http4sPartialFunction = Some(createSystemAccountNotificationWebhook))
+
+      staticResourceDocs += ResourceDoc(
+        null, implementedInApiVersion, nameOf(createBankAccountNotificationWebhook), "POST",
+        "/banks/BANK_ID/web-hooks/account/notifications/on-create-transaction",
+        "Create bank level Account Notification Webhook",
+        s"""Create bank level Account Notification Webhook.""",
+        accountNotificationWebhookPostJson, bankAccountNotificationWebhookJson,
+        List(AuthenticatedUserIsRequired, $BankNotFound, UnknownError),
+        apiTagWebhook :: apiTagBank :: Nil,
+        Some(List(canCreateAccountNotificationWebhookAtOneBank)),
+        http4sPartialFunction = Some(createBankAccountNotificationWebhook))
+
+      staticResourceDocs += ResourceDoc(
+        null, implementedInApiVersion, nameOf(getFastFirehoseAccountsAtOneBank), "GET",
+        "/management/banks/BANK_ID/fast-firehose/accounts",
+        "Get Fast Firehose Accounts at Bank",
+        s"""Get Fast Firehose Accounts at Bank.""",
+        EmptyBody, fastFirehoseAccountsJsonV400,
+        List($BankNotFound),
+        List(apiTagAccount, apiTagAccountFirehose, apiTagFirehoseData),
+        Some(List(canUseAccountFirehoseAtAnyBank, code.api.util.ApiRole.canUseAccountFirehose)),
+        http4sPartialFunction = Some(getFastFirehoseAccountsAtOneBank))
+    }
+    initBatch12ResourceDocs()
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Batch 7 — createOrUpdate Attribute Definitions
@@ -4921,6 +6493,52 @@ object Http4s400 {
         .orElse(getCounterpartiesForAnyAccount.run(req))
         .orElse(getCounterpartyByIdForAnyAccount.run(req))
         .orElse(getCounterpartyByNameForAnyAccount.run(req))
+        // Batch 9 — Remaining v4 migrations
+        .orElse(createTransactionRequestCard.run(req))
+        .orElse(deleteExplicitCounterparty.run(req))
+        .orElse(deleteCounterpartyForAnyAccount.run(req))
+        .orElse(deleteTagForViewOnAccount.run(req))
+        .orElse(getTagsForViewOnAccount.run(req))
+        .orElse(addTagForViewOnAccount.run(req))
+        .orElse(getDoubleEntryTransaction.run(req))
+        .orElse(getBalancingTransaction.run(req))
+        .orElse(getBankAccountBalancesForCurrentUser.run(req))
+        .orElse(getAccountByAccountRouting.run(req))
+        .orElse(getAccountsByAccountRoutingRegex.run(req))
+        .orElse(lockUser.run(req))
+        .orElse(resetPasswordUrl.run(req))
+        .orElse(getSettlementAccounts.run(req))
+        // Batch 10 — Attribute create/update
+        .orElse(createBankAttribute.run(req))
+        .orElse(updateBankAttribute.run(req))
+        .orElse(createCustomerAttribute.run(req))
+        .orElse(updateCustomerAttribute.run(req))
+        .orElse(createTransactionAttribute.run(req))
+        .orElse(updateTransactionAttribute.run(req))
+        .orElse(createTransactionRequestAttribute.run(req))
+        .orElse(updateTransactionRequestAttribute.run(req))
+        .orElse(createProductFee.run(req))
+        .orElse(updateProductFee.run(req))
+        .orElse(createMyPersonalUserAttribute.run(req))
+        .orElse(updateMyPersonalUserAttribute.run(req))
+        // Batch 11 — account access, user invitations, consents, api collections
+        .orElse(getUserInvitationAnonymous.run(req))
+        .orElse(grantUserAccessToView.run(req))
+        .orElse(revokeUserAccessToView.run(req))
+        .orElse(revokeGrantUserAccessToViews.run(req))
+        .orElse(createMyApiCollection.run(req))
+        .orElse(createMyApiCollectionEndpoint.run(req))
+        .orElse(createMyApiCollectionEndpointById.run(req))
+        .orElse(updateConsentStatus.run(req))
+        .orElse(addConsentUser.run(req))
+        // Batch 12 — direct debits, standing orders, webhooks, fast firehose
+        .orElse(createDirectDebit.run(req))
+        .orElse(createDirectDebitManagement.run(req))
+        .orElse(createStandingOrder.run(req))
+        .orElse(createStandingOrderManagement.run(req))
+        .orElse(createSystemAccountNotificationWebhook.run(req))
+        .orElse(createBankAccountNotificationWebhook.run(req))
+        .orElse(getFastFirehoseAccountsAtOneBank.run(req))
     }
 
     lazy val allRoutesWithMiddleware: HttpRoutes[IO] = ResourceDocMiddleware.apply(resourceDocs)(allOwnRoutes)
