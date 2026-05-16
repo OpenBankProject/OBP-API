@@ -85,14 +85,21 @@ object ErrorResponseConverter {
     }
   }
   
+  /** Old-style versions keep raw 400 codes — they never promote to 403/401/etc.
+   *  Mirrors the same set used in ResourceDocMiddleware.authenticate.
+   */
+  private val oldStyleShortVersions = Set("v1.2.1", "v1.3.0", "v1.4.0", "v2.0.0")
+
   /**
    * Translate a 400 default with an OBP-prefixed message to the canonical status
    * Lift assigns (403 for role/view-access codes, 401 for auth codes, etc.) via
    * ErrorMessages.getCodeByOBPPrefix. Leaves non-400 failCodes (caller set
-   * status explicitly) untouched.
+   * status explicitly) untouched. Old-style versions (v1.x, v2.0.0) keep the
+   * 400 — they return 400 for every error per the long-standing OBP convention.
    */
-  private def resolveStatusCode(failCode: Int, failMsg: String): Int =
-    if (failCode == 400) code.api.util.ErrorMessages.getCodeByOBPPrefix(failMsg)
+  private def resolveStatusCode(failCode: Int, failMsg: String, callContext: CallContext): Int =
+    if (failCode == 400 && !oldStyleShortVersions.contains(callContext.implementedInVersion))
+      code.api.util.ErrorMessages.getCodeByOBPPrefix(failMsg)
     else failCode
 
   /**
@@ -100,7 +107,7 @@ object ErrorResponseConverter {
    * Uses failCode as HTTP status and failMsg as error message.
    */
   def apiFailureToResponse(failure: APIFailureNewStyle, callContext: CallContext): IO[Response[IO]] = {
-    val resolvedCode = resolveStatusCode(failure.failCode, failure.failMsg)
+    val resolvedCode = resolveStatusCode(failure.failCode, failure.failMsg, callContext)
     val errorJson = OBPErrorResponse(resolvedCode, failure.failMsg)
     val status = org.http4s.Status.fromInt(resolvedCode).getOrElse(org.http4s.Status.BadRequest)
     IO.pure(
