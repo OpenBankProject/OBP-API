@@ -394,8 +394,15 @@ object JSONFactory1_4_0 extends MdcLoggable{
           .find(_.title.toLowerCase.contains(s"${parameter.toLowerCase}"))
           .map(_.title).getOrElse("").replaceAll(" ","-")
       case _ =>
+        // First try exact match (e.g. body field "address" → glossary item "address").
+        // If that fails, fall back to a dotted-suffix match so body fields like
+        // "bank_id" / "account_id" / "customer_id" resolve to "Bank.bank_id" /
+        // "Account.account_id" / "Customer.customer_id". Without this fallback
+        // body-field glossary links render as [field](/glossary#) with an empty
+        // anchor — see the v5 → v6 createBank rename for a real-world example.
         glossaryItems
           .find(_.title.toLowerCase.equals(s"${parameter.toLowerCase}"))
+          .orElse(glossaryItems.find(_.title.toLowerCase.endsWith(s".${parameter.toLowerCase}")))
           .map(_.title).getOrElse("").replaceAll(" ","-")
     }
   }
