@@ -903,79 +903,119 @@ object MapperViews extends Views with MdcLoggable {
       .usePrivateAliasIfOneExists_(false) //(default is false anyways)
       .usePublicAliasIfOneExists_(false) //(default is false anyways)
       .hideOtherAccountMetadataIfAlias_(false) //(default is false anyways)
-    
+    applyDefaultsForSystemView(entity, viewId)
+  }
+
+  /**
+   * Apply the code-defined default permissions (and any view-level flags such
+   * as isFirehose) for the given system view id to the supplied entity.
+   *
+   * Called both at initial creation (`unsavedSystemView`) and on factory
+   * reset (`factoryResetSystemView`), so the two paths stay in lock-step.
+   *
+   * The caller is responsible for having already cleared any pre-existing
+   * `ViewPermission` rows associated with this view — `resetViewPermissions`
+   * here only repopulates them.
+   */
+  def applyDefaultsForSystemView(entity: ViewDefinition, viewId: String): ViewDefinition = {
     viewId match {
-      case SYSTEM_OWNER_VIEW_ID | SYSTEM_STANDARD_VIEW_ID =>{
+      case SYSTEM_OWNER_VIEW_ID | SYSTEM_STANDARD_VIEW_ID =>
         ViewPermission.resetViewPermissions(
           entity,
-          SYSTEM_OWNER_VIEW_PERMISSION_ADMIN ++SYSTEM_VIEW_PERMISSION_COMMON,
+          SYSTEM_OWNER_VIEW_PERMISSION_ADMIN ++ SYSTEM_VIEW_PERMISSION_COMMON,
           DEFAULT_CAN_GRANT_AND_REVOKE_ACCESS_TO_VIEWS,
           DEFAULT_CAN_GRANT_AND_REVOKE_ACCESS_TO_VIEWS
         )
-        entity      
-      }
-      case SYSTEM_STAGE_ONE_VIEW_ID =>{
+        entity
+      case SYSTEM_STAGE_ONE_VIEW_ID =>
         ViewPermission.resetViewPermissions(
           entity,
-          SYSTEM_VIEW_PERMISSION_COMMON++SYSTEM_VIEW_PERMISSION_COMMON
+          SYSTEM_VIEW_PERMISSION_COMMON ++ SYSTEM_VIEW_PERMISSION_COMMON
         )
         entity
-      }
-      case SYSTEM_MANAGE_CUSTOM_VIEWS_VIEW_ID =>{
+      case SYSTEM_MANAGE_CUSTOM_VIEWS_VIEW_ID =>
         ViewPermission.resetViewPermissions(
           entity,
-          SYSTEM_VIEW_PERMISSION_COMMON++SYSTEM_MANAGER_VIEW_PERMISSION
+          SYSTEM_VIEW_PERMISSION_COMMON ++ SYSTEM_MANAGER_VIEW_PERMISSION
         )
         entity
-      } 
-      case SYSTEM_FIREHOSE_VIEW_ID =>{
+      case SYSTEM_FIREHOSE_VIEW_ID =>
         ViewPermission.resetViewPermissions(
           entity,
           SYSTEM_VIEW_PERMISSION_COMMON
         )
-        entity // Make additional setup to the existing view
-          .isFirehose_(true)
-      }
-      case SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID | 
+        entity.isFirehose_(true)
+      case SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID |
            SYSTEM_READ_BALANCES_BERLIN_GROUP_VIEW_ID =>
         entity
-      case SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID =>{
+      case SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID =>
         ViewPermission.resetViewPermissions(
           entity,
           SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_PERMISSION
         )
         entity
-      }
-      case SYSTEM_INITIATE_PAYMENTS_BERLIN_GROUP_VIEW_ID =>{
+      case SYSTEM_INITIATE_PAYMENTS_BERLIN_GROUP_VIEW_ID =>
         ViewPermission.resetViewPermissions(
           entity,
           SYSTEM_INITIATE_PAYMENTS_BERLIN_GROUP_PERMISSION
         )
         entity
-      }
-      case SYSTEM_AUDITOR_VIEW_ID => {
+      case SYSTEM_AUDITOR_VIEW_ID =>
         ViewPermission.resetViewPermissions(
           entity,
           SYSTEM_AUDITOR_VIEW_PERMISSION
         )
         entity
-      }
       case SYSTEM_ACCOUNTANT_VIEW_ID |
         SYSTEM_READ_ACCOUNTS_BASIC_VIEW_ID |
         SYSTEM_READ_ACCOUNTS_DETAIL_VIEW_ID |
         SYSTEM_READ_BALANCES_VIEW_ID |
         SYSTEM_READ_TRANSACTIONS_BASIC_VIEW_ID |
         SYSTEM_READ_TRANSACTIONS_DEBITS_VIEW_ID |
-        SYSTEM_READ_TRANSACTIONS_DETAIL_VIEW_ID => {
-
+        SYSTEM_READ_TRANSACTIONS_DETAIL_VIEW_ID =>
         ViewPermission.resetViewPermissions(
           entity,
           SYSTEM_VIEW_PERMISSION_COMMON
         )
         entity
-      }
       case _ =>
         entity
+    }
+  }
+
+  /**
+   * Reset an existing system view to the code-defined defaults — i.e. wipe
+   * all of its `ViewPermission` rows, restore the view-level fields
+   * (name, description, flags) to what `unsavedSystemView` would set, and
+   * re-apply the default permission set for this view id.
+   *
+   * Preserves the underlying `ViewDefinition` row (and therefore any
+   * `AccountAccess` records pointing at it) — only the contents are reset.
+   *
+   * Returns Empty if no system view with this id exists; the caller can
+   * then surface the standard `SystemViewNotFound` error.
+   */
+  def factoryResetSystemView(viewId: ViewId): Box[View] = {
+    ViewDefinition.findSystemView(viewId.value) match {
+      case Full(existing) =>
+        ViewPermission.findSystemViewPermissions(viewId).foreach(_.delete_!)
+        existing
+          .isSystem_(true)
+          .isFirehose_(false)
+          .bank_id(null)
+          .account_id(null)
+          .name_(StringHelpers.capify(viewId.value))
+          .view_id(viewId.value)
+          .description_(viewId.value)
+          .isPublic_(false)
+          .usePrivateAliasIfOneExists_(false)
+          .usePublicAliasIfOneExists_(false)
+          .hideOtherAccountMetadataIfAlias_(false)
+        applyDefaultsForSystemView(existing, viewId.value)
+        Full(existing.saveMe())
+      case Empty =>
+        Empty
+      case f: Failure => f
     }
   }
   

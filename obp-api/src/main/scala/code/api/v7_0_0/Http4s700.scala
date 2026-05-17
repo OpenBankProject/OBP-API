@@ -8,7 +8,7 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.ResourceDocs1_4_0.{ResourceDocs140, ResourceDocsAPIMethodsUtil}
 import code.api.util.APIUtil.{EmptyBody, _}
 import code.api.util.{APIUtil, ApiRole, ApiVersionUtils, CallContext, CustomJsonFormats, Glossary, NewStyle}
-import code.api.util.ApiRole.{canCreateEntitlementAtAnyBank, canCreateEntitlementAtOneBank, canCreateOrganisation, canCreateRoutingScheme, canDeleteEntitlementAtAnyBank, canDeleteOrganisation, canDeleteRoutingScheme, canGetAccountAccessTrace, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetConnectorHealth, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMigrations, canUpdateBankSupportedRoutingScheme, canUpdateOrganisation, canUpdateRoutingScheme}
+import code.api.util.ApiRole.{canCreateEntitlementAtAnyBank, canCreateEntitlementAtOneBank, canCreateOrganisation, canCreateRoutingScheme, canDeleteEntitlementAtAnyBank, canDeleteOrganisation, canDeleteRoutingScheme, canGetAccountAccessTrace, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetConnectorHealth, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMigrations, canUpdateBankSupportedRoutingScheme, canUpdateOrganisation, canUpdateRoutingScheme, canUpdateSystemView}
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.http4s.{ErrorResponseConverter, Http4sRequestAttributes, IdempotencyMiddleware, RequestScopeConnection, ResourceDocMiddleware}
@@ -150,7 +150,7 @@ object Http4s700 {
     }
   }
 
-  object Implementations7_0_0 {
+  object Implementations7_0_0 extends code.util.Helper.MdcLoggable {
 
     // Common prefix: /obp/v7.0.0
     val prefixPath = Root / ApiPathZero.toString / implementedInApiVersion.toString
@@ -3437,6 +3437,87 @@ object Http4s700 {
     // ── End BULK ──────────────────────────────────────────────────────────────
 
     // ── Test-only rollback endpoint ───────────────────────────────────────────
+    // Route: POST /obp/v7.0.0/management/system-views/VIEW_ID/factory-reset
+    //
+    // Reset an existing system view's permissions and view-level flags to the
+    // code-defined defaults. The ViewDefinition row is preserved so any
+    // AccountAccess records that reference this view remain valid — only the
+    // contents of the view are wiped and rewritten.
+    //
+    // Each successful invocation is audit-logged at INFO level with the
+    // calling user_id and the reset view_id; this is a high-impact admin
+    // action and we want a trace of who reset what.
+    val factoryResetSystemView: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "management" / "system-views" / viewIdStr / "factory-reset" =>
+        EndpointHelpers.withUser(req) { (user, cc) =>
+          val viewId = ViewId(viewIdStr)
+          for {
+            view <- ViewNewStyle.factoryResetSystemView(viewId, Some(cc))
+          } yield {
+            logger.info(
+              s"AUDIT factoryResetSystemView: user_id=${user.userId} provider=${user.provider} " +
+              s"view_id=${viewId.value} permissions_count=${view.allowed_actions.size}"
+            )
+            JSONFactory600.createViewJsonV600(view)
+          }
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(factoryResetSystemView),
+      "POST",
+      "/management/system-views/VIEW_ID/factory-reset",
+      "Factory Reset a System View",
+      s"""Reset the system view identified by VIEW_ID to the code-defined defaults.
+         |
+         |This wipes the view's existing permissions and re-applies whatever the
+         |running OBP-API code currently defines as the default permission set
+         |for that system view id. View-level flags (name, description, is_firehose,
+         |alias settings, is_public) are also restored to defaults.
+         |
+         |The underlying view row is preserved, so any AccountAccess records that
+         |grant users this view on specific accounts remain in place — only the
+         |contents of the view itself are reset.
+         |
+         |Each successful invocation is audit-logged with the calling user_id and
+         |the reset view_id.
+         |
+         |${userAuthenticationMessage(true)}""".stripMargin,
+      EmptyBody,
+      ViewJsonV600(
+        bank_id = "",
+        account_id = "",
+        view_id = "auditor",
+        view_name = "Auditor",
+        description = "auditor",
+        metadata_view = "",
+        is_public = false,
+        is_system = true,
+        is_firehose = Some(false),
+        alias = "",
+        hide_metadata_if_alias_used = false,
+        can_grant_access_to_views = Nil,
+        can_revoke_access_to_views = Nil,
+        allowed_actions = List(
+          "can_see_bank_account_balance",
+          "can_see_transaction_amount",
+          "can_add_comment",
+          "can_add_tag"
+        )
+      ),
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        SystemViewNotFound,
+        UnknownError
+      ),
+      apiTagSystemView :: Nil,
+      Some(List(canUpdateSystemView)),
+      http4sPartialFunction = Some(factoryResetSystemView)
+    )
+
     // Enabled only in Lift test mode (Props.testMode == true, i.e. -Drun.mode=test).
     // Props.testMode is set from the JVM system property before any props file loads,
     // so it is reliably available at object-initialization time unlike file-based props.
