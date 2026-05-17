@@ -12,7 +12,8 @@
   <properties>
     <scala.version>2.12</scala.version>
     <scala.compiler>2.12.20</scala.compiler>
-    <pekko.version>1.1.2</pekko.version>
+    <pekko.version>1.1.5</pekko.version>
+    <pekko-http.version>1.1.0</pekko-http.version>
     <avro.version>1.8.2</avro.version>
     <lift.version>3.5.0</lift.version>
     <http4s.version>0.23.30</http4s.version>
