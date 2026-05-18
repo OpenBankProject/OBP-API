@@ -6,8 +6,12 @@ import code.api.util.http4s.Http4sLiftWebBridge
 import code.api.Constant.SYSTEM_OWNER_VIEW_ID
 import code.api.ResponseHeader
 import code.api.util.APIUtil
-import code.api.util.ApiRole.{canCreateEntitlementAtAnyBank, canCreateOrganisation, canCreateRoutingScheme, canDeleteEntitlementAtAnyBank, canDeleteOrganisation, canDeleteRoutingScheme, canGetAccountAccessTrace, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetCardsForBank, canGetConnectorHealth, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMigrations, canReadResourceDoc, canUpdateBankSupportedRoutingScheme, canUpdateOrganisation, canUpdateRoutingScheme}
-import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, BankNotFound, EntitlementAlreadyExists, InvalidOrganisationIdFormat, InvalidRoutingSchemeName, MobileWalletDestinationNotFound, MobileWalletInvalidMsisdn, OrganisationAlreadyExists, OrganisationNotFound, PayeeLookupAddressMismatch, PayeeLookupIdentifierTypeNotRegistered, PayeeNotFound, RoutingSchemeAlreadyExists, RoutingSchemeExampleAddressMismatch, RoutingSchemeNotFound, UserHasMissingRoles, UserNotFoundByUserId}
+import code.api.util.ApiRole.{canCreateEntitlementAtAnyBank, canCreateOrganisation, canCreateRoutingScheme, canDeleteEntitlementAtAnyBank, canDeleteOrganisation, canDeleteRoutingScheme, canUpdateSystemView, canGetAccountAccessTrace, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetCardsForBank, canGetConnectorHealth, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMigrations, canReadResourceDoc, canUpdateBankSupportedRoutingScheme, canUpdateOrganisation, canUpdateRoutingScheme}
+import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, BankNotFound, EntitlementAlreadyExists, InvalidOrganisationIdFormat, InvalidRoutingSchemeName, MobileWalletDestinationNotFound, MobileWalletInvalidMsisdn, OrganisationAlreadyExists, OrganisationNotFound, PayeeLookupAddressMismatch, PayeeLookupIdentifierTypeNotRegistered, PayeeNotFound, RoutingSchemeAlreadyExists, RoutingSchemeExampleAddressMismatch, RoutingSchemeNotFound, SystemViewNotFound, UserHasMissingRoles, UserNotFoundByUserId}
+import code.api.Constant.SYSTEM_AUDITOR_VIEW_ID
+import code.views.MapperViews
+import code.views.system.ViewPermission
+import com.openbankproject.commons.model.ViewId
 import code.routingscheme.RoutingSchemes
 import code.model.dataAccess.BankAccountRouting
 import code.customer.CustomerX
@@ -2958,6 +2962,103 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
           map.get("status") match {
             case Some(JString(s)) => s should (be("PARTIALLY_COMPLETED") or be("FAILED") or be("COMPLETED"))
             case _ => fail("status should be a string")
+          }
+        case _ => fail("Expected JSON object")
+      }
+    }
+  }
+
+  // ─── factoryResetSystemView ───────────────────────────────────────────────
+
+  feature("Http4s700 factoryResetSystemView endpoint") {
+
+    scenario("Reject unauthenticated POST to /management/system-views/VIEW_ID/factory-reset", Http4s700RoutesTag) {
+      Given("POST /obp/v7.0.0/management/system-views/auditor/factory-reset with no auth")
+      val (statusCode, json, _) = makeHttpRequestWithBody(
+        "POST", "/obp/v7.0.0/management/system-views/auditor/factory-reset", "")
+
+      Then("Response is 401")
+      statusCode shouldBe 401
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") match {
+            case Some(JString(msg)) => msg should include(AuthenticatedUserIsRequired)
+            case _ => fail("Expected message field")
+          }
+        case _ => fail("Expected JSON object")
+      }
+    }
+
+    scenario("Return 403 when authenticated but missing canUpdateSystemView role", Http4s700RoutesTag) {
+      Given("POST /obp/v7.0.0/management/system-views/auditor/factory-reset without the required role")
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequestWithBody(
+        "POST", "/obp/v7.0.0/management/system-views/auditor/factory-reset", "", headers)
+
+      Then("Response is 403 with UserHasMissingRoles message naming the required role")
+      statusCode shouldBe 403
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") match {
+            case Some(JString(msg)) =>
+              msg should include(UserHasMissingRoles)
+              msg should include(canUpdateSystemView.toString)
+            case _ => fail("Expected message field")
+          }
+        case _ => fail("Expected JSON object")
+      }
+    }
+
+    scenario("Return 200 and reset permissions when entitled and view exists", Http4s700RoutesTag) {
+      Given("the auditor system view exists, with an extra non-default permission")
+      MapperViews.getOrCreateSystemView(SYSTEM_AUDITOR_VIEW_ID)
+      ViewPermission.createSystemViewPermission(
+        ViewId(SYSTEM_AUDITOR_VIEW_ID),
+        code.api.Constant.CAN_ADD_TRANSACTION_REQUEST_TO_OWN_ACCOUNT,
+        None
+      )
+      addEntitlement("", resourceUser1.userId, canUpdateSystemView.toString)
+
+      When(s"POST /obp/v7.0.0/management/system-views/$SYSTEM_AUDITOR_VIEW_ID/factory-reset is called")
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequestWithBody(
+        "POST", s"/obp/v7.0.0/management/system-views/$SYSTEM_AUDITOR_VIEW_ID/factory-reset", "", headers)
+
+      Then("Response is 200 with the refreshed view JSON, no longer containing the extra permission")
+      statusCode shouldBe 200
+      json match {
+        case JObject(fields) =>
+          val map = toFieldMap(fields)
+          map.get("view_id") match {
+            case Some(JString(v)) => v shouldBe SYSTEM_AUDITOR_VIEW_ID
+            case _ => fail("Expected view_id as JSON string")
+          }
+          map.get("allowed_actions") match {
+            case Some(JArray(actions)) =>
+              val names = actions.collect { case JString(s) => s }
+              names should not contain code.api.Constant.CAN_ADD_TRANSACTION_REQUEST_TO_OWN_ACCOUNT
+            case _ => fail("Expected allowed_actions array")
+          }
+        case _ => fail("Expected JSON object")
+      }
+    }
+
+    scenario("Return 404 when system view does not exist", Http4s700RoutesTag) {
+      Given("canUpdateSystemView role granted and a non-existent view id")
+      addEntitlement("", resourceUser1.userId, canUpdateSystemView.toString)
+
+      When("POST /obp/v7.0.0/management/system-views/does-not-exist/factory-reset")
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequestWithBody(
+        "POST", "/obp/v7.0.0/management/system-views/does-not-exist/factory-reset", "", headers)
+
+      Then("Response is 404 with SystemViewNotFound message")
+      statusCode shouldBe 404
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") match {
+            case Some(JString(msg)) => msg should include(SystemViewNotFound)
+            case _ => fail("Expected message field")
           }
         case _ => fail("Expected JSON object")
       }

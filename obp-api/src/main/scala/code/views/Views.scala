@@ -100,6 +100,14 @@ trait Views {
   def getOrCreateSystemView(viewId: String) : Box[View]
   def getOrCreateCustomPublicView(bankId: BankId, accountId: AccountId, description: String) : Box[View]
 
+  /**
+   * Reset an existing system view's permissions and view-level flags back to
+   * the code-defined defaults for that view id. Preserves the row itself
+   * (so any AccountAccess bindings keep working). Returns Empty if no such
+   * system view exists.
+   */
+  def factoryResetSystemView(viewId: ViewId) : Box[View]
+
   def getOwners(view: View): Set[User]
   
   def removeAllAccountAccess(bankId: BankId, accountId: AccountId) : Boolean

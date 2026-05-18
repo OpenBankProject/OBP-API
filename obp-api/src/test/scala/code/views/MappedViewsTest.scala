@@ -3,9 +3,9 @@ package code.views
 import code.api.Constant
 import code.api.util.ErrorMessages.ViewIdNotSupported
 import code.setup.{DefaultUsers, ServerSetup}
-import code.views.system.ViewDefinition
-import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId}
-import net.liftweb.common.Failure
+import code.views.system.{ViewDefinition, ViewPermission}
+import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId, ViewId}
+import net.liftweb.common.{Empty, Failure}
 
 class MappedViewsTest extends ServerSetup with DefaultUsers{
   
@@ -63,11 +63,40 @@ class MappedViewsTest extends ServerSetup with DefaultUsers{
       wrongView.toString contains  ViewIdNotSupported shouldBe (true)
       
       wrongView.toString contains  wrongViewId shouldBe(true)
-  
+
     }
-  
-    
-  
+
+    scenario("factoryResetSystemView restores code-defined defaults") {
+      Given("an existing auditor system view created by getOrCreateSystemView")
+      val created = MapperViews.getOrCreateSystemView(viewIdAuditor)
+      created.isDefined shouldBe true
+      val defaultActions = created.openOrThrowException("auditor view should exist").allowed_actions
+      defaultActions.contains(Constant.CAN_ADD_TRANSACTION_REQUEST_TO_OWN_ACCOUNT) shouldBe false
+
+      When("we add an extra permission that's not in the default auditor set")
+      ViewPermission.createSystemViewPermission(
+        ViewId(viewIdAuditor),
+        Constant.CAN_ADD_TRANSACTION_REQUEST_TO_OWN_ACCOUNT,
+        None
+      ).isDefined shouldBe true
+      val mutated = ViewDefinition.findSystemView(viewIdAuditor)
+        .openOrThrowException("auditor view should still exist after mutation")
+      mutated.allowed_actions.contains(Constant.CAN_ADD_TRANSACTION_REQUEST_TO_OWN_ACCOUNT) shouldBe true
+
+      Then("factoryResetSystemView removes the extra permission and restores defaults")
+      val reset = MapperViews.factoryResetSystemView(ViewId(viewIdAuditor))
+      reset.isDefined shouldBe true
+      val resetActions = reset.openOrThrowException("reset should return refreshed view").allowed_actions
+      resetActions.contains(Constant.CAN_ADD_TRANSACTION_REQUEST_TO_OWN_ACCOUNT) shouldBe false
+      resetActions.toSet should equal(defaultActions.toSet)
+    }
+
+    scenario("factoryResetSystemView returns Empty for an unknown system view id") {
+      MapperViews.factoryResetSystemView(ViewId("does-not-exist")) shouldBe Empty
+    }
+
+
+
   }
   
   
