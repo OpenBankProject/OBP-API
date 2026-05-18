@@ -3179,7 +3179,11 @@ object Http4s600 {
       case req @ GET -> `prefixPath` / "products" =>
         EndpointHelpers.withUser(req) { (_, cc) =>
           val params = req.uri.query.multiParams.toList.map { case (k, vs) => GetProductsParam(k, vs.toList) }
-          val cacheKey = APIMethods600.productsCacheKey("__all__", params)
+          val cacheKey = {
+            val canonical = params.map(p => p.name -> p.value.sorted).sortBy(_._1)
+              .map { case (n, vs) => s"$n=${vs.mkString(",")}" }.mkString("&")
+            s"productsV600:__all__:$canonical"
+          }
           val cacheTTL = APIUtil.getPropsAsIntValue("getAllProductsV600.cache.ttl.seconds", 60)
           val hit = code.api.cache.Caching.getFinancialProductsCache(cacheKey, cacheTTL)
             .flatMap(s => try Some(net.liftweb.json.parse(s).extract[ProductsJsonV600])
