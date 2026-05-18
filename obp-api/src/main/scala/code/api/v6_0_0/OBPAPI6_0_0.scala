@@ -41,7 +41,7 @@ import code.api.v3_0_0.custom.CustomAPIMethods300
 import code.api.v3_1_0.APIMethods310
 import code.api.v4_0_0.APIMethods400
 import code.api.v5_0_0.APIMethods500
-import code.api.v5_1_0.{APIMethods510, OBPAPI5_1_0}
+import code.api.v5_1_0.{APIMethods510, Http4s510, OBPAPI5_1_0}
 import code.util.Helper.MdcLoggable
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.util.{ApiVersion, ApiVersionStatus}
@@ -72,6 +72,9 @@ object OBPAPI6_0_0 extends OBPRestHelper
 
   // Re-export so tests that import OBPAPI6_0_0.Implementations6_0_0 still compile.
   val Implementations6_0_0 = Http4s600.Implementations6_0_0
+  // Re-export so nameOf references below (in excludeEndpoints) continue to compile
+  // after APIMethods510 was replaced with an empty stub.
+  val Implementations5_1_0 = Http4s510.Implementations5_1_0
 
   lazy val excludeEndpoints =
     nameOf(Implementations3_0_0.getUserByUsername) ::

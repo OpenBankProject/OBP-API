@@ -14,7 +14,7 @@ import code.api.util.ErrorMessages._
 import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps}
 import code.api.util.http4s.ResourceDocMiddleware
 import code.api.util.newstyle.ViewNewStyle
-import code.api.util.{APIUtil, ConsentJWT, Consent, CustomJsonFormats, JwtUtil, NewStyle, OBPBankId, SecureRandomUtil}
+import code.api.util.{APIUtil, ConsentJWT, ConsentView, Consent, CustomJsonFormats, JwtUtil, NewStyle, OBPBankId, SecureRandomUtil}
 import code.api.v2_1_0.JSONFactory210
 import code.api.v3_0_0.JSONFactory300
 import code.api.v3_1_0.{JSONFactory310, PostConsentBodyCommonJson, PostConsentViewJsonV310, PostUserAuthContextJson, PostUserAuthContextUpdateJsonV310}
@@ -1125,12 +1125,19 @@ object Http4s500 {
                   access.account_routing.scheme, access.account_routing.address, callContextOpt)
                   .map(r => PostConsentViewJsonV310(r._1.bankId.value, r._1.accountId.value, access.view_id))))
             }
-            (_, assignedViews) <- Future(Views.views.vend.privateViewsUserCanAccess(user))
-            _ <- Helper.booleanToFuture(ViewsAllowedInConsent, cc = callContextOpt) {
-              postConsentViewJsons.forall(rv =>
-                assignedViews.exists(e =>
-                  e.view_id == rv.view_id && e.bank_id == rv.bank_id && e.account_id == rv.account_id))
-            }
+            // VRP consent: the VRP view was just created and access was granted in the same
+            // transaction. Doobie (used by privateViewsUserCanAccess) runs on a separate pool
+            // connection that can't see uncommitted Mapper writes, so the check would always
+            // fail for VRP consent in the http4s path. Skip it — access was just granted.
+            _ <- if (isVRPConsentRequest) Future.successful(())
+                 else for {
+                   (_, assignedViews) <- Future(Views.views.vend.privateViewsUserCanAccess(user))
+                   _ <- Helper.booleanToFuture(ViewsAllowedInConsent, cc = callContextOpt) {
+                     postConsentViewJsons.forall(rv =>
+                       assignedViews.exists(e =>
+                         e.view_id == rv.view_id && e.bank_id == rv.bank_id && e.account_id == rv.account_id))
+                   }
+                 } yield ()
             calculatedConsumerId = consentRequestJson.consumer_id.orElse(Some(createdConsentRequest.consumerId))
             (consumerIdOpt, applicationText) <- calculatedConsumerId match {
               case Some(id) =>
@@ -1157,11 +1164,22 @@ object Http4s500 {
               valid_from = consentRequestJson.valid_from,
               time_to_live = consentRequestJson.time_to_live
             )
+            // For VRP consent the VRP view was just created inside this business transaction.
+            // Doobie (used by getPermissionForUser inside createConsentJWT) can't see the
+            // uncommitted write, so the JWT would get an empty views list. Pass the VRP view
+            // directly to bypass the Doobie lookup.
+            vrpConsentViews = if (isVRPConsentRequest) Some(List(ConsentView(
+              bank_id = bankId.value,
+              account_id = accountId.value,
+              view_id = viewId.value,
+              helper_info = Some(HelperInfoJson(List(counterpartyId.value)))
+            ))) else None
             consentJWT = Consent.createConsentJWT(
               user, postConsentBodyCommonJson, createdConsent.secret, createdConsent.consentId,
               consumerIdOpt, postConsentBodyCommonJson.valid_from,
               postConsentBodyCommonJson.time_to_live.getOrElse(3600),
-              Some(HelperInfoJson(List(counterpartyId.value)))
+              Some(HelperInfoJson(List(counterpartyId.value))),
+              vrpConsentViews
             )
             _ <- Future(Consents.consentProvider.vend.setJsonWebToken(createdConsent.consentId, consentJWT))
               .map(i => connectorEmptyResponse(i, callContextOpt))
