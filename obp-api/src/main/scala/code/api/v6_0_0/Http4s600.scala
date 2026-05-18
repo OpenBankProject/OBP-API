@@ -8489,6 +8489,17 @@ object Http4s600 {
     }
   }
 
-  val wrappedRoutesV600Services: HttpRoutes[IO] =
+  // `lazy val`, not `val`: `OBPAPI6_0_0` and `APIMethods600` reference
+  // `Http4s600.Implementations6_0_0` directly via getstatic. When either is loaded
+  // first (during Lift's Boot), the JVM triggers `Implementations6_0_0.<clinit>`
+  // before `Http4s600.<clinit>`. Resource-doc registrations inside Impl6.<init>
+  // reference `Http4s600.MODULE$`, triggering `Http4s600.<clinit>` recursively on
+  // the same thread. JVM allows recursive class init; the partially-initialised
+  // `Impl6.MODULE$` is returned. The strict-val `wrappedRoutesV600Services =
+  // Impl6.allRoutesWithMiddleware` then reads the not-yet-assigned
+  // `allRoutesWithMiddleware` field (still null) and writes null permanently.
+  // A `lazy val` defers the read until first access (from Http4sApp after Boot
+  // completes), by which time Impl6 is fully initialised.
+  lazy val wrappedRoutesV600Services: HttpRoutes[IO] =
     Implementations6_0_0.allRoutesWithMiddleware
 }
