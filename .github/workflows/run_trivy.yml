@@ -40,7 +40,7 @@ jobs:
           path: .trivy
           key: ${{ runner.os }}-trivy-db-${{ steps.trivy-db.outputs.sha }}
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@v0.36.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
         with:
           image-ref: "docker.io/${{ env.DOCKER_HUB_ORGANIZATION }}/${{ env.DOCKER_HUB_REPOSITORY }}:${{ github.event_name == 'workflow_dispatch' && (inputs.image_sha || github.sha) || github.event.workflow_run.head_sha }}"
           format: "template"
