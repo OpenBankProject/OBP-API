@@ -29,7 +29,7 @@ package code.api.v6_0_0
 
 import scala.language.reflectiveCalls
 import code.api.OBPRestHelper
-import code.api.util.APIUtil.{OBPEndpoint, getAllowedEndpoints}
+import code.api.util.APIUtil.OBPEndpoint
 import code.api.util.VersionedOBPApis
 import code.api.v1_3_0.APIMethods130
 import code.api.v1_4_0.APIMethods140
@@ -45,26 +45,24 @@ import code.api.v5_1_0.{APIMethods510, OBPAPI5_1_0}
 import code.util.Helper.MdcLoggable
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.util.{ApiVersion, ApiVersionStatus}
-import net.liftweb.common.{Box, Full}
-import net.liftweb.http.{LiftResponse, PlainTextResponse}
-import org.apache.http.HttpStatus
 
 /*
-This file defines which endpoints from all the versions are available in v5.0.0
+This file defines which endpoints from all the versions are available in v6.0.0.
+All v6.0.0 endpoints have been migrated to Http4s600 — this object is retained
+only for resource-doc aggregation and the Lift dispatch registry.
  */
-object OBPAPI6_0_0 extends OBPRestHelper 
-  with APIMethods130 
-  with APIMethods140 
-  with APIMethods200 
-  with APIMethods210 
-  with APIMethods220 
-  with APIMethods300 
-  with CustomAPIMethods300 
-  with APIMethods310 
-  with APIMethods400 
-  with APIMethods500 
-  with APIMethods510 
-  with APIMethods600
+object OBPAPI6_0_0 extends OBPRestHelper
+  with APIMethods130
+  with APIMethods140
+  with APIMethods200
+  with APIMethods210
+  with APIMethods220
+  with APIMethods300
+  with CustomAPIMethods300
+  with APIMethods310
+  with APIMethods400
+  with APIMethods500
+  with APIMethods510
   with MdcLoggable
   with VersionedOBPApis{
 
@@ -72,91 +70,37 @@ object OBPAPI6_0_0 extends OBPRestHelper
 
   val versionStatus = ApiVersionStatus.BLEEDING_EDGE.toString
 
-  // Possible Endpoints from 5.1.0, exclude one endpoint use - method,exclude multiple endpoints use -- method,
-  // e.g getEndpoints(Implementations5_0_0) -- List(Implementations5_0_0.genericEndpoint, Implementations5_0_0.root)
-  lazy val endpointsOf6_0_0 = getEndpoints(Implementations6_0_0)
-  
-  // Exclude v5.1.0 root endpoint since v6.0.0 has its own
-  lazy val endpointsOf5_1_0_without_root = OBPAPI5_1_0.routes.filterNot(_ == Implementations5_1_0.root)
+  // Re-export so tests that import OBPAPI6_0_0.Implementations6_0_0 still compile.
+  val Implementations6_0_0 = Http4s600.Implementations6_0_0
 
-  /* 
-   * IMPORTANT: Endpoint Exclusion Pattern
-   * 
-   * excludeEndpoints is used to filter out old endpoints when v6.0.0 has a DIFFERENT URL pattern.
-   * 
-   * WHEN TO EXCLUDE:
-   * - Old and new endpoints have DIFFERENT URLs (e.g., v4.0.0: /users/:username vs v6.0.0: /providers/:provider/users/:username)
-   * - The old endpoint should not be accessible via v6.0.0 at all
-   * 
-   * WHEN NOT TO EXCLUDE:
-   * - Old and new endpoints have the SAME URL and HTTP method (e.g., GET /api/versions)
-   * - In this case, collectResourceDocs() automatically deduplicates by (URL, method) and keeps newest version
-   * - Excluding by function name would remove BOTH versions since they share the same name!
-   * 
-   * Why? The routing works as follows:
-   * 1. endpoints list = endpointsOf6_0_0 ++ endpointsOf5_1_0_without_root (contains BOTH old and new)
-   * 2. allResourceDocs = collectResourceDocs() deduplicates docs by (URL, method), keeps newest
-   * 3. excludeEndpoints filters ResourceDocs by partialFunctionName (removes by name, not by version)
-   * 4. getAllowedEndpoints() filters endpoints to only those with matching ResourceDocs
-   * 
-   * Pattern: Add nameOf(Implementations{version}.endpointName) :: with a comment explaining why
-   */
-  lazy val excludeEndpoints = 
-    nameOf(Implementations3_0_0.getUserByUsername) ::  // following 4 endpoints miss Provider parameter in the URL, we introduce new ones in V600.
+  lazy val excludeEndpoints =
+    nameOf(Implementations3_0_0.getUserByUsername) ::
       nameOf(Implementations3_1_0.getBadLoginStatus) ::
       nameOf(Implementations3_1_0.unlockUser) ::
       nameOf(Implementations4_0_0.lockUser) ::
-      // NOTE: getScannedApiVersions is NOT excluded here because it has the same URL in both v4.0.0 and v6.0.0
-      // collectResourceDocs() automatically deduplicates by (URL, HTTP method) and keeps the newest version (v6.0.0)
-      // Excluding by function name would incorrectly filter out BOTH versions since they share the same function name
-      nameOf(Implementations4_0_0.createUserWithAccountAccess) ::  // following 3 endpoints miss ViewId parameter in the URL, we introduce new ones in V600.
+      nameOf(Implementations4_0_0.createUserWithAccountAccess) ::
       nameOf(Implementations4_0_0.grantUserAccessToView) ::
       nameOf(Implementations4_0_0.revokeUserAccessToView) ::
-      nameOf(Implementations4_0_0.revokeGrantUserAccessToViews) ::// this endpoint is forbidden in V600, we do not support multi views in one endpoint from V600.
-      // v4.0.0 personal user attribute endpoints replaced by /my/personal-data-fields in v6.0.0
+      nameOf(Implementations4_0_0.revokeGrantUserAccessToViews) ::
       nameOf(Implementations4_0_0.getMyPersonalUserAttributes) ::
       nameOf(Implementations4_0_0.createMyPersonalUserAttribute) ::
       nameOf(Implementations4_0_0.updateMyPersonalUserAttribute) ::
-      // v5.1.0 non-personal user attribute endpoints replaced by /users/USER_ID/attributes in v6.0.0
       nameOf(Implementations5_1_0.createNonPersonalUserAttribute) ::
       nameOf(Implementations5_1_0.getNonPersonalUserAttributes) ::
       nameOf(Implementations5_1_0.deleteNonPersonalUserAttribute) ::
       Nil
-      
-  // if old version ResourceDoc objects have the same name endpoint with new version, omit old version ResourceDoc.
+
+  // All v6.0.0 endpoints live in Http4s600 — aggregate Http4s600.resourceDocs on top of v5.1.0.
   def allResourceDocs = collectResourceDocs(
     OBPAPI5_1_0.allResourceDocs,
-    Implementations6_0_0.resourceDocs
+    Http4s600.resourceDocs
   ).filterNot(it => it.partialFunctionName.matches(excludeEndpoints.mkString("|")))
 
-  // all endpoints - v6.0.0 endpoints first so they take precedence over v5.1.0
-  private val endpoints: List[OBPEndpoint] = endpointsOf6_0_0.toList ++ endpointsOf5_1_0_without_root
-
-  // Filter the possible endpoints by the disabled / enabled Props settings and add them together
-  // Make root endpoint mandatory (prepend it)
-  val routes : List[OBPEndpoint] = Implementations6_0_0.root :: 
-    getAllowedEndpoints(endpoints, allResourceDocs)
+  // No Lift routes — all v6.0.0 endpoints are served by Http4s600.
+  val routes: List[OBPEndpoint] = Nil
 
   registerRoutes(routes, allResourceDocs, apiPrefix, true)
 
-
   logger.info(s"version $version has been run! There are ${routes.length} routes, ${allResourceDocs.length} allResourceDocs.")
-
-  // specified response for OPTIONS request.
-  private val corsResponse: Box[LiftResponse] = Full{
-    val corsHeaders = List(
-      "Access-Control-Allow-Origin" -> "*",
-      "Access-Control-Allow-Methods" -> "GET, POST, OPTIONS, PUT, PATCH, DELETE",
-      "Access-Control-Allow-Headers" -> "*",
-      "Access-Control-Allow-Credentials" -> "true",
-      "Access-Control-Max-Age" -> "1728000" //Tell client that this pre-flight info is valid for 20 days
-    )
-    PlainTextResponse("", corsHeaders, HttpStatus.SC_NO_CONTENT)
-  }
-  /*
-   * process OPTIONS http request, just return no content and status is 204
-   */
-  this.serve({
-    case req if req.requestType.method == "OPTIONS" => corsResponse
-  })
+  // CORS for OPTIONS is handled by the http4s corsHandler layer — no Lift serve needed here.
 }
