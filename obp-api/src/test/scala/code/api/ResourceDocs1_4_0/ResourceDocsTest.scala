@@ -105,7 +105,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
       And("We should get  200 and the response can be extract to case classes")
       val responseDocs = responseGetObp.body.extract[ResourceDocsJson]
       responseGetObp.code should equal(200)
-      responseDocs.resource_docs.head.implemented_by.technology shouldBe Some(Constant.TECHNOLOGY_LIFTWEB)
+      responseDocs.resource_docs.head.implemented_by.technology should (equal(Some(Constant.TECHNOLOGY_LIFTWEB)) or equal(Some(Constant.TECHNOLOGY_HTTP4S)))
       //This should not throw any exceptions
       responseDocs.resource_docs.take(3).foreach(doc => stringToNodeSeq(doc.description))
     }

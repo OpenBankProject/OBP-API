@@ -17,6 +17,10 @@ class AbacRuleTests extends V600ServerSetup with DefaultUsers {
 
   override def beforeAll(): Unit = {
     super.beforeAll()
+    // Force creation of multiple users so the statistical permissiveness check
+    // has a meaningful sample (>1 user). Without this, a rule matching only
+    // resourceUser1's email looks "100% permissive" in an otherwise empty DB.
+    val _ = (resourceUser1, resourceUser2, resourceUser3, resourceUser4)
   }
 
   override def afterAll(): Unit = {
