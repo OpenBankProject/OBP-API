@@ -11,7 +11,7 @@ import code.api.util.{APIUtil, ApiRole, ApiVersionUtils, CallContext, CustomJson
 import code.api.util.ApiRole.{canCreateEntitlementAtAnyBank, canCreateEntitlementAtOneBank, canCreateOrganisation, canCreateRoutingScheme, canDeleteEntitlementAtAnyBank, canDeleteOrganisation, canDeleteRoutingScheme, canGetAccountAccessTrace, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetConnectorHealth, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMigrations, canUpdateBankSupportedRoutingScheme, canUpdateOrganisation, canUpdateRoutingScheme, canUpdateSystemView}
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
-import code.api.util.http4s.{ErrorResponseConverter, Http4sRequestAttributes, IdempotencyMiddleware, RequestScopeConnection, ResourceDocMiddleware}
+import code.api.util.http4s.{ErrorResponseConverter, Http4sRequestAttributes, IdempotencyMiddleware, RequestScopeConnection, ResourceDocMiddleware, ResourceDocMatcher}
 import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps}
 import code.api.util.newstyle.ViewNewStyle
 import code.api.v1_4_0.JSONFactory1_4_0
@@ -3585,12 +3585,19 @@ object Http4s700 {
   }
 
   // ─── path-rewriting bridge: /obp/v7.0.0/… → /obp/v6.0.0/… ─────────────
-  // Catches v7.0.0 paths not handled by Http4s700's own endpoints and forwards
-  // them to Http4s600 (which has all 243 v6.0.0 endpoints). This replaces the
-  // old Lift-bridge rewrite, which failed because OBPAPI6_0_0.routes = Nil.
+  // Catches v7.0.0 paths with NO matching v7 ResourceDoc and forwards them to
+  // Http4s600 (which has all 243 v6.0.0 endpoints). Paths that DO have a v7
+  // ResourceDoc are intentionally excluded: if the middleware returned
+  // OptionT.none for such a path (e.g. api_disabled_endpoints), the bridge must
+  // not silently re-serve them from v6. The index is built lazily from the same
+  // resourceDocs buffer that the middleware uses, so it stays in sync.
+  private lazy val v7ResourceDocIndex: ResourceDocMatcher.ResourceDocIndex =
+    ResourceDocMatcher.buildIndex(resourceDocs)
+
   private val v700ToV600Bridge: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { req =>
     val rawPath = req.uri.path.renderString
-    if (rawPath.startsWith("/obp/v7.0.0/")) {
+    if (rawPath.startsWith("/obp/v7.0.0/") &&
+        ResourceDocMatcher.findResourceDoc(req.method.name, req.uri.path, v7ResourceDocIndex).isEmpty) {
       val rewritten = rawPath.replaceFirst("/obp/v7\\.0\\.0/", "/obp/v6.0.0/")
       val newUri = req.uri.withPath(Uri.Path.unsafeFromString(rewritten))
       code.api.v6_0_0.Http4s600.wrappedRoutesV600Services.run(req.withUri(newUri))
