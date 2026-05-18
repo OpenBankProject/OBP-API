@@ -939,6 +939,21 @@ object Glossary extends MdcLoggable  {
 			|
 			|
 			|Example value: ${bankIdExample.value}
+			|
+			|## Version history
+			|
+			|The JSON field name for this identifier changed across OBP-API versions:
+			|
+			|- **v6.0.0+** (current): `bank_id` — the canonical field name in both request and response bodies (e.g. `PostBankJson600`, `BankJson600`).
+			|- **v5.0.0**: `id` (Option[String]) — see `PostBankJson500` / `BankJson500`.
+			|- **v4.0.0**: `id` (String), plus a now-removed `short_name` field — see `PostBankJson400` / `BankJson400`.
+			|
+			|The v6 createBank request body shape is exactly:
+			|`bank_id`, `bank_code`, `full_name`, `logo`, `website`, `bank_routings`.
+			|
+			|If you're regenerating client code from older docs, samples, or LLM training data, double-check
+			|the field name — sending `id` to v6 endpoints will silently produce an empty `bank_id` and
+			|fail validation with a confusing length error.
 		 """)
 
 	  glossaryItems += GlossaryItem(

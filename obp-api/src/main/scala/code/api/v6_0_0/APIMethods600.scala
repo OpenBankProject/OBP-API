@@ -2221,7 +2221,25 @@ trait APIMethods600 {
         cc =>
           implicit val ec = EndpointContext(Some(cc))
           val failMsg = s"$InvalidJsonFormat The Json body should be the $PostBankJson600 "
+          // Catch the common v4/v5 → v6 field-rename mistakes before extraction.
+          // Without this, sending {"id": "..."} silently produces an empty bank_id
+          // and fails downstream with a confusing BANK_ID length-validation error.
+          val deprecatedFieldHints: List[String] = json match {
+            case JObject(fields) => fields.collect {
+              case JField("id", _) =>
+                "'id' was renamed to 'bank_id' in v6.0.0 (it was the field name in v4.0.0 and v5.0.0)"
+              case JField("short_name", _) =>
+                "'short_name' was removed in v5.0.0 (it only existed in v4.0.0)"
+            }
+            case _ => Nil
+          }
           for {
+            _ <- Helper.booleanToFuture(
+              failMsg = s"$InvalidJsonFormat Deprecated request-body field(s): ${deprecatedFieldHints.mkString("; ")}. The v6.0.0 createBank body shape is: bank_id, bank_code, full_name, logo, website, bank_routings.",
+              cc = cc.callContext
+            ) {
+              deprecatedFieldHints.isEmpty
+            }
             postJson <- NewStyle.function.tryons(failMsg, 400, cc.callContext) {
               json.extract[PostBankJson600]
             }

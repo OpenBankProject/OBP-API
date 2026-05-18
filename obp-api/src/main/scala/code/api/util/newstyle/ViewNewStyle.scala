@@ -103,6 +103,12 @@ object ViewNewStyle {
     }
   }
 
+  def factoryResetSystemView(viewId: ViewId, callContext: Option[CallContext]): Future[View] = {
+    Future(Views.views.vend.factoryResetSystemView(viewId)) map {
+      unboxFullOrFail(_, callContext, s"$SystemViewNotFound Current ViewId is ${viewId.value}", 404)
+    }
+  }
+
   def checkOwnerViewAccessAndReturnOwnerView(user: User, bankAccountId: BankIdAccountId, callContext: Option[CallContext]): Future[View] = {
     Future {
       user.checkOwnerViewAccessAndReturnOwnerView(bankAccountId, callContext)

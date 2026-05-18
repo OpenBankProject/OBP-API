@@ -16,21 +16,29 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Authenticate to Google Container Registry
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up gcloud (for GCR credential helper)
+        uses: google-github-actions/setup-gcloud@v2
+
       - name: Docker Image Update Checker
         id: baseupdatecheck
         uses: lucacome/docker-image-update-checker@v2.0.0
         with:
-          base-image: jetty:9.4-jdk11-alpine
+          base-image: gcr.io/distroless/java17-debian12:latest
           image: ${{ env.DOCKER_HUB_ORGANIZATION }}/obp-api:latest
 
-      - name: Trigger build_container_develop_branch workflow
-        uses: actions/github-script@v6
+      - name: Trigger build_container workflow
+        uses: actions/github-script@v7
         with:
           script: |
             await github.rest.actions.createWorkflowDispatch({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              workflow_id: 'build_container_develop_branch.yml',
+              workflow_id: 'build_container.yml',
               ref: 'refs/heads/develop'
             });
         if: steps.baseupdatecheck.outputs.needs-updating == 'true'
