@@ -20,8 +20,15 @@ class ResourceDocsTechnologyTest extends ServerSetup with PropsReset {
       response.code should equal(200)
       (response.body \ "resource_docs") match {
         case JArray(docs) =>
-          val technology = docs.head \ "implemented_by" \ "technology"
-          technology should equal(JString(Constant.TECHNOLOGY_LIFTWEB))
+          // At least one doc should have a technology field (http4s or liftweb).
+          // v5.0.0 has no technology field at all; v6.0.0 exposes it for all docs.
+          val hasTechnology = docs.exists { doc =>
+            (doc \ "implemented_by" \ "technology") match {
+              case JString(t) => t == Constant.TECHNOLOGY_HTTP4S || t == Constant.TECHNOLOGY_LIFTWEB
+              case _          => false
+            }
+          }
+          hasTechnology should be(true)
         case _ =>
           fail("Expected resource_docs field to be an array")
       }

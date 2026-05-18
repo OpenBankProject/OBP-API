@@ -13,6 +13,7 @@ import code.api.util.http4s.{ErrorResponseConverter, RequestScopeConnection, Res
 import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps}
 import code.api.util.newstyle.ViewNewStyle
 import code.api.v2_0_0.JSONFactory200
+import code.api.v5_0_0.Http4s500
 import code.api.v5_1_0.{Http4s510, JSONFactory510}
 import code.api.v6_0_0.JSONFactory600.ScannedApiVersionJsonV600
 import code.accountattribute.AccountAttributeX
@@ -80,12 +81,11 @@ import scala.concurrent.Future
  * v6.0.0 http4s endpoints — Phase 1 in progress.
  *
  * Wire-in into `Http4sApp.baseServices` is performed alongside this object.
- * The v600→v510 bridge (`v600ToV510Bridge`) is intentionally NOT appended to
- * `allRoutes`: unmigrated v6 paths must fall through the http4s chain to the
- * Lift fallback, which still serves the v6 Lift handlers. Adding the bridge
- * would let v6 *overrides* be hijacked into v5.1 handlers (CLAUDE.md →
- * "Bridge-cascade hijack"). The bridge val is kept here so it can be enabled
- * later if the team decides to short-circuit Lift for v6 originals.
+ * The v600→v500 bridge (`v600ToV500Bridge`) rewrites unhandled v6.0.0 paths
+ * to v5.0.0 and delegates to Http4s500.wrappedRoutesV500Services, which has a
+ * working cascade chain (v5.0.0 → v4.0.0 → v3.1.0 → v3.0.0). The bridge
+ * skips v5.1.0 because Http4s510's own bridge to v5.0.0 is disabled due to
+ * MetricTest / VRPConsentRequestTest regressions.
  */
 object Http4s600 {
 
@@ -1790,6 +1790,7 @@ object Http4s600 {
           .orElse(getConnectorTraces(req))
           .orElse(getDynamicEntityDiagnostics(req))
           .orElse(cleanupOrphanedDynamicEntityRecords(req))
+          .orElse(createWebUiProps(req))
           .orElse(createOrUpdateWebUiProps(req))
           .orElse(deleteWebUiProps(req))
           .orElse(createCustomViewManagement(req))
@@ -2248,6 +2249,36 @@ object Http4s600 {
       apiTagManageDynamicEntity :: Nil,
       Some(canCleanupOrphanedDynamicEntityRecords :: Nil),
       http4sPartialFunction = Some(cleanupOrphanedDynamicEntityRecords))
+
+    // POST /obp/v6.0.0/management/webui_props
+    lazy val createWebUiProps: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "management" / "webui_props" =>
+        EndpointHelpers.withUserAndBodyCreated[WebUiPropsCommons, Any](req) { (user, postedData, cc) =>
+          for {
+            _ <- NewStyle.function.hasEntitlement("", user.userId, canCreateWebUiProps, Some(cc))
+            _ <- NewStyle.function.tryons(
+              s"""$InvalidWebUiProps name must be start with webui_, but current post name is: ${postedData.name} """,
+              400, Some(cc)) { require(postedData.name.startsWith("webui_")) }
+            webUiProps <- Future(MappedWebUiPropsProvider.createOrUpdate(postedData)) map {
+              unboxFullOrFail(_, Some(cc))
+            }
+          } yield (webUiProps: WebUiPropsCommons)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(createWebUiProps), "POST",
+      "/management/webui_props",
+      "Create WebUiProps",
+      s"""Create a WebUiProps.
+         |
+         |${APIUtil.userAuthenticationMessage(true)}
+         |""",
+      WebUiPropsCommons("webui_api_explorer_url", "https://apiexplorer.openbankproject.com"),
+      WebUiPropsCommons("webui_api_explorer_url", "https://apiexplorer.openbankproject.com", Some("web-ui-props-id")),
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+      List(apiTagWebUiProps), Some(List(canCreateWebUiProps)),
+      http4sPartialFunction = Some(createWebUiProps))
 
     // PUT /obp/v6.0.0/management/webui_props/WEBUI_PROP_NAME
     lazy val createOrUpdateWebUiProps: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -8474,15 +8505,18 @@ object Http4s600 {
     val allRoutesWithMiddleware: HttpRoutes[IO] =
       ResourceDocMiddleware.apply(resourceDocs)(allRoutes)
 
-    // ─── path-rewriting bridge: /obp/v6.0.0/… → /obp/v5.1.0/… ─────────────
+    // ─── path-rewriting bridge: /obp/v6.0.0/… → /obp/v5.0.0/… ─────────────
+    // Targets v5.0.0 (not v5.1.0) because Http4s510's bridge to v5.0.0 is
+    // disabled (MetricTest / VRPConsentRequestTest regressions). Http4s500 has
+    // its own working cascade: v5.0.0 → v4.0.0 → v3.1.0 → v3.0.0.
     // NOT appended to allRoutes — see object-level scaladoc.
-    val v600ToV510Bridge: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { req =>
+    val v600ToV500Bridge: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { req =>
       val rawPath = req.uri.path.renderString
       if (rawPath.startsWith("/obp/v6.0.0/")) {
-        val rewritten = rawPath.replaceFirst("/obp/v6\\.0\\.0/", "/obp/v5.1.0/")
+        val rewritten = rawPath.replaceFirst("/obp/v6\\.0\\.0/", "/obp/v5.0.0/")
         val newUri = req.uri.withPath(Uri.Path.unsafeFromString(rewritten))
         val rewrittenReq = req.withUri(newUri)
-        Http4s510.wrappedRoutesV510Services.run(rewrittenReq)
+        Http4s500.wrappedRoutesV500Services.run(rewrittenReq)
       } else {
         OptionT.none[IO, Response[IO]]
       }
@@ -8501,5 +8535,8 @@ object Http4s600 {
   // A `lazy val` defers the read until first access (from Http4sApp after Boot
   // completes), by which time Impl6 is fully initialised.
   lazy val wrappedRoutesV600Services: HttpRoutes[IO] =
-    Implementations6_0_0.allRoutesWithMiddleware
+    Kleisli[HttpF, Request[IO], Response[IO]] { req =>
+      Implementations6_0_0.allRoutesWithMiddleware.run(req)
+        .orElse(Implementations6_0_0.v600ToV500Bridge.run(req))
+    }
 }
