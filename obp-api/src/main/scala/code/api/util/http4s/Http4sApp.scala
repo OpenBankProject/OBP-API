@@ -120,6 +120,7 @@ object Http4sApp {
         .orElse(v140Routes.run(req))
         .orElse(v130Routes.run(req))
         .orElse(v121Routes.run(req))
+        .orElse(code.api.DirectLoginRoutes.routes.run(req))
         .orElse(Http4sLiftWebBridge.routes.run(req))
     }
   }

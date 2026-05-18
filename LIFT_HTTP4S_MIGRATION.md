@@ -201,14 +201,14 @@ Things still on Lift that block the `Http4sLiftWebBridge` from being removed. Us
 
 | Handler | File | Routes | Status |
 |---|---|---|---|
-| `DirectLogin` | `code/api/directlogin.scala` | `POST /my/logins/direct` | http4s version inside `Http4s600.scala`; Lift dispatch **still registered** as fallback. Earlier-version paths still hit Lift. The key gotcha: `createTokenFuture(allParameters)` ignores its argument and re-reads from Lift's `S.request` via `getAllParameters`. Use `validatorFutureWithParams(...)` + `createTokenCommonPart(...)` instead — this is the http4s-friendly entry point. |
+| `DirectLogin` | `code/api/directlogin.scala` | `POST /my/logins/direct` | **Done.** Versioned path (`/obp/v6.0.0/my/logins/direct`) served by `Http4s600.directLoginEndpoint`; bare path (`/my/logins/direct`) served by `code.api.DirectLoginRoutes` wired into `Http4sApp.baseServices` just before the Lift bridge. `LiftRules.statelessDispatch.append(DirectLogin)` removed from `Boot.scala`. The `allow_direct_login` prop gate moved into `DirectLoginRoutes`. The `dlServe { case Req("my" :: "logins" :: "direct" :: Nil, …) }` block inside `directlogin.scala` is now dead code (no longer registered with `LiftRules`); the surrounding `DirectLogin` object stays — its `getUserFromDirectLoginHeaderFuture` etc. are still called from auth flows. Cleanup of the dead `dlServe` block + `extends RestHelper` is a separate small PR. Key migration gotcha (kept for the auth-stack workstream): `createTokenFuture(allParameters)` ignores its argument and re-reads from Lift's `S.request` via `getAllParameters` — use `validatorFutureWithParams(...)` + `createTokenCommonPart(...)` instead. |
 | `GatewayLogin` | `code/api/GatewayLogin.scala` | Gateway JWT exchange | Lift only |
 | `DAuth` | `code/api/dauth.scala` | dAuth JWT exchange | Lift only |
 | `OAuth 1.0a` | OAuth files | OAuth 1.0a token endpoints | Lift only |
 | `OAuth2` | `code/api/OAuth2.scala` | OAuth 2.0 token & callback | Lift only |
 | `OpenIdConnect` | `code/api/openidconnect.scala` | OIDC callback — registered via `LiftRules.dispatch.append` | Lift only |
 
-These four (DirectLogin/GatewayLogin/DAuth/OAuth) are the most-complex remaining dependencies on Lift `S.request` and they collectively block bridge removal.
+DirectLogin's request-path is now off Lift; GatewayLogin/DAuth/OAuth/OAuth2/OpenIdConnect remain and collectively block bridge removal as the last hard dependencies on Lift `S.request`.
 
 ### Resource-docs workstream
 
@@ -280,10 +280,10 @@ Everything in lines 1–7 is request-path-related and will go in the bridge-remo
 ### Suggested ordering for the remaining work
 
 1. ~~**v4.0.0 bulk port**~~ — done (258/258, 100%).
-2. **`aliveCheck`, `ImporterAPI`** — easiest wins, retire two `LiftRules.statelessDispatch` entries.
-3. **`Http4sResourceDocs` centralised service** — single PR removes 6 dispatch entries + the `openapi.yaml` raw-serve block.
-4. **Auth stack: OAuth2 / OpenIdConnect** — smaller and fewer call sites than the others.
-5. **DirectLogin** — already half done in v6; needs to cover earlier versions and retire the `LiftRules.statelessDispatch.append(DirectLogin)` entry.
+2. ~~**DirectLogin**~~ — done. `code.api.DirectLoginRoutes` serves the bare `/my/logins/direct`; per-version paths served by their own `Http4sXxx`. `LiftRules.statelessDispatch.append(DirectLogin)` retired.
+3. **`aliveCheck`, `ImporterAPI`** — easiest wins, retire two `LiftRules.statelessDispatch` entries.
+4. **`Http4sResourceDocs` centralised service** — single PR removes 6 dispatch entries + the `openapi.yaml` raw-serve block.
+5. **Auth stack: OAuth2 / OpenIdConnect** — smaller and fewer call sites than the others.
 6. **GatewayLogin + DAuth + OAuth 1.0a** — biggest remaining auth work.
 7. **Bridge-removal PR** — delete `Http4sLiftWebBridge` + the request-path entries from `Boot.scala` (lines 1–7 above).
 8. **Open-banking standards** — decide whether to migrate or keep a thin Lift remnant. Weeks of work if migrating.
@@ -363,7 +363,7 @@ Binds to `hostname` / `dev.port` from your props file (defaults: `127.0.0.1:8080
 | `APIMethods500` | done — `Http4s500.scala` (all 10 v5.0.0 originals on http4s) |
 | `APIMethods510` | done — `Http4s510.scala` (all 111 v5.1.0 originals on http4s; `createConsent` exposed as `createConsentImplicit` with a guard covering EMAIL/SMS/IMPLICIT SCA methods) |
 | `APIMethods600` | **done — 243 / 243 (100%)**. `Http4s600.scala` covers all 35 overrides + 208 originals. |
-| Auth: DirectLogin | todo |
+| Auth: DirectLogin | done — `code.api.DirectLoginRoutes` serves the bare `/my/logins/direct` (gated on `allow_direct_login`); per-version paths served by their own `Http4sXxx`; `LiftRules.statelessDispatch.append(DirectLogin)` removed from `Boot.scala` |
 | Auth: GatewayLogin | todo |
 | Auth: DAuth | todo |
 | Auth: OAuth | todo |

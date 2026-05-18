@@ -500,11 +500,9 @@ class Boot extends MdcLoggable {
       }
     }
     def enableAPIs: LiftRules#RulesSeq[DispatchPF] = {
-
-      // JWT auth endpoints
-      if (APIUtil.getPropsAsBoolValue("allow_direct_login", true)) {
-        LiftRules.statelessDispatch.append(DirectLogin)
-      }
+      // DirectLogin's POST /my/logins/direct is served by code.api.DirectLoginRoutes
+      // (wired into Http4sApp.baseServices). The Lift dispatch was retired in the
+      // http4s migration; the `allow_direct_login` gate lives there now.
 
       // TODO Wrap these with enableVersionIfAllowed as well
       //add management apis
