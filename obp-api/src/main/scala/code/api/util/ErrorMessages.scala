@@ -1029,6 +1029,24 @@ object ErrorMessages {
    */
   def getCode(errorMsg: String): Int = errorToCode.get(errorMsg).getOrElse(400)
 
+  /**
+   * Resolve HTTP status code for an OBP-prefixed error message that may have a
+   * runtime suffix appended (e.g. "OBP-20020: User does not have access to the view.
+   * Current ViewId is owner"). Extracts the OBP-XXXXX prefix and returns the
+   * canonical status code from errorToCode, but ONLY when the canonical code is
+   * one of the auth-overrides Lift's `errorJsonResponse` performs (401, 403, 408,
+   * 429). For other codes (e.g. 404 BankNotFound) the default failCode the caller
+   * supplied wins — callers that want 404 must request it explicitly via
+   * `unboxFullOrFail(..., emptyBoxErrorCode = 404)` or similar, matching Lift's
+   * intent that 400 is a deliberate "validation failure" code.
+   */
+  def getCodeByOBPPrefix(errorMsg: String): Int = {
+    val prefixOpt = "OBP-\\d{5}".r.findFirstIn(errorMsg)
+    prefixOpt.flatMap { prefix =>
+      errorToCode.find { case (key, _) => key.startsWith(prefix + ":") }.map(_._2)
+    }.filter(Set(401, 403, 408, 429).contains).getOrElse(400)
+  }
+
   /****** special error message, start with $, mark as do validation according ResourceDoc errorResponseBodies *****/
   /**
    * validate method: APIUtil.authorizedAccess

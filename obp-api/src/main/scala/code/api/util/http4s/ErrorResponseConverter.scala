@@ -34,6 +34,8 @@ object ErrorResponseConverter {
   implicit val formats: Formats = CustomJsonFormats.formats
   private val jsonContentType: `Content-Type` = `Content-Type`(MediaType.application.json)
 
+  private val obpErrorCodePrefix = "^OBP-\\d{5}: ".r
+
   private def tryExtractApiFailureFromExceptionMessage(error: Throwable): Option[APIFailureNewStyle] = {
     val msg = Option(error.getMessage).getOrElse("").trim
     if (msg.startsWith("{") && msg.contains("\"failCode\"") && msg.contains("\"failMsg\"")) {
@@ -45,6 +47,9 @@ object ErrorResponseConverter {
       } catch {
         case _: Throwable => None
       }
+    } else if (obpErrorCodePrefix.findFirstIn(msg).isDefined) {
+      // Plain Exception("OBP-XXXXX: ...") thrown by fullBoxOrException(Failure(msg)) — Lift treats these as 400.
+      Some(APIFailureNewStyle(msg, 400))
     } else {
       None
     }
@@ -80,13 +85,31 @@ object ErrorResponseConverter {
     }
   }
   
+  /** Old-style versions keep raw 400 codes — they never promote to 403/401/etc.
+   *  Mirrors the same set used in ResourceDocMiddleware.authenticate.
+   */
+  private val oldStyleShortVersions = Set("v1.2.1", "v1.3.0", "v1.4.0", "v2.0.0")
+
+  /**
+   * Translate a 400 default with an OBP-prefixed message to the canonical status
+   * Lift assigns (403 for role/view-access codes, 401 for auth codes, etc.) via
+   * ErrorMessages.getCodeByOBPPrefix. Leaves non-400 failCodes (caller set
+   * status explicitly) untouched. Old-style versions (v1.x, v2.0.0) keep the
+   * 400 — they return 400 for every error per the long-standing OBP convention.
+   */
+  private def resolveStatusCode(failCode: Int, failMsg: String, callContext: CallContext): Int =
+    if (failCode == 400 && !oldStyleShortVersions.contains(callContext.implementedInVersion))
+      code.api.util.ErrorMessages.getCodeByOBPPrefix(failMsg)
+    else failCode
+
   /**
    * Convert APIFailureNewStyle to http4s Response.
    * Uses failCode as HTTP status and failMsg as error message.
    */
   def apiFailureToResponse(failure: APIFailureNewStyle, callContext: CallContext): IO[Response[IO]] = {
-    val errorJson = OBPErrorResponse(failure.failCode, failure.failMsg)
-    val status = org.http4s.Status.fromInt(failure.failCode).getOrElse(org.http4s.Status.BadRequest)
+    val resolvedCode = resolveStatusCode(failure.failCode, failure.failMsg, callContext)
+    val errorJson = OBPErrorResponse(resolvedCode, failure.failMsg)
+    val status = org.http4s.Status.fromInt(resolvedCode).getOrElse(org.http4s.Status.BadRequest)
     IO.pure(
       Response[IO](status)
         .withEntity(toJsonString(errorJson))

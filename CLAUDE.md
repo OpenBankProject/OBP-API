@@ -342,23 +342,21 @@ Per-endpoint integration test cost stays roughly constant as endpoints move Lift
 
 ## TODO / Phase Progress
 
-### Phase 1 — Simple GETs (98 remaining in v6.0.0)
-GET + no body. Purely mechanical — 1:1 copy of `NewStyle.function.*` calls, pick helper from Rule 4 matrix, 3 test scenarios per endpoint (401 / 403 / 200).
+### Per-version completeness (from `comm -23 lift http4s` on each version's `lazy val ... : OBPEndpoint` declarations)
 
-| Batch | Endpoints | Status |
-|---|---|---|
-| Batches 1–3 | 9 endpoints | ✓ done |
-| Batch 4 | getCacheConfig, getCacheInfo, getDatabasePoolInfo, getStoredProcedureConnectorHealth, getMigrations, getCacheNamespaces | ✓ done |
-| Remaining | 98 GETs | todo |
+| Version | Genuine Lift handlers still on the bridge |
+|---|---|
+| v1.2.1, v1.3.0, v2.0.0, v2.1.0, v2.2.0, v3.0.0, v4.0.0, v5.0.0, v5.1.0, v6.0.0 | 0 — fully on http4s |
+| v1.4.0 | `testResourceDoc` (dev-mode-only stub; tracked in "Per-version Lift leftovers") |
+| v3.1.0 | `getMessageDocsSwagger`, `getObpConnectorLoopback` (both tracked as leftovers; retire via Resource-docs / bridge-removal workstreams) |
 
-### Phase 2 — Account/View/Counterparty GETs (subset of the 98 above)
-`withBankAccount` / `withView` / `withCounterparty` helpers ready. Same mechanical pattern.
+### v6.0.0 migration — done (243 / 243)
+Phase 1 (35 overrides) and Phase 2 (208 originals) both complete. All v6 routes live in `Http4s600.scala`, wired into `Http4sApp.baseServices` ahead of the Lift bridge.
 
-### Phase 3 — POST / PUT / DELETE (57 + 33 + 26 = 116 endpoints in v6.0.0)
-Body helpers and DELETE 204 helpers ready. Velocity: 6–8 endpoints/day.
+Architectural note from the v6 migration: around the 140-endpoint mark `Implementations6_0_0`'s `<init>` hit the JVM 64KB bytecode-per-method limit. The fix that ships in `Http4s600.scala` — and that future per-version files should adopt — is two-part:
 
-### Phase 4 — Complex endpoints (~50 endpoints)
-Dynamic entities, ABAC rules, mandate workflows, polymorphic bodies. ~45–60 min each.
+1. Declare endpoints as `lazy val xxx: HttpRoutes[IO] = HttpRoutes.of[IO] { ... }` instead of `val`. Lambda materialisation moves out of `<init>` into per-field `lzycompute` methods (each with its own 64KB budget).
+2. Group `resourceDocs += ResourceDoc(...)` calls into `private def initXxxResourceDocs(): Unit` blocks of ~10–15 endpoints, called once each from the object body. Each helper def gets its own 64KB.
 
 ### Other TODOs
 - **OBP-Trading**: trading endpoints (createTradingOffer, getTradingOffer, getTradingOffers, cancelTradingOffer, createMarketOrder, getMarketOrder, cancelMarketOrder, createMarketMatch, getMarketTrade, requestSettlement, requestWithdrawal) are now in `Http4s700.scala`. 5 payment-auth endpoints remain commented out (notifyDeposit, createPaymentAuth, capturePaymentAuth, releasePaymentAuth, getPaymentAuth) — see `ideas/CAPTURE_RELEASE_TRANSACTION_REQUEST_TYPES.md`.

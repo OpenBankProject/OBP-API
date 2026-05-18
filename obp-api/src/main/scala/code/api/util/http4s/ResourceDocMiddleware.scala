@@ -376,7 +376,11 @@ object ResourceDocMiddleware extends MdcLoggable {
           case Full(user) =>
             val bankId = pathParams.getOrElse("BANK_ID", "")
             val consumerId = APIUtil.getConsumerPrimaryKey(Some(ctx.callContext))
-            val ok = APIUtil.handleAccessControlRegardingEntitlementsAndScopes(bankId, user.userId, consumerId, roles)
+            // Use handleAccessControlWithAuthMode so authMode = UserOrApplication
+            // accepts consumer-scope-only requests (the auth-only handleAccess...
+            // function checks user-entitlements + scopes ANDed and rejects pure
+            // consumer-scope requests with 403 even under UserOrApplication).
+            val ok = APIUtil.handleAccessControlWithAuthMode(bankId, user.userId, consumerId, roles, resourceDoc.authMode)
             if (ok) success(ctx)
             else EitherT[IO, Response[IO], ValidationContext](
               ErrorResponseConverter.createErrorResponse(403, UserHasMissingRoles + roles.mkString(" or "), ctx.callContext)
