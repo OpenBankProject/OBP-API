@@ -1790,6 +1790,7 @@ object Http4s600 {
           .orElse(getConnectorTraces(req))
           .orElse(getDynamicEntityDiagnostics(req))
           .orElse(cleanupOrphanedDynamicEntityRecords(req))
+          .orElse(createWebUiProps(req))
           .orElse(createOrUpdateWebUiProps(req))
           .orElse(deleteWebUiProps(req))
           .orElse(createCustomViewManagement(req))
@@ -2248,6 +2249,36 @@ object Http4s600 {
       apiTagManageDynamicEntity :: Nil,
       Some(canCleanupOrphanedDynamicEntityRecords :: Nil),
       http4sPartialFunction = Some(cleanupOrphanedDynamicEntityRecords))
+
+    // POST /obp/v6.0.0/management/webui_props
+    lazy val createWebUiProps: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "management" / "webui_props" =>
+        EndpointHelpers.withUserAndBodyCreated[WebUiPropsCommons, Any](req) { (user, postedData, cc) =>
+          for {
+            _ <- NewStyle.function.hasEntitlement("", user.userId, canCreateWebUiProps, Some(cc))
+            _ <- NewStyle.function.tryons(
+              s"""$InvalidWebUiProps name must be start with webui_, but current post name is: ${postedData.name} """,
+              400, Some(cc)) { require(postedData.name.startsWith("webui_")) }
+            webUiProps <- Future(MappedWebUiPropsProvider.createOrUpdate(postedData)) map {
+              unboxFullOrFail(_, Some(cc))
+            }
+          } yield (webUiProps: WebUiPropsCommons)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(createWebUiProps), "POST",
+      "/management/webui_props",
+      "Create WebUiProps",
+      s"""Create a WebUiProps.
+         |
+         |${APIUtil.userAuthenticationMessage(true)}
+         |""",
+      WebUiPropsCommons("webui_api_explorer_url", "https://apiexplorer.openbankproject.com"),
+      WebUiPropsCommons("webui_api_explorer_url", "https://apiexplorer.openbankproject.com", Some("web-ui-props-id")),
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+      List(apiTagWebUiProps), Some(List(canCreateWebUiProps)),
+      http4sPartialFunction = Some(createWebUiProps))
 
     // PUT /obp/v6.0.0/management/webui_props/WEBUI_PROP_NAME
     lazy val createOrUpdateWebUiProps: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -8501,5 +8532,8 @@ object Http4s600 {
   // A `lazy val` defers the read until first access (from Http4sApp after Boot
   // completes), by which time Impl6 is fully initialised.
   lazy val wrappedRoutesV600Services: HttpRoutes[IO] =
-    Implementations6_0_0.allRoutesWithMiddleware
+    Kleisli[HttpF, Request[IO], Response[IO]] { req =>
+      Implementations6_0_0.allRoutesWithMiddleware.run(req)
+        .orElse(Implementations6_0_0.v600ToV510Bridge.run(req))
+    }
 }
