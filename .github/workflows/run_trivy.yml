@@ -1,10 +1,15 @@
 name: scan container image
 
 on:
+  workflow_dispatch:
+    inputs:
+      image_sha:
+        description: 'Commit SHA of the image to scan (defaults to current HEAD)'
+        required: false
+        default: ''
   workflow_run:
     workflows:
       - Build and publish container develop
-      - Build and publish container non develop
     types:
       - completed
 env:
@@ -15,7 +20,7 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
-    if: github.repository == 'OpenBankProject/OBP-API' && github.event.workflow_run.conclusion == 'success'
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
 
     steps:
       - uses: actions/checkout@v4
@@ -29,19 +34,19 @@ jobs:
           jqFilter='.[] | select(.metadata.container.tags[] | contains("latest")) | .name | sub("sha256:";"")'
           sha=$(gh api -H "${headers}" "${endpoint}" | jq --raw-output "${jqFilter}")
           echo "Trivy DB sha256:${sha}"
-          echo "::set-output name=sha::${sha}"
+          echo "sha=${sha}" >> $GITHUB_OUTPUT
       - uses: actions/cache@v4
         with:
           path: .trivy
           key: ${{ runner.os }}-trivy-db-${{ steps.trivy-db.outputs.sha }}
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
-          image-ref: "docker.io/${{ env.DOCKER_HUB_ORGANIZATION }}/${{ env.DOCKER_HUB_REPOSITORY }}:${{ github.sha }}"
+          image-ref: "docker.io/${{ env.DOCKER_HUB_ORGANIZATION }}/${{ env.DOCKER_HUB_REPOSITORY }}:${{ github.event_name == 'workflow_dispatch' && (inputs.image_sha || github.sha) || github.event.workflow_run.head_sha }}"
           format: "template"
           template: "@/contrib/sarif.tpl"
           output: "trivy-results.sarif"
-          security-checks: "vuln"
+          scanners: "vuln"
           severity: "CRITICAL,HIGH"
           timeout: "30m"
           cache-dir: .trivy
