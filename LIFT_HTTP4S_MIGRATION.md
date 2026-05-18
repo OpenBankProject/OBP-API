@@ -224,8 +224,8 @@ Already partly described in the next major section, but counted here for complet
 
 | Endpoint | File | Notes |
 |---|---|---|
-| `aliveCheck` | `code/api/aliveCheck.scala` | One-line liveness probe. Trivial port. |
-| `ImporterAPI` | `code/api/ImporterAPI.scala` (gated by props) | Sandbox data-import endpoint. Single Lift file. |
+| `aliveCheck` | `code/api/aliveCheck.scala` → `code/api/AliveCheckRoutes.scala` | **Done.** Native http4s route serves `GET /alive`; `LiftRules.statelessDispatch.append(aliveCheck)` removed from `Boot.scala`. |
+| `ImporterAPI` | `code/management/ImporterAPI.scala` → `code/management/ImporterAPIRoutes.scala` | **Done.** Native http4s route serves `POST /obp_transactions_saver/api/transactions`; secret read from URL query, body parsed from `req.bodyText`, `TransactionInserter` LiftActor still invoked synchronously (wrapped in `IO.blocking`). `ImporterTest` (8 scenarios) green. |
 | `OpenIdConnect` | (auth-stack table above) | OIDC callback, registered separately from OAuth2. |
 
 ### Open-banking standards (large, deferred indefinitely)
@@ -281,7 +281,7 @@ Everything in lines 1–7 is request-path-related and will go in the bridge-remo
 
 1. ~~**v4.0.0 bulk port**~~ — done (258/258, 100%).
 2. ~~**DirectLogin**~~ — done. `code.api.DirectLoginRoutes` serves the bare `/my/logins/direct`; per-version paths served by their own `Http4sXxx`. `LiftRules.statelessDispatch.append(DirectLogin)` retired.
-3. **`aliveCheck`, `ImporterAPI`** — easiest wins, retire two `LiftRules.statelessDispatch` entries.
+3. ~~**`aliveCheck`, `ImporterAPI`**~~ — done. `code.api.AliveCheckRoutes` serves `GET /alive`; `code.management.ImporterAPIRoutes` serves `POST /obp_transactions_saver/api/transactions`. Both Lift dispatches retired.
 4. **`Http4sResourceDocs` centralised service** — single PR removes 6 dispatch entries + the `openapi.yaml` raw-serve block.
 5. **Auth stack: OAuth2 / OpenIdConnect** — smaller and fewer call sites than the others.
 6. **GatewayLogin + DAuth + OAuth 1.0a** — biggest remaining auth work.

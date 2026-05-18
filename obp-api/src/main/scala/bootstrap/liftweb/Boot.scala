@@ -95,7 +95,6 @@ import code.kycdocuments.MappedKycDocument
 import code.kycmedias.MappedKycMedia
 import code.kycstatuses.MappedKycStatus
 import code.loginattempts.{LoginAttempt, MappedBadLoginAttempt}
-import code.management.ImporterAPI
 import code.meetings.{MappedMeeting, MappedMeetingInvitee}
 import code.metadata.comments.MappedComment
 import code.metadata.counterparties.{MappedCounterparty, MappedCounterpartyBespoke, MappedCounterpartyMetadata, MappedCounterpartyWhereTag}
@@ -499,17 +498,13 @@ class Boot extends MdcLoggable {
         LiftRules.dispatch.append(OpenIdConnect)
       }
     }
-    def enableAPIs: LiftRules#RulesSeq[DispatchPF] = {
-      // DirectLogin's POST /my/logins/direct is served by code.api.DirectLoginRoutes
-      // (wired into Http4sApp.baseServices). The Lift dispatch was retired in the
-      // http4s migration; the `allow_direct_login` gate lives there now.
-
-      // TODO Wrap these with enableVersionIfAllowed as well
-      //add management apis
-      LiftRules.statelessDispatch.append(ImporterAPI)
-    }
-
-    enableAPIs
+    // DirectLogin (POST /my/logins/direct), ImporterAPI (POST
+    // /obp_transactions_saver/api/transactions), and aliveCheck (GET /alive)
+    // are now served by their native http4s counterparts wired into
+    // Http4sApp.baseServices (DirectLoginRoutes / ImporterAPIRoutes /
+    // AliveCheckRoutes). The Lift dispatches were retired in the http4s
+    // migration; any prop gates (e.g. `allow_direct_login`) live with those
+    // routes.
 
 
 
@@ -1080,7 +1075,7 @@ class Boot extends MdcLoggable {
     }
   }
 
-  LiftRules.statelessDispatch.append(aliveCheck)
+  // aliveCheck (GET /alive) is served by code.api.AliveCheckRoutes (wired into Http4sApp.baseServices).
 
 }
 
