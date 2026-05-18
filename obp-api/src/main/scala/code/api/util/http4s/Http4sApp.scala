@@ -106,6 +106,7 @@ object Http4sApp {
       corsHandler.run(req)
         .orElse(AppsPage.routes.run(req))
         .orElse(StatusPage.routes.run(req))
+        .orElse(Http4sResourceDocs.routes.run(req))
         .orElse(v510Routes.run(req))
         .orElse(v600Routes.run(req))
         .orElse(v500Routes.run(req))

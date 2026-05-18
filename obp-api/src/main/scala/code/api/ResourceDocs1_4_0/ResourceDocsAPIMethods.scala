@@ -974,7 +974,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       yamlString
     }
 
-    private def convertResourceDocsToOpenAPI31JvalueAndSetCache(cacheKey: String, requestedApiVersionString: String, resourceDocsJson: List[JSONFactory1_4_0.ResourceDocJson]) : JValue = {
+    def convertResourceDocsToOpenAPI31JvalueAndSetCache(cacheKey: String, requestedApiVersionString: String, resourceDocsJson: List[JSONFactory1_4_0.ResourceDocJson]) : JValue = {
       logger.debug(s"Generating OpenAPI 3.1-convertResourceDocsToOpenAPI31JvalueAndSetCache requestedApiVersion is $requestedApiVersionString")
       val hostname = HostName
       val openApiDoc = code.api.ResourceDocs1_4_0.OpenAPI31JSONFactory.createOpenAPI31Json(resourceDocsJson, requestedApiVersionString, hostname)
@@ -986,7 +986,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       openApiJValue
     }
 
-    private def convertResourceDocsToSwaggerJvalueAndSetCache(cacheKey: String, requestedApiVersionString: String,  resourceDocsJson: List[JSONFactory1_4_0.ResourceDocJson]) : JValue = {
+    def convertResourceDocsToSwaggerJvalueAndSetCache(cacheKey: String, requestedApiVersionString: String,  resourceDocsJson: List[JSONFactory1_4_0.ResourceDocJson]) : JValue = {
       logger.debug(s"Generating Swagger-getResourceDocsSwaggerAndSetCache requestedApiVersion is $requestedApiVersionString")
       val swaggerDocJsonJValue = getResourceDocsSwagger(requestedApiVersionString, resourceDocsJson).head
 

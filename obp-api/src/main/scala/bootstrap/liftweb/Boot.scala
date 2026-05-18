@@ -515,16 +515,11 @@ class Boot extends MdcLoggable {
     // Resource Docs are used in the process of surfacing endpoints so we enable them explicitly
     // to avoid a circular dependency.
     // Make the (currently identical) endpoints available to different versions.
-    LiftRules.statelessDispatch.append(ResourceDocs140)
-    LiftRules.statelessDispatch.append(ResourceDocs200)
-    LiftRules.statelessDispatch.append(ResourceDocs210)
-    LiftRules.statelessDispatch.append(ResourceDocs220)
-    LiftRules.statelessDispatch.append(ResourceDocs300)
-    LiftRules.statelessDispatch.append(ResourceDocs310)
-    LiftRules.statelessDispatch.append(ResourceDocs400)
-    LiftRules.statelessDispatch.append(ResourceDocs500)
-    LiftRules.statelessDispatch.append(ResourceDocs510)
-    LiftRules.statelessDispatch.append(ResourceDocs600)
+    // ResourceDocs140..600 are now served by code.api.util.http4s.Http4sResourceDocs
+    // (wired into Http4sApp.baseServices). The Lift dispatches were retired in the
+    // http4s migration. The 10 ResourceDocs* objects remain in the codebase as a
+    // source of `ImplementationsResourceDocs.getResourceDocsList` (used by the
+    // centralised service) but no longer participate in request dispatch.
     ////////////////////////////////////////////////////
 
 
