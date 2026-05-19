@@ -43,7 +43,6 @@ import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.User
 import net.liftweb.common.Box.tryo
 import net.liftweb.common._
-import net.liftweb.http.rest.RestHelper
 import net.liftweb.util.Helpers
 import org.apache.commons.lang3.StringUtils
 import sh.ory.hydra.model.OAuth2TokenIntrospection
@@ -57,7 +56,10 @@ import scala.collection.JavaConverters._
 * so they could authenticate their users.
 */
 
-object OAuth2Login extends RestHelper with MdcLoggable {
+// OAuth2Login is a Bearer-token validator (Google / Yahoo / Azure / Keycloak / OBPOIDC /
+// Hydra) consumed by `APIUtil.getUserFuture` and `OBPRestHelper.OAuth2.getUser`. It has no
+// HTTP routes of its own — the legacy `extends RestHelper` mixin was vestigial.
+object OAuth2Login extends MdcLoggable {
 
   private def getValueOfOAuh2HeaderField(sc: CallContext) = {
     val valueOfAuthReqHeaderField = sc.authReqHeaderField.getOrElse("")
@@ -692,6 +694,7 @@ object OAuth2Login extends RestHelper with MdcLoggable {
       if(sourceOfTruth) {
         logger.debug("Extracting roles from Access Token")
         import net.liftweb.json._
+        implicit val formats: Formats = DefaultFormats
         val jsonString = JwtUtil.getSignedPayloadAsJson(token)
         val json = parse(jsonString.getOrElse(""))
         val openBankRoles: List[String] =

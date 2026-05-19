@@ -205,10 +205,10 @@ Things still on Lift that block the `Http4sLiftWebBridge` from being removed. Us
 | `GatewayLogin` | `code/api/GatewayLogin.scala` | Gateway JWT exchange | Lift only |
 | `DAuth` | `code/api/dauth.scala` | dAuth JWT exchange | Lift only |
 | `OAuth 1.0a` | OAuth files | OAuth 1.0a token endpoints | Lift only |
-| `OAuth2` | `code/api/OAuth2.scala` | OAuth 2.0 token & callback | Lift only |
-| `OpenIdConnect` | `code/api/openidconnect.scala` | OIDC callback — registered via `LiftRules.dispatch.append` | Lift only |
+| `OAuth2` | `code/api/OAuth2.scala` (`OAuth2Login`) | **No routes.** Library only — Bearer-token validator (Google / Yahoo / Azure / Keycloak / OBPOIDC / Hydra) consumed by `APIUtil.getUserFuture` and `OBPRestHelper.OAuth2.getUser`. Both Lift and http4s endpoints already call it. The `extends RestHelper` mixin was vestigial and was removed (the only thing it provided was an implicit `Formats`, now declared locally at the one `extract[List[String]]` site). No remaining auth-stack work in this file. |
+| `OpenIdConnect` | `code/api/openidconnect.scala` | OIDC callback — registered via `LiftRules.dispatch.append` | **Lift only — blocked.** 3 callback routes (`/auth/openid-connect/callback`, `…/callback-1`, `…/callback-2`) all funnel into `callbackUrlCommonCode`, whose success branch calls `AuthUser.logUserIn(user, () => S.redirectTo(...))`. `logUserIn` is inherited from `MetaMegaProtoUser` and writes the logged-in user into Lift `SessionVar`s that the portal reads; `S.redirectTo` sets Lift's session cookie. A pure http4s rewrite would either drop portal-login (behaviour change — anyone using OIDC for portal login breaks) or build a Lift-session shim callable from http4s (fragile). No tests cover the callback success path, so there's no safety net for either route. Defer until the portal/Lift-session strategy is decided. |
 
-DirectLogin's request-path is now off Lift; GatewayLogin/DAuth/OAuth/OAuth2/OpenIdConnect remain and collectively block bridge removal as the last hard dependencies on Lift `S.request`.
+DirectLogin's request-path is now off Lift; `OAuth2Login` is library-only (no routes). GatewayLogin/DAuth/OAuth 1.0a remain on Lift; OpenIdConnect remains on Lift pending a portal-session decision. Those four collectively block bridge removal as the last hard dependencies on Lift `S.request`.
 
 ### Resource-docs workstream
 
@@ -283,7 +283,7 @@ Everything in lines 1–7 is request-path-related and will go in the bridge-remo
 2. ~~**DirectLogin**~~ — done. `code.api.DirectLoginRoutes` serves the bare `/my/logins/direct`; per-version paths served by their own `Http4sXxx`. `LiftRules.statelessDispatch.append(DirectLogin)` retired.
 3. ~~**`aliveCheck`, `ImporterAPI`**~~ — done. `code.api.AliveCheckRoutes` serves `GET /alive`; `code.management.ImporterAPIRoutes` serves `POST /obp_transactions_saver/api/transactions`. Both Lift dispatches retired.
 4. ~~**`Http4sResourceDocs` centralised service**~~ — done. `code.api.util.http4s.Http4sResourceDocs` serves `/obp/*/resource-docs/{API_VERSION}/{obp,swagger,openapi,openapi.yaml}`, `/obp/*/banks/{BANK_ID}/resource-docs/{API_VERSION}/obp`, and `/obp/*/message-docs/{CONNECTOR}/swagger2.0`. 10 `LiftRules.statelessDispatch.append(ResourceDocs140..600)` retired + `openapi.yaml` raw `serve { ... }` block removed. ResourceDocsTest (63) + SwaggerDocsTest (10) green.
-5. **Auth stack: OAuth2 / OpenIdConnect** — smaller and fewer call sites than the others.
+5. **Auth stack: OAuth2 / OpenIdConnect** — partial. `OAuth2Login` turned out to be a library only (no routes); vestigial `extends RestHelper` removed. `OpenIdConnect` is blocked on a portal-session decision (its success path calls `AuthUser.logUserIn` / `S.redirectTo`, which mutate Lift `SessionVar`s — see auth-stack table).
 6. **GatewayLogin + DAuth + OAuth 1.0a** — biggest remaining auth work.
 7. **Bridge-removal PR** — delete `Http4sLiftWebBridge` + the request-path entries from `Boot.scala` (lines 1–7 above).
 8. **Open-banking standards** — decide whether to migrate or keep a thin Lift remnant. Weeks of work if migrating.
