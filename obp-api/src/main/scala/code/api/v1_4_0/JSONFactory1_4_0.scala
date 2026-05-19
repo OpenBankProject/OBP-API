@@ -544,6 +544,7 @@ object JSONFactory1_4_0 extends MdcLoggable{
     // /obp/<implementedVersion>/ prefixed, specifiedUrl gets /obp/<requestedVersion>/ prefixed).
     // Without them, a request for /obp/v7.0.0/resource-docs hits cache entries warmed by an
     // earlier /obp/dynamic-endpoint/resource-docs call and returns the wrong specified_url.
+    // (Superset of upstream's specifiedUrl-only fix in 17faa09ac.)
     val cacheKey = LOCALISED_RESOURCE_DOC_PREFIX + s"operationId:${operationId}-locale:$locale- isVersion4OrHigher:$isVersion4OrHigher- includeTechnology:$includeTechnology-requestUrl:${resourceDocUpdatedTags.requestUrl}-specifiedUrl:${resourceDocUpdatedTags.specifiedUrl.getOrElse("")}".intern()
     Caching.memoizeSyncWithImMemory(Some(cacheKey))(CREATE_LOCALISED_RESOURCE_DOC_JSON_TTL.seconds) {
       val fieldsDescription =

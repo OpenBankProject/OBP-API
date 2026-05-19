@@ -265,7 +265,7 @@ object RateLimitingUtil extends MdcLoggable {
   }
 
   private def incrementConsumerCounters(consumerKey: String, period: LimitCallPeriod, limit: Long): (Long, Long) = {
-    if (useConsumerLimits) {
+    if (useConsumerLimits && limit > 0) {
       incrementCounter(createUniqueKey(consumerKey, period), period)
     } else {
       (-1, -1)
