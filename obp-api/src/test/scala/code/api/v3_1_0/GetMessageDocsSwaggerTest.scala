@@ -25,7 +25,10 @@ TESOBE (http://www.tesobe.com/)
   */
 package code.api.v3_1_0
 
+import code.api.v2_2_0.JSONFactory220.MessageDocsJson
+import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
 import code.setup.DefaultUsers
+import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.util.ApiVersion
 import org.scalatest.Tag
 
@@ -39,9 +42,7 @@ class GetMessageDocsSwaggerTest extends V310ServerSetup with DefaultUsers {
     *  This is made possible by the scalatest maven plugin
     */
   object VersionOfApi extends Tag(ApiVersion.v3_1_0.toString)
-  // The Lift `getMessageDocsSwagger` was retired; URL now served by
-  // `Http4sResourceDocs.handleGetMessageDocsSwagger`. Tag is a string literal.
-  object ApiEndpoint extends Tag("getMessageDocsSwagger")
+  object ApiEndpoint extends Tag(nameOf(Implementations3_1_0.getMessageDocsSwagger))
 
   feature("Get Message Docs Swagger v3.1.0")
   {

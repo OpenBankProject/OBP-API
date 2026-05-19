@@ -3135,11 +3135,76 @@ trait APIMethods310 {
       }
     }
 
-    // Note: `getMessageDocsSwagger` (Lift handler for GET /message-docs/CONNECTOR/swagger2.0)
-    // was retired here. `Http4sResourceDocs.routes` (wired into `Http4sApp.baseServices`
-    // ahead of every version's routes) handles the URL across all version prefixes via
-    // `handleGetMessageDocsSwagger`. The dedicated test `GetMessageDocsSwaggerTest` still
-    // exercises this path — it just hits the http4s handler instead of the Lift handler.
+     resourceDocs += ResourceDoc(
+      getMessageDocsSwagger,
+      implementedInApiVersion,
+      nameOf(getMessageDocsSwagger),
+      "GET",
+      "/message-docs/CONNECTOR/swagger2.0",
+      "Get Message Docs Swagger",
+      """
+        |This endpoint provides example message docs in swagger format.
+        |It is only relavent for REST Connectors.
+        |
+        |This endpoint can be used by the developer building a REST Adapter that connects to the Core Banking System (CBS).
+        |That is, the Adapter developer can use the Swagger surfaced here to build the REST APIs that the OBP REST connector will call to consume CBS services.
+        |
+        |i.e.:
+        |
+        |OBP API (Core OBP API code) -> OBP REST Connector (OBP REST Connector code) -> OBP REST Adapter (Adapter developer code) -> CBS (Main Frame)
+        |
+      """.stripMargin,
+      EmptyBody,
+      EmptyBody,
+      List(UnknownError),
+      List(apiTagMessageDoc, apiTagDocumentation, apiTagApi)
+    )
+
+    lazy val getMessageDocsSwagger: OBPEndpoint = {
+      case "message-docs" :: restConnectorVersion ::"swagger2.0" :: Nil JsonGet _ => {
+          val (resourceDocTags, partialFunctions, locale, contentParam, apiCollectionIdParam) = ResourceDocsAPIMethodsUtil.getParams()
+        cc => {
+          implicit val ec = EndpointContext(Some(cc))
+          for {
+            (_, callContext) <- anonymousAccess(cc)
+            cacheKey = APIUtil.createResourceDocCacheKey(
+              None,
+              restConnectorVersion,
+              resourceDocTags,
+              partialFunctions,
+              locale,
+              contentParam,
+              apiCollectionIdParam,
+              None
+            )
+            cacheValueFromRedis = Caching.getStaticSwaggerDocCache(cacheKey)
+            swaggerJValue <- if (cacheValueFromRedis.isDefined) {
+              NewStyle.function.tryons(s"$UnknownError Can not convert internal swagger file from cache.", 400, cc.callContext) {
+                json.parse(cacheValueFromRedis.get)
+              }
+            } else {
+              NewStyle.function.tryons(s"$UnknownError Can not convert internal swagger file.", 400, cc.callContext) {
+                val convertedToResourceDocs = RestConnector_vMar2019.messageDocs.map(toResourceDoc).toList
+                val resourceDocListFiltered = ResourceDocsAPIMethodsUtil.filterResourceDocs(convertedToResourceDocs, resourceDocTags, partialFunctions)
+                val resourceDocJsonList = JSONFactory1_4_0.createResourceDocsJson(resourceDocListFiltered, true, None).resource_docs
+                val swaggerResourceDoc = SwaggerJSONFactory.createSwaggerResourceDoc(resourceDocJsonList, ApiVersion.v3_1_0)
+                //For this connector swagger, it shares some basic fields with api swagger, eg: BankId, AccountId. So it need to merge here.
+                val allSwaggerDefinitionCaseClasses = MessageDocsSwaggerDefinitions.allFields ++ SwaggerDefinitionsJSON.allFields
+                val jsonAST = SwaggerJSONFactory.loadDefinitions(resourceDocJsonList, allSwaggerDefinitionCaseClasses)
+                val swaggerDocJsonJValue = Extraction.decompose(swaggerResourceDoc) merge jsonAST
+                val jsonString = json.compactRender(swaggerDocJsonJValue)
+                Caching.setStaticSwaggerDocCache(cacheKey, jsonString)
+                swaggerDocJsonJValue
+              }
+            }
+          } yield {
+            // Merge both results and return
+            (swaggerJValue, HttpCode.`200`(callContext))
+          }
+        }
+      }
+    }
+
 
     val generalObpConsentText : String =
       s"""

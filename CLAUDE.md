@@ -347,7 +347,7 @@ Per-endpoint integration test cost stays roughly constant as endpoints move Lift
 | Version | Genuine Lift handlers still on the bridge |
 |---|---|
 | v1.2.1, v1.3.0, v1.4.0, v2.0.0, v2.1.0, v2.2.0, v3.0.0, v4.0.0, v5.0.0, v5.1.0, v6.0.0 | 0 — fully on http4s |
-| v3.1.0 | `getObpConnectorLoopback` (Lift handler unconditionally throws `NotImplemented`; port-or-delete decision deferred to the bridge-removal PR) |
+| v3.1.0 | `getMessageDocsSwagger`, `getObpConnectorLoopback`. `getMessageDocsSwagger`'s URL is in production already served by `Http4sResourceDocs.routes` (the Lift `lazy val` is shadowed dead code), but the Lift definition is intentionally kept — deleting it would reduce v3.1.0's frozen STABLE API surface (caught by `FrozenClassTest`) and require touching a v3.1.0 test. Retires together with the bridge-removal PR. `getObpConnectorLoopback` likewise deferred to the bridge-removal PR. |
 
 ### v6.0.0 migration — done (243 / 243)
 Phase 1 (35 overrides) and Phase 2 (208 originals) both complete. All v6 routes live in `Http4s600.scala`, wired into `Http4sApp.baseServices` ahead of the Lift bridge.
