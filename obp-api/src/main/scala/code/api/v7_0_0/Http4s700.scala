@@ -5,9 +5,8 @@ import cats.effect._
 import code.api.Constant
 import code.api.Constant._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
-import code.api.ResourceDocs1_4_0.{ResourceDocs140, ResourceDocsAPIMethodsUtil}
 import code.api.util.APIUtil.{EmptyBody, _}
-import code.api.util.{APIUtil, ApiRole, ApiVersionUtils, CallContext, CustomJsonFormats, Glossary, NewStyle}
+import code.api.util.{APIUtil, ApiRole, CallContext, CustomJsonFormats, Glossary, NewStyle}
 import code.api.util.ApiRole.{canCreateEntitlementAtAnyBank, canCreateEntitlementAtOneBank, canCreateOrganisation, canCreateRoutingScheme, canDeleteEntitlementAtAnyBank, canDeleteOrganisation, canDeleteRoutingScheme, canGetAccountAccessTrace, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetConnectorHealth, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMigrations, canUpdateBankSupportedRoutingScheme, canUpdateOrganisation, canUpdateRoutingScheme, canUpdateSystemView}
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
@@ -232,74 +231,12 @@ object Http4s700 {
       http4sPartialFunction = Some(getBanks)
     )
 
-    // Route: GET /obp/v7.0.0/resource-docs/API_VERSION/obp
-    val getResourceDocsObpV700: HttpRoutes[IO] = HttpRoutes.of[IO] {
-      case req @ GET -> `prefixPath` / "resource-docs" / requestedApiVersionString / "obp" =>
-        implicit val cc: CallContext = req.callContext
-        val queryParams = req.uri.query.multiParams
-        val tags = queryParams
-          .get("tags")
-          .map(_.flatMap(_.split(",").toList).map(_.trim).filter(_.nonEmpty).map(ResourceDocTag(_)).toList)
-        val functions = queryParams
-          .get("functions")
-          .map(_.flatMap(_.split(",").toList).map(_.trim).filter(_.nonEmpty).toList)
-        val localeParam = queryParams
-          .get("locale")
-          .flatMap(_.headOption)
-          .orElse(queryParams.get("language").flatMap(_.headOption))
-          .map(_.trim)
-          .filter(_.nonEmpty)
-
-        EndpointHelpers.executeAndRespond(req) { _ =>
-          for {
-            requestedApiVersion <- NewStyle.function.tryons(
-              failMsg = s"$InvalidApiVersionString Current value: $requestedApiVersionString",
-              failCode = 400,
-              callContext = Some(cc)
-            ) {
-              ApiVersionUtils.valueOf(requestedApiVersionString)
-            }
-            allDocs = {
-              val raw = ResourceDocs140.ImplementationsResourceDocs.getResourceDocsList(requestedApiVersion).getOrElse(Nil)
-              val seen = scala.collection.mutable.HashSet[(String, String)]()
-              raw.filter(doc => seen.add((doc.requestVerb, doc.requestUrl)))
-            }
-            filteredDocs = ResourceDocsAPIMethodsUtil.filterResourceDocs(allDocs, tags, functions)
-          } yield JSONFactory1_4_0.createResourceDocsJson(filteredDocs, isVersion4OrHigher = true, localeParam, includeTechnology = true)
-        }
-    }
-
-    resourceDocs += ResourceDoc(
-      null,
-      implementedInApiVersion,
-      nameOf(getResourceDocsObpV700),
-      "GET",
-      "/resource-docs/API_VERSION/obp",
-      "Get Resource Docs",
-      s"""Get documentation about the RESTful resources on this server including example body payloads.
-        |
-        |* API_VERSION: The version of the API for which you want documentation
-        |
-        |Returns JSON containing information about the endpoints including:
-        |* Method (GET, POST, etc.)
-        |* URL path
-        |* Summary and description
-        |* Example request and response bodies
-        |* Required roles and permissions
-        |
-        |Optional query parameters:
-        |* tags - filter by API tags
-        |* functions - filter by function names
-        |* locale - specify language for descriptions
-        |* content - filter by content type""",
-      EmptyBody,
-      EmptyBody,
-      List(
-        UnknownError
-      ),
-      List(apiTagDocumentation, apiTagApi),
-      http4sPartialFunction = Some(getResourceDocsObpV700)
-    )
+    // Note: resource-docs requests (`GET /obp/v7.0.0/resource-docs/...`) are intercepted by
+    // `Http4sResourceDocs.routes`, which is registered earlier in `Http4sApp.baseServices`
+    // (line 109, ahead of `v700Routes` at line 113). The ResourceDoc metadata for that URL
+    // is contributed by `ResourceDocs1_4_0.ResourceDocsAPIMethods.localResourceDocs` and
+    // surfaces through `getResourceDocsList`'s localResourceDocs append for the obp standard.
+    // There is intentionally no v7-specific handler here.
 
     // ── POC endpoints — one per EndpointHelper category ────────────────────
 

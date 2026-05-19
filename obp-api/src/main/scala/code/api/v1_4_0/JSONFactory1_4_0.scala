@@ -539,7 +539,12 @@ object JSONFactory1_4_0 extends MdcLoggable{
     jsonRequestBodyFieldsI18n:String,
     jsonResponseBodyFieldsI18n:String
   ): ResourceDocJson = {
-    val cacheKey = LOCALISED_RESOURCE_DOC_PREFIX + s"operationId:${operationId}-locale:$locale- isVersion4OrHigher:$isVersion4OrHigher- includeTechnology:$includeTechnology".intern()
+    // requestUrl and specifiedUrl belong in the cache key because both are rewritten
+    // per requested API version (see ResourceDocsAPIMethods.getResourceDocsList: requestUrl gets
+    // /obp/<implementedVersion>/ prefixed, specifiedUrl gets /obp/<requestedVersion>/ prefixed).
+    // Without them, a request for /obp/v7.0.0/resource-docs hits cache entries warmed by an
+    // earlier /obp/dynamic-endpoint/resource-docs call and returns the wrong specified_url.
+    val cacheKey = LOCALISED_RESOURCE_DOC_PREFIX + s"operationId:${operationId}-locale:$locale- isVersion4OrHigher:$isVersion4OrHigher- includeTechnology:$includeTechnology-requestUrl:${resourceDocUpdatedTags.requestUrl}-specifiedUrl:${resourceDocUpdatedTags.specifiedUrl.getOrElse("")}".intern()
     Caching.memoizeSyncWithImMemory(Some(cacheKey))(CREATE_LOCALISED_RESOURCE_DOC_JSON_TTL.seconds) {
       val fieldsDescription =
         if (resourceDocUpdatedTags.tags.toString.contains("Dynamic-Entity")

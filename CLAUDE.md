@@ -18,7 +18,7 @@ The goal is a full http4s migration — replace Lift Web across all version file
 
 **Migrated endpoints** (45): root, getBanks, getCards, getCardsForBank, getResourceDocsObpV700, getBank, getCurrentUser, getCoreAccountById, getPrivateAccountByIdFull, getExplicitCounterpartyById, deleteEntitlement, addEntitlement, getAccountAccessTrace, getFeatures, getScannedApiVersions, getConnectors, getErrorMessages, getProviders, getUsers, getUserByUserId, getCustomersAtOneBank, getCustomerByCustomerId, getAccountsAtBank, createTradingOffer, getTradingOffer, getTradingOffers, cancelTradingOffer, createMarketOrder, getMarketOrder, cancelMarketOrder, createMarketMatch, getMarketTrade, requestSettlement, requestWithdrawal, getCacheConfig, getCacheInfo, getDatabasePoolInfo, getStoredProcedureConnectorHealth, getMigrations, getCacheNamespaces, createOrganisation, getOrganisations, getOrganisation, updateOrganisation, deleteOrganisation.
 
-**Tests**: `Http4s700RoutesTest` (111 scenarios, port 8087). `makeHttpRequest` returns `(Int, JValue, Map[String, String])`. `makeHttpRequestWithBody(method, path, body, headers)` for POST/PUT.
+**Tests**: `Http4s700RoutesTest` (102 scenarios, port 8087). `makeHttpRequest` returns `(Int, JValue, Map[String, String])`. `makeHttpRequestWithBody(method, path, body, headers)` for POST/PUT.
 
 ## Migrating a Lift Endpoint to http4s
 
@@ -292,9 +292,9 @@ Compile times are consistent across all three shards — Zinc cache restores cor
 
 At the integration level both frameworks are similarly server/DB-bound (~0.32–0.45 s/test). The real http4s gain is the **unit/pure tier** — tests that don't need a running server are 54× faster. As more logic moves into pure functions (request parsing, response building, auth checks) these unit tests replace integration tests and the savings compound.
 
-The 6 integration suites (pre-merge timings; Http4s700RoutesTest has grown to 111 scenarios):
+The 6 integration suites (pre-merge timings; Http4s700RoutesTest is currently 102 scenarios):
 - `obp-api/src/test/scala/code/api/http4sbridge/Http4sLiftBridgePropertyTest.scala` — 51 tests, 31.9s
-- `obp-api/src/test/scala/code/api/v7_0_0/Http4s700RoutesTest.scala` — 111 tests (was 75, 23.8s pre-merge)
+- `obp-api/src/test/scala/code/api/v7_0_0/Http4s700RoutesTest.scala` — 102 tests (was 75 pre-merge, 23.8s)
 - `obp-api/src/test/scala/code/api/v7_0_0/V7ResourceDocsAggregationTest.scala` — intentionally failing until resource-docs aggregation bug is fixed
 - `obp-api/src/test/scala/code/api/http4sbridge/Http4sServerIntegrationTest.scala` — 16 tests, 5.0s
 - `obp-api/src/test/scala/code/api/v5_0_0/Http4s500SystemViewsTest.scala` — 13 tests, 4.4s
