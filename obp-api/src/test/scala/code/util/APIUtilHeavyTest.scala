@@ -44,59 +44,61 @@ class APIUtilHeavyTest extends V400ServerSetup  with PropsReset {
   val bgVersion = ConstantsBG.berlinGroupVersion1.apiShortVersion
   
   feature("test APIUtil.versionIsAllowed method") {
-    //This mean, we are only disabled the v4.0.0, all other versions should be enabled
-    setPropsValues(
-      "api_disabled_versions" -> "[v4.0.0]",
-      "api_enabled_versions" -> "[]"
-    )
-    APIUtil.versionIsAllowed(ApiVersion.v4_0_0) should be(false)
-    val allEnabledVersions= ApiVersionUtils.versions.filterNot(_ == ApiVersion.v4_0_0).map(APIUtil.versionIsAllowed)
-    allEnabledVersions.contains(false) should be (false)
+    scenario("Test versionIsAllowed with various disabled/enabled version combinations") {
+      //This mean, we are only disabled the v4.0.0, all other versions should be enabled
+      setPropsValues(
+        "api_disabled_versions" -> "[v4.0.0]",
+        "api_enabled_versions" -> "[]"
+      )
+      APIUtil.versionIsAllowed(ApiVersion.v4_0_0) should be(false)
+      val allEnabledVersions= ApiVersionUtils.versions.filterNot(_ == ApiVersion.v4_0_0).map(APIUtil.versionIsAllowed)
+      allEnabledVersions.contains(false) should be (false)
 
-    setPropsValues(
-      "api_disabled_versions" -> "[OBPv4.0.0]",
-      "api_enabled_versions" -> "[]"
-    )
-    APIUtil.versionIsAllowed(ApiVersion.v4_0_0) should be(false)
-    val allEnabledVersions2: List[Boolean] = ApiVersionUtils.versions.filterNot(_ == ApiVersion.v4_0_0).map(APIUtil.versionIsAllowed)
-    allEnabledVersions2.contains(false) should be (false)
+      setPropsValues(
+        "api_disabled_versions" -> "[OBPv4.0.0]",
+        "api_enabled_versions" -> "[]"
+      )
+      APIUtil.versionIsAllowed(ApiVersion.v4_0_0) should be(false)
+      val allEnabledVersions2: List[Boolean] = ApiVersionUtils.versions.filterNot(_ == ApiVersion.v4_0_0).map(APIUtil.versionIsAllowed)
+      allEnabledVersions2.contains(false) should be (false)
 
-    setPropsValues(
-      "api_disabled_versions" -> "[OBPv4.0.0,v3.1.0,v3.0.0,UKv3.1,UKv2.0]",
-      "api_enabled_versions" -> "[]"
-    )
-    APIUtil.versionIsAllowed(ApiVersion.v4_0_0) should be(false)
-    APIUtil.versionIsAllowed(ApiVersion.v3_1_0) should be(false)
-    APIUtil.versionIsAllowed(ApiVersion.v3_0_0) should be(false)
-    APIUtil.versionIsAllowed(ApiVersionUtils.versions.find(_.fullyQualifiedVersion=="UKv3.1").head) should be(false)
-    APIUtil.versionIsAllowed(ApiVersionUtils.versions.find(_.fullyQualifiedVersion=="UKv2.0").head) should be(false)
-    val allEnabledVersions3: List[Boolean] = ApiVersionUtils.versions
-      .filterNot(_.fullyQualifiedVersion == ApiVersion.v4_0_0.fullyQualifiedVersion)
-      .filterNot(_.fullyQualifiedVersion == ApiVersion.v3_1_0.fullyQualifiedVersion)
-      .filterNot(_.fullyQualifiedVersion == ApiVersion.v3_0_0.fullyQualifiedVersion)
-      .filterNot(_.fullyQualifiedVersion == "UKv3.1")
-      .filterNot(_.fullyQualifiedVersion == "UKv2.0")
-      .map(APIUtil.versionIsAllowed)
-    allEnabledVersions3.contains(false) should be (false)
-    
-    
-    When("we set OBPv4.0.0 both in enabled and disabled props, it should be disabled")
-    setPropsValues(
-      "api_disabled_versions" -> "[OBPv4.0.0]",
-      "api_enabled_versions" -> "[OBPv4.0.0]"
-    )
-    APIUtil.versionIsAllowed(ApiVersion.v4_0_0) should be(false)
-    APIUtil.versionIsAllowed(ApiVersion.v3_1_0) should be(false)
+      setPropsValues(
+        "api_disabled_versions" -> "[OBPv4.0.0,v3.1.0,v3.0.0,UKv3.1,UKv2.0]",
+        "api_enabled_versions" -> "[]"
+      )
+      APIUtil.versionIsAllowed(ApiVersion.v4_0_0) should be(false)
+      APIUtil.versionIsAllowed(ApiVersion.v3_1_0) should be(false)
+      APIUtil.versionIsAllowed(ApiVersion.v3_0_0) should be(false)
+      APIUtil.versionIsAllowed(ApiVersionUtils.versions.find(_.fullyQualifiedVersion=="UKv3.1").head) should be(false)
+      APIUtil.versionIsAllowed(ApiVersionUtils.versions.find(_.fullyQualifiedVersion=="UKv2.0").head) should be(false)
+      val allEnabledVersions3: List[Boolean] = ApiVersionUtils.versions
+        .filterNot(_.fullyQualifiedVersion == ApiVersion.v4_0_0.fullyQualifiedVersion)
+        .filterNot(_.fullyQualifiedVersion == ApiVersion.v3_1_0.fullyQualifiedVersion)
+        .filterNot(_.fullyQualifiedVersion == ApiVersion.v3_0_0.fullyQualifiedVersion)
+        .filterNot(_.fullyQualifiedVersion == "UKv3.1")
+        .filterNot(_.fullyQualifiedVersion == "UKv2.0")
+        .map(APIUtil.versionIsAllowed)
+      allEnabledVersions3.contains(false) should be (false)
 
 
-    When("we set OBPv4.0.0 both in enabled props, it will only enable one version, all other version will be disabled ")
-    setPropsValues(
-      "api_disabled_versions" -> "[]",
-      "api_enabled_versions" -> "[OBPv4.0.0]"
-    )
-    APIUtil.versionIsAllowed(ApiVersion.v4_0_0) should be(true)
-    APIUtil.versionIsAllowed(ApiVersion.v3_1_0) should be(false)
-    APIUtil.versionIsAllowed(ApiVersion.v3_0_0) should be(false)
+      When("we set OBPv4.0.0 both in enabled and disabled props, it should be disabled")
+      setPropsValues(
+        "api_disabled_versions" -> "[OBPv4.0.0]",
+        "api_enabled_versions" -> "[OBPv4.0.0]"
+      )
+      APIUtil.versionIsAllowed(ApiVersion.v4_0_0) should be(false)
+      APIUtil.versionIsAllowed(ApiVersion.v3_1_0) should be(false)
+
+
+      When("we set OBPv4.0.0 both in enabled props, it will only enable one version, all other version will be disabled ")
+      setPropsValues(
+        "api_disabled_versions" -> "[]",
+        "api_enabled_versions" -> "[OBPv4.0.0]"
+      )
+      APIUtil.versionIsAllowed(ApiVersion.v4_0_0) should be(true)
+      APIUtil.versionIsAllowed(ApiVersion.v3_1_0) should be(false)
+      APIUtil.versionIsAllowed(ApiVersion.v3_0_0) should be(false)
+    }
   }
 
 
