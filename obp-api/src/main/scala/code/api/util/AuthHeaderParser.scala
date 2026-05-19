@@ -7,12 +7,12 @@ import net.liftweb.common.{Box, Empty, Full}
  * into the subset of CallContext fields used by the authentication chain.
  *
  * The auth chain in [[APIUtil.getUserAndSessionContextFuture]] identifies which
- * scheme to use (OAuth 2, OAuth 1.0a, DirectLogin, Gateway Login, DAuth) by
- * reading CallContext.authReqHeaderField / directLoginParams / oAuthParams —
- * *not* requestHeaders. Every transport that supports authentication (REST
- * via http4s, gRPC, etc.) must populate these three fields identically,
- * otherwise schemes will silently fail to match and the chain will fall through
- * to "OBP-20080 Authorization Header format is not supported".
+ * scheme to use (OAuth 2 / OIDC, DirectLogin, Gateway Login, DAuth) by reading
+ * CallContext.authReqHeaderField / directLoginParams — *not* requestHeaders.
+ * Every transport that supports authentication (REST via http4s, gRPC, etc.)
+ * must populate these fields identically, otherwise schemes will silently fail
+ * to match and the chain will fall through to "OBP-20080 Authorization Header
+ * format is not supported".
  *
  * This helper is the single source of truth for that parsing so that all
  * transports stay in sync.
@@ -22,19 +22,18 @@ object AuthHeaderParser {
   /** Result of parsing an Authorization header value. */
   final case class ParsedAuthHeader(
     authReqHeaderField: Box[String],
-    directLoginParams: Map[String, String],
-    oAuthParams: Map[String, String]
+    directLoginParams: Map[String, String]
   )
 
   private val EmptyParsed: ParsedAuthHeader =
-    ParsedAuthHeader(Empty, Map.empty, Map.empty)
+    ParsedAuthHeader(Empty, Map.empty)
 
   private val DirectLoginAllowedParameters: List[String] =
     List("consumer_key", "token", "username", "password")
 
   /**
-   * Parse an Authorization header value (e.g. "Bearer eyJ...", "DirectLogin token=...",
-   * 'OAuth oauth_consumer_key="..."') into the auth-related CallContext fields.
+   * Parse an Authorization header value (e.g. "Bearer eyJ...", "DirectLogin token=...")
+   * into the auth-related CallContext fields.
    *
    * Returns empty fields when no header value is present.
    */
@@ -44,8 +43,7 @@ object AuthHeaderParser {
       case Some(value) =>
         ParsedAuthHeader(
           authReqHeaderField = Full(value),
-          directLoginParams = if (value.contains("DirectLogin")) parseDirectLoginHeader(value) else Map.empty,
-          oAuthParams = if (value.startsWith("OAuth ")) parseOAuthHeader(value) else Map.empty
+          directLoginParams = if (value.contains("DirectLogin")) parseDirectLoginHeader(value) else Map.empty
         )
     }
 
@@ -73,15 +71,5 @@ object AuthHeaderParser {
         None
       }
     }.toMap
-  }
-
-  /**
-   * Parse an OAuth 1.0a Authorization header value into its named parameters.
-   * Format: `OAuth oauth_consumer_key="xxx", oauth_token="yyy", ...`
-   */
-  def parseOAuthHeader(headerValue: String): Map[String, String] = {
-    val oauthPart = headerValue.stripPrefix("OAuth ").trim
-    val pattern = """(\w+)="([^"]*)"""".r
-    pattern.findAllMatchIn(oauthPart).map(m => m.group(1) -> m.group(2)).toMap
   }
 }

@@ -218,7 +218,6 @@ object SecureLogging {
       "directLoginParams=Map(password -> secret123, api_key -> sk_live_key)",
       "client_secret -> my_client_secret",
       "client_secret->my_client_secret",
-      "CallContext(oAuthParams=Map(access_token -> bearer_token, client_secret->sensitive_key))",
       "Map(token->private_token, password -> supersecret, api_key->sk_live_123)"
     )
     testMessages.map(msg => (msg, maskSensitive(msg)))

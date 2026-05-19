@@ -56,13 +56,12 @@ class AuthInterceptor extends ServerInterceptor with MdcLoggable {
           // Populate the auth-related CallContext fields via the shared parser
           // so the gRPC auth path matches what the REST (http4s) path produces.
           // The downstream auth chain reads authReqHeaderField / directLoginParams
-          // / oAuthParams — not requestHeaders — to pick a scheme.
+          // — not requestHeaders — to pick a scheme.
           val parsed = AuthHeaderParser.parseAuthorizationHeader(Some(authValue))
           val cc = CallContext(
             requestHeaders = List(HTTPParam("Authorization", List(authValue))),
             authReqHeaderField = parsed.authReqHeaderField,
             directLoginParams = parsed.directLoginParams,
-            oAuthParams = parsed.oAuthParams,
             verb = "GET",
             url = "/grpc/chat",
             implementedInVersion = "v6.0.0",

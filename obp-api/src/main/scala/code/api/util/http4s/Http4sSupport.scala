@@ -526,7 +526,6 @@ object Http4sCallContextBuilder {
       httpBody = body,
       authReqHeaderField = extractAuthHeader(request),
       directLoginParams = extractDirectLoginParams(request),
-      oAuthParams = extractOAuthParams(request),
       startTime = Some(new Date())
     )
   }
@@ -592,15 +591,6 @@ object Http4sCallContextBuilder {
       }
   }
 
-  /**
-   * Extract OAuth 1.0a parameters from the Authorization header if it uses the OAuth scheme.
-   */
-  private def extractOAuthParams(request: Request[IO]): Map[String, String] = {
-    request.headers.get(CIString("Authorization"))
-      .filter(_.head.value.startsWith("OAuth "))
-      .map(h => AuthHeaderParser.parseOAuthHeader(h.head.value))
-      .getOrElse(Map.empty)
-  }
 }
 
 /**

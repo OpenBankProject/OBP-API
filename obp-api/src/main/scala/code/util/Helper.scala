@@ -174,49 +174,33 @@ object Helper extends Loggable {
 
 
   /**
-   *
-   * @param redirectUrl eg: http://localhost:8082/oauthcallback?oauth_token=G5AEA2U1WG404EGHTIGBHKRR4YJZAPPHWKOMNEEV&oauth_verifier=53018
-   * @return http://localhost:8082/oauthcallback
+   * @param redirectUrl eg: http://localhost:8082/callback?foo=bar
+   * @return http://localhost:8082/callback
    */
   def getStaticPortionOfRedirectURL(redirectUrl: String): Box[String] = {
     tryo(redirectUrl.split("\\?")(0)) //return everything before the "?"
   }
 
   /**
-   * extract clean redirect url from input value, because input may have some parameters, such as the following examples  <br/>
-   * eg1: http://localhost:8082/oauthcallback?....--> http://localhost:8082 <br/>
-   * eg2: http://localhost:8016?oautallback?=3NLMGV ...--> http://localhost:8016
+   * extract the host-only portion of a redirect URL.
    *
-   * @param redirectUrl -> http://localhost:8082/oauthcallback?oauth_token=G5AEA2U1WG404EGHTIGBHKRR4YJZAPPHWKOMNEEV&oauth_verifier=53018
-   * @return hostOnlyOfRedirectURL-> http://localhost:8082
+   * @param redirectUrl -> http://localhost:8082/callback?foo=bar
+   * @return hostOnlyOfRedirectURL -> http://localhost:8082
    */
   @deprecated("We can not only use hostname as the redirectUrl, now add new method `getStaticPortionOfRedirectURL` ","05.12.2023")
   def getHostOnlyOfRedirectURL(redirectUrl: String): Box[String] = {
-    val url = new URL(redirectUrl) //eg: http://localhost:8082/oauthcallback?oauth_token=G5AEA2U1WG404EGHTIGBHKRR4YJZAPPHWKOMNEEV&oauth_verifier=53018
+    val url = new URL(redirectUrl)
     val protocol = url.getProtocol() // http
     val authority = url.getAuthority()// localhost:8082, this will contain the port.
     tryo(s"$protocol://$authority") // http://localhost:8082
   }
 
   /**
-    * extract Oauth Token String from input value, because input may have some parameters, such as the following examples  <br/>
-    * http://localhost:8082/oauthcallback?oauth_token=DKR242MB3IRCUVG35UZ0QQOK3MBS1G2HL2ZIKK2O&oauth_verifier=64465
-    *   -->  DKR242MB3IRCUVG35UZ0QQOK3MBS1G2HL2ZIKK2O
-    *
-    * @param input a long url with parameters
-    * @return Oauth Token String
-    */
-  def extractOauthToken(input: String): Box[String] = {
-    Full(input.split("oauth_token=")(1).split("&")(0))
-  }
-
-  /**
     * check the redirect url is valid with default values.
     */
   def isValidInternalRedirectUrl(url: String) : Boolean = {
-    //set the default value is "/" and "/oauth/authorize"
     val internalRedirectUrlsWhiteList = List(
-      "/","/oauth/authorize",
+      "/",
       "/dummy-user-tokens","/create-sandbox-account",
       "/add-user-auth-context-update-request","/otp",
       "/terms-and-conditions", "/privacy-policy",
@@ -228,8 +212,6 @@ object Helper extends Loggable {
       "/consent",
     )
 
-    //case1: OBP-API login: url = "/"
-    //case2: API-Explore oauth login: url = "/oauth/authorize?oauth_token=V0JTCDYXWUNTXDZ3VUDNM1HE3Q1PZR2WJ4PURXQA&logUserOut=false"
     val extractCleanURL = StringUtils.substringBefore(url, "?")
 
     internalRedirectUrlsWhiteList.contains(extractCleanURL)

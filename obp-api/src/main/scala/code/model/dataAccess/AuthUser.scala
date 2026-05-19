@@ -490,10 +490,9 @@ import net.liftweb.util.Helpers._
   
   
   /**
-    * Find current ResourceUser from the server. 
+    * Find current ResourceUser from the server.
     * This method has no parameters, it depends on different login types:
     *  AuthUser:  AuthUser.currentUser
-    *  OAuthHandshake: OAuthHandshake.getUser
     *  DirectLogin: DirectLogin.getUser
     * to get the current Resourceuser .
     *

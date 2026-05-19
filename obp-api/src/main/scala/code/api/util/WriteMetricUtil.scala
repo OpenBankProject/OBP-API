@@ -1,7 +1,7 @@
 package code.api.util
 
 import code.api.DirectLogin
-import code.api.util.APIUtil.{ResourceDoc, buildOperationId, getCorrelationId, getPropsAsBoolValue, getPropsValue, hasAnOAuthHeader, hasDirectLoginHeader}
+import code.api.util.APIUtil.{ResourceDoc, buildOperationId, getCorrelationId, getPropsAsBoolValue, getPropsValue, hasDirectLoginHeader}
 import code.api.util.ErrorMessages.attemptedToOpenAnEmptyBox
 import code.metrics.APIMetrics
 import code.metricsstream.MetricsEventBus
