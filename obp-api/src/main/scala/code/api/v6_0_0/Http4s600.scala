@@ -8505,18 +8505,21 @@ object Http4s600 {
     val allRoutesWithMiddleware: HttpRoutes[IO] =
       ResourceDocMiddleware.apply(resourceDocs)(allRoutes)
 
-    // ─── path-rewriting bridge: /obp/v6.0.0/… → /obp/v5.0.0/… ─────────────
-    // Targets v5.0.0 (not v5.1.0) because Http4s510's bridge to v5.0.0 is
-    // disabled (MetricTest / VRPConsentRequestTest regressions). Http4s500 has
-    // its own working cascade: v5.0.0 → v4.0.0 → v3.1.0 → v3.0.0.
+    // ─── path-rewriting bridge: /obp/v6.0.0/… → /obp/v5.1.0/… → /obp/v5.0.0/… ──
+    // Tries v5.1.0 native Http4s routes first; if not handled there, falls back to
+    // the v5.0.0 cascade (v5.0.0 → v4.0.0 → v3.1.0 → v3.0.0).
     // NOT appended to allRoutes — see object-level scaladoc.
-    val v600ToV500Bridge: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { req =>
+    val v600ToV510Bridge: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { req =>
       val rawPath = req.uri.path.renderString
       if (rawPath.startsWith("/obp/v6.0.0/")) {
-        val rewritten = rawPath.replaceFirst("/obp/v6\\.0\\.0/", "/obp/v5.0.0/")
-        val newUri = req.uri.withPath(Uri.Path.unsafeFromString(rewritten))
-        val rewrittenReq = req.withUri(newUri)
-        Http4s500.wrappedRoutesV500Services.run(rewrittenReq)
+        val path510 = rawPath.replaceFirst("/obp/v6\\.0\\.0/", "/obp/v5.1.0/")
+        val req510 = req.withUri(req.uri.withPath(Uri.Path.unsafeFromString(path510)))
+        Http4s510.wrappedRoutesV510Services.run(req510)
+          .orElse {
+            val path500 = rawPath.replaceFirst("/obp/v6\\.0\\.0/", "/obp/v5.0.0/")
+            val req500 = req.withUri(req.uri.withPath(Uri.Path.unsafeFromString(path500)))
+            Http4s500.wrappedRoutesV500Services.run(req500)
+          }
       } else {
         OptionT.none[IO, Response[IO]]
       }
@@ -8537,6 +8540,6 @@ object Http4s600 {
   lazy val wrappedRoutesV600Services: HttpRoutes[IO] =
     Kleisli[HttpF, Request[IO], Response[IO]] { req =>
       Implementations6_0_0.allRoutesWithMiddleware.run(req)
-        .orElse(Implementations6_0_0.v600ToV500Bridge.run(req))
+        .orElse(Implementations6_0_0.v600ToV510Bridge.run(req))
     }
 }
