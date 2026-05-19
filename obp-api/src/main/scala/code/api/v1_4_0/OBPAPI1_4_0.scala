@@ -104,8 +104,7 @@ object OBPAPI1_4_0 extends OBPRestHelper with APIMethods140 with MdcLoggable wit
     Implementations1_4_0.getAtms,
     Implementations1_4_0.getProducts,
     Implementations1_4_0.getCrmEvents,
-    Implementations1_4_0.getTransactionRequestTypes,
-    Implementations1_4_0.testResourceDoc
+    Implementations1_4_0.getTransactionRequestTypes
   )
 
 

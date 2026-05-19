@@ -36,7 +36,6 @@ import com.nimbusds.jwt.JWTClaimsSet
 import com.openbankproject.commons.model.User
 import net.liftweb.common._
 import net.liftweb.http._
-import net.liftweb.http.rest.RestHelper
 import net.liftweb.json._
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import net.liftweb.http.provider.HTTPParam
@@ -63,7 +62,12 @@ object JSONFactoryDAuth {
 
 }
 
-object DAuth extends RestHelper with MdcLoggable {
+// DAuth is a dAuth-JWT exchange library consumed by the auth path. It has no HTTP routes
+// of its own; the legacy `extends RestHelper` mixin was vestigial.
+object DAuth extends MdcLoggable {
+
+  // For lift-json `.extract[...]` calls below.
+  private implicit val formats: Formats = DefaultFormats
 
 
   def createJwt(payloadAsJsonString: String) : String = {
