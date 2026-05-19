@@ -189,7 +189,21 @@ case class UserNotFound(providerId : String, userId: String) extends APIFailure 
 }
 
 object ApiVersionHolder {
-  private val threadLocal: ThreadLocal[ApiVersion] = new TransmittableThreadLocal()
+  // `childValue` is overridden to return `null` so newly-spawned threads do NOT
+  // inherit the parent thread's ApiVersion. Same defensive pattern as
+  // RequestScopeConnection.currentProxy (see that scaladoc for the full
+  // explanation): when Scala's ForkJoinPool spawns a new worker mid-request,
+  // the default InheritableThreadLocal childValue copies the parent's value,
+  // and every subsequent TtlRunnable.restore() on that worker reverts to it —
+  // even for tasks belonging to a completely different request. Returning
+  // null blocks the inheritance; legitimate propagation still happens via
+  // TtlRunnable's explicit capture/replay at submission time.
+  //
+  // https://github.com/alibaba/transmittable-thread-local/issues/100
+  private val threadLocal: ThreadLocal[ApiVersion] =
+    new TransmittableThreadLocal[ApiVersion]() {
+      override protected def childValue(parentValue: ApiVersion): ApiVersion = null
+    }
 
   def setApiVersion(apiVersion: ApiVersion) = threadLocal.set(apiVersion)
 
