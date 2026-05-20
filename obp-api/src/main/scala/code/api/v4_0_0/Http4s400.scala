@@ -67,6 +67,8 @@ import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.DynamicEntityOperation.GET_ALL
 import com.openbankproject.commons.model.enums.ProductAttributeType
+import com.openbankproject.commons.model.enums.{ChallengeType, SuppliedAnswerType, TransactionRequestStatus, TransactionRequestTypes}
+import com.openbankproject.commons.model.enums.TransactionRequestTypes._
 import com.openbankproject.commons.util.{ApiVersion, ApiVersionStatus, ScannedApiVersion}
 import net.liftweb.common.{Box, Failure, Full}
 import net.liftweb.json.Formats
@@ -95,6 +97,8 @@ object Http4s400 {
   type HttpF[A] = OptionT[IO, A]
 
   object Implementations4_0_0 {
+    // Expose as a member so ResourceDocsAPIMethods can access it via APIMethods400.Implementations4_0_0.implementedInApiVersion
+    val implementedInApiVersion: com.openbankproject.commons.util.ScannedApiVersion = Http4s400.implementedInApiVersion
     val prefixPath: Path = Root / ApiPathZero.toString / implementedInApiVersion.toString
 
     // ─── getMapperDatabaseInfo ────────────────────────────────────────────────
@@ -2475,24 +2479,169 @@ object Http4s400 {
       http4sPartialFunction = Some(createTransactionRequestCard))
 
     // ─── answerTransactionRequestChallenge (POST .../trans-requests/{id}/challenge → 202) ─
-    //
-    // v4 needs its own handling for this endpoint because the v2.1.0 catch-all (one
-    // ResourceDoc per of the 4 supported types — SANDBOX_TAN/COUNTERPARTY/SEPA/
-    // FREE_FORM, after a recent fix) would otherwise hijack the URL via the bridge
-    // cascade and return v2.1.0's 400 because it doesn't recognize
-    // `ChallengeAnswerJson400`. The Lift v4 `answerTransactionRequestChallenge`
-    // endpoint is ~280 lines, so rather than duplicating it we route directly to the
-    // Lift bridge for this URL — the bridge invokes Lift's dispatcher which will pick
-    // up the v4 endpoint (it's registered first in `OBPAPI4_0_0.routes` via
-    // `endpointsOf4_0_0`).
-    //
-    // This is the same trick the createTransactionRequest path uses: claim the URL at
-    // the http4s layer so the bridge cascade can't intercept it. The difference is we
-    // delegate the body to Lift unchanged.
+    // Full port of the v4 Lift implementation: supports ChallengeAnswerJson400,
+    // maker-checker separation, multi-challenge flow, NEXT_CHALLENGE_PENDING status,
+    // FORWARDED status, and REJECT answer for SEPA refund reversal.
 
     lazy val answerTransactionRequestChallenge: HttpRoutes[IO] = HttpRoutes.of[IO] {
-      case req @ POST -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "transaction-request-types" / _ / "transaction-requests" / _ / "challenge" =>
-        code.api.util.http4s.Http4sLiftWebBridge.dispatch(req)
+      case req @ POST -> `prefixPath` / "banks" / bankIdStr / "accounts" / accountIdStr / viewIdStr / "transaction-request-types" / transactionRequestTypeStr / "transaction-requests" / transReqIdStr / "challenge" =>
+        implicit val cc: CallContext = req.callContext
+        val io = for {
+          user    <- IO.fromOption(cc.user.toOption)(new RuntimeException(AuthenticatedUserIsRequired))
+          account <- IO.fromOption(cc.bankAccount)(new RuntimeException(AccountNotFound))
+          jsonBody = cc.httpBody.getOrElse("")
+          result  <- code.api.util.http4s.RequestScopeConnection.fromFuture(
+            answerTransactionRequestChallengeImpl(user, account, bankIdStr, accountIdStr, viewIdStr,
+              transactionRequestTypeStr, transReqIdStr, jsonBody, cc))
+        } yield result
+        io.attempt.flatMap {
+          case Right(result) => Accepted(prettyRender(Extraction.decompose(result)))
+          case Left(err)     => code.api.util.http4s.ErrorResponseConverter.toHttp4sResponse(err, cc)
+        }
+    }
+
+    private def answerTransactionRequestChallengeImpl(
+      user: User,
+      fromAccount: BankAccount,
+      bankIdStr: String,
+      accountIdStr: String,
+      viewIdStr: String,
+      transactionRequestTypeStr: String,
+      transReqIdStr: String,
+      jsonBody: String,
+      cc: CallContext
+    ): Future[TransactionRequestWithChargeJSON400] = {
+      val bankId              = BankId(bankIdStr)
+      val accountId           = AccountId(accountIdStr)
+      val viewId              = ViewId(viewIdStr)
+      val transReqId          = TransactionRequestId(transReqIdStr)
+      val transactionReqType  = com.openbankproject.commons.model.TransactionRequestType(transactionRequestTypeStr)
+      for {
+        _ <- NewStyle.function.isEnabledTransactionRequests(Some(cc))
+        _ <- code.util.Helper.booleanToFuture(InvalidAccountIdFormat, cc = Some(cc)) { isValidID(accountIdStr) }
+        _ <- code.util.Helper.booleanToFuture(InvalidBankIdFormat, cc = Some(cc)) { isValidID(bankIdStr) }
+        challengeAnswerJson <- NewStyle.function.tryons(
+          s"$InvalidJsonFormat The Json body should be the ChallengeAnswerJson400", 400, Some(cc)) {
+          net.liftweb.json.parse(jsonBody).extract[ChallengeAnswerJson400]
+        }
+        _ <- NewStyle.function.checkAuthorisationToCreateTransactionRequest(
+          viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId), user, Some(cc))
+        (existingTransactionRequest, _) <- NewStyle.function.getTransactionRequestImpl(transReqId, Some(cc))
+        _ <- code.util.Helper.booleanToFuture(
+          TransactionRequestStatusNotInitiatedOrPendingOrForwarded, cc = Some(cc)) {
+          existingTransactionRequest.status.equals(TransactionRequestStatus.INITIATED.toString) ||
+          existingTransactionRequest.status.equals(TransactionRequestStatus.NEXT_CHALLENGE_PENDING.toString) ||
+          existingTransactionRequest.status.equals(TransactionRequestStatus.FORWARDED.toString)
+        }
+        _ <- NewStyle.function.checkMakerCheckerForTransactionRequest(
+          bankId, accountId, viewId, transReqId, challengeAnswerJson.id, user.userId, Some(cc))
+        existingType = existingTransactionRequest.`type`
+        _ <- code.util.Helper.booleanToFuture(
+          s"${TransactionRequestTypeHasChanged} It should be: '$existingType', but current value ($transactionRequestTypeStr)",
+          cc = Some(cc)) {
+          existingType.equals(transactionRequestTypeStr)
+        }
+        (challenges, _) <- NewStyle.function.getChallengesByTransactionRequestId(transReqId.value, Some(cc))
+        _ <- code.util.Helper.booleanToFuture(
+          s"$InvalidChallengeType Current Type is ${challenges.map(_.challengeType)}", cc = Some(cc)) {
+          challenges.map(_.challengeType)
+            .filterNot(_.equals(ChallengeType.OBP_TRANSACTION_REQUEST_CHALLENGE.toString)).isEmpty
+        }
+        (transactionRequest, _) <- challengeAnswerJson.answer match {
+          case "REJECT" =>
+            answerChallengeReject(bankId, fromAccount, existingTransactionRequest, challengeAnswerJson, cc)
+          case _ =>
+            answerChallengeNormal(bankId, accountId, user, fromAccount, challenges, challengeAnswerJson,
+              transReqId, transactionRequestTypeStr, transactionReqType, existingTransactionRequest, cc)
+        }
+        (attrs, _) <- NewStyle.function.getTransactionRequestAttributes(bankId, transactionRequest.id, Some(cc))
+      } yield JSONFactory400.createTransactionRequestWithChargeJSON(transactionRequest, challenges, attrs)
+    }
+
+    private def answerChallengeNormal(
+      bankId: BankId,
+      accountId: AccountId,
+      user: User,
+      fromAccount: BankAccount,
+      challenges: List[ChallengeTrait],
+      challengeAnswerJson: ChallengeAnswerJson400,
+      transReqId: TransactionRequestId,
+      transactionRequestTypeStr: String,
+      transactionReqType: com.openbankproject.commons.model.TransactionRequestType,
+      existingTransactionRequest: TransactionRequest,
+      cc: CallContext
+    ): Future[(TransactionRequest, Option[CallContext])] = {
+      val isOwnChallenge = challenges.find(_.challengeId == challengeAnswerJson.id)
+        .exists(_.expectedUserId == user.userId)
+      for {
+        (isValidated, _) <- if (isOwnChallenge)
+          NewStyle.function.validateChallengeAnswer(
+            challengeAnswerJson.id, challengeAnswerJson.answer, SuppliedAnswerType.PLAIN_TEXT_VALUE, Some(cc))
+        else
+          NewStyle.function.validateChallengeAnswerWithoutUserIdCheck(
+            challengeAnswerJson.id, challengeAnswerJson.answer, SuppliedAnswerType.PLAIN_TEXT_VALUE, Some(cc))
+        _ <- code.util.Helper.booleanToFuture(
+          s"${InvalidChallengeAnswer
+            .replace("answer may be expired.", s"answer may be expired ($transactionRequestChallengeTtl seconds).")
+            .replace("up your allowed attempts.", s"up your allowed attempts ($allowedAnswerTransactionRequestChallengeAttempts times).")}",
+          cc = Some(cc)) { isValidated }
+        (allAnswered, _) <- NewStyle.function.allChallengesSuccessfullyAnswered(bankId, accountId, transReqId, Some(cc))
+        _ <- code.util.Helper.booleanToFuture(s"$NextChallengePending", cc = Some(cc)) { allAnswered }
+        (transReq, _) <- TransactionRequestTypes.withName(transactionRequestTypeStr) match {
+          case TRANSFER_TO_PHONE | TRANSFER_TO_ATM | TRANSFER_TO_ACCOUNT =>
+            NewStyle.function.createTransactionAfterChallengeV300(
+              user, fromAccount, transReqId, transactionReqType, Some(cc))
+          case _ =>
+            NewStyle.function.createTransactionAfterChallengeV210(fromAccount, existingTransactionRequest, Some(cc))
+        }
+      } yield (transReq, Some(cc))
+    }
+
+    private def answerChallengeReject(
+      bankId: BankId,
+      fromAccount: BankAccount,
+      existingTransactionRequest: TransactionRequest,
+      challengeAnswerJson: ChallengeAnswerJson400,
+      cc: CallContext
+    ): Future[(TransactionRequest, Option[CallContext])] = {
+      val rejectedRequest = existingTransactionRequest.copy(
+        status = TransactionRequestStatus.REJECTED.toString)
+      for {
+        (fromAcc, toAcc) <- {
+          if (fromAccount.accountId.value == existingTransactionRequest.from.account_id) {
+            for {
+              (toCp, _)  <- NewStyle.function.getCounterpartyByIbanAndBankAccountId(
+                existingTransactionRequest.other_account_routing_address,
+                fromAccount.bankId, fromAccount.accountId, Some(cc))
+              (toAcc, _) <- NewStyle.function.getBankAccountFromCounterparty(toCp, true, Some(cc))
+            } yield (fromAccount, toAcc)
+          } else {
+            for {
+              (fromCp, _)  <- NewStyle.function.getCounterpartyByIbanAndBankAccountId(
+                existingTransactionRequest.from.account_id,
+                fromAccount.bankId, fromAccount.accountId, Some(cc))
+              (fromAcc, _) <- NewStyle.function.getBankAccountFromCounterparty(fromCp, false, Some(cc))
+            } yield (fromAcc, fromAccount)
+          }
+        }
+        rejectReasonCode = challengeAnswerJson.reason_code.getOrElse("")
+        _ <- if (rejectReasonCode.nonEmpty)
+          NewStyle.function.createOrUpdateTransactionRequestAttribute(
+            bankId, rejectedRequest.id, None, "reject_reason_code",
+            com.openbankproject.commons.model.enums.TransactionRequestAttributeType.withName("STRING"),
+            rejectReasonCode, Some(cc)).map(_ => ())
+        else Future.successful(())
+        rejectInfo = challengeAnswerJson.additional_information.getOrElse("")
+        _ <- if (rejectInfo.nonEmpty)
+          NewStyle.function.createOrUpdateTransactionRequestAttribute(
+            bankId, rejectedRequest.id, None, "reject_additional_information",
+            com.openbankproject.commons.model.enums.TransactionRequestAttributeType.withName("STRING"),
+            rejectInfo, Some(cc)).map(_ => ())
+        else Future.successful(())
+        _ <- NewStyle.function.notifyTransactionRequest(fromAcc, toAcc, rejectedRequest, Some(cc)).map(_ => ())
+        _ <- NewStyle.function.saveTransactionRequestStatusImpl(
+          rejectedRequest.id, rejectedRequest.status, Some(cc)).map(_ => ())
+      } yield (rejectedRequest, Some(cc))
     }
 
     staticResourceDocs += ResourceDoc(
@@ -4214,6 +4363,14 @@ object Http4s400 {
         }
     }
 
+    lazy val createOrUpdateTransactionRequestAttributeDefinition: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ PUT -> `prefixPath` / "banks" / bankIdStr / "attribute-definitions" / "transaction-request" =>
+        EndpointHelpers.withUserAndBankAndBodyCreated[AttributeDefinitionJsonV400, Any](req) { (_, _, postedData, cc) =>
+          createOrUpdateAttributeDefinitionImpl(bankIdStr,
+            com.openbankproject.commons.model.enums.AttributeCategory.TransactionRequest, postedData, cc)
+        }
+    }
+
     lazy val createOrUpdateCardAttributeDefinition: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ PUT -> `prefixPath` / "banks" / bankIdStr / "attribute-definitions" / "card" =>
         EndpointHelpers.withUserAndBankAndBodyCreated[AttributeDefinitionJsonV400, Any](req) { (_, _, postedData, cc) =>
@@ -4285,6 +4442,17 @@ object Http4s400 {
         List(apiTagCard, apiTagCardAttribute, apiTagAttribute),
         Some(List(canCreateCardAttributeDefinitionAtOneBank)),
         http4sPartialFunction = Some(createOrUpdateCardAttributeDefinition))
+
+      staticResourceDocs += ResourceDoc(
+        null, implementedInApiVersion, nameOf(createOrUpdateTransactionRequestAttributeDefinition), "PUT",
+        "/banks/BANK_ID/attribute-definitions/transaction-request",
+        "Create or Update Transaction Request Attribute Definition",
+        s"""Create or Update Transaction Request Attribute Definition.""".stripMargin,
+        transactionRequestAttributeDefinitionJsonV400, transactionRequestAttributeDefinitionResponseJsonV400,
+        List($AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat, UnknownError),
+        List(apiTagTransactionRequest, apiTagTransactionRequestAttribute, apiTagAttribute),
+        Some(List(canCreateTransactionRequestAttributeDefinitionAtOneBank)),
+        http4sPartialFunction = Some(createOrUpdateTransactionRequestAttributeDefinition))
 
       staticResourceDocs += ResourceDoc(
         null, implementedInApiVersion, nameOf(createOrUpdateBankAttributeDefinition), "PUT",
@@ -8238,6 +8406,7 @@ object Http4s400 {
         .orElse(createOrUpdateAccountAttributeDefinition.run(req))
         .orElse(createOrUpdateProductAttributeDefinition.run(req))
         .orElse(createOrUpdateTransactionAttributeDefinition.run(req))
+        .orElse(createOrUpdateTransactionRequestAttributeDefinition.run(req))
         .orElse(createOrUpdateCardAttributeDefinition.run(req))
         .orElse(createOrUpdateBankAttributeDefinition.run(req))
         // Batch 8 — Counterparty management
@@ -8345,6 +8514,20 @@ object Http4s400 {
     }
 
     lazy val allRoutesWithMiddleware: HttpRoutes[IO] = ResourceDocMiddleware.apply(resourceDocs)(allOwnRoutes)
+
+    // ─── nameOf-compatibility aliases ────────────────────────────────────────
+    // These vals have no Lift counterpart in Http4s400 but are referenced by
+    // nameOf(Implementations4_0_0.xxx) in test Tag declarations. The macro only
+    // needs the val to resolve at compile time; the underlying route is the same.
+    lazy val createTransactionRequestAccount            = createTransactionRequest
+    lazy val createTransactionRequestAccountOtp         = createTransactionRequest
+    lazy val createTransactionRequestAgentCashWithDrawal = createTransactionRequest
+    lazy val createTransactionRequestCounterparty       = createTransactionRequest
+    lazy val createTransactionRequestFreeForm           = createTransactionRequest
+    lazy val createTransactionRequestRefund             = createTransactionRequest
+    lazy val createTransactionRequestSepa               = createTransactionRequest
+    lazy val createTransactionRequestSimple             = createTransactionRequest
+    lazy val getAllAuthenticationTypeValidationsPublic   = getAllAuthenticationTypeValidations
 
     // ─── path-rewriting bridge: /obp/v4.0.0/… → /obp/v3.1.0/… ──────────────
 

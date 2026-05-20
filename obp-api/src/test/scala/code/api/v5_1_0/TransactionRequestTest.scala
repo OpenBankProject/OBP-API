@@ -52,7 +52,7 @@ class TransactionRequestTest extends V510ServerSetup {
     */
   object VersionOfApi extends Tag(ApiVersion.v5_1_0.toString)
   object GetTransactionRequests extends Tag(nameOf(Implementations5_1_0.getTransactionRequests))
-  object CreateTransactionRequestCounterparty extends Tag(nameOf(Implementations4_0_0.createTransactionRequestCounterparty))
+  object CreateTransactionRequestCounterparty extends Tag("createTransactionRequestCounterparty")
   object GetTransactionRequestById extends Tag(nameOf(Implementations5_1_0.getTransactionRequestById))
   object UpdateTransactionRequestStatus extends Tag(nameOf(Implementations5_1_0.updateTransactionRequestStatus))
 

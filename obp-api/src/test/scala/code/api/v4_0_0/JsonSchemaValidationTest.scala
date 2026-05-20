@@ -30,7 +30,7 @@ class JsonSchemaValidationTest extends V400ServerSetup {
   object ApiEndpoint3 extends Tag(nameOf(Implementations4_0_0.deleteJsonSchemaValidation))
   object ApiEndpoint4 extends Tag(nameOf(Implementations4_0_0.getJsonSchemaValidation))
   object ApiEndpoint5 extends Tag(nameOf(Implementations4_0_0.getAllJsonSchemaValidations))
-  object ApiEndpoint6 extends Tag(nameOf(Implementations4_0_0.getAllJsonSchemaValidationsPublic))
+  object ApiEndpoint6 extends Tag("getAllJsonSchemaValidationsPublic")
 
   object ApiEndpointCreateFx extends Tag(nameOf(Implementations2_2_0.createFx))
 

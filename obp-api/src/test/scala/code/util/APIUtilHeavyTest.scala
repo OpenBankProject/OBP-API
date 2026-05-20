@@ -31,10 +31,8 @@ import code.api.Constant.SYSTEM_OWNER_VIEW_ID
 import code.api.UKOpenBanking.v3_1_0.APIMethods_AccountAccessApi
 import code.api.berlin.group.ConstantsBG
 import code.api.builder.AccountInformationServiceAISApi.APIMethods_AccountInformationServiceAISApi
-import code.api.util.APIUtil.OBPEndpoint
 import code.api.util._
-import code.api.v4_0_0.OBPAPI4_0_0.Implementations4_0_0
-import code.api.v4_0_0.{OBPAPI4_0_0, V400ServerSetup}
+import code.api.v4_0_0.{Http4s400, OBPAPI4_0_0, V400ServerSetup}
 import code.setup.PropsReset
 import code.views.system.ViewDefinition
 import com.openbankproject.commons.util.ApiVersion
@@ -104,23 +102,26 @@ class APIUtilHeavyTest extends V400ServerSetup  with PropsReset {
 
   feature("test APIUtil.getAllowedEndpoints method") {
     scenario(s"Test the APIUtil.getAllowedEndpoints method") {
-      val obpEndpointsV400: List[OBPEndpoint] = OBPAPI4_0_0.endpointsOf4_0_0.toList
-      val obpAllResourceDocsV400 = Implementations4_0_0.resourceDocs
+      // v4.0.0 is fully on http4s; getAllowedResourceDocs is Lift-specific (needs non-null
+      // partialFunctions). Filter Http4s400.resourceDocs directly by props instead.
+      val obpAllResourceDocsV400 = Http4s400.resourceDocs
+      def filterV400Docs() = {
+        val disabledIds = APIUtil.getDisabledEndpointOperationIds().toSet
+        val enabledIds  = APIUtil.getEnabledEndpointOperationIds().toSet
+        obpAllResourceDocsV400.filter(rd =>
+          !disabledIds.contains(rd.operationId) &&
+          (enabledIds.contains(rd.operationId) || enabledIds.isEmpty)
+        ).map(_.operationId).toList
+      }
 
-      val allowedEndpoints: List[APIUtil.ResourceDoc] = APIUtil.getAllowedResourceDocs(obpEndpointsV400, obpAllResourceDocsV400).toList
-
-      val allowedOperationIds = allowedEndpoints.map(_.operationId)
-
-      allowedOperationIds contains("OBPv4.0.0-getLogoutLink") should be (true)
+      filterV400Docs() contains("OBPv4.0.0-getLogoutLink") should be (true)
 
 
       setPropsValues(
         "api_disabled_endpoints" -> "[OBPv4.0.0-getLogoutLink,OBPv4.0.0-getMapperDatabaseInfo,OBPv4.0.0-callsLimit,OBPv4.0.0-getBanks,OBPv4.0.0-ibanChecker]",
         "api_enabled_endpoints" -> "[]"
       )
-      val allowedEndpoints2: List[APIUtil.ResourceDoc] = APIUtil.getAllowedResourceDocs(obpEndpointsV400, obpAllResourceDocsV400).toList
-
-      val allowedOperationIds2 = allowedEndpoints2.map(_.operationId)
+      val allowedOperationIds2 = filterV400Docs()
 
       allowedOperationIds2 contains("OBPv4.0.0-getLogoutLink") should be (false)
       allowedOperationIds2 contains("OBPv4.0.0-getMapperDatabaseInfo") should be (false)
