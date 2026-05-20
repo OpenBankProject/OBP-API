@@ -35,8 +35,7 @@ import code.api.v1_4_0.APIMethods140
 import code.api.v2_0_0.APIMethods200
 import code.api.v2_1_0.APIMethods210
 import code.api.v2_2_0.APIMethods220
-import code.api.v3_0_0.APIMethods300
-import code.api.v3_0_0.custom.CustomAPIMethods300
+import code.api.v3_0_0.Http4s300
 import code.api.v3_1_0.{APIMethods310, Http4s310}
 import code.api.v4_0_0.{APIMethods400, Http4s400}
 import code.api.v5_0_0.{APIMethods500, OBPAPI5_0_0}
@@ -55,8 +54,6 @@ object OBPAPI5_1_0 extends OBPRestHelper
   with APIMethods200
   with APIMethods210
   with APIMethods220
-  with APIMethods300
-  with CustomAPIMethods300
   with APIMethods310
   with APIMethods400
   with APIMethods500
@@ -77,6 +74,9 @@ object OBPAPI5_1_0 extends OBPRestHelper
   // Re-export so nameOf(Implementations3_1_0.xxx) in excludeEndpoints continues to compile
   // after APIMethods310 was replaced with an empty stub.
   val Implementations3_1_0 = Http4s310.Implementations3_1_0
+  // Re-export so nameOf(Implementations3_0_0.xxx) in excludeEndpoints continues to compile
+  // after APIMethods300 was replaced with an empty stub.
+  val Implementations3_0_0 = Http4s300.Implementations3_0_0
 
   lazy val excludeEndpoints =
     nameOf(Implementations3_0_0.getUserByUsername) ::  // following 4 endpoints miss Provider parameter in the URL, we introduce new ones in V510.
