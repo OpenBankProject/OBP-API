@@ -61,6 +61,16 @@ The same rule covers anything that touches process-global state:
 
 If it persists past the current request and there's no `afterEach` reverting it, keep it inside `scenario { ... }`.
 
+## Enforcement (in this repo)
+
+**Static lint** — `.github/scripts/check_test_isolation.py` scans every `*.scala` file under `obp-api/src/test/scala`, tracks brace-depth scoping, and fails the build if a `setPropsValues(` call appears outside a `scenario`, `def`, or `before*`/`after*` block. The check runs in `.github/workflows/build_pull_request.yml` as the `Lint — test-isolation` step, before `mvn install`. Run it locally with:
+
+```bash
+python3 .github/scripts/check_test_isolation.py
+```
+
+If you need a baseline prop set before any test runs (e.g. something `Migration.scala` reads at class-load time), `ServerSetup.scala`'s trait-body `setPropsValues` calls do that today — they fire before `val server = TestServer` triggers `Boot.boot()`. Keep the same pattern for similar "must-be-set-pre-Boot" props.
+
 ## TL;DR
 
-`feature { ... }` runs at class load. `scenario { ... }` runs when the test runs. Put side-effects in `scenario`.
+`feature { ... }` runs at class load. `scenario { ... }` runs when the test runs. Put side-effects in `scenario`. The CI lint will catch you if you forget.

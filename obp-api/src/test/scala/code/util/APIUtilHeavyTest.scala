@@ -44,26 +44,16 @@ class APIUtilHeavyTest extends V400ServerSetup  with PropsReset {
   val bgVersion = ConstantsBG.berlinGroupVersion1.apiShortVersion
   
   feature("test APIUtil.versionIsAllowed method") {
-
-    // Each setPropsValues block MUST live inside a scenario {}, not in the bare
-    // feature {} body. Code in the bare body runs at suite-construction time
-    // (before any test executes) and ScalaTest constructs every suite up-front;
-    // mutations made here would still be in Props.lockedProviders when the next
-    // suite's `PropsReset` snapshot is captured, baking the leak permanently into
-    // that suite's "baseline". Wrapping each block in a scenario ties the mutations
-    // to the test-execution phase where `afterEach` can undo them.
-
-    scenario("disabled=[v4.0.0] (short form): only v4.0.0 is disabled") {
+    scenario("Test versionIsAllowed with various disabled/enabled version combinations") {
+      //This mean, we are only disabled the v4.0.0, all other versions should be enabled
       setPropsValues(
         "api_disabled_versions" -> "[v4.0.0]",
         "api_enabled_versions" -> "[]"
       )
       APIUtil.versionIsAllowed(ApiVersion.v4_0_0) should be(false)
-      val allEnabledVersions = ApiVersionUtils.versions.filterNot(_ == ApiVersion.v4_0_0).map(APIUtil.versionIsAllowed)
+      val allEnabledVersions= ApiVersionUtils.versions.filterNot(_ == ApiVersion.v4_0_0).map(APIUtil.versionIsAllowed)
       allEnabledVersions.contains(false) should be (false)
-    }
 
-    scenario("disabled=[OBPv4.0.0] (fully qualified): only v4.0.0 is disabled") {
       setPropsValues(
         "api_disabled_versions" -> "[OBPv4.0.0]",
         "api_enabled_versions" -> "[]"
@@ -71,9 +61,7 @@ class APIUtilHeavyTest extends V400ServerSetup  with PropsReset {
       APIUtil.versionIsAllowed(ApiVersion.v4_0_0) should be(false)
       val allEnabledVersions2: List[Boolean] = ApiVersionUtils.versions.filterNot(_ == ApiVersion.v4_0_0).map(APIUtil.versionIsAllowed)
       allEnabledVersions2.contains(false) should be (false)
-    }
 
-    scenario("disabled=[multiple versions including UK BG]") {
       setPropsValues(
         "api_disabled_versions" -> "[OBPv4.0.0,v3.1.0,v3.0.0,UKv3.1,UKv2.0]",
         "api_enabled_versions" -> "[]"
@@ -91,18 +79,18 @@ class APIUtilHeavyTest extends V400ServerSetup  with PropsReset {
         .filterNot(_.fullyQualifiedVersion == "UKv2.0")
         .map(APIUtil.versionIsAllowed)
       allEnabledVersions3.contains(false) should be (false)
-    }
 
-    scenario("OBPv4.0.0 in both enabled and disabled — disabled wins") {
+
+      When("we set OBPv4.0.0 both in enabled and disabled props, it should be disabled")
       setPropsValues(
         "api_disabled_versions" -> "[OBPv4.0.0]",
         "api_enabled_versions" -> "[OBPv4.0.0]"
       )
       APIUtil.versionIsAllowed(ApiVersion.v4_0_0) should be(false)
       APIUtil.versionIsAllowed(ApiVersion.v3_1_0) should be(false)
-    }
 
-    scenario("enabled=[OBPv4.0.0] only — only v4.0.0 stays enabled, all others disabled") {
+
+      When("we set OBPv4.0.0 both in enabled props, it will only enable one version, all other version will be disabled ")
       setPropsValues(
         "api_disabled_versions" -> "[]",
         "api_enabled_versions" -> "[OBPv4.0.0]"

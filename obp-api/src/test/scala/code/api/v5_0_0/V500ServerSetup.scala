@@ -29,6 +29,7 @@ trait V500ServerSetup extends ServerSetupWithTestData with DefaultUsers {
       makeGetRequest(request)
     }
     val banksJson = getBanksInfo.body.extract[BanksJson400]
+    if (banksJson.banks.isEmpty) return "DEFAULT_BANK_ID_NOT_SET_Test"
     val randomPosition = nextInt(banksJson.banks.size)
     val bank = banksJson.banks(randomPosition)
     bank.id

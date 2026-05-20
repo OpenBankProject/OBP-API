@@ -179,6 +179,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
         case ApiVersion.v1_2_1 => resourceDocs
         case ApiVersion.v6_0_0 => resourceDocs  // fully on http4s — no Lift route filter
         case ApiVersion.v5_1_0 => resourceDocs  // fully on http4s — no Lift route filter
+        case ApiVersion.v5_0_0 => resourceDocs  // fully on http4s — no Lift route filter
         case _ => resourceDocs.filter(rd => versionRoutesClasses.contains(rd.partialFunction.getClass))
       }
 

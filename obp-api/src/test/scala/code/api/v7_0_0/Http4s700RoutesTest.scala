@@ -442,6 +442,32 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
         case _ => fail("Expected JSON object")
       }
     }
+
+    scenario("Response includes implicit { OBP, bank_id } in bank_routings", Http4s700RoutesTag) {
+      Given("GET /obp/v7.0.0/banks/BANK_ID")
+      val bankId = testBankId1.value
+      val (statusCode, json, _) = makeHttpRequest(s"/obp/v7.0.0/banks/$bankId")
+
+      Then("Response is 200 and bank_routings contains { OBP, bank_id }")
+      statusCode shouldBe 200
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("bank_routings") match {
+            case Some(JArray(items)) =>
+              val pairs = items.collect {
+                case JObject(routingFields) =>
+                  val rm = toFieldMap(routingFields)
+                  (rm.get("scheme"), rm.get("address")) match {
+                    case (Some(JString(s)), Some(JString(a))) => (s, a)
+                    case _ => ("", "")
+                  }
+              }
+              pairs should contain (("OBP", bankId))
+            case _ => fail("Expected bank_routings array on getBank response")
+          }
+        case _ => fail("Expected JSON object")
+      }
+    }
   }
 
   // ─── getCoreAccountById ───────────────────────────────────────────────────────
@@ -481,6 +507,34 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
           keys should contain("account_id")
           keys should contain("balance")
         case _ => fail("Expected JSON object for getCoreAccountById")
+      }
+    }
+
+    scenario("Response includes implicit { OBP, account_id } in account_routings", Http4s700RoutesTag) {
+      Given("GET /obp/v7.0.0/my/banks/BANK_ID/accounts/ACCOUNT_ID/account authenticated")
+      val bankId = testBankId1.value
+      val accountId = testAccountId0.value
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequest(s"/obp/v7.0.0/my/banks/$bankId/accounts/$accountId/account", headers)
+
+      Then("Response is 200 and account_routings contains { OBP, account_id }")
+      statusCode shouldBe 200
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("account_routings") match {
+            case Some(JArray(items)) =>
+              val pairs = items.collect {
+                case JObject(routingFields) =>
+                  val rm = toFieldMap(routingFields)
+                  (rm.get("scheme"), rm.get("address")) match {
+                    case (Some(JString(s)), Some(JString(a))) => (s, a)
+                    case _ => ("", "")
+                  }
+              }
+              pairs should contain (("OBP", accountId))
+            case _ => fail("Expected account_routings array on getCoreAccountById response")
+          }
+        case _ => fail("Expected JSON object")
       }
     }
   }
@@ -525,6 +579,35 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
           keys should contain("views_available")
           keys should contain("balance")
         case _ => fail("Expected JSON object for getPrivateAccountByIdFull")
+      }
+    }
+
+    scenario("Response includes implicit { OBP, account_id } in account_routings", Http4s700RoutesTag) {
+      Given("GET /obp/v7.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/owner/account authenticated")
+      val bankId = testBankId1.value
+      val accountId = testAccountId0.value
+      val viewId = SYSTEM_OWNER_VIEW_ID
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequest(s"/obp/v7.0.0/banks/$bankId/accounts/$accountId/$viewId/account", headers)
+
+      Then("Response is 200 and account_routings contains { OBP, account_id }")
+      statusCode shouldBe 200
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("account_routings") match {
+            case Some(JArray(items)) =>
+              val pairs = items.collect {
+                case JObject(routingFields) =>
+                  val rm = toFieldMap(routingFields)
+                  (rm.get("scheme"), rm.get("address")) match {
+                    case (Some(JString(s)), Some(JString(a))) => (s, a)
+                    case _ => ("", "")
+                  }
+              }
+              pairs should contain (("OBP", accountId))
+            case _ => fail("Expected account_routings array on getPrivateAccountByIdFull response")
+          }
+        case _ => fail("Expected JSON object")
       }
     }
   }

@@ -479,7 +479,7 @@ object Http4s500 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, "createBank", "POST",
+      null, implementedInApiVersion, nameOf(createBank), "POST",
       "/banks", "Create Bank",
       s"""Create a new bank (Authenticated access).
          |
@@ -535,7 +535,7 @@ object Http4s500 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, "updateBank", "PUT",
+      null, implementedInApiVersion, nameOf(updateBank), "PUT",
       "/banks", "Update Bank",
       "Update an existing bank (Authenticated access).",
       postBankJson500, bankJson500,
@@ -615,7 +615,7 @@ object Http4s500 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, "createAccount", "PUT",
+      null, implementedInApiVersion, nameOf(createAccount), "PUT",
       "/banks/BANK_ID/accounts/NEW_ACCOUNT_ID", "Create Account (PUT)",
       """Create Account at bank specified by BANK_ID with Id specified by ACCOUNT_ID.
         |

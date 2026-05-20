@@ -869,25 +869,44 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   }
 
   override def getBankAccountByRoutingLegacy(bankId: Option[BankId], scheme: String, address: String, callContext: Option[CallContext]): Box[(BankAccount, Option[CallContext])] = {
-    def handleRouting(routing: List[BankAccountRouting]): Box[(MappedBankAccount, Option[CallContext])] = {
-      if (routing.size > 1) { // Handle more than 1 occurrence
-        // Routing MUST be unique
-        val errorMessage = s"$AccountRoutingNotUnique (scheme: $scheme, address: $address)"
-        Failure(errorMessage)
-      } else { // Handle 0 and 1 occurrence
-        Box(routing.headOption).flatMap(accountRouting => getBankAccountCommon(accountRouting.bankId, accountRouting.accountId, callContext))
-      }
-    }
 
-    bankId match {
-      case Some(bankId) => // Bank specific routing
-        val routing = BankAccountRouting
-          .findAll(By(BankAccountRouting.BankId, bankId.value), By(BankAccountRouting.AccountRoutingScheme, scheme), By(BankAccountRouting.AccountRoutingAddress, address))
-        handleRouting(routing)
-      case None => // World wide specific routing (IBAN etc.)
-        val routing = BankAccountRouting
-          .findAll(By(BankAccountRouting.AccountRoutingScheme, scheme), By(BankAccountRouting.AccountRoutingAddress, address))
-        handleRouting(routing)
+    // OBP-family schemes (OBP / OBP_ACCOUNT_ID) are implicit self-identifiers
+    // — address IS the account_id. Resolve directly against the BankAccount
+    // table without touching BankAccountRouting.
+    if (isImplicitOBPAccountScheme(scheme)) {
+      bankId match {
+        case Some(bankId) =>
+          getBankAccountCommon(bankId, AccountId(address), callContext)
+        case None =>
+          // No bank context — accept only when the account_id is globally unique.
+          MappedBankAccount.findAll(By(MappedBankAccount.theAccountId, address)) match {
+            case account :: Nil => Full((account, callContext))
+            case Nil            => Empty
+            case _              =>
+              Failure(s"$AccountRoutingNotUnique (scheme: $scheme, address: $address)")
+          }
+      }
+    } else {
+      def handleRouting(routing: List[BankAccountRouting]): Box[(MappedBankAccount, Option[CallContext])] = {
+        if (routing.size > 1) { // Handle more than 1 occurrence
+          // Routing MUST be unique
+          val errorMessage = s"$AccountRoutingNotUnique (scheme: $scheme, address: $address)"
+          Failure(errorMessage)
+        } else { // Handle 0 and 1 occurrence
+          Box(routing.headOption).flatMap(accountRouting => getBankAccountCommon(accountRouting.bankId, accountRouting.accountId, callContext))
+        }
+      }
+
+      bankId match {
+        case Some(bankId) => // Bank specific routing
+          val routing = BankAccountRouting
+            .findAll(By(BankAccountRouting.BankId, bankId.value), By(BankAccountRouting.AccountRoutingScheme, scheme), By(BankAccountRouting.AccountRoutingAddress, address))
+          handleRouting(routing)
+        case None => // World wide specific routing (IBAN etc.)
+          val routing = BankAccountRouting
+            .findAll(By(BankAccountRouting.AccountRoutingScheme, scheme), By(BankAccountRouting.AccountRoutingAddress, address))
+          handleRouting(routing)
+      }
     }
   }
 
@@ -906,15 +925,24 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   }
 
   override def getAccountRouting(bankId: Option[BankId], scheme: String, address: String, callContext: Option[CallContext]): Box[(BankAccountRouting, Option[CallContext])] = {
-    bankId match {
-      case Some(bankId) =>
-        BankAccountRouting
-          .find(By(BankAccountRouting.BankId, bankId.value), By(BankAccountRouting.AccountRoutingScheme, scheme), By(BankAccountRouting.AccountRoutingAddress, address))
-          .map(accountRouting => (accountRouting, callContext))
-      case None =>
-        BankAccountRouting
-          .find(By(BankAccountRouting.AccountRoutingScheme, scheme), By(BankAccountRouting.AccountRoutingAddress, address))
-          .map(accountRouting => (accountRouting, callContext))
+    // OBP-family schemes are never stored as explicit BankAccountRouting rows
+    // (account lookups by OBP scheme go through getBankAccountByRouting, not here).
+    // This lookup is used as a uniqueness check on routing-row creation, so for
+    // OBP-family it must always report "no existing row" — otherwise virtual +
+    // stored could be ambiguous.
+    if (isImplicitOBPAccountScheme(scheme)) {
+      Empty
+    } else {
+      bankId match {
+        case Some(bankId) =>
+          BankAccountRouting
+            .find(By(BankAccountRouting.BankId, bankId.value), By(BankAccountRouting.AccountRoutingScheme, scheme), By(BankAccountRouting.AccountRoutingAddress, address))
+            .map(accountRouting => (accountRouting, callContext))
+        case None =>
+          BankAccountRouting
+            .find(By(BankAccountRouting.AccountRoutingScheme, scheme), By(BankAccountRouting.AccountRoutingAddress, address))
+            .map(accountRouting => (accountRouting, callContext))
+      }
     }
   }
 
@@ -5208,6 +5236,60 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             (transactionId, callContext)
           }
         case SIMPLE =>
+          for {
+            bodyToSimple <- NewStyle.function.tryons(s"$TransactionRequestDetailsExtractException It can not extract to $TransactionRequestBodyCounterpartyJSON", 400, callContext) {
+              body.to_simple.get
+            }
+            (toCounterparty, callContext) <- NewStyle.function.getCounterpartyByRoutings(
+              bodyToSimple.otherBankRoutingScheme,
+              bodyToSimple.otherBankRoutingAddress,
+              bodyToSimple.otherBranchRoutingScheme,
+              bodyToSimple.otherBranchRoutingAddress,
+              bodyToSimple.otherAccountRoutingScheme,
+              bodyToSimple.otherAccountRoutingAddress,
+              bodyToSimple.otherAccountSecondaryRoutingScheme,
+              bodyToSimple.otherAccountSecondaryRoutingAddress,
+              callContext
+            )
+            (toAccount, callContext) <- NewStyle.function.getBankAccountFromCounterparty(toCounterparty, true, callContext)
+            counterpartyBody = TransactionRequestBodySimpleJsonV400(
+              to = PostSimpleCounterpartyJson400(
+                name = toCounterparty.name,
+                description = toCounterparty.description,
+                other_bank_routing_scheme = toCounterparty.otherBankRoutingScheme,
+                other_bank_routing_address = toCounterparty.otherBankRoutingAddress,
+                other_account_routing_scheme = toCounterparty.otherAccountRoutingScheme,
+                other_account_routing_address = toCounterparty.otherAccountRoutingAddress,
+                other_account_secondary_routing_scheme = toCounterparty.otherAccountSecondaryRoutingScheme,
+                other_account_secondary_routing_address = toCounterparty.otherAccountSecondaryRoutingAddress,
+                other_branch_routing_scheme = toCounterparty.otherBranchRoutingScheme,
+                other_branch_routing_address = toCounterparty.otherBranchRoutingAddress,
+              ),
+              value = AmountOfMoneyJsonV121(body.value.currency, body.value.amount),
+              description = body.description,
+              charge_policy = transactionRequest.charge_policy,
+              future_date = transactionRequest.future_date
+            )
+            (transactionId, callContext) <- NewStyle.function.makePaymentv210(
+              fromAccount,
+              toAccount,
+              transactionRequest.id,
+              transactionRequestCommonBody = counterpartyBody,
+              BigDecimal(counterpartyBody.value.amount),
+              counterpartyBody.description,
+              TransactionRequestType(transactionRequestType),
+              transactionRequest.charge_policy,
+              callContext
+            )
+          } yield {
+            (transactionId, callContext)
+          }
+        // OPEN_CORRIDOR: money-movement is identical to SIMPLE today (same beneficiary
+        // routing shape). The originator block is persisted on the TR row by
+        // MappedTransactionRequestProvider and surfaced on v7 responses by
+        // JSONFactory700.buildTransactionRequestOriginatorJson — neither is needed here.
+        // Reuses the SIMPLE path via body.to_simple.
+        case OPEN_CORRIDOR =>
           for {
             bodyToSimple <- NewStyle.function.tryons(s"$TransactionRequestDetailsExtractException It can not extract to $TransactionRequestBodyCounterpartyJSON", 400, callContext) {
               body.to_simple.get
