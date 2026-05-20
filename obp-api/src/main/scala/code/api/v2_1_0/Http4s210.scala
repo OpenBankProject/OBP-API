@@ -173,6 +173,12 @@ object Http4s210 {
         // Use cc.httpBody (cached by ResourceDocMiddleware via cachedBodyKey) instead of re-reading
         // req.bodyText, which is empty after the bridge cascade has already consumed the stream.
         (for {
+          // Check type validity before requiring middleware-resolved entities: for an invalid
+          // type the middleware finds no matching ResourceDoc and skips bankAccount resolution,
+          // so cc.bankAccount is None — checking the type first avoids a misleading AccountNotFound.
+          _ <- if (v210SupportedTransactionRequestTypes.contains(transactionRequestTypeStr)) IO.unit
+               else IO.raiseError(new RuntimeException(liftWrite(code.api.APIFailureNewStyle(
+                 s"$InvalidTransactionRequestType: '$transactionRequestTypeStr'", 400, Some(cc.toLight)))))
           jsonBody <- IO.pure(cc.httpBody.getOrElse(""))
           user     <- IO.fromOption(cc.user.toOption)(new RuntimeException(AuthenticatedUserIsRequired))
           account  <- IO.fromOption(cc.bankAccount)(new RuntimeException(AccountNotFound))
