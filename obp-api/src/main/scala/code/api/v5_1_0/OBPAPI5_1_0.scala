@@ -38,7 +38,7 @@ import code.api.v2_2_0.APIMethods220
 import code.api.v3_0_0.APIMethods300
 import code.api.v3_0_0.custom.CustomAPIMethods300
 import code.api.v3_1_0.APIMethods310
-import code.api.v4_0_0.APIMethods400
+import code.api.v4_0_0.{APIMethods400, Http4s400}
 import code.api.v5_0_0.{APIMethods500, OBPAPI5_0_0}
 import code.util.Helper.MdcLoggable
 import com.github.dwickern.macros.NameOf.nameOf
@@ -71,16 +71,19 @@ object OBPAPI5_1_0 extends OBPRestHelper
   // Re-export so tests that import OBPAPI5_1_0.Implementations5_1_0 still compile
   // after APIMethods510 was replaced with an empty stub.
   val Implementations5_1_0 = Http4s510.Implementations5_1_0
+  // Re-export so nameOf references below (in excludeEndpoints) continue to compile
+  // after APIMethods400 was replaced with an empty stub.
+  val Implementations4_0_0 = Http4s400.Implementations4_0_0
 
   lazy val excludeEndpoints =
     nameOf(Implementations3_0_0.getUserByUsername) ::  // following 4 endpoints miss Provider parameter in the URL, we introduce new ones in V510.
       nameOf(Implementations3_1_0.getBadLoginStatus) ::
       nameOf(Implementations3_1_0.unlockUser) ::
-      "lockUser" ::
-      "createUserWithAccountAccess" ::  // following 3 endpoints miss ViewId parameter in the URL, we introduce new ones in V510.
-      "grantUserAccessToView" ::
-      "revokeUserAccessToView" ::
-      "revokeGrantUserAccessToViews" ::// this endpoint is forbidden in V510, we do not support multi views in one endpoint from V510.
+      nameOf(Implementations4_0_0.lockUser) ::
+      nameOf(Implementations4_0_0.createUserWithAccountAccess) ::  // following 3 endpoints miss ViewId parameter in the URL, we introduce new ones in V510.
+      nameOf(Implementations4_0_0.grantUserAccessToView) ::
+      nameOf(Implementations4_0_0.revokeUserAccessToView) ::
+      nameOf(Implementations4_0_0.revokeGrantUserAccessToViews) ::// this endpoint is forbidden in V510, we do not support multi views in one endpoint from V510.
       Nil
 
   // All v5.1.0 endpoints live in Http4s510 — aggregate Http4s510.resourceDocs on top of v5.0.0.

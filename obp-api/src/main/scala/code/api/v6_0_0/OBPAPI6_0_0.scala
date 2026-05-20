@@ -39,7 +39,7 @@ import code.api.v2_2_0.APIMethods220
 import code.api.v3_0_0.APIMethods300
 import code.api.v3_0_0.custom.CustomAPIMethods300
 import code.api.v3_1_0.APIMethods310
-import code.api.v4_0_0.APIMethods400
+import code.api.v4_0_0.{APIMethods400, Http4s400}
 import code.api.v5_0_0.APIMethods500
 import code.api.v5_1_0.{APIMethods510, Http4s510, OBPAPI5_1_0}
 import code.util.Helper.MdcLoggable
@@ -75,19 +75,22 @@ object OBPAPI6_0_0 extends OBPRestHelper
   // Re-export so nameOf references below (in excludeEndpoints) continue to compile
   // after APIMethods510 was replaced with an empty stub.
   val Implementations5_1_0 = Http4s510.Implementations5_1_0
+  // Re-export so nameOf references below (in excludeEndpoints) continue to compile
+  // after APIMethods400 was replaced with an empty stub.
+  val Implementations4_0_0 = Http4s400.Implementations4_0_0
 
   lazy val excludeEndpoints =
     nameOf(Implementations3_0_0.getUserByUsername) ::
       nameOf(Implementations3_1_0.getBadLoginStatus) ::
       nameOf(Implementations3_1_0.unlockUser) ::
-      "lockUser" ::
-      "createUserWithAccountAccess" ::
-      "grantUserAccessToView" ::
-      "revokeUserAccessToView" ::
-      "revokeGrantUserAccessToViews" ::
-      "getMyPersonalUserAttributes" ::
-      "createMyPersonalUserAttribute" ::
-      "updateMyPersonalUserAttribute" ::
+      nameOf(Implementations4_0_0.lockUser) ::
+      nameOf(Implementations4_0_0.createUserWithAccountAccess) ::
+      nameOf(Implementations4_0_0.grantUserAccessToView) ::
+      nameOf(Implementations4_0_0.revokeUserAccessToView) ::
+      nameOf(Implementations4_0_0.revokeGrantUserAccessToViews) ::
+      nameOf(Implementations4_0_0.getMyPersonalUserAttributes) ::
+      nameOf(Implementations4_0_0.createMyPersonalUserAttribute) ::
+      nameOf(Implementations4_0_0.updateMyPersonalUserAttribute) ::
       nameOf(Implementations5_1_0.createNonPersonalUserAttribute) ::
       nameOf(Implementations5_1_0.getNonPersonalUserAttributes) ::
       nameOf(Implementations5_1_0.deleteNonPersonalUserAttribute) ::
