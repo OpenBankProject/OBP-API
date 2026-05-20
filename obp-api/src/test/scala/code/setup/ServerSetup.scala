@@ -47,26 +47,16 @@ trait ServerSetup extends FeatureSpec with SendServerRequests
   with BeforeAndAfterAll
   with Matchers with MdcLoggable with CustomJsonFormats with PropsReset{
 
-  setPropsValues("migration_scripts.execute_all" -> "true")
-  setPropsValues("migration_scripts.execute" -> "true")
-  setPropsValues("allow_dauth" -> "true")
-  setPropsValues("dauth.host" -> "127.0.0.1")
-  setPropsValues("jwt_token_secret"->"your-at-least-256-bit-secret-token")
-  setPropsValues("jwt.public_key_rsa" -> "src/test/resources/cert/public_dauth.pem")
-  setPropsValues("transactionRequests_supported_types" -> "SEPA,SANDBOX_TAN,FREE_FORM,COUNTERPARTY,ACCOUNT,ACCOUNT_OTP,SIMPLE,CARD,AGENT_CASH_WITHDRAWAL,CARDANO")
-  setPropsValues("CARD_OTP_INSTRUCTION_TRANSPORT" -> "DUMMY")
-  setPropsValues("AGENT_CASH_WITHDRAWAL_OTP_INSTRUCTION_TRANSPORT" -> "DUMMY")
-  setPropsValues("api_instance_id" -> "1_final")
-  setPropsValues("starConnector_supported_types" -> "mapped,internal,cardano_vJun2025")
-  setPropsValues("connector" -> "star")
-
-  // Berlin Group - set in trait body for initial setup
-  setPropsValues("berlin_group_mandatory_headers" -> "")
-  setPropsValues("berlin_group_mandatory_header_consent" -> "")
-
+  // Most baseline test props now live in `test.default.props` so they're set
+  // before Boot runs (required because Migration.scala reads
+  // `migration_scripts.execute_all` once at class-load time) and so
+  // `PropsReset.afterEach` can't unset them between scenarios.
+  //
+  // Only Berlin Group headers are re-applied here, because individual tests
+  // mutate them and we want a known-empty baseline between scenarios.
+  // See TEST_ISOLATION_ADVISE.md for the rule.
   override def beforeEach(): Unit = {
     super.beforeEach()
-    // Re-apply Berlin Group props after each PropsReset.afterEach() restores lockedProviders
     setPropsValues(
       "berlin_group_mandatory_headers" -> "",
       "berlin_group_mandatory_header_consent" -> ""

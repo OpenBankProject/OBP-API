@@ -61,6 +61,16 @@ The same rule covers anything that touches process-global state:
 
 If it persists past the current request and there's no `afterEach` reverting it, keep it inside `scenario { ... }`.
 
+## Enforcement (in this repo)
+
+Two defenses are in place; both should catch the same mistakes from different angles.
+
+**Runtime guard** — `code/setup/PropsReset.scala` keeps a `ThreadLocal[Boolean]` flag that `beforeAll`/`beforeEach` flip on and `afterEach`/`afterAll` flip off. `setPropsValues` throws `IllegalStateException` if it's called when the flag is false (i.e. at class/trait/feature-body level). You see this the first time you run the offending test, with a stack trace pointing at the line and a message referencing this file.
+
+**Static lint** — `.github/scripts/check_test_isolation.py` scans every `*.scala` file under `obp-api/src/test/scala`, tracks brace-depth scoping, and fails the build if a `setPropsValues(` call appears outside a `scenario`, `def`, or `before*`/`after*` block. The check runs in `.github/workflows/build_pull_request.yml` as the `Lint — test-isolation` step, before `mvn install`.
+
+If you need a baseline prop set before tests run (e.g. something `Migration.scala` reads at class-load time), put it in `obp-api/src/main/resources/props/test.default.props` — that file is read by Lift Props before Boot and isn't affected by `PropsReset.afterEach`.
+
 ## TL;DR
 
-`feature { ... }` runs at class load. `scenario { ... }` runs when the test runs. Put side-effects in `scenario`.
+`feature { ... }` runs at class load. `scenario { ... }` runs when the test runs. Put side-effects in `scenario`. The runtime guard and CI lint will catch you if you forget.

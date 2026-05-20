@@ -41,6 +41,9 @@ jobs:
           cp obp-api/src/main/resources/props/sample.props.template \
              obp-api/src/main/resources/props/production.default.props
 
+      - name: Lint — test-isolation (no setPropsValues at class/feature body)
+        run: python3 .github/scripts/check_test_isolation.py
+
       - name: Compile and install (skip test execution)
         run: |
           # -DskipTests  — compile test sources but do NOT run them
