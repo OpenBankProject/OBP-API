@@ -39,7 +39,6 @@ import com.nimbusds.jwt.JWTClaimsSet
 import com.openbankproject.commons.model.{InboundAccount, User}
 import net.liftweb.common._
 import net.liftweb.http._
-import net.liftweb.http.rest.RestHelper
 import net.liftweb.json._
 import net.liftweb.util.Helpers
 
@@ -67,7 +66,12 @@ object JSONFactoryGateway {
 
 }
 
-object GatewayLogin extends RestHelper with MdcLoggable {
+// GatewayLogin is a gateway-JWT exchange library consumed by the auth path. It has no
+// HTTP routes of its own; the legacy `extends RestHelper` mixin was vestigial.
+object GatewayLogin extends MdcLoggable {
+
+  // For lift-json `.extract[PayloadOfJwtJSON]` calls below.
+  private implicit val formats: Formats = DefaultFormats
 
   val gateway = "Gateway" // This value is used for ResourceUser.provider and Consumer.description
 

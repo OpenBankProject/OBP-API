@@ -47,32 +47,63 @@ trait ServerSetup extends FeatureSpec with SendServerRequests
   with BeforeAndAfterAll
   with Matchers with MdcLoggable with CustomJsonFormats with PropsReset{
 
-  setPropsValues("migration_scripts.execute_all" -> "true")
-  setPropsValues("migration_scripts.execute" -> "true")
-  setPropsValues("allow_dauth" -> "true")
-  setPropsValues("dauth.host" -> "127.0.0.1")
-  setPropsValues("jwt_token_secret"->"your-at-least-256-bit-secret-token")
-  setPropsValues("jwt.public_key_rsa" -> "src/test/resources/cert/public_dauth.pem")
-  setPropsValues("transactionRequests_supported_types" -> "SEPA,SANDBOX_TAN,FREE_FORM,COUNTERPARTY,ACCOUNT,ACCOUNT_OTP,SIMPLE,CARD,AGENT_CASH_WITHDRAWAL,CARDANO")
-  setPropsValues("CARD_OTP_INSTRUCTION_TRANSPORT" -> "DUMMY")
-  setPropsValues("AGENT_CASH_WITHDRAWAL_OTP_INSTRUCTION_TRANSPORT" -> "DUMMY")
-  setPropsValues("api_instance_id" -> "1_final")
-  setPropsValues("starConnector_supported_types" -> "mapped,internal,cardano_vJun2025")
-  setPropsValues("connector" -> "star")
+  // Baseline props pushed twice — once at trait construction, once in beforeAll.
+  //
+  //   Trait-body pushes are needed because `val server = TestServer` below is
+  //   evaluated at suite construction and triggers Lift Boot + http4s server
+  //   startup. Migrations and the connector are wired from Props at that
+  //   moment, so `migration_scripts.execute_all`, `connector`, etc. MUST be in
+  //   place before TestServer.init. In environments where the props file
+  //   already carries these values (the source-controlled test.default.props),
+  //   omitting trait-body pushes goes unnoticed. In GitHub Actions, where the
+  //   workflow writes a minimal props file from scratch, missing trait-body
+  //   pushes cause Lift to skip migrations and tests get an empty DB.
+  //
+  //   beforeAll pushes are needed because PropsReset.beforeAll wipes every
+  //   setPropsValues-owned map from Props.lockedProviders before chaining
+  //   super — to purge cross-suite contamination from other suites'
+  //   construction-time pushes. The same wipe also removes our own trait-body
+  //   baselines (TestServer is already past Boot at that point and doesn't
+  //   care, but the test scenarios do). Re-pushing in beforeAll restores them
+  //   onto the now-clean stack for this suite's tests.
+  private def pushBaselineProps(): Unit = {
+    setPropsValues("migration_scripts.execute_all" -> "true")
+    setPropsValues("migration_scripts.execute" -> "true")
+    setPropsValues("allow_dauth" -> "true")
+    setPropsValues("dauth.host" -> "127.0.0.1")
+    setPropsValues("jwt_token_secret" -> "your-at-least-256-bit-secret-token")
+    setPropsValues("jwt.public_key_rsa" -> "src/test/resources/cert/public_dauth.pem")
+    setPropsValues("transactionRequests_supported_types" -> "SEPA,SANDBOX_TAN,FREE_FORM,COUNTERPARTY,ACCOUNT,ACCOUNT_OTP,SIMPLE,CARD,AGENT_CASH_WITHDRAWAL,CARDANO")
+    setPropsValues("CARD_OTP_INSTRUCTION_TRANSPORT" -> "DUMMY")
+    setPropsValues("AGENT_CASH_WITHDRAWAL_OTP_INSTRUCTION_TRANSPORT" -> "DUMMY")
+    setPropsValues("api_instance_id" -> "1_final")
+    setPropsValues("starConnector_supported_types" -> "mapped,internal,cardano_vJun2025")
+    setPropsValues("connector" -> "star")
+    setPropsValues("berlin_group_mandatory_headers" -> "")
+    setPropsValues("berlin_group_mandatory_header_consent" -> "")
+  }
 
-  // Berlin Group - set in trait body for initial setup
-  setPropsValues("berlin_group_mandatory_headers" -> "")
-  setPropsValues("berlin_group_mandatory_header_consent" -> "")
+  // Trait-body push: needed before `val server = TestServer` triggers Lift Boot.
+  pushBaselineProps()
+
+  override def beforeAll(): Unit = {
+    super.beforeAll()  // PropsReset.beforeAll wipes owned maps first
+    pushBaselineProps()  // re-push for this suite's tests
+    resetDatabaseForTestClass()
+  }
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    // Re-apply Berlin Group props after each PropsReset.afterEach() restores lockedProviders
+    // Re-apply Berlin Group props on every scenario — PropsReset.afterEach
+    // restores to the post-beforeEach snapshot, which after the first scenario
+    // is the same as post-beforeAll. Subsequent scenarios push fresh berlin_group
+    // entries; afterEach trims them back to that snapshot.
     setPropsValues(
       "berlin_group_mandatory_headers" -> "",
       "berlin_group_mandatory_header_consent" -> ""
     )
   }
-  
+
   // Set system properties to force Pekko to use random available ports
   // This prevents conflicts when both RunWebApp and tests are running
   System.setProperty("pekko.remote.artery.canonical.port", "0")
@@ -88,10 +119,6 @@ trait ServerSetup extends FeatureSpec with SendServerRequests
    * We preserve only the essential OAuth/auth tables (Nonce, Token, Consumer, AuthUser, ResourceUser)
    * as these are needed for test authentication and are managed by DefaultUsers trait.
    */
-  override def beforeAll(): Unit = {
-    super.beforeAll()
-    resetDatabaseForTestClass()
-  }
 
   /**
    * Resets database tables to ensure clean state for each test class.

@@ -45,7 +45,6 @@ case class CallContext(
                         operationId: Option[String] = None, // Dynamic Endpoint Unique Identifier. Important for Rate Limiting.
                         authReqHeaderField: Box[String] = Empty,
                         directLoginParams: Map[String, String] = Map(),
-                        oAuthParams: Map[String, String] = Map(),
                         httpCode: Option[Int] = None,
                         httpBody: Option[String] = None,
                         requestHeaders: List[HTTPParam] = Nil,
@@ -141,7 +140,6 @@ case class CallContext(
       requestHeaders = this.requestHeaders,
       partialFunctionName = this.resourceDocument.map(_.partialFunctionName).getOrElse(""),
       directLoginToken = this.directLoginParams.get("token").getOrElse(""),
-      oAuthToken = this.oAuthParams.get("oauth_token").getOrElse(""),
       xRateLimitLimit = this.xRateLimitLimit,
       xRateLimitRemaining = this.xRateLimitRemaining,
       xRateLimitReset = this.xRateLimitReset,
@@ -208,7 +206,6 @@ case class CallContextLight(gatewayLoginRequestPayload: Option[PayloadOfJwtJSON]
                             requestHeaders: List[HTTPParam] = Nil,
                             partialFunctionName: String = "",
                             directLoginToken: String = "",
-                            oAuthToken: String = "",
                             xRateLimitLimit : Long = -1,
                             xRateLimitRemaining : Long = -1,
                             xRateLimitReset : Long = -1,

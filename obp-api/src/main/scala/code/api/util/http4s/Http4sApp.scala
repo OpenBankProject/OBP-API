@@ -106,6 +106,7 @@ object Http4sApp {
       corsHandler.run(req)
         .orElse(AppsPage.routes.run(req))
         .orElse(StatusPage.routes.run(req))
+        .orElse(Http4sResourceDocs.routes.run(req))
         .orElse(v510Routes.run(req))
         .orElse(v600Routes.run(req))
         .orElse(v500Routes.run(req))
@@ -120,6 +121,9 @@ object Http4sApp {
         .orElse(v140Routes.run(req))
         .orElse(v130Routes.run(req))
         .orElse(v121Routes.run(req))
+        .orElse(code.api.DirectLoginRoutes.routes.run(req))
+        .orElse(code.api.AliveCheckRoutes.routes.run(req))
+        .orElse(code.management.ImporterAPIRoutes.routes.run(req))
         .orElse(Http4sLiftWebBridge.routes.run(req))
     }
   }

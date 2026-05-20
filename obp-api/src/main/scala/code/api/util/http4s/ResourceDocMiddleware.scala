@@ -3,7 +3,6 @@ package code.api.util.http4s
 import cats.data.{EitherT, Kleisli, OptionT}
 import cats.effect._
 import code.api.Constant
-import code.api.v7_0_0.Http4s700
 import code.api.APIFailureNewStyle
 import code.api.util.APIUtil.ResourceDoc
 import code.api.util.ErrorMessages._
@@ -12,7 +11,6 @@ import code.api.util.{APIUtil, ApiRole, CallContext, NewStyle}
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.util.{ApiShortVersions, ScannedApiVersion}
-import com.github.dwickern.macros.NameOf.nameOf
 import net.liftweb.common.{Box, Empty, Failure, Full}
 import org.http4s._
 import org.http4s.headers.`Content-Type`
@@ -78,14 +76,9 @@ object ResourceDocMiddleware extends MdcLoggable {
    * Authentication is required if:
    * - ResourceDoc errorResponseBodies contains $AuthenticatedUserIsRequired
    * - ResourceDoc has roles (roles always require authenticated user)
-   * - Special case: resource-docs endpoint checks resource_docs_requires_role property
    */
   private def needsAuthentication(resourceDoc: ResourceDoc): Boolean = {
-    if (resourceDoc.partialFunctionName == nameOf(Http4s700.Implementations7_0_0.getResourceDocsObpV700)) {
-      APIUtil.getPropsAsBoolValue("resource_docs_requires_role", false)
-    } else {
-      resourceDoc.errorResponseBodies.contains($AuthenticatedUserIsRequired) || resourceDoc.roles.exists(_.nonEmpty)
-    }
+    resourceDoc.errorResponseBodies.contains($AuthenticatedUserIsRequired) || resourceDoc.roles.exists(_.nonEmpty)
   }
 
   /**
@@ -363,14 +356,7 @@ object ResourceDocMiddleware extends MdcLoggable {
   private def authorizeRoles(resourceDoc: ResourceDoc, pathParams: Map[String, String], ctx: ValidationContext): Validation[ValidationContext] = {
     import DSL._
 
-    val rolesToCheck: Option[List[ApiRole]] =
-      if (resourceDoc.partialFunctionName == nameOf(Http4s700.Implementations7_0_0.getResourceDocsObpV700) && APIUtil.getPropsAsBoolValue("resource_docs_requires_role", false)) {
-        Some(List(ApiRole.canReadResourceDoc))
-      } else {
-        resourceDoc.roles
-      }
-
-    rolesToCheck match {
+    resourceDoc.roles match {
       case Some(roles) if roles.nonEmpty =>
         ctx.user match {
           case Full(user) =>

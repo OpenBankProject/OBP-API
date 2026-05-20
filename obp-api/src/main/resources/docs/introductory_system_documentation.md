@@ -69,7 +69,7 @@ The Open Bank Project (OBP) is an open-source RESTful API platform for banks tha
   - **Transparency & Privacy**: Configurable data sharing with views, data blurring to preserve sensitive information
   - **Data Enrichment**: Add tags, comments, images, and metadata to transactions
   - **Multi-Bank Abstraction**: Universal API layer across different core banking systems
-  - **Flexible Authentication**: OAuth 1.0a, OAuth 2.0, OpenID Connect, Direct Login, Gateway Login
+  - **Flexible Authentication**: OAuth 2.0, OpenID Connect, Direct Login, Gateway Login
   - **Comprehensive Banking APIs**: 1000+ endpoints covering accounts, payments, customers, KYC, cards, products
   - **Real-Time & Batch Operations**: Support for both synchronous and asynchronous processing
 
@@ -126,7 +126,7 @@ The Open Bank Project (OBP) is an open-source RESTful API platform for banks tha
 
 #### 1.2.7 Authentication & Authorization
 
-- **Multiple Auth Methods**: OAuth 1.0a, OAuth 2.0, OpenID Connect (OIDC) with multiple concurrent providers, Direct Login, Gateway Login
+- **Multiple Auth Methods**: OAuth 2.0, OpenID Connect (OIDC) with multiple concurrent providers, Direct Login, Gateway Login
 - **Consumer Management**: API consumer registration and key management
 - **Token Management**: Access token lifecycle management
 - **Consent Management**: PSD2-compliant consent workflows (AIS, PIS, PIIS)
@@ -201,7 +201,7 @@ The Open Bank Project (OBP) is an open-source RESTful API platform for banks tha
 ### 1.2.15 Technical Capabilities
 
 - **Multi-Standard Support:** Open Bank Project, Berlin Group NextGenPSD2, UK Open Banking, Bahrain OBF, STET PSD2, Polish API, AU CDR, Mexico OF
-- **Authentication Methods:** OAuth 1.0a, OAuth 2.0, OpenID Connect (OIDC) with multiple concurrent providers, Direct Login, Gateway Login
+- **Authentication Methods:** OAuth 2.0, OpenID Connect (OIDC) with multiple concurrent providers, Direct Login, Gateway Login
 - **Extensibility:** Dynamic endpoints, dynamic entities, connector architecture, method routing
 - **Rate Limiting:** Built-in support with Redis or in-memory backends
 - **Multi-Database Support:** PostgreSQL, Oracle, MySQL, MS SQL Server, H2
@@ -410,7 +410,7 @@ The Open Bank Project (OBP) is an open-source RESTful API platform for banks tha
 
 - Multi-version API support (v1.2.1 - v6.0.0+)
 - Pluggable connector architecture (Mapped, Kafka, RabbitMQ, Akka, gRPC, REST)
-- OAuth 1.0a/2.0/OIDC authentication
+- OAuth 2.0/OIDC authentication
 - Role-based access control (RBAC)
 - Dynamic endpoint creation
 - Rate limiting and quotas
@@ -2628,43 +2628,7 @@ After the upgrade completes successfully:
 
 OBP-API supports multiple authentication methods to accommodate different use cases and integration scenarios.
 
-#### 7.1.1 OAuth 1.0a
-
-**Overview:** Traditional three-legged OAuth flow for third-party applications
-
-**Use Cases:**
-
-- Legacy integrations
-- Apps requiring delegated access without OpenID Connect support
-
-**Flow:**
-
-1. Consumer obtains request token
-2. User redirected to OBP for authorization
-3. User approves access
-4. Consumer exchanges request token for access token
-5. Access token used for API calls
-
-**Implementation:**
-
-```bash
-# Get request token
-POST /oauth/initiate
-Authorization: OAuth oauth_consumer_key="xxx", oauth_signature_method="HMAC-SHA256"
-
-# User authorization
-GET /oauth/authorize?oauth_token=REQUEST_TOKEN
-
-# Get access token
-POST /oauth/token
-Authorization: OAuth oauth_token="REQUEST_TOKEN", oauth_verifier="VERIFIER"
-
-# API call with access token
-GET /obp/v5.1.0/banks
-Authorization: OAuth oauth_token="ACCESS_TOKEN", oauth_signature="..."
-```
-
-#### 7.1.2 OAuth 2.0
+#### 7.1.1 OAuth 2.0
 
 **Overview:** Modern authorization framework supporting various grant types
 
@@ -2707,7 +2671,7 @@ GET /obp/v5.1.0/users/current
 Authorization: Bearer ACCESS_TOKEN
 ```
 
-#### 7.1.3 OpenID Connect (OIDC)
+#### 7.1.2 OpenID Connect (OIDC)
 
 **Overview:** Identity layer on top of OAuth 2.0 providing user authentication
 
@@ -2756,7 +2720,7 @@ openid_connect_2.access_type_offline=true
 oauth2.jwk_set.url=http://keycloak:7070/realms/obp/protocol/openid-connect/certs
 ```
 
-#### 7.1.4 Direct Login
+#### 7.1.3 Direct Login
 
 **Overview:** Simplified username/password authentication for trusted applications
 
@@ -4578,9 +4542,6 @@ connector=mapped  # mapped | kafka | akka | rest | grpc_vFeb2026 | star
 cache.redis.url=127.0.0.1
 cache.redis.port=6379
 
-# OAuth 1.0a
-allow_oauth1_login=true
-
 # OAuth 2.0
 allow_oauth2_login=true
 oauth2.jwk_set.url=http://localhost:9000/jwks
@@ -5186,39 +5147,7 @@ For the latest updates visit Open Bank Project GitHub or contact TESOBE.
 
 ### 6.1 Authentication Methods
 
-#### 6.1.1 OAuth 1.0a
-
-**Overview:** Legacy OAuth method, still supported for backward compatibility
-
-**Flow:**
-
-1. Request temporary credentials (request token)
-2. Redirect user to authorization endpoint
-3. User grants access
-4. Exchange request token for access token
-5. Use access token for API requests
-
-**Configuration:**
-
-```properties
-# Enable OAuth 1.0a (enabled by default)
-allow_oauth1=true
-```
-
-**Example Request:**
-
-```http
-GET /obp/v4.0.0/users/current
-Authorization: OAuth oauth_consumer_key="xxx",
-                    oauth_token="xxx",
-                    oauth_signature_method="HMAC-SHA1",
-                    oauth_signature="xxx",
-                    oauth_timestamp="1234567890",
-                    oauth_nonce="xxx",
-                    oauth_version="1.0"
-```
-
-#### 6.1.2 OAuth 2.0 / OpenID Connect
+#### 6.1.1 OAuth 2.0 / OpenID Connect
 
 **Overview:** Modern OAuth2 with OIDC for authentication
 
@@ -5292,7 +5221,7 @@ GET /obp/v4.0.0/users/current
 Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
-#### 6.1.3 Direct Login
+#### 6.1.2 Direct Login
 
 **Overview:** Simplified authentication method for trusted applications
 

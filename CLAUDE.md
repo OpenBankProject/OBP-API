@@ -18,7 +18,7 @@ The goal is a full http4s migration — replace Lift Web across all version file
 
 **Migrated endpoints** (45): root, getBanks, getCards, getCardsForBank, getResourceDocsObpV700, getBank, getCurrentUser, getCoreAccountById, getPrivateAccountByIdFull, getExplicitCounterpartyById, deleteEntitlement, addEntitlement, getAccountAccessTrace, getFeatures, getScannedApiVersions, getConnectors, getErrorMessages, getProviders, getUsers, getUserByUserId, getCustomersAtOneBank, getCustomerByCustomerId, getAccountsAtBank, createTradingOffer, getTradingOffer, getTradingOffers, cancelTradingOffer, createMarketOrder, getMarketOrder, cancelMarketOrder, createMarketMatch, getMarketTrade, requestSettlement, requestWithdrawal, getCacheConfig, getCacheInfo, getDatabasePoolInfo, getStoredProcedureConnectorHealth, getMigrations, getCacheNamespaces, createOrganisation, getOrganisations, getOrganisation, updateOrganisation, deleteOrganisation.
 
-**Tests**: `Http4s700RoutesTest` (111 scenarios, port 8087). `makeHttpRequest` returns `(Int, JValue, Map[String, String])`. `makeHttpRequestWithBody(method, path, body, headers)` for POST/PUT.
+**Tests**: `Http4s700RoutesTest` (102 scenarios, port 8087). `makeHttpRequest` returns `(Int, JValue, Map[String, String])`. `makeHttpRequestWithBody(method, path, body, headers)` for POST/PUT.
 
 ## Migrating a Lift Endpoint to http4s
 
@@ -292,9 +292,9 @@ Compile times are consistent across all three shards — Zinc cache restores cor
 
 At the integration level both frameworks are similarly server/DB-bound (~0.32–0.45 s/test). The real http4s gain is the **unit/pure tier** — tests that don't need a running server are 54× faster. As more logic moves into pure functions (request parsing, response building, auth checks) these unit tests replace integration tests and the savings compound.
 
-The 6 integration suites (pre-merge timings; Http4s700RoutesTest has grown to 111 scenarios):
+The 6 integration suites (pre-merge timings; Http4s700RoutesTest is currently 102 scenarios):
 - `obp-api/src/test/scala/code/api/http4sbridge/Http4sLiftBridgePropertyTest.scala` — 51 tests, 31.9s
-- `obp-api/src/test/scala/code/api/v7_0_0/Http4s700RoutesTest.scala` — 111 tests (was 75, 23.8s pre-merge)
+- `obp-api/src/test/scala/code/api/v7_0_0/Http4s700RoutesTest.scala` — 102 tests (was 75 pre-merge, 23.8s)
 - `obp-api/src/test/scala/code/api/v7_0_0/V7ResourceDocsAggregationTest.scala` — intentionally failing until resource-docs aggregation bug is fixed
 - `obp-api/src/test/scala/code/api/http4sbridge/Http4sServerIntegrationTest.scala` — 16 tests, 5.0s
 - `obp-api/src/test/scala/code/api/v5_0_0/Http4s500SystemViewsTest.scala` — 13 tests, 4.4s
@@ -346,9 +346,8 @@ Per-endpoint integration test cost stays roughly constant as endpoints move Lift
 
 | Version | Genuine Lift handlers still on the bridge |
 |---|---|
-| v1.2.1, v1.3.0, v2.0.0, v2.1.0, v2.2.0, v3.0.0, v4.0.0, v5.0.0, v5.1.0, v6.0.0 | 0 — fully on http4s |
-| v1.4.0 | `testResourceDoc` (dev-mode-only stub; tracked in "Per-version Lift leftovers") |
-| v3.1.0 | `getMessageDocsSwagger`, `getObpConnectorLoopback` (both tracked as leftovers; retire via Resource-docs / bridge-removal workstreams) |
+| v1.2.1, v1.3.0, v1.4.0, v2.0.0, v2.1.0, v2.2.0, v3.0.0, v4.0.0, v5.0.0, v5.1.0, v6.0.0 | 0 — fully on http4s |
+| v3.1.0 | `getMessageDocsSwagger`, `getObpConnectorLoopback`. `getMessageDocsSwagger`'s URL is in production already served by `Http4sResourceDocs.routes` (the Lift `lazy val` is shadowed dead code), but the Lift definition is intentionally kept — deleting it would reduce v3.1.0's frozen STABLE API surface (caught by `FrozenClassTest`) and require touching a v3.1.0 test. Retires together with the bridge-removal PR. `getObpConnectorLoopback` likewise deferred to the bridge-removal PR. |
 
 ### v6.0.0 migration — done (243 / 243)
 Phase 1 (35 overrides) and Phase 2 (208 originals) both complete. All v6 routes live in `Http4s600.scala`, wired into `Http4sApp.baseServices` ahead of the Lift bridge.
@@ -363,3 +362,4 @@ Architectural note from the v6 migration: around the 140-endpoint mark `Implemen
 - **CI speed-up** (not done): two-tier fast gate + full suite; surefire parallel forks.
 - **Disabled tests to fix**: `Http4s500RoutesTest` (@Ignore, in-process issue), `RootAndBanksTest` (@Ignore), `V500ContractParityTest` (@Ignore), `CardTest` (fully commented out). `v5_0_0`: 13 skipped tests (setup cost paid, no value).
 - **`V7ResourceDocsAggregationTest`**: intentionally failing — encodes the fix for the resource-docs aggregation bug (v7 endpoint returns only ~10 own docs instead of 500+ aggregated). Fix the bug to make this suite pass.
+- **Flaky `MakerCheckerTransactionRequestTest` — TTL/proxy connection race in v4 createTransactionRequest** (pre-existing, predates the auth-stack migration). Scenario *"Multiple challenges with maker-checker: different users answer their own challenges"* (`MakerCheckerTransactionRequestTest.scala:246`) fails ~40% of local runs and was observed once in CI shard1. Diagnosed root cause: inside one HTTP request, `LocalMappedConnector.createTransactionRequestv210` writes N rows to `MappedExpectedChallengeAnswer` via the request-scoped proxy connection (auto-commit=false, request-end commit) and then reads them back via `getChallengesByTransactionRequestId`. When `RequestScopeConnection.currentProxy` (a `TransmittableThreadLocal`) fails to propagate to the read `Future`'s worker thread, `RequestAwareConnectionManager.newConnection` returns `null` → falls back to a fresh pool connection (autocommit=true) that cannot see the proxy connection's uncommitted writes → read returns 0 rows. Diagnostic confirmed: in failing runs, `createChallengesC2` is called with the correct 2 userIds, but `MappedExpectedChallengeAnswer.findAll()` (no WHERE clause) returns 0 rows — i.e. the entire table is empty from the read connection's view. Only the multi-user path (`REQUIRED_CHALLENGE_ANSWERS > 1`) hits this because it adds an extra synchronous `Views.views.vend.permissions(...)` inside `getAccountAttributesByAccount.map` that shifts the Future-scheduling timing. The other 3 scenarios in the file always pass because they take the default `REQUIRED_CHALLENGE_ANSWERS=1` shortcut. **Fix direction:** every DB-touching `Future { ... }` inside the connector chain needs to go through `RequestScopeConnection.fromFuture` (which atomically sets+submits+clears the TTL inside `IO.defer`) instead of being raw Scala `Future { ... }` chained via `flatMap`. Alternatively: stop relying on TTL and pass the proxy connection explicitly down the connector call-chain (bigger change, but eliminates the race class entirely).

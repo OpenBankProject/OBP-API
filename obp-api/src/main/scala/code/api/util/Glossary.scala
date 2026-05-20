@@ -979,7 +979,7 @@ object Glossary extends MdcLoggable  {
 		description =
 		s"""
 			 |The client identifier issued to the client during the registration process. It is a unique string representing the registration information provided by the client.
-			 |At the time the consumer_key was introduced OAuth 1.0a was only available. The OAuth 2.0 counterpart for this value is client_id
+			 |The name `consumer_key` is historical (it originated in OAuth 1.0a, which is no longer supported by OBP). The OAuth 2.0 counterpart for this value is `client_id`, and the two are used interchangeably.
 				|""".stripMargin)
 
 	glossaryItems += GlossaryItem(
@@ -1371,9 +1371,9 @@ object Glossary extends MdcLoggable  {
 |
 |There are several methods of obtaining and using a token which vary in their ease of use and security.
 |
-|Direct Login and OAuth 1.0a are used for testing purposes / local installations and are built into OBP.
+|Direct Login is built into OBP and used for testing purposes / local installations.
 |
-|OAuth2 / Open ID Connect (OIDC) depend on the configuration of Identity Provider solutions such as Keycloak or Hydra or external services such as Google or Yahoo.
+|OAuth2 / Open ID Connect (OIDC) is the recommended method for production use, and depends on the configuration of Identity Provider solutions such as Keycloak or Hydra or external services such as Google or Yahoo.
 |
 |Open Bank Project can support multiple identity providers per OBP instance. For example, for a single OBP installation, some Users could authenticate against Google and some could authenticate against a local identity provider.
 |In the cases where multiple identity providers are configured, OBP differentiates between Users by not only their Username but also by their "Identity Provider". i.e. J.Brown logged in via Google is distinct from J.Brown who logged in via a local OBP instance.

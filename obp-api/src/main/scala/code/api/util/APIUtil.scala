@@ -211,8 +211,6 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
   def hasAuthorizationHeader(requestHeaders: List[HTTPParam]): Boolean = requestHeaders.find(_.name == "Authorization").isDefined
 
-  def hasAnOAuthHeader(authorization: Box[String]): Boolean = hasHeader("OAuth", authorization)
-
   /*
      The OAuth 2.0 Authorization Framework: Bearer Token
      For example, the "bearer" token type defined in [RFC6750] is utilized
