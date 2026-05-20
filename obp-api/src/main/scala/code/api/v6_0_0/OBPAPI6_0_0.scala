@@ -38,7 +38,7 @@ import code.api.v2_1_0.APIMethods210
 import code.api.v2_2_0.APIMethods220
 import code.api.v3_0_0.APIMethods300
 import code.api.v3_0_0.custom.CustomAPIMethods300
-import code.api.v3_1_0.APIMethods310
+import code.api.v3_1_0.{APIMethods310, Http4s310}
 import code.api.v4_0_0.{APIMethods400, Http4s400}
 import code.api.v5_0_0.APIMethods500
 import code.api.v5_1_0.{APIMethods510, Http4s510, OBPAPI5_1_0}
@@ -78,6 +78,9 @@ object OBPAPI6_0_0 extends OBPRestHelper
   // Re-export so nameOf references below (in excludeEndpoints) continue to compile
   // after APIMethods400 was replaced with an empty stub.
   val Implementations4_0_0 = Http4s400.Implementations4_0_0
+  // Re-export so nameOf(Implementations3_1_0.xxx) in excludeEndpoints continues to compile
+  // after APIMethods310 was replaced with an empty stub.
+  val Implementations3_1_0 = Http4s310.Implementations3_1_0
 
   lazy val excludeEndpoints =
     nameOf(Implementations3_0_0.getUserByUsername) ::
