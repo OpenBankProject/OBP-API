@@ -47,32 +47,47 @@ trait ServerSetup extends FeatureSpec with SendServerRequests
   with BeforeAndAfterAll
   with Matchers with MdcLoggable with CustomJsonFormats with PropsReset{
 
-  setPropsValues("migration_scripts.execute_all" -> "true")
-  setPropsValues("migration_scripts.execute" -> "true")
-  setPropsValues("allow_dauth" -> "true")
-  setPropsValues("dauth.host" -> "127.0.0.1")
-  setPropsValues("jwt_token_secret"->"your-at-least-256-bit-secret-token")
-  setPropsValues("jwt.public_key_rsa" -> "src/test/resources/cert/public_dauth.pem")
-  setPropsValues("transactionRequests_supported_types" -> "SEPA,SANDBOX_TAN,FREE_FORM,COUNTERPARTY,ACCOUNT,ACCOUNT_OTP,SIMPLE,CARD,AGENT_CASH_WITHDRAWAL,CARDANO")
-  setPropsValues("CARD_OTP_INSTRUCTION_TRANSPORT" -> "DUMMY")
-  setPropsValues("AGENT_CASH_WITHDRAWAL_OTP_INSTRUCTION_TRANSPORT" -> "DUMMY")
-  setPropsValues("api_instance_id" -> "1_final")
-  setPropsValues("starConnector_supported_types" -> "mapped,internal,cardano_vJun2025")
-  setPropsValues("connector" -> "star")
-
-  // Berlin Group - set in trait body for initial setup
-  setPropsValues("berlin_group_mandatory_headers" -> "")
-  setPropsValues("berlin_group_mandatory_header_consent" -> "")
+  // Baseline `setPropsValues` calls MUST go in `beforeAll`, not at trait-body
+  // level. PropsReset's beforeAll wipes every `setPropsValues`-owned map from
+  // Props.lockedProviders before chaining super — to purge cross-suite
+  // contamination from other suites' construction-time pushes. Body-level
+  // pushes would be wiped along with the contamination and would not be
+  // restored.
+  //
+  // Putting them in beforeAll lets PropsReset.beforeAll run first (it's the
+  // rightmost trait in this mixin chain), wipe pollution, then unwind to here
+  // and re-establish the baselines for this suite.
+  override def beforeAll(): Unit = {
+    super.beforeAll()  // PropsReset.beforeAll wipes owned maps first
+    setPropsValues("migration_scripts.execute_all" -> "true")
+    setPropsValues("migration_scripts.execute" -> "true")
+    setPropsValues("allow_dauth" -> "true")
+    setPropsValues("dauth.host" -> "127.0.0.1")
+    setPropsValues("jwt_token_secret" -> "your-at-least-256-bit-secret-token")
+    setPropsValues("jwt.public_key_rsa" -> "src/test/resources/cert/public_dauth.pem")
+    setPropsValues("transactionRequests_supported_types" -> "SEPA,SANDBOX_TAN,FREE_FORM,COUNTERPARTY,ACCOUNT,ACCOUNT_OTP,SIMPLE,CARD,AGENT_CASH_WITHDRAWAL,CARDANO")
+    setPropsValues("CARD_OTP_INSTRUCTION_TRANSPORT" -> "DUMMY")
+    setPropsValues("AGENT_CASH_WITHDRAWAL_OTP_INSTRUCTION_TRANSPORT" -> "DUMMY")
+    setPropsValues("api_instance_id" -> "1_final")
+    setPropsValues("starConnector_supported_types" -> "mapped,internal,cardano_vJun2025")
+    setPropsValues("connector" -> "star")
+    setPropsValues("berlin_group_mandatory_headers" -> "")
+    setPropsValues("berlin_group_mandatory_header_consent" -> "")
+    resetDatabaseForTestClass()
+  }
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    // Re-apply Berlin Group props after each PropsReset.afterEach() restores lockedProviders
+    // Re-apply Berlin Group props on every scenario — PropsReset.afterEach
+    // restores to the post-beforeEach snapshot, which after the first scenario
+    // is the same as post-beforeAll. Subsequent scenarios push fresh berlin_group
+    // entries; afterEach trims them back to that snapshot.
     setPropsValues(
       "berlin_group_mandatory_headers" -> "",
       "berlin_group_mandatory_header_consent" -> ""
     )
   }
-  
+
   // Set system properties to force Pekko to use random available ports
   // This prevents conflicts when both RunWebApp and tests are running
   System.setProperty("pekko.remote.artery.canonical.port", "0")
@@ -88,10 +103,6 @@ trait ServerSetup extends FeatureSpec with SendServerRequests
    * We preserve only the essential OAuth/auth tables (Nonce, Token, Consumer, AuthUser, ResourceUser)
    * as these are needed for test authentication and are managed by DefaultUsers trait.
    */
-  override def beforeAll(): Unit = {
-    super.beforeAll()
-    resetDatabaseForTestClass()
-  }
 
   /**
    * Resets database tables to ensure clean state for each test class.
