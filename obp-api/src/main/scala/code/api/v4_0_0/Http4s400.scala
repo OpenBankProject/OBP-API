@@ -970,7 +970,7 @@ object Http4s400 {
                   }
             (availablePrivateAccounts, _) <- code.model.BankExtended(bank).privateAccountsFuture(
               privateAccountAccess2, Some(cc))
-          } yield code.api.v2_0_0.OBPAPI2_0_0.Implementations2_0_0.processAccounts(
+          } yield code.api.v2_0_0.Http4s200.Implementations2_0_0.processAccounts(
             privateViewsUserCanAccessAtOneBank, availablePrivateAccounts)
         }
     }
