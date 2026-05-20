@@ -5284,6 +5284,60 @@ object LocalMappedConnector extends Connector with MdcLoggable {
           } yield {
             (transactionId, callContext)
           }
+        // OPEN_CORRIDOR: money-movement is identical to SIMPLE today (same beneficiary
+        // routing shape). The originator block is persisted on the TR row by
+        // MappedTransactionRequestProvider and surfaced on v7 responses by
+        // JSONFactory700.buildTransactionRequestOriginatorJson — neither is needed here.
+        // Reuses the SIMPLE path via body.to_simple.
+        case OPEN_CORRIDOR =>
+          for {
+            bodyToSimple <- NewStyle.function.tryons(s"$TransactionRequestDetailsExtractException It can not extract to $TransactionRequestBodyCounterpartyJSON", 400, callContext) {
+              body.to_simple.get
+            }
+            (toCounterparty, callContext) <- NewStyle.function.getCounterpartyByRoutings(
+              bodyToSimple.otherBankRoutingScheme,
+              bodyToSimple.otherBankRoutingAddress,
+              bodyToSimple.otherBranchRoutingScheme,
+              bodyToSimple.otherBranchRoutingAddress,
+              bodyToSimple.otherAccountRoutingScheme,
+              bodyToSimple.otherAccountRoutingAddress,
+              bodyToSimple.otherAccountSecondaryRoutingScheme,
+              bodyToSimple.otherAccountSecondaryRoutingAddress,
+              callContext
+            )
+            (toAccount, callContext) <- NewStyle.function.getBankAccountFromCounterparty(toCounterparty, true, callContext)
+            counterpartyBody = TransactionRequestBodySimpleJsonV400(
+              to = PostSimpleCounterpartyJson400(
+                name = toCounterparty.name,
+                description = toCounterparty.description,
+                other_bank_routing_scheme = toCounterparty.otherBankRoutingScheme,
+                other_bank_routing_address = toCounterparty.otherBankRoutingAddress,
+                other_account_routing_scheme = toCounterparty.otherAccountRoutingScheme,
+                other_account_routing_address = toCounterparty.otherAccountRoutingAddress,
+                other_account_secondary_routing_scheme = toCounterparty.otherAccountSecondaryRoutingScheme,
+                other_account_secondary_routing_address = toCounterparty.otherAccountSecondaryRoutingAddress,
+                other_branch_routing_scheme = toCounterparty.otherBranchRoutingScheme,
+                other_branch_routing_address = toCounterparty.otherBranchRoutingAddress,
+              ),
+              value = AmountOfMoneyJsonV121(body.value.currency, body.value.amount),
+              description = body.description,
+              charge_policy = transactionRequest.charge_policy,
+              future_date = transactionRequest.future_date
+            )
+            (transactionId, callContext) <- NewStyle.function.makePaymentv210(
+              fromAccount,
+              toAccount,
+              transactionRequest.id,
+              transactionRequestCommonBody = counterpartyBody,
+              BigDecimal(counterpartyBody.value.amount),
+              counterpartyBody.description,
+              TransactionRequestType(transactionRequestType),
+              transactionRequest.charge_policy,
+              callContext
+            )
+          } yield {
+            (transactionId, callContext)
+          }
         // In the case of a REFUND (currently working only implemented for SEPA refund request)
         case REFUND =>
           for {

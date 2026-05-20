@@ -3272,6 +3272,105 @@ object Http4s700 {
 
     // ── End MOBILE_WALLET ─────────────────────────────────────────────────────
 
+    // ── OPEN_CORRIDOR transaction request ─────────────────────────────────────
+    // Travel-Rule-friendly TR with FATF Recommendation 16 originator block.
+    // Money-movement is identical to SIMPLE; the originator is persisted as a
+    // side-car on the TR row and surfaced on the v7 response. Lives natively at
+    // v7 (rather than bridging to v4) because only v7's response shape carries
+    // the originator block.
+    val createTransactionRequestOpenCorridor: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "transaction-request-types" / "OPEN_CORRIDOR" / "transaction-requests" =>
+        EndpointHelpers.withViewAndBodyCreated[JSONFactory700.TransactionRequestBodyOpenCorridorJsonV700, JSONFactory700.TransactionRequestWithChargeOpenCorridorJsonV700](req) { (user, fromAccount, view, body, cc) =>
+          val callCtx = Some(cc)
+          for {
+            _ <- NewStyle.function.checkAuthorisationToCreateTransactionRequest(
+              view.viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId), user, callCtx
+            )
+            (tr, _) <- code.bankconnectors.opencorridor.OpenCorridorProcessor.create(
+              user, fromAccount.bankId, fromAccount.accountId, view.viewId, fromAccount, body, callCtx
+            )
+            (originatorJson, _) <- JSONFactory700.buildTransactionRequestOriginatorJson(tr, callCtx)
+          } yield JSONFactory700.createTransactionRequestWithChargeOpenCorridorJsonV700(tr, body, originatorJson, Nil)
+        }
+    }
+
+    val openCorridorBodyExample = JSONFactory700.TransactionRequestBodyOpenCorridorJsonV700(
+      to = code.api.v4_0_0.PostSimpleCounterpartyJson400(
+        name = "Other Bank",
+        description = "Beneficiary at receiving institution",
+        other_bank_routing_scheme = "BIC",
+        other_bank_routing_address = "DEUTDEFF",
+        other_account_routing_scheme = "IBAN",
+        other_account_routing_address = "DE89 3704 0044 0532 0130 00",
+        other_account_secondary_routing_scheme = "",
+        other_account_secondary_routing_address = "",
+        other_branch_routing_scheme = "",
+        other_branch_routing_address = ""
+      ),
+      value = com.openbankproject.commons.model.AmountOfMoneyJsonV121(currency = "EUR", amount = "100.00"),
+      description = "OPEN_CORRIDOR Travel-Rule payment",
+      charge_policy = "SHARED",
+      originator = com.openbankproject.commons.model.TransactionRequestOriginator(
+        name = "Alice Sender",
+        address = "1 Sender Street, London, UK",
+        account_routing = com.openbankproject.commons.model.TransactionRequestOriginatorAccountRouting(
+          scheme = "IBAN",
+          address = "GB29 NWBK 6016 1331 9268 19"
+        )
+      ),
+      future_date = None
+    )
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(createTransactionRequestOpenCorridor),
+      "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/OPEN_CORRIDOR/transaction-requests",
+      "Create Transaction Request (OPEN_CORRIDOR)",
+      """Initiate an OPEN_CORRIDOR Transaction Request — a Travel-Rule-friendly payment that carries FATF Recommendation 16 originator information about the actual payer.
+        |
+        |Money-movement is identical to the SIMPLE transaction request type (same beneficiary routing fields). What's distinct: the `originator` block is mandatory and is persisted alongside the transaction request. The v7 response includes a populated originator block.
+        |
+        |Authentication is Required.""".stripMargin,
+      openCorridorBodyExample,
+      JSONFactory700.TransactionRequestWithChargeOpenCorridorJsonV700(
+        id = "4050046c-63b3-4868-8a22-14b4181d33a6",
+        `type` = "OPEN_CORRIDOR",
+        from = code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140(
+          bank_id = "gh.29.uk",
+          account_id = "8ca8a7e4-6d02-40e3-a129-0b2bf89de9f1"
+        ),
+        details = openCorridorBodyExample,
+        transaction_ids = List("902ba3bb-dedd-45e7-9319-2fd3f2cd98a1"),
+        status = "COMPLETED",
+        start_date = code.api.util.APIUtil.DateWithDayExampleObject,
+        end_date = code.api.util.APIUtil.DateWithDayExampleObject,
+        challenges = Nil,
+        charge = code.api.v2_0_0.TransactionRequestChargeJsonV200(
+          summary = "Total charges for completed transaction",
+          value = com.openbankproject.commons.model.AmountOfMoneyJsonV121(currency = "EUR", amount = "0.00")
+        ),
+        originator = Some(JSONFactory700.TransactionRequestOriginatorJsonV700(
+          name = "Alice Sender",
+          address = "1 Sender Street, London, UK",
+          account_routing = JSONFactory700.TransactionRequestOriginatorAccountRoutingJsonV700(
+            scheme = "IBAN",
+            address = "GB29 NWBK 6016 1331 9268 19"
+          ),
+          source = "explicit"
+        ))
+      ),
+      List($AuthenticatedUserIsRequired, InvalidJsonFormat, InvalidJsonValue,
+           CounterpartyBeneficiaryPermit, InvalidChargePolicy,
+           InsufficientAuthorisationToCreateTransactionRequest, UnknownError),
+      apiTagTransactionRequest :: Nil,
+      None,
+      http4sPartialFunction = Some(createTransactionRequestOpenCorridor)
+    )
+
+    // ── End OPEN_CORRIDOR ─────────────────────────────────────────────────────
+
     // ── BULK transaction request ──────────────────────────────────────────────
     // One TransactionRequest with type=BULK serves as the envelope; N actual
     // Transactions (one per payment) are linked back to it via transaction_ids.
