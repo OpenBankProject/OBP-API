@@ -13,6 +13,7 @@ import code.api.util.http4s.{ErrorResponseConverter, RequestScopeConnection, Res
 import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps}
 import code.api.util.newstyle.ViewNewStyle
 import code.api.v2_0_0.JSONFactory200
+import code.api.v5_0_0.Http4s500
 import code.api.v5_1_0.{Http4s510, JSONFactory510}
 import code.api.v6_0_0.JSONFactory600.ScannedApiVersionJsonV600
 import code.accountattribute.AccountAttributeX
