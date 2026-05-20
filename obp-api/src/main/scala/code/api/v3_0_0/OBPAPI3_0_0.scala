@@ -30,7 +30,7 @@ import scala.language.reflectiveCalls
 import code.api.OBPRestHelper
 import code.api.util.APIUtil.OBPEndpoint
 import code.api.util.VersionedOBPApis
-import code.api.v2_2_0.OBPAPI2_2_0
+import code.api.v2_2_0.{Http4s220, OBPAPI2_2_0}
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.util.{ApiVersion, ApiVersionStatus}
 
@@ -47,6 +47,9 @@ object OBPAPI3_0_0 extends OBPRestHelper with MdcLoggable with VersionedOBPApis 
   // Re-export so any caller that still imports OBPAPI3_0_0.Implementations3_0_0 keeps compiling.
   // (18 test files reference it via `nameOf(Implementations3_0_0.<endpoint>)`.)
   val Implementations3_0_0 = Http4s300.Implementations3_0_0
+  // Re-export so tests that import OBPAPI3_0_0.Implementations2_2_0 keep compiling
+  // (e.g. v4_0_0/AuthenticationTypeValidationTest, ForceErrorValidationTest, JsonSchemaValidationTest).
+  val Implementations2_2_0 = Http4s220.Implementations2_2_0
 
   def allResourceDocs = collectResourceDocs(
     OBPAPI2_2_0.allResourceDocs,
