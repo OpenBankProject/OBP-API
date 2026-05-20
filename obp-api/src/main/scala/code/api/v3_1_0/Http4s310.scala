@@ -3299,7 +3299,7 @@ object Http4s310 {
 
     val createConsent: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ POST -> `prefixPath` / "banks" / bankIdStr / "my" / "consents" / scaMethod =>
-        EndpointHelpers.withUserAndBankAndBodyCreated[PostConsentBodyCommonJson, Any](req) { (user, bank, consentJson, cc) =>
+        EndpointHelpers.withUserAndBodyCreated[PostConsentBodyCommonJson, Any](req) { (user, consentJson, cc) =>
           val raw = cc.httpBody.getOrElse("")
           for {
             _ <- code.util.Helper.booleanToFuture(ConsentAllowedScaMethods, cc = Some(cc)) {
@@ -3513,7 +3513,7 @@ object Http4s310 {
       "Get Connector Status (Loopback)",
       s"""This endpoint makes a call to the Connector to check the backend transport is reachable. (Deprecated)
          |
-         |${userAuthenticationMessage(true)}
+         |${userAuthenticationMessage(false)}
          |
          |""".stripMargin,
       EmptyBody, obpApiLoopbackJson,

@@ -163,7 +163,17 @@ object ResourceDocMiddleware extends MdcLoggable {
             // No matching ResourceDoc: fallback to original route (NO transaction scope opened).
             // Attach the basic CC so req.callContext works in the inner route even without a doc match.
             // Carry the cached body forward so the bridge cascade can still read it.
-            routes.run(reqWithCachedBody.withAttribute(Http4sRequestAttributes.callContextKey, cc))
+            // Best-effort authentication: populate cc.user from request credentials so that
+            // withUser/withUserAndBank handlers return 401/403 correctly (e.g. empty path segments
+            // that bypass ResourceDocMatcher but still match a route pattern).
+            OptionT.liftF(
+              IO.fromFuture(IO(APIUtil.anonymousAccess(cc))).map {
+                case (Full(user), Some(updatedCC)) => reqWithCachedBody.withAttribute(Http4sRequestAttributes.callContextKey, updatedCC.copy(user = Full(user)))
+                case (Full(user), None)            => reqWithCachedBody.withAttribute(Http4sRequestAttributes.callContextKey, cc.copy(user = Full(user)))
+                case (_, Some(updatedCC))          => reqWithCachedBody.withAttribute(Http4sRequestAttributes.callContextKey, updatedCC)
+                case _                             => reqWithCachedBody.withAttribute(Http4sRequestAttributes.callContextKey, cc)
+              }.recover { case _ => reqWithCachedBody.withAttribute(Http4sRequestAttributes.callContextKey, cc) }
+            ).flatMap(routes.run)
         }
       }
     }
