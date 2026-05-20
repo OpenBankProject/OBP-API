@@ -694,13 +694,15 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with Prop
    * greeting.word=luck
    */
   feature("test APIUtil.getPropsValue support expression") {
-    setPropsValues(
-      "hello.world" -> "hello_${foo.bar}__good ${greeting.${compose.exp}}__",
-      "foo.bar" -> "foo_bar",
-      "compose.exp" -> "word",
-      "greeting.word" -> "luck"
-    )
-    APIUtil.getPropsValue("hello.world") should be("hello_foo_bar__good luck__")
+    scenario("getPropsValue resolves nested ${...} expressions") {
+      setPropsValues(
+        "hello.world" -> "hello_${foo.bar}__good ${greeting.${compose.exp}}__",
+        "foo.bar" -> "foo_bar",
+        "compose.exp" -> "word",
+        "greeting.word" -> "luck"
+      )
+      APIUtil.getPropsValue("hello.world") should be("hello_foo_bar__good luck__")
+    }
   }
 
   feature("test APIUtil.getObpFormatOperationId method") {

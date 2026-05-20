@@ -312,6 +312,10 @@ public_obp_api_manager_url=http://localhost:3003
 public_obp_sandbox_populator_url=http://localhost:5178
 public_obp_oidc_url=http://localhost:9000
 public_keycloak_url=http://localhost:7787
+# OBP-Hola: port differs between run modes.
+#   Non-Docker (./build_and_run.sh)        -> 48123 (from src/main/resources/application.properties)
+#   Docker (Dockerfile EXPOSE 8087)        -> 8087  (or override via SERVER_PORT env var)
+# The default below matches Docker; for local non-Docker dev use http://localhost:48123 instead.
 public_obp_hola_url=http://localhost:8087
 public_obp_mcp_url=http://localhost:9100
 public_obp_opey_url=http://localhost:5000
