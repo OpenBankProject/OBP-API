@@ -8,7 +8,7 @@ import code.api.util.{APIUtil, ExampleValue}
 import code.api.util.CustomJsonFormats
 import code.api.v1_4_0.JSONFactory1_4_0.ResourceDocJson
 import code.api.v3_0_0.OBPAPI3_0_0
-import code.api.v1_4_0.OBPAPI1_4_0
+import code.api.v1_3_0.OBPAPI1_3_0
 import net.liftweb.json.Extraction.decompose
 import net.liftweb.json._
 import org.everit.json.schema.loader.SchemaLoader
