@@ -76,11 +76,11 @@ object OBPAPI5_1_0 extends OBPRestHelper
     nameOf(Implementations3_0_0.getUserByUsername) ::  // following 4 endpoints miss Provider parameter in the URL, we introduce new ones in V510.
       nameOf(Implementations3_1_0.getBadLoginStatus) ::
       nameOf(Implementations3_1_0.unlockUser) ::
-      nameOf(Implementations4_0_0.lockUser) ::
-      nameOf(Implementations4_0_0.createUserWithAccountAccess) ::  // following 3 endpoints miss ViewId parameter in the URL, we introduce new ones in V510.
-      nameOf(Implementations4_0_0.grantUserAccessToView) ::
-      nameOf(Implementations4_0_0.revokeUserAccessToView) ::
-      nameOf(Implementations4_0_0.revokeGrantUserAccessToViews) ::// this endpoint is forbidden in V510, we do not support multi views in one endpoint from V510.
+      "lockUser" ::
+      "createUserWithAccountAccess" ::  // following 3 endpoints miss ViewId parameter in the URL, we introduce new ones in V510.
+      "grantUserAccessToView" ::
+      "revokeUserAccessToView" ::
+      "revokeGrantUserAccessToViews" ::// this endpoint is forbidden in V510, we do not support multi views in one endpoint from V510.
       Nil
 
   // All v5.1.0 endpoints live in Http4s510 — aggregate Http4s510.resourceDocs on top of v5.0.0.

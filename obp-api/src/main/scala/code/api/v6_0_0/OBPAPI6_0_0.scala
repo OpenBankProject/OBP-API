@@ -80,14 +80,14 @@ object OBPAPI6_0_0 extends OBPRestHelper
     nameOf(Implementations3_0_0.getUserByUsername) ::
       nameOf(Implementations3_1_0.getBadLoginStatus) ::
       nameOf(Implementations3_1_0.unlockUser) ::
-      nameOf(Implementations4_0_0.lockUser) ::
-      nameOf(Implementations4_0_0.createUserWithAccountAccess) ::
-      nameOf(Implementations4_0_0.grantUserAccessToView) ::
-      nameOf(Implementations4_0_0.revokeUserAccessToView) ::
-      nameOf(Implementations4_0_0.revokeGrantUserAccessToViews) ::
-      nameOf(Implementations4_0_0.getMyPersonalUserAttributes) ::
-      nameOf(Implementations4_0_0.createMyPersonalUserAttribute) ::
-      nameOf(Implementations4_0_0.updateMyPersonalUserAttribute) ::
+      "lockUser" ::
+      "createUserWithAccountAccess" ::
+      "grantUserAccessToView" ::
+      "revokeUserAccessToView" ::
+      "revokeGrantUserAccessToViews" ::
+      "getMyPersonalUserAttributes" ::
+      "createMyPersonalUserAttribute" ::
+      "updateMyPersonalUserAttribute" ::
       nameOf(Implementations5_1_0.createNonPersonalUserAttribute) ::
       nameOf(Implementations5_1_0.getNonPersonalUserAttributes) ::
       nameOf(Implementations5_1_0.deleteNonPersonalUserAttribute) ::
