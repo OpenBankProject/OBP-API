@@ -9,11 +9,10 @@ import code.api.util.{APIUtil, CallContext, CustomJsonFormats, NewStyle}
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
-import code.api.util.http4s.{ErrorResponseConverter, RequestScopeConnection, ResourceDocMiddleware}
+import code.api.util.http4s.{ErrorResponseConverter, RequestScopeConnection, ResourceDocMiddleware, ResourceDocMatcher}
 import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps}
 import code.api.util.newstyle.ViewNewStyle
 import code.api.v2_0_0.JSONFactory200
-import code.api.v5_0_0.Http4s500
 import code.api.v5_1_0.{Http4s510, JSONFactory510}
 import code.api.v6_0_0.JSONFactory600.ScannedApiVersionJsonV600
 import code.accountattribute.AccountAttributeX
@@ -70,22 +69,21 @@ import com.openbankproject.commons.util.{ApiVersion, ApiVersionStatus, ScannedAp
 import net.liftweb.common.Full
 import net.liftweb.json.{Extraction, Formats}
 import net.liftweb.json.JsonAST.prettyRender
-import org.http4s.{HttpRoutes, Request, Response, Uri}
+import org.http4s.{Header, HttpRoutes, Request, Response, Uri}
 import org.http4s.dsl.io._
+import org.typelevel.ci.CIString
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
 
 /**
- * v6.0.0 http4s endpoints — Phase 1 in progress.
+ * v6.0.0 http4s endpoints.
  *
  * Wire-in into `Http4sApp.baseServices` is performed alongside this object.
- * The v600→v500 bridge (`v600ToV500Bridge`) rewrites unhandled v6.0.0 paths
- * to v5.0.0 and delegates to Http4s500.wrappedRoutesV500Services, which has a
- * working cascade chain (v5.0.0 → v4.0.0 → v3.1.0 → v3.0.0). The bridge
- * skips v5.1.0 because Http4s510's own bridge to v5.0.0 is disabled due to
- * MetricTest / VRPConsentRequestTest regressions.
+ * The v600→v510 bridge (`v600ToV510Bridge`) rewrites unhandled v6.0.0 paths
+ * to v5.1.0 and delegates to Http4s510.wrappedRoutesV510Services, which has a
+ * working cascade chain (v5.1.0 → v5.0.0 → v4.0.0 → v3.1.0 → v3.0.0).
  */
 object Http4s600 {
 
@@ -8525,6 +8523,9 @@ object Http4s600 {
       }
     }
   }
+
+  private lazy val v6ResourceDocIndex: ResourceDocMatcher.ResourceDocIndex =
+    ResourceDocMatcher.buildIndex(resourceDocs)
 
   // `lazy val`, not `val`: `OBPAPI6_0_0` and `APIMethods600` reference
   // `Http4s600.Implementations6_0_0` directly via getstatic. When either is loaded
