@@ -869,25 +869,44 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   }
 
   override def getBankAccountByRoutingLegacy(bankId: Option[BankId], scheme: String, address: String, callContext: Option[CallContext]): Box[(BankAccount, Option[CallContext])] = {
-    def handleRouting(routing: List[BankAccountRouting]): Box[(MappedBankAccount, Option[CallContext])] = {
-      if (routing.size > 1) { // Handle more than 1 occurrence
-        // Routing MUST be unique
-        val errorMessage = s"$AccountRoutingNotUnique (scheme: $scheme, address: $address)"
-        Failure(errorMessage)
-      } else { // Handle 0 and 1 occurrence
-        Box(routing.headOption).flatMap(accountRouting => getBankAccountCommon(accountRouting.bankId, accountRouting.accountId, callContext))
-      }
-    }
 
-    bankId match {
-      case Some(bankId) => // Bank specific routing
-        val routing = BankAccountRouting
-          .findAll(By(BankAccountRouting.BankId, bankId.value), By(BankAccountRouting.AccountRoutingScheme, scheme), By(BankAccountRouting.AccountRoutingAddress, address))
-        handleRouting(routing)
-      case None => // World wide specific routing (IBAN etc.)
-        val routing = BankAccountRouting
-          .findAll(By(BankAccountRouting.AccountRoutingScheme, scheme), By(BankAccountRouting.AccountRoutingAddress, address))
-        handleRouting(routing)
+    // OBP-family schemes (OBP / OBP_ACCOUNT_ID) are implicit self-identifiers
+    // — address IS the account_id. Resolve directly against the BankAccount
+    // table without touching BankAccountRouting.
+    if (isImplicitOBPAccountScheme(scheme)) {
+      bankId match {
+        case Some(bankId) =>
+          getBankAccountCommon(bankId, AccountId(address), callContext)
+        case None =>
+          // No bank context — accept only when the account_id is globally unique.
+          MappedBankAccount.findAll(By(MappedBankAccount.theAccountId, address)) match {
+            case account :: Nil => Full((account, callContext))
+            case Nil            => Empty
+            case _              =>
+              Failure(s"$AccountRoutingNotUnique (scheme: $scheme, address: $address)")
+          }
+      }
+    } else {
+      def handleRouting(routing: List[BankAccountRouting]): Box[(MappedBankAccount, Option[CallContext])] = {
+        if (routing.size > 1) { // Handle more than 1 occurrence
+          // Routing MUST be unique
+          val errorMessage = s"$AccountRoutingNotUnique (scheme: $scheme, address: $address)"
+          Failure(errorMessage)
+        } else { // Handle 0 and 1 occurrence
+          Box(routing.headOption).flatMap(accountRouting => getBankAccountCommon(accountRouting.bankId, accountRouting.accountId, callContext))
+        }
+      }
+
+      bankId match {
+        case Some(bankId) => // Bank specific routing
+          val routing = BankAccountRouting
+            .findAll(By(BankAccountRouting.BankId, bankId.value), By(BankAccountRouting.AccountRoutingScheme, scheme), By(BankAccountRouting.AccountRoutingAddress, address))
+          handleRouting(routing)
+        case None => // World wide specific routing (IBAN etc.)
+          val routing = BankAccountRouting
+            .findAll(By(BankAccountRouting.AccountRoutingScheme, scheme), By(BankAccountRouting.AccountRoutingAddress, address))
+          handleRouting(routing)
+      }
     }
   }
 
@@ -906,15 +925,24 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   }
 
   override def getAccountRouting(bankId: Option[BankId], scheme: String, address: String, callContext: Option[CallContext]): Box[(BankAccountRouting, Option[CallContext])] = {
-    bankId match {
-      case Some(bankId) =>
-        BankAccountRouting
-          .find(By(BankAccountRouting.BankId, bankId.value), By(BankAccountRouting.AccountRoutingScheme, scheme), By(BankAccountRouting.AccountRoutingAddress, address))
-          .map(accountRouting => (accountRouting, callContext))
-      case None =>
-        BankAccountRouting
-          .find(By(BankAccountRouting.AccountRoutingScheme, scheme), By(BankAccountRouting.AccountRoutingAddress, address))
-          .map(accountRouting => (accountRouting, callContext))
+    // OBP-family schemes are never stored as explicit BankAccountRouting rows
+    // (account lookups by OBP scheme go through getBankAccountByRouting, not here).
+    // This lookup is used as a uniqueness check on routing-row creation, so for
+    // OBP-family it must always report "no existing row" — otherwise virtual +
+    // stored could be ambiguous.
+    if (isImplicitOBPAccountScheme(scheme)) {
+      Empty
+    } else {
+      bankId match {
+        case Some(bankId) =>
+          BankAccountRouting
+            .find(By(BankAccountRouting.BankId, bankId.value), By(BankAccountRouting.AccountRoutingScheme, scheme), By(BankAccountRouting.AccountRoutingAddress, address))
+            .map(accountRouting => (accountRouting, callContext))
+        case None =>
+          BankAccountRouting
+            .find(By(BankAccountRouting.AccountRoutingScheme, scheme), By(BankAccountRouting.AccountRoutingAddress, address))
+            .map(accountRouting => (accountRouting, callContext))
+      }
     }
   }
 

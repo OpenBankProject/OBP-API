@@ -310,7 +310,11 @@ object Http4s700 {
         EndpointHelpers.withBank(req) { (bank, cc) =>
           for {
             (attributes, _) <- NewStyle.function.getBankAttributesByBank(bank.bankId, Some(cc))
-          } yield JSONFactory600.createBankJsonV600(bank, attributes)
+          } yield {
+            val baseJson = JSONFactory600.createBankJsonV600(bank, attributes)
+            baseJson.copy(bank_routings = Constant.bankRoutingsWithImplicitOBP(
+              baseJson.bank_id, baseJson.bank_routings))
+          }
         }
     }
 
@@ -385,7 +389,9 @@ object Http4s700 {
           } yield {
             val availableViews = Views.views.vend.privateViewsUserCanAccessForAccount(
               user, BankIdAccountId(account.bankId, account.accountId))
-            JSONFactory600.createModeratedCoreAccountJsonV600(moderatedAccount, availableViews)
+            val baseJson = JSONFactory600.createModeratedCoreAccountJsonV600(moderatedAccount, availableViews)
+            baseJson.copy(account_routings = Constant.accountRoutingsWithImplicitOBP(
+              baseJson.account_id, baseJson.account_routings))
           }
         }
     }
@@ -418,7 +424,9 @@ object Http4s700 {
               user, BankIdAccountId(account.bankId, account.accountId))
             val viewsAvailable = availableViews.map(JSONFactory600.createViewJsonV600).sortBy(_.view_name)
             val tags = Tags.tags.vend.getTagsOnAccount(account.bankId, account.accountId)(ViewId(viewIdStr))
-            JSONFactory600.createBankAccountJSON600(moderatedAccount, viewsAvailable, accountAttributes, tags)
+            val baseJson = JSONFactory600.createBankAccountJSON600(moderatedAccount, viewsAvailable, accountAttributes, tags)
+            baseJson.copy(account_routings = Constant.accountRoutingsWithImplicitOBP(
+              baseJson.id, baseJson.account_routings))
           }
         }
     }

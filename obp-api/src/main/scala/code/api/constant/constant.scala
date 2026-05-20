@@ -3,6 +3,8 @@ package code.api
 import code.api.util.{APIUtil, ErrorMessages}
 import code.api.cache.Redis
 import code.util.Helper.MdcLoggable
+import code.api.v1_2_1.BankRoutingJsonV121
+import com.openbankproject.commons.model.AccountRoutingJsonV121
 import com.openbankproject.commons.util.ApiStandards
 import net.liftweb.common.Box
 import net.liftweb.util.Props
@@ -200,6 +202,46 @@ object Constant extends MdcLoggable {
     SYSTEM_READ_BALANCES_BERLIN_GROUP_VIEW_ID::
     SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID ::
       SYSTEM_INITIATE_PAYMENTS_BERLIN_GROUP_VIEW_ID :: Nil
+
+  // OBP-family routing schemes.
+  //
+  // These schemes are *implicit self-identifiers*: the routing address by
+  // definition equals the entity's primary key (bank_id or account_id).
+  // They are never persisted as explicit BankAccountRouting / bank routing
+  // rows; the connector resolves them virtually against the entity's primary
+  // key, and v7 responses prepend the canonical entry.
+  //
+  // "OBP" alone is overloaded — it is accepted in BOTH bank- and account-
+  // routing contexts and resolved according to the lookup target.
+  final val OBP_ACCOUNT_ROUTING_SCHEMES: Set[String] = Set("OBP", "OBP_ACCOUNT_ID")
+  final val OBP_BANK_ROUTING_SCHEMES: Set[String]    = Set("OBP", "OBP_BANK_ID")
+
+  def isImplicitOBPAccountScheme(scheme: String): Boolean =
+    scheme != null && OBP_ACCOUNT_ROUTING_SCHEMES.exists(_.equalsIgnoreCase(scheme))
+
+  def isImplicitOBPBankScheme(scheme: String): Boolean =
+    scheme != null && OBP_BANK_ROUTING_SCHEMES.exists(_.equalsIgnoreCase(scheme))
+
+  // Prepend the canonical implicit OBP self-routing { scheme: "OBP", address: accountId }
+  // to a list of stored account routings, dropping any OBP-family entry from the stored
+  // list so the response always carries exactly one canonical OBP routing.
+  def accountRoutingsWithImplicitOBP(
+    accountId: String,
+    stored: List[AccountRoutingJsonV121]
+  ): List[AccountRoutingJsonV121] = {
+    val nonObp = stored.filterNot(r => isImplicitOBPAccountScheme(r.scheme))
+    AccountRoutingJsonV121("OBP", accountId) :: nonObp
+  }
+
+  // Bank-level counterpart of accountRoutingsWithImplicitOBP — prepends
+  // { scheme: "OBP", address: bankId } and drops any stored OBP-family entry.
+  def bankRoutingsWithImplicitOBP(
+    bankId: String,
+    stored: List[BankRoutingJsonV121]
+  ): List[BankRoutingJsonV121] = {
+    val nonObp = stored.filterNot(r => isImplicitOBPBankScheme(r.scheme))
+    BankRoutingJsonV121("OBP", bankId) :: nonObp
+  }
 
   //These are the default incoming and outgoing account ids. we will create both during the boot.scala.
   final val INCOMING_SETTLEMENT_ACCOUNT_ID = "OBP-INCOMING-SETTLEMENT-ACCOUNT"
