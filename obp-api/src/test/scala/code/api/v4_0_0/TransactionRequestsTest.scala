@@ -1530,9 +1530,6 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
 
   feature("we can create transaction requests -- CARD") {
 
-    setPropsValues("transactionRequests_supported_types" -> "SEPA,SANDBOX_TAN,FREE_FORM,COUNTERPARTY,ACCOUNT,ACCOUNT_OTP,SIMPLE,CARD")
-    setPropsValues("CARD_OTP_INSTRUCTION_TRANSPORT" -> "DUMMY")
-    
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
       ignore("No challenge, No FX ", ApiEndpoint10) {}
     } else {

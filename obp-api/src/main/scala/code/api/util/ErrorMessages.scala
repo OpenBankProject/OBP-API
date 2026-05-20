@@ -508,6 +508,12 @@ object ErrorMessages {
   val BulkPaymentAddressMismatch = "OBP-30543: A payment's address does not match the address_pattern of its routing_scheme."
   val BulkPaymentTransactionRequestError = "OBP-30544: Could not create BULK transaction request."
 
+  // Implicit OBP-family routing schemes (OBP-30545)
+  // The schemes "OBP" / "OBP_ACCOUNT_ID" / "OBP_BANK_ID" are reserved self-identifiers —
+  // they map (scheme, address) directly to (kind, primary_key) without a stored row.
+  // Any attempt to persist them as explicit account/bank routings is rejected.
+  val OBPSchemeIsImplicit = "OBP-30545: OBP-family routing schemes (OBP, OBP_ACCOUNT_ID, OBP_BANK_ID) are implicit self-identifiers and cannot be set explicitly. Remove these entries from the routings list."
+
   val FeaturedApiCollectionNotFound = "OBP-30400: FeaturedApiCollection not found. Please specify a valid value for API_COLLECTION_ID."
   val CreateFeaturedApiCollectionError = "OBP-30401: Could not create FeaturedApiCollection."
   val UpdateFeaturedApiCollectionError = "OBP-30402: Could not update FeaturedApiCollection."
@@ -1012,6 +1018,7 @@ object ErrorMessages {
     BankAccountNotFoundByIban -> 404,
     AccountRoutingNotFound -> 404,
     BankAccountNotFoundByAccountId -> 404,
+    OBPSchemeIsImplicit -> 409,
     DoubleEntryTransactionNotFound -> 404,
     MeetingApiKeyNotConfigured -> 403,
     MeetingApiSecretNotConfigured -> 403,
