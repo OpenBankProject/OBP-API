@@ -47,18 +47,26 @@ trait ServerSetup extends FeatureSpec with SendServerRequests
   with BeforeAndAfterAll
   with Matchers with MdcLoggable with CustomJsonFormats with PropsReset{
 
-  // Baseline `setPropsValues` calls MUST go in `beforeAll`, not at trait-body
-  // level. PropsReset's beforeAll wipes every `setPropsValues`-owned map from
-  // Props.lockedProviders before chaining super — to purge cross-suite
-  // contamination from other suites' construction-time pushes. Body-level
-  // pushes would be wiped along with the contamination and would not be
-  // restored.
+  // Baseline props pushed twice — once at trait construction, once in beforeAll.
   //
-  // Putting them in beforeAll lets PropsReset.beforeAll run first (it's the
-  // rightmost trait in this mixin chain), wipe pollution, then unwind to here
-  // and re-establish the baselines for this suite.
-  override def beforeAll(): Unit = {
-    super.beforeAll()  // PropsReset.beforeAll wipes owned maps first
+  //   Trait-body pushes are needed because `val server = TestServer` below is
+  //   evaluated at suite construction and triggers Lift Boot + http4s server
+  //   startup. Migrations and the connector are wired from Props at that
+  //   moment, so `migration_scripts.execute_all`, `connector`, etc. MUST be in
+  //   place before TestServer.init. In environments where the props file
+  //   already carries these values (the source-controlled test.default.props),
+  //   omitting trait-body pushes goes unnoticed. In GitHub Actions, where the
+  //   workflow writes a minimal props file from scratch, missing trait-body
+  //   pushes cause Lift to skip migrations and tests get an empty DB.
+  //
+  //   beforeAll pushes are needed because PropsReset.beforeAll wipes every
+  //   setPropsValues-owned map from Props.lockedProviders before chaining
+  //   super — to purge cross-suite contamination from other suites'
+  //   construction-time pushes. The same wipe also removes our own trait-body
+  //   baselines (TestServer is already past Boot at that point and doesn't
+  //   care, but the test scenarios do). Re-pushing in beforeAll restores them
+  //   onto the now-clean stack for this suite's tests.
+  private def pushBaselineProps(): Unit = {
     setPropsValues("migration_scripts.execute_all" -> "true")
     setPropsValues("migration_scripts.execute" -> "true")
     setPropsValues("allow_dauth" -> "true")
@@ -73,6 +81,14 @@ trait ServerSetup extends FeatureSpec with SendServerRequests
     setPropsValues("connector" -> "star")
     setPropsValues("berlin_group_mandatory_headers" -> "")
     setPropsValues("berlin_group_mandatory_header_consent" -> "")
+  }
+
+  // Trait-body push: needed before `val server = TestServer` triggers Lift Boot.
+  pushBaselineProps()
+
+  override def beforeAll(): Unit = {
+    super.beforeAll()  // PropsReset.beforeAll wipes owned maps first
+    pushBaselineProps()  // re-push for this suite's tests
     resetDatabaseForTestClass()
   }
 
