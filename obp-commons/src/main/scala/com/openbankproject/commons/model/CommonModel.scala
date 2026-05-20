@@ -1111,7 +1111,24 @@ case class TransactionRequest (
                                 user_id :Option[String] = None,
                                 @optional
                                 on_behalf_of_user_id :Option[String] = None,
+                                @optional
+                                originator :Option[TransactionRequestOriginator] = None,
                               )
+
+// FATF Recommendation 16 "Travel Rule" originator block (who the payment is from).
+// Optional on the TR model; required by the OPEN_CORRIDOR Transaction Request type.
+// When not explicitly stored, the v7 JSON response layer virtually fills it from
+// the from-account's linked Customer via customer_account_link.
+case class TransactionRequestOriginator(
+                                         name: String,
+                                         address: String,
+                                         account_routing: TransactionRequestOriginatorAccountRouting
+                                       )
+
+case class TransactionRequestOriginatorAccountRouting(
+                                                       scheme: String,
+                                                       address: String
+                                                     )
 
 case class TransactionRequestBGV1(
   id: TransactionRequestId,

@@ -1,12 +1,18 @@
 package code.api.v7_0_0
 
 import code.api.Constant
-import code.api.util.APIUtil
+import code.api.util.{APIUtil, CallContext}
 import code.api.util.ErrorMessages
 import code.api.util.ErrorMessages.MandatoryPropertyIsNotSet
-import code.api.v4_0_0.{EnergySource400, HostedAt400, HostedBy400}
+import code.api.v4_0_0.{EnergySource400, HostedAt400, HostedBy400, PostSimpleCounterpartyJson400}
+import code.bankconnectors.Connector
+import code.customer.CustomerX
 import code.util.Helper.MdcLoggable
+import com.openbankproject.commons.model.{AmountOfMoneyJsonV121, TransactionRequest, TransactionRequestCommonBodyJSON}
 import com.openbankproject.commons.util.ApiVersion
+import net.liftweb.common.Full
+
+import scala.concurrent.{ExecutionContext, Future}
 
 object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
 
@@ -847,5 +853,120 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
       start_date = tr.start_date,
       end_date = tr.end_date
     )
+  }
+
+  // ─── OPEN_CORRIDOR Transaction Request type ────────────────────────────────
+  //
+  // SIMPLE-shaped beneficiary routing plus a REQUIRED `originator` block carrying
+  // FATF Recommendation 16 (Travel Rule) information about the actual payer. The
+  // originator is supplied explicitly on the create body and validated by the
+  // OpenCorridorProcessor.
+
+  case class TransactionRequestBodyOpenCorridorJsonV700(
+    to: PostSimpleCounterpartyJson400,
+    value: AmountOfMoneyJsonV121,
+    description: String,
+    charge_policy: String,
+    originator: com.openbankproject.commons.model.TransactionRequestOriginator,
+    future_date: Option[String] = None
+  ) extends TransactionRequestCommonBodyJSON
+
+  // Outbound originator block emitted on v7 TR responses. `source` discriminates:
+  //   - "explicit"      — taken from the TR's persisted originator fields
+  //   - "customer_link" — virtually filled at read time from customer_account_link
+  case class TransactionRequestOriginatorJsonV700(
+    name: String,
+    address: String,
+    account_routing: TransactionRequestOriginatorAccountRoutingJsonV700,
+    source: String
+  )
+
+  case class TransactionRequestOriginatorAccountRoutingJsonV700(
+    scheme: String,
+    address: String
+  )
+
+  // OPEN_CORRIDOR response wrapper — v4 TransactionRequestWithChargeJSON400 shape
+  // plus the originator block. `originator` is None when there's no explicit value
+  // stored AND no customer_account_link for the from-account; serializes as null.
+  case class TransactionRequestWithChargeOpenCorridorJsonV700(
+    id: String,
+    `type`: String,
+    from: code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140,
+    details: TransactionRequestBodyOpenCorridorJsonV700,
+    transaction_ids: List[String],
+    status: String,
+    start_date: java.util.Date,
+    end_date: java.util.Date,
+    challenges: List[code.api.v4_0_0.ChallengeJsonV400],
+    charge: code.api.v2_0_0.TransactionRequestChargeJsonV200,
+    originator: Option[TransactionRequestOriginatorJsonV700]
+  )
+
+  def createTransactionRequestWithChargeOpenCorridorJsonV700(
+    tr: com.openbankproject.commons.model.TransactionRequest,
+    requestBody: TransactionRequestBodyOpenCorridorJsonV700,
+    originator: Option[TransactionRequestOriginatorJsonV700],
+    challenges: List[com.openbankproject.commons.model.ChallengeTrait]
+  ): TransactionRequestWithChargeOpenCorridorJsonV700 = {
+    val v4 = code.api.v4_0_0.JSONFactory400.createTransactionRequestWithChargeJSON(tr, challenges, Nil)
+    TransactionRequestWithChargeOpenCorridorJsonV700(
+      id = v4.id,
+      `type` = v4.`type`,
+      from = v4.from,
+      details = requestBody,
+      transaction_ids = v4.transaction_ids,
+      status = v4.status,
+      start_date = v4.start_date,
+      end_date = v4.end_date,
+      challenges = v4.challenges,
+      charge = v4.charge,
+      originator = originator
+    )
+  }
+
+  // Build the originator block for a TR response. Returns None when there's no
+  // explicit originator and no customer_account_link for the from-account — the
+  // outer JSON wrapper emits `originator: null` in that case.
+  def buildTransactionRequestOriginatorJson(
+    tr: TransactionRequest,
+    callContext: Option[CallContext]
+  )(implicit ec: ExecutionContext): Future[(Option[TransactionRequestOriginatorJsonV700], Option[CallContext])] = {
+    tr.originator match {
+      case Some(o) =>
+        Future.successful((
+          Some(TransactionRequestOriginatorJsonV700(
+            name = o.name,
+            address = o.address,
+            account_routing = TransactionRequestOriginatorAccountRoutingJsonV700(
+              scheme = o.account_routing.scheme,
+              address = o.account_routing.address
+            ),
+            source = "explicit"
+          )),
+          callContext
+        ))
+      case None =>
+        Connector.connector.vend.getCustomerAccountLinksByBankIdAccountId(
+          tr.from.bank_id,
+          tr.from.account_id,
+          callContext
+        ).map {
+          case (Full(link :: _), cc) =>
+            CustomerX.customerProvider.vend.getCustomerByCustomerId(link.customerId) match {
+              case Full(customer) =>
+                (Some(TransactionRequestOriginatorJsonV700(
+                  name = customer.legalName,
+                  address = "", // TODO derive from CustomerAddress (multi-record, separate model)
+                  account_routing = TransactionRequestOriginatorAccountRoutingJsonV700(scheme = "", address = ""),
+                  source = "customer_link"
+                )), cc)
+              case _ =>
+                (None, cc)
+            }
+          case (_, cc) =>
+            (None, cc)
+        }
+    }
   }
 }
