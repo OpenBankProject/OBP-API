@@ -58,6 +58,7 @@ trait V510ServerSetup extends ServerSetupWithTestData with DefaultUsers {
 
   def randomPrivateAccount(bankId: String): AccountJSON = {
     val accountsJson = getPrivateAccounts(bankId, user1).body.extract[AccountsJSON].accounts
+    if (accountsJson.isEmpty) throw new IllegalStateException(s"No private accounts found for bank $bankId")
     val randomPosition = nextInt(accountsJson.size)
     accountsJson(randomPosition)
   }
@@ -66,9 +67,10 @@ trait V510ServerSetup extends ServerSetupWithTestData with DefaultUsers {
     val request = v5_1_0_Request / "banks" / bankId / "accounts" / "private" <@(consumerAndToken)
     makeGetRequest(request)
   }
-  
+
   def randomPrivateAccountViaEndpoint(bankId : String): AccountJSON = {
     val accountsJson = getPrivateAccountsViaEndpoint(bankId, user1).body.extract[AccountsJSON].accounts
+    if (accountsJson.isEmpty) throw new IllegalStateException(s"No private accounts found via endpoint for bank $bankId")
     val randomPosition = nextInt(accountsJson.size)
     accountsJson(randomPosition)
   }

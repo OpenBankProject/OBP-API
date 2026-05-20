@@ -44,7 +44,7 @@ class APIUtilHeavyTest extends V400ServerSetup  with PropsReset {
   val bgVersion = ConstantsBG.berlinGroupVersion1.apiShortVersion
   
   feature("test APIUtil.versionIsAllowed method") {
-    scenario("various disabled/enabled version combinations") {
+    scenario("Test versionIsAllowed with various disabled/enabled version combinations") {
       //This mean, we are only disabled the v4.0.0, all other versions should be enabled
       setPropsValues(
         "api_disabled_versions" -> "[v4.0.0]",
