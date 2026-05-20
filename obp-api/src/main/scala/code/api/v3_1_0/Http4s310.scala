@@ -3461,6 +3461,59 @@ object Http4s310 {
       apiTagConsent :: apiTagPSD2AIS :: apiTagPsd2 :: Nil, None,
       http4sPartialFunction = Some(answerConsentChallenge))
 
+    // ─── getObpConnectorLoopback ─────────────────────────────────────────────
+
+    val getObpConnectorLoopback: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "connector" / "loopback" =>
+        EndpointHelpers.executeAndRespond(req) { cc =>
+          for {
+            _ <- code.util.Helper.booleanToFuture(code.api.util.ErrorMessages.NotImplemented, failCode = 400, cc = Some(cc)) { false }
+          } yield EmptyBody
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getObpConnectorLoopback), "GET",
+      "/connector/loopback",
+      "Get Connector Status (Loopback)",
+      s"""This endpoint makes a call to the Connector to check the backend transport is reachable. (Deprecated)
+         |
+         |${userAuthenticationMessage(true)}
+         |
+         |""".stripMargin,
+      EmptyBody, obpApiLoopbackJson,
+      List(UnknownError),
+      List(apiTagApi, apiTagOAuth, apiTagOIDC),
+      http4sPartialFunction = Some(getObpConnectorLoopback))
+
+    // ─── getMessageDocsSwagger ───────────────────────────────────────────────
+    // Real routing is handled by Http4sResourceDocs (wildcard /obp/*/message-docs/{CONNECTOR}/swagger2.0
+    // matched before v310Routes in Http4sApp). This stub val exists only so nameOf compiles
+    // in downstream test files, and the ResourceDoc entry appears in /resource-docs/v3.1.0/obp.
+
+    val getMessageDocsSwagger: HttpRoutes[IO] = HttpRoutes.empty
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getMessageDocsSwagger), "GET",
+      "/message-docs/CONNECTOR/swagger2.0",
+      "Get Message Docs Swagger",
+      """
+        |This endpoint provides example message docs in swagger format.
+        |It is only relavent for REST Connectors.
+        |
+        |This endpoint can be used by the developer building a REST Adapter that connects to the Core Banking System (CBS).
+        |That is, the Adapter developer can use the Swagger surfaced here to build the REST APIs that the OBP REST connector will call to consume CBS services.
+        |
+        |i.e.:
+        |
+        |OBP API (Core OBP API code) -> OBP REST Connector (OBP REST Connector code) -> OBP REST Adapter (Adapter developer code) -> CBS (Main Frame)
+        |
+      """.stripMargin,
+      EmptyBody,
+      EmptyBody,
+      List(UnknownError),
+      List(apiTagMessageDoc, apiTagDocumentation, apiTagApi))
+
     // ─── saveHistoricalTransaction (POST) ────────────────────────────────────
 
     val saveHistoricalTransaction: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -3657,6 +3710,7 @@ object Http4s310 {
         .orElse(createConsent.run(req))
         .orElse(answerConsentChallenge.run(req))
         .orElse(saveHistoricalTransaction.run(req))
+        .orElse(getObpConnectorLoopback.run(req))
     }
 
     val allRoutesWithMiddleware: HttpRoutes[IO] = ResourceDocMiddleware.apply(resourceDocs)(allOwnRoutes)
