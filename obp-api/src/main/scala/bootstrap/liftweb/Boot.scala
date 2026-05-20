@@ -95,7 +95,6 @@ import code.kycdocuments.MappedKycDocument
 import code.kycmedias.MappedKycMedia
 import code.kycstatuses.MappedKycStatus
 import code.loginattempts.{LoginAttempt, MappedBadLoginAttempt}
-import code.management.ImporterAPI
 import code.meetings.{MappedMeeting, MappedMeetingInvitee}
 import code.metadata.comments.MappedComment
 import code.metadata.counterparties.{MappedCounterparty, MappedCounterpartyBespoke, MappedCounterpartyMetadata, MappedCounterpartyWhereTag}
@@ -499,19 +498,13 @@ class Boot extends MdcLoggable {
         LiftRules.dispatch.append(OpenIdConnect)
       }
     }
-    def enableAPIs: LiftRules#RulesSeq[DispatchPF] = {
-
-      // JWT auth endpoints
-      if (APIUtil.getPropsAsBoolValue("allow_direct_login", true)) {
-        LiftRules.statelessDispatch.append(DirectLogin)
-      }
-
-      // TODO Wrap these with enableVersionIfAllowed as well
-      //add management apis
-      LiftRules.statelessDispatch.append(ImporterAPI)
-    }
-
-    enableAPIs
+    // DirectLogin (POST /my/logins/direct), ImporterAPI (POST
+    // /obp_transactions_saver/api/transactions), and aliveCheck (GET /alive)
+    // are now served by their native http4s counterparts wired into
+    // Http4sApp.baseServices (DirectLoginRoutes / ImporterAPIRoutes /
+    // AliveCheckRoutes). The Lift dispatches were retired in the http4s
+    // migration; any prop gates (e.g. `allow_direct_login`) live with those
+    // routes.
 
 
 
@@ -522,16 +515,11 @@ class Boot extends MdcLoggable {
     // Resource Docs are used in the process of surfacing endpoints so we enable them explicitly
     // to avoid a circular dependency.
     // Make the (currently identical) endpoints available to different versions.
-    LiftRules.statelessDispatch.append(ResourceDocs140)
-    LiftRules.statelessDispatch.append(ResourceDocs200)
-    LiftRules.statelessDispatch.append(ResourceDocs210)
-    LiftRules.statelessDispatch.append(ResourceDocs220)
-    LiftRules.statelessDispatch.append(ResourceDocs300)
-    LiftRules.statelessDispatch.append(ResourceDocs310)
-    LiftRules.statelessDispatch.append(ResourceDocs400)
-    LiftRules.statelessDispatch.append(ResourceDocs500)
-    LiftRules.statelessDispatch.append(ResourceDocs510)
-    LiftRules.statelessDispatch.append(ResourceDocs600)
+    // ResourceDocs140..600 are now served by code.api.util.http4s.Http4sResourceDocs
+    // (wired into Http4sApp.baseServices). The Lift dispatches were retired in the
+    // http4s migration. The 10 ResourceDocs* objects remain in the codebase as a
+    // source of `ImplementationsResourceDocs.getResourceDocsList` (used by the
+    // centralised service) but no longer participate in request dispatch.
     ////////////////////////////////////////////////////
 
 
@@ -1082,7 +1070,7 @@ class Boot extends MdcLoggable {
     }
   }
 
-  LiftRules.statelessDispatch.append(aliveCheck)
+  // aliveCheck (GET /alive) is served by code.api.AliveCheckRoutes (wired into Http4sApp.baseServices).
 
 }
 

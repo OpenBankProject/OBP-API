@@ -273,13 +273,15 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       logger.debug(s"Generating getAllResourceDocsObpCached-Docs requestedApiVersion is $requestedApiVersionString")
       val requestedApiVersion = ApiVersionUtils.valueOf(requestedApiVersionString)
 
+      // Always recompute specifiedUrl per-request. specifiedUrl is a var on a shared
+      // ResourceDoc instance; if we kept the existing value (the prior `case Some(_) => it`
+      // shortcut), a request for /obp/v7.0.0/resource-docs would inherit a stale
+      // /obp/dynamic-endpoint/... value set by an earlier request and return the wrong URL.
       val dynamicDocs = allDynamicResourceDocs
-        .map(it => it.specifiedUrl match {
-          case Some(_) => it
-          case _ =>
-            it.specifiedUrl = if (it.partialFunctionName.startsWith("dynamicEntity")) Some(s"/${it.implementedInApiVersion.urlPrefix}/${ApiVersion.`dynamic-entity`}${it.requestUrl}") else Some(s"/${it.implementedInApiVersion.urlPrefix}/${ApiVersion.`dynamic-endpoint`}${it.requestUrl}")
-            it
-        })
+        .map { it =>
+          it.specifiedUrl = Some(s"/${it.implementedInApiVersion.urlPrefix}/${requestedApiVersion.vDottedApiVersion}${it.requestUrl}")
+          it
+        }
 
       val filteredDocs = resourceDocTags match {
         // We have tags
@@ -312,14 +314,15 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       bankId: Option[String],
       isVersion4OrHigher: Boolean
     ) = {
+      // Always reset specifiedUrl to the dynamic-* prefix for the dynamic-content endpoint
+      // (don't keep a stale value left over from a different aggregated request that may have
+      // overwritten this var on the shared ResourceDoc).
       val dynamicDocs = allDynamicResourceDocs
         .filter(rd => if (bankId.isDefined) rd.createdByBankId == bankId else true)
-        .map(it => it.specifiedUrl match {
-          case Some(_) => it
-          case _ =>
-            it.specifiedUrl = if (it.partialFunctionName.startsWith("dynamicEntity")) Some(s"/${it.implementedInApiVersion.urlPrefix}/${ApiVersion.`dynamic-entity`}${it.requestUrl}") else Some(s"/${it.implementedInApiVersion.urlPrefix}/${ApiVersion.`dynamic-endpoint`}${it.requestUrl}")
-            it
-        })
+        .map { it =>
+          it.specifiedUrl = if (it.partialFunctionName.startsWith("dynamicEntity")) Some(s"/${it.implementedInApiVersion.urlPrefix}/${ApiVersion.`dynamic-entity`}${it.requestUrl}") else Some(s"/${it.implementedInApiVersion.urlPrefix}/${ApiVersion.`dynamic-endpoint`}${it.requestUrl}")
+          it
+        }
         .toList
 
       val filteredDocs = resourceDocTags match {
@@ -442,21 +445,10 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       }
     }
     
-    localResourceDocs += ResourceDoc(
-      getResourceDocsObpV400,
-      implementedInApiVersion,
-      nameOf(getResourceDocsObpV400),
-      "GET",
-      "/resource-docs/API_VERSION/obp",
-      "Get Resource Docs",
-      getResourceDocsDescription(false),
-      EmptyBody,
-      EmptyBody,
-      UnknownError :: Nil,
-      List(apiTagDocumentation, apiTagApi),
-      Some(List(canReadResourceDoc))
-    )
-    
+    // Note: getResourceDocsObpV400 intentionally has NO ResourceDoc registration.
+    // It shares the URL "/resource-docs/API_VERSION/obp" + GET with getResourceDocsObp
+    // (registered above). One ResourceDoc entry per (URL, verb) is enough; registering
+    // both produced a duplicate that broke the v7 aggregation dedup.
     lazy val getResourceDocsObpV400 : OBPEndpoint = {
       case "resource-docs" :: requestedApiVersionString :: "obp" :: Nil JsonGet _ => {
         val (tags, partialFunctions, locale, contentParam, apiCollectionIdParam) = ResourceDocsAPIMethodsUtil.getParams()
@@ -978,7 +970,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       yamlString
     }
 
-    private def convertResourceDocsToOpenAPI31JvalueAndSetCache(cacheKey: String, requestedApiVersionString: String, resourceDocsJson: List[JSONFactory1_4_0.ResourceDocJson]) : JValue = {
+    def convertResourceDocsToOpenAPI31JvalueAndSetCache(cacheKey: String, requestedApiVersionString: String, resourceDocsJson: List[JSONFactory1_4_0.ResourceDocJson]) : JValue = {
       logger.debug(s"Generating OpenAPI 3.1-convertResourceDocsToOpenAPI31JvalueAndSetCache requestedApiVersion is $requestedApiVersionString")
       val hostname = HostName
       val openApiDoc = code.api.ResourceDocs1_4_0.OpenAPI31JSONFactory.createOpenAPI31Json(resourceDocsJson, requestedApiVersionString, hostname)
@@ -990,7 +982,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       openApiJValue
     }
 
-    private def convertResourceDocsToSwaggerJvalueAndSetCache(cacheKey: String, requestedApiVersionString: String,  resourceDocsJson: List[JSONFactory1_4_0.ResourceDocJson]) : JValue = {
+    def convertResourceDocsToSwaggerJvalueAndSetCache(cacheKey: String, requestedApiVersionString: String,  resourceDocsJson: List[JSONFactory1_4_0.ResourceDocJson]) : JValue = {
       logger.debug(s"Generating Swagger-getResourceDocsSwaggerAndSetCache requestedApiVersion is $requestedApiVersionString")
       val swaggerDocJsonJValue = getResourceDocsSwagger(requestedApiVersionString, resourceDocsJson).head
 

@@ -118,7 +118,7 @@ Bottom-up — each version depends on the one below it being done.
 | 5 | `APIMethods210` | 28 | **Done** — `Http4s210.scala`: 25 own endpoints + path-rewriting bridge to `Http4s200`; all 79 v2.1.0 tests pass |
 | 6 | `APIMethods220` | 19 | **Done** — `Http4s220.scala`: 18 own endpoints + path-rewriting bridge to `Http4s210`; all 27 v2.2.0 tests pass |
 | 7 | `APIMethods300` | 47 | **Done** — `Http4s300.scala`: 47 own endpoints + path-rewriting bridge to `Http4s220`; all 86 v3.0.0 tests pass |
-| 8 | `APIMethods310` | 102 | **Done** — `Http4s310.scala` has all 100 functional endpoints (42 GET, 10 DELETE, 19 POST, 25 PUT, 1 GET-shaped revoke, 3 SCA aliases) + path-rewriting bridge to `Http4s300`; 181 v3.1.0 tests pass. Two endpoints tracked separately in "Per-version Lift leftovers" (`getMessageDocsSwagger`, `getObpConnectorLoopback`) — they retire via the Resource-docs workstream / bridge-removal PR, not as v3.1.0 follow-up. |
+| 8 | `APIMethods310` | 102 | **Done** — `Http4s310.scala` has all 100 functional endpoints (42 GET, 10 DELETE, 19 POST, 25 PUT, 1 GET-shaped revoke, 3 SCA aliases) + path-rewriting bridge to `Http4s300`; 181 v3.1.0 tests pass. `getMessageDocsSwagger` is shadowed in production by `Http4sResourceDocs.routes` but the Lift `lazy val` is intentionally kept — its deletion is caught by `FrozenClassTest` as a STABLE-API surface reduction. Both `getMessageDocsSwagger` and `getObpConnectorLoopback` retire together in the bridge-removal PR. |
 | 9 | `APIMethods400` | 258 | **Done — 258 / 258 (100%)**. `Http4s400.scala` covers all 253 unique handlers (`lazy val NAME: HttpRoutes[IO]`) plus 8 ResourceDoc aliases for the transaction-request-type variants (ACCOUNT, ACCOUNT_OTP, SEPA, COUNTERPARTY, REFUND, FREE_FORM, SIMPLE, AGENT_CASH_WITHDRAWAL — handled by the shared `createTransactionRequest` wildcard handler; the `literalAllCapsSegments` set in `Http4sSupport.scala` dispatches the matcher to the per-type doc for swagger purposes). Adopts the **lazy val + helper-def init pattern** (Batches 1–19) introduced in v6 to dodge the JVM 64KB `<init>` method-size limit. **Bridge-cascade hijack** historically threatened v4's overrides; resolved by migrating all 35/35 v4-over-older URL+verb overrides. |
 | 10 | `APIMethods500` | 10 | **Done** — `Http4s500.scala` (all v5.0.0 originals migrated) |
 | 11 | `APIMethods510` | 111 | **Done** — `Http4s510.scala`. v5.1.0's `createConsent` Lift handler is exposed in Http4s510 under the alias name `createConsentImplicit` (a single handler with `if scaMethod == "EMAIL" \|\| scaMethod == "SMS" \|\| scaMethod == "IMPLICIT"` guard covers all three SCA-method URLs). |
@@ -170,12 +170,12 @@ Token-generation paths — not version-file endpoints. Each `extends RestHelper`
 
 | Component | Path | Notes |
 |---|---|---|
-| `DirectLogin` | `POST /my/logins/direct` | |
-| `GatewayLogin` | gateway JWT exchange | |
-| `DAuth` | dAuth JWT exchange | |
-| `OAuth` | OAuth 1.0a token endpoints | Most complex |
+| `DirectLogin` | `POST /my/logins/direct` | Done — served by `Http4s600.directLoginEndpoint` (versioned) and `DirectLoginRoutes` (bare path). |
+| `GatewayLogin` | gateway JWT exchange | Library-only validator (no routes). |
+| `DAuth` | dAuth JWT exchange | Library-only validator (no routes). |
+| `OpenIdConnect` | OIDC callback | Blocked — last hard dependency on Lift Web in the request path. See auth-stack leftovers table. |
 
-These are the last hard dependency on Lift Web in the request path. The Lift bridge cannot be removed until all four are done.
+OAuth 1.0a token endpoints were removed entirely in commit `51820c75e` (2026-02-20); the workstream collapsed.
 
 ---
 
@@ -185,9 +185,9 @@ An `APIMethods{version}` file is marked **done** in the progress table when ever
 
 | Endpoint | Origin | Why on Lift | Retired by |
 |---|---|---|---|
-| `getMessageDocsSwagger` (`GET /message-docs/CONNECTOR/swagger2.0`) | `APIMethods310` | Same shape as `getResourceDocsObpV700` / `openapi.yaml` — runtime Swagger generation with shared caching | The **Http4sResourceDocs** workstream (step 4) |
+| `getMessageDocsSwagger` (`GET /message-docs/CONNECTOR/swagger2.0`) | `APIMethods310` | The URL is already served by `Http4sResourceDocs.routes` (`handleGetMessageDocsSwagger`), so the Lift `lazy val` is shadowed dead code. **But** deleting it reduces v3.1.0's STABLE API surface, which `FrozenClassTest` correctly rejects (the frozen-API guard sees a `lazy val ... : OBPEndpoint` go missing from `Implementations3_1_0`). Refreshing the frozen snapshot via `FrozenClassUtil.main` is the documented way out, but doing so also requires touching `GetMessageDocsSwaggerTest`, which is below v7.0.0. Kept as-is until the bridge-removal PR retires it. | The bridge-removal PR. |
 | `getObpConnectorLoopback` (`GET /connector/loopback`) | `APIMethods310` | Deprecated stub that unconditionally throws `IllegalStateException(NotImplemented)`; no functional behaviour | Either a 3-line native http4s route that throws the same exception or outright deletion, decided when the Lift bridge is removed |
-| `testResourceDoc` (`GET /dummy`) | `APIMethods140` | Dev-only stub gated behind `if (Props.devMode) { ... }`. Returns a dummy `APIInfoJSON` payload for testing the resource-doc renderer. Has no production behaviour worth porting. | Deleted in the bridge-removal PR (no native equivalent needed). |
+| ~~`testResourceDoc`~~ | ~~`APIMethods140`~~ | Dev-mode-only `/dummy` stub deleted — returned a dummy `APIInfoJSON`, no production behaviour. Removed from `OBPAPI1_4_0.routes` and `Implementations1_4_0`. `FrozenClassTest` did not flag it because v1.4.0's `testResourceDoc` ResourceDoc was registered behind `if (Props.devMode)` — the frozen snapshot (captured in test mode) never contained it. | **Done.** |
 
 Track new leftovers here when later version files are migrated — the bridge-removal milestone in "Done Criteria" only requires the per-version files to be **done** in this table's sense (functional endpoints migrated, tests green). Leftovers folded into the Resource-docs or Auth-stack workstreams retire via those workstreams.
 
@@ -201,14 +201,14 @@ Things still on Lift that block the `Http4sLiftWebBridge` from being removed. Us
 
 | Handler | File | Routes | Status |
 |---|---|---|---|
-| `DirectLogin` | `code/api/directlogin.scala` | `POST /my/logins/direct` | http4s version inside `Http4s600.scala`; Lift dispatch **still registered** as fallback. Earlier-version paths still hit Lift. The key gotcha: `createTokenFuture(allParameters)` ignores its argument and re-reads from Lift's `S.request` via `getAllParameters`. Use `validatorFutureWithParams(...)` + `createTokenCommonPart(...)` instead — this is the http4s-friendly entry point. |
-| `GatewayLogin` | `code/api/GatewayLogin.scala` | Gateway JWT exchange | Lift only |
-| `DAuth` | `code/api/dauth.scala` | dAuth JWT exchange | Lift only |
-| `OAuth 1.0a` | OAuth files | OAuth 1.0a token endpoints | Lift only |
-| `OAuth2` | `code/api/OAuth2.scala` | OAuth 2.0 token & callback | Lift only |
-| `OpenIdConnect` | `code/api/openidconnect.scala` | OIDC callback — registered via `LiftRules.dispatch.append` | Lift only |
+| `DirectLogin` | `code/api/directlogin.scala` | `POST /my/logins/direct` | **Done.** Versioned path (`/obp/v6.0.0/my/logins/direct`) served by `Http4s600.directLoginEndpoint`; bare path (`/my/logins/direct`) served by `code.api.DirectLoginRoutes` wired into `Http4sApp.baseServices` just before the Lift bridge. `LiftRules.statelessDispatch.append(DirectLogin)` removed from `Boot.scala`. The `allow_direct_login` prop gate moved into `DirectLoginRoutes`. The `dlServe { case Req("my" :: "logins" :: "direct" :: Nil, …) }` block inside `directlogin.scala` is now dead code (no longer registered with `LiftRules`); the surrounding `DirectLogin` object stays — its `getUserFromDirectLoginHeaderFuture` etc. are still called from auth flows. Cleanup of the dead `dlServe` block + `extends RestHelper` is a separate small PR. Key migration gotcha (kept for the auth-stack workstream): `createTokenFuture(allParameters)` ignores its argument and re-reads from Lift's `S.request` via `getAllParameters` — use `validatorFutureWithParams(...)` + `createTokenCommonPart(...)` instead. |
+| `GatewayLogin` | `code/api/GatewayLogin.scala` | Gateway JWT exchange | **No routes.** Library only — same shape as `OAuth2Login`. Consumed via `GatewayLogin.getUserFromGatewayLoginHeaderFuture` etc. from auth flows. `extends RestHelper` was vestigial and was removed (Formats implicit re-declared locally). |
+| `DAuth` | `code/api/dauth.scala` | dAuth JWT exchange | **No routes.** Library only — same shape as `OAuth2Login`/`GatewayLogin`. `extends RestHelper` was vestigial and was removed (object-level `implicit val formats` added for the `.extract[...]` call sites). |
+| `OAuth 1.0a` | — | OAuth 1.0a token endpoints | **Done — removed.** Commit `51820c75e` (2026-02-20, "refactor/(auth): Remove OAuth 1.0a support and consolidate authentication") deleted `oauth1.0.scala`, unregistered `OAuthHandshake` from `Boot.scala`'s `LiftRules.statelessDispatch`, removed OAuth header detection from `OBPRestHelper.scala`, and added `getConsumerFromDirectLoginToken` / `getUserFromDirectLoginToken` to take over the consumer/user-lookup responsibilities previously held by `OAuthHandshake`. **Dead-code follow-up cleanup also done**: `AuthHeaderParser.parseOAuthHeader`, the `oAuthParams` field on `ParsedAuthHeader` / `CallContext`, the `oAuthToken` field on `CallContextLight`, `extractOAuthParams` in `Http4sSupport`, `APIUtil.hasAnOAuthHeader`, and stale `OAuthHandshake` comments in `directlogin.scala` and `AuthUser.scala` all removed. `OpenAPI31JSONFactory`'s phantom OAuth2 `authorizationCode` flow (which pointed at the deleted `/oauth/authorize` and `/oauth/token` URLs) replaced with `type: http, scheme: bearer, bearerFormat: JWT` — accurate for OBP's actual OAuth2 model (Bearer-token validation against external IdPs; OBP does not issue its own OAuth2 tokens). Kept on purpose: `code/model/OAuth.scala` (backs the general `Consumer` entity used by all auth methods, not OAuth 1.0a-specific) and `APIUtil.OAuth` (misnamed but live test infrastructure — the `<@` signer adds `Authorization: DirectLogin token=...` headers and is imported by ~hundreds of test files; renaming is a separate cleanup). |
+| `OAuth2` | `code/api/OAuth2.scala` (`OAuth2Login`) | **No routes.** Library only — Bearer-token validator (Google / Yahoo / Azure / Keycloak / OBPOIDC / Hydra) consumed by `APIUtil.getUserFuture` and `OBPRestHelper.OAuth2.getUser`. Both Lift and http4s endpoints already call it. The `extends RestHelper` mixin was vestigial and was removed (the only thing it provided was an implicit `Formats`, now declared locally at the one `extract[List[String]]` site). No remaining auth-stack work in this file. |
+| `OpenIdConnect` | `code/api/openidconnect.scala` | OIDC callback — registered via `LiftRules.dispatch.append` | **Lift only — blocked on a portal-session decision.** 3 callback routes (`/auth/openid-connect/callback`, `…/callback-1`, `…/callback-2`) all funnel into `callbackUrlCommonCode`, whose success branch calls `AuthUser.logUserIn(user, () => S.redirectTo(...))`. `logUserIn` is inherited from `MetaMegaProtoUser` and writes the logged-in user into Lift `SessionVar`s that the portal reads; `S.redirectTo` sets Lift's session cookie. No tests cover the callback success path. Three forks: (a) **Drop portal-login** — pure http4s callback that issues a token but doesn't seed a portal session. Behaviour change for anyone using OIDC to sign into the portal UI; cheap if that user is nobody, surprising if it isn't. Needs a stakeholder check. (b) **Lift-session shim** — keep `lift-webkit` forever for this one callback. Cheapest in code, but "Lift Web removed" never actually ships. (c) **Replace portal session entirely** (e.g. Redis/JWT-backed). Months of work; also decouples session storage from Lift, which makes the lift-mapper conversation easier later. |
 
-These four (DirectLogin/GatewayLogin/DAuth/OAuth) are the most-complex remaining dependencies on Lift `S.request` and they collectively block bridge removal.
+DirectLogin's request-path is now off Lift. `OAuth2Login`, `GatewayLogin`, and `DAuth` turned out to be library-only (no routes); their vestigial `extends RestHelper` mixins were dropped. OAuth 1.0a was removed entirely in commit `51820c75e`. OpenIdConnect remains on Lift pending a portal-session decision — it is now the **only** auth handler still blocking bridge removal.
 
 ### Resource-docs workstream
 
@@ -224,13 +224,19 @@ Already partly described in the next major section, but counted here for complet
 
 | Endpoint | File | Notes |
 |---|---|---|
-| `aliveCheck` | `code/api/aliveCheck.scala` | One-line liveness probe. Trivial port. |
-| `ImporterAPI` | `code/api/ImporterAPI.scala` (gated by props) | Sandbox data-import endpoint. Single Lift file. |
+| `aliveCheck` | `code/api/aliveCheck.scala` → `code/api/AliveCheckRoutes.scala` | **Done.** Native http4s route serves `GET /alive`; `LiftRules.statelessDispatch.append(aliveCheck)` removed from `Boot.scala`. |
+| `ImporterAPI` | `code/management/ImporterAPI.scala` → `code/management/ImporterAPIRoutes.scala` | **Done.** Native http4s route serves `POST /obp_transactions_saver/api/transactions`; secret read from URL query, body parsed from `req.bodyText`, `TransactionInserter` LiftActor still invoked synchronously (wrapped in `IO.blocking`). `ImporterTest` (8 scenarios) green. |
 | `OpenIdConnect` | (auth-stack table above) | OIDC callback, registered separately from OAuth2. |
 
 ### Open-banking standards (large, deferred indefinitely)
 
 Lift implementations of 3rd-party regulatory standards. All currently pass through `Http4sLiftWebBridge` and continue to work; they are *not* OBP API per se but optional regulatory shims. Migrating them is out of scope for the "remove Lift Web" milestone if you accept keeping the bridge for these stacks only. If total Lift removal is the goal, each needs its own workstream.
+
+Three forks for how this workstream resolves:
+
+- **(a) Migrate each to http4s.** Weeks per standard × 7 standards. Highest cost; cleanest end state.
+- **(b) "Regulatory mode" feature-flagged Lift.** Keep `Http4sLiftWebBridge` wired in only when an `obf-*` / standards prop is set; otherwise the bridge is unregistered at boot. Lets "Lift Web removed from the OBP API path" ship, but Lift Web stays in the codebase as an opt-in shim. Defeats the milestone technically; ships the headline.
+- **(c) Extract as plugin projects.** Move each standard out of this repo into its own project that depends on OBP API. Probably right long-term — these are optional, externally-governed standards on different release cadences — but socially expensive and reshapes the build.
 
 | Standard | Files / location | Status |
 |---|---|---|
@@ -277,14 +283,24 @@ Everything in lines 1–7 is request-path-related and will go in the bridge-remo
 4. **`isStatisticallyTooPermissive` is sample-pool-dependent** — locally, a fresh test DB with a single user causes spurious rejections. Tests built against this check must seed enough users.
 5. **Reserved ALL_CAPS placeholders** in middleware (`BANK_ID`, `ACCOUNT_ID`, `VIEW_ID`, `COUNTERPARTY_ID`) — when an endpoint needs a same-shape var without middleware lookup, rename to a non-reserved variant (e.g. `COUNTERPARTY_ID_PARAM`) in both the http4s and Lift ResourceDocs.
 
+### Decision gates
+
+Two non-engineering decisions must land before the bridge-removal PR can be cut. They are stakeholder calls, not author calls — making either of them in code reviews tends to surface objections after the fact.
+
+1. **OIDC portal-session strategy** (auth-stack OpenIdConnect row, options a/b/c). Until one of the three forks is picked, the OIDC callback can't be migrated and the bridge can't be removed. The cheapest option (drop portal-login) is a behaviour change and needs explicit sign-off from anyone using OIDC as a portal-UI sign-in. **This is now the only auth-handler decision blocking bridge removal.**
+
+A second decision is *not* required for bridge removal, but is required for the public claim that follows it:
+
+2. **Open-banking standards strategy** (forks a/b/c above). If "Lift Web removed" is the headline, fork (b) is acceptable. If "Lift Web removed *from this repo*" is the headline, only (a) or (c) qualify. Cf. the "Lift Web removed vs. Lift removed" note under Done Criteria.
+
 ### Suggested ordering for the remaining work
 
 1. ~~**v4.0.0 bulk port**~~ — done (258/258, 100%).
-2. **`aliveCheck`, `ImporterAPI`** — easiest wins, retire two `LiftRules.statelessDispatch` entries.
-3. **`Http4sResourceDocs` centralised service** — single PR removes 6 dispatch entries + the `openapi.yaml` raw-serve block.
-4. **Auth stack: OAuth2 / OpenIdConnect** — smaller and fewer call sites than the others.
-5. **DirectLogin** — already half done in v6; needs to cover earlier versions and retire the `LiftRules.statelessDispatch.append(DirectLogin)` entry.
-6. **GatewayLogin + DAuth + OAuth 1.0a** — biggest remaining auth work.
+2. ~~**DirectLogin**~~ — done. `code.api.DirectLoginRoutes` serves the bare `/my/logins/direct`; per-version paths served by their own `Http4sXxx`. `LiftRules.statelessDispatch.append(DirectLogin)` retired.
+3. ~~**`aliveCheck`, `ImporterAPI`**~~ — done. `code.api.AliveCheckRoutes` serves `GET /alive`; `code.management.ImporterAPIRoutes` serves `POST /obp_transactions_saver/api/transactions`. Both Lift dispatches retired.
+4. ~~**`Http4sResourceDocs` centralised service**~~ — done. `code.api.util.http4s.Http4sResourceDocs` serves `/obp/*/resource-docs/{API_VERSION}/{obp,swagger,openapi,openapi.yaml}`, `/obp/*/banks/{BANK_ID}/resource-docs/{API_VERSION}/obp`, and `/obp/*/message-docs/{CONNECTOR}/swagger2.0`. 10 `LiftRules.statelessDispatch.append(ResourceDocs140..600)` retired + `openapi.yaml` raw `serve { ... }` block removed. ResourceDocsTest (63) + SwaggerDocsTest (10) green.
+5. **Auth stack: OAuth2 / GatewayLogin / DAuth** — done. All three turned out to be library-only token validators (no `serve` blocks, no `LiftRules` registration). Vestigial `extends RestHelper` mixins removed.
+6. **OpenIdConnect** — the only remaining auth-stack work. Blocked on a portal-session decision (its success path calls `AuthUser.logUserIn` / `S.redirectTo`, which mutate Lift `SessionVar`s — see auth-stack table). OAuth 1.0a was removed entirely in commit `51820c75e`; no migration needed.
 7. **Bridge-removal PR** — delete `Http4sLiftWebBridge` + the request-path entries from `Boot.scala` (lines 1–7 above).
 8. **Open-banking standards** — decide whether to migrate or keep a thin Lift remnant. Weeks of work if migrating.
 9. **`lift-mapper`** — separate long-term effort, out of scope here.
@@ -324,7 +340,26 @@ corsHandler
 | Lift Web removed | `lift-webkit` removed from `pom.xml`; `Boot.scala` reduced to DB init + scheduler startup. |
 | `lift-mapper` | Separate long-term effort — not in scope here. |
 
+**"Lift Web removed" ≠ "Lift removed."** The two are distinct milestones and the difference matters for public claims:
+
+- *Lift Web removed* means the HTTP request path no longer touches Lift — `lift-webkit` is out of `pom.xml`, `Http4sLiftWebBridge` is deleted, `Boot.scala` request-path hooks are gone. `lift-mapper` is still present and still the ORM.
+- *Lift removed* means `net.liftweb:*` is fully out of the dependency graph — requires the multi-month `lift-mapper` replacement (Doobie/Slick or similar).
+
+Decide which bar a release is hitting before announcing it; conflating them invites either an overstatement or an avoidable months-long delay before the announcement.
+
 ---
+
+## Risks
+
+Things that can derail the remaining workstreams. The facts behind each are documented in the relevant section above; collected here so the bridge-removal PR author doesn't have to rediscover them.
+
+| Risk | Detail | Mitigation |
+|---|---|---|
+| `FrozenClassTest` ratchet | Every deletion of a Lift `lazy val ... : OBPEndpoint` reduces the STABLE-API surface and trips `FrozenClassTest`. The v3.1.0 leftovers (`getMessageDocsSwagger`, `getObpConnectorLoopback`) are deferred to the bridge-removal PR specifically because of this; subsequent ports may surface more. | Plan the frozen-snapshot refresh as part of the bridge-removal PR, not as a follow-up. Document each removed `lazy val` in the PR description. |
+| OIDC callback success path has no tests | Whichever of the three OIDC forks ships, there is no automated safety net. Manual integration test against a real OIDC provider is the only verification. | Before picking a fork, write at least one integration test against a test OIDC provider (Keycloak in a container is the established pattern in this repo). |
+| `S.request` translation gotchas | DirectLogin's `createTokenFuture` ignored its parameters and re-read from `S.request` via `getAllParameters`; the http4s migration needed `validatorFutureWithParams` to thread parsed params through. If a future auth/handshake handler is migrated (e.g. OIDC's callback), expect the same shape — its handlers will reference `S.request` in ways the existing function signatures hide. | Audit the handler for `S.request`/`S.param`/`S.queryString` reads before designing the http4s entry point. Replicate the DirectLogin pattern. |
+| Bridge-cascade hijack on partial migrations | Documented in CLAUDE.md. Surfaced once during v4 migration; can resurface anywhere a new version is wired into the chain before its overrides are migrated. | When adding a new `Http4sXxx` to `baseServices`, audit URL+verb overrides against older versions first. |
+| `isStatisticallyTooPermissive` flakiness | Local test DB with too few users trips the ABAC permissiveness check. Not a regression, but easy to misdiagnose during the bridge-removal PR's full test run. | Seed enough test users in any test that exercises ABAC rules. Document in the suite, not as a runtime mitigation. |
 
 ## Why http4s?
 
@@ -358,15 +393,17 @@ Binds to `hostname` / `dev.port` from your props file (defaults: `127.0.0.1:8080
 | `APIMethods210` | done — `Http4s210.scala` (25 own endpoints; path-rewriting bridge to Http4s200) |
 | `APIMethods220` | done — `Http4s220.scala` (18 own endpoints; path-rewriting bridge to Http4s210) |
 | `APIMethods300` | done — `Http4s300.scala` (47 own endpoints; path-rewriting bridge to Http4s220; all 86 v3.0.0 tests pass) |
-| `APIMethods310` | done — `Http4s310.scala` (100 own endpoints + `updateCustomerAddress`; path-rewriting bridge to Http4s300; 2 endpoints intentionally left on Lift: `getMessageDocsSwagger`, `getObpConnectorLoopback`) |
+| `APIMethods310` | done — `Http4s310.scala` (100 own endpoints + `updateCustomerAddress`; path-rewriting bridge to Http4s300; 2 endpoints still on Lift: `getMessageDocsSwagger` (shadowed by `Http4sResourceDocs.routes`, kept to satisfy `FrozenClassTest`) and `getObpConnectorLoopback`) |
 | `APIMethods400` | **done — 258 / 258 (100%)**. `Http4s400.scala` covers all 253 unique handlers + 8 ResourceDoc aliases for transaction-request-type variants (served by the shared wildcard handler). |
 | `APIMethods500` | done — `Http4s500.scala` (all 10 v5.0.0 originals on http4s) |
 | `APIMethods510` | done — `Http4s510.scala` (all 111 v5.1.0 originals on http4s; `createConsent` exposed as `createConsentImplicit` with a guard covering EMAIL/SMS/IMPLICIT SCA methods) |
 | `APIMethods600` | **done — 243 / 243 (100%)**. `Http4s600.scala` covers all 35 overrides + 208 originals. |
-| Auth: DirectLogin | todo |
-| Auth: GatewayLogin | todo |
-| Auth: DAuth | todo |
-| Auth: OAuth | todo |
+| Auth: DirectLogin | done — `code.api.DirectLoginRoutes` serves the bare `/my/logins/direct` (gated on `allow_direct_login`); per-version paths served by their own `Http4sXxx`; `LiftRules.statelessDispatch.append(DirectLogin)` removed from `Boot.scala` |
+| Auth: GatewayLogin | done — library-only (no `serve` block, no `LiftRules` registration). Vestigial `extends RestHelper` removed. |
+| Auth: DAuth | done — library-only (no `serve` block, no `LiftRules` registration). Vestigial `extends RestHelper` removed. |
+| Auth: OAuth2 | done — library-only Bearer-token validator. Vestigial `extends RestHelper` removed. |
+| Auth: OAuth 1.0a | done — removed entirely in commit `51820c75e` (2026-02-20). `oauth1.0.scala` deleted, `OAuthHandshake` unregistered from `Boot.scala`, header detection removed from `OBPRestHelper.scala`. See "Per-version Lift leftovers → Auth stack" for surviving dead-code references that are cleanup candidates. |
+| Auth: OpenIdConnect | blocked — callback success path calls `AuthUser.logUserIn` / `S.redirectTo` (Lift `SessionVar`s). Needs a portal-session decision before migration. |
 | Resource-docs: aggregation bug fix | done |
 | Resource-docs: `Http4sResourceDocs` service | todo |
 | Resource-docs: `openapi.yaml` route | todo |

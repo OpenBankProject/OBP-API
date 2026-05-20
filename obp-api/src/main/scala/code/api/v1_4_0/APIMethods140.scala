@@ -547,60 +547,10 @@ trait APIMethods140 extends MdcLoggable with APIMethods130 with APIMethods121{
 
 
 
-    if (Props.devMode) {
-      resourceDocs += ResourceDoc(
-        testResourceDoc,
-        apiVersion,
-        nameOf(testResourceDoc),
-        "GET",
-        "/dummy",
-        "I am only a test resource Doc",
-        """
-            |
-            |#This should be H1
-            |
-            |##This should be H2
-            |
-            |###This should be H3
-            |
-            |####This should be H4
-            |
-            |Here is a list with two items:
-            |
-            |* One
-            |* Two
-            |
-            |There are underscores by them selves _
-            |
-            |There are _underscores_ around a word
-            |
-            |There are underscores_in_words
-            |
-            |There are 'underscores_in_words_inside_quotes'
-            |
-            |There are (underscores_in_words_in_brackets)
-            |
-            |_etc_...""",
-        EmptyBody,
-        apiInfoJSON,
-        List(UnknownError),
-        List(apiTagDocumentation, apiTagOldStyle))
-      }
-
-
-
-    lazy val testResourceDoc : OBPEndpoint = {
-      case "dummy" :: Nil JsonGet req => {
-        cc =>
-          val apiDetails: JValue = {
-            val hostedBy = new HostedBy("Dummy Org", "contact@example.com", "12345", "https://www.example.com")
-            val apiInfoJSON = new APIInfoJSON(apiVersion.vDottedApiVersion, apiVersionStatus, gitCommit, "DUMMY", hostedBy)
-            Extraction.decompose(apiInfoJSON)
-          }
-
-          Full(successJsonResponse(apiDetails, 200))
-      }
-    }
+    // `testResourceDoc` (dev-mode-only `GET /dummy` stub) deleted in the auth-stack /
+    // bridge-removal cleanup sweep. It returned a dummy `APIInfoJSON`, had no production
+    // behaviour, and its sole purpose was exercising the resource-doc renderer's
+    // description-markdown handling — covered today by real endpoints.
 
   }
 }

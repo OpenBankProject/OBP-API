@@ -653,7 +653,6 @@ object DirectLogin extends RestHelper with MdcLoggable {
 
   /**
    * DirectLogin-specific method to get consumer from token
-   * This replaces the dependency on OAuthHandshake.getConsumerFromTokenFuture
    * @param token DirectLogin token key
    * @return Future[Box[Consumer]]
    */
@@ -670,7 +669,6 @@ object DirectLogin extends RestHelper with MdcLoggable {
 
   /**
    * DirectLogin-specific method to get user from token
-   * This replaces the dependency on OAuthHandshake.getUserFromTokenFuture
    * @param token DirectLogin token key
    * @return Future[Box[User]]
    */

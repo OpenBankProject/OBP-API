@@ -25,7 +25,7 @@ _System Architecture, Workflows, Security, and API Reference_
 
 **Key integration points**
 
-- **AuthN/AuthZ**: OAuth 1.0a (legacy), OAuth 2.0, OIDC, DirectLogin; role‑based entitlements; fine‑grained _Views_ for account/transaction level access; Consents for OB/PSD2 style access.
+- **AuthN/AuthZ**: OAuth 2.0, OIDC, DirectLogin; role‑based entitlements; fine‑grained _Views_ for account/transaction level access; Consents for OB/PSD2 style access.
 - **Standards**: UK OB, Berlin Group, Bahrain OBF mapping via endpoints/consents; JWS signatures, mTLS where required.
 
 ---
@@ -124,7 +124,7 @@ User ──(has roles/entitlements)──► Bank/System actions
 
 ## 6) Access Control & Security Mechanisms
 
-- **Authentication**: OAuth 1.0a (legacy), OAuth 2.0, OIDC, DirectLogin (automation/dev only).
+- **Authentication**: OAuth 2.0, OIDC, DirectLogin (automation/dev only).
 - **Authorisation**: Role‑based **Entitlements** (system/bank scope) + account‑level **Views**.
 - **Consents**: OB/PSD2 style consent objects with permissions/scopes, linked to tokens.
 - **Crypto**: JWS request/response signing where profiles demand; JWKS for key discovery.

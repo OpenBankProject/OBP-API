@@ -512,16 +512,15 @@ object OpenAPI31JSONFactory extends MdcLoggable {
         name = Some("Authorization"),
         in = Some("header")
       ),
+      // OBP API consumes Bearer tokens issued by external IdPs (Google, Yahoo,
+      // Azure, Keycloak, Hydra) — it does not issue its own OAuth2 tokens. The
+      // accurate OpenAPI representation is `type: http, scheme: bearer`, not an
+      // `oauth2` flow with token-issuance URLs.
       "OAuth2" -> SecuritySchemeJson(
-        `type` = "oauth2",
+        `type` = "http",
         description = Some(oAuth2Description(hostname)),
-        flows = Some(OAuthFlowsJson(
-          authorizationCode = Some(OAuthFlowJson(
-            authorizationUrl = Some(s"${hostname}/oauth/authorize"),
-            tokenUrl = Some(s"${hostname}/oauth/token"),
-            scopes = Map.empty
-          ))
-        ))
+        scheme = Some("bearer"),
+        bearerFormat = Some("JWT")
       )
     )
 
