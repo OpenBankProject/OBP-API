@@ -689,9 +689,10 @@ object Consent extends MdcLoggable {
                        consumerId: Option[String],
                        validFrom: Option[Date],
                        timeToLive: Long,
-                       helperInfo: Option[HelperInfoJson] //this is only used for VRP consent, all the others are NONE.
+                       helperInfo: Option[HelperInfoJson], //this is only used for VRP consent, all the others are NONE.
+                       preComputedViews: Option[List[ConsentView]] = None // bypass Doobie view lookup (e.g. for VRP consent where the view was just created in the same transaction)
   ): String = {
-    
+
     lazy val currentConsumerId = Consumer.findAll(By(Consumer.createdByUserId, user.userId)).map(_.consumerId.get).headOption.getOrElse("")
     val currentTimeInSeconds = System.currentTimeMillis / 1000
     val timeInSeconds = validFrom match {
@@ -702,20 +703,20 @@ object Consent extends MdcLoggable {
     val authContexts = UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContextsBox(user.userId)
       .map(_.map(i => BasicUserAuthContext(i.key, i.value)))
     ConsentAuthContextProvider.consentAuthContextProvider.vend.createOrUpdateConsentAuthContexts(consentId, authContexts.getOrElse(Nil))
-      
+
     // 1. Add views
     // Please note that consents can only contain Views that the User already has access to.
-    val allUserViews = Views.views.vend.getPermissionForUser(user).map(_.views).getOrElse(Nil)
-    val views = consent.bank_id match {
-      case Some(bankId) =>
-        // Filter out roles for other banks
-        allUserViews.filterNot { i =>
-          !i.bankId.value.isEmpty() && i.bankId.value != bankId
-        }
-      case None =>
-        allUserViews
-    }
-    val viewsToAdd: Seq[ConsentView] = 
+    val viewsToAdd: Seq[ConsentView] = preComputedViews.getOrElse {
+      val allUserViews = Views.views.vend.getPermissionForUser(user).map(_.views).getOrElse(Nil)
+      val views = consent.bank_id match {
+        case Some(bankId) =>
+          // Filter out roles for other banks
+          allUserViews.filterNot { i =>
+            !i.bankId.value.isEmpty() && i.bankId.value != bankId
+          }
+        case None =>
+          allUserViews
+      }
       for {
         view <- views
         if consent.everything || consent.views.exists(_ == PostConsentViewJsonV310(view.bankId.value,view.accountId.value, view.viewId.value))
@@ -727,6 +728,7 @@ object Consent extends MdcLoggable {
           helper_info = helperInfo
         )
       }
+    }
     // 2. Add Roles
     // Please note that consents can only contain Roles that the User already has access to.
     val allUserEntitlements = Entitlement.entitlement.vend.getEntitlementsByUserId(user.userId).getOrElse(Nil)

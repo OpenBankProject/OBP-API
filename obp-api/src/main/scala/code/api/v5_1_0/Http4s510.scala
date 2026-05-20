@@ -11,7 +11,7 @@ import code.api.util.ApiTag._
 import code.api.util.ErrorMessages
 import code.api.util.ErrorMessages._
 import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps}
-import code.api.util.http4s.ResourceDocMiddleware
+import code.api.util.http4s.{ResourceDocMiddleware, ResourceDocMatcher}
 import code.api.util.newstyle.{BalanceNewStyle, RegulatedEntityAttributeNewStyle, ViewNewStyle}
 import code.api.util.newstyle.RegulatedEntityNewStyle.{createRegulatedEntityNewStyle, deleteRegulatedEntityNewStyle, getRegulatedEntitiesNewStyle, getRegulatedEntityByEntityIdNewStyle}
 import code.api.util.newstyle.Consumer.createConsumerNewStyle
@@ -193,6 +193,29 @@ object Http4s510 {
       List(apiTagMetric, apiTagAggregateMetrics),
       Some(List(canReadAggregateMetrics)),
       http4sPartialFunction = Some(getAggregateMetrics)
+    )
+
+    // ─── getBanks — kept in v5.1.0 layer so metrics are attributed to this version ──
+
+    val getBanks: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" =>
+        EndpointHelpers.executeAndRespond(req) { implicit cc =>
+          for {
+            (banks, _) <- NewStyle.function.getBanks(Some(cc))
+          } yield JSONFactory400.createBanksJson(banks)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(getBanks), "GET",
+      "/banks", "Get Banks",
+      """Get banks on this API instance
+        |Returns a list of banks supported on this server.""",
+      EmptyBody, banksJSON,
+      List(UnknownError),
+      List(apiTagBank),
+      None,
+      http4sPartialFunction = Some(getBanks)
     )
 
     // ─── ATM CRUD (createAtm/updateAtm/getAtms/getAtm/deleteAtm) — v5.1 overrides
@@ -679,7 +702,7 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, "getOAuth2ServerWellKnown", "GET",
+      null, implementedInApiVersion, nameOf(getOAuth2ServerWellKnown), "GET",
       "/well-known", "Get Well Known URIs",
       "Get the OAuth2 server's public Well Known URIs.",
       EmptyBody, oAuth2ServerJwksUrisJson,
@@ -3214,7 +3237,8 @@ object Http4s510 {
       http4sPartialFunction = Some(revokeMyConsent)
     )
 
-    val createConsentImplicit: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    // Lift named this endpoint "createConsent"; test tag nameOf references still use that name.
+    val createConsent: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ POST -> `prefixPath` / "my" / "consents" / scaMethod
         if scaMethod == "EMAIL" || scaMethod == "SMS" || scaMethod == "IMPLICIT" =>
         EndpointHelpers.executeFutureCreated(req) {
@@ -3324,7 +3348,7 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createConsentImplicit), "POST",
+      null, implementedInApiVersion, nameOf(createConsent), "POST",
       "/my/consents/IMPLICIT", "Create Consent (IMPLICIT)",
       "Create a Consent in INITIATED state. SCA challenge is sent OOB based on SCA_METHOD.",
       postConsentImplicitJsonV310, consentJsonV310,
@@ -3333,7 +3357,7 @@ object Http4s510 {
         MissingPropsValueAtThisInstance, SmsServerNotResponding, InvalidConnectorResponse, UnknownError),
       apiTagConsent :: apiTagPSD2AIS :: apiTagPsd2 :: Nil,
       None,
-      http4sPartialFunction = Some(createConsentImplicit)
+      http4sPartialFunction = Some(createConsent)
     )
 
     // ─── createVRPConsentRequest ────────────────────────────────────────────
@@ -3405,6 +3429,7 @@ object Http4s510 {
         root(req)
           .orElse(getMyConsentsByBank(req))
           .orElse(getAggregateMetrics(req))
+          .orElse(getBanks(req))
           .orElse(createAtm(req))
           .orElse(updateAtm(req))
           .orElse(getAtms(req))
@@ -3512,7 +3537,7 @@ object Http4s510 {
           .orElse(revokeConsentAtBank(req))
           .orElse(selfRevokeConsent(req))
           .orElse(revokeMyConsent(req))
-          .orElse(createConsentImplicit(req))
+          .orElse(createConsent(req))
           .orElse(createVRPConsentRequest(req))
       }
 
@@ -3520,43 +3545,26 @@ object Http4s510 {
       ResourceDocMiddleware.apply(resourceDocs)(allRoutes)
 
     // ─── path-rewriting bridge: /obp/v5.1.0/… → /obp/v5.0.0/… ─────────────
-    val v510ToV500Bridge: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { req =>
+    lazy val v510ToV500Bridge: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { req =>
       val rawPath = req.uri.path.renderString
-      if (rawPath.startsWith("/obp/v5.1.0/")) {
+      if (rawPath.startsWith("/obp/v5.1.0/") &&
+          ResourceDocMatcher.findResourceDoc(req.method.name, req.uri.path, v5_1ResourceDocIndex).isEmpty) {
         val rewritten = rawPath.replaceFirst("/obp/v5\\.1\\.0/", "/obp/v5.0.0/")
         val newUri = req.uri.withPath(Uri.Path.unsafeFromString(rewritten))
-        val rewrittenReq = req.withUri(newUri)
-        Http4s500.wrappedRoutesV500Services.run(rewrittenReq)
+        Http4s500.wrappedRoutesV500Services.run(req.withUri(newUri))
+          .map(_.putHeaders(Header.Raw(CIString("X-OBP-Version-Served"), "v5.0.0")))
       } else {
         OptionT.none[IO, Response[IO]]
       }
     }
   }
 
-  // Bridge cascade is currently DISABLED — all 111 v5.1.0 own endpoints are
-  // migrated, but enabling `v510ToV500Bridge` surfaces two cross-version
-  // interaction issues that need root-causing first:
-  //
-  //   - MetricTest "include_implemented_by_partial_functions=getBanks" returns
-  //     0 instead of 12. Setup calls /obp/v5.1.0/banks should be hijacked to
-  //     v500.getBanks via the bridge, recording metrics with
-  //     partial_function_name=getBanks. Filter doesn't see them — the metric
-  //     records likely have a different field shape (URL/version) when
-  //     written from the bridged path.
-  //   - VRPConsentRequestTest's "Create Consent By CONSENT_REQUEST_ID (EMAIL)"
-  //     returns 400 instead of 201 (5 scenarios). The v5.1 createVRPConsentRequest
-  //     stores a payload with `consent_type: VRP` merged in, then the test calls
-  //     /obp/v5.1.0/consumer/consent-requests/X/EMAIL/consents which the bridge
-  //     rewrites into v500.createConsentByConsentRequestId. That handler tries
-  //     to parse the payload as PostVRPConsentRequestJsonInternalV510 and
-  //     apparently fails — likely the merged consent_type field.
-  //
-  // Without the bridge, these URLs fall through Http4sApp's chain to
-  // Http4sLiftWebBridge with the original /obp/v5.1.0/ path; Lift's
-  // OBPAPI5_1_0 dispatch picks them up via the inherited APIMethods500
-  // partial functions and serves them correctly. To re-enable the bridge,
-  // append `.orElse(Implementations5_1_0.v510ToV500Bridge.run(req))` and
-  // address the two failures above.
-  val wrappedRoutesV510Services: HttpRoutes[IO] =
-    Implementations5_1_0.allRoutesWithMiddleware
+  private lazy val v5_1ResourceDocIndex: ResourceDocMatcher.ResourceDocIndex =
+    ResourceDocMatcher.buildIndex(resourceDocs)
+
+  lazy val wrappedRoutesV510Services: HttpRoutes[IO] =
+    Kleisli[HttpF, Request[IO], Response[IO]] { req =>
+      Implementations5_1_0.allRoutesWithMiddleware.run(req)
+        .orElse(Implementations5_1_0.v510ToV500Bridge.run(req))
+    }
 }

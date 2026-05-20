@@ -28,8 +28,8 @@ package code.api.v5_1_0
 
 import scala.language.reflectiveCalls
 import code.api.OBPRestHelper
-import code.api.util.APIUtil.{OBPEndpoint, getAllowedEndpoints}
-import code.api.util.{APIUtil, VersionedOBPApis}
+import code.api.util.APIUtil.OBPEndpoint
+import code.api.util.VersionedOBPApis
 import code.api.v1_3_0.APIMethods130
 import code.api.v1_4_0.APIMethods140
 import code.api.v2_0_0.APIMethods200
@@ -43,37 +43,36 @@ import code.api.v5_0_0.{APIMethods500, OBPAPI5_0_0}
 import code.util.Helper.MdcLoggable
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.util.{ApiVersion, ApiVersionStatus}
-import net.liftweb.common.{Box, Full}
-import net.liftweb.http.{LiftResponse, PlainTextResponse}
-import org.apache.http.HttpStatus
 
 /*
-This file defines which endpoints from all the versions are available in v5.0.0
+This file defines which endpoints from all the versions are available in v5.1.0.
+All v5.1.0 endpoints have been migrated to Http4s510 — this object is retained
+only for resource-doc aggregation and the Lift dispatch registry.
  */
-object OBPAPI5_1_0 extends OBPRestHelper 
-  with APIMethods130 
-  with APIMethods140 
-  with APIMethods200 
-  with APIMethods210 
-  with APIMethods220 
-  with APIMethods300 
-  with CustomAPIMethods300 
-  with APIMethods310 
-  with APIMethods400 
-  with APIMethods500 
-  with APIMethods510 
-  with MdcLoggable 
+object OBPAPI5_1_0 extends OBPRestHelper
+  with APIMethods130
+  with APIMethods140
+  with APIMethods200
+  with APIMethods210
+  with APIMethods220
+  with APIMethods300
+  with CustomAPIMethods300
+  with APIMethods310
+  with APIMethods400
+  with APIMethods500
+  with APIMethods510
+  with MdcLoggable
   with VersionedOBPApis{
 
   val version : ApiVersion = ApiVersion.v5_1_0
 
   val versionStatus = ApiVersionStatus.BLEEDING_EDGE.toString
 
-  // Possible Endpoints from 5.1.0, exclude one endpoint use - method,exclude multiple endpoints use -- method,
-  // e.g getEndpoints(Implementations5_0_0) -- List(Implementations5_0_0.genericEndpoint, Implementations5_0_0.root)
-  lazy val endpointsOf5_1_0 = getEndpoints(Implementations5_1_0)
+  // Re-export so tests that import OBPAPI5_1_0.Implementations5_1_0 still compile
+  // after APIMethods510 was replaced with an empty stub.
+  val Implementations5_1_0 = Http4s510.Implementations5_1_0
 
-  lazy val excludeEndpoints = 
+  lazy val excludeEndpoints =
     nameOf(Implementations3_0_0.getUserByUsername) ::  // following 4 endpoints miss Provider parameter in the URL, we introduce new ones in V510.
       nameOf(Implementations3_1_0.getBadLoginStatus) ::
       nameOf(Implementations3_1_0.unlockUser) ::
@@ -83,41 +82,18 @@ object OBPAPI5_1_0 extends OBPRestHelper
       nameOf(Implementations4_0_0.revokeUserAccessToView) ::
       nameOf(Implementations4_0_0.revokeGrantUserAccessToViews) ::// this endpoint is forbidden in V510, we do not support multi views in one endpoint from V510.
       Nil
-      
-  // if old version ResourceDoc objects have the same name endpoint with new version, omit old version ResourceDoc.
+
+  // All v5.1.0 endpoints live in Http4s510 — aggregate Http4s510.resourceDocs on top of v5.0.0.
   def allResourceDocs = collectResourceDocs(
     OBPAPI5_0_0.allResourceDocs,
-    Implementations5_1_0.resourceDocs
+    Http4s510.resourceDocs
   ).filterNot(it => it.partialFunctionName.matches(excludeEndpoints.mkString("|")))
 
-  // all endpoints
-  private val endpoints: List[OBPEndpoint] = OBPAPI5_0_0.routes ++ endpointsOf5_1_0
+  // No Lift routes — all v5.1.0 endpoints are served by Http4s510.
+  val routes: List[OBPEndpoint] = Nil
 
-  // Filter the possible endpoints by the disabled / enabled Props settings and add them together
-  val routes : List[OBPEndpoint] = Implementations5_1_0.root :: // For now we make this mandatory 
-    getAllowedEndpoints(endpoints, allResourceDocs)
-
-  // register v5.1.0 apis first, Make them available for use!
   registerRoutes(routes, allResourceDocs, apiPrefix, true)
 
-
   logger.info(s"version $version has been run! There are ${routes.length} routes, ${allResourceDocs.length} allResourceDocs.")
-
-  // specified response for OPTIONS request.
-  private val corsResponse: Box[LiftResponse] = Full{
-    val corsHeaders = List(
-      "Access-Control-Allow-Origin" -> "*",
-      "Access-Control-Allow-Methods" -> "GET, POST, OPTIONS, PUT, PATCH, DELETE",
-      "Access-Control-Allow-Headers" -> "*",
-      "Access-Control-Allow-Credentials" -> "true",
-      "Access-Control-Max-Age" -> "1728000" //Tell client that this pre-flight info is valid for 20 days
-    )
-    PlainTextResponse("", corsHeaders, HttpStatus.SC_NO_CONTENT)
-  }
-  /*
-   * process OPTIONS http request, just return no content and status is 204
-   */
-  this.serve({
-    case req if req.requestType.method == "OPTIONS" => corsResponse
-  })
+  // CORS for OPTIONS is handled by the http4s corsHandler layer — no Lift serve needed here.
 }
