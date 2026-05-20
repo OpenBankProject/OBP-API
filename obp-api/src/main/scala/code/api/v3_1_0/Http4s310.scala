@@ -903,7 +903,7 @@ object Http4s310 {
     // ViewNewStyle.systemView inline.
 
     val getSystemView: HttpRoutes[IO] = HttpRoutes.of[IO] {
-      case req @ GET -> `prefixPath` / "system-views" / viewIdStr if viewIdStr.nonEmpty =>
+      case req @ GET -> `prefixPath` / "system-views" / viewIdStr =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
             _ <- NewStyle.function.hasEntitlement("", user.userId, canGetSystemView, Some(cc))
@@ -1514,7 +1514,7 @@ object Http4s310 {
     // ─── deleteSystemView ────────────────────────────────────────────────────
 
     val deleteSystemView: HttpRoutes[IO] = HttpRoutes.of[IO] {
-      case req @ DELETE -> `prefixPath` / "system-views" / viewIdStr if viewIdStr.nonEmpty =>
+      case req @ DELETE -> `prefixPath` / "system-views" / viewIdStr =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
             _ <- NewStyle.function.hasEntitlement("", user.userId, canDeleteSystemView, Some(cc))
@@ -1989,7 +1989,7 @@ object Http4s310 {
     // ─── updateSystemView (PUT) ──────────────────────────────────────────────
 
     val updateSystemView: HttpRoutes[IO] = HttpRoutes.of[IO] {
-      case req @ PUT -> `prefixPath` / "system-views" / viewIdStr if viewIdStr.nonEmpty =>
+      case req @ PUT -> `prefixPath` / "system-views" / viewIdStr =>
         EndpointHelpers.withUserAndBody[UpdateViewJSON, Any](req) { (user, updateJson, cc) =>
           for {
             _ <- NewStyle.function.hasEntitlement("", user.userId, canUpdateSystemView, Some(cc))
@@ -3406,11 +3406,17 @@ object Http4s310 {
         }
     }
 
+    // Lift registered three separate endpoints with concrete SCA-method URL segments.
+    // Preserve those names so FrozenClassTest (STABLE API contract) stays green.
+    val createConsentEmail: HttpRoutes[IO] = createConsent
+    val createConsentSms: HttpRoutes[IO] = createConsent
+    val createConsentImplicit: HttpRoutes[IO] = createConsent
+
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createConsent), "POST",
-      "/banks/BANK_ID/my/consents/SCA_METHOD",
-      "Create Consent",
-      s"""This endpoint starts the process of creating a Consent.
+      null, implementedInApiVersion, nameOf(createConsentEmail), "POST",
+      "/banks/BANK_ID/my/consents/EMAIL",
+      "Create Consent (Email)",
+      s"""This endpoint starts the process of creating a Consent via Email SCA method.
          |
          |${userAuthenticationMessage(true)}
          |""",
@@ -3422,14 +3428,43 @@ object Http4s310 {
       List(AuthenticatedUserIsRequired, BankNotFound, InvalidJsonFormat,
         ConsentMaxTTL, RolesAllowedInConsent, ViewsAllowedInConsent, UnknownError),
       apiTagConsent :: apiTagPSD2AIS :: apiTagPsd2 :: Nil, None,
-      http4sPartialFunction = Some(createConsent))
+      http4sPartialFunction = Some(createConsentEmail))
 
-    // Re-declarations for the resource doc registration of the 3 SCA-method variants
-    // (Lift had three aliases for the same handler — for the http4s router only the
-    // single `createConsent` route is needed since SCA_METHOD is a path variable).
-    val createConsentEmail: HttpRoutes[IO] = createConsent
-    val createConsentSms: HttpRoutes[IO] = createConsent
-    val createConsentImplicit: HttpRoutes[IO] = createConsent
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(createConsentSms), "POST",
+      "/banks/BANK_ID/my/consents/SMS",
+      "Create Consent (SMS)",
+      s"""This endpoint starts the process of creating a Consent via SMS SCA method.
+         |
+         |${userAuthenticationMessage(true)}
+         |""",
+      postConsentRequestJsonV310,
+      ConsentJsonV310(
+        consent_id = "9d429899-24f5-42c8-8565-943ffa6a7945",
+        jwt = "eyJ...",
+        status = "INITIATED"),
+      List(AuthenticatedUserIsRequired, BankNotFound, InvalidJsonFormat,
+        ConsentMaxTTL, RolesAllowedInConsent, ViewsAllowedInConsent, UnknownError),
+      apiTagConsent :: apiTagPSD2AIS :: apiTagPsd2 :: Nil, None,
+      http4sPartialFunction = Some(createConsentSms))
+
+    resourceDocs += ResourceDoc(
+      null, implementedInApiVersion, nameOf(createConsentImplicit), "POST",
+      "/banks/BANK_ID/my/consents/IMPLICIT",
+      "Create Consent (Implicit)",
+      s"""This endpoint starts the process of creating a Consent via Implicit SCA method.
+         |
+         |${userAuthenticationMessage(true)}
+         |""",
+      postConsentRequestJsonV310,
+      ConsentJsonV310(
+        consent_id = "9d429899-24f5-42c8-8565-943ffa6a7945",
+        jwt = "eyJ...",
+        status = "INITIATED"),
+      List(AuthenticatedUserIsRequired, BankNotFound, InvalidJsonFormat,
+        ConsentMaxTTL, RolesAllowedInConsent, ViewsAllowedInConsent, UnknownError),
+      apiTagConsent :: apiTagPSD2AIS :: apiTagPsd2 :: Nil, None,
+      http4sPartialFunction = Some(createConsentImplicit))
 
     // ─── answerConsentChallenge (POST → 201) ─────────────────────────────────
 

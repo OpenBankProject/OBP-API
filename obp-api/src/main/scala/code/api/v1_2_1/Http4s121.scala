@@ -2472,5 +2472,5 @@ object Http4s121 {
     }
   }
 
-  val wrappedRoutesV121Services: HttpRoutes[IO] = Implementations1_2_1.allRoutesWithMiddleware
+  lazy val wrappedRoutesV121Services: HttpRoutes[IO] = Implementations1_2_1.allRoutesWithMiddleware
 }
