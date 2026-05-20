@@ -8503,17 +8503,21 @@ object Http4s600 {
     val allRoutesWithMiddleware: HttpRoutes[IO] =
       ResourceDocMiddleware.apply(resourceDocs)(allRoutes)
 
-    // ─── path-rewriting bridge: /obp/v6.0.0/… → /obp/v5.1.0/… ─────────────
-    // Targets v5.1.0; Http4s510 has its own working cascade down to v5.0.0 → v4.0.0 → …
+    // ─── path-rewriting bridge: /obp/v6.0.0/… → /obp/v5.1.0/… → /obp/v5.0.0/… ──
+    // Tries v5.1.0 native Http4s routes first; if not handled there, falls back to
+    // the v5.0.0 cascade (v5.0.0 → v4.0.0 → v3.1.0 → v3.0.0).
     // NOT appended to allRoutes — see object-level scaladoc.
-    lazy val v600ToV510Bridge: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { req =>
+    val v600ToV510Bridge: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { req =>
       val rawPath = req.uri.path.renderString
-      if (rawPath.startsWith("/obp/v6.0.0/") &&
-          ResourceDocMatcher.findResourceDoc(req.method.name, req.uri.path, v6ResourceDocIndex).isEmpty) {
-        val rewritten = rawPath.replaceFirst("/obp/v6\\.0\\.0/", "/obp/v5.1.0/")
-        val newUri = req.uri.withPath(Uri.Path.unsafeFromString(rewritten))
-        Http4s510.wrappedRoutesV510Services.run(req.withUri(newUri))
-          .map(_.putHeaders(Header.Raw(CIString("X-OBP-Version-Served"), "v5.1.0")))
+      if (rawPath.startsWith("/obp/v6.0.0/")) {
+        val path510 = rawPath.replaceFirst("/obp/v6\\.0\\.0/", "/obp/v5.1.0/")
+        val req510 = req.withUri(req.uri.withPath(Uri.Path.unsafeFromString(path510)))
+        Http4s510.wrappedRoutesV510Services.run(req510)
+          .orElse {
+            val path500 = rawPath.replaceFirst("/obp/v6\\.0\\.0/", "/obp/v5.0.0/")
+            val req500 = req.withUri(req.uri.withPath(Uri.Path.unsafeFromString(path500)))
+            Http4s500.wrappedRoutesV500Services.run(req500)
+          }
       } else {
         OptionT.none[IO, Response[IO]]
       }

@@ -92,9 +92,26 @@ object RequestScopeConnection extends MdcLoggable {
   /**
    * Thread-local proxy reference, propagated to Future workers via TtlRunnable.
    * Set from requestProxyLocal immediately before each IO(Future { }) submission.
+   *
+   * IMPORTANT: `childValue` is overridden to return `null` so newly-spawned threads do
+   * NOT inherit the parent thread's proxy.  This blocks a subtle leak where Scala's
+   * ForkJoinPool spawns a new worker while an existing worker is mid-TtlRunnable (with
+   * `currentProxy` replayed): the new worker inherits the same Connection reference,
+   * and every subsequent TtlRunnable.restore() reverts it to that initial inherited
+   * value — even for tasks belonging to a completely different request.  Workers stuck
+   * with a stale proxy then read 0 rows for the current request's freshly-written data,
+   * since the underlying real connection was closed by the original request's WBT.
+   *
+   * Discussed by the TTL library authors:
+   *   https://github.com/alibaba/transmittable-thread-local/issues/100
+   * Default childValue (return parent's value) is documented as buggy when the value
+   * is request-scoped state that should never cross thread boundaries except through
+   * an explicit TtlRunnable capture/replay.
    */
   val currentProxy: TransmittableThreadLocal[Connection] =
-    new TransmittableThreadLocal[Connection]()
+    new TransmittableThreadLocal[Connection]() {
+      override protected def childValue(parentValue: Connection): Connection = null
+    }
 
   /**
    * Wrap a real Connection in a proxy that no-ops commit, rollback, and close.
