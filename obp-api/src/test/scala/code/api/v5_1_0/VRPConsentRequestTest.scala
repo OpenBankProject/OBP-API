@@ -71,7 +71,7 @@ class VRPConsentRequestTest extends V510ServerSetup with PropsReset{
   object ApiEndpoint4 extends Tag(nameOf(Implementations5_0_0.getConsentByConsentRequestId))
   object ApiEndpoint5 extends Tag(nameOf(Implementations3_0_0.corePrivateAccountsAllBanks))
   object ApiEndpoint6 extends Tag(nameOf(Implementations5_0_0.getConsentRequest))
-  object ApiEndpoint7 extends Tag("createTransactionRequestCounterparty")
+  object ApiEndpoint7 extends Tag(nameOf(Implementations4_0_0.createTransactionRequestCounterparty))
 
 
   val validHeaderConsumerKey = List((RequestHeader.`Consumer-Key`, user1.map(_._1.key).getOrElse("SHOULD_NOT_HAPPEN")))

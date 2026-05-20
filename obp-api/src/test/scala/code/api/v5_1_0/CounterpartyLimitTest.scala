@@ -25,7 +25,7 @@ class CounterpartyLimitTest extends V510ServerSetup {
   object ApiEndpoint2 extends Tag(nameOf(Implementations5_1_0.getCounterpartyLimit))
   object ApiEndpoint3 extends Tag(nameOf(Implementations5_1_0.updateCounterpartyLimit))
   object ApiEndpoint4 extends Tag(nameOf(Implementations5_1_0.deleteCounterpartyLimit))
-  object ApiEndpoint5 extends Tag("createTransactionRequestCounterparty")
+  object ApiEndpoint5 extends Tag(nameOf(Implementations4_0_0.createTransactionRequestCounterparty))
   object ApiEndpoint6 extends Tag(nameOf(Implementations5_1_0.getCounterpartyLimitStatus))
 
   

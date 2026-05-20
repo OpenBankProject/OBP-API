@@ -32,6 +32,7 @@ import code.api.util.APIUtil.OBPEndpoint
 import code.api.util.VersionedOBPApis
 import code.api.v3_1_0.OBPAPI3_1_0
 import code.util.Helper.MdcLoggable
+import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.util.{ApiVersion, ApiVersionStatus}
 
 /*
@@ -47,16 +48,14 @@ object OBPAPI4_0_0 extends OBPRestHelper with MdcLoggable with VersionedOBPApis 
   // Re-export so any caller that still imports OBPAPI4_0_0.Implementations4_0_0 keeps compiling.
   val Implementations4_0_0 = Http4s400.Implementations4_0_0
 
-  // nameOf macro replaced with literal strings since the APIMethods121/310 trait mixins
-  // have been removed — `nameOf(Implementations1_2_1.foo)` would no longer resolve.
-  lazy val excludeEndpoints: List[String] = List(
-    "addPermissionForUserForBankAccountForMultipleViews",
-    "removePermissionForUserForBankAccountForAllViews",
-    "addPermissionForUserForBankAccountForOneView",
-    "removePermissionForUserForBankAccountForOneView",
-    "createAccount",
-    "revokeConsent"
-  )
+  lazy val excludeEndpoints =
+    nameOf(OBPAPI3_1_0.Implementations1_2_1.addPermissionForUserForBankAccountForMultipleViews) ::
+      nameOf(OBPAPI3_1_0.Implementations1_2_1.removePermissionForUserForBankAccountForAllViews) ::
+      nameOf(OBPAPI3_1_0.Implementations1_2_1.addPermissionForUserForBankAccountForOneView) ::
+      nameOf(OBPAPI3_1_0.Implementations1_2_1.removePermissionForUserForBankAccountForOneView) ::
+      nameOf(OBPAPI3_1_0.Implementations3_1_0.createAccount) ::
+      nameOf(OBPAPI3_1_0.Implementations3_1_0.revokeConsent) ::
+      Nil
 
   def allResourceDocs = collectResourceDocs(
     OBPAPI3_1_0.allResourceDocs,
