@@ -10441,7 +10441,7 @@ trait APIMethods400 extends MdcLoggable {
               s"$InvalidValueLength. The maximum length of `description` field is ${MappedCounterparty.mDescription.maxLen}",
               cc = callContext
             ) {
-              postJson.description.length <= 36
+              postJson.description.length <= MappedCounterparty.mDescription.maxLen
             }
             _ <- Helper.booleanToFuture(
               s"$InvalidISOCurrencyCode Current input is: '${postJson.currency}'",
@@ -10775,7 +10775,7 @@ trait APIMethods400 extends MdcLoggable {
             _ <- Helper.booleanToFuture(
               s"$InvalidValueLength. The maximum length of `description` field is ${MappedCounterparty.mDescription.maxLen}",
               cc = callContext
-            ) { postJson.description.length <= 36 }
+            ) { postJson.description.length <= MappedCounterparty.mDescription.maxLen }
 
             (counterparty, callContext) <- Connector.connector.vend
               .checkCounterpartyExists(

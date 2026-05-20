@@ -491,7 +491,7 @@ class MappedCounterparty extends CounterpartyTrait with LongKeyedMapper[MappedCo
   object mOtherAccountSecondaryRoutingAddress extends MappedString(this, 255)
   
   object mIsBeneficiary extends MappedBoolean(this)
-  object mDescription extends MappedString(this, 36)
+  object mDescription extends MappedString(this, 2000)
   object mCurrency extends MappedString(this, 255)
 
   object mBespoke extends MappedOneToMany(MappedCounterpartyBespoke, MappedCounterpartyBespoke.mCounterparty, OrderBy(MappedCounterpartyBespoke.id, Ascending))
