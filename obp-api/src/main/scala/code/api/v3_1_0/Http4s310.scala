@@ -1426,8 +1426,7 @@ object Http4s310 {
       "Get Transaction by Id",
       s"""Returns one transaction specified by TRANSACTION_ID of the account ACCOUNT_ID and [moderated](#1_2_1-getViewsForBankAccount) by the view (VIEW_ID).
       |
-      |${userAuthenticationMessage(false)}
-      |Authentication is required if the view is not public.
+      |${userAuthenticationMessage(true)}
       |
       |
       |""",
@@ -4706,7 +4705,7 @@ object Http4s310 {
       "Get Connector Status (Loopback)",
       s"""This endpoint makes a call to the Connector to check the backend transport is reachable. (Deprecated)
       |
-      |${userAuthenticationMessage(true)}
+      |${userAuthenticationMessage(false)}
       |
       |""",
       EmptyBody,
