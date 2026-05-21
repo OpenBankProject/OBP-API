@@ -463,9 +463,6 @@ connection.host=localhost
 connection.user=theusername
 connection.password=thepassword
 
-## Secret key that allows access to the "add transactions" api. You should change this to your own secret key
-importer_secret=change_me
-
 ## Set this to true if you want to have the api send a message to the hbci project to refresh transactions for an account
 messageQueue.updateBankAccountsTransaction=false
 

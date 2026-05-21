@@ -19,7 +19,6 @@ import code.bankconnectors.ethereum.DecodeRawTx
 import code.branches.MappedBranch
 import code.fx.fx
 import code.fx.fx.TTL
-import code.management.ImporterAPI.ImporterTransaction
 import code.model.dataAccess.{BankAccountRouting, MappedBank, MappedBankAccount}
 import code.model.toBankAccountExtended
 import code.transaction.MappedTransaction
@@ -319,120 +318,6 @@ object LocalMappedConnectorInternal extends MdcLoggable {
           .saveMe()
       }
     }
-  }
-
-
-  //transaction import api uses bank national identifiers to uniquely indentify banks,
-  //which is unfortunate as theoretically the national identifier is unique to a bank within
-  //one country
-  private def getBankByNationalIdentifier(nationalIdentifier: String): Box[Bank] = {
-    MappedBank.find(By(MappedBank.national_identifier, nationalIdentifier))
-  }
-
-  private def getAccountByNumber(bankId: BankId, number: String): Box[BankAccount] = {
-    MappedBankAccount.find(
-      By(MappedBankAccount.bank, bankId.value),
-      By(MappedBankAccount.accountNumber, number))
-  }
-
-  private val bigDecimalFailureHandler: PartialFunction[Throwable, Unit] = {
-    case ex: NumberFormatException => {
-      logger.warn(s"could not convert amount to a BigDecimal: $ex")
-    }
-  }
-
-  //used by transaction import api call to check for duplicates
-  def getMatchingTransactionCount(bankNationalIdentifier: String, accountNumber: String, amount: String, completed: Date, otherAccountHolder: String): Box[Int] = {
-    //we need to convert from the legacy bankNationalIdentifier to BankId, and from the legacy accountNumber to AccountId
-    val count = for {
-      bankId <- getBankByNationalIdentifier(bankNationalIdentifier).map(_.bankId)
-      account <- getAccountByNumber(bankId, accountNumber)
-      amountAsBigDecimal <- tryo(bigDecimalFailureHandler)(BigDecimal(amount))
-    } yield {
-
-      val amountInSmallestCurrencyUnits =
-        Helper.convertToSmallestCurrencyUnits(amountAsBigDecimal, account.currency)
-
-      MappedTransaction.count(
-        By(MappedTransaction.bank, bankId.value),
-        By(MappedTransaction.account, account.accountId.value),
-        By(MappedTransaction.amount, amountInSmallestCurrencyUnits),
-        By(MappedTransaction.tFinishDate, completed),
-        By(MappedTransaction.counterpartyAccountHolder, otherAccountHolder))
-    }
-
-    //icky
-    Full(count.map(_.toInt) getOrElse 0)
-  }
-  
-  
-  def createImportedTransaction(transaction: ImporterTransaction): Box[Transaction] = {
-    //we need to convert from the legacy bankNationalIdentifier to BankId, and from the legacy accountNumber to AccountId
-    val obpTransaction = transaction.obp_transaction
-    val thisAccount = obpTransaction.this_account
-    val nationalIdentifier = thisAccount.bank.national_identifier
-    val accountNumber = thisAccount.number
-    for {
-      bank <- getBankByNationalIdentifier(transaction.obp_transaction.this_account.bank.national_identifier) ?~!
-        s"No bank found with national identifier $nationalIdentifier"
-      bankId = bank.bankId
-      account <- getAccountByNumber(bankId, accountNumber)
-      details = obpTransaction.details
-      amountAsBigDecimal <- tryo(bigDecimalFailureHandler)(BigDecimal(details.value.amount))
-      newBalanceAsBigDecimal <- tryo(bigDecimalFailureHandler)(BigDecimal(details.new_balance.amount))
-      amountInSmallestCurrencyUnits = Helper.convertToSmallestCurrencyUnits(amountAsBigDecimal, account.currency)
-      newBalanceInSmallestCurrencyUnits = Helper.convertToSmallestCurrencyUnits(newBalanceAsBigDecimal, account.currency)
-      otherAccount = obpTransaction.other_account
-      mappedTransaction = MappedTransaction.create
-        .bank(bankId.value)
-        .account(account.accountId.value)
-        .transactionType(details.kind)
-        .amount(amountInSmallestCurrencyUnits)
-        .newAccountBalance(newBalanceInSmallestCurrencyUnits)
-        .currency(account.currency)
-        .tStartDate(details.posted.`$dt`)
-        .tFinishDate(details.completed.`$dt`)
-        .description(details.label)
-        .counterpartyAccountNumber(otherAccount.number)
-        .counterpartyAccountHolder(otherAccount.holder)
-        .counterpartyAccountKind(otherAccount.kind)
-        .counterpartyNationalId(otherAccount.bank.national_identifier)
-        .counterpartyBankName(otherAccount.bank.name)
-        .counterpartyIban(otherAccount.bank.IBAN)
-        .saveMe()
-      transaction <- mappedTransaction.toTransaction(account)
-    } yield transaction
-  }
-
-  //used by the transaction import api
-  def updateAccountBalance(bankId: BankId, accountId: AccountId, newBalance: BigDecimal): Box[Boolean] = {
-    //this will be Full(true) if everything went well
-    val result = for {
-      (bank, _) <- Connector.connector.vend.getBankLegacy(bankId, None)
-      account <- Connector.connector.vend.getBankAccountLegacy(bankId, accountId, None).map(_._1).map(_.asInstanceOf[MappedBankAccount])
-    } yield {
-      account.accountBalance(Helper.convertToSmallestCurrencyUnits(newBalance, account.currency)).save
-      setBankAccountLastUpdated(bank.nationalIdentifier, account.number, now).openOrThrowException(attemptedToOpenAnEmptyBox)
-    }
-
-    Full(result.getOrElse(false))
-  }
-
-  def setBankAccountLastUpdated(bankNationalIdentifier: String, accountNumber: String, updateDate: Date): Box[Boolean] = {
-    val result = for {
-      bankId <- getBankByNationalIdentifier(bankNationalIdentifier).map(_.bankId)
-      account <- getAccountByNumber(bankId, accountNumber)
-    } yield {
-      val acc = MappedBankAccount.find(
-        By(MappedBankAccount.bank, bankId.value),
-        By(MappedBankAccount.theAccountId, account.accountId.value)
-      )
-      acc match {
-        case Full(a) => a.accountLastUpdate(updateDate).save
-        case _ => logger.warn("can't set bank account.lastUpdated because the account was not found"); false
-      }
-    }
-    Full(result.getOrElse(false))
   }
 
 
