@@ -8,7 +8,7 @@ import code.api.util.{APIUtil, ExampleValue}
 import code.api.util.CustomJsonFormats
 import code.api.v1_4_0.JSONFactory1_4_0.ResourceDocJson
 import code.api.v3_0_0.OBPAPI3_0_0
-import code.api.v1_3_0.OBPAPI1_3_0
+import code.api.v1_2_1.OBPAPI1_2_1
 import net.liftweb.json.Extraction.decompose
 import net.liftweb.json._
 import org.everit.json.schema.loader.SchemaLoader
@@ -127,8 +127,8 @@ class JSONFactory1_4_0Test extends code.setup.ServerSetup {
     }
 
     scenario("Technology field should be None unless includeTechnology=true") {
-      // OBPAPI1_4_0 now uses collectResourceDocs — http4s v1.4.0 docs sort first; use a v1.3.0 Lift doc instead.
-      val liftDoc: ResourceDoc = OBPAPI1_3_0.allResourceDocs.head
+      // OBPAPI1_3_0 now uses collectResourceDocs — http4s v1.3.0 docs sort first; use a v1.2.1 Lift doc instead.
+      val liftDoc: ResourceDoc = OBPAPI1_2_1.allResourceDocs.head
       val json1 = JSONFactory1_4_0.createLocalisedResourceDocJson(liftDoc, false, None, includeTechnology = false, urlParameters, "JSON request body fields:", "JSON response body fields:")
       json1.implemented_by.technology shouldBe None
 
