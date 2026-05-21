@@ -2,7 +2,7 @@ package code.api.util.http4s
 
 import cats.effect._
 import code.api.util.APIUtil.{ResourceDoc, getPropsAsBoolValue}
-import code.api.util.ErrorMessages.InvalidJsonFormat
+import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, InvalidJsonFormat}
 import code.api.util.{AuthHeaderParser, CallContext, RemoteIpUtil, WriteMetricUtil}
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model.{Bank, BankAccount, CounterpartyTrait, User, View}
@@ -146,7 +146,7 @@ object Http4sRequestAttributes {
     def withUser[A](req: Request[IO])(f: (User, CallContext) => Future[A])(implicit formats: Formats): IO[Response[IO]] = {
       implicit val cc: CallContext = req.callContext
       val io = for {
-        user <- IO.fromOption(cc.user.toOption)(new RuntimeException("User not found in CallContext"))
+        user <- IO.fromOption(cc.user.toOption)(new RuntimeException(AuthenticatedUserIsRequired))
         result <- RequestScopeConnection.fromFuture(f(user, cc))
       } yield result
       io.attempt.flatMap {
@@ -178,7 +178,7 @@ object Http4sRequestAttributes {
     def withUserAndBank[A](req: Request[IO])(f: (User, Bank, CallContext) => Future[A])(implicit formats: Formats): IO[Response[IO]] = {
       implicit val cc: CallContext = req.callContext
       val io = for {
-        user <- IO.fromOption(cc.user.toOption)(new RuntimeException("User not found in CallContext"))
+        user <- IO.fromOption(cc.user.toOption)(new RuntimeException(AuthenticatedUserIsRequired))
         bank <- IO.fromOption(cc.bank)(new RuntimeException("Bank not found in CallContext"))
         result <- RequestScopeConnection.fromFuture(f(user, bank, cc))
       } yield result
@@ -243,7 +243,7 @@ object Http4sRequestAttributes {
         case Left(msg) => ErrorResponseConverter.createErrorResponse(400, msg, cc).flatTap(recordMetric(msg, _))
         case Right(body) =>
           val io = for {
-            user   <- IO.fromOption(cc.user.toOption)(new RuntimeException("User not found in CallContext"))
+            user   <- IO.fromOption(cc.user.toOption)(new RuntimeException(AuthenticatedUserIsRequired))
             result <- RequestScopeConnection.fromFuture(f(user, body, cc))
           } yield result
           io.attempt.flatMap {
@@ -263,7 +263,7 @@ object Http4sRequestAttributes {
         case Left(msg) => ErrorResponseConverter.createErrorResponse(400, msg, cc).flatTap(recordMetric(msg, _))
         case Right(body) =>
           val io = for {
-            user   <- IO.fromOption(cc.user.toOption)(new RuntimeException("User not found in CallContext"))
+            user   <- IO.fromOption(cc.user.toOption)(new RuntimeException(AuthenticatedUserIsRequired))
             result <- RequestScopeConnection.fromFuture(f(user, body, cc))
           } yield result
           io.attempt.flatMap {
@@ -285,7 +285,7 @@ object Http4sRequestAttributes {
         case Left(msg) => ErrorResponseConverter.createErrorResponse(400, msg, cc).flatTap(recordMetric(msg, _))
         case Right(body) =>
           val io = for {
-            user   <- IO.fromOption(cc.user.toOption)(new RuntimeException("User not found in CallContext"))
+            user   <- IO.fromOption(cc.user.toOption)(new RuntimeException(AuthenticatedUserIsRequired))
             bank   <- IO.fromOption(cc.bank)(new RuntimeException("Bank not found in CallContext"))
             result <- RequestScopeConnection.fromFuture(f(user, bank, body, cc))
           } yield result
@@ -306,7 +306,7 @@ object Http4sRequestAttributes {
         case Left(msg) => ErrorResponseConverter.createErrorResponse(400, msg, cc).flatTap(recordMetric(msg, _))
         case Right(body) =>
           val io = for {
-            user   <- IO.fromOption(cc.user.toOption)(new RuntimeException("User not found in CallContext"))
+            user   <- IO.fromOption(cc.user.toOption)(new RuntimeException(AuthenticatedUserIsRequired))
             bank   <- IO.fromOption(cc.bank)(new RuntimeException("Bank not found in CallContext"))
             result <- RequestScopeConnection.fromFuture(f(user, bank, body, cc))
           } yield result
@@ -326,7 +326,7 @@ object Http4sRequestAttributes {
     def withBankAccount[A](req: Request[IO])(f: (User, BankAccount, CallContext) => Future[A])(implicit formats: Formats): IO[Response[IO]] = {
       implicit val cc: CallContext = req.callContext
       val io = for {
-        user        <- IO.fromOption(cc.user.toOption)(new RuntimeException("User not found in CallContext"))
+        user        <- IO.fromOption(cc.user.toOption)(new RuntimeException(AuthenticatedUserIsRequired))
         bankAccount <- IO.fromOption(cc.bankAccount)(new RuntimeException("BankAccount not found in CallContext"))
         result      <- RequestScopeConnection.fromFuture(f(user, bankAccount, cc))
       } yield result
@@ -343,7 +343,7 @@ object Http4sRequestAttributes {
     def withViewCreated[A](req: Request[IO])(f: (User, BankAccount, View, CallContext) => Future[A])(implicit formats: Formats): IO[Response[IO]] = {
       implicit val cc: CallContext = req.callContext
       val io = for {
-        user        <- IO.fromOption(cc.user.toOption)(new RuntimeException("User not found in CallContext"))
+        user        <- IO.fromOption(cc.user.toOption)(new RuntimeException(AuthenticatedUserIsRequired))
         bankAccount <- IO.fromOption(cc.bankAccount)(new RuntimeException("BankAccount not found in CallContext"))
         view        <- IO.fromOption(cc.view)(new RuntimeException("View not found in CallContext"))
         result      <- RequestScopeConnection.fromFuture(f(user, bankAccount, view, cc))
@@ -366,7 +366,7 @@ object Http4sRequestAttributes {
         case Left(msg) => ErrorResponseConverter.createErrorResponse(400, msg, cc).flatTap(recordMetric(msg, _))
         case Right(body) =>
           val io = for {
-            user        <- IO.fromOption(cc.user.toOption)(new RuntimeException("User not found in CallContext"))
+            user        <- IO.fromOption(cc.user.toOption)(new RuntimeException(AuthenticatedUserIsRequired))
             bankAccount <- IO.fromOption(cc.bankAccount)(new RuntimeException("BankAccount not found in CallContext"))
             view        <- IO.fromOption(cc.view)(new RuntimeException("View not found in CallContext"))
             result      <- RequestScopeConnection.fromFuture(f(user, bankAccount, view, body, cc))
@@ -387,7 +387,7 @@ object Http4sRequestAttributes {
     def withView[A](req: Request[IO])(f: (User, BankAccount, View, CallContext) => Future[A])(implicit formats: Formats): IO[Response[IO]] = {
       implicit val cc: CallContext = req.callContext
       val io = for {
-        user        <- IO.fromOption(cc.user.toOption)(new RuntimeException("User not found in CallContext"))
+        user        <- IO.fromOption(cc.user.toOption)(new RuntimeException(AuthenticatedUserIsRequired))
         bankAccount <- IO.fromOption(cc.bankAccount)(new RuntimeException("BankAccount not found in CallContext"))
         view        <- IO.fromOption(cc.view)(new RuntimeException("View not found in CallContext"))
         result      <- RequestScopeConnection.fromFuture(f(user, bankAccount, view, cc))
@@ -405,7 +405,7 @@ object Http4sRequestAttributes {
     def withCounterparty[A](req: Request[IO])(f: (User, BankAccount, View, CounterpartyTrait, CallContext) => Future[A])(implicit formats: Formats): IO[Response[IO]] = {
       implicit val cc: CallContext = req.callContext
       val io = for {
-        user         <- IO.fromOption(cc.user.toOption)(new RuntimeException("User not found in CallContext"))
+        user         <- IO.fromOption(cc.user.toOption)(new RuntimeException(AuthenticatedUserIsRequired))
         bankAccount  <- IO.fromOption(cc.bankAccount)(new RuntimeException("BankAccount not found in CallContext"))
         view         <- IO.fromOption(cc.view)(new RuntimeException("View not found in CallContext"))
         counterparty <- IO.fromOption(cc.counterparty)(new RuntimeException("Counterparty not found in CallContext"))
@@ -463,7 +463,7 @@ object Http4sRequestAttributes {
     def withUserDelete(req: Request[IO])(f: (User, CallContext) => Future[_]): IO[Response[IO]] = {
       implicit val cc: CallContext = req.callContext
       val io = for {
-        user   <- IO.fromOption(cc.user.toOption)(new RuntimeException("User not found in CallContext"))
+        user   <- IO.fromOption(cc.user.toOption)(new RuntimeException(AuthenticatedUserIsRequired))
         result <- RequestScopeConnection.fromFuture(f(user, cc))
       } yield result
       io.attempt.flatMap {
@@ -479,7 +479,7 @@ object Http4sRequestAttributes {
     def withUserAndBankDelete(req: Request[IO])(f: (User, Bank, CallContext) => Future[_]): IO[Response[IO]] = {
       implicit val cc: CallContext = req.callContext
       val io = for {
-        user   <- IO.fromOption(cc.user.toOption)(new RuntimeException("User not found in CallContext"))
+        user   <- IO.fromOption(cc.user.toOption)(new RuntimeException(AuthenticatedUserIsRequired))
         bank   <- IO.fromOption(cc.bank)(new RuntimeException("Bank not found in CallContext"))
         result <- RequestScopeConnection.fromFuture(f(user, bank, cc))
       } yield result
