@@ -132,7 +132,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
         case ApiVersion.v3_0_0 => OBPAPI3_0_0.allResourceDocs
         case ApiVersion.v2_2_0 => OBPAPI2_2_0.allResourceDocs
         case ApiVersion.v2_1_0 => OBPAPI2_1_0.allResourceDocs
-        case ApiVersion.v2_0_0 => Implementations2_0_0.resourceDocs ++ Implementations1_4_0.resourceDocs ++ Implementations1_3_0.resourceDocs ++ Implementations1_2_1.resourceDocs
+        case ApiVersion.v2_0_0 => OBPAPI2_0_0.allResourceDocs
         case ApiVersion.v1_4_0 => Implementations1_4_0.resourceDocs ++ Implementations1_3_0.resourceDocs ++ Implementations1_2_1.resourceDocs
         case ApiVersion.v1_3_0 => Implementations1_3_0.resourceDocs ++ Implementations1_2_1.resourceDocs
         case ApiVersion.v1_2_1 => code.api.v1_2_1.Http4s121.resourceDocs
@@ -183,6 +183,9 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
         case ApiVersion.v4_0_0 => resourceDocs  // fully on http4s — no Lift route filter
         case ApiVersion.v3_1_0 => resourceDocs  // fully on http4s — no Lift route filter
         case ApiVersion.v3_0_0 => resourceDocs  // fully on http4s — no Lift route filter
+        case ApiVersion.v2_2_0 => resourceDocs  // fully on http4s — no Lift route filter
+        case ApiVersion.v2_1_0 => resourceDocs  // fully on http4s — no Lift route filter
+        case ApiVersion.v2_0_0 => resourceDocs  // fully on http4s — no Lift route filter
         case _ => resourceDocs.filter(rd => versionRoutesClasses.contains(rd.partialFunction.getClass))
       }
 
