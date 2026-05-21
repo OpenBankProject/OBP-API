@@ -34,7 +34,6 @@ import code.api.v1_3_0.APIMethods130
 import code.api.v1_4_0.APIMethods140
 import code.api.v2_0_0.APIMethods200
 import code.api.v2_1_0.APIMethods210
-import code.api.v2_2_0.APIMethods220
 import code.api.v3_0_0.Http4s300
 import code.api.v3_1_0.{APIMethods310, Http4s310}
 import code.api.v4_0_0.{APIMethods400, Http4s400}
@@ -53,7 +52,6 @@ object OBPAPI5_1_0 extends OBPRestHelper
   with APIMethods140
   with APIMethods200
   with APIMethods210
-  with APIMethods220
   with APIMethods310
   with APIMethods400
   with APIMethods500
