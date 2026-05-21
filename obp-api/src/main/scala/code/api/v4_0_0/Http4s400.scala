@@ -3,6 +3,7 @@ package code.api.v4_0_0
 import cats.data.{Kleisli, OptionT}
 import cats.effect._
 import code.api.Constant._
+import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil.{EmptyBody, ResourceDoc, _}
 import code.api.util.ApiRole._
@@ -10,7 +11,15 @@ import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.ExampleValue._
 import code.api.util.Glossary
+import code.api.util.Glossary.getGlossaryItem
 import code.api.Constant
+import code.api.v2_1_0.ConsumerPostJSON
+import code.api.v3_1_0.ConsentChallengeJsonV310
+import code.api.dynamic.endpoint.helper.practise.PractiseEndpoint
+import code.bankconnectors.LocalMappedConnectorInternal._
+import code.consent.ConsentStatus
+import com.openbankproject.commons.model.enums.{AttributeCategory, AttributeType, UserInvitationPurpose}
+import java.util.Date
 import code.api.dynamic.endpoint.helper.DynamicEndpointHelper
 import code.api.dynamic.entity.helper.DynamicEntityInfo
 import code.api.util.{ApiRole => ApiRoleObj}
@@ -96,6 +105,59 @@ object Http4s400 {
 
   type HttpF[A] = OptionT[IO, A]
 
+  // Local doc-strings carried over from the pre-stub APIMethods400.scala so the
+  // restored ResourceDoc descriptions compile. Kept verbatim — these are
+  // referenced inside `s"""..."""` interpolations in the doc text.
+  private val productAttributeGeneralInfo =
+    s"""
+       |Product Attributes are used to describe a financial Product with a list of typed key value pairs.
+       |
+       |Each Product Attribute is linked to its Product by PRODUCT_CODE
+       |
+       |
+     """.stripMargin
+
+  private val customerAttributeGeneralInfo =
+    s"""
+       |CustomerAttributes are used to enhance the OBP Customer object with Bank specific entities.
+       |
+     """.stripMargin
+
+  private val generalWebHookInfo = s"""
+    |Webhooks are used to call external web services when certain events happen.
+    |
+    |For instance, a webhook can be used to notify an external service if a transaction is created on an account.
+    |
+    |"""
+
+  private val accountNotificationWebhookInfo = s"""
+                       |When an account notification webhook fires it will POST to the URL you specify during the creation of the webhook.
+                       |
+                       |Inside the payload you will find account_id and transaction_id and also user_ids and customer_ids of the Users / Customers linked to the Account.
+                       |                     |
+                       |The webhook will POST the following structure to your service:
+                       |
+                       |{
+                       |  "event_name": "OnCreateTransaction",
+                       |  "event_id": "9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+                       |  "bank_id": "gh.29.uk",
+                       |  "account_id": "8ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+                       |  "transaction_id": "7ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+                       |  "related_entities": [
+                       |    {
+                       |      "user_id": "8ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+                       |      "customer_ids": ["3ca9a7e4-6d02-40e3-a129-0b2bf89de9b1"]
+                       |    }
+                       |  ]
+                       |}
+                       |
+                       |Thus, your service should accept the above POST body structure.
+                       |
+                       |In this way, your web service can be informed about an event on an account and act accordingly.
+                       |
+                       |Further information about the account, transaction or related entities can then be retrieved using the standard REST APIs.
+                       |"""
+
   object Implementations4_0_0 {
     // Expose as a member so ResourceDocsAPIMethods can access it via APIMethods400.Implementations4_0_0.implementedInApiVersion
     val implementedInApiVersion: com.openbankproject.commons.util.ScannedApiVersion = Http4s400.implementedInApiVersion
@@ -113,16 +175,24 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getMapperDatabaseInfo), "GET",
+      null,
+      implementedInApiVersion,
+      nameOf(getMapperDatabaseInfo),
+      "GET",
       "/database/info",
       "Get Mapper Database Info",
       s"""Get basic information about the Mapper Database.
          |
-         |${userAuthenticationMessage(true)}""",
-      EmptyBody, adapterInfoJsonV300,
-      List(AuthenticatedUserIsRequired, UnknownError),
-      List(apiTagApi), Some(List(canGetDatabaseInfo)),
-      http4sPartialFunction = Some(getMapperDatabaseInfo))
+         |${userAuthenticationMessage(true)}
+         |
+      """.stripMargin,
+      EmptyBody,
+      adapterInfoJsonV300,
+      List($AuthenticatedUserIsRequired, UnknownError),
+      List(apiTagApi),
+      Some(List(canGetDatabaseInfo)),
+      http4sPartialFunction = Some(getMapperDatabaseInfo)
+    )
 
     // ─── getLogoutLink ────────────────────────────────────────────────────────
 
@@ -137,16 +207,23 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getLogoutLink), "GET",
+      null,
+      implementedInApiVersion,
+      nameOf(getLogoutLink),
+      "GET",
       "/users/current/logout-link",
       "Get Logout Link",
       s"""Get the Logout Link
          |
-         |${userAuthenticationMessage(true)}""",
-      EmptyBody, logoutLinkV400,
-      List(AuthenticatedUserIsRequired, UnknownError),
-      List(apiTagUser), None,
-      http4sPartialFunction = Some(getLogoutLink))
+         |${userAuthenticationMessage(true)}
+      """.stripMargin,
+      EmptyBody,
+      logoutLinkV400,
+      List($AuthenticatedUserIsRequired, UnknownError),
+      List(apiTagUser),
+      None,
+      http4sPartialFunction = Some(getLogoutLink)
+    )
 
     // ─── getBanks ─────────────────────────────────────────────────────────────
     // v4.0.0 overrides v3.x getBanks — v4 uses createBanksJson which adds attributes.
@@ -161,15 +238,26 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getBanks), "GET",
+      null,
+      implementedInApiVersion,
+      nameOf(getBanks),
+      "GET",
       "/banks",
       "Get Banks",
       """Get banks on this API instance
-        |Returns a list of banks supported on this server.""".stripMargin,
-      EmptyBody, banksJSON400,
+      |Returns a list of banks supported on this server:
+      |
+      |* ID used as parameter in URLs
+      |* Short and full name of bank
+      |* Logo URL
+      |* Website""",
+      EmptyBody,
+      banksJSON400,
       List(UnknownError),
-      apiTagBank :: apiTagPSD2AIS :: apiTagPsd2 :: Nil, None,
-      http4sPartialFunction = Some(getBanks))
+      apiTagBank :: apiTagPSD2AIS :: apiTagPsd2 :: Nil,
+      None,
+      http4sPartialFunction = Some(getBanks)
+    )
 
     // ─── getBank ──────────────────────────────────────────────────────────────
     // v4.0.0 overrides v3.x getBank — v4 includes bank attributes.
@@ -184,14 +272,25 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getBank), "GET",
+      null,
+      implementedInApiVersion,
+      nameOf(getBank),
+      "GET",
       "/banks/BANK_ID",
       "Get Bank",
-      """Get the bank specified by BANK_ID.""".stripMargin,
-      EmptyBody, bankJson400,
+      """Get the bank specified by BANK_ID
+      |Returns information about a single bank specified by BANK_ID including:
+      |
+      |* Short and full name of bank
+      |* Logo URL
+      |* Website""",
+      EmptyBody,
+      bankJson400,
       List(UnknownError, BankNotFound),
-      apiTagBank :: apiTagPSD2AIS :: apiTagPsd2 :: Nil, None,
-      http4sPartialFunction = Some(getBank))
+      apiTagBank :: apiTagPSD2AIS :: apiTagPsd2 :: Nil,
+      None,
+      http4sPartialFunction = Some(getBank)
+    )
 
     // ─── ibanChecker (POST → 200) ─────────────────────────────────────────────
 
@@ -205,14 +304,22 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(ibanChecker), "POST",
+      null,
+      implementedInApiVersion,
+      nameOf(ibanChecker),
+      "POST",
       "/account/check/scheme/iban",
       "Validate and check IBAN",
-      """Validate and check IBAN for errors""",
-      ibanCheckerPostJsonV400, ibanCheckerJsonV400,
+      """Validate and check IBAN for errors
+      |
+      |""",
+      ibanCheckerPostJsonV400,
+      ibanCheckerJsonV400,
       List(UnknownError),
-      apiTagAccount :: Nil, None,
-      http4sPartialFunction = Some(ibanChecker))
+      apiTagAccount :: Nil,
+      None,
+      http4sPartialFunction = Some(ibanChecker)
+    )
 
     // ─── callsLimit (PUT → 200) ───────────────────────────────────────────────
     // v4.0.0 overrides v3.1.0 — v4 takes additional api_version / api_name / bank_id fields
@@ -241,18 +348,35 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(callsLimit), "PUT",
+      null,
+      implementedInApiVersion,
+      nameOf(callsLimit),
+      "PUT",
       "/management/consumers/CONSUMER_ID/consumer/call-limits",
       "Set Rate Limits / Call Limits per Consumer",
-      s"""Set the API rate limits / call limits for a Consumer.
-         |
-         |${userAuthenticationMessage(true)}""",
-      callLimitPostJsonV400, callLimitPostJsonV400,
+      s"""
+      |Set the API rate limits / call limits for a Consumer:
+      |
+      |Rate limiting can be set:
+      |
+      |Per Second
+      |Per Minute
+      |Per Hour
+      |Per Week
+      |Per Month
+      |
+      |
+      |${userAuthenticationMessage(true)}
+      |
+      |""".stripMargin,
+      callLimitPostJsonV400,
+      callLimitPostJsonV400,
       List(AuthenticatedUserIsRequired, InvalidJsonFormat, InvalidConsumerId,
-        ConsumerNotFoundByConsumerId, UserHasMissingRoles, UpdateConsumerError, UnknownError),
+      ConsumerNotFoundByConsumerId, UserHasMissingRoles, UpdateConsumerError, UnknownError),
       List(apiTagConsumer, apiTagRateLimits),
       Some(List(canUpdateRateLimits)),
-      http4sPartialFunction = Some(callsLimit))
+      http4sPartialFunction = Some(callsLimit)
+    )
 
     // ─── createBank (POST → 201) ──────────────────────────────────────────────
     // v4 overrides v2.2.0's createBank — v4 grants CanCreateEntitlementAtOneBank +
@@ -315,11 +439,24 @@ object Http4s400 {
       "/banks",
       "Create Bank",
       s"""Create a new bank (Authenticated access).
-         |
-         |The user creating this will be automatically assigned the Role CanCreateEntitlementAtOneBank.""",
+      |
+      |The user creating this will be automatically assigned the Role CanCreateEntitlementAtOneBank.
+      |Thus the User can manage the bank they create and assign Roles to other Users.
+      |
+      |Only SANDBOX mode (i.e. when connector=mapped in properties file)
+      |The settlement accounts are automatically created by the system when the bank is created.
+      |Name and account id are created in accordance to the next rules:
+      |  - Incoming account (name: Default incoming settlement account, Account ID: OBP_DEFAULT_INCOMING_ACCOUNT_ID, currency: EUR)
+      |  - Outgoing account (name: Default outgoing settlement account, Account ID: OBP_DEFAULT_OUTGOING_ACCOUNT_ID, currency: EUR)
+      |
+      |""",
       postBankJson400, bankJson400,
-      List(InvalidJsonFormat, AuthenticatedUserIsRequired,
-        InsufficientAuthorisationToCreateBank, UnknownError),
+      List(
+        InvalidJsonFormat,
+        $AuthenticatedUserIsRequired,
+        InsufficientAuthorisationToCreateBank,
+        UnknownError
+      ),
       List(apiTagBank),
       Some(List(canCreateBank)),
       http4sPartialFunction = Some(createBank))
@@ -340,16 +477,26 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(root), "GET", "/root",
+      null,
+      implementedInApiVersion,
+      nameOf(root),
+      "GET",
+      "/root",
       "Get API Info (root)",
       """Returns information about:
-        |
-        |* API version
-        |* Hosted by information
-        |* Git Commit""",
-      EmptyBody, apiInfoJson400,
-      List(UnknownError, MandatoryPropertyIsNotSet), apiTagApi :: Nil, None,
-      http4sPartialFunction = Some(root))
+      |
+      |* API version
+      |* Hosted by information
+      |* Hosted at information
+      |* Energy source information
+      |* Git Commit""",
+      EmptyBody,
+      apiInfoJson400,
+      List(UnknownError, MandatoryPropertyIsNotSet),
+      apiTagApi :: Nil,
+      None,
+      http4sPartialFunction = Some(root)
+    )
 
     // ─── getAtms (GET) — v4 override; conditional auth via getAtmsIsPublic ───
 
@@ -378,16 +525,35 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getAtms), "GET",
+      null,
+      implementedInApiVersion,
+      nameOf(getAtms),
+      "GET",
       "/banks/BANK_ID/atms",
       "Get Bank ATMS",
-      s"""Returns information about ATMs for a single bank specified by BANK_ID.
-         |
-         |${userAuthenticationMessage(!getAtmsIsPublic)}""".stripMargin,
-      EmptyBody, atmsJsonV400,
-      List(AuthenticatedUserIsRequired, BankNotFound, InvalidJsonFormat, UnknownError),
-      List(apiTagATM), None,
-      http4sPartialFunction = Some(getAtms))
+      s"""Returns information about ATMs for a single bank specified by BANK_ID including:
+      |
+      |* Address
+      |* Geo Location
+      |* License the data under this endpoint is released under
+      |
+      |Pagination:
+      |
+      |By default, 100 records are returned.
+      |
+      |You can use the url query parameters *limit* and *offset* for pagination
+      |
+      |${userAuthenticationMessage(!getAtmsIsPublic)}""".stripMargin,
+      EmptyBody,
+      atmsJsonV400,
+      List(
+        $BankNotFound,
+        UnknownError
+      ),
+      List(apiTagATM),
+      None,
+      http4sPartialFunction = Some(getAtms)
+    )
 
     // ─── getAtm (GET) — v4 override; conditional auth ────────────────────────
 
@@ -401,16 +567,30 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getAtm), "GET",
+      null,
+      implementedInApiVersion,
+      nameOf(getAtm),
+      "GET",
       "/banks/BANK_ID/atms/ATM_ID",
       "Get Bank ATM",
-      s"""Returns information about ATM for a single bank specified by BANK_ID and ATM_ID.
-         |
-         |${userAuthenticationMessage(!getAtmsIsPublic)}""".stripMargin,
-      EmptyBody, atmJsonV400,
-      List(AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
-      List(apiTagATM), None,
-      http4sPartialFunction = Some(getAtm))
+      s"""Returns information about ATM for a single bank specified by BANK_ID and ATM_ID including:
+      |
+      |* Address
+      |* Geo Location
+      |* License the data under this endpoint is released under
+      |${userAuthenticationMessage(!getAtmsIsPublic)}
+      |""".stripMargin,
+      EmptyBody,
+      atmJsonV400,
+      List(
+        $AuthenticatedUserIsRequired,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagATM),
+      None,
+      http4sPartialFunction = Some(getAtm)
+    )
 
     // ─── getProducts (GET) — v4 override; conditional auth ───────────────────
 
@@ -428,16 +608,40 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getProducts), "GET",
+      null,
+      implementedInApiVersion,
+      nameOf(getProducts),
+      "GET",
       "/banks/BANK_ID/products",
       "Get Products",
-      s"""Returns information about the financial products offered by a bank specified by BANK_ID.
-         |
-         |${userAuthenticationMessage(!getProductsIsPublic)}""".stripMargin,
-      EmptyBody, productsJsonV400,
-      List(AuthenticatedUserIsRequired, BankNotFound, ProductNotFoundByProductCode, UnknownError),
-      List(apiTagProduct), None,
-      http4sPartialFunction = Some(getProducts))
+      s"""Returns information about the financial products offered by a bank specified by BANK_ID including:
+      |
+      |* Name
+      |* Code
+      |* Parent Product Code
+      |* More info URL
+      |* Terms And Conditions URL
+      |* Description
+      |* Terms and Conditions
+      |* License the data under this endpoint is released under
+      |
+      |The combination of bank_id and product_code is unique.
+      |
+      |Can filter with attributes name and values.
+      |URL params example: /banks/some-bank-id/products?&limit=50&offset=1
+      |
+      |${userAuthenticationMessage(!getProductsIsPublic)}""".stripMargin,
+      EmptyBody,
+      productsJsonV400,
+      List(
+        AuthenticatedUserIsRequired,
+        BankNotFound,
+        UnknownError
+      ),
+      List(apiTagProduct),
+      None,
+      http4sPartialFunction = Some(getProducts)
+    )
 
     // ─── getProduct (GET) — v4 override; loads attributes + fees ─────────────
 
@@ -455,16 +659,40 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getProduct), "GET",
+      null,
+      implementedInApiVersion,
+      nameOf(getProduct),
+      "GET",
       "/banks/BANK_ID/products/PRODUCT_CODE",
       "Get Bank Product",
-      s"""Returns information about a financial Product offered by the bank specified by BANK_ID and PRODUCT_CODE.
-         |
-         |${userAuthenticationMessage(!getProductsIsPublic)}""".stripMargin,
-      EmptyBody, productJsonV400,
-      List(AuthenticatedUserIsRequired, BankNotFound, ProductNotFoundByProductCode, UnknownError),
-      List(apiTagProduct), None,
-      http4sPartialFunction = Some(getProduct))
+      s"""Returns information about a financial Product offered by the bank specified by BANK_ID and PRODUCT_CODE including:
+      |
+      |* Name
+      |* Code
+      |* Parent Product Code
+      |* More info URL
+      |* Description
+      |* Terms and Conditions
+      |* Description
+      |* Meta
+      |* Attributes
+      |* Fees
+      |
+      |The combination of bank_id and product_code is unique.
+      |
+      |${userAuthenticationMessage(!getProductsIsPublic)}""".stripMargin,
+      EmptyBody,
+      productJsonV400,
+      List(
+        AuthenticatedUserIsRequired,
+        $BankNotFound,
+        ProductNotFoundByProductCode,
+        UnknownError
+      ),
+      List(apiTagProduct),
+      None,
+      http4sPartialFunction = Some(getProduct)
+    )
 
     // ─── createAtm (POST → 201) — v4 override ─────────────────────────────────
 
@@ -502,7 +730,11 @@ object Http4s400 {
       "Create ATM",
       s"""Create ATM.""",
       atmJsonV400, atmJsonV400,
-      List(AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
+      List(
+        $AuthenticatedUserIsRequired,
+        InvalidJsonFormat,
+        UnknownError
+      ),
       List(apiTagATM),
       Some(List(canCreateAtm, canCreateAtmAtAnyBank)),
       http4sPartialFunction = Some(createAtm))
@@ -548,17 +780,42 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createProduct), "PUT",
+      null,
+      implementedInApiVersion,
+      nameOf(createProduct),
+      "PUT",
       "/banks/BANK_ID/products/PRODUCT_CODE",
       "Create Product",
       s"""Create or Update Product for the Bank.
-         |
-         |${userAuthenticationMessage(true)}""",
-      putProductJsonV400, productJsonV400.copy(attributes = None, fees = None),
-      List(AuthenticatedUserIsRequired, BankNotFound, UserHasMissingRoles, UnknownError),
+      |
+      |
+      |Typical Super Family values / Asset classes are:
+      |
+      |Debt
+      |Equity
+      |FX
+      |Commodity
+      |Derivative
+      |
+      |$productHiearchyAndCollectionNote
+      |
+      |
+      |${userAuthenticationMessage(true)}
+      |
+      |
+      |""",
+      putProductJsonV400,
+      productJsonV400.copy(attributes = None, fees = None),
+      List(
+        $AuthenticatedUserIsRequired,
+        $BankNotFound,
+        UserHasMissingRoles,
+        UnknownError
+      ),
       List(apiTagProduct),
       Some(List(canCreateProduct, canCreateProductAtAnyBank)),
-      http4sPartialFunction = Some(createProduct))
+      http4sPartialFunction = Some(createProduct)
+    )
 
     // ─── createProductAttribute (POST → 201) — v4 override ────────────────────
 
@@ -581,17 +838,44 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createProductAttribute), "POST",
+      null,
+      implementedInApiVersion,
+      nameOf(createProductAttribute),
+      "POST",
       "/banks/BANK_ID/products/PRODUCT_CODE/attribute",
       "Create Product Attribute",
-      s"""Create a Product Attribute.
-         |
-         |${userAuthenticationMessage(true)}""",
-      productAttributeJsonV400, productAttributeResponseJsonV400,
+      s""" Create Product Attribute
+      |
+      |$productAttributeGeneralInfo
+      |
+      |Typical product attributes might be:
+      |
+      |ISIN (for International bonds)
+      |VKN (for German bonds)
+      |REDCODE (markit short code for credit derivative)
+      |LOAN_ID (e.g. used for Anacredit reporting)
+      |
+      |ISSUE_DATE (When the bond was issued in the market)
+      |MATURITY_DATE (End of life time of a product)
+      |TRADABLE
+      |
+      |See [FPML](http://www.fpml.org/) for more examples.
+      |
+      |
+      |The type field must be one of "STRING", "INTEGER", "DOUBLE" or DATE_WITH_DAY"
+      |
+      |
+      |
+      |${userAuthenticationMessage(true)}
+      |
+      |""",
+      productAttributeJsonV400,
+      productAttributeResponseJsonV400,
       List(InvalidJsonFormat, UnknownError),
       List(apiTagProduct, apiTagProductAttribute, apiTagAttribute),
       Some(List(canCreateProductAttribute)),
-      http4sPartialFunction = Some(createProductAttribute))
+      http4sPartialFunction = Some(createProductAttribute)
+    )
 
     // ─── updateProductAttribute (PUT → 200) — v4 override ─────────────────────
 
@@ -614,17 +898,29 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(updateProductAttribute), "PUT",
+      null,
+      implementedInApiVersion,
+      nameOf(updateProductAttribute),
+      "PUT",
       "/banks/BANK_ID/products/PRODUCT_CODE/attributes/PRODUCT_ATTRIBUTE_ID",
       "Update Product Attribute",
-      s"""Update one Product Attribute by its id.
-         |
-         |${userAuthenticationMessage(true)}""",
-      productAttributeJsonV400, productAttributeResponseJsonV400,
+      s""" Update Product Attribute.
+      |
+
+      |$productAttributeGeneralInfo
+      |
+      |Update one Product Attribute by its id.
+      |
+      |${userAuthenticationMessage(true)}
+      |
+      |""",
+      productAttributeJsonV400,
+      productAttributeResponseJsonV400,
       List(UserHasMissingRoles, UnknownError),
       List(apiTagProduct, apiTagProductAttribute, apiTagAttribute),
       Some(List(canUpdateProductAttribute)),
-      http4sPartialFunction = Some(updateProductAttribute))
+      http4sPartialFunction = Some(updateProductAttribute)
+    )
 
     // ─── getEntitlements (GET /users/USER_ID/entitlements) — v4 override ────
 
@@ -651,9 +947,12 @@ object Http4s400 {
       null, implementedInApiVersion, "getEntitlements", "GET",
       "/users/USER_ID/entitlements",
       "Get Entitlements for User",
-      "",
+      s"""
+         |
+         |
+      """.stripMargin,
       EmptyBody, entitlementsJsonV400,
-      List(AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
       List(apiTagRole, apiTagEntitlement, apiTagUser),
       Some(List(canGetEntitlementsForAnyUserAtAnyBank)),
       http4sPartialFunction = Some(getEntitlements))
@@ -689,7 +988,12 @@ object Http4s400 {
          |
          |CanGetAnyUser entitlement is required,""",
       EmptyBody, userJsonV400,
-      List(AuthenticatedUserIsRequired, UserHasMissingRoles, UserNotFoundByUserId, UnknownError),
+      List(
+        AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        UserNotFoundById,
+        UnknownError
+      ),
       List(apiTagUser),
       Some(List(canGetAnyUser)),
       http4sPartialFunction = Some(getUserByUserId))
@@ -720,8 +1024,12 @@ object Http4s400 {
          |
          |CanGetAnyUser entitlement is required,""",
       EmptyBody, userJsonV400,
-      List(AuthenticatedUserIsRequired, UserHasMissingRoles,
-        UserNotFoundByProviderAndUsername, UnknownError),
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        UserNotFoundByProviderAndUsername,
+        UnknownError
+      ),
       List(apiTagUser),
       Some(List(canGetAnyUser)),
       http4sPartialFunction = Some(getUserByUsername))
@@ -746,7 +1054,12 @@ object Http4s400 {
          |${userAuthenticationMessage(true)}
          |CanGetAnyUser entitlement is required,""",
       EmptyBody, usersJsonV400,
-      List(AuthenticatedUserIsRequired, UserHasMissingRoles, UserNotFoundByEmail, UnknownError),
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        UserNotFoundByEmail,
+        UnknownError
+      ),
       List(apiTagUser),
       Some(List(canGetAnyUser)),
       http4sPartialFunction = Some(getUsersByEmail))
@@ -776,9 +1089,18 @@ object Http4s400 {
          |
          |${userAuthenticationMessage(true)}
          |
-         |CanGetAnyUser entitlement is required,""",
+         |CanGetAnyUser entitlement is required,
+         |
+         |${urlParametersDocument(false, false)}
+         |* locked_status (if null ignore)
+         |
+      """.stripMargin,
       EmptyBody, usersJsonV400,
-      List(AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        UnknownError
+      ),
       List(apiTagUser),
       Some(List(canGetAnyUser)),
       http4sPartialFunction = Some(getUsers))
@@ -809,10 +1131,21 @@ object Http4s400 {
       null, implementedInApiVersion, "getCustomersByAttributes", "GET",
       "/banks/BANK_ID/customers",
       "Get Customers by ATTRIBUTES",
-      "Gets the Customers specified by attributes",
+      s"""Gets the Customers specified by attributes
+      |
+      |URL params example: /banks/some-bank-id/customers?name=John&age=8
+      |URL params example: /banks/some-bank-id/customers?&limit=50&offset=1
+      |
+      |
+      |""",
       EmptyBody,
       ListResult("customers", List(customerWithAttributesJsonV310)),
-      List(AuthenticatedUserIsRequired, BankNotFound, UserCustomerLinksNotFoundForUser, UnknownError),
+      List(
+        $AuthenticatedUserIsRequired,
+        $BankNotFound,
+        UserCustomerLinksNotFoundForUser,
+        UnknownError
+      ),
       List(apiTagCustomer),
       Some(List(canGetCustomersAtOneBank)),
       http4sPartialFunction = Some(getCustomersByAttributes))
@@ -845,20 +1178,36 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createCustomer), "POST",
+      null,
+      implementedInApiVersion,
+      nameOf(createCustomer),
+      "POST",
       "/banks/BANK_ID/customers",
       "Create Customer",
-      s"""The Customer resource stores the customer number (set by backend), legal name, email, phone number, date of birth, etc.
-         |
-         |${userAuthenticationMessage(true)}""",
-      code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.postCustomerJsonV310,
-      code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.customerJsonV310,
-      List(AuthenticatedUserIsRequired, BankNotFound, InvalidJsonFormat,
-        CustomerNumberAlreadyExists, UserNotFoundById, CustomerAlreadyExistsForUser,
-        CreateCustomerError, UnknownError),
+      s"""
+      |The Customer resource stores the customer number (which is set by the backend), legal name, email, phone number, their date of birth, relationship status, education attained, a url for a profile image, KYC status etc.
+      |Dates need to be in the format 2013-01-21T23:08:00Z
+      |
+      |Note: If you need to set a specific customer number, use the Update Customer Number endpoint after this call.
+      |
+      |${userAuthenticationMessage(true)}
+      |""",
+      postCustomerJsonV310,
+      customerJsonV310,
+      List(
+        $AuthenticatedUserIsRequired,
+        $BankNotFound,
+        InvalidJsonFormat,
+        CustomerNumberAlreadyExists,
+        UserNotFoundById,
+        CustomerAlreadyExistsForUser,
+        CreateConsumerError,
+        UnknownError
+      ),
       List(apiTagCustomer, apiTagPerson),
       Some(List(canCreateCustomer, canCreateCustomerAtAnyBank)),
-      http4sPartialFunction = Some(createCustomer))
+      http4sPartialFunction = Some(createCustomer)
+    )
 
     // ─── getBankAccountsBalancesForCurrentUser (GET /banks/BANK_ID/balances) — v4
 
@@ -873,14 +1222,20 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getBankAccountsBalancesForCurrentUser), "GET",
+      null,
+      implementedInApiVersion,
+      nameOf(getBankAccountsBalancesForCurrentUser),
+      "GET",
       "/banks/BANK_ID/balances",
       "Get Accounts Balances",
-      "Get the Balances for the Accounts of the current User at one bank.",
-      EmptyBody, accountBalancesV400Json,
-      List(AuthenticatedUserIsRequired, BankNotFound, UnknownError),
-      apiTagAccount :: apiTagPSD2AIS :: apiTagPsd2 :: Nil, None,
-      http4sPartialFunction = Some(getBankAccountsBalancesForCurrentUser))
+      """Get the Balances for the Accounts of the current User at one bank.""",
+      EmptyBody,
+      accountBalancesV400Json,
+      List($AuthenticatedUserIsRequired, $BankNotFound, UnknownError),
+      apiTagAccount :: apiTagPSD2AIS :: apiTagPsd2 :: Nil,
+      None,
+      http4sPartialFunction = Some(getBankAccountsBalancesForCurrentUser)
+    )
 
     // ─── getCoreAccountById (GET /my/banks/BANK_ID/accounts/ACCOUNT_ID/account)
 
@@ -903,16 +1258,34 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getCoreAccountById), "GET",
+      null,
+      implementedInApiVersion,
+      nameOf(getCoreAccountById),
+      "GET",
       "/my/banks/BANK_ID/accounts/ACCOUNT_ID/account",
       "Get Account by Id (Core)",
-      s"""Information returned about the account specified by ACCOUNT_ID.
-         |
-         |${userAuthenticationMessage(true)}""",
-      EmptyBody, moderatedCoreAccountJsonV400,
-      List(AuthenticatedUserIsRequired, BankAccountNotFound, UnknownError),
-      apiTagAccount :: apiTagPSD2AIS :: apiTagPsd2 :: Nil, None,
-      http4sPartialFunction = Some(getCoreAccountById))
+      s"""Information returned about the account specified by ACCOUNT_ID:
+      |
+      |* Number - The human readable account number given by the bank that identifies the account.
+      |* Label - A label given by the owner of the account
+      |* Owners - Users that own this account
+      |* Type - The type of account
+      |* Balance - Currency and Value
+      |* Account Routings - A list that might include IBAN or national account identifiers
+      |* Account Rules - A list that might include Overdraft and other bank specific rules
+      |* Tags - A list of Tags assigned to this account
+      |
+      |This call returns the owner view and requires access to that view.
+      |
+      |
+      |""".stripMargin,
+      EmptyBody,
+      moderatedCoreAccountJsonV400,
+      List($AuthenticatedUserIsRequired, $BankAccountNotFound, UnknownError),
+      apiTagAccount :: apiTagPSD2AIS :: apiTagPsd2 :: Nil,
+      None,
+      http4sPartialFunction = Some(getCoreAccountById)
+    )
 
     // ─── getPrivateAccountByIdFull (GET /banks/BANK_ID/.../VIEW_ID/account) ──
 
@@ -935,15 +1308,41 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getPrivateAccountByIdFull), "GET",
+      null,
+      implementedInApiVersion,
+      nameOf(getPrivateAccountByIdFull),
+      "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/account",
       "Get Account by Id (Full)",
-      """Information returned about an account specified by ACCOUNT_ID moderated by the view (VIEW_ID).""",
-      EmptyBody, moderatedAccountJSON400,
-      List(AuthenticatedUserIsRequired, BankNotFound, BankAccountNotFound,
-        UserNoPermissionAccessView, UnknownError),
-      apiTagAccount :: Nil, None,
-      http4sPartialFunction = Some(getPrivateAccountByIdFull))
+      """Information returned about an account specified by ACCOUNT_ID as moderated by the view (VIEW_ID):
+      |
+      |* Number
+      |* Owners
+      |* Type
+      |* Balance
+      |* IBAN
+      |* Available views (sorted by short_name)
+      |
+      |More details about the data moderation by the view [here](#1_2_1-getViewsForBankAccount).
+      |
+      |PSD2 Context: PSD2 requires customers to have access to their account information via third party applications.
+      |This call provides balance and other account information via delegated authentication using OAuth.
+      |
+      |Authentication is required if the 'is_public' field in view (VIEW_ID) is not set to `true`.
+      |""".stripMargin,
+      EmptyBody,
+      moderatedAccountJSON400,
+      List(
+        $AuthenticatedUserIsRequired,
+        $BankNotFound,
+        $BankAccountNotFound,
+        $UserNoPermissionAccessView,
+        UnknownError
+      ),
+      apiTagAccount :: Nil,
+      None,
+      http4sPartialFunction = Some(getPrivateAccountByIdFull)
+    )
 
     // ─── getPrivateAccountsAtOneBank (GET /banks/BANK_ID/accounts) — v4 override
 
@@ -976,14 +1375,29 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getPrivateAccountsAtOneBank), "GET",
+      null,
+      implementedInApiVersion,
+      nameOf(getPrivateAccountsAtOneBank),
+      "GET",
       "/banks/BANK_ID/accounts",
       "Get Accounts at Bank",
-      s"""Returns the list of accounts at BANK_ID that the user has access to.""",
-      EmptyBody, basicAccountsJSON,
-      List(AuthenticatedUserIsRequired, BankNotFound, UnknownError),
-      List(apiTagAccount, apiTagPrivateData, apiTagPublicData), None,
-      http4sPartialFunction = Some(getPrivateAccountsAtOneBank))
+      s"""
+         |Returns the list of accounts at BANK_ID that the user has access to.
+         |For each account the API returns the account ID and the views available to the user..
+         |Each account must have at least one private View.
+         |
+         |optional request parameters for filter with attributes
+         |URL params example: /banks/some-bank-id/accounts?&limit=50&offset=1
+         |
+         |
+      """.stripMargin,
+      EmptyBody,
+      basicAccountsJSON,
+      List($AuthenticatedUserIsRequired, $BankNotFound, UnknownError),
+      List(apiTagAccount, apiTagPrivateData, apiTagPublicData),
+      None,
+      http4sPartialFunction = Some(getPrivateAccountsAtOneBank)
+    )
 
     // ─── createUserCustomerLinks (POST → 201) — v4 override ─────────────────
 
@@ -1028,9 +1442,17 @@ object Http4s400 {
          |
          |${userAuthenticationMessage(true)}""",
       createUserCustomerLinkJson, userCustomerLinkJson,
-      List(AuthenticatedUserIsRequired, InvalidBankIdFormat, BankNotFound, InvalidJsonFormat,
-        CustomerNotFoundByCustomerId, UserHasMissingRoles, CustomerAlreadyExistsForUser,
-        CreateUserCustomerLinksError, UnknownError),
+      List(
+        $AuthenticatedUserIsRequired,
+        InvalidBankIdFormat,
+        $BankNotFound,
+        InvalidJsonFormat,
+        CustomerNotFoundByCustomerId,
+        UserHasMissingRoles,
+        CustomerAlreadyExistsForUser,
+        CreateUserCustomerLinksError,
+        UnknownError
+      ),
       List(apiTagCustomer, apiTagUser),
       Some(List(canCreateUserCustomerLinkAtAnyBank, canCreateUserCustomerLink)),
       http4sPartialFunction = Some(createUserCustomerLinks))
@@ -1051,18 +1473,31 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getSystemDynamicEntities), "GET",
+      null,
+      implementedInApiVersion,
+      nameOf(getSystemDynamicEntities),
+      "GET",
       "/management/system-dynamic-entities",
       "Get System Dynamic Entities",
       s"""Get all System Dynamic Entities.
-         |
-         |For more information see ${Glossary.getGlossaryItemLink("Dynamic-Entities")}""",
+       |
+       |For more information see ${Glossary.getGlossaryItemLink(
+        "Dynamic-Entities"
+      )} """,
       EmptyBody,
-      ListResult("dynamic_entities", List(dynamicEntityResponseBodyExample)),
-      List(AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      ListResult(
+        "dynamic_entities",
+        List(dynamicEntityResponseBodyExample)
+      ),
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        UnknownError
+      ),
       List(apiTagManageDynamicEntity, apiTagApi),
       Some(List(canGetSystemLevelDynamicEntities)),
-      http4sPartialFunction = Some(getSystemDynamicEntities))
+      http4sPartialFunction = Some(getSystemDynamicEntities)
+    )
 
     // ─── getBankLevelDynamicEntities ──────────────────────────────────────────
 
@@ -1081,18 +1516,32 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getBankLevelDynamicEntities), "GET",
+      null,
+      implementedInApiVersion,
+      nameOf(getBankLevelDynamicEntities),
+      "GET",
       "/management/banks/BANK_ID/dynamic-entities",
       "Get Bank Level Dynamic Entities",
       s"""Get all the bank level Dynamic Entities for one bank.
-         |
-         |For more information see ${Glossary.getGlossaryItemLink("Dynamic-Entities")}""",
+       |
+       |For more information see ${Glossary.getGlossaryItemLink(
+        "Dynamic-Entities"
+      )}""",
       EmptyBody,
-      ListResult("dynamic_entities", List(dynamicEntityResponseBodyExample)),
-      List(BankNotFound, AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      ListResult(
+        "dynamic_entities",
+        List(dynamicEntityResponseBodyExample)
+      ),
+      List(
+        $BankNotFound,
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        UnknownError
+      ),
       List(apiTagManageDynamicEntity, apiTagApi),
       Some(List(canGetBankLevelDynamicEntities, canGetAnyBankLevelDynamicEntities)),
-      http4sPartialFunction = Some(getBankLevelDynamicEntities))
+      http4sPartialFunction = Some(getBankLevelDynamicEntities)
+    )
 
     // ─── getMyDynamicEntities ─────────────────────────────────────────────────
 
@@ -1109,17 +1558,30 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getMyDynamicEntities), "GET",
+      null,
+      implementedInApiVersion,
+      nameOf(getMyDynamicEntities),
+      "GET",
       "/my/dynamic-entities",
       "Get My Dynamic Entities",
-      s"""Get all the Dynamic Entities created by the current user.
-         |
-         |For more information see ${Glossary.getGlossaryItemLink("Dynamic-Entities")}""",
+      s"""Get all my Dynamic Entities (definitions I created).
+       |
+       |For more information see ${Glossary.getGlossaryItemLink(
+        "My-Dynamic-Entities"
+      )}""",
       EmptyBody,
-      ListResult("dynamic_entities", List(dynamicEntityResponseBodyExample)),
-      List(AuthenticatedUserIsRequired, UnknownError),
-      List(apiTagManageDynamicEntity, apiTagApi), None,
-      http4sPartialFunction = Some(getMyDynamicEntities))
+      ListResult(
+        "dynamic_entities",
+        List(dynamicEntityResponseBodyExample)
+      ),
+      List(
+        $AuthenticatedUserIsRequired,
+        UnknownError
+      ),
+      List(apiTagManageDynamicEntity, apiTagApi),
+      None,
+      http4sPartialFunction = Some(getMyDynamicEntities)
+    )
 
     // ─── dynamic-entity shared helpers (ported from APIMethods400) ──────────
 
@@ -1339,17 +1801,30 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(deleteSystemDynamicEntity), "DELETE",
+      null,
+      implementedInApiVersion,
+      nameOf(deleteSystemDynamicEntity),
+      "DELETE",
       "/management/system-dynamic-entities/DYNAMIC_ENTITY_ID",
       "Delete System Level Dynamic Entity",
-      s"""Delete a system-level DynamicEntity specified by DYNAMIC_ENTITY_ID.
-         |
-         |${userAuthenticationMessage(true)}""",
-      EmptyBody, EmptyBody,
-      List(AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      s"""Delete a DynamicEntity specified by DYNAMIC_ENTITY_ID.
+       |
+       |For more information see ${Glossary.getGlossaryItemLink(
+        "Dynamic-Entities"
+      )}/
+       |
+       |""",
+      EmptyBody,
+      EmptyBody,
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        UnknownError
+      ),
       List(apiTagManageDynamicEntity, apiTagApi),
       Some(List(canDeleteSystemLevelDynamicEntity)),
-      http4sPartialFunction = Some(deleteSystemDynamicEntity))
+      http4sPartialFunction = Some(deleteSystemDynamicEntity)
+    )
 
     // ─── deleteBankLevelDynamicEntity (200) ──────────────────────────────────
 
@@ -1361,17 +1836,31 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(deleteBankLevelDynamicEntity), "DELETE",
+      null,
+      implementedInApiVersion,
+      nameOf(deleteBankLevelDynamicEntity),
+      "DELETE",
       "/management/banks/BANK_ID/dynamic-entities/DYNAMIC_ENTITY_ID",
       "Delete Bank Level Dynamic Entity",
-      s"""Delete a bank-level DynamicEntity specified by DYNAMIC_ENTITY_ID.
-         |
-         |${userAuthenticationMessage(true)}""",
-      EmptyBody, EmptyBody,
-      List(BankNotFound, AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      s"""Delete a Bank Level DynamicEntity specified by DYNAMIC_ENTITY_ID.
+       |
+       |For more information see ${Glossary.getGlossaryItemLink(
+        "Dynamic-Entities"
+      )}/
+       |
+       |""",
+      EmptyBody,
+      EmptyBody,
+      List(
+        $BankNotFound,
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        UnknownError
+      ),
       List(apiTagManageDynamicEntity, apiTagApi),
       Some(List(canDeleteBankLevelDynamicEntity)),
-      http4sPartialFunction = Some(deleteBankLevelDynamicEntity))
+      http4sPartialFunction = Some(deleteBankLevelDynamicEntity)
+    )
 
     // ─── updateMyDynamicEntity ────────────────────────────────────────────────
 
@@ -1443,16 +1932,28 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(deleteMyDynamicEntity), "DELETE",
+      null,
+      implementedInApiVersion,
+      nameOf(deleteMyDynamicEntity),
+      "DELETE",
       "/my/dynamic-entities/DYNAMIC_ENTITY_ID",
       "Delete My Dynamic Entity",
       s"""Delete my DynamicEntity specified by DYNAMIC_ENTITY_ID.
-         |
-         |${userAuthenticationMessage(true)}""",
-      EmptyBody, EmptyBody,
-      List(AuthenticatedUserIsRequired, InvalidMyDynamicEntityUser, UnknownError),
-      List(apiTagManageDynamicEntity, apiTagApi), None,
-      http4sPartialFunction = Some(deleteMyDynamicEntity))
+       |
+       |For more information see ${Glossary.getGlossaryItemLink(
+        "My-Dynamic-Entities"
+      )}
+       |""",
+      EmptyBody,
+      EmptyBody,
+      List(
+        $AuthenticatedUserIsRequired,
+        UnknownError
+      ),
+      List(apiTagManageDynamicEntity, apiTagApi),
+      None,
+      http4sPartialFunction = Some(deleteMyDynamicEntity)
+    )
 
     // ─── dynamic-endpoint shared helpers (ported from APIMethods400) ────────
 
@@ -1543,18 +2044,36 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createDynamicEndpoint), "POST",
+      null,
+      implementedInApiVersion,
+      nameOf(createDynamicEndpoint),
+      "POST",
       "/management/dynamic-endpoints",
       "Create Dynamic Endpoint",
-      s"""Create dynamic endpoints with one json format swagger content.
-         |
-         |${userAuthenticationMessage(true)}""",
-      dynamicEndpointRequestBodyExample, dynamicEndpointResponseBodyExample,
-      List(AuthenticatedUserIsRequired, UserHasMissingRoles, DynamicEndpointExists,
-        InvalidJsonFormat, UnknownError),
+      s"""Create dynamic endpoints.
+      |
+      |Create dynamic endpoints with one json format swagger content.
+      |
+      |If the host of swagger is `dynamic_entity`, then you need link the swagger fields to the dynamic entity fields,
+      |please check `Endpoint Mapping` endpoints.
+      |
+      |If the host of swagger is `obp_mock`, every dynamic endpoint will return example response of swagger,\n
+      |when create MethodRouting for given dynamic endpoint, it will be routed to given url.
+      |
+      |""",
+      dynamicEndpointRequestBodyExample,
+      dynamicEndpointResponseBodyExample,
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        DynamicEndpointExists,
+        InvalidJsonFormat,
+        UnknownError
+      ),
       List(apiTagManageDynamicEndpoint, apiTagApi),
       Some(List(canCreateDynamicEndpoint)),
-      http4sPartialFunction = Some(createDynamicEndpoint))
+      http4sPartialFunction = Some(createDynamicEndpoint)
+    )
 
     // ─── createBankLevelDynamicEndpoint (POST → 201) ─────────────────────────
 
@@ -1574,18 +2093,37 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createBankLevelDynamicEndpoint), "POST",
+      null,
+      implementedInApiVersion,
+      nameOf(createBankLevelDynamicEndpoint),
+      "POST",
       "/management/banks/BANK_ID/dynamic-endpoints",
       "Create Bank Level Dynamic Endpoint",
-      s"""Create dynamic endpoints with one json format swagger content.
-         |
-         |${userAuthenticationMessage(true)}""",
-      dynamicEndpointRequestBodyExample, dynamicEndpointResponseBodyExample,
-      List(BankNotFound, AuthenticatedUserIsRequired, UserHasMissingRoles, DynamicEndpointExists,
-        InvalidJsonFormat, UnknownError),
+      s"""Create dynamic endpoints.
+      |
+      |Create dynamic endpoints with one json format swagger content.
+      |
+      |If the host of swagger is `dynamic_entity`, then you need link the swagger fields to the dynamic entity fields,
+      |please check `Endpoint Mapping` endpoints.
+      |
+      |If the host of swagger is `obp_mock`, every dynamic endpoint will return example response of swagger,\n
+      |when create MethodRouting for given dynamic endpoint, it will be routed to given url.
+      |
+      |""",
+      dynamicEndpointRequestBodyExample,
+      dynamicEndpointResponseBodyExample,
+      List(
+        $BankNotFound,
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        DynamicEndpointExists,
+        InvalidJsonFormat,
+        UnknownError
+      ),
       List(apiTagManageDynamicEndpoint, apiTagApi),
       Some(List(canCreateBankLevelDynamicEndpoint, canCreateDynamicEndpoint)),
-      http4sPartialFunction = Some(createBankLevelDynamicEndpoint))
+      http4sPartialFunction = Some(createBankLevelDynamicEndpoint)
+    )
 
     // ─── updateDynamicEndpointHost (PUT → 201) ───────────────────────────────
 
@@ -1602,17 +2140,28 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(updateDynamicEndpointHost), "PUT",
+      null,
+      implementedInApiVersion,
+      nameOf(updateDynamicEndpointHost),
+      "PUT",
       "/management/dynamic-endpoints/DYNAMIC_ENDPOINT_ID/host",
       " Update Dynamic Endpoint Host",
       s"""Update dynamic endpoint Host.
-         |The value can be obp_mock, dynamic_entity, or some service url.""",
-      dynamicEndpointHostJson400, dynamicEndpointHostJson400,
-      List(AuthenticatedUserIsRequired, UserHasMissingRoles,
-        DynamicEntityNotFoundByDynamicEntityId, InvalidJsonFormat, UnknownError),
+      |The value can be obp_mock, dynamic_entity, or some service url.
+      |""",
+      dynamicEndpointHostJson400,
+      dynamicEndpointHostJson400,
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        DynamicEntityNotFoundByDynamicEntityId,
+        InvalidJsonFormat,
+        UnknownError
+      ),
       List(apiTagManageDynamicEndpoint, apiTagApi),
       Some(List(canUpdateDynamicEndpoint)),
-      http4sPartialFunction = Some(updateDynamicEndpointHost))
+      http4sPartialFunction = Some(updateDynamicEndpointHost)
+    )
 
     // ─── updateBankLevelDynamicEndpointHost (PUT → 201) ──────────────────────
 
@@ -1630,16 +2179,29 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(updateBankLevelDynamicEndpointHost), "PUT",
+      null,
+      implementedInApiVersion,
+      nameOf(updateBankLevelDynamicEndpointHost),
+      "PUT",
       "/management/banks/BANK_ID/dynamic-endpoints/DYNAMIC_ENDPOINT_ID/host",
       " Update Bank Level Dynamic Endpoint Host",
-      s"""Update Bank Level dynamic endpoint Host.""",
-      dynamicEndpointHostJson400, dynamicEndpointHostJson400,
-      List(BankNotFound, AuthenticatedUserIsRequired, UserHasMissingRoles,
-        DynamicEntityNotFoundByDynamicEntityId, InvalidJsonFormat, UnknownError),
+      s"""Update Bank Level  dynamic endpoint Host.
+      |The value can be obp_mock, dynamic_entity, or some service url.
+      |""",
+      dynamicEndpointHostJson400,
+      dynamicEndpointHostJson400,
+      List(
+        $BankNotFound,
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        DynamicEntityNotFoundByDynamicEntityId,
+        InvalidJsonFormat,
+        UnknownError
+      ),
       List(apiTagManageDynamicEndpoint, apiTagApi),
       Some(List(canUpdateBankLevelDynamicEndpoint, canUpdateDynamicEndpoint)),
-      http4sPartialFunction = Some(updateBankLevelDynamicEndpointHost))
+      http4sPartialFunction = Some(updateBankLevelDynamicEndpointHost)
+    )
 
     // ─── getDynamicEndpoint (GET → 200) ──────────────────────────────────────
 
@@ -1651,16 +2213,31 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getDynamicEndpoint), "GET",
+      null,
+      implementedInApiVersion,
+      nameOf(getDynamicEndpoint),
+      "GET",
       "/management/dynamic-endpoints/DYNAMIC_ENDPOINT_ID",
       "Get Dynamic Endpoint",
-      s"""Get a Dynamic Endpoint by DYNAMIC_ENDPOINT_ID.""",
-      EmptyBody, dynamicEndpointResponseBodyExample,
-      List(AuthenticatedUserIsRequired, UserHasMissingRoles,
-        DynamicEndpointNotFoundByDynamicEndpointId, InvalidJsonFormat, UnknownError),
+      s"""Get a Dynamic Endpoint.
+      |
+      |
+      |Get one DynamicEndpoint,
+      |
+      |""",
+      EmptyBody,
+      dynamicEndpointResponseBodyExample,
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        DynamicEndpointNotFoundByDynamicEndpointId,
+        InvalidJsonFormat,
+        UnknownError
+      ),
       List(apiTagManageDynamicEndpoint, apiTagApi),
       Some(List(canGetDynamicEndpoint)),
-      http4sPartialFunction = Some(getDynamicEndpoint))
+      http4sPartialFunction = Some(getDynamicEndpoint)
+    )
 
     // ─── getDynamicEndpoints (GET → 200) ─────────────────────────────────────
 
@@ -1672,15 +2249,32 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getDynamicEndpoints), "GET",
+      null,
+      implementedInApiVersion,
+      nameOf(getDynamicEndpoints),
+      "GET",
       "/management/dynamic-endpoints",
       " Get Dynamic Endpoints",
-      s"""Get Dynamic Endpoints.""",
-      EmptyBody, ListResult("dynamic_endpoints", List(dynamicEndpointResponseBodyExample)),
-      List(AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+      s"""
+      |
+      |Get Dynamic Endpoints.
+      |
+      |""",
+      EmptyBody,
+      ListResult(
+        "dynamic_endpoints",
+        List(dynamicEndpointResponseBodyExample)
+      ),
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
       List(apiTagManageDynamicEndpoint, apiTagApi),
       Some(List(canGetDynamicEndpoints)),
-      http4sPartialFunction = Some(getDynamicEndpoints))
+      http4sPartialFunction = Some(getDynamicEndpoints)
+    )
 
     // ─── getBankLevelDynamicEndpoint (GET → 200) ─────────────────────────────
 
@@ -1692,16 +2286,28 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getBankLevelDynamicEndpoint), "GET",
+      null,
+      implementedInApiVersion,
+      nameOf(getBankLevelDynamicEndpoint),
+      "GET",
       "/management/banks/BANK_ID/dynamic-endpoints/DYNAMIC_ENDPOINT_ID",
       " Get Bank Level Dynamic Endpoint",
-      s"""Get a Bank Level Dynamic Endpoint.""",
-      EmptyBody, dynamicEndpointResponseBodyExample,
-      List(BankNotFound, AuthenticatedUserIsRequired, UserHasMissingRoles,
-        DynamicEndpointNotFoundByDynamicEndpointId, InvalidJsonFormat, UnknownError),
+      s"""Get a Bank Level Dynamic Endpoint.
+      |""",
+      EmptyBody,
+      dynamicEndpointResponseBodyExample,
+      List(
+        $BankNotFound,
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        DynamicEndpointNotFoundByDynamicEndpointId,
+        InvalidJsonFormat,
+        UnknownError
+      ),
       List(apiTagManageDynamicEndpoint, apiTagApi),
       Some(List(canGetBankLevelDynamicEndpoint, canGetDynamicEndpoint)),
-      http4sPartialFunction = Some(getBankLevelDynamicEndpoint))
+      http4sPartialFunction = Some(getBankLevelDynamicEndpoint)
+    )
 
     // ─── getBankLevelDynamicEndpoints (GET → 200) ────────────────────────────
 
@@ -1713,16 +2319,33 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getBankLevelDynamicEndpoints), "GET",
+      null,
+      implementedInApiVersion,
+      nameOf(getBankLevelDynamicEndpoints),
+      "GET",
       "/management/banks/BANK_ID/dynamic-endpoints",
       "Get Bank Level Dynamic Endpoints",
-      s"""Get Bank Level Dynamic Endpoints.""",
-      EmptyBody, ListResult("dynamic_endpoints", List(dynamicEndpointResponseBodyExample)),
-      List(BankNotFound, AuthenticatedUserIsRequired, UserHasMissingRoles,
-        InvalidJsonFormat, UnknownError),
+      s"""
+      |
+      |Get Bank Level Dynamic Endpoints.
+      |
+      |""",
+      EmptyBody,
+      ListResult(
+        "dynamic_endpoints",
+        List(dynamicEndpointResponseBodyExample)
+      ),
+      List(
+        $BankNotFound,
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
       List(apiTagManageDynamicEndpoint, apiTagApi),
       Some(List(canGetBankLevelDynamicEndpoints, canGetDynamicEndpoints)),
-      http4sPartialFunction = Some(getBankLevelDynamicEndpoints))
+      http4sPartialFunction = Some(getBankLevelDynamicEndpoints)
+    )
 
     // ─── deleteDynamicEndpoint (DELETE → 204) ────────────────────────────────
 
@@ -1734,15 +2357,24 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(deleteDynamicEndpoint), "DELETE",
+      null,
+      implementedInApiVersion,
+      nameOf(deleteDynamicEndpoint),
+      "DELETE",
       "/management/dynamic-endpoints/DYNAMIC_ENDPOINT_ID",
       " Delete Dynamic Endpoint",
-      s"""Delete a DynamicEndpoint specified by DYNAMIC_ENDPOINT_ID.""",
-      EmptyBody, EmptyBody,
-      List(AuthenticatedUserIsRequired, DynamicEndpointNotFoundByDynamicEndpointId, UnknownError),
+      s"""Delete a DynamicEndpoint specified by DYNAMIC_ENDPOINT_ID.""".stripMargin,
+      EmptyBody,
+      EmptyBody,
+      List(
+        $AuthenticatedUserIsRequired,
+        DynamicEndpointNotFoundByDynamicEndpointId,
+        UnknownError
+      ),
       List(apiTagManageDynamicEndpoint, apiTagApi),
       Some(List(canDeleteDynamicEndpoint)),
-      http4sPartialFunction = Some(deleteDynamicEndpoint))
+      http4sPartialFunction = Some(deleteDynamicEndpoint)
+    )
 
     // ─── deleteBankLevelDynamicEndpoint (DELETE → 204) ───────────────────────
 
@@ -1754,16 +2386,25 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(deleteBankLevelDynamicEndpoint), "DELETE",
+      null,
+      implementedInApiVersion,
+      nameOf(deleteBankLevelDynamicEndpoint),
+      "DELETE",
       "/management/banks/BANK_ID/dynamic-endpoints/DYNAMIC_ENDPOINT_ID",
       " Delete Bank Level Dynamic Endpoint",
-      s"""Delete a Bank Level DynamicEndpoint specified by DYNAMIC_ENDPOINT_ID.""",
-      EmptyBody, EmptyBody,
-      List(BankNotFound, AuthenticatedUserIsRequired,
-        DynamicEndpointNotFoundByDynamicEndpointId, UnknownError),
+      s"""Delete a Bank Level DynamicEndpoint specified by DYNAMIC_ENDPOINT_ID.""".stripMargin,
+      EmptyBody,
+      EmptyBody,
+      List(
+        $BankNotFound,
+        $AuthenticatedUserIsRequired,
+        DynamicEndpointNotFoundByDynamicEndpointId,
+        UnknownError
+      ),
       List(apiTagManageDynamicEndpoint, apiTagApi),
       Some(List(canDeleteBankLevelDynamicEndpoint, canDeleteDynamicEndpoint)),
-      http4sPartialFunction = Some(deleteBankLevelDynamicEndpoint))
+      http4sPartialFunction = Some(deleteBankLevelDynamicEndpoint)
+    )
 
     // ─── getMyDynamicEndpoints (GET → 200) ───────────────────────────────────
 
@@ -1784,14 +2425,27 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getMyDynamicEndpoints), "GET",
+      null,
+      implementedInApiVersion,
+      nameOf(getMyDynamicEndpoints),
+      "GET",
       "/my/dynamic-endpoints",
       "Get My Dynamic Endpoints",
-      s"""Get My Dynamic Endpoints.""",
-      EmptyBody, ListResult("dynamic_endpoints", List(dynamicEndpointResponseBodyExample)),
-      List(AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
-      List(apiTagManageDynamicEndpoint, apiTagApi), None,
-      http4sPartialFunction = Some(getMyDynamicEndpoints))
+      s"""Get My Dynamic Endpoints.""".stripMargin,
+      EmptyBody,
+      ListResult(
+        "dynamic_endpoints",
+        List(dynamicEndpointResponseBodyExample)
+      ),
+      List(
+        $AuthenticatedUserIsRequired,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTagManageDynamicEndpoint, apiTagApi),
+      None,
+      http4sPartialFunction = Some(getMyDynamicEndpoints)
+    )
 
     // ─── deleteMyDynamicEndpoint (DELETE → 204) ──────────────────────────────
 
@@ -1814,7 +2468,11 @@ object Http4s400 {
       "Delete My Dynamic Endpoint",
       s"""Delete a DynamicEndpoint specified by DYNAMIC_ENDPOINT_ID.""",
       EmptyBody, EmptyBody,
-      List(AuthenticatedUserIsRequired, DynamicEndpointNotFoundByDynamicEndpointId, UnknownError),
+      List(
+        $AuthenticatedUserIsRequired,
+        DynamicEndpointNotFoundByDynamicEndpointId,
+        UnknownError
+      ),
       List(apiTagManageDynamicEndpoint, apiTagApi), None,
       http4sPartialFunction = Some(deleteMyDynamicEndpoint))
 
@@ -1832,17 +2490,28 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getProductAttribute), "GET",
+      null,
+      implementedInApiVersion,
+      nameOf(getProductAttribute),
+      "GET",
       "/banks/BANK_ID/products/PRODUCT_CODE/attributes/PRODUCT_ATTRIBUTE_ID",
       "Get Product Attribute",
-      s"""Get one Product Attribute by its id.
-         |
-         |${userAuthenticationMessage(true)}""",
-      EmptyBody, productAttributeResponseJsonV400,
+      s""" Get Product Attribute
+      |
+      |$productAttributeGeneralInfo
+      |
+      |Get one product attribute by its id.
+      |
+      |${userAuthenticationMessage(true)}
+      |
+      |""",
+      EmptyBody,
+      productAttributeResponseJsonV400,
       List(UserHasMissingRoles, UnknownError),
       List(apiTagProduct, apiTagProductAttribute, apiTagAttribute),
       Some(List(canGetProductAttribute)),
-      http4sPartialFunction = Some(getProductAttribute))
+      http4sPartialFunction = Some(getProductAttribute)
+    )
 
     // ─── getScopes (GET /consumers/CONSUMER_ID/scopes) — v4 override of Http4s300 ─
 
@@ -1867,16 +2536,25 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getScopes), "GET",
+      null,
+      implementedInApiVersion,
+      nameOf(getScopes),
+      "GET",
       "/consumers/CONSUMER_ID/scopes",
       "Get Scopes for Consumer",
       s"""Get all the scopes for an consumer specified by CONSUMER_ID
          |
-         |${userAuthenticationMessage(true)}""",
-      EmptyBody, scopeJsons,
+         |${userAuthenticationMessage(true)}
+         |
+         |
+      """.stripMargin,
+      EmptyBody,
+      scopeJsons,
       List(AuthenticatedUserIsRequired, EntitlementNotFound, ConsumerNotFoundByConsumerId, UnknownError),
-      List(apiTagScope, apiTagConsumer), None,
-      http4sPartialFunction = Some(getScopes))
+      List(apiTagScope, apiTagConsumer),
+      None,
+      http4sPartialFunction = Some(getScopes)
+    )
 
     // ─── addScope (POST /consumers/CONSUMER_ID/scopes → 201) — v4 override ────
 
@@ -1913,18 +2591,29 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(addScope), "POST",
+      null,
+      implementedInApiVersion,
+      nameOf(addScope),
+      "POST",
       "/consumers/CONSUMER_ID/scopes",
       "Create Scope for a Consumer",
       """Create Scope. Grant Role to Consumer.
-        |
-        |Scopes are used to grant System or Bank level roles to the Consumer (App).""",
-      createScopeJson, scopeJson,
+      |
+      |Scopes are used to grant System or Bank level roles to the Consumer (App). (For Account level privileges, see Views)
+      |
+      |For a System level Role (.e.g CanGetAnyUser), set bank_id to an empty string i.e. "bank_id":""
+      |
+      |For a Bank level Role (e.g. CanCreateAccount), set bank_id to a valid value e.g. "bank_id":"my-bank-id"
+      |
+      |""",
+      SwaggerDefinitionsJSON.createScopeJson,
+      scopeJson,
       List(AuthenticatedUserIsRequired, ConsumerNotFoundById, InvalidJsonFormat,
-        IncorrectRoleName, EntitlementIsBankRole, EntitlementIsSystemRole, EntitlementAlreadyExists, UnknownError),
+      IncorrectRoleName, EntitlementIsBankRole, EntitlementIsSystemRole, EntitlementAlreadyExists, UnknownError),
       List(apiTagScope, apiTagConsumer),
       Some(List(canCreateScopeAtAnyBank, canCreateScopeAtOneBank)),
-      http4sPartialFunction = Some(addScope))
+      http4sPartialFunction = Some(addScope)
+    )
 
     // ─── getConsents (GET /banks/BANK_ID/my/consents) — v4 override of Http4s310 ─
 
@@ -1951,20 +2640,30 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getConsents), "GET",
+      null,
+      implementedInApiVersion,
+      nameOf(getConsents),
+      "GET",
       "/banks/BANK_ID/my/consents",
       "Get Consents",
-      s"""This endpoint gets the Consents that the current User created.
+      s"""
+         |
+         |This endpoint gets the Consents that the current User created.
          |
          |${userAuthenticationMessage(true)}
          |
          |1 limit (for pagination: defaults to 50)  eg:limit=200
          |
-         |2 offset (for pagination: zero index, defaults to 0) eg: offset=10""",
-      EmptyBody, consentsJsonV400,
+         |2 offset (for pagination: zero index, defaults to 0) eg: offset=10
+         |
+      """.stripMargin,
+      EmptyBody,
+      consentsJsonV400,
       List($AuthenticatedUserIsRequired, $BankNotFound, UnknownError),
-      List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2), None,
-      http4sPartialFunction = Some(getConsents))
+      List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2),
+      None,
+      http4sPartialFunction = Some(getConsents)
+    )
 
     // ─── updateAccountLabel (POST /banks/BANK_ID/accounts/ACCOUNT_ID → 200) — v4 override of Http4s121 ─
 
@@ -1995,17 +2694,32 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(updateAccountLabel), "POST",
+      null,
+      implementedInApiVersion,
+      nameOf(updateAccountLabel),
+      "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID",
       "Update Account Label",
-      s"""Update the label for the account. The label is how the account is known to the account owner e.g. 'My savings account'.
-         |
-         |${userAuthenticationMessage(true)}""",
-      updateAccountJsonV400, successMessage,
-      List(InvalidJsonFormat, $AuthenticatedUserIsRequired, $BankAccountNotFound,
-        "user does not have access to owner view on account", UnknownError),
-      List(apiTagAccount), None,
-      http4sPartialFunction = Some(updateAccountLabel))
+      s"""Update the label for the account. The label is how the account is known to the account owner e.g. 'My savings account'
+        |
+        |
+        |${userAuthenticationMessage(true)}
+        |
+      """.stripMargin,
+      updateAccountJsonV400,
+      successMessage,
+      List(
+        InvalidJsonFormat,
+        $AuthenticatedUserIsRequired,
+        $BankNotFound,
+        UnknownError,
+        $BankAccountNotFound,
+        "user does not have access to owner view on account"
+      ),
+      List(apiTagAccount),
+      None,
+      http4sPartialFunction = Some(updateAccountLabel)
+    )
 
     // ─── getExplicitCounterpartiesForAccount (GET .../counterparties) — v4 override ─
 
@@ -2035,8 +2749,12 @@ object Http4s400 {
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties",
       "Get Counterparties (Explicit)",
       s"""Get the Counterparties that have been explicitly created on the specified Account / View.
-         |
-         |${userAuthenticationMessage(true)}""",
+      |
+      |For a general introduction to Counterparties in OBP, see ${Glossary
+       .getGlossaryItemLink("Counterparties")}
+      |
+      |${userAuthenticationMessage(true)}
+      |""".stripMargin,
       EmptyBody, counterpartiesJson400,
       List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound,
         $UserNoPermissionAccessView, ViewNotFound, UnknownError),
@@ -2065,9 +2783,13 @@ object Http4s400 {
       null, implementedInApiVersion, "getExplicitCounterpartyById", "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties/EXPLICIT_COUNTERPARTY_ID",
       "Get Counterparty by Id (Explicit)",
-      s"""This endpoint returns a single Counterparty on an Account View specified by its COUNTERPARTY_ID.
-         |
-         |${userAuthenticationMessage(true)}""",
+      s"""This endpoint returns a single Counterparty on an Account View specified by its COUNTERPARTY_ID:
+      |
+      |For a general introduction to Counterparties in OBP, see ${Glossary
+       .getGlossaryItemLink("Counterparties")}
+      |
+      |${userAuthenticationMessage(true)}
+      |""".stripMargin,
       EmptyBody, counterpartyWithMetadataJson400,
       List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound,
         $UserNoPermissionAccessView, UnknownError),
@@ -2157,14 +2879,29 @@ object Http4s400 {
       null, implementedInApiVersion, "createCounterparty", "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties",
       "Create Counterparty (Explicit)",
-      s"""Create Counterparty (Explicit) for an Account.
-         |
-         |${userAuthenticationMessage(true)}""",
+      s"""This endpoint creates an (Explicit) Counterparty for an Account.
+      |
+      |For an introduction to Counterparties in OBP see ${Glossary
+       .getGlossaryItemLink("Counterparties")}
+      |
+      |${userAuthenticationMessage(true)}
+      |
+      |""".stripMargin,
       postCounterpartyJson400, counterpartyWithMetadataJson400,
-      List($AuthenticatedUserIsRequired, InvalidAccountIdFormat, InvalidBankIdFormat,
-        InvalidJsonFormat, NoViewPermission, CounterpartyAlreadyExists,
-        InvalidValueLength, InvalidISOCurrencyCode, UnknownError),
-      List(apiTagCounterparty, apiTagPSD2PIS, apiTagPsd2, apiTagAccount), None,
+      List(
+        $AuthenticatedUserIsRequired,
+        InvalidAccountIdFormat,
+        InvalidBankIdFormat,
+        $BankNotFound,
+        $BankAccountNotFound,
+        $UserNoPermissionAccessView,
+        InvalidJsonFormat,
+        InvalidISOCurrencyCode,
+        ViewNotFound,
+        CounterpartyAlreadyExists,
+        UnknownError
+      ),
+      List(apiTagCounterparty, apiTagAccount), None,
       http4sPartialFunction = Some(createExplicitCounterparty))
 
     // ─── getFirehoseAccountsAtOneBank ─────────────────────────────────────────
@@ -2223,16 +2960,43 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getFirehoseAccountsAtOneBank), "GET",
+      null,
+      implementedInApiVersion,
+      nameOf(getFirehoseAccountsAtOneBank),
+      "GET",
       "/banks/FIREHOSE_BANK_ID/firehose/accounts/views/FIREHOSE_VIEW_ID",
       "Get Firehose Accounts at Bank",
-      s"""Get all Accounts at a Bank that have a Firehose View.
-         |
-         |${userAuthenticationMessage(true)}""",
-      EmptyBody, moderatedFirehoseAccountsJsonV400,
-      List(AuthenticatedUserIsRequired, AccountFirehoseNotAllowedOnThisInstance, UnknownError),
-      List(apiTagAccountFirehose, apiTagAccount, apiTagFirehoseData, apiTagAccount), None,
-      http4sPartialFunction = Some(getFirehoseAccountsAtOneBank))
+      s"""
+      |Get all Accounts at a Bank.
+      |
+      |This endpoint allows bulk access to all accounts at the specified bank.
+      |
+      |Requires the CanUseFirehoseAtAnyBank Role or CanUseAccountFirehose Role
+      |
+      |Returns all accounts at the bank. The VIEW_ID parameter determines what account data fields are visible according to the view's permissions.
+      |
+      |The view specified must have is_firehose = true
+      |
+      |For VIEW_ID try 'owner' or 'firehose'
+      |
+      |Optional request parameters for filtering by account attributes:
+      |URL params example:
+      |  /banks/some-bank-id/firehose/accounts/views/owner?limit=50&offset=1
+      |
+      |To invalidate browser cache, add timestamp query parameter as follows (the parameter name must be `_timestamp_`):
+      |URL params example:
+      |  `/banks/some-bank-id/firehose/accounts/views/owner?limit=50&offset=1&_timestamp_=1596762180358`
+      |
+      |${userAuthenticationMessage(true)}
+      |
+      |""".stripMargin,
+      EmptyBody,
+      moderatedFirehoseAccountsJsonV400,
+      List($BankNotFound),
+      List(apiTagAccount, apiTagAccountFirehose, apiTagFirehoseData),
+      None,
+      http4sPartialFunction = Some(getFirehoseAccountsAtOneBank)
+    )
 
     // ─── createTransactionRequest (POST /banks/.../trans-request-types/TYPE/trans-requests → 201) ─
     //
@@ -2307,15 +3071,32 @@ object Http4s400 {
     staticResourceDocs += ResourceDoc(
       null, implementedInApiVersion, "createTransactionRequestAccount", "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/GRANT_VIEW_ID/transaction-request-types/TRANSACTION_REQUEST_TYPE/transaction-requests",
-      "Create Transaction Request",
-      s"""Create a Transaction Request of the type specified in the URL.
-         |
-         |${userAuthenticationMessage(true)}""",
-      EmptyBody, transactionRequestWithChargeJSON400,
-      List($AuthenticatedUserIsRequired, InvalidJsonFormat, InvalidNumber, NotPositiveAmount,
-        InvalidTransactionRequestType, InvalidISOCurrencyCode,
+      "Create Transaction Request (ACCOUNT)",
+      s"""When using ACCOUNT, the payee is set in the request body.
+        |
+        |Money goes into the BANK_ID and ACCOUNT_ID specified in the request body.
+        |
+        |$transactionRequestGeneralText
+        |
+      """.stripMargin,
+      transactionRequestBodyJsonV200, transactionRequestWithChargeJSON400,
+      List(
+        $AuthenticatedUserIsRequired,
+        InvalidBankIdFormat,
+        InvalidAccountIdFormat,
+        InvalidJsonFormat,
+        $BankNotFound,
+        AccountNotFound,
+        $BankAccountNotFound,
         InsufficientAuthorisationToCreateTransactionRequest,
-        InvalidAccountIdFormat, InvalidBankIdFormat, TransactionDisabled, UnknownError),
+        InvalidTransactionRequestType,
+        InvalidJsonFormat,
+        InvalidNumber,
+        NotPositiveAmount,
+        InvalidTransactionRequestCurrency,
+        TransactionDisabled,
+        UnknownError
+      ),
       List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2), None,
       http4sPartialFunction = Some(createTransactionRequest))
 
@@ -2332,14 +3113,31 @@ object Http4s400 {
         null, implementedInApiVersion, "createTransactionRequestAccountOtp", "POST",
         "/banks/BANK_ID/accounts/ACCOUNT_ID/GRANT_VIEW_ID/transaction-request-types/ACCOUNT_OTP/transaction-requests",
         "Create Transaction Request (ACCOUNT_OTP)",
-        s"""Create Transaction Request (ACCOUNT_OTP).
-           |
-           |${userAuthenticationMessage(true)}""",
+        s"""When using ACCOUNT, the payee is set in the request body.
+          |
+          |Money goes into the BANK_ID and ACCOUNT_ID specified in the request body.
+          |
+          |$transactionRequestGeneralText
+          |
+        """.stripMargin,
         transactionRequestBodyJsonV200, transactionRequestWithChargeJSON400,
-        List($AuthenticatedUserIsRequired, InvalidJsonFormat, InvalidNumber, NotPositiveAmount,
-          InvalidTransactionRequestType, InvalidISOCurrencyCode,
+        List(
+          $AuthenticatedUserIsRequired,
+          InvalidBankIdFormat,
+          InvalidAccountIdFormat,
+          InvalidJsonFormat,
+          $BankNotFound,
+          AccountNotFound,
+          $BankAccountNotFound,
           InsufficientAuthorisationToCreateTransactionRequest,
-          InvalidAccountIdFormat, InvalidBankIdFormat, TransactionDisabled, UnknownError),
+          InvalidTransactionRequestType,
+          InvalidJsonFormat,
+          InvalidNumber,
+          NotPositiveAmount,
+          InvalidTransactionRequestCurrency,
+          TransactionDisabled,
+          UnknownError
+        ),
         List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2), None,
         http4sPartialFunction = Some(createTransactionRequest))
 
@@ -2347,14 +3145,33 @@ object Http4s400 {
         null, implementedInApiVersion, "createTransactionRequestSepa", "POST",
         "/banks/BANK_ID/accounts/ACCOUNT_ID/GRANT_VIEW_ID/transaction-request-types/SEPA/transaction-requests",
         "Create Transaction Request (SEPA)",
-        s"""Create Transaction Request (SEPA).
-           |
-           |${userAuthenticationMessage(true)}""",
+        s"""
+          |Special instructions for SEPA:
+          |
+          |When using a SEPA Transaction Request, you specify the IBAN of a Counterparty in the body of the request.
+          |The routing details (IBAN) of the counterparty will be forwarded to the core banking system for the transfer.
+          |
+          |$transactionRequestGeneralText
+          |
+        """.stripMargin,
         transactionRequestBodySEPAJsonV400, transactionRequestWithChargeJSON400,
-        List($AuthenticatedUserIsRequired, InvalidJsonFormat, InvalidNumber, NotPositiveAmount,
-          InvalidTransactionRequestType, InvalidISOCurrencyCode,
+        List(
+          $AuthenticatedUserIsRequired,
+          InvalidBankIdFormat,
+          InvalidAccountIdFormat,
+          InvalidJsonFormat,
+          $BankNotFound,
+          AccountNotFound,
+          $BankAccountNotFound,
           InsufficientAuthorisationToCreateTransactionRequest,
-          InvalidAccountIdFormat, InvalidBankIdFormat, TransactionDisabled, UnknownError),
+          InvalidTransactionRequestType,
+          InvalidJsonFormat,
+          InvalidNumber,
+          NotPositiveAmount,
+          InvalidTransactionRequestCurrency,
+          TransactionDisabled,
+          UnknownError
+        ),
         List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2), None,
         http4sPartialFunction = Some(createTransactionRequest))
 
@@ -2362,14 +3179,40 @@ object Http4s400 {
         null, implementedInApiVersion, "createTransactionRequestCounterparty", "POST",
         "/banks/BANK_ID/accounts/ACCOUNT_ID/GRANT_VIEW_ID/transaction-request-types/COUNTERPARTY/transaction-requests",
         "Create Transaction Request (COUNTERPARTY)",
-        s"""Create Transaction Request (COUNTERPARTY).
-           |
-           |${userAuthenticationMessage(true)}""",
+        s"""
+          |$transactionRequestGeneralText
+          |
+          |When using a COUNTERPARTY to create a Transaction Request, specify the counterparty_id in the body of the request.
+          |The routing details of the counterparty will be forwarded to the Core Banking System (CBS) for the transfer.
+          |
+          |COUNTERPARTY Transaction Requests are used for Variable Recurring Payments (VRP). Use the following ${Glossary
+           .getApiExplorerLink(
+             "endpoint",
+             "OBPv5.1.0-createVRPConsentRequest"
+           )} to create a consent for VRPs.
+          |
+          |For a general introduction to Counterparties in OBP, see ${Glossary
+           .getGlossaryItemLink("Counterparties")}
+          |
+        """.stripMargin,
         transactionRequestBodyCounterpartyJSON, transactionRequestWithChargeJSON400,
-        List($AuthenticatedUserIsRequired, InvalidJsonFormat, InvalidNumber, NotPositiveAmount,
-          InvalidTransactionRequestType, InvalidISOCurrencyCode,
+        List(
+          $AuthenticatedUserIsRequired,
+          InvalidBankIdFormat,
+          InvalidAccountIdFormat,
+          InvalidJsonFormat,
+          $BankNotFound,
+          AccountNotFound,
+          $BankAccountNotFound,
           InsufficientAuthorisationToCreateTransactionRequest,
-          InvalidAccountIdFormat, InvalidBankIdFormat, TransactionDisabled, UnknownError),
+          InvalidTransactionRequestType,
+          InvalidJsonFormat,
+          InvalidNumber,
+          NotPositiveAmount,
+          InvalidTransactionRequestCurrency,
+          TransactionDisabled,
+          UnknownError
+        ),
         List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2), None,
         http4sPartialFunction = Some(createTransactionRequest))
 
@@ -2377,14 +3220,40 @@ object Http4s400 {
         null, implementedInApiVersion, "createTransactionRequestRefund", "POST",
         "/banks/BANK_ID/accounts/ACCOUNT_ID/GRANT_VIEW_ID/transaction-request-types/REFUND/transaction-requests",
         "Create Transaction Request (REFUND)",
-        s"""Create Transaction Request (REFUND).
-           |
-           |${userAuthenticationMessage(true)}""",
+        s"""
+          |
+          |Either the `from` or the `to` field must be filled. Those fields refers to the information about the party that will be refunded.
+          |
+          |In case the `from` object is used, it means that the refund comes from the part that sent you a transaction.
+          |In the `from` object, you have two choices :
+          |- Use `bank_id` and `account_id` fields if the other account is registered on the OBP-API
+          |- Use the `counterparty_id` field in case the counterparty account is out of the OBP-API
+          |
+          |In case the `to` object is used, it means you send a request to a counterparty to ask for a refund on a previous transaction you sent.
+          |(This case is not managed by the OBP-API and require an external adapter)
+          |
+          |
+          |$transactionRequestGeneralText
+          |
+        """.stripMargin,
         transactionRequestBodyRefundJsonV400, transactionRequestWithChargeJSON400,
-        List($AuthenticatedUserIsRequired, InvalidJsonFormat, InvalidNumber, NotPositiveAmount,
-          InvalidTransactionRequestType, InvalidISOCurrencyCode,
+        List(
+          $AuthenticatedUserIsRequired,
+          InvalidBankIdFormat,
+          InvalidAccountIdFormat,
+          InvalidJsonFormat,
+          $BankNotFound,
+          AccountNotFound,
+          $BankAccountNotFound,
           InsufficientAuthorisationToCreateTransactionRequest,
-          InvalidAccountIdFormat, InvalidBankIdFormat, TransactionDisabled, UnknownError),
+          InvalidTransactionRequestType,
+          InvalidJsonFormat,
+          InvalidNumber,
+          NotPositiveAmount,
+          InvalidTransactionRequestCurrency,
+          TransactionDisabled,
+          UnknownError
+        ),
         List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2), None,
         http4sPartialFunction = Some(createTransactionRequest))
 
@@ -2392,14 +3261,27 @@ object Http4s400 {
         null, implementedInApiVersion, "createTransactionRequestFreeForm", "POST",
         "/banks/BANK_ID/accounts/ACCOUNT_ID/GRANT_VIEW_ID/transaction-request-types/FREE_FORM/transaction-requests",
         "Create Transaction Request (FREE_FORM)",
-        s"""Create Transaction Request (FREE_FORM).
-           |
-           |${userAuthenticationMessage(true)}""",
+        s"""$transactionRequestGeneralText
+          |
+        """.stripMargin,
         transactionRequestBodyFreeFormJSON, transactionRequestWithChargeJSON400,
-        List($AuthenticatedUserIsRequired, InvalidJsonFormat, InvalidNumber, NotPositiveAmount,
-          InvalidTransactionRequestType, InvalidISOCurrencyCode,
+        List(
+          $AuthenticatedUserIsRequired,
+          InvalidBankIdFormat,
+          InvalidAccountIdFormat,
+          InvalidJsonFormat,
+          $BankNotFound,
+          AccountNotFound,
+          $BankAccountNotFound,
           InsufficientAuthorisationToCreateTransactionRequest,
-          InvalidAccountIdFormat, InvalidBankIdFormat, TransactionDisabled, UnknownError),
+          InvalidTransactionRequestType,
+          InvalidJsonFormat,
+          InvalidNumber,
+          NotPositiveAmount,
+          InvalidTransactionRequestCurrency,
+          TransactionDisabled,
+          UnknownError
+        ),
         List(apiTagTransactionRequest, apiTagPSD2PIS),
         Some(List(canCreateAnyTransactionRequest)),
         http4sPartialFunction = Some(createTransactionRequest))
@@ -2408,14 +3290,32 @@ object Http4s400 {
         null, implementedInApiVersion, "createTransactionRequestSimple", "POST",
         "/banks/BANK_ID/accounts/ACCOUNT_ID/GRANT_VIEW_ID/transaction-request-types/SIMPLE/transaction-requests",
         "Create Transaction Request (SIMPLE)",
-        s"""Create Transaction Request (SIMPLE).
-           |
-           |${userAuthenticationMessage(true)}""",
+        s"""
+          |Special instructions for SIMPLE:
+          |
+          |You can transfer money to the Bank Account Number or IBAN directly.
+          |
+          |$transactionRequestGeneralText
+          |
+        """.stripMargin,
         transactionRequestBodySimpleJsonV400, transactionRequestWithChargeJSON400,
-        List($AuthenticatedUserIsRequired, InvalidJsonFormat, InvalidNumber, NotPositiveAmount,
-          InvalidTransactionRequestType, InvalidISOCurrencyCode,
+        List(
+          $AuthenticatedUserIsRequired,
+          InvalidBankIdFormat,
+          InvalidAccountIdFormat,
+          InvalidJsonFormat,
+          $BankNotFound,
+          AccountNotFound,
+          $BankAccountNotFound,
           InsufficientAuthorisationToCreateTransactionRequest,
-          InvalidAccountIdFormat, InvalidBankIdFormat, TransactionDisabled, UnknownError),
+          InvalidTransactionRequestType,
+          InvalidJsonFormat,
+          InvalidNumber,
+          NotPositiveAmount,
+          InvalidTransactionRequestCurrency,
+          TransactionDisabled,
+          UnknownError
+        ),
         List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2), None,
         http4sPartialFunction = Some(createTransactionRequest))
 
@@ -2423,14 +3323,40 @@ object Http4s400 {
         null, implementedInApiVersion, "createTransactionRequestAgentCashWithDrawal", "POST",
         "/banks/BANK_ID/accounts/ACCOUNT_ID/GRANT_VIEW_ID/transaction-request-types/AGENT_CASH_WITHDRAWAL/transaction-requests",
         "Create Transaction Request (AGENT_CASH_WITHDRAWAL)",
-        s"""Create Transaction Request (AGENT_CASH_WITHDRAWAL).
-           |
-           |${userAuthenticationMessage(true)}""",
+        s"""
+          |
+          |Either the `from` or the `to` field must be filled. Those fields refers to the information about the party that will be refunded.
+          |
+          |In case the `from` object is used, it means that the refund comes from the part that sent you a transaction.
+          |In the `from` object, you have two choices :
+          |- Use `bank_id` and `account_id` fields if the other account is registered on the OBP-API
+          |- Use the `counterparty_id` field in case the counterparty account is out of the OBP-API
+          |
+          |In case the `to` object is used, it means you send a request to a counterparty to ask for a refund on a previous transaction you sent.
+          |(This case is not managed by the OBP-API and require an external adapter)
+          |
+          |
+          |$transactionRequestGeneralText
+          |
+        """.stripMargin,
         transactionRequestBodyAgentJsonV400, transactionRequestWithChargeJSON400,
-        List($AuthenticatedUserIsRequired, InvalidJsonFormat, InvalidNumber, NotPositiveAmount,
-          InvalidTransactionRequestType, InvalidISOCurrencyCode,
+        List(
+          $AuthenticatedUserIsRequired,
+          InvalidBankIdFormat,
+          InvalidAccountIdFormat,
+          InvalidJsonFormat,
+          $BankNotFound,
+          AccountNotFound,
+          $BankAccountNotFound,
           InsufficientAuthorisationToCreateTransactionRequest,
-          InvalidAccountIdFormat, InvalidBankIdFormat, TransactionDisabled, UnknownError),
+          InvalidTransactionRequestType,
+          InvalidJsonFormat,
+          InvalidNumber,
+          NotPositiveAmount,
+          InvalidTransactionRequestCurrency,
+          TransactionDisabled,
+          UnknownError
+        ),
         List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2), None,
         http4sPartialFunction = Some(createTransactionRequest))
     }
@@ -2467,14 +3393,33 @@ object Http4s400 {
       null, implementedInApiVersion, "createTransactionRequestCard", "POST",
       "/transaction-request-types/CARD/transaction-requests",
       "Create Transaction Request (CARD)",
-      s"""Create Transaction Request (CARD).
-         |
-         |${userAuthenticationMessage(true)}""",
+      s"""
+        |
+        |When using CARD, the payee is set in the request body .
+        |
+        |Money goes into the Counterparty in the request body.
+        |
+        |$transactionRequestGeneralText
+        |
+      """.stripMargin,
       transactionRequestBodyCardJsonV400, transactionRequestWithChargeJSON400,
-      List($AuthenticatedUserIsRequired, InvalidJsonFormat, InvalidNumber, NotPositiveAmount,
-        InvalidTransactionRequestType, InvalidISOCurrencyCode,
+      List(
+        $AuthenticatedUserIsRequired,
+        InvalidBankIdFormat,
+        InvalidAccountIdFormat,
+        InvalidJsonFormat,
+        $BankNotFound,
+        AccountNotFound,
+        $BankAccountNotFound,
         InsufficientAuthorisationToCreateTransactionRequest,
-        InvalidAccountIdFormat, InvalidBankIdFormat, TransactionDisabled, UnknownError),
+        InvalidTransactionRequestType,
+        InvalidJsonFormat,
+        InvalidNumber,
+        NotPositiveAmount,
+        InvalidTransactionRequestCurrency,
+        TransactionDisabled,
+        UnknownError
+      ),
       List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2), None,
       http4sPartialFunction = Some(createTransactionRequestCard))
 
@@ -2649,13 +3594,60 @@ object Http4s400 {
       "/banks/BANK_ID/accounts/ACCOUNT_ID/GRANT_VIEW_ID/transaction-request-types/TRANSACTION_REQUEST_TYPE/transaction-requests/TRANSACTION_REQUEST_ID/challenge",
       "Answer Transaction Request Challenge",
       s"""In Sandbox mode, any string that can be converted to a positive integer will be accepted as an answer.
-         |
-         |${userAuthenticationMessage(true)}""",
-      challengeAnswerJson400, transactionRequestWithChargeJSON400,
-      List($AuthenticatedUserIsRequired, InvalidJsonFormat, InvalidBankIdFormat,
-        InvalidAccountIdFormat, InvalidTransactionRequestChallengeId,
-        AllowedAttemptsUsedUp, TransactionRequestStatusNotInitiatedOrPendingOrForwarded,
-        TransactionRequestTypeHasChanged, UnknownError),
+        |
+        |This endpoint totally depends on createTransactionRequest, it need get the following data from createTransactionRequest response body.
+        |
+        |1)`TRANSACTION_REQUEST_TYPE` : is the same as createTransactionRequest request URL .
+        |
+        |2)`TRANSACTION_REQUEST_ID` : is the `id` field in createTransactionRequest response body.
+        |
+        |3) `id` :  is `challenge.id` field in createTransactionRequest response body.
+        |
+        |4) `answer` : must be `123` in case that Strong Customer Authentication method for OTP challenge is dummy.
+        |    For instance: SANDBOX_TAN_OTP_INSTRUCTION_TRANSPORT=dummy
+        |    Possible values are dummy,email and sms
+        |    In CBS mode, the answer can be got by phone message or other SCA methods.
+        |
+        |Note that each Transaction Request Type can have its own OTP_INSTRUCTION_TRANSPORT method.
+        |OTP_INSTRUCTION_TRANSPORT methods are set in Props. See sample.props.template for instructions.
+        |
+        |Single or Multiple authorisations
+        |
+        |OBP allows single or multi party authorisations.
+        |
+        |Single party authorisation:
+        |
+        |In the case that only one person needs to authorise i.e. answer a security challenge we have the following change of state of a `transaction request`:
+        |  INITIATED => COMPLETED
+        |
+        |
+        |Multiparty authorisation:
+        |
+        |In the case that multiple parties (n persons) need to authorise a transaction request i.e. answer security challenges, we have the followings state flow for a `transaction request`:
+        |  INITIATED => NEXT_CHALLENGE_PENDING => ... => NEXT_CHALLENGE_PENDING => COMPLETED
+        |
+        |The security challenge is bound to a user i.e. in the case of a correct answer but the user is different than expected the challenge will fail.
+        |
+        |Rule for calculating number of security challenges:
+        |If Product Account attribute REQUIRED_CHALLENGE_ANSWERS=N then create N challenges
+        |(one for every user that has a View where permission $CAN_ADD_TRANSACTION_REQUEST_TO_ANY_ACCOUNT=true)
+        |In the case REQUIRED_CHALLENGE_ANSWERS is not defined as an account attribute, the default number of security challenges created is one.
+        |
+      """.stripMargin,
+      challengeAnswerJson400, transactionRequestWithChargeJSON210,
+      List(
+        $AuthenticatedUserIsRequired,
+        InvalidBankIdFormat,
+        InvalidAccountIdFormat,
+        InvalidJsonFormat,
+        $BankNotFound,
+        $BankAccountNotFound,
+        TransactionRequestStatusNotInitiated,
+        TransactionRequestTypeHasChanged,
+        AllowedAttemptsUsedUp,
+        TransactionDisabled,
+        UnknownError
+      ),
       List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2), None,
       http4sPartialFunction = Some(answerTransactionRequestChallenge))
 
@@ -2850,41 +3842,88 @@ object Http4s400 {
 
     private def initBatch8ResourceDocs(): Unit = {
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getCounterpartiesForAnyAccount), "GET",
+        null,
+        implementedInApiVersion,
+        nameOf(getCounterpartiesForAnyAccount),
+        "GET",
         "/management/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties",
         "Get Counterparties for any account (Explicit)",
-        s"""Get Counterparties for any account.""".stripMargin,
-        EmptyBody, counterpartiesJson400,
-        List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound,
-          ViewNotFound, CreateOrUpdateCounterpartyMetadataError, UnknownError),
-        List(apiTagCounterparty, apiTagAccount),
+        s"""This is a management endpoint that gets the Counterparties that have been explicitly created for an Account / View.
+        |
+        |For a general introduction to Counterparties in OBP, see ${Glossary
+         .getGlossaryItemLink("Counterparties")}
+        |
+        |${userAuthenticationMessage(true)}
+        |""".stripMargin,
+        EmptyBody,
+        counterpartiesJson400,
+        List(
+          $AuthenticatedUserIsRequired,
+          $BankNotFound,
+          $BankAccountNotFound,
+          UnknownError
+        ),
+        List(apiTagCounterparty, apiTagPSD2PIS, apiTagPsd2, apiTagAccount),
         Some(List(canGetCounterpartiesAtAnyBank, canGetCounterparties)),
-        http4sPartialFunction = Some(getCounterpartiesForAnyAccount))
+        http4sPartialFunction = Some(getCounterpartiesForAnyAccount)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getCounterpartyByIdForAnyAccount), "GET",
+        null,
+        implementedInApiVersion,
+        nameOf(getCounterpartyByIdForAnyAccount),
+        "GET",
         "/management/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties/COUNTERPARTY_ID_PARAM",
         "Get Counterparty by Id for any account (Explicit)",
-        s"""Get Counterparty by COUNTERPARTY_ID.""".stripMargin,
-        EmptyBody, counterpartyWithMetadataJson400,
+        s"""This is a management endpoint that gets information about any single explicitly created Counterparty on an Account / View specified by its COUNTERPARTY_ID",
+        |
+        |For a general introduction to Counterparties in OBP, see ${Glossary
+         .getGlossaryItemLink("Counterparties")}
+        |
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""".stripMargin,
+        EmptyBody,
+        counterpartyWithMetadataJson400,
         List($AuthenticatedUserIsRequired, InvalidAccountIdFormat, InvalidBankIdFormat,
-          $BankNotFound, $BankAccountNotFound, InvalidJsonFormat, ViewNotFound, UnknownError),
+        $BankNotFound, $BankAccountNotFound, InvalidJsonFormat, ViewNotFound, UnknownError),
         List(apiTagCounterparty, apiTagAccount),
         Some(List(canGetCounterpartyAtAnyBank, canGetCounterparty)),
-        http4sPartialFunction = Some(getCounterpartyByIdForAnyAccount))
+        http4sPartialFunction = Some(getCounterpartyByIdForAnyAccount)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getCounterpartyByNameForAnyAccount), "GET",
+        null,
+        implementedInApiVersion,
+        nameOf(getCounterpartyByNameForAnyAccount),
+        "GET",
         "/management/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparty-names/COUNTERPARTY_NAME",
         "Get Counterparty by name for any account (Explicit)",
-        s"""Get Counterparty by COUNTERPARTY_NAME.""".stripMargin,
-        EmptyBody, counterpartyWithMetadataJson400,
-        List($AuthenticatedUserIsRequired, InvalidAccountIdFormat, InvalidBankIdFormat,
-          $BankNotFound, $BankAccountNotFound, InvalidJsonFormat, ViewNotFound,
-          CounterpartyNotFound, UnknownError),
+        s"""This is a management endpoint that allows the retrieval of any Counterparty on an Account / View by its Name.
+        |
+        |For a general introduction to Counterparties in OBP, see ${Glossary
+         .getGlossaryItemLink("Counterparties")}
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""".stripMargin,
+        EmptyBody,
+        counterpartyWithMetadataJson400,
+        List(
+          $AuthenticatedUserIsRequired,
+          InvalidAccountIdFormat,
+          InvalidBankIdFormat,
+          $BankNotFound,
+          $BankAccountNotFound,
+          InvalidJsonFormat,
+          ViewNotFound,
+          UnknownError
+        ),
         List(apiTagCounterparty, apiTagAccount),
         Some(List(canGetCounterpartyAtAnyBank, canGetCounterparty)),
-        http4sPartialFunction = Some(getCounterpartyByNameForAnyAccount))
+        http4sPartialFunction = Some(getCounterpartyByNameForAnyAccount)
+      )
     }
     initBatch8ResourceDocs()
 
@@ -3144,39 +4183,70 @@ object Http4s400 {
 
     private def initBatch9ResourceDocs(): Unit = {
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(deleteExplicitCounterparty), "DELETE",
+        null,
+        implementedInApiVersion,
+        nameOf(deleteExplicitCounterparty),
+        "DELETE",
         "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties/COUNTERPARTY_ID_PARAM",
         "Delete Counterparty (Explicit)",
-        s"""Delete Counterparty (Explicit).
-           |
-           |${userAuthenticationMessage(true)}""",
-        EmptyBody, EmptyBody,
-        List($AuthenticatedUserIsRequired, $BankAccountNotFound, $BankNotFound,
-          InvalidAccountIdFormat, InvalidBankIdFormat, NoViewPermission, UnknownError),
-        List(apiTagCounterparty, apiTagAccount), None,
-        http4sPartialFunction = Some(deleteExplicitCounterparty))
+        s"""This endpoint deletes the Counterparty on the Account / View specified by the COUNTERPARTY_ID.
+        |It also deletes any related Counterparty Metadata.
+        |
+        |The User calling this endpoint must have access to the View specified in the URL and that View must have the permission `can_delete_counterparty`.
+        |
+        |For a general introduction to Counterparties in OBP see ${Glossary
+         .getGlossaryItemLink("Counterparties")}
+        |         |
+        |${userAuthenticationMessage(true)}
+        |""".stripMargin,
+        EmptyBody,
+        EmptyBody,
+        List(
+          $AuthenticatedUserIsRequired,
+          InvalidAccountIdFormat,
+          InvalidBankIdFormat,
+          $BankNotFound,
+          $BankAccountNotFound,
+          $UserNoPermissionAccessView,
+          UnknownError
+        ),
+        List(apiTagCounterparty, apiTagAccount),
+        None,
+        http4sPartialFunction = Some(deleteExplicitCounterparty)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(deleteCounterpartyForAnyAccount), "DELETE",
+        null,
+        implementedInApiVersion,
+        nameOf(deleteCounterpartyForAnyAccount),
+        "DELETE",
         "/management/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties/COUNTERPARTY_ID",
         "Delete Counterparty for any account (Explicit)",
-        s"""Delete Counterparty for any account.
-           |
-           |${userAuthenticationMessage(true)}""",
-        EmptyBody, EmptyBody,
+        s"""This is a management endpoint that enables the deletion of any specified Counterparty along with any related Metadata of that Counterparty.
+        |
+        |For a general introduction to Counterparties in OBP, see ${Glossary
+         .getGlossaryItemLink("Counterparties")}
+        |
+        |${userAuthenticationMessage(true)}
+        |""".stripMargin,
+        EmptyBody,
+        EmptyBody,
         List($AuthenticatedUserIsRequired, $BankAccountNotFound, $BankNotFound,
-          InvalidAccountIdFormat, InvalidBankIdFormat, UserHasMissingRoles, UnknownError),
+        InvalidAccountIdFormat, InvalidBankIdFormat, UserHasMissingRoles, UnknownError),
         List(apiTagCounterparty, apiTagAccount),
         Some(List(canDeleteCounterparty, canDeleteCounterpartyAtAnyBank)),
-        http4sPartialFunction = Some(deleteCounterpartyForAnyAccount))
+        http4sPartialFunction = Some(deleteCounterpartyForAnyAccount)
+      )
 
       staticResourceDocs += ResourceDoc(
         null, implementedInApiVersion, "deleteTagForViewOnAccount", "DELETE",
         "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/metadata/tags/TAG_ID",
         "Delete a tag on account",
-        s"""Delete a tag on account.
-           |
-           |${userAuthenticationMessage(true)}""",
+        s"""Deletes the tag TAG_ID about the account ACCOUNT_ID made on [view](#1_2_1-getViewsForBankAccount).
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |Authentication is required as the tag is linked with the user.""",
         EmptyBody, EmptyBody,
         List(NoViewPermission, ViewNotFound, $AuthenticatedUserIsRequired,
           $BankNotFound, $BankAccountNotFound, $UserNoPermissionAccessView, UnknownError),
@@ -3187,9 +4257,10 @@ object Http4s400 {
         null, implementedInApiVersion, "getTagsForViewOnAccount", "GET",
         "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/metadata/tags",
         "Get tags on account",
-        s"""Get tags on account.
-           |
-           |${userAuthenticationMessage(true)}""",
+        s"""Returns the account ACCOUNT_ID tags made on a [view](#1_2_1-getViewsForBankAccount) (VIEW_ID).
+        |${userAuthenticationMessage(true)}
+        |
+        |Authentication is required as the tag is linked with the user.""",
         EmptyBody, accountTagsJSON,
         List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound,
           NoViewPermission, $UserNoPermissionAccessView, UnknownError),
@@ -3200,41 +4271,74 @@ object Http4s400 {
         null, implementedInApiVersion, "addTagForViewOnAccount", "POST",
         "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/metadata/tags",
         "Create a tag on account",
-        s"""Create a tag on account.
-           |
-           |${userAuthenticationMessage(true)}""",
-        code.api.v1_2_1.PostTransactionTagJSON("tag-value-example"),
+        s"""Posts a tag about an account ACCOUNT_ID on a [view](#1_2_1-getViewsForBankAccount) VIEW_ID.
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |Authentication is required as the tag is linked with the user.""",
+        postAccountTagJSON,
         accountTagJSON,
-        List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound,
-          InvalidJsonFormat, NoViewPermission, $UserNoPermissionAccessView, UnknownError),
+        List(
+          $AuthenticatedUserIsRequired,
+          $BankNotFound,
+          $BankAccountNotFound,
+          $UserNoPermissionAccessView,
+          InvalidJsonFormat,
+          NoViewPermission,
+          $UserNoPermissionAccessView,
+          UnknownError
+        ),
         List(apiTagAccountMetadata, apiTagAccount), None,
         http4sPartialFunction = Some(addTagForViewOnAccount))
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getDoubleEntryTransaction), "GET",
+        null,
+        implementedInApiVersion,
+        nameOf(getDoubleEntryTransaction),
+        "GET",
         "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/double-entry-transaction",
         "Get Double Entry Transaction",
-        s"""Get Double Entry Transaction.
-           |
-           |${userAuthenticationMessage(true)}""",
-        EmptyBody, doubleEntryTransactionJson,
+        s"""Get Double Entry Transaction
+        |
+        |This endpoint can be used to see the double entry transactions. It returns the `bank_id`, `account_id` and `transaction_id`
+        |for the debit end the credit transaction. The other side account can be a settlement account or an OBP account.
+        |
+        |The endpoint also provide the `transaction_request` object which contains the `bank_id`, `account_id` and
+        |`transaction_request_id` of the transaction request at the origin of the transaction. Please note that if none
+        |transaction request is at the origin of the transaction, the `transaction_request` object will be `null`.
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""",
+        EmptyBody,
+        doubleEntryTransactionJson,
         List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound,
-          $UserNoPermissionAccessView, InvalidJsonFormat, UnknownError),
+        $UserNoPermissionAccessView, InvalidJsonFormat, UnknownError),
         List(apiTagTransaction),
         Some(List(canGetDoubleEntryTransactionAtAnyBank, canGetDoubleEntryTransactionAtOneBank)),
-        http4sPartialFunction = Some(getDoubleEntryTransaction))
+        http4sPartialFunction = Some(getDoubleEntryTransaction)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getBalancingTransaction), "GET",
+        null,
+        implementedInApiVersion,
+        nameOf(getBalancingTransaction),
+        "GET",
         "/transactions/TRANSACTION_ID/balancing-transaction",
         "Get Balancing Transaction",
-        s"""Get Balancing Transaction.
-           |
-           |${userAuthenticationMessage(true)}""",
-        EmptyBody, doubleEntryTransactionJson,
+        s"""Get Balancing Transaction
+        |
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""",
+        EmptyBody,
+        doubleEntryTransactionJson,
         List($AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
-        List(apiTagTransaction), Some(List()),
-        http4sPartialFunction = Some(getBalancingTransaction))
+        List(apiTagTransaction),
+        Some(List()),
+        http4sPartialFunction = Some(getBalancingTransaction)
+      )
 
       staticResourceDocs += ResourceDoc(
         null, implementedInApiVersion, nameOf(getBankAccountBalancesForCurrentUser), "GET",
@@ -3247,63 +4351,137 @@ object Http4s400 {
         http4sPartialFunction = Some(getBankAccountBalancesForCurrentUser))
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getAccountByAccountRouting), "POST",
+        null,
+        implementedInApiVersion,
+        nameOf(getAccountByAccountRouting),
+        "POST",
         "/management/accounts/account-routing-query",
         "Get Account by Account Routing",
-        """Get Account by Account Routing.""",
-        bankAccountRoutingJson, moderatedAccountJSON400,
+        """This endpoint returns the account (if it exists) linked with the provided scheme and address.
+        |
+        |The `bank_id` field is optional, but if it's not provided, we don't guarantee that the returned account is unique across all the banks.
+        |
+        |Example of account routing scheme: `IBAN`, "OBP", "AccountNumber", ...
+        |Example of account routing address: `DE17500105178275645584`, "321774cc-fccd-11ea-adc1-0242ac120002", "55897106215", ...
+        |
+        |""".stripMargin,
+        bankAccountRoutingJson,
+        moderatedAccountJSON400,
         List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound,
-          $UserNoPermissionAccessView, UnknownError),
-        List(apiTagAccount), None,
-        http4sPartialFunction = Some(getAccountByAccountRouting))
+        $UserNoPermissionAccessView, UnknownError),
+        List(apiTagAccount),
+        None,
+        http4sPartialFunction = Some(getAccountByAccountRouting)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getAccountsByAccountRoutingRegex), "POST",
+        null,
+        implementedInApiVersion,
+        nameOf(getAccountsByAccountRoutingRegex),
+        "POST",
         "/management/accounts/account-routing-regex-query",
         "Get Accounts by Account Routing Regex",
-        """Get Accounts by Account Routing Regex.""",
-        bankAccountRoutingJson, moderatedAccountsJSON400,
+        """This endpoint returns an array of accounts matching the provided routing scheme and the routing address regex.
+        |
+        |The `bank_id` field is optional.
+        |
+        |Example of account routing scheme: `IBAN`, `OBP`, `AccountNumber`, ...
+        |Example of account routing address regex: `DE175.*`, `55897106215-[A-Z]{3}`, ...
+        |
+        |This endpoint can be used to retrieve multiples accounts matching a same account routing address pattern.
+        |For example, if you want to link multiple accounts having different currencies, you can create an account
+        |with `123456789-EUR` as Account Number and an other account with `123456789-USD` as Account Number.
+        |So we can identify the Account Number as `123456789`, so to get all the accounts with the same account number
+        |and the different currencies, we can use this body in the request :
+        |
+        |```
+        |{
+        |   "bank_id": "BANK_ID",
+        |   "account_routing": {
+        |       "scheme": "AccountNumber",
+        |       "address": "123456789-[A-Z]{3}"
+        |   }
+        |}
+        |```
+        |
+        |This request will returns the accounts matching the routing address regex (`123456789-EUR` and `123456789-USD`).
+        |
+        |""".stripMargin,
+        bankAccountRoutingJson,
+        moderatedAccountsJSON400,
         List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound,
-          $UserNoPermissionAccessView, UnknownError),
-        List(apiTagAccount), None,
-        http4sPartialFunction = Some(getAccountsByAccountRoutingRegex))
+        $UserNoPermissionAccessView, UnknownError),
+        List(apiTagAccount),
+        None,
+        http4sPartialFunction = Some(getAccountsByAccountRoutingRegex)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(lockUser), "POST",
+        null,
+        implementedInApiVersion,
+        nameOf(lockUser),
+        "POST",
         "/users/USERNAME/locks",
         "Lock the user",
-        s"""Lock a User.
-           |
-           |${userAuthenticationMessage(true)}""",
-        EmptyBody, userLockStatusJson,
+        s"""
+        |Lock a User.
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""".stripMargin,
+        EmptyBody,
+        userLockStatusJson,
         List($AuthenticatedUserIsRequired, UserNotFoundByProviderAndUsername,
-          UserHasMissingRoles, UnknownError),
+        UserHasMissingRoles, UnknownError),
         List(apiTagUser),
         Some(List(canLockUser)),
-        http4sPartialFunction = Some(lockUser))
+        http4sPartialFunction = Some(lockUser)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(resetPasswordUrl), "POST",
+        null,
+        implementedInApiVersion,
+        nameOf(resetPasswordUrl),
+        "POST",
         "/management/user/reset-password-url",
         "Create password reset url",
-        s"""Create password reset url.""",
-        PostResetPasswordUrlJsonV400("jobloggs", "jo@gmail.com", "74a8ebcc-10e4-4036-bef3-9835922246bf"),
-        ResetPasswordUrlJsonV400("https://apisandbox.openbankproject.com/user_mgt/reset_password/QOL1CPNJPCZ4BRMPX3Z01DPOX1HMGU3L"),
+        s"""Create password reset url.
+        |
+        |""",
+        PostResetPasswordUrlJsonV400(
+          "jobloggs",
+          "jo@gmail.com",
+          "74a8ebcc-10e4-4036-bef3-9835922246bf"
+        ),
+        ResetPasswordUrlJsonV400(
+          "https://apisandbox.openbankproject.com/user_mgt/reset_password/QOL1CPNJPCZ4BRMPX3Z01DPOX1HMGU3L"
+        ),
         List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
         List(apiTagUser),
         Some(List(canCreateResetPasswordUrl)),
-        http4sPartialFunction = Some(resetPasswordUrl))
+        http4sPartialFunction = Some(resetPasswordUrl)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getSettlementAccounts), "GET",
+        null,
+        implementedInApiVersion,
+        nameOf(getSettlementAccounts),
+        "GET",
         "/banks/BANK_ID/settlement-accounts",
         "Get Settlement accounts at Bank",
-        """Get Settlement accounts at Bank.""",
-        EmptyBody, settlementAccountsJson,
+        """Get settlement accounts on this API instance
+        |Returns a list of settlement accounts at this Bank
+        |
+        |Note: a settlement account is considered as a bank account.
+        |So you can update it and add account attributes to it using the regular account endpoints
+        |""",
+        EmptyBody,
+        settlementAccountsJson,
         List($AuthenticatedUserIsRequired, UserHasMissingRoles, $BankNotFound, UnknownError),
         List(apiTagBank, apiTagPsd2),
         Some(List(canGetSettlementAccountAtOneBank)),
-        http4sPartialFunction = Some(getSettlementAccounts))
+        http4sPartialFunction = Some(getSettlementAccounts)
+      )
     }
     initBatch9ResourceDocs()
 
@@ -3556,162 +4734,283 @@ object Http4s400 {
 
     private def initBatch10ResourceDocs(): Unit = {
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(createBankAttribute), "POST",
+        null,
+        implementedInApiVersion,
+        nameOf(createBankAttribute),
+        "POST",
         "/banks/BANK_ID/attribute",
         "Create Bank Attribute",
-        s"""Create Bank Attribute.
-           |
-           |${userAuthenticationMessage(true)}""",
-        bankAttributeJsonV400, bankAttributeResponseJsonV400,
+        s""" Create Bank Attribute
+        |
+        |Typical product attributes might be:
+        |
+        |ISIN (for International bonds)
+        |VKN (for German bonds)
+        |REDCODE (markit short code for credit derivative)
+        |LOAN_ID (e.g. used for Anacredit reporting)
+        |
+        |ISSUE_DATE (When the bond was issued in the market)
+        |MATURITY_DATE (End of life time of a product)
+        |TRADABLE
+        |
+        |See [FPML](http://www.fpml.org/) for more examples.
+        |
+        |
+        |The type field must be one of "STRING", "INTEGER", "DOUBLE" or DATE_WITH_DAY"
+        |
+        |
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""",
+        bankAttributeJsonV400,
+        bankAttributeResponseJsonV400,
         List(InvalidJsonFormat, UnknownError),
         List(apiTagBank, apiTagBankAttribute, apiTagAttribute),
         Some(List(canCreateBankAttribute)),
-        http4sPartialFunction = Some(createBankAttribute))
+        http4sPartialFunction = Some(createBankAttribute)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(updateBankAttribute), "PUT",
+        null,
+        implementedInApiVersion,
+        nameOf(updateBankAttribute),
+        "PUT",
         "/banks/BANK_ID/attributes/BANK_ATTRIBUTE_ID",
         "Update Bank Attribute",
-        s"""Update Bank Attribute.
-           |
-           |${userAuthenticationMessage(true)}""",
-        bankAttributeJsonV400, bankAttributeDefinitionJsonV400,
+        s""" Update Bank Attribute.
+        |
+        |Update one Bak Attribute by its id.
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""",
+        bankAttributeJsonV400,
+        bankAttributeDefinitionJsonV400,
         List(UserHasMissingRoles, UnknownError),
         List(apiTagBank, apiTagBankAttribute, apiTagAttribute),
         Some(List(canUpdateBankAttribute)),
-        http4sPartialFunction = Some(updateBankAttribute))
+        http4sPartialFunction = Some(updateBankAttribute)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(createCustomerAttribute), "POST",
+        null,
+        implementedInApiVersion,
+        nameOf(createCustomerAttribute),
+        "POST",
         "/banks/BANK_ID/customers/CUSTOMER_ID/attribute",
         "Create Customer Attribute",
-        s"""Create Customer Attribute.
-           |
-           |${userAuthenticationMessage(true)}""",
-        customerAttributeJsonV400, customerAttributeResponseJson,
+        s""" Create Customer Attribute
+        |
+        |
+        |The type field must be one of "STRING", "INTEGER", "DOUBLE" or DATE_WITH_DAY"
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""",
+        customerAttributeJsonV400,
+        customerAttributeResponseJson,
         List($AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat, UnknownError),
         List(apiTagCustomer, apiTagCustomerAttribute, apiTagAttribute),
         Some(List(canCreateCustomerAttributeAtOneBank, canCreateCustomerAttributeAtAnyBank)),
-        http4sPartialFunction = Some(createCustomerAttribute))
+        http4sPartialFunction = Some(createCustomerAttribute)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(updateCustomerAttribute), "PUT",
+        null,
+        implementedInApiVersion,
+        nameOf(updateCustomerAttribute),
+        "PUT",
         "/banks/BANK_ID/customers/CUSTOMER_ID/attributes/CUSTOMER_ATTRIBUTE_ID",
         "Update Customer Attribute",
-        s"""Update Customer Attribute.
-           |
-           |${userAuthenticationMessage(true)}""",
-        customerAttributeJsonV400, customerAttributeResponseJson,
+        s""" Update Customer Attribute
+        |
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""",
+        customerAttributeJsonV400,
+        customerAttributeResponseJson,
         List($AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat, UnknownError),
         List(apiTagCustomer, apiTagCustomerAttribute, apiTagAttribute),
         Some(List(canUpdateCustomerAttributeAtOneBank, canUpdateCustomerAttributeAtAnyBank)),
-        http4sPartialFunction = Some(updateCustomerAttribute))
+        http4sPartialFunction = Some(updateCustomerAttribute)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(createTransactionAttribute), "POST",
+        null,
+        implementedInApiVersion,
+        nameOf(createTransactionAttribute),
+        "POST",
         "/banks/BANK_ID/accounts/ACCOUNT_ID/transactions/TRANSACTION_ID/attribute",
         "Create Transaction Attribute",
-        s"""Create Transaction Attribute.
-           |
-           |${userAuthenticationMessage(true)}""",
-        transactionAttributeJsonV400, transactionAttributeResponseJson,
+        s""" Create Transaction Attribute
+        |
+        |The type field must be one of "STRING", "INTEGER", "DOUBLE" or DATE_WITH_DAY"
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""",
+        transactionAttributeJsonV400,
+        transactionAttributeResponseJson,
         List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound,
-          InvalidJsonFormat, UnknownError),
+        InvalidJsonFormat, UnknownError),
         List(apiTagTransaction, apiTagTransactionAttribute, apiTagAttribute),
         Some(List(canCreateTransactionAttributeAtOneBank)),
-        http4sPartialFunction = Some(createTransactionAttribute))
+        http4sPartialFunction = Some(createTransactionAttribute)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(updateTransactionAttribute), "PUT",
+        null,
+        implementedInApiVersion,
+        nameOf(updateTransactionAttribute),
+        "PUT",
         "/banks/BANK_ID/accounts/ACCOUNT_ID/transactions/TRANSACTION_ID/attributes/ACCOUNT_ATTRIBUTE_ID",
         "Update Transaction Attribute",
-        s"""Update Transaction Attribute.
-           |
-           |${userAuthenticationMessage(true)}""",
-        transactionAttributeJsonV400, transactionAttributeResponseJson,
+        s""" Update Transaction Attribute
+        |
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""",
+        transactionAttributeJsonV400,
+        transactionAttributeResponseJson,
         List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound,
-          InvalidJsonFormat, UnknownError),
+        InvalidJsonFormat, UnknownError),
         List(apiTagTransaction, apiTagTransactionAttribute, apiTagAttribute),
         Some(List(canUpdateTransactionAttributeAtOneBank)),
-        http4sPartialFunction = Some(updateTransactionAttribute))
+        http4sPartialFunction = Some(updateTransactionAttribute)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(createTransactionRequestAttribute), "POST",
+        null,
+        implementedInApiVersion,
+        nameOf(createTransactionRequestAttribute),
+        "POST",
         "/banks/BANK_ID/accounts/ACCOUNT_ID/transaction-requests/TRANSACTION_REQUEST_ID/attribute",
         "Create Transaction Request Attribute",
-        s"""Create Transaction Request Attribute.
-           |
-           |${userAuthenticationMessage(true)}""",
-        transactionRequestAttributeJsonV400, transactionRequestAttributeResponseJson,
+        s""" Create Transaction Request Attribute
+        |
+        |The type field must be one of "STRING", "INTEGER", "DOUBLE" or DATE_WITH_DAY"
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""",
+        transactionRequestAttributeJsonV400,
+        transactionRequestAttributeResponseJson,
         List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound,
-          InvalidJsonFormat, UnknownError),
+        InvalidJsonFormat, UnknownError),
         List(apiTagTransactionRequest, apiTagTransactionRequestAttribute, apiTagAttribute),
         Some(List(canCreateTransactionRequestAttributeAtOneBank)),
-        http4sPartialFunction = Some(createTransactionRequestAttribute))
+        http4sPartialFunction = Some(createTransactionRequestAttribute)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(updateTransactionRequestAttribute), "PUT",
+        null,
+        implementedInApiVersion,
+        nameOf(updateTransactionRequestAttribute),
+        "PUT",
         "/banks/BANK_ID/accounts/ACCOUNT_ID/transaction-requests/TRANSACTION_REQUEST_ID/attributes/ATTRIBUTE_ID",
         "Update Transaction Request Attribute",
-        s"""Update Transaction Request Attribute.
-           |
-           |${userAuthenticationMessage(true)}""",
-        transactionRequestAttributeJsonV400, transactionRequestAttributeResponseJson,
+        s""" Update Transaction Request Attribute
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""",
+        transactionRequestAttributeJsonV400,
+        transactionRequestAttributeResponseJson,
         List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound,
-          InvalidJsonFormat, UnknownError),
+        InvalidJsonFormat, UnknownError),
         List(apiTagTransactionRequest, apiTagTransactionRequestAttribute, apiTagAttribute),
         Some(List(canUpdateTransactionRequestAttributeAtOneBank)),
-        http4sPartialFunction = Some(updateTransactionRequestAttribute))
+        http4sPartialFunction = Some(updateTransactionRequestAttribute)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(createProductFee), "POST",
+        null,
+        implementedInApiVersion,
+        nameOf(createProductFee),
+        "POST",
         "/banks/BANK_ID/products/PRODUCT_CODE/fee",
         "Create Product Fee",
-        s"""Create Product Fee.
-           |
-           |${userAuthenticationMessage(true)}""",
-        productFeeJsonV400.copy(product_fee_id = None), productFeeResponseJsonV400,
+        s"""Create Product Fee
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""",
+        productFeeJsonV400.copy(product_fee_id = None),
+        productFeeResponseJsonV400,
         List($AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat, UnknownError),
         List(apiTagProduct),
         Some(List(canCreateProductFee)),
-        http4sPartialFunction = Some(createProductFee))
+        http4sPartialFunction = Some(createProductFee)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(updateProductFee), "PUT",
+        null,
+        implementedInApiVersion,
+        nameOf(updateProductFee),
+        "PUT",
         "/banks/BANK_ID/products/PRODUCT_CODE/fees/PRODUCT_FEE_ID",
         "Update Product Fee",
-        s"""Update Product Fee.
-           |
-           |${userAuthenticationMessage(true)}""",
-        productFeeJsonV400.copy(product_fee_id = None), productFeeResponseJsonV400,
+        s""" Update Product Fee.
+        |
+        |Update one Product Fee by its id.
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""",
+        productFeeJsonV400.copy(product_fee_id = None),
+        productFeeResponseJsonV400,
         List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
         List(apiTagProduct),
         Some(List(canUpdateProductFee)),
-        http4sPartialFunction = Some(updateProductFee))
+        http4sPartialFunction = Some(updateProductFee)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(createMyPersonalUserAttribute), "POST",
+        null,
+        implementedInApiVersion,
+        nameOf(createMyPersonalUserAttribute),
+        "POST",
         "/my/user/attributes",
         "Create My Personal User Attribute",
-        s"""Create My Personal User Attribute.
-           |
-           |${userAuthenticationMessage(true)}""",
-        userAttributeJsonV400, userAttributeResponseJson,
+        s""" Create My Personal User Attribute
+        |
+        |The `type` field must be one of "STRING", "INTEGER", "DOUBLE" or DATE_WITH_DAY"
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""",
+        userAttributeJsonV400,
+        userAttributeResponseJson,
         List($AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
-        List(apiTagUser), Some(List()),
-        http4sPartialFunction = Some(createMyPersonalUserAttribute))
+        List(apiTagUser),
+        Some(List()),
+        http4sPartialFunction = Some(createMyPersonalUserAttribute)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(updateMyPersonalUserAttribute), "PUT",
+        null,
+        implementedInApiVersion,
+        nameOf(updateMyPersonalUserAttribute),
+        "PUT",
         "/my/user/attributes/USER_ATTRIBUTE_ID",
         "Update My Personal User Attribute",
-        s"""Update My Personal User Attribute.
-           |
-           |${userAuthenticationMessage(true)}""",
-        userAttributeJsonV400, userAttributeResponseJson,
+        s"""Update My Personal User Attribute for current user by USER_ATTRIBUTE_ID
+        |
+        |The type field must be one of "STRING", "INTEGER", "DOUBLE" or DATE_WITH_DAY"
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""",
+        userAttributeJsonV400,
+        userAttributeResponseJson,
         List($AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
-        List(apiTagUser), Some(List()),
-        http4sPartialFunction = Some(updateMyPersonalUserAttribute))
+        List(apiTagUser),
+        Some(List()),
+        http4sPartialFunction = Some(updateMyPersonalUserAttribute)
+      )
     }
     initBatch10ResourceDocs()
 
@@ -3926,22 +5225,41 @@ object Http4s400 {
 
     private def initBatch11ResourceDocs(): Unit = {
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getUserInvitationAnonymous), "POST",
+        null,
+        implementedInApiVersion,
+        nameOf(getUserInvitationAnonymous),
+        "POST",
         "/banks/BANK_ID/user-invitations",
-        "Get User Invitation (Anonymous)",
-        s"""Get User Invitation.""",
-        PostUserInvitationAnonymousJsonV400(1L), userInvitationJsonV400,
-        List($BankNotFound, InvalidJsonFormat, UnknownError),
-        List(apiTagUserInvitation), None,
-        http4sPartialFunction = Some(getUserInvitationAnonymous))
+        "Get User Invitation Information",
+        s"""Get User Invitation Information.
+        |
+        |${userAuthenticationMessage(false)}
+        |""",
+        PostUserInvitationAnonymousJsonV400(secret_key = 5819479115482092878L),
+        userInvitationJsonV400,
+        List(
+          $BankNotFound,
+          UserCustomerLinksNotFoundForUser,
+          CannotGetUserInvitation,
+          CannotFindUserInvitation,
+          UnknownError
+        ),
+        List(apiTagUserInvitation, apiTagKyc),
+        None,
+        http4sPartialFunction = Some(getUserInvitationAnonymous)
+      )
 
       staticResourceDocs += ResourceDoc(
         null, implementedInApiVersion, "grantUserAccessToView", "POST",
         "/banks/BANK_ID/accounts/ACCOUNT_ID/account-access/grant",
         "Grant User access to View",
-        s"""Grant User access to View.
-           |
-           |${userAuthenticationMessage(true)} and the user needs to be account holder.""",
+        s"""Grants the User identified by USER_ID access to the view identified by VIEW_ID.
+         |
+         |${userAuthenticationMessage(
+          true
+        )} and the user needs to be account holder.
+         |
+         |""",
         postAccountAccessJsonV400, viewJsonV300,
         List($AuthenticatedUserIsRequired,
           UserLacksPermissionCanGrantAccessToViewForTargetAccount,
@@ -3954,9 +5272,13 @@ object Http4s400 {
         null, implementedInApiVersion, "revokeUserAccessToView", "POST",
         "/banks/BANK_ID/accounts/ACCOUNT_ID/account-access/revoke",
         "Revoke User access to View",
-        s"""Revoke User access to View.
-           |
-           |${userAuthenticationMessage(true)} and the user needs to be account holder.""",
+        s"""Revoke the User identified by USER_ID access to the view identified by VIEW_ID.
+         |
+         |${userAuthenticationMessage(
+          true
+        )} and the user needs to be account holder.
+         |
+         |""",
         postAccountAccessJsonV400, revokedJsonV400,
         List($AuthenticatedUserIsRequired,
           UserLacksPermissionCanRevokeAccessToViewForTargetAccount,
@@ -3969,9 +5291,13 @@ object Http4s400 {
         null, implementedInApiVersion, "revokeGrantUserAccessToViews", "PUT",
         "/banks/BANK_ID/accounts/ACCOUNT_ID/account-access",
         "Revoke/Grant User access to View",
-        s"""Revoke/Grant User access to View.
-           |
-           |${userAuthenticationMessage(true)} and the user needs to be an account holder or has owner view access.""",
+        s"""Revoke/Grant the logged in User access to the views identified by json.
+         |
+         |${userAuthenticationMessage(
+          true
+        )} and the user needs to be an account holder or has owner view access.
+         |
+         |""",
         postRevokeGrantAccountAccessJsonV400, revokedJsonV400,
         List($AuthenticatedUserIsRequired,
           UserLacksPermissionCanGrantAccessToViewForTargetAccount,
@@ -3981,69 +5307,139 @@ object Http4s400 {
         http4sPartialFunction = Some(revokeGrantUserAccessToViews))
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(createMyApiCollection), "POST",
+        null,
+        implementedInApiVersion,
+        nameOf(createMyApiCollection),
+        "POST",
         "/my/api-collections",
         "Create My Api Collection",
-        s"""Create My Api Collection.
-           |
-           |${userAuthenticationMessage(true)}""",
-        postApiCollectionJson400, apiCollectionJson400,
+        s"""Create Api Collection for logged in user.
+        |
+        |${userAuthenticationMessage(true)}
+        |""".stripMargin,
+        postApiCollectionJson400,
+        apiCollectionJson400,
         List($AuthenticatedUserIsRequired, InvalidJsonFormat, UserNotFoundByUserId, UnknownError),
-        List(apiTagApiCollection), None,
-        http4sPartialFunction = Some(createMyApiCollection))
+        List(apiTagApiCollection),
+        None,
+        http4sPartialFunction = Some(createMyApiCollection)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(createMyApiCollectionEndpoint), "POST",
+        null,
+        implementedInApiVersion,
+        nameOf(createMyApiCollectionEndpoint),
+        "POST",
         "/my/api-collections/API_COLLECTION_NAME/api-collection-endpoints",
         "Create My Api Collection Endpoint",
-        s"""Create My Api Collection Endpoint.
-           |
-           |${userAuthenticationMessage(true)}""",
-        postApiCollectionEndpointJson400, apiCollectionEndpointJson400,
+        s"""Create Api Collection Endpoint.
+        |
+        |${Glossary.getGlossaryItem("API Collections")}
+        |
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""".stripMargin,
+        postApiCollectionEndpointJson400,
+        apiCollectionEndpointJson400,
         List($AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
-        List(apiTagApiCollection), None,
-        http4sPartialFunction = Some(createMyApiCollectionEndpoint))
+        List(apiTagApiCollection),
+        None,
+        http4sPartialFunction = Some(createMyApiCollectionEndpoint)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(createMyApiCollectionEndpointById), "POST",
+        null,
+        implementedInApiVersion,
+        nameOf(createMyApiCollectionEndpointById),
+        "POST",
         "/my/api-collection-ids/API_COLLECTION_ID/api-collection-endpoints",
         "Create My Api Collection Endpoint By Id",
-        s"""Create My Api Collection Endpoint By Id.
-           |
-           |${userAuthenticationMessage(true)}""",
-        postApiCollectionEndpointJson400, apiCollectionEndpointJson400,
+        s"""Create Api Collection Endpoint By Id.
+        |
+        |${Glossary.getGlossaryItem("API Collections")}
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""".stripMargin,
+        postApiCollectionEndpointJson400,
+        apiCollectionEndpointJson400,
         List($AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
-        List(apiTagApiCollection), None,
-        http4sPartialFunction = Some(createMyApiCollectionEndpointById))
+        List(apiTagApiCollection),
+        None,
+        http4sPartialFunction = Some(createMyApiCollectionEndpointById)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(updateConsentStatus), "PUT",
+        null,
+        implementedInApiVersion,
+        nameOf(updateConsentStatus),
+        "PUT",
         "/banks/BANK_ID/consents/CONSENT_ID",
         "Update Consent Status",
-        s"""Update Consent Status.
-           |
-           |${userAuthenticationMessage(true)}""",
+        s"""
+        |
+        |
+        |This endpoint is used to update the Status of Consent.
+        |
+        |Each Consent has one of the following states: ${ConsentStatus.values.toList.sorted
+         .mkString(", ")}.
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""",
         PutConsentStatusJsonV400(status = "AUTHORISED"),
-        code.api.v3_1_0.ConsentChallengeJsonV310(
-          "9d429899-24f5-42c8-8565-943ffa6a7945", "...", "AUTHORISED"),
+        ConsentChallengeJsonV310(
+          consent_id = "9d429899-24f5-42c8-8565-943ffa6a7945",
+          jwt =
+            "eyJhbGciOiJIUzI1NiJ9.eyJlbnRpdGxlbWVudHMiOltdLCJjcmVhdGVkQnlVc2VySWQiOiJhYjY1MzlhOS1iMTA1LTQ0ODktYTg4My0wYWQ4ZDZjNjE2NTciLCJzdWIiOiIyMWUxYzhjYy1mOTE4LTRlYWMtYjhlMy01ZTVlZWM2YjNiNGIiLCJhdWQiOiJlanpuazUwNWQxMzJyeW9tbmhieDFxbXRvaHVyYnNiYjBraWphanNrIiwibmJmIjoxNTUzNTU0ODk5LCJpc3MiOiJodHRwczpcL1wvd3d3Lm9wZW5iYW5rcHJvamVjdC5jb20iLCJleHAiOjE1NTM1NTg0OTksImlhdCI6MTU1MzU1NDg5OSwianRpIjoiMDlmODhkNWYtZWNlNi00Mzk4LThlOTktNjYxMWZhMWNkYmQ1Iiwidmlld3MiOlt7ImFjY291bnRfaWQiOiJtYXJrb19wcml2aXRlXzAxIiwiYmFua19pZCI6ImdoLjI5LnVrLngiLCJ2aWV3X2lkIjoib3duZXIifSx7ImFjY291bnRfaWQiOiJtYXJrb19wcml2aXRlXzAyIiwiYmFua19pZCI6ImdoLjI5LnVrLngiLCJ2aWV3X2lkIjoib3duZXIifV19.8cc7cBEf2NyQvJoukBCmDLT7LXYcuzTcSYLqSpbxLp4",
+          status = "AUTHORISED"
+        ),
         List($AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat,
-          InvalidConnectorResponse, UnknownError),
-        apiTagConsent :: apiTagPSD2AIS :: Nil, None,
-        http4sPartialFunction = Some(updateConsentStatus))
+        InvalidConnectorResponse, UnknownError),
+        apiTagConsent :: apiTagPSD2AIS :: Nil,
+        None,
+        http4sPartialFunction = Some(updateConsentStatus)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(addConsentUser), "PUT",
+        null,
+        implementedInApiVersion,
+        nameOf(addConsentUser),
+        "PUT",
         "/banks/BANK_ID/consents/CONSENT_ID/user-update-request",
         "Add User to a Consent",
-        s"""Add User to a Consent.
-           |
-           |${userAuthenticationMessage(true)}""",
-        PutConsentUserJsonV400("uuid-user"),
-        code.api.v3_1_0.ConsentJsonV310("9d429899-24f5-42c8-8565-943ffa6a7945", "...", "AUTHORISED"),
-        List($AuthenticatedUserIsRequired, $BankNotFound, UserNotFoundByUserId,
-          ConsentUserAlreadyAdded, InvalidJsonFormat, ConsentNotFound, UnknownError),
-        apiTagConsent :: apiTagPSD2AIS :: Nil, None,
-        http4sPartialFunction = Some(addConsentUser))
+        s"""
+        |
+        |
+        |This endpoint is used to add the User of Consent.
+        |
+        |Each Consent has one of the following states: ${ConsentStatus.values.toList.sorted
+         .mkString(", ")}.
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""",
+        PutConsentUserJsonV400(user_id = "ed7a7c01-db37-45cc-ba12-0ae8891c195c"),
+        ConsentChallengeJsonV310(
+          consent_id = "9d429899-24f5-42c8-8565-943ffa6a7945",
+          jwt =
+            "eyJhbGciOiJIUzI1NiJ9.eyJlbnRpdGxlbWVudHMiOltdLCJjcmVhdGVkQnlVc2VySWQiOiJhYjY1MzlhOS1iMTA1LTQ0ODktYTg4My0wYWQ4ZDZjNjE2NTciLCJzdWIiOiIyMWUxYzhjYy1mOTE4LTRlYWMtYjhlMy01ZTVlZWM2YjNiNGIiLCJhdWQiOiJlanpuazUwNWQxMzJyeW9tbmhieDFxbXRvaHVyYnNiYjBraWphanNrIiwibmJmIjoxNTUzNTU0ODk5LCJpc3MiOiJodHRwczpcL1wvd3d3Lm9wZW5iYW5rcHJvamVjdC5jb20iLCJleHAiOjE1NTM1NTg0OTksImlhdCI6MTU1MzU1NDg5OSwianRpIjoiMDlmODhkNWYtZWNlNi00Mzk4LThlOTktNjYxMWZhMWNkYmQ1Iiwidmlld3MiOlt7ImFjY291bnRfaWQiOiJtYXJrb19wcml2aXRlXzAxIiwiYmFua19pZCI6ImdoLjI5LnVrLngiLCJ2aWV3X2lkIjoib3duZXIifSx7ImFjY291bnRfaWQiOiJtYXJrb19wcml2aXRlXzAyIiwiYmFua19pZCI6ImdoLjI5LnVrLngiLCJ2aWV3X2lkIjoib3duZXIifV19.8cc7cBEf2NyQvJoukBCmDLT7LXYcuzTcSYLqSpbxLp4",
+          status = "AUTHORISED"
+        ),
+        List(
+          $AuthenticatedUserIsRequired,
+          UserNotFoundByUserId,
+          $BankNotFound,
+          ConsentUserAlreadyAdded,
+          InvalidJsonFormat,
+          ConsentNotFound,
+          UnknownError
+        ),
+        apiTagConsent :: apiTagPSD2AIS :: Nil,
+        None,
+        http4sPartialFunction = Some(addConsentUser)
+      )
     }
     initBatch11ResourceDocs()
 
@@ -4217,87 +5613,180 @@ object Http4s400 {
 
     private def initBatch12ResourceDocs(): Unit = {
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(createDirectDebit), "POST",
+        null,
+        implementedInApiVersion,
+        nameOf(createDirectDebit),
+        "POST",
         "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/direct-debit",
         "Create Direct Debit",
-        s"""Create direct debit for an account.""",
-        postDirectDebitJsonV400, directDebitJsonV400,
-        List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound,
-          NoViewPermission, InvalidJsonFormat, CustomerNotFoundByCustomerId,
-          UserNotFoundByUserId, CounterpartyNotFoundByCounterpartyId, UnknownError),
-        List(apiTagDirectDebit, apiTagAccount), None,
-        http4sPartialFunction = Some(createDirectDebit))
+        s"""Create direct debit for an account.
+        |
+        |""",
+        postDirectDebitJsonV400,
+        directDebitJsonV400,
+        List(
+          $AuthenticatedUserIsRequired,
+          $BankNotFound,
+          $BankAccountNotFound,
+          NoViewPermission,
+          $UserNoPermissionAccessView,
+          InvalidJsonFormat,
+          CustomerNotFoundByCustomerId,
+          UserNotFoundByUserId,
+          CounterpartyNotFoundByCounterpartyId,
+          UnknownError
+        ),
+        List(apiTagDirectDebit, apiTagAccount),
+        None,
+        http4sPartialFunction = Some(createDirectDebit)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(createDirectDebitManagement), "POST",
+        null,
+        implementedInApiVersion,
+        nameOf(createDirectDebitManagement),
+        "POST",
         "/management/banks/BANK_ID/accounts/ACCOUNT_ID/direct-debit",
         "Create Direct Debit (management)",
-        s"""Create direct debit for an account.""",
-        postDirectDebitJsonV400, directDebitJsonV400,
+        s"""Create direct debit for an account.
+        |
+        |""",
+        postDirectDebitJsonV400,
+        directDebitJsonV400,
         List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound,
-          NoViewPermission, InvalidJsonFormat, CustomerNotFoundByCustomerId,
-          UserNotFoundByUserId, CounterpartyNotFoundByCounterpartyId, UnknownError),
+        NoViewPermission, InvalidJsonFormat, CustomerNotFoundByCustomerId,
+        UserNotFoundByUserId, CounterpartyNotFoundByCounterpartyId, UnknownError),
         List(apiTagDirectDebit, apiTagAccount),
         Some(List(canCreateDirectDebitAtOneBank)),
-        http4sPartialFunction = Some(createDirectDebitManagement))
+        http4sPartialFunction = Some(createDirectDebitManagement)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(createStandingOrder), "POST",
+        null,
+        implementedInApiVersion,
+        nameOf(createStandingOrder),
+        "POST",
         "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/standing-order",
         "Create Standing Order",
-        s"""Create standing order for an account.""",
-        postStandingOrderJsonV400, standingOrderJsonV400,
-        List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound,
-          NoViewPermission, InvalidJsonFormat, InvalidNumber, InvalidISOCurrencyCode,
-          CustomerNotFoundByCustomerId, UserNotFoundByUserId, UnknownError),
-        List(apiTagStandingOrder, apiTagAccount), None,
-        http4sPartialFunction = Some(createStandingOrder))
+        s"""Create standing order for an account.
+        |
+        |when -> frequency = {‘YEARLY’,’MONTHLY, ‘WEEKLY’, ‘BI-WEEKLY’, DAILY’}
+        |when -> detail = { ‘FIRST_MONDAY’, ‘FIRST_DAY’, ‘LAST_DAY’}}
+        |
+        |""",
+        postStandingOrderJsonV400,
+        standingOrderJsonV400,
+        List(
+          $AuthenticatedUserIsRequired,
+          $BankNotFound,
+          $BankAccountNotFound,
+          NoViewPermission,
+          InvalidJsonFormat,
+          InvalidNumber,
+          InvalidISOCurrencyCode,
+          CustomerNotFoundByCustomerId,
+          UserNotFoundByUserId,
+          $UserNoPermissionAccessView,
+          UnknownError
+        ),
+        List(apiTagStandingOrder, apiTagAccount),
+        None,
+        http4sPartialFunction = Some(createStandingOrder)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(createStandingOrderManagement), "POST",
+        null,
+        implementedInApiVersion,
+        nameOf(createStandingOrderManagement),
+        "POST",
         "/management/banks/BANK_ID/accounts/ACCOUNT_ID/standing-order",
         "Create Standing Order (management)",
-        s"""Create standing order for an account.""",
-        postStandingOrderJsonV400, standingOrderJsonV400,
+        s"""Create standing order for an account.
+        |
+        |when -> frequency = {‘YEARLY’,’MONTHLY, ‘WEEKLY’, ‘BI-WEEKLY’, DAILY’}
+        |when -> detail = { ‘FIRST_MONDAY’, ‘FIRST_DAY’, ‘LAST_DAY’}}
+        |
+        |
+        |""",
+        postStandingOrderJsonV400,
+        standingOrderJsonV400,
         List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound,
-          NoViewPermission, InvalidJsonFormat, InvalidNumber, InvalidISOCurrencyCode,
-          CustomerNotFoundByCustomerId, UserNotFoundByUserId, UnknownError),
+        NoViewPermission, InvalidJsonFormat, InvalidNumber, InvalidISOCurrencyCode,
+        CustomerNotFoundByCustomerId, UserNotFoundByUserId, UnknownError),
         List(apiTagStandingOrder, apiTagAccount),
         Some(List(canCreateStandingOrderAtOneBank)),
-        http4sPartialFunction = Some(createStandingOrderManagement))
+        http4sPartialFunction = Some(createStandingOrderManagement)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(createSystemAccountNotificationWebhook), "POST",
+        null,
+        implementedInApiVersion,
+        nameOf(createSystemAccountNotificationWebhook),
+        "POST",
         "/web-hooks/account/notifications/on-create-transaction",
-        "Create System Level Account Notification Webhook",
-        s"""Create System Level Account Notification Webhook.""",
-        accountNotificationWebhookPostJson, systemAccountNotificationWebhookJson,
+        "Create system level Account Notification Webhook",
+        s"""
+        |Create a notification Webhook that will fire for all accounts on the system.
+        |
+        |$generalWebHookInfo
+        |
+        |$accountNotificationWebhookInfo
+        |
+        |""",
+        accountNotificationWebhookPostJson,
+        systemAccountNotificationWebhookJson,
         List(UnknownError),
         apiTagWebhook :: apiTagBank :: Nil,
         Some(List(canCreateSystemAccountNotificationWebhook)),
-        http4sPartialFunction = Some(createSystemAccountNotificationWebhook))
+        http4sPartialFunction = Some(createSystemAccountNotificationWebhook)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(createBankAccountNotificationWebhook), "POST",
+        null,
+        implementedInApiVersion,
+        nameOf(createBankAccountNotificationWebhook),
+        "POST",
         "/banks/BANK_ID/web-hooks/account/notifications/on-create-transaction",
         "Create bank level Account Notification Webhook",
-        s"""Create bank level Account Notification Webhook.""",
-        accountNotificationWebhookPostJson, bankAccountNotificationWebhookJson,
+        s"""Create a notification Webhook that will fire for all accounts on the specified Bank.
+        |
+        |$generalWebHookInfo
+        |
+        |$accountNotificationWebhookInfo
+        |
+        |""",
+        accountNotificationWebhookPostJson,
+        bankAccountNotificationWebhookJson,
         List(AuthenticatedUserIsRequired, $BankNotFound, UnknownError),
         apiTagWebhook :: apiTagBank :: Nil,
         Some(List(canCreateAccountNotificationWebhookAtOneBank)),
-        http4sPartialFunction = Some(createBankAccountNotificationWebhook))
+        http4sPartialFunction = Some(createBankAccountNotificationWebhook)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getFastFirehoseAccountsAtOneBank), "GET",
+        null,
+        implementedInApiVersion,
+        nameOf(getFastFirehoseAccountsAtOneBank),
+        "GET",
         "/management/banks/BANK_ID/fast-firehose/accounts",
         "Get Fast Firehose Accounts at Bank",
-        s"""Get Fast Firehose Accounts at Bank.""",
-        EmptyBody, fastFirehoseAccountsJsonV400,
+        s"""
+        |
+        |This endpoint allows bulk access to accounts.
+        |
+        |optional pagination parameters for filter with accounts
+        |${urlParametersDocument(true, false)}
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""".stripMargin,
+        EmptyBody,
+        fastFirehoseAccountsJsonV400,
         List($BankNotFound),
         List(apiTagAccount, apiTagAccountFirehose, apiTagFirehoseData),
         Some(List(canUseAccountFirehoseAtAnyBank, code.api.util.ApiRole.canUseAccountFirehose)),
-        http4sPartialFunction = Some(getFastFirehoseAccountsAtOneBank))
+        http4sPartialFunction = Some(getFastFirehoseAccountsAtOneBank)
+      )
     }
     initBatch12ResourceDocs()
 
@@ -4389,81 +5878,172 @@ object Http4s400 {
 
     private def initBatch7ResourceDocs(): Unit = {
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(createOrUpdateCustomerAttributeAttributeDefinition), "PUT",
+        null,
+        implementedInApiVersion,
+        nameOf(createOrUpdateCustomerAttributeAttributeDefinition),
+        "PUT",
         "/banks/BANK_ID/attribute-definitions/customer",
         "Create or Update Customer Attribute Definition",
-        s"""Create or Update Customer Attribute Definition.""".stripMargin,
-        customerAttributeDefinitionJsonV400, customerAttributeDefinitionResponseJsonV400,
+        s""" Create or Update Customer Attribute Definition
+        |
+        |The category field must be one of: ${AttributeCategory.Customer}
+        |
+        |The type field must be one of; ${AttributeType.DOUBLE}, ${AttributeType.STRING}, ${AttributeType.INTEGER} and ${AttributeType.DATE_WITH_DAY}
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""",
+        templateAttributeDefinitionJsonV400,
+        templateAttributeDefinitionResponseJsonV400,
         List($AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat, UnknownError),
         List(apiTagCustomer, apiTagCustomerAttribute, apiTagAttribute),
         Some(List(canCreateCustomerAttributeDefinitionAtOneBank)),
-        http4sPartialFunction = Some(createOrUpdateCustomerAttributeAttributeDefinition))
+        http4sPartialFunction = Some(createOrUpdateCustomerAttributeAttributeDefinition)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(createOrUpdateAccountAttributeDefinition), "PUT",
+        null,
+        implementedInApiVersion,
+        nameOf(createOrUpdateAccountAttributeDefinition),
+        "PUT",
         "/banks/BANK_ID/attribute-definitions/account",
         "Create or Update Account Attribute Definition",
-        s"""Create or Update Account Attribute Definition.""".stripMargin,
-        accountAttributeDefinitionJsonV400, accountAttributeDefinitionResponseJsonV400,
+        s""" Create or Update Account Attribute Definition
+        |
+        |The category field must be ${AttributeCategory.Account}
+        |
+        |The type field must be one of; ${AttributeType.DOUBLE}, ${AttributeType.STRING}, ${AttributeType.INTEGER} and ${AttributeType.DATE_WITH_DAY}
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""",
+        accountAttributeDefinitionJsonV400,
+        accountAttributeDefinitionResponseJsonV400,
         List($AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat, UnknownError),
         List(apiTagAccount, apiTagAccountAttribute, apiTagAttribute),
         Some(List(canCreateAccountAttributeDefinitionAtOneBank)),
-        http4sPartialFunction = Some(createOrUpdateAccountAttributeDefinition))
+        http4sPartialFunction = Some(createOrUpdateAccountAttributeDefinition)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(createOrUpdateProductAttributeDefinition), "PUT",
+        null,
+        implementedInApiVersion,
+        nameOf(createOrUpdateProductAttributeDefinition),
+        "PUT",
         "/banks/BANK_ID/attribute-definitions/product",
         "Create or Update Product Attribute Definition",
-        s"""Create or Update Product Attribute Definition.""".stripMargin,
-        productAttributeDefinitionJsonV400, productAttributeDefinitionResponseJsonV400,
+        s""" Create or Update Product Attribute Definition
+        |
+        |The category field must be ${AttributeCategory.Product}
+        |
+        |The type field must be one of; ${AttributeType.DOUBLE}, ${AttributeType.STRING}, ${AttributeType.INTEGER} and ${AttributeType.DATE_WITH_DAY}
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""",
+        productAttributeDefinitionJsonV400,
+        productAttributeDefinitionResponseJsonV400,
         List($AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat, UnknownError),
         List(apiTagProduct, apiTagProductAttribute, apiTagAttribute),
         Some(List(canCreateProductAttributeDefinitionAtOneBank)),
-        http4sPartialFunction = Some(createOrUpdateProductAttributeDefinition))
+        http4sPartialFunction = Some(createOrUpdateProductAttributeDefinition)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(createOrUpdateTransactionAttributeDefinition), "PUT",
+        null,
+        implementedInApiVersion,
+        nameOf(createOrUpdateTransactionAttributeDefinition),
+        "PUT",
         "/banks/BANK_ID/attribute-definitions/transaction",
         "Create or Update Transaction Attribute Definition",
-        s"""Create or Update Transaction Attribute Definition.""".stripMargin,
-        transactionAttributeDefinitionJsonV400, transactionAttributeDefinitionResponseJsonV400,
+        s""" Create or Update Transaction Attribute Definition
+        |
+        |The category field must be ${AttributeCategory.Transaction}
+        |
+        |The type field must be one of; ${AttributeType.DOUBLE}, ${AttributeType.STRING}, ${AttributeType.INTEGER} and ${AttributeType.DATE_WITH_DAY}
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""",
+        transactionAttributeDefinitionJsonV400,
+        transactionAttributeDefinitionResponseJsonV400,
         List($AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat, UnknownError),
         List(apiTagTransaction, apiTagTransactionAttribute, apiTagAttribute),
         Some(List(canCreateTransactionAttributeDefinitionAtOneBank)),
-        http4sPartialFunction = Some(createOrUpdateTransactionAttributeDefinition))
+        http4sPartialFunction = Some(createOrUpdateTransactionAttributeDefinition)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(createOrUpdateCardAttributeDefinition), "PUT",
+        null,
+        implementedInApiVersion,
+        nameOf(createOrUpdateCardAttributeDefinition),
+        "PUT",
         "/banks/BANK_ID/attribute-definitions/card",
         "Create or Update Card Attribute Definition",
-        s"""Create or Update Card Attribute Definition.""".stripMargin,
-        cardAttributeDefinitionJsonV400, cardAttributeDefinitionResponseJsonV400,
+        s""" Create or Update Card Attribute Definition
+        |
+        |The category field must be ${AttributeCategory.Card}
+        |
+        |The type field must be one of; ${AttributeType.DOUBLE}, ${AttributeType.STRING}, ${AttributeType.INTEGER} and ${AttributeType.DATE_WITH_DAY}
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""",
+        cardAttributeDefinitionJsonV400,
+        cardAttributeDefinitionResponseJsonV400,
         List($AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat, UnknownError),
         List(apiTagCard, apiTagCardAttribute, apiTagAttribute),
         Some(List(canCreateCardAttributeDefinitionAtOneBank)),
-        http4sPartialFunction = Some(createOrUpdateCardAttributeDefinition))
+        http4sPartialFunction = Some(createOrUpdateCardAttributeDefinition)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(createOrUpdateTransactionRequestAttributeDefinition), "PUT",
+        null,
+        implementedInApiVersion,
+        nameOf(createOrUpdateTransactionRequestAttributeDefinition),
+        "PUT",
         "/banks/BANK_ID/attribute-definitions/transaction-request",
         "Create or Update Transaction Request Attribute Definition",
-        s"""Create or Update Transaction Request Attribute Definition.""".stripMargin,
-        transactionRequestAttributeDefinitionJsonV400, transactionRequestAttributeDefinitionResponseJsonV400,
+        s""" Create or Update Transaction Request Attribute Definition
+        |
+        |The category field must be ${AttributeCategory.TransactionRequest}
+        |
+        |The type field must be one of: ${AttributeType.DOUBLE}, ${AttributeType.STRING}, ${AttributeType.INTEGER} and ${AttributeType.DATE_WITH_DAY}
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""",
+        transactionRequestAttributeDefinitionJsonV400,
+        transactionRequestAttributeDefinitionResponseJsonV400,
         List($AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat, UnknownError),
         List(apiTagTransactionRequest, apiTagTransactionRequestAttribute, apiTagAttribute),
         Some(List(canCreateTransactionRequestAttributeDefinitionAtOneBank)),
-        http4sPartialFunction = Some(createOrUpdateTransactionRequestAttributeDefinition))
+        http4sPartialFunction = Some(createOrUpdateTransactionRequestAttributeDefinition)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(createOrUpdateBankAttributeDefinition), "PUT",
+        null,
+        implementedInApiVersion,
+        nameOf(createOrUpdateBankAttributeDefinition),
+        "PUT",
         "/banks/BANK_ID/attribute-definitions/bank",
         "Create or Update Bank Attribute Definition",
-        s"""Create or Update Bank Attribute Definition.""".stripMargin,
-        bankAttributeDefinitionJsonV400, bankAttributeDefinitionResponseJsonV400,
+        s""" Create or Update Bank Attribute Definition
+        |
+        |The category field must be ${AttributeCategory.Bank}
+        |
+        |The type field must be one of; ${AttributeType.DOUBLE}, ${AttributeType.STRING}, ${AttributeType.INTEGER} and ${AttributeType.DATE_WITH_DAY}
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""",
+        bankAttributeDefinitionJsonV400,
+        bankAttributeDefinitionResponseJsonV400,
         List($AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat, UnknownError),
         List(apiTagBank, apiTagBankAttribute, apiTagAttribute),
         Some(List(canCreateBankAttributeDefinitionAtOneBank)),
-        http4sPartialFunction = Some(createOrUpdateBankAttributeDefinition))
+        http4sPartialFunction = Some(createOrUpdateBankAttributeDefinition)
+      )
     }
     initBatch7ResourceDocs()
 
@@ -4556,75 +6136,122 @@ object Http4s400 {
 
     private def initBatch6ResourceDocs(): Unit = {
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(updateAtmSupportedCurrencies), "PUT",
+        null,
+        implementedInApiVersion,
+        nameOf(updateAtmSupportedCurrencies),
+        "PUT",
         "/banks/BANK_ID/atms/ATM_ID/supported-currencies",
         "Update ATM Supported Currencies",
-        s"""Update ATM Supported Currencies.""".stripMargin,
-        supportedCurrenciesJson, atmSupportedCurrenciesJson,
+        s"""Update ATM Supported Currencies.
+        |""",
+        supportedCurrenciesJson,
+        atmSupportedCurrenciesJson,
         List($AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
-        List(apiTagATM), None,
-        http4sPartialFunction = Some(updateAtmSupportedCurrencies))
+        List(apiTagATM),
+        None,
+        http4sPartialFunction = Some(updateAtmSupportedCurrencies)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(updateAtmSupportedLanguages), "PUT",
+        null,
+        implementedInApiVersion,
+        nameOf(updateAtmSupportedLanguages),
+        "PUT",
         "/banks/BANK_ID/atms/ATM_ID/supported-languages",
         "Update ATM Supported Languages",
-        s"""Update ATM Supported Languages.""".stripMargin,
-        supportedLanguagesJson, atmSupportedLanguagesJson,
+        s"""Update ATM Supported Languages.
+        |""",
+        supportedLanguagesJson,
+        atmSupportedLanguagesJson,
         List($AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
-        List(apiTagATM), None,
-        http4sPartialFunction = Some(updateAtmSupportedLanguages))
+        List(apiTagATM),
+        None,
+        http4sPartialFunction = Some(updateAtmSupportedLanguages)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(updateAtmAccessibilityFeatures), "PUT",
+        null,
+        implementedInApiVersion,
+        nameOf(updateAtmAccessibilityFeatures),
+        "PUT",
         "/banks/BANK_ID/atms/ATM_ID/accessibility-features",
         "Update ATM Accessibility Features",
-        s"""Update ATM Accessibility Features.""".stripMargin,
-        accessibilityFeaturesJson, atmAccessibilityFeaturesJson,
+        s"""Update ATM Accessibility Features.
+        |""",
+        accessibilityFeaturesJson,
+        atmAccessibilityFeaturesJson,
         List($AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
-        List(apiTagATM), None,
-        http4sPartialFunction = Some(updateAtmAccessibilityFeatures))
+        List(apiTagATM),
+        None,
+        http4sPartialFunction = Some(updateAtmAccessibilityFeatures)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(updateAtmServices), "PUT",
+        null,
+        implementedInApiVersion,
+        nameOf(updateAtmServices),
+        "PUT",
         "/banks/BANK_ID/atms/ATM_ID/services",
         "Update ATM Services",
-        s"""Update ATM Services.""".stripMargin,
-        atmServicesJson, atmServicesResponseJson,
+        s"""Update ATM Services.
+        |""",
+        atmServicesJson,
+        atmServicesResponseJson,
         List($AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
-        List(apiTagATM), None,
-        http4sPartialFunction = Some(updateAtmServices))
+        List(apiTagATM),
+        None,
+        http4sPartialFunction = Some(updateAtmServices)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(updateAtmNotes), "PUT",
+        null,
+        implementedInApiVersion,
+        nameOf(updateAtmNotes),
+        "PUT",
         "/banks/BANK_ID/atms/ATM_ID/notes",
         "Update ATM Notes",
-        s"""Update ATM Notes.""".stripMargin,
-        atmNotesJson, atmNotesResponseJson,
+        s"""Update ATM Notes.
+        |""",
+        atmNotesJson,
+        atmNotesResponseJson,
         List($AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
-        List(apiTagATM), None,
-        http4sPartialFunction = Some(updateAtmNotes))
+        List(apiTagATM),
+        None,
+        http4sPartialFunction = Some(updateAtmNotes)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(updateAtmLocationCategories), "PUT",
+        null,
+        implementedInApiVersion,
+        nameOf(updateAtmLocationCategories),
+        "PUT",
         "/banks/BANK_ID/atms/ATM_ID/location-categories",
         "Update ATM Location Categories",
-        s"""Update ATM Location Categories.""".stripMargin,
-        atmLocationCategoriesJsonV400, atmLocationCategoriesResponseJsonV400,
+        s"""Update ATM Location Categories.
+        |""",
+        atmLocationCategoriesJsonV400,
+        atmLocationCategoriesResponseJsonV400,
         List($AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
-        List(apiTagATM), None,
-        http4sPartialFunction = Some(updateAtmLocationCategories))
+        List(apiTagATM),
+        None,
+        http4sPartialFunction = Some(updateAtmLocationCategories)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(updateAtm), "PUT",
+        null,
+        implementedInApiVersion,
+        nameOf(updateAtm),
+        "PUT",
         "/banks/BANK_ID/atms/ATM_ID",
-        "Update ATM",
-        s"""Update ATM.""".stripMargin,
-        atmJsonV400, atmJsonV400,
+        "UPDATE ATM",
+        s"""Update ATM.""",
+        atmJsonV400.copy(id = None),
+        atmJsonV400,
         List($AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
         List(apiTagATM),
         Some(List(canUpdateAtm, canCreateAtmAtAnyBank)),
-        http4sPartialFunction = Some(updateAtm))
+        http4sPartialFunction = Some(updateAtm)
+      )
     }
     initBatch6ResourceDocs()
 
@@ -4824,198 +6451,362 @@ object Http4s400 {
 
     private def initBatch5ResourceDocs(): Unit = {
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getProductFee), "GET",
+        null,
+        implementedInApiVersion,
+        nameOf(getProductFee),
+        "GET",
         "/banks/BANK_ID/products/PRODUCT_CODE/fees/PRODUCT_FEE_ID",
         "Get Product Fee",
-        s"""Get Product Fee""".stripMargin,
-        EmptyBody, productFeeResponseJsonV400,
+        s""" Get Product Fee
+        |
+        |Get one product fee by its id.
+        |
+        |${userAuthenticationMessage(false)}
+        |
+        |""",
+        EmptyBody,
+        productFeeResponseJsonV400,
         List($BankNotFound, UnknownError),
-        List(apiTagProduct), None,
-        http4sPartialFunction = Some(getProductFee))
+        List(apiTagProduct),
+        None,
+        http4sPartialFunction = Some(getProductFee)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getProductFees), "GET",
+        null,
+        implementedInApiVersion,
+        nameOf(getProductFees),
+        "GET",
         "/banks/BANK_ID/products/PRODUCT_CODE/fees",
         "Get Product Fees",
-        s"""Get Product Fees""".stripMargin,
-        EmptyBody, productFeesResponseJsonV400,
+        s"""Get Product Fees
+        |
+        |${userAuthenticationMessage(false)}
+        |
+        |""",
+        EmptyBody,
+        productFeesResponseJsonV400,
         List($BankNotFound, UnknownError),
-        List(apiTagProduct), None,
-        http4sPartialFunction = Some(getProductFees))
+        List(apiTagProduct),
+        None,
+        http4sPartialFunction = Some(getProductFees)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getTransactionAttributes), "GET",
+        null,
+        implementedInApiVersion,
+        nameOf(getTransactionAttributes),
+        "GET",
         "/banks/BANK_ID/accounts/ACCOUNT_ID/transactions/TRANSACTION_ID/attributes",
         "Get Transaction Attributes",
-        s"""Get Transaction Attributes
-           |
-           |${userAuthenticationMessage(true)}""".stripMargin,
-        EmptyBody, transactionAttributesResponseJson,
+        s""" Get Transaction Attributes
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""",
+        EmptyBody,
+        transactionAttributesResponseJson,
         List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, InvalidJsonFormat, UnknownError),
         List(apiTagTransaction, apiTagTransactionAttribute, apiTagAttribute),
         Some(List(canGetTransactionAttributesAtOneBank)),
-        http4sPartialFunction = Some(getTransactionAttributes))
+        http4sPartialFunction = Some(getTransactionAttributes)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getTransactionAttributeById), "GET",
+        null,
+        implementedInApiVersion,
+        nameOf(getTransactionAttributeById),
+        "GET",
         "/banks/BANK_ID/accounts/ACCOUNT_ID/transactions/TRANSACTION_ID/attributes/ATTRIBUTE_ID",
         "Get Transaction Attribute By Id",
-        s"""Get Transaction Attribute By Id
-           |
-           |${userAuthenticationMessage(true)}""".stripMargin,
-        EmptyBody, transactionAttributeResponseJson,
+        s""" Get Transaction Attribute By Id
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""",
+        EmptyBody,
+        transactionAttributeResponseJson,
         List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, InvalidJsonFormat, UnknownError),
         List(apiTagTransaction, apiTagTransactionAttribute, apiTagAttribute),
         Some(List(canGetTransactionAttributeAtOneBank)),
-        http4sPartialFunction = Some(getTransactionAttributeById))
+        http4sPartialFunction = Some(getTransactionAttributeById)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getTransactionRequestAttributes), "GET",
+        null,
+        implementedInApiVersion,
+        nameOf(getTransactionRequestAttributes),
+        "GET",
         "/banks/BANK_ID/accounts/ACCOUNT_ID/transaction-requests/TRANSACTION_REQUEST_ID/attributes",
         "Get Transaction Request Attributes",
-        s"""Get Transaction Request Attributes
-           |
-           |${userAuthenticationMessage(true)}""".stripMargin,
-        EmptyBody, transactionRequestAttributesResponseJson,
+        s""" Get Transaction Request Attributes
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""",
+        EmptyBody,
+        transactionRequestAttributesResponseJson,
         List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, InvalidJsonFormat, UnknownError),
         List(apiTagTransactionRequest, apiTagTransactionRequestAttribute, apiTagAttribute),
         Some(List(canGetTransactionRequestAttributesAtOneBank)),
-        http4sPartialFunction = Some(getTransactionRequestAttributes))
+        http4sPartialFunction = Some(getTransactionRequestAttributes)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getTransactionRequestAttributeById), "GET",
+        null,
+        implementedInApiVersion,
+        nameOf(getTransactionRequestAttributeById),
+        "GET",
         "/banks/BANK_ID/accounts/ACCOUNT_ID/transaction-requests/TRANSACTION_REQUEST_ID/attributes/ATTRIBUTE_ID",
         "Get Transaction Request Attribute By Id",
-        s"""Get Transaction Request Attribute By Id
-           |
-           |${userAuthenticationMessage(true)}""".stripMargin,
-        EmptyBody, transactionRequestAttributeResponseJson,
+        s""" Get Transaction Request Attribute By Id
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""",
+        EmptyBody,
+        transactionRequestAttributeResponseJson,
         List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, InvalidJsonFormat, UnknownError),
         List(apiTagTransactionRequest, apiTagTransactionRequestAttribute, apiTagAttribute),
         Some(List(canGetTransactionRequestAttributeAtOneBank)),
-        http4sPartialFunction = Some(getTransactionRequestAttributeById))
+        http4sPartialFunction = Some(getTransactionRequestAttributeById)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getTransactionRequestAttributeDefinition), "GET",
+        null,
+        implementedInApiVersion,
+        nameOf(getTransactionRequestAttributeDefinition),
+        "GET",
         "/banks/BANK_ID/attribute-definitions/transaction-request",
         "Get Transaction Request Attribute Definition",
-        s"""Get Transaction Request Attribute Definition
-           |
-           |${userAuthenticationMessage(true)}""".stripMargin,
-        EmptyBody, transactionRequestAttributeDefinitionsResponseJsonV400,
+        s""" Get Transaction Request Attribute Definition
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""",
+        EmptyBody,
+        transactionRequestAttributeDefinitionsResponseJsonV400,
         List($AuthenticatedUserIsRequired, $BankNotFound, UnknownError),
         List(apiTagTransactionRequest, apiTagTransactionRequestAttribute, apiTagAttribute),
         Some(List(canGetTransactionRequestAttributeDefinitionAtOneBank)),
-        http4sPartialFunction = Some(getTransactionRequestAttributeDefinition))
+        http4sPartialFunction = Some(getTransactionRequestAttributeDefinition)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getTransactionRequest), "GET",
+        null,
+        implementedInApiVersion,
+        nameOf(getTransactionRequest),
+        "GET",
         "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-requests/TRANSACTION_REQUEST_ID",
         "Get Transaction Request.",
-        s"""Returns the transaction request specified by TRANSACTION_REQUEST_ID at BANK_ID.
-           |
-           |${userAuthenticationMessage(true)}""".stripMargin,
-        EmptyBody, transactionRequestWithChargeJSON400,
-        List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, $UserNoPermissionAccessView, UnknownError),
-        List(apiTagTransactionRequest), None,
-        http4sPartialFunction = Some(getTransactionRequest))
+        """Returns transaction request for transaction specified by TRANSACTION_REQUEST_ID and for account specified by ACCOUNT_ID at bank specified by BANK_ID.
+          |
+          |The VIEW_ID specified must be 'owner' and the user must have access to this view.
+          |
+          |Version 2.0.0 now returns charge information.
+          |
+          |Transaction Requests serve to initiate transactions that may or may not proceed. They contain information including:
+          |
+          |* Transaction Request Id
+          |* Type
+          |* Status (INITIATED, COMPLETED)
+          |* Challenge (in order to confirm the request)
+          |* From Bank / Account
+          |* Details including Currency, Value, Description and other initiation information specific to each type. (Could potentialy include a list of future transactions.)
+          |* Related Transactions
+          |
+          |PSD2 Context: PSD2 requires transparency of charges to the customer.
+          |This endpoint provides the charge that would be applied if the Transaction Request proceeds - and a record of that charge there after.
+          |The customer can proceed with the Transaction by answering the security challenge.
+          |
+        """.stripMargin,
+        EmptyBody,
+        transactionRequestWithChargeJSON210,
+        List(
+          $AuthenticatedUserIsRequired,
+          $BankNotFound,
+          $BankAccountNotFound,
+          $UserNoPermissionAccessView,
+          GetTransactionRequestsException,
+          UnknownError
+        ),
+        List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2),
+        None,
+        http4sPartialFunction = Some(getTransactionRequest)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getMyCorrelatedEntities), "GET",
+        null,
+        implementedInApiVersion,
+        nameOf(getMyCorrelatedEntities),
+        "GET",
         "/my/correlated-entities",
         "Get Correlated Entities for the current User",
         s"""Correlated Entities are users and customers linked to the currently authenticated user via User-Customer-Links
-           |
-           |${userAuthenticationMessage(true)}""".stripMargin,
-        EmptyBody, correlatedUsersResponseJson,
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""",
+        EmptyBody,
+        correlatedUsersResponseJson,
         List($AuthenticatedUserIsRequired, $BankNotFound, UnknownError),
-        List(apiTagCustomer), None,
-        http4sPartialFunction = Some(getMyCorrelatedEntities))
+        List(apiTagCustomer),
+        None,
+        http4sPartialFunction = Some(getMyCorrelatedEntities)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getCorrelatedUsersInfoByCustomerId), "GET",
+        null,
+        implementedInApiVersion,
+        nameOf(getCorrelatedUsersInfoByCustomerId),
+        "GET",
         "/banks/BANK_ID/customers/CUSTOMER_ID/correlated-users",
         "Get Correlated User Info by Customer",
         s"""Get Correlated User Info by CUSTOMER_ID
-           |
-           |${userAuthenticationMessage(true)}""".stripMargin,
-        EmptyBody, customerAndUsersWithAttributesResponseJson,
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""",
+        EmptyBody,
+        customerAndUsersWithAttributesResponseJson,
         List($AuthenticatedUserIsRequired, $BankNotFound, UnknownError),
         List(apiTagCustomer),
         Some(List(canGetCorrelatedUsersInfoAtAnyBank, canGetCorrelatedUsersInfo)),
-        http4sPartialFunction = Some(getCorrelatedUsersInfoByCustomerId))
+        http4sPartialFunction = Some(getCorrelatedUsersInfoByCustomerId)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getAccountsMinimalByCustomerId), "GET",
+        null,
+        implementedInApiVersion,
+        nameOf(getAccountsMinimalByCustomerId),
+        "GET",
         "/customers/CUSTOMER_ID/accounts-minimal",
         "Get Accounts Minimal for a Customer",
-        s"""Get Accounts Minimal that are owned by a Customer.
-           |
-           |${userAuthenticationMessage(true)}""".stripMargin,
-        EmptyBody, accountsMinimalJson400,
-        List($AuthenticatedUserIsRequired, CustomerNotFoundByCustomerId, UnknownError),
-        List(apiTagCustomer),
+        s"""Get Accounts Minimal by CUSTOMER_ID
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""",
+        EmptyBody,
+        accountsMinimalJson400,
+        List(
+          $AuthenticatedUserIsRequired,
+          CustomerNotFound,
+          UnknownError
+        ),
+        List(apiTagAccount),
         Some(List(canGetAccountsMinimalForCustomerAtOneBank, canGetAccountsMinimalForCustomerAtAnyBank)),
-        http4sPartialFunction = Some(getAccountsMinimalByCustomerId))
+        http4sPartialFunction = Some(getAccountsMinimalByCustomerId)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getCustomersByCustomerPhoneNumber), "POST",
+        null,
+        implementedInApiVersion,
+        nameOf(getCustomersByCustomerPhoneNumber),
+        "POST",
         "/banks/BANK_ID/search/customers/mobile-phone-number",
         "Get Customers by MOBILE_PHONE_NUMBER",
-        s"""Gets the Customers specified by MOBILE_PHONE_NUMBER.""".stripMargin,
-        postCustomerPhoneNumberJsonV400, customerJsonV310,
-        List($AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat, UnknownError),
-        List(apiTagCustomer),
+        s"""Gets the Customers specified by MOBILE_PHONE_NUMBER.
+        |
+        |There are two wildcards often used in conjunction with the LIKE operator:
+        |    % - The percent sign represents zero, one, or multiple characters
+        |    _ - The underscore represents a single character
+        |For example {"customer_phone_number":"%381%"} lists all numbers which contain 381 sequence
+        |
+        |""",
+        postCustomerPhoneNumberJsonV400,
+        customerJsonV310,
+        List(
+          $AuthenticatedUserIsRequired,
+          UserCustomerLinksNotFoundForUser,
+          UnknownError
+        ),
+        List(apiTagCustomer, apiTagKyc),
         Some(List(canGetCustomersAtOneBank)),
-        http4sPartialFunction = Some(getCustomersByCustomerPhoneNumber))
+        http4sPartialFunction = Some(getCustomersByCustomerPhoneNumber)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getCustomersAtAnyBank), "GET",
+        null,
+        implementedInApiVersion,
+        nameOf(getCustomersAtAnyBank),
+        "GET",
         "/customers",
         "Get Customers at Any Bank",
-        s"""Get Customers at Any Bank.""".stripMargin,
-        EmptyBody, customersJsonV300,
+        s"""Get Customers at Any Bank.
+        |
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""",
+        EmptyBody,
+        customersJsonV300,
         List(AuthenticatedUserIsRequired, UserCustomerLinksNotFoundForUser, UnknownError),
         List(apiTagCustomer, apiTagUser),
         Some(List(canGetCustomersAtAllBanks)),
-        http4sPartialFunction = Some(getCustomersAtAnyBank))
+        http4sPartialFunction = Some(getCustomersAtAnyBank)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getCustomersMinimalAtAnyBank), "GET",
+        null,
+        implementedInApiVersion,
+        nameOf(getCustomersMinimalAtAnyBank),
+        "GET",
         "/customers-minimal",
         "Get Customers Minimal at Any Bank",
-        s"""Get Customers Minimal at Any Bank.""".stripMargin,
-        EmptyBody, customersMinimalJsonV300,
+        s"""Get Customers Minimal at Any Bank.
+        |
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""",
+        EmptyBody,
+        customersMinimalJsonV300,
         List(AuthenticatedUserIsRequired, UserCustomerLinksNotFoundForUser, UnknownError),
         List(apiTagCustomer, apiTagUser),
         Some(List(canGetCustomersMinimalAtAllBanks)),
-        http4sPartialFunction = Some(getCustomersMinimalAtAnyBank))
+        http4sPartialFunction = Some(getCustomersMinimalAtAnyBank)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getUserInvitation), "GET",
+        null,
+        implementedInApiVersion,
+        nameOf(getUserInvitation),
+        "GET",
         "/banks/BANK_ID/user-invitations/SECRET_LINK",
         "Get User Invitation",
-        s"""Get User Invitation
-           |
-           |${userAuthenticationMessage(true)}""".stripMargin,
-        EmptyBody, userInvitationJsonV400,
+        s""" Get User Invitation
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""",
+        EmptyBody,
+        userInvitationJsonV400,
         List($AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat, UnknownError),
         List(apiTagUserInvitation),
         Some(List(canGetUserInvitation)),
-        http4sPartialFunction = Some(getUserInvitation))
+        http4sPartialFunction = Some(getUserInvitation)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getUserInvitations), "GET",
+        null,
+        implementedInApiVersion,
+        nameOf(getUserInvitations),
+        "GET",
         "/banks/BANK_ID/user-invitations",
         "Get User Invitations",
-        s"""Get User Invitations
-           |
-           |${userAuthenticationMessage(true)}""".stripMargin,
-        EmptyBody, userInvitationJsonV400,
+        s""" Get User Invitations
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""",
+        EmptyBody,
+        userInvitationJsonV400,
         List($AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat, UnknownError),
         List(apiTagUserInvitation),
         Some(List(canGetUserInvitation)),
-        http4sPartialFunction = Some(getUserInvitations))
+        http4sPartialFunction = Some(getUserInvitations)
+      )
     }
     initBatch5ResourceDocs()
 
@@ -5202,165 +6993,333 @@ object Http4s400 {
 
     private def initBatch4ResourceDocs(): Unit = {
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getConsentInfosByBank), "GET",
+        null,
+        implementedInApiVersion,
+        nameOf(getConsentInfosByBank),
+        "GET",
         "/banks/BANK_ID/my/consent-infos",
         "Get My Consents Info At Bank",
-        s"""This endpoint gets the Consents that the current User created at bank.""".stripMargin,
-        EmptyBody, consentInfosJsonV400,
+        s"""
+           |
+           |This endpoint gets the Consents that the current User created at bank.
+           |
+           |${userAuthenticationMessage(true)}
+           |
+        """.stripMargin,
+        EmptyBody,
+        consentInfosJsonV400,
         List($AuthenticatedUserIsRequired, $BankNotFound, UnknownError),
-        List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2), None,
-        http4sPartialFunction = Some(getConsentInfosByBank))
+        List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2),
+        None,
+        http4sPartialFunction = Some(getConsentInfosByBank)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getConsentInfos), "GET",
+        null,
+        implementedInApiVersion,
+        nameOf(getConsentInfos),
+        "GET",
         "/my/consent-infos",
         "Get My Consents Info",
-        s"""This endpoint gets the Consents that the current User created.""".stripMargin,
-        EmptyBody, consentInfosJsonV400,
+        s"""
+           |
+           |This endpoint gets the Consents that the current User created.
+           |
+           |${userAuthenticationMessage(true)}
+           |
+        """.stripMargin,
+        EmptyBody,
+        consentInfosJsonV400,
         List($AuthenticatedUserIsRequired, $BankNotFound, UnknownError),
-        List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2), None,
-        http4sPartialFunction = Some(getConsentInfos))
+        List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2),
+        None,
+        http4sPartialFunction = Some(getConsentInfos)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getMyApiCollectionByName), "GET",
+        null,
+        implementedInApiVersion,
+        nameOf(getMyApiCollectionByName),
+        "GET",
         "/my/api-collections/name/API_COLLECTION_NAME",
         "Get My Api Collection By Name",
-        s"""Get Api Collection By API_COLLECTION_NAME.""".stripMargin,
-        EmptyBody, apiCollectionJson400,
+        s"""Get Api Collection By API_COLLECTION_NAME.
+        |
+        |${userAuthenticationMessage(true)}
+        |""".stripMargin,
+        EmptyBody,
+        apiCollectionJson400,
         List($AuthenticatedUserIsRequired, UserNotFoundByUserId, UnknownError),
-        List(apiTagApiCollection), None,
-        http4sPartialFunction = Some(getMyApiCollectionByName))
+        List(apiTagApiCollection),
+        None,
+        http4sPartialFunction = Some(getMyApiCollectionByName)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getMyApiCollectionById), "GET",
+        null,
+        implementedInApiVersion,
+        nameOf(getMyApiCollectionById),
+        "GET",
         "/my/api-collections/API_COLLECTION_ID",
         "Get My Api Collection By Id",
-        s"""Get Api Collection By API_COLLECTION_ID.""".stripMargin,
-        EmptyBody, apiCollectionJson400,
+        s"""Get Api Collection By API_COLLECTION_ID.
+        |
+        |${userAuthenticationMessage(true)}
+        |""".stripMargin,
+        EmptyBody,
+        apiCollectionJson400,
         List($AuthenticatedUserIsRequired, UserNotFoundByUserId, UnknownError),
-        List(apiTagApiCollection), None,
-        http4sPartialFunction = Some(getMyApiCollectionById))
+        List(apiTagApiCollection),
+        None,
+        http4sPartialFunction = Some(getMyApiCollectionById)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getSharableApiCollectionById), "GET",
+        null,
+        implementedInApiVersion,
+        nameOf(getSharableApiCollectionById),
+        "GET",
         "/api-collections/sharable/API_COLLECTION_ID",
         "Get Sharable Api Collection By Id",
-        s"""Get Sharable Api Collection By Id.""".stripMargin,
-        EmptyBody, apiCollectionJson400,
+        s"""Get Sharable Api Collection By Id.
+        |${userAuthenticationMessage(false)}
+        |""".stripMargin,
+        EmptyBody,
+        apiCollectionJson400,
         List(UnknownError),
-        List(apiTagApiCollection), None,
-        http4sPartialFunction = Some(getSharableApiCollectionById))
+        List(apiTagApiCollection),
+        None,
+        http4sPartialFunction = Some(getSharableApiCollectionById)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getApiCollectionsForUser), "GET",
+        null,
+        implementedInApiVersion,
+        nameOf(getApiCollectionsForUser),
+        "GET",
         "/users/USER_ID/api-collections",
         "Get Api Collections for User",
-        s"""Get Api Collections for User.""".stripMargin,
-        EmptyBody, apiCollectionsJson400,
+        s"""Get Api Collections for User.
+        |
+        |${userAuthenticationMessage(true)}
+        |""".stripMargin,
+        EmptyBody,
+        apiCollectionsJson400,
         List(UserNotFoundByUserId, UnknownError),
         List(apiTagApiCollection),
         Some(canGetApiCollectionsForUser :: Nil),
-        http4sPartialFunction = Some(getApiCollectionsForUser))
+        http4sPartialFunction = Some(getApiCollectionsForUser)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getFeaturedApiCollections), "GET",
+        null,
+        implementedInApiVersion,
+        nameOf(getFeaturedApiCollections),
+        "GET",
         "/api-collections/featured",
         "Get Featured Api Collections",
-        s"""Get Featured Api Collections.""".stripMargin,
-        EmptyBody, apiCollectionsJson400,
+        s"""Get Featured Api Collections.
+        |
+        |${userAuthenticationMessage(false)}
+        |""".stripMargin,
+        EmptyBody,
+        apiCollectionsJson400,
         List(UnknownError),
-        List(apiTagApiCollection), None,
-        http4sPartialFunction = Some(getFeaturedApiCollections))
+        List(apiTagApiCollection),
+        None,
+        http4sPartialFunction = Some(getFeaturedApiCollections)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getMyApiCollections), "GET",
+        null,
+        implementedInApiVersion,
+        nameOf(getMyApiCollections),
+        "GET",
         "/my/api-collections",
         "Get My Api Collections",
-        s"""Get all the apiCollections for logged in user.""".stripMargin,
-        EmptyBody, apiCollectionsJson400,
+        s"""Get all the apiCollections for logged in user.
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |1 limit (for pagination: defaults to 50)  eg:limit=200
+        |
+        |2 offset (for pagination: zero index, defaults to 0) eg: offset=10
+        |
+        |""".stripMargin,
+        EmptyBody,
+        apiCollectionsJson400,
         List($AuthenticatedUserIsRequired, UnknownError),
-        List(apiTagApiCollection), None,
-        http4sPartialFunction = Some(getMyApiCollections))
+        List(apiTagApiCollection),
+        None,
+        http4sPartialFunction = Some(getMyApiCollections)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getMyApiCollectionEndpoint), "GET",
+        null,
+        implementedInApiVersion,
+        nameOf(getMyApiCollectionEndpoint),
+        "GET",
         "/my/api-collections/API_COLLECTION_NAME/api-collection-endpoints/OPERATION_ID",
         "Get My Api Collection Endpoint",
-        s"""Get Api Collection Endpoint By OPERATION_ID.""".stripMargin,
-        EmptyBody, apiCollectionEndpointJson400,
+        s"""Get Api Collection Endpoint By API_COLLECTION_NAME and OPERATION_ID.
+        |
+        |${userAuthenticationMessage(false)}
+        |""".stripMargin,
+        EmptyBody,
+        apiCollectionEndpointJson400,
         List($AuthenticatedUserIsRequired, UserNotFoundByUserId, UnknownError),
-        List(apiTagApiCollection), None,
-        http4sPartialFunction = Some(getMyApiCollectionEndpoint))
+        List(apiTagApiCollection),
+        None,
+        http4sPartialFunction = Some(getMyApiCollectionEndpoint)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getApiCollectionEndpoints), "GET",
+        null,
+        implementedInApiVersion,
+        nameOf(getApiCollectionEndpoints),
+        "GET",
         "/api-collections/API_COLLECTION_ID/api-collection-endpoints",
         "Get Api Collection Endpoints",
-        s"""Get Api Collection Endpoints By API_COLLECTION_ID.""".stripMargin,
-        EmptyBody, apiCollectionEndpointsJson400,
+        s"""Get Api Collection Endpoints By API_COLLECTION_ID.
+        |
+        |${userAuthenticationMessage(false)}
+        |""".stripMargin,
+        EmptyBody,
+        apiCollectionEndpointsJson400,
         List($AuthenticatedUserIsRequired, UnknownError),
-        List(apiTagApiCollection), None,
-        http4sPartialFunction = Some(getApiCollectionEndpoints))
+        List(apiTagApiCollection),
+        None,
+        http4sPartialFunction = Some(getApiCollectionEndpoints)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getMyApiCollectionEndpoints), "GET",
+        null,
+        implementedInApiVersion,
+        nameOf(getMyApiCollectionEndpoints),
+        "GET",
         "/my/api-collections/API_COLLECTION_NAME/api-collection-endpoints",
         "Get My Api Collection Endpoints",
-        s"""Get Api Collection Endpoints By API_COLLECTION_NAME.""".stripMargin,
-        EmptyBody, apiCollectionEndpointsJson400,
+        s"""Get Api Collection Endpoints By API_COLLECTION_NAME.
+        |
+        |${userAuthenticationMessage(true)}
+        |""".stripMargin,
+        EmptyBody,
+        apiCollectionEndpointsJson400,
         List($AuthenticatedUserIsRequired, UserNotFoundByUserId, UnknownError),
-        List(apiTagApiCollection), None,
-        http4sPartialFunction = Some(getMyApiCollectionEndpoints))
+        List(apiTagApiCollection),
+        None,
+        http4sPartialFunction = Some(getMyApiCollectionEndpoints)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getMyApiCollectionEndpointsById), "GET",
+        null,
+        implementedInApiVersion,
+        nameOf(getMyApiCollectionEndpointsById),
+        "GET",
         "/my/api-collection-ids/API_COLLECTION_ID/api-collection-endpoints",
         "Get My Api Collection Endpoints By Id",
-        s"""Get Api Collection Endpoints By API_COLLECTION_ID.""".stripMargin,
-        EmptyBody, apiCollectionEndpointsJson400,
+        s"""Get Api Collection Endpoints By API_COLLECTION_ID.
+        |
+        |${userAuthenticationMessage(true)}
+        |""".stripMargin,
+        EmptyBody,
+        apiCollectionEndpointsJson400,
         List($AuthenticatedUserIsRequired, UserNotFoundByUserId, UnknownError),
-        List(apiTagApiCollection), None,
-        http4sPartialFunction = Some(getMyApiCollectionEndpointsById))
+        List(apiTagApiCollection),
+        None,
+        http4sPartialFunction = Some(getMyApiCollectionEndpointsById)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(deleteMyApiCollection), "DELETE",
+        null,
+        implementedInApiVersion,
+        nameOf(deleteMyApiCollection),
+        "DELETE",
         "/my/api-collections/API_COLLECTION_ID",
         "Delete My Api Collection",
-        s"""Delete Api Collection By API_COLLECTION_ID.""".stripMargin,
-        EmptyBody, Full(true),
+        s"""Delete Api Collection By API_COLLECTION_ID
+        |
+        |${Glossary.getGlossaryItem("API Collections")}
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |
+        |
+        |""",
+        EmptyBody,
+        Full(true),
         List($AuthenticatedUserIsRequired, UserNotFoundByUserId, UnknownError),
-        List(apiTagApiCollection), None,
-        http4sPartialFunction = Some(deleteMyApiCollection))
+        List(apiTagApiCollection),
+        None,
+        http4sPartialFunction = Some(deleteMyApiCollection)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(deleteMyApiCollectionEndpoint), "DELETE",
+        null,
+        implementedInApiVersion,
+        nameOf(deleteMyApiCollectionEndpoint),
+        "DELETE",
         "/my/api-collections/API_COLLECTION_NAME/api-collection-endpoints/OPERATION_ID",
         "Delete My Api Collection Endpoint",
-        s"""Delete Api Collection Endpoint By OPERATION_ID.""".stripMargin,
-        EmptyBody, Full(true),
+        s"""${Glossary.getGlossaryItem("API Collections")}
+        |
+        |
+        |Delete Api Collection Endpoint By OPERATION_ID
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""",
+        EmptyBody,
+        Full(true),
         List($AuthenticatedUserIsRequired, UserNotFoundByUserId, UnknownError),
-        List(apiTagApiCollection), None,
-        http4sPartialFunction = Some(deleteMyApiCollectionEndpoint))
+        List(apiTagApiCollection),
+        None,
+        http4sPartialFunction = Some(deleteMyApiCollectionEndpoint)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(deleteMyApiCollectionEndpointByOperationId), "DELETE",
+        null,
+        implementedInApiVersion,
+        nameOf(deleteMyApiCollectionEndpointByOperationId),
+        "DELETE",
         "/my/api-collection-ids/API_COLLECTION_ID/api-collection-endpoints/OPERATION_ID",
         "Delete My Api Collection Endpoint By Id",
-        s"""Delete Api Collection Endpoint By OPERATION_ID.""".stripMargin,
-        EmptyBody, Full(true),
+        s"""${Glossary.getGlossaryItem("API Collections")}
+        |
+        |Delete Api Collection Endpoint By OPERATION_ID
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""",
+        EmptyBody,
+        Full(true),
         List($AuthenticatedUserIsRequired, UserNotFoundByUserId, UnknownError),
-        List(apiTagApiCollection), None,
-        http4sPartialFunction = Some(deleteMyApiCollectionEndpointByOperationId))
+        List(apiTagApiCollection),
+        None,
+        http4sPartialFunction = Some(deleteMyApiCollectionEndpointByOperationId)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(deleteMyApiCollectionEndpointById), "DELETE",
+        null,
+        implementedInApiVersion,
+        nameOf(deleteMyApiCollectionEndpointById),
+        "DELETE",
         "/my/api-collection-ids/API_COLLECTION_ID/api-collection-endpoint-ids/API_COLLECTION_ENDPOINT_ID",
         "Delete My Api Collection Endpoint By Id",
-        s"""Delete Api Collection Endpoint By Id.""".stripMargin,
-        EmptyBody, Full(true),
+        s"""${Glossary.getGlossaryItem("API Collections")}
+        |Delete Api Collection Endpoint
+        |Delete Api Collection Endpoint By Id
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""",
+        EmptyBody,
+        Full(true),
         List($AuthenticatedUserIsRequired, UserNotFoundByUserId, UnknownError),
-        List(apiTagApiCollection), None,
-        http4sPartialFunction = Some(deleteMyApiCollectionEndpointById))
+        List(apiTagApiCollection),
+        None,
+        http4sPartialFunction = Some(deleteMyApiCollectionEndpointById)
+      )
     }
     initBatch4ResourceDocs()
 
@@ -5602,173 +7561,270 @@ object Http4s400 {
 
     private def initBatch3ResourceDocs(): Unit = {
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(deleteTransactionAttributeDefinition), "DELETE",
+        null,
+        implementedInApiVersion,
+        nameOf(deleteTransactionAttributeDefinition),
+        "DELETE",
         "/banks/BANK_ID/attribute-definitions/ATTRIBUTE_DEFINITION_ID/transaction",
         "Delete Transaction Attribute Definition",
-        s"""Delete Transaction Attribute Definition by ATTRIBUTE_DEFINITION_ID
-           |
-           |${userAuthenticationMessage(true)}""".stripMargin,
-        EmptyBody, EmptyBody,
+        s""" Delete Transaction Attribute Definition by ATTRIBUTE_DEFINITION_ID
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""",
+        EmptyBody,
+        EmptyBody,
         List($AuthenticatedUserIsRequired, $BankNotFound, UnknownError),
         List(apiTagTransaction, apiTagTransactionAttribute, apiTagAttribute),
         Some(List(canDeleteTransactionAttributeDefinitionAtOneBank)),
-        http4sPartialFunction = Some(deleteTransactionAttributeDefinition))
+        http4sPartialFunction = Some(deleteTransactionAttributeDefinition)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(deleteCustomerAttributeDefinition), "DELETE",
+        null,
+        implementedInApiVersion,
+        nameOf(deleteCustomerAttributeDefinition),
+        "DELETE",
         "/banks/BANK_ID/attribute-definitions/ATTRIBUTE_DEFINITION_ID/customer",
         "Delete Customer Attribute Definition",
-        s"""Delete Customer Attribute Definition by ATTRIBUTE_DEFINITION_ID
-           |
-           |${userAuthenticationMessage(true)}""".stripMargin,
-        EmptyBody, EmptyBody,
+        s""" Delete Customer Attribute Definition by ATTRIBUTE_DEFINITION_ID
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""",
+        EmptyBody,
+        EmptyBody,
         List($AuthenticatedUserIsRequired, $BankNotFound, UnknownError),
         List(apiTagCustomer, apiTagCustomerAttribute, apiTagAttribute),
         Some(List(canDeleteCustomerAttributeDefinitionAtOneBank)),
-        http4sPartialFunction = Some(deleteCustomerAttributeDefinition))
+        http4sPartialFunction = Some(deleteCustomerAttributeDefinition)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(deleteAccountAttributeDefinition), "DELETE",
+        null,
+        implementedInApiVersion,
+        nameOf(deleteAccountAttributeDefinition),
+        "DELETE",
         "/banks/BANK_ID/attribute-definitions/ATTRIBUTE_DEFINITION_ID/account",
         "Delete Account Attribute Definition",
-        s"""Delete Account Attribute Definition by ATTRIBUTE_DEFINITION_ID
-           |
-           |${userAuthenticationMessage(true)}""".stripMargin,
-        EmptyBody, EmptyBody,
+        s""" Delete Account Attribute Definition by ATTRIBUTE_DEFINITION_ID
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""",
+        EmptyBody,
+        EmptyBody,
         List($AuthenticatedUserIsRequired, $BankNotFound, UnknownError),
         List(apiTagAccount, apiTagAccountAttribute, apiTagAttribute),
         Some(List(canDeleteAccountAttributeDefinitionAtOneBank)),
-        http4sPartialFunction = Some(deleteAccountAttributeDefinition))
+        http4sPartialFunction = Some(deleteAccountAttributeDefinition)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(deleteProductAttributeDefinition), "DELETE",
+        null,
+        implementedInApiVersion,
+        nameOf(deleteProductAttributeDefinition),
+        "DELETE",
         "/banks/BANK_ID/attribute-definitions/ATTRIBUTE_DEFINITION_ID/product",
         "Delete Product Attribute Definition",
-        s"""Delete Product Attribute Definition by ATTRIBUTE_DEFINITION_ID
-           |
-           |${userAuthenticationMessage(true)}""".stripMargin,
-        EmptyBody, EmptyBody,
+        s""" Delete Product Attribute Definition by ATTRIBUTE_DEFINITION_ID
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""",
+        EmptyBody,
+        EmptyBody,
         List($AuthenticatedUserIsRequired, $BankNotFound, UnknownError),
         List(apiTagProduct, apiTagProductAttribute, apiTagAttribute),
         Some(List(canDeleteProductAttributeDefinitionAtOneBank)),
-        http4sPartialFunction = Some(deleteProductAttributeDefinition))
+        http4sPartialFunction = Some(deleteProductAttributeDefinition)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(deleteCardAttributeDefinition), "DELETE",
+        null,
+        implementedInApiVersion,
+        nameOf(deleteCardAttributeDefinition),
+        "DELETE",
         "/banks/BANK_ID/attribute-definitions/ATTRIBUTE_DEFINITION_ID/card",
         "Delete Card Attribute Definition",
-        s"""Delete Card Attribute Definition by ATTRIBUTE_DEFINITION_ID
-           |
-           |${userAuthenticationMessage(true)}""".stripMargin,
-        EmptyBody, EmptyBody,
+        s""" Delete Card Attribute Definition by ATTRIBUTE_DEFINITION_ID
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""",
+        EmptyBody,
+        EmptyBody,
         List($AuthenticatedUserIsRequired, $BankNotFound, UnknownError),
         List(apiTagCard, apiTagCardAttribute, apiTagAttribute),
         Some(List(canDeleteCardAttributeDefinitionAtOneBank)),
-        http4sPartialFunction = Some(deleteCardAttributeDefinition))
+        http4sPartialFunction = Some(deleteCardAttributeDefinition)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(deleteTransactionRequestAttributeDefinition), "DELETE",
+        null,
+        implementedInApiVersion,
+        nameOf(deleteTransactionRequestAttributeDefinition),
+        "DELETE",
         "/banks/BANK_ID/attribute-definitions/ATTRIBUTE_DEFINITION_ID/transaction-request",
         "Delete Transaction Request Attribute Definition",
-        s"""Delete Transaction Request Attribute Definition by ATTRIBUTE_DEFINITION_ID
-           |
-           |${userAuthenticationMessage(true)}""".stripMargin,
-        EmptyBody, Full(true),
+        s""" Delete Transaction Request Attribute Definition by ATTRIBUTE_DEFINITION_ID
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""",
+        EmptyBody,
+        Full(true),
         List($AuthenticatedUserIsRequired, $BankNotFound, UnknownError),
         List(apiTagTransactionRequest, apiTagTransactionRequestAttribute, apiTagAttribute),
         Some(List(canDeleteTransactionRequestAttributeDefinitionAtOneBank)),
-        http4sPartialFunction = Some(deleteTransactionRequestAttributeDefinition))
+        http4sPartialFunction = Some(deleteTransactionRequestAttributeDefinition)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(deleteUser), "DELETE",
+        null,
+        implementedInApiVersion,
+        nameOf(deleteUser),
+        "DELETE",
         "/users/USER_ID",
         "Delete a User",
         s"""Delete a User.
-           |
-           |${userAuthenticationMessage(true)}""".stripMargin,
-        EmptyBody, EmptyBody,
+        |
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""",
+        EmptyBody,
+        EmptyBody,
         List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
         List(apiTagUser),
         Some(List(canDeleteUser)),
-        http4sPartialFunction = Some(deleteUser))
+        http4sPartialFunction = Some(deleteUser)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(deleteUserCustomerLink), "DELETE",
+        null,
+        implementedInApiVersion,
+        nameOf(deleteUserCustomerLink),
+        "DELETE",
         "/banks/BANK_ID/user_customer_links/USER_CUSTOMER_LINK_ID",
         "Delete User Customer Link",
-        s"""Delete User Customer Link by USER_CUSTOMER_LINK_ID
-           |
-           |${userAuthenticationMessage(true)}""".stripMargin,
-        EmptyBody, EmptyBody,
+        s""" Delete User Customer Link by USER_CUSTOMER_LINK_ID
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""",
+        EmptyBody,
+        EmptyBody,
         List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
         List(apiTagCustomer),
         Some(List(canDeleteUserCustomerLink)),
-        http4sPartialFunction = Some(deleteUserCustomerLink))
+        http4sPartialFunction = Some(deleteUserCustomerLink)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(deleteTransactionCascade), "DELETE",
+        null,
+        implementedInApiVersion,
+        nameOf(deleteTransactionCascade),
+        "DELETE",
         "/management/cascading/banks/BANK_ID/accounts/ACCOUNT_ID/transactions/TRANSACTION_ID",
         "Delete Transaction Cascade",
         s"""Delete a Transaction Cascade specified by TRANSACTION_ID.
-           |
-           |${userAuthenticationMessage(true)}""".stripMargin,
-        EmptyBody, EmptyBody,
+        |
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""",
+        EmptyBody,
+        EmptyBody,
         List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UserHasMissingRoles, UnknownError),
         List(apiTagTransaction),
         Some(List(canDeleteTransactionCascade)),
-        http4sPartialFunction = Some(deleteTransactionCascade))
+        http4sPartialFunction = Some(deleteTransactionCascade)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(deleteAccountCascade), "DELETE",
+        null,
+        implementedInApiVersion,
+        nameOf(deleteAccountCascade),
+        "DELETE",
         "/management/cascading/banks/BANK_ID/accounts/ACCOUNT_ID",
         "Delete Account Cascade",
         s"""Delete an Account Cascade specified by ACCOUNT_ID.
-           |
-           |${userAuthenticationMessage(true)}""".stripMargin,
-        EmptyBody, EmptyBody,
+        |
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""",
+        EmptyBody,
+        EmptyBody,
         List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UserHasMissingRoles, UnknownError),
         List(apiTagAccount),
         Some(List(canDeleteAccountCascade)),
-        http4sPartialFunction = Some(deleteAccountCascade))
+        http4sPartialFunction = Some(deleteAccountCascade)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(deleteBankCascade), "DELETE",
+        null,
+        implementedInApiVersion,
+        nameOf(deleteBankCascade),
+        "DELETE",
         "/management/cascading/banks/BANK_ID",
         "Delete Bank Cascade",
         s"""Delete a Bank Cascade specified by BANK_ID.
-           |
-           |${userAuthenticationMessage(true)}""".stripMargin,
-        EmptyBody, EmptyBody,
+        |
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""",
+        EmptyBody,
+        EmptyBody,
         List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
         List(apiTagBank),
         Some(List(canDeleteBankCascade)),
-        http4sPartialFunction = Some(deleteBankCascade))
+        http4sPartialFunction = Some(deleteBankCascade)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(deleteProductCascade), "DELETE",
+        null,
+        implementedInApiVersion,
+        nameOf(deleteProductCascade),
+        "DELETE",
         "/management/cascading/banks/BANK_ID/products/PRODUCT_CODE",
         "Delete Product Cascade",
         s"""Delete a Product Cascade specified by PRODUCT_CODE.
-           |
-           |${userAuthenticationMessage(true)}""".stripMargin,
-        EmptyBody, EmptyBody,
+        |
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""",
+        EmptyBody,
+        EmptyBody,
         List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UserHasMissingRoles, UnknownError),
         List(apiTagProduct),
         Some(List(canDeleteProductCascade)),
-        http4sPartialFunction = Some(deleteProductCascade))
+        http4sPartialFunction = Some(deleteProductCascade)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(deleteCustomerCascade), "DELETE",
+        null,
+        implementedInApiVersion,
+        nameOf(deleteCustomerCascade),
+        "DELETE",
         "/management/cascading/banks/BANK_ID/customers/CUSTOMER_ID",
         "Delete Customer Cascade",
         s"""Delete a Customer Cascade specified by CUSTOMER_ID.
-           |
-           |${userAuthenticationMessage(true)}""".stripMargin,
-        EmptyBody, EmptyBody,
+        |
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""",
+        EmptyBody,
+        EmptyBody,
         List($AuthenticatedUserIsRequired, $BankNotFound, CustomerNotFoundByCustomerId, UserHasMissingRoles, UnknownError),
         List(apiTagCustomer),
         Some(List(canDeleteCustomerCascade)),
-        http4sPartialFunction = Some(deleteCustomerCascade))
+        http4sPartialFunction = Some(deleteCustomerCascade)
+      )
 
       staticResourceDocs += ResourceDoc(
         null, implementedInApiVersion, nameOf(deleteSystemLevelEndpointTag), "DELETE",
@@ -5793,52 +7849,91 @@ object Http4s400 {
         http4sPartialFunction = Some(deleteBankLevelEndpointTag))
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(deleteAuthenticationTypeValidation), "DELETE",
+        null,
+        implementedInApiVersion,
+        nameOf(deleteAuthenticationTypeValidation),
+        "DELETE",
         "/management/authentication-type-validations/OPERATION_ID",
         "Delete an Authentication Type Validation",
-        s"""Delete an Authentication Type Validation by operation_id.""",
-        EmptyBody, BooleanBody(true),
+        s"""Delete an Authentication Type Validation by operation_id.
+        |
+        |""",
+        EmptyBody,
+        BooleanBody(true),
         List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
         List(apiTagAuthenticationTypeValidation),
         Some(List(canDeleteAuthenticationValidation)),
-        http4sPartialFunction = Some(deleteAuthenticationTypeValidation))
+        http4sPartialFunction = Some(deleteAuthenticationTypeValidation)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(deleteJsonSchemaValidation), "DELETE",
+        null,
+        implementedInApiVersion,
+        nameOf(deleteJsonSchemaValidation),
+        "DELETE",
         "/management/json-schema-validations/OPERATION_ID",
         "Delete a JSON Schema Validation",
-        s"""Delete a JSON Schema Validation by operation_id.""",
-        EmptyBody, BooleanBody(true),
+        s"""Delete a JSON Schema Validation by operation_id.
+        |
+        |""",
+        EmptyBody,
+        BooleanBody(true),
         List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
         List(apiTagJsonSchemaValidation),
         Some(List(canDeleteJsonSchemaValidation)),
-        http4sPartialFunction = Some(deleteJsonSchemaValidation))
+        http4sPartialFunction = Some(deleteJsonSchemaValidation)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(deleteCustomerAttribute), "DELETE",
+        null,
+        implementedInApiVersion,
+        nameOf(deleteCustomerAttribute),
+        "DELETE",
         "/banks/BANK_ID/customers/attributes/CUSTOMER_ATTRIBUTE_ID",
         "Delete Customer Attribute",
-        s"""Delete Customer Attribute.
-           |
-           |${userAuthenticationMessage(true)}""".stripMargin,
-        EmptyBody, EmptyBody,
-        List(UserHasMissingRoles, UnknownError),
+        s""" Delete Customer Attribute
+        |
+        |$customerAttributeGeneralInfo
+        |
+        |Delete a Customer Attribute by its id.
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""",
+        EmptyBody,
+        EmptyBody,
+        List(
+          $AuthenticatedUserIsRequired,
+          $BankNotFound,
+          UserHasMissingRoles,
+          UnknownError
+        ),
         List(apiTagCustomer, apiTagCustomerAttribute, apiTagAttribute),
         Some(List(canDeleteCustomerAttributeAtOneBank, canDeleteCustomerAttributeAtAnyBank)),
-        http4sPartialFunction = Some(deleteCustomerAttribute))
+        http4sPartialFunction = Some(deleteCustomerAttribute)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(deleteBankAttribute), "DELETE",
+        null,
+        implementedInApiVersion,
+        nameOf(deleteBankAttribute),
+        "DELETE",
         "/banks/BANK_ID/attributes/BANK_ATTRIBUTE_ID",
         "Delete Bank Attribute",
-        s"""Delete Bank Attribute.
-           |
-           |${userAuthenticationMessage(true)}""".stripMargin,
-        EmptyBody, EmptyBody,
+        s""" Delete Bank Attribute
+        |
+        |Delete a Bank Attribute by its id.
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""",
+        EmptyBody,
+        EmptyBody,
         List(UserHasMissingRoles, BankNotFound, UnknownError),
         List(apiTagBank, apiTagBankAttribute, apiTagAttribute),
         Some(List(canDeleteBankAttribute)),
-        http4sPartialFunction = Some(deleteBankAttribute))
+        http4sPartialFunction = Some(deleteBankAttribute)
+      )
 
       staticResourceDocs += ResourceDoc(
         null, implementedInApiVersion, nameOf(deleteAtm), "DELETE",
@@ -5846,43 +7941,74 @@ object Http4s400 {
         "Delete ATM",
         s"""Delete ATM.""",
         EmptyBody, EmptyBody,
-        List(UserHasMissingRoles, UnknownError),
+        List(
+          $AuthenticatedUserIsRequired,
+          UnknownError
+        ),
         List(apiTagATM),
         Some(List(canDeleteAtm, canDeleteAtmAtAnyBank)),
         http4sPartialFunction = Some(deleteAtm))
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(deleteProductFee), "DELETE",
+        null,
+        implementedInApiVersion,
+        nameOf(deleteProductFee),
+        "DELETE",
         "/banks/BANK_ID/products/PRODUCT_CODE/fees/PRODUCT_FEE_ID",
         "Delete Product Fee",
-        s"""Delete Product Fee.""",
-        EmptyBody, EmptyBody,
-        List(UserHasMissingRoles, UnknownError),
+        s"""Delete Product Fee
+        |
+        |Delete one product fee by its id.
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""",
+        EmptyBody,
+        BooleanBody(true),
+        List(
+          $AuthenticatedUserIsRequired,
+          $BankNotFound,
+          UserHasMissingRoles,
+          UnknownError
+        ),
         List(apiTagProduct),
         Some(List(canDeleteProductFee)),
-        http4sPartialFunction = Some(deleteProductFee))
+        http4sPartialFunction = Some(deleteProductFee)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(deleteEndpointMapping), "DELETE",
+        null,
+        implementedInApiVersion,
+        nameOf(deleteEndpointMapping),
+        "DELETE",
         "/management/endpoint-mappings/ENDPOINT_MAPPING_ID",
         "Delete Endpoint Mapping",
-        s"""Delete a Endpoint Mapping.""",
-        EmptyBody, BooleanBody(true),
+        s"""Delete a Endpoint Mapping.
+        |""",
+        EmptyBody,
+        BooleanBody(true),
         List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
         List(apiTagEndpointMapping),
         Some(List(canDeleteEndpointMapping)),
-        http4sPartialFunction = Some(deleteEndpointMapping))
+        http4sPartialFunction = Some(deleteEndpointMapping)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(deleteBankLevelEndpointMapping), "DELETE",
+        null,
+        implementedInApiVersion,
+        nameOf(deleteBankLevelEndpointMapping),
+        "DELETE",
         "/management/banks/BANK_ID/endpoint-mappings/ENDPOINT_MAPPING_ID",
         "Delete Bank Level Endpoint Mapping",
-        s"""Delete a Bank Level Endpoint Mapping.""",
-        EmptyBody, BooleanBody(true),
+        s"""Delete a Bank Level Endpoint Mapping.
+        |""",
+        EmptyBody,
+        BooleanBody(true),
         List($BankNotFound, $AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
         List(apiTagEndpointMapping),
         Some(List(canDeleteBankLevelEndpointMapping, canDeleteEndpointMapping)),
-        http4sPartialFunction = Some(deleteBankLevelEndpointMapping))
+        http4sPartialFunction = Some(deleteBankLevelEndpointMapping)
+      )
     }
     initBatch3ResourceDocs()
 
@@ -6106,339 +8232,525 @@ object Http4s400 {
 
     private def initBatch2ResourceDocs(): Unit = {
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getEntitlementsForBank), "GET",
+        null,
+        implementedInApiVersion,
+        nameOf(getEntitlementsForBank),
+        "GET",
         "/banks/BANK_ID/entitlements",
         "Get Entitlements for One Bank",
-        s"""${userAuthenticationMessage(true)}""".stripMargin,
-        EmptyBody, entitlementsJsonV400,
-        List($AuthenticatedUserIsRequired, BankNotFound, UserHasMissingRoles, UnknownError),
-        List(apiTagRole, apiTagEntitlement, apiTagUser, apiTagBank),
-        Some(List(canGetEntitlementsForOneBank, canGetEntitlementsForAnyBank)),
-        http4sPartialFunction = Some(getEntitlementsForBank))
-
-      staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getMyPersonalUserAttributes), "GET",
-        "/my/user/attributes",
-        "Get my personal User Attributes",
-        s"""Get my personal User Attributes
+        s"""
            |
-           |${userAuthenticationMessage(true)}""".stripMargin,
-        EmptyBody, userAttributesResponseJson,
-        List($AuthenticatedUserIsRequired, UnknownError),
-        List(apiTagUser), None,
-        http4sPartialFunction = Some(getMyPersonalUserAttributes))
+        """.stripMargin,
+        EmptyBody,
+        entitlementsJsonV400,
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+        List(apiTagRole, apiTagEntitlement, apiTagUser),
+        Some(List(canGetEntitlementsForOneBank, canGetEntitlementsForAnyBank)),
+        http4sPartialFunction = Some(getEntitlementsForBank)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getUserWithAttributes), "GET",
+        null,
+        implementedInApiVersion,
+        nameOf(getMyPersonalUserAttributes),
+        "GET",
+        "/my/user/attributes",
+        "Get My Personal User Attributes",
+        s"""Get My Personal User Attributes.
+        |
+        |${userAuthenticationMessage(true)}
+        |""".stripMargin,
+        EmptyBody,
+        userAttributesResponseJson,
+        List($AuthenticatedUserIsRequired, UnknownError),
+        List(apiTagUser),
+        None,
+        http4sPartialFunction = Some(getMyPersonalUserAttributes)
+      )
+
+      staticResourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getUserWithAttributes),
+        "GET",
         "/users/USER_ID/attributes",
         "Get User with Attributes by USER_ID",
         s"""Get User Attributes for the user defined via USER_ID.
-           |
-           |${userAuthenticationMessage(true)}""".stripMargin,
-        EmptyBody, userWithAttributesResponseJson,
+        |
+        |${userAuthenticationMessage(true)}
+        |""".stripMargin,
+        EmptyBody,
+        userWithAttributesResponseJson,
         List($AuthenticatedUserIsRequired, UnknownError),
         List(apiTagUser),
         Some(canGetUsersWithAttributes :: Nil),
-        http4sPartialFunction = Some(getUserWithAttributes))
+        http4sPartialFunction = Some(getUserWithAttributes)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getCustomerAttributes), "GET",
+        null,
+        implementedInApiVersion,
+        nameOf(getCustomerAttributes),
+        "GET",
         "/banks/BANK_ID/customers/CUSTOMER_ID/attributes",
         "Get Customer Attributes",
-        s"""Get Customer Attributes
-           |
-           |${userAuthenticationMessage(true)}""".stripMargin,
-        EmptyBody, customerAttributesResponseJson,
+        s""" Get Customer Attributes
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""",
+        EmptyBody,
+        customerAttributesResponseJson,
         List($AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat, UnknownError),
         List(apiTagCustomer, apiTagCustomerAttribute, apiTagAttribute),
         Some(List(canGetCustomerAttributesAtOneBank, canGetCustomerAttributesAtAnyBank)),
-        http4sPartialFunction = Some(getCustomerAttributes))
+        http4sPartialFunction = Some(getCustomerAttributes)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getCustomerAttributeById), "GET",
+        null,
+        implementedInApiVersion,
+        nameOf(getCustomerAttributeById),
+        "GET",
         "/banks/BANK_ID/customers/CUSTOMER_ID/attributes/ATTRIBUTE_ID",
         "Get Customer Attribute By Id",
-        s"""Get Customer Attribute By Id
-           |
-           |${userAuthenticationMessage(true)}""".stripMargin,
-        EmptyBody, customerAttributeResponseJson,
+        s""" Get Customer Attribute By Id
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""",
+        EmptyBody,
+        customerAttributeResponseJson,
         List($AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat, UnknownError),
         List(apiTagCustomer, apiTagCustomerAttribute, apiTagAttribute),
         Some(List(canGetCustomerAttributeAtOneBank, canGetCustomerAttributeAtAnyBank)),
-        http4sPartialFunction = Some(getCustomerAttributeById))
+        http4sPartialFunction = Some(getCustomerAttributeById)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getProductAttributeDefinition), "GET",
+        null,
+        implementedInApiVersion,
+        nameOf(getProductAttributeDefinition),
+        "GET",
         "/banks/BANK_ID/attribute-definitions/product",
         "Get Product Attribute Definition",
-        s"""Get Product Attribute Definition
-           |
-           |${userAuthenticationMessage(true)}""".stripMargin,
-        EmptyBody, productAttributeDefinitionsResponseJsonV400,
+        s""" Get Product Attribute Definition
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""",
+        EmptyBody,
+        productAttributeDefinitionsResponseJsonV400,
         List($AuthenticatedUserIsRequired, $BankNotFound, UnknownError),
         List(apiTagProduct, apiTagProductAttribute, apiTagAttribute),
         Some(List(canGetProductAttributeDefinitionAtOneBank)),
-        http4sPartialFunction = Some(getProductAttributeDefinition))
+        http4sPartialFunction = Some(getProductAttributeDefinition)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getCustomerAttributeDefinition), "GET",
+        null,
+        implementedInApiVersion,
+        nameOf(getCustomerAttributeDefinition),
+        "GET",
         "/banks/BANK_ID/attribute-definitions/customer",
         "Get Customer Attribute Definition",
-        s"""Get Customer Attribute Definition
-           |
-           |${userAuthenticationMessage(true)}""".stripMargin,
-        EmptyBody, customerAttributeDefinitionsResponseJsonV400,
+        s""" Get Customer Attribute Definition
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""",
+        EmptyBody,
+        customerAttributeDefinitionsResponseJsonV400,
         List($AuthenticatedUserIsRequired, $BankNotFound, UnknownError),
         List(apiTagCustomer, apiTagCustomerAttribute, apiTagAttribute),
         Some(List(canGetCustomerAttributeDefinitionAtOneBank)),
-        http4sPartialFunction = Some(getCustomerAttributeDefinition))
+        http4sPartialFunction = Some(getCustomerAttributeDefinition)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getAccountAttributeDefinition), "GET",
+        null,
+        implementedInApiVersion,
+        nameOf(getAccountAttributeDefinition),
+        "GET",
         "/banks/BANK_ID/attribute-definitions/account",
         "Get Account Attribute Definition",
-        s"""Get Account Attribute Definition
-           |
-           |${userAuthenticationMessage(true)}""".stripMargin,
-        EmptyBody, accountAttributeDefinitionsResponseJsonV400,
+        s""" Get Account Attribute Definition
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""",
+        EmptyBody,
+        accountAttributeDefinitionsResponseJsonV400,
         List($AuthenticatedUserIsRequired, $BankNotFound, UnknownError),
         List(apiTagAccount, apiTagAccountAttribute, apiTagAttribute),
         Some(List(canGetAccountAttributeDefinitionAtOneBank)),
-        http4sPartialFunction = Some(getAccountAttributeDefinition))
+        http4sPartialFunction = Some(getAccountAttributeDefinition)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getTransactionAttributeDefinition), "GET",
+        null,
+        implementedInApiVersion,
+        nameOf(getTransactionAttributeDefinition),
+        "GET",
         "/banks/BANK_ID/attribute-definitions/transaction",
         "Get Transaction Attribute Definition",
-        s"""Get Transaction Attribute Definition
-           |
-           |${userAuthenticationMessage(true)}""".stripMargin,
-        EmptyBody, transactionAttributeDefinitionsResponseJsonV400,
+        s""" Get Transaction Attribute Definition
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""",
+        EmptyBody,
+        transactionAttributeDefinitionsResponseJsonV400,
         List($AuthenticatedUserIsRequired, $BankNotFound, UnknownError),
         List(apiTagTransaction, apiTagTransactionAttribute, apiTagAttribute),
         Some(List(canGetTransactionAttributeDefinitionAtOneBank)),
-        http4sPartialFunction = Some(getTransactionAttributeDefinition))
+        http4sPartialFunction = Some(getTransactionAttributeDefinition)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getCardAttributeDefinition), "GET",
+        null,
+        implementedInApiVersion,
+        nameOf(getCardAttributeDefinition),
+        "GET",
         "/banks/BANK_ID/attribute-definitions/card",
         "Get Card Attribute Definition",
-        s"""Get Card Attribute Definition
-           |
-           |${userAuthenticationMessage(true)}""".stripMargin,
-        EmptyBody, cardAttributeDefinitionsResponseJsonV400,
+        s""" Get Card Attribute Definition
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""",
+        EmptyBody,
+        cardAttributeDefinitionsResponseJsonV400,
         List($AuthenticatedUserIsRequired, $BankNotFound, UnknownError),
         List(apiTagCard, apiTagCardAttribute, apiTagAttribute),
         Some(List(canGetCardAttributeDefinitionAtOneBank)),
-        http4sPartialFunction = Some(getCardAttributeDefinition))
+        http4sPartialFunction = Some(getCardAttributeDefinition)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getJsonSchemaValidation), "GET",
+        null,
+        implementedInApiVersion,
+        nameOf(getJsonSchemaValidation),
+        "GET",
         "/management/json-schema-validations/OPERATION_ID",
         "Get a JSON Schema Validation",
-        s"""Get a JSON Schema Validation by operation_id.""",
-        EmptyBody, responseJsonSchema,
+        s"""Get a JSON Schema Validation by operation_id.
+        |
+        |""",
+        EmptyBody,
+        responseJsonSchema,
         List(InvalidJsonFormat, UnknownError),
         List(apiTagJsonSchemaValidation),
         Some(List(canGetJsonSchemaValidation)),
-        http4sPartialFunction = Some(getJsonSchemaValidation))
+        http4sPartialFunction = Some(getJsonSchemaValidation)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getAllJsonSchemaValidations), "GET",
+        null,
+        implementedInApiVersion,
+        nameOf(getAllJsonSchemaValidations),
+        "GET",
         "/management/json-schema-validations",
         "Get all JSON Schema Validations",
-        s"""Get all JSON Schema Validations.""",
+        s"""Get all JSON Schema Validations.
+        |
+        |""",
         EmptyBody,
-        com.openbankproject.commons.model.ListResult("json_schema_validations", responseJsonSchema :: Nil),
+        ListResult("json_schema_validations", responseJsonSchema :: Nil),
         List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
         List(apiTagJsonSchemaValidation),
         Some(List(canGetJsonSchemaValidation)),
-        http4sPartialFunction = Some(getAllJsonSchemaValidations))
+        http4sPartialFunction = Some(getAllJsonSchemaValidations)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getAuthenticationTypeValidation), "GET",
+        null,
+        implementedInApiVersion,
+        nameOf(getAuthenticationTypeValidation),
+        "GET",
         "/management/authentication-type-validations/OPERATION_ID",
         "Get an Authentication Type Validation",
-        s"""Get an Authentication Type Validation by operation_id.""",
-        EmptyBody, JsonAuthTypeValidation("OBPv4.0.0-updateXxx", List.empty),
+        s"""Get an Authentication Type Validation by operation_id.
+        |
+        |""",
+        EmptyBody,
+        JsonAuthTypeValidation("OBPv4.0.0-updateXxx", allowedAuthTypes),
         List(InvalidJsonFormat, UnknownError),
         List(apiTagAuthenticationTypeValidation),
         Some(List(canGetAuthenticationTypeValidation)),
-        http4sPartialFunction = Some(getAuthenticationTypeValidation))
+        http4sPartialFunction = Some(getAuthenticationTypeValidation)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getAllAuthenticationTypeValidations), "GET",
+        null,
+        implementedInApiVersion,
+        nameOf(getAllAuthenticationTypeValidations),
+        "GET",
         "/management/authentication-type-validations",
         "Get all Authentication Type Validations",
-        s"""Get all Authentication Type Validations.""",
+        s"""Get all Authentication Type Validations.
+        |
+        |""",
         EmptyBody,
-        com.openbankproject.commons.model.ListResult(
+        ListResult(
           "authentication_types_validations",
-          List(JsonAuthTypeValidation("OBPv4.0.0-updateXxx", List.empty))),
+          List(JsonAuthTypeValidation("OBPv4.0.0-updateXxx", allowedAuthTypes))
+        ),
         List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
         List(apiTagAuthenticationTypeValidation),
         Some(List(canGetAuthenticationTypeValidation)),
-        http4sPartialFunction = Some(getAllAuthenticationTypeValidations))
+        http4sPartialFunction = Some(getAllAuthenticationTypeValidations)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getConnectorMethod), "GET",
+        null,
+        implementedInApiVersion,
+        nameOf(getConnectorMethod),
+        "GET",
         "/management/connector-methods/CONNECTOR_METHOD_ID",
         "Get Connector Method by Id",
-        s"""Get an internal connector by CONNECTOR_METHOD_ID.""",
-        EmptyBody, jsonScalaConnectorMethod,
+        s"""Get an internal connector by CONNECTOR_METHOD_ID.
+        |
+        |""",
+        EmptyBody,
+        jsonScalaConnectorMethod,
         List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
         List(apiTagConnectorMethod),
         Some(List(canGetConnectorMethod)),
-        http4sPartialFunction = Some(getConnectorMethod))
+        http4sPartialFunction = Some(getConnectorMethod)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getAllConnectorMethods), "GET",
+        null,
+        implementedInApiVersion,
+        nameOf(getAllConnectorMethods),
+        "GET",
         "/management/connector-methods",
         "Get all Connector Methods",
-        s"""Get all Connector Methods.""",
+        s"""Get all Connector Methods.
+        |
+        |""",
         EmptyBody,
-        com.openbankproject.commons.model.ListResult("connectors_methods", jsonScalaConnectorMethod :: Nil),
+        ListResult("connectors_methods", jsonScalaConnectorMethod :: Nil),
         List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
         List(apiTagConnectorMethod),
         Some(List(canGetAllConnectorMethods)),
-        http4sPartialFunction = Some(getAllConnectorMethods))
+        http4sPartialFunction = Some(getAllConnectorMethods)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getUserCustomerLinksByUserId), "GET",
+        null,
+        implementedInApiVersion,
+        nameOf(getUserCustomerLinksByUserId),
+        "GET",
         "/banks/BANK_ID/user_customer_links/users/USER_ID",
         "Get User Customer Links by User",
-        s"""Get User Customer Links by USER_ID
-           |
-           |${userAuthenticationMessage(true)}""".stripMargin,
-        EmptyBody, userCustomerLinksJson,
+        s""" Get User Customer Links by USER_ID
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""",
+        EmptyBody,
+        userCustomerLinksJson,
         List($AuthenticatedUserIsRequired, $BankNotFound, UnknownError),
         List(apiTagCustomer),
         Some(List(canGetUserCustomerLink)),
-        http4sPartialFunction = Some(getUserCustomerLinksByUserId))
+        http4sPartialFunction = Some(getUserCustomerLinksByUserId)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getUserCustomerLinksByCustomerId), "GET",
+        null,
+        implementedInApiVersion,
+        nameOf(getUserCustomerLinksByCustomerId),
+        "GET",
         "/banks/BANK_ID/user_customer_links/customers/CUSTOMER_ID",
         "Get User Customer Links by Customer",
-        s"""Get User Customer Links by CUSTOMER_ID
-           |
-           |${userAuthenticationMessage(true)}""".stripMargin,
-        EmptyBody, userCustomerLinksJson,
+        s""" Get User Customer Links by CUSTOMER_ID
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""",
+        EmptyBody,
+        userCustomerLinksJson,
         List($AuthenticatedUserIsRequired, $BankNotFound, UnknownError),
         List(apiTagCustomer),
         Some(List(canGetUserCustomerLink)),
-        http4sPartialFunction = Some(getUserCustomerLinksByCustomerId))
+        http4sPartialFunction = Some(getUserCustomerLinksByCustomerId)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getCustomerMessages), "GET",
+        null,
+        implementedInApiVersion,
+        nameOf(getCustomerMessages),
+        "GET",
         "/banks/BANK_ID/customers/CUSTOMER_ID/messages",
-        "Get Messages for Customer",
-        s"""Get messages for the logged in customer
-           |
-           |${userAuthenticationMessage(true)}""".stripMargin,
-        EmptyBody, customerMessagesJson,
-        List($AuthenticatedUserIsRequired, $BankNotFound, UnknownError),
+        "Get Customer Messages for a Customer",
+        s"""Get messages for the customer specified by CUSTOMER_ID
+         ${userAuthenticationMessage(true)}
+        """,
+        EmptyBody,
+        customerMessagesJsonV400,
+        List(AuthenticatedUserIsRequired, $BankNotFound, UnknownError),
         List(apiTagMessage, apiTagCustomer),
         Some(List(canGetCustomerMessages)),
-        http4sPartialFunction = Some(getCustomerMessages))
+        http4sPartialFunction = Some(getCustomerMessages)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(createCustomerMessage), "POST",
+        null,
+        implementedInApiVersion,
+        nameOf(createCustomerMessage),
+        "POST",
         "/banks/BANK_ID/customers/CUSTOMER_ID/messages",
         "Create Customer Message",
-        s"""Create a message for the customer specified by CUSTOMER_ID
-           |${userAuthenticationMessage(true)}""".stripMargin,
-        createMessageJsonV400, successMessage,
-        List($AuthenticatedUserIsRequired, $BankNotFound),
+        s"""
+        |Create a message for the customer specified by CUSTOMER_ID
+        |${userAuthenticationMessage(true)}
+        |
+        |""".stripMargin,
+        createMessageJsonV400,
+        successMessage,
+        List(
+          AuthenticatedUserIsRequired,
+          $BankNotFound
+        ),
         List(apiTagMessage, apiTagCustomer, apiTagPerson),
         Some(List(canCreateCustomerMessage)),
-        http4sPartialFunction = Some(createCustomerMessage))
+        http4sPartialFunction = Some(createCustomerMessage)
+      )
     }
     initBatch2ResourceDocs()
 
     private def initBatch1ResourceDocs(): Unit = {
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getCallContext), "GET",
+        null,
+        implementedInApiVersion,
+        nameOf(getCallContext),
+        "GET",
         "/development/call_context",
         "Get the Call Context of a current call",
-        s"""Get the Call Context of the current call.""",
-        EmptyBody, EmptyBody,
+        s"""Get the Call Context of the current call.
+           |
+        """.stripMargin,
+        EmptyBody,
+        EmptyBody,
         List($AuthenticatedUserIsRequired, UnknownError),
         List(apiTagApi),
         Some(List(canGetCallContext)),
-        http4sPartialFunction = Some(getCallContext))
+        http4sPartialFunction = Some(getCallContext)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(verifyRequestSignResponse), "GET",
+        null,
+        implementedInApiVersion,
+        nameOf(verifyRequestSignResponse),
+        "GET",
         "/development/echo/jws-verified-request-jws-signed-response",
         "Verify Request and Sign Response of a current call",
-        s"""Verify Request and Sign Response of a current call.""",
-        EmptyBody, EmptyBody,
+        s"""Verify Request and Sign Response of a current call.
+           |
+        """.stripMargin,
+        EmptyBody,
+        EmptyBody,
         List($AuthenticatedUserIsRequired, UnknownError),
         List(apiTagApi),
         Some(Nil),
-        http4sPartialFunction = Some(verifyRequestSignResponse))
+        http4sPartialFunction = Some(verifyRequestSignResponse)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getCurrentUserId), "GET",
+        null,
+        implementedInApiVersion,
+        nameOf(getCurrentUserId),
+        "GET",
         "/users/current/user_id",
         "Get User Id (Current)",
         s"""Get the USER_ID of the logged in user
            |
-           |${userAuthenticationMessage(true)}""".stripMargin,
-        EmptyBody, userIdJsonV400,
+           |${userAuthenticationMessage(true)}
+        """.stripMargin,
+        EmptyBody,
+        userIdJsonV400,
         List(AuthenticatedUserIsRequired, UnknownError),
-        List(apiTagUser), None,
-        http4sPartialFunction = Some(getCurrentUserId))
+        List(apiTagUser),
+        None,
+        http4sPartialFunction = Some(getCurrentUserId)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getScannedApiVersions), "GET",
+        null,
+        implementedInApiVersion,
+        nameOf(getScannedApiVersions),
+        "GET",
         "/api/versions",
         "Get scanned API Versions",
         s"""Get all the scanned API Versions.""",
         EmptyBody,
-        com.openbankproject.commons.model.ListResult("scanned_api_versions",
-          List(net.liftweb.json.Extraction.decompose(ApiVersion.v3_1_0))),
+        ListResult(
+          "scanned_api_versions",
+          List(Extraction.decompose(ApiVersion.v3_1_0))
+        ),
         List(UnknownError),
         List(apiTagDocumentation, apiTagApi),
         Some(Nil),
-        http4sPartialFunction = Some(getScannedApiVersions))
+        http4sPartialFunction = Some(getScannedApiVersions)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getMySpaces), "GET",
+        null,
+        implementedInApiVersion,
+        nameOf(getMySpaces),
+        "GET",
         "/my/spaces",
         "Get My Spaces",
         s"""Get My Spaces.""",
-        EmptyBody, code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.mySpaces,
+        EmptyBody,
+        mySpaces,
         List($AuthenticatedUserIsRequired, UnknownError),
-        List(apiTagUser), None,
-        http4sPartialFunction = Some(getMySpaces))
+        List(apiTagUser),
+        None,
+        http4sPartialFunction = Some(getMySpaces)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getBankAttributes), "GET",
+        null,
+        implementedInApiVersion,
+        nameOf(getBankAttributes),
+        "GET",
         "/banks/BANK_ID/attributes",
         "Get Bank Attributes",
-        s"""Get Bank Attributes
-           |
-           |${userAuthenticationMessage(true)}""".stripMargin,
-        EmptyBody, bankAttributesResponseJsonV400,
+        s""" Get Bank Attributes
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""",
+        EmptyBody,
+        bankAttributesResponseJsonV400,
         List($AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat, UnknownError),
         List(apiTagBank, apiTagBankAttribute, apiTagAttribute),
         Some(List(canGetBankAttribute)),
-        http4sPartialFunction = Some(getBankAttributes))
+        http4sPartialFunction = Some(getBankAttributes)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getBankAttribute), "GET",
+        null,
+        implementedInApiVersion,
+        nameOf(getBankAttribute),
+        "GET",
         "/banks/BANK_ID/attributes/BANK_ATTRIBUTE_ID",
         "Get Bank Attribute By BANK_ATTRIBUTE_ID",
-        s"""Get Bank Attribute By BANK_ATTRIBUTE_ID
-           |
-           |${userAuthenticationMessage(true)}""".stripMargin,
-        EmptyBody, bankAttributeResponseJsonV400,
+        s""" Get Bank Attribute By BANK_ATTRIBUTE_ID
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""",
+        EmptyBody,
+        bankAttributeResponseJsonV400,
         List($AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat, UnknownError),
         List(apiTagBank, apiTagBankAttribute, apiTagAttribute),
         Some(List(canGetBankAttribute)),
-        http4sPartialFunction = Some(getBankAttribute))
+        http4sPartialFunction = Some(getBankAttribute)
+      )
 
       staticResourceDocs += ResourceDoc(
         null, implementedInApiVersion, nameOf(getSystemLevelEndpointTags), "GET",
@@ -6463,50 +8775,82 @@ object Http4s400 {
         http4sPartialFunction = Some(getBankLevelEndpointTags))
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getEndpointMapping), "GET",
+        null,
+        implementedInApiVersion,
+        nameOf(getEndpointMapping),
+        "GET",
         "/management/endpoint-mappings/ENDPOINT_MAPPING_ID",
         "Get Endpoint Mapping by Id",
-        s"""Get an Endpoint Mapping by ENDPOINT_MAPPING_ID.""",
-        EmptyBody, endpointMappingResponseBodyExample,
+        s"""Get an Endpoint Mapping by ENDPOINT_MAPPING_ID.
+        |
+        |""",
+        EmptyBody,
+        endpointMappingResponseBodyExample,
         List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
         List(apiTagEndpointMapping),
         Some(List(canGetEndpointMapping)),
-        http4sPartialFunction = Some(getEndpointMapping))
+        http4sPartialFunction = Some(getEndpointMapping)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getBankLevelEndpointMapping), "GET",
+        null,
+        implementedInApiVersion,
+        nameOf(getBankLevelEndpointMapping),
+        "GET",
         "/management/banks/BANK_ID/endpoint-mappings/ENDPOINT_MAPPING_ID",
         "Get Bank Level Endpoint Mapping",
-        s"""Get an Bank Level Endpoint Mapping by ENDPOINT_MAPPING_ID.""",
-        EmptyBody, endpointMappingResponseBodyExample,
+        s"""Get an Bank Level Endpoint Mapping by ENDPOINT_MAPPING_ID.
+        |
+        |""",
+        EmptyBody,
+        endpointMappingResponseBodyExample,
         List($BankNotFound, $AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
         List(apiTagEndpointMapping),
         Some(List(canGetBankLevelEndpointMapping, canGetEndpointMapping)),
-        http4sPartialFunction = Some(getBankLevelEndpointMapping))
+        http4sPartialFunction = Some(getBankLevelEndpointMapping)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getAllEndpointMappings), "GET",
+        null,
+        implementedInApiVersion,
+        nameOf(getAllEndpointMappings),
+        "GET",
         "/management/endpoint-mappings",
         "Get all Endpoint Mappings",
-        s"""Get all Endpoint Mappings.""",
+        s"""Get all Endpoint Mappings.
+        |
+        |""",
         EmptyBody,
-        com.openbankproject.commons.model.ListResult("endpoint-mappings", endpointMappingResponseBodyExample :: Nil),
+        ListResult(
+          "endpoint-mappings",
+          endpointMappingResponseBodyExample :: Nil
+        ),
         List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
         List(apiTagEndpointMapping),
         Some(List(canGetAllEndpointMappings)),
-        http4sPartialFunction = Some(getAllEndpointMappings))
+        http4sPartialFunction = Some(getAllEndpointMappings)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getAllBankLevelEndpointMappings), "GET",
+        null,
+        implementedInApiVersion,
+        nameOf(getAllBankLevelEndpointMappings),
+        "GET",
         "/management/banks/BANK_ID/endpoint-mappings",
         "Get all Bank Level Endpoint Mappings",
-        s"""Get all Bank Level Endpoint Mappings.""",
+        s"""Get all Bank Level Endpoint Mappings.
+        |
+        |""",
         EmptyBody,
-        com.openbankproject.commons.model.ListResult("endpoint-mappings", endpointMappingResponseBodyExample :: Nil),
+        ListResult(
+          "endpoint-mappings",
+          endpointMappingResponseBodyExample :: Nil
+        ),
         List($BankNotFound, $AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
         List(apiTagEndpointMapping),
         Some(List(canGetAllBankLevelEndpointMappings, canGetAllEndpointMappings)),
-        http4sPartialFunction = Some(getAllBankLevelEndpointMappings))
+        http4sPartialFunction = Some(getAllBankLevelEndpointMappings)
+      )
     }
     initBatch1ResourceDocs()
 
@@ -6588,54 +8932,76 @@ object Http4s400 {
 
     private def initBatch13ResourceDocs(): Unit = {
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(createEndpointMapping), "POST",
+        null,
+        implementedInApiVersion,
+        nameOf(createEndpointMapping),
+        "POST",
         "/management/endpoint-mappings",
         "Create Endpoint Mapping",
         s"""Create an Endpoint Mapping.
-           |
-           |Note: at moment only support the dynamic endpoints
-           |""",
-        endpointMappingRequestBodyExample, endpointMappingResponseBodyExample,
+        |
+        |Note: at moment only support the dynamic endpoints
+        |""",
+        endpointMappingRequestBodyExample,
+        endpointMappingResponseBodyExample,
         List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
         List(apiTagEndpointMapping),
         Some(List(canCreateEndpointMapping)),
-        http4sPartialFunction = Some(createEndpointMapping))
+        http4sPartialFunction = Some(createEndpointMapping)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(updateEndpointMapping), "PUT",
+        null,
+        implementedInApiVersion,
+        nameOf(updateEndpointMapping),
+        "PUT",
         "/management/endpoint-mappings/ENDPOINT_MAPPING_ID",
         "Update Endpoint Mapping",
-        s"""Update an Endpoint Mapping.""",
-        endpointMappingRequestBodyExample, endpointMappingResponseBodyExample,
+        s"""Update an Endpoint Mapping.
+        |""",
+        endpointMappingRequestBodyExample,
+        endpointMappingResponseBodyExample,
         List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
         List(apiTagEndpointMapping),
         Some(List(canUpdateEndpointMapping)),
-        http4sPartialFunction = Some(updateEndpointMapping))
+        http4sPartialFunction = Some(updateEndpointMapping)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(createBankLevelEndpointMapping), "POST",
+        null,
+        implementedInApiVersion,
+        nameOf(createBankLevelEndpointMapping),
+        "POST",
         "/management/banks/BANK_ID/endpoint-mappings",
         "Create Bank Level Endpoint Mapping",
         s"""Create an Bank Level Endpoint Mapping.
-           |
-           |Note: at moment only support the dynamic endpoints
-           |""",
-        endpointMappingRequestBodyExample, endpointMappingResponseBodyExample,
+        |
+        |Note: at moment only support the dynamic endpoints
+        |""",
+        endpointMappingRequestBodyExample,
+        endpointMappingResponseBodyExample,
         List($BankNotFound, $AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
         List(apiTagEndpointMapping),
         Some(List(canCreateBankLevelEndpointMapping, canCreateEndpointMapping)),
-        http4sPartialFunction = Some(createBankLevelEndpointMapping))
+        http4sPartialFunction = Some(createBankLevelEndpointMapping)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(updateBankLevelEndpointMapping), "PUT",
+        null,
+        implementedInApiVersion,
+        nameOf(updateBankLevelEndpointMapping),
+        "PUT",
         "/management/banks/BANK_ID/endpoint-mappings/ENDPOINT_MAPPING_ID",
         "Update Bank Level Endpoint Mapping",
-        s"""Update an Bank Level Endpoint Mapping.""",
-        endpointMappingRequestBodyExample, endpointMappingResponseBodyExample,
+        s"""Update an Bank Level Endpoint Mapping.
+        |""",
+        endpointMappingRequestBodyExample,
+        endpointMappingResponseBodyExample,
         List($BankNotFound, $AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
         List(apiTagEndpointMapping),
         Some(List(canUpdateBankLevelEndpointMapping, canUpdateEndpointMapping)),
-        http4sPartialFunction = Some(updateBankLevelEndpointMapping))
+        http4sPartialFunction = Some(updateBankLevelEndpointMapping)
+      )
     }
     initBatch13ResourceDocs()
 
@@ -6757,48 +9123,90 @@ object Http4s400 {
 
     private def initBatch14ResourceDocs(): Unit = {
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(createSystemLevelEndpointTag), "POST",
+        null,
+        implementedInApiVersion,
+        nameOf(createSystemLevelEndpointTag),
+        "POST",
         "/management/endpoints/OPERATION_ID/tags",
         "Create System Level Endpoint Tag",
-        s"""Create System Level Endpoint Tag.""",
-        endpointTagJson400, bankLevelEndpointTagResponseJson400,
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, EndpointTagAlreadyExists, InvalidJsonFormat, UnknownError),
+        s"""Create System Level Endpoint Tag
+        |
+        |Note: Resource Docs are cached, TTL is ${CREATE_LOCALISED_RESOURCE_DOC_JSON_TTL} seconds
+        |
+        |""".stripMargin,
+        endpointTagJson400,
+        bankLevelEndpointTagResponseJson400,
+        List(
+          $AuthenticatedUserIsRequired,
+          UserHasMissingRoles,
+          InvalidJsonFormat,
+          UnknownError
+        ),
         List(apiTagApi),
         Some(List(canCreateSystemLevelEndpointTag)),
-        http4sPartialFunction = Some(createSystemLevelEndpointTag))
+        http4sPartialFunction = Some(createSystemLevelEndpointTag)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(updateSystemLevelEndpointTag), "PUT",
+        null,
+        implementedInApiVersion,
+        nameOf(updateSystemLevelEndpointTag),
+        "PUT",
         "/management/endpoints/OPERATION_ID/tags/ENDPOINT_TAG_ID",
         "Update System Level Endpoint Tag",
-        s"""Update System Level Endpoint Tag, you can only update the tag_name here, operation_id can not be updated.""",
-        endpointTagJson400, bankLevelEndpointTagResponseJson400,
+        s"""Update System Level Endpoint Tag, you can only update the tag_name here, operation_id can not be updated.
+        |
+        |Note: Resource Docs are cached, TTL is ${CREATE_LOCALISED_RESOURCE_DOC_JSON_TTL} seconds
+        |
+        |""".stripMargin,
+        endpointTagJson400,
+        bankLevelEndpointTagResponseJson400,
         List($AuthenticatedUserIsRequired, UserHasMissingRoles, EndpointTagNotFoundByEndpointTagId, InvalidJsonFormat, UnknownError),
         List(apiTagApi),
         Some(List(canUpdateSystemLevelEndpointTag)),
-        http4sPartialFunction = Some(updateSystemLevelEndpointTag))
+        http4sPartialFunction = Some(updateSystemLevelEndpointTag)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(createBankLevelEndpointTag), "POST",
+        null,
+        implementedInApiVersion,
+        nameOf(createBankLevelEndpointTag),
+        "POST",
         "/management/banks/BANK_ID/endpoints/OPERATION_ID/tags",
         "Create Bank Level Endpoint Tag",
-        s"""Create Bank Level Endpoint Tag""",
-        endpointTagJson400, bankLevelEndpointTagResponseJson400,
+        s"""Create Bank Level Endpoint Tag
+        |
+        |Note: Resource Docs are cached, TTL is ${CREATE_LOCALISED_RESOURCE_DOC_JSON_TTL} seconds
+        |
+        |
+        |""".stripMargin,
+        endpointTagJson400,
+        bankLevelEndpointTagResponseJson400,
         List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
         List(apiTagApi),
         Some(List(canCreateBankLevelEndpointTag)),
-        http4sPartialFunction = Some(createBankLevelEndpointTag))
+        http4sPartialFunction = Some(createBankLevelEndpointTag)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(updateBankLevelEndpointTag), "PUT",
+        null,
+        implementedInApiVersion,
+        nameOf(updateBankLevelEndpointTag),
+        "PUT",
         "/management/banks/BANK_ID/endpoints/OPERATION_ID/tags/ENDPOINT_TAG_ID",
         "Update Bank Level Endpoint Tag",
-        s"""Update Endpoint Tag, you can only update the tag_name here, operation_id can not be updated.""",
-        endpointTagJson400, bankLevelEndpointTagResponseJson400,
+        s"""Update Endpoint Tag, you can only update the tag_name here, operation_id can not be updated.
+        |
+        |Note: Resource Docs are cached, TTL is ${CREATE_LOCALISED_RESOURCE_DOC_JSON_TTL} seconds
+        |
+        |""".stripMargin,
+        endpointTagJson400,
+        bankLevelEndpointTagResponseJson400,
         List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, EndpointTagNotFoundByEndpointTagId, InvalidJsonFormat, UnknownError),
         List(apiTagApi),
         Some(List(canUpdateBankLevelEndpointTag)),
-        http4sPartialFunction = Some(updateBankLevelEndpointTag))
+        http4sPartialFunction = Some(updateBankLevelEndpointTag)
+      )
     }
     initBatch14ResourceDocs()
 
@@ -6943,92 +9351,127 @@ object Http4s400 {
 
     private def initBatch15ResourceDocs(): Unit = {
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(createJsonSchemaValidation), "POST",
+        null,
+        implementedInApiVersion,
+        nameOf(createJsonSchemaValidation),
+        "POST",
         "/management/json-schema-validations/OPERATION_ID",
         "Create a JSON Schema Validation",
         s"""Create a JSON Schema Validation.
-           |
-           |Introduction:
-           |${Glossary.getGlossaryItemSimple("JSON Schema Validation")}
-           |
-           |To use this endpoint, please supply a valid json-schema in the request body.
-           |""",
-        postOrPutJsonSchemaV400, responseJsonSchema,
+        |
+        |Introduction:
+        |${Glossary.getGlossaryItemSimple("JSON Schema Validation")}
+        |
+        |To use this endpoint, please supply a valid json-schema in the request body.
+        |
+        |Note: It might take a few minutes for the newly created JSON Schema to take effect!
+        |""",
+        postOrPutJsonSchemaV400,
+        responseJsonSchema,
         List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
         List(apiTagJsonSchemaValidation),
         Some(List(canCreateJsonSchemaValidation)),
-        http4sPartialFunction = Some(createJsonSchemaValidation))
+        http4sPartialFunction = Some(createJsonSchemaValidation)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(updateJsonSchemaValidation), "PUT",
+        null,
+        implementedInApiVersion,
+        nameOf(updateJsonSchemaValidation),
+        "PUT",
         "/management/json-schema-validations/OPERATION_ID",
         "Update a JSON Schema Validation",
         s"""Update a JSON Schema Validation.
-           |
-           |Introduction:
-           |${Glossary.getGlossaryItemSimple("JSON Schema Validation")}
-           |
-           |To use this endpoint, please supply a valid json-schema in the request body.
-           |""",
-        postOrPutJsonSchemaV400, responseJsonSchema,
+        |
+        |Introduction:
+        |${Glossary.getGlossaryItemSimple("JSON Schema Validation")}
+        |
+        |To use this endpoint, please supply a valid json-schema in the request body.
+        |
+        |""",
+        postOrPutJsonSchemaV400,
+        responseJsonSchema,
         List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
         List(apiTagJsonSchemaValidation),
         Some(List(canUpdateJsonSchemaValidation)),
-        http4sPartialFunction = Some(updateJsonSchemaValidation))
+        http4sPartialFunction = Some(updateJsonSchemaValidation)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(createAuthenticationTypeValidation), "POST",
+        null,
+        implementedInApiVersion,
+        nameOf(createAuthenticationTypeValidation),
+        "POST",
         "/management/authentication-type-validations/OPERATION_ID",
         "Create an Authentication Type Validation",
         s"""Create an Authentication Type Validation.
-           |
-           |Please supply allowed authentication types.""",
+        |
+        |Please supply allowed authentication types.
+        |""",
         allowedAuthTypes,
         JsonAuthTypeValidation("OBPv4.0.0-updateXxx", allowedAuthTypes),
         List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
         List(apiTagAuthenticationTypeValidation),
         Some(List(canCreateAuthenticationTypeValidation)),
-        http4sPartialFunction = Some(createAuthenticationTypeValidation))
+        http4sPartialFunction = Some(createAuthenticationTypeValidation)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(updateAuthenticationTypeValidation), "PUT",
+        null,
+        implementedInApiVersion,
+        nameOf(updateAuthenticationTypeValidation),
+        "PUT",
         "/management/authentication-type-validations/OPERATION_ID",
         "Update an Authentication Type Validation",
         s"""Update an Authentication Type Validation.
-           |
-           |Please supply allowed authentication types.""",
+        |
+        |Please supply allowed authentication types.
+        |""",
         allowedAuthTypes,
         JsonAuthTypeValidation("OBPv4.0.0-updateXxx", allowedAuthTypes),
         List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
         List(apiTagAuthenticationTypeValidation),
         Some(List(canUpdateAuthenticationTypeValidation)),
-        http4sPartialFunction = Some(updateAuthenticationTypeValidation))
+        http4sPartialFunction = Some(updateAuthenticationTypeValidation)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(createConnectorMethod), "POST",
+        null,
+        implementedInApiVersion,
+        nameOf(createConnectorMethod),
+        "POST",
         "/management/connector-methods",
         "Create Connector Method",
         s"""Create an internal connector.
-           |
-           |The method_body is URL-encoded format String""",
-        jsonScalaConnectorMethod.copy(connectorMethodId = None), jsonScalaConnectorMethod,
+        |
+        |The method_body is URL-encoded format String
+        |""",
+        jsonScalaConnectorMethod.copy(connectorMethodId = None),
+        jsonScalaConnectorMethod,
         List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
         List(apiTagConnectorMethod),
         Some(List(canCreateConnectorMethod)),
-        http4sPartialFunction = Some(createConnectorMethod))
+        http4sPartialFunction = Some(createConnectorMethod)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(updateConnectorMethod), "PUT",
+        null,
+        implementedInApiVersion,
+        nameOf(updateConnectorMethod),
+        "PUT",
         "/management/connector-methods/CONNECTOR_METHOD_ID",
         "Update Connector Method",
         s"""Update an internal connector.
-           |
-           |The method_body is URL-encoded format String""",
-        jsonScalaConnectorMethodMethodBody, jsonScalaConnectorMethod,
+        |
+        |The method_body is URL-encoded format String
+        |""",
+        jsonScalaConnectorMethodMethodBody,
+        jsonScalaConnectorMethod,
         List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
         List(apiTagConnectorMethod),
         Some(List(canUpdateConnectorMethod)),
-        http4sPartialFunction = Some(updateConnectorMethod))
+        http4sPartialFunction = Some(updateConnectorMethod)
+      )
     }
     initBatch15ResourceDocs()
 
@@ -7190,124 +9633,186 @@ object Http4s400 {
 
     private def initBatch16ResourceDocs(): Unit = {
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(createDynamicResourceDoc), "POST",
+        null,
+        implementedInApiVersion,
+        nameOf(createDynamicResourceDoc),
+        "POST",
         "/management/dynamic-resource-docs",
         "Create Dynamic Resource Doc",
         s"""Create a Dynamic Resource Doc.
-           |
-           |The connector_method_body is URL-encoded format String""",
-        jsonDynamicResourceDoc.copy(dynamicResourceDocId = None), jsonDynamicResourceDoc,
+        |
+        |The connector_method_body is URL-encoded format String
+        |""",
+        jsonDynamicResourceDoc.copy(dynamicResourceDocId = None),
+        jsonDynamicResourceDoc,
         List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
         List(apiTagDynamicResourceDoc),
         Some(List(canCreateDynamicResourceDoc)),
-        http4sPartialFunction = Some(createDynamicResourceDoc))
+        http4sPartialFunction = Some(createDynamicResourceDoc)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(updateDynamicResourceDoc), "PUT",
+        null,
+        implementedInApiVersion,
+        nameOf(updateDynamicResourceDoc),
+        "PUT",
         "/management/dynamic-resource-docs/DYNAMIC_RESOURCE_DOC_ID",
         "Update Dynamic Resource Doc",
         s"""Update a Dynamic Resource Doc.
-           |
-           |The connector_method_body is URL-encoded format String""",
-        jsonDynamicResourceDoc.copy(dynamicResourceDocId = None), jsonDynamicResourceDoc,
+        |
+        |The connector_method_body is URL-encoded format String
+        |""",
+        jsonDynamicResourceDoc.copy(dynamicResourceDocId = None),
+        jsonDynamicResourceDoc,
         List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
         List(apiTagDynamicResourceDoc),
         Some(List(canUpdateDynamicResourceDoc)),
-        http4sPartialFunction = Some(updateDynamicResourceDoc))
+        http4sPartialFunction = Some(updateDynamicResourceDoc)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(deleteDynamicResourceDoc), "DELETE",
+        null,
+        implementedInApiVersion,
+        nameOf(deleteDynamicResourceDoc),
+        "DELETE",
         "/management/dynamic-resource-docs/DYNAMIC_RESOURCE_DOC_ID",
         "Delete Dynamic Resource Doc",
-        s"""Delete a Dynamic Resource Doc.""",
-        EmptyBody, BooleanBody(true),
+        s"""Delete a Dynamic Resource Doc.
+        |""",
+        EmptyBody,
+        BooleanBody(true),
         List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
         List(apiTagDynamicResourceDoc),
         Some(List(canDeleteDynamicResourceDoc)),
-        http4sPartialFunction = Some(deleteDynamicResourceDoc))
+        http4sPartialFunction = Some(deleteDynamicResourceDoc)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getDynamicResourceDoc), "GET",
+        null,
+        implementedInApiVersion,
+        nameOf(getDynamicResourceDoc),
+        "GET",
         "/management/dynamic-resource-docs/DYNAMIC_RESOURCE_DOC_ID",
         "Get Dynamic Resource Doc by Id",
-        s"""Get a Dynamic Resource Doc by DYNAMIC_RESOURCE_DOC_ID.""",
-        EmptyBody, jsonDynamicResourceDoc,
+        s"""Get a Dynamic Resource Doc by DYNAMIC-RESOURCE-DOC-ID.
+        |
+        |""",
+        EmptyBody,
+        jsonDynamicResourceDoc,
         List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
         List(apiTagDynamicResourceDoc),
         Some(List(canGetDynamicResourceDoc)),
-        http4sPartialFunction = Some(getDynamicResourceDoc))
+        http4sPartialFunction = Some(getDynamicResourceDoc)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getAllDynamicResourceDocs), "GET",
+        null,
+        implementedInApiVersion,
+        nameOf(getAllDynamicResourceDocs),
+        "GET",
         "/management/dynamic-resource-docs",
         "Get all Dynamic Resource Docs",
-        s"""Get all Dynamic Resource Docs.""",
+        s"""Get all Dynamic Resource Docs.
+        |
+        |""",
         EmptyBody,
-        com.openbankproject.commons.model.ListResult("dynamic-resource-docs", jsonDynamicResourceDoc :: Nil),
+        ListResult("dynamic-resource-docs", jsonDynamicResourceDoc :: Nil),
         List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
         List(apiTagDynamicResourceDoc),
         Some(List(canGetAllDynamicResourceDocs)),
-        http4sPartialFunction = Some(getAllDynamicResourceDocs))
+        http4sPartialFunction = Some(getAllDynamicResourceDocs)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(createBankLevelDynamicResourceDoc), "POST",
+        null,
+        implementedInApiVersion,
+        nameOf(createBankLevelDynamicResourceDoc),
+        "POST",
         "/management/banks/BANK_ID/dynamic-resource-docs",
         "Create Bank Level Dynamic Resource Doc",
         s"""Create a Bank Level Dynamic Resource Doc.
-           |
-           |The connector_method_body is URL-encoded format String""",
-        jsonDynamicResourceDoc.copy(dynamicResourceDocId = None), jsonDynamicResourceDoc,
+        |
+        |The connector_method_body is URL-encoded format String
+        |""",
+        jsonDynamicResourceDoc.copy(dynamicResourceDocId = None),
+        jsonDynamicResourceDoc,
         List($BankNotFound, $AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
         List(apiTagDynamicResourceDoc),
         Some(List(canCreateBankLevelDynamicResourceDoc)),
-        http4sPartialFunction = Some(createBankLevelDynamicResourceDoc))
+        http4sPartialFunction = Some(createBankLevelDynamicResourceDoc)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(updateBankLevelDynamicResourceDoc), "PUT",
+        null,
+        implementedInApiVersion,
+        nameOf(updateBankLevelDynamicResourceDoc),
+        "PUT",
         "/management/banks/BANK_ID/dynamic-resource-docs/DYNAMIC_RESOURCE_DOC_ID",
         "Update Bank Level Dynamic Resource Doc",
         s"""Update a Bank Level Dynamic Resource Doc.
-           |
-           |The connector_method_body is URL-encoded format String""",
-        jsonDynamicResourceDoc.copy(dynamicResourceDocId = None), jsonDynamicResourceDoc,
+        |
+        |The connector_method_body is URL-encoded format String
+        |""",
+        jsonDynamicResourceDoc.copy(dynamicResourceDocId = None),
+        jsonDynamicResourceDoc,
         List($BankNotFound, $AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
         List(apiTagDynamicResourceDoc),
         Some(List(canUpdateBankLevelDynamicResourceDoc)),
-        http4sPartialFunction = Some(updateBankLevelDynamicResourceDoc))
+        http4sPartialFunction = Some(updateBankLevelDynamicResourceDoc)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(deleteBankLevelDynamicResourceDoc), "DELETE",
+        null,
+        implementedInApiVersion,
+        nameOf(deleteBankLevelDynamicResourceDoc),
+        "DELETE",
         "/management/banks/BANK_ID/dynamic-resource-docs/DYNAMIC_RESOURCE_DOC_ID",
         "Delete Bank Level Dynamic Resource Doc",
-        s"""Delete a Bank Level Dynamic Resource Doc.""",
-        EmptyBody, BooleanBody(true),
+        s"""Delete a Bank Level Dynamic Resource Doc.
+        |""",
+        EmptyBody,
+        BooleanBody(true),
         List($BankNotFound, $AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
         List(apiTagDynamicResourceDoc),
         Some(List(canDeleteBankLevelDynamicResourceDoc)),
-        http4sPartialFunction = Some(deleteBankLevelDynamicResourceDoc))
+        http4sPartialFunction = Some(deleteBankLevelDynamicResourceDoc)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getBankLevelDynamicResourceDoc), "GET",
+        null,
+        implementedInApiVersion,
+        nameOf(getBankLevelDynamicResourceDoc),
+        "GET",
         "/management/banks/BANK_ID/dynamic-resource-docs/DYNAMIC_RESOURCE_DOC_ID",
         "Get Bank Level Dynamic Resource Doc by Id",
-        s"""Get a Bank Level Dynamic Resource Doc by DYNAMIC_RESOURCE_DOC_ID.""",
-        EmptyBody, jsonDynamicResourceDoc,
+        s"""Get a Bank Level Dynamic Resource Doc by DYNAMIC-RESOURCE-DOC-ID.
+        |
+        |""",
+        EmptyBody,
+        jsonDynamicResourceDoc,
         List($BankNotFound, $AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
         List(apiTagDynamicResourceDoc),
         Some(List(canGetBankLevelDynamicResourceDoc)),
-        http4sPartialFunction = Some(getBankLevelDynamicResourceDoc))
+        http4sPartialFunction = Some(getBankLevelDynamicResourceDoc)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getAllBankLevelDynamicResourceDocs), "GET",
+        null,
+        implementedInApiVersion,
+        nameOf(getAllBankLevelDynamicResourceDocs),
+        "GET",
         "/management/banks/BANK_ID/dynamic-resource-docs",
         "Get all Bank Level Dynamic Resource Docs",
-        s"""Get all Bank Level Dynamic Resource Docs.""",
+        s"""Get all Bank Level Dynamic Resource Docs.
+        |
+        |""",
         EmptyBody,
-        com.openbankproject.commons.model.ListResult("dynamic-resource-docs", jsonDynamicResourceDoc :: Nil),
+        ListResult("dynamic-resource-docs", jsonDynamicResourceDoc :: Nil),
         List($BankNotFound, $AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
         List(apiTagDynamicResourceDoc),
         Some(List(canGetAllBankLevelDynamicResourceDocs)),
-        http4sPartialFunction = Some(getAllBankLevelDynamicResourceDocs))
+        http4sPartialFunction = Some(getAllBankLevelDynamicResourceDocs)
+      )
     }
     initBatch16ResourceDocs()
 
@@ -7446,116 +9951,178 @@ object Http4s400 {
 
     private def initBatch17ResourceDocs(): Unit = {
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(createDynamicMessageDoc), "POST",
+        null,
+        implementedInApiVersion,
+        nameOf(createDynamicMessageDoc),
+        "POST",
         "/management/dynamic-message-docs",
         "Create Dynamic Message Doc",
-        s"""Create a Dynamic Message Doc.""",
-        jsonDynamicMessageDoc.copy(dynamicMessageDocId = None), jsonDynamicMessageDoc,
+        s"""Create a Dynamic Message Doc.
+        |""",
+        jsonDynamicMessageDoc.copy(dynamicMessageDocId = None),
+        jsonDynamicMessageDoc,
         List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
         List(apiTagDynamicMessageDoc),
         Some(List(canCreateDynamicMessageDoc)),
-        http4sPartialFunction = Some(createDynamicMessageDoc))
+        http4sPartialFunction = Some(createDynamicMessageDoc)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(updateDynamicMessageDoc), "PUT",
+        null,
+        implementedInApiVersion,
+        nameOf(updateDynamicMessageDoc),
+        "PUT",
         "/management/dynamic-message-docs/DYNAMIC_MESSAGE_DOC_ID",
         "Update Dynamic Message Doc",
-        s"""Update a Dynamic Message Doc.""",
-        jsonDynamicMessageDoc.copy(dynamicMessageDocId = None), jsonDynamicMessageDoc,
+        s"""Update a Dynamic Message Doc.
+        |""",
+        jsonDynamicMessageDoc.copy(dynamicMessageDocId = None),
+        jsonDynamicMessageDoc,
         List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
         List(apiTagDynamicMessageDoc),
         Some(List(canUpdateDynamicMessageDoc)),
-        http4sPartialFunction = Some(updateDynamicMessageDoc))
+        http4sPartialFunction = Some(updateDynamicMessageDoc)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(deleteDynamicMessageDoc), "DELETE",
+        null,
+        implementedInApiVersion,
+        nameOf(deleteDynamicMessageDoc),
+        "DELETE",
         "/management/dynamic-message-docs/DYNAMIC_MESSAGE_DOC_ID",
         "Delete Dynamic Message Doc",
-        s"""Delete a Dynamic Message Doc.""",
-        EmptyBody, BooleanBody(true),
+        s"""Delete a Dynamic Message Doc.
+        |""",
+        EmptyBody,
+        BooleanBody(true),
         List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
         List(apiTagDynamicMessageDoc),
         Some(List(canDeleteDynamicMessageDoc)),
-        http4sPartialFunction = Some(deleteDynamicMessageDoc))
+        http4sPartialFunction = Some(deleteDynamicMessageDoc)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getDynamicMessageDoc), "GET",
+        null,
+        implementedInApiVersion,
+        nameOf(getDynamicMessageDoc),
+        "GET",
         "/management/dynamic-message-docs/DYNAMIC_MESSAGE_DOC_ID",
         "Get Dynamic Message Doc",
-        s"""Get a Dynamic Message Doc by DYNAMIC_MESSAGE_DOC_ID.""",
-        EmptyBody, jsonDynamicMessageDoc,
+        s"""Get a Dynamic Message Doc by DYNAMIC_MESSAGE_DOC_ID.
+        |
+        |""",
+        EmptyBody,
+        jsonDynamicMessageDoc,
         List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
         List(apiTagDynamicMessageDoc),
         Some(List(canGetDynamicMessageDoc)),
-        http4sPartialFunction = Some(getDynamicMessageDoc))
+        http4sPartialFunction = Some(getDynamicMessageDoc)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getAllDynamicMessageDocs), "GET",
+        null,
+        implementedInApiVersion,
+        nameOf(getAllDynamicMessageDocs),
+        "GET",
         "/management/dynamic-message-docs",
         "Get all Dynamic Message Docs",
-        s"""Get all Dynamic Message Docs.""",
+        s"""Get all Dynamic Message Docs.
+        |
+        |""",
         EmptyBody,
-        com.openbankproject.commons.model.ListResult("dynamic-message-docs", jsonDynamicMessageDoc :: Nil),
+        ListResult("dynamic-message-docs", jsonDynamicMessageDoc :: Nil),
         List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
         List(apiTagDynamicMessageDoc),
         Some(List(canGetAllDynamicMessageDocs)),
-        http4sPartialFunction = Some(getAllDynamicMessageDocs))
+        http4sPartialFunction = Some(getAllDynamicMessageDocs)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(createBankLevelDynamicMessageDoc), "POST",
+        null,
+        implementedInApiVersion,
+        nameOf(createBankLevelDynamicMessageDoc),
+        "POST",
         "/management/banks/BANK_ID/dynamic-message-docs",
         "Create Bank Level Dynamic Message Doc",
-        s"""Create a Bank Level Dynamic Message Doc.""",
-        jsonDynamicMessageDoc.copy(dynamicMessageDocId = None), jsonDynamicMessageDoc,
+        s"""Create a Bank Level Dynamic Message Doc.
+        |""",
+        jsonDynamicMessageDoc.copy(dynamicMessageDocId = None),
+        jsonDynamicMessageDoc,
         List($BankNotFound, $AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
         List(apiTagDynamicMessageDoc),
         Some(List(canCreateBankLevelDynamicMessageDoc)),
-        http4sPartialFunction = Some(createBankLevelDynamicMessageDoc))
+        http4sPartialFunction = Some(createBankLevelDynamicMessageDoc)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(updateBankLevelDynamicMessageDoc), "PUT",
+        null,
+        implementedInApiVersion,
+        nameOf(updateBankLevelDynamicMessageDoc),
+        "PUT",
         "/management/banks/BANK_ID/dynamic-message-docs/DYNAMIC_MESSAGE_DOC_ID",
         "Update Bank Level Dynamic Message Doc",
-        s"""Update a Bank Level Dynamic Message Doc.""",
-        jsonDynamicMessageDoc.copy(dynamicMessageDocId = None), jsonDynamicMessageDoc,
+        s"""Update a Bank Level Dynamic Message Doc.
+        |""",
+        jsonDynamicMessageDoc.copy(dynamicMessageDocId = None),
+        jsonDynamicMessageDoc,
         List($BankNotFound, $AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
         List(apiTagDynamicMessageDoc),
         Some(List(canUpdateDynamicMessageDoc)),
-        http4sPartialFunction = Some(updateBankLevelDynamicMessageDoc))
+        http4sPartialFunction = Some(updateBankLevelDynamicMessageDoc)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(deleteBankLevelDynamicMessageDoc), "DELETE",
+        null,
+        implementedInApiVersion,
+        nameOf(deleteBankLevelDynamicMessageDoc),
+        "DELETE",
         "/management/banks/BANK_ID/dynamic-message-docs/DYNAMIC_MESSAGE_DOC_ID",
         "Delete Bank Level Dynamic Message Doc",
-        s"""Delete a Bank Level Dynamic Message Doc.""",
-        EmptyBody, BooleanBody(true),
+        s"""Delete a Bank Level Dynamic Message Doc.
+        |""",
+        EmptyBody,
+        BooleanBody(true),
         List($BankNotFound, $AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
         List(apiTagDynamicMessageDoc),
         Some(List(canDeleteBankLevelDynamicMessageDoc)),
-        http4sPartialFunction = Some(deleteBankLevelDynamicMessageDoc))
+        http4sPartialFunction = Some(deleteBankLevelDynamicMessageDoc)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getBankLevelDynamicMessageDoc), "GET",
+        null,
+        implementedInApiVersion,
+        nameOf(getBankLevelDynamicMessageDoc),
+        "GET",
         "/management/banks/BANK_ID/dynamic-message-docs/DYNAMIC_MESSAGE_DOC_ID",
         "Get Bank Level Dynamic Message Doc",
-        s"""Get a Bank Level Dynamic Message Doc by DYNAMIC_MESSAGE_DOC_ID.""",
-        EmptyBody, jsonDynamicMessageDoc,
+        s"""Get a Bank Level Dynamic Message Doc by DYNAMIC_MESSAGE_DOC_ID.
+        |
+        |""",
+        EmptyBody,
+        jsonDynamicMessageDoc,
         List($BankNotFound, $AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
         List(apiTagDynamicMessageDoc),
         Some(List(canGetBankLevelDynamicMessageDoc)),
-        http4sPartialFunction = Some(getBankLevelDynamicMessageDoc))
+        http4sPartialFunction = Some(getBankLevelDynamicMessageDoc)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getAllBankLevelDynamicMessageDocs), "GET",
+        null,
+        implementedInApiVersion,
+        nameOf(getAllBankLevelDynamicMessageDocs),
+        "GET",
         "/management/banks/BANK_ID/dynamic-message-docs",
         "Get all Bank Level Dynamic Message Docs",
-        s"""Get all Bank Level Dynamic Message Docs.""",
+        s"""Get all Bank Level Dynamic Message Docs.
+        |
+        |""",
         EmptyBody,
-        com.openbankproject.commons.model.ListResult("dynamic-message-docs", jsonDynamicMessageDoc :: Nil),
+        ListResult("dynamic-message-docs", jsonDynamicMessageDoc :: Nil),
         List($BankNotFound, $AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
         List(apiTagDynamicMessageDoc),
         Some(List(canGetAllDynamicMessageDocs)),
-        http4sPartialFunction = Some(getAllBankLevelDynamicMessageDocs))
+        http4sPartialFunction = Some(getAllBankLevelDynamicMessageDocs)
+      )
     }
     initBatch17ResourceDocs()
 
@@ -7595,14 +10162,26 @@ object Http4s400 {
 
     private def initBatch18ResourceDocs(): Unit = {
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(buildDynamicEndpointTemplate), "POST",
+        null,
+        implementedInApiVersion,
+        nameOf(buildDynamicEndpointTemplate),
+        "POST",
         "/management/dynamic-resource-docs/endpoint-code",
         "Create Dynamic Resource Doc endpoint code",
-        s"""Create a Dynamic Resource Doc endpoint code.""",
-        jsonResourceDocFragment, jsonCodeTemplateJson,
+        s"""Create a Dynamic Resource Doc endpoint code.
+         |
+         |copy the response and past to ${nameOf(
+          PractiseEndpoint
+        )}, So you can have the benefits of
+         |auto compilation and debug
+         |""",
+        jsonResourceDocFragment,
+        jsonCodeTemplateJson,
         List($AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
-        List(apiTagDynamicResourceDoc), None,
-        http4sPartialFunction = Some(buildDynamicEndpointTemplate))
+        List(apiTagDynamicResourceDoc),
+        None,
+        http4sPartialFunction = Some(buildDynamicEndpointTemplate)
+      )
     }
     initBatch18ResourceDocs()
 
@@ -8120,52 +10699,91 @@ object Http4s400 {
 
     private def initBatch19ResourceDocs(): Unit = {
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(addAccount), "POST",
+        null,
+        implementedInApiVersion,
+        nameOf(addAccount),
+        "POST",
         "/banks/BANK_ID/accounts",
         "Create Account (POST)",
         """Create Account at bank specified by BANK_ID.
-          |
-          |The User can create an Account for themself  - or -  the User that has the USER_ID specified in the POST body.
-          |
-          |If the POST body USER_ID *is* specified, the logged in user must have the Role CanCreateAccount. Once created, the Account will be owned by the User specified by USER_ID.
-          |
-          |If the POST body USER_ID is *not* specified, the account will be owned by the logged in User.
-          |
-          |The 'product_code' field SHOULD be a product_code from Product.
-          |If the product_code matches a product_code from Product, account attributes will be created that match the Product Attributes.
-          |
-          |Note: The Amount MUST be zero.""".stripMargin,
-        createAccountRequestJsonV310, createAccountResponseJsonV310,
+        |
+        |The User can create an Account for themself  - or -  the User that has the USER_ID specified in the POST body.
+        |
+        |If the POST body USER_ID *is* specified, the logged in user must have the Role CanCreateAccount. Once created, the Account will be owned by the User specified by USER_ID.
+        |
+        |If the POST body USER_ID is *not* specified, the account will be owned by the logged in User.
+        |
+        |The 'product_code' field SHOULD be a product_code from Product.
+        |If the product_code matches a product_code from Product, account attributes will be created that match the Product Attributes.
+        |
+        |Note: The Amount MUST be zero.""".stripMargin,
+        createAccountRequestJsonV310,
+        createAccountResponseJsonV310,
         List(InvalidJsonFormat, $AuthenticatedUserIsRequired, UserHasMissingRoles,
-          InvalidAccountBalanceAmount, InvalidAccountInitialBalance, InitialBalanceMustBeZero,
-          InvalidAccountBalanceCurrency, UnknownError),
+        InvalidAccountBalanceAmount, InvalidAccountInitialBalance, InitialBalanceMustBeZero,
+        InvalidAccountBalanceCurrency, UnknownError),
         List(apiTagAccount),
         Some(List(canCreateAccount)),
-        http4sPartialFunction = Some(addAccount))
+        http4sPartialFunction = Some(addAccount)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(createSettlementAccount), "POST",
+        null,
+        implementedInApiVersion,
+        nameOf(createSettlementAccount),
+        "POST",
         "/banks/BANK_ID/settlement-accounts",
         "Create Settlement Account",
-        s"""Create a new settlement account at a bank.""",
-        settlementAccountRequestJson, settlementAccountResponseJson,
+        s"""Create a new settlement account at a bank.
+        |
+        |The created settlement account id will be the concatenation of the payment system and the account currency.
+        |For examples: SEPA_SETTLEMENT_ACCOUNT_EUR, CARD_SETTLEMENT_ACCOUNT_USD
+        |
+        |By default, when you create a new bank, two settlements accounts are created automatically: OBP_DEFAULT_INCOMING_ACCOUNT_ID and OBP_DEFAULT_OUTGOING_ACCOUNT_ID
+        |Those two accounts have EUR as default currency.
+        |
+        |If you want to create default settlement account for a specific currency, you can fill the `payment_system` field with the `DEFAULT` value.
+        |
+        |When a transaction is saved in OBP through the mapped connector, OBP-API look for the account to save the double-entry transaction.
+        |If no OBP account can be found from the counterparty, the double-entry transaction will be saved on a bank settlement account.
+        |- First, the mapped connector looks for a settlement account specific to the payment system and currency. E.g SEPA_SETTLEMENT_ACCOUNT_EUR.
+        |- If we don't find any specific settlement account with the payment system, we look for a default settlement account for the counterparty currency. E.g DEFAULT_SETTLEMENT_ACCOUNT_EUR.
+        |- Else, we select one of the two OBP default settlement accounts (OBP_DEFAULT_INCOMING_ACCOUNT_ID/OBP_DEFAULT_OUTGOING_ACCOUNT_ID) according to the transaction direction.
+        |
+        |If the POST body USER_ID *is* specified, the logged in user must have the Role CanCreateAccount. Once created, the Account will be owned by the User specified by USER_ID.
+        |
+        |If the POST body USER_ID is *not* specified, the account will be owned by the logged in User.
+        |
+        |Note: The Amount MUST be zero.
+        |""".stripMargin,
+        settlementAccountRequestJson,
+        settlementAccountResponseJson,
         List(InvalidJsonFormat, $AuthenticatedUserIsRequired, UserHasMissingRoles,
-          $BankNotFound, InvalidAccountInitialBalance, InitialBalanceMustBeZero,
-          InvalidISOCurrencyCode, UnknownError),
+        $BankNotFound, InvalidAccountInitialBalance, InitialBalanceMustBeZero,
+        InvalidISOCurrencyCode, UnknownError),
         List(apiTagBank),
         Some(List(canCreateSettlementAccountAtOneBank)),
-        http4sPartialFunction = Some(createSettlementAccount))
+        http4sPartialFunction = Some(createSettlementAccount)
+      )
 
       staticResourceDocs += ResourceDoc(
         null, implementedInApiVersion, "createConsumer", "POST",
         "/management/consumers",
         "Post a Consumer",
         s"""Create a Consumer (Authenticated access).""",
-        code.api.v2_1_0.ConsumerPostJSON(
-          "Test", "Web", "Description", "some@email.com", "redirecturl", "createdby", true, new java.util.Date(),
+        ConsumerPostJSON(
+          "Test",
+          "Web",
+          "Description",
+          "some@email.com",
+          "redirecturl",
+          "createdby",
+          true,
+          new Date(),
           """-----BEGIN CERTIFICATE-----
             |client_certificate_content
-            |-----END CERTIFICATE-----""".stripMargin),
+            |-----END CERTIFICATE-----""".stripMargin
+        ),
         consumerJsonV400,
         List(AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
         List(apiTagConsumer),
@@ -8176,7 +10794,14 @@ object Http4s400 {
         null, implementedInApiVersion, "createCounterpartyForAnyAccount", "POST",
         "/management/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties",
         "Create Counterparty for any account (Explicit)",
-        s"""This is a management endpoint that allows the creation of a Counterparty on any Account.""",
+        s"""This is a management endpoint that allows the creation of a Counterparty on any Account.
+        |
+        |For an introduction to Counterparties in OBP, see ${Glossary
+         .getGlossaryItemLink("Counterparties")}
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""".stripMargin,
         postCounterpartyJson400, counterpartyWithMetadataJson400,
         List($AuthenticatedUserIsRequired, InvalidAccountIdFormat, InvalidBankIdFormat,
           $BankNotFound, $BankAccountNotFound, AccountNotFound, InvalidJsonFormat,
@@ -8186,52 +10811,157 @@ object Http4s400 {
         http4sPartialFunction = Some(createCounterpartyForAnyAccount))
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(createHistoricalTransactionAtBank), "POST",
+        null,
+        implementedInApiVersion,
+        nameOf(createHistoricalTransactionAtBank),
+        "POST",
         "/banks/BANK_ID/management/historical/transactions",
         "Create Historical Transactions ",
-        s"""Create historical transactions at one Bank.""",
-        postHistoricalTransactionAtBankJson, postHistoricalTransactionResponseJson,
+        s"""
+          |Create historical transactions at one Bank
+          |
+          |Use this endpoint to create transactions between any two accounts at the same bank.
+          |From account and to account must be at the same bank.
+          |Example:
+          |{
+          |  "from_account_id": "1ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
+          |  "to_account_id": "2ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
+          |  "value": {
+          |    "currency": "GBP",
+          |    "amount": "10"
+          |  },
+          |  "description": "this is for work",
+          |  "posted": "2017-09-19T02:31:05Z",
+          |  "completed": "2017-09-19T02:31:05Z",
+          |  "type": "SANDBOX_TAN",
+          |  "charge_policy": "SHARED"
+          |}
+          |
+          |This call is experimental.
+        """.stripMargin,
+        postHistoricalTransactionAtBankJson,
+        postHistoricalTransactionResponseJson,
         List(InvalidJsonFormat, BankNotFound, AccountNotFound, CounterpartyNotFoundByCounterpartyId,
-          InvalidNumber, NotPositiveAmount, InvalidTransactionRequestCurrency, UnknownError),
+        InvalidNumber, NotPositiveAmount, InvalidTransactionRequestCurrency, UnknownError),
         List(apiTagTransactionRequest),
         Some(List(canCreateHistoricalTransactionAtBank)),
-        http4sPartialFunction = Some(createHistoricalTransactionAtBank))
+        http4sPartialFunction = Some(createHistoricalTransactionAtBank)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(createUserWithRoles), "POST",
+        null,
+        implementedInApiVersion,
+        nameOf(createUserWithRoles),
+        "POST",
         "/user-entitlements",
         "Create (DAuth) User with Roles",
-        s"""Create (DAuth) User with Roles.""",
-        postCreateUserWithRolesJsonV400, entitlementsJsonV400,
+        s"""
+        |This endpoint is used as part of the DAuth solution to grant Entitlements for Roles to a smart contract on the blockchain.
+        |
+        |Put the smart contract address in username
+        |
+        |For provider use "dauth"
+        |
+        |This endpoint will create the User with username and provider if the User does not already exist.
+        |
+        |Then it will create Entitlements i.e. grant Roles to the User.
+        |
+        |Entitlements are used to grant System or Bank level roles to Users. (For Account level privileges, see Views)
+        |
+        |i.e. Entitlements are used to create / consume system or bank level resources where as views / account access are used to consume / create customer level resources.
+        |
+        |For a System level Role (.e.g CanGetAnyUser), set bank_id to an empty string i.e. "bank_id":""
+        |
+        |For a Bank level Role (e.g. CanCreateAccount), set bank_id to a valid value e.g. "bank_id":"my-bank-id"
+        |
+        |Note: The Roles actually granted will depend on the Roles that the calling user has.
+        |
+        |If you try to grant Entitlements to a user that already exist (duplicate entitilements) you will get an error.
+        |
+        |For information about DAuth see below:
+        |
+        |${getGlossaryItem("DAuth")}
+        |
+        |""",
+        postCreateUserWithRolesJsonV400,
+        entitlementsJsonV400,
         List(AuthenticatedUserIsRequired, InvalidJsonFormat, IncorrectRoleName,
-          EntitlementIsBankRole, EntitlementIsSystemRole, EntitlementAlreadyExists,
-          InvalidUserProvider, UnknownError),
+        EntitlementIsBankRole, EntitlementIsSystemRole, EntitlementAlreadyExists,
+        InvalidUserProvider, UnknownError),
         List(apiTagRole, apiTagEntitlement, apiTagUser, apiTagDAuth),
         None,
-        http4sPartialFunction = Some(createUserWithRoles))
+        http4sPartialFunction = Some(createUserWithRoles)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(createUserWithAccountAccess), "POST",
+        null,
+        implementedInApiVersion,
+        nameOf(createUserWithAccountAccess),
+        "POST",
         "/banks/BANK_ID/accounts/ACCOUNT_ID/user-account-access",
         "Create (DAuth) User with Account Access",
-        s"""Create (DAuth) User with Account Access.""",
-        postCreateUserAccountAccessJsonV400, List(viewJsonV300),
+        s"""This endpoint is used as part of the DAuth solution to grant access to account and transaction data to a smart contract on the blockchain.
+         |
+         |Put the smart contract address in username
+         |
+         |For provider use "dauth"
+         |
+         |This endpoint will create the (DAuth) User with username and provider if the User does not already exist.
+         |
+         |${userAuthenticationMessage(
+          true
+        )} and the logged in user needs to be account holder.
+         |
+         |For information about DAuth see below:
+         |
+         |${getGlossaryItem("DAuth")}
+         |
+         |""",
+        postCreateUserAccountAccessJsonV400,
+        List(viewJsonV300),
         List($AuthenticatedUserIsRequired, UserLacksPermissionCanGrantAccessToViewForTargetAccount,
-          InvalidJsonFormat, SystemViewNotFound, ViewNotFound, CannotGrantAccountAccess, UnknownError),
+        InvalidJsonFormat, SystemViewNotFound, ViewNotFound, CannotGrantAccountAccess, UnknownError),
         List(apiTagAccountAccess, apiTagView, apiTagAccount, apiTagUser, apiTagOwnerRequired, apiTagDAuth),
         None,
-        http4sPartialFunction = Some(createUserWithAccountAccess))
+        http4sPartialFunction = Some(createUserWithAccountAccess)
+      )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(createUserInvitation), "POST",
+        null,
+        implementedInApiVersion,
+        nameOf(createUserInvitation),
+        "POST",
         "/banks/BANK_ID/user-invitation",
         "Create User Invitation",
-        s"""Create User Invitation.""",
-        userInvitationPostJsonV400, userInvitationJsonV400,
+        s"""Create User Invitation.
+        |
+        | This endpoint will send an invitation email to the developers, then they can use the link to create the obp user.
+        |
+        | purpose filed only support:${UserInvitationPurpose.values
+         .toString()}.
+        |
+        | You can customise the email details use the following webui props:
+        |
+        | when purpose == ${UserInvitationPurpose.DEVELOPER.toString}
+        | webui_developer_user_invitation_email_subject
+        | webui_developer_user_invitation_email_from
+        | webui_developer_user_invitation_email_text
+        | webui_developer_user_invitation_email_html_text
+        |
+        | when purpose = == ${UserInvitationPurpose.CUSTOMER.toString}
+        | webui_customer_user_invitation_email_subject
+        | webui_customer_user_invitation_email_from
+        | webui_customer_user_invitation_email_text
+        | webui_customer_user_invitation_email_html_text
+        |
+        |""",
+        userInvitationPostJsonV400,
+        userInvitationJsonV400,
         List($AuthenticatedUserIsRequired, $BankNotFound, UserCustomerLinksNotFoundForUser, UnknownError),
         List(apiTagUserInvitation, apiTagKyc),
         Some(canCreateUserInvitation :: Nil),
-        http4sPartialFunction = Some(createUserInvitation))
+        http4sPartialFunction = Some(createUserInvitation)
+      )
     }
     initBatch19ResourceDocs()
 
