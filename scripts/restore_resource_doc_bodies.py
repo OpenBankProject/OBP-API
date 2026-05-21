@@ -74,12 +74,25 @@ def uncomment(source: str) -> str:
 def _skip_string_or_comment(source: str, i: int):
     n = len(source)
     c = source[i]
+    # Scala's lexer is greedy about trailing `"` in `"""..."""` — consume
+    # any extra `"` chars after the closer to keep string boundaries
+    # aligned through the rest of the source.
     if source.startswith('"""', i):
         j = source.find('"""', i + 3)
-        return n if j == -1 else j + 3
+        if j == -1:
+            return n
+        k = j + 3
+        while k < n and source[k] == '"':
+            k += 1
+        return k
     if c in ("s", "f") and source.startswith('"""', i + 1):
         j = source.find('"""', i + 4)
-        return n if j == -1 else j + 3
+        if j == -1:
+            return n
+        k = j + 3
+        while k < n and source[k] == '"':
+            k += 1
+        return k
     if c == '"':
         j = i + 1
         while j < n:

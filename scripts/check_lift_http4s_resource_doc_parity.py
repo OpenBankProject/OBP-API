@@ -132,14 +132,28 @@ def _skip_string_or_comment(source: str, i: int):
     """
     n = len(source)
     c = source[i]
-    # triple-quoted plain
+    # triple-quoted plain. Scala's lexer is greedy about trailing `"` —
+    # e.g. `"""foo "bar""""` has content `foo "bar"` and closer `"""`, with
+    # the 4 quotes at the end being content-quote + 3 closer quotes.
+    # A non-greedy `find('"""', i+3)` would split at the wrong boundary,
+    # leaving a stray `"` that misaligns every subsequent string in the file.
     if source.startswith('"""', i):
         j = source.find('"""', i + 3)
-        return n if j == -1 else j + 3
+        if j == -1:
+            return n
+        k = j + 3
+        while k < n and source[k] == '"':
+            k += 1
+        return k
     # interpolated triple-quote: s"""..."""  or f"""..."""
     if c in ("s", "f") and source.startswith('"""', i + 1):
         j = source.find('"""', i + 4)
-        return n if j == -1 else j + 3
+        if j == -1:
+            return n
+        k = j + 3
+        while k < n and source[k] == '"':
+            k += 1
+        return k
     # plain double-quoted string (handle escapes)
     if c == '"':
         j = i + 1
