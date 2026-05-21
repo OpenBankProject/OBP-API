@@ -2277,7 +2277,7 @@ trait APIMethods510
 //      revokeMyConsent,
 //      implementedInApiVersion,
 //      nameOf(revokeMyConsent),
-//      "Delete",
+//      "DELETE",
 //      "/my/consents/CONSENT_ID",
 //      "Revoke My Consent",
 //      s"""
@@ -2382,9 +2382,9 @@ trait APIMethods510
 //      """.stripMargin
 //
 //    staticResourceDocs += ResourceDoc(
-//      createConsentImplicit,
+//      createConsent,
 //      implementedInApiVersion,
-//      nameOf(createConsentImplicit),
+//      nameOf(createConsent),
 //      "POST",
 //      "/my/consents/IMPLICIT",
 //      "Create Consent (IMPLICIT)",
