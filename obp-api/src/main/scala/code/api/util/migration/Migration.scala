@@ -91,6 +91,7 @@ object Migration extends MdcLoggable {
       dropIndexAtColumnUsernameAtTableAuthUser(startedBeforeSchemifier)
       dropIndexAtUserAuthContext()
       alterWebhookColumnUrlLength()
+      alterMappedCounterpartyDescriptionLength()
       dropConsentAuthContextDropIndex()
       alterMappedExpectedChallengeAnswerChallengeTypeLength()
       alterTransactionRequestChallengeChallengeTypeLength()
@@ -473,6 +474,13 @@ object Migration extends MdcLoggable {
       val name = nameOf(alterWebhookColumnUrlLength)
       runOnce(name) {
         MigrationOfWebhookUrlFieldLength.alterColumnUrlLength(name)
+      }
+    }
+
+    private def alterMappedCounterpartyDescriptionLength(): Boolean = {
+      val name = nameOf(alterMappedCounterpartyDescriptionLength)
+      runOnce(name) {
+        MigrationOfMappedCounterpartyDescriptionLength.alterColumnDescriptionLength(name)
       }
     }
 

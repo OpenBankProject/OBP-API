@@ -890,15 +890,78 @@ object Glossary extends MdcLoggable  {
 		title = "Account.account_id",
 		description =
 		s"""
-		  |An identifier for the account that MUST NOT leak the account number or other identifier nomrally used by the customer or bank staff.
-		  |It SHOULD be a UUID. It MUST be unique in combination with the BANK_ID. ACCOUNT_ID is used in many URLS so it should be considered public.
-		  |(We do NOT use account number in URLs since URLs are cached and logged all over the internet.)
-		  |In local / sandbox mode, ACCOUNT_ID is generated as a UUID and stored in the database.
-		  |In non sandbox modes (RabbitMq etc.), ACCOUNT_ID is mapped to core banking account numbers / identifiers at the South Side Adapter level.
-		  |ACCOUNT_ID is used to link Metadata and Views so it must be persistant and known to the North Side (OBP-API).
+		  |An identifier for the account that MUST NOT leak the account number or other identifier normally used by the customer or bank staff.
+		  |
+		  |### Format
+		  |
+		  |`account_id` **MUST be a UUID**. The MUST is deliberate: a UUID is effectively globally unique by construction (collision probability ≈ 0), which means `(OBP, account_id)` is a self-contained, federation-safe routing pair without needing to be qualified by the surrounding `bank_id`. Older OBP releases said "SHOULD be a UUID" — the contract has been tightened.
+		  |
+		  |It MUST also be unique in combination with the BANK_ID (this remains true and is enforced at the database level).
+		  |
+		  |### Why a UUID
+		  |
+		  |- ACCOUNT_ID is used in many URLs so it must be considered public; a UUID leaks no information about the account number, customer, or position in any sequence.
+		  |- (We do NOT use the human-facing account number in URLs since URLs are cached and logged all over the internet.)
+		  |- A UUID also makes the canonical `(OBP, account_id)` self-routing (see `Account.account_routings`) usable across instances without ambiguity.
+		  |
+		  |### How it is generated
+		  |
+		  |- In local / sandbox mode, ACCOUNT_ID is generated as a UUID and stored in the database.
+		  |- In non-sandbox modes (RabbitMQ, etc.), ACCOUNT_ID is mapped to core-banking account numbers / identifiers at the South-Side Adapter level. The adapter is responsible for emitting a UUID-shaped value.
+		  |- ACCOUNT_ID is used to link Metadata and Views, so it MUST be persistent and known to the North Side (OBP-API).
 			|
 			| Example value: ${accountIdExample.value}
 			|
+		""")
+
+	  glossaryItems += GlossaryItem(
+		title = "Account.account_routings",
+		description =
+		s"""
+		  |A list of routing entries that identify the account on external rails (IBAN, account number, mobile-money MSISDN, etc.) and on OBP itself.
+		  |
+		  |Each entry has two fields:
+		  |
+		  |- `scheme` — the name of the routing scheme, e.g. `IBAN`, `BIC`, `AccountNumber`, `OBP`.
+		  |- `address` — the address within that scheme, e.g. an IBAN value, an account-number string, or — for the `OBP` scheme — the OBP `account_id`.
+		  |
+		  |### A note on the "OBP" scheme name
+		  |
+		  |The implicit self-routing is currently emitted with `scheme: "OBP"`. Read in context — inside an `account_routings` array — this unambiguously means "the address is the OBP `account_id`". Read out of context (a flat routing table, a federation message, a log line), the name `"OBP"` alone does not say whether the address is an account_id or a bank_id.
+		  |
+		  |The explicit alias `"OBP_ACCOUNT_ID"` is also recognised on input (when storing a routing via the `Create or Update Account Routing` endpoint, or when resolving a counterparty). It is not emitted in responses today, but robust clients should treat `"OBP"` and `"OBP_ACCOUNT_ID"` as equivalent — e.g. by matching case-insensitively against the set `{"OBP", "OBP_ACCOUNT_ID"}` rather than equality with the literal `"OBP"`.
+		  |
+		  |See also: `Bank.bank_routings` for the analogous bank-level alias `"OBP_BANK_ID"`.
+		  |
+		  |### Response shape (v6.0.0 onwards)
+		  |
+		  |For every endpoint that returns `account_routings` (e.g. `getCoreAccountById`, `getPrivateAccountByIdFull`, `getAccountDirectory`, the transaction endpoints), the response is guaranteed to contain:
+		  |
+		  |1. **Exactly one canonical OBP self-routing** as the first element: `{ "scheme": "OBP", "address": "<account_id>" }`. This means a client can always address the account by its `account_id` without first probing for which routing schemes the bank has configured.
+		  |2. **Zero or more stored routings** from the `bankaccountrouting` table — whatever the bank or admin has configured (IBAN, BIC, AccountNumber, country-qualified MSISDN, etc.).
+		  |
+		  |If a bank has stored an `OBP`-scheme routing whose address diverges from the `account_id`, the response prefers the canonical form (`address = account_id`) — the stored value is dropped to guarantee a single, consistent OBP entry.
+		  |
+		  |### Example
+		  |
+		  |```json
+		  |"account_routings": [
+		  |  { "scheme": "OBP",           "address": "${accountIdExample.value}" },
+		  |  { "scheme": "IBAN",          "address": "DE89370400440532013000" },
+		  |  { "scheme": "AccountNumber", "address": "12345678" }
+		  |]
+		  |```
+		  |
+		  |### Where to set the stored routings
+		  |
+		  |The non-OBP entries come from the `BankAccountRouting` model — one row per `(BANK_ID, ACCOUNT_ID, scheme)` triple. Use `Create or Update Account Routing` to manage them. Multiple entries per account are supported (e.g. an IBAN plus an MSISDN), and each `(scheme, address)` pair is unique within a bank.
+		  |
+		  |### Earlier versions
+		  |
+		  |In versions earlier than v6.0.0 the canonical `OBP` entry was not automatically prepended. A client targeting older versions cannot rely on `OBP` being present unless the bank/admin explicitly stored it. Migrating to v6.0.0+ simplifies routing logic since the OBP self-routing is always available.
+		  |
+		  |See also: `Bank.bank_routings` for the analogous bank-level field.
+		  |
 		""")
 
 	  glossaryItems += GlossaryItem(
@@ -929,15 +992,21 @@ object Glossary extends MdcLoggable  {
 		s"""
 		  |An identifier that uniquely identifies the bank or financial institution on the OBP-API instance.
 		  |
-		  |It is typically a human (developer) friendly string for ease of identification.
-			|
-			|It SHOULD NOT contain spaces.
-			|
-		  |In sandbox mode it typically has the form: "financialinstitutuion.sequencennumber.region.language". e.g. "bnpp-irb.01.it.it"
-			|
-			|For production, it's value could be the BIC of the institution.
-			|
-			|
+		  |### Format
+		  |
+		  |`bank_id` **SHOULD be of the form `<human-friendly>-<UUID>`** — a short, readable prefix that names the institution, followed by a hyphen and a UUID. The human-friendly prefix preserves scannability in URLs and logs; the UUID suffix guarantees global uniqueness across OBP instances and federations.
+		  |
+		  |Examples:
+		  |
+		  |- `bisb-7f3a9c2b-1d4e-4b6a-9c0f-5e2d1a3b8c0d`
+		  |- `bnpp-irb-it-01-2a3b...c4d5`
+		  |
+		  |It SHOULD NOT contain spaces. It MUST be unique on the OBP-API instance (enforced at the database level) and SHOULD be globally unique across all OBP instances (achieved by the UUID suffix).
+		  |
+		  |### Earlier conventions
+		  |
+		  |Older OBP releases used purely human-friendly identifiers like `bnpp-irb.01.it.it` (sandbox convention: `financialinstitution.sequence.region.language`) or the institution's BIC. Existing bank_ids in production will not be renamed retroactively — the new convention applies to **newly created banks** going forward. Federation logic must therefore handle both shapes (with and without UUID suffix) indefinitely.
+		  |
 			|Example value: ${bankIdExample.value}
 			|
 			|## Version history
@@ -955,6 +1024,55 @@ object Glossary extends MdcLoggable  {
 			|the field name — sending `id` to v6 endpoints will silently produce an empty `bank_id` and
 			|fail validation with a confusing length error.
 		 """)
+
+	  glossaryItems += GlossaryItem(
+		title = "Bank.bank_routings",
+		description =
+		s"""
+		  |A list of routing entries that identify the bank on external rails (BIC/SWIFT, national bank codes, etc.) and on OBP itself.
+		  |
+		  |Each entry has two fields:
+		  |
+		  |- `scheme` — the name of the routing scheme, e.g. `BIC`, `bankCode`, `BLZ`, `FRENCH_NCC`, `OBP`.
+		  |- `address` — the address within that scheme, e.g. a BIC value, a national bank code, or — for the `OBP` scheme — the OBP `bank_id`.
+		  |
+		  |### A note on the "OBP" scheme name
+		  |
+		  |The implicit self-routing is currently emitted with `scheme: "OBP"`. Read in context — inside a `bank_routings` array — this unambiguously means "the address is the OBP `bank_id`". Read out of context (a flat routing table, a federation message, a log line), the name `"OBP"` alone does not say whether the address is a bank_id or an account_id.
+		  |
+		  |The explicit alias `"OBP_BANK_ID"` is also recognised on input. It is not emitted in responses today, but robust clients should treat `"OBP"` and `"OBP_BANK_ID"` as equivalent — e.g. by matching case-insensitively against the set `{"OBP", "OBP_BANK_ID"}` rather than equality with the literal `"OBP"`.
+		  |
+		  |See also: `Account.account_routings` for the analogous account-level alias `"OBP_ACCOUNT_ID"`.
+		  |
+		  |### Response shape (v6.0.0 onwards)
+		  |
+		  |For every endpoint that returns `bank_routings` (e.g. `getBank`, `getBanks`, `createBank`), the response is guaranteed to contain:
+		  |
+		  |1. **Exactly one canonical OBP self-routing** as the first element: `{ "scheme": "OBP", "address": "<bank_id>" }`. This means a client can always address the bank by its `bank_id` regardless of which other schemes have been registered.
+		  |2. **A BIC entry**, derived from the bank's dedicated SWIFT/BIC column (`swiftBic`), if non-empty. If the explicit stored routing is itself a BIC, only one BIC entry appears — duplicates are removed.
+		  |3. **The explicit stored routing** (the legacy single `(bankRoutingScheme, bankRoutingAddress)` column pair), unless it is an `OBP` or `BIC` entry already covered above.
+		  |
+		  |If a bank has stored an `OBP`-scheme routing whose address diverges from the `bank_id`, the response prefers the canonical form (`address = bank_id`) — the stored value is dropped to guarantee a single, consistent OBP entry.
+		  |
+		  |Entries with an empty/null address are filtered out (e.g. if a bank has no BIC, the implicit BIC entry is dropped rather than emitted as a null).
+		  |
+		  |### Example
+		  |
+		  |```json
+		  |"bank_routings": [
+		  |  { "scheme": "OBP", "address": "${bankIdExample.value}" },
+		  |  { "scheme": "BIC", "address": "BARCGB22" },
+		  |  { "scheme": "BLZ", "address": "10010010" }
+		  |]
+		  |```
+		  |
+		  |### Earlier versions
+		  |
+		  |In versions earlier than v6.0.0 the canonical `OBP` entry was not automatically prepended. A client targeting older versions cannot rely on `OBP` being present unless explicitly stored. Migrating to v6.0.0+ simplifies routing logic since the OBP self-routing is always available.
+		  |
+		  |See also: `Account.account_routings` for the analogous account-level field.
+		  |
+		""")
 
 	  glossaryItems += GlossaryItem(
 		title = "Consumer",

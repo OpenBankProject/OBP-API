@@ -86,12 +86,12 @@ object Http4s500 {
       "/root",
       "Get API Info (root)",
       """Returns information about:
-        |
-        |* API version
-        |* Hosted by information
-        |* Hosted at information
-        |* Energy source information
-        |* Git Commit""",
+      |
+      |* API version
+      |* Hosted by information
+      |* Hosted at information
+      |* Energy source information
+      |* Git Commit""",
       EmptyBody,
       apiInfoJson400,
       List(
@@ -150,11 +150,11 @@ object Http4s500 {
       "/banks/BANK_ID",
       "Get Bank",
       """Get the bank specified by BANK_ID
-        |Returns information about a single bank specified by BANK_ID including:
-        |
-        |* Bank code and full name of bank
-        |* Logo URL
-        |* Website""",
+      |Returns information about a single bank specified by BANK_ID including:
+      |
+      |* Bank code and full name of bank
+      |* Logo URL
+      |* Website""",
       EmptyBody,
       bankJson500,
       List(
@@ -250,14 +250,24 @@ object Http4s500 {
       "/system-views",
       "Create System View",
       s"""Create a system view
-         |
-         |${code.api.util.APIUtil.userAuthenticationMessage(true)} and the user needs to have access to the CanCreateSystemView entitlement.
-         |
-         |The 'allowed_actions' field is a list containing the names of the actions allowed through this view.
-         |All the actions contained in the list will be set to `true` on the view creation, the rest will be set to `false`.
-         |
-         |System views cannot be public. In case you try to set it you will get the error $SystemViewCannotBePublicError
-         |""",
+      |
+      | ${userAuthenticationMessage(true)} and the user needs to have access to the $canCreateSystemView entitlement.
+      |
+      | The 'allowed_actions' field is a list containing the names of the actions allowed through this view.
+      | All the actions contained in the list will be set to `true` on the view creation, the rest will be set to `false`.
+      |
+      | The 'alias' field in the JSON can take one of three values:
+      |
+      | * _public_: to use the public alias if there is one specified for the other account.
+      | * _private_: to use the private alias if there is one specified for the other account.
+      | * _''(empty string)_: to use no alias; the view shows the real name of the other account.
+      |
+      | The 'hide_metadata_if_alias_used' field in the JSON can take boolean values. If it is set to `true` and there is an alias on the other account then the other accounts' metadata (like more_info, url, image_url, open_corporates_url, etc.) will be hidden. Otherwise the metadata will be shown.
+      |
+      | The 'metadata_view' field determines where metadata (comments, tags, images, where tags) for transactions are stored and retrieved. If set to another view's ID (e.g. 'owner'), metadata added through this view will be shared with all other views that also use the same metadata_view value. If left empty, metadata is stored under this view's own ID and is not shared with other views.
+      |
+      | System views cannot be public. In case you try to set it you will get the error $SystemViewCannotBePublicError
+      | """,
       createSystemViewJsonV500,
       viewJsonV500,
       List(
@@ -308,8 +318,9 @@ object Http4s500 {
       "Get System View",
       s"""Get System View
          |
-         |${code.api.util.APIUtil.userAuthenticationMessage(true)}
-         |""",
+         |${userAuthenticationMessage(true)}
+         |
+      """.stripMargin,
       EmptyBody,
       viewJsonV500,
       List(
@@ -339,12 +350,12 @@ object Http4s500 {
       "PUT",
       "/system-views/VIEW_ID",
       "Update System View",
-      s"""Update an existing system view
-         |
-         |${code.api.util.APIUtil.userAuthenticationMessage(true)} and the user needs to have access to the CanUpdateSystemView entitlement.
-         |
-         |The json sent is the same as during view creation, with one difference: the 'name' field
-         |of a view is not editable (it is only set when a view is created)""",
+      s"""Update an existing view on a bank account
+      |
+      |${userAuthenticationMessage(true)} and the user needs to have access to the owner view.
+      |
+      |The json sent is the same as during view creation (above), with one difference: the 'name' field
+      |of a view is not editable (it is only set when a view is created)""",
       updateSystemViewJson500,
       viewJsonV500,
       List(
@@ -390,10 +401,7 @@ object Http4s500 {
       "DELETE",
       "/system-views/VIEW_ID",
       "Delete System View",
-      s"""Deletes the system view specified by VIEW_ID
-         |
-         |${code.api.util.APIUtil.userAuthenticationMessage(true)} and the user needs to have access to the CanDeleteSystemView entitlement.
-         |""",
+      "Deletes the system view specified by VIEW_ID",
       EmptyBody,
       EmptyBody,
       List(
@@ -479,16 +487,28 @@ object Http4s500 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createBank), "POST",
-      "/banks", "Create Bank",
+      null,
+      implementedInApiVersion,
+      nameOf(createBank),
+      "POST",
+      "/banks",
+      "Create Bank",
       s"""Create a new bank (Authenticated access).
-         |
-         |The user creating this will be automatically assigned the Role CanCreateEntitlementAtOneBank.
-         |Thus the User can manage the bank they create and assign Roles to other Users.
-         |""",
-      postBankJson500, bankJson500,
+      |
+      |The user creating this will be automatically assigned the Role CanCreateEntitlementAtOneBank.
+      |Thus the User can manage the bank they create and assign Roles to other Users.
+      |
+      |Only SANDBOX mode (i.e. when connector=mapped in properties file)
+      |The settlement accounts are automatically created by the system when the bank is created.
+      |Name and account id are created in accordance to the next rules:
+      |  - Incoming account (name: Default incoming settlement account, Account ID: OBP_DEFAULT_INCOMING_ACCOUNT_ID, currency: EUR)
+      |  - Outgoing account (name: Default outgoing settlement account, Account ID: OBP_DEFAULT_OUTGOING_ACCOUNT_ID, currency: EUR)
+      |
+      |""",
+      postBankJson500,
+      bankJson500,
       List(InvalidJsonFormat, $AuthenticatedUserIsRequired,
-        InsufficientAuthorisationToCreateBank, UnknownError),
+      InsufficientAuthorisationToCreateBank, UnknownError),
       List(apiTagBank),
       Some(List(canCreateBank)),
       http4sPartialFunction = Some(createBank)
@@ -535,10 +555,17 @@ object Http4s500 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(updateBank), "PUT",
-      "/banks", "Update Bank",
-      "Update an existing bank (Authenticated access).",
-      postBankJson500, bankJson500,
+      null,
+      implementedInApiVersion,
+      nameOf(updateBank),
+      "PUT",
+      "/banks",
+      "Update Bank",
+      s"""Update an existing bank (Authenticated access).
+      |
+      |""",
+      postBankJson500,
+      bankJson500,
       List(InvalidJsonFormat, $AuthenticatedUserIsRequired, BankNotFound, updateBankError, UnknownError),
       List(apiTagBank),
       Some(List(canCreateBank)),
@@ -650,12 +677,18 @@ object Http4s500 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createUserAuthContext), "POST",
-      "/users/USER_ID/auth-context", "Create User Auth Context",
-      s"""Create User Auth Context. These key value pairs will be propagated over connector to adapter.
-         |
-         |${userAuthenticationMessage(true)}""",
-      postUserAuthContextJson, userAuthContextJsonV500,
+      null,
+      implementedInApiVersion,
+      nameOf(createUserAuthContext),
+      "POST",
+      "/users/USER_ID/auth-context",
+      "Create User Auth Context",
+      s"""Create User Auth Context. These key value pairs will be propagated over connector to adapter. Normally used for mapping OBP user and
+      | Bank User/Customer.
+      |${userAuthenticationMessage(true)}
+      |""",
+      postUserAuthContextJson,
+      userAuthContextJsonV500,
       List(AuthenticatedUserIsRequired, InvalidJsonFormat, CreateUserAuthContextError, UnknownError),
       List(apiTagUser),
       Some(List(canCreateUserAuthContext)),
@@ -676,12 +709,20 @@ object Http4s500 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getUserAuthContexts), "GET",
-      "/users/USER_ID/auth-context", "Get User Auth Contexts",
+      null,
+      implementedInApiVersion,
+      nameOf(getUserAuthContexts),
+      "GET",
+      "/users/USER_ID/auth-context",
+      "Get User Auth Contexts",
       s"""Get User Auth Contexts for a User.
-         |
-         |${userAuthenticationMessage(true)}""",
-      EmptyBody, userAuthContextJsonV500,
+      |
+      |
+      |${userAuthenticationMessage(true)}
+      |
+      |""",
+      EmptyBody,
+      userAuthContextJsonV500,
       List(AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
       List(apiTagUser),
       Some(canGetUserAuthContext :: Nil),
@@ -717,14 +758,21 @@ object Http4s500 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createUserAuthContextUpdateRequest), "POST",
+      null,
+      implementedInApiVersion,
+      nameOf(createUserAuthContextUpdateRequest),
+      "POST",
       "/banks/BANK_ID/users/current/auth-context-updates/SCA_METHOD",
       "Create User Auth Context Update Request",
       s"""Create User Auth Context Update Request.
-         |${userAuthenticationMessage(true)}
-         |
-         |A One Time Password (OTP) is sent Out of Band (OOB) to the User via the transport defined in SCA_METHOD.""",
-      postUserAuthContextJson, userAuthContextUpdateJsonV500,
+      |${userAuthenticationMessage(true)}
+      |
+      |A One Time Password (OTP) (AKA security challenge) is sent Out of Band (OOB) to the User via the transport defined in SCA_METHOD
+      |SCA_METHOD is typically "SMS" or "EMAIL". "EMAIL" is used for testing purposes.
+      |
+      |""",
+      postUserAuthContextJson,
+      userAuthContextUpdateJsonV500,
       List(AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat, CreateUserAuthContextError, UnknownError),
       List(apiTagUser),
       None,
@@ -765,11 +813,17 @@ object Http4s500 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(answerUserAuthContextUpdateChallenge), "POST",
+      null,
+      implementedInApiVersion,
+      nameOf(answerUserAuthContextUpdateChallenge),
+      "POST",
       "/banks/BANK_ID/users/current/auth-context-updates/AUTH_CONTEXT_UPDATE_ID/challenge",
       "Answer User Auth Context Update Challenge",
-      "Answer User Auth Context Update Challenge.",
-      postUserAuthContextUpdateJsonV310, userAuthContextUpdateJsonV500,
+      s"""
+      |Answer User Auth Context Update Challenge.
+      |""",
+      postUserAuthContextUpdateJsonV310,
+      userAuthContextUpdateJsonV500,
       List(AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat, InvalidConnectorResponse, UnknownError),
       apiTagUser :: Nil,
       None,
@@ -809,16 +863,44 @@ object Http4s500 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createConsentRequest), "POST",
-      "/consumer/consent-requests", "Create Consent Request",
-      s"""Create a Consent Request — the first step of the OBP Consent flow.
-         |
-         |The calling application (TPP) authenticates with Client Credentials and posts the consent details.
-         |
-         |${applicationAccessMessage(true)}
-         |
-         |${userAuthenticationMessage(false)}""".stripMargin,
-      postConsentRequestJsonV500, consentRequestResponseJson,
+      null,
+      implementedInApiVersion,
+      nameOf(createConsentRequest),
+      "POST",
+      "/consumer/consent-requests",
+      "Create Consent Request",
+      s"""
+      |Create a Consent Request — the first step of the OBP Consent flow.
+      |
+      |The calling application (TPP) authenticates with Client Credentials and posts the consent details (entitlements, account_access, VRP fields, etc.). The User then completes the flow by calling Create Consent By CONSENT_REQUEST_ID.
+      |
+      |The Consent Request is recorded against the calling consumer (its creator).
+      |
+      |Optional body fields of note:
+      |
+      |- `consumer_id`: if set, the resulting Consent (created when the User answers this request) will be pinned to this consumer instead of the creator. Use only when the consent is intended for a different application than the one creating the request. Most TPPs should omit this field — when omitted, the resulting Consent is pinned to the creator. Note: this override is being deprecated; v6.0.0 will pin the resulting Consent to the creator unconditionally.
+      |- `email` / `phone_number`: surface in the SCA challenge if the User chooses EMAIL or SMS at answer time.
+      |- `valid_from` / `time_to_live`: control the lifetime of the resulting Consent.
+      |
+      |Authentication:
+      |
+      |The client needs to authenticate themselves for this request. In case of public client we use client_id and private key to obtain access token; otherwise we use client_id and client_secret. The obtained access token is used in the HTTP Bearer auth header of our request.
+      |
+      |Example:
+      |Authorization: Bearer eXtneO-THbQtn3zvK_kQtXXfvOZyZFdBCItlPDbR2Bk.dOWqtXCtFX-tqGTVR0YrIjvAolPIVg7GZ-jz83y6nA0
+      |
+      |After successfully creating the Consent Request, call Create Consent By CONSENT_REQUEST_ID to finalize.
+      |
+      |See Glossary entry "Authentication: Consent OBP Flow Example" for an end-to-end walk-through.
+      |
+      |${applicationAccessMessage(true)}
+      |
+      |${userAuthenticationMessage(false)}
+      |
+      |
+      |""".stripMargin,
+      postConsentRequestJsonV500,
+      consentRequestResponseJson,
       List(InvalidJsonFormat, ConsentMaxTTL, X509CannotGetCertificate, X509GeneralError, InvalidConnectorResponse, UnknownError),
       apiTagConsent :: apiTagPSD2AIS :: apiTagPsd2 :: Nil,
       None,
@@ -841,10 +923,24 @@ object Http4s500 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getConsentRequest), "GET",
-      "/consumer/consent-requests/CONSENT_REQUEST_ID", "Get Consent Request",
-      "Return the full payload of a previously-created Consent Request.",
-      EmptyBody, consentRequestResponseJson,
+      null,
+      implementedInApiVersion,
+      nameOf(getConsentRequest),
+      "GET",
+      "/consumer/consent-requests/CONSENT_REQUEST_ID",
+      "Get Consent Request",
+      s"""
+      |Return the full payload of a previously-created Consent Request — the JSON the TPP submitted to Create Consent Request, plus the consent_request_id and the creating consumer_id.
+      |
+      |Use this endpoint to verify the contents of a Consent Request before the User answers it.
+      |
+      |Authentication: Application access (any registered consumer/application can read any Consent Request by ID).
+      |
+      |Note: this endpoint will be restricted to the creating consumer in v6.0.0. Until then, treat CONSENT_REQUEST_IDs as sensitive — they reveal entitlements, account routings, and contact details (email/phone) submitted at creation.
+      |
+      |""".stripMargin,
+      EmptyBody,
+      consentRequestResponseJson,
       List(InvalidJsonFormat, ConsentMaxTTL, X509CannotGetCertificate, X509GeneralError, InvalidConnectorResponse, UnknownError),
       apiTagConsent :: apiTagPSD2AIS :: apiTagPsd2 :: Nil,
       None,
@@ -906,13 +1002,21 @@ object Http4s500 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getConsentByConsentRequestId), "GET",
+      null,
+      implementedInApiVersion,
+      nameOf(getConsentByConsentRequestId),
+      "GET",
       "/consumer/consent-requests/CONSENT_REQUEST_ID/consents",
       "Get Consent By Consent Request Id via Consumer",
-      s"""This endpoint gets the Consent By consent request id.
+      s"""
          |
-         |${userAuthenticationMessage(true)}""",
-      EmptyBody, consentJsonV500,
+         |This endpoint gets the Consent By consent request id.
+         |
+         |${userAuthenticationMessage(true)}
+         |
+      """.stripMargin,
+      EmptyBody,
+      consentJsonV500,
       List($AuthenticatedUserIsRequired, UnknownError),
       List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2),
       None,
@@ -1286,10 +1390,15 @@ object Http4s500 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(headAtms), "HEAD",
-      "/banks/BANK_ID/atms", "Head Bank ATMS",
-      "Head Bank ATMS.",
-      EmptyBody, atmsJsonV400,
+      null,
+      implementedInApiVersion,
+      nameOf(headAtms),
+      "HEAD",
+      "/banks/BANK_ID/atms",
+      "Head Bank ATMS",
+      s"""Head Bank ATMS.""",
+      EmptyBody,
+      atmsJsonV400,
       List($BankNotFound, UnknownError),
       List(apiTagATM),
       None,
@@ -1347,17 +1456,27 @@ object Http4s500 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createCustomer), "POST",
-      "/banks/BANK_ID/customers", "Create Customer",
-      s"""The Customer resource stores the customer number, legal name, email, phone number, date of birth, etc.
-         |
-         |If kyc_status is not provided, it defaults to false.
-         |
-         |${userAuthenticationMessage(true)}""",
-      postCustomerJsonV500, customerJsonV310,
+      null,
+      implementedInApiVersion,
+      nameOf(createCustomer),
+      "POST",
+      "/banks/BANK_ID/customers",
+      "Create Customer",
+      s"""
+      |The Customer resource stores the customer number (which is set by the backend), legal name, email, phone number, their date of birth, relationship status, education attained, a url for a profile image, KYC status etc.
+      |Dates need to be in the format 2013-01-21T23:08:00Z
+      |
+      |If kyc_status is not provided, it defaults to false.
+      |
+      |Note: If you need to set a specific customer number, use the Update Customer Number endpoint after this call.
+      |
+      |${userAuthenticationMessage(true)}
+      |""",
+      postCustomerJsonV500,
+      customerJsonV310,
       List($AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat,
-        CustomerNumberAlreadyExists, UserNotFoundById, CustomerAlreadyExistsForUser,
-        CreateConsumerError, UnknownError),
+      CustomerNumberAlreadyExists, UserNotFoundById, CustomerAlreadyExistsForUser,
+      CreateConsumerError, UnknownError),
       List(apiTagCustomer, apiTagPerson),
       Some(List(canCreateCustomer, canCreateCustomerAtAnyBank)),
       http4sPartialFunction = Some(createCustomer)
@@ -1387,12 +1506,20 @@ object Http4s500 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getCustomerOverview), "POST",
-      "/banks/BANK_ID/customers/customer-number-query/overview", "Get Customer Overview",
+      null,
+      implementedInApiVersion,
+      nameOf(getCustomerOverview),
+      "POST",
+      "/banks/BANK_ID/customers/customer-number-query/overview",
+      "Get Customer Overview",
       s"""Gets the Customer Overview specified by customer_number and bank_code.
-         |
-         |${userAuthenticationMessage(true)}""",
-      postCustomerOverviewJsonV500, customerOverviewJsonV500,
+      |
+      |
+      |${userAuthenticationMessage(true)}
+      |
+      |""",
+      postCustomerOverviewJsonV500,
+      customerOverviewJsonV500,
       List(AuthenticatedUserIsRequired, UserCustomerLinksNotFoundForUser, UnknownError),
       List(apiTagCustomer, apiTagKyc),
       Some(List(canGetCustomerOverview)),
@@ -1423,12 +1550,20 @@ object Http4s500 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getCustomerOverviewFlat), "POST",
-      "/banks/BANK_ID/customers/customer-number-query/overview-flat", "Get Customer Overview Flat",
+      null,
+      implementedInApiVersion,
+      nameOf(getCustomerOverviewFlat),
+      "POST",
+      "/banks/BANK_ID/customers/customer-number-query/overview-flat",
+      "Get Customer Overview Flat",
       s"""Gets the Customer Overview Flat specified by customer_number and bank_code.
-         |
-         |${userAuthenticationMessage(true)}""",
-      postCustomerOverviewJsonV500, customerOverviewFlatJsonV500,
+      |
+      |
+      |${userAuthenticationMessage(true)}
+      |
+      |""",
+      postCustomerOverviewJsonV500,
+      customerOverviewFlatJsonV500,
       List(AuthenticatedUserIsRequired, UserCustomerLinksNotFoundForUser, UnknownError),
       List(apiTagCustomer, apiTagKyc),
       Some(List(canGetCustomerOverviewFlat)),
@@ -1448,10 +1583,17 @@ object Http4s500 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getMyCustomersAtAnyBank), "GET",
-      "/my/customers", "Get My Customers",
-      "Gets all Customers that are linked to me.\n\nAuthentication via OAuth is required.",
-      EmptyBody, customerJsonV210,
+      null,
+      implementedInApiVersion,
+      nameOf(getMyCustomersAtAnyBank),
+      "GET",
+      "/my/customers",
+      "Get My Customers",
+      """Gets all Customers that are linked to me.
+      |
+      |Authentication via OAuth is required.""",
+      EmptyBody,
+      customerJsonV210,
       List($AuthenticatedUserIsRequired, UserCustomerLinksNotFoundForUser, UnknownError),
       List(apiTagCustomer, apiTagUser),
       None,
@@ -1475,12 +1617,18 @@ object Http4s500 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getMyCustomersAtBank), "GET",
-      "/banks/BANK_ID/my/customers", "Get My Customers at Bank",
+      null,
+      implementedInApiVersion,
+      nameOf(getMyCustomersAtBank),
+      "GET",
+      "/banks/BANK_ID/my/customers",
+      "Get My Customers at Bank",
       s"""Returns a list of Customers at the Bank that are linked to the currently authenticated User.
-         |
-         |${userAuthenticationMessage(true)}""",
-      EmptyBody, customerJSONs,
+      |
+      |
+      |${userAuthenticationMessage(true)}""".stripMargin,
+      EmptyBody,
+      customerJSONs,
       List($AuthenticatedUserIsRequired, $BankNotFound, UserCustomerLinksNotFoundForUser, UnknownError),
       List(apiTagCustomer),
       None,
@@ -1503,12 +1651,20 @@ object Http4s500 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getCustomersAtOneBank), "GET",
-      "/banks/BANK_ID/customers", "Get Customers at Bank",
+      null,
+      implementedInApiVersion,
+      nameOf(getCustomersAtOneBank),
+      "GET",
+      "/banks/BANK_ID/customers",
+      "Get Customers at Bank",
       s"""Get Customers at Bank.
-         |
-         |${userAuthenticationMessage(true)}""",
-      EmptyBody, customersJsonV300,
+      |
+      |
+      |${userAuthenticationMessage(true)}
+      |
+      |""",
+      EmptyBody,
+      customersJsonV300,
       List(AuthenticatedUserIsRequired, UserCustomerLinksNotFoundForUser, UnknownError),
       List(apiTagCustomer, apiTagUser),
       Some(List(canGetCustomersAtOneBank)),
@@ -1531,10 +1687,19 @@ object Http4s500 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getCustomersMinimalAtOneBank), "GET",
-      "/banks/BANK_ID/customers-minimal", "Get Customers Minimal at Bank",
-      "Get Customers Minimal at Bank.",
-      EmptyBody, customersMinimalJsonV300,
+      null,
+      implementedInApiVersion,
+      nameOf(getCustomersMinimalAtOneBank),
+      "GET",
+      "/banks/BANK_ID/customers-minimal",
+      "Get Customers Minimal at Bank",
+      s"""Get Customers Minimal at Bank.
+      |
+      |
+      |
+      |""",
+      EmptyBody,
+      customersMinimalJsonV300,
       List(UserCustomerLinksNotFoundForUser, UnknownError),
       List(apiTagCustomer, apiTagUser),
       Some(List(canGetCustomersMinimalAtOneBank)),
@@ -1581,12 +1746,33 @@ object Http4s500 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createProduct), "PUT",
-      "/banks/BANK_ID/products/PRODUCT_CODE", "Create Product",
+      null,
+      implementedInApiVersion,
+      nameOf(createProduct),
+      "PUT",
+      "/banks/BANK_ID/products/PRODUCT_CODE",
+      "Create Product",
       s"""Create or Update Product for the Bank.
-         |
-         |${userAuthenticationMessage(true)}""",
-      putProductJsonV500, productJsonV400.copy(attributes = None, fees = None),
+      |
+      |The combination of bank_id and product_code is unique. If a Product already exists for the bank_id and product_code, it will be updated.
+      |
+      |Typical Super Family values / Asset classes are:
+      |
+      |Debt
+      |Equity
+      |FX
+      |Commodity
+      |Derivative
+      |
+      |$productHiearchyAndCollectionNote
+      |
+      |
+      |${userAuthenticationMessage(true) }
+      |
+      |
+      |""",
+      putProductJsonV500,
+      productJsonV400.copy(attributes = None, fees = None),
       List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
       List(apiTagProduct),
       Some(List(canCreateProduct, canCreateProductAtAnyBank)),
@@ -1660,12 +1846,18 @@ object Http4s500 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(addCardForBank), "POST",
-      "/management/banks/BANK_ID/cards", "Create Card",
-      s"""Create Card at bank specified by BANK_ID.
-         |
-         |${userAuthenticationMessage(true)}""",
-      createPhysicalCardJsonV500, physicalCardJsonV500,
+      null,
+      implementedInApiVersion,
+      nameOf(addCardForBank),
+      "POST",
+      "/management/banks/BANK_ID/cards",
+      "Create Card",
+      s"""Create Card at bank specified by BANK_ID .
+      |
+      |${userAuthenticationMessage(true)}
+      |""",
+      createPhysicalCardJsonV500,
+      physicalCardJsonV500,
       List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, AllowedValuesAre, UnknownError),
       List(apiTagCard),
       Some(List(canCreateCardsForBank)),
@@ -1695,12 +1887,38 @@ object Http4s500 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getViewsForBankAccount), "GET",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/views", "Get Views for Account",
-      s"""Returns the list of the views created for account ACCOUNT_ID at BANK_ID.
-         |
-         |${userAuthenticationMessage(true)} and the user needs to have access to the owner view.""",
-      EmptyBody, viewsJsonV500,
+      null,
+      implementedInApiVersion,
+      nameOf(getViewsForBankAccount),
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views",
+      "Get Views for Account",
+      s"""#Views
+      |
+      |
+      |Views in Open Bank Project provide a mechanism for fine grained access control and delegation to Accounts and Transactions. Account holders use the 'owner' view by default. Delegated access is made through other views for example 'accountants', 'share-holders' or 'tagging-application'. Views can be created via the API and each view has a list of entitlements.
+      |
+      |Views on accounts and transactions filter the underlying data to redact certain fields for certain users. For instance the balance on an account may be hidden from the public. The way to know what is possible on a view is determined in the following JSON.
+      |
+      |**Data:** When a view moderates a set of data, some fields my contain the value `null` rather than the original value. This indicates either that the user is not allowed to see the original data or the field is empty.
+      |
+      |There is currently one exception to this rule; the 'holder' field in the JSON contains always a value which is either an alias or the real name - indicated by the 'is_alias' field.
+      |
+      |**Action:** When a user performs an action like trying to post a comment (with POST API call), if he is not allowed, the body response will contain an error message.
+      |
+      |**Metadata:**
+      |Transaction metadata (like images, tags, comments, etc.) will appears *ONLY* on the view where they have been created e.g. comments posted to the public view only appear on the public view.
+      |
+      |The other account metadata fields (like image_URL, more_info, etc.) are unique through all the views. Example, if a user edits the 'more_info' field in the 'team' view, then the view 'authorities' will show the new value (if it is allowed to do it).
+      |
+      |# All
+      |*Optional*
+      |
+      |Returns the list of the views created for account ACCOUNT_ID at BANK_ID.
+      |
+      |${userAuthenticationMessage(true)} and the user needs to have access to the owner view.""",
+      EmptyBody,
+      viewsJsonV500,
       List($AuthenticatedUserIsRequired, $BankAccountNotFound, UnknownError),
       List(apiTagView, apiTagAccount),
       None,
@@ -1722,10 +1940,71 @@ object Http4s500 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getMetricsAtBank), "GET",
-      "/management/metrics/banks/BANK_ID", "Get Metrics at Bank",
-      "Get the all metrics at the Bank specified by BANK_ID. Requires CanReadMetrics role.",
-      EmptyBody, metricsJson,
+      null,
+      implementedInApiVersion,
+      nameOf(getMetricsAtBank),
+      "GET",
+      "/management/metrics/banks/BANK_ID",
+      "Get Metrics at Bank",
+      s"""Get the all metrics at the Bank specified by BANK_ID
+         |
+         |require CanReadMetrics role
+         |
+         |Filters Part 1.*filtering* (no wilde cards etc.) parameters to GET /management/metrics
+         |
+         |Should be able to filter on the following metrics fields
+         |
+         |eg: /management/metrics?from_date=$DateWithMsExampleString&to_date=$DateWithMsExampleString&limit=50&offset=2
+         |
+         |1 from_date (defaults to one week before current date): eg:from_date=$DateWithMsExampleString
+         |
+         |2 to_date (defaults to current date) eg:to_date=$DateWithMsExampleString
+         |
+         |3 limit (for pagination: defaults to 50)  eg:limit=200
+         |
+         |4 offset (for pagination: zero index, defaults to 0) eg: offset=10
+         |
+         |5 sort_by (defaults to date field) eg: sort_by=date
+         |  possible values:
+         |    "url",
+         |    "date",
+         |    "username" (or "user_name" for backward compatibility),
+         |    "app_name",
+         |    "developer_email",
+         |    "implemented_by_partial_function",
+         |    "implemented_in_version",
+         |    "consumer_id",
+         |    "verb"
+         |
+         |6 direction (defaults to date desc) eg: direction=desc
+         |
+         |eg: /management/metrics?from_date=$DateWithMsExampleString&to_date=$DateWithMsExampleString&limit=10000&offset=0&anon=false&app_name=TeatApp&implemented_in_version=v2.1.0&verb=POST&user_id=c7b6cb47-cb96-4441-8801-35b57456753a&username=susan.uk.29@example.com&consumer_id=78
+         |
+         |Other filters:
+         |
+         |7 consumer_id  (if null ignore)
+         |
+         |8 user_id (if null ignore)
+         |
+         |9 anon (if null ignore) only support two value : true (return where user_id is null.) or false (return where user_id is not null.)
+         |
+         |10 url (if null ignore), note: can not contain '&'.
+         |
+         |11 app_name (if null ignore)
+         |
+         |12 implemented_by_partial_function (if null ignore),
+         |
+         |13 implemented_in_version (if null ignore)
+         |
+         |14 verb (if null ignore)
+         |
+         |15 correlation_id (if null ignore)
+         |
+         |16 duration (if null ignore) non digit chars will be silently omitted
+         |
+      """.stripMargin,
+      EmptyBody,
+      metricsJson,
       List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
       List(apiTagMetric, apiTagApi),
       Some(List(canGetMetricsAtOneBank)),
@@ -1745,12 +2024,19 @@ object Http4s500 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getSystemViewsIds), "GET",
-      "/system-views-ids", "Get Ids of System Views",
-      s"""Get Ids of System Views.
+      null,
+      implementedInApiVersion,
+      nameOf(getSystemViewsIds),
+      "GET",
+      "/system-views-ids",
+      "Get Ids of System Views",
+      s"""Get Ids of System Views
          |
-         |${userAuthenticationMessage(true)}""",
-      EmptyBody, viewIdsJsonV500,
+         |${userAuthenticationMessage(true)}
+         |
+      """.stripMargin,
+      EmptyBody,
+      viewIdsJsonV500,
       List($AuthenticatedUserIsRequired, $BankNotFound, UnknownError),
       List(apiTagSystemView),
       Some(List(canGetSystemView)),
@@ -1787,15 +2073,22 @@ object Http4s500 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createCustomerAccountLink), "POST",
-      "/banks/BANK_ID/customer-account-links", "Create Customer Account Link",
-      s"""Link a Customer to a Account.
-         |
-         |${userAuthenticationMessage(true)}""",
-      createCustomerAccountLinkJson, customerAccountLinkJson,
+      null,
+      implementedInApiVersion,
+      nameOf(createCustomerAccountLink),
+      "POST",
+      "/banks/BANK_ID/customer-account-links",
+      "Create Customer Account Link",
+      s"""Link a Customer to a Account
+      |
+      |${userAuthenticationMessage(true)}
+      |
+      |""",
+      createCustomerAccountLinkJson,
+      customerAccountLinkJson,
       List($AuthenticatedUserIsRequired, $BankNotFound, BankAccountNotFound, InvalidJsonFormat,
-        CustomerNotFoundByCustomerId, UserHasMissingRoles, AccountAlreadyExistsForCustomer,
-        CreateCustomerAccountLinkError, UnknownError),
+      CustomerNotFoundByCustomerId, UserHasMissingRoles, AccountAlreadyExistsForCustomer,
+      CreateCustomerAccountLinkError, UnknownError),
       List(apiTagCustomer, apiTagAccount),
       Some(List(canCreateCustomerAccountLink)),
       http4sPartialFunction = Some(createCustomerAccountLink)
@@ -1817,15 +2110,21 @@ object Http4s500 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getCustomerAccountLinksByCustomerId), "GET",
+      null,
+      implementedInApiVersion,
+      nameOf(getCustomerAccountLinksByCustomerId),
+      "GET",
       "/banks/BANK_ID/customers/CUSTOMER_ID/customer-account-links",
       "Get Customer Account Links by CUSTOMER_ID",
-      s"""Get Customer Account Links by CUSTOMER_ID.
-         |
-         |${userAuthenticationMessage(true)}""",
-      EmptyBody, customerAccountLinksJson,
+      s""" Get Customer Account Links by CUSTOMER_ID
+      |
+      |${userAuthenticationMessage(true)}
+      |
+      |""",
+      EmptyBody,
+      customerAccountLinksJson,
       List($AuthenticatedUserIsRequired, $BankNotFound, CustomerNotFoundByCustomerId,
-        UserHasMissingRoles, UnknownError),
+      UserHasMissingRoles, UnknownError),
       List(apiTagCustomer),
       Some(List(canGetCustomerAccountLinks)),
       http4sPartialFunction = Some(getCustomerAccountLinksByCustomerId)
@@ -1841,15 +2140,21 @@ object Http4s500 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getCustomerAccountLinksByBankIdAccountId), "GET",
+      null,
+      implementedInApiVersion,
+      nameOf(getCustomerAccountLinksByBankIdAccountId),
+      "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/customer-account-links",
       "Get Customer Account Links by ACCOUNT_ID",
-      s"""Get Customer Account Links by ACCOUNT_ID.
-         |
-         |${userAuthenticationMessage(true)}""",
-      EmptyBody, customerAccountLinksJson,
+      s""" Get Customer Account Links by ACCOUNT_ID
+      |
+      |${userAuthenticationMessage(true)}
+      |
+      |""",
+      EmptyBody,
+      customerAccountLinksJson,
       List($AuthenticatedUserIsRequired, $BankNotFound, BankAccountNotFound,
-        UserHasMissingRoles, UnknownError),
+      UserHasMissingRoles, UnknownError),
       List(apiTagCustomer),
       Some(List(canGetCustomerAccountLinks)),
       http4sPartialFunction = Some(getCustomerAccountLinksByBankIdAccountId)
@@ -1865,13 +2170,19 @@ object Http4s500 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getCustomerAccountLinkById), "GET",
+      null,
+      implementedInApiVersion,
+      nameOf(getCustomerAccountLinkById),
+      "GET",
       "/banks/BANK_ID/customer-account-links/CUSTOMER_ACCOUNT_LINK_ID",
       "Get Customer Account Link by Id",
-      s"""Get Customer Account Link by CUSTOMER_ACCOUNT_LINK_ID.
-         |
-         |${userAuthenticationMessage(true)}""",
-      EmptyBody, customerAccountLinkJson,
+      s""" Get Customer Account Link by CUSTOMER_ACCOUNT_LINK_ID
+      |
+      |${userAuthenticationMessage(true)}
+      |
+      |""",
+      EmptyBody,
+      customerAccountLinkJson,
       List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
       List(apiTagCustomer),
       Some(List(canGetCustomerAccountLink)),
@@ -1896,13 +2207,19 @@ object Http4s500 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(updateCustomerAccountLinkById), "PUT",
+      null,
+      implementedInApiVersion,
+      nameOf(updateCustomerAccountLinkById),
+      "PUT",
       "/banks/BANK_ID/customer-account-links/CUSTOMER_ACCOUNT_LINK_ID",
       "Update Customer Account Link by Id",
-      s"""Update Customer Account Link by CUSTOMER_ACCOUNT_LINK_ID.
-         |
-         |${userAuthenticationMessage(true)}""",
-      updateCustomerAccountLinkJson, customerAccountLinkJson,
+      s""" Update Customer Account Link by CUSTOMER_ACCOUNT_LINK_ID
+      |
+      |${userAuthenticationMessage(true)}
+      |
+      |""",
+      updateCustomerAccountLinkJson,
+      customerAccountLinkJson,
       List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
       List(apiTagCustomer),
       Some(List(canUpdateCustomerAccountLink)),
@@ -1920,13 +2237,19 @@ object Http4s500 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(deleteCustomerAccountLinkById), "DELETE",
+      null,
+      implementedInApiVersion,
+      nameOf(deleteCustomerAccountLinkById),
+      "DELETE",
       "/banks/BANK_ID/customer-account-links/CUSTOMER_ACCOUNT_LINK_ID",
       "Delete Customer Account Link",
-      s"""Delete Customer Account Link by CUSTOMER_ACCOUNT_LINK_ID.
-         |
-         |${userAuthenticationMessage(true)}""",
-      EmptyBody, EmptyBody,
+      s""" Delete Customer Account Link by CUSTOMER_ACCOUNT_LINK_ID
+      |
+      |${userAuthenticationMessage(true)}
+      |
+      |""",
+      EmptyBody,
+      EmptyBody,
       List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
       List(apiTagCustomer),
       Some(List(canDeleteCustomerAccountLink)),
