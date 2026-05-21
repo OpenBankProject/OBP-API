@@ -280,14 +280,37 @@ def parse_resourcedoc(body: str):
 
 
 def endpoint_name(part_fn_name: str) -> str:
-    """`nameOf(getBanks)` -> `getBanks`. Literal `"root"` -> `root`."""
+    """`nameOf(getBanks)` -> `getBanks`. Literal `"root"` -> `root`.
+
+    Also evaluates chained `.replace("a", "b")` calls so e.g.
+    `nameOf(createConsentByConsentRequestId).replace("Id", "IdEmail")`
+    becomes `createConsentByConsentRequestIdEmail` — matches what runs at
+    runtime when http4s derives names for related ResourceDoc entries.
+    """
     s = (part_fn_name or "").strip()
-    m = re.match(r"^nameOf\s*\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)\s*$", s)
+    # First extract the base name from `nameOf(...)` or a string literal.
+    rest = s
+    m = re.match(r"^nameOf\s*\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)", s)
     if m:
-        return m.group(1)
-    if s.startswith('"') and s.endswith('"'):
-        return s[1:-1]
-    return s
+        base = m.group(1)
+        rest = s[m.end():]
+    elif s.startswith('"'):
+        m2 = re.match(r'^"([^"]*)"', s)
+        if not m2:
+            return s
+        base = m2.group(1)
+        rest = s[m2.end():]
+    else:
+        return s
+    # Apply any trailing `.replace("a", "b")` calls in order.
+    rep_re = re.compile(r'^\s*\.\s*replace\s*\(\s*"([^"]*)"\s*,\s*"([^"]*)"\s*\)')
+    while True:
+        m = rep_re.match(rest)
+        if not m:
+            break
+        base = base.replace(m.group(1), m.group(2))
+        rest = rest[m.end():]
+    return base
 
 
 def normalize(s: str) -> str:

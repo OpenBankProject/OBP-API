@@ -204,13 +204,30 @@ def parse_args(body: str):
 
 
 def endpoint_name(part_fn_name: str) -> str:
+    """Like in check_lift_http4s_resource_doc_parity.py: also evaluate
+    chained `.replace("a", "b")` calls so derived names match."""
     s = (part_fn_name or "").strip()
-    m = re.match(r"^nameOf\s*\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)\s*$", s)
+    rest = s
+    m = re.match(r"^nameOf\s*\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)", s)
     if m:
-        return m.group(1)
-    if s.startswith('"') and s.endswith('"'):
-        return s[1:-1]
-    return s
+        base = m.group(1)
+        rest = s[m.end():]
+    elif s.startswith('"'):
+        m2 = re.match(r'^"([^"]*)"', s)
+        if not m2:
+            return s
+        base = m2.group(1)
+        rest = s[m2.end():]
+    else:
+        return s
+    rep_re = re.compile(r'^\s*\.\s*replace\s*\(\s*"([^"]*)"\s*,\s*"([^"]*)"\s*\)')
+    while True:
+        m = rep_re.match(rest)
+        if not m:
+            break
+        base = base.replace(m.group(1), m.group(2))
+        rest = rest[m.end():]
+    return base
 
 
 def find_pair_for_version(version_dir: Path):
