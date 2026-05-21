@@ -479,7 +479,7 @@ object BankAccountX {
       } yield {
         (Full(account), callContext)
       }
-    else if (counterparty.otherBankRoutingScheme.equalsIgnoreCase("OBP") || counterparty.otherBankRoutingScheme.equalsIgnoreCase("OBP_BANK_ID" ) 
+    else if (counterparty.otherBankRoutingScheme.equalsIgnoreCase("OBP") || counterparty.otherBankRoutingScheme.equalsIgnoreCase("OBP_BANK_ID" )
         && (counterparty.otherAccountSecondaryRoutingScheme.equalsIgnoreCase("OBP") || counterparty.otherAccountSecondaryRoutingScheme.equalsIgnoreCase("OBP_ACCOUNT_ID")))
       for{
         (_, callContext) <- NewStyle.function.getBank(BankId(counterparty.otherBankRoutingAddress), callContext)

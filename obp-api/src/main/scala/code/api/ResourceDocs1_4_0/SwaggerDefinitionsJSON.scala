@@ -6373,6 +6373,53 @@ object SwaggerDefinitionsJSON {
     account_access_requests = List(accountAccessRequestJsonV600)
   )
 
+  // View samples (V600) — used by getCustomViews / getCustomViewById /
+  // getSystemViews / getSystemViewById response bodies.
+  lazy val viewJsonV600 = JSONFactory600.ViewJsonV600(
+    bank_id = bankIdExample.value,
+    account_id = accountIdExample.value,
+    view_id = "owner",
+    view_name = "Owner",
+    description = "Full owner view for the account.",
+    metadata_view = "owner",
+    is_public = false,
+    is_system = true,
+    is_firehose = Some(false),
+    alias = "",
+    hide_metadata_if_alias_used = false,
+    can_grant_access_to_views = List("owner"),
+    can_revoke_access_to_views = List("owner"),
+    allowed_actions = List(
+      "can_see_bank_account_balance",
+      "can_see_transaction_amount",
+      "can_see_transaction_description",
+      "can_add_counterparty"
+    )
+  )
+
+  lazy val viewsJsonV600 = JSONFactory600.ViewsJsonV600(
+    views = List(viewJsonV600)
+  )
+
+  // Account Directory samples (V600) — used by getAccountDirectory response body.
+  lazy val accountDirectoryItemJsonV600 = JSONFactory600.AccountDirectoryItemJsonV600(
+    account_id = accountIdExample.value,
+    bank_id = bankIdExample.value,
+    label = labelExample.value,
+    account_number = "1234567890",
+    account_type = "CURRENT",
+    branch_id = "DERBY6",
+    account_routings = List(accountRoutingJsonV121),
+    account_attributes = List(
+      FastFirehoseAttributes(`type` = "STRING", code = "BRANCH_REGION", value = "EMEA")
+    ),
+    view_ids = List("owner", "auditor")
+  )
+
+  lazy val accountDirectoryJsonV600 = JSONFactory600.AccountDirectoryJsonV600(
+    accounts = List(accountDirectoryItemJsonV600)
+  )
+
   // Signal Channels swagger examples
   lazy val postSignalMessageJsonV600 = PostSignalMessageJsonV600(
     payload = net.liftweb.json.parse("""{"agent_name": "my-agent", "capabilities": ["summarize", "search"]}"""),
