@@ -468,7 +468,7 @@ object BankAccountX {
     * @return BankAccount
     */
   def getBankAccountFromCounterparty(counterparty: CounterpartyTrait, isOutgoingAccount: Boolean, callContext: Option[CallContext]) : Future[(Box[BankAccount], Option[CallContext])] = {
-    if ((counterparty.otherBankRoutingScheme.equalsIgnoreCase("OBP") || counterparty.otherBankRoutingScheme.equalsIgnoreCase("OBP_BANK_ID"))
+    if (counterparty.otherBankRoutingScheme.equalsIgnoreCase("OBP") || counterparty.otherBankRoutingScheme.equalsIgnoreCase("OBP_BANK_ID" )
       && (counterparty.otherAccountRoutingScheme.equalsIgnoreCase("OBP") || counterparty.otherAccountRoutingScheme.equalsIgnoreCase("OBP_ACCOUNT_ID")))
       for{
         (_, callContext) <- NewStyle.function.getBank(BankId(counterparty.otherBankRoutingAddress), callContext)
@@ -479,7 +479,7 @@ object BankAccountX {
       } yield {
         (Full(account), callContext)
       }
-    else if ((counterparty.otherBankRoutingScheme.equalsIgnoreCase("OBP") || counterparty.otherBankRoutingScheme.equalsIgnoreCase("OBP_BANK_ID"))
+    else if (counterparty.otherBankRoutingScheme.equalsIgnoreCase("OBP") || counterparty.otherBankRoutingScheme.equalsIgnoreCase("OBP_BANK_ID" )
         && (counterparty.otherAccountSecondaryRoutingScheme.equalsIgnoreCase("OBP") || counterparty.otherAccountSecondaryRoutingScheme.equalsIgnoreCase("OBP_ACCOUNT_ID")))
       for{
         (_, callContext) <- NewStyle.function.getBank(BankId(counterparty.otherBankRoutingAddress), callContext)
