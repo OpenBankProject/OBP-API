@@ -453,7 +453,7 @@ case class AccountDirectoryItem(
   number: String,
   productCode: String,
   branchId: String,
-  accountRoutings: List[FastFirehoseRoutings],
+  accountRoutings: List[AccountRouting],
   accountAttributes: List[FastFirehoseAttributes]
 )
 

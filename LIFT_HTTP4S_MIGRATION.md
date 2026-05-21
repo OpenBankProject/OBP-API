@@ -225,7 +225,7 @@ Already partly described in the next major section, but counted here for complet
 | Endpoint | File | Notes |
 |---|---|---|
 | `aliveCheck` | `code/api/aliveCheck.scala` → `code/api/AliveCheckRoutes.scala` | **Done.** Native http4s route serves `GET /alive`; `LiftRules.statelessDispatch.append(aliveCheck)` removed from `Boot.scala`. |
-| `ImporterAPI` | `code/management/ImporterAPI.scala` → `code/management/ImporterAPIRoutes.scala` | **Done.** Native http4s route serves `POST /obp_transactions_saver/api/transactions`; secret read from URL query, body parsed from `req.bodyText`, `TransactionInserter` LiftActor still invoked synchronously (wrapped in `IO.blocking`). `ImporterTest` (8 scenarios) green. |
+| `ImporterAPI` | (deleted) | **Retired.** The legacy `POST /obp_transactions_saver/api/transactions` shared-secret bulk-insert endpoint, its `TransactionInserter` LiftActor, and the connector helpers it relied on (`createImportedTransaction`, `getMatchingTransactionCount`, `updateAccountBalance`, `setBankAccountLastUpdated`) have been removed entirely. Modern callers use connector-driven flows or the `/obp/vX.X.X/transaction-requests/...` endpoints. |
 | `OpenIdConnect` | (auth-stack table above) | OIDC callback, registered separately from OAuth2. |
 
 ### Open-banking standards (large, deferred indefinitely)
@@ -254,7 +254,7 @@ Three forks for how this workstream resolves:
 
 Currently runs on startup and goes away once the Lift bridge is removable:
 
-1. `LiftRules.statelessDispatch.append(...)` registrations: `DirectLogin`, `ImporterAPI`, `ResourceDocs140`–`ResourceDocs600`, `aliveCheck`.
+1. `LiftRules.statelessDispatch.append(...)` registrations: `DirectLogin`, `ResourceDocs140`–`ResourceDocs600`, `aliveCheck`.
 2. `LiftRules.dispatch.append(OpenIdConnect)`.
 3. `LiftRules.addToPackages("code")` — Lift package scanner.
 4. `LiftRules.exceptionHandler.prepend { ... }` — global exception handler.
@@ -297,7 +297,7 @@ A second decision is *not* required for bridge removal, but is required for the 
 
 1. ~~**v4.0.0 bulk port**~~ — done (258/258, 100%).
 2. ~~**DirectLogin**~~ — done. `code.api.DirectLoginRoutes` serves the bare `/my/logins/direct`; per-version paths served by their own `Http4sXxx`. `LiftRules.statelessDispatch.append(DirectLogin)` retired.
-3. ~~**`aliveCheck`, `ImporterAPI`**~~ — done. `code.api.AliveCheckRoutes` serves `GET /alive`; `code.management.ImporterAPIRoutes` serves `POST /obp_transactions_saver/api/transactions`. Both Lift dispatches retired.
+3. ~~**`aliveCheck`**~~ — done. `code.api.AliveCheckRoutes` serves `GET /alive`; Lift dispatch retired. **`ImporterAPI`** — retired entirely (no http4s replacement); the legacy shared-secret bulk-transaction-importer endpoint has been removed along with `TransactionInserter` and the connector helpers it relied on.
 4. ~~**`Http4sResourceDocs` centralised service**~~ — done. `code.api.util.http4s.Http4sResourceDocs` serves `/obp/*/resource-docs/{API_VERSION}/{obp,swagger,openapi,openapi.yaml}`, `/obp/*/banks/{BANK_ID}/resource-docs/{API_VERSION}/obp`, and `/obp/*/message-docs/{CONNECTOR}/swagger2.0`. 10 `LiftRules.statelessDispatch.append(ResourceDocs140..600)` retired + `openapi.yaml` raw `serve { ... }` block removed. ResourceDocsTest (63) + SwaggerDocsTest (10) green.
 5. **Auth stack: OAuth2 / GatewayLogin / DAuth** — done. All three turned out to be library-only token validators (no `serve` blocks, no `LiftRules` registration). Vestigial `extends RestHelper` mixins removed.
 6. **OpenIdConnect** — the only remaining auth-stack work. Blocked on a portal-session decision (its success path calls `AuthUser.logUserIn` / `S.redirectTo`, which mutate Lift `SessionVar`s — see auth-stack table). OAuth 1.0a was removed entirely in commit `51820c75e`; no migration needed.

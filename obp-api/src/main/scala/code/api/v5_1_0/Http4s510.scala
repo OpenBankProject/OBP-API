@@ -16,7 +16,13 @@ import code.api.util.newstyle.{BalanceNewStyle, RegulatedEntityAttributeNewStyle
 import code.api.util.newstyle.RegulatedEntityNewStyle.{createRegulatedEntityNewStyle, deleteRegulatedEntityNewStyle, getRegulatedEntitiesNewStyle, getRegulatedEntityByEntityIdNewStyle}
 import code.api.util.newstyle.Consumer.createConsumerNewStyle
 import code.api.util.{APIUtil, Consent, ConsentJWT, CustomJsonFormats, JwtUtil, NewStyle, OBPBankId, OBPLimit, OBPOffset, OBPSortBy, SecureRandomUtil, X509}
+import code.api.util.{ExampleValue, Glossary}
 import code.api.v2_0_0.AccountsHelper
+import code.api.v2_0_0.AccountsHelper.accountTypeFilterText
+import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{
+  ConsentAccessAccountsJson,
+  ConsentAccessJson
+}
 import code.api.v2_1_0.{ConsumerRedirectUrlJSON, JSONFactory210}
 import code.api.v3_0_0.JSONFactory300
 import code.api.v3_0_0.JSONFactory300.createAggregateMetricJson
@@ -89,6 +95,15 @@ object Http4s510 {
 
     val prefixPath = Root / ApiPathZero.toString / implementedInApiVersion.toString
 
+    // Used by lifted consumer-management endpoint descriptions.
+    private def consumerDisabledText(): String = {
+      if (APIUtil.getPropsAsBoolValue("consumers_enabled_by_default", false) == false) {
+        "Please note: Your consumer may be disabled as a result of this action."
+      } else {
+        ""
+      }
+    }
+
     // ─── root (GET /root and GET / — v5.1 override of every prior version) ──
 
     val root: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -103,10 +118,21 @@ object Http4s510 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(root), "GET", "/root",
+      null,
+      implementedInApiVersion,
+      nameOf(root),
+      "GET",
+      "/root",
       "Get API Info (root)",
-      "Returns information about API version, hosted by, energy source, git commit.",
-      EmptyBody, apiInfoJson400,
+      """Returns information about:
+      |
+      |* API version
+      |* Hosted by information
+      |* Hosted at information
+      |* Energy source information
+      |* Git Commit""",
+      EmptyBody,
+      apiInfoJson400,
       List(UnknownError, MandatoryPropertyIsNotSet),
       apiTagApi :: Nil,
       None,
@@ -157,10 +183,34 @@ object Http4s510 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getMyConsentsByBank), "GET",
-      "/banks/BANK_ID/my/consents", "Get My Consents at Bank",
-      "Get All Consents that the current User has at the Bank.",
-      EmptyBody, consentsInfoJsonV510,
+      null,
+      implementedInApiVersion,
+      nameOf(getMyConsentsByBank),
+      "GET",
+      "/banks/BANK_ID/my/consents",
+      "Get My Consents at Bank",
+      s"""
+         |
+         |This endpoint gets the Consents created by a current User at the specified Bank.
+         |
+         |${userAuthenticationMessage(true)}
+         |
+         |1 limit (for pagination: defaults to 50)  eg:limit=200
+         |
+         |2 offset (for pagination: zero index, defaults to 0) eg: offset=10
+         |
+         |3 status  (ignore if omitted)
+         |
+         |4 sort_by (defaults to created_date:desc)  eg: sort_by=created_date:desc
+         |
+         |Note: This endpoint only returns consents that explicitly reference the specified BANK_ID.
+         |Consents created before the consent_item join table was introduced will not appear in results.
+         |
+         |eg: /banks/BANK_ID/my/consents?limit=10&offset=0&sort_by=created_date:desc
+         |
+      """.stripMargin,
+      EmptyBody,
+      consentsInfoJsonV510,
       List($AuthenticatedUserIsRequired, $BankNotFound, UnknownError),
       List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2),
       None,
@@ -244,9 +294,15 @@ object Http4s510 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createAtm), "POST",
-      "/banks/BANK_ID/atms", "Create ATM", "Create ATM.",
-      postAtmJsonV510, atmJsonV510,
+      null,
+      implementedInApiVersion,
+      nameOf(createAtm),
+      "POST",
+      "/banks/BANK_ID/atms",
+      "Create ATM",
+      s"""Create ATM.""",
+      postAtmJsonV510,
+      atmJsonV510,
       List($AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
       List(apiTagATM),
       Some(List(canCreateAtm, canCreateAtmAtAnyBank)),
@@ -277,9 +333,15 @@ object Http4s510 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(updateAtm), "PUT",
-      "/banks/BANK_ID/atms/ATM_ID", "UPDATE ATM", "Update ATM.",
-      atmJsonV510.copy(id = None, attributes = None), atmJsonV510,
+      null,
+      implementedInApiVersion,
+      nameOf(updateAtm),
+      "PUT",
+      "/banks/BANK_ID/atms/ATM_ID",
+      "UPDATE ATM",
+      s"""Update ATM.""",
+      atmJsonV510.copy(id = None, attributes = None),
+      atmJsonV510,
       List($AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
       List(apiTagATM),
       Some(List(canUpdateAtm, canUpdateAtmAtAnyBank)),
@@ -399,12 +461,27 @@ object Http4s510 {
         })
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getAtms), "GET",
-      "/banks/BANK_ID/atms", "Get Bank ATMS",
-      s"""Returns information about ATMs for a single bank specified by BANK_ID.
-         |
-         |${userAuthenticationMessage(!getAtmsIsPublic)}""",
-      EmptyBody, atmsJsonV510,
+      null,
+      implementedInApiVersion,
+      nameOf(getAtms),
+      "GET",
+      "/banks/BANK_ID/atms",
+      "Get Bank ATMS",
+      s"""Returns information about ATMs for a single bank specified by BANK_ID including:
+      |
+      |* Address
+      |* Geo Location
+      |* License the data under this endpoint is released under
+      |
+      |Pagination:
+      |
+      |By default, 100 records are returned.
+      |
+      |You can use the url query parameters *limit* and *offset* for pagination
+      |
+      |${userAuthenticationMessage(!getAtmsIsPublic)}""".stripMargin,
+      EmptyBody,
+      atmsJsonV510,
       List($BankNotFound, UnknownError),
       List(apiTagATM),
       None,
@@ -451,10 +528,19 @@ object Http4s510 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(deleteAtm), "DELETE",
-      "/banks/BANK_ID/atms/ATM_ID", "Delete ATM",
-      "Delete ATM. This will also delete all its attributes.",
-      EmptyBody, EmptyBody,
+      null,
+      implementedInApiVersion,
+      nameOf(deleteAtm),
+      "DELETE",
+      "/banks/BANK_ID/atms/ATM_ID",
+      "Delete ATM",
+      s"""Delete ATM.
+      |
+      |This will also delete all its attributes.
+      |
+      |""".stripMargin,
+      EmptyBody,
+      EmptyBody,
       List($AuthenticatedUserIsRequired, UnknownError),
       List(apiTagATM),
       Some(List(canDeleteAtmAtAnyBank, canDeleteAtm)),
@@ -495,12 +581,96 @@ object Http4s510 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createConsumer), "POST",
-      "/management/consumers", "Create Consumer",
-      s"""Create a Consumer.
-         |
-         |${userAuthenticationMessage(true)}""",
-      createConsumerRequestJsonV510, consumerJsonOnlyForPostResponseV510,
+      null,
+      implementedInApiVersion,
+      nameOf(createConsumer),
+      "POST",
+      "/management/consumers",
+      "Create Consumer",
+      s"""Create a Consumer (Authenticated access).
+      |
+      |A Consumer represents an application that uses the Open Bank Project API. Each Consumer has:
+      |- A unique **key** (40 character random string) - used as the client ID for authentication
+      |- A unique **secret** (40 character random string) - used for secure authentication
+      |- An **app_type** (Confidential or Public) - determines OAuth2 flow requirements
+      |- Metadata like app_name, description, developer_email, company, etc.
+      |
+      |**How it works (for comprehension flow):**
+      |
+      |1. **Extract authenticated user**: Retrieves the currently logged-in user who is creating the consumer
+      |2. **Parse and validate JSON request**: Extracts the CreateConsumerRequestJsonV510 from the request body
+      |3. **Determine app_type**: Converts the string "Confidential" or "Public" to the AppType enum
+      |4. **Generate credentials**: Creates random 40-character key and secret for the new consumer
+      |5. **Create consumer record**: Calls createConsumerNewStyle with all parameters:
+      |   - Auto-generated key and secret
+      |   - enabled flag (controls if consumer is active)
+      |   - app_name, description, developer_email, company
+      |   - redirect_url (for OAuth flows)
+      |   - client_certificate (optional, for certificate-based auth)
+      |   - logo_url (optional)
+      |   - createdByUserId (the authenticated user's ID)
+      |6. **Return response**: Returns the newly created consumer with HTTP 201 Created status
+      |
+      |**Client Certificate (Optional but Recommended for PSD2/Berlin Group):**
+      |
+      |The `client_certificate` field provides enhanced security through X.509 certificate validation.
+      |
+      |**IMPORTANT SECURITY NOTE:**
+      |- **This endpoint does NOT validate the certificate at creation time** - any certificate can be provided
+      |- The certificate is simply stored with the consumer record without checking if it's from a trusted CA
+      |- For PSD2/Berlin Group compliance with certificate validation, use the **Dynamic Registration** endpoint instead
+      |- Dynamic Registration validates certificates against registered Regulated Entities and trusted CAs
+      |
+      |**How certificates are used (after creation):**
+      |- Certificate is stored in PEM format (Base64-encoded X.509) with the consumer record
+      |- On subsequent API requests, the certificate from the `PSD2-CERT` header is compared against the stored certificate
+      |- If certificates don't match, access is denied even with valid OAuth2 tokens
+      |- First request populates the certificate if not set; subsequent requests must match that certificate
+      |
+      |**Certificate validation process (during API requests, NOT at consumer creation):**
+      |1. Certificate from `PSD2-CERT` header is compared to stored certificate (simple string match)
+      |2. Certificate is parsed from PEM format to X.509Certificate object
+      |3. Validated against a configured trust store (PKCS12 format) containing trusted root CAs
+      |4. Certificate chain is verified using PKIX validation
+      |5. Optional CRL (Certificate Revocation List) checking if enabled via `use_tpp_signature_revocation_list`
+      |6. Public key from certificate can verify signed requests (Berlin Group requirement)
+      |
+      |**Note:** Steps 3-6 only apply during API request validation, NOT during consumer creation via this endpoint.
+      |
+      |**Security benefits (when properly configured):**
+      |- **Certificate binding**: Links consumer to a specific certificate (prevents token reuse with different certs)
+      |- **Request verification**: Certificate's public key can verify signed requests
+      |- **Non-repudiation**: Certificate-based signatures prove request origin
+      |
+      |**Security limitations of this endpoint:**
+      |- **No validation at creation**: Any certificate (even self-signed or expired) can be stored
+      |- **No CA verification**: Certificate is not checked against trusted root CAs during creation
+      |- **No Regulated Entity check**: Does not verify the TPP is registered
+      |- **Use Dynamic Registration instead** for proper PSD2/Berlin Group compliance with full certificate validation
+      |
+      |**For proper PSD2 compliance:**
+      |Use the **Dynamic Consumer Registration** endpoint (`POST /obp/v5.1.0/dynamic-registration/consumers`) which:
+      |- Requires JWT-signed request using the certificate's private key
+      |- Validates certificate against Regulated Entity registry
+      |- Checks certificate is from a trusted CA using the configured trust store
+      |- Ensures proper QWAC/eIDAS compliance for EU TPPs
+      |
+      |**Configuration properties (for runtime validation):**
+      |- `truststore.path.tpp_signature` - Path to trust store for certificate validation during API requests
+      |- `truststore.password.tpp_signature` - Trust store password
+      |- `use_tpp_signature_revocation_list` - Enable/disable CRL checking during requests (default: true)
+      |- `consumer_validation_method_for_consent` - Set to "CONSUMER_CERTIFICATE" for cert-based validation
+      |- `bypass_tpp_signature_validation` - Emergency bypass (default: false, use only for testing)
+      |
+      |**Important**: The key and secret are only shown once in the response. Save them securely as they cannot be retrieved later.
+      |
+      |${consumerDisabledText()}
+      |
+      |${userAuthenticationMessage(true)}
+      |
+      |""",
+      createConsumerRequestJsonV510,
+      consumerJsonOnlyForPostResponseV510,
       List(AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
       List(apiTagConsumer),
       Some(List(canCreateConsumer)),
@@ -520,10 +690,17 @@ object Http4s510 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getConsumer), "GET",
-      "/management/consumers/CONSUMER_ID", "Get Consumer",
-      "Get the Consumer specified by CONSUMER_ID.",
-      EmptyBody, consumerJSON,
+      null,
+      implementedInApiVersion,
+      nameOf(getConsumer),
+      "GET",
+      "/management/consumers/CONSUMER_ID",
+      "Get Consumer",
+      s"""Get the Consumer specified by CONSUMER_ID.
+      |
+      |""",
+      EmptyBody,
+      consumerJSON,
       List($AuthenticatedUserIsRequired, UserHasMissingRoles, ConsumerNotFoundByConsumerId, UnknownError),
       List(apiTagConsumer),
       Some(List(canGetConsumers)),
@@ -617,10 +794,15 @@ object Http4s510 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getBankAccountsBalances), "GET",
-      "/banks/BANK_ID/balances", "Get Account Balances by BANK_ID",
-      "Get the Balances for the Account specified by BANK_ID.",
-      EmptyBody, accountBalancesV400Json,
+      null,
+      implementedInApiVersion,
+      nameOf(getBankAccountsBalances),
+      "GET",
+      "/banks/BANK_ID/balances",
+      "Get Account Balances by BANK_ID",
+      """Get the Balances for the Account specified by BANK_ID.""",
+      EmptyBody,
+      accountBalancesV400Json,
       List($AuthenticatedUserIsRequired, $BankNotFound, UnknownError),
       apiTagAccount :: apiTagPSD2AIS :: apiTagPsd2 :: Nil,
       None,
@@ -642,12 +824,19 @@ object Http4s510 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getAllBankAccountBalances), "GET",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/balances", "Get Account Balances",
-      s"""Get all balances for the Account specified by BANK_ID and ACCOUNT_ID.
-         |
-         |${userAuthenticationMessage(true)}""",
-      EmptyBody, bankAccountBalancesJsonV510,
+      null,
+      implementedInApiVersion,
+      nameOf(getAllBankAccountBalances),
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/balances",
+      "Get Account Balances",
+      s"""Get all Balances for a Bank Account.
+      |
+      |${userAuthenticationMessage(true)}
+      |
+      |""",
+      EmptyBody,
+      bankAccountBalancesJsonV510,
       List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
       List(apiTagAccount, apiTagBalance),
       None,
@@ -668,11 +857,21 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(suggestedSessionTimeout), "GET",
-      "/ui/suggested-session-timeout", "Get Suggested Session Timeout",
-      "Returns the suggested session timeout in case of user inactivity.",
-      EmptyBody, SuggestedSessionTimeoutV510("300"),
-      List(UnknownError), apiTagApi :: Nil, None,
+      null,
+      implementedInApiVersion,
+      nameOf(suggestedSessionTimeout),
+      "GET",
+      "/ui/suggested-session-timeout",
+      "Get Suggested Session Timeout",
+      """Returns information about:
+      |
+      |* Suggested session timeout in case of a user inactivity
+      """,
+      EmptyBody,
+      SuggestedSessionTimeoutV510("300"),
+      List(UnknownError),
+      apiTagApi :: Nil,
+      None,
       http4sPartialFunction = Some(suggestedSessionTimeout)
     )
 
@@ -702,11 +901,20 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getOAuth2ServerWellKnown), "GET",
-      "/well-known", "Get Well Known URIs",
-      "Get the OAuth2 server's public Well Known URIs.",
-      EmptyBody, oAuth2ServerJwksUrisJson,
-      List(UnknownError), List(apiTagApi), None,
+      null,
+      implementedInApiVersion,
+      nameOf(getOAuth2ServerWellKnown),
+      "GET",
+      "/well-known",
+      "Get Well Known URIs",
+      """Get the OAuth2 server's public Well Known URIs.
+        |
+      """.stripMargin,
+      EmptyBody,
+      oAuth2ServerJwksUrisJson,
+      List(UnknownError),
+      List(apiTagApi),
+      None,
       http4sPartialFunction = Some(getOAuth2ServerWellKnown)
     )
 
@@ -719,11 +927,21 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(regulatedEntities), "GET",
-      "/regulated-entities", "Get Regulated Entities",
-      "Returns information about Regulated Entities.",
-      EmptyBody, regulatedEntitiesJsonV510,
-      List(UnknownError), apiTagDirectory :: apiTagApi :: Nil, None,
+      null,
+      implementedInApiVersion,
+      nameOf(regulatedEntities),
+      "GET",
+      "/regulated-entities",
+      "Get Regulated Entities",
+      """Returns information about:
+      |
+      |* Regulated Entities
+      """,
+      EmptyBody,
+      regulatedEntitiesJsonV510,
+      List(UnknownError),
+      apiTagDirectory :: apiTagApi :: Nil,
+      None,
       http4sPartialFunction = Some(regulatedEntities)
     )
 
@@ -736,11 +954,19 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getRegulatedEntityById), "GET",
-      "/regulated-entities/REGULATED_ENTITY_ID", "Get Regulated Entity",
-      "Get Regulated Entity By REGULATED_ENTITY_ID.",
-      EmptyBody, regulatedEntityJsonV510,
-      List(UnknownError), apiTagDirectory :: apiTagApi :: Nil, None,
+      null,
+      implementedInApiVersion,
+      nameOf(getRegulatedEntityById),
+      "GET",
+      "/regulated-entities/REGULATED_ENTITY_ID",
+      "Get Regulated Entity",
+      """Get Regulated Entity By REGULATED_ENTITY_ID
+      """,
+      EmptyBody,
+      regulatedEntityJsonV510,
+      List(UnknownError),
+      apiTagDirectory :: apiTagApi :: Nil,
+      None,
       http4sPartialFunction = Some(getRegulatedEntityById)
     )
 
@@ -775,12 +1001,19 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createRegulatedEntity), "POST",
-      "/regulated-entities", "Create Regulated Entity",
-      s"""Create Regulated Entity.
-         |
-         |${userAuthenticationMessage(true)}""",
-      regulatedEntityPostJsonV510, regulatedEntityJsonV510,
+      null,
+      implementedInApiVersion,
+      nameOf(createRegulatedEntity),
+      "POST",
+      "/regulated-entities",
+      "Create Regulated Entity",
+      s"""Create Regulated Entity
+      |
+      |${userAuthenticationMessage(true)}
+      |
+      |""",
+      regulatedEntityPostJsonV510,
+      regulatedEntityJsonV510,
       List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
       List(apiTagDirectory, apiTagApi),
       Some(List(canCreateRegulatedEntity)),
@@ -827,10 +1060,22 @@ object Http4s510 {
         logCacheHandler(req, code.api.cache.RedisLogger.LogLevel.TRACE)
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(logCacheTraceEndpoint), "GET",
-      "/system/log-cache/trace", "Get Trace Level Log Cache",
-      "Returns TRACE level logs from the system log cache.",
-      EmptyBody, EmptyBody,
+      null,
+      implementedInApiVersion,
+      nameOf(logCacheTraceEndpoint),
+      "GET",
+      "/system/log-cache/trace",
+      "Get Trace Level Log Cache",
+      """Returns TRACE level logs from the system log cache.
+      |
+      |This endpoint supports pagination via the following optional query parameters:
+      |* limit - Maximum number of log entries to return
+      |* offset - Number of log entries to skip (for pagination)
+      |
+      |Example: GET /system/log-cache/trace?limit=50&offset=100
+      """,
+      EmptyBody,
+      EmptyBody,
       List($AuthenticatedUserIsRequired, UnknownError),
       apiTagSystem :: apiTagApi :: apiTagLogCache :: Nil,
       Some(List(canGetSystemLogCacheTrace, canGetSystemLogCacheAll)),
@@ -842,10 +1087,22 @@ object Http4s510 {
         logCacheHandler(req, code.api.cache.RedisLogger.LogLevel.DEBUG)
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(logCacheDebugEndpoint), "GET",
-      "/system/log-cache/debug", "Get Debug Level Log Cache",
-      "Returns DEBUG level logs from the system log cache.",
-      EmptyBody, EmptyBody,
+      null,
+      implementedInApiVersion,
+      nameOf(logCacheDebugEndpoint),
+      "GET",
+      "/system/log-cache/debug",
+      "Get Debug Level Log Cache",
+      """Returns DEBUG level logs from the system log cache.
+      |
+      |This endpoint supports pagination via the following optional query parameters:
+      |* limit - Maximum number of log entries to return
+      |* offset - Number of log entries to skip (for pagination)
+      |
+      |Example: GET /system/log-cache/debug?limit=50&offset=100
+      """,
+      EmptyBody,
+      EmptyBody,
       List($AuthenticatedUserIsRequired, UnknownError),
       apiTagSystem :: apiTagApi :: apiTagLogCache :: Nil,
       Some(List(canGetSystemLogCacheDebug, canGetSystemLogCacheAll)),
@@ -857,10 +1114,22 @@ object Http4s510 {
         logCacheHandler(req, code.api.cache.RedisLogger.LogLevel.INFO)
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(logCacheInfoEndpoint), "GET",
-      "/system/log-cache/info", "Get Info Level Log Cache",
-      "Returns INFO level logs from the system log cache.",
-      EmptyBody, EmptyBody,
+      null,
+      implementedInApiVersion,
+      nameOf(logCacheInfoEndpoint),
+      "GET",
+      "/system/log-cache/info",
+      "Get Info Level Log Cache",
+      """Returns INFO level logs from the system log cache.
+      |
+      |This endpoint supports pagination via the following optional query parameters:
+      |* limit - Maximum number of log entries to return
+      |* offset - Number of log entries to skip (for pagination)
+      |
+      |Example: GET /system/log-cache/info?limit=50&offset=100
+      """,
+      EmptyBody,
+      EmptyBody,
       List($AuthenticatedUserIsRequired, UnknownError),
       apiTagSystem :: apiTagApi :: apiTagLogCache :: Nil,
       Some(List(canGetSystemLogCacheInfo, canGetSystemLogCacheAll)),
@@ -872,10 +1141,22 @@ object Http4s510 {
         logCacheHandler(req, code.api.cache.RedisLogger.LogLevel.WARNING)
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(logCacheWarningEndpoint), "GET",
-      "/system/log-cache/warning", "Get Warning Level Log Cache",
-      "Returns WARNING level logs from the system log cache.",
-      EmptyBody, EmptyBody,
+      null,
+      implementedInApiVersion,
+      nameOf(logCacheWarningEndpoint),
+      "GET",
+      "/system/log-cache/warning",
+      "Get Warning Level Log Cache",
+      """Returns WARNING level logs from the system log cache.
+      |
+      |This endpoint supports pagination via the following optional query parameters:
+      |* limit - Maximum number of log entries to return
+      |* offset - Number of log entries to skip (for pagination)
+      |
+      |Example: GET /system/log-cache/warning?limit=50&offset=100
+      """,
+      EmptyBody,
+      EmptyBody,
       List($AuthenticatedUserIsRequired, UnknownError),
       apiTagSystem :: apiTagApi :: apiTagLogCache :: Nil,
       Some(List(canGetSystemLogCacheWarning, canGetSystemLogCacheAll)),
@@ -887,10 +1168,22 @@ object Http4s510 {
         logCacheHandler(req, code.api.cache.RedisLogger.LogLevel.ERROR)
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(logCacheErrorEndpoint), "GET",
-      "/system/log-cache/error", "Get Error Level Log Cache",
-      "Returns ERROR level logs from the system log cache.",
-      EmptyBody, EmptyBody,
+      null,
+      implementedInApiVersion,
+      nameOf(logCacheErrorEndpoint),
+      "GET",
+      "/system/log-cache/error",
+      "Get Error Level Log Cache",
+      """Returns ERROR level logs from the system log cache.
+      |
+      |This endpoint supports pagination via the following optional query parameters:
+      |* limit - Maximum number of log entries to return
+      |* offset - Number of log entries to skip (for pagination)
+      |
+      |Example: GET /system/log-cache/error?limit=50&offset=100
+      """,
+      EmptyBody,
+      EmptyBody,
       List($AuthenticatedUserIsRequired, UnknownError),
       apiTagSystem :: apiTagApi :: apiTagLogCache :: Nil,
       Some(List(canGetSystemLogCacheError, canGetSystemLogCacheAll)),
@@ -902,10 +1195,22 @@ object Http4s510 {
         logCacheHandler(req, code.api.cache.RedisLogger.LogLevel.ALL)
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(logCacheAllEndpoint), "GET",
-      "/system/log-cache/all", "Get All Level Log Cache",
-      "Returns logs of all levels from the system log cache.",
-      EmptyBody, EmptyBody,
+      null,
+      implementedInApiVersion,
+      nameOf(logCacheAllEndpoint),
+      "GET",
+      "/system/log-cache/all",
+      "Get All Level Log Cache",
+      """Returns logs of all levels from the system log cache.
+      |
+      |This endpoint supports pagination via the following optional query parameters:
+      |* limit - Maximum number of log entries to return
+      |* offset - Number of log entries to skip (for pagination)
+      |
+      |Example: GET /system/log-cache/all?limit=50&offset=100
+      """,
+      EmptyBody,
+      EmptyBody,
       List($AuthenticatedUserIsRequired, UnknownError),
       apiTagSystem :: apiTagApi :: apiTagLogCache :: Nil,
       Some(List(canGetSystemLogCacheAll)),
@@ -922,12 +1227,22 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(waitingForGodot), "GET",
-      "/waiting-for-godot", "Waiting For Godot",
-      "Postpones response by `?sleep=N` ms (default 0).",
-      EmptyBody, WaitingForGodotJsonV510(50),
+      null,
+      implementedInApiVersion,
+      nameOf(waitingForGodot),
+      "GET",
+      "/waiting-for-godot",
+      "Waiting For Godot",
+      """Waiting For Godot
+      |
+      |Uses query parameter "sleep" in milliseconds.
+      |For instance: .../waiting-for-godot?sleep=50 means postpone response in 50 milliseconds.
+      |""".stripMargin,
+      EmptyBody,
+      WaitingForGodotJsonV510(sleep_in_milliseconds = 50),
       List(UnknownError, MandatoryPropertyIsNotSet),
-      apiTagApi :: Nil, None,
+      apiTagApi :: Nil,
+      None,
       http4sPartialFunction = Some(waitingForGodot)
     )
 
@@ -940,12 +1255,18 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getAllApiCollections), "GET",
-      "/management/api-collections", "Get All API Collections",
+      null,
+      implementedInApiVersion,
+      nameOf(getAllApiCollections),
+      "GET",
+      "/management/api-collections",
+      "Get All API Collections",
       s"""Get All API Collections.
-         |
-         |${userAuthenticationMessage(true)}""",
-      EmptyBody, apiCollectionsJson400,
+      |
+      |${userAuthenticationMessage(true)}
+      |""".stripMargin,
+      EmptyBody,
+      apiCollectionsJson400,
       List(UserHasMissingRoles, UnknownError),
       List(apiTagApiCollection),
       Some(canGetAllApiCollections :: Nil),
@@ -974,10 +1295,21 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createAtmAttribute), "POST",
-      "/banks/BANK_ID/atms/ATM_ID/attributes", "Create ATM Attribute",
-      "Create ATM Attribute. The type field must be one of STRING/INTEGER/DOUBLE/DATE_WITH_DAY.",
-      atmAttributeJsonV510, atmAttributeResponseJsonV510,
+      null,
+      implementedInApiVersion,
+      nameOf(createAtmAttribute),
+      "POST",
+      "/banks/BANK_ID/atms/ATM_ID/attributes",
+      "Create ATM Attribute",
+      s""" Create ATM Attribute
+      |
+      |The type field must be one of "STRING", "INTEGER", "DOUBLE" or DATE_WITH_DAY"
+      |
+      |${userAuthenticationMessage(true)}
+      |
+      |""",
+      atmAttributeJsonV510,
+      atmAttributeResponseJsonV510,
       List($AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat, UnknownError),
       List(apiTagATM, apiTagAtmAttribute, apiTagAttribute),
       Some(List(canCreateAtmAttribute, canCreateAtmAttributeAtAnyBank)),
@@ -996,9 +1328,19 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getAtmAttributes), "GET",
-      "/banks/BANK_ID/atms/ATM_ID/attributes", "Get ATM Attributes", "Get ATM Attributes.",
-      EmptyBody, atmAttributesResponseJsonV510,
+      null,
+      implementedInApiVersion,
+      nameOf(getAtmAttributes),
+      "GET",
+      "/banks/BANK_ID/atms/ATM_ID/attributes",
+      "Get ATM Attributes",
+      s""" Get ATM Attributes
+      |
+      |${userAuthenticationMessage(true)}
+      |
+      |""",
+      EmptyBody,
+      atmAttributesResponseJsonV510,
       List($AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat, UnknownError),
       List(apiTagATM, apiTagAtmAttribute, apiTagAttribute),
       Some(List(canGetAtmAttribute, canGetAtmAttributeAtAnyBank)),
@@ -1017,10 +1359,19 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getAtmAttribute), "GET",
-      "/banks/BANK_ID/atms/ATM_ID/attributes/ATM_ATTRIBUTE_ID", "Get ATM Attribute By ATM_ATTRIBUTE_ID",
-      "Get ATM Attribute By ATM_ATTRIBUTE_ID.",
-      EmptyBody, atmAttributeResponseJsonV510,
+      null,
+      implementedInApiVersion,
+      nameOf(getAtmAttribute),
+      "GET",
+      "/banks/BANK_ID/atms/ATM_ID/attributes/ATM_ATTRIBUTE_ID",
+      "Get ATM Attribute By ATM_ATTRIBUTE_ID",
+      s""" Get ATM Attribute By ATM_ATTRIBUTE_ID
+      |
+      |${userAuthenticationMessage(true)}
+      |
+      |""",
+      EmptyBody,
+      atmAttributeResponseJsonV510,
       List($AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat, UnknownError),
       List(apiTagATM, apiTagAtmAttribute, apiTagAttribute),
       Some(List(canGetAtmAttribute, canGetAtmAttributeAtAnyBank)),
@@ -1048,10 +1399,21 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(updateAtmAttribute), "PUT",
-      "/banks/BANK_ID/atms/ATM_ID/attributes/ATM_ATTRIBUTE_ID", "Update ATM Attribute",
-      "Update an ATM Attribute by its id.",
-      atmAttributeJsonV510, atmAttributeResponseJsonV510,
+      null,
+      implementedInApiVersion,
+      nameOf(updateAtmAttribute),
+      "PUT",
+      "/banks/BANK_ID/atms/ATM_ID/attributes/ATM_ATTRIBUTE_ID",
+      "Update ATM Attribute",
+      s""" Update ATM Attribute.
+      |
+      |Update an ATM Attribute by its id.
+      |
+      |${userAuthenticationMessage(true)}
+      |
+      |""",
+      atmAttributeJsonV510,
+      atmAttributeResponseJsonV510,
       List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
       List(apiTagATM, apiTagAtmAttribute, apiTagAttribute),
       Some(List(canUpdateAtmAttribute, canUpdateAtmAttributeAtAnyBank)),
@@ -1069,10 +1431,21 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(deleteAtmAttribute), "DELETE",
-      "/banks/BANK_ID/atms/ATM_ID/attributes/ATM_ATTRIBUTE_ID", "Delete ATM Attribute",
-      "Delete an ATM Attribute by its id.",
-      EmptyBody, EmptyBody,
+      null,
+      implementedInApiVersion,
+      nameOf(deleteAtmAttribute),
+      "DELETE",
+      "/banks/BANK_ID/atms/ATM_ID/attributes/ATM_ATTRIBUTE_ID",
+      "Delete ATM Attribute",
+      s""" Delete ATM Attribute
+      |
+      |Delete a Atm Attribute by its id.
+      |
+      |${userAuthenticationMessage(true)}
+      |
+      |""",
+      EmptyBody,
+      EmptyBody,
       List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
       List(apiTagATM, apiTagAtmAttribute, apiTagAttribute),
       Some(List(canDeleteAtmAttribute, canDeleteAtmAttributeAtAnyBank)),
@@ -1101,10 +1474,17 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createAgent), "POST",
-      "/banks/BANK_ID/agents", "Create Agent",
-      s"${userAuthenticationMessage(true)}",
-      postAgentJsonV510, agentJsonV510,
+      null,
+      implementedInApiVersion,
+      nameOf(createAgent),
+      "POST",
+      "/banks/BANK_ID/agents",
+      "Create Agent",
+      s"""
+      |${userAuthenticationMessage(true)}
+      |""",
+      postAgentJsonV510,
+      agentJsonV510,
       List($AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat, AgentNumberAlreadyExists, CreateAgentError, UnknownError),
       List(apiTagCustomer, apiTagPerson),
       None,
@@ -1128,10 +1508,17 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(updateAgentStatus), "PUT",
-      "/banks/BANK_ID/agents/AGENT_ID", "Update Agent status",
-      s"${userAuthenticationMessage(true)}",
-      putAgentJsonV510, agentJsonV510,
+      null,
+      implementedInApiVersion,
+      nameOf(updateAgentStatus),
+      "PUT",
+      "/banks/BANK_ID/agents/AGENT_ID",
+      "Update Agent status",
+      s"""
+      |${userAuthenticationMessage(true)}
+      |""",
+      putAgentJsonV510,
+      agentJsonV510,
       List($AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat, AgentNotFound, AgentAccountLinkNotFound, UnknownError),
       List(apiTagCustomer, apiTagPerson),
       Some(canUpdateAgentStatusAtAnyBank :: canUpdateAgentStatusAtOneBank :: Nil),
@@ -1151,10 +1538,18 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getAgent), "GET",
-      "/banks/BANK_ID/agents/AGENT_ID", "Get Agent",
-      s"Get Agent.\n\n${userAuthenticationMessage(true)}",
-      EmptyBody, agentJsonV510,
+      null,
+      implementedInApiVersion,
+      nameOf(getAgent),
+      "GET",
+      "/banks/BANK_ID/agents/AGENT_ID",
+      "Get Agent",
+      s"""Get Agent.
+      |
+      |${userAuthenticationMessage(true)}
+      |""".stripMargin,
+      EmptyBody,
+      agentJsonV510,
       List($AuthenticatedUserIsRequired, $BankNotFound, AgentNotFound, AgentAccountLinkNotFound, UnknownError),
       List(apiTagAccount),
       None,
@@ -1173,10 +1568,20 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getAgents), "GET",
-      "/banks/BANK_ID/agents", "Get Agents at Bank",
-      s"Get Agents at Bank.\n\n${userAuthenticationMessage(false)}",
-      EmptyBody, minimalAgentsJsonV510,
+      null,
+      implementedInApiVersion,
+      nameOf(getAgents),
+      "GET",
+      "/banks/BANK_ID/agents",
+      "Get Agents at Bank",
+      s"""Get Agents at Bank.
+      |
+      |${userAuthenticationMessage(false)}
+      |
+      |${urlParametersDocument(true, true)}
+      |""".stripMargin,
+      EmptyBody,
+      minimalAgentsJsonV510,
       List($BankNotFound, AgentsNotFound, UnknownError),
       List(apiTagAccount),
       None,
@@ -1207,10 +1612,21 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createRegulatedEntityAttribute), "POST",
-      "/regulated-entities/REGULATED_ENTITY_ID/attributes", "Create Regulated Entity Attribute",
-      "Create a new Regulated Entity Attribute. Type must be STRING/INTEGER/DOUBLE/DATE_WITH_DAY.",
-      regulatedEntityAttributeRequestJsonV510, regulatedEntityAttributeResponseJsonV510,
+      null,
+      implementedInApiVersion,
+      nameOf(createRegulatedEntityAttribute),
+      "POST",
+      "/regulated-entities/REGULATED_ENTITY_ID/attributes",
+      "Create Regulated Entity Attribute",
+      s"""
+          | Create a new Regulated Entity Attribute for a given REGULATED_ENTITY_ID.
+          |
+          | The type field must be one of "STRING", "INTEGER", "DOUBLE" or "DATE_WITH_DAY".
+          | ${userAuthenticationMessage(true)}
+          |
+      """.stripMargin,
+      regulatedEntityAttributeRequestJsonV510,
+      regulatedEntityAttributeResponseJsonV510,
       List($AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
       List(apiTagDirectory, apiTagApi),
       Some(List(canCreateRegulatedEntityAttribute)),
@@ -1227,11 +1643,20 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(deleteRegulatedEntityAttribute), "DELETE",
+      null,
+      implementedInApiVersion,
+      nameOf(deleteRegulatedEntityAttribute),
+      "DELETE",
       "/regulated-entities/REGULATED_ENTITY_ID/attributes/REGULATED_ENTITY_ATTRIBUTE_ID",
       "Delete Regulated Entity Attribute",
-      "Delete a Regulated Entity Attribute.",
-      EmptyBody, EmptyBody,
+      s"""
+          | Delete a Regulated Entity Attribute specified by REGULATED_ENTITY_ATTRIBUTE_ID.
+          |
+          | ${userAuthenticationMessage(true)}
+          |
+      """.stripMargin,
+      EmptyBody,
+      EmptyBody,
       List($AuthenticatedUserIsRequired, UnknownError),
       List(apiTagDirectory, apiTagApi),
       Some(List(canDeleteRegulatedEntityAttribute)),
@@ -1249,10 +1674,20 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getRegulatedEntityAttributeById), "GET",
+      null,
+      implementedInApiVersion,
+      nameOf(getRegulatedEntityAttributeById),
+      "GET",
       "/regulated-entities/REGULATED_ENTITY_ID/attributes/REGULATED_ENTITY_ATTRIBUTE_ID",
-      "Get Regulated Entity Attribute By ID", "Get a specific Regulated Entity Attribute by its ID.",
-      EmptyBody, regulatedEntityAttributeResponseJsonV510,
+      "Get Regulated Entity Attribute By ID",
+      s"""
+          | Get a specific Regulated Entity Attribute by its REGULATED_ENTITY_ATTRIBUTE_ID.
+          |
+          | ${userAuthenticationMessage(true)}
+          |
+      """.stripMargin,
+      EmptyBody,
+      regulatedEntityAttributeResponseJsonV510,
       List($AuthenticatedUserIsRequired, UnknownError),
       List(apiTagDirectory, apiTagApi),
       Some(List(canGetRegulatedEntityAttribute)),
@@ -1271,10 +1706,20 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getAllRegulatedEntityAttributes), "GET",
-      "/regulated-entities/REGULATED_ENTITY_ID/attributes", "Get All Regulated Entity Attributes",
-      "Get all attributes for the specified Regulated Entity.",
-      EmptyBody, regulatedEntityAttributesJsonV510,
+      null,
+      implementedInApiVersion,
+      nameOf(getAllRegulatedEntityAttributes),
+      "GET",
+      "/regulated-entities/REGULATED_ENTITY_ID/attributes",
+      "Get All Regulated Entity Attributes",
+      s"""
+          | Get all attributes for the specified Regulated Entity.
+          |
+          | ${userAuthenticationMessage(true)}
+          |
+      """.stripMargin,
+      EmptyBody,
+      regulatedEntityAttributesJsonV510,
       List($AuthenticatedUserIsRequired, UnknownError),
       List(apiTagDirectory, apiTagApi),
       Some(List(canGetRegulatedEntityAttributes)),
@@ -1304,10 +1749,20 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(updateRegulatedEntityAttribute), "PUT",
+      null,
+      implementedInApiVersion,
+      nameOf(updateRegulatedEntityAttribute),
+      "PUT",
       "/regulated-entities/REGULATED_ENTITY_ID/attributes/REGULATED_ENTITY_ATTRIBUTE_ID",
-      "Update Regulated Entity Attribute", "Update an existing Regulated Entity Attribute.",
-      regulatedEntityAttributeRequestJsonV510, regulatedEntityAttributeResponseJsonV510,
+      "Update Regulated Entity Attribute",
+      s"""
+          | Update an existing Regulated Entity Attribute specified by ATTRIBUTE_ID.
+          |
+          | ${userAuthenticationMessage(true)}
+          |
+      """.stripMargin,
+      regulatedEntityAttributeRequestJsonV510,
+      regulatedEntityAttributeResponseJsonV510,
       List($AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
       List(apiTagDirectory, apiTagApi),
       Some(List(canUpdateRegulatedEntityAttribute)),
@@ -1327,10 +1782,20 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(mtlsClientCertificateInfo), "GET",
-      "/my/mtls/certificate/current", "Provide client's certificate info of a current call",
-      "Provide client's certificate info of a current call specified by PSD2-CERT request header.",
-      EmptyBody, certificateInfoJsonV510,
+      null,
+      implementedInApiVersion,
+      nameOf(mtlsClientCertificateInfo),
+      "GET",
+      "/my/mtls/certificate/current",
+      "Provide client's certificate info of a current call",
+      s"""
+         |Provide client's certificate info of a current call specified by PSD2-CERT value at Request Header
+         |
+         |${userAuthenticationMessage(true)}
+         |
+      """.stripMargin,
+      EmptyBody,
+      certificateInfoJsonV510,
       List(AuthenticatedUserIsRequired, BankNotFound, UnknownError),
       List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2),
       None,
@@ -1352,10 +1817,18 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(updateMyApiCollection), "PUT",
-      "/my/api-collections/API_COLLECTION_ID", "Update My Api Collection By API_COLLECTION_ID",
-      s"Update Api Collection for logged in user.\n\n${userAuthenticationMessage(true)}",
-      postApiCollectionJson400, apiCollectionJson400,
+      null,
+      implementedInApiVersion,
+      nameOf(updateMyApiCollection),
+      "PUT",
+      "/my/api-collections/API_COLLECTION_ID",
+      "Update My Api Collection By API_COLLECTION_ID",
+      s"""Update Api Collection for logged in user.
+      |
+      |${userAuthenticationMessage(true)}
+      |""".stripMargin,
+      postApiCollectionJson400,
+      apiCollectionJson400,
       List($AuthenticatedUserIsRequired, InvalidJsonFormat, UserNotFoundByUserId, UnknownError),
       List(apiTagApiCollection),
       None,
@@ -1369,11 +1842,22 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getApiTags), "GET",
-      "/tags", "Get API Tags",
-      s"Get API Tags.\n\n${userAuthenticationMessage(false)}",
-      EmptyBody, accountsMinimalJson400,
-      List(UnknownError), List(apiTagApi), None,
+      null,
+      implementedInApiVersion,
+      nameOf(getApiTags),
+      "GET",
+      "/tags",
+      "Get API Tags",
+      s"""Get API TagsGet API Tags
+      |
+      |${userAuthenticationMessage(false)}
+      |
+      |""",
+      EmptyBody,
+      accountsMinimalJson400,
+      List(UnknownError),
+      List(apiTagApi),
+      None,
       http4sPartialFunction = Some(getApiTags)
     )
 
@@ -1389,10 +1873,101 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getMetrics), "GET",
-      "/management/metrics", "Get Metrics",
-      "Get API metrics rows. Requires CanReadMetrics role.",
-      EmptyBody, metricsJsonV510,
+      null,
+      implementedInApiVersion,
+      nameOf(getMetrics),
+      "GET",
+      "/management/metrics",
+      "Get Metrics",
+      s"""Get API metrics rows. These are records of each REST API call.
+         |
+         |require CanReadMetrics role
+         |
+         |**IMPORTANT: Smart Caching & Performance**
+         |
+         |This endpoint uses intelligent two-tier caching to optimize performance:
+         |
+         |**Stable Data Cache (Long TTL):**
+         |- Metrics older than ${APIUtil.getPropsValue("MappedMetrics.stable.boundary.seconds", "600")} seconds (${APIUtil.getPropsValue("MappedMetrics.stable.boundary.seconds", "600").toInt / 60} minutes) are considered immutable/stable
+         |- These are cached for ${APIUtil.getPropsValue("MappedMetrics.cache.ttl.seconds.getStableMetrics", "86400")} seconds (${APIUtil.getPropsValue("MappedMetrics.cache.ttl.seconds.getStableMetrics", "86400").toInt / 3600} hours)
+         |- Used when your query's from_date is older than the stable boundary
+         |
+         |**Recent Data Cache (Short TTL):**
+         |- Recent metrics (within the stable boundary) are cached for ${APIUtil.getPropsValue("MappedMetrics.cache.ttl.seconds.getAllMetrics", "7")} seconds
+         |- Used when your query includes recent data or has no from_date
+         |
+         |**STRONGLY RECOMMENDED: Always specify from_date in your queries!**
+         |
+         |**Why from_date matters:**
+         |- Queries WITH from_date older than ${APIUtil.getPropsValue("MappedMetrics.stable.boundary.seconds", "600").toInt / 60} mins → cached for ${APIUtil.getPropsValue("MappedMetrics.cache.ttl.seconds.getStableMetrics", "86400").toInt / 3600} hours (fast!)
+         |- Queries WITHOUT from_date → cached for only ${APIUtil.getPropsValue("MappedMetrics.cache.ttl.seconds.getAllMetrics", "7")} seconds (slower)
+         |
+         |**Examples:**
+         |- `from_date=2025-01-01T00:00:00.000Z` → Uses ${APIUtil.getPropsValue("MappedMetrics.cache.ttl.seconds.getStableMetrics", "86400").toInt / 3600} hours cache (historical data)
+         |- `from_date=$DateWithMsExampleString` (recent date) → Uses ${APIUtil.getPropsValue("MappedMetrics.cache.ttl.seconds.getAllMetrics", "7")} seconds cache (recent data)
+         |- No from_date (e.g., `?limit=50`) → Uses ${APIUtil.getPropsValue("MappedMetrics.cache.ttl.seconds.getAllMetrics", "7")} seconds cache (assumes recent data)
+         |
+         |For best performance on historical/reporting queries, always include a from_date parameter!
+         |
+         |Filters Part 1.*filtering* (no wilde cards etc.) parameters to GET /management/metrics
+         |
+         |You can filter by the following fields by applying url parameters
+         |
+         |eg: /management/metrics?from_date=$DateWithMsExampleString&to_date=$DateWithMsExampleString&limit=50&offset=2
+         |
+         |1 from_date e.g.:from_date=$DateWithMsExampleString Defaults to the Unix Epoch i.e. ${theEpochTime}
+         |   **IMPORTANT**: Including from_date enables long-term caching for historical data queries!
+         |
+         |2 to_date e.g.:to_date=$DateWithMsExampleString Defaults to a far future date i.e. ${APIUtil.ToDateInFuture}
+         |
+         |3 limit (for pagination: defaults to 50)  eg:limit=200
+         |
+         |4 offset (for pagination: zero index, defaults to 0) eg: offset=10
+         |
+         |5 sort_by (defaults to date field) eg: sort_by=date
+         |  possible values:
+         |    "url",
+         |    "date",
+         |    "username" (or "user_name" for backward compatibility),
+         |    "app_name",
+         |    "developer_email",
+         |    "implemented_by_partial_function",
+         |    "implemented_in_version",
+         |    "consumer_id",
+         |    "verb",
+         |    "http_status_code"
+         |
+         |6 direction (defaults to date desc) eg: direction=desc
+         |
+         |eg: /management/metrics?from_date=$DateWithMsExampleString&to_date=$DateWithMsExampleString&limit=10000&offset=0&anon=false&app_name=TeatApp&implemented_in_version=v2.1.0&verb=POST&user_id=c7b6cb47-cb96-4441-8801-35b57456753a&username=susan.uk.29@example.com&consumer_id=78
+         |
+         |Other filters:
+         |
+         |7 consumer_id  (if null ignore)
+         |
+         |8 user_id (if null ignore)
+         |
+         |9 anon (if null ignore) only support two value : true (return where user_id is null.) or false (return where user_id is not null.)
+         |
+         |10 url (if null ignore), note: can not contain '&'.
+         |
+         |11 app_name (if null ignore)
+         |
+         |12 implemented_by_partial_function (if null ignore),
+         |
+         |13 implemented_in_version (if null ignore)
+         |
+         |14 verb (if null ignore)
+         |
+         |15 correlation_id (if null ignore)
+         |
+         |16 duration (if null ignore) - Returns calls where duration > specified value (in milliseconds). Use this to find slow API calls. eg: duration=5000 returns calls taking more than 5 seconds
+         |
+         |17 http_status_code (if null ignore) - Returns calls with specific HTTP status code. eg: http_status_code=200 returns only successful calls, http_status_code=500 returns server errors
+         |
+      """.stripMargin,
+      EmptyBody,
+      metricsJsonV510,
       List(AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
       List(apiTagMetric, apiTagApi),
       Some(List(canReadMetrics)),
@@ -1451,10 +2026,21 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createNonPersonalUserAttribute), "POST",
-      "/users/USER_ID/non-personal/attributes", "Create Non Personal User Attribute",
-      s"Create Non Personal User Attribute. Type ∈ {STRING, INTEGER, DOUBLE, DATE_WITH_DAY}.\n\n${userAuthenticationMessage(true)}",
-      userAttributeJsonV510, userAttributeResponseJsonV510,
+      null,
+      implementedInApiVersion,
+      nameOf(createNonPersonalUserAttribute),
+      "POST",
+      "/users/USER_ID/non-personal/attributes",
+      "Create Non Personal User Attribute",
+      s""" Create Non Personal User Attribute
+      |
+      |The type field must be one of "STRING", "INTEGER", "DOUBLE" or DATE_WITH_DAY"
+      |
+      |${userAuthenticationMessage(true)}
+      |
+      |""",
+      userAttributeJsonV510,
+      userAttributeResponseJsonV510,
       List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
       List(apiTagUser),
       Some(List(canCreateNonPersonalUserAttribute)),
@@ -1516,10 +2102,22 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(syncExternalUser), "POST",
-      "/users/PROVIDER/PROVIDER_ID/sync", "Sync User",
-      s"Create or sync an OBP User with User from an external identity provider.\n\n${userAuthenticationMessage(true)}",
-      EmptyBody, refresUserJson,
+      null,
+      implementedInApiVersion,
+      nameOf(syncExternalUser),
+      "POST",
+      "/users/PROVIDER/PROVIDER_ID/sync",
+      "Sync User",
+      s"""The endpoint is used to create or sync an OBP User with User from an external identity provider.
+      |PROVIDER is the host of the provider e.g. a Keycloak Host.
+      |PROVIDER_ID is the unique identifier for the User at the PROVIDER.
+      |At the end of the process, a User will exist in OBP with the Account Access records defined by the CBS.
+      |
+      |${userAuthenticationMessage(true)}
+      |
+      |""",
+      EmptyBody,
+      refresUserJson,
       List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
       List(apiTagUser),
       Some(List(canSyncUser)),
@@ -1541,10 +2139,18 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getEntitlementsAndPermissions), "GET",
-      "/users/USER_ID/entitlements-and-permissions", "Get Entitlements and Permissions for a User",
-      "",
-      EmptyBody, userJsonV300,
+      null,
+      implementedInApiVersion,
+      nameOf(getEntitlementsAndPermissions),
+      "GET",
+      "/users/USER_ID/entitlements-and-permissions",
+      "Get Entitlements and Permissions for a User",
+      s"""
+         |
+         |
+      """.stripMargin,
+      EmptyBody,
+      userJsonV300,
       List($AuthenticatedUserIsRequired, UserNotFoundByUserId, UserHasMissingRoles, UnknownError),
       List(apiTagRole, apiTagEntitlement, apiTagUser),
       Some(List(canGetEntitlementsForAnyUserAtAnyBank)),
@@ -1570,10 +2176,37 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getUserByProviderAndUsername), "GET",
-      "/users/provider/PROVIDER/username/USERNAME", "Get User by Provider and Username",
-      s"Get a User by PROVIDER + USERNAME.\n\n${userAuthenticationMessage(true)}",
-      EmptyBody, userWithNamesJsonV510,
+      null,
+      implementedInApiVersion,
+      nameOf(getUserByProviderAndUsername),
+      "GET",
+      "/users/provider/PROVIDER/username/USERNAME",
+      "Get User by Provider and Username",
+      s"""Get user by PROVIDER and USERNAME
+         |
+         |Get a User by their authentication provider and username.
+         |
+         |**URL Parameters:**
+         |
+         |* PROVIDER - The authentication provider (e.g., http://127.0.0.1:8080, google.com, OBP)
+         |* USERNAME - The username at that provider (e.g., obpstripe, john.doe)
+         |
+         |**Important:** The PROVIDER parameter can contain special characters like slashes and colons.
+         |For example, if the provider is "http://127.0.0.1:8080", the full URL would be:
+         |
+         |`GET /obp/v5.1.0/users/provider/http://127.0.0.1:8080/username/obpstripe`
+         |
+         |The API will correctly parse the provider value even with these special characters.
+         |
+         |**To find valid providers**, use the GET /obp/v6.0.0/providers endpoint (available in API version 6.0.0).
+         |
+         |${userAuthenticationMessage(true)}
+         |
+         |CanGetAnyUser entitlement is required.
+         |
+      """.stripMargin,
+      EmptyBody,
+      userWithNamesJsonV510,
       List($AuthenticatedUserIsRequired, UserHasMissingRoles, UserNotFoundByProviderAndUsername, UnknownError),
       List(apiTagUser),
       Some(List(canGetAnyUser)),
@@ -1639,10 +2272,20 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(lockUserByProviderAndUsername), "POST",
-      "/users/PROVIDER/USERNAME/locks", "Lock the user",
-      s"Lock a User.\n\n${userAuthenticationMessage(true)}",
-      EmptyBody, userLockStatusJson,
+      null,
+      implementedInApiVersion,
+      nameOf(lockUserByProviderAndUsername),
+      "POST",
+      "/users/PROVIDER/USERNAME/locks",
+      "Lock the user",
+      s"""
+      |Lock a User.
+      |
+      |${userAuthenticationMessage(true)}
+      |
+      |""".stripMargin,
+      EmptyBody,
+      userLockStatusJson,
       List($AuthenticatedUserIsRequired, UserNotFoundByProviderAndUsername, UserHasMissingRoles, UnknownError),
       List(apiTagUser),
       Some(List(canLockUser)),
@@ -1660,10 +2303,27 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(validateUserByUserId), "PUT",
-      "/management/users/USER_ID", "Validate a user",
-      "Manually validate a User by USER_ID. Sets is_validated=true.",
-      EmptyBody, UserValidatedJson(is_validated = true),
+      null,
+      implementedInApiVersion,
+      nameOf(validateUserByUserId),
+      "PUT",
+      "/management/users/USER_ID",
+      "Validate a user",
+      s"""
+      |Manually validate a User by USER_ID.
+      |
+      |This is an administrative endpoint that marks a user's account as validated (i.e. sets is_validated to true).
+      |
+      |This is useful when an administrator needs to validate a user on their behalf,
+      |for example if the user did not receive the validation email, or if the email validation token has expired.
+      |
+      |For self-service email validation, see the Validate User Email endpoint (POST /users/email-validation).
+      |
+      |Authentication is Required and the user must have the canValidateUser role.
+      |
+      |""".stripMargin,
+      EmptyBody,
+      UserValidatedJson(is_validated = true),
       List($AuthenticatedUserIsRequired, UserNotFoundByUserId, UserHasMissingRoles, UnknownError),
       List(apiTagUser),
       Some(List(canValidateUser)),
@@ -1681,10 +2341,19 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getAccountAccessByUserId), "GET",
-      "/users/USER_ID/account-access", "Get Account Access by USER_ID",
-      s"Get Account Access by USER_ID.\n\n${userAuthenticationMessage(true)}",
-      EmptyBody, accountsMinimalJson400,
+      null,
+      implementedInApiVersion,
+      nameOf(getAccountAccessByUserId),
+      "GET",
+      "/users/USER_ID/account-access",
+      "Get Account Access by USER_ID",
+      s"""Get Account Access by USER_ID
+      |
+      |${userAuthenticationMessage(true)}
+      |
+      |""",
+      EmptyBody,
+      accountsMinimalJson400,
       List($AuthenticatedUserIsRequired, UserNotFoundByUserId, UnknownError),
       List(apiTagAccount),
       Some(List(canSeeAccountAccessForAnyUser)),
@@ -1737,10 +2406,23 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getAccountsHeldByUserAtBank), "GET",
-      "/users/USER_ID/banks/BANK_ID/accounts-held", "Get Accounts Held By User",
-      "Get Accounts held by the User at the bank, even before owner View is granted.",
-      EmptyBody, coreAccountsHeldJsonV300,
+      null,
+      implementedInApiVersion,
+      nameOf(getAccountsHeldByUserAtBank),
+      "GET",
+      "/users/USER_ID/banks/BANK_ID/accounts-held",
+      "Get Accounts Held By User",
+      s"""Get Accounts held by the User if even the User has not been assigned the owner View yet.
+       |
+       |Can be used to onboard the account to the API - since all other account and transaction endpoints require views to be assigned.
+       |
+       |${accountTypeFilterText("/users/USER_ID/banks/BANK_ID/accounts-held")}
+       |
+       |
+       |
+      """.stripMargin,
+      EmptyBody,
+      coreAccountsHeldJsonV300,
       List($AuthenticatedUserIsRequired, $BankNotFound, UserNotFoundByUserId, UnknownError),
       List(apiTagAccount),
       Some(List(canGetAccountsHeldAtOneBank, canGetAccountsHeldAtAnyBank)),
@@ -1762,10 +2444,23 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getAccountsHeldByUser), "GET",
-      "/users/USER_ID/accounts-held", "Get Accounts Held By User",
-      "Get Accounts held by the User across all banks, even before owner View is granted.",
-      EmptyBody, coreAccountsHeldJsonV300,
+      null,
+      implementedInApiVersion,
+      nameOf(getAccountsHeldByUser),
+      "GET",
+      "/users/USER_ID/accounts-held",
+      "Get Accounts Held By User",
+      s"""Get Accounts held by the User if even the User has not been assigned the owner View yet.
+       |
+       |Can be used to onboard the account to the API - since all other account and transaction endpoints require views to be assigned.
+       |
+       |${accountTypeFilterText("/users/USER_ID/accounts-held")}
+       |
+       |
+       |
+      """.stripMargin,
+      EmptyBody,
+      coreAccountsHeldJsonV300,
       List($AuthenticatedUserIsRequired, $BankNotFound, UserNotFoundByUserId, UnknownError),
       List(apiTagAccount),
       Some(List(canGetAccountsHeldAtAnyBank)),
@@ -1785,10 +2480,20 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getCustomersForUserIdsOnly), "GET",
-      "/users/current/customers/customer_ids", "Get Customers for Current User (IDs only)",
-      s"Gets all Customer IDs linked to the current User.\n\n${userAuthenticationMessage(true)}",
-      EmptyBody, customersWithAttributesJsonV300,
+      null,
+      implementedInApiVersion,
+      nameOf(getCustomersForUserIdsOnly),
+      "GET",
+      "/users/current/customers/customer_ids",
+      "Get Customers for Current User (IDs only)",
+      s"""Gets all Customers Ids that are linked to a User.
+      |
+      |
+      |${userAuthenticationMessage(true)}
+      |
+      |""",
+      EmptyBody,
+      customersWithAttributesJsonV300,
       List($AuthenticatedUserIsRequired, UserCustomerLinksNotFoundForUser, UnknownError),
       List(apiTagCustomer, apiTagUser),
       None,
@@ -1833,10 +2538,18 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(customViewNamesCheck), "GET",
-      "/management/system/integrity/custom-view-names-check", "Check Custom View Names",
-      s"Check custom view names.\n\n${userAuthenticationMessage(true)}",
-      EmptyBody, CheckSystemIntegrityJsonV510(true),
+      null,
+      implementedInApiVersion,
+      nameOf(customViewNamesCheck),
+      "GET",
+      "/management/system/integrity/custom-view-names-check",
+      "Check Custom View Names",
+      s"""Check custom view names.
+      |
+      |${userAuthenticationMessage(true)}
+      |""".stripMargin,
+      EmptyBody,
+      CheckSystemIntegrityJsonV510(true),
       List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
       List(apiTagSystemIntegrity),
       Some(canGetSystemIntegrity :: Nil),
@@ -1854,10 +2567,18 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(systemViewNamesCheck), "GET",
-      "/management/system/integrity/system-view-names-check", "Check System View Names",
-      s"Check system view names.\n\n${userAuthenticationMessage(true)}",
-      EmptyBody, CheckSystemIntegrityJsonV510(true),
+      null,
+      implementedInApiVersion,
+      nameOf(systemViewNamesCheck),
+      "GET",
+      "/management/system/integrity/system-view-names-check",
+      "Check System View Names",
+      s"""Check system view names.
+      |
+      |${userAuthenticationMessage(true)}
+      |""".stripMargin,
+      EmptyBody,
+      CheckSystemIntegrityJsonV510(true),
       List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
       List(apiTagSystemIntegrity),
       Some(canGetSystemIntegrity :: Nil),
@@ -1877,10 +2598,18 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(accountAccessUniqueIndexCheck), "GET",
-      "/management/system/integrity/account-access-unique-index-1-check", "Check Unique Index at Account Access",
-      s"Check unique index at account access table.\n\n${userAuthenticationMessage(true)}",
-      EmptyBody, CheckSystemIntegrityJsonV510(true),
+      null,
+      implementedInApiVersion,
+      nameOf(accountAccessUniqueIndexCheck),
+      "GET",
+      "/management/system/integrity/account-access-unique-index-1-check",
+      "Check Unique Index at Account Access",
+      s"""Check unique index at account access table.
+      |
+      |${userAuthenticationMessage(true)}
+      |""".stripMargin,
+      EmptyBody,
+      CheckSystemIntegrityJsonV510(true),
       List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
       List(apiTagSystemIntegrity),
       Some(canGetSystemIntegrity :: Nil),
@@ -1901,10 +2630,18 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(accountCurrencyCheck), "GET",
-      "/management/system/integrity/banks/BANK_ID/account-currency-check", "Check for Sensible Currencies",
-      s"Check for sensible currencies at Bank Account model.\n\n${userAuthenticationMessage(true)}",
-      EmptyBody, CheckSystemIntegrityJsonV510(true),
+      null,
+      implementedInApiVersion,
+      nameOf(accountCurrencyCheck),
+      "GET",
+      "/management/system/integrity/banks/BANK_ID/account-currency-check",
+      "Check for Sensible Currencies",
+      s"""Check for sensible currencies at Bank Account model
+      |
+      |${userAuthenticationMessage(true)}
+      |""".stripMargin,
+      EmptyBody,
+      CheckSystemIntegrityJsonV510(true),
       List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
       List(apiTagSystemIntegrity),
       Some(canGetSystemIntegrity :: Nil),
@@ -1929,10 +2666,18 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(orphanedAccountCheck), "GET",
-      "/management/system/integrity/banks/BANK_ID/orphaned-account-check", "Check for Orphaned Accounts",
-      s"Check for orphaned accounts at Bank Account model.\n\n${userAuthenticationMessage(true)}",
-      EmptyBody, CheckSystemIntegrityJsonV510(true),
+      null,
+      implementedInApiVersion,
+      nameOf(orphanedAccountCheck),
+      "GET",
+      "/management/system/integrity/banks/BANK_ID/orphaned-account-check",
+      "Check for Orphaned Accounts",
+      s"""Check for orphaned accounts at Bank Account model
+      |
+      |${userAuthenticationMessage(true)}
+      |""".stripMargin,
+      EmptyBody,
+      CheckSystemIntegrityJsonV510(true),
       List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
       List(apiTagSystemIntegrity),
       Some(canGetSystemIntegrity :: Nil),
@@ -1954,10 +2699,17 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getCurrenciesAtBank), "GET",
-      "/banks/BANK_ID/currencies", "Get Currencies at a Bank",
-      "Get Currencies specified by BANK_ID.",
-      EmptyBody, currenciesJsonV510,
+      null,
+      implementedInApiVersion,
+      nameOf(getCurrenciesAtBank),
+      "GET",
+      "/banks/BANK_ID/currencies",
+      "Get Currencies at a Bank",
+      """Get Currencies specified by BANK_ID
+        |
+      """.stripMargin,
+      EmptyBody,
+      currenciesJsonV510,
       List($AuthenticatedUserIsRequired, UnknownError),
       List(apiTagFx),
       None,
@@ -1993,10 +2745,23 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(updateConsumerRedirectURL), "PUT",
-      "/management/consumers/CONSUMER_ID/consumer/redirect_url", "Update Consumer RedirectURL",
-      "Update an existing redirectUrl for a Consumer specified by CONSUMER_ID.",
-      consumerRedirectUrlJSON, consumerJSON,
+      null,
+      implementedInApiVersion,
+      nameOf(updateConsumerRedirectURL),
+      "PUT",
+      "/management/consumers/CONSUMER_ID/consumer/redirect_url",
+      "Update Consumer RedirectURL",
+      s"""Update an existing redirectUrl for a Consumer specified by CONSUMER_ID.
+        |
+        | ${consumerDisabledText()}
+        |
+        | CONSUMER_ID can be obtained after you register the application.
+        |
+        | Or use the endpoint 'Get Consumers' to get it
+        |
+      """.stripMargin,
+      consumerRedirectUrlJSON,
+      consumerJSON,
       List(AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
       List(apiTagConsumer),
       Some(List(canUpdateConsumerRedirectUrl)),
@@ -2018,10 +2783,23 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(updateConsumerLogoURL), "PUT",
-      "/management/consumers/CONSUMER_ID/consumer/logo_url", "Update Consumer LogoURL",
-      "Update an existing logoURL for a Consumer specified by CONSUMER_ID.",
-      consumerLogoUrlJson, consumerJsonV510,
+      null,
+      implementedInApiVersion,
+      nameOf(updateConsumerLogoURL),
+      "PUT",
+      "/management/consumers/CONSUMER_ID/consumer/logo_url",
+      "Update Consumer LogoURL",
+      s"""Update an existing logoURL for a Consumer specified by CONSUMER_ID.
+        |
+        | ${consumerDisabledText()}
+        |
+        | CONSUMER_ID can be obtained after you register the application.
+        |
+        | Or use the endpoint 'Get Consumers' to get it
+        |
+      """.stripMargin,
+      consumerLogoUrlJson,
+      consumerJsonV510,
       List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
       List(apiTagConsumer),
       Some(List(canUpdateConsumerLogoUrl)),
@@ -2043,10 +2821,23 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(updateConsumerCertificate), "PUT",
-      "/management/consumers/CONSUMER_ID/consumer/certificate", "Update Consumer Certificate",
-      "Update Certificate for a Consumer specified by CONSUMER_ID.",
-      consumerCertificateJson, consumerJsonV510,
+      null,
+      implementedInApiVersion,
+      nameOf(updateConsumerCertificate),
+      "PUT",
+      "/management/consumers/CONSUMER_ID/consumer/certificate",
+      "Update Consumer Certificate",
+      s"""Update a Certificate for a Consumer specified by CONSUMER_ID.
+        |
+        | ${consumerDisabledText()}
+        |
+        | CONSUMER_ID can be obtained after you register the application.
+        |
+        | Or use the endpoint 'Get Consumers' to get it
+        |
+      """.stripMargin,
+      consumerCertificateJson,
+      consumerJsonV510,
       List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
       List(apiTagConsumer),
       Some(List(canUpdateConsumerCertificate)),
@@ -2068,10 +2859,23 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(updateConsumerName), "PUT",
-      "/management/consumers/CONSUMER_ID/consumer/name", "Update Consumer Name",
-      "Update an existing name for a Consumer specified by CONSUMER_ID.",
-      consumerNameJson, consumerJsonV510,
+      null,
+      implementedInApiVersion,
+      nameOf(updateConsumerName),
+      "PUT",
+      "/management/consumers/CONSUMER_ID/consumer/name",
+      "Update Consumer Name",
+      s"""Update an existing name for a Consumer specified by CONSUMER_ID.
+        |
+        | ${consumerDisabledText()}
+        |
+        | CONSUMER_ID can be obtained after you register the application.
+        |
+        | Or use the endpoint 'Get Consumers' to get it
+        |
+      """.stripMargin,
+      consumerNameJson,
+      consumerJsonV510,
       List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
       List(apiTagConsumer),
       Some(List(canUpdateConsumerName)),
@@ -2089,12 +2893,21 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getCallsLimit), "GET",
-      "/management/consumers/CONSUMER_ID/consumer/rate-limits", "Get Rate Limits for a Consumer",
-      s"Get Calls limits per Consumer.\n\n${userAuthenticationMessage(true)}",
-      EmptyBody, callLimitsJson510Example,
+      null,
+      implementedInApiVersion,
+      nameOf(getCallsLimit),
+      "GET",
+      "/management/consumers/CONSUMER_ID/consumer/rate-limits",
+      "Get Rate Limits for a Consumer",
+      s"""
+      |Get Calls limits per Consumer.
+      |${userAuthenticationMessage(true)}
+      |
+      |""".stripMargin,
+      EmptyBody,
+      callLimitsJson510Example,
       List($AuthenticatedUserIsRequired, InvalidJsonFormat, InvalidConsumerId, ConsumerNotFoundByConsumerId,
-        UserHasMissingRoles, UpdateConsumerError, UnknownError),
+      UserHasMissingRoles, UpdateConsumerError, UnknownError),
       List(apiTagConsumer),
       Some(List(canReadCallLimits)),
       http4sPartialFunction = Some(getCallsLimit)
@@ -2131,10 +2944,17 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createMyConsumer), "POST",
-      "/my/consumers", "Create a Consumer",
-      "Create a Consumer (Authenticated access).",
-      createConsumerRequestJsonV510, consumerJsonV510,
+      null,
+      implementedInApiVersion,
+      nameOf(createMyConsumer),
+      "POST",
+      "/my/consumers",
+      "Create a Consumer",
+      s"""Create a Consumer (Authenticated access).
+      |
+      |""",
+      createConsumerRequestJsonV510,
+      consumerJsonV510,
       List(AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
       List(apiTagConsumer),
       None,
@@ -2181,10 +3001,97 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createConsumerDynamicRegistration), "POST",
-      "/dynamic-registration/consumers", "Create a Consumer(Dynamic Registration)",
-      "Create a Consumer with full certificate validation (mTLS access) — recommended for PSD2/Berlin Group compliance.",
-      ConsumerJwtPostJsonV510(""), consumerJsonV510,
+      null,
+      implementedInApiVersion,
+      nameOf(createConsumerDynamicRegistration),
+      "POST",
+      "/dynamic-registration/consumers",
+      "Create a Consumer(Dynamic Registration)",
+      s"""Create a Consumer with full certificate validation (mTLS access) - **Recommended for PSD2/Berlin Group compliance**.
+      |
+      |This endpoint provides **secure, validated consumer registration** unlike the standard `/management/consumers` endpoint.
+      |
+      |**How it works (for comprehension flow):**
+      |
+      |1. **Extract JWT from request**: Parse the signed JWT from the request body
+      |2. **Extract certificate**: Get certificate from `PSD2-CERT` header in PEM format
+      |3. **Verify JWT signature**: Validate JWT is signed with the certificate's private key (proves possession)
+      |4. **Parse JWT payload**: Extract consumer details (description, app_name, app_type, developer_email, redirect_url)
+      |5. **Extract certificate info**: Parse certificate to get Common Name, Email, Organization
+      |6. **Validate against Regulated Entity**: Check certificate exists in Regulated Entity registry (PSD2 requirement)
+      |7. **Create consumer**: Generate credentials and create consumer record with validated certificate
+      |8. **Return consumer with certificate info**: Returns consumer details including parsed certificate information
+      |
+      |**Certificate Validation (CRITICAL SECURITY DIFFERENCE from regular creation):**
+      |
+      |[YES] **JWT Signature Verification**: JWT must be signed with certificate's private key - proves TPP owns the certificate
+      |[YES] **Regulated Entity Check**: Certificate must match a pre-registered Regulated Entity in the database
+      |[YES] **Certificate Binding**: Certificate is permanently bound to the consumer at creation time
+      |[YES] **CA Validation**: Certificate chain can be validated against trusted root CAs during API requests
+      |[YES] **PSD2 Compliance**: Meets EU regulatory requirements for TPP registration
+      |
+      |**Security benefits vs regular consumer creation:**
+      |
+      || Feature | Regular Creation | Dynamic Registration |
+      ||---------|-----------------|---------------------|
+      || Certificate validation | [NO] None | [YES] Full validation |
+      || Regulated Entity check | [NO] Not required | [YES] Required |
+      || JWT signature proof | [NO] Not required | [YES] Required (proves private key possession) |
+      || Self-signed certs | [YES] Accepted | [NO] Rejected |
+      || PSD2 compliant | [NO] No | [YES] Yes |
+      || Rogue TPP prevention | [NO] No | [YES] Yes |
+      |
+      |**Prerequisites:**
+      |1. TPP must be registered as a Regulated Entity with their certificate
+      |2. Certificate must be provided in `PSD2-CERT` request header (PEM format)
+      |3. JWT must be signed with the private key corresponding to the certificate
+      |4. Trust store must be configured with trusted root CAs
+      |
+      |**JWT Payload Structure:**
+      |
+      |Minimal:
+      |```json
+      |{ "description":"TPP Application Description" }
+      |```
+      |
+      |Full:
+      |```json
+      |{
+      |  "description": "Payment Initiation Service",
+      |  "app_name": "Tesobe GmbH",
+      |  "app_type": "Confidential",
+      |  "developer_email": "contact@tesobe.com",
+      |  "redirect_url": "https://tpp.example.com/callback"
+      |}
+      |```
+      |
+      |**Note:** JWT must be signed with the private key that corresponds to the public key in the certificate sent via `PSD2-CERT` header.
+      |
+      |**Certificate Information Extraction:**
+      |
+      |The endpoint automatically extracts information from the certificate:
+      |- Common Name (CN) → used as app_name if not provided in JWT
+      |- Email Address → used as developer_email if not provided
+      |- Organization (O) → used as company
+      |- Certificate validity period
+      |- Issuer information
+      |
+      |**Configuration Required:**
+      |- `truststore.path.tpp_signature` - Path to trust store for CA validation
+      |- `truststore.password.tpp_signature` - Trust store password
+      |- Regulated Entity must be pre-registered with certificate public key
+      |
+      |**Error Scenarios:**
+      |- JWT signature invalid → `PostJsonIsNotSigned` (400)
+      |- Certificate not in Regulated Entity registry → `RegulatedEntityNotFoundByCertificate` (400)
+      |- Invalid JWT format → `InvalidJsonFormat` (400)
+      |- Missing PSD2-CERT header → Signature verification fails
+      |
+      |**This is the SECURE way to register consumers for production PSD2/Berlin Group implementations.**
+      |
+      |""",
+      ConsumerJwtPostJsonV510("eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJkZXNjcmlwdGlvbiI6IlRQUCBkZXNjcmlwdGlvbiJ9.c5gPPsyUmnVW774y7h2xyLXg0wdtu25nbU2AvOmyzcWa7JTdCKuuy3CblxueGwqYkQDDQIya1Qny4blyAvh_a1Q28LgzEKBcH7Em9FZXerhkvR9v4FWbCC5AgNLdQ7sR8-rUQdShmJcGDKdVmsZjuO4XhY2Zx0nFnkcvYfsU9bccoAvkKpVJATXzwBqdoEOuFlplnbxsMH1wWbAd3hbcPPWTdvO43xavNZTB5ybgrXVDEYjw8D-98_ZkqxS0vfvhJ4cGefHViaFzp6zXm7msdBpcE__O9rFbdl9Gvup_bsMbrHJioIrmc2d15Yc-tTNTF9J4qjD_lNxMRlx5o2TZEw"),
+      consumerJsonV510,
       List(InvalidJsonFormat, UnknownError),
       List(apiTagDirectory, apiTagConsumer),
       Some(Nil),
@@ -2216,15 +3123,52 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(grantUserAccessToViewById), "POST",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/account-access/grant", "Grant User access to View",
-      "Grants the User identified by USER_ID access to the view on a bank account identified by VIEW_ID.",
-      postAccountAccessJsonV510, viewJsonV300,
+      null,
+      implementedInApiVersion,
+      nameOf(grantUserAccessToViewById),
+      "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/account-access/grant",
+      "Grant User access to View",
+      s"""Grants the User identified by USER_ID access to the view on a bank account identified by VIEW_ID.
+      |
+      |${userAuthenticationMessage(true)}
+      |
+      |**Permission Requirements:**
+      |The requesting user must have access to the source VIEW_ID and must possess specific grant permissions:
+      |
+      |**For System Views (e.g., owner, accountant, auditor, public etc.):**
+      |- The user's current view must have the target view listed in its `canGrantAccessToViews` field
+      |- Example: If granting access to "accountant" view, the user's view must include "accountant" in `canGrantAccessToViews`
+      |
+      |**For Custom Views (account-specific views):**
+      |- The user's current view must have the `can_grant_access_to_custom_views` permission in its `allowed_actions` field
+      |- This permission allows granting access to any custom view on the account
+      |
+      |**Security Checks Performed:**
+      |1. User authentication validation
+      |2. JSON format validation (USER_ID and VIEW_ID required)
+      |3. Permission authorization via `APIUtil.canGrantAccessToView()`
+      |4. Target user existence verification
+      |5. Target view existence and type validation (system vs custom)
+      |6. Final access grant operation in database
+      |
+      |**Final Database Operation:**
+      |The system creates an `AccountAccess` record linking the user to the view if one doesn't already exist.
+      |This operation includes:
+      |- Duplicate check: Prevents creating duplicate access records (idempotent operation)
+      |- Public view restriction: Blocks access to public views if disabled instance-wide
+      |- Database constraint validation: Ensures referential integrity
+      |
+      |**Note:** The permission model ensures users can only delegate access rights they themselves possess or are explicitly authorized to grant.
+      |
+      |""",
+      postAccountAccessJsonV510,
+      viewJsonV300,
       List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, $UserNoPermissionAccessView,
-        UserLacksPermissionCanGrantAccessToSystemViewForTargetAccount,
-        UserLacksPermissionCanGrantAccessToCustomViewForTargetAccount,
-        InvalidJsonFormat, UserNotFoundById, SystemViewNotFound, ViewNotFound,
-        CannotGrantAccountAccess, UnknownError),
+      UserLacksPermissionCanGrantAccessToSystemViewForTargetAccount,
+      UserLacksPermissionCanGrantAccessToCustomViewForTargetAccount,
+      InvalidJsonFormat, UserNotFoundById, SystemViewNotFound, ViewNotFound,
+      CannotGrantAccountAccess, UnknownError),
       List(apiTagAccountAccess, apiTagView, apiTagAccount, apiTagUser, apiTagOwnerRequired),
       None,
       http4sPartialFunction = Some(grantUserAccessToViewById)
@@ -2255,15 +3199,24 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(revokeUserAccessToViewById), "POST",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/account-access/revoke", "Revoke User access to View",
-      "Revoke the User identified by USER_ID access to the view identified.",
-      postAccountAccessJsonV510, revokedJsonV400,
+      null,
+      implementedInApiVersion,
+      nameOf(revokeUserAccessToViewById),
+      "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/account-access/revoke",
+      "Revoke User access to View",
+      s"""Revoke the User identified by USER_ID access to the view identified.
+      |
+      |${userAuthenticationMessage(true)}.
+      |
+      |""",
+      postAccountAccessJsonV510,
+      revokedJsonV400,
       List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, $UserNoPermissionAccessView,
-        UserLacksPermissionCanRevokeAccessToCustomViewForTargetAccount,
-        UserLacksPermissionCanRevokeAccessToSystemViewForTargetAccount,
-        InvalidJsonFormat, UserNotFoundById, SystemViewNotFound, ViewNotFound,
-        CannotRevokeAccountAccess, CannotFindAccountAccess, UnknownError),
+      UserLacksPermissionCanRevokeAccessToCustomViewForTargetAccount,
+      UserLacksPermissionCanRevokeAccessToSystemViewForTargetAccount,
+      InvalidJsonFormat, UserNotFoundById, SystemViewNotFound, ViewNotFound,
+      CannotRevokeAccountAccess, CannotFindAccountAccess, UnknownError),
       List(apiTagAccountAccess, apiTagView, apiTagAccount, apiTagUser, apiTagOwnerRequired),
       None,
       http4sPartialFunction = Some(revokeUserAccessToViewById)
@@ -2297,14 +3250,33 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createUserWithAccountAccessById), "POST",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/user-account-access", "Create (DAuth) User with Account Access",
-      "Grant access to account/transaction data to a smart contract on the blockchain.",
-      postCreateUserAccountAccessJsonV400, List(viewJsonV300),
+      null,
+      implementedInApiVersion,
+      nameOf(createUserWithAccountAccessById),
+      "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/user-account-access",
+      "Create (DAuth) User with Account Access",
+      s"""This endpoint is used as part of the DAuth solution to grant access to account and transaction data to a smart contract on the blockchain.
+      |
+      |Put the smart contract address in username
+      |
+      |For provider use "dauth"
+      |
+      |This endpoint will create the (DAuth) User with username and provider if the User does not already exist.
+      |
+      |${userAuthenticationMessage(true)} and the logged in user needs to be account holder.
+      |
+      |For information about DAuth see below:
+      |
+      |${Glossary.getGlossaryItem("DAuth")}
+      |
+      |""",
+      postCreateUserAccountAccessJsonV400,
+      List(viewJsonV300),
       List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, $UserNoPermissionAccessView,
-        UserLacksPermissionCanGrantAccessToSystemViewForTargetAccount,
-        UserLacksPermissionCanGrantAccessToCustomViewForTargetAccount,
-        InvalidJsonFormat, SystemViewNotFound, ViewNotFound, CannotGrantAccountAccess, UnknownError),
+      UserLacksPermissionCanGrantAccessToSystemViewForTargetAccount,
+      UserLacksPermissionCanGrantAccessToCustomViewForTargetAccount,
+      InvalidJsonFormat, SystemViewNotFound, ViewNotFound, CannotGrantAccountAccess, UnknownError),
       List(apiTagAccountAccess, apiTagView, apiTagAccount, apiTagUser, apiTagOwnerRequired, apiTagDAuth),
       None,
       http4sPartialFunction = Some(createUserWithAccountAccessById)
@@ -2324,10 +3296,17 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getTransactionRequestById), "GET",
-      "/management/transaction-requests/TRANSACTION_REQUEST_ID", "Get Transaction Request by ID.",
-      "Returns transaction request specified by TRANSACTION_REQUEST_ID.",
-      EmptyBody, transactionRequestWithChargeJSON210,
+      null,
+      implementedInApiVersion,
+      nameOf(getTransactionRequestById),
+      "GET",
+      "/management/transaction-requests/TRANSACTION_REQUEST_ID",
+      "Get Transaction Request by ID.",
+      """Returns transaction request for transaction specified by TRANSACTION_REQUEST_ID.
+        |
+      """.stripMargin,
+      EmptyBody,
+      transactionRequestWithChargeJSON210,
       List($AuthenticatedUserIsRequired, GetTransactionRequestsException, UnknownError),
       List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2),
       Some(List(canGetTransactionRequestAtOneBank, canGetTransactionRequestAtAnyBank)),
@@ -2353,9 +3332,17 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(updateTransactionRequestStatus), "PUT",
-      "/management/transaction-requests/TRANSACTION_REQUEST_ID", "Update Transaction Request Status",
-      s"Update Transaction Request Status.\n\n${userAuthenticationMessage(true)}",
+      null,
+      implementedInApiVersion,
+      nameOf(updateTransactionRequestStatus),
+      "PUT",
+      "/management/transaction-requests/TRANSACTION_REQUEST_ID",
+      "Update Transaction Request Status",
+      s""" Update Transaction Request Status
+      |
+      |${userAuthenticationMessage(true)}
+      |
+      |""",
       PostTransactionRequestStatusJsonV510(TransactionRequestStatus.COMPLETED.toString),
       PostTransactionRequestStatusJsonV510(TransactionRequestStatus.COMPLETED.toString),
       List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, InvalidJsonFormat, UnknownError),
@@ -2383,10 +3370,16 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getCoreAccountByIdThroughView), "GET",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID", "Get Account by Id (Core) through the VIEW_ID",
-      "Information returned about the account through VIEW_ID.",
-      EmptyBody, moderatedCoreAccountJsonV400,
+      null,
+      implementedInApiVersion,
+      nameOf(getCoreAccountByIdThroughView),
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID",
+      "Get Account by Id (Core) through the VIEW_ID",
+      s"""Information returned about the account through VIEW_ID :
+      |""".stripMargin,
+      EmptyBody,
+      moderatedCoreAccountJsonV400,
       List($AuthenticatedUserIsRequired, $BankAccountNotFound, UnknownError),
       apiTagAccount :: apiTagPSD2AIS :: apiTagPsd2 :: Nil,
       None,
@@ -2412,10 +3405,15 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getBankAccountBalances), "GET",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/balances", "Get Account Balances by BANK_ID and ACCOUNT_ID through the VIEW_ID",
-      "Get the Balances for the Account specified by BANK_ID and ACCOUNT_ID through the VIEW_ID.",
-      EmptyBody, accountBalanceV400,
+      null,
+      implementedInApiVersion,
+      nameOf(getBankAccountBalances),
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/balances",
+      "Get Account Balances by BANK_ID and ACCOUNT_ID through the VIEW_ID",
+      """Get the Balances for the Account specified by BANK_ID and ACCOUNT_ID through the VIEW_ID.""",
+      EmptyBody,
+      accountBalanceV400,
       List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UserNoPermissionAccessView, UnknownError),
       apiTagAccount :: apiTagPSD2AIS :: apiTagPsd2 :: Nil,
       None,
@@ -2435,10 +3433,15 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getBankAccountsBalancesThroughView), "GET",
-      "/banks/BANK_ID/views/VIEW_ID/balances", "Get Account Balances by BANK_ID through the VIEW_ID",
-      "Get the Balances for the Account specified by BANK_ID through the VIEW_ID.",
-      EmptyBody, accountBalancesV400Json,
+      null,
+      implementedInApiVersion,
+      nameOf(getBankAccountsBalancesThroughView),
+      "GET",
+      "/banks/BANK_ID/views/VIEW_ID/balances",
+      "Get Account Balances by BANK_ID through the VIEW_ID",
+      """Get the Balances for the Account specified by BANK_ID.""",
+      EmptyBody,
+      accountBalancesV400Json,
       List($AuthenticatedUserIsRequired, $BankNotFound, UnknownError),
       apiTagAccount :: apiTagPSD2AIS :: apiTagPsd2 :: Nil,
       None,
@@ -2478,13 +3481,29 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createCounterpartyLimit), "POST",
+      null,
+      implementedInApiVersion,
+      nameOf(createCounterpartyLimit),
+      "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/counterparties/COUNTERPARTY_ID/limits",
       "Create Counterparty Limit",
-      "Create limits (single + recurring) for a counterparty.",
-      postCounterpartyLimitV510, counterpartyLimitV510,
+      s"""Create limits (for single or recurring payments) for a counterparty specified by the COUNTERPARTY_ID.
+      |
+      |Using this endpoint, we can attach a limit record to a Counterparty referenced by its counterparty_id (a UUID).
+      |
+      |For more information on Counterparty Limits, see ${Glossary.getGlossaryItemLink("Counterparty-Limits")}
+      |
+      |For an introduction to Counterparties in OBP, see ${Glossary.getGlossaryItemLink("Counterparties")}
+      |
+      |You can automate the process of creating counterparty limits and consents for VRP with this ${Glossary.getApiExplorerLink("endpoint", "OBPv5.1.0-createVRPConsentRequest")}.
+      |
+      |
+      |
+      |""".stripMargin,
+      postCounterpartyLimitV510,
+      counterpartyLimitV510,
       List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, $UserNoPermissionAccessView,
-        $CounterpartyNotFoundByCounterpartyId, InvalidJsonFormat, UnknownError),
+      $CounterpartyNotFoundByCounterpartyId, InvalidJsonFormat, UnknownError),
       List(apiTagCounterpartyLimits),
       None,
       http4sPartialFunction = Some(createCounterpartyLimit)
@@ -2517,13 +3536,17 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(updateCounterpartyLimit), "PUT",
+      null,
+      implementedInApiVersion,
+      nameOf(updateCounterpartyLimit),
+      "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/counterparties/COUNTERPARTY_ID/limits",
       "Update Counterparty Limit",
-      "Update existing counterparty limits.",
-      postCounterpartyLimitV510, counterpartyLimitV510,
+      s"""Update Counterparty Limit.""",
+      postCounterpartyLimitV510,
+      counterpartyLimitV510,
       List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, $UserNoPermissionAccessView,
-        $CounterpartyNotFoundByCounterpartyId, InvalidJsonFormat, UnknownError),
+      $CounterpartyNotFoundByCounterpartyId, InvalidJsonFormat, UnknownError),
       List(apiTagCounterpartyLimits),
       None,
       http4sPartialFunction = Some(updateCounterpartyLimit)
@@ -2540,12 +3563,17 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getCounterpartyLimit), "GET",
+      null,
+      implementedInApiVersion,
+      nameOf(getCounterpartyLimit),
+      "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/counterparties/COUNTERPARTY_ID/limits",
-      "Get Counterparty Limit", "Get Counterparty Limit.",
-      EmptyBody, counterpartyLimitV510,
+      "Get Counterparty Limit",
+      s"""Get Counterparty Limit.""",
+      EmptyBody,
+      counterpartyLimitV510,
       List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, $UserNoPermissionAccessView,
-        $CounterpartyNotFoundByCounterpartyId, InvalidJsonFormat, UnknownError),
+      $CounterpartyNotFoundByCounterpartyId, InvalidJsonFormat, UnknownError),
       List(apiTagCounterpartyLimits),
       None,
       http4sPartialFunction = Some(getCounterpartyLimit)
@@ -2612,12 +3640,17 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getCounterpartyLimitStatus), "GET",
+      null,
+      implementedInApiVersion,
+      nameOf(getCounterpartyLimitStatus),
+      "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/counterparties/COUNTERPARTY_ID/limit-status",
-      "Get Counterparty Limit Status", "Get Counterparty Limit Status.",
-      EmptyBody, counterpartyLimitStatusV510,
+      "Get Counterparty Limit Status",
+      s"""Get Counterparty Limit Status.""",
+      EmptyBody,
+      counterpartyLimitStatusV510,
       List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, $UserNoPermissionAccessView,
-        $CounterpartyNotFoundByCounterpartyId, InvalidJsonFormat, UnknownError),
+      $CounterpartyNotFoundByCounterpartyId, InvalidJsonFormat, UnknownError),
       List(apiTagCounterpartyLimits),
       None,
       http4sPartialFunction = Some(getCounterpartyLimitStatus)
@@ -2633,12 +3666,17 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(deleteCounterpartyLimit), "DELETE",
+      null,
+      implementedInApiVersion,
+      nameOf(deleteCounterpartyLimit),
+      "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/counterparties/COUNTERPARTY_ID/limits",
-      "Delete Counterparty Limit", "Delete Counterparty Limit.",
-      EmptyBody, EmptyBody,
+      "Delete Counterparty Limit",
+      s"""Delete Counterparty Limit.""",
+      EmptyBody,
+      EmptyBody,
       List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, $UserNoPermissionAccessView,
-        $CounterpartyNotFoundByCounterpartyId, InvalidJsonFormat, UnknownError),
+      $CounterpartyNotFoundByCounterpartyId, InvalidJsonFormat, UnknownError),
       List(apiTagCounterpartyLimits),
       None,
       http4sPartialFunction = Some(deleteCounterpartyLimit)
@@ -2730,10 +3768,38 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getCustomView), "GET",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/target-views/TARGET_VIEW_ID", "Get Custom View",
-      "Returns the custom view on the account.",
-      EmptyBody, customViewJsonV510,
+      null,
+      implementedInApiVersion,
+      nameOf(getCustomView),
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/target-views/TARGET_VIEW_ID",
+      "Get Custom View",
+      s"""#Views
+      |
+      |
+      |Views in Open Bank Project provide a mechanism for fine grained access control and delegation to Accounts and Transactions. Account holders use the 'owner' view by default. Delegated access is made through other views for example 'accountants', 'share-holders' or 'tagging-application'. Views can be created via the API and each view has a list of entitlements.
+      |
+      |Views on accounts and transactions filter the underlying data to redact certain fields for certain users. For instance the balance on an account may be hidden from the public. The way to know what is possible on a view is determined in the following JSON.
+      |
+      |**Data:** When a view moderates a set of data, some fields my contain the value `null` rather than the original value. This indicates either that the user is not allowed to see the original data or the field is empty.
+      |
+      |There is currently one exception to this rule; the 'holder' field in the JSON contains always a value which is either an alias or the real name - indicated by the 'is_alias' field.
+      |
+      |**Action:** When a user performs an action like trying to post a comment (with POST API call), if he is not allowed, the body response will contain an error message.
+      |
+      |**Metadata:**
+      |Transaction metadata (like images, tags, comments, etc.) will appears *ONLY* on the view where they have been created e.g. comments posted to the public view only appear on the public view.
+      |
+      |The other account metadata fields (like image_URL, more_info, etc.) are unique through all the views. Example, if a user edits the 'more_info' field in the 'team' view, then the view 'authorities' will show the new value (if it is allowed to do it).
+      |
+      |# All
+      |*Optional*
+      |
+      |Returns the list of the views created for account ACCOUNT_ID at BANK_ID.
+      |
+      |${userAuthenticationMessage(true)} and the user needs to have access to the owner view.""",
+      EmptyBody,
+      customViewJsonV510,
       List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, $UserNoPermissionAccessView, UnknownError),
       List(apiTagView, apiTagAccount),
       None,
@@ -2758,10 +3824,15 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(deleteCustomView), "DELETE",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/target-views/TARGET_VIEW_ID", "Delete Custom View",
-      "Deletes the custom view.",
-      EmptyBody, EmptyBody,
+      null,
+      implementedInApiVersion,
+      nameOf(deleteCustomView),
+      "DELETE",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/target-views/TARGET_VIEW_ID",
+      "Delete Custom View",
+      "Deletes the custom view specified by VIEW_ID on the bank account specified by ACCOUNT_ID at bank BANK_ID",
+      EmptyBody,
+      EmptyBody,
       List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, $UserNoPermissionAccessView, UnknownError),
       List(apiTagView, apiTagAccount),
       None,
@@ -2788,10 +3859,19 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createBankAccountBalance), "POST",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/balances", "Create Bank Account Balance",
-      s"Create a new Balance for a Bank Account.\n\n${userAuthenticationMessage(true)}",
-      bankAccountBalanceRequestJsonV510, bankAccountBalanceResponseJsonV510,
+      null,
+      implementedInApiVersion,
+      nameOf(createBankAccountBalance),
+      "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/balances",
+      "Create Bank Account Balance",
+      s"""Create a new Balance for a Bank Account.
+      |
+      |${userAuthenticationMessage(true)}
+      |
+      |""",
+      bankAccountBalanceRequestJsonV510,
+      bankAccountBalanceResponseJsonV510,
       List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
       List(apiTagAccount, apiTagBalance),
       Some(List(canCreateBankAccountBalance)),
@@ -2808,10 +3888,19 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getBankAccountBalanceById), "GET",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/balances/BALANCE_ID", "Get Bank Account Balance By ID",
-      "Get a specific Bank Account Balance.",
-      EmptyBody, bankAccountBalanceResponseJsonV510,
+      null,
+      implementedInApiVersion,
+      nameOf(getBankAccountBalanceById),
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/balances/BALANCE_ID",
+      "Get Bank Account Balance By ID",
+      s"""Get a specific Bank Account Balance by its BALANCE_ID.
+      |
+      |${userAuthenticationMessage(true)}
+      |
+      |""",
+      EmptyBody,
+      bankAccountBalanceResponseJsonV510,
       List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
       List(apiTagAccount, apiTagBalance),
       None,
@@ -2837,10 +3926,19 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(updateBankAccountBalance), "PUT",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/balances/BALANCE_ID", "Update Bank Account Balance",
-      "Update an existing Bank Account Balance.",
-      bankAccountBalanceRequestJsonV510, bankAccountBalanceResponseJsonV510,
+      null,
+      implementedInApiVersion,
+      nameOf(updateBankAccountBalance),
+      "PUT",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/balances/BALANCE_ID",
+      "Update Bank Account Balance",
+      s"""Update an existing Bank Account Balance specified by BALANCE_ID.
+      |
+      |${userAuthenticationMessage(true)}
+      |
+      |""",
+      bankAccountBalanceRequestJsonV510,
+      bankAccountBalanceResponseJsonV510,
       List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
       List(apiTagAccount, apiTagBalance),
       Some(List(canUpdateBankAccountBalance)),
@@ -2858,10 +3956,19 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(deleteBankAccountBalance), "DELETE",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/balances/BALANCE_ID", "Delete Bank Account Balance",
-      "Delete a Bank Account Balance.",
-      EmptyBody, EmptyBody,
+      null,
+      implementedInApiVersion,
+      nameOf(deleteBankAccountBalance),
+      "DELETE",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/balances/BALANCE_ID",
+      "Delete Bank Account Balance",
+      s"""Delete a Bank Account Balance specified by BALANCE_ID.
+      |
+      |${userAuthenticationMessage(true)}
+      |
+      |""",
+      EmptyBody,
+      EmptyBody,
       List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
       List(apiTagAccount, apiTagBalance),
       Some(List(canDeleteBankAccountBalance)),
@@ -2943,11 +4050,28 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(updateConsentStatusByConsent), "PUT",
-      "/management/banks/BANK_ID/consents/CONSENT_ID", "Update Consent Status by CONSENT_ID",
-      s"Update the Status of a Consent. States: ${ConsentStatus.values.toList.sorted.mkString(", ")}.",
+      null,
+      implementedInApiVersion,
+      nameOf(updateConsentStatusByConsent),
+      "PUT",
+      "/management/banks/BANK_ID/consents/CONSENT_ID",
+      "Update Consent Status by CONSENT_ID",
+      s"""
+      |
+      |
+      |This endpoint is used to update the Status of Consent.
+      |
+      |Each Consent has one of the following states: ${ConsentStatus.values.toList.sorted.mkString(", ")}.
+      |
+      |${userAuthenticationMessage(true)}
+      |
+      |""",
       PutConsentStatusJsonV400(status = "AUTHORISED"),
-      ConsentChallengeJsonV310(consent_id = "9d429899-24f5-42c8-8565-943ffa6a7945", jwt = "", status = "AUTHORISED"),
+      ConsentChallengeJsonV310(
+        consent_id = "9d429899-24f5-42c8-8565-943ffa6a7945",
+        jwt = "eyJhbGciOiJIUzI1NiJ9.eyJlbnRpdGxlbWVudHMiOltdLCJjcmVhdGVkQnlVc2VySWQiOiJhYjY1MzlhOS1iMTA1LTQ0ODktYTg4My0wYWQ4ZDZjNjE2NTciLCJzdWIiOiIyMWUxYzhjYy1mOTE4LTRlYWMtYjhlMy01ZTVlZWM2YjNiNGIiLCJhdWQiOiJlanpuazUwNWQxMzJyeW9tbmhieDFxbXRvaHVyYnNiYjBraWphanNrIiwibmJmIjoxNTUzNTU0ODk5LCJpc3MiOiJodHRwczpcL1wvd3d3Lm9wZW5iYW5rcHJvamVjdC5jb20iLCJleHAiOjE1NTM1NTg0OTksImlhdCI6MTU1MzU1NDg5OSwianRpIjoiMDlmODhkNWYtZWNlNi00Mzk4LThlOTktNjYxMWZhMWNkYmQ1Iiwidmlld3MiOlt7ImFjY291bnRfaWQiOiJtYXJrb19wcml2aXRlXzAxIiwiYmFua19pZCI6ImdoLjI5LnVrLngiLCJ2aWV3X2lkIjoib3duZXIifSx7ImFjY291bnRfaWQiOiJtYXJrb19wcml2aXRlXzAyIiwiYmFua19pZCI6ImdoLjI5LnVrLngiLCJ2aWV3X2lkIjoib3duZXIifV19.8cc7cBEf2NyQvJoukBCmDLT7LXYcuzTcSYLqSpbxLp4",
+        status = "AUTHORISED"
+      ),
       List($AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat, ConsentNotFound, InvalidConnectorResponse, UnknownError),
       apiTagConsent :: apiTagPSD2AIS :: Nil,
       Some(List(canUpdateConsentStatusAtOneBank, canUpdateConsentStatusAtAnyBank)),
@@ -2975,11 +4099,36 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(updateConsentAccountAccessByConsentId), "PUT",
-      "/management/banks/BANK_ID/consents/CONSENT_ID/account-access", "Update Consent Account Access by CONSENT_ID",
-      "Update the Account Access of a Consent.",
-      PutConsentPayloadJsonV510(access = code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.ConsentAccessJson()),
-      ConsentChallengeJsonV310(consent_id = "9d429899-24f5-42c8-8565-943ffa6a7945", jwt = "", status = "AUTHORISED"),
+      null,
+      implementedInApiVersion,
+      nameOf(updateConsentAccountAccessByConsentId),
+      "PUT",
+      "/management/banks/BANK_ID/consents/CONSENT_ID/account-access",
+      "Update Consent Account Access by CONSENT_ID",
+      s"""
+      |
+      |This endpoint is used to update the Account Access of Consent.
+      |
+      |${userAuthenticationMessage(true)}
+      |
+      |""",
+      PutConsentPayloadJsonV510(
+        access = ConsentAccessJson(
+          accounts = Option(List(ConsentAccessAccountsJson(
+            iban = Some(ExampleValue.ibanExample.value),
+            bban = None,
+            pan = None,
+            maskedPan = None,
+            msisdn = None,
+            currency = None,
+          )))
+        )
+      ),
+      ConsentChallengeJsonV310(
+        consent_id = "9d429899-24f5-42c8-8565-943ffa6a7945",
+        jwt = "eyJhbGciOiJIUzI1NiJ9.eyJlbnRpdGxlbWVudHMiOltdLCJjcmVhdGVkQnlVc2VySWQiOiJhYjY1MzlhOS1iMTA1LTQ0ODktYTg4My0wYWQ4ZDZjNjE2NTciLCJzdWIiOiIyMWUxYzhjYy1mOTE4LTRlYWMtYjhlMy01ZTVlZWM2YjNiNGIiLCJhdWQiOiJlanpuazUwNWQxMzJyeW9tbmhieDFxbXRvaHVyYnNiYjBraWphanNrIiwibmJmIjoxNTUzNTU0ODk5LCJpc3MiOiJodHRwczpcL1wvd3d3Lm9wZW5iYW5rcHJvamVjdC5jb20iLCJleHAiOjE1NTM1NTg0OTksImlhdCI6MTU1MzU1NDg5OSwianRpIjoiMDlmODhkNWYtZWNlNi00Mzk4LThlOTktNjYxMWZhMWNkYmQ1Iiwidmlld3MiOlt7ImFjY291bnRfaWQiOiJtYXJrb19wcml2aXRlXzAxIiwiYmFua19pZCI6ImdoLjI5LnVrLngiLCJ2aWV3X2lkIjoib3duZXIifSx7ImFjY291bnRfaWQiOiJtYXJrb19wcml2aXRlXzAyIiwiYmFua19pZCI6ImdoLjI5LnVrLngiLCJ2aWV3X2lkIjoib3duZXIifV19.8cc7cBEf2NyQvJoukBCmDLT7LXYcuzTcSYLqSpbxLp4",
+        status = "AUTHORISED"
+      ),
       List($AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat, ConsentNotFound, InvalidConnectorResponse, UnknownError),
       apiTagConsent :: apiTagPSD2AIS :: Nil,
       Some(List(canUpdateConsentAccountAccessAtOneBank, canUpdateConsentAccountAccessAtAnyBank)),
@@ -3013,11 +4162,30 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(updateConsentUserIdByConsentId), "PUT",
-      "/management/banks/BANK_ID/consents/CONSENT_ID/created-by-user", "Update Created by User of Consent by CONSENT_ID",
-      "Update the User bound to a consent.",
+      null,
+      implementedInApiVersion,
+      nameOf(updateConsentUserIdByConsentId),
+      "PUT",
+      "/management/banks/BANK_ID/consents/CONSENT_ID/created-by-user",
+      "Update Created by User of Consent by CONSENT_ID",
+      s"""
+      |
+      |This endpoint is used to Update the User bound to a consent.
+      |
+      |In general we would not expect for a management user to set the User bound to a consent, but there may be
+      |some use cases where this workflow is useful.
+      |
+      |If successful, the "Created by User ID" field in the OBP Consent table will be updated.
+      |
+      |${userAuthenticationMessage(true)}
+      |
+      |""",
       PutConsentUserJsonV400(user_id = "ed7a7c01-db37-45cc-ba12-0ae8891c195c"),
-      ConsentChallengeJsonV310(consent_id = "9d429899-24f5-42c8-8565-943ffa6a7945", jwt = "", status = "AUTHORISED"),
+      ConsentChallengeJsonV310(
+        consent_id = "9d429899-24f5-42c8-8565-943ffa6a7945",
+        jwt = "eyJhbGciOiJIUzI1NiJ9.eyJlbnRpdGxlbWVudHMiOltdLCJjcmVhdGVkQnlVc2VySWQiOiJhYjY1MzlhOS1iMTA1LTQ0ODktYTg4My0wYWQ4ZDZjNjE2NTciLCJzdWIiOiIyMWUxYzhjYy1mOTE4LTRlYWMtYjhlMy01ZTVlZWM2YjNiNGIiLCJhdWQiOiJlanpuazUwNWQxMzJyeW9tbmhieDFxbXRvaHVyYnNiYjBraWphanNrIiwibmJmIjoxNTUzNTU0ODk5LCJpc3MiOiJodHRwczpcL1wvd3d3Lm9wZW5iYW5rcHJvamVjdC5jb20iLCJleHAiOjE1NTM1NTg0OTksImlhdCI6MTU1MzU1NDg5OSwianRpIjoiMDlmODhkNWYtZWNlNi00Mzk4LThlOTktNjYxMWZhMWNkYmQ1Iiwidmlld3MiOlt7ImFjY291bnRfaWQiOiJtYXJrb19wcml2aXRlXzAxIiwiYmFua19pZCI6ImdoLjI5LnVrLngiLCJ2aWV3X2lkIjoib3duZXIifSx7ImFjY291bnRfaWQiOiJtYXJrb19wcml2aXRlXzAyIiwiYmFua19pZCI6ImdoLjI5LnVrLngiLCJ2aWV3X2lkIjoib3duZXIifV19.8cc7cBEf2NyQvJoukBCmDLT7LXYcuzTcSYLqSpbxLp4",
+        status = "AUTHORISED"
+      ),
       List($AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat, ConsentNotFound, InvalidConnectorResponse, UnknownError),
       apiTagConsent :: apiTagPSD2AIS :: Nil,
       Some(List(canUpdateConsentUserAtOneBank, canUpdateConsentUserAtAnyBank)),
@@ -3048,10 +4216,31 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getMyConsents), "GET",
-      "/my/consents", "Get My Consents",
-      "Get All Consents that the current User created.",
-      EmptyBody, consentsInfoJsonV510,
+      null,
+      implementedInApiVersion,
+      nameOf(getMyConsents),
+      "GET",
+      "/my/consents",
+      "Get My Consents",
+      s"""
+         |
+         |This endpoint gets the Consents created by the current User.
+         |
+         |${userAuthenticationMessage(true)}
+         |
+         |1 limit (for pagination: defaults to 50)  eg:limit=200
+         |
+         |2 offset (for pagination: zero index, defaults to 0) eg: offset=10
+         |
+         |3 status  (ignore if omitted)
+         |
+         |4 sort_by (defaults to created_date:desc)  eg: sort_by=created_date:desc
+         |
+         |eg: /my/consents?limit=10&offset=0&sort_by=created_date:desc
+         |
+      """.stripMargin,
+      EmptyBody,
+      consentsInfoJsonV510,
       List($AuthenticatedUserIsRequired, UnknownError),
       List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2),
       None,
@@ -3074,10 +4263,33 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getConsentsAtBank), "GET",
-      "/management/consents/banks/BANK_ID", "Get Consents at Bank",
-      "Gets the Consents at the specified Bank.",
-      EmptyBody, consentsJsonV510,
+      null,
+      implementedInApiVersion,
+      nameOf(getConsentsAtBank),
+      "GET",
+      "/management/consents/banks/BANK_ID",
+      "Get Consents at Bank",
+      s"""
+         |
+         |This endpoint gets the Consents at Bank by BANK_ID.
+         |
+         |${userAuthenticationMessage(true)}
+         |
+         |1 limit (for pagination: defaults to 50)  eg:limit=200
+         |
+         |2 offset (for pagination: zero index, defaults to 0) eg: offset=10
+         |
+         |3 consumer_id  (ignore if omitted)
+         |
+         |4 user_id  (ignore if omitted)
+         |
+         |5 status  (ignore if omitted)
+         |
+         |eg: /management/consents/banks/BANK_ID?&consumer_id=78&limit=10&offset=10
+         |
+      """.stripMargin,
+      EmptyBody,
+      consentsJsonV510,
       List($AuthenticatedUserIsRequired, $BankNotFound, UnknownError),
       List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2),
       Some(List(canGetConsentsAtOneBank, canGetConsentsAtAnyBank)),
@@ -3096,10 +4308,41 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getConsents), "GET",
-      "/management/consents", "Get Consents",
-      "Gets the Consents.",
-      EmptyBody, consentsJsonV510,
+      null,
+      implementedInApiVersion,
+      nameOf(getConsents),
+      "GET",
+      "/management/consents",
+      "Get Consents",
+      s"""
+         |
+         |This endpoint gets the Consents.
+         |
+         |${userAuthenticationMessage(true)}
+         |
+         |1 limit (for pagination: defaults to 50)  eg:limit=200
+         |
+         |2 offset (for pagination: zero index, defaults to 0) eg: offset=10
+         |
+         |3 consumer_id  (ignore if omitted)
+         |
+         |4 consent_id  (ignore if omitted)
+         |
+         |5 user_id  (ignore if omitted)
+         |
+         |6 status  (ignore if omitted)
+         |
+         |7 bank_id  (ignore if omitted)
+         |
+         |8 provider_provider_id  (ignore if omitted)
+         |provider and provider_id values are separated by pipe char
+         |eg: provider_provider_id=http%3A%2F%2Flocalhost%3A7070%2Frealms%2Fmaster|7837ee9c-3446-4d8c-9b90-301a52b4851d
+         |
+         |eg:/management/consents?consumer_id=78&limit=10&offset=10
+         |
+      """.stripMargin,
+      EmptyBody,
+      consentsJsonV510,
       List($AuthenticatedUserIsRequired, $BankNotFound, UnknownError),
       List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2),
       Some(List(canGetConsentsAtAnyBank)),
@@ -3120,10 +4363,21 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getConsentByConsentId), "GET",
-      "/user/current/consents/CONSENT_ID", "Get Consent By Consent Id via User",
-      "Gets the Consent specified by CONSENT_ID belonging to the current User.",
-      EmptyBody, consentJsonV510,
+      null,
+      implementedInApiVersion,
+      nameOf(getConsentByConsentId),
+      "GET",
+      "/user/current/consents/CONSENT_ID",
+      "Get Consent By Consent Id via User",
+      s"""
+         |
+         |This endpoint gets the Consent By consent id.
+         |
+         |${userAuthenticationMessage(true)}
+         |
+      """.stripMargin,
+      EmptyBody,
+      consentJsonV510,
       List($AuthenticatedUserIsRequired, UnknownError),
       List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2),
       None,
@@ -3144,10 +4398,21 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getConsentByConsentIdViaConsumer), "GET",
-      "/consumer/current/consents/CONSENT_ID", "Get Consent By Consent Id via Consumer",
-      "Gets the Consent specified by CONSENT_ID belonging to the current Consumer.",
-      EmptyBody, consentJsonV500,
+      null,
+      implementedInApiVersion,
+      nameOf(getConsentByConsentIdViaConsumer),
+      "GET",
+      "/consumer/current/consents/CONSENT_ID",
+      "Get Consent By Consent Id via Consumer",
+      s"""
+         |
+         |This endpoint gets the Consent By consent id.
+         |
+         |${userAuthenticationMessage(true)}
+         |
+      """.stripMargin,
+      EmptyBody,
+      consentJsonV500,
       List($AuthenticatedUserIsRequired, UnknownError),
       List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2),
       None,
@@ -3173,10 +4438,28 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(revokeConsentAtBank), "DELETE",
-      "/banks/BANK_ID/consents/CONSENT_ID", "Revoke Consent at Bank",
-      "Revoke Consent specified by CONSENT_ID.",
-      EmptyBody, revokedConsentJsonV310,
+      null,
+      implementedInApiVersion,
+      nameOf(revokeConsentAtBank),
+      "DELETE",
+      "/banks/BANK_ID/consents/CONSENT_ID",
+      "Revoke Consent at Bank",
+      s"""
+         |Revoke Consent specified by CONSENT_ID
+         |
+         |There are a few reasons you might need to revoke an application’s access to a user’s account:
+         |  - The user explicitly wishes to revoke the application’s access
+         |  - You as the service provider have determined an application is compromised or malicious, and want to disable it
+         |  - etc.
+         ||
+         |OBP as a resource server stores access tokens in a database, then it is relatively easy to revoke some token that belongs to a particular user.
+         |The status of the token is changed to "REVOKED" so the next time the revoked client makes a request, their token will fail to validate.
+         |
+         |${userAuthenticationMessage(true)}
+         |
+      """.stripMargin,
+      EmptyBody,
+      revokedConsentJsonV310,
       List(AuthenticatedUserIsRequired, BankNotFound, UnknownError),
       List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2),
       Some(List(canRevokeConsentAtBank)),
@@ -3198,10 +4481,28 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(selfRevokeConsent), "DELETE",
-      "/my/consent/current", "Revoke Consent used in the Current Call",
-      "Revoke Consent specified by Consent-Id at Request Header.",
-      EmptyBody, revokedConsentJsonV310,
+      null,
+      implementedInApiVersion,
+      nameOf(selfRevokeConsent),
+      "DELETE",
+      "/my/consent/current",
+      "Revoke Consent used in the Current Call",
+      s"""
+         |Revoke Consent specified by Consent-Id at Request Header
+         |
+         |There are a few reasons you might need to revoke an application’s access to a user’s account:
+         |  - The user explicitly wishes to revoke the application’s access
+         |  - You as the service provider have determined an application is compromised or malicious, and want to disable it
+         |  - etc.
+         ||
+         |OBP as a resource server stores access tokens in a database, then it is relatively easy to revoke some token that belongs to a particular user.
+         |The status of the token is changed to "REVOKED" so the next time the revoked client makes a request, their token will fail to validate.
+         |
+         |${userAuthenticationMessage(true)}
+         |
+      """.stripMargin,
+      EmptyBody,
+      revokedConsentJsonV310,
       List(AuthenticatedUserIsRequired, BankNotFound, UnknownError),
       List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2),
       None,
@@ -3414,10 +4715,48 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createVRPConsentRequest), "POST",
-      "/consumer/vrp-consent-requests", "Create Consent Request VRP",
-      "Create a Variable Recurring Payments (VRP) Consent Request.",
-      postVRPConsentRequestJsonV510, vrpConsentRequestResponseJson,
+      null,
+      implementedInApiVersion,
+      nameOf(createVRPConsentRequest),
+      "POST",
+      "/consumer/vrp-consent-requests",
+      "Create Consent Request VRP",
+      s"""
+      |This endpoint is used to begin the process of creating a consent that may be used for Variable Recurring Payments (VRPs).
+      |
+      |VRPs are useful in situations when a beneficiary needs to be paid different amounts on a regular basis.
+      |
+      |Once granted, the consent allows its holder to initiate multiple Transaction Requests to the Counterparty defined in this endpoint as long as the
+      |Counterparty Limits linked to this particular consent are respected.
+      |
+      |Client, Consumer or Application Authentication is mandatory for this endpoint.
+      |
+      |i.e. the caller of this endpoint is the API Client, Consumer or Application rather than a specific User.
+      |
+      |At the end of the process the following objects are created in OBP or connected backend systems:
+      | - An automatically generated View which controls access.
+      | - A Counterparty that is the Beneficiary of the Variable Recurring Payments. The Counterparty specifies the Bank Account number or other routing address.
+      | - Limits for the Counterparty which constrain the amount of money that can be sent to it in various periods (yearly, monthly, weekly).
+      |
+      |The Account holder may modify the Counterparty or Limits e.g. to increase or decrease the maximum possible payment amounts or the frequencey of the payments.
+      |
+      |
+      |In the case of a public client we use the client_id and private key to obtain an access token, otherwise we use the client_id and client_secret.
+      |The obtained access token is used in the HTTP Authorization header of the request as follows:
+      |
+      |Example:
+      |Authorization: Bearer eXtneO-THbQtn3zvK_kQtXXfvOZyZFdBCItlPDbR2Bk.dOWqtXCtFX-tqGTVR0YrIjvAolPIVg7GZ-jz83y6nA0
+      |
+      |After successfully creating the VRP consent request, you need to call the `Create Consent By CONSENT_REQUEST_ID` endpoint to finalize the consent using the CONSENT_REQUEST_ID returned by this endpoint.
+      |
+      |${applicationAccessMessage(true)}
+      |
+      |${userAuthenticationMessage(false)}
+      |
+      |
+      |""".stripMargin,
+      postVRPConsentRequestJsonV510,
+      vrpConsentRequestResponseJson,
       List(InvalidJsonFormat, ConsentMaxTTL, X509CannotGetCertificate, X509GeneralError, InvalidConnectorResponse, UnknownError),
       apiTagConsent :: apiTagVrp :: apiTagTransactionRequest :: Nil,
       None,

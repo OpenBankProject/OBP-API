@@ -498,13 +498,11 @@ class Boot extends MdcLoggable {
         LiftRules.dispatch.append(OpenIdConnect)
       }
     }
-    // DirectLogin (POST /my/logins/direct), ImporterAPI (POST
-    // /obp_transactions_saver/api/transactions), and aliveCheck (GET /alive)
-    // are now served by their native http4s counterparts wired into
-    // Http4sApp.baseServices (DirectLoginRoutes / ImporterAPIRoutes /
-    // AliveCheckRoutes). The Lift dispatches were retired in the http4s
-    // migration; any prop gates (e.g. `allow_direct_login`) live with those
-    // routes.
+    // DirectLogin (POST /my/logins/direct) and aliveCheck (GET /alive) are now
+    // served by their native http4s counterparts wired into
+    // Http4sApp.baseServices (DirectLoginRoutes / AliveCheckRoutes). The Lift
+    // dispatches were retired in the http4s migration; any prop gates
+    // (e.g. `allow_direct_login`) live with those routes.
 
 
 
