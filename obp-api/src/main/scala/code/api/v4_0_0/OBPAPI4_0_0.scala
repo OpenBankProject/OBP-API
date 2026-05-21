@@ -28,78 +28,44 @@ package code.api.v4_0_0
 
 import scala.language.reflectiveCalls
 import code.api.OBPRestHelper
-import code.api.util.APIUtil.{OBPEndpoint, getAllowedEndpoints}
+import code.api.util.APIUtil.OBPEndpoint
 import code.api.util.VersionedOBPApis
-import code.api.v1_3_0.APIMethods130
-import code.api.v1_4_0.APIMethods140
-import code.api.v2_0_0.APIMethods200
-import code.api.v2_1_0.APIMethods210
-import code.api.v2_2_0.APIMethods220
-import code.api.v3_0_0.APIMethods300
-import code.api.v3_0_0.custom.CustomAPIMethods300
-import code.api.v3_1_0.{APIMethods310, OBPAPI3_1_0}
+import code.api.v3_1_0.OBPAPI3_1_0
 import code.util.Helper.MdcLoggable
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.util.{ApiVersion, ApiVersionStatus}
-import net.liftweb.common.{Box, Full}
-import net.liftweb.http.{LiftResponse, PlainTextResponse}
-import org.apache.http.HttpStatus
 
 /*
-This file defines which endpoints from all the versions are available in v4.0.0
+This file defines which endpoints from all the versions are available in v4.0.0.
+All v4.0.0 endpoints have been migrated to Http4s400 — this object is retained
+only for resource-doc aggregation and the Lift dispatch registry.
  */
-object OBPAPI4_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 with APIMethods200 with APIMethods210 with APIMethods220 with APIMethods300 with CustomAPIMethods300 with APIMethods310 with APIMethods400 with MdcLoggable with VersionedOBPApis{
+object OBPAPI4_0_0 extends OBPRestHelper with MdcLoggable with VersionedOBPApis {
 
-  val version : ApiVersion = ApiVersion.v4_0_0
+  val version: ApiVersion = ApiVersion.v4_0_0
+  lazy val versionStatus  = ApiVersionStatus.STABLE.toString
 
-  lazy val versionStatus = ApiVersionStatus.STABLE.toString
+  // Re-export so any caller that still imports OBPAPI4_0_0.Implementations4_0_0 keeps compiling.
+  val Implementations4_0_0 = Http4s400.Implementations4_0_0
 
-  // Possible Endpoints from 4.0.0, exclude one endpoint use - method,exclude multiple endpoints use -- method,
-  // e.g getEndpoints(Implementations4_0_0) -- List(Implementations4_0_0.genericEndpoint, Implementations4_0_0.root)
-  val endpointsOf4_0_0 = getEndpoints(Implementations4_0_0) 
-  
   lazy val excludeEndpoints =
-    nameOf(Implementations1_2_1.addPermissionForUserForBankAccountForMultipleViews) ::
-      nameOf(Implementations1_2_1.removePermissionForUserForBankAccountForAllViews) ::
-      nameOf(Implementations1_2_1.addPermissionForUserForBankAccountForOneView) ::
-      nameOf(Implementations1_2_1.removePermissionForUserForBankAccountForOneView) ::
-      nameOf(Implementations3_1_0.createAccount) ::
-      nameOf(Implementations3_1_0.revokeConsent) :://this endpoint is not restful, we do not support it in V510.
+    nameOf(OBPAPI3_1_0.Implementations1_2_1.addPermissionForUserForBankAccountForMultipleViews) ::
+      nameOf(OBPAPI3_1_0.Implementations1_2_1.removePermissionForUserForBankAccountForAllViews) ::
+      nameOf(OBPAPI3_1_0.Implementations1_2_1.addPermissionForUserForBankAccountForOneView) ::
+      nameOf(OBPAPI3_1_0.Implementations1_2_1.removePermissionForUserForBankAccountForOneView) ::
+      nameOf(OBPAPI3_1_0.Implementations3_1_0.createAccount) ::
+      nameOf(OBPAPI3_1_0.Implementations3_1_0.revokeConsent) ::
       Nil
 
-  // if old version ResourceDoc objects have the same name endpoint with new version, omit old version ResourceDoc.
-  def allResourceDocs = collectResourceDocs(OBPAPI3_1_0.allResourceDocs,
-                                            Implementations4_0_0.resourceDocs)
-     .filterNot(it => it.partialFunctionName.matches(excludeEndpoints.mkString("|")))
-    //TODO exclude two endpoints, after training we need add logic to exclude endpoints
+  def allResourceDocs = collectResourceDocs(
+    OBPAPI3_1_0.allResourceDocs,
+    Http4s400.resourceDocs
+  ).filterNot(it => it.partialFunctionName.matches(excludeEndpoints.mkString("|")))
 
-  // all endpoints
-  private val endpoints: List[OBPEndpoint] = OBPAPI3_1_0.routes ++ endpointsOf4_0_0
+  val routes: List[OBPEndpoint] = Nil
 
-  // Filter the possible endpoints by the disabled / enabled Props settings and add them together
-  val routes : List[OBPEndpoint] = Implementations4_0_0.root :: // For now we make this mandatory
-      getAllowedEndpoints(endpoints, allResourceDocs)
-
-  // register v4.0.0 apis first, Make them available for use!
   registerRoutes(routes, allResourceDocs, apiPrefix, true)
 
   logger.info(s"version $version has been run! There are ${routes.length} routes, ${allResourceDocs.length} allResourceDocs.")
-
-  // specified response for OPTIONS request.
-  private val corsResponse: Box[LiftResponse] = Full{
-    val corsHeaders = List(
-      "Access-Control-Allow-Origin" -> "*",
-      "Access-Control-Allow-Methods" -> "GET, POST, OPTIONS, PUT, PATCH, DELETE",
-      "Access-Control-Allow-Headers" -> "*",
-      "Access-Control-Allow-Credentials" -> "true",
-      "Access-Control-Max-Age" -> "1728000" //Tell client that this pre-flight info is valid for 20 days
-    )
-    PlainTextResponse("", corsHeaders, HttpStatus.SC_NO_CONTENT)
-  }
-  /*
-   * process OPTIONS http request, just return no content and status is 204
-   */
-  this.serve({
-    case req if req.requestType.method == "OPTIONS" => corsResponse
-  })
+  // CORS for OPTIONS is handled by the http4s corsHandler layer — no Lift serve needed here.
 }

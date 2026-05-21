@@ -78,7 +78,7 @@ class GetScannedApiVersionsTest extends V400ServerSetup with PropsReset {
   feature("test props-api_enabled_versions,  Get all scanned API versions should works") {
     scenario("We get all the scanned API versions with disabled versions filtered out", ApiEndpoint, VersionOfApi) {
       //  api_enabled_versions=[OBPv2.2.0,OBPv3.0.0,UKv2.0]
-      setPropsValues("api_enabled_versions"-> "[OBPv2.2.0,OBPv3.0.0,UKv2.0]")
+      setPropsValues("api_enabled_versions"-> "[OBPv2.2.0,OBPv3.0.0,UKv2.0,OBPv4.0.0]")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateSystemLevelDynamicEntity.toString)
       When("We make a request v4.0.0")
       val request = (v4_0_0_Request / "api" / "versions").GET
