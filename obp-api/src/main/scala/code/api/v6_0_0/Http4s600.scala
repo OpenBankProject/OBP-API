@@ -15,6 +15,9 @@ import code.api.util.newstyle.ViewNewStyle
 import code.api.v2_0_0.JSONFactory200
 import code.api.v5_1_0.{Http4s510, JSONFactory510}
 import code.api.v6_0_0.JSONFactory600.ScannedApiVersionJsonV600
+// Wildcard brings every JSONFactory600 case class + helper into scope so the
+// rehydrated liftweb response-body examples compile without per-class imports.
+import code.api.v6_0_0.JSONFactory600._
 import code.accountattribute.AccountAttributeX
 import code.api.Constant
 import code.api.Constant.{PARAM_LOCALE, PARAM_TIMESTAMP}
@@ -758,7 +761,25 @@ object Http4s600 {
       null, implementedInApiVersion, nameOf(createSystemDynamicEntity), "POST",
       "/management/system-dynamic-entities", "Create System Level Dynamic Entity",
       """Create a system-level Dynamic Entity.""",
-      EmptyBody, EmptyBody,
+      CreateDynamicEntityRequestJsonV600(
+        entity_name = "customer_preferences",
+        has_personal_entity = Some(true),
+        has_public_access = Some(false),
+        has_community_access = Some(false),
+        personal_requires_role = Some(false),
+        schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+      ),
+      DynamicEntityDefinitionJsonV600(
+        dynamic_entity_id = "abc-123-def",
+        entity_name = "customer_preferences",
+        user_id = "user-456",
+        bank_id = None,
+        has_personal_entity = true,
+        has_public_access = false,
+        has_community_access = false,
+        personal_requires_role = false,
+        schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+      ),
       List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
       apiTagManageDynamicEntity :: apiTagApi :: Nil,
       Some(canCreateSystemLevelDynamicEntity :: Nil),
@@ -789,7 +810,25 @@ object Http4s600 {
       null, implementedInApiVersion, nameOf(createBankLevelDynamicEntity), "POST",
       "/management/banks/BANK_ID/dynamic-entities", "Create Bank Level Dynamic Entity",
       """Create a bank-level Dynamic Entity for the specified bank.""",
-      EmptyBody, EmptyBody,
+      CreateDynamicEntityRequestJsonV600(
+        entity_name = "customer_preferences",
+        has_personal_entity = Some(true),
+        has_public_access = Some(false),
+        has_community_access = Some(false),
+        personal_requires_role = Some(false),
+        schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+      ),
+      DynamicEntityDefinitionJsonV600(
+        dynamic_entity_id = "abc-123-def",
+        entity_name = "customer_preferences",
+        user_id = "user-456",
+        bank_id = Some("gh.29.uk"),
+        has_personal_entity = true,
+        has_public_access = false,
+        has_community_access = false,
+        personal_requires_role = false,
+        schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+      ),
       List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
       apiTagManageDynamicEntity :: apiTagApi :: Nil,
       Some(canCreateBankLevelDynamicEntity :: Nil),
@@ -818,7 +857,21 @@ object Http4s600 {
       null, implementedInApiVersion, nameOf(updateSystemDynamicEntity), "PUT",
       "/management/system-dynamic-entities/DYNAMIC_ENTITY_ID", "Update System Level Dynamic Entity",
       """Update a system-level Dynamic Entity.""",
-      EmptyBody, EmptyBody,
+      UpdateDynamicEntityRequestJsonV600(
+        entity_name = "customer_preferences",
+        has_personal_entity = Some(true),
+        has_public_access = Some(false),
+        schema = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+      ),
+      DynamicEntityDefinitionJsonV600(
+        dynamic_entity_id = "abc-123-def",
+        entity_name = "customer_preferences",
+        user_id = "user-456",
+        bank_id = None,
+        has_personal_entity = true,
+        has_public_access = false,
+        schema = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+      ),
       List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
       apiTagManageDynamicEntity :: apiTagApi :: Nil,
       Some(canUpdateSystemDynamicEntity :: Nil),
@@ -846,7 +899,21 @@ object Http4s600 {
       null, implementedInApiVersion, nameOf(updateBankLevelDynamicEntity), "PUT",
       "/management/banks/BANK_ID/dynamic-entities/DYNAMIC_ENTITY_ID", "Update Bank Level Dynamic Entity",
       """Update a bank-level Dynamic Entity.""",
-      EmptyBody, EmptyBody,
+      UpdateDynamicEntityRequestJsonV600(
+        entity_name = "customer_preferences",
+        has_personal_entity = Some(true),
+        has_public_access = Some(false),
+        schema = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+      ),
+      DynamicEntityDefinitionJsonV600(
+        dynamic_entity_id = "abc-123-def",
+        entity_name = "customer_preferences",
+        user_id = "user-456",
+        bank_id = Some("gh.29.uk"),
+        has_personal_entity = true,
+        has_public_access = false,
+        schema = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+      ),
       List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
       apiTagManageDynamicEntity :: apiTagApi :: Nil,
       Some(canUpdateBankLevelDynamicEntity :: Nil),
@@ -880,7 +947,21 @@ object Http4s600 {
       null, implementedInApiVersion, nameOf(updateMyDynamicEntity), "PUT",
       "/my/dynamic-entities/DYNAMIC_ENTITY_ID", "Update My Dynamic Entity",
       """Update a Dynamic Entity I created.""",
-      EmptyBody, EmptyBody,
+      UpdateDynamicEntityRequestJsonV600(
+        entity_name = "customer_preferences",
+        has_personal_entity = Some(true),
+        has_public_access = Some(false),
+        schema = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+      ),
+      DynamicEntityDefinitionJsonV600(
+        dynamic_entity_id = "abc-123-def",
+        entity_name = "customer_preferences",
+        user_id = "user-456",
+        bank_id = None,
+        has_personal_entity = true,
+        has_public_access = false,
+        schema = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+      ),
       List($AuthenticatedUserIsRequired, DynamicEntityNotFoundByDynamicEntityId, InvalidJsonFormat, UnknownError),
       apiTagManageDynamicEntity :: apiTagApi :: Nil,
       None,
@@ -916,7 +997,41 @@ object Http4s600 {
       null, implementedInApiVersion, nameOf(updateSystemView), "PUT",
       "/system-views/UPD_VIEW_ID", "Update System View",
       """Update an existing system view.""",
-      EmptyBody, EmptyBody,
+      UpdateViewJsonV600(
+        description = "This is the owner view",
+        metadata_view = "owner",
+        is_public = false,
+        is_firehose = Some(false),
+        which_alias_to_use = "private",
+        hide_metadata_if_alias_used = false,
+        allowed_actions = List(
+          "can_see_transaction_amount",
+          "can_see_bank_account_balance",
+          "can_add_comment"
+        ),
+        can_grant_access_to_views = Some(List("owner", "accountant")),
+        can_revoke_access_to_views = Some(List("owner", "accountant"))
+      ),
+      ViewJsonV600(
+        bank_id = "",
+        account_id = "",
+        view_id = "owner",
+        view_name = "Owner",
+        description = "This is the owner view",
+        metadata_view = "owner",
+        is_public = false,
+        is_system = true,
+        is_firehose = Some(false),
+        alias = "private",
+        hide_metadata_if_alias_used = false,
+        can_grant_access_to_views = List("owner", "accountant"),
+        can_revoke_access_to_views = List("owner", "accountant"),
+        allowed_actions = List(
+          "can_see_transaction_amount",
+          "can_see_bank_account_balance",
+          "can_add_comment"
+        )
+      ),
       List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, SystemViewCannotBePublicError, UnknownError),
       apiTagView :: Nil,
       None,
@@ -954,7 +1069,8 @@ object Http4s600 {
       null, implementedInApiVersion, nameOf(getMetrics), "GET",
       "/management/metrics", "Get Metrics",
       """Returns metrics on API usage. Requires canReadMetrics role.""",
-      EmptyBody, EmptyBody,
+      EmptyBody,
+      metricsJsonV600,
       List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
       apiTagMetric :: apiTagApi :: Nil,
       Some(canReadMetrics :: Nil),
@@ -989,7 +1105,8 @@ object Http4s600 {
       null, implementedInApiVersion, nameOf(getAggregateMetrics), "GET",
       "/management/aggregate-metrics", "Get Aggregate Metrics",
       """Returns aggregate metrics on API usage. Requires canReadAggregateMetrics role.""",
-      EmptyBody, EmptyBody,
+      EmptyBody,
+      aggregateMetricsJSONV300,
       List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
       apiTagMetric :: apiTagApi :: Nil,
       Some(canReadAggregateMetrics :: Nil),
@@ -1030,7 +1147,12 @@ object Http4s600 {
       null, implementedInApiVersion, nameOf(getTopAPIs), "GET",
       "/management/metrics/top-apis", "Get Top APIs",
       """Returns the top APIs by call count. Requires canReadMetrics role.""",
-      EmptyBody, EmptyBody,
+      EmptyBody,
+      TopApisJsonV600(List(
+        TopApiJsonV600(1000, "getBanks", "v4.0.0", "OBPv4.0.0-getBanks"),
+        TopApiJsonV600(500, "getBank", "v4.0.0", "OBPv4.0.0-getBank"),
+        TopApiJsonV600(250, "getAccountList", "v1.3", "BGv1.3-getAccountList")
+      )),
       List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
       apiTagMetric :: apiTagApi :: Nil,
       Some(canReadMetrics :: Nil),
@@ -1071,7 +1193,11 @@ object Http4s600 {
       null, implementedInApiVersion, nameOf(getWebUiProps), "GET",
       "/webui-props", "Get WebUiProps",
       """Get the WebUI props. Optional ?what=active|database|config filter.""",
-      EmptyBody, EmptyBody,
+      EmptyBody,
+      ListResult(
+        "webui_props",
+        (List(WebUiPropsCommons("webui_api_explorer_url", "https://apiexplorer.openbankproject.com", Some("web-ui-props-id"), Some("database"))))
+      ),
       List(InvalidFilterParameterFormat, UnknownError),
       apiTagWebUiProps :: apiTagApi :: Nil,
       None,
@@ -2104,7 +2230,7 @@ object Http4s600 {
       null, implementedInApiVersion, nameOf(getSystemViews), "GET",
       "/management/system-views", "Get System Views",
       """Get all system views.""",
-      EmptyBody, EmptyBody,
+      EmptyBody, viewsJsonV600,
       List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
       apiTagView :: Nil, Some(canGetSystemViews :: Nil),
       http4sPartialFunction = Some(getSystemViews))
@@ -2120,7 +2246,7 @@ object Http4s600 {
       null, implementedInApiVersion, nameOf(getSystemViewById), "GET",
       "/management/system-views/SYS_VIEW_ID", "Get System View by Id",
       """Get a system view by its VIEW_ID.""",
-      EmptyBody, EmptyBody,
+      EmptyBody, viewJsonV600,
       List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
       apiTagView :: Nil, Some(canGetSystemViews :: Nil),
       http4sPartialFunction = Some(getSystemViewById))
@@ -6936,7 +7062,7 @@ object Http4s600 {
       null, implementedInApiVersion, nameOf(getCustomViewById), "GET",
       "/management/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID", "Get Custom View by Id",
       """Get a single custom view by VIEW_ID for the given account.""",
-      EmptyBody, EmptyBody,
+      EmptyBody, viewJsonV600,
       List($AuthenticatedUserIsRequired, UnknownError),
       apiTagView :: Nil, None,
       http4sPartialFunction = Some(getCustomViewById)
@@ -7036,7 +7162,7 @@ object Http4s600 {
       null, implementedInApiVersion, nameOf(getCustomViews), "GET",
       "/management/custom-views", "Get Custom Views",
       """Get all custom views defined in this instance.""",
-      EmptyBody, EmptyBody,
+      EmptyBody, viewsJsonV600,
       List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
       apiTagView :: Nil,
       Some(canGetCustomViews :: Nil),
@@ -7203,7 +7329,7 @@ object Http4s600 {
       null, implementedInApiVersion, nameOf(getAccountDirectory), "GET",
       "/banks/BANK_ID/account-directory", "Get Account Directory",
       """Get the list of accounts in the bank's account directory (paginated, sortable).""",
-      EmptyBody, EmptyBody,
+      EmptyBody, accountDirectoryJsonV600,
       List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
       apiTagAccount :: Nil,
       Some(canGetAccountDirectoryAtOneBank :: Nil),

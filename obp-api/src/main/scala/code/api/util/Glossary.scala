@@ -925,6 +925,14 @@ object Glossary extends MdcLoggable  {
 		  |- `scheme` — the name of the routing scheme, e.g. `IBAN`, `BIC`, `AccountNumber`, `OBP`.
 		  |- `address` — the address within that scheme, e.g. an IBAN value, an account-number string, or — for the `OBP` scheme — the OBP `account_id`.
 		  |
+		  |### A note on the "OBP" scheme name
+		  |
+		  |The implicit self-routing is currently emitted with `scheme: "OBP"`. Read in context — inside an `account_routings` array — this unambiguously means "the address is the OBP `account_id`". Read out of context (a flat routing table, a federation message, a log line), the name `"OBP"` alone does not say whether the address is an account_id or a bank_id.
+		  |
+		  |The explicit alias `"OBP_ACCOUNT_ID"` is also recognised on input (when storing a routing via the `Create or Update Account Routing` endpoint, or when resolving a counterparty). It is not emitted in responses today, but robust clients should treat `"OBP"` and `"OBP_ACCOUNT_ID"` as equivalent — e.g. by matching case-insensitively against the set `{"OBP", "OBP_ACCOUNT_ID"}` rather than equality with the literal `"OBP"`.
+		  |
+		  |See also: `Bank.bank_routings` for the analogous bank-level alias `"OBP_BANK_ID"`.
+		  |
 		  |### Response shape (v6.0.0 onwards)
 		  |
 		  |For every endpoint that returns `account_routings` (e.g. `getCoreAccountById`, `getPrivateAccountByIdFull`, `getAccountDirectory`, the transaction endpoints), the response is guaranteed to contain:
@@ -1027,6 +1035,14 @@ object Glossary extends MdcLoggable  {
 		  |
 		  |- `scheme` — the name of the routing scheme, e.g. `BIC`, `bankCode`, `BLZ`, `FRENCH_NCC`, `OBP`.
 		  |- `address` — the address within that scheme, e.g. a BIC value, a national bank code, or — for the `OBP` scheme — the OBP `bank_id`.
+		  |
+		  |### A note on the "OBP" scheme name
+		  |
+		  |The implicit self-routing is currently emitted with `scheme: "OBP"`. Read in context — inside a `bank_routings` array — this unambiguously means "the address is the OBP `bank_id`". Read out of context (a flat routing table, a federation message, a log line), the name `"OBP"` alone does not say whether the address is a bank_id or an account_id.
+		  |
+		  |The explicit alias `"OBP_BANK_ID"` is also recognised on input. It is not emitted in responses today, but robust clients should treat `"OBP"` and `"OBP_BANK_ID"` as equivalent — e.g. by matching case-insensitively against the set `{"OBP", "OBP_BANK_ID"}` rather than equality with the literal `"OBP"`.
+		  |
+		  |See also: `Account.account_routings` for the analogous account-level alias `"OBP_ACCOUNT_ID"`.
 		  |
 		  |### Response shape (v6.0.0 onwards)
 		  |
