@@ -212,7 +212,6 @@ jobs:
           echo tests.port=8016 >> obp-api/src/main/resources/props/test.default.props
           echo End of minimum settings >> obp-api/src/main/resources/props/test.default.props
           echo payments_enabled=false >> obp-api/src/main/resources/props/test.default.props
-          echo importer_secret=change_me >> obp-api/src/main/resources/props/test.default.props
           echo messageQueue.updateBankAccountsTransaction=false >> obp-api/src/main/resources/props/test.default.props
           echo messageQueue.createBankAccounts=false >> obp-api/src/main/resources/props/test.default.props
           echo allow_sandbox_account_creation=true >> obp-api/src/main/resources/props/test.default.props
