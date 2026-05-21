@@ -890,12 +890,25 @@ object Glossary extends MdcLoggable  {
 		title = "Account.account_id",
 		description =
 		s"""
-		  |An identifier for the account that MUST NOT leak the account number or other identifier nomrally used by the customer or bank staff.
-		  |It SHOULD be a UUID. It MUST be unique in combination with the BANK_ID. ACCOUNT_ID is used in many URLS so it should be considered public.
-		  |(We do NOT use account number in URLs since URLs are cached and logged all over the internet.)
-		  |In local / sandbox mode, ACCOUNT_ID is generated as a UUID and stored in the database.
-		  |In non sandbox modes (RabbitMq etc.), ACCOUNT_ID is mapped to core banking account numbers / identifiers at the South Side Adapter level.
-		  |ACCOUNT_ID is used to link Metadata and Views so it must be persistant and known to the North Side (OBP-API).
+		  |An identifier for the account that MUST NOT leak the account number or other identifier normally used by the customer or bank staff.
+		  |
+		  |### Format
+		  |
+		  |`account_id` **MUST be a UUID**. The MUST is deliberate: a UUID is effectively globally unique by construction (collision probability ≈ 0), which means `(OBP, account_id)` is a self-contained, federation-safe routing pair without needing to be qualified by the surrounding `bank_id`. Older OBP releases said "SHOULD be a UUID" — the contract has been tightened.
+		  |
+		  |It MUST also be unique in combination with the BANK_ID (this remains true and is enforced at the database level).
+		  |
+		  |### Why a UUID
+		  |
+		  |- ACCOUNT_ID is used in many URLs so it must be considered public; a UUID leaks no information about the account number, customer, or position in any sequence.
+		  |- (We do NOT use the human-facing account number in URLs since URLs are cached and logged all over the internet.)
+		  |- A UUID also makes the canonical `(OBP, account_id)` self-routing (see `Account.account_routings`) usable across instances without ambiguity.
+		  |
+		  |### How it is generated
+		  |
+		  |- In local / sandbox mode, ACCOUNT_ID is generated as a UUID and stored in the database.
+		  |- In non-sandbox modes (RabbitMQ, etc.), ACCOUNT_ID is mapped to core-banking account numbers / identifiers at the South-Side Adapter level. The adapter is responsible for emitting a UUID-shaped value.
+		  |- ACCOUNT_ID is used to link Metadata and Views, so it MUST be persistent and known to the North Side (OBP-API).
 			|
 			| Example value: ${accountIdExample.value}
 			|
@@ -971,15 +984,21 @@ object Glossary extends MdcLoggable  {
 		s"""
 		  |An identifier that uniquely identifies the bank or financial institution on the OBP-API instance.
 		  |
-		  |It is typically a human (developer) friendly string for ease of identification.
-			|
-			|It SHOULD NOT contain spaces.
-			|
-		  |In sandbox mode it typically has the form: "financialinstitutuion.sequencennumber.region.language". e.g. "bnpp-irb.01.it.it"
-			|
-			|For production, it's value could be the BIC of the institution.
-			|
-			|
+		  |### Format
+		  |
+		  |`bank_id` **SHOULD be of the form `<human-friendly>-<UUID>`** — a short, readable prefix that names the institution, followed by a hyphen and a UUID. The human-friendly prefix preserves scannability in URLs and logs; the UUID suffix guarantees global uniqueness across OBP instances and federations.
+		  |
+		  |Examples:
+		  |
+		  |- `bisb-7f3a9c2b-1d4e-4b6a-9c0f-5e2d1a3b8c0d`
+		  |- `bnpp-irb-it-01-2a3b...c4d5`
+		  |
+		  |It SHOULD NOT contain spaces. It MUST be unique on the OBP-API instance (enforced at the database level) and SHOULD be globally unique across all OBP instances (achieved by the UUID suffix).
+		  |
+		  |### Earlier conventions
+		  |
+		  |Older OBP releases used purely human-friendly identifiers like `bnpp-irb.01.it.it` (sandbox convention: `financialinstitution.sequence.region.language`) or the institution's BIC. Existing bank_ids in production will not be renamed retroactively — the new convention applies to **newly created banks** going forward. Federation logic must therefore handle both shapes (with and without UUID suffix) indefinitely.
+		  |
 			|Example value: ${bankIdExample.value}
 			|
 			|## Version history
