@@ -6,7 +6,7 @@ import code.api.Constant
 import code.api.Constant._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
-import code.api.v2_0_0.AccountsHelper.accountTypeFilterText
+import code.api.v2_0_0.AccountsHelper._
 import code.api.util.APIUtil.{EmptyBody, ResourceDoc, _}
 import code.api.util.{ApiRole, FutureUtil}
 import code.api.util.ApiRole._
@@ -72,16 +72,24 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(root), "GET", "/root",
+      null,
+      implementedInApiVersion,
+      nameOf(root),
+      "GET",
+      "/root",
       "Get API Info (root)",
       """Returns information about:
-        |
-        |* API version
-        |* Hosted by information
-        |* Git Commit""",
-      EmptyBody, apiInfoJSON,
-      List(UnknownError, MandatoryPropertyIsNotSet), apiTagApi :: Nil, None,
-      http4sPartialFunction = Some(root))
+      |
+      |* API version
+      |* Hosted by information
+      |* Git Commit""",
+      EmptyBody,
+      apiInfoJSON,
+      List(UnknownError, MandatoryPropertyIsNotSet),
+      apiTagApi :: Nil,
+      None,
+      http4sPartialFunction = Some(root)
+    )
 
     // ─── getViewsForBankAccount ───────────────────────────────────────────────
 
@@ -102,7 +110,10 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getViewsForBankAccount), "GET",
+      null,
+      implementedInApiVersion,
+      nameOf(getViewsForBankAccount),
+      "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views",
       "Get Views for Account",
       s"""#Views
@@ -129,10 +140,13 @@ object Http4s300 {
       |Returns the list of the views created for account ACCOUNT_ID at BANK_ID.
       |
       |${userAuthenticationMessage(true)} and the user needs to have access to the owner view.""",
-      EmptyBody, viewsJsonV300,
+      EmptyBody,
+      viewsJsonV300,
       List(AuthenticatedUserIsRequired, BankAccountNotFound, UnknownError),
-      List(apiTagView, apiTagAccount), None,
-      http4sPartialFunction = Some(getViewsForBankAccount))
+      List(apiTagView, apiTagAccount),
+      None,
+      http4sPartialFunction = Some(getViewsForBankAccount)
+    )
 
     // ─── createViewForBankAccount ─────────────────────────────────────────────
 
@@ -157,7 +171,10 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createViewForBankAccount), "POST",
+      null,
+      implementedInApiVersion,
+      nameOf(createViewForBankAccount),
+      "POST",
       "/banks/BANK_ID/accounts/VIEW_ACCOUNT_ID/views",
       "Create Custom View",
       s"""Create a custom view on bank account
@@ -178,10 +195,13 @@ object Http4s300 {
       |
       | You MUST use a leading _ (underscore) in the view name because other view names are reserved for OBP [system views](/index#group-View-System).
       | """,
-      SwaggerDefinitionsJSON.createViewJsonV300, viewJsonV300,
+      SwaggerDefinitionsJSON.createViewJsonV300,
+      viewJsonV300,
       List(AuthenticatedUserIsRequired, InvalidJsonFormat, BankAccountNotFound, UnknownError),
-      List(apiTagView, apiTagAccount), None,
-      http4sPartialFunction = Some(createViewForBankAccount))
+      List(apiTagView, apiTagAccount),
+      None,
+      http4sPartialFunction = Some(createViewForBankAccount)
+    )
 
     private def createViewImpl300(user: User, account: BankAccount, body: String, cc: CallContext): Future[ViewJsonV300] = {
       for {
@@ -222,7 +242,10 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(updateViewForBankAccount), "PUT",
+      null,
+      implementedInApiVersion,
+      nameOf(updateViewForBankAccount),
+      "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views/UPD_VIEW_ID",
       "Update Custom View",
       s"""Update an existing custom view on a bank account
@@ -231,10 +254,13 @@ object Http4s300 {
       |
       |The json sent is the same as during view creation (above), with one difference: the 'name' field
       |of a view is not editable (it is only set when a view is created)""",
-      updateViewJsonV300, viewJsonV300,
+      updateViewJsonV300,
+      viewJsonV300,
       List(InvalidJsonFormat, AuthenticatedUserIsRequired, BankAccountNotFound, UnknownError),
-      List(apiTagView, apiTagAccount), None,
-      http4sPartialFunction = Some(updateViewForBankAccount))
+      List(apiTagView, apiTagAccount),
+      None,
+      http4sPartialFunction = Some(updateViewForBankAccount)
+    )
 
     private def updateViewImpl300(user: User, account: BankAccount, viewId: ViewId, body: String, cc: CallContext): Future[ViewJsonV300] = {
       for {
@@ -285,7 +311,10 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getPermissionForUserForBankAccount), "GET",
+      null,
+      implementedInApiVersion,
+      nameOf(getPermissionForUserForBankAccount),
+      "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER/PROVIDER_ID",
       "Get Account access for User",
       s"""Returns the list of the views at BANK_ID for account ACCOUNT_ID that a user identified by PROVIDER_ID at their provider PROVIDER has access to.
@@ -294,10 +323,13 @@ object Http4s300 {
       |${userAuthenticationMessage(true)}
       |
       |The user needs to have access to the owner view.""",
-      EmptyBody, viewsJsonV300,
+      EmptyBody,
+      viewsJsonV300,
       List(AuthenticatedUserIsRequired, BankNotFound, AccountNotFound, UnknownError),
-      List(apiTagView, apiTagAccount, apiTagUser), None,
-      http4sPartialFunction = Some(getPermissionForUserForBankAccount))
+      List(apiTagView, apiTagAccount, apiTagUser),
+      None,
+      http4sPartialFunction = Some(getPermissionForUserForBankAccount)
+    )
 
     // ─── getPrivateAccountById ────────────────────────────────────────────────
 
@@ -311,7 +343,10 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getPrivateAccountById), "GET",
+      null,
+      implementedInApiVersion,
+      nameOf(getPrivateAccountById),
+      "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/account",
       "Get Account by Id (Full)",
       """Information returned about an account specified by ACCOUNT_ID as moderated by the view (VIEW_ID):
@@ -330,10 +365,13 @@ object Http4s300 {
       |
       |Authentication is required if the 'is_public' field in view (VIEW_ID) is not set to `true`.
       |""".stripMargin,
-      EmptyBody, moderatedCoreAccountJsonV300,
+      EmptyBody,
+      moderatedCoreAccountJsonV300,
       List(BankNotFound, AccountNotFound, ViewNotFound, UserNoPermissionAccessView, UnknownError),
-      apiTagAccount :: Nil, None,
-      http4sPartialFunction = Some(getPrivateAccountById))
+      apiTagAccount :: Nil,
+      None,
+      http4sPartialFunction = Some(getPrivateAccountById)
+    )
 
     // ─── getPublicAccountById ─────────────────────────────────────────────────
 
@@ -350,7 +388,10 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getPublicAccountById), "GET",
+      null,
+      implementedInApiVersion,
+      nameOf(getPublicAccountById),
+      "GET",
       "/banks/BANK_ID/public/accounts/ACCOUNT_ID/VIEW_ID/account",
       "Get Public Account by Id",
       s"""
@@ -371,10 +412,13 @@ object Http4s300 {
       |${userAuthenticationMessage(false)}
       |
       |""".stripMargin,
-      EmptyBody, moderatedCoreAccountJsonV300,
+      EmptyBody,
+      moderatedCoreAccountJsonV300,
       List(BankNotFound, AccountNotFound, ViewNotFound, UnknownError),
-      apiTagAccountPublic :: apiTagAccount :: Nil, None,
-      http4sPartialFunction = Some(getPublicAccountById))
+      apiTagAccountPublic :: apiTagAccount :: Nil,
+      None,
+      http4sPartialFunction = Some(getPublicAccountById)
+    )
 
     // ─── getCoreAccountById ───────────────────────────────────────────────────
 
@@ -392,7 +436,10 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getCoreAccountById), "GET",
+      null,
+      implementedInApiVersion,
+      nameOf(getCoreAccountById),
+      "GET",
       "/my/banks/BANK_ID/accounts/ACCOUNT_ID/account",
       "Get Account by Id (Core)",
       s"""Information returned about the account specified by ACCOUNT_ID:
@@ -411,10 +458,13 @@ object Http4s300 {
       |${userAuthenticationMessage(true)}
       |
       |""".stripMargin,
-      EmptyBody, newModeratedCoreAccountJsonV300,
+      EmptyBody,
+      newModeratedCoreAccountJsonV300,
       List(BankAccountNotFound, UnknownError),
-      apiTagAccount :: apiTagPSD2AIS :: apiTagPsd2 :: Nil, None,
-      http4sPartialFunction = Some(getCoreAccountById))
+      apiTagAccount :: apiTagPSD2AIS :: apiTagPsd2 :: Nil,
+      None,
+      http4sPartialFunction = Some(getCoreAccountById)
+    )
 
     // ─── corePrivateAccountsAllBanks ──────────────────────────────────────────
 
@@ -430,7 +480,10 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(corePrivateAccountsAllBanks), "GET",
+      null,
+      implementedInApiVersion,
+      nameOf(corePrivateAccountsAllBanks),
+      "GET",
       "/my/accounts",
       "Get Accounts at all Banks (private)",
       s"""Returns the list of accounts containing private views for the user.
@@ -440,10 +493,13 @@ object Http4s300 {
       |
       |${userAuthenticationMessage(true)}
       |""",
-      EmptyBody, coreAccountsJsonV300,
+      EmptyBody,
+      coreAccountsJsonV300,
       List(AuthenticatedUserIsRequired, UnknownError),
-      List(apiTagAccount, apiTagPSD2AIS, apiTagPrivateData, apiTagPsd2), None,
-      http4sPartialFunction = Some(corePrivateAccountsAllBanks))
+      List(apiTagAccount, apiTagPSD2AIS, apiTagPrivateData, apiTagPsd2),
+      None,
+      http4sPartialFunction = Some(corePrivateAccountsAllBanks)
+    )
 
     // ─── getFirehoseAccountsAtOneBank ─────────────────────────────────────────
     // Uses FIREHOSE_BANK_ID / FIREHOSE_VIEW_ID in the ResourceDoc URL template so middleware
@@ -497,7 +553,10 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getFirehoseAccountsAtOneBank), "GET",
+      null,
+      implementedInApiVersion,
+      nameOf(getFirehoseAccountsAtOneBank),
+      "GET",
       "/banks/FIREHOSE_BANK_ID/firehose/accounts/views/FIREHOSE_VIEW_ID",
       "Get Firehose Accounts at Bank",
       s"""
@@ -524,11 +583,13 @@ object Http4s300 {
       |${userAuthenticationMessage(true)}
       |
       |""".stripMargin,
-      EmptyBody, moderatedCoreAccountsJsonV300,
+      EmptyBody,
+      moderatedCoreAccountsJsonV300,
       List(AuthenticatedUserIsRequired, AccountFirehoseNotAllowedOnThisInstance, UnknownError),
       List(apiTagAccount, apiTagAccountFirehose, apiTagFirehoseData),
       None,
-      http4sPartialFunction = Some(getFirehoseAccountsAtOneBank))
+      http4sPartialFunction = Some(getFirehoseAccountsAtOneBank)
+    )
 
     // ─── getFirehoseTransactionsForBankAccount ────────────────────────────────
     // Uses non-standard FIREHOSE_* vars so middleware skips bank/account/view validation.
@@ -573,7 +634,10 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getFirehoseTransactionsForBankAccount), "GET",
+      null,
+      implementedInApiVersion,
+      nameOf(getFirehoseTransactionsForBankAccount),
+      "GET",
       "/banks/FIREHOSE_BANK_ID/firehose/accounts/FIREHOSE_ACCOUNT_ID/views/FIREHOSE_VIEW_ID/transactions",
       "Get Firehose Transactions for Account",
       s"""
@@ -591,11 +655,13 @@ object Http4s300 {
       |${userAuthenticationMessage(true)}
       |
       |""".stripMargin,
-      EmptyBody, transactionsJsonV300,
+      EmptyBody,
+      transactionsJsonV300,
       List(AuthenticatedUserIsRequired, AccountFirehoseNotAllowedOnThisInstance, UserHasMissingRoles, UnknownError),
       List(apiTagTransaction, apiTagAccountFirehose, apiTagTransactionFirehose, apiTagFirehoseData),
       None,
-      http4sPartialFunction = Some(getFirehoseTransactionsForBankAccount))
+      http4sPartialFunction = Some(getFirehoseTransactionsForBankAccount)
+    )
 
     // ─── getCoreTransactionsForBankAccount ────────────────────────────────────
 
@@ -621,7 +687,10 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getCoreTransactionsForBankAccount), "GET",
+      null,
+      implementedInApiVersion,
+      nameOf(getCoreTransactionsForBankAccount),
+      "GET",
       "/my/banks/BANK_ID/accounts/ACCOUNT_ID/transactions",
       "Get Transactions for Account (Core)",
       s"""Returns transactions list (Core info) of the account specified by ACCOUNT_ID.
@@ -631,11 +700,14 @@ object Http4s300 {
       |${urlParametersDocument(true, true)}
       |
       |""",
-      EmptyBody, coreTransactionsJsonV300,
+      EmptyBody,
+      coreTransactionsJsonV300,
       List(FilterSortDirectionError, FilterOffersetError, FilterLimitError, FilterDateFormatError,
-        AuthenticatedUserIsRequired, BankAccountNotFound, ViewNotFound, UnknownError),
-      List(apiTagTransaction, apiTagPSD2AIS, apiTagAccount, apiTagPsd2), None,
-      http4sPartialFunction = Some(getCoreTransactionsForBankAccount))
+      AuthenticatedUserIsRequired, BankAccountNotFound, ViewNotFound, UnknownError),
+      List(apiTagTransaction, apiTagPSD2AIS, apiTagAccount, apiTagPsd2),
+      None,
+      http4sPartialFunction = Some(getCoreTransactionsForBankAccount)
+    )
 
     // ─── getTransactionsForBankAccount ────────────────────────────────────────
 
@@ -660,7 +732,10 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getTransactionsForBankAccount), "GET",
+      null,
+      implementedInApiVersion,
+      nameOf(getTransactionsForBankAccount),
+      "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions",
       "Get Transactions for Account (Full)",
       s"""Returns transactions list of the account specified by ACCOUNT_ID and [moderated](#1_2_1-getViewsForBankAccount) by the view (VIEW_ID).
@@ -672,11 +747,14 @@ object Http4s300 {
       |${urlParametersDocument(true, true)}
       |
       |""",
-      EmptyBody, transactionsJsonV300,
+      EmptyBody,
+      transactionsJsonV300,
       List(FilterSortDirectionError, FilterOffersetError, FilterLimitError, FilterDateFormatError,
-        AuthenticatedUserIsRequired, BankAccountNotFound, ViewNotFound, UnknownError),
-      List(apiTagTransaction, apiTagAccount), None,
-      http4sPartialFunction = Some(getTransactionsForBankAccount))
+      AuthenticatedUserIsRequired, BankAccountNotFound, ViewNotFound, UnknownError),
+      List(apiTagTransaction, apiTagAccount),
+      None,
+      http4sPartialFunction = Some(getTransactionsForBankAccount)
+    )
 
     // ─── dataWarehouseSearch ──────────────────────────────────────────────────
 
@@ -712,7 +790,10 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(dataWarehouseSearch), "POST",
+      null,
+      implementedInApiVersion,
+      nameOf(dataWarehouseSearch),
+      "POST",
       "/search/warehouse/INDEX",
       "Data Warehouse Search",
       s"""
@@ -744,11 +825,13 @@ object Http4s300 {
        |
        |
       """,
-      elasticSearchJsonV300, emptyElasticSearch,
+      elasticSearchJsonV300,
+      emptyElasticSearch,
       List(AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
       List(apiTagSearchWarehouse),
       Some(List(canSearchWarehouse)),
-      http4sPartialFunction = Some(dataWarehouseSearch))
+      http4sPartialFunction = Some(dataWarehouseSearch)
+    )
 
     // ─── dataWarehouseStatistics ──────────────────────────────────────────────
 
@@ -782,7 +865,10 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(dataWarehouseStatistics), "POST",
+      null,
+      implementedInApiVersion,
+      nameOf(dataWarehouseStatistics),
+      "POST",
       "/search/warehouse/statistics/INDEX/FIELD",
       "Data Warehouse Statistics",
       s"""
@@ -815,11 +901,13 @@ object Http4s300 {
        |
        |
       """,
-      elasticSearchJsonV300, emptyElasticSearch,
+      elasticSearchJsonV300,
+      emptyElasticSearch,
       List(AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
       List(apiTagSearchWarehouse),
       Some(List(canSearchWarehouseStatistics)),
-      http4sPartialFunction = Some(dataWarehouseStatistics))
+      http4sPartialFunction = Some(dataWarehouseStatistics)
+    )
 
     // ─── getUser (by email) ───────────────────────────────────────────────────
 
@@ -834,7 +922,10 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getUser), "GET",
+      null,
+      implementedInApiVersion,
+      nameOf(getUser),
+      "GET",
       "/users/email/USER_EMAIL/terminator",
       "Get Users by Email Address",
       s"""Get users by email address
@@ -843,11 +934,13 @@ object Http4s300 {
          |CanGetAnyUser entitlement is required,
          |
       """.stripMargin,
-      EmptyBody, usersJsonV200,
+      EmptyBody,
+      usersJsonV200,
       List(AuthenticatedUserIsRequired, UserHasMissingRoles, UserNotFoundByEmail, UnknownError),
       List(apiTagUser),
       Some(List(canGetAnyUser)),
-      http4sPartialFunction = Some(getUser))
+      http4sPartialFunction = Some(getUser)
+    )
 
     // ─── getUserByUserId ──────────────────────────────────────────────────────
 
@@ -865,7 +958,10 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getUserByUserId), "GET",
+      null,
+      implementedInApiVersion,
+      nameOf(getUserByUserId),
+      "GET",
       "/users/user_id/USER_ID",
       "Get User by USER_ID",
       s"""Get user by USER_ID
@@ -874,11 +970,13 @@ object Http4s300 {
          |CanGetAnyUser entitlement is required,
          |
       """.stripMargin,
-      EmptyBody, usersJsonV200,
+      EmptyBody,
+      usersJsonV200,
       List(AuthenticatedUserIsRequired, UserHasMissingRoles, UserNotFoundById, UnknownError),
       List(apiTagUser),
       Some(List(canGetAnyUser)),
-      http4sPartialFunction = Some(getUserByUserId))
+      http4sPartialFunction = Some(getUserByUserId)
+    )
 
     // ─── getUserByUsername ────────────────────────────────────────────────────
 
@@ -896,7 +994,10 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getUserByUsername), "GET",
+      null,
+      implementedInApiVersion,
+      nameOf(getUserByUsername),
+      "GET",
       "/users/username/USERNAME",
       "Get User by USERNAME",
       s"""Get user by USERNAME
@@ -906,11 +1007,13 @@ object Http4s300 {
          |CanGetAnyUser entitlement is required,
          |
       """.stripMargin,
-      EmptyBody, usersJsonV200,
+      EmptyBody,
+      usersJsonV200,
       List(AuthenticatedUserIsRequired, UserHasMissingRoles, UserNotFoundByProviderAndUsername, UnknownError),
       List(apiTagUser),
       Some(List(canGetAnyUser)),
-      http4sPartialFunction = Some(getUserByUsername))
+      http4sPartialFunction = Some(getUserByUsername)
+    )
 
     // ─── getAdapterInfoForBank ────────────────────────────────────────────────
 
@@ -925,17 +1028,24 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getAdapterInfoForBank), "GET",
+      null,
+      implementedInApiVersion,
+      nameOf(getAdapterInfoForBank),
+      "GET",
       "/banks/BANK_ID/adapter",
       "Get Adapter Info for a bank",
       s"""Get basic information about the Adapter listening on behalf of this bank.
          |
-         |${userAuthenticationMessage(true)}""",
-      EmptyBody, adapterInfoJsonV300,
+         |${userAuthenticationMessage(true)}
+         |
+      """.stripMargin,
+      EmptyBody,
+      adapterInfoJsonV300,
       List(AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
       List(apiTagApi),
       Some(List(canGetAdapterInfoAtOneBank)),
-      http4sPartialFunction = Some(getAdapterInfoForBank))
+      http4sPartialFunction = Some(getAdapterInfoForBank)
+    )
 
     // ─── createBranch ─────────────────────────────────────────────────────────
 
@@ -957,17 +1067,24 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createBranch), "POST",
+      null,
+      implementedInApiVersion,
+      nameOf(createBranch),
+      "POST",
       "/banks/BANK_ID/branches",
       "Create Branch",
       s"""Create Branch for the Bank.
-         |
-         |${userAuthenticationMessage(true)}""",
-      branchJsonV300, branchJsonV300,
+      |
+      |${userAuthenticationMessage(true) }
+      |
+      |""",
+      branchJsonV300,
+      branchJsonV300,
       List(AuthenticatedUserIsRequired, BankNotFound, InsufficientAuthorisationToCreateBranch, UnknownError),
       List(apiTagBranch),
       Some(List(canCreateBranch, canCreateBranchAtAnyBank)),
-      http4sPartialFunction = Some(createBranch))
+      http4sPartialFunction = Some(createBranch)
+    )
 
     // ─── updateBranch ─────────────────────────────────────────────────────────
 
@@ -993,7 +1110,10 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(updateBranch), "PUT",
+      null,
+      implementedInApiVersion,
+      nameOf(updateBranch),
+      "PUT",
       "/banks/BANK_ID/branches/BRANCH_ID",
       "Update Branch",
       s"""Update an existing branch for a bank account (Authenticated access).
@@ -1001,11 +1121,13 @@ object Http4s300 {
       |${userAuthenticationMessage(true) }
       |
       |""",
-      postBranchJsonV300, branchJsonV300,
+      postBranchJsonV300,
+      branchJsonV300,
       List(AuthenticatedUserIsRequired, BankNotFound, InsufficientAuthorisationToCreateBranch, UnknownError),
       List(apiTagBranch),
       Some(List(canUpdateBranch)),
-      http4sPartialFunction = Some(updateBranch))
+      http4sPartialFunction = Some(updateBranch)
+    )
 
     // ─── createAtm ────────────────────────────────────────────────────────────
 
@@ -1027,17 +1149,24 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createAtm), "POST",
+      null,
+      implementedInApiVersion,
+      nameOf(createAtm),
+      "POST",
       "/banks/BANK_ID/atms",
       "Create ATM",
       s"""Create ATM for the Bank.
-         |
-         |${userAuthenticationMessage(true)}""",
-      atmJsonV300, atmJsonV300,
+      |
+      |${userAuthenticationMessage(true) }
+      |
+      |""",
+      atmJsonV300,
+      atmJsonV300,
       List(AuthenticatedUserIsRequired, BankNotFound, UserHasMissingRoles, UnknownError),
       List(apiTagATM),
       Some(List(canCreateAtm, canCreateAtmAtAnyBank)),
-      http4sPartialFunction = Some(createAtm))
+      http4sPartialFunction = Some(createAtm)
+    )
 
     // ─── getBranch ────────────────────────────────────────────────────────────
 
@@ -1056,7 +1185,10 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getBranch), "GET",
+      null,
+      implementedInApiVersion,
+      nameOf(getBranch),
+      "GET",
       "/banks/BANK_ID/branches/BRANCH_ID",
       "Get Branch",
       s"""Returns information about a single Branch specified by BANK_ID and BRANCH_ID including:
@@ -1067,10 +1199,13 @@ object Http4s300 {
       |* License the data under this endpoint is released under.
       |
       |${userAuthenticationMessage(!getBranchesIsPublic)}""".stripMargin,
-      EmptyBody, branchJsonV300,
+      EmptyBody,
+      branchJsonV300,
       List(AuthenticatedUserIsRequired, BranchNotFoundByBranchId, UnknownError),
-      List(apiTagBranch, apiTagBank), None,
-      http4sPartialFunction = Some(getBranch))
+      List(apiTagBranch, apiTagBank),
+      None,
+      http4sPartialFunction = Some(getBranch)
+    )
 
     // ─── getBranches ──────────────────────────────────────────────────────────
 
@@ -1148,7 +1283,10 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getBranches), "GET",
+      null,
+      implementedInApiVersion,
+      nameOf(getBranches),
+      "GET",
       "/banks/BANK_ID/branches",
       "Get Branches for a Bank",
       s"""Returns information about branches for a single bank specified by BANK_ID including:
@@ -1179,10 +1317,13 @@ object Http4s300 {
       |note: withinMetersOf, nearLatitude and nearLongitude either all empty or all have value.
       |
       |${userAuthenticationMessage(!getBranchesIsPublic)}""".stripMargin,
-      EmptyBody, branchesJsonV300,
+      EmptyBody,
+      branchesJsonV300,
       List(AuthenticatedUserIsRequired, BankNotFound, BranchesNotFoundLicense, UnknownError),
-      List(apiTagBranch, apiTagBank), None,
-      http4sPartialFunction = Some(getBranches))
+      List(apiTagBranch, apiTagBank),
+      None,
+      http4sPartialFunction = Some(getBranches)
+    )
 
     // ─── getAtm ───────────────────────────────────────────────────────────────
 
@@ -1201,7 +1342,10 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getAtm), "GET",
+      null,
+      implementedInApiVersion,
+      nameOf(getAtm),
+      "GET",
       "/banks/BANK_ID/atms/ATM_ID",
       "Get Bank ATM",
       s"""Returns information about ATM for a single bank specified by BANK_ID and ATM_ID including:
@@ -1213,10 +1357,13 @@ object Http4s300 {
       |
       |
       |${userAuthenticationMessage(!getAtmsIsPublic)}""".stripMargin,
-      EmptyBody, atmJsonV300,
+      EmptyBody,
+      atmJsonV300,
       List(AuthenticatedUserIsRequired, BankNotFound, AtmNotFoundByAtmId, UnknownError),
-      List(apiTagATM), None,
-      http4sPartialFunction = Some(getAtm))
+      List(apiTagATM),
+      None,
+      http4sPartialFunction = Some(getAtm)
+    )
 
     // ─── getAtms ──────────────────────────────────────────────────────────────
 
@@ -1255,7 +1402,10 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getAtms), "GET",
+      null,
+      implementedInApiVersion,
+      nameOf(getAtms),
+      "GET",
       "/banks/BANK_ID/atms",
       "Get Bank ATMS",
       s"""Returns information about ATMs for a single bank specified by BANK_ID including:
@@ -1271,14 +1421,13 @@ object Http4s300 {
       |You can use the url query parameters *limit* and *offset* for pagination
       |
       |${userAuthenticationMessage(!getAtmsIsPublic)}""".stripMargin,
-      EmptyBody, atmJsonV300,
-      List(
-      AuthenticatedUserIsRequired,
-      BankNotFound,
-      "No ATMs available. License may not be set.",
-      UnknownError),
-      List(apiTagATM), None,
-      http4sPartialFunction = Some(getAtms))
+      EmptyBody,
+      atmJsonV300,
+      List(AuthenticatedUserIsRequired, BankNotFound, UnknownError),
+      List(apiTagATM),
+      None,
+      http4sPartialFunction = Some(getAtms)
+    )
 
     // ─── getUsers ─────────────────────────────────────────────────────────────
 
@@ -1295,7 +1444,10 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getUsers), "GET",
+      null,
+      implementedInApiVersion,
+      nameOf(getUsers),
+      "GET",
       "/users",
       "Get all Users",
       s"""Get all users
@@ -1308,11 +1460,13 @@ object Http4s300 {
          |* locked_status (if null ignore)
          |
       """.stripMargin,
-      EmptyBody, usersJsonV200,
+      EmptyBody,
+      usersJsonV200,
       List(AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
       List(apiTagUser),
       Some(List(canGetAnyUser)),
-      http4sPartialFunction = Some(getUsers))
+      http4sPartialFunction = Some(getUsers)
+    )
 
     // ─── getCustomersForUser ──────────────────────────────────────────────────
 
@@ -1329,16 +1483,25 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getCustomersForUser), "GET",
+      null,
+      implementedInApiVersion,
+      nameOf(getCustomersForUser),
+      "GET",
       "/users/current/customers",
       "Get Customers for Current User",
       s"""Gets all Customers that are linked to a User.
-         |
-         |${userAuthenticationMessage(true)}""",
-      EmptyBody, customersWithAttributesJsonV300,
+      |
+      |
+      |${userAuthenticationMessage(true)}
+      |
+      |""",
+      EmptyBody,
+      customersWithAttributesJsonV300,
       List(AuthenticatedUserIsRequired, UserCustomerLinksNotFoundForUser, UnknownError),
-      List(apiTagCustomer, apiTagUser), None,
-      http4sPartialFunction = Some(getCustomersForUser))
+      List(apiTagCustomer, apiTagUser),
+      None,
+      http4sPartialFunction = Some(getCustomersForUser)
+    )
 
     // ─── getCurrentUser ───────────────────────────────────────────────────────
 
@@ -1355,17 +1518,23 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getCurrentUser), "GET",
+      null,
+      implementedInApiVersion,
+      nameOf(getCurrentUser),
+      "GET",
       "/users/current",
       "Get User (Current)",
       s"""Get the logged in user
          |
          |${userAuthenticationMessage(true)}
       """.stripMargin,
-      EmptyBody, userJsonV300,
+      EmptyBody,
+      userJsonV300,
       List(AuthenticatedUserIsRequired, UnknownError),
-      List(apiTagUser), None,
-      http4sPartialFunction = Some(getCurrentUser))
+      List(apiTagUser),
+      None,
+      http4sPartialFunction = Some(getCurrentUser)
+    )
 
     // ─── privateAccountsAtOneBank ─────────────────────────────────────────────
 
@@ -1381,7 +1550,10 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(privateAccountsAtOneBank), "GET",
+      null,
+      implementedInApiVersion,
+      nameOf(privateAccountsAtOneBank),
+      "GET",
       "/banks/BANK_ID/accounts/private",
       "Get Accounts at Bank (Minimal)",
       s"""Returns the minimal list of private accounts at BANK_ID that the user has access to.
@@ -1392,10 +1564,13 @@ object Http4s300 {
       |${accountTypeFilterText("/banks/BANK_ID/accounts/private")}
       |
       |${userAuthenticationMessage(true)}""".stripMargin,
-      EmptyBody, coreAccountsJsonV300,
+      EmptyBody,
+      coreAccountsJsonV300,
       List(AuthenticatedUserIsRequired, BankNotFound, UnknownError),
-      List(apiTagAccount, apiTagPSD2AIS, apiTagPsd2), None,
-      http4sPartialFunction = Some(privateAccountsAtOneBank))
+      List(apiTagAccount, apiTagPSD2AIS, apiTagPsd2),
+      None,
+      http4sPartialFunction = Some(privateAccountsAtOneBank)
+    )
 
     // ─── getPrivateAccountIdsbyBankId ─────────────────────────────────────────
 
@@ -1412,7 +1587,10 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getPrivateAccountIdsbyBankId), "GET",
+      null,
+      implementedInApiVersion,
+      nameOf(getPrivateAccountIdsbyBankId),
+      "GET",
       "/banks/BANK_ID/accounts/account_ids/private",
       "Get Accounts at Bank (IDs only)",
       s"""Returns only the list of accounts ids at BANK_ID that the user has access to.
@@ -1426,10 +1604,13 @@ object Http4s300 {
       |${accountTypeFilterText("/banks/BANK_ID/accounts/account_ids/private")}
       |
       |${userAuthenticationMessage(true)}""".stripMargin,
-      EmptyBody, accountsIdsJsonV300,
+      EmptyBody,
+      accountsIdsJsonV300,
       List(AuthenticatedUserIsRequired, BankNotFound, UnknownError),
-      List(apiTagAccount, apiTagPSD2AIS, apiTagPsd2), None,
-      http4sPartialFunction = Some(getPrivateAccountIdsbyBankId))
+      List(apiTagAccount, apiTagPSD2AIS, apiTagPsd2),
+      None,
+      http4sPartialFunction = Some(getPrivateAccountIdsbyBankId)
+    )
 
     // ─── getOtherAccountsForBankAccount ───────────────────────────────────────
 
@@ -1443,17 +1624,23 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getOtherAccountsForBankAccount), "GET",
+      null,
+      implementedInApiVersion,
+      nameOf(getOtherAccountsForBankAccount),
+      "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts",
       "Get Other Accounts of one Account",
       s"""Returns data about all the other accounts that have shared at least one transaction with the ACCOUNT_ID at BANK_ID.
       |${userAuthenticationMessage(false)}
       |
       |Authentication is required if the view VIEW_ID is not public.""",
-      EmptyBody, otherAccountsJsonV300,
+      EmptyBody,
+      otherAccountsJsonV300,
       List(AuthenticatedUserIsRequired, BankAccountNotFound, ViewNotFound, InvalidConnectorResponse, UnknownError),
-      List(apiTagCounterparty, apiTagAccount), None,
-      http4sPartialFunction = Some(getOtherAccountsForBankAccount))
+      List(apiTagCounterparty, apiTagAccount),
+      None,
+      http4sPartialFunction = Some(getOtherAccountsForBankAccount)
+    )
 
     // ─── getOtherAccountByIdForBankAccount ────────────────────────────────────
 
@@ -1467,17 +1654,23 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getOtherAccountByIdForBankAccount), "GET",
+      null,
+      implementedInApiVersion,
+      nameOf(getOtherAccountByIdForBankAccount),
+      "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID",
       "Get Other Account by Id",
       s"""Returns data about the Other Account that has shared at least one transaction with ACCOUNT_ID at BANK_ID.
       |${userAuthenticationMessage(false)}
       |
       |Authentication is required if the view is not public.""",
-      EmptyBody, otherAccountJsonV300,
+      EmptyBody,
+      otherAccountJsonV300,
       List(AuthenticatedUserIsRequired, BankAccountNotFound, ViewNotFound, InvalidConnectorResponse, UnknownError),
-      List(apiTagCounterparty, apiTagAccount), None,
-      http4sPartialFunction = Some(getOtherAccountByIdForBankAccount))
+      List(apiTagCounterparty, apiTagAccount),
+      None,
+      http4sPartialFunction = Some(getOtherAccountByIdForBankAccount)
+    )
 
     // ─── addEntitlementRequest ────────────────────────────────────────────────
 
@@ -1504,7 +1697,10 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(addEntitlementRequest), "POST",
+      null,
+      implementedInApiVersion,
+      nameOf(addEntitlementRequest),
+      "POST",
       "/entitlement-requests",
       "Create Entitlement Request for current User",
       s"""Create Entitlement Request.
@@ -1522,11 +1718,14 @@ object Http4s300 {
        |${userAuthenticationMessage(true)}
        |
       """.stripMargin,
-      code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.createEntitlementJSON, entitlementRequestJSON,
+      code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.createEntitlementJSON,
+      entitlementRequestJSON,
       List(AuthenticatedUserIsRequired, UserNotFoundById, InvalidJsonFormat, IncorrectRoleName,
-        EntitlementIsBankRole, EntitlementIsSystemRole, EntitlementRequestAlreadyExists, EntitlementRequestCannotBeAdded, UnknownError),
-      List(apiTagRole, apiTagEntitlement, apiTagUser), None,
-      http4sPartialFunction = Some(addEntitlementRequest))
+      EntitlementIsBankRole, EntitlementIsSystemRole, EntitlementRequestAlreadyExists, EntitlementRequestCannotBeAdded, UnknownError),
+      List(apiTagRole, apiTagEntitlement, apiTagUser),
+      None,
+      http4sPartialFunction = Some(addEntitlementRequest)
+    )
 
     // ─── getAllEntitlementRequests ─────────────────────────────────────────────
 
@@ -1545,7 +1744,10 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getAllEntitlementRequests), "GET",
+      null,
+      implementedInApiVersion,
+      nameOf(getAllEntitlementRequests),
+      "GET",
       "/entitlement-requests",
       "Get all Entitlement Requests",
       s"""
@@ -1555,11 +1757,13 @@ object Http4s300 {
          |
          |${userAuthenticationMessage(true)}
       """.stripMargin,
-      EmptyBody, entitlementRequestsJSON,
+      EmptyBody,
+      entitlementRequestsJSON,
       List(AuthenticatedUserIsRequired, InvalidConnectorResponse, UnknownError),
       List(apiTagRole, apiTagEntitlement, apiTagUser),
       Some(List(canGetEntitlementRequestsAtOneBank, canGetEntitlementRequestsAtAnyBank)),
-      http4sPartialFunction = Some(getAllEntitlementRequests))
+      http4sPartialFunction = Some(getAllEntitlementRequests)
+    )
 
     // ─── getEntitlementRequests ───────────────────────────────────────────────
 
@@ -1577,7 +1781,10 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getEntitlementRequests), "GET",
+      null,
+      implementedInApiVersion,
+      nameOf(getEntitlementRequests),
+      "GET",
       "/users/USER_ID/entitlement-requests",
       "Get Entitlement Requests for a User",
       s"""Get Entitlement Requests for a User.
@@ -1587,11 +1794,13 @@ object Http4s300 {
        |${userAuthenticationMessage(true)}
        |
       """.stripMargin,
-      EmptyBody, entitlementRequestsJSON,
+      EmptyBody,
+      entitlementRequestsJSON,
       List(AuthenticatedUserIsRequired, InvalidConnectorResponse, UnknownError),
       List(apiTagRole, apiTagEntitlement, apiTagUser),
       Some(List(canGetEntitlementRequestsAtOneBank, canGetEntitlementRequestsAtAnyBank)),
-      http4sPartialFunction = Some(getEntitlementRequests))
+      http4sPartialFunction = Some(getEntitlementRequests)
+    )
 
     // ─── getEntitlementRequestsForCurrentUser ─────────────────────────────────
 
@@ -1606,7 +1815,10 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getEntitlementRequestsForCurrentUser), "GET",
+      null,
+      implementedInApiVersion,
+      nameOf(getEntitlementRequestsForCurrentUser),
+      "GET",
       "/my/entitlement-requests",
       "Get Entitlement Requests for the current User",
       s"""Get Entitlement Requests for the current User.
@@ -1616,10 +1828,13 @@ object Http4s300 {
        |${userAuthenticationMessage(true)}
        |
       """.stripMargin,
-      EmptyBody, entitlementRequestsJSON,
+      EmptyBody,
+      entitlementRequestsJSON,
       List(AuthenticatedUserIsRequired, InvalidConnectorResponse, UnknownError),
-      List(apiTagRole, apiTagEntitlement, apiTagUser), None,
-      http4sPartialFunction = Some(getEntitlementRequestsForCurrentUser))
+      List(apiTagRole, apiTagEntitlement, apiTagUser),
+      None,
+      http4sPartialFunction = Some(getEntitlementRequestsForCurrentUser)
+    )
 
     // ─── deleteEntitlementRequest ─────────────────────────────────────────────
 
@@ -1641,7 +1856,10 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(deleteEntitlementRequest), "DELETE",
+      null,
+      implementedInApiVersion,
+      nameOf(deleteEntitlementRequest),
+      "DELETE",
       "/entitlement-requests/ENTITLEMENT_REQUEST_ID",
       "Delete Entitlement Request",
       s"""Delete the Entitlement Request specified by ENTITLEMENT_REQUEST_ID for a user specified by USER_ID
@@ -1649,11 +1867,13 @@ object Http4s300 {
          |
          |${userAuthenticationMessage(true)}
       """.stripMargin,
-      EmptyBody, EmptyBody,
+      EmptyBody,
+      EmptyBody,
       List(AuthenticatedUserIsRequired, InvalidConnectorResponse, UnknownError),
       List(apiTagRole, apiTagEntitlement, apiTagUser),
       Some(List(canDeleteEntitlementRequestsAtOneBank, canDeleteEntitlementRequestsAtAnyBank)),
-      http4sPartialFunction = Some(deleteEntitlementRequest))
+      http4sPartialFunction = Some(deleteEntitlementRequest)
+    )
 
     // ─── getEntitlementsForCurrentUser ────────────────────────────────────────
 
@@ -1674,16 +1894,25 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getEntitlementsForCurrentUser), "GET",
+      null,
+      implementedInApiVersion,
+      nameOf(getEntitlementsForCurrentUser),
+      "GET",
       "/my/entitlements",
       "Get Entitlements for the current User",
       s"""Get Entitlements for the current User.
-         |
-         |${userAuthenticationMessage(true)}""",
-      EmptyBody, entitlementJSONs,
+       |
+       |
+       |${userAuthenticationMessage(true)}
+       |
+      """.stripMargin,
+      EmptyBody,
+      entitlementJSONs,
       List(AuthenticatedUserIsRequired, InvalidConnectorResponse, UnknownError),
-      List(apiTagRole, apiTagEntitlement, apiTagUser), None,
-      http4sPartialFunction = Some(getEntitlementsForCurrentUser))
+      List(apiTagRole, apiTagEntitlement, apiTagUser),
+      None,
+      http4sPartialFunction = Some(getEntitlementsForCurrentUser)
+    )
 
     // ─── getApiGlossary ───────────────────────────────────────────────────────
 
@@ -1704,7 +1933,10 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getApiGlossary), "GET",
+      null,
+      implementedInApiVersion,
+      nameOf(getApiGlossary),
+      "GET",
       "/api/glossary",
       "Get Glossary of the API",
       """Get API Glossary
@@ -1720,10 +1952,13 @@ object Http4s300 {
       |Clients and agents are encouraged to cache the glossary response locally.
       |
       |""",
-      EmptyBody, glossaryItemsJsonV300,
+      EmptyBody,
+      glossaryItemsJsonV300,
       List(UnknownError),
-      apiTagDocumentation :: Nil, None,
-      http4sPartialFunction = Some(getApiGlossary))
+      apiTagDocumentation :: Nil,
+      None,
+      http4sPartialFunction = Some(getApiGlossary)
+    )
 
     // ─── getAccountsHeld ──────────────────────────────────────────────────────
 
@@ -1741,7 +1976,10 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getAccountsHeld), "GET",
+      null,
+      implementedInApiVersion,
+      nameOf(getAccountsHeld),
+      "GET",
       "/banks/BANK_ID/accounts-held",
       "Get Accounts Held",
       s"""Get Accounts held by the current User if even the User has not been assigned the owner View yet.
@@ -1753,10 +1991,13 @@ object Http4s300 {
        |
        |
       """.stripMargin,
-      EmptyBody, coreAccountsHeldJsonV300,
+      EmptyBody,
+      coreAccountsHeldJsonV300,
       List(AuthenticatedUserIsRequired, UnknownError),
-      List(apiTagAccount, apiTagPSD2AIS, apiTagView, apiTagPsd2), None,
-      http4sPartialFunction = Some(getAccountsHeld))
+      List(apiTagAccount, apiTagPSD2AIS, apiTagView, apiTagPsd2),
+      None,
+      http4sPartialFunction = Some(getAccountsHeld)
+    )
 
     // ─── getAggregateMetrics ──────────────────────────────────────────────────
 
@@ -1775,7 +2016,10 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getAggregateMetrics), "GET",
+      null,
+      implementedInApiVersion,
+      nameOf(getAggregateMetrics),
+      "GET",
       "/management/aggregate-metrics",
       "Get Aggregate Metrics",
       s"""Returns aggregate metrics on api usage eg. total count, response time (in ms), etc.
@@ -1821,11 +2065,13 @@ object Http4s300 {
          |${userAuthenticationMessage(true)}
          |
       """.stripMargin,
-      EmptyBody, aggregateMetricsJSONV300,
+      EmptyBody,
+      aggregateMetricsJSONV300,
       List(AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
       List(apiTagMetric, apiTagAggregateMetrics),
       Some(List(canReadAggregateMetrics)),
-      http4sPartialFunction = Some(getAggregateMetrics))
+      http4sPartialFunction = Some(getAggregateMetrics)
+    )
 
     // ─── addScope ─────────────────────────────────────────────────────────────
 
@@ -1860,7 +2106,10 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(addScope), "POST",
+      null,
+      implementedInApiVersion,
+      nameOf(addScope),
+      "POST",
       "/consumers/CONSUMER_ID/scopes",
       "Create Scope for a Consumer",
       """Create Scope. Grant Role to Consumer.
@@ -1872,12 +2121,14 @@ object Http4s300 {
       |For a Bank level Role (e.g. CanCreateAccount), set bank_id to a valid value e.g. "bank_id":"my-bank-id"
       |
       |""",
-      SwaggerDefinitionsJSON.createScopeJson, scopeJson,
+      SwaggerDefinitionsJSON.createScopeJson,
+      scopeJson,
       List(AuthenticatedUserIsRequired, ConsumerNotFoundById, InvalidJsonFormat, IncorrectRoleName,
-        EntitlementIsBankRole, EntitlementIsSystemRole, EntitlementAlreadyExists, UnknownError),
+      EntitlementIsBankRole, EntitlementIsSystemRole, EntitlementAlreadyExists, UnknownError),
       List(apiTagScope, apiTagConsumer),
       Some(List(canCreateScopeAtOneBank, canCreateScopeAtAnyBank)),
-      http4sPartialFunction = Some(addScope))
+      http4sPartialFunction = Some(addScope)
+    )
 
     // ─── deleteScope ──────────────────────────────────────────────────────────
 
@@ -1905,7 +2156,10 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(deleteScope), "DELETE",
+      null,
+      implementedInApiVersion,
+      nameOf(deleteScope),
+      "DELETE",
       "/consumers/CONSUMER_ID/scope/SCOPE_ID",
       "Delete Consumer Scope",
       """Delete Consumer Scope specified by SCOPE_ID for an consumer specified by CONSUMER_ID
@@ -1915,11 +2169,13 @@ object Http4s300 {
         |
         |
       """.stripMargin,
-      EmptyBody, EmptyBody,
+      EmptyBody,
+      EmptyBody,
       List(AuthenticatedUserIsRequired, EntitlementNotFound, UnknownError),
       List(apiTagScope, apiTagConsumer),
       Some(List(canDeleteScopeAtOneBank, canDeleteScopeAtAnyBank)),
-      http4sPartialFunction = Some(deleteScope))
+      http4sPartialFunction = Some(deleteScope)
+    )
 
     // ─── getScopes ────────────────────────────────────────────────────────────
 
@@ -1939,7 +2195,10 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getScopes), "GET",
+      null,
+      implementedInApiVersion,
+      nameOf(getScopes),
+      "GET",
       "/consumers/CONSUMER_ID/scopes",
       "Get Scopes for Consumer",
       s"""Get all the scopes for an consumer specified by CONSUMER_ID
@@ -1948,10 +2207,13 @@ object Http4s300 {
          |
          |
       """.stripMargin,
-      EmptyBody, scopeJsons,
+      EmptyBody,
+      scopeJsons,
       List(AuthenticatedUserIsRequired, EntitlementNotFound, UnknownError),
-      List(apiTagScope, apiTagConsumer), None,
-      http4sPartialFunction = Some(getScopes))
+      List(apiTagScope, apiTagConsumer),
+      None,
+      http4sPartialFunction = Some(getScopes)
+    )
 
     // ─── getBanks ─────────────────────────────────────────────────────────────
 
@@ -1968,7 +2230,10 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getBanks), "GET",
+      null,
+      implementedInApiVersion,
+      nameOf(getBanks),
+      "GET",
       "/banks",
       "Get Banks",
       """Get banks on this API instance
@@ -1978,10 +2243,13 @@ object Http4s300 {
       |* Short and full name of bank
       |* Logo URL
       |* Website""",
-      EmptyBody, banksJSON,
+      EmptyBody,
+      banksJSON,
       List(UnknownError),
-      apiTagBank :: apiTagPSD2AIS :: apiTagPsd2 :: Nil, None,
-      http4sPartialFunction = Some(getBanks))
+      apiTagBank :: apiTagPSD2AIS :: apiTagPsd2 :: Nil,
+      None,
+      http4sPartialFunction = Some(getBanks)
+    )
 
     // ─── bankById ─────────────────────────────────────────────────────────────
 
@@ -1993,7 +2261,10 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(bankById), "GET",
+      null,
+      implementedInApiVersion,
+      nameOf(bankById),
+      "GET",
       "/banks/BANK_ID",
       "Get Bank",
       """Get the bank specified by BANK_ID
@@ -2002,10 +2273,13 @@ object Http4s300 {
       |* Short and full name of bank
       |* Logo URL
       |* Website""",
-      EmptyBody, bankJson400,
+      EmptyBody,
+      bankJson400,
       List(AuthenticatedUserIsRequired, UnknownError, BankNotFound),
-      apiTagBank :: apiTagPSD2AIS :: apiTagPsd2 :: Nil, None,
-      http4sPartialFunction = Some(bankById))
+      apiTagBank :: apiTagPSD2AIS :: apiTagPsd2 :: Nil,
+      None,
+      http4sPartialFunction = Some(bankById)
+    )
 
     // ─── helpers ──────────────────────────────────────────────────────────────
 

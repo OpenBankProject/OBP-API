@@ -164,18 +164,21 @@ object Http4s210 {
 
     // The 4 transaction request types this version knows how to handle. v4.0.0 adds more
     // (ACCOUNT, ACCOUNT_OTP, REFUND, SIMPLE, AGENT_CASH_WITHDRAWAL, CARD); the route guard
-    // below keeps unsupported types out of v2.1.0's handler so they fall through the
-    // bridge cascade to the v4 Lift endpoint that knows the type.
     private val v210SupportedTransactionRequestTypes: Set[String] =
       Set("SANDBOX_TAN", "COUNTERPARTY", "SEPA", "FREE_FORM")
 
     val createTransactionRequest: HttpRoutes[IO] = HttpRoutes.of[IO] {
-      case req @ POST -> `prefixPath` / "banks" / _ / "accounts" / _ / viewIdStr / "transaction-request-types" / transactionRequestTypeStr / "transaction-requests"
-          if v210SupportedTransactionRequestTypes.contains(transactionRequestTypeStr) =>
+      case req @ POST -> `prefixPath` / "banks" / _ / "accounts" / _ / viewIdStr / "transaction-request-types" / transactionRequestTypeStr / "transaction-requests" =>
         implicit val cc: CallContext = req.callContext
         // Use cc.httpBody (cached by ResourceDocMiddleware via cachedBodyKey) instead of re-reading
         // req.bodyText, which is empty after the bridge cascade has already consumed the stream.
         (for {
+          // Check type validity before requiring middleware-resolved entities: for an invalid
+          // type the middleware finds no matching ResourceDoc and skips bankAccount resolution,
+          // so cc.bankAccount is None — checking the type first avoids a misleading AccountNotFound.
+          _ <- if (v210SupportedTransactionRequestTypes.contains(transactionRequestTypeStr)) IO.unit
+               else IO.raiseError(new RuntimeException(liftWrite(code.api.APIFailureNewStyle(
+                 s"$InvalidTransactionRequestType: '$transactionRequestTypeStr'", 400, Some(cc.toLight)))))
           jsonBody <- IO.pure(cc.httpBody.getOrElse(""))
           user     <- IO.fromOption(cc.user.toOption)(new RuntimeException(AuthenticatedUserIsRequired))
           account  <- IO.fromOption(cc.bankAccount)(new RuntimeException(AccountNotFound))

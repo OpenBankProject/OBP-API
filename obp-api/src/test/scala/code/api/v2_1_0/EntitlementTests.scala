@@ -1,6 +1,6 @@
 package code.api.v2_1_0
 
-import code.api.ResourceDocs1_4_0.ResourceDocs220
+import code.api.v2_1_0.Http4s210
 import com.openbankproject.commons.model.ErrorMessage
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.{CanGetEntitlementsForAnyUserAtAnyBank, CanGetEntitlementsForAnyUserAtOneBank}
@@ -23,8 +23,8 @@ class EntitlementTests extends V210ServerSetup with DefaultUsers {
    *  This is made possible by the scalatest maven plugin
    */
   object VersionOfApi extends Tag(ApiVersion.v2_1_0.toString)
-  object ApiEndpoint1 extends Tag(nameOf(ResourceDocs220.Implementations2_1_0.getEntitlementsByBankAndUser))
-  object ApiEndpoint2 extends Tag(nameOf(ResourceDocs220.Implementations2_1_0.getRoles))
+  object ApiEndpoint1 extends Tag(nameOf(Http4s210.Implementations2_1_0.getEntitlementsByBankAndUser))
+  object ApiEndpoint2 extends Tag(nameOf(Http4s210.Implementations2_1_0.getRoles))
 
   feature("Assuring that endpoint getRoles works as expected - v2.1.0") {
 

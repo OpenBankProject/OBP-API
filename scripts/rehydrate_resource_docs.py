@@ -264,7 +264,7 @@ def collect_liftweb_full(source: str) -> dict[str, tuple[str, str, str]]:
     while i < n:
         line = lines[i]
         stripped = line.lstrip()
-        if stripped.startswith("//") and "staticResourceDocs += ResourceDoc(" in stripped:
+        if stripped.startswith("//") and "resourceDocs += ResourceDoc(" in stripped:
             depth = 0
             collected: list[str] = []
             end = i

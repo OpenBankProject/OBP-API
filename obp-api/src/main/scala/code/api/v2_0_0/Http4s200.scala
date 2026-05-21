@@ -167,6 +167,19 @@ object Http4s200 {
       List(apiTagAccountPublic, apiTagAccount, apiTagPublicData), None,
       http4sPartialFunction = Some(publicAccountsAllBanks))
 
+    def processAccounts(privateViews: List[com.openbankproject.commons.model.View],
+                        accounts: List[com.openbankproject.commons.model.BankAccount]
+                       ): net.liftweb.json.JsonAST.JValue = {
+      val accJson = accounts.map { account =>
+        val viewsAvailable = privateViews
+          .filter(v => v.bankId == account.bankId && v.accountId == account.accountId && v.isPrivate)
+          .map(createBasicViewJSON)
+          .distinct
+        createBasicAccountJSON(account, viewsAvailable)
+      }
+      net.liftweb.json.Extraction.decompose(accJson)
+    }
+
     // ─── getPrivateAccountsAtOneBank ──────────────────────────────────────────
 
     val getPrivateAccountsAtOneBank: HttpRoutes[IO] = HttpRoutes.of[IO] {
