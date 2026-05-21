@@ -13,7 +13,7 @@ import code.api.util.ApiRole._
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.CertificateUtil
-import code.api.util.{ApiTrigger, Consent, SecureRandomUtil}
+import code.api.util.{ApiTrigger, Consent, Glossary, SecureRandomUtil}
 import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps}
 import code.api.util.http4s.ResourceDocMiddleware
 import code.api.util.newstyle.{BalanceNewStyle, ViewNewStyle}
@@ -68,6 +68,85 @@ object Http4s310 {
   implicit val formats: Formats = CustomJsonFormats.formats
 
   type HttpF[A] = OptionT[IO, A]
+
+  // Local doc-strings carried over from the commented-out APIMethods310.scala
+  // so the restored ResourceDoc descriptions compile. Kept verbatim — these
+  // are referenced inside `s"""..."""` interpolations in the doc text.
+  private val productAttributeGeneralInfo =
+    s"""
+       |Product Attributes are used to describe a financial Product with a list of typed key value pairs.
+       |
+       |Each Product Attribute is linked to its Product by PRODUCT_CODE
+       |
+       |
+     """.stripMargin
+
+  private val accountAttributeGeneralInfo =
+    s"""
+       |Account Attributes are used to describe a financial Product with a list of typed key value pairs.
+       |
+       |Each Account Attribute is linked to its Account by ACCOUNT_ID
+       |
+       |
+     """.stripMargin
+
+  private val supportedConnectorNames =
+    NewStyle.function.getSupportedConnectorNames().mkString("[", " | ", "]")
+
+  private val generalObpConsentText: String =
+    s"""
+       |
+       |An OBP Consent allows the holder of the Consent to call one or more endpoints.
+       |
+       |Consents must be created and authorisied using SCA (Strong Customer Authentication).
+       |
+       |That is, Consents can be created by an authorised User via the OBP REST API but they must be confirmed via an out of band (OOB) mechanism such as a code sent to a mobile phone.
+       |
+       |Each Consent has one of the following states: ${ConsentStatus.values.toList.sorted.mkString(", ") }.
+       |
+       |Each Consent is bound to a consumer i.e. you need to identify yourself over request header value Consumer-Key.
+       |For example:
+       |GET /obp/v4.0.0/users/current HTTP/1.1
+       |Host: 127.0.0.1:8080
+       |Consent-JWT: eyJhbGciOiJIUzI1NiJ9.eyJlbnRpdGxlbWVudHMiOlt7InJvbGVfbmFtZSI6IkNhbkdldEFueVVzZXIiLCJiYW5rX2lkIjoiIn
+       |1dLCJjcmVhdGVkQnlVc2VySWQiOiJhYjY1MzlhOS1iMTA1LTQ0ODktYTg4My0wYWQ4ZDZjNjE2NTciLCJzdWIiOiIzNDc1MDEzZi03YmY5LTQyNj
+       |EtOWUxYy0xZTdlNWZjZTJlN2UiLCJhdWQiOiI4MTVhMGVmMS00YjZhLTQyMDUtYjExMi1lNDVmZDZmNGQzYWQiLCJuYmYiOjE1ODA3NDE2NjcsIml
+       |zcyI6Imh0dHA6XC9cLzEyNy4wLjAuMTo4MDgwIiwiZXhwIjoxNTgwNzQ1MjY3LCJpYXQiOjE1ODA3NDE2NjcsImp0aSI6ImJkYzVjZTk5LTE2ZTY
+       |tNDM4Yi1hNjllLTU3MTAzN2RhMTg3OCIsInZpZXdzIjpbXX0.L3fEEEhdCVr3qnmyRKBBUaIQ7dk1VjiFaEBW8hUNjfg
+       |
+       |Consumer-Key: ejznk505d132ryomnhbx1qmtohurbsbb0kijajsk
+       |cache-control: no-cache
+       |
+       |Maximum time to live of the token is specified over props value consents.max_time_to_live. In case isn't defined default value is 3600 seconds.
+       |
+       |Example of POST JSON:
+       |{
+       |  "everything": false,
+       |  "views": [
+       |    {
+       |      "bank_id": "GENODEM1GLS",
+       |      "account_id": "8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
+       |      "view_id": "${Constant.SYSTEM_OWNER_VIEW_ID}"
+       |    }
+       |  ],
+       |  "entitlements": [
+       |    {
+       |      "bank_id": "GENODEM1GLS",
+       |      "role_name": "CanGetCustomersAtOneBank"
+       |    }
+       |  ],
+       |  "consumer_id": "7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+       |  "email": "eveline@example.com",
+       |  "valid_from": "2020-02-07T08:43:34Z",
+       |  "time_to_live": 3600
+       |}
+       |Please note that only optional fields are: consumer_id, valid_from and time_to_live.
+       |In case you omit they the default values are used:
+       |consumer_id = consumer of current user
+       |valid_from = current time
+       |time_to_live = consents.max_time_to_live
+       |
+    """.stripMargin
 
   object Implementations3_1_0 {
     val prefixPath: Path = Root / ApiPathZero.toString / implementedInApiVersion.toString
@@ -1607,12 +1686,23 @@ object Http4s310 {
       null, implementedInApiVersion, "getProducts", "GET",
       "/banks/BANK_ID/products",
       "Get Products",
-      s"""Returns information about the financial products offered by a bank specified by BANK_ID.
-         |
-         |Can filter with attributes name and values.
-         |URL params example: /banks/some-bank-id/products?&limit=50&offset=1
-         |
-         |${userAuthenticationMessage(!getProductsIsPublic)}""".stripMargin,
+      s"""Returns information about the financial products offered by a bank specified by BANK_ID including:
+      |
+      |* Name
+      |* Code
+      |* Parent Product Code
+      |* Category
+      |* Family
+      |* Super Family
+      |* More info URL
+      |* Description
+      |* Terms and Conditions
+      |* License the data under this endpoint is released under
+      |
+      |Can filter with attributes name and values.
+      |URL params example: /banks/some-bank-id/products?&limit=50&offset=1
+      |
+      |${userAuthenticationMessage(!getProductsIsPublic)}""".stripMargin,
       EmptyBody, productsJsonV310,
       List(AuthenticatedUserIsRequired, BankNotFound, ProductNotFoundByProductCode, UnknownError),
       List(apiTagProduct), None,
@@ -2183,10 +2273,22 @@ object Http4s310 {
       null, implementedInApiVersion, "revokeConsent", "GET",
       "/banks/BANK_ID/my/consents/CONSENT_ID/revoke",
       "Revoke Consent",
-      s"""Revoke Consent for current user specified by CONSENT_ID
+      s"""
+         |Revoke Consent for current user specified by CONSENT_ID
+         |
+         |There are a few reasons you might need to revoke an application’s access to a user’s account:
+         |  - The user explicitly wishes to revoke the application’s access
+         |  - You as the service provider have determined an application is compromised or malicious, and want to disable it
+         |  - etc.
+         |
+         |Please note that this endpoint only supports the case:: "The user explicitly wishes to revoke the application’s access"
+         |
+         |OBP as a resource server stores access tokens in a database, then it is relatively easy to revoke some token that belongs to a particular user.
+         |The status of the token is changed to "REVOKED" so the next time the revoked client makes a request, their token will fail to validate.
          |
          |${userAuthenticationMessage(true)}
-         |""".stripMargin,
+         |
+      """.stripMargin,
       EmptyBody, revokedConsentJsonV310,
       List(AuthenticatedUserIsRequired, BankNotFound, UnknownError),
       List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2), None,
@@ -3361,8 +3463,16 @@ object Http4s310 {
       "Create Meeting (video conference/call)",
       """Create Meeting: Initiate a video conference/call with the bank.
         |
+        |The Meetings resource contains meta data about video/other conference sessions
+        |
+        |provider_id determines the provider of the meeting / video chat service. MUST be url friendly (no spaces).
+        |
+        |purpose_id explains the purpose of the chat. onboarding | mortgage | complaint etc. MUST be url friendly (no spaces).
+        |
         |Login is required.
-        |""".stripMargin,
+        |
+        |This call is **experimental**. Currently staff_user_id is not set. Further calls will be needed to correctly set this.
+      """.stripMargin,
       createMeetingJsonV310, meetingJsonV310,
       List(AuthenticatedUserIsRequired, BankNotFound, InvalidJsonFormat, UnknownError),
       List(apiTagMeeting, apiTagCustomer, apiTagExperimental), None,
@@ -3973,9 +4083,23 @@ object Http4s310 {
       "/banks/BANK_ID/products/PRODUCT_CODE",
       "Create Product",
       s"""Create or Update Product for the Bank.
-         |
-         |${userAuthenticationMessage(true)}
-         |""",
+      |
+      |
+      |Typical Super Family values / Asset classes are:
+      |
+      |Debt
+      |Equity
+      |FX
+      |Commodity
+      |Derivative
+      |
+      |$productHiearchyAndCollectionNote
+      |
+      |
+      |${userAuthenticationMessage(true) }
+      |
+      |
+      |""",
       postPutProductJsonV310, productJsonV310,
       List(AuthenticatedUserIsRequired, BankNotFound, UserHasMissingRoles, UnknownError),
       List(apiTagProduct), Some(List(canCreateProduct, canCreateProductAtAnyBank)),
@@ -4297,10 +4421,17 @@ object Http4s310 {
       "/banks/BANK_ID/accounts/NEW_ACCOUNT_ID",
       "Create Account",
       """Create Account at bank specified by BANK_ID with Id specified by ACCOUNT_ID.
-        |
-        |The User can create an Account for themself - or - the User that has the USER_ID specified in the POST body.
-        |
-        |Note: The Amount MUST be zero.""".stripMargin,
+      |
+      |The User can create an Account for themself  - or -  the User that has the USER_ID specified in the POST body.
+      |
+      |If the PUT body USER_ID *is* specified, the logged in user must have the Role canCreateAccount. Once created, the Account will be owned by the User specified by USER_ID.
+      |
+      |If the PUT body USER_ID is *not* specified, the account will be owned by the logged in User.
+      |
+      |The 'product_code' field SHOULD be a product_code from Product.
+      |If the 'product_code' matches a product_code from Product, account attributes will be created that match the Product Attributes.
+      |
+      |Note: The Amount MUST be zero.""".stripMargin,
       createAccountRequestJsonV310, createAccountResponseJsonV310,
       List(InvalidJsonFormat, BankNotFound, AuthenticatedUserIsRequired,
         InvalidUserId, InvalidAccountIdFormat, InvalidBankIdFormat,

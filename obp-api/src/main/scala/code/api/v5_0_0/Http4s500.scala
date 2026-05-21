@@ -645,9 +645,17 @@ object Http4s500 {
       null, implementedInApiVersion, nameOf(createAccount), "PUT",
       "/banks/BANK_ID/accounts/NEW_ACCOUNT_ID", "Create Account (PUT)",
       """Create Account at bank specified by BANK_ID with Id specified by ACCOUNT_ID.
-        |
-        |The User can create an Account for themself - or - the User specified in the PUT body.
-        |If the PUT body USER_ID is specified, the logged in user must have the Role canCreateAccount.""".stripMargin,
+      |
+      |The User can create an Account for themself  - or -  the User that has the USER_ID specified in the POST body.
+      |
+      |If the PUT body USER_ID *is* specified, the logged in user must have the Role canCreateAccount. Once created, the Account will be owned by the User specified by USER_ID.
+      |
+      |If the PUT body USER_ID is *not* specified, the account will be owned by the logged in User.
+      |
+      |The 'product_code' field SHOULD be a product_code from Product.
+      |If the 'product_code' matches a product_code from Product, account attributes will be created that match the Product Attributes.
+      |
+      |Note: The Amount MUST be zero.""".stripMargin,
       createAccountRequestJsonV500, createAccountResponseJsonV310,
       List(InvalidJsonFormat, BankNotFound, AuthenticatedUserIsRequired, InvalidUserId,
         InvalidAccountIdFormat, InvalidBankIdFormat, UserNotFoundById, UserHasMissingRoles,
@@ -1345,7 +1353,22 @@ object Http4s500 {
       null, implementedInApiVersion, nameOf(createConsentByConsentRequestId).replace("Id", "IdEmail"), "POST",
       "/consumer/consent-requests/CONSENT_REQUEST_ID/EMAIL/consents",
       "Create Consent By CONSENT_REQUEST_ID (EMAIL)",
-      "Answer a Consent Request and create the resulting Consent, with an EMAIL Strong Customer Authentication challenge.",
+      s"""
+      |Answer a Consent Request and create the resulting Consent, with an EMAIL Strong Customer Authentication challenge.
+      |
+      |After the TPP has called Create Consent Request (Client Credentials), the User authenticates and answers the request via this endpoint. This creates the Consent (the credential the consumer will use to access OBP on the User's behalf).
+      |
+      |An SCA challenge code is sent to the email address that was supplied in the Create Consent Request body. The User then completes SCA via Answer Consent Challenge, which moves the Consent from INITIATED to ACCEPTED.
+      |
+      |Pinning: the resulting Consent is pinned to a single consumer at creation. The pinned consumer is taken from the `consumer_id` field of the original Create Consent Request body if present, otherwise from the consumer that created the Request. After creation, only that consumer can present the resulting Consent JWT — any other consumer presenting it gets ConsentNotFound (consumer mismatch).
+      |
+      |Each Consent Request can be answered exactly once. A second call returns ConsentRequestIsInvalid.
+      |
+      |The Consent's authority is bounded by the answering User's own entitlements — it cannot grant access beyond what that User already has.
+      |
+      |Authentication: Any authenticated User may answer a Consent Request whose CONSENT_REQUEST_ID they know. This will be tightened in v6.0.0; until then, treat CONSENT_REQUEST_IDs as sensitive.
+      |
+      |""",
       EmptyBody, consentJsonV500,
       createConsentByConsentRequestIdCommonErrors,
       apiTagConsent :: apiTagPSD2AIS :: apiTagPsd2 :: apiTagVrp :: Nil,
@@ -1357,7 +1380,22 @@ object Http4s500 {
       null, implementedInApiVersion, nameOf(createConsentByConsentRequestId).replace("Id", "IdSms"), "POST",
       "/consumer/consent-requests/CONSENT_REQUEST_ID/SMS/consents",
       "Create Consent By CONSENT_REQUEST_ID (SMS)",
-      "Answer a Consent Request and create the resulting Consent, with an SMS Strong Customer Authentication challenge.",
+      s"""
+      |Answer a Consent Request and create the resulting Consent, with an SMS Strong Customer Authentication challenge.
+      |
+      |After the TPP has called Create Consent Request (Client Credentials), the User authenticates and answers the request via this endpoint. This creates the Consent (the credential the consumer will use to access OBP on the User's behalf).
+      |
+      |An SCA challenge code is sent to the phone number that was supplied in the Create Consent Request body. The User then completes SCA via Answer Consent Challenge, which moves the Consent from INITIATED to ACCEPTED.
+      |
+      |Pinning: the resulting Consent is pinned to a single consumer at creation. The pinned consumer is taken from the `consumer_id` field of the original Create Consent Request body if present, otherwise from the consumer that created the Request. After creation, only that consumer can present the resulting Consent JWT — any other consumer presenting it gets ConsentNotFound (consumer mismatch).
+      |
+      |Each Consent Request can be answered exactly once. A second call returns ConsentRequestIsInvalid.
+      |
+      |The Consent's authority is bounded by the answering User's own entitlements — it cannot grant access beyond what that User already has.
+      |
+      |Authentication: Any authenticated User may answer a Consent Request whose CONSENT_REQUEST_ID they know. This will be tightened in v6.0.0; until then, treat CONSENT_REQUEST_IDs as sensitive.
+      |
+      |""",
       EmptyBody, consentJsonV500,
       ConsentRequestIsInvalid :: MissingPropsValueAtThisInstance :: SmsServerNotResponding :: createConsentByConsentRequestIdCommonErrors,
       apiTagConsent :: apiTagPSD2AIS :: apiTagPsd2 :: Nil,
@@ -1369,7 +1407,22 @@ object Http4s500 {
       null, implementedInApiVersion, nameOf(createConsentByConsentRequestId).replace("Id", "IdImplicit"), "POST",
       "/consumer/consent-requests/CONSENT_REQUEST_ID/IMPLICIT/consents",
       "Create Consent By CONSENT_REQUEST_ID (IMPLICIT)",
-      "Answer a Consent Request and create the resulting Consent without an SCA challenge.",
+      s"""
+      |Answer a Consent Request and create the resulting Consent, without a Strong Customer Authentication challenge — the Consent is moved directly from INITIATED to ACCEPTED.
+      |
+      |After the TPP has called Create Consent Request (Client Credentials), the User authenticates and answers the request via this endpoint. This creates the Consent (the credential the consumer will use to access OBP on the User's behalf).
+      |
+      |IMPLICIT means no SCA challenge is sent. The Consent is immediately ACCEPTED. Use only in flows where the User has already been strongly authenticated by upstream means; for production use behind a public TPP, prefer EMAIL or SMS.
+      |
+      |Pinning: the resulting Consent is pinned to a single consumer at creation. The pinned consumer is taken from the `consumer_id` field of the original Create Consent Request body if present, otherwise from the consumer that created the Request. After creation, only that consumer can present the resulting Consent JWT — any other consumer presenting it gets ConsentNotFound (consumer mismatch).
+      |
+      |Each Consent Request can be answered exactly once. A second call returns ConsentRequestIsInvalid.
+      |
+      |The Consent's authority is bounded by the answering User's own entitlements — it cannot grant access beyond what that User already has.
+      |
+      |Authentication: Any authenticated User may answer a Consent Request whose CONSENT_REQUEST_ID they know. This will be tightened in v6.0.0; until then, treat CONSENT_REQUEST_IDs as sensitive.
+      |
+      |""",
       EmptyBody, consentJsonV500,
       ConsentRequestIsInvalid :: MissingPropsValueAtThisInstance :: SmsServerNotResponding :: createConsentByConsentRequestIdCommonErrors,
       apiTagConsent :: apiTagPSD2AIS :: apiTagPsd2 :: Nil,

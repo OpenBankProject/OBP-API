@@ -132,14 +132,28 @@ def _skip_string_or_comment(source: str, i: int):
     """
     n = len(source)
     c = source[i]
-    # triple-quoted plain
+    # triple-quoted plain. Scala's lexer is greedy about trailing `"` —
+    # e.g. `"""foo "bar""""` has content `foo "bar"` and closer `"""`, with
+    # the 4 quotes at the end being content-quote + 3 closer quotes.
+    # A non-greedy `find('"""', i+3)` would split at the wrong boundary,
+    # leaving a stray `"` that misaligns every subsequent string in the file.
     if source.startswith('"""', i):
         j = source.find('"""', i + 3)
-        return n if j == -1 else j + 3
+        if j == -1:
+            return n
+        k = j + 3
+        while k < n and source[k] == '"':
+            k += 1
+        return k
     # interpolated triple-quote: s"""..."""  or f"""..."""
     if c in ("s", "f") and source.startswith('"""', i + 1):
         j = source.find('"""', i + 4)
-        return n if j == -1 else j + 3
+        if j == -1:
+            return n
+        k = j + 3
+        while k < n and source[k] == '"':
+            k += 1
+        return k
     # plain double-quoted string (handle escapes)
     if c == '"':
         j = i + 1
@@ -266,14 +280,37 @@ def parse_resourcedoc(body: str):
 
 
 def endpoint_name(part_fn_name: str) -> str:
-    """`nameOf(getBanks)` -> `getBanks`. Literal `"root"` -> `root`."""
+    """`nameOf(getBanks)` -> `getBanks`. Literal `"root"` -> `root`.
+
+    Also evaluates chained `.replace("a", "b")` calls so e.g.
+    `nameOf(createConsentByConsentRequestId).replace("Id", "IdEmail")`
+    becomes `createConsentByConsentRequestIdEmail` — matches what runs at
+    runtime when http4s derives names for related ResourceDoc entries.
+    """
     s = (part_fn_name or "").strip()
-    m = re.match(r"^nameOf\s*\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)\s*$", s)
+    # First extract the base name from `nameOf(...)` or a string literal.
+    rest = s
+    m = re.match(r"^nameOf\s*\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)", s)
     if m:
-        return m.group(1)
-    if s.startswith('"') and s.endswith('"'):
-        return s[1:-1]
-    return s
+        base = m.group(1)
+        rest = s[m.end():]
+    elif s.startswith('"'):
+        m2 = re.match(r'^"([^"]*)"', s)
+        if not m2:
+            return s
+        base = m2.group(1)
+        rest = s[m2.end():]
+    else:
+        return s
+    # Apply any trailing `.replace("a", "b")` calls in order.
+    rep_re = re.compile(r'^\s*\.\s*replace\s*\(\s*"([^"]*)"\s*,\s*"([^"]*)"\s*\)')
+    while True:
+        m = rep_re.match(rest)
+        if not m:
+            break
+        base = base.replace(m.group(1), m.group(2))
+        rest = rest[m.end():]
+    return base
 
 
 def normalize(s: str) -> str:

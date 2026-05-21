@@ -6253,7 +6253,7 @@ object Http4s600 {
         """.stripMargin,
         EmptyBody,
         userJsonV300,
-        List($AuthenticatedUserIsRequired, UnknownError),
+        List(AuthenticatedUserIsRequired, UnknownError),
         apiTagUser :: Nil,
         None,
         http4sPartialFunction = Some(getCurrentUser)
@@ -6286,7 +6286,7 @@ object Http4s600 {
           attributes = Some(List(BankAttributeBankResponseJsonV400("OVERDRAFT_LIMIT", "1000")))
         ))),
         List(UnknownError),
-        apiTagBank :: Nil,
+        apiTagBank :: apiTagPSD2AIS :: apiTagPsd2 :: Nil,
         None,
         http4sPartialFunction = Some(getBanks)
       )
@@ -6315,8 +6315,8 @@ object Http4s600 {
           bank_routings = List(BankRoutingJsonV121("OBP", "gh.29.uk")),
           attributes = Some(List(BankAttributeBankResponseJsonV400("OVERDRAFT_LIMIT", "1000")))
         ),
-        List($BankNotFound, UnknownError),
-        apiTagBank :: Nil,
+        List(UnknownError, BankNotFound),
+        apiTagBank :: apiTagPSD2AIS :: apiTagPsd2 :: Nil,
         None,
         http4sPartialFunction = Some(getBank)
       )
@@ -6344,8 +6344,12 @@ object Http4s600 {
         |""",
         EmptyBody,
         customerJSONsV600,
-        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
-        apiTagCustomer :: Nil,
+        List(
+          $AuthenticatedUserIsRequired,
+          UserCustomerLinksNotFoundForUser,
+          UnknownError
+        ),
+        List(apiTagCustomer, apiTagUser),
         Some(canGetCustomersAtOneBank :: Nil),
         http4sPartialFunction = Some(getCustomersAtOneBank)
       )
@@ -6366,7 +6370,12 @@ object Http4s600 {
         |""",
         EmptyBody,
         customerWithAttributesJsonV600,
-        List($AuthenticatedUserIsRequired, UserCustomerLinksNotFoundForUser, $BankNotFound, UserHasMissingRoles, UnknownError),
+        List(
+          $AuthenticatedUserIsRequired,
+          UserHasMissingRoles,
+          UserCustomerLinksNotFoundForUser,
+          UnknownError
+        ),
         apiTagCustomer :: Nil,
         Some(canGetCustomersAtOneBank :: Nil),
         http4sPartialFunction = Some(getCustomerByCustomerId)
@@ -6408,7 +6417,7 @@ object Http4s600 {
           views_basic = List("owner")
         ),
         List($AuthenticatedUserIsRequired, $BankAccountNotFound, UnknownError),
-        apiTagAccount :: Nil,
+        apiTagAccount :: apiTagPSD2AIS :: apiTagPsd2 :: Nil,
         None,
         http4sPartialFunction = Some(getCoreAccountByIdV600)
       )
@@ -6497,7 +6506,7 @@ object Http4s600 {
         nameOf(getBankLevelDynamicEntities),
         "GET",
         "/management/banks/BANK_ID/dynamic-entities",
-        "Get Bank-Level Dynamic Entities",
+        "Get Bank Level Dynamic Entities",
         s"""Get all Bank Level Dynamic Entities for one bank with record counts.
          |
          |Each dynamic entity in the response includes a `record_count` field showing how many data records exist for that entity.
@@ -6521,7 +6530,12 @@ object Http4s600 {
             )
           )
         ),
-        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
+        List(
+          $BankNotFound,
+          $AuthenticatedUserIsRequired,
+          UserHasMissingRoles,
+          UnknownError
+        ),
         apiTagManageDynamicEntity :: apiTagApi :: Nil,
         Some(canGetBankLevelDynamicEntities :: canGetAnyBankLevelDynamicEntities :: Nil),
         http4sPartialFunction = Some(getBankLevelDynamicEntities)
@@ -6552,8 +6566,13 @@ object Http4s600 {
         |""".stripMargin,
         EmptyBody,
         consumerJsonV600,
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
-        apiTagConsumer :: apiTagApi :: Nil,
+        List(
+          $AuthenticatedUserIsRequired,
+          UserHasMissingRoles,
+          ConsumerNotFoundByConsumerId,
+          UnknownError
+        ),
+        List(apiTagConsumer),
         Some(canGetConsumers :: Nil),
         http4sPartialFunction = Some(getConsumer)
       )
@@ -6581,8 +6600,12 @@ object Http4s600 {
         |""",
         EmptyBody,
         customerJSONsV600,
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
-        apiTagCustomer :: Nil,
+        List(
+          $AuthenticatedUserIsRequired,
+          UserCustomerLinksNotFoundForUser,
+          UnknownError
+        ),
+        List(apiTagCustomer, apiTagUser),
         Some(canGetCustomersAtAllBanks :: Nil),
         http4sPartialFunction = Some(getCustomersAtAllBanks)
       )
@@ -6681,8 +6704,12 @@ object Http4s600 {
         |""",
         postCustomerNumberJsonV310,
         customerWithAttributesJsonV600,
-        List($AuthenticatedUserIsRequired, UserCustomerLinksNotFoundForUser, $BankNotFound, UserHasMissingRoles, UnknownError),
-        apiTagCustomer :: Nil,
+        List(
+          $AuthenticatedUserIsRequired,
+          UserCustomerLinksNotFoundForUser,
+          UnknownError
+        ),
+        List(apiTagCustomer, apiTagKyc),
         Some(canGetCustomersAtOneBank :: Nil),
         http4sPartialFunction = Some(getCustomerByCustomerNumber)
       )
@@ -6705,8 +6732,12 @@ object Http4s600 {
         |""",
         PostCustomerLegalNameJsonV510(legal_name = "John Smith"),
         customerJSONsV600,
-        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
-        apiTagCustomer :: Nil,
+        List(
+          $AuthenticatedUserIsRequired,
+          UserCustomerLinksNotFoundForUser,
+          UnknownError
+        ),
+        List(apiTagCustomer, apiTagKyc),
         Some(canGetCustomersAtOneBank :: Nil),
         http4sPartialFunction = Some(getCustomersByLegalName)
       )
@@ -6832,7 +6863,13 @@ object Http4s600 {
           personal_requires_role = false,
           schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
         ),
-        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+        List(
+          $BankNotFound,
+          $AuthenticatedUserIsRequired,
+          UserHasMissingRoles,
+          InvalidJsonFormat,
+          UnknownError
+        ),
         apiTagManageDynamicEntity :: apiTagApi :: Nil,
         Some(canCreateBankLevelDynamicEntity :: Nil),
         authMode = code.api.util.APIUtil.UserOrApplication,
@@ -6951,7 +6988,13 @@ object Http4s600 {
           has_public_access = false,
           schema = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
         ),
-        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+        List(
+          $BankNotFound,
+          $AuthenticatedUserIsRequired,
+          UserHasMissingRoles,
+          InvalidJsonFormat,
+          UnknownError
+        ),
         apiTagManageDynamicEntity :: apiTagApi :: Nil,
         Some(canUpdateBankLevelDynamicEntity :: Nil),
         http4sPartialFunction = Some(updateBankLevelDynamicEntity)
@@ -7010,7 +7053,11 @@ object Http4s600 {
           has_public_access = false,
           schema = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
         ),
-        List($AuthenticatedUserIsRequired, DynamicEntityNotFoundByDynamicEntityId, InvalidJsonFormat, UnknownError),
+        List(
+          $AuthenticatedUserIsRequired,
+          InvalidJsonFormat,
+          UnknownError
+        ),
         apiTagManageDynamicEntity :: apiTagApi :: Nil,
         None,
         http4sPartialFunction = Some(updateMyDynamicEntity)
@@ -7069,8 +7116,15 @@ object Http4s600 {
             "can_add_comment"
           )
         ),
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, SystemViewCannotBePublicError, UnknownError),
-        apiTagView :: Nil,
+        List(
+          InvalidJsonFormat,
+          AuthenticatedUserIsRequired,
+          UserHasMissingRoles,
+          SystemViewNotFound,
+          SystemViewCannotBePublicError,
+          UnknownError
+        ),
+        List(apiTagSystemView, apiTagView),
         None,
         http4sPartialFunction = Some(updateSystemView)
       )
@@ -7176,7 +7230,11 @@ object Http4s600 {
         """.stripMargin,
         EmptyBody,
         metricsJsonV600,
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+        List(
+          AuthenticatedUserIsRequired,
+          UserHasMissingRoles,
+          UnknownError
+        ),
         apiTagMetric :: apiTagApi :: Nil,
         Some(canReadMetrics :: Nil),
         http4sPartialFunction = Some(getMetrics)
@@ -7272,8 +7330,12 @@ object Http4s600 {
         """.stripMargin,
         EmptyBody,
         aggregateMetricsJSONV300,
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
-        apiTagMetric :: apiTagApi :: Nil,
+        List(
+          AuthenticatedUserIsRequired,
+          UserHasMissingRoles,
+          UnknownError
+        ),
+        List(apiTagMetric, apiTagAggregateMetrics),
         Some(canReadAggregateMetrics :: Nil),
         http4sPartialFunction = Some(getAggregateMetrics)
       )
@@ -7338,7 +7400,13 @@ object Http4s600 {
           TopApiJsonV600(500, "getBank", "v4.0.0", "OBPv4.0.0-getBank"),
           TopApiJsonV600(250, "getAccountList", "v1.3", "BGv1.3-getAccountList")
         )),
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+        List(
+          $AuthenticatedUserIsRequired,
+          UserHasMissingRoles,
+          InvalidFilterParameterFormat,
+          GetTopApisError,
+          UnknownError
+        ),
         apiTagMetric :: apiTagApi :: Nil,
         Some(canReadMetrics :: Nil),
         http4sPartialFunction = Some(getTopAPIs)
@@ -7398,8 +7466,10 @@ object Http4s600 {
           "webui_props",
           (List(WebUiPropsCommons("webui_api_explorer_url", "https://apiexplorer.openbankproject.com", Some("web-ui-props-id"), Some("database"))))
         ),
-        List(InvalidFilterParameterFormat, UnknownError),
-        apiTagWebUiProps :: apiTagApi :: Nil,
+        List(
+          UnknownError
+        ),
+        List(apiTagWebUiProps),
         None,
         http4sPartialFunction = Some(getWebUiProps)
       )
@@ -7431,7 +7501,7 @@ object Http4s600 {
           views_available = List(BasicViewJson("owner", "Owner", false))
         ))),
         List($AuthenticatedUserIsRequired, $BankNotFound, UnknownError),
-        apiTagAccount :: Nil,
+        List(apiTagAccount, apiTagPrivateData, apiTagPublicData),
         None,
         http4sPartialFunction = Some(getAccountsAtBank)
       )
@@ -7483,8 +7553,17 @@ object Http4s600 {
           metadata = transactionMetadataJSON,
           transaction_attributes = Nil
         ))),
-        List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, $UserNoPermissionAccessView, UnknownError),
-        apiTagTransaction :: Nil,
+        List(
+          FilterSortDirectionError,
+          FilterOffersetError,
+          FilterLimitError,
+          FilterDateFormatError,
+          AuthenticatedUserIsRequired,
+          BankAccountNotFound,
+          ViewNotFound,
+          UnknownError
+        ),
+        List(apiTagTransaction, apiTagAccount),
         None,
         http4sPartialFunction = Some(getTransactionsForBankAccount)
       )
@@ -7502,7 +7581,10 @@ object Http4s600 {
         |${userAuthenticationMessage(!getProductsIsPublic)}""".stripMargin,
         EmptyBody,
         productsJsonV600,
-        List($BankNotFound, UnknownError),
+        List(
+          BankNotFound,
+          UnknownError
+        ),
         apiTagProduct :: Nil,
         None,
         http4sPartialFunction = Some(getProductsV600)
@@ -7516,7 +7598,7 @@ object Http4s600 {
         nameOf(getUsers),
         "GET",
         "/users",
-        "Get Users",
+        "Get all Users",
         s"""Get all users, optionally filtered.
            |
            |All query parameters are optional and may be combined.
@@ -7544,7 +7626,14 @@ object Http4s600 {
         """.stripMargin,
         EmptyBody,
         usersInfoJsonV600,
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+        List(
+          $AuthenticatedUserIsRequired,
+          UserHasMissingRoles,
+          FilterSortByError,
+          FilterSortByNotAllowedForEndpoint,
+          FilterSortDirectionError,
+          UnknownError
+        ),
         apiTagUser :: Nil,
         Some(canGetAnyUser :: Nil),
         http4sPartialFunction = Some(getUsers)
@@ -7570,7 +7659,12 @@ object Http4s600 {
         |""",
         postBankJson600,
         bankJson600,
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, bankIdAlreadyExists, UnknownError),
+        List(
+          InvalidJsonFormat,
+          $AuthenticatedUserIsRequired,
+          InsufficientAuthorisationToCreateBank,
+          UnknownError
+        ),
         apiTagBank :: Nil,
         Some(canCreateBank :: Nil),
         http4sPartialFunction = Some(createBank)
@@ -7628,8 +7722,21 @@ object Http4s600 {
         |""",
         postCustomerJsonV600,
         customerJsonV600,
-        List($AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat, UserHasMissingRoles, UnknownError),
-        apiTagCustomer :: Nil,
+        List(
+          $AuthenticatedUserIsRequired,
+          $BankNotFound,
+          InvalidJsonFormat,
+          InvalidJsonContent,
+          InvalidDateFormat,
+          InvalidCustomerType,
+          ParentCustomerNotFound,
+          CustomerNumberAlreadyExists,
+          UserNotFoundById,
+          CustomerAlreadyExistsForUser,
+          CreateConsumerError,
+          UnknownError
+        ),
+        List(apiTagCustomer, apiTagPerson),
         Some(canCreateCustomer :: Nil),
         http4sPartialFunction = Some(createCustomer)
       )
@@ -7639,7 +7746,7 @@ object Http4s600 {
         nameOf(createUser),
         "POST",
         "/users",
-        "Create User",
+        "Create User (v6.0.0)",
         s"""Creates OBP user.
         | No authorisation required.
         |
@@ -7665,8 +7772,8 @@ object Http4s600 {
         |""",
         createUserJsonV600,
         userJsonV200,
-        List(InvalidJsonFormat, InvalidStrongPasswordFormat, DuplicateUsername, UnknownError),
-        apiTagUser :: Nil,
+        List(InvalidJsonFormat, InvalidStrongPasswordFormat, DuplicateUsername, ExternalUserCheckFailed, "Error occurred during user creation.", UnknownError),
+        List(apiTagUser, apiTagOnboarding),
         None,
         http4sPartialFunction = Some(createUser)
       )
@@ -7676,7 +7783,7 @@ object Http4s600 {
         nameOf(resetPasswordUrl),
         "POST",
         "/management/user/reset-password-url",
-        "Send Password Reset URL",
+        "Create Password Reset URL and Send Email",
         s"""Create a password reset URL for a user and automatically send it via email.
         |
         |Authentication is Required.
@@ -7797,7 +7904,11 @@ object Http4s600 {
           environment = "dev",
           global_prefix = "obp_dev_"
         ),
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+        List(
+          AuthenticatedUserIsRequired,
+          UserHasMissingRoles,
+          UnknownError
+        ),
         apiTagCache :: apiTagSystem :: apiTagApi :: Nil,
         Some(canGetCacheConfig :: Nil),
         http4sPartialFunction = Some(getCacheConfig)
@@ -7857,7 +7968,11 @@ object Http4s600 {
           total_keys = 170,
           redis_available = true
         ),
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+        List(
+          AuthenticatedUserIsRequired,
+          UserHasMissingRoles,
+          UnknownError
+        ),
         apiTagCache :: apiTagSystem :: apiTagApi :: Nil,
         Some(canGetCacheInfo :: Nil),
         http4sPartialFunction = Some(getCacheInfo)
@@ -7952,7 +8067,11 @@ object Http4s600 {
           max_lifetime_ms = 1800000,
           keepalive_time_ms = 0
         ),
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+        List(
+          AuthenticatedUserIsRequired,
+          UserHasMissingRoles,
+          UnknownError
+        ),
         apiTagSystem :: apiTagApi :: Nil,
         Some(canGetDatabasePoolInfo :: Nil),
         http4sPartialFunction = Some(getDatabasePoolInfo)
@@ -8015,7 +8134,11 @@ object Http4s600 {
           response_time_ms = 45,
           error_message = None
         ),
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+        List(
+          AuthenticatedUserIsRequired,
+          UserHasMissingRoles,
+          UnknownError
+        ),
         apiTagConnector :: apiTagSystem :: apiTagApi :: Nil,
         Some(canGetConnectorHealth :: Nil),
         http4sPartialFunction = Some(getStoredProcedureConnectorHealth)
@@ -8101,8 +8224,11 @@ object Http4s600 {
         |""",
         EmptyBody,
         customerJSONsV600,
-        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
-        apiTagCustomer :: Nil,
+        List(
+          $AuthenticatedUserIsRequired,
+          UnknownError
+        ),
+        List(apiTagCorporateCustomer, apiTagCustomer),
         Some(canGetCustomersAtOneBank :: Nil),
         http4sPartialFunction = Some(getCorporateCustomersAtOneBank)
       )
@@ -8112,7 +8238,7 @@ object Http4s600 {
         nameOf(getCorporateCustomerByCustomerId),
         "GET",
         "/banks/BANK_ID/corporate-customers/CUSTOMER_ID",
-        "Get Corporate Customer by Id",
+        "Get Corporate Customer by CUSTOMER_ID",
         s"""Gets the Corporate Customer specified by CUSTOMER_ID.
         |
         |Returns 404 if the customer exists but is not of type CORPORATE or SUBSIDIARY.
@@ -8125,8 +8251,12 @@ object Http4s600 {
         |""",
         EmptyBody,
         customerWithAttributesJsonV600,
-        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, CustomerTypeMismatch, UnknownError),
-        apiTagCustomer :: Nil,
+        List(
+          $AuthenticatedUserIsRequired,
+          CustomerTypeMismatch,
+          UnknownError
+        ),
+        List(apiTagCorporateCustomer, apiTagCustomer),
         Some(canGetCustomersAtOneBank :: Nil),
         http4sPartialFunction = Some(getCorporateCustomerByCustomerId)
       )
@@ -8136,7 +8266,7 @@ object Http4s600 {
         nameOf(getCorporateCustomerSubsidiaries),
         "GET",
         "/banks/BANK_ID/corporate-customers/CUSTOMER_ID/subsidiaries",
-        "Get Subsidiaries",
+        "Get Corporate Customer Subsidiaries",
         s"""Get the subsidiary customers of a corporate customer.
         |
         |Returns a list of customers whose parent_customer_id matches the specified CUSTOMER_ID.
@@ -8146,8 +8276,14 @@ object Http4s600 {
         |""",
         EmptyBody,
         customerJSONsV600,
-        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, CustomerTypeMismatch, UnknownError),
-        apiTagCustomer :: Nil,
+        List(
+          $AuthenticatedUserIsRequired,
+          $BankNotFound,
+          CustomerNotFoundByCustomerId,
+          CustomerTypeMismatch,
+          UnknownError
+        ),
+        List(apiTagCorporateCustomer, apiTagCustomer),
         Some(canGetCustomersAtOneBank :: Nil),
         http4sPartialFunction = Some(getCorporateCustomerSubsidiaries)
       )
@@ -8174,8 +8310,11 @@ object Http4s600 {
         |""",
         EmptyBody,
         customerJSONsV600,
-        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
-        apiTagCustomer :: Nil,
+        List(
+          $AuthenticatedUserIsRequired,
+          UnknownError
+        ),
+        List(apiTagRetailCustomer, apiTagCustomer),
         Some(canGetCustomersAtOneBank :: Nil),
         http4sPartialFunction = Some(getRetailCustomersAtOneBank)
       )
@@ -8185,7 +8324,7 @@ object Http4s600 {
         nameOf(getRetailCustomerByCustomerId),
         "GET",
         "/banks/BANK_ID/retail-customers/CUSTOMER_ID",
-        "Get Retail Customer by Id",
+        "Get Retail Customer by CUSTOMER_ID",
         s"""Gets the Retail Customer specified by CUSTOMER_ID.
         |
         |Returns 404 if the customer exists but is not of type INDIVIDUAL.
@@ -8198,8 +8337,12 @@ object Http4s600 {
         |""",
         EmptyBody,
         customerWithAttributesJsonV600,
-        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, CustomerTypeMismatch, UnknownError),
-        apiTagCustomer :: Nil,
+        List(
+          $AuthenticatedUserIsRequired,
+          CustomerTypeMismatch,
+          UnknownError
+        ),
+        List(apiTagRetailCustomer, apiTagCustomer),
         Some(canGetCustomersAtOneBank :: Nil),
         http4sPartialFunction = Some(getRetailCustomerByCustomerId)
       )
@@ -8219,7 +8362,12 @@ object Http4s600 {
         |""",
         EmptyBody,
         customerJSONsV600,
-        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
+        List(
+          $AuthenticatedUserIsRequired,
+          $BankNotFound,
+          CustomerNotFoundByCustomerId,
+          UnknownError
+        ),
         apiTagCustomer :: Nil,
         Some(canGetCustomersAtOneBank :: Nil),
         http4sPartialFunction = Some(getCustomerChildren)
@@ -8230,7 +8378,7 @@ object Http4s600 {
         nameOf(getCustomerLinksByCustomerId),
         "GET",
         "/banks/BANK_ID/customers/CUSTOMER_ID/customer-links",
-        "Get Customer Links by Customer Id",
+        "Get Customer Links by CUSTOMER_ID",
         s"""Get Customer Links by CUSTOMER_ID.
         |
         |Authentication is Required
@@ -8238,7 +8386,13 @@ object Http4s600 {
         |""",
         EmptyBody,
         customerLinksJsonV600,
-        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
+        List(
+          $AuthenticatedUserIsRequired,
+          $BankNotFound,
+          CustomerNotFoundByCustomerId,
+          UserHasMissingRoles,
+          UnknownError
+        ),
         apiTagCustomer :: Nil,
         Some(canGetCustomerLinks :: Nil),
         http4sPartialFunction = Some(getCustomerLinksByCustomerId)
@@ -8282,8 +8436,12 @@ object Http4s600 {
             allowed_actions = List("can_see_transaction_amount", "can_see_bank_account_balance")
           )
         )),
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
-        apiTagView :: Nil,
+        List(
+          AuthenticatedUserIsRequired,
+          UserHasMissingRoles,
+          UnknownError
+        ),
+        List(apiTagSystemView, apiTagView),
         Some(canGetSystemViews :: Nil),
         http4sPartialFunction = Some(getSystemViews)
       )
@@ -8293,7 +8451,7 @@ object Http4s600 {
         nameOf(getSystemViewById),
         "GET",
         "/management/system-views/SYS_VIEW_ID",
-        "Get System View by Id",
+        "Get System View",
         s"""Get a single system view by its ID.
         |
         |System views are predefined views that apply to all accounts, such as:
@@ -8329,8 +8487,13 @@ object Http4s600 {
             "can_create_custom_view"
           )
         ),
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
-        apiTagView :: Nil,
+        List(
+          AuthenticatedUserIsRequired,
+          UserHasMissingRoles,
+          SystemViewNotFound,
+          UnknownError
+        ),
+        List(apiTagSystemView, apiTagView),
         Some(canGetSystemViews :: Nil),
         http4sPartialFunction = Some(getSystemViewById)
       )
@@ -8359,7 +8522,11 @@ object Http4s600 {
             )
           )
         ),
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+        List(
+          AuthenticatedUserIsRequired,
+          UserHasMissingRoles,
+          UnknownError
+        ),
         apiTagABAC :: Nil,
         Some(canGetAbacRule :: Nil),
         http4sPartialFunction = Some(getAbacPolicies)
@@ -8406,8 +8573,10 @@ object Http4s600 {
             )
           )
         ),
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
-        apiTagMetric :: Nil,
+        List(
+          UnknownError
+        ),
+        List(apiTagMetric, apiTagApi),
         Some(canReadMetrics :: Nil),
         http4sPartialFunction = Some(getConnectorCallCounts)
       )
@@ -8451,8 +8620,11 @@ object Http4s600 {
         |""".stripMargin,
         EmptyBody,
         connectorTracesJsonV600,
-        List($AuthenticatedUserIsRequired, UnknownError),
-        apiTagMetric :: Nil,
+        List(
+          InvalidDateFormat,
+          UnknownError
+        ),
+        List(apiTagMetric, apiTagApi),
         None,
         http4sPartialFunction = Some(getConnectorTraces)
       )
@@ -8535,7 +8707,7 @@ object Http4s600 {
           )
         ),
         List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
-        apiTagManageDynamicEntity :: Nil,
+        List(apiTagDynamicEntity, apiTagApi),
         Some(canGetDynamicEntityDiagnostics :: Nil),
         http4sPartialFunction = Some(getDynamicEntityDiagnostics)
       )
@@ -8578,7 +8750,7 @@ object Http4s600 {
           total_records_deleted = 42
         ),
         List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
-        apiTagManageDynamicEntity :: Nil,
+        List(apiTagDynamicEntity, apiTagApi),
         Some(canCleanupOrphanedDynamicEntityRecords :: Nil),
         http4sPartialFunction = Some(cleanupOrphanedDynamicEntityRecords)
       )
@@ -8647,7 +8819,13 @@ object Http4s600 {
         |""",
         WebUiPropsPutJsonV600("https://apiexplorer.openbankproject.com"),
         WebUiPropsCommons("webui_api_explorer_url", "https://apiexplorer.openbankproject.com", Some("some-web-ui-props-id")),
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidWebUiProps, InvalidJsonFormat, UnknownError),
+        List(
+          AuthenticatedUserIsRequired,
+          UserHasMissingRoles,
+          InvalidJsonFormat,
+          InvalidWebUiProps,
+          UnknownError
+        ),
         apiTagWebUiProps :: Nil,
         Some(canCreateWebUiProps :: Nil),
         http4sPartialFunction = Some(createOrUpdateWebUiProps)
@@ -8674,7 +8852,12 @@ object Http4s600 {
         |""",
         EmptyBody,
         EmptyBody,
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidWebUiProps, UnknownError),
+        List(
+          AuthenticatedUserIsRequired,
+          UserHasMissingRoles,
+          InvalidWebUiProps,
+          UnknownError
+        ),
         apiTagWebUiProps :: Nil,
         Some(canDeleteWebUiProps :: Nil),
         http4sPartialFunction = Some(deleteWebUiProps)
@@ -8720,8 +8903,15 @@ object Http4s600 {
         |""".stripMargin,
         createViewJsonV300,
         viewJsonV300,
-        List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UserHasMissingRoles, InvalidJsonFormat, InvalidCustomViewFormat, UnknownError),
-        apiTagView :: Nil,
+        List(
+          AuthenticatedUserIsRequired,
+          UserHasMissingRoles,
+          InvalidJsonFormat,
+          InvalidCustomViewFormat,
+          BankAccountNotFound,
+          UnknownError
+        ),
+        List(apiTagView, apiTagAccount),
         Some(canCreateCustomView :: Nil),
         http4sPartialFunction = Some(createCustomViewManagement)
       )
@@ -8737,7 +8927,11 @@ object Http4s600 {
         |${userAuthenticationMessage(!getProductsIsPublic)}""".stripMargin,
         EmptyBody,
         productTagsJsonV600,
-        List($AuthenticatedUserIsRequired, $BankNotFound, UnknownError),
+        List(
+          BankNotFound,
+          ProductNotFoundByProductCode,
+          UnknownError
+        ),
         apiTagProduct :: Nil,
         None,
         http4sPartialFunction = Some(getProductTagsV600)
@@ -8754,7 +8948,14 @@ object Http4s600 {
         |Authentication is Required.""".stripMargin,
         productTagsJsonV600,
         productTagsJsonV600,
-        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, InvalidJsonFormat, UpdateProductError, UnknownError),
+        List(
+          $AuthenticatedUserIsRequired,
+          UserHasMissingRoles,
+          InvalidJsonFormat,
+          BankNotFound,
+          ProductNotFoundByProductCode,
+          UnknownError
+        ),
         apiTagProduct :: Nil,
         None,
         http4sPartialFunction = Some(updateProductTagsV600)
@@ -8823,15 +9024,21 @@ object Http4s600 {
         nameOf(getUserAttributeById),
         "GET",
         "/users/USER_ID/attributes/USER_ATTRIBUTE_ID",
-        "Get User Attribute by Id",
+        "Get User Attribute By Id",
         s"""Get a User Attribute by USER_ATTRIBUTE_ID for the user specified by USER_ID.
         |
         |${userAuthenticationMessage(true)}
         |""".stripMargin,
         EmptyBody,
         userAttributeResponseJsonV510,
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UserAttributeNotFound, UnknownError),
-        apiTagUser :: apiTagUserAttribute :: Nil,
+        List(
+          $AuthenticatedUserIsRequired,
+          UserHasMissingRoles,
+          UserNotFoundByUserId,
+          UserAttributeNotFound,
+          UnknownError
+        ),
+        List(apiTagUser, apiTagUserAttribute, apiTagAttribute),
         Some(canGetUserAttributes :: Nil),
         http4sPartialFunction = Some(getUserAttributeById)
       )
@@ -8859,8 +9066,14 @@ object Http4s600 {
           value = "premium"
         ),
         userAttributeResponseJsonV510,
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
-        apiTagUser :: apiTagUserAttribute :: Nil,
+        List(
+          $AuthenticatedUserIsRequired,
+          UserHasMissingRoles,
+          UserNotFoundByUserId,
+          InvalidJsonFormat,
+          UnknownError
+        ),
+        List(apiTagUser, apiTagUserAttribute, apiTagAttribute),
         Some(canCreateUserAttribute :: Nil),
         http4sPartialFunction = Some(createUserAttribute)
       )
@@ -8881,8 +9094,15 @@ object Http4s600 {
           value = "enterprise"
         ),
         userAttributeResponseJsonV510,
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UserAttributeNotFound, UnknownError),
-        apiTagUser :: apiTagUserAttribute :: Nil,
+        List(
+          $AuthenticatedUserIsRequired,
+          UserHasMissingRoles,
+          UserNotFoundByUserId,
+          UserAttributeNotFound,
+          InvalidJsonFormat,
+          UnknownError
+        ),
+        List(apiTagUser, apiTagUserAttribute, apiTagAttribute),
         Some(canUpdateUserAttribute :: Nil),
         http4sPartialFunction = Some(updateUserAttribute)
       )
@@ -8899,8 +9119,14 @@ object Http4s600 {
         |""".stripMargin,
         EmptyBody,
         EmptyBody,
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UserAttributeNotFound, UnknownError),
-        apiTagUser :: apiTagUserAttribute :: Nil,
+        List(
+          $AuthenticatedUserIsRequired,
+          UserHasMissingRoles,
+          UserNotFoundByUserId,
+          UserAttributeNotFound,
+          UnknownError
+        ),
+        List(apiTagUser, apiTagUserAttribute, apiTagAttribute),
         Some(canDeleteUserAttribute :: Nil),
         http4sPartialFunction = Some(deleteUserAttribute)
       )
@@ -8910,7 +9136,7 @@ object Http4s600 {
         nameOf(addUserToGroup),
         "POST",
         "/users/USER_ID/group-entitlements",
-        "Add User to Group",
+        "Grant User Membership to Group Entitlements",
         s"""Grant the User Group Entitlements.
         |
         |This endpoint creates entitlements for every Role in the Group. If the user
@@ -8946,8 +9172,13 @@ object Http4s600 {
           entitlements_created = List("CanGetCustomer", "CanGetAccount"),
           entitlements_skipped = List("CanCreateTransaction")
         ),
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
-        apiTagGroup :: apiTagUser :: Nil,
+        List(
+          AuthenticatedUserIsRequired,
+          UserHasMissingRoles,
+          InvalidJsonFormat,
+          UnknownError
+        ),
+        List(apiTagGroup, apiTagUser, apiTagEntitlement),
         None,
         http4sPartialFunction = Some(addUserToGroup)
       )
@@ -8973,8 +9204,12 @@ object Http4s600 {
         |""".stripMargin,
         EmptyBody,
         EmptyBody,
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
-        apiTagGroup :: apiTagUser :: Nil,
+        List(
+          AuthenticatedUserIsRequired,
+          UserHasMissingRoles,
+          UnknownError
+        ),
+        List(apiTagGroup, apiTagUser, apiTagEntitlement),
         None,
         http4sPartialFunction = Some(removeUserFromGroup)
       )
@@ -8996,8 +9231,13 @@ object Http4s600 {
         """.stripMargin,
         EmptyBody,
         EmptyBody,
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
-        apiTagEntitlement :: Nil,
+        List(
+          $AuthenticatedUserIsRequired,
+          UserHasMissingRoles,
+          EntitlementCannotBeDeleted,
+          UnknownError
+        ),
+        List(apiTagRole, apiTagUser, apiTagEntitlement),
         Some(canDeleteEntitlementAtAnyBank :: Nil),
         http4sPartialFunction = Some(deleteEntitlement)
       )
@@ -9042,7 +9282,7 @@ object Http4s600 {
           )
         ),
         List($AuthenticatedUserIsRequired, UnknownError),
-        apiTagManageDynamicEntity :: apiTagApi :: Nil,
+        List(apiTagDynamicEntity, apiTagPersonalDynamicEntity, apiTagApi),
         None,
         http4sPartialFunction = Some(getAvailablePersonalDynamicEntities)
       )
@@ -9111,7 +9351,7 @@ object Http4s600 {
           )
         ),
         List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
-        apiTagManageDynamicEntity :: Nil,
+        List(apiTagDynamicEntity, apiTagApi),
         Some(canGetDynamicEntityReferenceTypes :: Nil),
         http4sPartialFunction = Some(getReferenceTypes)
       )
@@ -9121,7 +9361,7 @@ object Http4s600 {
         nameOf(joinSystemChatRoom),
         "POST",
         "/chat-room-participants",
-        "Join Chat Room",
+        "Join System Chat Room",
         s"""Join a system-level chat room using a joining key (passed as joining_key in the JSON body).
         |The user is added as a participant with no special permissions.
         |
@@ -9164,8 +9404,8 @@ object Http4s600 {
         """.stripMargin,
         counterpartyAttributeRequestJsonV600,
         counterpartyAttributeResponseJsonV600,
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
-        apiTagCounterparty :: Nil,
+        List($AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
+        List(apiTagCounterpartyAttribute, apiTagApi),
         Some(canCreateCounterpartyAttribute :: Nil),
         http4sPartialFunction = Some(createCounterpartyAttribute)
       )
@@ -9184,8 +9424,8 @@ object Http4s600 {
         """.stripMargin,
         EmptyBody,
         EmptyBody,
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
-        apiTagCounterparty :: Nil,
+        List($AuthenticatedUserIsRequired, UnknownError),
+        List(apiTagCounterpartyAttribute, apiTagApi),
         Some(canDeleteCounterpartyAttribute :: Nil),
         http4sPartialFunction = Some(deleteCounterpartyAttribute)
       )
@@ -9195,7 +9435,7 @@ object Http4s600 {
         nameOf(getCounterpartyAttributeById),
         "GET",
         "/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID_PARAM/attributes/COUNTERPARTY_ATTRIBUTE_ID",
-        "Get Counterparty Attribute By Id",
+        "Get Counterparty Attribute By ID",
         s"""
             | Get a specific Counterparty Attribute by its COUNTERPARTY_ATTRIBUTE_ID.
             |
@@ -9204,8 +9444,8 @@ object Http4s600 {
         """.stripMargin,
         EmptyBody,
         counterpartyAttributeResponseJsonV600,
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
-        apiTagCounterparty :: Nil,
+        List($AuthenticatedUserIsRequired, UnknownError),
+        List(apiTagCounterpartyAttribute, apiTagApi),
         Some(canGetCounterpartyAttribute :: Nil),
         http4sPartialFunction = Some(getCounterpartyAttributeById)
       )
@@ -9224,8 +9464,8 @@ object Http4s600 {
         """.stripMargin,
         EmptyBody,
         counterpartyAttributesJsonV600,
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
-        apiTagCounterparty :: Nil,
+        List($AuthenticatedUserIsRequired, UnknownError),
+        List(apiTagCounterpartyAttribute, apiTagApi),
         Some(canGetCounterpartyAttributes :: Nil),
         http4sPartialFunction = Some(getAllCounterpartyAttributes)
       )
@@ -9244,8 +9484,8 @@ object Http4s600 {
         """.stripMargin,
         counterpartyAttributeRequestJsonV600,
         counterpartyAttributeResponseJsonV600,
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
-        apiTagCounterparty :: Nil,
+        List($AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
+        List(apiTagCounterpartyAttribute, apiTagApi),
         Some(canUpdateCounterpartyAttribute :: Nil),
         http4sPartialFunction = Some(updateCounterpartyAttribute)
       )
@@ -9273,8 +9513,11 @@ object Http4s600 {
           account_access_id = ExampleValue.uuidExample.value,
           abac_rule_id = ""
         ),
-        List($AuthenticatedUserIsRequired, $BankNotFound, ViewNotFound, UnknownError),
-        apiTagAccount :: Nil,
+        List(
+          $BankNotFound,
+          UnknownError
+        ),
+        List(apiTagView, apiTagAccount),
         None,
         http4sPartialFunction = Some(hasAccountAccess)
       )
@@ -9311,7 +9554,7 @@ object Http4s600 {
           ))
         ),
         List($AuthenticatedUserIsRequired, UnknownError),
-        apiTagAccountAccess :: Nil,
+        List(apiTagAccountAccessRequest),
         None,
         http4sPartialFunction = Some(getMyAccountAccessRequests)
       )
@@ -9358,7 +9601,10 @@ object Http4s600 {
         |""",
         EmptyBody,
         WebUiPropsCommons("webui_api_explorer_url", "https://apiexplorer.openbankproject.com", Some("web-ui-props-id"), Some("config")),
-        List(WebUiPropsNotFoundByName, InvalidFilterParameterFormat, UnknownError),
+        List(
+          WebUiPropsNotFoundByName,
+          UnknownError
+        ),
         apiTagWebUiProps :: Nil,
         None,
         http4sPartialFunction = Some(getWebUiProp)
@@ -9475,7 +9721,11 @@ object Http4s600 {
             ViewPermissionJsonV600("can_create_custom_view", "View")
           )
         ),
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+        List(
+          AuthenticatedUserIsRequired,
+          UserHasMissingRoles,
+          UnknownError
+        ),
         apiTagSystemView :: apiTagView :: Nil,
         Some(canGetViewPermissionsAtAllBanks :: Nil),
         http4sPartialFunction = Some(getViewPermissions)
@@ -9494,7 +9744,7 @@ object Http4s600 {
         |${userAuthenticationMessage(!getApiProductsIsPublic)}""".stripMargin,
         EmptyBody,
         apiProductsJsonV600,
-        List($AuthenticatedUserIsRequired, UnknownError),
+        List(UnknownError),
         apiTagApi :: apiTagApiProduct :: Nil,
         None,
         http4sPartialFunction = Some(getAllApiProductsV600)
@@ -9513,7 +9763,7 @@ object Http4s600 {
         |${userAuthenticationMessage(!getProductsIsPublic)}""".stripMargin,
         EmptyBody,
         productsJsonV600,
-        List($AuthenticatedUserIsRequired, UnknownError),
+        List(UnknownError),
         apiTagProduct :: Nil,
         None,
         http4sPartialFunction = Some(getAllProductsV600)
@@ -9551,7 +9801,7 @@ object Http4s600 {
           ))
         ),
         List($AuthenticatedUserIsRequired, UserHasMissingRoles, $BankNotFound, $BankAccountNotFound, UnknownError),
-        apiTagAccountAccess :: Nil,
+        List(apiTagAccountAccessRequest),
         Some(canGetAccountAccessRequestsAtOneBank :: canGetAccountAccessRequestsAtAnyBank :: Nil),
         http4sPartialFunction = Some(getAccountAccessRequestsForAccount)
       )
@@ -9584,7 +9834,7 @@ object Http4s600 {
           updated = APIUtil.DateWithMsExampleObject
         ),
         List($AuthenticatedUserIsRequired, UserHasMissingRoles, $BankNotFound, $BankAccountNotFound, AccountAccessRequestNotFound, UnknownError),
-        apiTagAccountAccess :: Nil,
+        List(apiTagAccountAccessRequest),
         Some(canGetAccountAccessRequestsAtOneBank :: canGetAccountAccessRequestsAtAnyBank :: Nil),
         http4sPartialFunction = Some(getAccountAccessRequestById)
       )
@@ -9652,7 +9902,7 @@ object Http4s600 {
         List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat,
         $BankNotFound, $BankAccountNotFound, BusinessJustificationRequired,
         AccountAccessRequestAlreadyExists, AccountAccessRequestCannotBeCreated, UnknownError),
-        apiTagAccountAccess :: Nil,
+        List(apiTagAccountAccessRequest),
         Some(canCreateAccountAccessRequestAtOneBank :: canCreateAccountAccessRequestAtAnyBank :: Nil),
         http4sPartialFunction = Some(createAccountAccessRequest)
       )
@@ -9696,7 +9946,7 @@ object Http4s600 {
         $BankNotFound, $BankAccountNotFound, AccountAccessRequestNotFound,
         AccountAccessRequestStatusNotInitiated, MakerCheckerSameUser,
         AccountAccessRequestCannotBeUpdated, UnknownError),
-        apiTagAccountAccess :: Nil,
+        List(apiTagAccountAccessRequest),
         Some(canUpdateAccountAccessRequestAtOneBank :: canUpdateAccountAccessRequestAtAnyBank :: Nil),
         http4sPartialFunction = Some(approveAccountAccessRequest)
       )
@@ -9740,7 +9990,7 @@ object Http4s600 {
         $BankNotFound, $BankAccountNotFound, AccountAccessRequestNotFound,
         AccountAccessRequestStatusNotInitiated, MakerCheckerSameUser,
         CheckerCommentRequiredForRejection, AccountAccessRequestCannotBeUpdated, UnknownError),
-        apiTagAccountAccess :: Nil,
+        List(apiTagAccountAccessRequest),
         Some(canUpdateAccountAccessRequestAtOneBank :: canUpdateAccountAccessRequestAtAnyBank :: Nil),
         http4sPartialFunction = Some(rejectAccountAccessRequest)
       )
@@ -9837,7 +10087,12 @@ object Http4s600 {
         |""".stripMargin,
         postSignalMessageJsonV600,
         signalMessagePublishedJsonV600,
-        List($AuthenticatedUserIsRequired, InvalidSignalChannelName, InvalidJsonFormat, UnknownError),
+        List(
+          $AuthenticatedUserIsRequired,
+          InvalidJsonFormat,
+          InvalidSignalChannelName,
+          UnknownError
+        ),
         apiTagAiAgent :: apiTagSignal :: apiTagSignalling :: apiTagChannel :: Nil,
         None,
         http4sPartialFunction = Some(publishSignalMessage)
@@ -9924,7 +10179,10 @@ object Http4s600 {
           created_at = new java.util.Date(),
           updated_at = new java.util.Date()
         ))),
-        List($AuthenticatedUserIsRequired, $BankNotFound, UnknownError),
+        List(
+          $AuthenticatedUserIsRequired,
+          UnknownError
+        ),
         apiTagChat :: Nil,
         None,
         http4sPartialFunction = Some(getBankChatRooms)
@@ -9996,7 +10254,12 @@ object Http4s600 {
           created_at = new java.util.Date(),
           updated_at = new java.util.Date()
         ),
-        List($AuthenticatedUserIsRequired, $BankNotFound, ChatRoomNotFound, NotChatRoomParticipant, UnknownError),
+        List(
+          $AuthenticatedUserIsRequired,
+          ChatRoomNotFound,
+          NotChatRoomParticipant,
+          UnknownError
+        ),
         apiTagChat :: Nil,
         None,
         http4sPartialFunction = Some(getBankChatRoom)
@@ -10270,7 +10533,12 @@ object Http4s600 {
           created_at = new java.util.Date(),
           updated_at = new java.util.Date()
         ),
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, $BankNotFound, ChatRoomNotFound, UnknownError),
+        List(
+          $AuthenticatedUserIsRequired,
+          UserHasMissingRoles,
+          ChatRoomNotFound,
+          UnknownError
+        ),
         apiTagChat :: Nil,
         Some(canArchiveBankChatRoom :: Nil),
         http4sPartialFunction = Some(archiveBankChatRoom)
@@ -10340,8 +10608,13 @@ object Http4s600 {
           last_read_at = new java.util.Date(),
           is_muted = false
         ),
-        List($AuthenticatedUserIsRequired, $BankNotFound, InvalidJoiningKey,
-        ChatRoomIsArchived, ChatRoomParticipantAlreadyExists, UnknownError),
+        List(
+          $AuthenticatedUserIsRequired,
+          InvalidJoiningKey,
+          ChatRoomIsArchived,
+          ChatRoomParticipantAlreadyExists,
+          UnknownError
+        ),
         apiTagChat :: Nil,
         None,
         http4sPartialFunction = Some(joinBankChatRoom)
@@ -10361,8 +10634,12 @@ object Http4s600 {
         |""".stripMargin,
         EmptyBody,
         JoiningKeyJsonV600(joining_key = "new-key-abc123"),
-        List($AuthenticatedUserIsRequired, $BankNotFound, ChatRoomNotFound,
-        InsufficientChatPermission, UnknownError),
+        List(
+          $AuthenticatedUserIsRequired,
+          ChatRoomNotFound,
+          InsufficientChatPermission,
+          UnknownError
+        ),
         apiTagChat :: Nil,
         None,
         http4sPartialFunction = Some(refreshBankJoiningKey)
@@ -10420,8 +10697,12 @@ object Http4s600 {
           created_at = new java.util.Date(),
           updated_at = new java.util.Date()
         ),
-        List($AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat,
-        ChatRoomAlreadyExists, UnknownError),
+        List(
+          $AuthenticatedUserIsRequired,
+          InvalidJsonFormat,
+          ChatRoomAlreadyExists,
+          UnknownError
+        ),
         apiTagChat :: Nil,
         None,
         http4sPartialFunction = Some(createBankChatRoom)
@@ -10552,8 +10833,12 @@ object Http4s600 {
         |""".stripMargin,
         EmptyBody,
         EmptyBody,
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles,
-        $BankNotFound, ChatRoomNotFound, UnknownError),
+        List(
+          $AuthenticatedUserIsRequired,
+          UserHasMissingRoles,
+          ChatRoomNotFound,
+          UnknownError
+        ),
         apiTagChat :: Nil,
         Some(canDeleteBankChatRoom :: Nil),
         http4sPartialFunction = Some(deleteBankChatRoom)
@@ -10587,7 +10872,7 @@ object Http4s600 {
         nameOf(setBankChatRoomOpenRoom),
         "PUT",
         "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/open-room",
-        "Set Bank Chat Room Open Room",
+        "Set Chat Room All Users Are Participants",
         s"""Set whether all authenticated users are implicit participants of this chat room.
         |
         |If true, all users can read and send messages without needing an explicit Participant record.
@@ -10616,8 +10901,12 @@ object Http4s600 {
           created_at = new java.util.Date(),
           updated_at = new java.util.Date()
         ),
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles,
-        $BankNotFound, ChatRoomNotFound, UnknownError),
+        List(
+          $AuthenticatedUserIsRequired,
+          UserHasMissingRoles,
+          ChatRoomNotFound,
+          UnknownError
+        ),
         apiTagChat :: Nil,
         Some(canSetBankChatRoomIsOpenRoom :: Nil),
         http4sPartialFunction = Some(setBankChatRoomOpenRoom)
@@ -10628,7 +10917,7 @@ object Http4s600 {
         nameOf(setSystemChatRoomOpenRoom),
         "PUT",
         "/chat-rooms/CHAT_ROOM_ID/open-room",
-        "Set System Chat Room Open Room",
+        "Set System Chat Room All Users Are Participants",
         s"""Set whether all authenticated users are implicit participants of this system-level chat room.
         |
         |If true, all users can read and send messages without needing an explicit Participant record.
@@ -10691,9 +10980,15 @@ object Http4s600 {
             last_read_at = new java.util.Date(),
             is_muted = false
           ),
-          List($AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat,
-          ChatRoomNotFound, InsufficientChatPermission, MustSpecifyUserIdOrConsumerId,
-          ChatRoomParticipantAlreadyExists, UnknownError),
+          List(
+            $AuthenticatedUserIsRequired,
+            InvalidJsonFormat,
+            ChatRoomNotFound,
+            InsufficientChatPermission,
+            MustSpecifyUserIdOrConsumerId,
+            ChatRoomParticipantAlreadyExists,
+            UnknownError
+          ),
           apiTagChat :: Nil,
           None,
           http4sPartialFunction = Some(addBankChatRoomParticipant)
@@ -10760,8 +11055,12 @@ object Http4s600 {
             last_read_at = new java.util.Date(),
             is_muted = false
           ))),
-          List($AuthenticatedUserIsRequired, $BankNotFound,
-          ChatRoomNotFound, NotChatRoomParticipant, UnknownError),
+          List(
+            $AuthenticatedUserIsRequired,
+            ChatRoomNotFound,
+            NotChatRoomParticipant,
+            UnknownError
+          ),
           apiTagChat :: Nil,
           None,
           http4sPartialFunction = Some(getBankChatRoomParticipants)
@@ -10825,8 +11124,14 @@ object Http4s600 {
             last_read_at = new java.util.Date(),
             is_muted = false
           ),
-          List($AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat,
-          ChatRoomNotFound, InsufficientChatPermission, ChatRoomParticipantNotFound, UnknownError),
+          List(
+            $AuthenticatedUserIsRequired,
+            InvalidJsonFormat,
+            ChatRoomNotFound,
+            InsufficientChatPermission,
+            ChatRoomParticipantNotFound,
+            UnknownError
+          ),
           apiTagChat :: Nil,
           None,
           http4sPartialFunction = Some(updateBankParticipantPermissions)
@@ -10878,8 +11183,13 @@ object Http4s600 {
           |""".stripMargin,
           EmptyBody,
           EmptyBody,
-          List($AuthenticatedUserIsRequired, $BankNotFound,
-          ChatRoomNotFound, InsufficientChatPermission, ChatRoomParticipantNotFound, UnknownError),
+          List(
+            $AuthenticatedUserIsRequired,
+            ChatRoomNotFound,
+            InsufficientChatPermission,
+            ChatRoomParticipantNotFound,
+            UnknownError
+          ),
           apiTagChat :: Nil,
           None,
           http4sPartialFunction = Some(removeBankChatRoomParticipant)
@@ -10935,8 +11245,14 @@ object Http4s600 {
             updated_at = new java.util.Date(),
             reactions = List()
           ),
-          List($AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat,
-          ChatRoomNotFound, NotChatRoomParticipant, ChatRoomIsArchived, UnknownError),
+          List(
+            $AuthenticatedUserIsRequired,
+            InvalidJsonFormat,
+            ChatRoomNotFound,
+            NotChatRoomParticipant,
+            ChatRoomIsArchived,
+            UnknownError
+          ),
           apiTagChat :: Nil,
           None,
           http4sPartialFunction = Some(sendBankChatMessage)
@@ -11013,8 +11329,12 @@ object Http4s600 {
             updated_at = new java.util.Date(),
             reactions = List(ReactionSummaryJsonV600(emoji = "thumbsup", count = 2, user_ids = List("user-1", "user-2")))
           ))),
-          List($AuthenticatedUserIsRequired, $BankNotFound,
-          ChatRoomNotFound, NotChatRoomParticipant, UnknownError),
+          List(
+            $AuthenticatedUserIsRequired,
+            ChatRoomNotFound,
+            NotChatRoomParticipant,
+            UnknownError
+          ),
           apiTagChat :: Nil,
           None,
           http4sPartialFunction = Some(getBankChatMessages)
@@ -11091,8 +11411,13 @@ object Http4s600 {
             updated_at = new java.util.Date(),
             reactions = List()
           ),
-          List($AuthenticatedUserIsRequired, $BankNotFound,
-          ChatRoomNotFound, NotChatRoomParticipant, ChatMessageNotFound, UnknownError),
+          List(
+            $AuthenticatedUserIsRequired,
+            ChatRoomNotFound,
+            NotChatRoomParticipant,
+            ChatMessageNotFound,
+            UnknownError
+          ),
           apiTagChat :: Nil,
           None,
           http4sPartialFunction = Some(getBankChatMessage)
@@ -11165,9 +11490,15 @@ object Http4s600 {
             updated_at = new java.util.Date(),
             reactions = List()
           ),
-          List($AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat,
-          ChatRoomNotFound, NotChatRoomParticipant, ChatMessageNotFound,
-          CannotEditOthersMessage, UnknownError),
+          List(
+            $AuthenticatedUserIsRequired,
+            InvalidJsonFormat,
+            ChatRoomNotFound,
+            NotChatRoomParticipant,
+            ChatMessageNotFound,
+            CannotEditOthersMessage,
+            UnknownError
+          ),
           apiTagChat :: Nil,
           None,
           http4sPartialFunction = Some(editBankChatMessage)
@@ -11224,9 +11555,14 @@ object Http4s600 {
           |""".stripMargin,
           EmptyBody,
           EmptyBody,
-          List($AuthenticatedUserIsRequired, $BankNotFound,
-          ChatRoomNotFound, NotChatRoomParticipant, ChatMessageNotFound,
-          CannotDeleteMessage, UnknownError),
+          List(
+            $AuthenticatedUserIsRequired,
+            ChatRoomNotFound,
+            NotChatRoomParticipant,
+            ChatMessageNotFound,
+            CannotDeleteMessage,
+            UnknownError
+          ),
           apiTagChat :: Nil,
           None,
           http4sPartialFunction = Some(deleteBankChatMessage)
@@ -11283,8 +11619,13 @@ object Http4s600 {
             updated_at = new java.util.Date(),
             reactions = List()
           ))),
-          List($AuthenticatedUserIsRequired, $BankNotFound,
-          ChatRoomNotFound, NotChatRoomParticipant, ChatMessageNotFound, UnknownError),
+          List(
+            $AuthenticatedUserIsRequired,
+            ChatRoomNotFound,
+            NotChatRoomParticipant,
+            ChatMessageNotFound,
+            UnknownError
+          ),
           apiTagChat :: Nil,
           None,
           http4sPartialFunction = Some(getBankThreadReplies)
@@ -11357,8 +11698,15 @@ object Http4s600 {
             updated_at = new java.util.Date(),
             reactions = List()
           ),
-          List($AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat,
-          ChatRoomNotFound, NotChatRoomParticipant, ChatRoomIsArchived, ChatMessageNotFound, UnknownError),
+          List(
+            $AuthenticatedUserIsRequired,
+            InvalidJsonFormat,
+            ChatRoomNotFound,
+            NotChatRoomParticipant,
+            ChatRoomIsArchived,
+            ChatMessageNotFound,
+            UnknownError
+          ),
           apiTagChat :: Nil,
           None,
           http4sPartialFunction = Some(replyInBankThread)
@@ -11422,9 +11770,15 @@ object Http4s600 {
             emoji = "thumbsup",
             created_at = new java.util.Date()
           ),
-          List($AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat,
-          ChatRoomNotFound, NotChatRoomParticipant, ChatMessageNotFound,
-          ReactionAlreadyExists, UnknownError),
+          List(
+            $AuthenticatedUserIsRequired,
+            InvalidJsonFormat,
+            ChatRoomNotFound,
+            NotChatRoomParticipant,
+            ChatMessageNotFound,
+            ReactionAlreadyExists,
+            UnknownError
+          ),
           apiTagChat :: Nil,
           None,
           http4sPartialFunction = Some(addBankReaction)
@@ -11472,9 +11826,14 @@ object Http4s600 {
           |""".stripMargin,
           EmptyBody,
           EmptyBody,
-          List($AuthenticatedUserIsRequired, $BankNotFound,
-          ChatRoomNotFound, NotChatRoomParticipant, ChatMessageNotFound,
-          ReactionNotFound, UnknownError),
+          List(
+            $AuthenticatedUserIsRequired,
+            ChatRoomNotFound,
+            NotChatRoomParticipant,
+            ChatMessageNotFound,
+            ReactionNotFound,
+            UnknownError
+          ),
           apiTagChat :: Nil,
           None,
           http4sPartialFunction = Some(removeBankReaction)
@@ -11522,8 +11881,13 @@ object Http4s600 {
             emoji = "thumbsup",
             created_at = new java.util.Date()
           ))),
-          List($AuthenticatedUserIsRequired, $BankNotFound,
-          ChatRoomNotFound, NotChatRoomParticipant, ChatMessageNotFound, UnknownError),
+          List(
+            $AuthenticatedUserIsRequired,
+            ChatRoomNotFound,
+            NotChatRoomParticipant,
+            ChatMessageNotFound,
+            UnknownError
+          ),
           apiTagChat :: Nil,
           None,
           http4sPartialFunction = Some(getBankReactions)
@@ -11573,8 +11937,12 @@ object Http4s600 {
           |""".stripMargin,
           EmptyBody,
           EmptyBody,
-          List($AuthenticatedUserIsRequired, $BankNotFound,
-          ChatRoomNotFound, NotChatRoomParticipant, UnknownError),
+          List(
+            $AuthenticatedUserIsRequired,
+            ChatRoomNotFound,
+            NotChatRoomParticipant,
+            UnknownError
+          ),
           apiTagChat :: Nil,
           None,
           http4sPartialFunction = Some(signalBankTyping)
@@ -11613,8 +11981,12 @@ object Http4s600 {
           |""".stripMargin,
           EmptyBody,
           TypingUsersJsonV600(users = List(TypingUserJsonV600(user_id = "user-id-123", username = "robert.x.0.gh", provider = "https://github.com"))),
-          List($AuthenticatedUserIsRequired, $BankNotFound,
-          ChatRoomNotFound, NotChatRoomParticipant, UnknownError),
+          List(
+            $AuthenticatedUserIsRequired,
+            ChatRoomNotFound,
+            NotChatRoomParticipant,
+            UnknownError
+          ),
           apiTagChat :: Nil,
           None,
           http4sPartialFunction = Some(getBankTypingUsers)
@@ -11861,7 +12233,7 @@ object Http4s600 {
           nameOf(resetPasswordUrlAnonymous),
           "POST",
           "/users/password-reset-url",
-          "Request Password Reset URL",
+          "Request Password Reset Email",
           s"""Request a password reset email for a user. No authentication is required.
           |
           |Authentication is NOT Required.
@@ -11949,8 +12321,19 @@ object Http4s600 {
           """.stripMargin,
           transactionRequestBodyHoldJsonV600,
           transactionRequestWithChargeJSON400,
-          txReqErrors,
-          txReqTags,
+          List(
+            $AuthenticatedUserIsRequired,
+            $BankNotFound,
+            $BankAccountNotFound,
+            InsufficientAuthorisationToCreateTransactionRequest,
+            InvalidTransactionRequestType,
+            InvalidJsonFormat,
+            NotPositiveAmount,
+            InvalidTransactionRequestCurrency,
+            TransactionDisabled,
+            UnknownError
+          ),
+          List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2),
           None,
           http4sPartialFunction = Some(createTransactionRequestHold)
         )
@@ -11971,8 +12354,19 @@ object Http4s600 {
           """.stripMargin,
           transactionRequestBodyCardanoJsonV600,
           transactionRequestWithChargeJSON400,
-          txReqErrors,
-          txReqTags,
+          List(
+            $AuthenticatedUserIsRequired,
+            $BankNotFound,
+            $BankAccountNotFound,
+            InsufficientAuthorisationToCreateTransactionRequest,
+            InvalidTransactionRequestType,
+            InvalidJsonFormat,
+            NotPositiveAmount,
+            InvalidTransactionRequestCurrency,
+            TransactionDisabled,
+            UnknownError
+          ),
+          List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2),
           None,
           http4sPartialFunction = Some(createTransactionRequestCardano)
         )
@@ -11993,8 +12387,19 @@ object Http4s600 {
           """.stripMargin,
           transactionRequestBodyEthereumJsonV600,
           transactionRequestWithChargeJSON400,
-          txReqErrors,
-          txReqTags,
+          List(
+            $AuthenticatedUserIsRequired,
+            $BankNotFound,
+            $BankAccountNotFound,
+            InsufficientAuthorisationToCreateTransactionRequest,
+            InvalidTransactionRequestType,
+            InvalidJsonFormat,
+            NotPositiveAmount,
+            InvalidTransactionRequestCurrency,
+            TransactionDisabled,
+            UnknownError
+          ),
+          List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2),
           None,
           http4sPartialFunction = Some(createTransactionRequestEthereumeSendTransaction)
         )
@@ -12004,7 +12409,7 @@ object Http4s600 {
           nameOf(createTransactionRequestEthSendRawTransaction),
           "POST",
           "/banks/BANK_ID/accounts/ACCOUNT_ID/owner/transaction-request-types/ETH_SEND_RAW_TRANSACTION/transaction-requests",
-          "Create Transaction Request (ETH_SEND_RAW_TRANSACTION)",
+          "CREATE TRANSACTION REQUEST (ETH_SEND_RAW_TRANSACTION )",
           s"""
             |
             |Send ETH via Ethereum JSON-RPC.
@@ -12015,8 +12420,19 @@ object Http4s600 {
           """.stripMargin,
           transactionRequestBodyEthSendRawTransactionJsonV600,
           transactionRequestWithChargeJSON400,
-          txReqErrors,
-          txReqTags,
+          List(
+            $AuthenticatedUserIsRequired,
+            $BankNotFound,
+            $BankAccountNotFound,
+            InsufficientAuthorisationToCreateTransactionRequest,
+            InvalidTransactionRequestType,
+            InvalidJsonFormat,
+            NotPositiveAmount,
+            InvalidTransactionRequestCurrency,
+            TransactionDisabled,
+            UnknownError
+          ),
+          List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2),
           None,
           http4sPartialFunction = Some(createTransactionRequestEthSendRawTransaction)
         )
@@ -12026,7 +12442,7 @@ object Http4s600 {
           nameOf(getUserGroupMemberships),
           "GET",
           "/users/USER_ID/group-entitlements",
-          "Get User Group Memberships",
+          "Get User's Group Memberships",
           s"""Get all groups a user is a member of.
           |
           |Returns groups where the user has entitlements with process = "GROUP_MEMBERSHIP".
@@ -12053,7 +12469,11 @@ object Http4s600 {
               )
             )
           ),
-          List($AuthenticatedUserIsRequired, UserHasMissingRoles, UserNotFoundByUserId, UnknownError),
+          List(
+            AuthenticatedUserIsRequired,
+            UserHasMissingRoles,
+            UnknownError
+          ),
           apiTagGroup :: apiTagUser :: apiTagEntitlement :: Nil,
           Some(canGetUserGroupMembershipsAtAllBanks :: canGetUserGroupMembershipsAtOneBank :: Nil),
           http4sPartialFunction = Some(getUserGroupMemberships)
@@ -12086,7 +12506,11 @@ object Http4s600 {
               access_source = "ACCOUNT_ACCESS"
             ))
           ),
-          List($BankNotFound, $BankAccountNotFound, ViewNotFound, UnknownError),
+          List(
+            $BankNotFound,
+            BankAccountNotFound,
+            UnknownError
+          ),
           apiTagAccount :: apiTagView :: Nil,
           Some(canSeeAccountAccessForAnyUser :: Nil),
           http4sPartialFunction = Some(getUsersWithAccountAccess)
@@ -12125,8 +12549,18 @@ object Http4s600 {
           |""",
           postRetailCustomerJsonV600,
           customerJsonV600,
-          List($AuthenticatedUserIsRequired, UserHasMissingRoles, $BankNotFound,
-          InvalidJsonFormat, InvalidJsonContent, UnknownError),
+          List(
+            $AuthenticatedUserIsRequired,
+            $BankNotFound,
+            InvalidJsonFormat,
+            InvalidJsonContent,
+            InvalidDateFormat,
+            CustomerNumberAlreadyExists,
+            UserNotFoundById,
+            CustomerAlreadyExistsForUser,
+            CreateConsumerError,
+            UnknownError
+          ),
           apiTagRetailCustomer :: apiTagCustomer :: Nil,
           Some(canCreateCustomer :: canCreateCustomerAtAnyBank :: Nil),
           http4sPartialFunction = Some(createRetailCustomer)
@@ -12163,8 +12597,18 @@ object Http4s600 {
           |""",
           postCorporateCustomerJsonV600,
           customerJsonV600,
-          List($AuthenticatedUserIsRequired, UserHasMissingRoles, $BankNotFound,
-          InvalidJsonFormat, InvalidCustomerType, UnknownError),
+          List(
+            $AuthenticatedUserIsRequired,
+            $BankNotFound,
+            InvalidJsonFormat,
+            InvalidCustomerType,
+            ParentCustomerNotFound,
+            CustomerNumberAlreadyExists,
+            UserNotFoundById,
+            CustomerAlreadyExistsForUser,
+            CreateConsumerError,
+            UnknownError
+          ),
           apiTagCorporateCustomer :: apiTagCustomer :: Nil,
           Some(canCreateCustomer :: canCreateCustomerAtAnyBank :: Nil),
           http4sPartialFunction = Some(createCorporateCustomer)
@@ -12175,7 +12619,7 @@ object Http4s600 {
           nameOf(getUserByUserId),
           "GET",
           "/users/user-id/USER_ID",
-          "Get User By User Id",
+          "Get User by USER_ID",
           s"""Get user by USER_ID
              |
              |${userAuthenticationMessage(true)}
@@ -12215,7 +12659,12 @@ object Http4s600 {
           |""".stripMargin,
           EmptyBody,
           JSONFactory600.createTokenJSON("eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczpcL1wvd3d3Lm9wZW5iYW5rcHJvamVjdC5jb20iLCJpYXQiOjE0NTU4OTQyNzYsImV4cCI6MTQ1NTg5Nzg3NiwiYXVkIjoib2JwLWFwaSIsInN1YiI6IjA2Zjc0YjUwLTA5OGYtNDYwNi1hOGNjLTBjNDc5MjAyNmI5ZCIsImNvbnN1bWVyX2tleSI6IjYwNGY3ZTAyNGQ5MWU2MzMwNGMzOGM0YzRmZjc0MjMwZGU5NDk4NTEwNjgxZWNjM2Q5MzViNWQ5MGEwOTI3ODciLCJyb2xlIjoiY2FuX2FjY2Vzc19hcGkifQ.f8xHvXP5fDxo5-LlfTj1OQS9oqHNZfFd7N-WkV2o4Cc"),
-          List(InvalidLoginCredentials, UsernameHasBeenLocked, UnknownError),
+          List(
+            InvalidDirectLoginParameters,
+            InvalidLoginCredentials,
+            InvalidConsumerCredentials,
+            UnknownError
+          ),
           apiTagUser :: Nil,
           None,
           http4sPartialFunction = Some(directLoginEndpoint)
@@ -12259,8 +12708,12 @@ object Http4s600 {
             valid = true,
             message = "ABAC rule code is valid"
           ),
-          List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat,
-          AbacRuleCodeEmpty, UnknownError),
+          List(
+            AuthenticatedUserIsRequired,
+            UserHasMissingRoles,
+            InvalidJsonFormat,
+            UnknownError
+          ),
           apiTagABAC :: Nil,
           Some(canCreateAbacRule :: Nil),
           http4sPartialFunction = Some(validateAbacRule)
@@ -12301,7 +12754,12 @@ object Http4s600 {
           AbacRuleResultJsonV600(
             result = true
           ),
-          List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+          List(
+            AuthenticatedUserIsRequired,
+            UserHasMissingRoles,
+            InvalidJsonFormat,
+            UnknownError
+          ),
           apiTagABAC :: Nil,
           Some(canExecuteAbacRule :: Nil),
           http4sPartialFunction = Some(executeAbacRule)
@@ -12345,7 +12803,12 @@ object Http4s600 {
           AbacRuleResultJsonV600(
             result = true
           ),
-          List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+          List(
+            AuthenticatedUserIsRequired,
+            UserHasMissingRoles,
+            InvalidJsonFormat,
+            UnknownError
+          ),
           apiTagABAC :: Nil,
           Some(canExecuteAbacRule :: Nil),
           http4sPartialFunction = Some(executeAbacPolicy)
@@ -12421,7 +12884,11 @@ object Http4s600 {
               "Attributes are Lists - use .find(), .exists(), .forall() etc."
             )
           ),
-          List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+          List(
+            AuthenticatedUserIsRequired,
+            UserHasMissingRoles,
+            UnknownError
+          ),
           apiTagABAC :: Nil,
           Some(canGetAbacRule :: Nil),
           http4sPartialFunction = Some(getAbacRuleSchema)
@@ -12503,7 +12970,7 @@ object Http4s600 {
           nameOf(deleteSystemDynamicEntityCascade),
           "DELETE",
           "/management/system-dynamic-entities/cascade/DYNAMIC_ENTITY_ID",
-          "Delete System Dynamic Entity Cascade",
+          "Delete System Level Dynamic Entity Cascade",
           s"""Delete a DynamicEntity specified by DYNAMIC_ENTITY_ID and all its data records.
            |
            |This endpoint performs a cascade delete:
@@ -12527,8 +12994,11 @@ object Http4s600 {
            |""",
           EmptyBody,
           EmptyBody,
-          List($AuthenticatedUserIsRequired, UserHasMissingRoles,
-          CannotDeleteCascadePersonalEntity, UnknownError),
+          List(
+            $AuthenticatedUserIsRequired,
+            UserHasMissingRoles,
+            UnknownError
+          ),
           apiTagManageDynamicEntity :: apiTagApi :: Nil,
           Some(canDeleteCascadeSystemDynamicEntity :: Nil),
           http4sPartialFunction = Some(deleteSystemDynamicEntityCascade)
@@ -12585,8 +13055,15 @@ object Http4s600 {
         |""",
         EmptyBody,
         investigationReportJsonV600,
-        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, InvestigationReportNotAvailable, UnknownError),
-        apiTagCustomer :: Nil,
+        List(
+          $AuthenticatedUserIsRequired,
+          $BankNotFound,
+          CustomerNotFoundByCustomerId,
+          InvestigationReportNotAvailable,
+          UserHasMissingRoles,
+          UnknownError
+        ),
+        List(apiTagCustomer, apiTagKyc, apiTagTransaction, apiTagAccount, apiTagFinancialCrime, apiTagAiAgent),
         Some(canGetInvestigationReport :: Nil),
         http4sPartialFunction = Some(getCustomerInvestigationReport)
       )
@@ -12604,7 +13081,15 @@ object Http4s600 {
         |""",
         postCustomerLinkJsonV600,
         customerLinkJsonV600,
-        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+        List(
+          $AuthenticatedUserIsRequired,
+          $BankNotFound,
+          InvalidJsonFormat,
+          CustomerNotFoundByCustomerId,
+          UserHasMissingRoles,
+          CreateCustomerLinkError,
+          UnknownError
+        ),
         apiTagCustomer :: Nil,
         Some(canCreateCustomerLink :: Nil),
         http4sPartialFunction = Some(createCustomerLink)
@@ -12615,7 +13100,7 @@ object Http4s600 {
         nameOf(getCustomerLinksByBankId),
         "GET",
         "/banks/BANK_ID/customer-links",
-        "Get Customer Links by Bank",
+        "Get Customer Links at Bank",
         s"""Get all Customer Links at a Bank.
         |
         |Authentication is Required
@@ -12634,7 +13119,7 @@ object Http4s600 {
         nameOf(getCustomerLinkById),
         "GET",
         "/banks/BANK_ID/customer-links/CUSTOMER_LINK_ID",
-        "Get Customer Link by Id",
+        "Get Customer Link by CUSTOMER_LINK_ID",
         s"""Get Customer Link by CUSTOMER_LINK_ID.
         |
         |Authentication is Required
@@ -12642,7 +13127,13 @@ object Http4s600 {
         |""",
         EmptyBody,
         customerLinkJsonV600,
-        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
+        List(
+          $AuthenticatedUserIsRequired,
+          $BankNotFound,
+          CustomerLinkNotFound,
+          UserHasMissingRoles,
+          UnknownError
+        ),
         apiTagCustomer :: Nil,
         Some(canGetCustomerLink :: Nil),
         http4sPartialFunction = Some(getCustomerLinkById)
@@ -12661,7 +13152,15 @@ object Http4s600 {
         |""",
         putCustomerLinkJsonV600,
         customerLinkJsonV600,
-        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+        List(
+          $AuthenticatedUserIsRequired,
+          $BankNotFound,
+          InvalidJsonFormat,
+          CustomerLinkNotFound,
+          UserHasMissingRoles,
+          UpdateCustomerLinkError,
+          UnknownError
+        ),
         apiTagCustomer :: Nil,
         Some(canUpdateCustomerLink :: Nil),
         http4sPartialFunction = Some(updateCustomerLink)
@@ -12680,7 +13179,13 @@ object Http4s600 {
         |""",
         EmptyBody,
         EmptyBody,
-        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
+        List(
+          $AuthenticatedUserIsRequired,
+          $BankNotFound,
+          CustomerLinkNotFound,
+          UserHasMissingRoles,
+          UnknownError
+        ),
         apiTagCustomer :: Nil,
         Some(canDeleteCustomerLink :: Nil),
         http4sPartialFunction = Some(deleteCustomerLink)
@@ -12691,7 +13196,7 @@ object Http4s600 {
         nameOf(getCustomViewById),
         "GET",
         "/management/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID",
-        "Get Custom View by Id",
+        "Get Custom View",
         s"""Get a single custom view by bank, account, and view ID.
         |
         |Custom views are user-created views with names starting with underscore (_), such as:
@@ -12727,8 +13232,13 @@ object Http4s600 {
             "can_add_comment"
           )
         ),
-        List($AuthenticatedUserIsRequired, UnknownError),
-        apiTagView :: Nil,
+        List(
+          AuthenticatedUserIsRequired,
+          UserHasMissingRoles,
+          ViewNotFound,
+          UnknownError
+        ),
+        List(apiTagView, apiTagSystemView),
         None,
         http4sPartialFunction = Some(getCustomViewById)
       )
@@ -12758,7 +13268,12 @@ object Http4s600 {
           new_version = 2,
           status = "invalidated"
         ),
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+        List(
+          InvalidJsonFormat,
+          AuthenticatedUserIsRequired,
+          UserHasMissingRoles,
+          UnknownError
+        ),
         apiTagCache :: apiTagSystem :: apiTagApi :: Nil,
         Some(canInvalidateCacheNamespace :: Nil),
         http4sPartialFunction = Some(invalidateCacheNamespace)
@@ -12792,7 +13307,9 @@ object Http4s600 {
         |""".stripMargin,
         EmptyBody,
         configPropsJsonV600,
-        List($AuthenticatedUserIsRequired, UnknownError),
+        List(
+          UnknownError
+        ),
         apiTagApi :: Nil,
         None,
         http4sPartialFunction = Some(getConfigProps)
@@ -12846,8 +13363,12 @@ object Http4s600 {
         |""".stripMargin,
         EmptyBody,
         ViewsJsonV600(List()),
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
-        apiTagView :: Nil,
+        List(
+          AuthenticatedUserIsRequired,
+          UserHasMissingRoles,
+          UnknownError
+        ),
+        List(apiTagView, apiTagSystemView),
         Some(canGetCustomViews :: Nil),
         http4sPartialFunction = Some(getCustomViews)
       )
@@ -12883,8 +13404,12 @@ object Http4s600 {
             )
           )
         ),
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
-        apiTagRole :: Nil,
+        List(
+          AuthenticatedUserIsRequired,
+          UserHasMissingRoles,
+          UnknownError
+        ),
+        List(apiTagRole, apiTagEntitlement),
         Some(canGetRolesWithEntitlementCountsAtAllBanks :: Nil),
         http4sPartialFunction = Some(getRolesWithEntitlementCountsAtAllBanks)
       )
@@ -12955,8 +13480,13 @@ object Http4s600 {
           active_rate_limits = activeRateLimitsJsonV600,
           call_counters = redisCallCountersJsonV600
         ),
-        List($AuthenticatedUserIsRequired, InvalidConsumerCredentials, UnknownError),
-        apiTagConsumer :: Nil,
+        List(
+          AuthenticatedUserIsRequired,
+          UserHasMissingRoles,
+          InvalidConsumerCredentials,
+          UnknownError
+        ),
+        apiTagConsumer :: apiTagApi :: Nil,
         Some(canGetCurrentConsumer :: Nil),
         http4sPartialFunction = Some(getCurrentConsumer)
       )
@@ -12990,7 +13520,7 @@ object Http4s600 {
           )
         ),
         List(UnknownError),
-        apiTagApi :: Nil,
+        List(apiTagMetric, apiTagApi),
         None,
         http4sPartialFunction = Some(getPopularApis)
       )
@@ -13000,7 +13530,7 @@ object Http4s600 {
         nameOf(getAccountDirectory),
         "GET",
         "/banks/BANK_ID/account-directory",
-        "Get Account Directory",
+        "Get Account Directory at Bank",
         s"""Returns a list of accounts at the bank with identifiers and metadata.
         |
         |This endpoint is designed for management UIs that need to list accounts
@@ -13028,7 +13558,10 @@ object Http4s600 {
             view_ids = List("owner")
           ))
         ),
-        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
+        List(
+          $BankNotFound,
+          UnknownError
+        ),
         apiTagAccount :: Nil,
         Some(canGetAccountDirectoryAtOneBank :: Nil),
         http4sPartialFunction = Some(getAccountDirectory)
@@ -13066,7 +13599,12 @@ object Http4s600 {
           list_of_roles = List("CanGetCustomer", "CanGetAccount", "CanCreateTransaction"),
           is_enabled = true
         ),
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+        List(
+          AuthenticatedUserIsRequired,
+          UserHasMissingRoles,
+          InvalidJsonFormat,
+          UnknownError
+        ),
         apiTagGroup :: Nil,
         None,
         http4sPartialFunction = Some(createGroup)
@@ -13096,7 +13634,11 @@ object Http4s600 {
           list_of_roles = List("CanGetCustomer", "CanGetAccount", "CanCreateTransaction"),
           is_enabled = true
         ),
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+        List(
+          AuthenticatedUserIsRequired,
+          UserHasMissingRoles,
+          UnknownError
+        ),
         apiTagGroup :: Nil,
         None,
         http4sPartialFunction = Some(getGroup)
@@ -13133,7 +13675,11 @@ object Http4s600 {
             )
           )
         ),
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+        List(
+          AuthenticatedUserIsRequired,
+          UserHasMissingRoles,
+          UnknownError
+        ),
         apiTagGroup :: Nil,
         None,
         http4sPartialFunction = Some(getGroups)
@@ -13168,7 +13714,12 @@ object Http4s600 {
           list_of_roles = List("CanGetCustomer", "CanGetAccount", "CanCreateTransaction", "CanGetTransaction"),
           is_enabled = true
         ),
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+        List(
+          AuthenticatedUserIsRequired,
+          UserHasMissingRoles,
+          InvalidJsonFormat,
+          UnknownError
+        ),
         apiTagGroup :: Nil,
         None,
         http4sPartialFunction = Some(updateGroup)
@@ -13191,7 +13742,11 @@ object Http4s600 {
         |""".stripMargin,
         EmptyBody,
         EmptyBody,
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+        List(
+          AuthenticatedUserIsRequired,
+          UserHasMissingRoles,
+          UnknownError
+        ),
         apiTagGroup :: Nil,
         None,
         http4sPartialFunction = Some(deleteGroup)
@@ -13227,8 +13782,12 @@ object Http4s600 {
             )
           )
         ),
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
-        apiTagGroup :: Nil,
+        List(
+          AuthenticatedUserIsRequired,
+          UserHasMissingRoles,
+          UnknownError
+        ),
+        List(apiTagGroup, apiTagEntitlement),
         Some(canGetEntitlementsForAnyBank :: Nil),
         http4sPartialFunction = Some(getGroupEntitlements)
       )
@@ -13282,7 +13841,12 @@ object Http4s600 {
           created_by_user_id = "user123",
           updated_by_user_id = "user123"
         ),
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+        List(
+          AuthenticatedUserIsRequired,
+          UserHasMissingRoles,
+          InvalidJsonFormat,
+          UnknownError
+        ),
         apiTagABAC :: Nil,
         Some(canCreateAbacRule :: Nil),
         http4sPartialFunction = Some(createAbacRule)
@@ -13315,7 +13879,11 @@ object Http4s600 {
           created_by_user_id = "user123",
           updated_by_user_id = "user123"
         ),
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+        List(
+          AuthenticatedUserIsRequired,
+          UserHasMissingRoles,
+          UnknownError
+        ),
         apiTagABAC :: Nil,
         Some(canGetAbacRule :: Nil),
         http4sPartialFunction = Some(getAbacRule)
@@ -13352,7 +13920,11 @@ object Http4s600 {
             )
           )
         ),
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+        List(
+          AuthenticatedUserIsRequired,
+          UserHasMissingRoles,
+          UnknownError
+        ),
         apiTagABAC :: Nil,
         Some(canGetAbacRule :: Nil),
         http4sPartialFunction = Some(getAbacRules)
@@ -13402,7 +13974,11 @@ object Http4s600 {
             )
           )
         ),
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+        List(
+          AuthenticatedUserIsRequired,
+          UserHasMissingRoles,
+          UnknownError
+        ),
         apiTagABAC :: Nil,
         Some(canGetAbacRule :: Nil),
         http4sPartialFunction = Some(getAbacRulesByPolicy)
@@ -13441,7 +14017,12 @@ object Http4s600 {
           created_by_user_id = "user123",
           updated_by_user_id = "user456"
         ),
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+        List(
+          AuthenticatedUserIsRequired,
+          UserHasMissingRoles,
+          InvalidJsonFormat,
+          UnknownError
+        ),
         apiTagABAC :: Nil,
         Some(canUpdateAbacRule :: Nil),
         http4sPartialFunction = Some(updateAbacRule)
@@ -13464,7 +14045,11 @@ object Http4s600 {
         |""".stripMargin,
         EmptyBody,
         EmptyBody,
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+        List(
+          AuthenticatedUserIsRequired,
+          UserHasMissingRoles,
+          UnknownError
+        ),
         apiTagABAC :: Nil,
         Some(canDeleteAbacRule :: Nil),
         http4sPartialFunction = Some(deleteAbacRule)
@@ -13497,7 +14082,7 @@ object Http4s600 {
         ),
         userAttributeResponseJsonV510,
         List($AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
-        apiTagUser :: Nil,
+        List(apiTagUser, apiTagUserAttribute, apiTagAttribute),
         Some(Nil),
         http4sPartialFunction = Some(createPersonalDataField)
       )
@@ -13519,7 +14104,7 @@ object Http4s600 {
           user_attributes = List(userAttributeResponseJsonV510)
         ),
         List($AuthenticatedUserIsRequired, UnknownError),
-        apiTagUser :: Nil,
+        List(apiTagUser, apiTagUserAttribute, apiTagAttribute),
         Some(Nil),
         http4sPartialFunction = Some(getPersonalDataFields)
       )
@@ -13537,7 +14122,7 @@ object Http4s600 {
         EmptyBody,
         userAttributeResponseJsonV510,
         List($AuthenticatedUserIsRequired, UserAttributeNotFound, UnknownError),
-        apiTagUser :: Nil,
+        List(apiTagUser, apiTagUserAttribute, apiTagAttribute),
         Some(Nil),
         http4sPartialFunction = Some(getPersonalDataFieldById)
       )
@@ -13558,8 +14143,13 @@ object Http4s600 {
           value = "green"
         ),
         userAttributeResponseJsonV510,
-        List($AuthenticatedUserIsRequired, InvalidJsonFormat, UserAttributeNotFound, UnknownError),
-        apiTagUser :: Nil,
+        List(
+          $AuthenticatedUserIsRequired,
+          UserAttributeNotFound,
+          InvalidJsonFormat,
+          UnknownError
+        ),
+        List(apiTagUser, apiTagUserAttribute, apiTagAttribute),
         Some(Nil),
         http4sPartialFunction = Some(updatePersonalDataField)
       )
@@ -13577,7 +14167,7 @@ object Http4s600 {
         EmptyBody,
         EmptyBody,
         List($AuthenticatedUserIsRequired, UserAttributeNotFound, UnknownError),
-        apiTagUser :: Nil,
+        List(apiTagUser, apiTagUserAttribute, apiTagAttribute),
         Some(Nil),
         http4sPartialFunction = Some(deletePersonalDataField)
       )
@@ -13587,7 +14177,7 @@ object Http4s600 {
         nameOf(getConsumerCallCounters),
         "GET",
         "/management/consumers/CONSUMER_ID/call-counters",
-        "Get Consumer Call Counters",
+        "Get Call Counts for Consumer",
         s"""
         |Get the call counters (current usage) for a specific consumer. Shows how many API calls have been made and when the counters reset.
         |
@@ -13613,7 +14203,15 @@ object Http4s600 {
         |""".stripMargin,
         EmptyBody,
         redisCallCountersJsonV600,
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+        List(
+          $AuthenticatedUserIsRequired,
+          InvalidJsonFormat,
+          InvalidConsumerId,
+          ConsumerNotFoundByConsumerId,
+          UserHasMissingRoles,
+          UpdateConsumerError,
+          UnknownError
+        ),
         apiTagConsumer :: Nil,
         Some(canGetRateLimits :: Nil),
         http4sPartialFunction = Some(getConsumerCallCounters)
@@ -13633,7 +14231,14 @@ object Http4s600 {
         |""".stripMargin,
         callLimitPostJsonV600,
         callLimitJsonV600,
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+        List(
+          $AuthenticatedUserIsRequired,
+          InvalidJsonFormat,
+          InvalidConsumerId,
+          ConsumerNotFoundByConsumerId,
+          UserHasMissingRoles,
+          UnknownError
+        ),
         apiTagConsumer :: Nil,
         Some(canCreateRateLimits :: Nil),
         http4sPartialFunction = Some(createCallLimits)
@@ -13644,7 +14249,7 @@ object Http4s600 {
         nameOf(updateRateLimits),
         "PUT",
         "/management/consumers/CONSUMER_ID/consumer/rate-limits/RATE_LIMITING_ID",
-        "Update Rate Limits for a Consumer",
+        "Set Rate Limits / Call Limits per Consumer",
         s"""
         |Set the API rate limits / call limits for a Consumer:
         |
@@ -13662,8 +14267,16 @@ object Http4s600 {
         |""".stripMargin,
         callLimitPostJsonV400,
         callLimitPostJsonV400,
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
-        apiTagConsumer :: Nil,
+        List(
+          AuthenticatedUserIsRequired,
+          InvalidJsonFormat,
+          InvalidConsumerId,
+          ConsumerNotFoundByConsumerId,
+          UserHasMissingRoles,
+          UpdateConsumerError,
+          UnknownError
+        ),
+        List(apiTagConsumer, apiTagRateLimits),
         Some(canUpdateRateLimits :: Nil),
         http4sPartialFunction = Some(updateRateLimits)
       )
@@ -13673,7 +14286,7 @@ object Http4s600 {
         nameOf(deleteCallLimits),
         "DELETE",
         "/management/consumers/CONSUMER_ID/consumer/rate-limits/RATE_LIMITING_ID",
-        "Delete Rate Limits for a Consumer",
+        "Delete Rate Limit by Rate Limiting ID",
         s"""
         |Delete a specific Rate Limit by Rate Limiting ID
         |
@@ -13682,7 +14295,13 @@ object Http4s600 {
         |""".stripMargin,
         EmptyBody,
         EmptyBody,
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+        List(
+          $AuthenticatedUserIsRequired,
+          InvalidConsumerId,
+          ConsumerNotFoundByConsumerId,
+          UserHasMissingRoles,
+          UnknownError
+        ),
         apiTagConsumer :: Nil,
         Some(canDeleteRateLimits :: Nil),
         http4sPartialFunction = Some(deleteCallLimits)
@@ -13693,7 +14312,7 @@ object Http4s600 {
         nameOf(getActiveRateLimitsNow),
         "GET",
         "/management/consumers/CONSUMER_ID/active-rate-limits",
-        "Get Active Rate Limits (now)",
+        "Get Active Rate Limits (Current)",
         s"""
         |Get the active rate limits for a consumer at the current date/time. Returns the aggregated rate limits from all active records at this moment.
         |
@@ -13706,7 +14325,13 @@ object Http4s600 {
         |""".stripMargin,
         EmptyBody,
         activeRateLimitsJsonV600,
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+        List(
+          $AuthenticatedUserIsRequired,
+          InvalidConsumerId,
+          ConsumerNotFoundByConsumerId,
+          UserHasMissingRoles,
+          UnknownError
+        ),
         apiTagConsumer :: Nil,
         Some(canGetRateLimits :: Nil),
         http4sPartialFunction = Some(getActiveRateLimitsNow)
@@ -13717,7 +14342,7 @@ object Http4s600 {
         nameOf(getActiveRateLimitsAtDate),
         "GET",
         "/management/consumers/CONSUMER_ID/active-rate-limits/DATE_WITH_HOUR",
-        "Get Active Rate Limits at Date",
+        "Get Active Rate Limits for Hour",
         s"""
         |Get the active rate limits for a consumer for a specific hour. Returns the aggregated rate limits from all active records during that hour.
         |
@@ -13734,7 +14359,14 @@ object Http4s600 {
         |""".stripMargin,
         EmptyBody,
         activeRateLimitsJsonV600,
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidDateFormat, UnknownError),
+        List(
+          $AuthenticatedUserIsRequired,
+          InvalidConsumerId,
+          ConsumerNotFoundByConsumerId,
+          UserHasMissingRoles,
+          InvalidDateFormat,
+          UnknownError
+        ),
         apiTagConsumer :: Nil,
         Some(canGetRateLimits :: Nil),
         http4sPartialFunction = Some(getActiveRateLimitsAtDate)
@@ -13753,8 +14385,15 @@ object Http4s600 {
         |""".stripMargin,
         postFeaturedApiCollectionJsonV600,
         featuredApiCollectionJsonV600,
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, ApiCollectionNotFound, UnknownError),
-        apiTagApiCollection :: Nil,
+        List(
+          $AuthenticatedUserIsRequired,
+          UserHasMissingRoles,
+          ApiCollectionNotFound,
+          FeaturedApiCollectionAlreadyExists,
+          CreateFeaturedApiCollectionError,
+          UnknownError
+        ),
+        List(apiTagApiCollection, apiTagApi),
         Some(canManageFeaturedApiCollections :: Nil),
         http4sPartialFunction = Some(createFeaturedApiCollection)
       )
@@ -13776,7 +14415,7 @@ object Http4s600 {
         EmptyBody,
         featuredApiCollectionsJsonV600,
         List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
-        apiTagApiCollection :: Nil,
+        List(apiTagApiCollection, apiTagApi),
         Some(canManageFeaturedApiCollections :: Nil),
         http4sPartialFunction = Some(getFeaturedApiCollectionsAdmin)
       )
@@ -13794,8 +14433,14 @@ object Http4s600 {
         |""".stripMargin,
         putFeaturedApiCollectionJsonV600,
         featuredApiCollectionJsonV600,
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
-        apiTagApiCollection :: Nil,
+        List(
+          $AuthenticatedUserIsRequired,
+          UserHasMissingRoles,
+          FeaturedApiCollectionNotFound,
+          UpdateFeaturedApiCollectionError,
+          UnknownError
+        ),
+        List(apiTagApiCollection, apiTagApi),
         Some(canManageFeaturedApiCollections :: Nil),
         http4sPartialFunction = Some(updateFeaturedApiCollection)
       )
@@ -13813,8 +14458,14 @@ object Http4s600 {
         |""".stripMargin,
         EmptyBody,
         EmptyBody,
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
-        apiTagApiCollection :: Nil,
+        List(
+          $AuthenticatedUserIsRequired,
+          UserHasMissingRoles,
+          FeaturedApiCollectionNotFound,
+          DeleteFeaturedApiCollectionError,
+          UnknownError
+        ),
+        List(apiTagApiCollection, apiTagApi),
         Some(canManageFeaturedApiCollections :: Nil),
         http4sPartialFunction = Some(deleteFeaturedApiCollection)
       )
@@ -13832,7 +14483,13 @@ object Http4s600 {
         |""".stripMargin,
         postPutApiProductJsonV600,
         apiProductJsonV600,
-        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+        List(
+          $AuthenticatedUserIsRequired,
+          UserHasMissingRoles,
+          InvalidJsonFormat,
+          CreateApiProductError,
+          UnknownError
+        ),
         apiTagApi :: apiTagApiProduct :: Nil,
         Some(canCreateApiProduct :: Nil),
         http4sPartialFunction = Some(createApiProduct)
@@ -13851,7 +14508,13 @@ object Http4s600 {
         |""".stripMargin,
         postPutApiProductJsonV600,
         apiProductJsonV600,
-        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+        List(
+          $AuthenticatedUserIsRequired,
+          UserHasMissingRoles,
+          InvalidJsonFormat,
+          CreateApiProductError,
+          UnknownError
+        ),
         apiTagApi :: apiTagApiProduct :: Nil,
         Some(canUpdateApiProduct :: Nil),
         http4sPartialFunction = Some(createOrUpdateApiProduct)
@@ -13872,7 +14535,7 @@ object Http4s600 {
         |""".stripMargin,
         EmptyBody,
         apiProductJsonV600,
-        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
+        if (getApiProductsIsPublic) List(ApiProductNotFound, UnknownError) else List(UserHasMissingRoles, ApiProductNotFound, UnknownError),
         apiTagApi :: apiTagApiProduct :: Nil,
         Some(canGetApiProduct :: Nil),
         http4sPartialFunction = Some(getApiProduct)
@@ -13893,7 +14556,7 @@ object Http4s600 {
         |""".stripMargin,
         EmptyBody,
         apiProductsJsonV600,
-        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
+        if (getApiProductsIsPublic) List(UnknownError) else List(UserHasMissingRoles, UnknownError),
         apiTagApi :: apiTagApiProduct :: Nil,
         Some(canGetApiProduct :: Nil),
         http4sPartialFunction = Some(getApiProducts)
@@ -13912,7 +14575,13 @@ object Http4s600 {
         |""".stripMargin,
         EmptyBody,
         EmptyBody,
-        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
+        List(
+          $AuthenticatedUserIsRequired,
+          UserHasMissingRoles,
+          ApiProductNotFound,
+          DeleteApiProductError,
+          UnknownError
+        ),
         apiTagApi :: apiTagApiProduct :: Nil,
         Some(canDeleteApiProduct :: Nil),
         http4sPartialFunction = Some(deleteApiProduct)
@@ -13931,7 +14600,14 @@ object Http4s600 {
         |""".stripMargin,
         apiProductAttributeJsonV600,
         apiProductAttributeResponseJsonV600,
-        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+        List(
+          $AuthenticatedUserIsRequired,
+          UserHasMissingRoles,
+          InvalidJsonFormat,
+          ApiProductNotFound,
+          CreateApiProductAttributeError,
+          UnknownError
+        ),
         apiTagApi :: apiTagApiProductAttribute :: Nil,
         Some(canCreateApiProductAttribute :: Nil),
         http4sPartialFunction = Some(createApiProductAttribute)
@@ -13950,7 +14626,14 @@ object Http4s600 {
         |""".stripMargin,
         apiProductAttributeJsonV600,
         apiProductAttributeResponseJsonV600,
-        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+        List(
+          $AuthenticatedUserIsRequired,
+          UserHasMissingRoles,
+          InvalidJsonFormat,
+          ApiProductNotFound,
+          ApiProductAttributeNotFound,
+          UnknownError
+        ),
         apiTagApi :: apiTagApiProductAttribute :: Nil,
         Some(canUpdateApiProductAttribute :: Nil),
         http4sPartialFunction = Some(updateApiProductAttribute)
@@ -13969,7 +14652,7 @@ object Http4s600 {
         |""".stripMargin,
         EmptyBody,
         apiProductAttributeResponseJsonV600,
-        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
+        if (getApiProductsIsPublic) List(ApiProductAttributeNotFound, UnknownError) else List(UserHasMissingRoles, ApiProductAttributeNotFound, UnknownError),
         apiTagApi :: apiTagApiProductAttribute :: Nil,
         Some(canGetApiProductAttribute :: Nil),
         http4sPartialFunction = Some(getApiProductAttribute)
@@ -13988,7 +14671,13 @@ object Http4s600 {
         |""".stripMargin,
         EmptyBody,
         EmptyBody,
-        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
+        List(
+          $AuthenticatedUserIsRequired,
+          UserHasMissingRoles,
+          ApiProductAttributeNotFound,
+          DeleteApiProductAttributeError,
+          UnknownError
+        ),
         apiTagApi :: apiTagApiProductAttribute :: Nil,
         Some(canDeleteApiProductAttribute :: Nil),
         http4sPartialFunction = Some(deleteApiProductAttribute)
@@ -14039,7 +14728,13 @@ object Http4s600 {
           created_by_user_id = "user-id-123",
           updated_by_user_id = "user-id-123"
         ),
-        List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UserHasMissingRoles, UnknownError),
+        List(
+          $AuthenticatedUserIsRequired,
+          UserHasMissingRoles,
+          $BankNotFound,
+          InvalidJsonFormat,
+          UnknownError
+        ),
         apiTagMandate :: Nil,
         Some(canCreateMandate :: Nil),
         http4sPartialFunction = Some(createMandate)
@@ -14050,7 +14745,7 @@ object Http4s600 {
         nameOf(getMandates),
         "GET",
         "/banks/BANK_ID/accounts/ACCOUNT_ID/mandates",
-        "Get Mandates",
+        "Get Mandates for Account",
         s"""Get all mandates for a bank account.
         |
         |Authentication is Required
@@ -14071,7 +14766,12 @@ object Http4s600 {
           created_by_user_id = "user-id-123",
           updated_by_user_id = "user-id-123"
         ))),
-        List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UserHasMissingRoles, UnknownError),
+        List(
+          $AuthenticatedUserIsRequired,
+          UserHasMissingRoles,
+          $BankNotFound,
+          UnknownError
+        ),
         apiTagMandate :: Nil,
         Some(canGetMandate :: Nil),
         http4sPartialFunction = Some(getMandates)
@@ -14103,7 +14803,12 @@ object Http4s600 {
           created_by_user_id = "user-id-123",
           updated_by_user_id = "user-id-123"
         ),
-        List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UserHasMissingRoles, UnknownError),
+        List(
+          $AuthenticatedUserIsRequired,
+          UserHasMissingRoles,
+          $BankNotFound,
+          UnknownError
+        ),
         apiTagMandate :: Nil,
         Some(canGetMandate :: Nil),
         http4sPartialFunction = Some(getMandate)
@@ -14143,7 +14848,13 @@ object Http4s600 {
           created_by_user_id = "user-id-123",
           updated_by_user_id = "user-id-456"
         ),
-        List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UserHasMissingRoles, UnknownError),
+        List(
+          $AuthenticatedUserIsRequired,
+          UserHasMissingRoles,
+          $BankNotFound,
+          InvalidJsonFormat,
+          UnknownError
+        ),
         apiTagMandate :: Nil,
         Some(canUpdateMandate :: Nil),
         http4sPartialFunction = Some(updateMandate)
@@ -14161,7 +14872,12 @@ object Http4s600 {
         |""",
         EmptyBody,
         EmptyBody,
-        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
+        List(
+          $AuthenticatedUserIsRequired,
+          UserHasMissingRoles,
+          $BankNotFound,
+          UnknownError
+        ),
         apiTagMandate :: Nil,
         Some(canDeleteMandate :: Nil),
         http4sPartialFunction = Some(deleteMandate)
@@ -14215,7 +14931,13 @@ object Http4s600 {
           is_active = true,
           sort_order = 1
         ),
-        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
+        List(
+          $AuthenticatedUserIsRequired,
+          UserHasMissingRoles,
+          $BankNotFound,
+          InvalidJsonFormat,
+          UnknownError
+        ),
         apiTagMandate :: Nil,
         Some(canCreateMandateProvision :: Nil),
         http4sPartialFunction = Some(createMandateProvision)
@@ -14250,7 +14972,12 @@ object Http4s600 {
           is_active = true,
           sort_order = 1
         ))),
-        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
+        List(
+          $AuthenticatedUserIsRequired,
+          UserHasMissingRoles,
+          $BankNotFound,
+          UnknownError
+        ),
         apiTagMandate :: Nil,
         Some(canGetMandateProvision :: Nil),
         http4sPartialFunction = Some(getMandateProvisions)
@@ -14282,7 +15009,12 @@ object Http4s600 {
           is_active = true,
           sort_order = 1
         ),
-        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
+        List(
+          $AuthenticatedUserIsRequired,
+          UserHasMissingRoles,
+          $BankNotFound,
+          UnknownError
+        ),
         apiTagMandate :: Nil,
         Some(canGetMandateProvision :: Nil),
         http4sPartialFunction = Some(getMandateProvision)
@@ -14326,7 +15058,13 @@ object Http4s600 {
           is_active = true,
           sort_order = 2
         ),
-        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
+        List(
+          $AuthenticatedUserIsRequired,
+          UserHasMissingRoles,
+          $BankNotFound,
+          InvalidJsonFormat,
+          UnknownError
+        ),
         apiTagMandate :: Nil,
         Some(canUpdateMandateProvision :: Nil),
         http4sPartialFunction = Some(updateMandateProvision)
@@ -14344,7 +15082,12 @@ object Http4s600 {
         |""",
         EmptyBody,
         EmptyBody,
-        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
+        List(
+          $AuthenticatedUserIsRequired,
+          UserHasMissingRoles,
+          $BankNotFound,
+          UnknownError
+        ),
         apiTagMandate :: Nil,
         Some(canDeleteMandateProvision :: Nil),
         http4sPartialFunction = Some(deleteMandateProvision)
