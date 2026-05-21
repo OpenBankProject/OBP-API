@@ -1392,13 +1392,13 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     }
 
   private def findAccountDirectory(bankId: BankId, ordering: SQLSyntax, limit: Int, offset: Int)(implicit session: DBSession = AutoSession) = {
-    def parseRoutings(routings: String): List[FastFirehoseRoutings] = {
+    def parseRoutings(routings: String): List[AccountRouting] = {
       if(!routings.isEmpty) {
         transformStringDirectory(routings).map {
           i =>
-            FastFirehoseRoutings(
-              bank_id = i("bank_id").mkString(""),
-              account_id = i("account_id").mkString("")
+            AccountRouting(
+              scheme = i("scheme").mkString(""),
+              address = i("address").mkString("")
             )
         }
       } else {
@@ -1442,15 +1442,16 @@ object LocalMappedConnector extends Connector with MdcLoggable {
        |    mappedbankaccount.mbranchid as branch_id,
        |    (select
        |        string_agg(
-       |            'bank_id:'
-       |            ||bankaccountrouting.bankid
-       |            ||',account_id:'
-       |            ||bankaccountrouting.accountid,
+       |            'scheme:'
+       |            ||bankaccountrouting.accountroutingscheme
+       |            ||',address:'
+       |            ||bankaccountrouting.accountroutingaddress,
        |            '::'
        |            ) as account_routings
        |        from bankaccountrouting
        |        where
        |              bankaccountrouting.accountid = mappedbankaccount.theaccountid
+       |          and bankaccountrouting.bankid = mappedbankaccount.bank
        |     ),
        |    (select
        |        string_agg(

@@ -2900,7 +2900,7 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
     account_number: String,
     account_type: String,
     branch_id: String,
-    account_routings: List[FastFirehoseRoutings],
+    account_routings: List[AccountRoutingJsonV121],
     account_attributes: List[FastFirehoseAttributes],
     view_ids: List[String]
   )
@@ -2922,7 +2922,7 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
           account_number = a.number,
           account_type = a.productCode,
           branch_id = a.branchId,
-          account_routings = a.accountRoutings,
+          account_routings = a.accountRoutings.map(r => AccountRoutingJsonV121(r.scheme, r.address)),
           account_attributes = a.accountAttributes,
           view_ids = viewsPerAccount.getOrElse(BankIdAccountId(BankId(a.bankId), AccountId(a.id)), Nil)
         )
