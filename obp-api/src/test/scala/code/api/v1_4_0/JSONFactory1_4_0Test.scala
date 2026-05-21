@@ -127,8 +127,8 @@ class JSONFactory1_4_0Test extends code.setup.ServerSetup {
     }
 
     scenario("Technology field should be None unless includeTechnology=true") {
-      // allResourceDocs(0) is now an http4s doc (v3.0.0 sorts above v2.2.0); use a v2.2.0 Lift doc instead.
-      val liftDoc: ResourceDoc = OBPAPI1_4_0.allResourceDocs.head
+      // OBPAPI1_4_0 now uses collectResourceDocs — http4s v1.4.0 docs sort first; use a v1.3.0 Lift doc instead.
+      val liftDoc: ResourceDoc = OBPAPI1_3_0.allResourceDocs.head
       val json1 = JSONFactory1_4_0.createLocalisedResourceDocJson(liftDoc, false, None, includeTechnology = false, urlParameters, "JSON request body fields:", "JSON response body fields:")
       json1.implemented_by.technology shouldBe None
 
