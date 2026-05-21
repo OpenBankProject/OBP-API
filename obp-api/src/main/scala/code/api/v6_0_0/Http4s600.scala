@@ -6116,7 +6116,16 @@ object Http4s600 {
     }
 
 
-    val allRoutesWithMiddleware: HttpRoutes[IO] =
+    // `lazy val`: `resourceDocs +=` registrations are interleaved with endpoint
+    // definitions throughout the rest of this object body (244 calls, all AFTER
+    // this line). `ResourceDocMiddleware.apply` builds the lookup index from the
+    // current `resourceDocs` snapshot at the moment of application; with a strict
+    // `val` here the index is built before any registration runs, so every v6.0.0
+    // request fails to match a doc, middleware skips auth, and handlers using
+    // `EndpointHelpers.withUser` 500 with "User not found in CallContext".
+    // Deferring index construction to first request (post object-init) lets every
+    // registration land before the snapshot is taken.
+    lazy val allRoutesWithMiddleware: HttpRoutes[IO] =
       ResourceDocMiddleware.apply(resourceDocs)(allRoutes)
 
     // ─── path-rewriting bridge: /obp/v6.0.0/… → /obp/v5.1.0/… ─────────────
