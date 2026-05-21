@@ -194,11 +194,11 @@ Separate from the resource-docs **serving** workstream above, there is a parity 
 | v2_2_0 | 18  | 13 | 0 | 0 | not started |
 | v3_0_0 | 47  | 41 | 0 | 0 | not started |
 | v3_1_0 | 102 | 49 | 0 | 0 | not started |
-| v4_0_0 | 254 | 172| 2 | 5 | not started |
+| v4_0_0 | 254 | 20 | 2 | 5 | semantic fields restored; 20 structural drifts (placeholder renames + 1 verb fix) remain |
 | v5_0_0 | 39  | 8  | 0 | 3 | descriptions restored; structural/errors remain |
 | v5_1_0 | 111 | 1  | 1 | 2 | one verb-casing drift to fix |
 | v6_0_0 | 243 | 12 | 0 | 1 | 11 placeholder renames + 1 routing-shape upstream change |
-| **Total** | **956** | **377** | | | |
+| **Total** | **956** | **225** | | | |
 
 ### v6.0.0 — 12 specific drifts (each is a fix candidate)
 
@@ -230,6 +230,22 @@ Also: 1 only-http4s (`createWebUiProps`) — genuinely http4s-only with no Lift 
 Also:
 - 1 only-lift (`createConsentImplicit`) + 1 only-http4s (`createConsent`) — Lift had `lazy val createConsentImplicit = createConsent` aliasing and registered the doc under the alias; http4s registers under the canonical name. Fix: in http4s, either rename the partial function to `createConsentImplicit` to match Lift, or register a second `nameOf(createConsentImplicit)` doc for the same handler.
 - 1 only-http4s (`getBanks`) — kept in the v5.1.0 layer for metrics attribution (intentional addition; see comment at `Http4s510.scala:288`). Document.
+
+### v4.0.0 — 20 specific drifts + 2 only-lift + 5 only-http4s
+
+After semantic-field restoration (commit `2b24811e5`), the remaining drifts are all structural / functional:
+
+| Category | Count | Endpoints | Resolution |
+|---|---|---|---|
+| requestVerb | 1 | `deleteExplicitCounterparty` (Lift `POST` → http4s `DELETE`) | http4s is REST-correct. **Document** as deliberate fix. |
+| requestUrl — `VIEW_ID` → `GRANT_VIEW_ID` | 9 | `answerTransactionRequestChallenge` and 8 `createTransactionRequest*` variants (Account/AccountOtp/AgentCashWithDrawal/Counterparty/FreeForm/Refund/Sepa/Simple) | Middleware disambiguation rename. Verify if `VIEW_ID` collides in `ResourceDocMatcher`; if not, revert. If it does, **document**. |
+| requestUrl — hyphen→underscore | 6 | `delete`/`get`/`update` × `BankLevelDynamicResourceDoc` / `DynamicResourceDoc` (Lift `DYNAMIC-RESOURCE-DOC-ID` → http4s `DYNAMIC_RESOURCE_DOC_ID`) | The matcher's ALL_CAPS-with-underscores wildcard requires underscores. **Fix Lift**? No — Lift is source-of-truth. **Document** at the http4s site as a required matcher constraint. |
+| requestUrl — `COUNTERPARTY_ID` → `COUNTERPARTY_ID_PARAM` | 2 | `deleteExplicitCounterparty`, `getCounterpartyByIdForAnyAccount` | Same as v6's COUNTERPARTY rename family. Verify matcher behavior; revert if safe. |
+| requestUrl — `COUNTERPARTY_ID` → `EXPLICIT_COUNTERPARTY_ID` | 1 | `getExplicitCounterpartyById` | Same defensive rename pattern. |
+| requestUrl — firehose pattern | 1 | `getFirehoseAccountsAtOneBank` (Lift `BANK_ID/.../VIEW_ID` → http4s `FIREHOSE_BANK_ID/.../FIREHOSE_VIEW_ID`) | Middleware bypass for the prop-check-before-bank-lookup pattern (see CLAUDE.md "Prop check before role check" gotcha). **Document** — required for correctness. |
+| requestUrl — Lift URL malformed | 1 | `deleteCustomerAttribute` (Lift `/banks/BANK_ID/CUSTOMER_ID/attributes/.../...` is missing `/customers/`; http4s uses `/banks/BANK_ID/customers/attributes/...`) | Lift URL was buggy. http4s fixed it. **Document** as deliberate URL fix; flag that the Lift comment preserves the original bug as historical record. |
+
+Also: 2 only-lift (`getAllAuthenticationTypeValidationsPublic`, `getAllJsonSchemaValidationsPublic`) — these endpoints exist in Lift v4 but were not migrated to `Http4s400`. **Migration gap** — port them. 5 only-http4s (`createBankLevelDynamicEntity`, `createSystemDynamicEntity`, `updateBankLevelDynamicEntity`, `updateMyDynamicEntity`, `updateSystemDynamicEntity`) — dynamic-entity overrides added in http4s with no Lift equivalent. Document if intentional, or audit whether they should have Lift counterparts.
 
 ### v5.0.0 — 8 specific drifts + 3 only-http4s
 
