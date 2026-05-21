@@ -196,7 +196,7 @@ trait APIMethods600
 //      implementedInApiVersion,
 //      nameOf(createTransactionRequestHold),
 //      "POST",
-//      "/banks/BANK_ID/accounts/ACCOUNT_ID/owner/transaction-request-types/HOLD/transaction-requests",
+//      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/HOLD/transaction-requests",
 //      "Create Transaction Request (HOLD)",
 //      s"""
 //         |
@@ -2083,7 +2083,7 @@ trait APIMethods600
 //      implementedInApiVersion,
 //      nameOf(createTransactionRequestCardano),
 //      "POST",
-//      "/banks/BANK_ID/accounts/ACCOUNT_ID/owner/transaction-request-types/CARDANO/transaction-requests",
+//      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/CARDANO/transaction-requests",
 //      "Create Transaction Request (CARDANO)",
 //      s"""
 //         |
@@ -5106,7 +5106,7 @@ trait APIMethods600
 //      implementedInApiVersion,
 //      nameOf(getSystemViewById),
 //      "GET",
-//      "/management/system-views/VIEW_ID",
+//      "/management/system-views/SYS_VIEW_ID",
 //      "Get System View",
 //      s"""Get a single system view by its ID.
 //         |
@@ -5232,7 +5232,7 @@ trait APIMethods600
 //      implementedInApiVersion,
 //      nameOf(updateSystemView),
 //      "PUT",
-//      "/system-views/VIEW_ID",
+//      "/system-views/UPD_VIEW_ID",
 //      "Update System View",
 //      s"""Update an existing system view.
 //         |
@@ -11444,7 +11444,7 @@ trait APIMethods600
 //          account_number = "123456789",
 //          account_type = "CURRENT",
 //          branch_id = "BRANCH_1",
-//          account_routings = List(FastFirehoseRoutings(bank_id = ExampleValue.bankIdExample.value, account_id = ExampleValue.accountIdExample.value)),
+//          account_routings = List(AccountRoutingJsonV121(scheme = "OBP", address = ExampleValue.accountIdExample.value)),
 //          account_attributes = List(FastFirehoseAttributes(`type` = "STRING", code = "OVERDRAFT_LIMIT", value = "1000")),
 //          view_ids = List("owner")
 //        ))
@@ -12695,7 +12695,7 @@ trait APIMethods600
 //      implementedInApiVersion,
 //      nameOf(createCounterpartyAttribute),
 //      "POST",
-//      "/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID/attributes",
+//      "/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID_PARAM/attributes",
 //      "Create Counterparty Attribute",
 //      s"""
 //         | Create a new Counterparty Attribute for a given COUNTERPARTY_ID.
@@ -12746,7 +12746,7 @@ trait APIMethods600
 //      implementedInApiVersion,
 //      nameOf(deleteCounterpartyAttribute),
 //      "DELETE",
-//      "/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID/attributes/COUNTERPARTY_ATTRIBUTE_ID",
+//      "/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID_PARAM/attributes/COUNTERPARTY_ATTRIBUTE_ID",
 //      "Delete Counterparty Attribute",
 //      s"""
 //         | Delete a Counterparty Attribute specified by COUNTERPARTY_ATTRIBUTE_ID.
@@ -12778,7 +12778,7 @@ trait APIMethods600
 //      implementedInApiVersion,
 //      nameOf(getCounterpartyAttributeById),
 //      "GET",
-//      "/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID/attributes/COUNTERPARTY_ATTRIBUTE_ID",
+//      "/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID_PARAM/attributes/COUNTERPARTY_ATTRIBUTE_ID",
 //      "Get Counterparty Attribute By ID",
 //      s"""
 //         | Get a specific Counterparty Attribute by its COUNTERPARTY_ATTRIBUTE_ID.
@@ -12810,7 +12810,7 @@ trait APIMethods600
 //      implementedInApiVersion,
 //      nameOf(getAllCounterpartyAttributes),
 //      "GET",
-//      "/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID/attributes",
+//      "/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID_PARAM/attributes",
 //      "Get All Counterparty Attributes",
 //      s"""
 //         | Get all attributes for the specified Counterparty.
@@ -12842,7 +12842,7 @@ trait APIMethods600
 //      implementedInApiVersion,
 //      nameOf(updateCounterpartyAttribute),
 //      "PUT",
-//      "/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID/attributes/COUNTERPARTY_ATTRIBUTE_ID",
+//      "/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID_PARAM/attributes/COUNTERPARTY_ATTRIBUTE_ID",
 //      "Update Counterparty Attribute",
 //      s"""
 //         | Update an existing Counterparty Attribute specified by COUNTERPARTY_ATTRIBUTE_ID.
@@ -16239,7 +16239,7 @@ trait APIMethods600
 //      implementedInApiVersion,
 //      nameOf(removeBankReaction),
 //      "DELETE",
-//      "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/messages/CHAT_MESSAGE_ID/reactions/EMOJI",
+//      "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/messages/CHAT_MESSAGE_ID/reactions/EMOJI_REACTION",
 //      "Remove Bank Reaction",
 //      s"""Remove your own reaction from a message.
 //         |
@@ -16303,7 +16303,7 @@ trait APIMethods600
 //      implementedInApiVersion,
 //      nameOf(removeSystemReaction),
 //      "DELETE",
-//      "/chat-rooms/CHAT_ROOM_ID/messages/CHAT_MESSAGE_ID/reactions/EMOJI",
+//      "/chat-rooms/CHAT_ROOM_ID/messages/CHAT_MESSAGE_ID/reactions/EMOJI_REACTION",
 //      "Remove System Reaction",
 //      s"""Remove your own reaction from a message in a system-level chat room.
 //         |

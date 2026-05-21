@@ -13974,7 +13974,11 @@ object Http4s600 {
             )
           )
         ),
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+        List(
+          AuthenticatedUserIsRequired,
+          UserHasMissingRoles,
+          UnknownError
+        ),
         apiTagABAC :: Nil,
         Some(canGetAbacRule :: Nil),
         http4sPartialFunction = Some(getAbacRulesByPolicy)
@@ -14013,7 +14017,12 @@ object Http4s600 {
           created_by_user_id = "user123",
           updated_by_user_id = "user456"
         ),
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+        List(
+          AuthenticatedUserIsRequired,
+          UserHasMissingRoles,
+          InvalidJsonFormat,
+          UnknownError
+        ),
         apiTagABAC :: Nil,
         Some(canUpdateAbacRule :: Nil),
         http4sPartialFunction = Some(updateAbacRule)
