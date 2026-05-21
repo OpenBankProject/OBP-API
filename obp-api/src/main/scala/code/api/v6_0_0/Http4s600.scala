@@ -4,7 +4,29 @@ import cats.data.{Kleisli, OptionT}
 import cats.effect._
 import code.api.Constant._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
-import code.api.util.APIUtil.{EmptyBody, ResourceDoc}
+import code.api.util.APIUtil.{
+  DateWithMsExampleString,
+  DefaultToDateString,
+  EmptyBody,
+  ResourceDoc,
+  applicationAccessMessage,
+  epochTimeString,
+  getApiProductsIsPublic,
+  getObpApiRoot,
+  urlParametersDocument,
+  userAuthenticationMessage
+}
+import code.api.util.{ExampleValue, Glossary}
+import code.api.v1_2_1.{AccountHolderJSON, BankRoutingJsonV121, TransactionDetailsJSON}
+import code.api.v4_0_0.BankAttributeBankResponseJsonV400
+import code.bankconnectors.LocalMappedConnectorInternal.transactionRequestGeneralText
+import code.webuiprops.WebUiPropsPutJsonV600
+import com.openbankproject.commons.model.{
+  AccountRoutingJsonV121,
+  AmountOfMoneyJsonV121,
+  FastFirehoseAttributes,
+  FastFirehoseRoutings
+}
 import code.api.util.{APIUtil, CallContext, CustomJsonFormats, NewStyle}
 import code.api.util.ApiRole._
 import code.api.util.ApiTag._
@@ -15,6 +37,9 @@ import code.api.util.newstyle.ViewNewStyle
 import code.api.v2_0_0.JSONFactory200
 import code.api.v5_1_0.{Http4s510, JSONFactory510}
 import code.api.v6_0_0.JSONFactory600.ScannedApiVersionJsonV600
+// Wildcard brings every JSONFactory600 case class + helper into scope so the
+// rehydrated liftweb response-body examples compile without per-class imports.
+import code.api.v6_0_0.JSONFactory600._
 import code.accountattribute.AccountAttributeX
 import code.api.Constant
 import code.api.Constant.{PARAM_LOCALE, PARAM_TIMESTAMP}
@@ -100,6 +125,11 @@ object Http4s600 {
 
     val prefixPath = Root / ApiPathZero.toString / implementedInApiVersion.toString
 
+    // Local config flag referenced by some lifted product-endpoint descriptions.
+    // Mirrors the same `val` in `code.api.v2_1_0.{APIMethods210, Http4s210}`.
+    val getProductsIsPublic =
+      APIUtil.getPropsAsBoolValue("apiOptions.getProductsIsPublic", true)
+
     // Route: GET /obp/v6.0.0/ and GET /obp/v6.0.0/root
     // Mirrors v6 Lift root — both bare prefix and /root return the same
     // info JSON. Reuses JSONFactory510.getApiInfoJSON because v6's API-info
@@ -115,27 +145,6 @@ object Http4s600 {
         ))
     }
 
-    resourceDocs += ResourceDoc(
-      null,
-      implementedInApiVersion,
-      nameOf(root),
-      "GET",
-      "/root",
-      "Get API Info (root)",
-      """Returns information about:
-        |
-        |* API version
-        |* Hosted by information
-        |* Hosted at information
-        |* Energy source information
-        |* Git Commit""".stripMargin,
-      EmptyBody,
-      apiInfoJson400,
-      List(UnknownError, MandatoryPropertyIsNotSet),
-      apiTagApi :: Nil,
-      None,
-      http4sPartialFunction = Some(root)
-    )
 
     // Route: GET /obp/v6.0.0/api/versions
     // Returns the list of scanned API versions with `is_active` reflecting
@@ -161,24 +170,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null,
-      implementedInApiVersion,
-      nameOf(getScannedApiVersions),
-      "GET",
-      "/api/versions",
-      "Get Scanned API Versions",
-      """Get all scanned API versions available in this codebase along with their active status.""",
-      EmptyBody,
-      ListResult(
-        "scanned_api_versions",
-        List(ScannedApiVersionJsonV600("obp", "OBP", "v6.0.0", "OBPv6.0.0", is_active = true))
-      ),
-      List(UnknownError),
-      apiTagDocumentation :: apiTagApi :: Nil,
-      None,
-      http4sPartialFunction = Some(getScannedApiVersions)
-    )
 
     // Route: GET /obp/v6.0.0/users/current
     // Auth-only. Returns the logged-in user enriched with entitlements,
@@ -224,22 +215,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null,
-      implementedInApiVersion,
-      nameOf(getCurrentUser),
-      "GET",
-      "/users/current",
-      "Get User (Current)",
-      """Get the logged-in user (with entitlements, permissions, virtual roles,
-        |and the on-behalf-of user if impersonation headers are set).""".stripMargin,
-      EmptyBody,
-      userJsonV300,
-      List($AuthenticatedUserIsRequired, UnknownError),
-      apiTagUser :: Nil,
-      None,
-      http4sPartialFunction = Some(getCurrentUser)
-    )
 
     // Route: GET /obp/v6.0.0/banks
     lazy val getBanks: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -251,22 +226,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null,
-      implementedInApiVersion,
-      nameOf(getBanks),
-      "GET",
-      "/banks",
-      "Get Banks",
-      """Get banks on this API instance.
-        |Returns a list of banks supported on this server.""".stripMargin,
-      EmptyBody,
-      EmptyBody,
-      List(UnknownError),
-      apiTagBank :: Nil,
-      None,
-      http4sPartialFunction = Some(getBanks)
-    )
 
     // Route: GET /obp/v6.0.0/banks/BANK_ID
     lazy val getBank: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -278,22 +237,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null,
-      implementedInApiVersion,
-      nameOf(getBank),
-      "GET",
-      "/banks/BANK_ID",
-      "Get Bank",
-      """Get the bank specified by BANK_ID. Returns id, name, logo, website,
-        |routings and attributes.""".stripMargin,
-      EmptyBody,
-      EmptyBody,
-      List($BankNotFound, UnknownError),
-      apiTagBank :: Nil,
-      None,
-      http4sPartialFunction = Some(getBank)
-    )
 
     // Route: GET /obp/v6.0.0/banks/BANK_ID/customers
     lazy val getCustomersAtOneBank: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -311,22 +254,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null,
-      implementedInApiVersion,
-      nameOf(getCustomersAtOneBank),
-      "GET",
-      "/banks/BANK_ID/customers",
-      "Get Customers at Bank",
-      """Get Customers at Bank. Returns a list of all customers at the
-        |specified bank.""".stripMargin,
-      EmptyBody,
-      customerJSONsV600,
-      List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
-      apiTagCustomer :: Nil,
-      Some(canGetCustomersAtOneBank :: Nil),
-      http4sPartialFunction = Some(getCustomersAtOneBank)
-    )
 
     // Route: GET /obp/v6.0.0/banks/BANK_ID/customers/CUSTOMER_ID
     lazy val getCustomerByCustomerId: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -341,21 +268,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null,
-      implementedInApiVersion,
-      nameOf(getCustomerByCustomerId),
-      "GET",
-      "/banks/BANK_ID/customers/CUSTOMER_ID",
-      "Get Customer by CUSTOMER_ID",
-      """Gets the Customer specified by CUSTOMER_ID.""",
-      EmptyBody,
-      customerWithAttributesJsonV600,
-      List($AuthenticatedUserIsRequired, UserCustomerLinksNotFoundForUser, $BankNotFound, UserHasMissingRoles, UnknownError),
-      apiTagCustomer :: Nil,
-      Some(canGetCustomersAtOneBank :: Nil),
-      http4sPartialFunction = Some(getCustomerByCustomerId)
-    )
 
     // Route: GET /obp/v6.0.0/my/banks/BANK_ID/accounts/ACCOUNT_ID/account
     lazy val getCoreAccountByIdV600: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -373,22 +285,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null,
-      implementedInApiVersion,
-      nameOf(getCoreAccountByIdV600),
-      "GET",
-      "/my/banks/BANK_ID/accounts/ACCOUNT_ID/account",
-      "Get Account by Id (Core)",
-      """Returns core information about the account specified by ACCOUNT_ID
-        |including balance, routings and available views.""".stripMargin,
-      EmptyBody,
-      EmptyBody,
-      List($AuthenticatedUserIsRequired, $BankAccountNotFound, UnknownError),
-      apiTagAccount :: Nil,
-      None,
-      http4sPartialFunction = Some(getCoreAccountByIdV600)
-    )
 
     // Route: GET /obp/v6.0.0/my/dynamic-entities
     lazy val getMyDynamicEntities: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -403,21 +299,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null,
-      implementedInApiVersion,
-      nameOf(getMyDynamicEntities),
-      "GET",
-      "/my/dynamic-entities",
-      "Get My Dynamic Entities",
-      """Get all Dynamic Entity definitions I created.""",
-      EmptyBody,
-      EmptyBody,
-      List($AuthenticatedUserIsRequired, UnknownError),
-      apiTagManageDynamicEntity :: apiTagApi :: Nil,
-      None,
-      http4sPartialFunction = Some(getMyDynamicEntities)
-    )
 
     // Route: GET /obp/v6.0.0/management/system-dynamic-entities
     lazy val getSystemDynamicEntities: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -440,21 +321,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null,
-      implementedInApiVersion,
-      nameOf(getSystemDynamicEntities),
-      "GET",
-      "/management/system-dynamic-entities",
-      "Get System Dynamic Entities",
-      """Get all system-level Dynamic Entities with record counts.""",
-      EmptyBody,
-      EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
-      apiTagManageDynamicEntity :: apiTagApi :: Nil,
-      Some(canGetSystemLevelDynamicEntities :: Nil),
-      http4sPartialFunction = Some(getSystemDynamicEntities)
-    )
 
     // Route: GET /obp/v6.0.0/management/banks/BANK_ID/dynamic-entities
     lazy val getBankLevelDynamicEntities: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -477,22 +343,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null,
-      implementedInApiVersion,
-      nameOf(getBankLevelDynamicEntities),
-      "GET",
-      "/management/banks/BANK_ID/dynamic-entities",
-      "Get Bank-Level Dynamic Entities",
-      """Get all bank-level Dynamic Entities with record counts for the
-        |specified bank.""".stripMargin,
-      EmptyBody,
-      EmptyBody,
-      List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
-      apiTagManageDynamicEntity :: apiTagApi :: Nil,
-      Some(canGetBankLevelDynamicEntities :: canGetAnyBankLevelDynamicEntities :: Nil),
-      http4sPartialFunction = Some(getBankLevelDynamicEntities)
-    )
 
     // Route: GET /obp/v6.0.0/management/consumers/CONSUMER_ID
     lazy val getConsumer: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -511,22 +361,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null,
-      implementedInApiVersion,
-      nameOf(getConsumer),
-      "GET",
-      "/management/consumers/CONSUMER_ID",
-      "Get Consumer",
-      """Get the Consumer specified by CONSUMER_ID, including rate limits and
-        |current call counters.""".stripMargin,
-      EmptyBody,
-      EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
-      apiTagConsumer :: apiTagApi :: Nil,
-      Some(canGetConsumers :: Nil),
-      http4sPartialFunction = Some(getConsumer)
-    )
 
     // Route: GET /obp/v6.0.0/customers
     lazy val getCustomersAtAllBanks: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -543,22 +377,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null,
-      implementedInApiVersion,
-      nameOf(getCustomersAtAllBanks),
-      "GET",
-      "/customers",
-      "Get Customers at All Banks",
-      """Get Customers at All Banks. Returns all customers across all banks
-        |the caller has permission to see.""".stripMargin,
-      EmptyBody,
-      customerJSONsV600,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
-      apiTagCustomer :: Nil,
-      Some(canGetCustomersAtAllBanks :: Nil),
-      http4sPartialFunction = Some(getCustomersAtAllBanks)
-    )
 
     // Route: GET /obp/v6.0.0/users/USER_ID/attributes
     lazy val getUserAttributes: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -571,21 +389,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null,
-      implementedInApiVersion,
-      nameOf(getUserAttributes),
-      "GET",
-      "/users/USER_ID/attributes",
-      "Get User Attributes",
-      """Get all non-personal attributes for the specified user.""",
-      EmptyBody,
-      EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UserNotFoundByUserId, UnknownError),
-      apiTagUser :: apiTagUserAttribute :: apiTagAttribute :: Nil,
-      Some(canGetUserAttributes :: Nil),
-      http4sPartialFunction = Some(getUserAttributes)
-    )
 
     // Route: GET /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/account
     lazy val getPrivateAccountByIdFull: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -605,21 +408,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null,
-      implementedInApiVersion,
-      nameOf(getPrivateAccountByIdFull),
-      "GET",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/account",
-      "Get Account by Id (Full)",
-      """Returns full information about an account as moderated by the view (VIEW_ID).""",
-      EmptyBody,
-      EmptyBody,
-      List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, $UserNoPermissionAccessView, UnknownError),
-      apiTagAccount :: Nil,
-      None,
-      http4sPartialFunction = Some(getPrivateAccountByIdFull)
-    )
 
     // Route: POST /obp/v6.0.0/banks/BANK_ID/customers/customer-number
     // POST that GETs (returns 200) — used to fetch a customer by their customer_number.
@@ -643,21 +431,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null,
-      implementedInApiVersion,
-      nameOf(getCustomerByCustomerNumber),
-      "POST",
-      "/banks/BANK_ID/customers/customer-number",
-      "Get Customer by CUSTOMER_NUMBER",
-      """Gets the Customer specified by CUSTOMER_NUMBER.""",
-      EmptyBody,
-      customerWithAttributesJsonV600,
-      List($AuthenticatedUserIsRequired, UserCustomerLinksNotFoundForUser, $BankNotFound, UserHasMissingRoles, UnknownError),
-      apiTagCustomer :: Nil,
-      Some(canGetCustomersAtOneBank :: Nil),
-      http4sPartialFunction = Some(getCustomerByCustomerNumber)
-    )
 
     // Route: POST /obp/v6.0.0/banks/BANK_ID/customers/legal-name
     // POST that GETs (returns 200) — fetch customers by legal name.
@@ -677,21 +450,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null,
-      implementedInApiVersion,
-      nameOf(getCustomersByLegalName),
-      "POST",
-      "/banks/BANK_ID/customers/legal-name",
-      "Get Customers by Legal Name",
-      """Gets the Customers matching the provided legal name at the specified bank.""",
-      EmptyBody,
-      customerJSONsV600,
-      List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
-      apiTagCustomer :: Nil,
-      Some(canGetCustomersAtOneBank :: Nil),
-      http4sPartialFunction = Some(getCustomersByLegalName)
-    )
 
     // Inlined helpers — match the v6 Lift private versions in APIMethods600.
     private val validEntityNamePattern = "^[a-z][a-z0-9_]*$".r.pattern
@@ -754,17 +512,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createSystemDynamicEntity), "POST",
-      "/management/system-dynamic-entities", "Create System Level Dynamic Entity",
-      """Create a system-level Dynamic Entity.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
-      apiTagManageDynamicEntity :: apiTagApi :: Nil,
-      Some(canCreateSystemLevelDynamicEntity :: Nil),
-      authMode = code.api.util.APIUtil.UserOrApplication,
-      http4sPartialFunction = Some(createSystemDynamicEntity)
-    )
 
     // Route: POST /obp/v6.0.0/management/banks/BANK_ID/dynamic-entities (201)
     lazy val createBankLevelDynamicEntity: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -785,17 +532,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createBankLevelDynamicEntity), "POST",
-      "/management/banks/BANK_ID/dynamic-entities", "Create Bank Level Dynamic Entity",
-      """Create a bank-level Dynamic Entity for the specified bank.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
-      apiTagManageDynamicEntity :: apiTagApi :: Nil,
-      Some(canCreateBankLevelDynamicEntity :: Nil),
-      authMode = code.api.util.APIUtil.UserOrApplication,
-      http4sPartialFunction = Some(createBankLevelDynamicEntity)
-    )
 
     // Route: PUT /obp/v6.0.0/management/system-dynamic-entities/DYNAMIC_ENTITY_ID (200)
     lazy val updateSystemDynamicEntity: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -814,16 +550,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(updateSystemDynamicEntity), "PUT",
-      "/management/system-dynamic-entities/DYNAMIC_ENTITY_ID", "Update System Level Dynamic Entity",
-      """Update a system-level Dynamic Entity.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
-      apiTagManageDynamicEntity :: apiTagApi :: Nil,
-      Some(canUpdateSystemDynamicEntity :: Nil),
-      http4sPartialFunction = Some(updateSystemDynamicEntity)
-    )
 
     // Route: PUT /obp/v6.0.0/management/banks/BANK_ID/dynamic-entities/DYNAMIC_ENTITY_ID (200)
     lazy val updateBankLevelDynamicEntity: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -842,16 +568,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(updateBankLevelDynamicEntity), "PUT",
-      "/management/banks/BANK_ID/dynamic-entities/DYNAMIC_ENTITY_ID", "Update Bank Level Dynamic Entity",
-      """Update a bank-level Dynamic Entity.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
-      apiTagManageDynamicEntity :: apiTagApi :: Nil,
-      Some(canUpdateBankLevelDynamicEntity :: Nil),
-      http4sPartialFunction = Some(updateBankLevelDynamicEntity)
-    )
 
     // Route: PUT /obp/v6.0.0/my/dynamic-entities/DYNAMIC_ENTITY_ID (200)
     lazy val updateMyDynamicEntity: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -876,16 +592,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(updateMyDynamicEntity), "PUT",
-      "/my/dynamic-entities/DYNAMIC_ENTITY_ID", "Update My Dynamic Entity",
-      """Update a Dynamic Entity I created.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, DynamicEntityNotFoundByDynamicEntityId, InvalidJsonFormat, UnknownError),
-      apiTagManageDynamicEntity :: apiTagApi :: Nil,
-      None,
-      http4sPartialFunction = Some(updateMyDynamicEntity)
-    )
 
     // Route: PUT /obp/v6.0.0/system-views/UPD_VIEW_ID (200)
     // Uses UPD_VIEW_ID (non-standard ALL_CAPS) so middleware skips view validation;
@@ -912,16 +618,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(updateSystemView), "PUT",
-      "/system-views/UPD_VIEW_ID", "Update System View",
-      """Update an existing system view.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, SystemViewCannotBePublicError, UnknownError),
-      apiTagView :: Nil,
-      None,
-      http4sPartialFunction = Some(updateSystemView)
-    )
 
     // Inject default from_date so metrics queries don't hit all rows since epoch.
     private def applyMetricsFromDateDefault(httpParams: List[HTTPParam]): List[HTTPParam] = {
@@ -950,16 +646,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getMetrics), "GET",
-      "/management/metrics", "Get Metrics",
-      """Returns metrics on API usage. Requires canReadMetrics role.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
-      apiTagMetric :: apiTagApi :: Nil,
-      Some(canReadMetrics :: Nil),
-      http4sPartialFunction = Some(getMetrics)
-    )
 
     // Route: GET /obp/v6.0.0/management/aggregate-metrics
     lazy val getAggregateMetrics: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -985,16 +671,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getAggregateMetrics), "GET",
-      "/management/aggregate-metrics", "Get Aggregate Metrics",
-      """Returns aggregate metrics on API usage. Requires canReadAggregateMetrics role.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
-      apiTagMetric :: apiTagApi :: Nil,
-      Some(canReadAggregateMetrics :: Nil),
-      http4sPartialFunction = Some(getAggregateMetrics)
-    )
 
     // Route: GET /obp/v6.0.0/management/metrics/top-apis
     lazy val getTopAPIs: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -1026,16 +702,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getTopAPIs), "GET",
-      "/management/metrics/top-apis", "Get Top APIs",
-      """Returns the top APIs by call count. Requires canReadMetrics role.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
-      apiTagMetric :: apiTagApi :: Nil,
-      Some(canReadMetrics :: Nil),
-      http4sPartialFunction = Some(getTopAPIs)
-    )
 
     // Route: GET /obp/v6.0.0/webui-props
     lazy val getWebUiProps: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -1067,16 +733,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getWebUiProps), "GET",
-      "/webui-props", "Get WebUiProps",
-      """Get the WebUI props. Optional ?what=active|database|config filter.""",
-      EmptyBody, EmptyBody,
-      List(InvalidFilterParameterFormat, UnknownError),
-      apiTagWebUiProps :: apiTagApi :: Nil,
-      None,
-      http4sPartialFunction = Some(getWebUiProps)
-    )
 
     // Route: GET /obp/v6.0.0/banks/BANK_ID/accounts
     lazy val getAccountsAtBank: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -1111,16 +767,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getAccountsAtBank), "GET",
-      "/banks/BANK_ID/accounts", "Get Accounts at Bank",
-      """Get private accounts the caller has access to at the specified bank.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, $BankNotFound, UnknownError),
-      apiTagAccount :: Nil,
-      None,
-      http4sPartialFunction = Some(getAccountsAtBank)
-    )
 
     // Route: GET /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions
     lazy val getTransactionsForBankAccount: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -1141,16 +787,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getTransactionsForBankAccount), "GET",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions", "Get Transactions for Account (Full)",
-      """Returns transactions list of the account specified by ACCOUNT_ID, moderated by VIEW_ID.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, $UserNoPermissionAccessView, UnknownError),
-      apiTagTransaction :: Nil,
-      None,
-      http4sPartialFunction = Some(getTransactionsForBankAccount)
-    )
 
     // Route: GET /obp/v6.0.0/banks/BANK_ID/products
     // Simplified port — skips the Redis cache layer (perf optimization only).
@@ -1164,16 +800,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getProductsV600), "GET",
-      "/banks/BANK_ID/products", "Get Products",
-      """Returns the financial Products offered by the specified bank.""",
-      EmptyBody, EmptyBody,
-      List($BankNotFound, UnknownError),
-      apiTagProduct :: Nil,
-      None,
-      http4sPartialFunction = Some(getProductsV600)
-    )
 
     // Route: GET /obp/v6.0.0/users
     lazy val getUsers: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -1197,16 +823,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getUsers), "GET",
-      "/users", "Get Users",
-      """Get all Users (paginated, sortable).""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
-      apiTagUser :: Nil,
-      Some(canGetAnyUser :: Nil),
-      http4sPartialFunction = Some(getUsers)
-    )
 
     // Route: POST /obp/v6.0.0/banks (201)
     lazy val createBank: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -1256,16 +872,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createBank), "POST",
-      "/banks", "Create Bank",
-      """Create a new bank.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, bankIdAlreadyExists, UnknownError),
-      apiTagBank :: Nil,
-      Some(canCreateBank :: Nil),
-      http4sPartialFunction = Some(createBank)
-    )
 
     // Route: POST /obp/v6.0.0/banks/BANK_ID/customers (201)
     lazy val createCustomer: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -1323,16 +929,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createCustomer), "POST",
-      "/banks/BANK_ID/customers", "Create Customer",
-      """Create a new customer at the specified bank.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat, UserHasMissingRoles, UnknownError),
-      apiTagCustomer :: Nil,
-      Some(canCreateCustomer :: Nil),
-      http4sPartialFunction = Some(createCustomer)
-    )
 
     // Route: POST /obp/v6.0.0/users (201)
     lazy val createUser: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -1391,16 +987,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createUser), "POST",
-      "/users", "Create User",
-      """Create a new user with username, email, password.""",
-      EmptyBody, EmptyBody,
-      List(InvalidJsonFormat, InvalidStrongPasswordFormat, DuplicateUsername, UnknownError),
-      apiTagUser :: Nil,
-      None,
-      http4sPartialFunction = Some(createUser)
-    )
 
     // Route: POST /obp/v6.0.0/management/user/reset-password-url (201)
     lazy val resetPasswordUrl: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -1456,16 +1042,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(resetPasswordUrl), "POST",
-      "/management/user/reset-password-url", "Send Password Reset URL",
-      """Generate and email a password reset URL for the specified user.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
-      apiTagUser :: Nil,
-      Some(canCreateResetPasswordUrl :: Nil),
-      http4sPartialFunction = Some(resetPasswordUrl)
-    )
 
     // ─── Phase 2: system bucket (8 GETs) — wholly new in v6, no override risk ────
 
@@ -1485,16 +1061,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getConnectors), "GET",
-      "/system/connectors", "Get Connectors",
-      """Get the list of connectors and their availability for method routing.""",
-      EmptyBody, EmptyBody,
-      List(UnknownError),
-      apiTagConnector :: apiTagSystem :: apiTagApi :: Nil,
-      None,
-      http4sPartialFunction = Some(getConnectors)
-    )
 
     // Route: GET /obp/v6.0.0/system/cache/config
     lazy val getCacheConfig: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -1504,16 +1070,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getCacheConfig), "GET",
-      "/system/cache/config", "Get Cache Configuration",
-      """Returns cache configuration including Redis status, in-memory cache status, instance ID, environment and global prefix.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
-      apiTagCache :: apiTagSystem :: apiTagApi :: Nil,
-      Some(canGetCacheConfig :: Nil),
-      http4sPartialFunction = Some(getCacheConfig)
-    )
 
     // Route: GET /obp/v6.0.0/system/cache/info
     lazy val getCacheInfo: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -1523,16 +1079,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getCacheInfo), "GET",
-      "/system/cache/info", "Get Cache Information",
-      """Returns detailed cache information for all namespaces.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
-      apiTagCache :: apiTagSystem :: apiTagApi :: Nil,
-      Some(canGetCacheInfo :: Nil),
-      http4sPartialFunction = Some(getCacheInfo)
-    )
 
     // Route: GET /obp/v6.0.0/system/cache/namespaces
     lazy val getCacheNamespaces: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -1562,16 +1108,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getCacheNamespaces), "GET",
-      "/system/cache/namespaces", "Get Cache Namespaces",
-      """Returns all OBP cache namespaces with their prefixes, descriptions, TTLs, and current key counts.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
-      apiTagCache :: apiTagSystem :: apiTagApi :: Nil,
-      Some(canGetCacheNamespaces :: Nil),
-      http4sPartialFunction = Some(getCacheNamespaces)
-    )
 
     // Route: GET /obp/v6.0.0/system/database/pool
     lazy val getDatabasePoolInfo: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -1581,16 +1117,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getDatabasePoolInfo), "GET",
-      "/system/database/pool", "Get Database Pool Information",
-      """Returns HikariCP connection pool information.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
-      apiTagSystem :: apiTagApi :: Nil,
-      Some(canGetDatabasePoolInfo :: Nil),
-      http4sPartialFunction = Some(getDatabasePoolInfo)
-    )
 
     // Route: GET /obp/v6.0.0/system/migrations
     lazy val getMigrations: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -1603,16 +1129,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getMigrations), "GET",
-      "/system/migrations", "Get Database Migrations",
-      """Get all database migration script logs.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
-      apiTagSystem :: apiTagApi :: Nil,
-      Some(canGetMigrations :: Nil),
-      http4sPartialFunction = Some(getMigrations)
-    )
 
     // Route: GET /obp/v6.0.0/system/connectors/stored_procedure_vDec2019/health
     lazy val getStoredProcedureConnectorHealth: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -1631,16 +1147,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getStoredProcedureConnectorHealth), "GET",
-      "/system/connectors/stored_procedure_vDec2019/health", "Get Stored Procedure Connector Health",
-      """Returns health status of the stored procedure connector.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
-      apiTagConnector :: apiTagSystem :: apiTagApi :: Nil,
-      Some(canGetConnectorHealth :: Nil),
-      http4sPartialFunction = Some(getStoredProcedureConnectorHealth)
-    )
 
     // Route: GET /obp/v6.0.0/system/connector-method-names
     // Simplified port — skips the Redis cache wrapper (perf only).
@@ -1655,16 +1161,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getConnectorMethodNames), "GET",
-      "/system/connector-method-names", "Get Connector Method Names",
-      """Get all callable method names for the configured connector.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
-      apiTagConnectorMethod :: apiTagSystem :: apiTagMethodRouting :: apiTagApi :: Nil,
-      Some(canGetSystemConnectorMethodNames :: Nil),
-      http4sPartialFunction = Some(getConnectorMethodNames)
-    )
 
     val allRoutes: HttpRoutes[IO] =
       Kleisli[HttpF, Request[IO], Response[IO]] { req: Request[IO] =>
@@ -1932,16 +1428,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getCorporateCustomersAtOneBank), "GET",
-      "/banks/BANK_ID/corporate-customers", "Get Corporate Customers at Bank",
-      """Get all corporate (and subsidiary) customers at the specified bank.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
-      apiTagCustomer :: Nil,
-      Some(canGetCustomersAtOneBank :: Nil),
-      http4sPartialFunction = Some(getCorporateCustomersAtOneBank)
-    )
 
     // Route: GET /obp/v6.0.0/banks/BANK_ID/corporate-customers/CUSTOMER_ID
     lazy val getCorporateCustomerByCustomerId: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -1957,17 +1443,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getCorporateCustomerByCustomerId), "GET",
-      "/banks/BANK_ID/corporate-customers/CUSTOMER_ID", "Get Corporate Customer by Id",
-      """Get a corporate customer by CUSTOMER_ID. Returns 404 if the customer
-        |is not of type CORPORATE or SUBSIDIARY.""".stripMargin,
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, CustomerTypeMismatch, UnknownError),
-      apiTagCustomer :: Nil,
-      Some(canGetCustomersAtOneBank :: Nil),
-      http4sPartialFunction = Some(getCorporateCustomerByCustomerId)
-    )
 
     // Route: GET /obp/v6.0.0/banks/BANK_ID/corporate-customers/CUSTOMER_ID/subsidiaries
     lazy val getCorporateCustomerSubsidiaries: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -1983,16 +1458,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getCorporateCustomerSubsidiaries), "GET",
-      "/banks/BANK_ID/corporate-customers/CUSTOMER_ID/subsidiaries", "Get Subsidiaries",
-      """Get the subsidiaries of a corporate customer.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, CustomerTypeMismatch, UnknownError),
-      apiTagCustomer :: Nil,
-      Some(canGetCustomersAtOneBank :: Nil),
-      http4sPartialFunction = Some(getCorporateCustomerSubsidiaries)
-    )
 
     // Route: GET /obp/v6.0.0/banks/BANK_ID/retail-customers
     lazy val getRetailCustomersAtOneBank: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -2007,16 +1472,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getRetailCustomersAtOneBank), "GET",
-      "/banks/BANK_ID/retail-customers", "Get Retail Customers at Bank",
-      """Get all retail (individual) customers at the specified bank.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
-      apiTagCustomer :: Nil,
-      Some(canGetCustomersAtOneBank :: Nil),
-      http4sPartialFunction = Some(getRetailCustomersAtOneBank)
-    )
 
     // Route: GET /obp/v6.0.0/banks/BANK_ID/retail-customers/CUSTOMER_ID
     lazy val getRetailCustomerByCustomerId: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -2032,17 +1487,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getRetailCustomerByCustomerId), "GET",
-      "/banks/BANK_ID/retail-customers/CUSTOMER_ID", "Get Retail Customer by Id",
-      """Get a retail customer by CUSTOMER_ID. Returns 404 if the customer
-        |is not of type INDIVIDUAL.""".stripMargin,
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, CustomerTypeMismatch, UnknownError),
-      apiTagCustomer :: Nil,
-      Some(canGetCustomersAtOneBank :: Nil),
-      http4sPartialFunction = Some(getRetailCustomerByCustomerId)
-    )
 
     // Route: GET /obp/v6.0.0/banks/BANK_ID/customers/CUSTOMER_ID/children
     lazy val getCustomerChildren: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -2055,16 +1499,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getCustomerChildren), "GET",
-      "/banks/BANK_ID/customers/CUSTOMER_ID/children", "Get Customer Children",
-      """Get the child customers for the specified customer.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
-      apiTagCustomer :: Nil,
-      Some(canGetCustomersAtOneBank :: Nil),
-      http4sPartialFunction = Some(getCustomerChildren)
-    )
 
     // Route: GET /obp/v6.0.0/banks/BANK_ID/customers/CUSTOMER_ID/customer-links
     lazy val getCustomerLinksByCustomerId: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -2077,16 +1511,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getCustomerLinksByCustomerId), "GET",
-      "/banks/BANK_ID/customers/CUSTOMER_ID/customer-links", "Get Customer Links by Customer Id",
-      """Get all customer links involving the specified customer.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
-      apiTagCustomer :: Nil,
-      Some(canGetCustomerLinks :: Nil),
-      http4sPartialFunction = Some(getCustomerLinksByCustomerId)
-    )
 
     // ─── Phase 2: six 2-endpoint management/* buckets (9 of 12) ───────────
     // Deferred: executeAbacPolicy (large response-building chain),
@@ -2100,14 +1524,6 @@ object Http4s600 {
           Views.views.vend.getSystemViews().map(JSONFactory600.createViewsJsonV600)
         }
     }
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getSystemViews), "GET",
-      "/management/system-views", "Get System Views",
-      """Get all system views.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
-      apiTagView :: Nil, Some(canGetSystemViews :: Nil),
-      http4sPartialFunction = Some(getSystemViews))
 
     // GET /obp/v6.0.0/management/system-views/SYS_VIEW_ID  (non-standard var so middleware skips view validation)
     lazy val getSystemViewById: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -2116,14 +1532,6 @@ object Http4s600 {
           ViewNewStyle.systemView(ViewId(viewIdStr), Some(cc)).map(JSONFactory600.createViewJsonV600)
         }
     }
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getSystemViewById), "GET",
-      "/management/system-views/SYS_VIEW_ID", "Get System View by Id",
-      """Get a system view by its VIEW_ID.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
-      apiTagView :: Nil, Some(canGetSystemViews :: Nil),
-      http4sPartialFunction = Some(getSystemViewById))
 
     // GET /obp/v6.0.0/management/abac-policies
     lazy val getAbacPolicies: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -2138,14 +1546,6 @@ object Http4s600 {
           }
         }
     }
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getAbacPolicies), "GET",
-      "/management/abac-policies", "Get ABAC Policies",
-      """List all available ABAC policies.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
-      apiTagABAC :: Nil, Some(canGetAbacRule :: Nil),
-      http4sPartialFunction = Some(getAbacPolicies))
 
     // GET /obp/v6.0.0/management/connector/metrics/counts
     lazy val getConnectorCallCounts: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -2164,14 +1564,6 @@ object Http4s600 {
           }
         }
     }
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getConnectorCallCounts), "GET",
-      "/management/connector/metrics/counts", "Get Connector Call Counts",
-      """Per-hour Redis counters for connector outbound and inbound messages.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
-      apiTagMetric :: Nil, Some(canReadMetrics :: Nil),
-      http4sPartialFunction = Some(getConnectorCallCounts))
 
     // GET /obp/v6.0.0/management/connector/traces
     lazy val getConnectorTraces: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -2184,14 +1576,6 @@ object Http4s600 {
           } yield JSONFactory600.createConnectorTracesJsonV600(traces)
         }
     }
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getConnectorTraces), "GET",
-      "/management/connector/traces", "Get Connector Traces",
-      """Get recent connector trace records (paginated).""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UnknownError),
-      apiTagMetric :: Nil, None,
-      http4sPartialFunction = Some(getConnectorTraces))
 
     // GET /obp/v6.0.0/management/diagnostics/dynamic-entities
     lazy val getDynamicEntityDiagnostics: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -2208,15 +1592,6 @@ object Http4s600 {
           }
         }
     }
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getDynamicEntityDiagnostics), "GET",
-      "/management/diagnostics/dynamic-entities", "Get Dynamic Entity Diagnostics",
-      """Scan all Dynamic Entities for issues + orphaned data records.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
-      apiTagManageDynamicEntity :: Nil,
-      Some(canGetDynamicEntityDiagnostics :: Nil),
-      http4sPartialFunction = Some(getDynamicEntityDiagnostics))
 
     // DELETE /obp/v6.0.0/management/diagnostics/dynamic-entities/orphaned-records
     lazy val cleanupOrphanedDynamicEntityRecords: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -2238,15 +1613,6 @@ object Http4s600 {
           }
         }
     }
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(cleanupOrphanedDynamicEntityRecords), "DELETE",
-      "/management/diagnostics/dynamic-entities/orphaned-records", "Cleanup Orphaned Dynamic Entity Records",
-      """Delete orphaned dynamic-entity data records (rows whose entityName/bankId has no matching definition).""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
-      apiTagManageDynamicEntity :: Nil,
-      Some(canCleanupOrphanedDynamicEntityRecords :: Nil),
-      http4sPartialFunction = Some(cleanupOrphanedDynamicEntityRecords))
 
     // POST /obp/v6.0.0/management/webui_props
     lazy val createWebUiProps: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -2264,19 +1630,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createWebUiProps), "POST",
-      "/management/webui_props",
-      "Create WebUiProps",
-      s"""Create a WebUiProps.
-         |
-         |${APIUtil.userAuthenticationMessage(true)}
-         |""",
-      WebUiPropsCommons("webui_api_explorer_url", "https://apiexplorer.openbankproject.com"),
-      WebUiPropsCommons("webui_api_explorer_url", "https://apiexplorer.openbankproject.com", Some("web-ui-props-id")),
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
-      List(apiTagWebUiProps), Some(List(canCreateWebUiProps)),
-      http4sPartialFunction = Some(createWebUiProps))
 
     // PUT /obp/v6.0.0/management/webui_props/WEBUI_PROP_NAME
     lazy val createOrUpdateWebUiProps: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -2311,15 +1664,6 @@ object Http4s600 {
             ErrorResponseConverter.toHttp4sResponse(err, cc)
         }
     }
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createOrUpdateWebUiProps), "PUT",
-      "/management/webui_props/WEBUI_PROP_NAME", "Create or Update WebUiProps",
-      """Create or update a WebUiProps. Name is converted to lowercase, must start with `webui_`.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidWebUiProps, InvalidJsonFormat, UnknownError),
-      apiTagWebUiProps :: Nil,
-      Some(canCreateWebUiProps :: Nil),
-      http4sPartialFunction = Some(createOrUpdateWebUiProps))
 
     // DELETE /obp/v6.0.0/management/webui_props/WEBUI_PROP_NAME
     lazy val deleteWebUiProps: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -2344,15 +1688,6 @@ object Http4s600 {
           } yield ()
         }
     }
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(deleteWebUiProps), "DELETE",
-      "/management/webui_props/WEBUI_PROP_NAME", "Delete WebUiProps",
-      """Delete a WebUiProps by name. Idempotent — 204 even if it didn't exist.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidWebUiProps, UnknownError),
-      apiTagWebUiProps :: Nil,
-      Some(canDeleteWebUiProps :: Nil),
-      http4sPartialFunction = Some(deleteWebUiProps))
 
     // ─── Phase 2: 3 small mixed buckets (5 endpoints) ─────────────────────
 
@@ -2376,15 +1711,6 @@ object Http4s600 {
           } yield JSONFactory600.createViewJsonV600(view)
         }
     }
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createCustomViewManagement), "POST",
-      "/management/banks/BANK_ID/accounts/ACCOUNT_ID/views", "Create Custom View (Management)",
-      """Create a custom view for an account.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UserHasMissingRoles, InvalidJsonFormat, InvalidCustomViewFormat, UnknownError),
-      apiTagView :: Nil,
-      Some(canCreateCustomView :: Nil),
-      http4sPartialFunction = Some(createCustomViewManagement))
 
     // GET /obp/v6.0.0/banks/BANK_ID/products/PRODUCT_CODE/tags
     lazy val getProductTagsV600: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -2397,14 +1723,6 @@ object Http4s600 {
           } yield JSONFactory600.createProductTagsJsonV600(tags)
         }
     }
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getProductTagsV600), "GET",
-      "/banks/BANK_ID/products/PRODUCT_CODE/tags", "Get Product Tags",
-      """Get all tags for the specified bank product.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, $BankNotFound, UnknownError),
-      apiTagProduct :: Nil, None,
-      http4sPartialFunction = Some(getProductTagsV600))
 
     // PUT /obp/v6.0.0/banks/BANK_ID/products/PRODUCT_CODE/tags
     lazy val updateProductTagsV600: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -2430,14 +1748,6 @@ object Http4s600 {
           } yield JSONFactory600.createProductTagsJsonV600(updatedTags)
         }
     }
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(updateProductTagsV600), "PUT",
-      "/banks/BANK_ID/products/PRODUCT_CODE/tags", "Update Product Tags",
-      """Replace the tags on the specified bank product.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, InvalidJsonFormat, UpdateProductError, UnknownError),
-      apiTagProduct :: Nil, None,
-      http4sPartialFunction = Some(updateProductTagsV600))
 
     // GET /obp/v6.0.0/oidc/clients/CLIENT_ID
     lazy val getOidcClient: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -2461,16 +1771,6 @@ object Http4s600 {
           }
         }
     }
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getOidcClient), "GET",
-      "/oidc/clients/CLIENT_ID", "Get OIDC Client",
-      """Get an OIDC/OAuth2 client's metadata by client_id.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
-      apiTagOIDC :: apiTagConsumer :: apiTagOAuth :: Nil,
-      Some(canGetOidcClient :: Nil),
-      authMode = code.api.util.APIUtil.UserOrApplication,
-      http4sPartialFunction = Some(getOidcClient))
 
     // POST /obp/v6.0.0/oidc/clients/verify
     lazy val verifyOidcClient: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -2497,16 +1797,6 @@ object Http4s600 {
           }
         }
     }
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(verifyOidcClient), "POST",
-      "/oidc/clients/verify", "Verify OIDC Client",
-      """Verify an OIDC client_id + client_secret pair. Returns valid=true on a successful match.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
-      apiTagOIDC :: apiTagConsumer :: apiTagOAuth :: Nil,
-      Some(canVerifyOidcClient :: Nil),
-      authMode = code.api.util.APIUtil.UserOrApplication,
-      http4sPartialFunction = Some(verifyOidcClient))
 
     // ─── Phase 2: users bucket (6 of 16; chat-room + special-purpose deferred) ───
 
@@ -2522,15 +1812,6 @@ object Http4s600 {
           } yield JSONFactory510.createUserAttributeJson(attribute)
         }
     }
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getUserAttributeById), "GET",
-      "/users/USER_ID/attributes/USER_ATTRIBUTE_ID", "Get User Attribute by Id",
-      """Get a user attribute by USER_ATTRIBUTE_ID for the specified user.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UserAttributeNotFound, UnknownError),
-      apiTagUser :: apiTagUserAttribute :: Nil,
-      Some(canGetUserAttributes :: Nil),
-      http4sPartialFunction = Some(getUserAttributeById))
 
     // POST /obp/v6.0.0/users/USER_ID/attributes (201)
     lazy val createUserAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -2551,15 +1832,6 @@ object Http4s600 {
           } yield JSONFactory510.createUserAttributeJson(userAttribute)
         }
     }
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createUserAttribute), "POST",
-      "/users/USER_ID/attributes", "Create User Attribute",
-      """Create a non-personal user attribute for the specified user.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
-      apiTagUser :: apiTagUserAttribute :: Nil,
-      Some(canCreateUserAttribute :: Nil),
-      http4sPartialFunction = Some(createUserAttribute))
 
     // PUT /obp/v6.0.0/users/USER_ID/attributes/USER_ATTRIBUTE_ID
     lazy val updateUserAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -2582,15 +1854,6 @@ object Http4s600 {
           } yield JSONFactory510.createUserAttributeJson(userAttribute)
         }
     }
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(updateUserAttribute), "PUT",
-      "/users/USER_ID/attributes/USER_ATTRIBUTE_ID", "Update User Attribute",
-      """Update a user attribute by USER_ATTRIBUTE_ID.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UserAttributeNotFound, UnknownError),
-      apiTagUser :: apiTagUserAttribute :: Nil,
-      Some(canUpdateUserAttribute :: Nil),
-      http4sPartialFunction = Some(updateUserAttribute))
 
     // DELETE /obp/v6.0.0/users/USER_ID/attributes/USER_ATTRIBUTE_ID
     lazy val deleteUserAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -2605,15 +1868,6 @@ object Http4s600 {
           } yield ""
         }
     }
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(deleteUserAttribute), "DELETE",
-      "/users/USER_ID/attributes/USER_ATTRIBUTE_ID", "Delete User Attribute",
-      """Delete a user attribute by USER_ATTRIBUTE_ID.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UserAttributeNotFound, UnknownError),
-      apiTagUser :: apiTagUserAttribute :: Nil,
-      Some(canDeleteUserAttribute :: Nil),
-      http4sPartialFunction = Some(deleteUserAttribute))
 
     // POST /obp/v6.0.0/users/USER_ID/group-entitlements (201)
     lazy val addUserToGroup: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -2654,14 +1908,6 @@ object Http4s600 {
             entitlements_skipped = entitlementsAlreadyPresent)
         }
     }
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(addUserToGroup), "POST",
-      "/users/USER_ID/group-entitlements", "Add User to Group",
-      """Add a user to a group (grants the group's entitlements to the user).""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
-      apiTagGroup :: apiTagUser :: Nil, None,
-      http4sPartialFunction = Some(addUserToGroup))
 
     // DELETE /obp/v6.0.0/users/USER_ID/group-entitlements/GROUP_ID
     lazy val removeUserFromGroup: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -2681,14 +1927,6 @@ object Http4s600 {
           } yield ""
         }
     }
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(removeUserFromGroup), "DELETE",
-      "/users/USER_ID/group-entitlements/GROUP_ID", "Remove User from Group",
-      """Remove a user from a group (deletes all entitlements that came from the group).""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
-      apiTagGroup :: apiTagUser :: Nil, None,
-      http4sPartialFunction = Some(removeUserFromGroup))
 
     // ─── Phase 2: 4 more single-endpoint buckets ──────────────────────────
 
@@ -2705,15 +1943,6 @@ object Http4s600 {
           } yield ""
         }
     }
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(deleteEntitlement), "DELETE",
-      "/entitlements/ENTITLEMENT_ID", "Delete Entitlement",
-      """Delete an entitlement by ENTITLEMENT_ID. Idempotent.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
-      apiTagEntitlement :: Nil,
-      Some(canDeleteEntitlementAtAnyBank :: Nil),
-      http4sPartialFunction = Some(deleteEntitlement))
 
     // GET /obp/v6.0.0/personal-dynamic-entities/available
     lazy val getAvailablePersonalDynamicEntities: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -2723,14 +1952,6 @@ object Http4s600 {
             .map(all => JSONFactory600.createMyDynamicEntitiesJson(all.filter(_.hasPersonalEntity)))
         }
     }
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getAvailablePersonalDynamicEntities), "GET",
-      "/personal-dynamic-entities/available", "Get Available Personal Dynamic Entities",
-      """List Dynamic Entities that support personal data storage.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UnknownError),
-      apiTagManageDynamicEntity :: apiTagApi :: Nil, None,
-      http4sPartialFunction = Some(getAvailablePersonalDynamicEntities))
 
     // GET /obp/v6.0.0/management/dynamic-entities/reference-types
     lazy val getReferenceTypes: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -2772,15 +1993,6 @@ object Http4s600 {
           }
         }
     }
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getReferenceTypes), "GET",
-      "/management/dynamic-entities/reference-types", "Get Reference Types for Dynamic Entities",
-      """List all reference types available for use in Dynamic Entity field definitions.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
-      apiTagManageDynamicEntity :: Nil,
-      Some(canGetDynamicEntityReferenceTypes :: Nil),
-      http4sPartialFunction = Some(getReferenceTypes))
 
     // POST /obp/v6.0.0/chat-room-participants (201) — join a system chat room by joining_key
     lazy val joinSystemChatRoom: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -2803,14 +2015,6 @@ object Http4s600 {
           } yield JSONFactory600.createParticipantJson(participant)
         }
     }
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(joinSystemChatRoom), "POST",
-      "/chat-room-participants", "Join Chat Room",
-      """Join a chat room by providing its joining_key.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, InvalidJoiningKey, ChatRoomIsArchived, ChatRoomParticipantAlreadyExists, UnknownError),
-      apiTagChat :: Nil, None,
-      http4sPartialFunction = Some(joinSystemChatRoom))
 
     // ─── Phase 2: 6 banks/.../accounts subset (counterparty attrs + hasAccountAccess) ───
 
@@ -2845,15 +2049,6 @@ object Http4s600 {
           } yield JSONFactory600.createCounterpartyAttributeJson(attribute)
         }
     }
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createCounterpartyAttribute), "POST",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID_PARAM/attributes", "Create Counterparty Attribute",
-      """Create a new attribute on the specified counterparty.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
-      apiTagCounterparty :: Nil,
-      Some(canCreateCounterpartyAttribute :: Nil),
-      http4sPartialFunction = Some(createCounterpartyAttribute))
 
     // DELETE /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID/attributes/COUNTERPARTY_ATTRIBUTE_ID
     lazy val deleteCounterpartyAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -2862,16 +2057,6 @@ object Http4s600 {
           code.api.util.newstyle.CounterpartyAttributeNewStyle.deleteCounterpartyAttribute(attributeId, Some(cc))
         }
     }
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(deleteCounterpartyAttribute), "DELETE",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID_PARAM/attributes/COUNTERPARTY_ATTRIBUTE_ID",
-      "Delete Counterparty Attribute",
-      """Delete a counterparty attribute.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
-      apiTagCounterparty :: Nil,
-      Some(canDeleteCounterpartyAttribute :: Nil),
-      http4sPartialFunction = Some(deleteCounterpartyAttribute))
 
     // GET /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID/attributes/COUNTERPARTY_ATTRIBUTE_ID
     lazy val getCounterpartyAttributeById: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -2882,16 +2067,6 @@ object Http4s600 {
           } yield JSONFactory600.createCounterpartyAttributeJson(attribute)
         }
     }
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getCounterpartyAttributeById), "GET",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID_PARAM/attributes/COUNTERPARTY_ATTRIBUTE_ID",
-      "Get Counterparty Attribute By Id",
-      """Get a counterparty attribute by its ID.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
-      apiTagCounterparty :: Nil,
-      Some(canGetCounterpartyAttribute :: Nil),
-      http4sPartialFunction = Some(getCounterpartyAttributeById))
 
     // GET /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID/attributes
     lazy val getAllCounterpartyAttributes: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -2903,16 +2078,6 @@ object Http4s600 {
           } yield JSONFactory600.createCounterpartyAttributesJson(attributes)
         }
     }
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getAllCounterpartyAttributes), "GET",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID_PARAM/attributes",
-      "Get All Counterparty Attributes",
-      """Get all attributes for the specified counterparty.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
-      apiTagCounterparty :: Nil,
-      Some(canGetCounterpartyAttributes :: Nil),
-      http4sPartialFunction = Some(getAllCounterpartyAttributes))
 
     // PUT /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID/attributes/COUNTERPARTY_ATTRIBUTE_ID
     lazy val updateCounterpartyAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -2937,16 +2102,6 @@ object Http4s600 {
           } yield JSONFactory600.createCounterpartyAttributeJson(updated)
         }
     }
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(updateCounterpartyAttribute), "PUT",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID_PARAM/attributes/COUNTERPARTY_ATTRIBUTE_ID",
-      "Update Counterparty Attribute",
-      """Update a counterparty attribute by its ID.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
-      apiTagCounterparty :: Nil,
-      Some(canUpdateCounterpartyAttribute :: Nil),
-      http4sPartialFunction = Some(updateCounterpartyAttribute))
 
     // GET /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/has-account-access
     lazy val hasAccountAccess: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -2978,14 +2133,6 @@ object Http4s600 {
           }
         }
     }
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(hasAccountAccess), "GET",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/has-account-access", "Has Account Access",
-      """Check whether the caller has account access via this view.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, $BankNotFound, ViewNotFound, UnknownError),
-      apiTagAccount :: Nil, None,
-      http4sPartialFunction = Some(hasAccountAccess))
 
     // GET /obp/v6.0.0/my/account-access-requests
     lazy val getMyAccountAccessRequests: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -2998,14 +2145,6 @@ object Http4s600 {
           } yield JSONFactory600.createAccountAccessRequestsJsonV600(requests)
         }
     }
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getMyAccountAccessRequests), "GET",
-      "/my/account-access-requests", "Get My Account Access Requests",
-      """List account-access requests submitted by the logged-in user.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UnknownError),
-      apiTagAccountAccess :: Nil, None,
-      http4sPartialFunction = Some(getMyAccountAccessRequests))
 
     // ─── Phase 2: 3 anonymous/UserOrApplication endpoints ─────────────────
 
@@ -3044,14 +2183,6 @@ object Http4s600 {
           } yield result
         }
     }
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getWebUiProp), "GET",
-      "/webui-props/WEBUI_PROP_NAME", "Get WebUiProp by Name",
-      """Get a single WebUiProp by name. Anonymous endpoint.""",
-      EmptyBody, EmptyBody,
-      List(WebUiPropsNotFoundByName, InvalidFilterParameterFormat, UnknownError),
-      apiTagWebUiProps :: Nil, None,
-      http4sPartialFunction = Some(getWebUiProp))
 
     // GET /obp/v6.0.0/message-docs/CONNECTOR/json-schema
     lazy val getMessageDocsJsonSchema: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -3081,14 +2212,6 @@ object Http4s600 {
           } yield jsonSchema
         }
     }
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getMessageDocsJsonSchema), "GET",
-      "/message-docs/CONNECTOR/json-schema", "Get Message Docs as JSON Schema",
-      """Returns the message-docs for a connector as a JSON Schema. Anonymous endpoint.""",
-      EmptyBody, EmptyBody,
-      List(InvalidConnector, UnknownError),
-      apiTagMessageDoc :: apiTagDocumentation :: apiTagApi :: Nil, None,
-      http4sPartialFunction = Some(getMessageDocsJsonSchema))
 
     // POST /obp/v6.0.0/users/verify-credentials
     lazy val verifyUserCredentials: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -3119,16 +2242,6 @@ object Http4s600 {
           } yield JSONFactory200.createUserJSON(user)
         }
     }
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(verifyUserCredentials), "POST",
-      "/users/verify-credentials", "Verify User Credentials",
-      """Verify a user's credentials (username, password, provider) and return user information if valid.""",
-      EmptyBody, EmptyBody,
-      List(UserHasMissingRoles, InvalidJsonFormat, InvalidLoginCredentials, UsernameHasBeenLocked, UnknownError),
-      apiTagUser :: Nil,
-      Some(canVerifyUserCredentials :: Nil),
-      authMode = code.api.util.APIUtil.UserOrApplication,
-      http4sPartialFunction = Some(verifyUserCredentials))
 
     // GET /obp/v6.0.0/management/view-permissions
     lazy val getViewPermissions: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -3157,15 +2270,6 @@ object Http4s600 {
           }
         }
     }
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getViewPermissions), "GET",
-      "/management/view-permissions", "Get View Permissions",
-      """Get a list of all available view permissions, organised by category.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
-      apiTagSystemView :: apiTagView :: Nil,
-      Some(canGetViewPermissionsAtAllBanks :: Nil),
-      http4sPartialFunction = Some(getViewPermissions))
 
     // GET /obp/v6.0.0/api-products  (all banks; auth-required; cached)
     lazy val getAllApiProductsV600: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -3194,14 +2298,6 @@ object Http4s600 {
           }
         }
     }
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getAllApiProductsV600), "GET",
-      "/api-products", "Get Api Products At All Banks",
-      """Returns the Api Products across every bank, merged into a single list. Each product carries its bank_id.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UnknownError),
-      apiTagApi :: apiTagApiProduct :: Nil, None,
-      http4sPartialFunction = Some(getAllApiProductsV600))
 
     // GET /obp/v6.0.0/products  (all banks; auth-required; cached)
     lazy val getAllProductsV600: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -3234,14 +2330,6 @@ object Http4s600 {
           }
         }
     }
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getAllProductsV600), "GET",
-      "/products", "Get Products At All Banks",
-      """Returns the financial Products offered by every bank merged into a single list. Each product carries its bank_id.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UnknownError),
-      apiTagProduct :: Nil, None,
-      http4sPartialFunction = Some(getAllProductsV600))
 
     // ─── Phase 2: account-access-requests + holding-accounts (3 endpoints) ─
 
@@ -3266,16 +2354,6 @@ object Http4s600 {
           } yield JSONFactory600.createAccountAccessRequestsJsonV600(requests)
         }
     }
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getAccountAccessRequestsForAccount), "GET",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/account-access-requests",
-      "Get Account Access Requests for Account",
-      """Get all Account Access Requests on the specified account. Optional `status` query param filters by status.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, $BankNotFound, $BankAccountNotFound, UnknownError),
-      apiTagAccountAccess :: Nil,
-      Some(canGetAccountAccessRequestsAtOneBank :: canGetAccountAccessRequestsAtAnyBank :: Nil),
-      http4sPartialFunction = Some(getAccountAccessRequestsForAccount))
 
     // GET /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/account-access-requests/ACCOUNT_ACCESS_REQUEST_ID
     lazy val getAccountAccessRequestById: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -3292,16 +2370,6 @@ object Http4s600 {
           } yield JSONFactory600.createAccountAccessRequestJsonV600(request)
         }
     }
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getAccountAccessRequestById), "GET",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/account-access-requests/ACCOUNT_ACCESS_REQUEST_ID",
-      "Get Account Access Request by Id",
-      """Get a single Account Access Request by its ID.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, $BankNotFound, $BankAccountNotFound, AccountAccessRequestNotFound, UnknownError),
-      apiTagAccountAccess :: Nil,
-      Some(canGetAccountAccessRequestsAtOneBank :: canGetAccountAccessRequestsAtAnyBank :: Nil),
-      http4sPartialFunction = Some(getAccountAccessRequestById))
 
     // GET /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/holding-accounts
     lazy val getHoldingAccountByReleaser: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -3334,15 +2402,6 @@ object Http4s600 {
           } yield JSONFactory300.createFirehoseCoreBankAccountJSON(List(moderatedAccount), Some(attributes))
         }
     }
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getHoldingAccountByReleaser), "GET",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/holding-accounts",
-      "Get Holding Accounts By Releaser",
-      """Return the first Holding Account linked to the given releaser account via account attribute RELEASER_ACCOUNT_ID.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, $UserNoPermissionAccessView, UnknownError),
-      apiTagAccount :: Nil, None,
-      http4sPartialFunction = Some(getHoldingAccountByReleaser))
 
     // ─── Phase 2: account-access-request lifecycle (3 endpoints) ─────────
 
@@ -3384,18 +2443,6 @@ object Http4s600 {
           } yield JSONFactory600.createAccountAccessRequestJsonV600(request)
         }
     }
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createAccountAccessRequest), "POST",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/account-access-requests",
-      "Create Account Access Request",
-      """Create a new Account Access Request (maker step in maker/checker workflow).""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat,
-        $BankNotFound, $BankAccountNotFound, BusinessJustificationRequired,
-        AccountAccessRequestAlreadyExists, AccountAccessRequestCannotBeCreated, UnknownError),
-      apiTagAccountAccess :: Nil,
-      Some(canCreateAccountAccessRequestAtOneBank :: canCreateAccountAccessRequestAtAnyBank :: Nil),
-      http4sPartialFunction = Some(createAccountAccessRequest))
 
     // POST /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/account-access-requests/.../approval (201)
     lazy val approveAccountAccessRequest: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -3446,19 +2493,6 @@ object Http4s600 {
           } yield JSONFactory600.createAccountAccessRequestJsonV600(updated)
         }
     }
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(approveAccountAccessRequest), "POST",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/account-access-requests/ACCOUNT_ACCESS_REQUEST_ID/approval",
-      "Approve Account Access Request",
-      """Approve an Account Access Request (checker step in maker/checker workflow).""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat,
-        $BankNotFound, $BankAccountNotFound, AccountAccessRequestNotFound,
-        AccountAccessRequestStatusNotInitiated, MakerCheckerSameUser,
-        AccountAccessRequestCannotBeUpdated, UnknownError),
-      apiTagAccountAccess :: Nil,
-      Some(canUpdateAccountAccessRequestAtOneBank :: canUpdateAccountAccessRequestAtAnyBank :: Nil),
-      http4sPartialFunction = Some(approveAccountAccessRequest))
 
     // POST /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/account-access-requests/.../rejection (201)
     lazy val rejectAccountAccessRequest: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -3498,19 +2532,6 @@ object Http4s600 {
           } yield JSONFactory600.createAccountAccessRequestJsonV600(updated)
         }
     }
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(rejectAccountAccessRequest), "POST",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/account-access-requests/ACCOUNT_ACCESS_REQUEST_ID/rejection",
-      "Reject Account Access Request",
-      """Reject an Account Access Request (checker step in maker/checker workflow).""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat,
-        $BankNotFound, $BankAccountNotFound, AccountAccessRequestNotFound,
-        AccountAccessRequestStatusNotInitiated, MakerCheckerSameUser,
-        CheckerCommentRequiredForRejection, AccountAccessRequestCannotBeUpdated, UnknownError),
-      apiTagAccountAccess :: Nil,
-      Some(canUpdateAccountAccessRequestAtOneBank :: canUpdateAccountAccessRequestAtAnyBank :: Nil),
-      http4sPartialFunction = Some(rejectAccountAccessRequest))
 
     // ─── Phase 2: Signal bucket (6 endpoints) ────────────────────────────
 
@@ -3536,14 +2557,6 @@ object Http4s600 {
           }
         }
     }
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getSignalChannels), "GET",
-      "/signal/channels", "List Signal Channels",
-      """List active signal channels with broadcast messages.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UnknownError),
-      apiTagAiAgent :: apiTagSignal :: apiTagSignalling :: apiTagChannel :: Nil, None,
-      http4sPartialFunction = Some(getSignalChannels))
 
     // GET /obp/v6.0.0/signal/channels/CHANNEL_NAME/info
     lazy val getSignalChannelInfo: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -3561,14 +2574,6 @@ object Http4s600 {
           } yield SignalChannelInfoJsonV600(channelName, count, ttl)
         }
     }
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getSignalChannelInfo), "GET",
-      "/signal/channels/CHANNEL_NAME/info", "Get Signal Channel Info",
-      """Get metadata for a signal channel (message count + remaining TTL).""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, InvalidSignalChannelName, UnknownError),
-      apiTagAiAgent :: apiTagSignal :: apiTagSignalling :: apiTagChannel :: Nil, None,
-      http4sPartialFunction = Some(getSignalChannelInfo))
 
     // GET /obp/v6.0.0/signal/channels/stats
     lazy val getSignalStats: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -3588,15 +2593,6 @@ object Http4s600 {
           }
         }
     }
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getSignalStats), "GET",
-      "/signal/channels/stats", "Get Signal Channel Stats",
-      """Stats for all signal channels including private-only.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
-      apiTagAiAgent :: apiTagSignal :: apiTagSignalling :: apiTagChannel :: Nil,
-      Some(canGetSignalStats :: Nil),
-      http4sPartialFunction = Some(getSignalStats))
 
     // POST /obp/v6.0.0/signal/channels/CHANNEL_NAME/messages (201)
     lazy val publishSignalMessage: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -3632,14 +2628,6 @@ object Http4s600 {
           } yield published
         }
     }
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(publishSignalMessage), "POST",
-      "/signal/channels/CHANNEL_NAME/messages", "Publish Signal Message",
-      """Publish a message to a signal channel.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, InvalidSignalChannelName, InvalidJsonFormat, UnknownError),
-      apiTagAiAgent :: apiTagSignal :: apiTagSignalling :: apiTagChannel :: Nil, None,
-      http4sPartialFunction = Some(publishSignalMessage))
 
     // GET /obp/v6.0.0/signal/channels/CHANNEL_NAME/messages
     lazy val getSignalMessages: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -3668,14 +2656,6 @@ object Http4s600 {
           }
         }
     }
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getSignalMessages), "GET",
-      "/signal/channels/CHANNEL_NAME/messages", "Get Signal Messages",
-      """Fetch messages from a signal channel with offset/limit pagination.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, InvalidSignalChannelName, UnknownError),
-      apiTagAiAgent :: apiTagSignal :: apiTagSignalling :: apiTagChannel :: Nil, None,
-      http4sPartialFunction = Some(getSignalMessages))
 
     // DELETE /obp/v6.0.0/signal/channels/CHANNEL_NAME (200 with body — not 204)
     lazy val deleteSignalChannel: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -3689,14 +2669,6 @@ object Http4s600 {
           } yield SignalChannelDeletedJsonV600(channelName, deleted)
         }
     }
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(deleteSignalChannel), "DELETE",
-      "/signal/channels/CHANNEL_NAME", "Delete Signal Channel",
-      """Delete a signal channel and all its messages.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, InvalidSignalChannelName, UnknownError),
-      apiTagAiAgent :: apiTagSignal :: apiTagSignalling :: apiTagChannel :: Nil, None,
-      http4sPartialFunction = Some(deleteSignalChannel))
 
     // ─── Phase 2: Chat-room reads (4 endpoints) ──────────────────────────
 
@@ -3733,14 +2705,6 @@ object Http4s600 {
           } yield JSONFactory600.createChatRoomsJson(rooms, unreadCounts, participantCounts)
         }
     }
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getBankChatRooms), "GET",
-      "/banks/BANK_ID/chat-rooms", "Get Bank Chat Rooms",
-      """Get all bank-scoped chat rooms the current user is a participant of.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, $BankNotFound, UnknownError),
-      apiTagChat :: Nil, None,
-      http4sPartialFunction = Some(getBankChatRooms))
 
     // GET /obp/v6.0.0/chat-rooms
     lazy val getSystemChatRooms: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -3756,14 +2720,6 @@ object Http4s600 {
           } yield JSONFactory600.createChatRoomsJson(rooms, unreadCounts, participantCounts)
         }
     }
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getSystemChatRooms), "GET",
-      "/chat-rooms", "Get System Chat Rooms",
-      """Get all system-level chat rooms the current user is a participant of.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UnknownError),
-      apiTagChat :: Nil, None,
-      http4sPartialFunction = Some(getSystemChatRooms))
 
     // GET /obp/v6.0.0/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID
     lazy val getBankChatRoom: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -3777,14 +2733,6 @@ object Http4s600 {
           } yield JSONFactory600.createChatRoomJson(room, participantCount = computeParticipantCount(room.chatRoomId))
         }
     }
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getBankChatRoom), "GET",
-      "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID", "Get Bank Chat Room",
-      """Get a specific bank chat room by ID.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, $BankNotFound, ChatRoomNotFound, NotChatRoomParticipant, UnknownError),
-      apiTagChat :: Nil, None,
-      http4sPartialFunction = Some(getBankChatRoom))
 
     // GET /obp/v6.0.0/chat-rooms/CHAT_ROOM_ID
     lazy val getSystemChatRoom: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -3798,14 +2746,6 @@ object Http4s600 {
           } yield JSONFactory600.createChatRoomJson(room, participantCount = computeParticipantCount(room.chatRoomId))
         }
     }
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getSystemChatRoom), "GET",
-      "/chat-rooms/CHAT_ROOM_ID", "Get System Chat Room",
-      """Get a specific system chat room by ID.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, ChatRoomNotFound, NotChatRoomParticipant, UnknownError),
-      apiTagChat :: Nil, None,
-      http4sPartialFunction = Some(getSystemChatRoom))
 
     // ─── Phase 2: Chat-room my-views (6 endpoints) ────────────────────────
 
@@ -3837,14 +2777,6 @@ object Http4s600 {
           }
         }
     }
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getMyChatRooms), "GET",
-      "/users/current/chat-rooms", "Get My Chat Rooms",
-      """Get all chat rooms (any bank or system) the current user is a participant of.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UnknownError),
-      apiTagChat :: Nil, None,
-      http4sPartialFunction = Some(getMyChatRooms))
 
     // GET /obp/v6.0.0/users/current/chat-rooms/unread
     lazy val getMyUnreadCounts: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -3869,14 +2801,6 @@ object Http4s600 {
           } yield UnreadCountsJsonV600(unread_counts = counts)
         }
     }
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getMyUnreadCounts), "GET",
-      "/users/current/chat-rooms/unread", "Get My Unread Counts",
-      """Unread-message counts for every chat room the current user is in.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UnknownError),
-      apiTagChat :: Nil, None,
-      http4sPartialFunction = Some(getMyUnreadCounts))
 
     // PUT /obp/v6.0.0/users/current/chat-rooms/CHAT_ROOM_ID/read-marker
     lazy val markChatRoomRead: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -3894,14 +2818,6 @@ object Http4s600 {
           } yield JSONFactory600.createParticipantJson(updated)
         }
     }
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(markChatRoomRead), "PUT",
-      "/users/current/chat-rooms/CHAT_ROOM_ID/read-marker", "Mark Chat Room Read",
-      """Mark all messages in a chat room as read for the current user.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, ChatRoomNotFound, NotChatRoomParticipant, UnknownError),
-      apiTagChat :: Nil, None,
-      http4sPartialFunction = Some(markChatRoomRead))
 
     // GET /obp/v6.0.0/users/current/mentions
     lazy val getMyMentions: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -3924,14 +2840,6 @@ object Http4s600 {
           } yield JSONFactory600.createChatMessagesJson(messages, allReactions)
         }
     }
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getMyMentions), "GET",
-      "/users/current/mentions", "Get My Mentions",
-      """Messages where the current user is mentioned. Supports limit/offset query params.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UnknownError),
-      apiTagChat :: Nil, None,
-      http4sPartialFunction = Some(getMyMentions))
 
     // POST /obp/v6.0.0/chat-rooms/search (200, NOT 201)
     lazy val searchChatRooms: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -3954,14 +2862,6 @@ object Http4s600 {
           } yield JSONFactory600.createChatRoomsJson(rooms, unreadCounts, participantCounts)
         }
     }
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(searchChatRooms), "POST",
-      "/chat-rooms/search", "Search Chat Rooms",
-      """Search chat rooms by participant set. POST body lists with_user_ids; response shape matches Get My Chat Rooms.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
-      apiTagChat :: Nil, None,
-      http4sPartialFunction = Some(searchChatRooms))
 
     // GET /obp/v6.0.0/chat-rooms/CHAT_ROOM_ID/messages/reactions
     lazy val getBulkReactions: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -3981,14 +2881,6 @@ object Http4s600 {
           } yield JSONFactory600.createBulkReactionsJson(allReactions, messageIds)
         }
     }
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getBulkReactions), "GET",
-      "/chat-rooms/CHAT_ROOM_ID/messages/reactions", "Get Bulk Reactions",
-      """Get reactions for multiple messages in one call (?message_ids=id1,id2,id3).""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, ChatRoomNotFound, NotChatRoomParticipant, UnknownError),
-      apiTagChat :: Nil, None,
-      http4sPartialFunction = Some(getBulkReactions))
 
     // ─── Phase 2: Chat-room admin (5 endpoints) ───────────────────────────
 
@@ -4006,15 +2898,6 @@ object Http4s600 {
             participantCount = computeParticipantCount(archived.chatRoomId))
         }
     }
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(archiveBankChatRoom), "PUT",
-      "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/archive-status", "Archive Bank Chat Room",
-      """Archive a bank chat room.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, $BankNotFound, ChatRoomNotFound, UnknownError),
-      apiTagChat :: Nil,
-      Some(canArchiveBankChatRoom :: Nil),
-      http4sPartialFunction = Some(archiveBankChatRoom))
 
     // PUT /obp/v6.0.0/chat-rooms/CHAT_ROOM_ID/archive-status
     lazy val archiveSystemChatRoom: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -4030,15 +2913,6 @@ object Http4s600 {
             participantCount = computeParticipantCount(archived.chatRoomId))
         }
     }
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(archiveSystemChatRoom), "PUT",
-      "/chat-rooms/CHAT_ROOM_ID/archive-status", "Archive System Chat Room",
-      """Archive a system chat room.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, ChatRoomNotFound, UnknownError),
-      apiTagChat :: Nil,
-      Some(canArchiveSystemChatRoom :: Nil),
-      http4sPartialFunction = Some(archiveSystemChatRoom))
 
     // POST /obp/v6.0.0/banks/BANK_ID/chat-room-participants (201)
     lazy val joinBankChatRoom: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -4064,15 +2938,6 @@ object Http4s600 {
           } yield JSONFactory600.createParticipantJson(participant)
         }
     }
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(joinBankChatRoom), "POST",
-      "/banks/BANK_ID/chat-room-participants", "Join Bank Chat Room",
-      """Join a bank chat room using a joining key.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, $BankNotFound, InvalidJoiningKey,
-        ChatRoomIsArchived, ChatRoomParticipantAlreadyExists, UnknownError),
-      apiTagChat :: Nil, None,
-      http4sPartialFunction = Some(joinBankChatRoom))
 
     // PUT /obp/v6.0.0/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/joining-key
     lazy val refreshBankJoiningKey: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -4090,15 +2955,6 @@ object Http4s600 {
           } yield JoiningKeyJsonV600(joining_key = updated.joiningKey)
         }
     }
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(refreshBankJoiningKey), "PUT",
-      "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/joining-key", "Refresh Bank Chat Room Joining Key",
-      """Refresh the joining key for a bank chat room.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, $BankNotFound, ChatRoomNotFound,
-        InsufficientChatPermission, UnknownError),
-      apiTagChat :: Nil, None,
-      http4sPartialFunction = Some(refreshBankJoiningKey))
 
     // PUT /obp/v6.0.0/chat-rooms/CHAT_ROOM_ID/joining-key
     lazy val refreshSystemJoiningKey: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -4116,15 +2972,6 @@ object Http4s600 {
           } yield JoiningKeyJsonV600(joining_key = updated.joiningKey)
         }
     }
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(refreshSystemJoiningKey), "PUT",
-      "/chat-rooms/CHAT_ROOM_ID/joining-key", "Refresh System Chat Room Joining Key",
-      """Refresh the joining key for a system chat room.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, ChatRoomNotFound,
-        InsufficientChatPermission, UnknownError),
-      apiTagChat :: Nil, None,
-      http4sPartialFunction = Some(refreshSystemJoiningKey))
 
     // ─── Phase 2: Chat-room mutations (8 endpoints) ───────────────────────
 
@@ -4156,15 +3003,6 @@ object Http4s600 {
             participantCount = computeParticipantCount(room.chatRoomId))
         }
     }
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createBankChatRoom), "POST",
-      "/banks/BANK_ID/chat-rooms", "Create Bank Chat Room",
-      """Create a new bank-scoped chat room. Creator becomes participant with all permissions.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat,
-        ChatRoomAlreadyExists, UnknownError),
-      apiTagChat :: Nil, None,
-      http4sPartialFunction = Some(createBankChatRoom))
 
     // POST /obp/v6.0.0/chat-rooms (201)
     lazy val createSystemChatRoom: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -4194,15 +3032,6 @@ object Http4s600 {
             participantCount = computeParticipantCount(room.chatRoomId))
         }
     }
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createSystemChatRoom), "POST",
-      "/chat-rooms", "Create System Chat Room",
-      """Create a new system-level chat room. Creator becomes participant with all permissions.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, InvalidJsonFormat,
-        ChatRoomAlreadyExists, UnknownError),
-      apiTagChat :: Nil, None,
-      http4sPartialFunction = Some(createSystemChatRoom))
 
     // PUT /obp/v6.0.0/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID
     lazy val updateBankChatRoom: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -4228,15 +3057,6 @@ object Http4s600 {
             participantCount = computeParticipantCount(updated.chatRoomId))
         }
     }
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(updateBankChatRoom), "PUT",
-      "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID", "Update Bank Chat Room",
-      """Update the name/description of a bank chat room.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, InvalidJsonFormat,
-        ChatRoomNotFound, NotChatRoomParticipant, InsufficientChatPermission, UnknownError),
-      apiTagChat :: Nil, None,
-      http4sPartialFunction = Some(updateBankChatRoom))
 
     // PUT /obp/v6.0.0/chat-rooms/CHAT_ROOM_ID
     lazy val updateSystemChatRoom: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -4262,15 +3082,6 @@ object Http4s600 {
             participantCount = computeParticipantCount(updated.chatRoomId))
         }
     }
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(updateSystemChatRoom), "PUT",
-      "/chat-rooms/CHAT_ROOM_ID", "Update System Chat Room",
-      """Update the name/description of a system chat room.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, InvalidJsonFormat,
-        ChatRoomNotFound, NotChatRoomParticipant, InsufficientChatPermission, UnknownError),
-      apiTagChat :: Nil, None,
-      http4sPartialFunction = Some(updateSystemChatRoom))
 
     // DELETE /obp/v6.0.0/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID (204)
     lazy val deleteBankChatRoom: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -4285,16 +3096,6 @@ object Http4s600 {
           } yield ()
         }
     }
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(deleteBankChatRoom), "DELETE",
-      "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID", "Delete Bank Chat Room",
-      """Delete a bank chat room.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles,
-        $BankNotFound, ChatRoomNotFound, UnknownError),
-      apiTagChat :: Nil,
-      Some(canDeleteBankChatRoom :: Nil),
-      http4sPartialFunction = Some(deleteBankChatRoom))
 
     // DELETE /obp/v6.0.0/chat-rooms/CHAT_ROOM_ID (204)
     lazy val deleteSystemChatRoom: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -4309,16 +3110,6 @@ object Http4s600 {
           } yield ()
         }
     }
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(deleteSystemChatRoom), "DELETE",
-      "/chat-rooms/CHAT_ROOM_ID", "Delete System Chat Room",
-      """Delete a system chat room.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles,
-        ChatRoomNotFound, UnknownError),
-      apiTagChat :: Nil,
-      Some(canDeleteSystemChatRoom :: Nil),
-      http4sPartialFunction = Some(deleteSystemChatRoom))
 
     // PUT /obp/v6.0.0/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/open-room
     lazy val setBankChatRoomOpenRoom: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -4338,16 +3129,6 @@ object Http4s600 {
             participantCount = computeParticipantCount(updated.chatRoomId))
         }
     }
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(setBankChatRoomOpenRoom), "PUT",
-      "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/open-room", "Set Bank Chat Room Open Room",
-      """Mark a bank chat room as open (all bank users implicit participants) or closed.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles,
-        $BankNotFound, ChatRoomNotFound, UnknownError),
-      apiTagChat :: Nil,
-      Some(canSetBankChatRoomIsOpenRoom :: Nil),
-      http4sPartialFunction = Some(setBankChatRoomOpenRoom))
 
     // PUT /obp/v6.0.0/chat-rooms/CHAT_ROOM_ID/open-room
     lazy val setSystemChatRoomOpenRoom: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -4367,16 +3148,6 @@ object Http4s600 {
             participantCount = computeParticipantCount(updated.chatRoomId))
         }
     }
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(setSystemChatRoomOpenRoom), "PUT",
-      "/chat-rooms/CHAT_ROOM_ID/open-room", "Set System Chat Room Open Room",
-      """Mark a system chat room as open (all users implicit participants) or closed.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles,
-        ChatRoomNotFound, UnknownError),
-      apiTagChat :: Nil,
-      Some(canSetSystemChatRoomIsOpenRoom :: Nil),
-      http4sPartialFunction = Some(setSystemChatRoomOpenRoom))
 
     // ─── Phase 2: Chat-room participants (8 endpoints) ────────────────────
     // Pattern: lazy val at object level so allRoutes can see them; ResourceDoc
@@ -4580,83 +3351,6 @@ object Http4s600 {
     }
 
     private def initParticipantResourceDocs(): Unit = {
-      resourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(addBankChatRoomParticipant), "POST",
-        "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/participants", "Add Bank Chat Room Participant",
-        """Add a participant to a bank chat room.""",
-        EmptyBody, EmptyBody,
-        List($AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat,
-          ChatRoomNotFound, InsufficientChatPermission, MustSpecifyUserIdOrConsumerId,
-          ChatRoomParticipantAlreadyExists, UnknownError),
-        apiTagChat :: Nil, None,
-        http4sPartialFunction = Some(addBankChatRoomParticipant))
-      resourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(addSystemChatRoomParticipant), "POST",
-        "/chat-rooms/CHAT_ROOM_ID/participants", "Add System Chat Room Participant",
-        """Add a participant to a system chat room.""",
-        EmptyBody, EmptyBody,
-        List($AuthenticatedUserIsRequired, InvalidJsonFormat,
-          ChatRoomNotFound, InsufficientChatPermission, MustSpecifyUserIdOrConsumerId,
-          ChatRoomParticipantAlreadyExists, UnknownError),
-        apiTagChat :: Nil, None,
-        http4sPartialFunction = Some(addSystemChatRoomParticipant))
-      resourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getBankChatRoomParticipants), "GET",
-        "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/participants", "Get Bank Chat Room Participants",
-        """List participants of a bank chat room.""",
-        EmptyBody, EmptyBody,
-        List($AuthenticatedUserIsRequired, $BankNotFound,
-          ChatRoomNotFound, NotChatRoomParticipant, UnknownError),
-        apiTagChat :: Nil, None,
-        http4sPartialFunction = Some(getBankChatRoomParticipants))
-      resourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getSystemChatRoomParticipants), "GET",
-        "/chat-rooms/CHAT_ROOM_ID/participants", "Get System Chat Room Participants",
-        """List participants of a system chat room.""",
-        EmptyBody, EmptyBody,
-        List($AuthenticatedUserIsRequired, ChatRoomNotFound, NotChatRoomParticipant, UnknownError),
-        apiTagChat :: Nil, None,
-        http4sPartialFunction = Some(getSystemChatRoomParticipants))
-      resourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(updateBankParticipantPermissions), "PUT",
-        "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/participants/USER_ID",
-        "Update Bank Chat Room Participant Permissions",
-        """Update permissions for a participant in a bank chat room.""",
-        EmptyBody, EmptyBody,
-        List($AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat,
-          ChatRoomNotFound, InsufficientChatPermission, ChatRoomParticipantNotFound, UnknownError),
-        apiTagChat :: Nil, None,
-        http4sPartialFunction = Some(updateBankParticipantPermissions))
-      resourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(updateSystemParticipantPermissions), "PUT",
-        "/chat-rooms/CHAT_ROOM_ID/participants/USER_ID",
-        "Update System Chat Room Participant Permissions",
-        """Update permissions for a participant in a system chat room.""",
-        EmptyBody, EmptyBody,
-        List($AuthenticatedUserIsRequired, InvalidJsonFormat,
-          ChatRoomNotFound, InsufficientChatPermission, ChatRoomParticipantNotFound, UnknownError),
-        apiTagChat :: Nil, None,
-        http4sPartialFunction = Some(updateSystemParticipantPermissions))
-      resourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(removeBankChatRoomParticipant), "DELETE",
-        "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/participants/USER_ID",
-        "Remove Bank Chat Room Participant",
-        """Remove a participant from a bank chat room (self-removal allowed).""",
-        EmptyBody, EmptyBody,
-        List($AuthenticatedUserIsRequired, $BankNotFound,
-          ChatRoomNotFound, InsufficientChatPermission, ChatRoomParticipantNotFound, UnknownError),
-        apiTagChat :: Nil, None,
-        http4sPartialFunction = Some(removeBankChatRoomParticipant))
-      resourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(removeSystemChatRoomParticipant), "DELETE",
-        "/chat-rooms/CHAT_ROOM_ID/participants/USER_ID",
-        "Remove System Chat Room Participant",
-        """Remove a participant from a system chat room (self-removal allowed).""",
-        EmptyBody, EmptyBody,
-        List($AuthenticatedUserIsRequired, ChatRoomNotFound,
-          InsufficientChatPermission, ChatRoomParticipantNotFound, UnknownError),
-        apiTagChat :: Nil, None,
-        http4sPartialFunction = Some(removeSystemChatRoomParticipant))
     }
     initParticipantResourceDocs()
 
@@ -4897,103 +3591,6 @@ object Http4s600 {
     }
 
     private def initChatMessageResourceDocs(): Unit = {
-      resourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(sendBankChatMessage), "POST",
-        "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/messages", "Send Bank Chat Message",
-        """Send a message in a bank chat room.""",
-        EmptyBody, EmptyBody,
-        List($AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat,
-          ChatRoomNotFound, NotChatRoomParticipant, ChatRoomIsArchived, UnknownError),
-        apiTagChat :: Nil, None,
-        http4sPartialFunction = Some(sendBankChatMessage))
-      resourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(sendSystemChatMessage), "POST",
-        "/chat-rooms/CHAT_ROOM_ID/messages", "Send System Chat Message",
-        """Send a message in a system chat room.""",
-        EmptyBody, EmptyBody,
-        List($AuthenticatedUserIsRequired, InvalidJsonFormat,
-          ChatRoomNotFound, NotChatRoomParticipant, ChatRoomIsArchived, UnknownError),
-        apiTagChat :: Nil, None,
-        http4sPartialFunction = Some(sendSystemChatMessage))
-      resourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getBankChatMessages), "GET",
-        "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/messages", "Get Bank Chat Messages",
-        """Get messages in a bank chat room (limit/offset/from_date/to_date).""",
-        EmptyBody, EmptyBody,
-        List($AuthenticatedUserIsRequired, $BankNotFound,
-          ChatRoomNotFound, NotChatRoomParticipant, UnknownError),
-        apiTagChat :: Nil, None,
-        http4sPartialFunction = Some(getBankChatMessages))
-      resourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getSystemChatMessages), "GET",
-        "/chat-rooms/CHAT_ROOM_ID/messages", "Get System Chat Messages",
-        """Get messages in a system chat room (limit/offset/from_date/to_date).""",
-        EmptyBody, EmptyBody,
-        List($AuthenticatedUserIsRequired,
-          ChatRoomNotFound, NotChatRoomParticipant, UnknownError),
-        apiTagChat :: Nil, None,
-        http4sPartialFunction = Some(getSystemChatMessages))
-      resourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getBankChatMessage), "GET",
-        "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/messages/CHAT_MESSAGE_ID",
-        "Get Bank Chat Message",
-        """Get a specific message in a bank chat room.""",
-        EmptyBody, EmptyBody,
-        List($AuthenticatedUserIsRequired, $BankNotFound,
-          ChatRoomNotFound, NotChatRoomParticipant, ChatMessageNotFound, UnknownError),
-        apiTagChat :: Nil, None,
-        http4sPartialFunction = Some(getBankChatMessage))
-      resourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getSystemChatMessage), "GET",
-        "/chat-rooms/CHAT_ROOM_ID/messages/CHAT_MESSAGE_ID", "Get System Chat Message",
-        """Get a specific message in a system chat room.""",
-        EmptyBody, EmptyBody,
-        List($AuthenticatedUserIsRequired,
-          ChatRoomNotFound, NotChatRoomParticipant, ChatMessageNotFound, UnknownError),
-        apiTagChat :: Nil, None,
-        http4sPartialFunction = Some(getSystemChatMessage))
-      resourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(editBankChatMessage), "PUT",
-        "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/messages/CHAT_MESSAGE_ID",
-        "Edit Bank Chat Message",
-        """Edit a message in a bank chat room (sender only).""",
-        EmptyBody, EmptyBody,
-        List($AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat,
-          ChatRoomNotFound, NotChatRoomParticipant, ChatMessageNotFound,
-          CannotEditOthersMessage, UnknownError),
-        apiTagChat :: Nil, None,
-        http4sPartialFunction = Some(editBankChatMessage))
-      resourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(editSystemChatMessage), "PUT",
-        "/chat-rooms/CHAT_ROOM_ID/messages/CHAT_MESSAGE_ID", "Edit System Chat Message",
-        """Edit a message in a system chat room (sender only).""",
-        EmptyBody, EmptyBody,
-        List($AuthenticatedUserIsRequired, InvalidJsonFormat,
-          ChatRoomNotFound, NotChatRoomParticipant, ChatMessageNotFound,
-          CannotEditOthersMessage, UnknownError),
-        apiTagChat :: Nil, None,
-        http4sPartialFunction = Some(editSystemChatMessage))
-      resourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(deleteBankChatMessage), "DELETE",
-        "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/messages/CHAT_MESSAGE_ID",
-        "Delete Bank Chat Message",
-        """Soft-delete a chat message (sender or participant with can_delete_message).""",
-        EmptyBody, EmptyBody,
-        List($AuthenticatedUserIsRequired, $BankNotFound,
-          ChatRoomNotFound, NotChatRoomParticipant, ChatMessageNotFound,
-          CannotDeleteMessage, UnknownError),
-        apiTagChat :: Nil, None,
-        http4sPartialFunction = Some(deleteBankChatMessage))
-      resourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(deleteSystemChatMessage), "DELETE",
-        "/chat-rooms/CHAT_ROOM_ID/messages/CHAT_MESSAGE_ID", "Delete System Chat Message",
-        """Soft-delete a chat message in a system chat room.""",
-        EmptyBody, EmptyBody,
-        List($AuthenticatedUserIsRequired,
-          ChatRoomNotFound, NotChatRoomParticipant, ChatMessageNotFound,
-          CannotDeleteMessage, UnknownError),
-        apiTagChat :: Nil, None,
-        http4sPartialFunction = Some(deleteSystemChatMessage))
     }
     initChatMessageResourceDocs()
 
@@ -5344,142 +3941,6 @@ object Http4s600 {
     }
 
     private def initChatThreadReactionTypingResourceDocs(): Unit = {
-      resourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getBankThreadReplies), "GET",
-        "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/messages/CHAT_MESSAGE_ID/thread",
-        "Get Bank Thread Replies",
-        """Get replies in a message thread (bank chat room).""",
-        EmptyBody, EmptyBody,
-        List($AuthenticatedUserIsRequired, $BankNotFound,
-          ChatRoomNotFound, NotChatRoomParticipant, ChatMessageNotFound, UnknownError),
-        apiTagChat :: Nil, None,
-        http4sPartialFunction = Some(getBankThreadReplies))
-      resourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getSystemThreadReplies), "GET",
-        "/chat-rooms/CHAT_ROOM_ID/messages/CHAT_MESSAGE_ID/thread", "Get System Thread Replies",
-        """Get replies in a message thread (system chat room).""",
-        EmptyBody, EmptyBody,
-        List($AuthenticatedUserIsRequired,
-          ChatRoomNotFound, NotChatRoomParticipant, ChatMessageNotFound, UnknownError),
-        apiTagChat :: Nil, None,
-        http4sPartialFunction = Some(getSystemThreadReplies))
-      resourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(replyInBankThread), "POST",
-        "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/messages/CHAT_MESSAGE_ID/thread",
-        "Reply In Bank Thread",
-        """Reply to a message in a bank-chat-room thread.""",
-        EmptyBody, EmptyBody,
-        List($AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat,
-          ChatRoomNotFound, NotChatRoomParticipant, ChatRoomIsArchived, ChatMessageNotFound, UnknownError),
-        apiTagChat :: Nil, None,
-        http4sPartialFunction = Some(replyInBankThread))
-      resourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(replyInSystemThread), "POST",
-        "/chat-rooms/CHAT_ROOM_ID/messages/CHAT_MESSAGE_ID/thread", "Reply In System Thread",
-        """Reply to a message in a system-chat-room thread.""",
-        EmptyBody, EmptyBody,
-        List($AuthenticatedUserIsRequired, InvalidJsonFormat,
-          ChatRoomNotFound, NotChatRoomParticipant, ChatRoomIsArchived, ChatMessageNotFound, UnknownError),
-        apiTagChat :: Nil, None,
-        http4sPartialFunction = Some(replyInSystemThread))
-      resourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(addBankReaction), "POST",
-        "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/messages/CHAT_MESSAGE_ID/reactions",
-        "Add Bank Reaction",
-        """Add an emoji reaction to a message.""",
-        EmptyBody, EmptyBody,
-        List($AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat,
-          ChatRoomNotFound, NotChatRoomParticipant, ChatMessageNotFound,
-          ReactionAlreadyExists, UnknownError),
-        apiTagChat :: Nil, None,
-        http4sPartialFunction = Some(addBankReaction))
-      resourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(addSystemReaction), "POST",
-        "/chat-rooms/CHAT_ROOM_ID/messages/CHAT_MESSAGE_ID/reactions", "Add System Reaction",
-        """Add an emoji reaction to a message in a system chat room.""",
-        EmptyBody, EmptyBody,
-        List($AuthenticatedUserIsRequired, InvalidJsonFormat,
-          ChatRoomNotFound, NotChatRoomParticipant, ChatMessageNotFound,
-          ReactionAlreadyExists, UnknownError),
-        apiTagChat :: Nil, None,
-        http4sPartialFunction = Some(addSystemReaction))
-      resourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(removeBankReaction), "DELETE",
-        "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/messages/CHAT_MESSAGE_ID/reactions/EMOJI_REACTION",
-        "Remove Bank Reaction",
-        """Remove your own reaction from a message.""",
-        EmptyBody, EmptyBody,
-        List($AuthenticatedUserIsRequired, $BankNotFound,
-          ChatRoomNotFound, NotChatRoomParticipant, ChatMessageNotFound,
-          ReactionNotFound, UnknownError),
-        apiTagChat :: Nil, None,
-        http4sPartialFunction = Some(removeBankReaction))
-      resourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(removeSystemReaction), "DELETE",
-        "/chat-rooms/CHAT_ROOM_ID/messages/CHAT_MESSAGE_ID/reactions/EMOJI_REACTION",
-        "Remove System Reaction",
-        """Remove your own reaction from a system-chat-room message.""",
-        EmptyBody, EmptyBody,
-        List($AuthenticatedUserIsRequired,
-          ChatRoomNotFound, NotChatRoomParticipant, ChatMessageNotFound,
-          ReactionNotFound, UnknownError),
-        apiTagChat :: Nil, None,
-        http4sPartialFunction = Some(removeSystemReaction))
-      resourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getBankReactions), "GET",
-        "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/messages/CHAT_MESSAGE_ID/reactions",
-        "Get Bank Reactions",
-        """List reactions on a message.""",
-        EmptyBody, EmptyBody,
-        List($AuthenticatedUserIsRequired, $BankNotFound,
-          ChatRoomNotFound, NotChatRoomParticipant, ChatMessageNotFound, UnknownError),
-        apiTagChat :: Nil, None,
-        http4sPartialFunction = Some(getBankReactions))
-      resourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getSystemReactions), "GET",
-        "/chat-rooms/CHAT_ROOM_ID/messages/CHAT_MESSAGE_ID/reactions", "Get System Reactions",
-        """List reactions on a system-chat-room message.""",
-        EmptyBody, EmptyBody,
-        List($AuthenticatedUserIsRequired,
-          ChatRoomNotFound, NotChatRoomParticipant, ChatMessageNotFound, UnknownError),
-        apiTagChat :: Nil, None,
-        http4sPartialFunction = Some(getSystemReactions))
-      resourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(signalBankTyping), "PUT",
-        "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/typing-indicators", "Signal Bank Typing",
-        """Signal that the current user is typing in a bank chat room (TTL 5s).""",
-        EmptyBody, EmptyBody,
-        List($AuthenticatedUserIsRequired, $BankNotFound,
-          ChatRoomNotFound, NotChatRoomParticipant, UnknownError),
-        apiTagChat :: Nil, None,
-        http4sPartialFunction = Some(signalBankTyping))
-      resourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(signalSystemTyping), "PUT",
-        "/chat-rooms/CHAT_ROOM_ID/typing-indicators", "Signal System Typing",
-        """Signal that the current user is typing in a system chat room (TTL 5s).""",
-        EmptyBody, EmptyBody,
-        List($AuthenticatedUserIsRequired,
-          ChatRoomNotFound, NotChatRoomParticipant, UnknownError),
-        apiTagChat :: Nil, None,
-        http4sPartialFunction = Some(signalSystemTyping))
-      resourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getBankTypingUsers), "GET",
-        "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/typing-indicators", "Get Bank Typing Users",
-        """List users currently typing in a bank chat room.""",
-        EmptyBody, EmptyBody,
-        List($AuthenticatedUserIsRequired, $BankNotFound,
-          ChatRoomNotFound, NotChatRoomParticipant, UnknownError),
-        apiTagChat :: Nil, None,
-        http4sPartialFunction = Some(getBankTypingUsers))
-      resourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getSystemTypingUsers), "GET",
-        "/chat-rooms/CHAT_ROOM_ID/typing-indicators", "Get System Typing Users",
-        """List users currently typing in a system chat room.""",
-        EmptyBody, EmptyBody,
-        List($AuthenticatedUserIsRequired,
-          ChatRoomNotFound, NotChatRoomParticipant, UnknownError),
-        apiTagChat :: Nil, None,
-        http4sPartialFunction = Some(getSystemTypingUsers))
     }
     initChatThreadReactionTypingResourceDocs()
 
@@ -5558,53 +4019,6 @@ object Http4s600 {
     }
 
     private def initSignatoryPanelResourceDocs(): Unit = {
-      resourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(createSignatoryPanel), "POST",
-        "/banks/BANK_ID/mandates/MANDATE_ID/signatory-panels", "Create Signatory Panel",
-        """Create a new signatory panel for a mandate.""",
-        EmptyBody, EmptyBody,
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, $BankNotFound,
-          InvalidJsonFormat, UnknownError),
-        apiTagMandate :: Nil,
-        Some(canCreateSignatoryPanel :: Nil),
-        http4sPartialFunction = Some(createSignatoryPanel))
-      resourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getSignatoryPanels), "GET",
-        "/banks/BANK_ID/mandates/MANDATE_ID/signatory-panels", "Get Signatory Panels",
-        """Get all signatory panels for a mandate.""",
-        EmptyBody, EmptyBody,
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, $BankNotFound, UnknownError),
-        apiTagMandate :: Nil,
-        Some(canGetSignatoryPanel :: Nil),
-        http4sPartialFunction = Some(getSignatoryPanels))
-      resourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getSignatoryPanel), "GET",
-        "/banks/BANK_ID/mandates/MANDATE_ID/signatory-panels/PANEL_ID", "Get Signatory Panel",
-        """Get a specific signatory panel.""",
-        EmptyBody, EmptyBody,
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, $BankNotFound, UnknownError),
-        apiTagMandate :: Nil,
-        Some(canGetSignatoryPanel :: Nil),
-        http4sPartialFunction = Some(getSignatoryPanel))
-      resourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(updateSignatoryPanel), "PUT",
-        "/banks/BANK_ID/mandates/MANDATE_ID/signatory-panels/PANEL_ID", "Update Signatory Panel",
-        """Update a signatory panel.""",
-        EmptyBody, EmptyBody,
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, $BankNotFound,
-          InvalidJsonFormat, UnknownError),
-        apiTagMandate :: Nil,
-        Some(canUpdateSignatoryPanel :: Nil),
-        http4sPartialFunction = Some(updateSignatoryPanel))
-      resourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(deleteSignatoryPanel), "DELETE",
-        "/banks/BANK_ID/mandates/MANDATE_ID/signatory-panels/PANEL_ID", "Delete Signatory Panel",
-        """Delete a signatory panel.""",
-        EmptyBody, EmptyBody,
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, $BankNotFound, UnknownError),
-        apiTagMandate :: Nil,
-        Some(canDeleteSignatoryPanel :: Nil),
-        http4sPartialFunction = Some(deleteSignatoryPanel))
     }
     initSignatoryPanelResourceDocs()
 
@@ -5829,75 +4243,16 @@ object Http4s600 {
         txReqDelegate(req, bankIdStr, accountIdStr, viewIdStr, "ETH_SEND_RAW_TRANSACTION")
     }
 
-    private def initAuthAndTxReqResourceDocs(): Unit = {
-      resourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(validateUserEmail), "POST",
-        "/users/email-validation", "Validate User Email",
-        """Validate a user's email using a JWT token.""",
-        EmptyBody, EmptyBody,
-        List(InvalidJsonFormat, UserNotFoundByToken, UserAlreadyValidated, UnknownError),
-        apiTagUser :: Nil, None,
-        http4sPartialFunction = Some(validateUserEmail))
-      resourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(resetPasswordComplete), "POST",
-        "/users/password", "Complete Password Reset",
-        """Complete a password reset using a JWT token.""",
-        EmptyBody, EmptyBody,
-        List(InvalidJsonFormat, InvalidStrongPasswordFormat, UnknownError),
-        apiTagUser :: Nil, None,
-        http4sPartialFunction = Some(resetPasswordComplete))
-      resourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(resetPasswordUrlAnonymous), "POST",
-        "/users/password-reset-url", "Request Password Reset URL",
-        """Anonymous endpoint — generates and emails a password-reset link.""",
-        EmptyBody, EmptyBody,
-        List(InvalidJsonFormat, UnknownError),
-        apiTagUser :: Nil, None,
-        http4sPartialFunction = Some(resetPasswordUrlAnonymous))
-      resourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(validateDynamicResourceDoc), "POST",
-        "/management/dynamic-resource-docs/validate", "Validate Dynamic Resource Doc",
-        """Dry-run validation of a Dynamic Resource Doc (compile + dependency check).""",
-        EmptyBody, EmptyBody,
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
-        apiTagDynamicResourceDoc :: Nil,
-        Some(canCreateDynamicResourceDoc :: Nil),
-        http4sPartialFunction = Some(validateDynamicResourceDoc))
-      val txReqErrors = List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound,
-        InsufficientAuthorisationToCreateTransactionRequest, InvalidTransactionRequestType,
-        InvalidJsonFormat, NotPositiveAmount, InvalidTransactionRequestCurrency,
-        TransactionDisabled, UnknownError)
-      val txReqTags = apiTagTransactionRequest :: apiTagPSD2PIS :: apiTagPsd2 :: Nil
-      resourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(createTransactionRequestHold), "POST",
-        "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/HOLD/transaction-requests",
-        "Create Transaction Request (HOLD)",
-        """Create a HOLD transaction request.""",
-        EmptyBody, EmptyBody, txReqErrors, txReqTags, None,
-        http4sPartialFunction = Some(createTransactionRequestHold))
-      resourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(createTransactionRequestCardano), "POST",
-        "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/CARDANO/transaction-requests",
-        "Create Transaction Request (CARDANO)",
-        """Create a CARDANO transaction request.""",
-        EmptyBody, EmptyBody, txReqErrors, txReqTags, None,
-        http4sPartialFunction = Some(createTransactionRequestCardano))
-      resourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(createTransactionRequestEthereumeSendTransaction), "POST",
-        "/banks/BANK_ID/accounts/ACCOUNT_ID/owner/transaction-request-types/ETH_SEND_TRANSACTION/transaction-requests",
-        "Create Transaction Request (ETH_SEND_TRANSACTION)",
-        """Create an ETH_SEND_TRANSACTION transaction request.""",
-        EmptyBody, EmptyBody, txReqErrors, txReqTags, None,
-        http4sPartialFunction = Some(createTransactionRequestEthereumeSendTransaction))
-      resourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(createTransactionRequestEthSendRawTransaction), "POST",
-        "/banks/BANK_ID/accounts/ACCOUNT_ID/owner/transaction-request-types/ETH_SEND_RAW_TRANSACTION/transaction-requests",
-        "Create Transaction Request (ETH_SEND_RAW_TRANSACTION)",
-        """Create an ETH_SEND_RAW_TRANSACTION transaction request.""",
-        EmptyBody, EmptyBody, txReqErrors, txReqTags, None,
-        http4sPartialFunction = Some(createTransactionRequestEthSendRawTransaction))
-    }
-    initAuthAndTxReqResourceDocs()
+    // Shared error/tag lists used by all transaction-request creation endpoints.
+    // Promoted to object-level so the batched `registerBatchK()` defs (where
+    // these endpoints' ResourceDoc registrations now live) can see them.
+    private val txReqErrors = List(
+      $AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound,
+      InsufficientAuthorisationToCreateTransactionRequest, InvalidTransactionRequestType,
+      InvalidJsonFormat, NotPositiveAmount, InvalidTransactionRequestCurrency,
+      TransactionDisabled, UnknownError
+    )
+    private val txReqTags = apiTagTransactionRequest :: apiTagPSD2PIS :: apiTagPsd2 :: Nil
 
     // ─── Phase 2: User memberships, access listing, customer creation (4) ─
 
@@ -6089,44 +4444,6 @@ object Http4s600 {
     }
 
     private def initUserCustomerResourceDocs(): Unit = {
-      resourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getUserGroupMemberships), "GET",
-        "/users/USER_ID/group-entitlements", "Get User Group Memberships",
-        """Get all group memberships for a user.""",
-        EmptyBody, EmptyBody,
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UserNotFoundByUserId, UnknownError),
-        apiTagGroup :: apiTagUser :: apiTagEntitlement :: Nil,
-        Some(canGetUserGroupMembershipsAtAllBanks :: canGetUserGroupMembershipsAtOneBank :: Nil),
-        http4sPartialFunction = Some(getUserGroupMemberships))
-      resourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getUsersWithAccountAccess), "GET",
-        "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/users-with-access", "Get Users With Account Access",
-        """List users with access to the specified view (AccountAccess + ABAC).""",
-        EmptyBody, EmptyBody,
-        List($BankNotFound, $BankAccountNotFound, ViewNotFound, UnknownError),
-        apiTagAccount :: apiTagView :: Nil,
-        Some(canSeeAccountAccessForAnyUser :: Nil),
-        http4sPartialFunction = Some(getUsersWithAccountAccess))
-      resourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(createRetailCustomer), "POST",
-        "/banks/BANK_ID/retail-customers", "Create Retail Customer",
-        """Create a retail (individual) customer.""",
-        EmptyBody, EmptyBody,
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, $BankNotFound,
-          InvalidJsonFormat, InvalidJsonContent, UnknownError),
-        apiTagRetailCustomer :: apiTagCustomer :: Nil,
-        Some(canCreateCustomer :: canCreateCustomerAtAnyBank :: Nil),
-        http4sPartialFunction = Some(createRetailCustomer))
-      resourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(createCorporateCustomer), "POST",
-        "/banks/BANK_ID/corporate-customers", "Create Corporate Customer",
-        """Create a corporate (or subsidiary) customer.""",
-        EmptyBody, EmptyBody,
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, $BankNotFound,
-          InvalidJsonFormat, InvalidCustomerType, UnknownError),
-        apiTagCorporateCustomer :: apiTagCustomer :: Nil,
-        Some(canCreateCustomer :: canCreateCustomerAtAnyBank :: Nil),
-        http4sPartialFunction = Some(createCorporateCustomer))
     }
     initUserCustomerResourceDocs()
 
@@ -6662,88 +4979,6 @@ object Http4s600 {
     }
 
     private def initFinal9ResourceDocs(): Unit = {
-      resourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getUserByUserId), "GET",
-        "/users/user-id/USER_ID", "Get User By User Id",
-        """Get detailed user info by user_id (entitlements, agreements, recent metrics).""",
-        EmptyBody, EmptyBody,
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UserNotFoundByUserId, UnknownError),
-        apiTagUser :: Nil,
-        Some(canGetAnyUser :: Nil),
-        http4sPartialFunction = Some(getUserByUserId))
-      resourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(directLoginEndpoint), "POST",
-        "/my/logins/direct", "Direct Login",
-        """Direct Login — exchange username/password/consumer_key for a token (via DirectLogin header).""",
-        EmptyBody, EmptyBody,
-        List(InvalidLoginCredentials, UsernameHasBeenLocked, UnknownError),
-        apiTagUser :: Nil, None,
-        http4sPartialFunction = Some(directLoginEndpoint))
-      resourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(validateAbacRule), "POST",
-        "/management/abac-rules/validate", "Validate ABAC Rule",
-        """Compile-and-validate an ABAC rule body (dry run, no persistence).""",
-        EmptyBody, EmptyBody,
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat,
-          AbacRuleCodeEmpty, UnknownError),
-        apiTagABAC :: Nil,
-        Some(canCreateAbacRule :: Nil),
-        http4sPartialFunction = Some(validateAbacRule))
-      resourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(executeAbacRule), "POST",
-        "/management/abac-rules/ABAC_RULE_ID/execute", "Execute ABAC Rule",
-        """Execute an ABAC rule with a specific context.""",
-        EmptyBody, EmptyBody,
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
-        apiTagABAC :: Nil,
-        Some(canExecuteAbacRule :: Nil),
-        http4sPartialFunction = Some(executeAbacRule))
-      resourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(executeAbacPolicy), "POST",
-        "/management/abac-policies/POLICY/execute", "Execute ABAC Policy",
-        """Execute all ABAC rules in a policy (OR logic — first rule that returns true wins).""",
-        EmptyBody, EmptyBody,
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
-        apiTagABAC :: Nil,
-        Some(canExecuteAbacRule :: Nil),
-        http4sPartialFunction = Some(executeAbacPolicy))
-      resourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getAbacRuleSchema), "GET",
-        "/management/abac-rules-schema", "Get ABAC Rule Schema",
-        """Static schema describing parameters, object types, examples and operators usable in ABAC rules.""",
-        EmptyBody, EmptyBody,
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
-        apiTagABAC :: Nil,
-        Some(canGetAbacRule :: Nil),
-        http4sPartialFunction = Some(getAbacRuleSchema))
-      resourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(backupSystemDynamicEntity), "POST",
-        "/management/system-dynamic-entities/DYNAMIC_ENTITY_ID/backup", "Backup System Level Dynamic Entity",
-        """Create a _BAK backup of a system-level dynamic entity (definition + data).""",
-        EmptyBody, EmptyBody,
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
-        apiTagManageDynamicEntity :: apiTagApi :: Nil,
-        Some(canBackupSystemDynamicEntity :: Nil),
-        http4sPartialFunction = Some(backupSystemDynamicEntity))
-      resourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(backupBankLevelDynamicEntity), "POST",
-        "/management/banks/BANK_ID/dynamic-entities/DYNAMIC_ENTITY_ID/backup", "Backup Bank Level Dynamic Entity",
-        """Create a _BAK backup of a bank-level dynamic entity (definition + data).""",
-        EmptyBody, EmptyBody,
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
-        apiTagManageDynamicEntity :: apiTagApi :: Nil,
-        Some(canBackupBankLevelDynamicEntity :: Nil),
-        http4sPartialFunction = Some(backupBankLevelDynamicEntity))
-      resourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(deleteSystemDynamicEntityCascade), "DELETE",
-        "/management/system-dynamic-entities/cascade/DYNAMIC_ENTITY_ID", "Delete System Dynamic Entity Cascade",
-        """Delete a system-level dynamic entity and all its data records (auto-backs-up to ZZ_BAK_ first).""",
-        EmptyBody, EmptyBody,
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles,
-          CannotDeleteCascadePersonalEntity, UnknownError),
-        apiTagManageDynamicEntity :: apiTagApi :: Nil,
-        Some(canDeleteCascadeSystemDynamicEntity :: Nil),
-        http4sPartialFunction = Some(deleteSystemDynamicEntityCascade))
     }
     initFinal9ResourceDocs()
 
@@ -6780,16 +5015,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getCustomerInvestigationReport), "GET",
-      "/banks/BANK_ID/customers/CUSTOMER_ID/investigation-report", "Get Customer Investigation Report",
-      """Generate an AML/fraud investigation report for the specified customer.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, InvestigationReportNotAvailable, UnknownError),
-      apiTagCustomer :: Nil,
-      Some(canGetInvestigationReport :: Nil),
-      http4sPartialFunction = Some(getCustomerInvestigationReport)
-    )
 
     // ─── Phase 2: banks/.../customer-links bucket (5 endpoints) ───────────
 
@@ -6820,16 +5045,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createCustomerLink), "POST",
-      "/banks/BANK_ID/customer-links", "Create Customer Link",
-      """Create a link between two customers.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
-      apiTagCustomer :: Nil,
-      Some(canCreateCustomerLink :: Nil),
-      http4sPartialFunction = Some(createCustomerLink)
-    )
 
     // Route: GET /obp/v6.0.0/banks/BANK_ID/customer-links
     lazy val getCustomerLinksByBankId: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -6841,16 +5056,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getCustomerLinksByBankId), "GET",
-      "/banks/BANK_ID/customer-links", "Get Customer Links by Bank",
-      """Get all customer links for the specified bank.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
-      apiTagCustomer :: Nil,
-      Some(canGetCustomerLinks :: Nil),
-      http4sPartialFunction = Some(getCustomerLinksByBankId)
-    )
 
     // Route: GET /obp/v6.0.0/banks/BANK_ID/customer-links/CUSTOMER_LINK_ID
     lazy val getCustomerLinkById: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -6862,16 +5067,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getCustomerLinkById), "GET",
-      "/banks/BANK_ID/customer-links/CUSTOMER_LINK_ID", "Get Customer Link by Id",
-      """Get a customer link by CUSTOMER_LINK_ID.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
-      apiTagCustomer :: Nil,
-      Some(canGetCustomerLink :: Nil),
-      http4sPartialFunction = Some(getCustomerLinkById)
-    )
 
     // Route: PUT /obp/v6.0.0/banks/BANK_ID/customer-links/CUSTOMER_LINK_ID
     lazy val updateCustomerLink: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -6887,16 +5082,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(updateCustomerLink), "PUT",
-      "/banks/BANK_ID/customer-links/CUSTOMER_LINK_ID", "Update Customer Link",
-      """Update the relationship of an existing customer link.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
-      apiTagCustomer :: Nil,
-      Some(canUpdateCustomerLink :: Nil),
-      http4sPartialFunction = Some(updateCustomerLink)
-    )
 
     // Route: DELETE /obp/v6.0.0/banks/BANK_ID/customer-links/CUSTOMER_LINK_ID
     lazy val deleteCustomerLink: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -6908,16 +5093,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(deleteCustomerLink), "DELETE",
-      "/banks/BANK_ID/customer-links/CUSTOMER_LINK_ID", "Delete Customer Link",
-      """Delete a customer link by CUSTOMER_LINK_ID.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
-      apiTagCustomer :: Nil,
-      Some(canDeleteCustomerLink :: Nil),
-      http4sPartialFunction = Some(deleteCustomerLink)
-    )
 
     // Route: GET /obp/v6.0.0/management/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID
     lazy val getCustomViewById: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -6932,15 +5107,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getCustomViewById), "GET",
-      "/management/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID", "Get Custom View by Id",
-      """Get a single custom view by VIEW_ID for the given account.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UnknownError),
-      apiTagView :: Nil, None,
-      http4sPartialFunction = Some(getCustomViewById)
-    )
 
     // Route: POST /obp/v6.0.0/management/cache/namespaces/invalidate
     lazy val invalidateCacheNamespace: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -6969,16 +5135,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(invalidateCacheNamespace), "POST",
-      "/management/cache/namespaces/invalidate", "Invalidate Cache Namespace",
-      """Increment the version of the specified cache namespace, invalidating its keys.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
-      apiTagCache :: apiTagSystem :: apiTagApi :: Nil,
-      Some(canInvalidateCacheNamespace :: Nil),
-      http4sPartialFunction = Some(invalidateCacheNamespace)
-    )
 
     // Route: GET /obp/v6.0.0/management/config-props
     lazy val getConfigProps: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -6993,15 +5149,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getConfigProps), "GET",
-      "/management/config-props", "Get Config Props",
-      """Return all OBP config-file props (sensitive values masked).""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UnknownError),
-      apiTagApi :: Nil, None,
-      http4sPartialFunction = Some(getConfigProps)
-    )
 
     // Route: GET /obp/v6.0.0/app-directory
     lazy val getAppDirectory: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -7014,15 +5161,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getAppDirectory), "GET",
-      "/app-directory", "Get App Directory",
-      """Return apps registered in this OBP instance's discovery directory.""",
-      EmptyBody, EmptyBody,
-      List(UnknownError),
-      apiTagApi :: Nil, None,
-      http4sPartialFunction = Some(getAppDirectory)
-    )
 
     // Route: GET /obp/v6.0.0/management/custom-views
     lazy val getCustomViews: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -7032,16 +5170,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getCustomViews), "GET",
-      "/management/custom-views", "Get Custom Views",
-      """Get all custom views defined in this instance.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
-      apiTagView :: Nil,
-      Some(canGetCustomViews :: Nil),
-      http4sPartialFunction = Some(getCustomViews)
-    )
 
     // Route: GET /obp/v6.0.0/management/roles-with-entitlement-counts
     lazy val getRolesWithEntitlementCountsAtAllBanks: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -7056,16 +5184,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getRolesWithEntitlementCountsAtAllBanks), "GET",
-      "/management/roles-with-entitlement-counts", "Get Roles with Entitlement Counts",
-      """List all available roles along with how many entitlements each has.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
-      apiTagRole :: Nil,
-      Some(canGetRolesWithEntitlementCountsAtAllBanks :: Nil),
-      http4sPartialFunction = Some(getRolesWithEntitlementCountsAtAllBanks)
-    )
 
     // ─── Phase 2: 5 small single-endpoint buckets ─────────────────────────
 
@@ -7090,15 +5208,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getFeatures), "GET",
-      "/features", "Get Features",
-      """Returns the enabled features for this OBP instance.""",
-      EmptyBody, EmptyBody,
-      List(UnknownError),
-      apiTagApi :: Nil, None,
-      http4sPartialFunction = Some(getFeatures)
-    )
 
     // Route: GET /obp/v6.0.0/providers
     lazy val getProviders: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -7109,15 +5218,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getProviders), "GET",
-      "/providers", "Get Providers",
-      """Get the distinct list of auth providers that have been used to create users.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UnknownError),
-      apiTagUser :: Nil, None,
-      http4sPartialFunction = Some(getProviders)
-    )
 
     // Route: GET /obp/v6.0.0/consumers/current
     lazy val getCurrentConsumer: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -7138,16 +5238,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getCurrentConsumer), "GET",
-      "/consumers/current", "Get Current Consumer",
-      """Get the Consumer used to make this request, including active rate limits and call counters.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, InvalidConsumerCredentials, UnknownError),
-      apiTagConsumer :: Nil,
-      Some(canGetCurrentConsumer :: Nil),
-      http4sPartialFunction = Some(getCurrentConsumer)
-    )
 
     // Route: GET /obp/v6.0.0/api/popular-endpoints
     lazy val getPopularApis: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -7170,15 +5260,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getPopularApis), "GET",
-      "/api/popular-endpoints", "Get Popular Endpoints",
-      """Returns the operation IDs of the 50 most popular endpoints by usage.""",
-      EmptyBody, EmptyBody,
-      List(UnknownError),
-      apiTagApi :: Nil, None,
-      http4sPartialFunction = Some(getPopularApis)
-    )
 
     // Route: GET /obp/v6.0.0/banks/BANK_ID/account-directory
     lazy val getAccountDirectory: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -7199,16 +5280,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getAccountDirectory), "GET",
-      "/banks/BANK_ID/account-directory", "Get Account Directory",
-      """Get the list of accounts in the bank's account directory (paginated, sortable).""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
-      apiTagAccount :: Nil,
-      Some(canGetAccountDirectoryAtOneBank :: Nil),
-      http4sPartialFunction = Some(getAccountDirectory)
-    )
 
     // ─── Phase 2: management/groups bucket (6 endpoints) ──────────────────
     // Doc roles are kept None and the bank-scoped vs system-scoped role check
@@ -7254,15 +5325,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createGroup), "POST",
-      "/management/groups", "Create Group",
-      """Create a new Group.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
-      apiTagGroup :: Nil, None,
-      http4sPartialFunction = Some(createGroup)
-    )
 
     // Route: GET /obp/v6.0.0/management/groups/GROUP_ID
     lazy val getGroup: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -7276,15 +5338,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getGroup), "GET",
-      "/management/groups/GROUP_ID", "Get Group",
-      """Get a Group by ID.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
-      apiTagGroup :: Nil, None,
-      http4sPartialFunction = Some(getGroup)
-    )
 
     // Route: GET /obp/v6.0.0/management/groups
     lazy val getGroups: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -7307,15 +5360,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getGroups), "GET",
-      "/management/groups", "Get Groups",
-      """Get all Groups (optional ?bank_id= filter).""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
-      apiTagGroup :: Nil, None,
-      http4sPartialFunction = Some(getGroups)
-    )
 
     // Route: PUT /obp/v6.0.0/management/groups/GROUP_ID
     lazy val updateGroup: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -7338,15 +5382,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(updateGroup), "PUT",
-      "/management/groups/GROUP_ID", "Update Group",
-      """Update an existing Group.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
-      apiTagGroup :: Nil, None,
-      http4sPartialFunction = Some(updateGroup)
-    )
 
     // Route: DELETE /obp/v6.0.0/management/groups/GROUP_ID
     lazy val deleteGroup: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -7363,15 +5398,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(deleteGroup), "DELETE",
-      "/management/groups/GROUP_ID", "Delete Group",
-      """Delete a Group.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
-      apiTagGroup :: Nil, None,
-      http4sPartialFunction = Some(deleteGroup)
-    )
 
     // Route: GET /obp/v6.0.0/management/groups/GROUP_ID/entitlements
     lazy val getGroupEntitlements: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -7395,16 +5421,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getGroupEntitlements), "GET",
-      "/management/groups/GROUP_ID/entitlements", "Get Group Entitlements",
-      """Get all entitlements granted to the specified group.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
-      apiTagGroup :: Nil,
-      Some(canGetEntitlementsForAnyBank :: Nil),
-      http4sPartialFunction = Some(getGroupEntitlements)
-    )
 
     // ─── Phase 2: management/abac-rules bucket (6 of 8) ───────────────────
     // executeAbacRule + validateAbacRule deferred — complex error
@@ -7434,16 +5450,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createAbacRule), "POST",
-      "/management/abac-rules", "Create ABAC Rule",
-      """Create a new ABAC rule.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
-      apiTagABAC :: Nil,
-      Some(canCreateAbacRule :: Nil),
-      http4sPartialFunction = Some(createAbacRule)
-    )
 
     // Route: GET /obp/v6.0.0/management/abac-rules/ABAC_RULE_ID
     lazy val getAbacRule: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -7456,16 +5462,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getAbacRule), "GET",
-      "/management/abac-rules/ABAC_RULE_ID", "Get ABAC Rule",
-      """Get a single ABAC rule by ID.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
-      apiTagABAC :: Nil,
-      Some(canGetAbacRule :: Nil),
-      http4sPartialFunction = Some(getAbacRule)
-    )
 
     // Route: GET /obp/v6.0.0/management/abac-rules
     lazy val getAbacRules: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -7475,16 +5471,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getAbacRules), "GET",
-      "/management/abac-rules", "Get ABAC Rules",
-      """Get all ABAC rules.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
-      apiTagABAC :: Nil,
-      Some(canGetAbacRule :: Nil),
-      http4sPartialFunction = Some(getAbacRules)
-    )
 
     // Route: GET /obp/v6.0.0/management/abac-rules/policy/POLICY
     lazy val getAbacRulesByPolicy: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -7494,16 +5480,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getAbacRulesByPolicy), "GET",
-      "/management/abac-rules/policy/POLICY", "Get ABAC Rules by Policy",
-      """Get all ABAC rules for a given policy.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
-      apiTagABAC :: Nil,
-      Some(canGetAbacRule :: Nil),
-      http4sPartialFunction = Some(getAbacRulesByPolicy)
-    )
 
     // Route: PUT /obp/v6.0.0/management/abac-rules/ABAC_RULE_ID
     lazy val updateAbacRule: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -7528,16 +5504,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(updateAbacRule), "PUT",
-      "/management/abac-rules/ABAC_RULE_ID", "Update ABAC Rule",
-      """Update an existing ABAC rule.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
-      apiTagABAC :: Nil,
-      Some(canUpdateAbacRule :: Nil),
-      http4sPartialFunction = Some(updateAbacRule)
-    )
 
     // Route: DELETE /obp/v6.0.0/management/abac-rules/ABAC_RULE_ID
     lazy val deleteAbacRule: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -7551,16 +5517,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(deleteAbacRule), "DELETE",
-      "/management/abac-rules/ABAC_RULE_ID", "Delete ABAC Rule",
-      """Delete an ABAC rule.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
-      apiTagABAC :: Nil,
-      Some(canDeleteAbacRule :: Nil),
-      http4sPartialFunction = Some(deleteAbacRule)
-    )
 
 
     // ─── Phase 2: my/personal-data-fields bucket (5 endpoints) ────────────
@@ -7589,16 +5545,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createPersonalDataField), "POST",
-      "/my/personal-data-fields", "Create Personal Data Field",
-      """Create a personal data field for the logged-in user.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
-      apiTagUser :: Nil,
-      Some(Nil),
-      http4sPartialFunction = Some(createPersonalDataField)
-    )
 
     // Route: GET /obp/v6.0.0/my/personal-data-fields
     lazy val getPersonalDataFields: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -7610,16 +5556,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getPersonalDataFields), "GET",
-      "/my/personal-data-fields", "Get Personal Data Fields",
-      """Get all personal data fields for the logged-in user.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UnknownError),
-      apiTagUser :: Nil,
-      Some(Nil),
-      http4sPartialFunction = Some(getPersonalDataFields)
-    )
 
     // Route: GET /obp/v6.0.0/my/personal-data-fields/USER_ATTRIBUTE_ID
     lazy val getPersonalDataFieldById: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -7633,16 +5569,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getPersonalDataFieldById), "GET",
-      "/my/personal-data-fields/USER_ATTRIBUTE_ID", "Get Personal Data Field By Id",
-      """Get a personal data field by USER_ATTRIBUTE_ID for the logged-in user.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserAttributeNotFound, UnknownError),
-      apiTagUser :: Nil,
-      Some(Nil),
-      http4sPartialFunction = Some(getPersonalDataFieldById)
-    )
 
     // Route: PUT /obp/v6.0.0/my/personal-data-fields/USER_ATTRIBUTE_ID
     lazy val updatePersonalDataField: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -7666,16 +5592,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(updatePersonalDataField), "PUT",
-      "/my/personal-data-fields/USER_ATTRIBUTE_ID", "Update Personal Data Field",
-      """Update a personal data field by USER_ATTRIBUTE_ID.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, InvalidJsonFormat, UserAttributeNotFound, UnknownError),
-      apiTagUser :: Nil,
-      Some(Nil),
-      http4sPartialFunction = Some(updatePersonalDataField)
-    )
 
     // Route: DELETE /obp/v6.0.0/my/personal-data-fields/USER_ATTRIBUTE_ID
     lazy val deletePersonalDataField: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -7691,16 +5607,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(deletePersonalDataField), "DELETE",
-      "/my/personal-data-fields/USER_ATTRIBUTE_ID", "Delete Personal Data Field",
-      """Delete a personal data field by USER_ATTRIBUTE_ID.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserAttributeNotFound, UnknownError),
-      apiTagUser :: Nil,
-      Some(Nil),
-      http4sPartialFunction = Some(deletePersonalDataField)
-    )
 
     // ─── Phase 2: management/consumers bucket (6 endpoints) ───────────────
 
@@ -7715,16 +5621,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getConsumerCallCounters), "GET",
-      "/management/consumers/CONSUMER_ID/call-counters", "Get Consumer Call Counters",
-      """Get the current call counters (Redis-backed) for a specific consumer.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
-      apiTagConsumer :: Nil,
-      Some(canGetRateLimits :: Nil),
-      http4sPartialFunction = Some(getConsumerCallCounters)
-    )
 
     // Route: POST /obp/v6.0.0/management/consumers/CONSUMER_ID/consumer/rate-limits (201)
     lazy val createCallLimits: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -7748,16 +5644,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createCallLimits), "POST",
-      "/management/consumers/CONSUMER_ID/consumer/rate-limits", "Create Rate Limits for a Consumer",
-      """Create a rate-limit configuration for a Consumer.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
-      apiTagConsumer :: Nil,
-      Some(canCreateRateLimits :: Nil),
-      http4sPartialFunction = Some(createCallLimits)
-    )
 
     // Route: PUT /obp/v6.0.0/management/consumers/CONSUMER_ID/consumer/rate-limits/RATE_LIMITING_ID
     lazy val updateRateLimits: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -7781,16 +5667,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(updateRateLimits), "PUT",
-      "/management/consumers/CONSUMER_ID/consumer/rate-limits/RATE_LIMITING_ID", "Update Rate Limits for a Consumer",
-      """Update an existing rate-limit configuration for a Consumer.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
-      apiTagConsumer :: Nil,
-      Some(canUpdateRateLimits :: Nil),
-      http4sPartialFunction = Some(updateRateLimits)
-    )
 
     // Route: DELETE /obp/v6.0.0/management/consumers/CONSUMER_ID/consumer/rate-limits/RATE_LIMITING_ID
     lazy val deleteCallLimits: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -7803,16 +5679,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(deleteCallLimits), "DELETE",
-      "/management/consumers/CONSUMER_ID/consumer/rate-limits/RATE_LIMITING_ID", "Delete Rate Limits for a Consumer",
-      """Delete a rate-limit configuration.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
-      apiTagConsumer :: Nil,
-      Some(canDeleteRateLimits :: Nil),
-      http4sPartialFunction = Some(deleteCallLimits)
-    )
 
     // Route: GET /obp/v6.0.0/management/consumers/CONSUMER_ID/active-rate-limits
     lazy val getActiveRateLimitsNow: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -7826,16 +5692,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getActiveRateLimitsNow), "GET",
-      "/management/consumers/CONSUMER_ID/active-rate-limits", "Get Active Rate Limits (now)",
-      """Get the currently active rate limits for a Consumer.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
-      apiTagConsumer :: Nil,
-      Some(canGetRateLimits :: Nil),
-      http4sPartialFunction = Some(getActiveRateLimitsNow)
-    )
 
     // Route: GET /obp/v6.0.0/management/consumers/CONSUMER_ID/active-rate-limits/DATE_WITH_HOUR
     lazy val getActiveRateLimitsAtDate: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -7855,16 +5711,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getActiveRateLimitsAtDate), "GET",
-      "/management/consumers/CONSUMER_ID/active-rate-limits/DATE_WITH_HOUR", "Get Active Rate Limits at Date",
-      """Get the active rate limits for a Consumer at the specified UTC hour (YYYY-MM-DD-HH).""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidDateFormat, UnknownError),
-      apiTagConsumer :: Nil,
-      Some(canGetRateLimits :: Nil),
-      http4sPartialFunction = Some(getActiveRateLimitsAtDate)
-    )
 
     // ─── Phase 2: management/api-collections bucket (4 endpoints) ─────────
 
@@ -7889,16 +5735,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createFeaturedApiCollection), "POST",
-      "/management/api-collections/featured", "Create Featured Api Collection",
-      """Mark an API collection as featured.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, ApiCollectionNotFound, UnknownError),
-      apiTagApiCollection :: Nil,
-      Some(canManageFeaturedApiCollections :: Nil),
-      http4sPartialFunction = Some(createFeaturedApiCollection)
-    )
 
     // Route: GET /obp/v6.0.0/management/api-collections/featured
     lazy val getFeaturedApiCollectionsAdmin: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -7910,16 +5746,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getFeaturedApiCollectionsAdmin), "GET",
-      "/management/api-collections/featured", "Get Featured Api Collections (Admin)",
-      """Get all featured API collections.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
-      apiTagApiCollection :: Nil,
-      Some(canManageFeaturedApiCollections :: Nil),
-      http4sPartialFunction = Some(getFeaturedApiCollectionsAdmin)
-    )
 
     // Route: PUT /obp/v6.0.0/management/api-collections/featured/API_COLLECTION_ID
     lazy val updateFeaturedApiCollection: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -7936,16 +5762,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(updateFeaturedApiCollection), "PUT",
-      "/management/api-collections/featured/API_COLLECTION_ID", "Update Featured Api Collection",
-      """Update the sort order of a featured API collection.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
-      apiTagApiCollection :: Nil,
-      Some(canManageFeaturedApiCollections :: Nil),
-      http4sPartialFunction = Some(updateFeaturedApiCollection)
-    )
 
     // Route: DELETE /obp/v6.0.0/management/api-collections/featured/API_COLLECTION_ID
     lazy val deleteFeaturedApiCollection: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -7957,16 +5773,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(deleteFeaturedApiCollection), "DELETE",
-      "/management/api-collections/featured/API_COLLECTION_ID", "Delete Featured Api Collection",
-      """Remove a featured API collection.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
-      apiTagApiCollection :: Nil,
-      Some(canManageFeaturedApiCollections :: Nil),
-      http4sPartialFunction = Some(deleteFeaturedApiCollection)
-    )
 
     // ─── Phase 2: api-products bucket (9 endpoints) ───────────────────────
     // All endpoints always require auth + role; the v6 Lift conditional
@@ -8000,16 +5806,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createApiProduct), "POST",
-      "/banks/BANK_ID/api-products/API_PRODUCT_CODE", "Create Api Product",
-      """Create an Api Product for the Bank.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
-      apiTagApi :: apiTagApiProduct :: Nil,
-      Some(canCreateApiProduct :: Nil),
-      http4sPartialFunction = Some(createApiProduct)
-    )
 
     // Route: PUT /obp/v6.0.0/banks/BANK_ID/api-products/API_PRODUCT_CODE (201 — Lift returns 201)
     lazy val createOrUpdateApiProduct: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -8038,16 +5834,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createOrUpdateApiProduct), "PUT",
-      "/banks/BANK_ID/api-products/API_PRODUCT_CODE", "Create or Update Api Product",
-      """Create or update an Api Product for the Bank.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
-      apiTagApi :: apiTagApiProduct :: Nil,
-      Some(canUpdateApiProduct :: Nil),
-      http4sPartialFunction = Some(createOrUpdateApiProduct)
-    )
 
     // Route: GET /obp/v6.0.0/banks/BANK_ID/api-products/API_PRODUCT_CODE
     lazy val getApiProduct: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -8060,16 +5846,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getApiProduct), "GET",
-      "/banks/BANK_ID/api-products/API_PRODUCT_CODE", "Get Api Product",
-      """Get an Api Product by BANK_ID and API_PRODUCT_CODE.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
-      apiTagApi :: apiTagApiProduct :: Nil,
-      Some(canGetApiProduct :: Nil),
-      http4sPartialFunction = Some(getApiProduct)
-    )
 
     // Route: GET /obp/v6.0.0/banks/BANK_ID/api-products
     lazy val getApiProducts: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -8082,16 +5858,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getApiProducts), "GET",
-      "/banks/BANK_ID/api-products", "Get Api Products",
-      """Get all Api Products for the Bank. Optional ?tag= filter.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
-      apiTagApi :: apiTagApiProduct :: Nil,
-      Some(canGetApiProduct :: Nil),
-      http4sPartialFunction = Some(getApiProducts)
-    )
 
     // Route: DELETE /obp/v6.0.0/banks/BANK_ID/api-products/API_PRODUCT_CODE
     lazy val deleteApiProduct: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -8104,16 +5870,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(deleteApiProduct), "DELETE",
-      "/banks/BANK_ID/api-products/API_PRODUCT_CODE", "Delete Api Product",
-      """Delete an Api Product by BANK_ID and API_PRODUCT_CODE.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
-      apiTagApi :: apiTagApiProduct :: Nil,
-      Some(canDeleteApiProduct :: Nil),
-      http4sPartialFunction = Some(deleteApiProduct)
-    )
 
     // Route: POST /obp/v6.0.0/banks/BANK_ID/api-products/API_PRODUCT_CODE/attribute (201)
     lazy val createApiProductAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -8134,16 +5890,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createApiProductAttribute), "POST",
-      "/banks/BANK_ID/api-products/API_PRODUCT_CODE/attribute", "Create Api Product Attribute",
-      """Create an attribute for the specified Api Product.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
-      apiTagApi :: apiTagApiProductAttribute :: Nil,
-      Some(canCreateApiProductAttribute :: Nil),
-      http4sPartialFunction = Some(createApiProductAttribute)
-    )
 
     // Route: PUT /obp/v6.0.0/banks/BANK_ID/api-products/API_PRODUCT_CODE/attributes/API_PRODUCT_ATTRIBUTE_ID
     lazy val updateApiProductAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -8163,16 +5909,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(updateApiProductAttribute), "PUT",
-      "/banks/BANK_ID/api-products/API_PRODUCT_CODE/attributes/API_PRODUCT_ATTRIBUTE_ID", "Update Api Product Attribute",
-      """Update an Api Product Attribute.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
-      apiTagApi :: apiTagApiProductAttribute :: Nil,
-      Some(canUpdateApiProductAttribute :: Nil),
-      http4sPartialFunction = Some(updateApiProductAttribute)
-    )
 
     // Route: GET /obp/v6.0.0/banks/BANK_ID/api-products/API_PRODUCT_CODE/attributes/API_PRODUCT_ATTRIBUTE_ID
     lazy val getApiProductAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -8184,16 +5920,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getApiProductAttribute), "GET",
-      "/banks/BANK_ID/api-products/API_PRODUCT_CODE/attributes/API_PRODUCT_ATTRIBUTE_ID", "Get Api Product Attribute",
-      """Get an Api Product Attribute by API_PRODUCT_ATTRIBUTE_ID.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
-      apiTagApi :: apiTagApiProductAttribute :: Nil,
-      Some(canGetApiProductAttribute :: Nil),
-      http4sPartialFunction = Some(getApiProductAttribute)
-    )
 
     // Route: DELETE /obp/v6.0.0/banks/BANK_ID/api-products/API_PRODUCT_CODE/attributes/API_PRODUCT_ATTRIBUTE_ID
     lazy val deleteApiProductAttribute: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -8205,16 +5931,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(deleteApiProductAttribute), "DELETE",
-      "/banks/BANK_ID/api-products/API_PRODUCT_CODE/attributes/API_PRODUCT_ATTRIBUTE_ID", "Delete Api Product Attribute",
-      """Delete an Api Product Attribute.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
-      apiTagApi :: apiTagApiProductAttribute :: Nil,
-      Some(canDeleteApiProductAttribute :: Nil),
-      http4sPartialFunction = Some(deleteApiProductAttribute)
-    )
 
     // ─── Phase 2: mandates bucket (10 endpoints) ──────────────────────────
 
@@ -8251,16 +5967,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createMandate), "POST",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/mandates", "Create Mandate",
-      """Create a new mandate for an account.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UserHasMissingRoles, UnknownError),
-      apiTagMandate :: Nil,
-      Some(canCreateMandate :: Nil),
-      http4sPartialFunction = Some(createMandate)
-    )
 
     // Route: GET /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/mandates
     lazy val getMandates: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -8274,16 +5980,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getMandates), "GET",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/mandates", "Get Mandates",
-      """Get all mandates for an account.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UserHasMissingRoles, UnknownError),
-      apiTagMandate :: Nil,
-      Some(canGetMandate :: Nil),
-      http4sPartialFunction = Some(getMandates)
-    )
 
     // Route: GET /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/mandates/MANDATE_ID
     lazy val getMandate: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -8296,16 +5992,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getMandate), "GET",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/mandates/MANDATE_ID", "Get Mandate",
-      """Get a specific mandate.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UserHasMissingRoles, UnknownError),
-      apiTagMandate :: Nil,
-      Some(canGetMandate :: Nil),
-      http4sPartialFunction = Some(getMandate)
-    )
 
     // Route: PUT /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/mandates/MANDATE_ID
     lazy val updateMandate: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -8327,16 +6013,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(updateMandate), "PUT",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/mandates/MANDATE_ID", "Update Mandate",
-      """Update a mandate.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UserHasMissingRoles, UnknownError),
-      apiTagMandate :: Nil,
-      Some(canUpdateMandate :: Nil),
-      http4sPartialFunction = Some(updateMandate)
-    )
 
     // Route: DELETE /obp/v6.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/mandates/MANDATE_ID (204)
     lazy val deleteMandate: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -8349,16 +6025,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(deleteMandate), "DELETE",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/mandates/MANDATE_ID", "Delete Mandate",
-      """Delete a mandate and all its provisions and signatory panels.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
-      apiTagMandate :: Nil,
-      Some(canDeleteMandate :: Nil),
-      http4sPartialFunction = Some(deleteMandate)
-    )
 
     // Provision serializer — match Lift exactly.
     private def serializeSignatoryRequirements(any: Any): String = {
@@ -8389,16 +6055,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createMandateProvision), "POST",
-      "/banks/BANK_ID/mandates/MANDATE_ID/provisions", "Create Mandate Provision",
-      """Create a provision under a mandate.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
-      apiTagMandate :: Nil,
-      Some(canCreateMandateProvision :: Nil),
-      http4sPartialFunction = Some(createMandateProvision)
-    )
 
     // Route: GET /obp/v6.0.0/banks/BANK_ID/mandates/MANDATE_ID/provisions
     lazy val getMandateProvisions: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -8411,16 +6067,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getMandateProvisions), "GET",
-      "/banks/BANK_ID/mandates/MANDATE_ID/provisions", "Get Mandate Provisions",
-      """Get all provisions for a mandate.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
-      apiTagMandate :: Nil,
-      Some(canGetMandateProvision :: Nil),
-      http4sPartialFunction = Some(getMandateProvisions)
-    )
 
     // Route: GET /obp/v6.0.0/banks/BANK_ID/mandates/MANDATE_ID/provisions/PROVISION_ID
     lazy val getMandateProvision: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -8433,16 +6079,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getMandateProvision), "GET",
-      "/banks/BANK_ID/mandates/MANDATE_ID/provisions/PROVISION_ID", "Get Mandate Provision",
-      """Get a specific mandate provision.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
-      apiTagMandate :: Nil,
-      Some(canGetMandateProvision :: Nil),
-      http4sPartialFunction = Some(getMandateProvision)
-    )
 
     // Route: PUT /obp/v6.0.0/banks/BANK_ID/mandates/MANDATE_ID/provisions/PROVISION_ID
     lazy val updateMandateProvision: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -8467,16 +6103,6 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(updateMandateProvision), "PUT",
-      "/banks/BANK_ID/mandates/MANDATE_ID/provisions/PROVISION_ID", "Update Mandate Provision",
-      """Update a mandate provision.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
-      apiTagMandate :: Nil,
-      Some(canUpdateMandateProvision :: Nil),
-      http4sPartialFunction = Some(updateMandateProvision)
-    )
 
     // Route: DELETE /obp/v6.0.0/banks/BANK_ID/mandates/MANDATE_ID/provisions/PROVISION_ID (204)
     lazy val deleteMandateProvision: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -8489,18 +6115,17 @@ object Http4s600 {
         }
     }
 
-    resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(deleteMandateProvision), "DELETE",
-      "/banks/BANK_ID/mandates/MANDATE_ID/provisions/PROVISION_ID", "Delete Mandate Provision",
-      """Delete a mandate provision.""",
-      EmptyBody, EmptyBody,
-      List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
-      apiTagMandate :: Nil,
-      Some(canDeleteMandateProvision :: Nil),
-      http4sPartialFunction = Some(deleteMandateProvision)
-    )
 
-    val allRoutesWithMiddleware: HttpRoutes[IO] =
+    // `lazy val`: `resourceDocs +=` registrations are interleaved with endpoint
+    // definitions throughout the rest of this object body (244 calls, all AFTER
+    // this line). `ResourceDocMiddleware.apply` builds the lookup index from the
+    // current `resourceDocs` snapshot at the moment of application; with a strict
+    // `val` here the index is built before any registration runs, so every v6.0.0
+    // request fails to match a doc, middleware skips auth, and handlers using
+    // `EndpointHelpers.withUser` 500 with "User not found in CallContext".
+    // Deferring index construction to first request (post object-init) lets every
+    // registration land before the snapshot is taken.
+    lazy val allRoutesWithMiddleware: HttpRoutes[IO] =
       ResourceDocMiddleware.apply(resourceDocs)(allRoutes)
 
     // ─── path-rewriting bridge: /obp/v6.0.0/… → /obp/v5.1.0/… ─────────────
@@ -8518,7 +6143,8214 @@ object Http4s600 {
         OptionT.none[IO, Response[IO]]
       }
     }
-  }
+  
+
+    // ─────────────────────────────────────────────────────────────────────
+    // ResourceDoc registrations are split into batched private defs so the
+    // object's <init> stays under the JVM's 64KB-per-method limit. Each
+    // batch is invoked once during object initialisation.
+    // ─────────────────────────────────────────────────────────────────────
+    registerBatch1()
+    registerBatch2()
+    registerBatch3()
+    registerBatch4()
+    registerBatch5()
+    registerBatch6()
+    registerBatch7()
+    registerBatch8()
+    registerBatch9()
+
+    private def registerBatch1(): Unit = {
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(root),
+        "GET",
+        "/root",
+        "Get API Info (root)",
+        """Returns information about:
+        |
+        |* API version
+        |* Hosted by information
+        |* Hosted at information
+        |* Energy source information
+        |* Git Commit""",
+        EmptyBody,
+        apiInfoJson400,
+        List(UnknownError, MandatoryPropertyIsNotSet),
+        apiTagApi :: Nil,
+        None,
+        http4sPartialFunction = Some(root)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getScannedApiVersions),
+        "GET",
+        "/api/versions",
+        "Get Scanned API Versions",
+        s"""Get all scanned API versions available in this codebase.
+        |
+        |This endpoint returns all API versions that have been discovered/scanned, along with their active status.
+        |
+        |**Response Fields:**
+        |
+        |* `url_prefix`: The URL prefix for the version (e.g., "obp", "berlin-group", "open-banking")
+        |* `api_standard`: The API standard name (e.g., "OBP", "BG", "UK", "STET")
+        |* `api_short_version`: The version number (e.g., "v4.0.0", "v1.3")
+        |* `fully_qualified_version`: The fully qualified version combining standard and version (e.g., "OBPv4.0.0", "BGv1.3")
+        |* `is_active`: Boolean indicating if the version is currently enabled and accessible
+        |
+        |**Active Status:**
+        |
+        |* `is_active=true`: Version is enabled and can be accessed via its URL prefix
+        |* `is_active=false`: Version is scanned but disabled (via `api_disabled_versions` props)
+        |
+        |**Use Cases:**
+        |
+        |* Discover what API versions are available in the codebase
+        |* Check which versions are currently enabled
+        |* Verify that disabled versions configuration is working correctly
+        |* API documentation and discovery
+        |
+        |**Note:** This differs from v4.0.0's `/api/versions` endpoint which shows all scanned versions without is_active status.
+        |
+        |""",
+        EmptyBody,
+        ListResult(
+          "scanned_api_versions",
+          List(
+            ScannedApiVersionJsonV600(url_prefix = "obp", api_standard = "OBP", api_short_version = ApiVersion.v1_2_1.toString, fully_qualified_version = ApiVersion.v1_2_1.fullyQualifiedVersion, is_active = true),
+            ScannedApiVersionJsonV600(url_prefix = "obp", api_standard = "OBP", api_short_version = ApiVersion.v1_3_0.toString, fully_qualified_version = ApiVersion.v1_3_0.fullyQualifiedVersion, is_active = true),
+            ScannedApiVersionJsonV600(url_prefix = "obp", api_standard = "OBP", api_short_version = ApiVersion.v1_4_0.toString, fully_qualified_version = ApiVersion.v1_4_0.fullyQualifiedVersion, is_active = true),
+            ScannedApiVersionJsonV600(url_prefix = "obp", api_standard = "OBP", api_short_version = ApiVersion.v2_0_0.toString, fully_qualified_version = ApiVersion.v2_0_0.fullyQualifiedVersion, is_active = true),
+            ScannedApiVersionJsonV600(url_prefix = "obp", api_standard = "OBP", api_short_version = ApiVersion.v2_1_0.toString, fully_qualified_version = ApiVersion.v2_1_0.fullyQualifiedVersion, is_active = true),
+            ScannedApiVersionJsonV600(url_prefix = "obp", api_standard = "OBP", api_short_version = ApiVersion.v2_2_0.toString, fully_qualified_version = ApiVersion.v2_2_0.fullyQualifiedVersion, is_active = true),
+            ScannedApiVersionJsonV600(url_prefix = "obp", api_standard = "OBP", api_short_version = ApiVersion.v3_0_0.toString, fully_qualified_version = ApiVersion.v3_0_0.fullyQualifiedVersion, is_active = true),
+            ScannedApiVersionJsonV600(url_prefix = "obp", api_standard = "OBP", api_short_version = ApiVersion.v3_1_0.toString, fully_qualified_version = ApiVersion.v3_1_0.fullyQualifiedVersion, is_active = true),
+            ScannedApiVersionJsonV600(url_prefix = "obp", api_standard = "OBP", api_short_version = ApiVersion.v4_0_0.toString, fully_qualified_version = ApiVersion.v4_0_0.fullyQualifiedVersion, is_active = true),
+            ScannedApiVersionJsonV600(url_prefix = "obp", api_standard = "OBP", api_short_version = ApiVersion.v5_0_0.toString, fully_qualified_version = ApiVersion.v5_0_0.fullyQualifiedVersion, is_active = true),
+            ScannedApiVersionJsonV600(url_prefix = "obp", api_standard = "OBP", api_short_version = ApiVersion.v5_1_0.toString, fully_qualified_version = ApiVersion.v5_1_0.fullyQualifiedVersion, is_active = true),
+            ScannedApiVersionJsonV600(url_prefix = "obp", api_standard = "OBP", api_short_version = ApiVersion.v6_0_0.toString, fully_qualified_version = ApiVersion.v6_0_0.fullyQualifiedVersion, is_active = true),
+            ScannedApiVersionJsonV600(url_prefix = "berlin-group", api_standard = "BG", api_short_version = "v1.3", fully_qualified_version = "BGv1.3", is_active = false)
+          )
+        ),
+        List(UnknownError),
+        apiTagDocumentation :: apiTagApi :: Nil,
+        None,
+        http4sPartialFunction = Some(getScannedApiVersions)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getCurrentUser),
+        "GET",
+        "/users/current",
+        "Get User (Current)",
+        s"""Get the logged in user
+           |
+           |${userAuthenticationMessage(true)}
+        """.stripMargin,
+        EmptyBody,
+        userJsonV300,
+        List($AuthenticatedUserIsRequired, UnknownError),
+        apiTagUser :: Nil,
+        None,
+        http4sPartialFunction = Some(getCurrentUser)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getBanks),
+        "GET",
+        "/banks",
+        "Get Banks",
+        """Get banks on this API instance
+        |Returns a list of banks supported on this server:
+        |
+        |- bank_id used as parameter in URLs
+        |- Short and full name of bank
+        |- Logo URL
+        |- Website
+        |
+        |User Authentication is Optional. The User need not be logged in.
+        |""",
+        EmptyBody,
+        BanksJsonV600(List(BankJsonV600(
+          bank_id = "gh.29.uk",
+          bank_code = "bank_code",
+          full_name = "full_name",
+          logo = "logo",
+          website = "www.openbankproject.com",
+          bank_routings = List(BankRoutingJsonV121("OBP", "gh.29.uk")),
+          attributes = Some(List(BankAttributeBankResponseJsonV400("OVERDRAFT_LIMIT", "1000")))
+        ))),
+        List(UnknownError),
+        apiTagBank :: Nil,
+        None,
+        http4sPartialFunction = Some(getBanks)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getBank),
+        "GET",
+        "/banks/BANK_ID",
+        "Get Bank",
+        """Get the bank specified by BANK_ID
+        |Returns information about a single bank specified by BANK_ID including:
+        |
+        |- bank_id: The unique identifier of this bank
+        |- Short and full name of bank
+        |- Logo URL
+        |- Website
+        |""",
+        EmptyBody,
+        BankJsonV600(
+          bank_id = "gh.29.uk",
+          bank_code = "bank_code",
+          full_name = "full_name",
+          logo = "logo",
+          website = "www.openbankproject.com",
+          bank_routings = List(BankRoutingJsonV121("OBP", "gh.29.uk")),
+          attributes = Some(List(BankAttributeBankResponseJsonV400("OVERDRAFT_LIMIT", "1000")))
+        ),
+        List($BankNotFound, UnknownError),
+        apiTagBank :: Nil,
+        None,
+        http4sPartialFunction = Some(getBank)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getCustomersAtOneBank),
+        "GET",
+        "/banks/BANK_ID/customers",
+        "Get Customers at Bank",
+        s"""Get Customers at Bank.
+        |
+        |Returns a list of all customers at the specified bank.
+        |
+        |**Date Format:**
+        |In v6.0.0, date_of_birth and dob_of_dependants are returned in ISO 8601 date format: **YYYY-MM-DD** (e.g., "1990-05-15", "2010-03-20").
+        |
+        |**Query Parameters:**
+        |- limit: Maximum number of customers to return (optional)
+        |- offset: Number of customers to skip for pagination (optional)
+        |- sort_direction: Sort direction - ASC or DESC (optional)
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""",
+        EmptyBody,
+        customerJSONsV600,
+        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
+        apiTagCustomer :: Nil,
+        Some(canGetCustomersAtOneBank :: Nil),
+        http4sPartialFunction = Some(getCustomersAtOneBank)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getCustomerByCustomerId),
+        "GET",
+        "/banks/BANK_ID/customers/CUSTOMER_ID",
+        "Get Customer by CUSTOMER_ID",
+        s"""Gets the Customer specified by CUSTOMER_ID.
+        |
+        |**Date Format:**
+        |In v6.0.0, date_of_birth and dob_of_dependants are returned in ISO 8601 date format: **YYYY-MM-DD** (e.g., "1990-05-15", "2010-03-20").
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""",
+        EmptyBody,
+        customerWithAttributesJsonV600,
+        List($AuthenticatedUserIsRequired, UserCustomerLinksNotFoundForUser, $BankNotFound, UserHasMissingRoles, UnknownError),
+        apiTagCustomer :: Nil,
+        Some(canGetCustomersAtOneBank :: Nil),
+        http4sPartialFunction = Some(getCustomerByCustomerId)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getCoreAccountByIdV600),
+        "GET",
+        "/my/banks/BANK_ID/accounts/ACCOUNT_ID/account",
+        "Get Account by Id (Core)",
+        s"""Information returned about the account specified by ACCOUNT_ID:
+        |
+        |* Number - The human readable account number given by the bank that identifies the account.
+        |* Label - A label given by the owner of the account
+        |* Owners - Users that own this account
+        |* Type - The type of account
+        |* Balance - Currency and Value
+        |* Account Routings - A list that might include IBAN or national account identifiers
+        |* Account Rules - A list that might include Overdraft and other bank specific rules
+        |* Tags - A list of Tags assigned to this account
+        |
+        |This call returns the owner view and requires access to that view.
+        |
+        |This v6.0.0 version returns `account_id` instead of `id` for consistency with other v6.0.0 endpoints.
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""".stripMargin,
+        EmptyBody,
+        ModeratedCoreAccountJsonV600(
+          account_id = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
+          bank_id = "gh.29.uk",
+          label = "My Account",
+          number = "123456",
+          product_code = "CURRENT",
+          balance = AmountOfMoneyJsonV121("EUR", "1000.00"),
+          account_routings = List(AccountRoutingJsonV121("IBAN", "DE89370400440532013000")),
+          views_basic = List("owner")
+        ),
+        List($AuthenticatedUserIsRequired, $BankAccountNotFound, UnknownError),
+        apiTagAccount :: Nil,
+        None,
+        http4sPartialFunction = Some(getCoreAccountByIdV600)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getMyDynamicEntities),
+        "GET",
+        "/my/dynamic-entities",
+        "Get My Dynamic Entities",
+        s"""Get all Dynamic Entity definitions I created.
+         |
+         |This v6.0.0 endpoint returns a cleaner response format with:
+         |* snake_case field names (dynamic_entity_id, user_id, bank_id, has_personal_entity)
+         |* An explicit entity_name field instead of using the entity name as a dynamic JSON key
+         |* The entity schema in a separate definition object
+         |
+         |For more information see ${Glossary.getGlossaryItemLink(
+          "My-Dynamic-Entities"
+        )}""",
+        EmptyBody,
+        MyDynamicEntitiesJsonV600(
+          dynamic_entities = List(
+            DynamicEntityDefinitionJsonV600(
+              dynamic_entity_id = "abc-123-def",
+              entity_name = "customer_preferences",
+              user_id = "user-456",
+              bank_id = None,
+              has_personal_entity = true,
+              schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string"}, "language": {"type": "string"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject],
+              _links = Some(DynamicEntityLinksJsonV600(
+                related = List(
+                  RelatedLinkJsonV600("personal-list", s"/obp/${ApiVersion.`dynamic-entity`}/my/customer_preferences", "GET"),
+                  RelatedLinkJsonV600("personal-create", s"/obp/${ApiVersion.`dynamic-entity`}/my/customer_preferences", "POST"),
+                  RelatedLinkJsonV600("personal-read", s"/obp/${ApiVersion.`dynamic-entity`}/my/customer_preferences/CUSTOMER_PREFERENCES_ID", "GET"),
+                  RelatedLinkJsonV600("personal-update", s"/obp/${ApiVersion.`dynamic-entity`}/my/customer_preferences/CUSTOMER_PREFERENCES_ID", "PUT"),
+                  RelatedLinkJsonV600("personal-delete", s"/obp/${ApiVersion.`dynamic-entity`}/my/customer_preferences/CUSTOMER_PREFERENCES_ID", "DELETE")
+                )
+              ))
+            )
+          )
+        ),
+        List($AuthenticatedUserIsRequired, UnknownError),
+        apiTagManageDynamicEntity :: apiTagApi :: Nil,
+        None,
+        http4sPartialFunction = Some(getMyDynamicEntities)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getSystemDynamicEntities),
+        "GET",
+        "/management/system-dynamic-entities",
+        "Get System Dynamic Entities",
+        s"""Get all System Dynamic Entities with record counts.
+         |
+         |Each dynamic entity in the response includes a `record_count` field showing how many data records exist for that entity.
+         |
+         |This v6.0.0 endpoint returns snake_case field names and an explicit `entity_name` field.
+         |
+         |For more information see ${Glossary.getGlossaryItemLink(
+          "Dynamic-Entities"
+        )} """,
+        EmptyBody,
+        DynamicEntitiesWithCountJsonV600(
+          dynamic_entities = List(
+            DynamicEntityDefinitionWithCountJsonV600(
+              dynamic_entity_id = "abc-123-def",
+              entity_name = "customer_preferences",
+              user_id = "user-456",
+              bank_id = None,
+              has_personal_entity = true,
+              schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string"}, "language": {"type": "string"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject],
+              record_count = 42
+            )
+          )
+        ),
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+        apiTagManageDynamicEntity :: apiTagApi :: Nil,
+        Some(canGetSystemLevelDynamicEntities :: Nil),
+        http4sPartialFunction = Some(getSystemDynamicEntities)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getBankLevelDynamicEntities),
+        "GET",
+        "/management/banks/BANK_ID/dynamic-entities",
+        "Get Bank-Level Dynamic Entities",
+        s"""Get all Bank Level Dynamic Entities for one bank with record counts.
+         |
+         |Each dynamic entity in the response includes a `record_count` field showing how many data records exist for that entity.
+         |
+         |This v6.0.0 endpoint returns snake_case field names and an explicit `entity_name` field.
+         |
+         |For more information see ${Glossary.getGlossaryItemLink(
+          "Dynamic-Entities"
+        )} """,
+        EmptyBody,
+        DynamicEntitiesWithCountJsonV600(
+          dynamic_entities = List(
+            DynamicEntityDefinitionWithCountJsonV600(
+              dynamic_entity_id = "abc-123-def",
+              entity_name = "customer_preferences",
+              user_id = "user-456",
+              bank_id = Some("gh.29.uk"),
+              has_personal_entity = true,
+              schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string"}, "language": {"type": "string"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject],
+              record_count = 42
+            )
+          )
+        ),
+        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
+        apiTagManageDynamicEntity :: apiTagApi :: Nil,
+        Some(canGetBankLevelDynamicEntities :: canGetAnyBankLevelDynamicEntities :: Nil),
+        http4sPartialFunction = Some(getBankLevelDynamicEntities)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getConsumer),
+        "GET",
+        "/management/consumers/CONSUMER_ID",
+        "Get Consumer",
+        s"""Get the Consumer specified by CONSUMER_ID.
+        |
+        |This endpoint returns all consumer fields including:
+        |- Basic info: consumer_id, app_name, app_type, description, developer_email, company
+        |- OAuth: consumer_key, redirect_url
+        |- Status: enabled, created
+        |- Certificate: certificate_pem, certificate_info (subject, issuer, validity dates, PSD2 roles)
+        |- Branding: logo_url
+        |- Creator: created_by_user details
+        |- Rate limits: active_rate_limits showing current rate limiting configuration
+        |- Call counters: call_counters showing current API call usage from Redis
+        |
+        |Note: consumer_secret is never returned for security reasons.
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""".stripMargin,
+        EmptyBody,
+        consumerJsonV600,
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+        apiTagConsumer :: apiTagApi :: Nil,
+        Some(canGetConsumers :: Nil),
+        http4sPartialFunction = Some(getConsumer)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getCustomersAtAllBanks),
+        "GET",
+        "/customers",
+        "Get Customers at All Banks",
+        s"""Get Customers at All Banks.
+        |
+        |Returns a list of all customers across all banks.
+        |
+        |**Date Format:**
+        |In v6.0.0, date_of_birth and dob_of_dependants are returned in ISO 8601 date format: **YYYY-MM-DD** (e.g., "1990-05-15", "2010-03-20").
+        |
+        |**Query Parameters:**
+        |- limit: Maximum number of customers to return (optional)
+        |- offset: Number of customers to skip for pagination (optional)
+        |- sort_direction: Sort direction - ASC or DESC (optional)
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""",
+        EmptyBody,
+        customerJSONsV600,
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+        apiTagCustomer :: Nil,
+        Some(canGetCustomersAtAllBanks :: Nil),
+        http4sPartialFunction = Some(getCustomersAtAllBanks)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getUserAttributes),
+        "GET",
+        "/users/USER_ID/attributes",
+        "Get User Attributes",
+        s"""Get User Attributes for the user specified by USER_ID.
+        |
+        |Returns non-personal user attributes (IsPersonal=false) that can be used in ABAC rules.
+        |
+        |${userAuthenticationMessage(true)}
+        |""".stripMargin,
+        EmptyBody,
+        code.api.v5_1_0.UserAttributesResponseJsonV510(
+          user_attributes = List(userAttributeResponseJsonV510)
+        ),
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UserNotFoundByUserId, UnknownError),
+        apiTagUser :: apiTagUserAttribute :: apiTagAttribute :: Nil,
+        Some(canGetUserAttributes :: Nil),
+        http4sPartialFunction = Some(getUserAttributes)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getPrivateAccountByIdFull),
+        "GET",
+        "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/account",
+        "Get Account by Id (Full)",
+        """Information returned about an account specified by ACCOUNT_ID as moderated by the view (VIEW_ID):
+        |
+        |* Number
+        |* Owners
+        |* Type
+        |* Balance
+        |* Available views (sorted by view_name)
+        |
+        |More details about the data moderation by the view [here](#1_2_1-getViewsForBankAccount).
+        |
+        |PSD2 Context: PSD2 requires customers to have access to their account information via third party applications.
+        |This call provides balance and other account information via delegated authentication using OAuth.
+        |
+        |Authentication is required if the 'is_public' field in view (VIEW_ID) is not set to `true`.
+        |""".stripMargin,
+        EmptyBody,
+        ModeratedAccountJSON600(
+          id = "5995d6a2-01b3-423c-a173-5481df49bdaf",
+          label = "NoneLabel",
+          number = "123",
+          owners = List(userJSONV121),
+          product_code = ExampleValue.productCodeExample.value,
+          balance = amountOfMoneyJsonV121,
+          views_available = List(ViewJsonV600(
+            bank_id = "",
+            account_id = "",
+            view_id = "owner",
+            view_name = "Owner",
+            description = "The owner of the account",
+            metadata_view = "owner",
+            is_public = false,
+            is_system = true,
+            is_firehose = Some(false),
+            alias = "private",
+            hide_metadata_if_alias_used = false,
+            can_grant_access_to_views = List("owner"),
+            can_revoke_access_to_views = List("owner"),
+            allowed_actions = List("can_see_transaction_amount", "can_see_bank_account_balance")
+          )),
+          bank_id = ExampleValue.bankIdExample.value,
+          account_routings = List(accountRoutingJsonV121),
+          account_attributes = List(accountAttributeResponseJson),
+          tags = List(accountTagJSON)
+        ),
+        List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, $UserNoPermissionAccessView, UnknownError),
+        apiTagAccount :: Nil,
+        None,
+        http4sPartialFunction = Some(getPrivateAccountByIdFull)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getCustomerByCustomerNumber),
+        "POST",
+        "/banks/BANK_ID/customers/customer-number",
+        "Get Customer by CUSTOMER_NUMBER",
+        s"""Gets the Customer specified by CUSTOMER_NUMBER.
+        |
+        |**Date Format:**
+        |In v6.0.0, date_of_birth and dob_of_dependants are returned in ISO 8601 date format: **YYYY-MM-DD** (e.g., "1990-05-15", "2010-03-20").
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""",
+        postCustomerNumberJsonV310,
+        customerWithAttributesJsonV600,
+        List($AuthenticatedUserIsRequired, UserCustomerLinksNotFoundForUser, $BankNotFound, UserHasMissingRoles, UnknownError),
+        apiTagCustomer :: Nil,
+        Some(canGetCustomersAtOneBank :: Nil),
+        http4sPartialFunction = Some(getCustomerByCustomerNumber)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getCustomersByLegalName),
+        "POST",
+        "/banks/BANK_ID/customers/legal-name",
+        "Get Customers by Legal Name",
+        s"""Gets the Customers specified by Legal Name.
+        |
+        |Returns a list of customers that match the provided legal name.
+        |
+        |**Date Format:**
+        |In v6.0.0, date_of_birth and dob_of_dependants are returned in ISO 8601 date format: **YYYY-MM-DD** (e.g., "1990-05-15", "2010-03-20").
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""",
+        PostCustomerLegalNameJsonV510(legal_name = "John Smith"),
+        customerJSONsV600,
+        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
+        apiTagCustomer :: Nil,
+        Some(canGetCustomersAtOneBank :: Nil),
+        http4sPartialFunction = Some(getCustomersByLegalName)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(createSystemDynamicEntity),
+        "POST",
+        "/management/system-dynamic-entities",
+        "Create System Level Dynamic Entity",
+        s"""Create a system level Dynamic Entity.
+        |
+        |This v6.0.0 endpoint accepts and returns snake_case field names with an explicit `entity_name` field.
+        |
+        |**Request format:**
+        |```json
+        |{
+        |  "entity_name": "customer_preferences",
+        |  "has_personal_entity": true,
+        |  "has_public_access": false,
+        |  "has_community_access": false,
+        |  "personal_requires_role": false,
+        |  "schema": {
+        |    "description": "User preferences",
+        |    "required": ["theme"],
+        |    "properties": {
+        |      "theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"},
+        |      "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}
+        |    }
+        |  }
+        |}
+        |```
+        |
+        |**Note:**
+        |* The `entity_name` must be lowercase with underscores (snake_case), e.g. `customer_preferences`. No uppercase letters or spaces allowed.
+        |* Each property MUST include an `example` field with a valid example value.
+        |* Each property can optionally include `description` (markdown text), and for string types: `minLength` and `maxLength`.
+        |* Set `has_public_access` to `true` to generate read-only public endpoints (GET only, no authentication required) under `/public/`.
+        |* Set `has_community_access` to `true` to generate read-only community endpoints (GET only, authentication required + CanGet role) under `/community/`. Community endpoints return ALL records (personal + non-personal from all users).
+        |* Set `personal_requires_role` to `true` to require the corresponding role (e.g. CanCreateDynamicEntity_, CanGetDynamicEntity_) for `/my/` personal entity endpoints. Default is `false` (any authenticated user can use `/my/` endpoints).
+        |
+        |For more information see ${Glossary.getGlossaryItemLink("Dynamic-Entities")}""",
+        CreateDynamicEntityRequestJsonV600(
+          entity_name = "customer_preferences",
+          has_personal_entity = Some(true),
+          has_public_access = Some(false),
+          has_community_access = Some(false),
+          personal_requires_role = Some(false),
+          schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+        ),
+        DynamicEntityDefinitionJsonV600(
+          dynamic_entity_id = "abc-123-def",
+          entity_name = "customer_preferences",
+          user_id = "user-456",
+          bank_id = None,
+          has_personal_entity = true,
+          has_public_access = false,
+          has_community_access = false,
+          personal_requires_role = false,
+          schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+        ),
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+        apiTagManageDynamicEntity :: apiTagApi :: Nil,
+        Some(canCreateSystemLevelDynamicEntity :: Nil),
+        authMode = code.api.util.APIUtil.UserOrApplication,
+        http4sPartialFunction = Some(createSystemDynamicEntity)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(createBankLevelDynamicEntity),
+        "POST",
+        "/management/banks/BANK_ID/dynamic-entities",
+        "Create Bank Level Dynamic Entity",
+        s"""Create a bank level Dynamic Entity.
+        |
+        |This v6.0.0 endpoint accepts and returns snake_case field names with an explicit `entity_name` field.
+        |
+        |**Request format:**
+        |```json
+        |{
+        |  "entity_name": "customer_preferences",
+        |  "has_personal_entity": true,
+        |  "has_public_access": false,
+        |  "has_community_access": false,
+        |  "personal_requires_role": false,
+        |  "schema": {
+        |    "description": "User preferences",
+        |    "required": ["theme"],
+        |    "properties": {
+        |      "theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"},
+        |      "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}
+        |    }
+        |  }
+        |}
+        |```
+        |
+        |**Note:**
+        |* The `entity_name` must be lowercase with underscores (snake_case), e.g. `customer_preferences`. No uppercase letters or spaces allowed.
+        |* Each property MUST include an `example` field with a valid example value.
+        |* Each property can optionally include `description` (markdown text), and for string types: `minLength` and `maxLength`.
+        |* Set `has_public_access` to `true` to generate read-only public endpoints (GET only, no authentication required) under `/public/`.
+        |* Set `has_community_access` to `true` to generate read-only community endpoints (GET only, authentication required + CanGet role) under `/community/`. Community endpoints return ALL records (personal + non-personal from all users).
+        |* Set `personal_requires_role` to `true` to require the corresponding role (e.g. CanCreateDynamicEntity_, CanGetDynamicEntity_) for `/my/` personal entity endpoints. Default is `false` (any authenticated user can use `/my/` endpoints).
+        |
+        |For more information see ${Glossary.getGlossaryItemLink("Dynamic-Entities")}""",
+        CreateDynamicEntityRequestJsonV600(
+          entity_name = "customer_preferences",
+          has_personal_entity = Some(true),
+          has_public_access = Some(false),
+          has_community_access = Some(false),
+          personal_requires_role = Some(false),
+          schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+        ),
+        DynamicEntityDefinitionJsonV600(
+          dynamic_entity_id = "abc-123-def",
+          entity_name = "customer_preferences",
+          user_id = "user-456",
+          bank_id = Some("gh.29.uk"),
+          has_personal_entity = true,
+          has_public_access = false,
+          has_community_access = false,
+          personal_requires_role = false,
+          schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+        ),
+        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+        apiTagManageDynamicEntity :: apiTagApi :: Nil,
+        Some(canCreateBankLevelDynamicEntity :: Nil),
+        authMode = code.api.util.APIUtil.UserOrApplication,
+        http4sPartialFunction = Some(createBankLevelDynamicEntity)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(updateSystemDynamicEntity),
+        "PUT",
+        "/management/system-dynamic-entities/DYNAMIC_ENTITY_ID",
+        "Update System Level Dynamic Entity",
+        s"""Update a system level Dynamic Entity.
+        |
+        |This v6.0.0 endpoint accepts and returns snake_case field names with an explicit `entity_name` field.
+        |
+        |**Request format:**
+        |```json
+        |{
+        |  "entity_name": "customer_preferences",
+        |  "has_personal_entity": true,
+        |  "has_public_access": false,
+        |  "has_community_access": false,
+        |  "personal_requires_role": false,
+        |  "schema": {
+        |    "description": "User preferences updated",
+        |    "required": ["theme"],
+        |    "properties": {
+        |      "theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"},
+        |      "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"},
+        |      "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}
+        |    }
+        |  }
+        |}
+        |```
+        |
+        |**Note:**
+        |* The `entity_name` must be lowercase with underscores (snake_case), e.g. `customer_preferences`. No uppercase letters or spaces allowed.
+        |* Each property can optionally include `description` (markdown text), and for string types: `minLength` and `maxLength`.
+        |* Set `has_public_access` to `true` to generate read-only public endpoints (GET only, no authentication required) under `/public/`.
+        |* Set `has_community_access` to `true` to generate read-only community endpoints (GET only, authentication required + CanGet role) under `/community/`. Community endpoints return ALL records (personal + non-personal from all users).
+        |* Set `personal_requires_role` to `true` to require the corresponding role (e.g. CanCreateDynamicEntity_, CanGetDynamicEntity_) for `/my/` personal entity endpoints. Default is `false` (any authenticated user can use `/my/` endpoints).
+        |
+        |For more information see ${Glossary.getGlossaryItemLink("Dynamic-Entities")}""",
+        UpdateDynamicEntityRequestJsonV600(
+          entity_name = "customer_preferences",
+          has_personal_entity = Some(true),
+          has_public_access = Some(false),
+          schema = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+        ),
+        DynamicEntityDefinitionJsonV600(
+          dynamic_entity_id = "abc-123-def",
+          entity_name = "customer_preferences",
+          user_id = "user-456",
+          bank_id = None,
+          has_personal_entity = true,
+          has_public_access = false,
+          schema = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+        ),
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+        apiTagManageDynamicEntity :: apiTagApi :: Nil,
+        Some(canUpdateSystemDynamicEntity :: Nil),
+        http4sPartialFunction = Some(updateSystemDynamicEntity)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(updateBankLevelDynamicEntity),
+        "PUT",
+        "/management/banks/BANK_ID/dynamic-entities/DYNAMIC_ENTITY_ID",
+        "Update Bank Level Dynamic Entity",
+        s"""Update a bank level Dynamic Entity.
+        |
+        |This v6.0.0 endpoint accepts and returns snake_case field names with an explicit `entity_name` field.
+        |
+        |**Request format:**
+        |```json
+        |{
+        |  "entity_name": "customer_preferences",
+        |  "has_personal_entity": true,
+        |  "has_public_access": false,
+        |  "has_community_access": false,
+        |  "personal_requires_role": false,
+        |  "schema": {
+        |    "description": "User preferences updated",
+        |    "required": ["theme"],
+        |    "properties": {
+        |      "theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"},
+        |      "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"},
+        |      "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}
+        |    }
+        |  }
+        |}
+        |```
+        |
+        |**Note:**
+        |* The `entity_name` must be lowercase with underscores (snake_case), e.g. `customer_preferences`. No uppercase letters or spaces allowed.
+        |* Each property can optionally include `description` (markdown text), and for string types: `minLength` and `maxLength`.
+        |* Set `has_public_access` to `true` to generate read-only public endpoints (GET only, no authentication required) under `/public/`.
+        |* Set `has_community_access` to `true` to generate read-only community endpoints (GET only, authentication required + CanGet role) under `/community/`. Community endpoints return ALL records (personal + non-personal from all users).
+        |* Set `personal_requires_role` to `true` to require the corresponding role (e.g. CanCreateDynamicEntity_, CanGetDynamicEntity_) for `/my/` personal entity endpoints. Default is `false` (any authenticated user can use `/my/` endpoints).
+        |
+        |For more information see ${Glossary.getGlossaryItemLink("Dynamic-Entities")}""",
+        UpdateDynamicEntityRequestJsonV600(
+          entity_name = "customer_preferences",
+          has_personal_entity = Some(true),
+          has_public_access = Some(false),
+          schema = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+        ),
+        DynamicEntityDefinitionJsonV600(
+          dynamic_entity_id = "abc-123-def",
+          entity_name = "customer_preferences",
+          user_id = "user-456",
+          bank_id = Some("gh.29.uk"),
+          has_personal_entity = true,
+          has_public_access = false,
+          schema = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+        ),
+        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+        apiTagManageDynamicEntity :: apiTagApi :: Nil,
+        Some(canUpdateBankLevelDynamicEntity :: Nil),
+        http4sPartialFunction = Some(updateBankLevelDynamicEntity)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(updateMyDynamicEntity),
+        "PUT",
+        "/my/dynamic-entities/DYNAMIC_ENTITY_ID",
+        "Update My Dynamic Entity",
+        s"""Update a Dynamic Entity that I created.
+        |
+        |This v6.0.0 endpoint accepts and returns snake_case field names with an explicit `entity_name` field.
+        |
+        |**Request format:**
+        |```json
+        |{
+        |  "entity_name": "customer_preferences",
+        |  "has_personal_entity": true,
+        |  "has_public_access": false,
+        |  "has_community_access": false,
+        |  "personal_requires_role": false,
+        |  "schema": {
+        |    "description": "User preferences updated",
+        |    "required": ["theme"],
+        |    "properties": {
+        |      "theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"},
+        |      "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"},
+        |      "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}
+        |    }
+        |  }
+        |}
+        |```
+        |
+        |**Note:**
+        |* The `entity_name` must be lowercase with underscores (snake_case), e.g. `customer_preferences`. No uppercase letters or spaces allowed.
+        |* Each property can optionally include `description` (markdown text), and for string types: `minLength` and `maxLength`.
+        |* Set `has_public_access` to `true` to generate read-only public endpoints (GET only, no authentication required) under `/public/`.
+        |* Set `has_community_access` to `true` to generate read-only community endpoints (GET only, authentication required + CanGet role) under `/community/`. Community endpoints return ALL records (personal + non-personal from all users).
+        |* Set `personal_requires_role` to `true` to require the corresponding role (e.g. CanCreateDynamicEntity_, CanGetDynamicEntity_) for `/my/` personal entity endpoints. Default is `false` (any authenticated user can use `/my/` endpoints).
+        |
+        |For more information see ${Glossary.getGlossaryItemLink("My-Dynamic-Entities")}""",
+        UpdateDynamicEntityRequestJsonV600(
+          entity_name = "customer_preferences",
+          has_personal_entity = Some(true),
+          has_public_access = Some(false),
+          schema = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+        ),
+        DynamicEntityDefinitionJsonV600(
+          dynamic_entity_id = "abc-123-def",
+          entity_name = "customer_preferences",
+          user_id = "user-456",
+          bank_id = None,
+          has_personal_entity = true,
+          has_public_access = false,
+          schema = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+        ),
+        List($AuthenticatedUserIsRequired, DynamicEntityNotFoundByDynamicEntityId, InvalidJsonFormat, UnknownError),
+        apiTagManageDynamicEntity :: apiTagApi :: Nil,
+        None,
+        http4sPartialFunction = Some(updateMyDynamicEntity)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(updateSystemView),
+        "PUT",
+        "/system-views/UPD_VIEW_ID",
+        "Update System View",
+        s"""Update an existing system view.
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |The JSON sent is the same as during view creation, with one difference: the 'name' field
+        |of a view is not editable (it is only set when a view is created).
+        |
+        |The 'metadata_view' field determines where metadata (comments, tags, images, where tags) for transactions are stored and retrieved. If set to another view's ID (e.g. 'owner'), metadata added through this view will be shared with all other views that also use the same metadata_view value. If left empty, metadata is stored under this view's own ID and is not shared with other views.
+        |
+        |The response contains the updated view with an `allowed_actions` array.
+        |
+        |""".stripMargin,
+        UpdateViewJsonV600(
+          description = "This is the owner view",
+          metadata_view = "owner",
+          is_public = false,
+          is_firehose = Some(false),
+          which_alias_to_use = "private",
+          hide_metadata_if_alias_used = false,
+          allowed_actions = List(
+            "can_see_transaction_amount",
+            "can_see_bank_account_balance",
+            "can_add_comment"
+          ),
+          can_grant_access_to_views = Some(List("owner", "accountant")),
+          can_revoke_access_to_views = Some(List("owner", "accountant"))
+        ),
+        ViewJsonV600(
+          bank_id = "",
+          account_id = "",
+          view_id = "owner",
+          view_name = "Owner",
+          description = "This is the owner view",
+          metadata_view = "owner",
+          is_public = false,
+          is_system = true,
+          is_firehose = Some(false),
+          alias = "private",
+          hide_metadata_if_alias_used = false,
+          can_grant_access_to_views = List("owner", "accountant"),
+          can_revoke_access_to_views = List("owner", "accountant"),
+          allowed_actions = List(
+            "can_see_transaction_amount",
+            "can_see_bank_account_balance",
+            "can_add_comment"
+          )
+        ),
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, SystemViewCannotBePublicError, UnknownError),
+        apiTagView :: Nil,
+        None,
+        http4sPartialFunction = Some(updateSystemView)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getMetrics),
+        "GET",
+        "/management/metrics",
+        "Get Metrics",
+        s"""Get API metrics rows. These are records of each REST API call.
+           |
+           |require CanReadMetrics role
+           |
+           |**NOTE: Automatic from_date Default**
+           |
+           |If you do not provide a `from_date` parameter, this endpoint will automatically set it to:
+           |**now - ${(APIUtil.getPropsValue("MappedMetrics.stable.boundary.seconds", "600").toInt - 1) / 60} minutes ago**
+           |
+           |This prevents accidentally querying all metrics since Unix Epoch and ensures reasonable response times.
+           |For historical/reporting queries, always explicitly specify your desired `from_date`.
+           |
+           |**IMPORTANT: Smart Caching & Performance**
+           |
+           |This endpoint uses intelligent two-tier caching to optimize performance:
+           |
+           |**Stable Data Cache (Long TTL):**
+           |- Metrics older than ${APIUtil.getPropsValue("MappedMetrics.stable.boundary.seconds", "600")} seconds (${APIUtil.getPropsValue("MappedMetrics.stable.boundary.seconds", "600").toInt / 60} minutes) are considered immutable/stable
+           |- These are cached for ${APIUtil.getPropsValue("MappedMetrics.cache.ttl.seconds.getStableMetrics", "86400")} seconds (${APIUtil.getPropsValue("MappedMetrics.cache.ttl.seconds.getStableMetrics", "86400").toInt / 3600} hours)
+           |- Used when your query's from_date is older than the stable boundary
+           |
+           |**Recent Data Cache (Short TTL):**
+           |- Recent metrics (within the stable boundary) are cached for ${APIUtil.getPropsValue("MappedMetrics.cache.ttl.seconds.getAllMetrics", "7")} seconds
+           |- Used when your query includes recent data or has no from_date
+           |
+           |**STRONGLY RECOMMENDED: Always specify from_date in your queries!**
+           |
+           |**Why from_date matters:**
+           |- Queries WITH from_date older than ${APIUtil.getPropsValue("MappedMetrics.stable.boundary.seconds", "600").toInt / 60} mins → cached for ${APIUtil.getPropsValue("MappedMetrics.cache.ttl.seconds.getStableMetrics", "86400").toInt / 3600} hours (fast!)
+           |- Queries WITHOUT from_date → cached for only ${APIUtil.getPropsValue("MappedMetrics.cache.ttl.seconds.getAllMetrics", "7")} seconds (slower)
+           |
+           |**Examples:**
+           |- `from_date=2025-01-01T00:00:00.000Z` → Uses ${APIUtil.getPropsValue("MappedMetrics.cache.ttl.seconds.getStableMetrics", "86400").toInt / 3600} hours cache (historical data)
+           |- `from_date=$DateWithMsExampleString` (recent date) → Uses ${APIUtil.getPropsValue("MappedMetrics.cache.ttl.seconds.getAllMetrics", "7")} seconds cache (recent data)
+           |- No from_date → **Automatically set to ${(APIUtil.getPropsValue("MappedMetrics.stable.boundary.seconds", "600").toInt - 1) / 60} minutes ago** → Uses ${APIUtil.getPropsValue("MappedMetrics.cache.ttl.seconds.getAllMetrics", "7")} seconds cache (recent data)
+           |
+           |For best performance on historical/reporting queries, always include a from_date parameter!
+           |
+           |Filters Part 1.*filtering* (no wilde cards etc.) parameters to GET /management/metrics
+           |
+           |You can filter by the following fields by applying url parameters
+           |
+           |eg: /management/metrics?from_date=$DateWithMsExampleString&to_date=$DateWithMsExampleString&limit=50&offset=2
+           |
+           |1 from_date e.g.:from_date=$DateWithMsExampleString
+           |   **DEFAULT**: If not provided, automatically set to now - ${(APIUtil.getPropsValue("MappedMetrics.stable.boundary.seconds", "600").toInt - 1) / 60} minutes (keeps queries in recent data zone)
+           |   **IMPORTANT**: Including from_date enables long-term caching for historical data queries!
+           |
+           |2 to_date e.g.:to_date=$DateWithMsExampleString Defaults to a far future date i.e. ${APIUtil.ToDateInFuture}
+           |
+           |3 limit (for pagination: defaults to 50)  eg:limit=200
+           |
+           |4 offset (for pagination: zero index, defaults to 0) eg: offset=10
+           |
+           |5 sort_by (defaults to date field) eg: sort_by=date
+           |  possible values:
+           |    "url",
+           |    "date",
+           |    "username" (or "user_name" for backward compatibility),
+           |    "app_name",
+           |    "developer_email",
+           |    "implemented_by_partial_function",
+           |    "implemented_in_version",
+           |    "consumer_id",
+           |    "verb"
+           |
+           |6 direction (defaults to date desc) eg: direction=desc
+           |
+           |eg: /management/metrics?from_date=$DateWithMsExampleString&to_date=$DateWithMsExampleString&limit=10000&offset=0&anon=false&app_name=TeatApp&implemented_in_version=v2.1.0&verb=POST&user_id=c7b6cb47-cb96-4441-8801-35b57456753a&username=susan.uk.29@example.com&consumer_id=78
+           |
+           |Other filters:
+           |
+           |7 consumer_id  (if null ignore)
+           |
+           |8 user_id (if null ignore)
+           |
+           |9 anon (if null ignore) only support two value : true (return where user_id is null.) or false (return where user_id is not null.)
+           |
+           |10 url (if null ignore), note: can not contain '&'.
+           |
+           |11 app_name (if null ignore)
+           |
+           |12 implemented_by_partial_function (if null ignore),
+           |
+           |13 implemented_in_version (if null ignore)
+           |
+           |14 verb (if null ignore)
+           |
+           |15 correlation_id (if null ignore)
+           |
+           |16 duration (if null ignore) - Returns calls where duration > specified value (in milliseconds). Use this to find slow API calls. eg: duration=5000 returns calls taking more than 5 seconds
+           |
+        """.stripMargin,
+        EmptyBody,
+        metricsJsonV600,
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+        apiTagMetric :: apiTagApi :: Nil,
+        Some(canReadMetrics :: Nil),
+        http4sPartialFunction = Some(getMetrics)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getAggregateMetrics),
+        "GET",
+        "/management/aggregate-metrics",
+        "Get Aggregate Metrics",
+        s"""Returns aggregate metrics on api usage eg. total count, response time (in ms), etc.
+           |
+           |require CanReadAggregateMetrics role
+           |
+           |**NOTE: Automatic from_date Default**
+           |
+           |If you do not provide a `from_date` parameter, this endpoint will automatically set it to:
+           |**now - ${(APIUtil.getPropsValue("MappedMetrics.stable.boundary.seconds", "600").toInt - 1) / 60} minutes ago**
+           |
+           |This prevents accidentally querying all metrics since Unix Epoch and ensures reasonable response times.
+           |For historical/reporting queries, always explicitly specify your desired `from_date`.
+           |
+           |**IMPORTANT: Smart Caching & Performance**
+           |
+           |This endpoint uses intelligent two-tier caching to optimize performance:
+           |
+           |**Stable Data Cache (Long TTL):**
+           |- Metrics older than ${APIUtil.getPropsValue("MappedMetrics.stable.boundary.seconds", "600")} seconds (${APIUtil.getPropsValue("MappedMetrics.stable.boundary.seconds", "600").toInt / 60} minutes) are considered immutable/stable
+           |- These are cached for ${APIUtil.getPropsValue("MappedMetrics.cache.ttl.seconds.getStableMetrics", "86400")} seconds (${APIUtil.getPropsValue("MappedMetrics.cache.ttl.seconds.getStableMetrics", "86400").toInt / 3600} hours)
+           |- Used when your query's from_date is older than the stable boundary
+           |
+           |**Recent Data Cache (Short TTL):**
+           |- Recent metrics (within the stable boundary) are cached for ${APIUtil.getPropsValue("MappedMetrics.cache.ttl.seconds.getAllMetrics", "7")} seconds
+           |- Used when your query includes recent data or has no from_date
+           |
+           |**Why from_date matters:**
+           |- Queries WITH from_date older than ${APIUtil.getPropsValue("MappedMetrics.stable.boundary.seconds", "600").toInt / 60} mins → cached for ${APIUtil.getPropsValue("MappedMetrics.cache.ttl.seconds.getStableMetrics", "86400").toInt / 3600} hours (fast!)
+           |- Queries WITHOUT from_date → cached for only ${APIUtil.getPropsValue("MappedMetrics.cache.ttl.seconds.getAllMetrics", "7")} seconds (slower)
+           |
+           |Should be able to filter on the following fields
+           |
+           |eg: /management/aggregate-metrics?from_date=$DateWithMsExampleString&to_date=$DateWithMsExampleString&consumer_id=5
+           |&user_id=66214b8e-259e-44ad-8868-3eb47be70646&implemented_by_partial_function=getTransactionsForBankAccount
+           |&implemented_in_version=v3.0.0&url=/obp/v3.0.0/banks/gh.29.uk/accounts/8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0/owner/transactions
+           |&verb=GET&anon=false&app_name=MapperPostman
+           |&include_app_names=API-EXPLORER,API-Manager,SOFI,null&http_status_code=200
+           |
+           |**IMPORTANT: v6.0.0+ Breaking Change**
+           |
+           |This version does NOT support the old `exclude_*` parameters:
+           |-  `exclude_app_names` - NOT supported (returns error)
+           |-  `exclude_url_patterns` - NOT supported (returns error)
+           |-  `exclude_implemented_by_partial_functions` - NOT supported (returns error)
+           |
+           |Use `include_*` parameters instead (all optional):
+           |- `include_app_names` - Optional - include only these apps
+           |- `include_url_patterns` - Optional - include only URLs matching these patterns
+           |- `include_implemented_by_partial_functions` - Optional - include only these functions
+           |
+           |1 from_date e.g.:from_date=$DateWithMsExampleString
+           |   **DEFAULT**: If not provided, automatically set to now - ${(APIUtil.getPropsValue("MappedMetrics.stable.boundary.seconds", "600").toInt - 1) / 60} minutes (keeps queries in recent data zone)
+           |   **IMPORTANT**: Including from_date enables long-term caching for historical data queries!
+           |
+           |2 to_date (defaults to the current date) eg:to_date=$DateWithMsExampleString
+           |
+           |3 consumer_id  (if null ignore)
+           |
+           |4 user_id (if null ignore)
+           |
+           |5 anon (if null ignore) only support two value : true (return where user_id is null.) or false (return where user_id is not null.)
+           |
+           |6 url (if null ignore), note: can not contain '&'.
+           |
+           |7 app_name (if null ignore)
+           |
+           |8 implemented_by_partial_function (if null ignore)
+           |
+           |9 implemented_in_version (if null ignore)
+           |
+           |10 verb (if null ignore)
+           |
+           |11 correlation_id (if null ignore)
+           |
+           |12 include_app_names (if null ignore).eg: &include_app_names=API-EXPLORER,API-Manager,SOFI,null
+           |
+           |13 include_url_patterns (if null ignore).you can design you own SQL LIKE pattern. eg: &include_url_patterns=%management/metrics%,%management/aggregate-metrics%
+           |
+           |14 include_implemented_by_partial_functions (if null ignore).eg: &include_implemented_by_partial_functions=getMetrics,getConnectorMetrics,getAggregateMetrics
+           |
+           |15 http_status_code (if null ignore) - Filter by HTTP status code. eg: http_status_code=200 returns only successful calls, http_status_code=500 returns server errors
+           |
+        """.stripMargin,
+        EmptyBody,
+        aggregateMetricsJSONV300,
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+        apiTagMetric :: apiTagApi :: Nil,
+        Some(canReadAggregateMetrics :: Nil),
+        http4sPartialFunction = Some(getAggregateMetrics)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getTopAPIs),
+        "GET",
+        "/management/metrics/top-apis",
+        "Get Top APIs",
+        s"""Get metrics about the most popular APIs. e.g.: total count, response time (in ms), etc.
+           |
+           |This v6.0.0 version includes the **operation_id** field which uniquely identifies each API endpoint
+           |across different API standards (OBP, Berlin Group, UK Open Banking, etc.).
+           |
+           |Should be able to filter on the following fields:
+           |
+           |eg: /management/metrics/top-apis?from_date=$epochTimeString&to_date=$DefaultToDateString&consumer_id=5
+           |&user_id=66214b8e-259e-44ad-8868-3eb47be70646&implemented_by_partial_function=getTransactionsForBankAccount
+           |&implemented_in_version=v3.0.0&url=/obp/v3.0.0/banks/gh.29.uk/accounts/8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0/owner/transactions
+           |&verb=GET&anon=false&app_name=MapperPostman
+           |&exclude_app_names=API-EXPLORER,API-Manager,SOFI,null
+           |
+           |1 from_date (defaults to one year ago): eg:from_date=$epochTimeString
+           |
+           |2 to_date (defaults to the current date) eg:to_date=$DefaultToDateString
+           |
+           |3 consumer_id (if null ignore)
+           |
+           |4 user_id (if null ignore)
+           |
+           |5 anon (if null ignore) only support two values: true (return where user_id is null) or false (return where user_id is not null)
+           |
+           |6 url (if null ignore), note: can not contain '&'.
+           |
+           |7 app_name (if null ignore)
+           |
+           |8 implemented_by_partial_function (if null ignore)
+           |
+           |9 implemented_in_version (if null ignore)
+           |
+           |10 verb (if null ignore)
+           |
+           |11 correlation_id (if null ignore)
+           |
+           |12 duration (if null ignore) non digit chars will be silently omitted
+           |
+           |13 exclude_app_names (if null ignore). eg: &exclude_app_names=API-EXPLORER,API-Manager,SOFI,null
+           |
+           |14 exclude_url_patterns (if null ignore). You can design your own SQL NOT LIKE pattern. eg: &exclude_url_patterns=%management/metrics%,%management/aggregate-metrics%
+           |
+           |15 exclude_implemented_by_partial_functions (if null ignore). eg: &exclude_implemented_by_partial_functions=getMetrics,getConnectorMetrics,getAggregateMetrics
+           |
+           |${userAuthenticationMessage(true)}
+           |
+           |CanReadMetrics entitlement is required.
+           |
+        """.stripMargin,
+        EmptyBody,
+        TopApisJsonV600(List(
+          TopApiJsonV600(1000, "getBanks", "v4.0.0", "OBPv4.0.0-getBanks"),
+          TopApiJsonV600(500, "getBank", "v4.0.0", "OBPv4.0.0-getBank"),
+          TopApiJsonV600(250, "getAccountList", "v1.3", "BGv1.3-getAccountList")
+        )),
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+        apiTagMetric :: apiTagApi :: Nil,
+        Some(canReadMetrics :: Nil),
+        http4sPartialFunction = Some(getTopAPIs)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getWebUiProps),
+        "GET",
+        "/webui-props",
+        "Get WebUiProps",
+        s"""
+        |
+        |Get WebUiProps - properties that configure the Web UI behavior and appearance.
+        |
+        |Properties with names starting with "webui_" can be stored in the database and managed via API.
+        |
+        |**Data Sources:**
+        |
+        |1. **Explicit WebUiProps (Database)**: Custom values created/updated via the API and stored in the database.
+        |
+        |2. **Implicit WebUiProps (Configuration File)**: Default values defined in the `sample.props.template` configuration file.
+        |
+        |**Response Fields:**
+        |
+        |* `name`: The property name
+        |* `value`: The property value
+        |* `webUiPropsId` (optional): UUID for database props, omitted for config props
+        |* `source`: Either "database" (editable via API) or "config" (read-only from config file)
+        |
+        |**Query Parameter:**
+        |
+        |* `what` (optional, string, default: "active")
+        |  - `active`: Returns one value per property name
+        |    - If property exists in database: returns database value (source="database")
+        |    - If property only in config file: returns config default value (source="config")
+        |  - `database`: Returns ONLY properties explicitly stored in the database (source="database")
+        |  - `config`: Returns ONLY default properties from configuration file (source="config")
+        |
+        |**Examples:**
+        |
+        |Get active props (database overrides config, one value per prop):
+        |${getObpApiRoot}/v6.0.0/webui-props
+        |${getObpApiRoot}/v6.0.0/webui-props?what=active
+        |
+        |Get only database-stored props:
+        |${getObpApiRoot}/v6.0.0/webui-props?what=database
+        |
+        |Get only default props from configuration:
+        |${getObpApiRoot}/v6.0.0/webui-props?what=config
+        |
+        |For more details about WebUI Props, including how to set config file defaults and precedence order, see ${Glossary.getGlossaryItemLink("webui_props")}.
+        |
+        |""",
+        EmptyBody,
+        ListResult(
+          "webui_props",
+          (List(WebUiPropsCommons("webui_api_explorer_url", "https://apiexplorer.openbankproject.com", Some("web-ui-props-id"), Some("database"))))
+        ),
+        List(InvalidFilterParameterFormat, UnknownError),
+        apiTagWebUiProps :: apiTagApi :: Nil,
+        None,
+        http4sPartialFunction = Some(getWebUiProps)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getAccountsAtBank),
+        "GET",
+        "/banks/BANK_ID/accounts",
+        "Get Accounts at Bank",
+        s"""
+          |Returns the list of accounts at BANK_ID that the user has access to.
+          |For each account the API returns the account ID and the views available to the user.
+          |Each account must have at least one private View.
+          |
+          |This v6.0.0 version returns `account_id` instead of `id` for consistency with other v6.0.0 endpoints.
+          |
+          |Optional request parameters for filtering with attributes:
+          |URL params example: /banks/some-bank-id/accounts?limit=50&offset=1
+          |
+          |${userAuthenticationMessage(true)}
+          |
+        """.stripMargin,
+        EmptyBody,
+        BasicAccountsJsonV600(List(BasicAccountJsonV600(
+          account_id = "8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0",
+          bank_id = "gh.29.uk",
+          label = "My Account",
+          views_available = List(BasicViewJson("owner", "Owner", false))
+        ))),
+        List($AuthenticatedUserIsRequired, $BankNotFound, UnknownError),
+        apiTagAccount :: Nil,
+        None,
+        http4sPartialFunction = Some(getAccountsAtBank)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getTransactionsForBankAccount),
+        "GET",
+        "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions",
+        "Get Transactions for Account (Full)",
+        s"""Returns transactions list of the account specified by ACCOUNT_ID and [moderated](#1_2_1-getViewsForBankAccount) by the view (VIEW_ID).
+        |
+        |${userAuthenticationMessage(false)}
+        |
+        |Authentication is required if the view is not public.
+        |
+        |${urlParametersDocument(true, true)}
+        |
+        |**Note:** This v6.0.0 endpoint returns `bank_id` directly in both `this_account` and `other_account` objects,
+        |making it easier to identify which bank each account belongs to without parsing the `bank_routing` object.
+        |
+        |""",
+        EmptyBody,
+        TransactionsJsonV600(List(TransactionJsonV600(
+          transaction_id = "123",
+          this_account = ThisAccountJsonV600(
+            bank_id = "gh.29.uk",
+            account_id = "8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
+            bank_routing = BankRoutingJsonV121("OBP", "gh.29.uk"),
+            account_routings = List(AccountRoutingJsonV121("OBP", "8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0")),
+            holders = List(AccountHolderJSON("John Doe", false))
+          ),
+          other_account = OtherAccountJsonV600(
+            bank_id = "other.bank.uk",
+            account_id = "counterparty-123",
+            holder = AccountHolderJSON("Jane Smith", false),
+            bank_routing = BankRoutingJsonV121("OBP", "other.bank.uk"),
+            account_routings = List(AccountRoutingJsonV121("OBP", "counterparty-123")),
+            metadata = otherAccountMetadataJSON
+          ),
+          details = TransactionDetailsJSON(
+            `type` = "SEPA",
+            description = "Payment for services",
+            posted = new java.util.Date(),
+            completed = new java.util.Date(),
+            new_balance = AmountOfMoneyJsonV121("EUR", "1000.00"),
+            value = AmountOfMoneyJsonV121("EUR", "100.00")
+          ),
+          metadata = transactionMetadataJSON,
+          transaction_attributes = Nil
+        ))),
+        List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, $UserNoPermissionAccessView, UnknownError),
+        apiTagTransaction :: Nil,
+        None,
+        http4sPartialFunction = Some(getTransactionsForBankAccount)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getProductsV600),
+        "GET",
+        "/banks/BANK_ID/products",
+        "Get Products",
+        s"""Returns the financial Products offered by the bank specified by BANK_ID. Response includes the new `tags` field.
+        |
+        |Optional query parameter `tag` — filter to products that carry the given tag (case-insensitive). Repeat `tag=` to require multiple tags (e.g. `?tag=featured&tag=new`).
+        |
+        |${userAuthenticationMessage(!getProductsIsPublic)}""".stripMargin,
+        EmptyBody,
+        productsJsonV600,
+        List($BankNotFound, UnknownError),
+        apiTagProduct :: Nil,
+        None,
+        http4sPartialFunction = Some(getProductsV600)
+      )
+    }
+
+    private def registerBatch2(): Unit = {
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getUsers),
+        "GET",
+        "/users",
+        "Get Users",
+        s"""Get all users, optionally filtered.
+           |
+           |All query parameters are optional and may be combined.
+           |
+           |${userAuthenticationMessage(true)}
+           |
+           |CanGetAnyUser entitlement is required.
+           |
+           |${urlParametersDocument(false, false)}
+           |* provider (if null ignore) - filter by identity provider, exact match
+           |* username (if null ignore) - filter by username, exact match
+           |* email (if null ignore) - filter by email, exact match (may return multiple users — duplicate emails are allowed in OBP by design)
+           |* user_id (if null ignore) - filter by user_id, exact match
+           |* locked_status (if null ignore) - "active" or "locked"
+           |* is_deleted (default: false)
+           |* role_name (if null ignore) - filter by entitlement/role name e.g. CanCreateAccount
+           |* bank_id (if null ignore) - when used with role_name, filter entitlements by bank_id
+           |* sort_by (if null ignore) - sort by field; allowed values: ${code.users.DoobieUserQueries.SortableColumns.keySet.toSeq.sorted.mkString(", ")}
+           |* sort_direction (if null defaults to DESC) - "asc" or "desc" (case-insensitive)
+           |
+           |When sort_by is omitted, results are ordered by insertion order ascending (stable pagination).
+           |
+           |Returns an empty list (not 404) when no users match.
+           |
+        """.stripMargin,
+        EmptyBody,
+        usersInfoJsonV600,
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+        apiTagUser :: Nil,
+        Some(canGetAnyUser :: Nil),
+        http4sPartialFunction = Some(getUsers)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(createBank),
+        "POST",
+        "/banks",
+        "Create Bank",
+        s"""Create a new bank (Authenticated access).
+        |
+        |The user creating this will be automatically assigned the Role CanCreateEntitlementAtOneBank.
+        |Thus the User can manage the bank they create and assign Roles to other Users.
+        |
+        Only SANDBOX mode (i.e. when connector=mapped in properties file)
+        |The settlement accounts are automatically created by the system when the bank is created.
+        |Name and account id are created in accordance to the next rules:
+        |  - Incoming account (name: Default incoming settlement account, Account ID: OBP_DEFAULT_INCOMING_ACCOUNT_ID, currency: EUR)
+        |  - Outgoing account (name: Default outgoing settlement account, Account ID: OBP_DEFAULT_OUTGOING_ACCOUNT_ID, currency: EUR)
+        |
+        |""",
+        postBankJson600,
+        bankJson600,
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, bankIdAlreadyExists, UnknownError),
+        apiTagBank :: Nil,
+        Some(canCreateBank :: Nil),
+        http4sPartialFunction = Some(createBank)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(createCustomer),
+        "POST",
+        "/banks/BANK_ID/customers",
+        "Create Customer",
+        s"""
+        |The Customer resource stores the customer number, legal name, email, phone number, date of birth, relationship status,
+        |education attained, a url for a profile image, KYC status, credit rating, credit limit, and other customer information.
+        |
+        |**Required Fields:**
+        |- legal_name: The customer's full legal name
+        |- mobile_phone_number: The customer's mobile phone number
+        |
+        |**Optional Fields:**
+        |- customer_number: If not provided, a random number will be generated
+        |- email: Customer's email address
+        |- face_image: Customer's face image (url and date)
+        |- date_of_birth: Customer's date of birth in YYYY-MM-DD format
+        |- relationship_status: Customer's relationship status
+        |- dependants: Number of dependants (must match the length of dob_of_dependants array)
+        |- dob_of_dependants: Array of dependant birth dates in YYYY-MM-DD format
+        |- credit_rating: Customer's credit rating (rating and source)
+        |- credit_limit: Customer's credit limit (currency and amount)
+        |- highest_education_attained: Customer's highest education level
+        |- employment_status: Customer's employment status
+        |- kyc_status: Know Your Customer verification status (true/false). Default: false
+        |- last_ok_date: Last verification date
+        |- title: Customer's title (e.g., Mr., Mrs., Dr.)
+        |- branch_id: Associated branch identifier
+        |- name_suffix: Customer's name suffix (e.g., Jr., Sr.)
+        |- customer_type: Type of customer - INDIVIDUAL (default), CORPORATE, or SUBSIDIARY
+        |- parent_customer_id: For SUBSIDIARY customers, the customer_id of the parent CORPORATE customer
+        |
+        |**Date Format:**
+        |In v6.0.0, date_of_birth and dob_of_dependants must be provided in ISO 8601 date format: **YYYY-MM-DD** (e.g., "1990-05-15", "2010-03-20").
+        |The dates are strictly validated and must be valid calendar dates.
+        |Dates are stored with time set to midnight (00:00:00) UTC for consistency.
+        |
+        |**Validations:**
+        |- customer_number cannot contain `::::` characters
+        |- customer_number must be unique for the bank
+        |- The number of dependants must equal the length of the dob_of_dependants array
+        |- date_of_birth must be in valid YYYY-MM-DD format if provided
+        |- Each date in dob_of_dependants must be in valid YYYY-MM-DD format
+        |
+        |Note: If you need to set a specific customer number, use the Update Customer Number endpoint after this call.
+        |
+        |${userAuthenticationMessage(true)}
+        |""",
+        postCustomerJsonV600,
+        customerJsonV600,
+        List($AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat, UserHasMissingRoles, UnknownError),
+        apiTagCustomer :: Nil,
+        Some(canCreateCustomer :: Nil),
+        http4sPartialFunction = Some(createCustomer)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(createUser),
+        "POST",
+        "/users",
+        "Create User",
+        s"""Creates OBP user.
+        | No authorisation required.
+        |
+        | Mimics current webform to Register.
+        |
+        | Requires username(email), password, first_name, last_name, and email.
+        |
+        | Validation checks performed:
+        | - Password must meet strong password requirements (InvalidStrongPasswordFormat error if not)
+        | - Username must be unique (409 error if username already exists)
+        | - All required fields must be present in valid JSON format
+        |
+        | Email validation behavior:
+        | - Controlled by property 'authUser.skipEmailValidation' (default: false)
+        | - When false: User is created with validated=false and a validation email is sent to the user's email address
+        | - The validation link is constructed using the `portal_external_url` property which must be set
+        | - When true: User is created with validated=true and no validation email is sent
+        | - Default entitlements are granted immediately regardless of validation status
+        |
+        | Note: If email validation is required (skipEmailValidation=false), the user must click the validation link
+        | in the email before they can log in, even though entitlements are already granted.
+        |
+        |""",
+        createUserJsonV600,
+        userJsonV200,
+        List(InvalidJsonFormat, InvalidStrongPasswordFormat, DuplicateUsername, UnknownError),
+        apiTagUser :: Nil,
+        None,
+        http4sPartialFunction = Some(createUser)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(resetPasswordUrl),
+        "POST",
+        "/management/user/reset-password-url",
+        "Send Password Reset URL",
+        s"""Create a password reset URL for a user and automatically send it via email.
+        |
+        |Authentication is Required.
+        |
+        |Behavior:
+        |- Generates a unique password reset token
+        |- Creates a reset URL using the portal_external_url property (falls back to API hostname)
+        |- Sends an email to the user with the reset link
+        |- Returns the reset URL in the response for logging/tracking purposes
+        |
+        |Required fields:
+        |- username: The user's username (typically email)
+        |- email: The user's email address (must match username)
+        |- user_id: The user's UUID
+        |
+        |The user must exist and be validated before a reset URL can be generated.
+        |
+        |Email configuration must be set up correctly for email delivery to work.
+        |
+        |""".stripMargin,
+        PostResetPasswordUrlJsonV600(
+          "user@example.com",
+          "user@example.com",
+          "74a8ebcc-10e4-4036-bef3-9835922246bf"
+        ),
+        ResetPasswordUrlJsonV600(
+          "https://api.example.com/reset-password/QOL1CPNJPCZ4BRMPX3Z01DPOX1HMGU3L"
+        ),
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+        apiTagUser :: Nil,
+        Some(canCreateResetPasswordUrl :: Nil),
+        http4sPartialFunction = Some(resetPasswordUrl)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getConnectors),
+        "GET",
+        "/system/connectors",
+        "Get Connectors",
+        s"""Get the list of connectors and their availability for method routing.
+           |
+           |Returns a sorted list of all connectors with their availability status for use in Method Routing.
+           |
+           |## Response Fields
+           |
+           |* **connector_name** - The name of the connector
+           |* **is_available_in_method_routing** - Whether this connector can be used in Method Routing configuration.
+           |  This depends on the `connector` and `starConnector_supported_types` props settings.
+           |
+           |## Available Connectors
+           |
+           |The OBP-API supports multiple connectors for accessing banking data:
+           |
+           |* **mapped** - Local database connector using Lift Mapper ORM
+           |* **akka_vDec2018** - Akka-based connector for remote banking systems
+           |* **rest_vMar2019** - REST connector for external APIs
+           |* **stored_procedure_vDec2019** - Stored procedure connector for database-native operations
+           |* **rabbitmq_vOct2024** - RabbitMQ message queue connector
+           |* **cardano_vJun2025** - Cardano blockchain connector
+           |* **ethereum_vSept2025** - Ethereum blockchain connector
+           |* **star** - Star connector (special routing connector)
+           |* **proxy** - Proxy connector (for testing)
+           |* **internal** - Internal dynamic connector
+           |
+           |## Use Case
+           |
+           |Use this endpoint to discover which connectors are available when configuring Method Routing.
+           |A connector is available for method routing if it matches the `connector` prop setting,
+           |or if `connector=star` and the connector is listed in `starConnector_supported_types`.
+           |
+           |Authentication is Optional.
+           |
+        """.stripMargin,
+        EmptyBody,
+        ConnectorsJsonV600(List(
+          ConnectorInfoJsonV600("mapped", true),
+          ConnectorInfoJsonV600("akka_vDec2018", false),
+          ConnectorInfoJsonV600("rest_vMar2019", true),
+          ConnectorInfoJsonV600("stored_procedure_vDec2019", false)
+        )),
+        List(UnknownError),
+        apiTagConnector :: apiTagSystem :: apiTagApi :: Nil,
+        None,
+        http4sPartialFunction = Some(getConnectors)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getCacheConfig),
+        "GET",
+        "/system/cache/config",
+        "Get Cache Configuration",
+        """Returns cache configuration information including:
+        |
+        |- Redis status: availability, connection details (URL, port, SSL)
+        |- In-memory cache status: availability and current size
+        |- Instance ID and environment
+        |- Global cache namespace prefix
+        |
+        |This helps understand what cache backend is being used and how it's configured.
+        |
+        |Authentication is Required
+        |""",
+        EmptyBody,
+        CacheConfigJsonV600(
+          redis_status = RedisCacheStatusJsonV600(
+            available = true,
+            url = "127.0.0.1",
+            port = 6379,
+            use_ssl = false
+          ),
+          in_memory_status = InMemoryCacheStatusJsonV600(
+            available = true,
+            current_size = 42
+          ),
+          instance_id = "obp",
+          environment = "dev",
+          global_prefix = "obp_dev_"
+        ),
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+        apiTagCache :: apiTagSystem :: apiTagApi :: Nil,
+        Some(canGetCacheConfig :: Nil),
+        http4sPartialFunction = Some(getCacheConfig)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getCacheInfo),
+        "GET",
+        "/system/cache/info",
+        "Get Cache Information",
+        """Returns detailed cache information for all namespaces:
+        |
+        |- Namespace ID and versioned prefix
+        |- Current version counter
+        |- Number of keys in each namespace
+        |- Description and category
+        |- Storage location (redis, memory, both, or unknown)
+        |  - "redis": Keys stored in Redis
+        |  - "memory": Keys stored in in-memory cache
+        |  - "both": Keys in both locations (indicates a BUG - should never happen)
+        |  - "unknown": No keys found, storage location cannot be determined
+        |- TTL info: Sampled TTL information from actual keys
+        |  - Shows actual TTL values from up to 5 sample keys
+        |  - Format: "123s" (fixed), "range 60s to 3600s (avg 1800s)" (variable), "no expiry" (persistent)
+        |- Total key count across all namespaces
+        |- Redis availability status
+        |
+        |This endpoint helps monitor cache usage and identify which namespaces contain the most data.
+        |
+        |Authentication is Required
+        |""",
+        EmptyBody,
+        CacheInfoJsonV600(
+          namespaces = List(
+            CacheNamespaceInfoJsonV600(
+              namespace_id = "call_counter",
+              prefix = "obp_dev_call_counter_1_",
+              current_version = 1,
+              key_count = 42,
+              description = "Rate limit call counters",
+              category = "Rate Limiting",
+              storage_location = "redis",
+              ttl_info = "range 60s to 86400s (avg 3600s)"
+            ),
+            CacheNamespaceInfoJsonV600(
+              namespace_id = "rd_localised",
+              prefix = "obp_dev_rd_localised_1_",
+              current_version = 1,
+              key_count = 128,
+              description = "Localized resource docs",
+              category = "API Documentation",
+              storage_location = "redis",
+              ttl_info = "3600s"
+            )
+          ),
+          total_keys = 170,
+          redis_available = true
+        ),
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+        apiTagCache :: apiTagSystem :: apiTagApi :: Nil,
+        Some(canGetCacheInfo :: Nil),
+        http4sPartialFunction = Some(getCacheInfo)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getCacheNamespaces),
+        "GET",
+        "/system/cache/namespaces",
+        "Get Cache Namespaces",
+        """Returns information about all cache namespaces in the system.
+        |
+        |This endpoint provides visibility into:
+        |* Cache namespace prefixes and their purposes
+        |* Number of keys in each namespace
+        |* TTL configurations
+        |* Example keys for each namespace
+        |
+        |This is useful for:
+        |* Monitoring cache usage
+        |* Understanding cache structure
+        |* Debugging cache-related issues
+        |* Planning cache management operations
+        |
+        |""",
+        EmptyBody,
+        CacheNamespacesJsonV600(
+          namespaces = List(
+            CacheNamespaceJsonV600(
+              prefix = "call_counter_",
+              description = "Rate limiting counters per consumer and time period",
+              ttl_seconds = "varies",
+              category = "Rate Limiting",
+              key_count = 42,
+              example_key = "rl_counter_consumer123_PER_MINUTE"
+            ),
+            CacheNamespaceJsonV600(
+              prefix = "rl_active_",
+              description = "Active rate limit configurations",
+              ttl_seconds = "3600",
+              category = "Rate Limiting",
+              key_count = 15,
+              example_key = "rl_active_consumer123_2024-12-27-14"
+            ),
+            CacheNamespaceJsonV600(
+              prefix = "rd_localised_",
+              description = "Localized resource documentation",
+              ttl_seconds = "3600",
+              category = "Resource Documentation",
+              key_count = 128,
+              example_key = "rd_localised_operationId:getBanks-locale:en"
+            )
+          )
+        ),
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+        apiTagCache :: apiTagSystem :: apiTagApi :: Nil,
+        Some(canGetCacheNamespaces :: Nil),
+        http4sPartialFunction = Some(getCacheNamespaces)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getDatabasePoolInfo),
+        "GET",
+        "/system/database/pool",
+        "Get Database Pool Information",
+        """Returns HikariCP connection pool information including:
+        |
+        |- Pool name
+        |- Active connections: currently in use
+        |- Idle connections: available in pool
+        |- Total connections: active + idle
+        |- Threads awaiting connection: requests waiting for a connection
+        |- Configuration: max pool size, min idle, timeouts
+        |
+        |This helps diagnose connection pool issues such as connection leaks or pool exhaustion.
+        |
+        |Authentication is Required
+        |""",
+        EmptyBody,
+        DatabasePoolInfoJsonV600(
+          pool_name = "HikariPool-1",
+          active_connections = 5,
+          idle_connections = 3,
+          total_connections = 8,
+          threads_awaiting_connection = 0,
+          maximum_pool_size = 10,
+          minimum_idle = 2,
+          connection_timeout_ms = 30000,
+          idle_timeout_ms = 600000,
+          max_lifetime_ms = 1800000,
+          keepalive_time_ms = 0
+        ),
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+        apiTagSystem :: apiTagApi :: Nil,
+        Some(canGetDatabasePoolInfo :: Nil),
+        http4sPartialFunction = Some(getDatabasePoolInfo)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getMigrations),
+        "GET",
+        "/system/migrations",
+        "Get Database Migrations",
+        s"""Get all database migration script logs.
+           |
+           |This endpoint returns information about all migration scripts that have been executed or attempted.
+           |
+           |${userAuthenticationMessage(true)}
+           |
+           |CanGetMigrations entitlement is required.
+           |
+        """.stripMargin,
+        EmptyBody,
+        migrationScriptLogsJsonV600,
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+        apiTagSystem :: apiTagApi :: Nil,
+        Some(canGetMigrations :: Nil),
+        http4sPartialFunction = Some(getMigrations)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getStoredProcedureConnectorHealth),
+        "GET",
+        "/system/connectors/stored_procedure_vDec2019/health",
+        "Get Stored Procedure Connector Health",
+        """Returns health status of the stored procedure connector including:
+        |
+        |- Connection status (ok/error)
+        |- Database server name: identifies which backend node handled the request (useful for load balancer diagnostics)
+        |- Server IP address
+        |- Database name
+        |- Response time in milliseconds
+        |- Error message (if any)
+        |
+        |Supports database-specific queries for: SQL Server, PostgreSQL, Oracle, and MySQL/MariaDB.
+        |
+        |This endpoint is useful for diagnosing connectivity issues, especially when the database is behind a load balancer
+        |and you need to identify which node is responding or experiencing SSL certificate issues.
+        |
+        |Note: This endpoint may take a long time to respond if the database connection is slow or experiencing issues.
+        |The response time depends on the connection pool timeout and JDBC driver settings.
+        |
+        |Authentication is Required
+        |""",
+        EmptyBody,
+        StoredProcedureConnectorHealthJsonV600(
+          status = "ok",
+          server_name = Some("DBSERVER01"),
+          server_ip = Some("10.0.1.50"),
+          database_name = Some("obp_adapter"),
+          response_time_ms = 45,
+          error_message = None
+        ),
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+        apiTagConnector :: apiTagSystem :: apiTagApi :: Nil,
+        Some(canGetConnectorHealth :: Nil),
+        http4sPartialFunction = Some(getStoredProcedureConnectorHealth)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getConnectorMethodNames),
+        "GET",
+        "/system/connector-method-names",
+        "Get Connector Method Names",
+        s"""Get the list of all available connector method names.
+           |
+           |These are the method names that can be used in Method Routing configuration.
+           |
+           |## Data Source
+           |
+           |The data comes from **scanning the actual Scala connector code at runtime** using reflection, NOT from a database or configuration file.
+           |
+           |The endpoint:
+           |1. Reads the connector name from props (e.g., `connector=mapped`)
+           |2. Gets the connector instance (e.g., LocalMappedConnector, KafkaConnector, StarConnector)
+           |3. Uses Scala reflection to scan all public methods that override the base Connector trait
+           |4. Filters for valid connector methods (public, has parameters, overrides base trait)
+           |5. Returns the method names as a sorted list
+           |
+           |## Which Connector?
+           |
+           |Depends on your `connector` property:
+           |* `connector=mapped` → Returns methods from LocalMappedConnector
+           |* `connector=kafka_vSept2018` → Returns methods from KafkaConnector
+           |* `connector=star` → Returns methods from StarConnector
+           |* `connector=rest_vMar2019` → Returns methods from RestConnector
+           |
+           |## When Does It Change?
+           |
+           |The list only changes when:
+           |* Code is deployed with new/modified connector methods
+           |* The `connector` property is changed to point to a different connector
+           |
+           |## Performance
+           |
+           |This endpoint uses caching (default: 1 hour) because Scala reflection is expensive.
+           |Configure via: `getConnectorMethodNames.cache.ttl.seconds=3600`
+           |
+           |## Use Case
+           |
+           |Use this endpoint to discover which connector methods are available when configuring Method Routing.
+           |These method names are different from API endpoint operation IDs (which you get from /resource-docs).
+           |
+           |${userAuthenticationMessage(true)}
+           |
+           |CanGetSystemConnectorMethodNames entitlement is required.
+           |
+        """.stripMargin,
+        EmptyBody,
+        ConnectorMethodNamesJsonV600(List("getBank", "getBanks", "getUser", "getAccount", "makePayment", "getTransactions")),
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+        apiTagConnectorMethod :: apiTagSystem :: apiTagMethodRouting :: apiTagApi :: Nil,
+        Some(canGetSystemConnectorMethodNames :: Nil),
+        http4sPartialFunction = Some(getConnectorMethodNames)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getCorporateCustomersAtOneBank),
+        "GET",
+        "/banks/BANK_ID/corporate-customers",
+        "Get Corporate Customers at Bank",
+        s"""Get Corporate Customers at Bank.
+        |
+        |Returns a list of customers with customer_type CORPORATE or SUBSIDIARY at the specified bank.
+        |
+        |**Date Format:**
+        |date_of_birth and dob_of_dependants are returned in ISO 8601 date format: **YYYY-MM-DD**
+        |
+        |**Query Parameters:**
+        |- limit: Maximum number of customers to return (optional)
+        |- offset: Number of customers to skip for pagination (optional)
+        |- sort_direction: Sort direction - ASC or DESC (optional)
+        |
+        |Authentication is Required
+        |""",
+        EmptyBody,
+        customerJSONsV600,
+        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
+        apiTagCustomer :: Nil,
+        Some(canGetCustomersAtOneBank :: Nil),
+        http4sPartialFunction = Some(getCorporateCustomersAtOneBank)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getCorporateCustomerByCustomerId),
+        "GET",
+        "/banks/BANK_ID/corporate-customers/CUSTOMER_ID",
+        "Get Corporate Customer by Id",
+        s"""Gets the Corporate Customer specified by CUSTOMER_ID.
+        |
+        |Returns 404 if the customer exists but is not of type CORPORATE or SUBSIDIARY.
+        |Use the generic /customers/CUSTOMER_ID endpoint for any customer type.
+        |
+        |**Date Format:**
+        |date_of_birth and dob_of_dependants are returned in ISO 8601 date format: **YYYY-MM-DD**
+        |
+        |Authentication is Required
+        |""",
+        EmptyBody,
+        customerWithAttributesJsonV600,
+        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, CustomerTypeMismatch, UnknownError),
+        apiTagCustomer :: Nil,
+        Some(canGetCustomersAtOneBank :: Nil),
+        http4sPartialFunction = Some(getCorporateCustomerByCustomerId)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getCorporateCustomerSubsidiaries),
+        "GET",
+        "/banks/BANK_ID/corporate-customers/CUSTOMER_ID/subsidiaries",
+        "Get Subsidiaries",
+        s"""Get the subsidiary customers of a corporate customer.
+        |
+        |Returns a list of customers whose parent_customer_id matches the specified CUSTOMER_ID.
+        |The specified customer must be of type CORPORATE or SUBSIDIARY.
+        |
+        |Authentication is Required
+        |""",
+        EmptyBody,
+        customerJSONsV600,
+        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, CustomerTypeMismatch, UnknownError),
+        apiTagCustomer :: Nil,
+        Some(canGetCustomersAtOneBank :: Nil),
+        http4sPartialFunction = Some(getCorporateCustomerSubsidiaries)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getRetailCustomersAtOneBank),
+        "GET",
+        "/banks/BANK_ID/retail-customers",
+        "Get Retail Customers at Bank",
+        s"""Get Retail (Individual) Customers at Bank.
+        |
+        |Returns a list of customers with customer_type INDIVIDUAL at the specified bank.
+        |
+        |**Date Format:**
+        |date_of_birth and dob_of_dependants are returned in ISO 8601 date format: **YYYY-MM-DD**
+        |
+        |**Query Parameters:**
+        |- limit: Maximum number of customers to return (optional)
+        |- offset: Number of customers to skip for pagination (optional)
+        |- sort_direction: Sort direction - ASC or DESC (optional)
+        |
+        |Authentication is Required
+        |""",
+        EmptyBody,
+        customerJSONsV600,
+        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
+        apiTagCustomer :: Nil,
+        Some(canGetCustomersAtOneBank :: Nil),
+        http4sPartialFunction = Some(getRetailCustomersAtOneBank)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getRetailCustomerByCustomerId),
+        "GET",
+        "/banks/BANK_ID/retail-customers/CUSTOMER_ID",
+        "Get Retail Customer by Id",
+        s"""Gets the Retail Customer specified by CUSTOMER_ID.
+        |
+        |Returns 404 if the customer exists but is not of type INDIVIDUAL.
+        |Use the generic /customers/CUSTOMER_ID endpoint for any customer type.
+        |
+        |**Date Format:**
+        |date_of_birth and dob_of_dependants are returned in ISO 8601 date format: **YYYY-MM-DD**
+        |
+        |Authentication is Required
+        |""",
+        EmptyBody,
+        customerWithAttributesJsonV600,
+        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, CustomerTypeMismatch, UnknownError),
+        apiTagCustomer :: Nil,
+        Some(canGetCustomersAtOneBank :: Nil),
+        http4sPartialFunction = Some(getRetailCustomerByCustomerId)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getCustomerChildren),
+        "GET",
+        "/banks/BANK_ID/customers/CUSTOMER_ID/children",
+        "Get Customer Children",
+        s"""Get the child (subsidiary) customers of a parent customer.
+        |
+        |Returns a list of customers whose parent_customer_id matches the specified CUSTOMER_ID.
+        |This is useful for corporate banking where a corporate customer may have subsidiary customers.
+        |
+        |Authentication is Required
+        |""",
+        EmptyBody,
+        customerJSONsV600,
+        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
+        apiTagCustomer :: Nil,
+        Some(canGetCustomersAtOneBank :: Nil),
+        http4sPartialFunction = Some(getCustomerChildren)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getCustomerLinksByCustomerId),
+        "GET",
+        "/banks/BANK_ID/customers/CUSTOMER_ID/customer-links",
+        "Get Customer Links by Customer Id",
+        s"""Get Customer Links by CUSTOMER_ID.
+        |
+        |Authentication is Required
+        |
+        |""",
+        EmptyBody,
+        customerLinksJsonV600,
+        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
+        apiTagCustomer :: Nil,
+        Some(canGetCustomerLinks :: Nil),
+        http4sPartialFunction = Some(getCustomerLinksByCustomerId)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getSystemViews),
+        "GET",
+        "/management/system-views",
+        "Get System Views",
+        s"""Get all system views.
+        |
+        |System views are predefined views that apply to all accounts, such as:
+        |- owner
+        |- accountant
+        |- auditor
+        |- standard
+        |
+        |Each view is returned with an `allowed_actions` array containing all permissions for that view.
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""".stripMargin,
+        EmptyBody,
+        ViewsJsonV600(List(
+          ViewJsonV600(
+            bank_id = "",
+            account_id = "",
+            view_id = "owner",
+            view_name = "Owner",
+            description = "The owner of the account",
+            metadata_view = "owner",
+            is_public = false,
+            is_system = true,
+            is_firehose = Some(false),
+            alias = "private",
+            hide_metadata_if_alias_used = false,
+            can_grant_access_to_views = List("owner"),
+            can_revoke_access_to_views = List("owner"),
+            allowed_actions = List("can_see_transaction_amount", "can_see_bank_account_balance")
+          )
+        )),
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+        apiTagView :: Nil,
+        Some(canGetSystemViews :: Nil),
+        http4sPartialFunction = Some(getSystemViews)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getSystemViewById),
+        "GET",
+        "/management/system-views/SYS_VIEW_ID",
+        "Get System View by Id",
+        s"""Get a single system view by its ID.
+        |
+        |System views are predefined views that apply to all accounts, such as:
+        |- owner
+        |- accountant
+        |- auditor
+        |- standard
+        |
+        |The view is returned with an `allowed_actions` array containing all permissions for that view.
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""".stripMargin,
+        EmptyBody,
+        ViewJsonV600(
+          bank_id = "",
+          account_id = "",
+          view_id = "owner",
+          view_name = "Owner",
+          description = "The owner of the account. Has full privileges.",
+          metadata_view = "owner",
+          is_public = false,
+          is_system = true,
+          is_firehose = Some(false),
+          alias = "private",
+          hide_metadata_if_alias_used = false,
+          can_grant_access_to_views = List("owner", "accountant"),
+          can_revoke_access_to_views = List("owner", "accountant"),
+          allowed_actions = List(
+            "can_see_transaction_amount",
+            "can_see_bank_account_balance",
+            "can_add_comment",
+            "can_create_custom_view"
+          )
+        ),
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+        apiTagView :: Nil,
+        Some(canGetSystemViews :: Nil),
+        http4sPartialFunction = Some(getSystemViewById)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getAbacPolicies),
+        "GET",
+        "/management/abac-policies",
+        "Get ABAC Policies",
+        s"""Get the list of allowed ABAC policy names.
+        |
+        |ABAC rules are organized by policies. Each rule must have at least one policy assigned.
+        |Rules can have multiple policies (comma-separated). This endpoint returns the list of
+        |standardized policy names that should be used when creating or updating rules.
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""".stripMargin,
+        EmptyBody,
+        AbacPoliciesJsonV600(
+          policies = List(
+            AbacPolicyJsonV600(
+              policy = "account-access",
+              description = "Rules for controlling access to account information"
+            )
+          )
+        ),
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+        apiTagABAC :: Nil,
+        Some(canGetAbacRule :: Nil),
+        http4sPartialFunction = Some(getAbacPolicies)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getConnectorCallCounts),
+        "GET",
+        "/management/connector/metrics/counts",
+        "Get Connector Call Counts",
+        s"""Returns per-hour Redis counters for connector outbound and inbound messages.
+        |
+        |This provides real-time visibility into which connector methods are being called
+        |and how many responses (success/failure) are being received.
+        |
+        |Counters automatically reset every hour (rolling window).
+        |The ttl_seconds field shows when the current hour window resets.
+        |
+        |Requires the prop: write_connector_metrics_redis=true
+        |
+        |Redis key format:
+        |
+        |- Outbound (before connector call): {instance}_{env}_connector_outbound_{version}_{connectorName}_{methodName}_PER_HOUR
+        |- Inbound success (after connector call): {instance}_{env}_connector_inbound_{version}_{connectorName}_{methodName}_success_PER_HOUR
+        |- Inbound failure (after connector call): {instance}_{env}_connector_inbound_{version}_{connectorName}_{methodName}_failure_PER_HOUR
+        |
+        |For example: obp_dev_connector_outbound_1_star_getBanks_PER_HOUR
+        |
+        |Authentication is Required
+        |
+        |""".stripMargin,
+        EmptyBody,
+        ConnectorCountsJsonV600(
+          enabled = true,
+          connector_counts = List(
+            ConnectorCountJsonV600(
+              connector_name = "mapped",
+              method_name = "getBank",
+              per_hour_outbound_count = 152,
+              per_hour_inbound_success_count = 150,
+              per_hour_inbound_failure_count = 2,
+              ttl_seconds = 2847
+            )
+          )
+        ),
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+        apiTagMetric :: Nil,
+        Some(canReadMetrics :: Nil),
+        http4sPartialFunction = Some(getConnectorCallCounts)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getConnectorTraces),
+        "GET",
+        "/management/connector/traces",
+        "Get Connector Traces",
+        s"""Get connector traces which capture the full outbound/inbound messages for each connector call.
+        |
+        |Connector tracing must be enabled via the write_connector_trace=true property.
+        |
+        |Filters Part 1.*filtering* parameters to GET /management/connector/traces
+        |
+        |Should be able to filter on the following fields:
+        |
+        |eg: /management/connector/traces?from_date=$DateWithMsExampleString&to_date=$DateWithMsExampleString&limit=50&offset=2
+        |
+        |1 from_date (defaults to one week before current date): eg:from_date=$DateWithMsExampleString
+        |
+        |2 to_date (defaults to current date) eg:to_date=$DateWithMsExampleString
+        |
+        |3 limit (for pagination: defaults to 1000) eg:limit=2000
+        |
+        |4 offset (for pagination: zero index, defaults to 0) eg: offset=10
+        |
+        |5 connector_name (if null ignore)
+        |
+        |6 function_name (if null ignore)
+        |
+        |7 correlation_id (if null ignore)
+        |
+        |8 bank_id (if null ignore)
+        |
+        |9 user_id (if null ignore)
+        |
+        |Authentication is Required.
+        |
+        |""".stripMargin,
+        EmptyBody,
+        connectorTracesJsonV600,
+        List($AuthenticatedUserIsRequired, UnknownError),
+        apiTagMetric :: Nil,
+        None,
+        http4sPartialFunction = Some(getConnectorTraces)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getDynamicEntityDiagnostics),
+        "GET",
+        "/management/diagnostics/dynamic-entities",
+        "Get Dynamic Entity Diagnostics",
+        s"""Get diagnostic information about Dynamic Entities to help troubleshoot Swagger generation issues.
+        |
+        |**Use Case:**
+        |This endpoint is particularly useful when:
+        |* The Swagger endpoint (`/obp/v6.0.0/resource-docs/OBPv6.0.0/swagger?content=dynamic`) fails with errors like "expected boolean"
+        |* The OBP endpoint (`/obp/v6.0.0/resource-docs/OBPv6.0.0/obp?content=dynamic`) works fine
+        |* You need to identify which dynamic entity has malformed field definitions
+        |
+        |**What It Checks:**
+        |This endpoint analyzes all dynamic entities (both system and bank level) for:
+        |* Boolean fields with invalid example values (e.g., actual JSON booleans or invalid strings instead of `"true"` or `"false"`)
+        |* Malformed JSON in field definitions
+        |* Fields that cannot be converted to their declared types
+        |* Other validation issues that cause Swagger generation to fail
+        |
+        |**Response Format:**
+        |The response contains:
+        |* `issues` - List of issues found, each with:
+        |  * `entity_name` - Name of the problematic entity
+        |  * `bank_id` - Bank ID (or "SYSTEM_LEVEL" for system entities)
+        |  * `field_name` - Name of the problematic field
+        |  * `example_value` - The current (invalid) example value
+        |  * `error_message` - Description of what's wrong and how to fix it
+        |* `total_issues` - Count of total issues found
+        |* `scanned_entities` - List of all dynamic entities that were scanned (format: "EntityName (BANK_ID)" or "EntityName (SYSTEM)")
+        |
+        |**How to Fix Issues:**
+        |1. Identify the problematic entity from the diagnostic output
+        |2. Update the entity definition using PUT `/management/system-dynamic-entities/DYNAMIC_ENTITY_ID` or PUT `/management/banks/BANK_ID/dynamic-entities/DYNAMIC_ENTITY_ID`
+        |3. For boolean fields, ensure the example value is either `"true"` or `"false"` (as strings)
+        |4. Re-run this diagnostic to verify the fix
+        |5. Check that the Swagger endpoint now works
+        |
+        |**Example Issue:**
+        |```
+        |{
+        |  "entity_name": "Customer",
+        |  "bank_id": "gh.29.uk",
+        |  "field_name": "is_active",
+        |  "example_value": "malformed_value",
+        |  "error_message": "Boolean field has invalid example value. Expected 'true' or 'false', got: 'malformed_value'"
+        |}
+        |```
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |**Required Role:** `CanGetDynamicEntityDiagnostics`
+        |
+        |If no issues are found, the response will contain an empty issues list with `total_issues: 0`, but `scanned_entities` will show which entities were checked.
+        |""",
+        EmptyBody,
+        DynamicEntityDiagnosticsJsonV600(
+          scanned_entities = List("MyEntity (gh.29.uk)", "AnotherEntity (SYSTEM)"),
+          issues = List(
+            DynamicEntityIssueJsonV600(
+              entity_name = "MyEntity",
+              bank_id = "gh.29.uk",
+              field_name = "is_active",
+              example_value = "malformed_value",
+              error_message = "Boolean field has invalid example value. Expected 'true' or 'false', got: 'malformed_value'"
+            )
+          ),
+          total_issues = 1,
+          orphaned_entities = List(
+            OrphanedDynamicEntityJsonV600(
+              entity_name = "OldEntity",
+              bank_id = "gh.29.uk",
+              record_count = 42
+            )
+          )
+        ),
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+        apiTagManageDynamicEntity :: Nil,
+        Some(canGetDynamicEntityDiagnostics :: Nil),
+        http4sPartialFunction = Some(getDynamicEntityDiagnostics)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(cleanupOrphanedDynamicEntityRecords),
+        "DELETE",
+        "/management/diagnostics/dynamic-entities/orphaned-records",
+        "Cleanup Orphaned Dynamic Entity Records",
+        s"""Delete orphaned dynamic entity data records.
+        |
+        |Orphaned records are rows in the DynamicData table whose entityName/bankId combination
+        |has no matching Dynamic Entity definition. These can accumulate when entity definitions
+        |are deleted but their data records are not cleaned up.
+        |
+        |This endpoint first identifies all orphaned records (using the same detection logic as
+        |GET /management/diagnostics/dynamic-entities), then deletes them.
+        |
+        |**Response Format:**
+        |* `deleted_orphaned_entities` - List of orphaned entity groups that were deleted, each with:
+        |  * `entity_name` - Name of the orphaned entity
+        |  * `bank_id` - Bank ID (or empty string for system-level)
+        |  * `record_count` - Number of records that were deleted for this entity group
+        |* `total_records_deleted` - Total count of all deleted records
+        |
+        |Authentication is Required
+        |
+        |**Required Role:** `CanCleanupOrphanedDynamicEntityRecords`
+        |""",
+        EmptyBody,
+        CleanupOrphanedDynamicEntityResponseJsonV600(
+          deleted_orphaned_entities = List(
+            OrphanedDynamicEntityJsonV600(
+              entity_name = "OldEntity",
+              bank_id = "gh.29.uk",
+              record_count = 42
+            )
+          ),
+          total_records_deleted = 42
+        ),
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+        apiTagManageDynamicEntity :: Nil,
+        Some(canCleanupOrphanedDynamicEntityRecords :: Nil),
+        http4sPartialFunction = Some(cleanupOrphanedDynamicEntityRecords)
+      )
+      resourceDocs += ResourceDoc(
+        null, implementedInApiVersion, nameOf(createWebUiProps), "POST",
+        "/management/webui_props",
+        "Create WebUiProps",
+        s"""Create a WebUiProps.
+           |
+           |${APIUtil.userAuthenticationMessage(true)}
+           |""",
+        WebUiPropsCommons("webui_api_explorer_url", "https://apiexplorer.openbankproject.com"),
+        WebUiPropsCommons("webui_api_explorer_url", "https://apiexplorer.openbankproject.com", Some("web-ui-props-id")),
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+        List(apiTagWebUiProps), Some(List(canCreateWebUiProps)),
+        http4sPartialFunction = Some(createWebUiProps))
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(createOrUpdateWebUiProps),
+        "PUT",
+        "/management/webui_props/WEBUI_PROP_NAME",
+        "Create or Update WebUiProps",
+        s"""Create or Update a WebUiProps.
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |This endpoint is idempotent - it will create the property if it doesn't exist, or update it if it does.
+        |The property is identified by WEBUI_PROP_NAME in the URL path.
+        |
+        |Explanation of Fields:
+        |
+        |* WEBUI_PROP_NAME in URL path (must start with `webui_`, contain only alphanumeric characters, underscore, and dot, not exceed 255 characters, and will be converted to lowercase)
+        |* value is required String value in request body
+        |
+        |The line break and double quotations should be escaped, example:
+        |
+        |```
+        |
+        |{"name": "webui_some", "value": "this value
+        |have "line break" and double quotations."}
+        |
+        |```
+        |should be escaped like this:
+        |
+        |```
+        |
+        |{"name": "webui_some", "value": "this value\\nhave \\"line break\\" and double quotations."}
+        |
+        |```
+        |
+        |Insert image examples:
+        |
+        |```
+        |// set width=100 and height=50
+        |{"name": "webui_some_pic", "value": "here is a picture ![hello](http://somedomain.com/images/pic.png =100x50)"}
+        |
+        |// only set height=50
+        |{"name": "webui_some_pic", "value": "here is a picture ![hello](http://somedomain.com/images/pic.png =x50)"}
+        |
+        |// only width=20%
+        |{"name": "webui_some_pic", "value": "here is a picture ![hello](http://somedomain.com/images/pic.png =20%x)"}
+        |
+        |```
+        |
+        |""",
+        WebUiPropsPutJsonV600("https://apiexplorer.openbankproject.com"),
+        WebUiPropsCommons("webui_api_explorer_url", "https://apiexplorer.openbankproject.com", Some("some-web-ui-props-id")),
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidWebUiProps, InvalidJsonFormat, UnknownError),
+        apiTagWebUiProps :: Nil,
+        Some(canCreateWebUiProps :: Nil),
+        http4sPartialFunction = Some(createOrUpdateWebUiProps)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(deleteWebUiProps),
+        "DELETE",
+        "/management/webui_props/WEBUI_PROP_NAME",
+        "Delete WebUiProps",
+        s"""Delete a WebUiProps specified by WEBUI_PROP_NAME.
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |The property name will be converted to lowercase before deletion.
+        |
+        |Returns 204 No Content on successful deletion.
+        |
+        |This endpoint is idempotent - if the property does not exist, it still returns 204 No Content.
+        |
+        |Requires the $canDeleteWebUiProps role.
+        |
+        |""",
+        EmptyBody,
+        EmptyBody,
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidWebUiProps, UnknownError),
+        apiTagWebUiProps :: Nil,
+        Some(canDeleteWebUiProps :: Nil),
+        http4sPartialFunction = Some(deleteWebUiProps)
+      )
+    }
+
+    private def registerBatch3(): Unit = {
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(createCustomViewManagement),
+        "POST",
+        "/management/banks/BANK_ID/accounts/ACCOUNT_ID/views",
+        "Create Custom View (Management)",
+        s"""Create a custom view on a bank account via management endpoint.
+        |
+        |This is a **management endpoint** that requires the `CanCreateCustomView` role (entitlement).
+        |
+        |This endpoint provides a simpler, role-based authorization model compared to the original
+        |v3.0.0 endpoint which requires view-level permissions. Use this endpoint when you want to
+        |grant view creation ability through direct role assignment rather than through view access.
+        |
+        |For the original endpoint that checks account-level view permissions, see:
+        |POST /obp/v3.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/views
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |The 'alias' field in the JSON can take one of three values:
+        |
+        | * _public_: to use the public alias if there is one specified for the other account.
+        | * _private_: to use the private alias if there is one specified for the other account.
+        |
+        | * _''(empty string)_: to use no alias; the view shows the real name of the other account.
+        |
+        | The 'hide_metadata_if_alias_used' field in the JSON can take boolean values. If it is set to `true` and there is an alias on the other account then the other accounts' metadata (like more_info, url, image_url, open_corporates_url, etc.) will be hidden. Otherwise the metadata will be shown.
+        |
+        | The 'allowed_actions' field is a list containing the name of the actions allowed on this view, all the actions contained will be set to `true` on the view creation, the rest will be set to `false`.
+        |
+        | The 'metadata_view' field determines where metadata (comments, tags, images, where tags) for transactions are stored and retrieved. If set to another view's ID (e.g. 'owner'), metadata added through this view will be shared with all other views that also use the same metadata_view value. If left empty, metadata is stored under this view's own ID and is not shared with other views.
+        |
+        | You MUST use a leading _ (underscore) in the view name because other view names are reserved for OBP [system views](/index#group-View-System).
+        |
+        |""".stripMargin,
+        createViewJsonV300,
+        viewJsonV300,
+        List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UserHasMissingRoles, InvalidJsonFormat, InvalidCustomViewFormat, UnknownError),
+        apiTagView :: Nil,
+        Some(canCreateCustomView :: Nil),
+        http4sPartialFunction = Some(createCustomViewManagement)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getProductTagsV600),
+        "GET",
+        "/banks/BANK_ID/products/PRODUCT_CODE/tags",
+        "Get Product Tags",
+        s"""Returns the list of tags currently set on the financial Product.
+        |
+        |${userAuthenticationMessage(!getProductsIsPublic)}""".stripMargin,
+        EmptyBody,
+        productTagsJsonV600,
+        List($AuthenticatedUserIsRequired, $BankNotFound, UnknownError),
+        apiTagProduct :: Nil,
+        None,
+        http4sPartialFunction = Some(getProductTagsV600)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(updateProductTagsV600),
+        "PUT",
+        "/banks/BANK_ID/products/PRODUCT_CODE/tags",
+        "Update Product Tags",
+        s"""Replaces the tags on a financial Product. Tags are free-form string labels (e.g. `featured`, `new`, `beta`). Tag matching in queries is case-insensitive.
+        |
+        |Authentication is Required.""".stripMargin,
+        productTagsJsonV600,
+        productTagsJsonV600,
+        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, InvalidJsonFormat, UpdateProductError, UnknownError),
+        apiTagProduct :: Nil,
+        None,
+        http4sPartialFunction = Some(updateProductTagsV600)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getOidcClient),
+        "GET",
+        "/oidc/clients/CLIENT_ID",
+        "Get OIDC Client",
+        s"""Gets an OIDC/OAuth2 client's metadata by client_id.
+        |
+        |Returns client information including name, consumer_id, redirect_uris, and enabled status.
+        |This endpoint does not verify the client secret - use POST /oidc/clients/verify for authentication.
+        |
+        |${userAuthenticationMessage(true)}
+        |""",
+        EmptyBody,
+        GetOidcClientResponseJsonV600(
+          client_id = "abc123def456",
+          client_name = "My Application",
+          consumer_id = "7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+          redirect_uris = List("https://app.example.com/callback"),
+          enabled = true
+        ),
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+        apiTagOIDC :: apiTagConsumer :: apiTagOAuth :: Nil,
+        Some(canGetOidcClient :: Nil),
+        authMode = code.api.util.APIUtil.UserOrApplication,
+        http4sPartialFunction = Some(getOidcClient)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(verifyOidcClient),
+        "POST",
+        "/oidc/clients/verify",
+        "Verify OIDC Client",
+        s"""Verifies an OIDC/OAuth2 client's credentials.
+        |
+        |Returns `valid: true` if the client_id and client_secret match an active consumer.
+        |Also returns the consumer_id and redirect_uris for use by the OIDC provider.
+        |
+        |${userAuthenticationMessage(true)}
+        |""",
+        VerifyOidcClientRequestJsonV600(
+          client_id = "abc123def456",
+          client_secret = "supersecret123"
+        ),
+        VerifyOidcClientResponseJsonV600(
+          valid = true,
+          client_id = Some("abc123def456"),
+          consumer_id = Some("7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh"),
+          redirect_uris = Some(List("https://app.example.com/callback"))
+        ),
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+        apiTagOIDC :: apiTagConsumer :: apiTagOAuth :: Nil,
+        Some(canVerifyOidcClient :: Nil),
+        authMode = code.api.util.APIUtil.UserOrApplication,
+        http4sPartialFunction = Some(verifyOidcClient)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getUserAttributeById),
+        "GET",
+        "/users/USER_ID/attributes/USER_ATTRIBUTE_ID",
+        "Get User Attribute by Id",
+        s"""Get a User Attribute by USER_ATTRIBUTE_ID for the user specified by USER_ID.
+        |
+        |${userAuthenticationMessage(true)}
+        |""".stripMargin,
+        EmptyBody,
+        userAttributeResponseJsonV510,
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UserAttributeNotFound, UnknownError),
+        apiTagUser :: apiTagUserAttribute :: Nil,
+        Some(canGetUserAttributes :: Nil),
+        http4sPartialFunction = Some(getUserAttributeById)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(createUserAttribute),
+        "POST",
+        "/users/USER_ID/attributes",
+        "Create User Attribute",
+        s"""Create a User Attribute for the user specified by USER_ID.
+        |
+        |User Attributes are non-personal attributes (IsPersonal=false) that can be used in ABAC rules.
+        |They require a role to set, similar to Customer Attributes, Account Attributes, etc.
+        |
+        |For personal attributes that users manage themselves, see the /my/personal-data-fields endpoints.
+        |
+        |The type field must be one of "STRING", "INTEGER", "DOUBLE" or "DATE_WITH_DAY"
+        |
+        |${userAuthenticationMessage(true)}
+        |""".stripMargin,
+        code.api.v5_1_0.UserAttributeJsonV510(
+          name = "account_type",
+          `type` = "STRING",
+          value = "premium"
+        ),
+        userAttributeResponseJsonV510,
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+        apiTagUser :: apiTagUserAttribute :: Nil,
+        Some(canCreateUserAttribute :: Nil),
+        http4sPartialFunction = Some(createUserAttribute)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(updateUserAttribute),
+        "PUT",
+        "/users/USER_ID/attributes/USER_ATTRIBUTE_ID",
+        "Update User Attribute",
+        s"""Update a User Attribute by USER_ATTRIBUTE_ID for the user specified by USER_ID.
+        |
+        |${userAuthenticationMessage(true)}
+        |""".stripMargin,
+        code.api.v5_1_0.UserAttributeJsonV510(
+          name = "account_type",
+          `type` = "STRING",
+          value = "enterprise"
+        ),
+        userAttributeResponseJsonV510,
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UserAttributeNotFound, UnknownError),
+        apiTagUser :: apiTagUserAttribute :: Nil,
+        Some(canUpdateUserAttribute :: Nil),
+        http4sPartialFunction = Some(updateUserAttribute)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(deleteUserAttribute),
+        "DELETE",
+        "/users/USER_ID/attributes/USER_ATTRIBUTE_ID",
+        "Delete User Attribute",
+        s"""Delete a User Attribute by USER_ATTRIBUTE_ID for the user specified by USER_ID.
+        |
+        |${userAuthenticationMessage(true)}
+        |""".stripMargin,
+        EmptyBody,
+        EmptyBody,
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UserAttributeNotFound, UnknownError),
+        apiTagUser :: apiTagUserAttribute :: Nil,
+        Some(canDeleteUserAttribute :: Nil),
+        http4sPartialFunction = Some(deleteUserAttribute)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(addUserToGroup),
+        "POST",
+        "/users/USER_ID/group-entitlements",
+        "Add User to Group",
+        s"""Grant the User Group Entitlements.
+        |
+        |This endpoint creates entitlements for every Role in the Group. If the user
+        |already has a particular role at the same bank, that entitlement is skipped (not duplicated).
+        |
+        |Each entitlement created will have:
+        |- group_id set to the group ID
+        |- process set to "GROUP_MEMBERSHIP"
+        |
+        |**Response Fields:**
+        |- target_entitlements: All roles defined in the group (the complete list of entitlements that this group aims to grant)
+        |- entitlements_created: Roles that were newly created as entitlements during this operation
+        |- entitlements_skipped: Roles that the user already possessed, so no new entitlement was created
+        |
+        |Note: target_entitlements = entitlements_created + entitlements_skipped
+        |
+        |Requires either:
+        |- CanAddUserToGroupAtAllBanks (for any group)
+        |- CanAddUserToGroupAtOneBank (for groups at specific bank)
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""".stripMargin,
+        PostGroupMembershipJsonV600(
+          group_id = "group-id-123"
+        ),
+        AddUserToGroupResponseJsonV600(
+          group_id = "group-id-123",
+          user_id = "user-id-123",
+          bank_id = Some("gh.29.uk"),
+          group_name = "Teller Group",
+          target_entitlements = List("CanGetCustomer", "CanGetAccount", "CanCreateTransaction"),
+          entitlements_created = List("CanGetCustomer", "CanGetAccount"),
+          entitlements_skipped = List("CanCreateTransaction")
+        ),
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+        apiTagGroup :: apiTagUser :: Nil,
+        None,
+        http4sPartialFunction = Some(addUserToGroup)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(removeUserFromGroup),
+        "DELETE",
+        "/users/USER_ID/group-entitlements/GROUP_ID",
+        "Remove User from Group",
+        s"""Remove a user from a group. This will delete all entitlements that were created by this group membership.
+        |
+        |Only removes entitlements with:
+        |- group_id matching GROUP_ID
+        |- process = "GROUP_MEMBERSHIP"
+        |
+        |Requires either:
+        |- CanRemoveUserFromGroupAtAllBanks (for any group)
+        |- CanRemoveUserFromGroupAtOneBank (for groups at specific bank)
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""".stripMargin,
+        EmptyBody,
+        EmptyBody,
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+        apiTagGroup :: apiTagUser :: Nil,
+        None,
+        http4sPartialFunction = Some(removeUserFromGroup)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(deleteEntitlement),
+        "DELETE",
+        "/entitlements/ENTITLEMENT_ID",
+        "Delete Entitlement",
+        s"""Delete Entitlement specified by ENTITLEMENT_ID
+           |
+           |${userAuthenticationMessage(true)}
+           |
+           |Requires the $canDeleteEntitlementAtAnyBank role.
+           |
+           |This endpoint is idempotent - if the entitlement does not exist, it returns 204 No Content.
+           |
+        """.stripMargin,
+        EmptyBody,
+        EmptyBody,
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+        apiTagEntitlement :: Nil,
+        Some(canDeleteEntitlementAtAnyBank :: Nil),
+        http4sPartialFunction = Some(deleteEntitlement)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getAvailablePersonalDynamicEntities),
+        "GET",
+        "/personal-dynamic-entities/available",
+        "Get Available Personal Dynamic Entities",
+        s"""Get all Dynamic Entities that support personal data storage (hasPersonalEntity == true).
+        |
+        |This endpoint allows regular users (without admin roles) to discover which dynamic entities
+        |they can interact with for storing personal data via the /my/ENTITY_NAME endpoints.
+        |
+        |Authentication: User must be logged in (no special roles required).
+        |
+        |Use case: Portals and apps can show users what personal data types are available
+        |without needing admin access to view all dynamic entity definitions.
+        |
+        |For more information see ${Glossary.getGlossaryItemLink("My-Dynamic-Entities")}""",
+        EmptyBody,
+        MyDynamicEntitiesJsonV600(
+          dynamic_entities = List(
+            DynamicEntityDefinitionJsonV600(
+              dynamic_entity_id = "abc-123-def",
+              entity_name = "customer_preferences",
+              user_id = "user-456",
+              bank_id = None,
+              has_personal_entity = true,
+              schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string"}, "language": {"type": "string"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject],
+              _links = Some(DynamicEntityLinksJsonV600(
+                related = List(
+                  RelatedLinkJsonV600("personal-list", s"/obp/${ApiVersion.`dynamic-entity`}/my/customer_preferences", "GET"),
+                  RelatedLinkJsonV600("personal-create", s"/obp/${ApiVersion.`dynamic-entity`}/my/customer_preferences", "POST"),
+                  RelatedLinkJsonV600("personal-read", s"/obp/${ApiVersion.`dynamic-entity`}/my/customer_preferences/CUSTOMER_PREFERENCES_ID", "GET"),
+                  RelatedLinkJsonV600("personal-update", s"/obp/${ApiVersion.`dynamic-entity`}/my/customer_preferences/CUSTOMER_PREFERENCES_ID", "PUT"),
+                  RelatedLinkJsonV600("personal-delete", s"/obp/${ApiVersion.`dynamic-entity`}/my/customer_preferences/CUSTOMER_PREFERENCES_ID", "DELETE")
+                )
+              ))
+            )
+          )
+        ),
+        List($AuthenticatedUserIsRequired, UnknownError),
+        apiTagManageDynamicEntity :: apiTagApi :: Nil,
+        None,
+        http4sPartialFunction = Some(getAvailablePersonalDynamicEntities)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getReferenceTypes),
+        "GET",
+        "/management/dynamic-entities/reference-types",
+        "Get Reference Types for Dynamic Entities",
+        s"""Get a list of all available reference types that can be used in Dynamic Entity field definitions.
+        |
+        |Reference types allow Dynamic Entity fields to reference other entities (similar to foreign keys).
+        |This endpoint returns both:
+        |* **Static reference types** - Built-in reference types for core OBP entities (e.g., Customer, Account, Transaction)
+        |* **Dynamic reference types** - Reference types for Dynamic Entities that have been created
+        |
+        |Each reference type includes:
+        |* `type_name` - The full reference type string to use in entity definitions (e.g., "reference:Customer")
+        |* `example_value` - An example value showing the correct format
+        |* `description` - Description of what the reference type represents
+        |
+        |**Use Case:**
+        |When creating a Dynamic Entity with a field that references another entity, you need to know:
+        |1. What reference types are available
+        |2. The correct format for the type name
+        |3. The correct format for example values
+        |
+        |This endpoint provides all that information.
+        |
+        |**Example Usage:**
+        |If you want to create a Dynamic Entity with a field that references a Customer, you would:
+        |1. Call this endpoint to see that "reference:Customer" is available
+        |2. Use it in your entity definition like:
+        |```json
+        |{
+        |  "customer_id": {
+        |    "type": "reference:Customer",
+        |    "example": "a8770fca-3d1d-47af-b6d0-7a6c3f124388"
+        |  }
+        |}
+        |```
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |**Required Role:** `CanGetDynamicEntityReferenceTypes`
+        |""",
+        EmptyBody,
+        ReferenceTypesJsonV600(
+          reference_types = List(
+            ReferenceTypeJsonV600(
+              type_name = "reference:Customer",
+              example_value = "a8770fca-3d1d-47af-b6d0-7a6c3f124388",
+              description = "Reference to a Customer entity"
+            ),
+            ReferenceTypeJsonV600(
+              type_name = "reference:Account:BANK_ID&ACCOUNT_ID",
+              example_value = "BANK_ID=b9881ecb-4e2e-58bg-c7e1-8b7d4e235499&ACCOUNT_ID=c0992fdb-5f3f-69ch-d8f2-9c8e5f346600",
+              description = "Composite reference to an Account by bank ID and account ID"
+            ),
+            ReferenceTypeJsonV600(
+              type_name = "reference:MyDynamicEntity",
+              example_value = "d1aa3gec-6g4g-70di-e9g3-0d9f6g457711",
+              description = "Reference to MyDynamicEntity (dynamic entity)"
+            )
+          )
+        ),
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+        apiTagManageDynamicEntity :: Nil,
+        Some(canGetDynamicEntityReferenceTypes :: Nil),
+        http4sPartialFunction = Some(getReferenceTypes)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(joinSystemChatRoom),
+        "POST",
+        "/chat-room-participants",
+        "Join Chat Room",
+        s"""Join a system-level chat room using a joining key (passed as joining_key in the JSON body).
+        |The user is added as a participant with no special permissions.
+        |
+        |Authentication is Required
+        |
+        |""".stripMargin,
+        EmptyBody,
+        ParticipantJsonV600(
+          participant_id = "participant-id-123",
+          chat_room_id = "chat-room-id-123",
+          user_id = "user-id-123",
+          username = "robert.x.0.gh",
+          provider = "https://github.com",
+          consumer_id = "",
+          consumer_name = "",
+          permissions = List(),
+          webhook_url = "",
+          joined_at = new java.util.Date(),
+          last_read_at = new java.util.Date(),
+          is_muted = false
+        ),
+        List($AuthenticatedUserIsRequired, InvalidJoiningKey, ChatRoomIsArchived, ChatRoomParticipantAlreadyExists, UnknownError),
+        apiTagChat :: Nil,
+        None,
+        http4sPartialFunction = Some(joinSystemChatRoom)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(createCounterpartyAttribute),
+        "POST",
+        "/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID_PARAM/attributes",
+        "Create Counterparty Attribute",
+        s"""
+            | Create a new Counterparty Attribute for a given COUNTERPARTY_ID.
+            |
+            | The type field must be one of "STRING", "INTEGER", "DOUBLE" or "DATE_WITH_DAY".
+            | Authentication is Required
+            |
+        """.stripMargin,
+        counterpartyAttributeRequestJsonV600,
+        counterpartyAttributeResponseJsonV600,
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+        apiTagCounterparty :: Nil,
+        Some(canCreateCounterpartyAttribute :: Nil),
+        http4sPartialFunction = Some(createCounterpartyAttribute)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(deleteCounterpartyAttribute),
+        "DELETE",
+        "/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID_PARAM/attributes/COUNTERPARTY_ATTRIBUTE_ID",
+        "Delete Counterparty Attribute",
+        s"""
+            | Delete a Counterparty Attribute specified by COUNTERPARTY_ATTRIBUTE_ID.
+            |
+            | Authentication is Required
+            |
+        """.stripMargin,
+        EmptyBody,
+        EmptyBody,
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+        apiTagCounterparty :: Nil,
+        Some(canDeleteCounterpartyAttribute :: Nil),
+        http4sPartialFunction = Some(deleteCounterpartyAttribute)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getCounterpartyAttributeById),
+        "GET",
+        "/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID_PARAM/attributes/COUNTERPARTY_ATTRIBUTE_ID",
+        "Get Counterparty Attribute By Id",
+        s"""
+            | Get a specific Counterparty Attribute by its COUNTERPARTY_ATTRIBUTE_ID.
+            |
+            | Authentication is Required
+            |
+        """.stripMargin,
+        EmptyBody,
+        counterpartyAttributeResponseJsonV600,
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+        apiTagCounterparty :: Nil,
+        Some(canGetCounterpartyAttribute :: Nil),
+        http4sPartialFunction = Some(getCounterpartyAttributeById)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getAllCounterpartyAttributes),
+        "GET",
+        "/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID_PARAM/attributes",
+        "Get All Counterparty Attributes",
+        s"""
+            | Get all attributes for the specified Counterparty.
+            |
+            | Authentication is Required
+            |
+        """.stripMargin,
+        EmptyBody,
+        counterpartyAttributesJsonV600,
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+        apiTagCounterparty :: Nil,
+        Some(canGetCounterpartyAttributes :: Nil),
+        http4sPartialFunction = Some(getAllCounterpartyAttributes)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(updateCounterpartyAttribute),
+        "PUT",
+        "/banks/BANK_ID/accounts/ACCOUNT_ID/counterparties/COUNTERPARTY_ID_PARAM/attributes/COUNTERPARTY_ATTRIBUTE_ID",
+        "Update Counterparty Attribute",
+        s"""
+            | Update an existing Counterparty Attribute specified by COUNTERPARTY_ATTRIBUTE_ID.
+            |
+            | Authentication is Required
+            |
+        """.stripMargin,
+        counterpartyAttributeRequestJsonV600,
+        counterpartyAttributeResponseJsonV600,
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+        apiTagCounterparty :: Nil,
+        Some(canUpdateCounterpartyAttribute :: Nil),
+        http4sPartialFunction = Some(updateCounterpartyAttribute)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(hasAccountAccess),
+        "GET",
+        "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/has-account-access",
+        "Has Account Access",
+        s"""Check whether the authenticated user has access to a specific view on a specific account.
+        |
+        |Returns a boolean `has_account_access` along with the `access_source` (currently "ACCOUNT_ACCESS")
+        |and the `account_access_id` (primary key of the AccountAccess record).
+        |
+        |If the user does not have access, `has_account_access` is false and the other fields are empty strings.
+        |
+        |Authentication is Required
+        |
+        |""".stripMargin,
+        EmptyBody,
+        JSONFactory600.HasAccountAccessJsonV600(
+          has_account_access = true,
+          access_source = "ACCOUNT_ACCESS",
+          account_access_id = ExampleValue.uuidExample.value,
+          abac_rule_id = ""
+        ),
+        List($AuthenticatedUserIsRequired, $BankNotFound, ViewNotFound, UnknownError),
+        apiTagAccount :: Nil,
+        None,
+        http4sPartialFunction = Some(hasAccountAccess)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getMyAccountAccessRequests),
+        "GET",
+        "/my/account-access-requests",
+        "Get My Account Access Requests",
+        s"""Get Account Access Requests created by the current user (maker view).
+        |
+        |No special roles are required — a user can always see their own requests.
+        |
+        |Authentication is Required
+        |
+        |""".stripMargin,
+        EmptyBody,
+        JSONFactory600.AccountAccessRequestsJsonV600(
+          account_access_requests = List(JSONFactory600.AccountAccessRequestJsonV600(
+            account_access_request_id = "b4e0352a-9a0f-4bfa-b30b-9003aa467f51",
+            bank_id = ExampleValue.bankIdExample.value,
+            account_id = ExampleValue.accountIdExample.value,
+            view_id = ExampleValue.viewIdExample.value,
+            is_system_view = true,
+            requestor_user_id = ExampleValue.userIdExample.value,
+            target_user_id = "9ca9a7e4-6d02-40e3-a129-0b2bf89de9b2",
+            business_justification = "Need access to review monthly account statements for audit purposes.",
+            status = "INITIATED",
+            checker_user_id = "",
+            checker_comment = "",
+            created = APIUtil.DateWithMsExampleObject,
+            updated = APIUtil.DateWithMsExampleObject
+          ))
+        ),
+        List($AuthenticatedUserIsRequired, UnknownError),
+        apiTagAccountAccess :: Nil,
+        None,
+        http4sPartialFunction = Some(getMyAccountAccessRequests)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getWebUiProp),
+        "GET",
+        "/webui-props/WEBUI_PROP_NAME",
+        "Get WebUiProp by Name",
+        s"""
+        |
+        |Get a single WebUiProp by name.
+        |
+        |Properties with names starting with "webui_" can be stored in the database and managed via API.
+        |
+        |**Data Sources:**
+        |
+        |1. **Explicit WebUiProps (Database)**: Custom values created/updated via the API and stored in the database.
+        |
+        |2. **Implicit WebUiProps (Configuration File)**: Default values defined in the `sample.props.template` configuration file.
+        |
+        |**Response Fields:**
+        |
+        |* `name`: The property name
+        |* `value`: The property value
+        |* `webUiPropsId` (optional): UUID for database props, omitted for config props
+        |* `source`: Either "database" (editable via API) or "config" (read-only from config file)
+        |
+        |**Query Parameter:**
+        |
+        |* `active` (optional, boolean string, default: "false")
+        |  - If `active=false` or omitted: Returns only explicit prop from the database (source="database")
+        |  - If `active=true`: Returns explicit prop from database, or if not found, returns implicit (default) prop from configuration file (source="config")
+        |
+        |**Examples:**
+        |
+        |Get database-stored prop only:
+        |${getObpApiRoot}/v6.0.0/webui-props/webui_api_explorer_url
+        |
+        |Get database prop or fallback to default:
+        |${getObpApiRoot}/v6.0.0/webui-props/webui_api_explorer_url?active=true
+        |
+        |""",
+        EmptyBody,
+        WebUiPropsCommons("webui_api_explorer_url", "https://apiexplorer.openbankproject.com", Some("web-ui-props-id"), Some("config")),
+        List(WebUiPropsNotFoundByName, InvalidFilterParameterFormat, UnknownError),
+        apiTagWebUiProps :: Nil,
+        None,
+        http4sPartialFunction = Some(getWebUiProp)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getMessageDocsJsonSchema),
+        "GET",
+        "/message-docs/CONNECTOR/json-schema",
+        "Get Message Docs as JSON Schema",
+        """Returns message documentation as JSON Schema format for code generation in any language.
+        |
+        |This endpoint provides machine-readable schemas instead of just examples, making it ideal for:
+        |- AI-powered code generation
+        |- Automatic adapter creation in multiple languages
+        |- Type-safe client generation with tools like quicktype
+        |
+        |**Supported Connectors:**
+        |- rabbitmq_vOct2024 - RabbitMQ connector message schemas
+        |- rest_vMar2019 - REST connector message schemas
+        |- akka_vDec2018 - Akka connector message schemas
+        |- kafka_vMay2019 - Kafka connector message schemas (if available)
+        |
+        |**Code Generation Examples:**
+        |
+        |Generate Scala code with Circe:
+        |```bash
+        |curl https://api.../message-docs/rabbitmq_vOct2024/json-schema > schemas.json
+        |quicktype -s schema schemas.json -o Messages.scala --framework circe
+        |```
+        |
+        |Generate Python code:
+        |```bash
+        |quicktype -s schema schemas.json -o messages.py --lang python
+        |```
+        |
+        |Generate TypeScript code:
+        |```bash
+        |quicktype -s schema schemas.json -o messages.ts --lang typescript
+        |```
+        |
+        |**Schema Structure:**
+        |Each message includes:
+        |- `process` - The connector method name (e.g., "obp.getAdapterInfo")
+        |- `description` - Human-readable description of what the message does
+        |- `outbound_schema` - JSON Schema for request messages (OBP-API -> Adapter)
+        |- `inbound_schema` - JSON Schema for response messages (Adapter -> OBP-API)
+        |
+        |All nested type definitions are included in the `definitions` section for reuse.
+        |
+        |**Authentication:**
+        |This endpoint is publicly accessible (no authentication required) to facilitate adapter development.
+        |
+        |""".stripMargin,
+        EmptyBody,
+        EmptyBody,
+        List(InvalidConnector, UnknownError),
+        apiTagMessageDoc :: apiTagDocumentation :: apiTagApi :: Nil,
+        None,
+        http4sPartialFunction = Some(getMessageDocsJsonSchema)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(verifyUserCredentials),
+        "POST",
+        "/users/verify-credentials",
+        "Verify User Credentials",
+        s"""Verify a user's credentials (username, password, provider) and return user information if valid.
+        |
+        |This endpoint validates the provided credentials without creating a token or session.
+        |It can be used to verify user credentials in external systems.
+        |
+        |${applicationAccessMessage(true)}
+        |
+        |""",
+        PostVerifyUserCredentialsJsonV600(
+          username = "username",
+          password = "password",
+          provider = Constant.localIdentityProvider
+        ),
+        userJsonV200,
+        List(UserHasMissingRoles, InvalidJsonFormat, InvalidLoginCredentials, UsernameHasBeenLocked, UnknownError),
+        apiTagUser :: Nil,
+        Some(canVerifyUserCredentials :: Nil),
+        authMode = code.api.util.APIUtil.UserOrApplication,
+        http4sPartialFunction = Some(verifyUserCredentials)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getViewPermissions),
+        "GET",
+        "/management/view-permissions",
+        "Get View Permissions",
+        s"""Get a list of all available view permissions.
+        |
+        |This endpoint returns all the available permissions that can be assigned to views,
+        |organized by category. These permissions control what actions and data can be accessed
+        |through a view.
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |The response contains all available view permission names that can be used in the
+        |`allowed_actions` field when creating or updating custom views.
+        |
+        |""".stripMargin,
+        EmptyBody,
+        ViewPermissionsJsonV600(
+          permissions = List(
+            ViewPermissionJsonV600("can_see_transaction_amount", "Transaction"),
+            ViewPermissionJsonV600("can_see_bank_account_balance", "Account"),
+            ViewPermissionJsonV600("can_create_custom_view", "View")
+          )
+        ),
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+        apiTagSystemView :: apiTagView :: Nil,
+        Some(canGetViewPermissionsAtAllBanks :: Nil),
+        http4sPartialFunction = Some(getViewPermissions)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getAllApiProductsV600),
+        "GET",
+        "/api-products",
+        "Get Api Products At All Banks",
+        s"""Returns the Api Products across every bank, merged into a single list. Each product carries its `bank_id`.
+        |
+        |Optional query parameter `tag` — filter to products that have the given tag (e.g. `?tag=featured`). Tag matching is case-insensitive.
+        |
+        |${userAuthenticationMessage(!getApiProductsIsPublic)}""".stripMargin,
+        EmptyBody,
+        apiProductsJsonV600,
+        List($AuthenticatedUserIsRequired, UnknownError),
+        apiTagApi :: apiTagApiProduct :: Nil,
+        None,
+        http4sPartialFunction = Some(getAllApiProductsV600)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getAllProductsV600),
+        "GET",
+        "/products",
+        "Get Products At All Banks",
+        s"""Returns the financial Products offered by every bank this instance knows about, merged into a single list. Each product carries its `bank_id`.
+        |
+        |Optional query parameter `tag` — filter to products that carry the given tag (e.g. `?tag=featured`). Tag matching is case-insensitive. Repeat `tag=` to require multiple tags.
+        |
+        |${userAuthenticationMessage(!getProductsIsPublic)}""".stripMargin,
+        EmptyBody,
+        productsJsonV600,
+        List($AuthenticatedUserIsRequired, UnknownError),
+        apiTagProduct :: Nil,
+        None,
+        http4sPartialFunction = Some(getAllProductsV600)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getAccountAccessRequestsForAccount),
+        "GET",
+        "/banks/BANK_ID/accounts/ACCOUNT_ID/account-access-requests",
+        "Get Account Access Requests for Account",
+        s"""Get Account Access Requests for a specific account (checker view).
+        |
+        |Optionally filter by status using the query parameter: ?status=INITIATED
+        |
+        |Authentication is Required
+        |
+        |""".stripMargin,
+        EmptyBody,
+        JSONFactory600.AccountAccessRequestsJsonV600(
+          account_access_requests = List(JSONFactory600.AccountAccessRequestJsonV600(
+            account_access_request_id = "b4e0352a-9a0f-4bfa-b30b-9003aa467f51",
+            bank_id = ExampleValue.bankIdExample.value,
+            account_id = ExampleValue.accountIdExample.value,
+            view_id = ExampleValue.viewIdExample.value,
+            is_system_view = true,
+            requestor_user_id = ExampleValue.userIdExample.value,
+            target_user_id = "9ca9a7e4-6d02-40e3-a129-0b2bf89de9b2",
+            business_justification = "Need access to review monthly account statements for audit purposes.",
+            status = "INITIATED",
+            checker_user_id = "",
+            checker_comment = "",
+            created = APIUtil.DateWithMsExampleObject,
+            updated = APIUtil.DateWithMsExampleObject
+          ))
+        ),
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, $BankNotFound, $BankAccountNotFound, UnknownError),
+        apiTagAccountAccess :: Nil,
+        Some(canGetAccountAccessRequestsAtOneBank :: canGetAccountAccessRequestsAtAnyBank :: Nil),
+        http4sPartialFunction = Some(getAccountAccessRequestsForAccount)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getAccountAccessRequestById),
+        "GET",
+        "/banks/BANK_ID/accounts/ACCOUNT_ID/account-access-requests/ACCOUNT_ACCESS_REQUEST_ID",
+        "Get Account Access Request by Id",
+        s"""Get a single Account Access Request by its ID.
+        |
+        |Authentication is Required
+        |
+        |""".stripMargin,
+        EmptyBody,
+        JSONFactory600.AccountAccessRequestJsonV600(
+          account_access_request_id = "b4e0352a-9a0f-4bfa-b30b-9003aa467f51",
+          bank_id = ExampleValue.bankIdExample.value,
+          account_id = ExampleValue.accountIdExample.value,
+          view_id = ExampleValue.viewIdExample.value,
+          is_system_view = true,
+          requestor_user_id = ExampleValue.userIdExample.value,
+          target_user_id = "9ca9a7e4-6d02-40e3-a129-0b2bf89de9b2",
+          business_justification = "Need access to review monthly account statements for audit purposes.",
+          status = "INITIATED",
+          checker_user_id = "",
+          checker_comment = "",
+          created = APIUtil.DateWithMsExampleObject,
+          updated = APIUtil.DateWithMsExampleObject
+        ),
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, $BankNotFound, $BankAccountNotFound, AccountAccessRequestNotFound, UnknownError),
+        apiTagAccountAccess :: Nil,
+        Some(canGetAccountAccessRequestsAtOneBank :: canGetAccountAccessRequestsAtAnyBank :: Nil),
+        http4sPartialFunction = Some(getAccountAccessRequestById)
+      )
+    }
+
+    private def registerBatch4(): Unit = {
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getHoldingAccountByReleaser),
+        "GET",
+        "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/holding-accounts",
+        "Get Holding Accounts By Releaser",
+        s"""
+          |
+          |Return the first Holding Account linked to the given releaser account via account attribute `RELEASER_ACCOUNT_ID`.
+          |Response is wrapped in a list and includes account attributes.
+          |
+        """.stripMargin,
+        EmptyBody,
+        moderatedCoreAccountsJsonV300,
+        List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, $UserNoPermissionAccessView, UnknownError),
+        apiTagAccount :: Nil,
+        None,
+        http4sPartialFunction = Some(getHoldingAccountByReleaser)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(createAccountAccessRequest),
+        "POST",
+        "/banks/BANK_ID/accounts/ACCOUNT_ID/account-access-requests",
+        "Create Account Access Request",
+        s"""Create a new Account Access Request (maker step in maker/checker workflow).
+        |
+        |The requestor (maker) creates a request to grant a target user access to a specific view on an account.
+        |A business justification is required.
+        |
+        |The request is created with status INITIATED and must be approved or rejected by a different user (checker).
+        |
+        |Authentication is Required
+        |
+        |""".stripMargin,
+        JSONFactory600.PostAccountAccessRequestJsonV600(
+          target_user_id = ExampleValue.userIdExample.value,
+          view_id = ExampleValue.viewIdExample.value,
+          is_system_view = true,
+          business_justification = "Need access to review monthly account statements for audit purposes."
+        ),
+        JSONFactory600.AccountAccessRequestJsonV600(
+          account_access_request_id = "b4e0352a-9a0f-4bfa-b30b-9003aa467f51",
+          bank_id = ExampleValue.bankIdExample.value,
+          account_id = ExampleValue.accountIdExample.value,
+          view_id = ExampleValue.viewIdExample.value,
+          is_system_view = true,
+          requestor_user_id = ExampleValue.userIdExample.value,
+          target_user_id = "9ca9a7e4-6d02-40e3-a129-0b2bf89de9b2",
+          business_justification = "Need access to review monthly account statements for audit purposes.",
+          status = "INITIATED",
+          checker_user_id = "",
+          checker_comment = "",
+          created = APIUtil.DateWithMsExampleObject,
+          updated = APIUtil.DateWithMsExampleObject
+        ),
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat,
+        $BankNotFound, $BankAccountNotFound, BusinessJustificationRequired,
+        AccountAccessRequestAlreadyExists, AccountAccessRequestCannotBeCreated, UnknownError),
+        apiTagAccountAccess :: Nil,
+        Some(canCreateAccountAccessRequestAtOneBank :: canCreateAccountAccessRequestAtAnyBank :: Nil),
+        http4sPartialFunction = Some(createAccountAccessRequest)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(approveAccountAccessRequest),
+        "POST",
+        "/banks/BANK_ID/accounts/ACCOUNT_ID/account-access-requests/ACCOUNT_ACCESS_REQUEST_ID/approval",
+        "Approve Account Access Request",
+        s"""Approve an Account Access Request (checker step in maker/checker workflow).
+        |
+        |The checker must be a different user than the maker (requestor). This enforces dual control / maker-checker separation.
+        |
+        |Only requests with status INITIATED can be approved.
+        |
+        |On approval, the system automatically grants the target user access to the specified view.
+        |
+        |Authentication is Required
+        |
+        |""".stripMargin,
+        JSONFactory600.PostApproveAccountAccessRequestJsonV600(
+          comment = Some("Approved for Q1 audit.")
+        ),
+        JSONFactory600.AccountAccessRequestJsonV600(
+          account_access_request_id = "b4e0352a-9a0f-4bfa-b30b-9003aa467f51",
+          bank_id = ExampleValue.bankIdExample.value,
+          account_id = ExampleValue.accountIdExample.value,
+          view_id = ExampleValue.viewIdExample.value,
+          is_system_view = true,
+          requestor_user_id = ExampleValue.userIdExample.value,
+          target_user_id = "9ca9a7e4-6d02-40e3-a129-0b2bf89de9b2",
+          business_justification = "Need access to review monthly account statements for audit purposes.",
+          status = "APPROVED",
+          checker_user_id = "8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
+          checker_comment = "Approved for Q1 audit.",
+          created = APIUtil.DateWithMsExampleObject,
+          updated = APIUtil.DateWithMsExampleObject
+        ),
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat,
+        $BankNotFound, $BankAccountNotFound, AccountAccessRequestNotFound,
+        AccountAccessRequestStatusNotInitiated, MakerCheckerSameUser,
+        AccountAccessRequestCannotBeUpdated, UnknownError),
+        apiTagAccountAccess :: Nil,
+        Some(canUpdateAccountAccessRequestAtOneBank :: canUpdateAccountAccessRequestAtAnyBank :: Nil),
+        http4sPartialFunction = Some(approveAccountAccessRequest)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(rejectAccountAccessRequest),
+        "POST",
+        "/banks/BANK_ID/accounts/ACCOUNT_ID/account-access-requests/ACCOUNT_ACCESS_REQUEST_ID/rejection",
+        "Reject Account Access Request",
+        s"""Reject an Account Access Request (checker step in maker/checker workflow).
+        |
+        |The checker must be a different user than the maker (requestor). This enforces dual control / maker-checker separation.
+        |
+        |Only requests with status INITIATED can be rejected.
+        |
+        |A comment is required when rejecting a request.
+        |
+        |Authentication is Required
+        |
+        |""".stripMargin,
+        JSONFactory600.PostRejectAccountAccessRequestJsonV600(
+          comment = "Insufficient business justification provided."
+        ),
+        JSONFactory600.AccountAccessRequestJsonV600(
+          account_access_request_id = "b4e0352a-9a0f-4bfa-b30b-9003aa467f51",
+          bank_id = ExampleValue.bankIdExample.value,
+          account_id = ExampleValue.accountIdExample.value,
+          view_id = ExampleValue.viewIdExample.value,
+          is_system_view = true,
+          requestor_user_id = ExampleValue.userIdExample.value,
+          target_user_id = "9ca9a7e4-6d02-40e3-a129-0b2bf89de9b2",
+          business_justification = "Need access to review monthly account statements for audit purposes.",
+          status = "REJECTED",
+          checker_user_id = "8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
+          checker_comment = "Insufficient business justification provided.",
+          created = APIUtil.DateWithMsExampleObject,
+          updated = APIUtil.DateWithMsExampleObject
+        ),
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat,
+        $BankNotFound, $BankAccountNotFound, AccountAccessRequestNotFound,
+        AccountAccessRequestStatusNotInitiated, MakerCheckerSameUser,
+        CheckerCommentRequiredForRejection, AccountAccessRequestCannotBeUpdated, UnknownError),
+        apiTagAccountAccess :: Nil,
+        Some(canUpdateAccountAccessRequestAtOneBank :: canUpdateAccountAccessRequestAtAnyBank :: Nil),
+        http4sPartialFunction = Some(rejectAccountAccessRequest)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getSignalChannels),
+        "GET",
+        "/signal/channels",
+        "List Signal Channels",
+        s"""Signal channels provide short-lived, Redis-backed messaging designed for AI agent discovery and coordination, but usable by any authenticated OBP consumer.
+        |Messages are ephemeral and will expire after the configured TTL (default 1 hour).
+        |
+        |This endpoint lists active signal channels.
+        |Only channels that contain at least one broadcast message (no to_user_id) are listed.
+        |Private-only channels are not shown.
+        |
+        |Authentication is Required.
+        |
+        |""".stripMargin,
+        EmptyBody,
+        signalChannelsJsonV600,
+        List($AuthenticatedUserIsRequired, UnknownError),
+        apiTagAiAgent :: apiTagSignal :: apiTagSignalling :: apiTagChannel :: Nil,
+        None,
+        http4sPartialFunction = Some(getSignalChannels)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getSignalChannelInfo),
+        "GET",
+        "/signal/channels/CHANNEL_NAME/info",
+        "Get Signal Channel Info",
+        s"""Signal channels provide short-lived, Redis-backed messaging designed for AI agent discovery and coordination, but usable by any authenticated OBP consumer.
+        |Messages are ephemeral and will expire after the configured TTL (default 1 hour).
+        |
+        |This endpoint returns metadata about a signal channel including the current message count and remaining TTL in seconds.
+        |
+        |Authentication is Required.
+        |
+        |""".stripMargin,
+        EmptyBody,
+        signalChannelInfoJsonV600,
+        List($AuthenticatedUserIsRequired, InvalidSignalChannelName, UnknownError),
+        apiTagAiAgent :: apiTagSignal :: apiTagSignalling :: apiTagChannel :: Nil,
+        None,
+        http4sPartialFunction = Some(getSignalChannelInfo)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getSignalStats),
+        "GET",
+        "/signal/channels/stats",
+        "Get Signal Channel Stats",
+        s"""Returns statistics for all signal channels, including private-only channels.
+        |
+        |Unlike the List Signal Channels endpoint, this does not filter out private-only channels.
+        |It provides a complete view of all active channels with message counts and TTL info.
+        |
+        |Authentication is Required.
+        |
+        |""".stripMargin,
+        EmptyBody,
+        signalStatsJsonV600,
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+        apiTagAiAgent :: apiTagSignal :: apiTagSignalling :: apiTagChannel :: Nil,
+        Some(canGetSignalStats :: Nil),
+        http4sPartialFunction = Some(getSignalStats)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(publishSignalMessage),
+        "POST",
+        "/signal/channels/CHANNEL_NAME/messages",
+        "Publish Signal Message",
+        s"""Publish a message to a signal channel.
+        |
+        |Signal channels provide short-lived, Redis-backed messaging for lightweight coordination between
+        |AI agents and other OBP consumers. Messages are not persisted to a database.
+        |
+        |Channels are auto-created on first publish and expire after a configurable TTL (default 1 hour).
+        |Messages are capped at a configurable maximum per channel (default 1000).
+        |
+        |The payload field accepts any valid JSON content.
+        |
+        |Set to_user_id to send a private message visible only to the sender and recipient.
+        |Leave to_user_id empty for a broadcast message visible to all channel readers.
+        |
+        |Authentication is Required.
+        |
+        |""".stripMargin,
+        postSignalMessageJsonV600,
+        signalMessagePublishedJsonV600,
+        List($AuthenticatedUserIsRequired, InvalidSignalChannelName, InvalidJsonFormat, UnknownError),
+        apiTagAiAgent :: apiTagSignal :: apiTagSignalling :: apiTagChannel :: Nil,
+        None,
+        http4sPartialFunction = Some(publishSignalMessage)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getSignalMessages),
+        "GET",
+        "/signal/channels/CHANNEL_NAME/messages",
+        "Get Signal Messages",
+        s"""Fetch messages from a signal channel with offset/limit pagination.
+        |
+        |Signal channels provide short-lived, Redis-backed messaging designed for AI agent discovery
+        |and coordination, but usable by any authenticated OBP consumer.
+        |
+        |Messages are returned oldest-first.
+        |
+        |Privacy filtering is applied server-side: you will only see broadcast messages (no to_user_id)
+        |and private messages addressed to you (to_user_id matches your user ID) or sent by you.
+        |
+        |Use the offset parameter to poll for new messages by tracking your position.
+        |
+        |Authentication is Required.
+        |
+        |""".stripMargin,
+        EmptyBody,
+        signalMessagesJsonV600,
+        List($AuthenticatedUserIsRequired, InvalidSignalChannelName, UnknownError),
+        apiTagAiAgent :: apiTagSignal :: apiTagSignalling :: apiTagChannel :: Nil,
+        None,
+        http4sPartialFunction = Some(getSignalMessages)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(deleteSignalChannel),
+        "DELETE",
+        "/signal/channels/CHANNEL_NAME",
+        "Delete Signal Channel",
+        s"""Signal channels provide short-lived, Redis-backed messaging designed for AI agent discovery and coordination, but usable by any authenticated OBP consumer.
+        |Messages are ephemeral and will expire after the configured TTL (default 1 hour).
+        |
+        |This endpoint deletes a signal channel and all its messages immediately.
+        |
+        |Authentication is Required.
+        |
+        |""".stripMargin,
+        EmptyBody,
+        signalChannelDeletedJsonV600,
+        List($AuthenticatedUserIsRequired, InvalidSignalChannelName, UnknownError),
+        apiTagAiAgent :: apiTagSignal :: apiTagSignalling :: apiTagChannel :: Nil,
+        None,
+        http4sPartialFunction = Some(deleteSignalChannel)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getBankChatRooms),
+        "GET",
+        "/banks/BANK_ID/chat-rooms",
+        "Get Bank Chat Rooms",
+        s"""Get all chat rooms for the specified bank that the current user is a participant of.
+        |
+        |Authentication is Required
+        |
+        |""".stripMargin,
+        EmptyBody,
+        ChatRoomsJsonV600(chat_rooms = List(ChatRoomJsonV600(
+          chat_room_id = "chat-room-id-123",
+          bank_id = "gh.29.uk",
+          name = "General Discussion",
+          description = "A place to discuss general topics",
+          joining_key = "abc123key",
+          created_by_user_id = "user-id-123",
+          created_by_username = "robert.x.0.gh",
+          created_by_provider = "https://github.com",
+          is_open_room = false,
+          is_archived = false,
+          last_message_at = Some(new java.util.Date()),
+          last_message_preview = Some("Hello everyone!"),
+          last_message_sender_username =Some("robert.x.0.gh"),
+          unread_count = Some(3),
+          created_at = new java.util.Date(),
+          updated_at = new java.util.Date()
+        ))),
+        List($AuthenticatedUserIsRequired, $BankNotFound, UnknownError),
+        apiTagChat :: Nil,
+        None,
+        http4sPartialFunction = Some(getBankChatRooms)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getSystemChatRooms),
+        "GET",
+        "/chat-rooms",
+        "Get System Chat Rooms",
+        s"""Get all system-level chat rooms that the current user is a participant of.
+        |
+        |Authentication is Required
+        |
+        |""".stripMargin,
+        EmptyBody,
+        ChatRoomsJsonV600(chat_rooms = List(ChatRoomJsonV600(
+          chat_room_id = "chat-room-id-123",
+          bank_id = "",
+          name = "General Discussion",
+          description = "A place to discuss general topics",
+          joining_key = "abc123key",
+          created_by_user_id = "user-id-123",
+          created_by_username = "robert.x.0.gh",
+          created_by_provider = "https://github.com",
+          is_open_room = false,
+          is_archived = false,
+          last_message_at = Some(new java.util.Date()),
+          last_message_preview = Some("Hello everyone!"),
+          last_message_sender_username =Some("robert.x.0.gh"),
+          unread_count = Some(3),
+          created_at = new java.util.Date(),
+          updated_at = new java.util.Date()
+        ))),
+        List($AuthenticatedUserIsRequired, UnknownError),
+        apiTagChat :: Nil,
+        None,
+        http4sPartialFunction = Some(getSystemChatRooms)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getBankChatRoom),
+        "GET",
+        "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID",
+        "Get Bank Chat Room",
+        s"""Get a specific chat room by ID within a bank. The current user must be a participant.
+        |
+        |Authentication is Required
+        |
+        |""".stripMargin,
+        EmptyBody,
+        ChatRoomJsonV600(
+          chat_room_id = "chat-room-id-123",
+          bank_id = "gh.29.uk",
+          name = "General Discussion",
+          description = "A place to discuss general topics",
+          joining_key = "abc123key",
+          created_by_user_id = "user-id-123",
+          created_by_username = "robert.x.0.gh",
+          created_by_provider = "https://github.com",
+          is_open_room = false,
+          is_archived = false,
+          last_message_at = Some(new java.util.Date()),
+          last_message_preview = Some("Hello everyone!"),
+          last_message_sender_username =Some("robert.x.0.gh"),
+          unread_count = Some(3),
+          created_at = new java.util.Date(),
+          updated_at = new java.util.Date()
+        ),
+        List($AuthenticatedUserIsRequired, $BankNotFound, ChatRoomNotFound, NotChatRoomParticipant, UnknownError),
+        apiTagChat :: Nil,
+        None,
+        http4sPartialFunction = Some(getBankChatRoom)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getSystemChatRoom),
+        "GET",
+        "/chat-rooms/CHAT_ROOM_ID",
+        "Get System Chat Room",
+        s"""Get a specific system-level chat room by ID. The current user must be a participant.
+        |
+        |Authentication is Required
+        |
+        |""".stripMargin,
+        EmptyBody,
+        ChatRoomJsonV600(
+          chat_room_id = "chat-room-id-123",
+          bank_id = "",
+          name = "General Discussion",
+          description = "A place to discuss general topics",
+          joining_key = "abc123key",
+          created_by_user_id = "user-id-123",
+          created_by_username = "robert.x.0.gh",
+          created_by_provider = "https://github.com",
+          is_open_room = false,
+          is_archived = false,
+          last_message_at = Some(new java.util.Date()),
+          last_message_preview = Some("Hello everyone!"),
+          last_message_sender_username =Some("robert.x.0.gh"),
+          unread_count = Some(3),
+          created_at = new java.util.Date(),
+          updated_at = new java.util.Date()
+        ),
+        List($AuthenticatedUserIsRequired, ChatRoomNotFound, NotChatRoomParticipant, UnknownError),
+        apiTagChat :: Nil,
+        None,
+        http4sPartialFunction = Some(getSystemChatRoom)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getMyChatRooms),
+        "GET",
+        "/users/current/chat-rooms",
+        "Get My Chat Rooms",
+        s"""Get all chat rooms the current user is a participant of, across all banks and system-level rooms.
+        |
+        |Authentication is Required
+        |
+        |""".stripMargin,
+        EmptyBody,
+        ChatRoomsJsonV600(chat_rooms = List(ChatRoomJsonV600(
+          chat_room_id = "chat-room-id-123",
+          bank_id = "gh.29.uk",
+          name = "General Discussion",
+          description = "A place to discuss general topics",
+          joining_key = "abc123key",
+          created_by_user_id = "user-id-123",
+          created_by_username = "robert.x.0.gh",
+          created_by_provider = "https://github.com",
+          is_open_room = false,
+          is_archived = false,
+          last_message_at = Some(new java.util.Date()),
+          last_message_preview = Some("Hello everyone!"),
+          last_message_sender_username =Some("robert.x.0.gh"),
+          unread_count = Some(3),
+          created_at = new java.util.Date(),
+          updated_at = new java.util.Date()
+        ))),
+        List($AuthenticatedUserIsRequired, UnknownError),
+        apiTagChat :: Nil,
+        None,
+        http4sPartialFunction = Some(getMyChatRooms)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getMyUnreadCounts),
+        "GET",
+        "/users/current/chat-rooms/unread",
+        "Get My Unread Counts",
+        s"""Get unread message counts for all chat rooms the current user is a participant of.
+        |
+        |Authentication is Required
+        |
+        |""".stripMargin,
+        EmptyBody,
+        UnreadCountsJsonV600(unread_counts = List(UnreadCountJsonV600(chat_room_id = "chat-room-id-123", unread_count = 5))),
+        List($AuthenticatedUserIsRequired, UnknownError),
+        apiTagChat :: Nil,
+        None,
+        http4sPartialFunction = Some(getMyUnreadCounts)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(markChatRoomRead),
+        "PUT",
+        "/users/current/chat-rooms/CHAT_ROOM_ID/read-marker",
+        "Mark Chat Room Read",
+        s"""Mark all messages in a chat room as read for the current user by updating lastReadAt to now.
+        |
+        |Authentication is Required
+        |
+        |""".stripMargin,
+        EmptyBody,
+        ParticipantJsonV600(
+          participant_id = "participant-id-123",
+          chat_room_id = "chat-room-id-123",
+          user_id = "user-id-123",
+          username = "robert.x.0.gh",
+          provider = "https://github.com",
+          consumer_id = "",
+          consumer_name = "",
+          permissions = List(),
+          webhook_url = "",
+          joined_at = new java.util.Date(),
+          last_read_at = new java.util.Date(),
+          is_muted = false
+        ),
+        List($AuthenticatedUserIsRequired, ChatRoomNotFound, NotChatRoomParticipant, UnknownError),
+        apiTagChat :: Nil,
+        None,
+        http4sPartialFunction = Some(markChatRoomRead)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getMyMentions),
+        "GET",
+        "/users/current/mentions",
+        "Get My Mentions",
+        s"""Get messages where the current user is mentioned. Supports limit and offset query parameters.
+        |
+        |Authentication is Required
+        |
+        |""".stripMargin,
+        EmptyBody,
+        ChatMessagesJsonV600(messages = List(ChatMessageJsonV600(
+          chat_message_id = "msg-id-123",
+          chat_room_id = "chat-room-id-123",
+          sender_user_id = "user-id-456",
+          sender_consumer_id = "",
+          sender_username = "robert.x.0.gh",
+          sender_provider = "https://github.com",
+          sender_consumer_name = "My Banking App",
+          content = "Hey @user-id-123, check this out!",
+          message_type = "text",
+          mentioned_user_ids = List("user-id-123"),
+          reply_to_message_id = "",
+          thread_id = "",
+          is_deleted = false,
+          created_at = new java.util.Date(),
+          updated_at = new java.util.Date(),
+          reactions = List()
+        ))),
+        List($AuthenticatedUserIsRequired, UnknownError),
+        apiTagChat :: Nil,
+        None,
+        http4sPartialFunction = Some(getMyMentions)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(searchChatRooms),
+        "POST",
+        "/chat-rooms/search",
+        "Search Chat Rooms",
+        s"""Search chat rooms the current user is a participant of, filtered by the supplied criteria.
+        |
+        |Currently supports filtering by participant set:
+        |
+        |- `with_user_ids` (array of user_id strings, required): only return rooms where the current user
+        |  AND every listed user_id are participants. Pass an empty list to match all of the current user's rooms.
+        |- `exact_participants` (boolean, optional, default `false`): if `true`, the room's participant set
+        |  must equal exactly `{current user} ∪ with_user_ids` with no extras. Open rooms are excluded
+        |  from exact-participant searches because their participant set is implicitly "everyone".
+        |
+        |Primary use case: a client looking up an existing 1-on-1 direct-message room before creating one,
+        |by calling with `with_user_ids: [<other user_id>]` and `exact_participants: true`.
+        |
+        |The response shape is the same as `Get My Chat Rooms`.
+        |
+        |Authentication is Required
+        |
+        |""".stripMargin,
+        ChatRoomSearchRequestJsonV600(
+          with_user_ids = List("user-id-123"),
+          exact_participants = Some(true)
+        ),
+        ChatRoomsJsonV600(chat_rooms = List(ChatRoomJsonV600(
+          chat_room_id = "chat-room-id-123",
+          bank_id = "",
+          name = "DM with robert.x.0.gh",
+          description = "",
+          joining_key = "abc123key",
+          created_by_user_id = "user-id-456",
+          created_by_username = "alice",
+          created_by_provider = "https://github.com",
+          is_open_room = false,
+          is_archived = false,
+          last_message_at = Some(new java.util.Date()),
+          last_message_preview = Some("Hello!"),
+          last_message_sender_username =Some("alice"),
+          unread_count = Some(0),
+          created_at = new java.util.Date(),
+          updated_at = new java.util.Date()
+        ))),
+        List($AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
+        apiTagChat :: Nil,
+        None,
+        http4sPartialFunction = Some(searchChatRooms)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getBulkReactions),
+        "GET",
+        "/chat-rooms/CHAT_ROOM_ID/messages/reactions",
+        "Get Bulk Reactions",
+        s"""Get reactions for multiple messages in a single request.
+        |
+        |Pass message IDs as a comma-separated query parameter: ?message_ids=id1,id2,id3
+        |
+        |Returns reactions grouped by message ID.
+        |
+        |Authentication is Required
+        |
+        |""".stripMargin,
+        EmptyBody,
+        BulkReactionsJsonV600(message_reactions = List(MessageReactionsJsonV600(
+          chat_message_id = "msg-id-123",
+          reactions = List(ReactionSummaryJsonV600(emoji = "thumbsup", count = 2, user_ids = List("user-1", "user-2")))
+        ))),
+        List($AuthenticatedUserIsRequired, ChatRoomNotFound, NotChatRoomParticipant, UnknownError),
+        apiTagChat :: Nil,
+        None,
+        http4sPartialFunction = Some(getBulkReactions)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(archiveBankChatRoom),
+        "PUT",
+        "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/archive-status",
+        "Archive Bank Chat Room",
+        s"""Archive a chat room. Archived rooms cannot receive new messages or participants.
+        |Requires the CanArchiveBankChatRoom role.
+        |
+        |Authentication is Required
+        |
+        |""".stripMargin,
+        EmptyBody,
+        ChatRoomJsonV600(
+          chat_room_id = "chat-room-id-123",
+          bank_id = "gh.29.uk",
+          name = "General Discussion",
+          description = "A place to discuss general topics",
+          joining_key = "abc123key",
+          created_by_user_id = "user-id-123",
+          created_by_username = "robert.x.0.gh",
+          created_by_provider = "https://github.com",
+          is_open_room = false,
+          is_archived = true,
+          last_message_at = Some(new java.util.Date()),
+          last_message_preview = Some("Hello everyone!"),
+          last_message_sender_username =Some("robert.x.0.gh"),
+          unread_count = Some(3),
+          created_at = new java.util.Date(),
+          updated_at = new java.util.Date()
+        ),
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, $BankNotFound, ChatRoomNotFound, UnknownError),
+        apiTagChat :: Nil,
+        Some(canArchiveBankChatRoom :: Nil),
+        http4sPartialFunction = Some(archiveBankChatRoom)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(archiveSystemChatRoom),
+        "PUT",
+        "/chat-rooms/CHAT_ROOM_ID/archive-status",
+        "Archive System Chat Room",
+        s"""Archive a system-level chat room. Archived rooms cannot receive new messages or participants.
+        |Requires the CanArchiveSystemChatRoom role.
+        |
+        |Authentication is Required
+        |
+        |""".stripMargin,
+        EmptyBody,
+        ChatRoomJsonV600(
+          chat_room_id = "chat-room-id-123",
+          bank_id = "",
+          name = "General Discussion",
+          description = "A place to discuss general topics",
+          joining_key = "abc123key",
+          created_by_user_id = "user-id-123",
+          created_by_username = "robert.x.0.gh",
+          created_by_provider = "https://github.com",
+          is_open_room = false,
+          is_archived = true,
+          last_message_at = Some(new java.util.Date()),
+          last_message_preview = Some("Hello everyone!"),
+          last_message_sender_username =Some("robert.x.0.gh"),
+          unread_count = Some(3),
+          created_at = new java.util.Date(),
+          updated_at = new java.util.Date()
+        ),
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, ChatRoomNotFound, UnknownError),
+        apiTagChat :: Nil,
+        Some(canArchiveSystemChatRoom :: Nil),
+        http4sPartialFunction = Some(archiveSystemChatRoom)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(joinBankChatRoom),
+        "POST",
+        "/banks/BANK_ID/chat-room-participants",
+        "Join Bank Chat Room",
+        s"""Join a chat room using a joining key (passed as joining_key in the JSON body).
+        |The user is added as a participant with no special permissions.
+        |
+        |Authentication is Required
+        |
+        |""".stripMargin,
+        EmptyBody,
+        ParticipantJsonV600(
+          participant_id = "participant-id-123",
+          chat_room_id = "chat-room-id-123",
+          user_id = "user-id-123",
+          username = "robert.x.0.gh",
+          provider = "https://github.com",
+          consumer_id = "",
+          consumer_name = "",
+          permissions = List(),
+          webhook_url = "",
+          joined_at = new java.util.Date(),
+          last_read_at = new java.util.Date(),
+          is_muted = false
+        ),
+        List($AuthenticatedUserIsRequired, $BankNotFound, InvalidJoiningKey,
+        ChatRoomIsArchived, ChatRoomParticipantAlreadyExists, UnknownError),
+        apiTagChat :: Nil,
+        None,
+        http4sPartialFunction = Some(joinBankChatRoom)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(refreshBankJoiningKey),
+        "PUT",
+        "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/joining-key",
+        "Refresh Bank Chat Room Joining Key",
+        s"""Refresh the joining key for a chat room. The old key becomes invalid.
+        |Requires can_refresh_joining_key permission.
+        |
+        |Authentication is Required
+        |
+        |""".stripMargin,
+        EmptyBody,
+        JoiningKeyJsonV600(joining_key = "new-key-abc123"),
+        List($AuthenticatedUserIsRequired, $BankNotFound, ChatRoomNotFound,
+        InsufficientChatPermission, UnknownError),
+        apiTagChat :: Nil,
+        None,
+        http4sPartialFunction = Some(refreshBankJoiningKey)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(refreshSystemJoiningKey),
+        "PUT",
+        "/chat-rooms/CHAT_ROOM_ID/joining-key",
+        "Refresh System Chat Room Joining Key",
+        s"""Refresh the joining key for a system-level chat room. The old key becomes invalid.
+        |Requires can_refresh_joining_key permission.
+        |
+        |Authentication is Required
+        |
+        |""".stripMargin,
+        EmptyBody,
+        JoiningKeyJsonV600(joining_key = "new-key-abc123"),
+        List($AuthenticatedUserIsRequired, ChatRoomNotFound,
+        InsufficientChatPermission, UnknownError),
+        apiTagChat :: Nil,
+        None,
+        http4sPartialFunction = Some(refreshSystemJoiningKey)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(createBankChatRoom),
+        "POST",
+        "/banks/BANK_ID/chat-rooms",
+        "Create Bank Chat Room",
+        s"""Create a new chat room scoped to a bank.
+        |The creator is automatically added as a participant with all permissions.
+        |
+        |Authentication is Required
+        |
+        |""".stripMargin,
+        PostChatRoomJsonV600(name = "General Discussion", description = "A place to discuss general topics"),
+        ChatRoomJsonV600(
+          chat_room_id = "chat-room-id-123",
+          bank_id = "gh.29.uk",
+          name = "General Discussion",
+          description = "A place to discuss general topics",
+          joining_key = "abc123key",
+          created_by_user_id = "user-id-123",
+          created_by_username = "robert.x.0.gh",
+          created_by_provider = "https://github.com",
+          is_open_room = false,
+          is_archived = false,
+          last_message_at = Some(new java.util.Date()),
+          last_message_preview = Some("Hello everyone!"),
+          last_message_sender_username =Some("robert.x.0.gh"),
+          unread_count = Some(3),
+          created_at = new java.util.Date(),
+          updated_at = new java.util.Date()
+        ),
+        List($AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat,
+        ChatRoomAlreadyExists, UnknownError),
+        apiTagChat :: Nil,
+        None,
+        http4sPartialFunction = Some(createBankChatRoom)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(createSystemChatRoom),
+        "POST",
+        "/chat-rooms",
+        "Create System Chat Room",
+        s"""Create a new system-level chat room (not scoped to a bank).
+        |The creator is automatically added as a participant with all permissions.
+        |
+        |Authentication is Required
+        |
+        |""".stripMargin,
+        PostChatRoomJsonV600(name = "General Discussion", description = "A place to discuss general topics"),
+        ChatRoomJsonV600(
+          chat_room_id = "chat-room-id-123",
+          bank_id = "",
+          name = "General Discussion",
+          description = "A place to discuss general topics",
+          joining_key = "abc123key",
+          created_by_user_id = "user-id-123",
+          created_by_username = "robert.x.0.gh",
+          created_by_provider = "https://github.com",
+          is_open_room = false,
+          is_archived = false,
+          last_message_at = Some(new java.util.Date()),
+          last_message_preview = Some("Hello everyone!"),
+          last_message_sender_username =Some("robert.x.0.gh"),
+          unread_count = Some(3),
+          created_at = new java.util.Date(),
+          updated_at = new java.util.Date()
+        ),
+        List($AuthenticatedUserIsRequired, InvalidJsonFormat,
+        ChatRoomAlreadyExists, UnknownError),
+        apiTagChat :: Nil,
+        None,
+        http4sPartialFunction = Some(createSystemChatRoom)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(updateBankChatRoom),
+        "PUT",
+        "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID",
+        "Update Bank Chat Room",
+        s"""Update the name and/or description of a chat room. Requires can_update_room permission.
+        |
+        |Authentication is Required
+        |
+        |""".stripMargin,
+        PutChatRoomJsonV600(name = Some("Updated Name"), description = Some("Updated description")),
+        ChatRoomJsonV600(
+          chat_room_id = "chat-room-id-123",
+          bank_id = "gh.29.uk",
+          name = "Updated Name",
+          description = "Updated description",
+          joining_key = "abc123key",
+          created_by_user_id = "user-id-123",
+          created_by_username = "robert.x.0.gh",
+          created_by_provider = "https://github.com",
+          is_open_room = false,
+          is_archived = false,
+          last_message_at = Some(new java.util.Date()),
+          last_message_preview = Some("Hello everyone!"),
+          last_message_sender_username =Some("robert.x.0.gh"),
+          unread_count = Some(3),
+          created_at = new java.util.Date(),
+          updated_at = new java.util.Date()
+        ),
+        List($AuthenticatedUserIsRequired, InvalidJsonFormat,
+        ChatRoomNotFound, NotChatRoomParticipant, InsufficientChatPermission, UnknownError),
+        apiTagChat :: Nil,
+        None,
+        http4sPartialFunction = Some(updateBankChatRoom)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(updateSystemChatRoom),
+        "PUT",
+        "/chat-rooms/CHAT_ROOM_ID",
+        "Update System Chat Room",
+        s"""Update the name and/or description of a system-level chat room. Requires can_update_room permission.
+        |
+        |Authentication is Required
+        |
+        |""".stripMargin,
+        PutChatRoomJsonV600(name = Some("Updated Name"), description = Some("Updated description")),
+        ChatRoomJsonV600(
+          chat_room_id = "chat-room-id-123",
+          bank_id = "",
+          name = "Updated Name",
+          description = "Updated description",
+          joining_key = "abc123key",
+          created_by_user_id = "user-id-123",
+          created_by_username = "robert.x.0.gh",
+          created_by_provider = "https://github.com",
+          is_open_room = false,
+          is_archived = false,
+          last_message_at = Some(new java.util.Date()),
+          last_message_preview = Some("Hello everyone!"),
+          last_message_sender_username =Some("robert.x.0.gh"),
+          unread_count = Some(3),
+          created_at = new java.util.Date(),
+          updated_at = new java.util.Date()
+        ),
+        List($AuthenticatedUserIsRequired, InvalidJsonFormat,
+        ChatRoomNotFound, NotChatRoomParticipant, InsufficientChatPermission, UnknownError),
+        apiTagChat :: Nil,
+        None,
+        http4sPartialFunction = Some(updateSystemChatRoom)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(deleteBankChatRoom),
+        "DELETE",
+        "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID",
+        "Delete Bank Chat Room",
+        s"""Delete a chat room. Requires the CanDeleteBankChatRoom role.
+        |
+        |Authentication is Required
+        |
+        |""".stripMargin,
+        EmptyBody,
+        EmptyBody,
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles,
+        $BankNotFound, ChatRoomNotFound, UnknownError),
+        apiTagChat :: Nil,
+        Some(canDeleteBankChatRoom :: Nil),
+        http4sPartialFunction = Some(deleteBankChatRoom)
+      )
+    }
+
+    private def registerBatch5(): Unit = {
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(deleteSystemChatRoom),
+        "DELETE",
+        "/chat-rooms/CHAT_ROOM_ID",
+        "Delete System Chat Room",
+        s"""Delete a system-level chat room. Requires the CanDeleteSystemChatRoom role.
+        |
+        |Authentication is Required
+        |
+        |""".stripMargin,
+        EmptyBody,
+        EmptyBody,
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles,
+        ChatRoomNotFound, UnknownError),
+        apiTagChat :: Nil,
+        Some(canDeleteSystemChatRoom :: Nil),
+        http4sPartialFunction = Some(deleteSystemChatRoom)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(setBankChatRoomOpenRoom),
+        "PUT",
+        "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/open-room",
+        "Set Bank Chat Room Open Room",
+        s"""Set whether all authenticated users are implicit participants of this chat room.
+        |
+        |If true, all users can read and send messages without needing an explicit Participant record.
+        |
+        |Requires the CanSetBankChatRoomIsOpenRoom role.
+        |
+        |Authentication is Required
+        |
+        |""".stripMargin,
+        EmptyBody,
+        ChatRoomJsonV600(
+          chat_room_id = "chat-room-id-123",
+          bank_id = "gh.29.uk",
+          name = "General Discussion",
+          description = "A place to discuss general topics",
+          joining_key = "abc123key",
+          created_by_user_id = "user-id-123",
+          created_by_username = "username",
+          created_by_provider = "provider",
+          is_open_room = true,
+          is_archived = false,
+          last_message_at = Some(new java.util.Date()),
+          last_message_preview = Some("Hello everyone!"),
+          last_message_sender_username =Some("robert.x.0.gh"),
+          unread_count = Some(3),
+          created_at = new java.util.Date(),
+          updated_at = new java.util.Date()
+        ),
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles,
+        $BankNotFound, ChatRoomNotFound, UnknownError),
+        apiTagChat :: Nil,
+        Some(canSetBankChatRoomIsOpenRoom :: Nil),
+        http4sPartialFunction = Some(setBankChatRoomOpenRoom)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(setSystemChatRoomOpenRoom),
+        "PUT",
+        "/chat-rooms/CHAT_ROOM_ID/open-room",
+        "Set System Chat Room Open Room",
+        s"""Set whether all authenticated users are implicit participants of this system-level chat room.
+        |
+        |If true, all users can read and send messages without needing an explicit Participant record.
+        |
+        |Requires the CanSetSystemChatRoomIsOpenRoom role.
+        |
+        |Authentication is Required
+        |
+        |""".stripMargin,
+        EmptyBody,
+        ChatRoomJsonV600(
+          chat_room_id = "chat-room-id-123",
+          bank_id = "",
+          name = "General Discussion",
+          description = "A place to discuss general topics",
+          joining_key = "abc123key",
+          created_by_user_id = "user-id-123",
+          created_by_username = "username",
+          created_by_provider = "provider",
+          is_open_room = true,
+          is_archived = false,
+          last_message_at = Some(new java.util.Date()),
+          last_message_preview = Some("Hello everyone!"),
+          last_message_sender_username =Some("robert.x.0.gh"),
+          unread_count = Some(3),
+          created_at = new java.util.Date(),
+          updated_at = new java.util.Date()
+        ),
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles,
+        ChatRoomNotFound, UnknownError),
+        apiTagChat :: Nil,
+        Some(canSetSystemChatRoomIsOpenRoom :: Nil),
+        http4sPartialFunction = Some(setSystemChatRoomOpenRoom)
+      )
+        resourceDocs += ResourceDoc(
+          null,
+          implementedInApiVersion,
+          nameOf(addBankChatRoomParticipant),
+          "POST",
+          "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/participants",
+          "Add Bank Chat Room Participant",
+          s"""Add a participant to a chat room. Requires can_manage_permissions permission.
+          |Specify either user_id or consumer_id, but not both.
+          |
+          |Authentication is Required
+          |
+          |""".stripMargin,
+          PostParticipantJsonV600(user_id = Some("user-id-456"), consumer_id = None, permissions = Some(List("can_delete_message")), webhook_url = None),
+          ParticipantJsonV600(
+            participant_id = "participant-id-456",
+            chat_room_id = "chat-room-id-123",
+            user_id = "user-id-456",
+            username = "ellie.y.1.gh",
+            provider = "https://github.com",
+            consumer_id = "",
+            consumer_name = "",
+            permissions = List("can_delete_message"),
+            webhook_url = "",
+            joined_at = new java.util.Date(),
+            last_read_at = new java.util.Date(),
+            is_muted = false
+          ),
+          List($AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat,
+          ChatRoomNotFound, InsufficientChatPermission, MustSpecifyUserIdOrConsumerId,
+          ChatRoomParticipantAlreadyExists, UnknownError),
+          apiTagChat :: Nil,
+          None,
+          http4sPartialFunction = Some(addBankChatRoomParticipant)
+        )
+        resourceDocs += ResourceDoc(
+          null,
+          implementedInApiVersion,
+          nameOf(addSystemChatRoomParticipant),
+          "POST",
+          "/chat-rooms/CHAT_ROOM_ID/participants",
+          "Add System Chat Room Participant",
+          s"""Add a participant to a system-level chat room. Requires can_manage_permissions permission.
+          |Specify either user_id or consumer_id, but not both.
+          |
+          |Authentication is Required
+          |
+          |""".stripMargin,
+          PostParticipantJsonV600(user_id = Some("user-id-456"), consumer_id = None, permissions = Some(List("can_delete_message")), webhook_url = None),
+          ParticipantJsonV600(
+            participant_id = "participant-id-456",
+            chat_room_id = "chat-room-id-123",
+            user_id = "user-id-456",
+            username = "ellie.y.1.gh",
+            provider = "https://github.com",
+            consumer_id = "",
+            consumer_name = "",
+            permissions = List("can_delete_message"),
+            webhook_url = "",
+            joined_at = new java.util.Date(),
+            last_read_at = new java.util.Date(),
+            is_muted = false
+          ),
+          List($AuthenticatedUserIsRequired, InvalidJsonFormat,
+          ChatRoomNotFound, InsufficientChatPermission, MustSpecifyUserIdOrConsumerId,
+          ChatRoomParticipantAlreadyExists, UnknownError),
+          apiTagChat :: Nil,
+          None,
+          http4sPartialFunction = Some(addSystemChatRoomParticipant)
+        )
+        resourceDocs += ResourceDoc(
+          null,
+          implementedInApiVersion,
+          nameOf(getBankChatRoomParticipants),
+          "GET",
+          "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/participants",
+          "Get Bank Chat Room Participants",
+          s"""Get all participants of a chat room. The current user must be a participant.
+          |
+          |Authentication is Required
+          |
+          |""".stripMargin,
+          EmptyBody,
+          ParticipantsJsonV600(participants = List(ParticipantJsonV600(
+            participant_id = "participant-id-123",
+            chat_room_id = "chat-room-id-123",
+            user_id = "user-id-123",
+            username = "robert.x.0.gh",
+            provider = "https://github.com",
+            consumer_id = "",
+            consumer_name = "",
+            permissions = List("can_update_room", "can_delete_message"),
+            webhook_url = "",
+            joined_at = new java.util.Date(),
+            last_read_at = new java.util.Date(),
+            is_muted = false
+          ))),
+          List($AuthenticatedUserIsRequired, $BankNotFound,
+          ChatRoomNotFound, NotChatRoomParticipant, UnknownError),
+          apiTagChat :: Nil,
+          None,
+          http4sPartialFunction = Some(getBankChatRoomParticipants)
+        )
+        resourceDocs += ResourceDoc(
+          null,
+          implementedInApiVersion,
+          nameOf(getSystemChatRoomParticipants),
+          "GET",
+          "/chat-rooms/CHAT_ROOM_ID/participants",
+          "Get System Chat Room Participants",
+          s"""Get all participants of a system-level chat room. The current user must be a participant.
+          |
+          |Authentication is Required
+          |
+          |""".stripMargin,
+          EmptyBody,
+          ParticipantsJsonV600(participants = List(ParticipantJsonV600(
+            participant_id = "participant-id-123",
+            chat_room_id = "chat-room-id-123",
+            user_id = "user-id-123",
+            username = "robert.x.0.gh",
+            provider = "https://github.com",
+            consumer_id = "",
+            consumer_name = "",
+            permissions = List("can_update_room", "can_delete_message"),
+            webhook_url = "",
+            joined_at = new java.util.Date(),
+            last_read_at = new java.util.Date(),
+            is_muted = false
+          ))),
+          List($AuthenticatedUserIsRequired, ChatRoomNotFound, NotChatRoomParticipant, UnknownError),
+          apiTagChat :: Nil,
+          None,
+          http4sPartialFunction = Some(getSystemChatRoomParticipants)
+        )
+        resourceDocs += ResourceDoc(
+          null,
+          implementedInApiVersion,
+          nameOf(updateBankParticipantPermissions),
+          "PUT",
+          "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/participants/USER_ID",
+          "Update Bank Chat Room Participant Permissions",
+          s"""Update the permissions of a participant. Requires can_manage_permissions permission.
+          |
+          |Authentication is Required
+          |
+          |""".stripMargin,
+          PutParticipantPermissionsJsonV600(permissions = List("can_delete_message", "can_update_room")),
+          ParticipantJsonV600(
+            participant_id = "participant-id-456",
+            chat_room_id = "chat-room-id-123",
+            user_id = "user-id-456",
+            username = "ellie.y.1.gh",
+            provider = "https://github.com",
+            consumer_id = "",
+            consumer_name = "",
+            permissions = List("can_delete_message", "can_update_room"),
+            webhook_url = "",
+            joined_at = new java.util.Date(),
+            last_read_at = new java.util.Date(),
+            is_muted = false
+          ),
+          List($AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat,
+          ChatRoomNotFound, InsufficientChatPermission, ChatRoomParticipantNotFound, UnknownError),
+          apiTagChat :: Nil,
+          None,
+          http4sPartialFunction = Some(updateBankParticipantPermissions)
+        )
+        resourceDocs += ResourceDoc(
+          null,
+          implementedInApiVersion,
+          nameOf(updateSystemParticipantPermissions),
+          "PUT",
+          "/chat-rooms/CHAT_ROOM_ID/participants/USER_ID",
+          "Update System Chat Room Participant Permissions",
+          s"""Update the permissions of a participant in a system-level chat room. Requires can_manage_permissions permission.
+          |
+          |Authentication is Required
+          |
+          |""".stripMargin,
+          PutParticipantPermissionsJsonV600(permissions = List("can_delete_message", "can_update_room")),
+          ParticipantJsonV600(
+            participant_id = "participant-id-456",
+            chat_room_id = "chat-room-id-123",
+            user_id = "user-id-456",
+            username = "ellie.y.1.gh",
+            provider = "https://github.com",
+            consumer_id = "",
+            consumer_name = "",
+            permissions = List("can_delete_message", "can_update_room"),
+            webhook_url = "",
+            joined_at = new java.util.Date(),
+            last_read_at = new java.util.Date(),
+            is_muted = false
+          ),
+          List($AuthenticatedUserIsRequired, InvalidJsonFormat,
+          ChatRoomNotFound, InsufficientChatPermission, ChatRoomParticipantNotFound, UnknownError),
+          apiTagChat :: Nil,
+          None,
+          http4sPartialFunction = Some(updateSystemParticipantPermissions)
+        )
+        resourceDocs += ResourceDoc(
+          null,
+          implementedInApiVersion,
+          nameOf(removeBankChatRoomParticipant),
+          "DELETE",
+          "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/participants/USER_ID",
+          "Remove Bank Chat Room Participant",
+          s"""Remove a participant from a chat room. Requires can_remove_participant permission, or the user can remove themselves.
+          |
+          |Authentication is Required
+          |
+          |""".stripMargin,
+          EmptyBody,
+          EmptyBody,
+          List($AuthenticatedUserIsRequired, $BankNotFound,
+          ChatRoomNotFound, InsufficientChatPermission, ChatRoomParticipantNotFound, UnknownError),
+          apiTagChat :: Nil,
+          None,
+          http4sPartialFunction = Some(removeBankChatRoomParticipant)
+        )
+        resourceDocs += ResourceDoc(
+          null,
+          implementedInApiVersion,
+          nameOf(removeSystemChatRoomParticipant),
+          "DELETE",
+          "/chat-rooms/CHAT_ROOM_ID/participants/USER_ID",
+          "Remove System Chat Room Participant",
+          s"""Remove a participant from a system-level chat room. Requires can_remove_participant permission, or the user can remove themselves.
+          |
+          |Authentication is Required
+          |
+          |""".stripMargin,
+          EmptyBody,
+          EmptyBody,
+          List($AuthenticatedUserIsRequired, ChatRoomNotFound,
+          InsufficientChatPermission, ChatRoomParticipantNotFound, UnknownError),
+          apiTagChat :: Nil,
+          None,
+          http4sPartialFunction = Some(removeSystemChatRoomParticipant)
+        )
+        resourceDocs += ResourceDoc(
+          null,
+          implementedInApiVersion,
+          nameOf(sendBankChatMessage),
+          "POST",
+          "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/messages",
+          "Send Bank Chat Message",
+          s"""Send a message in a chat room. The current user must be a participant and the room must not be archived.
+          |
+          |Authentication is Required
+          |
+          |""".stripMargin,
+          PostChatMessageJsonV600(content = "Hello everyone!", message_type = Some("text"), mentioned_user_ids = None, reply_to_message_id = None, thread_id = None),
+          ChatMessageJsonV600(
+            chat_message_id = "msg-id-123",
+            chat_room_id = "chat-room-id-123",
+            sender_user_id = "user-id-123",
+            sender_consumer_id = "",
+            sender_username = "robert.x.0.gh",
+            sender_provider = "https://github.com",
+            sender_consumer_name = "My Banking App",
+            content = "Hello everyone!",
+            message_type = "text",
+            mentioned_user_ids = List(),
+            reply_to_message_id = "",
+            thread_id = "",
+            is_deleted = false,
+            created_at = new java.util.Date(),
+            updated_at = new java.util.Date(),
+            reactions = List()
+          ),
+          List($AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat,
+          ChatRoomNotFound, NotChatRoomParticipant, ChatRoomIsArchived, UnknownError),
+          apiTagChat :: Nil,
+          None,
+          http4sPartialFunction = Some(sendBankChatMessage)
+        )
+        resourceDocs += ResourceDoc(
+          null,
+          implementedInApiVersion,
+          nameOf(sendSystemChatMessage),
+          "POST",
+          "/chat-rooms/CHAT_ROOM_ID/messages",
+          "Send System Chat Message",
+          s"""Send a message in a system-level chat room. The current user must be a participant and the room must not be archived.
+          |
+          |Authentication is Required
+          |
+          |""".stripMargin,
+          PostChatMessageJsonV600(content = "Hello everyone!", message_type = Some("text"), mentioned_user_ids = None, reply_to_message_id = None, thread_id = None),
+          ChatMessageJsonV600(
+            chat_message_id = "msg-id-123",
+            chat_room_id = "chat-room-id-123",
+            sender_user_id = "user-id-123",
+            sender_consumer_id = "",
+            sender_username = "robert.x.0.gh",
+            sender_provider = "https://github.com",
+            sender_consumer_name = "My Banking App",
+            content = "Hello everyone!",
+            message_type = "text",
+            mentioned_user_ids = List(),
+            reply_to_message_id = "",
+            thread_id = "",
+            is_deleted = false,
+            created_at = new java.util.Date(),
+            updated_at = new java.util.Date(),
+            reactions = List()
+          ),
+          List($AuthenticatedUserIsRequired, InvalidJsonFormat,
+          ChatRoomNotFound, NotChatRoomParticipant, ChatRoomIsArchived, UnknownError),
+          apiTagChat :: Nil,
+          None,
+          http4sPartialFunction = Some(sendSystemChatMessage)
+        )
+        resourceDocs += ResourceDoc(
+          null,
+          implementedInApiVersion,
+          nameOf(getBankChatMessages),
+          "GET",
+          "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/messages",
+          "Get Bank Chat Messages",
+          s"""Get messages in a chat room.
+          |
+          |${getObpApiRoot}/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/messages?limit=50&offset=0&from_date=$DateWithMsExampleString&to_date=$DateWithMsExampleString
+          |
+          |The current user must be a participant.
+          |
+          |Authentication is Required
+          |
+          |""".stripMargin,
+          EmptyBody,
+          ChatMessagesJsonV600(messages = List(ChatMessageJsonV600(
+            chat_message_id = "msg-id-123",
+            chat_room_id = "chat-room-id-123",
+            sender_user_id = "user-id-123",
+            sender_consumer_id = "",
+            sender_username = "robert.x.0.gh",
+            sender_provider = "https://github.com",
+            sender_consumer_name = "My Banking App",
+            content = "Hello everyone!",
+            message_type = "text",
+            mentioned_user_ids = List(),
+            reply_to_message_id = "",
+            thread_id = "",
+            is_deleted = false,
+            created_at = new java.util.Date(),
+            updated_at = new java.util.Date(),
+            reactions = List(ReactionSummaryJsonV600(emoji = "thumbsup", count = 2, user_ids = List("user-1", "user-2")))
+          ))),
+          List($AuthenticatedUserIsRequired, $BankNotFound,
+          ChatRoomNotFound, NotChatRoomParticipant, UnknownError),
+          apiTagChat :: Nil,
+          None,
+          http4sPartialFunction = Some(getBankChatMessages)
+        )
+        resourceDocs += ResourceDoc(
+          null,
+          implementedInApiVersion,
+          nameOf(getSystemChatMessages),
+          "GET",
+          "/chat-rooms/CHAT_ROOM_ID/messages",
+          "Get System Chat Messages",
+          s"""Get messages in a system-level chat room.
+          |
+          |${getObpApiRoot}/chat-rooms/CHAT_ROOM_ID/messages?limit=50&offset=0&from_date=$DateWithMsExampleString&to_date=$DateWithMsExampleString
+          |
+          |The current user must be a participant.
+          |
+          |Authentication is Required
+          |
+          |""".stripMargin,
+          EmptyBody,
+          ChatMessagesJsonV600(messages = List(ChatMessageJsonV600(
+            chat_message_id = "msg-id-123",
+            chat_room_id = "chat-room-id-123",
+            sender_user_id = "user-id-123",
+            sender_consumer_id = "",
+            sender_username = "robert.x.0.gh",
+            sender_provider = "https://github.com",
+            sender_consumer_name = "My Banking App",
+            content = "Hello everyone!",
+            message_type = "text",
+            mentioned_user_ids = List(),
+            reply_to_message_id = "",
+            thread_id = "",
+            is_deleted = false,
+            created_at = new java.util.Date(),
+            updated_at = new java.util.Date(),
+            reactions = List(ReactionSummaryJsonV600(emoji = "thumbsup", count = 2, user_ids = List("user-1", "user-2")))
+          ))),
+          List($AuthenticatedUserIsRequired,
+          ChatRoomNotFound, NotChatRoomParticipant, UnknownError),
+          apiTagChat :: Nil,
+          None,
+          http4sPartialFunction = Some(getSystemChatMessages)
+        )
+        resourceDocs += ResourceDoc(
+          null,
+          implementedInApiVersion,
+          nameOf(getBankChatMessage),
+          "GET",
+          "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/messages/CHAT_MESSAGE_ID",
+          "Get Bank Chat Message",
+          s"""Get a specific message by ID. The current user must be a participant.
+          |
+          |Authentication is Required
+          |
+          |""".stripMargin,
+          EmptyBody,
+          ChatMessageJsonV600(
+            chat_message_id = "msg-id-123",
+            chat_room_id = "chat-room-id-123",
+            sender_user_id = "user-id-123",
+            sender_consumer_id = "",
+            sender_username = "robert.x.0.gh",
+            sender_provider = "https://github.com",
+            sender_consumer_name = "My Banking App",
+            content = "Hello everyone!",
+            message_type = "text",
+            mentioned_user_ids = List(),
+            reply_to_message_id = "",
+            thread_id = "",
+            is_deleted = false,
+            created_at = new java.util.Date(),
+            updated_at = new java.util.Date(),
+            reactions = List()
+          ),
+          List($AuthenticatedUserIsRequired, $BankNotFound,
+          ChatRoomNotFound, NotChatRoomParticipant, ChatMessageNotFound, UnknownError),
+          apiTagChat :: Nil,
+          None,
+          http4sPartialFunction = Some(getBankChatMessage)
+        )
+        resourceDocs += ResourceDoc(
+          null,
+          implementedInApiVersion,
+          nameOf(getSystemChatMessage),
+          "GET",
+          "/chat-rooms/CHAT_ROOM_ID/messages/CHAT_MESSAGE_ID",
+          "Get System Chat Message",
+          s"""Get a specific message by ID in a system-level chat room. The current user must be a participant.
+          |
+          |Authentication is Required
+          |
+          |""".stripMargin,
+          EmptyBody,
+          ChatMessageJsonV600(
+            chat_message_id = "msg-id-123",
+            chat_room_id = "chat-room-id-123",
+            sender_user_id = "user-id-123",
+            sender_consumer_id = "",
+            sender_username = "robert.x.0.gh",
+            sender_provider = "https://github.com",
+            sender_consumer_name = "My Banking App",
+            content = "Hello everyone!",
+            message_type = "text",
+            mentioned_user_ids = List(),
+            reply_to_message_id = "",
+            thread_id = "",
+            is_deleted = false,
+            created_at = new java.util.Date(),
+            updated_at = new java.util.Date(),
+            reactions = List()
+          ),
+          List($AuthenticatedUserIsRequired,
+          ChatRoomNotFound, NotChatRoomParticipant, ChatMessageNotFound, UnknownError),
+          apiTagChat :: Nil,
+          None,
+          http4sPartialFunction = Some(getSystemChatMessage)
+        )
+        resourceDocs += ResourceDoc(
+          null,
+          implementedInApiVersion,
+          nameOf(editBankChatMessage),
+          "PUT",
+          "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/messages/CHAT_MESSAGE_ID",
+          "Edit Bank Chat Message",
+          s"""Edit a message. Only the sender can edit their own messages.
+          |
+          |Authentication is Required
+          |
+          |""".stripMargin,
+          PutChatMessageJsonV600(content = "Updated message content"),
+          ChatMessageJsonV600(
+            chat_message_id = "msg-id-123",
+            chat_room_id = "chat-room-id-123",
+            sender_user_id = "user-id-123",
+            sender_consumer_id = "",
+            sender_username = "robert.x.0.gh",
+            sender_provider = "https://github.com",
+            sender_consumer_name = "My Banking App",
+            content = "Updated message content",
+            message_type = "text",
+            mentioned_user_ids = List(),
+            reply_to_message_id = "",
+            thread_id = "",
+            is_deleted = false,
+            created_at = new java.util.Date(),
+            updated_at = new java.util.Date(),
+            reactions = List()
+          ),
+          List($AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat,
+          ChatRoomNotFound, NotChatRoomParticipant, ChatMessageNotFound,
+          CannotEditOthersMessage, UnknownError),
+          apiTagChat :: Nil,
+          None,
+          http4sPartialFunction = Some(editBankChatMessage)
+        )
+        resourceDocs += ResourceDoc(
+          null,
+          implementedInApiVersion,
+          nameOf(editSystemChatMessage),
+          "PUT",
+          "/chat-rooms/CHAT_ROOM_ID/messages/CHAT_MESSAGE_ID",
+          "Edit System Chat Message",
+          s"""Edit a message in a system-level chat room. Only the sender can edit their own messages.
+          |
+          |Authentication is Required
+          |
+          |""".stripMargin,
+          PutChatMessageJsonV600(content = "Updated message content"),
+          ChatMessageJsonV600(
+            chat_message_id = "msg-id-123",
+            chat_room_id = "chat-room-id-123",
+            sender_user_id = "user-id-123",
+            sender_consumer_id = "",
+            sender_username = "robert.x.0.gh",
+            sender_provider = "https://github.com",
+            sender_consumer_name = "My Banking App",
+            content = "Updated message content",
+            message_type = "text",
+            mentioned_user_ids = List(),
+            reply_to_message_id = "",
+            thread_id = "",
+            is_deleted = false,
+            created_at = new java.util.Date(),
+            updated_at = new java.util.Date(),
+            reactions = List()
+          ),
+          List($AuthenticatedUserIsRequired, InvalidJsonFormat,
+          ChatRoomNotFound, NotChatRoomParticipant, ChatMessageNotFound,
+          CannotEditOthersMessage, UnknownError),
+          apiTagChat :: Nil,
+          None,
+          http4sPartialFunction = Some(editSystemChatMessage)
+        )
+        resourceDocs += ResourceDoc(
+          null,
+          implementedInApiVersion,
+          nameOf(deleteBankChatMessage),
+          "DELETE",
+          "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/messages/CHAT_MESSAGE_ID",
+          "Delete Bank Chat Message",
+          s"""Soft-delete a message. The sender can delete their own messages, or a participant with can_delete_message permission can delete any message.
+          |
+          |Authentication is Required
+          |
+          |""".stripMargin,
+          EmptyBody,
+          EmptyBody,
+          List($AuthenticatedUserIsRequired, $BankNotFound,
+          ChatRoomNotFound, NotChatRoomParticipant, ChatMessageNotFound,
+          CannotDeleteMessage, UnknownError),
+          apiTagChat :: Nil,
+          None,
+          http4sPartialFunction = Some(deleteBankChatMessage)
+        )
+        resourceDocs += ResourceDoc(
+          null,
+          implementedInApiVersion,
+          nameOf(deleteSystemChatMessage),
+          "DELETE",
+          "/chat-rooms/CHAT_ROOM_ID/messages/CHAT_MESSAGE_ID",
+          "Delete System Chat Message",
+          s"""Soft-delete a message in a system-level chat room. The sender can delete their own messages, or a participant with can_delete_message permission can delete any message.
+          |
+          |Authentication is Required
+          |
+          |""".stripMargin,
+          EmptyBody,
+          EmptyBody,
+          List($AuthenticatedUserIsRequired,
+          ChatRoomNotFound, NotChatRoomParticipant, ChatMessageNotFound,
+          CannotDeleteMessage, UnknownError),
+          apiTagChat :: Nil,
+          None,
+          http4sPartialFunction = Some(deleteSystemChatMessage)
+        )
+        resourceDocs += ResourceDoc(
+          null,
+          implementedInApiVersion,
+          nameOf(getBankThreadReplies),
+          "GET",
+          "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/messages/CHAT_MESSAGE_ID/thread",
+          "Get Bank Thread Replies",
+          s"""Get all replies in a message thread. The current user must be a participant.
+          |
+          |Authentication is Required
+          |
+          |""".stripMargin,
+          EmptyBody,
+          ChatMessagesJsonV600(messages = List(ChatMessageJsonV600(
+            chat_message_id = "reply-id-123",
+            chat_room_id = "chat-room-id-123",
+            sender_user_id = "user-id-456",
+            sender_consumer_id = "",
+            sender_username = "robert.x.0.gh",
+            sender_provider = "https://github.com",
+            sender_consumer_name = "My Banking App",
+            content = "This is a reply",
+            message_type = "text",
+            mentioned_user_ids = List(),
+            reply_to_message_id = "",
+            thread_id = "msg-id-123",
+            is_deleted = false,
+            created_at = new java.util.Date(),
+            updated_at = new java.util.Date(),
+            reactions = List()
+          ))),
+          List($AuthenticatedUserIsRequired, $BankNotFound,
+          ChatRoomNotFound, NotChatRoomParticipant, ChatMessageNotFound, UnknownError),
+          apiTagChat :: Nil,
+          None,
+          http4sPartialFunction = Some(getBankThreadReplies)
+        )
+        resourceDocs += ResourceDoc(
+          null,
+          implementedInApiVersion,
+          nameOf(getSystemThreadReplies),
+          "GET",
+          "/chat-rooms/CHAT_ROOM_ID/messages/CHAT_MESSAGE_ID/thread",
+          "Get System Thread Replies",
+          s"""Get all replies in a message thread in a system-level chat room. The current user must be a participant.
+          |
+          |Authentication is Required
+          |
+          |""".stripMargin,
+          EmptyBody,
+          ChatMessagesJsonV600(messages = List(ChatMessageJsonV600(
+            chat_message_id = "reply-id-123",
+            chat_room_id = "chat-room-id-123",
+            sender_user_id = "user-id-456",
+            sender_consumer_id = "",
+            sender_username = "robert.x.0.gh",
+            sender_provider = "https://github.com",
+            sender_consumer_name = "My Banking App",
+            content = "This is a reply",
+            message_type = "text",
+            mentioned_user_ids = List(),
+            reply_to_message_id = "",
+            thread_id = "msg-id-123",
+            is_deleted = false,
+            created_at = new java.util.Date(),
+            updated_at = new java.util.Date(),
+            reactions = List()
+          ))),
+          List($AuthenticatedUserIsRequired,
+          ChatRoomNotFound, NotChatRoomParticipant, ChatMessageNotFound, UnknownError),
+          apiTagChat :: Nil,
+          None,
+          http4sPartialFunction = Some(getSystemThreadReplies)
+        )
+        resourceDocs += ResourceDoc(
+          null,
+          implementedInApiVersion,
+          nameOf(replyInBankThread),
+          "POST",
+          "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/messages/CHAT_MESSAGE_ID/thread",
+          "Reply In Bank Thread",
+          s"""Reply to a message in a thread. The current user must be a participant and the room must not be archived.
+          |
+          |Authentication is Required
+          |
+          |""".stripMargin,
+          PostChatMessageJsonV600(content = "This is a thread reply", message_type = Some("text"), mentioned_user_ids = None, reply_to_message_id = None, thread_id = None),
+          ChatMessageJsonV600(
+            chat_message_id = "reply-id-456",
+            chat_room_id = "chat-room-id-123",
+            sender_user_id = "user-id-123",
+            sender_consumer_id = "",
+            sender_username = "robert.x.0.gh",
+            sender_provider = "https://github.com",
+            sender_consumer_name = "My Banking App",
+            content = "This is a thread reply",
+            message_type = "text",
+            mentioned_user_ids = List(),
+            reply_to_message_id = "",
+            thread_id = "msg-id-123",
+            is_deleted = false,
+            created_at = new java.util.Date(),
+            updated_at = new java.util.Date(),
+            reactions = List()
+          ),
+          List($AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat,
+          ChatRoomNotFound, NotChatRoomParticipant, ChatRoomIsArchived, ChatMessageNotFound, UnknownError),
+          apiTagChat :: Nil,
+          None,
+          http4sPartialFunction = Some(replyInBankThread)
+        )
+        resourceDocs += ResourceDoc(
+          null,
+          implementedInApiVersion,
+          nameOf(replyInSystemThread),
+          "POST",
+          "/chat-rooms/CHAT_ROOM_ID/messages/CHAT_MESSAGE_ID/thread",
+          "Reply In System Thread",
+          s"""Reply to a message in a thread in a system-level chat room. The current user must be a participant and the room must not be archived.
+          |
+          |Authentication is Required
+          |
+          |""".stripMargin,
+          PostChatMessageJsonV600(content = "This is a thread reply", message_type = Some("text"), mentioned_user_ids = None, reply_to_message_id = None, thread_id = None),
+          ChatMessageJsonV600(
+            chat_message_id = "reply-id-456",
+            chat_room_id = "chat-room-id-123",
+            sender_user_id = "user-id-123",
+            sender_consumer_id = "",
+            sender_username = "robert.x.0.gh",
+            sender_provider = "https://github.com",
+            sender_consumer_name = "My Banking App",
+            content = "This is a thread reply",
+            message_type = "text",
+            mentioned_user_ids = List(),
+            reply_to_message_id = "",
+            thread_id = "msg-id-123",
+            is_deleted = false,
+            created_at = new java.util.Date(),
+            updated_at = new java.util.Date(),
+            reactions = List()
+          ),
+          List($AuthenticatedUserIsRequired, InvalidJsonFormat,
+          ChatRoomNotFound, NotChatRoomParticipant, ChatRoomIsArchived, ChatMessageNotFound, UnknownError),
+          apiTagChat :: Nil,
+          None,
+          http4sPartialFunction = Some(replyInSystemThread)
+        )
+        resourceDocs += ResourceDoc(
+          null,
+          implementedInApiVersion,
+          nameOf(addBankReaction),
+          "POST",
+          "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/messages/CHAT_MESSAGE_ID/reactions",
+          "Add Bank Reaction",
+          s"""Add a reaction (emoji) to a message. The current user must be a participant.
+          |
+          |Authentication is Required
+          |
+          |""".stripMargin,
+          PostReactionJsonV600(emoji = "thumbsup"),
+          ReactionJsonV600(
+            reaction_id = "reaction-id-123",
+            chat_message_id = "msg-id-123",
+            user_id = "user-id-123",
+            username = "robert.x.0.gh",
+            provider = "https://github.com",
+            emoji = "thumbsup",
+            created_at = new java.util.Date()
+          ),
+          List($AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat,
+          ChatRoomNotFound, NotChatRoomParticipant, ChatMessageNotFound,
+          ReactionAlreadyExists, UnknownError),
+          apiTagChat :: Nil,
+          None,
+          http4sPartialFunction = Some(addBankReaction)
+        )
+        resourceDocs += ResourceDoc(
+          null,
+          implementedInApiVersion,
+          nameOf(addSystemReaction),
+          "POST",
+          "/chat-rooms/CHAT_ROOM_ID/messages/CHAT_MESSAGE_ID/reactions",
+          "Add System Reaction",
+          s"""Add a reaction (emoji) to a message in a system-level chat room. The current user must be a participant.
+          |
+          |Authentication is Required
+          |
+          |""".stripMargin,
+          PostReactionJsonV600(emoji = "thumbsup"),
+          ReactionJsonV600(
+            reaction_id = "reaction-id-123",
+            chat_message_id = "msg-id-123",
+            user_id = "user-id-123",
+            username = "robert.x.0.gh",
+            provider = "https://github.com",
+            emoji = "thumbsup",
+            created_at = new java.util.Date()
+          ),
+          List($AuthenticatedUserIsRequired, InvalidJsonFormat,
+          ChatRoomNotFound, NotChatRoomParticipant, ChatMessageNotFound,
+          ReactionAlreadyExists, UnknownError),
+          apiTagChat :: Nil,
+          None,
+          http4sPartialFunction = Some(addSystemReaction)
+        )
+        resourceDocs += ResourceDoc(
+          null,
+          implementedInApiVersion,
+          nameOf(removeBankReaction),
+          "DELETE",
+          "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/messages/CHAT_MESSAGE_ID/reactions/EMOJI_REACTION",
+          "Remove Bank Reaction",
+          s"""Remove your own reaction from a message.
+          |
+          |Authentication is Required
+          |
+          |""".stripMargin,
+          EmptyBody,
+          EmptyBody,
+          List($AuthenticatedUserIsRequired, $BankNotFound,
+          ChatRoomNotFound, NotChatRoomParticipant, ChatMessageNotFound,
+          ReactionNotFound, UnknownError),
+          apiTagChat :: Nil,
+          None,
+          http4sPartialFunction = Some(removeBankReaction)
+        )
+        resourceDocs += ResourceDoc(
+          null,
+          implementedInApiVersion,
+          nameOf(removeSystemReaction),
+          "DELETE",
+          "/chat-rooms/CHAT_ROOM_ID/messages/CHAT_MESSAGE_ID/reactions/EMOJI_REACTION",
+          "Remove System Reaction",
+          s"""Remove your own reaction from a message in a system-level chat room.
+          |
+          |Authentication is Required
+          |
+          |""".stripMargin,
+          EmptyBody,
+          EmptyBody,
+          List($AuthenticatedUserIsRequired,
+          ChatRoomNotFound, NotChatRoomParticipant, ChatMessageNotFound,
+          ReactionNotFound, UnknownError),
+          apiTagChat :: Nil,
+          None,
+          http4sPartialFunction = Some(removeSystemReaction)
+        )
+        resourceDocs += ResourceDoc(
+          null,
+          implementedInApiVersion,
+          nameOf(getBankReactions),
+          "GET",
+          "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/messages/CHAT_MESSAGE_ID/reactions",
+          "Get Bank Reactions",
+          s"""Get all reactions for a message. The current user must be a participant.
+          |
+          |Authentication is Required
+          |
+          |""".stripMargin,
+          EmptyBody,
+          ReactionsJsonV600(reactions = List(ReactionJsonV600(
+            reaction_id = "reaction-id-123",
+            chat_message_id = "msg-id-123",
+            user_id = "user-id-123",
+            username = "robert.x.0.gh",
+            provider = "https://github.com",
+            emoji = "thumbsup",
+            created_at = new java.util.Date()
+          ))),
+          List($AuthenticatedUserIsRequired, $BankNotFound,
+          ChatRoomNotFound, NotChatRoomParticipant, ChatMessageNotFound, UnknownError),
+          apiTagChat :: Nil,
+          None,
+          http4sPartialFunction = Some(getBankReactions)
+        )
+    }
+
+    private def registerBatch6(): Unit = {
+        resourceDocs += ResourceDoc(
+          null,
+          implementedInApiVersion,
+          nameOf(getSystemReactions),
+          "GET",
+          "/chat-rooms/CHAT_ROOM_ID/messages/CHAT_MESSAGE_ID/reactions",
+          "Get System Reactions",
+          s"""Get all reactions for a message in a system-level chat room. The current user must be a participant.
+          |
+          |Authentication is Required
+          |
+          |""".stripMargin,
+          EmptyBody,
+          ReactionsJsonV600(reactions = List(ReactionJsonV600(
+            reaction_id = "reaction-id-123",
+            chat_message_id = "msg-id-123",
+            user_id = "user-id-123",
+            username = "robert.x.0.gh",
+            provider = "https://github.com",
+            emoji = "thumbsup",
+            created_at = new java.util.Date()
+          ))),
+          List($AuthenticatedUserIsRequired,
+          ChatRoomNotFound, NotChatRoomParticipant, ChatMessageNotFound, UnknownError),
+          apiTagChat :: Nil,
+          None,
+          http4sPartialFunction = Some(getSystemReactions)
+        )
+        resourceDocs += ResourceDoc(
+          null,
+          implementedInApiVersion,
+          nameOf(signalBankTyping),
+          "PUT",
+          "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/typing-indicators",
+          "Signal Bank Typing",
+          s"""Signal that the current user is typing in a chat room. The typing indicator expires after 5 seconds.
+          |
+          |Authentication is Required
+          |
+          |""".stripMargin,
+          EmptyBody,
+          EmptyBody,
+          List($AuthenticatedUserIsRequired, $BankNotFound,
+          ChatRoomNotFound, NotChatRoomParticipant, UnknownError),
+          apiTagChat :: Nil,
+          None,
+          http4sPartialFunction = Some(signalBankTyping)
+        )
+        resourceDocs += ResourceDoc(
+          null,
+          implementedInApiVersion,
+          nameOf(signalSystemTyping),
+          "PUT",
+          "/chat-rooms/CHAT_ROOM_ID/typing-indicators",
+          "Signal System Typing",
+          s"""Signal that the current user is typing in a system-level chat room. The typing indicator expires after 5 seconds.
+          |
+          |Authentication is Required
+          |
+          |""".stripMargin,
+          EmptyBody,
+          EmptyBody,
+          List($AuthenticatedUserIsRequired,
+          ChatRoomNotFound, NotChatRoomParticipant, UnknownError),
+          apiTagChat :: Nil,
+          None,
+          http4sPartialFunction = Some(signalSystemTyping)
+        )
+        resourceDocs += ResourceDoc(
+          null,
+          implementedInApiVersion,
+          nameOf(getBankTypingUsers),
+          "GET",
+          "/banks/BANK_ID/chat-rooms/CHAT_ROOM_ID/typing-indicators",
+          "Get Bank Typing Users",
+          s"""Get the list of users currently typing in a chat room.
+          |
+          |Authentication is Required
+          |
+          |""".stripMargin,
+          EmptyBody,
+          TypingUsersJsonV600(users = List(TypingUserJsonV600(user_id = "user-id-123", username = "robert.x.0.gh", provider = "https://github.com"))),
+          List($AuthenticatedUserIsRequired, $BankNotFound,
+          ChatRoomNotFound, NotChatRoomParticipant, UnknownError),
+          apiTagChat :: Nil,
+          None,
+          http4sPartialFunction = Some(getBankTypingUsers)
+        )
+        resourceDocs += ResourceDoc(
+          null,
+          implementedInApiVersion,
+          nameOf(getSystemTypingUsers),
+          "GET",
+          "/chat-rooms/CHAT_ROOM_ID/typing-indicators",
+          "Get System Typing Users",
+          s"""Get the list of users currently typing in a system-level chat room.
+          |
+          |Authentication is Required
+          |
+          |""".stripMargin,
+          EmptyBody,
+          TypingUsersJsonV600(users = List(TypingUserJsonV600(user_id = "user-id-123", username = "robert.x.0.gh", provider = "https://github.com"))),
+          List($AuthenticatedUserIsRequired,
+          ChatRoomNotFound, NotChatRoomParticipant, UnknownError),
+          apiTagChat :: Nil,
+          None,
+          http4sPartialFunction = Some(getSystemTypingUsers)
+        )
+        resourceDocs += ResourceDoc(
+          null,
+          implementedInApiVersion,
+          nameOf(createSignatoryPanel),
+          "POST",
+          "/banks/BANK_ID/mandates/MANDATE_ID/signatory-panels",
+          "Create Signatory Panel",
+          s"""Create a new signatory panel for a mandate.
+          |
+          |A signatory panel is a named set of authorised signatories (users) that can be
+          |referenced by mandate provisions. For example, "Panel A - Directors" and "Panel B - Finance".
+          |
+          |Provision rules then reference panels, e.g., "1 from Panel A and 1 from Panel B".
+          |
+          |Authentication is Required
+          |""",
+          CreateSignatoryPanelJsonV600(
+            panel_name = "Panel A - Directors",
+            description = "Board directors authorised to sign",
+            user_ids = List("user-id-1", "user-id-2", "user-id-3")
+          ),
+          SignatoryPanelJsonV600(
+            panel_id = "panel-id-001",
+            mandate_id = "mandate-id-123",
+            panel_name = "Panel A - Directors",
+            description = "Board directors authorised to sign",
+            user_ids = List("user-id-1", "user-id-2", "user-id-3")
+          ),
+          List($AuthenticatedUserIsRequired, UserHasMissingRoles, $BankNotFound,
+          InvalidJsonFormat, UnknownError),
+          apiTagMandate :: Nil,
+          Some(canCreateSignatoryPanel :: Nil),
+          http4sPartialFunction = Some(createSignatoryPanel)
+        )
+        resourceDocs += ResourceDoc(
+          null,
+          implementedInApiVersion,
+          nameOf(getSignatoryPanels),
+          "GET",
+          "/banks/BANK_ID/mandates/MANDATE_ID/signatory-panels",
+          "Get Signatory Panels",
+          s"""Get all signatory panels for a mandate.
+          |
+          |Authentication is Required
+          |""",
+          EmptyBody,
+          SignatoryPanelsJsonV600(List(SignatoryPanelJsonV600(
+            panel_id = "panel-id-001",
+            mandate_id = "mandate-id-123",
+            panel_name = "Panel A - Directors",
+            description = "Board directors authorised to sign",
+            user_ids = List("user-id-1", "user-id-2", "user-id-3")
+          ))),
+          List($AuthenticatedUserIsRequired, UserHasMissingRoles, $BankNotFound, UnknownError),
+          apiTagMandate :: Nil,
+          Some(canGetSignatoryPanel :: Nil),
+          http4sPartialFunction = Some(getSignatoryPanels)
+        )
+        resourceDocs += ResourceDoc(
+          null,
+          implementedInApiVersion,
+          nameOf(getSignatoryPanel),
+          "GET",
+          "/banks/BANK_ID/mandates/MANDATE_ID/signatory-panels/PANEL_ID",
+          "Get Signatory Panel",
+          s"""Get a specific signatory panel by its ID.
+          |
+          |Authentication is Required
+          |""",
+          EmptyBody,
+          SignatoryPanelJsonV600(
+            panel_id = "panel-id-001",
+            mandate_id = "mandate-id-123",
+            panel_name = "Panel A - Directors",
+            description = "Board directors authorised to sign",
+            user_ids = List("user-id-1", "user-id-2", "user-id-3")
+          ),
+          List($AuthenticatedUserIsRequired, UserHasMissingRoles, $BankNotFound, UnknownError),
+          apiTagMandate :: Nil,
+          Some(canGetSignatoryPanel :: Nil),
+          http4sPartialFunction = Some(getSignatoryPanel)
+        )
+        resourceDocs += ResourceDoc(
+          null,
+          implementedInApiVersion,
+          nameOf(updateSignatoryPanel),
+          "PUT",
+          "/banks/BANK_ID/mandates/MANDATE_ID/signatory-panels/PANEL_ID",
+          "Update Signatory Panel",
+          s"""Update a signatory panel.
+          |
+          |Authentication is Required
+          |""",
+          UpdateSignatoryPanelJsonV600(
+            panel_name = "Panel A - Updated Directors",
+            description = "Updated board directors",
+            user_ids = List("user-id-1", "user-id-2", "user-id-4")
+          ),
+          SignatoryPanelJsonV600(
+            panel_id = "panel-id-001",
+            mandate_id = "mandate-id-123",
+            panel_name = "Panel A - Updated Directors",
+            description = "Updated board directors",
+            user_ids = List("user-id-1", "user-id-2", "user-id-4")
+          ),
+          List($AuthenticatedUserIsRequired, UserHasMissingRoles, $BankNotFound,
+          InvalidJsonFormat, UnknownError),
+          apiTagMandate :: Nil,
+          Some(canUpdateSignatoryPanel :: Nil),
+          http4sPartialFunction = Some(updateSignatoryPanel)
+        )
+        resourceDocs += ResourceDoc(
+          null,
+          implementedInApiVersion,
+          nameOf(deleteSignatoryPanel),
+          "DELETE",
+          "/banks/BANK_ID/mandates/MANDATE_ID/signatory-panels/PANEL_ID",
+          "Delete Signatory Panel",
+          s"""Delete a signatory panel.
+          |
+          |Authentication is Required
+          |""",
+          EmptyBody,
+          EmptyBody,
+          List($AuthenticatedUserIsRequired, UserHasMissingRoles, $BankNotFound, UnknownError),
+          apiTagMandate :: Nil,
+          Some(canDeleteSignatoryPanel :: Nil),
+          http4sPartialFunction = Some(deleteSignatoryPanel)
+        )
+        resourceDocs += ResourceDoc(
+          null,
+          implementedInApiVersion,
+          nameOf(validateUserEmail),
+          "POST",
+          "/users/email-validation",
+          "Validate User Email",
+          s"""Validate a user's email address using the JWT token sent via email.
+          |
+          |This is a self-service endpoint for users to confirm their email address as part of the sign-up process.
+          |
+          |When a user registers and email validation is enabled (authUser.skipEmailValidation=false),
+          |they receive an email containing a validation link with a signed JWT token.
+          |The user (or a client application) then calls this endpoint with that token to complete validation.
+          |
+          |This endpoint:
+          |- Verifies the JWT signature and checks expiry
+          |- Extracts the unique ID from the JWT subject
+          |- Sets the user's validated status to true
+          |- Resets the unique ID token (invalidating the link)
+          |- Grants default entitlements to the user
+          |
+          |**Important: This is a single-use token.** Once the email is validated, the token is invalidated.
+          |Any subsequent attempts to use the same token will return a 404 error (UserNotFoundByToken or UserAlreadyValidated).
+          |
+          |The token is a signed JWT with a configurable expiry (default: 1440 minutes / 24 hours).
+          |The server-side expiry can be configured with the `email_validation_token_expiry_minutes` property.
+          |
+          |For administrative validation (without an email token), see the Validate a User endpoint (PUT /management/users/USER_ID).
+          |
+          |${userAuthenticationMessage(false)}
+          |
+          |""".stripMargin,
+          JSONFactory600.ValidateUserEmailJsonV600(
+            token = "eyJhbGciOiJIUzI1NiJ9..."
+          ),
+          JSONFactory600.ValidateUserEmailResponseJsonV600(
+            user_id = "5995d6a2-01b3-423c-a173-5481df49bdaf",
+            email = "user@example.com",
+            username = "username",
+            provider = "https://localhost:8080",
+            validated = true,
+            message = "Email validated successfully"
+          ),
+          List(InvalidJsonFormat, UserNotFoundByToken, UserAlreadyValidated, UnknownError),
+          apiTagUser :: Nil,
+          None,
+          http4sPartialFunction = Some(validateUserEmail)
+        )
+        resourceDocs += ResourceDoc(
+          null,
+          implementedInApiVersion,
+          nameOf(resetPasswordComplete),
+          "POST",
+          "/users/password",
+          "Complete Password Reset",
+          s"""Complete a password reset using the token received via email.
+          |
+          |Authentication is NOT Required.
+          |
+          |After requesting a password reset email (via POST /management/user/reset-password-url or
+          |POST /users/password-reset-url), the user receives an email with a reset link containing a JWT token.
+          |
+          |This endpoint accepts that token along with a new password and completes the password reset.
+          |
+          |The token is a signed JWT with a configurable expiry (default: 120 minutes).
+          |Configure the expiry with the property: password_reset_token_expiry_minutes
+          |
+          |Required fields:
+          |- token: The JWT reset token from the password reset email
+          |- new_password: The new password (must meet strong password requirements)
+          |
+          |The token is single-use. Once the password is reset, the token is invalidated.
+          |
+          |""".stripMargin,
+          PostResetPasswordCompleteJsonV600(
+            "a1b2c3d4e5f67890abcdef1234567890",
+            "NewStr0ng!Password"
+          ),
+          ResetPasswordCompleteResponseJsonV600(
+            "Password has been reset successfully."
+          ),
+          List(InvalidJsonFormat, InvalidStrongPasswordFormat, UnknownError),
+          apiTagUser :: Nil,
+          None,
+          http4sPartialFunction = Some(resetPasswordComplete)
+        )
+        resourceDocs += ResourceDoc(
+          null,
+          implementedInApiVersion,
+          nameOf(resetPasswordUrlAnonymous),
+          "POST",
+          "/users/password-reset-url",
+          "Request Password Reset URL",
+          s"""Request a password reset email for a user. No authentication is required.
+          |
+          |Authentication is NOT Required.
+          |
+          |This endpoint is designed for users who have forgotten their password and cannot log in.
+          |
+          |Behavior:
+          |- Looks up the user by username and email
+          |- Generates a unique password reset token
+          |- Creates a reset URL using the portal_external_url property (falls back to API hostname)
+          |- Sends an email to the user with the reset link
+          |
+          |Required fields:
+          |- username: The user's username (typically email)
+          |- email: The user's email address (must match username)
+          |
+          |The user must exist and be validated before a reset email can be sent.
+          |
+          |Email configuration must be set up correctly for email delivery to work.
+          |
+          |Note: For security reasons, this endpoint returns a generic success message regardless of
+          |whether the user was found, to prevent user enumeration.
+          |
+          |""".stripMargin,
+          PostResetPasswordUrlAnonymousJsonV600(
+            "user@example.com",
+            "user@example.com"
+          ),
+          ResetPasswordUrlAnonymousResponseJsonV600(
+            "If the account exists, a password reset email has been sent."
+          ),
+          List(InvalidJsonFormat, UnknownError),
+          apiTagUser :: Nil,
+          None,
+          http4sPartialFunction = Some(resetPasswordUrlAnonymous)
+        )
+        resourceDocs += ResourceDoc(
+          null,
+          implementedInApiVersion,
+          nameOf(validateDynamicResourceDoc),
+          "POST",
+          "/management/dynamic-resource-docs/validate",
+          "Validate Dynamic Resource Doc",
+          s"""Dry-run validation of a Dynamic Resource Doc. Send the same payload you would send to `Create Dynamic Resource Doc` and this endpoint will:
+          |
+          |- Parse `method_body` (URL-decoded) as Scala code and run the ToolBox compiler against it, wrapped in the same template used at runtime (request/response case classes generated from `example_request_body` / `success_response_body`).
+          |- Run the OBP compilation-dependency guard (when the OBP prop `dynamic_code_compile_validate_enable` is set to `true`).
+          |
+          |Always returns HTTP 200. Inspect the `valid` field in the response:
+          |
+          |* `true`  — the Scala compiles and all referenced OBP methods are on the allowlist.
+          |* `false` — the response includes `error` (raw compiler / guard message), `message` (OBP error constant) and `details.error_type` — one of:
+          |  * `CompilationError` — `method_body` failed to compile.
+          |  * `DependencyError` — compiled, but references OBP types/methods that the admin has not allowed in `dynamic_code_compile_validate_dependencies`.
+          |  * `UnknownError` — any other unexpected exception.
+          |
+          |Nothing is persisted and no endpoint is served as a result of calling this.
+          |
+          |${userAuthenticationMessage(true)}
+          |""".stripMargin,
+          jsonDynamicResourceDoc.copy(dynamicResourceDocId = None),
+          ValidateDynamicResourceDocSuccessJsonV600(
+            valid = true,
+            message = "Dynamic Resource Doc method body is valid Scala and uses allowed dependencies."
+          ),
+          List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+          apiTagDynamicResourceDoc :: Nil,
+          Some(canCreateDynamicResourceDoc :: Nil),
+          http4sPartialFunction = Some(validateDynamicResourceDoc)
+        )
+        resourceDocs += ResourceDoc(
+          null,
+          implementedInApiVersion,
+          nameOf(createTransactionRequestHold),
+          "POST",
+          "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/HOLD/transaction-requests",
+          "Create Transaction Request (HOLD)",
+          s"""
+            |
+            |Create a transaction request to move funds from the account to its Holding Account.
+            |If the Holding Account does not exist, it will be created automatically.
+            |
+            |${transactionRequestGeneralText}
+            |
+          """.stripMargin,
+          transactionRequestBodyHoldJsonV600,
+          transactionRequestWithChargeJSON400,
+          txReqErrors,
+          txReqTags,
+          None,
+          http4sPartialFunction = Some(createTransactionRequestHold)
+        )
+        resourceDocs += ResourceDoc(
+          null,
+          implementedInApiVersion,
+          nameOf(createTransactionRequestCardano),
+          "POST",
+          "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/CARDANO/transaction-requests",
+          "Create Transaction Request (CARDANO)",
+          s"""
+            |
+            |For sandbox mode, it will use the Cardano Preprod Network.
+            |The accountId can be the wallet_id for now, as it uses cardano-wallet in the backend.
+            |
+            |${transactionRequestGeneralText}
+            |
+          """.stripMargin,
+          transactionRequestBodyCardanoJsonV600,
+          transactionRequestWithChargeJSON400,
+          txReqErrors,
+          txReqTags,
+          None,
+          http4sPartialFunction = Some(createTransactionRequestCardano)
+        )
+        resourceDocs += ResourceDoc(
+          null,
+          implementedInApiVersion,
+          nameOf(createTransactionRequestEthereumeSendTransaction),
+          "POST",
+          "/banks/BANK_ID/accounts/ACCOUNT_ID/owner/transaction-request-types/ETH_SEND_TRANSACTION/transaction-requests",
+          "Create Transaction Request (ETH_SEND_TRANSACTION)",
+          s"""
+            |
+            |Send ETH via Ethereum JSON-RPC.
+            |AccountId should hold the 0x address for now.
+            |
+            |${transactionRequestGeneralText}
+            |
+          """.stripMargin,
+          transactionRequestBodyEthereumJsonV600,
+          transactionRequestWithChargeJSON400,
+          txReqErrors,
+          txReqTags,
+          None,
+          http4sPartialFunction = Some(createTransactionRequestEthereumeSendTransaction)
+        )
+        resourceDocs += ResourceDoc(
+          null,
+          implementedInApiVersion,
+          nameOf(createTransactionRequestEthSendRawTransaction),
+          "POST",
+          "/banks/BANK_ID/accounts/ACCOUNT_ID/owner/transaction-request-types/ETH_SEND_RAW_TRANSACTION/transaction-requests",
+          "Create Transaction Request (ETH_SEND_RAW_TRANSACTION)",
+          s"""
+            |
+            |Send ETH via Ethereum JSON-RPC.
+            |AccountId should hold the 0x address for now.
+            |
+            |${transactionRequestGeneralText}
+            |
+          """.stripMargin,
+          transactionRequestBodyEthSendRawTransactionJsonV600,
+          transactionRequestWithChargeJSON400,
+          txReqErrors,
+          txReqTags,
+          None,
+          http4sPartialFunction = Some(createTransactionRequestEthSendRawTransaction)
+        )
+        resourceDocs += ResourceDoc(
+          null,
+          implementedInApiVersion,
+          nameOf(getUserGroupMemberships),
+          "GET",
+          "/users/USER_ID/group-entitlements",
+          "Get User Group Memberships",
+          s"""Get all groups a user is a member of.
+          |
+          |Returns groups where the user has entitlements with process = "GROUP_MEMBERSHIP".
+          |
+          |The response includes:
+          |- list_of_entitlements: entitlements the user currently has from this group membership
+          |
+          |Requires either:
+          |- CanGetUserGroupMembershipsAtAllBanks (for any user)
+          |- CanGetUserGroupMembershipsAtOneBank (for users at specific bank)
+          |
+          |${userAuthenticationMessage(true)}
+          |
+          |""".stripMargin,
+          EmptyBody,
+          UserGroupMembershipsJsonV600(
+            group_entitlements = List(
+              UserGroupMembershipJsonV600(
+                group_id = "group-id-123",
+                user_id = "user-id-123",
+                bank_id = Some("gh.29.uk"),
+                group_name = "Teller Group",
+                list_of_entitlements = List("CanGetCustomer", "CanGetAccount", "CanCreateTransaction")
+              )
+            )
+          ),
+          List($AuthenticatedUserIsRequired, UserHasMissingRoles, UserNotFoundByUserId, UnknownError),
+          apiTagGroup :: apiTagUser :: apiTagEntitlement :: Nil,
+          Some(canGetUserGroupMembershipsAtAllBanks :: canGetUserGroupMembershipsAtOneBank :: Nil),
+          http4sPartialFunction = Some(getUserGroupMemberships)
+        )
+        resourceDocs += ResourceDoc(
+          null,
+          implementedInApiVersion,
+          nameOf(getUsersWithAccountAccess),
+          "GET",
+          "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/users-with-access",
+          "Get Users With Account Access",
+          s"""Get all users who have access to a specific view on a specific account, and how that access was granted.
+          |
+          |This endpoint combines both traditional AccountAccess records and ABAC (Attribute-Based Access Control)
+          |evaluation to provide a complete picture of who can access the specified view.
+          |
+          |Each user entry includes an access_source indicating how access was granted
+          |(either "ACCOUNT_ACCESS" for direct grants or "ABAC" for rule-based access).
+          |
+          |Authentication is Required
+          |
+          |""".stripMargin,
+          EmptyBody,
+          UsersWithViewAccessJsonV600(
+            users = List(UserWithViewAccessJsonV600(
+              user_id = ExampleValue.userIdExample.value,
+              username = "robert.x.smith.test",
+              email = "robert.x@example.com",
+              provider = "https://apisandbox.openbankproject.com",
+              access_source = "ACCOUNT_ACCESS"
+            ))
+          ),
+          List($BankNotFound, $BankAccountNotFound, ViewNotFound, UnknownError),
+          apiTagAccount :: apiTagView :: Nil,
+          Some(canSeeAccountAccessForAnyUser :: Nil),
+          http4sPartialFunction = Some(getUsersWithAccountAccess)
+        )
+        resourceDocs += ResourceDoc(
+          null,
+          implementedInApiVersion,
+          nameOf(createRetailCustomer),
+          "POST",
+          "/banks/BANK_ID/retail-customers",
+          "Create Retail Customer",
+          s"""Create a retail (individual) customer.
+          |
+          |This endpoint is specifically for creating individual/retail customers.
+          |The customer_type will be automatically set to INDIVIDUAL.
+          |
+          |**Required Fields:**
+          |- legal_name: The customer's full legal name
+          |- mobile_phone_number: The customer's mobile phone number
+          |
+          |**Optional Fields:**
+          |- customer_number: If not provided, a random number will be generated
+          |- email, face_image, date_of_birth, relationship_status, dependants, dob_of_dependants
+          |- credit_rating, credit_limit, highest_education_attained, employment_status
+          |- kyc_status, last_ok_date, title, branch_id, name_suffix
+          |
+          |**Date Format:**
+          |date_of_birth and dob_of_dependants must be in ISO 8601 date format: **YYYY-MM-DD**
+          |
+          |**Validations:**
+          |- customer_number cannot contain `::::` characters
+          |- customer_number must be unique for the bank
+          |- The number of dependants must equal the length of the dob_of_dependants array
+          |
+          |Authentication is Required
+          |""",
+          postRetailCustomerJsonV600,
+          customerJsonV600,
+          List($AuthenticatedUserIsRequired, UserHasMissingRoles, $BankNotFound,
+          InvalidJsonFormat, InvalidJsonContent, UnknownError),
+          apiTagRetailCustomer :: apiTagCustomer :: Nil,
+          Some(canCreateCustomer :: canCreateCustomerAtAnyBank :: Nil),
+          http4sPartialFunction = Some(createRetailCustomer)
+        )
+        resourceDocs += ResourceDoc(
+          null,
+          implementedInApiVersion,
+          nameOf(createCorporateCustomer),
+          "POST",
+          "/banks/BANK_ID/corporate-customers",
+          "Create Corporate Customer",
+          s"""Create a corporate customer.
+          |
+          |This endpoint is specifically for creating corporate customers.
+          |Individual-oriented fields (relationship_status, dependants, highest_education_attained, employment_status, name_suffix, date_of_birth, face_image, title) are not available on this endpoint.
+          |
+          |**Required Fields:**
+          |- legal_name: The corporate entity's legal name
+          |- mobile_phone_number: The corporate entity's phone number
+          |
+          |**Optional Fields:**
+          |- customer_number: If not provided, a random number will be generated
+          |- email, credit_rating, credit_limit, kyc_status, last_ok_date, branch_id
+          |- customer_type: CORPORATE (default) or SUBSIDIARY
+          |- parent_customer_id: For SUBSIDIARY customers, the customer_id of the parent customer
+          |
+          |**Validations:**
+          |- customer_number cannot contain `::::` characters
+          |- customer_number must be unique for the bank
+          |- customer_type must be CORPORATE or SUBSIDIARY
+          |- parent_customer_id must reference an existing customer if provided
+          |
+          |Authentication is Required
+          |""",
+          postCorporateCustomerJsonV600,
+          customerJsonV600,
+          List($AuthenticatedUserIsRequired, UserHasMissingRoles, $BankNotFound,
+          InvalidJsonFormat, InvalidCustomerType, UnknownError),
+          apiTagCorporateCustomer :: apiTagCustomer :: Nil,
+          Some(canCreateCustomer :: canCreateCustomerAtAnyBank :: Nil),
+          http4sPartialFunction = Some(createCorporateCustomer)
+        )
+        resourceDocs += ResourceDoc(
+          null,
+          implementedInApiVersion,
+          nameOf(getUserByUserId),
+          "GET",
+          "/users/user-id/USER_ID",
+          "Get User By User Id",
+          s"""Get user by USER_ID
+             |
+             |${userAuthenticationMessage(true)}
+             |
+             |CanGetAnyUser entitlement is required,
+             |
+          """.stripMargin,
+          EmptyBody,
+          userInfoDetailJsonV600,
+          List($AuthenticatedUserIsRequired, UserHasMissingRoles, UserNotFoundByUserId, UnknownError),
+          apiTagUser :: Nil,
+          Some(canGetAnyUser :: Nil),
+          http4sPartialFunction = Some(getUserByUserId)
+        )
+        resourceDocs += ResourceDoc(
+          null,
+          implementedInApiVersion,
+          nameOf(directLoginEndpoint),
+          "POST",
+          "/my/logins/direct",
+          "Direct Login",
+          s"""DirectLogin is a simple authentication flow. You POST your credentials (username, password, and consumer key)
+          |to the DirectLogin endpoint and receive a token in return.
+          |
+          |This is an alias to the DirectLogin endpoint that includes the standard API versioning prefix.
+          |
+          |This endpoint requires the following header:
+          |
+          |    DirectLogin: username=YOUR_USERNAME, password=YOUR_PASSWORD, consumer_key=YOUR_CONSUMER_KEY
+          |
+          |Note: You can also use the Authorization header (Authorization: DirectLogin username=...) but the DirectLogin header is preferred.
+          |
+          |The token returned can then be used in subsequent API calls using the header:
+          |
+          |    DirectLogin: token=YOUR_TOKEN
+          |
+          |""".stripMargin,
+          EmptyBody,
+          JSONFactory600.createTokenJSON("eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczpcL1wvd3d3Lm9wZW5iYW5rcHJvamVjdC5jb20iLCJpYXQiOjE0NTU4OTQyNzYsImV4cCI6MTQ1NTg5Nzg3NiwiYXVkIjoib2JwLWFwaSIsInN1YiI6IjA2Zjc0YjUwLTA5OGYtNDYwNi1hOGNjLTBjNDc5MjAyNmI5ZCIsImNvbnN1bWVyX2tleSI6IjYwNGY3ZTAyNGQ5MWU2MzMwNGMzOGM0YzRmZjc0MjMwZGU5NDk4NTEwNjgxZWNjM2Q5MzViNWQ5MGEwOTI3ODciLCJyb2xlIjoiY2FuX2FjY2Vzc19hcGkifQ.f8xHvXP5fDxo5-LlfTj1OQS9oqHNZfFd7N-WkV2o4Cc"),
+          List(InvalidLoginCredentials, UsernameHasBeenLocked, UnknownError),
+          apiTagUser :: Nil,
+          None,
+          http4sPartialFunction = Some(directLoginEndpoint)
+        )
+        resourceDocs += ResourceDoc(
+          null,
+          implementedInApiVersion,
+          nameOf(validateAbacRule),
+          "POST",
+          "/management/abac-rules/validate",
+          "Validate ABAC Rule",
+          s"""Validate ABAC rule code syntax and structure without creating or executing the rule.
+          |
+          |This endpoint performs the following validations:
+          |- Parse the rule_code as a Scala expression
+          |- Validate syntax - check for parsing errors
+          |- Validate field references - check if referenced objects/fields exist
+          |- Check type consistency - verify the expression returns a Boolean
+          |
+          |**Available ABAC Context Objects:**
+          |- AuthenticatedUser - The user who is logged in
+          |- OnBehalfOfUser - Optional delegation user
+          |- User - Target user being evaluated
+          |- Bank, Account, View, Transaction, TransactionRequest, Customer
+          |- Attributes for each entity (e.g., userAttributes, accountAttributes)
+          |
+          |**Documentation:**
+          |- ${Glossary.getGlossaryItemLink("ABAC_Simple_Guide")} - Getting started with ABAC rules
+          |- ${Glossary.getGlossaryItemLink("ABAC_Parameters_Summary")} - Complete list of all 18 parameters
+          |- ${Glossary.getGlossaryItemLink("ABAC_Object_Properties_Reference")} - Detailed property reference
+          |
+          |This is a "dry-run" validation that does NOT save or execute the rule.
+          |
+          |${userAuthenticationMessage(true)}
+          |
+          |""".stripMargin,
+          ValidateAbacRuleJsonV600(
+            rule_code = """AuthenticatedUser.user_id == Account.owner_id"""
+          ),
+          ValidateAbacRuleSuccessJsonV600(
+            valid = true,
+            message = "ABAC rule code is valid"
+          ),
+          List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat,
+          AbacRuleCodeEmpty, UnknownError),
+          apiTagABAC :: Nil,
+          Some(canCreateAbacRule :: Nil),
+          http4sPartialFunction = Some(validateAbacRule)
+        )
+        resourceDocs += ResourceDoc(
+          null,
+          implementedInApiVersion,
+          nameOf(executeAbacRule),
+          "POST",
+          "/management/abac-rules/ABAC_RULE_ID/execute",
+          "Execute ABAC Rule",
+          s"""Execute an ABAC rule to test access control.
+          |
+          |This endpoint allows you to test an ABAC rule with specific context (authenticated user, bank, account, transaction, customer, etc.).
+          |
+          |**Documentation:**
+          |- ${Glossary.getGlossaryItemLink("ABAC_Simple_Guide")} - Getting started with ABAC rules
+          |- ${Glossary.getGlossaryItemLink("ABAC_Parameters_Summary")} - Complete list of all 18 parameters
+          |- ${Glossary.getGlossaryItemLink("ABAC_Object_Properties_Reference")} - Detailed property reference
+          |- ${Glossary.getGlossaryItemLink("ABAC_Testing_Examples")} - Testing examples and patterns
+          |
+          |You can provide optional IDs in the request body to test the rule with specific context.
+          |
+          |${userAuthenticationMessage(true)}
+          |
+          |""".stripMargin,
+          ExecuteAbacRuleJsonV600(
+            authenticated_user_id = Some("c7b6cb47-cb96-4441-8801-35b57456753a"),
+            on_behalf_of_user_id = Some("a3b5c123-1234-5678-9012-fedcba987654"),
+            user_id = Some("c7b6cb47-cb96-4441-8801-35b57456753a"),
+            bank_id = Some("gh.29.uk"),
+            account_id = Some("8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0"),
+            view_id = Some("owner"),
+            transaction_request_id = Some("123456"),
+            transaction_id = Some("abc123"),
+            customer_id = Some("customer-id-123")
+          ),
+          AbacRuleResultJsonV600(
+            result = true
+          ),
+          List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+          apiTagABAC :: Nil,
+          Some(canExecuteAbacRule :: Nil),
+          http4sPartialFunction = Some(executeAbacRule)
+        )
+        resourceDocs += ResourceDoc(
+          null,
+          implementedInApiVersion,
+          nameOf(executeAbacPolicy),
+          "POST",
+          "/management/abac-policies/POLICY/execute",
+          "Execute ABAC Policy",
+          s"""Execute all ABAC rules in a policy to test access control.
+          |
+          |This endpoint executes all active rules that belong to the specified policy.
+          |The policy uses OR logic - access is granted if at least one rule passes.
+          |
+          |This allows you to test a complete policy with specific context (authenticated user, bank, account, transaction, customer, etc.).
+          |
+          |**Documentation:**
+          |- ${Glossary.getGlossaryItemLink("ABAC_Simple_Guide")} - Getting started with ABAC rules
+          |- ${Glossary.getGlossaryItemLink("ABAC_Parameters_Summary")} - Complete list of all 18 parameters
+          |- ${Glossary.getGlossaryItemLink("ABAC_Object_Properties_Reference")} - Detailed property reference
+          |- ${Glossary.getGlossaryItemLink("ABAC_Testing_Examples")} - Testing examples and patterns
+          |
+          |You can provide optional IDs in the request body to test the policy with specific context.
+          |
+          |${userAuthenticationMessage(true)}
+          |
+          |""".stripMargin,
+          ExecuteAbacRuleJsonV600(
+            authenticated_user_id = Some("c7b6cb47-cb96-4441-8801-35b57456753a"),
+            on_behalf_of_user_id = Some("a3b5c123-1234-5678-9012-fedcba987654"),
+            user_id = Some("c7b6cb47-cb96-4441-8801-35b57456753a"),
+            bank_id = Some("gh.29.uk"),
+            account_id = Some("8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0"),
+            view_id = Some("owner"),
+            transaction_request_id = Some("123456"),
+            transaction_id = Some("abc123"),
+            customer_id = Some("customer-id-123")
+          ),
+          AbacRuleResultJsonV600(
+            result = true
+          ),
+          List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+          apiTagABAC :: Nil,
+          Some(canExecuteAbacRule :: Nil),
+          http4sPartialFunction = Some(executeAbacPolicy)
+        )
+        resourceDocs += ResourceDoc(
+          null,
+          implementedInApiVersion,
+          nameOf(getAbacRuleSchema),
+          "GET",
+          "/management/abac-rules-schema",
+          "Get ABAC Rule Schema",
+          s"""Get schema information about ABAC rule structure for building rule code.
+          |
+          |This endpoint returns schema information including:
+          |- All 18 parameters available in ABAC rules
+          |- Object types (User, Bank, Account, etc.) and their properties
+          |- Available operators and syntax
+          |- Example rules
+          |
+          |This schema information is useful for:
+          |- Building rule editors with auto-completion
+          |- Validating rule syntax in frontends
+          |- AI agents that help construct rules
+          |- Dynamic form builders
+          |
+          |${userAuthenticationMessage(true)}
+          |
+          |""".stripMargin,
+          EmptyBody,
+          AbacRuleSchemaJsonV600(
+            parameters = List(
+              AbacParameterJsonV600(
+                name = "authenticatedUser",
+                `type` = "User",
+                description = "The logged-in user (always present)",
+                required = true,
+                category = "User"
+              )
+            ),
+            object_types = List(
+              AbacObjectTypeJsonV600(
+                name = "User",
+                description = "User object with profile information",
+                properties = List(
+                  AbacObjectPropertyJsonV600(
+                    name = "userId",
+                    `type` = "String",
+                    description = "Unique user ID"
+                  )
+                )
+              )
+            ),
+            examples = List(
+              AbacRuleExampleJsonV600(
+                rule_name = "Check User Identity",
+                rule_code = "authenticatedUser.userId == user.userId",
+                description = "Verify that the authenticated user matches the target user",
+                policy = "user-access",
+                is_active = true
+              ),
+              AbacRuleExampleJsonV600(
+                rule_name = "Check Specific Bank",
+                rule_code = "bankOpt.isDefined && bankOpt.get.bankId.value == \"gh.29.uk\"",
+                policy = "bank-access",
+                description = "Verify that the bank context is defined and matches a specific bank ID",
+                is_active = true
+              )
+            ),
+            available_operators = List("==", "!=", "&&", "||", "!", ">", "<", ">=", "<=", "contains", "isDefined"),
+            notes = List(
+              "Only authenticatedUser is guaranteed to exist (not wrapped in Option)",
+              "All other objects are Option types - use isDefined or pattern matching",
+              "Attributes are Lists - use .find(), .exists(), .forall() etc."
+            )
+          ),
+          List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+          apiTagABAC :: Nil,
+          Some(canGetAbacRule :: Nil),
+          http4sPartialFunction = Some(getAbacRuleSchema)
+        )
+        resourceDocs += ResourceDoc(
+          null,
+          implementedInApiVersion,
+          nameOf(backupSystemDynamicEntity),
+          "POST",
+          "/management/system-dynamic-entities/DYNAMIC_ENTITY_ID/backup",
+          "Backup System Level Dynamic Entity",
+          s"""Create a backup copy of a system level DynamicEntity specified by DYNAMIC_ENTITY_ID.
+          |
+          |This endpoint creates a backup of the dynamic entity definition and all its data records.
+          |The backup entity will be named with a _BAK suffix (e.g. my_entity_BAK).
+          |If a backup with that name already exists, _BAK2, _BAK3 etc. will be used.
+          |
+          |The calling user will be granted CanGetDynamicEntity_`<BackupEntityName>` on the newly created backup entity.
+          |
+          |For more information see ${Glossary.getGlossaryItemLink("Dynamic-Entities")}
+          |
+          |Authentication is Required
+          |
+          |""",
+          EmptyBody,
+          DynamicEntityDefinitionJsonV600(
+            dynamic_entity_id = "abc-123-def",
+            entity_name = "my_entity_BAK",
+            user_id = "user-456",
+            bank_id = None,
+            has_personal_entity = false,
+            schema = net.liftweb.json.parse("""{"description": "Backup entity", "required": ["name"], "properties": {"name": {"type": "string", "example": "test"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+          ),
+          List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+          apiTagManageDynamicEntity :: apiTagApi :: Nil,
+          Some(canBackupSystemDynamicEntity :: Nil),
+          http4sPartialFunction = Some(backupSystemDynamicEntity)
+        )
+        resourceDocs += ResourceDoc(
+          null,
+          implementedInApiVersion,
+          nameOf(backupBankLevelDynamicEntity),
+          "POST",
+          "/management/banks/BANK_ID/dynamic-entities/DYNAMIC_ENTITY_ID/backup",
+          "Backup Bank Level Dynamic Entity",
+          s"""Create a backup copy of a bank level DynamicEntity specified by DYNAMIC_ENTITY_ID.
+          |
+          |This endpoint creates a backup of the dynamic entity definition and all its data records.
+          |The backup entity will be named with a _BAK suffix (e.g. my_entity_BAK).
+          |If a backup with that name already exists, _BAK2, _BAK3 etc. will be used.
+          |
+          |The calling user will be granted CanGetDynamicEntity_`<BackupEntityName>` on the newly created backup entity.
+          |
+          |For more information see ${Glossary.getGlossaryItemLink("Dynamic-Entities")}
+          |
+          |Authentication is Required
+          |
+          |""",
+          EmptyBody,
+          DynamicEntityDefinitionJsonV600(
+            dynamic_entity_id = "abc-123-def",
+            entity_name = "my_entity_BAK",
+            user_id = "user-456",
+            bank_id = Some("gh.29.uk"),
+            has_personal_entity = false,
+            schema = net.liftweb.json.parse("""{"description": "Backup entity", "required": ["name"], "properties": {"name": {"type": "string", "example": "test"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+          ),
+          List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+          apiTagManageDynamicEntity :: apiTagApi :: Nil,
+          Some(canBackupBankLevelDynamicEntity :: Nil),
+          http4sPartialFunction = Some(backupBankLevelDynamicEntity)
+        )
+    }
+
+    private def registerBatch7(): Unit = {
+        resourceDocs += ResourceDoc(
+          null,
+          implementedInApiVersion,
+          nameOf(deleteSystemDynamicEntityCascade),
+          "DELETE",
+          "/management/system-dynamic-entities/cascade/DYNAMIC_ENTITY_ID",
+          "Delete System Dynamic Entity Cascade",
+          s"""Delete a DynamicEntity specified by DYNAMIC_ENTITY_ID and all its data records.
+           |
+           |This endpoint performs a cascade delete:
+           |1. Automatically backs up the entity definition and all data records to a ZZ_BAK_ prefixed entity (e.g. my_entity is backed up to ZZ_BAK_my_entity). If a previous ZZ_BAK_ backup exists, it is overwritten.
+           |2. Deletes all data records associated with the dynamic entity
+           |3. Deletes the dynamic entity definition itself
+           |
+           |Note: Entities whose name already starts with ZZ_BAK_ are not backed up again (to avoid infinite backup chains).
+           |
+           |This operation is only allowed for non-personal entities (hasPersonalEntity=false).
+           |For personal entities (hasPersonalEntity=true), you must delete the records and definition separately.
+           |
+           |
+           |
+           |For more information see ${Glossary.getGlossaryItemLink(
+            "Dynamic-Entities"
+          )}/
+           |
+           |${userAuthenticationMessage(true)}
+           |
+           |""",
+          EmptyBody,
+          EmptyBody,
+          List($AuthenticatedUserIsRequired, UserHasMissingRoles,
+          CannotDeleteCascadePersonalEntity, UnknownError),
+          apiTagManageDynamicEntity :: apiTagApi :: Nil,
+          Some(canDeleteCascadeSystemDynamicEntity :: Nil),
+          http4sPartialFunction = Some(deleteSystemDynamicEntityCascade)
+        )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getCustomerInvestigationReport),
+        "GET",
+        "/banks/BANK_ID/customers/CUSTOMER_ID/investigation-report",
+        "Get Customer Investigation Report",
+        s"""Get a Customer Investigation Report for fraud detection, AML (Anti-Money Laundering), and financial crime analysis.
+        |
+        |This endpoint assembles a comprehensive data package for a customer in a single API call,
+        |designed for use by AI agents, compliance officers, and financial crime investigators.
+        |
+        |**Use Cases:**
+        |
+        |* Fraud Detection - identify suspicious transaction patterns
+        |* AML / Anti-Money Laundering - trace fund flows and flag anomalies
+        |* KYC Enhanced Due Diligence - deep-dive into customer activity
+        |* Suspicious Activity Report (SAR) preparation
+        |* Financial crime investigation and evidence gathering
+        |
+        |**Data Returned:**
+        |
+        |* Customer details (legal name, KYC status)
+        |* All accounts linked to the customer (with balances)
+        |* Transaction history for those accounts (within the specified date range)
+        |* Related customers (via customer links) — spouses, associates, business partners
+        |
+        |**Suspicious Patterns This Data Supports Detecting:**
+        |
+        |* Money flowing through intermediary companies (A to B to C patterns)
+        |* Payments inconsistent with known income or salary
+        |* Transfers to related parties (spouses, associates) shortly after large inflows
+        |* Round-tripping — money returning to origin via indirect paths
+        |* Vague or generic transaction descriptions on large amounts
+        |* Structuring — multiple transactions just below reporting thresholds
+        |* Rapid movement of funds across accounts (layering)
+        |
+        |**Query Parameters:**
+        |
+        |* from_date: Start date for transactions (ISO format, e.g. $DateWithMsExampleString). Defaults to 1 year ago.
+        |* to_date: End date for transactions (ISO format, e.g. $DateWithMsExampleString). Defaults to now.
+        |* limit: Maximum number of transactions per account (default 500).
+        |
+        |**Note:** This endpoint is only available in mapped mode (connector=mapped).
+        |For other connector configurations, use the individual endpoints to retrieve
+        |customer, account, transaction, and customer link data separately.
+        |
+        |Authentication is Required
+        |
+        |""",
+        EmptyBody,
+        investigationReportJsonV600,
+        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, InvestigationReportNotAvailable, UnknownError),
+        apiTagCustomer :: Nil,
+        Some(canGetInvestigationReport :: Nil),
+        http4sPartialFunction = Some(getCustomerInvestigationReport)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(createCustomerLink),
+        "POST",
+        "/banks/BANK_ID/customer-links",
+        "Create Customer Link",
+        s"""Link a Customer to another Customer (e.g. spouse, parent, close_associate).
+        |
+        |Authentication is Required
+        |
+        |""",
+        postCustomerLinkJsonV600,
+        customerLinkJsonV600,
+        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+        apiTagCustomer :: Nil,
+        Some(canCreateCustomerLink :: Nil),
+        http4sPartialFunction = Some(createCustomerLink)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getCustomerLinksByBankId),
+        "GET",
+        "/banks/BANK_ID/customer-links",
+        "Get Customer Links by Bank",
+        s"""Get all Customer Links at a Bank.
+        |
+        |Authentication is Required
+        |
+        |""",
+        EmptyBody,
+        customerLinksJsonV600,
+        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
+        apiTagCustomer :: Nil,
+        Some(canGetCustomerLinks :: Nil),
+        http4sPartialFunction = Some(getCustomerLinksByBankId)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getCustomerLinkById),
+        "GET",
+        "/banks/BANK_ID/customer-links/CUSTOMER_LINK_ID",
+        "Get Customer Link by Id",
+        s"""Get Customer Link by CUSTOMER_LINK_ID.
+        |
+        |Authentication is Required
+        |
+        |""",
+        EmptyBody,
+        customerLinkJsonV600,
+        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
+        apiTagCustomer :: Nil,
+        Some(canGetCustomerLink :: Nil),
+        http4sPartialFunction = Some(getCustomerLinkById)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(updateCustomerLink),
+        "PUT",
+        "/banks/BANK_ID/customer-links/CUSTOMER_LINK_ID",
+        "Update Customer Link",
+        s"""Update an existing Customer Link.
+        |
+        |Authentication is Required
+        |
+        |""",
+        putCustomerLinkJsonV600,
+        customerLinkJsonV600,
+        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+        apiTagCustomer :: Nil,
+        Some(canUpdateCustomerLink :: Nil),
+        http4sPartialFunction = Some(updateCustomerLink)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(deleteCustomerLink),
+        "DELETE",
+        "/banks/BANK_ID/customer-links/CUSTOMER_LINK_ID",
+        "Delete Customer Link",
+        s"""Delete a Customer Link.
+        |
+        |Authentication is Required
+        |
+        |""",
+        EmptyBody,
+        EmptyBody,
+        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
+        apiTagCustomer :: Nil,
+        Some(canDeleteCustomerLink :: Nil),
+        http4sPartialFunction = Some(deleteCustomerLink)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getCustomViewById),
+        "GET",
+        "/management/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID",
+        "Get Custom View by Id",
+        s"""Get a single custom view by bank, account, and view ID.
+        |
+        |Custom views are user-created views with names starting with underscore (_), such as:
+        |- _work
+        |- _personal
+        |- _audit
+        |
+        |Custom views are unique per bank_id, account_id, and view_id combination.
+        |
+        |The view is returned with an `allowed_actions` array containing all permissions for that view.
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""".stripMargin,
+        EmptyBody,
+        ViewJsonV600(
+          bank_id = ExampleValue.bankIdExample.value,
+          account_id = ExampleValue.accountIdExample.value,
+          view_id = "_work",
+          view_name = "Work",
+          description = "A custom view for work-related transactions.",
+          metadata_view = "_work",
+          is_public = false,
+          is_system = false,
+          is_firehose = Some(false),
+          alias = "private",
+          hide_metadata_if_alias_used = false,
+          can_grant_access_to_views = List("_work"),
+          can_revoke_access_to_views = List("_work"),
+          allowed_actions = List(
+            "can_see_transaction_amount",
+            "can_see_bank_account_balance",
+            "can_add_comment"
+          )
+        ),
+        List($AuthenticatedUserIsRequired, UnknownError),
+        apiTagView :: Nil,
+        None,
+        http4sPartialFunction = Some(getCustomViewById)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(invalidateCacheNamespace),
+        "POST",
+        "/management/cache/namespaces/invalidate",
+        "Invalidate Cache Namespace",
+        """Invalidates a cache namespace by incrementing its version counter.
+        |
+        |This provides instant cache invalidation without deleting individual keys.
+        |Incrementing the version counter makes all keys with the old version unreachable.
+        |
+        |Available namespace IDs: call_counter, rl_active, rd_localised, rd_dynamic,
+        |rd_static, rd_all, swagger_static, connector, metrics_stable, metrics_recent, abac_rule
+        |
+        |Use after updating rate limits, translations, endpoints, or CBS data.
+        |
+        |Authentication is Required
+        |""",
+        InvalidateCacheNamespaceJsonV600(namespace_id = "rd_localised"),
+        InvalidatedCacheNamespaceJsonV600(
+          namespace_id = "rd_localised",
+          old_version = 1,
+          new_version = 2,
+          status = "invalidated"
+        ),
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+        apiTagCache :: apiTagSystem :: apiTagApi :: Nil,
+        Some(canInvalidateCacheNamespace :: Nil),
+        http4sPartialFunction = Some(invalidateCacheNamespace)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getConfigProps),
+        "GET",
+        "/management/config-props",
+        "Get Config Props",
+        s"""Get the active configuration properties and their runtime values.
+        |
+        |This endpoint uses a self-registration mechanism: each time the code calls
+        |getPropsValue, getPropsAsBoolValue, getPropsAsIntValue, or getPropsAsLongValue
+        |with a default value, that property key is registered.
+        |
+        |Only registered properties are returned. The list grows as more code paths are
+        |exercised. Most properties are registered at startup.
+        |
+        |For each property, the value shown is the actual runtime value. If the property
+        |is not explicitly set, the code-defined default is shown.
+        |
+        |The response includes both regular and webui_ properties, sorted alphabetically by key.
+        |
+        |Properties with sensitive keys or values (containing ${APIUtil.sensitiveKeywords.mkString(", ")})
+        |are excluded from the response entirely.
+        |
+        |Authentication is Required.
+        |
+        |""".stripMargin,
+        EmptyBody,
+        configPropsJsonV600,
+        List($AuthenticatedUserIsRequired, UnknownError),
+        apiTagApi :: Nil,
+        None,
+        http4sPartialFunction = Some(getConfigProps)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getAppDirectory),
+        "GET",
+        "/app-directory",
+        "Get App Directory",
+        s"""Get connectivity information for apps in the OBP ecosystem.
+        |
+        |Returns configuration properties that apps (Portal, API Explorer, API Manager,
+        |Sandbox Populator, OIDC, Keycloak, Hola, MCP, Opey) and agents can use to discover
+        |endpoints in the OBP ecosystem.
+        |
+        |Any props starting with public_ and ending with _url are included automatically.
+        |
+        |Known public app URL props:
+        |${APIUtil.publicAppUrlPropNames.mkString(", ")}
+        |
+        |Empty (unconfigured) values are excluded from the response.
+        |
+        |Authentication is NOT Required.
+        |
+        |""".stripMargin,
+        EmptyBody,
+        appDirectoryJsonV600,
+        List(UnknownError),
+        apiTagApi :: Nil,
+        None,
+        http4sPartialFunction = Some(getAppDirectory)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getCustomViews),
+        "GET",
+        "/management/custom-views",
+        "Get Custom Views",
+        s"""Get all custom views.
+        |
+        |Custom views are user-created views with names starting with underscore (_), such as:
+        |- _work
+        |- _personal
+        |- _audit
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""".stripMargin,
+        EmptyBody,
+        ViewsJsonV600(List()),
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+        apiTagView :: Nil,
+        Some(canGetCustomViews :: Nil),
+        http4sPartialFunction = Some(getCustomViews)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getRolesWithEntitlementCountsAtAllBanks),
+        "GET",
+        "/management/roles-with-entitlement-counts",
+        "Get Roles with Entitlement Counts",
+        s"""Returns all available roles with the count of entitlements that use each role.
+        |
+        |This endpoint provides statistics about role usage across all banks by counting
+        |how many entitlements have been granted for each role.
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |Requires the CanGetRolesWithEntitlementCountsAtAllBanks role.
+        |
+        |""",
+        EmptyBody,
+        RolesWithEntitlementCountsJsonV600(
+          roles = List(
+            RoleWithEntitlementCountJsonV600(
+              role = "CanGetCustomer",
+              requires_bank_id = true,
+              entitlement_count = 5
+            ),
+            RoleWithEntitlementCountJsonV600(
+              role = "CanGetBank",
+              requires_bank_id = false,
+              entitlement_count = 3
+            )
+          )
+        ),
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+        apiTagRole :: Nil,
+        Some(canGetRolesWithEntitlementCountsAtAllBanks :: Nil),
+        http4sPartialFunction = Some(getRolesWithEntitlementCountsAtAllBanks)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getFeatures),
+        "GET",
+        "/features",
+        "Get Features",
+        """Returns information about the features enabled on this OBP instance.
+        |
+        |No Authentication is Required.""",
+        EmptyBody,
+        featuresJsonV600,
+        List(UnknownError),
+        apiTagApi :: Nil,
+        None,
+        http4sPartialFunction = Some(getFeatures)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getProviders),
+        "GET",
+        "/providers",
+        "Get Providers",
+        s"""Get the list of authentication providers that have been used to create users on this OBP instance.
+        |
+        |This endpoint returns a distinct list of provider values from the resource_user table.
+        |
+        |Providers may include:
+        |* Local OBP provider (e.g., "http://127.0.0.1:8080")
+        |* OAuth 2.0 / OpenID Connect providers (e.g., "google.com", "microsoft.com")
+        |* Custom authentication providers
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""".stripMargin,
+        EmptyBody,
+        JSONFactory600.createProvidersJson(List("http://127.0.0.1:8080", "OBP", "google.com")),
+        List($AuthenticatedUserIsRequired, UnknownError),
+        apiTagUser :: Nil,
+        None,
+        http4sPartialFunction = Some(getProviders)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getCurrentConsumer),
+        "GET",
+        "/consumers/current",
+        "Get Current Consumer",
+        s"""Returns the consumer_id of the current authenticated consumer.
+        |
+        |This endpoint requires authentication via:
+        |* User authentication (OAuth, DirectLogin, etc.) - returns the consumer associated with the user's session
+        |* Consumer/Client authentication - returns the consumer credentials being used
+        |
+        |${userAuthenticationMessage(true)}
+        |""",
+        EmptyBody,
+        CurrentConsumerJsonV600(
+          app_name = "SOFI",
+          app_type = "Web",
+          description = "Account Management",
+          consumer_id = "123",
+          active_rate_limits = activeRateLimitsJsonV600,
+          call_counters = redisCallCountersJsonV600
+        ),
+        List($AuthenticatedUserIsRequired, InvalidConsumerCredentials, UnknownError),
+        apiTagConsumer :: Nil,
+        Some(canGetCurrentConsumer :: Nil),
+        http4sPartialFunction = Some(getCurrentConsumer)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getPopularApis),
+        "GET",
+        "/api/popular-endpoints",
+        "Get Popular Endpoints",
+        s"""Returns the operation IDs of the 50 most popular endpoints based on usage metrics.
+        |
+        |This endpoint is public and does not require authentication.
+        |
+        |The response contains a simple list of operation_id strings, ordered by popularity (most called first).
+        |
+        |This includes endpoints from all API standards: OBP, Berlin Group, UK Open Banking, STET, Polish API, etc.
+        |
+        |Example operation_id formats:
+        |* OBP: OBPv4.0.0-getBanks
+        |* Berlin Group: BGv1.3-getAccountList
+        |* UK Open Banking: UKv3.1-getAccounts
+        |
+        |""".stripMargin,
+        EmptyBody,
+        PopularApisJsonV600(
+          operation_ids = List(
+            "OBPv4.0.0-getBanks",
+            "OBPv4.0.0-getBank",
+            "BGv1.3-getAccountList"
+          )
+        ),
+        List(UnknownError),
+        apiTagApi :: Nil,
+        None,
+        http4sPartialFunction = Some(getPopularApis)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getAccountDirectory),
+        "GET",
+        "/banks/BANK_ID/account-directory",
+        "Get Account Directory",
+        s"""Returns a list of accounts at the bank with identifiers and metadata.
+        |
+        |This endpoint is designed for management UIs that need to list accounts
+        |without exposing sensitive data (balance and owners are excluded).
+        |
+        |The response includes: account_id, bank_id, label, account_number, account_type, branch_id,
+        |account_routings, account_attributes and view_ids.
+        |
+        |${urlParametersDocument(true, false)}
+        |
+        |Authentication is Required
+        |
+        |""".stripMargin,
+        EmptyBody,
+        JSONFactory600.AccountDirectoryJsonV600(
+          accounts = List(JSONFactory600.AccountDirectoryItemJsonV600(
+            account_id = ExampleValue.accountIdExample.value,
+            bank_id = ExampleValue.bankIdExample.value,
+            label = "My Account",
+            account_number = "123456789",
+            account_type = "CURRENT",
+            branch_id = "BRANCH_1",
+            account_routings = List(AccountRoutingJsonV121(scheme = "OBP", address = ExampleValue.accountIdExample.value)),
+            account_attributes = List(FastFirehoseAttributes(`type` = "STRING", code = "OVERDRAFT_LIMIT", value = "1000")),
+            view_ids = List("owner")
+          ))
+        ),
+        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
+        apiTagAccount :: Nil,
+        Some(canGetAccountDirectoryAtOneBank :: Nil),
+        http4sPartialFunction = Some(getAccountDirectory)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(createGroup),
+        "POST",
+        "/management/groups",
+        "Create Group",
+        s"""Create a new group of roles.
+        |
+        |Groups can be either:
+        |- System-level (bank_id = null) - requires CanCreateGroupAtAllBanks role
+        |- Bank-level (bank_id provided) - requires CanCreateGroupAtOneBank role
+        |
+        |A group contains a list of role names that can be assigned together.
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""".stripMargin,
+        PostGroupJsonV600(
+          bank_id = Some("gh.29.uk"),
+          group_name = "Teller Group",
+          group_description = "Standard teller roles for branch operations",
+          list_of_roles = List("CanGetCustomer", "CanGetAccount", "CanCreateTransaction"),
+          is_enabled = true
+        ),
+        GroupJsonV600(
+          group_id = "group-id-123",
+          bank_id = Some("gh.29.uk"),
+          group_name = "Teller Group",
+          group_description = "Standard teller roles for branch operations",
+          list_of_roles = List("CanGetCustomer", "CanGetAccount", "CanCreateTransaction"),
+          is_enabled = true
+        ),
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+        apiTagGroup :: Nil,
+        None,
+        http4sPartialFunction = Some(createGroup)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getGroup),
+        "GET",
+        "/management/groups/GROUP_ID",
+        "Get Group",
+        s"""Get a group by its ID.
+        |
+        |Requires either:
+        |- CanGetGroupsAtAllBanks (for any group)
+        |- CanGetGroupsAtOneBank (for groups at specific bank)
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""".stripMargin,
+        EmptyBody,
+        GroupJsonV600(
+          group_id = "group-id-123",
+          bank_id = Some("gh.29.uk"),
+          group_name = "Teller Group",
+          group_description = "Standard teller roles for branch operations",
+          list_of_roles = List("CanGetCustomer", "CanGetAccount", "CanCreateTransaction"),
+          is_enabled = true
+        ),
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+        apiTagGroup :: Nil,
+        None,
+        http4sPartialFunction = Some(getGroup)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getGroups),
+        "GET",
+        "/management/groups",
+        "Get Groups",
+        s"""Get all groups. Optionally filter by bank_id.
+        |
+        |Query parameters:
+        |- bank_id (optional): Filter groups by bank. Use "null" or omit for system-level groups.
+        |
+        |Requires either:
+        |- CanGetGroupsAtAllBanks (for any/all groups)
+        |- CanGetGroupsAtOneBank (for groups at specific bank with bank_id parameter)
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""".stripMargin,
+        EmptyBody,
+        GroupsJsonV600(
+          groups = List(
+            GroupJsonV600(
+              group_id = "group-id-123",
+              bank_id = Some("gh.29.uk"),
+              group_name = "Teller Group",
+              group_description = "Standard teller roles",
+              list_of_roles = List("CanGetCustomer", "CanGetAccount"),
+              is_enabled = true
+            )
+          )
+        ),
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+        apiTagGroup :: Nil,
+        None,
+        http4sPartialFunction = Some(getGroups)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(updateGroup),
+        "PUT",
+        "/management/groups/GROUP_ID",
+        "Update Group",
+        s"""Update a group. All fields are optional.
+        |
+        |Requires either:
+        |- CanUpdateGroupAtAllBanks (for any group)
+        |- CanUpdateGroupAtOneBank (for groups at specific bank)
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""".stripMargin,
+        PutGroupJsonV600(
+          group_name = Some("Updated Teller Group"),
+          group_description = Some("Updated description"),
+          list_of_roles = Some(List("CanGetCustomer", "CanGetAccount", "CanCreateTransaction", "CanGetTransaction")),
+          is_enabled = Some(true)
+        ),
+        GroupJsonV600(
+          group_id = "group-id-123",
+          bank_id = Some("gh.29.uk"),
+          group_name = "Updated Teller Group",
+          group_description = "Updated description",
+          list_of_roles = List("CanGetCustomer", "CanGetAccount", "CanCreateTransaction", "CanGetTransaction"),
+          is_enabled = true
+        ),
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+        apiTagGroup :: Nil,
+        None,
+        http4sPartialFunction = Some(updateGroup)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(deleteGroup),
+        "DELETE",
+        "/management/groups/GROUP_ID",
+        "Delete Group",
+        s"""Delete a Group.
+        |
+        |Requires either:
+        |- CanDeleteGroupAtAllBanks (for any group)
+        |- CanDeleteGroupAtOneBank (for groups at specific bank)
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""".stripMargin,
+        EmptyBody,
+        EmptyBody,
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+        apiTagGroup :: Nil,
+        None,
+        http4sPartialFunction = Some(deleteGroup)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getGroupEntitlements),
+        "GET",
+        "/management/groups/GROUP_ID/entitlements",
+        "Get Group Entitlements",
+        s"""Get all entitlements that have been granted from a specific group.
+        |
+        |This returns all entitlements where the group_id matches the specified GROUP_ID.
+        |
+        |Requires:
+        |- CanGetEntitlementsForAnyBank
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""".stripMargin,
+        EmptyBody,
+        GroupEntitlementsJsonV600(
+          entitlements = List(
+            GroupEntitlementJsonV600(
+              entitlement_id = "entitlement-id-123",
+              role_name = "CanGetCustomer",
+              bank_id = "gh.29.uk",
+              user_id = "user-id-123",
+              username = "susan.uk.29@example.com",
+              group_id = Some("group-id-123"),
+              process = Some("GROUP_MEMBERSHIP")
+            )
+          )
+        ),
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+        apiTagGroup :: Nil,
+        Some(canGetEntitlementsForAnyBank :: Nil),
+        http4sPartialFunction = Some(getGroupEntitlements)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(createAbacRule),
+        "POST",
+        "/management/abac-rules",
+        "Create ABAC Rule",
+        s"""Create a new ABAC (Attribute-Based Access Control) rule.
+        |
+        |ABAC rules are Scala functions that return a Boolean value indicating whether access should be granted.
+        |
+        |**Documentation:**
+        |- ${Glossary.getGlossaryItemLink("ABAC_Simple_Guide")} - Getting started with ABAC rules
+        |- ${Glossary.getGlossaryItemLink("ABAC_Parameters_Summary")} - Complete list of all 18 parameters
+        |- ${Glossary.getGlossaryItemLink("ABAC_Object_Properties_Reference")} - Detailed property reference
+        |- ${Glossary.getGlossaryItemLink("ABAC_Testing_Examples")} - Testing examples and patterns
+        |
+        |The rule function receives 18 parameters including authenticatedUser, attributes, auth context, and optional objects (bank, account, transaction, etc.).
+        |
+        |Example rule code:
+        |```scala
+        |// Allow access only if authenticated user is admin
+        |authenticatedUser.emailAddress.contains("admin")
+        |```
+        |
+        |```scala
+        |// Allow access only to accounts with balance > 1000
+        |accountOpt.exists(_.balance.toDouble > 1000.0)
+        |```
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""".stripMargin,
+        CreateAbacRuleJsonV600(
+          rule_name = "admin_only",
+          rule_code = """user.emailAddress.contains("admin")""",
+          description = "Only allow access to users with admin email",
+          policy = "user-access,admin",
+          is_active = true
+        ),
+        AbacRuleJsonV600(
+          abac_rule_id = "abc123",
+          rule_name = "admin_only",
+          rule_code = """user.emailAddress.contains("admin")""",
+          is_active = true,
+          description = "Only allow access to users with admin email",
+          policy = "user-access,admin",
+          created_by_user_id = "user123",
+          updated_by_user_id = "user123"
+        ),
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+        apiTagABAC :: Nil,
+        Some(canCreateAbacRule :: Nil),
+        http4sPartialFunction = Some(createAbacRule)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getAbacRule),
+        "GET",
+        "/management/abac-rules/ABAC_RULE_ID",
+        "Get ABAC Rule",
+        s"""Get an ABAC rule by its ID.
+        |
+        |**Documentation:**
+        |- ${Glossary.getGlossaryItemLink("ABAC_Simple_Guide")} - Getting started with ABAC rules
+        |- ${Glossary.getGlossaryItemLink("ABAC_Parameters_Summary")} - Complete list of all 18 parameters
+        |- ${Glossary.getGlossaryItemLink("ABAC_Object_Properties_Reference")} - Detailed property reference
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""".stripMargin,
+        EmptyBody,
+        AbacRuleJsonV600(
+          abac_rule_id = "abc123",
+          rule_name = "admin_only",
+          rule_code = """user.emailAddress.contains("admin")""",
+          is_active = true,
+          description = "Only allow access to users with admin email",
+          policy = "user-access,admin",
+          created_by_user_id = "user123",
+          updated_by_user_id = "user123"
+        ),
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+        apiTagABAC :: Nil,
+        Some(canGetAbacRule :: Nil),
+        http4sPartialFunction = Some(getAbacRule)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getAbacRules),
+        "GET",
+        "/management/abac-rules",
+        "Get ABAC Rules",
+        s"""Get all ABAC rules.
+        |
+        |**Documentation:**
+        |- ${Glossary.getGlossaryItemLink("ABAC_Simple_Guide")} - Getting started with ABAC rules
+        |- ${Glossary.getGlossaryItemLink("ABAC_Parameters_Summary")} - Complete list of all 18 parameters
+        |- ${Glossary.getGlossaryItemLink("ABAC_Object_Properties_Reference")} - Detailed property reference
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""".stripMargin,
+        EmptyBody,
+        AbacRulesJsonV600(
+          abac_rules = List(
+            AbacRuleJsonV600(
+              abac_rule_id = "abc123",
+              rule_name = "admin_only",
+              rule_code = """user.emailAddress.contains("admin")""",
+              is_active = true,
+              description = "Only allow access to users with admin email",
+              policy = "user-access,admin",
+              created_by_user_id = "user123",
+              updated_by_user_id = "user123"
+            )
+          )
+        ),
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+        apiTagABAC :: Nil,
+        Some(canGetAbacRule :: Nil),
+        http4sPartialFunction = Some(getAbacRules)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getAbacRulesByPolicy),
+        "GET",
+        "/management/abac-rules/policy/POLICY",
+        "Get ABAC Rules by Policy",
+        s"""Get all ABAC rules that belong to a specific policy.
+        |
+        |Multiple rules can share the same policy. Rules with multiple policies (comma-separated)
+        |will be returned if any of their policies match the requested policy.
+        |
+        |**Documentation:**
+        |- ${Glossary.getGlossaryItemLink("ABAC_Simple_Guide")} - Getting started with ABAC rules
+        |- ${Glossary.getGlossaryItemLink("ABAC_Parameters_Summary")} - Complete list of all 18 parameters
+        |- ${Glossary.getGlossaryItemLink("ABAC_Object_Properties_Reference")} - Detailed property reference
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""".stripMargin,
+        EmptyBody,
+        AbacRulesJsonV600(
+          abac_rules = List(
+            AbacRuleJsonV600(
+              abac_rule_id = "abc123",
+              rule_name = "admin_only",
+              rule_code = """user.emailAddress.contains("admin")""",
+              is_active = true,
+              description = "Only allow access to users with admin email",
+              policy = "user-access,admin",
+              created_by_user_id = "user123",
+              updated_by_user_id = "user123"
+            ),
+            AbacRuleJsonV600(
+              abac_rule_id = "def456",
+              rule_name = "admin_department_check",
+              rule_code = """user.department == "admin"""",
+              is_active = true,
+              description = "Check if user is in admin department",
+              policy = "admin",
+              created_by_user_id = "user123",
+              updated_by_user_id = "user123"
+            )
+          )
+        ),
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+        apiTagABAC :: Nil,
+        Some(canGetAbacRule :: Nil),
+        http4sPartialFunction = Some(getAbacRulesByPolicy)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(updateAbacRule),
+        "PUT",
+        "/management/abac-rules/ABAC_RULE_ID",
+        "Update ABAC Rule",
+        s"""Update an existing ABAC rule.
+        |
+        |**Documentation:**
+        |- ${Glossary.getGlossaryItemLink("ABAC_Simple_Guide")} - Getting started with ABAC rules
+        |- ${Glossary.getGlossaryItemLink("ABAC_Parameters_Summary")} - Complete list of all 18 parameters
+        |- ${Glossary.getGlossaryItemLink("ABAC_Object_Properties_Reference")} - Detailed property reference
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""".stripMargin,
+        UpdateAbacRuleJsonV600(
+          rule_name = "admin_only_updated",
+          rule_code = """user.emailAddress.contains("admin") && user.provider == "obp"""",
+          description = "Only allow access to OBP admin users",
+          policy = "user-access,admin,obp",
+          is_active = true
+        ),
+        AbacRuleJsonV600(
+          abac_rule_id = "abc123",
+          rule_name = "admin_only_updated",
+          rule_code = """user.emailAddress.contains("admin") && user.provider == "obp"""",
+          is_active = true,
+          description = "Only allow access to OBP admin users",
+          policy = "user-access,admin,obp",
+          created_by_user_id = "user123",
+          updated_by_user_id = "user456"
+        ),
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+        apiTagABAC :: Nil,
+        Some(canUpdateAbacRule :: Nil),
+        http4sPartialFunction = Some(updateAbacRule)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(deleteAbacRule),
+        "DELETE",
+        "/management/abac-rules/ABAC_RULE_ID",
+        "Delete ABAC Rule",
+        s"""Delete an ABAC rule by its ID.
+        |
+        |**Documentation:**
+        |- ${Glossary.getGlossaryItemLink("ABAC_Simple_Guide")} - Getting started with ABAC rules
+        |- ${Glossary.getGlossaryItemLink("ABAC_Parameters_Summary")} - Complete list of all 18 parameters
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""".stripMargin,
+        EmptyBody,
+        EmptyBody,
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+        apiTagABAC :: Nil,
+        Some(canDeleteAbacRule :: Nil),
+        http4sPartialFunction = Some(deleteAbacRule)
+      )
+    }
+
+    private def registerBatch8(): Unit = {
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(createPersonalDataField),
+        "POST",
+        "/my/personal-data-fields",
+        "Create Personal Data Field",
+        s"""Create a Personal Data Field for the currently authenticated user.
+        |
+        |Personal Data Fields (IsPersonal=true) are managed by the user themselves and do not require special roles.
+        |This data is not available in ABAC rules for privacy reasons.
+        |
+        |For non-personal attributes that can be used in ABAC rules, see the /users/USER_ID/attributes endpoints.
+        |
+        |The type field must be one of "STRING", "INTEGER", "DOUBLE" or "DATE_WITH_DAY"
+        |
+        |${userAuthenticationMessage(true)}
+        |""".stripMargin,
+        code.api.v5_1_0.UserAttributeJsonV510(
+          name = "favorite_color",
+          `type` = "STRING",
+          value = "blue"
+        ),
+        userAttributeResponseJsonV510,
+        List($AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
+        apiTagUser :: Nil,
+        Some(Nil),
+        http4sPartialFunction = Some(createPersonalDataField)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getPersonalDataFields),
+        "GET",
+        "/my/personal-data-fields",
+        "Get Personal Data Fields",
+        s"""Get Personal Data Fields for the currently authenticated user.
+        |
+        |Returns Personal Data Fields (IsPersonal=true) that are managed by the user.
+        |
+        |${userAuthenticationMessage(true)}
+        |""".stripMargin,
+        EmptyBody,
+        code.api.v5_1_0.UserAttributesResponseJsonV510(
+          user_attributes = List(userAttributeResponseJsonV510)
+        ),
+        List($AuthenticatedUserIsRequired, UnknownError),
+        apiTagUser :: Nil,
+        Some(Nil),
+        http4sPartialFunction = Some(getPersonalDataFields)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getPersonalDataFieldById),
+        "GET",
+        "/my/personal-data-fields/USER_ATTRIBUTE_ID",
+        "Get Personal Data Field By Id",
+        s"""Get a Personal Data Field by USER_ATTRIBUTE_ID for the currently authenticated user.
+        |
+        |${userAuthenticationMessage(true)}
+        |""".stripMargin,
+        EmptyBody,
+        userAttributeResponseJsonV510,
+        List($AuthenticatedUserIsRequired, UserAttributeNotFound, UnknownError),
+        apiTagUser :: Nil,
+        Some(Nil),
+        http4sPartialFunction = Some(getPersonalDataFieldById)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(updatePersonalDataField),
+        "PUT",
+        "/my/personal-data-fields/USER_ATTRIBUTE_ID",
+        "Update Personal Data Field",
+        s"""Update a Personal Data Field by USER_ATTRIBUTE_ID for the currently authenticated user.
+        |
+        |${userAuthenticationMessage(true)}
+        |""".stripMargin,
+        code.api.v5_1_0.UserAttributeJsonV510(
+          name = "favorite_color",
+          `type` = "STRING",
+          value = "green"
+        ),
+        userAttributeResponseJsonV510,
+        List($AuthenticatedUserIsRequired, InvalidJsonFormat, UserAttributeNotFound, UnknownError),
+        apiTagUser :: Nil,
+        Some(Nil),
+        http4sPartialFunction = Some(updatePersonalDataField)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(deletePersonalDataField),
+        "DELETE",
+        "/my/personal-data-fields/USER_ATTRIBUTE_ID",
+        "Delete Personal Data Field",
+        s"""Delete a Personal Data Field by USER_ATTRIBUTE_ID for the currently authenticated user.
+        |
+        |${userAuthenticationMessage(true)}
+        |""".stripMargin,
+        EmptyBody,
+        EmptyBody,
+        List($AuthenticatedUserIsRequired, UserAttributeNotFound, UnknownError),
+        apiTagUser :: Nil,
+        Some(Nil),
+        http4sPartialFunction = Some(deletePersonalDataField)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getConsumerCallCounters),
+        "GET",
+        "/management/consumers/CONSUMER_ID/call-counters",
+        "Get Consumer Call Counters",
+        s"""
+        |Get the call counters (current usage) for a specific consumer. Shows how many API calls have been made and when the counters reset.
+        |
+        |This endpoint returns the current state of API rate limits across all time periods (per second, per minute, per hour, per day, per week, per month).
+        |
+        |**Response Structure:**
+        |The response always contains a consistent structure with all six time periods, regardless of whether rate limits are configured or active.
+        |
+        |Each time period contains:
+        |- `calls_made`: Number of API calls made in the current period (null if no data available)
+        |- `reset_in_seconds`: Seconds until the counter resets (null if no data available)
+        |- `status`: Current state of the rate limit for this period
+        |
+        |**Status Values:**
+        |- `ACTIVE`: Rate limit counter is active and tracking calls. Both `calls_made` and `reset_in_seconds` will have numeric values.
+        |- `NO_COUNTER`: Key does not exist - the consumer has not made any API calls in this time period yet.
+        |- `EXPIRED`: The rate limit counter has expired (TTL reached 0). The counter will be recreated on the next API call.
+        |- `REDIS_UNAVAILABLE`: Cannot retrieve data from Redis. This indicates a system connectivity issue.
+        |- `DATA_MISSING`: Unexpected error - period data is missing from the response. This should not occur under normal circumstances.
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""".stripMargin,
+        EmptyBody,
+        redisCallCountersJsonV600,
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+        apiTagConsumer :: Nil,
+        Some(canGetRateLimits :: Nil),
+        http4sPartialFunction = Some(getConsumerCallCounters)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(createCallLimits),
+        "POST",
+        "/management/consumers/CONSUMER_ID/consumer/rate-limits",
+        "Create Rate Limits for a Consumer",
+        s"""
+        |Create Rate Limits for a Consumer
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""".stripMargin,
+        callLimitPostJsonV600,
+        callLimitJsonV600,
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+        apiTagConsumer :: Nil,
+        Some(canCreateRateLimits :: Nil),
+        http4sPartialFunction = Some(createCallLimits)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(updateRateLimits),
+        "PUT",
+        "/management/consumers/CONSUMER_ID/consumer/rate-limits/RATE_LIMITING_ID",
+        "Update Rate Limits for a Consumer",
+        s"""
+        |Set the API rate limits / call limits for a Consumer:
+        |
+        |Rate limiting can be set:
+        |
+        |Per Second
+        |Per Minute
+        |Per Hour
+        |Per Week
+        |Per Month
+        |
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""".stripMargin,
+        callLimitPostJsonV400,
+        callLimitPostJsonV400,
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+        apiTagConsumer :: Nil,
+        Some(canUpdateRateLimits :: Nil),
+        http4sPartialFunction = Some(updateRateLimits)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(deleteCallLimits),
+        "DELETE",
+        "/management/consumers/CONSUMER_ID/consumer/rate-limits/RATE_LIMITING_ID",
+        "Delete Rate Limits for a Consumer",
+        s"""
+        |Delete a specific Rate Limit by Rate Limiting ID
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""".stripMargin,
+        EmptyBody,
+        EmptyBody,
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+        apiTagConsumer :: Nil,
+        Some(canDeleteRateLimits :: Nil),
+        http4sPartialFunction = Some(deleteCallLimits)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getActiveRateLimitsNow),
+        "GET",
+        "/management/consumers/CONSUMER_ID/active-rate-limits",
+        "Get Active Rate Limits (now)",
+        s"""
+        |Get the active rate limits for a consumer at the current date/time. Returns the aggregated rate limits from all active records at this moment.
+        |
+        |This is a convenience endpoint that uses the current date/time automatically.
+        |
+        |See ${Glossary.getGlossaryItemLink("Rate Limiting")} for more details on how rate limiting works.
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""".stripMargin,
+        EmptyBody,
+        activeRateLimitsJsonV600,
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+        apiTagConsumer :: Nil,
+        Some(canGetRateLimits :: Nil),
+        http4sPartialFunction = Some(getActiveRateLimitsNow)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getActiveRateLimitsAtDate),
+        "GET",
+        "/management/consumers/CONSUMER_ID/active-rate-limits/DATE_WITH_HOUR",
+        "Get Active Rate Limits at Date",
+        s"""
+        |Get the active rate limits for a consumer for a specific hour. Returns the aggregated rate limits from all active records during that hour.
+        |
+        |Rate limits are cached and queried at hour-level granularity.
+        |
+        |See ${Glossary.getGlossaryItemLink("Rate Limiting")} for more details on how rate limiting works.
+        |
+        |Date format: YYYY-MM-DD-HH in UTC timezone (e.g. 2025-12-31-13 for hour 13:00-13:59 UTC on Dec 31, 2025)
+        |
+        |Note: The hour is always interpreted in UTC for consistency across all servers.
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""".stripMargin,
+        EmptyBody,
+        activeRateLimitsJsonV600,
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidDateFormat, UnknownError),
+        apiTagConsumer :: Nil,
+        Some(canGetRateLimits :: Nil),
+        http4sPartialFunction = Some(getActiveRateLimitsAtDate)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(createFeaturedApiCollection),
+        "POST",
+        "/management/api-collections/featured",
+        "Create Featured Api Collection",
+        s"""Add an API Collection to the featured list.
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""".stripMargin,
+        postFeaturedApiCollectionJsonV600,
+        featuredApiCollectionJsonV600,
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, ApiCollectionNotFound, UnknownError),
+        apiTagApiCollection :: Nil,
+        Some(canManageFeaturedApiCollections :: Nil),
+        http4sPartialFunction = Some(createFeaturedApiCollection)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getFeaturedApiCollectionsAdmin),
+        "GET",
+        "/management/api-collections/featured",
+        "Get Featured Api Collections (Admin)",
+        s"""Get all featured API collections with their sort order (admin view).
+        |
+        |This endpoint returns the featured collections stored in the database with their sort order.
+        |It is intended for administrators to manage the featured list.
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""".stripMargin,
+        EmptyBody,
+        featuredApiCollectionsJsonV600,
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+        apiTagApiCollection :: Nil,
+        Some(canManageFeaturedApiCollections :: Nil),
+        http4sPartialFunction = Some(getFeaturedApiCollectionsAdmin)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(updateFeaturedApiCollection),
+        "PUT",
+        "/management/api-collections/featured/API_COLLECTION_ID",
+        "Update Featured Api Collection",
+        s"""Update the sort order of a featured API collection.
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""".stripMargin,
+        putFeaturedApiCollectionJsonV600,
+        featuredApiCollectionJsonV600,
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+        apiTagApiCollection :: Nil,
+        Some(canManageFeaturedApiCollections :: Nil),
+        http4sPartialFunction = Some(updateFeaturedApiCollection)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(deleteFeaturedApiCollection),
+        "DELETE",
+        "/management/api-collections/featured/API_COLLECTION_ID",
+        "Delete Featured Api Collection",
+        s"""Remove an API Collection from the featured list.
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""".stripMargin,
+        EmptyBody,
+        EmptyBody,
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+        apiTagApiCollection :: Nil,
+        Some(canManageFeaturedApiCollections :: Nil),
+        http4sPartialFunction = Some(deleteFeaturedApiCollection)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(createApiProduct),
+        "POST",
+        "/banks/BANK_ID/api-products/API_PRODUCT_CODE",
+        "Create Api Product",
+        s"""Create an Api Product for the Bank.
+        |
+        |Authentication is Required.
+        |
+        |""".stripMargin,
+        postPutApiProductJsonV600,
+        apiProductJsonV600,
+        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+        apiTagApi :: apiTagApiProduct :: Nil,
+        Some(canCreateApiProduct :: Nil),
+        http4sPartialFunction = Some(createApiProduct)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(createOrUpdateApiProduct),
+        "PUT",
+        "/banks/BANK_ID/api-products/API_PRODUCT_CODE",
+        "Create or Update Api Product",
+        s"""Create or Update an Api Product for the Bank.
+        |
+        |Authentication is Required.
+        |
+        |""".stripMargin,
+        postPutApiProductJsonV600,
+        apiProductJsonV600,
+        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+        apiTagApi :: apiTagApiProduct :: Nil,
+        Some(canUpdateApiProduct :: Nil),
+        http4sPartialFunction = Some(createOrUpdateApiProduct)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getApiProduct),
+        "GET",
+        "/banks/BANK_ID/api-products/API_PRODUCT_CODE",
+        "Get Api Product",
+        s"""Get an Api Product by BANK_ID and API_PRODUCT_CODE.
+        |
+        |Returns the Api Product with its attributes.
+        |
+        |${userAuthenticationMessage(!getApiProductsIsPublic)}
+        |
+        |""".stripMargin,
+        EmptyBody,
+        apiProductJsonV600,
+        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
+        apiTagApi :: apiTagApiProduct :: Nil,
+        Some(canGetApiProduct :: Nil),
+        http4sPartialFunction = Some(getApiProduct)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getApiProducts),
+        "GET",
+        "/banks/BANK_ID/api-products",
+        "Get Api Products",
+        s"""Get Api Products for the Bank.
+        |
+        |Optional query parameter: `tag` — filter to products that have the given tag (e.g. `?tag=featured`). Tag matching is case-insensitive.
+        |
+        |${userAuthenticationMessage(!getApiProductsIsPublic)}
+        |
+        |""".stripMargin,
+        EmptyBody,
+        apiProductsJsonV600,
+        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
+        apiTagApi :: apiTagApiProduct :: Nil,
+        Some(canGetApiProduct :: Nil),
+        http4sPartialFunction = Some(getApiProducts)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(deleteApiProduct),
+        "DELETE",
+        "/banks/BANK_ID/api-products/API_PRODUCT_CODE",
+        "Delete Api Product",
+        s"""Delete an Api Product by BANK_ID and API_PRODUCT_CODE.
+        |
+        |Authentication is Required.
+        |
+        |""".stripMargin,
+        EmptyBody,
+        EmptyBody,
+        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
+        apiTagApi :: apiTagApiProduct :: Nil,
+        Some(canDeleteApiProduct :: Nil),
+        http4sPartialFunction = Some(deleteApiProduct)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(createApiProductAttribute),
+        "POST",
+        "/banks/BANK_ID/api-products/API_PRODUCT_CODE/attribute",
+        "Create Api Product Attribute",
+        s"""Create an Api Product Attribute.
+        |
+        |Authentication is Required.
+        |
+        |""".stripMargin,
+        apiProductAttributeJsonV600,
+        apiProductAttributeResponseJsonV600,
+        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+        apiTagApi :: apiTagApiProductAttribute :: Nil,
+        Some(canCreateApiProductAttribute :: Nil),
+        http4sPartialFunction = Some(createApiProductAttribute)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(updateApiProductAttribute),
+        "PUT",
+        "/banks/BANK_ID/api-products/API_PRODUCT_CODE/attributes/API_PRODUCT_ATTRIBUTE_ID",
+        "Update Api Product Attribute",
+        s"""Update an Api Product Attribute.
+        |
+        |Authentication is Required.
+        |
+        |""".stripMargin,
+        apiProductAttributeJsonV600,
+        apiProductAttributeResponseJsonV600,
+        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+        apiTagApi :: apiTagApiProductAttribute :: Nil,
+        Some(canUpdateApiProductAttribute :: Nil),
+        http4sPartialFunction = Some(updateApiProductAttribute)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getApiProductAttribute),
+        "GET",
+        "/banks/BANK_ID/api-products/API_PRODUCT_CODE/attributes/API_PRODUCT_ATTRIBUTE_ID",
+        "Get Api Product Attribute",
+        s"""Get an Api Product Attribute by API_PRODUCT_ATTRIBUTE_ID.
+        |
+        |${userAuthenticationMessage(!getApiProductsIsPublic)}
+        |
+        |""".stripMargin,
+        EmptyBody,
+        apiProductAttributeResponseJsonV600,
+        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
+        apiTagApi :: apiTagApiProductAttribute :: Nil,
+        Some(canGetApiProductAttribute :: Nil),
+        http4sPartialFunction = Some(getApiProductAttribute)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(deleteApiProductAttribute),
+        "DELETE",
+        "/banks/BANK_ID/api-products/API_PRODUCT_CODE/attributes/API_PRODUCT_ATTRIBUTE_ID",
+        "Delete Api Product Attribute",
+        s"""Delete an Api Product Attribute by API_PRODUCT_ATTRIBUTE_ID.
+        |
+        |Authentication is Required.
+        |
+        |""".stripMargin,
+        EmptyBody,
+        EmptyBody,
+        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
+        apiTagApi :: apiTagApiProductAttribute :: Nil,
+        Some(canDeleteApiProductAttribute :: Nil),
+        http4sPartialFunction = Some(deleteApiProductAttribute)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(createMandate),
+        "POST",
+        "/banks/BANK_ID/accounts/ACCOUNT_ID/mandates",
+        "Create Mandate",
+        s"""Create a new mandate for a bank account.
+        |
+        |A mandate is a legal document that defines who can operate an account, what they can do,
+        |and under what conditions (e.g., signatory requirements, amount thresholds).
+        |
+        |Mandates tie together OBP constructs such as Views, ABAC Rules, Signatory Panels,
+        |and Challenges into a coherent authorization policy.
+        |
+        |**Status values:** ACTIVE, SUSPENDED, EXPIRED, DRAFT
+        |
+        |**Date format:** yyyy-MM-dd'T'HH:mm:ss'Z' (UTC)
+        |
+        |Authentication is Required
+        |""",
+        CreateMandateJsonV600(
+          customer_id = "customer-id-123",
+          mandate_name = "ACME Corp Operating Account Authority",
+          mandate_reference = "MND-2026-00042",
+          legal_text = "The following persons are authorised to operate this account...",
+          description = "Payment and account access authority for ACME Corp",
+          status = "ACTIVE",
+          valid_from = "2026-01-01T00:00:00Z",
+          valid_to = "2027-01-01T00:00:00Z"
+        ),
+        MandateJsonV600(
+          mandate_id = "mandate-id-123",
+          bank_id = "gh.29.uk",
+          account_id = "8ca8a7e4-6d02",
+          customer_id = "customer-id-123",
+          mandate_name = "ACME Corp Operating Account Authority",
+          mandate_reference = "MND-2026-00042",
+          legal_text = "The following persons are authorised to operate this account...",
+          description = "Payment and account access authority for ACME Corp",
+          status = "ACTIVE",
+          valid_from = "2026-01-01T00:00:00Z",
+          valid_to = "2027-01-01T00:00:00Z",
+          created_by_user_id = "user-id-123",
+          updated_by_user_id = "user-id-123"
+        ),
+        List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UserHasMissingRoles, UnknownError),
+        apiTagMandate :: Nil,
+        Some(canCreateMandate :: Nil),
+        http4sPartialFunction = Some(createMandate)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getMandates),
+        "GET",
+        "/banks/BANK_ID/accounts/ACCOUNT_ID/mandates",
+        "Get Mandates",
+        s"""Get all mandates for a bank account.
+        |
+        |Authentication is Required
+        |""",
+        EmptyBody,
+        MandatesJsonV600(List(MandateJsonV600(
+          mandate_id = "mandate-id-123",
+          bank_id = "gh.29.uk",
+          account_id = "8ca8a7e4-6d02",
+          customer_id = "customer-id-123",
+          mandate_name = "ACME Corp Operating Account Authority",
+          mandate_reference = "MND-2026-00042",
+          legal_text = "The following persons are authorised...",
+          description = "Payment authority for ACME Corp",
+          status = "ACTIVE",
+          valid_from = "2026-01-01T00:00:00Z",
+          valid_to = "2027-01-01T00:00:00Z",
+          created_by_user_id = "user-id-123",
+          updated_by_user_id = "user-id-123"
+        ))),
+        List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UserHasMissingRoles, UnknownError),
+        apiTagMandate :: Nil,
+        Some(canGetMandate :: Nil),
+        http4sPartialFunction = Some(getMandates)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getMandate),
+        "GET",
+        "/banks/BANK_ID/accounts/ACCOUNT_ID/mandates/MANDATE_ID",
+        "Get Mandate",
+        s"""Get a mandate by its ID.
+        |
+        |Authentication is Required
+        |""",
+        EmptyBody,
+        MandateJsonV600(
+          mandate_id = "mandate-id-123",
+          bank_id = "gh.29.uk",
+          account_id = "8ca8a7e4-6d02",
+          customer_id = "customer-id-123",
+          mandate_name = "ACME Corp Operating Account Authority",
+          mandate_reference = "MND-2026-00042",
+          legal_text = "The following persons are authorised...",
+          description = "Payment authority for ACME Corp",
+          status = "ACTIVE",
+          valid_from = "2026-01-01T00:00:00Z",
+          valid_to = "2027-01-01T00:00:00Z",
+          created_by_user_id = "user-id-123",
+          updated_by_user_id = "user-id-123"
+        ),
+        List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UserHasMissingRoles, UnknownError),
+        apiTagMandate :: Nil,
+        Some(canGetMandate :: Nil),
+        http4sPartialFunction = Some(getMandate)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(updateMandate),
+        "PUT",
+        "/banks/BANK_ID/accounts/ACCOUNT_ID/mandates/MANDATE_ID",
+        "Update Mandate",
+        s"""Update a mandate.
+        |
+        |Authentication is Required
+        |""",
+        UpdateMandateJsonV600(
+          mandate_name = "Updated Mandate Name",
+          mandate_reference = "MND-2026-00042",
+          legal_text = "Updated legal text...",
+          description = "Updated description",
+          status = "ACTIVE",
+          valid_from = "2026-01-01T00:00:00Z",
+          valid_to = "2027-01-01T00:00:00Z"
+        ),
+        MandateJsonV600(
+          mandate_id = "mandate-id-123",
+          bank_id = "gh.29.uk",
+          account_id = "8ca8a7e4-6d02",
+          customer_id = "customer-id-123",
+          mandate_name = "Updated Mandate Name",
+          mandate_reference = "MND-2026-00042",
+          legal_text = "Updated legal text...",
+          description = "Updated description",
+          status = "ACTIVE",
+          valid_from = "2026-01-01T00:00:00Z",
+          valid_to = "2027-01-01T00:00:00Z",
+          created_by_user_id = "user-id-123",
+          updated_by_user_id = "user-id-456"
+        ),
+        List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, UserHasMissingRoles, UnknownError),
+        apiTagMandate :: Nil,
+        Some(canUpdateMandate :: Nil),
+        http4sPartialFunction = Some(updateMandate)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(deleteMandate),
+        "DELETE",
+        "/banks/BANK_ID/accounts/ACCOUNT_ID/mandates/MANDATE_ID",
+        "Delete Mandate",
+        s"""Delete a mandate and all its provisions and signatory panels.
+        |
+        |Authentication is Required
+        |""",
+        EmptyBody,
+        EmptyBody,
+        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
+        apiTagMandate :: Nil,
+        Some(canDeleteMandate :: Nil),
+        http4sPartialFunction = Some(deleteMandate)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(createMandateProvision),
+        "POST",
+        "/banks/BANK_ID/mandates/MANDATE_ID/provisions",
+        "Create Mandate Provision",
+        s"""Create a new provision for a mandate.
+        |
+        |A provision links the mandate's legal clauses to OBP enforcement mechanisms
+        |(Views, ABAC Rules, Challenges).
+        |
+        |**Provision types:**
+        |- SIGNATORY_RULE — Who can sign and in what combination
+        |- VIEW_ASSIGNMENT — Which view a signatory panel gets on the account
+        |- ABAC_CONDITION — Links to an ABAC rule for attribute-based conditions
+        |- RESTRICTION — Negative rule (e.g., no international payments)
+        |- NOTIFICATION — Triggers notification rather than blocking
+        |
+        |Authentication is Required
+        |""",
+        CreateMandateProvisionJsonV600(
+          provision_name = "Payments under 5000",
+          provision_description = "Any single Director may authorise payments below EUR 5,000",
+          legal_reference = "Clause 3.1(a)",
+          provision_type = "SIGNATORY_RULE",
+          conditions = """{"currency": "EUR", "amount_below": 5000.00}""",
+          signatory_requirements = List(SignatoryRequirementJsonV600(panel_id = "panel-id-001", required_count = 1)),
+          linked_view_id = Some("PaymentInitiator"),
+          linked_abac_rule_id = None,
+          linked_challenge_type = Some("OBP_TRANSACTION_REQUEST_CHALLENGE"),
+          is_active = true,
+          sort_order = 1
+        ),
+        MandateProvisionJsonV600(
+          provision_id = "provision-id-123",
+          mandate_id = "mandate-id-123",
+          provision_name = "Payments under 5000",
+          provision_description = "Any single Director may authorise payments below EUR 5,000",
+          legal_reference = "Clause 3.1(a)",
+          provision_type = "SIGNATORY_RULE",
+          conditions = """{"currency": "EUR", "amount_below": 5000.00}""",
+          signatory_requirements = List(SignatoryRequirementJsonV600(panel_id = "panel-id-001", required_count = 1)),
+          linked_view_id = "PaymentInitiator",
+          linked_abac_rule_id = "",
+          linked_challenge_type = "OBP_TRANSACTION_REQUEST_CHALLENGE",
+          is_active = true,
+          sort_order = 1
+        ),
+        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
+        apiTagMandate :: Nil,
+        Some(canCreateMandateProvision :: Nil),
+        http4sPartialFunction = Some(createMandateProvision)
+      )
+    }
+
+    private def registerBatch9(): Unit = {
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getMandateProvisions),
+        "GET",
+        "/banks/BANK_ID/mandates/MANDATE_ID/provisions",
+        "Get Mandate Provisions",
+        s"""Get all provisions for a mandate.
+        |
+        |Authentication is Required
+        |""",
+        EmptyBody,
+        MandateProvisionsJsonV600(List(MandateProvisionJsonV600(
+          provision_id = "provision-id-123",
+          mandate_id = "mandate-id-123",
+          provision_name = "Payments under 5000",
+          provision_description = "Any single Director may authorise payments below EUR 5,000",
+          legal_reference = "Clause 3.1(a)",
+          provision_type = "SIGNATORY_RULE",
+          conditions = """{"currency": "EUR", "amount_below": 5000.00}""",
+          signatory_requirements = List(SignatoryRequirementJsonV600(panel_id = "panel-id-001", required_count = 1)),
+          linked_view_id = "PaymentInitiator",
+          linked_abac_rule_id = "",
+          linked_challenge_type = "OBP_TRANSACTION_REQUEST_CHALLENGE",
+          is_active = true,
+          sort_order = 1
+        ))),
+        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
+        apiTagMandate :: Nil,
+        Some(canGetMandateProvision :: Nil),
+        http4sPartialFunction = Some(getMandateProvisions)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(getMandateProvision),
+        "GET",
+        "/banks/BANK_ID/mandates/MANDATE_ID/provisions/PROVISION_ID",
+        "Get Mandate Provision",
+        s"""Get a specific provision by its ID.
+        |
+        |Authentication is Required
+        |""",
+        EmptyBody,
+        MandateProvisionJsonV600(
+          provision_id = "provision-id-123",
+          mandate_id = "mandate-id-123",
+          provision_name = "Payments under 5000",
+          provision_description = "Any single Director may authorise payments below EUR 5,000",
+          legal_reference = "Clause 3.1(a)",
+          provision_type = "SIGNATORY_RULE",
+          conditions = """{"currency": "EUR", "amount_below": 5000.00}""",
+          signatory_requirements = List(SignatoryRequirementJsonV600(panel_id = "panel-id-001", required_count = 1)),
+          linked_view_id = "PaymentInitiator",
+          linked_abac_rule_id = "",
+          linked_challenge_type = "OBP_TRANSACTION_REQUEST_CHALLENGE",
+          is_active = true,
+          sort_order = 1
+        ),
+        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
+        apiTagMandate :: Nil,
+        Some(canGetMandateProvision :: Nil),
+        http4sPartialFunction = Some(getMandateProvision)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(updateMandateProvision),
+        "PUT",
+        "/banks/BANK_ID/mandates/MANDATE_ID/provisions/PROVISION_ID",
+        "Update Mandate Provision",
+        s"""Update a mandate provision.
+        |
+        |Authentication is Required
+        |""",
+        UpdateMandateProvisionJsonV600(
+          provision_name = "Updated provision",
+          provision_description = "Updated description",
+          legal_reference = "Clause 3.1(b)",
+          provision_type = "SIGNATORY_RULE",
+          conditions = """{"currency": "EUR", "amount_below": 50000.00}""",
+          signatory_requirements = List(SignatoryRequirementJsonV600(panel_id = "panel-id-001", required_count = 2)),
+          linked_view_id = Some("PaymentInitiator"),
+          linked_abac_rule_id = None,
+          linked_challenge_type = Some("OBP_TRANSACTION_REQUEST_CHALLENGE"),
+          is_active = true,
+          sort_order = 2
+        ),
+        MandateProvisionJsonV600(
+          provision_id = "provision-id-123",
+          mandate_id = "mandate-id-123",
+          provision_name = "Updated provision",
+          provision_description = "Updated description",
+          legal_reference = "Clause 3.1(b)",
+          provision_type = "SIGNATORY_RULE",
+          conditions = """{"currency": "EUR", "amount_below": 50000.00}""",
+          signatory_requirements = List(SignatoryRequirementJsonV600(panel_id = "panel-id-001", required_count = 2)),
+          linked_view_id = "PaymentInitiator",
+          linked_abac_rule_id = "",
+          linked_challenge_type = "OBP_TRANSACTION_REQUEST_CHALLENGE",
+          is_active = true,
+          sort_order = 2
+        ),
+        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
+        apiTagMandate :: Nil,
+        Some(canUpdateMandateProvision :: Nil),
+        http4sPartialFunction = Some(updateMandateProvision)
+      )
+      resourceDocs += ResourceDoc(
+        null,
+        implementedInApiVersion,
+        nameOf(deleteMandateProvision),
+        "DELETE",
+        "/banks/BANK_ID/mandates/MANDATE_ID/provisions/PROVISION_ID",
+        "Delete Mandate Provision",
+        s"""Delete a mandate provision.
+        |
+        |Authentication is Required
+        |""",
+        EmptyBody,
+        EmptyBody,
+        List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
+        apiTagMandate :: Nil,
+        Some(canDeleteMandateProvision :: Nil),
+        http4sPartialFunction = Some(deleteMandateProvision)
+      )
+    }
+}
 
   private lazy val v6ResourceDocIndex: ResourceDocMatcher.ResourceDocIndex =
     ResourceDocMatcher.buildIndex(resourceDocs)

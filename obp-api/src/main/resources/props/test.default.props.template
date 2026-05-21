@@ -96,9 +96,6 @@ payments_enabled=false
 #connection.user=user
 #connection.password=pw
 
-#secret key that allows access to the "add transactions" api. You should change this to your own secret key
-importer_secret=change_me
-
 #set this to true if you want to have the api to send a message to the hbci project to refresh transactions for an account
 messageQueue.updateBankAccountsTransaction=false
 
