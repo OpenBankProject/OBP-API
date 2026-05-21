@@ -13,6 +13,7 @@
   */
 package code.api.v6_0_0
 
+import code.api.Constant
 import code.api.util.APIUtil.stringOrNull
 import code.metrics.ConnectorTrace
 import code.api.util.RateLimitingPeriod.LimitCallPeriod
@@ -1648,8 +1649,9 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
         account.currency.getOrElse(""),
         account.balance.getOrElse("").toString
       ),
-      account_routings = account.accountRoutings.map(r =>
-        AccountRoutingJsonV121(scheme = r.scheme, address = r.address)
+      account_routings = Constant.accountRoutingsWithImplicitOBP(
+        account.accountId.value,
+        account.accountRoutings.map(r => AccountRoutingJsonV121(scheme = r.scheme, address = r.address))
       ),
       views_basic = availableViews.map(_.viewId.value)
     )
@@ -2436,13 +2438,12 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
   }
 
   def createBankJsonV600(bank: Bank, attributes: List[BankAttributeTrait] = Nil): BankJsonV600 = {
-    val obp = BankRoutingJsonV121("OBP", bank.bankId.value)
     val bic = BankRoutingJsonV121("BIC", bank.swiftBic)
-    val routings = bank.bankRoutingScheme match {
-      case "OBP" => bic :: BankRoutingJsonV121(bank.bankRoutingScheme, bank.bankRoutingAddress) :: Nil
-      case "BIC" => obp :: BankRoutingJsonV121(bank.bankRoutingScheme, bank.bankRoutingAddress) :: Nil
-      case _ => obp :: bic :: BankRoutingJsonV121(bank.bankRoutingScheme, bank.bankRoutingAddress) :: Nil
-    }
+    val stored = BankRoutingJsonV121(bank.bankRoutingScheme, bank.bankRoutingAddress)
+    val nonObpRoutings =
+      if (bank.bankRoutingScheme == "BIC") List(stored)
+      else List(bic, stored)
+    val routings = Constant.bankRoutingsWithImplicitOBP(bank.bankId.value, nonObpRoutings)
     BankJsonV600(
       bank_id = stringOrNull(bank.bankId.value),
       bank_code = stringOrNull(bank.shortName),
@@ -2698,7 +2699,10 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       bank_id = bankAccount.bankId.value,
       account_id = bankAccount.accountId.value,
       bank_routing = BankRoutingJsonV121(stringOptionOrNull(bankAccount.bankRoutingScheme), stringOptionOrNull(bankAccount.bankRoutingAddress)),
-      account_routings = List(AccountRoutingJsonV121(stringOptionOrNull(bankAccount.accountRoutingScheme), stringOptionOrNull(bankAccount.accountRoutingAddress))),
+      account_routings = Constant.accountRoutingsWithImplicitOBP(
+        bankAccount.accountId.value,
+        List(AccountRoutingJsonV121(stringOptionOrNull(bankAccount.accountRoutingScheme), stringOptionOrNull(bankAccount.accountRoutingAddress)))
+      ),
       holders = bankAccount.owners.map(x => x.toList.map(holder => AccountHolderJSON(name = holder.name, is_alias = false))).getOrElse(null)
     )
   }
@@ -2715,7 +2719,10 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       account_id = bankAccount.id,
       holder = createAccountHolderJSON(bankAccount.label.display, bankAccount.isAlias),
       bank_routing = BankRoutingJsonV121(stringOptionOrNull(bankAccount.bankRoutingScheme), stringOptionOrNull(bankAccount.bankRoutingAddress)),
-      account_routings = List(AccountRoutingJsonV121(stringOptionOrNull(bankAccount.accountRoutingScheme), stringOptionOrNull(bankAccount.accountRoutingAddress))),
+      account_routings = Constant.accountRoutingsWithImplicitOBP(
+        bankAccount.id,
+        List(AccountRoutingJsonV121(stringOptionOrNull(bankAccount.accountRoutingScheme), stringOptionOrNull(bankAccount.accountRoutingAddress)))
+      ),
       metadata = bankAccount.metadata.map(createOtherAccountMetaDataJSON).getOrElse(null)
     )
   }
@@ -2922,7 +2929,10 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
           account_number = a.number,
           account_type = a.productCode,
           branch_id = a.branchId,
-          account_routings = a.accountRoutings.map(r => AccountRoutingJsonV121(r.scheme, r.address)),
+          account_routings = Constant.accountRoutingsWithImplicitOBP(
+            a.id,
+            a.accountRoutings.map(r => AccountRoutingJsonV121(r.scheme, r.address))
+          ),
           account_attributes = a.accountAttributes,
           view_ids = viewsPerAccount.getOrElse(BankIdAccountId(BankId(a.bankId), AccountId(a.id)), Nil)
         )
@@ -2982,7 +2992,10 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       balance = createAmountOfMoneyJSON(account.currency.getOrElse(""), account.balance.getOrElse("")),
       views_available = viewsAvailable,
       bank_id = stringOrNull(account.bankId.value),
-      account_routings = createAccountRoutingsJSON(account.accountRoutings),
+      account_routings = Constant.accountRoutingsWithImplicitOBP(
+        account.accountId.value,
+        createAccountRoutingsJSON(account.accountRoutings)
+      ),
       account_attributes = accountAttributes.map(createAccountAttributeJson),
       tags = tags.map(createAccountTagJSON)
     )

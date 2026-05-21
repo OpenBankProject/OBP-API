@@ -902,6 +902,48 @@ object Glossary extends MdcLoggable  {
 		""")
 
 	  glossaryItems += GlossaryItem(
+		title = "Account.account_routings",
+		description =
+		s"""
+		  |A list of routing entries that identify the account on external rails (IBAN, account number, mobile-money MSISDN, etc.) and on OBP itself.
+		  |
+		  |Each entry has two fields:
+		  |
+		  |- `scheme` — the name of the routing scheme, e.g. `IBAN`, `BIC`, `AccountNumber`, `OBP`.
+		  |- `address` — the address within that scheme, e.g. an IBAN value, an account-number string, or — for the `OBP` scheme — the OBP `account_id`.
+		  |
+		  |### Response shape (v6.0.0 onwards)
+		  |
+		  |For every endpoint that returns `account_routings` (e.g. `getCoreAccountById`, `getPrivateAccountByIdFull`, `getAccountDirectory`, the transaction endpoints), the response is guaranteed to contain:
+		  |
+		  |1. **Exactly one canonical OBP self-routing** as the first element: `{ "scheme": "OBP", "address": "<account_id>" }`. This means a client can always address the account by its `account_id` without first probing for which routing schemes the bank has configured.
+		  |2. **Zero or more stored routings** from the `bankaccountrouting` table — whatever the bank or admin has configured (IBAN, BIC, AccountNumber, country-qualified MSISDN, etc.).
+		  |
+		  |If a bank has stored an `OBP`-scheme routing whose address diverges from the `account_id`, the response prefers the canonical form (`address = account_id`) — the stored value is dropped to guarantee a single, consistent OBP entry.
+		  |
+		  |### Example
+		  |
+		  |```json
+		  |"account_routings": [
+		  |  { "scheme": "OBP",           "address": "${accountIdExample.value}" },
+		  |  { "scheme": "IBAN",          "address": "DE89370400440532013000" },
+		  |  { "scheme": "AccountNumber", "address": "12345678" }
+		  |]
+		  |```
+		  |
+		  |### Where to set the stored routings
+		  |
+		  |The non-OBP entries come from the `BankAccountRouting` model — one row per `(BANK_ID, ACCOUNT_ID, scheme)` triple. Use `Create or Update Account Routing` to manage them. Multiple entries per account are supported (e.g. an IBAN plus an MSISDN), and each `(scheme, address)` pair is unique within a bank.
+		  |
+		  |### Earlier versions
+		  |
+		  |In versions earlier than v6.0.0 the canonical `OBP` entry was not automatically prepended. A client targeting older versions cannot rely on `OBP` being present unless the bank/admin explicitly stored it. Migrating to v6.0.0+ simplifies routing logic since the OBP self-routing is always available.
+		  |
+		  |See also: `Bank.bank_routings` for the analogous bank-level field.
+		  |
+		""")
+
+	  glossaryItems += GlossaryItem(
 		title = "Bank",
 		description =
 		"""
@@ -955,6 +997,47 @@ object Glossary extends MdcLoggable  {
 			|the field name — sending `id` to v6 endpoints will silently produce an empty `bank_id` and
 			|fail validation with a confusing length error.
 		 """)
+
+	  glossaryItems += GlossaryItem(
+		title = "Bank.bank_routings",
+		description =
+		s"""
+		  |A list of routing entries that identify the bank on external rails (BIC/SWIFT, national bank codes, etc.) and on OBP itself.
+		  |
+		  |Each entry has two fields:
+		  |
+		  |- `scheme` — the name of the routing scheme, e.g. `BIC`, `bankCode`, `BLZ`, `FRENCH_NCC`, `OBP`.
+		  |- `address` — the address within that scheme, e.g. a BIC value, a national bank code, or — for the `OBP` scheme — the OBP `bank_id`.
+		  |
+		  |### Response shape (v6.0.0 onwards)
+		  |
+		  |For every endpoint that returns `bank_routings` (e.g. `getBank`, `getBanks`, `createBank`), the response is guaranteed to contain:
+		  |
+		  |1. **Exactly one canonical OBP self-routing** as the first element: `{ "scheme": "OBP", "address": "<bank_id>" }`. This means a client can always address the bank by its `bank_id` regardless of which other schemes have been registered.
+		  |2. **A BIC entry**, derived from the bank's dedicated SWIFT/BIC column (`swiftBic`), if non-empty. If the explicit stored routing is itself a BIC, only one BIC entry appears — duplicates are removed.
+		  |3. **The explicit stored routing** (the legacy single `(bankRoutingScheme, bankRoutingAddress)` column pair), unless it is an `OBP` or `BIC` entry already covered above.
+		  |
+		  |If a bank has stored an `OBP`-scheme routing whose address diverges from the `bank_id`, the response prefers the canonical form (`address = bank_id`) — the stored value is dropped to guarantee a single, consistent OBP entry.
+		  |
+		  |Entries with an empty/null address are filtered out (e.g. if a bank has no BIC, the implicit BIC entry is dropped rather than emitted as a null).
+		  |
+		  |### Example
+		  |
+		  |```json
+		  |"bank_routings": [
+		  |  { "scheme": "OBP", "address": "${bankIdExample.value}" },
+		  |  { "scheme": "BIC", "address": "BARCGB22" },
+		  |  { "scheme": "BLZ", "address": "10010010" }
+		  |]
+		  |```
+		  |
+		  |### Earlier versions
+		  |
+		  |In versions earlier than v6.0.0 the canonical `OBP` entry was not automatically prepended. A client targeting older versions cannot rely on `OBP` being present unless explicitly stored. Migrating to v6.0.0+ simplifies routing logic since the OBP self-routing is always available.
+		  |
+		  |See also: `Account.account_routings` for the analogous account-level field.
+		  |
+		""")
 
 	  glossaryItems += GlossaryItem(
 		title = "Consumer",
