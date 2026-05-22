@@ -1948,13 +1948,18 @@ object Http4s121 {
       null, implementedInApiVersion, nameOf(addTransactionNarrative), "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/narrative",
       "Add a Transaction Narrative",
+      // Intentional drift from Lift's APIMethods121.scala source-of-truth.
+      // Lift's description had userAuthenticationMessage(false), but the handler
+      // is authenticated. The ResourceDoc constructor strips $AuthenticatedUserIsRequired
+      // from errorResponseBodies when description carries `authenticationIsOptional`,
+      // making the middleware skip the 401 — view-permission check then returned
+      // 403 for unauthenticated requests. Flip the marker to (true).
       s"""Creates a description of the transaction TRANSACTION_ID.
       |
       |Note: Unlike other items of metadata, there is only one "narrative" per transaction accross all views.
       |If you set narrative via a view e.g. view-x it will be seen via view-y (as long as view-y has permission to see the narrative).
       |
-      |${userAuthenticationMessage(false)}
-      |Authentication is required if the view is not public.
+      |${userAuthenticationMessage(true)}
       |""",
       transactionNarrativeJSON, successMessage,
       List(
