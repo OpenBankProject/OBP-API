@@ -5255,13 +5255,14 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   lazy val allStaticResourceDocs = (OBPAPI6_0_0.allResourceDocs
     ++ OBP_UKOpenBanking_200.allResourceDocs
     ++ OBP_UKOpenBanking_310.allResourceDocs
-    ++ code.api.Polish.v2_1_1_1.OBP_PAPI_2_1_1_1.allResourceDocs
-    ++ code.api.STET.v1_4.OBP_STET_1_4.allResourceDocs
-    ++ code.api.AUOpenBanking.v1_0_0.ApiCollector.allResourceDocs
-    ++ code.api.MxOF.CNBV9_1_0_0.allResourceDocs
-    ++ code.api.berlin.group.v1_3.OBP_BERLIN_GROUP_1_3.allResourceDocs
-    ++ code.api.MxOF.OBP_MXOF_1_0_0.allResourceDocs
-    ++ code.api.BahrainOBF.v1_0_0.ApiCollector.allResourceDocs).toList
+    // Commented out: Lift endpoints migrated off / removed (Polish, STET, AUOpenBanking, MxOF/CNBV9, BahrainOBF)
+    //    ++ code.api.Polish.v2_1_1_1.OBP_PAPI_2_1_1_1.allResourceDocs
+    //    ++ code.api.STET.v1_4.OBP_STET_1_4.allResourceDocs
+    //    ++ code.api.AUOpenBanking.v1_0_0.ApiCollector.allResourceDocs
+    //    ++ code.api.MxOF.CNBV9_1_0_0.allResourceDocs
+    //    ++ code.api.MxOF.OBP_MXOF_1_0_0.allResourceDocs
+    //    ++ code.api.BahrainOBF.v1_0_0.ApiCollector.allResourceDocs
+    ++ code.api.berlin.group.v1_3.OBP_BERLIN_GROUP_1_3.allResourceDocs).toList
   
   def allDynamicResourceDocs= (DynamicEntityHelper.doc ++ DynamicEndpointHelper.doc ++ DynamicEndpoints.dynamicResourceDocs).toList
   
