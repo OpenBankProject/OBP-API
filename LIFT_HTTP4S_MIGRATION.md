@@ -191,14 +191,14 @@ Separate from the resource-docs **serving** workstream above, there is a parity 
 | v1_4_0 | 10  | 1  | 0 | 0 | one minor |
 | v2_0_0 | 37  | 19 | 0 | 0 | not started |
 | v2_1_0 | 23  | 13 | 5 | 2 | not started |
-| v2_2_0 | 18  | 13 | 0 | 0 | not started |
+| v2_2_0 | 18  | 0  | 0 | 18 | Lift trait fully retired upstream (commit `71892f5cb`); audited against pre-stub Lift via git history; 13 fields restored; 3 middleware URL renames remain |
 | v3_0_0 | 47  | 4  | 0 | 0 | semantic fields restored; 4 middleware-driven URL renames remain |
 | v3_1_0 | 102 | 5  | 0 | 0 | semantic fields restored; 5 structural drifts (placeholder renames) remain |
 | v4_0_0 | 254 | 20 | 2 | 5 | semantic fields restored; 20 structural drifts (placeholder renames + 1 verb fix) remain |
 | v5_0_0 | 39  | 8  | 0 | 3 | descriptions restored; structural/errors remain |
 | v5_1_0 | 111 | 1  | 1 | 2 | one verb-casing drift to fix |
 | v6_0_0 | 243 | 12 | 0 | 1 | 11 placeholder renames + 1 routing-shape upstream change |
-| **Total** | **956** | **144** | | | |
+| **Total** | **956** | **128** | | | |
 
 ### v6.0.0 — 12 specific drifts (each is a fix candidate)
 
@@ -230,6 +230,22 @@ Also: 1 only-http4s (`createWebUiProps`) — genuinely http4s-only with no Lift 
 Also:
 - 1 only-lift (`createConsentImplicit`) + 1 only-http4s (`createConsent`) — Lift had `lazy val createConsentImplicit = createConsent` aliasing and registered the doc under the alias; http4s registers under the canonical name. Fix: in http4s, either rename the partial function to `createConsentImplicit` to match Lift, or register a second `nameOf(createConsentImplicit)` doc for the same handler.
 - 1 only-http4s (`getBanks`) — kept in the v5.1.0 layer for metrics attribution (intentional addition; see comment at `Http4s510.scala:288`). Document.
+
+### v2.2.0 — 3 specific drifts + 18 only-http4s
+
+Upstream commit `71892f5cb` retired `APIMethods220.scala`'s Lift trait entirely (1361 lines → 9-line empty stub). For audit purposes, the Lift source-of-truth is preserved in git history at `71892f5cb^`. A one-off Python script using `restore_resource_doc_bodies.py` helpers (in `scripts/`) extracts the pre-stub `APIMethods220.scala` and runs the standard field restoration against `Http4s220.scala`.
+
+After restoration (13 descriptions + 1 example body + 1 success body), only 3 middleware-driven URL renames remain:
+
+| Endpoint | Field | Lift | http4s | Resolution |
+|---|---|---|---|---|
+| `createAccount` | requestUrl | `…/accounts/ACCOUNT_ID` | `…/accounts/NEW_ACCOUNT_ID` | PUT-creates-account bypass. **Document**. |
+| `createViewForBankAccount` | requestUrl | `…/accounts/ACCOUNT_ID/views` | `…/accounts/VIEW_ACCOUNT_ID/views` | Account-validation bypass. **Document**. |
+| `updateViewForBankAccount` | requestUrl | `…/views/VIEW_ID` | `…/views/UPD_VIEW_ID` | Disambiguation rename. **Document**. |
+
+The 18 only-http4s entries are the actual v2.2.0 surface — there is no live Lift counterpart in the file anymore. They're audited indirectly against the git-history Lift.
+
+Two supporting imports were added to `Http4s220.scala` so the restored descriptions / example bodies compile: `code.api.util.Glossary` and `java.util.Date`.
 
 ### v3.0.0 — 4 specific drifts
 

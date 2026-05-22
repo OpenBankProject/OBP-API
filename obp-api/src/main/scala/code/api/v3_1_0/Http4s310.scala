@@ -829,8 +829,13 @@ object Http4s310 {
       |""",
       EmptyBody,
       customerWithAttributesJsonV310,
-      List(AuthenticatedUserIsRequired, UserCustomerLinksNotFoundForUser, UnknownError),
-      List(apiTagCustomer, apiTagKyc),
+      List(
+        AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        UserCustomerLinksNotFoundForUser,
+        UnknownError
+      ),
+      List(apiTagCustomer),
       Some(List(canGetCustomersAtOneBank)),
       http4sPartialFunction = Some(getCustomerByCustomerId)
     )
@@ -1310,7 +1315,11 @@ object Http4s310 {
       """.stripMargin,
       EmptyBody,
       viewJSONV220,
-      List(AuthenticatedUserIsRequired, UserHasMissingRoles, ViewNotFound, UnknownError),
+      List(
+        AuthenticatedUserIsRequired,
+        BankNotFound,
+        UnknownError
+      ),
       List(apiTagSystemView),
       Some(List(canGetSystemView)),
       http4sPartialFunction = Some(getSystemView)
@@ -1505,7 +1514,8 @@ object Http4s310 {
       "Get Transaction by Id",
       s"""Returns one transaction specified by TRANSACTION_ID of the account ACCOUNT_ID and [moderated](#1_2_1-getViewsForBankAccount) by the view (VIEW_ID).
       |
-      |${userAuthenticationMessage(true)}
+      |${userAuthenticationMessage(false)}
+      |Authentication is required if the view is not public.
       |
       |
       |""",
@@ -2083,7 +2093,11 @@ object Http4s310 {
       |""",
       EmptyBody,
       EmptyBody,
-      List(AuthenticatedUserIsRequired, UserHasMissingRoles, BankNotFound, UnknownError),
+      List(
+        UserHasMissingRoles,
+        BankNotFound,
+        UnknownError
+      ),
       List(apiTagProduct, apiTagProductAttribute, apiTagAttribute),
       Some(List(canDeleteProductAttribute)),
       http4sPartialFunction = Some(deleteProductAttribute)
@@ -4564,7 +4578,7 @@ object Http4s310 {
       nameOf(createConsentEmail),
       "POST",
       "/banks/BANK_ID/my/consents/EMAIL",
-      "Create Consent (Email)",
+      "Create Consent (EMAIL)",
       s"""
       |
       |This endpoint starts the process of creating a Consent.
@@ -4623,8 +4637,18 @@ object Http4s310 {
       |""",
       postConsentEmailJsonV310,
       consentJsonV310,
-      List(AuthenticatedUserIsRequired, BankNotFound, InvalidJsonFormat,
-      ConsentMaxTTL, RolesAllowedInConsent, ViewsAllowedInConsent, UnknownError),
+      List(
+        AuthenticatedUserIsRequired,
+        BankNotFound,
+        InvalidJsonFormat,
+        ConsentAllowedScaMethods,
+        RolesAllowedInConsent,
+        ViewsAllowedInConsent,
+        ConsumerNotFoundByConsumerId,
+        ConsumerIsDisabled,
+        InvalidConnectorResponse,
+        UnknownError
+      ),
       apiTagConsent :: apiTagPSD2AIS :: apiTagPsd2 :: Nil,
       None,
       http4sPartialFunction = Some(createConsentEmail)
@@ -4695,8 +4719,20 @@ object Http4s310 {
       |""",
       postConsentPhoneJsonV310,
       consentJsonV310,
-      List(AuthenticatedUserIsRequired, BankNotFound, InvalidJsonFormat,
-      ConsentMaxTTL, RolesAllowedInConsent, ViewsAllowedInConsent, UnknownError),
+      List(
+        AuthenticatedUserIsRequired,
+        BankNotFound,
+        InvalidJsonFormat,
+        ConsentAllowedScaMethods,
+        RolesAllowedInConsent,
+        ViewsAllowedInConsent,
+        ConsumerNotFoundByConsumerId,
+        ConsumerIsDisabled,
+        MissingPropsValueAtThisInstance,
+        SmsServerNotResponding,
+        InvalidConnectorResponse,
+        UnknownError
+      ),
       apiTagConsent :: apiTagPSD2AIS :: apiTagPsd2 :: Nil,
       None,
       http4sPartialFunction = Some(createConsentSms)
@@ -4708,7 +4744,7 @@ object Http4s310 {
       nameOf(createConsentImplicit),
       "POST",
       "/banks/BANK_ID/my/consents/IMPLICIT",
-      "Create Consent (Implicit)",
+      "Create Consent (IMPLICIT)",
       s"""
       |
       |This endpoint starts the process of creating a Consent.
@@ -4764,8 +4800,20 @@ object Http4s310 {
       |""",
       postConsentImplicitJsonV310,
       consentJsonV310,
-      List(AuthenticatedUserIsRequired, BankNotFound, InvalidJsonFormat,
-      ConsentMaxTTL, RolesAllowedInConsent, ViewsAllowedInConsent, UnknownError),
+      List(
+        AuthenticatedUserIsRequired,
+        BankNotFound,
+        InvalidJsonFormat,
+        ConsentAllowedScaMethods,
+        RolesAllowedInConsent,
+        ViewsAllowedInConsent,
+        ConsumerNotFoundByConsumerId,
+        ConsumerIsDisabled,
+        MissingPropsValueAtThisInstance,
+        SmsServerNotResponding,
+        InvalidConnectorResponse,
+        UnknownError
+      ),
       apiTagConsent :: apiTagPSD2AIS :: apiTagPsd2 :: Nil,
       None,
       http4sPartialFunction = Some(createConsentImplicit)
@@ -4836,7 +4884,7 @@ object Http4s310 {
       "Get Connector Status (Loopback)",
       s"""This endpoint makes a call to the Connector to check the backend transport is reachable. (Deprecated)
       |
-      |${userAuthenticationMessage(false)}
+      |${userAuthenticationMessage(true)}
       |
       |""",
       EmptyBody,
