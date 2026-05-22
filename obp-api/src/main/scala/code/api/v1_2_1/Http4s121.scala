@@ -43,6 +43,27 @@ object Http4s121 {
   val versionStatus: String = ApiVersionStatus.DEPRECATED.toString
   val resourceDocs: ArrayBuffer[ResourceDoc] = ArrayBuffer[ResourceDoc]()
 
+  // Carried over verbatim from APIMethods121.scala:906 — referenced inside
+  // restored `s"""..."""` doc interpolations for revoke-access endpoints.
+  private val generalRevokeAccessToViewText: String =
+    """
+      |The User is identified by PROVIDER_ID at their PROVIDER.
+      |
+      |The Account is specified by BANK_ID and ACCOUNT_ID.
+      |
+      |The View is specified by VIEW_ID.
+      |
+      |
+      |PROVIDER (may be a URL so) must be URL Encoded.
+      |
+      |PROVIDER_ID is normally equivalent to USERNAME. However, see Get User by ID or GET Current User for Provider information.
+      |
+      |Attempting to revoke access to a public view will return an error message.
+      |
+      |An Account Owner cannot revoke access to an Owner View unless at least one other User has Owner View access.
+      |
+    """.stripMargin
+
   object Implementations1_2_1 {
 
     val prefixPath = Root / ApiPathZero.toString / implementedInApiVersion.toString
@@ -192,7 +213,7 @@ object Http4s121 {
         |* Website""",
       EmptyBody,
       bankJSON,
-      List(BankNotFound, UnknownError),
+      List(AuthenticatedUserIsRequired, UnknownError, BankNotFound),
       apiTagBank :: apiTagPsd2 :: apiTagOldStyle :: Nil,
       http4sPartialFunction = Some(bankById)
     )
@@ -280,9 +301,12 @@ object Http4s121 {
       "GET",
       "/accounts/public",
       "Get public accounts at all banks (Anonymous access)",
-      """Returns the list of public accounts at all banks.
-        |For each account the API returns the ID and the available views.
-        |Authentication via OAuth is not required.""".stripMargin,
+      """
+      |Returns the list of private accounts the user has access to at all banks.
+      |For each account the API returns the ID and the available views. 
+      |Authentication via OAuth is required.
+      |
+      |""".stripMargin,
       EmptyBody,
       accountJSON,
       List(UnknownError),
@@ -409,18 +433,21 @@ object Http4s121 {
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/account",
       "Get account by id",
       s"""Information returned about an account specified by ACCOUNT_ID as moderated by the view (VIEW_ID):
-         |
-         |* Number
-         |* Owners
-         |* Type
-         |* Balance
-         |* IBAN
-         |* Available views
-         |
-         |${userAuthenticationMessage(false)}
-         |
-         |Authentication is required if the 'is_public' field in view (VIEW_ID) is not set to `true`.
-         |""".stripMargin,
+      |
+      |* Number
+      |* Owners
+      |* Type
+      |* Balance
+      |* IBAN
+      |* Available views
+      |
+      |More details about the data moderation by the view [here](#1_2_1-getViewsForBankAccount).
+      |
+      |${userAuthenticationMessage(false)}
+      |
+      |Authentication is required if the 'is_public' field in view (VIEW_ID) is not set to `true`.
+      |
+      |""".stripMargin,
       EmptyBody,
       moderatedAccountJSON,
       List(AuthenticatedUserIsRequired, UnknownError, BankAccountNotFound),
@@ -501,9 +528,30 @@ object Http4s121 {
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views",
       "Get Views for Account",
-      s"""Returns the list of the views created for account ACCOUNT_ID at BANK_ID.
-         |
-         |${userAuthenticationMessage(true)} and the user needs to have access to the owner view.""",
+      s"""#Views
+      |
+      |
+      |Views in Open Bank Project provide a mechanism for fine grained access control and delegation to Accounts and Transactions. Account holders use the 'owner' view by default. Delegated access is made through other views for example 'accountants', 'share-holders' or 'tagging-application'. Views can be created via the API and each view has a list of entitlements.
+      |
+      |Views on accounts and transactions filter the underlying data to redact certain fields for certain users. For instance the balance on an account may be hidden from the public. The way to know what is possible on a view is determined in the following JSON.
+      |
+      |**Data:** When a view moderates a set of data, some fields my contain the value `null` rather than the original value. This indicates either that the user is not allowed to see the original data or the field is empty.
+      |
+      |There is currently one exception to this rule; the 'holder' field in the JSON contains always a value which is either an alias or the real name - indicated by the 'is_alias' field.
+      |
+      |**Action:** When a user performs an action like trying to post a comment (with POST API call), if he is not allowed, the body response will contain an error message.
+      |
+      |**Metadata:**
+      |Transaction metadata (like images, tags, comments, etc.) will appears *ONLY* on the view where they have been created e.g. comments posted to the public view only appear on the public view.
+      |
+      |The other account metadata fields (like image_URL, more_info, etc.) are unique through all the views. Example, if a user edits the 'more_info' field in the 'team' view, then the view 'authorities' will show the new value (if it is allowed to do it).
+      |
+      |# All
+      |*Optional*
+      |
+      |Returns the list of the views created for account ACCOUNT_ID at BANK_ID.
+      |
+      |${userAuthenticationMessage(true)} and the user needs to have access to the owner view.""",
       EmptyBody,
       viewsJSONV121,
       List(AuthenticatedUserIsRequired, BankAccountNotFound, UnknownError, "user does not have owner access"),
@@ -557,9 +605,19 @@ object Http4s121 {
       "POST",
       "/banks/BANK_ID/accounts/BANK_ACCOUNT_ID/views",
       "Create View",
-      s"""Create a view on bank account
-         |
-         |${userAuthenticationMessage(true)} and the user needs to have access to the owner view.""",
+      s"""#Create a view on bank account
+      |
+      | ${userAuthenticationMessage(true)} and the user needs to have access to the owner view.
+      | The 'alias' field in the JSON can take one of three values:
+      |
+      | * _public_: to use the public alias if there is one specified for the other account.
+      | * _private_: to use the private alias if there is one specified for the other account.
+      |
+      | * _''(empty string)_: to use no alias; the view shows the real name of the other account.
+      |
+      | The 'hide_metadata_if_alias_used' field in the JSON can take boolean values. If it is set to `true` and there is an alias on the other account then the other accounts' metadata (like more_info, url, image_url, open_corporates_url, etc.) will be hidden. Otherwise the metadata will be shown.
+      |
+      | The 'allowed_actions' field is a list containing the name of the actions allowed on this view, all the actions contained will be set to `true` on the view creation, the rest will be set to `false`.""",
       createViewJsonV121,
       viewJSONV121,
       List(AuthenticatedUserIsRequired, InvalidJsonFormat, BankAccountNotFound, UnknownError, "user does not have owner access"),
@@ -615,8 +673,11 @@ object Http4s121 {
       "/banks/BANK_ID/accounts/BANK_ACCOUNT_ID/views/CUSTOM_VIEW_ID",
       "Update View",
       s"""Update an existing view on a bank account
-         |
-         |${userAuthenticationMessage(true)} and the user needs to have access to the owner view.""",
+      |
+      |${userAuthenticationMessage(true)} and the user needs to have access to the owner view.
+      |
+      |The json sent is the same as during view creation (above), with one difference: the 'name' field
+      |of a view is not editable (it is only set when a view is created)""",
       updateViewJsonV121,
       viewJSONV121,
       List(InvalidJsonFormat, AuthenticatedUserIsRequired, BankAccountNotFound, ViewNotFound, UnknownError, "user does not have owner access"),
@@ -684,9 +745,9 @@ object Http4s121 {
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions",
       "Get access",
-      s"""Returns the list of the permissions at BANK_ID for account ACCOUNT_ID.
-         |
-         |${userAuthenticationMessage(true)} and the user needs to have access to the owner view.""",
+      s"""Returns the list of the permissions at BANK_ID for account ACCOUNT_ID, with each time a pair composed of the user and the views that he has access to.
+      |
+      |${userAuthenticationMessage(true)} and the user needs to have access to the owner view.""",
       EmptyBody,
       permissionsJSON,
       List(AuthenticatedUserIsRequired, UnknownError),
@@ -725,8 +786,9 @@ object Http4s121 {
       "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER_ID/USER_ID",
       "Get access for specific user",
       s"""Returns the list of the views at BANK_ID for account ACCOUNT_ID that a USER_ID at their provider PROVIDER_ID has access to.
-         |
-         |${userAuthenticationMessage(true)} and the user needs to have access to the owner view.""",
+      |All url parameters must be [%-encoded](http://en.wikipedia.org/wiki/Percent-encoding), which is often especially relevant for USER_ID and PROVIDER_ID.
+      |
+      |${userAuthenticationMessage(true)} and the user needs to have access to the owner view.""",
       EmptyBody,
       viewsJSONV121,
       List(AuthenticatedUserIsRequired, BankAccountNotFound, UnknownError, "user does not have access to owner view on account"),
@@ -768,10 +830,12 @@ object Http4s121 {
       "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER/PROVIDER_ID/views",
       "Grant User access to a list of views",
       s"""Grants the user identified by PROVIDER_ID at their provider PROVIDER access to a list of views at BANK_ID for account ACCOUNT_ID.
-         |
-         |${userAuthenticationMessage(true)}
-         |
-         |The User needs to have access to the owner view.""",
+      |
+      |All url parameters must be [%-encoded](http://en.wikipedia.org/wiki/Percent-encoding), which is often especially relevant for PROVIDER_ID and PROVIDER.
+      |
+      |${userAuthenticationMessage(true)}
+      |
+      |The User needs to have access to the owner view.""",
       viewIdsJson,
       viewsJSONV121,
       List(AuthenticatedUserIsRequired, BankAccountNotFound, UnknownError, "wrong format JSON", "could not save the privilege", "user does not have access to owner view on account"),
@@ -805,9 +869,14 @@ object Http4s121 {
       "/banks/BANK_ID/accounts/BANK_ACCOUNT_ID/permissions/PROVIDER/PROVIDER_ID/views/GRANT_VIEW_ID",
       "Grant User access to View",
       s"""Grants the User identified by PROVIDER_ID at PROVIDER access to the view VIEW_ID at BANK_ID for account ACCOUNT_ID.
-         |
-         |${userAuthenticationMessage(true)} and the user needs to have access to the owner view.""",
+      |
+      |All url parameters must be [%-encoded](http://en.wikipedia.org/wiki/Percent-encoding), which is often especially relevant for PROVIDER and PROVIDER_ID.
+      |
+      |${userAuthenticationMessage(true)} and the user needs to have access to the owner view.
+      |
+      |Granting access to a public view will return an error message, as the user already has access.""",
       EmptyBody,
+      // No Json body required
       viewJSONV121,
       List(AuthenticatedUserIsRequired, BankAccountNotFound, UnknownError, UserLacksPermissionCanGrantAccessToViewForTargetAccount, "could not save the privilege", "user does not have access to owner view on account"),
       List(apiTagView, apiTagAccount, apiTagUser, apiTagOwnerRequired),
@@ -835,8 +904,10 @@ object Http4s121 {
       "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER/PROVIDER_ID/views/VIEW_ID",
       "Revoke access to one View",
       s"""Revokes access to a View on an Account for a certain User.
-         |
-         |${userAuthenticationMessage(true)} and the user needs to have access to the owner view.""",
+       |
+       |$generalRevokeAccessToViewText
+      |
+      |${userAuthenticationMessage(true)} and the user needs to have access to the owner view.""",
       EmptyBody,
       EmptyBody,
       List(AuthenticatedUserIsRequired, BankAccountNotFound, "could not save the privilege", "user does not have access to owner view on account", UnknownError),
@@ -864,9 +935,11 @@ object Http4s121 {
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER/PROVIDER_ID/views",
       "Revoke access to all Views on Account",
-      s"""Revokes access to all Views on an Account for a certain User.
-         |
-         |${userAuthenticationMessage(true)} and the user needs to have access to the owner view.""",
+      s""""Revokes access to all Views on an Account for a certain User.
+       |
+       |$generalRevokeAccessToViewText
+       |
+      |${userAuthenticationMessage(true)} and the user needs to have access to the owner view.""",
       EmptyBody,
       EmptyBody,
       List(AuthenticatedUserIsRequired, BankAccountNotFound, UnknownError, "user does not have access to owner view on account"),
@@ -920,11 +993,14 @@ object Http4s121 {
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID",
       "Get Other Account by Id",
-      """Returns data about the Other Account that has shared at least one transaction with ACCOUNT_ID at BANK_ID.
-         |Authentication is required if the view is not public.""",
+      s"""Returns data about the Other Account that has shared at least one transaction with ACCOUNT_ID at BANK_ID.
+      |${userAuthenticationMessage(true)}
+      |Authentication is required if the view is not public.""",
       EmptyBody,
       otherAccountJSON,
-      List(AuthenticatedUserIsRequired, BankAccountNotFound, UnknownError),
+      List(
+        $AuthenticatedUserIsRequired,
+        BankAccountNotFound, UnknownError),
       List(apiTagCounterparty, apiTagAccount),
       http4sPartialFunction = Some(getOtherAccountByIdForBankAccount)
     )
@@ -951,7 +1027,9 @@ object Http4s121 {
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata",
       "Get Other Account Metadata",
       """Get metadata of one other account.
-        |Authentication via OAuth is required if the view is not public.""",
+      |Returns only the metadata about one other bank account (OTHER_ACCOUNT_ID) that had shared at least one transaction with ACCOUNT_ID at BANK_ID.
+      |
+      |Authentication via OAuth is required if the view is not public.""",
       EmptyBody,
       otherAccountMetadataJSON,
       List(AuthenticatedUserIsRequired, UnknownError, "the view does not allow metadata access"),
@@ -976,9 +1054,16 @@ object Http4s121 {
       null, implementedInApiVersion, nameOf(getCounterpartyPublicAlias), "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/public_alias",
       "Get public alias of other bank account",
-      s"""Returns the public alias of the other account OTHER_ACCOUNT_ID.""",
+      s"""Returns the public alias of the other account OTHER_ACCOUNT_ID.
+      |${userAuthenticationMessage(false)}
+      |${userAuthenticationMessage(true)} if the view is not public.""",
       EmptyBody, aliasJSON,
-      List(AuthenticatedUserIsRequired, BankAccountNotFound, UnknownError, "the view does not allow metadata access", "the view does not allow public alias access"),
+      List(
+        BankAccountNotFound,
+        UnknownError,
+        "the view does not allow metadata access",
+        "the view does not allow public alias access"
+      ),
       List(apiTagCounterpartyMetaData, apiTagCounterparty),
       http4sPartialFunction = Some(getCounterpartyPublicAlias)
     )
@@ -1003,9 +1088,26 @@ object Http4s121 {
     resourceDocs += ResourceDoc(
       null, implementedInApiVersion, nameOf(addCounterpartyPublicAlias), "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/public_alias",
-      "Add public alias to other bank account", s"""Creates the public alias for the other account OTHER_ACCOUNT_ID.""",
+      "Add public alias to other bank account", s"""Creates the public alias for the other account OTHER_ACCOUNT_ID.
+        |
+        |${userAuthenticationMessage(true)}
+        |Authentication is required if the view is not public.
+        |
+        |Note: Public aliases are automatically generated for new 'other accounts / counterparties', so this call should only be used if
+        |the public alias was deleted.
+        |
+        |The VIEW_ID parameter should be a view the caller is permitted to access to and that has permission to create public aliases.""",
       aliasJSON, successMessage,
-      List(AuthenticatedUserIsRequired, BankAccountNotFound, InvalidJsonFormat, UnknownError, "the view does not allow metadata access", "the view does not allow adding a public alias", "Alias cannot be added", "public alias added"),
+      List(
+        $AuthenticatedUserIsRequired,
+        BankAccountNotFound,
+        InvalidJsonFormat,
+        UnknownError,
+        "the view does not allow metadata access",
+        "the view does not allow adding a public alias",
+        "Alias cannot be added",
+        "public alias added"
+      ),
       List(apiTagCounterpartyMetaData, apiTagCounterparty),
       http4sPartialFunction = Some(addCounterpartyPublicAlias)
     )
@@ -1030,7 +1132,10 @@ object Http4s121 {
     resourceDocs += ResourceDoc(
       null, implementedInApiVersion, nameOf(updateCounterpartyPublicAlias), "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/public_alias",
-      "Update public alias of other bank account", s"""Updates the public alias of the other account / counterparty OTHER_ACCOUNT_ID.""",
+      "Update public alias of other bank account", s"""Updates the public alias of the other account / counterparty OTHER_ACCOUNT_ID.
+        |
+        |${userAuthenticationMessage(true)}
+        |Authentication is required if the view is not public.""",
       aliasJSON, successMessage,
       List(BankAccountNotFound, InvalidJsonFormat, AuthenticatedUserIsRequired, "the view does not allow metadata access", "the view does not allow updating the public alias", "Alias cannot be updated", UnknownError),
       List(apiTagCounterpartyMetaData, apiTagCounterparty),
@@ -1057,9 +1162,19 @@ object Http4s121 {
     resourceDocs += ResourceDoc(
       null, implementedInApiVersion, nameOf(deleteCounterpartyPublicAlias), "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/public_alias",
-      "Delete Counterparty Public Alias", s"""Deletes the public alias of the other account OTHER_ACCOUNT_ID.""",
+      "Delete Counterparty Public Alias", s"""Deletes the public alias of the other account OTHER_ACCOUNT_ID.
+        |
+        |${userAuthenticationMessage(true)}
+        |Authentication is required if the view is not public.""",
       EmptyBody, EmptyBody,
-      List(AuthenticatedUserIsRequired, BankAccountNotFound, "the view does not allow metadata access", "the view does not allow deleting the public alias", "Alias cannot be deleted", UnknownError),
+      List(
+        $AuthenticatedUserIsRequired,
+        BankAccountNotFound,
+        "the view does not allow metadata access",
+        "the view does not allow deleting the public alias",
+        "Alias cannot be deleted",
+        UnknownError
+      ),
       List(apiTagCounterpartyMetaData, apiTagCounterparty),
       http4sPartialFunction = Some(deleteCounterpartyPublicAlias)
     )
@@ -1080,7 +1195,10 @@ object Http4s121 {
     resourceDocs += ResourceDoc(
       null, implementedInApiVersion, nameOf(getOtherAccountPrivateAlias), "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/private_alias",
-      "Get Other Account Private Alias", s"""Returns the private alias of the other account OTHER_ACCOUNT_ID.""",
+      "Get Other Account Private Alias", s"""Returns the private alias of the other account OTHER_ACCOUNT_ID.
+        |
+        |${userAuthenticationMessage(true)}
+        |Authentication is required if the view is not public.""",
       EmptyBody, aliasJSON,
       List(AuthenticatedUserIsRequired, BankAccountNotFound, "the view does not allow metadata access", "the view does not allow private alias access", UnknownError),
       List(apiTagCounterpartyMetaData, apiTagCounterparty),
@@ -1107,7 +1225,10 @@ object Http4s121 {
     resourceDocs += ResourceDoc(
       null, implementedInApiVersion, nameOf(addOtherAccountPrivateAlias), "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/private_alias",
-      "Create Other Account Private Alias", s"""Creates a private alias for the other account OTHER_ACCOUNT_ID.""",
+      "Create Other Account Private Alias", s"""Creates a private alias for the other account OTHER_ACCOUNT_ID.
+        |
+        |${userAuthenticationMessage(true)}
+        |Authentication is required if the view is not public.""",
       aliasJSON, successMessage,
       List(AuthenticatedUserIsRequired, BankAccountNotFound, InvalidJsonFormat, "the view does not allow metadata access", "the view does not allow adding a private alias", "Alias cannot be added", UnknownError),
       List(apiTagCounterpartyMetaData, apiTagCounterparty),
@@ -1134,7 +1255,10 @@ object Http4s121 {
     resourceDocs += ResourceDoc(
       null, implementedInApiVersion, nameOf(updateCounterpartyPrivateAlias), "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/private_alias",
-      "Update Counterparty Private Alias", s"""Updates the private alias of the counterparty OTHER_ACCOUNT_ID.""",
+      "Update Counterparty Private Alias", s"""Updates the private alias of the counterparty (AKA other account) OTHER_ACCOUNT_ID.
+        |
+        |${userAuthenticationMessage(true)}
+        |Authentication is required if the view is not public.""",
       aliasJSON, successMessage,
       List(AuthenticatedUserIsRequired, BankAccountNotFound, InvalidJsonFormat, "the view does not allow metadata access", "the view does not allow updating the private alias", "Alias cannot be updated", UnknownError),
       List(apiTagCounterpartyMetaData, apiTagCounterparty),
@@ -1161,7 +1285,10 @@ object Http4s121 {
     resourceDocs += ResourceDoc(
       null, implementedInApiVersion, nameOf(deleteCounterpartyPrivateAlias), "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/private_alias",
-      "Delete Counterparty Private Alias", s"""Deletes the private alias of the other account OTHER_ACCOUNT_ID.""",
+      "Delete Counterparty Private Alias", s"""Deletes the private alias of the other account OTHER_ACCOUNT_ID.
+        |
+        |${userAuthenticationMessage(true)}
+        |Authentication is required if the view is not public.""",
       EmptyBody, EmptyBody,
       List(AuthenticatedUserIsRequired, BankAccountNotFound, "the view does not allow metadata access", "the view does not allow deleting the private alias", "Alias cannot be deleted", UnknownError),
       List(apiTagCounterpartyMetaData, apiTagCounterparty),
@@ -1188,9 +1315,17 @@ object Http4s121 {
     resourceDocs += ResourceDoc(
       null, implementedInApiVersion, nameOf(addCounterpartyMoreInfo), "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/more_info",
-      "Add Counterparty More Info", "Add a description of the counter party from the perspective of the account e.g. My dentist",
+      "Add Counterparty More Info", "Add a description of the counter party from the perpestive of the account e.g. My dentist",
       moreInfoJSON, successMessage,
-      List(AuthenticatedUserIsRequired, BankAccountNotFound, InvalidJsonFormat, NoViewPermission, "the view does not allow adding more info", "More Info cannot be added", UnknownError),
+      List(
+        AuthenticatedUserIsRequired,
+        BankAccountNotFound,
+        InvalidJsonFormat,
+        NoViewPermission,
+        "the view " + viewIdSwagger + "does not allow adding more info",
+        "More Info cannot be added",
+        UnknownError
+      ),
       List(apiTagCounterpartyMetaData, apiTagCounterparty),
       http4sPartialFunction = Some(addCounterpartyMoreInfo)
     )
@@ -1215,7 +1350,7 @@ object Http4s121 {
     resourceDocs += ResourceDoc(
       null, implementedInApiVersion, nameOf(updateCounterpartyMoreInfo), "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/more_info",
-      "Update Counterparty More Info", "Update the more info description of the counter party",
+      "Update Counterparty More Info", "Update the more info description of the counter party from the perpestive of the account e.g. My dentist",
       moreInfoJSON, successMessage,
       List(AuthenticatedUserIsRequired, BankAccountNotFound, InvalidJsonFormat, "the view does not allow metadata access", "the view does not allow updating more info", "More Info cannot be updated", UnknownError),
       List(apiTagCounterpartyMetaData, apiTagCounterparty),
@@ -1379,7 +1514,14 @@ object Http4s121 {
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/image_url",
       "Update Counterparty Image Url", "Update the url that points to the logo of the counterparty",
       imageUrlJSON, successMessage,
-      List(AuthenticatedUserIsRequired, BankAccountNotFound, InvalidJsonFormat, "the view does not allow metadata access", "the view does not allow updating an image url", "URL cannot be updated", UnknownError),
+      List(
+        $AuthenticatedUserIsRequired,
+        BankAccountNotFound,
+      InvalidJsonFormat,
+      "the view does not allow metadata access",
+      "the view does not allow updating an image url",
+      "URL cannot be updated",
+      UnknownError),
       List(apiTagCounterpartyMetaData, apiTagCounterparty),
       http4sPartialFunction = Some(updateCounterpartyImageUrl)
     )
@@ -1406,7 +1548,9 @@ object Http4s121 {
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/image_url",
       "Delete Counterparty Image URL", "Delete image url of other bank account",
       EmptyBody, EmptyBody,
-      List(AuthenticatedUserIsRequired, BankAccountNotFound, UnknownError),
+      List(
+        $AuthenticatedUserIsRequired,
+        UnknownError),
       List(apiTagCounterpartyMetaData, apiTagCounterparty),
       http4sPartialFunction = Some(deleteCounterpartyImageUrl)
     )
@@ -1433,7 +1577,14 @@ object Http4s121 {
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/open_corporates_url",
       "Add Open Corporates URL to Counterparty", "Add open corporates url to other bank account",
       openCorporateUrlJSON, successMessage,
-      List(AuthenticatedUserIsRequired, BankAccountNotFound, InvalidJsonFormat, "the view does not allow metadata access", "the view does not allow adding an open corporate url", "URL cannot be added", UnknownError),
+      List(
+        $AuthenticatedUserIsRequired,
+        BankAccountNotFound,
+      InvalidJsonFormat,
+      "the view does not allow metadata access",
+      "the view does not allow adding an open corporate url",
+      "URL cannot be added",
+      UnknownError),
       List(apiTagCounterpartyMetaData, apiTagCounterparty),
       http4sPartialFunction = Some(addCounterpartyOpenCorporatesUrl)
     )
@@ -1681,12 +1832,13 @@ object Http4s121 {
       null, implementedInApiVersion, nameOf(getTransactionsForBankAccount), "GET",
       "/banks/BANK_ID/accounts/BANK_ACCOUNT_ID/TRANSACTIONS_VIEW_ID/transactions",
       "Get Transactions for Account (Full)",
-      s"""Returns transactions list of the account specified by ACCOUNT_ID and moderated by the view (VIEW_ID).
-         |
-         |Authentication via OAuth is required if the view is not public.
-         |
-         |${urlParametersDocument(true, true)}
-         |""",
+      s"""Returns transactions list of the account specified by ACCOUNT_ID and [moderated](#1_2_1-getViewsForBankAccount) by the view (VIEW_ID).
+      |
+      |Authentication via OAuth is required if the view is not public.
+      |
+      |${urlParametersDocument(true, true)}
+      |
+      |""",
       EmptyBody, transactionsJSON,
       List(BankAccountNotFound, UnknownError),
       List(apiTagTransaction, apiTagAccount, apiTagPsd2, apiTagOldStyle),
@@ -1713,10 +1865,13 @@ object Http4s121 {
       null, implementedInApiVersion, nameOf(getTransactionByIdForBankAccount), "GET",
       "/banks/BANK_ID/accounts/BANK_ACCOUNT_ID/TRANSACTIONS_VIEW_ID/transactions/TRANSACTION_ID/transaction",
       "Get Transaction by Id",
-      """Returns one transaction specified by TRANSACTION_ID of the account ACCOUNT_ID and moderated by the view (VIEW_ID).
-         |
-         |Authentication is required if the view is not public.
-         |""",
+      s"""Returns one transaction specified by TRANSACTION_ID of the account ACCOUNT_ID and [moderated](#1_2_1-getViewsForBankAccount) by the view (VIEW_ID).
+      |
+      |${userAuthenticationMessage(false)}
+      |Authentication is required if the view is not public.
+      |
+      |
+      |""",
       EmptyBody, transactionJSON,
       List(BankAccountNotFound, UnknownError),
       List(apiTagTransaction, apiTagPsd2, apiTagOldStyle),
@@ -1741,11 +1896,16 @@ object Http4s121 {
       null, implementedInApiVersion, nameOf(getTransactionNarrative), "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/narrative",
       "Get a Transaction Narrative",
-      """Returns the account owner description of the transaction moderated by the view.
-        |
-        |Authentication via OAuth is required if the view is not public.""",
+      """Returns the account owner description of the transaction [moderated](#1_2_1-getViewsForBankAccount) by the view.
+      |
+      |Authentication via OAuth is required if the view is not public.""",
       EmptyBody, transactionNarrativeJSON,
-      List(AuthenticatedUserIsRequired, BankAccountNotFound, NoViewPermission, ViewNotFound, UnknownError),
+      List(
+        $AuthenticatedUserIsRequired,
+        BankAccountNotFound,
+      NoViewPermission,
+      ViewNotFound,
+      UnknownError),
       List(apiTagTransactionMetaData, apiTagTransaction),
       http4sPartialFunction = Some(getTransactionNarrative)
     )
@@ -1788,12 +1948,27 @@ object Http4s121 {
       null, implementedInApiVersion, nameOf(addTransactionNarrative), "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/narrative",
       "Add a Transaction Narrative",
-      """Creates a description of the transaction TRANSACTION_ID.
-         |
-         |Authentication is required if the view is not public.
-         |""",
+      // Intentional drift from Lift's APIMethods121.scala source-of-truth.
+      // Lift's description had userAuthenticationMessage(false), but the handler
+      // is authenticated. The ResourceDoc constructor strips $AuthenticatedUserIsRequired
+      // from errorResponseBodies when description carries `authenticationIsOptional`,
+      // making the middleware skip the 401 — view-permission check then returned
+      // 403 for unauthenticated requests. Flip the marker to (true).
+      s"""Creates a description of the transaction TRANSACTION_ID.
+      |
+      |Note: Unlike other items of metadata, there is only one "narrative" per transaction accross all views.
+      |If you set narrative via a view e.g. view-x it will be seen via view-y (as long as view-y has permission to see the narrative).
+      |
+      |${userAuthenticationMessage(true)}
+      |""",
       transactionNarrativeJSON, successMessage,
-      List(AuthenticatedUserIsRequired, InvalidJsonFormat, BankAccountNotFound, NoViewPermission, ViewNotFound, UnknownError),
+      List(
+        $AuthenticatedUserIsRequired,
+        InvalidJsonFormat,
+      BankAccountNotFound,
+      NoViewPermission,
+      ViewNotFound,
+      UnknownError),
       List(apiTagTransactionMetaData, apiTagTransaction),
       http4sPartialFunction = Some(addTransactionNarrative)
     )
@@ -1840,7 +2015,13 @@ object Http4s121 {
         |
         |Authentication via OAuth is required if the view is not public.""",
       transactionNarrativeJSON, successMessage,
-      List(AuthenticatedUserIsRequired, InvalidJsonFormat, BankAccountNotFound, NoViewPermission, ViewNotFound, UnknownError),
+      List(
+        $AuthenticatedUserIsRequired,
+        InvalidJsonFormat,
+      BankAccountNotFound,
+      NoViewPermission,
+      ViewNotFound,
+      UnknownError),
       List(apiTagTransactionMetaData, apiTagTransaction),
       http4sPartialFunction = Some(updateTransactionNarrative)
     )
@@ -1892,9 +2073,9 @@ object Http4s121 {
       null, implementedInApiVersion, nameOf(getCommentsForViewOnTransaction), "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/comments",
       "Get Transaction Comments",
-      """Returns the transaction TRANSACTION_ID comments made on a view (VIEW_ID).
-        |
-        |Authentication via OAuth is required if the view is not public.""",
+      """Returns the transaction TRANSACTION_ID comments made on a [view](#1_2_1-getViewsForBankAccount) (VIEW_ID).
+      |
+      |Authentication via OAuth is required if the view is not public.""",
       EmptyBody, transactionCommentsJSON,
       List(AuthenticatedUserIsRequired, BankAccountNotFound, NoViewPermission, ViewNotFound, UnknownError),
       List(apiTagTransactionMetaData, apiTagTransaction),
@@ -1939,9 +2120,11 @@ object Http4s121 {
       null, implementedInApiVersion, nameOf(addCommentForViewOnTransaction), "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/comments",
       "Add a Transaction Comment",
-      """Posts a comment about a transaction TRANSACTION_ID on a view VIEW_ID.
-        |
-        |Authentication is required since the comment is linked with the user.""",
+      """Posts a comment about a transaction TRANSACTION_ID on a [view](#1_2_1-getViewsForBankAccount) VIEW_ID.
+      |
+      |${authenticationRequiredMessage(false)}
+      |
+      |Authentication is required since the comment is linked with the user.""",
       postTransactionCommentJSON, transactionCommentJSON,
       List(AuthenticatedUserIsRequired, InvalidJsonFormat, BankAccountNotFound, NoViewPermission, ViewNotFound, UnknownError),
       List(apiTagTransactionMetaData, apiTagTransaction),
@@ -1969,9 +2152,9 @@ object Http4s121 {
       null, implementedInApiVersion, nameOf(deleteCommentForViewOnTransaction), "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/comments/COMMENT_ID",
       "Delete a Transaction Comment",
-      """Delete the comment COMMENT_ID about the transaction TRANSACTION_ID made on a view.
-        |
-        |Authentication via OAuth is required. The user must either have owner privileges for this account, or must be the user that posted the comment.""",
+      """Delete the comment COMMENT_ID about the transaction TRANSACTION_ID made on [view](#1_2_1-getViewsForBankAccount).
+      |
+      |Authentication via OAuth is required. The user must either have owner privileges for this account, or must be the user that posted the comment.""",
       EmptyBody, EmptyBody,
       List(BankAccountNotFound, NoViewPermission, ViewNotFound, AuthenticatedUserIsRequired, UnknownError),
       List(apiTagTransactionMetaData, apiTagTransaction),
@@ -1996,10 +2179,16 @@ object Http4s121 {
       null, implementedInApiVersion, nameOf(getTagsForViewOnTransaction), "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/tags",
       "Get Transaction Tags",
-      """Returns the transaction TRANSACTION_ID tags made on a view (VIEW_ID).
-        |Authentication via OAuth is required if the view is not public.""",
+      """Returns the transaction TRANSACTION_ID tags made on a [view](#1_2_1-getViewsForBankAccount) (VIEW_ID).
+      Authentication via OAuth is required if the view is not public.""",
       EmptyBody, transactionTagJSON,
-      List(AuthenticatedUserIsRequired, BankAccountNotFound, NoViewPermission, ViewNotFound, UnknownError),
+      List(
+        $AuthenticatedUserIsRequired,
+        BankAccountNotFound,
+        NoViewPermission,
+        ViewNotFound,
+        UnknownError
+      ),
       List(apiTagTransactionMetaData, apiTagTransaction),
       http4sPartialFunction = Some(getTagsForViewOnTransaction)
     )
@@ -2042,11 +2231,11 @@ object Http4s121 {
       null, implementedInApiVersion, nameOf(addTagForViewOnTransaction), "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/tags",
       "Add a Transaction Tag",
-      s"""Posts a tag about a transaction TRANSACTION_ID on a view VIEW_ID.
-         |
-         |${userAuthenticationMessage(true)}
-         |
-         |Authentication is required as the tag is linked with the user.""",
+      s"""Posts a tag about a transaction TRANSACTION_ID on a [view](#1_2_1-getViewsForBankAccount) VIEW_ID.
+      |
+      |${userAuthenticationMessage(true)}
+      |
+      |Authentication is required as the tag is linked with the user.""",
       postTransactionTagJSON, transactionTagJSON,
       List(AuthenticatedUserIsRequired, BankAccountNotFound, InvalidJsonFormat, NoViewPermission, ViewNotFound, UnknownError),
       List(apiTagTransactionMetaData, apiTagTransaction),
@@ -2074,11 +2263,16 @@ object Http4s121 {
       null, implementedInApiVersion, nameOf(deleteTagForViewOnTransaction), "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/tags/TAG_ID",
       "Delete a Transaction Tag",
-      """Deletes the tag TAG_ID about the transaction TRANSACTION_ID made on a view.
-        |Authentication via OAuth is required. The user must either have owner privileges for this account,
-        |or must be the user that posted the tag.""",
+      """Deletes the tag TAG_ID about the transaction TRANSACTION_ID made on [view](#1_2_1-getViewsForBankAccount).
+      |Authentication via OAuth is required. The user must either have owner privileges for this account, 
+      |or must be the user that posted the tag.
+      |""".stripMargin,
       EmptyBody, EmptyBody,
-      List(AuthenticatedUserIsRequired, NoViewPermission, ViewNotFound, UnknownError),
+      List(
+        $AuthenticatedUserIsRequired,
+        NoViewPermission,
+      ViewNotFound,
+      UnknownError),
       List(apiTagTransactionMetaData, apiTagTransaction),
       http4sPartialFunction = Some(deleteTagForViewOnTransaction)
     )
@@ -2101,8 +2295,8 @@ object Http4s121 {
       null, implementedInApiVersion, nameOf(getImagesForViewOnTransaction), "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/images",
       "Get Transaction Images",
-      """Returns the transaction TRANSACTION_ID images made on a view (VIEW_ID).
-        |Authentication via OAuth is required if the view is not public.""",
+      """Returns the transaction TRANSACTION_ID images made on a [view](#1_2_1-getViewsForBankAccount) (VIEW_ID).
+      Authentication via OAuth is required if the view is not public.""",
       EmptyBody, transactionImagesJSON,
       List(AuthenticatedUserIsRequired, BankAccountNotFound, NoViewPermission, ViewNotFound, UnknownError),
       List(apiTagTransactionMetaData, apiTagTransaction),
@@ -2150,13 +2344,19 @@ object Http4s121 {
       null, implementedInApiVersion, nameOf(addImageForViewOnTransaction), "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/images",
       "Add a Transaction Image",
-      s"""Posts an image about a transaction TRANSACTION_ID on a view VIEW_ID.
-         |
-         |${userAuthenticationMessage(true)}
-         |
-         |The image is linked with the user.""",
+      s"""Posts an image about a transaction TRANSACTION_ID on a [view](#1_2_1-getViewsForBankAccount) VIEW_ID.
+      |
+      |${userAuthenticationMessage(true) }
+      |
+      |The image is linked with the user.""",
       postTransactionImageJSON, transactionImageJSON,
-      List(AuthenticatedUserIsRequired, InvalidJsonFormat, BankAccountNotFound, NoViewPermission, ViewNotFound, InvalidUrl, UnknownError),
+      List(
+      InvalidJsonFormat,
+      BankAccountNotFound,
+      NoViewPermission,
+      ViewNotFound,
+      InvalidUrl,
+      UnknownError),
       List(apiTagTransactionMetaData, apiTagTransaction),
       http4sPartialFunction = Some(addImageForViewOnTransaction)
     )
@@ -2182,11 +2382,19 @@ object Http4s121 {
       null, implementedInApiVersion, nameOf(deleteImageForViewOnTransaction), "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/images/IMAGE_ID",
       "Delete a Transaction Image",
-      """Deletes the image IMAGE_ID about the transaction TRANSACTION_ID made on a view.
-        |
-        |Authentication via OAuth is required. The user must either have owner privileges for this account, or must be the user that posted the image.""",
+      """Deletes the image IMAGE_ID about the transaction TRANSACTION_ID made on [view](#1_2_1-getViewsForBankAccount).
+      |
+      |Authentication via OAuth is required. The user must either have owner privileges for this account, or must be the user that posted the image.""",
       EmptyBody, EmptyBody,
-      List(BankAccountNotFound, NoViewPermission, AuthenticatedUserIsRequired, UnknownError),
+      List(
+      BankAccountNotFound,
+      NoViewPermission,
+      AuthenticatedUserIsRequired,
+      "You must be able to see images in order to delete them",
+      "Image not found for this transaction",
+      "Deleting images not permitted for this view",
+      "Deleting images not permitted for the current user",
+      UnknownError),
       List(apiTagTransactionMetaData, apiTagTransaction),
       http4sPartialFunction = Some(deleteImageForViewOnTransaction)
     )
@@ -2212,12 +2420,17 @@ object Http4s121 {
       null, implementedInApiVersion, nameOf(getWhereTagForViewOnTransaction), "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/where",
       "Get a Transaction where Tag",
-      """Returns the "where" Geo tag added to the transaction TRANSACTION_ID made on a view (VIEW_ID).
-        |It represents the location where the transaction has been initiated.
-        |
-        |Authentication via OAuth is required if the view is not public.""",
+      """Returns the "where" Geo tag added to the transaction TRANSACTION_ID made on a [view](#1_2_1-getViewsForBankAccount) (VIEW_ID).
+      |It represents the location where the transaction has been initiated.
+      |
+      |Authentication via OAuth is required if the view is not public.""",
       EmptyBody, transactionWhereJSON,
-      List(AuthenticatedUserIsRequired, BankAccountNotFound, NoViewPermission, ViewNotFound, UnknownError),
+      List(
+        $AuthenticatedUserIsRequired,
+        BankAccountNotFound,
+      NoViewPermission,
+      ViewNotFound,
+      UnknownError),
       List(apiTagTransactionMetaData, apiTagTransaction),
       http4sPartialFunction = Some(getWhereTagForViewOnTransaction)
     )
@@ -2263,11 +2476,11 @@ object Http4s121 {
       null, implementedInApiVersion, nameOf(addWhereTagForViewOnTransaction), "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/where",
       "Add a Transaction where Tag",
-      s"""Creates a "where" Geo tag on a transaction TRANSACTION_ID in a view.
-         |
-         |${userAuthenticationMessage(true)}
-         |
-         |The geo tag is linked with the user.""",
+      s"""Creates a "where" Geo tag on a transaction TRANSACTION_ID in a [view](#1_2_1-getViewsForBankAccount).
+      |
+      |${userAuthenticationMessage(true)}
+      |
+      |The geo tag is linked with the user.""",
       postTransactionWhereJSON, successMessage,
       List(AuthenticatedUserIsRequired, BankAccountNotFound, InvalidJsonFormat, ViewNotFound, NoViewPermission, "Coordinates not possible", UnknownError),
       List(apiTagTransactionMetaData, apiTagTransaction),
@@ -2315,11 +2528,11 @@ object Http4s121 {
       null, implementedInApiVersion, nameOf(updateWhereTagForViewOnTransaction), "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/where",
       "Update a Transaction where Tag",
-      s"""Updates the "where" Geo tag on a transaction TRANSACTION_ID in a view.
-         |
-         |${userAuthenticationMessage(true)}
-         |
-         |The geo tag is linked with the user.""",
+      s"""Updates the "where" Geo tag on a transaction TRANSACTION_ID in a [view](#1_2_1-getViewsForBankAccount).
+      |
+      |${userAuthenticationMessage(true)}
+      |
+      |The geo tag is linked with the user.""",
       postTransactionWhereJSON, successMessage,
       List(AuthenticatedUserIsRequired, BankAccountNotFound, InvalidJsonFormat, ViewNotFound, NoViewPermission, "Coordinates not possible", UnknownError),
       List(apiTagTransactionMetaData, apiTagTransaction),
@@ -2346,14 +2559,22 @@ object Http4s121 {
     resourceDocs += ResourceDoc(
       null, implementedInApiVersion, nameOf(deleteWhereTagForViewOnTransaction), "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/where",
-      "Delete a Transaction where Tag",
-      s"""Deletes the where tag of the transaction TRANSACTION_ID made on a view.
-         |
-         |${userAuthenticationMessage(true)}
-         |
-         |The user must either have owner privileges for this account, or must be the user that posted the geo tag.""",
+      "Delete a Transaction Tag",
+      s"""Deletes the where tag of the transaction TRANSACTION_ID made on [view](#1_2_1-getViewsForBankAccount).
+       |
+      |${userAuthenticationMessage(true)}
+      |
+      |The user must either have owner privileges for this account, or must be the user that posted the geo tag.""",
       EmptyBody, EmptyBody,
-      List(AuthenticatedUserIsRequired, BankAccountNotFound, NoViewPermission, ViewNotFound, "there is no tag to delete", "Delete not completed", UnknownError),
+      List(
+      AuthenticatedUserIsRequired,
+      BankAccountNotFound,
+      NoViewPermission,
+      AuthenticatedUserIsRequired,
+      ViewNotFound,
+      "there is no tag to delete",
+      "Delete not completed",
+      UnknownError),
       List(apiTagTransactionMetaData, apiTagTransaction),
       http4sPartialFunction = Some(deleteWhereTagForViewOnTransaction)
     )
@@ -2379,10 +2600,12 @@ object Http4s121 {
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/other_account",
       "Get Other Account of Transaction",
       """Get other account of a transaction.
-        |Returns details of the other party involved in the transaction, moderated by the view (VIEW_ID).
-        |Authentication via OAuth is required if the view is not public.""",
+      |Returns details of the other party involved in the transaction, moderated by the [view](#1_2_1-getViewsForBankAccount) (VIEW_ID).
+       Authentication via OAuth is required if the view is not public.""",
       EmptyBody, otherAccountJSON,
-      List(AuthenticatedUserIsRequired, BankAccountNotFound, UnknownError),
+      List(
+        $AuthenticatedUserIsRequired,
+        BankAccountNotFound, UnknownError),
       List(apiTagTransaction, apiTagCounterparty),
       http4sPartialFunction = Some(getOtherAccountForTransaction)
     )

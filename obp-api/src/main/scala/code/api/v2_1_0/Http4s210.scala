@@ -27,7 +27,7 @@ import code.entitlement.Entitlement
 import code.metrics.APIMetrics
 import code.model.{BankX, Consumer, UserX}
 import code.products.Products
-import code.sandbox.{OBPDataImport, SandboxDataImport}
+import code.sandbox.{OBPDataImport, SandboxData, SandboxDataImport}
 import code.usercustomerlinks.UserCustomerLink
 import code.users.Users
 import com.github.dwickern.macros.NameOf.nameOf
@@ -65,6 +65,14 @@ object Http4s210 {
   val createCustomerEntitlementsRequiredText: String =
     createCustomerEntitlementsRequiredForSpecificBank.mkString(" and ") +
       " OR " + createCustomerEntitlementsRequiredForAnyBank.mkString(" and ")
+  // Alias preserves the typo'd name used in Lift's APIMethods210.scala
+  // (`createCustomeEntitlementsRequiredText` — missing the `r` in
+  // "Custome"). Restored descriptions interpolate the typo'd reference,
+  // and we keep the bug-for-bug compatibility so the restoration runs
+  // verbatim against Lift's source-of-truth.
+  private val createCustomeEntitlementsRequiredText: String = createCustomerEntitlementsRequiredText
+  private val getTransactionTypesIsPublic =
+    APIUtil.getPropsAsBoolValue("apiOptions.getTransactionTypesIsPublic", true)
 
   object Implementations2_1_0 {
     val prefixPath = Root / ApiPathZero.toString / implementedInApiVersion.toString
@@ -117,9 +125,17 @@ object Http4s210 {
       null, implementedInApiVersion, nameOf(sandboxDataImport), "POST", "/sandbox/data-import",
       "Create sandbox",
       s"""Import bulk data into the sandbox (Authenticated access).
-          |
-          |${userAuthenticationMessage(true)}""",
-      SandboxDataImport(Nil, Nil, Nil, Nil, Nil, Nil, Nil, Nil), successMessage,
+      |
+      |This call can be used to create banks, users, accounts and transactions which are stored in the local RDBMS.
+      |
+      |The user needs to have CanCreateSandbox entitlement.
+      |
+      |Note: This is a monolithic call. You could also use a combination of endpoints including create bank, create user, create account and create transaction request to create similar data.
+      |
+      |An example of an import set of data (json) can be found [here](https://raw.githubusercontent.com/OpenBankProject/OBP-API/develop/obp-api/src/main/scala/code/api/sandbox/example_data/2016-04-28/example_import.json)
+      |${userAuthenticationMessage(true)}
+      |""",
+      SandboxData.importJson, successMessage,
       List(AuthenticatedUserIsRequired, InvalidJsonFormat, DataImportDisabled, UserHasMissingRoles, UnknownError),
       List(apiTagSandbox),
       Some(List(canCreateSandbox)),
@@ -428,10 +444,35 @@ object Http4s210 {
       resourceDocs += ResourceDoc(
         null, implementedInApiVersion, nameOf(answerTransactionRequestChallenge) + trType.toLowerCase.capitalize, "POST",
         s"/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/$trType/transaction-requests/TRANSACTION_REQUEST_ID/challenge",
-        s"Answer Transaction Request Challenge ($trType)",
-        """In Sandbox mode, any string that can be converted to a positive integer will be accepted as an answer.""",
+        "Answer Transaction Request Challenge",
+        """In Sandbox mode, any string that can be converted to a positive integer will be accepted as an answer.
+          |
+          |This endpoint expects the following data as provided in the createTransactionRequest response body:
+          |
+          |1)`TRANSACTION_REQUEST_TYPE` : as per the selected createTransactionRequest type, part of the request URL.
+          |
+          |2)`TRANSACTION_REQUEST_ID` : the value of the `id` field of the createTransactionRequest response body.
+          |
+          |3) `id` :  the value of `challenge.id` in the createTransactionRequest response body. 
+          |
+          |4) `answer` : Defaults to `123`, if running in sandbox mode. In production mode, the value will be sent via the configured SCA method.
+          |
+        """.stripMargin,
         challengeAnswerJSON, transactionRequestWithChargeJson,
-        answerChallengeCommonErrors, answerChallengeTags, None,
+        List(
+          AuthenticatedUserIsRequired,
+          InvalidBankIdFormat,
+          InvalidAccountIdFormat,
+          InvalidJsonFormat,
+          BankNotFound,
+          UserNoPermissionAccessView,
+          TransactionRequestStatusNotInitiated,
+          TransactionRequestTypeHasChanged,
+          InvalidTransactionRequestChallengeId,
+          AllowedAttemptsUsedUp,
+          TransactionDisabled,
+          UnknownError
+        ), List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2), None,
         http4sPartialFunction = Some(answerTransactionRequestChallenge))
     }
 
@@ -522,7 +563,25 @@ object Http4s210 {
       "Get Transaction Requests.",
       """Returns transaction requests for account specified by ACCOUNT_ID at bank specified by BANK_ID.
         |
-        |The VIEW_ID specified must be 'owner' and the user must have access to this view.""",
+        |The VIEW_ID specified must be 'owner' and the user must have access to this view.
+        |
+        |Version 2.0.0 now returns charge information.
+        |
+        |Transaction Requests serve to initiate transactions that may or may not proceed. They contain information including:
+        |
+        |* Transaction Request Id
+        |* Type
+        |* Status (INITIATED, COMPLETED)
+        |* Challenge (in order to confirm the request)
+        |* From Bank / Account
+        |* Details including Currency, Value, Description and other initiation information specific to each type. (Could potentialy include a list of future transactions.)
+        |* Related Transactions
+        |
+        |PSD2 Context: PSD2 requires transparency of charges to the customer.
+        |This endpoint provides the charge that would be applied if the Transaction Request proceeds - and a record of that charge there after.
+        |The customer can proceed with the Transaction by answering the security challenge.
+        |
+      """.stripMargin,
       EmptyBody, transactionRequestWithChargeJSONs210,
       List(AuthenticatedUserIsRequired, BankNotFound, AccountNotFound, UserHasMissingRoles, UnknownError),
       List(apiTagTransactionRequest, apiTagPsd2, apiTagOldStyle), None,
@@ -777,9 +836,12 @@ object Http4s210 {
       s"""Get all users
          |
          |Login is required.
-         |CanGetAnyUser entitlement is required.
+         |CanGetAnyUser entitlement is required,
          |
-         |${urlParametersDocument(false, false)}""",
+         |${urlParametersDocument(false, false)}
+         |* locked_status (if null ignore)
+         |
+      """.stripMargin,
       EmptyBody, usersJsonV200,
       List(AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
       List(apiTagUser),
@@ -812,7 +874,17 @@ object Http4s210 {
       null, implementedInApiVersion, nameOf(createTransactionType), "PUT",
       "/banks/BANK_ID/transaction-types",
       "Create Transaction Type at bank",
-      s"""Create Transaction Types for the bank specified by BANK_ID.""",
+      // TODO get the documentation of the parameters from the scala doc of the case class we return
+      s"""Create Transaction Types for the bank specified by BANK_ID:
+         |
+         |  * id : Unique transaction type id across the API instance. SHOULD be a UUID. MUST be unique.
+         |  * bank_id : The bank that supports this TransactionType
+         |  * short_code : A short code (SHOULD have no-spaces) which MUST be unique across the bank. May be stored with Transactions to link here
+         |  * summary : A succinct summary
+         |  * description : A longer description
+         |  * charge : The charge to the customer for each one of these
+         |
+         |${userAuthenticationMessage(getTransactionTypesIsPublic)}""".stripMargin,
       transactionTypeJsonV200, transactionType,
       List(AuthenticatedUserIsRequired, BankNotFound, InvalidJsonFormat,
         InsufficientAuthorisationToCreateTransactionType, UnknownError),
@@ -844,7 +916,13 @@ object Http4s210 {
       null, implementedInApiVersion, nameOf(getAtm), "GET",
       "/banks/BANK_ID/atms/ATM_ID",
       "Get Bank ATM",
-      s"""Returns information about ATM for a single bank specified by BANK_ID and ATM_ID.""",
+      s"""Returns information about ATM for a single bank specified by BANK_ID and ATM_ID including:
+      |
+      |* Address
+      |* Geo Location
+      |* License the data under this endpoint is released under
+      |
+      |${userAuthenticationMessage(!getAtmsIsPublic)}""".stripMargin,
       EmptyBody, atmJson,
       List(AuthenticatedUserIsRequired, BankNotFound, AtmNotFoundByAtmId, UnknownError),
       List(apiTagATM, apiTagOldStyle), None,
@@ -874,7 +952,15 @@ object Http4s210 {
       null, implementedInApiVersion, nameOf(getBranch), "GET",
       "/banks/BANK_ID/branches/BRANCH_ID",
       "Get Bank Branch",
-      s"""Returns information about branch for a single bank specified by BANK_ID and BRANCH_ID.""",
+      s"""Returns information about branches for a single bank specified by BANK_ID and BRANCH_ID including:
+      | meta.license.id and eta.license.name fields must not be empty. 
+      |
+      |* Name
+      |* Address
+      |* Geo Location
+      |* License the data under this endpoint is released under
+      |
+      |${userAuthenticationMessage(!getBranchesIsPublic)}""".stripMargin,
       EmptyBody, branchJson,
       List(AuthenticatedUserIsRequired, BranchNotFoundByBranchId, UnknownError),
       List(apiTagBranch, apiTagOldStyle), None,
@@ -900,7 +986,18 @@ object Http4s210 {
       null, implementedInApiVersion, nameOf(getProduct), "GET",
       "/banks/BANK_ID/products/PRODUCT_CODE",
       "Get Bank Product",
-      s"""Returns information about the financial products offered by a bank specified by BANK_ID and PRODUCT_CODE.""",
+      s"""Returns information about the financial products offered by a bank specified by BANK_ID and PRODUCT_CODE including:
+      |
+      |* Name
+      |* Code
+      |* Category
+      |* Family
+      |* Super Family
+      |* More info URL
+      |* Description
+      |* Terms and Conditions
+      |* License the data under this endpoint is released under
+      |${userAuthenticationMessage(!getProductsIsPublic)}""".stripMargin,
       EmptyBody, productJsonV210,
       List(AuthenticatedUserIsRequired, ProductNotFoundByProductCode, UnknownError),
       List(apiTagProduct), None,
@@ -925,7 +1022,18 @@ object Http4s210 {
       null, implementedInApiVersion, nameOf(getProducts), "GET",
       "/banks/BANK_ID/products",
       "Get Bank Products",
-      s"""Returns information about the financial products offered by a bank specified by BANK_ID.""",
+      s"""Returns information about the financial products offered by a bank specified by BANK_ID including:
+      |
+      |* Name
+      |* Code
+      |* Category
+      |* Family
+      |* Super Family
+      |* More info URL
+      |* Description
+      |* Terms and Conditions
+      |* License the data under this endpoint is released under
+      |${userAuthenticationMessage(!getProductsIsPublic)}""".stripMargin,
       EmptyBody, productsJsonV210,
       List(AuthenticatedUserIsRequired, BankNotFound, ProductNotFoundByProductCode, UnknownError),
       List(apiTagProduct), None,
@@ -981,10 +1089,13 @@ object Http4s210 {
       "/banks/BANK_ID/customers",
       "Create Customer",
       s"""Add a customer linked to the user specified by user_id
-          |
-          |${userAuthenticationMessage(true)}
-          |
-          |$createCustomerEntitlementsRequiredText""",
+      |The Customer resource stores the customer number, legal name, email, phone number, their date of birth, relationship status, education attained, a url for a profile image, KYC status etc.
+      |Dates need to be in the format 2013-01-21T23:08:00Z
+      |
+      |${userAuthenticationMessage(true)}
+      |
+      |$createCustomeEntitlementsRequiredText
+      |""",
       postCustomerJsonV210, customerJsonV210,
       List(AuthenticatedUserIsRequired, BankNotFound, InvalidJsonFormat, CustomerNumberAlreadyExists,
         UserNotFoundById, CustomerAlreadyExistsForUser, CreateConsumerError, UnknownError),
@@ -1040,7 +1151,14 @@ object Http4s210 {
          |
          |${userAuthenticationMessage(true)}""",
       EmptyBody, customerJSONs,
-      List(AuthenticatedUserIsRequired, BankNotFound, UserCustomerLinksNotFoundForUser, CustomerNotFoundByCustomerId, UnknownError),
+      List(
+        AuthenticatedUserIsRequired,
+        BankNotFound,
+        UserCustomerLinksNotFoundForUser,
+        UserCustomerLinksNotFoundForUser,
+        CustomerNotFoundByCustomerId,
+        UnknownError
+      ),
       List(apiTagCustomer), None,
       http4sPartialFunction = Some(getCustomersForCurrentUserAtBank))
 
@@ -1147,7 +1265,13 @@ object Http4s210 {
       null, implementedInApiVersion, nameOf(updateConsumerRedirectUrl), "PUT",
       "/management/consumers/CONSUMER_ID/consumer/redirect_url",
       "Update Consumer RedirectUrl",
-      s"""Update an existing redirectUrl for a Consumer specified by CONSUMER_ID.""",
+      s"""Update an existing redirectUrl for a Consumer specified by CONSUMER_ID.
+        |
+        | CONSUMER_ID can be obtained after you register the application. 
+        | 
+        | Or use the endpoint 'Get Consumers' to get it  
+        | 
+      """.stripMargin,
       consumerRedirectUrlJSON, consumerJSON,
       List(AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
       List(apiTagConsumer),
@@ -1176,7 +1300,61 @@ object Http4s210 {
       "Get Metrics",
       s"""Get the all metrics
          |
-         |require CanReadMetrics role""",
+         |require CanReadMetrics role
+         |
+         |Filters Part 1.*filtering* (no wilde cards etc.) parameters to GET /management/metrics
+         |
+         |Should be able to filter on the following metrics fields
+         |
+         |eg: /management/metrics?from_date=$DateWithMsExampleString&to_date=$DateWithMsExampleString&limit=50&offset=2
+         |
+         |1 from_date (defaults to one week before current date): eg:from_date=$DateWithMsExampleString
+         |
+         |2 to_date (defaults to current date) eg:to_date=$DateWithMsExampleString
+         |
+         |3 limit (for pagination: defaults to 50)  eg:limit=200
+         |
+         |4 offset (for pagination: zero index, defaults to 0) eg: offset=10
+         |
+         |5 sort_by (defaults to date field) eg: sort_by=date
+         |  possible values:
+         |    "url",
+         |    "date",
+         |    "username" (or "user_name" for backward compatibility),
+         |    "app_name",
+         |    "developer_email",
+         |    "implemented_by_partial_function",
+         |    "implemented_in_version",
+         |    "consumer_id",
+         |    "verb"
+         |
+         |6 direction (defaults to date desc) eg: direction=desc
+         |
+         |eg: /management/metrics?from_date=$DateWithMsExampleString&to_date=$DateWithMsExampleString&limit=10000&offset=0&anon=false&app_name=TeatApp&implemented_in_version=v2.1.0&verb=POST&user_id=c7b6cb47-cb96-4441-8801-35b57456753a&username=susan.uk.29@example.com&consumer_id=78
+         |
+         |Other filters:
+         |
+         |7 consumer_id  (if null ignore)
+         |
+         |8 user_id (if null ignore)
+         |
+         |9 anon (if null ignore) only support two value : true (return where user_id is null.) or false (return where user_id is not null.)
+         |
+         |10 url (if null ignore), note: can not contain '&'.
+         |
+         |11 app_name (if null ignore)
+         |
+         |12 implemented_by_partial_function (if null ignore),
+         |
+         |13 implemented_in_version (if null ignore)
+         |
+         |14 verb (if null ignore)
+         |
+         |15 correlation_id (if null ignore)
+         |
+         |16 duration (if null ignore) non digit chars will be silently omitted
+         |
+      """.stripMargin,
       EmptyBody, metricsJson,
       List(AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
       List(apiTagMetric, apiTagApi),

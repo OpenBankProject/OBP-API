@@ -829,8 +829,13 @@ object Http4s310 {
       |""",
       EmptyBody,
       customerWithAttributesJsonV310,
-      List(AuthenticatedUserIsRequired, UserCustomerLinksNotFoundForUser, UnknownError),
-      List(apiTagCustomer, apiTagKyc),
+      List(
+        AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        UserCustomerLinksNotFoundForUser,
+        UnknownError
+      ),
+      List(apiTagCustomer),
       Some(List(canGetCustomersAtOneBank)),
       http4sPartialFunction = Some(getCustomerByCustomerId)
     )
@@ -1310,7 +1315,11 @@ object Http4s310 {
       """.stripMargin,
       EmptyBody,
       viewJSONV220,
-      List(AuthenticatedUserIsRequired, UserHasMissingRoles, ViewNotFound, UnknownError),
+      List(
+        AuthenticatedUserIsRequired,
+        BankNotFound,
+        UnknownError
+      ),
       List(apiTagSystemView),
       Some(List(canGetSystemView)),
       http4sPartialFunction = Some(getSystemView)
@@ -1503,6 +1512,13 @@ object Http4s310 {
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/transaction",
       "Get Transaction by Id",
+      // Intentional drift from Lift's APIMethods310.scala source-of-truth.
+      // Lift's description had userAuthenticationMessage(false) (auth optional),
+      // but Lift's handler uses authenticatedAccess(cc) (auth required). The
+      // ResourceDoc constructor removed $AuthenticatedUserIsRequired from errors
+      // when the description claimed auth was optional, making middleware return
+      // 403 (view-permission check) for unauthenticated requests instead of 401.
+      // See upstream commit 14abed06c.
       s"""Returns one transaction specified by TRANSACTION_ID of the account ACCOUNT_ID and [moderated](#1_2_1-getViewsForBankAccount) by the view (VIEW_ID).
       |
       |${userAuthenticationMessage(true)}
@@ -2083,7 +2099,11 @@ object Http4s310 {
       |""",
       EmptyBody,
       EmptyBody,
-      List(AuthenticatedUserIsRequired, UserHasMissingRoles, BankNotFound, UnknownError),
+      List(
+        UserHasMissingRoles,
+        BankNotFound,
+        UnknownError
+      ),
       List(apiTagProduct, apiTagProductAttribute, apiTagAttribute),
       Some(List(canDeleteProductAttribute)),
       http4sPartialFunction = Some(deleteProductAttribute)
@@ -4564,7 +4584,7 @@ object Http4s310 {
       nameOf(createConsentEmail),
       "POST",
       "/banks/BANK_ID/my/consents/EMAIL",
-      "Create Consent (Email)",
+      "Create Consent (EMAIL)",
       s"""
       |
       |This endpoint starts the process of creating a Consent.
@@ -4623,8 +4643,18 @@ object Http4s310 {
       |""",
       postConsentEmailJsonV310,
       consentJsonV310,
-      List(AuthenticatedUserIsRequired, BankNotFound, InvalidJsonFormat,
-      ConsentMaxTTL, RolesAllowedInConsent, ViewsAllowedInConsent, UnknownError),
+      List(
+        AuthenticatedUserIsRequired,
+        BankNotFound,
+        InvalidJsonFormat,
+        ConsentAllowedScaMethods,
+        RolesAllowedInConsent,
+        ViewsAllowedInConsent,
+        ConsumerNotFoundByConsumerId,
+        ConsumerIsDisabled,
+        InvalidConnectorResponse,
+        UnknownError
+      ),
       apiTagConsent :: apiTagPSD2AIS :: apiTagPsd2 :: Nil,
       None,
       http4sPartialFunction = Some(createConsentEmail)
@@ -4695,8 +4725,20 @@ object Http4s310 {
       |""",
       postConsentPhoneJsonV310,
       consentJsonV310,
-      List(AuthenticatedUserIsRequired, BankNotFound, InvalidJsonFormat,
-      ConsentMaxTTL, RolesAllowedInConsent, ViewsAllowedInConsent, UnknownError),
+      List(
+        AuthenticatedUserIsRequired,
+        BankNotFound,
+        InvalidJsonFormat,
+        ConsentAllowedScaMethods,
+        RolesAllowedInConsent,
+        ViewsAllowedInConsent,
+        ConsumerNotFoundByConsumerId,
+        ConsumerIsDisabled,
+        MissingPropsValueAtThisInstance,
+        SmsServerNotResponding,
+        InvalidConnectorResponse,
+        UnknownError
+      ),
       apiTagConsent :: apiTagPSD2AIS :: apiTagPsd2 :: Nil,
       None,
       http4sPartialFunction = Some(createConsentSms)
@@ -4708,7 +4750,7 @@ object Http4s310 {
       nameOf(createConsentImplicit),
       "POST",
       "/banks/BANK_ID/my/consents/IMPLICIT",
-      "Create Consent (Implicit)",
+      "Create Consent (IMPLICIT)",
       s"""
       |
       |This endpoint starts the process of creating a Consent.
@@ -4764,8 +4806,20 @@ object Http4s310 {
       |""",
       postConsentImplicitJsonV310,
       consentJsonV310,
-      List(AuthenticatedUserIsRequired, BankNotFound, InvalidJsonFormat,
-      ConsentMaxTTL, RolesAllowedInConsent, ViewsAllowedInConsent, UnknownError),
+      List(
+        AuthenticatedUserIsRequired,
+        BankNotFound,
+        InvalidJsonFormat,
+        ConsentAllowedScaMethods,
+        RolesAllowedInConsent,
+        ViewsAllowedInConsent,
+        ConsumerNotFoundByConsumerId,
+        ConsumerIsDisabled,
+        MissingPropsValueAtThisInstance,
+        SmsServerNotResponding,
+        InvalidConnectorResponse,
+        UnknownError
+      ),
       apiTagConsent :: apiTagPSD2AIS :: apiTagPsd2 :: Nil,
       None,
       http4sPartialFunction = Some(createConsentImplicit)
@@ -4834,6 +4888,13 @@ object Http4s310 {
       "GET",
       "/connector/loopback",
       "Get Connector Status (Loopback)",
+      // Intentional drift from Lift's APIMethods310.scala source-of-truth.
+      // Lift's description had userAuthenticationMessage(true) (auth required),
+      // but Lift's handler uses anonymousAccess(cc) (no auth required). The
+      // ResourceDoc constructor added $AuthenticatedUserIsRequired to errors,
+      // setting needsAuthentication=true so middleware returned 401 instead of
+      // letting the handler return 400 NotImplemented. See upstream commit
+      // 14abed06c.
       s"""This endpoint makes a call to the Connector to check the backend transport is reachable. (Deprecated)
       |
       |${userAuthenticationMessage(false)}
