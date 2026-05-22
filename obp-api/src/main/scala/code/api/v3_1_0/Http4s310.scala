@@ -1512,10 +1512,16 @@ object Http4s310 {
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/transaction",
       "Get Transaction by Id",
+      // Intentional drift from Lift's APIMethods310.scala source-of-truth.
+      // Lift's description had userAuthenticationMessage(false) (auth optional),
+      // but Lift's handler uses authenticatedAccess(cc) (auth required). The
+      // ResourceDoc constructor removed $AuthenticatedUserIsRequired from errors
+      // when the description claimed auth was optional, making middleware return
+      // 403 (view-permission check) for unauthenticated requests instead of 401.
+      // See upstream commit 14abed06c.
       s"""Returns one transaction specified by TRANSACTION_ID of the account ACCOUNT_ID and [moderated](#1_2_1-getViewsForBankAccount) by the view (VIEW_ID).
       |
-      |${userAuthenticationMessage(false)}
-      |Authentication is required if the view is not public.
+      |${userAuthenticationMessage(true)}
       |
       |
       |""",
@@ -4882,9 +4888,16 @@ object Http4s310 {
       "GET",
       "/connector/loopback",
       "Get Connector Status (Loopback)",
+      // Intentional drift from Lift's APIMethods310.scala source-of-truth.
+      // Lift's description had userAuthenticationMessage(true) (auth required),
+      // but Lift's handler uses anonymousAccess(cc) (no auth required). The
+      // ResourceDoc constructor added $AuthenticatedUserIsRequired to errors,
+      // setting needsAuthentication=true so middleware returned 401 instead of
+      // letting the handler return 400 NotImplemented. See upstream commit
+      // 14abed06c.
       s"""This endpoint makes a call to the Connector to check the backend transport is reachable. (Deprecated)
       |
-      |${userAuthenticationMessage(true)}
+      |${userAuthenticationMessage(false)}
       |
       |""",
       EmptyBody,

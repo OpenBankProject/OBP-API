@@ -999,7 +999,19 @@ object Http4s200 {
       |
       |""",
       createUserJson, userJsonV200,
-      List(AuthenticatedUserIsRequired, InvalidJsonFormat, InvalidStrongPasswordFormat, DuplicateUsername, ExternalUserCheckFailed, "Error occurred during user creation.", UnknownError),
+      // Intentional drift from Lift's APIMethods200.scala source-of-truth:
+      // `AuthenticatedUserIsRequired` removed. Lift's createUser handler is
+      // anonymous (no authenticatedAccess / anonymousAccess wrapper — straight
+      // into JSON extraction), but Lift's ResourceDoc errors list includes
+      // `AuthenticatedUserIsRequired`. Lift's runtime ignored that contradiction
+      // because OBPRestHelper doesn't enforce ResourceDoc errors at request
+      // dispatch time. The http4s `ResourceDocMiddleware` does — it derives
+      // `needsAuthentication = errors.contains($AuthenticatedUserIsRequired) ||
+      // roles.nonEmpty`, so leaving the error in makes middleware reject
+      // unauthenticated POST /users with 401 instead of letting the handler
+      // run and return 201 (or 409 on duplicate). Same pattern as upstream
+      // commit 14abed06c for v3.1.0's getObpConnectorLoopback.
+      List(InvalidJsonFormat, InvalidStrongPasswordFormat, DuplicateUsername, ExternalUserCheckFailed, "Error occurred during user creation.", UnknownError),
       List(apiTagUser, apiTagOnboarding), None,
       http4sPartialFunction = Some(createUser))
 
