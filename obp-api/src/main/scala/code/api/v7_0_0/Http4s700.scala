@@ -14,6 +14,7 @@ import code.api.util.http4s.{ErrorResponseConverter, Http4sRequestAttributes, Id
 import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps}
 import code.api.util.newstyle.ViewNewStyle
 import code.api.v1_4_0.JSONFactory1_4_0
+import code.api.v2_0_0.AccountsHelper.accountTypeFilterText
 import code.api.v2_0_0.{BasicViewJson, CreateEntitlementJSON, JSONFactory200}
 import code.api.v4_0_0.JSONFactory400
 import code.api.v6_0_0.{BasicAccountJsonV600, BasicAccountsJsonV600, BankJsonV600, CacheConfigJsonV600, CacheInfoJsonV600, CacheNamespaceInfoJsonV600, CacheNamespaceJsonV600, CacheNamespacesJsonV600, ConnectorInfoJsonV600, ConnectorsJsonV600, DatabasePoolInfoJsonV600, FeaturesJsonV600, InMemoryCacheStatusJsonV600, JSONFactory600, RedisCacheStatusJsonV600, StoredProcedureConnectorHealthJsonV600, UserV600}
@@ -33,7 +34,7 @@ import code.metadata.tags.Tags
 import code.views.Views
 import code.accountattribute.AccountAttributeX
 import code.users.{Users => UserVend}
-import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId, CounterpartyId, CustomerId, ListResult, TransactionRequestType, ViewId}
+import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId, CoreAccount, CounterpartyId, CustomerId, ListResult, TransactionRequestType, ViewId}
 import com.openbankproject.commons.model.enums.ChallengeType
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
@@ -343,6 +344,62 @@ object Http4s700 {
       apiTagAccount :: Nil,
       http4sPartialFunction = Some(getCoreAccountById)
     )
+
+    // ─── corePrivateAccountsAllBanks (v7) ─────────────────────────────────────
+    // Same semantics as v3.0.0 /my/accounts but with renamed fields so callers
+    // can read the (bank_id, account_id, view_id) tuple without remapping.
+    //   v3: { id, ..., views: [ { id, ... } ] }
+    //   v7: { account_id, ..., views: [ { view_id, ... } ] }
+
+    val corePrivateAccountsAllBanks: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "my" / "accounts" =>
+        EndpointHelpers.withUser(req) { (user, cc) =>
+          for {
+            availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(user)
+            (coreAccounts, _)        <- NewStyle.function.getCoreBankAccountsFuture(availablePrivateAccounts, Some(cc))
+            filtered = filterCoreAccountsByType(coreAccounts, req)
+          } yield JSONFactory700.createCoreAccountsByCoreAccountsJsonV700(filtered, user)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(corePrivateAccountsAllBanks),
+      "GET",
+      "/my/accounts",
+      "Get Accounts at all Banks (private)",
+      s"""Returns the list of accounts containing private views for the user.
+      |Each account lists the views available to the user.
+      |
+      |This endpoint is the v7.0.0 version of `/obp/v3.0.0/my/accounts` with
+      |renamed identifier fields: `account_id` (was `id`) and `view_id` (was `id` on each view)
+      |so the response gives the `(bank_id, account_id, view_id)` tuple directly.
+      |
+      |${accountTypeFilterText("/my/accounts")}
+      |
+      |${userAuthenticationMessage(true)}
+      |""",
+      EmptyBody,
+      JSONFactory700.coreAccountsJsonV700Example,
+      List($AuthenticatedUserIsRequired, UnknownError),
+      List(apiTagAccount, apiTagPSD2AIS, apiTagPrivateData, apiTagPsd2),
+      None,
+      http4sPartialFunction = Some(corePrivateAccountsAllBanks)
+    )
+
+    private def filterCoreAccountsByType(accounts: List[CoreAccount], req: Request[IO]): List[CoreAccount] = {
+      val qp = req.uri.query.multiParams
+      val filters = qp.get("account_type_filter").toList.flatMap(_.flatMap(_.split(","))).filter(_.nonEmpty)
+      val filtersOperation = qp.get("account_type_filter_operation").flatMap(_.headOption).getOrElse("INCLUDE")
+      accounts.filter { account =>
+        (filters, filtersOperation) match {
+          case (f, "INCLUDE") if f.nonEmpty => f.contains(account.accountType)
+          case (f, "EXCLUDE") if f.nonEmpty => !f.contains(account.accountType)
+          case _                            => true
+        }
+      }
+    }
 
     // Category: withView (user + account + view resolved from BANK_ID + ACCOUNT_ID + VIEW_ID by middleware)
     val getPrivateAccountByIdFull: HttpRoutes[IO] = HttpRoutes.of[IO] {
