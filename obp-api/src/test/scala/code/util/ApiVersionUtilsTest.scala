@@ -20,6 +20,8 @@ class ApiVersionUtilsTest extends V400ServerSetup {
     versions.map(version => ApiVersionUtils.valueOf(version.fullyQualifiedVersion))
 
     //NOTE, when we added the new version, better fix this number manually. and also check the versions
-    versions.length shouldBe(26)
+    // 26 -> 20: removed Lift standards STET v1.4, Polish v2.1.1.1, AUOpenBanking v1.0.0,
+    // BahrainOBF v1.0.0, MxOF v1.0.0 and CNBV9 v1.0.0 (6 scanned versions).
+    versions.length shouldBe(20)
   }}
 }
