@@ -8,7 +8,8 @@ import code.api.v4_0_0.{EnergySource400, HostedAt400, HostedBy400, PostSimpleCou
 import code.bankconnectors.Connector
 import code.customer.CustomerX
 import code.util.Helper.MdcLoggable
-import com.openbankproject.commons.model.{AmountOfMoneyJsonV121, TransactionRequest, TransactionRequestCommonBodyJSON}
+import code.views.Views
+import com.openbankproject.commons.model.{AccountId, AccountRoutingJsonV121, AmountOfMoneyJsonV121, BankId, BankIdAccountId, CoreAccount, TransactionRequest, TransactionRequestCommonBodyJSON, User}
 import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.common.Full
 
@@ -969,4 +970,68 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
         }
     }
   }
+
+  // ─── Core accounts at all banks (v7 rename: id → account_id / views[].id → view_id) ──
+
+  case class ViewBasicV700(
+    view_id: String,
+    short_name: String,
+    description: String,
+    is_public: Boolean
+  )
+
+  case class CoreAccountJsonV700(
+    account_id: String,
+    label: String,
+    bank_id: String,
+    account_type: String,
+    account_routings: List[AccountRoutingJsonV121],
+    views: List[ViewBasicV700]
+  )
+
+  case class CoreAccountsJsonV700(accounts: List[CoreAccountJsonV700])
+
+  def createCoreAccountsByCoreAccountsJsonV700(
+    coreAccounts: List[CoreAccount],
+    user: User
+  ): CoreAccountsJsonV700 =
+    CoreAccountsJsonV700(coreAccounts.map { coreAccount =>
+      CoreAccountJsonV700(
+        account_id = coreAccount.id,
+        label = coreAccount.label,
+        bank_id = coreAccount.bankId,
+        account_type = coreAccount.accountType,
+        account_routings = coreAccount.accountRoutings.map(r =>
+          AccountRoutingJsonV121(r.scheme, r.address)),
+        views = Views.views.vend
+          .privateViewsUserCanAccessForAccount(
+            user, BankIdAccountId(BankId(coreAccount.bankId), AccountId(coreAccount.id)))
+          .filter(_.isPrivate)
+          .map(v => ViewBasicV700(
+            view_id = v.viewId.value,
+            short_name = v.name,
+            description = v.description,
+            is_public = v.isPublic
+          ))
+      )
+    })
+
+  lazy val viewBasicV700Example = ViewBasicV700(
+    view_id = "owner",
+    short_name = "Owner",
+    description = "Owner View",
+    is_public = false
+  )
+
+  lazy val coreAccountJsonV700Example = CoreAccountJsonV700(
+    account_id = "f026fbd3-d1ea-496b-a853-3cbe65629881",
+    label = "Account 1",
+    bank_id = "smnr.bnk.1",
+    account_type = "330",
+    account_routings = List(AccountRoutingJsonV121("IBAN", "DE89 3704 0044 0532 0130 00")),
+    views = List(viewBasicV700Example)
+  )
+
+  lazy val coreAccountsJsonV700Example =
+    CoreAccountsJsonV700(accounts = List(coreAccountJsonV700Example))
 }

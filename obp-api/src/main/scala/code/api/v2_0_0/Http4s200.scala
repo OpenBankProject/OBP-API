@@ -30,6 +30,7 @@ import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.{AccountId, AmountOfMoneyJsonV121, BankId, BankIdAccountId, CustomerFaceImage}
+import com.openbankproject.commons.model.{AmountOfMoneyJsonV121 => AmountOfMoneyJSON121}
 import com.openbankproject.commons.util.{ApiVersion, ApiVersionStatus, ScannedApiVersion}
 import net.liftweb.common._
 import net.liftweb.http.InMemoryResponse
@@ -51,6 +52,16 @@ object Http4s200 {
   implicit val formats: Formats = CustomJsonFormats.formats
 
   type HttpF[A] = OptionT[IO, A]
+
+  // Carried over verbatim from APIMethods200.scala — referenced inside
+  // restored `s"""..."""` doc interpolations for createUserCustomerLinks.
+  private val createUserCustomerLinksEntitlementsRequiredForSpecificBank = canCreateUserCustomerLink :: Nil
+  private val createUserCustomerLinksEntitlementsRequiredForAnyBank = canCreateUserCustomerLinkAtAnyBank :: Nil
+  private val createUserCustomerLinksrequiredEntitlementsText =
+    createUserCustomerLinksEntitlementsRequiredForSpecificBank.mkString(" and ") +
+      " OR " +
+      createUserCustomerLinksEntitlementsRequiredForAnyBank.mkString(" and ") +
+      " entitlements are required."
 
   object Implementations2_0_0 {
     val prefixPath = Root / ApiPathZero.toString / implementedInApiVersion.toString
@@ -210,10 +221,11 @@ object Http4s200 {
       "Get Accounts at Bank",
       s"""
          |Returns the list of accounts at BANK_ID that the user has access to.
-         |For each account the API returns the account ID and the views available to the user.
+         |For each account the API returns the account ID and the views available to the user..
          |Each account must have at least one private View.
          |
-         |${userAuthenticationMessage(true)}""".stripMargin,
+         |${userAuthenticationMessage(true)}
+      """.stripMargin,
       EmptyBody, basicAccountsJSON,
       List(BankNotFound, UnknownError),
       List(apiTagAccount, apiTagPrivateData, apiTagPublicData), None,
@@ -259,10 +271,15 @@ object Http4s200 {
       null, implementedInApiVersion, nameOf(corePrivateAccountsAtOneBank), "GET", "/my/banks/BANK_ID/accounts",
       "Get Accounts at Bank (Private)",
       s"""Get private accounts at one bank (Authenticated access).
-         |Returns the list of accounts containing private views for the user at BANK_ID.
-         |For each account the API returns the ID and label.
-         |
-         |${userAuthenticationMessage(true)}""".stripMargin,
+      |Returns the list of accounts containing private views for the user at BANK_ID.
+      |For each account the API returns the ID and label. To also see the list of Views, see privateAccountsAtOneBank
+      |
+      |
+      |This call MAY have an alias /bank/accounts but ONLY if defaultBank is set in Props
+      |
+      |${userAuthenticationMessage(true)}
+      |
+      |""".stripMargin,
       EmptyBody, coreAccountsJSON,
       List(AuthenticatedUserIsRequired, UnknownError),
       List(apiTagAccount, apiTagPrivateData, apiTagPsd2), None,
@@ -286,9 +303,15 @@ object Http4s200 {
       null, implementedInApiVersion, nameOf(privateAccountsAtOneBank), "GET", "/banks/BANK_ID/accounts/private",
       "Get private accounts at one bank",
       s"""Returns the list of private accounts at BANK_ID that the user has access to.
-         |For each account the API returns the ID and the available views.
-         |
-         |${userAuthenticationMessage(true)}""".stripMargin,
+      |For each account the API returns the ID and the available views.
+      |
+      |If you want to see more information on the Views, use the Account Detail call.
+      |If you want less information about the account, use the /my accounts call
+      |
+      |
+      |${userAuthenticationMessage(true)}
+      |
+      |""".stripMargin,
       EmptyBody, basicAccountsJSON,
       List(AuthenticatedUserIsRequired, BankNotFound, UnknownError),
       List(apiTagAccount, apiTagPsd2), None,
@@ -487,9 +510,9 @@ object Http4s200 {
       null, implementedInApiVersion, nameOf(addKycDocument), "PUT",
       "/banks/BANK_ID/customers/CUSTOMER_ID/kyc_documents/KYC_DOCUMENT_ID",
       "Add KYC Document",
-      "Add a KYC document for the customer specified by CUSTOMER_ID.",
+      "Add a KYC document for the customer specified by CUSTOMER_ID. KYC Documents contain the document type (e.g. passport), place of issue, expiry etc. ",
       postKycDocumentJSON, kycDocumentJSON,
-      List(AuthenticatedUserIsRequired, InvalidJsonFormat, BankNotFound, CustomerNotFoundByCustomerId, UnknownError),
+      List(AuthenticatedUserIsRequired, InvalidJsonFormat, BankNotFound, CustomerNotFoundByCustomerId,"Server error: could not add KycDocument", UnknownError),
       List(apiTagKyc, apiTagCustomer),
       Some(List(canAddKycDocument)),
       http4sPartialFunction = Some(addKycDocument))
@@ -516,7 +539,7 @@ object Http4s200 {
       null, implementedInApiVersion, nameOf(addKycMedia), "PUT",
       "/banks/BANK_ID/customers/CUSTOMER_ID/kyc_media/KYC_MEDIA_ID",
       "Add KYC Media",
-      "Add some KYC media for the customer specified by CUSTOMER_ID.",
+      "Add some KYC media for the customer specified by CUSTOMER_ID. KYC Media resources relate to KYC Documents and KYC Checks and contain media urls for scans of passports, utility bills etc",
       postKycMediaJSON, kycMediaJSON,
       List(AuthenticatedUserIsRequired, InvalidJsonFormat, CustomerNotFoundByCustomerId, ServerAddDataError, UnknownError),
       List(apiTagKyc, apiTagCustomer),
@@ -545,7 +568,7 @@ object Http4s200 {
       null, implementedInApiVersion, nameOf(addKycCheck), "PUT",
       "/banks/BANK_ID/customers/CUSTOMER_ID/kyc_check/KYC_CHECK_ID",
       "Add KYC Check",
-      "Add a KYC check for the customer specified by CUSTOMER_ID.",
+      "Add a KYC check for the customer specified by CUSTOMER_ID. KYC Checks store details of checks on a customer made by the KYC team, their comments and a satisfied status",
       postKycCheckJSON, kycCheckJSON,
       List(AuthenticatedUserIsRequired, InvalidJsonFormat, BankNotFound, CustomerNotFoundByCustomerId, ServerAddDataError, UnknownError),
       List(apiTagKyc, apiTagCustomer),
@@ -573,7 +596,7 @@ object Http4s200 {
       null, implementedInApiVersion, nameOf(addKycStatus), "PUT",
       "/banks/BANK_ID/customers/CUSTOMER_ID/kyc_statuses",
       "Add KYC Status",
-      "Add a kyc_status for the customer specified by CUSTOMER_ID.",
+      "Add a kyc_status for the customer specified by CUSTOMER_ID. KYC Status is a timeline of the KYC status of the customer",
       postKycStatusJSON, kycStatusJSON,
       List(AuthenticatedUserIsRequired, InvalidJsonFormat, InvalidBankIdFormat, UnknownError, BankNotFound, ServerAddDataError, CustomerNotFoundByCustomerId),
       List(apiTagKyc, apiTagCustomer),
@@ -707,9 +730,23 @@ object Http4s200 {
       null, implementedInApiVersion, nameOf(accountById), "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/account",
       "Get Account by Id (Full)",
-      s"""Information returned about an account specified by ACCOUNT_ID as moderated by the view (VIEW_ID).
-         |
-         |${userAuthenticationMessage(true)} if the 'is_public' field in view (VIEW_ID) is not set to `true`.""".stripMargin,
+      s"""Information returned about an account specified by ACCOUNT_ID as moderated by the view (VIEW_ID):
+      |
+      |* Number
+      |* Owners
+      |* Type
+      |* Balance
+      |* IBAN
+      |* Available views (sorted by short_name)
+      |
+      |More details about the data moderation by the view [here](#1_2_1-getViewsForBankAccount).
+      |
+      |PSD2 Context: PSD2 requires customers to have access to their account information via third party applications.
+      |This call provides balance and other account information via delegated authentication using OAuth.
+      |
+      |${userAuthenticationMessage(true)} if the 'is_public' field in view (VIEW_ID) is not set to `true`.
+      |
+      |""".stripMargin,
       EmptyBody, moderatedAccountJSON,
       List(BankNotFound, AccountNotFound, ViewNotFound, UserNoPermissionAccessView, UnknownError),
       List(apiTagAccount, apiTagOldStyle), None,
@@ -784,10 +821,11 @@ object Http4s200 {
       "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER/PROVIDER_ID",
       "Get Account access for User",
       s"""Returns the list of the views at BANK_ID for account ACCOUNT_ID that a user identified by PROVIDER_ID at their provider PROVIDER has access to.
-         |
-         |${userAuthenticationMessage(true)}
-         |
-         |The user needs to have access to the owner view.""",
+      |All url parameters must be [%-encoded](http://en.wikipedia.org/wiki/Percent-encoding), which is often especially relevant for USER_ID and PROVIDER.
+      |
+      |${userAuthenticationMessage(true)}
+      |
+      |The user needs to have access to the owner view.""",
       EmptyBody, viewsJSONV121,
       List(AuthenticatedUserIsRequired, BankNotFound, AccountNotFound, UnknownError),
       List(apiTagView, apiTagAccount, apiTagUser, apiTagOldStyle), None,
@@ -839,13 +877,18 @@ object Http4s200 {
       "/banks/BANK_ID/accounts/NEW_ACCOUNT_ID",
       "Create Account",
       """Create Account at bank specified by BANK_ID with Id specified by ACCOUNT_ID.
-        |
-        |The User can create an Account for themself or an Account for another User if they have CanCreateAccount role.
-        |
-        |If USER_ID is not specified the account will be owned by the logged in User.
-        |
-        |Note: The Amount must be zero.""".stripMargin,
-      CreateAccountJSON("A user_id", "CURRENT", "Label", AmountOfMoneyJsonV121("EUR", "0")),
+      |
+      |
+      |The User can create an Account for themself or an Account for another User if they have CanCreateAccount role.
+      |
+      |If USER_ID is not specified the account will be owned by the logged in User.
+      |
+      |ACCOUNT_ID SHOULD be a UUID. ACCOUNT_ID MUST NOT be the ACCOUNT_NUMBER.
+      |
+      |TYPE SHOULD be the PRODUCT_CODE from Product.
+      |
+      |Note: The Amount must be zero.""".stripMargin,
+      CreateAccountJSON("A user_id","CURRENT", "Label", AmountOfMoneyJSON121("EUR", "0")),
       coreAccountJSON,
       List(AuthenticatedUserIsRequired, InvalidJsonFormat, InvalidUserId, InvalidAccountIdFormat, InvalidBankIdFormat,
         UserNotFoundById, InvalidAccountBalanceAmount, InvalidAccountType, InvalidAccountInitialBalance,
@@ -872,7 +915,17 @@ object Http4s200 {
       null, implementedInApiVersion, nameOf(getTransactionTypes), "GET",
       "/banks/BANK_ID/transaction-types",
       "Get Transaction Types at Bank",
-      s"""Get Transaction Types for the bank specified by BANK_ID.
+      // TODO get the documentation of the parameters from the scala doc of the case class we return
+      s"""Get Transaction Types for the bank specified by BANK_ID:
+         |
+         |Lists the possible Transaction Types available at the bank (as opposed to Transaction Request Types which are the possible ways Transactions can be created by this API Server).
+         |
+         |  * id : Unique transaction type id across the API instance. SHOULD be a UUID. MUST be unique.
+         |  * bank_id : The bank that supports this TransactionType
+         |  * short_code : A short code (SHOULD have no-spaces) which MUST be unique across the bank. May be stored with Transactions to link here
+         |  * summary : A succinct summary
+         |  * description : A longer description
+         |  * charge : The charge to the customer for each one of these
          |
          |${userAuthenticationMessage(!getTransactionTypesIsPublic)}""".stripMargin,
       EmptyBody, transactionTypesJsonV200,
@@ -923,9 +976,42 @@ object Http4s200 {
     resourceDocs += ResourceDoc(
       null, implementedInApiVersion, nameOf(createUser), "POST", "/users",
       "Create User",
-      s"""Creates OBP user. No authorisation required.""",
+      s"""Creates OBP user.
+      | No authorisation required.
+      |
+      | Mimics current webform to Register.
+      |
+      | Requires username(email), password, first_name, last_name, and email.
+      |
+      | Validation checks performed:
+      | - Password must meet strong password requirements (InvalidStrongPasswordFormat error if not)
+      | - Username must be unique (409 error if username already exists)
+      | - All required fields must be present in valid JSON format
+      |
+      | Email validation behavior:
+      | - Controlled by property 'authUser.skipEmailValidation' (default: false)
+      | - When false: User is created with validated=false and a validation email is sent to the user's email address
+      | - When true: User is created with validated=true and no validation email is sent
+      | - Default entitlements are granted immediately regardless of validation status
+      |
+      | Note: If email validation is required (skipEmailValidation=false), the user must click the validation link
+      | in the email before they can log in, even though entitlements are already granted.
+      |
+      |""",
       createUserJson, userJsonV200,
-      List(InvalidJsonFormat, InvalidStrongPasswordFormat, DuplicateUsername, ExternalUserCheckFailed, UnknownError),
+      // Intentional drift from Lift's APIMethods200.scala source-of-truth:
+      // `AuthenticatedUserIsRequired` removed. Lift's createUser handler is
+      // anonymous (no authenticatedAccess / anonymousAccess wrapper — straight
+      // into JSON extraction), but Lift's ResourceDoc errors list includes
+      // `AuthenticatedUserIsRequired`. Lift's runtime ignored that contradiction
+      // because OBPRestHelper doesn't enforce ResourceDoc errors at request
+      // dispatch time. The http4s `ResourceDocMiddleware` does — it derives
+      // `needsAuthentication = errors.contains($AuthenticatedUserIsRequired) ||
+      // roles.nonEmpty`, so leaving the error in makes middleware reject
+      // unauthenticated POST /users with 401 instead of letting the handler
+      // run and return 201 (or 409 on duplicate). Same pattern as upstream
+      // commit 14abed06c for v3.1.0's getObpConnectorLoopback.
+      List(InvalidJsonFormat, InvalidStrongPasswordFormat, DuplicateUsername, ExternalUserCheckFailed, "Error occurred during user creation.", UnknownError),
       List(apiTagUser, apiTagOnboarding), None,
       http4sPartialFunction = Some(createUser))
 
@@ -978,9 +1064,13 @@ object Http4s200 {
       null, implementedInApiVersion, nameOf(createCustomer), "POST",
       "/banks/BANK_ID/customers",
       "Create Customer",
-      s"""Add a customer linked to the user specified by user_id.
-         |Dates need to be in the format 2013-01-21T23:08:00Z
-         |${userAuthenticationMessage(true)}""",
+      s"""Add a customer linked to the user specified by user_id
+      |The Customer resource stores the customer number, legal name, email, phone number, their date of birth, relationship status, education attained, a url for a profile image, KYC status etc.
+      |This call may require additional permissions/role in the future.
+      |For now the authenticated user can create at most one linked customer.
+      |Dates need to be in the format 2013-01-21T23:08:00Z
+      |${userAuthenticationMessage(true)}
+      |""",
       createCustomerJson, customerJsonV140,
       List(InvalidBankIdFormat, AuthenticatedUserIsRequired, BankNotFound, CustomerNumberAlreadyExists,
         UserHasMissingRoles, UserNotFoundById, CreateConsumerError, CustomerAlreadyExistsForUser,
@@ -1031,7 +1121,9 @@ object Http4s200 {
       """Get users by email address
         |
         |Login is required.
-        |CanGetAnyUser entitlement is required.""".stripMargin,
+        |CanGetAnyUser entitlement is required,
+        |
+      """.stripMargin,
       EmptyBody, usersJsonV200,
       List(AuthenticatedUserIsRequired, UserHasMissingRoles, UserNotFoundByEmail, UnknownError),
       List(apiTagUser, apiTagOldStyle),
@@ -1077,8 +1169,11 @@ object Http4s200 {
       "/banks/BANK_ID/user_customer_links",
       "Create User Customer Link",
       s"""Link a User to a Customer
-         |
-         |${userAuthenticationMessage(true)}""",
+      |
+      |${userAuthenticationMessage(true)}
+      |
+      |$createUserCustomerLinksrequiredEntitlementsText
+      |""",
       createUserCustomerLinkJson, userCustomerLinkJson,
       List(AuthenticatedUserIsRequired, InvalidBankIdFormat, BankNotFound, InvalidJsonFormat,
         CustomerNotFoundByCustomerId, UserHasMissingRoles, CustomerAlreadyExistsForUser,
@@ -1129,10 +1224,14 @@ object Http4s200 {
       "/users/USER_ID/entitlements",
       "Add Entitlement for a User",
       """Create Entitlement. Grant Role to User.
-        |
-        |Entitlements are used to grant System or Bank level roles to Users.
-        |
-        |Authentication is required and the user needs to be a Super Admin.""".stripMargin,
+      |
+      |Entitlements are used to grant System or Bank level roles to Users. (For Account level privileges, see Views)
+      |
+      |For a System level Role (.e.g CanGetAnyUser), set bank_id to an empty string i.e. "bank_id":""
+      |
+      |For a Bank level Role (e.g. CanCreateAccount), set bank_id to a valid value e.g. "bank_id":"my-bank-id"
+      |
+      |Authentication is required and the user needs to be a Super Admin. Super Admins are listed in the Props file.""",
       code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.createEntitlementJSON, entitlementJSON,
       List(AuthenticatedUserIsRequired, UserNotFoundById, UserNotSuperAdmin, InvalidJsonFormat,
         IncorrectRoleName, EntitlementIsBankRole, EntitlementIsSystemRole, EntitlementAlreadyExists, UnknownError),
@@ -1203,7 +1302,11 @@ object Http4s200 {
       "Delete Entitlement",
       """Delete Entitlement specified by ENTITLEMENT_ID for an user specified by USER_ID
         |
-        |Authentication is required and the user needs to be a Super Admin.""".stripMargin,
+        |Authentication is required and the user needs to be a Super Admin.
+        |Super Admins are listed in the Props file.
+        |
+        |
+      """.stripMargin,
       EmptyBody, EmptyBody,
       List(AuthenticatedUserIsRequired, UserHasMissingRoles, EntitlementNotFound, UnknownError),
       List(apiTagRole, apiTagUser, apiTagEntitlement),
@@ -1262,11 +1365,72 @@ object Http4s200 {
       null, implementedInApiVersion, nameOf(elasticSearchWarehouse), "GET",
       "/search/warehouse",
       "Search Warehouse Data Via Elasticsearch",
-      """Search warehouse data via Elastic Search.
-        |
-        |Login is required.
-        |CanSearchWarehouse entitlement is required.""",
+      """
+      |Search warehouse data via Elastic Search.
+      |
+      |Login is required.
+      |
+      |CanSearchWarehouse entitlement is required to search warehouse data!
+      |
+      |Send your email, name, project name and user_id to the admins to get access.
+      |
+      |Elastic (search) is used in the background. See links below for syntax.
+      |
+      |
+      |parameters:
+      |
+      | esType  - elasticsearch type
+      |
+      | simple query:
+      |
+      | q       - plain_text_query
+      |
+      | df      - default field to search
+      |
+      | sort    - field to sort on
+      |
+      | size    - number of hits returned, default 10
+      |
+      | from    - show hits starting from
+      |
+      | json query:
+      |
+      | source  - JSON_query_(URL-escaped)
+      |
+      |
+      |Example usage:
+      |
+      |GET /search/warehouse/q=findThis
+      |
+      |or:
+      |
+      |GET /search/warehouse/source={"query":{"query_string":{"query":"findThis"}}}
+      |
+      |
+      |Note!!
+      |
+      |The whole JSON query string MUST be URL-encoded:
+      |
+      |* For {  use %7B
+      |* For }  use %7D
+      |* For : use %3A
+      |* For " use %22
+      |
+      |etc..
+      |
+      |
+      |
+      |Only q, source and esType are passed to Elastic
+      |
+      |Elastic simple query: https://www.elastic.co/guide/en/elasticsearch/reference/current/search-uri-request.html
+      |
+      |Elastic JSON query: https://www.elastic.co/guide/en/elasticsearch/reference/current/query-filter-context.html
+      |
+      |You can specify the esType thus: /search/warehouse/esType=type&q=a
+      |
+      """,
       EmptyBody, emptyElasticSearch,
+      //TODO what is output here?
       List(AuthenticatedUserIsRequired, BankNotFound, UserHasMissingRoles, UnknownError),
       List(apiTagSearchWarehouse, apiTagOldStyle),
       Some(List(canSearchWarehouse)),
@@ -1298,10 +1462,65 @@ object Http4s200 {
       null, implementedInApiVersion, nameOf(elasticSearchMetrics), "GET",
       "/search/metrics",
       "Search API Metrics via Elasticsearch",
-      """Search the API calls made to this API instance via Elastic Search.
-        |
-        |Login is required.
-        |CanSearchMetrics entitlement is required.""",
+      """
+      |Search the API calls made to this API instance via Elastic Search.
+      |
+      |Login is required.
+      |
+      |CanSearchMetrics entitlement is required to search metrics data.
+      |
+      |
+      |parameters:
+      |
+      | esType  - elasticsearch type
+      |
+      | simple query:
+      |
+      | q       - plain_text_query
+      |
+      | df      - default field to search
+      |
+      | sort    - field to sort on
+      |
+      | size    - number of hits returned, default 10
+      |
+      | from    - show hits starting from
+      |
+      | json query:
+      |
+      | source  - JSON_query_(URL-escaped)
+      |
+      |
+      |example usage:
+      |
+      | /search/metrics/q=findThis
+      |
+      |or:
+      |
+      | /search/metrics/source={"query":{"query_string":{"query":"findThis"}}}
+      |
+      |
+      |Note!!
+      |
+      |The whole JSON query string MUST be URL-encoded:
+      |
+      |* For {  use %7B
+      |* For }  use %7D
+      |* For : use %3A
+      |* For " use %22
+      |
+      |etc..
+      |
+      |
+      |
+      |Only q, source and esType are passed to Elastic
+      |
+      |Elastic simple query: https://www.elastic.co/guide/en/elasticsearch/reference/current/search-uri-request.html
+      |
+      |Elastic JSON query: https://www.elastic.co/guide/en/elasticsearch/reference/current/query-filter-context.html
+      |
+      |
+      """,
       EmptyBody, emptyElasticSearch,
       List(AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
       List(apiTagMetric, apiTagApi, apiTagOldStyle),

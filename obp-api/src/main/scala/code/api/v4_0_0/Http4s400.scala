@@ -17,6 +17,13 @@ import code.api.util.Glossary
 import code.api.util.Glossary._
 import code.api.dynamic.endpoint.helper.practise.PractiseEndpoint
 import code.api.Constant
+import code.api.v2_1_0.ConsumerPostJSON
+import code.api.v3_1_0.ConsentChallengeJsonV310
+import code.api.dynamic.endpoint.helper.practise.PractiseEndpoint
+import code.bankconnectors.LocalMappedConnectorInternal._
+import code.consent.ConsentStatus
+import com.openbankproject.commons.model.enums.{AttributeCategory, AttributeType, UserInvitationPurpose}
+import java.util.Date
 import code.api.dynamic.endpoint.helper.DynamicEndpointHelper
 import code.api.dynamic.entity.helper.DynamicEntityInfo
 import code.api.util.{ApiRole => ApiRoleObj}
@@ -102,6 +109,59 @@ object Http4s400 {
 
   type HttpF[A] = OptionT[IO, A]
 
+  // Local doc-strings carried over from the pre-stub APIMethods400.scala so the
+  // restored ResourceDoc descriptions compile. Kept verbatim — these are
+  // referenced inside `s"""..."""` interpolations in the doc text.
+  private val productAttributeGeneralInfo =
+    s"""
+       |Product Attributes are used to describe a financial Product with a list of typed key value pairs.
+       |
+       |Each Product Attribute is linked to its Product by PRODUCT_CODE
+       |
+       |
+     """.stripMargin
+
+  private val customerAttributeGeneralInfo =
+    s"""
+       |CustomerAttributes are used to enhance the OBP Customer object with Bank specific entities.
+       |
+     """.stripMargin
+
+  private val generalWebHookInfo = s"""
+    |Webhooks are used to call external web services when certain events happen.
+    |
+    |For instance, a webhook can be used to notify an external service if a transaction is created on an account.
+    |
+    |"""
+
+  private val accountNotificationWebhookInfo = s"""
+                       |When an account notification webhook fires it will POST to the URL you specify during the creation of the webhook.
+                       |
+                       |Inside the payload you will find account_id and transaction_id and also user_ids and customer_ids of the Users / Customers linked to the Account.
+                       |                     |
+                       |The webhook will POST the following structure to your service:
+                       |
+                       |{
+                       |  "event_name": "OnCreateTransaction",
+                       |  "event_id": "9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+                       |  "bank_id": "gh.29.uk",
+                       |  "account_id": "8ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+                       |  "transaction_id": "7ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+                       |  "related_entities": [
+                       |    {
+                       |      "user_id": "8ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+                       |      "customer_ids": ["3ca9a7e4-6d02-40e3-a129-0b2bf89de9b1"]
+                       |    }
+                       |  ]
+                       |}
+                       |
+                       |Thus, your service should accept the above POST body structure.
+                       |
+                       |In this way, your web service can be informed about an event on an account and act accordingly.
+                       |
+                       |Further information about the account, transaction or related entities can then be retrieved using the standard REST APIs.
+                       |"""
+
   object Implementations4_0_0 {
     // Expose as a member so ResourceDocsAPIMethods can access it via APIMethods400.Implementations4_0_0.implementedInApiVersion
     val implementedInApiVersion: com.openbankproject.commons.util.ScannedApiVersion = Http4s400.implementedInApiVersion
@@ -172,7 +232,7 @@ object Http4s400 {
       """.stripMargin,
       EmptyBody,
       adapterInfoJsonV300,
-      List(AuthenticatedUserIsRequired, UnknownError),
+      List($AuthenticatedUserIsRequired, UnknownError),
       List(apiTagApi),
       Some(List(canGetDatabaseInfo)),
       http4sPartialFunction = Some(getMapperDatabaseInfo)
@@ -203,7 +263,7 @@ object Http4s400 {
       """.stripMargin,
       EmptyBody,
       logoutLinkV400,
-      List(AuthenticatedUserIsRequired, UnknownError),
+      List($AuthenticatedUserIsRequired, UnknownError),
       List(apiTagUser),
       None,
       http4sPartialFunction = Some(getLogoutLink)
@@ -423,11 +483,24 @@ object Http4s400 {
       "/banks",
       "Create Bank",
       s"""Create a new bank (Authenticated access).
-         |
-         |The user creating this will be automatically assigned the Role CanCreateEntitlementAtOneBank.""",
+      |
+      |The user creating this will be automatically assigned the Role CanCreateEntitlementAtOneBank.
+      |Thus the User can manage the bank they create and assign Roles to other Users.
+      |
+      |Only SANDBOX mode (i.e. when connector=mapped in properties file)
+      |The settlement accounts are automatically created by the system when the bank is created.
+      |Name and account id are created in accordance to the next rules:
+      |  - Incoming account (name: Default incoming settlement account, Account ID: OBP_DEFAULT_INCOMING_ACCOUNT_ID, currency: EUR)
+      |  - Outgoing account (name: Default outgoing settlement account, Account ID: OBP_DEFAULT_OUTGOING_ACCOUNT_ID, currency: EUR)
+      |
+      |""",
       postBankJson400, bankJson400,
-      List(InvalidJsonFormat, AuthenticatedUserIsRequired,
-        InsufficientAuthorisationToCreateBank, UnknownError),
+      List(
+        InvalidJsonFormat,
+        $AuthenticatedUserIsRequired,
+        InsufficientAuthorisationToCreateBank,
+        UnknownError
+      ),
       List(apiTagBank),
       Some(List(canCreateBank)),
       http4sPartialFunction = Some(createBank))
@@ -517,7 +590,10 @@ object Http4s400 {
       |${userAuthenticationMessage(!getAtmsIsPublic)}""".stripMargin,
       EmptyBody,
       atmsJsonV400,
-      List(AuthenticatedUserIsRequired, BankNotFound, InvalidJsonFormat, UnknownError),
+      List(
+        $BankNotFound,
+        UnknownError
+      ),
       List(apiTagATM),
       None,
       http4sPartialFunction = Some(getAtms)
@@ -550,7 +626,11 @@ object Http4s400 {
       |""".stripMargin,
       EmptyBody,
       atmJsonV400,
-      List(AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
+      List(
+        $AuthenticatedUserIsRequired,
+        InvalidJsonFormat,
+        UnknownError
+      ),
       List(apiTagATM),
       None,
       http4sPartialFunction = Some(getAtm)
@@ -597,7 +677,11 @@ object Http4s400 {
       |${userAuthenticationMessage(!getProductsIsPublic)}""".stripMargin,
       EmptyBody,
       productsJsonV400,
-      List(AuthenticatedUserIsRequired, BankNotFound, ProductNotFoundByProductCode, UnknownError),
+      List(
+        AuthenticatedUserIsRequired,
+        BankNotFound,
+        UnknownError
+      ),
       List(apiTagProduct),
       None,
       http4sPartialFunction = Some(getProducts)
@@ -643,7 +727,12 @@ object Http4s400 {
       |${userAuthenticationMessage(!getProductsIsPublic)}""".stripMargin,
       EmptyBody,
       productJsonV400,
-      List(AuthenticatedUserIsRequired, BankNotFound, ProductNotFoundByProductCode, UnknownError),
+      List(
+        AuthenticatedUserIsRequired,
+        $BankNotFound,
+        ProductNotFoundByProductCode,
+        UnknownError
+      ),
       List(apiTagProduct),
       None,
       http4sPartialFunction = Some(getProduct)
@@ -685,7 +774,11 @@ object Http4s400 {
       "Create ATM",
       s"""Create ATM.""",
       atmJsonV400, atmJsonV400,
-      List(AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
+      List(
+        $AuthenticatedUserIsRequired,
+        InvalidJsonFormat,
+        UnknownError
+      ),
       List(apiTagATM),
       Some(List(canCreateAtm, canCreateAtmAtAnyBank)),
       http4sPartialFunction = Some(createAtm))
@@ -757,7 +850,12 @@ object Http4s400 {
       |""",
       putProductJsonV400,
       productJsonV400.copy(attributes = None, fees = None),
-      List(AuthenticatedUserIsRequired, BankNotFound, UserHasMissingRoles, UnknownError),
+      List(
+        $AuthenticatedUserIsRequired,
+        $BankNotFound,
+        UserHasMissingRoles,
+        UnknownError
+      ),
       List(apiTagProduct),
       Some(List(canCreateProduct, canCreateProductAtAnyBank)),
       http4sPartialFunction = Some(createProduct)
@@ -893,9 +991,12 @@ object Http4s400 {
       null, implementedInApiVersion, "getEntitlements", "GET",
       "/users/USER_ID/entitlements",
       "Get Entitlements for User",
-      "",
+      s"""
+         |
+         |
+      """.stripMargin,
       EmptyBody, entitlementsJsonV400,
-      List(AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
       List(apiTagRole, apiTagEntitlement, apiTagUser),
       Some(List(canGetEntitlementsForAnyUserAtAnyBank)),
       http4sPartialFunction = Some(getEntitlements))
@@ -931,7 +1032,12 @@ object Http4s400 {
          |
          |CanGetAnyUser entitlement is required,""",
       EmptyBody, userJsonV400,
-      List(AuthenticatedUserIsRequired, UserHasMissingRoles, UserNotFoundByUserId, UnknownError),
+      List(
+        AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        UserNotFoundById,
+        UnknownError
+      ),
       List(apiTagUser),
       Some(List(canGetAnyUser)),
       http4sPartialFunction = Some(getUserByUserId))
@@ -962,8 +1068,12 @@ object Http4s400 {
          |
          |CanGetAnyUser entitlement is required,""",
       EmptyBody, userJsonV400,
-      List(AuthenticatedUserIsRequired, UserHasMissingRoles,
-        UserNotFoundByProviderAndUsername, UnknownError),
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        UserNotFoundByProviderAndUsername,
+        UnknownError
+      ),
       List(apiTagUser),
       Some(List(canGetAnyUser)),
       http4sPartialFunction = Some(getUserByUsername))
@@ -988,7 +1098,12 @@ object Http4s400 {
          |${userAuthenticationMessage(true)}
          |CanGetAnyUser entitlement is required,""",
       EmptyBody, usersJsonV400,
-      List(AuthenticatedUserIsRequired, UserHasMissingRoles, UserNotFoundByEmail, UnknownError),
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        UserNotFoundByEmail,
+        UnknownError
+      ),
       List(apiTagUser),
       Some(List(canGetAnyUser)),
       http4sPartialFunction = Some(getUsersByEmail))
@@ -1018,9 +1133,18 @@ object Http4s400 {
          |
          |${userAuthenticationMessage(true)}
          |
-         |CanGetAnyUser entitlement is required,""",
+         |CanGetAnyUser entitlement is required,
+         |
+         |${urlParametersDocument(false, false)}
+         |* locked_status (if null ignore)
+         |
+      """.stripMargin,
       EmptyBody, usersJsonV400,
-      List(AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        UnknownError
+      ),
       List(apiTagUser),
       Some(List(canGetAnyUser)),
       http4sPartialFunction = Some(getUsers))
@@ -1051,10 +1175,21 @@ object Http4s400 {
       null, implementedInApiVersion, "getCustomersByAttributes", "GET",
       "/banks/BANK_ID/customers",
       "Get Customers by ATTRIBUTES",
-      "Gets the Customers specified by attributes",
+      s"""Gets the Customers specified by attributes
+      |
+      |URL params example: /banks/some-bank-id/customers?name=John&age=8
+      |URL params example: /banks/some-bank-id/customers?&limit=50&offset=1
+      |
+      |
+      |""",
       EmptyBody,
       ListResult("customers", List(customerWithAttributesJsonV310)),
-      List(AuthenticatedUserIsRequired, BankNotFound, UserCustomerLinksNotFoundForUser, UnknownError),
+      List(
+        $AuthenticatedUserIsRequired,
+        $BankNotFound,
+        UserCustomerLinksNotFoundForUser,
+        UnknownError
+      ),
       List(apiTagCustomer),
       Some(List(canGetCustomersAtOneBank)),
       http4sPartialFunction = Some(getCustomersByAttributes))
@@ -1103,9 +1238,16 @@ object Http4s400 {
       |""",
       postCustomerJsonV310,
       customerJsonV310,
-      List(AuthenticatedUserIsRequired, BankNotFound, InvalidJsonFormat,
-      CustomerNumberAlreadyExists, UserNotFoundById, CustomerAlreadyExistsForUser,
-      CreateCustomerError, UnknownError),
+      List(
+        $AuthenticatedUserIsRequired,
+        $BankNotFound,
+        InvalidJsonFormat,
+        CustomerNumberAlreadyExists,
+        UserNotFoundById,
+        CustomerAlreadyExistsForUser,
+        CreateConsumerError,
+        UnknownError
+      ),
       List(apiTagCustomer, apiTagPerson),
       Some(List(canCreateCustomer, canCreateCustomerAtAnyBank)),
       http4sPartialFunction = Some(createCustomer)
@@ -1133,7 +1275,7 @@ object Http4s400 {
       """Get the Balances for the Accounts of the current User at one bank.""",
       EmptyBody,
       accountBalancesV400Json,
-      List(AuthenticatedUserIsRequired, BankNotFound, UnknownError),
+      List($AuthenticatedUserIsRequired, $BankNotFound, UnknownError),
       apiTagAccount :: apiTagPSD2AIS :: apiTagPsd2 :: Nil,
       None,
       http4sPartialFunction = Some(getBankAccountsBalancesForCurrentUser)
@@ -1183,7 +1325,7 @@ object Http4s400 {
       |""".stripMargin,
       EmptyBody,
       moderatedCoreAccountJsonV400,
-      List(AuthenticatedUserIsRequired, BankAccountNotFound, UnknownError),
+      List($AuthenticatedUserIsRequired, $BankAccountNotFound, UnknownError),
       apiTagAccount :: apiTagPSD2AIS :: apiTagPsd2 :: Nil,
       None,
       http4sPartialFunction = Some(getCoreAccountById)
@@ -1234,8 +1376,13 @@ object Http4s400 {
       |""".stripMargin,
       EmptyBody,
       moderatedAccountJSON400,
-      List(AuthenticatedUserIsRequired, BankNotFound, BankAccountNotFound,
-      UserNoPermissionAccessView, UnknownError),
+      List(
+        $AuthenticatedUserIsRequired,
+        $BankNotFound,
+        $BankAccountNotFound,
+        $UserNoPermissionAccessView,
+        UnknownError
+      ),
       apiTagAccount :: Nil,
       None,
       http4sPartialFunction = Some(getPrivateAccountByIdFull)
@@ -1290,7 +1437,7 @@ object Http4s400 {
       """.stripMargin,
       EmptyBody,
       basicAccountsJSON,
-      List(AuthenticatedUserIsRequired, BankNotFound, UnknownError),
+      List($AuthenticatedUserIsRequired, $BankNotFound, UnknownError),
       List(apiTagAccount, apiTagPrivateData, apiTagPublicData),
       None,
       http4sPartialFunction = Some(getPrivateAccountsAtOneBank)
@@ -1339,9 +1486,17 @@ object Http4s400 {
          |
          |${userAuthenticationMessage(true)}""",
       createUserCustomerLinkJson, userCustomerLinkJson,
-      List(AuthenticatedUserIsRequired, InvalidBankIdFormat, BankNotFound, InvalidJsonFormat,
-        CustomerNotFoundByCustomerId, UserHasMissingRoles, CustomerAlreadyExistsForUser,
-        CreateUserCustomerLinksError, UnknownError),
+      List(
+        $AuthenticatedUserIsRequired,
+        InvalidBankIdFormat,
+        $BankNotFound,
+        InvalidJsonFormat,
+        CustomerNotFoundByCustomerId,
+        UserHasMissingRoles,
+        CustomerAlreadyExistsForUser,
+        CreateUserCustomerLinksError,
+        UnknownError
+      ),
       List(apiTagCustomer, apiTagUser),
       Some(List(canCreateUserCustomerLinkAtAnyBank, canCreateUserCustomerLink)),
       http4sPartialFunction = Some(createUserCustomerLinks))
@@ -1378,7 +1533,11 @@ object Http4s400 {
         "dynamic_entities",
         List(dynamicEntityResponseBodyExample)
       ),
-      List(AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        UnknownError
+      ),
       List(apiTagManageDynamicEntity, apiTagApi),
       Some(List(canGetSystemLevelDynamicEntities)),
       http4sPartialFunction = Some(getSystemDynamicEntities)
@@ -1417,7 +1576,12 @@ object Http4s400 {
         "dynamic_entities",
         List(dynamicEntityResponseBodyExample)
       ),
-      List(BankNotFound, AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      List(
+        $BankNotFound,
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        UnknownError
+      ),
       List(apiTagManageDynamicEntity, apiTagApi),
       Some(List(canGetBankLevelDynamicEntities, canGetAnyBankLevelDynamicEntities)),
       http4sPartialFunction = Some(getBankLevelDynamicEntities)
@@ -1454,7 +1618,10 @@ object Http4s400 {
         "dynamic_entities",
         List(dynamicEntityResponseBodyExample)
       ),
-      List(AuthenticatedUserIsRequired, UnknownError),
+      List(
+        $AuthenticatedUserIsRequired,
+        UnknownError
+      ),
       List(apiTagManageDynamicEntity, apiTagApi),
       None,
       http4sPartialFunction = Some(getMyDynamicEntities)
@@ -1693,7 +1860,11 @@ object Http4s400 {
        |""",
       EmptyBody,
       EmptyBody,
-      List(AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        UnknownError
+      ),
       List(apiTagManageDynamicEntity, apiTagApi),
       Some(List(canDeleteSystemLevelDynamicEntity)),
       http4sPartialFunction = Some(deleteSystemDynamicEntity)
@@ -1724,7 +1895,12 @@ object Http4s400 {
        |""",
       EmptyBody,
       EmptyBody,
-      List(BankNotFound, AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      List(
+        $BankNotFound,
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        UnknownError
+      ),
       List(apiTagManageDynamicEntity, apiTagApi),
       Some(List(canDeleteBankLevelDynamicEntity)),
       http4sPartialFunction = Some(deleteBankLevelDynamicEntity)
@@ -1814,7 +1990,10 @@ object Http4s400 {
        |""",
       EmptyBody,
       EmptyBody,
-      List(AuthenticatedUserIsRequired, InvalidMyDynamicEntityUser, UnknownError),
+      List(
+        $AuthenticatedUserIsRequired,
+        UnknownError
+      ),
       List(apiTagManageDynamicEntity, apiTagApi),
       None,
       http4sPartialFunction = Some(deleteMyDynamicEntity)
@@ -1928,8 +2107,13 @@ object Http4s400 {
       |""",
       dynamicEndpointRequestBodyExample,
       dynamicEndpointResponseBodyExample,
-      List(AuthenticatedUserIsRequired, UserHasMissingRoles, DynamicEndpointExists,
-      InvalidJsonFormat, UnknownError),
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        DynamicEndpointExists,
+        InvalidJsonFormat,
+        UnknownError
+      ),
       List(apiTagManageDynamicEndpoint, apiTagApi),
       Some(List(canCreateDynamicEndpoint)),
       http4sPartialFunction = Some(createDynamicEndpoint)
@@ -1972,8 +2156,14 @@ object Http4s400 {
       |""",
       dynamicEndpointRequestBodyExample,
       dynamicEndpointResponseBodyExample,
-      List(BankNotFound, AuthenticatedUserIsRequired, UserHasMissingRoles, DynamicEndpointExists,
-      InvalidJsonFormat, UnknownError),
+      List(
+        $BankNotFound,
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        DynamicEndpointExists,
+        InvalidJsonFormat,
+        UnknownError
+      ),
       List(apiTagManageDynamicEndpoint, apiTagApi),
       Some(List(canCreateBankLevelDynamicEndpoint, canCreateDynamicEndpoint)),
       http4sPartialFunction = Some(createBankLevelDynamicEndpoint)
@@ -2005,8 +2195,13 @@ object Http4s400 {
       |""",
       dynamicEndpointHostJson400,
       dynamicEndpointHostJson400,
-      List(AuthenticatedUserIsRequired, UserHasMissingRoles,
-      DynamicEntityNotFoundByDynamicEntityId, InvalidJsonFormat, UnknownError),
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        DynamicEntityNotFoundByDynamicEntityId,
+        InvalidJsonFormat,
+        UnknownError
+      ),
       List(apiTagManageDynamicEndpoint, apiTagApi),
       Some(List(canUpdateDynamicEndpoint)),
       http4sPartialFunction = Some(updateDynamicEndpointHost)
@@ -2039,8 +2234,14 @@ object Http4s400 {
       |""",
       dynamicEndpointHostJson400,
       dynamicEndpointHostJson400,
-      List(BankNotFound, AuthenticatedUserIsRequired, UserHasMissingRoles,
-      DynamicEntityNotFoundByDynamicEntityId, InvalidJsonFormat, UnknownError),
+      List(
+        $BankNotFound,
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        DynamicEntityNotFoundByDynamicEntityId,
+        InvalidJsonFormat,
+        UnknownError
+      ),
       List(apiTagManageDynamicEndpoint, apiTagApi),
       Some(List(canUpdateBankLevelDynamicEndpoint, canUpdateDynamicEndpoint)),
       http4sPartialFunction = Some(updateBankLevelDynamicEndpointHost)
@@ -2070,8 +2271,13 @@ object Http4s400 {
       |""",
       EmptyBody,
       dynamicEndpointResponseBodyExample,
-      List(AuthenticatedUserIsRequired, UserHasMissingRoles,
-      DynamicEndpointNotFoundByDynamicEndpointId, InvalidJsonFormat, UnknownError),
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        DynamicEndpointNotFoundByDynamicEndpointId,
+        InvalidJsonFormat,
+        UnknownError
+      ),
       List(apiTagManageDynamicEndpoint, apiTagApi),
       Some(List(canGetDynamicEndpoint)),
       http4sPartialFunction = Some(getDynamicEndpoint)
@@ -2103,7 +2309,12 @@ object Http4s400 {
         "dynamic_endpoints",
         List(dynamicEndpointResponseBodyExample)
       ),
-      List(AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
       List(apiTagManageDynamicEndpoint, apiTagApi),
       Some(List(canGetDynamicEndpoints)),
       http4sPartialFunction = Some(getDynamicEndpoints)
@@ -2129,8 +2340,14 @@ object Http4s400 {
       |""",
       EmptyBody,
       dynamicEndpointResponseBodyExample,
-      List(BankNotFound, AuthenticatedUserIsRequired, UserHasMissingRoles,
-      DynamicEndpointNotFoundByDynamicEndpointId, InvalidJsonFormat, UnknownError),
+      List(
+        $BankNotFound,
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        DynamicEndpointNotFoundByDynamicEndpointId,
+        InvalidJsonFormat,
+        UnknownError
+      ),
       List(apiTagManageDynamicEndpoint, apiTagApi),
       Some(List(canGetBankLevelDynamicEndpoint, canGetDynamicEndpoint)),
       http4sPartialFunction = Some(getBankLevelDynamicEndpoint)
@@ -2162,8 +2379,13 @@ object Http4s400 {
         "dynamic_endpoints",
         List(dynamicEndpointResponseBodyExample)
       ),
-      List(BankNotFound, AuthenticatedUserIsRequired, UserHasMissingRoles,
-      InvalidJsonFormat, UnknownError),
+      List(
+        $BankNotFound,
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
       List(apiTagManageDynamicEndpoint, apiTagApi),
       Some(List(canGetBankLevelDynamicEndpoints, canGetDynamicEndpoints)),
       http4sPartialFunction = Some(getBankLevelDynamicEndpoints)
@@ -2188,7 +2410,11 @@ object Http4s400 {
       s"""Delete a DynamicEndpoint specified by DYNAMIC_ENDPOINT_ID.""".stripMargin,
       EmptyBody,
       EmptyBody,
-      List(AuthenticatedUserIsRequired, DynamicEndpointNotFoundByDynamicEndpointId, UnknownError),
+      List(
+        $AuthenticatedUserIsRequired,
+        DynamicEndpointNotFoundByDynamicEndpointId,
+        UnknownError
+      ),
       List(apiTagManageDynamicEndpoint, apiTagApi),
       Some(List(canDeleteDynamicEndpoint)),
       http4sPartialFunction = Some(deleteDynamicEndpoint)
@@ -2213,8 +2439,12 @@ object Http4s400 {
       s"""Delete a Bank Level DynamicEndpoint specified by DYNAMIC_ENDPOINT_ID.""".stripMargin,
       EmptyBody,
       EmptyBody,
-      List(BankNotFound, AuthenticatedUserIsRequired,
-      DynamicEndpointNotFoundByDynamicEndpointId, UnknownError),
+      List(
+        $BankNotFound,
+        $AuthenticatedUserIsRequired,
+        DynamicEndpointNotFoundByDynamicEndpointId,
+        UnknownError
+      ),
       List(apiTagManageDynamicEndpoint, apiTagApi),
       Some(List(canDeleteBankLevelDynamicEndpoint, canDeleteDynamicEndpoint)),
       http4sPartialFunction = Some(deleteBankLevelDynamicEndpoint)
@@ -2251,7 +2481,11 @@ object Http4s400 {
         "dynamic_endpoints",
         List(dynamicEndpointResponseBodyExample)
       ),
-      List(AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError),
+      List(
+        $AuthenticatedUserIsRequired,
+        InvalidJsonFormat,
+        UnknownError
+      ),
       List(apiTagManageDynamicEndpoint, apiTagApi),
       None,
       http4sPartialFunction = Some(getMyDynamicEndpoints)
@@ -2278,7 +2512,11 @@ object Http4s400 {
       "Delete My Dynamic Endpoint",
       s"""Delete a DynamicEndpoint specified by DYNAMIC_ENDPOINT_ID.""",
       EmptyBody, EmptyBody,
-      List(AuthenticatedUserIsRequired, DynamicEndpointNotFoundByDynamicEndpointId, UnknownError),
+      List(
+        $AuthenticatedUserIsRequired,
+        DynamicEndpointNotFoundByDynamicEndpointId,
+        UnknownError
+      ),
       List(apiTagManageDynamicEndpoint, apiTagApi), None,
       http4sPartialFunction = Some(deleteMyDynamicEndpoint))
 
@@ -2514,8 +2752,14 @@ object Http4s400 {
       """.stripMargin,
       updateAccountJsonV400,
       successMessage,
-      List(InvalidJsonFormat, $AuthenticatedUserIsRequired, $BankAccountNotFound,
-      "user does not have access to owner view on account", UnknownError),
+      List(
+        InvalidJsonFormat,
+        $AuthenticatedUserIsRequired,
+        $BankNotFound,
+        UnknownError,
+        $BankAccountNotFound,
+        "user does not have access to owner view on account"
+      ),
       List(apiTagAccount),
       None,
       http4sPartialFunction = Some(updateAccountLabel)
@@ -2549,8 +2793,12 @@ object Http4s400 {
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties",
       "Get Counterparties (Explicit)",
       s"""Get the Counterparties that have been explicitly created on the specified Account / View.
-         |
-         |${userAuthenticationMessage(true)}""",
+      |
+      |For a general introduction to Counterparties in OBP, see ${Glossary
+       .getGlossaryItemLink("Counterparties")}
+      |
+      |${userAuthenticationMessage(true)}
+      |""".stripMargin,
       EmptyBody, counterpartiesJson400,
       List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound,
         $UserNoPermissionAccessView, ViewNotFound, UnknownError),
@@ -2579,9 +2827,13 @@ object Http4s400 {
       null, implementedInApiVersion, "getExplicitCounterpartyById", "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties/EXPLICIT_COUNTERPARTY_ID",
       "Get Counterparty by Id (Explicit)",
-      s"""This endpoint returns a single Counterparty on an Account View specified by its COUNTERPARTY_ID.
-         |
-         |${userAuthenticationMessage(true)}""",
+      s"""This endpoint returns a single Counterparty on an Account View specified by its COUNTERPARTY_ID:
+      |
+      |For a general introduction to Counterparties in OBP, see ${Glossary
+       .getGlossaryItemLink("Counterparties")}
+      |
+      |${userAuthenticationMessage(true)}
+      |""".stripMargin,
       EmptyBody, counterpartyWithMetadataJson400,
       List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound,
         $UserNoPermissionAccessView, UnknownError),
@@ -2671,14 +2923,29 @@ object Http4s400 {
       null, implementedInApiVersion, "createCounterparty", "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties",
       "Create Counterparty (Explicit)",
-      s"""Create Counterparty (Explicit) for an Account.
-         |
-         |${userAuthenticationMessage(true)}""",
+      s"""This endpoint creates an (Explicit) Counterparty for an Account.
+      |
+      |For an introduction to Counterparties in OBP see ${Glossary
+       .getGlossaryItemLink("Counterparties")}
+      |
+      |${userAuthenticationMessage(true)}
+      |
+      |""".stripMargin,
       postCounterpartyJson400, counterpartyWithMetadataJson400,
-      List($AuthenticatedUserIsRequired, InvalidAccountIdFormat, InvalidBankIdFormat,
-        InvalidJsonFormat, NoViewPermission, CounterpartyAlreadyExists,
-        InvalidValueLength, InvalidISOCurrencyCode, UnknownError),
-      List(apiTagCounterparty, apiTagPSD2PIS, apiTagPsd2, apiTagAccount), None,
+      List(
+        $AuthenticatedUserIsRequired,
+        InvalidAccountIdFormat,
+        InvalidBankIdFormat,
+        $BankNotFound,
+        $BankAccountNotFound,
+        $UserNoPermissionAccessView,
+        InvalidJsonFormat,
+        InvalidISOCurrencyCode,
+        ViewNotFound,
+        CounterpartyAlreadyExists,
+        UnknownError
+      ),
+      List(apiTagCounterparty, apiTagAccount), None,
       http4sPartialFunction = Some(createExplicitCounterparty))
 
     // ─── getFirehoseAccountsAtOneBank ─────────────────────────────────────────
@@ -2769,8 +3036,8 @@ object Http4s400 {
       |""".stripMargin,
       EmptyBody,
       moderatedFirehoseAccountsJsonV400,
-      List(AuthenticatedUserIsRequired, AccountFirehoseNotAllowedOnThisInstance, UnknownError),
-      List(apiTagAccountFirehose, apiTagAccount, apiTagFirehoseData, apiTagAccount),
+      List($BankNotFound),
+      List(apiTagAccount, apiTagAccountFirehose, apiTagFirehoseData),
       None,
       http4sPartialFunction = Some(getFirehoseAccountsAtOneBank)
     )
@@ -2848,15 +3115,32 @@ object Http4s400 {
     staticResourceDocs += ResourceDoc(
       null, implementedInApiVersion, "createTransactionRequestAccount", "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/GRANT_VIEW_ID/transaction-request-types/TRANSACTION_REQUEST_TYPE/transaction-requests",
-      "Create Transaction Request",
-      s"""Create a Transaction Request of the type specified in the URL.
-         |
-         |${userAuthenticationMessage(true)}""",
-      EmptyBody, transactionRequestWithChargeJSON400,
-      List($AuthenticatedUserIsRequired, InvalidJsonFormat, InvalidNumber, NotPositiveAmount,
-        InvalidTransactionRequestType, InvalidISOCurrencyCode,
+      "Create Transaction Request (ACCOUNT)",
+      s"""When using ACCOUNT, the payee is set in the request body.
+        |
+        |Money goes into the BANK_ID and ACCOUNT_ID specified in the request body.
+        |
+        |$transactionRequestGeneralText
+        |
+      """.stripMargin,
+      transactionRequestBodyJsonV200, transactionRequestWithChargeJSON400,
+      List(
+        $AuthenticatedUserIsRequired,
+        InvalidBankIdFormat,
+        InvalidAccountIdFormat,
+        InvalidJsonFormat,
+        $BankNotFound,
+        AccountNotFound,
+        $BankAccountNotFound,
         InsufficientAuthorisationToCreateTransactionRequest,
-        InvalidAccountIdFormat, InvalidBankIdFormat, TransactionDisabled, UnknownError),
+        InvalidTransactionRequestType,
+        InvalidJsonFormat,
+        InvalidNumber,
+        NotPositiveAmount,
+        InvalidTransactionRequestCurrency,
+        TransactionDisabled,
+        UnknownError
+      ),
       List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2), None,
       http4sPartialFunction = Some(createTransactionRequest))
 
@@ -2873,14 +3157,31 @@ object Http4s400 {
         null, implementedInApiVersion, "createTransactionRequestAccountOtp", "POST",
         "/banks/BANK_ID/accounts/ACCOUNT_ID/GRANT_VIEW_ID/transaction-request-types/ACCOUNT_OTP/transaction-requests",
         "Create Transaction Request (ACCOUNT_OTP)",
-        s"""Create Transaction Request (ACCOUNT_OTP).
-           |
-           |${userAuthenticationMessage(true)}""",
+        s"""When using ACCOUNT, the payee is set in the request body.
+          |
+          |Money goes into the BANK_ID and ACCOUNT_ID specified in the request body.
+          |
+          |$transactionRequestGeneralText
+          |
+        """.stripMargin,
         transactionRequestBodyJsonV200, transactionRequestWithChargeJSON400,
-        List($AuthenticatedUserIsRequired, InvalidJsonFormat, InvalidNumber, NotPositiveAmount,
-          InvalidTransactionRequestType, InvalidISOCurrencyCode,
+        List(
+          $AuthenticatedUserIsRequired,
+          InvalidBankIdFormat,
+          InvalidAccountIdFormat,
+          InvalidJsonFormat,
+          $BankNotFound,
+          AccountNotFound,
+          $BankAccountNotFound,
           InsufficientAuthorisationToCreateTransactionRequest,
-          InvalidAccountIdFormat, InvalidBankIdFormat, TransactionDisabled, UnknownError),
+          InvalidTransactionRequestType,
+          InvalidJsonFormat,
+          InvalidNumber,
+          NotPositiveAmount,
+          InvalidTransactionRequestCurrency,
+          TransactionDisabled,
+          UnknownError
+        ),
         List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2), None,
         http4sPartialFunction = Some(createTransactionRequest))
 
@@ -2888,14 +3189,33 @@ object Http4s400 {
         null, implementedInApiVersion, "createTransactionRequestSepa", "POST",
         "/banks/BANK_ID/accounts/ACCOUNT_ID/GRANT_VIEW_ID/transaction-request-types/SEPA/transaction-requests",
         "Create Transaction Request (SEPA)",
-        s"""Create Transaction Request (SEPA).
-           |
-           |${userAuthenticationMessage(true)}""",
+        s"""
+          |Special instructions for SEPA:
+          |
+          |When using a SEPA Transaction Request, you specify the IBAN of a Counterparty in the body of the request.
+          |The routing details (IBAN) of the counterparty will be forwarded to the core banking system for the transfer.
+          |
+          |$transactionRequestGeneralText
+          |
+        """.stripMargin,
         transactionRequestBodySEPAJsonV400, transactionRequestWithChargeJSON400,
-        List($AuthenticatedUserIsRequired, InvalidJsonFormat, InvalidNumber, NotPositiveAmount,
-          InvalidTransactionRequestType, InvalidISOCurrencyCode,
+        List(
+          $AuthenticatedUserIsRequired,
+          InvalidBankIdFormat,
+          InvalidAccountIdFormat,
+          InvalidJsonFormat,
+          $BankNotFound,
+          AccountNotFound,
+          $BankAccountNotFound,
           InsufficientAuthorisationToCreateTransactionRequest,
-          InvalidAccountIdFormat, InvalidBankIdFormat, TransactionDisabled, UnknownError),
+          InvalidTransactionRequestType,
+          InvalidJsonFormat,
+          InvalidNumber,
+          NotPositiveAmount,
+          InvalidTransactionRequestCurrency,
+          TransactionDisabled,
+          UnknownError
+        ),
         List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2), None,
         http4sPartialFunction = Some(createTransactionRequest))
 
@@ -2903,14 +3223,40 @@ object Http4s400 {
         null, implementedInApiVersion, "createTransactionRequestCounterparty", "POST",
         "/banks/BANK_ID/accounts/ACCOUNT_ID/GRANT_VIEW_ID/transaction-request-types/COUNTERPARTY/transaction-requests",
         "Create Transaction Request (COUNTERPARTY)",
-        s"""Create Transaction Request (COUNTERPARTY).
-           |
-           |${userAuthenticationMessage(true)}""",
+        s"""
+          |$transactionRequestGeneralText
+          |
+          |When using a COUNTERPARTY to create a Transaction Request, specify the counterparty_id in the body of the request.
+          |The routing details of the counterparty will be forwarded to the Core Banking System (CBS) for the transfer.
+          |
+          |COUNTERPARTY Transaction Requests are used for Variable Recurring Payments (VRP). Use the following ${Glossary
+           .getApiExplorerLink(
+             "endpoint",
+             "OBPv5.1.0-createVRPConsentRequest"
+           )} to create a consent for VRPs.
+          |
+          |For a general introduction to Counterparties in OBP, see ${Glossary
+           .getGlossaryItemLink("Counterparties")}
+          |
+        """.stripMargin,
         transactionRequestBodyCounterpartyJSON, transactionRequestWithChargeJSON400,
-        List($AuthenticatedUserIsRequired, InvalidJsonFormat, InvalidNumber, NotPositiveAmount,
-          InvalidTransactionRequestType, InvalidISOCurrencyCode,
+        List(
+          $AuthenticatedUserIsRequired,
+          InvalidBankIdFormat,
+          InvalidAccountIdFormat,
+          InvalidJsonFormat,
+          $BankNotFound,
+          AccountNotFound,
+          $BankAccountNotFound,
           InsufficientAuthorisationToCreateTransactionRequest,
-          InvalidAccountIdFormat, InvalidBankIdFormat, TransactionDisabled, UnknownError),
+          InvalidTransactionRequestType,
+          InvalidJsonFormat,
+          InvalidNumber,
+          NotPositiveAmount,
+          InvalidTransactionRequestCurrency,
+          TransactionDisabled,
+          UnknownError
+        ),
         List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2), None,
         http4sPartialFunction = Some(createTransactionRequest))
 
@@ -2918,14 +3264,40 @@ object Http4s400 {
         null, implementedInApiVersion, "createTransactionRequestRefund", "POST",
         "/banks/BANK_ID/accounts/ACCOUNT_ID/GRANT_VIEW_ID/transaction-request-types/REFUND/transaction-requests",
         "Create Transaction Request (REFUND)",
-        s"""Create Transaction Request (REFUND).
-           |
-           |${userAuthenticationMessage(true)}""",
+        s"""
+          |
+          |Either the `from` or the `to` field must be filled. Those fields refers to the information about the party that will be refunded.
+          |
+          |In case the `from` object is used, it means that the refund comes from the part that sent you a transaction.
+          |In the `from` object, you have two choices :
+          |- Use `bank_id` and `account_id` fields if the other account is registered on the OBP-API
+          |- Use the `counterparty_id` field in case the counterparty account is out of the OBP-API
+          |
+          |In case the `to` object is used, it means you send a request to a counterparty to ask for a refund on a previous transaction you sent.
+          |(This case is not managed by the OBP-API and require an external adapter)
+          |
+          |
+          |$transactionRequestGeneralText
+          |
+        """.stripMargin,
         transactionRequestBodyRefundJsonV400, transactionRequestWithChargeJSON400,
-        List($AuthenticatedUserIsRequired, InvalidJsonFormat, InvalidNumber, NotPositiveAmount,
-          InvalidTransactionRequestType, InvalidISOCurrencyCode,
+        List(
+          $AuthenticatedUserIsRequired,
+          InvalidBankIdFormat,
+          InvalidAccountIdFormat,
+          InvalidJsonFormat,
+          $BankNotFound,
+          AccountNotFound,
+          $BankAccountNotFound,
           InsufficientAuthorisationToCreateTransactionRequest,
-          InvalidAccountIdFormat, InvalidBankIdFormat, TransactionDisabled, UnknownError),
+          InvalidTransactionRequestType,
+          InvalidJsonFormat,
+          InvalidNumber,
+          NotPositiveAmount,
+          InvalidTransactionRequestCurrency,
+          TransactionDisabled,
+          UnknownError
+        ),
         List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2), None,
         http4sPartialFunction = Some(createTransactionRequest))
 
@@ -2933,14 +3305,27 @@ object Http4s400 {
         null, implementedInApiVersion, "createTransactionRequestFreeForm", "POST",
         "/banks/BANK_ID/accounts/ACCOUNT_ID/GRANT_VIEW_ID/transaction-request-types/FREE_FORM/transaction-requests",
         "Create Transaction Request (FREE_FORM)",
-        s"""Create Transaction Request (FREE_FORM).
-           |
-           |${userAuthenticationMessage(true)}""",
+        s"""$transactionRequestGeneralText
+          |
+        """.stripMargin,
         transactionRequestBodyFreeFormJSON, transactionRequestWithChargeJSON400,
-        List($AuthenticatedUserIsRequired, InvalidJsonFormat, InvalidNumber, NotPositiveAmount,
-          InvalidTransactionRequestType, InvalidISOCurrencyCode,
+        List(
+          $AuthenticatedUserIsRequired,
+          InvalidBankIdFormat,
+          InvalidAccountIdFormat,
+          InvalidJsonFormat,
+          $BankNotFound,
+          AccountNotFound,
+          $BankAccountNotFound,
           InsufficientAuthorisationToCreateTransactionRequest,
-          InvalidAccountIdFormat, InvalidBankIdFormat, TransactionDisabled, UnknownError),
+          InvalidTransactionRequestType,
+          InvalidJsonFormat,
+          InvalidNumber,
+          NotPositiveAmount,
+          InvalidTransactionRequestCurrency,
+          TransactionDisabled,
+          UnknownError
+        ),
         List(apiTagTransactionRequest, apiTagPSD2PIS),
         Some(List(canCreateAnyTransactionRequest)),
         http4sPartialFunction = Some(createTransactionRequest))
@@ -2949,14 +3334,32 @@ object Http4s400 {
         null, implementedInApiVersion, "createTransactionRequestSimple", "POST",
         "/banks/BANK_ID/accounts/ACCOUNT_ID/GRANT_VIEW_ID/transaction-request-types/SIMPLE/transaction-requests",
         "Create Transaction Request (SIMPLE)",
-        s"""Create Transaction Request (SIMPLE).
-           |
-           |${userAuthenticationMessage(true)}""",
+        s"""
+          |Special instructions for SIMPLE:
+          |
+          |You can transfer money to the Bank Account Number or IBAN directly.
+          |
+          |$transactionRequestGeneralText
+          |
+        """.stripMargin,
         transactionRequestBodySimpleJsonV400, transactionRequestWithChargeJSON400,
-        List($AuthenticatedUserIsRequired, InvalidJsonFormat, InvalidNumber, NotPositiveAmount,
-          InvalidTransactionRequestType, InvalidISOCurrencyCode,
+        List(
+          $AuthenticatedUserIsRequired,
+          InvalidBankIdFormat,
+          InvalidAccountIdFormat,
+          InvalidJsonFormat,
+          $BankNotFound,
+          AccountNotFound,
+          $BankAccountNotFound,
           InsufficientAuthorisationToCreateTransactionRequest,
-          InvalidAccountIdFormat, InvalidBankIdFormat, TransactionDisabled, UnknownError),
+          InvalidTransactionRequestType,
+          InvalidJsonFormat,
+          InvalidNumber,
+          NotPositiveAmount,
+          InvalidTransactionRequestCurrency,
+          TransactionDisabled,
+          UnknownError
+        ),
         List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2), None,
         http4sPartialFunction = Some(createTransactionRequest))
 
@@ -2964,14 +3367,40 @@ object Http4s400 {
         null, implementedInApiVersion, "createTransactionRequestAgentCashWithDrawal", "POST",
         "/banks/BANK_ID/accounts/ACCOUNT_ID/GRANT_VIEW_ID/transaction-request-types/AGENT_CASH_WITHDRAWAL/transaction-requests",
         "Create Transaction Request (AGENT_CASH_WITHDRAWAL)",
-        s"""Create Transaction Request (AGENT_CASH_WITHDRAWAL).
-           |
-           |${userAuthenticationMessage(true)}""",
+        s"""
+          |
+          |Either the `from` or the `to` field must be filled. Those fields refers to the information about the party that will be refunded.
+          |
+          |In case the `from` object is used, it means that the refund comes from the part that sent you a transaction.
+          |In the `from` object, you have two choices :
+          |- Use `bank_id` and `account_id` fields if the other account is registered on the OBP-API
+          |- Use the `counterparty_id` field in case the counterparty account is out of the OBP-API
+          |
+          |In case the `to` object is used, it means you send a request to a counterparty to ask for a refund on a previous transaction you sent.
+          |(This case is not managed by the OBP-API and require an external adapter)
+          |
+          |
+          |$transactionRequestGeneralText
+          |
+        """.stripMargin,
         transactionRequestBodyAgentJsonV400, transactionRequestWithChargeJSON400,
-        List($AuthenticatedUserIsRequired, InvalidJsonFormat, InvalidNumber, NotPositiveAmount,
-          InvalidTransactionRequestType, InvalidISOCurrencyCode,
+        List(
+          $AuthenticatedUserIsRequired,
+          InvalidBankIdFormat,
+          InvalidAccountIdFormat,
+          InvalidJsonFormat,
+          $BankNotFound,
+          AccountNotFound,
+          $BankAccountNotFound,
           InsufficientAuthorisationToCreateTransactionRequest,
-          InvalidAccountIdFormat, InvalidBankIdFormat, TransactionDisabled, UnknownError),
+          InvalidTransactionRequestType,
+          InvalidJsonFormat,
+          InvalidNumber,
+          NotPositiveAmount,
+          InvalidTransactionRequestCurrency,
+          TransactionDisabled,
+          UnknownError
+        ),
         List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2), None,
         http4sPartialFunction = Some(createTransactionRequest))
     }
@@ -3008,14 +3437,33 @@ object Http4s400 {
       null, implementedInApiVersion, "createTransactionRequestCard", "POST",
       "/transaction-request-types/CARD/transaction-requests",
       "Create Transaction Request (CARD)",
-      s"""Create Transaction Request (CARD).
-         |
-         |${userAuthenticationMessage(true)}""",
+      s"""
+        |
+        |When using CARD, the payee is set in the request body .
+        |
+        |Money goes into the Counterparty in the request body.
+        |
+        |$transactionRequestGeneralText
+        |
+      """.stripMargin,
       transactionRequestBodyCardJsonV400, transactionRequestWithChargeJSON400,
-      List($AuthenticatedUserIsRequired, InvalidJsonFormat, InvalidNumber, NotPositiveAmount,
-        InvalidTransactionRequestType, InvalidISOCurrencyCode,
+      List(
+        $AuthenticatedUserIsRequired,
+        InvalidBankIdFormat,
+        InvalidAccountIdFormat,
+        InvalidJsonFormat,
+        $BankNotFound,
+        AccountNotFound,
+        $BankAccountNotFound,
         InsufficientAuthorisationToCreateTransactionRequest,
-        InvalidAccountIdFormat, InvalidBankIdFormat, TransactionDisabled, UnknownError),
+        InvalidTransactionRequestType,
+        InvalidJsonFormat,
+        InvalidNumber,
+        NotPositiveAmount,
+        InvalidTransactionRequestCurrency,
+        TransactionDisabled,
+        UnknownError
+      ),
       List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2), None,
       http4sPartialFunction = Some(createTransactionRequestCard))
 
@@ -3190,13 +3638,60 @@ object Http4s400 {
       "/banks/BANK_ID/accounts/ACCOUNT_ID/GRANT_VIEW_ID/transaction-request-types/TRANSACTION_REQUEST_TYPE/transaction-requests/TRANSACTION_REQUEST_ID/challenge",
       "Answer Transaction Request Challenge",
       s"""In Sandbox mode, any string that can be converted to a positive integer will be accepted as an answer.
-         |
-         |${userAuthenticationMessage(true)}""",
-      challengeAnswerJson400, transactionRequestWithChargeJSON400,
-      List($AuthenticatedUserIsRequired, InvalidJsonFormat, InvalidBankIdFormat,
-        InvalidAccountIdFormat, InvalidTransactionRequestChallengeId,
-        AllowedAttemptsUsedUp, TransactionRequestStatusNotInitiatedOrPendingOrForwarded,
-        TransactionRequestTypeHasChanged, UnknownError),
+        |
+        |This endpoint totally depends on createTransactionRequest, it need get the following data from createTransactionRequest response body.
+        |
+        |1)`TRANSACTION_REQUEST_TYPE` : is the same as createTransactionRequest request URL .
+        |
+        |2)`TRANSACTION_REQUEST_ID` : is the `id` field in createTransactionRequest response body.
+        |
+        |3) `id` :  is `challenge.id` field in createTransactionRequest response body.
+        |
+        |4) `answer` : must be `123` in case that Strong Customer Authentication method for OTP challenge is dummy.
+        |    For instance: SANDBOX_TAN_OTP_INSTRUCTION_TRANSPORT=dummy
+        |    Possible values are dummy,email and sms
+        |    In CBS mode, the answer can be got by phone message or other SCA methods.
+        |
+        |Note that each Transaction Request Type can have its own OTP_INSTRUCTION_TRANSPORT method.
+        |OTP_INSTRUCTION_TRANSPORT methods are set in Props. See sample.props.template for instructions.
+        |
+        |Single or Multiple authorisations
+        |
+        |OBP allows single or multi party authorisations.
+        |
+        |Single party authorisation:
+        |
+        |In the case that only one person needs to authorise i.e. answer a security challenge we have the following change of state of a `transaction request`:
+        |  INITIATED => COMPLETED
+        |
+        |
+        |Multiparty authorisation:
+        |
+        |In the case that multiple parties (n persons) need to authorise a transaction request i.e. answer security challenges, we have the followings state flow for a `transaction request`:
+        |  INITIATED => NEXT_CHALLENGE_PENDING => ... => NEXT_CHALLENGE_PENDING => COMPLETED
+        |
+        |The security challenge is bound to a user i.e. in the case of a correct answer but the user is different than expected the challenge will fail.
+        |
+        |Rule for calculating number of security challenges:
+        |If Product Account attribute REQUIRED_CHALLENGE_ANSWERS=N then create N challenges
+        |(one for every user that has a View where permission $CAN_ADD_TRANSACTION_REQUEST_TO_ANY_ACCOUNT=true)
+        |In the case REQUIRED_CHALLENGE_ANSWERS is not defined as an account attribute, the default number of security challenges created is one.
+        |
+      """.stripMargin,
+      challengeAnswerJson400, transactionRequestWithChargeJSON210,
+      List(
+        $AuthenticatedUserIsRequired,
+        InvalidBankIdFormat,
+        InvalidAccountIdFormat,
+        InvalidJsonFormat,
+        $BankNotFound,
+        $BankAccountNotFound,
+        TransactionRequestStatusNotInitiated,
+        TransactionRequestTypeHasChanged,
+        AllowedAttemptsUsedUp,
+        TransactionDisabled,
+        UnknownError
+      ),
       List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2), None,
       http4sPartialFunction = Some(answerTransactionRequestChallenge))
 
@@ -3406,9 +3901,13 @@ object Http4s400 {
         |""".stripMargin,
         EmptyBody,
         counterpartiesJson400,
-        List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound,
-        ViewNotFound, CreateOrUpdateCounterpartyMetadataError, UnknownError),
-        List(apiTagCounterparty, apiTagAccount),
+        List(
+          $AuthenticatedUserIsRequired,
+          $BankNotFound,
+          $BankAccountNotFound,
+          UnknownError
+        ),
+        List(apiTagCounterparty, apiTagPSD2PIS, apiTagPsd2, apiTagAccount),
         Some(List(canGetCounterpartiesAtAnyBank, canGetCounterparties)),
         http4sPartialFunction = Some(getCounterpartiesForAnyAccount)
       )
@@ -3455,9 +3954,16 @@ object Http4s400 {
         |""".stripMargin,
         EmptyBody,
         counterpartyWithMetadataJson400,
-        List($AuthenticatedUserIsRequired, InvalidAccountIdFormat, InvalidBankIdFormat,
-        $BankNotFound, $BankAccountNotFound, InvalidJsonFormat, ViewNotFound,
-        CounterpartyNotFound, UnknownError),
+        List(
+          $AuthenticatedUserIsRequired,
+          InvalidAccountIdFormat,
+          InvalidBankIdFormat,
+          $BankNotFound,
+          $BankAccountNotFound,
+          InvalidJsonFormat,
+          ViewNotFound,
+          UnknownError
+        ),
         List(apiTagCounterparty, apiTagAccount),
         Some(List(canGetCounterpartyAtAnyBank, canGetCounterparty)),
         http4sPartialFunction = Some(getCounterpartyByNameForAnyAccount)
@@ -3739,8 +4245,15 @@ object Http4s400 {
         |""".stripMargin,
         EmptyBody,
         EmptyBody,
-        List($AuthenticatedUserIsRequired, $BankAccountNotFound, $BankNotFound,
-        InvalidAccountIdFormat, InvalidBankIdFormat, NoViewPermission, UnknownError),
+        List(
+          $AuthenticatedUserIsRequired,
+          InvalidAccountIdFormat,
+          InvalidBankIdFormat,
+          $BankNotFound,
+          $BankAccountNotFound,
+          $UserNoPermissionAccessView,
+          UnknownError
+        ),
         List(apiTagCounterparty, apiTagAccount),
         None,
         http4sPartialFunction = Some(deleteExplicitCounterparty)
@@ -3773,9 +4286,11 @@ object Http4s400 {
         null, implementedInApiVersion, "deleteTagForViewOnAccount", "DELETE",
         "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/metadata/tags/TAG_ID",
         "Delete a tag on account",
-        s"""Delete a tag on account.
-           |
-           |${userAuthenticationMessage(true)}""",
+        s"""Deletes the tag TAG_ID about the account ACCOUNT_ID made on [view](#1_2_1-getViewsForBankAccount).
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |Authentication is required as the tag is linked with the user.""",
         EmptyBody, EmptyBody,
         List(NoViewPermission, ViewNotFound, $AuthenticatedUserIsRequired,
           $BankNotFound, $BankAccountNotFound, $UserNoPermissionAccessView, UnknownError),
@@ -3786,9 +4301,10 @@ object Http4s400 {
         null, implementedInApiVersion, "getTagsForViewOnAccount", "GET",
         "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/metadata/tags",
         "Get tags on account",
-        s"""Get tags on account.
-           |
-           |${userAuthenticationMessage(true)}""",
+        s"""Returns the account ACCOUNT_ID tags made on a [view](#1_2_1-getViewsForBankAccount) (VIEW_ID).
+        |${userAuthenticationMessage(true)}
+        |
+        |Authentication is required as the tag is linked with the user.""",
         EmptyBody, accountTagsJSON,
         List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound,
           NoViewPermission, $UserNoPermissionAccessView, UnknownError),
@@ -3799,13 +4315,23 @@ object Http4s400 {
         null, implementedInApiVersion, "addTagForViewOnAccount", "POST",
         "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/metadata/tags",
         "Create a tag on account",
-        s"""Create a tag on account.
-           |
-           |${userAuthenticationMessage(true)}""",
-        code.api.v1_2_1.PostTransactionTagJSON("tag-value-example"),
+        s"""Posts a tag about an account ACCOUNT_ID on a [view](#1_2_1-getViewsForBankAccount) VIEW_ID.
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |Authentication is required as the tag is linked with the user.""",
+        postAccountTagJSON,
         accountTagJSON,
-        List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound,
-          InvalidJsonFormat, NoViewPermission, $UserNoPermissionAccessView, UnknownError),
+        List(
+          $AuthenticatedUserIsRequired,
+          $BankNotFound,
+          $BankAccountNotFound,
+          $UserNoPermissionAccessView,
+          InvalidJsonFormat,
+          NoViewPermission,
+          $UserNoPermissionAccessView,
+          UnknownError
+        ),
         List(apiTagAccountMetadata, apiTagAccount), None,
         http4sPartialFunction = Some(addTagForViewOnAccount))
 
@@ -4748,15 +5274,21 @@ object Http4s400 {
         nameOf(getUserInvitationAnonymous),
         "POST",
         "/banks/BANK_ID/user-invitations",
-        "Get User Invitation (Anonymous)",
+        "Get User Invitation Information",
         s"""Get User Invitation Information.
         |
         |${userAuthenticationMessage(false)}
         |""",
         PostUserInvitationAnonymousJsonV400(secret_key = 5819479115482092878L),
         userInvitationJsonV400,
-        List($BankNotFound, InvalidJsonFormat, UnknownError),
-        List(apiTagUserInvitation),
+        List(
+          $BankNotFound,
+          UserCustomerLinksNotFoundForUser,
+          CannotGetUserInvitation,
+          CannotFindUserInvitation,
+          UnknownError
+        ),
+        List(apiTagUserInvitation, apiTagKyc),
         None,
         http4sPartialFunction = Some(getUserInvitationAnonymous)
       )
@@ -4765,9 +5297,13 @@ object Http4s400 {
         null, implementedInApiVersion, "grantUserAccessToView", "POST",
         "/banks/BANK_ID/accounts/ACCOUNT_ID/account-access/grant",
         "Grant User access to View",
-        s"""Grant User access to View.
-           |
-           |${userAuthenticationMessage(true)} and the user needs to be account holder.""",
+        s"""Grants the User identified by USER_ID access to the view identified by VIEW_ID.
+         |
+         |${userAuthenticationMessage(
+          true
+        )} and the user needs to be account holder.
+         |
+         |""",
         postAccountAccessJsonV400, viewJsonV300,
         List($AuthenticatedUserIsRequired,
           UserLacksPermissionCanGrantAccessToViewForTargetAccount,
@@ -4780,9 +5316,13 @@ object Http4s400 {
         null, implementedInApiVersion, "revokeUserAccessToView", "POST",
         "/banks/BANK_ID/accounts/ACCOUNT_ID/account-access/revoke",
         "Revoke User access to View",
-        s"""Revoke User access to View.
-           |
-           |${userAuthenticationMessage(true)} and the user needs to be account holder.""",
+        s"""Revoke the User identified by USER_ID access to the view identified by VIEW_ID.
+         |
+         |${userAuthenticationMessage(
+          true
+        )} and the user needs to be account holder.
+         |
+         |""",
         postAccountAccessJsonV400, revokedJsonV400,
         List($AuthenticatedUserIsRequired,
           UserLacksPermissionCanRevokeAccessToViewForTargetAccount,
@@ -4795,9 +5335,13 @@ object Http4s400 {
         null, implementedInApiVersion, "revokeGrantUserAccessToViews", "PUT",
         "/banks/BANK_ID/accounts/ACCOUNT_ID/account-access",
         "Revoke/Grant User access to View",
-        s"""Revoke/Grant User access to View.
-           |
-           |${userAuthenticationMessage(true)} and the user needs to be an account holder or has owner view access.""",
+        s"""Revoke/Grant the logged in User access to the views identified by json.
+         |
+         |${userAuthenticationMessage(
+          true
+        )} and the user needs to be an account holder or has owner view access.
+         |
+         |""",
         postRevokeGrantAccountAccessJsonV400, revokedJsonV400,
         List($AuthenticatedUserIsRequired,
           UserLacksPermissionCanGrantAccessToViewForTargetAccount,
@@ -4927,8 +5471,15 @@ object Http4s400 {
             "eyJhbGciOiJIUzI1NiJ9.eyJlbnRpdGxlbWVudHMiOltdLCJjcmVhdGVkQnlVc2VySWQiOiJhYjY1MzlhOS1iMTA1LTQ0ODktYTg4My0wYWQ4ZDZjNjE2NTciLCJzdWIiOiIyMWUxYzhjYy1mOTE4LTRlYWMtYjhlMy01ZTVlZWM2YjNiNGIiLCJhdWQiOiJlanpuazUwNWQxMzJyeW9tbmhieDFxbXRvaHVyYnNiYjBraWphanNrIiwibmJmIjoxNTUzNTU0ODk5LCJpc3MiOiJodHRwczpcL1wvd3d3Lm9wZW5iYW5rcHJvamVjdC5jb20iLCJleHAiOjE1NTM1NTg0OTksImlhdCI6MTU1MzU1NDg5OSwianRpIjoiMDlmODhkNWYtZWNlNi00Mzk4LThlOTktNjYxMWZhMWNkYmQ1Iiwidmlld3MiOlt7ImFjY291bnRfaWQiOiJtYXJrb19wcml2aXRlXzAxIiwiYmFua19pZCI6ImdoLjI5LnVrLngiLCJ2aWV3X2lkIjoib3duZXIifSx7ImFjY291bnRfaWQiOiJtYXJrb19wcml2aXRlXzAyIiwiYmFua19pZCI6ImdoLjI5LnVrLngiLCJ2aWV3X2lkIjoib3duZXIifV19.8cc7cBEf2NyQvJoukBCmDLT7LXYcuzTcSYLqSpbxLp4",
           status = "AUTHORISED"
         ),
-        List($AuthenticatedUserIsRequired, $BankNotFound, UserNotFoundByUserId,
-        ConsentUserAlreadyAdded, InvalidJsonFormat, ConsentNotFound, UnknownError),
+        List(
+          $AuthenticatedUserIsRequired,
+          UserNotFoundByUserId,
+          $BankNotFound,
+          ConsentUserAlreadyAdded,
+          InvalidJsonFormat,
+          ConsentNotFound,
+          UnknownError
+        ),
         apiTagConsent :: apiTagPSD2AIS :: Nil,
         None,
         http4sPartialFunction = Some(addConsentUser)
@@ -5117,9 +5668,18 @@ object Http4s400 {
         |""",
         postDirectDebitJsonV400,
         directDebitJsonV400,
-        List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound,
-        NoViewPermission, InvalidJsonFormat, CustomerNotFoundByCustomerId,
-        UserNotFoundByUserId, CounterpartyNotFoundByCounterpartyId, UnknownError),
+        List(
+          $AuthenticatedUserIsRequired,
+          $BankNotFound,
+          $BankAccountNotFound,
+          NoViewPermission,
+          $UserNoPermissionAccessView,
+          InvalidJsonFormat,
+          CustomerNotFoundByCustomerId,
+          UserNotFoundByUserId,
+          CounterpartyNotFoundByCounterpartyId,
+          UnknownError
+        ),
         List(apiTagDirectDebit, apiTagAccount),
         None,
         http4sPartialFunction = Some(createDirectDebit)
@@ -5160,9 +5720,19 @@ object Http4s400 {
         |""",
         postStandingOrderJsonV400,
         standingOrderJsonV400,
-        List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound,
-        NoViewPermission, InvalidJsonFormat, InvalidNumber, InvalidISOCurrencyCode,
-        CustomerNotFoundByCustomerId, UserNotFoundByUserId, UnknownError),
+        List(
+          $AuthenticatedUserIsRequired,
+          $BankNotFound,
+          $BankAccountNotFound,
+          NoViewPermission,
+          InvalidJsonFormat,
+          InvalidNumber,
+          InvalidISOCurrencyCode,
+          CustomerNotFoundByCustomerId,
+          UserNotFoundByUserId,
+          $UserNoPermissionAccessView,
+          UnknownError
+        ),
         List(apiTagStandingOrder, apiTagAccount),
         None,
         http4sPartialFunction = Some(createStandingOrder)
@@ -5198,7 +5768,7 @@ object Http4s400 {
         nameOf(createSystemAccountNotificationWebhook),
         "POST",
         "/web-hooks/account/notifications/on-create-transaction",
-        "Create System Level Account Notification Webhook",
+        "Create system level Account Notification Webhook",
         s"""
         |Create a notification Webhook that will fire for all accounts on the system.
         |
@@ -5717,7 +6287,7 @@ object Http4s400 {
         nameOf(updateAtm),
         "PUT",
         "/banks/BANK_ID/atms/ATM_ID",
-        "Update ATM",
+        "UPDATE ATM",
         s"""Update ATM.""",
         atmJsonV400.copy(id = None),
         atmJsonV400,
@@ -6096,8 +6666,15 @@ object Http4s400 {
         """.stripMargin,
         EmptyBody,
         transactionRequestWithChargeJSON210,
-        List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, $UserNoPermissionAccessView, UnknownError),
-        List(apiTagTransactionRequest),
+        List(
+          $AuthenticatedUserIsRequired,
+          $BankNotFound,
+          $BankAccountNotFound,
+          $UserNoPermissionAccessView,
+          GetTransactionRequestsException,
+          UnknownError
+        ),
+        List(apiTagTransactionRequest, apiTagPSD2PIS, apiTagPsd2),
         None,
         http4sPartialFunction = Some(getTransactionRequest)
       )
@@ -6156,8 +6733,12 @@ object Http4s400 {
         |""",
         EmptyBody,
         accountsMinimalJson400,
-        List($AuthenticatedUserIsRequired, CustomerNotFoundByCustomerId, UnknownError),
-        List(apiTagCustomer),
+        List(
+          $AuthenticatedUserIsRequired,
+          CustomerNotFound,
+          UnknownError
+        ),
+        List(apiTagAccount),
         Some(List(canGetAccountsMinimalForCustomerAtOneBank, canGetAccountsMinimalForCustomerAtAnyBank)),
         http4sPartialFunction = Some(getAccountsMinimalByCustomerId)
       )
@@ -6179,8 +6760,12 @@ object Http4s400 {
         |""",
         postCustomerPhoneNumberJsonV400,
         customerJsonV310,
-        List($AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat, UnknownError),
-        List(apiTagCustomer),
+        List(
+          $AuthenticatedUserIsRequired,
+          UserCustomerLinksNotFoundForUser,
+          UnknownError
+        ),
+        List(apiTagCustomer, apiTagKyc),
         Some(List(canGetCustomersAtOneBank)),
         http4sPartialFunction = Some(getCustomersByCustomerPhoneNumber)
       )
@@ -7361,7 +7946,12 @@ object Http4s400 {
         |""",
         EmptyBody,
         EmptyBody,
-        List(UserHasMissingRoles, UnknownError),
+        List(
+          $AuthenticatedUserIsRequired,
+          $BankNotFound,
+          UserHasMissingRoles,
+          UnknownError
+        ),
         List(apiTagCustomer, apiTagCustomerAttribute, apiTagAttribute),
         Some(List(canDeleteCustomerAttributeAtOneBank, canDeleteCustomerAttributeAtAnyBank)),
         http4sPartialFunction = Some(deleteCustomerAttribute)
@@ -7395,7 +7985,10 @@ object Http4s400 {
         "Delete ATM",
         s"""Delete ATM.""",
         EmptyBody, EmptyBody,
-        List(UserHasMissingRoles, UnknownError),
+        List(
+          $AuthenticatedUserIsRequired,
+          UnknownError
+        ),
         List(apiTagATM),
         Some(List(canDeleteAtm, canDeleteAtmAtAnyBank)),
         http4sPartialFunction = Some(deleteAtm))
@@ -7416,7 +8009,12 @@ object Http4s400 {
         |""",
         EmptyBody,
         BooleanBody(true),
-        List(UserHasMissingRoles, UnknownError),
+        List(
+          $AuthenticatedUserIsRequired,
+          $BankNotFound,
+          UserHasMissingRoles,
+          UnknownError
+        ),
         List(apiTagProduct),
         Some(List(canDeleteProductFee)),
         http4sPartialFunction = Some(deleteProductFee)
@@ -7689,8 +8287,8 @@ object Http4s400 {
         """.stripMargin,
         EmptyBody,
         entitlementsJsonV400,
-        List($AuthenticatedUserIsRequired, BankNotFound, UserHasMissingRoles, UnknownError),
-        List(apiTagRole, apiTagEntitlement, apiTagUser, apiTagBank),
+        List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+        List(apiTagRole, apiTagEntitlement, apiTagUser),
         Some(List(canGetEntitlementsForOneBank, canGetEntitlementsForAnyBank)),
         http4sPartialFunction = Some(getEntitlementsForBank)
       )
@@ -7701,7 +8299,7 @@ object Http4s400 {
         nameOf(getMyPersonalUserAttributes),
         "GET",
         "/my/user/attributes",
-        "Get my personal User Attributes",
+        "Get My Personal User Attributes",
         s"""Get My Personal User Attributes.
         |
         |${userAuthenticationMessage(true)}
@@ -8030,13 +8628,13 @@ object Http4s400 {
         nameOf(getCustomerMessages),
         "GET",
         "/banks/BANK_ID/customers/CUSTOMER_ID/messages",
-        "Get Messages for Customer",
+        "Get Customer Messages for a Customer",
         s"""Get messages for the customer specified by CUSTOMER_ID
          ${userAuthenticationMessage(true)}
         """,
         EmptyBody,
         customerMessagesJsonV400,
-        List($AuthenticatedUserIsRequired, $BankNotFound, UnknownError),
+        List(AuthenticatedUserIsRequired, $BankNotFound, UnknownError),
         List(apiTagMessage, apiTagCustomer),
         Some(List(canGetCustomerMessages)),
         http4sPartialFunction = Some(getCustomerMessages)
@@ -8056,7 +8654,10 @@ object Http4s400 {
         |""".stripMargin,
         createMessageJsonV400,
         successMessage,
-        List($AuthenticatedUserIsRequired, $BankNotFound),
+        List(
+          AuthenticatedUserIsRequired,
+          $BankNotFound
+        ),
         List(apiTagMessage, apiTagCustomer, apiTagPerson),
         Some(List(canCreateCustomerMessage)),
         http4sPartialFunction = Some(createCustomerMessage)
@@ -8579,7 +9180,12 @@ object Http4s400 {
         |""".stripMargin,
         endpointTagJson400,
         bankLevelEndpointTagResponseJson400,
-        List($AuthenticatedUserIsRequired, UserHasMissingRoles, EndpointTagAlreadyExists, InvalidJsonFormat, UnknownError),
+        List(
+          $AuthenticatedUserIsRequired,
+          UserHasMissingRoles,
+          InvalidJsonFormat,
+          UnknownError
+        ),
         List(apiTagApi),
         Some(List(canCreateSystemLevelEndpointTag)),
         http4sPartialFunction = Some(createSystemLevelEndpointTag)
@@ -10209,11 +10815,19 @@ object Http4s400 {
         "/management/consumers",
         "Post a Consumer",
         s"""Create a Consumer (Authenticated access).""",
-        code.api.v2_1_0.ConsumerPostJSON(
-          "Test", "Web", "Description", "some@email.com", "redirecturl", "createdby", true, new java.util.Date(),
+        ConsumerPostJSON(
+          "Test",
+          "Web",
+          "Description",
+          "some@email.com",
+          "redirecturl",
+          "createdby",
+          true,
+          new Date(),
           """-----BEGIN CERTIFICATE-----
             |client_certificate_content
-            |-----END CERTIFICATE-----""".stripMargin),
+            |-----END CERTIFICATE-----""".stripMargin
+        ),
         consumerJsonV400,
         List(AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
         List(apiTagConsumer),
@@ -10224,7 +10838,14 @@ object Http4s400 {
         null, implementedInApiVersion, "createCounterpartyForAnyAccount", "POST",
         "/management/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties",
         "Create Counterparty for any account (Explicit)",
-        s"""This is a management endpoint that allows the creation of a Counterparty on any Account.""",
+        s"""This is a management endpoint that allows the creation of a Counterparty on any Account.
+        |
+        |For an introduction to Counterparties in OBP, see ${Glossary
+         .getGlossaryItemLink("Counterparties")}
+        |
+        |${userAuthenticationMessage(true)}
+        |
+        |""".stripMargin,
         postCounterpartyJson400, counterpartyWithMetadataJson400,
         List($AuthenticatedUserIsRequired, InvalidAccountIdFormat, InvalidBankIdFormat,
           $BankNotFound, $BankAccountNotFound, AccountNotFound, InvalidJsonFormat,

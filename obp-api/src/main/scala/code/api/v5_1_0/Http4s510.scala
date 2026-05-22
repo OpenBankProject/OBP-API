@@ -2,6 +2,7 @@ package code.api.v5_1_0
 
 import cats.data.{Kleisli, OptionT}
 import cats.effect._
+import code.api.Constant
 import code.api.Constant._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil._
@@ -235,9 +236,49 @@ object Http4s510 {
     resourceDocs += ResourceDoc(
       null, implementedInApiVersion, nameOf(getAggregateMetrics), "GET",
       "/management/aggregate-metrics", "Get Aggregate Metrics",
-      s"""Returns aggregated metrics. Requires CanReadAggregateMetrics role.
+      s"""Returns aggregate metrics on api usage eg. total count, response time (in ms), etc.
          |
-         |${userAuthenticationMessage(true)}""",
+         |Should be able to filter on the following fields
+         |
+         |eg: /management/aggregate-metrics?from_date=$DateWithMsExampleString&to_date=$DateWithMsExampleString&consumer_id=5
+         |&user_id=66214b8e-259e-44ad-8868-3eb47be70646&implemented_by_partial_function=getTransactionsForBankAccount
+         |&implemented_in_version=v3.0.0&url=/obp/v3.0.0/banks/gh.29.uk/accounts/8ca8a7e4-6d02-48e3-a029-0b2bf89de9f0/owner/transactions
+         |&verb=GET&anon=false&app_name=MapperPostman
+         |&exclude_app_names=API-EXPLORER,API-Manager,SOFI,null
+         |
+         |1 from_date (defaults to the day before the current date): eg:from_date=$DateWithMsExampleString
+         |
+         |2 to_date (defaults to the current date) eg:to_date=$DateWithMsExampleString
+         |
+         |3 consumer_id  (if null ignore)
+         |
+         |4 user_id (if null ignore)
+         |
+         |5 anon (if null ignore) only support two value : true (return where user_id is null.) or false (return where user_id is not null.)
+         |
+         |6 url (if null ignore), note: can not contain '&'.
+         |
+         |7 app_name (if null ignore)
+         |
+         |8 implemented_by_partial_function (if null ignore),
+         |
+         |9 implemented_in_version (if null ignore)
+         |
+         |10 verb (if null ignore)
+         |
+         |11 correlation_id (if null ignore)
+         |
+         |12 include_app_names (if null ignore).eg: &include_app_names=API-EXPLORER,API-Manager,SOFI,null
+         |
+         |13 include_url_patterns (if null ignore).you can design you own SQL LIKE pattern. eg: &include_url_patterns=%management/metrics%,%management/aggregate-metrics%
+         |
+         |14 include_implemented_by_partial_functions (if null ignore).eg: &include_implemented_by_partial_functions=getMetrics,getConnectorMetrics,getAggregateMetrics
+         |
+         |15 http_status_code (if null ignore) - Filter by HTTP status code. eg: http_status_code=200 returns only successful calls, http_status_code=500 returns server errors
+         |
+         |${userAuthenticationMessage(true)}
+         |
+      """.stripMargin,
       EmptyBody, aggregateMetricsJSONV300,
       List(AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
       List(apiTagMetric, apiTagAggregateMetrics),
@@ -504,9 +545,16 @@ object Http4s510 {
     resourceDocs += ResourceDoc(
       null, implementedInApiVersion, nameOf(getAtm), "GET",
       "/banks/BANK_ID/atms/ATM_ID", "Get Bank ATM",
-      s"""Returns information about ATM for a single bank specified by BANK_ID and ATM_ID.
-         |
-         |${userAuthenticationMessage(!getAtmsIsPublic)}""",
+      s"""Returns information about ATM for a single bank specified by BANK_ID and ATM_ID including:
+      |
+      |* Address
+      |* Geo Location
+      |* License the data under this endpoint is released under
+      |* ATM Attributes
+      |
+      |
+      |
+      |${userAuthenticationMessage(!getAtmsIsPublic)}""".stripMargin,
       EmptyBody, atmJsonV510,
       List(AuthenticatedUserIsRequired, BankNotFound, AtmNotFoundByAtmId, UnknownError),
       List(apiTagATM),
@@ -586,7 +634,7 @@ object Http4s510 {
       nameOf(createConsumer),
       "POST",
       "/management/consumers",
-      "Create Consumer",
+      "Create a Consumer",
       s"""Create a Consumer (Authenticated access).
       |
       |A Consumer represents an application that uses the Open Bank Project API. Each Consumer has:
@@ -722,11 +770,19 @@ object Http4s510 {
     resourceDocs += ResourceDoc(
       null, implementedInApiVersion, nameOf(getConsumers), "GET",
       "/management/consumers", "Get Consumers",
-      s"""Get all Consumers.
-         |
-         |${userAuthenticationMessage(true)}""",
+      s"""Get the all Consumers.
+      |
+      |${userAuthenticationMessage(true)}
+      |
+      |${urlParametersDocument(true, true)}
+      |
+      |""",
       EmptyBody, consumersJsonV510,
-      List(AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      List(
+        $AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        UnknownError
+      ),
       List(apiTagConsumer),
       Some(List(canGetConsumers)),
       authMode = UserOrApplication,
@@ -768,7 +824,30 @@ object Http4s510 {
       null, implementedInApiVersion, nameOf(getTransactionRequests), "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-requests",
       "Get Transaction Requests.",
-      "Returns transaction requests for account, with attribute filter support.",
+      """Returns transaction requests for account specified by ACCOUNT_ID at bank specified by BANK_ID.
+        |
+        |The VIEW_ID specified must be 'owner' and the user must have access to this view.
+        |
+        |Version 2.0.0 now returns charge information.
+        |
+        |Transaction Requests serve to initiate transactions that may or may not proceed. They contain information including:
+        |
+        |* Transaction Request Id
+        |* Type
+        |* Status (INITIATED, COMPLETED)
+        |* Challenge (in order to confirm the request)
+        |* From Bank / Account
+        |* Details including Currency, Value, Description and other initiation information specific to each type. (Could potentialy include a list of future transactions.)
+        |* Related Transactions
+        |
+        |PSD2 Context: PSD2 requires transparency of charges to the customer.
+        |This endpoint provides the charge that would be applied if the Transaction Request proceeds - and a record of that charge there after.
+        |The customer can proceed with the Transaction by answering the security challenge.
+        |
+        |We support query transaction request by attribute
+        |URL params example:/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-requests?invoiceNumber=123&referenceNumber=456
+        |
+      """.stripMargin,
       EmptyBody, transactionRequestWithChargeJSONs210,
       List(AuthenticatedUserIsRequired, BankNotFound, BankAccountNotFound,
         UserNoPermissionAccessView, ViewDoesNotPermitAccess,
@@ -829,7 +908,7 @@ object Http4s510 {
       nameOf(getAllBankAccountBalances),
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/balances",
-      "Get Account Balances",
+      "Get All Bank Account Balances",
       s"""Get all Balances for a Bank Account.
       |
       |${userAuthenticationMessage(true)}
@@ -1031,9 +1110,10 @@ object Http4s510 {
     resourceDocs += ResourceDoc(
       null, implementedInApiVersion, nameOf(deleteRegulatedEntity), "DELETE",
       "/regulated-entities/REGULATED_ENTITY_ID", "Delete Regulated Entity",
-      s"""Delete Regulated Entity specified by REGULATED_ENTITY_ID.
-         |
-         |${userAuthenticationMessage(true)}""",
+      s"""Delete Regulated Entity specified by REGULATED_ENTITY_ID
+      |
+      |${userAuthenticationMessage(true)}
+      |""".stripMargin,
       EmptyBody, EmptyBody,
       List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidConnectorResponse, UnknownError),
       List(apiTagDirectory, apiTagApi),
@@ -1996,9 +2076,24 @@ object Http4s510 {
     resourceDocs += ResourceDoc(
       null, implementedInApiVersion, nameOf(getWebUiProps), "GET",
       "/webui-props", "Get WebUiProps",
-      "Get all WebUiProps key/values. ?active=true also includes implicit (default) props.",
+      s"""
+      |
+      |Get the all WebUiProps key values, those props key with "webui_" can be stored in DB, this endpoint get all from DB.
+      |
+      |url query parameter:
+      |active: It must be a boolean string. and If active = true, it will show
+      |          combination of explicit (inserted) + implicit (default)  method_routings.
+      |
+      |eg:
+      |${getObpApiRoot}/v5.1.0/webui-props
+      |${getObpApiRoot}/v5.1.0/webui-props?active=true
+      |
+      |""",
       EmptyBody,
-      ListResult("webui-props", List(WebUiPropsCommons("webui_api_explorer_url", "https://apiexplorer.openbankproject.com", Some("web-ui-props-id")))),
+      ListResult(
+        "webui-props",
+        (List(WebUiPropsCommons("webui_api_explorer_url", "https://apiexplorer.openbankproject.com", Some("web-ui-props-id"))))
+      ),
       List(UserHasMissingRoles, UnknownError),
       List(apiTagWebUiProps),
       None,
@@ -2060,7 +2155,10 @@ object Http4s510 {
     resourceDocs += ResourceDoc(
       null, implementedInApiVersion, nameOf(deleteNonPersonalUserAttribute), "DELETE",
       "/users/USER_ID/non-personal/attributes/USER_ATTRIBUTE_ID", "Delete Non Personal User Attribute",
-      s"Delete the Non Personal User Attribute.\n\n${userAuthenticationMessage(true)}",
+      s"""Delete the Non Personal User Attribute specified by ENTITLEMENT_REQUEST_ID for a user specified by USER_ID
+      |
+      |${userAuthenticationMessage(true)}
+      |""".stripMargin,
       EmptyBody, EmptyBody,
       List(AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidConnectorResponse, UnknownError),
       List(apiTagUser),
@@ -2081,7 +2179,10 @@ object Http4s510 {
     resourceDocs += ResourceDoc(
       null, implementedInApiVersion, nameOf(getNonPersonalUserAttributes), "GET",
       "/users/USER_ID/non-personal/attributes", "Get Non Personal User Attributes",
-      s"Get Non Personal User Attributes for a user.\n\n${userAuthenticationMessage(true)}",
+      s"""Get Non Personal User Attribute for a user specified by USER_ID
+      |
+      |${userAuthenticationMessage(true)}
+      |""".stripMargin,
       EmptyBody, EmptyBody,
       List(AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidConnectorResponse, UnknownError),
       List(apiTagUser),
@@ -2181,7 +2282,7 @@ object Http4s510 {
       nameOf(getUserByProviderAndUsername),
       "GET",
       "/users/provider/PROVIDER/username/USERNAME",
-      "Get User by Provider and Username",
+      "Get User by USERNAME",
       s"""Get user by PROVIDER and USERNAME
          |
          |Get a User by their authentication provider and username.
@@ -2228,7 +2329,11 @@ object Http4s510 {
     resourceDocs += ResourceDoc(
       null, implementedInApiVersion, nameOf(getUserLockStatus), "GET",
       "/users/PROVIDER/USERNAME/lock-status", "Get User Lock Status",
-      s"Get User Login Status.\n\n${userAuthenticationMessage(true)}",
+      s"""
+      |Get User Login Status.
+      |${userAuthenticationMessage(true)}
+      |
+      |""".stripMargin,
       EmptyBody, badLoginStatusJson,
       List(AuthenticatedUserIsRequired, UserNotFoundByProviderAndUsername, UserHasMissingRoles, UnknownError),
       List(apiTagUser),
@@ -2253,7 +2358,14 @@ object Http4s510 {
     resourceDocs += ResourceDoc(
       null, implementedInApiVersion, nameOf(unlockUserByProviderAndUsername), "PUT",
       "/users/PROVIDER/USERNAME/lock-status", "Unlock the user",
-      s"Unlock a User (e.g. after multiple failed login attempts).\n\n${userAuthenticationMessage(true)}",
+      s"""
+      |Unlock a User.
+      |
+      |(Perhaps the user was locked due to multiple failed login attempts)
+      |
+      |${userAuthenticationMessage(true)}
+      |
+      |""".stripMargin,
       EmptyBody, badLoginStatusJson,
       List(AuthenticatedUserIsRequired, UserNotFoundByProviderAndUsername, UserHasMissingRoles, UnknownError),
       List(apiTagUser),
@@ -2517,7 +2629,12 @@ object Http4s510 {
     resourceDocs += ResourceDoc(
       null, implementedInApiVersion, nameOf(getCustomersByLegalName), "POST",
       "/banks/BANK_ID/customers/legal-name", "Get Customers by Legal Name",
-      s"Gets the Customers specified by Legal Name.\n\n${userAuthenticationMessage(true)}",
+      s"""Gets the Customers specified by Legal Name.
+      |
+      |
+      |${userAuthenticationMessage(true)}
+      |
+      |""",
       postCustomerLegalNameJsonV510, customerJsonV310,
       List(AuthenticatedUserIsRequired, UserCustomerLinksNotFoundForUser, UnknownError),
       List(apiTagCustomer, apiTagKyc),
@@ -3710,7 +3827,24 @@ object Http4s510 {
     resourceDocs += ResourceDoc(
       null, implementedInApiVersion, nameOf(createCustomView), "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/target-views", "Create Custom View",
-      "Create a custom view on bank account. Name MUST start with `_`.",
+      s"""Create a custom view on bank account
+      |
+      | ${userAuthenticationMessage(true)} and the user needs to have access to the owner view.
+      | The 'alias' field in the JSON can take one of three values:
+      |
+      | * _public_: to use the public alias if there is one specified for the other account.
+      | * _private_: to use the private alias if there is one specified for the other account.
+      |
+      | * _''(empty string)_: to use no alias; the view shows the real name of the other account.
+      |
+      | The 'hide_metadata_if_alias_used' field in the JSON can take boolean values. If it is set to `true` and there is an alias on the other account then the other accounts' metadata (like more_info, url, image_url, open_corporates_url, etc.) will be hidden. Otherwise the metadata will be shown.
+      |
+      | The 'allowed_actions' field is a list containing the name of the actions allowed on this view, all the actions contained will be set to `true` on the view creation, the rest will be set to `false`.
+      |
+      | The 'metadata_view' field determines where metadata (comments, tags, images, where tags) for transactions are stored and retrieved. If set to another view's ID (e.g. 'owner'), metadata added through this view will be shared with all other views that also use the same metadata_view value. If left empty, metadata is stored under this view's own ID and is not shared with other views.
+      |
+      | You MUST use a leading _ (underscore) in the view name because other view names are reserved for OBP [system views](/index#group-View-System).
+      | """,
       createCustomViewJson, customViewJsonV510,
       List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, $UserNoPermissionAccessView, InvalidJsonFormat, UnknownError),
       List(apiTagView, apiTagAccount),
@@ -3744,7 +3878,12 @@ object Http4s510 {
     resourceDocs += ResourceDoc(
       null, implementedInApiVersion, nameOf(updateCustomView), "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/target-views/TARGET_VIEW_ID", "Update Custom View",
-      "Update an existing custom view on a bank account.",
+      s"""Update an existing custom view on a bank account
+      |
+      |${userAuthenticationMessage(true)} and the user needs to have access to the owner view.
+      |
+      |The json sent is the same as during view creation (above), with one difference: the 'name' field
+      |of a view is not editable (it is only set when a view is created)""",
       updateCustomViewJson, customViewJsonV510,
       List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, $UserNoPermissionAccessView, InvalidJsonFormat, UnknownError),
       List(apiTagView, apiTagAccount),
@@ -4000,7 +4139,7 @@ object Http4s510 {
     resourceDocs += ResourceDoc(
       null, implementedInApiVersion, nameOf(addSystemViewPermission), "POST",
       "/system-views/VIEW_ID/permissions", "Add Permission to a System View",
-      "Add Permission to a System View.",
+      """Add Permission to a System View.""",
       createViewPermissionJson, entitlementJSON,
       List($AuthenticatedUserIsRequired, InvalidJsonFormat, IncorrectRoleName, EntitlementAlreadyExists, UnknownError),
       List(apiTagSystemView),
@@ -4023,7 +4162,8 @@ object Http4s510 {
     resourceDocs += ResourceDoc(
       null, implementedInApiVersion, nameOf(deleteSystemViewPermission), "DELETE",
       "/system-views/VIEW_ID/permissions/PERMISSION_NAME", "Delete Permission to a System View",
-      "Delete Permission to a System View.",
+      """Delete Permission to a System View
+      """.stripMargin,
       EmptyBody, EmptyBody,
       List(AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
       List(apiTagSystemView),
@@ -4509,6 +4649,64 @@ object Http4s510 {
       http4sPartialFunction = Some(selfRevokeConsent)
     )
 
+    private val generalObpConsentText: String =
+      s"""
+         |
+         |An OBP Consent allows the holder of the Consent to call one or more endpoints.
+         |
+         |Consents must be created and authorisied using SCA (Strong Customer Authentication).
+         |
+         |That is, Consents can be created by an authorised User via the OBP REST API but they must be confirmed via an out of band (OOB) mechanism such as a code sent to a mobile phone.
+         |
+         |Each Consent has one of the following states: ${ConsentStatus.values.toList.sorted.mkString(", ")}.
+         |
+         |Each Consent is bound to a consumer i.e. you need to identify yourself over request header value Consumer-Key.
+         |
+         |Examples:
+         |
+         |For example:
+         |GET /obp/v4.0.0/users/current HTTP/1.1
+         |Host: 127.0.0.1:8080
+         |Consent-JWT: eyJhbGciOiJIUzI1NiJ9.eyJlbnRpdGxlbWVudHMiOlt7InJvbGVfbmFtZSI6IkNhbkdldEFueVVzZXIiLCJiYW5rX2lkIjoiIn
+         |1dLCJjcmVhdGVkQnlVc2VySWQiOiJhYjY1MzlhOS1iMTA1LTQ0ODktYTg4My0wYWQ4ZDZjNjE2NTciLCJzdWIiOiIzNDc1MDEzZi03YmY5LTQyNj
+         |EtOWUxYy0xZTdlNWZjZTJlN2UiLCJhdWQiOiI4MTVhMGVmMS00YjZhLTQyMDUtYjExMi1lNDVmZDZmNGQzYWQiLCJuYmYiOjE1ODA3NDE2NjcsIml
+         |zcyI6Imh0dHA6XC9cLzEyNy4wLjAuMTo4MDgwIiwiZXhwIjoxNTgwNzQ1MjY3LCJpYXQiOjE1ODA3NDE2NjcsImp0aSI6ImJkYzVjZTk5LTE2ZTY
+         |tNDM4Yi1hNjllLTU3MTAzN2RhMTg3OCIsInZpZXdzIjpbXX0.L3fEEEhdCVr3qnmyRKBBUaIQ7dk1VjiFaEBW8hUNjfg
+         |
+         |Consumer-Key: ejznk505d132ryomnhbx1qmtohurbsbb0kijajsk
+         |cache-control: no-cache
+         |
+         |Maximum time to live of the token is specified over props value consents.max_time_to_live. In case isn't defined default value is 3600 seconds.
+         |
+         |Example of POST JSON:
+         |{
+         |  "everything": false,
+         |  "views": [
+         |    {
+         |      "bank_id": "GENODEM1GLS",
+         |      "account_id": "8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
+         |      "view_id": "${Constant.SYSTEM_OWNER_VIEW_ID}"
+         |    }
+         |  ],
+         |  "entitlements": [
+         |    {
+         |      "bank_id": "GENODEM1GLS",
+         |      "role_name": "CanGetCustomersAtOneBank"
+         |    }
+         |  ],
+         |  "consumer_id": "7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+         |  "email": "eveline@example.com",
+         |  "valid_from": "2020-02-07T08:43:34Z",
+         |  "time_to_live": 3600
+         |}
+         |Please note that only optional fields are: consumer_id, valid_from and time_to_live.
+         |In case you omit they the default values are used:
+         |consumer_id = consumer of current user
+         |valid_from = current time
+         |time_to_live = consents.max_time_to_live
+         |
+      """.stripMargin
+
     // ─── createConsent (IMPLICIT alias) — handles SCA: EMAIL/SMS/IMPLICIT ──
 
     val revokeMyConsent: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -4530,7 +4728,22 @@ object Http4s510 {
     resourceDocs += ResourceDoc(
       null, implementedInApiVersion, nameOf(revokeMyConsent), "DELETE",
       "/my/consents/CONSENT_ID", "Revoke My Consent",
-      "Revoke a Consent for the current user, specified by CONSENT_ID.",
+      s"""
+         |Revoke Consent for current user specified by CONSENT_ID
+         |
+         |There are a few reasons you might need to revoke an application’s access to a user’s account:
+         |  - The user explicitly wishes to revoke the application’s access
+         |  - You as the service provider have determined an application is compromised or malicious, and want to disable it
+         |  - etc.
+         |
+         |Please note that this endpoint only supports the case:: "The user explicitly wishes to revoke the application’s access"
+         |
+         |OBP as a resource server stores access tokens in a database, then it is relatively easy to revoke some token that belongs to a particular user.
+         |The status of the token is changed to "REVOKED" so the next time the revoked client makes a request, their token will fail to validate.
+         |
+         |${userAuthenticationMessage(true)}
+         |
+      """.stripMargin,
       EmptyBody, revokedConsentJsonV310,
       List($AuthenticatedUserIsRequired, UnknownError),
       List(apiTagConsent, apiTagPSD2AIS, apiTagPsd2),
@@ -4651,7 +4864,59 @@ object Http4s510 {
     resourceDocs += ResourceDoc(
       null, implementedInApiVersion, nameOf(createConsent), "POST",
       "/my/consents/IMPLICIT", "Create Consent (IMPLICIT)",
-      "Create a Consent in INITIATED state. SCA challenge is sent OOB based on SCA_METHOD.",
+      s"""
+      |
+      |This endpoint starts the process of creating a Consent.
+      |
+      |The Consent is created in an ${ConsentStatus.INITIATED} state.
+      |
+      |A One Time Password (OTP) (AKA security challenge) is sent Out of Band (OOB) to the User via the transport defined in SCA_METHOD
+      |SCA_METHOD is typically "SMS","EMAIL" or "IMPLICIT". "EMAIL" is used for testing purposes. OBP mapped mode "IMPLICIT" is "EMAIL".
+      |Other mode, bank can decide it in the connector method 'getConsentImplicitSCA'.
+      |
+      |When the Consent is created, OBP (or a backend system) stores the challenge so it can be checked later against the value supplied by the User with the Answer Consent Challenge endpoint.
+      |
+      |$generalObpConsentText
+      |
+      |${userAuthenticationMessage(true)}
+      |
+      |Example 1:
+      |{
+      |  "everything": true,
+      |  "views": [],
+      |  "entitlements": [],
+      |  "consumer_id": "7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+      |}
+      |
+      |Please note that consumer_id is optional field
+      |Example 2:
+      |{
+      |  "everything": true,
+      |  "views": [],
+      |  "entitlements": [],
+      |}
+      |
+      |Please note if everything=false you need to explicitly specify views and entitlements
+      |Example 3:
+      |{
+      |  "everything": false,
+      |  "views": [
+      |    {
+      |      "bank_id": "GENODEM1GLS",
+      |      "account_id": "8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
+      |      "view_id": "${Constant.SYSTEM_OWNER_VIEW_ID}"
+      |    }
+      |  ],
+      |  "entitlements": [
+      |    {
+      |      "bank_id": "GENODEM1GLS",
+      |      "role_name": "CanGetCustomersAtOneBank"
+      |    }
+      |  ],
+      |  "consumer_id": "7uy8a7e4-6d02-40e3-a129-0b2bf89de8uh",
+      |}
+      |
+      |""",
       postConsentImplicitJsonV310, consentJsonV310,
       List(AuthenticatedUserIsRequired, BankNotFound, InvalidJsonFormat, ConsentAllowedScaMethods,
         RolesAllowedInConsent, ViewsAllowedInConsent, ConsumerNotFoundByConsumerId, ConsumerIsDisabled,

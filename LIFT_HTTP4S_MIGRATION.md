@@ -164,6 +164,153 @@ Currently served via a raw Lift `serve { case Req(..., "openapi.yaml", ...) }` b
 
 ---
 
+## ResourceDoc parity (per-version drift from Lift)
+
+Separate from the resource-docs **serving** workstream above, there is a parity workstream covering the **content** of each migrated ResourceDoc declaration. The goal is for every http4s `ResourceDoc(...)` to render identically to its Lift original, so the public API docs aren't silently degraded by migration.
+
+### Principle
+
+**`APIMethodsXYZ.scala` (Lift) is the source of truth for migration.** The commented-out Lift ResourceDocs and endpoints inside each `APIMethodsXYZ.scala` are the canonical reference for what the http4s version should render: URL templates, verb casing, summaries, descriptions, example bodies, error lists, tags. **Do NOT edit these files to make the audit pass** — the audit compares http4s against the Lift source-of-truth. When the audit flags a diff, the resolution is either (a) update http4s to match Lift, or (b) document the difference at the http4s site as a known intentional drift (placeholder rename for middleware, upstream-driven case-class shift, etc.). Rewriting the Lift comments runs the comparison backwards and erases the historical record. (Mistakes in commits `d95c1df01` and `6154bf2cc` did this; reverted in `27f48af72`.)
+
+**Stub fidelity verified.** Commits `810589330` (v6) and `88f46f854` (v5.1) replaced the live Lift code with commented-out stubs. Comparing each stub's uncommented ResourceDoc bodies against the pre-stub live versions: **0 field diffs across 243/243 v6 docs and 111/111 v5.1 docs**. The non-ResourceDoc deltas (imports, etc., ~16KB v6 / ~5KB v5.1) are immaterial. The stubs are an exact preservation of the original Lift ResourceDocs.
+
+### Tooling (`scripts/`)
+
+| Script | Role |
+|---|---|
+| `check_lift_http4s_resource_doc_parity.py` | Read-only audit. Parses both files, matches by `nameOf(...)` (with `.replace("a","b")` evaluation for derived names), reports per-field diffs. `--field=X` to focus, `--list-only` for endpoint-presence summary. |
+| `rehydrate_resource_docs.py` | Upstream (simonredfern, `67593ea28`). Lifts positional args 7/8/9 (description, exampleRequestBody, successResponseBody) from commented Lift blocks into http4s. Has a `split-init` subcommand for JVM 64KB method-size workaround. |
+| `restore_resource_doc_bodies.py` | Companion to the above. Restores any subset of (summary, description, exampleRequestBody, successResponseBody, errorResponseBodies, tags) from Lift into http4s. Surgical per-field replacement preserves layout. `--fields=X,Y` to scope, `--only=ep` to target one endpoint. |
+
+### Current drift (audit re-run 2026-05-21 evening)
+
+| Version | shared | mismatch | only-lift | only-http4s | Status |
+|---|---|---|---|---|---|
+| v1_2_1 | 70  | 6  | 0 | 0 | semantic fields restored; 6 structural drifts remain |
+| v1_3_0 | 3   | 0  | 0 | 0 | clean |
+| v1_4_0 | 10  | 1  | 0 | 0 | one minor |
+| v2_0_0 | 37  | 1  | 0 | 0 | semantic fields restored; 1 structural drift remains |
+| v2_1_0 | 23  | 1  | 5 | 2 | semantic fields restored; 1 structural drift remains |
+| v2_2_0 | 18  | 0  | 0 | 18 | Lift trait fully retired upstream (commit `71892f5cb`); audited against pre-stub Lift via git history; 13 fields restored; 3 middleware URL renames remain |
+| v3_0_0 | 47  | 4  | 0 | 0 | semantic fields restored; 4 middleware-driven URL renames remain |
+| v3_1_0 | 102 | 5  | 0 | 0 | semantic fields restored; 5 structural drifts (placeholder renames) remain |
+| v4_0_0 | 254 | 20 | 2 | 5 | semantic fields restored; 20 structural drifts (placeholder renames + 1 verb fix) remain |
+| v5_0_0 | 39  | 8  | 0 | 3 | descriptions restored; structural/errors remain |
+| v5_1_0 | 111 | 1  | 1 | 2 | one verb-casing drift to fix |
+| v6_0_0 | 243 | 12 | 0 | 1 | 11 placeholder renames + 1 routing-shape upstream change |
+| **Total** | **956** | **60** | | | |
+
+### v6.0.0 — 12 specific drifts (each is a fix candidate)
+
+These are the cases where http4s deviates from Lift. Under the source-of-truth rule, the default is to fix http4s; deliberate exceptions need to be documented at the http4s site.
+
+| Endpoint | Field | Lift | http4s | Resolution |
+|---|---|---|---|---|
+| `createCounterpartyAttribute` | requestUrl | `…/counterparties/COUNTERPARTY_ID/attributes` | `…/COUNTERPARTY_ID_PARAM/…` | TBD — verify `ResourceDocMatcher` correctly handles `COUNTERPARTY_ID` as a wildcard (the literal set contains `COUNTERPARTY`, but `COUNTERPARTY_ID` is whole-segment-different). If safe, revert to Lift's name. |
+| `deleteCounterpartyAttribute` | requestUrl | same | same | same as above |
+| `getAllCounterpartyAttributes` | requestUrl | same | same | same as above |
+| `getCounterpartyAttributeById` | requestUrl | same | same | same as above |
+| `updateCounterpartyAttribute` | requestUrl | same | same | same as above |
+| `createTransactionRequestCardano` | requestUrl | `…/ACCOUNT_ID/owner/transaction-request-types/CARDANO/…` | `…/ACCOUNT_ID/VIEW_ID/…/CARDANO/…` | **Functional broadening** — http4s lets any view, Lift hardcoded `owner`. Keep http4s; document at the http4s ResourceDoc site. |
+| `createTransactionRequestHold` | requestUrl | `…/owner/…HOLD/…` | `…/VIEW_ID/…HOLD/…` | same as above |
+| `getSystemViewById` | requestUrl | `/management/system-views/VIEW_ID` | `/management/system-views/SYS_VIEW_ID` | TBD — disambiguation rename. If `ResourceDocMatcher` handles both fine, revert. |
+| `updateSystemView` | requestUrl | `/system-views/VIEW_ID` | `/system-views/UPD_VIEW_ID` | same as above |
+| `removeBankReaction` | requestUrl | `…/reactions/EMOJI` | `…/reactions/EMOJI_REACTION` | `EMOJI` is NOT in `literalAllCapsSegments` (only `EMAIL`/`SMS`/`IMPLICIT` of the SCA cluster are). Rename may have been defensive; safe to revert. |
+| `removeSystemReaction` | requestUrl | same | same | same as above |
+| `getAccountDirectory` | successResponseBody | `FastFirehoseRoutings(bank_id, account_id)` | `AccountRoutingJsonV121(scheme, address)` | **Upstream functional change** (`9e151c524` / `9dc4c4c46` migrated the case class). Cannot revert; document. Also note: the same change broke `mvn test` (pre-existing upstream compile error in `JSONFactory6.0.0.scala:2934`). |
+
+Also: 1 only-http4s (`createWebUiProps`) — genuinely http4s-only with no Lift counterpart. Document.
+
+### v5.1.0 — 1 specific drift
+
+| Endpoint | Field | Lift | http4s | Resolution |
+|---|---|---|---|---|
+| `revokeMyConsent` | requestVerb | `"Delete"` | `"DELETE"` | Trivial casing fix on the http4s side. |
+
+Also:
+- 1 only-lift (`createConsentImplicit`) + 1 only-http4s (`createConsent`) — Lift had `lazy val createConsentImplicit = createConsent` aliasing and registered the doc under the alias; http4s registers under the canonical name. Fix: in http4s, either rename the partial function to `createConsentImplicit` to match Lift, or register a second `nameOf(createConsentImplicit)` doc for the same handler.
+- 1 only-http4s (`getBanks`) — kept in the v5.1.0 layer for metrics attribution (intentional addition; see comment at `Http4s510.scala:288`). Document.
+
+### v2.2.0 — 3 specific drifts + 18 only-http4s
+
+Upstream commit `71892f5cb` retired `APIMethods220.scala`'s Lift trait entirely (1361 lines → 9-line empty stub). For audit purposes, the Lift source-of-truth is preserved in git history at `71892f5cb^`. A one-off Python script using `restore_resource_doc_bodies.py` helpers (in `scripts/`) extracts the pre-stub `APIMethods220.scala` and runs the standard field restoration against `Http4s220.scala`.
+
+After restoration (13 descriptions + 1 example body + 1 success body), only 3 middleware-driven URL renames remain:
+
+| Endpoint | Field | Lift | http4s | Resolution |
+|---|---|---|---|---|
+| `createAccount` | requestUrl | `…/accounts/ACCOUNT_ID` | `…/accounts/NEW_ACCOUNT_ID` | PUT-creates-account bypass. **Document**. |
+| `createViewForBankAccount` | requestUrl | `…/accounts/ACCOUNT_ID/views` | `…/accounts/VIEW_ACCOUNT_ID/views` | Account-validation bypass. **Document**. |
+| `updateViewForBankAccount` | requestUrl | `…/views/VIEW_ID` | `…/views/UPD_VIEW_ID` | Disambiguation rename. **Document**. |
+
+The 18 only-http4s entries are the actual v2.2.0 surface — there is no live Lift counterpart in the file anymore. They're audited indirectly against the git-history Lift.
+
+Two supporting imports were added to `Http4s220.scala` so the restored descriptions / example bodies compile: `code.api.util.Glossary` and `java.util.Date`.
+
+### v3.0.0 — 4 specific drifts
+
+After semantic-field restoration, only middleware-driven URL renames remain.
+
+| Endpoint | Field | Lift | http4s | Resolution |
+|---|---|---|---|---|
+| `createViewForBankAccount` | requestUrl | `…/accounts/ACCOUNT_ID/views` | `…/accounts/VIEW_ACCOUNT_ID/views` | Middleware account-validation bypass (see CLAUDE.md "Middleware URL template bypass" gotcha). **Document** — required. |
+| `updateViewForBankAccount` | requestUrl | `…/views/VIEW_ID` | `…/views/UPD_VIEW_ID` | Disambiguation rename. **Document**. |
+| `getFirehoseAccountsAtOneBank` | requestUrl | `/banks/BANK_ID/firehose/accounts/views/VIEW_ID` | `/banks/FIREHOSE_BANK_ID/firehose/accounts/views/FIREHOSE_VIEW_ID` | Firehose middleware bypass. **Document**. |
+| `getFirehoseTransactionsForBankAccount` | requestUrl | `/banks/BANK_ID/firehose/accounts/ACCOUNT_ID/views/VIEW_ID/transactions` | `/banks/FIREHOSE_BANK_ID/firehose/accounts/FIREHOSE_ACCOUNT_ID/views/FIREHOSE_VIEW_ID/transactions` | Same firehose pattern. **Document**. |
+
+No only-lift or only-http4s entries for v3.0.0.
+
+### v3.1.0 — 5 specific drifts
+
+After semantic-field restoration (commit `f4b9bd183`), only middleware-driven placeholder renames remain.
+
+| Endpoint | Field | Lift | http4s | Resolution |
+|---|---|---|---|---|
+| `createAccount` | requestUrl | `/banks/BANK_ID/accounts/ACCOUNT_ID` | `…/NEW_ACCOUNT_ID` | PUT-creates-account pattern. Middleware would 404 on `ACCOUNT_ID` lookup before the handler. **Document** — required. |
+| `deleteSystemView` | requestUrl | `/system-views/VIEW_ID` | `/SYS_VIEW_ID` | Disambiguation from other VIEW_ID usages. **Document**. |
+| `getSystemView` | requestUrl | same | same | same |
+| `updateSystemView` | requestUrl | same | same | same |
+| `getFirehoseCustomers` | requestUrl | `/banks/BANK_ID/firehose/customers` | `…/FIREHOSE_BANK_ID/…` | Firehose middleware bypass — prop check must run before bank lookup (see CLAUDE.md). **Document** — required. |
+
+No only-lift or only-http4s entries for v3.1.0.
+
+### v4.0.0 — 20 specific drifts + 2 only-lift + 5 only-http4s
+
+After semantic-field restoration (commit `2b24811e5`), the remaining drifts are all structural / functional:
+
+| Category | Count | Endpoints | Resolution |
+|---|---|---|---|
+| requestVerb | 1 | `deleteExplicitCounterparty` (Lift `POST` → http4s `DELETE`) | http4s is REST-correct. **Document** as deliberate fix. |
+| requestUrl — `VIEW_ID` → `GRANT_VIEW_ID` | 9 | `answerTransactionRequestChallenge` and 8 `createTransactionRequest*` variants (Account/AccountOtp/AgentCashWithDrawal/Counterparty/FreeForm/Refund/Sepa/Simple) | Middleware disambiguation rename. Verify if `VIEW_ID` collides in `ResourceDocMatcher`; if not, revert. If it does, **document**. |
+| requestUrl — hyphen→underscore | 6 | `delete`/`get`/`update` × `BankLevelDynamicResourceDoc` / `DynamicResourceDoc` (Lift `DYNAMIC-RESOURCE-DOC-ID` → http4s `DYNAMIC_RESOURCE_DOC_ID`) | The matcher's ALL_CAPS-with-underscores wildcard requires underscores. **Fix Lift**? No — Lift is source-of-truth. **Document** at the http4s site as a required matcher constraint. |
+| requestUrl — `COUNTERPARTY_ID` → `COUNTERPARTY_ID_PARAM` | 2 | `deleteExplicitCounterparty`, `getCounterpartyByIdForAnyAccount` | Same as v6's COUNTERPARTY rename family. Verify matcher behavior; revert if safe. |
+| requestUrl — `COUNTERPARTY_ID` → `EXPLICIT_COUNTERPARTY_ID` | 1 | `getExplicitCounterpartyById` | Same defensive rename pattern. |
+| requestUrl — firehose pattern | 1 | `getFirehoseAccountsAtOneBank` (Lift `BANK_ID/.../VIEW_ID` → http4s `FIREHOSE_BANK_ID/.../FIREHOSE_VIEW_ID`) | Middleware bypass for the prop-check-before-bank-lookup pattern (see CLAUDE.md "Prop check before role check" gotcha). **Document** — required for correctness. |
+| requestUrl — Lift URL malformed | 1 | `deleteCustomerAttribute` (Lift `/banks/BANK_ID/CUSTOMER_ID/attributes/.../...` is missing `/customers/`; http4s uses `/banks/BANK_ID/customers/attributes/...`) | Lift URL was buggy. http4s fixed it. **Document** as deliberate URL fix; flag that the Lift comment preserves the original bug as historical record. |
+
+Also: 2 only-lift (`getAllAuthenticationTypeValidationsPublic`, `getAllJsonSchemaValidationsPublic`) — these endpoints exist in Lift v4 but were not migrated to `Http4s400`. **Migration gap** — port them. 5 only-http4s (`createBankLevelDynamicEntity`, `createSystemDynamicEntity`, `updateBankLevelDynamicEntity`, `updateMyDynamicEntity`, `updateSystemDynamicEntity`) — dynamic-entity overrides added in http4s with no Lift equivalent. Document if intentional, or audit whether they should have Lift counterparts.
+
+### v5.0.0 — 8 specific drifts + 3 only-http4s
+
+| Category | Count | Endpoints | Resolution |
+|---|---|---|---|
+| requestUrl placeholder rename | 1 | `createAccount` (Lift `ACCOUNT_ID` → http4s `NEW_ACCOUNT_ID` for the PUT-creates pattern) | Verify matcher behavior; may be required for `ACCOUNT_ID` literal handling. |
+| errorResponseBodies — SCA val-vs-inline | 3 | `createConsentByConsentRequestIdEmail` / `Sms` / `Implicit` | http4s uses `private val createConsentByConsentRequestIdCommonErrors = List(...)` for DRY; Lift inlined the list. Either inline the val in the 3 doc registrations to match Lift verbatim, or extend the audit script to expand simple `val X = List(...)` references. |
+| errorResponseBodies — system-view accuracy | 4 | `createSystemView`, `deleteSystemView`, `getSystemView`, `updateSystemView` | http4s has more accurate errors (`SystemViewNotFound`, `SystemViewCannotBePublicError`, `InvalidSystemViewFormat`). Lift had wrong/legacy errors (`BankAccountNotFound`, `$BankNotFound`, `"user does not have owner access"`). **Genuine improvement** — document at http4s site. |
+
+Also: 3 only-http4s (`getBanks`, `getProduct`, `getProducts`) — kept in this layer for metrics attribution. Document.
+
+### Strategy summary
+
+For each remaining drift on a migrated version:
+1. **Default**: fix http4s to match Lift verbatim. Use `restore_resource_doc_bodies.py` for field-level restoration.
+2. **Documented exceptions**: where the drift is a deliberate http4s improvement or required by middleware semantics, leave the drift and add a `// Lift had X; we use Y because Z` comment at the http4s ResourceDoc site.
+3. **Never**: edit `APIMethodsXYZ.scala` to make the audit pass. The Lift comments are the canonical record.
+
+Untouched versions (v1_2_1 through v4_0_0, plus v2_1_0) need the same treatment: run `rehydrate_resource_docs.py` then `restore_resource_doc_bodies.py`, then audit and address any residual drifts at the http4s site.
+
+---
+
 ## Auth Stack (separate workstream)
 
 Token-generation paths — not version-file endpoints. Each `extends RestHelper` and needs to become an http4s route or middleware independently. Can run in parallel with the APIMethods migration.
