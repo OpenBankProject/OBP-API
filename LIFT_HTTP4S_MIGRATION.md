@@ -186,11 +186,11 @@ Separate from the resource-docs **serving** workstream above, there is a parity 
 
 | Version | shared | mismatch | only-lift | only-http4s | Status |
 |---|---|---|---|---|---|
-| v1_2_1 | 70  | 48 | 0 | 0 | not started |
+| v1_2_1 | 70  | 6  | 0 | 0 | semantic fields restored; 6 structural drifts remain |
 | v1_3_0 | 3   | 0  | 0 | 0 | clean |
 | v1_4_0 | 10  | 1  | 0 | 0 | one minor |
-| v2_0_0 | 37  | 19 | 0 | 0 | not started |
-| v2_1_0 | 23  | 13 | 5 | 2 | not started |
+| v2_0_0 | 37  | 1  | 0 | 0 | semantic fields restored; 1 structural drift remains |
+| v2_1_0 | 23  | 1  | 5 | 2 | semantic fields restored; 1 structural drift remains |
 | v2_2_0 | 18  | 0  | 0 | 18 | Lift trait fully retired upstream (commit `71892f5cb`); audited against pre-stub Lift via git history; 13 fields restored; 3 middleware URL renames remain |
 | v3_0_0 | 47  | 4  | 0 | 0 | semantic fields restored; 4 middleware-driven URL renames remain |
 | v3_1_0 | 102 | 5  | 0 | 0 | semantic fields restored; 5 structural drifts (placeholder renames) remain |
@@ -198,7 +198,7 @@ Separate from the resource-docs **serving** workstream above, there is a parity 
 | v5_0_0 | 39  | 8  | 0 | 3 | descriptions restored; structural/errors remain |
 | v5_1_0 | 111 | 1  | 1 | 2 | one verb-casing drift to fix |
 | v6_0_0 | 243 | 12 | 0 | 1 | 11 placeholder renames + 1 routing-shape upstream change |
-| **Total** | **956** | **128** | | | |
+| **Total** | **956** | **60** | | | |
 
 ### v6.0.0 — 12 specific drifts (each is a fix candidate)
 
