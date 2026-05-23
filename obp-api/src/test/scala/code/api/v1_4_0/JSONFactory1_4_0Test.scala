@@ -8,7 +8,7 @@ import code.api.util.{APIUtil, ExampleValue}
 import code.api.util.CustomJsonFormats
 import code.api.v1_4_0.JSONFactory1_4_0.ResourceDocJson
 import code.api.v3_0_0.OBPAPI3_0_0
-import code.api.v1_4_0.OBPAPI1_4_0
+import code.api.v1_2_1.OBPAPI1_2_1
 import net.liftweb.json.Extraction.decompose
 import net.liftweb.json._
 import org.everit.json.schema.loader.SchemaLoader
@@ -127,13 +127,13 @@ class JSONFactory1_4_0Test extends code.setup.ServerSetup {
     }
 
     scenario("Technology field should be None unless includeTechnology=true") {
-      // allResourceDocs(0) is now an http4s doc (v3.0.0 sorts above v2.2.0); use a v2.2.0 Lift doc instead.
-      val liftDoc: ResourceDoc = OBPAPI1_4_0.allResourceDocs.head
-      val json1 = JSONFactory1_4_0.createLocalisedResourceDocJson(liftDoc, false, None, includeTechnology = false, urlParameters, "JSON request body fields:", "JSON response body fields:")
+      // All versions are now on http4s — use any http4s doc.
+      val http4sDoc: ResourceDoc = OBPAPI1_2_1.allResourceDocs.head
+      val json1 = JSONFactory1_4_0.createLocalisedResourceDocJson(http4sDoc, false, None, includeTechnology = false, urlParameters, "JSON request body fields:", "JSON response body fields:")
       json1.implemented_by.technology shouldBe None
 
-      val json2 = JSONFactory1_4_0.createLocalisedResourceDocJson(liftDoc, false, None, includeTechnology = true, urlParameters, "JSON request body fields:", "JSON response body fields:")
-      json2.implemented_by.technology shouldBe Some(Constant.TECHNOLOGY_LIFTWEB)
+      val json2 = JSONFactory1_4_0.createLocalisedResourceDocJson(http4sDoc, false, None, includeTechnology = true, urlParameters, "JSON request body fields:", "JSON response body fields:")
+      json2.implemented_by.technology shouldBe Some(Constant.TECHNOLOGY_HTTP4S)
     }
 
     scenario("Technology field should be http4s when includeTechnology=true and doc is http4s") {
