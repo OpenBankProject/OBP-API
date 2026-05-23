@@ -58,7 +58,9 @@ case class CallContext(
                         bank: Option[Bank] = None,
                         bankAccount: Option[BankAccount] = None,
                         view: Option[View] = None,
-                        counterparty: Option[CounterpartyTrait] = None
+                        counterparty: Option[CounterpartyTrait] = None,
+                        // Set when the request is authenticated via a consent. Persisted on metric rows for search/audit.
+                        consentReferenceId: Option[String] = None
                       ) extends MdcLoggable {
   override def toString: String = SecureLogging.maskSensitive(
     s"${this.getClass.getSimpleName}(${this.productIterator.mkString(", ")})"
@@ -144,7 +146,8 @@ case class CallContext(
       xRateLimitRemaining = this.xRateLimitRemaining,
       xRateLimitReset = this.xRateLimitReset,
       paginationOffset = this.paginationOffset,
-      paginationLimit = this.paginationLimit
+      paginationLimit = this.paginationLimit,
+      consentReferenceId = this.consentReferenceId
     )
   }
 
@@ -210,7 +213,8 @@ case class CallContextLight(gatewayLoginRequestPayload: Option[PayloadOfJwtJSON]
                             xRateLimitRemaining : Long = -1,
                             xRateLimitReset : Long = -1,
                             paginationOffset : Option[String] = None,
-                            paginationLimit : Option[String] = None
+                            paginationLimit : Option[String] = None,
+                            consentReferenceId: Option[String] = None
                            )
 
 trait LoginParam

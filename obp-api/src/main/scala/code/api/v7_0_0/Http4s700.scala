@@ -734,6 +734,40 @@ object Http4s700 {
       http4sPartialFunction = Some(getFeatures)
     )
 
+    // Route: GET /obp/v7.0.0/consents/config
+    // Anonymous: operator-published policy that TPPs/agents need to know before issuing a consent.
+    val getConsentsConfig: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "consents" / "config" =>
+        EndpointHelpers.executeAndRespond(req) { _ =>
+          Future.successful(JSONFactory700.ConsentsConfigJsonV700(
+            consents_allowed            = APIUtil.getPropsAsBoolValue("consents.allowed", false),
+            max_time_to_live_in_seconds = APIUtil.getPropsAsIntValue("consents.max_time_to_live", code.api.Constant.DEFAULT_CONSENT_TTL),
+            sca_enabled                 = APIUtil.getPropsAsBoolValue("consents.sca.enabled", true)
+          ))
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(getConsentsConfig),
+      "GET",
+      "/consents/config",
+      "Get Consents Configuration",
+      """Returns the operator-configured consent policy for this OBP instance:
+        |
+        |* `consents_allowed` — whether consent issuance is enabled at all.
+        |* `max_time_to_live_in_seconds` — the cap enforced when a client supplies `time_to_live` on consent creation. Exceeding this triggers `OBP-35020`.
+        |* `sca_enabled` — whether Strong Customer Authentication is required for consent activation.
+        |
+        |No Authentication is Required — clients need these values before they hold credentials.""",
+      EmptyBody,
+      JSONFactory700.consentsConfigJsonV700Example,
+      List(UnknownError),
+      apiTagConsent :: apiTagApi :: Nil,
+      http4sPartialFunction = Some(getConsentsConfig)
+    )
+
     // Route: GET /obp/v7.0.0/api/versions
     val getScannedApiVersions: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ GET -> `prefixPath` / "api" / "versions" =>

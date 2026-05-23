@@ -448,7 +448,8 @@ case class MetricJsonV600(
     response_body: net.liftweb.json.JValue,
     status_code: Int,
     operation_id: String,
-    api_instance_id: String
+    api_instance_id: String,
+    consent_reference_id: Option[String]
 )
 case class MetricsJsonV600(metrics: List[MetricJsonV600])
 
@@ -1687,7 +1688,8 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       response_body = net.liftweb.json.parseOpt(metric.getResponseBody()).getOrElse(net.liftweb.json.JString("Not enabled")),
       status_code = metric.getHttpCode(),
       operation_id = operationId,
-      api_instance_id = metric.getApiInstanceId()
+      api_instance_id = metric.getApiInstanceId(),
+      consent_reference_id = Option(metric.getConsentReferenceId()).filter(_.nonEmpty)
     )
   }
 

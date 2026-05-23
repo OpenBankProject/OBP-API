@@ -119,6 +119,7 @@ object Migration extends MdcLoggable {
       migrateChatRoomIsOpenRoom()
       migrateChatRoomCreatedByAndLastMessageSender()
       migrateConsentReferenceIdToUuid(startedBeforeSchemifier)
+      migrateMetricConsentReferenceId(startedBeforeSchemifier)
     }
     
     private def dummyScript(): Boolean = {
@@ -645,6 +646,18 @@ object Migration extends MdcLoggable {
         val name = nameOf(migrateConsentReferenceIdToUuid(startedBeforeSchemifier))
         runOnce(name) {
           MigrationOfConsentReferenceIdUuid.migrate(name)
+        }
+      }
+    }
+
+    private def migrateMetricConsentReferenceId(startedBeforeSchemifier: Boolean): Boolean = {
+      if(startedBeforeSchemifier == true) {
+        logger.warn(s"Migration.database.migrateMetricConsentReferenceId(true) cannot be run before Schemifier.")
+        true
+      } else {
+        val name = nameOf(migrateMetricConsentReferenceId(startedBeforeSchemifier))
+        runOnce(name) {
+          MigrationOfMetricConsentReferenceId.migrate(name)
         }
       }
     }
