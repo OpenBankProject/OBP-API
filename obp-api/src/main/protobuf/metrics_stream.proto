@@ -11,6 +11,7 @@ message StreamMetricsRequest {
   string url_substring                    = 4;
   string implemented_by_partial_function  = 5;
   string app_name                         = 6;
+  string consent_reference_id             = 7;
 }
 
 // Per-REST-call metric record, mirrors APIMetrics.saveMetric args and
@@ -42,6 +43,9 @@ message MetricEvent {
   string api_instance_id                  = 16;
   // OBP operation id, e.g. "OBPv6.0.0-getBanks". Matches MetricJsonV600.operation_id.
   string operation_id                     = 17;
+  // Reference id of the consent (if any) that authorised the request.
+  // Mirrors MetricJsonV600.consent_reference_id (REST v6.0.0+).
+  string consent_reference_id             = 18;
 }
 
 // Live tail of API metrics as they are written.

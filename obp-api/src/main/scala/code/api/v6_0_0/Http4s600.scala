@@ -7227,6 +7227,8 @@ object Http4s600 {
            |
            |16 duration (if null ignore) - Returns calls where duration > specified value (in milliseconds). Use this to find slow API calls. eg: duration=5000 returns calls taking more than 5 seconds
            |
+           |17 consent_reference_id (if null ignore) - Returns calls authenticated via the consent with this reference id. eg: consent_reference_id=fd13b9af-4f74-4d52-a7f1-7c2c12f3aa11
+           |
         """.stripMargin,
         EmptyBody,
         metricsJsonV600,
