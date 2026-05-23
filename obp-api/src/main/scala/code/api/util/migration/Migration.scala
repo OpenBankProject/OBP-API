@@ -118,6 +118,7 @@ object Migration extends MdcLoggable {
       updateAccountAccessWithViewsViewUnionAll(startedBeforeSchemifier)
       migrateChatRoomIsOpenRoom()
       migrateChatRoomCreatedByAndLastMessageSender()
+      migrateConsentReferenceIdToUuid(startedBeforeSchemifier)
     }
     
     private def dummyScript(): Boolean = {
@@ -632,6 +633,18 @@ object Migration extends MdcLoggable {
         val name = nameOf(updateConsentViewAddJwtExpiresAt(startedBeforeSchemifier))
         runOnce(name) {
           MigrationOfConsentView.addConsentView(name)
+        }
+      }
+    }
+
+    private def migrateConsentReferenceIdToUuid(startedBeforeSchemifier: Boolean): Boolean = {
+      if(startedBeforeSchemifier == true) {
+        logger.warn(s"Migration.database.migrateConsentReferenceIdToUuid(true) cannot be run before Schemifier.")
+        true
+      } else {
+        val name = nameOf(migrateConsentReferenceIdToUuid(startedBeforeSchemifier))
+        runOnce(name) {
+          MigrationOfConsentReferenceIdUuid.migrate(name)
         }
       }
     }

@@ -333,7 +333,7 @@ object MappedConsentProvider extends ConsentProvider with code.util.Helper.MdcLo
         result.foreach { savedConsent =>
           try {
             consentJWTParsed.foreach { consentJWT =>
-              DoobieConsentQueries.insertConsentItems(savedConsent.id.get, consentJWT)
+              DoobieConsentQueries.insertConsentItems(savedConsent.mConsentReferenceId.get, consentJWT)
             }
           } catch {
             case e: Exception =>
@@ -475,6 +475,11 @@ class MappedConsent extends ConsentTrait with LongKeyedMapper[MappedConsent] wit
   object mJwtExpiresAt extends MappedDateTime(this) {
     override def dbColumnName = "jwt_expires_at"
   }
+  // Stable external identifier for the consent — referenced by consent_item.consent_reference_id
+  // and surfaced in v5.1.0 JSON. Replaces the historical derivation from the row PK.
+  object mConsentReferenceId extends MappedUUID(this) {
+    override def dbColumnName = "consent_reference_id"
+  }
 
   override def consentId: String = mConsentId.get
   override def userId: String = mUserId.get
@@ -503,11 +508,11 @@ class MappedConsent extends ConsentTrait with LongKeyedMapper[MappedConsent] wit
   override def transactionToDateTime= mTransactionToDateTime.get    
   override def creationDateTime= createdAt.get    
   override def statusUpdateDateTime= mStatusUpdateDateTime.get    
-  override def consentReferenceId = id.get.toString  
+  override def consentReferenceId = mConsentReferenceId.get
   override def note = mNote.get
 
 }
 
 object MappedConsent extends MappedConsent with LongKeyedMetaMapper[MappedConsent] {
-  override def dbIndexes = UniqueIndex(mConsentId) :: Index(mUserId) :: Index(mUserId, createdAt) :: super.dbIndexes
+  override def dbIndexes = UniqueIndex(mConsentId) :: UniqueIndex(mConsentReferenceId) :: Index(mUserId) :: Index(mUserId, createdAt) :: super.dbIndexes
 }
