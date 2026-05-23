@@ -28,11 +28,25 @@ import net.liftweb.mapper.Schemifier
 object MigrationOfConsentReferenceIdUuid {
 
   def migrate(name: String): Boolean = {
+    val dbDriver = APIUtil.getPropsValue("db.driver") openOr "org.h2.Driver"
+    val isH2 = dbDriver.contains("org.h2.Driver")
+    // H2 is only used in tests. Schemifier builds a fresh schema each run with the new
+    // column types already in place (MappedConsent.mConsentReferenceId via MappedUUID,
+    // ConsentItem.consentReferenceId via MappedString(36)), and v_consent is recreated by
+    // addConsentView earlier in the migration chain. Running the Postgres/MSSQL ALTERs
+    // here would only break the fresh schema — gen_random_uuid()/USING-cast/UPDATE-FROM
+    // are not H2 syntax, and a failure mid-way drops v_consent without recreating it.
+    if (isH2) {
+      val startDate = System.currentTimeMillis()
+      val commitId: String = APIUtil.gitCommit
+      val endDate = System.currentTimeMillis()
+      saveLog(name, commitId, true, startDate, endDate, "H2 detected — fresh schema already has the new column shape; nothing to migrate.")
+      return true
+    }
     DbFunction.tableExists(MappedConsent) match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
-        val dbDriver = APIUtil.getPropsValue("db.driver") openOr "org.h2.Driver"
         val isMssql = dbDriver.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver")
         var isSuccessful = false
         val sqlLog = new StringBuilder()
