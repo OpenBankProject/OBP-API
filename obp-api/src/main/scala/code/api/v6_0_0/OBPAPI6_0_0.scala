@@ -31,8 +31,6 @@ import scala.language.reflectiveCalls
 import code.api.OBPRestHelper
 import code.api.util.APIUtil.OBPEndpoint
 import code.api.util.VersionedOBPApis
-import code.api.v1_3_0.APIMethods130
-import code.api.v1_4_0.APIMethods140
 import code.api.v3_0_0.Http4s300
 import code.api.v3_1_0.{APIMethods310, Http4s310}
 import code.api.v4_0_0.{APIMethods400, Http4s400}
@@ -48,8 +46,6 @@ All v6.0.0 endpoints have been migrated to Http4s600 — this object is retained
 only for resource-doc aggregation and the Lift dispatch registry.
  */
 object OBPAPI6_0_0 extends OBPRestHelper
-  with APIMethods130
-  with APIMethods140
   with APIMethods310
   with APIMethods400
   with APIMethods500
