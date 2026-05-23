@@ -464,6 +464,7 @@ object Consent extends MdcLoggable {
       }
       if (cc.onBehalfOfUser.nonEmpty &&
         APIUtil.getPropsAsBoolValue(nameOfProperty = "experimental_become_user_that_created_consent", defaultValue = false)) {
+        logger.warn("WARNING: experimental_become_user_that_created_consent is DEPRECATED and will be removed soon. Please unset this property.")
         logger.info("experimental_become_user_that_created_consent = true")
         logger.info(s"${cc.onBehalfOfUser.map(_.userId).getOrElse("")} is logged on instead of Consent user")
         Future(cc.onBehalfOfUser, Some(cc)) // Just propagate on behalf of user back
