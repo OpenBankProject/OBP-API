@@ -73,7 +73,7 @@ class ConsentObpTest extends V510ServerSetup {
     .copy(consumer_id=Some(testConsumer.consumerId.get))
     .copy(views=views)
 
-  val maxTimeToLive = APIUtil.getPropsAsIntValue(nameOfProperty="consents.max_time_to_live", defaultValue=3600)
+  val maxTimeToLive = APIUtil.getPropsAsIntValue(nameOfProperty="consents.max_time_to_live", defaultValue=Constant.DEFAULT_CONSENT_TTL)
   val timeToLive: Option[Long] = Some(maxTimeToLive + 10)
   
   feature(s"test $CreateConsent version $VersionOfApi - Unauthorized access")

@@ -306,6 +306,10 @@ object Constant extends MdcLoggable {
   def RATE_LIMIT_ACTIVE_PREFIX: String = getVersionedCachePrefix(RL_ACTIVE_NAMESPACE)
   final val RATE_LIMIT_ACTIVE_CACHE_TTL: Int = APIUtil.getPropsValue("rateLimitActive.cache.ttl.seconds", "3600").toInt
 
+  // Default max time_to_live for consents, in seconds. 90 days — aligns with PSD2 AIS / UK Open Banking.
+  // Used as the fallback when the `consents.max_time_to_live` prop is unset.
+  final val DEFAULT_CONSENT_TTL: Int = 7776000
+
   // Connector Cache Prefixes (with global namespace and versioning)
   def CONNECTOR_PREFIX: String = getVersionedCachePrefix(CONNECTOR_NAMESPACE)
 

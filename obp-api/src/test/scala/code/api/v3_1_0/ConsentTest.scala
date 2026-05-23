@@ -85,7 +85,7 @@ class ConsentTest extends V310ServerSetup {
     .copy(valid_from = Some(new Date()))
     .copy(views=views)
 
-  val maxTimeToLive = APIUtil.getPropsAsIntValue(nameOfProperty="consents.max_time_to_live", defaultValue=3600)
+  val maxTimeToLive = APIUtil.getPropsAsIntValue(nameOfProperty="consents.max_time_to_live", defaultValue=Constant.DEFAULT_CONSENT_TTL)
   val timeToLive: Option[Long] = Some(maxTimeToLive + 10)
   
   feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access")

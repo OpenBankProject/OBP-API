@@ -24,7 +24,7 @@ object DoobieConsentQueries {
    * Fields align with ConsentInfoJsonV510.
    */
   case class ConsentRow(
-    consentReferenceId: Long,
+    consentReferenceId: String,
     consentId: String,
     createdByUserId: String,
     consumerId: Option[String],
@@ -179,7 +179,7 @@ object DoobieConsentQueries {
    * Insert consent items from the consent's views and entitlements.
    * Called at consent creation time after the JWT is set.
    */
-  def insertConsentItems(consentReferenceId: Long, consentJWT: code.api.util.ConsentJWT): Unit = {
+  def insertConsentItems(consentReferenceId: String, consentJWT: code.api.util.ConsentJWT): Unit = {
     val viewInserts = consentJWT.views.filter(_.bank_id.nonEmpty).map { view =>
       val consentItemId = java.util.UUID.randomUUID().toString
       val itemType = "VIEW"
