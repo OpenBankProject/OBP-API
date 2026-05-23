@@ -1150,7 +1150,8 @@ database_messages_scheduler_interval=3600
 # Possibile values are: CONSUMER_CERTIFICATE, CONSUMER_KEY_VALUE, NONE
 # consumer_validation_method_for_consent=CONSUMER_CERTIFICATE
 #
-# consents.max_time_to_live=3600
+# Maximum allowed time_to_live (in seconds) for a consent. Default is 7776000 (90 days), matching PSD2 AIS / UK Open Banking.
+# consents.max_time_to_live=7776000
 # In case isn't defined default value is "true"
 # consents.sca.enabled=true
 # ---------------------------------------------------------
