@@ -1199,6 +1199,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         case "azp" => Full(OBPAzp(values.head))
         case "iss" => Full(OBPIss(values.head))
         case "consent_id" => Full(OBPConsentId(values.head))
+        case "consent_reference_id" => Full(OBPConsentReferenceId(values.head))
         case "user_id" => Full(OBPUserId(values.head))
         case "provider_provider_id" => Full(ProviderProviderId(values.head))
         case "bank_id" => Full(OBPBankId(values.head))
@@ -1333,6 +1334,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     val iss =  getHttpRequestUrlParam(httpRequestUrl,"iss")
     val azp =  getHttpRequestUrlParam(httpRequestUrl,"azp")
     val consentId =  getHttpRequestUrlParam(httpRequestUrl,"consent_id")
+    val consentReferenceId =  getHttpRequestUrlParam(httpRequestUrl,"consent_reference_id")
     val userId =  getHttpRequestUrlParam(httpRequestUrl, "user_id")
     val providerProviderId =  getHttpRequestUrlParam(httpRequestUrl, "provider_provider_id")
     val bankId =  getHttpRequestUrlParam(httpRequestUrl, "bank_id")
@@ -1368,7 +1370,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
     Full(List(
       HTTPParam("sort_by",sortBy), HTTPParam("sort_direction",sortDirection), HTTPParam("from_date",fromDate), HTTPParam("to_date", toDate), HTTPParam("limit",limit), HTTPParam("offset",offset),
-      HTTPParam("anon", anon), HTTPParam("status", status), HTTPParam("consumer_id", consumerId), HTTPParam("azp", azp), HTTPParam("iss", iss), HTTPParam("consent_id", consentId), HTTPParam("user_id", userId), HTTPParam("provider_provider_id", providerProviderId), HTTPParam("url", url), HTTPParam("app_name", appName),
+      HTTPParam("anon", anon), HTTPParam("status", status), HTTPParam("consumer_id", consumerId), HTTPParam("azp", azp), HTTPParam("iss", iss), HTTPParam("consent_id", consentId), HTTPParam("consent_reference_id", consentReferenceId), HTTPParam("user_id", userId), HTTPParam("provider_provider_id", providerProviderId), HTTPParam("url", url), HTTPParam("app_name", appName),
       HTTPParam("implemented_by_partial_function",implementedByPartialFunction), HTTPParam("implemented_in_version",implementedInVersion), HTTPParam("verb", verb),
       HTTPParam("correlation_id", correlationId), HTTPParam("duration", duration), HTTPParam("exclude_app_names", excludeAppNames),
       HTTPParam("exclude_url_patterns", excludeUrlPattern),HTTPParam("exclude_implemented_by_partial_functions", excludeImplementedByPartialfunctions), 

@@ -113,7 +113,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
   }
 
   override def saveMetric(userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String, httpCode: Option[Int], correlationId: String,
-                          responseBody: String, sourceIp: String, targetIp: String, apiInstanceId: String): Unit = {
+                          responseBody: String, sourceIp: String, targetIp: String, apiInstanceId: String, consentReferenceId: String): Unit = {
     MetricBatchWriter.enqueue(
       MetricBatchWriter.MetricRow(
         userId = userId,
@@ -132,7 +132,8 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
         responseBody = responseBody,
         sourceIp = sourceIp,
         targetIp = targetIp,
-        apiInstanceId = apiInstanceId
+        apiInstanceId = apiInstanceId,
+        consentReferenceId = consentReferenceId
       )
     )
   }
@@ -142,7 +143,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
                                   implementedByPartialFunction: String, implementedInVersion: String,
                                   verb: String, httpCode: Option[Int], correlationId: String,
                                   responseBody: String, sourceIp: String, targetIp: String,
-                                  apiInstanceId: String): Unit = {
+                                  apiInstanceId: String, consentReferenceId: String): Unit = {
     val metric = MetricArchive.find(By(MetricArchive.id, primaryKey)).getOrElse(MetricArchive.create)
     metric
       .metricId(primaryKey)
@@ -162,6 +163,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       .sourceIp(sourceIp)
       .targetIp(targetIp)
       .apiInstanceId(apiInstanceId)
+      .consentReferenceId(consentReferenceId)
 
     httpCode match {
       case Some(code) => metric.httpCode(code)
@@ -261,6 +263,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
     val correlationId = queryParams.collect { case OBPCorrelationId(value) => By(MappedMetric.correlationId, value) }.headOption
     val duration = queryParams.collect { case OBPDuration(value) => By_>(MappedMetric.duration, value) }.headOption
     val httpStatusCode = queryParams.collect { case OBPHttpStatusCode(value) => By(MappedMetric.httpCode, value) }.headOption
+    val consentReferenceId = queryParams.collect { case OBPConsentReferenceId(value) => By(MappedMetric.consentReferenceId, value) }.headOption
     val anon = queryParams.collect {
       case OBPAnon(true) => By(MappedMetric.userId, "null")
       case OBPAnon(false) => NotBy(MappedMetric.userId, "null")
@@ -287,6 +290,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       correlationId.toSeq,
       duration.toSeq,
       httpStatusCode.toSeq,
+      consentReferenceId.toSeq,
       anon.toSeq,
       excludeAppNames.toSeq.flatten
     ).flatten
@@ -644,6 +648,11 @@ class MappedMetric extends APIMetric with LongKeyedMapper[MappedMetric] with IdP
   object sourceIp extends MappedString(this, 64)
   object targetIp extends MappedString(this, 64)
   object apiInstanceId extends MappedString(this, 255)
+  // Set when the request was authenticated via a consent. Null otherwise.
+  object consentReferenceId extends MappedString(this, 36) {
+    override def dbColumnName = "consent_reference_id"
+    override def defaultValue = null
+  }
 
   override def getMetricId(): Long = id.get
   override def getUrl(): String = url.get
@@ -663,16 +672,17 @@ class MappedMetric extends APIMetric with LongKeyedMapper[MappedMetric] with IdP
   override def getSourceIp(): String = sourceIp.get
   override def getTargetIp(): String = targetIp.get
   override def getApiInstanceId(): String = apiInstanceId.get
+  override def getConsentReferenceId(): String = consentReferenceId.get
 }
 
 object MappedMetric extends MappedMetric with LongKeyedMetaMapper[MappedMetric] {
   // Please note that the old table name was "MappedMetric"
   // Renaming implications:
   //   - at an existing sandbox the table "MappedMetric" still exists with rows until this change is deployed at it
-  //     and new rows are stored in the table "Metric"      
+  //     and new rows are stored in the table "Metric"
   //   - at a fresh sandbox there is no the table "MappedMetric", only "Metric" is present
   override def dbTableName = "Metric" // define the DB table name
-  override def dbIndexes = Index(date) :: Index(consumerId) :: super.dbIndexes
+  override def dbIndexes = Index(date) :: Index(consumerId) :: Index(consentReferenceId) :: super.dbIndexes
 }
 
 
@@ -704,6 +714,11 @@ class MetricArchive extends APIMetric with LongKeyedMapper[MetricArchive] with I
   object sourceIp extends MappedString(this, 64)
   object targetIp extends MappedString(this, 64)
   object apiInstanceId extends MappedString(this, 255)
+  // Set when the request was authenticated via a consent. Null otherwise.
+  object consentReferenceId extends MappedString(this, 36) {
+    override def dbColumnName = "consent_reference_id"
+    override def defaultValue = null
+  }
 
 
   override def getMetricId(): Long = metricId.get
@@ -724,9 +739,10 @@ class MetricArchive extends APIMetric with LongKeyedMapper[MetricArchive] with I
   override def getSourceIp(): String = sourceIp.get
   override def getTargetIp(): String = targetIp.get
   override def getApiInstanceId(): String = apiInstanceId.get
+  override def getConsentReferenceId(): String = consentReferenceId.get
 }
 object MetricArchive extends MetricArchive with LongKeyedMetaMapper[MetricArchive] {
-  override def dbIndexes = 
-    Index(userId) :: Index(consumerId) :: Index(url) :: Index(date) :: Index(userName) :: 
-      Index(appName) :: Index(developerEmail) :: super.dbIndexes
+  override def dbIndexes =
+    Index(userId) :: Index(consumerId) :: Index(url) :: Index(date) :: Index(userName) ::
+      Index(appName) :: Index(developerEmail) :: Index(consentReferenceId) :: super.dbIndexes
 }

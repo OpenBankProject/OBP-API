@@ -855,7 +855,7 @@ object Http4s500 {
             consentJson <- NewStyle.function.tryons(failMsg, 400, callContextOpt) {
               net.liftweb.json.parse(rawBody).extract[PostConsentRequestJsonV500]
             }
-            maxTimeToLive = APIUtil.getPropsAsIntValue(nameOfProperty = "consents.max_time_to_live", defaultValue = 3600)
+            maxTimeToLive = APIUtil.getPropsAsIntValue(nameOfProperty = "consents.max_time_to_live", defaultValue = DEFAULT_CONSENT_TTL)
             _ <- Helper.booleanToFuture(s"$ConsentMaxTTL ($maxTimeToLive)", cc = callContextOpt) {
               consentJson.time_to_live match {
                 case Some(ttl) => ttl <= maxTimeToLive
@@ -1210,7 +1210,7 @@ object Http4s500 {
             } else {
               Future.successful((BankId(""), AccountId(""), ViewId(""), CounterpartyId(""))): Future[(BankId, AccountId, ViewId, CounterpartyId)]
             }
-            maxTimeToLive = APIUtil.getPropsAsIntValue(nameOfProperty = "consents.max_time_to_live", defaultValue = 3600)
+            maxTimeToLive = APIUtil.getPropsAsIntValue(nameOfProperty = "consents.max_time_to_live", defaultValue = DEFAULT_CONSENT_TTL)
             _ <- Helper.booleanToFuture(s"$ConsentMaxTTL ($maxTimeToLive)", cc = callContextOpt) {
               consentRequestJson.time_to_live match {
                 case Some(ttl) => ttl <= maxTimeToLive

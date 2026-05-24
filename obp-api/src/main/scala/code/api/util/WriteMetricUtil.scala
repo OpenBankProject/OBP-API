@@ -83,11 +83,13 @@ object WriteMetricUtil extends MdcLoggable {
               responseBodyToWrite,
               sourceIp,
               targetIp,
-              code.api.Constant.ApiInstanceId
+              code.api.Constant.ApiInstanceId,
+              cc.consentReferenceId.orNull
             )
             publishMetricEvent(userId, cc.url, cc.startTime.getOrElse(null), duration, userName, appName,
               developerEmail, consumerId, implementedByPartialFunction, cc.implementedInVersion, cc.verb,
-              cc.httpCode, cc.correlationId, sourceIp, targetIp, cc.operationId.getOrElse(""))
+              cc.httpCode, cc.correlationId, sourceIp, targetIp, cc.operationId.getOrElse(""),
+              cc.consentReferenceId.orNull)
           }
         }
       case _ =>
@@ -175,11 +177,12 @@ object WriteMetricUtil extends MdcLoggable {
           "Not enabled for old style endpoints",
           sourceIp,
           targetIp,
-          code.api.Constant.ApiInstanceId
+          code.api.Constant.ApiInstanceId,
+          null  // Old-style endpoints don't thread consent_reference_id through S.session yet.
         )
         publishMetricEvent(userId, url, date, duration, userName, appName, developerEmail, consumerId,
           implementedByPartialFunction, implementedInVersion, verb, None, correlationId, sourceIp, targetIp,
-          rd.map(_.operationId).getOrElse(""))
+          rd.map(_.operationId).getOrElse(""), null)
       }
 
     }
@@ -207,7 +210,8 @@ object WriteMetricUtil extends MdcLoggable {
                                  correlationId: String,
                                  sourceIp: String,
                                  targetIp: String,
-                                 operationId: String): Unit = {
+                                 operationId: String,
+                                 consentReferenceId: String): Unit = {
     if (!MetricsEventBus.isEnabled) return
     try {
       implicit val fmts = metricFormats
@@ -231,7 +235,8 @@ object WriteMetricUtil extends MdcLoggable {
         "source_ip"                       -> Option(sourceIp).getOrElse(""),
         "target_ip"                       -> Option(targetIp).getOrElse(""),
         "api_instance_id"                 -> code.api.Constant.ApiInstanceId,
-        "operation_id"                    -> Option(operationId).getOrElse("")
+        "operation_id"                    -> Option(operationId).getOrElse(""),
+        "consent_reference_id"            -> Option(consentReferenceId).getOrElse("")
       ))
       MetricsEventBus.publish(payload)
     } catch {

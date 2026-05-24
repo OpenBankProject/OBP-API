@@ -117,7 +117,7 @@ object Http4s310 {
        |Consumer-Key: ejznk505d132ryomnhbx1qmtohurbsbb0kijajsk
        |cache-control: no-cache
        |
-       |Maximum time to live of the token is specified over props value consents.max_time_to_live. In case isn't defined default value is 3600 seconds.
+       |Maximum time to live of the token is specified over props value consents.max_time_to_live. In case isn't defined default value is 7776000 seconds (90 days).
        |
        |Example of POST JSON:
        |{
@@ -4473,7 +4473,7 @@ object Http4s310 {
                 StrongCustomerAuthentication.EMAIL.toString,
                 StrongCustomerAuthentication.IMPLICIT.toString).contains(scaMethod)
             }
-            maxTimeToLive = APIUtil.getPropsAsIntValue(nameOfProperty = "consents.max_time_to_live", defaultValue = 3600)
+            maxTimeToLive = APIUtil.getPropsAsIntValue(nameOfProperty = "consents.max_time_to_live", defaultValue = Constant.DEFAULT_CONSENT_TTL)
             _ <- code.util.Helper.booleanToFuture(s"$ConsentMaxTTL ($maxTimeToLive)", cc = Some(cc)) {
               consentJson.time_to_live match {
                 case Some(ttl) => ttl <= maxTimeToLive

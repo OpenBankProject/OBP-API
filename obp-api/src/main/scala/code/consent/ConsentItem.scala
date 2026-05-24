@@ -12,7 +12,7 @@ class ConsentItem extends LongKeyedMapper[ConsentItem] with IdPK {
   object consentItemId extends MappedUUID(this) {
     override def dbColumnName = "consent_item_id"
   }
-  object consentReferenceId extends MappedLong(this) {
+  object consentReferenceId extends MappedString(this, 36) {
     override def dbColumnName = "consent_reference_id"
   }
   object itemType extends MappedString(this, 64) {

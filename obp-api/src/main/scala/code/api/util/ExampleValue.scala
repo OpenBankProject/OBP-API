@@ -1630,8 +1630,8 @@ object ExampleValue {
   lazy val directDebitIdExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("direct_debit_id", directDebitIdExample)
 
-  lazy val consentReferenceIdExample = ConnectorField("123456" ,NoDescriptionProvided)
-  glossaryItems += makeGlossaryItem("consent_id", consentReferenceIdExample)
+  lazy val consentReferenceIdExample = ConnectorField("fd13b9af-4f74-4d52-a7f1-7c2c12f3aa11" ,NoDescriptionProvided)
+  glossaryItems += makeGlossaryItem("consent_reference_id", consentReferenceIdExample)
   
   lazy val consentIdExample = ConnectorField("9d429899-24f5-42c8-8565-943ffa6a7947",NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("consent_id", consentIdExample)

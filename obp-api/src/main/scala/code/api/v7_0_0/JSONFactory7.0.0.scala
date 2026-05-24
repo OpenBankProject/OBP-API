@@ -1034,4 +1034,18 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
 
   lazy val coreAccountsJsonV700Example =
     CoreAccountsJsonV700(accounts = List(coreAccountJsonV700Example))
+
+  // ─── Consents config — operator-published policy clients need before issuing a consent ──
+
+  case class ConsentsConfigJsonV700(
+    consents_allowed: Boolean,
+    max_time_to_live_in_seconds: Int,
+    sca_enabled: Boolean
+  )
+
+  lazy val consentsConfigJsonV700Example = ConsentsConfigJsonV700(
+    consents_allowed = true,
+    max_time_to_live_in_seconds = code.api.Constant.DEFAULT_CONSENT_TTL,
+    sca_enabled = true
+  )
 }

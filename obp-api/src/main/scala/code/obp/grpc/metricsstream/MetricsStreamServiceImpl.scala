@@ -91,7 +91,8 @@ object MetricsStreamServiceImpl extends MetricsStreamServiceGrpc.MetricsStreamSe
     matchExact(req.verb, (jv \ "verb").extractOrElse[String]("")) &&
     matchSubstring(req.urlSubstring, (jv \ "url").extractOrElse[String]("")) &&
     matchExact(req.implementedByPartialFunction, (jv \ "implemented_by_partial_function").extractOrElse[String]("")) &&
-    matchExact(req.appName, (jv \ "app_name").extractOrElse[String](""))
+    matchExact(req.appName, (jv \ "app_name").extractOrElse[String]("")) &&
+    matchExact(req.consentReferenceId, (jv \ "consent_reference_id").extractOrElse[String](""))
   }
 
   private def jsonToMetricEvent(jv: JValue): MetricEvent = {
@@ -112,7 +113,8 @@ object MetricsStreamServiceImpl extends MetricsStreamServiceGrpc.MetricsStreamSe
       sourceIp                     = (jv \ "source_ip").extractOrElse[String](""),
       targetIp                     = (jv \ "target_ip").extractOrElse[String](""),
       apiInstanceId                = (jv \ "api_instance_id").extractOrElse[String](""),
-      operationId                  = (jv \ "operation_id").extractOrElse[String]("")
+      operationId                  = (jv \ "operation_id").extractOrElse[String](""),
+      consentReferenceId           = (jv \ "consent_reference_id").extractOrElse[String]("")
     )
   }
 }
