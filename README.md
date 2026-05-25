@@ -740,6 +740,60 @@ Use this from APIManager (or a `curl` with appropriate auth headers) to confirm
 that signup / password-reset emails will be deliverable on this instance,
 without needing to create a real account or trigger a real reset.
 
+### Resend validation email (recovery for stuck signups)
+
+If a user signs up but does not receive the validation email — bad SMTP day,
+typo'd address, spam folder, server misconfiguration — they are otherwise
+stuck. They can't log in (not validated), and the anonymous password-reset
+endpoint can't help them either (it filters on `validated=true`). The resend
+endpoint closes that gap:
+
+```
+POST /obp/v7.0.0/users/validation-emails
+Body: { "username": "alice", "email": "alice@example.com" }
+```
+
+- **No authentication or role required** — an unvalidated user has no
+  entitlements, so self-service is the only model that works.
+- **Anti-enumeration**: always returns `201` with the same message regardless
+  of whether the user exists, is already validated, the rate limit was hit, or
+  the SMTP send failed:
+  ```json
+  { "message": "If an unvalidated account exists for this username and email, a validation email has been sent." }
+  ```
+- **Rate-limited**: 3 attempts per email per hour, Redis-backed. Over-limit
+  requests still get the same 201.
+- **Local-provider only**: scoped to `Constant.localIdentityProvider`. OIDC /
+  SSO users never use the email-validation flow.
+- **Token reuse**: deliberately does NOT rotate `AuthUser.uniqueId`. The same
+  validation JWT is regenerated each call. Multiple resends produce the same
+  link, so clicking any of the delivered emails works.
+- **All decisions are server-side only**: the log line at INFO/WARN level is
+  the operator's only way to know what actually happened. Server log will
+  show one of: sent (with messageId), skipped (user not found / already
+  validated / email mismatch / rate-limit), or skipped with WARN (portal_url
+  unset / sender address default / SMTP failure).
+
+### Signup and anonymous-reset flow logging
+
+The signup endpoint (`POST /obp/v6.0.0/users`) and the anonymous password-reset
+endpoint (`POST /obp/v6.0.0/users/password-reset-url`) both now log explicitly
+on every silent skip, so operators can diagnose "user complained, no email
+arrived" without server-side guesswork. WARN is logged when:
+
+- `portal_external_url` is unset — link cannot be built, no email sent
+- `mail.users.userinfo.sender.address` is still the default `noreply@example.com`
+- the SMTP send threw (exception class + first 200 chars of message)
+
+INFO is logged when the send succeeded (`messageId=...`) and when the request
+was skipped for a non-error reason (user not found, already validated, etc.).
+External response shape is unchanged — the user still gets the same 201, so
+this is purely a server-side diagnostic improvement.
+
+The anonymous password-reset endpoint also now scopes its user lookup to the
+local identity provider, matching the behaviour of the new resend-validation
+endpoint and avoiding cross-provider false matches.
+
 ### Logging
 
 Every successful send is logged at INFO level by `CommonsEmailWrapper`:
@@ -747,14 +801,16 @@ Every successful send is logged at INFO level by `CommonsEmailWrapper`:
 ```
 sendTextEmail says: sent to=alice@example.com subject='OBP test email from ...' messageId=<...@smtp...>
 sendHtmlEmail says: sent to=alice@example.com subject='Sign up confirmation' messageId=<...@smtp...>
+sendHtmlEmailEither says: sent to=alice@example.com subject='Reset your password - alice' messageId=<...@smtp...>
 ```
 
-Failures are logged at ERROR level with the exception stack trace. The signup
-and anonymous password-reset flows currently treat send failures as
-fire-and-forget (the user request still succeeds with a 201), so the log line
-is the authoritative record that an email did or did not leave the JVM. The
-self-test endpoint above is the operator's complement for confirming the SMTP
-path works at all.
+Failures are logged at ERROR level with the exception stack trace. The two
+`Either`-returning variants (`sendTextEmailEither`, `sendHtmlEmailEither`)
+preserve the exception so callers can classify the failure category (auth /
+connect / TLS / recipient-rejected) and log a specific reason instead of a
+generic "send failed". The self-test endpoint and the new resend endpoint both
+use this; the existing signup/anon-reset endpoints have been switched to
+`sendHtmlEmailEither` too so they can log specific failure causes.
 
 ### SMTP-level debugging
 

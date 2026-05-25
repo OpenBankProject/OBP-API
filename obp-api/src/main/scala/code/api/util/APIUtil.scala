@@ -4155,6 +4155,12 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   // Register defaults so they appear in getConfigPropsPairs
   publicAppUrlDefaults.foreach { case (key, default) => getPropsValue(key, default) }
 
+  // Canonical portal URL. Prefer the new public_*_url convention; fall back to the legacy
+  // portal_external_url. An empty-string prop is treated as unset so the fallback fires.
+  def getPortalUrl: Box[String] =
+    getPropsValue("public_obp_portal_url").filter(_.trim.nonEmpty)
+      .or(getPropsValue("portal_external_url").filter(_.trim.nonEmpty))
+
   // Returns config props matching the public_*_url convention.
   // Empty values are excluded (prop not configured).
   def getAppDiscoveryPairs: List[(String, String)] = {

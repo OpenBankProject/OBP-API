@@ -66,7 +66,7 @@ object Http4s700 {
   implicit def convertAnyToJsonString(any: Any): String = prettyRender(Extraction.decompose(any))
 
   val implementedInApiVersion: ScannedApiVersion = ApiVersion.v7_0_0
-  val versionStatus = ApiVersionStatus.STABLE.toString
+  val versionStatus = ApiVersionStatus.BLEEDING_EDGE.toString
   val resourceDocs = ArrayBuffer[ResourceDoc]()
 
   /* 
@@ -2532,6 +2532,191 @@ object Http4s700 {
       apiTagEmail :: apiTagSystem :: Nil,
       Some(List(canCreateTestEmail)),
       http4sPartialFunction = Some(createTestEmail)
+    )
+
+    // ── Resend validation email (anonymous) ────────────────────────────────────
+    // The signup flow at Http4s600.createUser may fail to deliver the validation
+    // email (SMTP unreachable, recipient mailbox full, user typo). Without a way
+    // to retry, the unvalidated user is stuck — they can't log in (validated=false
+    // blocks auth) and the anonymous password-reset endpoint at /users/password-
+    // reset-url filters validated=true so it can't help either. This endpoint
+    // closes that gap.
+    //
+    // Anti-enumeration: always returns the same 201 message regardless of whether
+    // the user exists, is already validated, the rate limit was hit, or the SMTP
+    // send failed. All decisions are logged server-side only.
+    //
+    // Provider scoping: locked to Constant.localIdentityProvider. OIDC/SSO users
+    // never use the email-validation flow (they're created already-validated on
+    // first login) so widening the scope would only risk false matches.
+    //
+    // uniqueId reuse: deliberately does NOT rotate AuthUser.uniqueId. The same
+    // validation JWT link is regenerated each call. This avoids the "user clicks
+    // older email after a newer resend" race and also avoids invalidating any
+    // pending password-reset link the same user might have outstanding.
+
+    private val ResendValidationRateLimit = 3
+    private val ResendValidationRateLimitWindowSeconds = 3600
+
+    private def sha256HexLower(s: String): String = {
+      val md = java.security.MessageDigest.getInstance("SHA-256")
+      md.digest(s.getBytes("UTF-8")).map("%02x".format(_)).mkString
+    }
+
+    /** Per-key Redis counter. Returns (allowed, currentCount). Fails open if
+     *  Redis is unreachable — losing the rate limit briefly is acceptable for
+     *  this endpoint (downstream user-exists + validated=false checks bound the
+     *  spam surface; the rate limit is defence-in-depth, not the only gate). */
+    private def checkResendValidationRateLimit(emailLower: String): (Boolean, Long) = {
+      val key = "resend-validation:" + sha256HexLower(emailLower)
+      try {
+        val ttl = Redis.use(code.api.JedisMethod.TTL, key).map(_.toLong)
+        ttl match {
+          case Some(-2) =>
+            Redis.use(code.api.JedisMethod.SET, key, Some(ResendValidationRateLimitWindowSeconds), Some("1"))
+            (true, 1L)
+          case Some(t) if t > 0 =>
+            val cnt = Redis.use(code.api.JedisMethod.INCR, key).map(_.toLong).getOrElse(1L)
+            (cnt <= ResendValidationRateLimit, cnt)
+          case _ =>
+            Redis.use(code.api.JedisMethod.SET, key, Some(ResendValidationRateLimitWindowSeconds), Some("1"))
+            (true, 1L)
+        }
+      } catch {
+        case e: Throwable =>
+          logger.warn(s"createValidationEmail says: rate-limit check failed, failing open: ${e.getMessage}")
+          (true, 0L)
+      }
+    }
+
+    val createValidationEmail: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "users" / "validation-emails" =>
+        EndpointHelpers.executeFutureCreated(req) {
+          implicit val cc: CallContext = req.callContext
+          val rawBody = cc.httpBody.getOrElse("")
+          val standardAck = JSONFactory700.ValidationEmailResponseJsonV700(
+            message = "If an unvalidated account exists for this username and email, a validation email has been sent."
+          )
+          for {
+            posted <- NewStyle.function.tryons(
+              s"$InvalidJsonFormat The Json body should be the ${classOf[JSONFactory700.PostValidationEmailRequestJsonV700].getSimpleName}",
+              400, Some(cc)) {
+              net.liftweb.json.parse(rawBody).extract[JSONFactory700.PostValidationEmailRequestJsonV700]
+            }
+          } yield {
+            val username = Option(posted.username).map(_.trim).getOrElse("")
+            val emailRaw = Option(posted.email).map(_.trim).getOrElse("")
+            val emailLower = emailRaw.toLowerCase
+
+            if (username.isEmpty || emailLower.isEmpty) {
+              logger.info("createValidationEmail says: skipped (empty username or email)")
+            } else {
+              val (allowed, count) = checkResendValidationRateLimit(emailLower)
+              if (!allowed) {
+                logger.info(s"createValidationEmail says: skipped (rate limit exceeded, count=$count, max=$ResendValidationRateLimit per ${ResendValidationRateLimitWindowSeconds}s)")
+              } else {
+                AuthUser.find(
+                  By(AuthUser.username, username),
+                  By(AuthUser.provider, Constant.localIdentityProvider)
+                ) match {
+                  case Full(user) if user.email.get != null
+                                  && user.email.get.toLowerCase == emailLower
+                                  && !user.validated.get =>
+                    val portalUrlBox = APIUtil.getPropsValue("portal_external_url")
+                    val senderAddress = AuthUser.emailFrom
+                    val portalMissing = portalUrlBox.isEmpty || portalUrlBox.exists(_.trim.isEmpty)
+                    val senderIsDefault = senderAddress == "noreply@example.com"
+                    if (portalMissing) {
+                      logger.warn("createValidationEmail says: skipped — portal_external_url not set; cannot build validation link")
+                    } else if (senderIsDefault) {
+                      logger.warn("createValidationEmail says: skipped — mail.users.userinfo.sender.address is still the default 'noreply@example.com' (most SMTP servers will reject this From address)")
+                    } else {
+                      val portalUrl = portalUrlBox.openOr("")
+                      val expiryMinutes = APIUtil.getPropsAsIntValue("email_validation_token_expiry_minutes", 1440)
+                        val claimsSet = new com.nimbusds.jwt.JWTClaimsSet.Builder()
+                          .subject(user.uniqueId.get)
+                          .expirationTime(new java.util.Date(System.currentTimeMillis() + expiryMinutes * 60L * 1000L))
+                          .issueTime(new java.util.Date())
+                          .build()
+                      val jwtToken = code.api.util.CertificateUtil.jwtWithHmacProtection(claimsSet)
+                      val emailLink = portalUrl + "/user-validation?token=" + java.net.URLEncoder.encode(jwtToken, "UTF-8")
+                      val outcome = CommonsEmailWrapper.sendHtmlEmailEither(CommonsEmailWrapper.EmailContent(
+                        from = senderAddress,
+                        to = List(user.email.get),
+                        bcc = AuthUser.bccEmail.toList,
+                        subject = "Sign up confirmation",
+                        textContent = Some(s"Welcome! Please validate your account: $emailLink"),
+                        htmlContent = Some(s"<p>Welcome! Please <a href='$emailLink'>validate your account</a>.</p>")
+                      ))
+                      outcome match {
+                        case Right(msgId) =>
+                          logger.info(s"createValidationEmail says: resent validation email messageId=$msgId")
+                        case Left(e) =>
+                          val (errMsg, _) = classifySmtpException(e)
+                          logger.warn(s"createValidationEmail says: SMTP send failed: $errMsg")
+                      }
+                    }
+                  case Full(_) =>
+                    logger.info("createValidationEmail says: skipped (user already validated or email mismatch)")
+                  case _ =>
+                    logger.info("createValidationEmail says: skipped (no local-provider user with that username)")
+                }
+              }
+            }
+            standardAck
+          }
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(createValidationEmail),
+      "POST",
+      "/users/validation-emails",
+      "Create Validation Email (Resend)",
+      """Create a new account-validation email for a user and send it by email.
+        |The validation link travels only via email; it is NOT returned in the
+        |response.
+        |
+        |This is the recovery endpoint for users who signed up but did not receive
+        |(or lost) the original validation email. The anonymous password-reset
+        |endpoint cannot help them — it filters on `validated=true`, which an
+        |unvalidated user is by definition not.
+        |
+        |No authentication or role is required. The endpoint is self-service: an
+        |unvalidated user cannot authenticate, so any auth requirement would make
+        |the endpoint useless to its intended caller.
+        |
+        |Anti-enumeration: the response is always the same generic acknowledgement,
+        |regardless of whether the user exists, is already validated, the rate
+        |limit was hit, or the SMTP send failed. The only way to find out what
+        |actually happened is the server log.
+        |
+        |Rate-limit: 3 attempts per email per hour (Redis-backed). Over-limit
+        |requests still receive the same 201 acknowledgement.
+        |
+        |The endpoint only operates on users whose provider is the local identity
+        |provider (`local_identity_provider` prop). OIDC / SSO users never have a
+        |validation-email flow and are not eligible.
+        |
+        |The validation token is the same one minted at signup (reuses
+        |`AuthUser.uniqueId`). Multiple resends produce the same link, not
+        |competing tokens — clicking any of the delivered emails works.
+        |
+        |Email configuration (portal_external_url, SMTP, sender address) must be
+        |set up correctly for delivery to succeed. See /status (Email section) and
+        |POST /obp/v7.0.0/management/self-test-emails for diagnostics.
+        |""".stripMargin,
+      JSONFactory700.PostValidationEmailRequestJsonV700(
+        username = "alice",
+        email = "alice@example.com"
+      ),
+      JSONFactory700.validationEmailResponseJsonV700Example,
+      List(InvalidJsonFormat, UnknownError),
+      apiTagUser :: apiTagEmail :: Nil,
+      None,
+      http4sPartialFunction = Some(createValidationEmail)
     )
 
     // ── Organisations ─────────────────────────────────────────────────────────

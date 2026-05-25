@@ -155,6 +155,38 @@ object CommonsEmailWrapper extends MdcLoggable {
     }
   }
 
+  def sendHtmlEmailEither(content: EmailContent): Either[Throwable, String] = {
+    if (isTestMode) Right("test-mode-message-id-" + System.currentTimeMillis())
+    else sendHtmlEmailEither(getDefaultEmailConfig(), content)
+  }
+
+  def sendHtmlEmailEither(config: EmailConfig, content: EmailContent): Either[Throwable, String] = {
+    try {
+      val session = createSession(config)
+      val message = new MimeMessage(session)
+      setCommonHeaders(message, content)
+      val multipart = new MimeMultipart("alternative")
+      content.textContent.foreach { text =>
+        val textPart = new MimeBodyPart()
+        textPart.setText(text, "UTF-8")
+        multipart.addBodyPart(textPart)
+      }
+      content.htmlContent.foreach { html =>
+        val htmlPart = new MimeBodyPart()
+        htmlPart.setContent(html, "text/html; charset=UTF-8")
+        multipart.addBodyPart(htmlPart)
+      }
+      message.setContent(multipart)
+      Transport.send(message)
+      logger.info(s"sendHtmlEmailEither says: sent to=${content.to.mkString(",")} subject='${content.subject}' messageId=${message.getMessageID}")
+      Right(message.getMessageID)
+    } catch {
+      case e: Throwable =>
+        logger.error(s"sendHtmlEmailEither says: failed to send html email: ${e.getMessage}", e)
+        Left(e)
+    }
+  }
+
   def sendHtmlEmail(config: EmailConfig, content: EmailContent): Box[String] = {
     try {
       logger.debug(s"Sending HTML email from ${content.from} to ${content.to.mkString(", ")}")

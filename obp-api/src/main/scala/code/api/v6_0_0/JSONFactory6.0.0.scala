@@ -2003,7 +2003,7 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       user_id: String
   )
 
-  case class ResetPasswordUrlJsonV600(reset_password_url: String)
+  case class ResetPasswordEmailSentJsonV600(status: String, to: String)
 
   case class PostResetPasswordUrlAnonymousJsonV600(
       username: String,
