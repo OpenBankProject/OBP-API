@@ -634,13 +634,27 @@ For local development, [MailHog](https://github.com/mailhog/MailHog) or
 [Mailpit](https://github.com/axllent/mailpit) on port 1025 lets you capture
 outbound mail without configuring a real SMTP server.
 
+### Portal URL (required for validation and reset links)
+
+Signup-validation and password-reset emails embed a link built from
+`portal_external_url`. If this prop is not set, the signup flow silently skips
+the validation email — the user gets a 201 response but no mail. Set it:
+
+```props
+portal_external_url=https://portal.yourdomain.com
+```
+
+OBP-API logs a multi-line WARN block at startup if this prop is missing (or
+blank). It also surfaces on the `/status` page (see below).
+
 ### Sender (From) addresses
 
 Different email types read different sender props. The most important ones:
 
 ```props
 # Used by signup, email validation, password reset (AuthUser.emailFrom)
-# Default: noreply@example.com
+# Default: noreply@example.com — most SMTP servers will reject this because of
+# SPF/DKIM/anti-spoof, so change it before going live.
 mail.users.userinfo.sender.address=noreply@yourdomain.com
 
 # Used by role-grant notifications (no default — required for those emails)
@@ -657,6 +671,37 @@ Set `mail.test.mode=true` to log every would-be email at INFO level instead of
 sending it over SMTP. Useful in CI and for local development without a mail
 catcher. When this is on, no SMTP connection is attempted.
 
+### Startup configuration check
+
+On boot, OBP-API logs a WARN block if either:
+
+- `portal_external_url` is unset or blank, or
+- `mail.users.userinfo.sender.address` is still the default `noreply@example.com`.
+
+Both conditions cause validation / password-reset emails to be silently skipped
+or rejected downstream. The WARN block names the prop and points the operator
+at `POST /obp/v7.0.0/management/self-test-emails` for end-to-end verification.
+
+### Status page (`/status`)
+
+`GET /status` (HTML at the URL, JSON when `Accept: application/json`) includes
+two email-related rows under an "Email" section:
+
+- **`config`** — `ok` if `portal_external_url` is set and the sender address is
+  non-default; `warn` (with a one-line reason) otherwise.
+- **`smtp`** — `ok` if a TCP connect to `mail.smtp.host:mail.smtp.port` succeeds
+  AND the server returns a `220` greeting within 2 s; `fail` otherwise (with
+  the exception class + message, e.g. `ConnectException: Connection refused`).
+
+The SMTP probe result is cached for 60 s so frequent `/status` pollers
+(Prometheus blackbox, k8s probes) don't open a TCP connection on every request.
+Neither row flips the overall readiness flag — email is a soft dependency, so a
+broken SMTP won't make K8s kill the pod.
+
+The probe only reads the SMTP greeting banner. It does not exercise STARTTLS or
+AUTH, so a server that requires TLS + credentials and would reject a real send
+can still show `smtp: ok` here. The self-test endpoint exercises that full path.
+
 ### Self-test endpoint
 
 There is a v7.0.0 admin endpoint to verify SMTP delivery end-to-end:
@@ -670,8 +715,26 @@ POST /obp/v7.0.0/management/self-test-emails
   parameter — eliminates "spam anyone else" as a DoS surface)
 - From address: same as signup / password-reset emails (`AuthUser.emailFrom` →
   prop `mail.users.userinfo.sender.address`)
-- Returns 201 with `{ to, from, subject, message_id }` on success
-- Returns 500 with `OBP-30340: Failed to send email` if the SMTP send threw
+- The body of the email includes the resolved `portal_external_url` so the
+  admin can confirm visually what users will see in real validation / reset
+  emails.
+- Returns 201 with `{ to, from, subject, message_id }` on success.
+
+If the email cannot be sent, returns 500 with the most specific OBP error code
+for the underlying cause. The exception chain (class name + message) is always
+appended after `Detail:` so the operator can diagnose without server logs:
+
+| Failure | Status | Code |
+|---|---|---|
+| Caller has no email address | 400 | `OBP-30339 UserEmailAddressMissing` |
+| `portal_external_url` unset | 500 | `OBP-10056 IncompleteServerConfiguration` |
+| `mail.users.userinfo.sender.address` is default | 500 | `OBP-10056 IncompleteServerConfiguration` |
+| SMTP rejected credentials | 500 | `OBP-30341 SmtpAuthenticationFailed` |
+| TCP connect / host unreachable / timeout / DNS fail | 500 | `OBP-30342 SmtpConnectionFailed` |
+| TLS / SSL handshake fail | 500 | `OBP-30343 SmtpTlsHandshakeFailed` |
+| Recipient / From / message rejected by server | 500 | `OBP-30344 SmtpRecipientRejected` |
+| Other Jakarta Mail protocol error | 500 | `OBP-30345 SmtpProtocolError` |
+| Truly unknown | 500 | `OBP-30340 EmailSendingFailed` (fallback) |
 
 Use this from APIManager (or a `curl` with appropriate auth headers) to confirm
 that signup / password-reset emails will be deliverable on this instance,
@@ -686,10 +749,12 @@ sendTextEmail says: sent to=alice@example.com subject='OBP test email from ...' 
 sendHtmlEmail says: sent to=alice@example.com subject='Sign up confirmation' messageId=<...@smtp...>
 ```
 
-Failures are logged at ERROR level with the exception stack trace. Callers
-generally treat send failures as fire-and-forget (the user request still
-succeeds), so the log line is the authoritative record that an email did or did
-not leave the JVM.
+Failures are logged at ERROR level with the exception stack trace. The signup
+and anonymous password-reset flows currently treat send failures as
+fire-and-forget (the user request still succeeds with a 201), so the log line
+is the authoritative record that an email did or did not leave the JVM. The
+self-test endpoint above is the operator's complement for confirming the SMTP
+path works at all.
 
 ### SMTP-level debugging
 
