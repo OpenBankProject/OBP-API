@@ -121,6 +121,7 @@ object CommonsEmailWrapper extends MdcLoggable {
       setCommonHeaders(message, content)
       message.setText(content.textContent.getOrElse(""), "UTF-8")
       Transport.send(message)
+      logger.info(s"sendTextEmail says: sent to=${content.to.mkString(",")} subject='${content.subject}' messageId=${message.getMessageID}")
       Full(message.getMessageID)
     } catch {
       case e: Exception =>
@@ -150,6 +151,7 @@ object CommonsEmailWrapper extends MdcLoggable {
       }
       message.setContent(multipart)
       Transport.send(message)
+      logger.info(s"sendHtmlEmail says: sent to=${content.to.mkString(",")} subject='${content.subject}' messageId=${message.getMessageID}")
       Full(message.getMessageID)
     } catch {
       case e: Exception =>
@@ -196,6 +198,7 @@ object CommonsEmailWrapper extends MdcLoggable {
       }
       message.setContent(multipart)
       Transport.send(message)
+      logger.info(s"sendEmailWithAttachments says: sent to=${content.to.mkString(",")} subject='${content.subject}' messageId=${message.getMessageID} attachments=${content.attachments.length}")
       Full(message.getMessageID)
     } catch {
       case e: Exception =>
