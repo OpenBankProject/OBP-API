@@ -104,6 +104,7 @@ object ApiTag {
   val apiTagCounterpartyLimits = ResourceDocTag("Counterparty-Limits")
   val apiTagDevOps = ResourceDocTag("DevOps")
   val apiTagSystem = ResourceDocTag("System")
+  val apiTagEmail = ResourceDocTag("Email")
   val apiTagCache = ResourceDocTag("Cache")
   val apiTagLogCache = ResourceDocTag("Log-Cache")
   val apiTagTrading = ResourceDocTag("Trading")

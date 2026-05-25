@@ -7,7 +7,9 @@ import code.api.Constant._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil.{EmptyBody, _}
 import code.api.util.{APIUtil, ApiRole, CallContext, CustomJsonFormats, Glossary, NewStyle}
-import code.api.util.ApiRole.{canCreateEntitlementAtAnyBank, canCreateEntitlementAtOneBank, canCreateOrganisation, canCreateRoutingScheme, canDeleteEntitlementAtAnyBank, canDeleteOrganisation, canDeleteRoutingScheme, canGetAccountAccessTrace, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetConnectorHealth, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMigrations, canUpdateBankSupportedRoutingScheme, canUpdateOrganisation, canUpdateRoutingScheme, canUpdateSystemView}
+import code.api.util.ApiRole.{canCreateEntitlementAtAnyBank, canCreateEntitlementAtOneBank, canCreateOrganisation, canCreateRoutingScheme, canCreateTestEmail, canDeleteEntitlementAtAnyBank, canDeleteOrganisation, canDeleteRoutingScheme, canGetAccountAccessTrace, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetConnectorHealth, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMigrations, canUpdateBankSupportedRoutingScheme, canUpdateOrganisation, canUpdateRoutingScheme, canUpdateSystemView}
+import code.api.util.CommonsEmailWrapper
+import code.model.dataAccess.AuthUser
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.http4s.{ErrorResponseConverter, Http4sRequestAttributes, IdempotencyMiddleware, RequestScopeConnection, ResourceDocMiddleware, ResourceDocMatcher}
@@ -2376,6 +2378,161 @@ object Http4s700 {
     )
 
     // ── End Phase 1 batch 3 ──────────────────────────────────────────────────
+
+    // ── Test email (self) ─────────────────────────────────────────────────────
+    // POST /management/self-test-emails — send a test email to the authenticated
+    // user's own address. Useful for admins to verify SMTP configuration (host,
+    // port, TLS, credentials, sender address) end-to-end without needing a
+    // real-world trigger such as signup or password reset.
+    //
+    // Recipient is always the caller's emailAddress (not a body parameter): keeps
+    // the DoS surface to "spam yourself", and the role gate (canCreateTestEmail)
+    // restricts it further to trusted operators.
+
+    case class TestEmailResponseJsonV700(
+      to: String,
+      from: String,
+      subject: String,
+      message_id: String
+    )
+
+    val createTestEmail: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "management" / "self-test-emails" =>
+        EndpointHelpers.executeFutureCreated(req) {
+          implicit val cc: CallContext = req.callContext
+          val user = cc.user.openOrThrowException(AuthenticatedUserIsRequired)
+          val toAddress = Option(user.emailAddress).getOrElse("")
+          val fromAddress = AuthUser.emailFrom
+          val portalUrlBox = APIUtil.getPropsValue("portal_external_url")
+          val subject = s"OBP test email from ${Constant.HostName}"
+          val body =
+            s"""Hello ${user.name},
+               |
+               |This is a test email sent from ${Constant.HostName} at ${java.time.Instant.now()}.
+               |
+               |If you received this, SMTP delivery from the OBP API server is working.
+               |
+               |Validation and password-reset links sent to users are built from:
+               |  portal_external_url = ${portalUrlBox.getOrElse("(unset)")}
+               |
+               |Triggered by: ${user.userId}
+               |""".stripMargin
+          for {
+            _ <- Helper.booleanToFuture(UserEmailAddressMissing, 400, Some(cc)) {
+              toAddress.nonEmpty
+            }
+            _ <- Helper.booleanToFuture(
+              s"$IncompleteServerConfiguration portal_external_url is not set — signup-validation and password-reset emails will not be delivered.",
+              500, Some(cc)) {
+              portalUrlBox.isDefined
+            }
+            _ <- Helper.booleanToFuture(
+              s"$IncompleteServerConfiguration mail.users.userinfo.sender.address is still the default 'noreply@example.com' — most SMTP servers will reject this From address.",
+              500, Some(cc)) {
+              fromAddress != "noreply@example.com"
+            }
+            sendOutcome <- Future {
+              CommonsEmailWrapper.sendTextEmailEither(
+                CommonsEmailWrapper.EmailContent(
+                  from = fromAddress,
+                  to = List(toAddress),
+                  subject = subject,
+                  textContent = Some(body)
+                )
+              )
+            }
+            messageId <- sendOutcome match {
+              case Right(id) => Future.successful(id)
+              case Left(e) =>
+                val (errMsg, status) = classifySmtpException(e)
+                Helper.booleanToFuture(errMsg, status, Some(cc)) { false }.map(_ => "")
+            }
+          } yield TestEmailResponseJsonV700(
+            to = toAddress,
+            from = fromAddress,
+            subject = subject,
+            message_id = messageId
+          )
+        }
+    }
+
+    // Walk the exception chain and map the most specific known cause to a
+    // dedicated OBP error code. Falls back to EmailSendingFailed for genuinely
+    // unknown failures. Always appends the exception chain detail so the
+    // operator sees the underlying server message (e.g. SMTP 535 from auth).
+    private def classifySmtpException(e: Throwable): (String, Int) = {
+      val chain = Iterator.iterate(e: Throwable)(_.getCause).takeWhile(_ != null).toList
+      val detail = chain
+        .map(t => s"${t.getClass.getSimpleName}: ${Option(t.getMessage).getOrElse("").take(200)}")
+        .mkString(" -> ")
+      val baseMsg = chain.collectFirst {
+        case _: jakarta.mail.AuthenticationFailedException => SmtpAuthenticationFailed
+        case _: jakarta.mail.SendFailedException           => SmtpRecipientRejected
+        case _: javax.net.ssl.SSLException                 => SmtpTlsHandshakeFailed
+        case _: java.net.UnknownHostException              => SmtpConnectionFailed
+        case _: java.net.ConnectException                  => SmtpConnectionFailed
+        case _: java.net.SocketTimeoutException            => SmtpConnectionFailed
+        case _: jakarta.mail.MessagingException            => SmtpProtocolError
+      }.getOrElse(EmailSendingFailed)
+      (s"$baseMsg Detail: $detail", 500)
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(createTestEmail),
+      "POST",
+      "/management/self-test-emails",
+      "Send Self Test Email",
+      """Send a test email to the authenticated user's own email address.
+        |
+        |Useful for admins to verify that emails sent during user signup, email
+        |validation and password reset can actually be delivered. This endpoint uses
+        |the same From address and the same SMTP path as those flows, so a successful
+        |result here is a strong signal that those flows will work too.
+        |
+        |The From address comes from `AuthUser.emailFrom`, which reads the property
+        |`mail.users.userinfo.sender.address`. The endpoint fails with 500 if this
+        |is still the default `noreply@example.com`, because most SMTP servers will
+        |reject that From address.
+        |
+        |The endpoint also fails with 500 if `portal_external_url` is not set,
+        |because that property is required to build the links embedded in
+        |signup-validation and password-reset emails. Without it, those flows
+        |silently skip sending. The configured value (or `(unset)`) is included
+        |in the body of the test email so the admin can confirm visually.
+        |
+        |The recipient is always the caller's own email address — there is no `to`
+        |parameter. The role `CanCreateTestEmail` is required.
+        |
+        |Returns the recipient, sender, subject and the message-id assigned by the
+        |SMTP server. If the email cannot be sent, returns 500 with the most
+        |specific OBP error code for the underlying cause:
+        |
+        |- `$SmtpAuthenticationFailed` — credentials rejected by the SMTP server
+        |- `$SmtpConnectionFailed` — TCP connect failed (host unreachable, port closed, timeout, DNS resolution failure)
+        |- `$SmtpTlsHandshakeFailed` — STARTTLS/SSL handshake failed (protocol mismatch, untrusted certificate)
+        |- `$SmtpRecipientRejected` — server accepted the connection but rejected the recipient, message, or From address
+        |- `$SmtpProtocolError` — other Jakarta Mail protocol-level error
+        |- `$EmailSendingFailed` — fallback when the underlying cause does not match any of the above
+        |
+        |In all cases the underlying exception chain (class name and message) is
+        |appended after `Detail:` so the operator can diagnose without server logs.
+        |""".stripMargin,
+      EmptyBody,
+      TestEmailResponseJsonV700(
+        to = "alice@example.com",
+        from = "noreply@openbankproject.com",
+        subject = "OBP test email from openbankproject.com",
+        message_id = "<abc123@smtp.example.com>"
+      ),
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UserEmailAddressMissing, IncompleteServerConfiguration,
+           SmtpAuthenticationFailed, SmtpConnectionFailed, SmtpTlsHandshakeFailed, SmtpRecipientRejected, SmtpProtocolError,
+           EmailSendingFailed, UnknownError),
+      apiTagEmail :: apiTagSystem :: Nil,
+      Some(List(canCreateTestEmail)),
+      http4sPartialFunction = Some(createTestEmail)
+    )
 
     // ── Organisations ─────────────────────────────────────────────────────────
     // CRUD for the Organisation resource. Migrated from v6.0.0 (Lift) to v7.0.0

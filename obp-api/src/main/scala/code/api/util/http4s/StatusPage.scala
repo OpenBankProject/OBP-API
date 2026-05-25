@@ -4,7 +4,7 @@ import java.lang.management.ManagementFactory
 
 import cats.effect.IO
 import code.api.cache.Redis
-import code.api.util.DoobieUtil
+import code.api.util.{APIUtil, DoobieUtil}
 import code.util.Helper.MdcLoggable
 import doobie._
 import doobie.implicits._
@@ -39,8 +39,76 @@ object StatusPage extends MdcLoggable {
       }
     }
 
-  private case class Checks(database: String, redis: String) {
+  private case class EmailChecks(
+    config: String,        // "ok" / "warn"
+    configDetail: String,  // human-readable reason when "warn", empty otherwise
+    smtp: String,          // "ok" / "fail"
+    smtpDetail: String     // host:port that was probed, plus error message on fail
+  )
+
+  private case class Checks(database: String, redis: String, email: EmailChecks) {
+    // Email is a soft dependency — config/smtp warnings do NOT flip overall to 503.
     def allOk: Boolean = database == "ok" && redis == "ok"
+  }
+
+  // SMTP probe is the only expensive bit. Cache it for 60s so frequent /status
+  // pollers (Prometheus blackbox, k8s probes) don't hammer the mail server with
+  // a TCP connect on every request. Config checks are essentially free so we
+  // recompute them each time.
+  private val SmtpCacheTtlMillis = 60000L
+  private val smtpCache: java.util.concurrent.atomic.AtomicReference[(Long, String, String)] =
+    new java.util.concurrent.atomic.AtomicReference((0L, "", ""))
+
+  private def probeSmtp(): (String, String) = {
+    val host = APIUtil.getPropsValue("mail.smtp.host", "localhost")
+    val port = APIUtil.getPropsAsIntValue("mail.smtp.port", 25)
+    val target = s"$host:$port"
+    try {
+      val socket = new java.net.Socket()
+      try {
+        socket.connect(new java.net.InetSocketAddress(host, port), 2000)
+        socket.setSoTimeout(2000)
+        val in = new java.io.BufferedReader(new java.io.InputStreamReader(socket.getInputStream))
+        val banner = Option(in.readLine()).getOrElse("")
+        if (banner.startsWith("220")) "ok" -> s"$target (banner: ${banner.take(80)})"
+        else "fail" -> s"$target — unexpected greeting: ${banner.take(80)}"
+      } finally socket.close()
+    } catch {
+      case e: Throwable =>
+        logger.warn(s"StatusPage says: smtp check to $target failed: ${e.getMessage}")
+        "fail" -> s"$target — ${e.getClass.getSimpleName}: ${e.getMessage}"
+    }
+  }
+
+  private def cachedSmtpCheck(): (String, String) = {
+    val now = System.currentTimeMillis()
+    val cached = smtpCache.get()
+    if (now - cached._1 < SmtpCacheTtlMillis && cached._2.nonEmpty) {
+      (cached._2, cached._3)
+    } else {
+      val (status, detail) = probeSmtp()
+      smtpCache.set((now, status, detail))
+      (status, detail)
+    }
+  }
+
+  private def runEmailChecks: EmailChecks = {
+    val portalUrl = APIUtil.getPropsValue("portal_external_url")
+    val sender = APIUtil.getPropsValue("mail.users.userinfo.sender.address", "noreply@example.com")
+    val portalMissing = portalUrl.isEmpty || portalUrl.exists(_.trim.isEmpty)
+    val senderIsDefault = sender == "noreply@example.com"
+    val (configStatus, configDetail) =
+      if (portalMissing && senderIsDefault)
+        "warn" -> "portal_external_url not set; mail.users.userinfo.sender.address is default 'noreply@example.com'"
+      else if (portalMissing)
+        "warn" -> "portal_external_url not set — validation/reset emails will be silently skipped"
+      else if (senderIsDefault)
+        "warn" -> "mail.users.userinfo.sender.address is default 'noreply@example.com' — most SMTP servers will reject it"
+      else
+        "ok" -> ""
+
+    val (smtpStatus, smtpDetail) = cachedSmtpCheck()
+    EmailChecks(configStatus, configDetail, smtpStatus, smtpDetail)
   }
 
   private def runChecks: IO[Checks] = IO {
@@ -59,7 +127,12 @@ object StatusPage extends MdcLoggable {
         logger.warn(s"StatusPage says: redis check failed: ${e.getMessage}")
         "fail"
     }
-    Checks(db, redis)
+    val email = try runEmailChecks catch {
+      case e: Throwable =>
+        logger.warn(s"StatusPage says: email checks errored: ${e.getMessage}")
+        EmailChecks("warn", s"email check error: ${e.getMessage}", "fail", "")
+    }
+    Checks(db, redis, email)
   }
 
   val routes: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -76,6 +149,9 @@ object StatusPage extends MdcLoggable {
       Ok("""{"status":"ok"}""").map(_.withContentType(`Content-Type`(MediaType.application.json, Charset.`UTF-8`)))
   }
 
+  private def jsonEscape(s: String): String =
+    s.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t")
+
   private def jsonResponse(checks: Checks): IO[Response[IO]] = {
     val status = if (checks.allOk) "ok" else "degraded"
     val json =
@@ -86,19 +162,34 @@ object StatusPage extends MdcLoggable {
          |  "uptime_seconds": $uptimeSeconds,
          |  "checks": {
          |    "database": "${checks.database}",
-         |    "redis": "${checks.redis}"
+         |    "redis": "${checks.redis}",
+         |    "email": {
+         |      "config": "${checks.email.config}",
+         |      "config_detail": "${jsonEscape(checks.email.configDetail)}",
+         |      "smtp": "${checks.email.smtp}",
+         |      "smtp_detail": "${jsonEscape(checks.email.smtpDetail)}"
+         |    }
          |  }
          |}""".stripMargin
     Ok(json).map(_.withContentType(`Content-Type`(MediaType.application.json, Charset.`UTF-8`)))
   }
 
+  private def htmlEscape(s: String): String =
+    s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;")
+
   private def htmlResponse(checks: Checks): IO[Response[IO]] = {
     val overall = if (checks.allOk) "ok" else "degraded"
     val overallColor = if (checks.allOk) "#2e7d32" else "#c62828"
     def badge(v: String): String = {
-      val color = if (v == "ok") "#2e7d32" else "#c62828"
+      val color = v match {
+        case "ok"   => "#2e7d32"
+        case "warn" => "#ef6c00"
+        case _      => "#c62828"
+      }
       s"""<span style="color: $color; font-weight: bold;">$v</span>"""
     }
+    def detailCell(detail: String): String =
+      if (detail.isEmpty) "" else s"""<div style="color: #666; font-size: 0.85em; margin-top: 4px;">${htmlEscape(detail)}</div>"""
 
     val html =
       s"""<!DOCTYPE html>
@@ -109,8 +200,9 @@ object StatusPage extends MdcLoggable {
          |    body { font-family: sans-serif; max-width: 800px; margin: 40px auto; padding: 0 20px; }
          |    h1 { color: #333; }
          |    h2 { color: #555; margin-top: 30px; }
-         |    table { border-collapse: collapse; }
-         |    th, td { padding: 6px 12px; text-align: left; border-bottom: 1px solid #eee; }
+         |    table { border-collapse: collapse; width: 100%; }
+         |    th, td { padding: 6px 12px; text-align: left; border-bottom: 1px solid #eee; vertical-align: top; }
+         |    th { width: 180px; }
          |  </style>
          |</head>
          |<body>
@@ -127,6 +219,12 @@ object StatusPage extends MdcLoggable {
          |  <table>
          |    <tr><th>database</th><td>${badge(checks.database)}</td></tr>
          |    <tr><th>redis</th><td>${badge(checks.redis)}</td></tr>
+         |  </table>
+         |
+         |  <h2>Email (soft dependency — does not affect overall status)</h2>
+         |  <table>
+         |    <tr><th>config</th><td>${badge(checks.email.config)}${detailCell(checks.email.configDetail)}</td></tr>
+         |    <tr><th>smtp</th><td>${badge(checks.email.smtp)}${detailCell(checks.email.smtpDetail)}</td></tr>
          |  </table>
          |</body>
          |</html>""".stripMargin
