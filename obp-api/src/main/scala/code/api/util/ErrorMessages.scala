@@ -677,6 +677,14 @@ object ErrorMessages {
   val InvalidViewPermissionName = "OBP-30337: The view permission name does not exist in OBP."
   val DeleteViewPermissionError = "OBP-30338: Could not delete the View Permission."
 
+  val UserEmailAddressMissing = "OBP-30339: User does not have an email address set. Cannot send test email."
+  val EmailSendingFailed = "OBP-30340: Failed to send email. Check the server logs and SMTP configuration."
+  val SmtpAuthenticationFailed = "OBP-30341: SMTP authentication failed. Check mail.smtp.user and mail.smtp.password."
+  val SmtpConnectionFailed = "OBP-30342: Could not connect to SMTP server. Check mail.smtp.host, mail.smtp.port and network reachability."
+  val SmtpTlsHandshakeFailed = "OBP-30343: TLS handshake with SMTP server failed. Check mail.smtp.starttls.enable, mail.smtp.ssl.enable and mail.smtp.ssl.protocols."
+  val SmtpRecipientRejected = "OBP-30344: SMTP server rejected the recipient or message. The From address may be unauthorised, the recipient may be invalid, or the message may have failed policy/anti-spam checks."
+  val SmtpProtocolError = "OBP-30345: SMTP protocol error from the mail server."
+
   // Branch related messages
   val BranchesNotFoundLicense = "OBP-32001: No branches available. License may not be set."
   val BranchesNotFound = "OBP-32002: No branches available."
