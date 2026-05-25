@@ -45,15 +45,28 @@ class Http4sLiftBridgeTrafficTest extends FlatSpec with Matchers {
 
   "observe" should "increment on repeated hits and snapshot the totals" in {
     Http4sLiftBridgeTraffic.reset()
-    Http4sLiftBridgeTraffic.observe("GET",  "/obp/v6.0.0/banks/gh.29.uk")
-    Http4sLiftBridgeTraffic.observe("GET",  "/obp/v6.0.0/banks/gh.29.uk")
-    Http4sLiftBridgeTraffic.observe("GET",  "/obp/v6.0.0/banks/some.other.bank")
-    Http4sLiftBridgeTraffic.observe("POST", "/auth/openid-connect/callback")
+    Http4sLiftBridgeTraffic.observe("GET",  "/obp/v6.0.0/banks/gh.29.uk", 200)
+    Http4sLiftBridgeTraffic.observe("GET",  "/obp/v6.0.0/banks/gh.29.uk", 200)
+    Http4sLiftBridgeTraffic.observe("GET",  "/obp/v6.0.0/banks/some.other.bank", 200)
+    Http4sLiftBridgeTraffic.observe("POST", "/auth/openid-connect/callback", 200)
     val snap = Http4sLiftBridgeTraffic.snapshot()
-    snap("GET /obp/v6.0.0/banks/{id}") shouldBe 3L
-    snap("POST /auth/openid-connect/callback") shouldBe 1L
+    snap("GET /obp/v6.0.0/banks/{id} 200") shouldBe 3L
+    snap("POST /auth/openid-connect/callback 200") shouldBe 1L
     snap.size shouldBe 2
     Http4sLiftBridgeTraffic.reset()
     Http4sLiftBridgeTraffic.snapshot() shouldBe empty
+  }
+
+  it should "key separately on status — 200 and 404 don't collide" in {
+    Http4sLiftBridgeTraffic.reset()
+    // Same method + bucket but different statuses → two separate entries.
+    // This is what surfaces test-probe 404s vs real Lift work in the audit.
+    Http4sLiftBridgeTraffic.observe("DELETE", "/obp/v4.0.0/banks/gh.29.uk/accounts", 200)
+    Http4sLiftBridgeTraffic.observe("DELETE", "/obp/v4.0.0/banks/gh.29.uk/accounts", 404)
+    Http4sLiftBridgeTraffic.observe("DELETE", "/obp/v4.0.0/banks/de.bank.io/accounts", 404)
+    val snap = Http4sLiftBridgeTraffic.snapshot()
+    snap("DELETE /obp/v4.0.0/banks/{id}/accounts 200") shouldBe 1L
+    snap("DELETE /obp/v4.0.0/banks/{id}/accounts 404") shouldBe 2L
+    snap.size shouldBe 2
   }
 }
