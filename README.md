@@ -608,6 +608,111 @@ There are 3 API endpoints related to webhooks:
 
 ---
 
+## Email Delivery
+
+OBP-API sends emails for several reasons: signup confirmation, email-address
+validation, password reset, user invitations, role-grant notifications, SCA
+(Strong Customer Authentication) challenges over email, and uncaught-exception
+alerts to admins. All of these go through a single Jakarta Mail wrapper
+(`code.api.util.CommonsEmailWrapper`).
+
+### SMTP configuration
+
+Set these props (defaults shown):
+
+```props
+mail.smtp.host=localhost
+mail.smtp.port=1025
+mail.smtp.user=
+mail.smtp.password=
+mail.smtp.starttls.enable=false
+mail.smtp.ssl.enable=false
+mail.smtp.ssl.protocols=TLSv1.2
+```
+
+For local development, [MailHog](https://github.com/mailhog/MailHog) or
+[Mailpit](https://github.com/axllent/mailpit) on port 1025 lets you capture
+outbound mail without configuring a real SMTP server.
+
+### Sender (From) addresses
+
+Different email types read different sender props. The most important ones:
+
+```props
+# Used by signup, email validation, password reset (AuthUser.emailFrom)
+# Default: noreply@example.com
+mail.users.userinfo.sender.address=noreply@yourdomain.com
+
+# Used by role-grant notifications (no default — required for those emails)
+mail.api.consumer.registered.sender.address=noreply@yourdomain.com
+
+# Used by uncaught-exception alerts
+mail.exception.sender.address=alerts@yourdomain.com
+mail.exception.registered.notification.addresses=ops@yourdomain.com,oncall@yourdomain.com
+```
+
+### Test mode (no SMTP needed)
+
+Set `mail.test.mode=true` to log every would-be email at INFO level instead of
+sending it over SMTP. Useful in CI and for local development without a mail
+catcher. When this is on, no SMTP connection is attempted.
+
+### Self-test endpoint
+
+There is a v7.0.0 admin endpoint to verify SMTP delivery end-to-end:
+
+```
+POST /obp/v7.0.0/management/self-test-emails
+```
+
+- Role required: `CanCreateTestEmail`
+- Recipient: always the authenticated user's own email address (no `to`
+  parameter — eliminates "spam anyone else" as a DoS surface)
+- From address: same as signup / password-reset emails (`AuthUser.emailFrom` →
+  prop `mail.users.userinfo.sender.address`)
+- Returns 201 with `{ to, from, subject, message_id }` on success
+- Returns 500 with `OBP-30340: Failed to send email` if the SMTP send threw
+
+Use this from APIManager (or a `curl` with appropriate auth headers) to confirm
+that signup / password-reset emails will be deliverable on this instance,
+without needing to create a real account or trigger a real reset.
+
+### Logging
+
+Every successful send is logged at INFO level by `CommonsEmailWrapper`:
+
+```
+sendTextEmail says: sent to=alice@example.com subject='OBP test email from ...' messageId=<...@smtp...>
+sendHtmlEmail says: sent to=alice@example.com subject='Sign up confirmation' messageId=<...@smtp...>
+```
+
+Failures are logged at ERROR level with the exception stack trace. Callers
+generally treat send failures as fire-and-forget (the user request still
+succeeds), so the log line is the authoritative record that an email did or did
+not leave the JVM.
+
+### SMTP-level debugging
+
+For diagnosing SMTP handshake failures, authentication issues, or message
+rejections, set:
+
+```props
+mail.debug=true
+```
+
+This enables Jakarta Mail's debug stream, which writes the entire SMTP protocol
+conversation — EHLO, STARTTLS, AUTH, MAIL FROM, RCPT TO, DATA, every server
+response, and the full message body — to `System.out`.
+
+**Security warning:** With debug on, the `AUTH LOGIN` exchange includes the
+base64-encoded SMTP username and password, and the message body includes any
+password-reset links, validation JWT tokens, and SCA OTP codes in plain text.
+Anyone with stdout access (operators, log aggregators, kubectl logs, CI
+artifacts) can read these. Use `mail.debug=true` only on developer laptops
+pointed at a local mail catcher — never on a shared or production environment.
+
+---
+
 ## OpenID Connect
 
 **Note:** OpenID Connect authentication is supported for API authentication. Portal login functionality has been moved to the separate [OBP-Portal](https://github.com/OpenBankProject/OBP-Portal) project.

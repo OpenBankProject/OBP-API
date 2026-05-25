@@ -130,6 +130,31 @@ object CommonsEmailWrapper extends MdcLoggable {
     }
   }
 
+  // Variant that preserves the exception so callers can classify SMTP failures
+  // (auth / connect / TLS / recipient rejection) instead of returning a generic
+  // EmailSendingFailed. Used by the self-test endpoint; existing fire-and-forget
+  // callers (signup, password reset) keep using sendTextEmail above.
+  def sendTextEmailEither(content: EmailContent): Either[Throwable, String] = {
+    if (isTestMode) Right("test-mode-message-id-" + System.currentTimeMillis())
+    else sendTextEmailEither(getDefaultEmailConfig(), content)
+  }
+
+  def sendTextEmailEither(config: EmailConfig, content: EmailContent): Either[Throwable, String] = {
+    try {
+      val session = createSession(config)
+      val message = new MimeMessage(session)
+      setCommonHeaders(message, content)
+      message.setText(content.textContent.getOrElse(""), "UTF-8")
+      Transport.send(message)
+      logger.info(s"sendTextEmailEither says: sent to=${content.to.mkString(",")} subject='${content.subject}' messageId=${message.getMessageID}")
+      Right(message.getMessageID)
+    } catch {
+      case e: Throwable =>
+        logger.error(s"sendTextEmailEither says: failed to send text email: ${e.getMessage}", e)
+        Left(e)
+    }
+  }
+
   def sendHtmlEmail(config: EmailConfig, content: EmailContent): Box[String] = {
     try {
       logger.debug(s"Sending HTML email from ${content.from} to ${content.to.mkString(", ")}")
