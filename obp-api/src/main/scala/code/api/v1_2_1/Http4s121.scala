@@ -1315,7 +1315,10 @@ object Http4s121 {
     resourceDocs += ResourceDoc(
       null, implementedInApiVersion, nameOf(addCounterpartyMoreInfo), "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/more_info",
-      "Add Counterparty More Info", "Add a description of the counter party from the perpestive of the account e.g. My dentist",
+      "Add Counterparty More Info",
+      // Intentional drift from Lift's APIMethods121.scala source-of-truth:
+      // typo fixes "counter party" → "counterparty" and "perpestive" → "perspective".
+      "Add a description of the counterparty from the perspective of the account e.g. My dentist",
       moreInfoJSON, successMessage,
       List(
         AuthenticatedUserIsRequired,
@@ -1350,7 +1353,10 @@ object Http4s121 {
     resourceDocs += ResourceDoc(
       null, implementedInApiVersion, nameOf(updateCounterpartyMoreInfo), "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/more_info",
-      "Update Counterparty More Info", "Update the more info description of the counter party from the perpestive of the account e.g. My dentist",
+      "Update Counterparty More Info",
+      // Intentional drift from Lift's APIMethods121.scala source-of-truth:
+      // typo fixes "counter party" → "counterparty" and "perpestive" → "perspective".
+      "Update the more info description of the counterparty from the perspective of the account e.g. My dentist",
       moreInfoJSON, successMessage,
       List(AuthenticatedUserIsRequired, BankAccountNotFound, InvalidJsonFormat, "the view does not allow metadata access", "the view does not allow updating more info", "More Info cannot be updated", UnknownError),
       List(apiTagCounterpartyMetaData, apiTagCounterparty),

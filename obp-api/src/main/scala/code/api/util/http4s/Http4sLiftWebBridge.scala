@@ -11,14 +11,165 @@ import net.liftweb.common._
 import net.liftweb.http._
 import net.liftweb.http.provider._
 import org.http4s._
+import org.http4s.dsl.io._
+import org.http4s.headers.`Content-Type`
 import org.typelevel.ci.CIString
 
 import java.io.{ByteArrayInputStream, ByteArrayOutputStream, InputStream}
 import java.time.format.DateTimeFormatter
 import java.time.{ZoneOffset, ZonedDateTime}
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicLong
 import java.util.{Locale, UUID}
 import scala.collection.JavaConverters._
+
+/**
+ * In-memory tally of which requests reach the Lift fallback bridge.
+ *
+ * Goal: data-driven prioritisation of remaining migration work. Every request
+ * that lands here means no http4s handler claimed it. Once an audit run shows
+ * which (method, path-bucket) pairs still hit the bridge, those buckets become
+ * the next migration targets. When the map is empty for a representative
+ * traffic window, the bridge can be retired.
+ *
+ * Path-bucket normalisation collapses common ID segments (long opaque tokens,
+ * UUIDs, numbers, version segments) so we don't fill the map with one entry
+ * per real-world ID value. The exact form of each bucket is logged the first
+ * time it is observed.
+ */
+object Http4sLiftBridgeTraffic extends MdcLoggable {
+  private val counts: ConcurrentHashMap[String, AtomicLong] = new ConcurrentHashMap()
+  private val UUID_RE = "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$".r
+  private val VERSION_RE = "^v\\d+(_\\d+){2}$|^v\\d+(\\.\\d+){2}$".r
+  private val NUMERIC_RE = "^\\d+$".r
+
+  /** Buckets that look like opaque IDs:
+    *   1. Plain UUID                                              → {uuid}
+    *   2. All-digits                                              → {n}
+    *   3. Contains a `.` (e.g. `gh.29.uk`, `some.bank.io`, `127.0.0.1`) → {id}
+    *      (API-version strings like `v6.0.0` are caught earlier and kept.)
+    *   4. Long-ish (≥ 12 chars) AND contains both letters & digits    → {id}
+    *
+    * Keeps short path keywords like `openid-connect`, `callback-1`,
+    * `BANK_ID`, `accounts`, `views`.
+    */
+  private def bucketSegment(seg: String): String = {
+    if (seg.isEmpty) return seg
+    if (VERSION_RE.findFirstIn(seg).isDefined) return seg
+    if (UUID_RE.findFirstIn(seg).isDefined) return "{uuid}"
+    if (NUMERIC_RE.findFirstIn(seg).isDefined) return "{n}"
+    if (seg.contains('.')) return "{id}"
+    val hasDigit = seg.exists(_.isDigit)
+    val hasLetter = seg.exists(_.isLetter)
+    if (seg.length >= 12 && hasDigit && hasLetter) return "{id}"
+    seg
+  }
+
+  def bucket(path: String): String =
+    "/" + path.split('/').filter(_.nonEmpty).map(bucketSegment).mkString("/")
+
+  /** Record one bridge dispatch with its outcome. Key is `METHOD BUCKET STATUS`
+    * so the snapshot can distinguish:
+    *   - real Lift handler work (2xx/3xx/5xx) — actual migration targets
+    *   - 404 fall-throughs — test code probing for non-existent endpoints, or
+    *     stale callers; not migration work
+    */
+  def observe(method: String, path: String, status: Int): Unit = {
+    val key = s"$method ${bucket(path)} $status"
+    val prev = counts.putIfAbsent(key, new AtomicLong(1L))
+    if (prev == null) {
+      logger.info(s"[BRIDGE-AUDIT] first hit: $key   (original path: $path)")
+    } else {
+      prev.incrementAndGet()
+    }
+  }
+
+  /** Snapshot of (`METHOD BUCKET STATUS` → hit-count). */
+  def snapshot(): Map[String, Long] =
+    counts.asScala.toMap.map { case (k, v) => k -> v.get() }
+
+  /** Wipe the in-memory tally. Mostly for tests / a manual reset after a baseline. */
+  def reset(): Unit = counts.clear()
+
+  /** Split the key string `METHOD BUCKET STATUS` back into its parts. */
+  private def splitKey(key: String): (String, String, Int) = {
+    // method is everything before the first space; status is the trailing int;
+    // bucket is the middle.
+    val firstSp = key.indexOf(' ')
+    val lastSp  = key.lastIndexOf(' ')
+    if (firstSp <= 0 || lastSp <= firstSp) ("?", key, 0)
+    else {
+      val method = key.substring(0, firstSp)
+      val statusStr = key.substring(lastSp + 1)
+      val status = try statusStr.toInt catch { case _: Throwable => 0 }
+      val bucketStr = key.substring(firstSp + 1, lastSp)
+      (method, bucketStr, status)
+    }
+  }
+
+  /** Admin route: `GET /admin/lift-bridge-traffic` returns the snapshot as JSON,
+    * grouped by `real_work` (non-404) vs `not_found` (404s — test probes /
+    * stale URLs / dead links). Entries inside each group are sorted by hit
+    * count desc.
+    *
+    * Wired into Http4sApp's baseServices ahead of the per-version routes so
+    * the admin path can't be shadowed.
+    */
+  val routes: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    case GET -> Root / "admin" / "lift-bridge-traffic" =>
+      val rows = snapshot().toList.map { case (k, n) =>
+        val (m, b, s) = splitKey(k)
+        (m, b, s, n)
+      }
+      val (notFound, realWork) = rows.partition { case (_, _, s, _) => s == 404 }
+      def renderGroup(group: List[(String, String, Int, Long)]): String =
+        group.sortBy { case (_, _, _, n) => -n }.map { case (m, b, s, n) =>
+          s"""    {"method": ${jsonString(m)}, "bucket": ${jsonString(b)}, "status": $s, "count": $n}"""
+        }.mkString(",\n")
+      val totalUnique = rows.length
+      val totalHits   = rows.map(_._4).sum
+      val realHits    = realWork.map(_._4).sum
+      val notFoundHits = notFound.map(_._4).sum
+      val body =
+        s"""{
+           |  "unique_buckets": $totalUnique,
+           |  "total_hits": $totalHits,
+           |  "summary": {
+           |    "real_work": {"unique_buckets": ${realWork.length}, "total_hits": $realHits},
+           |    "not_found": {"unique_buckets": ${notFound.length}, "total_hits": $notFoundHits}
+           |  },
+           |  "real_work": [
+           |${renderGroup(realWork)}
+           |  ],
+           |  "not_found": [
+           |${renderGroup(notFound)}
+           |  ]
+           |}
+           |""".stripMargin
+      IO.pure(Response[IO]()
+        .withEntity(body.getBytes("UTF-8"))
+        .withHeaders(Headers(`Content-Type`(MediaType.application.json, Charset.`UTF-8`))))
+
+    case POST -> Root / "admin" / "lift-bridge-traffic" / "reset" =>
+      reset()
+      IO.pure(Response[IO]()
+        .withEntity("""{"status":"reset"}""".getBytes("UTF-8"))
+        .withHeaders(Headers(`Content-Type`(MediaType.application.json, Charset.`UTF-8`))))
+  }
+
+  private def jsonString(s: String): String = {
+    val esc = s.flatMap {
+      case '"'  => "\\\""
+      case '\\' => "\\\\"
+      case '\n' => "\\n"
+      case '\r' => "\\r"
+      case '\t' => "\\t"
+      case c if c < 0x20 => f"\\u${c.toInt}%04x"
+      case c    => c.toString
+    }
+    s""""$esc""""
+  }
+}
 
 object Http4sLiftWebBridge extends MdcLoggable {
   type HttpF[A] = OptionT[IO, A]
@@ -67,6 +218,7 @@ object Http4sLiftWebBridge extends MdcLoggable {
     val (effectiveReq, servedVersion) = rewriteIfV700(req)
     val uri    = req.uri.renderString
     val method = req.method.name
+    val originalPath = req.uri.path.renderString
     logger.debug(s"Http4sLiftBridge dispatching: $method $uri, S.inStatefulScope_? = ${S.inStatefulScope_?}")
     val result = for {
       bodyBytes <- effectiveReq.body.compile.to(Array)
@@ -99,11 +251,16 @@ object Http4sLiftWebBridge extends MdcLoggable {
       logger.debug(s"[BRIDGE] Http4sLiftBridge completed: $method $uri -> ${http4sResponse.status.code}")
       logger.debug(s"Http4sLiftBridge completed: $method $uri -> ${http4sResponse.status.code}")
       val baseResp = ensureStandardHeaders(req, http4sResponse)
-      servedVersion.fold(baseResp)(v => baseResp.putHeaders(Header.Raw(CIString("X-OBP-Version-Served"), v)))
+      val finalResp = servedVersion.fold(baseResp)(v => baseResp.putHeaders(Header.Raw(CIString("X-OBP-Version-Served"), v)))
+      // Tally with the response status now known. 404s tell us "test probes /
+      // stale URLs"; non-404s are real Lift work still owned by the bridge.
+      Http4sLiftBridgeTraffic.observe(method, originalPath, finalResp.status.code)
+      finalResp
     }
     result.handleErrorWith { e =>
       logger.error(s"[BRIDGE] Uncaught exception in dispatch: $method $uri - ${e.getMessage}", e)
       val errorBody = s"""{"error":"Internal Server Error","message":"${e.getMessage}"}"""
+      Http4sLiftBridgeTraffic.observe(method, originalPath, 500)
       IO.pure(ensureStandardHeaders(req, Response[IO](
         status = org.http4s.Status.InternalServerError
       ).withEntity(errorBody.getBytes("UTF-8"))
