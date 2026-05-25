@@ -2908,4 +2908,114 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
     }
   }
 
+  // ── POST /obp/v7.0.0/users/validation-emails (anonymous resend) ─────────────
+  // Anti-enumeration design: every reachable response shape is the same 201.
+  // We assert the response shape and (separately, via DB / log inspection if
+  // wanted) that the right server-side branch was taken. Here we just confirm
+  // the contract: 201 + standard message for every input that parses.
+  feature("POST /obp/v7.0.0/users/validation-emails — anonymous resend validation email") {
+
+    val expectedMessage =
+      "If an unvalidated account exists for this username and email, a validation email has been sent."
+
+    scenario("Returns 201 standard message for an unknown user (no enumeration)", Http4s700RoutesTag) {
+      When("we POST a (username, email) pair that does not match any user")
+      val body = """{"username":"definitely-not-a-real-user","email":"nobody@example.com"}"""
+      val (statusCode, json, _) = makeHttpRequestWithBody(
+        "POST", "/obp/v7.0.0/users/validation-emails", body)
+      Then("we get 201 with the standard anti-enumeration message")
+      statusCode shouldBe 201
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") match {
+            case Some(JString(m)) => m shouldBe expectedMessage
+            case _ => fail("Expected message field")
+          }
+        case _ => fail("Expected JSON object")
+      }
+    }
+
+    scenario("Returns 201 standard message for an already-validated user (no enumeration)", Http4s700RoutesTag) {
+      Given("a validated local-provider user")
+      val username = "already-validated-" + System.currentTimeMillis()
+      val email = s"$username@example.com"
+      val u = code.model.dataAccess.AuthUser.create
+        .username(username)
+        .email(email)
+        .provider(code.api.Constant.localIdentityProvider)
+        .password("Aa1!" + java.util.UUID.randomUUID().toString)
+        .validated(true)
+        .saveMe()
+      try {
+        When("we POST the resend request")
+        val body = s"""{"username":"$username","email":"$email"}"""
+        val (statusCode, json, _) = makeHttpRequestWithBody(
+          "POST", "/obp/v7.0.0/users/validation-emails", body)
+        Then("we get the same 201 standard message — caller cannot tell the user exists or is already validated")
+        statusCode shouldBe 201
+        json match {
+          case JObject(fields) =>
+            toFieldMap(fields).get("message") match {
+              case Some(JString(m)) => m shouldBe expectedMessage
+              case _ => fail("Expected message field")
+            }
+          case _ => fail("Expected JSON object")
+        }
+      } finally u.delete_!
+    }
+
+    scenario("Returns 201 standard message for an unvalidated user (mail.test.mode logs the would-be send)", Http4s700RoutesTag) {
+      Given("an unvalidated local-provider user (validation email enabled)")
+      val username = "needs-validation-" + System.currentTimeMillis()
+      val email = s"$username@example.com"
+      val u = code.model.dataAccess.AuthUser.create
+        .username(username)
+        .email(email)
+        .provider(code.api.Constant.localIdentityProvider)
+        .password("Aa1!" + java.util.UUID.randomUUID().toString)
+        .validated(false)
+        .saveMe()
+      try {
+        When("we POST the resend request")
+        val body = s"""{"username":"$username","email":"$email"}"""
+        val (statusCode, json, _) = makeHttpRequestWithBody(
+          "POST", "/obp/v7.0.0/users/validation-emails", body)
+        Then("we get the standard 201 acknowledgement")
+        statusCode shouldBe 201
+        json match {
+          case JObject(fields) =>
+            toFieldMap(fields).get("message") match {
+              case Some(JString(m)) => m shouldBe expectedMessage
+              case _ => fail("Expected message field")
+            }
+          case _ => fail("Expected JSON object")
+        }
+      } finally u.delete_!
+    }
+
+    scenario("Returns 400 InvalidJsonFormat for a malformed body (not anti-enumeration territory)", Http4s700RoutesTag) {
+      When("we POST a body that cannot parse")
+      val (statusCode, _, _) = makeHttpRequestWithBody(
+        "POST", "/obp/v7.0.0/users/validation-emails", "not json at all")
+      Then("we get 400 — body-shape errors are about the request, not user existence, so they don't leak")
+      statusCode shouldBe 400
+    }
+
+    scenario("Returns 201 standard message when username and email are blank (silently no-ops)", Http4s700RoutesTag) {
+      When("we POST empty strings")
+      val (statusCode, json, _) = makeHttpRequestWithBody(
+        "POST", "/obp/v7.0.0/users/validation-emails", """{"username":"","email":""}""")
+      Then("we still get the same 201 message")
+      statusCode shouldBe 201
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") match {
+            case Some(JString(m)) => m shouldBe expectedMessage
+            case _ => fail("Expected message field")
+          }
+        case _ => fail("Expected JSON object")
+      }
+    }
+  }
+
 }

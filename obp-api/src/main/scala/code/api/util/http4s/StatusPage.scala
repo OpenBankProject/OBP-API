@@ -93,15 +93,15 @@ object StatusPage extends MdcLoggable {
   }
 
   private def runEmailChecks: EmailChecks = {
-    val portalUrl = APIUtil.getPropsValue("portal_external_url")
+    val portalUrl = APIUtil.getPortalUrl
     val sender = APIUtil.getPropsValue("mail.users.userinfo.sender.address", "noreply@example.com")
-    val portalMissing = portalUrl.isEmpty || portalUrl.exists(_.trim.isEmpty)
+    val portalMissing = portalUrl.isEmpty
     val senderIsDefault = sender == "noreply@example.com"
     val (configStatus, configDetail) =
       if (portalMissing && senderIsDefault)
-        "warn" -> "portal_external_url not set; mail.users.userinfo.sender.address is default 'noreply@example.com'"
+        "warn" -> "public_obp_portal_url (or legacy portal_external_url) not set; mail.users.userinfo.sender.address is default 'noreply@example.com'"
       else if (portalMissing)
-        "warn" -> "portal_external_url not set — validation/reset emails will be silently skipped"
+        "warn" -> "public_obp_portal_url (or legacy portal_external_url) not set — validation/reset emails will be silently skipped"
       else if (senderIsDefault)
         "warn" -> "mail.users.userinfo.sender.address is default 'noreply@example.com' — most SMTP servers will reject it"
       else
