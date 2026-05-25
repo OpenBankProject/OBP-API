@@ -344,6 +344,31 @@ Track new leftovers here when later version files are migrated — the bridge-re
 
 Things still on Lift that block the `Http4sLiftWebBridge` from being removed. Use this section as the master TODO for the "remove Lift Web" milestone.
 
+### Bridge-traffic audit (data-driven prioritisation)
+
+Every request that reaches `Http4sLiftWebBridge.dispatch` is tallied in-memory by `Http4sLiftBridgeTraffic` so we can see exactly what still needs migrating before the bridge can be retired.
+
+- **First hit of any (method, path-bucket)** is logged at INFO: `[BRIDGE-AUDIT] first hit: METHOD /path/bucket   (original path: /actual/path)`. Subsequent hits only increment an `AtomicLong`.
+- **Snapshot endpoint** — `GET /admin/lift-bridge-traffic` returns the full tally as JSON, sorted by hit count desc:
+  ```json
+  {
+    "unique_buckets": 3,
+    "total_hits": 142,
+    "entries": [
+      {"bucket": "GET /auth/openid-connect/callback", "count": 99},
+      {"bucket": "POST /obp/v6.0.0/banks/{id}/x", "count": 41},
+      {"bucket": "GET /favicon.ico", "count": 2}
+    ]
+  }
+  ```
+- **Reset** — `POST /admin/lift-bridge-traffic/reset` clears the tally (handy for taking a baseline before a load test).
+- **Path normalisation** collapses opaque IDs so the map doesn't fill up: UUIDs → `{uuid}`, all-digits → `{n}`, anything with a dot or 12+-char alnum mixed → `{id}`. API-version strings (`v6.0.0`, `v1_2_1`) are kept verbatim. Unit-tested in `Http4sLiftBridgeTrafficTest`.
+
+Operator playbook for "is the bridge ready to retire?":
+1. Reset the tally on a representative instance.
+2. Let it run through a normal traffic window (e.g. 24h + the daily/weekly jobs).
+3. Query `/admin/lift-bridge-traffic` — every bucket left is either a known leftover (see tables below) or a new migration target.
+
 ### Auth stack — every handler is its own `RestHelper`
 
 | Handler | File | Routes | Status |

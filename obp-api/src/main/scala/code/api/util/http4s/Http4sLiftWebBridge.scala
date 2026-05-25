@@ -11,14 +11,125 @@ import net.liftweb.common._
 import net.liftweb.http._
 import net.liftweb.http.provider._
 import org.http4s._
+import org.http4s.dsl.io._
+import org.http4s.headers.`Content-Type`
 import org.typelevel.ci.CIString
 
 import java.io.{ByteArrayInputStream, ByteArrayOutputStream, InputStream}
 import java.time.format.DateTimeFormatter
 import java.time.{ZoneOffset, ZonedDateTime}
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicLong
 import java.util.{Locale, UUID}
 import scala.collection.JavaConverters._
+
+/**
+ * In-memory tally of which requests reach the Lift fallback bridge.
+ *
+ * Goal: data-driven prioritisation of remaining migration work. Every request
+ * that lands here means no http4s handler claimed it. Once an audit run shows
+ * which (method, path-bucket) pairs still hit the bridge, those buckets become
+ * the next migration targets. When the map is empty for a representative
+ * traffic window, the bridge can be retired.
+ *
+ * Path-bucket normalisation collapses common ID segments (long opaque tokens,
+ * UUIDs, numbers, version segments) so we don't fill the map with one entry
+ * per real-world ID value. The exact form of each bucket is logged the first
+ * time it is observed.
+ */
+object Http4sLiftBridgeTraffic extends MdcLoggable {
+  private val counts: ConcurrentHashMap[String, AtomicLong] = new ConcurrentHashMap()
+  private val UUID_RE = "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$".r
+  private val VERSION_RE = "^v\\d+(_\\d+){2}$|^v\\d+(\\.\\d+){2}$".r
+  private val NUMERIC_RE = "^\\d+$".r
+
+  /** Buckets that look like opaque IDs:
+    *   1. Plain UUID                                              → {uuid}
+    *   2. All-digits                                              → {n}
+    *   3. Contains a `.` (e.g. `gh.29.uk`, `some.bank.io`, `127.0.0.1`) → {id}
+    *      (API-version strings like `v6.0.0` are caught earlier and kept.)
+    *   4. Long-ish (≥ 12 chars) AND contains both letters & digits    → {id}
+    *
+    * Keeps short path keywords like `openid-connect`, `callback-1`,
+    * `BANK_ID`, `accounts`, `views`.
+    */
+  private def bucketSegment(seg: String): String = {
+    if (seg.isEmpty) return seg
+    if (VERSION_RE.findFirstIn(seg).isDefined) return seg
+    if (UUID_RE.findFirstIn(seg).isDefined) return "{uuid}"
+    if (NUMERIC_RE.findFirstIn(seg).isDefined) return "{n}"
+    if (seg.contains('.')) return "{id}"
+    val hasDigit = seg.exists(_.isDigit)
+    val hasLetter = seg.exists(_.isLetter)
+    if (seg.length >= 12 && hasDigit && hasLetter) return "{id}"
+    seg
+  }
+
+  def bucket(path: String): String =
+    "/" + path.split('/').filter(_.nonEmpty).map(bucketSegment).mkString("/")
+
+  def observe(method: String, path: String): Unit = {
+    val key = s"$method ${bucket(path)}"
+    val prev = counts.putIfAbsent(key, new AtomicLong(1L))
+    if (prev == null) {
+      logger.info(s"[BRIDGE-AUDIT] first hit: $key   (original path: $path)")
+    } else {
+      prev.incrementAndGet()
+    }
+  }
+
+  /** Snapshot of (bucket → hit-count). For use by an admin endpoint or tests. */
+  def snapshot(): Map[String, Long] =
+    counts.asScala.toMap.map { case (k, v) => k -> v.get() }
+
+  /** Wipe the in-memory tally. Mostly for tests / a manual reset after a baseline. */
+  def reset(): Unit = counts.clear()
+
+  /** Admin route: `GET /admin/lift-bridge-traffic` returns the snapshot as JSON,
+    * sorted by hit count desc. Intended to be wired into Http4sApp's
+    * baseServices ahead of the Lift fallback so it can be queried at runtime.
+    */
+  val routes: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    case GET -> Root / "admin" / "lift-bridge-traffic" =>
+      val snap = snapshot().toList.sortBy(-_._2)
+      val totalUnique = snap.length
+      val totalHits   = snap.map(_._2).sum
+      val entriesJson = snap.map { case (key, n) =>
+        s"""    {"bucket": ${jsonString(key)}, "count": $n}"""
+      }.mkString(",\n")
+      val body =
+        s"""{
+           |  "unique_buckets": $totalUnique,
+           |  "total_hits": $totalHits,
+           |  "entries": [
+           |$entriesJson
+           |  ]
+           |}
+           |""".stripMargin
+      IO.pure(Response[IO]()
+        .withEntity(body.getBytes("UTF-8"))
+        .withHeaders(Headers(`Content-Type`(MediaType.application.json, Charset.`UTF-8`))))
+
+    case POST -> Root / "admin" / "lift-bridge-traffic" / "reset" =>
+      reset()
+      IO.pure(Response[IO]()
+        .withEntity("""{"status":"reset"}""".getBytes("UTF-8"))
+        .withHeaders(Headers(`Content-Type`(MediaType.application.json, Charset.`UTF-8`))))
+  }
+
+  private def jsonString(s: String): String = {
+    val esc = s.flatMap {
+      case '"'  => "\\\""
+      case '\\' => "\\\\"
+      case '\n' => "\\n"
+      case '\r' => "\\r"
+      case '\t' => "\\t"
+      case c if c < 0x20 => f"\\u${c.toInt}%04x"
+      case c    => c.toString
+    }
+    s""""$esc""""
+  }
+}
 
 object Http4sLiftWebBridge extends MdcLoggable {
   type HttpF[A] = OptionT[IO, A]
@@ -67,6 +178,10 @@ object Http4sLiftWebBridge extends MdcLoggable {
     val (effectiveReq, servedVersion) = rewriteIfV700(req)
     val uri    = req.uri.renderString
     val method = req.method.name
+    // Audit: tally every request that reaches the Lift fallback. The first time
+    // a (method, path-bucket) is observed an INFO log is emitted; subsequent
+    // hits only increment the in-memory counter. See Http4sLiftBridgeTraffic.
+    Http4sLiftBridgeTraffic.observe(method, req.uri.path.renderString)
     logger.debug(s"Http4sLiftBridge dispatching: $method $uri, S.inStatefulScope_? = ${S.inStatefulScope_?}")
     val result = for {
       bodyBytes <- effectiveReq.body.compile.to(Array)
