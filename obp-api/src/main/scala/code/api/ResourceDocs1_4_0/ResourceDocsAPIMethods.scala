@@ -234,11 +234,11 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
 
 
 
-    // TODO constrain version?
-    // strip the leading v
-    def cleanApiVersionString (version: String) : String = {
-      version.stripPrefix("v").stripPrefix("V")
-    }
+//    // TODO constrain version?
+//    // strip the leading v
+//    def cleanApiVersionString (version: String) : String = {
+//      version.stripPrefix("v").stripPrefix("V")
+//    }
 
 
     /**
@@ -371,592 +371,592 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       }
     }
 
-    def getResourceDocsDescription(isBankLevelResourceDoc: Boolean) = {
+//    def getResourceDocsDescription(isBankLevelResourceDoc: Boolean) = {
+//
+//      val endpointBankIdPath = if (isBankLevelResourceDoc) "/banks/BANK_ID" else ""
+//
+//      s"""Get documentation about the RESTful resources on this server including example bodies for POST and PUT requests.
+//         |
+//         |This is the native data format used to document OBP endpoints. Each endpoint has a Resource Doc (a Scala case class) defined in the source code.
+//         |
+//         | This endpoint is used by OBP API Explorer to display and work with the API documentation.
+//         |
+//         | Most (but not all) fields are also available in swagger format. (The Swagger endpoint is built from Resource Docs.)
+//         |
+//         | API_VERSION is the version you want documentation about e.g. v3.0.0
+//         |
+//         | You may filter this endpoint with tags parameter e.g. ?tags=Account,Bank
+//         |
+//         | You may filter this endpoint with functions parameter e.g. ?functions=enableDisableConsumers,getConnectorMetrics
+//         |
+//         | For possible function values, see implemented_by.function in the JSON returned by this endpoint or the OBP source code or the footer of the API Explorer which produces a comma separated list of functions that reflect the server or filtering by API Explorer based on tags etc.
+//         |
+//         | You may filter this endpoint using the 'content' url parameter, e.g. ?content=dynamic
+//         | if set content=dynamic, only show dynamic endpoints, if content=static, only show the static endpoints. if omit this parameter, we will show all the endpoints.
+//         |
+//         | You may need some other language resource docs, now we support en_GB and es_ES at the moment.
+//         |
+//         | You can filter with api-collection-id, but api-collection-id can not be used with others together. If api-collection-id is used in URL, it will ignore all other parameters.
+//         |
+//         |See the Resource Doc endpoint for more information.
+//         |
+//         |Note: Dynamic Resource Docs are cached, TTL is ${GET_DYNAMIC_RESOURCE_DOCS_TTL} seconds
+//         |      Static Resource Docs are cached, TTL is ${GET_STATIC_RESOURCE_DOCS_TTL} seconds
+//         |
+//         |
+//         |Following are more examples:
+//         |${getObpApiRoot}/v4.0.0$endpointBankIdPath/resource-docs/v4.0.0/obp
+//         |${getObpApiRoot}/v4.0.0$endpointBankIdPath/resource-docs/v4.0.0/obp?tags=Account,Bank
+//         |${getObpApiRoot}/v4.0.0$endpointBankIdPath/resource-docs/v4.0.0/obp?functions=getBanks,bankById
+//         |${getObpApiRoot}/v4.0.0$endpointBankIdPath/resource-docs/v4.0.0/obp?locale=es_ES
+//         |${getObpApiRoot}/v4.0.0$endpointBankIdPath/resource-docs/v4.0.0/obp?content=static,dynamic,all
+//         |${getObpApiRoot}/v4.0.0$endpointBankIdPath/resource-docs/v4.0.0/obp?api-collection-id=4e866c86-60c3-4268-a221-cb0bbf1ad221
+//         |
+//         |<ul>
+//         |<li> operation_id is concatenation of "v", version and function and should be unique (used for DOM element IDs etc. maybe used to link to source code) </li>
+//         |<li> version references the version that the API call is defined in.</li>
+//         |<li> function is the (scala) partial function that implements this endpoint. It is unique per version of the API.</li>
+//         |<li> request_url is empty for the root call, else the path. It contains the standard prefix (e.g. /obp) and the implemented version (the version where this endpoint was defined) e.g. /obp/v1.2.0/resource</li>
+//         |<li> specified_url (recommended to use) is empty for the root call, else the path. It contains the standard prefix (e.g. /obp) and the version specified in the call e.g. /obp/v3.1.0/resource. In OBP, endpoints are first made available at the request_url, but the same resource (function call) is often made available under later versions (specified_url). To access the latest version of all endpoints use the latest version available on your OBP instance e.g. /obp/v3.1.0 - To get the original version use the request_url. We recommend to use the specified_url since non semantic improvements are more likely to be applied to later implementations of the call.</li>
+//         |<li> summary is a short description inline with the swagger terminology. </li>
+//         |<li> description may contain html markup (generated from markdown on the server).</li>
+//         |</ul>
+//      """
+//    }
+//
+//
+//    localResourceDocs += ResourceDoc(
+//      getResourceDocsObp,
+//      implementedInApiVersion,
+//      "getResourceDocsObp",
+//      "GET",
+//      "/resource-docs/API_VERSION/obp",
+//      "Get Resource Docs.",
+//      getResourceDocsDescription(false),
+//      EmptyBody,
+//      EmptyBody,
+//      UnknownError :: Nil,
+//      List(apiTagDocumentation, apiTagApi),
+//      Some(List(canReadResourceDoc))
+//    )
+//
+//    def resourceDocsRequireRole = APIUtil.getPropsAsBoolValue("resource_docs_requires_role", false)
+//    // Provides resource documents so that API Explorer (or other apps) can display API documentation
+//    // Note: description uses html markup because original markdown doesn't easily support "_" and there are multiple versions of markdown.
+//    lazy val getResourceDocsObp : OBPEndpoint = {
+//      case "resource-docs" :: requestedApiVersionString :: "obp" :: Nil JsonGet _ => {
+//        val (tags, partialFunctions, locale, contentParam, apiCollectionIdParam) = ResourceDocsAPIMethodsUtil.getParams()
+//        cc =>
+//          implicit val ec = EndpointContext(Some(cc))
+//          getApiLevelResourceDocs(cc,requestedApiVersionString, tags, partialFunctions, locale, contentParam, apiCollectionIdParam,false)
+//      }
+//    }
+//
+//    // Note: getResourceDocsObpV400 intentionally has NO ResourceDoc registration.
+//    // It shares the URL "/resource-docs/API_VERSION/obp" + GET with getResourceDocsObp
+//    // (registered above). One ResourceDoc entry per (URL, verb) is enough; registering
+//    // both produced a duplicate that broke the v7 aggregation dedup.
+//    lazy val getResourceDocsObpV400 : OBPEndpoint = {
+//      case "resource-docs" :: requestedApiVersionString :: "obp" :: Nil JsonGet _ => {
+//        val (tags, partialFunctions, locale, contentParam, apiCollectionIdParam) = ResourceDocsAPIMethodsUtil.getParams()
+//        cc =>
+//          implicit val ec = EndpointContext(Some(cc))
+//          getApiLevelResourceDocs(cc,requestedApiVersionString, tags, partialFunctions, locale, contentParam, apiCollectionIdParam,true)
+//      }
+//    }
+//
+//    //API level just mean, this response will be forward to liftweb directly.
+//    private def getApiLevelResourceDocs(
+//      cc: CallContext,
+//      requestedApiVersionString: String,
+//      tags: Option[List[ResourceDocTag]],
+//      partialFunctions: Option[List[String]],
+//      locale: Option[String],
+//      contentParam: Option[ContentParam],
+//      apiCollectionIdParam: Option[String],
+//      isVersion4OrHigher: Boolean,
+//    ) = {
+//        for {
+//          (u: Box[User], callContext: Option[CallContext]) <- resourceDocsRequireRole match {
+//            case false => anonymousAccess(cc)
+//            case true => authenticatedAccess(cc) // If set resource_docs_requires_role=true, we need check the authentication
+//          }
+//          _ <- resourceDocsRequireRole match {
+//            case false => Future(())
+//            case true => // If set resource_docs_requires_role=true, we need check the roles as well
+//                NewStyle.function.hasAtLeastOneEntitlement(failMsg = UserHasMissingRoles + canReadResourceDoc.toString)("", u.map(_.userId).getOrElse(""), ApiRole.canReadResourceDoc :: Nil, cc.callContext)
+//          }
+//          requestedApiVersion <- NewStyle.function.tryons(s"$InvalidApiVersionString $requestedApiVersionString", 400, callContext) {ApiVersionUtils.valueOf(requestedApiVersionString)}
+//          _ <- Helper.booleanToFuture(s"$ApiVersionNotSupported $requestedApiVersionString", 400, callContext)(versionIsAllowed(requestedApiVersion))
+//          _ <- if (locale.isDefined) {
+//            Helper.booleanToFuture(failMsg = s"$InvalidLocale Current Locale is ${locale.get}" intern(), cc = cc.callContext) {
+//              APIUtil.obpLocaleValidation(locale.get) == SILENCE_IS_GOLDEN
+//            }
+//          } else {
+//            Future.successful(true)
+//          }
+//          cacheKey = APIUtil.createResourceDocCacheKey(
+//            None,
+//            requestedApiVersionString,
+//            tags,
+//            partialFunctions,
+//            locale,
+//            contentParam,
+//            apiCollectionIdParam,
+//            Some(isVersion4OrHigher)
+//          )
+//          json <- locale match {
+//            case _ if (apiCollectionIdParam.isDefined) =>
+//              NewStyle.function.tryons(s"$UnknownError Can not prepare OBP resource docs.", 500, callContext) {
+//                val operationIds = MappedApiCollectionEndpointsProvider.getApiCollectionEndpoints(apiCollectionIdParam.getOrElse("")).map(_.operationId).map(getObpFormatOperationId)
+//                val resourceDocs = ResourceDoc.getResourceDocs(operationIds)
+//                val resourceDocsJson = JSONFactory1_4_0.createResourceDocsJson(resourceDocs, isVersion4OrHigher, locale, includeTechnology = includeTechnologyInResponse)
+//                val resourceDocsJsonJValue = Full(resourceDocsJsonToJsonResponse(resourceDocsJson))
+//                resourceDocsJsonJValue.map(successJsonResponse(_))
+//              }
+//            case _ =>
+//              contentParam match {
+//                case Some(DYNAMIC) =>{
+//                  NewStyle.function.tryons(s"$UnknownError Can not prepare OBP resource docs.", 500, callContext) {
+//                    val cacheValueFromRedis = Caching.getDynamicResourceDocCache(cacheKey)
+//                    val dynamicDocs: Box[JValue] =
+//                      if (cacheValueFromRedis.isDefined) {
+//                        Full(json.parse(cacheValueFromRedis.get))
+//                      } else {
+//                        val resourceDocJson = getResourceDocsObpDynamicCached(tags, partialFunctions, locale, None, false)
+//                        val resourceDocJsonJValue = resourceDocJson.map(resourceDocsJsonToJsonResponse).head
+//                        val jsonString = json.compactRender(resourceDocJsonJValue)
+//                        Caching.setDynamicResourceDocCache(cacheKey, jsonString)
+//                        Full(resourceDocJsonJValue)
+//                      }
+//                    dynamicDocs.map(successJsonResponse(_))
+//                  }
+//                }
+//                case Some(STATIC) => {
+//                  NewStyle.function.tryons(s"$UnknownError Can not prepare OBP resource docs.", 500, callContext) {
+//                    val cacheValueFromRedis = Caching.getStaticResourceDocCache(cacheKey)
+//                    val staticDocs: Box[JValue] =
+//                      if (cacheValueFromRedis.isDefined) {
+//                        Full(json.parse(cacheValueFromRedis.get))
+//                      } else {
+//                        val resourceDocJson = getStaticResourceDocsObpCached(requestedApiVersionString, tags, partialFunctions, locale, isVersion4OrHigher)
+//                        val resourceDocJsonJValue = resourceDocJson.map(resourceDocsJsonToJsonResponse).head
+//                        val jsonString = json.compactRender(resourceDocJsonJValue)
+//                        Caching.setStaticResourceDocCache(cacheKey, jsonString)
+//                        Full(resourceDocJsonJValue)
+//                      }
+//                    staticDocs.map(successJsonResponse(_))
+//                  }
+//                }
+//                case _ => {
+//                  NewStyle.function.tryons(s"$UnknownError Can not prepare OBP resource docs.", 500, callContext) {
+//                    val cacheValueFromRedis = Caching.getAllResourceDocCache(cacheKey)
+//                    val bothStaticAndDyamicDocs: Box[JValue] =
+//                      if (cacheValueFromRedis.isDefined) {
+//                        Full(json.parse(cacheValueFromRedis.get))
+//                      } else {
+//                        val resourceDocJson = getAllResourceDocsObpCached(requestedApiVersionString, tags, partialFunctions, locale, contentParam, isVersion4OrHigher)
+//                        val resourceDocJsonJValue = resourceDocJson.map(resourceDocsJsonToJsonResponse).head
+//                        val jsonString = json.compactRender(resourceDocJsonJValue)
+//                        Caching.setAllResourceDocCache(cacheKey, jsonString)
+//                        Full(resourceDocJsonJValue)
+//                      }
+//                    bothStaticAndDyamicDocs.map(successJsonResponse(_))
+//                  }
+//                }
+//              }
+//          }
+//        } yield {
+//          (json, HttpCode.`200`(callContext))
+//        }
+//    }
 
-      val endpointBankIdPath = if (isBankLevelResourceDoc) "/banks/BANK_ID" else ""
-    
-      s"""Get documentation about the RESTful resources on this server including example bodies for POST and PUT requests.
-         |
-         |This is the native data format used to document OBP endpoints. Each endpoint has a Resource Doc (a Scala case class) defined in the source code.
-         |
-         | This endpoint is used by OBP API Explorer to display and work with the API documentation.
-         |
-         | Most (but not all) fields are also available in swagger format. (The Swagger endpoint is built from Resource Docs.)
-         |
-         | API_VERSION is the version you want documentation about e.g. v3.0.0
-         |
-         | You may filter this endpoint with tags parameter e.g. ?tags=Account,Bank
-         |
-         | You may filter this endpoint with functions parameter e.g. ?functions=enableDisableConsumers,getConnectorMetrics
-         |
-         | For possible function values, see implemented_by.function in the JSON returned by this endpoint or the OBP source code or the footer of the API Explorer which produces a comma separated list of functions that reflect the server or filtering by API Explorer based on tags etc.
-         |
-         | You may filter this endpoint using the 'content' url parameter, e.g. ?content=dynamic
-         | if set content=dynamic, only show dynamic endpoints, if content=static, only show the static endpoints. if omit this parameter, we will show all the endpoints.
-         |
-         | You may need some other language resource docs, now we support en_GB and es_ES at the moment.
-         | 
-         | You can filter with api-collection-id, but api-collection-id can not be used with others together. If api-collection-id is used in URL, it will ignore all other parameters. 
-         |
-         |See the Resource Doc endpoint for more information.
-         |
-         |Note: Dynamic Resource Docs are cached, TTL is ${GET_DYNAMIC_RESOURCE_DOCS_TTL} seconds
-         |      Static Resource Docs are cached, TTL is ${GET_STATIC_RESOURCE_DOCS_TTL} seconds
-         |
-         |
-         |Following are more examples:
-         |${getObpApiRoot}/v4.0.0$endpointBankIdPath/resource-docs/v4.0.0/obp
-         |${getObpApiRoot}/v4.0.0$endpointBankIdPath/resource-docs/v4.0.0/obp?tags=Account,Bank
-         |${getObpApiRoot}/v4.0.0$endpointBankIdPath/resource-docs/v4.0.0/obp?functions=getBanks,bankById
-         |${getObpApiRoot}/v4.0.0$endpointBankIdPath/resource-docs/v4.0.0/obp?locale=es_ES
-         |${getObpApiRoot}/v4.0.0$endpointBankIdPath/resource-docs/v4.0.0/obp?content=static,dynamic,all
-         |${getObpApiRoot}/v4.0.0$endpointBankIdPath/resource-docs/v4.0.0/obp?api-collection-id=4e866c86-60c3-4268-a221-cb0bbf1ad221
-         |
-         |<ul>
-         |<li> operation_id is concatenation of "v", version and function and should be unique (used for DOM element IDs etc. maybe used to link to source code) </li>
-         |<li> version references the version that the API call is defined in.</li>
-         |<li> function is the (scala) partial function that implements this endpoint. It is unique per version of the API.</li>
-         |<li> request_url is empty for the root call, else the path. It contains the standard prefix (e.g. /obp) and the implemented version (the version where this endpoint was defined) e.g. /obp/v1.2.0/resource</li>
-         |<li> specified_url (recommended to use) is empty for the root call, else the path. It contains the standard prefix (e.g. /obp) and the version specified in the call e.g. /obp/v3.1.0/resource. In OBP, endpoints are first made available at the request_url, but the same resource (function call) is often made available under later versions (specified_url). To access the latest version of all endpoints use the latest version available on your OBP instance e.g. /obp/v3.1.0 - To get the original version use the request_url. We recommend to use the specified_url since non semantic improvements are more likely to be applied to later implementations of the call.</li>
-         |<li> summary is a short description inline with the swagger terminology. </li>
-         |<li> description may contain html markup (generated from markdown on the server).</li>
-         |</ul>
-      """
-    }
-    
-    
-    localResourceDocs += ResourceDoc(
-      getResourceDocsObp,
-      implementedInApiVersion,
-      "getResourceDocsObp",
-      "GET",
-      "/resource-docs/API_VERSION/obp",
-      "Get Resource Docs.",
-      getResourceDocsDescription(false),
-      EmptyBody,
-      EmptyBody, 
-      UnknownError :: Nil,
-      List(apiTagDocumentation, apiTagApi),
-      Some(List(canReadResourceDoc))
-    )
-
-    def resourceDocsRequireRole = APIUtil.getPropsAsBoolValue("resource_docs_requires_role", false)
-    // Provides resource documents so that API Explorer (or other apps) can display API documentation
-    // Note: description uses html markup because original markdown doesn't easily support "_" and there are multiple versions of markdown.
-    lazy val getResourceDocsObp : OBPEndpoint = {
-      case "resource-docs" :: requestedApiVersionString :: "obp" :: Nil JsonGet _ => {
-        val (tags, partialFunctions, locale, contentParam, apiCollectionIdParam) = ResourceDocsAPIMethodsUtil.getParams()
-        cc =>
-          implicit val ec = EndpointContext(Some(cc))
-          getApiLevelResourceDocs(cc,requestedApiVersionString, tags, partialFunctions, locale, contentParam, apiCollectionIdParam,false)
-      }
-    }
-    
-    // Note: getResourceDocsObpV400 intentionally has NO ResourceDoc registration.
-    // It shares the URL "/resource-docs/API_VERSION/obp" + GET with getResourceDocsObp
-    // (registered above). One ResourceDoc entry per (URL, verb) is enough; registering
-    // both produced a duplicate that broke the v7 aggregation dedup.
-    lazy val getResourceDocsObpV400 : OBPEndpoint = {
-      case "resource-docs" :: requestedApiVersionString :: "obp" :: Nil JsonGet _ => {
-        val (tags, partialFunctions, locale, contentParam, apiCollectionIdParam) = ResourceDocsAPIMethodsUtil.getParams()
-        cc =>
-          implicit val ec = EndpointContext(Some(cc))
-          getApiLevelResourceDocs(cc,requestedApiVersionString, tags, partialFunctions, locale, contentParam, apiCollectionIdParam,true)
-      }
-    }
-
-    //API level just mean, this response will be forward to liftweb directly.
-    private def getApiLevelResourceDocs(
-      cc: CallContext,
-      requestedApiVersionString: String,
-      tags: Option[List[ResourceDocTag]],
-      partialFunctions: Option[List[String]],
-      locale: Option[String],
-      contentParam: Option[ContentParam],
-      apiCollectionIdParam: Option[String],
-      isVersion4OrHigher: Boolean,
-    ) = {
-        for {
-          (u: Box[User], callContext: Option[CallContext]) <- resourceDocsRequireRole match {
-            case false => anonymousAccess(cc)
-            case true => authenticatedAccess(cc) // If set resource_docs_requires_role=true, we need check the authentication
-          }
-          _ <- resourceDocsRequireRole match {
-            case false => Future(())
-            case true => // If set resource_docs_requires_role=true, we need check the roles as well
-                NewStyle.function.hasAtLeastOneEntitlement(failMsg = UserHasMissingRoles + canReadResourceDoc.toString)("", u.map(_.userId).getOrElse(""), ApiRole.canReadResourceDoc :: Nil, cc.callContext)
-          }
-          requestedApiVersion <- NewStyle.function.tryons(s"$InvalidApiVersionString $requestedApiVersionString", 400, callContext) {ApiVersionUtils.valueOf(requestedApiVersionString)}
-          _ <- Helper.booleanToFuture(s"$ApiVersionNotSupported $requestedApiVersionString", 400, callContext)(versionIsAllowed(requestedApiVersion))
-          _ <- if (locale.isDefined) {
-            Helper.booleanToFuture(failMsg = s"$InvalidLocale Current Locale is ${locale.get}" intern(), cc = cc.callContext) {
-              APIUtil.obpLocaleValidation(locale.get) == SILENCE_IS_GOLDEN
-            }
-          } else {
-            Future.successful(true)
-          }
-          cacheKey = APIUtil.createResourceDocCacheKey(
-            None,
-            requestedApiVersionString,
-            tags,
-            partialFunctions,
-            locale,
-            contentParam,
-            apiCollectionIdParam,
-            Some(isVersion4OrHigher)
-          )
-          json <- locale match {
-            case _ if (apiCollectionIdParam.isDefined) => 
-              NewStyle.function.tryons(s"$UnknownError Can not prepare OBP resource docs.", 500, callContext) {
-                val operationIds = MappedApiCollectionEndpointsProvider.getApiCollectionEndpoints(apiCollectionIdParam.getOrElse("")).map(_.operationId).map(getObpFormatOperationId)
-                val resourceDocs = ResourceDoc.getResourceDocs(operationIds)
-                val resourceDocsJson = JSONFactory1_4_0.createResourceDocsJson(resourceDocs, isVersion4OrHigher, locale, includeTechnology = includeTechnologyInResponse)
-                val resourceDocsJsonJValue = Full(resourceDocsJsonToJsonResponse(resourceDocsJson))
-                resourceDocsJsonJValue.map(successJsonResponse(_))
-              }
-            case _ =>
-              contentParam match {
-                case Some(DYNAMIC) =>{
-                  NewStyle.function.tryons(s"$UnknownError Can not prepare OBP resource docs.", 500, callContext) {
-                    val cacheValueFromRedis = Caching.getDynamicResourceDocCache(cacheKey)
-                    val dynamicDocs: Box[JValue] =
-                      if (cacheValueFromRedis.isDefined) {
-                        Full(json.parse(cacheValueFromRedis.get))
-                      } else {
-                        val resourceDocJson = getResourceDocsObpDynamicCached(tags, partialFunctions, locale, None, false)
-                        val resourceDocJsonJValue = resourceDocJson.map(resourceDocsJsonToJsonResponse).head
-                        val jsonString = json.compactRender(resourceDocJsonJValue)
-                        Caching.setDynamicResourceDocCache(cacheKey, jsonString)
-                        Full(resourceDocJsonJValue)
-                      }
-                    dynamicDocs.map(successJsonResponse(_))
-                  }
-                }
-                case Some(STATIC) => {
-                  NewStyle.function.tryons(s"$UnknownError Can not prepare OBP resource docs.", 500, callContext) {
-                    val cacheValueFromRedis = Caching.getStaticResourceDocCache(cacheKey)
-                    val staticDocs: Box[JValue] =
-                      if (cacheValueFromRedis.isDefined) {
-                        Full(json.parse(cacheValueFromRedis.get))
-                      } else {
-                        val resourceDocJson = getStaticResourceDocsObpCached(requestedApiVersionString, tags, partialFunctions, locale, isVersion4OrHigher)
-                        val resourceDocJsonJValue = resourceDocJson.map(resourceDocsJsonToJsonResponse).head
-                        val jsonString = json.compactRender(resourceDocJsonJValue)
-                        Caching.setStaticResourceDocCache(cacheKey, jsonString)
-                        Full(resourceDocJsonJValue)
-                      }
-                    staticDocs.map(successJsonResponse(_))
-                  }
-                }
-                case _ => {
-                  NewStyle.function.tryons(s"$UnknownError Can not prepare OBP resource docs.", 500, callContext) {
-                    val cacheValueFromRedis = Caching.getAllResourceDocCache(cacheKey)
-                    val bothStaticAndDyamicDocs: Box[JValue] =
-                      if (cacheValueFromRedis.isDefined) {
-                        Full(json.parse(cacheValueFromRedis.get))
-                      } else {
-                        val resourceDocJson = getAllResourceDocsObpCached(requestedApiVersionString, tags, partialFunctions, locale, contentParam, isVersion4OrHigher)
-                        val resourceDocJsonJValue = resourceDocJson.map(resourceDocsJsonToJsonResponse).head
-                        val jsonString = json.compactRender(resourceDocJsonJValue)
-                        Caching.setAllResourceDocCache(cacheKey, jsonString)
-                        Full(resourceDocJsonJValue)
-                      }
-                    bothStaticAndDyamicDocs.map(successJsonResponse(_))
-                  }
-                }
-              }
-          }
-        } yield {
-          (json, HttpCode.`200`(callContext))
-        }
-    }
-
-    localResourceDocs += ResourceDoc(
-      getBankLevelDynamicResourceDocsObp,
-      implementedInApiVersion,
-      nameOf(getBankLevelDynamicResourceDocsObp),
-      "GET",
-      "/banks/BANK_ID/resource-docs/API_VERSION/obp",
-      "Get Bank Level Dynamic Resource Docs.",
-      getResourceDocsDescription(true),
-      EmptyBody,
-      EmptyBody,
-      UnknownError :: Nil,
-      List(apiTagDocumentation, apiTagApi),
-      Some(List(canReadDynamicResourceDocsAtOneBank))
-    )
-
-    // Provides resource documents so that API Explorer (or other apps) can display API documentation
-    // Note: description uses html markup because original markdown doesn't easily support "_" and there are multiple versions of markdown.
-    def getBankLevelDynamicResourceDocsObp : OBPEndpoint = {
-      case "banks" :: bankId :: "resource-docs" :: requestedApiVersionString :: "obp" :: Nil JsonGet _ => {
-        val (tags, partialFunctions, locale, contentParam, apiCollectionIdParam) = ResourceDocsAPIMethodsUtil.getParams()
-        cc =>
-          for {
-            (u: Box[User], callContext: Option[CallContext]) <- resourceDocsRequireRole match {
-              case false => anonymousAccess(cc)
-              case true => authenticatedAccess(cc) // If set resource_docs_requires_role=true, we need check the authentication
-            }
-            _ <- if (locale.isDefined) {
-              Helper.booleanToFuture(failMsg = s"$InvalidLocale Current Locale is ${locale.get}" intern(), cc = cc.callContext) {
-                APIUtil.obpLocaleValidation(locale.get) == SILENCE_IS_GOLDEN
-              }
-            } else {
-              Future.successful(true)
-            }
-            (_, callContext) <- NewStyle.function.getBank(BankId(bankId), Option(cc))
-            _ <- resourceDocsRequireRole match {
-              case false => Future(())
-              case true => // If set resource_docs_requires_role=true, we need check the the roles as well
-                NewStyle.function.hasAtLeastOneEntitlement(failMsg = UserHasMissingRoles + ApiRole.canReadDynamicResourceDocsAtOneBank.toString)(
-                  bankId, u.map(_.userId).getOrElse(""), ApiRole.canReadDynamicResourceDocsAtOneBank::Nil, cc.callContext
-                )
-            }
-            requestedApiVersion <- NewStyle.function.tryons(s"$InvalidApiVersionString $requestedApiVersionString", 400, callContext) {ApiVersionUtils.valueOf(requestedApiVersionString)}
-            cacheKey = APIUtil.createResourceDocCacheKey(
-              Some(bankId),
-              requestedApiVersionString,
-              tags,
-              partialFunctions,
-              locale,
-              contentParam,
-              apiCollectionIdParam,
-              None)
-            json <- NewStyle.function.tryons(s"$UnknownError Can not create dynamic resource docs.", 400, callContext) {
-              val cacheValueFromRedis = Caching.getDynamicResourceDocCache(cacheKey)
-              if (cacheValueFromRedis.isDefined) {
-                json.parse(cacheValueFromRedis.get)
-              } else {
-                val resourceDocJson = getResourceDocsObpDynamicCached(tags, partialFunctions, locale, None, false)
-                val resourceDocJsonJValue = resourceDocJson.map(resourceDocsJsonToJsonResponse).head
-                val jsonString = json.compactRender(resourceDocJsonJValue)
-                Caching.setDynamicResourceDocCache(cacheKey, jsonString)
-                resourceDocJsonJValue
-              }
-            }
-          } yield {
-            (Full(json), HttpCode.`200`(callContext))
-          }
-      }
-    }
+//    localResourceDocs += ResourceDoc(
+//      getBankLevelDynamicResourceDocsObp,
+//      implementedInApiVersion,
+//      nameOf(getBankLevelDynamicResourceDocsObp),
+//      "GET",
+//      "/banks/BANK_ID/resource-docs/API_VERSION/obp",
+//      "Get Bank Level Dynamic Resource Docs.",
+//      getResourceDocsDescription(true),
+//      EmptyBody,
+//      EmptyBody,
+//      UnknownError :: Nil,
+//      List(apiTagDocumentation, apiTagApi),
+//      Some(List(canReadDynamicResourceDocsAtOneBank))
+//    )
+//
+//    // Provides resource documents so that API Explorer (or other apps) can display API documentation
+//    // Note: description uses html markup because original markdown doesn't easily support "_" and there are multiple versions of markdown.
+//    def getBankLevelDynamicResourceDocsObp : OBPEndpoint = {
+//      case "banks" :: bankId :: "resource-docs" :: requestedApiVersionString :: "obp" :: Nil JsonGet _ => {
+//        val (tags, partialFunctions, locale, contentParam, apiCollectionIdParam) = ResourceDocsAPIMethodsUtil.getParams()
+//        cc =>
+//          for {
+//            (u: Box[User], callContext: Option[CallContext]) <- resourceDocsRequireRole match {
+//              case false => anonymousAccess(cc)
+//              case true => authenticatedAccess(cc) // If set resource_docs_requires_role=true, we need check the authentication
+//            }
+//            _ <- if (locale.isDefined) {
+//              Helper.booleanToFuture(failMsg = s"$InvalidLocale Current Locale is ${locale.get}" intern(), cc = cc.callContext) {
+//                APIUtil.obpLocaleValidation(locale.get) == SILENCE_IS_GOLDEN
+//              }
+//            } else {
+//              Future.successful(true)
+//            }
+//            (_, callContext) <- NewStyle.function.getBank(BankId(bankId), Option(cc))
+//            _ <- resourceDocsRequireRole match {
+//              case false => Future(())
+//              case true => // If set resource_docs_requires_role=true, we need check the the roles as well
+//                NewStyle.function.hasAtLeastOneEntitlement(failMsg = UserHasMissingRoles + ApiRole.canReadDynamicResourceDocsAtOneBank.toString)(
+//                  bankId, u.map(_.userId).getOrElse(""), ApiRole.canReadDynamicResourceDocsAtOneBank::Nil, cc.callContext
+//                )
+//            }
+//            requestedApiVersion <- NewStyle.function.tryons(s"$InvalidApiVersionString $requestedApiVersionString", 400, callContext) {ApiVersionUtils.valueOf(requestedApiVersionString)}
+//            cacheKey = APIUtil.createResourceDocCacheKey(
+//              Some(bankId),
+//              requestedApiVersionString,
+//              tags,
+//              partialFunctions,
+//              locale,
+//              contentParam,
+//              apiCollectionIdParam,
+//              None)
+//            json <- NewStyle.function.tryons(s"$UnknownError Can not create dynamic resource docs.", 400, callContext) {
+//              val cacheValueFromRedis = Caching.getDynamicResourceDocCache(cacheKey)
+//              if (cacheValueFromRedis.isDefined) {
+//                json.parse(cacheValueFromRedis.get)
+//              } else {
+//                val resourceDocJson = getResourceDocsObpDynamicCached(tags, partialFunctions, locale, None, false)
+//                val resourceDocJsonJValue = resourceDocJson.map(resourceDocsJsonToJsonResponse).head
+//                val jsonString = json.compactRender(resourceDocJsonJValue)
+//                Caching.setDynamicResourceDocCache(cacheKey, jsonString)
+//                resourceDocJsonJValue
+//              }
+//            }
+//          } yield {
+//            (Full(json), HttpCode.`200`(callContext))
+//          }
+//      }
+//    }
 
 
-    localResourceDocs += ResourceDoc(
-      getResourceDocsSwagger,
-      implementedInApiVersion,
-      "getResourceDocsSwagger",
-      "GET",
-      "/resource-docs/API_VERSION/swagger",
-      "Get Swagger documentation",
-      s"""Returns documentation about the RESTful resources on this server in Swagger format.
-         |
-         |API_VERSION is the version you want documentation about e.g. v3.0.0
-         |
-         |You may filter this endpoint using the 'tags' url parameter e.g. ?tags=Account,Bank
-         |
-         |(All endpoints are given one or more tags which for used in grouping)
-         |
-         |You may filter this endpoint using the 'functions' url parameter e.g. ?functions=getBanks,bankById
-         |
-         |(Each endpoint is implemented in the OBP Scala code by a 'function')
-         |
-         |See the Resource Doc endpoint for more information.
-         |
-         | Note: Resource Docs are cached, TTL is ${GET_DYNAMIC_RESOURCE_DOCS_TTL} seconds
-         | 
-         |Following are more examples:
-         |${getObpApiRoot}/v3.1.0/resource-docs/v3.1.0/swagger
-         |${getObpApiRoot}/v3.1.0/resource-docs/v3.1.0/swagger?tags=Account,Bank
-         |${getObpApiRoot}/v3.1.0/resource-docs/v3.1.0/swagger?functions=getBanks,bankById
-         |${getObpApiRoot}/v3.1.0/resource-docs/v3.1.0/swagger?tags=Account,Bank,PSD2&functions=getBanks,bankById
-         |
-      """,
-      EmptyBody,
-      EmptyBody,
-      UnknownError :: Nil,
-      List(apiTagDocumentation, apiTagApi)
-    )
+//    localResourceDocs += ResourceDoc(
+//      getResourceDocsSwagger,
+//      implementedInApiVersion,
+//      "getResourceDocsSwagger",
+//      "GET",
+//      "/resource-docs/API_VERSION/swagger",
+//      "Get Swagger documentation",
+//      s"""Returns documentation about the RESTful resources on this server in Swagger format.
+//         |
+//         |API_VERSION is the version you want documentation about e.g. v3.0.0
+//         |
+//         |You may filter this endpoint using the 'tags' url parameter e.g. ?tags=Account,Bank
+//         |
+//         |(All endpoints are given one or more tags which for used in grouping)
+//         |
+//         |You may filter this endpoint using the 'functions' url parameter e.g. ?functions=getBanks,bankById
+//         |
+//         |(Each endpoint is implemented in the OBP Scala code by a 'function')
+//         |
+//         |See the Resource Doc endpoint for more information.
+//         |
+//         | Note: Resource Docs are cached, TTL is ${GET_DYNAMIC_RESOURCE_DOCS_TTL} seconds
+//         |
+//         |Following are more examples:
+//         |${getObpApiRoot}/v3.1.0/resource-docs/v3.1.0/swagger
+//         |${getObpApiRoot}/v3.1.0/resource-docs/v3.1.0/swagger?tags=Account,Bank
+//         |${getObpApiRoot}/v3.1.0/resource-docs/v3.1.0/swagger?functions=getBanks,bankById
+//         |${getObpApiRoot}/v3.1.0/resource-docs/v3.1.0/swagger?tags=Account,Bank,PSD2&functions=getBanks,bankById
+//         |
+//      """,
+//      EmptyBody,
+//      EmptyBody,
+//      UnknownError :: Nil,
+//      List(apiTagDocumentation, apiTagApi)
+//    )
+//
+//    // Note: Swagger format requires special character escaping because it builds JSON via string concatenation (unlike OBP/OpenAPI formats which use case class serialization)
+//
+//    def getResourceDocsSwagger : OBPEndpoint = {
+//      case "resource-docs" :: requestedApiVersionString :: "swagger" :: Nil JsonGet _ => {
+//        cc => {
+//          implicit val ec = EndpointContext(Some(cc))
+//          val (resourceDocTags, partialFunctions, locale, contentParam,  apiCollectionIdParam) = ResourceDocsAPIMethodsUtil.getParams()
+//          for {
+//            (u: Box[User], callContext: Option[CallContext]) <- if (resourceDocsRequireRole) {
+//              authenticatedAccess(cc)
+//            } else {
+//              anonymousAccess(cc)
+//            }
+//            _ <- if (resourceDocsRequireRole) {
+//              NewStyle.function.hasAtLeastOneEntitlement(failMsg = UserHasMissingRoles + canReadResourceDoc.toString)("", u.map(_.userId).getOrElse(""), ApiRole.canReadResourceDoc :: Nil, cc.callContext)
+//            } else {
+//              Future(())
+//            }
+//            requestedApiVersion <- NewStyle.function.tryons(s"$InvalidApiVersionString Current Version is $requestedApiVersionString", 400, cc.callContext) {
+//              ApiVersionUtils.valueOf(requestedApiVersionString)
+//            }
+//            _ <- Helper.booleanToFuture(failMsg = s"$ApiVersionNotSupported Current Version is $requestedApiVersionString", cc=cc.callContext) {
+//              versionIsAllowed(requestedApiVersion)
+//            }
+//            _ <- if (locale.isDefined) {
+//              Helper.booleanToFuture(failMsg = s"$InvalidLocale Current Locale is ${locale.get}" intern(), cc = cc.callContext) {
+//                APIUtil.obpLocaleValidation(locale.get) == SILENCE_IS_GOLDEN
+//              }
+//            } else {
+//              Future.successful(true)
+//            }
+//            isVersion4OrHigher = true
+//            cacheKey = APIUtil.createResourceDocCacheKey(
+//              None,
+//              requestedApiVersionString,
+//              resourceDocTags,
+//              partialFunctions,
+//              locale,
+//              contentParam,
+//              apiCollectionIdParam,
+//              Some(isVersion4OrHigher)
+//            )
+//            cacheValueFromRedis = Caching.getStaticSwaggerDocCache(cacheKey)
+//
+//            swaggerJValue <- if (cacheValueFromRedis.isDefined) {
+//              NewStyle.function.tryons(s"$UnknownError Can not convert internal swagger file from cache.", 400, cc.callContext) {json.parse(cacheValueFromRedis.get)}
+//            } else {
+//              NewStyle.function.tryons(s"$UnknownError Can not convert internal swagger file.", 400, cc.callContext) {
+//                val resourceDocsJsonFiltered = locale match {
+//                  case _ if (apiCollectionIdParam.isDefined) =>
+//                    val operationIds = MappedApiCollectionEndpointsProvider.getApiCollectionEndpoints(apiCollectionIdParam.getOrElse("")).map(_.operationId).map(getObpFormatOperationId)
+//                    val resourceDocs = ResourceDoc.getResourceDocs(operationIds)
+//                    val resourceDocsJson = JSONFactory1_4_0.createResourceDocsJson(resourceDocs, isVersion4OrHigher, locale, includeTechnology = includeTechnologyInResponse)
+//                    resourceDocsJson.resource_docs
+//                  case _ =>
+//                    contentParam match {
+//                      case Some(DYNAMIC) =>
+//                        getResourceDocsObpDynamicCached(resourceDocTags, partialFunctions, locale, None, isVersion4OrHigher).head.resource_docs
+//                      case Some(STATIC) => {
+//                        getStaticResourceDocsObpCached(requestedApiVersionString, resourceDocTags, partialFunctions, locale, isVersion4OrHigher).head.resource_docs
+//                      }
+//                      case _ => {
+//                        getAllResourceDocsObpCached(requestedApiVersionString, resourceDocTags, partialFunctions, locale, contentParam, isVersion4OrHigher).head.resource_docs
+//                      }
+//                    }
+//                }
+//                convertResourceDocsToSwaggerJvalueAndSetCache(cacheKey, requestedApiVersionString, resourceDocsJsonFiltered)
+//              }
+//            }
+//          } yield {
+//            (swaggerJValue, HttpCode.`200`(cc.callContext))
+//          }
+//        }
+//      }
+//    }
 
-    // Note: Swagger format requires special character escaping because it builds JSON via string concatenation (unlike OBP/OpenAPI formats which use case class serialization)
-
-    def getResourceDocsSwagger : OBPEndpoint = {
-      case "resource-docs" :: requestedApiVersionString :: "swagger" :: Nil JsonGet _ => {
-        cc => {
-          implicit val ec = EndpointContext(Some(cc))
-          val (resourceDocTags, partialFunctions, locale, contentParam,  apiCollectionIdParam) = ResourceDocsAPIMethodsUtil.getParams()
-          for {
-            (u: Box[User], callContext: Option[CallContext]) <- if (resourceDocsRequireRole) {
-              authenticatedAccess(cc)
-            } else {
-              anonymousAccess(cc)
-            }
-            _ <- if (resourceDocsRequireRole) {
-              NewStyle.function.hasAtLeastOneEntitlement(failMsg = UserHasMissingRoles + canReadResourceDoc.toString)("", u.map(_.userId).getOrElse(""), ApiRole.canReadResourceDoc :: Nil, cc.callContext)
-            } else {
-              Future(())
-            }
-            requestedApiVersion <- NewStyle.function.tryons(s"$InvalidApiVersionString Current Version is $requestedApiVersionString", 400, cc.callContext) {
-              ApiVersionUtils.valueOf(requestedApiVersionString)
-            }
-            _ <- Helper.booleanToFuture(failMsg = s"$ApiVersionNotSupported Current Version is $requestedApiVersionString", cc=cc.callContext) {
-              versionIsAllowed(requestedApiVersion)
-            }
-            _ <- if (locale.isDefined) {
-              Helper.booleanToFuture(failMsg = s"$InvalidLocale Current Locale is ${locale.get}" intern(), cc = cc.callContext) {
-                APIUtil.obpLocaleValidation(locale.get) == SILENCE_IS_GOLDEN
-              }
-            } else {
-              Future.successful(true)
-            }
-            isVersion4OrHigher = true
-            cacheKey = APIUtil.createResourceDocCacheKey(
-              None,
-              requestedApiVersionString,
-              resourceDocTags,
-              partialFunctions,
-              locale,
-              contentParam,
-              apiCollectionIdParam,
-              Some(isVersion4OrHigher)
-            )
-            cacheValueFromRedis = Caching.getStaticSwaggerDocCache(cacheKey)
-            
-            swaggerJValue <- if (cacheValueFromRedis.isDefined) {
-              NewStyle.function.tryons(s"$UnknownError Can not convert internal swagger file from cache.", 400, cc.callContext) {json.parse(cacheValueFromRedis.get)}
-            } else {
-              NewStyle.function.tryons(s"$UnknownError Can not convert internal swagger file.", 400, cc.callContext) {
-                val resourceDocsJsonFiltered = locale match {
-                  case _ if (apiCollectionIdParam.isDefined) =>
-                    val operationIds = MappedApiCollectionEndpointsProvider.getApiCollectionEndpoints(apiCollectionIdParam.getOrElse("")).map(_.operationId).map(getObpFormatOperationId)
-                    val resourceDocs = ResourceDoc.getResourceDocs(operationIds)
-                    val resourceDocsJson = JSONFactory1_4_0.createResourceDocsJson(resourceDocs, isVersion4OrHigher, locale, includeTechnology = includeTechnologyInResponse)
-                    resourceDocsJson.resource_docs
-                  case _ =>
-                    contentParam match {
-                      case Some(DYNAMIC) =>
-                        getResourceDocsObpDynamicCached(resourceDocTags, partialFunctions, locale, None, isVersion4OrHigher).head.resource_docs
-                      case Some(STATIC) => {
-                        getStaticResourceDocsObpCached(requestedApiVersionString, resourceDocTags, partialFunctions, locale, isVersion4OrHigher).head.resource_docs
-                      }
-                      case _ => {
-                        getAllResourceDocsObpCached(requestedApiVersionString, resourceDocTags, partialFunctions, locale, contentParam, isVersion4OrHigher).head.resource_docs
-                      }
-                    }
-                }
-                convertResourceDocsToSwaggerJvalueAndSetCache(cacheKey, requestedApiVersionString, resourceDocsJsonFiltered)
-              }
-            }
-          } yield {
-            (swaggerJValue, HttpCode.`200`(cc.callContext))
-          }
-        }
-      }
-    }
-
-    localResourceDocs += ResourceDoc(
-      getResourceDocsOpenAPI31,
-      implementedInApiVersion,
-      "getResourceDocsOpenAPI31",
-      "GET",
-      "/resource-docs/API_VERSION/openapi",
-      "Get OpenAPI 3.1 documentation",
-      s"""Returns documentation about the RESTful resources on this server in OpenAPI 3.1 format.
-         |
-         |API_VERSION is the version you want documentation about e.g. v6.0.0
-         |
-         |## Query Parameters
-         |
-         |You may filter this endpoint using the following optional query parameters:
-         |
-         |**tags** - Filter by endpoint tags (comma-separated list)
-         |  • Example: ?tags=Account,Bank or ?tags=Account-Firehose
-         |  • All endpoints are given one or more tags which are used for grouping
-         |  • Empty values will return error OBP-10053
-         |
-         |**functions** - Filter by function names (comma-separated list) 
-         |  • Example: ?functions=getBanks,bankById
-         |  • Each endpoint is implemented in the OBP Scala code by a 'function'
-         |  • Empty values will return error OBP-10054
-         |
-         |**content** - Filter by endpoint type
-         |  • Values: static, dynamic, all (case-insensitive)
-         |  • static: Only show static/core API endpoints
-         |  • dynamic: Only show dynamic/custom endpoints
-         |  • all: Show both static and dynamic endpoints (default)
-         |  • Invalid values will return error OBP-10052
-         |
-         |**locale** - Language for localized documentation
-         |  • Example: ?locale=en_GB or ?locale=es_ES
-         |  • Supported locales: en_GB, es_ES, ro_RO
-         |  • Invalid locales will return error OBP-10041
-         |
-         |**api-collection-id** - Filter by API collection UUID
-         |  • Example: ?api-collection-id=4e866c86-60c3-4268-a221-cb0bbf1ad221
-         |  • Returns only endpoints belonging to the specified collection
-         |  • Empty values will return error OBP-10055
-         |
-         |This endpoint generates OpenAPI 3.1 compliant documentation with modern JSON Schema support.
-         |
-         |For YAML format, use the corresponding endpoint: /resource-docs/API_VERSION/openapi.yaml
-         |
-         |See the Resource Doc endpoint for more information.
-         |
-         |Note: Resource Docs are cached, TTL is ${GET_DYNAMIC_RESOURCE_DOCS_TTL} seconds
-         |
-         |## Examples
-         |
-         |Basic usage:
-         |${getObpApiRoot}/v6.0.0/resource-docs/v6.0.0/openapi
-         |
-         |Filter by tags:
-         |${getObpApiRoot}/v6.0.0/resource-docs/v6.0.0/openapi?tags=Account,Bank
-         |${getObpApiRoot}/v6.0.0/resource-docs/v6.0.0/openapi?tags=Account-Firehose
-         |
-         |Filter by content type:
-         |${getObpApiRoot}/v6.0.0/resource-docs/v6.0.0/openapi?content=static
-         |${getObpApiRoot}/v6.0.0/resource-docs/v6.0.0/openapi?content=dynamic
-         |
-         |Filter by functions:
-         |${getObpApiRoot}/v6.0.0/resource-docs/v6.0.0/openapi?functions=getBanks,bankById
-         |
-         |Combine multiple parameters:
-         |${getObpApiRoot}/v6.0.0/resource-docs/v6.0.0/openapi?content=static&tags=Account-Firehose
-         |${getObpApiRoot}/v6.0.0/resource-docs/v6.0.0/openapi?tags=Account,Bank,PSD2&functions=getBanks,bankById
-         |${getObpApiRoot}/v6.0.0/resource-docs/v6.0.0/openapi?content=static&locale=en_GB&tags=Account
-         |
-         |Filter by API collection:
-         |${getObpApiRoot}/v6.0.0/resource-docs/v6.0.0/openapi?api-collection-id=4e866c86-60c3-4268-a221-cb0bbf1ad221
-         |
-      """,
-      EmptyBody,
-      EmptyBody,
-      InvalidApiVersionString ::
-      ApiVersionNotSupported ::
-      InvalidLocale ::
-      InvalidContentParameter ::
-      InvalidTagsParameter ::
-      InvalidFunctionsParameter ::
-      InvalidApiCollectionIdParameter ::
-      UnknownError :: Nil,
-      List(apiTagDocumentation, apiTagApi)
-    )
-
-    // Note: OpenAPI 3.1 YAML endpoint (/resource-docs/API_VERSION/openapi.yaml) 
-    // is implemented using Lift's serve mechanism in ResourceDocs140.scala to properly 
-    // handle YAML content type. It provides the same functionality as the JSON endpoint
-    // but returns OpenAPI documentation in YAML format instead of JSON.
-
-    /**
-     * OpenAPI 3.1 endpoint with comprehensive parameter validation.
-     * 
-     * This endpoint generates OpenAPI 3.1 documentation with the following validated query parameters:
-     * - tags: Comma-separated list of tags to filter endpoints (e.g., ?tags=Account,Bank)
-     * - functions: Comma-separated list of function names to filter endpoints
-     * - content: Filter type - "static", "dynamic", or "all" 
-     * - locale: Language code for localization (e.g., "en_GB", "es_ES")
-     * - api-collection-id: UUID to filter by specific API collection
-     * 
-     * Parameter validation guards ensure:
-     * - Empty parameters (e.g., ?tags=) return 400 error
-     * - Invalid content values return 400 error with valid options
-     * - All parameters are properly trimmed and sanitized
-     * 
-     * Examples:
-     * - ?content=static&tags=Account-Firehose
-     * - ?tags=Account,Bank&functions=getBanks,bankById
-     * - ?content=dynamic&locale=en_GB
-     */
-    def getResourceDocsOpenAPI31 : OBPEndpoint = {
-      case "resource-docs" :: requestedApiVersionString :: "openapi" :: Nil JsonGet _ => {
-        cc => {
-          implicit val ec = EndpointContext(Some(cc))
-          
-          // Early validation for empty parameters using underlying S to bypass ObpS filtering
-          if (S.param("tags").exists(_.trim.isEmpty)) {
-            Full(errorJsonResponse(InvalidTagsParameter, 400))
-          } else if (S.param("functions").exists(_.trim.isEmpty)) {
-            Full(errorJsonResponse(InvalidFunctionsParameter, 400))
-          } else if (S.param("api-collection-id").exists(_.trim.isEmpty)) {
-            Full(errorJsonResponse(InvalidApiCollectionIdParameter, 400))
-          } else {
-            val (resourceDocTags, partialFunctions, locale, contentParam, apiCollectionIdParam) = ResourceDocsAPIMethodsUtil.getParams()
-          for {
-            // Validate content parameter if provided
-            _ <- if (S.param("content").isDefined && contentParam.isEmpty) {
-              Helper.booleanToFuture(failMsg = InvalidContentParameter, cc = cc.callContext) {
-                false
-              }
-            } else {
-              Future.successful(true)
-            }
-            (u: Box[User], callContext: Option[CallContext]) <- if (resourceDocsRequireRole) {
-              authenticatedAccess(cc)
-            } else {
-              anonymousAccess(cc)
-            }
-            _ <- if (resourceDocsRequireRole) {
-              NewStyle.function.hasAtLeastOneEntitlement(failMsg = UserHasMissingRoles + canReadResourceDoc.toString)("", u.map(_.userId).getOrElse(""), ApiRole.canReadResourceDoc :: Nil, cc.callContext)
-            } else {
-              Future(())
-            }
-            requestedApiVersion <- NewStyle.function.tryons(s"$InvalidApiVersionString Current Version is $requestedApiVersionString", 400, cc.callContext) {
-              ApiVersionUtils.valueOf(requestedApiVersionString)
-            }
-            _ <- Helper.booleanToFuture(failMsg = s"$ApiVersionNotSupported Current Version is $requestedApiVersionString", cc=cc.callContext) {
-              versionIsAllowed(requestedApiVersion)
-            }
-            _ <- if (locale.isDefined) {
-              Helper.booleanToFuture(failMsg = s"$InvalidLocale Current Locale is ${locale.get}" intern(), cc = cc.callContext) {
-                APIUtil.obpLocaleValidation(locale.get) == SILENCE_IS_GOLDEN
-              }
-            } else {
-              Future.successful(true)
-            }
-            isVersion4OrHigher = true
-            cacheKey = APIUtil.createResourceDocCacheKey(
-              Some("openapi31"),
-              requestedApiVersionString,
-              resourceDocTags,
-              partialFunctions,
-              locale,
-              contentParam,
-              apiCollectionIdParam,
-              Some(isVersion4OrHigher)
-            )
-            cacheValueFromRedis = Caching.getStaticSwaggerDocCache(cacheKey)
-            
-            openApiJValue <- if (cacheValueFromRedis.isDefined) {
-              NewStyle.function.tryons(s"$UnknownError Can not convert internal openapi file from cache.", 400, cc.callContext) {json.parse(cacheValueFromRedis.get)}
-            } else {
-              NewStyle.function.tryons(s"$UnknownError Can not convert internal openapi file.", 400, cc.callContext) {
-                val resourceDocsJsonFiltered = locale match {
-                  case _ if (apiCollectionIdParam.isDefined) =>
-                    val operationIds = MappedApiCollectionEndpointsProvider.getApiCollectionEndpoints(apiCollectionIdParam.getOrElse("")).map(_.operationId).map(getObpFormatOperationId)
-                    val resourceDocs = ResourceDoc.getResourceDocs(operationIds)
-                    val resourceDocsJson = JSONFactory1_4_0.createResourceDocsJson(resourceDocs, isVersion4OrHigher, locale, includeTechnology = includeTechnologyInResponse)
-                    resourceDocsJson.resource_docs
-                  case _ =>
-                    contentParam match {
-                      case Some(DYNAMIC) =>
-                        getResourceDocsObpDynamicCached(resourceDocTags, partialFunctions, locale, None, isVersion4OrHigher).head.resource_docs
-                      case Some(STATIC) => {
-                        getStaticResourceDocsObpCached(requestedApiVersionString, resourceDocTags, partialFunctions, locale, isVersion4OrHigher).head.resource_docs
-                      }
-                      case _ => {
-                        getAllResourceDocsObpCached(requestedApiVersionString, resourceDocTags, partialFunctions, locale, contentParam, isVersion4OrHigher).head.resource_docs
-                      }
-                    }
-                }
-                convertResourceDocsToOpenAPI31JvalueAndSetCache(cacheKey, requestedApiVersionString, resourceDocsJsonFiltered)
-              }
-            }
-            } yield {
-              (openApiJValue, HttpCode.`200`(cc.callContext))
-            }
-          }
-        }
-      }
-    }
+//    localResourceDocs += ResourceDoc(
+//      getResourceDocsOpenAPI31,
+//      implementedInApiVersion,
+//      "getResourceDocsOpenAPI31",
+//      "GET",
+//      "/resource-docs/API_VERSION/openapi",
+//      "Get OpenAPI 3.1 documentation",
+//      s"""Returns documentation about the RESTful resources on this server in OpenAPI 3.1 format.
+//         |
+//         |API_VERSION is the version you want documentation about e.g. v6.0.0
+//         |
+//         |## Query Parameters
+//         |
+//         |You may filter this endpoint using the following optional query parameters:
+//         |
+//         |**tags** - Filter by endpoint tags (comma-separated list)
+//         |  • Example: ?tags=Account,Bank or ?tags=Account-Firehose
+//         |  • All endpoints are given one or more tags which are used for grouping
+//         |  • Empty values will return error OBP-10053
+//         |
+//         |**functions** - Filter by function names (comma-separated list)
+//         |  • Example: ?functions=getBanks,bankById
+//         |  • Each endpoint is implemented in the OBP Scala code by a 'function'
+//         |  • Empty values will return error OBP-10054
+//         |
+//         |**content** - Filter by endpoint type
+//         |  • Values: static, dynamic, all (case-insensitive)
+//         |  • static: Only show static/core API endpoints
+//         |  • dynamic: Only show dynamic/custom endpoints
+//         |  • all: Show both static and dynamic endpoints (default)
+//         |  • Invalid values will return error OBP-10052
+//         |
+//         |**locale** - Language for localized documentation
+//         |  • Example: ?locale=en_GB or ?locale=es_ES
+//         |  • Supported locales: en_GB, es_ES, ro_RO
+//         |  • Invalid locales will return error OBP-10041
+//         |
+//         |**api-collection-id** - Filter by API collection UUID
+//         |  • Example: ?api-collection-id=4e866c86-60c3-4268-a221-cb0bbf1ad221
+//         |  • Returns only endpoints belonging to the specified collection
+//         |  • Empty values will return error OBP-10055
+//         |
+//         |This endpoint generates OpenAPI 3.1 compliant documentation with modern JSON Schema support.
+//         |
+//         |For YAML format, use the corresponding endpoint: /resource-docs/API_VERSION/openapi.yaml
+//         |
+//         |See the Resource Doc endpoint for more information.
+//         |
+//         |Note: Resource Docs are cached, TTL is ${GET_DYNAMIC_RESOURCE_DOCS_TTL} seconds
+//         |
+//         |## Examples
+//         |
+//         |Basic usage:
+//         |${getObpApiRoot}/v6.0.0/resource-docs/v6.0.0/openapi
+//         |
+//         |Filter by tags:
+//         |${getObpApiRoot}/v6.0.0/resource-docs/v6.0.0/openapi?tags=Account,Bank
+//         |${getObpApiRoot}/v6.0.0/resource-docs/v6.0.0/openapi?tags=Account-Firehose
+//         |
+//         |Filter by content type:
+//         |${getObpApiRoot}/v6.0.0/resource-docs/v6.0.0/openapi?content=static
+//         |${getObpApiRoot}/v6.0.0/resource-docs/v6.0.0/openapi?content=dynamic
+//         |
+//         |Filter by functions:
+//         |${getObpApiRoot}/v6.0.0/resource-docs/v6.0.0/openapi?functions=getBanks,bankById
+//         |
+//         |Combine multiple parameters:
+//         |${getObpApiRoot}/v6.0.0/resource-docs/v6.0.0/openapi?content=static&tags=Account-Firehose
+//         |${getObpApiRoot}/v6.0.0/resource-docs/v6.0.0/openapi?tags=Account,Bank,PSD2&functions=getBanks,bankById
+//         |${getObpApiRoot}/v6.0.0/resource-docs/v6.0.0/openapi?content=static&locale=en_GB&tags=Account
+//         |
+//         |Filter by API collection:
+//         |${getObpApiRoot}/v6.0.0/resource-docs/v6.0.0/openapi?api-collection-id=4e866c86-60c3-4268-a221-cb0bbf1ad221
+//         |
+//      """,
+//      EmptyBody,
+//      EmptyBody,
+//      InvalidApiVersionString ::
+//      ApiVersionNotSupported ::
+//      InvalidLocale ::
+//      InvalidContentParameter ::
+//      InvalidTagsParameter ::
+//      InvalidFunctionsParameter ::
+//      InvalidApiCollectionIdParameter ::
+//      UnknownError :: Nil,
+//      List(apiTagDocumentation, apiTagApi)
+//    )
+//
+//    // Note: OpenAPI 3.1 YAML endpoint (/resource-docs/API_VERSION/openapi.yaml)
+//    // is implemented using Lift's serve mechanism in ResourceDocs140.scala to properly
+//    // handle YAML content type. It provides the same functionality as the JSON endpoint
+//    // but returns OpenAPI documentation in YAML format instead of JSON.
+//
+//    /**
+//     * OpenAPI 3.1 endpoint with comprehensive parameter validation.
+//     *
+//     * This endpoint generates OpenAPI 3.1 documentation with the following validated query parameters:
+//     * - tags: Comma-separated list of tags to filter endpoints (e.g., ?tags=Account,Bank)
+//     * - functions: Comma-separated list of function names to filter endpoints
+//     * - content: Filter type - "static", "dynamic", or "all"
+//     * - locale: Language code for localization (e.g., "en_GB", "es_ES")
+//     * - api-collection-id: UUID to filter by specific API collection
+//     *
+//     * Parameter validation guards ensure:
+//     * - Empty parameters (e.g., ?tags=) return 400 error
+//     * - Invalid content values return 400 error with valid options
+//     * - All parameters are properly trimmed and sanitized
+//     *
+//     * Examples:
+//     * - ?content=static&tags=Account-Firehose
+//     * - ?tags=Account,Bank&functions=getBanks,bankById
+//     * - ?content=dynamic&locale=en_GB
+//     */
+//    def getResourceDocsOpenAPI31 : OBPEndpoint = {
+//      case "resource-docs" :: requestedApiVersionString :: "openapi" :: Nil JsonGet _ => {
+//        cc => {
+//          implicit val ec = EndpointContext(Some(cc))
+//
+//          // Early validation for empty parameters using underlying S to bypass ObpS filtering
+//          if (S.param("tags").exists(_.trim.isEmpty)) {
+//            Full(errorJsonResponse(InvalidTagsParameter, 400))
+//          } else if (S.param("functions").exists(_.trim.isEmpty)) {
+//            Full(errorJsonResponse(InvalidFunctionsParameter, 400))
+//          } else if (S.param("api-collection-id").exists(_.trim.isEmpty)) {
+//            Full(errorJsonResponse(InvalidApiCollectionIdParameter, 400))
+//          } else {
+//            val (resourceDocTags, partialFunctions, locale, contentParam, apiCollectionIdParam) = ResourceDocsAPIMethodsUtil.getParams()
+//          for {
+//            // Validate content parameter if provided
+//            _ <- if (S.param("content").isDefined && contentParam.isEmpty) {
+//              Helper.booleanToFuture(failMsg = InvalidContentParameter, cc = cc.callContext) {
+//                false
+//              }
+//            } else {
+//              Future.successful(true)
+//            }
+//            (u: Box[User], callContext: Option[CallContext]) <- if (resourceDocsRequireRole) {
+//              authenticatedAccess(cc)
+//            } else {
+//              anonymousAccess(cc)
+//            }
+//            _ <- if (resourceDocsRequireRole) {
+//              NewStyle.function.hasAtLeastOneEntitlement(failMsg = UserHasMissingRoles + canReadResourceDoc.toString)("", u.map(_.userId).getOrElse(""), ApiRole.canReadResourceDoc :: Nil, cc.callContext)
+//            } else {
+//              Future(())
+//            }
+//            requestedApiVersion <- NewStyle.function.tryons(s"$InvalidApiVersionString Current Version is $requestedApiVersionString", 400, cc.callContext) {
+//              ApiVersionUtils.valueOf(requestedApiVersionString)
+//            }
+//            _ <- Helper.booleanToFuture(failMsg = s"$ApiVersionNotSupported Current Version is $requestedApiVersionString", cc=cc.callContext) {
+//              versionIsAllowed(requestedApiVersion)
+//            }
+//            _ <- if (locale.isDefined) {
+//              Helper.booleanToFuture(failMsg = s"$InvalidLocale Current Locale is ${locale.get}" intern(), cc = cc.callContext) {
+//                APIUtil.obpLocaleValidation(locale.get) == SILENCE_IS_GOLDEN
+//              }
+//            } else {
+//              Future.successful(true)
+//            }
+//            isVersion4OrHigher = true
+//            cacheKey = APIUtil.createResourceDocCacheKey(
+//              Some("openapi31"),
+//              requestedApiVersionString,
+//              resourceDocTags,
+//              partialFunctions,
+//              locale,
+//              contentParam,
+//              apiCollectionIdParam,
+//              Some(isVersion4OrHigher)
+//            )
+//            cacheValueFromRedis = Caching.getStaticSwaggerDocCache(cacheKey)
+//
+//            openApiJValue <- if (cacheValueFromRedis.isDefined) {
+//              NewStyle.function.tryons(s"$UnknownError Can not convert internal openapi file from cache.", 400, cc.callContext) {json.parse(cacheValueFromRedis.get)}
+//            } else {
+//              NewStyle.function.tryons(s"$UnknownError Can not convert internal openapi file.", 400, cc.callContext) {
+//                val resourceDocsJsonFiltered = locale match {
+//                  case _ if (apiCollectionIdParam.isDefined) =>
+//                    val operationIds = MappedApiCollectionEndpointsProvider.getApiCollectionEndpoints(apiCollectionIdParam.getOrElse("")).map(_.operationId).map(getObpFormatOperationId)
+//                    val resourceDocs = ResourceDoc.getResourceDocs(operationIds)
+//                    val resourceDocsJson = JSONFactory1_4_0.createResourceDocsJson(resourceDocs, isVersion4OrHigher, locale, includeTechnology = includeTechnologyInResponse)
+//                    resourceDocsJson.resource_docs
+//                  case _ =>
+//                    contentParam match {
+//                      case Some(DYNAMIC) =>
+//                        getResourceDocsObpDynamicCached(resourceDocTags, partialFunctions, locale, None, isVersion4OrHigher).head.resource_docs
+//                      case Some(STATIC) => {
+//                        getStaticResourceDocsObpCached(requestedApiVersionString, resourceDocTags, partialFunctions, locale, isVersion4OrHigher).head.resource_docs
+//                      }
+//                      case _ => {
+//                        getAllResourceDocsObpCached(requestedApiVersionString, resourceDocTags, partialFunctions, locale, contentParam, isVersion4OrHigher).head.resource_docs
+//                      }
+//                    }
+//                }
+//                convertResourceDocsToOpenAPI31JvalueAndSetCache(cacheKey, requestedApiVersionString, resourceDocsJsonFiltered)
+//              }
+//            }
+//            } yield {
+//              (openApiJValue, HttpCode.`200`(cc.callContext))
+//            }
+//          }
+//        }
+//      }
+//    }
 
     // Note: The OpenAPI 3.1 YAML endpoint (/resource-docs/API_VERSION/openapi.yaml) 
     // is implemented using Lift's serve mechanism in ResourceDocs140.scala to properly 
