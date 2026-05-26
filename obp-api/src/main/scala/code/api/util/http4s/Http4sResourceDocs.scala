@@ -690,13 +690,21 @@ object Http4sResourceDocs extends MdcLoggable {
     case req @ GET -> Root / "obp" / prefix / "resource-docs" / requestedApiVersionString / "swagger" =>
       handleGetResourceDocsSwagger(req, prefix, requestedApiVersionString)
 
-    // OpenAPI 3.1 JSON was only registered by ResourceDocs600 (v6.0.0 prefix); guard the
-    // route so requests under other prefixes still 404-fall-through, matching old behaviour.
-    case req @ GET -> Root / "obp" / prefix / "resource-docs" / requestedApiVersionString / "openapi" if prefix == "v6.0.0" =>
+    // OpenAPI 3.1 JSON and YAML — served for every URL prefix.
+    //
+    // Historically these routes were only registered by ResourceDocs600 (v6.0.0
+    // prefix). With the centralised service, generating the OpenAPI spec only
+    // depends on the requested-API-version path segment (`requestedApiVersionString`),
+    // not on the URL prefix the client used to reach the service — so guarding
+    // on a single prefix added no value and surprised callers that hit e.g.
+    // `/obp/v5.1.0/resource-docs/v5.1.0/openapi` and got a Lift 404 fall-through.
+    // The handlers use `implForPrefix(prefix)` which falls back to `ImplDefault`
+    // for non-v6 prefixes; `isVersion4OrHigher` is hardcoded `true` inside the
+    // handlers because the OpenAPI converter always consumes the v4-shape input.
+    case req @ GET -> Root / "obp" / prefix / "resource-docs" / requestedApiVersionString / "openapi" =>
       handleGetResourceDocsOpenAPI31(req, prefix, requestedApiVersionString)
 
-    // openapi.yaml was likewise only on v6.0.0.
-    case req @ GET -> Root / "obp" / prefix / "resource-docs" / requestedApiVersionString / "openapi.yaml" if prefix == "v6.0.0" =>
+    case req @ GET -> Root / "obp" / prefix / "resource-docs" / requestedApiVersionString / "openapi.yaml" =>
       handleGetResourceDocsOpenAPI31Yaml(req, prefix, requestedApiVersionString)
 
     case req @ GET -> Root / "obp" / prefix / "banks" / bankIdStr / "resource-docs" / requestedApiVersionString / "obp" =>

@@ -2,6 +2,7 @@ package code.api.util.http4s
 
 import cats.effect.IO
 import cats.effect.unsafe.IORuntime
+import code.api.v4_0_0.Http4s400
 import code.api.v7_0_0.Http4s700
 import code.setup.ServerSetup
 import fs2.Stream
@@ -12,9 +13,20 @@ import org.scalatest.{GivenWhenThen, Tag}
  * Integration test for the enable/disable Props wiring inside `ResourceDocMiddleware`.
  *
  * Drives `Http4s700.wrappedRoutesV700Services` in-process — no TCP, no DB. Verifies that
- * setting the four Props (`api_disabled_endpoints`, `api_enabled_endpoints`,
- * `api_disabled_versions`, `api_enabled_versions`) actually changes routing behaviour at
- * request time.
+ * the endpoint-level Props (`api_disabled_endpoints`, `api_enabled_endpoints`) actually
+ * change routing behaviour at request time, AND pins the deliberate non-enforcement of
+ * the version-level Props (`api_disabled_versions`, `api_enabled_versions`) at the
+ * middleware layer.
+ *
+ * Why version Props are NOT enforced here:
+ *   They are enforced once at startup by `Http4sApp.gate` for the URL prefix the
+ *   request arrives at. The middleware deliberately does not re-check
+ *   `implementedInApiVersion` per request, so that disabling vX retires
+ *   `/obp/vX/...` but leaves vX's endpoints reachable via newer enabled prefixes
+ *   through the cascade. See `ResourceDocMiddleware.isEndpointEnabled` for the
+ *   rationale. Because this test drives `Http4s700.wrappedRoutesV700Services`
+ *   directly (bypassing `Http4sApp.gate`), `api_disabled_versions=[v7.0.0]` does
+ *   not turn `/obp/v7.0.0/...` into 404s — and that is the contract this file pins.
  *
  * Why a separate test class from `ResourceDocMiddlewareEnableDisableTest`:
  *   That test pins the pure decision logic (`isEndpointEnabled`). This one pins the
@@ -38,6 +50,13 @@ class ResourceDocMiddlewareEnableDisablePropsTest extends ServerSetup with Given
   implicit val runtime: IORuntime = IORuntime.global
   private val app = Http4s700.wrappedRoutesV700Services.orNotFound
 
+  // A second app rooted at v4.0.0's wrapped routes — includes the v400ToV310Bridge.
+  // Used by the cascade scenarios below to prove that a v3.1.0-origin endpoint
+  // reached via `/obp/v4.0.0/...` still serves when v3.1.0 is in
+  // `api_disabled_versions`. The middleware running inside Http4s310 no longer
+  // enforces the version Prop, so the cascade is unaffected.
+  private val v4App = Http4s400.wrappedRoutesV400Services.orNotFound
+
   // OperationIds match `APIUtil.buildOperationId(v, partialFunctionName)` →
   // s"$fullyQualifiedVersion-$name". v7.0.0's fully qualified form is "OBPv7.0.0".
   private val rootOpId    = "OBPv7.0.0-root"
@@ -50,6 +69,12 @@ class ResourceDocMiddlewareEnableDisablePropsTest extends ServerSetup with Given
     val req = Request[IO](Method.GET, Uri.unsafeFromString(path), headers = Headers.empty,
                           body = Stream.empty)
     app.run(req).unsafeRunSync().status.code
+  }
+
+  private def getV4(path: String): Int = {
+    val req = Request[IO](Method.GET, Uri.unsafeFromString(path), headers = Headers.empty,
+                          body = Stream.empty)
+    v4App.run(req).unsafeRunSync().status.code
   }
 
   feature("ResourceDocMiddleware — Props wiring at request time") {
@@ -101,17 +126,19 @@ class ResourceDocMiddlewareEnableDisablePropsTest extends ServerSetup with Given
       status shouldBe 200
     }
 
-    scenario("api_disabled_versions disables every endpoint of that version", EnableDisablePropsTag) {
-      Given("api_disabled_versions=[v7.0.0]")
+    scenario("api_disabled_versions is NOT enforced by the middleware — cascade-friendly", EnableDisablePropsTag) {
+      Given("api_disabled_versions=[v7.0.0] (would historically have killed every v7 endpoint)")
       setPropsValues("api_disabled_versions" -> "[v7.0.0]")
 
-      When("requesting two unrelated v7 endpoints")
+      When("requesting two unrelated v7 endpoints directly against Http4s700's wrapped routes")
       val rootStatus = get(rootPath)
       val banksStatus = get(banksPath)
 
-      Then("both are short-circuited by the middleware → 404")
-      rootStatus shouldBe 404
-      banksStatus shouldBe 404
+      Then("both still serve — the middleware deliberately ignores version-level Props")
+      And("(the prefix-level gate lives in Http4sApp.gate, which this test bypasses)")
+      And("this is the behaviour that lets older endpoints stay reachable via newer enabled prefixes")
+      rootStatus shouldBe 200
+      banksStatus shouldBe 200
     }
 
     scenario("Disabled-endpoint wins over enabled-endpoint when same id is in both", EnableDisablePropsTag) {
@@ -128,7 +155,7 @@ class ResourceDocMiddlewareEnableDisablePropsTest extends ServerSetup with Given
       status shouldBe 404
     }
 
-    scenario("api_disabled_versions overrides an explicit api_enabled_endpoints entry", EnableDisablePropsTag) {
+    scenario("api_disabled_versions does NOT override api_enabled_endpoints at the middleware", EnableDisablePropsTag) {
       Given(s"api_disabled_versions=[v7.0.0] AND api_enabled_endpoints=[$rootOpId]")
       setPropsValues(
         "api_disabled_versions" -> "[v7.0.0]",
@@ -138,8 +165,9 @@ class ResourceDocMiddlewareEnableDisablePropsTest extends ServerSetup with Given
       When("requesting GET /obp/v7.0.0/root")
       val status = get(rootPath)
 
-      Then("the version gate wins → 404")
-      status shouldBe 404
+      Then("the endpoint serves — only the endpoint-level allowlist matters in the middleware")
+      And("(the version-level gate is enforced separately by Http4sApp.gate at the URL prefix)")
+      status shouldBe 200
     }
 
     scenario("After Props reset, baseline behavior is restored", EnableDisablePropsTag) {
@@ -147,6 +175,50 @@ class ResourceDocMiddlewareEnableDisablePropsTest extends ServerSetup with Given
       When("requesting GET /obp/v7.0.0/root")
       val status = get(rootPath)
       Then("the endpoint serves normally — proves PropsReset isolated each scenario")
+      status shouldBe 200
+    }
+  }
+
+  // ─── Cascade reachability across a disabled middle version ──────────────────
+  //
+  // Driving `Http4s400.wrappedRoutesV400Services` directly exercises:
+  //   1. Http4s400's own routes via its middleware  (no /certs match → falls through)
+  //   2. v400ToV310Bridge — rewrites `/obp/v4.0.0/...` to `/obp/v3.1.0/...` and
+  //      calls `Http4s310.wrappedRoutesV310Services` directly (bypasses Http4sApp.gate)
+  //   3. Http4s310's middleware + own routes (matches /certs → serves)
+  //
+  // `getServerJWK` (GET /certs) is a no-auth no-DB endpoint declared only in
+  // Http4s310 — newer versions don't redeclare it. Perfect for proving that an
+  // endpoint originally registered against a "middle" version is still reachable
+  // from a newer version's prefix even when the middle version is disabled.
+  //
+  // If a future change reintroduces a per-request `implementedInApiVersion`
+  // check inside `ResourceDocMiddleware`, the second scenario flips to 404 and
+  // a reviewer is forced to revisit the design before merging. That's the
+  // safety net that pins the cascade contract end-to-end.
+  feature("ResourceDocMiddleware — cascade reachability survives api_disabled_versions on the middle version") {
+
+    val certsViaV4 = "/obp/v4.0.0/certs"
+
+    scenario("Baseline: cascade reaches /certs from /obp/v4.0.0 via v400ToV310Bridge", EnableDisablePropsTag) {
+      Given("no enable/disable Props set")
+      When("requesting GET /obp/v4.0.0/certs against Http4s400.wrappedRoutesV400Services")
+      val status = getV4(certsViaV4)
+      Then("Http4s400 has no /certs route → v400ToV310Bridge serves it from Http4s310")
+      status shouldBe 200
+    }
+
+    scenario("api_disabled_versions=[v3.1.0] does NOT break the v4→v3.1 cascade", EnableDisablePropsTag) {
+      Given("api_disabled_versions=[v3.1.0] — at some point during the migration to http4s, the intended design was broken and this would have killed cascaded reachability")
+      setPropsValues("api_disabled_versions" -> "[v3.1.0]")
+
+      When("requesting GET /obp/v4.0.0/certs through the v400ToV310Bridge")
+      val status = getV4(certsViaV4)
+
+      Then("the endpoint still serves — the middleware does not enforce version-level disable")
+      And("(direct /obp/v3.1.0/certs would 404 in production via Http4sApp.gate, but the gate")
+      And("is not exercised by driving wrappedRoutesV400Services directly — the cascade test is")
+      And("specifically about ResourceDocMiddleware not killing the bridge dispatch)")
       status shouldBe 200
     }
   }

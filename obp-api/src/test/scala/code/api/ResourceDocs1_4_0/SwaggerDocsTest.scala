@@ -230,6 +230,26 @@ class SwaggerDocsTest extends ResourceDocsV140ServerSetup with PropsReset with D
       responseGetOpenAPIYAML.body.toString.trim.nonEmpty should be (true)
     }
 
+    // The OpenAPI routes used to be gated on `prefix == "v6.0.0"` by the
+    // centralised Http4sResourceDocs service — replicating the historical Lift
+    // setup where only ResourceDocs600 registered them. The gate was removed
+    // because the spec content only depends on the API-version path segment,
+    // not on the URL prefix. Verify a non-v6 prefix is now served.
+    scenario("OpenAPI JSON - served for non-v6.0.0 URL prefix (v5.1.0)", ApiEndpoint1, VersionOfApi) {
+      setPropsValues("resource_docs_requires_role" -> "false")
+      val req = (ResourceDocsV5_1Request / "resource-docs" / "v5.1.0" / "openapi").GET <<? List(("tags", "Consumer"))
+      val resp = makeGetRequest(req)
+      resp.code should equal(200)
+    }
+
+    scenario("OpenAPI YAML - served for non-v6.0.0 URL prefix (v5.1.0)", ApiEndpoint1, VersionOfApi) {
+      setPropsValues("resource_docs_requires_role" -> "false")
+      val req = (ResourceDocsV5_1Request / "resource-docs" / "v5.1.0" / "openapi.yaml").GET <<? List(("tags", "Consumer"))
+      val resp = makeGetRequest(req)
+      resp.code should equal(200)
+      resp.body.toString.trim.nonEmpty should be (true)
+    }
+
   }
 
 }

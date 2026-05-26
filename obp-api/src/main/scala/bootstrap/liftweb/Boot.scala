@@ -338,6 +338,8 @@ class Boot extends MdcLoggable {
 
     warnAboutSuperAdminUsers()
 
+    warnAboutEmailDeliveryConfiguration()
+
     createBootstrapOidcOperatorUser()
 
     createBootstrapOidcOperatorConsumer()
@@ -939,6 +941,41 @@ class Boot extends MdcLoggable {
           logger.warn("========================================================================")
         }
       case _ => // No super admin users configured, nothing to warn about
+    }
+  }
+
+  /**
+   * Warn at startup about email-delivery configuration that would silently break
+   * signup-validation and password-reset flows. Both flows embed a link built from
+   * `portal_external_url`; if the prop is missing the signup endpoint skips the
+   * send with no log line and the user gets a 201. Many SMTP servers reject the
+   * default `noreply@example.com` From address, in which case Transport.send
+   * succeeds at the boundary but mail is dropped downstream.
+   */
+  private def warnAboutEmailDeliveryConfiguration(): Unit = {
+    val portalUrl = APIUtil.getPropsValue("portal_external_url")
+    val senderAddress = APIUtil.getPropsValue("mail.users.userinfo.sender.address", "noreply@example.com")
+    val portalMissing = portalUrl.isEmpty || portalUrl.exists(_.trim.isEmpty)
+    val senderIsDefault = senderAddress == "noreply@example.com"
+    if (portalMissing || senderIsDefault) {
+      logger.warn("========================================================================")
+      logger.warn("WARNING: Email delivery configuration is incomplete.")
+      logger.warn("")
+      if (portalMissing) {
+        logger.warn("  portal_external_url is not set.")
+        logger.warn("    Signup-validation and password-reset emails are silently skipped")
+        logger.warn("    when this prop is missing. Users will complete signup with a 201")
+        logger.warn("    response but never receive a validation email.")
+      }
+      if (senderIsDefault) {
+        logger.warn("  mail.users.userinfo.sender.address is still the default")
+        logger.warn("    'noreply@example.com'. Most SMTP servers reject this From address")
+        logger.warn("    (SPF/DKIM/anti-spoof). SMTP send may succeed but mail will be")
+        logger.warn("    dropped downstream.")
+      }
+      logger.warn("")
+      logger.warn("Verify end-to-end delivery with POST /obp/v7.0.0/management/self-test-emails.")
+      logger.warn("========================================================================")
     }
   }
 

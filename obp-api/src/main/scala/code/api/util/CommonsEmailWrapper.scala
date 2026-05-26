@@ -121,11 +121,69 @@ object CommonsEmailWrapper extends MdcLoggable {
       setCommonHeaders(message, content)
       message.setText(content.textContent.getOrElse(""), "UTF-8")
       Transport.send(message)
+      logger.info(s"sendTextEmail says: sent to=${content.to.mkString(",")} subject='${content.subject}' messageId=${message.getMessageID}")
       Full(message.getMessageID)
     } catch {
       case e: Exception =>
         logger.error(s"Failed to send text email: ${e.getMessage}", e)
         Empty
+    }
+  }
+
+  // Variant that preserves the exception so callers can classify SMTP failures
+  // (auth / connect / TLS / recipient rejection) instead of returning a generic
+  // EmailSendingFailed. Used by the self-test endpoint; existing fire-and-forget
+  // callers (signup, password reset) keep using sendTextEmail above.
+  def sendTextEmailEither(content: EmailContent): Either[Throwable, String] = {
+    if (isTestMode) Right("test-mode-message-id-" + System.currentTimeMillis())
+    else sendTextEmailEither(getDefaultEmailConfig(), content)
+  }
+
+  def sendTextEmailEither(config: EmailConfig, content: EmailContent): Either[Throwable, String] = {
+    try {
+      val session = createSession(config)
+      val message = new MimeMessage(session)
+      setCommonHeaders(message, content)
+      message.setText(content.textContent.getOrElse(""), "UTF-8")
+      Transport.send(message)
+      logger.info(s"sendTextEmailEither says: sent to=${content.to.mkString(",")} subject='${content.subject}' messageId=${message.getMessageID}")
+      Right(message.getMessageID)
+    } catch {
+      case e: Throwable =>
+        logger.error(s"sendTextEmailEither says: failed to send text email: ${e.getMessage}", e)
+        Left(e)
+    }
+  }
+
+  def sendHtmlEmailEither(content: EmailContent): Either[Throwable, String] = {
+    if (isTestMode) Right("test-mode-message-id-" + System.currentTimeMillis())
+    else sendHtmlEmailEither(getDefaultEmailConfig(), content)
+  }
+
+  def sendHtmlEmailEither(config: EmailConfig, content: EmailContent): Either[Throwable, String] = {
+    try {
+      val session = createSession(config)
+      val message = new MimeMessage(session)
+      setCommonHeaders(message, content)
+      val multipart = new MimeMultipart("alternative")
+      content.textContent.foreach { text =>
+        val textPart = new MimeBodyPart()
+        textPart.setText(text, "UTF-8")
+        multipart.addBodyPart(textPart)
+      }
+      content.htmlContent.foreach { html =>
+        val htmlPart = new MimeBodyPart()
+        htmlPart.setContent(html, "text/html; charset=UTF-8")
+        multipart.addBodyPart(htmlPart)
+      }
+      message.setContent(multipart)
+      Transport.send(message)
+      logger.info(s"sendHtmlEmailEither says: sent to=${content.to.mkString(",")} subject='${content.subject}' messageId=${message.getMessageID}")
+      Right(message.getMessageID)
+    } catch {
+      case e: Throwable =>
+        logger.error(s"sendHtmlEmailEither says: failed to send html email: ${e.getMessage}", e)
+        Left(e)
     }
   }
 
@@ -150,6 +208,7 @@ object CommonsEmailWrapper extends MdcLoggable {
       }
       message.setContent(multipart)
       Transport.send(message)
+      logger.info(s"sendHtmlEmail says: sent to=${content.to.mkString(",")} subject='${content.subject}' messageId=${message.getMessageID}")
       Full(message.getMessageID)
     } catch {
       case e: Exception =>
@@ -196,6 +255,7 @@ object CommonsEmailWrapper extends MdcLoggable {
       }
       message.setContent(multipart)
       Transport.send(message)
+      logger.info(s"sendEmailWithAttachments says: sent to=${content.to.mkString(",")} subject='${content.subject}' messageId=${message.getMessageID} attachments=${content.attachments.length}")
       Full(message.getMessageID)
     } catch {
       case e: Exception =>

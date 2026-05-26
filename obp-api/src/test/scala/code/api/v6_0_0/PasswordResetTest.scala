@@ -131,11 +131,13 @@ class PasswordResetTest extends V600ServerSetup {
       withClue(s"Response body: ${response600.body} ") {
         response600.code should equal(201)
       }
-      response600.body.extractOpt[JSONFactory600.ResetPasswordUrlJsonV600].isDefined should equal(true)
-      And("The response should contain a valid reset URL")
-      val resetUrl = (response600.body \ "reset_password_url").extract[String]
-      resetUrl should include("/reset-password/")
-      resetUrl.split("/reset-password/").last.length should be > 0
+      response600.body.extractOpt[JSONFactory600.ResetPasswordEmailSentJsonV600].isDefined should equal(true)
+      And("The response should acknowledge delivery without leaking the reset URL")
+      val ack = response600.body.extract[JSONFactory600.ResetPasswordEmailSentJsonV600]
+      ack.status should equal("sent")
+      ack.to should equal(postJson.email)
+      And("The response body must NOT contain a reset_password_url field")
+      (response600.body \ "reset_password_url") should equal(net.liftweb.json.JNothing)
     }
 
     scenario("We will call the endpoint with unvalidated user", ApiEndpoint1, VersionOfApi) {
@@ -381,20 +383,27 @@ class PasswordResetTest extends V600ServerSetup {
         .saveMe()
       val resourceUser: Box[User] = Users.users.vend.getUserByResourceUserId(authUser.user.get)
 
-      When("We request a password reset URL via the authenticated endpoint")
+      When("We request a password reset email via the authenticated endpoint")
       val resetUrlRequest = (v6_0_0_Request / "management" / "user" / "reset-password-url").POST <@(user1)
       val resetUrlJson = JSONFactory600.PostResetPasswordUrlJsonV600(testUsername, testEmail, resourceUser.map(_.userId).getOrElse(""))
       val resetUrlResponse = makePostRequest(resetUrlRequest, write(resetUrlJson))
-      Then("We should get a 201 with a reset URL")
+      Then("We should get a 201 acknowledgement (no URL leaked in the body)")
       withClue(s"Response body: ${resetUrlResponse.body} ") {
         resetUrlResponse.code should equal(201)
       }
-      val resetUrl = (resetUrlResponse.body \ "reset_password_url").extract[String]
-      resetUrl should include("/reset-password/")
+      val ack = resetUrlResponse.body.extract[JSONFactory600.ResetPasswordEmailSentJsonV600]
+      ack.status should equal("sent")
+      ack.to should equal(testEmail)
 
-      And("We extract the JWT token from the URL (URL-decoded)")
-      val encodedToken = resetUrl.split("/reset-password/").last
-      val token = java.net.URLDecoder.decode(encodedToken, "UTF-8")
+      And("The endpoint rotated the user's uniqueId; we mint a matching JWT to drive the complete step")
+      val rotatedAuthUser = AuthUser.find(By(AuthUser.username, testUsername)).openOrThrowException("user gone after reset request")
+      val expiryMinutes = code.api.util.APIUtil.getPropsAsIntValue("password_reset_token_expiry_minutes", 120)
+      val claimsSet = new com.nimbusds.jwt.JWTClaimsSet.Builder()
+        .subject(rotatedAuthUser.uniqueId.get)
+        .expirationTime(new java.util.Date(System.currentTimeMillis() + expiryMinutes * 60L * 1000L))
+        .issueTime(new java.util.Date())
+        .build()
+      val token = CertificateUtil.jwtWithHmacProtection(claimsSet)
       token.length should be > 0
 
       When("We complete the password reset with the JWT token")

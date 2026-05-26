@@ -4676,7 +4676,7 @@ object Http4s510 {
          |Consumer-Key: ejznk505d132ryomnhbx1qmtohurbsbb0kijajsk
          |cache-control: no-cache
          |
-         |Maximum time to live of the token is specified over props value consents.max_time_to_live. In case isn't defined default value is 3600 seconds.
+         |Maximum time to live of the token is specified over props value consents.max_time_to_live. In case isn't defined default value is 7776000 seconds (90 days).
          |
          |Example of POST JSON:
          |{
@@ -4768,7 +4768,7 @@ object Http4s510 {
             consentJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostConsentBodyCommonJson ", 400, callContextOpt) {
               net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[PostConsentBodyCommonJson]
             }
-            maxTimeToLive = APIUtil.getPropsAsIntValue(nameOfProperty = "consents.max_time_to_live", defaultValue = 3600)
+            maxTimeToLive = APIUtil.getPropsAsIntValue(nameOfProperty = "consents.max_time_to_live", defaultValue = Constant.DEFAULT_CONSENT_TTL)
             _ <- Helper.booleanToFuture(s"$ConsentMaxTTL ($maxTimeToLive)", cc = callContextOpt) {
               consentJson.time_to_live match {
                 case Some(ttl) => ttl <= maxTimeToLive
@@ -4940,7 +4940,7 @@ object Http4s510 {
             postConsentRequestJsonV510 <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostVRPConsentRequestJsonV510 ", 400, callContextOpt) {
               parsedBody.extract[PostVRPConsentRequestJsonV510]
             }
-            maxTimeToLive = APIUtil.getPropsAsIntValue(nameOfProperty = "consents.max_time_to_live", defaultValue = 3600)
+            maxTimeToLive = APIUtil.getPropsAsIntValue(nameOfProperty = "consents.max_time_to_live", defaultValue = Constant.DEFAULT_CONSENT_TTL)
             _ <- Helper.booleanToFuture(s"$ConsentMaxTTL ($maxTimeToLive)", cc = callContextOpt) {
               postConsentRequestJsonV510.time_to_live match {
                 case Some(ttl) => ttl <= maxTimeToLive

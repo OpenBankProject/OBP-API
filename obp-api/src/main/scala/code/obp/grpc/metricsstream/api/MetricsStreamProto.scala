@@ -23,6 +23,7 @@ object MetricsStreamProto {
         .addField(stringField("url_substring", 4))
         .addField(stringField("implemented_by_partial_function", 5))
         .addField(stringField("app_name", 6))
+        .addField(stringField("consent_reference_id", 7))
       )
       // MetricEvent
       .addMessageType(DescriptorProto.newBuilder()
@@ -44,6 +45,7 @@ object MetricsStreamProto {
         .addField(stringField("target_ip", 15))
         .addField(stringField("api_instance_id", 16))
         .addField(stringField("operation_id", 17))
+        .addField(stringField("consent_reference_id", 18))
       )
       // MetricsStreamService
       .addService(ServiceDescriptorProto.newBuilder()

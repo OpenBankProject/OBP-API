@@ -106,6 +106,12 @@ object Http4sApp {
       corsHandler.run(req)
         .orElse(AppsPage.routes.run(req))
         .orElse(StatusPage.routes.run(req))
+        // Bridge-retirement audit endpoint — exposes the in-memory tally of
+        // requests that have fallen through to Http4sLiftWebBridge so we can
+        // see exactly what still needs migrating before the bridge can be
+        // removed. Placed before the per-version routes so the admin path
+        // can't be shadowed by a version-prefixed handler.
+        .orElse(Http4sLiftBridgeTraffic.routes.run(req))
         .orElse(Http4sResourceDocs.routes.run(req))
         .orElse(v510Routes.run(req))
         .orElse(v600Routes.run(req))

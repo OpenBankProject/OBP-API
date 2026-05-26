@@ -121,7 +121,7 @@ object Http4s600 {
   val versionStatus: String = ApiVersionStatus.BLEEDING_EDGE.toString
   val resourceDocs: ArrayBuffer[ResourceDoc] = ArrayBuffer[ResourceDoc]()
 
-  object Implementations6_0_0 {
+  object Implementations6_0_0 extends code.util.Helper.MdcLoggable {
 
     val prefixPath = Root / ApiPathZero.toString / implementedInApiVersion.toString
 
@@ -963,7 +963,16 @@ object Http4s600 {
           } yield {
             val skipEmailValidation = APIUtil.getPropsAsBoolValue("authUser.skipEmailValidation", defaultValue = false)
             if (!skipEmailValidation) {
-              APIUtil.getPropsValue("portal_external_url").foreach { portalUrl =>
+              val portalUrlBox = APIUtil.getPortalUrl
+              val senderAddress = AuthUser.emailFrom
+              val portalMissing = portalUrlBox.isEmpty
+              val senderIsDefault = senderAddress == "noreply@example.com"
+              if (portalMissing) {
+                logger.warn(s"createUser says: validation email NOT sent for user '${savedUser.username.get}' — public_obp_portal_url (or legacy portal_external_url) is not set. The user will be unable to validate via email. They can use POST /obp/v7.0.0/users/validation-emails to retry once the prop is configured.")
+              } else if (senderIsDefault) {
+                logger.warn(s"createUser says: validation email NOT sent for user '${savedUser.username.get}' — mail.users.userinfo.sender.address is still the default 'noreply@example.com' (most SMTP servers will reject this From address).")
+              } else {
+                val portalUrl = portalUrlBox.openOr("")
                 val expiryMinutes = APIUtil.getPropsAsIntValue("email_validation_token_expiry_minutes", 1440)
                 val claimsSet = new com.nimbusds.jwt.JWTClaimsSet.Builder()
                   .subject(savedUser.uniqueId.get)
@@ -971,14 +980,20 @@ object Http4s600 {
                   .issueTime(new java.util.Date()).build()
                 val jwtToken = CertificateUtil.jwtWithHmacProtection(claimsSet)
                 val emailLink = portalUrl + "/user-validation?token=" + java.net.URLEncoder.encode(jwtToken, "UTF-8")
-                CommonsEmailWrapper.sendHtmlEmail(CommonsEmailWrapper.EmailContent(
-                  from = AuthUser.emailFrom,
+                val sendOutcome = CommonsEmailWrapper.sendHtmlEmailEither(CommonsEmailWrapper.EmailContent(
+                  from = senderAddress,
                   to = List(savedUser.email.get),
                   bcc = AuthUser.bccEmail.toList,
                   subject = "Sign up confirmation",
                   textContent = Some(s"Welcome! Please validate your account: $emailLink"),
                   htmlContent = Some(s"<p>Welcome! Please <a href='$emailLink'>validate your account</a>.</p>")
                 ))
+                sendOutcome match {
+                  case Right(msgId) =>
+                    logger.info(s"createUser says: validation email sent to '${savedUser.email.get}' messageId=$msgId")
+                  case Left(e) =>
+                    logger.warn(s"createUser says: validation email send FAILED for user '${savedUser.username.get}' (${savedUser.email.get}): ${e.getClass.getSimpleName}: ${Option(e.getMessage).getOrElse("").take(200)}. The user can retry via POST /obp/v7.0.0/users/validation-emails once the SMTP issue is resolved.")
+                }
               }
             }
             AuthUser.grantDefaultEntitlementsToAuthUser(savedUser)
@@ -1014,9 +1029,9 @@ object Http4s600 {
                 case _ => throw new Exception("User not found, not validated, or email mismatch")
               }
             }
-            portalUrl <- APIUtil.getPropsValue("portal_external_url") match {
+            portalUrl <- APIUtil.getPortalUrl match {
               case Full(url) => Future.successful(url)
-              case _ => Future.failed(new Exception(s"$IncompleteServerConfiguration portal_external_url is not set"))
+              case _ => Future.failed(new Exception(s"$IncompleteServerConfiguration public_obp_portal_url (or legacy portal_external_url) is not set"))
             }
           } yield {
             val user: AuthUser = authUser
@@ -1037,7 +1052,11 @@ object Http4s600 {
               textContent = Some(s"Please reset your password: $resetLink"),
               htmlContent = Some(s"<p>Please reset your password: <a href='$resetLink'>$resetLink</a></p>")
             ))
-            JSONFactory600.ResetPasswordUrlJsonV600(resetLink)
+            // The reset URL is intentionally NOT returned in the response. Returning
+            // it would let any caller with canCreateResetPasswordUrl complete a reset
+            // without controlling the target mailbox, defeating the email-proves-
+            // mailbox-ownership property of the flow. The link goes via email only.
+            JSONFactory600.ResetPasswordEmailSentJsonV600(status = "sent", to = user.email.get)
           }
         }
     }
@@ -4127,9 +4146,15 @@ object Http4s600 {
             }
           } yield {
             val authUserBox = code.model.dataAccess.AuthUser.find(
-              net.liftweb.mapper.By(code.model.dataAccess.AuthUser.username, postedData.username))
-            (authUserBox, APIUtil.getPropsValue("portal_external_url")) match {
-              case (Full(u), Full(portalUrl)) if u.validated.get && u.email.get == postedData.email =>
+              net.liftweb.mapper.By(code.model.dataAccess.AuthUser.username, postedData.username),
+              net.liftweb.mapper.By(code.model.dataAccess.AuthUser.provider, Constant.localIdentityProvider))
+            val portalUrlBox = APIUtil.getPortalUrl
+            val senderAddress = code.model.dataAccess.AuthUser.emailFrom
+            val portalMissing = portalUrlBox.isEmpty
+            val senderIsDefault = senderAddress == "noreply@example.com"
+            (authUserBox, portalMissing, senderIsDefault) match {
+              case (Full(u), false, false) if u.validated.get && u.email.get == postedData.email =>
+                val portalUrl = portalUrlBox.openOr("")
                 u.uniqueId.set(java.util.UUID.randomUUID().toString.replace("-", ""))
                 u.save
                 val expiryMinutes = APIUtil.getPropsAsIntValue("password_reset_token_expiry_minutes", 120)
@@ -4139,14 +4164,25 @@ object Http4s600 {
                   .issueTime(new java.util.Date()).build()
                 val jwtToken = CertificateUtil.jwtWithHmacProtection(claimsSet)
                 val resetLink = portalUrl + "/reset-password/" + java.net.URLEncoder.encode(jwtToken, "UTF-8")
-                CommonsEmailWrapper.sendHtmlEmail(CommonsEmailWrapper.EmailContent(
-                  from = code.model.dataAccess.AuthUser.emailFrom,
+                val sendOutcome = CommonsEmailWrapper.sendHtmlEmailEither(CommonsEmailWrapper.EmailContent(
+                  from = senderAddress,
                   to = List(u.email.get),
                   bcc = code.model.dataAccess.AuthUser.bccEmail.toList,
                   subject = "Reset your password - " + u.username.get,
                   textContent = Some(s"Please use the following link to reset your password: $resetLink"),
                   htmlContent = Some(s"<p>Please use the following link to reset your password:</p><p><a href='$resetLink'>$resetLink</a></p>")))
-              case _ => // do nothing — return same response to prevent user enumeration
+                sendOutcome match {
+                  case Right(msgId) =>
+                    logger.info(s"resetPasswordUrlAnonymous says: reset email sent to '${u.email.get}' messageId=$msgId")
+                  case Left(e) =>
+                    logger.warn(s"resetPasswordUrlAnonymous says: SMTP send failed for user '${u.username.get}': ${e.getClass.getSimpleName}: ${Option(e.getMessage).getOrElse("").take(200)}")
+                }
+              case (_, true, _) =>
+                logger.warn("resetPasswordUrlAnonymous says: skipped — public_obp_portal_url (or legacy portal_external_url) not set; cannot build reset link. Response returned as if successful (anti-enumeration).")
+              case (_, _, true) =>
+                logger.warn("resetPasswordUrlAnonymous says: skipped — mail.users.userinfo.sender.address is still the default 'noreply@example.com'. Response returned as if successful (anti-enumeration).")
+              case _ =>
+                logger.info("resetPasswordUrlAnonymous says: skipped (no matching validated local-provider user, or email mismatch). Response returned as if successful (anti-enumeration).")
             }
             JSONFactory600.ResetPasswordUrlAnonymousResponseJsonV600(
               "If the account exists, a password reset email has been sent.")
@@ -7227,6 +7263,8 @@ object Http4s600 {
            |
            |16 duration (if null ignore) - Returns calls where duration > specified value (in milliseconds). Use this to find slow API calls. eg: duration=5000 returns calls taking more than 5 seconds
            |
+           |17 consent_reference_id (if null ignore) - Returns calls authenticated via the consent with this reference id. eg: consent_reference_id=fd13b9af-4f74-4d52-a7f1-7c2c12f3aa11
+           |
         """.stripMargin,
         EmptyBody,
         metricsJsonV600,
@@ -7783,16 +7821,17 @@ object Http4s600 {
         nameOf(resetPasswordUrl),
         "POST",
         "/management/user/reset-password-url",
-        "Create Password Reset URL and Send Email",
-        s"""Create a password reset URL for a user and automatically send it via email.
+        "Create Password Reset URL and Send by Email",
+        s"""Create a new password reset URL for a user and send it to them by email.
+        |The URL travels only via email — it is NOT returned in the response.
         |
         |Authentication is Required.
         |
         |Behavior:
-        |- Generates a unique password reset token
-        |- Creates a reset URL using the portal_external_url property (falls back to API hostname)
-        |- Sends an email to the user with the reset link
-        |- Returns the reset URL in the response for logging/tracking purposes
+        |- Generates a unique password reset token (rotates the user's uniqueId)
+        |- Builds a reset URL using the portal_external_url property
+        |- Sends the URL to the user by email
+        |- Returns only delivery acknowledgement ({"status": "sent", "to": "<email>"})
         |
         |Required fields:
         |- username: The user's username (typically email)
@@ -7801,7 +7840,14 @@ object Http4s600 {
         |
         |The user must exist and be validated before a reset URL can be generated.
         |
-        |Email configuration must be set up correctly for email delivery to work.
+        |Email configuration (portal_external_url, SMTP, sender address) must be
+        |set up correctly for delivery to succeed. See /status (Email section) and
+        |POST /obp/v7.0.0/management/self-test-emails for diagnostics.
+        |
+        |Security note: the reset URL is intentionally not returned in the response.
+        |Returning it would let any caller with canCreateResetPasswordUrl complete
+        |a reset without controlling the target mailbox, defeating the email-proves-
+        |mailbox-ownership property of the flow.
         |
         |""".stripMargin,
         PostResetPasswordUrlJsonV600(
@@ -7809,8 +7855,9 @@ object Http4s600 {
           "user@example.com",
           "74a8ebcc-10e4-4036-bef3-9835922246bf"
         ),
-        ResetPasswordUrlJsonV600(
-          "https://api.example.com/reset-password/QOL1CPNJPCZ4BRMPX3Z01DPOX1HMGU3L"
+        ResetPasswordEmailSentJsonV600(
+          status = "sent",
+          to = "user@example.com"
         ),
         List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
         apiTagUser :: Nil,

@@ -1034,4 +1034,34 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
 
   lazy val coreAccountsJsonV700Example =
     CoreAccountsJsonV700(accounts = List(coreAccountJsonV700Example))
+
+  // ─── Consents config — operator-published policy clients need before issuing a consent ──
+
+  case class ConsentsConfigJsonV700(
+    consents_allowed: Boolean,
+    max_time_to_live_in_seconds: Int,
+    sca_enabled: Boolean
+  )
+
+  lazy val consentsConfigJsonV700Example = ConsentsConfigJsonV700(
+    consents_allowed = true,
+    max_time_to_live_in_seconds = code.api.Constant.DEFAULT_CONSENT_TTL,
+    sca_enabled = true
+  )
+
+  // ─── Validation email (anonymous resend) ────────────────────────────────────
+  // The request identifies the target by (username, email). The response is the
+  // same generic acknowledgement regardless of whether the user exists, is
+  // already validated, the rate limit was hit, or the SMTP send failed — this
+  // is the anti-enumeration property of the endpoint.
+  case class PostValidationEmailRequestJsonV700(
+    username: String,
+    email: String
+  )
+
+  case class ValidationEmailResponseJsonV700(message: String)
+
+  lazy val validationEmailResponseJsonV700Example = ValidationEmailResponseJsonV700(
+    message = "If an unvalidated account exists for this username and email, a validation email has been sent."
+  )
 }

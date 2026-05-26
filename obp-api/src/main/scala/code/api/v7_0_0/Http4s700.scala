@@ -7,7 +7,9 @@ import code.api.Constant._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil.{EmptyBody, _}
 import code.api.util.{APIUtil, ApiRole, CallContext, CustomJsonFormats, Glossary, NewStyle}
-import code.api.util.ApiRole.{canCreateEntitlementAtAnyBank, canCreateEntitlementAtOneBank, canCreateOrganisation, canCreateRoutingScheme, canDeleteEntitlementAtAnyBank, canDeleteOrganisation, canDeleteRoutingScheme, canGetAccountAccessTrace, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetConnectorHealth, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMigrations, canUpdateBankSupportedRoutingScheme, canUpdateOrganisation, canUpdateRoutingScheme, canUpdateSystemView}
+import code.api.util.ApiRole.{canCreateEntitlementAtAnyBank, canCreateEntitlementAtOneBank, canCreateOrganisation, canCreateRoutingScheme, canCreateTestEmail, canDeleteEntitlementAtAnyBank, canDeleteOrganisation, canDeleteRoutingScheme, canGetAccountAccessTrace, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetConnectorHealth, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMigrations, canUpdateBankSupportedRoutingScheme, canUpdateOrganisation, canUpdateRoutingScheme, canUpdateSystemView}
+import code.api.util.CommonsEmailWrapper
+import code.model.dataAccess.AuthUser
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.http4s.{ErrorResponseConverter, Http4sRequestAttributes, IdempotencyMiddleware, RequestScopeConnection, ResourceDocMiddleware, ResourceDocMatcher}
@@ -64,7 +66,7 @@ object Http4s700 {
   implicit def convertAnyToJsonString(any: Any): String = prettyRender(Extraction.decompose(any))
 
   val implementedInApiVersion: ScannedApiVersion = ApiVersion.v7_0_0
-  val versionStatus = ApiVersionStatus.STABLE.toString
+  val versionStatus = ApiVersionStatus.BLEEDING_EDGE.toString
   val resourceDocs = ArrayBuffer[ResourceDoc]()
 
   /* 
@@ -732,6 +734,40 @@ object Http4s700 {
       List(UnknownError),
       apiTagApi :: Nil,
       http4sPartialFunction = Some(getFeatures)
+    )
+
+    // Route: GET /obp/v7.0.0/consents/config
+    // Anonymous: operator-published policy that TPPs/agents need to know before issuing a consent.
+    val getConsentsConfig: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "consents" / "config" =>
+        EndpointHelpers.executeAndRespond(req) { _ =>
+          Future.successful(JSONFactory700.ConsentsConfigJsonV700(
+            consents_allowed            = APIUtil.getPropsAsBoolValue("consents.allowed", false),
+            max_time_to_live_in_seconds = APIUtil.getPropsAsIntValue("consents.max_time_to_live", code.api.Constant.DEFAULT_CONSENT_TTL),
+            sca_enabled                 = APIUtil.getPropsAsBoolValue("consents.sca.enabled", true)
+          ))
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(getConsentsConfig),
+      "GET",
+      "/consents/config",
+      "Get Consents Configuration",
+      """Returns the operator-configured consent policy for this OBP instance:
+        |
+        |* `consents_allowed` — whether consent issuance is enabled at all.
+        |* `max_time_to_live_in_seconds` — the cap enforced when a client supplies `time_to_live` on consent creation. Exceeding this triggers `OBP-35020`.
+        |* `sca_enabled` — whether Strong Customer Authentication is required for consent activation.
+        |
+        |No Authentication is Required — clients need these values before they hold credentials.""",
+      EmptyBody,
+      JSONFactory700.consentsConfigJsonV700Example,
+      List(UnknownError),
+      apiTagConsent :: apiTagApi :: Nil,
+      http4sPartialFunction = Some(getConsentsConfig)
     )
 
     // Route: GET /obp/v7.0.0/api/versions
@@ -2342,6 +2378,346 @@ object Http4s700 {
     )
 
     // ── End Phase 1 batch 3 ──────────────────────────────────────────────────
+
+    // ── Test email (self) ─────────────────────────────────────────────────────
+    // POST /management/self-test-emails — send a test email to the authenticated
+    // user's own address. Useful for admins to verify SMTP configuration (host,
+    // port, TLS, credentials, sender address) end-to-end without needing a
+    // real-world trigger such as signup or password reset.
+    //
+    // Recipient is always the caller's emailAddress (not a body parameter): keeps
+    // the DoS surface to "spam yourself", and the role gate (canCreateTestEmail)
+    // restricts it further to trusted operators.
+
+    case class TestEmailResponseJsonV700(
+      to: String,
+      from: String,
+      subject: String,
+      message_id: String
+    )
+
+    val createTestEmail: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "management" / "self-test-emails" =>
+        EndpointHelpers.executeFutureCreated(req) {
+          implicit val cc: CallContext = req.callContext
+          val user = cc.user.openOrThrowException(AuthenticatedUserIsRequired)
+          val toAddress = Option(user.emailAddress).getOrElse("")
+          val fromAddress = AuthUser.emailFrom
+          val portalUrlBox = APIUtil.getPropsValue("portal_external_url")
+          val subject = s"OBP test email from ${Constant.HostName}"
+          val body =
+            s"""Hello ${user.name},
+               |
+               |This is a test email sent from ${Constant.HostName} at ${java.time.Instant.now()}.
+               |
+               |If you received this, SMTP delivery from the OBP API server is working.
+               |
+               |Validation and password-reset links sent to users are built from:
+               |  portal_external_url = ${portalUrlBox.getOrElse("(unset)")}
+               |
+               |Triggered by: ${user.userId}
+               |""".stripMargin
+          for {
+            _ <- Helper.booleanToFuture(UserEmailAddressMissing, 400, Some(cc)) {
+              toAddress.nonEmpty
+            }
+            _ <- Helper.booleanToFuture(
+              s"$IncompleteServerConfiguration portal_external_url is not set — signup-validation and password-reset emails will not be delivered.",
+              500, Some(cc)) {
+              portalUrlBox.isDefined
+            }
+            _ <- Helper.booleanToFuture(
+              s"$IncompleteServerConfiguration mail.users.userinfo.sender.address is still the default 'noreply@example.com' — most SMTP servers will reject this From address.",
+              500, Some(cc)) {
+              fromAddress != "noreply@example.com"
+            }
+            sendOutcome <- Future {
+              CommonsEmailWrapper.sendTextEmailEither(
+                CommonsEmailWrapper.EmailContent(
+                  from = fromAddress,
+                  to = List(toAddress),
+                  subject = subject,
+                  textContent = Some(body)
+                )
+              )
+            }
+            messageId <- sendOutcome match {
+              case Right(id) => Future.successful(id)
+              case Left(e) =>
+                val (errMsg, status) = classifySmtpException(e)
+                Helper.booleanToFuture(errMsg, status, Some(cc)) { false }.map(_ => "")
+            }
+          } yield TestEmailResponseJsonV700(
+            to = toAddress,
+            from = fromAddress,
+            subject = subject,
+            message_id = messageId
+          )
+        }
+    }
+
+    // Walk the exception chain and map the most specific known cause to a
+    // dedicated OBP error code. Falls back to EmailSendingFailed for genuinely
+    // unknown failures. Always appends the exception chain detail so the
+    // operator sees the underlying server message (e.g. SMTP 535 from auth).
+    private def classifySmtpException(e: Throwable): (String, Int) = {
+      val chain = Iterator.iterate(e: Throwable)(_.getCause).takeWhile(_ != null).toList
+      val detail = chain
+        .map(t => s"${t.getClass.getSimpleName}: ${Option(t.getMessage).getOrElse("").take(200)}")
+        .mkString(" -> ")
+      val baseMsg = chain.collectFirst {
+        case _: jakarta.mail.AuthenticationFailedException => SmtpAuthenticationFailed
+        case _: jakarta.mail.SendFailedException           => SmtpRecipientRejected
+        case _: javax.net.ssl.SSLException                 => SmtpTlsHandshakeFailed
+        case _: java.net.UnknownHostException              => SmtpConnectionFailed
+        case _: java.net.ConnectException                  => SmtpConnectionFailed
+        case _: java.net.SocketTimeoutException            => SmtpConnectionFailed
+        case _: jakarta.mail.MessagingException            => SmtpProtocolError
+      }.getOrElse(EmailSendingFailed)
+      (s"$baseMsg Detail: $detail", 500)
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(createTestEmail),
+      "POST",
+      "/management/self-test-emails",
+      "Send Self Test Email",
+      """Send a test email to the authenticated user's own email address.
+        |
+        |Useful for admins to verify that emails sent during user signup, email
+        |validation and password reset can actually be delivered. This endpoint uses
+        |the same From address and the same SMTP path as those flows, so a successful
+        |result here is a strong signal that those flows will work too.
+        |
+        |The From address comes from `AuthUser.emailFrom`, which reads the property
+        |`mail.users.userinfo.sender.address`. The endpoint fails with 500 if this
+        |is still the default `noreply@example.com`, because most SMTP servers will
+        |reject that From address.
+        |
+        |The endpoint also fails with 500 if `portal_external_url` is not set,
+        |because that property is required to build the links embedded in
+        |signup-validation and password-reset emails. Without it, those flows
+        |silently skip sending. The configured value (or `(unset)`) is included
+        |in the body of the test email so the admin can confirm visually.
+        |
+        |The recipient is always the caller's own email address — there is no `to`
+        |parameter. The role `CanCreateTestEmail` is required.
+        |
+        |Returns the recipient, sender, subject and the message-id assigned by the
+        |SMTP server. If the email cannot be sent, returns 500 with the most
+        |specific OBP error code for the underlying cause:
+        |
+        |- `$SmtpAuthenticationFailed` — credentials rejected by the SMTP server
+        |- `$SmtpConnectionFailed` — TCP connect failed (host unreachable, port closed, timeout, DNS resolution failure)
+        |- `$SmtpTlsHandshakeFailed` — STARTTLS/SSL handshake failed (protocol mismatch, untrusted certificate)
+        |- `$SmtpRecipientRejected` — server accepted the connection but rejected the recipient, message, or From address
+        |- `$SmtpProtocolError` — other Jakarta Mail protocol-level error
+        |- `$EmailSendingFailed` — fallback when the underlying cause does not match any of the above
+        |
+        |In all cases the underlying exception chain (class name and message) is
+        |appended after `Detail:` so the operator can diagnose without server logs.
+        |""".stripMargin,
+      EmptyBody,
+      TestEmailResponseJsonV700(
+        to = "alice@example.com",
+        from = "noreply@openbankproject.com",
+        subject = "OBP test email from openbankproject.com",
+        message_id = "<abc123@smtp.example.com>"
+      ),
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UserEmailAddressMissing, IncompleteServerConfiguration,
+           SmtpAuthenticationFailed, SmtpConnectionFailed, SmtpTlsHandshakeFailed, SmtpRecipientRejected, SmtpProtocolError,
+           EmailSendingFailed, UnknownError),
+      apiTagEmail :: apiTagSystem :: Nil,
+      Some(List(canCreateTestEmail)),
+      http4sPartialFunction = Some(createTestEmail)
+    )
+
+    // ── Resend validation email (anonymous) ────────────────────────────────────
+    // The signup flow at Http4s600.createUser may fail to deliver the validation
+    // email (SMTP unreachable, recipient mailbox full, user typo). Without a way
+    // to retry, the unvalidated user is stuck — they can't log in (validated=false
+    // blocks auth) and the anonymous password-reset endpoint at /users/password-
+    // reset-url filters validated=true so it can't help either. This endpoint
+    // closes that gap.
+    //
+    // Anti-enumeration: always returns the same 201 message regardless of whether
+    // the user exists, is already validated, the rate limit was hit, or the SMTP
+    // send failed. All decisions are logged server-side only.
+    //
+    // Provider scoping: locked to Constant.localIdentityProvider. OIDC/SSO users
+    // never use the email-validation flow (they're created already-validated on
+    // first login) so widening the scope would only risk false matches.
+    //
+    // uniqueId reuse: deliberately does NOT rotate AuthUser.uniqueId. The same
+    // validation JWT link is regenerated each call. This avoids the "user clicks
+    // older email after a newer resend" race and also avoids invalidating any
+    // pending password-reset link the same user might have outstanding.
+
+    private val ResendValidationRateLimit = 3
+    private val ResendValidationRateLimitWindowSeconds = 3600
+
+    private def sha256HexLower(s: String): String = {
+      val md = java.security.MessageDigest.getInstance("SHA-256")
+      md.digest(s.getBytes("UTF-8")).map("%02x".format(_)).mkString
+    }
+
+    /** Per-key Redis counter. Returns (allowed, currentCount). Fails open if
+     *  Redis is unreachable — losing the rate limit briefly is acceptable for
+     *  this endpoint (downstream user-exists + validated=false checks bound the
+     *  spam surface; the rate limit is defence-in-depth, not the only gate). */
+    private def checkResendValidationRateLimit(emailLower: String): (Boolean, Long) = {
+      val key = "resend-validation:" + sha256HexLower(emailLower)
+      try {
+        val ttl = Redis.use(code.api.JedisMethod.TTL, key).map(_.toLong)
+        ttl match {
+          case Some(-2) =>
+            Redis.use(code.api.JedisMethod.SET, key, Some(ResendValidationRateLimitWindowSeconds), Some("1"))
+            (true, 1L)
+          case Some(t) if t > 0 =>
+            val cnt = Redis.use(code.api.JedisMethod.INCR, key).map(_.toLong).getOrElse(1L)
+            (cnt <= ResendValidationRateLimit, cnt)
+          case _ =>
+            Redis.use(code.api.JedisMethod.SET, key, Some(ResendValidationRateLimitWindowSeconds), Some("1"))
+            (true, 1L)
+        }
+      } catch {
+        case e: Throwable =>
+          logger.warn(s"createValidationEmail says: rate-limit check failed, failing open: ${e.getMessage}")
+          (true, 0L)
+      }
+    }
+
+    val createValidationEmail: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "users" / "validation-emails" =>
+        EndpointHelpers.executeFutureCreated(req) {
+          implicit val cc: CallContext = req.callContext
+          val rawBody = cc.httpBody.getOrElse("")
+          val standardAck = JSONFactory700.ValidationEmailResponseJsonV700(
+            message = "If an unvalidated account exists for this username and email, a validation email has been sent."
+          )
+          for {
+            posted <- NewStyle.function.tryons(
+              s"$InvalidJsonFormat The Json body should be the ${classOf[JSONFactory700.PostValidationEmailRequestJsonV700].getSimpleName}",
+              400, Some(cc)) {
+              net.liftweb.json.parse(rawBody).extract[JSONFactory700.PostValidationEmailRequestJsonV700]
+            }
+          } yield {
+            val username = Option(posted.username).map(_.trim).getOrElse("")
+            val emailRaw = Option(posted.email).map(_.trim).getOrElse("")
+            val emailLower = emailRaw.toLowerCase
+
+            if (username.isEmpty || emailLower.isEmpty) {
+              logger.info("createValidationEmail says: skipped (empty username or email)")
+            } else {
+              val (allowed, count) = checkResendValidationRateLimit(emailLower)
+              if (!allowed) {
+                logger.info(s"createValidationEmail says: skipped (rate limit exceeded, count=$count, max=$ResendValidationRateLimit per ${ResendValidationRateLimitWindowSeconds}s)")
+              } else {
+                AuthUser.find(
+                  By(AuthUser.username, username),
+                  By(AuthUser.provider, Constant.localIdentityProvider)
+                ) match {
+                  case Full(user) if user.email.get != null
+                                  && user.email.get.toLowerCase == emailLower
+                                  && !user.validated.get =>
+                    val portalUrlBox = APIUtil.getPropsValue("portal_external_url")
+                    val senderAddress = AuthUser.emailFrom
+                    val portalMissing = portalUrlBox.isEmpty || portalUrlBox.exists(_.trim.isEmpty)
+                    val senderIsDefault = senderAddress == "noreply@example.com"
+                    if (portalMissing) {
+                      logger.warn("createValidationEmail says: skipped — portal_external_url not set; cannot build validation link")
+                    } else if (senderIsDefault) {
+                      logger.warn("createValidationEmail says: skipped — mail.users.userinfo.sender.address is still the default 'noreply@example.com' (most SMTP servers will reject this From address)")
+                    } else {
+                      val portalUrl = portalUrlBox.openOr("")
+                      val expiryMinutes = APIUtil.getPropsAsIntValue("email_validation_token_expiry_minutes", 1440)
+                        val claimsSet = new com.nimbusds.jwt.JWTClaimsSet.Builder()
+                          .subject(user.uniqueId.get)
+                          .expirationTime(new java.util.Date(System.currentTimeMillis() + expiryMinutes * 60L * 1000L))
+                          .issueTime(new java.util.Date())
+                          .build()
+                      val jwtToken = code.api.util.CertificateUtil.jwtWithHmacProtection(claimsSet)
+                      val emailLink = portalUrl + "/user-validation?token=" + java.net.URLEncoder.encode(jwtToken, "UTF-8")
+                      val outcome = CommonsEmailWrapper.sendHtmlEmailEither(CommonsEmailWrapper.EmailContent(
+                        from = senderAddress,
+                        to = List(user.email.get),
+                        bcc = AuthUser.bccEmail.toList,
+                        subject = "Sign up confirmation",
+                        textContent = Some(s"Welcome! Please validate your account: $emailLink"),
+                        htmlContent = Some(s"<p>Welcome! Please <a href='$emailLink'>validate your account</a>.</p>")
+                      ))
+                      outcome match {
+                        case Right(msgId) =>
+                          logger.info(s"createValidationEmail says: resent validation email messageId=$msgId")
+                        case Left(e) =>
+                          val (errMsg, _) = classifySmtpException(e)
+                          logger.warn(s"createValidationEmail says: SMTP send failed: $errMsg")
+                      }
+                    }
+                  case Full(_) =>
+                    logger.info("createValidationEmail says: skipped (user already validated or email mismatch)")
+                  case _ =>
+                    logger.info("createValidationEmail says: skipped (no local-provider user with that username)")
+                }
+              }
+            }
+            standardAck
+          }
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      nameOf(createValidationEmail),
+      "POST",
+      "/users/validation-emails",
+      "Create Validation Email (Resend)",
+      """Create a new account-validation email for a user and send it by email.
+        |The validation link travels only via email; it is NOT returned in the
+        |response.
+        |
+        |This is the recovery endpoint for users who signed up but did not receive
+        |(or lost) the original validation email. The anonymous password-reset
+        |endpoint cannot help them — it filters on `validated=true`, which an
+        |unvalidated user is by definition not.
+        |
+        |No authentication or role is required. The endpoint is self-service: an
+        |unvalidated user cannot authenticate, so any auth requirement would make
+        |the endpoint useless to its intended caller.
+        |
+        |Anti-enumeration: the response is always the same generic acknowledgement,
+        |regardless of whether the user exists, is already validated, the rate
+        |limit was hit, or the SMTP send failed. The only way to find out what
+        |actually happened is the server log.
+        |
+        |Rate-limit: 3 attempts per email per hour (Redis-backed). Over-limit
+        |requests still receive the same 201 acknowledgement.
+        |
+        |The endpoint only operates on users whose provider is the local identity
+        |provider (`local_identity_provider` prop). OIDC / SSO users never have a
+        |validation-email flow and are not eligible.
+        |
+        |The validation token is the same one minted at signup (reuses
+        |`AuthUser.uniqueId`). Multiple resends produce the same link, not
+        |competing tokens — clicking any of the delivered emails works.
+        |
+        |Email configuration (portal_external_url, SMTP, sender address) must be
+        |set up correctly for delivery to succeed. See /status (Email section) and
+        |POST /obp/v7.0.0/management/self-test-emails for diagnostics.
+        |""".stripMargin,
+      JSONFactory700.PostValidationEmailRequestJsonV700(
+        username = "alice",
+        email = "alice@example.com"
+      ),
+      JSONFactory700.validationEmailResponseJsonV700Example,
+      List(InvalidJsonFormat, UnknownError),
+      apiTagUser :: apiTagEmail :: Nil,
+      None,
+      http4sPartialFunction = Some(createValidationEmail)
+    )
 
     // ── Organisations ─────────────────────────────────────────────────────────
     // CRUD for the Organisation resource. Migrated from v6.0.0 (Lift) to v7.0.0

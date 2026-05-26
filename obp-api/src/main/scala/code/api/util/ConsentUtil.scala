@@ -451,14 +451,20 @@ object Consent extends MdcLoggable {
     def applyConsentRules(consent: ConsentJWT): Future[(Box[User], Option[CallContext])] = {
       val temp = callContext
       // updated context if createdByUserId is present
-      val cc = if (consent.createdByUserId.nonEmpty) {
+      val ccWithOnBehalf = if (consent.createdByUserId.nonEmpty) {
         val onBehalfOfUser = Users.users.vend.getUserByUserId(consent.createdByUserId)
         temp.copy(onBehalfOfUser = onBehalfOfUser.toOption)
       } else {
         temp
       }
+      // Stamp the consent_reference_id on the CallContext so the metric writer can record it.
+      val cc = Consents.consentProvider.vend.getConsentByConsentId(consent.jti) match {
+        case Full(mc) => ccWithOnBehalf.copy(consentReferenceId = Some(mc.consentReferenceId))
+        case _        => ccWithOnBehalf
+      }
       if (cc.onBehalfOfUser.nonEmpty &&
         APIUtil.getPropsAsBoolValue(nameOfProperty = "experimental_become_user_that_created_consent", defaultValue = false)) {
+        logger.warn("WARNING: experimental_become_user_that_created_consent is DEPRECATED and will be removed soon. Please unset this property.")
         logger.info("experimental_become_user_that_created_consent = true")
         logger.info(s"${cc.onBehalfOfUser.map(_.userId).getOrElse("")} is logged on instead of Consent user")
         Future(cc.onBehalfOfUser, Some(cc)) // Just propagate on behalf of user back
@@ -552,7 +558,11 @@ object Consent extends MdcLoggable {
     implicit val dateFormats = CustomJsonFormats.formats
 
     def applyConsentRules(consent: ConsentJWT, callContext: CallContext): Future[(Box[User], Option[CallContext])] = {
-      val cc = callContext
+      // Stamp the consent_reference_id on the CallContext so the metric writer can record it.
+      val cc = Consents.consentProvider.vend.getConsentByConsentId(consent.jti) match {
+        case Full(mc) => callContext.copy(consentReferenceId = Some(mc.consentReferenceId))
+        case _        => callContext
+      }
       // 1. Get or Create a User
       getOrCreateUser(consent.sub, consent.iss, Some(consent.toConsent().consentId), None, None) map {
         case (Full(user), newUser) =>

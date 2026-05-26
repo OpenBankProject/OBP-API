@@ -608,6 +608,232 @@ There are 3 API endpoints related to webhooks:
 
 ---
 
+## Email Delivery
+
+OBP-API sends emails for several reasons: signup confirmation, email-address
+validation, password reset, user invitations, role-grant notifications, SCA
+(Strong Customer Authentication) challenges over email, and uncaught-exception
+alerts to admins. All of these go through a single Jakarta Mail wrapper
+(`code.api.util.CommonsEmailWrapper`).
+
+### SMTP configuration
+
+Set these props (defaults shown):
+
+```props
+mail.smtp.host=localhost
+mail.smtp.port=1025
+mail.smtp.user=
+mail.smtp.password=
+mail.smtp.starttls.enable=false
+mail.smtp.ssl.enable=false
+mail.smtp.ssl.protocols=TLSv1.2
+```
+
+For local development, [MailHog](https://github.com/mailhog/MailHog) or
+[Mailpit](https://github.com/axllent/mailpit) on port 1025 lets you capture
+outbound mail without configuring a real SMTP server.
+
+### Portal URL (required for validation and reset links)
+
+Signup-validation and password-reset emails embed a link built from
+`portal_external_url`. If this prop is not set, the signup flow silently skips
+the validation email — the user gets a 201 response but no mail. Set it:
+
+```props
+portal_external_url=https://portal.yourdomain.com
+```
+
+OBP-API logs a multi-line WARN block at startup if this prop is missing (or
+blank). It also surfaces on the `/status` page (see below).
+
+### Sender (From) addresses
+
+Different email types read different sender props. The most important ones:
+
+```props
+# Used by signup, email validation, password reset (AuthUser.emailFrom)
+# Default: noreply@example.com — most SMTP servers will reject this because of
+# SPF/DKIM/anti-spoof, so change it before going live.
+mail.users.userinfo.sender.address=noreply@yourdomain.com
+
+# Used by role-grant notifications (no default — required for those emails)
+mail.api.consumer.registered.sender.address=noreply@yourdomain.com
+
+# Used by uncaught-exception alerts
+mail.exception.sender.address=alerts@yourdomain.com
+mail.exception.registered.notification.addresses=ops@yourdomain.com,oncall@yourdomain.com
+```
+
+### Test mode (no SMTP needed)
+
+Set `mail.test.mode=true` to log every would-be email at INFO level instead of
+sending it over SMTP. Useful in CI and for local development without a mail
+catcher. When this is on, no SMTP connection is attempted.
+
+### Startup configuration check
+
+On boot, OBP-API logs a WARN block if either:
+
+- `portal_external_url` is unset or blank, or
+- `mail.users.userinfo.sender.address` is still the default `noreply@example.com`.
+
+Both conditions cause validation / password-reset emails to be silently skipped
+or rejected downstream. The WARN block names the prop and points the operator
+at `POST /obp/v7.0.0/management/self-test-emails` for end-to-end verification.
+
+### Status page (`/status`)
+
+`GET /status` (HTML at the URL, JSON when `Accept: application/json`) includes
+two email-related rows under an "Email" section:
+
+- **`config`** — `ok` if `portal_external_url` is set and the sender address is
+  non-default; `warn` (with a one-line reason) otherwise.
+- **`smtp`** — `ok` if a TCP connect to `mail.smtp.host:mail.smtp.port` succeeds
+  AND the server returns a `220` greeting within 2 s; `fail` otherwise (with
+  the exception class + message, e.g. `ConnectException: Connection refused`).
+
+The SMTP probe result is cached for 60 s so frequent `/status` pollers
+(Prometheus blackbox, k8s probes) don't open a TCP connection on every request.
+Neither row flips the overall readiness flag — email is a soft dependency, so a
+broken SMTP won't make K8s kill the pod.
+
+The probe only reads the SMTP greeting banner. It does not exercise STARTTLS or
+AUTH, so a server that requires TLS + credentials and would reject a real send
+can still show `smtp: ok` here. The self-test endpoint exercises that full path.
+
+### Self-test endpoint
+
+There is a v7.0.0 admin endpoint to verify SMTP delivery end-to-end:
+
+```
+POST /obp/v7.0.0/management/self-test-emails
+```
+
+- Role required: `CanCreateTestEmail`
+- Recipient: always the authenticated user's own email address (no `to`
+  parameter — eliminates "spam anyone else" as a DoS surface)
+- From address: same as signup / password-reset emails (`AuthUser.emailFrom` →
+  prop `mail.users.userinfo.sender.address`)
+- The body of the email includes the resolved `portal_external_url` so the
+  admin can confirm visually what users will see in real validation / reset
+  emails.
+- Returns 201 with `{ to, from, subject, message_id }` on success.
+
+If the email cannot be sent, returns 500 with the most specific OBP error code
+for the underlying cause. The exception chain (class name + message) is always
+appended after `Detail:` so the operator can diagnose without server logs:
+
+| Failure | Status | Code |
+|---|---|---|
+| Caller has no email address | 400 | `OBP-30339 UserEmailAddressMissing` |
+| `portal_external_url` unset | 500 | `OBP-10056 IncompleteServerConfiguration` |
+| `mail.users.userinfo.sender.address` is default | 500 | `OBP-10056 IncompleteServerConfiguration` |
+| SMTP rejected credentials | 500 | `OBP-30341 SmtpAuthenticationFailed` |
+| TCP connect / host unreachable / timeout / DNS fail | 500 | `OBP-30342 SmtpConnectionFailed` |
+| TLS / SSL handshake fail | 500 | `OBP-30343 SmtpTlsHandshakeFailed` |
+| Recipient / From / message rejected by server | 500 | `OBP-30344 SmtpRecipientRejected` |
+| Other Jakarta Mail protocol error | 500 | `OBP-30345 SmtpProtocolError` |
+| Truly unknown | 500 | `OBP-30340 EmailSendingFailed` (fallback) |
+
+Use this from APIManager (or a `curl` with appropriate auth headers) to confirm
+that signup / password-reset emails will be deliverable on this instance,
+without needing to create a real account or trigger a real reset.
+
+### Resend validation email (recovery for stuck signups)
+
+If a user signs up but does not receive the validation email — bad SMTP day,
+typo'd address, spam folder, server misconfiguration — they are otherwise
+stuck. They can't log in (not validated), and the anonymous password-reset
+endpoint can't help them either (it filters on `validated=true`). The resend
+endpoint closes that gap:
+
+```
+POST /obp/v7.0.0/users/validation-emails
+Body: { "username": "alice", "email": "alice@example.com" }
+```
+
+- **No authentication or role required** — an unvalidated user has no
+  entitlements, so self-service is the only model that works.
+- **Anti-enumeration**: always returns `201` with the same message regardless
+  of whether the user exists, is already validated, the rate limit was hit, or
+  the SMTP send failed:
+  ```json
+  { "message": "If an unvalidated account exists for this username and email, a validation email has been sent." }
+  ```
+- **Rate-limited**: 3 attempts per email per hour, Redis-backed. Over-limit
+  requests still get the same 201.
+- **Local-provider only**: scoped to `Constant.localIdentityProvider`. OIDC /
+  SSO users never use the email-validation flow.
+- **Token reuse**: deliberately does NOT rotate `AuthUser.uniqueId`. The same
+  validation JWT is regenerated each call. Multiple resends produce the same
+  link, so clicking any of the delivered emails works.
+- **All decisions are server-side only**: the log line at INFO/WARN level is
+  the operator's only way to know what actually happened. Server log will
+  show one of: sent (with messageId), skipped (user not found / already
+  validated / email mismatch / rate-limit), or skipped with WARN (portal_url
+  unset / sender address default / SMTP failure).
+
+### Signup and anonymous-reset flow logging
+
+The signup endpoint (`POST /obp/v6.0.0/users`) and the anonymous password-reset
+endpoint (`POST /obp/v6.0.0/users/password-reset-url`) both now log explicitly
+on every silent skip, so operators can diagnose "user complained, no email
+arrived" without server-side guesswork. WARN is logged when:
+
+- `portal_external_url` is unset — link cannot be built, no email sent
+- `mail.users.userinfo.sender.address` is still the default `noreply@example.com`
+- the SMTP send threw (exception class + first 200 chars of message)
+
+INFO is logged when the send succeeded (`messageId=...`) and when the request
+was skipped for a non-error reason (user not found, already validated, etc.).
+External response shape is unchanged — the user still gets the same 201, so
+this is purely a server-side diagnostic improvement.
+
+The anonymous password-reset endpoint also now scopes its user lookup to the
+local identity provider, matching the behaviour of the new resend-validation
+endpoint and avoiding cross-provider false matches.
+
+### Logging
+
+Every successful send is logged at INFO level by `CommonsEmailWrapper`:
+
+```
+sendTextEmail says: sent to=alice@example.com subject='OBP test email from ...' messageId=<...@smtp...>
+sendHtmlEmail says: sent to=alice@example.com subject='Sign up confirmation' messageId=<...@smtp...>
+sendHtmlEmailEither says: sent to=alice@example.com subject='Reset your password - alice' messageId=<...@smtp...>
+```
+
+Failures are logged at ERROR level with the exception stack trace. The two
+`Either`-returning variants (`sendTextEmailEither`, `sendHtmlEmailEither`)
+preserve the exception so callers can classify the failure category (auth /
+connect / TLS / recipient-rejected) and log a specific reason instead of a
+generic "send failed". The self-test endpoint and the new resend endpoint both
+use this; the existing signup/anon-reset endpoints have been switched to
+`sendHtmlEmailEither` too so they can log specific failure causes.
+
+### SMTP-level debugging
+
+For diagnosing SMTP handshake failures, authentication issues, or message
+rejections, set:
+
+```props
+mail.debug=true
+```
+
+This enables Jakarta Mail's debug stream, which writes the entire SMTP protocol
+conversation — EHLO, STARTTLS, AUTH, MAIL FROM, RCPT TO, DATA, every server
+response, and the full message body — to `System.out`.
+
+**Security warning:** With debug on, the `AUTH LOGIN` exchange includes the
+base64-encoded SMTP username and password, and the message body includes any
+password-reset links, validation JWT tokens, and SCA OTP codes in plain text.
+Anyone with stdout access (operators, log aggregators, kubectl logs, CI
+artifacts) can read these. Use `mail.debug=true` only on developer laptops
+pointed at a local mail catcher — never on a shared or production environment.
+
+---
+
 ## OpenID Connect
 
 **Note:** OpenID Connect authentication is supported for API authentication. Portal login functionality has been moved to the separate [OBP-Portal](https://github.com/OpenBankProject/OBP-Portal) project.

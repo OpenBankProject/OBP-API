@@ -22,7 +22,7 @@ object MigrationOfConsentView {
                   """
                     |CREATE OR ALTER VIEW v_consent AS
                     |SELECT
-                    |    id                                AS consent_reference_id,
+                    |    consent_reference_id              AS consent_reference_id,
                     |    mconsentid                        AS consent_id,
                     |    muserid                            AS created_by_user_id,
                     |    mconsumerid                        AS consumer_id,
@@ -46,7 +46,7 @@ object MigrationOfConsentView {
                   """
                     |CREATE OR REPLACE VIEW v_consent AS
                     |SELECT
-                    |    id                                AS consent_reference_id,
+                    |    consent_reference_id              AS consent_reference_id,
                     |    mconsentid                        AS consent_id,
                     |    muserid                            AS created_by_user_id,
                     |    mconsumerid                        AS consumer_id,
