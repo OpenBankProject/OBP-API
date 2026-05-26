@@ -53,6 +53,23 @@ corsHandler → AppsPage → StatusPage → Http4s510 → Http4s600 → Http4s50
 HTTP Response (with standard headers)
 ```
 
+### Version enable/disable semantics
+
+Two Props govern which API versions are served: `api_disabled_versions` and `api_enabled_versions` (allowlist; empty means "all"). They are enforced **once at startup**, by `Http4sApp.gate`:
+
+```scala
+private def gate(version: ScannedApiVersion, routes: HttpRoutes[IO]): HttpRoutes[IO] =
+  if (APIUtil.versionIsAllowed(version)) routes else HttpRoutes.empty[IO]
+```
+
+A disabled version's top-level routes are replaced with `HttpRoutes.empty[IO]`, so a direct `GET /obp/vX.Y.Z/...` falls through to the Lift bridge and 404s.
+
+**Cascade is intentionally unaffected.** Each `Http4sXxx` has a path-rewriting bridge to the next-lower version that calls `code.api.vN.HttpNxx.wrappedRoutesVNxxServices` *directly*, bypassing `Http4sApp.gate`. `ResourceDocMiddleware` does **not** re-check `implementedInApiVersion` per request either (`ResourceDocMiddleware.isEndpointEnabled` deliberately has no `versionAllowed` parameter — `ResourceDocMiddlewareEnableDisableTest` pins this). So an endpoint originally declared in v2.0.0 stays reachable via `/obp/v4.0.0/...` even when v2.0.0 is disabled, as long as v4.0.0 is enabled.
+
+This preserves the documented OBP-API contract: newer versions act as the supported entry point for older endpoints' functionality. Operators can retire a version's *URL prefix* with `api_disabled_versions` without losing the underlying endpoints from newer prefixes. To retire a specific endpoint everywhere, use `api_disabled_endpoints` (operationId list) — that **is** enforced per request by the middleware and so kills the endpoint on every prefix it would otherwise be reachable from.
+
+A brief regression in early 2026-05 inverted this: a `versionAllowed` check was added inside the middleware, making `api_disabled_versions` kill cascaded reachability too. Restored 2026-05-26. If you're tempted to put the per-request version check back, read the `isEndpointEnabled` docstring first — it spells out the design rationale, and the "version-level gating is delegated to Http4sApp.gate" feature in the unit test will fail loudly.
+
 ### Lift bridge — `Http4sLiftWebBridge.scala`
 
 Handles any request not matched by a native http4s route:

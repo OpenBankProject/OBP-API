@@ -3,6 +3,27 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action
+26/05/2026    TBD           BEHAVIOUR RESTORE: api_disabled_versions / api_enabled_versions
+                            once again retire only the URL prefix, not the underlying endpoints
+                            on newer prefixes — restoring the pre-http4s-migration cascade
+                            contract. Specifically: if v2.0.0 is in api_disabled_versions, then
+                            /obp/v2.0.0/foo returns 404 (handled at startup by Http4sApp.gate),
+                            but the same endpoint reached via /obp/v4.0.0/foo (any enabled
+                            newer version) continues to serve through the path-rewriting
+                            cascade. A regression in early May 2026 had inverted this by
+                            adding a per-request implementedInApiVersion check inside
+                            ResourceDocMiddleware; that check is now removed.
+
+                            Who is affected: installations that set api_disabled_versions /
+                            api_enabled_versions AND relied on the May-2026 strict behaviour
+                            to remove an older version's endpoints from newer prefixes. To
+                            retain that strict behaviour, switch to api_disabled_endpoints
+                            (operationId list) — that Prop is still enforced per request by
+                            the middleware and kills the endpoint on every prefix it would
+                            otherwise be reachable from.
+
+                            See LIFT_HTTP4S_MIGRATION.md § "Version enable/disable semantics"
+                            for the contract; ResourceDocMiddlewareEnableDisableTest pins it.
 05/03/2026    TBD           BREAKING CHANGE: Removed allow_entitlements_or_scopes config flag.
                             This global flag allowed consumer scopes as an alternative to user
                             entitlements for ALL endpoints. It has been replaced by per-endpoint

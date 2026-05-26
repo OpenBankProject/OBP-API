@@ -10,7 +10,7 @@ import code.api.util.newstyle.ViewNewStyle
 import code.api.util.{APIUtil, ApiRole, CallContext, NewStyle}
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model._
-import com.openbankproject.commons.util.{ApiShortVersions, ScannedApiVersion}
+import com.openbankproject.commons.util.ApiShortVersions
 import net.liftweb.common.{Box, Empty, Failure, Full}
 import org.http4s._
 import org.http4s.headers.`Content-Type`
@@ -82,13 +82,23 @@ object ResourceDocMiddleware extends MdcLoggable {
   }
 
   /**
-   * Pure decision: is this ResourceDoc enabled given the four enable/disable Props?
+   * Pure decision: is this ResourceDoc enabled given the endpoint-level Props?
    *
-   * Semantics — matches `APIUtil.getAllowedResourceDocs` / `versionIsAllowed`:
+   * Semantics:
    * - if operationId is in disabledOperationIds          → disabled
    * - if enabledOperationIds non-empty and op not in it  → disabled
-   * - if version is not allowed                          → disabled
    * - otherwise                                          → enabled
+   *
+   * Version-level enable/disable (`api_disabled_versions` / `api_enabled_versions`)
+   * is deliberately NOT enforced here. It is applied once at startup by
+   * `Http4sApp.gate`, which makes a disabled version's top-level routes empty so
+   * direct `/obp/vX.Y.Z/...` traffic falls through to a 404. The middleware does
+   * not re-check `implementedInApiVersion` per request because doing so blocks
+   * the documented OBP-API behaviour: disabling, say, v2.0.0 retires the
+   * `/obp/v2.0.0/...` prefix but the v2.0.0-origin endpoints stay reachable via
+   * any newer-version prefix (v3.0.0, v4.0.0, ...) the operator has kept enabled.
+   * That cascading surface is intentional — it lets newer versions act as the
+   * stable, supported entry point for older endpoints' functionality.
    *
    * Extracted from `apply` so the decision can be unit-tested without standing up
    * a middleware instance or mutating global Props.
@@ -96,12 +106,10 @@ object ResourceDocMiddleware extends MdcLoggable {
   def isEndpointEnabled(
     rd: ResourceDoc,
     disabledOperationIds: Set[String],
-    enabledOperationIds: Set[String],
-    versionAllowed: ScannedApiVersion => Boolean
+    enabledOperationIds: Set[String]
   ): Boolean =
     !disabledOperationIds.contains(rd.operationId) &&
-      (enabledOperationIds.isEmpty || enabledOperationIds.contains(rd.operationId)) &&
-      versionAllowed(rd.implementedInApiVersion)
+      (enabledOperationIds.isEmpty || enabledOperationIds.contains(rd.operationId))
 
   /**
    * Middleware factory: wraps HttpRoutes with ResourceDoc validation.
@@ -113,15 +121,19 @@ object ResourceDocMiddleware extends MdcLoggable {
     Kleisli[HttpF, Request[IO], Response[IO]] { req: Request[IO] =>
       // Read enable/disable Props per request so runtime changes (e.g. `setPropsValues` in
       // tests or live config reloads) take effect immediately. Cost is a few Lift Props
-      // lookups — negligible per request, but lets disabled endpoints/versions be toggled
-      // without restarting the server. A disabled endpoint or version yields OptionT.none
-      // so the request falls through to the next handler in the chain (typically the Lift
-      // bridge), mirroring the absent-route behavior of Lift's startup filter.
+      // lookups — negligible per request, but lets disabled endpoints be toggled without
+      // restarting the server. A disabled endpoint yields OptionT.none so the request
+      // falls through to the next handler in the chain (typically the Lift bridge).
+      //
+      // Version-level enable/disable is NOT re-checked here — that's enforced once at
+      // startup by `Http4sApp.gate` for the URL prefix the request arrives at, so that
+      // disabling vX.Y.Z retires `/obp/vX.Y.Z/...` but leaves the same endpoints
+      // reachable via newer enabled prefixes through the cascade. See
+      // `isEndpointEnabled`'s docstring for the rationale.
       val disabledOperationIds = APIUtil.getDisabledEndpointOperationIds().toSet
       val enabledOperationIds = APIUtil.getEnabledEndpointOperationIds().toSet
       def endpointIsEnabled(rd: ResourceDoc): Boolean =
-        isEndpointEnabled(rd, disabledOperationIds, enabledOperationIds,
-          v => APIUtil.versionIsAllowed(v))
+        isEndpointEnabled(rd, disabledOperationIds, enabledOperationIds)
       val apiVersionFromPath = req.uri.path.segments.map(_.encoded).toList match {
         case apiPathZero :: version :: _ if apiPathZero == APIUtil.getPropsValue("apiPathZero", "obp") => version
         case _ => ApiShortVersions.`v7.0.0`.toString
