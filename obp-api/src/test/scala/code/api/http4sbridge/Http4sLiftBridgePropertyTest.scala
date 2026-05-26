@@ -36,46 +36,9 @@ import scala.util.Random
 
 class Http4sLiftBridgePropertyTest extends V500ServerSetup {
 
-  // --- MXOF (Mexican Open Finance) ---
-  private val mxofPrefix = "mxof"
-  private val mxofVersion = "v1.0.0"
-  // MXOF endpoints: /atms (GET, HEAD)
-  private val mxofGetEndpoints = List("/atms")
-
-  // --- CNBV9 (Mexican Banking Commission) ---
-  private val cnbv9Prefix = "CNBV9"
-  private val cnbv9Version = "v1.0.0"
-  // CNBV9 reuses MXOF ATM endpoints: /atms (GET, HEAD)
-  private val cnbv9GetEndpoints = List("/atms")
-
-  // --- STET (European Payment Services) ---
-  private val stetPrefix = "stet"
-  private val stetVersion = "v1.4"
-  // STET GET endpoints: /accounts, /end-user-identity, /trusted-beneficiaries
-  private val stetGetEndpoints = List("/accounts", "/end-user-identity", "/trusted-beneficiaries")
-
-  // --- CDS Australia (Consumer Data Standards) ---
-  private val cdsPrefix = "cds-au"
-  private val cdsVersion = "v1.0.0"
-  // CDS GET endpoints: /banking/products, /banking/accounts, /discovery/status, /discovery/outages
-  private val cdsGetEndpoints = List("/banking/products", "/banking/accounts", "/discovery/status", "/discovery/outages")
-
-  // --- Bahrain OBF (Open Banking Framework) ---
-  private val bahrainPrefix = "BAHRAIN-OBF"
-  private val bahrainVersion = "v1.0.0"
-  // Bahrain GET endpoints: /accounts, /standing-orders
-  private val bahrainGetEndpoints = List("/accounts", "/standing-orders")
-
-  // --- Polish API ---
-  private val polishPrefix = "polish-api"
-  private val polishVersion = "v2.1.1.1"
-  // Polish API uses POST-only endpoints with versioned paths:
-  //   /accounts/v2_1_1.1/getAccounts, /payments/v2_1_1.1/getPayment, etc.
-  // We test POST endpoints since all Polish API endpoints are POST-only.
-  private val polishPostEndpoints = List(
-    "/accounts/v2_1_1.1/getAccounts",
-    "/payments/v2_1_1.1/getPayment"
-  )
+  // Commented out: MXOF/CNBV9/STET/CDS-AU(AUOpenBanking)/Bahrain/Polish Lift endpoints were removed
+  // from the codebase. Their per-standard bridge fixtures are dropped; only OBP core + UK OpenBanking
+  // + Berlin Group remain reachable through the Lift bridge.
   private val bgVersion = "v1.3"
   private val bgPrefix = "berlin-group"
   private val allStandardVersions = List(
@@ -86,13 +49,7 @@ class Http4sLiftBridgePropertyTest extends V500ServerSetup {
     "v5.0.0", "v5.1.0",
     "v6.0.0"
   )
-  private val intlStandardsWithGetEndpoints = List(
-    ("MXOF", mxofPrefix, mxofVersion, mxofGetEndpoints),
-    ("CNBV9", cnbv9Prefix, cnbv9Version, cnbv9GetEndpoints),
-    ("STET", stetPrefix, stetVersion, stetGetEndpoints),
-    ("CDS-AU", cdsPrefix, cdsVersion, cdsGetEndpoints),
-    ("Bahrain-OBF", bahrainPrefix, bahrainVersion, bahrainGetEndpoints)
-  )
+  private val intlStandardsWithGetEndpoints: List[(String, String, String, List[String])] = List()
   private val ukObVersions = List("v2.0", "v3.1")
   
   // Reduced iteration counts keep CI fast while still catching probabilistic bugs.

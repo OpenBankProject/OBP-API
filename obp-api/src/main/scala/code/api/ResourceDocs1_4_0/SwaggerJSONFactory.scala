@@ -15,11 +15,12 @@ import scala.reflect.runtime.universe._
 import java.lang.{Boolean => XBoolean, Double => XDouble, Float => XFloat, Integer => XInt, Long => XLong, String => XString}
 import java.math.{BigDecimal => JBigDecimal}
 
-import code.api.AUOpenBanking.v1_0_0.ApiCollector
+// Commented out: Lift endpoints removed (AUOpenBanking, Polish, STET)
+//import code.api.AUOpenBanking.v1_0_0.ApiCollector
 import code.api.Constant
-import code.api.Polish.v2_1_1_1.OBP_PAPI_2_1_1_1
+//import code.api.Polish.v2_1_1_1.OBP_PAPI_2_1_1_1
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.{NotSupportedYet, notSupportedYet}
-import code.api.STET.v1_4.OBP_STET_1_4
+//import code.api.STET.v1_4.OBP_STET_1_4
 import code.api.UKOpenBanking.v2_0_0.OBP_UKOpenBanking_200
 import code.api.UKOpenBanking.v3_1_0.OBP_UKOpenBanking_310
 import code.api.berlin.group.v1_3.{OBP_BERLIN_GROUP_1_3, OBP_BERLIN_GROUP_1_3_Alias}
@@ -333,15 +334,11 @@ object SwaggerJSONFactory extends MdcLoggable {
             val urlPrefix= apiVersion.urlPrefix
             (
               s"${standard} ${urlPrefix.split("-").map(_.capitalize).mkString(" ")}",
-              if (apiVersion == OBP_STET_1_4.apiVersion 
-                || apiVersion == OBP_UKOpenBanking_200.apiVersion 
+              // Commented out: STET / Polish / AUOpenBanking Lift endpoints removed
+              if (apiVersion == OBP_UKOpenBanking_200.apiVersion
                 || OBP_UKOpenBanking_310.apiVersion == OBP_UKOpenBanking_200.apiVersion
-              )  s"custom, proprietary license: personal use is allowed and free, modifications or re-publishing is not allowed" 
-              else if (apiVersion == OBP_PAPI_2_1_1_1.apiVersion)
-                "Creative Commons Attribution 3.0 Unported Poland (CC BY 3.0 PL)"
-              else if (apiVersion == ApiCollector.apiVersion) 
-                "Creative Commons Attribution 3.0 Australia (CC BY 3.0 AU)"
-              else if (apiVersion == OBP_BERLIN_GROUP_1_3.apiVersion  
+              )  s"custom, proprietary license: personal use is allowed and free, modifications or re-publishing is not allowed"
+              else if (apiVersion == OBP_BERLIN_GROUP_1_3.apiVersion
                 || apiVersion == OBP_BERLIN_GROUP_1_3_Alias.apiVersion
               ) "Creative Commons Attribution-NoDerivatives 4.0 International (CC BY-ND)"
               else 
