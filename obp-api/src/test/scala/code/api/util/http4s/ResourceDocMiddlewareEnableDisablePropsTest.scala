@@ -12,9 +12,20 @@ import org.scalatest.{GivenWhenThen, Tag}
  * Integration test for the enable/disable Props wiring inside `ResourceDocMiddleware`.
  *
  * Drives `Http4s700.wrappedRoutesV700Services` in-process — no TCP, no DB. Verifies that
- * setting the four Props (`api_disabled_endpoints`, `api_enabled_endpoints`,
- * `api_disabled_versions`, `api_enabled_versions`) actually changes routing behaviour at
- * request time.
+ * the endpoint-level Props (`api_disabled_endpoints`, `api_enabled_endpoints`) actually
+ * change routing behaviour at request time, AND pins the deliberate non-enforcement of
+ * the version-level Props (`api_disabled_versions`, `api_enabled_versions`) at the
+ * middleware layer.
+ *
+ * Why version Props are NOT enforced here:
+ *   They are enforced once at startup by `Http4sApp.gate` for the URL prefix the
+ *   request arrives at. The middleware deliberately does not re-check
+ *   `implementedInApiVersion` per request, so that disabling vX retires
+ *   `/obp/vX/...` but leaves vX's endpoints reachable via newer enabled prefixes
+ *   through the cascade. See `ResourceDocMiddleware.isEndpointEnabled` for the
+ *   rationale. Because this test drives `Http4s700.wrappedRoutesV700Services`
+ *   directly (bypassing `Http4sApp.gate`), `api_disabled_versions=[v7.0.0]` does
+ *   not turn `/obp/v7.0.0/...` into 404s — and that is the contract this file pins.
  *
  * Why a separate test class from `ResourceDocMiddlewareEnableDisableTest`:
  *   That test pins the pure decision logic (`isEndpointEnabled`). This one pins the
@@ -101,17 +112,19 @@ class ResourceDocMiddlewareEnableDisablePropsTest extends ServerSetup with Given
       status shouldBe 200
     }
 
-    scenario("api_disabled_versions disables every endpoint of that version", EnableDisablePropsTag) {
-      Given("api_disabled_versions=[v7.0.0]")
+    scenario("api_disabled_versions is NOT enforced by the middleware — cascade-friendly", EnableDisablePropsTag) {
+      Given("api_disabled_versions=[v7.0.0] (would historically have killed every v7 endpoint)")
       setPropsValues("api_disabled_versions" -> "[v7.0.0]")
 
-      When("requesting two unrelated v7 endpoints")
+      When("requesting two unrelated v7 endpoints directly against Http4s700's wrapped routes")
       val rootStatus = get(rootPath)
       val banksStatus = get(banksPath)
 
-      Then("both are short-circuited by the middleware → 404")
-      rootStatus shouldBe 404
-      banksStatus shouldBe 404
+      Then("both still serve — the middleware deliberately ignores version-level Props")
+      And("(the prefix-level gate lives in Http4sApp.gate, which this test bypasses)")
+      And("this is the behaviour that lets older endpoints stay reachable via newer enabled prefixes")
+      rootStatus shouldBe 200
+      banksStatus shouldBe 200
     }
 
     scenario("Disabled-endpoint wins over enabled-endpoint when same id is in both", EnableDisablePropsTag) {
@@ -128,7 +141,7 @@ class ResourceDocMiddlewareEnableDisablePropsTest extends ServerSetup with Given
       status shouldBe 404
     }
 
-    scenario("api_disabled_versions overrides an explicit api_enabled_endpoints entry", EnableDisablePropsTag) {
+    scenario("api_disabled_versions does NOT override api_enabled_endpoints at the middleware", EnableDisablePropsTag) {
       Given(s"api_disabled_versions=[v7.0.0] AND api_enabled_endpoints=[$rootOpId]")
       setPropsValues(
         "api_disabled_versions" -> "[v7.0.0]",
@@ -138,8 +151,9 @@ class ResourceDocMiddlewareEnableDisablePropsTest extends ServerSetup with Given
       When("requesting GET /obp/v7.0.0/root")
       val status = get(rootPath)
 
-      Then("the version gate wins → 404")
-      status shouldBe 404
+      Then("the endpoint serves — only the endpoint-level allowlist matters in the middleware")
+      And("(the version-level gate is enforced separately by Http4sApp.gate at the URL prefix)")
+      status shouldBe 200
     }
 
     scenario("After Props reset, baseline behavior is restored", EnableDisablePropsTag) {
