@@ -432,13 +432,13 @@ Already partly described in the next major section, but counted here for complet
 | `ImporterAPI` | (deleted) | **Retired.** The legacy `POST /obp_transactions_saver/api/transactions` shared-secret bulk-insert endpoint, its `TransactionInserter` LiftActor, and the connector helpers it relied on (`createImportedTransaction`, `getMatchingTransactionCount`, `updateAccountBalance`, `setBankAccountLastUpdated`) have been removed entirely. Modern callers use connector-driven flows or the `/obp/vX.X.X/transaction-requests/...` endpoints. |
 | `OpenIdConnect` | (auth-stack table above) | OIDC callback, registered separately from OAuth2. |
 
-### Open-banking standards (large, deferred indefinitely)
+### Open-banking standards
 
-Lift implementations of 3rd-party regulatory standards. All currently pass through `Http4sLiftWebBridge` and continue to work; they are *not* OBP API per se but optional regulatory shims. Migrating them is out of scope for the "remove Lift Web" milestone if you accept keeping the bridge for these stacks only. If total Lift removal is the goal, each needs its own workstream.
+Lift implementations of 3rd-party regulatory standards. Each is *not* OBP API per se but an optional regulatory shim. Reflection via `ClassScanUtils.getSubTypeObjects` is what registers them with Lift's dispatch — so commenting out the source removes them from the registry without touching `Boot.scala`.
 
-Three forks for how this workstream resolves:
+Three forks for how the still-active workstream resolves:
 
-- **(a) Migrate each to http4s.** Weeks per standard × 7 standards. Highest cost; cleanest end state.
+- **(a) Migrate each to http4s.** Weeks per standard. Highest cost; cleanest end state.
 - **(b) "Regulatory mode" feature-flagged Lift.** Keep `Http4sLiftWebBridge` wired in only when an `obf-*` / standards prop is set; otherwise the bridge is unregistered at boot. Lets "Lift Web removed from the OBP API path" ship, but Lift Web stays in the codebase as an opt-in shim. Defeats the milestone technically; ships the headline.
 - **(c) Extract as plugin projects.** Move each standard out of this repo into its own project that depends on OBP API. Probably right long-term — these are optional, externally-governed standards on different release cadences — but socially expensive and reshapes the build.
 
@@ -447,12 +447,16 @@ Three forks for how this workstream resolves:
 | Berlin Group v1.3 | `code/api/berlin/group/v1_3/*` — 7 files (AIS / PIS / PIIS / signing baskets / common) | Lift |
 | **Berlin Group v2** | `code/api/berlin/group/v2/Http4sBGv2.scala` | ✅ already on http4s |
 | UK Open Banking v2.0.0 + v3.1.0 | `code/api/UKOpenBanking/*` — ~20 files | Lift |
-| Bahrain OBF v1.0.0 | `code/api/BahrainOBF/*` — ~20 files | Lift |
-| AU OpenBanking v1.0.0 | `code/api/AUOpenBanking/*` — ~10 files | Lift |
-| STET v1.4 | `code/api/STET/v1_4/*` — 4 files | Lift |
-| MxOF v1.0.0 | `code/api/MxOF/*` — 2 files | Lift |
-| Polish v2.1.1.1 | `code/api/Polish/v2_1_1_1/*` — 4 files | Lift |
+| ~~Bahrain OBF v1.0.0~~ | `code/api/BahrainOBF/*` | ✅ **Retired** — commented out in PR #2814 (`d19af2b92`, 2026-05-22). ScannedApis reflection no longer finds it; URLs 404 with no bridge handling. |
+| ~~AU OpenBanking v1.0.0~~ | `code/api/AUOpenBanking/*` | ✅ **Retired** — same PR / commit. |
+| ~~STET v1.4~~ | `code/api/STET/v1_4/*` | ✅ **Retired** — same PR / commit. |
+| ~~MxOF / CNBV9 v1.0.0~~ | `code/api/MxOF/*` | ✅ **Retired** — same PR / commit. |
+| ~~Polish v2.1.1.1~~ | `code/api/Polish/v2_1_1_1/*` | ✅ **Retired** — same PR / commit. |
 | Sandbox / `SandboxApiCalls.scala` | `code/api/sandbox/*` | Lift |
+
+The retired five total ~22,000 lines of Scala kept in-tree as line-comments. The same `// ` stub pattern used for the per-version OBPAPI files; uncomment to bring them back. After ~1 month with no operator complaints and the bridge audit showing zero hits for their URLs, candidates for outright deletion.
+
+A regression-guard test (`code.api.util.http4s.RetiredApiStandardsTest`) asserts that `ClassScanUtils.getSubTypeObjects` does **not** return any object whose package matches the retired standards — so a partial uncomment that re-registers them with Lift trips CI.
 
 ### `Boot.scala` scaffolding
 
