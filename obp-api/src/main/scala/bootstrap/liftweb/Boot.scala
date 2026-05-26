@@ -37,7 +37,7 @@ import code.accountattribute.MappedAccountAttribute
 import code.accountholders.MapperAccountHolders
 import code.actorsystem.ObpActorSystem
 import code.api.Constant._
-import code.api.ResourceDocs1_4_0.ResourceDocs300.{ResourceDocs310, ResourceDocs400, ResourceDocs500, ResourceDocs510, ResourceDocs600}
+//import code.api.ResourceDocs1_4_0.ResourceDocs300.{ResourceDocs310, ResourceDocs400, ResourceDocs500, ResourceDocs510, ResourceDocs600}
 import code.api.ResourceDocs1_4_0._
 import code.api._
 import code.api.attributedefinition.AttributeDefinition
