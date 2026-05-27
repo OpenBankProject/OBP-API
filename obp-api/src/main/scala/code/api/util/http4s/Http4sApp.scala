@@ -74,6 +74,10 @@ object Http4sApp {
   private val v510Routes: HttpRoutes[IO] = gate(ApiVersion.v5_1_0, code.api.v5_1_0.Http4s510.wrappedRoutesV510Services)
   private val v600Routes: HttpRoutes[IO] = gate(ApiVersion.v6_0_0, code.api.v6_0_0.Http4s600.wrappedRoutesV600Services)
   private val v700Routes: HttpRoutes[IO] = gate(ApiVersion.v7_0_0, code.api.v7_0_0.Http4s700.wrappedRoutesV700Services)
+  // DynamicEntity runtime CRUD (/obp/dynamic-entity/*) — native http4s, replaces the Lift
+  // OBPAPIDynamicEntity dispatch. dynamic-endpoint (proxy + compiled resource docs) is a
+  // separate task and still falls through to the Lift bridge.
+  private val dynamicEntityRoutes: HttpRoutes[IO] = gate(ApiVersion.`dynamic-entity`, code.api.dynamic.entity.Http4sDynamicEntity.wrappedRoutesDynamicEntity)
 
   /**
    * Build the base HTTP4S routes with priority-based routing.
@@ -127,6 +131,7 @@ object Http4sApp {
         .orElse(v140Routes.run(req))
         .orElse(v130Routes.run(req))
         .orElse(v121Routes.run(req))
+        .orElse(dynamicEntityRoutes.run(req))
         .orElse(code.api.DirectLoginRoutes.routes.run(req))
         .orElse(code.api.AliveCheckRoutes.routes.run(req))
         .orElse(Http4sLiftWebBridge.routes.run(req))
