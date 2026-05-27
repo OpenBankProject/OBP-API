@@ -27,15 +27,22 @@ package code.api.dynamic.endpoint
 
 import cats.data.{Kleisli, OptionT}
 import cats.effect.IO
+import code.api.dynamic.endpoint.helper.DynamicEndpointHelper
 import code.api.util.APIUtil
+import code.api.util.CustomJsonFormats
 import code.api.util.ErrorMessages.{InvalidUri, UnknownError}
 import code.api.util.http4s.Http4sLiftWebBridge
+import code.api.util.http4s.Http4sRequestAttributes.EndpointHelpers
+import code.api.util.http4s.{Http4sCallContextBuilder, Http4sRequestAttributes}
 import code.api.{APIFailure, JsonResponseException}
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.util.{ApiShortVersions, ApiStandards}
 import net.liftweb.common.{Empty, Failure, Full, ParamFailure}
 import net.liftweb.http.{LiftResponse, LiftRules, Req, S}
+import net.liftweb.json.Formats
+import net.liftweb.json.JsonAST.{JNothing, JValue}
 import org.http4s.{HttpRoutes, Request, Response}
+import org.typelevel.ci.CIString
 
 /**
  * Native http4s entry point for the OBP dynamic-endpoint dispatch (under /obp/dynamic-endpoint/).
@@ -50,38 +57,66 @@ import org.http4s.{HttpRoutes, Request, Response}
  *     practise / dynamic-resource-doc endpoints compiled from user Scala via
  *     `DynamicUtil.compileScalaCode[OBPEndpoint]`.
  *
- * Why an in-process Lift adapter (not a native rewrite):
- *   - Piece C's compiled artifact has its type hard-wired to Lift
- *     (`PartialFunction[Req, CallContext => Box[JsonResponse]]`, generated code imports
- *     `net.liftweb.http.{JsonResponse, Req}`), so it can only be RUN, never natively rewritten.
- *   - dynamic-endpoint already ran through the http4s -> Lift bridge today (it was on
- *     statelessDispatch, which the bridge iterates), i.e. the Req was already built by
- *     `Http4sLiftWebBridge.buildLiftReq`. This migration does NOT change Req construction,
- *     body buffering, or the (auto-commit) transaction behaviour — it only relocates the
- *     `collectFirst` from the bridge's global statelessDispatch list into this dedicated,
- *     dynamic-endpoint-only service positioned ahead of the bridge.
+ * Stage 1 — Piece B is served NATIVELY by [[proxy]]: the request is matched by
+ * `DynamicEndpointHelper.DynamicReq.resolveProxyTarget` (the framework-neutral core of the Lift
+ * `DynamicReq` extractor) and run through the shared `APIMethodsDynamicEndpoint.proxyHandle`
+ * (auth / entitlement / before+after interceptors / mock-or-connector proxy). No Lift `Req`,
+ * `S.init`, `buildLiftReq` or `liftResponseToHttp4s` on this path. The dynamic status code carried
+ * by the connector / obp_mock result is rendered via `EndpointHelpers.executeFutureWithStatus`.
+ * Proxy writes run on auto-commit (no `withBusinessDBTransaction`), matching the prior bridge/adapter
+ * behaviour.
  *
- * Mechanics (a faithful, narrowed copy of `Http4sLiftWebBridge.runLiftDispatch`):
- *   1. Buffer the body and build a Lift `Req` with `buildLiftReq` (full uri `/obp/dynamic-endpoint/...`
- *      so `DynamicReq`'s prefix gate passes).
- *   2. Inside `S.init` (required: failIfBadAuthorizationHeader reads `S.request`, and Lift
- *      `Req.body`/`json`/`testResponse_?` resolve only in that scope), `collectFirst` over the
- *      SAME wrapped form Lift registered — `routes.map(apiPrefix andThen buildOAuthHandler)` — and run it.
- *   3. Reduce the `Box[LiftResponse]` exactly as runLiftDispatch does (Full / ParamFailure /
- *      Failure / Empty), catching `JsonResponseException` (force-error / json-schema / auth
- *      interceptors) and Lift `ContinuationException` (async).
- *   4. No match -> `OptionT.none` so the request falls through the Http4sApp chain (eventually
- *      the bridge produces the final 404, just as before).
- *
- * No `withBusinessDBTransaction` wrap: the bridge path that served dynamic-endpoint until now did
- * not wrap either (writes ran on auto-commit connections), so omitting it preserves behaviour.
+ * Piece C is STILL served by the in-process Lift adapter ([[dispatch]]) because its compiled
+ * artifact is hard-wired to Lift (`PartialFunction[Req, CallContext => Box[JsonResponse]]`,
+ * generated code imports `net.liftweb.http.{JsonResponse, Req}`) and can only be RUN, not natively
+ * rewritten. The native [[proxy]] is tried first; a non-match falls through to [[dispatch]], whose
+ * `collectFirst` over `OBPAPIDynamicEndpoint.routes` then serves Piece C. (Stage 2 will redefine the
+ * Piece C contract to native http4s and remove the adapter entirely.)
  */
 object Http4sDynamicEndpoint extends MdcLoggable {
 
   private type HttpF[A] = OptionT[IO, A]
 
+  private implicit val formats: Formats = CustomJsonFormats.formats
+
   private val apiStandard = ApiStandards.obp.toString
   private val apiVersionString = ApiShortVersions.`dynamic-endpoint`.toString // "dynamic-endpoint"
+
+  private def queryParams(req: Request[IO]): Map[String, List[String]] =
+    req.uri.query.multiParams.map { case (k, vs) => k -> vs.toList }
+
+  // Mirror of the Lift DynamicReq gate `testResponse_?`: only treat the request as a dynamic-endpoint
+  // proxy candidate when it is JSON (Content-Type or Accept carries json). A non-JSON request returns
+  // OptionT.none so it falls through to the Piece C adapter / Http4sApp chain, exactly as before.
+  private def isJsonRequest(req: Request[IO]): Boolean = {
+    def header(name: String): String = req.headers.get(CIString(name)).map(_.head.value).getOrElse("")
+    header("Content-Type").toLowerCase.contains("json") || header("Accept").toLowerCase.contains("json")
+  }
+
+  /**
+   * Native Piece B (proxy) handler. Matches via `DynamicEndpointHelper.DynamicReq.resolveProxyTarget`
+   * (same DB lookup the Lift `DynamicReq.unapply` used) and runs the shared, framework-neutral
+   * `APIMethodsDynamicEndpoint.proxyHandle`. The CallContext is built by `Http4sCallContextBuilder`
+   * and attached so `EndpointHelpers.executeFutureWithStatus` can reuse the error conversion + metric;
+   * auth / entitlement run inside `proxyHandle`. No match -> `OptionT.none` (fall through to [[dispatch]]).
+   */
+  private def proxy(req: Request[IO]): OptionT[IO, Response[IO]] =
+    if (!isJsonRequest(req)) OptionT.none[IO, Response[IO]]
+    else OptionT {
+      val partPath = req.uri.path.segments.drop(2).map(_.encoded).toList // segments after obp/dynamic-endpoint
+      Http4sCallContextBuilder.fromRequest(req, apiVersionString).flatMap { cc0 =>
+        val bodyJValue: JValue = cc0.httpBody.filter(_.nonEmpty).map(net.liftweb.json.parse).getOrElse(JNothing)
+        DynamicEndpointHelper.DynamicReq.resolveProxyTarget(req.method.name, partPath, queryParams(req), bodyJValue) match {
+          case None => IO.pure(Option.empty[Response[IO]])
+          case Some((url, json, method, params, pathParams, role, operationId, mockResponse, bankId)) =>
+            val reqWithCc = req.withAttribute(Http4sRequestAttributes.callContextKey, cc0)
+            EndpointHelpers.executeFutureWithStatus(reqWithCc) {
+              APIMethodsDynamicEndpoint.ImplementationsDynamicEndpoint.proxyHandle(
+                url, json, method, params, pathParams, role, operationId, mockResponse, bankId, cc0)
+            }.map(Some(_))
+        }
+      }
+    }
 
   /**
    * The exact wrapped form Lift held in statelessDispatch for dynamic-endpoint:
@@ -150,7 +185,8 @@ object Http4sDynamicEndpoint extends MdcLoggable {
     Kleisli[HttpF, Request[IO], Response[IO]] { (req: Request[IO]) =>
       req.uri.path.segments.map(_.encoded).toList match {
         case standard :: version :: _ if standard == apiStandard && version == apiVersionString =>
-          dispatch(req)
+          // Native Piece B (proxy) first; a non-match falls through to the Lift adapter for Piece C.
+          proxy(req).orElse(dispatch(req))
         case _ =>
           OptionT.none[IO, Response[IO]]
       }

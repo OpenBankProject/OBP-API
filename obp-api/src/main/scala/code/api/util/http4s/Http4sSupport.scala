@@ -445,6 +445,27 @@ object Http4sRequestAttributes {
     }
 
     /**
+     * Execute Future-based business logic that returns a (result, statusCode) pair, rendering the
+     * result JSON with the caller-supplied HTTP status. Converts errors via ErrorResponseConverter.
+     *
+     * Used by the native dynamic-endpoint proxy (code.api.dynamic.endpoint.Http4sDynamicEndpoint),
+     * where the status code is dynamic — it comes from the backend connector / obp_mock response
+     * (the `code` field), not a fixed 200/201. The caller has already built and attached the
+     * CallContext (auth/role checks run inside `f`); on a thrown auth/role failure the `.attempt`
+     * branch renders the correct 401/403 via ErrorResponseConverter, exactly like the other helpers.
+     */
+    def executeFutureWithStatus[A](req: Request[IO])(f: => Future[(A, Int)])(implicit formats: Formats): IO[Response[IO]] = {
+      implicit val cc: CallContext = req.callContext
+      RequestScopeConnection.fromFuture(f).attempt.flatMap {
+        case Right((result, code)) =>
+          val jsonString = prettyRender(Extraction.decompose(result))
+          val status = Status.fromInt(code).getOrElse(Status.Ok)
+          IO.pure(Response[IO](status).withEntity(jsonString)).flatTap(recordMetric(result, _))
+        case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
+      }
+    }
+
+    /**
      * Execute DELETE business logic (no auth required).
      * Returns 204 No Content on success, converts errors via ErrorResponseConverter.
      */

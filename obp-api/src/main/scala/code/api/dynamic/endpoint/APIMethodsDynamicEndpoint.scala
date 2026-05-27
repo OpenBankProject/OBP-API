@@ -59,20 +59,45 @@ trait APIMethodsDynamicEndpoint {
       box.openOrThrowException("impossible error")
     }
 
-    lazy val dynamicEndpoint: OBPEndpoint = {
-      case DynamicReq(url, json, method, params, pathParams, role, operationId, mockResponse, bankId) => { cc =>
-        // process before authentication interceptor, get intercept result
+    /**
+     * Framework-neutral proxy logic for a matched dynamic-endpoint, shared by the Lift
+     * `dynamicEndpoint` handler (below) and the native http4s dispatcher
+     * (code.api.dynamic.endpoint.Http4sDynamicEndpoint). Runs the before/after authenticate
+     * interceptors, authentication, the entitlement check, and either the dynamic-entity mapping
+     * branch or the proxy/mock connector call. Returns the response body JValue paired with the
+     * HTTP status code carried by the connector/mock result (the Lift handler re-wraps it into a
+     * CallContext.httpCode; the http4s handler renders the status directly).
+     *
+     * The before-authenticate interceptor (which the Lift handler used to short-circuit by
+     * returning its JsonResponse directly) is reduced here to (message, code) via
+     * JsonResponseExtractor and re-raised through booleanToFuture, mirroring the after-interceptor
+     * handling below and Http4sDynamicEntity — same code/message, no Lift JsonResponse rendering.
+     */
+    def proxyHandle(
+      url: String,
+      json: JValue,
+      method: org.apache.pekko.http.scaladsl.model.HttpMethod,
+      params: Map[String, List[String]],
+      pathParams: Map[String, String],
+      role: ApiRole,
+      operationId: String,
+      mockResponse: Option[(Int, JValue)],
+      bankId: Option[String],
+      cc: CallContext
+    ): Future[(JValue, Int)] = {
         val resourceDoc = DynamicEndpointHelper.doc.find(_.operationId == operationId)
         val callContext = cc.copy(operationId = Some(operationId), resourceDocument = resourceDoc)
-        val beforeInterceptResult: Box[JsonResponse] = beforeAuthenticateInterceptResult(Option(callContext), operationId)
-        if (beforeInterceptResult.isDefined) beforeInterceptResult
-        else for {
+        // process before authentication interceptor; a non-empty result short-circuits (rendered with its own code).
+        // Computed before the for-comprehension (a for-comprehension cannot begin with an `=` assignment).
+        val beforeJsonResponse: Box[ErrorMessage] = beforeAuthenticateInterceptResult(Option(callContext), operationId).collect({
+          case JsonResponseExtractor(message, code) => ErrorMessage(code, message)
+        })
+        for {
+          _ <- Helper.booleanToFuture(failMsg = beforeJsonResponse.map(_.message).orNull, failCode = beforeJsonResponse.map(_.code).openOr(400), cc = Option(callContext)) {
+            beforeJsonResponse.isEmpty
+          }
           (Full(u), callContext) <- authenticatedAccess(callContext) // Inject operationId into Call Context. It's used by Rate Limiting.
           _ <- NewStyle.function.hasEntitlement(bankId.getOrElse(""), u.userId, role, callContext)
-
-          // validate request json payload
-          httpRequestMethod = cc.verb
-          path = StringUtils.substringAfter(cc.url, DynamicEndpointHelper.urlPrefix)
 
           // process after authentication interceptor, get intercept result
           jsonResponse: Box[ErrorMessage] = afterAuthenticateInterceptResult(callContext, operationId).collect({
@@ -190,7 +215,7 @@ trait APIMethodsDynamicEndpoint {
           box match {
             case Full(v) =>
               val code = (v \ "code").asInstanceOf[JInt].num.toInt
-              (v \ "value", callContext.map(_.copy(httpCode = Some(code))))
+              (v \ "value", code)
 
             case e: Failure =>
               val changedMsgFailure = e.copy(msg = s"$InternalServerError ${e.msg}")
@@ -198,6 +223,13 @@ trait APIMethodsDynamicEndpoint {
               ??? // will not execute to here, Because the failure message is thrown by upper line.
           }
 
+        }
+    }
+
+    lazy val dynamicEndpoint: OBPEndpoint = {
+      case DynamicReq(url, json, method, params, pathParams, role, operationId, mockResponse, bankId) => { cc =>
+        proxyHandle(url, json, method, params, pathParams, role, operationId, mockResponse, bankId, cc).map {
+          case (value, code) => (value, Option(cc.copy(httpCode = Some(code))))
         }
       }
     }
