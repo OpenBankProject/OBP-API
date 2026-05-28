@@ -18,11 +18,9 @@ import scala.collection.mutable.ArrayBuffer
  * CallContext via anonymousAccess for these non-/obp paths), and exposes
  * `wrappedRoutes` for wiring into Http4sApp.baseServices.
  *
- * Coverage: the 16 stub categories below are fully migrated to http4s. The
- * genuine data-backed endpoints (AccountAccess consent CRUD, Accounts, Balances,
- * Transactions) are intentionally NOT listed here yet — http4s has no matching
- * route for them, so they fall through to the Lift bridge and keep their real
- * behaviour. This is a safe incremental migration; tests stay green either way.
+ * Coverage: 16 stub categories plus Balances and Transactions are fully migrated
+ * to http4s. AccountAccess consent CRUD and Accounts are also wired. Remaining
+ * unmatched routes fall through to the Lift bridge and keep their real behaviour.
  */
 object Http4sUKOBv310 extends MdcLoggable {
 
@@ -31,6 +29,8 @@ object Http4sUKOBv310 extends MdcLoggable {
   val implementedInApiVersion: ApiVersion = ApiVersion.ukOpenBankingV31
 
   val resourceDocs: ArrayBuffer[ResourceDoc] =
+    Http4sUKOBv310AccountAccess.resourceDocs ++
+    Http4sUKOBv310Accounts.resourceDocs ++
     Http4sUKOBv310Products.resourceDocs ++
     Http4sUKOBv310Beneficiaries.resourceDocs ++
     Http4sUKOBv310DirectDebits.resourceDocs ++
@@ -46,10 +46,16 @@ object Http4sUKOBv310 extends MdcLoggable {
     Http4sUKOBv310FundsConfirmations.resourceDocs ++
     Http4sUKOBv310InternationalPayments.resourceDocs ++
     Http4sUKOBv310InternationalScheduledPayments.resourceDocs ++
-    Http4sUKOBv310InternationalStandingOrders.resourceDocs
+    Http4sUKOBv310InternationalStandingOrders.resourceDocs ++
+    Http4sUKOBv310Balances.resourceDocs ++
+    Http4sUKOBv310Transactions.resourceDocs
 
   val allRoutes: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { req =>
-    Http4sUKOBv310Products.routes(req)
+    Http4sUKOBv310AccountAccess.routes(req)
+      .orElse(Http4sUKOBv310Accounts.routes(req))
+      .orElse(Http4sUKOBv310Balances.routes(req))
+      .orElse(Http4sUKOBv310Transactions.routes(req))
+      .orElse(Http4sUKOBv310Products.routes(req))
       .orElse(Http4sUKOBv310Beneficiaries.routes(req))
       .orElse(Http4sUKOBv310DirectDebits.routes(req))
       .orElse(Http4sUKOBv310Offers.routes(req))

@@ -1,7 +1,7 @@
 package code.api.UKOpenBanking.v3_1_0
 
 import code.api.OBPRestHelper
-import code.api.util.APIUtil.{OBPEndpoint, ResourceDoc, getAllowedEndpoints}
+import code.api.util.APIUtil.{OBPEndpoint, ResourceDoc}
 import code.api.util.ScannedApis
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.util.{ApiVersion, ApiVersionStatus}
@@ -9,40 +9,24 @@ import com.openbankproject.commons.util.{ApiVersion, ApiVersionStatus}
 import scala.collection.mutable.ArrayBuffer
 
 /*
- * All 16 stub-category UK Open Banking v3.1 endpoints have been migrated to their
- * respective Http4sUKOBv310* objects.  The four genuine data-backed categories
- * (AccountAccess, Accounts, Balances, Transactions) still run through Lift until
- * their http4s counterparts are ready.
+ * All UK Open Banking v3.1 endpoints have been migrated to their respective
+ * Http4sUKOBv310* objects (16 stub categories + AccountAccess, Accounts,
+ * Balances, Transactions).
  *
  * This aggregator is retained for ScannedApis registration (class-path scanning)
  * and so that external callers (APIUtil, SwaggerJSONFactory) that access
  * OBP_UKOpenBanking_310.apiVersion / .allResourceDocs continue to compile.
+ * Routes are served by Http4sUKOBv310.wrappedRoutes in Http4sApp (ahead of the
+ * Lift bridge).
  */
 object OBP_UKOpenBanking_310 extends OBPRestHelper with MdcLoggable with ScannedApis {
 
   override val apiVersion: ApiVersion = ApiVersion.ukOpenBankingV31
   val versionStatus: String = ApiVersionStatus.DRAFT.toString
 
-  // Genuine endpoints still served by Lift (not yet migrated to http4s).
-  private[this] val genuineEndpoints =
-    APIMethods_AccountAccessApi.endpoints ++
-    APIMethods_AccountsApi.endpoints ++
-    APIMethods_BalancesApi.endpoints ++
-    APIMethods_TransactionsApi.endpoints
+  override val allResourceDocs: ArrayBuffer[ResourceDoc] = Http4sUKOBv310.resourceDocs
 
-  private[this] val genuineResourceDocs: ArrayBuffer[ResourceDoc] =
-    APIMethods_AccountAccessApi.resourceDocs ++
-    APIMethods_AccountsApi.resourceDocs ++
-    APIMethods_BalancesApi.resourceDocs ++
-    APIMethods_TransactionsApi.resourceDocs
-
-  override val allResourceDocs: ArrayBuffer[ResourceDoc] =
-    Http4sUKOBv310.resourceDocs ++ genuineResourceDocs
-
-  override val routes: List[OBPEndpoint] = getAllowedEndpoints(genuineEndpoints, genuineResourceDocs)
-
-  // Register only the genuine Lift routes; stub routes are served by http4s in Http4sApp.
-  registerRoutes(routes, allResourceDocs, apiPrefix)
+  override val routes: List[OBPEndpoint] = Nil
 }
 
 // ─── Original Lift aggregator (commented out) ────────────────────────────────
