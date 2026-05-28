@@ -28,7 +28,7 @@ package code.api.v4_0_0
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole._
-import code.api.util.ErrorMessages.{DynamicResourceDocAlreadyExists, DynamicResourceDocNotFound, UserHasMissingRoles}
+import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, DynamicResourceDocAlreadyExists, DynamicResourceDocNotFound, UserHasMissingRoles}
 import code.api.util.ApiRole
 import code.api.v4_0_0.APIMethods400.Implementations4_0_0
 import code.dynamicResourceDoc.JsonDynamicResourceDoc
@@ -289,6 +289,44 @@ class DynamicResourceDocTest extends V400ServerSetup {
       val callNoBodyReq = (dynamicEndpoint_Request / "dynamic-resource-doc" / "my_native_user" / "user-xyz").POST <@ (user1)
       val callNoBodyResp = makePostRequest(callNoBodyReq, "")
       callNoBodyResp.code should equal(400)
+    }
+
+    // Exercises ResourceDoc.authCheckIO's role-gated path (the native mirror of wrappedWithAuthCheck):
+    // a runtime-compiled dynamic-resource-doc declaring a role must enforce 401 (no auth) / 403 (no role)
+    // / 200 (role granted). The existing scenario above only covers the no-role (anonymous-ish) path.
+    scenario("Create a role-gated runtime-compiled dynamic resource doc and verify 401 / 403 / 200", ApiEndpoint1, VersionOfApi) {
+      val dynamicRole = "CanCallNativePieceCRoleTest" // becomes a system-level dynamic role (requiresBankId = false)
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.canCreateDynamicResourceDoc.toString)
+
+      When("We create a dynamic resource doc gated by that role (system-level: URL has no BANK_ID)")
+      val createReq = (v4_0_0_Request / "management" / "dynamic-resource-docs").POST <@ (user1)
+      val doc = SwaggerDefinitionsJSON.jsonDynamicResourceDoc.copy(
+        dynamicResourceDocId = None,
+        bankId = None,
+        roles = dynamicRole,
+        partialFunctionName = "nativePieceCRoleTest",
+        requestUrl = "/my_role_user/MY_USER_ID"
+      )
+      makePostRequest(createReq, write(doc)).code should equal(201)
+
+      val callUrl = dynamicEndpoint_Request / "dynamic-resource-doc" / "my_role_user" / "user-1"
+      val body = """{"name":"Jhon","age":12,"hobby":["coding"]}"""
+
+      Then("calling without authentication returns 401")
+      val resp401 = makePostRequest(callUrl.POST, body)
+      resp401.code should equal(401)
+      resp401.body.extract[ErrorMessage].message should include(AuthenticatedUserIsRequired)
+
+      Then("calling authenticated but without the role returns 403")
+      val resp403 = makePostRequest(callUrl.POST <@ (user1), body)
+      resp403.code should equal(403)
+      resp403.body.extract[ErrorMessage].message should include(UserHasMissingRoles)
+
+      Then("granting the role makes the call succeed (200)")
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, dynamicRole)
+      val resp200 = makePostRequest(callUrl.POST <@ (user1), body)
+      resp200.code should equal(200)
+      json.compactRender(resp200.body) should include("_from_path")
     }
   }
 
