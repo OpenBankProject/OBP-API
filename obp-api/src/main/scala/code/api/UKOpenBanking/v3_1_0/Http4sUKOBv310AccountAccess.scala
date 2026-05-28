@@ -39,11 +39,20 @@ object Http4sUKOBv310AccountAccess extends MdcLoggable {
 
   lazy val createAccountAccessConsents: HttpRoutes[IO] = HttpRoutes.of[IO] {
     case req @ POST -> `ukV31Prefix` / "account-access-consents" =>
-      // Use withUserAndBodyCreated to enforce auth (401) before body parsing (400).
-      // Lift's wrappedWithAuthCheck enforced AuthenticatedUserIsRequired before the handler ran.
-      EndpointHelpers.withUserAndBodyCreated[ConsentPostBodyUKV310, net.liftweb.json.JValue](req) { (u, consentJson, cc) =>
-        val consumerId = cc.consumer.map(_.consumerId.get)
+      // Check auth FIRST (before body parsing) to mirror Lift's wrappedWithAuthCheck behaviour:
+      // unauthenticated → 401, invalid body → 400. withUserAndBodyCreated parses body first
+      // (→ 400) before checking auth — wrong order. Use executeFutureCreated + manual auth check.
+      EndpointHelpers.executeFutureCreated(req) {
+        implicit val cc: CallContext = req.callContext
         for {
+          u <- cc.user.toOption match {
+            case Some(user) => Future.successful(user)
+            case None       => Future.failed(new RuntimeException(AuthenticatedUserIsRequired))
+          }
+          consentJson <- Future.fromTry(scala.util.Try(
+            net.liftweb.json.parse(cc.httpBody.getOrElse("{}")).extract[ConsentPostBodyUKV310]
+          ))
+          consumerId = cc.consumer.map(_.consumerId.get)
           _ <- passesPsd2Aisp(Some(cc))
           createdConsent <- Future(Consents.consentProvider.vend.saveUKConsent(
             Some(u),
