@@ -4,7 +4,7 @@ import cats.data.{Kleisli, OptionT}
 import cats.effect.IO
 import code.api.APIFailureNewStyle
 import code.api.Constant
-import code.api.util.APIUtil.{EmptyBody, ResourceDoc, createQueriesByHttpParams, defaultBankId, fullBoxOrException, mockedDataText, passesPsd2Aisp, unboxFull}
+import code.api.util.APIUtil.{EmptyBody, ResourceDoc, createQueriesByHttpParams, defaultBankId, fullBoxOrException, mockedDataText, passesPsd2Aisp}
 import code.api.util.ApiTag
 import code.api.util.ApiTag._
 import code.api.util.CustomJsonFormats
@@ -13,7 +13,6 @@ import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, UnknownError}
 import code.api.util.NewStyle
 import code.api.util.http4s.Http4sRequestAttributes.EndpointHelpers
 import code.api.util.newstyle.ViewNewStyle
-import code.bankconnectors.Connector
 import code.util.Helper.MdcLoggable
 import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
@@ -21,7 +20,7 @@ import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId, TransactionAttribute, ViewId}
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
 import net.liftweb.common.Full
-import code.model.{BankAccountExtended, User => MappedUser}
+import code.model.{BankAccountExtended, UserExtended}
 import net.liftweb.http.provider.HTTPParam
 import net.liftweb.json
 import net.liftweb.json.Formats
@@ -319,10 +318,10 @@ object Http4sUKOBv310Transactions extends MdcLoggable {
             createQueriesByHttpParams(req.headers.headers.toList.map(h => HTTPParam(h.name.toString, List(h.value))))
           } map { x =>
             fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, Some(cc.toLight)))
-          } map { unboxFull(_) }
+          }
           (transactions, _) <- BankAccountExtended(account).getModeratedTransactionsFuture(bank, Full(u), view, Some(cc), params) map { x =>
             fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, Some(cc.toLight)))
-          } map { unboxFull(_) }
+          }
           (moderatedAttributes: List[TransactionAttribute], _) <- NewStyle.function.getModeratedAttributesByTransactions(
             account.bankId,
             transactions.map(_.id),
@@ -580,19 +579,16 @@ object Http4sUKOBv310Transactions extends MdcLoggable {
           (bank, _) <- NewStyle.function.getBank(BankId(defaultBankId), Some(cc))
           availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
           (accounts, _) <- NewStyle.function.getBankAccounts(availablePrivateAccounts, Some(cc))
-          transactionAndTransactionRequestTuple = for {
-            bankAccount <- accounts
-          } yield {
-            for {
-              view <- u.asInstanceOf[MappedUser].checkOwnerViewAccessAndReturnOwnerView(BankIdAccountId(bankAccount.bankId, bankAccount.accountId), Some(cc))
-              params <- createQueriesByHttpParams(req.headers.headers.toList.map(h => HTTPParam(h.name.toString, List(h.value))))
-              (transactionRequests, _) <- Connector.connector.vend.getTransactionRequests210(u, bankAccount, Some(cc))
-              (transactions, _) <- BankAccountExtended(bankAccount).getModeratedTransactions(bank, Full(u), view, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), Some(cc), params)
-            } yield (transactionRequests, transactions)
+          allTxns <- Future {
+            accounts.flatMap { bankAccount =>
+              (for {
+                view <- UserExtended(u).checkOwnerViewAccessAndReturnOwnerView(BankIdAccountId(bankAccount.bankId, bankAccount.accountId), Some(cc))
+                params = createQueriesByHttpParams(req.headers.headers.toList.map(h => HTTPParam(h.name.toString, List(h.value)))).getOrElse(Nil)
+                (transactions, _) <- BankAccountExtended(bankAccount).getModeratedTransactions(bank, Full(u), view, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), Some(cc), params)
+              } yield transactions).getOrElse(Nil)
+            }
           }
-          transactionRequests = transactionAndTransactionRequestTuple.map(_.map(_._1)).flatten.flatten
-          transactions = transactionAndTransactionRequestTuple.map(_.map(_._2)).flatten.flatten
-        } yield JSONFactory_UKOpenBanking_310.createTransactionsJson(transactions, transactionRequests)
+        } yield JSONFactory_UKOpenBanking_310.createTransactionsJson(allTxns, Nil)
       }
   }
   resourceDocs += ResourceDoc(
