@@ -4,7 +4,7 @@ import code.api.OBPRestHelper
 import code.api.util.APIUtil.{OBPEndpoint, ResourceDoc}
 import code.api.util.ScannedApis
 import code.util.Helper.MdcLoggable
-import com.openbankproject.commons.util.{ApiVersion, ApiVersionStatus}
+import com.openbankproject.commons.util.{ApiVersion, ApiVersionStatus, ScannedApiVersion}
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -21,7 +21,7 @@ import scala.collection.mutable.ArrayBuffer
  */
 object OBP_UKOpenBanking_310 extends OBPRestHelper with MdcLoggable with ScannedApis {
 
-  override val apiVersion: ApiVersion = ApiVersion.ukOpenBankingV31
+  override val apiVersion: ScannedApiVersion = ApiVersion.ukOpenBankingV31
   val versionStatus: String = ApiVersionStatus.DRAFT.toString
 
   override val allResourceDocs: ArrayBuffer[ResourceDoc] = Http4sUKOBv310.resourceDocs
