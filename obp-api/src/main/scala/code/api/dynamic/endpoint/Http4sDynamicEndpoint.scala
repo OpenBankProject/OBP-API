@@ -37,7 +37,6 @@ import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.json.Formats
 import net.liftweb.json.JsonAST.{JNothing, JValue}
 import org.http4s.{HttpRoutes, Request, Response}
-import org.typelevel.ci.CIString
 
 /**
  * Native http4s entry point for the OBP dynamic-endpoint dispatch (under /obp/dynamic-endpoint/).
@@ -76,24 +75,22 @@ object Http4sDynamicEndpoint extends MdcLoggable {
   private def queryParams(req: Request[IO]): Map[String, List[String]] =
     req.uri.query.multiParams.map { case (k, vs) => k -> vs.toList }
 
-  // Mirror of the Lift DynamicReq gate `testResponse_?`: only treat the request as a dynamic-endpoint
-  // proxy candidate when it is JSON (Content-Type or Accept carries json). A non-JSON request returns
-  // OptionT.none so it falls through to Piece C / the Http4sApp chain, exactly as before.
-  private def isJsonRequest(req: Request[IO]): Boolean = {
-    def header(name: String): String = req.headers.get(CIString(name)).map(_.head.value).getOrElse("")
-    header("Content-Type").toLowerCase.contains("json") || header("Accept").toLowerCase.contains("json")
-  }
-
   /**
    * Native Piece B (proxy) handler. Matches via `DynamicEndpointHelper.DynamicReq.resolveProxyTarget`
    * and runs the shared, framework-neutral `APIMethodsDynamicEndpoint.proxyHandle`. The CallContext
    * is built by `Http4sCallContextBuilder` and attached so `EndpointHelpers.executeFutureWithStatus`
    * can reuse the error conversion + metric; auth / entitlement run inside `proxyHandle`. No match ->
    * `OptionT.none` (fall through to [[pieceC]]).
+   *
+   * Note: no JSON content-type gate. The Lift `DynamicReq` extractor gated on `testResponse_?`, but
+   * that treated a wildcard Accept (and absent Accept) as JSON-acceptable, i.e. it matched the OBP
+   * test client's GET requests (wildcard Accept, text/plain Content-Type). Re-implementing the gate
+   * as a literal "contains json" check wrongly rejected those GET proxy calls (404). Since the native
+   * dispatch has no XML alternative and `resolveProxyTarget` already returns None for any path that
+   * is not a registered dynamic-endpoint, the gate is unnecessary, so we just try to resolve.
    */
   private def proxy(req: Request[IO]): OptionT[IO, Response[IO]] =
-    if (!isJsonRequest(req)) OptionT.none[IO, Response[IO]]
-    else OptionT {
+    OptionT {
       val partPath = req.uri.path.segments.drop(2).map(_.encoded).toList // segments after obp/dynamic-endpoint
       Http4sCallContextBuilder.fromRequest(req, apiVersionString).flatMap { cc0 =>
         val bodyJValue: JValue = cc0.httpBody.filter(_.nonEmpty).map(net.liftweb.json.parse).getOrElse(JNothing)
