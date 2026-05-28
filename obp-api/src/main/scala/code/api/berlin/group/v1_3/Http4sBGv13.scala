@@ -24,11 +24,13 @@ object Http4sBGv13 extends MdcLoggable {
 
   val resourceDocs: ArrayBuffer[ResourceDoc] =
     Http4sBGv13AIS.resourceDocs ++
+    Http4sBGv13PIS.resourceDocs ++
     Http4sBGv13PIIS.resourceDocs ++
     Http4sBGv13SigningBaskets.resourceDocs
 
   val allRoutes: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { req =>
     Http4sBGv13AIS.routes(req)
+      .orElse(Http4sBGv13PIS.routes(req))
       .orElse(Http4sBGv13PIIS.routes(req))
       .orElse(Http4sBGv13SigningBaskets.routes(req))
   }
