@@ -44,6 +44,7 @@ object Http4sUKOBv310Transactions extends MdcLoggable {
   implicit val formats: Formats = CustomJsonFormats.formats
   val implementedInApiVersion: ScannedApiVersion = ApiVersion.ukOpenBankingV31
   val resourceDocs = ArrayBuffer[ResourceDoc]()
+  private def parseBody(s: String): net.liftweb.json.JObject = net.liftweb.json.parse(s).asInstanceOf[net.liftweb.json.JObject]
   val ukV31Prefix = Root / ApiVersion.ukOpenBankingV31.urlPrefix / ApiVersion.ukOpenBankingV31.apiShortVersion
 
   // -----------------------------------------------------------------------
@@ -68,7 +69,7 @@ object Http4sUKOBv310Transactions extends MdcLoggable {
     "Get Transactions",
     s"""${mockedDataText(true)}""",
     EmptyBody,
-    json.parse("""{
+    parseBody("""{
   "Meta" : {
     "FirstAvailableDateTime": "2019-03-06T07:38:51.169Z",
     "LastAvailableDateTime": "2019-03-06T07:38:51.169Z"
@@ -338,7 +339,7 @@ object Http4sUKOBv310Transactions extends MdcLoggable {
     "Get Transactions",
     s"""""",
     EmptyBody,
-    json.parse("""{
+    parseBody("""{
   "Meta" : {
     "FirstAvailableDateTime": "2019-03-06T07:38:51.169Z",
     "LastAvailableDateTime": "2019-03-06T07:38:51.169Z"
@@ -602,7 +603,7 @@ object Http4sUKOBv310Transactions extends MdcLoggable {
     "Get Transactions",
     s"""""",
     EmptyBody,
-    json.parse("""{
+    parseBody("""{
   "Meta" : {
     "FirstAvailableDateTime": "2019-03-06T07:38:51.169Z",
     "LastAvailableDateTime": "2019-03-06T07:38:51.169Z"

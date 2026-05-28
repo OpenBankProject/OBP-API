@@ -27,6 +27,7 @@ object Http4sUKOBv310DomesticPayments extends MdcLoggable {
   implicit val formats: Formats = CustomJsonFormats.formats
   val implementedInApiVersion: ScannedApiVersion = ApiVersion.ukOpenBankingV31
   val resourceDocs = ArrayBuffer[ResourceDoc]()
+  private def parseBody(s: String): net.liftweb.json.JObject = net.liftweb.json.parse(s).asInstanceOf[net.liftweb.json.JObject]
   val ukV31Prefix = Root / ApiVersion.ukOpenBankingV31.urlPrefix / ApiVersion.ukOpenBankingV31.apiShortVersion
   private val tag = ApiTag("Domestic Payments") :: apiTagMockedData :: Nil
 
@@ -43,7 +44,7 @@ object Http4sUKOBv310DomesticPayments extends MdcLoggable {
     "Create Domestic Payment Consents",
     s"""${mockedDataText(true)}""",
     EmptyBody,
-    json.parse("""{
+    parseBody("""{
   "Meta" : {
     "FirstAvailableDateTime" : { },
     "TotalPages" : 0
@@ -153,7 +154,7 @@ object Http4sUKOBv310DomesticPayments extends MdcLoggable {
     "Create Domestic Payments",
     s"""${mockedDataText(true)}""",
     EmptyBody,
-    json.parse("""{
+    parseBody("""{
   "Meta" : {
     "FirstAvailableDateTime" : { },
     "TotalPages" : 0
@@ -253,7 +254,7 @@ object Http4sUKOBv310DomesticPayments extends MdcLoggable {
     "Get Domestic Payment Consents Funds Confirmation",
     s"""${mockedDataText(true)}""",
     EmptyBody,
-    json.parse("""{
+    parseBody("""{
   "Meta" : {
     "FirstAvailableDateTime" : { },
     "TotalPages" : 0
@@ -291,7 +292,7 @@ object Http4sUKOBv310DomesticPayments extends MdcLoggable {
     "Get Domestic Payment Consents",
     s"""${mockedDataText(true)}""",
     EmptyBody,
-    json.parse("""{
+    parseBody("""{
   "Meta" : {
     "FirstAvailableDateTime" : { },
     "TotalPages" : 0
@@ -401,7 +402,7 @@ object Http4sUKOBv310DomesticPayments extends MdcLoggable {
     "Get Domestic Payments",
     s"""${mockedDataText(true)}""",
     EmptyBody,
-    json.parse("""{
+    parseBody("""{
   "Meta" : {
     "FirstAvailableDateTime" : { },
     "TotalPages" : 0

@@ -27,6 +27,7 @@ object Http4sUKOBv310InternationalScheduledPayments extends MdcLoggable {
   implicit val formats: Formats = CustomJsonFormats.formats
   val implementedInApiVersion: ScannedApiVersion = ApiVersion.ukOpenBankingV31
   val resourceDocs = ArrayBuffer[ResourceDoc]()
+  private def parseBody(s: String): net.liftweb.json.JObject = net.liftweb.json.parse(s).asInstanceOf[net.liftweb.json.JObject]
   val ukV31Prefix = Root / ApiVersion.ukOpenBankingV31.urlPrefix / ApiVersion.ukOpenBankingV31.apiShortVersion
   private val tag = ApiTag("International Scheduled Payments") :: apiTagMockedData :: Nil
 
@@ -43,7 +44,7 @@ object Http4sUKOBv310InternationalScheduledPayments extends MdcLoggable {
     "Create International Scheduled Payment Consents",
     s"""${mockedDataText(true)}""",
     EmptyBody,
-    json.parse("""{
+    parseBody("""{
   "Meta" : {
     "FirstAvailableDateTime" : { },
     "TotalPages" : 0
@@ -191,7 +192,7 @@ object Http4sUKOBv310InternationalScheduledPayments extends MdcLoggable {
     "Create International Scheduled Payments",
     s"""${mockedDataText(true)}""",
     EmptyBody,
-    json.parse("""{
+    parseBody("""{
   "Meta" : {
     "FirstAvailableDateTime" : { },
     "TotalPages" : 0
@@ -328,7 +329,7 @@ object Http4sUKOBv310InternationalScheduledPayments extends MdcLoggable {
     "Get International Scheduled Payment Consents Funds Confirmation",
     s"""${mockedDataText(true)}""",
     EmptyBody,
-    json.parse("""{
+    parseBody("""{
   "Meta" : {
     "FirstAvailableDateTime" : { },
     "TotalPages" : 0
@@ -366,7 +367,7 @@ object Http4sUKOBv310InternationalScheduledPayments extends MdcLoggable {
     "Get International Scheduled Payment Consents",
     s"""${mockedDataText(true)}""",
     EmptyBody,
-    json.parse("""{
+    parseBody("""{
   "Meta" : {
     "FirstAvailableDateTime" : { },
     "TotalPages" : 0
@@ -514,7 +515,7 @@ object Http4sUKOBv310InternationalScheduledPayments extends MdcLoggable {
     "Get International Scheduled Payments",
     s"""${mockedDataText(true)}""",
     EmptyBody,
-    json.parse("""{
+    parseBody("""{
   "Meta" : {
     "FirstAvailableDateTime" : { },
     "TotalPages" : 0

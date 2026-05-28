@@ -3,10 +3,10 @@ package code.api.UKOpenBanking.v3_1_0
 import cats.data.{Kleisli, OptionT}
 import cats.effect.IO
 import code.api.Constant
-import code.api.util.APIUtil.{EmptyBody, ResourceDoc, attemptedToOpenAnEmptyBox, passesPsd2Aisp}
+import code.api.util.APIUtil.{EmptyBody, ResourceDoc, passesPsd2Aisp}
 import code.api.util.ApiTag
 import code.api.util.CustomJsonFormats
-import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, UnknownError}
+import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, UnknownError, attemptedToOpenAnEmptyBox}
 import code.api.util.http4s.Http4sRequestAttributes.EndpointHelpers
 import code.api.util.{APIUtil, NewStyle}
 import code.util.Helper.MdcLoggable
@@ -34,6 +34,7 @@ object Http4sUKOBv310Accounts extends MdcLoggable {
   implicit val formats: Formats = CustomJsonFormats.formats
   val implementedInApiVersion: ScannedApiVersion = ApiVersion.ukOpenBankingV31
   val resourceDocs = ArrayBuffer[ResourceDoc]()
+  private def parseBody(s: String): net.liftweb.json.JObject = net.liftweb.json.parse(s).asInstanceOf[net.liftweb.json.JObject]
   val ukV31Prefix = Root / ApiVersion.ukOpenBankingV31.urlPrefix / ApiVersion.ukOpenBankingV31.apiShortVersion
 
   lazy val getAccounts: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -73,7 +74,7 @@ object Http4sUKOBv310Accounts extends MdcLoggable {
     "Get Accounts",
     s"""""",
     EmptyBody,
-    net.liftweb.json.parse("""{
+    net.liftweb.parseBody("""{
   "Meta" : {
     "FirstAvailableDateTime" : {},
     "TotalPages" : 0
@@ -138,7 +139,7 @@ object Http4sUKOBv310Accounts extends MdcLoggable {
     s"""
 """,
     EmptyBody,
-    json.parse("""{
+    parseBody("""{
   "Meta" : {
     "FirstAvailableDateTime": "2019-03-05T13:09:30.399Z",
     "LastAvailableDateTime": "2019-03-05T13:09:30.399Z"

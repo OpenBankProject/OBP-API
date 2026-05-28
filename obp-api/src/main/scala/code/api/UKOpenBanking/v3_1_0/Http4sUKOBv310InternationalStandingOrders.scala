@@ -27,6 +27,7 @@ object Http4sUKOBv310InternationalStandingOrders extends MdcLoggable {
   implicit val formats: Formats = CustomJsonFormats.formats
   val implementedInApiVersion: ScannedApiVersion = ApiVersion.ukOpenBankingV31
   val resourceDocs = ArrayBuffer[ResourceDoc]()
+  private def parseBody(s: String): net.liftweb.json.JObject = net.liftweb.json.parse(s).asInstanceOf[net.liftweb.json.JObject]
   val ukV31Prefix = Root / ApiVersion.ukOpenBankingV31.urlPrefix / ApiVersion.ukOpenBankingV31.apiShortVersion
   private val tag = ApiTag("International Standing Orders") :: apiTagMockedData :: Nil
 
@@ -43,7 +44,7 @@ object Http4sUKOBv310InternationalStandingOrders extends MdcLoggable {
     "Create International Standing Order Consents",
     s"""${mockedDataText(true)}""",
     EmptyBody,
-    json.parse("""{
+    parseBody("""{
   "Meta" : {
     "FirstAvailableDateTime" : { },
     "TotalPages" : 0
@@ -173,7 +174,7 @@ object Http4sUKOBv310InternationalStandingOrders extends MdcLoggable {
     "Create International Standing Orders",
     s"""${mockedDataText(true)}""",
     EmptyBody,
-    json.parse("""{
+    parseBody("""{
   "Meta" : {
     "FirstAvailableDateTime" : { },
     "TotalPages" : 0
@@ -291,7 +292,7 @@ object Http4sUKOBv310InternationalStandingOrders extends MdcLoggable {
     "Get International Standing Order Consents",
     s"""${mockedDataText(true)}""",
     EmptyBody,
-    json.parse("""{
+    parseBody("""{
   "Meta" : {
     "FirstAvailableDateTime" : { },
     "TotalPages" : 0
@@ -421,7 +422,7 @@ object Http4sUKOBv310InternationalStandingOrders extends MdcLoggable {
     "Get International Standing Orders",
     s"""${mockedDataText(true)}""",
     EmptyBody,
-    json.parse("""{
+    parseBody("""{
   "Meta" : {
     "FirstAvailableDateTime" : { },
     "TotalPages" : 0

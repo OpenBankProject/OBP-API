@@ -27,6 +27,7 @@ object Http4sUKOBv310InternationalPayments extends MdcLoggable {
   implicit val formats: Formats = CustomJsonFormats.formats
   val implementedInApiVersion: ScannedApiVersion = ApiVersion.ukOpenBankingV31
   val resourceDocs = ArrayBuffer[ResourceDoc]()
+  private def parseBody(s: String): net.liftweb.json.JObject = net.liftweb.json.parse(s).asInstanceOf[net.liftweb.json.JObject]
   val ukV31Prefix = Root / ApiVersion.ukOpenBankingV31.urlPrefix / ApiVersion.ukOpenBankingV31.apiShortVersion
   private val tag = ApiTag("International Payments") :: apiTagMockedData :: Nil
 
@@ -43,7 +44,7 @@ object Http4sUKOBv310InternationalPayments extends MdcLoggable {
     "Create International Payment Consents",
     s"""${mockedDataText(true)}""",
     EmptyBody,
-    json.parse("""{
+    parseBody("""{
   "Meta" : {
     "FirstAvailableDateTime" : { },
     "TotalPages" : 0
@@ -189,7 +190,7 @@ object Http4sUKOBv310InternationalPayments extends MdcLoggable {
     "Create International Payments",
     s"""${mockedDataText(true)}""",
     EmptyBody,
-    json.parse("""{
+    parseBody("""{
   "Meta" : {
     "FirstAvailableDateTime" : { },
     "TotalPages" : 0
@@ -325,7 +326,7 @@ object Http4sUKOBv310InternationalPayments extends MdcLoggable {
     "Get International Payment Consents Funds Confirmation",
     s"""${mockedDataText(true)}""",
     EmptyBody,
-    json.parse("""{
+    parseBody("""{
   "Meta" : {
     "FirstAvailableDateTime" : { },
     "TotalPages" : 0
@@ -363,7 +364,7 @@ object Http4sUKOBv310InternationalPayments extends MdcLoggable {
     "Get International Payment Consents",
     s"""${mockedDataText(true)}""",
     EmptyBody,
-    json.parse("""{
+    parseBody("""{
   "Meta" : {
     "FirstAvailableDateTime" : { },
     "TotalPages" : 0
@@ -509,7 +510,7 @@ object Http4sUKOBv310InternationalPayments extends MdcLoggable {
     "Get International Payments",
     s"""${mockedDataText(true)}""",
     EmptyBody,
-    json.parse("""{
+    parseBody("""{
   "Meta" : {
     "FirstAvailableDateTime" : { },
     "TotalPages" : 0

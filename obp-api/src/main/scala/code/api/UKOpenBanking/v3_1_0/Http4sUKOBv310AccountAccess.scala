@@ -33,15 +33,16 @@ object Http4sUKOBv310AccountAccess extends MdcLoggable {
   implicit val formats: Formats = CustomJsonFormats.formats
   val implementedInApiVersion: ScannedApiVersion = ApiVersion.ukOpenBankingV31
   val resourceDocs = ArrayBuffer[ResourceDoc]()
+  private def parseBody(s: String): net.liftweb.json.JObject = net.liftweb.json.parse(s).asInstanceOf[net.liftweb.json.JObject]
   val ukV31Prefix = Root / ApiVersion.ukOpenBankingV31.urlPrefix / ApiVersion.ukOpenBankingV31.apiShortVersion
 
   lazy val createAccountAccessConsents: HttpRoutes[IO] = HttpRoutes.of[IO] {
     case req @ POST -> `ukV31Prefix` / "account-access-consents" =>
       EndpointHelpers.executeFutureWithBodyCreated[ConsentPostBodyUKV310, net.liftweb.json.JValue](req) { (consentJson, cc) =>
+        val createdByUser = cc.user.toOption
+        val consumerId = cc.consumer.map(_.consumerId.get)
         for {
           _ <- passesPsd2Aisp(Some(cc))
-          val createdByUser = cc.user.toOption
-          val consumerId = cc.consumer.map(_.consumerId.get)
           createdConsent <- Future(Consents.consentProvider.vend.saveUKConsent(
             createdByUser,
             bankId = None,
@@ -89,7 +90,7 @@ object Http4sUKOBv310AccountAccess extends MdcLoggable {
     s"""${mockedDataText(false)}
        |Create Account Access Consents
        |""".stripMargin,
-    net.liftweb.json.parse("""{
+    net.liftweb.parseBody("""{
   "Data": {
     "Permissions": [
       "ReadAccountsBasic"
@@ -100,7 +101,7 @@ object Http4sUKOBv310AccountAccess extends MdcLoggable {
   },
   "Risk": ""
 }"""),
-    net.liftweb.json.parse("""{
+    net.liftweb.parseBody("""{
   "Data": {
     "ConsentId": "string",
     "CreationDateTime": "2020-10-20T08:40:47.375Z",
@@ -206,7 +207,7 @@ object Http4sUKOBv310AccountAccess extends MdcLoggable {
        |Get Account Access Consents
        |""".stripMargin,
     EmptyBody,
-    net.liftweb.json.parse("""{
+    net.liftweb.parseBody("""{
   "Data": {
     "ConsentId": "string",
     "CreationDateTime": "2020-10-20T10:28:39.801Z",
