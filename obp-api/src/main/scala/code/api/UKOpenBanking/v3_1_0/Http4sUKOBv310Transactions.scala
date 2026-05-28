@@ -4,7 +4,7 @@ import cats.data.{Kleisli, OptionT}
 import cats.effect.IO
 import code.api.APIFailureNewStyle
 import code.api.Constant
-import code.api.util.APIUtil.{EmptyBody, ResourceDoc, createQueriesByHttpParams, defaultBankId, fullBoxOrException, mockedDataText, passesPsd2Aisp}
+import code.api.util.APIUtil.{EmptyBody, ResourceDoc, createQueriesByHttpParams, defaultBankId, fullBoxOrException, mockedDataText, passesPsd2Aisp, unboxFull}
 import code.api.util.ApiTag
 import code.api.util.ApiTag._
 import code.api.util.CustomJsonFormats
@@ -317,10 +317,10 @@ object Http4sUKOBv310Transactions extends MdcLoggable {
           params <- Future {
             createQueriesByHttpParams(req.headers.headers.toList.map(h => HTTPParam(h.name.toString, List(h.value))))
           } map { x =>
-            fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, Some(cc.toLight)))
+            unboxFull(fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, Some(cc.toLight))))
           }
           (transactions, _) <- BankAccountExtended(account).getModeratedTransactionsFuture(bank, Full(u), view, Some(cc), params) map { x =>
-            fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, Some(cc.toLight)))
+            unboxFull(fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, Some(cc.toLight))))
           }
           (moderatedAttributes: List[TransactionAttribute], _) <- NewStyle.function.getModeratedAttributesByTransactions(
             account.bankId,
