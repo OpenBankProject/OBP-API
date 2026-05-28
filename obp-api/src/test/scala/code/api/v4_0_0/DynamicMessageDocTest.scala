@@ -28,17 +28,23 @@ package code.api.v4_0_0
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole._
-import code.api.util.ErrorMessages.{UserHasMissingRoles, DynamicMessageDocNotFound}
-import code.api.util.{ApiRole}
+import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, UserHasMissingRoles, DynamicMessageDocNotFound}
+import code.api.util.{ApiRole, CallContext}
 import code.api.v4_0_0.APIMethods400.Implementations4_0_0
-import code.dynamicMessageDoc.{JsonDynamicMessageDoc}
+import code.bankconnectors.DynamicConnector
+import code.dynamicMessageDoc.{DynamicMessageDocProvider, JsonDynamicMessageDoc}
 import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf
-import com.openbankproject.commons.model.{ErrorMessage}
+import com.openbankproject.commons.model.{Bank, BankId, ErrorMessage}
 import com.openbankproject.commons.util.ApiVersion
+import net.liftweb.common.Box
 import net.liftweb.json.JArray
 import net.liftweb.json.Serialization.write
 import org.scalatest.Tag
+
+import scala.concurrent.Await
+import scala.concurrent.Future
+import scala.concurrent.duration._
 
 
 class DynamicMessageDocTest extends V400ServerSetup {
@@ -244,7 +250,59 @@ class DynamicMessageDocTest extends V400ServerSetup {
       responseDelete.code should equal(403)
       responseDelete.body.extract[ErrorMessage].message should equal(s"$UserHasMissingRoles${CanDeleteDynamicMessageDoc}")
     }
+
+    scenario("We call the DynamicMessageDoc management endpoints without authentication", ApiEndpoint1, VersionOfApi) {
+      val body = write(SwaggerDefinitionsJSON.jsonDynamicMessageDoc.copy(dynamicMessageDocId = None))
+
+      Then("POST without a token returns 401")
+      val post = makePostRequest((v4_0_0_Request / "management" / "dynamic-message-docs").POST, body)
+      post.code should equal(401)
+      post.body.extract[ErrorMessage].message should include(AuthenticatedUserIsRequired)
+
+      Then("GET (single) without a token returns 401")
+      makeGetRequest((v4_0_0_Request / "management" / "dynamic-message-docs" / "xx").GET).code should equal(401)
+
+      Then("GET (list) without a token returns 401")
+      makeGetRequest((v4_0_0_Request / "management" / "dynamic-message-docs").GET).code should equal(401)
+
+      Then("PUT without a token returns 401")
+      makePutRequest((v4_0_0_Request / "management" / "dynamic-message-docs" / "xx").PUT, body).code should equal(401)
+
+      Then("DELETE without a token returns 401")
+      makeDeleteRequest((v4_0_0_Request / "management" / "dynamic-message-docs" / "xx").DELETE).code should equal(401)
+    }
   }
 
+  // Safety net for the runtime connector-method path a refactor would touch:
+  // a DynamicMessageDoc stored in the DB -> DynamicConnector.invoke -> getFunction ->
+  // DynamicMessageDocProvider.getByProcess -> createFunction (DynamicUtil.compileScalaCode) -> run.
+  // InternalConnectorTest only covers createFunction+executeFunction in isolation (bypassing the DB
+  // and invoke/getFunction); this exercises the whole chain end to end.
+  // Note: connector methods do NOT run inside the security sandbox, so no sandbox-permission setup is
+  // needed; but the Scala methodBody is compiled at runtime, which requires JDK 11.
+  feature("DynamicMessageDoc runtime: stored methodBody compiled and invoked via DynamicConnector") {
+    scenario("Store a Scala methodBody and invoke it through DynamicConnector.invoke", VersionOfApi) {
+      val process = "obp.getBankSafetyNet" // unique, avoids colliding with the CRUD scenario's obp.getBank
+      val doc = SwaggerDefinitionsJSON.jsonDynamicMessageDoc.copy(
+        dynamicMessageDocId = None,
+        bankId = None,
+        process = process
+        // methodBody = connectorMethodBodyScalaExample (Scala, returns BankCommons(BankId("Hello bank id"), ...))
+      )
+
+      When("We store the DynamicMessageDoc via the provider")
+      DynamicMessageDocProvider.provider.vend.create(None, doc).isDefined should equal(true)
+
+      Then("DynamicConnector.invoke compiles the stored methodBody and runs the connector method")
+      val fut = DynamicConnector
+        .invoke(None, process, Array(BankId("1")), Some(CallContext()))
+        .asInstanceOf[Future[Box[(AnyRef, Option[CallContext])]]]
+      val box = Await.result(fut, 5.minutes)
+
+      box.isDefined should equal(true)
+      val bank = box.openOrThrowException("dynamic connector method returned Empty")._1.asInstanceOf[Bank]
+      bank.bankId.value should equal("Hello bank id")
+    }
+  }
 
 }
