@@ -35,7 +35,6 @@ import code.api.v5_0_0.OBPAPI5_0_0.{allResourceDocs, apiPrefix, registerRoutes, 
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.util.{ApiVersion,ApiVersionStatus}
 import net.liftweb.common.{Box, Full}
-import net.liftweb.http.{LiftResponse, PlainTextResponse}
 import org.apache.http.HttpStatus
 
 /*
@@ -50,14 +49,14 @@ object OBPAPIDynamicEndpoint extends OBPRestHelper with MdcLoggable with Version
   // if old version ResourceDoc objects have the same name endpoint with new version, omit old version ResourceDoc.
   def allResourceDocs = collectResourceDocs(ImplementationsDynamicEndpoint.resourceDocs)
 
-  val routes : List[OBPEndpoint] = List(APIUtil.dynamicEndpointStub,
-    //This is for the dynamic endpoints which are created by dynamic swagger files
-    ImplementationsDynamicEndpoint.dynamicEndpoint
-    // Piece C (runtime-compiled dynamic-resource-doc / practise) endpoints are now served NATIVELY
-    // by code.api.dynamic.endpoint.Http4sDynamicEndpoint via DynamicEndpoints.findEndpoint. The
-    // former Lift `DynamicEndpoints.dynamicEndpoint` (OBPEndpoint) has been removed; the compiled
-    // artifacts are now OBPEndpointIO carried on each dynamic ResourceDoc.dynamicHttp4sFunction.
-  )
+  // dynamic-endpoint dispatch is fully native (code.api.dynamic.endpoint.Http4sDynamicEndpoint):
+  //  - Piece B (proxy): Http4sDynamicEndpoint.proxy -> APIMethodsDynamicEndpoint.proxyHandle
+  //  - Piece C (runtime-compiled): DynamicEndpoints.findEndpoint -> ResourceDoc.dynamicHttp4sFunction
+  // The former Lift `OBPEndpoint`s (ImplementationsDynamicEndpoint.dynamicEndpoint via DynamicReq,
+  // and DynamicEndpoints.dynamicEndpoint) have been removed. `routes` keeps only the no-op stub; it
+  // is no longer used for resource-doc filtering (ResourceDocsAPIMethods returns the dynamic-endpoint
+  // resourceDocs unfiltered, like dynamic-entity).
+  val routes : List[OBPEndpoint] = List(APIUtil.dynamicEndpointStub)
 
   // dynamic-endpoint dispatch migrated to native http4s (code.api.dynamic.endpoint.Http4sDynamicEndpoint).
   // The Http4sDynamicEndpoint adapter rebuilds the wrapped form from `routes` directly

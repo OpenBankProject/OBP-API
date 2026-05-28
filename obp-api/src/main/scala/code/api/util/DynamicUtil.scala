@@ -10,7 +10,6 @@ import com.openbankproject.commons.util.Functions.Memo
 import com.openbankproject.commons.util.{JsonUtils, ReflectUtils}
 import javassist.{ClassPool, LoaderClassPath}
 import net.liftweb.common.{Box, Empty, Failure, Full, ParamFailure}
-import net.liftweb.http.JsonResponse
 import net.liftweb.json.{Extraction, JValue, prettyRender}
 import org.apache.commons.lang3.StringUtils
 import org.graalvm.polyglot.{Context, Engine, HostAccess, PolyglotAccess}
@@ -234,17 +233,13 @@ object DynamicUtil extends MdcLoggable{
 
       new Sandbox {
         @throws[Exception]
-        def runInSandbox[R](action: => R): R = try {
-          val privilegedAction:  PrivilegedAction[R] = () => action
-
+        def runInSandbox[R](action: => R): R = {
+          val privilegedAction: PrivilegedAction[R] = () => action
           AccessController.doPrivileged(privilegedAction, accessControlContext)
-        } catch {
-          case  e: NonLocalReturnControl[Full[JsonResponse]] if e.value.isInstanceOf[Full[JsonResponse]] =>
-            throw JsonResponseException(e.value.orNull)
-
-          case e: NonLocalReturnControl[JsonResponse] if e.value.isInstanceOf[JsonResponse] =>
-            throw JsonResponseException(e.value)
         }
+        // The former NonLocalReturnControl[JsonResponse] catch (for the Lift dynamic-code path's
+        // `return Full(errorJsonResponse(...))`) is gone: the only caller is runInSandboxIO, whose
+        // forceBodyIO already recovers a NonLocalReturnControl before it reaches here.
       }
     }
 

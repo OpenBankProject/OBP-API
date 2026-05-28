@@ -2,7 +2,6 @@ package code.api.dynamic.endpoint
 
 import code.DynamicData.{DynamicData, DynamicDataProvider}
 import code.api.dynamic.endpoint.helper.{DynamicEndpointHelper, MockResponseHolder}
-import code.api.dynamic.endpoint.helper.DynamicEndpointHelper.DynamicReq
 import code.api.dynamic.endpoint.helper.MockResponseHolder
 import code.api.dynamic.entity.helper.{DynamicEntityHelper, DynamicEntityInfo, EntityName}
 import code.api.util.APIUtil._
@@ -19,7 +18,6 @@ import com.openbankproject.commons.model.enums._
 import com.openbankproject.commons.util.{ApiVersion, JsonUtils}
 import net.liftweb.common._
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.http.{JsonResponse, Req}
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json._
@@ -225,14 +223,10 @@ trait APIMethodsDynamicEndpoint {
 
         }
     }
-
-    lazy val dynamicEndpoint: OBPEndpoint = {
-      case DynamicReq(url, json, method, params, pathParams, role, operationId, mockResponse, bankId) => { cc =>
-        proxyHandle(url, json, method, params, pathParams, role, operationId, mockResponse, bankId, cc).map {
-          case (value, code) => (value, Option(cc.copy(httpCode = Some(code))))
-        }
-      }
-    }
+    // The Lift `dynamicEndpoint: OBPEndpoint` (matched by DynamicReq.unapply, returning Box[JsonResponse])
+    // has been removed: dynamic-endpoint dispatch is fully native (Http4sDynamicEndpoint.proxy calls
+    // proxyHandle directly), and the resource-doc aggregation no longer filters by Lift route class
+    // (ResourceDocsAPIMethods now returns the dynamic-endpoint resourceDocs unfiltered, like dynamic-entity).
   }
 }
 

@@ -17,7 +17,6 @@ import io.swagger.v3.oas.models.responses.{ApiResponse, ApiResponses}
 import io.swagger.v3.oas.models.{OpenAPI, Operation, PathItem}
 import io.swagger.v3.parser.OpenAPIV3Parser
 import net.liftweb.common.{Box, Full}
-import net.liftweb.http.Req
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json
 import net.liftweb.json.JsonAST.{JArray, JField, JNothing, JObject, JValue}
@@ -158,38 +157,18 @@ object DynamicEndpointHelper extends RestHelper {
   /**
    * extract request body, no matter GET, POST, PUT or DELETE method
    */
-  object DynamicReq extends JsonTest with JsonBody {
+  object DynamicReq {
 
     private val ExpressionRegx = """\{(.+?)\}""".r
-    /**
-     * unapply Request to (request url, json, http method, request parameters, path parameters, role)
-     * request url is  current request target url to remote server
-     * json is request body
-     * http method is request http method
-     * request parameters : http request query parameters, eg:  /pet/findByStatus?status=available => (status, List(available))
-     * path parameters: /banks/{bankId}/users/{userId} bankId and userId corresponding key to value
-     * role is current endpoint required entitlement
-     * @param r HttpRequest
-     * @return (adapterUrl, requestBodyJson, httpMethod, requestParams, pathParams, role, operationId, mockResponseCode->mockResponseBody)
-     */
-    def unapply(r: Req): Option[(String, JValue, PekkoHttpMethod, Map[String, List[String]], Map[String, String], ApiRole, String, Option[(Int, JValue)], Option[String])] = {
-
-      val requestUri = r.request.uri //eg: `/obp/dynamic-endpoint/fashion-brand-list/BRAND_ID`
-      val partPath = r.path.partPath //eg: List("fashion-brand-list","BRAND_ID"), the dynamic is from OBP URL, not in the partPath now.
-
-      if (!testResponse_?(r) || !requestUri.startsWith(s"/${ApiStandards.obp.toString}/${ApiShortVersions.`dynamic-endpoint`.toString}"+urlPrefix))//if check the Content-Type contains json or not, and check the if it is the `dynamic_endpoints_url_prefix`
-        None //if do not match `URL and Content-Type`, then can not find this endpoint. return None.
-      else
-        resolveProxyTarget(r.requestType.method, partPath, r.params, body(r).getOrElse(JNothing))
-    }
 
     /**
-     * Framework-neutral core of [[unapply]]: given the HTTP method name, the path segments
-     * AFTER the `/obp/dynamic-endpoint` prefix (Lift's `r.path.partPath`), the query params and
-     * the already-parsed request body, resolve the matching dynamic-endpoint to the proxy 9-tuple.
-     * Shared by the Lift `unapply` (above) and the native http4s dispatcher
-     * (code.api.dynamic.endpoint.Http4sDynamicEndpoint) so both build the identical tuple from the
-     * same DB lookup (`dynamicEndpointInfos` / `findDynamicEndpoint`) — only the request decoding differs.
+     * Resolve a dynamic-endpoint proxy target: given the HTTP method name, the path segments AFTER
+     * the `/obp/dynamic-endpoint` prefix, the query params and the already-parsed request body,
+     * return the proxy 9-tuple by looking it up in the DB (`dynamicEndpointInfos` / `findDynamicEndpoint`).
+     * Called by the native http4s dispatcher (code.api.dynamic.endpoint.Http4sDynamicEndpoint.proxy).
+     *
+     * (Formerly the framework-neutral core of a Lift `unapply(r: Req)` extractor; the Lift extractor
+     * and its `dynamicEndpoint: OBPEndpoint` consumer have been removed now that dispatch is native.)
      */
     def resolveProxyTarget(
       httpMethodStr: String,
