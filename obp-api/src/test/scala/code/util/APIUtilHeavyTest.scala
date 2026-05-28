@@ -28,7 +28,7 @@ TESOBE (http://www.tesobe.com/)
 package code.util
 
 import code.api.Constant.SYSTEM_OWNER_VIEW_ID
-import code.api.UKOpenBanking.v3_1_0.APIMethods_AccountAccessApi
+import code.api.UKOpenBanking.v3_1_0.Http4sUKOBv310AccountAccess
 import code.api.berlin.group.ConstantsBG
 import code.api.builder.AccountInformationServiceAISApi.APIMethods_AccountInformationServiceAISApi
 import code.api.util._
@@ -143,16 +143,24 @@ class APIUtilHeavyTest extends V400ServerSetup  with PropsReset {
       allowedOperationIds3 contains(s"BG${bgVersion}-createConsent") should be (false)
       allowedOperationIds3 contains(s"BG${bgVersion}-deleteConsent") should be (false)
 
-      val ukResourceDocsV31 = APIMethods_AccountAccessApi.resourceDocs
-      val ukEndpointsV31 = APIMethods_AccountAccessApi.endpoints
+      // UK v3.1 is fully on http4s; getAllowedResourceDocs needs non-null partialFunctions,
+      // so filter Http4sUKOBv310AccountAccess.resourceDocs directly by props instead.
+      val ukResourceDocsV31 = Http4sUKOBv310AccountAccess.resourceDocs
+      def filterUKv31Docs() = {
+        val disabledIds = APIUtil.getDisabledEndpointOperationIds().toSet
+        val enabledIds  = APIUtil.getEnabledEndpointOperationIds().toSet
+        ukResourceDocsV31.filter(rd =>
+          !disabledIds.contains(rd.operationId) &&
+          (enabledIds.contains(rd.operationId) || enabledIds.isEmpty)
+        ).map(_.operationId).toList
+      }
 
       setPropsValues(
         "api_disabled_endpoints" -> "[UKv3.1-createAccountAccessConsents,UKv3.1-deleteConsent]",
         "api_enabled_endpoints" -> "[]"
       )
 
-      val allowedEndpoints4: List[APIUtil.ResourceDoc] = APIUtil.getAllowedResourceDocs(ukEndpointsV31, ukResourceDocsV31).toList
-      val allowedOperationIds4 = allowedEndpoints4.map(_.operationId)
+      val allowedOperationIds4 = filterUKv31Docs()
 
       allowedOperationIds4 contains("UKv3.1-getAccountAccessConsentsConsentId") should be (true)
       allowedOperationIds4 contains("UKv3.1-createAccountAccessConsents") should be (false)
@@ -163,8 +171,7 @@ class APIUtilHeavyTest extends V400ServerSetup  with PropsReset {
         "api_enabled_endpoints" -> "[UKv3.1-createAccountAccessConsents]"
       )
 
-      val allowedEndpoints5: List[APIUtil.ResourceDoc] = APIUtil.getAllowedResourceDocs(ukEndpointsV31, ukResourceDocsV31).toList
-      val allowedOperationIds5 = allowedEndpoints5.map(_.operationId)
+      val allowedOperationIds5 = filterUKv31Docs()
 
       allowedOperationIds5.length should be (1)
       allowedOperationIds5 contains("UKv3.1-createAccountAccessConsents") should be (true)
