@@ -73,10 +73,23 @@ object ErrorResponseConverter {
   
   /**
    * Convert any error to http4s Response[IO].
+   *
+   * `JsonResponseException` carries a fully-formed Lift `JsonResponse` and is the
+   * mechanism `APIUtil.anonymousAccess` (line 3517) and the after-authenticate
+   * interceptor chain (Force-Error, JSON-schema validation, etc. — `APIUtil.scala:5064`
+   * `afterAuthenticateInterceptors`) use to short-circuit a request with a synthesized
+   * response from inside a `Future`. The Lift bridge handles it with
+   * `case JsonResponseException(jsonResponse) => jsonResponse` in
+   * `Http4sLiftWebBridge.runLiftDispatch`; without an equivalent case here,
+   * EndpointHelpers-based handlers fall through to `unknownErrorToResponse` and
+   * return 500 where production has always returned the synthesized status (e.g.
+   * 400/403/444 for Force-Error scenarios). Reuse `liftResponseToHttp4s` so the
+   * conversion matches the bridge byte-for-byte.
    */
   def toHttp4sResponse(error: Throwable, callContext: CallContext): IO[Response[IO]] = {
     error match {
       case e: APIFailureNewStyle => apiFailureToResponse(e, callContext)
+      case e: code.api.JsonResponseException => Http4sLiftWebBridge.liftResponseToHttp4s(e.jsonResponse)
       case _ =>
         tryExtractApiFailureFromExceptionMessage(error) match {
           case Some(apiFailure) => apiFailureToResponse(apiFailure, callContext)
