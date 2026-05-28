@@ -8,7 +8,8 @@ import code.api.util.APIUtil.{EmptyBody, ResourceDoc, connectorEmptyResponse, mo
 import code.api.util.ApiTag
 import code.api.util.CustomJsonFormats
 import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, ConsentNotFound, ConsentViewNotFund, UnknownError}
-import code.api.util.http4s.Http4sRequestAttributes.EndpointHelpers
+import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps}
+import code.api.util.CallContext
 import code.api.util.{ConsentJWT, JwtUtil}
 import code.consent.Consents
 import code.util.Helper.MdcLoggable
