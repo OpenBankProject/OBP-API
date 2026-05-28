@@ -6,26 +6,58 @@ import code.setup.{APIResponse, DefaultUsers}
 import org.scalatest.Tag
 
 class UKOpenBankingV200Tests extends UKOpenBankingV200ServerSetup with DefaultUsers {
-  
+
   object UKOpenBankingV200 extends Tag("UKOpenBankingV200")
-  
-  feature("test the UKOpenBankingV200 GET Account List") 
+
+  feature("test the UKOpenBankingV200 GET Account List")
   {
-    scenario("Successful Case", UKOpenBankingV200) 
+    scenario("Successful Case", UKOpenBankingV200)
     {
       val requestGetAll = (UKOpenBankingV200Request / "accounts" ).GET <@(user1)
       val response: APIResponse = makeGetRequest(requestGetAll)
-  
+
       Then("We should get a 200 ")
       response.code should equal(200)
       val accounts = response.body.extract[Accounts]
       accounts.Links.Self contains ("open-banking/v2.0/accounts") should be (true)
     }
+
+    scenario("Unauthenticated access is rejected", UKOpenBankingV200)
+    {
+      val requestGetAll = (UKOpenBankingV200Request / "accounts" ).GET
+      val response: APIResponse = makeGetRequest(requestGetAll)
+
+      Then("We should get a 401 ")
+      response.code should equal(401)
+    }
   }
-  
-  feature("test the UKOpenBankingV200 Get Account Balances") 
+
+  feature("test the UKOpenBankingV200 GET Account")
   {
-    scenario("Successful Case", UKOpenBankingV200) 
+    scenario("Successful Case", UKOpenBankingV200)
+    {
+      val requestGetAll = (UKOpenBankingV200Request / "accounts" / testAccountId1.value ).GET <@(user1)
+      val response: APIResponse = makeGetRequest(requestGetAll)
+
+      Then("We should get a 200 ")
+      response.code should equal(200)
+      val accounts = response.body.extract[Accounts]
+      accounts.Links.Self contains ("open-banking/v2.0/accounts") should be (true)
+    }
+
+    scenario("Unauthenticated access is rejected", UKOpenBankingV200)
+    {
+      val requestGetAll = (UKOpenBankingV200Request / "accounts" / testAccountId1.value ).GET
+      val response: APIResponse = makeGetRequest(requestGetAll)
+
+      Then("We should get a 401 ")
+      response.code should equal(401)
+    }
+  }
+
+  feature("test the UKOpenBankingV200 Get Account Balances")
+  {
+    scenario("Successful Case", UKOpenBankingV200)
     {
       val requestGetAll = (UKOpenBankingV200Request / "accounts"/ testAccountId1.value /"balances" ).GET <@(user1)
       val response = makeGetRequest(requestGetAll)
@@ -34,38 +66,65 @@ class UKOpenBankingV200Tests extends UKOpenBankingV200ServerSetup with DefaultUs
       response.code should equal(200)
       val accountBalancesUKV200 = response.body.extract[AccountBalancesUKV200]
       accountBalancesUKV200.Links.Self contains("balances")
-      
+
+    }
+
+    scenario("Unauthenticated access is rejected", UKOpenBankingV200)
+    {
+      val requestGetAll = (UKOpenBankingV200Request / "accounts"/ testAccountId1.value /"balances" ).GET
+      val response = makeGetRequest(requestGetAll)
+
+      Then("We should get a 401 ")
+      response.code should equal(401)
     }
   }
-  
+
   feature("test the UKOpenBankingV200 Get Balances")
   {
     scenario("Successful Case", UKOpenBankingV200)
     {
       val requestGetAll = (UKOpenBankingV200Request / "balances" ).GET <@(user1)
       val response = makeGetRequest(requestGetAll)
-      
+
       Then("We should get a 200 ")
       response.code should equal(200)
       val accountBalancesUKV200 = response.body.extract[AccountBalancesUKV200]
       accountBalancesUKV200.Links.Self contains("balances")
-      
+
+    }
+
+    scenario("Unauthenticated access is rejected", UKOpenBankingV200)
+    {
+      val requestGetAll = (UKOpenBankingV200Request / "balances" ).GET
+      val response = makeGetRequest(requestGetAll)
+
+      Then("We should get a 401 ")
+      response.code should equal(401)
     }
   }
-  
-  feature("test the UKOpenBankingV200 GET Account Transactions") 
+
+  feature("test the UKOpenBankingV200 GET Account Transactions")
   {
     scenario("Successful Case", UKOpenBankingV200)
     {
       val requestGetAll = (UKOpenBankingV200Request / "accounts"/ testAccountId1.value /"transactions" ).GET <@(user1)
       val response = makeGetRequest(requestGetAll)
-      
+
       Then("We should get a 200 ")
       response.code should equal(200)
-  
+
       val transactionsJsonUKV200 = response.body.extract[TransactionsJsonUKV200]
       transactionsJsonUKV200.Links.Self contains("Transactions")
     }
+
+    scenario("Unauthenticated access is rejected", UKOpenBankingV200)
+    {
+      val requestGetAll = (UKOpenBankingV200Request / "accounts"/ testAccountId1.value /"transactions" ).GET
+      val response = makeGetRequest(requestGetAll)
+
+      Then("We should get a 401 ")
+      response.code should equal(401)
+    }
   }
-    
+
 }
