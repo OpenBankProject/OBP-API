@@ -2,7 +2,7 @@ package code.api.berlin.group.v1_3
 
 import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.ErrorMessagesBG
 import com.openbankproject.commons.model.ErrorMessage
-import code.api.builder.ConfirmationOfFundsServicePIISApi.APIMethods_ConfirmationOfFundsServicePIISApi
+import code.api.berlin.group.v1_3.{Http4sBGv13PIIS => APIMethods_ConfirmationOfFundsServicePIISApi}
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ErrorMessages.{BankAccountNotFound, BankAccountNotFoundByIban, InvalidJsonContent, InvalidJsonFormat}
 import code.model.dataAccess.{BankAccountRouting, MappedBankAccount}
@@ -21,8 +21,8 @@ class ConfirmationOfFundsServicePIISApiTest extends BerlinGroupServerSetupV1_3 w
 
   val checkAvailabilityOfFundsJsonBody = APIMethods_ConfirmationOfFundsServicePIISApi
     .resourceDocs
-    .filter( _.partialFunction == APIMethods_ConfirmationOfFundsServicePIISApi.checkAvailabilityOfFunds)
-    .head.exampleRequestBody.asInstanceOf[JvalueCaseClass] //All the Json String convert to JvalueCaseClass implicitly 
+    .filter(_.partialFunctionName == "checkAvailabilityOfFunds")
+    .head.exampleRequestBody.asInstanceOf[JvalueCaseClass] //All the Json String convert to JvalueCaseClass implicitly
     .jvalueToCaseclass
   
 

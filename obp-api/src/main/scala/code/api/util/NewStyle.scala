@@ -4,7 +4,7 @@ package code.api.util
 import org.apache.pekko.http.scaladsl.model.HttpMethod
 import code.DynamicEndpoint.{DynamicEndpointProvider, DynamicEndpointT}
 import code.api.Constant.{SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID, SYSTEM_READ_BALANCES_BERLIN_GROUP_VIEW_ID}
-import code.api.builder.PaymentInitiationServicePISApi.APIMethods_PaymentInitiationServicePISApi.checkPaymentServerTypeError
+// checkPaymentServerTypeError was inlined from the retired BG v1.3 PIS builder (see PaymentInitiationServicePISApi.scala)
 import code.api.cache.Caching
 import code.api.dynamic.endpoint.helper.DynamicEndpointHelper
 import code.api.dynamic.entity.helper.{DynamicEntityHelper, DynamicEntityInfo}
@@ -1178,7 +1178,9 @@ object NewStyle extends MdcLoggable{
           transactionRequestBody.asInstanceOf[PeriodicSepaCreditTransfersBerlinGroupV13],
           callContext: Option[CallContext]
         )
-      }else Future(throw new RuntimeException(checkPaymentServerTypeError(paymentServiceType.toString)))
+      }else Future(throw new RuntimeException(
+        s"${InvalidTransactionRequestType.replaceAll("TRANSACTION_REQUEST_TYPE", "PAYMENT_SERVICE in the URL.")}: '${paymentServiceType}'.It should be `payments` or `periodic-payments` for now, will support `bulk-payments` soon"
+      ))
 
       response map { i =>
         (unboxFullOrFail(i._1, callContext, s"$InvalidConnectorResponseForCreateTransactionRequestBGV1", 400), i._2)

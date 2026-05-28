@@ -4,7 +4,7 @@ import code.api.BerlinGroup.ScaStatus
 import code.api.Constant.SYSTEM_INITIATE_PAYMENTS_BERLIN_GROUP_VIEW_ID
 import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{CancelPaymentResponseJson, CancellationJsonV13, ErrorMessagesBG, InitiatePaymentResponseJson, StartPaymentAuthorisationJson}
 import code.api.berlin.group.v1_3.model.{ScaStatusResponse, TransactionStatus, UpdatePsuAuthenticationResponse}
-import code.api.builder.PaymentInitiationServicePISApi.APIMethods_PaymentInitiationServicePISApi
+import code.api.berlin.group.v1_3.Http4sBGv13PIS
 import code.api.util.APIUtil.OAuth._
 import code.api.util.APIUtil.extractErrorMessageCode
 import code.api.util.ErrorMessages._
@@ -21,31 +21,30 @@ import org.scalatest.Tag
 class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with DefaultUsers {
 
   object PIS extends Tag("Payment Initiation Service (PIS)")
-  object initiatePayment extends Tag(nameOf(APIMethods_PaymentInitiationServicePISApi.initiatePayments))
-  object getPaymentInformation extends Tag(nameOf(APIMethods_PaymentInitiationServicePISApi.getPaymentInformation))
-  object getPaymentInitiationStatus extends Tag(nameOf(APIMethods_PaymentInitiationServicePISApi.getPaymentInitiationStatus))
-  
-  object startPaymentAuthorisationTransactionAuthorisation extends Tag(nameOf(APIMethods_PaymentInitiationServicePISApi.startPaymentAuthorisationTransactionAuthorisation ))
-  object startPaymentAuthorisationUpdatePsuAuthentication extends Tag(nameOf(APIMethods_PaymentInitiationServicePISApi.startPaymentAuthorisationUpdatePsuAuthentication))
-  object startPaymentAuthorisationSelectPsuAuthenticationMethod extends Tag(nameOf(APIMethods_PaymentInitiationServicePISApi.startPaymentAuthorisationSelectPsuAuthenticationMethod))
-  object getPaymentInitiationAuthorisation extends Tag(nameOf(APIMethods_PaymentInitiationServicePISApi.getPaymentInitiationAuthorisation))
-  object getPaymentInitiationScaStatus extends Tag(nameOf(APIMethods_PaymentInitiationServicePISApi.getPaymentInitiationScaStatus))
-  object updatePaymentPsuDataTransactionAuthorisation extends Tag(nameOf(APIMethods_PaymentInitiationServicePISApi.updatePaymentPsuDataTransactionAuthorisation))
-  object updatePaymentPsuDataUpdatePsuAuthentication extends Tag(nameOf(APIMethods_PaymentInitiationServicePISApi.updatePaymentPsuDataUpdatePsuAuthentication))
-  object updatePaymentPsuDataSelectPsuAuthenticationMethod extends Tag(nameOf(APIMethods_PaymentInitiationServicePISApi.updatePaymentPsuDataSelectPsuAuthenticationMethod))
-  object updatePaymentPsuDataAuthorisationConfirmation extends Tag(nameOf(APIMethods_PaymentInitiationServicePISApi.updatePaymentPsuDataAuthorisationConfirmation))
+  object initiatePayment extends Tag(nameOf(Http4sBGv13PIS.initiatePayments))
+  object getPaymentInformation extends Tag(nameOf(Http4sBGv13PIS.getPaymentInformation))
+  object getPaymentInitiationStatus extends Tag(nameOf(Http4sBGv13PIS.getPaymentInitiationStatus))
+  // body-dispatch variants — use string literals since handlers are unified in http4s
+  object startPaymentAuthorisationTransactionAuthorisation extends Tag("startPaymentAuthorisationTransactionAuthorisation")
+  object startPaymentAuthorisationUpdatePsuAuthentication extends Tag("startPaymentAuthorisationUpdatePsuAuthentication")
+  object startPaymentAuthorisationSelectPsuAuthenticationMethod extends Tag("startPaymentAuthorisationSelectPsuAuthenticationMethod")
+  object getPaymentInitiationAuthorisation extends Tag(nameOf(Http4sBGv13PIS.getPaymentInitiationAuthorisation))
+  object getPaymentInitiationScaStatus extends Tag(nameOf(Http4sBGv13PIS.getPaymentInitiationScaStatus))
+  object updatePaymentPsuDataTransactionAuthorisation extends Tag("updatePaymentPsuDataTransactionAuthorisation")
+  object updatePaymentPsuDataUpdatePsuAuthentication extends Tag("updatePaymentPsuDataUpdatePsuAuthentication")
+  object updatePaymentPsuDataSelectPsuAuthenticationMethod extends Tag("updatePaymentPsuDataSelectPsuAuthenticationMethod")
+  object updatePaymentPsuDataAuthorisationConfirmation extends Tag("updatePaymentPsuDataAuthorisationConfirmation")
 
-  
-  object cancelPayment extends Tag(nameOf(APIMethods_PaymentInitiationServicePISApi.cancelPayment))
-  object startPaymentInitiationCancellationAuthorisationTransactionAuthorisation extends Tag(nameOf(APIMethods_PaymentInitiationServicePISApi.startPaymentInitiationCancellationAuthorisationTransactionAuthorisation))
-  object startPaymentInitiationCancellationAuthorisationUpdatePsuAuthentication extends Tag(nameOf(APIMethods_PaymentInitiationServicePISApi.startPaymentInitiationCancellationAuthorisationUpdatePsuAuthentication))
-  object startPaymentInitiationCancellationAuthorisationSelectPsuAuthenticationMethod extends Tag(nameOf(APIMethods_PaymentInitiationServicePISApi.startPaymentInitiationCancellationAuthorisationSelectPsuAuthenticationMethod))
-  object getPaymentInitiationCancellationAuthorisationInformation extends Tag(nameOf(APIMethods_PaymentInitiationServicePISApi.getPaymentInitiationCancellationAuthorisationInformation))
-  object getPaymentCancellationScaStatus extends Tag(nameOf(APIMethods_PaymentInitiationServicePISApi.getPaymentCancellationScaStatus))
-  object updatePaymentCancellationPsuDataTransactionAuthorisation extends Tag(nameOf(APIMethods_PaymentInitiationServicePISApi.updatePaymentCancellationPsuDataTransactionAuthorisation))
-  object updatePaymentCancellationPsuDataUpdatePsuAuthentication extends Tag(nameOf(APIMethods_PaymentInitiationServicePISApi.updatePaymentCancellationPsuDataUpdatePsuAuthentication))
-  object updatePaymentCancellationPsuDataSelectPsuAuthenticationMethod extends Tag(nameOf(APIMethods_PaymentInitiationServicePISApi.updatePaymentCancellationPsuDataSelectPsuAuthenticationMethod))
-  object updatePaymentCancellationPsuDataAuthorisationConfirmation extends Tag(nameOf(APIMethods_PaymentInitiationServicePISApi.updatePaymentCancellationPsuDataAuthorisationConfirmation))
+  object cancelPayment extends Tag(nameOf(Http4sBGv13PIS.cancelPayment))
+  object startPaymentInitiationCancellationAuthorisationTransactionAuthorisation extends Tag("startPaymentInitiationCancellationAuthorisationTransactionAuthorisation")
+  object startPaymentInitiationCancellationAuthorisationUpdatePsuAuthentication extends Tag("startPaymentInitiationCancellationAuthorisationUpdatePsuAuthentication")
+  object startPaymentInitiationCancellationAuthorisationSelectPsuAuthenticationMethod extends Tag("startPaymentInitiationCancellationAuthorisationSelectPsuAuthenticationMethod")
+  object getPaymentInitiationCancellationAuthorisationInformation extends Tag(nameOf(Http4sBGv13PIS.getPaymentInitiationCancellationAuthorisationInformation))
+  object getPaymentCancellationScaStatus extends Tag(nameOf(Http4sBGv13PIS.getPaymentCancellationScaStatus))
+  object updatePaymentCancellationPsuDataTransactionAuthorisation extends Tag("updatePaymentCancellationPsuDataTransactionAuthorisation")
+  object updatePaymentCancellationPsuDataUpdatePsuAuthentication extends Tag("updatePaymentCancellationPsuDataUpdatePsuAuthentication")
+  object updatePaymentCancellationPsuDataSelectPsuAuthenticationMethod extends Tag("updatePaymentCancellationPsuDataSelectPsuAuthenticationMethod")
+  object updatePaymentCancellationPsuDataAuthorisationConfirmation extends Tag("updatePaymentCancellationPsuDataAuthorisationConfirmation")
 
   feature(s"test the BG v1.3 -${initiatePayment.name}") {
     scenario("Failed Case - Wrong Json format Body", BerlinGroupV1_3, PIS, initiatePayment) {
@@ -376,10 +375,9 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
       paymentInitiationScaStatus should be (ScaStatus.received.toString)
 
       Then(s"We can test the ${updatePaymentPsuDataTransactionAuthorisation.name}")
-      val updatePaymentPsuDataJsonBody = APIMethods_PaymentInitiationServicePISApi
-        .resourceDocs
-        .filter( _.partialFunction == APIMethods_PaymentInitiationServicePISApi.updatePaymentPsuDataTransactionAuthorisation)
-        .head.exampleRequestBody.asInstanceOf[JvalueCaseClass] //All the Json String convert to JvalueCaseClass implicitly 
+      val updatePaymentPsuDataJsonBody = Http4sBGv13PIS.resourceDocs
+        .filter(_.partialFunctionName == "updatePaymentPsuDataTransactionAuthorisation")
+        .head.exampleRequestBody.asInstanceOf[JvalueCaseClass] //All the Json String convert to JvalueCaseClass implicitly
         .jvalueToCaseclass
       
       val requestUpdatePaymentPsuData = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString / paymentId / "authorisations"/authorisationId).PUT <@ (user1)
