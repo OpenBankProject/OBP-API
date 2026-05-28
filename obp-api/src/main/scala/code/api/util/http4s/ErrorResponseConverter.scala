@@ -2,6 +2,8 @@ package code.api.util.http4s
 
 import cats.effect._
 import code.api.APIFailureNewStyle
+import code.api.JsonResponseException
+import code.api.util.APIUtil.JsonResponseExtractor
 import code.api.util.ErrorMessages._
 import code.api.util.CallContext
 import net.liftweb.common.{Failure => LiftFailure}
@@ -73,29 +75,39 @@ object ErrorResponseConverter {
   
   /**
    * Convert any error to http4s Response[IO].
-   *
-   * `JsonResponseException` carries a fully-formed Lift `JsonResponse` and is the
-   * mechanism `APIUtil.anonymousAccess` (line 3517) and the after-authenticate
-   * interceptor chain (Force-Error, JSON-schema validation, etc. — `APIUtil.scala:5064`
-   * `afterAuthenticateInterceptors`) use to short-circuit a request with a synthesized
-   * response from inside a `Future`. The Lift bridge handles it with
-   * `case JsonResponseException(jsonResponse) => jsonResponse` in
-   * `Http4sLiftWebBridge.runLiftDispatch`; without an equivalent case here,
-   * EndpointHelpers-based handlers fall through to `unknownErrorToResponse` and
-   * return 500 where production has always returned the synthesized status (e.g.
-   * 400/403/444 for Force-Error scenarios). Reuse `liftResponseToHttp4s` so the
-   * conversion matches the bridge byte-for-byte.
    */
   def toHttp4sResponse(error: Throwable, callContext: CallContext): IO[Response[IO]] = {
     error match {
       case e: APIFailureNewStyle => apiFailureToResponse(e, callContext)
-      case e: code.api.JsonResponseException => Http4sLiftWebBridge.liftResponseToHttp4s(e.jsonResponse)
+      case JsonResponseException(jsonResponse) =>
+        // Force-Error / JSON-schema validation (APIUtil.afterAuthenticateInterceptResult, applied
+        // inside the auth/session-context chain) and dynamic-resource-doc permission errors
+        // (NewStyle) are raised as JsonResponseException carrying a Lift JsonResponse. Lift's
+        // OBPRestHelper catches these and returns the embedded response; mirror that here using
+        // the JsonResponse's own status code (no OBP-prefix remapping).
+        jsonResponse match {
+          case JsonResponseExtractor(message, code) => jsonErrorResponse(code, message, callContext)
+          case _                                    => unknownErrorToResponse(error, callContext)
+        }
       case _ =>
         tryExtractApiFailureFromExceptionMessage(error) match {
           case Some(apiFailure) => apiFailureToResponse(apiFailure, callContext)
           case None => unknownErrorToResponse(error, callContext)
         }
     }
+  }
+
+  /** Build a JSON error response using the supplied status code verbatim (used for
+   *  JsonResponseException, whose embedded JsonResponse already carries the final code). */
+  private def jsonErrorResponse(code: Int, message: String, callContext: CallContext): IO[Response[IO]] = {
+    val errorJson = OBPErrorResponse(code, message)
+    val status = org.http4s.Status.fromInt(code).getOrElse(org.http4s.Status.BadRequest)
+    IO.pure(
+      Response[IO](status)
+        .withEntity(toJsonString(errorJson))
+        .withContentType(jsonContentType)
+        .putHeaders(org.http4s.Header.Raw(CIString("Correlation-Id"), callContext.correlationId))
+    )
   }
   
   /** Old-style versions keep raw 400 codes — they never promote to 403/401/etc.

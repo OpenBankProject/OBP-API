@@ -20,7 +20,7 @@ import scala.xml.NodeSeq
 
 class SwaggerDocsTest extends ResourceDocsV140ServerSetup with PropsReset with DefaultUsers{
   object VersionOfApi extends Tag(ApiVersion.v1_4_0.toString)
-  object ApiEndpoint1 extends Tag(nameOf(ImplementationsResourceDocs.getResourceDocsSwagger))
+  object ApiEndpoint1 extends Tag("getResourceDocsSwagger")
   
   override def beforeEach() = {
     super.beforeEach()

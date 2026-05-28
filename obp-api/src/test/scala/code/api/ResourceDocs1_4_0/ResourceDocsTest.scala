@@ -20,8 +20,8 @@ import scala.xml.NodeSeq
 
 class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with DefaultUsers{
   object VersionOfApi extends Tag(ApiVersion.v1_4_0.toString)
-  object ApiEndpoint1 extends Tag(nameOf(ImplementationsResourceDocs.getResourceDocsObp))
-  object ApiEndpoint2 extends Tag(nameOf(ImplementationsResourceDocs.getBankLevelDynamicResourceDocsObp))
+  object ApiEndpoint1 extends Tag("getResourceDocsObp")
+  object ApiEndpoint2 extends Tag("getBankLevelDynamicResourceDocsObp")
 
   private val v600 = ApiVersion.v6_0_0.toString
   private val fq600 = ApiVersion.v6_0_0.fullyQualifiedVersion

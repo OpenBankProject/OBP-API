@@ -1,6 +1,6 @@
 /**
 Open Bank Project - API
-Copyright (C) 2011-2019, TESOBE GmbH.
+Copyright (C) 2011-2025, TESOBE GmbH
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -16,13 +16,12 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 Email: contact@tesobe.com
-TESOBE GmbH.
+TESOBE GmbH
 Osloer Strasse 16/17
 Berlin 13359, Germany
 
 This product includes software developed at
 TESOBE (http://www.tesobe.com/)
-
   */
 package code.api.dynamic.entity
 
@@ -33,8 +32,8 @@ import code.api.Constant.PARAM_LOCALE
 import code.api.dynamic.entity.helper.{CommunityEntityName, DynamicEntityHelper, DynamicEntityInfo, EntityName, PublicEntityName}
 import code.api.util.APIUtil._
 import code.api.util.ErrorMessages._
-import code.api.util.http4s.Http4sRequestAttributes.EndpointHelpers
-import code.api.util.http4s.{Http4sCallContextBuilder, Http4sRequestAttributes}
+import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps}
+import code.api.util.http4s.{Http4sCallContextBuilder, Http4sRequestAttributes, RequestScopeConnection}
 import code.api.util.{CallContext, CustomJsonFormats, NewStyle}
 import code.util.Helper
 import code.util.Helper.MdcLoggable
@@ -42,57 +41,52 @@ import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.DynamicEntityOperation
 import com.openbankproject.commons.model.enums.DynamicEntityOperation._
-import com.openbankproject.commons.util.{ApiVersion, JsonUtils}
+import com.openbankproject.commons.util.{ApiShortVersions, ApiStandards, JsonUtils}
 import net.liftweb.common._
-import net.liftweb.http.{InMemoryResponse, JsonResponse}
-import net.liftweb.json.JsonAST.JValue
+import net.liftweb.json.JsonAST.{JArray, JBool, JObject, JValue}
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json._
 import net.liftweb.util.StringHelpers
 import org.apache.commons.lang3.StringUtils
-import org.http4s._
-import org.typelevel.ci.CIString
+import org.http4s.{HttpRoutes, Method, Request, Response}
 
 import scala.concurrent.Future
 
 /**
- * Native http4s routes for the dynamic-entity data plane.
+ * Native http4s service for DynamicEntity runtime CRUD (under /obp/dynamic-entity/).
  *
- * Serves the runtime, operator-created entity URLs under `/obp/dynamic-entity/...`
- * (`{entityName}`, `my/{entityName}`, `public/{entityName}`, `community/{entityName}`,
- * and their `banks/BANK_ID/...` variants). This replaces the Lift dispatch through
- * `OBPAPIDynamicEntity` → `APIMethodsDynamicEntity` for the entity data plane.
+ * Replaces the Lift OBPAPIDynamicEntity dispatch (genericEndpoint / publicEndpoint /
+ * communityEndpoint).  The business logic is a faithful port of
+ * [[code.api.dynamic.entity.APIMethodsDynamicEntity]] — same `authenticatedAccess` /
+ * `anonymousAccess` / `getBank` / `hasEntitlement` / `invokeDynamicConnector` calls,
+ * same before/after authenticate interceptors, same response shapes and status codes.
  *
- * The URL→registry matching reuses the framework-agnostic `EntityName` /
- * `PublicEntityName` / `CommunityEntityName` extractors (they take `List[String]`
- * and consult `DynamicEntityHelper.definitionsMap`, rebuilt per request from the DB).
- * The business logic mirrors the Lift `genericEndpoint` / `publicEndpoint` /
- * `communityEndpoint` partial functions verbatim — same auth (`authenticatedAccess` /
- * `anonymousAccess`), role checks, interceptors and `NewStyle.invokeDynamicConnector`
- * calls — only the Lift `Req` / `JsonResponse` plumbing is replaced: matching is done
- * on the http4s path, query params come from the URI, and the `(JValue, HttpCode)`
- * return is replaced by `EndpointHelpers` (200 for GET/PUT/DELETE, 201 for POST).
- *
- * Admin CRUD (`createDynamicEntity`, `getDynamicEntities`, …) is unaffected — it is
- * already native http4s in the versioned files (e.g. `Http4s600`).
- *
- * Note: `OBPAPIDynamicEntity` remains registered on the Lift bridge as a dormant
- * fallback (this route wins by ordering in `Http4sApp.baseServices`); the Lift
- * registration is removed in the bridge-removal PR. dynamic-*endpoint* (runtime
- * Scala codegen) is a separate workstream and still served by the bridge.
+ * Notes on the port:
+ *   - The dynamic-entity set is runtime-mutable (`DynamicEntityHelper.definitionsMap` is
+ *     re-queried per request), so this service does NOT use `ResourceDocMiddleware`
+ *     (whose ResourceDoc index is built once at startup).  Auth / role / bank checks are
+ *     performed inline, exactly as the Lift handlers did.
+ *   - The before/after authenticate interceptors carry auth-type / query-param / header-key
+ *     validation (before) and Force-Error / JSON-schema validation (after) — see
+ *     APIUtil.beforeAuthenticateInterceptors / afterAuthenticateInterceptors.  They are
+ *     invoked here exactly as the Lift handlers invoked them; the resulting Box[JsonResponse]
+ *     is reduced to (message, code) via JsonResponseExtractor and re-raised through
+ *     booleanToFuture (no Lift JsonResponse rendering).
+ *   - `CallContext` is built via `Http4sCallContextBuilder.fromRequest` and attached to the
+ *     request so the `EndpointHelpers` (error conversion + metric) can be reused.
+ *   - Mutating verbs (POST/PUT/DELETE) run inside
+ *     `RequestScopeConnection.withBusinessDBTransaction`; GET runs on auto-commit.
  */
 object Http4sDynamicEntity extends MdcLoggable {
 
   private type HttpF[A] = OptionT[IO, A]
 
-  private implicit val formats: Formats = CustomJsonFormats.formats
+  implicit val formats: Formats = CustomJsonFormats.formats
 
-  // "dynamic-entity" — passed as the CallContext apiVersion so getUserAndSessionContextFuture's
-  // S.request fallback (for implementedInVersion/verb/url) is never reached (it throws when not
-  // under a Lift dispatch). Same trick as Http4sResourceDocs / DirectLoginRoutes.
-  private val dynamicEntityVersion: String = ApiVersion.`dynamic-entity`.toString
+  private val apiStandard = ApiStandards.obp.toString
+  private val apiVersionString = ApiShortVersions.`dynamic-entity`.toString // "dynamic-entity"
 
-  // ── Shared helpers (ported from ImplementationsDynamicEntity) ──────────────
+  // ----- helpers ported from APIMethodsDynamicEntity -----
 
   private def unboxResult[T: Manifest](box: Box[T], entityName: String): T = {
     if (box.isInstanceOf[Failure]) {
@@ -105,384 +99,260 @@ object Http4sDynamicEntity extends MdcLoggable {
     box.openOrThrowException("impossible error")
   }
 
-  // Filter a result list by `field=value` query params (skip the locale param), mirroring
-  // the Lift `filterDynamicObjects(resultList, req)` which read `req.params`.
-  private def filterDynamicObjects(resultList: JArray, params: Map[String, List[String]]): JArray = {
-    val effective = params.filter(_._1 != PARAM_LOCALE)
-    if (effective.isEmpty) resultList
-    else JArray(resultList.arr.filter { jValue =>
-      effective.forall { case (path, values) =>
-        values.exists(JsonUtils.isFieldEquals(jValue, path, _))
-      }
-    })
-  }
-
-  // The before-authenticate interceptor short-circuits with a fully-formed Lift JsonResponse
-  // (rarely configured). Render it directly to http4s — ErrorResponseConverter only knows how
-  // to turn thrown APIFailures into responses, not an arbitrary JsonResponse.
-  private def liftJsonResponseToHttp4s(jr: JsonResponse): IO[Response[IO]] = jr.toResponse match {
-    case InMemoryResponse(data, headers, _, code) =>
-      val status = org.http4s.Status.fromInt(code).getOrElse(org.http4s.Status.InternalServerError)
-      val h = Headers(headers.map { case (k, v) => Header.Raw(CIString(k), v) })
-      IO.pure(Response[IO](status).withEntity(data).withHeaders(h))
-    case other =>
-      IO.pure(Response[IO](org.http4s.Status.fromInt(other.code).getOrElse(org.http4s.Status.InternalServerError)))
-  }
-
   /**
-   * Build the CallContext, run the before-authenticate interceptor, then execute the
-   * handler body through the standard EndpointHelpers (200 or 201). The augmented
-   * CallContext (operationId + resourceDocument set, mirroring the Lift `cc.copy(...)`) is
-   * stashed so auth/role checks and rate-limiting see it.
+   * http4s equivalent of the Lift `filterDynamicObjects(resultList, req)`: filter GET-all
+   * results by query parameters (AND across keys, OR across a key's values), excluding the
+   * `locale` (PARAM_LOCALE) param.  Lift read `req.params`; here we read the http4s query
+   * multiParams (same `Map[String, List[String]]` shape).
    */
-  private def respond(
-    req: Request[IO],
-    resourceDoc: Option[ResourceDoc],
-    operationId: String,
-    created: Boolean
-  )(body: CallContext => Future[JValue]): IO[Response[IO]] =
-    Http4sCallContextBuilder.fromRequest(req, apiVersion = dynamicEntityVersion).flatMap { baseCc =>
-      val cc = baseCc.copy(operationId = Some(operationId), resourceDocument = resourceDoc)
-      beforeAuthenticateInterceptResult(Some(cc), operationId) match {
-        case Full(jr) => liftJsonResponseToHttp4s(jr)
-        case _ =>
-          val reqWithCC = req.withAttribute(Http4sRequestAttributes.callContextKey, cc)
-          if (created) EndpointHelpers.executeFutureCreated[JValue](reqWithCC)(body(cc))
-          else EndpointHelpers.executeAndRespond[JValue](reqWithCC)(body)
+  private def filterDynamicObjects(resultList: JArray, params: Map[String, List[String]]): JArray = {
+    if (params.isEmpty) resultList
+    else {
+      val filtered = resultList.arr.filter { jValue =>
+        params.filter(_._1 != PARAM_LOCALE).forall { case (path, values) =>
+          values.exists(JsonUtils.isFieldEquals(jValue, path, _))
+        }
       }
+      JArray(filtered)
     }
+  }
 
   private def queryParams(req: Request[IO]): Map[String, List[String]] =
     req.uri.query.multiParams.map { case (k, vs) => k -> vs.toList }
 
-  // ── Generic endpoint (authenticated, role-gated, full CRUD) ────────────────
+  private def listName(entityName: String): String = StringHelpers.snakify(entityName).replaceFirst("[-_]*$", "_list")
+  private def singleName(entityName: String): String = StringHelpers.snakify(entityName).replaceFirst("[-_]*$", "")
 
-  private def genericGet(req: Request[IO], bankId: Option[String], entityName: String, id: String, isPersonalEntity: Boolean): IO[Response[IO]] = {
-    val listName = StringHelpers.snakify(entityName).replaceFirst("[-_]*$", "_list")
-    val singleName = StringHelpers.snakify(entityName).replaceFirst("[-_]*$", "")
-    val isGetAll = StringUtils.isBlank(id)
-    val operation: DynamicEntityOperation = if (isGetAll) GET_ALL else GET_ONE
-    val splitNameWithBankId = if (bankId.isDefined) s"""$entityName(${bankId.getOrElse("")})""" else entityName
-    val mySplitNameWithBankId = s"My$splitNameWithBankId"
-    val resourceDoc =
-      if (isPersonalEntity) DynamicEntityHelper.operationToResourceDoc.get(operation -> mySplitNameWithBankId)
-      else DynamicEntityHelper.operationToResourceDoc.get(operation -> splitNameWithBankId)
-    val operationId = resourceDoc.map(_.operationId).orNull
-    val params = queryParams(req)
-    respond(req, resourceDoc, operationId, created = false) { cc =>
+  private def wrapBankId(bankId: Option[String], result: JObject): JObject =
+    if (bankId.isDefined) (("bank_id" -> bankId.getOrElse("")): JObject) merge result else result
+
+  private def notFoundMsg(entityName: String, id: String, bankId: Option[String]): String =
+    s"$EntityNotFoundByEntityId Entity: '$entityName', entityId: '$id'" + bankId.map(b => s", bank_id: '$b'").getOrElse("")
+
+  /** Resolve bankId to a Bank (404 if missing) for bank-level entities; no-op otherwise. */
+  private def bankCheck(bankId: Option[String], cc: Option[CallContext]): Future[(Any, Option[CallContext])] =
+    if (bankId.isDefined) NewStyle.function.getBank(BankId(bankId.get), cc).map { case (b, c) => (b, c) }
+    else Future.successful(("", cc))
+
+  /**
+   * Enrich the CallContext with the dynamic-entity operationId + ResourceDoc, mirroring the
+   * Lift handlers.  Used for rate limiting (authenticatedAccess injects operationId), metrics,
+   * and the interceptors (Force-Error validation reads resourceDocument.errorResponseBodies).
+   * The name key follows the Lift convention: generic system/bank -> `Entity` / `Entity(bankId)`,
+   * personal -> `MyEntity...`, public -> `PublicEntity...`, community -> `CommunityEntity...`.
+   */
+  private def enrichCallContext(cc: CallContext, operation: DynamicEntityOperation, entityName: String, bankId: Option[String], scope: String): CallContext = {
+    val splitNameWithBankId = if (bankId.isDefined) s"$entityName(${bankId.getOrElse("")})" else entityName
+    val key = scope match {
+      case "my"        => s"My$splitNameWithBankId"
+      case "public"    => s"Public$splitNameWithBankId"
+      case "community" => s"Community$splitNameWithBankId"
+      case _           => splitNameWithBankId
+    }
+    val resourceDoc = DynamicEntityHelper.operationToResourceDoc.get(operation -> key)
+    cc.copy(operationId = Some(resourceDoc.map(_.operationId).orNull), resourceDocument = resourceDoc)
+  }
+
+  // Before-authenticate interceptors: auth-type / query-param / request-header-key validation.
+  // After-authenticate interceptors: Force-Error / JSON-schema validation.
+  // Both reduce a Box[JsonResponse] to a Box[ErrorMessage(code, message)] via JsonResponseExtractor.
+  private def beforeIntercept(cc: CallContext, operationId: String): Box[ErrorMessage] =
+    beforeAuthenticateInterceptResult(Option(cc), operationId).collect { case JsonResponseExtractor(message, code) => ErrorMessage(code, message) }
+
+  private def afterIntercept(cc: Option[CallContext], operationId: String): Box[ErrorMessage] =
+    afterAuthenticateInterceptResult(cc, operationId).collect { case JsonResponseExtractor(message, code) => ErrorMessage(code, message) }
+
+  private def failIf(error: Box[ErrorMessage], cc: Option[CallContext]): Future[Box[Unit]] =
+    Helper.booleanToFuture(failMsg = error.map(_.message).orNull, failCode = error.map(_.code).openOr(400), cc = cc) { error.isEmpty }
+
+  // ----- generic endpoint (authenticated, system / bank / personal) -----
+
+  private def genericGet(req: Request[IO], bankId: Option[String], entityName: String, id: String, isPersonalEntity: Boolean): IO[Response[IO]] =
+    EndpointHelpers.executeAndRespond(req) { cc =>
+      val isGetAll = StringUtils.isBlank(id)
+      val operation: DynamicEntityOperation = if (isGetAll) GET_ALL else GET_ONE
+      val callContext0 = enrichCallContext(cc, operation, entityName, bankId, if (isPersonalEntity) "my" else "")
+      val operationId = callContext0.operationId.orNull
       for {
-        (Full(u), callContext) <- authenticatedAccess(cc)
-        (_, callContext) <-
-          if (bankId.isDefined) NewStyle.function.getBank(bankId.map(BankId(_)).orNull, callContext)
-          else Future.successful(("", callContext))
+        _ <- failIf(beforeIntercept(callContext0, operationId), Some(callContext0))
+        (Full(u), callContext) <- authenticatedAccess(callContext0)
+        (_, callContext) <- bankCheck(bankId, callContext)
         personalRequiresRole = DynamicEntityHelper.definitionsMap.get((bankId, entityName)).exists(_.personalRequiresRole)
         _ <- if (isPersonalEntity && !personalRequiresRole) Future.successful(true)
              else NewStyle.function.hasEntitlement(bankId.getOrElse(""), u.userId, DynamicEntityInfo.canGetRole(entityName, bankId), callContext)
-        jsonResponse: Box[ErrorMessage] = afterAuthenticateInterceptResult(callContext, operationId).collect({
-          case JsonResponseExtractor(message, code) => ErrorMessage(code, message)
-        })
-        _ <- Helper.booleanToFuture(failMsg = jsonResponse.map(_.message).orNull, failCode = jsonResponse.map(_.code).openOr(400), cc = callContext) {
-          jsonResponse.isEmpty
-        }
-        (box, _) <- NewStyle.function.invokeDynamicConnector(operation, entityName, None, Option(id).filter(StringUtils.isNotBlank), bankId, None,
-          Some(u.userId), isPersonalEntity, Some(cc))
-        _ <- Helper.booleanToFuture(
-          s"$EntityNotFoundByEntityId Entity: '$entityName', entityId: '${id}'" + bankId.map(bid => s", bank_id: '$bid'").getOrElse(""),
-          404, cc = callContext) {
-          box.isDefined
-        }
+        _ <- failIf(afterIntercept(callContext, operationId), callContext)
+        (box, _) <- NewStyle.function.invokeDynamicConnector(operation, entityName, None, Option(id).filter(StringUtils.isNotBlank), bankId, None, Some(u.userId), isPersonalEntity, Some(cc))
+        _ <- Helper.booleanToFuture(notFoundMsg(entityName, id, bankId), 404, cc = callContext) { box.isDefined }
       } yield {
         if (isGetAll) {
           val resultList: JArray = unboxResult(box.asInstanceOf[Box[JArray]], entityName)
-          if (bankId.isDefined) {
-            val bankIdJobject: JObject = ("bank_id" -> bankId.getOrElse(""))
-            val result: JObject = (listName -> filterDynamicObjects(resultList, params))
-            bankIdJobject merge result
-          } else {
-            val result: JObject = (listName -> filterDynamicObjects(resultList, params))
-            result
-          }
+          wrapBankId(bankId, (listName(entityName) -> filterDynamicObjects(resultList, queryParams(req))))
         } else {
           val singleObject: JValue = unboxResult(box.asInstanceOf[Box[JValue]], entityName)
-          if (bankId.isDefined) {
-            val bankIdJobject: JObject = ("bank_id" -> bankId.getOrElse(""))
-            val result: JObject = (singleName -> singleObject)
-            bankIdJobject merge result
-          } else {
-            val result: JObject = (singleName -> singleObject)
-            result
-          }
+          wrapBankId(bankId, (singleName(entityName) -> singleObject))
         }
       }
     }
-  }
 
-  private def genericCreate(req: Request[IO], bankId: Option[String], entityName: String, isPersonalEntity: Boolean): IO[Response[IO]] = {
-    val singleName = StringHelpers.snakify(entityName).replaceFirst("[-_]*$", "")
-    val operation: DynamicEntityOperation = CREATE
-    val splitNameWithBankId = if (bankId.isDefined) s"""$entityName(${bankId.getOrElse("")})""" else entityName
-    val mySplitNameWithBankId = s"My$splitNameWithBankId"
-    val resourceDoc =
-      if (isPersonalEntity) DynamicEntityHelper.operationToResourceDoc.get(operation -> mySplitNameWithBankId)
-      else DynamicEntityHelper.operationToResourceDoc.get(operation -> splitNameWithBankId)
-    val operationId = resourceDoc.map(_.operationId).orNull
-    respond(req, resourceDoc, operationId, created = true) { cc =>
-      val json = net.liftweb.json.parse(cc.httpBody.getOrElse(""))
+  private def genericPost(req: Request[IO], bankId: Option[String], entityName: String, isPersonalEntity: Boolean): IO[Response[IO]] =
+    EndpointHelpers.executeFutureCreated(req) {
+      val cc = req.callContext
+      val callContext0 = enrichCallContext(cc, CREATE, entityName, bankId, if (isPersonalEntity) "my" else "")
+      val operationId = callContext0.operationId.orNull
       for {
-        (Full(u), callContext) <- authenticatedAccess(cc)
-        (_, callContext) <-
-          if (bankId.isDefined) NewStyle.function.getBank(bankId.map(BankId(_)).orNull, callContext)
-          else Future.successful(("", callContext))
+        _ <- failIf(beforeIntercept(callContext0, operationId), Some(callContext0))
+        (Full(u), callContext) <- authenticatedAccess(callContext0)
+        (_, callContext) <- bankCheck(bankId, callContext)
         personalRequiresRole = DynamicEntityHelper.definitionsMap.get((bankId, entityName)).exists(_.personalRequiresRole)
         _ <- if (isPersonalEntity && !personalRequiresRole) Future.successful(true)
              else NewStyle.function.hasEntitlement(bankId.getOrElse(""), u.userId, DynamicEntityInfo.canCreateRole(entityName, bankId), callContext)
-        jsonResponse: Box[ErrorMessage] = afterAuthenticateInterceptResult(callContext, operationId).collect({
-          case JsonResponseExtractor(message, code) => ErrorMessage(code, message)
-        })
-        _ <- Helper.booleanToFuture(failMsg = jsonResponse.map(_.message).orNull, failCode = jsonResponse.map(_.code).openOr(400), cc = callContext) {
-          jsonResponse.isEmpty
-        }
-        // Pass userId for all authenticated requests - personal records are filtered by userId
-        (box, _) <- NewStyle.function.invokeDynamicConnector(operation, entityName, Some(json.asInstanceOf[JObject]), None, bankId, None, Some(u.userId), isPersonalEntity, Some(cc))
+        _ <- failIf(afterIntercept(callContext, operationId), callContext)
+        json <- NewStyle.function.tryons(InvalidJsonFormat, 400, callContext) { net.liftweb.json.parse(cc.httpBody.getOrElse("")) }
+        (box, _) <- NewStyle.function.invokeDynamicConnector(CREATE, entityName, Some(json.asInstanceOf[JObject]), None, bankId, None, Some(u.userId), isPersonalEntity, Some(cc))
         singleObject: JValue = unboxResult(box.asInstanceOf[Box[JValue]], entityName)
-      } yield {
-        val result: JObject = (singleName -> singleObject)
-        if (bankId.isDefined) {
-          val bankIdJobject: JObject = ("bank_id" -> bankId.getOrElse(""))
-          bankIdJobject merge result
-        } else {
-          result
-        }
-      }
+      } yield wrapBankId(bankId, (singleName(entityName) -> singleObject))
     }
-  }
 
-  private def genericUpdate(req: Request[IO], bankId: Option[String], entityName: String, id: String, isPersonalEntity: Boolean): IO[Response[IO]] = {
-    val singleName = StringHelpers.snakify(entityName).replaceFirst("[-_]*$", "")
-    val operation: DynamicEntityOperation = UPDATE
-    val splitNameWithBankId = if (bankId.isDefined) s"""$entityName(${bankId.getOrElse("")})""" else entityName
-    val mySplitNameWithBankId = s"My$splitNameWithBankId"
-    val resourceDoc =
-      if (isPersonalEntity) DynamicEntityHelper.operationToResourceDoc.get(operation -> mySplitNameWithBankId)
-      else DynamicEntityHelper.operationToResourceDoc.get(operation -> splitNameWithBankId)
-    val operationId = resourceDoc.map(_.operationId).orNull
-    respond(req, resourceDoc, operationId, created = false) { cc =>
-      val json = net.liftweb.json.parse(cc.httpBody.getOrElse(""))
+  private def genericPut(req: Request[IO], bankId: Option[String], entityName: String, id: String, isPersonalEntity: Boolean): IO[Response[IO]] =
+    EndpointHelpers.executeAndRespond(req) { cc =>
+      val callContext0 = enrichCallContext(cc, UPDATE, entityName, bankId, if (isPersonalEntity) "my" else "")
+      val operationId = callContext0.operationId.orNull
       for {
-        (Full(u), callContext) <- authenticatedAccess(cc)
-        (_, callContext) <-
-          if (bankId.isDefined) NewStyle.function.getBank(bankId.map(BankId(_)).orNull, callContext)
-          else Future.successful(("", callContext))
+        _ <- failIf(beforeIntercept(callContext0, operationId), Some(callContext0))
+        (Full(u), callContext) <- authenticatedAccess(callContext0)
+        (_, callContext) <- bankCheck(bankId, callContext)
         personalRequiresRole = DynamicEntityHelper.definitionsMap.get((bankId, entityName)).exists(_.personalRequiresRole)
         _ <- if (isPersonalEntity && !personalRequiresRole) Future.successful(true)
              else NewStyle.function.hasEntitlement(bankId.getOrElse(""), u.userId, DynamicEntityInfo.canUpdateRole(entityName, bankId), callContext)
-        jsonResponse: Box[ErrorMessage] = afterAuthenticateInterceptResult(callContext, operationId).collect({
-          case JsonResponseExtractor(message, code) => ErrorMessage(code, message)
-        })
-        _ <- Helper.booleanToFuture(failMsg = jsonResponse.map(_.message).orNull, failCode = jsonResponse.map(_.code).openOr(400), cc = callContext) {
-          jsonResponse.isEmpty
-        }
-        (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ONE, entityName, None, Some(id), bankId, None, Some(u.userId), isPersonalEntity, Some(cc))
-        _ <- Helper.booleanToFuture(
-          s"$EntityNotFoundByEntityId Entity: '$entityName', entityId: '$id'" + bankId.map(bid => s", bank_id: '$bid'").getOrElse(""),
-          404, cc = callContext) {
-          box.isDefined
-        }
-        (box: Box[JValue], _) <- NewStyle.function.invokeDynamicConnector(operation, entityName, Some(json.asInstanceOf[JObject]), Some(id), bankId, None, Some(u.userId), isPersonalEntity, Some(cc))
-        singleObject: JValue = unboxResult(box.asInstanceOf[Box[JValue]], entityName)
-      } yield {
-        val result: JObject = (singleName -> singleObject)
-        if (bankId.isDefined) {
-          val bankIdJobject: JObject = ("bank_id" -> bankId.getOrElse(""))
-          bankIdJobject merge result
-        } else {
-          result
-        }
-      }
+        _ <- failIf(afterIntercept(callContext, operationId), callContext)
+        json <- NewStyle.function.tryons(InvalidJsonFormat, 400, callContext) { net.liftweb.json.parse(cc.httpBody.getOrElse("")) }
+        (existing, _) <- NewStyle.function.invokeDynamicConnector(GET_ONE, entityName, None, Some(id), bankId, None, Some(u.userId), isPersonalEntity, Some(cc))
+        _ <- Helper.booleanToFuture(notFoundMsg(entityName, id, bankId), 404, cc = callContext) { existing.isDefined }
+        (box: Box[JValue], _) <- NewStyle.function.invokeDynamicConnector(UPDATE, entityName, Some(json.asInstanceOf[JObject]), Some(id), bankId, None, Some(u.userId), isPersonalEntity, Some(cc))
+        singleObject: JValue = unboxResult(box, entityName)
+      } yield wrapBankId(bankId, (singleName(entityName) -> singleObject))
     }
-  }
 
-  private def genericDelete(req: Request[IO], bankId: Option[String], entityName: String, id: String, isPersonalEntity: Boolean): IO[Response[IO]] = {
-    val operation: DynamicEntityOperation = DELETE
-    val splitNameWithBankId = if (bankId.isDefined) s"""$entityName(${bankId.getOrElse("")})""" else entityName
-    val mySplitNameWithBankId = s"My$splitNameWithBankId"
-    val resourceDoc =
-      if (isPersonalEntity) DynamicEntityHelper.operationToResourceDoc.get(operation -> mySplitNameWithBankId)
-      else DynamicEntityHelper.operationToResourceDoc.get(operation -> splitNameWithBankId)
-    val operationId = resourceDoc.map(_.operationId).orNull
-    respond(req, resourceDoc, operationId, created = false) { cc =>
+  private def genericDelete(req: Request[IO], bankId: Option[String], entityName: String, id: String, isPersonalEntity: Boolean): IO[Response[IO]] =
+    EndpointHelpers.executeAndRespond(req) { cc =>
+      val callContext0 = enrichCallContext(cc, DELETE, entityName, bankId, if (isPersonalEntity) "my" else "")
+      val operationId = callContext0.operationId.orNull
       for {
-        (Full(u), callContext) <- authenticatedAccess(cc)
-        (_, callContext) <-
-          if (bankId.isDefined) NewStyle.function.getBank(bankId.map(BankId(_)).orNull, callContext)
-          else Future.successful(("", callContext))
+        _ <- failIf(beforeIntercept(callContext0, operationId), Some(callContext0))
+        (Full(u), callContext) <- authenticatedAccess(callContext0)
+        (_, callContext) <- bankCheck(bankId, callContext)
         personalRequiresRole = DynamicEntityHelper.definitionsMap.get((bankId, entityName)).exists(_.personalRequiresRole)
         _ <- if (isPersonalEntity && !personalRequiresRole) Future.successful(true)
              else NewStyle.function.hasEntitlement(bankId.getOrElse(""), u.userId, DynamicEntityInfo.canDeleteRole(entityName, bankId), callContext)
-        jsonResponse: Box[ErrorMessage] = afterAuthenticateInterceptResult(callContext, operationId).collect({
-          case JsonResponseExtractor(message, code) => ErrorMessage(code, message)
-        })
-        _ <- Helper.booleanToFuture(failMsg = jsonResponse.map(_.message).orNull, failCode = jsonResponse.map(_.code).openOr(400), cc = callContext) {
-          jsonResponse.isEmpty
-        }
-        (box, _) <- NewStyle.function.invokeDynamicConnector(GET_ONE, entityName, None, Some(id), bankId, None, Some(u.userId), isPersonalEntity, Some(cc))
-        _ <- Helper.booleanToFuture(
-          s"$EntityNotFoundByEntityId Entity: '$entityName', entityId: '$id'" + bankId.map(bid => s", bank_id: '$bid'").getOrElse(""),
-          404, cc = callContext) {
-          box.isDefined
-        }
-        (box, _) <- NewStyle.function.invokeDynamicConnector(operation, entityName, None, Some(id), bankId, None, Some(u.userId), isPersonalEntity, Some(cc))
+        _ <- failIf(afterIntercept(callContext, operationId), callContext)
+        (existing, _) <- NewStyle.function.invokeDynamicConnector(GET_ONE, entityName, None, Some(id), bankId, None, Some(u.userId), isPersonalEntity, Some(cc))
+        _ <- Helper.booleanToFuture(notFoundMsg(entityName, id, bankId), 404, cc = callContext) { existing.isDefined }
+        (box, _) <- NewStyle.function.invokeDynamicConnector(DELETE, entityName, None, Some(id), bankId, None, Some(u.userId), isPersonalEntity, Some(cc))
         deleteResult: JBool = unboxResult(box.asInstanceOf[Box[JBool]], entityName)
-      } yield {
-        deleteResult
-      }
+      } yield deleteResult
     }
-  }
 
-  // ── Public endpoint (anonymous, read-only) ─────────────────────────────────
+  // ----- public endpoint (anonymous, read-only; before-interceptors only, no role) -----
 
-  private def publicGet(req: Request[IO], bankId: Option[String], entityName: String, id: String): IO[Response[IO]] = {
-    val listName = StringHelpers.snakify(entityName).replaceFirst("[-_]*$", "_list")
-    val singleName = StringHelpers.snakify(entityName).replaceFirst("[-_]*$", "")
-    val isGetAll = StringUtils.isBlank(id)
-    val operation: DynamicEntityOperation = if (isGetAll) GET_ALL else GET_ONE
-    val splitNameWithBankId = if (bankId.isDefined) s"""$entityName(${bankId.getOrElse("")})""" else entityName
-    val publicSplitNameWithBankId = s"Public$splitNameWithBankId"
-    val resourceDoc = DynamicEntityHelper.operationToResourceDoc.get(operation -> publicSplitNameWithBankId)
-    val operationId = resourceDoc.map(_.operationId).orNull
-    val params = queryParams(req)
-    respond(req, resourceDoc, operationId, created = false) { cc =>
+  private def publicGet(req: Request[IO], bankId: Option[String], entityName: String, id: String): IO[Response[IO]] =
+    EndpointHelpers.executeAndRespond(req) { cc =>
+      val isGetAll = StringUtils.isBlank(id)
+      val operation: DynamicEntityOperation = if (isGetAll) GET_ALL else GET_ONE
+      val callContext0 = enrichCallContext(cc, operation, entityName, bankId, "public")
+      val operationId = callContext0.operationId.orNull
       for {
-        (_, callContext) <- anonymousAccess(cc)
-        (_, callContext) <-
-          if (bankId.isDefined) NewStyle.function.getBank(bankId.map(BankId(_)).orNull, callContext)
-          else Future.successful(("", callContext))
-        // No entitlement checks for public endpoints; userId=None, isPersonalEntity=false
-        (box, _) <- NewStyle.function.invokeDynamicConnector(operation, entityName, None, Option(id).filter(StringUtils.isNotBlank), bankId, None,
-          None, false, Some(cc))
-        _ <- Helper.booleanToFuture(
-          s"$EntityNotFoundByEntityId Entity: '$entityName', entityId: '${id}'" + bankId.map(bid => s", bank_id: '$bid'").getOrElse(""),
-          404, cc = callContext) {
-          box.isDefined
-        }
+        _ <- failIf(beforeIntercept(callContext0, operationId), Some(callContext0))
+        (_, callContext) <- anonymousAccess(callContext0)
+        (_, callContext) <- bankCheck(bankId, callContext)
+        (box, _) <- NewStyle.function.invokeDynamicConnector(operation, entityName, None, Option(id).filter(StringUtils.isNotBlank), bankId, None, None, false, Some(cc))
+        _ <- Helper.booleanToFuture(notFoundMsg(entityName, id, bankId), 404, cc = callContext) { box.isDefined }
       } yield {
         if (isGetAll) {
           val resultList: JArray = unboxResult(box.asInstanceOf[Box[JArray]], entityName)
-          if (bankId.isDefined) {
-            val bankIdJobject: JObject = ("bank_id" -> bankId.getOrElse(""))
-            val result: JObject = (listName -> filterDynamicObjects(resultList, params))
-            bankIdJobject merge result
-          } else {
-            val result: JObject = (listName -> filterDynamicObjects(resultList, params))
-            result
-          }
+          wrapBankId(bankId, (listName(entityName) -> filterDynamicObjects(resultList, queryParams(req))))
         } else {
           val singleObject: JValue = unboxResult(box.asInstanceOf[Box[JValue]], entityName)
-          if (bankId.isDefined) {
-            val bankIdJobject: JObject = ("bank_id" -> bankId.getOrElse(""))
-            val result: JObject = (singleName -> singleObject)
-            bankIdJobject merge result
-          } else {
-            val result: JObject = (singleName -> singleObject)
-            result
-          }
+          wrapBankId(bankId, (singleName(entityName) -> singleObject))
         }
       }
     }
-  }
 
-  // ── Community endpoint (authenticated, role-gated, returns all users' records) ─
+  // ----- community endpoint (authenticated + CanGet role, read-only, ALL records) -----
 
-  private def communityGet(req: Request[IO], bankId: Option[String], entityName: String, id: String): IO[Response[IO]] = {
-    val listName = StringHelpers.snakify(entityName).replaceFirst("[-_]*$", "_list")
-    val singleName = StringHelpers.snakify(entityName).replaceFirst("[-_]*$", "")
-    val isGetAll = StringUtils.isBlank(id)
-    val operation: DynamicEntityOperation = if (isGetAll) GET_ALL else GET_ONE
-    val splitNameWithBankId = if (bankId.isDefined) s"""$entityName(${bankId.getOrElse("")})""" else entityName
-    val communitySplitNameWithBankId = s"Community$splitNameWithBankId"
-    val resourceDoc = DynamicEntityHelper.operationToResourceDoc.get(operation -> communitySplitNameWithBankId)
-    val operationId = resourceDoc.map(_.operationId).orNull
-    val params = queryParams(req)
-    respond(req, resourceDoc, operationId, created = false) { cc =>
+  private def communityGet(req: Request[IO], bankId: Option[String], entityName: String, id: String): IO[Response[IO]] =
+    EndpointHelpers.executeAndRespond(req) { cc =>
+      val isGetAll = StringUtils.isBlank(id)
+      val operation: DynamicEntityOperation = if (isGetAll) GET_ALL else GET_ONE
+      val callContext0 = enrichCallContext(cc, operation, entityName, bankId, "community")
+      val operationId = callContext0.operationId.orNull
       for {
-        (Full(u), callContext) <- authenticatedAccess(cc)
-        (_, callContext) <-
-          if (bankId.isDefined) NewStyle.function.getBank(bankId.map(BankId(_)).orNull, callContext)
-          else Future.successful(("", callContext))
+        _ <- failIf(beforeIntercept(callContext0, operationId), Some(callContext0))
+        (Full(u), callContext) <- authenticatedAccess(callContext0)
+        (_, callContext) <- bankCheck(bankId, callContext)
         _ <- NewStyle.function.hasEntitlement(bankId.getOrElse(""), u.userId, DynamicEntityInfo.canGetRole(entityName, bankId), callContext)
-        jsonResponse: Box[ErrorMessage] = afterAuthenticateInterceptResult(callContext, operationId).collect({
-          case JsonResponseExtractor(message, code) => ErrorMessage(code, message)
-        })
-        _ <- Helper.booleanToFuture(failMsg = jsonResponse.map(_.message).orNull, failCode = jsonResponse.map(_.code).openOr(400), cc = callContext) {
-          jsonResponse.isEmpty
-        }
+        _ <- failIf(afterIntercept(callContext, operationId), callContext)
       } yield {
         if (isGetAll) {
           val resultList: List[JObject] = DynamicDataProvider.connectorMethodProvider.vend.getAllDataJsonCommunity(bankId, entityName)
           val resultArray = JArray(resultList)
-          if (bankId.isDefined) {
-            val bankIdJobject: JObject = ("bank_id" -> bankId.getOrElse(""))
-            val result: JObject = (listName -> filterDynamicObjects(resultArray, params))
-            bankIdJobject merge result
-          } else {
-            val result: JObject = (listName -> filterDynamicObjects(resultArray, params))
-            result
-          }
+          wrapBankId(bankId, (listName(entityName) -> filterDynamicObjects(resultArray, queryParams(req))))
         } else {
           val singleResult = DynamicDataProvider.connectorMethodProvider.vend.getCommunity(bankId, entityName, id)
           val singleObject: JValue = singleResult match {
             case Full(data) => net.liftweb.json.parse(data.dataJson)
-            case _ => throw new RuntimeException(s"$EntityNotFoundByEntityId Entity: '$entityName', entityId: '$id'" + bankId.map(bid => s", bank_id: '$bid'").getOrElse(""))
+            case _ => throw new RuntimeException(notFoundMsg(entityName, id, bankId))
           }
-          if (bankId.isDefined) {
-            val bankIdJobject: JObject = ("bank_id" -> bankId.getOrElse(""))
-            val result: JObject = (singleName -> singleObject)
-            bankIdJobject merge result
-          } else {
-            val result: JObject = (singleName -> singleObject)
-            result
-          }
+          wrapBankId(bankId, (singleName(entityName) -> singleObject))
         }
       }
     }
-  }
 
-  // ── Routing ────────────────────────────────────────────────────────────────
-  // Match `/obp/dynamic-entity/...`, strip the prefix to the segment list the extractors
-  // expect, then dispatch. Public/Community are tried before the generic extractor to
-  // preserve the Lift registration precedence (publicEndpoint, communityEndpoint,
-  // genericEndpoint). A non-match yields OptionT.none so the request falls through the
-  // chain (to the Lift bridge) unchanged.
+  // ----- dispatch -----
 
-  private def handle(req: Request[IO], rest: List[String]): IO[Option[Response[IO]]] =
-    req.method match {
-      case Method.GET => rest match {
-        case PublicEntityName(bankId, entityName, id)    => publicGet(req, bankId, entityName, id).map(Some(_))
-        case CommunityEntityName(bankId, entityName, id) => communityGet(req, bankId, entityName, id).map(Some(_))
-        case EntityName(bankId, entityName, id, isP)     => genericGet(req, bankId, entityName, id, isP).map(Some(_))
-        case _ => IO.pure(None)
-      }
-      case Method.POST => rest match {
-        case EntityName(bankId, entityName, _, isP) => genericCreate(req, bankId, entityName, isP).map(Some(_))
-        case _ => IO.pure(None)
-      }
-      case Method.PUT => rest match {
-        case EntityName(bankId, entityName, id, isP) => genericUpdate(req, bankId, entityName, id, isP).map(Some(_))
-        case _ => IO.pure(None)
-      }
-      case Method.DELETE => rest match {
-        case EntityName(bankId, entityName, id, isP) => genericDelete(req, bankId, entityName, id, isP).map(Some(_))
-        case _ => IO.pure(None)
-      }
-      case _ => IO.pure(None)
+  /**
+   * Match the remaining path segments (after `/obp/dynamic-entity`) against the same
+   * extractors the Lift dispatcher used.  Order public -> community -> generic mirrors
+   * OBPAPIDynamicEntity.routes.  No match -> OptionT.none (request falls through the chain).
+   */
+  private def dispatch(req: Request[IO], rest: List[String]): OptionT[IO, Response[IO]] = {
+    val handlerOpt: Option[Request[IO] => IO[Response[IO]]] = (req.method, rest) match {
+      case (Method.GET, PublicEntityName(bankId, entityName, id)) =>
+        Some(r => publicGet(r, bankId, entityName, id))
+      case (Method.GET, CommunityEntityName(bankId, entityName, id)) =>
+        Some(r => communityGet(r, bankId, entityName, id))
+      case (method, EntityName(bankId, entityName, id, isPersonalEntity)) =>
+        method match {
+          case Method.GET    => Some(r => genericGet(r, bankId, entityName, id, isPersonalEntity))
+          case Method.POST   => Some(r => genericPost(r, bankId, entityName, isPersonalEntity))
+          case Method.PUT    => Some(r => genericPut(r, bankId, entityName, id, isPersonalEntity))
+          case Method.DELETE => Some(r => genericDelete(r, bankId, entityName, id, isPersonalEntity))
+          case _             => None
+        }
+      case _ => None
     }
 
-  val routes: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { req: Request[IO] =>
-    // Drop empty segments to mirror Lift's Req.path.partPath (e.g. trailing slash).
-    val segments = req.uri.path.segments.map(_.decoded()).filter(_.nonEmpty).toList
-    segments match {
-      case "obp" :: "dynamic-entity" :: rest => OptionT(handle(req, rest))
-      case _                                 => OptionT.none[IO, Response[IO]]
+    handlerOpt match {
+      case None => OptionT.none[IO, Response[IO]]
+      case Some(handler) =>
+        OptionT.liftF {
+          Http4sCallContextBuilder.fromRequest(req, apiVersionString).flatMap { cc =>
+            val reqWithCc = req.withAttribute(Http4sRequestAttributes.callContextKey, cc)
+            val io = handler(reqWithCc)
+            if (req.method == Method.GET || req.method == Method.HEAD) io
+            else RequestScopeConnection.withBusinessDBTransaction(io)
+          }
+        }
     }
   }
+
+  /** Entry point wired into Http4sApp.baseServices (before the Lift bridge). */
+  lazy val wrappedRoutesDynamicEntity: HttpRoutes[IO] =
+    Kleisli[HttpF, Request[IO], Response[IO]] { (req: Request[IO]) =>
+      req.uri.path.segments.map(_.encoded).toList match {
+        case standard :: version :: rest if standard == apiStandard && version == apiVersionString =>
+          dispatch(req, rest)
+        case _ =>
+          OptionT.none[IO, Response[IO]]
+      }
+    }
 }
