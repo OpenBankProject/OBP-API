@@ -16,6 +16,7 @@ import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.{AccountId, BankAccount, BankIdAccountId, View, ViewId}
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
 import net.liftweb.common.{Box, Empty, Full}
+import net.liftweb.json
 import net.liftweb.json.Formats
 import org.http4s._
 import org.http4s.dsl.io._
@@ -137,7 +138,67 @@ object Http4sUKOBv310Accounts extends MdcLoggable {
     s"""
 """,
     EmptyBody,
-    EmptyBody,
+    json.parse("""{
+  "Meta" : {
+    "FirstAvailableDateTime": "2019-03-05T13:09:30.399Z",
+    "LastAvailableDateTime": "2019-03-05T13:09:30.399Z"
+    "TotalPages" : 0
+  },
+  "Links" : {
+    "Last" : "http://example.com/aeiou",
+    "Prev" : "http://example.com/aeiou",
+    "Next" : "http://example.com/aeiou",
+    "Self" : "http://example.com/aeiou",
+    "First" : "http://example.com/aeiou"
+  },
+  "Data" : {
+    "Account" : [ {
+      "Account" : [ {
+        "SecondaryIdentification" : "SecondaryIdentification",
+        "SchemeName" : [ "UK.OBIE.BBAN", "UK.OBIE.IBAN", "UK.OBIE.PAN", "UK.OBIE.Paym", "UK.OBIE.SortCodeAccountNumber" ],
+        "Identification" : "Identification",
+        "Name" : "Name"
+      }, {
+        "SecondaryIdentification" : "SecondaryIdentification",
+        "SchemeName" : [ "UK.OBIE.BBAN", "UK.OBIE.IBAN", "UK.OBIE.PAN", "UK.OBIE.Paym", "UK.OBIE.SortCodeAccountNumber" ],
+        "Identification" : "Identification",
+        "Name" : "Name"
+      } ],
+      "Servicer" : {
+        "SchemeName" : [ "UK.OBIE.BICFI" ],
+        "Identification" : "Identification"
+      },
+      "AccountId" : "String",
+      "Description" : "Description",
+      "Currency" : "Currency",
+      "AccountType" : "String",
+      "AccountSubType" : "String",
+      "Nickname" : "Nickname"
+    }, {
+      "Account" : [ {
+        "SecondaryIdentification" : "SecondaryIdentification",
+        "SchemeName" : [ "UK.OBIE.BBAN", "UK.OBIE.IBAN", "UK.OBIE.PAN", "UK.OBIE.Paym", "UK.OBIE.SortCodeAccountNumber" ],
+        "Identification" : "Identification",
+        "Name" : "Name"
+      }, {
+        "SecondaryIdentification" : "SecondaryIdentification",
+        "SchemeName" : [ "UK.OBIE.BBAN", "UK.OBIE.IBAN", "UK.OBIE.PAN", "UK.OBIE.Paym", "UK.OBIE.SortCodeAccountNumber" ],
+        "Identification" : "Identification",
+        "Name" : "Name"
+      } ],
+      "Servicer" : {
+        "SchemeName" : [ "UK.OBIE.BICFI" ],
+        "Identification" : "Identification"
+      },
+      "AccountId" : "String",
+      "Description" : "Description",
+      "Currency" : "Currency",
+      "AccountType" : "String",
+      "AccountSubType" : "String",
+      "Nickname" : "Nickname"
+    } ]
+  }
+}"""),
     List(AuthenticatedUserIsRequired, UnknownError),
     ApiTag("Accounts") :: Nil,
     http4sPartialFunction = Some(getAccountsAccountId)

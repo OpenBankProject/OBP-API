@@ -22,6 +22,7 @@ import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId, Tr
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
 import net.liftweb.common.Full
 import net.liftweb.http.HTTPParam
+import net.liftweb.json
 import net.liftweb.json.Formats
 import org.http4s._
 import org.http4s.dsl.io._
@@ -67,7 +68,231 @@ object Http4sUKOBv310Transactions extends MdcLoggable {
     "Get Transactions",
     s"""${mockedDataText(true)}""",
     EmptyBody,
-    EmptyBody,
+    json.parse("""{
+  "Meta" : {
+    "FirstAvailableDateTime": "2019-03-06T07:38:51.169Z",
+    "LastAvailableDateTime": "2019-03-06T07:38:51.169Z"
+    "TotalPages" : 0
+  },
+  "Links" : {
+    "Last" : "http://example.com/aeiou",
+    "Prev" : "http://example.com/aeiou",
+    "Next" : "http://example.com/aeiou",
+    "Self" : "http://example.com/aeiou",
+    "First" : "http://example.com/aeiou"
+  },
+  "Data" : {
+    "Transaction" : [ {
+      "Status" : "string",
+      "SupplementaryData" : {},
+      "CreditorAgent" : {
+        "PostalAddress" : {
+          "StreetName" : "StreetName",
+          "CountrySubDivision" : "CountrySubDivision",
+          "Department" : "Department",
+          "AddressLine" : [ "AddressLine", "AddressLine", "AddressLine", "AddressLine", "AddressLine", "AddressLine", "AddressLine" ],
+          "BuildingNumber" : "BuildingNumber",
+          "TownName" : "TownName",
+          "Country" : "Country",
+          "SubDepartment" : "SubDepartment",
+          "AddressType" : "string",
+          "PostCode" : "PostCode"
+        },
+        "SchemeName" : [ "UK.OBIE.BICFI" ],
+        "Identification" : "Identification",
+        "Name" : "Name"
+      },
+      "DebtorAccount" : {
+        "SecondaryIdentification" : "SecondaryIdentification",
+        "SchemeName" : [ "UK.OBIE.BBAN", "UK.OBIE.IBAN", "UK.OBIE.PAN", "UK.OBIE.Paym", "UK.OBIE.SortCodeAccountNumber" ],
+        "Identification" : "Identification",
+        "Name" : "Name"
+      },
+      "AccountId" : "string",
+      "TransactionReference" : "TransactionReference",
+      "ProprietaryBankTransactionCode" : {
+        "Issuer" : "Issuer",
+        "Code" : "Code"
+      },
+      "AddressLine" : "AddressLine",
+      "Amount" : {
+        "Amount" : "string",
+        "Currency" : "Currency"
+      },
+      "CreditorAccount" : {
+        "SecondaryIdentification" : "SecondaryIdentification",
+        "SchemeName" : [ "UK.OBIE.BBAN", "UK.OBIE.IBAN", "UK.OBIE.PAN", "UK.OBIE.Paym", "UK.OBIE.SortCodeAccountNumber" ],
+        "Identification" : "Identification",
+        "Name" : "Name"
+      },
+      "CreditDebitIndicator" : "Credit",
+      "CurrencyExchange" : {
+        "SourceCurrency" : "SourceCurrency",
+        "ExchangeRate" : 0.80082819046101150206595775671303272247314453125,
+        "QuotationDate" : "2000-01-23T04:56:07.000+00:00",
+        "UnitCurrency" : "UnitCurrency",
+        "ContractIdentification" : "ContractIdentification",
+        "InstructedAmount" : {
+          "Amount" : "string",
+          "Currency" : "Currency"
+        },
+        "TargetCurrency" : "TargetCurrency"
+      },
+      "StatementReference" : [ "StatementReference", "StatementReference" ],
+      "ChargeAmount" : {
+        "Amount" : "string",
+        "Currency" : "Currency"
+      },
+      "TransactionId" : "TransactionId",
+      "TransactionInformation" : "string",
+      "BookingDateTime" : "2000-01-23T04:56:07.000+00:00",
+      "BankTransactionCode" : {
+        "SubCode" : "SubCode",
+        "Code" : "Code"
+      },
+      "MerchantDetails" : {
+        "MerchantName" : "MerchantName",
+        "MerchantCategoryCode" : "MerchantCategoryCode"
+      },
+      "CardInstrument" : {
+        "AuthorisationType" : "string",
+        "Identification" : "Identification",
+        "CardSchemeName" : "string",
+        "Name" : "Name"
+      },
+      "ValueDateTime" : "2000-01-23T04:56:07.000+00:00",
+      "DebtorAgent" : {
+        "PostalAddress" : {
+          "StreetName" : "StreetName",
+          "CountrySubDivision" : "CountrySubDivision",
+          "Department" : "Department",
+          "AddressLine" : [ "AddressLine", "AddressLine", "AddressLine", "AddressLine", "AddressLine", "AddressLine", "AddressLine" ],
+          "BuildingNumber" : "BuildingNumber",
+          "TownName" : "TownName",
+          "Country" : "Country",
+          "SubDepartment" : "SubDepartment",
+          "AddressType" : "string",
+          "PostCode" : "PostCode"
+        },
+        "SchemeName" : [ "UK.OBIE.BICFI" ],
+        "Identification" : "Identification",
+        "Name" : "Name"
+      },
+      "Balance" : {
+        "Type" : "string",
+        "Amount" : {
+          "Amount" : "string",
+          "Currency" : "Currency"
+        },
+        "CreditDebitIndicator" : "Credit"
+      }
+    }, {
+      "Status" : "string",
+      "SupplementaryData" : {},
+      "CreditorAgent" : {
+        "PostalAddress" : {
+          "StreetName" : "StreetName",
+          "CountrySubDivision" : "CountrySubDivision",
+          "Department" : "Department",
+          "AddressLine" : [ "AddressLine", "AddressLine", "AddressLine", "AddressLine", "AddressLine", "AddressLine", "AddressLine" ],
+          "BuildingNumber" : "BuildingNumber",
+          "TownName" : "TownName",
+          "Country" : "Country",
+          "SubDepartment" : "SubDepartment",
+          "AddressType" : "string",
+          "PostCode" : "PostCode"
+        },
+        "SchemeName" : [ "UK.OBIE.BICFI" ],
+        "Identification" : "Identification",
+        "Name" : "Name"
+      },
+      "DebtorAccount" : {
+        "SecondaryIdentification" : "SecondaryIdentification",
+        "SchemeName" : [ "UK.OBIE.BBAN", "UK.OBIE.IBAN", "UK.OBIE.PAN", "UK.OBIE.Paym", "UK.OBIE.SortCodeAccountNumber" ],
+        "Identification" : "Identification",
+        "Name" : "Name"
+      },
+      "AccountId" : "string",
+      "TransactionReference" : "TransactionReference",
+      "ProprietaryBankTransactionCode" : {
+        "Issuer" : "Issuer",
+        "Code" : "Code"
+      },
+      "AddressLine" : "AddressLine",
+      "Amount" : {
+        "Amount" : "string",
+        "Currency" : "Currency"
+      },
+      "CreditorAccount" : {
+        "SecondaryIdentification" : "SecondaryIdentification",
+        "SchemeName" : [ "UK.OBIE.BBAN", "UK.OBIE.IBAN", "UK.OBIE.PAN", "UK.OBIE.Paym", "UK.OBIE.SortCodeAccountNumber" ],
+        "Identification" : "Identification",
+        "Name" : "Name"
+      },
+      "CreditDebitIndicator" : "Credit",
+      "CurrencyExchange" : {
+        "SourceCurrency" : "SourceCurrency",
+        "ExchangeRate" : 0.80082819046101150206595775671303272247314453125,
+        "QuotationDate" : "2000-01-23T04:56:07.000+00:00",
+        "UnitCurrency" : "UnitCurrency",
+        "ContractIdentification" : "ContractIdentification",
+        "InstructedAmount" : {
+          "Amount" : "string",
+          "Currency" : "Currency"
+        },
+        "TargetCurrency" : "TargetCurrency"
+      },
+      "StatementReference" : [ "StatementReference", "StatementReference" ],
+      "ChargeAmount" : {
+        "Amount" : "string",
+        "Currency" : "Currency"
+      },
+      "TransactionId" : "TransactionId",
+      "TransactionInformation" : "string",
+      "BookingDateTime" : "2000-01-23T04:56:07.000+00:00",
+      "BankTransactionCode" : {
+        "SubCode" : "SubCode",
+        "Code" : "Code"
+      },
+      "MerchantDetails" : {
+        "MerchantName" : "MerchantName",
+        "MerchantCategoryCode" : "MerchantCategoryCode"
+      },
+      "CardInstrument" : {
+        "AuthorisationType" : "string",
+        "Identification" : "Identification",
+        "CardSchemeName" : "string",
+        "Name" : "Name"
+      },
+      "ValueDateTime" : "2000-01-23T04:56:07.000+00:00",
+      "DebtorAgent" : {
+        "PostalAddress" : {
+          "StreetName" : "StreetName",
+          "CountrySubDivision" : "CountrySubDivision",
+          "Department" : "Department",
+          "AddressLine" : [ "AddressLine", "AddressLine", "AddressLine", "AddressLine", "AddressLine", "AddressLine", "AddressLine" ],
+          "BuildingNumber" : "BuildingNumber",
+          "TownName" : "TownName",
+          "Country" : "Country",
+          "SubDepartment" : "SubDepartment",
+          "AddressType" : "string",
+          "PostCode" : "PostCode"
+        },
+        "SchemeName" : [ "UK.OBIE.BICFI" ],
+        "Identification" : "Identification",
+        "Name" : "Name"
+      },
+      "Balance" : {
+        "Type" : "string",
+        "Amount" : {
+          "Amount" : "string",
+          "Currency" : "Currency"
+        },
+        "CreditDebitIndicator" : "Credit"
+      }
+    } ]
+  }
+}"""),
     List(AuthenticatedUserIsRequired, UnknownError),
     ApiTag("Statements") :: ApiTag("Transactions") :: apiTagMockedData :: Nil,
     http4sPartialFunction = Some(getAccountsAccountIdStatementsStatementIdTransactions)
@@ -113,7 +338,231 @@ object Http4sUKOBv310Transactions extends MdcLoggable {
     "Get Transactions",
     s"""""",
     EmptyBody,
-    EmptyBody,
+    json.parse("""{
+  "Meta" : {
+    "FirstAvailableDateTime": "2019-03-06T07:38:51.169Z",
+    "LastAvailableDateTime": "2019-03-06T07:38:51.169Z"
+    "TotalPages" : 0
+  },
+  "Links" : {
+    "Last" : "http://example.com/aeiou",
+    "Prev" : "http://example.com/aeiou",
+    "Next" : "http://example.com/aeiou",
+    "Self" : "http://example.com/aeiou",
+    "First" : "http://example.com/aeiou"
+  },
+  "Data" : {
+    "Transaction" : [ {
+      "Status" : "string",
+      "SupplementaryData" : {},
+      "CreditorAgent" : {
+        "PostalAddress" : {
+          "StreetName" : "StreetName",
+          "CountrySubDivision" : "CountrySubDivision",
+          "Department" : "Department",
+          "AddressLine" : [ "AddressLine", "AddressLine", "AddressLine", "AddressLine", "AddressLine", "AddressLine", "AddressLine" ],
+          "BuildingNumber" : "BuildingNumber",
+          "TownName" : "TownName",
+          "Country" : "Country",
+          "SubDepartment" : "SubDepartment",
+          "AddressType" : "string",
+          "PostCode" : "PostCode"
+        },
+        "SchemeName" : [ "UK.OBIE.BICFI" ],
+        "Identification" : "Identification",
+        "Name" : "Name"
+      },
+      "DebtorAccount" : {
+        "SecondaryIdentification" : "SecondaryIdentification",
+        "SchemeName" : [ "UK.OBIE.BBAN", "UK.OBIE.IBAN", "UK.OBIE.PAN", "UK.OBIE.Paym", "UK.OBIE.SortCodeAccountNumber" ],
+        "Identification" : "Identification",
+        "Name" : "Name"
+      },
+      "AccountId" : "string",
+      "TransactionReference" : "TransactionReference",
+      "ProprietaryBankTransactionCode" : {
+        "Issuer" : "Issuer",
+        "Code" : "Code"
+      },
+      "AddressLine" : "AddressLine",
+      "Amount" : {
+        "Amount" : "string",
+        "Currency" : "Currency"
+      },
+      "CreditorAccount" : {
+        "SecondaryIdentification" : "SecondaryIdentification",
+        "SchemeName" : [ "UK.OBIE.BBAN", "UK.OBIE.IBAN", "UK.OBIE.PAN", "UK.OBIE.Paym", "UK.OBIE.SortCodeAccountNumber" ],
+        "Identification" : "Identification",
+        "Name" : "Name"
+      },
+      "CreditDebitIndicator" : "Credit",
+      "CurrencyExchange" : {
+        "SourceCurrency" : "SourceCurrency",
+        "ExchangeRate" : 0.80082819046101150206595775671303272247314453125,
+        "QuotationDate" : "2000-01-23T04:56:07.000+00:00",
+        "UnitCurrency" : "UnitCurrency",
+        "ContractIdentification" : "ContractIdentification",
+        "InstructedAmount" : {
+          "Amount" : "string",
+          "Currency" : "Currency"
+        },
+        "TargetCurrency" : "TargetCurrency"
+      },
+      "StatementReference" : [ "StatementReference", "StatementReference" ],
+      "ChargeAmount" : {
+        "Amount" : "string",
+        "Currency" : "Currency"
+      },
+      "TransactionId" : "TransactionId",
+      "TransactionInformation" : "string",
+      "BookingDateTime" : "2000-01-23T04:56:07.000+00:00",
+      "BankTransactionCode" : {
+        "SubCode" : "SubCode",
+        "Code" : "Code"
+      },
+      "MerchantDetails" : {
+        "MerchantName" : "MerchantName",
+        "MerchantCategoryCode" : "MerchantCategoryCode"
+      },
+      "CardInstrument" : {
+        "AuthorisationType" : "string",
+        "Identification" : "Identification",
+        "CardSchemeName" : "string",
+        "Name" : "Name"
+      },
+      "ValueDateTime" : "2000-01-23T04:56:07.000+00:00",
+      "DebtorAgent" : {
+        "PostalAddress" : {
+          "StreetName" : "StreetName",
+          "CountrySubDivision" : "CountrySubDivision",
+          "Department" : "Department",
+          "AddressLine" : [ "AddressLine", "AddressLine", "AddressLine", "AddressLine", "AddressLine", "AddressLine", "AddressLine" ],
+          "BuildingNumber" : "BuildingNumber",
+          "TownName" : "TownName",
+          "Country" : "Country",
+          "SubDepartment" : "SubDepartment",
+          "AddressType" : "string",
+          "PostCode" : "PostCode"
+        },
+        "SchemeName" : [ "UK.OBIE.BICFI" ],
+        "Identification" : "Identification",
+        "Name" : "Name"
+      },
+      "Balance" : {
+        "Type" : "string",
+        "Amount" : {
+          "Amount" : "string",
+          "Currency" : "Currency"
+        },
+        "CreditDebitIndicator" : "Credit"
+      }
+    }, {
+      "Status" : "string",
+      "SupplementaryData" : {},
+      "CreditorAgent" : {
+        "PostalAddress" : {
+          "StreetName" : "StreetName",
+          "CountrySubDivision" : "CountrySubDivision",
+          "Department" : "Department",
+          "AddressLine" : [ "AddressLine", "AddressLine", "AddressLine", "AddressLine", "AddressLine", "AddressLine", "AddressLine" ],
+          "BuildingNumber" : "BuildingNumber",
+          "TownName" : "TownName",
+          "Country" : "Country",
+          "SubDepartment" : "SubDepartment",
+          "AddressType" : "string",
+          "PostCode" : "PostCode"
+        },
+        "SchemeName" : [ "UK.OBIE.BICFI" ],
+        "Identification" : "Identification",
+        "Name" : "Name"
+      },
+      "DebtorAccount" : {
+        "SecondaryIdentification" : "SecondaryIdentification",
+        "SchemeName" : [ "UK.OBIE.BBAN", "UK.OBIE.IBAN", "UK.OBIE.PAN", "UK.OBIE.Paym", "UK.OBIE.SortCodeAccountNumber" ],
+        "Identification" : "Identification",
+        "Name" : "Name"
+      },
+      "AccountId" : "string",
+      "TransactionReference" : "TransactionReference",
+      "ProprietaryBankTransactionCode" : {
+        "Issuer" : "Issuer",
+        "Code" : "Code"
+      },
+      "AddressLine" : "AddressLine",
+      "Amount" : {
+        "Amount" : "string",
+        "Currency" : "Currency"
+      },
+      "CreditorAccount" : {
+        "SecondaryIdentification" : "SecondaryIdentification",
+        "SchemeName" : [ "UK.OBIE.BBAN", "UK.OBIE.IBAN", "UK.OBIE.PAN", "UK.OBIE.Paym", "UK.OBIE.SortCodeAccountNumber" ],
+        "Identification" : "Identification",
+        "Name" : "Name"
+      },
+      "CreditDebitIndicator" : "Credit",
+      "CurrencyExchange" : {
+        "SourceCurrency" : "SourceCurrency",
+        "ExchangeRate" : 0.80082819046101150206595775671303272247314453125,
+        "QuotationDate" : "2000-01-23T04:56:07.000+00:00",
+        "UnitCurrency" : "UnitCurrency",
+        "ContractIdentification" : "ContractIdentification",
+        "InstructedAmount" : {
+          "Amount" : "string",
+          "Currency" : "Currency"
+        },
+        "TargetCurrency" : "TargetCurrency"
+      },
+      "StatementReference" : [ "StatementReference", "StatementReference" ],
+      "ChargeAmount" : {
+        "Amount" : "string",
+        "Currency" : "Currency"
+      },
+      "TransactionId" : "TransactionId",
+      "TransactionInformation" : "string",
+      "BookingDateTime" : "2000-01-23T04:56:07.000+00:00",
+      "BankTransactionCode" : {
+        "SubCode" : "SubCode",
+        "Code" : "Code"
+      },
+      "MerchantDetails" : {
+        "MerchantName" : "MerchantName",
+        "MerchantCategoryCode" : "MerchantCategoryCode"
+      },
+      "CardInstrument" : {
+        "AuthorisationType" : "string",
+        "Identification" : "Identification",
+        "CardSchemeName" : "string",
+        "Name" : "Name"
+      },
+      "ValueDateTime" : "2000-01-23T04:56:07.000+00:00",
+      "DebtorAgent" : {
+        "PostalAddress" : {
+          "StreetName" : "StreetName",
+          "CountrySubDivision" : "CountrySubDivision",
+          "Department" : "Department",
+          "AddressLine" : [ "AddressLine", "AddressLine", "AddressLine", "AddressLine", "AddressLine", "AddressLine", "AddressLine" ],
+          "BuildingNumber" : "BuildingNumber",
+          "TownName" : "TownName",
+          "Country" : "Country",
+          "SubDepartment" : "SubDepartment",
+          "AddressType" : "string",
+          "PostCode" : "PostCode"
+        },
+        "SchemeName" : [ "UK.OBIE.BICFI" ],
+        "Identification" : "Identification",
+        "Name" : "Name"
+      },
+      "Balance" : {
+        "Type" : "string",
+        "Amount" : {
+          "Amount" : "string",
+          "Currency" : "Currency"
+        },
+        "CreditDebitIndicator" : "Credit"
+      }
+    } ]
+  }
+}"""),
     List(AuthenticatedUserIsRequired, UnknownError),
     ApiTag("Transactions") :: Nil,
     http4sPartialFunction = Some(getAccountsAccountIdTransactions)
@@ -153,7 +602,231 @@ object Http4sUKOBv310Transactions extends MdcLoggable {
     "Get Transactions",
     s"""""",
     EmptyBody,
-    EmptyBody,
+    json.parse("""{
+  "Meta" : {
+    "FirstAvailableDateTime": "2019-03-06T07:38:51.169Z",
+    "LastAvailableDateTime": "2019-03-06T07:38:51.169Z"
+    "TotalPages" : 0
+  },
+  "Links" : {
+    "Last" : "http://example.com/aeiou",
+    "Prev" : "http://example.com/aeiou",
+    "Next" : "http://example.com/aeiou",
+    "Self" : "http://example.com/aeiou",
+    "First" : "http://example.com/aeiou"
+  },
+  "Data" : {
+    "Transaction" : [ {
+      "Status" : "string",
+      "SupplementaryData" : {},
+      "CreditorAgent" : {
+        "PostalAddress" : {
+          "StreetName" : "StreetName",
+          "CountrySubDivision" : "CountrySubDivision",
+          "Department" : "Department",
+          "AddressLine" : [ "AddressLine", "AddressLine", "AddressLine", "AddressLine", "AddressLine", "AddressLine", "AddressLine" ],
+          "BuildingNumber" : "BuildingNumber",
+          "TownName" : "TownName",
+          "Country" : "Country",
+          "SubDepartment" : "SubDepartment",
+          "AddressType" : "string",
+          "PostCode" : "PostCode"
+        },
+        "SchemeName" : [ "UK.OBIE.BICFI" ],
+        "Identification" : "Identification",
+        "Name" : "Name"
+      },
+      "DebtorAccount" : {
+        "SecondaryIdentification" : "SecondaryIdentification",
+        "SchemeName" : [ "UK.OBIE.BBAN", "UK.OBIE.IBAN", "UK.OBIE.PAN", "UK.OBIE.Paym", "UK.OBIE.SortCodeAccountNumber" ],
+        "Identification" : "Identification",
+        "Name" : "Name"
+      },
+      "AccountId" : "string",
+      "TransactionReference" : "TransactionReference",
+      "ProprietaryBankTransactionCode" : {
+        "Issuer" : "Issuer",
+        "Code" : "Code"
+      },
+      "AddressLine" : "AddressLine",
+      "Amount" : {
+        "Amount" : "string",
+        "Currency" : "Currency"
+      },
+      "CreditorAccount" : {
+        "SecondaryIdentification" : "SecondaryIdentification",
+        "SchemeName" : [ "UK.OBIE.BBAN", "UK.OBIE.IBAN", "UK.OBIE.PAN", "UK.OBIE.Paym", "UK.OBIE.SortCodeAccountNumber" ],
+        "Identification" : "Identification",
+        "Name" : "Name"
+      },
+      "CreditDebitIndicator" : "Credit",
+      "CurrencyExchange" : {
+        "SourceCurrency" : "SourceCurrency",
+        "ExchangeRate" : 0.80082819046101150206595775671303272247314453125,
+        "QuotationDate" : "2000-01-23T04:56:07.000+00:00",
+        "UnitCurrency" : "UnitCurrency",
+        "ContractIdentification" : "ContractIdentification",
+        "InstructedAmount" : {
+          "Amount" : "string",
+          "Currency" : "Currency"
+        },
+        "TargetCurrency" : "TargetCurrency"
+      },
+      "StatementReference" : [ "StatementReference", "StatementReference" ],
+      "ChargeAmount" : {
+        "Amount" : "string",
+        "Currency" : "Currency"
+      },
+      "TransactionId" : "TransactionId",
+      "TransactionInformation" : "string",
+      "BookingDateTime" : "2000-01-23T04:56:07.000+00:00",
+      "BankTransactionCode" : {
+        "SubCode" : "SubCode",
+        "Code" : "Code"
+      },
+      "MerchantDetails" : {
+        "MerchantName" : "MerchantName",
+        "MerchantCategoryCode" : "MerchantCategoryCode"
+      },
+      "CardInstrument" : {
+        "AuthorisationType" : "string",
+        "Identification" : "Identification",
+        "CardSchemeName" : "string",
+        "Name" : "Name"
+      },
+      "ValueDateTime" : "2000-01-23T04:56:07.000+00:00",
+      "DebtorAgent" : {
+        "PostalAddress" : {
+          "StreetName" : "StreetName",
+          "CountrySubDivision" : "CountrySubDivision",
+          "Department" : "Department",
+          "AddressLine" : [ "AddressLine", "AddressLine", "AddressLine", "AddressLine", "AddressLine", "AddressLine", "AddressLine" ],
+          "BuildingNumber" : "BuildingNumber",
+          "TownName" : "TownName",
+          "Country" : "Country",
+          "SubDepartment" : "SubDepartment",
+          "AddressType" : "string",
+          "PostCode" : "PostCode"
+        },
+        "SchemeName" : [ "UK.OBIE.BICFI" ],
+        "Identification" : "Identification",
+        "Name" : "Name"
+      },
+      "Balance" : {
+        "Type" : "string",
+        "Amount" : {
+          "Amount" : "string",
+          "Currency" : "Currency"
+        },
+        "CreditDebitIndicator" : "Credit"
+      }
+    }, {
+      "Status" : "string",
+      "SupplementaryData" : {},
+      "CreditorAgent" : {
+        "PostalAddress" : {
+          "StreetName" : "StreetName",
+          "CountrySubDivision" : "CountrySubDivision",
+          "Department" : "Department",
+          "AddressLine" : [ "AddressLine", "AddressLine", "AddressLine", "AddressLine", "AddressLine", "AddressLine", "AddressLine" ],
+          "BuildingNumber" : "BuildingNumber",
+          "TownName" : "TownName",
+          "Country" : "Country",
+          "SubDepartment" : "SubDepartment",
+          "AddressType" : "string",
+          "PostCode" : "PostCode"
+        },
+        "SchemeName" : [ "UK.OBIE.BICFI" ],
+        "Identification" : "Identification",
+        "Name" : "Name"
+      },
+      "DebtorAccount" : {
+        "SecondaryIdentification" : "SecondaryIdentification",
+        "SchemeName" : [ "UK.OBIE.BBAN", "UK.OBIE.IBAN", "UK.OBIE.PAN", "UK.OBIE.Paym", "UK.OBIE.SortCodeAccountNumber" ],
+        "Identification" : "Identification",
+        "Name" : "Name"
+      },
+      "AccountId" : "string",
+      "TransactionReference" : "TransactionReference",
+      "ProprietaryBankTransactionCode" : {
+        "Issuer" : "Issuer",
+        "Code" : "Code"
+      },
+      "AddressLine" : "AddressLine",
+      "Amount" : {
+        "Amount" : "string",
+        "Currency" : "Currency"
+      },
+      "CreditorAccount" : {
+        "SecondaryIdentification" : "SecondaryIdentification",
+        "SchemeName" : [ "UK.OBIE.BBAN", "UK.OBIE.IBAN", "UK.OBIE.PAN", "UK.OBIE.Paym", "UK.OBIE.SortCodeAccountNumber" ],
+        "Identification" : "Identification",
+        "Name" : "Name"
+      },
+      "CreditDebitIndicator" : "Credit",
+      "CurrencyExchange" : {
+        "SourceCurrency" : "SourceCurrency",
+        "ExchangeRate" : 0.80082819046101150206595775671303272247314453125,
+        "QuotationDate" : "2000-01-23T04:56:07.000+00:00",
+        "UnitCurrency" : "UnitCurrency",
+        "ContractIdentification" : "ContractIdentification",
+        "InstructedAmount" : {
+          "Amount" : "string",
+          "Currency" : "Currency"
+        },
+        "TargetCurrency" : "TargetCurrency"
+      },
+      "StatementReference" : [ "StatementReference", "StatementReference" ],
+      "ChargeAmount" : {
+        "Amount" : "string",
+        "Currency" : "Currency"
+      },
+      "TransactionId" : "TransactionId",
+      "TransactionInformation" : "string",
+      "BookingDateTime" : "2000-01-23T04:56:07.000+00:00",
+      "BankTransactionCode" : {
+        "SubCode" : "SubCode",
+        "Code" : "Code"
+      },
+      "MerchantDetails" : {
+        "MerchantName" : "MerchantName",
+        "MerchantCategoryCode" : "MerchantCategoryCode"
+      },
+      "CardInstrument" : {
+        "AuthorisationType" : "string",
+        "Identification" : "Identification",
+        "CardSchemeName" : "string",
+        "Name" : "Name"
+      },
+      "ValueDateTime" : "2000-01-23T04:56:07.000+00:00",
+      "DebtorAgent" : {
+        "PostalAddress" : {
+          "StreetName" : "StreetName",
+          "CountrySubDivision" : "CountrySubDivision",
+          "Department" : "Department",
+          "AddressLine" : [ "AddressLine", "AddressLine", "AddressLine", "AddressLine", "AddressLine", "AddressLine", "AddressLine" ],
+          "BuildingNumber" : "BuildingNumber",
+          "TownName" : "TownName",
+          "Country" : "Country",
+          "SubDepartment" : "SubDepartment",
+          "AddressType" : "string",
+          "PostCode" : "PostCode"
+        },
+        "SchemeName" : [ "UK.OBIE.BICFI" ],
+        "Identification" : "Identification",
+        "Name" : "Name"
+      },
+      "Balance" : {
+        "Type" : "string",
+        "Amount" : {
+          "Amount" : "string",
+          "Currency" : "Currency"
+        },
+        "CreditDebitIndicator" : "Credit"
+      }
+    } ]
+  }
+}"""),
     List(AuthenticatedUserIsRequired, UnknownError),
     ApiTag("Transactions") :: Nil,
     http4sPartialFunction = Some(getTransactions)

@@ -13,6 +13,7 @@ import code.util.Helper.MdcLoggable
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
+import net.liftweb.json
 import net.liftweb.json.Formats
 import org.http4s._
 import org.http4s.dsl.io._
@@ -42,7 +43,49 @@ object Http4sUKOBv310Partys extends MdcLoggable {
     "Get Party",
     s"""${mockedDataText(true)}""",
     EmptyBody,
-    EmptyBody,
+    json.parse("""{
+  "Meta" : {
+    "FirstAvailableDateTime" : { },
+    "TotalPages" : 0
+  },
+  "Links" : {
+    "Last" : "http://example.com/aeiou",
+    "Prev" : "http://example.com/aeiou",
+    "Next" : "http://example.com/aeiou",
+    "Self" : "http://example.com/aeiou",
+    "First" : "http://example.com/aeiou"
+  },
+  "Data" : {
+    "Party" : {
+      "PartyNumber" : "PartyNumber",
+      "PartyId" : "PartyId",
+      "Address" : [ {
+        "StreetName" : "StreetName",
+        "CountrySubDivision" : "CountrySubDivision",
+        "AddressLine" : [ "AddressLine", "AddressLine", "AddressLine", "AddressLine", "AddressLine" ],
+        "BuildingNumber" : "BuildingNumber",
+        "TownName" : "TownName",
+        "Country" : "Country",
+        "AddressType" : { },
+        "PostCode" : "PostCode"
+      }, {
+        "StreetName" : "StreetName",
+        "CountrySubDivision" : "CountrySubDivision",
+        "AddressLine" : [ "AddressLine", "AddressLine", "AddressLine", "AddressLine", "AddressLine" ],
+        "BuildingNumber" : "BuildingNumber",
+        "TownName" : "TownName",
+        "Country" : "Country",
+        "AddressType" : { },
+        "PostCode" : "PostCode"
+      } ],
+      "Phone" : "Phone",
+      "Mobile" : "Mobile",
+      "PartyType" : { },
+      "EmailAddress" : "EmailAddress",
+      "Name" : "Name"
+    }
+  }
+}"""),
     List(AuthenticatedUserIsRequired, UnknownError),
     tag,
     http4sPartialFunction = Some(getAccountsAccountIdParty)
@@ -61,7 +104,49 @@ object Http4sUKOBv310Partys extends MdcLoggable {
     "Get Party",
     s"""${mockedDataText(true)}""",
     EmptyBody,
-    EmptyBody,
+    json.parse("""{
+  "Meta" : {
+    "FirstAvailableDateTime" : { },
+    "TotalPages" : 0
+  },
+  "Links" : {
+    "Last" : "http://example.com/aeiou",
+    "Prev" : "http://example.com/aeiou",
+    "Next" : "http://example.com/aeiou",
+    "Self" : "http://example.com/aeiou",
+    "First" : "http://example.com/aeiou"
+  },
+  "Data" : {
+    "Party" : {
+      "PartyNumber" : "PartyNumber",
+      "PartyId" : "PartyId",
+      "Address" : [ {
+        "StreetName" : "StreetName",
+        "CountrySubDivision" : "CountrySubDivision",
+        "AddressLine" : [ "AddressLine", "AddressLine", "AddressLine", "AddressLine", "AddressLine" ],
+        "BuildingNumber" : "BuildingNumber",
+        "TownName" : "TownName",
+        "Country" : "Country",
+        "AddressType" : { },
+        "PostCode" : "PostCode"
+      }, {
+        "StreetName" : "StreetName",
+        "CountrySubDivision" : "CountrySubDivision",
+        "AddressLine" : [ "AddressLine", "AddressLine", "AddressLine", "AddressLine", "AddressLine" ],
+        "BuildingNumber" : "BuildingNumber",
+        "TownName" : "TownName",
+        "Country" : "Country",
+        "AddressType" : { },
+        "PostCode" : "PostCode"
+      } ],
+      "Phone" : "Phone",
+      "Mobile" : "Mobile",
+      "PartyType" : { },
+      "EmailAddress" : "EmailAddress",
+      "Name" : "Name"
+    }
+  }
+}"""),
     List(AuthenticatedUserIsRequired, UnknownError),
     tag,
     http4sPartialFunction = Some(getParty)

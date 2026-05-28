@@ -13,6 +13,7 @@ import code.util.Helper.MdcLoggable
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
+import net.liftweb.json
 import net.liftweb.json.Formats
 import org.http4s._
 import org.http4s.dsl.io._
@@ -42,7 +43,44 @@ object Http4sUKOBv310DirectDebits extends MdcLoggable {
     "Get Direct Debits",
     s"""${mockedDataText(true)}""",
     EmptyBody,
-    EmptyBody,
+    json.parse("""{
+  "Meta" : {
+    "FirstAvailableDateTime" : { },
+    "TotalPages" : 0
+  },
+  "Links" : {
+    "Last" : "http://example.com/aeiou",
+    "Prev" : "http://example.com/aeiou",
+    "Next" : "http://example.com/aeiou",
+    "Self" : "http://example.com/aeiou",
+    "First" : "http://example.com/aeiou"
+  },
+  "Data" : {
+    "DirectDebit" : [ {
+      "PreviousPaymentDateTime" : "2000-01-23T04:56:07.000+00:00",
+      "AccountId" : { },
+      "MandateIdentification" : "MandateIdentification",
+      "DirectDebitStatusCode" : { },
+      "DirectDebitId" : "DirectDebitId",
+      "PreviousPaymentAmount" : {
+        "Amount" : { },
+        "Currency" : "Currency"
+      },
+      "Name" : "Name"
+    }, {
+      "PreviousPaymentDateTime" : "2000-01-23T04:56:07.000+00:00",
+      "AccountId" : { },
+      "MandateIdentification" : "MandateIdentification",
+      "DirectDebitStatusCode" : { },
+      "DirectDebitId" : "DirectDebitId",
+      "PreviousPaymentAmount" : {
+        "Amount" : { },
+        "Currency" : "Currency"
+      },
+      "Name" : "Name"
+    } ]
+  }
+}"""),
     List(AuthenticatedUserIsRequired, UnknownError),
     tag,
     http4sPartialFunction = Some(getAccountsAccountIdDirectDebits)
@@ -61,7 +99,44 @@ object Http4sUKOBv310DirectDebits extends MdcLoggable {
     "Get Direct Debits",
     s"""${mockedDataText(true)}""",
     EmptyBody,
-    EmptyBody,
+    json.parse("""{
+  "Meta" : {
+    "FirstAvailableDateTime" : { },
+    "TotalPages" : 0
+  },
+  "Links" : {
+    "Last" : "http://example.com/aeiou",
+    "Prev" : "http://example.com/aeiou",
+    "Next" : "http://example.com/aeiou",
+    "Self" : "http://example.com/aeiou",
+    "First" : "http://example.com/aeiou"
+  },
+  "Data" : {
+    "DirectDebit" : [ {
+      "PreviousPaymentDateTime" : "2000-01-23T04:56:07.000+00:00",
+      "AccountId" : { },
+      "MandateIdentification" : "MandateIdentification",
+      "DirectDebitStatusCode" : { },
+      "DirectDebitId" : "DirectDebitId",
+      "PreviousPaymentAmount" : {
+        "Amount" : { },
+        "Currency" : "Currency"
+      },
+      "Name" : "Name"
+    }, {
+      "PreviousPaymentDateTime" : "2000-01-23T04:56:07.000+00:00",
+      "AccountId" : { },
+      "MandateIdentification" : "MandateIdentification",
+      "DirectDebitStatusCode" : { },
+      "DirectDebitId" : "DirectDebitId",
+      "PreviousPaymentAmount" : {
+        "Amount" : { },
+        "Currency" : "Currency"
+      },
+      "Name" : "Name"
+    } ]
+  }
+}"""),
     List(AuthenticatedUserIsRequired, UnknownError),
     tag,
     http4sPartialFunction = Some(getDirectDebits)

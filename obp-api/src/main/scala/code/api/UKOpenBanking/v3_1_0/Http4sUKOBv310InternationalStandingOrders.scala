@@ -13,6 +13,7 @@ import code.util.Helper.MdcLoggable
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
+import net.liftweb.json
 import net.liftweb.json.Formats
 import org.http4s._
 import org.http4s.dsl.io._
@@ -42,7 +43,118 @@ object Http4sUKOBv310InternationalStandingOrders extends MdcLoggable {
     "Create International Standing Order Consents",
     s"""${mockedDataText(true)}""",
     EmptyBody,
-    EmptyBody,
+    json.parse("""{
+  "Meta" : {
+    "FirstAvailableDateTime" : { },
+    "TotalPages" : 0
+  },
+  "Risk" : {
+    "PaymentContextCode" : { },
+    "DeliveryAddress" : {
+      "StreetName" : "StreetName",
+      "CountrySubDivision" : [ "CountrySubDivision", "CountrySubDivision" ],
+      "AddressLine" : [ "AddressLine", "AddressLine" ],
+      "BuildingNumber" : "BuildingNumber",
+      "TownName" : "TownName",
+      "Country" : "Country",
+      "PostCode" : "PostCode"
+    },
+    "MerchantCategoryCode" : "MerchantCategoryCode",
+    "MerchantCustomerIdentification" : "MerchantCustomerIdentification"
+  },
+  "Links" : {
+    "Last" : "http://example.com/aeiou",
+    "Prev" : "http://example.com/aeiou",
+    "Next" : "http://example.com/aeiou",
+    "Self" : "http://example.com/aeiou",
+    "First" : "http://example.com/aeiou"
+  },
+  "Data" : {
+    "Status" : { },
+    "StatusUpdateDateTime" : "2000-01-23T04:56:07.000+00:00",
+    "CreationDateTime" : "2000-01-23T04:56:07.000+00:00",
+    "CutOffDateTime" : "2000-01-23T04:56:07.000+00:00",
+    "Authorisation" : {
+      "CompletionDateTime" : "2000-01-23T04:56:07.000+00:00",
+      "AuthorisationType" : { }
+    },
+    "Permission" : { },
+    "Charges" : [ {
+      "Type" : [ "UK.OBIE.CHAPSOut", "UK.OBIE.BalanceTransferOut", "UK.OBIE.MoneyTransferOut" ],
+      "Amount" : {
+        "Amount" : { },
+        "Currency" : "Currency"
+      },
+      "ChargeBearer" : { }
+    }, {
+      "Type" : [ "UK.OBIE.CHAPSOut", "UK.OBIE.BalanceTransferOut", "UK.OBIE.MoneyTransferOut" ],
+      "Amount" : {
+        "Amount" : { },
+        "Currency" : "Currency"
+      },
+      "ChargeBearer" : { }
+    } ],
+    "ConsentId" : "ConsentId",
+    "Initiation" : {
+      "SupplementaryData" : { },
+      "DebtorAccount" : {
+        "SecondaryIdentification" : "SecondaryIdentification",
+        "SchemeName" : [ "UK.OBIE.BBAN", "UK.OBIE.IBAN", "UK.OBIE.PAN", "UK.OBIE.Paym", "UK.OBIE.SortCodeAccountNumber" ],
+        "Identification" : "Identification",
+        "Name" : "Name"
+      },
+      "CreditorAgent" : {
+        "PostalAddress" : {
+          "StreetName" : "StreetName",
+          "CountrySubDivision" : "CountrySubDivision",
+          "Department" : "Department",
+          "AddressLine" : [ "AddressLine", "AddressLine", "AddressLine", "AddressLine", "AddressLine", "AddressLine", "AddressLine" ],
+          "BuildingNumber" : "BuildingNumber",
+          "TownName" : "TownName",
+          "Country" : "Country",
+          "SubDepartment" : "SubDepartment",
+          "AddressType" : { },
+          "PostCode" : "PostCode"
+        },
+        "SchemeName" : [ "UK.OBIE.BICFI" ],
+        "Identification" : "Identification",
+        "Name" : "Name"
+      },
+      "Reference" : "Reference",
+      "CurrencyOfTransfer" : "CurrencyOfTransfer",
+      "CreditorAccount" : {
+        "SecondaryIdentification" : "SecondaryIdentification",
+        "SchemeName" : [ "UK.OBIE.BBAN", "UK.OBIE.IBAN", "UK.OBIE.PAN", "UK.OBIE.Paym", "UK.OBIE.SortCodeAccountNumber" ],
+        "Identification" : "Identification",
+        "Name" : "Name"
+      },
+      "Purpose" : { },
+      "ChargeBearer" : { },
+      "FinalPaymentDateTime" : "2000-01-23T04:56:07.000+00:00",
+      "Frequency" : "Frequency",
+      "FirstPaymentDateTime" : "2000-01-23T04:56:07.000+00:00",
+      "NumberOfPayments" : "NumberOfPayments",
+      "Creditor" : {
+        "PostalAddress" : {
+          "StreetName" : "StreetName",
+          "CountrySubDivision" : "CountrySubDivision",
+          "Department" : "Department",
+          "AddressLine" : [ "AddressLine", "AddressLine", "AddressLine", "AddressLine", "AddressLine", "AddressLine", "AddressLine" ],
+          "BuildingNumber" : "BuildingNumber",
+          "TownName" : "TownName",
+          "Country" : "Country",
+          "SubDepartment" : "SubDepartment",
+          "AddressType" : { },
+          "PostCode" : "PostCode"
+        },
+        "Name" : "Name"
+      },
+      "InstructedAmount" : {
+        "Currency" : "Currency"
+      }
+    }
+  }
+}"""),
     List(AuthenticatedUserIsRequired, UnknownError),
     tag,
     http4sPartialFunction = Some(createInternationalStandingOrderConsents)
@@ -61,7 +173,106 @@ object Http4sUKOBv310InternationalStandingOrders extends MdcLoggable {
     "Create International Standing Orders",
     s"""${mockedDataText(true)}""",
     EmptyBody,
-    EmptyBody,
+    json.parse("""{
+  "Meta" : {
+    "FirstAvailableDateTime" : { },
+    "TotalPages" : 0
+  },
+  "Links" : {
+    "Last" : "http://example.com/aeiou",
+    "Prev" : "http://example.com/aeiou",
+    "Next" : "http://example.com/aeiou",
+    "Self" : "http://example.com/aeiou",
+    "First" : "http://example.com/aeiou"
+  },
+  "Data" : {
+    "Status" : { },
+    "StatusUpdateDateTime" : "2000-01-23T04:56:07.000+00:00",
+    "CreationDateTime" : "2000-01-23T04:56:07.000+00:00",
+    "Charges" : [ {
+      "Type" : [ "UK.OBIE.CHAPSOut", "UK.OBIE.BalanceTransferOut", "UK.OBIE.MoneyTransferOut" ],
+      "Amount" : {
+        "Amount" : { },
+        "Currency" : "Currency"
+      },
+      "ChargeBearer" : { }
+    }, {
+      "Type" : [ "UK.OBIE.CHAPSOut", "UK.OBIE.BalanceTransferOut", "UK.OBIE.MoneyTransferOut" ],
+      "Amount" : {
+        "Amount" : { },
+        "Currency" : "Currency"
+      },
+      "ChargeBearer" : { }
+    } ],
+    "InternationalStandingOrderId" : "InternationalStandingOrderId",
+    "ConsentId" : "ConsentId",
+    "Initiation" : {
+      "SupplementaryData" : { },
+      "DebtorAccount" : {
+        "SecondaryIdentification" : "SecondaryIdentification",
+        "SchemeName" : [ "UK.OBIE.BBAN", "UK.OBIE.IBAN", "UK.OBIE.PAN", "UK.OBIE.Paym", "UK.OBIE.SortCodeAccountNumber" ],
+        "Identification" : "Identification",
+        "Name" : "Name"
+      },
+      "CreditorAgent" : {
+        "PostalAddress" : {
+          "StreetName" : "StreetName",
+          "CountrySubDivision" : "CountrySubDivision",
+          "Department" : "Department",
+          "AddressLine" : [ "AddressLine", "AddressLine", "AddressLine", "AddressLine", "AddressLine", "AddressLine", "AddressLine" ],
+          "BuildingNumber" : "BuildingNumber",
+          "TownName" : "TownName",
+          "Country" : "Country",
+          "SubDepartment" : "SubDepartment",
+          "AddressType" : { },
+          "PostCode" : "PostCode"
+        },
+        "SchemeName" : [ "UK.OBIE.BICFI" ],
+        "Identification" : "Identification",
+        "Name" : "Name"
+      },
+      "Reference" : "Reference",
+      "CurrencyOfTransfer" : "CurrencyOfTransfer",
+      "CreditorAccount" : {
+        "SecondaryIdentification" : "SecondaryIdentification",
+        "SchemeName" : [ "UK.OBIE.BBAN", "UK.OBIE.IBAN", "UK.OBIE.PAN", "UK.OBIE.Paym", "UK.OBIE.SortCodeAccountNumber" ],
+        "Identification" : "Identification",
+        "Name" : "Name"
+      },
+      "Purpose" : { },
+      "ChargeBearer" : { },
+      "FinalPaymentDateTime" : "2000-01-23T04:56:07.000+00:00",
+      "Frequency" : "Frequency",
+      "FirstPaymentDateTime" : "2000-01-23T04:56:07.000+00:00",
+      "NumberOfPayments" : "NumberOfPayments",
+      "Creditor" : {
+        "PostalAddress" : {
+          "StreetName" : "StreetName",
+          "CountrySubDivision" : "CountrySubDivision",
+          "Department" : "Department",
+          "AddressLine" : [ "AddressLine", "AddressLine", "AddressLine", "AddressLine", "AddressLine", "AddressLine", "AddressLine" ],
+          "BuildingNumber" : "BuildingNumber",
+          "TownName" : "TownName",
+          "Country" : "Country",
+          "SubDepartment" : "SubDepartment",
+          "AddressType" : { },
+          "PostCode" : "PostCode"
+        },
+        "Name" : "Name"
+      },
+      "InstructedAmount" : {
+        "Currency" : "Currency"
+      }
+    },
+    "MultiAuthorisation" : {
+      "Status" : { },
+      "NumberReceived" : 6,
+      "LastUpdateDateTime" : "2000-01-23T04:56:07.000+00:00",
+      "ExpirationDateTime" : "2000-01-23T04:56:07.000+00:00",
+      "NumberRequired" : 0
+    }
+  }
+}"""),
     List(AuthenticatedUserIsRequired, UnknownError),
     tag,
     http4sPartialFunction = Some(createInternationalStandingOrders)
@@ -80,7 +291,118 @@ object Http4sUKOBv310InternationalStandingOrders extends MdcLoggable {
     "Get International Standing Order Consents",
     s"""${mockedDataText(true)}""",
     EmptyBody,
-    EmptyBody,
+    json.parse("""{
+  "Meta" : {
+    "FirstAvailableDateTime" : { },
+    "TotalPages" : 0
+  },
+  "Risk" : {
+    "PaymentContextCode" : { },
+    "DeliveryAddress" : {
+      "StreetName" : "StreetName",
+      "CountrySubDivision" : [ "CountrySubDivision", "CountrySubDivision" ],
+      "AddressLine" : [ "AddressLine", "AddressLine" ],
+      "BuildingNumber" : "BuildingNumber",
+      "TownName" : "TownName",
+      "Country" : "Country",
+      "PostCode" : "PostCode"
+    },
+    "MerchantCategoryCode" : "MerchantCategoryCode",
+    "MerchantCustomerIdentification" : "MerchantCustomerIdentification"
+  },
+  "Links" : {
+    "Last" : "http://example.com/aeiou",
+    "Prev" : "http://example.com/aeiou",
+    "Next" : "http://example.com/aeiou",
+    "Self" : "http://example.com/aeiou",
+    "First" : "http://example.com/aeiou"
+  },
+  "Data" : {
+    "Status" : { },
+    "StatusUpdateDateTime" : "2000-01-23T04:56:07.000+00:00",
+    "CreationDateTime" : "2000-01-23T04:56:07.000+00:00",
+    "CutOffDateTime" : "2000-01-23T04:56:07.000+00:00",
+    "Authorisation" : {
+      "CompletionDateTime" : "2000-01-23T04:56:07.000+00:00",
+      "AuthorisationType" : { }
+    },
+    "Permission" : { },
+    "Charges" : [ {
+      "Type" : [ "UK.OBIE.CHAPSOut", "UK.OBIE.BalanceTransferOut", "UK.OBIE.MoneyTransferOut" ],
+      "Amount" : {
+        "Amount" : { },
+        "Currency" : "Currency"
+      },
+      "ChargeBearer" : { }
+    }, {
+      "Type" : [ "UK.OBIE.CHAPSOut", "UK.OBIE.BalanceTransferOut", "UK.OBIE.MoneyTransferOut" ],
+      "Amount" : {
+        "Amount" : { },
+        "Currency" : "Currency"
+      },
+      "ChargeBearer" : { }
+    } ],
+    "ConsentId" : "ConsentId",
+    "Initiation" : {
+      "SupplementaryData" : { },
+      "DebtorAccount" : {
+        "SecondaryIdentification" : "SecondaryIdentification",
+        "SchemeName" : [ "UK.OBIE.BBAN", "UK.OBIE.IBAN", "UK.OBIE.PAN", "UK.OBIE.Paym", "UK.OBIE.SortCodeAccountNumber" ],
+        "Identification" : "Identification",
+        "Name" : "Name"
+      },
+      "CreditorAgent" : {
+        "PostalAddress" : {
+          "StreetName" : "StreetName",
+          "CountrySubDivision" : "CountrySubDivision",
+          "Department" : "Department",
+          "AddressLine" : [ "AddressLine", "AddressLine", "AddressLine", "AddressLine", "AddressLine", "AddressLine", "AddressLine" ],
+          "BuildingNumber" : "BuildingNumber",
+          "TownName" : "TownName",
+          "Country" : "Country",
+          "SubDepartment" : "SubDepartment",
+          "AddressType" : { },
+          "PostCode" : "PostCode"
+        },
+        "SchemeName" : [ "UK.OBIE.BICFI" ],
+        "Identification" : "Identification",
+        "Name" : "Name"
+      },
+      "Reference" : "Reference",
+      "CurrencyOfTransfer" : "CurrencyOfTransfer",
+      "CreditorAccount" : {
+        "SecondaryIdentification" : "SecondaryIdentification",
+        "SchemeName" : [ "UK.OBIE.BBAN", "UK.OBIE.IBAN", "UK.OBIE.PAN", "UK.OBIE.Paym", "UK.OBIE.SortCodeAccountNumber" ],
+        "Identification" : "Identification",
+        "Name" : "Name"
+      },
+      "Purpose" : { },
+      "ChargeBearer" : { },
+      "FinalPaymentDateTime" : "2000-01-23T04:56:07.000+00:00",
+      "Frequency" : "Frequency",
+      "FirstPaymentDateTime" : "2000-01-23T04:56:07.000+00:00",
+      "NumberOfPayments" : "NumberOfPayments",
+      "Creditor" : {
+        "PostalAddress" : {
+          "StreetName" : "StreetName",
+          "CountrySubDivision" : "CountrySubDivision",
+          "Department" : "Department",
+          "AddressLine" : [ "AddressLine", "AddressLine", "AddressLine", "AddressLine", "AddressLine", "AddressLine", "AddressLine" ],
+          "BuildingNumber" : "BuildingNumber",
+          "TownName" : "TownName",
+          "Country" : "Country",
+          "SubDepartment" : "SubDepartment",
+          "AddressType" : { },
+          "PostCode" : "PostCode"
+        },
+        "Name" : "Name"
+      },
+      "InstructedAmount" : {
+        "Currency" : "Currency"
+      }
+    }
+  }
+}"""),
     List(AuthenticatedUserIsRequired, UnknownError),
     tag,
     http4sPartialFunction = Some(getInternationalStandingOrderConsentsConsentId)
@@ -99,7 +421,106 @@ object Http4sUKOBv310InternationalStandingOrders extends MdcLoggable {
     "Get International Standing Orders",
     s"""${mockedDataText(true)}""",
     EmptyBody,
-    EmptyBody,
+    json.parse("""{
+  "Meta" : {
+    "FirstAvailableDateTime" : { },
+    "TotalPages" : 0
+  },
+  "Links" : {
+    "Last" : "http://example.com/aeiou",
+    "Prev" : "http://example.com/aeiou",
+    "Next" : "http://example.com/aeiou",
+    "Self" : "http://example.com/aeiou",
+    "First" : "http://example.com/aeiou"
+  },
+  "Data" : {
+    "Status" : { },
+    "StatusUpdateDateTime" : "2000-01-23T04:56:07.000+00:00",
+    "CreationDateTime" : "2000-01-23T04:56:07.000+00:00",
+    "Charges" : [ {
+      "Type" : [ "UK.OBIE.CHAPSOut", "UK.OBIE.BalanceTransferOut", "UK.OBIE.MoneyTransferOut" ],
+      "Amount" : {
+        "Amount" : { },
+        "Currency" : "Currency"
+      },
+      "ChargeBearer" : { }
+    }, {
+      "Type" : [ "UK.OBIE.CHAPSOut", "UK.OBIE.BalanceTransferOut", "UK.OBIE.MoneyTransferOut" ],
+      "Amount" : {
+        "Amount" : { },
+        "Currency" : "Currency"
+      },
+      "ChargeBearer" : { }
+    } ],
+    "InternationalStandingOrderId" : "InternationalStandingOrderId",
+    "ConsentId" : "ConsentId",
+    "Initiation" : {
+      "SupplementaryData" : { },
+      "DebtorAccount" : {
+        "SecondaryIdentification" : "SecondaryIdentification",
+        "SchemeName" : [ "UK.OBIE.BBAN", "UK.OBIE.IBAN", "UK.OBIE.PAN", "UK.OBIE.Paym", "UK.OBIE.SortCodeAccountNumber" ],
+        "Identification" : "Identification",
+        "Name" : "Name"
+      },
+      "CreditorAgent" : {
+        "PostalAddress" : {
+          "StreetName" : "StreetName",
+          "CountrySubDivision" : "CountrySubDivision",
+          "Department" : "Department",
+          "AddressLine" : [ "AddressLine", "AddressLine", "AddressLine", "AddressLine", "AddressLine", "AddressLine", "AddressLine" ],
+          "BuildingNumber" : "BuildingNumber",
+          "TownName" : "TownName",
+          "Country" : "Country",
+          "SubDepartment" : "SubDepartment",
+          "AddressType" : { },
+          "PostCode" : "PostCode"
+        },
+        "SchemeName" : [ "UK.OBIE.BICFI" ],
+        "Identification" : "Identification",
+        "Name" : "Name"
+      },
+      "Reference" : "Reference",
+      "CurrencyOfTransfer" : "CurrencyOfTransfer",
+      "CreditorAccount" : {
+        "SecondaryIdentification" : "SecondaryIdentification",
+        "SchemeName" : [ "UK.OBIE.BBAN", "UK.OBIE.IBAN", "UK.OBIE.PAN", "UK.OBIE.Paym", "UK.OBIE.SortCodeAccountNumber" ],
+        "Identification" : "Identification",
+        "Name" : "Name"
+      },
+      "Purpose" : { },
+      "ChargeBearer" : { },
+      "FinalPaymentDateTime" : "2000-01-23T04:56:07.000+00:00",
+      "Frequency" : "Frequency",
+      "FirstPaymentDateTime" : "2000-01-23T04:56:07.000+00:00",
+      "NumberOfPayments" : "NumberOfPayments",
+      "Creditor" : {
+        "PostalAddress" : {
+          "StreetName" : "StreetName",
+          "CountrySubDivision" : "CountrySubDivision",
+          "Department" : "Department",
+          "AddressLine" : [ "AddressLine", "AddressLine", "AddressLine", "AddressLine", "AddressLine", "AddressLine", "AddressLine" ],
+          "BuildingNumber" : "BuildingNumber",
+          "TownName" : "TownName",
+          "Country" : "Country",
+          "SubDepartment" : "SubDepartment",
+          "AddressType" : { },
+          "PostCode" : "PostCode"
+        },
+        "Name" : "Name"
+      },
+      "InstructedAmount" : {
+        "Currency" : "Currency"
+      }
+    },
+    "MultiAuthorisation" : {
+      "Status" : { },
+      "NumberReceived" : 6,
+      "LastUpdateDateTime" : "2000-01-23T04:56:07.000+00:00",
+      "ExpirationDateTime" : "2000-01-23T04:56:07.000+00:00",
+      "NumberRequired" : 0
+    }
+  }
+}"""),
     List(AuthenticatedUserIsRequired, UnknownError),
     tag,
     http4sPartialFunction = Some(getInternationalStandingOrdersInternationalStandingOrderPaymentId)

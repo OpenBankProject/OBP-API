@@ -13,6 +13,7 @@ import code.util.Helper.MdcLoggable
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
+import net.liftweb.json
 import net.liftweb.json.Formats
 import org.http4s._
 import org.http4s.dsl.io._
@@ -47,7 +48,76 @@ object Http4sUKOBv310Beneficiaries extends MdcLoggable {
     "Get Beneficiaries",
     s"""${mockedDataText(true)}""",
     EmptyBody,
-    EmptyBody,
+    json.parse("""{
+  "Meta" : {
+    "FirstAvailableDateTime" : { },
+    "TotalPages" : 0
+  },
+  "Links" : {
+    "Last" : "http://example.com/aeiou",
+    "Prev" : "http://example.com/aeiou",
+    "Next" : "http://example.com/aeiou",
+    "Self" : "http://example.com/aeiou",
+    "First" : "http://example.com/aeiou"
+  },
+  "Data" : {
+    "Beneficiary" : [ {
+      "CreditorAgent" : {
+        "PostalAddress" : {
+          "StreetName" : "StreetName",
+          "CountrySubDivision" : "CountrySubDivision",
+          "Department" : "Department",
+          "AddressLine" : [ "AddressLine", "AddressLine", "AddressLine", "AddressLine", "AddressLine", "AddressLine", "AddressLine" ],
+          "BuildingNumber" : "BuildingNumber",
+          "TownName" : "TownName",
+          "Country" : "Country",
+          "SubDepartment" : "SubDepartment",
+          "AddressType" : { },
+          "PostCode" : "PostCode"
+        },
+        "SchemeName" : [ "UK.OBIE.BICFI" ],
+        "Identification" : "Identification",
+        "Name" : "Name"
+      },
+      "AccountId" : { },
+      "Reference" : "Reference",
+      "CreditorAccount" : {
+        "SecondaryIdentification" : "SecondaryIdentification",
+        "SchemeName" : [ "UK.OBIE.BBAN", "UK.OBIE.IBAN", "UK.OBIE.PAN", "UK.OBIE.Paym", "UK.OBIE.SortCodeAccountNumber" ],
+        "Identification" : "Identification",
+        "Name" : "Name"
+      },
+      "BeneficiaryId" : "BeneficiaryId"
+    }, {
+      "CreditorAgent" : {
+        "PostalAddress" : {
+          "StreetName" : "StreetName",
+          "CountrySubDivision" : "CountrySubDivision",
+          "Department" : "Department",
+          "AddressLine" : [ "AddressLine", "AddressLine", "AddressLine", "AddressLine", "AddressLine", "AddressLine", "AddressLine" ],
+          "BuildingNumber" : "BuildingNumber",
+          "TownName" : "TownName",
+          "Country" : "Country",
+          "SubDepartment" : "SubDepartment",
+          "AddressType" : { },
+          "PostCode" : "PostCode"
+        },
+        "SchemeName" : [ "UK.OBIE.BICFI" ],
+        "Identification" : "Identification",
+        "Name" : "Name"
+      },
+      "AccountId" : { },
+      "Reference" : "Reference",
+      "CreditorAccount" : {
+        "SecondaryIdentification" : "SecondaryIdentification",
+        "SchemeName" : [ "UK.OBIE.BBAN", "UK.OBIE.IBAN", "UK.OBIE.PAN", "UK.OBIE.Paym", "UK.OBIE.SortCodeAccountNumber" ],
+        "Identification" : "Identification",
+        "Name" : "Name"
+      },
+      "BeneficiaryId" : "BeneficiaryId"
+    } ]
+  }
+}"""),
     List(AuthenticatedUserIsRequired, UnknownError),
     tag,
     http4sPartialFunction = Some(getAccountsAccountIdBeneficiaries)
@@ -66,7 +136,76 @@ object Http4sUKOBv310Beneficiaries extends MdcLoggable {
     "Get Beneficiaries",
     s"""${mockedDataText(true)}""",
     EmptyBody,
-    EmptyBody,
+    json.parse("""{
+  "Meta" : {
+    "FirstAvailableDateTime" : { },
+    "TotalPages" : 0
+  },
+  "Links" : {
+    "Last" : "http://example.com/aeiou",
+    "Prev" : "http://example.com/aeiou",
+    "Next" : "http://example.com/aeiou",
+    "Self" : "http://example.com/aeiou",
+    "First" : "http://example.com/aeiou"
+  },
+  "Data" : {
+    "Beneficiary" : [ {
+      "CreditorAgent" : {
+        "PostalAddress" : {
+          "StreetName" : "StreetName",
+          "CountrySubDivision" : "CountrySubDivision",
+          "Department" : "Department",
+          "AddressLine" : [ "AddressLine", "AddressLine", "AddressLine", "AddressLine", "AddressLine", "AddressLine", "AddressLine" ],
+          "BuildingNumber" : "BuildingNumber",
+          "TownName" : "TownName",
+          "Country" : "Country",
+          "SubDepartment" : "SubDepartment",
+          "AddressType" : { },
+          "PostCode" : "PostCode"
+        },
+        "SchemeName" : [ "UK.OBIE.BICFI" ],
+        "Identification" : "Identification",
+        "Name" : "Name"
+      },
+      "AccountId" : { },
+      "Reference" : "Reference",
+      "CreditorAccount" : {
+        "SecondaryIdentification" : "SecondaryIdentification",
+        "SchemeName" : [ "UK.OBIE.BBAN", "UK.OBIE.IBAN", "UK.OBIE.PAN", "UK.OBIE.Paym", "UK.OBIE.SortCodeAccountNumber" ],
+        "Identification" : "Identification",
+        "Name" : "Name"
+      },
+      "BeneficiaryId" : "BeneficiaryId"
+    }, {
+      "CreditorAgent" : {
+        "PostalAddress" : {
+          "StreetName" : "StreetName",
+          "CountrySubDivision" : "CountrySubDivision",
+          "Department" : "Department",
+          "AddressLine" : [ "AddressLine", "AddressLine", "AddressLine", "AddressLine", "AddressLine", "AddressLine", "AddressLine" ],
+          "BuildingNumber" : "BuildingNumber",
+          "TownName" : "TownName",
+          "Country" : "Country",
+          "SubDepartment" : "SubDepartment",
+          "AddressType" : { },
+          "PostCode" : "PostCode"
+        },
+        "SchemeName" : [ "UK.OBIE.BICFI" ],
+        "Identification" : "Identification",
+        "Name" : "Name"
+      },
+      "AccountId" : { },
+      "Reference" : "Reference",
+      "CreditorAccount" : {
+        "SecondaryIdentification" : "SecondaryIdentification",
+        "SchemeName" : [ "UK.OBIE.BBAN", "UK.OBIE.IBAN", "UK.OBIE.PAN", "UK.OBIE.Paym", "UK.OBIE.SortCodeAccountNumber" ],
+        "Identification" : "Identification",
+        "Name" : "Name"
+      },
+      "BeneficiaryId" : "BeneficiaryId"
+    } ]
+  }
+}"""),
     List(AuthenticatedUserIsRequired, UnknownError),
     tag,
     http4sPartialFunction = Some(getBeneficiaries)

@@ -13,6 +13,7 @@ import code.util.Helper.MdcLoggable
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
+import net.liftweb.json
 import net.liftweb.json.Formats
 import org.http4s._
 import org.http4s.dsl.io._
@@ -46,7 +47,32 @@ object Http4sUKOBv310FundsConfirmations extends MdcLoggable {
     "Create Funds Confirmation Consents",
     s"""${mockedDataText(true)}""",
     EmptyBody,
-    EmptyBody,
+    json.parse("""{
+  "Meta" : {
+    "FirstAvailableDateTime" : { },
+    "TotalPages" : 0
+  },
+  "Links" : {
+    "Last" : "http://example.com/aeiou",
+    "Prev" : "http://example.com/aeiou",
+    "Next" : "http://example.com/aeiou",
+    "Self" : "http://example.com/aeiou",
+    "First" : "http://example.com/aeiou"
+  },
+  "Data" : {
+    "Status" : { },
+    "StatusUpdateDateTime" : "2000-01-23T04:56:07.000+00:00",
+    "DebtorAccount" : {
+      "SecondaryIdentification" : "SecondaryIdentification",
+      "SchemeName" : [ "UK.OBIE.BBAN", "UK.OBIE.IBAN", "UK.OBIE.PAN", "UK.OBIE.Paym", "UK.OBIE.SortCodeAccountNumber" ],
+      "Identification" : "Identification",
+      "Name" : "Name"
+    },
+    "CreationDateTime" : "2000-01-23T04:56:07.000+00:00",
+    "ExpirationDateTime" : "2000-01-23T04:56:07.000+00:00",
+    "ConsentId" : "ConsentId"
+  }
+}"""),
     List(AuthenticatedUserIsRequired, UnknownError),
     tag,
     http4sPartialFunction = Some(createFundsConfirmationConsents)
@@ -65,7 +91,30 @@ object Http4sUKOBv310FundsConfirmations extends MdcLoggable {
     "Create Funds Confirmations",
     s"""${mockedDataText(true)}""",
     EmptyBody,
-    EmptyBody,
+    json.parse("""{
+  "Meta" : {
+    "FirstAvailableDateTime" : { },
+    "TotalPages" : 0
+  },
+  "Links" : {
+    "Last" : "http://example.com/aeiou",
+    "Prev" : "http://example.com/aeiou",
+    "Next" : "http://example.com/aeiou",
+    "Self" : "http://example.com/aeiou",
+    "First" : "http://example.com/aeiou"
+  },
+  "Data" : {
+    "FundsConfirmationId" : "FundsConfirmationId",
+    "CreationDateTime" : "2000-01-23T04:56:07.000+00:00",
+    "Reference" : "Reference",
+    "FundsAvailable" : true,
+    "ConsentId" : "ConsentId",
+    "InstructedAmount" : {
+      "Amount" : { },
+      "Currency" : "Currency"
+    }
+  }
+}"""),
     List(AuthenticatedUserIsRequired, UnknownError),
     tag,
     http4sPartialFunction = Some(createFundsConfirmations)
@@ -104,7 +153,32 @@ object Http4sUKOBv310FundsConfirmations extends MdcLoggable {
     "Get Funds Confirmation Consents",
     s"""${mockedDataText(true)}""",
     EmptyBody,
-    EmptyBody,
+    json.parse("""{
+  "Meta" : {
+    "FirstAvailableDateTime" : { },
+    "TotalPages" : 0
+  },
+  "Links" : {
+    "Last" : "http://example.com/aeiou",
+    "Prev" : "http://example.com/aeiou",
+    "Next" : "http://example.com/aeiou",
+    "Self" : "http://example.com/aeiou",
+    "First" : "http://example.com/aeiou"
+  },
+  "Data" : {
+    "Status" : { },
+    "StatusUpdateDateTime" : "2000-01-23T04:56:07.000+00:00",
+    "DebtorAccount" : {
+      "SecondaryIdentification" : "SecondaryIdentification",
+      "SchemeName" : [ "UK.OBIE.BBAN", "UK.OBIE.IBAN", "UK.OBIE.PAN", "UK.OBIE.Paym", "UK.OBIE.SortCodeAccountNumber" ],
+      "Identification" : "Identification",
+      "Name" : "Name"
+    },
+    "CreationDateTime" : "2000-01-23T04:56:07.000+00:00",
+    "ExpirationDateTime" : "2000-01-23T04:56:07.000+00:00",
+    "ConsentId" : "ConsentId"
+  }
+}"""),
     List(AuthenticatedUserIsRequired, UnknownError),
     tag,
     http4sPartialFunction = Some(getFundsConfirmationConsentsConsentId)
