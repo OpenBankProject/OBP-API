@@ -51,14 +51,8 @@ object OBP_BERLIN_GROUP_1_3_Alias extends OBPRestHelper with MdcLoggable with Sc
     ))
   } else ArrayBuffer.empty[ResourceDoc]
 
-  // Filter the possible endpoints by the disabled / enabled Props settings and add them together
-  override val routes: List[OBPEndpoint] = if(berlinGroupV13AliasPath.nonEmpty){
-    getAllowedEndpoints(OBP_BERLIN_GROUP_1_3.endpoints, allResourceDocs)
-  } else List.empty[OBPEndpoint]
-
-  // Make them available for use!
-  if(berlinGroupV13AliasPath.nonEmpty){
-    registerRoutes(routes, allResourceDocs, apiPrefix)
-    logger.info(s"version $apiVersion has been run! There are ${routes.length} routes.")
-  }
+  // All BG v1.3 alias routes are now served natively by Http4sBGv13Alias.wrappedRoutes.
+  // Lift dispatch is retired: routes is Nil so registerRoutes is not called.
+  // allResourceDocs is retained for ScannedApis version-discovery.
+  override val routes: List[OBPEndpoint] = Nil
 }

@@ -70,11 +70,9 @@ object OBP_BERLIN_GROUP_1_3 extends OBPRestHelper with MdcLoggable with ScannedA
     APIMethods_SigningBasketsApi.resourceDocs ++
     APIMethods_CommonServicesApi.resourceDocs
 
-  // Filter the possible endpoints by the disabled / enabled Props settings and add them together
-  override val routes : List[OBPEndpoint] = getAllowedEndpoints(endpoints, allResourceDocs)
-
-  // Make them available for use!
-  registerRoutes(routes, allResourceDocs, apiPrefix)
-
-  logger.info(s"version $version has been run! There are ${routes.length} routes.")
+  // All BG v1.3 routes are now served natively by Http4sBGv13.wrappedRoutes.
+  // Lift dispatch is retired: routes is Nil so registerRoutes is not called.
+  // allResourceDocs and endpoints are retained so ScannedApis version-discovery
+  // (and apiVersion equality checks) still resolve correctly.
+  override val routes: List[OBPEndpoint] = Nil
 }
