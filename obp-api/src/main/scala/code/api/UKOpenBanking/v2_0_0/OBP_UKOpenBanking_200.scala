@@ -1,68 +1,46 @@
-/**
-Open Bank Project - API
-Copyright (C) 2011-2019, TESOBE GmbH.
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU Affero General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU Affero General Public License for more details.
-
-You should have received a copy of the GNU Affero General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-Email: contact@tesobe.com
-TESOBE GmbH.
-Osloer Strasse 16/17
-Berlin 13359, Germany
-
-This product includes software developed at
-TESOBE (http://www.tesobe.com/)
-
-  */
 package code.api.UKOpenBanking.v2_0_0
 
 import code.api.OBPRestHelper
-import code.api.util.APIUtil.{OBPEndpoint, getAllowedEndpoints}
+import code.api.util.APIUtil.{OBPEndpoint, ResourceDoc}
 import code.api.util.ScannedApis
 import code.util.Helper.MdcLoggable
-
-import scala.collection.immutable.Nil
-import code.api.UKOpenBanking.v2_0_0.APIMethods_UKOpenBanking_200._
 import com.openbankproject.commons.util.{ApiVersion, ApiVersionStatus}
 
+import scala.collection.mutable.ArrayBuffer
 
 /*
-This file defines which endpoints from all the versions are available in v1
+ * All v2.0 UK Open Banking endpoints have been migrated to Http4sUKOBv200AIS.
+ * This stub is retained for ScannedApis registration (class-path scanning) and
+ * so that external callers (APIUtil, SwaggerJSONFactory) that access
+ * OBP_UKOpenBanking_200.apiVersion / .allResourceDocs continue to compile.
+ * Routes are served by Http4sUKOBv200.wrappedRoutes in Http4sApp (ahead of the Lift bridge).
  */
+object OBP_UKOpenBanking_200 extends OBPRestHelper with MdcLoggable with ScannedApis {
 
+  override val apiVersion: ApiVersion = ApiVersion.ukOpenBankingV20
+  val versionStatus: String = ApiVersionStatus.DRAFT.toString
 
-object OBP_UKOpenBanking_200 extends OBPRestHelper with MdcLoggable with ScannedApis{
+  override val allResourceDocs: ArrayBuffer[ResourceDoc] = Http4sUKOBv200.resourceDocs
 
-  override val apiVersion = ApiVersion.ukOpenBankingV20
-  val versionStatus = ApiVersionStatus.DRAFT.toString
-
-  val allEndpoints = 
-    getAccountList :: 
-    getAccountTransactions :: 
-    getAccount :: 
-    getAccountBalances :: 
-    getBalances :: 
-    Nil
-  
-  override val allResourceDocs = resourceDocs
-
-  // Filter the possible endpoints by the disabled / enabled Props settings and add them together
-  override val routes : List[OBPEndpoint] = getAllowedEndpoints(allEndpoints,resourceDocs)
-
-
-  // Make them available for use!
-  registerRoutes(routes, allResourceDocs, apiPrefix)
-
-  logger.info(s"version $version has been run! There are ${routes.length} routes.")
-
+  override val routes: List[OBPEndpoint] = Nil
 }
+
+// ─── Original Lift aggregator (commented out) ────────────────────────────────
+//import code.api.UKOpenBanking.v2_0_0.APIMethods_UKOpenBanking_200._
+//import scala.collection.immutable.{Nil => immNil}
+//import code.api.util.APIUtil.getAllowedEndpoints
+//
+//  val allEndpoints =
+//    getAccountList ::
+//    getAccountTransactions ::
+//    getAccount ::
+//    getAccountBalances ::
+//    getBalances ::
+//    immNil
+//
+//  override val allResourceDocs = resourceDocs
+//
+//  override val routes : List[OBPEndpoint] = getAllowedEndpoints(allEndpoints, resourceDocs)
+//
+//  registerRoutes(routes, allResourceDocs, apiPrefix)
+//  logger.info(s"version $version has been run! There are ${routes.length} routes.")
