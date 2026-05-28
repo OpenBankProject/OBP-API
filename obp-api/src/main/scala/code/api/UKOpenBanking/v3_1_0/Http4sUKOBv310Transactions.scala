@@ -21,7 +21,8 @@ import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId, TransactionAttribute, ViewId}
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
 import net.liftweb.common.Full
-import net.liftweb.http.HTTPParam
+import code.model.{BankAccountExtended, User => MappedUser}
+import net.liftweb.http.provider.HTTPParam
 import net.liftweb.json
 import net.liftweb.json.Formats
 import org.http4s._
@@ -72,7 +73,7 @@ object Http4sUKOBv310Transactions extends MdcLoggable {
     parseBody("""{
   "Meta" : {
     "FirstAvailableDateTime": "2019-03-06T07:38:51.169Z",
-    "LastAvailableDateTime": "2019-03-06T07:38:51.169Z"
+    "LastAvailableDateTime": "2019-03-06T07:38:51.169Z",
     "TotalPages" : 0
   },
   "Links" : {
@@ -315,11 +316,11 @@ object Http4sUKOBv310Transactions extends MdcLoggable {
           (bank, _) <- NewStyle.function.getBank(account.bankId, Some(cc))
           view <- ViewNewStyle.checkViewsAccessAndReturnView(detailViewId, basicViewId, BankIdAccountId(account.bankId, accountId), Full(u), Some(cc))
           params <- Future {
-            createQueriesByHttpParams(req.headers.headers.toList.map(h => HTTPParam(h.name.toString, h.value)))
+            createQueriesByHttpParams(req.headers.headers.toList.map(h => HTTPParam(h.name.toString, List(h.value))))
           } map { x =>
             fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, Some(cc.toLight)))
           } map { unboxFull(_) }
-          (transactions, _) <- account.getModeratedTransactionsFuture(bank, Full(u), view, Some(cc), params) map { x =>
+          (transactions, _) <- BankAccountExtended(account).getModeratedTransactionsFuture(bank, Full(u), view, Some(cc), params) map { x =>
             fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, Some(cc.toLight)))
           } map { unboxFull(_) }
           (moderatedAttributes: List[TransactionAttribute], _) <- NewStyle.function.getModeratedAttributesByTransactions(
@@ -342,7 +343,7 @@ object Http4sUKOBv310Transactions extends MdcLoggable {
     parseBody("""{
   "Meta" : {
     "FirstAvailableDateTime": "2019-03-06T07:38:51.169Z",
-    "LastAvailableDateTime": "2019-03-06T07:38:51.169Z"
+    "LastAvailableDateTime": "2019-03-06T07:38:51.169Z",
     "TotalPages" : 0
   },
   "Links" : {
@@ -583,10 +584,10 @@ object Http4sUKOBv310Transactions extends MdcLoggable {
             bankAccount <- accounts
           } yield {
             for {
-              view <- u.checkOwnerViewAccessAndReturnOwnerView(BankIdAccountId(bankAccount.bankId, bankAccount.accountId), Some(cc))
-              params <- createQueriesByHttpParams(req.headers.headers.toList.map(h => HTTPParam(h.name.toString, h.value)))
+              view <- u.asInstanceOf[MappedUser].checkOwnerViewAccessAndReturnOwnerView(BankIdAccountId(bankAccount.bankId, bankAccount.accountId), Some(cc))
+              params <- createQueriesByHttpParams(req.headers.headers.toList.map(h => HTTPParam(h.name.toString, List(h.value))))
               (transactionRequests, _) <- Connector.connector.vend.getTransactionRequests210(u, bankAccount, Some(cc))
-              (transactions, _) <- bankAccount.getModeratedTransactions(bank, Full(u), view, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), Some(cc), params)
+              (transactions, _) <- BankAccountExtended(bankAccount).getModeratedTransactions(bank, Full(u), view, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), Some(cc), params)
             } yield (transactionRequests, transactions)
           }
           transactionRequests = transactionAndTransactionRequestTuple.map(_.map(_._1)).flatten.flatten
@@ -606,7 +607,7 @@ object Http4sUKOBv310Transactions extends MdcLoggable {
     parseBody("""{
   "Meta" : {
     "FirstAvailableDateTime": "2019-03-06T07:38:51.169Z",
-    "LastAvailableDateTime": "2019-03-06T07:38:51.169Z"
+    "LastAvailableDateTime": "2019-03-06T07:38:51.169Z",
     "TotalPages" : 0
   },
   "Links" : {

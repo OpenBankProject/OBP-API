@@ -90,7 +90,7 @@ object Http4sUKOBv310AccountAccess extends MdcLoggable {
     s"""${mockedDataText(false)}
        |Create Account Access Consents
        |""".stripMargin,
-    net.liftweb.parseBody("""{
+    parseBody("""{
   "Data": {
     "Permissions": [
       "ReadAccountsBasic"
@@ -101,7 +101,7 @@ object Http4sUKOBv310AccountAccess extends MdcLoggable {
   },
   "Risk": ""
 }"""),
-    net.liftweb.parseBody("""{
+    parseBody("""{
   "Data": {
     "ConsentId": "string",
     "CreationDateTime": "2020-10-20T08:40:47.375Z",
@@ -207,7 +207,7 @@ object Http4sUKOBv310AccountAccess extends MdcLoggable {
        |Get Account Access Consents
        |""".stripMargin,
     EmptyBody,
-    net.liftweb.parseBody("""{
+    parseBody("""{
   "Data": {
     "ConsentId": "string",
     "CreationDateTime": "2020-10-20T10:28:39.801Z",

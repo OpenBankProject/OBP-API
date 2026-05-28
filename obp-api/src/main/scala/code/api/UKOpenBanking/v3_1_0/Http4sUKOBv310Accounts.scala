@@ -74,7 +74,7 @@ object Http4sUKOBv310Accounts extends MdcLoggable {
     "Get Accounts",
     s"""""",
     EmptyBody,
-    net.liftweb.parseBody("""{
+    parseBody("""{
   "Meta" : {
     "FirstAvailableDateTime" : {},
     "TotalPages" : 0
@@ -142,7 +142,7 @@ object Http4sUKOBv310Accounts extends MdcLoggable {
     parseBody("""{
   "Meta" : {
     "FirstAvailableDateTime": "2019-03-05T13:09:30.399Z",
-    "LastAvailableDateTime": "2019-03-05T13:09:30.399Z"
+    "LastAvailableDateTime": "2019-03-05T13:09:30.399Z",
     "TotalPages" : 0
   },
   "Links" : {
