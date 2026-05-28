@@ -52,19 +52,12 @@ object OBPAPIDynamicEndpoint extends OBPRestHelper with MdcLoggable with Version
 
   val routes : List[OBPEndpoint] = List(APIUtil.dynamicEndpointStub,
     //This is for the dynamic endpoints which are created by dynamic swagger files
-    ImplementationsDynamicEndpoint.dynamicEndpoint,
-    /**
-     * Here is the place where we register the dynamicEndpoint, all the dynamic resource docs endpoints are here.    
-     * Actually, we only register one endpoint for all the dynamic resource docs endpoints.                          
-     * For Liftweb, it just need to handle one endpoint,                                                             
-     *  all the router functionalities are in OBP code.                                                              
-     *  details: please also check code/api/vDynamic/dynamic/DynamicEndpoints.findEndpoint method                      
-     * NOTE: this must be the last one endpoint to register into Liftweb                                             
-     * Because firstly, Liftweb should look for the static endpoints --> then the dynamic ones. 
-     * This is for the dynamic endpoints which are createdy by dynamic resourceDocs
-     */
-    DynamicEndpoints.dynamicEndpoint
-  ) 
+    ImplementationsDynamicEndpoint.dynamicEndpoint
+    // Piece C (runtime-compiled dynamic-resource-doc / practise) endpoints are now served NATIVELY
+    // by code.api.dynamic.endpoint.Http4sDynamicEndpoint via DynamicEndpoints.findEndpoint. The
+    // former Lift `DynamicEndpoints.dynamicEndpoint` (OBPEndpoint) has been removed; the compiled
+    // artifacts are now OBPEndpointIO carried on each dynamic ResourceDoc.dynamicHttp4sFunction.
+  )
 
   // dynamic-endpoint dispatch migrated to native http4s (code.api.dynamic.endpoint.Http4sDynamicEndpoint).
   // The Http4sDynamicEndpoint adapter rebuilds the wrapped form from `routes` directly

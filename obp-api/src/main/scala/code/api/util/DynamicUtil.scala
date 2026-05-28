@@ -3,6 +3,7 @@ package code.api.util
 import code.api.Constant.SHOW_USED_CONNECTOR_METHODS
 import code.api.{APIFailureNewStyle, JsonResponseException}
 import code.api.util.ErrorMessages.DynamicResourceDocMethodDependency
+import cats.effect.IO
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model.BankId
 import com.openbankproject.commons.util.Functions.Memo
@@ -180,6 +181,30 @@ object DynamicUtil extends MdcLoggable{
   trait Sandbox {
     @throws[Exception]
     def runInSandbox[R](action: => R): R
+
+    /**
+     * Run a dynamic body's IO under the same security sandbox, for native (http4s) runtime-compiled
+     * dynamic endpoints (Piece C). The body's SYNCHRONOUS CONSTRUCTION (forcing the by-name `io`,
+     * i.e. applying the compiled handler / running the user statements up to the first Future) runs
+     * inside the privileged context with the restricted permissions; the resulting IO is then
+     * evaluated by the cats-effect runtime OUTSIDE the privileged context. This mirrors the Lift
+     * path exactly: there `runInSandbox { process(...) }` wrapped only the synchronous construction
+     * plus the blocking wait, while the user's Future body (DB / network / serialization) ran on the
+     * EC thread outside `doPrivileged`. Running the whole IO inside `doPrivileged` instead would
+     * (wrongly) subject framework I/O — DB sockets, etc. — to the dynamic-code permission set.
+     *
+     * Non-local `return`: when the dynamic body is the runtime-compiled template it is a closure,
+     * so `return errorResponse(...)` throws a `NonLocalReturnControl` carrying the IO it should
+     * return (the Lift runInSandbox caught the JsonResponse equivalent). We recover that IO here so
+     * an early `return` in user code yields its response rather than a 500. (In PractiseEndpoint the
+     * body is a real method, so `return` is an ordinary return and never reaches this catch.)
+     */
+    def runInSandboxIO[A](io: => IO[A]): IO[A] = {
+      def forceBodyIO(): IO[A] =
+        try io
+        catch { case e: scala.runtime.NonLocalReturnControl[_] => e.value.asInstanceOf[IO[A]] }
+      IO.defer(runInSandbox(forceBodyIO()))
+    }
   }
 
   object Sandbox {

@@ -146,3 +146,18 @@ allow_public_views =true
 # requests + N background queries = 2*N connections needed. Default of 10 is exhausted by
 # the 10-thread concurrency tests. Set to 20 to provide headroom.
 hikari.maximumPoolSize=20
+
+# Permissions granted to runtime-compiled dynamic-endpoint code inside the security sandbox.
+# Mirrors default.props / production.default.props. Required so dynamic resource-doc bodies can do
+# JSON extraction (reflection) and read OBP props (getenv); without it the sandbox denies these and
+# dynamic-endpoint EXECUTION cannot run (only metadata CRUD / compilation). See DynamicResourceDocTest.
+dynamic_code_sandbox_permissions=[\
+    new java.net.NetPermission("specifyStreamHandler"),\
+    new java.lang.reflect.ReflectPermission("suppressAccessChecks"),\
+    new java.lang.RuntimePermission("getenv.*"),\
+    new java.util.PropertyPermission("cglib.useCache", "read"),\
+    new java.util.PropertyPermission("net.sf.cglib.test.stressHashCodes", "read"),\
+    new java.util.PropertyPermission("cglib.debugLocation", "read"),\
+    new java.lang.RuntimePermission("accessDeclaredMembers"),\
+    new java.lang.RuntimePermission("getClassLoader")\
+]
