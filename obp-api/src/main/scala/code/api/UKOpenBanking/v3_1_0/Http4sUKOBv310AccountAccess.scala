@@ -14,6 +14,7 @@ import code.consent.Consents
 import code.util.Helper.MdcLoggable
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
+import com.openbankproject.commons.model.User
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
 import net.liftweb.json.Formats
 import org.http4s._
@@ -38,13 +39,14 @@ object Http4sUKOBv310AccountAccess extends MdcLoggable {
 
   lazy val createAccountAccessConsents: HttpRoutes[IO] = HttpRoutes.of[IO] {
     case req @ POST -> `ukV31Prefix` / "account-access-consents" =>
-      EndpointHelpers.executeFutureWithBodyCreated[ConsentPostBodyUKV310, net.liftweb.json.JValue](req) { (consentJson, cc) =>
-        val createdByUser = cc.user.toOption
+      // Use withUserAndBodyCreated to enforce auth (401) before body parsing (400).
+      // Lift's wrappedWithAuthCheck enforced AuthenticatedUserIsRequired before the handler ran.
+      EndpointHelpers.withUserAndBodyCreated[ConsentPostBodyUKV310, net.liftweb.json.JValue](req) { (u, consentJson, cc) =>
         val consumerId = cc.consumer.map(_.consumerId.get)
         for {
           _ <- passesPsd2Aisp(Some(cc))
           createdConsent <- Future(Consents.consentProvider.vend.saveUKConsent(
-            createdByUser,
+            Some(u),
             bankId = None,
             accountIds = None,
             consumerId = consumerId,

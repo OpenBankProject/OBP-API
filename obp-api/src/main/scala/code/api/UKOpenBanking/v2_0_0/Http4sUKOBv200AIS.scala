@@ -2,18 +2,24 @@ package code.api.UKOpenBanking.v2_0_0
 
 import cats.data.{Kleisli, OptionT}
 import cats.effect.IO
+import code.api.APIFailureNewStyle
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
-import code.api.util.APIUtil.{EmptyBody, ResourceDoc}
+import code.api.util.APIUtil.{EmptyBody, ResourceDoc, createQueriesByHttpParams, fullBoxOrException, unboxFull}
 import code.api.util.ApiTag._
 import code.api.util.CustomJsonFormats
 import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, UnknownError}
 import code.api.util.NewStyle
 import code.api.util.http4s.Http4sRequestAttributes.EndpointHelpers
+import code.api.util.newstyle.ViewNewStyle
+import code.model.BankAccountExtended
 import code.util.Helper.MdcLoggable
 import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
+import com.openbankproject.commons.model.{AccountId, BankIdAccountId}
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
+import net.liftweb.common.Full
+import net.liftweb.http.provider.HTTPParam
 import net.liftweb.json.Formats
 import org.http4s._
 import org.http4s.dsl.io._
@@ -116,9 +122,71 @@ object Http4sUKOBv200AIS extends MdcLoggable {
     http4sPartialFunction = Some(getBalances)
   )
 
+  // GET /accounts/{accountId}/balances — account-level balances
+  lazy val getAccountBalances: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    case req @ GET -> `ukV20Prefix` / "accounts" / accountIdStr / "balances" =>
+      EndpointHelpers.withUser(req) { (u, cc) =>
+        for {
+          (account, _) <- NewStyle.function.getBankAccountByAccountId(AccountId(accountIdStr), Some(cc))
+          view <- ViewNewStyle.checkOwnerViewAccessAndReturnOwnerView(u, BankIdAccountId(account.bankId, account.accountId), Some(cc))
+          moderatedAccount <- Future {
+            BankAccountExtended(account).moderatedBankAccount(view, BankIdAccountId(account.bankId, account.accountId), Full(u), Some(cc))
+          } map { x => unboxFull(fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, Some(cc.toLight)))) }
+        } yield JSONFactory_UKOpenBanking_200.createAccountBalanceJSON(moderatedAccount)
+      }
+  }
+  resourceDocs += ResourceDoc(
+    null,
+    implementedInApiVersion,
+    nameOf(getAccountBalances),
+    "GET",
+    "/accounts/ACCOUNT_ID/balances",
+    "UK Open Banking: Get Account Balances",
+    """An AISP may retrieve the account balance information resource for a specific AccountId.""",
+    EmptyBody,
+    SwaggerDefinitionsJSON.accountBalancesUKV200,
+    List(AuthenticatedUserIsRequired, UnknownError),
+    List(apiTagUKOpenBanking, apiTagAccount, apiTagPrivateData),
+    http4sPartialFunction = Some(getAccountBalances)
+  )
+
+  // GET /accounts/{accountId}/transactions — account-level transactions
+  lazy val getAccountTransactions: HttpRoutes[IO] = HttpRoutes.of[IO] {
+    case req @ GET -> `ukV20Prefix` / "accounts" / accountIdStr / "transactions" =>
+      EndpointHelpers.withUser(req) { (u, cc) =>
+        for {
+          (account, _) <- NewStyle.function.getBankAccountByAccountId(AccountId(accountIdStr), Some(cc))
+          (bank, _) <- NewStyle.function.getBank(account.bankId, Some(cc))
+          view <- ViewNewStyle.checkOwnerViewAccessAndReturnOwnerView(u, BankIdAccountId(account.bankId, account.accountId), Some(cc))
+          params <- Future {
+            createQueriesByHttpParams(req.headers.headers.toList.map(h => HTTPParam(h.name.toString, List(h.value))))
+          } map { x => unboxFull(fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, Some(cc.toLight)))) }
+          (transactions, _) <- Future {
+            BankAccountExtended(account).getModeratedTransactions(bank, Full(u), view, BankIdAccountId(account.bankId, account.accountId), Some(cc), params)
+          } map { x => unboxFull(fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, Some(cc.toLight)))) }
+        } yield JSONFactory_UKOpenBanking_200.createTransactionsJson(transactions, Nil)
+      }
+  }
+  resourceDocs += ResourceDoc(
+    null,
+    implementedInApiVersion,
+    nameOf(getAccountTransactions),
+    "GET",
+    "/accounts/ACCOUNT_ID/transactions",
+    "UK Open Banking: Get Account Transactions",
+    """Reads account data from a given account addressed by "account-id".""",
+    EmptyBody,
+    SwaggerDefinitionsJSON.transactionsJsonUKV200,
+    List(AuthenticatedUserIsRequired, UnknownError),
+    List(apiTagUKOpenBanking, apiTagTransaction, apiTagPrivateData),
+    http4sPartialFunction = Some(getAccountTransactions)
+  )
+
   val routes: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { req =>
     getAccountList(req)
       .orElse(getAccount(req))
+      .orElse(getAccountBalances(req))
+      .orElse(getAccountTransactions(req))
       .orElse(getBalances(req))
   }
 }
