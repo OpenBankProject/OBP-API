@@ -30,12 +30,14 @@ import scala.concurrent.Future
 /**
  * UK Open Banking v2.0 — account-information endpoints migrated from Lift to http4s.
  *
- * Faithful migration of the three list/aggregate endpoints (getAccountList,
- * getAccount, getBalances) which only need getBankAccounts + a JSON factory.
- * The two account-scoped endpoints that rely on Lift Box helpers
- * (getAccountBalances at /accounts/ID/balances, getAccountTransactions at
- * /accounts/ID/transactions) are intentionally left on the Lift bridge: their
- * 3-segment paths don't match the patterns here, so they fall through unchanged.
+ * Faithful migration of all 5 endpoints:
+ *  - getAccountList (/accounts), getAccount (/accounts/ID), getBalances (/balances)
+ *    — list/aggregate endpoints using getBankAccounts + a JSON factory.
+ *  - getAccountBalances (/accounts/ID/balances), getAccountTransactions
+ *    (/accounts/ID/transactions) — account-scoped endpoints; their 3-segment
+ *    patterns are distinct from the 2-segment ones, so http4s route matching
+ *    picks the correct handler.
+ * No v2.0 endpoint is left on Lift.
  */
 object Http4sUKOBv200AIS extends MdcLoggable {
   type HttpF[A] = OptionT[IO, A]

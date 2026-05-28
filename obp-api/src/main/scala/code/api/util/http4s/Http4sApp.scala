@@ -79,9 +79,9 @@ object Http4sApp {
   // separate task and still falls through to the Lift bridge.
   private val dynamicEntityRoutes: HttpRoutes[IO] = gate(ApiVersion.`dynamic-entity`, code.api.dynamic.entity.Http4sDynamicEntity.wrappedRoutesDynamicEntity)
   // UK Open Banking (non-/obp prefixes /open-banking/v2.0 and /open-banking/v3.1) — native
-  // http4s, replaces the classpath-scanned Lift ScannedApis. Must precede the Lift bridge so
-  // it wins. Endpoints with no http4s match (e.g. v2 account-scoped balances/transactions,
-  // v3.1 data-backed endpoints) fall through to the Lift bridge unchanged.
+  // http4s, replaces the classpath-scanned Lift ScannedApis. All endpoints (v2.0: 5, v3.1: ~67)
+  // are migrated to http4s; the Lift ScannedApis aggregators register `routes = Nil`, so Lift
+  // serves no UK path. Wired before the Lift bridge for ordering, but nothing falls through to it.
   private val ukV20Routes: HttpRoutes[IO] = gate(ApiVersion.ukOpenBankingV20, code.api.UKOpenBanking.v2_0_0.Http4sUKOBv200.wrappedRoutes)
   private val ukV31Routes: HttpRoutes[IO] = gate(ApiVersion.ukOpenBankingV31, code.api.UKOpenBanking.v3_1_0.Http4sUKOBv310.wrappedRoutes)
 

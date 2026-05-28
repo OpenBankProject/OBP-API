@@ -18,9 +18,10 @@ import scala.collection.mutable.ArrayBuffer
  * CallContext via anonymousAccess for these non-/obp paths), and exposes
  * `wrappedRoutes` for wiring into Http4sApp.baseServices.
  *
- * Coverage: 16 stub categories plus Balances and Transactions are fully migrated
- * to http4s. AccountAccess consent CRUD and Accounts are also wired. Remaining
- * unmatched routes fall through to the Lift bridge and keep their real behaviour.
+ * Coverage: all 20 v3.1 categories (~67 endpoints) are migrated to http4s and
+ * composed into allRoutes below. The Lift ScannedApis aggregator
+ * (OBP_UKOpenBanking_310) registers `routes = Nil`, so no UK v3.1 path is served
+ * by Lift — nothing falls through to the Lift bridge.
  */
 object Http4sUKOBv310 extends MdcLoggable {
 

@@ -10,8 +10,7 @@ import scala.collection.mutable.ArrayBuffer
 
 /*
  * All UK Open Banking v3.1 endpoints have been migrated to their respective
- * Http4sUKOBv310* objects (16 stub categories + AccountAccess, Accounts,
- * Balances, Transactions).
+ * Http4sUKOBv310* objects (all 20 categories, ~67 endpoints).
  *
  * This aggregator is retained for ScannedApis registration (class-path scanning)
  * and so that external callers (APIUtil, SwaggerJSONFactory) that access

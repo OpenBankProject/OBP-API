@@ -14,9 +14,11 @@ import scala.collection.mutable.ArrayBuffer
  * UK Open Banking v2.0 — http4s aggregator (mirror of Berlin Group's Http4sBGv2).
  *
  * Wraps the migrated account-information routes with ResourceDocMiddleware and
- * exposes `wrappedRoutes` for Http4sApp. The two account-scoped endpoints
- * (/accounts/ID/balances, /accounts/ID/transactions) are not migrated here and
- * fall through to the Lift bridge unchanged.
+ * exposes `wrappedRoutes` for Http4sApp. All 5 v2.0 endpoints — including the two
+ * account-scoped ones (/accounts/ID/balances, /accounts/ID/transactions) — are
+ * migrated in Http4sUKOBv200AIS. The Lift ScannedApis aggregator
+ * (OBP_UKOpenBanking_200) registers `routes = Nil`, so no UK v2.0 path is served
+ * by Lift — nothing falls through to the Lift bridge.
  */
 object Http4sUKOBv200 extends MdcLoggable {
 
