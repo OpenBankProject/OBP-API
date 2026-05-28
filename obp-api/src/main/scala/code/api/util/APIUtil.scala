@@ -2875,7 +2875,10 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         case ApiVersion.v5_1_0 => LiftRules.statelessDispatch.append(v5_1_0.OBPAPI5_1_0)
         case ApiVersion.v6_0_0 => LiftRules.statelessDispatch.append(v6_0_0.OBPAPI6_0_0)
         case ApiVersion.`dynamic-endpoint` => LiftRules.statelessDispatch.append(OBPAPIDynamicEndpoint)
-        case ApiVersion.`dynamic-entity` => LiftRules.statelessDispatch.append(OBPAPIDynamicEntity)
+        // dynamic-entity endpoints migrated to Http4sDynamicEntity (wired into Http4sApp.baseServices).
+        // Keep the case label with an empty body so ApiVersion.`dynamic-entity` does NOT fall through
+        // to the ScannedApiVersion branch below (which would re-append it via ScannedApis).
+        case ApiVersion.`dynamic-entity` => // LiftRules.statelessDispatch.append(OBPAPIDynamicEntity)
         case version: ScannedApiVersion => 
           ScannedApis.versionMapScannedApis.get(version).foreach(api => LiftRules.statelessDispatch.append(api))
         case _ => logger.info(s"There is no ${version.toString}")

@@ -166,7 +166,7 @@ object ResourceDocMiddleware extends MdcLoggable {
                       .getOrElseF(IO.pure(ensureJsonContentType(Response[IO](org.http4s.Status.NotFound))))
                   val executed =
                     if (req.method == Method.GET || req.method == Method.HEAD) routeIO
-                    else withBusinessDBTransaction(routeIO)
+                    else RequestScopeConnection.withBusinessDBTransaction(routeIO)
                   executed.map(Option(_))
               }
             OptionT(work.timeoutTo(endpointTimeoutMs.millis, endpointTimeoutResponse(req)))
@@ -203,60 +203,10 @@ object ResourceDocMiddleware extends MdcLoggable {
     ))
   }
 
-  /**
-   * Activates a lazy request-scoped DB transaction for mutating methods
-   * (POST/PUT/DELETE/PATCH).  GET/HEAD bypass this entirely.
-   *
-   * NO connection is borrowed upfront.  Instead, a once-only acquisition IO is
-   * installed in requestLazyAcquire.  The first fromFuture call that actually needs
-   * a DB connection triggers the acquisition; endpoints that only call external REST
-   * or SOAP connectors never touch the pool at all.
-   *
-   * Concurrent acquisition (rare — most handlers are sequential for-comprehensions):
-   * the inner Deferred serialises callers.  The first fiber to complete it wins;
-   * any concurrent loser closes its own connection immediately and shares the winner's
-   * proxy.  All fibers use one underlying Connection and one transaction.
-   *
-   * currentProxy (TTL) is NOT set here.  Every DB call goes through
-   * RequestScopeConnection.fromFuture, which atomically sets + submits + clears the
-   * TTL within a single IO.defer block on the compute thread.
-   *
-   * On success (connection was acquired): commit, then close.
-   * On error/cancel (connection was acquired): rollback (errors swallowed), then close.
-   * If no DB call was made: deferred is never completed → nothing to commit or close.
-   */
-  private def withBusinessDBTransaction(io: IO[Response[IO]]): IO[Response[IO]] =
-    Deferred[IO, (Connection, Connection)].flatMap { deferred =>
-      // acquireOnce: idempotent across concurrent callers via the Deferred.
-      // The loser of the complete() race discards its own connection and awaits
-      // the winner's proxy so all fibers share one transaction.
-      val acquireOnce: IO[Connection] = for {
-        realConn <- IO.blocking(APIUtil.vendor.HikariDatasource.ds.getConnection())
-        _        <- IO.blocking { realConn.setAutoCommit(false) }
-        proxy    =  RequestScopeConnection.makeProxy(realConn)
-        ok       <- deferred.complete((realConn, proxy))
-        _        <- if (!ok) IO.blocking { try { realConn.close() } catch { case _: Exception => () } }
-                    else IO.unit
-        p        <- deferred.get.map(_._2)
-      } yield p
-
-      RequestScopeConnection.requestLazyAcquire.set(Some(acquireOnce)).bracket(_ =>
-        io.guaranteeCase { outcome =>
-          deferred.tryGet.flatMap {
-            case None => IO.unit   // no DB calls — pool unaffected
-            case Some((realConn, _)) =>
-              RequestScopeConnection.requestProxyLocal.set(None) *>
-                (outcome match {
-                  case Outcome.Succeeded(_) =>
-                    IO.blocking { realConn.commit() }
-                  case _ =>
-                    IO.blocking { try { realConn.rollback() } catch { case _: Exception => () } }
-                }) *>
-                IO.blocking { try { realConn.close() } catch { case _: Exception => () } }
-          }
-        }
-      )(_ => RequestScopeConnection.requestLazyAcquire.set(None))
-    }
+  // withBusinessDBTransaction moved to RequestScopeConnection.withBusinessDBTransaction
+  // so that services which build their own request scope without this middleware
+  // (e.g. Http4sDynamicEntity) can reuse the same commit/rollback/close logic.
+  // The call site above now delegates to RequestScopeConnection.withBusinessDBTransaction.
 
   /**
    * Runs the full validation chain (auth → roles → bank → account → view → counterparty)

@@ -70,6 +70,11 @@ trait APIMethodsDynamicEntity {
       }
     }
 
+    /* DISABLED — DynamicEntity runtime CRUD migrated to code.api.dynamic.entity.Http4sDynamicEntity
+       (wired into Http4sApp.baseServices).  These Lift OBPEndpoint handlers are no longer registered
+       (OBPAPIDynamicEntity.routes = Nil and dynamic-entity removed from LiftRules.statelessDispatch).
+       Retained, commented out, for historical reference per the repo's revert-and-comment convention.
+
     lazy val genericEndpoint: OBPEndpoint = {
       case EntityName(bankId, entityName, id, isPersonalEntity) JsonGet req => { cc =>
         val listName = StringHelpers.snakify(entityName).replaceFirst("[-_]*$", "_list")
@@ -513,6 +518,8 @@ trait APIMethodsDynamicEntity {
         }
       }
     }
+    */
+    // end DISABLED handlers (migrated to Http4sDynamicEntity)
   }
 }
 

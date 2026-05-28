@@ -1,12 +1,14 @@
 package code.api.util.http4s
 
-import cats.effect.{IO, IOLocal}
+import cats.effect.{Deferred, IO, IOLocal, Outcome}
 import cats.effect.unsafe.IORuntime
 import com.alibaba.ttl.TransmittableThreadLocal
 import net.liftweb.common.{Box, Full}
 import net.liftweb.db.ConnectionManager
 import net.liftweb.util.ConnectionIdentifier
+import org.http4s.Response
 
+import code.api.util.APIUtil
 import code.util.Helper.MdcLoggable
 import java.lang.reflect.{InvocationHandler, Method, Proxy => JProxy}
 import java.sql.Connection
@@ -171,6 +173,51 @@ object RequestScopeConnection extends MdcLoggable {
         currentProxy.remove()               // (3) clear TTL on T — T is clean after this point
         IO.fromFuture(IO.pure(f))           // await the already-submitted future
       }
+    }
+
+  /**
+   * Wrap an http4s route IO in a request-scoped DB transaction.
+   *
+   * Installs a once-only lazy connection-acquisition scope (requestLazyAcquire): no real
+   * connection is borrowed until the FIRST fromFuture call that touches the DB.  The first
+   * fiber to complete the inner Deferred wins; concurrent losers discard their connection
+   * and share the winner's proxy, so all fibers use one underlying Connection / one
+   * transaction.  On success: commit then close.  On error/cancel: rollback then close.
+   * If no DB call was made: nothing to commit or close (pool unaffected).
+   *
+   * GET/HEAD must NOT be wrapped (they run on auto-commit vendor connections).  Used by
+   * ResourceDocMiddleware (v6/v7) and by services that build their own request scope
+   * without the middleware (e.g. Http4sDynamicEntity).
+   */
+  def withBusinessDBTransaction(io: IO[Response[IO]]): IO[Response[IO]] =
+    Deferred[IO, (Connection, Connection)].flatMap { deferred =>
+      // acquireOnce: idempotent across concurrent callers via the Deferred.
+      val acquireOnce: IO[Connection] = for {
+        realConn <- IO.blocking(APIUtil.vendor.HikariDatasource.ds.getConnection())
+        _        <- IO.blocking { realConn.setAutoCommit(false) }
+        proxy    =  makeProxy(realConn)
+        ok       <- deferred.complete((realConn, proxy))
+        _        <- if (!ok) IO.blocking { try { realConn.close() } catch { case _: Exception => () } }
+                    else IO.unit
+        p        <- deferred.get.map(_._2)
+      } yield p
+
+      requestLazyAcquire.set(Some(acquireOnce)).bracket(_ =>
+        io.guaranteeCase { outcome =>
+          deferred.tryGet.flatMap {
+            case None => IO.unit   // no DB calls — pool unaffected
+            case Some((realConn, _)) =>
+              requestProxyLocal.set(None) *>
+                (outcome match {
+                  case Outcome.Succeeded(_) =>
+                    IO.blocking { realConn.commit() }
+                  case _ =>
+                    IO.blocking { try { realConn.rollback() } catch { case _: Exception => () } }
+                }) *>
+                IO.blocking { try { realConn.close() } catch { case _: Exception => () } }
+          }
+        }
+      )(_ => requestLazyAcquire.set(None))
     }
 
   /**
