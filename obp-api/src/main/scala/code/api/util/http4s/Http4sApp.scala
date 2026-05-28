@@ -126,6 +126,7 @@ object Http4sApp {
         .orElse(v500Routes.run(req))
         .orElse(v700Routes.run(req))
         .orElse(code.api.berlin.group.v2.Http4sBGv2.wrappedRoutes.run(req))
+        .orElse(code.api.berlin.group.v1_3.Http4sBGv13.wrappedRoutes.run(req))
         .orElse(v400Routes.run(req))
         .orElse(v310Routes.run(req))
         .orElse(v300Routes.run(req))

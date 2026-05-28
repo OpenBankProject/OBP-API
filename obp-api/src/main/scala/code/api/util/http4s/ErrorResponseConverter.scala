@@ -3,12 +3,15 @@ package code.api.util.http4s
 import cats.effect._
 import code.api.APIFailureNewStyle
 import code.api.JsonResponseException
+import code.api.berlin.group.ConstantsBG
+import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{ErrorMessageBG, ErrorMessagesBG}
 import code.api.util.APIUtil.JsonResponseExtractor
+import code.api.util.BerlinGroupError
 import code.api.util.ErrorMessages._
 import code.api.util.CallContext
 import net.liftweb.common.{Failure => LiftFailure}
 import net.liftweb.json.JsonParser.parse
-import net.liftweb.json.compactRender
+import net.liftweb.json.{Extraction, compactRender}
 import net.liftweb.json.JsonDSL._
 import org.http4s._
 import org.http4s.headers.`Content-Type`
@@ -64,13 +67,24 @@ object ErrorResponseConverter {
     code: Int,
     message: String
   )
-  
+
   /**
    * Convert error response to JSON string using Lift JSON.
    */
   private def toJsonString(error: OBPErrorResponse): String = {
     val json = ("code" -> error.code) ~ ("message" -> error.message)
     compactRender(json)
+  }
+
+  private def isBerlinGroupRequest(callContext: CallContext): Boolean =
+    callContext.url.contains(ConstantsBG.berlinGroupVersion1.urlPrefix)
+
+  /** Mirror the BG error body from APIUtil.failedJsonResponse for http4s paths. */
+  private def toBgErrorBody(statusCode: Int, message: String, callContext: CallContext): String = {
+    val pathOpt = Some(callContext.url)
+    val codeText = BerlinGroupError.translateToBerlinGroupError(statusCode.toString, message)
+    val errBg = ErrorMessagesBG(tppMessages = List(ErrorMessageBG(category = "ERROR", code = codeText, path = pathOpt, text = message)))
+    compactRender(Extraction.decompose(errBg))
   }
   
   /**
@@ -100,11 +114,12 @@ object ErrorResponseConverter {
   /** Build a JSON error response using the supplied status code verbatim (used for
    *  JsonResponseException, whose embedded JsonResponse already carries the final code). */
   private def jsonErrorResponse(code: Int, message: String, callContext: CallContext): IO[Response[IO]] = {
-    val errorJson = OBPErrorResponse(code, message)
+    val body = if (isBerlinGroupRequest(callContext)) toBgErrorBody(code, message, callContext)
+               else toJsonString(OBPErrorResponse(code, message))
     val status = org.http4s.Status.fromInt(code).getOrElse(org.http4s.Status.BadRequest)
     IO.pure(
       Response[IO](status)
-        .withEntity(toJsonString(errorJson))
+        .withEntity(body)
         .withContentType(jsonContentType)
         .putHeaders(org.http4s.Header.Raw(CIString("Correlation-Id"), callContext.correlationId))
     )
@@ -133,11 +148,12 @@ object ErrorResponseConverter {
    */
   def apiFailureToResponse(failure: APIFailureNewStyle, callContext: CallContext): IO[Response[IO]] = {
     val resolvedCode = resolveStatusCode(failure.failCode, failure.failMsg, callContext)
-    val errorJson = OBPErrorResponse(resolvedCode, failure.failMsg)
+    val body = if (isBerlinGroupRequest(callContext)) toBgErrorBody(resolvedCode, failure.failMsg, callContext)
+               else toJsonString(OBPErrorResponse(resolvedCode, failure.failMsg))
     val status = org.http4s.Status.fromInt(resolvedCode).getOrElse(org.http4s.Status.BadRequest)
     IO.pure(
       Response[IO](status)
-        .withEntity(toJsonString(errorJson))
+        .withEntity(body)
         .withContentType(jsonContentType)
         .putHeaders(org.http4s.Header.Raw(CIString("Correlation-Id"), callContext.correlationId))
     )
@@ -148,10 +164,11 @@ object ErrorResponseConverter {
    * Returns 400 Bad Request with failure message.
    */
   def boxFailureToResponse(failure: LiftFailure, callContext: CallContext): IO[Response[IO]] = {
-    val errorJson = OBPErrorResponse(400, failure.msg)
+    val body = if (isBerlinGroupRequest(callContext)) toBgErrorBody(400, failure.msg, callContext)
+               else toJsonString(OBPErrorResponse(400, failure.msg))
     IO.pure(
       Response[IO](org.http4s.Status.BadRequest)
-        .withEntity(toJsonString(errorJson))
+        .withEntity(body)
         .withContentType(jsonContentType)
         .putHeaders(org.http4s.Header.Raw(CIString("Correlation-Id"), callContext.correlationId))
     )
@@ -163,24 +180,27 @@ object ErrorResponseConverter {
    */
   def unknownErrorToResponse(e: Throwable, callContext: CallContext): IO[Response[IO]] = {
     logger.error(s"unknownErrorToResponse says: 500 returned (correlationId=${callContext.correlationId})", e)
-    val errorJson = OBPErrorResponse(500, s"$UnknownError: ${e.getMessage}")
+    val message = s"$UnknownError: ${e.getMessage}"
+    val body = if (isBerlinGroupRequest(callContext)) toBgErrorBody(500, message, callContext)
+               else toJsonString(OBPErrorResponse(500, message))
     IO.pure(
       Response[IO](org.http4s.Status.InternalServerError)
-        .withEntity(toJsonString(errorJson))
+        .withEntity(body)
         .withContentType(jsonContentType)
         .putHeaders(org.http4s.Header.Raw(CIString("Correlation-Id"), callContext.correlationId))
     )
   }
-  
+
   /**
    * Create error response with specific status code and message.
    */
   def createErrorResponse(statusCode: Int, message: String, callContext: CallContext): IO[Response[IO]] = {
-    val errorJson = OBPErrorResponse(statusCode, message)
+    val body = if (isBerlinGroupRequest(callContext)) toBgErrorBody(statusCode, message, callContext)
+               else toJsonString(OBPErrorResponse(statusCode, message))
     val status = org.http4s.Status.fromInt(statusCode).getOrElse(org.http4s.Status.BadRequest)
     IO.pure(
       Response[IO](status)
-        .withEntity(toJsonString(errorJson))
+        .withEntity(body)
         .withContentType(jsonContentType)
         .putHeaders(org.http4s.Header.Raw(CIString("Correlation-Id"), callContext.correlationId))
     )
