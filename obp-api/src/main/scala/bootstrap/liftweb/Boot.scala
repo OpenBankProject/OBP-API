@@ -494,17 +494,12 @@ class Boot extends MdcLoggable {
     enableVersionIfAllowed(ApiVersion.`dynamic-endpoint`)
     enableVersionIfAllowed(ApiVersion.`dynamic-entity`)
 
-    def enableOpenIdConnectApis = {
-      //  OpenIdConnect endpoint and validator
-      if (code.api.Constant.openidConnectEnabled) {
-        LiftRules.dispatch.append(OpenIdConnect)
-      }
-    }
-    // DirectLogin (POST /my/logins/direct) and aliveCheck (GET /alive) are now
-    // served by their native http4s counterparts wired into
-    // Http4sApp.baseServices (DirectLoginRoutes / AliveCheckRoutes). The Lift
+    // OpenID Connect callbacks (/auth/openid-connect/callback{,-1,-2}), DirectLogin
+    // (POST /my/logins/direct) and aliveCheck (GET /alive) are now served by their
+    // native http4s counterparts wired into Http4sApp.baseServices
+    // (Http4sOpenIdConnect / DirectLoginRoutes / AliveCheckRoutes). The Lift
     // dispatches were retired in the http4s migration; any prop gates
-    // (e.g. `allow_direct_login`) live with those routes.
+    // (e.g. `openid_connect.enabled`, `allow_direct_login`) live with those routes.
 
 
 
