@@ -625,8 +625,8 @@ object Http4sCallContextBuilder {
  */
 object ResourceDocMatcher extends code.util.Helper.MdcLoggable {
 
-  // API prefix pattern: /obp/vX.X.X
-  private val apiPrefixPattern = """^/obp/v\d+\.\d+\.\d+""".r
+  // API prefix pattern: /<urlPrefix>/v<version> — handles both OBP (/obp/vX.X.X) and BG (/berlin-group/v1.3)
+  private val apiPrefixPattern = """^/[^/]+/v[\d.]+""".r
 
   // Pre-built index type: (VERB, apiVersion, segmentCount) -> candidates
   type ResourceDocIndex = Map[(String, String, Int), List[ResourceDoc]]

@@ -23,10 +23,12 @@ object Http4sBGv13 extends MdcLoggable {
   val implementedInApiVersion = ConstantsBG.berlinGroupVersion1
 
   val resourceDocs: ArrayBuffer[ResourceDoc] =
-    Http4sBGv13PIIS.resourceDocs
+    Http4sBGv13PIIS.resourceDocs ++
+    Http4sBGv13SigningBaskets.resourceDocs
 
   val allRoutes: HttpRoutes[IO] = Kleisli[HttpF, Request[IO], Response[IO]] { req =>
     Http4sBGv13PIIS.routes(req)
+      .orElse(Http4sBGv13SigningBaskets.routes(req))
   }
 
   val wrappedRoutes: HttpRoutes[IO] = ResourceDocMiddleware.apply(resourceDocs)(allRoutes)
