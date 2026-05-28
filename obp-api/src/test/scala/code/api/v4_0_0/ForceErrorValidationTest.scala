@@ -32,7 +32,9 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
 
   object ApiEndpoint2 extends Tag(nameOf(Implementations4_0_0.getCustomerAttributeById))
 
-  object ApiEndpoint3 extends Tag(nameOf(ImplementationsDynamicEntity.genericEndpoint))
+  // genericEndpoint was migrated to Http4sDynamicEntity and the Lift handler commented out;
+  // its nameOf value was "genericEndpoint" — kept as a string literal so the tag is unchanged.
+  object ApiEndpoint3 extends Tag("genericEndpoint")
 
   object ApiEndpoint4 extends Tag(nameOf(ImplementationsDynamicEndpoint.dynamicEndpoint))
 

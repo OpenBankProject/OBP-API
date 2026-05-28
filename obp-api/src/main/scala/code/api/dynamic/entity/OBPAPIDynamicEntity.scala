@@ -50,26 +50,29 @@ object OBPAPIDynamicEntity extends OBPRestHelper with MdcLoggable with Versioned
   // if old version ResourceDoc objects have the same name endpoint with new version, omit old version ResourceDoc.
   def allResourceDocs = collectResourceDocs(ImplementationsDynamicEntity.resourceDocs)
 
-  val routes : List[OBPEndpoint] = List(ImplementationsDynamicEntity.publicEndpoint, ImplementationsDynamicEntity.communityEndpoint, ImplementationsDynamicEntity.genericEndpoint)
+  // Runtime CRUD migrated to code.api.dynamic.entity.Http4sDynamicEntity (wired into
+  // Http4sApp.baseServices). routes reduced to Nil — the Lift OBPEndpoint handlers are no
+  // longer registered with Lift. This object is retained only as an accessor for
+  // allResourceDocs / routes referenced by ResourceDocsAPIMethods.getResourceDocsList.
+  val routes : List[OBPEndpoint] = Nil
+  // val routes : List[OBPEndpoint] = List(ImplementationsDynamicEntity.publicEndpoint, ImplementationsDynamicEntity.communityEndpoint, ImplementationsDynamicEntity.genericEndpoint)
 
-  routes.map(endpoint => oauthServe(apiPrefix{endpoint}, None))
-  
+  // routes.map(endpoint => oauthServe(apiPrefix{endpoint}, None))  // no Lift dispatch registration — served by Http4sDynamicEntity
+
   logger.info(s"version $version has been run! There are ${routes.length} routes.")
-  // specified response for OPTIONS request.
-  private val corsResponse: Box[LiftResponse] = Full{
-    val corsHeaders = List(
-      "Access-Control-Allow-Origin" -> "*",
-      "Access-Control-Allow-Methods" -> "GET, POST, OPTIONS, PUT, PATCH, DELETE",
-      "Access-Control-Allow-Headers" -> "*",
-      "Access-Control-Allow-Credentials" -> "true",
-      "Access-Control-Max-Age" -> "1728000" //Tell client that this pre-flight info is valid for 20 days
-    )
-    PlainTextResponse("", corsHeaders, HttpStatus.SC_NO_CONTENT)
-  }
-  /*
-   * process OPTIONS http request, just return no content and status is 204
-   */
-  this.serve({
-    case req if req.requestType.method == "OPTIONS" => corsResponse
-  })
+
+  // OPTIONS / CORS is handled by Http4sApp.corsHandler — the Lift OPTIONS serve below is disabled.
+  // private val corsResponse: Box[LiftResponse] = Full{
+  //   val corsHeaders = List(
+  //     "Access-Control-Allow-Origin" -> "*",
+  //     "Access-Control-Allow-Methods" -> "GET, POST, OPTIONS, PUT, PATCH, DELETE",
+  //     "Access-Control-Allow-Headers" -> "*",
+  //     "Access-Control-Allow-Credentials" -> "true",
+  //     "Access-Control-Max-Age" -> "1728000" //Tell client that this pre-flight info is valid for 20 days
+  //   )
+  //   PlainTextResponse("", corsHeaders, HttpStatus.SC_NO_CONTENT)
+  // }
+  // this.serve({
+  //   case req if req.requestType.method == "OPTIONS" => corsResponse
+  // })
 }
