@@ -324,7 +324,11 @@ object Http4sLiftWebBridge extends MdcLoggable {
     }
   }
 
-  private def resolveContinuation(exception: Throwable): LiftResponse = {
+  // Package-visible so scoped per-prefix dispatchers (e.g. Http4sDynamicEndpoint) can reuse
+  // exactly the bridge's Lift-Req construction, response conversion, and async-continuation
+  // handling without duplicating ~100 lines or going through LiftRules.statelessDispatch.
+  // Same logic; only visibility changed.
+  def resolveContinuation(exception: Throwable): LiftResponse = {
     logger.debug(s"Resolving ContinuationException for async Lift handler")
     val func =
       ReflectUtils
@@ -339,7 +343,7 @@ object Http4sLiftWebBridge extends MdcLoggable {
     }
   }
 
-  private def buildLiftReq(req: Request[IO], body: Array[Byte]): Req = {
+  def buildLiftReq(req: Request[IO], body: Array[Byte]): Req = {
     val headers = http4sHeadersToParams(req.headers.headers)
     val params = http4sParamsToParams(req.uri.query.multiParams.toList)
     val httpRequest = new Http4sLiftRequest(
@@ -380,7 +384,7 @@ object Http4sLiftWebBridge extends MdcLoggable {
     }
   }
 
-  private def liftResponseToHttp4s(response: LiftResponse): IO[Response[IO]] = {
+  def liftResponseToHttp4s(response: LiftResponse): IO[Response[IO]] = {
     response.toResponse match {
       case InMemoryResponse(data, headers, _, code) =>
         IO.pure(buildHttp4sResponse(code, data, headers))

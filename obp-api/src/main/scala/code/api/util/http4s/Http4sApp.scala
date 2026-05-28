@@ -78,6 +78,10 @@ object Http4sApp {
   // Native http4s replacement for the Lift OBPAPIDynamicEntity dispatch; gated by the
   // same api_disabled_versions / api_enabled_versions machinery as the versioned routes.
   private val dynamicEntityRoutes: HttpRoutes[IO] = gate(ApiVersion.`dynamic-entity`, code.api.dynamic.entity.Http4sDynamicEntity.routes)
+  // Dynamic-endpoint data plane (operator-created endpoints under /obp/dynamic-endpoint/*).
+  // Phase-3a adapter: scoped Lift-Req shim that dispatches OBPAPIDynamicEndpoint directly,
+  // keeping the runtime Scala codegen (which still emits Lift OBPEndpoint) unchanged.
+  private val dynamicEndpointRoutes: HttpRoutes[IO] = gate(ApiVersion.`dynamic-endpoint`, code.api.dynamic.endpoint.Http4sDynamicEndpoint.routes)
 
   /**
    * Build the base HTTP4S routes with priority-based routing.
@@ -134,6 +138,7 @@ object Http4sApp {
         .orElse(code.api.DirectLoginRoutes.routes.run(req))
         .orElse(code.api.AliveCheckRoutes.routes.run(req))
         .orElse(dynamicEntityRoutes.run(req))
+        .orElse(dynamicEndpointRoutes.run(req))
         .orElse(Http4sLiftWebBridge.routes.run(req))
     }
   }
