@@ -2,7 +2,7 @@ package code.api.v7_0_0
 
 import cats.effect.IO
 import cats.effect.unsafe.IORuntime
-import code.api.util.http4s.Http4sLiftWebBridge
+import code.api.util.http4s.Http4sStandardHeaders
 import code.api.Constant.SYSTEM_OWNER_VIEW_ID
 import code.api.ResponseHeader
 import code.api.util.APIUtil
@@ -62,7 +62,7 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
     val req      = Request[IO](method, uri, headers = hdrs, body = bodyStream)
     val baseResp = app.run(req).unsafeRunSync()
     // Mirror Http4sApp: apply standard response headers (Correlation-Id, Cache-Control, etc.)
-    val resp     = Http4sLiftWebBridge.ensureStandardHeaders(req, baseResp)
+    val resp     = Http4sStandardHeaders(req, baseResp)
     val bodyStr  = resp.bodyText.compile.string.unsafeRunSync()
     val json = try {
       if (bodyStr.trim.isEmpty) JObject(Nil) else parse(bodyStr)

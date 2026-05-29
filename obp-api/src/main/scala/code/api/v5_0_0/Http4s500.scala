@@ -2420,13 +2420,4 @@ object Http4s500 {
     }
   }
   
-  // Combined routes with bridge fallback for testing proxy parity
-  // This mimics the production server behavior where unimplemented endpoints fall back to Lift
-  val wrappedRoutesV500ServicesWithBridge: HttpRoutes[IO] = {
-    import code.api.util.http4s.Http4sLiftWebBridge
-    Kleisli[HttpF, Request[IO], Response[IO]] { req: Request[IO] =>
-      wrappedRoutesV500Services(req)
-        .orElse(Http4sLiftWebBridge.routes.run(req))
-    }
-  }
 }

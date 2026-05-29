@@ -4,27 +4,19 @@ import cats.data.{Kleisli, OptionT}
 import cats.effect.IO
 import code.api.util.APIUtil
 import code.api.util.http4s.Http4sRequestAttributes
+import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
 import org.http4s._
 import org.typelevel.ci.CIString
 
 /**
  * Shared HTTP4S Application Builder
- * 
- * This object provides the httpApp configuration used by both:
- * - Production server (Http4sServer)
- * - Test server (Http4sTestServer)
- * 
- * This ensures tests run against the exact same routing configuration as production,
- * eliminating code duplication and ensuring we test the real server.
- * 
- * Priority-based routing:
- * 1. v5.0.0 native HTTP4S routes (checked first)
- * 2. v7.0.0 native HTTP4S routes (checked second)
- * 3. Http4sLiftWebBridge (fallback for all other API versions)
- * 4. 404 Not Found (if no handler matches)
+ *
+ * Provides the httpApp used by both production (Http4sServer) and test (Http4sTestServer).
+ * All API versions (v1.2.1–v7.0.0, BG, UK OB) are served by native http4s handlers.
+ * Unmatched requests receive a JSON 404.
  */
-object Http4sApp {
+object Http4sApp extends MdcLoggable {
   
   type HttpF[A] = OptionT[IO, A]
 
@@ -89,6 +81,19 @@ object Http4sApp {
   private val ukV20Routes: HttpRoutes[IO] = gate(ApiVersion.ukOpenBankingV20, code.api.UKOpenBanking.v2_0_0.Http4sUKOBv200.wrappedRoutes)
   private val ukV31Routes: HttpRoutes[IO] = gate(ApiVersion.ukOpenBankingV31, code.api.UKOpenBanking.v3_1_0.Http4sUKOBv310.wrappedRoutes)
 
+  // JSON 404 for all unmatched paths — terminal entry in baseServices.
+  private val notFoundCatchAll: HttpRoutes[IO] = HttpRoutes[IO] { req =>
+    val contentType = req.headers.get(CIString("Content-Type")).map(_.head.value).getOrElse("")
+    val msg = s"${code.api.util.ErrorMessages.InvalidUri}Current Url is (${req.uri}), Current Content-Type Header is ($contentType)"
+    val escaped = msg.replace("\\", "\\\\").replace("\"", "\\\"")
+    val body = s"""{"code":404,"message":"$escaped"}"""
+    OptionT.liftF(IO.pure(
+      Response[IO](status = Status.NotFound)
+        .withEntity(body.getBytes("UTF-8"))
+        .withHeaders(Headers(Header.Raw(CIString("Content-Type"), "application/json; charset=utf-8")))
+    ))
+  }
+
   /**
    * Build the base HTTP4S routes with priority-based routing.
    *
@@ -120,12 +125,6 @@ object Http4sApp {
       corsHandler.run(req)
         .orElse(AppsPage.routes.run(req))
         .orElse(StatusPage.routes.run(req))
-        // Bridge-retirement audit endpoint — exposes the in-memory tally of
-        // requests that have fallen through to Http4sLiftWebBridge so we can
-        // see exactly what still needs migrating before the bridge can be
-        // removed. Placed before the per-version routes so the admin path
-        // can't be shadowed by a version-prefixed handler.
-        .orElse(Http4sLiftBridgeTraffic.routes.run(req))
         .orElse(Http4sResourceDocs.routes.run(req))
         .orElse(v510Routes.run(req))
         .orElse(v600Routes.run(req))
@@ -150,18 +149,25 @@ object Http4sApp {
         .orElse(code.api.DirectLoginRoutes.routes.run(req))
         .orElse(code.api.Http4sOpenIdConnect.routes.run(req))
         .orElse(code.api.AliveCheckRoutes.routes.run(req))
-        .orElse(Http4sLiftWebBridge.routes.run(req))
+        .orElse(notFoundCatchAll.run(req))
     }
   }
 
-  /**
-   * Build the complete HTTP4S application with standard headers
-   */
   def httpApp: HttpApp[IO] = {
-    val services: HttpRoutes[IO] = Http4sLiftWebBridge.withStandardHeaders(baseServices)
-    val app = services.orNotFound
+    val app = baseServices.orNotFound
     Kleisli { req: Request[IO] =>
-      app.run(req).map(resp => Http4sLiftWebBridge.ensureStandardHeaders(req, resp))
+      app.run(req)
+        .map(resp => Http4sStandardHeaders(req, resp))
+        .handleErrorWith { e =>
+          logger.error(s"[Http4sApp] Uncaught exception: ${req.method} ${req.uri} - ${e.getMessage}", e)
+          val errMsg = Option(e.getMessage).getOrElse("Internal Server Error")
+            .replace("\\", "\\\\").replace("\"", "\\\"")
+          val body = s"""{"code":500,"message":"$errMsg"}"""
+          IO.pure(Http4sStandardHeaders(req,
+            Response[IO](status = Status.InternalServerError)
+              .withEntity(body.getBytes("UTF-8"))
+              .withHeaders(Headers(Header.Raw(CIString("Content-Type"), "application/json; charset=utf-8")))))
+        }
     }
   }
 }
