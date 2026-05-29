@@ -149,7 +149,6 @@ import com.openbankproject.commons.util.Functions.Implicits._
 import com.openbankproject.commons.util.{ApiVersion, Functions}
 import net.liftweb.common._
 import net.liftweb.db.{DB, DBLogEntry}
-import net.liftweb.http.LiftRules
 import net.liftweb.json.Extraction
 import net.liftweb.mapper.{DefaultConnectionIdentifier => _, _}
 // SiteMap imports removed - API-only mode, no portal pages
@@ -208,8 +207,7 @@ class Boot extends MdcLoggable {
     } yield {
       Props.toTry.map {
         f => {
-          val contextPath = LiftRules.context.path
-          val name = propsPath + contextPath + f() + "props"
+          val name = propsPath + f() + "props"
           name -> { () => tryo{new FileInputStream(new File(name))} }
         }
       }
@@ -387,8 +385,10 @@ class Boot extends MdcLoggable {
 //      }
 //    }
 
-    LiftRules.unloadHooks.append(APIUtil.vendor.closeAllConnections_! _)
-    LiftRules.unloadHooks.append(Redis.jedisPoolDestroy _)
+    Runtime.getRuntime.addShutdownHook(new Thread(() => {
+      APIUtil.vendor.closeAllConnections_!()
+      Redis.jedisPoolDestroy
+    }))
 //    LiftRules.statelessDispatch.prepend {
 //      case _ if tryo(DB.use(DefaultConnectionIdentifier){ conn => conn}.isClosed).isEmpty =>
 //        Props.mode match {
@@ -405,8 +405,7 @@ class Boot extends MdcLoggable {
 
     //If use_custom_webapp=true, this will copy all the files from `OBP-API/obp-api/src/main/webapp` to `OBP-API/obp-api/src/main/resources/custom_webapp`
     if (APIUtil.getPropsAsBoolValue("use_custom_webapp", false)){
-      //this `LiftRules.getResource` will get the path of `OBP-API/obp-api/src/main/webapp`:
-      LiftRules.getResource("/").map { url =>
+      Option(getClass.getClassLoader.getResource("./")).map { url =>
         // this following will get the path of `OBP-API/obp-api/src/main/resources/custom_webapp`
         val source = if (getClass().getClassLoader().getResource("custom_webapp") == null)
           throw new RuntimeException("If you set `use_custom_webapp = true`, custom_webapp folder can not be Empty!!")
@@ -1041,7 +1040,7 @@ object ToSchemify {
   if (APIUtil.getPropsAsBoolValue("grpc.server.enabled", false)) {
     val server = new ObpGrpcServer(ExecutionContext.global)
     server.start()
-    LiftRules.unloadHooks.append(server.stop)
+    Runtime.getRuntime.addShutdownHook(new Thread(() => server.stop()))
   }
 
 }
