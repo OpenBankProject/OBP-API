@@ -20,13 +20,9 @@ object Http4sApp extends MdcLoggable {
   
   type HttpF[A] = OptionT[IO, A]
 
-  // Handles all OPTIONS (CORS preflight) requests before they reach the Lift bridge.
-  //
-  // Without this, OPTIONS falls through the Kleisli chain to Http4sLiftWebBridge →
-  // OBPAPI6_0_0's `this.serve({case OPTIONS => corsResponse})`, which pays full Lift
-  // overhead (body buffering, S.init) for every preflight. More critically, when the
-  // Lift bridge is eventually removed, CORS would break silently. Headers match the
-  // corsResponse defined in v4/v5/v6 Lift endpoints.
+  // Handles all OPTIONS (CORS preflight) requests by short-circuiting at the head of the
+  // Kleisli chain, before any version routes run. Returns 204 with the standard CORS headers
+  // so a browser preflight never pays the cost of entering the per-version handlers.
   private val corsHandler: HttpRoutes[IO] = HttpRoutes[IO] { req =>
     if (req.method == Method.OPTIONS) {
       OptionT.liftF(
@@ -70,14 +66,12 @@ object Http4sApp extends MdcLoggable {
   // OBPAPIDynamicEntity dispatch.
   private val dynamicEntityRoutes: HttpRoutes[IO] = gate(ApiVersion.`dynamic-entity`, code.api.dynamic.entity.Http4sDynamicEntity.wrappedRoutesDynamicEntity)
   // DynamicEndpoint dispatch (/obp/dynamic-endpoint/*) — proxy (DynamicReq) + runtime-compiled
-  // resource docs / practise. Runs the Lift OBPAPIDynamicEndpoint.routes in-process via an
-  // adapter, replacing their LiftRules.statelessDispatch registration. Must sit AHEAD of the
-  // Lift bridge (the bridge no longer carries dynamic-endpoint).
+  // resource docs / practise. Runs the OBPAPIDynamicEndpoint.routes in-process via an adapter,
+  // replacing the former LiftRules.statelessDispatch registration.
   private val dynamicEndpointRoutes: HttpRoutes[IO] = gate(ApiVersion.`dynamic-endpoint`, code.api.dynamic.endpoint.Http4sDynamicEndpoint.wrappedRoutesDynamicEndpoint)
   // UK Open Banking (non-/obp prefixes /open-banking/v2.0 and /open-banking/v3.1) — native
   // http4s, replaces the classpath-scanned Lift ScannedApis. All endpoints (v2.0: 5, v3.1: ~67)
-  // are migrated to http4s; the Lift ScannedApis aggregators register `routes = Nil`, so Lift
-  // serves no UK path. Wired before the Lift bridge for ordering, but nothing falls through to it.
+  // are migrated to http4s.
   private val ukV20Routes: HttpRoutes[IO] = gate(ApiVersion.ukOpenBankingV20, code.api.UKOpenBanking.v2_0_0.Http4sUKOBv200.wrappedRoutes)
   private val ukV31Routes: HttpRoutes[IO] = gate(ApiVersion.ukOpenBankingV31, code.api.UKOpenBanking.v3_1_0.Http4sUKOBv310.wrappedRoutes)
 
@@ -111,9 +105,9 @@ object Http4sApp extends MdcLoggable {
     else if (noBodyMethods.contains(req.method)) IO.pure(req.withAttribute(Http4sRequestAttributes.cachedBodyKey, Option.empty[String]))
     else req.body.compile.to(Array).map { bytes =>
       val cached: Option[String] = if (bytes.isEmpty) None else Some(new String(bytes, "UTF-8"))
-      // Replay the bytes on every subsequent stream read so the Lift fallback and any
-      // handler that still reads req.body sees the same payload. fs2.Stream.emits is
-      // pure — re-evaluating it yields a fresh stream of the same bytes.
+      // Replay the bytes on every subsequent stream read so any downstream cascade-bridge
+      // hop and any handler that still reads req.body sees the same payload. fs2.Stream.emits
+      // is pure — re-evaluating it yields a fresh stream of the same bytes.
       req
         .withBodyStream(fs2.Stream.emits(bytes).covary[IO])
         .withAttribute(Http4sRequestAttributes.cachedBodyKey, cached)

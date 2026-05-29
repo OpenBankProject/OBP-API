@@ -238,6 +238,4 @@ trait OBPRestHelper extends MdcLoggable {
       }
     })
   }
-
-  protected def registerRoutes(allResourceDocs: ArrayBuffer[ResourceDoc]): Unit = ()
 }

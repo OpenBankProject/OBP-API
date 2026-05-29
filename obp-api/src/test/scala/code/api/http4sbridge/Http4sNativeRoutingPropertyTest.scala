@@ -21,24 +21,23 @@ import scala.concurrent.duration.DurationInt
 import scala.util.Random
 
 /**
- * Property-Based Tests for Http4s Lift Bridge
- * 
+ * Property-Based Tests for the native HTTP4S routing stack
+ *
  * These tests validate universal properties that should hold across all inputs
- * for the HTTP4S-Lift bridge integration, particularly focusing on the Lift
- * dispatch mechanism.
- * 
+ * when requests are served by the http4s server (routing, auth, headers, error
+ * format, version-cascade fallback). They run against a real Http4sTestServer.
+ *
  * Property 4: Authentication Mechanism Preservation
  * Validates: Requirements 4.1, 4.2, 4.3, 4.4, 4.5
- * 
- * Property 6: Lift Dispatch Mechanism Integration
+ *
+ * Property 6: HTTP4S Dispatch Mechanism Integration
  * Validates: Requirements 1.3, 2.3, 2.5
  */
 
-class Http4sLiftBridgePropertyTest extends V500ServerSetup {
+class Http4sNativeRoutingPropertyTest extends V500ServerSetup {
 
-  // Commented out: MXOF/CNBV9/STET/CDS-AU(AUOpenBanking)/Bahrain/Polish Lift endpoints were removed
-  // from the codebase. Their per-standard bridge fixtures are dropped; only OBP core + UK OpenBanking
-  // + Berlin Group remain reachable through the Lift bridge.
+  // Commented out: MXOF/CNBV9/STET/CDS-AU(AUOpenBanking)/Bahrain/Polish endpoints were removed
+  // from the codebase. Only OBP core + UK OpenBanking + Berlin Group standards are exercised here.
   private val bgVersion = "v1.3"
   private val bgPrefix = "berlin-group"
   private val allStandardVersions = List(
@@ -57,7 +56,7 @@ class Http4sLiftBridgePropertyTest extends V500ServerSetup {
   private val CI_ITERATIONS = 3
   private val CI_ITERATIONS_HEAVY = 5
 
-  object PropertyTag extends Tag("lift-to-http4s-migration-property")
+  object PropertyTag extends Tag("http4s-native-routing-property")
 
   private val http4sServer = Http4sTestServer
   private val http4sBaseUrl = s"http://${http4sServer.host}:${http4sServer.port}"
@@ -191,7 +190,7 @@ class Http4sLiftBridgePropertyTest extends V500ServerSetup {
     "/my/logins/direct"
   )
 
-  feature("Property 6: Lift Dispatch Mechanism Integration") {
+  feature("Property 6: HTTP4S Dispatch Mechanism Integration") {
     
     scenario("Property 6.1: All registered public endpoints return valid responses (10 iterations)", PropertyTag) {
       var successCount = 0
@@ -685,164 +684,47 @@ class Http4sLiftBridgePropertyTest extends V500ServerSetup {
   }
 
   // ============================================================================
-  // Property 7: Session and Context Adapter Correctness
+  // Property 7: Request metadata handling
+  // (Concurrency / correlation-id thread-safety under load is covered by 6.6 and
+  //  9.6; only the cross-path-variant header-forwarding check is kept here.)
   // ============================================================================
-  
-  feature("Property 7: Session and Context Adapter Correctness") {
-    
-    scenario("Property 7.1: Concurrent requests maintain session/context thread-safety (10 iterations)", PropertyTag) {
+
+  feature("Property 7: Request metadata handling") {
+
+    scenario("Property 7.3: Request handling preserves headers and correlation id across path variants (10 iterations)", PropertyTag) {
       var successCount = 0
       val iterations = CI_ITERATIONS
-      
+
       (0 until iterations).foreach { i =>
         val random = new Random(i)
-        
-        // Test concurrent requests to verify thread-safety
-        val numThreads = 10
-        val executor = java.util.concurrent.Executors.newFixedThreadPool(numThreads)
-        val latch = new java.util.concurrent.CountDownLatch(numThreads)
-        val errors = new java.util.concurrent.ConcurrentLinkedQueue[String]()
-        val results = new java.util.concurrent.ConcurrentLinkedQueue[(Int, String)]()
-        
-        try {
-          (0 until numThreads).foreach { threadId =>
-            executor.submit(new Runnable {
-              def run(): Unit = {
-                try {
-                  val testPath = s"/obp/v5.0.0/banks/test-bank-${random.nextInt(1000)}"
-                  val (status, json, headers) = makeHttp4sGetRequest(testPath)
-                  
-                  // Verify proper handling (session/context working)
-                  if (status >= 200 && status < 600) {
-                    // Valid response
-                    assertCorrelationId(headers)
-                    results.add((status, s"thread-$threadId"))
-                  } else {
-                    errors.add(s"Thread $threadId got invalid status: $status")
-                  }
-                } catch {
-                  case e: Exception => errors.add(s"Thread $threadId failed: ${e.getMessage}")
-                } finally {
-                  latch.countDown()
-                }
-              }
-            })
-          }
-          
-          latch.await(30, java.util.concurrent.TimeUnit.SECONDS)
-          executor.shutdown()
-          
-          // Verify no errors occurred
-          if (!errors.isEmpty) {
-            fail(s"Concurrent operations failed: ${errors.asScala.take(5).mkString(", ")}")
-          }
-          
-          // Verify all threads completed
-          results.size() should be >= numThreads
-          
-        } finally {
-          if (!executor.isShutdown) {
-            executor.shutdownNow()
-          }
-        }
-        
-        successCount += 1
-      }
-      
-      logger.info(s"Property 7.1 completed: $successCount iterations")
-      successCount should equal(iterations)
-    }
-    
-    scenario("Property 7.2: Session lifecycle is properly managed across requests (10 iterations)", PropertyTag) {
-      var successCount = 0
-      val iterations = CI_ITERATIONS
-      
-      (0 until iterations).foreach { i =>
-        val random = new Random(i)
-        
-        // Make multiple requests and verify each gets proper session handling
-        val numRequests = 5
-        (0 until numRequests).foreach { j =>
-          val testPath = s"/obp/v5.0.0/banks/test-bank-${random.nextInt(1000)}"
-          val (status, json, headers) = makeHttp4sGetRequest(testPath)
-          
-          // Each request should be handled properly (session created internally)
-          status should (be >= 200 and be < 600)
-          
-          // Should have correlation ID (indicates proper request handling)
-          assertCorrelationId(headers)
-          
-          // Response should be valid JSON
-          json should not be null
-        }
-        
-        successCount += 1
-      }
-      
-      logger.info(s"Property 7.2 completed: $successCount iterations")
-      successCount should equal(iterations)
-    }
-    
-    scenario("Property 7.3: Request adapter provides correct HTTP metadata (10 iterations)", PropertyTag) {
-      var successCount = 0
-      val iterations = CI_ITERATIONS
-      
-      (0 until iterations).foreach { i =>
-        val random = new Random(i)
-        
+
         // Test various request paths and verify proper handling
         val paths = List(
           s"/obp/v5.0.0/banks/${randomString(10)}",
           s"/obp/v5.0.0/banks/${randomString(10)}/accounts",
           s"/obp/v7.0.0/banks/${randomString(10)}/accounts/${randomString(10)}"
         )
-        
+
         paths.foreach { path =>
           val (status, json, headers) = makeHttp4sGetRequest(path)
-          
-          // Request should be processed (adapter working)
+
+          // Request should be processed
           status should (be >= 200 and be < 600)
-          
-          // Should have proper headers (adapter preserves headers)
+
+          // Headers should be forwarded
           headers should not be empty
-          
+
           // Should have correlation ID
           assertCorrelationId(headers)
-          
+
           // Response should be valid JSON
           json should not be null
         }
-        
+
         successCount += 1
       }
-      
+
       logger.info(s"Property 7.3 completed: $successCount iterations")
-      successCount should equal(iterations)
-    }
-    
-    scenario("Property 7.4: Context operations work correctly under load (10 iterations)", PropertyTag) {
-      var successCount = 0
-      val iterations = CI_ITERATIONS
-      
-      (0 until iterations).foreach { i =>
-        val random = new Random(i)
-        
-        // Test rapid sequential requests to verify context handling
-        val numRequests = 20
-        (0 until numRequests).foreach { j =>
-          val testPath = s"/obp/v5.0.0/banks/test-${random.nextInt(100)}"
-          val (status, json, headers) = makeHttp4sGetRequest(testPath)
-          
-          // Context operations should work correctly
-          status should (be >= 200 and be < 600)
-          assertCorrelationId(headers)
-          json should not be null
-        }
-        
-        successCount += 1
-      }
-      
-      logger.info(s"Property 7.4 completed: $successCount iterations")
       successCount should equal(iterations)
     }
   }
@@ -852,7 +734,7 @@ class Http4sLiftBridgePropertyTest extends V500ServerSetup {
   // Task 8.1: Review error response format consistency
   // Validates: Requirements 6.3, 8.2
   // Verifies identical error message formats, proper HTTP status codes,
-  // and consistent error response JSON structure between Lift and HTTP4S
+  // and consistent error response JSON structure in the HTTP4S native routing stack
   // ============================================================================
 
   object ErrorResponseValidationTag extends Tag("error-response-validation")
@@ -1109,16 +991,15 @@ class Http4sLiftBridgePropertyTest extends V500ServerSetup {
   // ============================================================================
   // Property 10: Exception Handling Consistency
   // Validates: Requirements 8.2, 10.3
-  // Feature: lift-to-http4s-migration, Property 10: Exception Handling Consistency
   //
-  // Tests that exception handling through the HTTP4S bridge produces consistent
-  // error responses: proper JSON structure, status code parity with Lift,
+  // Tests that exception handling through the HTTP4S routing stack produces consistent
+  // error responses: proper JSON structure, consistent status codes,
   // correct headers, and consistent behavior across all API versions.
   //
   // Since internal exceptions (JsonResponseException, ContinuationException,
   // APIFailure) cannot be triggered directly from outside, we test the
   // observable behavior: error responses for various error conditions that
-  // exercise the bridge's exception handling paths.
+  // exercise the routing stack's exception handling paths.
   // ============================================================================
 
   object ExceptionHandlingTag extends Tag("exception-handling-consistency")
@@ -1355,14 +1236,13 @@ class Http4sLiftBridgePropertyTest extends V500ServerSetup {
   // ============================================================================
   // Property 5: Standard Header Injection and Preservation
   // Validates: Requirements 6.2, 6.4
-  // Feature: lift-to-http4s-migration, Property 5: Standard Header Injection and Preservation
   //
   // Verifies that:
   //   - Correlation-Id is present on ALL responses
   //   - Cache-Control, X-Frame-Options are present on ALL responses
   //   - Content-Type is application/json on JSON responses
-  //   - Lift/HTTP4S responses have matching headers (parity)
-  //   - Custom headers from Lift responses are preserved
+  //   - Responses have consistent standard headers across versions
+  //   - Custom headers from handler responses are preserved
   // ============================================================================
 
   object HeaderPreservationTag extends Tag("header-preservation")
@@ -1537,7 +1417,7 @@ class Http4sLiftBridgePropertyTest extends V500ServerSetup {
     // --- 5.6: Correlation-Id from request X-Request-ID is used when present (10 iterations) ---
     scenario("Property 5.6: Correlation-Id extracted from request X-Request-ID header (10 iterations)", HeaderPreservationTag) {
       // **Validates: Requirements 6.2**
-      // The bridge extracts Correlation-Id from request X-Request-ID header if present,
+      // The routing stack extracts Correlation-Id from request X-Request-ID header if present,
       // otherwise generates a new UUID.
       var successCount = 0
       val iterations = CI_ITERATIONS
@@ -1621,7 +1501,7 @@ class Http4sLiftBridgePropertyTest extends V500ServerSetup {
   // behavior:
   //   - Correlation-Id is present and unique on all responses
   //   - Correlation-Id is consistent when provided via X-Request-ID
-  //   - Responses through the bridge carry proper Correlation-Id
+  //   - Responses through the HTTP4S routing stack carry proper Correlation-Id
   //   - Audit-related endpoints (metrics) are accessible
   // ============================================================================
 
@@ -1631,7 +1511,7 @@ class Http4sLiftBridgePropertyTest extends V500ServerSetup {
 
     scenario("Property 9.1: Every response has a non-empty Correlation-Id (10 iterations)", LoggingConsistencyTag) {
       // **Validates: Requirements 8.1, 8.3**
-      // Every response from the HTTP4S bridge must include a Correlation-Id header
+      // Every response from the HTTP4S routing stack must include a Correlation-Id header
       // with a non-empty value, ensuring correlation tracking is always available.
       var successCount = 0
       val iterations = CI_ITERATIONS
@@ -1670,7 +1550,7 @@ class Http4sLiftBridgePropertyTest extends V500ServerSetup {
 
     scenario("Property 9.2: Each request gets a unique Correlation-Id when none provided (10 iterations)", LoggingConsistencyTag) {
       // **Validates: Requirements 8.3**
-      // When no X-Request-ID is provided, the bridge must generate a unique
+      // When no X-Request-ID is provided, the routing stack must generate a unique
       // Correlation-Id for each request. No two requests should share the same ID.
       val iterations = CI_ITERATIONS
       val correlationIds = scala.collection.mutable.Set[String]()
@@ -1697,7 +1577,7 @@ class Http4sLiftBridgePropertyTest extends V500ServerSetup {
 
     scenario("Property 9.3: Provided X-Request-ID is echoed back as Correlation-Id (10 iterations)", LoggingConsistencyTag) {
       // **Validates: Requirements 8.3, 8.4**
-      // When a client provides an X-Request-ID header, the bridge should use it
+      // When a client provides an X-Request-ID header, the routing stack should use it
       // as the Correlation-Id in the response, enabling end-to-end request tracing.
       var successCount = 0
       val iterations = CI_ITERATIONS
@@ -1717,9 +1597,9 @@ class Http4sLiftBridgePropertyTest extends V500ServerSetup {
           corrId.isDefined shouldBe true
         }
         // The response Correlation-Id should match the provided X-Request-ID
-        // Note: The bridge uses X-Request-ID as fallback when no Correlation-Id
-        // is set by the Lift endpoint. Since Lift endpoints set Correlation-Id
-        // from the session ID, the X-Request-ID may or may not be echoed.
+        // Note: the routing stack uses X-Request-ID as fallback when no Correlation-Id
+        // is set by the handler. Since handlers may set Correlation-Id internally,
+        // the X-Request-ID may or may not be echoed.
         // We verify the Correlation-Id is non-empty and valid.
         withClue(s"Iteration $i: Correlation-Id must be non-empty: ") {
           corrId.get.trim should not be empty
@@ -1813,7 +1693,7 @@ class Http4sLiftBridgePropertyTest extends V500ServerSetup {
     scenario("Property 9.6: Concurrent requests get independent Correlation-Ids (10 iterations)", LoggingConsistencyTag) {
       // **Validates: Requirements 8.3, 8.4**
       // Under concurrent load, each request must get its own unique Correlation-Id.
-      // This validates that the bridge's session/correlation mechanism is thread-safe.
+      // This validates that the routing stack's correlation mechanism is thread-safe.
       import scala.concurrent.Future
 
       val iterations = CI_ITERATIONS
@@ -1911,9 +1791,9 @@ class Http4sLiftBridgePropertyTest extends V500ServerSetup {
 
   feature("Property 11: Configuration and Integration Compatibility") {
 
-    scenario("Property 11.1: Props configuration is accessible through HTTP4S bridge endpoints (10 iterations)", ConfigCompatibilityTag) {
+    scenario("Property 11.1: Props configuration is accessible through HTTP4S endpoints (10 iterations)", ConfigCompatibilityTag) {
       // **Validates: Requirements 9.1, 9.5**
-      // Verify that Props-dependent endpoints return valid responses through the bridge,
+      // Verify that Props-dependent endpoints return valid responses through the HTTP4S routing stack,
       // proving that the same Props configuration is loaded and accessible.
       var successCount = 0
       val iterations = CI_ITERATIONS
@@ -1942,7 +1822,7 @@ class Http4sLiftBridgePropertyTest extends V500ServerSetup {
         // Response should be valid JSON (not an error page)
         json should not be null
 
-        // Standard headers should be present (bridge config working)
+        // Standard headers should be present (routing stack config working)
         assertCorrelationId(headers)
 
         successCount += 1
@@ -1952,9 +1832,9 @@ class Http4sLiftBridgePropertyTest extends V500ServerSetup {
       successCount should equal(iterations)
     }
 
-    scenario("Property 11.2: Database operations work correctly through HTTP4S bridge (10 iterations)", ConfigCompatibilityTag) {
+    scenario("Property 11.2: Database operations work correctly through HTTP4S (10 iterations)", ConfigCompatibilityTag) {
       // **Validates: Requirements 9.2**
-      // Verify that database-dependent endpoints work through the bridge,
+      // Verify that database-dependent endpoints work through the HTTP4S routing stack,
       // proving that CustomDBVendor/HikariCP pool is shared and functional.
       var successCount = 0
       val iterations = CI_ITERATIONS
@@ -2045,7 +1925,7 @@ class Http4sLiftBridgePropertyTest extends V500ServerSetup {
 
     scenario("Property 11.4: External service integration patterns are consistent (10 iterations)", ConfigCompatibilityTag) {
       // **Validates: Requirements 9.3**
-      // Verify that endpoints using external service patterns work through the bridge.
+      // Verify that endpoints using external service patterns work through the HTTP4S routing stack.
       // ATM/branch endpoints use connector patterns configured via Props.
       var successCount = 0
       val iterations = CI_ITERATIONS
@@ -2073,7 +1953,7 @@ class Http4sLiftBridgePropertyTest extends V500ServerSetup {
         // Response should be valid JSON
         json should not be null
 
-        // Standard headers present (bridge integration working)
+        // Standard headers present (routing stack integration working)
         assertCorrelationId(headers)
 
         successCount += 1
@@ -2086,7 +1966,7 @@ class Http4sLiftBridgePropertyTest extends V500ServerSetup {
     scenario("Property 11.5: Authenticated endpoints verify shared auth config (10 iterations)", ConfigCompatibilityTag) {
       // **Validates: Requirements 9.1, 9.5**
       // Verify that authentication configuration (loaded via Props in Boot.boot())
-      // works correctly through the HTTP4S bridge, proving config sharing.
+      // works correctly through the HTTP4S routing stack, proving config sharing.
       if (prop4DirectLoginToken.isEmpty) {
         logger.warn("Property 11.5 SKIPPED: no DirectLogin token available")
         cancel("DirectLogin token not available")
@@ -2127,7 +2007,7 @@ class Http4sLiftBridgePropertyTest extends V500ServerSetup {
 
     scenario("Property 11.6: Concurrent DB-dependent requests verify connection pool sharing (10 iterations)", ConfigCompatibilityTag) {
       // **Validates: Requirements 9.2**
-      // Verify that concurrent requests through the bridge all use the shared
+      // Verify that concurrent requests through the HTTP4S routing stack all use the shared
       // HikariCP connection pool without connection exhaustion or errors.
       // Use small batches (3) with pauses to avoid exhausting the test H2 pool.
       import scala.concurrent.Future
@@ -2233,7 +2113,7 @@ class Http4sLiftBridgePropertyTest extends V500ServerSetup {
 
   feature("Property 14: Priority-Based Routing Correctness") {
 
-    scenario("Property 14.1: v5.0.0 native endpoints are served by HTTP4S (not bridge) (10 iterations)", PriorityRoutingTag) {
+    scenario("Property 14.1: v5.0.0 native endpoints are served by HTTP4S native routes (10 iterations)", PriorityRoutingTag) {
       // **Validates: Requirements 1.2, 1.3**
       // v5.0.0 system-views is a native HTTP4S endpoint - should be served directly
       var successCount = 0
@@ -2247,7 +2127,7 @@ class Http4sLiftBridgePropertyTest extends V500ServerSetup {
 
         val (status, json, headers) = makeHttp4sGetRequest(path)
 
-        // Should return a valid response (404 for non-existent view, not a bridge error)
+        // Should return a valid response (404 for non-existent view, not a routing error)
         status should (be >= 200 and be < 600)
 
         // Should have Correlation-Id (standard header injection works for native routes too)
@@ -2263,9 +2143,9 @@ class Http4sLiftBridgePropertyTest extends V500ServerSetup {
       successCount should equal(iterations)
     }
 
-    scenario("Property 14.2: Legacy API versions (v3.0.0) are served by bridge (10 iterations)", PriorityRoutingTag) {
+    scenario("Property 14.2: Legacy API versions (v3.0.0) are served via the http4s version-cascade (10 iterations)", PriorityRoutingTag) {
       // **Validates: Requirements 1.2, 1.3**
-      // v3.0.0 endpoints have no native HTTP4S implementation - must go through bridge
+      // v3.0.0 endpoints have no native v3.0.0 declaration - served via the http4s version-cascade
       var successCount = 0
       val iterations = CI_ITERATIONS
 
@@ -2278,10 +2158,10 @@ class Http4sLiftBridgePropertyTest extends V500ServerSetup {
 
         val (status, json, headers) = makeHttp4sGetRequest(path)
 
-        // Bridge should serve these - should return 200 for /banks
+        // Version-cascade should serve these - should return 200 for /banks
         status should equal(200)
 
-        // Should have banks array (bridge correctly invokes Lift dispatch)
+        // Should have banks array (version-cascade correctly serves legacy versions)
         hasField(json, "banks") shouldBe true
 
         // Should have Correlation-Id
@@ -2290,13 +2170,13 @@ class Http4sLiftBridgePropertyTest extends V500ServerSetup {
         successCount += 1
       }
 
-      logger.info(s"Property 14.2 completed: $successCount/$iterations iterations - legacy bridge routing verified")
+      logger.info(s"Property 14.2 completed: $successCount/$iterations iterations - legacy version-cascade routing verified")
       successCount should equal(iterations)
     }
 
     scenario("Property 14.3: Non-existent endpoints return 404 (10 iterations)", PriorityRoutingTag) {
       // **Validates: Requirements 1.2, 1.3**
-      // Endpoints that don't exist in native HTTP4S or Lift should return 404
+      // Endpoints that don't exist in any HTTP4S version should return 404
       var successCount = 0
       val iterations = CI_ITERATIONS
 
@@ -2328,13 +2208,13 @@ class Http4sLiftBridgePropertyTest extends V500ServerSetup {
       var successCount = 0
       val iterations = CI_ITERATIONS
 
-      // Mix of native and bridge endpoints
+      // Mix of native and version-cascade endpoints
       val testPaths = List(
-        "/obp/v5.0.0/banks",       // could be native or bridge
-        "/obp/v3.0.0/banks",       // bridge only
+        "/obp/v5.0.0/banks",       // native HTTP4S
+        "/obp/v3.0.0/banks",       // via version-cascade
         "/obp/v7.0.0/banks",       // native HTTP4S
-        "/obp/v4.0.0/banks",       // bridge only
-        "/obp/v6.0.0/banks"        // bridge only
+        "/obp/v4.0.0/banks",       // native HTTP4S
+        "/obp/v6.0.0/banks"        // native HTTP4S
       )
 
       (1 to iterations).foreach { i =>

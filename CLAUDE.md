@@ -294,7 +294,7 @@ Compile times are consistent across all three shards — Zinc cache restores cor
 At the integration level both frameworks are similarly server/DB-bound (~0.32–0.45 s/test). The real http4s gain is the **unit/pure tier** — tests that don't need a running server are 54× faster. As more logic moves into pure functions (request parsing, response building, auth checks) these unit tests replace integration tests and the savings compound.
 
 The 6 integration suites (pre-merge timings; Http4s700RoutesTest is currently 102 scenarios):
-- `obp-api/src/test/scala/code/api/http4sbridge/Http4sLiftBridgePropertyTest.scala` — 51 tests, 31.9s
+- `obp-api/src/test/scala/code/api/http4sbridge/Http4sNativeRoutingPropertyTest.scala` — 48 tests (was 51; redundant concurrency/correlation dups trimmed)
 - `obp-api/src/test/scala/code/api/v7_0_0/Http4s700RoutesTest.scala` — 102 tests (was 75 pre-merge, 23.8s)
 - `obp-api/src/test/scala/code/api/v7_0_0/V7ResourceDocsAggregationTest.scala` — intentionally failing until resource-docs aggregation bug is fixed
 - `obp-api/src/test/scala/code/api/http4sbridge/Http4sServerIntegrationTest.scala` — 16 tests, 5.0s
@@ -319,7 +319,7 @@ The 12 pure-unit suites (172 tests, 1.3s total):
 
 **`API1_2_1Test`** (now http4s-backed via `Http4s121`) — was 143s for 323 tests on the Lift path; expected to improve as Lift bridge overhead is eliminated. The suite is in shard 3 (`code.api.v1_2_1` prefix).
 
-**`Http4sLiftBridgePropertyTest`** — 31.9s for 51 tests. Property 7 ("Session and Context Adapter Correctness") accounts for 13.4s of that: three ScalaCheck properties exercise concurrent requests through the Lift/http4s bridge, hitting real lock contention between Lift's session manager and the http4s fiber scheduler. Property 7.4 alone is 8.54s. These are the most meaningful slow tests — they exercise a genuine concurrency boundary.
+**`Http4sNativeRoutingPropertyTest`** (formerly `Http4sLiftBridgePropertyTest`) — property-based tests over the native http4s routing stack. The old "Property 7" concurrency/correlation properties (7.1/7.2/7.4) were redundant with Property 6.6 / 9.6 and have been trimmed; only 7.3 (header metadata across path variants) was kept. Remaining slow cost is the real-server concurrency properties (9.6, 11.6) exercising the HikariCP pool and correlation-id propagation.
 
 **`ResourceDocsTest` / `SwaggerDocsTest`** — 34s + 24s = 58s, averaging 0.85s/test — the slowest per-test cost in the suite. Each test serializes the entire API surface (633+ endpoints) into JSON/Swagger. Cost scales linearly with endpoint count. Will worsen as the http4s migration adds endpoints unless ResourceDoc serialization is cached or the heavy tests are isolated.
 
