@@ -78,6 +78,12 @@ object Http4sApp {
   // OBPAPIDynamicEntity dispatch. dynamic-endpoint (proxy + compiled resource docs) is a
   // separate task and still falls through to the Lift bridge.
   private val dynamicEntityRoutes: HttpRoutes[IO] = gate(ApiVersion.`dynamic-entity`, code.api.dynamic.entity.Http4sDynamicEntity.wrappedRoutesDynamicEntity)
+  // UK Open Banking (non-/obp prefixes /open-banking/v2.0 and /open-banking/v3.1) — native
+  // http4s, replaces the classpath-scanned Lift ScannedApis. All endpoints (v2.0: 5, v3.1: ~67)
+  // are migrated to http4s; the Lift ScannedApis aggregators register `routes = Nil`, so Lift
+  // serves no UK path. Wired before the Lift bridge for ordering, but nothing falls through to it.
+  private val ukV20Routes: HttpRoutes[IO] = gate(ApiVersion.ukOpenBankingV20, code.api.UKOpenBanking.v2_0_0.Http4sUKOBv200.wrappedRoutes)
+  private val ukV31Routes: HttpRoutes[IO] = gate(ApiVersion.ukOpenBankingV31, code.api.UKOpenBanking.v3_1_0.Http4sUKOBv310.wrappedRoutes)
 
   /**
    * Build the base HTTP4S routes with priority-based routing.
@@ -122,6 +128,8 @@ object Http4sApp {
         .orElse(v500Routes.run(req))
         .orElse(v700Routes.run(req))
         .orElse(code.api.berlin.group.v2.Http4sBGv2.wrappedRoutes.run(req))
+        .orElse(ukV20Routes.run(req))
+        .orElse(ukV31Routes.run(req))
         .orElse(v400Routes.run(req))
         .orElse(v310Routes.run(req))
         .orElse(v300Routes.run(req))
