@@ -17,8 +17,6 @@ The goal is a full http4s migration — replace Lift Web across all version file
 
 **Key files**: `Http4s700.scala` (v7.0.0 endpoints), `Http4s200.scala` (v2.0.0 endpoints — 37 own + path-rewriting bridge to Http4s140), `Http4s140.scala` (v1.4.0 endpoints — 11 own + path-rewriting bridge to Http4s130), `Http4s130.scala` (v1.3.0 endpoints — 3 own + path-rewriting bridge to Http4s121), `Http4s121.scala` (v1.2.1 endpoints — all 323 API1_2_1Test scenarios), `Http4sSupport.scala` (EndpointHelpers + recordMetric), `ResourceDocMiddleware.scala` (auth, entity resolution, transaction wrapper), `IdempotencyMiddleware.scala` (Redis-backed idempotency, opt-in via `Idempotency-Key` header, nested inside ResourceDocMiddleware), `RequestScopeConnection.scala` (DB transaction propagation to Futures).
 
-**Migrated endpoints** (45): root, getBanks, getCards, getCardsForBank, getResourceDocsObpV700, getBank, getCurrentUser, getCoreAccountById, getPrivateAccountByIdFull, getExplicitCounterpartyById, deleteEntitlement, addEntitlement, getAccountAccessTrace, getFeatures, getScannedApiVersions, getConnectors, getErrorMessages, getProviders, getUsers, getUserByUserId, getCustomersAtOneBank, getCustomerByCustomerId, getAccountsAtBank, createTradingOffer, getTradingOffer, getTradingOffers, cancelTradingOffer, createMarketOrder, getMarketOrder, cancelMarketOrder, createMarketMatch, getMarketTrade, requestSettlement, requestWithdrawal, getCacheConfig, getCacheInfo, getDatabasePoolInfo, getStoredProcedureConnectorHealth, getMigrations, getCacheNamespaces, createOrganisation, getOrganisations, getOrganisation, updateOrganisation, deleteOrganisation.
-
 **Tests**: `Http4s700RoutesTest` (102 scenarios, port 8087). `makeHttpRequest` returns `(Int, JValue, Map[String, String])`. `makeHttpRequestWithBody(method, path, body, headers)` for POST/PUT.
 
 ## Migrating a Lift Endpoint to http4s
@@ -263,65 +261,13 @@ How to find overrides for a version: grep `lazy val (\w+)` in the target `APIMet
 
 Symptoms in tests: a v4-specific assertion fails (e.g. an entitlement should-be-granted check returns false). The HTTP response is usually a successful 200/201, just from the wrong handler — so it can look like a flaky failure on the surface.
 
-## CI Performance Profile
+**JVM 64KB `<init>` limit in per-version files**: around ~140 endpoints, an `Http4sXxx` object's `<init>` exceeds the JVM 64KB-bytecode-per-method limit and won't compile. Adopt from the start (don't wait for the wall): (1) declare endpoints as `lazy val xxx: HttpRoutes[IO] = HttpRoutes.of[IO] { ... }` (not `val`) so lambda materialisation moves out of `<init>` into per-field `lzycompute` methods; (2) group `resourceDocs += ResourceDoc(...)` calls into `private def initXxxResourceDocs(): Unit` blocks of ~10–15 endpoints, each called once from the object body. Each helper def gets its own 64KB budget. (Pattern shipped in `Http4s600.scala`.)
 
-Measured from a 3-shard run (2691 tests total, all passing). Numbers are stable across shards.
+**`isStatisticallyTooPermissive` is sample-pool-dependent**: a fresh local test DB with a single user trips the ABAC-permissiveness check and causes spurious rejections. Seed enough users in any test exercising ABAC rules — it's a test-data issue, not a regression.
 
-### Time budget per shard (~9–11 min total)
+## CI (shard map + run tips)
 
-| Phase | Time | % of total |
-|---|---|---|
-| Main compile (Zinc) | ~130s | ~22% |
-| Test compile (Zinc) | ~68s | ~11% |
-| Test discovery (ScalaTest) | ~20s | ~3% |
-| **Test execution** | **~340–420s** | **~60–64%** |
-
-Compile times are consistent across all three shards — Zinc cache restores correctly. Test execution is the dominant cost.
-
-### http4s v7 vs Lift — per-test speed
-
-| Category | Tests | Avg/test |
-|---|---|---|
-| http4s v7 — unit/pure (no server) | 172 | **0.008s** |
-| http4s v7 — integration (real server) | 160 | 0.418s |
-| Lift v4 | 515 | 0.448s |
-| Lift v3 | 269 | 0.446s |
-| Lift v5 | 337 | 0.432s |
-| Lift v1 | 431 | 0.425s |
-| Lift v2 | 124 | 0.414s |
-| Lift v6 | 314 | 0.411s |
-
-At the integration level both frameworks are similarly server/DB-bound (~0.32–0.45 s/test). The real http4s gain is the **unit/pure tier** — tests that don't need a running server are 54× faster. As more logic moves into pure functions (request parsing, response building, auth checks) these unit tests replace integration tests and the savings compound.
-
-The 6 integration suites (pre-merge timings; Http4s700RoutesTest is currently 102 scenarios):
-- `obp-api/src/test/scala/code/api/http4sbridge/Http4sLiftBridgePropertyTest.scala` — 51 tests, 31.9s
-- `obp-api/src/test/scala/code/api/v7_0_0/Http4s700RoutesTest.scala` — 102 tests (was 75 pre-merge, 23.8s)
-- `obp-api/src/test/scala/code/api/v7_0_0/V7ResourceDocsAggregationTest.scala` — intentionally failing until resource-docs aggregation bug is fixed
-- `obp-api/src/test/scala/code/api/http4sbridge/Http4sServerIntegrationTest.scala` — 16 tests, 5.0s
-- `obp-api/src/test/scala/code/api/v5_0_0/Http4s500SystemViewsTest.scala` — 13 tests, 4.4s
-- `obp-api/src/test/scala/code/api/v7_0_0/Http4s700TransactionTest.scala` — 5 tests, 1.9s
-
-The 12 pure-unit suites (172 tests, 1.3s total):
-- `obp-api/src/test/scala/code/api/util/http4s/Http4sCallContextBuilderTest.scala`
-- `obp-api/src/test/scala/code/api/util/http4s/Http4sResponseConversionTest.scala`
-- `obp-api/src/test/scala/code/api/util/http4s/Http4sResponseConversionPropertyTest.scala`
-- `obp-api/src/test/scala/code/api/util/http4s/Http4sRequestConversionPropertyTest.scala`
-- `obp-api/src/test/scala/code/api/util/http4s/ResourceDocMatcherTest.scala`
-- `obp-api/src/test/scala/code/api/util/http4s/Http4sConfigUtilTest.scala`
-- `obp-api/src/test/scala/code/api/util/http4s/RequestScopeConnectionTest.scala`
-- `obp-api/src/test/scala/code/api/berlin/group/v2/Http4sBGv2AISTest.scala`
-- `obp-api/src/test/scala/code/api/berlin/group/v2/Http4sBGv2PISTest.scala`
-- `obp-api/src/test/scala/code/api/berlin/group/v2/Http4sBGv2ResourceDocTest.scala`
-- `obp-api/src/test/scala/code/api/berlin/group/v2/Http4sBGv2PIISTest.scala`
-- `obp-api/src/test/scala/code/api/v5_0_0/Http4s500RoutesTest.scala`
-
-### Known bottlenecks
-
-**`API1_2_1Test`** (now http4s-backed via `Http4s121`) — was 143s for 323 tests on the Lift path; expected to improve as Lift bridge overhead is eliminated. The suite is in shard 3 (`code.api.v1_2_1` prefix).
-
-**`Http4sLiftBridgePropertyTest`** — 31.9s for 51 tests. Property 7 ("Session and Context Adapter Correctness") accounts for 13.4s of that: three ScalaCheck properties exercise concurrent requests through the Lift/http4s bridge, hitting real lock contention between Lift's session manager and the http4s fiber scheduler. Property 7.4 alone is 8.54s. These are the most meaningful slow tests — they exercise a genuine concurrency boundary.
-
-**`ResourceDocsTest` / `SwaggerDocsTest`** — 34s + 24s = 58s, averaging 0.85s/test — the slowest per-test cost in the suite. Each test serializes the entire API surface (633+ endpoints) into JSON/Swagger. Cost scales linearly with endpoint count. Will worsen as the http4s migration adds endpoints unless ResourceDoc serialization is cached or the heavy tests are isolated.
+Perf note: integration tests are DB/HTTP-bound (~0.4 s/test) on both frameworks; the http4s win is the **pure-unit tier** (no running server, ~0.008 s/test). `ResourceDocsTest`/`SwaggerDocsTest` are the slowest per-test cost — they serialize the whole API surface, so cost grows with endpoint count (needs ResourceDoc-serialization caching before the migration completes).
 
 ### Shard assignment
 
@@ -337,30 +283,4 @@ Shards are defined by explicit package-prefix allowlists in `.github/workflows/b
 
 To explicitly move a package to a different shard, add it to that shard's `test_filter` block — it will be excluded from the catch-all automatically.
 
-### Implication for the migration
-
-Per-endpoint integration test cost stays roughly constant as endpoints move Lift → http4s (both bound by DB + HTTP). Gains appear from: (1) pure unit tests replacing integration tests, (2) eventual removal of Lift endpoint tests when v6 is retired. ResourceDocs overhead is the one cost that compounds — needs caching before the migration is complete.
-
-## TODO / Phase Progress
-
-### Per-version completeness (from `comm -23 lift http4s` on each version's `lazy val ... : OBPEndpoint` declarations)
-
-| Version | Genuine Lift handlers still on the bridge |
-|---|---|
-| v1.2.1, v1.3.0, v1.4.0, v2.0.0, v2.1.0, v2.2.0, v3.0.0, v4.0.0, v5.0.0, v5.1.0, v6.0.0 | 0 — fully on http4s |
-| v3.1.0 | `getMessageDocsSwagger`, `getObpConnectorLoopback`. `getMessageDocsSwagger`'s URL is in production already served by `Http4sResourceDocs.routes` (the Lift `lazy val` is shadowed dead code), but the Lift definition is intentionally kept — deleting it would reduce v3.1.0's frozen STABLE API surface (caught by `FrozenClassTest`) and require touching a v3.1.0 test. Retires together with the bridge-removal PR. `getObpConnectorLoopback` likewise deferred to the bridge-removal PR. |
-
-### v6.0.0 migration — done (243 / 243)
-Phase 1 (35 overrides) and Phase 2 (208 originals) both complete. All v6 routes live in `Http4s600.scala`, wired into `Http4sApp.baseServices` ahead of the Lift bridge.
-
-Architectural note from the v6 migration: around the 140-endpoint mark `Implementations6_0_0`'s `<init>` hit the JVM 64KB bytecode-per-method limit. The fix that ships in `Http4s600.scala` — and that future per-version files should adopt — is two-part:
-
-1. Declare endpoints as `lazy val xxx: HttpRoutes[IO] = HttpRoutes.of[IO] { ... }` instead of `val`. Lambda materialisation moves out of `<init>` into per-field `lzycompute` methods (each with its own 64KB budget).
-2. Group `resourceDocs += ResourceDoc(...)` calls into `private def initXxxResourceDocs(): Unit` blocks of ~10–15 endpoints, called once each from the object body. Each helper def gets its own 64KB.
-
-### Other TODOs
-- **OBP-Trading**: trading endpoints (createTradingOffer, getTradingOffer, getTradingOffers, cancelTradingOffer, createMarketOrder, getMarketOrder, cancelMarketOrder, createMarketMatch, getMarketTrade, requestSettlement, requestWithdrawal) are now in `Http4s700.scala`. 5 payment-auth endpoints remain commented out (notifyDeposit, createPaymentAuth, capturePaymentAuth, releasePaymentAuth, getPaymentAuth) — see `ideas/CAPTURE_RELEASE_TRANSACTION_REQUEST_TYPES.md`.
-- **CI speed-up** (not done): two-tier fast gate + full suite; surefire parallel forks.
-- **Disabled tests to fix**: `Http4s500RoutesTest` (@Ignore, in-process issue), `RootAndBanksTest` (@Ignore), `V500ContractParityTest` (@Ignore), `CardTest` (fully commented out). `v5_0_0`: 13 skipped tests (setup cost paid, no value).
-- **`V7ResourceDocsAggregationTest`**: intentionally failing — encodes the fix for the resource-docs aggregation bug (v7 endpoint returns only ~10 own docs instead of 500+ aggregated). Fix the bug to make this suite pass.
-- **~~Flaky `MakerCheckerTransactionRequestTest` — TTL/proxy connection race in v4 createTransactionRequest~~** — **RESOLVED.** The race (read worker getting a null/stale proxy → fresh pool connection → 0 uncommitted rows visible) is no longer reproducible on current `develop`: instrumented + clean reproduction sweeps (8 + 12 light runs across separate JVMs, plus a 20-iteration in-JVM stress) showed 40 consecutive multi-challenge create→read cycles pass with `currentProxy.get() != null` on every read; at the historical ~40% rate that's P ≈ 1.3×10⁻⁹. Almost certainly fixed by the `RequestScopeConnection` hardening already on `develop` — the `childValue → null` override on `currentProxy` (whose comment describes exactly this *"workers stuck with a stale proxy then read 0 rows for the current request's freshly-written data"* symptom) and the stale-proxy `isClosed()` guard in `RequestAwareConnectionManager.newConnection`. Locked in by `MakerCheckerTransactionRequestTest`'s **"Stress: repeated multi-challenge creates must always read back both challenges (RequestScopeConnection regression guard)"** scenario, which hammers the exact write→read surface in a warm JVM. Historical diagnosis (kept for context): inside one HTTP request, `LocalMappedConnector.createTransactionRequestv210` writes N rows to `MappedExpectedChallengeAnswer` via the request-scoped proxy and reads them back via `getChallengesByTransactionRequestId`; only the multi-user path (`REQUIRED_CHALLENGE_ANSWERS > 1`) exposed it because the extra synchronous `Views.views.vend.permissions(...)` inside `getAccountAttributesByAccount.map` shifted Future scheduling. If a regression resurfaces (the stress test starts flaking), the original fix directions still apply: route DB `Future`s through `RequestScopeConnection.fromFuture`, or thread the proxy connection explicitly down the connector call-chain.
+> **Migration status, per-version progress, drift audit, and open TODOs** live in [`LIFT_HTTP4S_MIGRATION.md`](LIFT_HTTP4S_MIGRATION.md) — the single source of truth for *what's done / what's left*. This file (CLAUDE.md) is **how-to + gotchas only**.
