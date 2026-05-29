@@ -194,47 +194,6 @@ trait OBPRestHelper extends MdcLoggable {
   val versionStatus : String // TODO this should be property of ApiVersion
   //def vDottedVersion = vDottedApiVersion(version)
 
-  /*
-  An implicit function to convert magically between a Boxed JsonResponse and a JsonResponse
-  If we have something good, return it. Else log and return an error.
-  Please note that behaviour of this function depends on property display_internal_errors=true/false in case of Failure
-  # When is disabled we show only last message which should be a user friendly one. For instance:
-  # {
-  #   "error": "OBP-30001: Bank not found. Please specify a valid value for BANK_ID."
-  # }
-  # When is disabled we also do filtering. Every message which does not contain "OBP-" is considered as internal and as that is not shown.
-  # In case the filtering implies an empty response we provide a generic one:
-  # {
-  #   "error": "OBP-50005: An unspecified or internal error occurred."
-  # }
-  # When is enabled we show all messages in a chain. For instance:
-  # {
-  #   "error": "OBP-30001: Bank not found. Please specify a valid value for BANK_ID. <- Full(TimeoutExceptionjava.util.concurrent.TimeoutException: The stream has not been completed in 1550 milliseconds.)"
-  # }
-  */
-  implicit def jsonResponseBoxToJsonResponse(box: Box[JsonResponse]): JsonResponse = {
-    box match {
-      case Full(r) => r
-      case ParamFailure(_, _, _, apiFailure : APIFailure) => {
-        logger.error("jsonResponseBoxToJsonResponse case ParamFailure says: API Failure: " + apiFailure.msg + " ($apiFailure.responseCode)")
-        errorJsonResponse(apiFailure.msg, apiFailure.responseCode)
-      }
-      case obj@Failure(_, _, _) => {
-        val failuresMsg = filterMessage(obj)
-        logger.debug("jsonResponseBoxToJsonResponse case Failure API Failure: " + failuresMsg)
-        errorJsonResponse(failuresMsg)
-      }
-      case Empty => {
-        logger.error(s"jsonResponseBoxToJsonResponse case Empty : ${ErrorMessages.ScalaEmptyBoxToLiftweb}")
-        errorJsonResponse(ErrorMessages.ScalaEmptyBoxToLiftweb)
-      }
-      case _ => {
-        logger.error("jsonResponseBoxToJsonResponse case Unknown !")
-        errorJsonResponse(ErrorMessages.UnknownError)
-      }
-    }
-  }
-
   /**
    * collect ResourceDoc objects
    * Note: if new version ResourceDoc's endpoint have the same 'requestUrl' and 'requestVerb' with old version, old version ResourceDoc will be omitted
@@ -261,14 +220,11 @@ trait OBPRestHelper extends MdcLoggable {
     result
   }
 
-  def isAutoValidate(doc: ResourceDoc, autoValidateAll: Boolean): Boolean = { //note: auto support v4.0.0 and later versions
+  def isAutoValidate(doc: ResourceDoc, autoValidateAll: Boolean): Boolean = {
     doc.isValidateEnabled || (autoValidateAll && !doc.isValidateDisabled && {
-      // Auto support v4.0.0 and all later versions
       val docVersion = doc.implementedInApiVersion
-      // Check if the version is v4.0.0 or later by comparing the version string
       docVersion match {
         case v: ScannedApiVersion =>
-          // Extract version numbers and compare
           val versionStr = v.apiShortVersion.replace("v", "")
           val parts = versionStr.split("\\.")
           if (parts.length >= 2) {
