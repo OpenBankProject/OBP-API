@@ -20,10 +20,10 @@ object PractiseEndpoint extends DynamicCompileEndpoint {
   import code.api.util.CallContext
   import code.api.util.ErrorMessages.{InvalidJsonFormat, InvalidRequestPayload}
   import code.api.util.NewStyle.HttpCode
-  import code.api.util.APIUtil.{OBPReturnType, futureToBoxedResponse, scalaFutureToLaFuture, errorJsonResponse}
+  import code.api.util.APIUtil.OBPReturnType
 
-  import net.liftweb.common.{Box, EmptyBox, Full}
-  import net.liftweb.http.{JsonResponse, Req}
+  import cats.effect.IO
+  import org.http4s.{Request, Response}
   import net.liftweb.json.MappingException
 
   import scala.concurrent.Future
@@ -48,13 +48,14 @@ object PractiseEndpoint extends DynamicCompileEndpoint {
 
   // copy the whole method body as "dynamicResourceDoc" method body
   override protected def
-    process(callContext: CallContext, request: Req, pathParams: Map[String, String]) : Box[JsonResponse] = {
+    process(callContext: CallContext, request: Request[IO], pathParams: Map[String, String]) : IO[Response[IO]] = {
     // please add import sentences here, those used by this method
     import code.api.util.NewStyle
     import code.api.v4_0_0.JSONFactory400
 
     val Some(resourceDoc) = callContext.resourceDocument
-    val hasRequestBody = request.body.isDefined
+    // the request body is available as a String on the CallContext (read by Http4sCallContextBuilder)
+    val hasRequestBody = callContext.httpBody.exists(_.nonEmpty)
 
     // get Path Parameters, example:
     // if the requestUrl of resourceDoc is /hello/banks/BANK_ID/world
@@ -62,16 +63,16 @@ object PractiseEndpoint extends DynamicCompileEndpoint {
     //pathParams.get("BANK_ID") will get Option("bank_x") value
     val myUserId = pathParams("MY_USER_ID")
 
-    val requestEntity = request.json match {
-      case Full(zson) =>
+    val requestEntity = callContext.httpBody.filter(_.nonEmpty) match {
+      case Some(rawBody) =>
         try {
-            zson.extract[RequestRootJsonClass]
+            net.liftweb.json.parse(rawBody).extract[RequestRootJsonClass]
         } catch {
           case e: MappingException =>
-            return Full(errorJsonResponse(s"$InvalidJsonFormat ${e.msg}"))
+            return errorResponse(s"$InvalidJsonFormat ${e.msg}")
         }
-      case _: EmptyBox =>
-        return Full(errorJsonResponse(s"$InvalidRequestPayload Current request has no payload"))
+      case None =>
+        return errorResponse(s"$InvalidRequestPayload Current request has no payload")
     }
     // please add business logic here
     val responseBody:ResponseRootJsonClass = ResponseRootJsonClass(s"${myUserId}_from_path", requestEntity.name, requestEntity.age,  requestEntity.hobby)
