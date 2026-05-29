@@ -2936,35 +2936,11 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   def enableVersionIfAllowed(version: ScannedApiVersion) : Boolean = {
     val allowed: Boolean = if (versionIsAllowed(version)
     ) {
-      version match {
-        //        case ApiVersion.v1_0 => LiftRules.statelessDispatch.append(v1_0.OBPAPI1_0)
-        //        case ApiVersion.v1_1 => LiftRules.statelessDispatch.append(v1_1.OBPAPI1_1)
-        //        case ApiVersion.v1_2 => LiftRules.statelessDispatch.append(v1_2.OBPAPI1_2)
-        // Can we depreciate the above?
-        case ApiVersion.v1_2_1 => LiftRules.statelessDispatch.append(v1_2_1.OBPAPI1_2_1)
-        case ApiVersion.v1_3_0 => LiftRules.statelessDispatch.append(v1_3_0.OBPAPI1_3_0)
-        case ApiVersion.v1_4_0 => LiftRules.statelessDispatch.append(v1_4_0.OBPAPI1_4_0)
-        case ApiVersion.v2_0_0 => LiftRules.statelessDispatch.append(v2_0_0.OBPAPI2_0_0)
-        case ApiVersion.v2_1_0 => LiftRules.statelessDispatch.append(v2_1_0.OBPAPI2_1_0)
-        case ApiVersion.v2_2_0 => LiftRules.statelessDispatch.append(v2_2_0.OBPAPI2_2_0)
-        case ApiVersion.v3_0_0 => LiftRules.statelessDispatch.append(v3_0_0.OBPAPI3_0_0)
-        case ApiVersion.v3_1_0 => LiftRules.statelessDispatch.append(v3_1_0.OBPAPI3_1_0)
-        case ApiVersion.v4_0_0 => LiftRules.statelessDispatch.append(v4_0_0.OBPAPI4_0_0)
-        case ApiVersion.v5_0_0 => LiftRules.statelessDispatch.append(v5_0_0.OBPAPI5_0_0)
-        case ApiVersion.v5_1_0 => LiftRules.statelessDispatch.append(v5_1_0.OBPAPI5_1_0)
-        case ApiVersion.v6_0_0 => LiftRules.statelessDispatch.append(v6_0_0.OBPAPI6_0_0)
-        // dynamic-endpoint dispatch migrated to Http4sDynamicEndpoint (wired into Http4sApp.baseServices).
-        // Keep the case label with an empty body so ApiVersion.`dynamic-endpoint` does NOT fall through
-        // to the ScannedApiVersion branch below (which would re-append it via ScannedApis).
-        case ApiVersion.`dynamic-endpoint` => // LiftRules.statelessDispatch.append(OBPAPIDynamicEndpoint)
-        // dynamic-entity endpoints migrated to Http4sDynamicEntity (wired into Http4sApp.baseServices).
-        // Keep the case label with an empty body so ApiVersion.`dynamic-entity` does NOT fall through
-        // to the ScannedApiVersion branch below (which would re-append it via ScannedApis).
-        case ApiVersion.`dynamic-entity` => // LiftRules.statelessDispatch.append(OBPAPIDynamicEntity)
-        case version: ScannedApiVersion => 
-          ScannedApis.versionMapScannedApis.get(version).foreach(api => LiftRules.statelessDispatch.append(api))
-        case _ => logger.info(s"There is no ${version.toString}")
-      }
+      // All endpoint dispatch is served natively by http4s (Http4sApp.baseServices). The Lift
+      // `statelessDispatch.append(...)` registrations for v1.2.1–v6.0.0 and the ScannedApis
+      // standards were retired in the Lift-Web teardown — every aggregator/standard was already a
+      // `routes = Nil` empty shell, so the bridge never served them. This method now only gates and
+      // logs version enablement (consumed via `versionIsAllowed` / version discovery).
 
       logger.info(s"${version.fullyQualifiedVersion} was ENABLED")
 
@@ -5349,7 +5325,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   
   val allowedAnswerTransactionRequestChallengeAttempts = APIUtil.getPropsAsIntValue("answer_transactionRequest_challenge_allowed_attempts").openOr(3)
   
-  lazy val allStaticResourceDocs = (OBPAPI6_0_0.allResourceDocs
+  lazy val allStaticResourceDocs = (code.api.util.http4s.Http4sResourceDocAggregation.v600
     ++ OBP_UKOpenBanking_200.allResourceDocs
     ++ OBP_UKOpenBanking_310.allResourceDocs
     // Commented out: Lift endpoints migrated off / removed (Polish, STET, AUOpenBanking, MxOF/CNBV9, BahrainOBF)

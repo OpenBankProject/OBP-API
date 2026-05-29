@@ -120,11 +120,14 @@ object Http4s700 {
    * Performance: Computed once and cached (lazy val) to avoid recomputation on every request.
    */
   lazy val allResourceDocs: ArrayBuffer[ResourceDoc] = {
-    // Import v6.0.0's aggregated docs (v6.0.0 + v5.1.0 + ... + v1.3.0)
-    import code.api.v6_0_0.OBPAPI6_0_0
-    
-    // Combine v6.0.0's aggregated docs with v7.0.0's docs
-    val allDocs = OBPAPI6_0_0.allResourceDocs ++ resourceDocs
+    // Ensure Implementations7_0_0 is initialized so that resourceDocs is populated.
+    // The Kleisli wrapper in wrappedRoutesV700Services defers Implementations7_0_0 init
+    // to the first actual API request, which may not have happened yet when a resource-docs
+    // request arrives first. Accessing the object here forces its body (resourceDocs += calls).
+    val _init = Implementations7_0_0
+    // v6.0.0's aggregated docs (v6.0.0 + v5.1.0 + ... + v1.2.1), sourced Lift-free.
+    // Combine with v7.0.0's docs.
+    val allDocs = code.api.util.http4s.Http4sResourceDocAggregation.v600 ++ resourceDocs
     
     // Deduplicate by (requestUrl, requestVerb), keeping newest version
     // Sort by API version (descending) so newer versions come first

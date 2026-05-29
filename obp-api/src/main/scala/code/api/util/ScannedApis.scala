@@ -3,14 +3,15 @@ package code.api.util
 import code.api.util.APIUtil.{ApiRelation, OBPEndpoint, ResourceDoc}
 import code.util.ClassScanUtils
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
-import net.liftweb.http.LiftRules
 
 import scala.collection.mutable.ArrayBuffer
 
 /**
-  * any object extends this trait will be scanned and register the allResourceDocs and routes
+  * any object extends this trait will be scanned and register the allResourceDocs and routes.
+  * Endpoint dispatch is served natively by http4s; this trait is now only a discovery marker for
+  * version + resource-doc aggregation (no longer a Lift `LiftRules.DispatchPF`).
   */
-trait ScannedApis extends LiftRules.DispatchPF {
+trait ScannedApis {
   val apiVersion: ScannedApiVersion
   lazy val version: ApiVersion = this.apiVersion
   val allResourceDocs: ArrayBuffer[ResourceDoc]
