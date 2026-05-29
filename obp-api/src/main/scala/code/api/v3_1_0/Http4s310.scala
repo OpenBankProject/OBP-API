@@ -46,7 +46,6 @@ import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.util.{ApiVersion, ApiVersionStatus, ScannedApiVersion}
 import net.liftweb.common.{Empty, Full}
-import net.liftweb.http.provider.HTTPParam
 import net.liftweb.json.Formats
 import net.liftweb.mapper.By
 import net.liftweb.util.{Helpers, Props}

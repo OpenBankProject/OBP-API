@@ -1,6 +1,6 @@
 package code.api.util
 
-import code.api.util.APIUtil.OBPReturnType
+import code.api.util.APIUtil.{HTTPParam, OBPReturnType}
 import code.api.util.ErrorUtil.apiFailure
 import code.api.util.newstyle.RegulatedEntityNewStyle.getRegulatedEntitiesNewStyle
 import code.api.{ObpApiFailure, RequestHeader}
@@ -10,7 +10,6 @@ import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.{RegulatedEntityTrait, User}
 import net.liftweb.common.{Box, Failure, Full}
-import net.liftweb.http.provider.HTTPParam
 import net.liftweb.util.Helpers
 
 import java.nio.charset.StandardCharsets

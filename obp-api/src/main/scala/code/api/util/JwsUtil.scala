@@ -8,7 +8,7 @@ import com.nimbusds.jose.util.JSONObjectUtils
 import com.nimbusds.jose.{JWSAlgorithm, JWSHeader, JWSObject, Payload}
 import com.openbankproject.commons.model.User
 import net.liftweb.common.{Box, Failure, Full}
-import net.liftweb.http.provider.HTTPParam
+import code.api.util.APIUtil.HTTPParam
 import net.liftweb.json
 import net.liftweb.util.SecurityHelpers
 

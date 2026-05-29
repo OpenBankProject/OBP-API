@@ -1,7 +1,7 @@
 package code.api.util
 
 import code.api.RequestHeader._
-import net.liftweb.http.provider.HTTPParam
+import code.api.util.APIUtil.HTTPParam
 
 object RequestHeadersUtil {
   def checkEmptyRequestHeaderValues(requestHeaders: List[HTTPParam]): List[String] = {

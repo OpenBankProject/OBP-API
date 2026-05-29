@@ -84,7 +84,6 @@ import net.liftweb.actor.LAFuture
 import net.liftweb.common._
 import net.liftweb.http._
 import net.liftweb.http.js.JE.JsRaw
-import net.liftweb.http.provider.HTTPParam
 import net.liftweb.http.rest.RestContinuation
 import net.liftweb.json
 import net.liftweb.json.JsonAST.{JField, JNothing, JObject, JString, JValue}
@@ -115,6 +114,12 @@ import scala.util.control.Breaks.{break, breakable}
 import scala.xml.{Elem, XML}
 
 object APIUtil extends MdcLoggable with CustomJsonFormats{
+
+  /** Drop-in replacement for net.liftweb.http.provider.HTTPParam — same shape, no Lift-Web dep. */
+  case class HTTPParam(name: String, values: List[String])
+  object HTTPParam {
+    def apply(name: String, value: String): HTTPParam = new HTTPParam(name, List(value))
+  }
 
   /**
    * Deobfuscate a Jetty-style OBF: password string.
@@ -2924,10 +2929,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     else 
       getCorrelationId()
       
-    val reqHeaders = if (cc.requestHeaders.nonEmpty)
-      cc.requestHeaders
-    else
-      S.request.map(_.request.headers).openOr(Nil)
+    val reqHeaders = cc.requestHeaders
       
     val remoteIpAddress = if (cc.ipAddress.nonEmpty) 
       cc.ipAddress 

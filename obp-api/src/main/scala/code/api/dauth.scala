@@ -38,7 +38,7 @@ import net.liftweb.common._
 import net.liftweb.http._
 import net.liftweb.json._
 import com.openbankproject.commons.ExecutionContext.Implicits.global
-import net.liftweb.http.provider.HTTPParam
+import code.api.util.APIUtil.HTTPParam
 
 import scala.collection.immutable.List
 import scala.concurrent.Future

@@ -67,7 +67,6 @@ object APIMethods310 {
 //import com.openbankproject.commons.model.enums.{AccountAttributeType, CardAttributeType, ProductAttributeType, StrongCustomerAuthentication}
 //import com.openbankproject.commons.util.{ApiVersion, ReflectUtils}
 //import net.liftweb.common.{Box, Empty, Full}
-//import net.liftweb.http.provider.HTTPParam
 //import net.liftweb.http.rest.RestHelper
 //import net.liftweb.json
 //import net.liftweb.json._

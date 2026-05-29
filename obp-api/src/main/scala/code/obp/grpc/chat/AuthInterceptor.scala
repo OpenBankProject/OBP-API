@@ -5,7 +5,7 @@ import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model.User
 import io.grpc._
 import net.liftweb.common.Full
-import net.liftweb.http.provider.HTTPParam
+import code.api.util.APIUtil.HTTPParam
 
 import scala.concurrent.Await
 import scala.concurrent.duration._

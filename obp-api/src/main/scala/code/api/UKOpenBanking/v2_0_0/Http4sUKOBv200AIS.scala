@@ -4,7 +4,7 @@ import cats.data.{Kleisli, OptionT}
 import cats.effect.IO
 import code.api.APIFailureNewStyle
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
-import code.api.util.APIUtil.{EmptyBody, ResourceDoc, createQueriesByHttpParams, fullBoxOrException, unboxFull}
+import code.api.util.APIUtil.{HTTPParam, EmptyBody, ResourceDoc, createQueriesByHttpParams, fullBoxOrException, unboxFull}
 import code.api.util.ApiTag._
 import code.api.util.CustomJsonFormats
 import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, UnknownError}
@@ -19,7 +19,6 @@ import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.{AccountId, BankIdAccountId}
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
 import net.liftweb.common.Full
-import net.liftweb.http.provider.HTTPParam
 import net.liftweb.json.Formats
 import org.http4s._
 import org.http4s.dsl.io._

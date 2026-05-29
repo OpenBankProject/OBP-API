@@ -4,7 +4,6 @@ import java.util.Date
 
 import code.api.util.APIUtil._
 import net.liftweb.common.Box
-import net.liftweb.http.provider.HTTPParam
 import org.apache.commons.lang3.StringUtils
 
 import scala.collection.immutable.List

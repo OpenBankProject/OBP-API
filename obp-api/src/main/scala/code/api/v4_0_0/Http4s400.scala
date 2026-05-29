@@ -1100,9 +1100,9 @@ object Http4s400 {
       case req @ GET -> `prefixPath` / "users" =>
         EndpointHelpers.withUser(req) { (_, cc) =>
           val httpParams = req.headers.headers.toList.map(h =>
-            net.liftweb.http.provider.HTTPParam(h.name.toString, h.value)) :::
+            HTTPParam(h.name.toString, h.value)) :::
             req.uri.query.multiParams.toList.flatMap { case (k, vs) =>
-              vs.map(v => net.liftweb.http.provider.HTTPParam(k, v))
+              vs.map(v => HTTPParam(k, v))
             }
           for {
             (obpQueryParams, _) <- createQueriesByHttpParamsFuture(httpParams, Some(cc))
@@ -6362,7 +6362,7 @@ object Http4s400 {
       case req @ GET -> `prefixPath` / "customers" =>
         EndpointHelpers.withUser(req) { (_, cc) =>
           val httpParams = req.headers.headers.toList.map(h =>
-            net.liftweb.http.provider.HTTPParam(h.name.toString, h.value))
+            HTTPParam(h.name.toString, h.value))
           for {
             (requestParams, _) <- NewStyle.function.extractQueryParams(
               req.uri.renderString, List("limit", "offset", "sort_direction"), Some(cc))

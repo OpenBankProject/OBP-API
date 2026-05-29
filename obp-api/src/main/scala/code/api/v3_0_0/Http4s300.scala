@@ -34,7 +34,6 @@ import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.util.{ApiVersion, ApiVersionStatus, ScannedApiVersion}
 import net.liftweb.common.{Empty, Failure, Full, ParamFailure}
-import net.liftweb.http.provider.HTTPParam
 import net.liftweb.json.JsonAST.JField
 import net.liftweb.json.compactRender
 import net.liftweb.json.{Extraction, Formats, Serialization}

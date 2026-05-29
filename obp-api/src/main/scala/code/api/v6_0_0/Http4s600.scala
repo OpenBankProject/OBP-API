@@ -48,7 +48,7 @@ import code.bankconnectors.{Connector => BankConnector}
 import code.bankconnectors.storedprocedure.StoredProcedureUtils
 import code.migration.MigrationScriptLogProvider
 import code.api.dynamic.entity.helper.DynamicEntityInfo
-import code.api.util.APIUtil.{createQueriesByHttpParamsFuture, unboxFull, unboxFullOrFail}
+import code.api.util.APIUtil.{HTTPParam, createQueriesByHttpParamsFuture, unboxFull, unboxFullOrFail}
 import code.api.util.{ApiVersionUtils, CertificateUtil, CommonsEmailWrapper, RateLimitingUtil}
 import code.api.v2_0_0.{BasicViewJson, JSONFactory200}
 import code.api.v3_0_0.JSONFactory300
@@ -75,7 +75,6 @@ import com.openbankproject.commons.dto.GetProductsParam
 import code.model.ModeratedTransaction
 import com.openbankproject.commons.model.{CreditLimit, CreditRating, CustomerFaceImage}
 import net.liftweb.common.{Empty, Failure}
-import net.liftweb.http.provider.HTTPParam
 
 import scala.util.Random
 import code.metrics.APIMetrics
@@ -2656,8 +2655,7 @@ object Http4s600 {
             _ <- Helper.booleanToFuture(InvalidSignalChannelName, cc = Some(cc)) {
               code.api.cache.RedisMessaging.validateChannelName(channelName)
             }
-            httpParams = req.headers.headers.toList.map(h =>
-              net.liftweb.http.provider.HTTPParam(h.name.toString, h.value))
+            httpParams = req.headers.headers.toList.map(h => HTTPParam(h.name.toString, h.value))
             (obpQueryParams, _) <- createQueriesByHttpParamsFuture(httpParams, Some(cc))
             limit = obpQueryParams.collectFirst { case code.api.util.OBPLimit(value) => value }.getOrElse(50)
             offset = obpQueryParams.collectFirst { case code.api.util.OBPOffset(value) => value }.getOrElse(0)
