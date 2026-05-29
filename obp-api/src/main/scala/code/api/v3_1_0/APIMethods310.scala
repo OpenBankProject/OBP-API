@@ -1,6 +1,5 @@
 package code.api.v3_1_0
 
-import net.liftweb.http.rest.RestHelper
 
 /*
  * All v3.1.0 endpoints have been migrated to Http4s310. This trait is retained
@@ -11,9 +10,9 @@ import net.liftweb.http.rest.RestHelper
  * Use `Http4s310.Implementations3_1_0` directly (or `OBPAPI3_1_0.Implementations3_1_0`,
  * which is a re-export) for ResourceDoc / route access in tests.
  */
-trait APIMethods310 { self: RestHelper => }
+trait APIMethods310
 
-object APIMethods310 extends RestHelper with APIMethods310 {
+object APIMethods310 {
   // Re-export so any caller that still imports APIMethods310.Implementations3_1_0 keeps compiling.
   val Implementations3_1_0 = Http4s310.Implementations3_1_0
 }
@@ -6076,7 +6075,7 @@ object APIMethods310 extends RestHelper with APIMethods310 {
 //  }
 //}
 //
-//object APIMethods310 extends RestHelper with APIMethods310 {
+//object APIMethods310 {
 //  lazy val newStyleEndpoints: List[(String, String)] = Implementations3_1_0.resourceDocs.map {
 //    rd => (rd.partialFunctionName, rd.implementedInApiVersion.toString())
 //  }.toList

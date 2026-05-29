@@ -487,11 +487,6 @@ class Boot extends MdcLoggable {
     // dispatches were retired in the http4s migration; any prop gates
     // (e.g. `openid_connect.enabled`, `allow_direct_login`) live with those routes.
 
-
-
-    //LiftRules.statelessDispatch.append(AccountsAPI)
-
-
     //////////////////////////////////////////////////////////////////////////////////////////////////
     // Resource Docs are used in the process of surfacing endpoints so we enable them explicitly
     // to avoid a circular dependency.

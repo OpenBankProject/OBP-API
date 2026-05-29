@@ -1,7 +1,6 @@
 package code.api.v1_2_1
 
 import code.api.OBPRestHelper
-import code.api.util.APIUtil.OBPEndpoint
 import code.api.util.VersionedOBPApis
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.util.{ApiVersion, ApiVersionStatus}

@@ -2530,7 +2530,7 @@ trait APIMethods500
 //  }
 //}
 //
-//object APIMethods500 extends RestHelper with APIMethods500 {
+//object APIMethods500 {
 //  lazy val newStyleEndpoints: List[(String, String)] = Implementations5_0_0.resourceDocs.map {
 //    rd => (rd.partialFunctionName, rd.implementedInApiVersion.toString())
 //  }.toList

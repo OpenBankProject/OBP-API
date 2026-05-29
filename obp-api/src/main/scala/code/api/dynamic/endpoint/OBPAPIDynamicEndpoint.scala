@@ -29,7 +29,6 @@ package code.api.dynamic.endpoint
 import APIMethodsDynamicEndpoint.ImplementationsDynamicEndpoint
 import code.api.OBPRestHelper
 import code.api.dynamic.endpoint.helper.DynamicEndpoints
-import code.api.util.APIUtil.OBPEndpoint
 import code.api.util.{APIUtil, VersionedOBPApis}
 import code.api.v5_0_0.OBPAPI5_0_0.{apiPrefix, registerRoutes}
 import code.util.Helper.MdcLoggable

@@ -44,7 +44,6 @@ import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.User
 import net.liftweb.common._
 import net.liftweb.http._
-import net.liftweb.http.rest.RestHelper
 import net.liftweb.mapper.{By, By_>, Descending, OrderBy}
 import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers.tryo
@@ -79,39 +78,9 @@ object JSONFactory {
   }
 }
 
-object DirectLogin extends RestHelper with MdcLoggable {
+object DirectLogin extends MdcLoggable {
 
-  // Our version of serve
-  def dlServe(handler : PartialFunction[Req, JsonResponse]) : Unit = {
-    val obpHandler : PartialFunction[Req, () => Box[LiftResponse]] = {
-      new PartialFunction[Req, () => Box[LiftResponse]] {
-        def apply(r : Req) = {
-          handler(r)
-        }
-        def isDefinedAt(r : Req) = handler.isDefinedAt(r)
-      }
-    }
-    super.serve(obpHandler)
-  }
 
-  dlServe
-  {
-    //Handling get request for a token
-    case Req("my" :: "logins" :: "direct" :: Nil,_ , PostRequest) => {
-      for{
-        (httpCode: Int, message: String, userId:Long) <- createTokenFuture(getAllParameters)
-        _ <- Future{grantEntitlementsToUseDynamicEndpointsInSpacesInDirectLogin(userId)}
-      }   yield {
-        if (httpCode == 200) {
-          (JSONFactory.createTokenJSON(message), HttpCode.`201`(CallContext()))
-        } else {
-          unboxFullOrFail(Empty, None, message, httpCode)
-        }
-      }
-    }
-  }
-
-  
   def grantEntitlementsToUseDynamicEndpointsInSpacesInDirectLogin(userId:Long) = {
     try {
       val resourceUser = UserX.findByResourceUserId(userId).openOrThrowException(s"$InvalidDirectLoginParameters can not find the resourceUser!")

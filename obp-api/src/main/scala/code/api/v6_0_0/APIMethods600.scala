@@ -17167,7 +17167,7 @@ trait APIMethods600
 //
 //
 //
-//object APIMethods600 extends RestHelper with APIMethods600 {
+//object APIMethods600 {
 //  lazy val newStyleEndpoints: List[(String, String)] = Implementations6_0_0.resourceDocs.map {
 //    rd => (rd.partialFunctionName, rd.implementedInApiVersion.toString())
 //  }.toList

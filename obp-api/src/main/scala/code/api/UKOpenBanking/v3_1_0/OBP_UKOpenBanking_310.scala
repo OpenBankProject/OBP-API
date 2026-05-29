@@ -1,7 +1,7 @@
 package code.api.UKOpenBanking.v3_1_0
 
 import code.api.OBPRestHelper
-import code.api.util.APIUtil.{OBPEndpoint, ResourceDoc}
+import code.api.util.APIUtil.ResourceDoc
 import code.api.util.ScannedApis
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.util.{ApiVersion, ApiVersionStatus, ScannedApiVersion}

@@ -2,7 +2,6 @@ package code.api.v2_2_0
 
 import scala.language.reflectiveCalls
 import code.api.OBPRestHelper
-import code.api.util.APIUtil.OBPEndpoint
 import code.api.util.VersionedOBPApis
 import code.api.v2_0_0.Http4s200
 import code.api.v2_1_0.OBPAPI2_1_0

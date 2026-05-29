@@ -14,7 +14,6 @@ import com.openbankproject.commons.model.enums.DynamicEntityOperation._
 import com.openbankproject.commons.model.enums._
 import com.openbankproject.commons.util.{ApiVersion, JsonUtils}
 import net.liftweb.common._
-import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.{JsonResponse, Req}
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.JsonDSL._
@@ -26,7 +25,6 @@ import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
 
 trait APIMethodsDynamicEntity {
-  self: RestHelper =>
 
   val ImplementationsDynamicEntity = new ImplementationsDynamicEntity()
 
@@ -523,7 +521,7 @@ trait APIMethodsDynamicEntity {
   }
 }
 
-object APIMethodsDynamicEntity extends RestHelper with APIMethodsDynamicEntity {
+object APIMethodsDynamicEntity extends APIMethodsDynamicEntity {
   lazy val newStyleEndpoints: List[(String, String)] = ImplementationsDynamicEntity.resourceDocs.map {
     rd => (rd.partialFunctionName, rd.implementedInApiVersion.toString())
   }.toList

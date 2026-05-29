@@ -1,6 +1,5 @@
 package code.api.v3_0_0
 
-import net.liftweb.http.rest.RestHelper
 
 /*
  * All v3.0.0 endpoints have been migrated to Http4s300. This trait is retained
@@ -11,9 +10,9 @@ import net.liftweb.http.rest.RestHelper
  * Use `Http4s300.Implementations3_0_0` directly (or `OBPAPI3_0_0.Implementations3_0_0`,
  * which is a re-export) for ResourceDoc / route access in tests.
  */
-trait APIMethods300 { self: RestHelper => }
+trait APIMethods300
 
-object APIMethods300 extends RestHelper with APIMethods300 {
+object APIMethods300 {
   // Re-export so callers using APIMethods300.Implementations3_0_0
   // (e.g. v3_1_0/ConsentTest, v5_1_0/ConsentObpTest) continue to compile.
   val Implementations3_0_0 = Http4s300.Implementations3_0_0
@@ -2528,7 +2527,7 @@ object APIMethods300 extends RestHelper with APIMethods300 {
 //
 //  }
 //}
-//object APIMethods300 extends RestHelper with APIMethods300 {
+//object APIMethods300 {
 //  lazy val oldStyleEndpoints = List(
 //    nameOf(Implementations3_0_0.createBranch),
 //    nameOf(Implementations3_0_0.updateBranch),
