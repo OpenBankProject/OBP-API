@@ -1,7 +1,7 @@
 package code.bankconnectors
 
 import code.api.APIFailureNewStyle
-import code.api.util.APIUtil.{OBPEndpoint, _}
+import code.api.util.APIUtil._
 import code.api.util.NewStyle.HttpCode
 import code.api.util.{APIUtil, ApiRole, CallContext, CustomJsonFormats, NewStyle, OBPQueryParam}
 import code.bankconnectors.ConnectorEndpoints.getMethod
@@ -12,7 +12,7 @@ import com.openbankproject.commons.util.ReflectUtils
 import com.openbankproject.commons.util.ReflectUtils.{getType, toValueObject}
 import net.liftweb.common.{Box, Empty, Failure, Full}
 import com.github.dwickern.macros.NameOf.nameOf
-import net.liftweb.http.Req
+import net.liftweb.http.{JsonResponse, Req}
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.JValue
 import net.liftweb.json.JsonAST.JNothing
@@ -40,7 +40,7 @@ object ConnectorEndpoints extends RestHelper{
       else None
   }
 
-  lazy val connectorEndpoints: OBPEndpoint = {
+  lazy val connectorEndpoints: PartialFunction[Req, CallContext => Box[JsonResponse]] = {
     case "connector" :: methodName :: Nil JsonAny json -> req if(hashMethod(methodName, json))  => {
       cc => {
         for {

@@ -1551,11 +1551,6 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   case class BigIntBody(value: BigInt) extends PrimaryDataBody[BigInt]
   case class JArrayBody(value: JArray) extends PrimaryDataBody[JArray]
 
-  /**
-   * Any dynamic endpoint's ResourceDoc, it's partialFunction should set this stub endpoint.
-   */
-  val dynamicEndpointStub: OBPEndpoint = Functions.doNothing
-
   object ResourceDoc{
     private val operationIdToResourceDoc: ConcurrentHashMap[String, ResourceDoc] = new ConcurrentHashMap[String, ResourceDoc]
 
@@ -1613,7 +1608,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
                           http4sPartialFunction: Http4sEndpoint = None, // http4s endpoint handler
                           // Native http4s handler for runtime-compiled dynamic endpoints (Piece C). Defaulted to None so
                           // no existing construction site changes. Set by DynamicResourceDocsEndpointGroup / practise group
-                          // (with partialFunction = dynamicEndpointStub); run by code.api.dynamic.endpoint.Http4sDynamicEndpoint.
+                          // run by code.api.dynamic.endpoint.Http4sDynamicEndpoint.
                           dynamicHttp4sFunction: Option[OBPEndpointIO] = None
                         ) {
     // this code block will be merged to constructor.
@@ -1837,236 +1832,6 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       }
     }
 
-    /**
-     * According errorResponseBodies whether contains AuthenticatedUserIsRequired and UserHasMissingRoles do validation.
-     * So can avoid duplicate code in endpoint body for expression do check.
-     * Note: maybe this will be misused, So currently just comment out.
-     */
-    //lazy val wrappedEndpoint: OBPEndpoint = wrappedWithAuthCheck(partialFunction)
-
-    /**
-     * wrapped an endpoint to a new one, let it do auth check before execute the endpoint body
-     *
-     * @param obpEndpoint original endpoint
-     * @return wrapped endpoint
-     */
-    def wrappedWithAuthCheck(obpEndpoint: OBPEndpoint): OBPEndpoint = {
-      _isEndpointAuthCheck = true
-
-      def checkAuth(cc: CallContext): Future[(Box[User], Option[CallContext])] = authMode match {
-        case UserOnly | UserAndApplication =>
-          if (AuthCheckIsRequired) authenticatedAccessFun(cc) else anonymousAccessFun(cc)
-        case ApplicationOnly | UserOrApplication =>
-          applicationAccessFun(cc)
-      }
-      
-      def checkObpIds(obpKeyValuePairs:  List[(String, String)], callContext: Option[CallContext]): Future[Option[CallContext]] = {
-        Future{
-          val allInvalidValueParis = obpKeyValuePairs
-            .filter(
-              keyValuePair => 
-                !checkObpId(keyValuePair._2).equals(SILENCE_IS_GOLDEN)
-            )
-          if(allInvalidValueParis.nonEmpty){
-            throw new RuntimeException(s"$InvalidJsonFormat Here are all invalid values: $allInvalidValueParis")
-          }else{
-            callContext
-          }
-        }
-      }
-
-      def checkRoles(bankId: Option[BankId], user: Box[User], cc: Option[CallContext]):Future[Box[Unit]] = {
-        if (isNeedCheckRoles) {
-          val bankIdStr = bankId.map(_.value).getOrElse("")
-          val userIdStr = user.map(_.userId).openOr("")
-          val consumerId = APIUtil.getConsumerPrimaryKey(cc)
-          val errorMessage = if (rolesForCheck.filter(_.requiresBankId).isEmpty)
-            UserHasMissingRoles + rolesForCheck.mkString(" or ")
-          else
-            UserHasMissingRoles + rolesForCheck.mkString(" or ") + s" for BankId($bankIdStr)."
-          Helper.booleanToFuture(errorMessage, cc = cc) {
-            APIUtil.handleAccessControlWithAuthMode(bankIdStr, userIdStr, consumerId, rolesForCheck, authMode)
-          }
-        } else {
-          Future.successful(Full(Unit))
-        }
-      }
-
-      def checkBank(bankId: Option[BankId], callContext: Option[CallContext]): Future[(Bank, Option[CallContext])] = {
-        if (isNeedCheckBank && bankId.isDefined) {
-          checkBankFun(bankId.get)(callContext)
-        } else {
-          Future.successful(null.asInstanceOf[Bank] -> callContext)
-        }
-      }
-
-      def checkAccount(bankId: Option[BankId], accountId: Option[AccountId], callContext: Option[CallContext]): Future[(BankAccount, Option[CallContext])] = {
-        if(isNeedCheckAccount && bankId.isDefined && accountId.isDefined) {
-          checkAccountFun(bankId.get)(accountId.get, callContext)
-        } else {
-          Future.successful(null.asInstanceOf[BankAccount] -> callContext)
-        }
-      }
-
-      def checkView(viewId: Option[ViewId],
-                    bankId: Option[BankId],
-                    accountId: Option[AccountId],
-                    boxUser: Box[User],
-                    callContext: Option[CallContext]): Future[View] = {
-        if(isNeedCheckView && bankId.isDefined && accountId.isDefined && viewId.isDefined) {
-          val bankIdAccountId = BankIdAccountId(bankId.get, accountId.get)
-          checkViewFun(viewId.get)(bankIdAccountId, boxUser, callContext)
-        } else {
-          Future.successful(null.asInstanceOf[View])
-        }
-      }
-
-      def checkCounterparty(counterpartyId: Option[CounterpartyId], callContext: Option[CallContext]): OBPReturnType[CounterpartyTrait] = {
-        if(isNeedCheckCounterparty && counterpartyId.isDefined) {
-          checkCounterpartyFun(counterpartyId.get)(callContext)
-        } else {
-          Future.successful(null.asInstanceOf[CounterpartyTrait] -> callContext)
-        }
-      }
-      // reset connectorMethods
-      {
-        val checkerFunctions = mutable.ListBuffer[PartialFunction[_, _]]()
-        authMode match {
-          case UserOnly | UserAndApplication =>
-            if (AuthCheckIsRequired) checkerFunctions += authenticatedAccessFun
-            else checkerFunctions += anonymousAccessFun
-          case ApplicationOnly | UserOrApplication =>
-            checkerFunctions += applicationAccessFun
-        }
-        if (isNeedCheckRoles) {
-          checkerFunctions += checkRolesFun
-        }
-        if (isNeedCheckBank) {
-          checkerFunctions += checkBankFun
-        }
-        if (isNeedCheckAccount) {
-          checkerFunctions += checkAccountFun
-        }
-        if (isNeedCheckView) {
-          checkerFunctions += checkViewFun
-        }
-        if (isNeedCheckCounterparty) {
-          checkerFunctions += checkCounterpartyFun
-        }
-        val addedMethods: List[String] = checkerFunctions.toList.flatMap(getDependentConnectorMethods(_))
-          .map(value =>("obp." +value).intern())
-
-        // add connector method to endpoint info
-        addEndpointInfos(addedMethods, partialFunctionName, implementedInApiVersion)
-
-        this.connectorMethods = this.connectorMethods match {
-          case x if addedMethods.nonEmpty => (addedMethods ::: x).distinct
-          case x => x
-        }
-      }
-
-
-      val isUrlMatchesResourceDocUrl: List[String] => Boolean = {
-        val urlInDoc = StringUtils.split(this.requestUrl, '/')
-        val pathVariableNames = findPathVariableNames(this.requestUrl)
-
-        (requestUrl: List[String]) => {
-          if (requestUrl == urlInDoc) {
-            true
-          } else {
-            (requestUrl.size == urlInDoc.size) &&
-            urlInDoc.zip(requestUrl).forall {
-                case (k, v) =>
-                  k == v || pathVariableNames.contains(k)
-              }
-          }
-        }
-      }
-
-      new OBPEndpoint {
-        override def isDefinedAt(x: Req): Boolean =
-          obpEndpoint.isDefinedAt(x) && isUrlMatchesResourceDocUrl(x.path.partPath)
-
-        override def apply(req: Req): CallContext => Box[JsonResponse] = {
-          val originFn: CallContext => Box[JsonResponse] = obpEndpoint.apply(req)
-
-          val pathParams = getPathParams(req.path.partPath)
-                            
-          val allObpKeyValuePairs = if(req.request.method =="POST" &&req.json.isDefined) 
-            getAllObpIdKeyValuePairs(req.json.getOrElse(JString(""))) 
-          else Nil
-                          
-          val bankId = pathParams.get("BANK_ID").map(BankId(_))
-          val accountId = pathParams.get("ACCOUNT_ID").map(AccountId(_))
-          val viewId = pathParams.get("VIEW_ID").map(ViewId(_))
-          val counterpartyId = pathParams.get("COUNTERPARTY_ID").map(CounterpartyId(_))
-
-          val request: Box[Req] = S.request
-          val session: Box[LiftSession] = S.session
-
-          /**
-           * Please note the order of validations:
-           * 1. authentication
-           * 2. check bankId
-           * 3. roles check
-           * 4. check accountId
-           * 5. view access
-           * 6. check counterpartyId
-           *
-           * A Bank MUST be checked before Roles.
-           * In opposite case we get next paradox:
-           * - We set non existing bank
-           * - We get error message that we don't have a proper role
-           * - We cannot assign the role to non existing bank
-           */
-          cc: CallContext => {
-            implicit val ec = EndpointContext(Some(cc)) // Supply call context in case of saving row to the metric table
-            // if authentication check, do authorizedAccess, else do Rate Limit check
-            for {
-              (boxUser, callContext) <- checkAuth(cc)
-              
-              _ <- checkObpIds(allObpKeyValuePairs, callContext) 
-
-              // check bankId is valid
-              (bank, callContext) <- checkBank(bankId, callContext)
-
-              // roles check
-              _ <- checkRoles(bankId, boxUser, callContext)
-
-              // check accountId is valid
-              (account, callContext) <- checkAccount(bankId, accountId, callContext)
-
-              // check user access permission of this viewId corresponding view
-              view <- checkView(viewId, bankId, accountId, boxUser, callContext)
-
-              counterparty <- checkCounterparty(counterpartyId, callContext)
-              
-            } yield {
-              val newCallContext = if(boxUser.isDefined) callContext.map(_.copy(user=boxUser)) else callContext
-
-              // process after authentication interceptor, get intercept result
-              val jsonResponse:Box[JsonResponse] = afterAuthenticateInterceptResult(newCallContext, operationId)
-
-              jsonResponse match {
-                case response @Full(_) =>
-                  // directly return response, not go to endpoint body
-                  (response, newCallContext)
-                case _ =>
-                  //pass session and request to endpoint body
-                  val boxResponse: Box[JsonResponse] = S.init(request, session.orNull) {
-                    // pass user, bank, account and view to endpoint body
-                    SS.init(boxUser, bank, account, view, newCallContext) {
-                      originFn(newCallContext.orNull)
-                    }
-                  }
-                  (boxResponse, newCallContext)
-              }
-            }
-          }
-        }
-      }
-
-    }
   }
 
   def buildOperationId(apiVersion: ScannedApiVersion, partialFunctionName: String) =
@@ -2200,19 +1965,10 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
                                   )
 
   // Define relations between API end points. Used to create _links in the JSON and maybe later for API Explorer browsing
-  case class ApiRelation(
-                          fromPF : OBPEndpoint,
-                          toPF : OBPEndpoint,
-                          rel : String
-                        )
+  case class ApiRelation(rel: String)
 
   // Populated from Resource Doc and ApiRelation
-  case class InternalApiLink(
-                              fromPF : OBPEndpoint,
-                              toPF : OBPEndpoint,
-                              rel : String,
-                              requestUrl: String
-                            )
+  case class InternalApiLink(rel: String, requestUrl: String)
 
   // Used to pass context of current API call to the function that generates links for related Api calls.
   case class DataContext(
@@ -2224,9 +1980,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
                           transactionId: Option[TransactionId]
                         )
 
-  case class CallerContext(
-                            caller : OBPEndpoint
-                          )
+  case class CallerContext(caller: String)
 
   case class CodeContext(
                           resourceDocsArrayBuffer : ArrayBuffer[ResourceDoc],
@@ -2921,12 +2675,10 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   }
 
 
-  type OBPEndpoint = PartialFunction[Req, CallContext => Box[JsonResponse]]
   type OBPReturnType[T] = Future[(T, Option[CallContext])]
   type Http4sEndpoint = Option[HttpRoutes[IO]]
-  // Native http4s endpoint type for runtime-compiled dynamic endpoints (Piece C). Distinct from
-  // OBPEndpoint (which is Lift-typed and shared by every static endpoint, so must not change):
-  // the dynamic-code template compiles to this, and Http4sDynamicEndpoint runs it directly.
+  // Native http4s endpoint type for runtime-compiled dynamic endpoints (Piece C).
+  // The dynamic-code template compiles to this, and Http4sDynamicEndpoint runs it directly.
   type OBPEndpointIO = PartialFunction[org.http4s.Request[IO], CallContext => IO[org.http4s.Response[IO]]]
 
 
@@ -5111,57 +4863,6 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         }
     }
   )
-
-  /**
-   * call an endpoint method
-   * @param endpoint endpoint method
-   * @param endpointPartPath endpoint method url slices, it is for endpoint the first case expression
-   * @param requestType http request method
-   * @param requestBody http request body
-   * @param addlParams append request parameters
-   * @return result of call endpoint method
-   */
-  def callEndpoint(endpoint: OBPEndpoint, endpointPartPath: List[String], requestType: RequestType, requestBody: String = "", addlParams: Map[String, String] = Map.empty): Either[(String, Int), String] = {
-    val req: Req = S.request.openOrThrowException("no request object can be extract.")
-    val pathOrigin = req.path
-    val forwardPath = pathOrigin.copy(partPath = endpointPartPath)
-
-    val body = Full(BodyOrInputStream(IOUtils.toInputStream(requestBody)))
-
-    val paramCalcInfo = ParamCalcInfo(req.paramNames, req._params, Nil, body)
-    val newRequest = new Req(forwardPath, req.contextPath, requestType, Full("application/json"), req.request, req.nanoStart, req.nanoEnd, false, () => paramCalcInfo, addlParams)
-
-    val user = AuthUser.getCurrentUser
-    val result = tryo {
-      
-      endpoint(newRequest)(CallContext(user = user))
-    }
-
-    val func: ((=> LiftResponse) => Unit) => Unit = result match {
-      case Failure("Continuation", Full(continueException), _) => ReflectUtils.getCallByNameValue(continueException, "f").asInstanceOf[((=> LiftResponse) => Unit) => Unit]
-      case _ => null
-    }
-
-    val future = new LAFuture[LiftResponse]
-    val satisfyFutureFunction: (=> LiftResponse) => Unit = liftResponse => future.satisfy(liftResponse)
-    func(satisfyFutureFunction)
-
-    val timeoutOfEndpointMethod = 60 * 1000L // endpoint is async, but html template must not async, So here need wait for endpoint value.
-
-    future.get(timeoutOfEndpointMethod) match {
-      case Full(JsonResponse(jsExp, _, _, code)) if (code.toString.startsWith("20")) => Right(jsExp.toJsCmd)
-      case Full(JsonResponse(jsExp, _, _, code)) => {
-        val message = json.parse(jsExp.toJsCmd)
-          .asInstanceOf[JObject]
-          .obj
-          .find(_.name == "message")
-          .map(_.value.asInstanceOf[JString].s)
-          .getOrElse("")
-        Left((message, code))
-      }
-      case Empty => Left((FutureTimeoutException, 500))
-    }
-  }
 
   val berlinGroupV13AliasPath = APIUtil.getPropsValue("berlin_group_v1_3_alias_path","").split("/").toList.map(_.trim)
 

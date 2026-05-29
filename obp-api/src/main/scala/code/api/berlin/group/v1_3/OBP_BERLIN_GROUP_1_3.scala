@@ -33,7 +33,7 @@ package code.api.berlin.group.v1_3
 
 import code.api.OBPRestHelper
 import code.api.berlin.group.ConstantsBG
-import code.api.util.APIUtil.{OBPEndpoint, ResourceDoc}
+import code.api.util.APIUtil.ResourceDoc
 import code.api.util.ScannedApis
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.util.{ApiVersionStatus, ScannedApiVersion}

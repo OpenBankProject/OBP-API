@@ -28,7 +28,6 @@ package code.api.v3_0_0
 
 import scala.language.reflectiveCalls
 import code.api.OBPRestHelper
-import code.api.util.APIUtil.OBPEndpoint
 import code.api.util.VersionedOBPApis
 import code.api.v2_2_0.{Http4s220, OBPAPI2_2_0}
 import code.util.Helper.MdcLoggable

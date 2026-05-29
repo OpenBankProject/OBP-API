@@ -29,7 +29,6 @@ package code.api.v6_0_0
 
 import scala.language.reflectiveCalls
 import code.api.OBPRestHelper
-import code.api.util.APIUtil.OBPEndpoint
 import code.api.util.VersionedOBPApis
 import code.api.v3_0_0.Http4s300
 import code.api.v3_1_0.{APIMethods310, Http4s310}
