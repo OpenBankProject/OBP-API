@@ -149,7 +149,7 @@ import com.openbankproject.commons.util.Functions.Implicits._
 import com.openbankproject.commons.util.{ApiVersion, Functions}
 import net.liftweb.common._
 import net.liftweb.db.{DB, DBLogEntry}
-import net.liftweb.http.{JsonResponse => LiftJsonResponse, _}
+import net.liftweb.http.LiftRules
 import net.liftweb.json.Extraction
 import net.liftweb.mapper.{DefaultConnectionIdentifier => _, _}
 // SiteMap imports removed - API-only mode, no portal pages
@@ -534,42 +534,6 @@ class Boot extends MdcLoggable {
       case e: ExceptionInInitializerError => logger.warn(s"BankAccountCreationListener Exception: $e")
     }
 
-    LiftRules.exceptionHandler.prepend{
-      case(_, r, e) if e.isInstanceOf[NullPointerException] && e.getMessage.contains("Looking for Connection Identifier") => {
-        logger.error(s"Exception being returned to browser when processing url is ${r.request.uri}, method is ${r.request.method}, exception detail is $e", e)
-        LiftJsonResponse(
-          Extraction.decompose(ErrorMessage(code = 500, message = s"${ErrorMessages.DatabaseConnectionClosedError}")),
-          500
-        )
-      }
-      case(Props.RunModes.Development, r, e) => {
-        logger.error(s"Exception being returned to browser when processing url is ${r.request.uri}, method is ${r.request.method}, exception detail is $e", e)
-        LiftJsonResponse(
-          Extraction.decompose(ErrorMessage(code = 500, message = s"${ErrorMessages.InternalServerError} ${showExceptionAtJson(e)}")),
-          500
-        )
-      }
-      case (_, r , e) => {
-        sendExceptionEmail(e)
-        logger.error(s"Exception being returned to browser when processing url is ${r.request.uri}, method is ${r.request.method}, exception detail is $e", e)
-        LiftJsonResponse(
-          Extraction.decompose(ErrorMessage(code = 500, message = s"${ErrorMessages.InternalServerError}")),
-          500
-        )
-      }
-    }
-
-    LiftRules.uriNotFound.prepend{
-      case (r, _) if r.uri.contains(ConstantsBG.berlinGroupVersion1.urlPrefix) => NotFoundAsResponse(LiftJsonResponse(
-        Extraction.decompose(ErrorMessage(code = 405, message = s"${ErrorMessages.InvalidUri}Current Url is (${r.uri.toString}), Current Content-Type Header is (${r.headers.find(_._1.equals("Content-Type")).map(_._2).getOrElse("")})")),
-        405
-      ))
-      case (r, _) => NotFoundAsResponse(LiftJsonResponse(
-        Extraction.decompose(ErrorMessage(code = 404, message = s"${ErrorMessages.InvalidUri}Current Url is (${r.uri.toString}), Current Content-Type Header is (${r.headers.find(_._1.equals("Content-Type")).map(_._2).getOrElse("")})")),
-        404
-      ))
-    }
-
     if ( !APIUtil.getPropsAsLongValue("transaction_request_status_scheduler_delay").isEmpty ) {
       val delay = APIUtil.getPropsAsLongValue("transaction_request_status_scheduler_delay").openOrThrowException("Incorrect value for transaction_request_status_scheduler_delay, please provide number of seconds.")
       TransactionRequestStatusScheduler.start(delay)
@@ -628,53 +592,6 @@ class Boot extends MdcLoggable {
     Schemifier.schemify(true, Schemifier.infoF _, ToSchemify.models: _*)
     // Create default system-level "general" chat room (is_open_room = true)
     code.chat.ChatRoomTrait.chatRoomProvider.vend.getOrCreateDefaultRoom()
-  }
-
-  private def showExceptionAtJson(error: Throwable): String = {
-    val formattedError = "Message: " + error.toString  + error.getStackTrace.map(_.toString).mkString(" ")
-
-    val formattedCause = error.getCause match {
-      case null => ""
-      case cause: Throwable => "Caught and thrown by: " + showExceptionAtJson(cause)
-    }
-
-    formattedError + formattedCause
-  }
-
-  private def sendExceptionEmail(exception: Throwable): Unit = {
-
-    import net.liftweb.util.Helpers.now
-
-    val outputStream = new java.io.ByteArrayOutputStream
-    val printStream = new java.io.PrintStream(outputStream)
-    exception.printStackTrace(printStream)
-    val currentTime = now.toString
-    val stackTrace = new String(outputStream.toByteArray)
-    val error = currentTime + ": " + stackTrace
-    val host = Constant.HostName
-
-    val mailSent = for {
-      from <- APIUtil.getPropsValue("mail.exception.sender.address") ?~ "Could not send mail: Missing props param for 'from'"
-      // no spaces, comma separated e.g. mail.api.consumer.registered.notification.addresses=notify@example.com,notify2@example.com,notify3@example.com
-      toAddressesString <- APIUtil.getPropsValue("mail.exception.registered.notification.addresses") ?~ "Could not send mail: Missing props param for 'to'"
-    } yield {
-
-      //technically doesn't work for all valid email addresses so this will mess up if someone tries to send emails to "foo,bar"@example.com
-      val to = toAddressesString.split(",").toList
-
-      val emailContent = CommonsEmailWrapper.EmailContent(
-        from = from,
-        to = to,
-        subject = s"you got an exception on $host",
-        textContent = Some(error)
-      )
-
-      //this is an async call∆∆
-      CommonsEmailWrapper.sendTextEmail(emailContent)
-    }
-
-    if(mailSent.isEmpty)
-      logger.warn(s"Exception notification failed: $mailSent")
   }
 
   /**
