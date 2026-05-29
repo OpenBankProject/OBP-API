@@ -448,7 +448,7 @@ Three forks for how the still-active workstream resolves:
 |---|---|---|
 | Berlin Group v1.3 | `code/api/berlin/group/v1_3/*` — 7 files (AIS / PIS / PIIS / signing baskets / common) | Lift |
 | **Berlin Group v2** | `code/api/berlin/group/v2/Http4sBGv2.scala` | ✅ already on http4s |
-| UK Open Banking v2.0.0 + v3.1.0 | `code/api/UKOpenBanking/*` — ~20 files | Lift |
+| **UK Open Banking v2.0.0 + v3.1.0** | `code/api/UKOpenBanking/v2_0_0/Http4sUKOBv200*.scala`, `code/api/UKOpenBanking/v3_1_0/Http4sUKOBv310*.scala` | ✅ **Done** — migrated to native http4s in PR #2817 (merged to `develop` 2026-05-29). All endpoints (v2.0: 5, v3.1: ~67 across 20 categories) on http4s, wired into `Http4sApp.baseServices` ahead of the Lift bridge. Lift `OBP_UKOpenBanking_{200,310}` reduced to stubs (`routes = Nil`), original Lift code kept as comments. `ResourceDocsAPIMethods.activeResourceDocs` skips the Lift-route filter for both versions. Verified by `UKOpenBankingV200Tests` + `UKOpenBankingV310{Ais,Pis}Tests` (142 scenarios, all passing). |
 | ~~Bahrain OBF v1.0.0~~ | `code/api/BahrainOBF/*` | ✅ **Retired** — commented out in PR #2814 (`d19af2b92`, 2026-05-22). ScannedApis reflection no longer finds it; URLs 404 with no bridge handling. |
 | ~~AU OpenBanking v1.0.0~~ | `code/api/AUOpenBanking/*` | ✅ **Retired** — same PR / commit. |
 | ~~STET v1.4~~ | `code/api/STET/v1_4/*` | ✅ **Retired** — same PR / commit. |
@@ -512,7 +512,7 @@ A second decision is *not* required for bridge removal, but is required for the 
 5. **Auth stack: OAuth2 / GatewayLogin / DAuth** — done. All three turned out to be library-only token validators (no `serve` blocks, no `LiftRules` registration). Vestigial `extends RestHelper` mixins removed.
 6. **OpenIdConnect** — the only remaining auth-stack work. Blocked on a portal-session decision (its success path calls `AuthUser.logUserIn` / `S.redirectTo`, which mutate Lift `SessionVar`s — see auth-stack table). OAuth 1.0a was removed entirely in commit `51820c75e`; no migration needed.
 7. **Bridge-removal PR** — delete `Http4sLiftWebBridge` + the request-path entries from `Boot.scala` (lines 1–7 above).
-8. **Open-banking standards** — decide whether to migrate or keep a thin Lift remnant. Weeks of work if migrating.
+8. **Open-banking standards** — Berlin Group v2 and UK Open Banking v2.0/v3.1 now on http4s (the latter in PR #2817); five standards retired (Bahrain, AU, STET, MxOF, Polish). Remaining on Lift: **Berlin Group v1.3** and **Sandbox** — decide whether to migrate or keep a thin Lift remnant.
 9. **`lift-mapper`** — separate long-term effort, out of scope here.
 
 ---
@@ -617,6 +617,9 @@ Binds to `hostname` / `dev.port` from your props file (defaults: `127.0.0.1:8080
 | Resource-docs: aggregation bug fix | done |
 | Resource-docs: `Http4sResourceDocs` service | todo |
 | Resource-docs: `openapi.yaml` route | todo |
+| Std: UK Open Banking v2.0 + v3.1 | done — `Http4sUKOBv200*` / `Http4sUKOBv310*` (PR #2817, merged 2026-05-29). v2.0: 5 endpoints; v3.1: ~67 across 20 categories. Wired into `Http4sApp.baseServices` ahead of the Lift bridge; Lift `OBP_UKOpenBanking_{200,310}` are `routes = Nil` stubs. Verified by `UKOpenBankingV200Tests` + `UKOpenBankingV310{Ais,Pis}Tests` (142 scenarios pass). |
+| Std: Berlin Group v2 | done — `code.api.berlin.group.v2.Http4sBGv2` (native http4s). |
+| Std: Berlin Group v1.3, Sandbox | todo — still on Lift. |
 | Dynamic-entity data plane | done — `code.api.dynamic.entity.Http4sDynamicEntity` serves `/obp/dynamic-entity/{entityName \| my/.. \| public/.. \| community/..}` (+ `banks/BANK_ID/..`) natively, wired into `Http4sApp.baseServices` via `gate(ApiVersion.\`dynamic-entity\`, ...)`. Reuses the `EntityName`/`PublicEntityName`/`CommunityEntityName` extractors + `NewStyle.invokeDynamicConnector`; mirrors the Lift `genericEndpoint`/`publicEndpoint`/`communityEndpoint` PFs. `OBPAPIDynamicEntity` stays registered on Lift as a dormant fallback (removed in the bridge-removal PR). |
 | Dynamic-endpoint data plane | todo — Phase 3. Runtime Scala codegen (`DynamicEndpoints.scala`) compiles strings to Lift `OBPEndpoint`; still served by the bridge. 3a (keep Lift-typed codegen behind an adapter) recommended for the Lift-removal milestone; 3b (emit `HttpRoutes[IO]`) deferred. |
 
