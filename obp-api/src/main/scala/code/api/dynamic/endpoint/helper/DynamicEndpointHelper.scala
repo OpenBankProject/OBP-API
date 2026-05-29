@@ -17,7 +17,6 @@ import io.swagger.v3.oas.models.responses.{ApiResponse, ApiResponses}
 import io.swagger.v3.oas.models.{OpenAPI, Operation, PathItem}
 import io.swagger.v3.parser.OpenAPIV3Parser
 import net.liftweb.common.{Box, Full}
-import net.liftweb.http.rest.RestHelper
 import net.liftweb.json
 import net.liftweb.json.JsonAST.{JArray, JField, JNothing, JObject, JValue}
 import net.liftweb.json.JsonAST._
@@ -43,8 +42,8 @@ import scala.collection.mutable
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 
 
-object DynamicEndpointHelper extends RestHelper {
-  protected override implicit def formats: Formats = CustomJsonFormats.formats
+object DynamicEndpointHelper {
+  implicit val formats: Formats = CustomJsonFormats.formats
 
   /**
    * dynamic endpoints url prefix
