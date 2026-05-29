@@ -37,13 +37,26 @@ import com.alibaba.ttl.TransmittableThreadLocal
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
 import net.liftweb.common._
-import net.liftweb.http.JsonResponse
 import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST.JValue
 
 import java.util.{Locale, MissingResourceException, ResourceBundle}
 import scala.collection.mutable.ArrayBuffer
 import scala.util.control.NoStackTrace
+
+/**
+ * Lightweight replacement for net.liftweb.http.JsonResponse.
+ * Carries a JSON body + HTTP headers + status code; the http4s middleware reads these to
+ * build the real org.http4s.Response[IO].  Cookies are accepted but ignored (http4s path
+ * never sets Lift cookies).
+ */
+case class JsonResponse(body: JValue,
+                        headers: List[(String, String)],
+                        cookies: List[Any],
+                        code: Int)
+object JsonResponse {
+  def apply(body: JValue, code: Int): JsonResponse = JsonResponse(body, Nil, Nil, code)
+}
 
 trait APIFailure{
   val msg : String

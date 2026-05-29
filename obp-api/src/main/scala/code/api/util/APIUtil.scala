@@ -82,7 +82,7 @@ import javassist.expr.{ExprEditor, MethodCall}
 import javassist.{CannotCompileException, ClassPool, LoaderClassPath}
 import net.liftweb.actor.LAFuture
 import net.liftweb.common._
-import net.liftweb.http.JsonResponse
+import code.api.JsonResponse
 import net.liftweb.json
 import net.liftweb.json.JsonAST.{JField, JNothing, JObject, JString, JValue}
 import net.liftweb.json.JsonParser.ParseException
@@ -4503,7 +4503,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
           val errorMsg = s"""$AuthenticationTypeIllegal allowed authentication types: ${v.authTypes.mkString("[", ", ", "]")}, current request auth type: $authType"""
           val errorCode = 400
           val errorResponse = ("code", errorCode) ~ ("message", errorMsg)
-          val jsonResponse = JsonResponse(errorResponse, errorCode).asInstanceOf[JsonResponse]
+          val jsonResponse = JsonResponse(errorResponse, errorCode)
           // add correlatedId to header
           val newHeader = (ResponseHeader.`Correlation-Id` -> callContext.correlationId) :: jsonResponse.headers
           Some(jsonResponse.copy(headers = newHeader))
@@ -4558,7 +4558,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   object JsonResponseExtractor {
     def unapply(jsonResponse: JsonResponse): Option[(String, Int)] = jsonResponse match {
       case JsonResponse(bodyJson, _, _, code) =>
-        val responseBody = bodyJson.toJsCmd
+        val responseBody = net.liftweb.json.compactRender(bodyJson)
         (parse(responseBody) \ "message") match {
           case JString(message) =>
             Some(message -> code)

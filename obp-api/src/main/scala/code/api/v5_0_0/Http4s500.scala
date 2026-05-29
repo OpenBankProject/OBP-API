@@ -2376,7 +2376,7 @@ object Http4s500 {
         OptionT.liftF(IO.pure {
           val contentType = req.headers.get(CIString("Content-Type")).map(_.head.value).getOrElse("")
           Response[IO](status = Status.NotFound)
-            .withEntity(APIUtil.errorJsonResponse(s"${ErrorMessages.InvalidUri}Current Url is (${req.uri}), Current Content-Type Header is ($contentType)", 404).toResponse.data)
+            .withEntity(net.liftweb.json.compactRender(APIUtil.errorJsonResponse(s"${ErrorMessages.InvalidUri}Current Url is (${req.uri}), Current Content-Type Header is ($contentType)", 404).body))
             .withContentType(org.http4s.headers.`Content-Type`(MediaType.application.json))
         })
       }

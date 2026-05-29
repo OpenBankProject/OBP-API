@@ -149,7 +149,7 @@ import com.openbankproject.commons.util.Functions.Implicits._
 import com.openbankproject.commons.util.{ApiVersion, Functions}
 import net.liftweb.common._
 import net.liftweb.db.{DB, DBLogEntry}
-import net.liftweb.http._
+import net.liftweb.http.{JsonResponse => LiftJsonResponse, _}
 import net.liftweb.json.Extraction
 import net.liftweb.mapper.{DefaultConnectionIdentifier => _, _}
 // SiteMap imports removed - API-only mode, no portal pages
@@ -537,14 +537,14 @@ class Boot extends MdcLoggable {
     LiftRules.exceptionHandler.prepend{
       case(_, r, e) if e.isInstanceOf[NullPointerException] && e.getMessage.contains("Looking for Connection Identifier") => {
         logger.error(s"Exception being returned to browser when processing url is ${r.request.uri}, method is ${r.request.method}, exception detail is $e", e)
-        JsonResponse(
+        LiftJsonResponse(
           Extraction.decompose(ErrorMessage(code = 500, message = s"${ErrorMessages.DatabaseConnectionClosedError}")),
           500
         )
       }
       case(Props.RunModes.Development, r, e) => {
         logger.error(s"Exception being returned to browser when processing url is ${r.request.uri}, method is ${r.request.method}, exception detail is $e", e)
-        JsonResponse(
+        LiftJsonResponse(
           Extraction.decompose(ErrorMessage(code = 500, message = s"${ErrorMessages.InternalServerError} ${showExceptionAtJson(e)}")),
           500
         )
@@ -552,7 +552,7 @@ class Boot extends MdcLoggable {
       case (_, r , e) => {
         sendExceptionEmail(e)
         logger.error(s"Exception being returned to browser when processing url is ${r.request.uri}, method is ${r.request.method}, exception detail is $e", e)
-        JsonResponse(
+        LiftJsonResponse(
           Extraction.decompose(ErrorMessage(code = 500, message = s"${ErrorMessages.InternalServerError}")),
           500
         )
@@ -560,16 +560,14 @@ class Boot extends MdcLoggable {
     }
 
     LiftRules.uriNotFound.prepend{
-      case (r, _) if r.uri.contains(ConstantsBG.berlinGroupVersion1.urlPrefix) => NotFoundAsResponse(errorJsonResponse(
-        s"${ErrorMessages.InvalidUri}Current Url is (${r.uri.toString}), Current Content-Type Header is (${r.headers.find(_._1.equals("Content-Type")).map(_._2).getOrElse("")})",
-        405,
-        Some(CallContextLight(url = r.uri))
-      )
-      )
-      case (r, _) => NotFoundAsResponse(errorJsonResponse(
-        s"${ErrorMessages.InvalidUri}Current Url is (${r.uri.toString}), Current Content-Type Header is (${r.headers.find(_._1.equals("Content-Type")).map(_._2).getOrElse("")})",
-        404)
-      )
+      case (r, _) if r.uri.contains(ConstantsBG.berlinGroupVersion1.urlPrefix) => NotFoundAsResponse(LiftJsonResponse(
+        Extraction.decompose(ErrorMessage(code = 405, message = s"${ErrorMessages.InvalidUri}Current Url is (${r.uri.toString}), Current Content-Type Header is (${r.headers.find(_._1.equals("Content-Type")).map(_._2).getOrElse("")})")),
+        405
+      ))
+      case (r, _) => NotFoundAsResponse(LiftJsonResponse(
+        Extraction.decompose(ErrorMessage(code = 404, message = s"${ErrorMessages.InvalidUri}Current Url is (${r.uri.toString}), Current Content-Type Header is (${r.headers.find(_._1.equals("Content-Type")).map(_._2).getOrElse("")})")),
+        404
+      ))
     }
 
     if ( !APIUtil.getPropsAsLongValue("transaction_request_status_scheduler_delay").isEmpty ) {

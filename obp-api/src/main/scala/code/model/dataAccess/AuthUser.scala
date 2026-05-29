@@ -52,7 +52,7 @@ import com.openbankproject.commons.model._
 import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common._
 import net.liftweb.http.S.fmapFunc
-import net.liftweb.http._
+import net.liftweb.http.{JsonResponse => LiftJsonResponse, _}
 import net.liftweb.mapper._
 import net.liftweb.sitemap.Loc.{If, LocParam, Template}
 import net.liftweb.util._
