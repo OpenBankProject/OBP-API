@@ -20,12 +20,9 @@ import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.{AccountBalance, AccountBalances, AccountHeld, AccountId, CoreAccount, Customer, CustomerId, Transaction, TransactionCore, TransactionId}
 import com.openbankproject.commons.util.{ReflectUtils, RequiredFieldValidation, RequiredInfo}
 import com.tesobe.CacheKeyFromArguments
-import net.liftweb.http.S
+
 import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers.tryo
-import net.sf.cglib.proxy.{Enhancer, MethodInterceptor, MethodProxy}
-
-import java.lang.reflect.Method
 import java.text.SimpleDateFormat
 import scala.concurrent.Future
 import scala.util.Random
@@ -441,20 +438,13 @@ object Helper extends Loggable {
   }
 
   def i18n(message: String, default: Option[String] = None): String = {
-    if (S.inStatefulScope_?) {
-      if (S.?(message) == message) {
-        val words = message.split('.').toList match {
-          case x :: Nil => Helpers.capify(x) :: Nil
-          case x :: xs => Helpers.capify(x) :: xs
-          case _ => Nil
-        }
-        default.getOrElse(words.mkString(" ") + ".")
-      } else
-        S.?(message)
-    } else {
-      logger.error(s"i18n(message($message), default${default}: Attempted to use resource bundles outside of an initialized S scope. " +
-        s"S only usable when initialized, such as during request processing. Did you call S.? from Future?")
-      default.getOrElse(message)
+    default.getOrElse {
+      val words = message.split('.').toList match {
+        case x :: Nil => Helpers.capify(x) :: Nil
+        case x :: xs  => Helpers.capify(x) :: xs
+        case _        => Nil
+      }
+      words.mkString(" ") + "."
     }
   }
 
@@ -553,54 +543,12 @@ object Helper extends Loggable {
     }
   }
 
-  lazy val ObpS: S = {
-    val intercept: MethodInterceptor = (_: Any, method: Method, args: Array[AnyRef], _: MethodProxy) => {
-
-      lazy val result = method.invoke(net.liftweb.http.S, args: _*)
-      val methodName = method.getName
-
-      if (methodName.equals("param")&&result.isInstanceOf[Box[String]]&&result.asInstanceOf[Box[String]].isDefined) {
-        //we provide the basic check for all the parameters
-        val resultAfterChecked =
-          if((args.length>0) && args.apply(0).toString.equalsIgnoreCase("username")) {
-            result.asInstanceOf[Box[String]].filter(APIUtil.checkUsernameString(_)==SILENCE_IS_GOLDEN)
-          }else if((args.length>0) && args.apply(0).toString.equalsIgnoreCase("password")){
-            result.asInstanceOf[Box[String]].filter(APIUtil.basicPasswordValidation(_)==SILENCE_IS_GOLDEN)
-          }else if((args.length>0) && args.apply(0).toString.equalsIgnoreCase("consumer_key")){
-            result.asInstanceOf[Box[String]].filter(APIUtil.basicConsumerKeyValidation(_)==SILENCE_IS_GOLDEN)
-          }else if((args.length>0) && args.apply(0).toString.equalsIgnoreCase("redirectUrl")){
-            result.asInstanceOf[Box[String]].filter(APIUtil.basicUriAndQueryStringValidation(_))
-          } else{
-            result.asInstanceOf[Box[String]].filter(APIUtil.checkMediumString(_)==SILENCE_IS_GOLDEN)
-          }
-        if(resultAfterChecked.isEmpty) {
-          logger.debug(s"ObpS.${methodName} validation failed. (resultAfterChecked.isEmpty A) The input key is: ${if (args.length>0)args.apply(0) else ""}, value is:$result")
-        }
-        resultAfterChecked
-      } else if (methodName.equals("uri") && result.isInstanceOf[String]){
-        val resultAfterChecked = Full(result.asInstanceOf[String]).filter(APIUtil.basicUriAndQueryStringValidation(_))
-        if(resultAfterChecked.isDefined) {
-          resultAfterChecked.head
-        }else{
-          logger.debug(s"ObpS.${methodName} validation failed (NOT resultAfterChecked.isDefined). The value is:$result")
-          resultAfterChecked.getOrElse("")
-        }
-      } else if (methodName.equals("uriAndQueryString") && result.isInstanceOf[Box[String]] && result.asInstanceOf[Box[String]].isDefined ||
-        methodName.equals("queryString") && result.isInstanceOf[Box[String]]&&result.asInstanceOf[Box[String]].isDefined){
-        val resultAfterChecked = result.asInstanceOf[Box[String]].filter(APIUtil.basicUriAndQueryStringValidation(_))
-        if(resultAfterChecked.isEmpty) {
-          logger.debug(s"ObpS.${methodName} validation failed. (resultAfterChecked.isEmpty B) The value is:$result")
-        }
-        resultAfterChecked
-      } else {
-        result
-      }
-    }
-
-    val enhancer: Enhancer = new Enhancer()
-    enhancer.setSuperclass(classOf[S])
-    enhancer.setCallback(intercept)
-    enhancer.create().asInstanceOf[S]
+  // Lift's S object is never initialized in the http4s path — all param/uri reads return Empty/default.
+  object ObpS {
+    def param(name: String): Box[String] = Empty
+    def uriAndQueryString: Box[String] = Empty
+    def uri: String = ""
+    def queryString: Box[String] = Empty
   }
 
   def addColumnIfNotExists(dbDriver: String, tableName: String, columName: String, default: String) = {

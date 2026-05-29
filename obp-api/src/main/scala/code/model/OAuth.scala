@@ -39,7 +39,6 @@ import code.util.HydraUtil._
 import com.github.dwickern.macros.NameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import net.liftweb.common._
-import net.liftweb.http.S
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers._
 import net.liftweb.util.{FieldError, Helpers}
