@@ -1,6 +1,7 @@
 package code.api.http4sbridge
 
 import code.Http4sTestServer
+import code.api.util.APIUtil
 import code.setup.{DefaultUsers, ServerSetup, ServerSetupWithTestData}
 import code.views.system.AccountAccess
 import dispatch.Defaults._
@@ -153,7 +154,9 @@ class Http4sServerIntegrationTest extends ServerSetup with DefaultUsers with Ser
       
       And("Server should be on correct host and port")
       http4sServer.host should equal("127.0.0.1")
-      http4sServer.port should equal(8087)
+      // Port is dynamically allocated by run_tests_parallel.sh (OBP_HTTP4S_TEST_PORT)
+      // to avoid collisions across concurrent checkouts; assert it matches the prop.
+      http4sServer.port should equal(APIUtil.getPropsAsIntValue("http4s.test.port", 8087))
     }
 
     scenario("Server handles 404 for unknown routes", Http4sServerIntegrationTag) {
