@@ -82,9 +82,7 @@ import javassist.expr.{ExprEditor, MethodCall}
 import javassist.{CannotCompileException, ClassPool, LoaderClassPath}
 import net.liftweb.actor.LAFuture
 import net.liftweb.common._
-import net.liftweb.http._
-import net.liftweb.http.js.JE.JsRaw
-import net.liftweb.http.rest.RestContinuation
+import net.liftweb.http.JsonResponse
 import net.liftweb.json
 import net.liftweb.json.JsonAST.{JField, JNothing, JObject, JString, JValue}
 import net.liftweb.json.JsonParser.ParseException
@@ -204,11 +202,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   lazy val initPasswd = try {System.getenv("UNLOCK")} catch {case  _:Throwable => ""}
   import code.api.util.ErrorMessages._
 
-  def httpMethod : String =
-    S.request match {
-      case Full(r) => r.request.method
-      case _ => "GET"
-    }
+  def httpMethod : String = "GET"
 
   def hasDirectLoginHeader(authorization: Box[String]): Boolean = hasHeader("DirectLogin", authorization)
 
@@ -642,19 +636,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    */
   def nameOfSpellingParam(): String = "spelling"
 
-  def getSpellingParam(): Box[String] = {
-    S.request match {
-      case Full(r) =>
-        r.header(nameOfSpellingParam()) match {
-          case Full(h) =>
-            Full(h)
-          case _ =>
-            ObpS.param(nameOfSpellingParam())
-        }
-      case _ =>
-        ObpS.param(nameOfSpellingParam())
-    }
-  }
+  def getSpellingParam(): Box[String] = ObpS.param(nameOfSpellingParam())
 
   def getHeadersCommonPart() = headers ::: List((ResponseHeader.`Correlation-Id`, getCorrelationId()))
 
@@ -678,7 +660,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
   //Note: changed noContent--> defaultSuccess, because of the Swagger format. (Not support empty in DataType, maybe fix it latter.)
   def noContentJsonResponse(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse =
-    JsonResponse(JsRaw(""), getHeaders() ::: headers.list, Nil, 204)
+    JsonResponse(JNull, getHeaders() ::: headers.list, Nil, 204)
 
   def successJsonResponse(json: JsonAST.JValue, httpCode : Int = 200)(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse = {
     val cc = ApiSession.updateCallContext(Spelling(getSpellingParam()), None)
@@ -722,21 +704,21 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         val httpBody = None
         val jwsHeaders = getSignRequestHeadersNewStyle(callContext,httpBody).list
         val responseHeaders = getRequestHeadersNewStyle(callContext,httpBody).list
-        JsonResponse(JsRaw(""), getHeaders() ::: headers.list ::: jwsHeaders ::: responseHeaders, Nil, 204)
+        JsonResponse(JNull, getHeaders() ::: headers.list ::: jwsHeaders ::: responseHeaders, Nil, 204)
       case Some(c) if c.httpCode.isDefined =>
         val httpBody = Full(JsonAST.compactRender(jsonValue))
         val jwsHeaders = getSignRequestHeadersNewStyle(callContext,httpBody).list
         val responseHeaders = getRequestHeadersNewStyle(callContext,httpBody).list
         val code = checkConditionalRequest(callContext, c.verb, c.httpCode.get, httpBody)
         if(code == 304)
-          JsonResponse(JsRaw(""), getHeaders() ::: headers.list ::: jwsHeaders ::: responseHeaders, Nil, code)
+          JsonResponse(JNull, getHeaders() ::: headers.list ::: jwsHeaders ::: responseHeaders, Nil, code)
         else
           JsonResponse(jsonValue, getHeaders() ::: headers.list ::: jwsHeaders ::: responseHeaders, Nil, code)
       case Some(c) if c.verb.toUpperCase() == "DELETE" =>
         val httpBody = None
         val jwsHeaders = getSignRequestHeadersNewStyle(callContext,httpBody).list
         val responseHeaders = getRequestHeadersNewStyle(callContext,httpBody).list
-        JsonResponse(JsRaw(""), getHeaders() ::: headers.list ::: jwsHeaders ::: responseHeaders, Nil, 204)
+        JsonResponse(JNull, getHeaders() ::: headers.list ::: jwsHeaders ::: responseHeaders, Nil, 204)
       case _ =>
         val httpBody = Full(JsonAST.compactRender(jsonValue))
         val jwsHeaders = getSignRequestHeadersNewStyle(callContext,httpBody).list
@@ -812,12 +794,13 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   def oauthHeaderRequiredJsonResponse(implicit headers: CustomResponseHeaders = CustomResponseHeaders(Nil)) : JsonResponse =
     JsonResponse(Extraction.decompose(ErrorMessage(message = "Authentication via OAuth is required", code = 400)), getHeaders() ::: headers.list, Nil, 400)
 
-  lazy val CurrencyIsoCodeFromXmlFile: Elem = LiftRules.getResource("/media/xml/ISOCurrencyCodes.xml").map{ url =>
-    val input: InputStream = url.openStream()
-    val xml = XML.load(input)
-    if (input != null) input.close()
+  lazy val CurrencyIsoCodeFromXmlFile: Elem = {
+    val is = getClass.getResourceAsStream("/media/xml/ISOCurrencyCodes.xml")
+    if (is == null) throw new RuntimeException(s"$UnknownError,ISOCurrencyCodes.xml is missing in OBP server.  ")
+    val xml = XML.load(is)
+    is.close()
     xml
-  }.openOrThrowException(s"$UnknownError,ISOCurrencyCodes.xml is missing in OBP server.  ")
+  }
 
   /** check the currency ISO code from the ISOCurrencyCodes.xml file */
   def isValidCurrencyISOCode(currencyCode: String): Boolean = {
@@ -2456,15 +2439,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   }
 
   /**
-   * The POST or PUT body.  This will be empty if the content
-   * type is application/x-www-form-urlencoded or a multipart mime.
-   * It will also be empty if rawInputStream is accessed
-   */
-  def getRequestBody(req: Box[Req]) = req.flatMap(_.body).map(_.map(_.toChar)).map(_.mkString)
-  /**
    * @return - the HTTP session ID
    */
-  def getCorrelationId(): String = S.containerSession.map(_.sessionId).openOr("")
+  def getCorrelationId(): String = ""
   /**
    * @return - the trusted client IP address.
    *
@@ -2472,34 +2449,24 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    * When `trust.proxy.enabled = true`, consults `trust.proxy.header` (default "X-Real-IP").
    * See [[RemoteIpUtil]] for configuration details and proxy-trust caveats.
    */
-  def getRemoteIpAddress(): String = {
-    val socketPeer = S.containerRequest.map(_.remoteAddress).openOr("Unknown")
-    RemoteIpUtil.resolveClientIp(socketPeer, getLiftRequestHeader)
-  }
+  def getRemoteIpAddress(): String = "Unknown"
 
-  private def getLiftRequestHeader(name: String): Option[String] = {
-    S.request.toOption.flatMap { req =>
-      req.request.headers
-        .find(_.name.equalsIgnoreCase(name))
-        .flatMap(_.values.headOption)
-    }
-  }
   /**
    * @return - the fully qualified name of the client host or last seen proxy
    */
-  def getRemoteHost(): String = S.containerRequest.map(_.remoteHost).openOr("Unknown")
+  def getRemoteHost(): String = "Unknown"
   /**
    * @return - the source port of the client or last seen proxy.
    */
-  def getRemotePort(): Int = S.containerRequest.map(_.remotePort).openOr(0)
+  def getRemotePort(): Int = 0
   /**
    * @return - the server port
    */
-  def getServerPort(): Int = S.containerRequest.map(_.serverPort).openOr(0)
+  def getServerPort(): Int = 0
   /**
    * @return - the host name of the server
    */
-  def getServerName(): String = S.containerRequest.map(_.serverName).openOr("Unknown")
+  def getServerName(): String = "Unknown"
 
   /**
    * Defines Gateway Custom Response Header.
@@ -2508,16 +2475,10 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   /**
    * Set value of Gateway Custom Response Header.
    */
-  def setGatewayResponseHeader(s: S)(value: String) = s.setSessionAttribute(gatewayResponseHeaderName, value)
   /**
    * @return - Gateway Custom Response Header.
    */
-  def getGatewayResponseHeader() = {
-    S.getSessionAttribute(gatewayResponseHeaderName) match {
-      case Full(h) => List((gatewayResponseHeaderName, h))
-      case _ => Nil
-    }
-  }
+  def getGatewayResponseHeader(): List[(String, String)] = Nil
   def getGatewayLoginJwt(): Option[String] = {
     getGatewayResponseHeader() match {
       case x :: Nil =>
@@ -2737,161 +2698,6 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   }
 
   /**
-   * @param in LAFuture with a useful payload. Payload is tuple(Case Class, Option[SessionContext])
-   * @return value of type JsonResponse
-   *
-   * Process a request asynchronously. The thread will not
-   * block until there's a response.  The parameter is a function
-   * that takes a function as it's parameter.  The function is invoked
-   * when the calculation response is ready to be rendered:
-   * RestContinuation.async {
-   *   reply => {
-   *     myActor ! DoCalc(123, answer => reply{XmlResponse(<i>{answer}</i>)})
-   *   }
-   * }
-   * The body of the function will be executed on a separate thread.
-   * When the answer is ready, apply the reply function... the function
-   * body will be executed in the scope of the current request (the
-   * current session and the current Req object).
-   */
-  def futureToResponse[T](in: LAFuture[(T, Option[CallContext])]): JsonResponse = {
-    RestContinuation.async(reply => {
-      in.onSuccess(
-        t => writeMetricEndpointTiming(t._1, t._2.map(_.toLight))(reply.apply(successJsonResponseNewStyle(cc = t._1, t._2)(getHeadersNewStyle(t._2.map(_.toLight)))))
-      )
-      in.onFail {
-        case Failure(_, Full(JsonResponseException(jsonResponse)), _) =>
-          reply.apply(jsonResponse)
-        case Failure(null, e, _) =>
-          e.foreach(logger.error("", _))
-          val errorResponse = getFilteredOrFullErrorMessage(e)
-          Full(reply.apply(errorResponse))
-        case Failure(msg, _, _) =>
-          extractAPIFailureNewStyle(msg) match {
-            case Some(af) =>
-              val callContextLight = af.ccl.map(_.copy(httpCode = Some(af.failCode)))
-              writeMetricEndpointTiming(af.failMsg, callContextLight)(reply.apply(errorJsonResponse(af.failMsg, af.failCode, callContextLight)(getHeadersNewStyle(af.ccl))))
-            case _ =>
-              val errorResponse: JsonResponse = errorJsonResponse(msg)
-              reply.apply(errorResponse)
-          }
-        case _                  =>
-          val errorResponse: JsonResponse = errorJsonResponse(UnknownError)
-          reply.apply(errorResponse)
-      }
-    })
-  }
-
-
-  /**
-   * @param in LAFuture with a useful payload. Payload is tuple(Case Class, Option[SessionContext])
-   * @return value of type Box[JsonResponse]
-   *
-   * Process a request asynchronously. The thread will not
-   * block until there's a response.  The parameter is a function
-   * that takes a function as it's parameter.  The function is invoked
-   * when the calculation response is ready to be rendered:
-   * RestContinuation.async {
-   *   reply => {
-   *     myActor ! DoCalc(123, answer => reply{XmlResponse(<i>{answer}</i>)})
-   *   }
-   * }
-   * The body of the function will be executed on a separate thread.
-   * When the answer is ready, apply the reply function... the function
-   * body will be executed in the scope of the current request (the
-   * current session and the current Req object).
-   */
-  def futureToBoxedResponse[T](in: LAFuture[(T, Option[CallContext])]): Box[JsonResponse] = {
-    RestContinuation.async(reply => {
-      in.onSuccess{ _ match {
-        case (Full(jsonResponse: JsonResponse), _: Option[_]) =>
-          reply(jsonResponse)
-        case t => Full(
-          writeMetricEndpointTiming(t._1, t._2.map(_.toLight))(
-            reply.apply(successJsonResponseNewStyle(t._1, t._2)(getHeadersNewStyle(t._2.map(_.toLight))))
-          )
-        )
-      }
-      }
-      in.onFail {
-        case Failure("Continuation", Full(e), _) if e.isInstanceOf[LiftFlowOfControlException] =>
-          val f: ((=> LiftResponse) => Unit) => Unit = ReflectUtils.getFieldByType(e, "f")
-          f(reply(_))
-
-        case Failure(_, Full(JsonResponseException(jsonResponse)), _) =>
-          reply.apply(jsonResponse)
-
-        case Failure(null, e, _) =>
-          e.foreach(logger.error("", _))
-          val errorResponse = getFilteredOrFullErrorMessage(e)
-          Full(reply.apply(errorResponse))
-        case Failure(msg, e, _) =>
-          e.foreach(logger.error(msg, _))
-          extractAPIFailureNewStyle(msg) match {
-            case Some(af) =>
-              val callContextLight = af.ccl.map(_.copy(httpCode = Some(af.failCode)))
-              Full(writeMetricEndpointTiming(af.failMsg, callContextLight)(reply.apply(errorJsonResponse(af.failMsg, af.failCode, callContextLight)(getHeadersNewStyle(af.ccl)))))
-            case _ =>
-              val errorResponse: JsonResponse = errorJsonResponse(msg)
-              Full((reply.apply(errorResponse)))
-          }
-        case _ =>
-          val errorResponse: JsonResponse = errorJsonResponse(UnknownError)
-          Full(reply.apply(errorResponse))
-      }
-    })
-  }
-
-  private def getFilteredOrFullErrorMessage[T](e: Box[Throwable]): JsonResponse = {
-    def findObpMessage(t: Throwable): Option[String] = {
-      if (t == null) None
-      else Option(t.getMessage).filter(_.startsWith("OBP-"))
-        .orElse(findObpMessage(t.getCause))
-    }
-    getPropsAsBoolValue("display_internal_errors", false) match {
-      case true => // Show all error in a chain
-        errorJsonResponse(
-          e.map { error =>
-            val leadMessage = findObpMessage(error).getOrElse(AnUnspecifiedOrInternalErrorOccurred)
-            leadMessage + " -> " + error.getStackTrace().mkString(";")
-          }.getOrElse(AnUnspecifiedOrInternalErrorOccurred)
-        )
-      case false => // Do not display internal errors
-        val obpMessage = e.flatMap(error => findObpMessage(error))
-        errorJsonResponse(obpMessage.getOrElse(AnUnspecifiedOrInternalErrorOccurred))
-    }
-  }
-
-  implicit def scalaFutureToJsonResponse[T](scf: OBPReturnType[T])(implicit m: Manifest[T]): JsonResponse = {
-    futureToResponse(scalaFutureToLaFuture(scf))
-  }
-
-  /**
-   * This function is implicitly used at Endpoints to transform a Scala Future to Box[JsonResponse] for instance next part of code
-   * for {
-        users <- Future { someComputation }
-      } yield {
-        users
-      }
-      will be translated by Scala compiler to
-      APIUtil.scalaFutureToBoxedJsonResponse(
-        for {
-          users <- Future { someComputation }
-        } yield {
-          users
-        }
-      )
-   * @param scf
-   * @param m
-   * @tparam T
-   * @return
-   */
-  implicit def scalaFutureToBoxedJsonResponse[T](scf: OBPReturnType[T])(implicit t: EndpointTimeout, context: EndpointContext, m: Manifest[T]): Box[JsonResponse] = {
-    futureToBoxedResponse(scalaFutureToLaFuture(FutureUtil.futureWithTimeout(scf)))
-  }
-
-
-  /**
    * TODO: Update this Doc string:
    * This function is planed to be used at an endpoint in order to get a User based on Authorization Header data
    * It has to do the same thing as function OBPRestHelper.failIfBadAuthorizationHeader does
@@ -2899,25 +2705,23 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    * @return A Tuple of an User wrapped into a Future and optional session context data
    */
   def getUserAndSessionContextFuture(cc: CallContext): OBPReturnType[Box[User]] = {
-    val s = S
     val spelling = getSpellingParam()
-    
-    // NEW: Prefer CallContext fields, fall back to S.request for Lift compatibility
-    // This allows http4s to use the same auth chain by populating CallContext fields
+
+    // In the http4s path, cc.* fields are always populated by Http4sSupport.
     val body: Box[String] = cc.httpBody match {
       case Some(b) => Full(b)
-      case None => getRequestBody(S.request)
+      case None => Empty
     }
-    
-    val implementedInVersion = if (cc.implementedInVersion.nonEmpty) 
-      cc.implementedInVersion 
-    else 
-      S.request.openOrThrowException(attemptedToOpenAnEmptyBox).view
-      
-    val verb = if (cc.verb.nonEmpty) 
-      cc.verb 
-    else 
-      S.request.openOrThrowException(attemptedToOpenAnEmptyBox).requestType.method
+
+    val implementedInVersion = if (cc.implementedInVersion.nonEmpty)
+      cc.implementedInVersion
+    else
+      ""
+
+    val verb = if (cc.verb.nonEmpty)
+      cc.verb
+    else
+      "GET"
       
     val url = if (cc.url.nonEmpty) 
       cc.url 
@@ -3044,7 +2848,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       else if (getPropsAsBoolValue("allow_gateway_login", false) && hasGatewayHeader(cc.authReqHeaderField)) {
         APIUtil.getPropsValue("gateway.host") match {
           case Full(h) if h.split(",").toList.exists(_.equalsIgnoreCase(remoteIpAddress) == true) => // Only addresses from white list can use this feature
-            val (httpCode, message, parameters) = GatewayLogin.validator(s.request)
+            val (httpCode, message, parameters) = GatewayLogin.validator(Empty)
             httpCode match {
               case 200 =>
                 val payload = GatewayLogin.parseJwt(parameters)
@@ -3579,20 +3383,18 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     // Use brand in parameter (query or form)
     val brand: Option[String] = ObpS.param(brandParameter) match {
       case Full(value) => {
-        // If found, and has a valid format, set the session.
+        // If found, and has a valid format, return it.
         if (isValidID(value)) {
-          S.setSessionAttribute(brandParameter, value)
-          logger.debug(s"activeBrand says: I found a $brandParameter param. $brandParameter session has been set to: ${S.getSessionAttribute(brandParameter)}")
+          logger.debug(s"activeBrand says: I found a $brandParameter param with value: $value")
           Some(value)
         } else {
           logger.warn(s"activeBrand says: ${ErrorMessages.InvalidBankIdFormat}")
           None
         }
       }
-      case _ => {
-        // Else look in the session
-        S.getSessionAttribute(brandParameter)
-      }
+      case _ =>
+        // No brand in session (Lift sessions not available in http4s path)
+        None
     }
     brand
   }
@@ -4434,7 +4236,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     }
   }
 
-  lazy val loginButtonText = getWebUiPropsValue("webui_login_button_text", S.?("log.in"))
+  lazy val loginButtonText = getWebUiPropsValue("webui_login_button_text", "Log In")
 
   // the follow PartialFunction just delegate one method, in this way will be compiled to a class, in order to trace call whitch connector methods
   private val authenticatedAccessFun: PartialFunction[CallContext, OBPReturnType[Box[User]]] = {
