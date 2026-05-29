@@ -1,7 +1,5 @@
 package code.api.util
 
-import net.liftweb.common.Full
-import net.liftweb.http.LiftRules
 import net.liftweb.json.parse
 
 object CurrencyUtil {
@@ -15,14 +13,9 @@ object CurrencyUtil {
                         )
   def getCurrencies(): Option[CurrenciesJson] = {
     val filename = s"/currency/currency.json"
-    val source = LiftRules.loadResourceAsString(filename)
-    
-    source match {
-      case Full(payload) =>
-        val currencies = parse(payload).extract[CurrenciesJson]
-        Some(currencies)
-      case _ =>  None
-    }
+    Option(getClass.getResourceAsStream(filename))
+      .map(is => scala.io.Source.fromInputStream(is, "UTF-8").mkString)
+      .map(payload => parse(payload).extract[CurrenciesJson])
   }
   
   def getCurrencyCodes(): List[String] = {
