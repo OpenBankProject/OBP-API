@@ -17,7 +17,6 @@ import io.swagger.v3.oas.models.responses.{ApiResponse, ApiResponses}
 import io.swagger.v3.oas.models.{OpenAPI, Operation, PathItem}
 import io.swagger.v3.parser.OpenAPIV3Parser
 import net.liftweb.common.{Box, Full}
-import net.liftweb.http.Req
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json
 import net.liftweb.json.JsonAST.{JArray, JField, JNothing, JObject, JValue}
@@ -158,83 +157,76 @@ object DynamicEndpointHelper extends RestHelper {
   /**
    * extract request body, no matter GET, POST, PUT or DELETE method
    */
-  object DynamicReq extends JsonTest with JsonBody {
+  object DynamicReq {
 
     private val ExpressionRegx = """\{(.+?)\}""".r
+
     /**
-     * unapply Request to (request url, json, http method, request parameters, path parameters, role)
-     * request url is  current request target url to remote server
-     * json is request body
-     * http method is request http method
-     * request parameters : http request query parameters, eg:  /pet/findByStatus?status=available => (status, List(available))
-     * path parameters: /banks/{bankId}/users/{userId} bankId and userId corresponding key to value
-     * role is current endpoint required entitlement
-     * @param r HttpRequest
-     * @return (adapterUrl, requestBodyJson, httpMethod, requestParams, pathParams, role, operationId, mockResponseCode->mockResponseBody)
+     * Resolve a dynamic-endpoint proxy target: given the HTTP method name, the path segments AFTER
+     * the `/obp/dynamic-endpoint` prefix, the query params and the already-parsed request body,
+     * return the proxy 9-tuple by looking it up in the DB (`dynamicEndpointInfos` / `findDynamicEndpoint`).
+     * Called by the native http4s dispatcher (code.api.dynamic.endpoint.Http4sDynamicEndpoint.proxy).
+     *
+     * (Formerly the framework-neutral core of a Lift `unapply(r: Req)` extractor; the Lift extractor
+     * and its `dynamicEndpoint: OBPEndpoint` consumer have been removed now that dispatch is native.)
      */
-    def unapply(r: Req): Option[(String, JValue, PekkoHttpMethod, Map[String, List[String]], Map[String, String], ApiRole, String, Option[(Int, JValue)], Option[String])] = {
-      
-      val requestUri = r.request.uri //eg: `/obp/dynamic-endpoint/fashion-brand-list/BRAND_ID`
-      val partPath = r.path.partPath //eg: List("fashion-brand-list","BRAND_ID"), the dynamic is from OBP URL, not in the partPath now.
-      
-      if (!testResponse_?(r) || !requestUri.startsWith(s"/${ApiStandards.obp.toString}/${ApiShortVersions.`dynamic-endpoint`.toString}"+urlPrefix))//if check the Content-Type contains json or not, and check the if it is the `dynamic_endpoints_url_prefix`
-        None //if do not match `URL and Content-Type`, then can not find this endpoint. return None.
-      else {
-        val pekkoHttpMethod = HttpMethods.getForKeyCaseInsensitive(r.requestType.method).get
-        val httpMethod = HttpMethod.valueOf(r.requestType.method)
-        val urlQueryParameters = r.params
-        // url that match original swagger endpoint.
-        val url = partPath.mkString("/", "/", "") // eg: --> /feature-test
-        val foundDynamicEndpoint: Option[(String, String, Int, ResourceDoc, Option[String])] = dynamicEndpointInfos
-          .map(_.findDynamicEndpoint(httpMethod, url))
-          .collectFirst {
-            case Some(x) => x
+    def resolveProxyTarget(
+      httpMethodStr: String,
+      partPath: List[String],
+      urlQueryParameters: Map[String, List[String]],
+      requestBodyJValue: JValue
+    ): Option[(String, JValue, PekkoHttpMethod, Map[String, List[String]], Map[String, String], ApiRole, String, Option[(Int, JValue)], Option[String])] = {
+      val pekkoHttpMethod = HttpMethods.getForKeyCaseInsensitive(httpMethodStr).get
+      val httpMethod = HttpMethod.valueOf(httpMethodStr)
+      // url that match original swagger endpoint.
+      val url = partPath.mkString("/", "/", "") // eg: --> /feature-test
+      val foundDynamicEndpoint: Option[(String, String, Int, ResourceDoc, Option[String])] = dynamicEndpointInfos
+        .map(_.findDynamicEndpoint(httpMethod, url))
+        .collectFirst {
+          case Some(x) => x
+        }
+
+      foundDynamicEndpoint
+        .flatMap { it =>
+          val (serverUrl, endpointUrl, code, doc, bankId) = it
+
+          val pathParams: Map[String, String] = if(endpointUrl == url) {
+            Map.empty[String, String]
+          } else {
+            val tuples: Array[(String, String)] = StringUtils.split(endpointUrl, "/").zip(partPath)
+            tuples.collect {
+              case (ExpressionRegx(name), value) => name->value
+            }.toMap
           }
 
-        foundDynamicEndpoint
-          .flatMap { it =>
-            val (serverUrl, endpointUrl, code, doc, bankId) = it
+          val mockResponse: Option[(Int, JValue)] = (serverUrl, doc.successResponseBody) match {
+            case (IsMockUrl(), v: PrimaryDataBody[_]) =>
+              //If the openAPI json do not have response body, we return true as default
+              val response = if (v.toJValue == JNothing) {
+                JBool(true)
+              } else{
+                v.toJValue
+              }
+              Some(code -> response)
 
-            val pathParams: Map[String, String] = if(endpointUrl == url) {
-              Map.empty[String, String]
-            } else {
-              val tuples: Array[(String, String)] = StringUtils.split(endpointUrl, "/").zip(partPath)
-              tuples.collect {
-                case (ExpressionRegx(name), value) => name->value
-              }.toMap
-            }
+            case (IsMockUrl(), v: JValue) =>
+              //If the openAPI json do not have response body, we return true as default
+              val response = if (v == JNothing) {
+                JBool(true)
+              } else{
+                v
+              }
+              Some(code -> response)
 
-            val mockResponse: Option[(Int, JValue)] = (serverUrl, doc.successResponseBody) match {
-              case (IsMockUrl(), v: PrimaryDataBody[_]) =>
-                //If the openAPI json do not have response body, we return true as default
-                val response = if (v.toJValue == JNothing) {
-                  JBool(true)
-                } else{
-                  v.toJValue
-                }
-                Some(code -> response)
+            case (IsMockUrl(), v) =>
+              Some(code -> json.Extraction.decompose(v))
 
-              case (IsMockUrl(), v: JValue) =>
-                //If the openAPI json do not have response body, we return true as default
-                val response = if (v == JNothing) {
-                  JBool(true)
-                } else{
-                  v
-                }
-                Some(code -> response)
-
-              case (IsMockUrl(), v) =>
-                Some(code -> json.Extraction.decompose(v))
-
-              case _ => None
-            }
-
-            val Some(role::_) = doc.roles
-            val requestBodyJValue = body(r).getOrElse(JNothing)
-            Full(s"""$serverUrl$url""", requestBodyJValue, pekkoHttpMethod, urlQueryParameters, pathParams, role, doc.operationId, mockResponse, bankId)
+            case _ => None
           }
 
-      }
+          val Some(role::_) = doc.roles
+          Full(s"""$serverUrl$url""", requestBodyJValue, pekkoHttpMethod, urlQueryParameters, pathParams, role, doc.operationId, mockResponse, bankId)
+        }
     }
   }
 

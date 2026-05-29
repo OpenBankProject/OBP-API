@@ -485,21 +485,27 @@ object ExampleValue {
   lazy val connectorMethodIdExample = ConnectorField("ace0352a-9a0f-4bfa-b30b-9003aa467f51", "A string that MUST uniquely identify the connector method on this OBP instance, can be used in all cache. ")
   glossaryItems += makeGlossaryItem("ConnectorMethod.connectorMethodId", connectorMethodIdExample)
 
-  lazy val dynamicResourceDocMethodBodyExample = ConnectorField("%20%20%20%20val%20Some(resourceDoc)%20%3D%20callContext." +
-    "resourceDocument%0A%20%20%20%20val%20hasRequestBody%20%3D%20request.body.isDefined%0A%0A%20%20%20%20%2F%2F%20get%20" +
-    "Path%20Parameters%2C%20example%3A%0A%20%20%20%20%2F%2F%20if%20the%20requestUrl%20of%20resourceDoc%20is%20%2Fhello%2" +
-    "Fbanks%2FBANK_ID%2Fworld%0A%20%20%20%20%2F%2F%20the%20request%20path%20is%20%2Fhello%2Fbanks%2Fbank_x%2Fworld%0A%20" +
-    "%20%20%20%2F%2FpathParams.get(%22BANK_ID%22)%20will%20get%20Option(%22bank_x%22)%20value%0A%0A%20%20%20%20val%20my" +
-    "UserId%20%3D%20pathParams(%22MY_USER_ID%22)%0A%0A%0A%20%20%20%20val%20requestEntity%20%3D%20request.json%20match%20" +
-    "%7B%0A%20%20%20%20%20%20case%20Full(zson)%20%3D%3E%0A%20%20%20%20%20%20%20%20try%20%7B%0A%20%20%20%20%20%20%20%20%" +
-    "20%20zson.extract%5BRequestRootJsonClass%5D%0A%20%20%20%20%20%20%20%20%7D%20catch%20%7B%0A%20%20%20%20%20%20%20%20%" +
-    "20%20case%20e%3A%20MappingException%20%3D%3E%0A%20%20%20%20%20%20%20%20%20%20%20%20return%20Full(errorJsonResponse(" +
-    "s%22%24InvalidJsonFormat%20%24%7Be.msg%7D%22))%0A%20%20%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20case%20_%3A%20Emp" +
-    "tyBox%20%3D%3E%0A%20%20%20%20%20%20%20%20return%20Full(errorJsonResponse(s%22%24InvalidRequestPayload%20Current%20" +
-    "request%20has%20no%20payload%22))%0A%20%20%20%20%7D%0A%0A%0A%20%20%20%20%2F%2F%20please%20add%20business%20logic%20" +
-    "here%0A%20%20%20%20val%20responseBody%3AResponseRootJsonClass%20%3D%20ResponseRootJsonClass(s%22%24%7BmyUserId%7D_" +
-    "from_path%22%2C%20requestEntity.name%2C%20requestEntity.age%2C%20requestEntity.hobby)%0A%20%20%20%20Future.successf" +
-    "ul%20%7B%0A%20%20%20%20%20%20(responseBody%2C%20HttpCode.%60200%60(callContext.callContext))%0A%20%20%20%20%7D",
+  // Native http4s dynamic-resource-doc method body (the body operators copy via the practise
+  // endpoint). Mirrors the native PractiseEndpoint.process: reads the request body from
+  // callContext.httpBody, returns errors via `errorResponse(...)` (the native replacement for
+  // `Full(errorJsonResponse(...))`), and yields an OBPReturnType which the injected implicit
+  // converts to IO[Response[IO]]. URL-encoded (encodeURIComponent style) — CompiledObjects decodes it.
+  lazy val dynamicResourceDocMethodBodyExample = ConnectorField("%20%20%20%20val%20Some(resourceDoc)%20%3D%20callContext.resourceDocument%0A%20%20%20%20val%20hasRequestBody%20" +
+    "%3D%20callContext.httpBody.exists(_.nonEmpty)%0A%0A%20%20%20%20%2F%2F%20get%20Path%20Parameters%2C%20example%3" +
+    "A%0A%20%20%20%20%2F%2F%20if%20the%20requestUrl%20of%20resourceDoc%20is%20%2Fhello%2Fbanks%2FBANK_ID%2Fworld%0A" +
+    "%20%20%20%20%2F%2F%20the%20request%20path%20is%20%2Fhello%2Fbanks%2Fbank_x%2Fworld%0A%20%20%20%20%2F%2FpathPar" +
+    "ams.get(%22BANK_ID%22)%20will%20get%20Option(%22bank_x%22)%20value%0A%0A%20%20%20%20val%20myUserId%20%3D%20pat" +
+    "hParams(%22MY_USER_ID%22)%0A%0A%0A%20%20%20%20val%20requestEntity%20%3D%20callContext.httpBody.filter(_.nonEmp" +
+    "ty)%20match%20%7B%0A%20%20%20%20%20%20case%20Some(rawBody)%20%3D%3E%0A%20%20%20%20%20%20%20%20try%20%7B%0A%20%" +
+    "20%20%20%20%20%20%20%20%20net.liftweb.json.parse(rawBody).extract%5BRequestRootJsonClass%5D%0A%20%20%20%20%20%" +
+    "20%20%20%7D%20catch%20%7B%0A%20%20%20%20%20%20%20%20%20%20case%20e%3A%20MappingException%20%3D%3E%0A%20%20%20%" +
+    "20%20%20%20%20%20%20%20%20return%20errorResponse(s%22%24InvalidJsonFormat%20%24%7Be.msg%7D%22)%0A%20%20%20%20%" +
+    "20%20%20%20%7D%0A%20%20%20%20%20%20case%20None%20%3D%3E%0A%20%20%20%20%20%20%20%20return%20errorResponse(s%22%" +
+    "24InvalidRequestPayload%20Current%20request%20has%20no%20payload%22)%0A%20%20%20%20%7D%0A%0A%0A%20%20%20%20%2F" +
+    "%2F%20please%20add%20business%20logic%20here%0A%20%20%20%20val%20responseBody%3AResponseRootJsonClass%20%3D%20" +
+    "ResponseRootJsonClass(s%22%24%7BmyUserId%7D_from_path%22%2C%20requestEntity.name%2C%20requestEntity.age%2C%20r" +
+    "equestEntity.hobby)%0A%20%20%20%20Future.successful%20%7B%0A%20%20%20%20%20%20(responseBody%2C%20HttpCode.%602" +
+    "00%60(callContext.callContext))%0A%20%20%20%20%7D",
     "the URL-encoded format String, the original code is the OBP connector method body.")
   
   glossaryItems += makeGlossaryItem("DynamicResourceDoc.methodBody", dynamicResourceDocMethodBodyExample)

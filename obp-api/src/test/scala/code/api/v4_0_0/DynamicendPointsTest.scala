@@ -33,7 +33,9 @@ class DynamicEndpointsTest extends V400ServerSetup {
   object ApiEndpoint5 extends Tag(nameOf(Implementations4_0_0.getMyDynamicEndpoints))
   object ApiEndpoint6 extends Tag(nameOf(Implementations4_0_0.deleteMyDynamicEndpoint))
   object ApiEndpoint7 extends Tag(nameOf(Implementations4_0_0.updateDynamicEndpointHost))
-  object ApiEndpoint8 extends Tag(nameOf(ImplementationsDynamicEndpoint.dynamicEndpoint))
+  // Tag name kept as "dynamicEndpoint" (the former nameOf(ImplementationsDynamicEndpoint.dynamicEndpoint));
+  // that Lift OBPEndpoint was removed when dynamic-endpoint dispatch went fully native.
+  object ApiEndpoint8 extends Tag("dynamicEndpoint")
   object ApiEndpoint9 extends Tag(nameOf(Implementations4_0_0.createBankLevelDynamicEndpoint))
   object ApiEndpoint10 extends Tag(nameOf(Implementations4_0_0.getBankLevelDynamicEndpoints))
   object ApiEndpoint11 extends Tag(nameOf(Implementations4_0_0.getBankLevelDynamicEndpoint))

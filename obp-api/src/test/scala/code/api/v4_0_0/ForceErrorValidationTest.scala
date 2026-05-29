@@ -36,7 +36,9 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
   // its nameOf value was "genericEndpoint" — kept as a string literal so the tag is unchanged.
   object ApiEndpoint3 extends Tag("genericEndpoint")
 
-  object ApiEndpoint4 extends Tag(nameOf(ImplementationsDynamicEndpoint.dynamicEndpoint))
+  // dynamicEndpoint was removed when dynamic-endpoint dispatch went fully native; its nameOf value
+  // was "dynamicEndpoint" — kept as a string literal so the tag is unchanged.
+  object ApiEndpoint4 extends Tag("dynamicEndpoint")
 
   object ApiEndpointCreateFx extends Tag(nameOf(Implementations2_2_0.createFx))
 

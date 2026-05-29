@@ -324,10 +324,10 @@ object Http4sLiftWebBridge extends MdcLoggable {
     }
   }
 
-  // Package-visible so scoped per-prefix dispatchers (e.g. Http4sDynamicEndpoint) can reuse
-  // exactly the bridge's Lift-Req construction, response conversion, and async-continuation
-  // handling without duplicating ~100 lines or going through LiftRules.statelessDispatch.
-  // Same logic; only visibility changed.
+  // Visibility raised from private to public so the in-process Lift adapter in
+  // code.api.dynamic.endpoint.Http4sDynamicEndpoint (a different package) can reuse the
+  // exact same Lift Req construction / response conversion / continuation resolution that
+  // this bridge uses. Signatures are unchanged.
   def resolveContinuation(exception: Throwable): LiftResponse = {
     logger.debug(s"Resolving ContinuationException for async Lift handler")
     val func =

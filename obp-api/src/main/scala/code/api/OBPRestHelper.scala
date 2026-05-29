@@ -574,37 +574,46 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
    */
 
   def oauthServe(handler: PartialFunction[Req, CallContext => Box[JsonResponse]], rd: Option[ResourceDoc] = None): Unit = {
-    val obpHandler : PartialFunction[Req, () => Box[LiftResponse]] = {
-      new PartialFunction[Req, () => Box[LiftResponse]] {
-        def apply(r : Req): () => Box[LiftResponse] = {
-          //check (in that order):
-          //if request is correct json
-          //if request matches PartialFunction cases for each defined url
-          //if request has correct oauth headers
-          val startTime = Helpers.now
-          val response = failIfBadAuthorizationHeader(rd) {
-            failIfBadJSON(r, handler)
-          }
-          val endTime = Helpers.now
-          WriteMetricUtil.writeEndpointMetric(startTime, endTime.getTime - startTime.getTime, rd)
-          response
+    serve(buildOAuthHandler(handler, rd))
+  }
+
+  /**
+   * Build the oauth-wrapped Lift handler that `oauthServe` would otherwise register directly into
+   * Lift's statelessDispatch. Extracted as a public method so the in-process Lift adapter in
+   * code.api.dynamic.endpoint.Http4sDynamicEndpoint can construct the exact same wrapped form
+   * (failIfBadAuthorizationHeader { failIfBadJSON } + endpoint metric) for the dynamic-endpoint
+   * routes and apply it directly — without registering into statelessDispatch. Behaviour for the
+   * normal oauthServe path is unchanged (oauthServe now just `serve(buildOAuthHandler(...))`).
+   */
+  def buildOAuthHandler(handler: PartialFunction[Req, CallContext => Box[JsonResponse]], rd: Option[ResourceDoc] = None): PartialFunction[Req, () => Box[LiftResponse]] = {
+    new PartialFunction[Req, () => Box[LiftResponse]] {
+      def apply(r : Req): () => Box[LiftResponse] = {
+        //check (in that order):
+        //if request is correct json
+        //if request matches PartialFunction cases for each defined url
+        //if request has correct oauth headers
+        val startTime = Helpers.now
+        val response = failIfBadAuthorizationHeader(rd) {
+          failIfBadJSON(r, handler)
         }
-        def isDefinedAt(r : Req) = {
-          //if the content-type is json and json parsing failed, simply accept call but then fail in apply() before
-          //the url cases don't match because json failed
-          r.json_? match {
-            case true =>
-              //Try to evaluate the json
-              r.json match {
-                case Failure(msg, _, _) => true
-                case _ => handler.isDefinedAt(r)
-              }
-            case false => handler.isDefinedAt(r)
-          }
+        val endTime = Helpers.now
+        WriteMetricUtil.writeEndpointMetric(startTime, endTime.getTime - startTime.getTime, rd)
+        response
+      }
+      def isDefinedAt(r : Req) = {
+        //if the content-type is json and json parsing failed, simply accept call but then fail in apply() before
+        //the url cases don't match because json failed
+        r.json_? match {
+          case true =>
+            //Try to evaluate the json
+            r.json match {
+              case Failure(msg, _, _) => true
+              case _ => handler.isDefinedAt(r)
+            }
+          case false => handler.isDefinedAt(r)
         }
       }
     }
-    serve(obpHandler)
   }
 
   override protected def serve(handler: PartialFunction[Req, () => Box[LiftResponse]]) : Unit = {

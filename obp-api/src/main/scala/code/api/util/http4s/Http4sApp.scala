@@ -75,12 +75,12 @@ object Http4sApp {
   private val v600Routes: HttpRoutes[IO] = gate(ApiVersion.v6_0_0, code.api.v6_0_0.Http4s600.wrappedRoutesV600Services)
   private val v700Routes: HttpRoutes[IO] = gate(ApiVersion.v7_0_0, code.api.v7_0_0.Http4s700.wrappedRoutesV700Services)
   // DynamicEntity runtime CRUD (/obp/dynamic-entity/*) — native http4s, replaces the Lift
-  // OBPAPIDynamicEntity dispatch. Hongwei's PR #2815 implementation.
+  // OBPAPIDynamicEntity dispatch.
   private val dynamicEntityRoutes: HttpRoutes[IO] = gate(ApiVersion.`dynamic-entity`, code.api.dynamic.entity.Http4sDynamicEntity.wrappedRoutesDynamicEntity)
-  // Dynamic-endpoint data plane (operator-created endpoints under /obp/dynamic-endpoint/*).
-  // Phase-3a adapter: scoped Lift-Req shim that dispatches OBPAPIDynamicEndpoint directly,
-  // keeping the runtime Scala codegen (which still emits Lift OBPEndpoint) unchanged.
-  private val dynamicEndpointRoutes: HttpRoutes[IO] = gate(ApiVersion.`dynamic-endpoint`, code.api.dynamic.endpoint.Http4sDynamicEndpoint.routes)
+  // DynamicEndpoint dispatch (/obp/dynamic-endpoint/*) — fully-native http4s: proxy (DynamicReq)
+  // + runtime-compiled resource docs, no Lift dispatch. Replaces the LiftRules.statelessDispatch
+  // registration. Must sit AHEAD of the Lift bridge (the bridge no longer carries dynamic-endpoint).
+  private val dynamicEndpointRoutes: HttpRoutes[IO] = gate(ApiVersion.`dynamic-endpoint`, code.api.dynamic.endpoint.Http4sDynamicEndpoint.wrappedRoutesDynamicEndpoint)
   // UK Open Banking (non-/obp prefixes /open-banking/v2.0 and /open-banking/v3.1) — native
   // http4s, replaces the classpath-scanned Lift ScannedApis. All endpoints (v2.0: 5, v3.1: ~67)
   // are migrated to http4s; the Lift ScannedApis aggregators register `routes = Nil`, so Lift
