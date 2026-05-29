@@ -33,8 +33,6 @@ import com.openbankproject.commons.model.{BankId, ListResult, User}
 import com.openbankproject.commons.util.ApiStandards._
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
 import net.liftweb.common.{Box, Empty, Full}
-import net.liftweb.http.{LiftRules, S}
-import net.liftweb.http.{InMemoryResponse, LiftRules, PlainTextResponse}
 import net.liftweb.json
 import net.liftweb.json.JsonAST.{JField, JString, JValue}
 import net.liftweb.json._
@@ -87,13 +85,14 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
         // The format of the file should be mark down.
         val filename = s"/special_instructions_for_resources/${partialFunctionName}.md"
         logger.trace(s"getSpecialInstructions getting $filename")
-        val source = LiftRules.loadResourceAsString(filename)
+        val source = Option(getClass.getResourceAsStream(filename))
+          .map(is => scala.io.Source.fromInputStream(is, "UTF-8").mkString)
         logger.trace(s"getSpecialInstructions source is $source")
         source match {
-          case Full(payload) =>
+          case Some(payload) =>
             logger.trace(s"getSpecialInstructions payload is $payload")
             Some(payload)
-          case _ =>
+          case None =>
             logger.trace(s"getSpecialInstructions Could not find / load $filename")
             None
         }
