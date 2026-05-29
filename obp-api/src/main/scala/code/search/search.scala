@@ -11,8 +11,6 @@ import com.sksamuel.elastic4s.{ElasticClient, ElasticProperties}
 import dispatch.Defaults._
 import dispatch.{Http, url, _}
 import net.liftweb.common.{Box, Empty, Failure, Full}
-import net.liftweb.http.provider.HTTPCookie
-import net.liftweb.http.{InMemoryResponse, JsonResponse, LiftResponse}
 import net.liftweb.json
 import net.liftweb.json.JsonAST
 import net.liftweb.json.JsonAST._
@@ -27,13 +25,7 @@ class elasticsearch extends MdcLoggable {
   case class APIResponse(code: Int, body: JValue)
   case class ErrorMessage(error: String)
 
-  case class ESJsonResponse(json: JsonAST.JValue, headers: List[(String, String)], cookies: List[HTTPCookie], code: Int) extends LiftResponse
-  {
-    def toResponse = {
-      val bytes = json.toString.getBytes("UTF-8")
-      InMemoryResponse(bytes, ("Content-Length", bytes.length.toString) :: ("Content-Type", "application/json;charset=utf-8") :: headers, cookies, code)
-    }
-  }
+  case class ESJsonResponse(json: JsonAST.JValue, headers: List[(String, String)], code: Int)
 
   val esHost = ""
   val esPortHTTP = ""
@@ -46,29 +38,27 @@ class elasticsearch extends MdcLoggable {
     APIUtil.getPropsAsBoolValue("allow_elasticsearch", false)
   }
 
-  def searchProxy(userId: String, queryString: String): LiftResponse = {
-    //println("-------------> " + esHost + ":" + esPortHTTP + "/" + esIndex + "/" + queryString)
-    if (APIUtil.getPropsAsBoolValue("allow_elasticsearch", false) ) {
+  def searchProxy(userId: String, queryString: String): JValue = {
+    if (APIUtil.getPropsAsBoolValue("allow_elasticsearch", false)) {
       val request = constructQuery(userId, getParameters(queryString))
-      val response = getAPIResponse(request)
-      ESJsonResponse(response.body, ("Access-Control-Allow-Origin", "*") :: Nil, Nil, response.code)
+      getAPIResponse(request).body
     } else {
-      JsonResponse(json.JsonParser.parse("""{"error":"elasticsearch disabled"}"""), ("Access-Control-Allow-Origin", "*") :: Nil, Nil, 404)
+      json.JsonParser.parse("""{"error":"elasticsearch disabled"}""")
     }
   }
 
-  def searchProxyV300(userId: String, uri: String, body: String, statsOnly: Boolean = false): Box[LiftResponse] = {
-    if (APIUtil.getPropsAsBoolValue("allow_elasticsearch", false) ) {
-      val httpHost = ("http://" +  esHost + ":" +  esPortHTTP)
-      val esUrl = s"${httpHost}${uri.replaceAll("\"" , "")}"
+  def searchProxyV300(userId: String, uri: String, body: String, statsOnly: Boolean = false): Box[JValue] = {
+    if (APIUtil.getPropsAsBoolValue("allow_elasticsearch", false)) {
+      val httpHost = "http://" + esHost + ":" + esPortHTTP
+      val esUrl = s"${httpHost}${uri.replaceAll("\"", "")}"
       logger.info(s"searchProxyV300 says esUrl is: $esUrl")
       logger.info(s"searchProxyV300 says body is: $body")
-      val request: Req = (url(esUrl).<<(body).GET).setContentType("application/json", Charset.forName("UTF-8")) // Note that WE ONLY do GET - Keep it this way!
+      val request: Req = (url(esUrl).<<(body).GET).setContentType("application/json", Charset.forName("UTF-8"))
       val response = getAPIResponse(request)
-         if (statsOnly) Full(ESJsonResponse(privacyCheckStatistics(response.body), ("Access-Control-Allow-Origin", "*") :: Nil, Nil, response.code))
-         else Full(ESJsonResponse(response.body, ("Access-Control-Allow-Origin", "*") :: Nil, Nil, response.code))
+      if (statsOnly) Full(privacyCheckStatistics(response.body))
+      else Full(response.body)
     } else {
-      Full(JsonResponse(json.JsonParser.parse("""{"error":"elasticsearch disabled"}"""), ("Access-Control-Allow-Origin", "*") :: Nil, Nil, 404))
+      Full(json.JsonParser.parse("""{"error":"elasticsearch disabled"}"""))
     }
   }
   def searchProxyAsyncV300(userId: String, uri: String, body: String, statsOnly: Boolean = false): Future[APIResponse] = {
@@ -87,19 +77,14 @@ class elasticsearch extends MdcLoggable {
     response
   }
 
-  def parseResponse(response: APIResponse, statsOnly: Boolean = false) = {
-    if (APIUtil.getPropsAsBoolValue("allow_elasticsearch", false) ) {
-      if (statsOnly) (ESJsonResponse(privacyCheckStatistics(response.body), ("Access-Control-Allow-Origin", "*") :: Nil, Nil, response.code))
-      else (ESJsonResponse(response.body, ("Access-Control-Allow-Origin", "*") :: Nil, Nil, response.code))
-    } else {
-      Full(JsonResponse(json.JsonParser.parse("""{"error":"elasticsearch disabled"}"""), ("Access-Control-Allow-Origin", "*") :: Nil, Nil, 404))
-    }
+  def parseResponse(response: APIResponse, statsOnly: Boolean = false): JValue = {
+    if (statsOnly) privacyCheckStatistics(response.body)
+    else response.body
   }
 
 
-  def searchProxyStatsV300(userId: String, uriPart: String, bodyPart:String, field: String): Box[LiftResponse] = {
-    searchProxyV300(userId, uriPart, addAggregation(bodyPart,field), true)
-  }
+  def searchProxyStatsV300(userId: String, uriPart: String, bodyPart: String, field: String): Box[JValue] =
+    searchProxyV300(userId, uriPart, addAggregation(bodyPart, field), statsOnly = true)
   def searchProxyStatsAsyncV300(userId: String, uriPart: String, bodyPart:String, field: String): Future[APIResponse] = {
     searchProxyAsyncV300(userId, uriPart, addAggregation(bodyPart,field), true)
   }

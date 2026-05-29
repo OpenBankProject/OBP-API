@@ -33,7 +33,6 @@ import com.openbankproject.commons.model.{AccountId, AmountOfMoneyJsonV121, Bank
 import com.openbankproject.commons.model.{AmountOfMoneyJsonV121 => AmountOfMoneyJSON121}
 import com.openbankproject.commons.util.{ApiVersion, ApiVersionStatus, ScannedApiVersion}
 import net.liftweb.common._
-import net.liftweb.http.InMemoryResponse
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.{Extraction, Formats}
 import net.liftweb.mapper.By
@@ -1351,12 +1350,7 @@ object Http4s200 {
               APIUtil.hasEntitlement("", user.userId, canSearchWarehouse)
             }
           } yield {
-            val liftResp = esw.searchProxy(user.userId, queryString)
-            liftResp.toResponse match {
-              case InMemoryResponse(data, _, _, _) =>
-                net.liftweb.json.parse(new String(data, "UTF-8"))
-              case _ => net.liftweb.json.JNull
-            }
+            esw.searchProxy(user.userId, queryString)
           }
         }
     }
@@ -1448,12 +1442,7 @@ object Http4s200 {
               APIUtil.hasEntitlement("", user.userId, canSearchMetrics)
             }
           } yield {
-            val liftResp = esm.searchProxy(user.userId, queryString)
-            liftResp.toResponse match {
-              case InMemoryResponse(data, _, _, _) =>
-                net.liftweb.json.parse(new String(data, "UTF-8"))
-              case _ => net.liftweb.json.JNull
-            }
+            esm.searchProxy(user.userId, queryString)
           }
         }
     }
