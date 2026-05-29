@@ -32,7 +32,6 @@ object Http4sBGv2PIS extends MdcLoggable {
   // ── POST /v2/payments/{payment-product} ───────────────────────────
 
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(initiatePayment),
     "POST",
@@ -54,7 +53,6 @@ object Http4sBGv2PIS extends MdcLoggable {
   // ── POST /v2/bulk-payments/{payment-product} ──────────────────────
 
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(initiateBulkPayment),
     "POST",
@@ -76,7 +74,6 @@ object Http4sBGv2PIS extends MdcLoggable {
   // ── POST /v2/periodic-payments/{payment-product} ──────────────────
 
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(initiatePeriodicPayment),
     "POST",
@@ -99,7 +96,6 @@ object Http4sBGv2PIS extends MdcLoggable {
   // Must be before generic 4-segment patterns
 
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(getBulkPaymentExtendedStatus),
     "GET",
@@ -121,7 +117,6 @@ object Http4sBGv2PIS extends MdcLoggable {
   // ── GET /v2/{payment-service}/{payment-product}/{paymentId}/status ─
 
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(getPaymentStatus),
     "GET",
@@ -144,7 +139,6 @@ object Http4sBGv2PIS extends MdcLoggable {
   // ── GET /v2/{payment-service}/{payment-product}/{paymentId} ───────
 
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(getPayment),
     "GET",
@@ -167,7 +161,6 @@ object Http4sBGv2PIS extends MdcLoggable {
   // ── DELETE /v2/{payment-service}/{payment-product}/{paymentId} ────
 
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(deletePayment),
     "DELETE",
@@ -190,7 +183,6 @@ object Http4sBGv2PIS extends MdcLoggable {
   // ── POST /v2/{resource-path}/{resourceId}/{authorisation-category} ─
 
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(startAuthorisation),
     "POST",
@@ -215,7 +207,6 @@ object Http4sBGv2PIS extends MdcLoggable {
   // ── GET /v2/{resource-path}/{resourceId}/{authorisation-category} ──
 
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(getAuthorisationSubResources),
     "GET",
@@ -240,7 +231,6 @@ object Http4sBGv2PIS extends MdcLoggable {
   // ── GET /v2/{resource-path}/{resourceId}/{auth-category}/{authId} ──
 
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(getAuthorisationStatus),
     "GET",
@@ -264,7 +254,6 @@ object Http4sBGv2PIS extends MdcLoggable {
   // ── PUT /v2/{resource-path}/{resourceId}/{auth-category}/{authId} ──
 
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(updatePsuData),
     "PUT",
@@ -288,7 +277,6 @@ object Http4sBGv2PIS extends MdcLoggable {
   // ── PUT /v2/{resource-path}/{resourceId} ──────────────────────────
 
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(updateResourceWithDebtorAccount),
     "PUT",

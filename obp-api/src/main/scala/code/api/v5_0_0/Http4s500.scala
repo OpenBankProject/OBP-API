@@ -79,7 +79,6 @@ object Http4s500 {
     val prefixPath = Root / ApiPathZero.toString / implementedInApiVersion.toString
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(root),
       "GET",
@@ -111,7 +110,6 @@ object Http4s500 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getBanks),
       "GET",
@@ -143,7 +141,6 @@ object Http4s500 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getBank),
       "GET",
@@ -179,7 +176,6 @@ object Http4s500 {
       else List(AuthenticatedUserIsRequired, BankNotFound, UnknownError)
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getProducts),
       "GET",
@@ -212,7 +208,6 @@ object Http4s500 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getProduct),
       "GET",
@@ -243,7 +238,6 @@ object Http4s500 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(createSystemView),
       "POST",
@@ -310,7 +304,6 @@ object Http4s500 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getSystemView),
       "GET",
@@ -344,7 +337,6 @@ object Http4s500 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(updateSystemView),
       "PUT",
@@ -395,7 +387,6 @@ object Http4s500 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(deleteSystemView),
       "DELETE",
@@ -487,7 +478,6 @@ object Http4s500 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(createBank),
       "POST",
@@ -555,7 +545,6 @@ object Http4s500 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(updateBank),
       "PUT",
@@ -642,7 +631,7 @@ object Http4s500 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createAccount), "PUT",
+      implementedInApiVersion, nameOf(createAccount), "PUT",
       "/banks/BANK_ID/accounts/NEW_ACCOUNT_ID", "Create Account (PUT)",
       """Create Account at bank specified by BANK_ID with Id specified by ACCOUNT_ID.
       |
@@ -685,7 +674,6 @@ object Http4s500 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(createUserAuthContext),
       "POST",
@@ -717,7 +705,6 @@ object Http4s500 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getUserAuthContexts),
       "GET",
@@ -766,7 +753,6 @@ object Http4s500 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(createUserAuthContextUpdateRequest),
       "POST",
@@ -821,7 +807,6 @@ object Http4s500 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(answerUserAuthContextUpdateChallenge),
       "POST",
@@ -871,7 +856,6 @@ object Http4s500 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(createConsentRequest),
       "POST",
@@ -931,7 +915,6 @@ object Http4s500 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getConsentRequest),
       "GET",
@@ -1010,7 +993,6 @@ object Http4s500 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getConsentByConsentRequestId),
       "GET",
@@ -1350,7 +1332,7 @@ object Http4s500 {
     )
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createConsentByConsentRequestId).replace("Id", "IdEmail"), "POST",
+      implementedInApiVersion, nameOf(createConsentByConsentRequestId).replace("Id", "IdEmail"), "POST",
       "/consumer/consent-requests/CONSENT_REQUEST_ID/EMAIL/consents",
       "Create Consent By CONSENT_REQUEST_ID (EMAIL)",
       s"""
@@ -1377,7 +1359,7 @@ object Http4s500 {
     )
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createConsentByConsentRequestId).replace("Id", "IdSms"), "POST",
+      implementedInApiVersion, nameOf(createConsentByConsentRequestId).replace("Id", "IdSms"), "POST",
       "/consumer/consent-requests/CONSENT_REQUEST_ID/SMS/consents",
       "Create Consent By CONSENT_REQUEST_ID (SMS)",
       s"""
@@ -1404,7 +1386,7 @@ object Http4s500 {
     )
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createConsentByConsentRequestId).replace("Id", "IdImplicit"), "POST",
+      implementedInApiVersion, nameOf(createConsentByConsentRequestId).replace("Id", "IdImplicit"), "POST",
       "/consumer/consent-requests/CONSENT_REQUEST_ID/IMPLICIT/consents",
       "Create Consent By CONSENT_REQUEST_ID (IMPLICIT)",
       s"""
@@ -1443,7 +1425,6 @@ object Http4s500 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(headAtms),
       "HEAD",
@@ -1509,7 +1490,6 @@ object Http4s500 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(createCustomer),
       "POST",
@@ -1559,7 +1539,6 @@ object Http4s500 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getCustomerOverview),
       "POST",
@@ -1603,7 +1582,6 @@ object Http4s500 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getCustomerOverviewFlat),
       "POST",
@@ -1636,7 +1614,6 @@ object Http4s500 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getMyCustomersAtAnyBank),
       "GET",
@@ -1670,7 +1647,6 @@ object Http4s500 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getMyCustomersAtBank),
       "GET",
@@ -1704,7 +1680,6 @@ object Http4s500 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getCustomersAtOneBank),
       "GET",
@@ -1740,7 +1715,6 @@ object Http4s500 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getCustomersMinimalAtOneBank),
       "GET",
@@ -1799,7 +1773,6 @@ object Http4s500 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(createProduct),
       "PUT",
@@ -1899,7 +1872,6 @@ object Http4s500 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(addCardForBank),
       "POST",
@@ -1940,7 +1912,6 @@ object Http4s500 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getViewsForBankAccount),
       "GET",
@@ -1993,7 +1964,6 @@ object Http4s500 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getMetricsAtBank),
       "GET",
@@ -2077,7 +2047,6 @@ object Http4s500 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getSystemViewsIds),
       "GET",
@@ -2126,7 +2095,6 @@ object Http4s500 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(createCustomerAccountLink),
       "POST",
@@ -2163,7 +2131,6 @@ object Http4s500 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getCustomerAccountLinksByCustomerId),
       "GET",
@@ -2193,7 +2160,6 @@ object Http4s500 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getCustomerAccountLinksByBankIdAccountId),
       "GET",
@@ -2223,7 +2189,6 @@ object Http4s500 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getCustomerAccountLinkById),
       "GET",
@@ -2260,7 +2225,6 @@ object Http4s500 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(updateCustomerAccountLinkById),
       "PUT",
@@ -2290,7 +2254,6 @@ object Http4s500 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(deleteCustomerAccountLinkById),
       "DELETE",
@@ -2323,7 +2286,7 @@ object Http4s500 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getAdapterInfo), "GET",
+      implementedInApiVersion, nameOf(getAdapterInfo), "GET",
       "/adapter", "Get Adapter Info",
       s"""Get basic information about the Adapter.
          |

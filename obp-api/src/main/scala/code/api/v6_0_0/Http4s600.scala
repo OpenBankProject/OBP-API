@@ -6198,7 +6198,6 @@ object Http4s600 {
 
     private def registerBatch1(): Unit = {
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(root),
         "GET",
@@ -6219,7 +6218,6 @@ object Http4s600 {
         http4sPartialFunction = Some(root)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getScannedApiVersions),
         "GET",
@@ -6277,7 +6275,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getScannedApiVersions)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getCurrentUser),
         "GET",
@@ -6295,7 +6292,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getCurrentUser)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getBanks),
         "GET",
@@ -6327,7 +6323,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getBanks)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getBank),
         "GET",
@@ -6357,7 +6352,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getBank)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getCustomersAtOneBank),
         "GET",
@@ -6390,7 +6384,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getCustomersAtOneBank)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getCustomerByCustomerId),
         "GET",
@@ -6417,7 +6410,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getCustomerByCustomerId)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getCoreAccountByIdV600),
         "GET",
@@ -6458,7 +6450,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getCoreAccountByIdV600)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getMyDynamicEntities),
         "GET",
@@ -6502,7 +6493,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getMyDynamicEntities)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getSystemDynamicEntities),
         "GET",
@@ -6537,7 +6527,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getSystemDynamicEntities)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getBankLevelDynamicEntities),
         "GET",
@@ -6577,7 +6566,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getBankLevelDynamicEntities)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getConsumer),
         "GET",
@@ -6613,7 +6601,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getConsumer)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getCustomersAtAllBanks),
         "GET",
@@ -6646,7 +6633,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getCustomersAtAllBanks)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getUserAttributes),
         "GET",
@@ -6668,7 +6654,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getUserAttributes)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getPrivateAccountByIdFull),
         "GET",
@@ -6724,7 +6709,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getPrivateAccountByIdFull)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getCustomerByCustomerNumber),
         "POST",
@@ -6750,7 +6734,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getCustomerByCustomerNumber)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getCustomersByLegalName),
         "POST",
@@ -6778,7 +6761,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getCustomersByLegalName)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(createSystemDynamicEntity),
         "POST",
@@ -6842,7 +6824,6 @@ object Http4s600 {
         http4sPartialFunction = Some(createSystemDynamicEntity)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(createBankLevelDynamicEntity),
         "POST",
@@ -6912,7 +6893,6 @@ object Http4s600 {
         http4sPartialFunction = Some(createBankLevelDynamicEntity)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(updateSystemDynamicEntity),
         "PUT",
@@ -6971,7 +6951,6 @@ object Http4s600 {
         http4sPartialFunction = Some(updateSystemDynamicEntity)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(updateBankLevelDynamicEntity),
         "PUT",
@@ -7036,7 +7015,6 @@ object Http4s600 {
         http4sPartialFunction = Some(updateBankLevelDynamicEntity)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(updateMyDynamicEntity),
         "PUT",
@@ -7099,7 +7077,6 @@ object Http4s600 {
         http4sPartialFunction = Some(updateMyDynamicEntity)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(updateSystemView),
         "PUT",
@@ -7165,7 +7142,6 @@ object Http4s600 {
         http4sPartialFunction = Some(updateSystemView)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getMetrics),
         "GET",
@@ -7278,7 +7254,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getMetrics)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getAggregateMetrics),
         "GET",
@@ -7378,7 +7353,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getAggregateMetrics)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getTopAPIs),
         "GET",
@@ -7450,7 +7424,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getTopAPIs)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getWebUiProps),
         "GET",
@@ -7512,7 +7485,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getWebUiProps)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getAccountsAtBank),
         "GET",
@@ -7544,7 +7516,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getAccountsAtBank)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getTransactionsForBankAccount),
         "GET",
@@ -7606,7 +7577,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getTransactionsForBankAccount)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getProductsV600),
         "GET",
@@ -7631,7 +7601,6 @@ object Http4s600 {
 
     private def registerBatch2(): Unit = {
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getUsers),
         "GET",
@@ -7677,7 +7646,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getUsers)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(createBank),
         "POST",
@@ -7708,7 +7676,6 @@ object Http4s600 {
         http4sPartialFunction = Some(createBank)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(createCustomer),
         "POST",
@@ -7779,7 +7746,6 @@ object Http4s600 {
         http4sPartialFunction = Some(createCustomer)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(createUser),
         "POST",
@@ -7816,7 +7782,6 @@ object Http4s600 {
         http4sPartialFunction = Some(createUser)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(resetPasswordUrl),
         "POST",
@@ -7865,7 +7830,6 @@ object Http4s600 {
         http4sPartialFunction = Some(resetPasswordUrl)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getConnectors),
         "GET",
@@ -7918,7 +7882,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getConnectors)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getCacheConfig),
         "GET",
@@ -7961,7 +7924,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getCacheConfig)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getCacheInfo),
         "GET",
@@ -8025,7 +7987,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getCacheInfo)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getCacheNamespaces),
         "GET",
@@ -8081,7 +8042,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getCacheNamespaces)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getDatabasePoolInfo),
         "GET",
@@ -8124,7 +8084,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getDatabasePoolInfo)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getMigrations),
         "GET",
@@ -8147,7 +8106,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getMigrations)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getStoredProcedureConnectorHealth),
         "GET",
@@ -8191,7 +8149,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getStoredProcedureConnectorHealth)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getConnectorMethodNames),
         "GET",
@@ -8249,7 +8206,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getConnectorMethodNames)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getCorporateCustomersAtOneBank),
         "GET",
@@ -8280,7 +8236,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getCorporateCustomersAtOneBank)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getCorporateCustomerByCustomerId),
         "GET",
@@ -8308,7 +8263,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getCorporateCustomerByCustomerId)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getCorporateCustomerSubsidiaries),
         "GET",
@@ -8335,7 +8289,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getCorporateCustomerSubsidiaries)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getRetailCustomersAtOneBank),
         "GET",
@@ -8366,7 +8319,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getRetailCustomersAtOneBank)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getRetailCustomerByCustomerId),
         "GET",
@@ -8394,7 +8346,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getRetailCustomerByCustomerId)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getCustomerChildren),
         "GET",
@@ -8420,7 +8371,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getCustomerChildren)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getCustomerLinksByCustomerId),
         "GET",
@@ -8445,7 +8395,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getCustomerLinksByCustomerId)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getSystemViews),
         "GET",
@@ -8493,7 +8442,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getSystemViews)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getSystemViewById),
         "GET",
@@ -8545,7 +8493,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getSystemViewById)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getAbacPolicies),
         "GET",
@@ -8579,7 +8526,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getAbacPolicies)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getConnectorCallCounts),
         "GET",
@@ -8628,7 +8574,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getConnectorCallCounts)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getConnectorTraces),
         "GET",
@@ -8676,7 +8621,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getConnectorTraces)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getDynamicEntityDiagnostics),
         "GET",
@@ -8759,7 +8703,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getDynamicEntityDiagnostics)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(cleanupOrphanedDynamicEntityRecords),
         "DELETE",
@@ -8802,7 +8745,7 @@ object Http4s600 {
         http4sPartialFunction = Some(cleanupOrphanedDynamicEntityRecords)
       )
       resourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(createWebUiProps), "POST",
+        implementedInApiVersion, nameOf(createWebUiProps), "POST",
         "/management/webui_props",
         "Create WebUiProps",
         s"""Create a WebUiProps.
@@ -8815,7 +8758,6 @@ object Http4s600 {
         List(apiTagWebUiProps), Some(List(canCreateWebUiProps)),
         http4sPartialFunction = Some(createWebUiProps))
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(createOrUpdateWebUiProps),
         "PUT",
@@ -8878,7 +8820,6 @@ object Http4s600 {
         http4sPartialFunction = Some(createOrUpdateWebUiProps)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(deleteWebUiProps),
         "DELETE",
@@ -8913,7 +8854,6 @@ object Http4s600 {
 
     private def registerBatch3(): Unit = {
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(createCustomViewManagement),
         "POST",
@@ -8963,7 +8903,6 @@ object Http4s600 {
         http4sPartialFunction = Some(createCustomViewManagement)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getProductTagsV600),
         "GET",
@@ -8984,7 +8923,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getProductTagsV600)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(updateProductTagsV600),
         "PUT",
@@ -9008,7 +8946,6 @@ object Http4s600 {
         http4sPartialFunction = Some(updateProductTagsV600)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getOidcClient),
         "GET",
@@ -9036,7 +8973,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getOidcClient)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(verifyOidcClient),
         "POST",
@@ -9066,7 +9002,6 @@ object Http4s600 {
         http4sPartialFunction = Some(verifyOidcClient)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getUserAttributeById),
         "GET",
@@ -9090,7 +9025,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getUserAttributeById)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(createUserAttribute),
         "POST",
@@ -9125,7 +9059,6 @@ object Http4s600 {
         http4sPartialFunction = Some(createUserAttribute)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(updateUserAttribute),
         "PUT",
@@ -9154,7 +9087,6 @@ object Http4s600 {
         http4sPartialFunction = Some(updateUserAttribute)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(deleteUserAttribute),
         "DELETE",
@@ -9178,7 +9110,6 @@ object Http4s600 {
         http4sPartialFunction = Some(deleteUserAttribute)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(addUserToGroup),
         "POST",
@@ -9230,7 +9161,6 @@ object Http4s600 {
         http4sPartialFunction = Some(addUserToGroup)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(removeUserFromGroup),
         "DELETE",
@@ -9261,7 +9191,6 @@ object Http4s600 {
         http4sPartialFunction = Some(removeUserFromGroup)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(deleteEntitlement),
         "DELETE",
@@ -9289,7 +9218,6 @@ object Http4s600 {
         http4sPartialFunction = Some(deleteEntitlement)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getAvailablePersonalDynamicEntities),
         "GET",
@@ -9334,7 +9262,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getAvailablePersonalDynamicEntities)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getReferenceTypes),
         "GET",
@@ -9403,7 +9330,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getReferenceTypes)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(joinSystemChatRoom),
         "POST",
@@ -9436,7 +9362,6 @@ object Http4s600 {
         http4sPartialFunction = Some(joinSystemChatRoom)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(createCounterpartyAttribute),
         "POST",
@@ -9457,7 +9382,6 @@ object Http4s600 {
         http4sPartialFunction = Some(createCounterpartyAttribute)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(deleteCounterpartyAttribute),
         "DELETE",
@@ -9477,7 +9401,6 @@ object Http4s600 {
         http4sPartialFunction = Some(deleteCounterpartyAttribute)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getCounterpartyAttributeById),
         "GET",
@@ -9497,7 +9420,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getCounterpartyAttributeById)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getAllCounterpartyAttributes),
         "GET",
@@ -9517,7 +9439,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getAllCounterpartyAttributes)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(updateCounterpartyAttribute),
         "PUT",
@@ -9537,7 +9458,6 @@ object Http4s600 {
         http4sPartialFunction = Some(updateCounterpartyAttribute)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(hasAccountAccess),
         "GET",
@@ -9569,7 +9489,6 @@ object Http4s600 {
         http4sPartialFunction = Some(hasAccountAccess)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getMyAccountAccessRequests),
         "GET",
@@ -9606,7 +9525,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getMyAccountAccessRequests)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getWebUiProp),
         "GET",
@@ -9657,7 +9575,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getWebUiProp)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getMessageDocsJsonSchema),
         "GET",
@@ -9715,7 +9632,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getMessageDocsJsonSchema)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(verifyUserCredentials),
         "POST",
@@ -9742,7 +9658,6 @@ object Http4s600 {
         http4sPartialFunction = Some(verifyUserCredentials)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getViewPermissions),
         "GET",
@@ -9778,7 +9693,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getViewPermissions)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getAllApiProductsV600),
         "GET",
@@ -9797,7 +9711,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getAllApiProductsV600)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getAllProductsV600),
         "GET",
@@ -9816,7 +9729,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getAllProductsV600)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getAccountAccessRequestsForAccount),
         "GET",
@@ -9853,7 +9765,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getAccountAccessRequestsForAccount)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getAccountAccessRequestById),
         "GET",
@@ -9889,7 +9800,6 @@ object Http4s600 {
 
     private def registerBatch4(): Unit = {
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getHoldingAccountByReleaser),
         "GET",
@@ -9909,7 +9819,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getHoldingAccountByReleaser)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(createAccountAccessRequest),
         "POST",
@@ -9954,7 +9863,6 @@ object Http4s600 {
         http4sPartialFunction = Some(createAccountAccessRequest)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(approveAccountAccessRequest),
         "POST",
@@ -9998,7 +9906,6 @@ object Http4s600 {
         http4sPartialFunction = Some(approveAccountAccessRequest)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(rejectAccountAccessRequest),
         "POST",
@@ -10042,7 +9949,6 @@ object Http4s600 {
         http4sPartialFunction = Some(rejectAccountAccessRequest)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getSignalChannels),
         "GET",
@@ -10066,7 +9972,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getSignalChannels)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getSignalChannelInfo),
         "GET",
@@ -10088,7 +9993,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getSignalChannelInfo)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getSignalStats),
         "GET",
@@ -10110,7 +10014,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getSignalStats)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(publishSignalMessage),
         "POST",
@@ -10145,7 +10048,6 @@ object Http4s600 {
         http4sPartialFunction = Some(publishSignalMessage)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getSignalMessages),
         "GET",
@@ -10174,7 +10076,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getSignalMessages)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(deleteSignalChannel),
         "DELETE",
@@ -10196,7 +10097,6 @@ object Http4s600 {
         http4sPartialFunction = Some(deleteSignalChannel)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getBankChatRooms),
         "GET",
@@ -10235,7 +10135,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getBankChatRooms)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getSystemChatRooms),
         "GET",
@@ -10271,7 +10170,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getSystemChatRooms)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getBankChatRoom),
         "GET",
@@ -10312,7 +10210,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getBankChatRoom)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getSystemChatRoom),
         "GET",
@@ -10348,7 +10245,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getSystemChatRoom)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getMyChatRooms),
         "GET",
@@ -10384,7 +10280,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getMyChatRooms)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getMyUnreadCounts),
         "GET",
@@ -10403,7 +10298,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getMyUnreadCounts)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(markChatRoomRead),
         "PUT",
@@ -10435,7 +10329,6 @@ object Http4s600 {
         http4sPartialFunction = Some(markChatRoomRead)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getMyMentions),
         "GET",
@@ -10471,7 +10364,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getMyMentions)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(searchChatRooms),
         "POST",
@@ -10523,7 +10415,6 @@ object Http4s600 {
         http4sPartialFunction = Some(searchChatRooms)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getBulkReactions),
         "GET",
@@ -10549,7 +10440,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getBulkReactions)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(archiveBankChatRoom),
         "PUT",
@@ -10591,7 +10481,6 @@ object Http4s600 {
         http4sPartialFunction = Some(archiveBankChatRoom)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(archiveSystemChatRoom),
         "PUT",
@@ -10628,7 +10517,6 @@ object Http4s600 {
         http4sPartialFunction = Some(archiveSystemChatRoom)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(joinBankChatRoom),
         "POST",
@@ -10667,7 +10555,6 @@ object Http4s600 {
         http4sPartialFunction = Some(joinBankChatRoom)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(refreshBankJoiningKey),
         "PUT",
@@ -10692,7 +10579,6 @@ object Http4s600 {
         http4sPartialFunction = Some(refreshBankJoiningKey)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(refreshSystemJoiningKey),
         "PUT",
@@ -10713,7 +10599,6 @@ object Http4s600 {
         http4sPartialFunction = Some(refreshSystemJoiningKey)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(createBankChatRoom),
         "POST",
@@ -10755,7 +10640,6 @@ object Http4s600 {
         http4sPartialFunction = Some(createBankChatRoom)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(createSystemChatRoom),
         "POST",
@@ -10793,7 +10677,6 @@ object Http4s600 {
         http4sPartialFunction = Some(createSystemChatRoom)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(updateBankChatRoom),
         "PUT",
@@ -10830,7 +10713,6 @@ object Http4s600 {
         http4sPartialFunction = Some(updateBankChatRoom)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(updateSystemChatRoom),
         "PUT",
@@ -10867,7 +10749,6 @@ object Http4s600 {
         http4sPartialFunction = Some(updateSystemChatRoom)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(deleteBankChatRoom),
         "DELETE",
@@ -10894,7 +10775,6 @@ object Http4s600 {
 
     private def registerBatch5(): Unit = {
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(deleteSystemChatRoom),
         "DELETE",
@@ -10914,7 +10794,6 @@ object Http4s600 {
         http4sPartialFunction = Some(deleteSystemChatRoom)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(setBankChatRoomOpenRoom),
         "PUT",
@@ -10959,7 +10838,6 @@ object Http4s600 {
         http4sPartialFunction = Some(setBankChatRoomOpenRoom)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(setSystemChatRoomOpenRoom),
         "PUT",
@@ -11000,7 +10878,6 @@ object Http4s600 {
         http4sPartialFunction = Some(setSystemChatRoomOpenRoom)
       )
         resourceDocs += ResourceDoc(
-          null,
           implementedInApiVersion,
           nameOf(addBankChatRoomParticipant),
           "POST",
@@ -11041,7 +10918,6 @@ object Http4s600 {
           http4sPartialFunction = Some(addBankChatRoomParticipant)
         )
         resourceDocs += ResourceDoc(
-          null,
           implementedInApiVersion,
           nameOf(addSystemChatRoomParticipant),
           "POST",
@@ -11076,7 +10952,6 @@ object Http4s600 {
           http4sPartialFunction = Some(addSystemChatRoomParticipant)
         )
         resourceDocs += ResourceDoc(
-          null,
           implementedInApiVersion,
           nameOf(getBankChatRoomParticipants),
           "GET",
@@ -11113,7 +10988,6 @@ object Http4s600 {
           http4sPartialFunction = Some(getBankChatRoomParticipants)
         )
         resourceDocs += ResourceDoc(
-          null,
           implementedInApiVersion,
           nameOf(getSystemChatRoomParticipants),
           "GET",
@@ -11145,7 +11019,6 @@ object Http4s600 {
           http4sPartialFunction = Some(getSystemChatRoomParticipants)
         )
         resourceDocs += ResourceDoc(
-          null,
           implementedInApiVersion,
           nameOf(updateBankParticipantPermissions),
           "PUT",
@@ -11184,7 +11057,6 @@ object Http4s600 {
           http4sPartialFunction = Some(updateBankParticipantPermissions)
         )
         resourceDocs += ResourceDoc(
-          null,
           implementedInApiVersion,
           nameOf(updateSystemParticipantPermissions),
           "PUT",
@@ -11217,7 +11089,6 @@ object Http4s600 {
           http4sPartialFunction = Some(updateSystemParticipantPermissions)
         )
         resourceDocs += ResourceDoc(
-          null,
           implementedInApiVersion,
           nameOf(removeBankChatRoomParticipant),
           "DELETE",
@@ -11242,7 +11113,6 @@ object Http4s600 {
           http4sPartialFunction = Some(removeBankChatRoomParticipant)
         )
         resourceDocs += ResourceDoc(
-          null,
           implementedInApiVersion,
           nameOf(removeSystemChatRoomParticipant),
           "DELETE",
@@ -11262,7 +11132,6 @@ object Http4s600 {
           http4sPartialFunction = Some(removeSystemChatRoomParticipant)
         )
         resourceDocs += ResourceDoc(
-          null,
           implementedInApiVersion,
           nameOf(sendBankChatMessage),
           "POST",
@@ -11305,7 +11174,6 @@ object Http4s600 {
           http4sPartialFunction = Some(sendBankChatMessage)
         )
         resourceDocs += ResourceDoc(
-          null,
           implementedInApiVersion,
           nameOf(sendSystemChatMessage),
           "POST",
@@ -11342,7 +11210,6 @@ object Http4s600 {
           http4sPartialFunction = Some(sendSystemChatMessage)
         )
         resourceDocs += ResourceDoc(
-          null,
           implementedInApiVersion,
           nameOf(getBankChatMessages),
           "GET",
@@ -11387,7 +11254,6 @@ object Http4s600 {
           http4sPartialFunction = Some(getBankChatMessages)
         )
         resourceDocs += ResourceDoc(
-          null,
           implementedInApiVersion,
           nameOf(getSystemChatMessages),
           "GET",
@@ -11428,7 +11294,6 @@ object Http4s600 {
           http4sPartialFunction = Some(getSystemChatMessages)
         )
         resourceDocs += ResourceDoc(
-          null,
           implementedInApiVersion,
           nameOf(getBankChatMessage),
           "GET",
@@ -11470,7 +11335,6 @@ object Http4s600 {
           http4sPartialFunction = Some(getBankChatMessage)
         )
         resourceDocs += ResourceDoc(
-          null,
           implementedInApiVersion,
           nameOf(getSystemChatMessage),
           "GET",
@@ -11507,7 +11371,6 @@ object Http4s600 {
           http4sPartialFunction = Some(getSystemChatMessage)
         )
         resourceDocs += ResourceDoc(
-          null,
           implementedInApiVersion,
           nameOf(editBankChatMessage),
           "PUT",
@@ -11551,7 +11414,6 @@ object Http4s600 {
           http4sPartialFunction = Some(editBankChatMessage)
         )
         resourceDocs += ResourceDoc(
-          null,
           implementedInApiVersion,
           nameOf(editSystemChatMessage),
           "PUT",
@@ -11589,7 +11451,6 @@ object Http4s600 {
           http4sPartialFunction = Some(editSystemChatMessage)
         )
         resourceDocs += ResourceDoc(
-          null,
           implementedInApiVersion,
           nameOf(deleteBankChatMessage),
           "DELETE",
@@ -11615,7 +11476,6 @@ object Http4s600 {
           http4sPartialFunction = Some(deleteBankChatMessage)
         )
         resourceDocs += ResourceDoc(
-          null,
           implementedInApiVersion,
           nameOf(deleteSystemChatMessage),
           "DELETE",
@@ -11636,7 +11496,6 @@ object Http4s600 {
           http4sPartialFunction = Some(deleteSystemChatMessage)
         )
         resourceDocs += ResourceDoc(
-          null,
           implementedInApiVersion,
           nameOf(getBankThreadReplies),
           "GET",
@@ -11678,7 +11537,6 @@ object Http4s600 {
           http4sPartialFunction = Some(getBankThreadReplies)
         )
         resourceDocs += ResourceDoc(
-          null,
           implementedInApiVersion,
           nameOf(getSystemThreadReplies),
           "GET",
@@ -11715,7 +11573,6 @@ object Http4s600 {
           http4sPartialFunction = Some(getSystemThreadReplies)
         )
         resourceDocs += ResourceDoc(
-          null,
           implementedInApiVersion,
           nameOf(replyInBankThread),
           "POST",
@@ -11759,7 +11616,6 @@ object Http4s600 {
           http4sPartialFunction = Some(replyInBankThread)
         )
         resourceDocs += ResourceDoc(
-          null,
           implementedInApiVersion,
           nameOf(replyInSystemThread),
           "POST",
@@ -11796,7 +11652,6 @@ object Http4s600 {
           http4sPartialFunction = Some(replyInSystemThread)
         )
         resourceDocs += ResourceDoc(
-          null,
           implementedInApiVersion,
           nameOf(addBankReaction),
           "POST",
@@ -11831,7 +11686,6 @@ object Http4s600 {
           http4sPartialFunction = Some(addBankReaction)
         )
         resourceDocs += ResourceDoc(
-          null,
           implementedInApiVersion,
           nameOf(addSystemReaction),
           "POST",
@@ -11860,7 +11714,6 @@ object Http4s600 {
           http4sPartialFunction = Some(addSystemReaction)
         )
         resourceDocs += ResourceDoc(
-          null,
           implementedInApiVersion,
           nameOf(removeBankReaction),
           "DELETE",
@@ -11886,7 +11739,6 @@ object Http4s600 {
           http4sPartialFunction = Some(removeBankReaction)
         )
         resourceDocs += ResourceDoc(
-          null,
           implementedInApiVersion,
           nameOf(removeSystemReaction),
           "DELETE",
@@ -11907,7 +11759,6 @@ object Http4s600 {
           http4sPartialFunction = Some(removeSystemReaction)
         )
         resourceDocs += ResourceDoc(
-          null,
           implementedInApiVersion,
           nameOf(getBankReactions),
           "GET",
@@ -11943,7 +11794,6 @@ object Http4s600 {
 
     private def registerBatch6(): Unit = {
         resourceDocs += ResourceDoc(
-          null,
           implementedInApiVersion,
           nameOf(getSystemReactions),
           "GET",
@@ -11971,7 +11821,6 @@ object Http4s600 {
           http4sPartialFunction = Some(getSystemReactions)
         )
         resourceDocs += ResourceDoc(
-          null,
           implementedInApiVersion,
           nameOf(signalBankTyping),
           "PUT",
@@ -11995,7 +11844,6 @@ object Http4s600 {
           http4sPartialFunction = Some(signalBankTyping)
         )
         resourceDocs += ResourceDoc(
-          null,
           implementedInApiVersion,
           nameOf(signalSystemTyping),
           "PUT",
@@ -12015,7 +11863,6 @@ object Http4s600 {
           http4sPartialFunction = Some(signalSystemTyping)
         )
         resourceDocs += ResourceDoc(
-          null,
           implementedInApiVersion,
           nameOf(getBankTypingUsers),
           "GET",
@@ -12039,7 +11886,6 @@ object Http4s600 {
           http4sPartialFunction = Some(getBankTypingUsers)
         )
         resourceDocs += ResourceDoc(
-          null,
           implementedInApiVersion,
           nameOf(getSystemTypingUsers),
           "GET",
@@ -12059,7 +11905,6 @@ object Http4s600 {
           http4sPartialFunction = Some(getSystemTypingUsers)
         )
         resourceDocs += ResourceDoc(
-          null,
           implementedInApiVersion,
           nameOf(createSignatoryPanel),
           "POST",
@@ -12093,7 +11938,6 @@ object Http4s600 {
           http4sPartialFunction = Some(createSignatoryPanel)
         )
         resourceDocs += ResourceDoc(
-          null,
           implementedInApiVersion,
           nameOf(getSignatoryPanels),
           "GET",
@@ -12117,7 +11961,6 @@ object Http4s600 {
           http4sPartialFunction = Some(getSignatoryPanels)
         )
         resourceDocs += ResourceDoc(
-          null,
           implementedInApiVersion,
           nameOf(getSignatoryPanel),
           "GET",
@@ -12141,7 +11984,6 @@ object Http4s600 {
           http4sPartialFunction = Some(getSignatoryPanel)
         )
         resourceDocs += ResourceDoc(
-          null,
           implementedInApiVersion,
           nameOf(updateSignatoryPanel),
           "PUT",
@@ -12170,7 +12012,6 @@ object Http4s600 {
           http4sPartialFunction = Some(updateSignatoryPanel)
         )
         resourceDocs += ResourceDoc(
-          null,
           implementedInApiVersion,
           nameOf(deleteSignatoryPanel),
           "DELETE",
@@ -12188,7 +12029,6 @@ object Http4s600 {
           http4sPartialFunction = Some(deleteSignatoryPanel)
         )
         resourceDocs += ResourceDoc(
-          null,
           implementedInApiVersion,
           nameOf(validateUserEmail),
           "POST",
@@ -12237,7 +12077,6 @@ object Http4s600 {
           http4sPartialFunction = Some(validateUserEmail)
         )
         resourceDocs += ResourceDoc(
-          null,
           implementedInApiVersion,
           nameOf(resetPasswordComplete),
           "POST",
@@ -12275,7 +12114,6 @@ object Http4s600 {
           http4sPartialFunction = Some(resetPasswordComplete)
         )
         resourceDocs += ResourceDoc(
-          null,
           implementedInApiVersion,
           nameOf(resetPasswordUrlAnonymous),
           "POST",
@@ -12318,7 +12156,6 @@ object Http4s600 {
           http4sPartialFunction = Some(resetPasswordUrlAnonymous)
         )
         resourceDocs += ResourceDoc(
-          null,
           implementedInApiVersion,
           nameOf(validateDynamicResourceDoc),
           "POST",
@@ -12352,7 +12189,6 @@ object Http4s600 {
           http4sPartialFunction = Some(validateDynamicResourceDoc)
         )
         resourceDocs += ResourceDoc(
-          null,
           implementedInApiVersion,
           nameOf(createTransactionRequestHold),
           "POST",
@@ -12385,7 +12221,6 @@ object Http4s600 {
           http4sPartialFunction = Some(createTransactionRequestHold)
         )
         resourceDocs += ResourceDoc(
-          null,
           implementedInApiVersion,
           nameOf(createTransactionRequestCardano),
           "POST",
@@ -12418,7 +12253,6 @@ object Http4s600 {
           http4sPartialFunction = Some(createTransactionRequestCardano)
         )
         resourceDocs += ResourceDoc(
-          null,
           implementedInApiVersion,
           nameOf(createTransactionRequestEthereumeSendTransaction),
           "POST",
@@ -12451,7 +12285,6 @@ object Http4s600 {
           http4sPartialFunction = Some(createTransactionRequestEthereumeSendTransaction)
         )
         resourceDocs += ResourceDoc(
-          null,
           implementedInApiVersion,
           nameOf(createTransactionRequestEthSendRawTransaction),
           "POST",
@@ -12484,7 +12317,6 @@ object Http4s600 {
           http4sPartialFunction = Some(createTransactionRequestEthSendRawTransaction)
         )
         resourceDocs += ResourceDoc(
-          null,
           implementedInApiVersion,
           nameOf(getUserGroupMemberships),
           "GET",
@@ -12526,7 +12358,6 @@ object Http4s600 {
           http4sPartialFunction = Some(getUserGroupMemberships)
         )
         resourceDocs += ResourceDoc(
-          null,
           implementedInApiVersion,
           nameOf(getUsersWithAccountAccess),
           "GET",
@@ -12563,7 +12394,6 @@ object Http4s600 {
           http4sPartialFunction = Some(getUsersWithAccountAccess)
         )
         resourceDocs += ResourceDoc(
-          null,
           implementedInApiVersion,
           nameOf(createRetailCustomer),
           "POST",
@@ -12613,7 +12443,6 @@ object Http4s600 {
           http4sPartialFunction = Some(createRetailCustomer)
         )
         resourceDocs += ResourceDoc(
-          null,
           implementedInApiVersion,
           nameOf(createCorporateCustomer),
           "POST",
@@ -12661,7 +12490,6 @@ object Http4s600 {
           http4sPartialFunction = Some(createCorporateCustomer)
         )
         resourceDocs += ResourceDoc(
-          null,
           implementedInApiVersion,
           nameOf(getUserByUserId),
           "GET",
@@ -12682,7 +12510,6 @@ object Http4s600 {
           http4sPartialFunction = Some(getUserByUserId)
         )
         resourceDocs += ResourceDoc(
-          null,
           implementedInApiVersion,
           nameOf(directLoginEndpoint),
           "POST",
@@ -12717,7 +12544,6 @@ object Http4s600 {
           http4sPartialFunction = Some(directLoginEndpoint)
         )
         resourceDocs += ResourceDoc(
-          null,
           implementedInApiVersion,
           nameOf(validateAbacRule),
           "POST",
@@ -12766,7 +12592,6 @@ object Http4s600 {
           http4sPartialFunction = Some(validateAbacRule)
         )
         resourceDocs += ResourceDoc(
-          null,
           implementedInApiVersion,
           nameOf(executeAbacRule),
           "POST",
@@ -12812,7 +12637,6 @@ object Http4s600 {
           http4sPartialFunction = Some(executeAbacRule)
         )
         resourceDocs += ResourceDoc(
-          null,
           implementedInApiVersion,
           nameOf(executeAbacPolicy),
           "POST",
@@ -12861,7 +12685,6 @@ object Http4s600 {
           http4sPartialFunction = Some(executeAbacPolicy)
         )
         resourceDocs += ResourceDoc(
-          null,
           implementedInApiVersion,
           nameOf(getAbacRuleSchema),
           "GET",
@@ -12941,7 +12764,6 @@ object Http4s600 {
           http4sPartialFunction = Some(getAbacRuleSchema)
         )
         resourceDocs += ResourceDoc(
-          null,
           implementedInApiVersion,
           nameOf(backupSystemDynamicEntity),
           "POST",
@@ -12975,7 +12797,6 @@ object Http4s600 {
           http4sPartialFunction = Some(backupSystemDynamicEntity)
         )
         resourceDocs += ResourceDoc(
-          null,
           implementedInApiVersion,
           nameOf(backupBankLevelDynamicEntity),
           "POST",
@@ -13012,7 +12833,6 @@ object Http4s600 {
 
     private def registerBatch7(): Unit = {
         resourceDocs += ResourceDoc(
-          null,
           implementedInApiVersion,
           nameOf(deleteSystemDynamicEntityCascade),
           "DELETE",
@@ -13051,7 +12871,6 @@ object Http4s600 {
           http4sPartialFunction = Some(deleteSystemDynamicEntityCascade)
         )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getCustomerInvestigationReport),
         "GET",
@@ -13115,7 +12934,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getCustomerInvestigationReport)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(createCustomerLink),
         "POST",
@@ -13142,7 +12960,6 @@ object Http4s600 {
         http4sPartialFunction = Some(createCustomerLink)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getCustomerLinksByBankId),
         "GET",
@@ -13161,7 +12978,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getCustomerLinksByBankId)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getCustomerLinkById),
         "GET",
@@ -13186,7 +13002,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getCustomerLinkById)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(updateCustomerLink),
         "PUT",
@@ -13213,7 +13028,6 @@ object Http4s600 {
         http4sPartialFunction = Some(updateCustomerLink)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(deleteCustomerLink),
         "DELETE",
@@ -13238,7 +13052,6 @@ object Http4s600 {
         http4sPartialFunction = Some(deleteCustomerLink)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getCustomViewById),
         "GET",
@@ -13290,7 +13103,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getCustomViewById)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(invalidateCacheNamespace),
         "POST",
@@ -13326,7 +13138,6 @@ object Http4s600 {
         http4sPartialFunction = Some(invalidateCacheNamespace)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getConfigProps),
         "GET",
@@ -13362,7 +13173,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getConfigProps)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getAppDirectory),
         "GET",
@@ -13392,7 +13202,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getAppDirectory)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getCustomViews),
         "GET",
@@ -13420,7 +13229,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getCustomViews)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getRolesWithEntitlementCountsAtAllBanks),
         "GET",
@@ -13461,7 +13269,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getRolesWithEntitlementCountsAtAllBanks)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getFeatures),
         "GET",
@@ -13478,7 +13285,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getFeatures)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getProviders),
         "GET",
@@ -13504,7 +13310,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getProviders)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getCurrentConsumer),
         "GET",
@@ -13538,7 +13343,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getCurrentConsumer)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getPopularApis),
         "GET",
@@ -13572,7 +13376,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getPopularApis)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getAccountDirectory),
         "GET",
@@ -13614,7 +13417,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getAccountDirectory)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(createGroup),
         "POST",
@@ -13657,7 +13459,6 @@ object Http4s600 {
         http4sPartialFunction = Some(createGroup)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getGroup),
         "GET",
@@ -13691,7 +13492,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getGroup)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getGroups),
         "GET",
@@ -13732,7 +13532,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getGroups)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(updateGroup),
         "PUT",
@@ -13772,7 +13571,6 @@ object Http4s600 {
         http4sPartialFunction = Some(updateGroup)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(deleteGroup),
         "DELETE",
@@ -13799,7 +13597,6 @@ object Http4s600 {
         http4sPartialFunction = Some(deleteGroup)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getGroupEntitlements),
         "GET",
@@ -13839,7 +13636,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getGroupEntitlements)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(createAbacRule),
         "POST",
@@ -13899,7 +13695,6 @@ object Http4s600 {
         http4sPartialFunction = Some(createAbacRule)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getAbacRule),
         "GET",
@@ -13936,7 +13731,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getAbacRule)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getAbacRules),
         "GET",
@@ -13977,7 +13771,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getAbacRules)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getAbacRulesByPolicy),
         "GET",
@@ -14031,7 +13824,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getAbacRulesByPolicy)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(updateAbacRule),
         "PUT",
@@ -14075,7 +13867,6 @@ object Http4s600 {
         http4sPartialFunction = Some(updateAbacRule)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(deleteAbacRule),
         "DELETE",
@@ -14105,7 +13896,6 @@ object Http4s600 {
 
     private def registerBatch8(): Unit = {
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(createPersonalDataField),
         "POST",
@@ -14134,7 +13924,6 @@ object Http4s600 {
         http4sPartialFunction = Some(createPersonalDataField)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getPersonalDataFields),
         "GET",
@@ -14156,7 +13945,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getPersonalDataFields)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getPersonalDataFieldById),
         "GET",
@@ -14174,7 +13962,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getPersonalDataFieldById)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(updatePersonalDataField),
         "PUT",
@@ -14201,7 +13988,6 @@ object Http4s600 {
         http4sPartialFunction = Some(updatePersonalDataField)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(deletePersonalDataField),
         "DELETE",
@@ -14219,7 +14005,6 @@ object Http4s600 {
         http4sPartialFunction = Some(deletePersonalDataField)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getConsumerCallCounters),
         "GET",
@@ -14264,7 +14049,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getConsumerCallCounters)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(createCallLimits),
         "POST",
@@ -14291,7 +14075,6 @@ object Http4s600 {
         http4sPartialFunction = Some(createCallLimits)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(updateRateLimits),
         "PUT",
@@ -14328,7 +14111,6 @@ object Http4s600 {
         http4sPartialFunction = Some(updateRateLimits)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(deleteCallLimits),
         "DELETE",
@@ -14354,7 +14136,6 @@ object Http4s600 {
         http4sPartialFunction = Some(deleteCallLimits)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getActiveRateLimitsNow),
         "GET",
@@ -14384,7 +14165,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getActiveRateLimitsNow)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getActiveRateLimitsAtDate),
         "GET",
@@ -14419,7 +14199,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getActiveRateLimitsAtDate)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(createFeaturedApiCollection),
         "POST",
@@ -14445,7 +14224,6 @@ object Http4s600 {
         http4sPartialFunction = Some(createFeaturedApiCollection)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getFeaturedApiCollectionsAdmin),
         "GET",
@@ -14467,7 +14245,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getFeaturedApiCollectionsAdmin)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(updateFeaturedApiCollection),
         "PUT",
@@ -14492,7 +14269,6 @@ object Http4s600 {
         http4sPartialFunction = Some(updateFeaturedApiCollection)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(deleteFeaturedApiCollection),
         "DELETE",
@@ -14517,7 +14293,6 @@ object Http4s600 {
         http4sPartialFunction = Some(deleteFeaturedApiCollection)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(createApiProduct),
         "POST",
@@ -14542,7 +14317,6 @@ object Http4s600 {
         http4sPartialFunction = Some(createApiProduct)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(createOrUpdateApiProduct),
         "PUT",
@@ -14567,7 +14341,6 @@ object Http4s600 {
         http4sPartialFunction = Some(createOrUpdateApiProduct)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getApiProduct),
         "GET",
@@ -14588,7 +14361,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getApiProduct)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getApiProducts),
         "GET",
@@ -14609,7 +14381,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getApiProducts)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(deleteApiProduct),
         "DELETE",
@@ -14634,7 +14405,6 @@ object Http4s600 {
         http4sPartialFunction = Some(deleteApiProduct)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(createApiProductAttribute),
         "POST",
@@ -14660,7 +14430,6 @@ object Http4s600 {
         http4sPartialFunction = Some(createApiProductAttribute)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(updateApiProductAttribute),
         "PUT",
@@ -14686,7 +14455,6 @@ object Http4s600 {
         http4sPartialFunction = Some(updateApiProductAttribute)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getApiProductAttribute),
         "GET",
@@ -14705,7 +14473,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getApiProductAttribute)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(deleteApiProductAttribute),
         "DELETE",
@@ -14730,7 +14497,6 @@ object Http4s600 {
         http4sPartialFunction = Some(deleteApiProductAttribute)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(createMandate),
         "POST",
@@ -14787,7 +14553,6 @@ object Http4s600 {
         http4sPartialFunction = Some(createMandate)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getMandates),
         "GET",
@@ -14824,7 +14589,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getMandates)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getMandate),
         "GET",
@@ -14861,7 +14625,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getMandate)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(updateMandate),
         "PUT",
@@ -14907,7 +14670,6 @@ object Http4s600 {
         http4sPartialFunction = Some(updateMandate)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(deleteMandate),
         "DELETE",
@@ -14930,7 +14692,6 @@ object Http4s600 {
         http4sPartialFunction = Some(deleteMandate)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(createMandateProvision),
         "POST",
@@ -14993,7 +14754,6 @@ object Http4s600 {
 
     private def registerBatch9(): Unit = {
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getMandateProvisions),
         "GET",
@@ -15030,7 +14790,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getMandateProvisions)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getMandateProvision),
         "GET",
@@ -15067,7 +14826,6 @@ object Http4s600 {
         http4sPartialFunction = Some(getMandateProvision)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(updateMandateProvision),
         "PUT",
@@ -15117,7 +14875,6 @@ object Http4s600 {
         http4sPartialFunction = Some(updateMandateProvision)
       )
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(deleteMandateProvision),
         "DELETE",

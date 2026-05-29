@@ -129,7 +129,6 @@ object Http4s121 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(root),
       "GET",
@@ -162,7 +161,6 @@ object Http4s121 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getBanks),
       "GET",
@@ -199,7 +197,6 @@ object Http4s121 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(bankById),
       "GET",
@@ -232,7 +229,6 @@ object Http4s121 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getPrivateAccountsAllBanks),
       "GET",
@@ -264,7 +260,6 @@ object Http4s121 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(privateAccountsAllBanks),
       "GET",
@@ -295,7 +290,6 @@ object Http4s121 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(publicAccountsAllBanks),
       "GET",
@@ -328,7 +322,6 @@ object Http4s121 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getPrivateAccountsAtOneBank),
       "GET",
@@ -360,7 +353,6 @@ object Http4s121 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(privateAccountsAtOneBank),
       "GET",
@@ -392,7 +384,6 @@ object Http4s121 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(publicAccountsAtOneBank),
       "GET",
@@ -426,7 +417,6 @@ object Http4s121 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(accountById),
       "GET",
@@ -485,7 +475,6 @@ object Http4s121 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(updateAccountLabel),
       "POST",
@@ -522,7 +511,6 @@ object Http4s121 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getViewsForBankAccount),
       "GET",
@@ -599,7 +587,6 @@ object Http4s121 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(createViewForBankAccount),
       "POST",
@@ -666,7 +653,6 @@ object Http4s121 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(updateViewForBankAccount),
       "PUT",
@@ -707,7 +693,6 @@ object Http4s121 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(deleteViewForBankAccount),
       "DELETE",
@@ -739,7 +724,6 @@ object Http4s121 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getPermissionsForBankAccount),
       "GET",
@@ -779,7 +763,6 @@ object Http4s121 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getPermissionForUserForBankAccount),
       "GET",
@@ -823,7 +806,6 @@ object Http4s121 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(addPermissionForUserForBankAccountForMultipleViews),
       "POST",
@@ -862,7 +844,6 @@ object Http4s121 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(addPermissionForUserForBankAccountForOneView),
       "POST",
@@ -897,7 +878,6 @@ object Http4s121 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(removePermissionForUserForBankAccountForOneView),
       "DELETE",
@@ -929,7 +909,6 @@ object Http4s121 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(removePermissionForUserForBankAccountForAllViews),
       "DELETE",
@@ -959,7 +938,6 @@ object Http4s121 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getOtherAccountsForBankAccount),
       "GET",
@@ -987,7 +965,6 @@ object Http4s121 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getOtherAccountByIdForBankAccount),
       "GET",
@@ -1020,7 +997,6 @@ object Http4s121 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getOtherAccountMetadata),
       "GET",
@@ -1051,7 +1027,7 @@ object Http4s121 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getCounterpartyPublicAlias), "GET",
+      implementedInApiVersion, nameOf(getCounterpartyPublicAlias), "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/public_alias",
       "Get public alias of other bank account",
       s"""Returns the public alias of the other account OTHER_ACCOUNT_ID.
@@ -1086,7 +1062,7 @@ object Http4s121 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(addCounterpartyPublicAlias), "POST",
+      implementedInApiVersion, nameOf(addCounterpartyPublicAlias), "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/public_alias",
       "Add public alias to other bank account", s"""Creates the public alias for the other account OTHER_ACCOUNT_ID.
         |
@@ -1130,7 +1106,7 @@ object Http4s121 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(updateCounterpartyPublicAlias), "PUT",
+      implementedInApiVersion, nameOf(updateCounterpartyPublicAlias), "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/public_alias",
       "Update public alias of other bank account", s"""Updates the public alias of the other account / counterparty OTHER_ACCOUNT_ID.
         |
@@ -1160,7 +1136,7 @@ object Http4s121 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(deleteCounterpartyPublicAlias), "DELETE",
+      implementedInApiVersion, nameOf(deleteCounterpartyPublicAlias), "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/public_alias",
       "Delete Counterparty Public Alias", s"""Deletes the public alias of the other account OTHER_ACCOUNT_ID.
         |
@@ -1193,7 +1169,7 @@ object Http4s121 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getOtherAccountPrivateAlias), "GET",
+      implementedInApiVersion, nameOf(getOtherAccountPrivateAlias), "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/private_alias",
       "Get Other Account Private Alias", s"""Returns the private alias of the other account OTHER_ACCOUNT_ID.
         |
@@ -1223,7 +1199,7 @@ object Http4s121 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(addOtherAccountPrivateAlias), "POST",
+      implementedInApiVersion, nameOf(addOtherAccountPrivateAlias), "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/private_alias",
       "Create Other Account Private Alias", s"""Creates a private alias for the other account OTHER_ACCOUNT_ID.
         |
@@ -1253,7 +1229,7 @@ object Http4s121 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(updateCounterpartyPrivateAlias), "PUT",
+      implementedInApiVersion, nameOf(updateCounterpartyPrivateAlias), "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/private_alias",
       "Update Counterparty Private Alias", s"""Updates the private alias of the counterparty (AKA other account) OTHER_ACCOUNT_ID.
         |
@@ -1283,7 +1259,7 @@ object Http4s121 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(deleteCounterpartyPrivateAlias), "DELETE",
+      implementedInApiVersion, nameOf(deleteCounterpartyPrivateAlias), "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/private_alias",
       "Delete Counterparty Private Alias", s"""Deletes the private alias of the other account OTHER_ACCOUNT_ID.
         |
@@ -1313,7 +1289,7 @@ object Http4s121 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(addCounterpartyMoreInfo), "POST",
+      implementedInApiVersion, nameOf(addCounterpartyMoreInfo), "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/more_info",
       "Add Counterparty More Info",
       // Intentional drift from Lift's APIMethods121.scala source-of-truth:
@@ -1351,7 +1327,7 @@ object Http4s121 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(updateCounterpartyMoreInfo), "PUT",
+      implementedInApiVersion, nameOf(updateCounterpartyMoreInfo), "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/more_info",
       "Update Counterparty More Info",
       // Intentional drift from Lift's APIMethods121.scala source-of-truth:
@@ -1381,7 +1357,7 @@ object Http4s121 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(deleteCounterpartyMoreInfo), "DELETE",
+      implementedInApiVersion, nameOf(deleteCounterpartyMoreInfo), "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/more_info",
       "Delete more info of other bank account", "",
       EmptyBody, EmptyBody,
@@ -1408,7 +1384,7 @@ object Http4s121 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(addCounterpartyUrl), "POST",
+      implementedInApiVersion, nameOf(addCounterpartyUrl), "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/url",
       "Add url to other bank account", "A url which represents the counterparty (home page url etc.)",
       urlJSON, successMessage,
@@ -1435,7 +1411,7 @@ object Http4s121 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(updateCounterpartyUrl), "PUT",
+      implementedInApiVersion, nameOf(updateCounterpartyUrl), "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/url",
       "Update url of other bank account", "A url which represents the counterparty (home page url etc.)",
       urlJSON, successMessage,
@@ -1462,7 +1438,7 @@ object Http4s121 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(deleteCounterpartyUrl), "DELETE",
+      implementedInApiVersion, nameOf(deleteCounterpartyUrl), "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/url",
       "Delete url of other bank account", "",
       EmptyBody, EmptyBody,
@@ -1489,7 +1465,7 @@ object Http4s121 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(addCounterpartyImageUrl), "POST",
+      implementedInApiVersion, nameOf(addCounterpartyImageUrl), "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/image_url",
       "Add image url to other bank account", "Add a url that points to the logo of the counterparty",
       imageUrlJSON, successMessage,
@@ -1516,7 +1492,7 @@ object Http4s121 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(updateCounterpartyImageUrl), "PUT",
+      implementedInApiVersion, nameOf(updateCounterpartyImageUrl), "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/image_url",
       "Update Counterparty Image Url", "Update the url that points to the logo of the counterparty",
       imageUrlJSON, successMessage,
@@ -1550,7 +1526,7 @@ object Http4s121 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(deleteCounterpartyImageUrl), "DELETE",
+      implementedInApiVersion, nameOf(deleteCounterpartyImageUrl), "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/image_url",
       "Delete Counterparty Image URL", "Delete image url of other bank account",
       EmptyBody, EmptyBody,
@@ -1579,7 +1555,7 @@ object Http4s121 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(addCounterpartyOpenCorporatesUrl), "POST",
+      implementedInApiVersion, nameOf(addCounterpartyOpenCorporatesUrl), "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/open_corporates_url",
       "Add Open Corporates URL to Counterparty", "Add open corporates url to other bank account",
       openCorporateUrlJSON, successMessage,
@@ -1613,7 +1589,7 @@ object Http4s121 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(updateCounterpartyOpenCorporatesUrl), "PUT",
+      implementedInApiVersion, nameOf(updateCounterpartyOpenCorporatesUrl), "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/open_corporates_url",
       "Update Open Corporates Url of Counterparty", "Update open corporate url of other bank account",
       openCorporateUrlJSON, successMessage,
@@ -1640,7 +1616,7 @@ object Http4s121 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(deleteCounterpartyOpenCorporatesUrl), "DELETE",
+      implementedInApiVersion, nameOf(deleteCounterpartyOpenCorporatesUrl), "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/open_corporates_url",
       "Delete Counterparty Open Corporates URL", "Delete open corporate url of other bank account",
       EmptyBody, EmptyBody,
@@ -1668,7 +1644,7 @@ object Http4s121 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(addCounterpartyCorporateLocation), "POST",
+      implementedInApiVersion, nameOf(addCounterpartyCorporateLocation), "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/corporate_location",
       "Add Corporate Location to Counterparty", "Add the geolocation of the counterparty's registered address",
       corporateLocationJSON, successMessage,
@@ -1696,7 +1672,7 @@ object Http4s121 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(updateCounterpartyCorporateLocation), "PUT",
+      implementedInApiVersion, nameOf(updateCounterpartyCorporateLocation), "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/corporate_location",
       "Update Counterparty Corporate Location", "Update the geolocation of the counterparty's registered address",
       corporateLocationJSON, successMessage,
@@ -1723,7 +1699,7 @@ object Http4s121 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(deleteCounterpartyCorporateLocation), "DELETE",
+      implementedInApiVersion, nameOf(deleteCounterpartyCorporateLocation), "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/corporate_location",
       "Delete Counterparty Corporate Location", "Delete corporate location of other bank account. Delete the geolocation of the counterparty's registered address",
       EmptyBody, EmptyBody,
@@ -1751,7 +1727,7 @@ object Http4s121 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(addCounterpartyPhysicalLocation), "POST",
+      implementedInApiVersion, nameOf(addCounterpartyPhysicalLocation), "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/physical_location",
       "Add physical location to other bank account", "Add geocoordinates of the counterparty's main location",
       physicalLocationJSON, successMessage,
@@ -1779,7 +1755,7 @@ object Http4s121 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(updateCounterpartyPhysicalLocation), "PUT",
+      implementedInApiVersion, nameOf(updateCounterpartyPhysicalLocation), "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/physical_location",
       "Update Counterparty Physical Location", "Update geocoordinates of the counterparty's main location",
       physicalLocationJSON, successMessage,
@@ -1806,7 +1782,7 @@ object Http4s121 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(deleteCounterpartyPhysicalLocation), "DELETE",
+      implementedInApiVersion, nameOf(deleteCounterpartyPhysicalLocation), "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/physical_location",
       "Delete Counterparty Physical Location", "Delete physical location of other bank account",
       EmptyBody, EmptyBody,
@@ -1835,7 +1811,7 @@ object Http4s121 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getTransactionsForBankAccount), "GET",
+      implementedInApiVersion, nameOf(getTransactionsForBankAccount), "GET",
       "/banks/BANK_ID/accounts/BANK_ACCOUNT_ID/TRANSACTIONS_VIEW_ID/transactions",
       "Get Transactions for Account (Full)",
       s"""Returns transactions list of the account specified by ACCOUNT_ID and [moderated](#1_2_1-getViewsForBankAccount) by the view (VIEW_ID).
@@ -1868,7 +1844,7 @@ object Http4s121 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getTransactionByIdForBankAccount), "GET",
+      implementedInApiVersion, nameOf(getTransactionByIdForBankAccount), "GET",
       "/banks/BANK_ID/accounts/BANK_ACCOUNT_ID/TRANSACTIONS_VIEW_ID/transactions/TRANSACTION_ID/transaction",
       "Get Transaction by Id",
       s"""Returns one transaction specified by TRANSACTION_ID of the account ACCOUNT_ID and [moderated](#1_2_1-getViewsForBankAccount) by the view (VIEW_ID).
@@ -1899,7 +1875,7 @@ object Http4s121 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getTransactionNarrative), "GET",
+      implementedInApiVersion, nameOf(getTransactionNarrative), "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/narrative",
       "Get a Transaction Narrative",
       """Returns the account owner description of the transaction [moderated](#1_2_1-getViewsForBankAccount) by the view.
@@ -1951,7 +1927,7 @@ object Http4s121 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(addTransactionNarrative), "POST",
+      implementedInApiVersion, nameOf(addTransactionNarrative), "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/narrative",
       "Add a Transaction Narrative",
       // Intentional drift from Lift's APIMethods121.scala source-of-truth.
@@ -2014,7 +1990,7 @@ object Http4s121 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(updateTransactionNarrative), "PUT",
+      implementedInApiVersion, nameOf(updateTransactionNarrative), "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/narrative",
       "Update a Transaction Narrative",
       """Updates the description of the transaction TRANSACTION_ID.
@@ -2049,7 +2025,7 @@ object Http4s121 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(deleteTransactionNarrative), "DELETE",
+      implementedInApiVersion, nameOf(deleteTransactionNarrative), "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/narrative",
       "Delete a Transaction Narrative",
       """Deletes the description of the transaction TRANSACTION_ID.
@@ -2076,7 +2052,7 @@ object Http4s121 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getCommentsForViewOnTransaction), "GET",
+      implementedInApiVersion, nameOf(getCommentsForViewOnTransaction), "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/comments",
       "Get Transaction Comments",
       """Returns the transaction TRANSACTION_ID comments made on a [view](#1_2_1-getViewsForBankAccount) (VIEW_ID).
@@ -2123,7 +2099,7 @@ object Http4s121 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(addCommentForViewOnTransaction), "POST",
+      implementedInApiVersion, nameOf(addCommentForViewOnTransaction), "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/comments",
       "Add a Transaction Comment",
       """Posts a comment about a transaction TRANSACTION_ID on a [view](#1_2_1-getViewsForBankAccount) VIEW_ID.
@@ -2155,7 +2131,7 @@ object Http4s121 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(deleteCommentForViewOnTransaction), "DELETE",
+      implementedInApiVersion, nameOf(deleteCommentForViewOnTransaction), "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/comments/COMMENT_ID",
       "Delete a Transaction Comment",
       """Delete the comment COMMENT_ID about the transaction TRANSACTION_ID made on [view](#1_2_1-getViewsForBankAccount).
@@ -2182,7 +2158,7 @@ object Http4s121 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getTagsForViewOnTransaction), "GET",
+      implementedInApiVersion, nameOf(getTagsForViewOnTransaction), "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/tags",
       "Get Transaction Tags",
       """Returns the transaction TRANSACTION_ID tags made on a [view](#1_2_1-getViewsForBankAccount) (VIEW_ID).
@@ -2234,7 +2210,7 @@ object Http4s121 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(addTagForViewOnTransaction), "POST",
+      implementedInApiVersion, nameOf(addTagForViewOnTransaction), "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/tags",
       "Add a Transaction Tag",
       s"""Posts a tag about a transaction TRANSACTION_ID on a [view](#1_2_1-getViewsForBankAccount) VIEW_ID.
@@ -2266,7 +2242,7 @@ object Http4s121 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(deleteTagForViewOnTransaction), "DELETE",
+      implementedInApiVersion, nameOf(deleteTagForViewOnTransaction), "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/tags/TAG_ID",
       "Delete a Transaction Tag",
       """Deletes the tag TAG_ID about the transaction TRANSACTION_ID made on [view](#1_2_1-getViewsForBankAccount).
@@ -2298,7 +2274,7 @@ object Http4s121 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getImagesForViewOnTransaction), "GET",
+      implementedInApiVersion, nameOf(getImagesForViewOnTransaction), "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/images",
       "Get Transaction Images",
       """Returns the transaction TRANSACTION_ID images made on a [view](#1_2_1-getViewsForBankAccount) (VIEW_ID).
@@ -2347,7 +2323,7 @@ object Http4s121 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(addImageForViewOnTransaction), "POST",
+      implementedInApiVersion, nameOf(addImageForViewOnTransaction), "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/images",
       "Add a Transaction Image",
       s"""Posts an image about a transaction TRANSACTION_ID on a [view](#1_2_1-getViewsForBankAccount) VIEW_ID.
@@ -2385,7 +2361,7 @@ object Http4s121 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(deleteImageForViewOnTransaction), "DELETE",
+      implementedInApiVersion, nameOf(deleteImageForViewOnTransaction), "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/images/IMAGE_ID",
       "Delete a Transaction Image",
       """Deletes the image IMAGE_ID about the transaction TRANSACTION_ID made on [view](#1_2_1-getViewsForBankAccount).
@@ -2423,7 +2399,7 @@ object Http4s121 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getWhereTagForViewOnTransaction), "GET",
+      implementedInApiVersion, nameOf(getWhereTagForViewOnTransaction), "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/where",
       "Get a Transaction where Tag",
       """Returns the "where" Geo tag added to the transaction TRANSACTION_ID made on a [view](#1_2_1-getViewsForBankAccount) (VIEW_ID).
@@ -2479,7 +2455,7 @@ object Http4s121 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(addWhereTagForViewOnTransaction), "POST",
+      implementedInApiVersion, nameOf(addWhereTagForViewOnTransaction), "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/where",
       "Add a Transaction where Tag",
       s"""Creates a "where" Geo tag on a transaction TRANSACTION_ID in a [view](#1_2_1-getViewsForBankAccount).
@@ -2531,7 +2507,7 @@ object Http4s121 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(updateWhereTagForViewOnTransaction), "PUT",
+      implementedInApiVersion, nameOf(updateWhereTagForViewOnTransaction), "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/where",
       "Update a Transaction where Tag",
       s"""Updates the "where" Geo tag on a transaction TRANSACTION_ID in a [view](#1_2_1-getViewsForBankAccount).
@@ -2563,7 +2539,7 @@ object Http4s121 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(deleteWhereTagForViewOnTransaction), "DELETE",
+      implementedInApiVersion, nameOf(deleteWhereTagForViewOnTransaction), "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/where",
       "Delete a Transaction Tag",
       s"""Deletes the where tag of the transaction TRANSACTION_ID made on [view](#1_2_1-getViewsForBankAccount).
@@ -2602,7 +2578,7 @@ object Http4s121 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getOtherAccountForTransaction), "GET",
+      implementedInApiVersion, nameOf(getOtherAccountForTransaction), "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/other_account",
       "Get Other Account of Transaction",
       """Get other account of a transaction.

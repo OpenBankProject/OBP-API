@@ -696,26 +696,5 @@ trait OBPRestHelper extends RestHelper with MdcLoggable {
   protected def registerRoutes(routes: List[OBPEndpoint],
                                allResourceDocs: ArrayBuffer[ResourceDoc],
                                apiPrefix:OBPEndpoint => OBPEndpoint,
-                               autoValidateAll: Boolean = false): Unit = {
-    for(route <- routes) {
-      // one endpoint can have multiple ResourceDocs, so here use filter instead of find, e.g APIMethods400.Implementations400.createTransactionRequest
-      val resourceDocs = allResourceDocs.filter(_.partialFunction == route)
-
-      if(resourceDocs.isEmpty) {
-        oauthServe(apiPrefix(route), None)
-      } else {
-        val (autoValidateDocs, other) = resourceDocs.partition(isAutoValidate(_, autoValidateAll))
-        // autoValidateAll or doc isAutoValidate, just wrapped to auth check endpoint
-        autoValidateDocs.foreach { doc =>
-          val wrappedEndpoint = doc.wrappedWithAuthCheck(route)
-          oauthServe(apiPrefix(wrappedEndpoint), Some(doc))
-        }
-        //just register once for those not auto validate endpoints .
-        if (other.nonEmpty) {
-          oauthServe(apiPrefix(route), other.headOption)
-        }
-      }
-    }
-
-  }
+                               autoValidateAll: Boolean = false): Unit = ()
 }

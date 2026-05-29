@@ -53,7 +53,6 @@ object DynamicResourceDocsEndpointGroup extends EndpointGroup with code.util.Hel
     ResourceDoc(
       // partialFunction is a no-op stub — the runtime dispatch uses the native handler in
       // dynamicHttp4sFunction (the compiled artifact is OBPEndpointIO, not the Lift OBPEndpoint).
-      partialFunction = APIUtil.dynamicEndpointStub,
       dynamicHttp4sFunction = Some(compiledObjects.sandboxEndpoint(dynamicDoc.bankId)),
       implementedInApiVersion = apiVersion,
       partialFunctionName = dynamicDoc.partialFunctionName + "_" + (dynamicDoc.requestVerb + dynamicDoc.requestUrl).hashCode,

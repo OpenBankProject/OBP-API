@@ -37,7 +37,6 @@ object Http4sUKOBv310FilePayments extends MdcLoggable {
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(createFilePaymentConsentsConsentIdFile),
     "POST",
@@ -56,7 +55,6 @@ object Http4sUKOBv310FilePayments extends MdcLoggable {
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(createFilePaymentConsents),
     "POST",
@@ -133,7 +131,6 @@ object Http4sUKOBv310FilePayments extends MdcLoggable {
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(createFilePayments),
     "POST",
@@ -213,7 +210,6 @@ object Http4sUKOBv310FilePayments extends MdcLoggable {
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(getFilePaymentConsentsConsentIdFile),
     "GET",
@@ -232,7 +228,6 @@ object Http4sUKOBv310FilePayments extends MdcLoggable {
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(getFilePaymentConsentsConsentId),
     "GET",
@@ -309,7 +304,6 @@ object Http4sUKOBv310FilePayments extends MdcLoggable {
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(getFilePaymentsFilePaymentIdReportFile),
     "GET",
@@ -328,7 +322,6 @@ object Http4sUKOBv310FilePayments extends MdcLoggable {
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(getFilePaymentsFilePaymentId),
     "GET",

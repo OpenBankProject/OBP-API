@@ -58,7 +58,6 @@ object Http4sUKOBv200AIS extends MdcLoggable {
       }
   }
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(getAccountList),
     "GET",
@@ -84,7 +83,6 @@ object Http4sUKOBv200AIS extends MdcLoggable {
       }
   }
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(getAccount),
     "GET",
@@ -110,7 +108,6 @@ object Http4sUKOBv200AIS extends MdcLoggable {
       }
   }
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(getBalances),
     "GET",
@@ -138,7 +135,6 @@ object Http4sUKOBv200AIS extends MdcLoggable {
       }
   }
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(getAccountBalances),
     "GET",
@@ -170,7 +166,6 @@ object Http4sUKOBv200AIS extends MdcLoggable {
       }
   }
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(getAccountTransactions),
     "GET",

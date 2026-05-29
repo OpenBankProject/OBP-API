@@ -119,7 +119,6 @@ object Http4s510 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(root),
       "GET",
@@ -184,7 +183,6 @@ object Http4s510 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getMyConsentsByBank),
       "GET",
@@ -234,7 +232,7 @@ object Http4s510 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getAggregateMetrics), "GET",
+      implementedInApiVersion, nameOf(getAggregateMetrics), "GET",
       "/management/aggregate-metrics", "Get Aggregate Metrics",
       s"""Returns aggregate metrics on api usage eg. total count, response time (in ms), etc.
          |
@@ -298,7 +296,7 @@ object Http4s510 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getBanks), "GET",
+      implementedInApiVersion, nameOf(getBanks), "GET",
       "/banks", "Get Banks",
       """Get banks on this API instance
         |Returns a list of banks supported on this server.""",
@@ -335,7 +333,6 @@ object Http4s510 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(createAtm),
       "POST",
@@ -374,7 +371,6 @@ object Http4s510 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(updateAtm),
       "PUT",
@@ -502,7 +498,6 @@ object Http4s510 {
         })
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getAtms),
       "GET",
@@ -543,7 +538,7 @@ object Http4s510 {
         })
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getAtm), "GET",
+      implementedInApiVersion, nameOf(getAtm), "GET",
       "/banks/BANK_ID/atms/ATM_ID", "Get Bank ATM",
       s"""Returns information about ATM for a single bank specified by BANK_ID and ATM_ID including:
       |
@@ -576,7 +571,6 @@ object Http4s510 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(deleteAtm),
       "DELETE",
@@ -629,7 +623,6 @@ object Http4s510 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(createConsumer),
       "POST",
@@ -738,7 +731,6 @@ object Http4s510 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getConsumer),
       "GET",
@@ -768,7 +760,7 @@ object Http4s510 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getConsumers), "GET",
+      implementedInApiVersion, nameOf(getConsumers), "GET",
       "/management/consumers", "Get Consumers",
       s"""Get the all Consumers.
       |
@@ -821,7 +813,7 @@ object Http4s510 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getTransactionRequests), "GET",
+      implementedInApiVersion, nameOf(getTransactionRequests), "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-requests",
       "Get Transaction Requests.",
       """Returns transaction requests for account specified by ACCOUNT_ID at bank specified by BANK_ID.
@@ -873,7 +865,6 @@ object Http4s510 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getBankAccountsBalances),
       "GET",
@@ -903,7 +894,6 @@ object Http4s510 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getAllBankAccountBalances),
       "GET",
@@ -936,7 +926,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(suggestedSessionTimeout),
       "GET",
@@ -980,7 +969,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getOAuth2ServerWellKnown),
       "GET",
@@ -1006,7 +994,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(regulatedEntities),
       "GET",
@@ -1033,7 +1020,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getRegulatedEntityById),
       "GET",
@@ -1080,7 +1066,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(createRegulatedEntity),
       "POST",
@@ -1108,7 +1093,7 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(deleteRegulatedEntity), "DELETE",
+      implementedInApiVersion, nameOf(deleteRegulatedEntity), "DELETE",
       "/regulated-entities/REGULATED_ENTITY_ID", "Delete Regulated Entity",
       s"""Delete Regulated Entity specified by REGULATED_ENTITY_ID
       |
@@ -1140,7 +1125,6 @@ object Http4s510 {
         logCacheHandler(req, code.api.cache.RedisLogger.LogLevel.TRACE)
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(logCacheTraceEndpoint),
       "GET",
@@ -1167,7 +1151,6 @@ object Http4s510 {
         logCacheHandler(req, code.api.cache.RedisLogger.LogLevel.DEBUG)
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(logCacheDebugEndpoint),
       "GET",
@@ -1194,7 +1177,6 @@ object Http4s510 {
         logCacheHandler(req, code.api.cache.RedisLogger.LogLevel.INFO)
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(logCacheInfoEndpoint),
       "GET",
@@ -1221,7 +1203,6 @@ object Http4s510 {
         logCacheHandler(req, code.api.cache.RedisLogger.LogLevel.WARNING)
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(logCacheWarningEndpoint),
       "GET",
@@ -1248,7 +1229,6 @@ object Http4s510 {
         logCacheHandler(req, code.api.cache.RedisLogger.LogLevel.ERROR)
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(logCacheErrorEndpoint),
       "GET",
@@ -1275,7 +1255,6 @@ object Http4s510 {
         logCacheHandler(req, code.api.cache.RedisLogger.LogLevel.ALL)
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(logCacheAllEndpoint),
       "GET",
@@ -1307,7 +1286,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(waitingForGodot),
       "GET",
@@ -1335,7 +1313,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getAllApiCollections),
       "GET",
@@ -1375,7 +1352,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(createAtmAttribute),
       "POST",
@@ -1408,7 +1384,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getAtmAttributes),
       "GET",
@@ -1439,7 +1414,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getAtmAttribute),
       "GET",
@@ -1479,7 +1453,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(updateAtmAttribute),
       "PUT",
@@ -1511,7 +1484,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(deleteAtmAttribute),
       "DELETE",
@@ -1554,7 +1526,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(createAgent),
       "POST",
@@ -1588,7 +1559,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(updateAgentStatus),
       "PUT",
@@ -1618,7 +1588,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getAgent),
       "GET",
@@ -1648,7 +1617,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getAgents),
       "GET",
@@ -1692,7 +1660,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(createRegulatedEntityAttribute),
       "POST",
@@ -1723,7 +1690,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(deleteRegulatedEntityAttribute),
       "DELETE",
@@ -1754,7 +1720,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getRegulatedEntityAttributeById),
       "GET",
@@ -1786,7 +1751,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getAllRegulatedEntityAttributes),
       "GET",
@@ -1829,7 +1793,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(updateRegulatedEntityAttribute),
       "PUT",
@@ -1862,7 +1825,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(mtlsClientCertificateInfo),
       "GET",
@@ -1897,7 +1859,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(updateMyApiCollection),
       "PUT",
@@ -1922,7 +1883,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getApiTags),
       "GET",
@@ -1953,7 +1913,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getMetrics),
       "GET",
@@ -2074,7 +2033,7 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getWebUiProps), "GET",
+      implementedInApiVersion, nameOf(getWebUiProps), "GET",
       "/webui-props", "Get WebUiProps",
       s"""
       |
@@ -2121,7 +2080,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(createNonPersonalUserAttribute),
       "POST",
@@ -2153,7 +2111,7 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(deleteNonPersonalUserAttribute), "DELETE",
+      implementedInApiVersion, nameOf(deleteNonPersonalUserAttribute), "DELETE",
       "/users/USER_ID/non-personal/attributes/USER_ATTRIBUTE_ID", "Delete Non Personal User Attribute",
       s"""Delete the Non Personal User Attribute specified by ENTITLEMENT_REQUEST_ID for a user specified by USER_ID
       |
@@ -2177,7 +2135,7 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getNonPersonalUserAttributes), "GET",
+      implementedInApiVersion, nameOf(getNonPersonalUserAttributes), "GET",
       "/users/USER_ID/non-personal/attributes", "Get Non Personal User Attributes",
       s"""Get Non Personal User Attribute for a user specified by USER_ID
       |
@@ -2203,7 +2161,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(syncExternalUser),
       "POST",
@@ -2240,7 +2197,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getEntitlementsAndPermissions),
       "GET",
@@ -2277,7 +2233,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getUserByProviderAndUsername),
       "GET",
@@ -2327,7 +2282,7 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getUserLockStatus), "GET",
+      implementedInApiVersion, nameOf(getUserLockStatus), "GET",
       "/users/PROVIDER/USERNAME/lock-status", "Get User Lock Status",
       s"""
       |Get User Login Status.
@@ -2356,7 +2311,7 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(unlockUserByProviderAndUsername), "PUT",
+      implementedInApiVersion, nameOf(unlockUserByProviderAndUsername), "PUT",
       "/users/PROVIDER/USERNAME/lock-status", "Unlock the user",
       s"""
       |Unlock a User.
@@ -2384,7 +2339,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(lockUserByProviderAndUsername),
       "POST",
@@ -2415,7 +2369,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(validateUserByUserId),
       "PUT",
@@ -2453,7 +2406,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getAccountAccessByUserId),
       "GET",
@@ -2518,7 +2470,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getAccountsHeldByUserAtBank),
       "GET",
@@ -2556,7 +2507,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getAccountsHeldByUser),
       "GET",
@@ -2592,7 +2542,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getCustomersForUserIdsOnly),
       "GET",
@@ -2627,7 +2576,7 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getCustomersByLegalName), "POST",
+      implementedInApiVersion, nameOf(getCustomersByLegalName), "POST",
       "/banks/BANK_ID/customers/legal-name", "Get Customers by Legal Name",
       s"""Gets the Customers specified by Legal Name.
       |
@@ -2655,7 +2604,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(customViewNamesCheck),
       "GET",
@@ -2684,7 +2632,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(systemViewNamesCheck),
       "GET",
@@ -2715,7 +2662,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(accountAccessUniqueIndexCheck),
       "GET",
@@ -2747,7 +2693,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(accountCurrencyCheck),
       "GET",
@@ -2783,7 +2728,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(orphanedAccountCheck),
       "GET",
@@ -2816,7 +2760,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getCurrenciesAtBank),
       "GET",
@@ -2862,7 +2805,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(updateConsumerRedirectURL),
       "PUT",
@@ -2900,7 +2842,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(updateConsumerLogoURL),
       "PUT",
@@ -2938,7 +2879,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(updateConsumerCertificate),
       "PUT",
@@ -2976,7 +2916,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(updateConsumerName),
       "PUT",
@@ -3010,7 +2949,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getCallsLimit),
       "GET",
@@ -3061,7 +2999,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(createMyConsumer),
       "POST",
@@ -3118,7 +3055,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(createConsumerDynamicRegistration),
       "POST",
@@ -3240,7 +3176,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(grantUserAccessToViewById),
       "POST",
@@ -3316,7 +3251,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(revokeUserAccessToViewById),
       "POST",
@@ -3367,7 +3301,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(createUserWithAccountAccessById),
       "POST",
@@ -3413,7 +3346,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getTransactionRequestById),
       "GET",
@@ -3449,7 +3381,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(updateTransactionRequestStatus),
       "PUT",
@@ -3487,7 +3418,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getCoreAccountByIdThroughView),
       "GET",
@@ -3522,7 +3452,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getBankAccountBalances),
       "GET",
@@ -3550,7 +3479,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getBankAccountsBalancesThroughView),
       "GET",
@@ -3598,7 +3526,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(createCounterpartyLimit),
       "POST",
@@ -3653,7 +3580,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(updateCounterpartyLimit),
       "PUT",
@@ -3680,7 +3606,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getCounterpartyLimit),
       "GET",
@@ -3757,7 +3682,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getCounterpartyLimitStatus),
       "GET",
@@ -3783,7 +3707,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(deleteCounterpartyLimit),
       "DELETE",
@@ -3825,7 +3748,7 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createCustomView), "POST",
+      implementedInApiVersion, nameOf(createCustomView), "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/target-views", "Create Custom View",
       s"""Create a custom view on bank account
       |
@@ -3876,7 +3799,7 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(updateCustomView), "PUT",
+      implementedInApiVersion, nameOf(updateCustomView), "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/target-views/TARGET_VIEW_ID", "Update Custom View",
       s"""Update an existing custom view on a bank account
       |
@@ -3907,7 +3830,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getCustomView),
       "GET",
@@ -3963,7 +3885,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(deleteCustomView),
       "DELETE",
@@ -3998,7 +3919,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(createBankAccountBalance),
       "POST",
@@ -4027,7 +3947,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getBankAccountBalanceById),
       "GET",
@@ -4065,7 +3984,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(updateBankAccountBalance),
       "PUT",
@@ -4095,7 +4013,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(deleteBankAccountBalance),
       "DELETE",
@@ -4137,7 +4054,7 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(addSystemViewPermission), "POST",
+      implementedInApiVersion, nameOf(addSystemViewPermission), "POST",
       "/system-views/VIEW_ID/permissions", "Add Permission to a System View",
       """Add Permission to a System View.""",
       createViewPermissionJson, entitlementJSON,
@@ -4160,7 +4077,7 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(deleteSystemViewPermission), "DELETE",
+      implementedInApiVersion, nameOf(deleteSystemViewPermission), "DELETE",
       "/system-views/VIEW_ID/permissions/PERMISSION_NAME", "Delete Permission to a System View",
       """Delete Permission to a System View
       """.stripMargin,
@@ -4190,7 +4107,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(updateConsentStatusByConsent),
       "PUT",
@@ -4239,7 +4155,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(updateConsentAccountAccessByConsentId),
       "PUT",
@@ -4302,7 +4217,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(updateConsentUserIdByConsentId),
       "PUT",
@@ -4356,7 +4270,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getMyConsents),
       "GET",
@@ -4403,7 +4316,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getConsentsAtBank),
       "GET",
@@ -4448,7 +4360,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getConsents),
       "GET",
@@ -4503,7 +4414,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getConsentByConsentId),
       "GET",
@@ -4538,7 +4448,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getConsentByConsentIdViaConsumer),
       "GET",
@@ -4578,7 +4487,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(revokeConsentAtBank),
       "DELETE",
@@ -4621,7 +4529,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(selfRevokeConsent),
       "DELETE",
@@ -4726,7 +4633,7 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(revokeMyConsent), "DELETE",
+      implementedInApiVersion, nameOf(revokeMyConsent), "DELETE",
       "/my/consents/CONSENT_ID", "Revoke My Consent",
       s"""
          |Revoke Consent for current user specified by CONSENT_ID
@@ -4862,7 +4769,7 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createConsent), "POST",
+      implementedInApiVersion, nameOf(createConsent), "POST",
       "/my/consents/IMPLICIT", "Create Consent (IMPLICIT)",
       s"""
       |
@@ -4980,7 +4887,6 @@ object Http4s510 {
         }
     }
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(createVRPConsentRequest),
       "POST",

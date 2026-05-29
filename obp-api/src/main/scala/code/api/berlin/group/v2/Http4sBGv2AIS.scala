@@ -32,7 +32,6 @@ object Http4sBGv2AIS extends MdcLoggable {
   // ── GET /v2/accounts ──────────────────────────────────────────────
 
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(getAccountList),
     "GET",
@@ -54,7 +53,6 @@ object Http4sBGv2AIS extends MdcLoggable {
   // ── GET /v2/accounts/{account-id} ─────────────────────────────────
 
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(getAccountDetails),
     "GET",
@@ -76,7 +74,6 @@ object Http4sBGv2AIS extends MdcLoggable {
   // ── GET /v2/accounts/{account-id}/balances ────────────────────────
 
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(getAccountBalances),
     "GET",
@@ -98,7 +95,6 @@ object Http4sBGv2AIS extends MdcLoggable {
   // ── GET /v2/accounts/{account-id}/transactions ────────────────────
 
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(getTransactionList),
     "GET",
@@ -120,7 +116,6 @@ object Http4sBGv2AIS extends MdcLoggable {
   // ── GET /v2/accounts/{account-id}/transactions/{transactionId} ────
 
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(getTransactionDetails),
     "GET",
@@ -142,7 +137,6 @@ object Http4sBGv2AIS extends MdcLoggable {
   // ── GET /v2/card-accounts ─────────────────────────────────────────
 
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(getCardAccountList),
     "GET",
@@ -164,7 +158,6 @@ object Http4sBGv2AIS extends MdcLoggable {
   // ── GET /v2/card-accounts/{account-id} ────────────────────────────
 
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(getCardAccountDetails),
     "GET",
@@ -186,7 +179,6 @@ object Http4sBGv2AIS extends MdcLoggable {
   // ── GET /v2/card-accounts/{account-id}/balances ───────────────────
 
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(getCardAccountBalances),
     "GET",
@@ -208,7 +200,6 @@ object Http4sBGv2AIS extends MdcLoggable {
   // ── GET /v2/card-accounts/{account-id}/transactions ───────────────
 
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(getCardAccountTransactionList),
     "GET",

@@ -779,7 +779,7 @@ It may authorise a payment within the Embedded SCA Approach where needed.
 
   private def initCancelAndGetResourceDocs(): Unit = {
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(cancelPayment),
+      implementedInApiVersion, nameOf(cancelPayment),
       "DELETE", "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID",
       "Payment Cancellation Request",
       s"""${mockedDataText(false)}
@@ -807,7 +807,7 @@ or * access method is generally applicable, but further authorisation processes 
     )
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getPaymentCancellationScaStatus),
+      implementedInApiVersion, nameOf(getPaymentCancellationScaStatus),
       "GET", "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/cancellation-authorisations/CANCELLATIONID",
       "Read the SCA status of the payment cancellation's authorisation.",
       s"""${mockedDataText(false)}
@@ -821,7 +821,7 @@ This method returns the SCA status of a payment initiation's authorisation sub-r
     )
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getPaymentInformation),
+      implementedInApiVersion, nameOf(getPaymentInformation),
       "GET", "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID",
       "Get Payment Information",
       s"""${mockedDataText(false)}
@@ -846,7 +846,7 @@ Returns the content of a payment object""",
     )
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getPaymentInitiationAuthorisation),
+      implementedInApiVersion, nameOf(getPaymentInitiationAuthorisation),
       "GET", "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/authorisations",
       "Get Payment Initiation Authorisation Sub-Resources Request",
       s"""${mockedDataText(false)}
@@ -867,7 +867,7 @@ This function returns an array of hyperlinks to all generated authorisation sub-
     )
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getPaymentInitiationCancellationAuthorisationInformation),
+      implementedInApiVersion, nameOf(getPaymentInitiationCancellationAuthorisationInformation),
       "GET", "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENTID/cancellation-authorisations",
       "Get Cancellation Authorisation Sub-Resources Request",
       s"""${mockedDataText(false)}
@@ -881,7 +881,7 @@ Retrieve a list of all created cancellation authorisation sub-resources.
     )
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getPaymentInitiationScaStatus),
+      implementedInApiVersion, nameOf(getPaymentInitiationScaStatus),
       "GET", "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/authorisations/AUTHORISATION_ID",
       "Read the SCA Status of the payment authorisation",
       s"""${mockedDataText(false)}
@@ -895,7 +895,7 @@ This method returns the SCA status of a payment initiation's authorisation sub-r
     )
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getPaymentInitiationStatus),
+      implementedInApiVersion, nameOf(getPaymentInitiationStatus),
       "GET", "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/status",
       "Payment initiation status request",
       s"""${mockedDataText(false)}
@@ -927,7 +927,7 @@ Check the transaction status of a payment initiation.""",
     }""")
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(initiatePayments),
+      implementedInApiVersion, nameOf(initiatePayments),
       "POST", "/payments/PAYMENT_PRODUCT",
       "Payment initiation request(payments)",
       s"""${mockedDataText(false)}
@@ -941,7 +941,7 @@ $generalPaymentSummaryText""",
     )
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(initiatePeriodicPayments),
+      implementedInApiVersion, nameOf(initiatePeriodicPayments),
       "POST", "/periodic-payments/PAYMENT_PRODUCT",
       "Payment initiation request(periodic-payments)",
       s"""${mockedDataText(false)}
@@ -974,7 +974,7 @@ $generalPaymentSummaryText""",
     )
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(initiateBulkPayments),
+      implementedInApiVersion, nameOf(initiateBulkPayments),
       "POST", "/bulk-payments/PAYMENT_PRODUCT",
       "Payment initiation request(bulk-payments)",
       s"""${mockedDataText(true)}
@@ -1013,7 +1013,7 @@ $generalPaymentSummaryText""",
   private def initStartAuthorisationResourceDocs(): Unit = {
     // POST /PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/authorisations — 3 body variants
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion,
+      implementedInApiVersion,
       "startPaymentAuthorisationUpdatePsuAuthentication",
       "POST", "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/authorisations",
       "Start the authorisation process for a payment initiation (updatePsuAuthentication)",
@@ -1025,7 +1025,7 @@ $generalPaymentSummaryText""",
       http4sPartialFunction = Some(startPaymentAuthorisationAll)
     )
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion,
+      implementedInApiVersion,
       "startPaymentAuthorisationSelectPsuAuthenticationMethod",
       "POST", "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/authorisations",
       "Start the authorisation process for a payment initiation (selectPsuAuthenticationMethod)",
@@ -1037,7 +1037,7 @@ $generalPaymentSummaryText""",
       http4sPartialFunction = Some(startPaymentAuthorisationAll)
     )
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion,
+      implementedInApiVersion,
       "startPaymentAuthorisationTransactionAuthorisation",
       "POST", "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/authorisations",
       "Start the authorisation process for a payment initiation (transactionAuthorisation)",
@@ -1054,7 +1054,7 @@ The message might in addition transmit authentication and authorisation related 
 
     // POST /PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/cancellation-authorisations — 3 body variants
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion,
+      implementedInApiVersion,
       "startPaymentInitiationCancellationAuthorisationTransactionAuthorisation",
       "POST", "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/cancellation-authorisations",
       "Start the authorisation process for the cancellation of the addressed payment (transactionAuthorisation)",
@@ -1073,7 +1073,7 @@ Creates an authorisation sub-resource and start the authorisation process of the
       http4sPartialFunction = Some(startPaymentInitiationCancellationAuthorisationAll)
     )
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion,
+      implementedInApiVersion,
       "startPaymentInitiationCancellationAuthorisationUpdatePsuAuthentication",
       "POST", "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/cancellation-authorisations",
       "Start the authorisation process for the cancellation of the addressed payment (updatePsuAuthentication)",
@@ -1085,7 +1085,7 @@ Creates an authorisation sub-resource and start the authorisation process of the
       http4sPartialFunction = Some(startPaymentInitiationCancellationAuthorisationAll)
     )
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion,
+      implementedInApiVersion,
       "startPaymentInitiationCancellationAuthorisationSelectPsuAuthenticationMethod",
       "POST", "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/cancellation-authorisations",
       "Start the authorisation process for the cancellation of the addressed payment (selectPsuAuthenticationMethod)",
@@ -1101,7 +1101,7 @@ Creates an authorisation sub-resource and start the authorisation process of the
   private def initUpdatePsuDataResourceDocs(): Unit = {
     // PUT /PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/cancellation-authorisations/AUTHORISATION_ID — 4 variants
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion,
+      implementedInApiVersion,
       "updatePaymentCancellationPsuDataTransactionAuthorisation",
       "PUT", "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/cancellation-authorisations/AUTHORISATION_ID",
       "Update PSU Data for payment initiation cancellation (transactionAuthorisation)",
@@ -1119,7 +1119,7 @@ This method updates PSU data on the cancellation authorisation resource if neede
       http4sPartialFunction = Some(updatePaymentCancellationPsuDataAll)
     )
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion,
+      implementedInApiVersion,
       "updatePaymentCancellationPsuDataUpdatePsuAuthentication",
       "PUT", "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/cancellation-authorisations/AUTHORISATION_ID",
       "Update PSU Data for payment initiation cancellation (updatePsuAuthentication)",
@@ -1134,7 +1134,7 @@ This method updates PSU data on the cancellation authorisation resource if neede
       http4sPartialFunction = Some(updatePaymentCancellationPsuDataAll)
     )
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion,
+      implementedInApiVersion,
       "updatePaymentCancellationPsuDataSelectPsuAuthenticationMethod",
       "PUT", "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/cancellation-authorisations/AUTHORISATION_ID",
       "Update PSU Data for payment initiation cancellation (selectPsuAuthenticationMethod)",
@@ -1151,7 +1151,7 @@ This method updates PSU data on the cancellation authorisation resource if neede
       http4sPartialFunction = Some(updatePaymentCancellationPsuDataAll)
     )
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion,
+      implementedInApiVersion,
       "updatePaymentCancellationPsuDataAuthorisationConfirmation",
       "PUT", "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/cancellation-authorisations/AUTHORISATION_ID",
       "Update PSU Data for payment initiation cancellation (authorisationConfirmation)",
@@ -1168,7 +1168,7 @@ This method updates PSU data on the cancellation authorisation resource if neede
 
     // PUT /PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/authorisations/AUTHORISATION_ID — 4 variants
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion,
+      implementedInApiVersion,
       "updatePaymentPsuDataTransactionAuthorisation",
       "PUT", "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/authorisations/AUTHORISATION_ID",
       "Update PSU data for payment initiation (transactionAuthorisation)",
@@ -1184,7 +1184,7 @@ This method updates PSU data on the cancellation authorisation resource if neede
       http4sPartialFunction = Some(updatePaymentPsuDataAll)
     )
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion,
+      implementedInApiVersion,
       "updatePaymentPsuDataUpdatePsuAuthentication",
       "PUT", "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/authorisations/AUTHORISATION_ID",
       "Update PSU data for payment initiation (updatePsuAuthentication)",
@@ -1199,7 +1199,7 @@ This method updates PSU data on the cancellation authorisation resource if neede
       http4sPartialFunction = Some(updatePaymentPsuDataAll)
     )
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion,
+      implementedInApiVersion,
       "updatePaymentPsuDataSelectPsuAuthenticationMethod",
       "PUT", "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/authorisations/AUTHORISATION_ID",
       "Update PSU data for payment initiation (selectPsuAuthenticationMethod)",
@@ -1216,7 +1216,7 @@ This method updates PSU data on the cancellation authorisation resource if neede
       http4sPartialFunction = Some(updatePaymentPsuDataAll)
     )
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion,
+      implementedInApiVersion,
       "updatePaymentPsuDataAuthorisationConfirmation",
       "PUT", "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/authorisations/AUTHORISATION_ID",
       "Update PSU data for payment initiation (authorisationConfirmation)",

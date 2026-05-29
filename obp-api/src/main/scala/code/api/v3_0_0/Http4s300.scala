@@ -72,7 +72,6 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(root),
       "GET",
@@ -110,7 +109,6 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getViewsForBankAccount),
       "GET",
@@ -171,7 +169,6 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(createViewForBankAccount),
       "POST",
@@ -242,7 +239,6 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(updateViewForBankAccount),
       "PUT",
@@ -311,7 +307,6 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getPermissionForUserForBankAccount),
       "GET",
@@ -343,7 +338,6 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getPrivateAccountById),
       "GET",
@@ -388,7 +382,6 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getPublicAccountById),
       "GET",
@@ -436,7 +429,6 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getCoreAccountById),
       "GET",
@@ -480,7 +472,6 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(corePrivateAccountsAllBanks),
       "GET",
@@ -553,7 +544,6 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getFirehoseAccountsAtOneBank),
       "GET",
@@ -634,7 +624,6 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getFirehoseTransactionsForBankAccount),
       "GET",
@@ -687,7 +676,6 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getCoreTransactionsForBankAccount),
       "GET",
@@ -732,7 +720,6 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getTransactionsForBankAccount),
       "GET",
@@ -790,7 +777,6 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(dataWarehouseSearch),
       "POST",
@@ -865,7 +851,6 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(dataWarehouseStatistics),
       "POST",
@@ -922,7 +907,6 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getUser),
       "GET",
@@ -958,7 +942,6 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getUserByUserId),
       "GET",
@@ -994,7 +977,6 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getUserByUsername),
       "GET",
@@ -1028,7 +1010,6 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getAdapterInfoForBank),
       "GET",
@@ -1067,7 +1048,6 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(createBranch),
       "POST",
@@ -1110,7 +1090,6 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(updateBranch),
       "PUT",
@@ -1149,7 +1128,6 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(createAtm),
       "POST",
@@ -1185,7 +1163,6 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getBranch),
       "GET",
@@ -1283,7 +1260,6 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getBranches),
       "GET",
@@ -1342,7 +1318,6 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getAtm),
       "GET",
@@ -1402,7 +1377,6 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getAtms),
       "GET",
@@ -1444,7 +1418,6 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getUsers),
       "GET",
@@ -1483,7 +1456,6 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getCustomersForUser),
       "GET",
@@ -1518,7 +1490,6 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getCurrentUser),
       "GET",
@@ -1550,7 +1521,6 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(privateAccountsAtOneBank),
       "GET",
@@ -1587,7 +1557,6 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getPrivateAccountIdsbyBankId),
       "GET",
@@ -1624,7 +1593,6 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getOtherAccountsForBankAccount),
       "GET",
@@ -1654,7 +1622,6 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getOtherAccountByIdForBankAccount),
       "GET",
@@ -1697,7 +1664,6 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(addEntitlementRequest),
       "POST",
@@ -1744,7 +1710,6 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getAllEntitlementRequests),
       "GET",
@@ -1781,7 +1746,6 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getEntitlementRequests),
       "GET",
@@ -1815,7 +1779,6 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getEntitlementRequestsForCurrentUser),
       "GET",
@@ -1856,7 +1819,6 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(deleteEntitlementRequest),
       "DELETE",
@@ -1894,7 +1856,6 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getEntitlementsForCurrentUser),
       "GET",
@@ -1933,7 +1894,6 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getApiGlossary),
       "GET",
@@ -1976,7 +1936,6 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getAccountsHeld),
       "GET",
@@ -2016,7 +1975,6 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getAggregateMetrics),
       "GET",
@@ -2106,7 +2064,6 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(addScope),
       "POST",
@@ -2156,7 +2113,6 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(deleteScope),
       "DELETE",
@@ -2195,7 +2151,6 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getScopes),
       "GET",
@@ -2230,7 +2185,6 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getBanks),
       "GET",
@@ -2261,7 +2215,6 @@ object Http4s300 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(bankById),
       "GET",

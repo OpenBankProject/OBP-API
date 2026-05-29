@@ -61,7 +61,6 @@ object Http4sUKOBv310Transactions extends MdcLoggable {
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(getAccountsAccountIdStatementsStatementIdTransactions),
     "GET",
@@ -331,7 +330,6 @@ object Http4sUKOBv310Transactions extends MdcLoggable {
       }
   }
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(getAccountsAccountIdTransactions),
     "GET",
@@ -592,7 +590,6 @@ object Http4sUKOBv310Transactions extends MdcLoggable {
       }
   }
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(getTransactions),
     "GET",

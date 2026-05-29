@@ -66,7 +66,6 @@ object Http4sUKOBv310Accounts extends MdcLoggable {
       }
   }
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(getAccounts),
     "GET",
@@ -130,7 +129,6 @@ object Http4sUKOBv310Accounts extends MdcLoggable {
       }
   }
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(getAccountsAccountId),
     "GET",

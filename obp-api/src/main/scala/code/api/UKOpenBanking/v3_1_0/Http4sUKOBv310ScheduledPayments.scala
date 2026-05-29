@@ -36,7 +36,6 @@ object Http4sUKOBv310ScheduledPayments extends MdcLoggable {
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(getAccountsAccountIdScheduledPayments),
     "GET",
@@ -110,7 +109,6 @@ object Http4sUKOBv310ScheduledPayments extends MdcLoggable {
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(getScheduledPayments),
     "GET",

@@ -28,7 +28,6 @@ class ResourceDocMiddlewareEnableDisableTest extends FeatureSpec with Matchers w
 
   private def doc(operationName: String, version: ScannedApiVersion = ApiVersion.v7_0_0): ResourceDoc =
     ResourceDoc(
-      partialFunction = null,
       implementedInApiVersion = version,
       partialFunctionName = operationName,
       requestVerb = "GET",

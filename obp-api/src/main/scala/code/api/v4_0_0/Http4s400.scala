@@ -219,7 +219,6 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getMapperDatabaseInfo),
       "GET",
@@ -251,7 +250,6 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getLogoutLink),
       "GET",
@@ -282,7 +280,6 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getBanks),
       "GET",
@@ -316,7 +313,6 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getBank),
       "GET",
@@ -348,7 +344,6 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(ibanChecker),
       "POST",
@@ -392,7 +387,6 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(callsLimit),
       "PUT",
@@ -479,7 +473,7 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null, implementedInApiVersion, "createBank", "POST",
+      implementedInApiVersion, "createBank", "POST",
       "/banks",
       "Create Bank",
       s"""Create a new bank (Authenticated access).
@@ -521,7 +515,6 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(root),
       "GET",
@@ -569,7 +562,6 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getAtms),
       "GET",
@@ -611,7 +603,6 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getAtm),
       "GET",
@@ -652,7 +643,6 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getProducts),
       "GET",
@@ -703,7 +693,6 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getProduct),
       "GET",
@@ -769,7 +758,7 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createAtm), "POST",
+      implementedInApiVersion, nameOf(createAtm), "POST",
       "/banks/BANK_ID/atms",
       "Create ATM",
       s"""Create ATM.""",
@@ -824,7 +813,6 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(createProduct),
       "PUT",
@@ -882,7 +870,6 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(createProductAttribute),
       "POST",
@@ -942,7 +929,6 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(updateProductAttribute),
       "PUT",
@@ -988,7 +974,7 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null, implementedInApiVersion, "getEntitlements", "GET",
+      implementedInApiVersion, "getEntitlements", "GET",
       "/users/USER_ID/entitlements",
       "Get Entitlements for User",
       s"""
@@ -1023,7 +1009,7 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null, implementedInApiVersion, "getUserByUserId", "GET",
+      implementedInApiVersion, "getUserByUserId", "GET",
       "/users/user_id/USER_ID",
       "Get User by USER_ID",
       s"""Get user by USER_ID
@@ -1059,7 +1045,7 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null, implementedInApiVersion, "getUserByUsername", "GET",
+      implementedInApiVersion, "getUserByUsername", "GET",
       "/users/username/USERNAME",
       "Get User by USERNAME",
       s"""Get user by USERNAME
@@ -1090,7 +1076,7 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null, implementedInApiVersion, "getUsersByEmail", "GET",
+      implementedInApiVersion, "getUsersByEmail", "GET",
       "/users/email/USER_EMAIL/terminator",
       "Get Users by Email Address",
       s"""Get users by email address
@@ -1126,7 +1112,7 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null, implementedInApiVersion, "getUsers", "GET",
+      implementedInApiVersion, "getUsers", "GET",
       "/users",
       "Get all Users",
       s"""Get all users
@@ -1172,7 +1158,7 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null, implementedInApiVersion, "getCustomersByAttributes", "GET",
+      implementedInApiVersion, "getCustomersByAttributes", "GET",
       "/banks/BANK_ID/customers",
       "Get Customers by ATTRIBUTES",
       s"""Gets the Customers specified by attributes
@@ -1222,7 +1208,6 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(createCustomer),
       "POST",
@@ -1266,7 +1251,6 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getBankAccountsBalancesForCurrentUser),
       "GET",
@@ -1302,7 +1286,6 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getCoreAccountById),
       "GET",
@@ -1352,7 +1335,6 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getPrivateAccountByIdFull),
       "GET",
@@ -1419,7 +1401,6 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getPrivateAccountsAtOneBank),
       "GET",
@@ -1479,7 +1460,7 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null, implementedInApiVersion, "createUserCustomerLinks", "POST",
+      implementedInApiVersion, "createUserCustomerLinks", "POST",
       "/banks/BANK_ID/user_customer_links",
       "Create User Customer Link",
       s"""Link a User to a Customer
@@ -1517,7 +1498,6 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getSystemDynamicEntities),
       "GET",
@@ -1560,7 +1540,6 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getBankLevelDynamicEntities),
       "GET",
@@ -1602,7 +1581,6 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getMyDynamicEntities),
       "GET",
@@ -1726,7 +1704,7 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createSystemDynamicEntity), "POST",
+      implementedInApiVersion, nameOf(createSystemDynamicEntity), "POST",
       "/management/system-dynamic-entities",
       "Create System Level Dynamic Entity",
       s"""Create a system level Dynamic Entity.
@@ -1762,7 +1740,7 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createBankLevelDynamicEntity), "POST",
+      implementedInApiVersion, nameOf(createBankLevelDynamicEntity), "POST",
       "/management/banks/BANK_ID/dynamic-entities",
       "Create Bank Level Dynamic Entity",
       s"""Create a Bank Level DynamicEntity.
@@ -1793,7 +1771,7 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(updateSystemDynamicEntity), "PUT",
+      implementedInApiVersion, nameOf(updateSystemDynamicEntity), "PUT",
       "/management/system-dynamic-entities/DYNAMIC_ENTITY_ID",
       "Update System Level Dynamic Entity",
       s"""Update a system level DynamicEntity.
@@ -1822,7 +1800,7 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(updateBankLevelDynamicEntity), "PUT",
+      implementedInApiVersion, nameOf(updateBankLevelDynamicEntity), "PUT",
       "/management/banks/BANK_ID/dynamic-entities/DYNAMIC_ENTITY_ID",
       "Update Bank Level Dynamic Entity",
       s"""Update a Bank Level DynamicEntity.
@@ -1845,7 +1823,6 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(deleteSystemDynamicEntity),
       "DELETE",
@@ -1880,7 +1857,6 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(deleteBankLevelDynamicEntity),
       "DELETE",
@@ -1940,7 +1916,7 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(updateMyDynamicEntity), "PUT",
+      implementedInApiVersion, nameOf(updateMyDynamicEntity), "PUT",
       "/my/dynamic-entities/DYNAMIC_ENTITY_ID",
       "Update My Dynamic Entity",
       s"""Update my DynamicEntity specified by DYNAMIC_ENTITY_ID.
@@ -1976,7 +1952,6 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(deleteMyDynamicEntity),
       "DELETE",
@@ -2088,7 +2063,6 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(createDynamicEndpoint),
       "POST",
@@ -2137,7 +2111,6 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(createBankLevelDynamicEndpoint),
       "POST",
@@ -2184,7 +2157,6 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(updateDynamicEndpointHost),
       "PUT",
@@ -2223,7 +2195,6 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(updateBankLevelDynamicEndpointHost),
       "PUT",
@@ -2257,7 +2228,6 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getDynamicEndpoint),
       "GET",
@@ -2293,7 +2263,6 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getDynamicEndpoints),
       "GET",
@@ -2330,7 +2299,6 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getBankLevelDynamicEndpoint),
       "GET",
@@ -2363,7 +2331,6 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getBankLevelDynamicEndpoints),
       "GET",
@@ -2401,7 +2368,6 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(deleteDynamicEndpoint),
       "DELETE",
@@ -2430,7 +2396,6 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(deleteBankLevelDynamicEndpoint),
       "DELETE",
@@ -2469,7 +2434,6 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getMyDynamicEndpoints),
       "GET",
@@ -2507,7 +2471,7 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(deleteMyDynamicEndpoint), "DELETE",
+      implementedInApiVersion, nameOf(deleteMyDynamicEndpoint), "DELETE",
       "/my/dynamic-endpoints/DYNAMIC_ENDPOINT_ID",
       "Delete My Dynamic Endpoint",
       s"""Delete a DynamicEndpoint specified by DYNAMIC_ENDPOINT_ID.""",
@@ -2534,7 +2498,6 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getProductAttribute),
       "GET",
@@ -2580,7 +2543,6 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getScopes),
       "GET",
@@ -2635,7 +2597,6 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(addScope),
       "POST",
@@ -2684,7 +2645,6 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getConsents),
       "GET",
@@ -2738,7 +2698,6 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(updateAccountLabel),
       "POST",
@@ -2789,7 +2748,7 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null, implementedInApiVersion, "getExplicitCounterpartiesForAccount", "GET",
+      implementedInApiVersion, "getExplicitCounterpartiesForAccount", "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties",
       "Get Counterparties (Explicit)",
       s"""Get the Counterparties that have been explicitly created on the specified Account / View.
@@ -2824,7 +2783,7 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null, implementedInApiVersion, "getExplicitCounterpartyById", "GET",
+      implementedInApiVersion, "getExplicitCounterpartyById", "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties/EXPLICIT_COUNTERPARTY_ID",
       "Get Counterparty by Id (Explicit)",
       s"""This endpoint returns a single Counterparty on an Account View specified by its COUNTERPARTY_ID:
@@ -2920,7 +2879,7 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null, implementedInApiVersion, "createCounterparty", "POST",
+      implementedInApiVersion, "createCounterparty", "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties",
       "Create Counterparty (Explicit)",
       s"""This endpoint creates an (Explicit) Counterparty for an Account.
@@ -3004,7 +2963,6 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getFirehoseAccountsAtOneBank),
       "GET",
@@ -3113,7 +3071,7 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null, implementedInApiVersion, "createTransactionRequestAccount", "POST",
+      implementedInApiVersion, "createTransactionRequestAccount", "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/GRANT_VIEW_ID/transaction-request-types/TRANSACTION_REQUEST_TYPE/transaction-requests",
       "Create Transaction Request (ACCOUNT)",
       s"""When using ACCOUNT, the payee is set in the request body.
@@ -3154,7 +3112,7 @@ object Http4s400 {
     // `literalAllCapsSegments`) is enough; no new `lazy val` needed.
     private def initBatch9AliasResourceDocs(): Unit = {
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, "createTransactionRequestAccountOtp", "POST",
+        implementedInApiVersion, "createTransactionRequestAccountOtp", "POST",
         "/banks/BANK_ID/accounts/ACCOUNT_ID/GRANT_VIEW_ID/transaction-request-types/ACCOUNT_OTP/transaction-requests",
         "Create Transaction Request (ACCOUNT_OTP)",
         s"""When using ACCOUNT, the payee is set in the request body.
@@ -3186,7 +3144,7 @@ object Http4s400 {
         http4sPartialFunction = Some(createTransactionRequest))
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, "createTransactionRequestSepa", "POST",
+        implementedInApiVersion, "createTransactionRequestSepa", "POST",
         "/banks/BANK_ID/accounts/ACCOUNT_ID/GRANT_VIEW_ID/transaction-request-types/SEPA/transaction-requests",
         "Create Transaction Request (SEPA)",
         s"""
@@ -3220,7 +3178,7 @@ object Http4s400 {
         http4sPartialFunction = Some(createTransactionRequest))
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, "createTransactionRequestCounterparty", "POST",
+        implementedInApiVersion, "createTransactionRequestCounterparty", "POST",
         "/banks/BANK_ID/accounts/ACCOUNT_ID/GRANT_VIEW_ID/transaction-request-types/COUNTERPARTY/transaction-requests",
         "Create Transaction Request (COUNTERPARTY)",
         s"""
@@ -3261,7 +3219,7 @@ object Http4s400 {
         http4sPartialFunction = Some(createTransactionRequest))
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, "createTransactionRequestRefund", "POST",
+        implementedInApiVersion, "createTransactionRequestRefund", "POST",
         "/banks/BANK_ID/accounts/ACCOUNT_ID/GRANT_VIEW_ID/transaction-request-types/REFUND/transaction-requests",
         "Create Transaction Request (REFUND)",
         s"""
@@ -3302,7 +3260,7 @@ object Http4s400 {
         http4sPartialFunction = Some(createTransactionRequest))
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, "createTransactionRequestFreeForm", "POST",
+        implementedInApiVersion, "createTransactionRequestFreeForm", "POST",
         "/banks/BANK_ID/accounts/ACCOUNT_ID/GRANT_VIEW_ID/transaction-request-types/FREE_FORM/transaction-requests",
         "Create Transaction Request (FREE_FORM)",
         s"""$transactionRequestGeneralText
@@ -3331,7 +3289,7 @@ object Http4s400 {
         http4sPartialFunction = Some(createTransactionRequest))
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, "createTransactionRequestSimple", "POST",
+        implementedInApiVersion, "createTransactionRequestSimple", "POST",
         "/banks/BANK_ID/accounts/ACCOUNT_ID/GRANT_VIEW_ID/transaction-request-types/SIMPLE/transaction-requests",
         "Create Transaction Request (SIMPLE)",
         s"""
@@ -3364,7 +3322,7 @@ object Http4s400 {
         http4sPartialFunction = Some(createTransactionRequest))
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, "createTransactionRequestAgentCashWithDrawal", "POST",
+        implementedInApiVersion, "createTransactionRequestAgentCashWithDrawal", "POST",
         "/banks/BANK_ID/accounts/ACCOUNT_ID/GRANT_VIEW_ID/transaction-request-types/AGENT_CASH_WITHDRAWAL/transaction-requests",
         "Create Transaction Request (AGENT_CASH_WITHDRAWAL)",
         s"""
@@ -3434,7 +3392,7 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null, implementedInApiVersion, "createTransactionRequestCard", "POST",
+      implementedInApiVersion, "createTransactionRequestCard", "POST",
       "/transaction-request-types/CARD/transaction-requests",
       "Create Transaction Request (CARD)",
       s"""
@@ -3634,7 +3592,7 @@ object Http4s400 {
     }
 
     staticResourceDocs += ResourceDoc(
-      null, implementedInApiVersion, "answerTransactionRequestChallenge", "POST",
+      implementedInApiVersion, "answerTransactionRequestChallenge", "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/GRANT_VIEW_ID/transaction-request-types/TRANSACTION_REQUEST_TYPE/transaction-requests/TRANSACTION_REQUEST_ID/challenge",
       "Answer Transaction Request Challenge",
       s"""In Sandbox mode, any string that can be converted to a positive integer will be accepted as an answer.
@@ -3886,7 +3844,6 @@ object Http4s400 {
 
     private def initBatch8ResourceDocs(): Unit = {
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getCounterpartiesForAnyAccount),
         "GET",
@@ -3913,7 +3870,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getCounterpartyByIdForAnyAccount),
         "GET",
@@ -3938,7 +3894,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getCounterpartyByNameForAnyAccount),
         "GET",
@@ -4227,7 +4182,6 @@ object Http4s400 {
 
     private def initBatch9ResourceDocs(): Unit = {
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(deleteExplicitCounterparty),
         "DELETE",
@@ -4260,7 +4214,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(deleteCounterpartyForAnyAccount),
         "DELETE",
@@ -4283,7 +4236,7 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, "deleteTagForViewOnAccount", "DELETE",
+        implementedInApiVersion, "deleteTagForViewOnAccount", "DELETE",
         "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/metadata/tags/TAG_ID",
         "Delete a tag on account",
         s"""Deletes the tag TAG_ID about the account ACCOUNT_ID made on [view](#1_2_1-getViewsForBankAccount).
@@ -4298,7 +4251,7 @@ object Http4s400 {
         http4sPartialFunction = Some(deleteTagForViewOnAccount))
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, "getTagsForViewOnAccount", "GET",
+        implementedInApiVersion, "getTagsForViewOnAccount", "GET",
         "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/metadata/tags",
         "Get tags on account",
         s"""Returns the account ACCOUNT_ID tags made on a [view](#1_2_1-getViewsForBankAccount) (VIEW_ID).
@@ -4312,7 +4265,7 @@ object Http4s400 {
         http4sPartialFunction = Some(getTagsForViewOnAccount))
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, "addTagForViewOnAccount", "POST",
+        implementedInApiVersion, "addTagForViewOnAccount", "POST",
         "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/metadata/tags",
         "Create a tag on account",
         s"""Posts a tag about an account ACCOUNT_ID on a [view](#1_2_1-getViewsForBankAccount) VIEW_ID.
@@ -4336,7 +4289,6 @@ object Http4s400 {
         http4sPartialFunction = Some(addTagForViewOnAccount))
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getDoubleEntryTransaction),
         "GET",
@@ -4364,7 +4316,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getBalancingTransaction),
         "GET",
@@ -4385,7 +4336,7 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getBankAccountBalancesForCurrentUser), "GET",
+        implementedInApiVersion, nameOf(getBankAccountBalancesForCurrentUser), "GET",
         "/banks/BANK_ID/accounts/ACCOUNT_ID/balances",
         "Get Account Balances",
         """Get the Balances for one Account of the current User at one bank.""",
@@ -4395,7 +4346,6 @@ object Http4s400 {
         http4sPartialFunction = Some(getBankAccountBalancesForCurrentUser))
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getAccountByAccountRouting),
         "POST",
@@ -4419,7 +4369,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getAccountsByAccountRoutingRegex),
         "POST",
@@ -4461,7 +4410,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(lockUser),
         "POST",
@@ -4483,7 +4431,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(resetPasswordUrl),
         "POST",
@@ -4507,7 +4454,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getSettlementAccounts),
         "GET",
@@ -4778,7 +4724,6 @@ object Http4s400 {
 
     private def initBatch10ResourceDocs(): Unit = {
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(createBankAttribute),
         "POST",
@@ -4816,7 +4761,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(updateBankAttribute),
         "PUT",
@@ -4838,7 +4782,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(createCustomerAttribute),
         "POST",
@@ -4861,7 +4804,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(updateCustomerAttribute),
         "PUT",
@@ -4882,7 +4824,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(createTransactionAttribute),
         "POST",
@@ -4905,7 +4846,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(updateTransactionAttribute),
         "PUT",
@@ -4927,7 +4867,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(createTransactionRequestAttribute),
         "POST",
@@ -4950,7 +4889,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(updateTransactionRequestAttribute),
         "PUT",
@@ -4971,7 +4909,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(createProductFee),
         "POST",
@@ -4991,7 +4928,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(updateProductFee),
         "PUT",
@@ -5013,7 +4949,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(createMyPersonalUserAttribute),
         "POST",
@@ -5035,7 +4970,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(updateMyPersonalUserAttribute),
         "PUT",
@@ -5269,7 +5203,6 @@ object Http4s400 {
 
     private def initBatch11ResourceDocs(): Unit = {
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getUserInvitationAnonymous),
         "POST",
@@ -5294,7 +5227,7 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, "grantUserAccessToView", "POST",
+        implementedInApiVersion, "grantUserAccessToView", "POST",
         "/banks/BANK_ID/accounts/ACCOUNT_ID/account-access/grant",
         "Grant User access to View",
         s"""Grants the User identified by USER_ID access to the view identified by VIEW_ID.
@@ -5313,7 +5246,7 @@ object Http4s400 {
         http4sPartialFunction = Some(grantUserAccessToView))
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, "revokeUserAccessToView", "POST",
+        implementedInApiVersion, "revokeUserAccessToView", "POST",
         "/banks/BANK_ID/accounts/ACCOUNT_ID/account-access/revoke",
         "Revoke User access to View",
         s"""Revoke the User identified by USER_ID access to the view identified by VIEW_ID.
@@ -5332,7 +5265,7 @@ object Http4s400 {
         http4sPartialFunction = Some(revokeUserAccessToView))
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, "revokeGrantUserAccessToViews", "PUT",
+        implementedInApiVersion, "revokeGrantUserAccessToViews", "PUT",
         "/banks/BANK_ID/accounts/ACCOUNT_ID/account-access",
         "Revoke/Grant User access to View",
         s"""Revoke/Grant the logged in User access to the views identified by json.
@@ -5351,7 +5284,6 @@ object Http4s400 {
         http4sPartialFunction = Some(revokeGrantUserAccessToViews))
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(createMyApiCollection),
         "POST",
@@ -5370,7 +5302,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(createMyApiCollectionEndpoint),
         "POST",
@@ -5393,7 +5324,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(createMyApiCollectionEndpointById),
         "POST",
@@ -5415,7 +5345,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(updateConsentStatus),
         "PUT",
@@ -5447,7 +5376,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(addConsentUser),
         "PUT",
@@ -5657,7 +5585,6 @@ object Http4s400 {
 
     private def initBatch12ResourceDocs(): Unit = {
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(createDirectDebit),
         "POST",
@@ -5686,7 +5613,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(createDirectDebitManagement),
         "POST",
@@ -5706,7 +5632,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(createStandingOrder),
         "POST",
@@ -5739,7 +5664,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(createStandingOrderManagement),
         "POST",
@@ -5763,7 +5687,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(createSystemAccountNotificationWebhook),
         "POST",
@@ -5786,7 +5709,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(createBankAccountNotificationWebhook),
         "POST",
@@ -5808,7 +5730,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getFastFirehoseAccountsAtOneBank),
         "GET",
@@ -5922,7 +5843,6 @@ object Http4s400 {
 
     private def initBatch7ResourceDocs(): Unit = {
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(createOrUpdateCustomerAttributeAttributeDefinition),
         "PUT",
@@ -5946,7 +5866,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(createOrUpdateAccountAttributeDefinition),
         "PUT",
@@ -5970,7 +5889,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(createOrUpdateProductAttributeDefinition),
         "PUT",
@@ -5994,7 +5912,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(createOrUpdateTransactionAttributeDefinition),
         "PUT",
@@ -6018,7 +5935,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(createOrUpdateCardAttributeDefinition),
         "PUT",
@@ -6042,7 +5958,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(createOrUpdateTransactionRequestAttributeDefinition),
         "PUT",
@@ -6066,7 +5981,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(createOrUpdateBankAttributeDefinition),
         "PUT",
@@ -6180,7 +6094,6 @@ object Http4s400 {
 
     private def initBatch6ResourceDocs(): Unit = {
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(updateAtmSupportedCurrencies),
         "PUT",
@@ -6197,7 +6110,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(updateAtmSupportedLanguages),
         "PUT",
@@ -6214,7 +6126,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(updateAtmAccessibilityFeatures),
         "PUT",
@@ -6231,7 +6142,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(updateAtmServices),
         "PUT",
@@ -6248,7 +6158,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(updateAtmNotes),
         "PUT",
@@ -6265,7 +6174,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(updateAtmLocationCategories),
         "PUT",
@@ -6282,7 +6190,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(updateAtm),
         "PUT",
@@ -6495,7 +6402,6 @@ object Http4s400 {
 
     private def initBatch5ResourceDocs(): Unit = {
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getProductFee),
         "GET",
@@ -6517,7 +6423,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getProductFees),
         "GET",
@@ -6537,7 +6442,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getTransactionAttributes),
         "GET",
@@ -6557,7 +6461,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getTransactionAttributeById),
         "GET",
@@ -6577,7 +6480,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getTransactionRequestAttributes),
         "GET",
@@ -6597,7 +6499,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getTransactionRequestAttributeById),
         "GET",
@@ -6617,7 +6518,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getTransactionRequestAttributeDefinition),
         "GET",
@@ -6637,7 +6537,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getTransactionRequest),
         "GET",
@@ -6680,7 +6579,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getMyCorrelatedEntities),
         "GET",
@@ -6700,7 +6598,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getCorrelatedUsersInfoByCustomerId),
         "GET",
@@ -6720,7 +6617,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getAccountsMinimalByCustomerId),
         "GET",
@@ -6744,7 +6640,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getCustomersByCustomerPhoneNumber),
         "POST",
@@ -6771,7 +6666,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getCustomersAtAnyBank),
         "GET",
@@ -6792,7 +6686,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getCustomersMinimalAtAnyBank),
         "GET",
@@ -6813,7 +6706,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getUserInvitation),
         "GET",
@@ -6833,7 +6725,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getUserInvitations),
         "GET",
@@ -7037,7 +6928,6 @@ object Http4s400 {
 
     private def initBatch4ResourceDocs(): Unit = {
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getConsentInfosByBank),
         "GET",
@@ -7059,7 +6949,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getConsentInfos),
         "GET",
@@ -7081,7 +6970,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getMyApiCollectionByName),
         "GET",
@@ -7100,7 +6988,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getMyApiCollectionById),
         "GET",
@@ -7119,7 +7006,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getSharableApiCollectionById),
         "GET",
@@ -7137,7 +7023,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getApiCollectionsForUser),
         "GET",
@@ -7156,7 +7041,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getFeaturedApiCollections),
         "GET",
@@ -7175,7 +7059,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getMyApiCollections),
         "GET",
@@ -7199,7 +7082,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getMyApiCollectionEndpoint),
         "GET",
@@ -7218,7 +7100,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getApiCollectionEndpoints),
         "GET",
@@ -7237,7 +7118,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getMyApiCollectionEndpoints),
         "GET",
@@ -7256,7 +7136,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getMyApiCollectionEndpointsById),
         "GET",
@@ -7275,7 +7154,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(deleteMyApiCollection),
         "DELETE",
@@ -7299,7 +7177,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(deleteMyApiCollectionEndpoint),
         "DELETE",
@@ -7322,7 +7199,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(deleteMyApiCollectionEndpointByOperationId),
         "DELETE",
@@ -7344,7 +7220,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(deleteMyApiCollectionEndpointById),
         "DELETE",
@@ -7605,7 +7480,6 @@ object Http4s400 {
 
     private def initBatch3ResourceDocs(): Unit = {
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(deleteTransactionAttributeDefinition),
         "DELETE",
@@ -7625,7 +7499,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(deleteCustomerAttributeDefinition),
         "DELETE",
@@ -7645,7 +7518,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(deleteAccountAttributeDefinition),
         "DELETE",
@@ -7665,7 +7537,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(deleteProductAttributeDefinition),
         "DELETE",
@@ -7685,7 +7556,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(deleteCardAttributeDefinition),
         "DELETE",
@@ -7705,7 +7575,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(deleteTransactionRequestAttributeDefinition),
         "DELETE",
@@ -7725,7 +7594,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(deleteUser),
         "DELETE",
@@ -7746,7 +7614,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(deleteUserCustomerLink),
         "DELETE",
@@ -7766,7 +7633,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(deleteTransactionCascade),
         "DELETE",
@@ -7787,7 +7653,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(deleteAccountCascade),
         "DELETE",
@@ -7808,7 +7673,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(deleteBankCascade),
         "DELETE",
@@ -7829,7 +7693,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(deleteProductCascade),
         "DELETE",
@@ -7850,7 +7713,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(deleteCustomerCascade),
         "DELETE",
@@ -7871,7 +7733,7 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(deleteSystemLevelEndpointTag), "DELETE",
+        implementedInApiVersion, nameOf(deleteSystemLevelEndpointTag), "DELETE",
         "/management/endpoints/OPERATION_ID/tags/ENDPOINT_TAG_ID",
         "Delete System Level Endpoint Tag",
         s"""Delete System Level Endpoint Tag.""",
@@ -7882,7 +7744,7 @@ object Http4s400 {
         http4sPartialFunction = Some(deleteSystemLevelEndpointTag))
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(deleteBankLevelEndpointTag), "DELETE",
+        implementedInApiVersion, nameOf(deleteBankLevelEndpointTag), "DELETE",
         "/management/banks/BANK_ID/endpoints/OPERATION_ID/tags/ENDPOINT_TAG_ID",
         "Delete Bank Level Endpoint Tag",
         s"""Delete Bank Level Endpoint Tag.""",
@@ -7893,7 +7755,6 @@ object Http4s400 {
         http4sPartialFunction = Some(deleteBankLevelEndpointTag))
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(deleteAuthenticationTypeValidation),
         "DELETE",
@@ -7911,7 +7772,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(deleteJsonSchemaValidation),
         "DELETE",
@@ -7929,7 +7789,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(deleteCustomerAttribute),
         "DELETE",
@@ -7958,7 +7817,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(deleteBankAttribute),
         "DELETE",
@@ -7980,7 +7838,7 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(deleteAtm), "DELETE",
+        implementedInApiVersion, nameOf(deleteAtm), "DELETE",
         "/banks/BANK_ID/atms/ATM_ID",
         "Delete ATM",
         s"""Delete ATM.""",
@@ -7994,7 +7852,6 @@ object Http4s400 {
         http4sPartialFunction = Some(deleteAtm))
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(deleteProductFee),
         "DELETE",
@@ -8021,7 +7878,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(deleteEndpointMapping),
         "DELETE",
@@ -8038,7 +7894,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(deleteBankLevelEndpointMapping),
         "DELETE",
@@ -8276,7 +8131,6 @@ object Http4s400 {
 
     private def initBatch2ResourceDocs(): Unit = {
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getEntitlementsForBank),
         "GET",
@@ -8294,7 +8148,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getMyPersonalUserAttributes),
         "GET",
@@ -8313,7 +8166,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getUserWithAttributes),
         "GET",
@@ -8332,7 +8184,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getCustomerAttributes),
         "GET",
@@ -8352,7 +8203,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getCustomerAttributeById),
         "GET",
@@ -8372,7 +8222,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getProductAttributeDefinition),
         "GET",
@@ -8392,7 +8241,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getCustomerAttributeDefinition),
         "GET",
@@ -8412,7 +8260,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getAccountAttributeDefinition),
         "GET",
@@ -8432,7 +8279,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getTransactionAttributeDefinition),
         "GET",
@@ -8452,7 +8298,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getCardAttributeDefinition),
         "GET",
@@ -8472,7 +8317,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getJsonSchemaValidation),
         "GET",
@@ -8490,7 +8334,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getAllJsonSchemaValidations),
         "GET",
@@ -8508,7 +8351,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getAuthenticationTypeValidation),
         "GET",
@@ -8526,7 +8368,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getAllAuthenticationTypeValidations),
         "GET",
@@ -8547,7 +8388,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getConnectorMethod),
         "GET",
@@ -8565,7 +8405,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getAllConnectorMethods),
         "GET",
@@ -8583,7 +8422,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getUserCustomerLinksByUserId),
         "GET",
@@ -8603,7 +8441,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getUserCustomerLinksByCustomerId),
         "GET",
@@ -8623,7 +8460,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getCustomerMessages),
         "GET",
@@ -8641,7 +8477,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(createCustomerMessage),
         "POST",
@@ -8667,7 +8502,6 @@ object Http4s400 {
 
     private def initBatch1ResourceDocs(): Unit = {
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getCallContext),
         "GET",
@@ -8685,7 +8519,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(verifyRequestSignResponse),
         "GET",
@@ -8703,7 +8536,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getCurrentUserId),
         "GET",
@@ -8722,7 +8554,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getScannedApiVersions),
         "GET",
@@ -8741,7 +8572,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getMySpaces),
         "GET",
@@ -8757,7 +8587,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getBankAttributes),
         "GET",
@@ -8777,7 +8606,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getBankAttribute),
         "GET",
@@ -8797,7 +8625,7 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getSystemLevelEndpointTags), "GET",
+        implementedInApiVersion, nameOf(getSystemLevelEndpointTags), "GET",
         "/management/endpoints/OPERATION_ID/tags",
         "Get System Level Endpoint Tags",
         s"""Get System Level Endpoint Tags.""",
@@ -8808,7 +8636,7 @@ object Http4s400 {
         http4sPartialFunction = Some(getSystemLevelEndpointTags))
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(getBankLevelEndpointTags), "GET",
+        implementedInApiVersion, nameOf(getBankLevelEndpointTags), "GET",
         "/management/banks/BANK_ID/endpoints/OPERATION_ID/tags",
         "Get Bank Level Endpoint Tags",
         s"""Get Bank Level Endpoint Tags.""",
@@ -8819,7 +8647,6 @@ object Http4s400 {
         http4sPartialFunction = Some(getBankLevelEndpointTags))
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getEndpointMapping),
         "GET",
@@ -8837,7 +8664,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getBankLevelEndpointMapping),
         "GET",
@@ -8855,7 +8681,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getAllEndpointMappings),
         "GET",
@@ -8876,7 +8701,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getAllBankLevelEndpointMappings),
         "GET",
@@ -8976,7 +8800,6 @@ object Http4s400 {
 
     private def initBatch13ResourceDocs(): Unit = {
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(createEndpointMapping),
         "POST",
@@ -8995,7 +8818,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(updateEndpointMapping),
         "PUT",
@@ -9012,7 +8834,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(createBankLevelEndpointMapping),
         "POST",
@@ -9031,7 +8852,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(updateBankLevelEndpointMapping),
         "PUT",
@@ -9167,7 +8987,6 @@ object Http4s400 {
 
     private def initBatch14ResourceDocs(): Unit = {
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(createSystemLevelEndpointTag),
         "POST",
@@ -9192,7 +9011,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(updateSystemLevelEndpointTag),
         "PUT",
@@ -9212,7 +9030,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(createBankLevelEndpointTag),
         "POST",
@@ -9233,7 +9050,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(updateBankLevelEndpointTag),
         "PUT",
@@ -9395,7 +9211,6 @@ object Http4s400 {
 
     private def initBatch15ResourceDocs(): Unit = {
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(createJsonSchemaValidation),
         "POST",
@@ -9419,7 +9234,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(updateJsonSchemaValidation),
         "PUT",
@@ -9442,7 +9256,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(createAuthenticationTypeValidation),
         "POST",
@@ -9461,7 +9274,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(updateAuthenticationTypeValidation),
         "PUT",
@@ -9480,7 +9292,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(createConnectorMethod),
         "POST",
@@ -9499,7 +9310,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(updateConnectorMethod),
         "PUT",
@@ -9677,7 +9487,6 @@ object Http4s400 {
 
     private def initBatch16ResourceDocs(): Unit = {
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(createDynamicResourceDoc),
         "POST",
@@ -9696,7 +9505,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(updateDynamicResourceDoc),
         "PUT",
@@ -9715,7 +9523,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(deleteDynamicResourceDoc),
         "DELETE",
@@ -9732,7 +9539,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getDynamicResourceDoc),
         "GET",
@@ -9750,7 +9556,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getAllDynamicResourceDocs),
         "GET",
@@ -9768,7 +9573,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(createBankLevelDynamicResourceDoc),
         "POST",
@@ -9787,7 +9591,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(updateBankLevelDynamicResourceDoc),
         "PUT",
@@ -9806,7 +9609,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(deleteBankLevelDynamicResourceDoc),
         "DELETE",
@@ -9823,7 +9625,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getBankLevelDynamicResourceDoc),
         "GET",
@@ -9841,7 +9642,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getAllBankLevelDynamicResourceDocs),
         "GET",
@@ -9995,7 +9795,6 @@ object Http4s400 {
 
     private def initBatch17ResourceDocs(): Unit = {
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(createDynamicMessageDoc),
         "POST",
@@ -10012,7 +9811,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(updateDynamicMessageDoc),
         "PUT",
@@ -10029,7 +9827,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(deleteDynamicMessageDoc),
         "DELETE",
@@ -10046,7 +9843,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getDynamicMessageDoc),
         "GET",
@@ -10064,7 +9860,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getAllDynamicMessageDocs),
         "GET",
@@ -10082,7 +9877,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(createBankLevelDynamicMessageDoc),
         "POST",
@@ -10099,7 +9893,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(updateBankLevelDynamicMessageDoc),
         "PUT",
@@ -10116,7 +9909,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(deleteBankLevelDynamicMessageDoc),
         "DELETE",
@@ -10133,7 +9925,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getBankLevelDynamicMessageDoc),
         "GET",
@@ -10151,7 +9942,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(getAllBankLevelDynamicMessageDocs),
         "GET",
@@ -10206,7 +9996,6 @@ object Http4s400 {
 
     private def initBatch18ResourceDocs(): Unit = {
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(buildDynamicEndpointTemplate),
         "POST",
@@ -10743,7 +10532,6 @@ object Http4s400 {
 
     private def initBatch19ResourceDocs(): Unit = {
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(addAccount),
         "POST",
@@ -10772,7 +10560,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(createSettlementAccount),
         "POST",
@@ -10811,7 +10598,7 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, "createConsumer", "POST",
+        implementedInApiVersion, "createConsumer", "POST",
         "/management/consumers",
         "Post a Consumer",
         s"""Create a Consumer (Authenticated access).""",
@@ -10835,7 +10622,7 @@ object Http4s400 {
         http4sPartialFunction = Some(createConsumer))
 
       staticResourceDocs += ResourceDoc(
-        null, implementedInApiVersion, "createCounterpartyForAnyAccount", "POST",
+        implementedInApiVersion, "createCounterpartyForAnyAccount", "POST",
         "/management/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties",
         "Create Counterparty for any account (Explicit)",
         s"""This is a management endpoint that allows the creation of a Counterparty on any Account.
@@ -10855,7 +10642,6 @@ object Http4s400 {
         http4sPartialFunction = Some(createCounterpartyForAnyAccount))
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(createHistoricalTransactionAtBank),
         "POST",
@@ -10893,7 +10679,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(createUserWithRoles),
         "POST",
@@ -10938,7 +10723,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(createUserWithAccountAccess),
         "POST",
@@ -10971,7 +10755,6 @@ object Http4s400 {
       )
 
       staticResourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         nameOf(createUserInvitation),
         "POST",

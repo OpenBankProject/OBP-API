@@ -1589,7 +1589,6 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
   // Used to document the API calls
   case class ResourceDoc(
-                          partialFunction: OBPEndpoint, // PartialFunction[Req, Box[User] => Box[JsonResponse]],
                           implementedInApiVersion: ScannedApiVersion, // TODO: Use ApiVersion enumeration instead of string
                           partialFunctionName: String, // The string name of the partial function that implements this resource. Could use it to link to the source code that implements the call
                           requestVerb: String, // GET, POST etc. TODO: Constrain to GET, POST etc.
@@ -1681,12 +1680,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     private var _isEndpointAuthCheck = false
 
     def isNotEndpointAuthCheck = !_isEndpointAuthCheck
-//    code.api.util.APIUtil.ResourceDoc.connectorMethods
-    // set dependent connector methods
-    var connectorMethods: List[String] = getDependentConnectorMethods(partialFunction)
-      .map(
-        value => ("obp."+value).intern() //
-      ) // add prefix "obp.", as MessageDoc#process
+    var connectorMethods: List[String] = Nil
 
     // add connector method to endpoint info
     addEndpointInfos(connectorMethods, partialFunctionName, implementedInApiVersion)
@@ -2386,33 +2380,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
   def getApiLinkTemplates(callerContext: CallerContext,
                           codeContext: CodeContext
-                         ) : List[InternalApiLink] = {
-
-
-
-    // Relations of the API version where the caller is defined.
-    val relations =  codeContext.relationsArrayBuffer.toList
-
-    // Resource Docs
-    // Note: This doesn't allow linking to calls in earlier versions of the API
-    // TODO: Fix me
-    val resourceDocs =  codeContext.resourceDocsArrayBuffer
-
-    val pf = callerContext.caller
-
-    val internalApiLinks: List[InternalApiLink] = for {
-      relation <- relations.filter(r => r.fromPF == pf)
-      toResourceDoc <- resourceDocs.find(rd => rd.partialFunction == relation.toPF)
-    }
-      yield new InternalApiLink(
-        pf,
-        toResourceDoc.partialFunction,
-        relation.rel,
-        // Add the vVersion to the documented url
-        s"/${toResourceDoc.implementedInApiVersion.vDottedApiVersion}${toResourceDoc.requestUrl}"
-      )
-    internalApiLinks
-  }
+                         ) : List[InternalApiLink] = Nil
 
 
 
@@ -2961,36 +2929,6 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   // the dynamic-code template compiles to this, and Http4sDynamicEndpoint runs it directly.
   type OBPEndpointIO = PartialFunction[org.http4s.Request[IO], CallContext => IO[org.http4s.Response[IO]]]
 
-
-  def getAllowedEndpoints (endpoints : Iterable[OBPEndpoint], resourceDocs: ArrayBuffer[ResourceDoc]) : List[OBPEndpoint] = {
-
-    val allowedResourceDocs: ArrayBuffer[ResourceDoc] = getAllowedResourceDocs(endpoints, resourceDocs)
-
-    allowedResourceDocs.map(_.partialFunction).toList
-  }
-
-  def getAllowedResourceDocs(endpoints: Iterable[OBPEndpoint], resourceDocs: ArrayBuffer[ResourceDoc]): ArrayBuffer[ResourceDoc] = {
-    // Endpoint Operation Ids
-    val disabledEndpointOperationIds = getDisabledEndpointOperationIds
-
-    // Endpoint Operation Ids
-    val enabledEndpointOperationIds = getEnabledEndpointOperationIds
-
-
-    val routes = for (
-      item <- resourceDocs
-      if
-      // Remove any Resource Doc / endpoint mentioned in Disabled endpoints in Props
-      !disabledEndpointOperationIds.contains(item.operationId) &&
-        // Only allow Resource Doc / endpoints mentioned in enabled endpoints - unless none are mentioned in which case ignore.
-        (enabledEndpointOperationIds.contains(item.operationId) || enabledEndpointOperationIds.isEmpty) &&
-        // Only allow Resource Doc if it matches one of the pre selected endpoints from the version list.
-        // i.e. this function may receive more Resource Docs than version endpoints
-        endpoints.exists(_ == item.partialFunction)
-    )
-      yield item
-    routes
-  }
 
   def extractToCaseClass[T](in: String)(implicit ev: Manifest[T]): Box[T] = {
     try {
@@ -4273,7 +4211,6 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   def toResourceDoc(messageDoc: MessageDoc): ResourceDoc = {
     val connectorMethodName = {messageDoc.process.replaceAll("obp.","").replace(".","")}
     ResourceDoc(
-      null,
       ApiVersion.v3_1_0,
       connectorMethodName,
       requestVerb = {

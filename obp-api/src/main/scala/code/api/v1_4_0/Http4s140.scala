@@ -53,7 +53,6 @@ object Http4s140 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(root),
       "GET",
@@ -89,7 +88,6 @@ object Http4s140 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getCustomer),
       "GET",
@@ -119,7 +117,6 @@ object Http4s140 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getCustomersMessages),
       "GET",
@@ -152,7 +149,6 @@ object Http4s140 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(addCustomerMessage),
       "POST",
@@ -186,7 +182,6 @@ object Http4s140 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getBranches),
       "GET",
@@ -231,7 +226,6 @@ object Http4s140 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getAtms),
       "GET",
@@ -270,7 +264,6 @@ object Http4s140 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getProducts),
       "GET",
@@ -307,7 +300,6 @@ object Http4s140 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getCrmEvents),
       "GET",
@@ -351,7 +343,6 @@ object Http4s140 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getTransactionRequestTypes),
       "GET",
@@ -438,7 +429,6 @@ object Http4s140 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(addCustomer),
       "POST",

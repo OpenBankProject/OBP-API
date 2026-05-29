@@ -170,11 +170,6 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       logger.debug(s"There are ${versionRoutes.length} routes available to $requestedApiVersion")
 
 
-      // We only want the resource docs for which a API route exists else users will see 404s
-      // Get a list of the partial function classes represented in the routes available to this version.
-      val versionRoutesClasses = versionRoutes.map { vr => vr.getClass }
-
-      // Only return the resource docs that have available routes
       val activeResourceDocs = requestedApiVersion match {
         case ApiVersion.v7_0_0 => resourceDocs
         case ConstantsBG.`berlinGroupVersion1` => resourceDocs  // fully on http4s — no Lift route filter
@@ -195,7 +190,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
         case ApiVersion.`dynamic-endpoint` => resourceDocs  // dispatch now on Http4sDynamicEndpoint (proxy + native Piece C); routes carry only the stub, skip Lift-route filter
         case ApiVersion.ukOpenBankingV20 => resourceDocs  // fully on http4s — no Lift route filter
         case ApiVersion.ukOpenBankingV31 => resourceDocs  // fully on http4s — no Lift route filter
-        case _ => resourceDocs.filter(rd => versionRoutesClasses.contains(rd.partialFunction.getClass))
+        case _ => resourceDocs
       }
 
       logger.debug(s"There are ${activeResourceDocs.length} resource docs available to $requestedApiVersion")

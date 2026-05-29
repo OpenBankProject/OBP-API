@@ -36,7 +36,6 @@ object Http4sUKOBv310InternationalStandingOrders extends MdcLoggable {
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(createInternationalStandingOrderConsents),
     "POST",
@@ -166,7 +165,6 @@ object Http4sUKOBv310InternationalStandingOrders extends MdcLoggable {
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(createInternationalStandingOrders),
     "POST",
@@ -284,7 +282,6 @@ object Http4sUKOBv310InternationalStandingOrders extends MdcLoggable {
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(getInternationalStandingOrderConsentsConsentId),
     "GET",
@@ -414,7 +411,6 @@ object Http4sUKOBv310InternationalStandingOrders extends MdcLoggable {
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(getInternationalStandingOrdersInternationalStandingOrderPaymentId),
     "GET",

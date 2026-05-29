@@ -36,7 +36,6 @@ object Http4sUKOBv310StandingOrders extends MdcLoggable {
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(getAccountsAccountIdStandingOrders),
     "GET",
@@ -134,7 +133,6 @@ object Http4sUKOBv310StandingOrders extends MdcLoggable {
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(getStandingOrders),
     "GET",

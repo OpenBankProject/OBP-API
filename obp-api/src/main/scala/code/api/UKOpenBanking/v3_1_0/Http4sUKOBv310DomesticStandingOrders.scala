@@ -36,7 +36,6 @@ object Http4sUKOBv310DomesticStandingOrders extends MdcLoggable {
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(createDomesticStandingOrderConsents),
     "POST",
@@ -139,7 +138,6 @@ object Http4sUKOBv310DomesticStandingOrders extends MdcLoggable {
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(createDomesticStandingOrders),
     "POST",
@@ -230,7 +228,6 @@ object Http4sUKOBv310DomesticStandingOrders extends MdcLoggable {
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(getDomesticStandingOrderConsentsConsentId),
     "GET",
@@ -333,7 +330,6 @@ object Http4sUKOBv310DomesticStandingOrders extends MdcLoggable {
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(getDomesticStandingOrdersDomesticStandingOrderId),
     "GET",

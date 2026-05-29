@@ -33,7 +33,6 @@ class OBPRestHelperTest extends FlatSpec with Matchers {
   ): ResourceDoc = {
     // Create a minimal ResourceDoc for testing
     val doc = new ResourceDoc(
-      partialFunction = null, // Not used in our tests
       implementedInApiVersion = version,
       partialFunctionName = "testFunction",
       requestVerb = "GET",

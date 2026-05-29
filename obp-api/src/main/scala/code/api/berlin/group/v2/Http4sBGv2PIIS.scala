@@ -32,7 +32,6 @@ object Http4sBGv2PIIS extends MdcLoggable {
   // ── POST /v2/funds-confirmations ──────────────────────────────────
 
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(postConfirmationOfFunds),
     "POST",

@@ -41,7 +41,6 @@ object Http4sUKOBv310Beneficiaries extends MdcLoggable {
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(getAccountsAccountIdBeneficiaries),
     "GET",
@@ -129,7 +128,6 @@ object Http4sUKOBv310Beneficiaries extends MdcLoggable {
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(getBeneficiaries),
     "GET",

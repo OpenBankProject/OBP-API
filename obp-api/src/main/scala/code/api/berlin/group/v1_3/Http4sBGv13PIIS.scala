@@ -86,7 +86,6 @@ object Http4sBGv13PIIS extends MdcLoggable {
   }
 
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(checkAvailabilityOfFunds),
     "POST",

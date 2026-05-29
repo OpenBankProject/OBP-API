@@ -36,7 +36,6 @@ object Http4sUKOBv310DomesticScheduledPayments extends MdcLoggable {
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(createDomesticScheduledPaymentConsents),
     "POST",
@@ -148,7 +147,6 @@ object Http4sUKOBv310DomesticScheduledPayments extends MdcLoggable {
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(createDomesticScheduledPayments),
     "POST",
@@ -248,7 +246,6 @@ object Http4sUKOBv310DomesticScheduledPayments extends MdcLoggable {
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(getDomesticScheduledPaymentConsentsConsentId),
     "GET",
@@ -360,7 +357,6 @@ object Http4sUKOBv310DomesticScheduledPayments extends MdcLoggable {
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(getDomesticScheduledPaymentsDomesticScheduledPaymentId),
     "GET",

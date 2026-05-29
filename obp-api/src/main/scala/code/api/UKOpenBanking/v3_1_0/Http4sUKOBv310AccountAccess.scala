@@ -93,7 +93,6 @@ object Http4sUKOBv310AccountAccess extends MdcLoggable {
       }
   }
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(createAccountAccessConsents),
     "POST",
@@ -156,7 +155,6 @@ object Http4sUKOBv310AccountAccess extends MdcLoggable {
       }
   }
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(deleteAccountAccessConsentsConsentId),
     "DELETE",
@@ -208,7 +206,6 @@ object Http4sUKOBv310AccountAccess extends MdcLoggable {
       }
   }
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(getAccountAccessConsentsConsentId),
     "GET",

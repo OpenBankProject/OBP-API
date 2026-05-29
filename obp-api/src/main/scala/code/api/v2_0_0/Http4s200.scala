@@ -80,7 +80,7 @@ object Http4s200 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(root), "GET", "/root",
+      implementedInApiVersion, nameOf(root), "GET", "/root",
       "Get API Info (root)",
       """Returns information about:
         |
@@ -105,7 +105,7 @@ object Http4s200 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getPrivateAccountsAllBanks), "GET", "/accounts",
+      implementedInApiVersion, nameOf(getPrivateAccountsAllBanks), "GET", "/accounts",
       "Get all Accounts at all Banks",
       s"""Get all accounts at all banks the User has access to.
          |Returns the list of accounts at that the user has access to at all banks.
@@ -133,7 +133,7 @@ object Http4s200 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(corePrivateAccountsAllBanks), "GET", "/my/accounts",
+      implementedInApiVersion, nameOf(corePrivateAccountsAllBanks), "GET", "/my/accounts",
       "Get Accounts at all Banks (Private)",
       s"""Get private accounts at all banks (Authenticated access)
          |Returns the list of accounts containing private views for the user at all banks.
@@ -166,7 +166,7 @@ object Http4s200 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(publicAccountsAllBanks), "GET", "/accounts/public",
+      implementedInApiVersion, nameOf(publicAccountsAllBanks), "GET", "/accounts/public",
       "Get Public Accounts at all Banks",
       s"""Get public accounts at all banks (Anonymous access).
          |Returns accounts that contain at least one public view (a view where is_public is true)
@@ -217,7 +217,7 @@ object Http4s200 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getPrivateAccountsAtOneBank), "GET", "/banks/BANK_ID/accounts",
+      implementedInApiVersion, nameOf(getPrivateAccountsAtOneBank), "GET", "/banks/BANK_ID/accounts",
       "Get Accounts at Bank",
       s"""
          |Returns the list of accounts at BANK_ID that the user has access to.
@@ -268,7 +268,7 @@ object Http4s200 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(corePrivateAccountsAtOneBank), "GET", "/my/banks/BANK_ID/accounts",
+      implementedInApiVersion, nameOf(corePrivateAccountsAtOneBank), "GET", "/my/banks/BANK_ID/accounts",
       "Get Accounts at Bank (Private)",
       s"""Get private accounts at one bank (Authenticated access).
       |Returns the list of accounts containing private views for the user at BANK_ID.
@@ -300,7 +300,7 @@ object Http4s200 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(privateAccountsAtOneBank), "GET", "/banks/BANK_ID/accounts/private",
+      implementedInApiVersion, nameOf(privateAccountsAtOneBank), "GET", "/banks/BANK_ID/accounts/private",
       "Get private accounts at one bank",
       s"""Returns the list of private accounts at BANK_ID that the user has access to.
       |For each account the API returns the ID and the available views.
@@ -338,7 +338,7 @@ object Http4s200 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(publicAccountsAtOneBank), "GET", "/banks/BANK_ID/accounts/public",
+      implementedInApiVersion, nameOf(publicAccountsAtOneBank), "GET", "/banks/BANK_ID/accounts/public",
       "Get Public Accounts at Bank",
       s"""Returns a list of the public accounts (Anonymous access) at BANK_ID.
          |For each account the API returns the ID and the available views.
@@ -365,7 +365,7 @@ object Http4s200 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getKycDocuments), "GET", "/customers/CUSTOMER_ID/kyc_documents",
+      implementedInApiVersion, nameOf(getKycDocuments), "GET", "/customers/CUSTOMER_ID/kyc_documents",
       "Get Customer KYC Documents",
       s"""Get KYC (know your customer) documents for a customer specified by CUSTOMER_ID
          |Get a list of documents that affirm the identity of the customer
@@ -393,7 +393,7 @@ object Http4s200 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getKycMedia), "GET", "/customers/CUSTOMER_ID/kyc_media",
+      implementedInApiVersion, nameOf(getKycMedia), "GET", "/customers/CUSTOMER_ID/kyc_media",
       "Get KYC Media for a customer",
       s"""Get KYC media (scans, pictures, videos) that affirms the identity of the customer.
          |
@@ -420,7 +420,7 @@ object Http4s200 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getKycChecks), "GET", "/customers/CUSTOMER_ID/kyc_checks",
+      implementedInApiVersion, nameOf(getKycChecks), "GET", "/customers/CUSTOMER_ID/kyc_checks",
       "Get Customer KYC Checks",
       s"""Get KYC checks for the Customer specified by CUSTOMER_ID.
          |
@@ -447,7 +447,7 @@ object Http4s200 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getKycStatuses), "GET", "/customers/CUSTOMER_ID/kyc_statuses",
+      implementedInApiVersion, nameOf(getKycStatuses), "GET", "/customers/CUSTOMER_ID/kyc_statuses",
       "Get Customer KYC statuses",
       s"""Get the KYC statuses for a customer specified by CUSTOMER_ID over time.
          |
@@ -476,7 +476,7 @@ object Http4s200 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getSocialMediaHandles), "GET",
+      implementedInApiVersion, nameOf(getSocialMediaHandles), "GET",
       "/banks/BANK_ID/customers/CUSTOMER_ID/social_media_handles",
       "Get Customer Social Media Handles",
       s"""Get social media handles for a customer specified by CUSTOMER_ID.
@@ -507,7 +507,7 @@ object Http4s200 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(addKycDocument), "PUT",
+      implementedInApiVersion, nameOf(addKycDocument), "PUT",
       "/banks/BANK_ID/customers/CUSTOMER_ID/kyc_documents/KYC_DOCUMENT_ID",
       "Add KYC Document",
       "Add a KYC document for the customer specified by CUSTOMER_ID. KYC Documents contain the document type (e.g. passport), place of issue, expiry etc. ",
@@ -536,7 +536,7 @@ object Http4s200 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(addKycMedia), "PUT",
+      implementedInApiVersion, nameOf(addKycMedia), "PUT",
       "/banks/BANK_ID/customers/CUSTOMER_ID/kyc_media/KYC_MEDIA_ID",
       "Add KYC Media",
       "Add some KYC media for the customer specified by CUSTOMER_ID. KYC Media resources relate to KYC Documents and KYC Checks and contain media urls for scans of passports, utility bills etc",
@@ -565,7 +565,7 @@ object Http4s200 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(addKycCheck), "PUT",
+      implementedInApiVersion, nameOf(addKycCheck), "PUT",
       "/banks/BANK_ID/customers/CUSTOMER_ID/kyc_check/KYC_CHECK_ID",
       "Add KYC Check",
       "Add a KYC check for the customer specified by CUSTOMER_ID. KYC Checks store details of checks on a customer made by the KYC team, their comments and a satisfied status",
@@ -593,7 +593,7 @@ object Http4s200 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(addKycStatus), "PUT",
+      implementedInApiVersion, nameOf(addKycStatus), "PUT",
       "/banks/BANK_ID/customers/CUSTOMER_ID/kyc_statuses",
       "Add KYC Status",
       "Add a kyc_status for the customer specified by CUSTOMER_ID. KYC Status is a timeline of the KYC status of the customer",
@@ -626,7 +626,7 @@ object Http4s200 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(addSocialMediaHandle), "POST",
+      implementedInApiVersion, nameOf(addSocialMediaHandle), "POST",
       "/banks/BANK_ID/customers/CUSTOMER_ID/social_media_handles",
       "Create Customer Social Media Handle",
       "Create a customer social media handle for the customer specified by CUSTOMER_ID",
@@ -653,7 +653,7 @@ object Http4s200 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getCoreAccountById), "GET",
+      implementedInApiVersion, nameOf(getCoreAccountById), "GET",
       "/my/banks/BANK_ID/accounts/ACCOUNT_ID/account",
       "Get Account by Id (Core)",
       s"""Information returned about the account specified by ACCOUNT_ID:
@@ -692,7 +692,7 @@ object Http4s200 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getCoreTransactionsForBankAccount), "GET",
+      implementedInApiVersion, nameOf(getCoreTransactionsForBankAccount), "GET",
       "/my/banks/BANK_ID/accounts/ACCOUNT_ID/transactions",
       "Get Transactions for Account (Core)",
       s"""Returns transactions list (Core info) of the account specified by ACCOUNT_ID.
@@ -727,7 +727,7 @@ object Http4s200 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(accountById), "GET",
+      implementedInApiVersion, nameOf(accountById), "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/account",
       "Get Account by Id (Full)",
       s"""Information returned about an account specified by ACCOUNT_ID as moderated by the view (VIEW_ID):
@@ -774,7 +774,7 @@ object Http4s200 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getPermissionsForBankAccount), "GET",
+      implementedInApiVersion, nameOf(getPermissionsForBankAccount), "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions",
       "Get access",
       s"""Returns the list of the permissions at BANK_ID for account ACCOUNT_ID, with each time a pair composed of the user and the views that he has access to.
@@ -817,7 +817,7 @@ object Http4s200 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getPermissionForUserForBankAccount), "GET",
+      implementedInApiVersion, nameOf(getPermissionForUserForBankAccount), "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER/PROVIDER_ID",
       "Get Account access for User",
       s"""Returns the list of the views at BANK_ID for account ACCOUNT_ID that a user identified by PROVIDER_ID at their provider PROVIDER has access to.
@@ -873,7 +873,7 @@ object Http4s200 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createAccount), "PUT",
+      implementedInApiVersion, nameOf(createAccount), "PUT",
       "/banks/BANK_ID/accounts/NEW_ACCOUNT_ID",
       "Create Account",
       """Create Account at bank specified by BANK_ID with Id specified by ACCOUNT_ID.
@@ -912,7 +912,7 @@ object Http4s200 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getTransactionTypes), "GET",
+      implementedInApiVersion, nameOf(getTransactionTypes), "GET",
       "/banks/BANK_ID/transaction-types",
       "Get Transaction Types at Bank",
       // TODO get the documentation of the parameters from the scala doc of the case class we return
@@ -974,7 +974,7 @@ object Http4s200 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createUser), "POST", "/users",
+      implementedInApiVersion, nameOf(createUser), "POST", "/users",
       "Create User",
       s"""Creates OBP user.
       | No authorisation required.
@@ -1061,7 +1061,7 @@ object Http4s200 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createCustomer), "POST",
+      implementedInApiVersion, nameOf(createCustomer), "POST",
       "/banks/BANK_ID/customers",
       "Create Customer",
       s"""Add a customer linked to the user specified by user_id
@@ -1089,7 +1089,7 @@ object Http4s200 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getCurrentUser), "GET", "/users/current",
+      implementedInApiVersion, nameOf(getCurrentUser), "GET", "/users/current",
       "Get User (Current)",
       """Get the logged in user
         |
@@ -1116,7 +1116,7 @@ object Http4s200 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getUser), "GET", "/users/USER_EMAIL",
+      implementedInApiVersion, nameOf(getUser), "GET", "/users/USER_EMAIL",
       "Get Users by Email Address",
       """Get users by email address
         |
@@ -1165,7 +1165,7 @@ object Http4s200 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createUserCustomerLinks), "POST",
+      implementedInApiVersion, nameOf(createUserCustomerLinks), "POST",
       "/banks/BANK_ID/user_customer_links",
       "Create User Customer Link",
       s"""Link a User to a Customer
@@ -1220,7 +1220,7 @@ object Http4s200 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(addEntitlement), "POST",
+      implementedInApiVersion, nameOf(addEntitlement), "POST",
       "/users/USER_ID/entitlements",
       "Add Entitlement for a User",
       """Create Entitlement. Grant Role to User.
@@ -1260,7 +1260,7 @@ object Http4s200 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getEntitlements), "GET",
+      implementedInApiVersion, nameOf(getEntitlements), "GET",
       "/users/USER_ID/entitlements",
       "Get Entitlements for User",
       s"""${userAuthenticationMessage(true)}""",
@@ -1297,7 +1297,7 @@ object Http4s200 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(deleteEntitlement), "DELETE",
+      implementedInApiVersion, nameOf(deleteEntitlement), "DELETE",
       "/users/USER_ID/entitlement/ENTITLEMENT_ID",
       "Delete Entitlement",
       """Delete Entitlement specified by ENTITLEMENT_ID for an user specified by USER_ID
@@ -1330,7 +1330,7 @@ object Http4s200 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getAllEntitlements), "GET", "/entitlements",
+      implementedInApiVersion, nameOf(getAllEntitlements), "GET", "/entitlements",
       "Get all Entitlements",
       """Login is required.""",
       EmptyBody, entitlementJSONs,
@@ -1362,7 +1362,7 @@ object Http4s200 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(elasticSearchWarehouse), "GET",
+      implementedInApiVersion, nameOf(elasticSearchWarehouse), "GET",
       "/search/warehouse",
       "Search Warehouse Data Via Elasticsearch",
       """
@@ -1459,7 +1459,7 @@ object Http4s200 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(elasticSearchMetrics), "GET",
+      implementedInApiVersion, nameOf(elasticSearchMetrics), "GET",
       "/search/metrics",
       "Search API Metrics via Elasticsearch",
       """
@@ -1540,7 +1540,7 @@ object Http4s200 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getCustomers), "GET",
+      implementedInApiVersion, nameOf(getCustomers), "GET",
       "/users/current/customers",
       "Get all customers for logged in user",
       """Information about the currently authenticated user.
