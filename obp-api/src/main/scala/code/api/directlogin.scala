@@ -43,7 +43,6 @@ import com.nimbusds.jwt.JWTClaimsSet
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.User
 import net.liftweb.common._
-import net.liftweb.http._
 import net.liftweb.mapper.{By, By_>, Descending, OrderBy}
 import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers.tryo
@@ -100,10 +99,7 @@ object DirectLogin extends MdcLoggable {
    * @return httpCode and token value
    */
   def createTokenFuture(allParameters: Map[String, String]): Future[(Int, String, Long)] = {
-    val httpMethod = S.request match {
-      case Full(r) => r.request.method
-      case _ => "GET"
-    }
+    val httpMethod = "POST"
     //Extract the directLogin parameters from the header and test if the request is valid
     for (
       (httpCode, message, directLoginParameters) <- validatorFuture("authorizationToken", httpMethod)
@@ -161,13 +157,7 @@ object DirectLogin extends MdcLoggable {
     (httpCode, message, userId)
   }
 
-  def getHttpMethod = S.request match {
-    case Full(s) => s.post_? match {
-      case true => "POST"
-      case _    => "ERROR"
-    }
-    case _ => "ERROR"
-  }
+  def getHttpMethod = "POST"
 
   /**Validate user supplied Direct Login parameters before they are used further,
     * guard maximum length and content of strings (a-z, 0-9 etc.) */
@@ -230,22 +220,9 @@ object DirectLogin extends MdcLoggable {
       params
     }
 
-    S.request match {
-      // Recommended header style i.e. DirectLogin: username=s, password=s, consumer_key=s
-      case Full(a) if a.header("DirectLogin").isDefined == true =>
-        toMap(a.header("DirectLogin").openOrThrowException(attemptedToOpenAnEmptyBox + " => getAllParameters"))
-      // Deprecated header style i.e. Authorization: DirectLogin username=s, password=s, consumer_key=s
-      case Full(a) => a.header("Authorization") match {
-        case Full(header) => {
-          if (header.contains("DirectLogin"))
-            toMap(header)
-          else
-            Map("error" -> ErrorMessages.InvalidDirectLoginHeader)
-        }
-        case _ => Map("error" -> ErrorMessages.MissingDirectLoginHeader)
-      }
-      case _ => Map("error" -> ErrorMessages.MissingDirectLoginHeader)
-    }
+    // S.request is not available in the http4s path; Lift bridge removed.
+    // Callers on the http4s path use validatorFutureWithParams instead.
+    Map("error" -> ErrorMessages.MissingDirectLoginHeader)
   }
 
 
@@ -510,10 +487,7 @@ object DirectLogin extends MdcLoggable {
   }
 
   def getUser : Box[User] = {
-    val httpMethod = S.request match {
-      case Full(r) => r.request.method
-      case _ => "GET"
-    }
+    val httpMethod = "GET"
     val (httpCode, message, directLoginParameters) = validator("protectedResource")
 
     if (httpCode == 400 || httpCode == 401)
@@ -531,18 +505,14 @@ object DirectLogin extends MdcLoggable {
   }
 
   def getUserFromDirectLoginHeaderFuture(sc: CallContext) : Future[(Box[User], Option[CallContext])] = {
-    val httpMethod = if (sc.verb.nonEmpty) sc.verb else S.request match {
-      case Full(r) => r.request.method
-      case _ => "GET"
-    }
-    // Prefer directLoginParams from CallContext (http4s), fall back to S.request (Lift)
+    val httpMethod = if (sc.verb.nonEmpty) sc.verb else "GET"
+    // Prefer directLoginParams from CallContext (http4s)
     val directLoginParamsFromCC = sc.directLoginParams
     for {
       (httpCode, message, directLoginParameters) <- if (directLoginParamsFromCC.nonEmpty && directLoginParamsFromCC.contains("token")) {
         // Use params from CallContext (http4s path)
         validatorFutureWithParams("protectedResource", httpMethod, directLoginParamsFromCC)
       } else {
-        // Fall back to S.request (Lift path), e.g. we still use Lift to generate the token and secret, so we need to maintain backward compatibility here.
         validatorFuture("protectedResource", httpMethod)
       }
       _ <- Future { if (httpCode == 400 || httpCode == 401) Empty else Full("ok") } map { x => fullBoxOrException(x ?~! message) }
@@ -603,11 +573,6 @@ object DirectLogin extends MdcLoggable {
 
   def getConsumer: Box[Consumer] = {
     logger.debug("DirectLogin header correct ")
-    val httpMethod = S.request match {
-      case Full(r) => r.request.method
-      case _ => "GET"
-    }
-
     val (httpCode, message, directLoginParameters) = validator("protectedResource")
 
     val consumer: Option[Consumer] = for {

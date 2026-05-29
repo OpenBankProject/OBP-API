@@ -2848,7 +2848,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       else if (getPropsAsBoolValue("allow_gateway_login", false) && hasGatewayHeader(cc.authReqHeaderField)) {
         APIUtil.getPropsValue("gateway.host") match {
           case Full(h) if h.split(",").toList.exists(_.equalsIgnoreCase(remoteIpAddress) == true) => // Only addresses from white list can use this feature
-            val (httpCode, message, parameters) = GatewayLogin.validator(Empty)
+            val (httpCode, message, parameters) = GatewayLogin.validator(cc.authReqHeaderField)
             httpCode match {
               case 200 =>
                 val payload = GatewayLogin.parseJwt(parameters)
