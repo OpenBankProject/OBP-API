@@ -35,6 +35,14 @@ mkdir -p test-results/parallel
 
 MVN_OPTS="-Xmx3G -Xss2m -XX:MaxMetaspaceSize=1G"
 
+# Cross-checkout mutex: the obp-commons `mvn install` writes to the shared ~/.m2.
+# Multiple checkouts starting this script simultaneously race on that write and can
+# corrupt each other's JARs (torn ZipFile).  We use an atomic mkdir lock to serialise
+# ~/.m2 writes across processes.  The lock is released immediately after the install
+# and cleaned up on exit (including crashes) via the EXIT trap.
+OBC_LOCK="/tmp/obp-commons-m2-install.lock"
+trap 'rm -rf "$OBC_LOCK"' EXIT
+
 SHARDS=4
 for arg in "$@"; do
   case $arg in
@@ -189,10 +197,15 @@ echo ""
 # is resolved from ~/.m2, not from the reactor. We must install the CURRENT
 # obp-commons into ~/.m2, otherwise shards test against a stale obp-commons (the
 # old `test-compile -am` only built it in the reactor and never refreshed ~/.m2).
+# The obp-commons install holds OBC_LOCK (see top) so concurrent checkouts don't
+# race on the shared ~/.m2 write.  The subsequent test-compile writes only to this
+# checkout's own target/ and is safe to run in parallel across checkouts.
 echo "Pre-compile 1/2: install obp-commons -> ~/.m2 ..."
+until mkdir "$OBC_LOCK" 2>/dev/null; do sleep 2; done
 MAVEN_OPTS="$MVN_OPTS" \
   mvn install -DskipTests -pl obp-commons -q > test-results/parallel/precompile.log 2>&1
 PRECOMPILE_RC=$?
+rm -rf "$OBC_LOCK"
 if [ $PRECOMPILE_RC -eq 0 ]; then
   echo "Pre-compile 2/2: test-compile obp-api -> shared target/ ..."
   MAVEN_OPTS="$MVN_OPTS" \
