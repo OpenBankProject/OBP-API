@@ -37,16 +37,13 @@ import com.alibaba.ttl.TransmittableThreadLocal
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
 import net.liftweb.common._
-import net.liftweb.http.{JsonResponse, LiftRules, TransientRequestMemoize}
+import net.liftweb.http.JsonResponse
 import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST.JValue
-import net.liftweb.util.Helpers.tryo
-import net.liftweb.util.{Helpers, NamedPF, Props, ThreadGlobal}
 
-import java.util.{Locale, ResourceBundle}
+import java.util.{Locale, MissingResourceException, ResourceBundle}
 import scala.collection.mutable.ArrayBuffer
 import scala.util.control.NoStackTrace
-import scala.xml.{Node, NodeSeq}
 
 trait APIFailure{
   val msg : String
@@ -67,86 +64,32 @@ case class APIFailureNewStyle(failMsg: String,
                               ccl: Option[CallContextLight] = None
                              ){
   def translatedErrorMessage = {
-  
     val errorCode = extractErrorMessageCode(failMsg)
     val errorBody = extractErrorMessageBody(failMsg)
-    
-    val localeUrlParameter = getHttpRequestUrlParam(ccl.map(_.url).getOrElse(""),PARAM_LOCALE)
+
+    val localeUrlParameter = getHttpRequestUrlParam(ccl.map(_.url).getOrElse(""), PARAM_LOCALE)
     val localeFromUrl = I18NUtil.computeLocale(localeUrlParameter)
-    
-    
-    val locale: Locale = 
-      if(localeFromUrl.toString.equals("")) //if the url local parameter is invalid, then we use the default Locale.
-        I18NUtil.getDefaultLocale() 
-      else 
-        localeFromUrl
+    val locale: Locale =
+      if (localeFromUrl.toString.equals("")) I18NUtil.getDefaultLocale()
+      else localeFromUrl
 
-    val liftCoreResourceBundle = tryo(ResourceBundle.getBundle(LiftRules.liftCoreResourceName, locale)).toList
-    
-    val _resBundle = new ThreadGlobal[List[ResourceBundle]]
-    object resourceValueCache extends TransientRequestMemoize[(String, Locale), String]
-  
-    def resourceBundles(loc: Locale): List[ResourceBundle] = {
-      _resBundle.box match {
-        case Full(bundles) => bundles
-        case _ => {
-          _resBundle.set(
-            LiftRules.resourceForCurrentLoc.vend() :::
-              LiftRules.resourceNames.flatMap(name => tryo{
-                if (Props.devMode) {
-                  tryo{
-                    val clz = this.getClass.getClassLoader.loadClass("java.util.ResourceBundle")
-                    val meth = clz.getDeclaredMethods.
-                      filter{m => m.getName == "clearCache" && m.getParameterTypes.length == 0}.
-                      toList.head
-                    meth.invoke(null)
-                  }
-                }
-                List(ResourceBundle.getBundle(name, loc))
-              }.openOr(
-                NamedPF.applyBox((name, loc), LiftRules.resourceBundleFactories.toList).map(List(_)) openOr Nil
-                )))
-          _resBundle.value
-        }
-      }
-    }
-   
-  
-    def resourceBundleList: List[ResourceBundle] = resourceBundles(locale) ++ liftCoreResourceBundle
-  
-    def ?!(str: String, resBundle: List[ResourceBundle]): String =
-      resBundle.flatMap(
-        r => tryo(
-          r.getObject(str) match {
-            case s: String => Full(s)
-            case n: Node => Full(n.text)
-            case ns: NodeSeq => Full(ns.text)
-            case _ => Empty
-          })
-          .flatMap(s => s)).find(s => true) getOrElse {
-        LiftRules.localizationLookupFailureNotice.foreach(_ (str, locale));
-        str
-      }
-  
-    def ?(str: String, locale: Locale): String = resourceValueCache.get(
-      str -> 
-        locale,
-      if(locale.toString.startsWith("en") || ?!(str, resourceBundleList)==str) //If can not find the value from props or the local is `en`, then return 
-        errorBody 
-      else {
+    val bundles: List[ResourceBundle] =
+      try { ResourceBundle.getBundle("i18n.lift-core", locale) :: Nil }
+      catch { case _: MissingResourceException => Nil }
+
+    def lookup(key: String): Option[String] =
+      bundles.flatMap(b => try { Some(b.getString(key)) } catch { case _: MissingResourceException => None }).headOption
+
+    val translatedErrorBody: String = lookup(errorCode) match {
+      case None => errorBody
+      case Some(translated) if locale.toString.startsWith("en") || translated == errorCode => errorBody
+      case Some(translated) =>
         val originalErrorMessageFromScalaCode = ErrorMessages.getValueMatches(_.startsWith(errorCode)).getOrElse("")
-        // we need to keep the extra message, 
-        // eg: OBP-20006: usuario le faltan uno o más roles':  CanGetUserInvitation for BankId(gh.29.uk). 
-        if(failMsg.contains(originalErrorMessageFromScalaCode)){ 
-          s": ${?!(str, resourceBundleList)}"+failMsg.replace(originalErrorMessageFromScalaCode,"")
-        } else{
-          s": ${?!(str, resourceBundleList)}"
-        }
-      }
-
-      )
-    
-    val translatedErrorBody = ?(errorCode, locale)
+        if (failMsg.contains(originalErrorMessageFromScalaCode))
+          s": $translated" + failMsg.replace(originalErrorMessageFromScalaCode, "")
+        else
+          s": $translated"
+    }
     s"$errorCode$translatedErrorBody"
   }
 }
