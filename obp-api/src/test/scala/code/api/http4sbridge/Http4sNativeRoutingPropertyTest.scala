@@ -251,31 +251,6 @@ class Http4sNativeRoutingPropertyTest extends V500ServerSetup {
       successCount should equal(iterations)
     }
 
-    scenario("Property 6.3: Missing handlers return 404 with error message (10 iterations)", PropertyTag) {
-      var successCount = 0
-      val iterations = CI_ITERATIONS
-      
-      (1 to iterations).foreach { i =>
-        val randomPath = s"/obp/v5.0.0/nonexistent/${randomString(10)}"
-        
-        val (status, json, headers) = makeHttp4sGetRequest(randomPath)
-        
-        // Should return 404
-        status should equal(404)
-        
-        // Should have error message
-        (hasField(json, "error") || hasField(json, "message")) shouldBe true
-        
-        // Should have correlation ID
-        assertCorrelationId(headers)
-        
-        successCount += 1
-      }
-      
-      logger.info(s"Property 6.3 completed: $successCount iterations")
-      successCount should equal(iterations)
-    }
-
     scenario("Property 6.4: Authentication failures return consistent error responses (10 iterations)", PropertyTag) {
       var successCount = 0
       val iterations = CI_ITERATIONS

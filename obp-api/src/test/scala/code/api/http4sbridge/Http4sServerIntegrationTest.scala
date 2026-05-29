@@ -186,25 +186,6 @@ class Http4sServerIntegrationTest extends ServerSetup with DefaultUsers with Ser
         json \ "version" should not equal JObject(Nil)
       }
     }
-
-    scenario("Server shares state with Lift server", Http4sServerIntegrationTag) {
-      Given("Both HTTP4S and Lift servers are running")
-      
-      When("We request banks from both servers")
-      val (http4sStatus, http4sBody) = makeHttp4sGetRequest("/obp/v5.0.0/banks")
-      val liftRequest = (baseRequest / "obp" / "v5.0.0" / "banks").GET
-      val liftResponse = makeGetRequest(liftRequest, Nil)
-      
-      Then("Both should return 200")
-      http4sStatus should equal(200)
-      liftResponse.code should equal(200)
-      
-      And("Both should return banks data")
-      val http4sJson = parse(http4sBody)
-      val liftJson = liftResponse.body
-      (http4sJson \ "banks") should not equal JObject(Nil)
-      (liftJson \ "banks") should not equal JObject(Nil)
-    }
   }
 
   feature("HTTP4S v7.0.0 Native Endpoints") {

@@ -38,7 +38,7 @@ class Http4sOpenIdConnectRoutesTest extends ServerSetup {
     scenario("Disabled by default — callback paths fall through (None)") {
       Given("openid_connect.enabled is not set (default false)")
       When("the three callback paths are invoked with GET and POST")
-      Then("none match — request falls through to the Lift bridge, as before the migration")
+      Then("none match — request falls through to the next route (ultimately notFoundCatchAll / JSON 404)")
       run(get("/auth/openid-connect/callback"))    shouldBe None
       run(post("/auth/openid-connect/callback"))   shouldBe None
       run(get("/auth/openid-connect/callback-1"))  shouldBe None

@@ -473,8 +473,7 @@ Everything in lines 1–7 is request-path-related and will go in the bridge-remo
 
 | Item | Status |
 |---|---|
-| `Http4s500RoutesTest`, `RootAndBanksTest`, `V500ContractParityTest` | `@Ignore`. |
-| `CardTest` | Commented out. |
+| `RootAndBanksTest` | `@Ignore`. |
 | v5.0.0: 13 skipped tests | Setup cost paid, no value. |
 | `V7ResourceDocsAggregationTest` | Was intentionally failing; aggregation bug fix landed → now passes. |
 | `AbacRuleTests` (6 local fails) | Environment-dependent — too few users in local DB triggers `isStatisticallyTooPermissive`. Not a regression. |
