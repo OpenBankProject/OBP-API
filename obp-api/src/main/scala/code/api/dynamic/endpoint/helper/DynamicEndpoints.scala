@@ -4,7 +4,7 @@ import cats.effect.IO
 import code.api.dynamic.endpoint.helper.practise.{DynamicEndpointCodeGenerator, PractiseEndpointGroup}
 import code.api.dynamic.endpoint.helper.practise.PractiseEndpointGroup
 import code.api.util.DynamicUtil.{Sandbox, Validation}
-import code.api.util.APIUtil.{BooleanBody, DoubleBody, EmptyBody, LongBody, OBPEndpointIO, PrimaryDataBody, ResourceDoc, StringBody, getDisabledEndpointOperationIds}
+import code.api.util.APIUtil.{BooleanBody, DoubleBody, EmptyBody, LongBody, Http4sEndpointIO, PrimaryDataBody, ResourceDoc, StringBody, getDisabledEndpointOperationIds}
 import code.api.util.{CallContext, DynamicUtil}
 import net.liftweb.common.{Box, Failure, Full}
 import net.liftweb.json.{JNothing, JValue}
@@ -86,7 +86,7 @@ case class CompiledObjects(exampleRequestBody: Option[JValue], successResponseBo
   }
   val successResponse: Product = toCaseObject(successResponseBody)
 
-  private val partialFunction: OBPEndpointIO = {
+  private val partialFunction: Http4sEndpointIO = {
 
     //If the requestBody is PrimaryDataBody, return None. otherwise, return the exampleRequestBody:Option[JValue]
     // In side OBP resourceDoc, requestBody and successResponse must be Product type，
@@ -132,7 +132,7 @@ case class CompiledObjects(exampleRequestBody: Option[JValue], successResponseBo
          |
          |$responseBodyCaseClasses
          |
-         |val endpoint: code.api.util.APIUtil.OBPEndpointIO = {
+         |val endpoint: code.api.util.APIUtil.Http4sEndpointIO = {
          |  case request => { callContext =>
          |    val Some(pathParams) = callContext.resourceDocument.map(_.getPathParams(request.uri.path.segments.toList.map(_.encoded)))
          |    $decodedMethodBody
@@ -142,7 +142,7 @@ case class CompiledObjects(exampleRequestBody: Option[JValue], successResponseBo
          |endpoint
          |
          |""".stripMargin
-    val endpointMethod = DynamicUtil.compileScalaCode[OBPEndpointIO](code)
+    val endpointMethod = DynamicUtil.compileScalaCode[Http4sEndpointIO](code)
 
     endpointMethod match {
       case Full(func) => func
@@ -164,14 +164,14 @@ case class CompiledObjects(exampleRequestBody: Option[JValue], successResponseBo
    * all the obp partialFunctions will be wrapped into the sandbox which under the permission control.
    *
    */
-  def sandboxEndpoint(bankId: Option[String]) : OBPEndpointIO = {
+  def sandboxEndpoint(bankId: Option[String]) : Http4sEndpointIO = {
     val sandbox = bankId match {
       case Some(v) if StringUtils.isNotBlank(v) =>
          Sandbox.sandbox(v)
       case _ => Sandbox.sandbox("*")
     }
 
-    new OBPEndpointIO {
+    new Http4sEndpointIO {
       override def isDefinedAt(req: Request[IO]): Boolean = partialFunction.isDefinedAt(req)
 
       // run dynamic code in sandbox

@@ -2,7 +2,7 @@ package code.api.dynamic.endpoint.helper
 
 import scala.language.implicitConversions
 import cats.effect.IO
-import code.api.util.APIUtil.{OBPEndpointIO, OBPReturnType}
+import code.api.util.APIUtil.{Http4sEndpointIO, OBPReturnType}
 import code.api.util.DynamicUtil.{Sandbox, Validation}
 import code.api.util.{CallContext, CustomJsonFormats, DynamicUtil}
 import org.http4s.{Request, Response}
@@ -26,7 +26,7 @@ trait DynamicCompileEndpoint {
 
   protected def process(callContext: CallContext, request: Request[IO], pathParams: Map[String, String]): IO[Response[IO]]
 
-  val endpoint: OBPEndpointIO = new OBPEndpointIO {
+  val endpoint: Http4sEndpointIO = new Http4sEndpointIO {
     override def isDefinedAt(x: Request[IO]): Boolean = true
 
     override def apply(request: Request[IO]): CallContext => IO[Response[IO]] = { cc =>

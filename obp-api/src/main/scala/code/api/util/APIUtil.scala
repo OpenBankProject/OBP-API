@@ -1597,7 +1597,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
                           // Native http4s handler for runtime-compiled dynamic endpoints (Piece C). Defaulted to None so
                           // no existing construction site changes. Set by DynamicResourceDocsEndpointGroup / practise group
                           // run by code.api.dynamic.endpoint.Http4sDynamicEndpoint.
-                          dynamicHttp4sFunction: Option[OBPEndpointIO] = None
+                          dynamicHttp4sFunction: Option[Http4sEndpointIO] = None
                         ) {
     // this code block will be merged to constructor.
     {
@@ -2645,7 +2645,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   type Http4sEndpoint = Option[HttpRoutes[IO]]
   // Native http4s endpoint type for runtime-compiled dynamic endpoints (Piece C).
   // The dynamic-code template compiles to this, and Http4sDynamicEndpoint runs it directly.
-  type OBPEndpointIO = PartialFunction[org.http4s.Request[IO], CallContext => IO[org.http4s.Response[IO]]]
+  type Http4sEndpointIO = PartialFunction[org.http4s.Request[IO], CallContext => IO[org.http4s.Response[IO]]]
 
 
   def extractToCaseClass[T](in: String)(implicit ev: Manifest[T]): Box[T] = {
