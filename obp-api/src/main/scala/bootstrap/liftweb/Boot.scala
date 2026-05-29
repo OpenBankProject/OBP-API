@@ -593,29 +593,8 @@ class Boot extends MdcLoggable {
     }
 
 
-    // export one Connector's methods as endpoints, it is just for develop
-    APIUtil.getPropsValue("connector.name.export.as.endpoints").foreach { connectorName =>
-      // validate whether "connector.name.export.as.endpoints" have set a correct value
-      code.api.Constant.CONNECTOR match {
-        case Full("star") =>
-          val starConnectorTypes = APIUtil.getPropsValue("starConnector_supported_types","mapped")
-            .trim
-            .split("""\s*,\s*""")
-
-          val allSupportedConnectors: List[String] = Connector.nameToConnector.keys.toList
-            .filter(it => starConnectorTypes.exists(it.startsWith(_)))
-
-          assert(allSupportedConnectors.contains(connectorName), s"connector.name.export.as.endpoints=$connectorName, this value should be one of ${allSupportedConnectors.mkString(",")}")
-
-        case _ if connectorName == "mapped" =>
-          Functions.doNothing
-
-        case Full(connector) =>
-          assert(connector == connectorName, s"When 'connector=$connector', this props must be: connector.name.export.as.endpoints=$connector, but current it is $connectorName")
-      }
-
-      ConnectorEndpoints.registerConnectorEndpoints
-    }
+    // ConnectorEndpoints (connector.name.export.as.endpoints) registered via Lift statelessDispatch
+    // which is no longer reachable (Lift bridge removed in Phase B). Disabled until migrated to http4s.
     if(HydraUtil.integrateWithHydra && HydraUtil.mirrorConsumerInHydra) {
       createHydraClients()
     }

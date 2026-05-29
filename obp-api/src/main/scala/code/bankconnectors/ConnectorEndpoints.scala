@@ -4,7 +4,6 @@ import code.api.APIFailureNewStyle
 import code.api.util.APIUtil.{OBPEndpoint, _}
 import code.api.util.NewStyle.HttpCode
 import code.api.util.{APIUtil, ApiRole, CallContext, CustomJsonFormats, NewStyle, OBPQueryParam}
-import code.api.v3_1_0.OBPAPI3_1_0.oauthServe
 import code.bankconnectors.ConnectorEndpoints.getMethod
 import code.bankconnectors.rest.RestConnector_vMar2019
 import code.util.Helper
@@ -28,9 +27,8 @@ import scala.reflect.runtime.{universe => ru}
 
 object ConnectorEndpoints extends RestHelper{
 
-  def registerConnectorEndpoints = {
-    oauthServe(connectorEndpoints)
-  }
+  // Lift dispatch removed in Phase B; not yet migrated to http4s
+  def registerConnectorEndpoints = ()
 
   /**
    * extract request body, no matter GET, POST, PUT or DELETE method
