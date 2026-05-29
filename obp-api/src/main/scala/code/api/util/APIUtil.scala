@@ -1611,7 +1611,11 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
                           var specifiedUrl: Option[String] = None, // A derived value: Contains the called version (added at run time). See the resource doc for resource doc!
                           createdByBankId: Option[String] = None, //we need to filter the resource Doc by BankId
                           authMode: EndpointAuthMode = UserOnly, // Per-endpoint auth mode: UserOnly, ApplicationOnly, UserOrApplication, UserAndApplication
-                          http4sPartialFunction: Http4sEndpoint = None // http4s endpoint handler
+                          http4sPartialFunction: Http4sEndpoint = None, // http4s endpoint handler
+                          // Native http4s handler for runtime-compiled dynamic endpoints (Piece C). Defaulted to None so
+                          // no existing construction site changes. Set by DynamicResourceDocsEndpointGroup / practise group
+                          // (with partialFunction = dynamicEndpointStub); run by code.api.dynamic.endpoint.Http4sDynamicEndpoint.
+                          dynamicHttp4sFunction: Option[OBPEndpointIO] = None
                         ) {
     // this code block will be merged to constructor.
     {
@@ -1763,6 +1767,81 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       reversedRequestUrl.zip(url.reverse).collect {
         case pair @(k, _) if isPathVariable(k) => pair
       }.toMap
+
+    /**
+     * Whether the given request path segments (after the version prefix) match this doc's
+     * requestUrl template — the public, framework-neutral form of the `isUrlMatchesResourceDocUrl`
+     * closure inside [[wrappedWithAuthCheck]]. Used by the native runtime-compiled dynamic-endpoint
+     * dispatcher (code.api.dynamic.endpoint.Http4sDynamicEndpoint) to locate the matching doc.
+     */
+    def matchesPartPath(partPath: List[String]): Boolean = {
+      val urlInDoc = requestUrlPartPath.toList
+      if (partPath == urlInDoc) true
+      else {
+        val pathVariableNames = findPathVariableNames(this.requestUrl)
+        (partPath.size == urlInDoc.size) &&
+          urlInDoc.zip(partPath).forall { case (k, v) => k == v || pathVariableNames.contains(k) }
+      }
+    }
+
+    /**
+     * Native (http4s) analogue of [[wrappedWithAuthCheck]]'s auth/validation chain, for the
+     * runtime-compiled dynamic-endpoint dispatch. Runs the SAME ordered checks — authentication,
+     * obp-id format, bank, roles, account, view, counterparty — with the same predicates and *Fun
+     * helpers, returning the enriched CallContext (user set) for a native handler instead of
+     * wrapping a Lift OBPEndpoint. No S.init / SS / Box[JsonResponse]; the compiled native body
+     * looks up bank/account/view itself, so the entities validated here serve only 404/403 gating,
+     * exactly as the Lift checks did. Auth/role/lookup failures fail the Future (the dispatcher
+     * converts them to a response via ErrorResponseConverter).
+     */
+    def authCheckIO(partPath: List[String], requestJsonBody: Box[JValue], cc: CallContext): Future[Option[CallContext]] = {
+      import com.openbankproject.commons.ExecutionContext.Implicits.global
+      val pathParams = getPathParams(partPath)
+      val allObpKeyValuePairs =
+        if (cc.verb == "POST" && requestJsonBody.isDefined) getAllObpIdKeyValuePairs(requestJsonBody.getOrElse(JString(""))) else Nil
+      val bankId = pathParams.get("BANK_ID").map(BankId(_))
+      val accountId = pathParams.get("ACCOUNT_ID").map(AccountId(_))
+      val viewId = pathParams.get("VIEW_ID").map(ViewId(_))
+      val counterpartyId = pathParams.get("COUNTERPARTY_ID").map(CounterpartyId(_))
+
+      def checkAuth(cc: CallContext): Future[(Box[User], Option[CallContext])] = authMode match {
+        case UserOnly | UserAndApplication => if (AuthCheckIsRequired) authenticatedAccessFun(cc) else anonymousAccessFun(cc)
+        case ApplicationOnly | UserOrApplication => applicationAccessFun(cc)
+      }
+      def checkObpIds(pairs: List[(String, String)], callContext: Option[CallContext]): Future[Option[CallContext]] = Future {
+        val invalid = pairs.filter(p => !checkObpId(p._2).equals(SILENCE_IS_GOLDEN))
+        if (invalid.nonEmpty) throw new RuntimeException(s"$InvalidJsonFormat Here are all invalid values: $invalid") else callContext
+      }
+      def checkBank(bankId: Option[BankId], callContext: Option[CallContext]): Future[(Bank, Option[CallContext])] =
+        if (isNeedCheckBank && bankId.isDefined) checkBankFun(bankId.get)(callContext) else Future.successful(null.asInstanceOf[Bank] -> callContext)
+      def checkRoles(bankId: Option[BankId], user: Box[User], callContext: Option[CallContext]): Future[Box[Unit]] =
+        if (isNeedCheckRoles) {
+          val bankIdStr = bankId.map(_.value).getOrElse("")
+          val userIdStr = user.map(_.userId).openOr("")
+          val consumerId = APIUtil.getConsumerPrimaryKey(callContext)
+          val errorMessage = if (rolesForCheck.filter(_.requiresBankId).isEmpty) UserHasMissingRoles + rolesForCheck.mkString(" or ")
+                             else UserHasMissingRoles + rolesForCheck.mkString(" or ") + s" for BankId($bankIdStr)."
+          Helper.booleanToFuture(errorMessage, cc = callContext) { APIUtil.handleAccessControlWithAuthMode(bankIdStr, userIdStr, consumerId, rolesForCheck, authMode) }
+        } else Future.successful(Full(Unit))
+      def checkAccount(bankId: Option[BankId], accountId: Option[AccountId], callContext: Option[CallContext]): Future[(BankAccount, Option[CallContext])] =
+        if (isNeedCheckAccount && bankId.isDefined && accountId.isDefined) checkAccountFun(bankId.get)(accountId.get, callContext) else Future.successful(null.asInstanceOf[BankAccount] -> callContext)
+      def checkView(viewId: Option[ViewId], bankId: Option[BankId], accountId: Option[AccountId], boxUser: Box[User], callContext: Option[CallContext]): Future[View] =
+        if (isNeedCheckView && bankId.isDefined && accountId.isDefined && viewId.isDefined) checkViewFun(viewId.get)(BankIdAccountId(bankId.get, accountId.get), boxUser, callContext) else Future.successful(null.asInstanceOf[View])
+      def checkCounterparty(counterpartyId: Option[CounterpartyId], callContext: Option[CallContext]): OBPReturnType[CounterpartyTrait] =
+        if (isNeedCheckCounterparty && counterpartyId.isDefined) checkCounterpartyFun(counterpartyId.get)(callContext) else Future.successful(null.asInstanceOf[CounterpartyTrait] -> callContext)
+
+      for {
+        (boxUser, callContext) <- checkAuth(cc)
+        _ <- checkObpIds(allObpKeyValuePairs, callContext)
+        (bank, callContext) <- checkBank(bankId, callContext)
+        _ <- checkRoles(bankId, boxUser, callContext)
+        (account, callContext) <- checkAccount(bankId, accountId, callContext)
+        view <- checkView(viewId, bankId, accountId, boxUser, callContext)
+        counterparty <- checkCounterparty(counterpartyId, callContext)
+      } yield {
+        if (boxUser.isDefined) callContext.map(_.copy(user = boxUser)) else callContext
+      }
+    }
 
     /**
      * According errorResponseBodies whether contains AuthenticatedUserIsRequired and UserHasMissingRoles do validation.
@@ -2874,7 +2953,10 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         case ApiVersion.v5_0_0 => LiftRules.statelessDispatch.append(v5_0_0.OBPAPI5_0_0)
         case ApiVersion.v5_1_0 => LiftRules.statelessDispatch.append(v5_1_0.OBPAPI5_1_0)
         case ApiVersion.v6_0_0 => LiftRules.statelessDispatch.append(v6_0_0.OBPAPI6_0_0)
-        case ApiVersion.`dynamic-endpoint` => LiftRules.statelessDispatch.append(OBPAPIDynamicEndpoint)
+        // dynamic-endpoint dispatch migrated to Http4sDynamicEndpoint (wired into Http4sApp.baseServices).
+        // Keep the case label with an empty body so ApiVersion.`dynamic-endpoint` does NOT fall through
+        // to the ScannedApiVersion branch below (which would re-append it via ScannedApis).
+        case ApiVersion.`dynamic-endpoint` => // LiftRules.statelessDispatch.append(OBPAPIDynamicEndpoint)
         // dynamic-entity endpoints migrated to Http4sDynamicEntity (wired into Http4sApp.baseServices).
         // Keep the case label with an empty body so ApiVersion.`dynamic-entity` does NOT fall through
         // to the ScannedApiVersion branch below (which would re-append it via ScannedApis).
@@ -2898,6 +2980,10 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   type OBPEndpoint = PartialFunction[Req, CallContext => Box[JsonResponse]]
   type OBPReturnType[T] = Future[(T, Option[CallContext])]
   type Http4sEndpoint = Option[HttpRoutes[IO]]
+  // Native http4s endpoint type for runtime-compiled dynamic endpoints (Piece C). Distinct from
+  // OBPEndpoint (which is Lift-typed and shared by every static endpoint, so must not change):
+  // the dynamic-code template compiles to this, and Http4sDynamicEndpoint runs it directly.
+  type OBPEndpointIO = PartialFunction[org.http4s.Request[IO], CallContext => IO[org.http4s.Response[IO]]]
 
 
   def getAllowedEndpoints (endpoints : Iterable[OBPEndpoint], resourceDocs: ArrayBuffer[ResourceDoc]) : List[OBPEndpoint] = {

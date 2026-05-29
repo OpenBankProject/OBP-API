@@ -35,7 +35,6 @@ import code.api.v5_0_0.OBPAPI5_0_0.{allResourceDocs, apiPrefix, registerRoutes, 
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.util.{ApiVersion,ApiVersionStatus}
 import net.liftweb.common.{Box, Full}
-import net.liftweb.http.{LiftResponse, PlainTextResponse}
 import org.apache.http.HttpStatus
 
 /*
@@ -50,40 +49,41 @@ object OBPAPIDynamicEndpoint extends OBPRestHelper with MdcLoggable with Version
   // if old version ResourceDoc objects have the same name endpoint with new version, omit old version ResourceDoc.
   def allResourceDocs = collectResourceDocs(ImplementationsDynamicEndpoint.resourceDocs)
 
-  val routes : List[OBPEndpoint] = List(APIUtil.dynamicEndpointStub,
-    //This is for the dynamic endpoints which are created by dynamic swagger files
-    ImplementationsDynamicEndpoint.dynamicEndpoint,
-    /**
-     * Here is the place where we register the dynamicEndpoint, all the dynamic resource docs endpoints are here.    
-     * Actually, we only register one endpoint for all the dynamic resource docs endpoints.                          
-     * For Liftweb, it just need to handle one endpoint,                                                             
-     *  all the router functionalities are in OBP code.                                                              
-     *  details: please also check code/api/vDynamic/dynamic/DynamicEndpoints.findEndpoint method                      
-     * NOTE: this must be the last one endpoint to register into Liftweb                                             
-     * Because firstly, Liftweb should look for the static endpoints --> then the dynamic ones. 
-     * This is for the dynamic endpoints which are createdy by dynamic resourceDocs
-     */
-    DynamicEndpoints.dynamicEndpoint
-  ) 
+  // dynamic-endpoint dispatch is fully native (code.api.dynamic.endpoint.Http4sDynamicEndpoint):
+  //  - Piece B (proxy): Http4sDynamicEndpoint.proxy -> APIMethodsDynamicEndpoint.proxyHandle
+  //  - Piece C (runtime-compiled): DynamicEndpoints.findEndpoint -> ResourceDoc.dynamicHttp4sFunction
+  // The former Lift `OBPEndpoint`s (ImplementationsDynamicEndpoint.dynamicEndpoint via DynamicReq,
+  // and DynamicEndpoints.dynamicEndpoint) have been removed. `routes` keeps only the no-op stub; it
+  // is no longer used for resource-doc filtering (ResourceDocsAPIMethods returns the dynamic-endpoint
+  // resourceDocs unfiltered, like dynamic-entity).
+  val routes : List[OBPEndpoint] = List(APIUtil.dynamicEndpointStub)
 
-  routes.map(endpoint => oauthServe(apiPrefix{endpoint}, None))
-  
+  // dynamic-endpoint dispatch migrated to native http4s (code.api.dynamic.endpoint.Http4sDynamicEndpoint).
+  // The Http4sDynamicEndpoint adapter rebuilds the wrapped form from `routes` directly
+  // (routes.map(apiPrefix andThen buildOAuthHandler)) and applies it in-process, so the Lift
+  // statelessDispatch self-registration below is no longer used. `routes` itself is kept — it is
+  // the adapter's source list and is also read by ResourceDocs aggregation.
+  // routes.map(endpoint => oauthServe(apiPrefix{endpoint}, None))
+
   logger.info(s"version $version has been run! There are ${routes.length} routes.")
-  // specified response for OPTIONS request.
-  private val corsResponse: Box[LiftResponse] = Full{
-    val corsHeaders = List(
-      "Access-Control-Allow-Origin" -> "*",
-      "Access-Control-Allow-Methods" -> "GET, POST, OPTIONS, PUT, PATCH, DELETE",
-      "Access-Control-Allow-Headers" -> "*",
-      "Access-Control-Allow-Credentials" -> "true",
-      "Access-Control-Max-Age" -> "1728000" //Tell client that this pre-flight info is valid for 20 days
-    )
-    PlainTextResponse("", corsHeaders, HttpStatus.SC_NO_CONTENT)
-  }
-  /*
-   * process OPTIONS http request, just return no content and status is 204
-   */
-  this.serve({
-    case req if req.requestType.method == "OPTIONS" => corsResponse
-  })
+  // OPTIONS / CORS for dynamic-endpoint is now handled globally by Http4sApp.corsHandler (which
+  // short-circuits all OPTIONS ahead of the version routes). The Lift OPTIONS serve below became
+  // dead once dynamic-endpoint left statelessDispatch — kept commented for reference.
+  // // specified response for OPTIONS request.
+  // private val corsResponse: Box[LiftResponse] = Full{
+  //   val corsHeaders = List(
+  //     "Access-Control-Allow-Origin" -> "*",
+  //     "Access-Control-Allow-Methods" -> "GET, POST, OPTIONS, PUT, PATCH, DELETE",
+  //     "Access-Control-Allow-Headers" -> "*",
+  //     "Access-Control-Allow-Credentials" -> "true",
+  //     "Access-Control-Max-Age" -> "1728000" //Tell client that this pre-flight info is valid for 20 days
+  //   )
+  //   PlainTextResponse("", corsHeaders, HttpStatus.SC_NO_CONTENT)
+  // }
+  // /*
+  //  * process OPTIONS http request, just return no content and status is 204
+  //  */
+  // this.serve({
+  //   case req if req.requestType.method == "OPTIONS" => corsResponse
+  // })
 }

@@ -243,6 +243,11 @@ jobs:
           # there's no mail server in CI. That surfaces as 500 in any test that
           # hits an endpoint triggering the notification (v5 consent flows, etc.).
           echo mail.test.mode=true >> obp-api/src/main/resources/props/test.default.props
+          # Permissions granted to runtime-compiled dynamic-endpoint code inside the security sandbox
+          # (mirrors default.props / production.default.props). Required so dynamic resource-doc bodies
+          # can do JSON extraction (reflection) and read OBP props (getenv); without it the sandbox
+          # denies these and DynamicResourceDocTest's native-execution scenarios fail.
+          echo 'dynamic_code_sandbox_permissions=[new java.net.NetPermission("specifyStreamHandler"), new java.lang.reflect.ReflectPermission("suppressAccessChecks"), new java.lang.RuntimePermission("getenv.*"), new java.util.PropertyPermission("cglib.useCache", "read"), new java.util.PropertyPermission("net.sf.cglib.test.stressHashCodes", "read"), new java.util.PropertyPermission("cglib.debugLocation", "read"), new java.lang.RuntimePermission("accessDeclaredMembers"), new java.lang.RuntimePermission("getClassLoader")]' >> obp-api/src/main/resources/props/test.default.props
 
       - name: Run tests — shard ${{ matrix.shard }} (${{ matrix.name }})
         run: |
