@@ -36,7 +36,7 @@ import code.util.Helper.SILENCE_IS_GOLDEN
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.UserAuthContextCommons
 import net.liftweb.common.{Box, Empty, Full}
-import net.liftweb.http.provider.HTTPParam
+import code.api.util.APIUtil.HTTPParam
 import net.liftweb.json.{JValue, parse}
 import org.scalatest.{FeatureSpec, GivenWhenThen, Matchers}
 

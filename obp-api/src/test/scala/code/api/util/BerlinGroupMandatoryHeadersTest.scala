@@ -2,7 +2,7 @@ package code.api.util
 
 import code.api.berlin.group.v1_3.BerlinGroupServerSetupV1_3
 import net.liftweb.common.Failure
-import net.liftweb.http.provider.HTTPParam
+import code.api.util.APIUtil.HTTPParam
 import org.scalatest.Tag
 
 import java.util.UUID
