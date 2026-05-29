@@ -137,7 +137,7 @@ import code.usercustomerlinks.MappedUserCustomerLink
 import code.customerlinks.CustomerLink
 import code.userlocks.UserLocks
 import code.users._
-import code.util.Helper.{MdcLoggable, ObpS, SILENCE_IS_GOLDEN}
+import code.util.Helper.MdcLoggable
 import code.util.HydraUtil
 import code.validation.JsonSchemaValidation
 import code.views.Views
@@ -149,7 +149,6 @@ import com.openbankproject.commons.util.Functions.Implicits._
 import com.openbankproject.commons.util.{ApiVersion, Functions}
 import net.liftweb.common._
 import net.liftweb.db.{DB, DBLogEntry}
-import net.liftweb.http.LiftRules.DispatchPF
 import net.liftweb.http._
 import net.liftweb.json.Extraction
 import net.liftweb.mapper.{DefaultConnectionIdentifier => _, _}
@@ -455,19 +454,6 @@ class Boot extends MdcLoggable {
       case _ => // Do nothing
     }
 
-    // where to search snippets
-    LiftRules.addToPackages("code")
-
-
-    // H2 web console
-    // Help accessing H2 from outside Lift, and be able to run any queries against it.
-    // It's enabled only in Dev and Test mode
-    if (Props.devMode || Props.testMode) {
-      LiftRules.liftRequest.append({case r if (r.path.partPath match {
-        case "console" :: _ => true
-        case _ => false}
-        ) => false})
-    }
 
 
 
@@ -544,52 +530,6 @@ class Boot extends MdcLoggable {
 
     // SiteMap removed - API-only mode, all routing via statelessDispatch
 
-    // Force the request to be UTF-8
-    LiftRules.early.append(_.setCharacterEncoding("UTF-8"))
-
-    LiftRules.explicitlyParsedSuffixes = Helpers.knownSuffixes &~ (Set("com"))
-
-    val locale = I18NUtil.getDefaultLocale()
-    // Locale.setDefault(locale) // TODO Explain why this line of code introduce weird side effects
-    logger.info("Default Project Locale is :" + locale)
-
-    // Cookie name
-    val localeCookieName = "SELECTED_LOCALE"
-    LiftRules.localeCalculator = {
-      case fullReq @ Full(req) => {
-        // Check against a set cookie, or the locale sent in the request
-        def currentLocale : Locale = {
-          S.findCookie(localeCookieName).flatMap {
-            cookie => cookie.value.map(I18NUtil.computeLocale)
-          } openOr locale
-        }
-
-        // Check to see if the user explicitly requests a new locale
-        // In case it's true we use that value to set up a new cookie value
-        ObpS.param(PARAM_LOCALE) match {
-          case Full(requestedLocale) if requestedLocale != null && APIUtil.checkShortString(requestedLocale)==SILENCE_IS_GOLDEN => {
-            val computedLocale: Locale = I18NUtil.computeLocale(requestedLocale)
-            // Simon: if we are not using resource_user.last_used_local we don't need to set it. It is not returned in the Agent User endpoint. Thus, for now, we don't need to set it in the database.
-            // val sessionId = S.session.map(_.uniqueId).openOr("")
-            // AuthUser.updateComputedLocale(sessionId, computedLocale.toString())
-            computedLocale
-          }
-          case _ => currentLocale
-        }
-      }
-      case _ => locale
-    }
-
-
-    //for XSS vulnerability, set X-Frame-Options header as DENY
-    LiftRules.supplementalHeaders.default.set(
-      ("X-Frame-Options", "DENY") ::
-        Nil
-    )
-
-    // Make a transaction span the whole HTTP request
-    S.addAround(DB.buildLoanWrapper)
-    logger.info("Note: We added S.addAround(DB.buildLoanWrapper) so each HTTP request uses ONE database transaction.")
 
     try {
       val useMessageQueue = APIUtil.getPropsAsBoolValue("messageQueue.createBankAccounts", false)
@@ -657,40 +597,6 @@ class Boot extends MdcLoggable {
       case false => // Do not start it
     }
 
-    object UsernameLockedChecker  {
-      def onBeginServicing(session: LiftSession, req: Req): Unit = {
-        logger.debug(s"Hello from UsernameLockedChecker.onBeginServicing")
-        checkIsLocked()
-        logger.debug(s"Bye from UsernameLockedChecker.onBeginServicing")
-      }
-      def onSessionActivate(session: LiftSession): Unit = {
-        logger.debug(s"Hello from UsernameLockedChecker.onSessionActivate")
-        checkIsLocked()
-        logger.debug(s"Bye from UsernameLockedChecker.onSessionActivate")
-      }
-      def onSessionPassivate(session: LiftSession): Unit = {
-        logger.debug(s"Hello from UsernameLockedChecker.onSessionPassivate")
-        checkIsLocked()
-        logger.debug(s"Bye from UsernameLockedChecker.onSessionPassivate")
-      }
-      private def checkIsLocked(): Unit = {
-        AuthUser.currentUser match {
-          case Full(user) =>
-            LoginAttempt.userIsLocked(localIdentityProvider, user.username.get) match {
-              case true =>
-                AuthUser.logoutCurrentUser
-                logger.warn(s"checkIsLocked says: User ${user.username.get} has been logged out because it is locked.")
-              case false => // Do nothing
-                logger.debug(s"checkIsLocked says: User ${user.username.get} is not locked.")
-            }
-          case _ => // No user found
-            logger.debug(s"checkIsLocked says: No User Found.")
-        }
-      }
-    }
-    LiftSession.onBeginServicing = UsernameLockedChecker.onBeginServicing _ :: LiftSession.onBeginServicing
-    LiftSession.onSessionActivate = UsernameLockedChecker.onSessionActivate _ :: LiftSession.onSessionActivate
-    LiftSession.onSessionPassivate = UsernameLockedChecker.onSessionPassivate _ :: LiftSession.onSessionPassivate
 
     // export one Connector's methods as endpoints, it is just for develop
     APIUtil.getPropsValue("connector.name.export.as.endpoints").foreach { connectorName =>
@@ -717,13 +623,6 @@ class Boot extends MdcLoggable {
     }
     if(HydraUtil.integrateWithHydra && HydraUtil.mirrorConsumerInHydra) {
       createHydraClients()
-    }
-
-    Props.get("session_inactivity_timeout_in_seconds") match {
-      case Full(x) if tryo(x.toLong).isDefined =>
-        LiftRules.sessionInactivityTimeout.default.set(Full((x.toLong.minutes): Long))
-      case _ =>
-      // Do not change default value
     }
 
   }
