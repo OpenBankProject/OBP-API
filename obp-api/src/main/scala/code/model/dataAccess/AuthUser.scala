@@ -498,8 +498,8 @@ import net.liftweb.util.Helpers._
     *
     */
   def getCurrentUser: Box[User] = {
-    val authorization: Box[String] = S.request.map(_.header("Authorization")).flatten
-    val directLogin: Box[String] = S.request.map(_.header("DirectLogin")).flatten
+    val authorization: Box[String] = Empty
+    val directLogin: Box[String] = Empty
     for {
       resourceUser <- if (AuthUser.currentUser.isDefined){
         //AuthUser.currentUser.get.user.foreign // this will be issue when the resource user is in remote side {
