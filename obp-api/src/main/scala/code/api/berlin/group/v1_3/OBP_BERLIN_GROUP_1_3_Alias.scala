@@ -53,8 +53,6 @@ object OBP_BERLIN_GROUP_1_3_Alias extends OBPRestHelper with MdcLoggable with Sc
   val versionStatus: String = ApiVersionStatus.DRAFT.toString
 
   override val allResourceDocs: ArrayBuffer[ResourceDoc] = Http4sBGv13Alias.resourceDocs
-
-  override val routes: List[OBPEndpoint] = Nil
 }
 
 // ─── Original Lift aggregator (commented out) ────────────────────────────────

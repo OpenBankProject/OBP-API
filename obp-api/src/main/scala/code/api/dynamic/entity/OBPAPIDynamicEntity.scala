@@ -29,14 +29,10 @@ package code.api.dynamic.entity
 import APIMethodsDynamicEntity.ImplementationsDynamicEntity
 import code.api.OBPRestHelper
 import code.api.dynamic.endpoint.helper.DynamicEndpoints
-import code.api.util.APIUtil.OBPEndpoint
 import code.api.util.{APIUtil, VersionedOBPApis}
-import code.api.v5_0_0.OBPAPI5_0_0.{allResourceDocs, apiPrefix, registerRoutes, routes}
+import code.api.v5_0_0.OBPAPI5_0_0.{apiPrefix, registerRoutes}
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.util.{ApiVersion,ApiVersionStatus}
-import net.liftweb.common.{Box, Full}
-import net.liftweb.http.{LiftResponse, PlainTextResponse}
-import org.apache.http.HttpStatus
 
 /*
 This file defines which endpoints from all the versions are available in v4.0.0
@@ -54,12 +50,11 @@ object OBPAPIDynamicEntity extends OBPRestHelper with MdcLoggable with Versioned
   // Http4sApp.baseServices). routes reduced to Nil — the Lift OBPEndpoint handlers are no
   // longer registered with Lift. This object is retained only as an accessor for
   // allResourceDocs / routes referenced by ResourceDocsAPIMethods.getResourceDocsList.
-  val routes : List[OBPEndpoint] = Nil
   // val routes : List[OBPEndpoint] = List(ImplementationsDynamicEntity.publicEndpoint, ImplementationsDynamicEntity.communityEndpoint, ImplementationsDynamicEntity.genericEndpoint)
 
   // routes.map(endpoint => oauthServe(apiPrefix{endpoint}, None))  // no Lift dispatch registration — served by Http4sDynamicEntity
 
-  logger.info(s"version $version has been run! There are ${routes.length} routes.")
+  logger.info(s"version $version has been run!")
 
   // OPTIONS / CORS is handled by Http4sApp.corsHandler — the Lift OPTIONS serve below is disabled.
   // private val corsResponse: Box[LiftResponse] = Full{

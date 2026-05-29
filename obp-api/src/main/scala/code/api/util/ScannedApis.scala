@@ -1,6 +1,6 @@
 package code.api.util
 
-import code.api.util.APIUtil.{ApiRelation, OBPEndpoint, ResourceDoc}
+import code.api.util.APIUtil.ResourceDoc
 import code.util.ClassScanUtils
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
 
@@ -15,7 +15,6 @@ trait ScannedApis {
   val apiVersion: ScannedApiVersion
   lazy val version: ApiVersion = this.apiVersion
   val allResourceDocs: ArrayBuffer[ResourceDoc]
-  val routes: List[OBPEndpoint]
   //  val apiRelations: ArrayBuffer[ApiRelation]
 }
 

@@ -55,10 +55,7 @@ object OBPAPI5_0_0 extends OBPRestHelper with MdcLoggable with VersionedOBPApis 
   )
 
   // No Lift routes — all v5.0.0 endpoints are served by Http4s500.
-  val routes: List[OBPEndpoint] = Nil
 
-  registerRoutes(routes, allResourceDocs, apiPrefix, true)
-
-  logger.info(s"version $version has been run! There are ${routes.length} routes, ${allResourceDocs.length} allResourceDocs.")
+  logger.info(s"version $version has been run! ${allResourceDocs.length} allResourceDocs.")
   // CORS for OPTIONS is handled by the http4s corsHandler layer — no Lift serve needed here.
 }

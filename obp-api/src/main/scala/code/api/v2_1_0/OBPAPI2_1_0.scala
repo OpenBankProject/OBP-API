@@ -22,9 +22,5 @@ object OBPAPI2_1_0 extends OBPRestHelper with MdcLoggable with VersionedOBPApis 
 
   def allResourceDocs = collectResourceDocs(OBPAPI2_0_0.allResourceDocs, Http4s210.resourceDocs)
 
-  val routes: List[OBPEndpoint] = Nil
-
-  registerRoutes(routes, allResourceDocs, apiPrefix, true)
-
-  logger.info(s"version $version has been run! There are ${routes.length} routes, ${allResourceDocs.length} allResourceDocs.")
+  logger.info(s"version $version has been run! ${allResourceDocs.length} allResourceDocs.")
 }

@@ -24,8 +24,6 @@ object OBP_UKOpenBanking_310 extends OBPRestHelper with MdcLoggable with Scanned
   val versionStatus: String = ApiVersionStatus.DRAFT.toString
 
   override val allResourceDocs: ArrayBuffer[ResourceDoc] = Http4sUKOBv310.resourceDocs
-
-  override val routes: List[OBPEndpoint] = Nil
 }
 
 // ─── Original Lift aggregator (commented out) ────────────────────────────────
@@ -82,4 +80,4 @@ object OBP_UKOpenBanking_310 extends OBPRestHelper with MdcLoggable with Scanned
 //
 //  override val routes : List[OBPEndpoint] = getAllowedEndpoints(endpoints, allResourceDocs)
 //  registerRoutes(routes, allResourceDocs, apiPrefix)
-//  logger.info(s"version $version has been run! There are ${routes.length} routes.")
+//  logger.info(s"version $version has been run!")

@@ -145,31 +145,6 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
 
       logger.debug(s"There are ${resourceDocs.length} resource docs available to $requestedApiVersion")
 
-      val versionRoutes = requestedApiVersion match {
-        case ApiVersion.v7_0_0 => Nil
-        case ConstantsBG.`berlinGroupVersion1` => Nil
-        case ConstantsBG.`berlinGroupVersion2` => Nil
-        case ApiVersion.v6_0_0 => OBPAPI6_0_0.routes
-        case ApiVersion.v5_1_0 => OBPAPI5_1_0.routes
-        case ApiVersion.v5_0_0 => OBPAPI5_0_0.routes
-        case ApiVersion.v4_0_0 => OBPAPI4_0_0.routes
-        case ApiVersion.v3_1_0 => OBPAPI3_1_0.routes
-        case ApiVersion.v3_0_0 => OBPAPI3_0_0.routes
-        case ApiVersion.v2_2_0 => OBPAPI2_2_0.routes
-        case ApiVersion.v2_1_0 => OBPAPI2_1_0.routes
-        case ApiVersion.v2_0_0 => OBPAPI2_0_0.routes
-        case ApiVersion.v1_4_0 => OBPAPI1_4_0.routes
-        case ApiVersion.v1_3_0 => OBPAPI1_3_0.routes
-        case ApiVersion.v1_2_1 => Nil
-        case ApiVersion.`dynamic-endpoint` => OBPAPIDynamicEndpoint.routes
-        case ApiVersion.`dynamic-entity` => OBPAPIDynamicEntity.routes
-        case version: ScannedApiVersion => ScannedApis.versionMapScannedApis.get(version).map(_.routes).getOrElse(Nil)
-        case _                 => Nil
-      }
-
-      logger.debug(s"There are ${versionRoutes.length} routes available to $requestedApiVersion")
-
-
       val activeResourceDocs = requestedApiVersion match {
         case ApiVersion.v7_0_0 => resourceDocs
         case ConstantsBG.`berlinGroupVersion1` => resourceDocs  // fully on http4s — no Lift route filter
