@@ -1,35 +1,51 @@
-# Lift → http4s Migration
+# Lift → http4s Migration — COMPLETE
+
+## Status
+
+**The Lift → http4s migration of the HTTP request path is complete.** Every OBP API endpoint is served by native http4s `HttpRoutes[IO]`:
+
+- All version files **v1.2.1 → v7.0.0**
+- **Berlin Group** v1.3 + v2
+- **UK Open Banking** v2.0 + v3.1
+- **Dynamic Entity / Dynamic Endpoint** runtime dispatch
+- **Resource-docs / message-docs / openapi.yaml** (centralized `Http4sResourceDocs`)
+- **Auth handlers**: DirectLogin, OpenID Connect, AliveCheck
+
+`Http4sLiftWebBridge` has been **deleted**; `lift-webkit` has been **removed from `pom.xml`**. There is no Lift fallback in the request path — any unmatched `/obp/*` path returns a JSON 404 from `notFoundCatchAll`. The **"Lift Web removed"** milestone is therefore achieved.
+
+The only remaining Lift dependency is **`lift-mapper`** (the ORM / database layer), a separate long-term effort tracked under [What remains](#what-remains--lift-mapper).
+
+---
 
 ## Principle
 
-API version numbers reflect **API contract changes** (new/changed fields, new behaviour). The underlying framework is invisible to clients. Lift → http4s is a refactoring: it happens **in-place** inside the existing version file at the existing URL. No version bump.
+API version numbers reflect **API contract changes** (new/changed fields, new behaviour). The underlying framework is invisible to clients. Lift → http4s was a refactoring: it happened **in-place** inside the existing version file at the existing URL. No version bump.
 
-Use a new version (e.g. v7.0.0) only when the API contract itself changes — new fields, changed request/response shape, new behaviour.
+A new version (e.g. v7.0.0) is used only when the API contract itself changes — new fields, changed request/response shape, new behaviour.
 
 ---
 
 ## Current Architecture
 
-OBP-API runs as a **single http4s Ember server** (single process, single port). The application entry point is a Cats Effect `IOApp` (`Http4sServer`). Lift is no longer used as an HTTP server — Jetty and the servlet container have been removed.
+OBP-API runs as a **single http4s Ember server** (single process, single port). The application entry point is a Cats Effect `IOApp` (`Http4sServer`). Lift is no longer an HTTP server — Jetty, the servlet container, and the request bridge have all been removed.
 
-Lift still plays two roles:
+Lift now plays exactly one role:
 
-1. **ORM / Database** — Lift Mapper manages schema creation, migrations, and data access.
-2. **Legacy endpoint dispatch** — Older API versions are handled through a bridge (`Http4sLiftWebBridge`) that converts http4s requests into Lift requests, runs them through Lift's dispatch tables, and converts the responses back.
-
-New API versions are implemented as native http4s routes and do not pass through the bridge.
+- **`lift-mapper` ORM / Database** — Mapper manages schema creation, migrations, and all data access (`MappedBank`, `AuthUser`, etc.). A handful of `net.liftweb.json` / `net.liftweb.common` (`Box`/`Full`/`Empty`) serialisation helpers are also still used; these are library utilities, not the Lift web stack.
 
 ### Entry point — `Http4sServer.scala`
 
 `Http4sServer` extends `IOApp`. On startup it:
 
-1. Calls `bootstrap.liftweb.Boot().boot()` to initialise Lift Mapper, connectors, and OBP configuration.
+1. Calls `bootstrap.liftweb.Boot().boot()` to initialise Lift Mapper, connectors, and OBP configuration (DB/ORM init only — no `LiftRules` request-path registrations remain active).
 2. Parses the configured `hostname` and `dev.port` props (defaults: `127.0.0.1`, `8080`).
 3. Starts an Ember server with the application defined in `Http4sApp.httpApp`.
 
 ### Priority routing
 
-Routes are tried in order: `corsHandler` (OPTIONS) → `AppsPage` → `StatusPage` → `Http4sResourceDocs` → `Http4s510` → `Http4s600` → `Http4s500` → `Http4s700` → `Http4sBGv2` → `Http4sUKOBv200` → `Http4sUKOBv310` → `Http4sBGv13` (+Alias) → `Http4s400` → `Http4s310` → `Http4s300` → `Http4s220` → `Http4s210` → `Http4s200` → `Http4s140` → `Http4s130` → `Http4s121` → `Http4sLiftWebBridge` (Lift fallback). Unhandled `/obp/vX.Y.Z/*` paths fall through silently to Lift — they do not 404. The non-numeric ordering (v510 before v600, v500 after v600 etc.) doesn't affect correctness because each per-version service gates on its own version prefix; the ordering only matters when two services overlap on the same URL pattern.
+Routes are tried in order (see `Http4sApp.baseServices`): `corsHandler` (OPTIONS) → `AppsPage` → `StatusPage` → `Http4sResourceDocs` → `Http4s510` → `Http4s600` → `Http4s500` → `Http4s700` → `Http4sBGv2` → `Http4sUKOBv200` → `Http4sUKOBv310` → `Http4sBGv13` (+`Http4sBGv13Alias`) → `Http4s400` → `Http4s310` → `Http4s300` → `Http4s220` → `Http4s210` → `Http4s200` → `Http4s140` → `Http4s130` → `Http4s121` → `dynamicEntityRoutes` → `dynamicEndpointRoutes` → `DirectLoginRoutes` → `Http4sOpenIdConnect` → `AliveCheckRoutes` → `notFoundCatchAll` (JSON 404).
+
+There is **no Lift fallback** — the chain terminates in `notFoundCatchAll`, which returns a JSON 404 for any unmatched path. The non-numeric ordering (v510 before v600, v500 after v600, etc.) doesn't affect correctness because each per-version service gates on its own version prefix; ordering only matters when two services overlap on the same URL pattern.
 
 ```
 HTTP Request
@@ -38,20 +54,22 @@ HTTP Request
 Http4sServer (IOApp / Ember)
     │
     ▼
-corsHandler → AppsPage → StatusPage → Http4s510 → Http4s600 → Http4s500 → Http4s700 → Http4sBGv2
-                                                                                          │
-          Http4s400 → Http4s310 → Http4s300 → Http4s220 → Http4s210 → Http4s200 → Http4s140 → Http4s130 → Http4s121 → Http4sLiftWebBridge
-              │           │           │           │           │           │           │           │              │
-          v4.0.0      v3.1.0      v3.0.0      v2.2.0      v2.1.0      v2.0.0      v1.4.0      v1.3.0        v1.2.1 routes
-        own routes  own routes  own routes  own routes  own routes  own routes  own routes  own routes    (all 323 scenarios)
-                bridge      bridge      bridge      bridge      bridge      bridge       bridge
-                                                                                          │
-                                                                                LiftRules.statelessDispatch
-                                                                                LiftRules.dispatch (REST API)
+corsHandler → AppsPage → StatusPage → Http4sResourceDocs
+    → Http4s510 → Http4s600 → Http4s500 → Http4s700
+    → Http4sBGv2 → Http4sUKOBv200 → Http4sUKOBv310 → Http4sBGv13(+Alias)
+    → Http4s400 → Http4s310 → Http4s300 → Http4s220 → Http4s210 → Http4s200
+    → Http4s140 → Http4s130 → Http4s121
+    → dynamicEntityRoutes → dynamicEndpointRoutes
+    → DirectLoginRoutes → Http4sOpenIdConnect → AliveCheckRoutes
+    → notFoundCatchAll  (JSON 404 — no Lift fallback)
     │
     ▼
 HTTP Response (with standard headers)
 ```
+
+### Body caching
+
+http4s request bodies are single-shot streams. The first version's `ResourceDocMiddleware.fromRequest` consumes the body to build the CallContext; any later path-rewriting bridge hop (v400→v310→…→v210) that re-reads `req.bodyText` would get an empty stream and the handler would 500. `Http4sApp.cacheBodyOnce` pre-reads the body and stashes it in `cachedBodyKey`, so every downstream `fromRequest` reads from the attribute instead of the drained stream. GET/DELETE/HEAD/OPTIONS skip this.
 
 ### Version enable/disable semantics
 
@@ -62,33 +80,13 @@ private def gate(version: ScannedApiVersion, routes: HttpRoutes[IO]): HttpRoutes
   if (APIUtil.versionIsAllowed(version)) routes else HttpRoutes.empty[IO]
 ```
 
-A disabled version's top-level routes are replaced with `HttpRoutes.empty[IO]`, so a direct `GET /obp/vX.Y.Z/...` falls through to the Lift bridge and 404s.
+A disabled version's top-level routes are replaced with `HttpRoutes.empty[IO]`, so a direct `GET /obp/vX.Y.Z/...` falls through the chain to `notFoundCatchAll` (JSON 404).
 
 **Cascade is intentionally unaffected.** Each `Http4sXxx` has a path-rewriting bridge to the next-lower version that calls `code.api.vN.HttpNxx.wrappedRoutesVNxxServices` *directly*, bypassing `Http4sApp.gate`. `ResourceDocMiddleware` does **not** re-check `implementedInApiVersion` per request either (`ResourceDocMiddleware.isEndpointEnabled` deliberately has no `versionAllowed` parameter — `ResourceDocMiddlewareEnableDisableTest` pins this). So an endpoint originally declared in v2.0.0 stays reachable via `/obp/v4.0.0/...` even when v2.0.0 is disabled, as long as v4.0.0 is enabled.
 
 This preserves the documented OBP-API contract: newer versions act as the supported entry point for older endpoints' functionality. Operators can retire a version's *URL prefix* with `api_disabled_versions` without losing the underlying endpoints from newer prefixes. To retire a specific endpoint everywhere, use `api_disabled_endpoints` (operationId list) — that **is** enforced per request by the middleware and so kills the endpoint on every prefix it would otherwise be reachable from.
 
 A brief regression in early 2026-05 inverted this: a `versionAllowed` check was added inside the middleware, making `api_disabled_versions` kill cascaded reachability too. Restored 2026-05-26. If you're tempted to put the per-request version check back, read the `isEndpointEnabled` docstring first — it spells out the design rationale, and the "version-level gating is delegated to Http4sApp.gate" feature in the unit test will fail loudly.
-
-### Lift bridge — `Http4sLiftWebBridge.scala`
-
-Handles any request not matched by a native http4s route:
-
-1. Reads the http4s request body.
-2. Constructs a Lift `Req` from the http4s `Request[IO]`.
-3. Creates a stateless Lift session.
-4. Initialises a Lift `S` context and runs `LiftRules.statelessDispatch` / `LiftRules.dispatch`.
-5. Handles Lift's `ContinuationException` pattern for async responses (timeout: `http4s.continuation.timeout.ms`, default 60 s).
-6. Converts the Lift response back to http4s.
-
-### What Lift still does
-
-| Area | Role |
-|------|------|
-| **Mapper ORM** | Database schema creation, migrations, and all data access (`MappedBank`, `AuthUser`, etc.) |
-| **Boot** | Initialises OBP configuration, connectors, resource docs, and Mapper schemifier |
-| **Dispatch tables** | `LiftRules.statelessDispatch` / `LiftRules.dispatch` hold endpoint definitions for versions not yet ported |
-| **JSON utilities** | Some serialisation helpers from `net.liftweb.json` are still in use |
 
 ---
 
@@ -112,468 +110,169 @@ Handles any request not matched by a native http4s route:
 |---|---|
 | `extends OBPRestHelper` | removed |
 | `registerRoutes(routes, allResourceDocs, apiPrefix)` | expose `val allRoutes: HttpRoutes[IO]` |
-| registered via Boot / LiftRules | wired into `Http4sServer` chain |
+| registered via Boot / LiftRules | wired into `Http4sApp.baseServices` chain |
 
-See `CLAUDE.md § Migrating a Lift Endpoint to http4s` for the full Rule 1–5 reference.
+See `CLAUDE.md § Migrating a Lift Endpoint to http4s` for the full Rule 1–5 reference. The Lift `APIMethodsXYZ.scala` files are retained as **commented-out source-of-truth** for the ResourceDoc parity audit (see below) and as the frozen STABLE API surface for `FrozenClassTest`; they are comments, not active routes.
 
 ---
 
-## Migration Order
+## What was migrated
 
-Bottom-up — each version depends on the one below it being done.
+### Per-version files (bottom-up; each has a path-rewriting bridge to the version below)
 
-**Rule: one file = one PR. A file is either fully Lift or fully http4s — no half-converted state.**
-
-**Note on `APIMethods121`**: v1.2.1 was implemented as a new parallel file `Http4s121.scala` (rather than converting the Lift trait in-place) because `APIMethods121` is a mixin trait inherited by `APIMethods130`, `APIMethods140`, etc. Converting the trait in-place would require all inheriting versions to be migrated simultaneously. The parallel file approach lets v1.2.1 go first — http4s routes take priority in the chain; the Lift trait remains until all inheriting versions are done, at which point the Lift trait can be deleted.
-
-| # | File | Own endpoints | Notes |
+| # | File | Own endpoints | http4s file |
 |---|---|---|---|
-| 1 | `APIMethods121` | 70 | **Done** — `Http4s121.scala` serves all endpoints; 323 tests pass |
-| 2 | `APIMethods130` | 3 | **Done** — `Http4s130.scala`: 3 own endpoints + path-rewriting bridge to `Http4s121`; 2 PhysicalCardsTest scenarios pass |
-| 3 | `APIMethods140` | 11 | **Done** — `Http4s140.scala`: 11 own endpoints + path-rewriting bridge to `Http4s130` |
-| 4 | `APIMethods200` | 40 | **Done** — `Http4s200.scala`: 37 own endpoints + path-rewriting bridge to `Http4s140` |
-| 5 | `APIMethods210` | 28 | **Done** — `Http4s210.scala`: 25 own endpoints + path-rewriting bridge to `Http4s200`; all 79 v2.1.0 tests pass |
-| 6 | `APIMethods220` | 19 | **Done** — `Http4s220.scala`: 18 own endpoints + path-rewriting bridge to `Http4s210`; all 27 v2.2.0 tests pass |
-| 7 | `APIMethods300` | 47 | **Done** — `Http4s300.scala`: 47 own endpoints + path-rewriting bridge to `Http4s220`; all 86 v3.0.0 tests pass |
-| 8 | `APIMethods310` | 102 | **Done** — `Http4s310.scala` has all 100 functional endpoints (42 GET, 10 DELETE, 19 POST, 25 PUT, 1 GET-shaped revoke, 3 SCA aliases) + path-rewriting bridge to `Http4s300`; 181 v3.1.0 tests pass. The Lift `APIMethods310` trait is now a stub (live code commented out). `getObpConnectorLoopback` has a real native http4s route (always returns 400 NotImplemented). `getMessageDocsSwagger` has a `HttpRoutes.empty` stub in `Http4s310` — actual routing is owned by `Http4sResourceDocs`, the stub exists only so `nameOf(getMessageDocsSwagger)` compiles for `FrozenClassTest`. Both stubs deletable in the bridge-removal PR alongside a frozen-snapshot refresh. |
-| 9 | `APIMethods400` | 258 | **Done — 258 / 258 (100%)**. `Http4s400.scala` covers all 253 unique handlers (`lazy val NAME: HttpRoutes[IO]`) plus 8 ResourceDoc aliases for the transaction-request-type variants (ACCOUNT, ACCOUNT_OTP, SEPA, COUNTERPARTY, REFUND, FREE_FORM, SIMPLE, AGENT_CASH_WITHDRAWAL — handled by the shared `createTransactionRequest` wildcard handler; the `literalAllCapsSegments` set in `Http4sSupport.scala` dispatches the matcher to the per-type doc for swagger purposes). Adopts the **lazy val + helper-def init pattern** (Batches 1–19) introduced in v6 to dodge the JVM 64KB `<init>` method-size limit. **Bridge-cascade hijack** historically threatened v4's overrides; resolved by migrating all 35/35 v4-over-older URL+verb overrides. |
-| 10 | `APIMethods500` | 10 | **Done** — `Http4s500.scala` (all v5.0.0 originals migrated) |
-| 11 | `APIMethods510` | 111 | **Done** — `Http4s510.scala`. v5.1.0's `createConsent` Lift handler is exposed in Http4s510 under the alias name `createConsentImplicit` (a single handler with `if scaMethod == "EMAIL" \|\| scaMethod == "SMS" \|\| scaMethod == "IMPLICIT"` guard covers all three SCA-method URLs). |
-| 12 | `APIMethods600` | 243 (35 overrides + 208 originals) | **Done — 243 / 243 (100%)**. `Http4s600.scala` covers all v6 originals and overrides. Wired into `Http4sApp.baseServices` ahead of the Lift bridge. Architecturally introduced the **lazy val + helper-def init pattern** to dodge the JVM 64KB `<init>` method-size limit (`val xxx: HttpRoutes[IO]` ⇒ `lazy val xxx`; `resourceDocs += ResourceDoc(...)` calls grouped into `private def initXxxResourceDocs(): Unit` blocks). Future per-version files should adopt the same pattern from the start. |
+| 1 | `APIMethods121` | 70 | `Http4s121.scala` — all 323 API1_2_1Test scenarios pass |
+| 2 | `APIMethods130` | 3 | `Http4s130.scala` — bridge to `Http4s121` |
+| 3 | `APIMethods140` | 11 | `Http4s140.scala` — bridge to `Http4s130` |
+| 4 | `APIMethods200` | 40 | `Http4s200.scala` — 37 own + bridge to `Http4s140` |
+| 5 | `APIMethods210` | 28 | `Http4s210.scala` — 25 own + bridge to `Http4s200`; 79 tests pass |
+| 6 | `APIMethods220` | 19 | `Http4s220.scala` — 18 own + bridge to `Http4s210`; 27 tests pass |
+| 7 | `APIMethods300` | 47 | `Http4s300.scala` — bridge to `Http4s220`; 86 tests pass |
+| 8 | `APIMethods310` | 102 | `Http4s310.scala` — 100 functional + bridge to `Http4s300`; 181 tests pass. `getObpConnectorLoopback` is a native http4s route (returns 400 NotImplemented); `getMessageDocsSwagger` routing is owned by `Http4sResourceDocs` (in-file `HttpRoutes.empty` stub kept only so `nameOf(...)` compiles for `FrozenClassTest`). |
+| 9 | `APIMethods400` | 258 | **258 / 258 (100%)**. `Http4s400.scala` — 253 unique handlers + 8 ResourceDoc aliases for transaction-request-type variants (shared `createTransactionRequest` wildcard handler; `literalAllCapsSegments` in `Http4sSupport.scala` dispatches the matcher to the per-type doc). All 35/35 v4-over-older URL+verb overrides migrated (avoids the bridge-cascade hijack). |
+| 10 | `APIMethods500` | 10 | `Http4s500.scala` — all v5.0.0 originals |
+| 11 | `APIMethods510` | 111 | `Http4s510.scala` — `createConsent` exposed as `createConsentImplicit` (one handler, `scaMethod ∈ {EMAIL, SMS, IMPLICIT}` guard covers all three SCA-method URLs) |
+| 12 | `APIMethods600` | 243 (35 overrides + 208 originals) | **243 / 243 (100%)**. `Http4s600.scala` — introduced the **lazy val + helper-def init pattern** to dodge the JVM 64KB `<init>` method-size limit (`val xxx` ⇒ `lazy val xxx`; `resourceDocs += ResourceDoc(...)` grouped into `private def initXxxResourceDocs(): Unit` blocks). All later per-version files adopt this from the start. |
+
+> **JVM 64KB `<init>` limit**: around the 140-endpoint mark a per-version object's `<init>` hits the JVM method-size limit. The fix (shipped in `Http4s600`/`Http4s400`): `lazy val` endpoints (lambda materialisation moves into per-field `lzycompute`) + `resourceDocs +=` grouped into `initXxx()` helper defs (each with its own 64KB budget).
+
+### Open-banking standards
+
+| Standard | Location | Status |
+|---|---|---|
+| **Berlin Group v1.3** | `code/api/berlin/group/v1_3/Http4sBGv13{,AIS,PIS,PIIS,SigningBaskets,Alias}.scala` — 6 http4s files | ✅ http4s, wired into `Http4sApp` (`Http4sBGv13` + `Http4sBGv13Alias`) |
+| **Berlin Group v2** | `code/api/berlin/group/v2/Http4sBGv2.scala` | ✅ http4s |
+| **UK Open Banking v2.0.0** | `code/api/UKOpenBanking/v2_0_0/Http4sUKOBv200{,AIS}.scala` | ✅ http4s (`/open-banking/v2.0/*`) |
+| **UK Open Banking v3.1.0** | `code/api/UKOpenBanking/v3_1_0/Http4sUKOBv310*.scala` — 21 http4s files | ✅ http4s (`/open-banking/v3.1/*`) |
+| Bahrain OBF v1.0.0 | `code/api/BahrainOBF/v1_0_0/*` — 22 files | 🗑 commented-out dead code (whole files `//`-commented in `d19af2b92`, 2026-05-22). No routes, no http4s port. Since the bridge is gone, these are unreachable. |
+| AU OpenBanking v1.0.0 | `code/api/AUOpenBanking/v1_0_0/*` — 11 files | 🗑 commented-out dead code (`d19af2b92`) |
+| STET v1.4 | `code/api/STET/v1_4/*` — 5 files | 🗑 commented-out dead code (`d19af2b92`) |
+| MxOF / CNBV9 v1.0.0 | `code/api/MxOF/*` — 4 files | 🗑 commented-out dead code (`d19af2b92`) |
+| Polish v2.1.1.1 | `code/api/Polish/v2_1_1_1/*` — 5 files | 🗑 commented-out dead code (`d19af2b92`) |
+| Sandbox | `code/api/sandbox/SandboxApiCalls.scala` | 🗑 commented-out dead code (`7f3c51f5e`) |
+
+The five retired standards + Sandbox are **commented-out source files with no route registration**. The `code.api.*.ApiCollector` / `OBP_*` `ScannedApis` classes inside them are inert (the code is `//`-commented, so `ClassScanUtils` can't discover them and `APIUtil`'s `allResourceDocs` aggregation no longer references them). A future cleanup PR can delete the files outright, or — if any standard is wanted back — port it to http4s the way BG v1.3 / UK OB were.
+
+### Auth stack
+
+| Handler | Path | Status |
+|---|---|---|
+| `DirectLogin` | `POST /my/logins/direct` | ✅ `code.api.DirectLoginRoutes` serves the bare path (gated on `allow_direct_login`); versioned path served by each `Http4sXxx`. `LiftRules.statelessDispatch.append(DirectLogin)` removed from `Boot.scala`. |
+| `OpenIdConnect` | `GET\|POST /auth/openid-connect/callback{,-1,-2}` | ✅ **`code.api.Http4sOpenIdConnect`** — native http4s. **Portal-session decision resolved as fork (a) "drop portal-login":** the success branch no longer calls `AuthUser.logUserIn` / `S.redirectTo`; it issues an OBP DirectLogin token via `DirectLogin.issueTokenForUser(...)` and returns it. The old `openidconnect.scala` is fully commented out. Pure route tests live in `Http4sOpenIdConnectRoutesTest`. |
+| `AliveCheck` | `GET /alive` | ✅ `code.api.AliveCheckRoutes`; Lift dispatch removed. |
+| `GatewayLogin` | gateway JWT exchange | ✅ Library-only validator (no routes). Vestigial `extends RestHelper` removed. |
+| `DAuth` | dAuth JWT exchange | ✅ Library-only validator (no routes). Vestigial `extends RestHelper` removed. |
+| `OAuth2` (`OAuth2Login`) | Bearer-token validator | ✅ Library-only (Google / Yahoo / Azure / Keycloak / OBPOIDC / Hydra). Vestigial `extends RestHelper` removed. |
+| `OAuth 1.0a` | — | ✅ **Removed entirely** in `51820c75e` (2026-02-20). `oauth1.0.scala` deleted, `OAuthHandshake` unregistered, header detection removed from `OBPRestHelper.scala`. `getConsumerFromDirectLoginToken` / `getUserFromDirectLoginToken` took over consumer/user lookup. |
+
+> Kept on purpose: `code/model/OAuth.scala` (backs the general `Consumer` entity used by all auth methods) and `APIUtil.OAuth` (misnamed but live **test** infrastructure — the `<@` signer adds `Authorization: DirectLogin token=...` headers and is imported by hundreds of test files; renaming is a separate cleanup).
+
+### Dynamic dispatch, resource-docs, and singletons
+
+| Component | Status |
+|---|---|
+| **DynamicEntity** (`/obp/dynamic-entity/*`) | ✅ `code.api.dynamic.entity.Http4sDynamicEntity` — native http4s, replaces the Lift `OBPAPIDynamicEntity` dispatch. |
+| **DynamicEndpoint** (`/obp/dynamic-endpoint/*`) | ✅ `code.api.dynamic.endpoint.Http4sDynamicEndpoint` — fully native (no Lift `Req`, `S.init`, `buildLiftReq`, or `liftResponseToHttp4s`). |
+| **Resource-docs** (`/obp/*/resource-docs/{API_VERSION}/{obp,swagger,openapi,openapi.yaml}`) | ✅ Centralized `code.api.util.http4s.Http4sResourceDocs`, matched before any per-version service (version-polymorphic: the `API_VERSION` path segment controls output). Retired 10 `LiftRules.statelessDispatch.append(ResourceDocs140..600)` entries + the raw `openapi.yaml` Lift `serve {...}` block. The `getResourceDocsObpV700` aggregation bug is fixed (`V7ResourceDocsAggregationTest` passes). ResourceDocsTest (63) + SwaggerDocsTest (10) green. |
+| **message-docs** (`/obp/*/message-docs/{CONNECTOR}/swagger2.0`) | ✅ `Http4sResourceDocs.handleGetMessageDocsSwagger` via wildcard route. |
+| `ImporterAPI` | ✅ **Retired** — legacy `POST /obp_transactions_saver/api/transactions` shared-secret bulk-insert endpoint, its `TransactionInserter` LiftActor, and the connector helpers it relied on all removed. |
+| `testResourceDoc` (`APIMethods140` `/dummy`) | ✅ Removed — dev-mode-only stub, no production behaviour. |
 
 ---
 
-## Resource-docs (separate workstream)
+## ResourceDoc parity (content workstream — independent of serving)
 
-Resource-docs endpoints are **version-polymorphic**: `GET /obp/v6.0.0/resource-docs/v3.0.0/obp` returns v3.0.0 docs. The URL prefix is cosmetically version-specific but functionally irrelevant — the `API_VERSION` path segment controls the output. This makes resource-docs a natural candidate for a single centralized http4s service rather than per-version handlers.
-
-### Strategy: centralized `Http4sResourceDocs`
-
-Add one service to `Http4sApp` (above the Lift bridge, before any per-version service) that handles:
-
-```
-GET  /obp/*/resource-docs/API_VERSION/obp           → version-dispatch via getResourceDocsList
-GET  /obp/*/resource-docs/API_VERSION/openapi.yaml
-GET  /obp/*/message-docs/CONNECTOR/swagger2.0       → absorbs APIMethods310.getMessageDocsSwagger
-```
-
-The wildcard prefix means all resource-doc requests are intercepted regardless of which version prefix the client uses. This workstream is **independent of the per-version migration order** — it can land at any time and immediately removes all resource-docs traffic from the Lift bridge.
-
-### Prerequisite: fix the aggregation bug
-
-`V7ResourceDocsAggregationTest` is intentionally failing. The current `getResourceDocsObpV700` has a broken branch for `requestedApiVersion == v7.0.0` that manually iterates `allResourceDocs` (~45 own docs) instead of calling `getResourceDocsList`, which aggregates all 500+. Fix this first — it is the same defect the centralized service must not repeat.
-
-### `openapi.yaml`
-
-Currently served via a raw Lift `serve { case Req(..., "openapi.yaml", ...) }` block that bypasses `registerRoutes` entirely. Needs a dedicated http4s route (no ResourceDocMiddleware) added to the centralized service.
-
-### Caching
-
-`Caching.getStaticSwaggerDocCache()` / `setStaticSwaggerDocCache()` are framework-agnostic and already used from within the http4s path. No migration work needed.
-
-### Steps
-
-1. Fix aggregation bug in `getResourceDocsObpV700` → make `V7ResourceDocsAggregationTest` pass.
-2. Extract shared handler logic into `Http4sResourceDocs` service; wire into `Http4sApp`.
-3. Add `openapi.yaml` route to the same service.
-4. ~~Port `getMessageDocsSwagger` from `APIMethods310` into the same service~~ — **Done.** Now served by `Http4sResourceDocs.handleGetMessageDocsSwagger` via the wildcard `/obp/*/message-docs/{CONNECTOR}/swagger2.0` route matched before any per-version service. The `val getMessageDocsSwagger: HttpRoutes[IO] = HttpRoutes.empty` stub in `Http4s310.scala` exists only to satisfy the `FrozenClassTest` API-surface check.
-5. Remove resource-docs from the per-version Lift objects (`ResourceDocs140`–`ResourceDocs600`) once the centralized service covers them.
-
----
-
-## ResourceDoc parity (per-version drift from Lift)
-
-Separate from the resource-docs **serving** workstream above, there is a parity workstream covering the **content** of each migrated ResourceDoc declaration. The goal is for every http4s `ResourceDoc(...)` to render identically to its Lift original, so the public API docs aren't silently degraded by migration.
+This is a **separate workstream** from the serving migration above (which is complete). It covers the **content** of each migrated `ResourceDoc(...)` declaration: the goal is for every http4s `ResourceDoc(...)` to render identically to its Lift original, so the public API docs aren't silently degraded. The figures below are the last recorded audit (2026-05-21) and may have moved since; re-run the audit script for current numbers.
 
 ### Principle
 
-**`APIMethodsXYZ.scala` (Lift) is the source of truth for migration.** The commented-out Lift ResourceDocs and endpoints inside each `APIMethodsXYZ.scala` are the canonical reference for what the http4s version should render: URL templates, verb casing, summaries, descriptions, example bodies, error lists, tags. **Do NOT edit these files to make the audit pass** — the audit compares http4s against the Lift source-of-truth. When the audit flags a diff, the resolution is either (a) update http4s to match Lift, or (b) document the difference at the http4s site as a known intentional drift (placeholder rename for middleware, upstream-driven case-class shift, etc.). Rewriting the Lift comments runs the comparison backwards and erases the historical record. (Mistakes in commits `d95c1df01` and `6154bf2cc` did this; reverted in `27f48af72`.)
+**`APIMethodsXYZ.scala` (Lift) is the source of truth.** The commented-out Lift ResourceDocs inside each `APIMethodsXYZ.scala` are the canonical reference for what the http4s version should render: URL templates, verb casing, summaries, descriptions, example bodies, error lists, tags. **Do NOT edit those files to make the audit pass** — the audit compares http4s against the Lift source-of-truth. When the audit flags a diff, the resolution is either (a) update http4s to match Lift, or (b) document the difference at the http4s site as a known intentional drift (placeholder rename for middleware, upstream-driven case-class shift, etc.). Rewriting the Lift comments runs the comparison backwards and erases the historical record. (Mistakes in commits `d95c1df01` and `6154bf2cc` did this; reverted in `27f48af72`.)
 
-**Stub fidelity verified.** Commits `810589330` (v6) and `88f46f854` (v5.1) replaced the live Lift code with commented-out stubs. Comparing each stub's uncommented ResourceDoc bodies against the pre-stub live versions: **0 field diffs across 243/243 v6 docs and 111/111 v5.1 docs**. The non-ResourceDoc deltas (imports, etc., ~16KB v6 / ~5KB v5.1) are immaterial. The stubs are an exact preservation of the original Lift ResourceDocs.
+**Stub fidelity verified.** Commits `810589330` (v6) and `88f46f854` (v5.1) replaced live Lift code with commented-out stubs: **0 field diffs across 243/243 v6 docs and 111/111 v5.1 docs**. The stubs are an exact preservation of the original Lift ResourceDocs.
 
 ### Tooling (`scripts/`)
 
 | Script | Role |
 |---|---|
-| `check_lift_http4s_resource_doc_parity.py` | Read-only audit. Parses both files, matches by `nameOf(...)` (with `.replace("a","b")` evaluation for derived names), reports per-field diffs. `--field=X` to focus, `--list-only` for endpoint-presence summary. |
-| `rehydrate_resource_docs.py` | Upstream (simonredfern, `67593ea28`). Lifts positional args 7/8/9 (description, exampleRequestBody, successResponseBody) from commented Lift blocks into http4s. Has a `split-init` subcommand for JVM 64KB method-size workaround. |
-| `restore_resource_doc_bodies.py` | Companion to the above. Restores any subset of (summary, description, exampleRequestBody, successResponseBody, errorResponseBodies, tags) from Lift into http4s. Surgical per-field replacement preserves layout. `--fields=X,Y` to scope, `--only=ep` to target one endpoint. |
+| `check_lift_http4s_resource_doc_parity.py` | Read-only audit. Parses both files, matches by `nameOf(...)`, reports per-field diffs. `--field=X`, `--list-only`. |
+| `rehydrate_resource_docs.py` | Lifts positional args 7/8/9 (description, exampleRequestBody, successResponseBody) from commented Lift blocks into http4s. `split-init` subcommand for the JVM 64KB workaround. |
+| `restore_resource_doc_bodies.py` | Restores any subset of (summary, description, exampleRequestBody, successResponseBody, errorResponseBodies, tags) from Lift into http4s. `--fields=X,Y`, `--only=ep`. |
 
-### Current drift (audit re-run 2026-05-21 evening)
+### Last recorded drift (audit 2026-05-21)
 
 | Version | shared | mismatch | only-lift | only-http4s | Status |
 |---|---|---|---|---|---|
 | v1_2_1 | 70  | 6  | 0 | 0 | semantic fields restored; 6 structural drifts remain |
 | v1_3_0 | 3   | 0  | 0 | 0 | clean |
 | v1_4_0 | 10  | 1  | 0 | 0 | one minor |
-| v2_0_0 | 37  | 1  | 0 | 0 | semantic fields restored; 1 structural drift remains |
-| v2_1_0 | 23  | 1  | 5 | 2 | semantic fields restored; 1 structural drift remains |
-| v2_2_0 | 18  | 0  | 0 | 18 | Lift trait fully retired upstream (commit `71892f5cb`); audited against pre-stub Lift via git history; 13 fields restored; 3 middleware URL renames remain |
-| v3_0_0 | 47  | 4  | 0 | 0 | semantic fields restored; 4 middleware-driven URL renames remain |
-| v3_1_0 | 102 | 5  | 0 | 0 | semantic fields restored; 5 structural drifts (placeholder renames) remain |
-| v4_0_0 | 254 | 20 | 2 | 5 | semantic fields restored; 20 structural drifts (placeholder renames + 1 verb fix) remain |
+| v2_0_0 | 37  | 1  | 0 | 0 | 1 structural drift remains |
+| v2_1_0 | 23  | 1  | 5 | 2 | 1 structural drift remains |
+| v2_2_0 | 18  | 0  | 0 | 18 | Lift trait fully retired upstream (`71892f5cb`); audited via git history; 3 middleware URL renames remain |
+| v3_0_0 | 47  | 4  | 0 | 0 | 4 middleware-driven URL renames remain |
+| v3_1_0 | 102 | 5  | 0 | 0 | 5 placeholder renames remain |
+| v4_0_0 | 254 | 20 | 2 | 5 | 20 structural drifts (placeholder renames + 1 verb fix) remain |
 | v5_0_0 | 39  | 8  | 0 | 3 | descriptions restored; structural/errors remain |
-| v5_1_0 | 111 | 1  | 1 | 2 | one verb-casing drift to fix |
+| v5_1_0 | 111 | 1  | 1 | 2 | one verb-casing drift |
 | v6_0_0 | 243 | 12 | 0 | 1 | 11 placeholder renames + 1 routing-shape upstream change |
 | **Total** | **956** | **60** | | | |
 
-### v6.0.0 — 12 specific drifts (each is a fix candidate)
+The per-version drift breakdowns (v6 COUNTERPARTY_ID renames, v4 GRANT_VIEW_ID / DYNAMIC_RESOURCE_DOC_ID, v3 firehose `FIREHOSE_*` renames, v5 system-view error-accuracy improvements, etc.) are middleware-driven placeholder renames or deliberate http4s improvements. The two only-lift v4 endpoints (`getAllAuthenticationTypeValidationsPublic`, `getAllJsonSchemaValidationsPublic`) are a known **migration gap** — port them or confirm they're intentionally dropped.
 
-These are the cases where http4s deviates from Lift. Under the source-of-truth rule, the default is to fix http4s; deliberate exceptions need to be documented at the http4s site.
+### Strategy for each remaining drift
 
-| Endpoint | Field | Lift | http4s | Resolution |
-|---|---|---|---|---|
-| `createCounterpartyAttribute` | requestUrl | `…/counterparties/COUNTERPARTY_ID/attributes` | `…/COUNTERPARTY_ID_PARAM/…` | TBD — verify `ResourceDocMatcher` correctly handles `COUNTERPARTY_ID` as a wildcard (the literal set contains `COUNTERPARTY`, but `COUNTERPARTY_ID` is whole-segment-different). If safe, revert to Lift's name. |
-| `deleteCounterpartyAttribute` | requestUrl | same | same | same as above |
-| `getAllCounterpartyAttributes` | requestUrl | same | same | same as above |
-| `getCounterpartyAttributeById` | requestUrl | same | same | same as above |
-| `updateCounterpartyAttribute` | requestUrl | same | same | same as above |
-| `createTransactionRequestCardano` | requestUrl | `…/ACCOUNT_ID/owner/transaction-request-types/CARDANO/…` | `…/ACCOUNT_ID/VIEW_ID/…/CARDANO/…` | **Functional broadening** — http4s lets any view, Lift hardcoded `owner`. Keep http4s; document at the http4s ResourceDoc site. |
-| `createTransactionRequestHold` | requestUrl | `…/owner/…HOLD/…` | `…/VIEW_ID/…HOLD/…` | same as above |
-| `getSystemViewById` | requestUrl | `/management/system-views/VIEW_ID` | `/management/system-views/SYS_VIEW_ID` | TBD — disambiguation rename. If `ResourceDocMatcher` handles both fine, revert. |
-| `updateSystemView` | requestUrl | `/system-views/VIEW_ID` | `/system-views/UPD_VIEW_ID` | same as above |
-| `removeBankReaction` | requestUrl | `…/reactions/EMOJI` | `…/reactions/EMOJI_REACTION` | `EMOJI` is NOT in `literalAllCapsSegments` (only `EMAIL`/`SMS`/`IMPLICIT` of the SCA cluster are). Rename may have been defensive; safe to revert. |
-| `removeSystemReaction` | requestUrl | same | same | same as above |
-| `getAccountDirectory` | successResponseBody | `FastFirehoseRoutings(bank_id, account_id)` | `AccountRoutingJsonV121(scheme, address)` | **Upstream functional change** (`9e151c524` / `9dc4c4c46` migrated the case class). Cannot revert; document. Also note: the same change broke `mvn test` (pre-existing upstream compile error in `JSONFactory6.0.0.scala:2934`). |
+1. **Default**: fix http4s to match Lift verbatim (`restore_resource_doc_bodies.py`).
+2. **Documented exception**: where the drift is a deliberate http4s improvement or required by middleware semantics, leave it and add a `// Lift had X; we use Y because Z` comment at the http4s ResourceDoc site.
+3. **Never**: edit `APIMethodsXYZ.scala` to make the audit pass — the Lift comments are the canonical record.
 
-Also: 1 only-http4s (`createWebUiProps`) — genuinely http4s-only with no Lift counterpart. Document.
-
-### v5.1.0 — 1 specific drift
-
-| Endpoint | Field | Lift | http4s | Resolution |
-|---|---|---|---|---|
-| `revokeMyConsent` | requestVerb | `"Delete"` | `"DELETE"` | Trivial casing fix on the http4s side. |
-
-Also:
-- 1 only-lift (`createConsentImplicit`) + 1 only-http4s (`createConsent`) — Lift had `lazy val createConsentImplicit = createConsent` aliasing and registered the doc under the alias; http4s registers under the canonical name. Fix: in http4s, either rename the partial function to `createConsentImplicit` to match Lift, or register a second `nameOf(createConsentImplicit)` doc for the same handler.
-- 1 only-http4s (`getBanks`) — kept in the v5.1.0 layer for metrics attribution (intentional addition; see comment at `Http4s510.scala:288`). Document.
-
-### v2.2.0 — 3 specific drifts + 18 only-http4s
-
-Upstream commit `71892f5cb` retired `APIMethods220.scala`'s Lift trait entirely (1361 lines → 9-line empty stub). For audit purposes, the Lift source-of-truth is preserved in git history at `71892f5cb^`. A one-off Python script using `restore_resource_doc_bodies.py` helpers (in `scripts/`) extracts the pre-stub `APIMethods220.scala` and runs the standard field restoration against `Http4s220.scala`.
-
-After restoration (13 descriptions + 1 example body + 1 success body), only 3 middleware-driven URL renames remain:
-
-| Endpoint | Field | Lift | http4s | Resolution |
-|---|---|---|---|---|
-| `createAccount` | requestUrl | `…/accounts/ACCOUNT_ID` | `…/accounts/NEW_ACCOUNT_ID` | PUT-creates-account bypass. **Document**. |
-| `createViewForBankAccount` | requestUrl | `…/accounts/ACCOUNT_ID/views` | `…/accounts/VIEW_ACCOUNT_ID/views` | Account-validation bypass. **Document**. |
-| `updateViewForBankAccount` | requestUrl | `…/views/VIEW_ID` | `…/views/UPD_VIEW_ID` | Disambiguation rename. **Document**. |
-
-The 18 only-http4s entries are the actual v2.2.0 surface — there is no live Lift counterpart in the file anymore. They're audited indirectly against the git-history Lift.
-
-Two supporting imports were added to `Http4s220.scala` so the restored descriptions / example bodies compile: `code.api.util.Glossary` and `java.util.Date`.
-
-### v3.0.0 — 4 specific drifts
-
-After semantic-field restoration, only middleware-driven URL renames remain.
-
-| Endpoint | Field | Lift | http4s | Resolution |
-|---|---|---|---|---|
-| `createViewForBankAccount` | requestUrl | `…/accounts/ACCOUNT_ID/views` | `…/accounts/VIEW_ACCOUNT_ID/views` | Middleware account-validation bypass (see CLAUDE.md "Middleware URL template bypass" gotcha). **Document** — required. |
-| `updateViewForBankAccount` | requestUrl | `…/views/VIEW_ID` | `…/views/UPD_VIEW_ID` | Disambiguation rename. **Document**. |
-| `getFirehoseAccountsAtOneBank` | requestUrl | `/banks/BANK_ID/firehose/accounts/views/VIEW_ID` | `/banks/FIREHOSE_BANK_ID/firehose/accounts/views/FIREHOSE_VIEW_ID` | Firehose middleware bypass. **Document**. |
-| `getFirehoseTransactionsForBankAccount` | requestUrl | `/banks/BANK_ID/firehose/accounts/ACCOUNT_ID/views/VIEW_ID/transactions` | `/banks/FIREHOSE_BANK_ID/firehose/accounts/FIREHOSE_ACCOUNT_ID/views/FIREHOSE_VIEW_ID/transactions` | Same firehose pattern. **Document**. |
-
-No only-lift or only-http4s entries for v3.0.0.
-
-### v3.1.0 — 5 specific drifts
-
-After semantic-field restoration (commit `f4b9bd183`), only middleware-driven placeholder renames remain.
-
-| Endpoint | Field | Lift | http4s | Resolution |
-|---|---|---|---|---|
-| `createAccount` | requestUrl | `/banks/BANK_ID/accounts/ACCOUNT_ID` | `…/NEW_ACCOUNT_ID` | PUT-creates-account pattern. Middleware would 404 on `ACCOUNT_ID` lookup before the handler. **Document** — required. |
-| `deleteSystemView` | requestUrl | `/system-views/VIEW_ID` | `/SYS_VIEW_ID` | Disambiguation from other VIEW_ID usages. **Document**. |
-| `getSystemView` | requestUrl | same | same | same |
-| `updateSystemView` | requestUrl | same | same | same |
-| `getFirehoseCustomers` | requestUrl | `/banks/BANK_ID/firehose/customers` | `…/FIREHOSE_BANK_ID/…` | Firehose middleware bypass — prop check must run before bank lookup (see CLAUDE.md). **Document** — required. |
-
-No only-lift or only-http4s entries for v3.1.0.
-
-### v4.0.0 — 20 specific drifts + 2 only-lift + 5 only-http4s
-
-After semantic-field restoration (commit `2b24811e5`), the remaining drifts are all structural / functional:
-
-| Category | Count | Endpoints | Resolution |
-|---|---|---|---|
-| requestVerb | 1 | `deleteExplicitCounterparty` (Lift `POST` → http4s `DELETE`) | http4s is REST-correct. **Document** as deliberate fix. |
-| requestUrl — `VIEW_ID` → `GRANT_VIEW_ID` | 9 | `answerTransactionRequestChallenge` and 8 `createTransactionRequest*` variants (Account/AccountOtp/AgentCashWithDrawal/Counterparty/FreeForm/Refund/Sepa/Simple) | Middleware disambiguation rename. Verify if `VIEW_ID` collides in `ResourceDocMatcher`; if not, revert. If it does, **document**. |
-| requestUrl — hyphen→underscore | 6 | `delete`/`get`/`update` × `BankLevelDynamicResourceDoc` / `DynamicResourceDoc` (Lift `DYNAMIC-RESOURCE-DOC-ID` → http4s `DYNAMIC_RESOURCE_DOC_ID`) | The matcher's ALL_CAPS-with-underscores wildcard requires underscores. **Fix Lift**? No — Lift is source-of-truth. **Document** at the http4s site as a required matcher constraint. |
-| requestUrl — `COUNTERPARTY_ID` → `COUNTERPARTY_ID_PARAM` | 2 | `deleteExplicitCounterparty`, `getCounterpartyByIdForAnyAccount` | Same as v6's COUNTERPARTY rename family. Verify matcher behavior; revert if safe. |
-| requestUrl — `COUNTERPARTY_ID` → `EXPLICIT_COUNTERPARTY_ID` | 1 | `getExplicitCounterpartyById` | Same defensive rename pattern. |
-| requestUrl — firehose pattern | 1 | `getFirehoseAccountsAtOneBank` (Lift `BANK_ID/.../VIEW_ID` → http4s `FIREHOSE_BANK_ID/.../FIREHOSE_VIEW_ID`) | Middleware bypass for the prop-check-before-bank-lookup pattern (see CLAUDE.md "Prop check before role check" gotcha). **Document** — required for correctness. |
-| requestUrl — Lift URL malformed | 1 | `deleteCustomerAttribute` (Lift `/banks/BANK_ID/CUSTOMER_ID/attributes/.../...` is missing `/customers/`; http4s uses `/banks/BANK_ID/customers/attributes/...`) | Lift URL was buggy. http4s fixed it. **Document** as deliberate URL fix; flag that the Lift comment preserves the original bug as historical record. |
-
-Also: 2 only-lift (`getAllAuthenticationTypeValidationsPublic`, `getAllJsonSchemaValidationsPublic`) — these endpoints exist in Lift v4 but were not migrated to `Http4s400`. **Migration gap** — port them. 5 only-http4s (`createBankLevelDynamicEntity`, `createSystemDynamicEntity`, `updateBankLevelDynamicEntity`, `updateMyDynamicEntity`, `updateSystemDynamicEntity`) — dynamic-entity overrides added in http4s with no Lift equivalent. Document if intentional, or audit whether they should have Lift counterparts.
-
-### v5.0.0 — 8 specific drifts + 3 only-http4s
-
-| Category | Count | Endpoints | Resolution |
-|---|---|---|---|
-| requestUrl placeholder rename | 1 | `createAccount` (Lift `ACCOUNT_ID` → http4s `NEW_ACCOUNT_ID` for the PUT-creates pattern) | Verify matcher behavior; may be required for `ACCOUNT_ID` literal handling. |
-| errorResponseBodies — SCA val-vs-inline | 3 | `createConsentByConsentRequestIdEmail` / `Sms` / `Implicit` | http4s uses `private val createConsentByConsentRequestIdCommonErrors = List(...)` for DRY; Lift inlined the list. Either inline the val in the 3 doc registrations to match Lift verbatim, or extend the audit script to expand simple `val X = List(...)` references. |
-| errorResponseBodies — system-view accuracy | 4 | `createSystemView`, `deleteSystemView`, `getSystemView`, `updateSystemView` | http4s has more accurate errors (`SystemViewNotFound`, `SystemViewCannotBePublicError`, `InvalidSystemViewFormat`). Lift had wrong/legacy errors (`BankAccountNotFound`, `$BankNotFound`, `"user does not have owner access"`). **Genuine improvement** — document at http4s site. |
-
-Also: 3 only-http4s (`getBanks`, `getProduct`, `getProducts`) — kept in this layer for metrics attribution. Document.
-
-### Strategy summary
-
-For each remaining drift on a migrated version:
-1. **Default**: fix http4s to match Lift verbatim. Use `restore_resource_doc_bodies.py` for field-level restoration.
-2. **Documented exceptions**: where the drift is a deliberate http4s improvement or required by middleware semantics, leave the drift and add a `// Lift had X; we use Y because Z` comment at the http4s ResourceDoc site.
-3. **Never**: edit `APIMethodsXYZ.scala` to make the audit pass. The Lift comments are the canonical record.
-
-Untouched versions (v1_2_1 through v4_0_0, plus v2_1_0) need the same treatment: run `rehydrate_resource_docs.py` then `restore_resource_doc_bodies.py`, then audit and address any residual drifts at the http4s site.
+Reserved ALL_CAPS placeholders in middleware (`BANK_ID`, `ACCOUNT_ID`, `VIEW_ID`, `COUNTERPARTY_ID`) plus the literal SCA/transaction-type segments in `literalAllCapsSegments` drive most renames: when an endpoint needs a same-shape var without middleware lookup, it's renamed to a non-reserved variant (e.g. `COUNTERPARTY_ID_PARAM`, `NEW_ACCOUNT_ID`, `FIREHOSE_BANK_ID`) in **both** the http4s and Lift ResourceDocs.
 
 ---
 
-## Auth Stack (separate workstream)
+## Lift Web teardown — completed
 
-Token-generation paths — not version-file endpoints. Each `extends RestHelper` and needs to become an http4s route or middleware independently. Can run in parallel with the APIMethods migration.
+The full "remove Lift Web" milestone is done. For the record, what landed:
 
-| Component | Path | Notes |
-|---|---|---|
-| `DirectLogin` | `POST /my/logins/direct` | Done — served by `Http4s600.directLoginEndpoint` (versioned) and `DirectLoginRoutes` (bare path). |
-| `GatewayLogin` | gateway JWT exchange | Library-only validator (no routes). |
-| `DAuth` | dAuth JWT exchange | Library-only validator (no routes). |
-| `OpenIdConnect` | OIDC callback | Blocked — last hard dependency on Lift Web in the request path. See auth-stack leftovers table. |
+1. **`Http4sLiftWebBridge` deleted** — there is no request bridge; the chain ends in `notFoundCatchAll`. The bridge-traffic audit instrumentation (`Http4sLiftBridgeTraffic`, `GET /admin/lift-bridge-traffic`) that was used to prove `real_work[]` had drained is gone with it.
+2. **`lift-webkit` removed from `pom.xml`** — the Lift web library is no longer a dependency.
+3. **`Boot.scala` request-path hooks removed** — all `LiftRules.statelessDispatch.append(...)` (DirectLogin, ResourceDocs140–600, aliveCheck), `LiftRules.dispatch.append(OpenIdConnect)`, `addToPackages`, `exceptionHandler`/`uriNotFound`/`early`/`supplementalHeaders` request-path hooks are gone. Boot now does ORM init + connector/config setup + the Mapper schemifier + shutdown hooks only.
+4. **OpenID Connect migrated** (fork a — drop portal-login). The one hard Lift-Web dependency in the request path (`AuthUser.logUserIn` / `S.redirectTo` seeding a Lift `SessionVar` portal session) was resolved by issuing a DirectLogin token instead.
+5. **0 active `import net.liftweb.http.*`** anywhere in `obp-api/src/main` (all such imports are in commented-out files). One vestigial fully-qualified `net.liftweb.http.S.redirectTo(homePage)` survives in `AuthUser.logout` — but `logout` is **dead code** (never called); it's a cleanup candidate, not a live dependency.
 
-OAuth 1.0a token endpoints were removed entirely in commit `51820c75e` (2026-02-20); the workstream collapsed.
-
----
-
-## Per-version Lift leftovers
-
-An `APIMethods{version}` file is marked **done** in the progress table when every *functional* endpoint is on http4s and the version's test suite is green. A small number of endpoints are deliberately *not* migrated inline because they belong to a different workstream or have no behaviour worth porting. They continue to be served by the Lift bridge until the workstream that owns them lands; they do **not** create new follow-up work on the per-version file.
-
-| Endpoint | Origin | Why on Lift | Retired by |
-|---|---|---|---|
-| `getMessageDocsSwagger` (`GET /message-docs/CONNECTOR/swagger2.0`) | `Http4s310` (stub) + `Http4sResourceDocs` (real handler) | **Effectively done.** The real handler lives in `Http4sResourceDocs.handleGetMessageDocsSwagger`, matched by the wildcard `/obp/*/message-docs/{CONNECTOR}/swagger2.0` before any per-version service. `Http4s310.scala` keeps a stub `val getMessageDocsSwagger: HttpRoutes[IO] = HttpRoutes.empty` plus a `ResourceDoc` entry so the ResourceDoc surface stays consistent and the `FrozenClassTest` surface check keeps passing (`nameOf(getMessageDocsSwagger)` compiles). No bridge dispatch is involved. | The stub can be deleted as part of the bridge-removal PR alongside the frozen-snapshot refresh; until then the wiring above is correct in production. |
-| `getObpConnectorLoopback` (`GET /connector/loopback`) | `Http4s310` | **Done.** Native http4s route in `Http4s310.scala` (~line 4875) — `booleanToFuture(NotImplemented, failCode = 400) { false }`, i.e. the route always returns 400 NotImplemented, mirroring Lift's original deprecated-stub behaviour. No bridge dispatch. | Deletable in the bridge-removal PR (or kept indefinitely as a documented deprecation stub). |
-| ~~`testResourceDoc`~~ | ~~`APIMethods140`~~ | Dev-mode-only `/dummy` stub deleted — returned a dummy `APIInfoJSON`, no production behaviour. Removed from `OBPAPI1_4_0.routes` and `Implementations1_4_0`. `FrozenClassTest` did not flag it because v1.4.0's `testResourceDoc` ResourceDoc was registered behind `if (Props.devMode)` — the frozen snapshot (captured in test mode) never contained it. | **Done.** |
-
-Track new leftovers here when later version files are migrated — the bridge-removal milestone in "Done Criteria" only requires the per-version files to be **done** in this table's sense (functional endpoints migrated, tests green). Leftovers folded into the Resource-docs or Auth-stack workstreams retire via those workstreams.
+> `APIUtil.SS.init(...)` wrappers (e.g. in `Http4s400.scala`) are **not** Lift-Web code — `SS` is a thread-local that the `lift-mapper`-based `LocalMappedConnectorInternal` reads (`SS.user`). It's a legitimate adapter for the ORM layer, which stays until lift-mapper is replaced.
 
 ---
 
-## Migration leftovers (full landscape, beyond per-version files)
+## What remains — `lift-mapper`
 
-Things still on Lift that block the `Http4sLiftWebBridge` from being removed. Use this section as the master TODO for the "remove Lift Web" milestone.
+**Out of scope for this migration.** `net.liftweb.mapper.*` is still the ORM across the codebase (100+ files): `AuthUser extends MegaProtoUser`, `Schemifier.schemify` in `Boot.scala`, all `MappedXxx` entities. Replacing it (with Doobie / Slick or similar) is a separate multi-month effort.
 
-### Bridge-traffic audit (data-driven prioritisation)
+**"Lift Web removed" ≠ "Lift removed."**
 
-Every request that reaches `Http4sLiftWebBridge.dispatch` is tallied in-memory by `Http4sLiftBridgeTraffic` so we can see exactly what still needs migrating before the bridge can be retired.
+- *Lift Web removed* (✅ **done**) — the HTTP request path no longer touches Lift: `lift-webkit` out of `pom.xml`, `Http4sLiftWebBridge` deleted, `Boot.scala` request-path hooks gone. `lift-mapper` is still the ORM.
+- *Lift removed* (not done) — `net.liftweb:*` fully out of the dependency graph; requires the lift-mapper replacement above.
 
-- **First hit of any (method, path-bucket, status)** triple is logged at INFO: `[BRIDGE-AUDIT] first hit: METHOD /path/bucket STATUS   (original path: /actual/path)`. Subsequent hits only increment an `AtomicLong`.
-- **Snapshot endpoint** — `GET /admin/lift-bridge-traffic` returns the tally grouped into `real_work` (non-404) and `not_found` (404). 404 entries are typically test-probe traffic / stale URLs / dead links and are **not** migration work. Each group is sorted by hit count desc:
-  ```json
-  {
-    "unique_buckets": 5,
-    "total_hits": 248,
-    "summary": {
-      "real_work": {"unique_buckets": 3, "total_hits": 230},
-      "not_found": {"unique_buckets": 2, "total_hits": 18}
-    },
-    "real_work": [
-      {"method": "GET",  "bucket": "/auth/openid-connect/callback", "status": 200, "count": 99},
-      {"method": "POST", "bucket": "/obp/dynamic-entity/FooBar",     "status": 201, "count": 88},
-      {"method": "GET",  "bucket": "/obp/dynamic-entity/FooBar",     "status": 200, "count": 43}
-    ],
-    "not_found": [
-      {"method": "DELETE", "bucket": "/obp/v4.0.0/banks/{id}/accounts", "status": 404, "count": 16},
-      {"method": "GET",    "bucket": "/favicon.ico",                     "status": 404, "count": 2}
-    ]
-  }
-  ```
-- **Reset** — `POST /admin/lift-bridge-traffic/reset` clears the tally (handy for taking a baseline before a load test).
-- **Path normalisation** collapses opaque IDs so the map doesn't fill up: UUIDs → `{uuid}`, all-digits → `{n}`, anything with a dot or 12+-char alnum mixed → `{id}`. API-version strings (`v6.0.0`, `v1_2_1`) are kept verbatim. Unit-tested in `Http4sLiftBridgeTrafficTest` (9 cases).
-
-Operator playbook for "is the bridge ready to retire?":
-1. Reset the tally on a representative instance.
-2. Let it run through a normal traffic window (e.g. 24h + the daily/weekly jobs).
-3. Query `/admin/lift-bridge-traffic`:
-   - **`real_work[]` empty** → bridge can be retired (modulo any documented leftovers).
-   - **`real_work[]` non-empty** → those buckets are concrete migration targets. Each entry is a (method, URL pattern) that some live caller still needs Lift to serve.
-   - **`not_found[]`** is informational — useful for spotting stale callers or unused URL patterns, but not blocking bridge removal.
-
-First real audit data (shard 1 CI run on 2026-05-25, 515 tests):
-- 20 `real_work` entries — all the `/obp/dynamic-entity/...` and `/obp/dynamic-endpoint/...` URLs. These are runtime-generated by Lift's dynamic dispatch when an admin creates a dynamic entity / endpoint at runtime; porting them is a workstream of its own (not endpoint-by-endpoint).
-- 2 `not_found` entries — `DELETE /obp/v4.0.0/banks/{id}/accounts`, asserted as 404 by `DeleteBankCascadeTest` to verify the cascade actually wiped the bank.
-
-### Auth stack — every handler is its own `RestHelper`
-
-| Handler | File | Routes | Status |
-|---|---|---|---|
-| `DirectLogin` | `code/api/directlogin.scala` | `POST /my/logins/direct` | **Done.** Versioned path (`/obp/v6.0.0/my/logins/direct`) served by `Http4s600.directLoginEndpoint`; bare path (`/my/logins/direct`) served by `code.api.DirectLoginRoutes` wired into `Http4sApp.baseServices` just before the Lift bridge. `LiftRules.statelessDispatch.append(DirectLogin)` removed from `Boot.scala`. The `allow_direct_login` prop gate moved into `DirectLoginRoutes`. The `dlServe { case Req("my" :: "logins" :: "direct" :: Nil, …) }` block inside `directlogin.scala` is now dead code (no longer registered with `LiftRules`); the surrounding `DirectLogin` object stays — its `getUserFromDirectLoginHeaderFuture` etc. are still called from auth flows. Cleanup of the dead `dlServe` block + `extends RestHelper` is a separate small PR. Key migration gotcha (kept for the auth-stack workstream): `createTokenFuture(allParameters)` ignores its argument and re-reads from Lift's `S.request` via `getAllParameters` — use `validatorFutureWithParams(...)` + `createTokenCommonPart(...)` instead. |
-| `GatewayLogin` | `code/api/GatewayLogin.scala` | Gateway JWT exchange | **No routes.** Library only — same shape as `OAuth2Login`. Consumed via `GatewayLogin.getUserFromGatewayLoginHeaderFuture` etc. from auth flows. `extends RestHelper` was vestigial and was removed (Formats implicit re-declared locally). |
-| `DAuth` | `code/api/dauth.scala` | dAuth JWT exchange | **No routes.** Library only — same shape as `OAuth2Login`/`GatewayLogin`. `extends RestHelper` was vestigial and was removed (object-level `implicit val formats` added for the `.extract[...]` call sites). |
-| `OAuth 1.0a` | — | OAuth 1.0a token endpoints | **Done — removed.** Commit `51820c75e` (2026-02-20, "refactor/(auth): Remove OAuth 1.0a support and consolidate authentication") deleted `oauth1.0.scala`, unregistered `OAuthHandshake` from `Boot.scala`'s `LiftRules.statelessDispatch`, removed OAuth header detection from `OBPRestHelper.scala`, and added `getConsumerFromDirectLoginToken` / `getUserFromDirectLoginToken` to take over the consumer/user-lookup responsibilities previously held by `OAuthHandshake`. **Dead-code follow-up cleanup also done**: `AuthHeaderParser.parseOAuthHeader`, the `oAuthParams` field on `ParsedAuthHeader` / `CallContext`, the `oAuthToken` field on `CallContextLight`, `extractOAuthParams` in `Http4sSupport`, `APIUtil.hasAnOAuthHeader`, and stale `OAuthHandshake` comments in `directlogin.scala` and `AuthUser.scala` all removed. `OpenAPI31JSONFactory`'s phantom OAuth2 `authorizationCode` flow (which pointed at the deleted `/oauth/authorize` and `/oauth/token` URLs) replaced with `type: http, scheme: bearer, bearerFormat: JWT` — accurate for OBP's actual OAuth2 model (Bearer-token validation against external IdPs; OBP does not issue its own OAuth2 tokens). Kept on purpose: `code/model/OAuth.scala` (backs the general `Consumer` entity used by all auth methods, not OAuth 1.0a-specific) and `APIUtil.OAuth` (misnamed but live test infrastructure — the `<@` signer adds `Authorization: DirectLogin token=...` headers and is imported by ~hundreds of test files; renaming is a separate cleanup). |
-| `OAuth2` | `code/api/OAuth2.scala` (`OAuth2Login`) | **No routes.** Library only — Bearer-token validator (Google / Yahoo / Azure / Keycloak / OBPOIDC / Hydra) consumed by `APIUtil.getUserFuture` and `OBPRestHelper.OAuth2.getUser`. Both Lift and http4s endpoints already call it. The `extends RestHelper` mixin was vestigial and was removed (the only thing it provided was an implicit `Formats`, now declared locally at the one `extract[List[String]]` site). No remaining auth-stack work in this file. |
-| `OpenIdConnect` | `code/api/openidconnect.scala` | OIDC callback — registered via `LiftRules.dispatch.append` | **Lift only — blocked on a portal-session decision.** 3 callback routes (`/auth/openid-connect/callback`, `…/callback-1`, `…/callback-2`) all funnel into `callbackUrlCommonCode`, whose success branch calls `AuthUser.logUserIn(user, () => S.redirectTo(...))`. `logUserIn` is inherited from `MetaMegaProtoUser` and writes the logged-in user into Lift `SessionVar`s that the portal reads; `S.redirectTo` sets Lift's session cookie. No tests cover the callback success path. Three forks: (a) **Drop portal-login** — pure http4s callback that issues a token but doesn't seed a portal session. Behaviour change for anyone using OIDC to sign into the portal UI; cheap if that user is nobody, surprising if it isn't. Needs a stakeholder check. (b) **Lift-session shim** — keep `lift-webkit` forever for this one callback. Cheapest in code, but "Lift Web removed" never actually ships. (c) **Replace portal session entirely** (e.g. Redis/JWT-backed). Months of work; also decouples session storage from Lift, which makes the lift-mapper conversation easier later. |
-
-DirectLogin's request-path is now off Lift. `OAuth2Login`, `GatewayLogin`, and `DAuth` turned out to be library-only (no routes); their vestigial `extends RestHelper` mixins were dropped. OAuth 1.0a was removed entirely in commit `51820c75e`. OpenIdConnect remains on Lift pending a portal-session decision — it is now the **only** auth handler still blocking bridge removal.
-
-### Resource-docs workstream
-
-Already partly described in the next major section, but counted here for completeness:
-
-- `ResourceDocs140` … `ResourceDocs600` — six separate Lift files, each registered via `LiftRules.statelessDispatch.append` in `Boot.scala`.
-- `getResourceDocsObpV700` aggregation bug fix — landed (`V7ResourceDocsAggregationTest` passes).
-- `openapi.yaml` route — raw `Lift serve { ... }` block, no native http4s handler.
-- ~~`getMessageDocsSwagger` (v3.1.0) — folds into the centralised `Http4sResourceDocs` service when it ships.~~ **Done** — served by `Http4sResourceDocs.handleGetMessageDocsSwagger` via the wildcard `/obp/*/message-docs/{CONNECTOR}/swagger2.0` route.
-- One-PR opportunity: build `Http4sResourceDocs` above the Lift bridge in `Http4sApp`, intercept all `/obp/*/resource-docs/*` traffic, retire six Lift dispatch entries in a single change.
-
-### Small singleton Lift endpoints
-
-| Endpoint | File | Notes |
-|---|---|---|
-| `aliveCheck` | `code/api/aliveCheck.scala` → `code/api/AliveCheckRoutes.scala` | **Done.** Native http4s route serves `GET /alive`; `LiftRules.statelessDispatch.append(aliveCheck)` removed from `Boot.scala`. |
-| `ImporterAPI` | (deleted) | **Retired.** The legacy `POST /obp_transactions_saver/api/transactions` shared-secret bulk-insert endpoint, its `TransactionInserter` LiftActor, and the connector helpers it relied on (`createImportedTransaction`, `getMatchingTransactionCount`, `updateAccountBalance`, `setBankAccountLastUpdated`) have been removed entirely. Modern callers use connector-driven flows or the `/obp/vX.X.X/transaction-requests/...` endpoints. |
-| `OpenIdConnect` | (auth-stack table above) | OIDC callback, registered separately from OAuth2. |
-
-### Open-banking standards
-
-Lift implementations of 3rd-party regulatory standards. Berlin Group v1.3 and UK Open Banking v2.0+v3.1 are now fully on http4s. The remaining five standards still pass through `Http4sLiftWebBridge`; they are optional regulatory shims. Migrating them is out of scope for the "remove Lift Web" milestone if you accept keeping the bridge for these stacks only. If total Lift removal is the goal, each needs its own workstream.
-
-Three forks for the remaining standards:
-
-- **(a) Migrate each to http4s.** Weeks per standard × 5 remaining standards. Highest cost; cleanest end state.
-- **(b) "Regulatory mode" feature-flagged Lift.** Keep `Http4sLiftWebBridge` wired in only when an `obf-*` / standards prop is set; otherwise the bridge is unregistered at boot. Lets "Lift Web removed from the OBP API path" ship, but Lift Web stays in the codebase as an opt-in shim. Defeats the milestone technically; ships the headline.
-- **(c) Extract as plugin projects.** Move each standard out of this repo into its own project that depends on OBP API. Probably right long-term — these are optional, externally-governed standards on different release cadences — but socially expensive and reshapes the build.
-
-| Standard | Files / location | Status |
-|---|---|---|
-| **Berlin Group v1.3** | `code/api/berlin/group/v1_3/Http4sBGv13{AIS,PIS,PIIS,SigningBaskets,Alias}.scala` — 6 http4s files | ✅ Done — wired into `Http4sApp` |
-| **Berlin Group v2** | `code/api/berlin/group/v2/Http4sBGv2.scala` | ✅ Done |
-| **UK Open Banking v2.0.0** | `code/api/UKOpenBanking/v2_0_0/Http4sUKOBv200{,AIS}.scala` | ✅ Done |
-| **UK Open Banking v3.1.0** | `code/api/UKOpenBanking/v3_1_0/Http4sUKOBv310*.scala` — 21 http4s files | ✅ Done |
-| Bahrain OBF v1.0.0 | `code/api/BahrainOBF/*` — ~20 files | Lift |
-| AU OpenBanking v1.0.0 | `code/api/AUOpenBanking/*` — ~10 files | Lift |
-| STET v1.4 | `code/api/STET/v1_4/*` — 4 files | Lift |
-| MxOF v1.0.0 | `code/api/MxOF/*` — 2 files | Lift |
-| Polish v2.1.1.1 | `code/api/Polish/v2_1_1_1/*` — 4 files | Lift |
-| Sandbox / `SandboxApiCalls.scala` | `code/api/sandbox/*` | Lift |
-
-### `Boot.scala` scaffolding
-
-Currently runs on startup and goes away once the Lift bridge is removable:
-
-1. `LiftRules.statelessDispatch.append(...)` registrations: `DirectLogin`, `ResourceDocs140`–`ResourceDocs600`, `aliveCheck`.
-2. `LiftRules.dispatch.append(OpenIdConnect)`.
-3. `LiftRules.addToPackages("code")` — Lift package scanner.
-4. `LiftRules.exceptionHandler.prepend { ... }` — global exception handler.
-5. `LiftRules.uriNotFound.prepend { ... }` — 404 handler.
-6. `LiftRules.early`, `LiftRules.supplementalHeaders`, `LiftRules.localeCalculator`, etc. — request-path hooks.
-7. `LiftRules.unloadHooks.append(...)` — shutdown hooks (DB pool, Redis).
-8. **Mapper schemifier** — DB schema init. Belongs to the long-term `lift-mapper` removal effort, not the bridge milestone.
-
-Everything in lines 1–7 is request-path-related and will go in the bridge-removal PR. Line 8 stays until lift-mapper is replaced.
-
-### Tests
-
-| Item | Status |
-|---|---|
-| `RootAndBanksTest` | `@Ignore`. |
-| v5.0.0: 13 skipped tests | Setup cost paid, no value. |
-| `V7ResourceDocsAggregationTest` | Was intentionally failing; aggregation bug fix landed → now passes. |
-| `AbacRuleTests` (6 local fails) | Environment-dependent — too few users in local DB triggers `isStatisticallyTooPermissive`. Not a regression. |
-
-### Reusable lessons from v6.0.0
-
-1. **JVM 64KB `<init>` limit** — see CLAUDE.md. Adopt `lazy val xxx: HttpRoutes[IO] = ...` plus `private def initXxxResourceDocs(): Unit` blocks in every per-version file from the start; don't wait until you hit the wall.
-2. **DirectLogin pattern** — `S.request`-bound Lift handlers need an http4s-friendly entry point that accepts pre-parsed parameters. `validatorFutureWithParams` is the model; replicate this for `GatewayLogin` / `OAuth` when their migration starts.
-3. **`Future.failed(new Exception)` produces 500** — use `unboxFullOrFail(Empty, ..., 400)` or `NewStyle.function.tryons(msg, 400, ...)` to return the intended 4xx. Pattern showed up in WebUiProps and RetailCustomer fixes.
-4. **`isStatisticallyTooPermissive` is sample-pool-dependent** — locally, a fresh test DB with a single user causes spurious rejections. Tests built against this check must seed enough users.
-5. **Reserved ALL_CAPS placeholders** in middleware (`BANK_ID`, `ACCOUNT_ID`, `VIEW_ID`, `COUNTERPARTY_ID`) — when an endpoint needs a same-shape var without middleware lookup, rename to a non-reserved variant (e.g. `COUNTERPARTY_ID_PARAM`) in both the http4s and Lift ResourceDocs.
-
-### Decision gates
-
-Two non-engineering decisions must land before the bridge-removal PR can be cut. They are stakeholder calls, not author calls — making either of them in code reviews tends to surface objections after the fact.
-
-1. **OIDC portal-session strategy** (auth-stack OpenIdConnect row, options a/b/c). Until one of the three forks is picked, the OIDC callback can't be migrated and the bridge can't be removed. The cheapest option (drop portal-login) is a behaviour change and needs explicit sign-off from anyone using OIDC as a portal-UI sign-in. **This is now the only auth-handler decision blocking bridge removal.**
-
-A second decision is *not* required for bridge removal, but is required for the public claim that follows it:
-
-2. **Open-banking standards strategy** (forks a/b/c above). Berlin Group v1.3 and UK Open Banking v2.0+v3.1 are already on http4s. Five standards remain (Bahrain, AU, STET, MxOF, Polish). If "Lift Web removed from the OBP API request path" is the headline, fork (b) is acceptable for the remaining five. If "Lift Web removed from this repo" is the headline, only (a) or (c) qualify. Cf. the "Lift Web removed vs. Lift removed" note under Done Criteria.
-
-### Suggested ordering for the remaining work
-
-1. ~~**v4.0.0 bulk port**~~ — done (258/258, 100%).
-2. ~~**DirectLogin**~~ — done. `code.api.DirectLoginRoutes` serves the bare `/my/logins/direct`; per-version paths served by their own `Http4sXxx`. `LiftRules.statelessDispatch.append(DirectLogin)` retired.
-3. ~~**`aliveCheck`**~~ — done. `code.api.AliveCheckRoutes` serves `GET /alive`; Lift dispatch retired. **`ImporterAPI`** — retired entirely (no http4s replacement); the legacy shared-secret bulk-transaction-importer endpoint has been removed along with `TransactionInserter` and the connector helpers it relied on.
-4. ~~**`Http4sResourceDocs` centralised service**~~ — done. `code.api.util.http4s.Http4sResourceDocs` serves `/obp/*/resource-docs/{API_VERSION}/{obp,swagger,openapi,openapi.yaml}`, `/obp/*/banks/{BANK_ID}/resource-docs/{API_VERSION}/obp`, and `/obp/*/message-docs/{CONNECTOR}/swagger2.0`. 10 `LiftRules.statelessDispatch.append(ResourceDocs140..600)` retired + `openapi.yaml` raw `serve { ... }` block removed. ResourceDocsTest (63) + SwaggerDocsTest (10) green.
-5. **Auth stack: OAuth2 / GatewayLogin / DAuth** — done. All three turned out to be library-only token validators (no `serve` blocks, no `LiftRules` registration). Vestigial `extends RestHelper` mixins removed.
-6. **OpenIdConnect** — the only remaining auth-stack work. Blocked on a portal-session decision (its success path calls `AuthUser.logUserIn` / `S.redirectTo`, which mutate Lift `SessionVar`s — see auth-stack table). OAuth 1.0a was removed entirely in commit `51820c75e`; no migration needed.
-7. **Bridge-removal PR** — delete `Http4sLiftWebBridge` + the request-path entries from `Boot.scala` (lines 1–7 above).
-8. **Open-banking standards** — Berlin Group v1.3 and UK Open Banking v2.0+v3.1 are done. Five standards remain on Lift (Bahrain, AU, STET, MxOF, Polish). Decide whether to migrate or keep a thin Lift remnant for those five. Weeks of work per standard if migrating.
-9. **`lift-mapper`** — separate long-term effort, out of scope here.
+Decide which bar a release is hitting before announcing it; conflating them invites either an overstatement or an avoidable months-long delay.
 
 ---
 
-## Server Chain After Full Migration
+## Reusable lessons
 
-```
-corsHandler
-  → Http4sResourceDocs  (/obp/*/resource-docs/*)   ← centralized, all version prefixes
-  → Http4s700  (/obp/v7.0.0/*)
-  → Http4s600  (/obp/v6.0.0/*)
-  → Http4s510  (/obp/v5.1.0/*)
-  → Http4s500  (/obp/v5.0.0/*)
-  → Http4sBGv2  (/obp/v2/*)             ← Berlin Group v2
-  → Http4sUKOBv200  (/open-banking/v2.0/*)
-  → Http4sUKOBv310  (/open-banking/v3.1/*)
-  → Http4sBGv13 + Http4sBGv13Alias      ← Berlin Group v1.3
-  → Http4s400  (/obp/v4.0.0/*)
-  → Http4s310  (/obp/v3.1.0/*)
-  → Http4s300  (/obp/v3.0.0/*)
-  → Http4s220  (/obp/v2.2.0/*)
-  → Http4s210  (/obp/v2.1.0/*)
-  → Http4s200  (/obp/v2.0.0/*)
-  → Http4s140  (/obp/v1.4.0/*)
-  → Http4s130  (/obp/v1.3.0/*)
-  → Http4s121  (/obp/v1.2.1/*)
-  ← Lift bridge removed
-```
+1. **JVM 64KB `<init>` limit** — adopt `lazy val xxx: HttpRoutes[IO] = ...` + `private def initXxxResourceDocs(): Unit` blocks in every per-version file from the start; don't wait until you hit the wall.
+2. **`S.request`-bound Lift handlers** need an http4s-friendly entry point that accepts pre-parsed parameters. DirectLogin's `createTokenFuture` ignored its argument and re-read from `S.request` via `getAllParameters`; the fix threaded params through `validatorFutureWithParams`. Audit any handler for `S.request`/`S.param`/`S.queryString` reads before designing its http4s entry point.
+3. **`Future.failed(new Exception)` produces 500** — use `unboxFullOrFail(Empty, ..., 400)` or `NewStyle.function.tryons(msg, 400, ...)` to return the intended 4xx.
+4. **`isStatisticallyTooPermissive` is sample-pool-dependent** — locally, a fresh test DB with a single user causes spurious ABAC rejections. Seed enough users.
+5. **Reserved ALL_CAPS placeholders** in middleware — when an endpoint needs a same-shape var without middleware lookup, rename to a non-reserved variant (e.g. `COUNTERPARTY_ID_PARAM`) in both the http4s and Lift ResourceDocs.
+6. **Bridge-cascade hijack** — when a new version overrides an older URL+verb, migrate the override into the new version's own routes *before* wiring it into the chain, or the request cascades down the path-rewriting bridges to the older handler. (Now that the chain ends in `notFoundCatchAll`, an un-migrated override cascades to an older http4s handler or 404s — there is no Lift safety net.)
 
 ---
-
-## Done Criteria
-
-| Milestone | Condition |
-|---|---|
-| Version file done | All *functional* endpoints are `HttpRoutes[IO]`; the version's test suite is green. Endpoints folded into the Resource-docs / Auth-stack workstreams or marked as non-functional stubs are listed in "Per-version Lift leftovers" rather than blocking the file's done status. |
-| Lift bridge removable | All 12 APIMethods files done (per the row above) + auth stack done + Resource-docs workstream done. Any remaining stubs from "Per-version Lift leftovers" are ported or deleted in the bridge-removal PR. |
-| Lift Web removed | `lift-webkit` removed from `pom.xml`; `Boot.scala` reduced to DB init + scheduler startup. |
-| `lift-mapper` | Separate long-term effort — not in scope here. |
-
-**"Lift Web removed" ≠ "Lift removed."** The two are distinct milestones and the difference matters for public claims:
-
-- *Lift Web removed* means the HTTP request path no longer touches Lift — `lift-webkit` is out of `pom.xml`, `Http4sLiftWebBridge` is deleted, `Boot.scala` request-path hooks are gone. `lift-mapper` is still present and still the ORM.
-- *Lift removed* means `net.liftweb:*` is fully out of the dependency graph — requires the multi-month `lift-mapper` replacement (Doobie/Slick or similar).
-
-Decide which bar a release is hitting before announcing it; conflating them invites either an overstatement or an avoidable months-long delay before the announcement.
-
----
-
-## Risks
-
-Things that can derail the remaining workstreams. The facts behind each are documented in the relevant section above; collected here so the bridge-removal PR author doesn't have to rediscover them.
-
-| Risk | Detail | Mitigation |
-|---|---|---|
-| `FrozenClassTest` ratchet | Every deletion of a Lift `lazy val ... : OBPEndpoint` reduces the STABLE-API surface and trips `FrozenClassTest`. The v3.1.0 leftovers (`getMessageDocsSwagger`, `getObpConnectorLoopback`) are deferred to the bridge-removal PR specifically because of this; subsequent ports may surface more. | Plan the frozen-snapshot refresh as part of the bridge-removal PR, not as a follow-up. Document each removed `lazy val` in the PR description. |
-| OIDC callback success path has no tests | Whichever of the three OIDC forks ships, there is no automated safety net. Manual integration test against a real OIDC provider is the only verification. | Before picking a fork, write at least one integration test against a test OIDC provider (Keycloak in a container is the established pattern in this repo). |
-| `S.request` translation gotchas | DirectLogin's `createTokenFuture` ignored its parameters and re-read from `S.request` via `getAllParameters`; the http4s migration needed `validatorFutureWithParams` to thread parsed params through. If a future auth/handshake handler is migrated (e.g. OIDC's callback), expect the same shape — its handlers will reference `S.request` in ways the existing function signatures hide. | Audit the handler for `S.request`/`S.param`/`S.queryString` reads before designing the http4s entry point. Replicate the DirectLogin pattern. |
-| Bridge-cascade hijack on partial migrations | Documented in CLAUDE.md. Surfaced once during v4 migration; can resurface anywhere a new version is wired into the chain before its overrides are migrated. | When adding a new `Http4sXxx` to `baseServices`, audit URL+verb overrides against older versions first. |
-| `isStatisticallyTooPermissive` flakiness | Local test DB with too few users trips the ABAC permissiveness check. Not a regression, but easy to misdiagnose during the bridge-removal PR's full test run. | Seed enough test users in any test that exercises ABAC rules. Document in the suite, not as a runtime mitigation. |
 
 ## Why http4s?
 
-- **Non-blocking I/O** — Uses a small fixed thread pool (CPU cores) and suspends fibres on I/O. Thousands of concurrent requests without thread-pool tuning.
-- **Lower memory** — No thread-per-request overhead.
-- **Modern Scala ecosystem** — First-class Cats Effect, fs2 streaming, and functional patterns.
-- **No servlet container** — Removes Jetty and WAR packaging entirely.
+- **Non-blocking I/O** — small fixed thread pool (CPU cores), fibres suspend on I/O. Thousands of concurrent requests without thread-pool tuning.
+- **Lower memory** — no thread-per-request overhead.
+- **Modern Scala ecosystem** — first-class Cats Effect, fs2 streaming, functional patterns.
+- **No servlet container** — Jetty and WAR packaging gone entirely.
 
 ---
 
@@ -589,32 +288,11 @@ Binds to `hostname` / `dev.port` from your props file (defaults: `127.0.0.1:8080
 
 ---
 
-## Progress
+## Done Criteria
 
-| File | Status |
-|---|---|
-| `APIMethods121` | done — `Http4s121.scala` (all 323 API1_2_1Test scenarios pass) |
-| `APIMethods130` | done — `Http4s130.scala` (2 PhysicalCardsTest scenarios pass) |
-| `APIMethods140` | done — `Http4s140.scala` (all 11 own endpoints; path-rewriting bridge to Http4s130) |
-| `APIMethods200` | done — `Http4s200.scala` (37 own endpoints; path-rewriting bridge to Http4s140) |
-| `APIMethods210` | done — `Http4s210.scala` (25 own endpoints; path-rewriting bridge to Http4s200) |
-| `APIMethods220` | done — `Http4s220.scala` (18 own endpoints; path-rewriting bridge to Http4s210) |
-| `APIMethods300` | done — `Http4s300.scala` (47 own endpoints; path-rewriting bridge to Http4s220; all 86 v3.0.0 tests pass) |
-| `APIMethods310` | done — `Http4s310.scala` (100 own endpoints + `updateCustomerAddress`; path-rewriting bridge to Http4s300). Two former Lift leftovers now both off-bridge: `getMessageDocsSwagger` served by `Http4sResourceDocs` (in-file stub kept only for `FrozenClassTest`), `getObpConnectorLoopback` served by a native http4s route that returns 400 NotImplemented. |
-| `APIMethods400` | **done — 258 / 258 (100%)**. `Http4s400.scala` covers all 253 unique handlers + 8 ResourceDoc aliases for transaction-request-type variants (served by the shared wildcard handler). |
-| `APIMethods500` | done — `Http4s500.scala` (all 10 v5.0.0 originals on http4s) |
-| `APIMethods510` | done — `Http4s510.scala` (all 111 v5.1.0 originals on http4s; `createConsent` exposed as `createConsentImplicit` with a guard covering EMAIL/SMS/IMPLICIT SCA methods) |
-| `APIMethods600` | **done — 243 / 243 (100%)**. `Http4s600.scala` covers all 35 overrides + 208 originals. |
-| Auth: DirectLogin | done — `code.api.DirectLoginRoutes` serves the bare `/my/logins/direct` (gated on `allow_direct_login`); per-version paths served by their own `Http4sXxx`; `LiftRules.statelessDispatch.append(DirectLogin)` removed from `Boot.scala` |
-| Auth: GatewayLogin | done — library-only (no `serve` block, no `LiftRules` registration). Vestigial `extends RestHelper` removed. |
-| Auth: DAuth | done — library-only (no `serve` block, no `LiftRules` registration). Vestigial `extends RestHelper` removed. |
-| Auth: OAuth2 | done — library-only Bearer-token validator. Vestigial `extends RestHelper` removed. |
-| Auth: OAuth 1.0a | done — removed entirely in commit `51820c75e` (2026-02-20). `oauth1.0.scala` deleted, `OAuthHandshake` unregistered from `Boot.scala`, header detection removed from `OBPRestHelper.scala`. See "Per-version Lift leftovers → Auth stack" for surviving dead-code references that are cleanup candidates. |
-| Auth: OpenIdConnect | blocked — callback success path calls `AuthUser.logUserIn` / `S.redirectTo` (Lift `SessionVar`s). Needs a portal-session decision before migration. |
-| Resource-docs: aggregation bug fix | done |
-| Resource-docs: `Http4sResourceDocs` service | todo |
-| Resource-docs: `openapi.yaml` route | todo |
-
-### Cleanup done
-
-- `getCards` and `getCardsForBank` removed from `Http4s700` — these had the same API signature as the v1.3.0 originals and belonged in `APIMethods130`, not v7.0.0. The Lift implementation in `APIMethods130` serves them at `/obp/v1.3.0/` until that file is migrated.
+| Milestone | Condition | Status |
+|---|---|---|
+| Version file done | All functional endpoints are `HttpRoutes[IO]`; the version's test suite is green. | ✅ all 12 |
+| Lift bridge removed | All APIMethods files + auth stack + resource-docs done; `Http4sLiftWebBridge` deleted. | ✅ done |
+| Lift Web removed | `lift-webkit` out of `pom.xml`; `Boot.scala` reduced to DB init + scheduler/shutdown. | ✅ done |
+| `lift-mapper` removed | `net.liftweb:*` fully out of the dependency graph. | ⏳ separate long-term effort |
