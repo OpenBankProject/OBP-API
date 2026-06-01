@@ -4902,44 +4902,66 @@ object Glossary extends MdcLoggable  {
 				 |Centralised operations across multiple deployments are achieved through automated platform tooling (e.g. CI/CD, configuration management, monitoring, logging, and backups), providing a unified operational experience even when tenants are deployed separately.
 				 |""".stripMargin)
 
-	private def getContentFromMarkdownFile(path: String): String = {
-		val source = scala.io.Source.fromFile(path)
-		val lines: String = try source.mkString finally source.close()
-		lines
-			.replaceAll("getServerUrl", getServerUrl)
-			.replaceAll("getObpApiRoot", getObpApiRoot)
-	}
+  private def applyGlossarySubstitutions(content: String): String =
+    content
+      .replaceAll("getServerUrl", getServerUrl)
+      .replaceAll("getObpApiRoot", getObpApiRoot)
 
-  private def getListOfFiles(): List[File] = {
-		import java.net.URLDecoder
-		import java.nio.charset.StandardCharsets
+  // Returns (filename-without-extension, content) pairs from docs/glossary/*.md.
+  // Handles both file: (IDE / unpacked classes) and jar: (fat-jar deployment) protocols.
+  private def getGlossaryEntries(): List[(String, String)] = {
+    import java.net.URLDecoder
+    import java.nio.charset.StandardCharsets
     val resourceUrl = getClass.getClassLoader.getResource("docs/glossary")
-    val resourcePath = URLDecoder.decode(resourceUrl.getPath, StandardCharsets.UTF_8.name())
-		val glossaryPath = new File(resourcePath)
-    logger.info(s"|---> Glossary path: $glossaryPath")
-
-    if (glossaryPath.exists && glossaryPath.isDirectory) {
-      Option(glossaryPath.listFiles())
-        .getOrElse(Array.empty) // Avoid NullPointerException
-        .filter(_.isFile)
-        .filter(_.getName.endsWith(".md"))
-        .toList
-    } else {
-			logger.error(s"There are no glossary files under the path ($glossaryPath), please double check the folder path: $glossaryPath")
-      List.empty[File]
+    if (resourceUrl == null) {
+      logger.error("Could not locate docs/glossary resource on the classpath")
+      return List.empty
+    }
+    logger.info(s"|---> Glossary resource URL: $resourceUrl")
+    resourceUrl.getProtocol match {
+      case "file" =>
+        val glossaryPath = new File(URLDecoder.decode(resourceUrl.getPath, StandardCharsets.UTF_8.name()))
+        if (glossaryPath.exists && glossaryPath.isDirectory) {
+          Option(glossaryPath.listFiles()).getOrElse(Array.empty)
+            .filter(f => f.isFile && f.getName.endsWith(".md"))
+            .map { f =>
+              val src = scala.io.Source.fromFile(f)
+              val content = try src.mkString finally src.close()
+              (f.getName.stripSuffix(".md"), content)
+            }.toList
+        } else {
+          logger.error(s"Glossary directory not found at: $glossaryPath")
+          List.empty
+        }
+      case "jar" =>
+        // fat-jar: use JarURLConnection to enumerate entries inside the jar
+        val conn = resourceUrl.openConnection().asInstanceOf[java.net.JarURLConnection]
+        val jar  = conn.getJarFile
+        val prefix = conn.getEntryName + "/"
+        import scala.collection.JavaConverters._
+        jar.entries().asScala
+          .filter(e => !e.isDirectory && e.getName.startsWith(prefix) && e.getName.endsWith(".md"))
+          .map { entry =>
+            val name = entry.getName.stripPrefix(prefix).stripSuffix(".md")
+            val src  = scala.io.Source.fromInputStream(jar.getInputStream(entry))
+            val content = try src.mkString finally src.close()
+            (name, content)
+          }.toList
+      case proto =>
+        logger.error(s"Unsupported classpath protocol '$proto' for docs/glossary — cannot load file-backed glossary items")
+        List.empty
     }
   }
 
-	// Append all files from /OBP-API/docs/glossary as items
-	// File name is used as a title
-	// File content is used as a description
+	// Append all files from /OBP-API/docs/glossary as items.
+	// File name (without .md) becomes the title; file content becomes the description.
 	glossaryItems.appendAll(
-		getListOfFiles().map(file =>
+		getGlossaryEntries().map { case (name, content) =>
 			GlossaryItem(
-				title = file.getName.replace(".md", "").replace("_", " "),
-				description = getContentFromMarkdownFile(file.getPath)
+				title = name.replace("_", " "),
+				description = applyGlossarySubstitutions(content)
 			)
-		)
+		}
 	)
 
 	glossaryItems += GlossaryItem(

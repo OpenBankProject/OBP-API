@@ -127,10 +127,10 @@ object Http4sApp {
         // can't be shadowed by a version-prefixed handler.
         .orElse(Http4sLiftBridgeTraffic.routes.run(req))
         .orElse(Http4sResourceDocs.routes.run(req))
-        .orElse(v510Routes.run(req))
-        .orElse(v600Routes.run(req))
-        .orElse(v500Routes.run(req))
         .orElse(v700Routes.run(req))
+        .orElse(v600Routes.run(req))
+        .orElse(v510Routes.run(req))
+        .orElse(v500Routes.run(req))
         .orElse(code.api.berlin.group.v2.Http4sBGv2.wrappedRoutes.run(req))
         .orElse(ukV20Routes.run(req))
         .orElse(ukV31Routes.run(req))
