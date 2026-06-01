@@ -699,16 +699,62 @@ class V7ResourceDocsAggregationTest extends ServerSetupWithTestData {
       info(s"Docs with non-empty specifiedUrl: ${docsWithSpecifiedUrl.size}")
       docsWithSpecifiedUrl.size shouldBe resourceDocs.size
 
-      // Check that all specifiedUrl values use v7.0.0 version
-      val docsWithV7SpecifiedUrl = resourceDocs.filter { doc =>
-        val fieldMap = toFieldMap(doc.obj)
-        fieldMap.get("specified_url") match {
-          case Some(JString(url)) => url.contains("/v7.0.0/")
-          case _ => false
+      // Dynamic-entity / dynamic-endpoint docs are a deliberate exception: their routes are
+      // served ONLY under /obp/dynamic-entity/... and /obp/dynamic-endpoint/... (by
+      // Http4sDynamicEntity / Http4sDynamicEndpoint), NOT at the requested version. Rendering
+      // them at /obp/v7.0.0/<x> produces a 404 in API Explorer. So they are legitimately NOT
+      // under /v7.0.0/ and must be excluded from the bulk version assertion below.
+      def specifiedUrlOf(doc: JObject): Option[String] = toFieldMap(doc.obj).get("specified_url").collect {
+        case JString(url) => url
+      }
+      // CRITICAL — classify by operation_id, NEVER by specified_url (the thing we validate).
+      // operation_id embeds the partial function name (buildOperationId = "${version}-${fnName}").
+      // The dynamic docs visible here are:
+      //   - real dynamic entities   → fnName starts with "dynamicEntity"   → /obp/dynamic-entity/...
+      //   - real dynamic endpoints  → fnName starts with "dynamicEndpoint" → /obp/dynamic-endpoint/...
+      //   - the always-present practise fixture (PractiseEndpointGroup, urlPrefix
+      //     "test-dynamic-resource-doc", from DynamicEndpoints.dynamicResourceDocs) → /obp/dynamic-endpoint/...
+      // Classifying by operation_id (URL-independent) is what makes the guard real: if the
+      // efb97531e prefix bug regresses, these docs get /obp/v7.0.0/<x> but are STILL recognised
+      // here as dynamic, so the guard FAILS. Classifying by the URL would be circular and would
+      // silently pass on a regression — exactly how the original bug slipped through.
+      val practiseFixtureOpId = "OBPv4.0.0-test-dynamic-resource-doc"
+      def isDynamicEntityDoc(doc: JObject): Boolean = getOperationId(doc).exists(_.contains("dynamicEntity"))
+      def isDynamicEndpointDoc(doc: JObject): Boolean =
+        getOperationId(doc).exists(id => id.contains("dynamicEndpoint") || id == practiseFixtureOpId)
+      def isDynamicDoc(doc: JObject): Boolean = isDynamicEntityDoc(doc) || isDynamicEndpointDoc(doc)
+
+      val (dynamicDocs, normalDocs) = resourceDocs.partition(isDynamicDoc)
+      info(s"Dynamic (entity/endpoint) docs: ${dynamicDocs.size}; normal versioned docs: ${normalDocs.size}")
+      // Sanity: the test env always registers the practise fixture, so at least one dynamic doc
+      // must be present — otherwise this scenario could not catch the prefix regression at all.
+      withClue("test env must expose at least one dynamic doc (practise fixture) to guard the prefix regression ") {
+        dynamicDocs.nonEmpty shouldBe true
+      }
+
+      // Check that all NORMAL (non-dynamic) specifiedUrl values use the v7.0.0 version
+      val docsWithV7SpecifiedUrl = normalDocs.filter { doc =>
+        specifiedUrlOf(doc).exists(_.contains("/v7.0.0/"))
+      }
+      info(s"Normal docs with v7.0.0 in specifiedUrl: ${docsWithV7SpecifiedUrl.size}")
+      docsWithV7SpecifiedUrl.size shouldBe normalDocs.size
+
+      // Regression guard for the dynamic prefix bug (efb97531e): every dynamic doc's specifiedUrl
+      // must keep its dynamic-* prefix and must NOT be rewritten to /v7.0.0/.
+      resourceDocs.filter(isDynamicEntityDoc).foreach { doc =>
+        val url = specifiedUrlOf(doc).getOrElse(fail(s"Expected specified_url on dynamicEntity doc ${getOperationId(doc)}"))
+        withClue(s"dynamicEntity doc ${getOperationId(doc)} specifiedUrl must keep /dynamic-entity/ prefix, got: $url ") {
+          url should include("/dynamic-entity/")
+          url should not include("/v7.0.0/")
         }
       }
-      info(s"Docs with v7.0.0 in specifiedUrl: ${docsWithV7SpecifiedUrl.size}")
-      docsWithV7SpecifiedUrl.size shouldBe resourceDocs.size
+      resourceDocs.filter(isDynamicEndpointDoc).foreach { doc =>
+        val url = specifiedUrlOf(doc).getOrElse(fail(s"Expected specified_url on dynamicEndpoint doc ${getOperationId(doc)}"))
+        withClue(s"dynamicEndpoint doc ${getOperationId(doc)} specifiedUrl must keep /dynamic-endpoint/ prefix, got: $url ") {
+          url should include("/dynamic-endpoint/")
+          url should not include("/v7.0.0/")
+        }
+      }
 
       // Verify a specific v6.0.0 endpoint has correct specifiedUrl
       val v6Endpoint = resourceDocs.find { doc =>
@@ -734,7 +780,7 @@ class V7ResourceDocsAggregationTest extends ServerSetupWithTestData {
       }
 
       info("**Expected Outcome**: This test PASSES after specifiedUrl fix")
-      info("**Validates**: specifiedUrl correctly uses v7.0.0 for all aggregated docs")
+      info("**Validates**: normal aggregated docs use v7.0.0; dynamic-entity/endpoint docs keep their dynamic-* prefix")
     }
   }
 }

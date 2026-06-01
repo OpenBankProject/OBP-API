@@ -33,48 +33,53 @@ package code.api.berlin.group.v1_3
 
 import code.api.OBPRestHelper
 import code.api.berlin.group.ConstantsBG
-import code.api.builder.AccountInformationServiceAISApi.APIMethods_AccountInformationServiceAISApi
-import code.api.builder.CommonServicesApi.APIMethods_CommonServicesApi
-import code.api.builder.ConfirmationOfFundsServicePIISApi.APIMethods_ConfirmationOfFundsServicePIISApi
-import code.api.builder.PaymentInitiationServicePISApi.APIMethods_PaymentInitiationServicePISApi
-import code.api.builder.SigningBasketsApi.APIMethods_SigningBasketsApi
-import code.api.util.APIUtil.{OBPEndpoint, ResourceDoc, getAllowedEndpoints}
+import code.api.util.APIUtil.{OBPEndpoint, ResourceDoc}
 import code.api.util.ScannedApis
 import code.util.Helper.MdcLoggable
-import com.openbankproject.commons.util.{ApiVersion, ApiVersionStatus, ScannedApiVersion}
+import com.openbankproject.commons.util.{ApiVersionStatus, ScannedApiVersion}
 
 import scala.collection.mutable.ArrayBuffer
 
-
-
-
 /*
-This file defines which endpoints from all the versions are available in v1
+ * All BG v1.3 endpoints have been migrated to their respective
+ * Http4sBGv13* objects (AIS/PIS/PIIS/SigningBaskets — 55 endpoints).
+ *
+ * This aggregator is retained for ScannedApis registration (class-path scanning)
+ * and so that external callers that access OBP_BERLIN_GROUP_1_3.apiVersion /
+ * .allResourceDocs continue to compile.
+ * Routes are served by Http4sBGv13.wrappedRoutes in Http4sApp (ahead of the
+ * Lift bridge).
  */
 object OBP_BERLIN_GROUP_1_3 extends OBPRestHelper with MdcLoggable with ScannedApis {
 
-  override val apiVersion = ConstantsBG.berlinGroupVersion1
-  val versionStatus = ApiVersionStatus.DRAFT.toString
+  override val apiVersion: ScannedApiVersion = ConstantsBG.berlinGroupVersion1
+  val versionStatus: String = ApiVersionStatus.DRAFT.toString
 
-  val endpoints =
-    APIMethods_AccountInformationServiceAISApi.endpoints ++
-    APIMethods_ConfirmationOfFundsServicePIISApi.endpoints ++
-    APIMethods_PaymentInitiationServicePISApi.endpoints ++
-    APIMethods_SigningBasketsApi.endpoints ++
-    APIMethods_CommonServicesApi.endpoints
+  override val allResourceDocs: ArrayBuffer[ResourceDoc] = Http4sBGv13.resourceDocs
 
-  override val allResourceDocs: ArrayBuffer[ResourceDoc]  =
-    APIMethods_AccountInformationServiceAISApi.resourceDocs ++
-    APIMethods_ConfirmationOfFundsServicePIISApi.resourceDocs ++
-    APIMethods_PaymentInitiationServicePISApi.resourceDocs ++
-    APIMethods_SigningBasketsApi.resourceDocs ++
-    APIMethods_CommonServicesApi.resourceDocs
-
-  // Filter the possible endpoints by the disabled / enabled Props settings and add them together
-  override val routes : List[OBPEndpoint] = getAllowedEndpoints(endpoints, allResourceDocs)
-
-  // Make them available for use!
-  registerRoutes(routes, allResourceDocs, apiPrefix)
-
-  logger.info(s"version $version has been run! There are ${routes.length} routes.")
+  override val routes: List[OBPEndpoint] = Nil
 }
+
+// ─── Original Lift aggregator (commented out) ────────────────────────────────
+// The 5 builder *Api.scala files (AccountInformationServiceAISApi,
+// PaymentInitiationServicePISApi, ConfirmationOfFundsServicePIISApi,
+// SigningBasketsApi, CommonServicesApi) have been commented out.
+// Their endpoints are now served by the corresponding Http4sBGv13* objects.
+//
+//  val endpoints =
+//    APIMethods_AccountInformationServiceAISApi.endpoints ++
+//    APIMethods_ConfirmationOfFundsServicePIISApi.endpoints ++
+//    APIMethods_PaymentInitiationServicePISApi.endpoints ++
+//    APIMethods_SigningBasketsApi.endpoints ++
+//    APIMethods_CommonServicesApi.endpoints
+//
+//  override val allResourceDocs: ArrayBuffer[ResourceDoc] =
+//    APIMethods_AccountInformationServiceAISApi.resourceDocs ++
+//    APIMethods_ConfirmationOfFundsServicePIISApi.resourceDocs ++
+//    APIMethods_PaymentInitiationServicePISApi.resourceDocs ++
+//    APIMethods_SigningBasketsApi.resourceDocs ++
+//    APIMethods_CommonServicesApi.resourceDocs
+//
+//  override val routes : List[OBPEndpoint] = getAllowedEndpoints(endpoints, allResourceDocs)
+//  registerRoutes(routes, allResourceDocs, apiPrefix)
+//  logger.info(s"version $version has been run! There are ${routes.length} routes.")
