@@ -29,7 +29,7 @@ New API versions are implemented as native http4s routes and do not pass through
 
 ### Priority routing
 
-Routes are tried in order: `corsHandler` (OPTIONS) → `AppsPage` → `StatusPage` → `Http4s510` → `Http4s600` → `Http4s500` → `Http4s700` → `Http4sBGv2` → `Http4s400` → `Http4s310` → `Http4s300` → `Http4s220` → `Http4s210` → `Http4s200` → `Http4s140` → `Http4s130` → `Http4s121` → `Http4sLiftWebBridge` (Lift fallback). Unhandled `/obp/vX.Y.Z/*` paths fall through silently to Lift — they do not 404. The non-numeric ordering (v510 before v600, v500 after v600 etc.) doesn't affect correctness because each per-version service gates on its own version prefix; the ordering only matters when two services overlap on the same URL pattern.
+Routes are tried in order: `corsHandler` (OPTIONS) → `AppsPage` → `StatusPage` → `Http4sResourceDocs` → `Http4s510` → `Http4s600` → `Http4s500` → `Http4s700` → `Http4sBGv2` → `Http4sUKOBv200` → `Http4sUKOBv310` → `Http4sBGv13` (+Alias) → `Http4s400` → `Http4s310` → `Http4s300` → `Http4s220` → `Http4s210` → `Http4s200` → `Http4s140` → `Http4s130` → `Http4s121` → `Http4sLiftWebBridge` (Lift fallback). Unhandled `/obp/vX.Y.Z/*` paths fall through silently to Lift — they do not 404. The non-numeric ordering (v510 before v600, v500 after v600 etc.) doesn't affect correctness because each per-version service gates on its own version prefix; the ordering only matters when two services overlap on the same URL pattern.
 
 ```
 HTTP Request
@@ -432,21 +432,22 @@ Already partly described in the next major section, but counted here for complet
 | `ImporterAPI` | (deleted) | **Retired.** The legacy `POST /obp_transactions_saver/api/transactions` shared-secret bulk-insert endpoint, its `TransactionInserter` LiftActor, and the connector helpers it relied on (`createImportedTransaction`, `getMatchingTransactionCount`, `updateAccountBalance`, `setBankAccountLastUpdated`) have been removed entirely. Modern callers use connector-driven flows or the `/obp/vX.X.X/transaction-requests/...` endpoints. |
 | `OpenIdConnect` | (auth-stack table above) | OIDC callback, registered separately from OAuth2. |
 
-### Open-banking standards (large, deferred indefinitely)
+### Open-banking standards
 
-Lift implementations of 3rd-party regulatory standards. All currently pass through `Http4sLiftWebBridge` and continue to work; they are *not* OBP API per se but optional regulatory shims. Migrating them is out of scope for the "remove Lift Web" milestone if you accept keeping the bridge for these stacks only. If total Lift removal is the goal, each needs its own workstream.
+Lift implementations of 3rd-party regulatory standards. Berlin Group v1.3 and UK Open Banking v2.0+v3.1 are now fully on http4s. The remaining five standards still pass through `Http4sLiftWebBridge`; they are optional regulatory shims. Migrating them is out of scope for the "remove Lift Web" milestone if you accept keeping the bridge for these stacks only. If total Lift removal is the goal, each needs its own workstream.
 
-Three forks for how this workstream resolves:
+Three forks for the remaining standards:
 
-- **(a) Migrate each to http4s.** Weeks per standard × 7 standards. Highest cost; cleanest end state.
+- **(a) Migrate each to http4s.** Weeks per standard × 5 remaining standards. Highest cost; cleanest end state.
 - **(b) "Regulatory mode" feature-flagged Lift.** Keep `Http4sLiftWebBridge` wired in only when an `obf-*` / standards prop is set; otherwise the bridge is unregistered at boot. Lets "Lift Web removed from the OBP API path" ship, but Lift Web stays in the codebase as an opt-in shim. Defeats the milestone technically; ships the headline.
 - **(c) Extract as plugin projects.** Move each standard out of this repo into its own project that depends on OBP API. Probably right long-term — these are optional, externally-governed standards on different release cadences — but socially expensive and reshapes the build.
 
 | Standard | Files / location | Status |
 |---|---|---|
-| Berlin Group v1.3 | `code/api/berlin/group/v1_3/*` — 7 files (AIS / PIS / PIIS / signing baskets / common) | Lift |
-| **Berlin Group v2** | `code/api/berlin/group/v2/Http4sBGv2.scala` | ✅ already on http4s |
-| UK Open Banking v2.0.0 + v3.1.0 | `code/api/UKOpenBanking/*` — ~20 files | Lift |
+| **Berlin Group v1.3** | `code/api/berlin/group/v1_3/Http4sBGv13{AIS,PIS,PIIS,SigningBaskets,Alias}.scala` — 6 http4s files | ✅ Done — wired into `Http4sApp` |
+| **Berlin Group v2** | `code/api/berlin/group/v2/Http4sBGv2.scala` | ✅ Done |
+| **UK Open Banking v2.0.0** | `code/api/UKOpenBanking/v2_0_0/Http4sUKOBv200{,AIS}.scala` | ✅ Done |
+| **UK Open Banking v3.1.0** | `code/api/UKOpenBanking/v3_1_0/Http4sUKOBv310*.scala` — 21 http4s files | ✅ Done |
 | Bahrain OBF v1.0.0 | `code/api/BahrainOBF/*` — ~20 files | Lift |
 | AU OpenBanking v1.0.0 | `code/api/AUOpenBanking/*` — ~10 files | Lift |
 | STET v1.4 | `code/api/STET/v1_4/*` — 4 files | Lift |
@@ -494,7 +495,7 @@ Two non-engineering decisions must land before the bridge-removal PR can be cut.
 
 A second decision is *not* required for bridge removal, but is required for the public claim that follows it:
 
-2. **Open-banking standards strategy** (forks a/b/c above). If "Lift Web removed" is the headline, fork (b) is acceptable. If "Lift Web removed *from this repo*" is the headline, only (a) or (c) qualify. Cf. the "Lift Web removed vs. Lift removed" note under Done Criteria.
+2. **Open-banking standards strategy** (forks a/b/c above). Berlin Group v1.3 and UK Open Banking v2.0+v3.1 are already on http4s. Five standards remain (Bahrain, AU, STET, MxOF, Polish). If "Lift Web removed from the OBP API request path" is the headline, fork (b) is acceptable for the remaining five. If "Lift Web removed from this repo" is the headline, only (a) or (c) qualify. Cf. the "Lift Web removed vs. Lift removed" note under Done Criteria.
 
 ### Suggested ordering for the remaining work
 
@@ -505,7 +506,7 @@ A second decision is *not* required for bridge removal, but is required for the 
 5. **Auth stack: OAuth2 / GatewayLogin / DAuth** — done. All three turned out to be library-only token validators (no `serve` blocks, no `LiftRules` registration). Vestigial `extends RestHelper` mixins removed.
 6. **OpenIdConnect** — the only remaining auth-stack work. Blocked on a portal-session decision (its success path calls `AuthUser.logUserIn` / `S.redirectTo`, which mutate Lift `SessionVar`s — see auth-stack table). OAuth 1.0a was removed entirely in commit `51820c75e`; no migration needed.
 7. **Bridge-removal PR** — delete `Http4sLiftWebBridge` + the request-path entries from `Boot.scala` (lines 1–7 above).
-8. **Open-banking standards** — decide whether to migrate or keep a thin Lift remnant. Weeks of work if migrating.
+8. **Open-banking standards** — Berlin Group v1.3 and UK Open Banking v2.0+v3.1 are done. Five standards remain on Lift (Bahrain, AU, STET, MxOF, Polish). Decide whether to migrate or keep a thin Lift remnant for those five. Weeks of work per standard if migrating.
 9. **`lift-mapper`** — separate long-term effort, out of scope here.
 
 ---
@@ -519,16 +520,19 @@ corsHandler
   → Http4s600  (/obp/v6.0.0/*)
   → Http4s510  (/obp/v5.1.0/*)
   → Http4s500  (/obp/v5.0.0/*)
+  → Http4sBGv2  (/obp/v2/*)             ← Berlin Group v2
+  → Http4sUKOBv200  (/open-banking/v2.0/*)
+  → Http4sUKOBv310  (/open-banking/v3.1/*)
+  → Http4sBGv13 + Http4sBGv13Alias      ← Berlin Group v1.3
   → Http4s400  (/obp/v4.0.0/*)
   → Http4s310  (/obp/v3.1.0/*)
   → Http4s300  (/obp/v3.0.0/*)
   → Http4s220  (/obp/v2.2.0/*)
   → Http4s210  (/obp/v2.1.0/*)
   → Http4s200  (/obp/v2.0.0/*)
-  → Http4s140  (/obp/v1.4.0/*)   ← done
-  → Http4s130  (/obp/v1.3.0/*)   ← done
-  → Http4s121  (/obp/v1.2.1/*)   ← done
-  → Http4sBGv2
+  → Http4s140  (/obp/v1.4.0/*)
+  → Http4s130  (/obp/v1.3.0/*)
+  → Http4s121  (/obp/v1.2.1/*)
   ← Lift bridge removed
 ```
 
