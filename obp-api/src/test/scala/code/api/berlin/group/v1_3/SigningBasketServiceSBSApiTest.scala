@@ -4,7 +4,7 @@ import code.api.Constant.SYSTEM_INITIATE_PAYMENTS_BERLIN_GROUP_VIEW_ID
 import code.api.berlin.group.ConstantsBG
 import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{AuthorisationJsonV13, ErrorMessagesBG, InitiatePaymentResponseJson, PostSigningBasketJsonV13, ScaStatusJsonV13, SigningBasketGetResponseJson, SigningBasketResponseJson, StartPaymentAuthorisationJson}
 import code.api.berlin.group.v1_3.model.TransactionStatus
-import code.api.builder.SigningBasketsApi.APIMethods_SigningBasketsApi
+import code.api.berlin.group.v1_3.{Http4sBGv13SigningBaskets => APIMethods_SigningBasketsApi}
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ErrorMessages._
 import code.model.dataAccess.BankAccountRouting

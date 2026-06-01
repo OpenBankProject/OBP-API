@@ -123,6 +123,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
 
       val resourceDocs = requestedApiVersion match {
         case ApiVersion.v7_0_0 =>  code.api.v7_0_0.Http4s700.allResourceDocs  // Use aggregated docs for v7.0.0
+        case ConstantsBG.`berlinGroupVersion1` => code.api.berlin.group.v1_3.Http4sBGv13.resourceDocs
         case ConstantsBG.`berlinGroupVersion2` => code.api.berlin.group.v2.Http4sBGv2.resourceDocs
         case ApiVersion.v6_0_0 => OBPAPI6_0_0.allResourceDocs
         case ApiVersion.v5_1_0 => OBPAPI5_1_0.allResourceDocs
@@ -146,6 +147,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
 
       val versionRoutes = requestedApiVersion match {
         case ApiVersion.v7_0_0 => Nil
+        case ConstantsBG.`berlinGroupVersion1` => Nil
         case ConstantsBG.`berlinGroupVersion2` => Nil
         case ApiVersion.v6_0_0 => OBPAPI6_0_0.routes
         case ApiVersion.v5_1_0 => OBPAPI5_1_0.routes
@@ -175,6 +177,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       // Only return the resource docs that have available routes
       val activeResourceDocs = requestedApiVersion match {
         case ApiVersion.v7_0_0 => resourceDocs
+        case ConstantsBG.`berlinGroupVersion1` => resourceDocs  // fully on http4s — no Lift route filter
         case ConstantsBG.`berlinGroupVersion2` => resourceDocs
         case ApiVersion.v1_2_1 => resourceDocs
         case ApiVersion.v6_0_0 => resourceDocs  // fully on http4s — no Lift route filter
