@@ -159,9 +159,9 @@ GET  /obp/*/message-docs/CONNECTOR/swagger2.0       → absorbs APIMethods310.ge
 
 The wildcard prefix means all resource-doc requests are intercepted regardless of which version prefix the client uses. This workstream is **independent of the per-version migration order** — it can land at any time and immediately removes all resource-docs traffic from the Lift bridge.
 
-### Prerequisite: fix the aggregation bug
+### ~~Prerequisite~~ Prerequisite (done): aggregation bug fix
 
-`V7ResourceDocsAggregationTest` is intentionally failing. The current `getResourceDocsObpV700` has a broken branch for `requestedApiVersion == v7.0.0` that manually iterates `allResourceDocs` (~45 own docs) instead of calling `getResourceDocsList`, which aggregates all 500+. Fix this first — it is the same defect the centralized service must not repeat.
+~~`V7ResourceDocsAggregationTest` is intentionally failing.~~ **Fixed in `efb97531e` (2026-05-19)** — *"fix(resource-docs): correct v7 aggregation specifiedUrl and remove shadowed v7 handler"*. Two root causes addressed: (1) `ResourceDocs1_4_0` registered the same `(GET, /resource-docs/API_VERSION/obp)` doc twice, so v7 aggregation surfaced a duplicate; (2) `getAllResourceDocsObpCached` cached `specifiedUrl` per dynamic-endpoint doc with `case Some(_) => it`, so the first caller froze the URL and every later request inherited it. `getResourceDocsObpV700` now calls `getResourceDocsList`, which aggregates the full cascade (~949 docs on a live server). The centralized service must preserve this contract — `V7ResourceDocsAggregationTest` now acts as the regression guard.
 
 ### `openapi.yaml`
 
@@ -173,7 +173,7 @@ Currently served via a raw Lift `serve { case Req(..., "openapi.yaml", ...) }` b
 
 ### Steps
 
-1. Fix aggregation bug in `getResourceDocsObpV700` → make `V7ResourceDocsAggregationTest` pass.
+1. ~~Fix aggregation bug in `getResourceDocsObpV700` → make `V7ResourceDocsAggregationTest` pass.~~ **Done** in `efb97531e` (2026-05-19). See the Prerequisite section above.
 2. Extract shared handler logic into `Http4sResourceDocs` service; wire into `Http4sApp`.
 3. Add `openapi.yaml` route to the same service.
 4. ~~Port `getMessageDocsSwagger` from `APIMethods310` into the same service~~ — **Done.** Now served by `Http4sResourceDocs.handleGetMessageDocsSwagger` via the wildcard `/obp/*/message-docs/{CONNECTOR}/swagger2.0` route matched before any per-version service. The `val getMessageDocsSwagger: HttpRoutes[IO] = HttpRoutes.empty` stub in `Http4s310.scala` exists only to satisfy the `FrozenClassTest` API-surface check.

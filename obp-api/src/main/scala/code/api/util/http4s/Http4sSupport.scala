@@ -10,6 +10,7 @@ import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.provider.HTTPParam
 import org.http4s._
 import org.http4s.dsl.io._
+import org.http4s.headers.`Content-Type`
 import org.typelevel.ci.CIString
 import org.typelevel.vault.Key
 
@@ -104,9 +105,14 @@ object Http4sRequestAttributes {
     import net.liftweb.json.JsonAST.prettyRender
     import net.liftweb.json.{Extraction, Formats}
 
+    // OBP responses are always JSON. Passing a raw String to http4s' Ok/Created uses the
+    // default EntityEncoder[String], which sets `Content-Type: text/plain`. Override it so
+    // clients (and the strict application/json check in the frontend) see the real type.
+    private val jsonContentType = `Content-Type`(MediaType.application.json)
+
     private def toJsonOk[A](result: A)(implicit formats: Formats): IO[Response[IO]] = {
       val jsonString = prettyRender(Extraction.decompose(result))
-      Ok(jsonString)
+      Ok(jsonString, jsonContentType)
     }
 
     /**
@@ -227,7 +233,7 @@ object Http4sRequestAttributes {
           RequestScopeConnection.fromFuture(f(body, cc)).attempt.flatMap {
             case Right(result) =>
               val jsonString = prettyRender(Extraction.decompose(result))
-              Created(jsonString).flatTap(recordMetric(result, _))
+              Created(jsonString, jsonContentType).flatTap(recordMetric(result, _))
             case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
           }
       }
@@ -269,7 +275,7 @@ object Http4sRequestAttributes {
           io.attempt.flatMap {
             case Right(result) =>
               val jsonString = prettyRender(Extraction.decompose(result))
-              Created(jsonString).flatTap(recordMetric(result, _))
+              Created(jsonString, jsonContentType).flatTap(recordMetric(result, _))
             case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
           }
       }
@@ -313,7 +319,7 @@ object Http4sRequestAttributes {
           io.attempt.flatMap {
             case Right(result) =>
               val jsonString = prettyRender(Extraction.decompose(result))
-              Created(jsonString).flatTap(recordMetric(result, _))
+              Created(jsonString, jsonContentType).flatTap(recordMetric(result, _))
             case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
           }
       }
@@ -351,7 +357,7 @@ object Http4sRequestAttributes {
       io.attempt.flatMap {
         case Right(result) =>
           val jsonString = prettyRender(Extraction.decompose(result))
-          Created(jsonString).flatTap(recordMetric(result, _))
+          Created(jsonString, jsonContentType).flatTap(recordMetric(result, _))
         case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
       }
     }
@@ -374,7 +380,7 @@ object Http4sRequestAttributes {
           io.attempt.flatMap {
             case Right(result) =>
               val jsonString = prettyRender(Extraction.decompose(result))
-              Created(jsonString).flatTap(recordMetric(result, _))
+              Created(jsonString, jsonContentType).flatTap(recordMetric(result, _))
             case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
           }
       }
@@ -439,7 +445,7 @@ object Http4sRequestAttributes {
       RequestScopeConnection.fromFuture(f).attempt.flatMap {
         case Right(result) =>
           val jsonString = prettyRender(Extraction.decompose(result))
-          Created(jsonString).flatTap(recordMetric(result, _))
+          Created(jsonString, jsonContentType).flatTap(recordMetric(result, _))
         case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
       }
     }
@@ -460,7 +466,7 @@ object Http4sRequestAttributes {
         case Right((result, code)) =>
           val jsonString = prettyRender(Extraction.decompose(result))
           val status = Status.fromInt(code).getOrElse(Status.Ok)
-          IO.pure(Response[IO](status).withEntity(jsonString)).flatTap(recordMetric(result, _))
+          IO.pure(Response[IO](status).withEntity(jsonString).withContentType(jsonContentType)).flatTap(recordMetric(result, _))
         case Left(err) => ErrorResponseConverter.toHttp4sResponse(err, cc).flatTap(recordMetric(err.getMessage, _))
       }
     }
