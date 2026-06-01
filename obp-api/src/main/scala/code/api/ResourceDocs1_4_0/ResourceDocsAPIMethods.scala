@@ -258,11 +258,23 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
 
       // Always recompute specifiedUrl per-request. specifiedUrl is a var on a shared
       // ResourceDoc instance; if we kept the existing value (the prior `case Some(_) => it`
-      // shortcut), a request for /obp/v7.0.0/resource-docs would inherit a stale
-      // /obp/dynamic-endpoint/... value set by an earlier request and return the wrong URL.
+      // shortcut), a request for /obp/v7.0.0/resource-docs would inherit a stale value set
+      // by an earlier request and return the wrong URL.
+      //
+      // Dynamic-entity / dynamic-endpoint docs are served ONLY under their own prefix
+      // (/obp/dynamic-entity/... , /obp/dynamic-endpoint/...) by Http4sDynamicEntity /
+      // Http4sDynamicEndpoint — they are NOT reachable at the requested version, unlike
+      // normal versioned docs which the bridge cascade makes reachable at /obp/${version}/...
+      // So they must keep their dynamic-* prefix here, matching getResourceDocsObpDynamicCached.
+      // (Commit efb97531e over-corrected this branch to always use the requested version,
+      // which made API Explorer render dynamic-entity CRUD URLs as /obp/v7.0.0/<entity> — a 404.)
       val dynamicDocs = allDynamicResourceDocs
         .map { it =>
-          it.specifiedUrl = Some(s"/${it.implementedInApiVersion.urlPrefix}/${requestedApiVersion.vDottedApiVersion}${it.requestUrl}")
+          it.specifiedUrl =
+            if (it.partialFunctionName.startsWith("dynamicEntity"))
+              Some(s"/${it.implementedInApiVersion.urlPrefix}/${ApiVersion.`dynamic-entity`}${it.requestUrl}")
+            else
+              Some(s"/${it.implementedInApiVersion.urlPrefix}/${ApiVersion.`dynamic-endpoint`}${it.requestUrl}")
           it
         }
 
