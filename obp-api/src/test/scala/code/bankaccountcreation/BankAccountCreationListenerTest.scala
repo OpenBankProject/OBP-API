@@ -62,8 +62,8 @@ class BankAccountCreationListenerTest extends ServerSetup with DefaultConnectorT
     }
 
     if (APIUtil.getPropsAsBoolValue("messageQueue.createBankAccounts", false) == false) {
-      ignore("a bank account is created at a bank that does not yet exist", BankAccountCreationListenerTag) {}
-      ignore("a bank account is created at a bank that already exists", BankAccountCreationListenerTag) {}
+      // ignore("a bank account is created at a bank that does not yet exist", BankAccountCreationListenerTag) {}
+      // ignore("a bank account is created at a bank that already exists", BankAccountCreationListenerTag) {}
     } else {
 
       scenario("a bank account is created at a bank that does not yet exist", BankAccountCreationListenerTag) {

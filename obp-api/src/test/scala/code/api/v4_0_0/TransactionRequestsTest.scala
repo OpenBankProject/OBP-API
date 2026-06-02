@@ -378,7 +378,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
 
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("No login user", ApiEndpoint1) {}
+      // ignore("No login user", ApiEndpoint1) {}
     } else {
       scenario("No login user", ApiEndpoint1) {
 
@@ -400,7 +400,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
     }
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("No owner view , No CanCreateAnyTransactionRequest role", ApiEndpoint1) {}
+      // ignore("No owner view , No CanCreateAnyTransactionRequest role", ApiEndpoint1) {}
     } else {
       scenario("No owner view, No CanCreateAnyTransactionRequest role", ApiEndpoint1) {
 
@@ -421,7 +421,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
     }
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("No owner view, With CanCreateAnyTransactionRequest role", ApiEndpoint1) {}
+      // ignore("No owner view, With CanCreateAnyTransactionRequest role", ApiEndpoint1) {}
     } else {
       scenario("No owner view, With CanCreateAnyTransactionRequest role", ApiEndpoint1) {
 
@@ -442,7 +442,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
     }
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("Invalid transactionRequestType", ApiEndpoint1) {}
+      // ignore("Invalid transactionRequestType", ApiEndpoint1) {}
     } else {
       scenario("Invalid transactionRequestType", ApiEndpoint1) {
 
@@ -470,7 +470,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
   feature("we can create transaction requests -- ACCOUNT") {
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("No challenge, No FX (same currencies)", ApiEndpoint1) {}
+      // ignore("No challenge, No FX (same currencies)", ApiEndpoint1) {}
     } else {
       scenario("No challenge, No FX (same currencies)", ApiEndpoint1) {
 
@@ -500,7 +500,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
     }
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("No challenge, With FX ", ApiEndpoint1) {}
+      // ignore("No challenge, With FX ", ApiEndpoint1) {}
     } else {
       scenario("No challenge, With FX ", ApiEndpoint1) {
 
@@ -540,7 +540,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
     }
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("With challenge, No FX", ApiEndpoint1, ApiEndpoint2) {}
+      // ignore("With challenge, No FX", ApiEndpoint1, ApiEndpoint2) {}
     } else {
       scenario("With challenge, No FX ", ApiEndpoint1, ApiEndpoint2) {
         When("we prepare all the conditions for a normal success -- V400 Create Transaction Request")
@@ -621,7 +621,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
     }
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("With challenge, With FX ", ApiEndpoint1, ApiEndpoint2) {}
+      // ignore("With challenge, With FX ", ApiEndpoint1, ApiEndpoint2) {}
     } else {
       scenario("With challenge, With FX ", ApiEndpoint1, ApiEndpoint2) {
         When("we prepare all the conditions for a normal success -- V400 Create Transaction Request")
@@ -674,7 +674,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
   feature("we can create transaction requests -- FREE_FORM") {
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("No challenge, No FX ", ApiEndpoint7) {}
+      // ignore("No challenge, No FX ", ApiEndpoint7) {}
     } else {
       scenario("No challenge, No FX ", ApiEndpoint7) {
 
@@ -705,7 +705,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
     }
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("No challenge, With FX ", ApiEndpoint7) {}
+      // ignore("No challenge, With FX ", ApiEndpoint7) {}
     } else {
       scenario("No challenge, With FX ", ApiEndpoint7) {
 
@@ -746,7 +746,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
     }
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("With challenge, No FX", ApiEndpoint7, ApiEndpoint2) {}
+      // ignore("With challenge, No FX", ApiEndpoint7, ApiEndpoint2) {}
     } else {
       scenario("With challenge, No FX ", ApiEndpoint7, ApiEndpoint2) {
         When("we prepare all the conditions for a normal success -- V400 Create Transaction Request")
@@ -793,7 +793,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
     }
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("With challenge, With FX ", ApiEndpoint7, ApiEndpoint2) {}
+      // ignore("With challenge, With FX ", ApiEndpoint7, ApiEndpoint2) {}
     } else {
       scenario("With challenge, With FX ", ApiEndpoint7, ApiEndpoint2) {
         When("we prepare all the conditions for a normal success -- V400 Create Transaction Request")
@@ -847,7 +847,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
   feature("we can create transaction requests -- SEPA") {
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("No challenge, No FX ", ApiEndpoint1) {}
+      // ignore("No challenge, No FX ", ApiEndpoint1) {}
     } else {
       scenario("No challenge, No FX ", ApiEndpoint1) {
 
@@ -877,7 +877,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
     }
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("No challenge, With FX ", ApiEndpoint1) {}
+      // ignore("No challenge, With FX ", ApiEndpoint1) {}
     } else {
       scenario("No challenge, With FX ", ApiEndpoint1) {
 
@@ -917,7 +917,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
     }
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("With challenge, No FX ", ApiEndpoint1, ApiEndpoint2) {}
+      // ignore("With challenge, No FX ", ApiEndpoint1, ApiEndpoint2) {}
     } else {
       scenario("With challenge, No FX ", ApiEndpoint1, ApiEndpoint2) {
         When("we prepare all the conditions for a normal success -- V400 Create Transaction Request")
@@ -963,7 +963,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
     }
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("With challenge, With FX ", ApiEndpoint1) {}
+      // ignore("With challenge, With FX ", ApiEndpoint1) {}
     } else {
       scenario("With challenge, With FX ", ApiEndpoint1) {
         When("we prepare all the conditions for a normal success -- V400 Create Transaction Request")
@@ -1016,7 +1016,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
   feature("we can create transaction requests -- COUNTERPARTY") {
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("No challenge, No FX ", ApiEndpoint1) {}
+      // ignore("No challenge, No FX ", ApiEndpoint1) {}
     } else {
       scenario("No challenge, No FX ", ApiEndpoint1) {
 
@@ -1046,7 +1046,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
     }
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("No challenge, With FX ", ApiEndpoint1) {}
+      // ignore("No challenge, With FX ", ApiEndpoint1) {}
     } else {
       scenario("No challenge, With FX ", ApiEndpoint1) {
 
@@ -1086,7 +1086,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
     }
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("With challenge, No FX ", ApiEndpoint1) {}
+      // ignore("With challenge, No FX ", ApiEndpoint1) {}
     } else {
       scenario("With challenge, No FX ", ApiEndpoint1) {
         When("we prepare all the conditions for a normal success -- V400 Create Transaction Request")
@@ -1132,7 +1132,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
     }
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("With challenge, With FX", ApiEndpoint1) {}
+      // ignore("With challenge, With FX", ApiEndpoint1) {}
     } else {
       scenario("With challenge, With FX", ApiEndpoint1) {
         When("we prepare all the conditions for a normal success -- V400 Create Transaction Request")
@@ -1182,7 +1182,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
     }
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("With N challenges, With FX", ApiEndpoint1) {}
+      // ignore("With N challenges, With FX", ApiEndpoint1) {}
     } else {
       scenario("With N challenges, With FX", ApiEndpoint1) {
         When("we prepare all the conditions for a normal success -- V400 Create Transaction Request")
@@ -1266,7 +1266,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
 
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("No challenge, No FX ", ApiEndpoint11) {}
+      // ignore("No challenge, No FX ", ApiEndpoint11) {}
     } else {
       scenario("No challenge, No FX ", ApiEndpoint11) {
 
@@ -1299,7 +1299,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
     }
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("No challenge, With FX ", ApiEndpoint11) {}
+      // ignore("No challenge, With FX ", ApiEndpoint11) {}
     } else {
       scenario("No challenge, With FX ", ApiEndpoint11) {
 
@@ -1341,7 +1341,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
     }
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("With challenge, No FX ", ApiEndpoint11) {}
+      // ignore("With challenge, No FX ", ApiEndpoint11) {}
     } else {
       scenario("With challenge, No FX ", ApiEndpoint11) {
 
@@ -1391,7 +1391,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
     }
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("With challenge, With FX", ApiEndpoint11) {}
+      // ignore("With challenge, With FX", ApiEndpoint11) {}
     } else {
       scenario("With challenge, With FX", ApiEndpoint11) {
 
@@ -1445,7 +1445,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
     }
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("With N challenges, With FX", ApiEndpoint11) {}
+      // ignore("With N challenges, With FX", ApiEndpoint11) {}
     } else {
       scenario("With N challenges, With FX", ApiEndpoint1) {
 
@@ -1531,7 +1531,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
   feature("we can create transaction requests -- CARD") {
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("No challenge, No FX ", ApiEndpoint10) {}
+      // ignore("No challenge, No FX ", ApiEndpoint10) {}
     } else {
       scenario("No challenge, No FX ", ApiEndpoint10) {
         setPropsValues("transactionRequests_supported_types" -> "SEPA,SANDBOX_TAN,FREE_FORM,COUNTERPARTY,ACCOUNT,ACCOUNT_OTP,SIMPLE,CARD")
@@ -1563,7 +1563,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
     }
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("No challenge, With FX ", ApiEndpoint10) {}
+      // ignore("No challenge, With FX ", ApiEndpoint10) {}
     } else {
       scenario("No challenge, With FX ", ApiEndpoint10) {
 
@@ -1606,7 +1606,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
     }
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("With challenge, No FX ", ApiEndpoint10) {}
+      // ignore("With challenge, No FX ", ApiEndpoint10) {}
     } else {
       scenario("With challenge, No FX ", ApiEndpoint10) {
         setPropsValues("transactionRequests_supported_types" -> "SEPA,SANDBOX_TAN,FREE_FORM,COUNTERPARTY,ACCOUNT,ACCOUNT_OTP,SIMPLE,CARD")
@@ -1655,7 +1655,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
     }
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("With challenge, With FX", ApiEndpoint10) {}
+      // ignore("With challenge, With FX", ApiEndpoint10) {}
     } else {
       scenario("With challenge, With FX", ApiEndpoint10) {
         setPropsValues("transactionRequests_supported_types" -> "SEPA,SANDBOX_TAN,FREE_FORM,COUNTERPARTY,ACCOUNT,ACCOUNT_OTP,SIMPLE,CARD")
@@ -1708,7 +1708,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
     }
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("With N challenges, With FX", ApiEndpoint10) {}
+      // ignore("With N challenges, With FX", ApiEndpoint10) {}
     } else {
       scenario("With N challenges, With FX", ApiEndpoint10) {
         setPropsValues("transactionRequests_supported_types" -> "SEPA,SANDBOX_TAN,FREE_FORM,COUNTERPARTY,ACCOUNT,ACCOUNT_OTP,SIMPLE,CARD")

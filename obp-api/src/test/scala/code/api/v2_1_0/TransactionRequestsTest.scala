@@ -291,7 +291,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
 
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("No login user", TransactionRequest) {}
+      // ignore("No login user", TransactionRequest) {}
     } else {
       scenario("No login user", TransactionRequest) {
 
@@ -313,7 +313,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
     }
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("No owner view , No CanCreateAnyTransactionRequest role", TransactionRequest) {}
+      // ignore("No owner view , No CanCreateAnyTransactionRequest role", TransactionRequest) {}
     } else {
       scenario("No owner view, No CanCreateAnyTransactionRequest role", TransactionRequest) {
 
@@ -334,7 +334,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
     }
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("No owner view, With CanCreateAnyTransactionRequest role", TransactionRequest) {}
+      // ignore("No owner view, With CanCreateAnyTransactionRequest role", TransactionRequest) {}
     } else {
       scenario("No owner view, With CanCreateAnyTransactionRequest role", TransactionRequest) {
 
@@ -355,7 +355,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
     }
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("Invalid transactionRequestType", TransactionRequest) {}
+      // ignore("Invalid transactionRequestType", TransactionRequest) {}
     } else {
       scenario("Invalid transactionRequestType", TransactionRequest) {
 
@@ -383,7 +383,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
   feature("we can create transaction requests -- SANDBOX_TAN") {
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("No challenge, No FX (same currencies)", TransactionRequest) {}
+      // ignore("No challenge, No FX (same currencies)", TransactionRequest) {}
     } else {
       scenario("No challenge, No FX (same currencies)", TransactionRequest) {
 
@@ -413,7 +413,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
     }
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("No challenge, With FX ", TransactionRequest) {}
+      // ignore("No challenge, With FX ", TransactionRequest) {}
     } else {
       scenario("No challenge, With FX ", TransactionRequest) {
 
@@ -453,7 +453,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
     }
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("With challenge, No FX", TransactionRequest) {}
+      // ignore("With challenge, No FX", TransactionRequest) {}
     } else {
       scenario("With challenge, No FX ", TransactionRequest) {
         When("we prepare all the conditions for a normal success -- V210 Create Transaction Request")
@@ -499,7 +499,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
     }
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("With challenge, With FX ", TransactionRequest) {}
+      // ignore("With challenge, With FX ", TransactionRequest) {}
     } else {
       scenario("With challenge, With FX ", TransactionRequest) {
         When("we prepare all the conditions for a normal success -- V210 Create Transaction Request")
@@ -552,7 +552,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
   feature("we can create transaction requests -- FREE_FORM") {
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("No challenge, No FX ", TransactionRequest) {}
+      // ignore("No challenge, No FX ", TransactionRequest) {}
     } else {
       scenario("No challenge, No FX ", TransactionRequest) {
 
@@ -582,7 +582,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
     }
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("No challenge, With FX ", TransactionRequest) {}
+      // ignore("No challenge, With FX ", TransactionRequest) {}
     } else {
       scenario("No challenge, With FX ", TransactionRequest) {
 
@@ -622,7 +622,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
     }
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("With challenge, No FX", TransactionRequest) {}
+      // ignore("With challenge, No FX", TransactionRequest) {}
     } else {
       scenario("With challenge, No FX ", TransactionRequest) {
         When("we prepare all the conditions for a normal success -- V210 Create Transaction Request")
@@ -668,7 +668,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
     }
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("With challenge, With FX ", TransactionRequest) {}
+      // ignore("With challenge, With FX ", TransactionRequest) {}
     } else {
       scenario("With challenge, With FX ", TransactionRequest) {
         When("we prepare all the conditions for a normal success -- V210 Create Transaction Request")
@@ -721,7 +721,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
   feature("we can create transaction requests -- SEPA") {
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("No challenge, No FX ", TransactionRequest) {}
+      // ignore("No challenge, No FX ", TransactionRequest) {}
     } else {
       scenario("No challenge, No FX ", TransactionRequest) {
 
@@ -751,7 +751,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
     }
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("No challenge, With FX ", TransactionRequest) {}
+      // ignore("No challenge, With FX ", TransactionRequest) {}
     } else {
       scenario("No challenge, With FX ", TransactionRequest) {
 
@@ -791,7 +791,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
     }
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("With challenge, No FX ", TransactionRequest) {}
+      // ignore("With challenge, No FX ", TransactionRequest) {}
     } else {
       scenario("With challenge, No FX ", TransactionRequest) {
         When("we prepare all the conditions for a normal success -- V210 Create Transaction Request")
@@ -837,7 +837,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
     }
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("With challenge, With FX ", TransactionRequest) {}
+      // ignore("With challenge, With FX ", TransactionRequest) {}
     } else {
       scenario("With challenge, With FX ", TransactionRequest) {
         When("we prepare all the conditions for a normal success -- V210 Create Transaction Request")
@@ -890,7 +890,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
   feature("we can create transaction requests -- COUNTERPARTY") {
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("No challenge, No FX ", TransactionRequest) {}
+      // ignore("No challenge, No FX ", TransactionRequest) {}
     } else {
       scenario("No challenge, No FX ", TransactionRequest) {
 
@@ -920,7 +920,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
     }
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("No challenge, With FX ", TransactionRequest) {}
+      // ignore("No challenge, With FX ", TransactionRequest) {}
     } else {
       scenario("No challenge, With FX ", TransactionRequest) {
 
@@ -960,7 +960,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
     }
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("With challenge, No FX ", TransactionRequest) {}
+      // ignore("With challenge, No FX ", TransactionRequest) {}
     } else {
       scenario("With challenge, No FX ", TransactionRequest) {
         When("we prepare all the conditions for a normal success -- V210 Create Transaction Request")
@@ -1006,7 +1006,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
     }
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      ignore("With challenge, With FX", TransactionRequest) {}
+      // ignore("With challenge, With FX", TransactionRequest) {}
     } else {
       scenario("With challenge, With FX", TransactionRequest) {
         When("we prepare all the conditions for a normal success -- V210 Create Transaction Request")
