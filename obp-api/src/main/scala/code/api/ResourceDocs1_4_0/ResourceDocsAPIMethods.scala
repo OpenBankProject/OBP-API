@@ -133,7 +133,6 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
     }
 
     localResourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       "getResourceDocsObp",
       "GET",
@@ -148,7 +147,6 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
     )
 
     localResourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       "getBankLevelDynamicResourceDocsObp",
       "GET",
@@ -163,7 +161,6 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
     )
 
     localResourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       "getResourceDocsSwagger",
       "GET",
@@ -199,7 +196,6 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
     )
 
     localResourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       "getResourceDocsOpenAPI31",
       "GET",

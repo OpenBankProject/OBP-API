@@ -239,7 +239,6 @@ object Http4s700 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(corePrivateAccountsAllBanks),
       "GET",
