@@ -60,13 +60,13 @@ class ResourceDocMiddlewareEnableDisablePropsTest extends ServerSetup with Given
   // OperationIds match `APIUtil.buildOperationId(v, partialFunctionName)` →
   // s"$fullyQualifiedVersion-$name". v7.0.0's fully qualified form is "OBPv7.0.0".
   private val rootOpId    = "OBPv7.0.0-root"
-  // A second NATIVE v7 endpoint. getBanks was removed from v7 (it now cascades to v6),
-  // so it can no longer serve as a "native v7" allowlist target. /api/versions is public,
-  // native to v7, and needs no DB — the same properties that make /root suitable here.
-  private val versionsOpId = "OBPv7.0.0-getScannedApiVersions"
+  // A second NATIVE v7 endpoint. getScannedApiVersions was removed from v7 (it now
+  // cascades to v6), so it can no longer serve as a "native v7" allowlist target.
+  // getErrorMessages is public, native to v7, and needs no DB.
+  private val versionsOpId = "OBPv7.0.0-getErrorMessages"
 
   private val rootPath     = "/obp/v7.0.0/root"
-  private val versionsPath = "/obp/v7.0.0/api/versions"
+  private val versionsPath = "/obp/v7.0.0/api/error-messages"
 
   private def get(path: String): Int = {
     val req = Request[IO](Method.GET, Uri.unsafeFromString(path), headers = Headers.empty,
