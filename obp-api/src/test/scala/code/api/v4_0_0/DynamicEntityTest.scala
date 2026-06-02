@@ -1145,11 +1145,16 @@ class DynamicEntityTest extends V400ServerSetup {
         val requestCreateFoobar = (dynamicEntity_Request / "FooBar").POST <@(user1)
         val responseCreateFoobar = makePostRequest(requestCreateFoobar, write(foobarObject))
         responseCreateFoobar.code should equal(201)
+        // Regression: the native http4s dynamic-entity endpoints must label JSON responses as
+        // application/json. http4s' default String EntityEncoder otherwise sets text/plain, which
+        // strict JSON clients (e.g. the API Manager frontend) reject even though the body is valid JSON.
+        responseCreateFoobar.headers.map(_.get("Content-Type")).getOrElse("").toLowerCase should include("application/json")
         val dynamicEntityId = (responseCreateFoobar.body \ "foo_bar" \ "foo_bar_id").asInstanceOf[JString].s
 
         val requestGetFoobars = (dynamicEntity_Request / "FooBar").GET <@(user1)
         val responseGetFoobars = makeGetRequest(requestGetFoobars)
         responseGetFoobars.code should equal(200)
+        responseGetFoobars.headers.map(_.get("Content-Type")).getOrElse("").toLowerCase should include("application/json")
 
         val requestGetFoobar = (dynamicEntity_Request / "FooBar" / dynamicEntityId ).GET <@(user1)
         val responseGetFoobar = makeGetRequest(requestGetFoobar)
@@ -1171,6 +1176,10 @@ class DynamicEntityTest extends V400ServerSetup {
           val requestCreateFoobar = (dynamicEntity_Request / "FooBar").POST <@(user2)
           val responseCreateFoobar = makePostRequest(requestCreateFoobar, write(foobarObject))
           responseCreateFoobar.code should equal(403)
+          // Regression: error responses on the native http4s dynamic-entity path (rendered by
+          // ErrorResponseConverter, which bypasses ResourceDocMiddleware) must also be labelled
+          // application/json, not http4s' default text/plain.
+          responseCreateFoobar.headers.map(_.get("Content-Type")).getOrElse("").toLowerCase should include("application/json")
           And("error should be " + UserHasMissingRoles)
           responseCreateFoobar.body.extract[ErrorMessage].message contains (UserHasMissingRoles) should be (true)
           responseCreateFoobar.body.extract[ErrorMessage].message contains ("CanCreateDynamicEntity_SystemFooBar") should be (true)
