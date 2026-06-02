@@ -533,7 +533,7 @@ object OAuth2Login extends MdcLoggable {
         case Full(_) =>
           logger.debug("applyIdTokenRules - ID token validation successful")
           val user = getOrCreateResourceUser(token)
-          val consumer = getOrCreateConsumer(token, user.map(_.userId), Some(OpenIdConnect.openIdConnect))
+          val consumer = getOrCreateConsumer(token, user.map(_.userId), Some(Http4sOpenIdConnect.openIdConnect))
           LoginAttempt.userIsLocked(user.map(_.provider).getOrElse(""), user.map(_.name).getOrElse("")) match {
             case true => ((Failure(UsernameHasBeenLocked), Some(cc.copy(consumer = consumer))))
             case false => (user, Some(cc.copy(consumer = consumer)))

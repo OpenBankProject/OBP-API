@@ -146,6 +146,7 @@ object Http4sApp {
         .orElse(v121Routes.run(req))
         .orElse(dynamicEntityRoutes.run(req))
         .orElse(code.api.DirectLoginRoutes.routes.run(req))
+        .orElse(code.api.Http4sOpenIdConnect.routes.run(req))
         .orElse(code.api.AliveCheckRoutes.routes.run(req))
         .orElse(dynamicEndpointRoutes.run(req))
         .orElse(Http4sLiftWebBridge.routes.run(req))
