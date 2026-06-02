@@ -1176,6 +1176,10 @@ class DynamicEntityTest extends V400ServerSetup {
           val requestCreateFoobar = (dynamicEntity_Request / "FooBar").POST <@(user2)
           val responseCreateFoobar = makePostRequest(requestCreateFoobar, write(foobarObject))
           responseCreateFoobar.code should equal(403)
+          // Regression: error responses on the native http4s dynamic-entity path (rendered by
+          // ErrorResponseConverter, which bypasses ResourceDocMiddleware) must also be labelled
+          // application/json, not http4s' default text/plain.
+          responseCreateFoobar.headers.map(_.get("Content-Type")).getOrElse("").toLowerCase should include("application/json")
           And("error should be " + UserHasMissingRoles)
           responseCreateFoobar.body.extract[ErrorMessage].message contains (UserHasMissingRoles) should be (true)
           responseCreateFoobar.body.extract[ErrorMessage].message contains ("CanCreateDynamicEntity_SystemFooBar") should be (true)
