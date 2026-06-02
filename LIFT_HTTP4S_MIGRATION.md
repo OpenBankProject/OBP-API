@@ -165,8 +165,10 @@ The five retired standards + Sandbox are **commented-out source files with no ro
 | `DAuth` | dAuth JWT exchange | ✅ Library-only validator (no routes). Vestigial `extends RestHelper` removed. |
 | `OAuth2` (`OAuth2Login`) | Bearer-token validator | ✅ Library-only (Google / Yahoo / Azure / Keycloak / OBPOIDC / Hydra). Vestigial `extends RestHelper` removed. |
 | `OAuth 1.0a` | — | ✅ **Removed entirely** in `51820c75e` (2026-02-20). `oauth1.0.scala` deleted, `OAuthHandshake` unregistered, header detection removed from `OBPRestHelper.scala`. `getConsumerFromDirectLoginToken` / `getUserFromDirectLoginToken` took over consumer/user lookup. |
+### ~~Prerequisite~~ Prerequisite (done): aggregation bug fix
 
 > Kept on purpose: `code/model/OAuth.scala` (backs the general `Consumer` entity used by all auth methods) and `APIUtil.OAuth` (misnamed but live **test** infrastructure — the `<@` signer adds `Authorization: DirectLogin token=...` headers and is imported by hundreds of test files; renaming is a separate cleanup).
+~~`V7ResourceDocsAggregationTest` is intentionally failing.~~ **Fixed in `efb97531e` (2026-05-19)** — *"fix(resource-docs): correct v7 aggregation specifiedUrl and remove shadowed v7 handler"*. Two root causes addressed: (1) `ResourceDocs1_4_0` registered the same `(GET, /resource-docs/API_VERSION/obp)` doc twice, so v7 aggregation surfaced a duplicate; (2) `getAllResourceDocsObpCached` cached `specifiedUrl` per dynamic-endpoint doc with `case Some(_) => it`, so the first caller froze the URL and every later request inherited it. `getResourceDocsObpV700` now calls `getResourceDocsList`, which aggregates the full cascade (~949 docs on a live server). The centralized service must preserve this contract — `V7ResourceDocsAggregationTest` now acts as the regression guard.
 
 ### Dynamic dispatch, resource-docs, and singletons
 
@@ -178,6 +180,19 @@ The five retired standards + Sandbox are **commented-out source files with no ro
 | **message-docs** (`/obp/*/message-docs/{CONNECTOR}/swagger2.0`) | ✅ `Http4sResourceDocs.handleGetMessageDocsSwagger` via wildcard route. |
 | `ImporterAPI` | ✅ **Retired** — legacy `POST /obp_transactions_saver/api/transactions` shared-secret bulk-insert endpoint, its `TransactionInserter` LiftActor, and the connector helpers it relied on all removed. |
 | `testResourceDoc` (`APIMethods140` `/dummy`) | ✅ Removed — dev-mode-only stub, no production behaviour. |
+Currently served via a raw Lift `serve { case Req(..., "openapi.yaml", ...) }` block that bypasses `registerRoutes` entirely. Needs a dedicated http4s route (no ResourceDocMiddleware) added to the centralized service.
+
+### Caching
+
+`Caching.getStaticSwaggerDocCache()` / `setStaticSwaggerDocCache()` are framework-agnostic and already used from within the http4s path. No migration work needed.
+
+### Steps
+
+1. ~~Fix aggregation bug in `getResourceDocsObpV700` → make `V7ResourceDocsAggregationTest` pass.~~ **Done** in `efb97531e` (2026-05-19). See the Prerequisite section above.
+2. Extract shared handler logic into `Http4sResourceDocs` service; wire into `Http4sApp`.
+3. Add `openapi.yaml` route to the same service.
+4. ~~Port `getMessageDocsSwagger` from `APIMethods310` into the same service~~ — **Done.** Now served by `Http4sResourceDocs.handleGetMessageDocsSwagger` via the wildcard `/obp/*/message-docs/{CONNECTOR}/swagger2.0` route matched before any per-version service. The `val getMessageDocsSwagger: HttpRoutes[IO] = HttpRoutes.empty` stub in `Http4s310.scala` exists only to satisfy the `FrozenClassTest` API-surface check.
+5. Remove resource-docs from the per-version Lift objects (`ResourceDocs140`–`ResourceDocs600`) once the centralized service covers them.
 
 ---
 

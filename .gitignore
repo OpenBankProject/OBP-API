@@ -49,3 +49,4 @@ obp-http4s-runner/src/main/resources/git.properties
 test-results
 untracked_files/
 dependency-reduced-pom.xml
+_DO_NOT_COMMIT_/

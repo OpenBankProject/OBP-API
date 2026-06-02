@@ -13908,6 +13908,11 @@ object Http4s600 {
         |
         |The type field must be one of "STRING", "INTEGER", "DOUBLE" or "DATE_WITH_DAY"
         |
+        |Each Personal Data Field is identified by its own USER_ATTRIBUTE_ID. The "name" is not a unique key:
+        |this endpoint always creates a new field, so the same "name" can occur on multiple fields for the same user
+        |(e.g. two "phone_number" fields). To change the value of an existing field, use PUT /my/personal-data-fields/USER_ATTRIBUTE_ID
+        |rather than POSTing again. To list a user's fields and their USER_ATTRIBUTE_IDs, use GET /my/personal-data-fields.
+        |
         |${userAuthenticationMessage(true)}
         |""".stripMargin,
         code.api.v5_1_0.UserAttributeJsonV510(
@@ -13929,7 +13934,11 @@ object Http4s600 {
         "Get Personal Data Fields",
         s"""Get Personal Data Fields for the currently authenticated user.
         |
-        |Returns Personal Data Fields (IsPersonal=true) that are managed by the user.
+        |Returns all Personal Data Fields (IsPersonal=true) that are managed by the user, as a list.
+        |
+        |Each field has its own USER_ATTRIBUTE_ID. The "name" is not a unique key, so the list may contain
+        |multiple fields with the same "name" (each a distinct USER_ATTRIBUTE_ID). Use the USER_ATTRIBUTE_ID
+        |to fetch, update or delete a specific field.
         |
         |${userAuthenticationMessage(true)}
         |""".stripMargin,
@@ -13948,7 +13957,10 @@ object Http4s600 {
         "GET",
         "/my/personal-data-fields/USER_ATTRIBUTE_ID",
         "Get Personal Data Field By Id",
-        s"""Get a Personal Data Field by USER_ATTRIBUTE_ID for the currently authenticated user.
+        s"""Get a single Personal Data Field by USER_ATTRIBUTE_ID for the currently authenticated user.
+        |
+        |USER_ATTRIBUTE_ID is the unique identifier of the field (not its "name"). Obtain it from
+        |GET /my/personal-data-fields. Returns 404 if no field with that USER_ATTRIBUTE_ID belongs to the user.
         |
         |${userAuthenticationMessage(true)}
         |""".stripMargin,
@@ -13965,7 +13977,12 @@ object Http4s600 {
         "PUT",
         "/my/personal-data-fields/USER_ATTRIBUTE_ID",
         "Update Personal Data Field",
-        s"""Update a Personal Data Field by USER_ATTRIBUTE_ID for the currently authenticated user.
+        s"""Update a single Personal Data Field by USER_ATTRIBUTE_ID for the currently authenticated user.
+        |
+        |USER_ATTRIBUTE_ID identifies the exact field to update; this updates that one field in place and never
+        |creates a new one. The body's "name", "type" and "value" all replace the existing field's values, so a
+        |field can be renamed by changing "name". Returns 404 if no field with that USER_ATTRIBUTE_ID belongs to the user.
+        |The type field must be one of "STRING", "INTEGER", "DOUBLE" or "DATE_WITH_DAY".
         |
         |${userAuthenticationMessage(true)}
         |""".stripMargin,
@@ -13991,7 +14008,11 @@ object Http4s600 {
         "DELETE",
         "/my/personal-data-fields/USER_ATTRIBUTE_ID",
         "Delete Personal Data Field",
-        s"""Delete a Personal Data Field by USER_ATTRIBUTE_ID for the currently authenticated user.
+        s"""Delete a single Personal Data Field by USER_ATTRIBUTE_ID for the currently authenticated user.
+        |
+        |USER_ATTRIBUTE_ID identifies the exact field to delete; only that one field is removed. If several fields
+        |share the same "name", deleting one leaves the others intact. Returns 404 if no field with that
+        |USER_ATTRIBUTE_ID belongs to the user.
         |
         |${userAuthenticationMessage(true)}
         |""".stripMargin,

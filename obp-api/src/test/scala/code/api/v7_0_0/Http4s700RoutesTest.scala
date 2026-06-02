@@ -211,7 +211,9 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
       Given("GET /obp/v7.0.0/banks request")
       val (statusCode, json, _) = makeHttpRequest("/obp/v7.0.0/banks")
 
-      Then("Each bank has id, short_name, full_name, logo, website")
+      // /obp/v7.0.0/banks cascades to v6.0.0 via v700ToV600Bridge, so the response
+      // uses the v6 BanksJsonV600 shape: bank_id / bank_code (not v4's id / short_name).
+      Then("Each bank has bank_id, bank_code, full_name, logo, website")
       statusCode shouldBe 200
       json match {
         case JObject(fields) =>
@@ -220,8 +222,8 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
               banks.headOption match {
                 case Some(JObject(bankFields)) =>
                   val keys = bankFields.map(_.name)
-                  keys should contain("id")
-                  keys should contain("short_name")
+                  keys should contain("bank_id")
+                  keys should contain("bank_code")
                   keys should contain("full_name")
                 case _ =>
                   fail("Expected bank to be a JSON object")

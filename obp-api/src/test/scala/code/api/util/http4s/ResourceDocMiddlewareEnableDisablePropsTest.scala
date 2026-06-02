@@ -60,10 +60,13 @@ class ResourceDocMiddlewareEnableDisablePropsTest extends ServerSetup with Given
   // OperationIds match `APIUtil.buildOperationId(v, partialFunctionName)` →
   // s"$fullyQualifiedVersion-$name". v7.0.0's fully qualified form is "OBPv7.0.0".
   private val rootOpId    = "OBPv7.0.0-root"
-  private val getBanksOpId = "OBPv7.0.0-getBanks"
+  // A second NATIVE v7 endpoint. getBanks was removed from v7 (it now cascades to v6),
+  // so it can no longer serve as a "native v7" allowlist target. /api/versions is public,
+  // native to v7, and needs no DB — the same properties that make /root suitable here.
+  private val versionsOpId = "OBPv7.0.0-getScannedApiVersions"
 
-  private val rootPath    = "/obp/v7.0.0/root"
-  private val banksPath   = "/obp/v7.0.0/banks"
+  private val rootPath     = "/obp/v7.0.0/root"
+  private val versionsPath = "/obp/v7.0.0/api/versions"
 
   private def get(path: String): Int = {
     val req = Request[IO](Method.GET, Uri.unsafeFromString(path), headers = Headers.empty,
@@ -98,12 +101,12 @@ class ResourceDocMiddlewareEnableDisablePropsTest extends ServerSetup with Given
       status shouldBe 404
 
       And("other endpoints in the same version are unaffected")
-      get(banksPath) shouldBe 200
+      get(versionsPath) shouldBe 200
     }
 
     scenario("api_enabled_endpoints contains a different operationId → 404 for non-listed", EnableDisablePropsTag) {
-      Given(s"api_enabled_endpoints=[$getBanksOpId] (root is NOT listed)")
-      setPropsValues("api_enabled_endpoints" -> s"[$getBanksOpId]")
+      Given(s"api_enabled_endpoints=[$versionsOpId] (root is NOT listed)")
+      setPropsValues("api_enabled_endpoints" -> s"[$versionsOpId]")
 
       When("requesting GET /obp/v7.0.0/root")
       val rootStatus = get(rootPath)
@@ -112,7 +115,7 @@ class ResourceDocMiddlewareEnableDisablePropsTest extends ServerSetup with Given
       rootStatus shouldBe 404
 
       And("the explicitly enabled endpoint still serves")
-      get(banksPath) shouldBe 200
+      get(versionsPath) shouldBe 200
     }
 
     scenario("api_enabled_endpoints contains the operationId → endpoint serves", EnableDisablePropsTag) {
@@ -132,7 +135,7 @@ class ResourceDocMiddlewareEnableDisablePropsTest extends ServerSetup with Given
 
       When("requesting two unrelated v7 endpoints directly against Http4s700's wrapped routes")
       val rootStatus = get(rootPath)
-      val banksStatus = get(banksPath)
+      val banksStatus = get(versionsPath)
 
       Then("both still serve — the middleware deliberately ignores version-level Props")
       And("(the prefix-level gate lives in Http4sApp.gate, which this test bypasses)")
