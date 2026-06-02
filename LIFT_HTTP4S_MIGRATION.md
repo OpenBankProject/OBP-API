@@ -102,7 +102,7 @@ A brief regression in early 2026-05 inverted this: a `versionAllowed` check was 
 | `authenticatedAccess(cc)` in for-comp | pick the right `EndpointHelpers.*` helper |
 | `implicit val ec = EndpointContext(Some(cc))` | removed |
 | `yield (json, HttpCode.\`200\`(cc))` | `yield json` |
-| `ResourceDoc(root, ...)` | `ResourceDoc(null, ..., http4sPartialFunction = Some(root))` |
+| `ResourceDoc(root, ...)` | `ResourceDoc(implementedInApiVersion, ..., http4sPartialFunction = Some(root))` |
 
 ### `OBPAPI{version}.scala`
 
