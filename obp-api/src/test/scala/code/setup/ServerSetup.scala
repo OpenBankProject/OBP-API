@@ -193,7 +193,9 @@ trait ServerSetupWithTestData extends ServerSetup with DefaultConnectorTestSetup
     "TransactionsTest", "TransactionTest", "TransactionAttributesTest", "API1_2_1Test",
     "FirehoseTest", "DeleteTransactionCascadeTest", "DoubleEntryTransactionTest",
     "SandboxDataLoadingTest", "UKOpenBankingV310AisTests", "UKOpenBankingV200Tests",
-    "Http4sBGv2AISTest", "AccountInformationServiceAISApiTest", "RegulatedEntityTest"
+    "Http4sBGv2AISTest", "AccountInformationServiceAISApiTest", "RegulatedEntityTest",
+    // reads other-accounts / counterparties, which are derived from transaction metadata
+    "CounterpartyTest"
   )
   protected def needsTransactionData: Boolean =
     suitesNeedingTransactionData.contains(this.getClass.getSimpleName)
