@@ -724,7 +724,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
     TODO check we have equivelent tests in Create Transaction Request tests
 
     if (APIUtil.getPropsAsBoolValue("payments_enabled", false) == false) {
-      // ignore("we make a payment", Payments) {}
+      ignore("we make a payment", Payments) {}
     } else {
       scenario("we make a payment", Payments) {
         val testBank = createPaymentTestBank()

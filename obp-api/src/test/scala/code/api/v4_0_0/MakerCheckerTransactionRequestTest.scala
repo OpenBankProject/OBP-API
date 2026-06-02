@@ -90,7 +90,7 @@ class MakerCheckerTransactionRequestTest extends V400ServerSetup with DefaultUse
   feature("Maker-Checker enforcement on answerTransactionRequestChallenge") {
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      // ignore("Same maker and checker WITH can_have_same_maker_checker permission should SUCCEED", ApiEndpoint1) {}
+      ignore("Same maker and checker WITH can_have_same_maker_checker permission should SUCCEED", ApiEndpoint1) {}
     } else {
       scenario("Same maker and checker WITH can_have_same_maker_checker permission should SUCCEED", ApiEndpoint1) {
         // Default: owner view has the permission, so same user can make and check
@@ -113,7 +113,7 @@ class MakerCheckerTransactionRequestTest extends V400ServerSetup with DefaultUse
     }
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      // ignore("Same maker and checker WITHOUT can_have_same_maker_checker permission should FAIL", ApiEndpoint1) {}
+      ignore("Same maker and checker WITHOUT can_have_same_maker_checker permission should FAIL", ApiEndpoint1) {}
     } else {
       scenario("Same maker and checker WITHOUT can_have_same_maker_checker permission should FAIL", ApiEndpoint1) {
         val (bankId, fromAccount, transactionRequestType, transRequestId, challengeId) =
@@ -144,7 +144,7 @@ class MakerCheckerTransactionRequestTest extends V400ServerSetup with DefaultUse
     }
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      // ignore("Different maker and checker WITHOUT can_have_same_maker_checker permission should SUCCEED", ApiEndpoint1) {}
+      ignore("Different maker and checker WITHOUT can_have_same_maker_checker permission should SUCCEED", ApiEndpoint1) {}
     } else {
       scenario("Different maker and checker WITHOUT can_have_same_maker_checker permission should SUCCEED", ApiEndpoint1) {
         val (bankId, fromAccount, transactionRequestType, transRequestId, challengeId) =
@@ -181,7 +181,7 @@ class MakerCheckerTransactionRequestTest extends V400ServerSetup with DefaultUse
     }
 
     if (APIUtil.getPropsAsBoolValue("transactionRequests_enabled", false) == false) {
-      // ignore("Multiple challenges with maker-checker: different users answer their own challenges", ApiEndpoint1) {}
+      ignore("Multiple challenges with maker-checker: different users answer their own challenges", ApiEndpoint1) {}
     } else {
       scenario("Multiple challenges with maker-checker: different users answer their own challenges", ApiEndpoint1) {
         val transactionRequestType = COUNTERPARTY.toString
