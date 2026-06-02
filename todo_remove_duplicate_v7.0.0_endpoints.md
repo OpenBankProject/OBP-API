@@ -1,6 +1,7 @@
 # TODO: Remove duplicate v7.0.0 endpoints (handoff)
 
-**Status:** In progress — committed `getBanks` fix + uncommitted removal of 19 identical endpoints.
+**Status:** `getBanks` removal committed (`bd9f8ca84`) + CI follow-up fixes (see Appendix C).
+The 19-endpoint removal was prototyped then **reverted** — not yet done. Redo it via Appendix A/B.
 **Date:** 2026-06-02
 **Context:** Several endpoints were added to `Http4s700.scala` purely as http4s migration scaffolding
 (the file literally labels them `// ── POC endpoints — one per EndpointHelper category ──`).
@@ -205,3 +206,38 @@ After running: `mvn test-compile -pl obp-api -am -q` then
 `mvn test -pl obp-api -q -DwildcardSuites="code.api.v7_0_0.Http4s700RoutesTest" -DfailIfNoTests=false`
 — expect **141/141 pass**. If any scenario goes red, that endpoint is NOT identical → restore it
 to v7 (that is precisely how the 3 kept endpoints were identified).
+
+**⚠️ `Http4s700RoutesTest` alone is NOT enough** — see Appendix C. Other suites reference v7 URLs as
+fixtures and will break when you remove an endpoint they assumed was native. Run, at minimum:
+`code.api.v7_0_0.Http4s700RoutesTest`, `code.api.v7_0_0.V7ResourceDocsAggregationTest`,
+`code.api.v7_0_0.Http4s700TransactionTest`, `code.api.http4sbridge.Http4sServerIntegrationTest`,
+`code.api.http4sbridge.Http4sLiftBridgePropertyTest`,
+`code.api.util.http4s.ResourceDocMiddlewareEnableDisablePropsTest`.
+
+---
+
+## Appendix C — Testing anti-pattern this exposed (READ BEFORE removing more)
+
+It is unusual for OBP to test an endpoint at a version that does **not** define it. The v7 suite does,
+because the duplicated "POC" endpoints were tested at their **v7 URLs** to exercise the http4s
+middleware — so tests assert `/obp/v7.0.0/banks` *behaviour* even though banks' canonical home is v6.
+The instant an endpoint cascades, those tests are exercising the wrong layer. That is exactly what
+broke CI after the `getBanks` removal (`bd9f8ca84`): the commit fixed `Http4s700RoutesTest` but missed
+two other suites that hard-coded `/obp/v7.0.0/banks` as a *native* v7 endpoint.
+
+**The two CI follow-up fixes (already done, in the working tree):**
+
+| Suite (shard) | What it wrongly assumed | Fix |
+|---|---|---|
+| `Http4sServerIntegrationTest` (4) | a native v7 endpoint sets **no** `X-OBP-Version-Served`; used `/v7.0.0/banks` — which now cascades and sets `v6.0.0` | repointed the native-endpoint probe to `/obp/v7.0.0/root` |
+| `ResourceDocMiddlewareEnableDisablePropsTest` (3) | allowlist target `OBPv7.0.0-getBanks` exists | repointed to `getScannedApiVersions` / `/obp/v7.0.0/api/versions` |
+
+**Rule of thumb when removing each of the 19 — classify every failing/affected v7 test:**
+
+| Test kind | Example | Action |
+|---|---|---|
+| Asserts an **endpoint's behaviour** at a non-defining version | `Http4s700RoutesTest` "banks list"; `V7ResourceDocsAggregationTest` banks scenario | **Delete** the v7 scenario — coverage belongs at the endpoint's home-version suite (e.g. v6's `getBanks` test). Do **not** repoint it to assert v6 shape via the cascade (that just re-creates the anti-pattern). |
+| Asserts **infrastructure** (routing, cascade header, enable/disable middleware, CORS) and merely needs *a* native endpoint as a fixture | the two fixed above; `Http4sServerIntegrationTest` CORS/native probes | **Keep**, but pin the fixture to an endpoint genuinely native to v7 (`/root`, `/api/versions`). Never use a cascaded URL as the "native" fixture. |
+
+Net: removing the 19 should generally **shrink** the v7 test surface (delete behavioural scenarios),
+not migrate it. Only the handful of genuine infra tests stay, repointed to native v7 fixtures.
