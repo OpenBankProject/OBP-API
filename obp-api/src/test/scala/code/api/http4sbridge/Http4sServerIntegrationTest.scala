@@ -257,8 +257,8 @@ class Http4sServerIntegrationTest extends ServerSetup with DefaultUsers with Ser
       And("X-OBP-Version-Served header indicates the fallback version")
       versionServed should equal(Some("v6.0.0"))
 
-      When("We request a native v7.0.0 endpoint (/banks is migrated)")
-      val (_, _, nativeVersionServed) = makeHttp4sGetRequestFull("/obp/v7.0.0/banks")
+      When("We request a native v7.0.0 endpoint (/root is native to v7; /banks was removed and now cascades to v6)")
+      val (_, _, nativeVersionServed) = makeHttp4sGetRequestFull("/obp/v7.0.0/root")
 
       Then("Native v7 endpoints do not set X-OBP-Version-Served")
       nativeVersionServed should equal(None)

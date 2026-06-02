@@ -202,38 +202,12 @@ object Http4s700 {
       http4sPartialFunction = Some(root)
     )
 
-    // Route: GET /obp/v7.0.0/banks
-    val getBanks: HttpRoutes[IO] = HttpRoutes.of[IO] {
-      case req @ GET -> `prefixPath` / "banks" =>
-        EndpointHelpers.executeAndRespond(req) { implicit cc =>
-          for {
-            (banks, callContext) <- NewStyle.function.getBanks(Some(cc))
-          } yield JSONFactory400.createBanksJson(banks)
-        }
-    }
-
-    resourceDocs += ResourceDoc(
-      null,
-      implementedInApiVersion,
-      nameOf(getBanks),
-      "GET",
-      "/banks",
-      "Get Banks",
-      s"""Get banks on this API instance
-        |Returns a list of banks supported on this server:
-        |
-        |* ID used as parameter in URLs
-        |* Short and full name of bank
-        |* Logo URL
-        |* Website""",
-      EmptyBody,
-      banksJSON,
-      List(
-        UnknownError
-      ),
-      apiTagBank :: Nil,
-      http4sPartialFunction = Some(getBanks)
-    )
+    // Note: GET /obp/v7.0.0/banks is intentionally NOT defined here.
+    // The v7 implementation used the older v4.0.0 shape (BanksJson400: `id`, `short_name`),
+    // which is behind v6.0.0's BanksJsonV600 (`bank_id`, `bank_code`). Rather than duplicate
+    // (and drift from) the v6 shape, we let the request fall through to `v700ToV600Bridge`,
+    // which rewrites /obp/v7.0.0/banks → /obp/v6.0.0/banks and serves Http4s600.getBanks,
+    // tagging the response `X-OBP-Version-Served: v6.0.0`. v7 thus inherits the latest shape.
 
     // Note: resource-docs requests (`GET /obp/v7.0.0/resource-docs/...`) are intercepted by
     // `Http4sResourceDocs.routes`, which is registered earlier in `Http4sApp.baseServices`
