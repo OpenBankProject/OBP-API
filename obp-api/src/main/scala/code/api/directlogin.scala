@@ -30,7 +30,6 @@ import java.util.Date
 
 import code.api.util.APIUtil._
 import code.api.util.ErrorMessages.{InvalidDirectLoginParameters, attemptedToOpenAnEmptyBox}
-import code.api.util.NewStyle.HttpCode
 import code.api.util._
 import code.consumer.Consumers._
 import code.model.dataAccess.AuthUser
@@ -44,7 +43,6 @@ import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.User
 import net.liftweb.common._
 import net.liftweb.http._
-import net.liftweb.http.rest.RestHelper
 import net.liftweb.mapper.{By, By_>, Descending, OrderBy}
 import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers.tryo
@@ -79,39 +77,8 @@ object JSONFactory {
   }
 }
 
-object DirectLogin extends RestHelper with MdcLoggable {
+object DirectLogin extends MdcLoggable {
 
-  // Our version of serve
-  def dlServe(handler : PartialFunction[Req, JsonResponse]) : Unit = {
-    val obpHandler : PartialFunction[Req, () => Box[LiftResponse]] = {
-      new PartialFunction[Req, () => Box[LiftResponse]] {
-        def apply(r : Req) = {
-          handler(r)
-        }
-        def isDefinedAt(r : Req) = handler.isDefinedAt(r)
-      }
-    }
-    super.serve(obpHandler)
-  }
-
-  dlServe
-  {
-    //Handling get request for a token
-    case Req("my" :: "logins" :: "direct" :: Nil,_ , PostRequest) => {
-      for{
-        (httpCode: Int, message: String, userId:Long) <- createTokenFuture(getAllParameters)
-        _ <- Future{grantEntitlementsToUseDynamicEndpointsInSpacesInDirectLogin(userId)}
-      }   yield {
-        if (httpCode == 200) {
-          (JSONFactory.createTokenJSON(message), HttpCode.`201`(CallContext()))
-        } else {
-          unboxFullOrFail(Empty, None, message, httpCode)
-        }
-      }
-    }
-  }
-
-  
   def grantEntitlementsToUseDynamicEndpointsInSpacesInDirectLogin(userId:Long) = {
     try {
       val resourceUser = UserX.findByResourceUserId(userId).openOrThrowException(s"$InvalidDirectLoginParameters can not find the resourceUser!")
@@ -527,6 +494,17 @@ object DirectLogin extends RestHelper with MdcLoggable {
       case Full(_) => true
       case _       => false
     }
+  }
+
+  /**
+   * Mint and persist a usable DirectLogin token for an already-authenticated user, bypassing the
+   * username/password validation in `createTokenCommonPart`. Used by the http4s OpenID Connect
+   * callback (`Http4sOpenIdConnect`) once the provider has verified the user's identity.
+   */
+  def issueTokenForUser(userPrimaryKey: Long, consumerKey: String): Box[String] = {
+    val (token, secret) = generateTokenAndSecret(JWTClaimsSet.parse("""{"":""}"""))
+    if (saveAuthorizationToken(Map("consumer_key" -> consumerKey), token, secret, userPrimaryKey)) Full(token)
+    else Failure("OpenIDConnect: could not persist DirectLogin token")
   }
 
   def getUser : Box[User] = {
