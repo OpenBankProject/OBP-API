@@ -65,6 +65,9 @@ object Http4sApp extends MdcLoggable {
   // DynamicEntity runtime CRUD (/obp/dynamic-entity/*) — native http4s, replaces the Lift
   // OBPAPIDynamicEntity dispatch.
   private val dynamicEntityRoutes: HttpRoutes[IO] = gate(ApiVersion.`dynamic-entity`, code.api.dynamic.entity.Http4sDynamicEntity.wrappedRoutesDynamicEntity)
+  // DynamicEndpoint dispatch (/obp/dynamic-endpoint/*) — fully-native http4s: proxy (DynamicReq)
+  // + runtime-compiled resource docs, no Lift dispatch. Replaces the LiftRules.statelessDispatch
+  // registration. Must sit AHEAD of the Lift bridge (the bridge no longer carries dynamic-endpoint).
   // DynamicEndpoint dispatch (/obp/dynamic-endpoint/*) — proxy (DynamicReq) + runtime-compiled
   // resource docs / practise. Runs the OBPAPIDynamicEndpoint.routes in-process via an adapter,
   // replacing the former LiftRules.statelessDispatch registration.

@@ -267,6 +267,62 @@ class MakerCheckerTransactionRequestTest extends V400ServerSetup with DefaultUse
           addMakerCheckerPermissionToOwnerView()
         }
       }
+
+      // Regression guard for the request-scoped-connection TTL race (formerly ~40% flaky;
+      // resolved by the RequestScopeConnection hardening — childValue→null override +
+      // stale-proxy isClosed() guard). Each multi-challenge create writes 2
+      // MappedExpectedChallengeAnswer rows on the request-scoped proxy connection (autocommit
+      // off) and then reads them back into the 201 response while building `challenges`. If the
+      // proxy fails to propagate to the read Future's worker, the read lands on a fresh pool
+      // connection and sees 0 uncommitted rows → a challenge goes missing. Firing the create
+      // many times in one warm JVM maximises ForkJoinPool scheduling pressure on that
+      // write→read surface, so a regression in the connection-propagation logic shows up here.
+      scenario("Stress: repeated multi-challenge creates must always read back both challenges (RequestScopeConnection regression guard)", ApiEndpoint1) {
+        val iterations = 20
+        val transactionRequestType = COUNTERPARTY.toString
+        val testBank = createBank("__mc-stress-bank")
+        val bankId = testBank.bankId
+        val accountId1 = AccountId("__mc_stress_acc1__")
+        val accountId2 = AccountId("__mc_stress_acc2__")
+        val fromCurrency = "AED"
+        val toCurrency = "INR"
+
+        createAccountRelevantResource(Some(resourceUser1), bankId, accountId1, fromCurrency)
+        createAccountRelevantResource(Some(resourceUser1), bankId, accountId2, toCurrency)
+        updateAccountCurrency(bankId, accountId2, toCurrency)
+
+        val fromAccount = BankAccountX(bankId, accountId1).getOrElse(fail("couldn't get from account"))
+        val counterparty = createCounterparty(bankId.value, accountId1.value, accountId2.value, true, java.util.UUID.randomUUID.toString)
+
+        // REQUIRED_CHALLENGE_ANSWERS = 2 forces the multi-user (quorum > 1) path that exercises the race.
+        createAccountAttributeViaEndpoint(bankId.value, accountId1.value, "REQUIRED_CHALLENGE_ANSWERS", "2", "INTEGER", Some("LKJL98769G"))
+        grantUserAccessToViewViaEndpoint(bankId.value, accountId1.value, resourceUser2.userId, user1,
+          PostViewJsonV400(view_id = SYSTEM_OWNER_VIEW_ID, is_system = true))
+        removeMakerCheckerPermissionFromOwnerView()
+
+        try {
+          val bodyValue = AmountOfMoneyJsonV121(fromCurrency, "30000.00")
+          val transactionRequestBodyCounterparty = TransactionRequestBodyCounterpartyJSON(
+            CounterpartyIdJson(counterparty.counterpartyId), bodyValue, "Multi-challenge MC stress", "SHARED")
+          val createTransReqRequest = (v4_0_0_Request / "banks" / bankId.value / "accounts" / fromAccount.accountId.value /
+            SYSTEM_OWNER_VIEW_ID / "transaction-request-types" / transactionRequestType / "transaction-requests").POST <@(user1)
+
+          // INITIATED only — no money moves, so we can repeat freely.
+          (1 to iterations).foreach { iter =>
+            withClue(s"iteration $iter of $iterations: ") {
+              val createResponse = makePostRequest(createTransReqRequest, write(transactionRequestBodyCounterparty))
+              createResponse.code should equal(201)
+              val json = createResponse.body.extract[TransactionRequestWithChargeJSON400]
+              json.status should equal(TransactionRequestStatus.INITIATED.toString)
+              // The race manifests as a missing challenge (read saw 0 uncommitted rows).
+              json.challenges.find(_.user_id == resourceUser1.userId) should not be (None)
+              json.challenges.find(_.user_id == resourceUser2.userId) should not be (None)
+            }
+          }
+        } finally {
+          addMakerCheckerPermissionToOwnerView()
+        }
+      }
     }
 
   }

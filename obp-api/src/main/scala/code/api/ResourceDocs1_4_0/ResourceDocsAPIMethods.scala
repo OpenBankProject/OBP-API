@@ -72,6 +72,220 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
 
     val implementedInApiVersion = ApiVersion.v1_4_0
 
+    // The resource-docs / swagger / openapi endpoints are served natively by
+    // `code.api.util.http4s.Http4sResourceDocs` (wired into `Http4sApp.baseServices` ahead of the
+    // per-version routes). Their Lift `lazy val` handlers below are commented-out dead code, but the
+    // self-documenting ResourceDoc entries must still be published so they appear in the resource-docs
+    // listing (API Explorer reads this list). `getResourceDocsList` appends `localResourceDocs` to the
+    // aggregated docs for the `obp` standard, so registering them here is all that is required —
+    // `partialFunction` is null and no `http4sPartialFunction` is set because the routing is external.
+    def getResourceDocsDescription(isBankLevelResourceDoc: Boolean) = {
+
+      val endpointBankIdPath = if (isBankLevelResourceDoc) "/banks/BANK_ID" else ""
+
+      s"""Get documentation about the RESTful resources on this server including example bodies for POST and PUT requests.
+         |
+         |This is the native data format used to document OBP endpoints. Each endpoint has a Resource Doc (a Scala case class) defined in the source code.
+         |
+         | This endpoint is used by OBP API Explorer to display and work with the API documentation.
+         |
+         | Most (but not all) fields are also available in swagger format. (The Swagger endpoint is built from Resource Docs.)
+         |
+         | API_VERSION is the version you want documentation about e.g. v3.0.0
+         |
+         | You may filter this endpoint with tags parameter e.g. ?tags=Account,Bank
+         |
+         | You may filter this endpoint with functions parameter e.g. ?functions=enableDisableConsumers,getConnectorMetrics
+         |
+         | For possible function values, see implemented_by.function in the JSON returned by this endpoint or the OBP source code or the footer of the API Explorer which produces a comma separated list of functions that reflect the server or filtering by API Explorer based on tags etc.
+         |
+         | You may filter this endpoint using the 'content' url parameter, e.g. ?content=dynamic
+         | if set content=dynamic, only show dynamic endpoints, if content=static, only show the static endpoints. if omit this parameter, we will show all the endpoints.
+         |
+         | You may need some other language resource docs, now we support en_GB and es_ES at the moment.
+         |
+         | You can filter with api-collection-id, but api-collection-id can not be used with others together. If api-collection-id is used in URL, it will ignore all other parameters.
+         |
+         |See the Resource Doc endpoint for more information.
+         |
+         |Note: Dynamic Resource Docs are cached, TTL is ${GET_DYNAMIC_RESOURCE_DOCS_TTL} seconds
+         |      Static Resource Docs are cached, TTL is ${GET_STATIC_RESOURCE_DOCS_TTL} seconds
+         |
+         |
+         |Following are more examples:
+         |${getObpApiRoot}/v4.0.0$endpointBankIdPath/resource-docs/v4.0.0/obp
+         |${getObpApiRoot}/v4.0.0$endpointBankIdPath/resource-docs/v4.0.0/obp?tags=Account,Bank
+         |${getObpApiRoot}/v4.0.0$endpointBankIdPath/resource-docs/v4.0.0/obp?functions=getBanks,bankById
+         |${getObpApiRoot}/v4.0.0$endpointBankIdPath/resource-docs/v4.0.0/obp?locale=es_ES
+         |${getObpApiRoot}/v4.0.0$endpointBankIdPath/resource-docs/v4.0.0/obp?content=static,dynamic,all
+         |${getObpApiRoot}/v4.0.0$endpointBankIdPath/resource-docs/v4.0.0/obp?api-collection-id=4e866c86-60c3-4268-a221-cb0bbf1ad221
+         |
+         |<ul>
+         |<li> operation_id is concatenation of "v", version and function and should be unique (used for DOM element IDs etc. maybe used to link to source code) </li>
+         |<li> version references the version that the API call is defined in.</li>
+         |<li> function is the (scala) partial function that implements this endpoint. It is unique per version of the API.</li>
+         |<li> request_url is empty for the root call, else the path. It contains the standard prefix (e.g. /obp) and the implemented version (the version where this endpoint was defined) e.g. /obp/v1.2.0/resource</li>
+         |<li> specified_url (recommended to use) is empty for the root call, else the path. It contains the standard prefix (e.g. /obp) and the version specified in the call e.g. /obp/v3.1.0/resource. In OBP, endpoints are first made available at the request_url, but the same resource (function call) is often made available under later versions (specified_url). To access the latest version of all endpoints use the latest version available on your OBP instance e.g. /obp/v3.1.0 - To get the original version use the request_url. We recommend to use the specified_url since non semantic improvements are more likely to be applied to later implementations of the call.</li>
+         |<li> summary is a short description inline with the swagger terminology. </li>
+         |<li> description may contain html markup (generated from markdown on the server).</li>
+         |</ul>
+      """
+    }
+
+    localResourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      "getResourceDocsObp",
+      "GET",
+      "/resource-docs/API_VERSION/obp",
+      "Get Resource Docs.",
+      getResourceDocsDescription(false),
+      EmptyBody,
+      EmptyBody,
+      UnknownError :: Nil,
+      List(apiTagDocumentation, apiTagApi),
+      Some(List(canReadResourceDoc))
+    )
+
+    localResourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      "getBankLevelDynamicResourceDocsObp",
+      "GET",
+      "/banks/BANK_ID/resource-docs/API_VERSION/obp",
+      "Get Bank Level Dynamic Resource Docs.",
+      getResourceDocsDescription(true),
+      EmptyBody,
+      EmptyBody,
+      UnknownError :: Nil,
+      List(apiTagDocumentation, apiTagApi),
+      Some(List(canReadDynamicResourceDocsAtOneBank))
+    )
+
+    localResourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      "getResourceDocsSwagger",
+      "GET",
+      "/resource-docs/API_VERSION/swagger",
+      "Get Swagger documentation",
+      s"""Returns documentation about the RESTful resources on this server in Swagger format.
+         |
+         |API_VERSION is the version you want documentation about e.g. v3.0.0
+         |
+         |You may filter this endpoint using the 'tags' url parameter e.g. ?tags=Account,Bank
+         |
+         |(All endpoints are given one or more tags which for used in grouping)
+         |
+         |You may filter this endpoint using the 'functions' url parameter e.g. ?functions=getBanks,bankById
+         |
+         |(Each endpoint is implemented in the OBP Scala code by a 'function')
+         |
+         |See the Resource Doc endpoint for more information.
+         |
+         | Note: Resource Docs are cached, TTL is ${GET_DYNAMIC_RESOURCE_DOCS_TTL} seconds
+         |
+         |Following are more examples:
+         |${getObpApiRoot}/v3.1.0/resource-docs/v3.1.0/swagger
+         |${getObpApiRoot}/v3.1.0/resource-docs/v3.1.0/swagger?tags=Account,Bank
+         |${getObpApiRoot}/v3.1.0/resource-docs/v3.1.0/swagger?functions=getBanks,bankById
+         |${getObpApiRoot}/v3.1.0/resource-docs/v3.1.0/swagger?tags=Account,Bank,PSD2&functions=getBanks,bankById
+         |
+      """,
+      EmptyBody,
+      EmptyBody,
+      UnknownError :: Nil,
+      List(apiTagDocumentation, apiTagApi)
+    )
+
+    localResourceDocs += ResourceDoc(
+      null,
+      implementedInApiVersion,
+      "getResourceDocsOpenAPI31",
+      "GET",
+      "/resource-docs/API_VERSION/openapi",
+      "Get OpenAPI 3.1 documentation",
+      s"""Returns documentation about the RESTful resources on this server in OpenAPI 3.1 format.
+         |
+         |API_VERSION is the version you want documentation about e.g. v6.0.0
+         |
+         |## Query Parameters
+         |
+         |You may filter this endpoint using the following optional query parameters:
+         |
+         |**tags** - Filter by endpoint tags (comma-separated list)
+         |  • Example: ?tags=Account,Bank or ?tags=Account-Firehose
+         |  • All endpoints are given one or more tags which are used for grouping
+         |  • Empty values will return error OBP-10053
+         |
+         |**functions** - Filter by function names (comma-separated list)
+         |  • Example: ?functions=getBanks,bankById
+         |  • Each endpoint is implemented in the OBP Scala code by a 'function'
+         |  • Empty values will return error OBP-10054
+         |
+         |**content** - Filter by endpoint type
+         |  • Values: static, dynamic, all (case-insensitive)
+         |  • static: Only show static/core API endpoints
+         |  • dynamic: Only show dynamic/custom endpoints
+         |  • all: Show both static and dynamic endpoints (default)
+         |  • Invalid values will return error OBP-10052
+         |
+         |**locale** - Language for localized documentation
+         |  • Example: ?locale=en_GB or ?locale=es_ES
+         |  • Supported locales: en_GB, es_ES, ro_RO
+         |  • Invalid locales will return error OBP-10041
+         |
+         |**api-collection-id** - Filter by API collection UUID
+         |  • Example: ?api-collection-id=4e866c86-60c3-4268-a221-cb0bbf1ad221
+         |  • Returns only endpoints belonging to the specified collection
+         |  • Empty values will return error OBP-10055
+         |
+         |This endpoint generates OpenAPI 3.1 compliant documentation with modern JSON Schema support.
+         |
+         |For YAML format, use the corresponding endpoint: /resource-docs/API_VERSION/openapi.yaml
+         |
+         |See the Resource Doc endpoint for more information.
+         |
+         |Note: Resource Docs are cached, TTL is ${GET_DYNAMIC_RESOURCE_DOCS_TTL} seconds
+         |
+         |## Examples
+         |
+         |Basic usage:
+         |${getObpApiRoot}/v6.0.0/resource-docs/v6.0.0/openapi
+         |
+         |Filter by tags:
+         |${getObpApiRoot}/v6.0.0/resource-docs/v6.0.0/openapi?tags=Account,Bank
+         |${getObpApiRoot}/v6.0.0/resource-docs/v6.0.0/openapi?tags=Account-Firehose
+         |
+         |Filter by content type:
+         |${getObpApiRoot}/v6.0.0/resource-docs/v6.0.0/openapi?content=static
+         |${getObpApiRoot}/v6.0.0/resource-docs/v6.0.0/openapi?content=dynamic
+         |
+         |Filter by functions:
+         |${getObpApiRoot}/v6.0.0/resource-docs/v6.0.0/openapi?functions=getBanks,bankById
+         |
+         |Combine multiple parameters:
+         |${getObpApiRoot}/v6.0.0/resource-docs/v6.0.0/openapi?content=static&tags=Account-Firehose
+         |${getObpApiRoot}/v6.0.0/resource-docs/v6.0.0/openapi?tags=Account,Bank,PSD2&functions=getBanks,bankById
+         |${getObpApiRoot}/v6.0.0/resource-docs/v6.0.0/openapi?content=static&locale=en_GB&tags=Account
+         |
+         |Filter by API collection:
+         |${getObpApiRoot}/v6.0.0/resource-docs/v6.0.0/openapi?api-collection-id=4e866c86-60c3-4268-a221-cb0bbf1ad221
+         |
+      """,
+      EmptyBody,
+      EmptyBody,
+      InvalidApiVersionString ::
+      ApiVersionNotSupported ::
+      InvalidLocale ::
+      InvalidContentParameter ::
+      InvalidTagsParameter ::
+      InvalidFunctionsParameter ::
+      InvalidApiCollectionIdParameter ::
+      UnknownError :: Nil,
+      List(apiTagDocumentation, apiTagApi)
+    )
+
     implicit val formats = CustomJsonFormats.rolesMappedToClassesFormats
 
     // avoid repeat execute method getSpecialInstructions, here save the calculate results.
