@@ -30,8 +30,7 @@ Rules apply regardless of which version file the endpoint lives in. Use v7.0.0 o
 val myEndpoint: HttpRoutes[IO] = HttpRoutes.of[IO] { ... }
 
 resourceDocs += ResourceDoc(
-  null,                     // always null — no Lift endpoint ref
-  implementedInApiVersion,
+  implementedInApiVersion,  // first param; ResourceDoc.partialFunction (OBPEndpoint) was removed in the Lift teardown
   nameOf(myEndpoint),
   "GET", "/some/path", "Summary", """Description""",
   EmptyBody, responseJson,
@@ -172,7 +171,7 @@ EndpointHelpers.withUser(req) { (user, cc) =>
   } yield ...
 }
 // ResourceDoc:
-resourceDocs += ResourceDoc(null, ..., "/banks/FIREHOSE_BANK_ID/firehose/...", ..., None, ...)
+resourceDocs += ResourceDoc(implementedInApiVersion, ..., "/banks/FIREHOSE_BANK_ID/firehose/...", ..., None, ...)
 ```
 
 **`ResourceDoc` description and `needsAuthentication`**: The `ResourceDoc` constructor removes `AuthenticatedUserIsRequired` from `errorResponseBodies` when `description.contains(authenticationIsOptional) && rolesIsEmpty`. `needsAuthentication = errorResponseBodies.contains($AuthenticatedUserIsRequired) || roles.nonEmpty`. If the description embeds `${userAuthenticationMessage(false)}` (which includes `authenticationIsOptional`) and roles are empty, the error is silently removed → `needsAuthentication=false` → anonymous access → unauthenticated requests reach the handler. Fix: remove `${userAuthenticationMessage(false)}` from the description when `AuthenticatedUserIsRequired` must remain in the error list.
@@ -268,7 +267,7 @@ Symptoms in tests: a v4-specific assertion fails (e.g. an entitlement should-be-
 
 ## CI (shard map + run tips)
 
-Perf note: integration tests are DB/HTTP-bound (~0.4 s/test) on both frameworks; the http4s win is the **pure-unit tier** (no running server, ~0.008 s/test). `ResourceDocsTest`/`SwaggerDocsTest` are the slowest per-test cost — they serialize the whole API surface, so cost grows with endpoint count (needs ResourceDoc-serialization caching before the migration completes).
+Perf note: integration tests are DB/HTTP-bound (~0.4 s/test) on both frameworks; the http4s win is the **pure-unit tier** (no running server, ~0.008 s/test). `ResourceDocsTest`/`SwaggerDocsTest` are the slowest per-test cost — they serialize the whole API surface, so cost grows with endpoint count. `Http4sResourceDocs` already caches the serialized output (`Caching.{getDynamic,getStatic,getAll}ResourceDocCache` + `getStaticSwaggerDocCache`, keyed via `APIUtil.createResourceDocCacheKey`), so repeat requests for the same version/params skip re-serialization.
 
 ### Shard assignment
 

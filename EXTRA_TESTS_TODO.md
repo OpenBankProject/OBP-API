@@ -5,7 +5,6 @@ Tracks dependency bumps where compile + the standard 4-suite smoke test passed, 
 Test suites currently used as the smoke gate:
 - `code.api.v7_0_0.Http4s700RoutesTest`
 - `code.api.v7_0_0.Http4s700TransactionTest`
-- `code.api.http4sbridge.Http4sLiftBridgePropertyTest`
 - `code.api.http4sbridge.Http4sServerIntegrationTest`
 
 Test DB is H2; many integrations are stubbed or absent.
