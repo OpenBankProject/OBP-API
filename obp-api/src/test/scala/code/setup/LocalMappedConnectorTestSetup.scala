@@ -214,9 +214,12 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
     //empty the relational db tables after each test
     ToSchemify.models.filterNot(exclusion).foreach(_.bulkDelete_!!())
     
-    // Flush all data from Redis
+    // Delete only THIS shard's namespaced Redis keys. Each parallel shard uses a distinct
+    // api_instance_id (OBP_API_INSTANCE_ID) -> distinct getGlobalCacheNamespacePrefix, so a
+    // pattern-scoped delete avoids wiping other shards' rate-limit/cache state. A plain FLUSHDB
+    // would clear the whole shared DB and cause cross-shard rate-limit/cache flakiness.
     try {
-      Redis.use(JedisMethod.FLUSHDB, "")
+      Redis.deleteKeysByPattern(code.api.Constant.getGlobalCacheNamespacePrefix + "*")
     } catch {
       case e: Throwable =>
         logger.warn("------------| Redis issue during flushing data |------------")

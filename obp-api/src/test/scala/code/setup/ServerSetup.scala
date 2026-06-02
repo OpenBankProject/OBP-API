@@ -76,7 +76,11 @@ trait ServerSetup extends FeatureSpec with SendServerRequests
     setPropsValues("transactionRequests_supported_types" -> "SEPA,SANDBOX_TAN,FREE_FORM,COUNTERPARTY,ACCOUNT,ACCOUNT_OTP,SIMPLE,CARD,AGENT_CASH_WITHDRAWAL,CARDANO")
     setPropsValues("CARD_OTP_INSTRUCTION_TRANSPORT" -> "DUMMY")
     setPropsValues("AGENT_CASH_WITHDRAWAL_OTP_INSTRUCTION_TRANSPORT" -> "DUMMY")
-    setPropsValues("api_instance_id" -> "1_final")
+    // Per-shard Redis key namespace: each parallel shard sets a distinct api_instance_id
+    // (OBP_API_INSTANCE_ID), which flows into Constant.getGlobalCacheNamespacePrefix and thus
+    // every Redis key (rate-limit counters, caches). This isolates shards on a shared Redis so
+    // their counters don't collide. Single-instance/CI default stays "1_final".
+    setPropsValues("api_instance_id" -> sys.env.getOrElse("OBP_API_INSTANCE_ID", "1_final"))
     setPropsValues("starConnector_supported_types" -> "mapped,internal,cardano_vJun2025")
     setPropsValues("connector" -> "star")
     setPropsValues("berlin_group_mandatory_headers" -> "")

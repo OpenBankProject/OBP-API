@@ -164,6 +164,7 @@ run_shard() {
     OBP_HOSTNAME="http://localhost:${port}" \
     OBP_HTTP4S_TEST_PORT="${http4s_port}" \
     OBP_MAIL_TEST_MODE="true" \
+    OBP_API_INSTANCE_ID="shard_${n}" \
     gtimeout 1200 mvn scalatest:test -pl obp-api -DfailIfNoTests=false \
         "-DwildcardSuites=${filter}" \
         > "$log" 2>&1
