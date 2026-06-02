@@ -211,9 +211,10 @@ object Http4s700 {
 
     // Note: resource-docs requests (`GET /obp/v7.0.0/resource-docs/...`) are intercepted by
     // `Http4sResourceDocs.routes`, which is registered earlier in `Http4sApp.baseServices`
-    // (line 109, ahead of `v700Routes` at line 113). The ResourceDoc metadata for that URL
-    // is contributed by `ResourceDocs1_4_0.ResourceDocsAPIMethods.localResourceDocs` and
-    // surfaces through `getResourceDocsList`'s localResourceDocs append for the obp standard.
+    // (line 109, ahead of `v700Routes` at line 113). The self-documenting ResourceDoc metadata
+    // for those URLs is registered in `ResourceDocs1_4_0.ResourceDocsAPIMethods.localResourceDocs`
+    // (getResourceDocsObp / Swagger / OpenAPI31 / bank-level) and surfaces through
+    // `getResourceDocsList`'s localResourceDocs append for the obp standard.
     // There is intentionally no v7-specific handler here.
 
     // ── POC endpoints — one per EndpointHelper category ────────────────────

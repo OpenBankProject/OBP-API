@@ -252,4 +252,58 @@ class SwaggerDocsTest extends ResourceDocsV140ServerSetup with PropsReset with D
 
   }
 
+  // ─── Doc-listing surface mirrors the runtime cascade ────────────────────────
+  //
+  // The runtime side is pinned by ResourceDocMiddlewareEnableDisablePropsTest's
+  // "cascade reachability survives api_disabled_versions on the middle version"
+  // feature (commit 9c9b5fee3 — the NMB fix where `Add Entitlement for User`
+  // disappeared because the operator skipped v2.0.0 in api_enabled_versions).
+  // This feature pins the *documentation* side: a newer version's
+  // /resource-docs/.../obp response must include the v2.0.0-origin endpoints
+  // that cascade into it. Without this, an operator who disables v2.0.0 sees
+  // those endpoints disappear from the docs even though they're still
+  // reachable, which is the kind of doc/runtime drift that confused us once.
+  //
+  // If `getResourceDocsList` ever starts filtering by
+  // versionIsAllowed(rd.implementedInApiVersion), or the OBPAPI{version}
+  // cascade chain breaks, these scenarios will fail and force a re-think
+  // before the change ships.
+  feature("ResourceDoc listing — v2.0.0-origin endpoints cascade into newer versions' docs") {
+
+    scenario("GET /obp/v6.0.0/resource-docs/v6.0.0/obp lists the v2.0.0-origin addEntitlement endpoint", ApiEndpoint1, VersionOfApi) {
+      Given("api_enabled_versions skips v2.0.0 (matching the NMB-reported config)")
+      setPropsValues(
+        "resource_docs_requires_role" -> "false",
+        "api_enabled_versions" -> "[OBPv7.0.0,OBPv2.1.0,OBPv6.0.0,OBPv5.1.0,OBPv5.0.0,OBPv4.0.0,OBPv3.0.0,OBPv3.1.0]"
+      )
+      When("requesting v6.0.0's resource-docs by API version v6.0.0")
+      val resp = makeGetRequest((ResourceDocsV6_0Request / "resource-docs" / "v6.0.0" / "obp").GET)
+      Then("the response is 200")
+      resp.code should equal(200)
+      And("addEntitlement (introduced in v2.0.0) is in the returned doc list")
+      // The response body is a JObject {resource_docs: [...]} — pluck operation_id
+      val opIds = (resp.body \ "resource_docs" \\ "operation_id").children.collect {
+        case JString(s) => s
+      }
+      opIds.exists(_.contains("addEntitlement")) shouldBe true
+    }
+
+    scenario("requested API version v6.0.0 surfaces a non-trivial number of v2.0.0-origin endpoints — proves the whole cascade, not one doc", ApiEndpoint1, VersionOfApi) {
+      setPropsValues("resource_docs_requires_role" -> "false")
+      val resp = makeGetRequest((ResourceDocsV6_0Request / "resource-docs" / "v6.0.0" / "obp").GET)
+      resp.code should equal(200)
+      // implemented_by.version tags every doc with its origin (fullyQualifiedVersion,
+      // e.g. "OBPv2.0.0"). The v2.0.0 group should be sizable (>5) so a regression
+      // that drops most of the cascade fails this even if a couple stay.
+      val docs = (resp.body \ "resource_docs").children
+      val v2_0_0Count = docs.count { d =>
+        (d \ "implemented_by" \ "version") match {
+          case JString(v) => v == "OBPv2.0.0"
+          case _          => false
+        }
+      }
+      v2_0_0Count should be > 5
+    }
+  }
+
 }
