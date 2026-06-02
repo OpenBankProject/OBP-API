@@ -3,7 +3,7 @@ package code.api.berlin.group.v1_3
 import code.api.Constant
 import code.api.Constant.{SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID, SYSTEM_READ_BALANCES_BERLIN_GROUP_VIEW_ID, SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID}
 import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3._
-import code.api.builder.AccountInformationServiceAISApi.APIMethods_AccountInformationServiceAISApi
+import code.api.berlin.group.v1_3.Http4sBGv13AIS
 import code.api.util.APIUtil
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ErrorMessages._
@@ -23,38 +23,39 @@ import java.time.format.DateTimeFormatter
 
 class AccountInformationServiceAISApiTest extends BerlinGroupServerSetupV1_3 with DefaultUsers {
 
-  object getAccountList extends Tag(nameOf(APIMethods_AccountInformationServiceAISApi.getAccountList))
-  
-  object getAccountDetails extends Tag(nameOf(APIMethods_AccountInformationServiceAISApi.getAccountDetails))
+  object getAccountList extends Tag(nameOf(Http4sBGv13AIS.getAccountList))
 
-  object getBalances extends Tag(nameOf(APIMethods_AccountInformationServiceAISApi.getBalances))
+  object getAccountDetails extends Tag(nameOf(Http4sBGv13AIS.getAccountDetails))
 
-  object getTransactionList extends Tag(nameOf(APIMethods_AccountInformationServiceAISApi.getTransactionList))
+  object getBalances extends Tag(nameOf(Http4sBGv13AIS.getBalances))
 
-  object getTransactionDetails extends Tag(nameOf(APIMethods_AccountInformationServiceAISApi.getTransactionDetails))
+  object getTransactionList extends Tag(nameOf(Http4sBGv13AIS.getTransactionList))
 
-  object getCardAccountTransactionList extends Tag(nameOf(APIMethods_AccountInformationServiceAISApi.getCardAccountTransactionList))
+  object getTransactionDetails extends Tag(nameOf(Http4sBGv13AIS.getTransactionDetails))
 
-  object createConsent extends Tag(nameOf(APIMethods_AccountInformationServiceAISApi.createConsent))
+  object getCardAccountTransactionList extends Tag(nameOf(Http4sBGv13AIS.getCardAccountTransactionList))
 
-  object deleteConsent extends Tag(nameOf(APIMethods_AccountInformationServiceAISApi.deleteConsent))
+  object createConsent extends Tag(nameOf(Http4sBGv13AIS.createConsent))
 
-  object getConsentInformation extends Tag(nameOf(APIMethods_AccountInformationServiceAISApi.getConsentInformation))
+  object deleteConsent extends Tag(nameOf(Http4sBGv13AIS.deleteConsent))
 
-  object getConsentStatus extends Tag(nameOf(APIMethods_AccountInformationServiceAISApi.getConsentStatus))
+  object getConsentInformation extends Tag(nameOf(Http4sBGv13AIS.getConsentInformation))
 
-  object startConsentAuthorisationTransactionAuthorisation extends Tag(nameOf(APIMethods_AccountInformationServiceAISApi.startConsentAuthorisationTransactionAuthorisation))
-  object startConsentAuthorisationUpdatePsuAuthentication extends Tag(nameOf(APIMethods_AccountInformationServiceAISApi.startConsentAuthorisationUpdatePsuAuthentication))
-  object startConsentAuthorisationSelectPsuAuthenticationMethod extends Tag(nameOf(APIMethods_AccountInformationServiceAISApi.startConsentAuthorisationSelectPsuAuthenticationMethod))
+  object getConsentStatus extends Tag(nameOf(Http4sBGv13AIS.getConsentStatus))
 
-  object getConsentAuthorisation extends Tag(nameOf(APIMethods_AccountInformationServiceAISApi.getConsentAuthorisation))
+  // body-dispatch variants — use string literals since handlers are unified in http4s
+  object startConsentAuthorisationTransactionAuthorisation extends Tag("startConsentAuthorisationTransactionAuthorisation")
+  object startConsentAuthorisationUpdatePsuAuthentication extends Tag("startConsentAuthorisationUpdatePsuAuthentication")
+  object startConsentAuthorisationSelectPsuAuthenticationMethod extends Tag("startConsentAuthorisationSelectPsuAuthenticationMethod")
 
-  object getConsentScaStatus extends Tag(nameOf(APIMethods_AccountInformationServiceAISApi.getConsentScaStatus))
+  object getConsentAuthorisation extends Tag(nameOf(Http4sBGv13AIS.getConsentAuthorisation))
 
-  object updateConsentsPsuDataTransactionAuthorisation extends Tag(nameOf(APIMethods_AccountInformationServiceAISApi.updateConsentsPsuDataTransactionAuthorisation))
-  object updateConsentsPsuDataUpdatePsuAuthentication extends Tag(nameOf(APIMethods_AccountInformationServiceAISApi.updateConsentsPsuDataUpdatePsuAuthentication))
-  object updateConsentsPsuDataUpdateSelectPsuAuthenticationMethod extends Tag(nameOf(APIMethods_AccountInformationServiceAISApi.updateConsentsPsuDataUpdateSelectPsuAuthenticationMethod))
-  object updateConsentsPsuDataUpdateAuthorisationConfirmation extends Tag(nameOf(APIMethods_AccountInformationServiceAISApi.updateConsentsPsuDataUpdateAuthorisationConfirmation))
+  object getConsentScaStatus extends Tag(nameOf(Http4sBGv13AIS.getConsentScaStatus))
+
+  object updateConsentsPsuDataTransactionAuthorisation extends Tag("updateConsentsPsuDataTransactionAuthorisation")
+  object updateConsentsPsuDataUpdatePsuAuthentication extends Tag("updateConsentsPsuDataUpdatePsuAuthentication")
+  object updateConsentsPsuDataUpdateSelectPsuAuthenticationMethod extends Tag("updateConsentsPsuDataUpdateSelectPsuAuthenticationMethod")
+  object updateConsentsPsuDataUpdateAuthorisationConfirmation extends Tag("updateConsentsPsuDataUpdateAuthorisationConfirmation")
 
   def getNextMonthDate(): String = {
     val nextMonthDate = LocalDate.now().plusMonths(1)

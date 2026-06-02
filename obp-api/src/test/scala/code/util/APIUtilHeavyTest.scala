@@ -30,7 +30,7 @@ package code.util
 import code.api.Constant.SYSTEM_OWNER_VIEW_ID
 import code.api.UKOpenBanking.v3_1_0.Http4sUKOBv310AccountAccess
 import code.api.berlin.group.ConstantsBG
-import code.api.builder.AccountInformationServiceAISApi.APIMethods_AccountInformationServiceAISApi
+import code.api.berlin.group.v1_3.Http4sBGv13AIS
 import code.api.util._
 import code.api.v4_0_0.{Http4s400, OBPAPI4_0_0, V400ServerSetup}
 import code.setup.PropsReset
@@ -128,16 +128,24 @@ class APIUtilHeavyTest extends V400ServerSetup  with PropsReset {
       allowedOperationIds2 contains("OBPv4.0.0-callsLimit") should be (false)
 
 
-      val bgResourceDocsV13 = APIMethods_AccountInformationServiceAISApi.resourceDocs
-      val bgEndpointsV13 = APIMethods_AccountInformationServiceAISApi.endpoints
+      // BG v1.3 is fully on http4s; getAllowedResourceDocs needs non-null partialFunctions,
+      // so filter Http4sBGv13AIS.resourceDocs directly by props instead (mirrors UK v3.1 pattern).
+      val bgResourceDocsV13 = Http4sBGv13AIS.resourceDocs
+      def filterBGv13Docs() = {
+        val disabledIds = APIUtil.getDisabledEndpointOperationIds().toSet
+        val enabledIds  = APIUtil.getEnabledEndpointOperationIds().toSet
+        bgResourceDocsV13.filter(rd =>
+          !disabledIds.contains(rd.operationId) &&
+          (enabledIds.contains(rd.operationId) || enabledIds.isEmpty)
+        ).map(_.operationId).toList
+      }
 
       setPropsValues(
         "api_disabled_endpoints" -> s"[BG${bgVersion}-createConsent,BG${bgVersion}-deleteConsent]",
         "api_enabled_endpoints" -> "[]"
       )
 
-      val allowedEndpoints3: List[APIUtil.ResourceDoc] = APIUtil.getAllowedResourceDocs(bgEndpointsV13, bgResourceDocsV13).toList
-      val allowedOperationIds3 = allowedEndpoints3.map(_.operationId)
+      val allowedOperationIds3 = filterBGv13Docs()
 
       allowedOperationIds3 contains(s"BG${bgVersion}-getCardAccountTransactionList") should be (true)
       allowedOperationIds3 contains(s"BG${bgVersion}-createConsent") should be (false)

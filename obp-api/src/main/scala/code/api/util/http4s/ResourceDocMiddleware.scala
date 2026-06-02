@@ -225,7 +225,8 @@ object ResourceDocMiddleware extends MdcLoggable {
     val initialContext = ValidationContext(callContext = cc)
 
     // Validation order MUST match Lift's wrappedWithAuthCheck (APIUtil.scala:1934-1969):
-    //   auth → bank → roles → account → view → counterparty
+    //   beforeAuthenticateInterceptors (= validateQueryParams / validateAuthType) first,
+    //   then auth → bank → roles → account → view → counterparty
     //     → afterAuthenticateInterceptors (= Force-Error / AuthType / JsonSchema)
     // Per Lift's own comment: "A Bank MUST be checked before Roles. In opposite case
     // we get next paradox: We set non existing bank → We get error that we don't
@@ -236,7 +237,8 @@ object ResourceDocMiddleware extends MdcLoggable {
     // doc's role names) when Force-Error: OBP-20006 is sent and the natural
     // role check would also fail.
     val result: Validation[ValidationContext] = for {
-      context <- authenticate(req, resourceDoc, initialContext)
+      context <- validateDuplicateQueryParams(cc, initialContext)
+      context <- authenticate(req, resourceDoc, context)
       context <- validateBank(pathParams, context)
       context <- authorizeRoles(resourceDoc, pathParams, context)
       context <- validateAccount(pathParams, context)
@@ -456,6 +458,32 @@ object ResourceDocMiddleware extends MdcLoggable {
         )
       case None => success(ctx)
     }
+  }
+
+  /**
+   * Port of `APIUtil.validateQueryParams` (a `beforeAuthenticateInterceptor` in Lift).
+   * Rejects requests with duplicate query-parameter names with 400
+   * `DuplicateQueryParameters`. Returns a plain OBP `{"message":"..."}` body (not BG
+   * format) to match Lift's `createErrorJsonResponse` output — the test asserts on
+   * `ErrorMessage.message`, not `ErrorMessagesBG.tppMessages`.
+   */
+  private def validateDuplicateQueryParams(cc: CallContext, ctx: ValidationContext): Validation[ValidationContext] = {
+    import DSL._
+    val queryString = if (cc.url.contains("?")) cc.url.split("\\?", 2)(1) else ""
+    val paramNames = queryString.split("&").map(s => s.split("=", 2)(0)).filter(_.nonEmpty)
+    val hasDuplicates = paramNames.groupBy(identity).exists(_._2.length > 1)
+    if (hasDuplicates) {
+      import net.liftweb.json.JsonDSL._
+      import net.liftweb.json.compactRender
+      // Match Lift's createErrorJsonResponse: {"code": 400, "message": "OBP-XXXXX: ..."}
+      // The test asserts extract[ErrorMessage].message where ErrorMessage(code: Int, message: String).
+      val body = compactRender(("code" -> 400) ~ ("message" -> code.api.util.ErrorMessages.DuplicateQueryParameters))
+      val resp = Response[IO](org.http4s.Status.BadRequest)
+        .withEntity(body.getBytes("UTF-8"))
+        .withContentType(jsonContentType)
+      EitherT.leftT[IO, ValidationContext](resp)
+    } else
+      success(ctx)
   }
 
   /** Bank validation: checks BANK_ID and fetches bank */
