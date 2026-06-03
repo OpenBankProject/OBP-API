@@ -317,11 +317,16 @@ jobs:
             FILTER="${FILTER}${EXTRAS}"
           fi
 
-          # scalatest:test goal — bypasses the compile/test-compile lifecycle phases
-          # (classes already provided via the compiled-output artifact + touch trick),
-          # matching run_tests_parallel.sh. Saves per-shard lifecycle overhead.
+          # mvn test (full lifecycle) — the process-resources phase copies the props
+          # generated above into target/classes (the classpath) so ScalaTest can load
+          # test.default.props at runtime. The touch trick + cached target/ stop Zinc
+          # from recompiling, so the compile/test-compile phases are near-instant.
+          # NOTE: goal-only `mvn scalatest:test` was tried but skips process-resources,
+          # leaving test.default.props off the classpath → Props init fails → 0 tests
+          # run yet BUILD SUCCESS (false green). Do not switch back without copying the
+          # generated props into target/classes first.
           MAVEN_OPTS="-Xmx3G -Xss2m -XX:MaxMetaspaceSize=1G" \
-            mvn scalatest:test -pl obp-api -DfailIfNoTests=false \
+            mvn test \
               -DwildcardSuites="$FILTER" \
             > maven-build-shard${{ matrix.shard }}.log 2>&1
 
