@@ -463,4 +463,79 @@ class Http4s500SystemViewsTest extends ServerSetupWithTestData {
       statusCode shouldBe 200
     }
   }
+
+  // Ported from the retired Lift-era SystemViewsTests (ApiEndpoint5 getSystemViewsIds),
+  // so deleting that suite does not drop the /system-views-ids coverage.
+  feature("Http4s500 GET /system-views-ids - Get System View Ids") {
+
+    scenario("Reject unauthenticated access", Http4s500SystemViewsTag) {
+      Given("GET /obp/v5.0.0/system-views-ids request without auth headers")
+      When("Making HTTP request to server")
+      val (statusCode, json) = makeHttpRequest(
+        "GET",
+        "/obp/v5.0.0/system-views-ids"
+      )
+
+      Then("Response is 401 Unauthorized")
+      statusCode shouldBe 401
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") match {
+            case Some(JString(message)) =>
+              message should include(AuthenticatedUserIsRequired)
+            case _ =>
+              fail("Expected message field for unauthorized response")
+          }
+        case _ =>
+          fail("Expected JSON object for unauthorized response")
+      }
+    }
+
+    scenario("Reject authenticated access without required role", Http4s500SystemViewsTag) {
+      Given("GET /obp/v5.0.0/system-views-ids request with auth but no CanGetSystemView role")
+      When("Making HTTP request to server")
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json) = makeHttpRequest(
+        "GET",
+        "/obp/v5.0.0/system-views-ids",
+        headers
+      )
+
+      Then("Response is 403 Forbidden")
+      statusCode shouldBe 403
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") match {
+            case Some(JString(message)) =>
+              message should include(UserHasMissingRoles)
+              message should include(CanGetSystemView.toString)
+            case _ =>
+              fail("Expected message field for missing-role response")
+          }
+        case _ =>
+          fail("Expected JSON object for missing-role response")
+      }
+    }
+
+    scenario("Get system view ids when authenticated and entitled", Http4s500SystemViewsTag) {
+      Given("GET /obp/v5.0.0/system-views-ids request with auth and CanGetSystemView role")
+      addEntitlement("", resourceUser1.userId, CanGetSystemView.toString)
+
+      When("Making HTTP request to server")
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json) = makeHttpRequest(
+        "GET",
+        "/obp/v5.0.0/system-views-ids",
+        headers
+      )
+
+      Then("Response is 200 OK with a JSON object of system view ids")
+      statusCode shouldBe 200
+      json match {
+        case JObject(_) => // ViewsIdsJsonV500 shape
+        case _ =>
+          fail("Expected JSON object for system view ids response")
+      }
+    }
+  }
 }
