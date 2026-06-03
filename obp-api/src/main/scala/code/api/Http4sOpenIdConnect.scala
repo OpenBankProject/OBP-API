@@ -41,10 +41,12 @@ import code.users.Users
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model.User
 import net.liftweb.common._
+import net.liftweb.db.DB
 import net.liftweb.json
 import net.liftweb.json.JsonAST.prettyRender
 import net.liftweb.json.{Extraction, Formats}
 import net.liftweb.mapper.By
+import net.liftweb.util.DefaultConnectionIdentifier
 import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers._
 import org.http4s._
@@ -107,7 +109,7 @@ object OpenIdConnectConfig {
  *
  * Gating: the route only fires when `openid_connect.enabled=true` (default
  * false); otherwise the pattern guard fails and the request falls through to
- * the Lift bridge (404), matching prior behaviour. A second runtime gate
+ * `notFoundCatchAll` (JSON 404), matching prior behaviour. A second runtime gate
  * `allow_openid_connect` (default true) returns 401 when set false.
  */
 object Http4sOpenIdConnect extends MdcLoggable {
@@ -176,33 +178,41 @@ object Http4sOpenIdConnect extends MdcLoggable {
         case Full((idToken, accessToken, tokenType, expiresIn, refreshToken, scope)) =>
           JwtUtil.validateIdToken(idToken, OpenIdConnectConfig.get(identityProvider).jwks_uri) match {
             case Full(_) =>
-              getOrCreateResourceUser(idToken) match {
-                case Full(user) if LoginAttempt.userIsLocked(user.provider, user.name) =>
-                  Left((401, ErrorMessages.UsernameHasBeenLocked))
-                case Full(user) =>
-                  getOrCreateAuthUser(user) match {
-                    case Full(authUser) =>
-                      // Grant roles according to the props email_domain_to_space_mappings
-                      AuthUser.grantEmailDomainEntitlementsToUser(authUser)
-                      AuthUser.grantEntitlementsToUseDynamicEndpointsInSpaces(authUser)
-                      // User init actions
-                      AfterApiAuth.innerLoginUserInitAction(Full(authUser))
-                      getOrCreateConsumer(idToken, user.userId) match {
-                        case Full(consumer) =>
-                          saveAuthorizationToken(tokenType, accessToken, idToken, refreshToken, scope, expiresIn, authUser.id.get) match {
-                            case Full(_) =>
-                              // Mint a usable OBP DirectLogin token bound to the provisioned user + consumer.
-                              DirectLogin.issueTokenForUser(user.userPrimaryKey.value, consumer.key.get) match {
-                                case Full(token) => Right(token)
-                                case _           => Left((500, ErrorMessages.CouldNotHandleOpenIDConnectData + "issueToken"))
-                              }
-                            case _ => Left((401, ErrorMessages.CouldNotHandleOpenIDConnectData + "saveAuthorizationToken"))
-                          }
-                        case _ => Left((401, ErrorMessages.CouldNotHandleOpenIDConnectData + "getOrCreateConsumer"))
-                      }
-                    case _ => Left((401, ErrorMessages.CouldNotHandleOpenIDConnectData + "getOrCreateAuthUser"))
-                  }
-                case _ => Left((401, ErrorMessages.CouldNotSaveOpenIDConnectUser))
+              // Restore the single-connection-per-request semantics that Lift's removed
+              // S.addAround(DB.buildLoanWrapper) gave: all provisioning writes share one
+              // connection and commit together; a thrown DB error rolls the whole set back
+              // (same primitive as deletion.DeletionUtil.databaseAtomicTask). The network
+              // steps above (token exchange + JWKS validation) are kept OUTSIDE the tx so no
+              // DB connection is held during remote HTTP calls.
+              DB.use(DefaultConnectionIdentifier) { _ =>
+                getOrCreateResourceUser(idToken) match {
+                  case Full(user) if LoginAttempt.userIsLocked(user.provider, user.name) =>
+                    Left((401, ErrorMessages.UsernameHasBeenLocked))
+                  case Full(user) =>
+                    getOrCreateAuthUser(user) match {
+                      case Full(authUser) =>
+                        // Grant roles according to the props email_domain_to_space_mappings
+                        AuthUser.grantEmailDomainEntitlementsToUser(authUser)
+                        AuthUser.grantEntitlementsToUseDynamicEndpointsInSpaces(authUser)
+                        // User init actions
+                        AfterApiAuth.innerLoginUserInitAction(Full(authUser))
+                        getOrCreateConsumer(idToken, user.userId) match {
+                          case Full(consumer) =>
+                            saveAuthorizationToken(tokenType, accessToken, idToken, refreshToken, scope, expiresIn, authUser.id.get) match {
+                              case Full(_) =>
+                                // Mint a usable OBP DirectLogin token bound to the provisioned user + consumer.
+                                DirectLogin.issueTokenForUser(user.userPrimaryKey.value, consumer.key.get) match {
+                                  case Full(token) => Right(token)
+                                  case _           => Left((500, ErrorMessages.CouldNotHandleOpenIDConnectData + "issueToken"))
+                                }
+                              case _ => Left((401, ErrorMessages.CouldNotHandleOpenIDConnectData + "saveAuthorizationToken"))
+                            }
+                          case _ => Left((401, ErrorMessages.CouldNotHandleOpenIDConnectData + "getOrCreateConsumer"))
+                        }
+                      case _ => Left((401, ErrorMessages.CouldNotHandleOpenIDConnectData + "getOrCreateAuthUser"))
+                    }
+                  case _ => Left((401, ErrorMessages.CouldNotSaveOpenIDConnectUser))
+                }
               }
             case _ => Left((401, ErrorMessages.CouldNotValidateIDToken))
           }
