@@ -301,7 +301,7 @@ jobs:
               [ "$covered" = "false" ] && EXTRAS="$EXTRAS,$pkg"
             done
 
-            [ -n "$EXTRAS" ] && echo "Catch-all extras added to shard 4:$EXTRAS"
+            [ -n "$EXTRAS" ] && echo "Catch-all extras added to shard ${{ matrix.shard }}:$EXTRAS"
             FILTER="${FILTER}${EXTRAS}"
           fi
 
