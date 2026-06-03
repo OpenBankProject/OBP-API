@@ -21,11 +21,6 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>${project.build.sourceEncoding}</project.reporting.outputEncoding>
     <maven.test.failure.ignore>true</maven.test.failure.ignore>
-    <!-- Skip the maven-shade-plugin fat-jar build when true. Default false so local/release
-         builds still produce the executable fat jar. CI's compile job sets -Dshade.skip=true
-         (it only needs classes for the test shards); a separate parallel jar job builds the
-         297MB fat jar so it no longer blocks the test shards. -->
-    <shade.skip>false</shade.skip>
     <!-- vscaladoc settings -->
     <maven.scaladoc.vscaladocVersion>1.2-m1</maven.scaladoc.vscaladocVersion>
     <vscaladoc.links.liftweb.pathsufix>scaladocs/</vscaladoc.links.liftweb.pathsufix>
