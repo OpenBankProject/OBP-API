@@ -57,7 +57,6 @@ object APIMethods210 {
 //import code.util.Helper
 //import com.openbankproject.commons.ExecutionContext.Implicits.global
 //import net.liftweb.common.{Box, Full}
-//import net.liftweb.http.rest.RestHelper
 //import net.liftweb.json.Serialization.write
 //import net.liftweb.json._
 //

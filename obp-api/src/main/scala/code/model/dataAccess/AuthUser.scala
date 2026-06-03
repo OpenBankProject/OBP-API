@@ -973,11 +973,6 @@ def restoreSomeSessions(): Unit = {
 
   override protected def loginMenuLocParams = Nil
 
-  override def logout: Nothing = {
-    logoutCurrentUser
-    net.liftweb.http.S.redirectTo(homePage)
-  }
-
   /**
    * A Space is an alias for the OBP Bank. Each Bank / Space can contain many Dynamic Endpoints. If a User belongs to a Space,
    * the User can use those endpoints but not modify them. If a User creates a Bank (aka Space) the user can create

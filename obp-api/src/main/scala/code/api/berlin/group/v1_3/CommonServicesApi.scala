@@ -8,7 +8,6 @@
 //import code.api.builder.SigningBasketsApi.APIMethods_SigningBasketsApi
 //import code.api.util.APIUtil._
 //import com.openbankproject.commons.util.ApiVersion
-//import net.liftweb.http.rest.RestHelper
 //import net.liftweb.json._
 //
 //import scala.collection.immutable.Nil

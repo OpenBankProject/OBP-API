@@ -45,7 +45,7 @@ import scala.collection.mutable.ArrayBuffer
 import scala.util.control.NoStackTrace
 
 /**
- * Lightweight replacement for net.liftweb.http.JsonResponse.
+ * Lightweight JSON HTTP response carrier (replaces the former Lift JsonResponse).
  * Carries a JSON body + HTTP headers + status code; the http4s middleware reads these to
  * build the real org.http4s.Response[IO].  Cookies are accepted but ignored (http4s path
  * never sets Lift cookies).

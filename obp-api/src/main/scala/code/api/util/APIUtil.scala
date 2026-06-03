@@ -113,7 +113,7 @@ import scala.xml.{Elem, XML}
 
 object APIUtil extends MdcLoggable with CustomJsonFormats{
 
-  /** Drop-in replacement for net.liftweb.http.provider.HTTPParam — same shape, no Lift-Web dep. */
+  /** HTTP query/form parameter (name + values) — same shape as the former Lift HTTPParam, no Lift-Web dep. */
   case class HTTPParam(name: String, values: List[String])
   object HTTPParam {
     def apply(name: String, value: String): HTTPParam = new HTTPParam(name, List(value))

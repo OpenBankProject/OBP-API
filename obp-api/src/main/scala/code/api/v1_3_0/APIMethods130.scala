@@ -19,7 +19,6 @@ trait APIMethods130
 //import com.openbankproject.commons.model.BankId
 //import com.openbankproject.commons.util.ApiVersion
 //import net.liftweb.common.Full
-//import net.liftweb.http.rest.RestHelper
 //
 //import scala.collection.mutable.ArrayBuffer
 //import scala.concurrent.Future

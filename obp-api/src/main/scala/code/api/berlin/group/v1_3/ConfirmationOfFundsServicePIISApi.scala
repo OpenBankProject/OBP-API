@@ -14,7 +14,6 @@
 //import com.openbankproject.commons.ExecutionContext.Implicits.global
 //import com.openbankproject.commons.util.ApiVersion
 //import net.liftweb.common.Full
-//import net.liftweb.http.rest.RestHelper
 //import net.liftweb.json
 //import net.liftweb.json._
 //

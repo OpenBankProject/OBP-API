@@ -12,7 +12,7 @@ import org.http4s.{Request, Response}
  * and supplies the `process` method body.
  *
  * Native http4s contract (replaces the former Lift one
- * `process(callContext, request: net.liftweb.http.Req, pathParams): Box[JsonResponse]`): the body
+ * `process(callContext, request: Req, pathParams): Box[JsonResponse]`): the body
  * receives the http4s `Request[IO]` and returns an `IO[Response[IO]]`. The implicit
  * [[DynamicCompileEndpoint.obpReturnTypeToIOResponse]] lets a body whose last expression is an
  * `OBPReturnType[T]` (the familiar `Future.successful((json, HttpCode.\`200\`(cc)))` style) be used

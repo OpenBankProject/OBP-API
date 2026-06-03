@@ -32,7 +32,6 @@
 //package code.api.v1_2
 //
 //import code.api.util.APIUtil
-//import net.liftweb.http.rest._
 //import net.liftweb.json.Extraction
 //import net.liftweb.json.JsonAST._
 //import net.liftweb.common.{Box, Empty, Failure, Full}
@@ -43,7 +42,6 @@
 //import _root_.net.liftweb.util.Helpers._
 //
 //import _root_.scala.xml._
-//import _root_.net.liftweb.http.S._
 //import net.liftweb.mongodb.Skip
 //import com.mongodb._
 //import code.bankconnectors.{OBPFromDate, OBPLimit, OBPOffset, OBPOrder, OBPOrdering, OBPQueryParam, OBPToDate}

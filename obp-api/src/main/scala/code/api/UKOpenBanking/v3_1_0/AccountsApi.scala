@@ -11,7 +11,6 @@
 //import com.github.dwickern.macros.NameOf.nameOf
 //import com.openbankproject.commons.model.{AccountAttribute, AccountId, BankAccount, BankIdAccountId, View, ViewId}
 //import net.liftweb.common.{Box, Empty, Full}
-//import net.liftweb.http.rest.RestHelper
 //import net.liftweb.json
 //import net.liftweb.json._
 //

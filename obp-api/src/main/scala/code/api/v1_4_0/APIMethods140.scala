@@ -30,7 +30,6 @@ object APIMethods140 {
 //import com.openbankproject.commons.model._
 //import com.openbankproject.commons.util.ApiVersion
 //import net.liftweb.common.{Box, Full}
-//import net.liftweb.http.rest.RestHelper
 //import net.liftweb.json.Extraction
 //import net.liftweb.json.JsonAST.JValue
 //import net.liftweb.util.Helpers.tryo

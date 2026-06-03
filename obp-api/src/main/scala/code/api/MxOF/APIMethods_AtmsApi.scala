@@ -16,8 +16,6 @@
 //import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
 //import dispatch.Future
 //import net.liftweb.common.{Box, Empty, Full}
-//import net.liftweb.http.Req
-//import net.liftweb.http.rest.RestHelper
 //import net.liftweb.json
 //import net.liftweb.json._
 //

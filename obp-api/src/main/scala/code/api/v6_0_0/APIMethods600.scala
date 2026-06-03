@@ -83,7 +83,6 @@ trait APIMethods600
 //import net.liftweb.common.{Box, Empty, Failure, Full}
 //import net.liftweb.util.Helpers.tryo
 //import org.apache.commons.lang3.StringUtils
-//import net.liftweb.http.rest.RestHelper
 //import net.liftweb.json.{Extraction, JsonParser}
 //import net.liftweb.json.JsonAST.{JArray, JField, JNothing, JObject, JString, JValue}
 //import net.liftweb.json.JsonDSL._
