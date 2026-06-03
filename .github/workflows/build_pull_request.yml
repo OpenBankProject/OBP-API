@@ -162,7 +162,7 @@ jobs:
 
     services:
       redis:
-        image: redis
+        image: redis:7-alpine   # pinned + small (~30MB) to cut redis docker-pull flakiness
         ports:
           - 6379:6379
         options: >-
