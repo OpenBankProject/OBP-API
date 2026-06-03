@@ -14,20 +14,19 @@ import scala.concurrent.Await
 import scala.concurrent.duration._
 
 /**
- * Bug Condition Exploration Test for v7 Resource Docs Aggregation Fix
+ * Regression test for v7 Resource Docs Aggregation.
  *
- * **CRITICAL**: This test MUST FAIL on unfixed code - failure confirms the bug exists
- * **DO NOT attempt to fix the test or the code when it fails**
- * **NOTE**: This test encodes the expected behavior - it will validate the fix when it passes after implementation
- * **GOAL**: Surface counterexamples that demonstrate the bug exists
+ * The aggregation bug described below has been FIXED; these scenarios now PASS and
+ * guard against regressions. They were originally written TDD-style to fail on the
+ * unfixed code (hence the "Property 1: ..." naming and the now-historical bug notes).
  *
  * **Validates: Requirements 1.1, 1.2, 1.3**
  *
- * Bug Description:
- * The v7.0.0 resource-docs endpoint currently returns only v7.0.0's own endpoints (~10)
- * instead of aggregating all versions (v7.0.0 + v6.0.0 + v5.1.0 + ... + v1.3.0) which should be 500+.
+ * Original bug:
+ * The v7.0.0 resource-docs endpoint used to return only v7.0.0's own endpoints (~10)
+ * instead of aggregating all versions (v7.0.0 + v6.0.0 + v5.1.0 + ... + v1.3.0), which is 500+.
  *
- * Expected Behavior Properties:
+ * Behavior now guaranteed:
  * - Response includes v7.0.0 endpoints
  * - Response includes v6.0.0 endpoints (e.g., getScannedApiVersions)
  * - Response includes v5.1.0 and earlier endpoints
@@ -109,7 +108,7 @@ class V7ResourceDocsAggregationTest extends ServerSetupWithTestData {
 
   feature("Bug Condition Exploration - V7 Resource Docs Aggregation") {
 
-    scenario("Property 1: Bug Condition - V7 Resource Docs Returns Only V7 Endpoints (EXPECTED TO FAIL)", V7ResourceDocsAggregationTag) {
+    scenario("Property 1: V7 resource-docs aggregates all versions (>=500 docs, dedup, no duplicate signatures)", V7ResourceDocsAggregationTag) {
       Given(MSG_GIVEN_V7_ENDPOINT)
       setPropsValues("resource_docs_requires_role" -> "false")
 
@@ -181,12 +180,10 @@ class V7ResourceDocsAggregationTest extends ServerSetupWithTestData {
       info(s"Duplicate endpoint signatures found: ${duplicates.size}")
       duplicates shouldBe empty
 
-      info("**Expected Outcome**: This test FAILS on unfixed code (proves bug exists)")
-      info("**Root Cause**: Missing allResourceDocs aggregation in Http4s700")
-      info("**Counterexamples**:")
-      info(s"  - Expected: 500+ endpoints, Actual: ${resourceDocs.size} endpoints")
-      info(s"  - Expected: v6.0.0 endpoints discoverable, Actual: ${v6Endpoints.size} found")
-      info(s"  - Expected: v5.1.0+ endpoints discoverable, Actual: ${olderVersionEndpoints.size} found")
+      info("**Outcome**: passes post-fix (allResourceDocs aggregation is wired in Http4s700)")
+      info(s"  - endpoints: ${resourceDocs.size} (expected >= 500)")
+      info(s"  - v6.0.0 endpoints discoverable: ${v6Endpoints.size}")
+      info(s"  - v5.1.0+ endpoints discoverable: ${olderVersionEndpoints.size}")
     }
 
     scenario("Baseline - V6 Resource Docs Returns Aggregated Endpoints (SHOULD PASS)", V7ResourceDocsAggregationTag) {
@@ -231,7 +228,7 @@ class V7ResourceDocsAggregationTest extends ServerSetupWithTestData {
       info("**Purpose**: Confirms v6.0.0 aggregation works correctly")
     }
 
-    scenario("Cross-Version Query - V7 Endpoint Can Query V6 Docs (MAY FAIL)", V7ResourceDocsAggregationTag) {
+    scenario("Cross-Version Query - V7 Endpoint Can Query V6 Docs", V7ResourceDocsAggregationTag) {
       Given("The v7.0.0 endpoint is used to query v6.0.0 resource-docs")
       setPropsValues("resource_docs_requires_role" -> "false")
 
@@ -250,7 +247,7 @@ class V7ResourceDocsAggregationTest extends ServerSetupWithTestData {
       info("**Purpose**: Verifies v7 endpoint can serve other versions' docs")
     }
 
-    scenario("Specific Endpoint Discovery - V6 getScannedApiVersions Through V7 (EXPECTED TO FAIL)", V7ResourceDocsAggregationTag) {
+    scenario("Specific Endpoint Discovery - V6 getScannedApiVersions Through V7", V7ResourceDocsAggregationTag) {
       Given("The v7.0.0 resource-docs endpoint is queried for a specific v6.0.0 endpoint")
       setPropsValues("resource_docs_requires_role" -> "false")
 
@@ -276,8 +273,8 @@ class V7ResourceDocsAggregationTest extends ServerSetupWithTestData {
       }
       scannedApiVersionsEndpoint shouldBe defined
 
-      info("**Expected Outcome**: This test FAILS on unfixed code")
-      info("**Counterexample**: getScannedApiVersions (v6.0.0) not discoverable through v7.0.0")
+      info("**Outcome**: passes post-fix")
+      info("getScannedApiVersions (v6.0.0) is discoverable through v7.0.0")
     }
   }
 

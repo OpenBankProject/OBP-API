@@ -252,16 +252,6 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
   // CORS is applied by Http4sServer above Http4s700 and is not reachable via in-process
   // route testing. OPTIONS preflight scenarios live in Http4sServerIntegrationTest.
 
-  // ─── routing priority guard ───────────────────────────────────────────────────
-  //
-  // allRoutes is built by sorting ResourceDocs by URL segment count (descending),
-  // so most-specific routes win automatically. These scenarios verify the sort
-  // produces the correct outcome. Add one scenario per new route to keep CI coverage.
-
-  feature("Http4s700 routing priority") {
-
-  }
-
   // ─── unknown paths and wrong methods ─────────────────────────────────────────
 
   feature("Http4s700 routing edge cases") {
