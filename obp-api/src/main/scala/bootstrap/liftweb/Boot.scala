@@ -385,10 +385,10 @@ class Boot extends MdcLoggable {
 //      }
 //    }
 
-    Runtime.getRuntime.addShutdownHook(new Thread(() => {
-      APIUtil.vendor.closeAllConnections_!()
-      Redis.jedisPoolDestroy
-    }))
+    // NOTE: DB/Redis shutdown is registered together with the gRPC server stop in a
+    // single ORDERED shutdown hook at the end of boot (after the gRPC block) — see there.
+    // JVM runs every addShutdownHook thread CONCURRENTLY with no ordering guarantee, so a
+    // separate DB-close hook could race a still-draining gRPC server that touches the DB.
 //    LiftRules.statelessDispatch.prepend {
 //      case _ if tryo(DB.use(DefaultConnectionIdentifier){ conn => conn}.isClosed).isEmpty =>
 //        Props.mode match {
@@ -891,7 +891,7 @@ class Boot extends MdcLoggable {
 
 }
 
-object ToSchemify {
+object ToSchemify extends MdcLoggable {
   val models: List[MetaMapper[_]] = List(
     AuthUser,
     JobScheduler,
@@ -1037,10 +1037,26 @@ object ToSchemify {
   )
 
   // start grpc server
-  if (APIUtil.getPropsAsBoolValue("grpc.server.enabled", false)) {
-    val server = new ObpGrpcServer(ExecutionContext.global)
-    server.start()
-    Runtime.getRuntime.addShutdownHook(new Thread(() => server.stop()))
-  }
+  // start grpc server (optional)
+  val grpcServerOpt: Option[ObpGrpcServer] =
+    if (APIUtil.getPropsAsBoolValue("grpc.server.enabled", false)) {
+      val server = new ObpGrpcServer(ExecutionContext.global)
+      server.start()
+      Some(server)
+    } else None
+
+  // Single ORDERED shutdown hook (replaces the former two CONCURRENT hooks: the DB/Redis
+  // close that used to sit earlier in boot, and the gRPC stop here). JVM runs every
+  // addShutdownHook thread concurrently with no ordering guarantee, so the old pair could
+  // race: gRPC might still be serving an in-flight request that touches the DB while the
+  // connection pool is being closed. Here we stop gRPC FIRST (drains in-flight requests),
+  // THEN close DB + Redis. Each step is guarded so one failure doesn't skip the rest.
+  Runtime.getRuntime.addShutdownHook(new Thread(() => {
+    grpcServerOpt.foreach { s =>
+      try s.stop() catch { case e: Throwable => logger.warn("gRPC server.stop() failed during shutdown", e) }
+    }
+    try APIUtil.vendor.closeAllConnections_!() catch { case e: Throwable => logger.warn("DB closeAllConnections_!() failed during shutdown", e) }
+    try Redis.jedisPoolDestroy catch { case e: Throwable => logger.warn("Redis jedisPoolDestroy failed during shutdown", e) }
+  }))
 
 }
