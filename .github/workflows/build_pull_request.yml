@@ -94,13 +94,12 @@ jobs:
             test_filter: >-
               code.api.v4_0_0
           - shard: 2
-            name: "v1_2_1 + berlin + management + metrics"
-            # API1_2_1Test is the largest single suite (~333 scenarios)
+            name: "v1_2_1 only (largest unsplittable suite, isolated)"
+            # API1_2_1Test is a single 6604-line suite (~333 scenarios, ~281s). Isolated
+            # on its own shard: mixing in berlin/management/metrics made this the slowest
+            # shard (314s); those moved to shards 7/8 to rebalance.
             test_filter: >-
               code.api.v1_2_1
-              code.api.berlin
-              code.management
-              code.metrics
           - shard: 3
             name: "v6 + v2_x"
             test_filter: >-
@@ -128,7 +127,7 @@ jobs:
               code.api.http4sbridge
               code.api.UKOpenBanking
           - shard: 7
-            name: "model + views + customer + util + small data"
+            name: "model + views + customer + util + small data + berlin"
             test_filter: >-
               code.model
               code.views
@@ -141,8 +140,9 @@ jobs:
               code.products
               code.crm
               code.accountHolder
+              code.api.berlin
           - shard: 8
-            name: "connector + auth + login + remaining (catch-all)"
+            name: "connector + auth + login + mgmt + metrics + remaining (catch-all)"
             # catch-all shard: appends any test package not assigned to shards 1-7
             # Root-level code.api tests use class-name prefix matching (lowercase classes)
             test_filter: >-
@@ -157,6 +157,8 @@ jobs:
               code.bankaccountcreation
               code.bankconnectors
               code.container
+              code.management
+              code.metrics
 
     services:
       redis:
@@ -272,14 +274,14 @@ jobs:
           # assigned to shards 1–7, so new packages are never silently skipped.
           if [ "${{ matrix.shard }}" = "8" ]; then
             SHARD1="code.api.v4_0_0"
-            SHARD2="code.api.v1_2_1 code.api.berlin code.management code.metrics"
+            SHARD2="code.api.v1_2_1"
             SHARD3="code.api.v6_0_0 code.api.v2_1_0 code.api.v2_2_0 code.api.v2_0_0"
             SHARD4="code.api.v5_1_0 code.api.v5_0_0 code.api.v3_0_0"
             SHARD5="code.api.ResourceDocs1_4_0 code.api.v3_1_0 code.api.v1_4_0 code.api.v1_3_0"
             SHARD6="code.api.v7_0_0 code.api.http4sbridge code.api.UKOpenBanking"
             SHARD7="code.model code.views code.customer code.usercustomerlinks \
                     code.api.util code.errormessages code.atms code.branches \
-                    code.products code.crm code.accountHolder"
+                    code.products code.crm code.accountHolder code.api.berlin"
             ASSIGNED="$SHARD1 $SHARD2 $SHARD3 $SHARD4 $SHARD5 $SHARD6 $SHARD7 ${{ matrix.test_filter }}"
 
             # Discover all packages that contain at least one .scala test file
