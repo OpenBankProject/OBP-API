@@ -43,34 +43,24 @@ jobs:
       - name: Lint — test-isolation (no setPropsValues at class/feature body)
         run: python3 .github/scripts/check_test_isolation.py
 
-      - name: Compile and install (skip test execution)
+      - name: Compile and install (skip test execution + skip fat jar)
         run: |
-          # -DskipTests  — compile test sources but do NOT run them
-          # Test classes must be in target/test-classes for the test shards.
-          # `clean` for a guaranteed-correct build (see build_container.yml: a no-clean
-          # Zinc incremental cache saved only ~17s — compile is dominated by Maven +
-          # fat-jar packaging + install, not Scala compilation).
+          # -DskipTests       — compile test sources but do NOT run them
+          # -Dshade.skip=true — skip the ~100s fat-jar build; PR builds only run tests,
+          #   which need target/classes, not the executable fat jar. (build_container.yml
+          #   has a separate parallel jar job for the fat jar; PR builds don't need one.)
           MAVEN_OPTS="-Xmx3G -Xss2m -XX:MaxMetaspaceSize=1G" \
-            mvn clean install -T 4 -Pprod -DskipTests
+            mvn clean install -T 4 -Pprod -DskipTests -Dshade.skip=true
 
       - name: Upload compiled output
         uses: actions/upload-artifact@v4
         with:
           name: compiled-output
           retention-days: 1
-          # Upload full target dirs — test shards download and run surefire:test
-          # without recompiling (surefire:test goal bypasses compile lifecycle)
+          # Upload full target dirs — test shards download these
           path: |
             obp-api/target/
             obp-commons/target/
-
-      - name: Save .jar artifact
-        run: mkdir -p ./pull && cp obp-api/target/obp-api.jar ./pull/
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: ${{ github.sha }}
-          path: pull/
 
   # --------------------------------------------------------------------------
   # Job 2: test (4-way matrix)

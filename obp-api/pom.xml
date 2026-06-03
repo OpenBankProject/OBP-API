@@ -750,6 +750,10 @@
         <artifactId>maven-shade-plugin</artifactId>
         <version>3.5.1</version>
         <configuration>
+          <!-- CI compile job passes -Dshade.skip=true to skip the ~100s fat-jar build
+               (test shards only need target/classes). A parallel jar job builds the fat
+               jar. Default false (see root pom property) keeps local/release builds intact. -->
+          <skip>${shade.skip}</skip>
           <shadedArtifactAttached>false</shadedArtifactAttached>
           <createDependencyReducedPom>false</createDependencyReducedPom>
           <transformers>

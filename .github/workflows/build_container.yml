@@ -42,36 +42,25 @@ jobs:
           cp obp-api/src/main/resources/props/sample.props.template \
              obp-api/src/main/resources/props/production.default.props
 
-      - name: Compile and install (skip test execution)
+      - name: Compile and install (skip test execution + skip fat jar)
         run: |
-          # -DskipTests  — compile test sources but do NOT run them
-          # Test classes must be in target/test-classes for the test shards.
-          # `clean` for a guaranteed-correct build. A no-clean Zinc incremental cache
-          # (actions/cache of target/) was measured and saved only ~17s: compile time is
-          # dominated by Maven startup + dependency resolution + packaging the ~297MB fat
-          # jar + install — NOT by Scala compilation (a zero-source-change rebuild was
-          # still 333s vs 350s). The stale-risk class of no-clean incremental builds is
-          # not worth ~2.7% of wall-clock, so we keep a full clean build.
+          # -DskipTests       — compile test sources but do NOT run them
+          # -Dshade.skip=true — skip the maven-shade fat-jar build here (~100s). The test
+          #   shards only need target/classes; a separate parallel `jar` job builds the
+          #   297MB fat jar so it no longer sits on the test critical path. `clean` kept
+          #   for a guaranteed-correct build (no-clean Zinc cache saved only ~17s).
           MAVEN_OPTS="-Xmx3G -Xss2m -XX:MaxMetaspaceSize=1G" \
-            mvn clean install -T 4 -Pprod -DskipTests
+            mvn clean install -T 4 -Pprod -DskipTests -Dshade.skip=true
 
       - name: Upload compiled output
         uses: actions/upload-artifact@v4
         with:
           name: compiled-output
           retention-days: 1
-          # Upload full target dirs — test shards and docker job download these
+          # Upload full target dirs — test shards and the jar job download these
           path: |
             obp-api/target/
             obp-commons/target/
-
-      - name: Save .jar artifact
-        run: mkdir -p ./push && cp obp-api/target/obp-api.jar ./push/
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: ${{ github.sha }}
-          path: push/
 
   # --------------------------------------------------------------------------
   # Job 2: test (4-way matrix)
@@ -364,6 +353,58 @@ jobs:
             **/target/site/surefire-report/*
 
   # --------------------------------------------------------------------------
+  # Job: jar — assemble the executable fat jar IN PARALLEL with the test shards.
+  # The compile job skips shade (-Dshade.skip=true) so it no longer blocks tests;
+  # this job downloads the already-compiled classes and runs shade to produce the
+  # ~297MB fat jar (for docker / the ${sha} artifact). Runs concurrently with test,
+  # so the fat-jar build is off the test critical path.
+  # --------------------------------------------------------------------------
+  jar:
+    needs: compile
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 11
+        uses: actions/setup-java@v4
+        with:
+          java-version: "11"
+          distribution: "adopt"
+          cache: maven
+
+      - name: Download compiled output
+        uses: actions/download-artifact@v4
+        with:
+          name: compiled-output
+
+      - name: Touch artifact files (prevent Zinc recompilation)
+        run: |
+          find obp-api/target obp-commons/target -type f -exec touch {} + 2>/dev/null || true
+
+      - name: Install local artifacts into Maven repo
+        run: |
+          mvn install:install-file -Dfile=pom.xml -DgroupId=com.tesobe \
+            -DartifactId=obp-parent -Dversion=1.10.1 -Dpackaging=pom -DgeneratePom=false
+          mvn install:install-file -Dfile=obp-commons/target/obp-commons-1.10.1.jar \
+            -DpomFile=obp-commons/pom.xml
+
+      - name: Build fat jar (shade)
+        run: |
+          # Classes already compiled (compiled-output + touch → Zinc skips compile).
+          # package with shade enabled (-Dshade.skip=false) assembles the executable
+          # fat jar from the existing classes + dependencies.
+          MAVEN_OPTS="-Xmx3G -Xss2m -XX:MaxMetaspaceSize=1G" \
+            mvn package -pl obp-api -Pprod -DskipTests -Dshade.skip=false
+
+      - name: Save .jar artifact
+        run: mkdir -p ./push && cp obp-api/target/obp-api.jar ./push/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ github.sha }}
+          path: push/
+
+  # --------------------------------------------------------------------------
   # Job 3: report — http4s v7 vs Lift per-test speed table
   # --------------------------------------------------------------------------
   report:
@@ -387,7 +428,7 @@ jobs:
   # Job 4: docker — build and push container image (runs after all shards pass)
   # --------------------------------------------------------------------------
   docker:
-    needs: test
+    needs: [test, jar]
     runs-on: ubuntu-latest
     if: vars.ENABLE_CONTAINER_BUILDING == 'true'
     steps:
@@ -397,6 +438,15 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: compiled-output
+
+      - name: Download fat jar (built by the parallel jar job; compile skipped shade)
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ github.sha }}
+          path: ./push
+
+      - name: Restore fat jar into target for the Docker build
+        run: cp ./push/obp-api.jar obp-api/target/obp-api.jar
 
       - name: Build the Docker image
         run: |
