@@ -256,6 +256,18 @@ The full "remove Lift Web" milestone is done. For the record, what landed:
 
 > `APIUtil.SS.init(...)` wrappers (e.g. in `Http4s400.scala`) are **not** Lift-Web code — `SS` is a thread-local that the `lift-mapper`-based `LocalMappedConnectorInternal` reads (`SS.user`). It's a legitimate adapter for the ORM layer, which stays until lift-mapper is replaced.
 
+> **Known gap — connector-export endpoint not migrated.** The prop-gated
+> `connector.name.export.as.endpoints` feature was removed with the Lift teardown and
+> **not** ported to http4s. At `d5f8716`, `Boot.scala` conditionally called
+> `ConnectorEndpoints.registerConnectorEndpoints`, which served `/connector/{methodName}`
+> via Lift `oauthServe` (role-gated by `canGetConnectorEndpoint`, reflectively invoking the
+> active connector's methods), plus a startup `assert` validating the prop value. That Lift
+> endpoint + the Boot registration + the validation are gone; there is no http4s replacement
+> (the http4s `/connector/loopback` and `/management/connector/metrics` are different
+> endpoints). It is off by default — deployments that set the prop silently lose both the
+> endpoint and the startup validation. Recorded here so it isn't lost; migrate to an
+> `/obp/.../connector/...` route only if a deployment actually needs it.
+
 ---
 
 ## What remains — `lift-mapper`

@@ -144,7 +144,10 @@ jobs:
           - shard: 8
             name: "connector + auth + login + mgmt + metrics + remaining (catch-all)"
             # catch-all shard: appends any test package not assigned to shards 1-7
-            # Root-level code.api tests use class-name prefix matching (lowercase classes)
+            # Root-level code.api tests use class-name prefix matching (lowercase classes).
+            # NOTE: classes that sit DIRECTLY in package code.api must be listed here by
+            # FQN-prefix — the catch-all marks the parent package code.api as "covered" once
+            # any child (code.api.v4_0_0, …) is assigned, so it never appends code.api itself.
             test_filter: >-
               code.connector
               code.util
@@ -153,6 +156,8 @@ jobs:
               code.api.DirectLoginTest
               code.api.gateWayloginTest
               code.api.OBPRestHelperTest
+              code.api.AliveCheckRoutesTest
+              code.api.Http4sOpenIdConnect
               code.entitlement
               code.bankaccountcreation
               code.bankconnectors
