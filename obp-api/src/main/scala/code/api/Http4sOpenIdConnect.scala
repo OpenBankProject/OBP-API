@@ -159,6 +159,12 @@ object Http4sOpenIdConnect extends MdcLoggable {
       }
     }
 
+  // CONFIG CAVEAT: portal-login was removed, so nothing stores the OIDC `state` server-side;
+  // `sessionState` is always "" (see processCallback). With the default
+  // openid_connect.check_session_state=true this fail-closed gate rejects every real (non-empty)
+  // state with 401 InvalidOpenIDConnectState — so OIDC deployments MUST set
+  // openid_connect.check_session_state=false (or reintroduce server-side state storage).
+  // Default kept true (fail-closed) on purpose. Long-term fix: stateless CSRF (PKCE / signed state).
   private def checkSessionState(state: String, sessionState: String): Boolean =
     if (getPropsAsBoolValue("openid_connect.check_session_state", true)) state == sessionState else true
 
@@ -280,14 +286,14 @@ object Http4sOpenIdConnect extends MdcLoggable {
                   "redirect_uri=" + config.callback_url + "&" +
                   "code=" + authorizationCode + "&" +
                   "grant_type=authorization_code"
-    logger.debug("Request parameters: " + data)
-    logger.debug("Token endpoint: " + config.token_endpoint)
+    // Do NOT log `data` — it contains client_secret. Log the endpoint URL only.
+    logger.debug("Token exchange POST to: " + config.token_endpoint)
     val response: Box[String] = fromUrl(String.format("%s", config.token_endpoint), data, "POST")
-    logger.debug("Response: " + response)
+    // Do NOT log the raw response — it contains id/access/refresh tokens.
+    logger.debug("Token endpoint response received (success=" + response.isDefined + ")")
     response match {
       case Full(value) =>
         val tokenResponse = json.parse(value)
-        logger.debug("Token response: " + tokenResponse)
         for {
           idToken <- tryo{(tokenResponse \ "id_token").extractOrElse[String]("")}
           accessToken <- tryo{(tokenResponse \ "access_token").extractOrElse[String]("")}
@@ -296,7 +302,8 @@ object Http4sOpenIdConnect extends MdcLoggable {
           refreshToken <- tryo{(tokenResponse \ "refresh_token").extractOrElse[String]("")}
           scope <- tryo{(tokenResponse \ "scope").extractOrElse[String]("")}
         } yield {
-          logger.debug(s"(idToken: $idToken, accessToken: $accessToken, tokenType: $tokenType, expiresIn.toLong: ${expiresIn.toLong}, refreshToken: $refreshToken, scope: $scope)")
+          // Do NOT log token values (id/access/refresh). Non-sensitive metadata only.
+          logger.debug(s"OIDC token parsed (tokenType=$tokenType, expiresIn=${expiresIn.toLong}, scope=$scope)")
           (idToken, accessToken, tokenType, expiresIn.toLong, refreshToken, scope)
         }
       case badObject@Failure(_, _, _) =>

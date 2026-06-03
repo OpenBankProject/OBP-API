@@ -817,7 +817,10 @@ super_admin_user_ids=USER_ID1,USER_ID2,
 ## Note: The email address used for login must match one
 ## registered on OBP localy.
 # openid_connect.enabled=false
-# openid_connect.check_session_state=true
+# CONFIG CAVEAT: portal-login was removed, so there is no server-side session state to compare.
+# The code default is true (fail-closed) and will reject every real (non-empty) state with 401 —
+# OIDC deployments MUST set this to false (or reintroduce state storage):
+# openid_connect.check_session_state=false
 # openid_connect.show_tokens=false
 # Response mode
 # possible values: query, fragment, form_post, query.jwt, fragment.jwt, form_post.jwt, jwt
