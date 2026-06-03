@@ -42,12 +42,32 @@ jobs:
           cp obp-api/src/main/resources/props/sample.props.template \
              obp-api/src/main/resources/props/production.default.props
 
+      # Restore the previous build's compiled classes + Zinc incremental-analysis
+      # store so the compiler only recompiles changed sources (full build ~238s →
+      # incremental ~80-120s on a small diff). The key is unique per commit (so a
+      # fresh cache is always saved); restore-keys falls back to the most recent
+      # prior cache. Requires dropping `clean` below so the restored target/ is
+      # not wiped before Zinc runs.
+      - name: Cache Zinc incremental compile output
+        uses: actions/cache@v4
+        with:
+          path: |
+            obp-api/target/classes
+            obp-api/target/test-classes
+            obp-api/target/scala-2.12
+            obp-commons/target/classes
+            obp-commons/target/scala-2.12
+          key: ${{ runner.os }}-zinc-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-zinc-
+
       - name: Compile and install (skip test execution)
         run: |
           # -DskipTests  — compile test sources but do NOT run them
-          # Test classes must be in target/test-classes for the test shards
+          # Test classes must be in target/test-classes for the test shards.
+          # No `clean` — reuse the cached target/ so Zinc compiles incrementally.
           MAVEN_OPTS="-Xmx3G -Xss2m -XX:MaxMetaspaceSize=1G" \
-            mvn clean install -T 4 -Pprod -DskipTests
+            mvn install -T 4 -Pprod -DskipTests
 
       - name: Upload compiled output
         uses: actions/upload-artifact@v4
@@ -84,63 +104,74 @@ jobs:
       matrix:
         include:
           - shard: 1
-            name: "v4 only"
-            # ~258s of test work
+            name: "v4 only (bottleneck pkg)"
+            # ~258s — single largest package, kept on its own shard
             test_filter: >-
               code.api.v4_0_0
           - shard: 2
-            name: "v6 + v5_0 + v3_0 + v2 + small"
-            # ~267s of test work
+            name: "v1_2_1 + berlin + management + metrics"
+            # API1_2_1Test is the largest single suite (~333 scenarios)
+            test_filter: >-
+              code.api.v1_2_1
+              code.api.berlin
+              code.management
+              code.metrics
+          - shard: 3
+            name: "v6 + v2_x"
             test_filter: >-
               code.api.v6_0_0
-              code.api.v5_0_0
-              code.api.v3_0_0
               code.api.v2_1_0
               code.api.v2_2_0
               code.api.v2_0_0
+          - shard: 4
+            name: "v5_1 + v5_0 + v3_0"
+            test_filter: >-
+              code.api.v5_1_0
+              code.api.v5_0_0
+              code.api.v3_0_0
+          - shard: 5
+            name: "ResourceDocs + v3_1 + v1_4 + v1_3"
+            test_filter: >-
+              code.api.ResourceDocs1_4_0
+              code.api.v3_1_0
               code.api.v1_4_0
               code.api.v1_3_0
+          - shard: 6
+            name: "v7 + http4sbridge + UKOpenBanking"
+            test_filter: >-
+              code.api.v7_0_0
+              code.api.http4sbridge
               code.api.UKOpenBanking
+          - shard: 7
+            name: "model + views + customer + util + small data"
+            test_filter: >-
+              code.model
+              code.views
+              code.customer
+              code.usercustomerlinks
+              code.api.util
+              code.errormessages
               code.atms
               code.branches
               code.products
               code.crm
               code.accountHolder
-              code.entitlement
-              code.bankaccountcreation
-              code.bankconnectors
-              code.container
-          - shard: 3
-            name: "v1_2_1 + ResourceDocs + berlin + util + small"
-            # ~252s of test work
-            test_filter: >-
-              code.api.v1_2_1
-              code.api.ResourceDocs1_4_0
-              code.api.util
-              code.api.berlin
-              code.management
-              code.metrics
-              code.model
-              code.views
-              code.usercustomerlinks
-              code.customer
-              code.errormessages
-          - shard: 4
-            name: "v5_1 + v3_1 + http4sbridge + v7 + code.api + util + connector"
-            # ~232s of test work + catch-all for any new packages
+          - shard: 8
+            name: "connector + auth + login + remaining (catch-all)"
+            # catch-all shard: appends any test package not assigned to shards 1-7
             # Root-level code.api tests use class-name prefix matching (lowercase classes)
             test_filter: >-
-              code.api.v5_1_0
-              code.api.v3_1_0
-              code.api.http4sbridge
-              code.api.v7_0_0
+              code.connector
+              code.util
               code.api.Authentication
               code.api.dauthTest
               code.api.DirectLoginTest
               code.api.gateWayloginTest
               code.api.OBPRestHelperTest
-              code.util
-              code.connector
+              code.entitlement
+              code.bankaccountcreation
+              code.bankconnectors
+              code.container
 
     services:
       redis:
@@ -246,20 +277,19 @@ jobs:
           # The YAML >- scalar collapses newlines to spaces, so we convert here.
           FILTER=$(echo "${{ matrix.test_filter }}" | tr ' ' ',')
 
-          # Shard 4 is the catch-all: append any test package not explicitly
-          # assigned to shards 1–3, so new packages are never silently skipped.
-          if [ "${{ matrix.shard }}" = "4" ]; then
+          # Shard 8 is the catch-all: append any test package not explicitly
+          # assigned to shards 1–7, so new packages are never silently skipped.
+          if [ "${{ matrix.shard }}" = "8" ]; then
             SHARD1="code.api.v4_0_0"
-            SHARD2="code.api.v6_0_0 code.api.v5_0_0 code.api.v3_0_0 code.api.v2_1_0 \
-                    code.api.v2_2_0 code.api.v2_0_0 code.api.v1_4_0 code.api.v1_3_0 \
-                    code.api.UKOpenBanking code.atms code.branches code.products code.crm \
-                    code.accountHolder code.entitlement code.bankaccountcreation \
-                    code.bankconnectors code.container"
-            SHARD3="code.api.v1_2_1 code.api.ResourceDocs1_4_0 \
-                    code.api.util code.api.berlin code.management code.metrics \
-                    code.model code.views code.usercustomerlinks code.customer \
-                    code.errormessages"
-            ASSIGNED="$SHARD1 $SHARD2 $SHARD3 ${{ matrix.test_filter }}"
+            SHARD2="code.api.v1_2_1 code.api.berlin code.management code.metrics"
+            SHARD3="code.api.v6_0_0 code.api.v2_1_0 code.api.v2_2_0 code.api.v2_0_0"
+            SHARD4="code.api.v5_1_0 code.api.v5_0_0 code.api.v3_0_0"
+            SHARD5="code.api.ResourceDocs1_4_0 code.api.v3_1_0 code.api.v1_4_0 code.api.v1_3_0"
+            SHARD6="code.api.v7_0_0 code.api.http4sbridge code.api.UKOpenBanking"
+            SHARD7="code.model code.views code.customer code.usercustomerlinks \
+                    code.api.util code.errormessages code.atms code.branches \
+                    code.products code.crm code.accountHolder"
+            ASSIGNED="$SHARD1 $SHARD2 $SHARD3 $SHARD4 $SHARD5 $SHARD6 $SHARD7 ${{ matrix.test_filter }}"
 
             # Discover all packages that contain at least one .scala test file
             ALL_PKGS=$(find obp-api/src/test/scala obp-commons/src/test/scala \
@@ -282,8 +312,11 @@ jobs:
             FILTER="${FILTER}${EXTRAS}"
           fi
 
+          # scalatest:test goal — bypasses the compile/test-compile lifecycle phases
+          # (classes already provided via the compiled-output artifact + touch trick),
+          # matching run_tests_parallel.sh. Saves per-shard lifecycle overhead.
           MAVEN_OPTS="-Xmx3G -Xss2m -XX:MaxMetaspaceSize=1G" \
-            mvn test \
+            mvn scalatest:test -pl obp-api -DfailIfNoTests=false \
               -DwildcardSuites="$FILTER" \
             > maven-build-shard${{ matrix.shard }}.log 2>&1
 
