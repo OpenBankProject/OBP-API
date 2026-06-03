@@ -13,7 +13,7 @@
 
 `Http4sLiftWebBridge` has been **deleted**; `lift-webkit` has been **removed from `pom.xml`**. There is no Lift fallback in the request path — any unmatched `/obp/*` path returns a JSON 404 from `notFoundCatchAll`. The **"Lift Web removed"** milestone is therefore achieved.
 
-The only remaining Lift dependency is **`lift-mapper`** (the ORM / database layer), a separate long-term effort tracked under [What remains](#what-remains--lift-mapper).
+The remaining Lift dependencies are the **non-web libraries** — `lift-mapper` (ORM / database layer), plus `lift-json` / `lift-common` / `lift-util` — kept deliberately. Replacing `lift-mapper` is a separate long-term effort tracked under [What remains](#what-remains--lift-mapper).
 
 ---
 
@@ -252,7 +252,7 @@ The full "remove Lift Web" milestone is done. For the record, what landed:
 2. **`lift-webkit` removed from `pom.xml`** — the Lift web library is no longer a dependency.
 3. **`Boot.scala` request-path hooks removed** — all `LiftRules.statelessDispatch.append(...)` (DirectLogin, ResourceDocs140–600, aliveCheck), `LiftRules.dispatch.append(OpenIdConnect)`, `addToPackages`, `exceptionHandler`/`uriNotFound`/`early`/`supplementalHeaders` request-path hooks are gone. Boot now does ORM init + connector/config setup + the Mapper schemifier + shutdown hooks only.
 4. **OpenID Connect migrated** (fork a — drop portal-login). The one hard Lift-Web dependency in the request path (`AuthUser.logUserIn` / `S.redirectTo` seeding a Lift `SessionVar` portal session) was resolved by issuing a DirectLogin token instead.
-5. **0 active `import net.liftweb.http.*`** anywhere in `obp-api/src/main` (all such imports are in commented-out files). One vestigial fully-qualified `net.liftweb.http.S.redirectTo(homePage)` survives in `AuthUser.logout` — but `logout` is **dead code** (never called); it's a cleanup candidate, not a live dependency.
+5. **0 `net.liftweb.http` references anywhere in `obp-api/src`** — code, dead import comments, and doc-strings all removed. The previously-vestigial `net.liftweb.http.S.redirectTo(homePage)` in `AuthUser.logout` (dead code, never called) has been deleted, together with the 91 commented-out `//import net.liftweb.http...` lines. The only `net.liftweb.http.*` left in the running system is the inherited, unreachable `MegaProtoUser.logout` inside the Lift library jar — not OBP source.
 
 > `APIUtil.SS.init(...)` wrappers (e.g. in `Http4s400.scala`) are **not** Lift-Web code — `SS` is a thread-local that the `lift-mapper`-based `LocalMappedConnectorInternal` reads (`SS.user`). It's a legitimate adapter for the ORM layer, which stays until lift-mapper is replaced.
 
