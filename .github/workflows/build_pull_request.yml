@@ -43,29 +43,15 @@ jobs:
       - name: Lint — test-isolation (no setPropsValues at class/feature body)
         run: python3 .github/scripts/check_test_isolation.py
 
-      # Restore previous build's compiled classes + Zinc analysis store so the
-      # compiler only recompiles changed sources (see build_container.yml). Unique
-      # key per commit + restore-keys prefix fallback to the latest prior cache.
-      - name: Cache Zinc incremental compile output
-        uses: actions/cache@v4
-        with:
-          path: |
-            obp-api/target/classes
-            obp-api/target/test-classes
-            obp-api/target/scala-2.12
-            obp-commons/target/classes
-            obp-commons/target/scala-2.12
-          key: ${{ runner.os }}-zinc-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-zinc-
-
       - name: Compile and install (skip test execution)
         run: |
           # -DskipTests  — compile test sources but do NOT run them
           # Test classes must be in target/test-classes for the test shards.
-          # No `clean` — reuse the cached target/ so Zinc compiles incrementally.
+          # `clean` for a guaranteed-correct build (see build_container.yml: a no-clean
+          # Zinc incremental cache saved only ~17s — compile is dominated by Maven +
+          # fat-jar packaging + install, not Scala compilation).
           MAVEN_OPTS="-Xmx3G -Xss2m -XX:MaxMetaspaceSize=1G" \
-            mvn install -T 4 -Pprod -DskipTests
+            mvn clean install -T 4 -Pprod -DskipTests
 
       - name: Upload compiled output
         uses: actions/upload-artifact@v4

@@ -42,32 +42,18 @@ jobs:
           cp obp-api/src/main/resources/props/sample.props.template \
              obp-api/src/main/resources/props/production.default.props
 
-      # Restore the previous build's compiled classes + Zinc incremental-analysis
-      # store so the compiler only recompiles changed sources (full build ~238s →
-      # incremental ~80-120s on a small diff). The key is unique per commit (so a
-      # fresh cache is always saved); restore-keys falls back to the most recent
-      # prior cache. Requires dropping `clean` below so the restored target/ is
-      # not wiped before Zinc runs.
-      - name: Cache Zinc incremental compile output
-        uses: actions/cache@v4
-        with:
-          path: |
-            obp-api/target/classes
-            obp-api/target/test-classes
-            obp-api/target/scala-2.12
-            obp-commons/target/classes
-            obp-commons/target/scala-2.12
-          key: ${{ runner.os }}-zinc-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-zinc-
-
       - name: Compile and install (skip test execution)
         run: |
           # -DskipTests  — compile test sources but do NOT run them
           # Test classes must be in target/test-classes for the test shards.
-          # No `clean` — reuse the cached target/ so Zinc compiles incrementally.
+          # `clean` for a guaranteed-correct build. A no-clean Zinc incremental cache
+          # (actions/cache of target/) was measured and saved only ~17s: compile time is
+          # dominated by Maven startup + dependency resolution + packaging the ~297MB fat
+          # jar + install — NOT by Scala compilation (a zero-source-change rebuild was
+          # still 333s vs 350s). The stale-risk class of no-clean incremental builds is
+          # not worth ~2.7% of wall-clock, so we keep a full clean build.
           MAVEN_OPTS="-Xmx3G -Xss2m -XX:MaxMetaspaceSize=1G" \
-            mvn install -T 4 -Pprod -DskipTests
+            mvn clean install -T 4 -Pprod -DskipTests
 
       - name: Upload compiled output
         uses: actions/upload-artifact@v4
