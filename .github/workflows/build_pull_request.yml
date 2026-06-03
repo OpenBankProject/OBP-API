@@ -345,7 +345,7 @@ jobs:
             **/target/site/surefire-report/*
 
   # --------------------------------------------------------------------------
-  # Job 3: report — http4s v7 vs Lift per-test speed table
+  # Job 3: report — per-test speed (unit/pure vs integration, all http4s)
   # --------------------------------------------------------------------------
   report:
     needs: test
@@ -361,5 +361,5 @@ jobs:
           path: all-reports
           merge-multiple: true
 
-      - name: http4s v7 vs Lift — per-test speed
+      - name: Per-test speed — unit/pure vs integration (all http4s)
         run: python3 .github/scripts/test_speed_report.py all-reports

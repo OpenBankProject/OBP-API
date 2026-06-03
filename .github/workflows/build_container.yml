@@ -352,7 +352,7 @@ jobs:
           path: all-reports
           merge-multiple: true
 
-      - name: http4s v7 vs Lift — per-test speed
+      - name: Per-test speed — unit/pure vs integration (all http4s)
         run: python3 .github/scripts/test_speed_report.py all-reports
 
   # --------------------------------------------------------------------------
