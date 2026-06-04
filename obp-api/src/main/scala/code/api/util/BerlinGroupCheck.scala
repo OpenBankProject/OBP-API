@@ -3,14 +3,13 @@ package code.api.util
 import code.api.berlin.group.ConstantsBG
 import code.api.berlin.group.v1_3.BgSpecValidation
 import code.api.{APIFailureNewStyle, RequestHeader}
-import code.api.util.APIUtil.{OBPReturnType, fullBoxOrException}
+import code.api.util.APIUtil.{HTTPParam, OBPReturnType, fullBoxOrException}
 import code.api.util.BerlinGroupSigning.{getCertificateFromTppSignatureCertificate, getHeaderValue}
 import code.metrics.MappedMetric
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model.User
 import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.common.{Box, Empty}
-import net.liftweb.http.provider.HTTPParam
 
 import scala.concurrent.Future
 import com.openbankproject.commons.ExecutionContext.Implicits.global

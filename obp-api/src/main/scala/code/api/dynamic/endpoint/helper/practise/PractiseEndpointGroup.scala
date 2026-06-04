@@ -18,9 +18,6 @@ object PractiseEndpointGroup extends EndpointGroup{
   override protected lazy val urlPrefix: String = "test-dynamic-resource-doc"
 
   override protected def resourceDocs: List[APIUtil.ResourceDoc] = ResourceDoc(
-    // partialFunction is a no-op stub — the runtime dispatch uses the native handler in
-    // dynamicHttp4sFunction below (the compiled artifact is OBPEndpointIO, not the Lift OBPEndpoint).
-    APIUtil.dynamicEndpointStub,
     ApiVersion.v4_0_0,
     "test-dynamic-resource-doc",
     PractiseEndpoint.requestMethod,

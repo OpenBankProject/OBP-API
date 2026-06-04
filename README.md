@@ -388,7 +388,7 @@ To populate the OBP database with sandbox data:
 
 ## Production Options
 
-OBP-API runs on http4s Ember. Standard security headers (Cache-Control, X-Frame-Options, Correlation-Id, etc.) are applied automatically by `Http4sLiftWebBridge.withStandardHeaders` to all responses. Cookie flags and other session-related settings can be configured via the props file.
+OBP-API runs on http4s Ember. Standard security headers (Cache-Control, X-Frame-Options, Correlation-Id, etc.) are applied automatically by `Http4sStandardHeaders` (wired into `Http4sApp.httpApp`) to all responses. Cookie flags and other session-related settings can be configured via the props file.
 
 ## Server Mode Configuration (Removed)
 
@@ -418,8 +418,6 @@ server_mode=apis
 ```
 
 **For portal/UI functionality:** Deploy the separate [OBP-Portal](https://github.com/OpenBankProject/OBP-Portal) application.
-
-For migration instructions, see `.kiro/specs/remove-lift-portal-pages/MIGRATION_GUIDE.md`
 
 ## Using Akka remote storage
 
@@ -976,13 +974,11 @@ The same as `Frozen APIs`, if a related unit test fails, make sure whether the m
 OBP-API uses the following core technologies:
 
 - **HTTP Server:** [http4s](https://http4s.org/) with [Cats Effect](https://typelevel.org/cats-effect/) (`IOApp`). The server runs on http4s Ember in a single process on a single port.
-- **Routing:** Priority-based routing defined in `Http4sApp.scala`:
-  1. Native http4s routes for v5.0.0, v7.0.0, and Berlin Group v2
-  2. A Lift bridge fallback (`Http4sLiftWebBridge`) for all other API versions
+- **Routing:** Priority-based routing defined in `Http4sApp.scala` (`baseServices`). Every API version (v1.2.1 → v7.0.0), Berlin Group (v1.3 + v2), UK Open Banking (v2.0 + v3.1), dynamic entity/endpoint dispatch, resource-docs, and the auth handlers (DirectLogin, OpenID Connect, AliveCheck) are served by native http4s `HttpRoutes[IO]`. Any unmatched `/obp/*` path returns a JSON 404 from `notFoundCatchAll` — there is no Lift fallback.
 - **ORM / Database:** [Lift Mapper](http://www.liftweb.net/) for database access and schema management.
-- **JSON:** Lift JSON utilities are used in some areas alongside native http4s JSON handling.
+- **JSON:** Lift JSON utilities (`net.liftweb.json`) are used for parsing/serialization alongside native http4s handling.
 
-For details on how the http4s and Lift layers coexist, see [LIFT_HTTP4S_COEXISTENCE.md](LIFT_HTTP4S_COEXISTENCE.md).
+For the full Lift → http4s migration history, see [LIFT_HTTP4S_MIGRATION.md](LIFT_HTTP4S_MIGRATION.md).
 
 Liftweb architecture: [http://exploring.liftweb.net/master/index-9.html](http://exploring.liftweb.net/master/index-9.html).
 

@@ -4,37 +4,25 @@ import cats.data.{Kleisli, OptionT}
 import cats.effect.IO
 import code.api.util.APIUtil
 import code.api.util.http4s.Http4sRequestAttributes
+import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
 import org.http4s._
 import org.typelevel.ci.CIString
 
 /**
  * Shared HTTP4S Application Builder
- * 
- * This object provides the httpApp configuration used by both:
- * - Production server (Http4sServer)
- * - Test server (Http4sTestServer)
- * 
- * This ensures tests run against the exact same routing configuration as production,
- * eliminating code duplication and ensuring we test the real server.
- * 
- * Priority-based routing:
- * 1. v5.0.0 native HTTP4S routes (checked first)
- * 2. v7.0.0 native HTTP4S routes (checked second)
- * 3. Http4sLiftWebBridge (fallback for all other API versions)
- * 4. 404 Not Found (if no handler matches)
+ *
+ * Provides the httpApp used by both production (Http4sServer) and test (Http4sTestServer).
+ * All API versions (v1.2.1–v7.0.0, BG, UK OB) are served by native http4s handlers.
+ * Unmatched requests receive a JSON 404.
  */
-object Http4sApp {
+object Http4sApp extends MdcLoggable {
   
   type HttpF[A] = OptionT[IO, A]
 
-  // Handles all OPTIONS (CORS preflight) requests before they reach the Lift bridge.
-  //
-  // Without this, OPTIONS falls through the Kleisli chain to Http4sLiftWebBridge →
-  // OBPAPI6_0_0's `this.serve({case OPTIONS => corsResponse})`, which pays full Lift
-  // overhead (body buffering, S.init) for every preflight. More critically, when the
-  // Lift bridge is eventually removed, CORS would break silently. Headers match the
-  // corsResponse defined in v4/v5/v6 Lift endpoints.
+  // Handles all OPTIONS (CORS preflight) requests by short-circuiting at the head of the
+  // Kleisli chain, before any version routes run. Returns 204 with the standard CORS headers
+  // so a browser preflight never pays the cost of entering the per-version handlers.
   private val corsHandler: HttpRoutes[IO] = HttpRoutes[IO] { req =>
     if (req.method == Method.OPTIONS) {
       OptionT.liftF(
@@ -80,13 +68,28 @@ object Http4sApp {
   // DynamicEndpoint dispatch (/obp/dynamic-endpoint/*) — fully-native http4s: proxy (DynamicReq)
   // + runtime-compiled resource docs, no Lift dispatch. Replaces the LiftRules.statelessDispatch
   // registration. Must sit AHEAD of the Lift bridge (the bridge no longer carries dynamic-endpoint).
+  // DynamicEndpoint dispatch (/obp/dynamic-endpoint/*) — proxy (DynamicReq) + runtime-compiled
+  // resource docs / practise. Runs the OBPAPIDynamicEndpoint.routes in-process via an adapter,
+  // replacing the former LiftRules.statelessDispatch registration.
   private val dynamicEndpointRoutes: HttpRoutes[IO] = gate(ApiVersion.`dynamic-endpoint`, code.api.dynamic.endpoint.Http4sDynamicEndpoint.wrappedRoutesDynamicEndpoint)
   // UK Open Banking (non-/obp prefixes /open-banking/v2.0 and /open-banking/v3.1) — native
   // http4s, replaces the classpath-scanned Lift ScannedApis. All endpoints (v2.0: 5, v3.1: ~67)
-  // are migrated to http4s; the Lift ScannedApis aggregators register `routes = Nil`, so Lift
-  // serves no UK path. Wired before the Lift bridge for ordering, but nothing falls through to it.
+  // are migrated to http4s.
   private val ukV20Routes: HttpRoutes[IO] = gate(ApiVersion.ukOpenBankingV20, code.api.UKOpenBanking.v2_0_0.Http4sUKOBv200.wrappedRoutes)
   private val ukV31Routes: HttpRoutes[IO] = gate(ApiVersion.ukOpenBankingV31, code.api.UKOpenBanking.v3_1_0.Http4sUKOBv310.wrappedRoutes)
+
+  // JSON 404 for all unmatched paths — terminal entry in baseServices.
+  private val notFoundCatchAll: HttpRoutes[IO] = HttpRoutes[IO] { req =>
+    val contentType = req.headers.get(CIString("Content-Type")).map(_.head.value).getOrElse("")
+    val msg = s"${code.api.util.ErrorMessages.InvalidUri}Current Url is (${req.uri}), Current Content-Type Header is ($contentType)"
+    val escaped = msg.replace("\\", "\\\\").replace("\"", "\\\"")
+    val body = s"""{"code":404,"message":"$escaped"}"""
+    OptionT.liftF(IO.pure(
+      Response[IO](status = Status.NotFound)
+        .withEntity(body.getBytes("UTF-8"))
+        .withHeaders(Headers(Header.Raw(CIString("Content-Type"), "application/json; charset=utf-8")))
+    ))
+  }
 
   /**
    * Build the base HTTP4S routes with priority-based routing.
@@ -105,9 +108,9 @@ object Http4sApp {
     else if (noBodyMethods.contains(req.method)) IO.pure(req.withAttribute(Http4sRequestAttributes.cachedBodyKey, Option.empty[String]))
     else req.body.compile.to(Array).map { bytes =>
       val cached: Option[String] = if (bytes.isEmpty) None else Some(new String(bytes, "UTF-8"))
-      // Replay the bytes on every subsequent stream read so the Lift fallback and any
-      // handler that still reads req.body sees the same payload. fs2.Stream.emits is
-      // pure — re-evaluating it yields a fresh stream of the same bytes.
+      // Replay the bytes on every subsequent stream read so any downstream cascade-bridge
+      // hop and any handler that still reads req.body sees the same payload. fs2.Stream.emits
+      // is pure — re-evaluating it yields a fresh stream of the same bytes.
       req
         .withBodyStream(fs2.Stream.emits(bytes).covary[IO])
         .withAttribute(Http4sRequestAttributes.cachedBodyKey, cached)
@@ -119,12 +122,6 @@ object Http4sApp {
       corsHandler.run(req)
         .orElse(AppsPage.routes.run(req))
         .orElse(StatusPage.routes.run(req))
-        // Bridge-retirement audit endpoint — exposes the in-memory tally of
-        // requests that have fallen through to Http4sLiftWebBridge so we can
-        // see exactly what still needs migrating before the bridge can be
-        // removed. Placed before the per-version routes so the admin path
-        // can't be shadowed by a version-prefixed handler.
-        .orElse(Http4sLiftBridgeTraffic.routes.run(req))
         .orElse(Http4sResourceDocs.routes.run(req))
         .orElse(v700Routes.run(req))
         .orElse(v600Routes.run(req))
@@ -145,22 +142,29 @@ object Http4sApp {
         .orElse(v130Routes.run(req))
         .orElse(v121Routes.run(req))
         .orElse(dynamicEntityRoutes.run(req))
+        .orElse(dynamicEndpointRoutes.run(req))
         .orElse(code.api.DirectLoginRoutes.routes.run(req))
         .orElse(code.api.Http4sOpenIdConnect.routes.run(req))
         .orElse(code.api.AliveCheckRoutes.routes.run(req))
-        .orElse(dynamicEndpointRoutes.run(req))
-        .orElse(Http4sLiftWebBridge.routes.run(req))
+        .orElse(notFoundCatchAll.run(req))
     }
   }
 
-  /**
-   * Build the complete HTTP4S application with standard headers
-   */
   def httpApp: HttpApp[IO] = {
-    val services: HttpRoutes[IO] = Http4sLiftWebBridge.withStandardHeaders(baseServices)
-    val app = services.orNotFound
+    val app = baseServices.orNotFound
     Kleisli { req: Request[IO] =>
-      app.run(req).map(resp => Http4sLiftWebBridge.ensureStandardHeaders(req, resp))
+      app.run(req)
+        .map(resp => Http4sStandardHeaders(req, resp))
+        .handleErrorWith { e =>
+          logger.error(s"[Http4sApp] Uncaught exception: ${req.method} ${req.uri} - ${e.getMessage}", e)
+          val errMsg = Option(e.getMessage).getOrElse("Internal Server Error")
+            .replace("\\", "\\\\").replace("\"", "\\\"")
+          val body = s"""{"code":500,"message":"$errMsg"}"""
+          IO.pure(Http4sStandardHeaders(req,
+            Response[IO](status = Status.InternalServerError)
+              .withEntity(body.getBytes("UTF-8"))
+              .withHeaders(Headers(Header.Raw(CIString("Content-Type"), "application/json; charset=utf-8")))))
+        }
     }
   }
 }

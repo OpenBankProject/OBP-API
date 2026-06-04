@@ -1,8 +1,7 @@
 package code.api.v1_3_0
 
-import net.liftweb.http.rest.RestHelper
 
-trait APIMethods130 { self: RestHelper => }
+trait APIMethods130
 
 //
 //package code.api.v1_3_0
@@ -20,7 +19,6 @@ trait APIMethods130 { self: RestHelper => }
 //import com.openbankproject.commons.model.BankId
 //import com.openbankproject.commons.util.ApiVersion
 //import net.liftweb.common.Full
-//import net.liftweb.http.rest.RestHelper
 //
 //import scala.collection.mutable.ArrayBuffer
 //import scala.concurrent.Future

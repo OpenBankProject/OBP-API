@@ -2,7 +2,7 @@ package code.api.ResourceDocs1_4_0
 
 import java.util.{Date, Objects}
 
-import code.api.util.APIUtil.{EmptyBody, JArrayBody, PrimaryDataBody, ResourceDoc}
+import code.api.util.APIUtil.{HTTPParam, EmptyBody, JArrayBody, PrimaryDataBody, ResourceDoc}
 import code.api.util.ErrorMessages._
 import code.api.util._
 import com.openbankproject.commons.util.{ApiVersion, EnumValue, JsonAble, JsonUtils, OBPEnumeration, ReflectUtils, ScannedApiVersion}
@@ -33,7 +33,6 @@ import com.openbankproject.commons.model.ListResult
 import code.util.Helper.MdcLoggable
 import net.liftweb.common.Box.tryo
 import net.liftweb.common.{EmptyBox, Full}
-import net.liftweb.http.provider.HTTPParam
 import net.liftweb.json
 
 import scala.collection.GenTraversableLike

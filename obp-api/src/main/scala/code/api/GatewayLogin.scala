@@ -38,7 +38,6 @@ import code.util.Helper.MdcLoggable
 import com.nimbusds.jwt.JWTClaimsSet
 import com.openbankproject.commons.model.{InboundAccount, User}
 import net.liftweb.common._
-import net.liftweb.http._
 import net.liftweb.json._
 import net.liftweb.util.Helpers
 
@@ -145,9 +144,9 @@ object GatewayLogin extends MdcLoggable {
   }
 
   // Check if the request (access token or request token) is valid and return a tuple
-  def validator(request: Box[Req]) : (Int, String, Map[String,String]) = {
-    // First we try to extract all parameters from a Request
-    val parameters: Map[String, String] = getAllParameters(request)
+  def validator(authorizationHeader: Box[String]) : (Int, String, Map[String,String]) = {
+    // First we try to extract all parameters from the Authorization header
+    val parameters: Map[String, String] = getAllParameters(authorizationHeader)
     val emptyMap = Map[String, String]()
 
     parameters.get("error") match {
@@ -400,7 +399,7 @@ object GatewayLogin extends MdcLoggable {
   }
 
   // Return a Map containing the GatewayLogin parameter : token -> value
-  def getAllParameters(request: Box[Req]): Map[String, String] = {
+  def getAllParameters(authorizationHeader: Box[String]): Map[String, String] = {
     def toMap(parametersList: String) = {
       //transform the string "GatewayLogin token="value""
       //to a tuple (GatewayLogin_parameter,Decoded(value))
@@ -427,17 +426,14 @@ object GatewayLogin extends MdcLoggable {
       params
     }
 
-    request match {
-      case Full(a) => a.header("Authorization") match {
-        case Full(header) => {
-          if (header.contains("GatewayLogin"))
-            toMap(header)
-          else
-            Map("error" -> "Missing GatewayLogin in header!")
-        }
-        case _ => Map("error" -> "Missing Authorization header!")
+    authorizationHeader match {
+      case Full(header) => {
+        if (header.contains("GatewayLogin"))
+          toMap(header)
+        else
+          Map("error" -> "Missing GatewayLogin in header!")
       }
-      case _ => Map("error" -> "Request is incorrect!")
+      case _ => Map("error" -> "Missing Authorization header!")
     }
   }
 
@@ -492,7 +488,7 @@ object GatewayLogin extends MdcLoggable {
   }
 
   def getUser : Box[User] = {
-    val (httpCode, message, parameters) = GatewayLogin.validator(S.request)
+    val (httpCode, message, parameters) = GatewayLogin.validator(Empty)
     httpCode match {
       case 200 =>
         val payload = GatewayLogin.parseJwt(parameters)

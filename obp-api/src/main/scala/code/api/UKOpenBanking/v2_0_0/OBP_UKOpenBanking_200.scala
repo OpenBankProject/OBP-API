@@ -1,7 +1,7 @@
 package code.api.UKOpenBanking.v2_0_0
 
 import code.api.OBPRestHelper
-import code.api.util.APIUtil.{OBPEndpoint, ResourceDoc}
+import code.api.util.APIUtil.ResourceDoc
 import code.api.util.ScannedApis
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.util.{ApiVersion, ApiVersionStatus, ScannedApiVersion}
@@ -21,8 +21,6 @@ object OBP_UKOpenBanking_200 extends OBPRestHelper with MdcLoggable with Scanned
   val versionStatus: String = ApiVersionStatus.DRAFT.toString
 
   override val allResourceDocs: ArrayBuffer[ResourceDoc] = Http4sUKOBv200.resourceDocs
-
-  override val routes: List[OBPEndpoint] = Nil
 }
 
 // ─── Original Lift aggregator (commented out) ────────────────────────────────
@@ -43,4 +41,4 @@ object OBP_UKOpenBanking_200 extends OBPRestHelper with MdcLoggable with Scanned
 //  override val routes : List[OBPEndpoint] = getAllowedEndpoints(allEndpoints, resourceDocs)
 //
 //  registerRoutes(routes, allResourceDocs, apiPrefix)
-//  logger.info(s"version $version has been run! There are ${routes.length} routes.")
+//  logger.info(s"version $version has been run!")

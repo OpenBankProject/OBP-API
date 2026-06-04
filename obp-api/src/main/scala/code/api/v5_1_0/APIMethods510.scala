@@ -69,7 +69,6 @@ trait APIMethods510
 //import com.openbankproject.commons.model.enums.{TransactionRequestStatus, _}
 //import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
 //import net.liftweb.common.{Box, Empty, Full}
-//import net.liftweb.http.rest.RestHelper
 //import net.liftweb.json
 //import net.liftweb.json.{Extraction, compactRender, parse, prettyRender}
 //import net.liftweb.mapper.By
@@ -6018,7 +6017,7 @@ trait APIMethods510
 //
 //
 //
-//object APIMethods510 extends RestHelper with APIMethods510 {
+//object APIMethods510 {
 //  lazy val newStyleEndpoints: List[(String, String)] = Implementations5_1_0.resourceDocs.map {
 //    rd => (rd.partialFunctionName, rd.implementedInApiVersion.toString())
 //  }.toList

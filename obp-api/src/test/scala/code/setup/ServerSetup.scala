@@ -76,7 +76,11 @@ trait ServerSetup extends FeatureSpec with SendServerRequests
     setPropsValues("transactionRequests_supported_types" -> "SEPA,SANDBOX_TAN,FREE_FORM,COUNTERPARTY,ACCOUNT,ACCOUNT_OTP,SIMPLE,CARD,AGENT_CASH_WITHDRAWAL,CARDANO")
     setPropsValues("CARD_OTP_INSTRUCTION_TRANSPORT" -> "DUMMY")
     setPropsValues("AGENT_CASH_WITHDRAWAL_OTP_INSTRUCTION_TRANSPORT" -> "DUMMY")
-    setPropsValues("api_instance_id" -> "1_final")
+    // Per-shard Redis key namespace: each parallel shard sets a distinct api_instance_id
+    // (OBP_API_INSTANCE_ID), which flows into Constant.getGlobalCacheNamespacePrefix and thus
+    // every Redis key (rate-limit counters, caches). This isolates shards on a shared Redis so
+    // their counters don't collide. Single-instance/CI default stays "1_final".
+    setPropsValues("api_instance_id" -> sys.env.getOrElse("OBP_API_INSTANCE_ID", "1_final"))
     setPropsValues("starConnector_supported_types" -> "mapped,internal,cardano_vJun2025")
     setPropsValues("connector" -> "star")
     setPropsValues("berlin_group_mandatory_headers" -> "")
@@ -175,6 +179,27 @@ trait ServerSetup extends FeatureSpec with SendServerRequests
 
 trait ServerSetupWithTestData extends ServerSetup with DefaultConnectorTestSetup with DefaultUsers{
 
+  // On-demand test data. Creating transactions (10 accounts x 10) and transaction-requests
+  // (10 accounts x 20) on every scenario is ~300 DB writes that most suites never read. Only
+  // the suites listed below (matched by simple class name) get them; every other suite skips
+  // both. The full test suite is the safety net: if a suite silently relied on this data it
+  // fails and its name is added here. A suite can also override `needsTransactionData` directly.
+  protected val suitesNeedingTransactionData: Set[String] = Set(
+    // read beforeEach-created transaction-requests
+    "TransactionRequestTest", "TransactionRequestsTest", "MakerCheckerTransactionRequestTest",
+    "TransactionRequestAttributesTest", "CardanoTransactionRequestTest", "CounterpartyLimitTest",
+    "VRPConsentRequestTest", "ViewPermissionsTest", "Http4s700RoutesTest",
+    // read beforeEach-created transactions
+    "TransactionsTest", "TransactionTest", "TransactionAttributesTest", "API1_2_1Test",
+    "FirehoseTest", "DeleteTransactionCascadeTest", "DoubleEntryTransactionTest",
+    "SandboxDataLoadingTest", "UKOpenBankingV310AisTests", "UKOpenBankingV200Tests",
+    "Http4sBGv2AISTest", "AccountInformationServiceAISApiTest", "RegulatedEntityTest",
+    // reads other-accounts / counterparties, which are derived from transaction metadata
+    "CounterpartyTest"
+  )
+  protected def needsTransactionData: Boolean =
+    suitesNeedingTransactionData.contains(this.getClass.getSimpleName)
+
   override def beforeEach() = {
     super.beforeEach()
     wipeTestData()
@@ -183,11 +208,12 @@ trait ServerSetupWithTestData extends ServerSetup with DefaultConnectorTestSetup
     val banks = createBanks()
     //fake bank accounts, views, accountHolders, AccountAccess
     val accounts = createAccountRelevantResources(resourceUser1, banks)
-    //fake transactions
-    createTransactions(accounts)
-    //fake transactionRequests
-    createTransactionRequests(accounts)
-    
+    //fake transactions + transactionRequests — opt-in per suite (see suitesNeedingTransactionData)
+    if (needsTransactionData) {
+      createTransactions(accounts)
+      createTransactionRequests(accounts)
+    }
+
   }
 
   override def afterEach() = {

@@ -33,7 +33,7 @@ package code.api.berlin.group.v1_3
 
 import code.api.OBPRestHelper
 import code.api.berlin.group.ConstantsBG
-import code.api.util.APIUtil.{OBPEndpoint, ResourceDoc}
+import code.api.util.APIUtil.ResourceDoc
 import code.api.util.ScannedApis
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.util.{ApiVersionStatus, ScannedApiVersion}
@@ -56,8 +56,6 @@ object OBP_BERLIN_GROUP_1_3 extends OBPRestHelper with MdcLoggable with ScannedA
   val versionStatus: String = ApiVersionStatus.DRAFT.toString
 
   override val allResourceDocs: ArrayBuffer[ResourceDoc] = Http4sBGv13.resourceDocs
-
-  override val routes: List[OBPEndpoint] = Nil
 }
 
 // ─── Original Lift aggregator (commented out) ────────────────────────────────
@@ -82,4 +80,4 @@ object OBP_BERLIN_GROUP_1_3 extends OBPRestHelper with MdcLoggable with ScannedA
 //
 //  override val routes : List[OBPEndpoint] = getAllowedEndpoints(endpoints, allResourceDocs)
 //  registerRoutes(routes, allResourceDocs, apiPrefix)
-//  logger.info(s"version $version has been run! There are ${routes.length} routes.")
+//  logger.info(s"version $version has been run!")

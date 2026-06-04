@@ -4,7 +4,7 @@ import cats.data.{Kleisli, OptionT}
 import cats.effect.IO
 import code.api.APIFailureNewStyle
 import code.api.Constant
-import code.api.util.APIUtil.{EmptyBody, ResourceDoc, createQueriesByHttpParams, defaultBankId, fullBoxOrException, mockedDataText, passesPsd2Aisp, unboxFull}
+import code.api.util.APIUtil.{HTTPParam, EmptyBody, ResourceDoc, createQueriesByHttpParams, defaultBankId, fullBoxOrException, mockedDataText, passesPsd2Aisp, unboxFull}
 import code.api.util.ApiTag
 import code.api.util.ApiTag._
 import code.api.util.CustomJsonFormats
@@ -21,7 +21,6 @@ import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId, Tr
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
 import net.liftweb.common.Full
 import code.model.{BankAccountExtended, UserExtended}
-import net.liftweb.http.provider.HTTPParam
 import net.liftweb.json
 import net.liftweb.json.Formats
 import org.http4s._
@@ -61,7 +60,6 @@ object Http4sUKOBv310Transactions extends MdcLoggable {
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(getAccountsAccountIdStatementsStatementIdTransactions),
     "GET",
@@ -331,7 +329,6 @@ object Http4sUKOBv310Transactions extends MdcLoggable {
       }
   }
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(getAccountsAccountIdTransactions),
     "GET",
@@ -592,7 +589,6 @@ object Http4sUKOBv310Transactions extends MdcLoggable {
       }
   }
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(getTransactions),
     "GET",

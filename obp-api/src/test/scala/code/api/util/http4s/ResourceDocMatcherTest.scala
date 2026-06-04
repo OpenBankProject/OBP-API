@@ -36,7 +36,6 @@ class ResourceDocMatcherTest extends FeatureSpec with Matchers with GivenWhenThe
     operationId: String = "testOperation"
   ): ResourceDoc = {
     ResourceDoc(
-      partialFunction = null, // Not needed for matching tests
       implementedInApiVersion = ApiVersion.v7_0_0,
       partialFunctionName = operationId,
       requestVerb = verb,

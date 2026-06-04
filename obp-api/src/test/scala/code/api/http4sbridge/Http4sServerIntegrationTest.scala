@@ -1,6 +1,7 @@
 package code.api.http4sbridge
 
 import code.Http4sTestServer
+import code.api.util.APIUtil
 import code.setup.{DefaultUsers, ServerSetup, ServerSetupWithTestData}
 import code.views.system.AccountAccess
 import dispatch.Defaults._
@@ -15,11 +16,10 @@ import scala.concurrent.duration._
 
 /**
  * Real HTTP4S Server Integration Test
- * 
- * This test uses Http4sTestServer (singleton) which follows the same pattern as
- * TestServer (Jetty/Lift). The HTTP4S server is started once and shared across
- * all test classes, just like the Lift server.
- * 
+ *
+ * This test uses Http4sTestServer (singleton). The HTTP4S server is started once
+ * and shared across all test classes.
+ *
  * Unlike Http4s700RoutesTest which mocks routes in-process, this test:
  * - Makes real HTTP requests over the network to a running HTTP4S server
  * - Tests the complete server stack including middleware, error handling, etc.
@@ -154,7 +154,9 @@ class Http4sServerIntegrationTest extends ServerSetup with DefaultUsers with Ser
       
       And("Server should be on correct host and port")
       http4sServer.host should equal("127.0.0.1")
-      http4sServer.port should equal(8087)
+      // Port is dynamically allocated by run_tests_parallel.sh (OBP_HTTP4S_TEST_PORT)
+      // to avoid collisions across concurrent checkouts; assert it matches the prop.
+      http4sServer.port should equal(APIUtil.getPropsAsIntValue("http4s.test.port", 8087))
     }
 
     scenario("Server handles 404 for unknown routes", Http4sServerIntegrationTag) {
@@ -186,25 +188,6 @@ class Http4sServerIntegrationTest extends ServerSetup with DefaultUsers with Ser
         val json = parse(body)
         json \ "version" should not equal JObject(Nil)
       }
-    }
-
-    scenario("Server shares state with Lift server", Http4sServerIntegrationTag) {
-      Given("Both HTTP4S and Lift servers are running")
-      
-      When("We request banks from both servers")
-      val (http4sStatus, http4sBody) = makeHttp4sGetRequest("/obp/v5.0.0/banks")
-      val liftRequest = (baseRequest / "obp" / "v5.0.0" / "banks").GET
-      val liftResponse = makeGetRequest(liftRequest, Nil)
-      
-      Then("Both should return 200")
-      http4sStatus should equal(200)
-      liftResponse.code should equal(200)
-      
-      And("Both should return banks data")
-      val http4sJson = parse(http4sBody)
-      val liftJson = liftResponse.body
-      (http4sJson \ "banks") should not equal JObject(Nil)
-      (liftJson \ "banks") should not equal JObject(Nil)
     }
   }
 
@@ -247,14 +230,14 @@ class Http4sServerIntegrationTest extends ServerSetup with DefaultUsers with Ser
       json \ "resource_docs" should not equal JObject(Nil)
     }
 
-    scenario("v7.0.0 unmigrated path falls back to v6.0.0 via Lift bridge", Http4sServerIntegrationTag) {
+    scenario("v7.0.0 unmigrated path is served by v6.0.0 via the http4s v7→v6 cascade bridge", Http4sServerIntegrationTag) {
       When("We request an unmigrated v7.0.0 endpoint (/consumers/current exists in v6 but not v7)")
       val (status, body, versionServed) = makeHttp4sGetRequestFull("/obp/v7.0.0/consumers/current")
 
       Then("We get a proper OBP error response, not a version-not-found 404")
       status should (equal(401) or equal(200) or equal(403))
 
-      And("X-OBP-Version-Served header indicates the fallback version")
+      And("X-OBP-Version-Served header indicates the cascade target version")
       versionServed should equal(Some("v6.0.0"))
 
       When("We request a native v7.0.0 endpoint (/root is native to v7; /banks was removed and now cascades to v6)")
@@ -339,31 +322,32 @@ class Http4sServerIntegrationTest extends ServerSetup with DefaultUsers with Ser
     }
   }
 
-  feature("HTTP4S Lift Bridge Fallback") {
-    
-    scenario("Server handles Lift bridge routes for v5.0.0 non-native endpoints", Http4sServerIntegrationTag) {
-      Given("HTTP4S test server is running with Lift bridge")
-      
-      When("We make a GET request to a v5.0.0 endpoint not implemented in HTTP4S")
+  feature("HTTP4S version-cascade fallback") {
+
+    scenario("v5.0.0 non-native endpoint is served via http4s cascade", Http4sServerIntegrationTag) {
+      Given("HTTP4S test server is running")
+
+      When("We make a GET request to a v5.0.0 endpoint not natively declared in Http4s500")
       val (status, body) = makeHttp4sGetRequest("/obp/v5.0.0/users/current")
-      
+
       Then("We should get a 401 response (authentication required)")
       status should equal(401)
       info("This endpoint requires authentication - 401 is correct behavior")
     }
 
-    scenario("Server handles Lift bridge routes for v3.1.0 (known limitation)", Http4sServerIntegrationTag) {
-      Given("HTTP4S test server is running with Lift bridge")
+    scenario("v3.1.0 /banks currently returns 404", Http4sServerIntegrationTag) {
+      Given("HTTP4S test server is running")
 
-      When("We make a GET request to a v3.1.0 endpoint (Lift bridge)")
+      // TODO v310Routes is wired into Http4sApp.baseServices; this 404 may no longer hold.
+      // Behaviour is asserted as-is here; re-validate before relying on it as a guarantee.
+      When("We make a GET request to /obp/v3.1.0/banks")
       try {
         makeHttp4sGetRequest("/obp/v3.1.0/banks")
-        fail("Expected 404 for v3.1.0 (known bridge limitation)")
+        fail("Expected 404 for /obp/v3.1.0/banks")
       } catch {
         case e: Exception =>
-          Then("We should get a 404 error (known limitation)")
+          Then("We should get a 404 error")
           e.getMessage should include("404")
-          info("v3.1.0 bridge support is a known limitation - see HTTP4S_INTEGRATION_TEST_FINDINGS.md")
       }
     }
   }

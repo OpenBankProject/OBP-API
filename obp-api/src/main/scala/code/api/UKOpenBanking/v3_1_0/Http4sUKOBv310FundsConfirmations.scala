@@ -40,7 +40,6 @@ object Http4sUKOBv310FundsConfirmations extends MdcLoggable {
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(createFundsConfirmationConsents),
     "POST",
@@ -84,7 +83,6 @@ object Http4sUKOBv310FundsConfirmations extends MdcLoggable {
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(createFundsConfirmations),
     "POST",
@@ -127,7 +125,6 @@ object Http4sUKOBv310FundsConfirmations extends MdcLoggable {
       EndpointHelpers.withUserDelete(req) { (_, _) => Future.successful(()) }
   }
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(deleteFundsConfirmationConsentsConsentId),
     "DELETE",
@@ -146,7 +143,6 @@ object Http4sUKOBv310FundsConfirmations extends MdcLoggable {
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(getFundsConfirmationConsentsConsentId),
     "GET",

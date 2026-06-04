@@ -28,7 +28,6 @@ package code.api.v3_0_0
 
 import scala.language.reflectiveCalls
 import code.api.OBPRestHelper
-import code.api.util.APIUtil.OBPEndpoint
 import code.api.util.VersionedOBPApis
 import code.api.v2_2_0.{Http4s220, OBPAPI2_2_0}
 import code.util.Helper.MdcLoggable
@@ -56,9 +55,5 @@ object OBPAPI3_0_0 extends OBPRestHelper with MdcLoggable with VersionedOBPApis 
     Http4s300.resourceDocs
   )
 
-  val routes: List[OBPEndpoint] = Nil
-
-  registerRoutes(routes, allResourceDocs, apiPrefix, true)
-
-  logger.info(s"version $version has been run! There are ${routes.length} routes, ${allResourceDocs.length} allResourceDocs.")
+  logger.info(s"version $version has been run! ${allResourceDocs.length} allResourceDocs.")
 }

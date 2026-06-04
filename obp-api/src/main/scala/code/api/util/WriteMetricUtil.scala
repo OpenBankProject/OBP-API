@@ -1,16 +1,9 @@
 package code.api.util
 
-import code.api.DirectLogin
-import code.api.util.APIUtil.{ResourceDoc, buildOperationId, getCorrelationId, getPropsAsBoolValue, getPropsValue, hasDirectLoginHeader}
-import code.api.util.ErrorMessages.attemptedToOpenAnEmptyBox
+import code.api.util.APIUtil.{buildOperationId, getCorrelationId, getPropsAsBoolValue, getPropsValue}
 import code.metrics.APIMetrics
 import code.metricsstream.MetricsEventBus
-import code.model.Consumer
-import code.util.Helper.{MdcLoggable, ObpS}
-import com.openbankproject.commons.model.User
-import net.liftweb.common.{Box, Empty, Full}
-import net.liftweb.http.S
-import net.liftweb.util.TimeHelpers.TimeSpan
+import code.util.Helper.MdcLoggable
 
 import java.util.Date
 import scala.collection.immutable
@@ -97,96 +90,6 @@ object WriteMetricUtil extends MdcLoggable {
     }
   }
 
-  def writeEndpointMetric(date: TimeSpan, duration: Long, rd: Option[ResourceDoc]) = {
-    val authorization = S.request.map(_.header("Authorization")).flatten
-    val directLogin: Box[String] = S.request.map(_.header("DirectLogin")).flatten
-    if (getPropsAsBoolValue("write_metrics", false)) {
-      val user =
-        if (getPropsAsBoolValue("allow_direct_login", true) && directLogin.isDefined) {
-          DirectLogin.getUser match {
-            case Full(u) => Full(u)
-            case _ => Empty
-          }
-        } // Direct Login Deprecated
-        else if (getPropsAsBoolValue("allow_direct_login", true) && hasDirectLoginHeader(authorization)) {
-          DirectLogin.getUser match {
-            case Full(u) => Full(u)
-            case _ => Empty
-          }
-        } else {
-          Empty
-        }
-
-      val consumer =
-        if (getPropsAsBoolValue("allow_direct_login", true) && directLogin.isDefined) {
-          DirectLogin.getConsumer match {
-            case Full(c) => Full(c)
-            case _ => Empty
-          }
-        } // Direct Login Deprecated
-        else if (getPropsAsBoolValue("allow_direct_login", true) && hasDirectLoginHeader(authorization)) {
-          DirectLogin.getConsumer match {
-            case Full(c) => Full(c)
-            case _ => Empty
-          }
-        } else {
-          Empty
-        }
-
-      // TODO This should use Elastic Search not an RDBMS
-      val u: User = user.orNull
-      val userId = if (u != null) u.userId else "null"
-      val userName = if (u != null) u.name else "null"
-
-      val c: Consumer = consumer.orNull
-      //The consumerId, not key
-      val consumerId = if (c != null) c.consumerId.get else "null"
-      var appName = if (u != null) c.name.toString() else "null"
-      var developerEmail = if (u != null) c.developerEmail.toString() else "null"
-      val implementedByPartialFunction = rd match {
-        case Some(r) => r.partialFunctionName
-        case _ => ""
-      }
-      //name of version where the call is implemented) -- S.request.get.view
-      val implementedInVersion = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).view
-      //(GET, POST etc.) --S.request.get.requestType.method
-      val verb = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).requestType.method
-      val url = ObpS.uriAndQueryString.getOrElse("")
-      val correlationId = getCorrelationId()
-      val reqHeaders = S.request.openOrThrowException(attemptedToOpenAnEmptyBox).request.headers
-
-      val sourceIp = reqHeaders.find(_.name.toLowerCase() == "x-forwarded-for").map(_.values.mkString(",")).getOrElse("")
-      val targetIp = reqHeaders.find(_.name.toLowerCase() == "x-forwarded-host").map(_.values.mkString(",")).getOrElse("")
-
-      //execute saveMetric in future, as we do not need to know result of operation
-      Future {
-        APIMetrics.apiMetrics.vend.saveMetric(
-          userId,
-          url,
-          date,
-          duration: Long,
-          userName,
-          appName,
-          developerEmail,
-          consumerId,
-          implementedByPartialFunction,
-          implementedInVersion,
-          verb,
-          None,
-          correlationId,
-          "Not enabled for old style endpoints",
-          sourceIp,
-          targetIp,
-          code.api.Constant.ApiInstanceId,
-          null  // Old-style endpoints don't thread consent_reference_id through S.session yet.
-        )
-        publishMetricEvent(userId, url, date, duration, userName, appName, developerEmail, consumerId,
-          implementedByPartialFunction, implementedInVersion, verb, None, correlationId, sourceIp, targetIp,
-          rd.map(_.operationId).getOrElse(""), null)
-      }
-
-    }
-  }
 
   private val metricFormats = net.liftweb.json.DefaultFormats
 

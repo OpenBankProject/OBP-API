@@ -90,7 +90,6 @@ trait APIMethods400
 //import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
 //import deletion._
 //import net.liftweb.common._
-//import net.liftweb.http.rest.RestHelper
 //import net.liftweb.json.JsonAST.JValue
 //import net.liftweb.json.JsonDSL._
 //import net.liftweb.json._
@@ -17047,7 +17046,7 @@ trait APIMethods400
 //  }
 //}
 //
-//object APIMethods400 extends RestHelper with APIMethods400 {
+//object APIMethods400 {
 //  lazy val newStyleEndpoints: List[(String, String)] =
 //    Implementations4_0_0.resourceDocs.map { rd =>
 //      (rd.partialFunctionName, rd.implementedInApiVersion.toString())

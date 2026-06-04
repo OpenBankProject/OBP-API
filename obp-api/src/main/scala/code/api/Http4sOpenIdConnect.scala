@@ -41,10 +41,12 @@ import code.users.Users
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model.User
 import net.liftweb.common._
+import net.liftweb.db.DB
 import net.liftweb.json
 import net.liftweb.json.JsonAST.prettyRender
 import net.liftweb.json.{Extraction, Formats}
 import net.liftweb.mapper.By
+import net.liftweb.util.DefaultConnectionIdentifier
 import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers._
 import org.http4s._
@@ -107,7 +109,7 @@ object OpenIdConnectConfig {
  *
  * Gating: the route only fires when `openid_connect.enabled=true` (default
  * false); otherwise the pattern guard fails and the request falls through to
- * the Lift bridge (404), matching prior behaviour. A second runtime gate
+ * `notFoundCatchAll` (JSON 404), matching prior behaviour. A second runtime gate
  * `allow_openid_connect` (default true) returns 401 when set false.
  */
 object Http4sOpenIdConnect extends MdcLoggable {
@@ -157,6 +159,12 @@ object Http4sOpenIdConnect extends MdcLoggable {
       }
     }
 
+  // CONFIG CAVEAT: portal-login was removed, so nothing stores the OIDC `state` server-side;
+  // `sessionState` is always "" (see processCallback). With the default
+  // openid_connect.check_session_state=true this fail-closed gate rejects every real (non-empty)
+  // state with 401 InvalidOpenIDConnectState — so OIDC deployments MUST set
+  // openid_connect.check_session_state=false (or reintroduce server-side state storage).
+  // Default kept true (fail-closed) on purpose. Long-term fix: stateless CSRF (PKCE / signed state).
   private def checkSessionState(state: String, sessionState: String): Boolean =
     if (getPropsAsBoolValue("openid_connect.check_session_state", true)) state == sessionState else true
 
@@ -176,33 +184,41 @@ object Http4sOpenIdConnect extends MdcLoggable {
         case Full((idToken, accessToken, tokenType, expiresIn, refreshToken, scope)) =>
           JwtUtil.validateIdToken(idToken, OpenIdConnectConfig.get(identityProvider).jwks_uri) match {
             case Full(_) =>
-              getOrCreateResourceUser(idToken) match {
-                case Full(user) if LoginAttempt.userIsLocked(user.provider, user.name) =>
-                  Left((401, ErrorMessages.UsernameHasBeenLocked))
-                case Full(user) =>
-                  getOrCreateAuthUser(user) match {
-                    case Full(authUser) =>
-                      // Grant roles according to the props email_domain_to_space_mappings
-                      AuthUser.grantEmailDomainEntitlementsToUser(authUser)
-                      AuthUser.grantEntitlementsToUseDynamicEndpointsInSpaces(authUser)
-                      // User init actions
-                      AfterApiAuth.innerLoginUserInitAction(Full(authUser))
-                      getOrCreateConsumer(idToken, user.userId) match {
-                        case Full(consumer) =>
-                          saveAuthorizationToken(tokenType, accessToken, idToken, refreshToken, scope, expiresIn, authUser.id.get) match {
-                            case Full(_) =>
-                              // Mint a usable OBP DirectLogin token bound to the provisioned user + consumer.
-                              DirectLogin.issueTokenForUser(user.userPrimaryKey.value, consumer.key.get) match {
-                                case Full(token) => Right(token)
-                                case _           => Left((500, ErrorMessages.CouldNotHandleOpenIDConnectData + "issueToken"))
-                              }
-                            case _ => Left((401, ErrorMessages.CouldNotHandleOpenIDConnectData + "saveAuthorizationToken"))
-                          }
-                        case _ => Left((401, ErrorMessages.CouldNotHandleOpenIDConnectData + "getOrCreateConsumer"))
-                      }
-                    case _ => Left((401, ErrorMessages.CouldNotHandleOpenIDConnectData + "getOrCreateAuthUser"))
-                  }
-                case _ => Left((401, ErrorMessages.CouldNotSaveOpenIDConnectUser))
+              // Restore the single-connection-per-request semantics that Lift's removed
+              // S.addAround(DB.buildLoanWrapper) gave: all provisioning writes share one
+              // connection and commit together; a thrown DB error rolls the whole set back
+              // (same primitive as deletion.DeletionUtil.databaseAtomicTask). The network
+              // steps above (token exchange + JWKS validation) are kept OUTSIDE the tx so no
+              // DB connection is held during remote HTTP calls.
+              DB.use(DefaultConnectionIdentifier) { _ =>
+                getOrCreateResourceUser(idToken) match {
+                  case Full(user) if LoginAttempt.userIsLocked(user.provider, user.name) =>
+                    Left((401, ErrorMessages.UsernameHasBeenLocked))
+                  case Full(user) =>
+                    getOrCreateAuthUser(user) match {
+                      case Full(authUser) =>
+                        // Grant roles according to the props email_domain_to_space_mappings
+                        AuthUser.grantEmailDomainEntitlementsToUser(authUser)
+                        AuthUser.grantEntitlementsToUseDynamicEndpointsInSpaces(authUser)
+                        // User init actions
+                        AfterApiAuth.innerLoginUserInitAction(Full(authUser))
+                        getOrCreateConsumer(idToken, user.userId) match {
+                          case Full(consumer) =>
+                            saveAuthorizationToken(tokenType, accessToken, idToken, refreshToken, scope, expiresIn, authUser.id.get) match {
+                              case Full(_) =>
+                                // Mint a usable OBP DirectLogin token bound to the provisioned user + consumer.
+                                DirectLogin.issueTokenForUser(user.userPrimaryKey.value, consumer.key.get) match {
+                                  case Full(token) => Right(token)
+                                  case _           => Left((500, ErrorMessages.CouldNotHandleOpenIDConnectData + "issueToken"))
+                                }
+                              case _ => Left((401, ErrorMessages.CouldNotHandleOpenIDConnectData + "saveAuthorizationToken"))
+                            }
+                          case _ => Left((401, ErrorMessages.CouldNotHandleOpenIDConnectData + "getOrCreateConsumer"))
+                        }
+                      case _ => Left((401, ErrorMessages.CouldNotHandleOpenIDConnectData + "getOrCreateAuthUser"))
+                    }
+                  case _ => Left((401, ErrorMessages.CouldNotSaveOpenIDConnectUser))
+                }
               }
             case _ => Left((401, ErrorMessages.CouldNotValidateIDToken))
           }
@@ -270,14 +286,14 @@ object Http4sOpenIdConnect extends MdcLoggable {
                   "redirect_uri=" + config.callback_url + "&" +
                   "code=" + authorizationCode + "&" +
                   "grant_type=authorization_code"
-    logger.debug("Request parameters: " + data)
-    logger.debug("Token endpoint: " + config.token_endpoint)
+    // Do NOT log `data` — it contains client_secret. Log the endpoint URL only.
+    logger.debug("Token exchange POST to: " + config.token_endpoint)
     val response: Box[String] = fromUrl(String.format("%s", config.token_endpoint), data, "POST")
-    logger.debug("Response: " + response)
+    // Do NOT log the raw response — it contains id/access/refresh tokens.
+    logger.debug("Token endpoint response received (success=" + response.isDefined + ")")
     response match {
       case Full(value) =>
         val tokenResponse = json.parse(value)
-        logger.debug("Token response: " + tokenResponse)
         for {
           idToken <- tryo{(tokenResponse \ "id_token").extractOrElse[String]("")}
           accessToken <- tryo{(tokenResponse \ "access_token").extractOrElse[String]("")}
@@ -286,7 +302,8 @@ object Http4sOpenIdConnect extends MdcLoggable {
           refreshToken <- tryo{(tokenResponse \ "refresh_token").extractOrElse[String]("")}
           scope <- tryo{(tokenResponse \ "scope").extractOrElse[String]("")}
         } yield {
-          logger.debug(s"(idToken: $idToken, accessToken: $accessToken, tokenType: $tokenType, expiresIn.toLong: ${expiresIn.toLong}, refreshToken: $refreshToken, scope: $scope)")
+          // Do NOT log token values (id/access/refresh). Non-sensitive metadata only.
+          logger.debug(s"OIDC token parsed (tokenType=$tokenType, expiresIn=${expiresIn.toLong}, scope=$scope)")
           (idToken, accessToken, tokenType, expiresIn.toLong, refreshToken, scope)
         }
       case badObject@Failure(_, _, _) =>

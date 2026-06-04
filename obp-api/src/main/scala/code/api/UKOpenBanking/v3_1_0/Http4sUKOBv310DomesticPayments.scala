@@ -36,7 +36,6 @@ object Http4sUKOBv310DomesticPayments extends MdcLoggable {
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(createDomesticPaymentConsents),
     "POST",
@@ -146,7 +145,6 @@ object Http4sUKOBv310DomesticPayments extends MdcLoggable {
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(createDomesticPayments),
     "POST",
@@ -246,7 +244,6 @@ object Http4sUKOBv310DomesticPayments extends MdcLoggable {
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(getDomesticPaymentConsentsConsentIdFundsConfirmation),
     "GET",
@@ -284,7 +281,6 @@ object Http4sUKOBv310DomesticPayments extends MdcLoggable {
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(getDomesticPaymentConsentsConsentId),
     "GET",
@@ -394,7 +390,6 @@ object Http4sUKOBv310DomesticPayments extends MdcLoggable {
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(getDomesticPaymentsDomesticPaymentId),
     "GET",

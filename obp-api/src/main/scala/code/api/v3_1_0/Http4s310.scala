@@ -46,7 +46,6 @@ import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.util.{ApiVersion, ApiVersionStatus, ScannedApiVersion}
 import net.liftweb.common.{Empty, Full}
-import net.liftweb.http.provider.HTTPParam
 import net.liftweb.json.Formats
 import net.liftweb.mapper.By
 import net.liftweb.util.{Helpers, Props}
@@ -189,7 +188,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(root),
       "GET",
@@ -223,7 +221,7 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getCheckbookOrders), "GET",
+      implementedInApiVersion, nameOf(getCheckbookOrders), "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/checkbook/orders",
       "Get Checkbook orders",
       s"""${mockedDataText(false)}Get all checkbook orders""",
@@ -248,7 +246,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getStatusOfCreditCardOrder),
       "GET",
@@ -283,7 +280,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getTopAPIs),
       "GET",
@@ -358,7 +354,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getMetricsTopConsumers),
       "GET",
@@ -455,7 +450,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getFirehoseCustomers),
       "GET",
@@ -499,7 +493,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getBadLoginStatus),
       "GET",
@@ -533,7 +526,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getCallsLimit),
       "GET",
@@ -567,7 +559,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getConsumer),
       "GET",
@@ -597,7 +588,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getConsumersForCurrentUser),
       "GET",
@@ -631,7 +621,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getConsumers),
       "GET",
@@ -670,7 +659,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getAccountWebhooks),
       "GET",
@@ -706,7 +694,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(config),
       "GET",
@@ -739,7 +726,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getAdapterInfo),
       "GET",
@@ -774,7 +760,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getRateLimitingInfo),
       "GET",
@@ -815,7 +800,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getCustomerByCustomerId),
       "GET",
@@ -854,7 +838,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getUserAuthContexts),
       "GET",
@@ -888,7 +871,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getTaxResidence),
       "GET",
@@ -924,7 +906,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getAllEntitlements),
       "GET",
@@ -963,7 +944,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getCustomerAddresses),
       "GET",
@@ -997,7 +977,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getProductAttribute),
       "GET",
@@ -1035,7 +1014,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getAccountApplications),
       "GET",
@@ -1071,7 +1049,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getAccountApplication),
       "GET",
@@ -1103,7 +1080,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getMeetings),
       "GET",
@@ -1137,7 +1113,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getMeeting),
       "GET",
@@ -1170,7 +1145,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getServerJWK),
       "GET",
@@ -1198,7 +1172,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getOAuth2ServerJWKsURIs),
       "GET",
@@ -1256,7 +1229,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getMethodRoutings),
       "GET",
@@ -1302,7 +1274,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getSystemView),
       "GET",
@@ -1341,7 +1312,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getCardsForBank),
       "GET",
@@ -1384,7 +1354,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getCardForBank),
       "GET",
@@ -1417,7 +1386,7 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getBankAccountsBalances), "GET",
+      implementedInApiVersion, nameOf(getBankAccountsBalances), "GET",
       "/banks/BANK_ID/balances",
       "Get Accounts Balances",
       """Get the Balances for the Accounts of the current User at one bank.""",
@@ -1466,7 +1435,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(checkFundsAvailable),
       "GET",
@@ -1506,7 +1474,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getTransactionByIdForBankAccount),
       "GET",
@@ -1556,7 +1523,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getTransactionRequests),
       "GET",
@@ -1610,7 +1576,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getProduct),
       "GET",
@@ -1652,7 +1617,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getProductTree),
       "GET",
@@ -1699,7 +1663,7 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, "getProducts", "GET",
+      implementedInApiVersion, "getProducts", "GET",
       "/banks/BANK_ID/products",
       "Get Products",
       s"""Returns information about the financial products offered by a bank specified by BANK_ID including:
@@ -1737,7 +1701,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getProductCollection),
       "GET",
@@ -1782,7 +1745,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getConsents),
       "GET",
@@ -1825,7 +1787,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getPrivateAccountByIdFull),
       "GET",
@@ -1883,7 +1844,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getWebUiProps),
       "GET",
@@ -1945,7 +1905,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(deleteUserAuthContexts),
       "DELETE",
@@ -1979,7 +1938,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(deleteUserAuthContextById),
       "DELETE",
@@ -2013,7 +1971,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(deleteTaxResidence),
       "DELETE",
@@ -2047,7 +2004,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(deleteCustomerAddress),
       "DELETE",
@@ -2082,7 +2038,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(deleteProductAttribute),
       "DELETE",
@@ -2126,7 +2081,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(deleteBranch),
       "DELETE",
@@ -2159,7 +2113,7 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, "deleteSystemView", "DELETE",
+      implementedInApiVersion, "deleteSystemView", "DELETE",
       "/system-views/SYS_VIEW_ID",
       "Delete System View",
       "Deletes the system view specified by VIEW_ID",
@@ -2182,7 +2136,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(deleteMethodRouting),
       "DELETE",
@@ -2216,7 +2169,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(deleteCardForBank),
       "DELETE",
@@ -2249,7 +2201,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(deleteWebUiProps),
       "DELETE",
@@ -2290,7 +2241,7 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, "revokeConsent", "GET",
+      implementedInApiVersion, "revokeConsent", "GET",
       "/banks/BANK_ID/my/consents/CONSENT_ID/revoke",
       "Revoke Consent",
       s"""
@@ -2329,7 +2280,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(createTaxResidence),
       "POST",
@@ -2370,7 +2320,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(createCustomerAddress),
       "POST",
@@ -2411,7 +2360,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(updateCustomerAddress),
       "PUT",
@@ -2446,7 +2394,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(createUserAuthContext),
       "POST",
@@ -2484,7 +2431,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(createProductAttribute),
       "POST",
@@ -2560,7 +2506,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(createAccountWebhook),
       "POST",
@@ -2598,7 +2543,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(unlockUser),
       "PUT",
@@ -2647,7 +2591,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(callsLimit),
       "PUT",
@@ -2699,7 +2642,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(enableDisableAccountWebhook),
       "PUT",
@@ -2739,7 +2681,7 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, "enableDisableConsumers", "PUT",
+      implementedInApiVersion, "enableDisableConsumers", "PUT",
       "/management/consumers/CONSUMER_ID",
       "Enable or Disable Consumers",
       s"""Enable/Disable a Consumer specified by CONSUMER_ID.""",
@@ -2765,7 +2707,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(updateSystemView),
       "PUT",
@@ -2806,7 +2747,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(updateProductAttribute),
       "PUT",
@@ -2845,7 +2785,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(updateCustomerEmail),
       "PUT",
@@ -2884,7 +2823,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(updateCustomerNumber),
       "PUT",
@@ -2919,7 +2857,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(updateCustomerMobileNumber),
       "PUT",
@@ -2958,7 +2895,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(updateCustomerIdentity),
       "PUT",
@@ -2993,7 +2929,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(updateCustomerCreditLimit),
       "PUT",
@@ -3029,7 +2964,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(updateCustomerCreditRatingAndSource),
       "PUT",
@@ -3066,7 +3000,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(updateCustomerBranch),
       "PUT",
@@ -3109,7 +3042,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(updateCustomerData),
       "PUT",
@@ -3167,7 +3099,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(updateAccountApplicationStatus),
       "PUT",
@@ -3225,7 +3156,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(createCustomer),
       "POST",
@@ -3264,7 +3194,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getCustomerByCustomerNumber),
       "POST",
@@ -3308,7 +3237,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(createAccountApplication),
       "POST",
@@ -3350,7 +3278,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(createAccountAttribute),
       "POST",
@@ -3410,7 +3337,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(updateAccountAttribute),
       "PUT",
@@ -3478,7 +3404,7 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, "createMeeting", "POST",
+      implementedInApiVersion, "createMeeting", "POST",
       "/banks/BANK_ID/meetings",
       "Create Meeting (video conference/call)",
       """Create Meeting: Initiate a video conference/call with the bank.
@@ -3517,7 +3443,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(createSystemView),
       "POST",
@@ -3573,7 +3498,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(createProductCollection),
       "PUT",
@@ -3669,7 +3593,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(addCardForBank),
       "POST",
@@ -3741,7 +3664,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(updatedCardForBank),
       "PUT",
@@ -3778,7 +3700,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(createCardAttribute),
       "POST",
@@ -3834,7 +3755,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(updateCardAttribute),
       "PUT",
@@ -3885,7 +3805,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(createWebUiProps),
       "POST",
@@ -3961,7 +3880,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(createUserAuthContextUpdateRequest),
       "POST",
@@ -4008,7 +3926,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(answerUserAuthContextUpdateChallenge),
       "POST",
@@ -4044,7 +3961,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(refreshUser),
       "POST",
@@ -4099,7 +4015,7 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, "createProduct", "PUT",
+      implementedInApiVersion, "createProduct", "PUT",
       "/banks/BANK_ID/products/PRODUCT_CODE",
       "Create Product",
       s"""Create or Update Product for the Bank.
@@ -4170,7 +4086,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(createMethodRouting),
       "POST",
@@ -4271,7 +4186,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(updateMethodRouting),
       "PUT",
@@ -4355,7 +4269,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(updateAccount),
       "PUT",
@@ -4437,7 +4350,7 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, "createAccount", "PUT",
+      implementedInApiVersion, "createAccount", "PUT",
       "/banks/BANK_ID/accounts/NEW_ACCOUNT_ID",
       "Create Account",
       """Create Account at bank specified by BANK_ID with Id specified by ACCOUNT_ID.
@@ -4579,7 +4492,6 @@ object Http4s310 {
     val createConsentImplicit: HttpRoutes[IO] = createConsent
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(createConsentEmail),
       "POST",
@@ -4661,7 +4573,6 @@ object Http4s310 {
     )
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(createConsentSms),
       "POST",
@@ -4745,7 +4656,6 @@ object Http4s310 {
     )
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(createConsentImplicit),
       "POST",
@@ -4839,7 +4749,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(answerConsentChallenge),
       "POST",
@@ -4882,7 +4791,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getObpConnectorLoopback),
       "GET",
@@ -4915,7 +4823,6 @@ object Http4s310 {
     val getMessageDocsSwagger: HttpRoutes[IO] = HttpRoutes.empty
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getMessageDocsSwagger),
       "GET",
@@ -5019,7 +4926,6 @@ object Http4s310 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(saveHistoricalTransaction),
       "POST",

@@ -46,7 +46,6 @@ object ResourceDocs300 extends OBPRestHelper with ResourceDocsAPIMethods with Md
 //import code.util.Helper.{MdcLoggable, SILENCE_IS_GOLDEN}
 //import com.openbankproject.commons.model.enums.ContentParam.{DYNAMIC, STATIC}
 //import com.openbankproject.commons.util.{ApiVersion, ApiVersionStatus}
-//import net.liftweb.http.{GetRequest, InMemoryResponse, PlainTextResponse, Req, S}
 //
 //
 //object ResourceDocs140 extends OBPRestHelper with ResourceDocsAPIMethods with MdcLoggable {

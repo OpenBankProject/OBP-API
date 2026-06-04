@@ -35,10 +35,9 @@ import code.util.Helper.MdcLoggable
 import com.nimbusds.jwt.JWTClaimsSet
 import com.openbankproject.commons.model.User
 import net.liftweb.common._
-import net.liftweb.http._
 import net.liftweb.json._
 import com.openbankproject.commons.ExecutionContext.Implicits.global
-import net.liftweb.http.provider.HTTPParam
+import code.api.util.APIUtil.HTTPParam
 
 import scala.collection.immutable.List
 import scala.concurrent.Future
@@ -219,7 +218,7 @@ object DAuth extends MdcLoggable {
   }
 
   def getUser : Box[User] = {
-    val token = S.getRequestHeader(APIUtil.DAuthHeaderKey)
+    val token: Box[String] = Empty // S.getRequestHeader not available in http4s path
     val payload = token.map(DAuth.parseJwt).flatten
     payload match {
       case Full(payload) =>

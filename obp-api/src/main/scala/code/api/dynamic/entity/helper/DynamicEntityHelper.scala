@@ -208,14 +208,12 @@ object DynamicEntityHelper {
     val resourceDocUrl = if(bankId.isDefined)  s"/banks/${bankId.getOrElse("")}/$entityName" else  s"/$entityName"
     val myResourceDocUrl = if(bankId.isDefined)  s"/banks/${bankId.getOrElse("")}/my/$entityName" else  s"/my/$entityName"
 
-    val endPoint = APIUtil.dynamicEndpointStub
 
     // (operationType, entityName) -> ResourceDoc
     val resourceDocs = scala.collection.mutable.Map[(DynamicEntityOperation, String),ResourceDoc]()
     val apiTag: ResourceDocTag = fun(entityName,splitNameWithBankId)
 
     resourceDocs += (DynamicEntityOperation.GET_ALL, splitNameWithBankId) -> ResourceDoc(
-      endPoint,
       implementedInApiVersion,
       buildGetAllFunctionName(bankId, entityName),
       "GET",
@@ -247,7 +245,6 @@ object DynamicEntityHelper {
     )
 
     resourceDocs += (DynamicEntityOperation.GET_ONE, splitNameWithBankId) -> ResourceDoc(
-      endPoint,
       implementedInApiVersion,
       buildGetOneFunctionName(bankId, entityName),
       "GET",
@@ -275,7 +272,6 @@ object DynamicEntityHelper {
     )
 
     resourceDocs += (DynamicEntityOperation.CREATE, splitNameWithBankId) -> ResourceDoc(
-      endPoint,
       implementedInApiVersion,
       buildCreateFunctionName(bankId, entityName),
       "POST",
@@ -305,7 +301,6 @@ object DynamicEntityHelper {
       )
 
     resourceDocs += (DynamicEntityOperation.UPDATE, splitNameWithBankId) -> ResourceDoc(
-      endPoint,
       implementedInApiVersion,
       buildUpdateFunctionName(bankId, entityName),
       "PUT",
@@ -335,7 +330,6 @@ object DynamicEntityHelper {
     )
 
     resourceDocs += (DynamicEntityOperation.DELETE, splitNameWithBankId) -> ResourceDoc(
-      endPoint,
       implementedInApiVersion,
       buildDeleteFunctionName(bankId, entityName),
       "DELETE",
@@ -367,7 +361,6 @@ object DynamicEntityHelper {
       val myErrorMessagesWithJson = if(personalRequiresRole) List(AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError) else List(AuthenticatedUserIsRequired, InvalidJsonFormat, UnknownError)
 
       resourceDocs += (DynamicEntityOperation.GET_ALL, mySplitNameWithBankId) -> ResourceDoc(
-        endPoint,
         implementedInApiVersion,
         buildGetAllFunctionName(bankId, s"My$entityName"),
         "GET",
@@ -395,7 +388,6 @@ object DynamicEntityHelper {
       )
 
       resourceDocs += (DynamicEntityOperation.GET_ONE, mySplitNameWithBankId) -> ResourceDoc(
-        endPoint,
         implementedInApiVersion,
         buildGetOneFunctionName(bankId, s"My$entityName"),
         "GET",
@@ -419,7 +411,6 @@ object DynamicEntityHelper {
       )
 
       resourceDocs += (DynamicEntityOperation.CREATE, mySplitNameWithBankId) -> ResourceDoc(
-        endPoint,
         implementedInApiVersion,
         buildCreateFunctionName(bankId, s"My$entityName"),
         "POST",
@@ -444,7 +435,6 @@ object DynamicEntityHelper {
         )
 
       resourceDocs += (DynamicEntityOperation.UPDATE, mySplitNameWithBankId) -> ResourceDoc(
-        endPoint,
         implementedInApiVersion,
         buildUpdateFunctionName(bankId, s"My$entityName"),
         "PUT",
@@ -469,7 +459,6 @@ object DynamicEntityHelper {
       )
 
       resourceDocs += (DynamicEntityOperation.DELETE, mySplitNameWithBankId) -> ResourceDoc(
-        endPoint,
         implementedInApiVersion,
         buildDeleteFunctionName(bankId, s"My$entityName"),
         "DELETE",
@@ -497,7 +486,6 @@ object DynamicEntityHelper {
       val publicSplitNameWithBankId = s"Public$splitNameWithBankId"
 
       resourceDocs += (DynamicEntityOperation.GET_ALL, publicSplitNameWithBankId) -> ResourceDoc(
-        endPoint,
         implementedInApiVersion,
         buildGetAllFunctionName(bankId, s"Public$entityName"),
         "GET",
@@ -526,7 +514,6 @@ object DynamicEntityHelper {
       )
 
       resourceDocs += (DynamicEntityOperation.GET_ONE, publicSplitNameWithBankId) -> ResourceDoc(
-        endPoint,
         implementedInApiVersion,
         buildGetOneFunctionName(bankId, s"Public$entityName"),
         "GET",
@@ -557,7 +544,6 @@ object DynamicEntityHelper {
       val communitySplitNameWithBankId = s"Community$splitNameWithBankId"
 
       resourceDocs += (DynamicEntityOperation.GET_ALL, communitySplitNameWithBankId) -> ResourceDoc(
-        endPoint,
         implementedInApiVersion,
         buildGetAllFunctionName(bankId, s"Community$entityName"),
         "GET",
@@ -589,7 +575,6 @@ object DynamicEntityHelper {
       )
 
       resourceDocs += (DynamicEntityOperation.GET_ONE, communitySplitNameWithBankId) -> ResourceDoc(
-        endPoint,
         implementedInApiVersion,
         buildGetOneFunctionName(bankId, s"Community$entityName"),
         "GET",

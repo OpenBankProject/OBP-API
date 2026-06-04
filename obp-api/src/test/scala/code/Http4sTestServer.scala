@@ -13,7 +13,7 @@ import scala.concurrent.duration._
 /**
  * HTTP4S Test Server - Singleton server for integration tests
  * 
- * Follows the same pattern as TestServer (Jetty/Lift) but for HTTP4S.
+ * Follows the same pattern as TestServer but for the http4s bridge integration suite.
  * Started once when first accessed, shared across all test classes.
  * 
  * IMPORTANT: This reuses Http4sApp.httpApp (same as production) to ensure
@@ -67,9 +67,20 @@ object Http4sTestServer {
           .unsafeRunSync()
       )
       
-      // Wait for server to be ready
-      Thread.sleep(2000)
-      
+      // Actively poll until the server accepts TCP connections, instead of a fixed 2s sleep.
+      val readyDeadline = System.currentTimeMillis() + 10000
+      var serverReady = false
+      while (!serverReady && System.currentTimeMillis() < readyDeadline) {
+        try {
+          val probe = new java.net.Socket()
+          probe.connect(new java.net.InetSocketAddress(host, port), 200)
+          probe.close()
+          serverReady = true
+        } catch {
+          case _: Throwable => Thread.sleep(50)
+        }
+      }
+
       isStarted = true
       logger.info(s"[HTTP4S TEST SERVER] Started successfully on $host:$port")
     }

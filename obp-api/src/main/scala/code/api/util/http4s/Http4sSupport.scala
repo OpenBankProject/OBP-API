@@ -1,13 +1,12 @@
 package code.api.util.http4s
 
 import cats.effect._
-import code.api.util.APIUtil.{ResourceDoc, getPropsAsBoolValue}
+import code.api.util.APIUtil.{HTTPParam, ResourceDoc, getPropsAsBoolValue}
 import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, InvalidJsonFormat}
 import code.api.util.{AuthHeaderParser, CallContext, RemoteIpUtil, WriteMetricUtil}
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model.{Bank, BankAccount, CounterpartyTrait, User, View}
 import net.liftweb.common.{Box, Empty, Full}
-import net.liftweb.http.provider.HTTPParam
 import org.http4s._
 import org.http4s.dsl.io._
 import org.http4s.headers.`Content-Type`

@@ -25,7 +25,6 @@ jobs:
   # --------------------------------------------------------------------------
   compile:
     runs-on: ubuntu-latest
-    if: github.repository == 'OpenBankProject/OBP-API'
     steps:
       - uses: actions/checkout@v4
 
@@ -47,7 +46,10 @@ jobs:
       - name: Compile and install (skip test execution)
         run: |
           # -DskipTests  — compile test sources but do NOT run them
-          # Test classes must be in target/test-classes for the test shards
+          # Test classes must be in target/test-classes for the test shards.
+          # `clean` for a guaranteed-correct build (see build_container.yml: a no-clean
+          # Zinc incremental cache saved only ~17s — compile is dominated by Maven +
+          # fat-jar packaging + install, not Scala compilation).
           MAVEN_OPTS="-Xmx3G -Xss2m -XX:MaxMetaspaceSize=1G" \
             mvn clean install -T 4 -Pprod -DskipTests
 
@@ -87,67 +89,85 @@ jobs:
       matrix:
         include:
           - shard: 1
-            name: "v4 only"
-            # ~258s of test work
+            name: "v4 only (bottleneck pkg)"
+            # ~258s — single largest package, kept on its own shard
             test_filter: >-
               code.api.v4_0_0
           - shard: 2
-            name: "v6 + v5_0 + v3_0 + v2 + small"
-            # ~267s of test work
+            name: "v1_2_1 only (largest unsplittable suite, isolated)"
+            # API1_2_1Test is a single 6604-line suite (~333 scenarios, ~281s). Isolated
+            # on its own shard: mixing in berlin/management/metrics made this the slowest
+            # shard (314s); those moved to shards 7/8 to rebalance.
+            test_filter: >-
+              code.api.v1_2_1
+          - shard: 3
+            name: "v6 + v2_x"
             test_filter: >-
               code.api.v6_0_0
-              code.api.v5_0_0
-              code.api.v3_0_0
               code.api.v2_1_0
               code.api.v2_2_0
               code.api.v2_0_0
+          - shard: 4
+            name: "v5_1 + v5_0 + v3_0"
+            test_filter: >-
+              code.api.v5_1_0
+              code.api.v5_0_0
+              code.api.v3_0_0
+          - shard: 5
+            name: "ResourceDocs + v3_1 + v1_4 + v1_3"
+            test_filter: >-
+              code.api.ResourceDocs1_4_0
+              code.api.v3_1_0
               code.api.v1_4_0
               code.api.v1_3_0
+          - shard: 6
+            name: "v7 + http4sbridge + UKOpenBanking"
+            test_filter: >-
+              code.api.v7_0_0
+              code.api.http4sbridge
               code.api.UKOpenBanking
+          - shard: 7
+            name: "model + views + customer + util + small data + berlin"
+            test_filter: >-
+              code.model
+              code.views
+              code.customer
+              code.usercustomerlinks
+              code.api.util
+              code.errormessages
               code.atms
               code.branches
               code.products
               code.crm
               code.accountHolder
-              code.entitlement
-              code.bankaccountcreation
-              code.bankconnectors
-              code.container
-          - shard: 3
-            name: "v1_2_1 + ResourceDocs + berlin + util + small"
-            # ~252s of test work
-            test_filter: >-
-              code.api.v1_2_1
-              code.api.ResourceDocs1_4_0
-              code.api.util
               code.api.berlin
-              code.management
-              code.metrics
-              code.model
-              code.views
-              code.usercustomerlinks
-              code.customer
-              code.errormessages
-          - shard: 4
-            name: "v5_1 + v3_1 + http4sbridge + v7 + code.api + util + connector"
-            # ~232s of test work + catch-all for any new packages
-            # Root-level code.api tests use class-name prefix matching (lowercase classes)
+          - shard: 8
+            name: "connector + auth + login + mgmt + metrics + remaining (catch-all)"
+            # catch-all shard: appends any test package not assigned to shards 1-7
+            # Root-level code.api tests use class-name prefix matching (lowercase classes).
+            # NOTE: classes that sit DIRECTLY in package code.api must be listed here by
+            # FQN-prefix — the catch-all marks the parent package code.api as "covered" once
+            # any child (code.api.v4_0_0, …) is assigned, so it never appends code.api itself.
             test_filter: >-
-              code.api.v5_1_0
-              code.api.v3_1_0
-              code.api.http4sbridge
-              code.api.v7_0_0
+              code.connector
+              code.util
               code.api.Authentication
               code.api.dauthTest
               code.api.DirectLoginTest
               code.api.gateWayloginTest
               code.api.OBPRestHelperTest
-              code.util
-              code.connector
+              code.api.AliveCheckRoutesTest
+              code.api.Http4sOpenIdConnect
+              code.entitlement
+              code.bankaccountcreation
+              code.bankconnectors
+              code.container
+              code.management
+              code.metrics
 
     services:
       redis:
-        image: redis
+        image: redis:7-alpine   # pinned + small (~30MB) to cut redis docker-pull flakiness
         ports:
           - 6379:6379
         options: >-
@@ -255,20 +275,19 @@ jobs:
           # The YAML >- scalar collapses newlines to spaces, so we convert here.
           FILTER=$(echo "${{ matrix.test_filter }}" | tr ' ' ',')
 
-          # Shard 4 is the catch-all: append any test package not explicitly
-          # assigned to shards 1–3, so new packages are never silently skipped.
-          if [ "${{ matrix.shard }}" = "4" ]; then
+          # Shard 8 is the catch-all: append any test package not explicitly
+          # assigned to shards 1–7, so new packages are never silently skipped.
+          if [ "${{ matrix.shard }}" = "8" ]; then
             SHARD1="code.api.v4_0_0"
-            SHARD2="code.api.v6_0_0 code.api.v5_0_0 code.api.v3_0_0 code.api.v2_1_0 \
-                    code.api.v2_2_0 code.api.v2_0_0 code.api.v1_4_0 code.api.v1_3_0 \
-                    code.api.UKOpenBanking code.atms code.branches code.products code.crm \
-                    code.accountHolder code.entitlement code.bankaccountcreation \
-                    code.bankconnectors code.container"
-            SHARD3="code.api.v1_2_1 code.api.ResourceDocs1_4_0 \
-                    code.api.util code.api.berlin code.management code.metrics \
-                    code.model code.views code.usercustomerlinks code.customer \
-                    code.errormessages"
-            ASSIGNED="$SHARD1 $SHARD2 $SHARD3 ${{ matrix.test_filter }}"
+            SHARD2="code.api.v1_2_1"
+            SHARD3="code.api.v6_0_0 code.api.v2_1_0 code.api.v2_2_0 code.api.v2_0_0"
+            SHARD4="code.api.v5_1_0 code.api.v5_0_0 code.api.v3_0_0"
+            SHARD5="code.api.ResourceDocs1_4_0 code.api.v3_1_0 code.api.v1_4_0 code.api.v1_3_0"
+            SHARD6="code.api.v7_0_0 code.api.http4sbridge code.api.UKOpenBanking"
+            SHARD7="code.model code.views code.customer code.usercustomerlinks \
+                    code.api.util code.errormessages code.atms code.branches \
+                    code.products code.crm code.accountHolder code.api.berlin"
+            ASSIGNED="$SHARD1 $SHARD2 $SHARD3 $SHARD4 $SHARD5 $SHARD6 $SHARD7 ${{ matrix.test_filter }}"
 
             # Discover all packages that contain at least one .scala test file
             ALL_PKGS=$(find obp-api/src/test/scala obp-commons/src/test/scala \
@@ -287,12 +306,22 @@ jobs:
               [ "$covered" = "false" ] && EXTRAS="$EXTRAS,$pkg"
             done
 
-            [ -n "$EXTRAS" ] && echo "Catch-all extras added to shard 4:$EXTRAS"
+            [ -n "$EXTRAS" ] && echo "Catch-all extras added to shard ${{ matrix.shard }}:$EXTRAS"
             FILTER="${FILTER}${EXTRAS}"
           fi
 
+          # `mvn process-resources scalatest:test` — run process-resources (copies the
+          # dynamically-generated props from src/main/resources onto the classpath at
+          # target/classes/props) then the scalatest:test goal. This SKIPS the
+          # compile/testCompile lifecycle phases (~208s/shard: classes already come from
+          # the compiled-output artifact + touch trick) while still placing
+          # test.default.props on the classpath. (Plain goal-only `scalatest:test` skips
+          # process-resources → Props init fails → 0 tests but BUILD SUCCESS = false green.)
+          # -pl obp-commons,obp-api: obp-commons' own 5 util suites run on whichever
+          # shard's filter matches com.openbankproject.* (the catch-all shard); on every
+          # other shard the filter matches nothing in obp-commons → 0 tests there.
           MAVEN_OPTS="-Xmx3G -Xss2m -XX:MaxMetaspaceSize=1G" \
-            mvn test \
+            mvn process-resources scalatest:test -pl obp-commons,obp-api -DfailIfNoTests=false \
               -DwildcardSuites="$FILTER" \
             > maven-build-shard${{ matrix.shard }}.log 2>&1
 
@@ -345,7 +374,7 @@ jobs:
             **/target/site/surefire-report/*
 
   # --------------------------------------------------------------------------
-  # Job 3: report — http4s v7 vs Lift per-test speed table
+  # Job 3: report — per-test speed (unit/pure vs integration, all http4s)
   # --------------------------------------------------------------------------
   report:
     needs: test
@@ -361,5 +390,5 @@ jobs:
           path: all-reports
           merge-multiple: true
 
-      - name: http4s v7 vs Lift — per-test speed
+      - name: Per-test speed — unit/pure vs integration (all http4s)
         run: python3 .github/scripts/test_speed_report.py all-reports

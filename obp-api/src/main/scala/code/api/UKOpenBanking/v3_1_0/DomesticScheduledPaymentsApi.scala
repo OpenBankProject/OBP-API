@@ -8,7 +8,6 @@
 //import code.api.util.ErrorMessages._
 //import com.github.dwickern.macros.NameOf.nameOf
 //import net.liftweb.common.Full
-//import net.liftweb.http.rest.RestHelper
 //import net.liftweb.json
 //import net.liftweb.json._
 //

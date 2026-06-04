@@ -70,7 +70,6 @@ object Http4sBGv13SigningBaskets extends MdcLoggable {
   }
 
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(createSigningBasket),
     "POST",
@@ -127,7 +126,6 @@ The resource identifications of these transactions are contained in the  payload
   }
 
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(deleteSigningBasket),
     "DELETE",
@@ -164,7 +162,6 @@ Nevertheless, single transactions might be cancelled on an individual basis on t
   }
 
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(getSigningBasket),
     "GET",
@@ -198,7 +195,6 @@ Returns the content of an signing basket object.""",
   }
 
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(getSigningBasketAuthorisation),
     "GET",
@@ -237,7 +233,6 @@ This function returns an array of hyperlinks to all generated authorisation sub-
   }
 
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(getSigningBasketScaStatus),
     "GET",
@@ -272,7 +267,6 @@ This method returns the SCA status of a signing basket's authorisation sub-resou
   }
 
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(getSigningBasketStatus),
     "GET",
@@ -319,7 +313,6 @@ Returns the status of a signing basket object.
   }
 
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(startSigningBasketAuthorisation),
     "POST",
@@ -461,7 +454,6 @@ This applies in the following scenarios:
   }
 
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(updateSigningBasketPsuData),
     "PUT",

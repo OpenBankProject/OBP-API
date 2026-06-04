@@ -33,8 +33,6 @@ import com.openbankproject.commons.model.{BankId, ListResult, User}
 import com.openbankproject.commons.util.ApiStandards._
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
 import net.liftweb.common.{Box, Empty, Full}
-import net.liftweb.http.{LiftRules, S}
-import net.liftweb.http.{InMemoryResponse, LiftRules, PlainTextResponse}
 import net.liftweb.json
 import net.liftweb.json.JsonAST.{JField, JString, JValue}
 import net.liftweb.json._
@@ -135,7 +133,6 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
     }
 
     localResourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       "getResourceDocsObp",
       "GET",
@@ -150,7 +147,6 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
     )
 
     localResourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       "getBankLevelDynamicResourceDocsObp",
       "GET",
@@ -165,7 +161,6 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
     )
 
     localResourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       "getResourceDocsSwagger",
       "GET",
@@ -201,7 +196,6 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
     )
 
     localResourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       "getResourceDocsOpenAPI31",
       "GET",
@@ -301,13 +295,14 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
         // The format of the file should be mark down.
         val filename = s"/special_instructions_for_resources/${partialFunctionName}.md"
         logger.trace(s"getSpecialInstructions getting $filename")
-        val source = LiftRules.loadResourceAsString(filename)
+        val source = Option(getClass.getResourceAsStream(filename))
+          .map(is => scala.io.Source.fromInputStream(is, "UTF-8").mkString)
         logger.trace(s"getSpecialInstructions source is $source")
         source match {
-          case Full(payload) =>
+          case Some(payload) =>
             logger.trace(s"getSpecialInstructions payload is $payload")
             Some(payload)
-          case _ =>
+          case None =>
             logger.trace(s"getSpecialInstructions Could not find / load $filename")
             None
         }
@@ -339,18 +334,18 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
         case ApiVersion.v7_0_0 =>  code.api.v7_0_0.Http4s700.allResourceDocs  // Use aggregated docs for v7.0.0
         case ConstantsBG.`berlinGroupVersion1` => code.api.berlin.group.v1_3.Http4sBGv13.resourceDocs
         case ConstantsBG.`berlinGroupVersion2` => code.api.berlin.group.v2.Http4sBGv2.resourceDocs
-        case ApiVersion.v6_0_0 => OBPAPI6_0_0.allResourceDocs
-        case ApiVersion.v5_1_0 => OBPAPI5_1_0.allResourceDocs
-        case ApiVersion.v5_0_0 => OBPAPI5_0_0.allResourceDocs
-        case ApiVersion.v4_0_0 => OBPAPI4_0_0.allResourceDocs
-        case ApiVersion.v3_1_0 => OBPAPI3_1_0.allResourceDocs
-        case ApiVersion.v3_0_0 => OBPAPI3_0_0.allResourceDocs
-        case ApiVersion.v2_2_0 => OBPAPI2_2_0.allResourceDocs
-        case ApiVersion.v2_1_0 => OBPAPI2_1_0.allResourceDocs
-        case ApiVersion.v2_0_0 => OBPAPI2_0_0.allResourceDocs
-        case ApiVersion.v1_4_0 => OBPAPI1_4_0.allResourceDocs
-        case ApiVersion.v1_3_0 => OBPAPI1_3_0.allResourceDocs
-        case ApiVersion.v1_2_1 => code.api.v1_2_1.Http4s121.resourceDocs
+        case ApiVersion.v6_0_0 => code.api.util.http4s.Http4sResourceDocAggregation.v600
+        case ApiVersion.v5_1_0 => code.api.util.http4s.Http4sResourceDocAggregation.v510
+        case ApiVersion.v5_0_0 => code.api.util.http4s.Http4sResourceDocAggregation.v500
+        case ApiVersion.v4_0_0 => code.api.util.http4s.Http4sResourceDocAggregation.v400
+        case ApiVersion.v3_1_0 => code.api.util.http4s.Http4sResourceDocAggregation.v310
+        case ApiVersion.v3_0_0 => code.api.util.http4s.Http4sResourceDocAggregation.v300
+        case ApiVersion.v2_2_0 => code.api.util.http4s.Http4sResourceDocAggregation.v220
+        case ApiVersion.v2_1_0 => code.api.util.http4s.Http4sResourceDocAggregation.v210
+        case ApiVersion.v2_0_0 => code.api.util.http4s.Http4sResourceDocAggregation.v200
+        case ApiVersion.v1_4_0 => code.api.util.http4s.Http4sResourceDocAggregation.v140
+        case ApiVersion.v1_3_0 => code.api.util.http4s.Http4sResourceDocAggregation.v130
+        case ApiVersion.v1_2_1 => code.api.util.http4s.Http4sResourceDocAggregation.v121
         case ApiVersion.`dynamic-endpoint` => OBPAPIDynamicEndpoint.allResourceDocs
         case ApiVersion.`dynamic-entity` => OBPAPIDynamicEntity.allResourceDocs
         case version: ScannedApiVersion => ScannedApis.versionMapScannedApis.get(version).map(_.allResourceDocs).getOrElse(ArrayBuffer.empty[ResourceDoc])
@@ -359,36 +354,6 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
 
       logger.debug(s"There are ${resourceDocs.length} resource docs available to $requestedApiVersion")
 
-      val versionRoutes = requestedApiVersion match {
-        case ApiVersion.v7_0_0 => Nil
-        case ConstantsBG.`berlinGroupVersion1` => Nil
-        case ConstantsBG.`berlinGroupVersion2` => Nil
-        case ApiVersion.v6_0_0 => OBPAPI6_0_0.routes
-        case ApiVersion.v5_1_0 => OBPAPI5_1_0.routes
-        case ApiVersion.v5_0_0 => OBPAPI5_0_0.routes
-        case ApiVersion.v4_0_0 => OBPAPI4_0_0.routes
-        case ApiVersion.v3_1_0 => OBPAPI3_1_0.routes
-        case ApiVersion.v3_0_0 => OBPAPI3_0_0.routes
-        case ApiVersion.v2_2_0 => OBPAPI2_2_0.routes
-        case ApiVersion.v2_1_0 => OBPAPI2_1_0.routes
-        case ApiVersion.v2_0_0 => OBPAPI2_0_0.routes
-        case ApiVersion.v1_4_0 => OBPAPI1_4_0.routes
-        case ApiVersion.v1_3_0 => OBPAPI1_3_0.routes
-        case ApiVersion.v1_2_1 => Nil
-        case ApiVersion.`dynamic-endpoint` => OBPAPIDynamicEndpoint.routes
-        case ApiVersion.`dynamic-entity` => OBPAPIDynamicEntity.routes
-        case version: ScannedApiVersion => ScannedApis.versionMapScannedApis.get(version).map(_.routes).getOrElse(Nil)
-        case _                 => Nil
-      }
-
-      logger.debug(s"There are ${versionRoutes.length} routes available to $requestedApiVersion")
-
-
-      // We only want the resource docs for which a API route exists else users will see 404s
-      // Get a list of the partial function classes represented in the routes available to this version.
-      val versionRoutesClasses = versionRoutes.map { vr => vr.getClass }
-
-      // Only return the resource docs that have available routes
       val activeResourceDocs = requestedApiVersion match {
         case ApiVersion.v7_0_0 => resourceDocs
         case ConstantsBG.`berlinGroupVersion1` => resourceDocs  // fully on http4s — no Lift route filter
@@ -409,7 +374,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
         case ApiVersion.`dynamic-endpoint` => resourceDocs  // dispatch now on Http4sDynamicEndpoint (proxy + native Piece C); routes carry only the stub, skip Lift-route filter
         case ApiVersion.ukOpenBankingV20 => resourceDocs  // fully on http4s — no Lift route filter
         case ApiVersion.ukOpenBankingV31 => resourceDocs  // fully on http4s — no Lift route filter
-        case _ => resourceDocs.filter(rd => versionRoutesClasses.contains(rd.partialFunction.getClass))
+        case _ => resourceDocs
       }
 
       logger.debug(s"There are ${activeResourceDocs.length} resource docs available to $requestedApiVersion")

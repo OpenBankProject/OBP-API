@@ -4559,7 +4559,7 @@ object SwaggerDefinitionsJSON {
     bank_id = bankIdExample.value
   )
   
-  lazy val httpParam = net.liftweb.http.provider.HTTPParam(
+  lazy val httpParam = HTTPParam(
     name = "tags", 
     values = List("static")
   )

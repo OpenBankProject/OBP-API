@@ -61,9 +61,21 @@ object TestServer {
         .unsafeRunSync()
     )
 
-    // Allow server to bind and become ready
-    Thread.sleep(2000)
-    logger.info(s"[TestServer] http4s EmberServer started on $host:$port")
+    // Actively poll until the server accepts TCP connections, instead of a fixed 2s sleep.
+    // Saves ~1.5s of fixed wait on fast machines and is more robust on slow ones.
+    val readyDeadline = System.currentTimeMillis() + 10000
+    var serverReady = false
+    while (!serverReady && System.currentTimeMillis() < readyDeadline) {
+      try {
+        val probe = new java.net.Socket()
+        probe.connect(new java.net.InetSocketAddress(host, port), 200)
+        probe.close()
+        serverReady = true
+      } catch {
+        case _: Throwable => Thread.sleep(50)
+      }
+    }
+    logger.info(s"[TestServer] http4s EmberServer started on $host:$port (ready=$serverReady)")
   }
 
   // Auto-start on object initialization

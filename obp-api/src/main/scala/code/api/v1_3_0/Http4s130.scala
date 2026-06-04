@@ -46,7 +46,6 @@ object Http4s130 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(root),
       "GET",
@@ -77,7 +76,6 @@ object Http4s130 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getCards),
       "GET",
@@ -106,7 +104,6 @@ object Http4s130 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getCardsForBank),
       "GET",

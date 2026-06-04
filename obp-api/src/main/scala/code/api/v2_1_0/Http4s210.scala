@@ -91,7 +91,7 @@ object Http4s210 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(root), "GET", "/root",
+      implementedInApiVersion, nameOf(root), "GET", "/root",
       "Get API Info (root)",
       """Returns information about:
         |
@@ -122,7 +122,7 @@ object Http4s210 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(sandboxDataImport), "POST", "/sandbox/data-import",
+      implementedInApiVersion, nameOf(sandboxDataImport), "POST", "/sandbox/data-import",
       "Create sandbox",
       s"""Import bulk data into the sandbox (Authenticated access).
       |
@@ -161,7 +161,7 @@ object Http4s210 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getTransactionRequestTypesSupportedByBank), "GET",
+      implementedInApiVersion, nameOf(getTransactionRequestTypesSupportedByBank), "GET",
       "/banks/BANK_ID/transaction-request-types",
       "Get Transaction Request Types at Bank",
       s"""Get the list of the Transaction Request Types supported by the bank.
@@ -214,7 +214,7 @@ object Http4s210 {
       TransactionDisabled, UnknownError)
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createTransactionRequest) + "SandboxTan", "POST",
+      implementedInApiVersion, nameOf(createTransactionRequest) + "SandboxTan", "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/GRANT_VIEW_ID/transaction-request-types/SANDBOX_TAN/transaction-requests",
       "Create Transaction Request (SANDBOX_TAN)",
       s"""When using SANDBOX_TAN, the payee is set in the request body.
@@ -225,7 +225,7 @@ object Http4s210 {
       http4sPartialFunction = Some(createTransactionRequest))
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createTransactionRequest) + "Counterparty", "POST",
+      implementedInApiVersion, nameOf(createTransactionRequest) + "Counterparty", "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/GRANT_VIEW_ID/transaction-request-types/COUNTERPARTY/transaction-requests",
       "Create Transaction Request (COUNTERPARTY)",
       s"""When using COUNTERPARTY, specify the counterparty_id in the body.
@@ -236,7 +236,7 @@ object Http4s210 {
       http4sPartialFunction = Some(createTransactionRequest))
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createTransactionRequest) + "Sepa", "POST",
+      implementedInApiVersion, nameOf(createTransactionRequest) + "Sepa", "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/GRANT_VIEW_ID/transaction-request-types/SEPA/transaction-requests",
       "Create Transaction Request (SEPA)",
       s"""When using SEPA, specify the IBAN of a Counterparty in the body.
@@ -247,7 +247,7 @@ object Http4s210 {
       http4sPartialFunction = Some(createTransactionRequest))
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createTransactionRequest) + "FreeForm", "POST",
+      implementedInApiVersion, nameOf(createTransactionRequest) + "FreeForm", "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/GRANT_VIEW_ID/transaction-request-types/FREE_FORM/transaction-requests",
       "Create Transaction Request (FREE_FORM)",
       s"""Create a FREE_FORM Transaction Request.
@@ -442,7 +442,7 @@ object Http4s210 {
 
     v210SupportedTransactionRequestTypes.foreach { trType =>
       resourceDocs += ResourceDoc(
-        null, implementedInApiVersion, nameOf(answerTransactionRequestChallenge) + trType.toLowerCase.capitalize, "POST",
+        implementedInApiVersion, nameOf(answerTransactionRequestChallenge) + trType.toLowerCase.capitalize, "POST",
         s"/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/$trType/transaction-requests/TRANSACTION_REQUEST_ID/challenge",
         "Answer Transaction Request Challenge",
         """In Sandbox mode, any string that can be converted to a positive integer will be accepted as an answer.
@@ -558,7 +558,7 @@ object Http4s210 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getTransactionRequests), "GET",
+      implementedInApiVersion, nameOf(getTransactionRequests), "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-requests",
       "Get Transaction Requests.",
       """Returns transaction requests for account specified by ACCOUNT_ID at bank specified by BANK_ID.
@@ -597,7 +597,7 @@ object Http4s210 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getRoles), "GET", "/roles",
+      implementedInApiVersion, nameOf(getRoles), "GET", "/roles",
       "Get Roles",
       s"""Returns all available roles
          |
@@ -637,7 +637,7 @@ object Http4s210 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getEntitlementsByBankAndUser), "GET",
+      implementedInApiVersion, nameOf(getEntitlementsByBankAndUser), "GET",
       "/banks/BANK_ID/users/USER_ID/entitlements",
       "Get Entitlements for User at Bank",
       s"""Get Entitlements specified by BANK_ID and USER_ID
@@ -667,7 +667,7 @@ object Http4s210 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getConsumer), "GET",
+      implementedInApiVersion, nameOf(getConsumer), "GET",
       "/management/consumers/CONSUMER_ID",
       "Get Consumer",
       s"""Get the Consumer specified by CONSUMER_ID.""",
@@ -694,7 +694,7 @@ object Http4s210 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getConsumers), "GET",
+      implementedInApiVersion, nameOf(getConsumers), "GET",
       "/management/consumers",
       "Get Consumers",
       s"""Get the all Consumers.""",
@@ -737,7 +737,7 @@ object Http4s210 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(enableDisableConsumers), "PUT",
+      implementedInApiVersion, nameOf(enableDisableConsumers), "PUT",
       "/management/consumers/CONSUMER_ID",
       "Enable or Disable Consumers",
       s"""Enable/Disable a Consumer specified by CONSUMER_ID.""",
@@ -802,7 +802,7 @@ object Http4s210 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(addCardForBank), "POST",
+      implementedInApiVersion, nameOf(addCardForBank), "POST",
       "/banks/BANK_ID/cards",
       "Create Card",
       s"""Create Card at bank specified by BANK_ID.
@@ -831,7 +831,7 @@ object Http4s210 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getUsers), "GET", "/users",
+      implementedInApiVersion, nameOf(getUsers), "GET", "/users",
       "Get all Users",
       s"""Get all users
          |
@@ -871,7 +871,7 @@ object Http4s210 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createTransactionType), "PUT",
+      implementedInApiVersion, nameOf(createTransactionType), "PUT",
       "/banks/BANK_ID/transaction-types",
       "Create Transaction Type at bank",
       // TODO get the documentation of the parameters from the scala doc of the case class we return
@@ -913,7 +913,7 @@ object Http4s210 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getAtm), "GET",
+      implementedInApiVersion, nameOf(getAtm), "GET",
       "/banks/BANK_ID/atms/ATM_ID",
       "Get Bank ATM",
       s"""Returns information about ATM for a single bank specified by BANK_ID and ATM_ID including:
@@ -949,7 +949,7 @@ object Http4s210 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getBranch), "GET",
+      implementedInApiVersion, nameOf(getBranch), "GET",
       "/banks/BANK_ID/branches/BRANCH_ID",
       "Get Bank Branch",
       s"""Returns information about branches for a single bank specified by BANK_ID and BRANCH_ID including:
@@ -983,7 +983,7 @@ object Http4s210 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getProduct), "GET",
+      implementedInApiVersion, nameOf(getProduct), "GET",
       "/banks/BANK_ID/products/PRODUCT_CODE",
       "Get Bank Product",
       s"""Returns information about the financial products offered by a bank specified by BANK_ID and PRODUCT_CODE including:
@@ -1019,7 +1019,7 @@ object Http4s210 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getProducts), "GET",
+      implementedInApiVersion, nameOf(getProducts), "GET",
       "/banks/BANK_ID/products",
       "Get Bank Products",
       s"""Returns information about the financial products offered by a bank specified by BANK_ID including:
@@ -1085,7 +1085,7 @@ object Http4s210 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createCustomer), "POST",
+      implementedInApiVersion, nameOf(createCustomer), "POST",
       "/banks/BANK_ID/customers",
       "Create Customer",
       s"""Add a customer linked to the user specified by user_id
@@ -1116,7 +1116,7 @@ object Http4s210 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getCustomersForUser), "GET",
+      implementedInApiVersion, nameOf(getCustomersForUser), "GET",
       "/users/current/customers",
       "Get Customers for Current User",
       """Gets all Customers that are linked to a User.
@@ -1144,7 +1144,7 @@ object Http4s210 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getCustomersForCurrentUserAtBank), "GET",
+      implementedInApiVersion, nameOf(getCustomersForCurrentUserAtBank), "GET",
       "/banks/BANK_ID/customers",
       "Get Customers for current User at Bank",
       s"""Returns a list of Customers at the Bank that are linked to the currently authenticated User.
@@ -1184,7 +1184,7 @@ object Http4s210 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(updateBranch), "PUT",
+      implementedInApiVersion, nameOf(updateBranch), "PUT",
       "/banks/BANK_ID/branches/BRANCH_ID",
       "Update Branch",
       s"""Update an existing branch for a bank account (Authenticated access).
@@ -1220,7 +1220,7 @@ object Http4s210 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createBranch), "POST",
+      implementedInApiVersion, nameOf(createBranch), "POST",
       "/banks/BANK_ID/branches",
       "Create Branch",
       s"""Create branch for the bank (Authenticated access).
@@ -1262,7 +1262,7 @@ object Http4s210 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(updateConsumerRedirectUrl), "PUT",
+      implementedInApiVersion, nameOf(updateConsumerRedirectUrl), "PUT",
       "/management/consumers/CONSUMER_ID/consumer/redirect_url",
       "Update Consumer RedirectUrl",
       s"""Update an existing redirectUrl for a Consumer specified by CONSUMER_ID.
@@ -1295,7 +1295,7 @@ object Http4s210 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getMetrics), "GET",
+      implementedInApiVersion, nameOf(getMetrics), "GET",
       "/management/metrics",
       "Get Metrics",
       s"""Get the all metrics

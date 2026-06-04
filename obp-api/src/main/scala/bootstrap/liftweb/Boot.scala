@@ -137,7 +137,7 @@ import code.usercustomerlinks.MappedUserCustomerLink
 import code.customerlinks.CustomerLink
 import code.userlocks.UserLocks
 import code.users._
-import code.util.Helper.{MdcLoggable, ObpS, SILENCE_IS_GOLDEN}
+import code.util.Helper.MdcLoggable
 import code.util.HydraUtil
 import code.validation.JsonSchemaValidation
 import code.views.Views
@@ -149,8 +149,6 @@ import com.openbankproject.commons.util.Functions.Implicits._
 import com.openbankproject.commons.util.{ApiVersion, Functions}
 import net.liftweb.common._
 import net.liftweb.db.{DB, DBLogEntry}
-import net.liftweb.http.LiftRules.DispatchPF
-import net.liftweb.http._
 import net.liftweb.json.Extraction
 import net.liftweb.mapper.{DefaultConnectionIdentifier => _, _}
 // SiteMap imports removed - API-only mode, no portal pages
@@ -209,8 +207,7 @@ class Boot extends MdcLoggable {
     } yield {
       Props.toTry.map {
         f => {
-          val contextPath = LiftRules.context.path
-          val name = propsPath + contextPath + f() + "props"
+          val name = propsPath + f() + "props"
           name -> { () => tryo{new FileInputStream(new File(name))} }
         }
       }
@@ -388,8 +385,10 @@ class Boot extends MdcLoggable {
 //      }
 //    }
 
-    LiftRules.unloadHooks.append(APIUtil.vendor.closeAllConnections_! _)
-    LiftRules.unloadHooks.append(Redis.jedisPoolDestroy _)
+    // NOTE: DB/Redis shutdown is registered together with the gRPC server stop in a
+    // single ORDERED shutdown hook at the end of boot (after the gRPC block) — see there.
+    // JVM runs every addShutdownHook thread CONCURRENTLY with no ordering guarantee, so a
+    // separate DB-close hook could race a still-draining gRPC server that touches the DB.
 //    LiftRules.statelessDispatch.prepend {
 //      case _ if tryo(DB.use(DefaultConnectionIdentifier){ conn => conn}.isClosed).isEmpty =>
 //        Props.mode match {
@@ -406,8 +405,7 @@ class Boot extends MdcLoggable {
 
     //If use_custom_webapp=true, this will copy all the files from `OBP-API/obp-api/src/main/webapp` to `OBP-API/obp-api/src/main/resources/custom_webapp`
     if (APIUtil.getPropsAsBoolValue("use_custom_webapp", false)){
-      //this `LiftRules.getResource` will get the path of `OBP-API/obp-api/src/main/webapp`:
-      LiftRules.getResource("/").map { url =>
+      Option(getClass.getClassLoader.getResource("./")).map { url =>
         // this following will get the path of `OBP-API/obp-api/src/main/resources/custom_webapp`
         val source = if (getClass().getClassLoader().getResource("custom_webapp") == null)
           throw new RuntimeException("If you set `use_custom_webapp = true`, custom_webapp folder can not be Empty!!")
@@ -455,19 +453,6 @@ class Boot extends MdcLoggable {
       case _ => // Do nothing
     }
 
-    // where to search snippets
-    LiftRules.addToPackages("code")
-
-
-    // H2 web console
-    // Help accessing H2 from outside Lift, and be able to run any queries against it.
-    // It's enabled only in Dev and Test mode
-    if (Props.devMode || Props.testMode) {
-      LiftRules.liftRequest.append({case r if (r.path.partPath match {
-        case "console" :: _ => true
-        case _ => false}
-        ) => false})
-    }
 
 
 
@@ -500,11 +485,6 @@ class Boot extends MdcLoggable {
     // (Http4sOpenIdConnect / DirectLoginRoutes / AliveCheckRoutes). The Lift
     // dispatches were retired in the http4s migration; any prop gates
     // (e.g. `openid_connect.enabled`, `allow_direct_login`) live with those routes.
-
-
-
-    //LiftRules.statelessDispatch.append(AccountsAPI)
-
 
     //////////////////////////////////////////////////////////////////////////////////////////////////
     // Resource Docs are used in the process of surfacing endpoints so we enable them explicitly
@@ -544,52 +524,6 @@ class Boot extends MdcLoggable {
 
     // SiteMap removed - API-only mode, all routing via statelessDispatch
 
-    // Force the request to be UTF-8
-    LiftRules.early.append(_.setCharacterEncoding("UTF-8"))
-
-    LiftRules.explicitlyParsedSuffixes = Helpers.knownSuffixes &~ (Set("com"))
-
-    val locale = I18NUtil.getDefaultLocale()
-    // Locale.setDefault(locale) // TODO Explain why this line of code introduce weird side effects
-    logger.info("Default Project Locale is :" + locale)
-
-    // Cookie name
-    val localeCookieName = "SELECTED_LOCALE"
-    LiftRules.localeCalculator = {
-      case fullReq @ Full(req) => {
-        // Check against a set cookie, or the locale sent in the request
-        def currentLocale : Locale = {
-          S.findCookie(localeCookieName).flatMap {
-            cookie => cookie.value.map(I18NUtil.computeLocale)
-          } openOr locale
-        }
-
-        // Check to see if the user explicitly requests a new locale
-        // In case it's true we use that value to set up a new cookie value
-        ObpS.param(PARAM_LOCALE) match {
-          case Full(requestedLocale) if requestedLocale != null && APIUtil.checkShortString(requestedLocale)==SILENCE_IS_GOLDEN => {
-            val computedLocale: Locale = I18NUtil.computeLocale(requestedLocale)
-            // Simon: if we are not using resource_user.last_used_local we don't need to set it. It is not returned in the Agent User endpoint. Thus, for now, we don't need to set it in the database.
-            // val sessionId = S.session.map(_.uniqueId).openOr("")
-            // AuthUser.updateComputedLocale(sessionId, computedLocale.toString())
-            computedLocale
-          }
-          case _ => currentLocale
-        }
-      }
-      case _ => locale
-    }
-
-
-    //for XSS vulnerability, set X-Frame-Options header as DENY
-    LiftRules.supplementalHeaders.default.set(
-      ("X-Frame-Options", "DENY") ::
-        Nil
-    )
-
-    // Make a transaction span the whole HTTP request
-    S.addAround(DB.buildLoanWrapper)
-    logger.info("Note: We added S.addAround(DB.buildLoanWrapper) so each HTTP request uses ONE database transaction.")
 
     try {
       val useMessageQueue = APIUtil.getPropsAsBoolValue("messageQueue.createBankAccounts", false)
@@ -597,44 +531,6 @@ class Boot extends MdcLoggable {
         BankAccountCreationListener.startListen
     } catch {
       case e: ExceptionInInitializerError => logger.warn(s"BankAccountCreationListener Exception: $e")
-    }
-
-    LiftRules.exceptionHandler.prepend{
-      case(_, r, e) if e.isInstanceOf[NullPointerException] && e.getMessage.contains("Looking for Connection Identifier") => {
-        logger.error(s"Exception being returned to browser when processing url is ${r.request.uri}, method is ${r.request.method}, exception detail is $e", e)
-        JsonResponse(
-          Extraction.decompose(ErrorMessage(code = 500, message = s"${ErrorMessages.DatabaseConnectionClosedError}")),
-          500
-        )
-      }
-      case(Props.RunModes.Development, r, e) => {
-        logger.error(s"Exception being returned to browser when processing url is ${r.request.uri}, method is ${r.request.method}, exception detail is $e", e)
-        JsonResponse(
-          Extraction.decompose(ErrorMessage(code = 500, message = s"${ErrorMessages.InternalServerError} ${showExceptionAtJson(e)}")),
-          500
-        )
-      }
-      case (_, r , e) => {
-        sendExceptionEmail(e)
-        logger.error(s"Exception being returned to browser when processing url is ${r.request.uri}, method is ${r.request.method}, exception detail is $e", e)
-        JsonResponse(
-          Extraction.decompose(ErrorMessage(code = 500, message = s"${ErrorMessages.InternalServerError}")),
-          500
-        )
-      }
-    }
-
-    LiftRules.uriNotFound.prepend{
-      case (r, _) if r.uri.contains(ConstantsBG.berlinGroupVersion1.urlPrefix) => NotFoundAsResponse(errorJsonResponse(
-        s"${ErrorMessages.InvalidUri}Current Url is (${r.uri.toString}), Current Content-Type Header is (${r.headers.find(_._1.equals("Content-Type")).map(_._2).getOrElse("")})",
-        405,
-        Some(CallContextLight(url = r.uri))
-      )
-      )
-      case (r, _) => NotFoundAsResponse(errorJsonResponse(
-        s"${ErrorMessages.InvalidUri}Current Url is (${r.uri.toString}), Current Content-Type Header is (${r.headers.find(_._1.equals("Content-Type")).map(_._2).getOrElse("")})",
-        404)
-      )
     }
 
     if ( !APIUtil.getPropsAsLongValue("transaction_request_status_scheduler_delay").isEmpty ) {
@@ -657,73 +553,11 @@ class Boot extends MdcLoggable {
       case false => // Do not start it
     }
 
-    object UsernameLockedChecker  {
-      def onBeginServicing(session: LiftSession, req: Req): Unit = {
-        logger.debug(s"Hello from UsernameLockedChecker.onBeginServicing")
-        checkIsLocked()
-        logger.debug(s"Bye from UsernameLockedChecker.onBeginServicing")
-      }
-      def onSessionActivate(session: LiftSession): Unit = {
-        logger.debug(s"Hello from UsernameLockedChecker.onSessionActivate")
-        checkIsLocked()
-        logger.debug(s"Bye from UsernameLockedChecker.onSessionActivate")
-      }
-      def onSessionPassivate(session: LiftSession): Unit = {
-        logger.debug(s"Hello from UsernameLockedChecker.onSessionPassivate")
-        checkIsLocked()
-        logger.debug(s"Bye from UsernameLockedChecker.onSessionPassivate")
-      }
-      private def checkIsLocked(): Unit = {
-        AuthUser.currentUser match {
-          case Full(user) =>
-            LoginAttempt.userIsLocked(localIdentityProvider, user.username.get) match {
-              case true =>
-                AuthUser.logoutCurrentUser
-                logger.warn(s"checkIsLocked says: User ${user.username.get} has been logged out because it is locked.")
-              case false => // Do nothing
-                logger.debug(s"checkIsLocked says: User ${user.username.get} is not locked.")
-            }
-          case _ => // No user found
-            logger.debug(s"checkIsLocked says: No User Found.")
-        }
-      }
-    }
-    LiftSession.onBeginServicing = UsernameLockedChecker.onBeginServicing _ :: LiftSession.onBeginServicing
-    LiftSession.onSessionActivate = UsernameLockedChecker.onSessionActivate _ :: LiftSession.onSessionActivate
-    LiftSession.onSessionPassivate = UsernameLockedChecker.onSessionPassivate _ :: LiftSession.onSessionPassivate
 
-    // export one Connector's methods as endpoints, it is just for develop
-    APIUtil.getPropsValue("connector.name.export.as.endpoints").foreach { connectorName =>
-      // validate whether "connector.name.export.as.endpoints" have set a correct value
-      code.api.Constant.CONNECTOR match {
-        case Full("star") =>
-          val starConnectorTypes = APIUtil.getPropsValue("starConnector_supported_types","mapped")
-            .trim
-            .split("""\s*,\s*""")
-
-          val allSupportedConnectors: List[String] = Connector.nameToConnector.keys.toList
-            .filter(it => starConnectorTypes.exists(it.startsWith(_)))
-
-          assert(allSupportedConnectors.contains(connectorName), s"connector.name.export.as.endpoints=$connectorName, this value should be one of ${allSupportedConnectors.mkString(",")}")
-
-        case _ if connectorName == "mapped" =>
-          Functions.doNothing
-
-        case Full(connector) =>
-          assert(connector == connectorName, s"When 'connector=$connector', this props must be: connector.name.export.as.endpoints=$connector, but current it is $connectorName")
-      }
-
-      ConnectorEndpoints.registerConnectorEndpoints
-    }
+    // ConnectorEndpoints (connector.name.export.as.endpoints) registered via Lift statelessDispatch
+    // which is no longer reachable (Lift bridge removed in Phase B). Disabled until migrated to http4s.
     if(HydraUtil.integrateWithHydra && HydraUtil.mirrorConsumerInHydra) {
       createHydraClients()
-    }
-
-    Props.get("session_inactivity_timeout_in_seconds") match {
-      case Full(x) if tryo(x.toLong).isDefined =>
-        LiftRules.sessionInactivityTimeout.default.set(Full((x.toLong.minutes): Long))
-      case _ =>
-      // Do not change default value
     }
 
   }
@@ -757,53 +591,6 @@ class Boot extends MdcLoggable {
     Schemifier.schemify(true, Schemifier.infoF _, ToSchemify.models: _*)
     // Create default system-level "general" chat room (is_open_room = true)
     code.chat.ChatRoomTrait.chatRoomProvider.vend.getOrCreateDefaultRoom()
-  }
-
-  private def showExceptionAtJson(error: Throwable): String = {
-    val formattedError = "Message: " + error.toString  + error.getStackTrace.map(_.toString).mkString(" ")
-
-    val formattedCause = error.getCause match {
-      case null => ""
-      case cause: Throwable => "Caught and thrown by: " + showExceptionAtJson(cause)
-    }
-
-    formattedError + formattedCause
-  }
-
-  private def sendExceptionEmail(exception: Throwable): Unit = {
-
-    import net.liftweb.util.Helpers.now
-
-    val outputStream = new java.io.ByteArrayOutputStream
-    val printStream = new java.io.PrintStream(outputStream)
-    exception.printStackTrace(printStream)
-    val currentTime = now.toString
-    val stackTrace = new String(outputStream.toByteArray)
-    val error = currentTime + ": " + stackTrace
-    val host = Constant.HostName
-
-    val mailSent = for {
-      from <- APIUtil.getPropsValue("mail.exception.sender.address") ?~ "Could not send mail: Missing props param for 'from'"
-      // no spaces, comma separated e.g. mail.api.consumer.registered.notification.addresses=notify@example.com,notify2@example.com,notify3@example.com
-      toAddressesString <- APIUtil.getPropsValue("mail.exception.registered.notification.addresses") ?~ "Could not send mail: Missing props param for 'to'"
-    } yield {
-
-      //technically doesn't work for all valid email addresses so this will mess up if someone tries to send emails to "foo,bar"@example.com
-      val to = toAddressesString.split(",").toList
-
-      val emailContent = CommonsEmailWrapper.EmailContent(
-        from = from,
-        to = to,
-        subject = s"you got an exception on $host",
-        textContent = Some(error)
-      )
-
-      //this is an async call∆∆
-      CommonsEmailWrapper.sendTextEmail(emailContent)
-    }
-
-    if(mailSent.isEmpty)
-      logger.warn(s"Exception notification failed: $mailSent")
   }
 
   /**
@@ -1104,7 +891,7 @@ class Boot extends MdcLoggable {
 
 }
 
-object ToSchemify {
+object ToSchemify extends MdcLoggable {
   val models: List[MetaMapper[_]] = List(
     AuthUser,
     JobScheduler,
@@ -1250,10 +1037,26 @@ object ToSchemify {
   )
 
   // start grpc server
-  if (APIUtil.getPropsAsBoolValue("grpc.server.enabled", false)) {
-    val server = new ObpGrpcServer(ExecutionContext.global)
-    server.start()
-    LiftRules.unloadHooks.append(server.stop)
-  }
+  // start grpc server (optional)
+  val grpcServerOpt: Option[ObpGrpcServer] =
+    if (APIUtil.getPropsAsBoolValue("grpc.server.enabled", false)) {
+      val server = new ObpGrpcServer(ExecutionContext.global)
+      server.start()
+      Some(server)
+    } else None
+
+  // Single ORDERED shutdown hook (replaces the former two CONCURRENT hooks: the DB/Redis
+  // close that used to sit earlier in boot, and the gRPC stop here). JVM runs every
+  // addShutdownHook thread concurrently with no ordering guarantee, so the old pair could
+  // race: gRPC might still be serving an in-flight request that touches the DB while the
+  // connection pool is being closed. Here we stop gRPC FIRST (drains in-flight requests),
+  // THEN close DB + Redis. Each step is guarded so one failure doesn't skip the rest.
+  Runtime.getRuntime.addShutdownHook(new Thread(() => {
+    grpcServerOpt.foreach { s =>
+      try s.stop() catch { case e: Throwable => logger.warn("gRPC server.stop() failed during shutdown", e) }
+    }
+    try APIUtil.vendor.closeAllConnections_!() catch { case e: Throwable => logger.warn("DB closeAllConnections_!() failed during shutdown", e) }
+    try Redis.jedisPoolDestroy catch { case e: Throwable => logger.warn("Redis jedisPoolDestroy failed during shutdown", e) }
+  }))
 
 }

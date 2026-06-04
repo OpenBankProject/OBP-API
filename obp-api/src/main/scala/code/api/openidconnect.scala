@@ -39,7 +39,6 @@
 //import com.openbankproject.commons.model.User
 //import com.openbankproject.commons.util.{ApiVersion, ApiVersionStatus}
 //import net.liftweb.common._
-//import net.liftweb.http._
 //import net.liftweb.json
 //import net.liftweb.json.JValue
 //import net.liftweb.mapper.By

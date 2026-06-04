@@ -2,15 +2,10 @@ package code.api.util
 
 import code.api.Constant.PARAM_LOCALE
 import code.util.Helper.{MdcLoggable, ObpS, SILENCE_IS_GOLDEN}
-
-import java.util.{Date, Locale}
-
-import code.util.Helper.MdcLoggable
 import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 import com.openbankproject.commons.model.enums.I18NResourceDocField
-import net.liftweb.common.Full
-import net.liftweb.http.S
-import net.liftweb.http.provider.HTTPCookie
+
+import java.util.{Date, Locale}
 
 object I18NUtil extends MdcLoggable {
   // Copied from Sofit
@@ -27,20 +22,12 @@ object I18NUtil extends MdcLoggable {
   }.headOption.getOrElse(new Locale(ApiPropsWithAlias.defaultLocale))
   
   def currentLocale() : Locale = {
-    // Cookie name
-    val localeCookieName = "SELECTED_LOCALE"
     ObpS.param(PARAM_LOCALE) match {
-      // 1st choice: Use query parameter as a source of truth if any
-      case Full(requestedLocale) if requestedLocale != null && APIUtil.checkShortString(requestedLocale) == SILENCE_IS_GOLDEN => {
-        val computedLocale = I18NUtil.computeLocale(requestedLocale)
-        S.addCookie(HTTPCookie(localeCookieName, requestedLocale))
-        computedLocale
-      }
-      // 2nd choice: Otherwise use the cookie  
+      // Use query parameter as a source of truth if any
+      case net.liftweb.common.Full(requestedLocale) if requestedLocale != null && APIUtil.checkShortString(requestedLocale) == SILENCE_IS_GOLDEN =>
+        I18NUtil.computeLocale(requestedLocale)
       case _ =>
-        S.findCookie(localeCookieName).flatMap {
-          cookie => cookie.value.map(computeLocale)
-        } openOr getDefaultLocale()
+        getDefaultLocale()
     }
   }
   // Properly convert a language tag to a Locale

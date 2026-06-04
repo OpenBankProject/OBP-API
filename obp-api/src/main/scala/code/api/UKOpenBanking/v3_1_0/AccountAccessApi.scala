@@ -13,8 +13,6 @@
 //import com.openbankproject.commons.ExecutionContext.Implicits.global
 //import com.openbankproject.commons.model.User
 //import net.liftweb.common.{Empty, Full}
-//import net.liftweb.http.js.JE.JsRaw
-//import net.liftweb.http.rest.RestHelper
 //import net.liftweb.json
 //import net.liftweb.json._
 //

@@ -36,7 +36,6 @@ object Http4sUKOBv310InternationalPayments extends MdcLoggable {
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(createInternationalPaymentConsents),
     "POST",
@@ -182,7 +181,6 @@ object Http4sUKOBv310InternationalPayments extends MdcLoggable {
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(createInternationalPayments),
     "POST",
@@ -318,7 +316,6 @@ object Http4sUKOBv310InternationalPayments extends MdcLoggable {
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(getInternationalPaymentConsentsConsentIdFundsConfirmation),
     "GET",
@@ -356,7 +353,6 @@ object Http4sUKOBv310InternationalPayments extends MdcLoggable {
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(getInternationalPaymentConsentsConsentId),
     "GET",
@@ -502,7 +498,6 @@ object Http4sUKOBv310InternationalPayments extends MdcLoggable {
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(getInternationalPaymentsInternationalPaymentId),
     "GET",

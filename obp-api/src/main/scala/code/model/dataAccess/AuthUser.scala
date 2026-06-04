@@ -51,10 +51,7 @@ import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
 import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common._
-import net.liftweb.http.S.fmapFunc
-import net.liftweb.http._
 import net.liftweb.mapper._
-import net.liftweb.sitemap.Loc.{If, LocParam, Template}
 import net.liftweb.util._
 import org.apache.commons.lang3.StringUtils
 import sh.ory.hydra.api.AdminApi
@@ -106,16 +103,6 @@ class AuthUser extends MegaProtoUser[AuthUser] with CreatedUpdated with MdcLogga
     override def displayName = fieldOwner.firstNameDisplayName
     override val fieldId = Some(Text("txtFirstName"))
     override def validations = isEmpty(Helper.i18n("Please.enter.your.first.name")) _ :: super.validations
-
-    override def _toForm: Box[Elem] =
-      fmapFunc({s: List[String] => this.setFromAny(s)}){name =>
-        Full(appendFieldId(<input type={formInputType} 
-                                  maxlength={maxLen.toString}
-                                  aria-labelledby={displayName} 
-                                  aria-describedby={uniqueFieldId.getOrElse("")}
-                                  name={name}
-                                  value={get match {case null => "" case s => s.toString}}/>))
-      }
   }
   
   override lazy val lastName = new MyLastName
@@ -131,17 +118,6 @@ class AuthUser extends MegaProtoUser[AuthUser] with CreatedUpdated with MdcLogga
     override def displayName = fieldOwner.lastNameDisplayName
     override val fieldId = Some(Text("txtLastName"))
     override def validations = isEmpty(Helper.i18n("Please.enter.your.last.name")) _ :: super.validations
-
-    override def _toForm: Box[Elem] =
-      fmapFunc({s: List[String] => this.setFromAny(s)}){name =>
-        Full(appendFieldId(<input type={formInputType}
-                                  maxlength={maxLen.toString}
-                                  aria-labelledby={displayName}
-                                  aria-describedby={uniqueFieldId.getOrElse("")}
-                                  name={name}
-                                  value={get match {case null => "" case s => s.toString}}/>))
-      }
-    
   }
   
   /**
@@ -187,20 +163,10 @@ class AuthUser extends MegaProtoUser[AuthUser] with CreatedUpdated with MdcLogga
     override def validations = isEmpty(Helper.i18n("Please.enter.your.username")) _ ::
                                usernameIsValid(Helper.i18n("invalid.username")) _ ::
                                valUnique(Helper.i18n("unique.username")) _ ::
-                               valUniqueExternally(Helper.i18n("unique.username")) _ :: 
+                               valUniqueExternally(Helper.i18n("unique.username")) _ ::
                                super.validations
     override val fieldId = Some(Text("txtUsername"))
 
-    override def _toForm: Box[Elem] =
-      fmapFunc({s: List[String] => this.setFromAny(s)}){name =>
-        Full(appendFieldId(<input type={formInputType}
-                                  maxlength={maxLen.toString}
-                                  aria-labelledby={displayName}
-                                  aria-describedby={uniqueFieldId.getOrElse("")}
-                                  name={name}
-                                  value={get match {case null => "" case s => s.toString}}/>))
-      }
-    
     /**
      * Make sure that the field is unique in the CBS
      */
@@ -242,27 +208,11 @@ class AuthUser extends MegaProtoUser[AuthUser] with CreatedUpdated with MdcLogga
 
   override lazy val password = new MyPasswordNew
   
-  lazy val signupPasswordRepeatText = getWebUiPropsValue("webui_signup_body_password_repeat_text", S.?("repeat"))
- 
+  lazy val signupPasswordRepeatText = getWebUiPropsValue("webui_signup_body_password_repeat_text", "repeat")
+
   class MyPasswordNew extends MappedPassword(this) {
     lazy val preFilledPassword = if (APIUtil.getPropsAsBoolValue("allow_pre_filled_password", true)) {get.toString} else ""
-    override def _toForm: Box[NodeSeq] = {
-      S.fmapFunc({s: List[String] => this.setFromAny(s)}){funcName =>
-        Full(
-          <span>
-            {appendFieldId(<input id="textPassword" aria-labelledby="Password" aria-describedby={uniqueFieldId.getOrElse("")} type={formInputType} name={funcName} value={preFilledPassword}/> ) }
-            <div id="signup-error" class="alert alert-danger hide">
-              <span data-lift={s"Msg?id=${uniqueFieldId.getOrElse("")}&errorClass=error"}/>
-            </div>
-            <div id ="repeat-password">{signupPasswordRepeatText}</div>
-            <input id="textPasswordRepeat" aria-labelledby="Password Repeat" aria-describedby={uniqueFieldId.getOrElse("")}  type={formInputType} name={funcName} value={preFilledPassword}/>
-            <div id="signup-error" class="alert alert-danger hide">
-              <span data-lift={s"Msg?id=${uniqueFieldId.getOrElse("")}_repeat&errorClass=error"}/>
-            </div>
-        </span>)
-      }
-    }
-    
+
     override def displayName = fieldOwner.passwordDisplayName
     
     private var passwordValue = ""
@@ -287,16 +237,14 @@ class AuthUser extends MegaProtoUser[AuthUser] with CreatedUpdated with MdcLogga
         }
         isPasswordEmpty() match {
           case true =>
-            invalidPw = true;
+            invalidPw = true
             invalidMsg = Helper.i18n("please.enter.your.password")
-            S.error("authuser_password_repeat", Text(Helper.i18n("please.re-enter.your.password")))
           case false =>
             if (fullPasswordValidation(passwordValue))
               invalidPw = false
             else {
               invalidPw = true
-              invalidMsg = S.?(ErrorMessages.InvalidStrongPasswordFormat.split(':')(1))
-              S.error("authuser_password_repeat", Text(invalidMsg))
+              invalidMsg = ErrorMessages.InvalidStrongPasswordFormat.split(':')(1).trim
             }
         }
       }
@@ -312,9 +260,8 @@ class AuthUser extends MegaProtoUser[AuthUser] with CreatedUpdated with MdcLogga
           this.set(l.head.asInstanceOf[String])
         }
         case _ => {
-          invalidPw = true;
+          invalidPw = true
           invalidMsg = Helper.i18n("passwords.do.not.match")
-          S.error("authuser_password_repeat", Text(invalidMsg))
         }
       }
       get
@@ -333,7 +280,7 @@ class AuthUser extends MegaProtoUser[AuthUser] with CreatedUpdated with MdcLogga
    */
   lazy val provider: userProvider = new userProvider()
   class userProvider extends MappedString(this, 100) {
-    override def displayName = S.?("provider")
+    override def displayName = "provider"
     override val fieldId = Some(Text("txtProvider"))
     override def validations = validUri(this) _ :: super.validations
     override def defaultValue: String = Constant.localIdentityProvider
@@ -411,15 +358,6 @@ class AuthUser extends MegaProtoUser[AuthUser] with CreatedUpdated with MdcLogga
       case e if (!isEmailValid(e))  => List(FieldError(this, Text(Helper.i18n("invalid.email.address"))))
       case _                     => Nil
     }
-    override def _toForm: Box[Elem] =
-      fmapFunc({s: List[String] => this.setFromAny(s)}){name =>
-        Full(appendFieldId(<input type={formInputType}
-                                  maxlength={maxLen.toString}
-                                  aria-labelledby={displayName}
-                                  aria-describedby={uniqueFieldId.getOrElse("")}
-                                  name={name}
-                                  value={get match {case null => "" case s => s.toString}}/>))
-      }
   }
 }
 
@@ -498,8 +436,8 @@ import net.liftweb.util.Helpers._
     *
     */
   def getCurrentUser: Box[User] = {
-    val authorization: Box[String] = S.request.map(_.header("Authorization")).flatten
-    val directLogin: Box[String] = S.request.map(_.header("DirectLogin")).flatten
+    val authorization: Box[String] = Empty
+    val directLogin: Box[String] = Empty
     for {
       resourceUser <- if (AuthUser.currentUser.isDefined){
         //AuthUser.currentUser.get.user.foreign // this will be issue when the resource user is in remote side {
@@ -630,14 +568,11 @@ import net.liftweb.util.Helpers._
         sendHtmlEmail(emailContent) match {
           case Full(messageId) =>
             logger.debug(s"Validation email sent successfully with Message-ID: $messageId")
-            S.notice("Validation email sent successfully. Please check your email.")
           case Empty =>
             logger.error("Failed to send validation email")
-            S.error("Failed to send validation email. Please try again.")
         }
       case _ =>
         logger.error("portal_external_url is not set in props. Cannot send validation email.")
-        S.error("Validation email could not be sent. Please contact the administrator.")
     }
   }
 
@@ -668,20 +603,10 @@ import net.liftweb.util.Helpers._
       case Full(user) if !user.validated_? =>
         user.setValidated(true).resetUniqueId().save
         grantDefaultEntitlementsToAuthUser(user)
-        logUserIn(user, () => {
-          S.notice(S.?("account.validated"))
-          APIUtil.getPropsValue("user_account_validated_redirect_url") match {
-            case Full(redirectUrl) =>
-              logger.debug(s"user_account_validated_redirect_url = $redirectUrl")
-              S.redirectTo(redirectUrl)
-            case _ =>
-              logger.debug(s"user_account_validated_redirect_url is NOT defined")
-              S.redirectTo(homePage)
-          }
-        })
-
-      case _ => S.error(S.?("invalid.validation.link")); S.redirectTo(homePage)
+      case _ =>
+        logger.warn("validateUser: invalid or expired token")
     }
+    NodeSeq.Empty
   }
 
   override def actionsAfterSignup(theUser: TheUserType, func: () => Nothing): Nothing = {
@@ -696,24 +621,12 @@ import net.liftweb.util.Helpers._
       theUser.user.foreign.map(_.userId).getOrElse(""), "terms_and_conditions", termsAndConditionsValue)
     if (!skipEmailValidation) {
       sendValidationEmail(theUser)
-      S.notice(S.?("sign.up.message"))
       func()
     } else {
       grantDefaultEntitlementsToAuthUser(theUser)
-      logUserIn(theUser, () => {
-        S.notice(S.?("welcome"))
-        func()
-      })
+      logUserIn(theUser, () => func())
     }
   }
-  /**
-   * Set this to redirect to a certain page after a failed login
-   */
-  object failedLoginRedirect extends SessionVar[Box[String]](Empty) {
-    override lazy val __nameSalt = Helpers.nextFuncName
-  }
-
-
   // agreeTermsDiv simplified - API-only mode, no portal pages
   def agreeTermsDiv = NodeSeq.Empty
 
@@ -726,7 +639,7 @@ import net.liftweb.util.Helpers._
   // enableDisableSignUpButton simplified - API-only mode, no portal pages
   def enableDisableSignUpButton = NodeSeq.Empty
 
-  def signupFormTitle = getWebUiPropsValue("webui_signup_form_title_text", S.?("sign.up"))
+  def signupFormTitle = getWebUiPropsValue("webui_signup_form_title_text", "sign.up")
 
   // signupXhtml simplified - API-only mode, no portal pages
   // Signup is handled via API endpoints, not HTML forms
@@ -736,25 +649,6 @@ import net.liftweb.util.Helpers._
   // localForm simplified - API-only mode, no portal pages
   override def localForm(user: TheUserType, ignorePassword: Boolean, fields: List[FieldPointerType]): NodeSeq = NodeSeq.Empty
 
-  def userLoginFailed = {
-    logger.info("failed: " + failedLoginRedirect.get)
-    // variable redir is from failedLoginRedirect, it is set-up in OAuthAuthorisation.scala as following code:
-    // val currentUrl = ObpS.uriAndQueryString.getOrElse("/")
-    // AuthUser.failedLoginRedirect.set(Full(Helpers.appendParams(currentUrl, List((FailedLoginParam, "true")))))
-    val redir = failedLoginRedirect.get
-
-    //Check the internal redirect, in case for open redirect issue.
-    // variable redir is from loginRedirect, it is set-up in OAuthAuthorisation.scala as following code:
-    // val currentUrl = ObpS.uriAndQueryString.getOrElse("/")
-    // AuthUser.loginRedirect.set(Full(Helpers.appendParams(currentUrl, List((LogUserOutParam, "false")))))
-    if (Helper.isValidInternalRedirectUrl(redir.toString)) {
-        S.redirectTo(redir.toString)
-    } else {
-      S.error(S.?(ErrorMessages.InvalidInternalRedirectUrl))
-      logger.info(ErrorMessages.InvalidInternalRedirectUrl + loginRedirect.get)
-    }
-    S.error("login", S.?("Invalid Username or Password"))
-  }
 
 
 
@@ -1077,26 +971,7 @@ def restoreSomeSessions(): Unit = {
   override protected def capturePreLoginState(): () => Unit = () => {restoreSomeSessions}
 
 
-  /**
-    * The LocParams for the menu item for login.
-    * Overridden in order to add custom error message. Attention: Not calling super will change the default behavior!
-    */
-  override protected def loginMenuLocParams: List[LocParam[Unit]] = {
-    If(notLoggedIn_? _, () => RedirectResponse("/already-logged-in")) ::
-      Template(() => wrapIt(login)) ::
-      Nil
-  }
-
-  override def logout = {
-    logoutCurrentUser
-    S.request match {
-      case Full(a) =>  a.param("redirect") match {
-        case Full(customRedirect) => S.redirectTo(customRedirect)
-        case _ => S.redirectTo(homePage)
-      }
-      case _ => S.redirectTo(homePage)
-    }
-  }
+  override protected def loginMenuLocParams = Nil
 
   /**
    * A Space is an alias for the OBP Bank. Each Bank / Space can contain many Dynamic Endpoints. If a User belongs to a Space,
@@ -1416,67 +1291,9 @@ def restoreSomeSessions(): Unit = {
     val usernames: List[String] = this.getResourceUsersByEmail(email).map(_.user.name)
     findAll(ByList(this.username, usernames))
   }
-  def signupSubmitButtonValue() = getWebUiPropsValue("webui_signup_form_submit_button_value", S.?("sign.up"))
+  def signupSubmitButtonValue() = getWebUiPropsValue("webui_signup_form_submit_button_value", "sign.up")
 
-  //overridden to allow redirect to loginRedirect after signup. This is mostly to allow
-  // loginFirst menu items to work if the user doesn't have an account. Without this,
-  // if a user tries to access a logged-in only page, and then signs up, they don't get redirected
-  // back to the proper page.
-  override def signup = {
-    val theUser: TheUserType = mutateUserOnSignup(createNewUserInstance())
-    val theName = signUpPath.mkString("")
-
-    //Check the internal redirect, in case for open redirect issue.
-    // variable redir is from loginRedirect, it is set-up in OAuthAuthorisation.scala as following code:
-    // val currentUrl = ObpS.uriAndQueryString.getOrElse("/")
-    // AuthUser.loginRedirect.set(Full(Helpers.appendParams(currentUrl, List((LogUserOutParam, "false")))))
-    val loginRedirectSave = loginRedirect.is
-
-    def testSignup() {
-      validateSignup(theUser) match {
-        case Nil =>
-          //here we check loginRedirectSave (different from implementation in super class)
-          val redir = loginRedirectSave match {
-            case Full(url) =>
-              loginRedirect(Empty)
-              url
-            case _ =>
-              //if the register page url (user_mgt/sign_up?after-signup=link-to-customer) contains the parameter 
-              //after-signup=link-to-customer,then it will redirect to the on boarding customer page.
-              ObpS.param("after-signup") match { 
-                case url if (url.equals("link-to-customer")) =>
-                  "/add-user-auth-context-update-request"
-                case _ =>
-                  homePage
-            }
-          }
-          if (Helper.isValidInternalRedirectUrl(redir.toString)) {
-            actionsAfterSignup(theUser, () => {
-              S.redirectTo(redir)
-            })
-          } else {
-            S.error(S.?(ErrorMessages.InvalidInternalRedirectUrl))
-            logger.info(ErrorMessages.InvalidInternalRedirectUrl + loginRedirect.get)
-          }
-
-        case xs =>
-          xs.foreach{
-            e => S.error(e.field.uniqueFieldId.openOrThrowException("There is no uniqueFieldId."), e.msg)
-          }
-          signupFunc(Full(innerSignup _))
-      }
-    }
-
-    def innerSignup = {
-      val bind = "type=submit" #> signupSubmitButton(signupSubmitButtonValue(), testSignup _)
-      bind(signupXhtml(theUser))
-    }
-    
-    if(APIUtil.getPropsAsBoolValue("user_invitation.mandatory", false)) 
-      S.redirectTo("/user-invitation-info") 
-    else 
-      innerSignup
-  }
+  override def signup = NodeSeq.Empty
 
   def scrambleAuthUser(userPrimaryKey: UserPrimaryKey): Box[Boolean] = tryo {
     AuthUser.find(By(AuthUser.user, userPrimaryKey.value)) match {

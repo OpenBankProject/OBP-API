@@ -79,6 +79,14 @@ trait ServerSetupAsync extends AsyncFeatureSpec with SendServerRequests
 
 trait ServerSetupWithTestDataAsync extends ServerSetupAsync with DefaultConnectorTestSetup with DefaultUsers {
 
+  // On-demand test data (mirrors ServerSetupWithTestData). No async suite reads the
+  // beforeEach-created transactions / transaction-requests, so the whitelist is empty and both
+  // are skipped for every async suite. Add a simple class name here (or override
+  // needsTransactionData) if a future async suite ever needs them.
+  protected val suitesNeedingTransactionData: Set[String] = Set.empty
+  protected def needsTransactionData: Boolean =
+    suitesNeedingTransactionData.contains(this.getClass.getSimpleName)
+
   override def beforeEach() = {
     super.beforeEach()
     //create fake data for the tests
@@ -86,10 +94,11 @@ trait ServerSetupWithTestDataAsync extends ServerSetupAsync with DefaultConnecto
     val banks = createBanks()
     //fake bank accounts
     val accounts = createAccountRelevantResources(resourceUser1, banks)
-    //fake transactions
-    createTransactions(accounts)
-    //fake transactionRequests
-    createTransactionRequests(accounts)
+    //fake transactions + transactionRequests — opt-in per suite (none currently)
+    if (needsTransactionData) {
+      createTransactions(accounts)
+      createTransactionRequests(accounts)
+    }
   }
 
   override def afterEach() = {

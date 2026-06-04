@@ -1,9 +1,8 @@
 package code.api.v1_2_1
 
-import net.liftweb.http.rest.RestHelper
 
-trait APIMethods121 { self: RestHelper => }
-object APIMethods121 extends RestHelper with APIMethods121 {
+trait APIMethods121
+object APIMethods121 {
   val Implementations1_2_1 = Http4s121.Implementations1_2_1
 }
 
@@ -30,8 +29,6 @@ object APIMethods121 extends RestHelper with APIMethods121 {
 //import com.openbankproject.commons.util.ApiVersion
 //import com.tesobe.CacheKeyFromArguments
 //import net.liftweb.common._
-//import net.liftweb.http.JsonResponse
-//import net.liftweb.http.rest.RestHelper
 //import net.liftweb.json.Extraction
 //import net.liftweb.json.JsonAST.JValue
 //import net.liftweb.util.Helpers._

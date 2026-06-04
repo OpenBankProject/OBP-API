@@ -13,7 +13,6 @@
 //import com.openbankproject.commons.ExecutionContext.Implicits.global
 //import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId}
 //import net.liftweb.common.Full
-//import net.liftweb.http.rest.RestHelper
 //
 //import scala.collection.mutable.ArrayBuffer
 //import scala.concurrent.Future

@@ -1,7 +1,6 @@
 package code.api.v1_2_1
 
 import code.api.OBPRestHelper
-import code.api.util.APIUtil.OBPEndpoint
 import code.api.util.VersionedOBPApis
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.util.{ApiVersion, ApiVersionStatus}
@@ -20,9 +19,5 @@ object OBPAPI1_2_1 extends OBPRestHelper with MdcLoggable with VersionedOBPApis 
 
   def allResourceDocs = Http4s121.resourceDocs
 
-  val routes: List[OBPEndpoint] = Nil
-
-  registerRoutes(routes, allResourceDocs, apiPrefix, true)
-
-  logger.info(s"version $version has been run! There are ${routes.length} routes, ${allResourceDocs.length} allResourceDocs.")
+  logger.info(s"version $version has been run! ${allResourceDocs.length} allResourceDocs.")
 }

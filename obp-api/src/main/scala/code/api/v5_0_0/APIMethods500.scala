@@ -50,8 +50,6 @@ trait APIMethods500
 //import com.openbankproject.commons.model.enums.StrongCustomerAuthentication
 //import com.openbankproject.commons.util.ApiVersion
 //import net.liftweb.common.{Empty, Full}
-//import net.liftweb.http.Req
-//import net.liftweb.http.rest.RestHelper
 //import net.liftweb.json
 //import net.liftweb.json.{Extraction, compactRender, prettyRender}
 //import net.liftweb.mapper.By
@@ -2530,7 +2528,7 @@ trait APIMethods500
 //  }
 //}
 //
-//object APIMethods500 extends RestHelper with APIMethods500 {
+//object APIMethods500 {
 //  lazy val newStyleEndpoints: List[(String, String)] = Implementations5_0_0.resourceDocs.map {
 //    rd => (rd.partialFunctionName, rd.implementedInApiVersion.toString())
 //  }.toList

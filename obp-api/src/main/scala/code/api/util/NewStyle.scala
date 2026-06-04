@@ -55,8 +55,7 @@ import com.openbankproject.commons.model.enums.{SuppliedAnswerType, _}
 import com.openbankproject.commons.util.JsonUtils
 import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common._
-import net.liftweb.http.JsonResponse
-import net.liftweb.http.provider.HTTPParam
+import code.api.JsonResponse
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json._
 import net.liftweb.util.Helpers.tryo

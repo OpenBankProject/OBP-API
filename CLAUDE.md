@@ -13,7 +13,7 @@
 
 The goal is a full http4s migration — replace Lift Web across all version files and remove it entirely. **API versions are tech-agnostic**: a version bump means a changed/new API signature, never a framework change. Framework migration happens in-place inside the existing version file. v7.0.0 currently serves 45 endpoints; most arrived there for historical reasons and stay as-is.
 
-**Request priority chain** (Http4sServer): `corsHandler` (OPTIONS) → StatusPage → Http4s500 → Http4s700 → Http4sBGv2 → Http4s200 → Http4s140 → Http4s130 → Http4s121 → Http4sLiftWebBridge (Lift fallback). Unhandled `/obp/v7.0.0/*` paths fall through silently to Lift — they do not 404.
+**Request priority chain** (`Http4sApp.baseServices`): `corsHandler` (OPTIONS short-circuit) → `AppsPage` → `StatusPage` → `Http4sResourceDocs` → v510 → v600 → v500 → v700 → Berlin Group v2 → UK v2.0 → UK v3.1 → Berlin Group v1.3 (+Alias) → v400 → v310 → v300 → v220 → v210 → v200 → v140 → v130 → v121 → `dynamicEntityRoutes` → `dynamicEndpointRoutes` → DirectLogin → OpenIdConnect → AliveCheck → `notFoundCatchAll` (JSON 404). There is no Lift fallback — `Http4sLiftWebBridge` has been removed. Any unhandled `/obp/*` path returns a JSON 404 from `notFoundCatchAll`; it does not fall through to Lift.
 
 **Key files**: `Http4s700.scala` (v7.0.0 endpoints), `Http4s200.scala` (v2.0.0 endpoints — 37 own + path-rewriting bridge to Http4s140), `Http4s140.scala` (v1.4.0 endpoints — 11 own + path-rewriting bridge to Http4s130), `Http4s130.scala` (v1.3.0 endpoints — 3 own + path-rewriting bridge to Http4s121), `Http4s121.scala` (v1.2.1 endpoints — all 323 API1_2_1Test scenarios), `Http4sSupport.scala` (EndpointHelpers + recordMetric), `ResourceDocMiddleware.scala` (auth, entity resolution, transaction wrapper), `IdempotencyMiddleware.scala` (Redis-backed idempotency, opt-in via `Idempotency-Key` header, nested inside ResourceDocMiddleware), `RequestScopeConnection.scala` (DB transaction propagation to Futures).
 
@@ -30,8 +30,7 @@ Rules apply regardless of which version file the endpoint lives in. Use v7.0.0 o
 val myEndpoint: HttpRoutes[IO] = HttpRoutes.of[IO] { ... }
 
 resourceDocs += ResourceDoc(
-  null,                     // always null — no Lift endpoint ref
-  implementedInApiVersion,
+  implementedInApiVersion,  // first param; ResourceDoc.partialFunction (OBPEndpoint) was removed in the Lift teardown
   nameOf(myEndpoint),
   "GET", "/some/path", "Summary", """Description""",
   EmptyBody, responseJson,
@@ -172,7 +171,7 @@ EndpointHelpers.withUser(req) { (user, cc) =>
   } yield ...
 }
 // ResourceDoc:
-resourceDocs += ResourceDoc(null, ..., "/banks/FIREHOSE_BANK_ID/firehose/...", ..., None, ...)
+resourceDocs += ResourceDoc(implementedInApiVersion, ..., "/banks/FIREHOSE_BANK_ID/firehose/...", ..., None, ...)
 ```
 
 **`ResourceDoc` description and `needsAuthentication`**: The `ResourceDoc` constructor removes `AuthenticatedUserIsRequired` from `errorResponseBodies` when `description.contains(authenticationIsOptional) && rolesIsEmpty`. `needsAuthentication = errorResponseBodies.contains($AuthenticatedUserIsRequired) || roles.nonEmpty`. If the description embeds `${userAuthenticationMessage(false)}` (which includes `authenticationIsOptional`) and roles are empty, the error is silently removed → `needsAuthentication=false` → anonymous access → unauthenticated requests reach the handler. Fix: remove `${userAuthenticationMessage(false)}` from the description when `AuthenticatedUserIsRequired` must remain in the error list.
@@ -202,7 +201,7 @@ for tc in t.findall('testcase'):
 ```
 The `<failure>` element's *text* contains the full stack trace + the lift-json `MappingException` body dump — read that when the message alone (`"500 did not equal 400"`) isn't enough to find the failing assertion.
 
-**Empty path segments fall into http4s patterns that should reject them**: A Lift test like `getSystemView("")` builds URL `/system-views/`. http4s's `Path` keeps the trailing empty segment, so `case GET -> prefixPath / "system-views" / viewIdStr` matches with `viewIdStr = ""`. Meanwhile `ResourceDocMatcher.matchesUrlTemplate` filters empty segments via `.split("/").filter(_.nonEmpty)`, so the matcher sees 1 segment vs the template's 2 — no doc match → middleware skips auth/role validation and falls through to your handler with `viewIdStr = ""`. The handler then throws inside the business logic → 500 (test expected 401/403 from middleware). Fix: add a pattern guard so empty viewId doesn't match and the request falls through to the Lift bridge: `case req @ GET -> prefixPath / "system-views" / viewIdStr if viewIdStr.nonEmpty =>`. Apply to GET/PUT/DELETE variants.
+**Empty path segments fall into http4s patterns that should reject them**: A Lift test like `getSystemView("")` builds URL `/system-views/`. http4s's `Path` keeps the trailing empty segment, so `case GET -> prefixPath / "system-views" / viewIdStr` matches with `viewIdStr = ""`. Meanwhile `ResourceDocMatcher.matchesUrlTemplate` filters empty segments via `.split("/").filter(_.nonEmpty)`, so the matcher sees 1 segment vs the template's 2 — no doc match → middleware skips auth/role validation and falls through to your handler with `viewIdStr = ""`. The handler then throws inside the business logic → 500 (test expected 401/403 from middleware). Fix: add a pattern guard so empty viewId doesn't match and the request falls through to `notFoundCatchAll` (JSON 404): `case req @ GET -> prefixPath / "system-views" / viewIdStr if viewIdStr.nonEmpty =>`. Apply to GET/PUT/DELETE variants.
 
 **Throwing a `RuntimeException` in Lift returns 500, not 400**: When porting Lift code like:
 ```scala
@@ -256,7 +255,7 @@ POST /obp/v4.0.0/banks
   → Http4s220              (HAS POST /banks → executes v2.2.0 createBank ✗)
 ```
 
-Without the v4 work the chain falls all the way through to the Lift bridge, which honours the `collectResourceDocs` URL+verb dedup that keeps the highest-version handler for each route — so Lift's v4 createBank runs and the test passes. Once you add an `Http4sXYZ` for an in-flight migration, that "Lift dedup" no longer protects you. Cure: before flipping a new version's `wrappedRoutesVxxxServices` into `Http4sApp.baseServices`, audit the version's overrides (Lift's `excludeEndpoints` is *not* the right list — it only names *removed* endpoints, not overrides) and migrate them too.
+Before `Http4sLiftWebBridge` was removed, an un-migrated v4 override fell all the way through to the Lift bridge, which honoured the `collectResourceDocs` URL+verb dedup that keeps the highest-version handler for each route — so Lift's v4 createBank ran and the test passed. **That safety net is gone**: the chain now terminates in `notFoundCatchAll`, so a v4 path not matched by `Http4s400`'s own routes cascades down the http4s version bridges to an older handler (or 404s) — it never reaches a Lift v4 handler. Cure: before flipping a new version's `wrappedRoutesVxxxServices` into `Http4sApp.baseServices`, audit the version's overrides (Lift's `excludeEndpoints` is *not* the right list — it only names *removed* endpoints, not overrides) and migrate them too.
 
 How to find overrides for a version: grep `lazy val (\w+)` in the target `APIMethods*.scala`, then check whether the same URL + verb also appears in any older `APIMethods*.scala`. The intersection is the override set. Migrate that set as part of the same PR that introduces the bridge; otherwise reviewers will see test failures whose proximate cause (a downstream version's handler running) doesn't match the file the migration touches.
 
@@ -268,7 +267,7 @@ Symptoms in tests: a v4-specific assertion fails (e.g. an entitlement should-be-
 
 ## CI (shard map + run tips)
 
-Perf note: integration tests are DB/HTTP-bound (~0.4 s/test) on both frameworks; the http4s win is the **pure-unit tier** (no running server, ~0.008 s/test). `ResourceDocsTest`/`SwaggerDocsTest` are the slowest per-test cost — they serialize the whole API surface, so cost grows with endpoint count (needs ResourceDoc-serialization caching before the migration completes).
+Perf note: integration tests are DB/HTTP-bound (~0.4 s/test) on both frameworks; the http4s win is the **pure-unit tier** (no running server, ~0.008 s/test). `ResourceDocsTest`/`SwaggerDocsTest` are the slowest per-test cost — they serialize the whole API surface, so cost grows with endpoint count. `Http4sResourceDocs` already caches the serialized output (`Caching.{getDynamic,getStatic,getAll}ResourceDocCache` + `getStaticSwaggerDocCache`, keyed via `APIUtil.createResourceDocCacheKey`), so repeat requests for the same version/params skip re-serialization.
 
 ### Shard assignment
 

@@ -7,8 +7,6 @@ import code.bankconnectors.LocalMappedConnectorInternal
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model.BankId
 import com.tesobe.CacheKeyFromArguments
-import net.liftweb.common.Full
-import net.liftweb.http.LiftRules
 import net.liftweb.json._
 
 import scala.concurrent.duration._
@@ -86,24 +84,24 @@ object fx extends MdcLoggable {
       case true => 
         Some(1)
       case false =>
+        def loadResource(path: String): Option[String] =
+          Option(getClass.getResourceAsStream(path))
+            .map(is => scala.io.Source.fromInputStream(is, "UTF-8").mkString)
         val filename = s"/fallbackexchangerates/${fromCurrency.toLowerCase}.json"
-        val source = LiftRules.loadResourceAsString(filename)
-        source match {
-          case Full(payload) =>
+        loadResource(filename) match {
+          case Some(payload) =>
             val fxRate: ExchangeRate = (parse(payload) \ toCurrency.toLowerCase()).extract[ExchangeRate]
             Some(fxRate.rate)
-          case _ =>
-            val filename = s"/fallbackexchangerates/${toCurrency.toLowerCase}.json"
-            val source = LiftRules.loadResourceAsString(filename)
-            source match {
-              case Full(payload) =>
+          case None =>
+            val filename2 = s"/fallbackexchangerates/${toCurrency.toLowerCase}.json"
+            loadResource(filename2) match {
+              case Some(payload) =>
                 val fxRate: ExchangeRate = (parse(payload) \ fromCurrency.toLowerCase()).extract[ExchangeRate]
                 Some(fxRate.inverseRate)
-              case _ =>
-                logger.debug(s"getFallbackExchangeRate Could not find / load $filename")
+              case None =>
+                logger.debug(s"getFallbackExchangeRate Could not find / load $filename2")
                 None
             }
-            
         }
     }
     

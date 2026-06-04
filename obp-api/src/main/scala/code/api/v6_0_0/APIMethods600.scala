@@ -83,8 +83,6 @@ trait APIMethods600
 //import net.liftweb.common.{Box, Empty, Failure, Full}
 //import net.liftweb.util.Helpers.tryo
 //import org.apache.commons.lang3.StringUtils
-//import net.liftweb.http.provider.HTTPParam
-//import net.liftweb.http.rest.RestHelper
 //import net.liftweb.json.{Extraction, JsonParser}
 //import net.liftweb.json.JsonAST.{JArray, JField, JNothing, JObject, JString, JValue}
 //import net.liftweb.json.JsonDSL._
@@ -17167,7 +17165,7 @@ trait APIMethods600
 //
 //
 //
-//object APIMethods600 extends RestHelper with APIMethods600 {
+//object APIMethods600 {
 //  lazy val newStyleEndpoints: List[(String, String)] = Implementations6_0_0.resourceDocs.map {
 //    rd => (rd.partialFunctionName, rd.implementedInApiVersion.toString())
 //  }.toList

@@ -2,7 +2,7 @@ package code.api.dynamic.endpoint.helper
 
 import scala.language.implicitConversions
 import cats.effect.IO
-import code.api.util.APIUtil.{OBPEndpointIO, OBPReturnType}
+import code.api.util.APIUtil.{Http4sEndpointIO, OBPReturnType}
 import code.api.util.DynamicUtil.{Sandbox, Validation}
 import code.api.util.{CallContext, CustomJsonFormats, DynamicUtil}
 import org.http4s.{Request, Response}
@@ -12,7 +12,7 @@ import org.http4s.{Request, Response}
  * and supplies the `process` method body.
  *
  * Native http4s contract (replaces the former Lift one
- * `process(callContext, request: net.liftweb.http.Req, pathParams): Box[JsonResponse]`): the body
+ * `process(callContext, request: Req, pathParams): Box[JsonResponse]`): the body
  * receives the http4s `Request[IO]` and returns an `IO[Response[IO]]`. The implicit
  * [[DynamicCompileEndpoint.obpReturnTypeToIOResponse]] lets a body whose last expression is an
  * `OBPReturnType[T]` (the familiar `Future.successful((json, HttpCode.\`200\`(cc)))` style) be used
@@ -26,7 +26,7 @@ trait DynamicCompileEndpoint {
 
   protected def process(callContext: CallContext, request: Request[IO], pathParams: Map[String, String]): IO[Response[IO]]
 
-  val endpoint: OBPEndpointIO = new OBPEndpointIO {
+  val endpoint: Http4sEndpointIO = new Http4sEndpointIO {
     override def isDefinedAt(x: Request[IO]): Boolean = true
 
     override def apply(request: Request[IO]): CallContext => IO[Response[IO]] = { cc =>

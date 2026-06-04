@@ -28,7 +28,6 @@ package code.api.v5_1_0
 
 import scala.language.reflectiveCalls
 import code.api.OBPRestHelper
-import code.api.util.APIUtil.OBPEndpoint
 import code.api.util.VersionedOBPApis
 import code.api.v3_0_0.Http4s300
 import code.api.v3_1_0.{APIMethods310, Http4s310}
@@ -86,10 +85,7 @@ object OBPAPI5_1_0 extends OBPRestHelper
   ).filterNot(it => it.partialFunctionName.matches(excludeEndpoints.mkString("|")))
 
   // No Lift routes — all v5.1.0 endpoints are served by Http4s510.
-  val routes: List[OBPEndpoint] = Nil
 
-  registerRoutes(routes, allResourceDocs, apiPrefix, true)
-
-  logger.info(s"version $version has been run! There are ${routes.length} routes, ${allResourceDocs.length} allResourceDocs.")
+  logger.info(s"version $version has been run! ${allResourceDocs.length} allResourceDocs.")
   // CORS for OPTIONS is handled by the http4s corsHandler layer — no Lift serve needed here.
 }

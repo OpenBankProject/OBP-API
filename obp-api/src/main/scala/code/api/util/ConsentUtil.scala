@@ -3,7 +3,7 @@ package code.api.util
 import code.accountholders.AccountHolders
 import code.api.berlin.group.ConstantsBG
 import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{ConsentAccessJson, PostConsentJson}
-import code.api.util.APIUtil.fullBoxOrException
+import code.api.util.APIUtil.{HTTPParam, fullBoxOrException}
 import code.api.util.ApiRole.{canCreateEntitlementAtAnyBank, canCreateEntitlementAtOneBank}
 import code.api.util.BerlinGroupSigning.getHeaderValue
 import code.api.util.ErrorMessages._
@@ -29,7 +29,6 @@ import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.util.ApiStandards
 import net.liftweb.common._
-import net.liftweb.http.provider.HTTPParam
 import net.liftweb.json.JsonParser.ParseException
 import net.liftweb.json.{Extraction, MappingException, compactRender, parse}
 import net.liftweb.mapper.By

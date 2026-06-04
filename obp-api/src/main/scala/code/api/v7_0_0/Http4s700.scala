@@ -120,11 +120,14 @@ object Http4s700 {
    * Performance: Computed once and cached (lazy val) to avoid recomputation on every request.
    */
   lazy val allResourceDocs: ArrayBuffer[ResourceDoc] = {
-    // Import v6.0.0's aggregated docs (v6.0.0 + v5.1.0 + ... + v1.3.0)
-    import code.api.v6_0_0.OBPAPI6_0_0
-    
-    // Combine v6.0.0's aggregated docs with v7.0.0's docs
-    val allDocs = OBPAPI6_0_0.allResourceDocs ++ resourceDocs
+    // Ensure Implementations7_0_0 is initialized so that resourceDocs is populated.
+    // The Kleisli wrapper in wrappedRoutesV700Services defers Implementations7_0_0 init
+    // to the first actual API request, which may not have happened yet when a resource-docs
+    // request arrives first. Accessing the object here forces its body (resourceDocs += calls).
+    val _init = Implementations7_0_0
+    // v6.0.0's aggregated docs (v6.0.0 + v5.1.0 + ... + v1.2.1), sourced Lift-free.
+    // Combine with v7.0.0's docs.
+    val allDocs = code.api.util.http4s.Http4sResourceDocAggregation.v600 ++ resourceDocs
     
     // Deduplicate by (requestUrl, requestVerb), keeping newest version
     // Sort by API version (descending) so newer versions come first
@@ -181,7 +184,6 @@ object Http4s700 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(root),
       "GET",
@@ -237,7 +239,6 @@ object Http4s700 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(corePrivateAccountsAllBanks),
       "GET",
@@ -287,7 +288,6 @@ object Http4s700 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(deleteEntitlement),
       "DELETE",
@@ -328,7 +328,6 @@ object Http4s700 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(addEntitlement),
       "POST",
@@ -444,7 +443,6 @@ object Http4s700 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getAccountAccessTrace),
       "GET",
@@ -522,7 +520,6 @@ object Http4s700 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getConsentsConfig),
       "GET",
@@ -551,7 +548,6 @@ object Http4s700 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getErrorMessages),
       "GET",
@@ -625,7 +621,6 @@ object Http4s700 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getUserByUserId),
       "GET",
@@ -689,7 +684,6 @@ object Http4s700 {
     }
     
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(createTradingOffer),
       "POST",
@@ -752,7 +746,6 @@ object Http4s700 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getTradingOffer),
       "GET",
@@ -819,7 +812,6 @@ object Http4s700 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getTradingOffers),
       "GET",
@@ -882,7 +874,6 @@ object Http4s700 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(cancelTradingOffer),
       "DELETE",
@@ -954,7 +945,6 @@ object Http4s700 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(createMarketOrder),
       "POST",
@@ -1012,7 +1002,6 @@ object Http4s700 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getMarketOrder),
       "GET",
@@ -1061,7 +1050,6 @@ object Http4s700 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(cancelMarketOrder),
       "DELETE",
@@ -1129,7 +1117,6 @@ object Http4s700 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(createMarketMatch),
       "POST",
@@ -1183,7 +1170,6 @@ object Http4s700 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getMarketTrade),
       "GET",
@@ -1232,7 +1218,6 @@ object Http4s700 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(requestSettlement),
       "POST",
@@ -1370,7 +1355,6 @@ object Http4s700 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(requestWithdrawal),
       "POST",
@@ -1762,7 +1746,6 @@ object Http4s700 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(createTestEmail),
       "POST",
@@ -1953,7 +1936,6 @@ object Http4s700 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(createValidationEmail),
       "POST",
@@ -2041,7 +2023,6 @@ object Http4s700 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(createOrganisation),
       "POST",
@@ -2098,7 +2079,6 @@ object Http4s700 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getOrganisations),
       "GET",
@@ -2143,7 +2123,6 @@ object Http4s700 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getOrganisation),
       "GET",
@@ -2194,7 +2173,6 @@ object Http4s700 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(updateOrganisation),
       "PUT",
@@ -2242,7 +2220,6 @@ object Http4s700 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(deleteOrganisation),
       "DELETE",
@@ -2316,7 +2293,6 @@ object Http4s700 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(createRoutingScheme),
       "POST",
@@ -2389,7 +2365,6 @@ object Http4s700 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getRoutingSchemes),
       "GET",
@@ -2431,7 +2406,6 @@ object Http4s700 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getRoutingScheme),
       "GET",
@@ -2494,7 +2468,6 @@ object Http4s700 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(updateRoutingScheme),
       "PUT",
@@ -2551,7 +2524,6 @@ object Http4s700 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(deleteRoutingScheme),
       "DELETE",
@@ -2580,7 +2552,6 @@ object Http4s700 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getBankSupportedRoutingSchemes),
       "GET",
@@ -2634,7 +2605,6 @@ object Http4s700 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(putBankSupportedRoutingScheme),
       "PUT",
@@ -2737,7 +2707,6 @@ object Http4s700 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(createPayeeLookup),
       "POST",
@@ -2874,7 +2843,6 @@ object Http4s700 {
     )
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(createTransactionRequestMobileWallet),
       "POST",
@@ -2970,7 +2938,6 @@ object Http4s700 {
     )
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(createTransactionRequestOpenCorridor),
       "POST",
@@ -3096,7 +3063,6 @@ object Http4s700 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(createTransactionRequestBulk),
       "POST",
@@ -3221,7 +3187,6 @@ object Http4s700 {
     }
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(factoryResetSystemView),
       "POST",
@@ -3296,7 +3261,6 @@ object Http4s700 {
           }
       }
       resourceDocs += ResourceDoc(
-        null,
         implementedInApiVersion,
         "testRollbackEndpoint",
         "POST", "/test/rollback-check", "Test rollback", "Test-only: write then throw to verify rollback",

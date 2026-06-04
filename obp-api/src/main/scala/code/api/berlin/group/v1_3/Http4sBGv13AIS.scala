@@ -619,7 +619,6 @@ object Http4sBGv13AIS extends MdcLoggable {
   private def initConsentResourceDocs(): Unit = {
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(createConsent),
       "POST",
@@ -687,7 +686,6 @@ recurringIndicator:
     )
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(deleteConsent),
       "DELETE",
@@ -704,7 +702,6 @@ recurringIndicator:
     )
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getConsentInformation),
       "GET",
@@ -743,7 +740,6 @@ where the consent was directly managed between ASPSP and PSU e.g. in a re-direct
     )
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getConsentStatus),
       "GET",
@@ -802,7 +798,6 @@ using the extended forms as indicated above.
                    }""")
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       "startConsentAuthorisationTransactionAuthorisation",
       "POST",
@@ -817,7 +812,6 @@ using the extended forms as indicated above.
     )
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       "startConsentAuthorisationUpdatePsuAuthentication",
       "POST",
@@ -832,7 +826,6 @@ using the extended forms as indicated above.
     )
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       "startConsentAuthorisationSelectPsuAuthenticationMethod",
       "POST",
@@ -876,7 +869,6 @@ Maybe in a later version the access path will change.
           """
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       "updateConsentsPsuDataTransactionAuthorisation",
       "PUT",
@@ -894,7 +886,6 @@ Maybe in a later version the access path will change.
     )
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       "updateConsentsPsuDataUpdatePsuAuthentication",
       "PUT",
@@ -914,7 +905,6 @@ Maybe in a later version the access path will change.
     )
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       "updateConsentsPsuDataUpdateSelectPsuAuthenticationMethod",
       "PUT",
@@ -942,7 +932,6 @@ Maybe in a later version the access path will change.
     )
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       "updateConsentsPsuDataUpdateAuthorisationConfirmation",
       "PUT",
@@ -965,7 +954,6 @@ Maybe in a later version the access path will change.
   private def initAccountResourceDocs(): Unit = {
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getAccountList),
       "GET",
@@ -1013,7 +1001,6 @@ of the PSU at this ASPSP.
     )
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getBalances),
       "GET",
@@ -1051,7 +1038,6 @@ The account-id is constant at least throughout the lifecycle of a given consent.
     )
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getCardAccounts),
       "GET",
@@ -1091,7 +1077,6 @@ respectively the OAuth2 access token.
     )
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getCardAccountBalances),
       "GET",
@@ -1129,7 +1114,6 @@ This account-id then can be retrieved by the
     )
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getCardAccountTransactionList),
       "GET",
@@ -1158,7 +1142,6 @@ Reads account data from a given card account addressed by "account-id".
     )
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getConsentAuthorisation),
       "GET",
@@ -1179,7 +1162,6 @@ This function returns an array of hyperlinks to all generated authorisation sub-
     )
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getConsentScaStatus),
       "GET",
@@ -1198,7 +1180,6 @@ This method returns the SCA status of a consent initiation's authorisation sub-r
     )
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getTransactionDetails),
       "GET",
@@ -1234,7 +1215,6 @@ of the "Read Transaction List" call within the _links subfield.
     )
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getTransactionList),
       "GET",
@@ -1265,7 +1245,6 @@ The ASPSP might add balance information, if transaction lists without balances a
     )
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(getAccountDetails),
       "GET",
@@ -1302,7 +1281,6 @@ Give detailed information about the addressed account together with balance info
     )
 
     resourceDocs += ResourceDoc(
-      null,
       implementedInApiVersion,
       nameOf(readCardAccount),
       "GET",

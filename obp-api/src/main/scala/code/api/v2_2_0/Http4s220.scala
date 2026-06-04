@@ -65,7 +65,7 @@ object Http4s220 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(root), "GET", "/root",
+      implementedInApiVersion, nameOf(root), "GET", "/root",
       "Get API Info (root)",
       """Returns information about:
         |
@@ -95,7 +95,7 @@ object Http4s220 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getViewsForBankAccount), "GET",
+      implementedInApiVersion, nameOf(getViewsForBankAccount), "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views",
       "Get Views for Account",
       s"""#Views
@@ -153,7 +153,7 @@ object Http4s220 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createViewForBankAccount), "POST",
+      implementedInApiVersion, nameOf(createViewForBankAccount), "POST",
       "/banks/BANK_ID/accounts/VIEW_ACCOUNT_ID/views",
       "Create View",
       s"""#Create a view on bank account
@@ -225,7 +225,7 @@ object Http4s220 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(updateViewForBankAccount), "PUT",
+      implementedInApiVersion, nameOf(updateViewForBankAccount), "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views/UPD_VIEW_ID",
       "Update View",
       s"""Update an existing view on a bank account
@@ -291,7 +291,7 @@ object Http4s220 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getCurrentFxRate), "GET",
+      implementedInApiVersion, nameOf(getCurrentFxRate), "GET",
       "/banks/BANK_ID/fx/FROM_CURRENCY_CODE/TO_CURRENCY_CODE",
       "Get Current FxRate",
       """Get the latest FX rate specified by BANK_ID, FROM_CURRENCY_CODE and TO_CURRENCY_CODE
@@ -340,7 +340,7 @@ object Http4s220 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getExplicitCounterpartiesForAccount), "GET",
+      implementedInApiVersion, nameOf(getExplicitCounterpartiesForAccount), "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties",
       "Get Counterparties (Explicit)",
       s"""This endpoints gets the explicit Counterparties on an Account / View.
@@ -373,7 +373,7 @@ object Http4s220 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getExplicitCounterpartyById), "GET",
+      implementedInApiVersion, nameOf(getExplicitCounterpartyById), "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties/COUNTERPARTY_ID",
       "Get Counterparty by Counterparty Id (Explicit)",
       s"""Information returned about the Counterparty specified by COUNTERPARTY_ID:
@@ -402,7 +402,7 @@ object Http4s220 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getMessageDocs), "GET",
+      implementedInApiVersion, nameOf(getMessageDocs), "GET",
       "/message-docs/CONNECTOR",
       "Get Message Docs",
       """These message docs provide example messages sent by OBP to the (RabbitMq) message queue for processing by the Core Banking / Payment system Adapter - together with an example expected response and possible error codes.
@@ -461,7 +461,7 @@ object Http4s220 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createBank), "POST",
+      implementedInApiVersion, nameOf(createBank), "POST",
       "/banks",
       "Create Bank",
       s"""Create a new bank (Authenticated access).
@@ -494,7 +494,7 @@ object Http4s220 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createBranch), "POST",
+      implementedInApiVersion, nameOf(createBranch), "POST",
       "/banks/BANK_ID/branches",
       "Create Branch",
       s"""Create Branch for the Bank.
@@ -527,7 +527,7 @@ object Http4s220 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createAtm), "POST",
+      implementedInApiVersion, nameOf(createAtm), "POST",
       "/banks/BANK_ID/atms",
       "Create ATM",
       s"""Create ATM for the Bank.
@@ -568,7 +568,7 @@ object Http4s220 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createProduct), "PUT",
+      implementedInApiVersion, nameOf(createProduct), "PUT",
       "/banks/BANK_ID/products",
       "Create Product",
       s"""Create or Update Product for the Bank.
@@ -612,7 +612,7 @@ object Http4s220 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createFx), "PUT",
+      implementedInApiVersion, nameOf(createFx), "PUT",
       "/banks/BANK_ID/fx",
       "Create Fx",
       s"""Create or Update Fx for the Bank.
@@ -676,7 +676,7 @@ object Http4s220 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createAccount), "PUT",
+      implementedInApiVersion, nameOf(createAccount), "PUT",
       "/banks/BANK_ID/accounts/NEW_ACCOUNT_ID",
       "Create Account",
       """Create Account at bank specified by BANK_ID with Id specified by ACCOUNT_ID.
@@ -710,7 +710,7 @@ object Http4s220 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(config), "GET",
+      implementedInApiVersion, nameOf(config), "GET",
       "/config",
       "Get API Configuration",
       """Returns information about:
@@ -740,7 +740,7 @@ object Http4s220 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(getConnectorMetrics), "GET",
+      implementedInApiVersion, nameOf(getConnectorMetrics), "GET",
       "/management/connector/metrics",
       "Get Connector Metrics",
       s"""Get the all metrics
@@ -807,7 +807,7 @@ object Http4s220 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createConsumer), "POST",
+      implementedInApiVersion, nameOf(createConsumer), "POST",
       "/management/consumers",
       "Post a Consumer",
       s"""Create a Consumer (Authenticated access).
@@ -866,7 +866,7 @@ object Http4s220 {
     }
 
     resourceDocs += ResourceDoc(
-      null, implementedInApiVersion, nameOf(createCounterparty), "POST",
+      implementedInApiVersion, nameOf(createCounterparty), "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties",
       "Create Counterparty (Explicit)",
       s"""Create Counterparty (Explicit) for an Account.

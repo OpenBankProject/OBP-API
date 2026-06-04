@@ -28,7 +28,6 @@ package code.api.v4_0_0
 
 import scala.language.reflectiveCalls
 import code.api.OBPRestHelper
-import code.api.util.APIUtil.OBPEndpoint
 import code.api.util.VersionedOBPApis
 import code.api.v3_1_0.OBPAPI3_1_0
 import code.util.Helper.MdcLoggable
@@ -62,10 +61,6 @@ object OBPAPI4_0_0 extends OBPRestHelper with MdcLoggable with VersionedOBPApis 
     Http4s400.resourceDocs
   ).filterNot(it => it.partialFunctionName.matches(excludeEndpoints.mkString("|")))
 
-  val routes: List[OBPEndpoint] = Nil
-
-  registerRoutes(routes, allResourceDocs, apiPrefix, true)
-
-  logger.info(s"version $version has been run! There are ${routes.length} routes, ${allResourceDocs.length} allResourceDocs.")
+  logger.info(s"version $version has been run! ${allResourceDocs.length} allResourceDocs.")
   // CORS for OPTIONS is handled by the http4s corsHandler layer — no Lift serve needed here.
 }

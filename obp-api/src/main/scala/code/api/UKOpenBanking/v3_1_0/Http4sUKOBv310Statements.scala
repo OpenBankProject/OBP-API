@@ -40,7 +40,6 @@ object Http4sUKOBv310Statements extends MdcLoggable {
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(getAccountsAccountIdStatements),
     "GET",
@@ -251,7 +250,6 @@ object Http4sUKOBv310Statements extends MdcLoggable {
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(getAccountsAccountIdStatementsStatementIdFile),
     "GET",
@@ -270,7 +268,6 @@ object Http4sUKOBv310Statements extends MdcLoggable {
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(getAccountsAccountIdStatementsStatementIdTransactions),
     "GET",
@@ -512,7 +509,6 @@ object Http4sUKOBv310Statements extends MdcLoggable {
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(getAccountsAccountIdStatementsStatementId),
     "GET",
@@ -722,7 +718,6 @@ object Http4sUKOBv310Statements extends MdcLoggable {
       EndpointHelpers.withUser(req) { (_, _) => Future.successful(ErrorMessages.NotImplemented) }
   }
   resourceDocs += ResourceDoc(
-    null,
     implementedInApiVersion,
     nameOf(getStatements),
     "GET",
