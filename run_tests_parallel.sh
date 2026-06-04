@@ -35,6 +35,17 @@ mkdir -p test-results/parallel
 
 MVN_OPTS="-Xmx3G -Xss2m -XX:MaxMetaspaceSize=1G"
 
+# Portable `timeout`: GNU coreutils ships it as `timeout` (Linux) but Homebrew on
+# macOS installs it prefixed as `gtimeout`. Pick whichever exists.
+if command -v timeout >/dev/null 2>&1; then
+    TIMEOUT_BIN="timeout"
+elif command -v gtimeout >/dev/null 2>&1; then
+    TIMEOUT_BIN="gtimeout"
+else
+    echo "ERROR: neither 'timeout' nor 'gtimeout' found on PATH" >&2
+    exit 1
+fi
+
 # Cross-checkout mutex: the obp-commons `mvn install` writes to the shared ~/.m2.
 # Multiple checkouts starting this script simultaneously race on that write and can
 # corrupt each other's JARs (torn ZipFile).  We use an atomic mkdir lock to serialise
@@ -158,18 +169,18 @@ run_shard() {
     # OBP_TESTS_PORT + OBP_HTTP4S_TEST_PORT carry the two dynamically-allocated free
     # ports (both test servers bind a real socket; see the port-allocation block).
     # Tests only, no recompile (the compile already happened in the pre-compile step).
-    # gtimeout 1200: hard-kill after 20 min to prevent Pekko non-daemon threads from hanging.
+    # ${TIMEOUT_BIN} 1200: hard-kill after 20 min to prevent Pekko non-daemon threads from hanging.
     MAVEN_OPTS="$MVN_OPTS" \
     OBP_TESTS_PORT="${port}" \
     OBP_HOSTNAME="http://localhost:${port}" \
     OBP_HTTP4S_TEST_PORT="${http4s_port}" \
     OBP_MAIL_TEST_MODE="true" \
     OBP_API_INSTANCE_ID="shard_${n}" \
-    gtimeout 1200 mvn scalatest:test -pl obp-api -DfailIfNoTests=false \
+    "$TIMEOUT_BIN" 1200 mvn scalatest:test -pl obp-api -DfailIfNoTests=false \
         "-DwildcardSuites=${filter}" \
         > "$log" 2>&1
     local rc=$?
-    # gtimeout returns 124 on timeout (tests finished but the JVM didn't exit) — treat as success.
+    # timeout returns 124 on timeout (tests finished but the JVM didn't exit) — treat as success.
     [ $rc -eq 124 ] && rc=0
     if [ $rc -eq 0 ]; then
         echo "[Shard $n] ✅ BUILD SUCCESS"
