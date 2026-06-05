@@ -165,6 +165,67 @@ object Http4sDynamicEntity extends MdcLoggable {
   private def failIf(error: Box[ErrorMessage], cc: Option[CallContext]): Future[Box[Unit]] =
     Helper.booleanToFuture(failMsg = error.map(_.message).orNull, failCode = error.map(_.code).openOr(400), cc = cc) { error.isEmpty }
 
+  // ----- Field-level write permissions: POST/PUT never write write-restricted fields -----
+  private def writeRestrictedFieldsOf(bankId: Option[String], entityName: String): List[String] =
+    DynamicEntityHelper.definitionsMap.get((bankId, entityName)).map(_.writeRestrictedFields).getOrElse(Nil)
+
+  private def stripFields(obj: JObject, fields: List[String]): JObject =
+    if (fields.isEmpty) obj else JObject(obj.obj.filterNot(f => fields.contains(f.name)))
+
+  // For PUT: drop any write-restricted fields the caller sent, then re-inject their current values from the
+  // existing record, so an ordinary update never blanks or clobbers a restricted field (no stale-echo issue).
+  private def preserveRestrictedOnPut(incoming: JObject, existing: Box[JValue], restricted: List[String]): JObject = {
+    if (restricted.isEmpty) incoming
+    else {
+      val stripped = stripFields(incoming, restricted).obj
+      val preserved = existing match {
+        case Full(o: JObject) => o.obj.filter(f => restricted.contains(f.name))
+        case _ => Nil
+      }
+      JObject(stripped ++ preserved)
+    }
+  }
+
+  // ----- Field-level write path (PATCH): role-gated writes to restricted fields -----
+  // Names of the per-field write roles the caller is missing for the restricted fields present in the body.
+  private def missingFieldWriteRoleNames(bodyFieldNames: List[String], bankId: Option[String], entityName: String, userId: String): List[String] = {
+    val info = DynamicEntityHelper.definitionsMap.get((bankId, entityName))
+    val restrictedInBody = info.map(_.writeRestrictedFields).getOrElse(Nil).intersect(bodyFieldNames)
+    restrictedInBody.flatMap { f =>
+      val role = DynamicEntityInfo.fieldWriteRole(entityName, f, bankId, info.flatMap(_.explicitWriteRole(f)))
+      if (code.api.util.APIUtil.hasEntitlement(bankId.getOrElse(""), userId, role)) None else Some(role.toString())
+    }.distinct
+  }
+
+  // PATCH partial-update merge: incoming values override existing; absent fields preserved.
+  // Bounded to declared schema fields so id/audit fields aren't written into the stored data.
+  private def mergePatch(info: Option[DynamicEntityInfo], existing: Box[JValue], incoming: JObject): JObject = {
+    val existingMap: Map[String, JValue] = (existing match { case Full(o: JObject) => o.obj; case _ => Nil }).map(f => f.name -> f.value).toMap
+    val incomingMap: Map[String, JValue] = incoming.obj.map(f => f.name -> f.value).toMap
+    val names: List[String] = info.map(_.propertyNames).getOrElse((incomingMap.keys ++ existingMap.keys).toList).distinct
+    JObject(names.flatMap(n => incomingMap.get(n).orElse(existingMap.get(n)).map(v => JField(n, v))))
+  }
+
+  // ----- Field-level read permissions: omit read-restricted fields the caller cannot read -----
+  private def omitFields(value: JValue, fields: Set[String]): JValue = value match {
+    case JObject(obj) => JObject(obj.filterNot(f => fields.contains(f.name)))
+    case JArray(arr)  => JArray(arr.map(omitFields(_, fields)))
+    case other        => other
+  }
+
+  // Remove any read-restricted field the caller lacks the read role for (anonymous => userIdOpt None => omit all).
+  private def applyReadRestrictions(value: JValue, bankId: Option[String], entityName: String, userIdOpt: Option[String]): JValue = {
+    val info = DynamicEntityHelper.definitionsMap.get((bankId, entityName))
+    val readRestricted = info.map(_.readRestrictedFields).getOrElse(Nil)
+    val omit: Set[String] = readRestricted.filterNot { f =>
+      userIdOpt.exists { uid =>
+        val role = DynamicEntityInfo.fieldReadRole(entityName, f, bankId, info.flatMap(_.explicitReadRole(f)))
+        code.api.util.APIUtil.hasEntitlement(bankId.getOrElse(""), uid, role)
+      }
+    }.toSet
+    if (omit.isEmpty) value else omitFields(value, omit)
+  }
+
   // ----- generic endpoint (authenticated, system / bank / personal) -----
 
   private def genericGet(req: Request[IO], bankId: Option[String], entityName: String, id: String, isPersonalEntity: Boolean): IO[Response[IO]] =
@@ -186,10 +247,11 @@ object Http4sDynamicEntity extends MdcLoggable {
       } yield {
         if (isGetAll) {
           val resultList: JArray = unboxResult(box.asInstanceOf[Box[JArray]], entityName)
-          wrapBankId(bankId, (listName(entityName) -> filterDynamicObjects(resultList, queryParams(req))))
+          val filtered = filterDynamicObjects(resultList, queryParams(req))
+          wrapBankId(bankId, (listName(entityName) -> applyReadRestrictions(filtered, bankId, entityName, Some(u.userId))))
         } else {
           val singleObject: JValue = unboxResult(box.asInstanceOf[Box[JValue]], entityName)
-          wrapBankId(bankId, (singleName(entityName) -> singleObject))
+          wrapBankId(bankId, (singleName(entityName) -> applyReadRestrictions(singleObject, bankId, entityName, Some(u.userId))))
         }
       }
     }
@@ -208,7 +270,9 @@ object Http4sDynamicEntity extends MdcLoggable {
              else NewStyle.function.hasEntitlement(bankId.getOrElse(""), u.userId, DynamicEntityInfo.canCreateRole(entityName, bankId), callContext)
         _ <- failIf(afterIntercept(callContext, operationId), callContext)
         json <- NewStyle.function.tryons(InvalidJsonFormat, 400, callContext) { net.liftweb.json.parse(cc.httpBody.getOrElse("")) }
-        (box, _) <- NewStyle.function.invokeDynamicConnector(CREATE, entityName, Some(json.asInstanceOf[JObject]), None, bankId, None, Some(u.userId), isPersonalEntity, Some(cc))
+        // Write-restricted fields are never set via POST; strip them before persisting.
+        createJson = stripFields(json.asInstanceOf[JObject], writeRestrictedFieldsOf(bankId, entityName))
+        (box, _) <- NewStyle.function.invokeDynamicConnector(CREATE, entityName, Some(createJson), None, bankId, None, Some(u.userId), isPersonalEntity, Some(cc))
         singleObject: JValue = unboxResult(box.asInstanceOf[Box[JValue]], entityName)
       } yield wrapBankId(bankId, (singleName(entityName) -> singleObject))
     }
@@ -228,7 +292,36 @@ object Http4sDynamicEntity extends MdcLoggable {
         json <- NewStyle.function.tryons(InvalidJsonFormat, 400, callContext) { net.liftweb.json.parse(cc.httpBody.getOrElse("")) }
         (existing, _) <- NewStyle.function.invokeDynamicConnector(GET_ONE, entityName, None, Some(id), bankId, None, Some(u.userId), isPersonalEntity, Some(cc))
         _ <- Helper.booleanToFuture(notFoundMsg(entityName, id, bankId), 404, cc = callContext) { existing.isDefined }
-        (box: Box[JValue], _) <- NewStyle.function.invokeDynamicConnector(UPDATE, entityName, Some(json.asInstanceOf[JObject]), Some(id), bankId, None, Some(u.userId), isPersonalEntity, Some(cc))
+        // Write-restricted fields are not updated via PUT; preserve their existing values.
+        updateJson = preserveRestrictedOnPut(json.asInstanceOf[JObject], existing.asInstanceOf[Box[JValue]], writeRestrictedFieldsOf(bankId, entityName))
+        (box: Box[JValue], _) <- NewStyle.function.invokeDynamicConnector(UPDATE, entityName, Some(updateJson), Some(id), bankId, None, Some(u.userId), isPersonalEntity, Some(cc))
+        singleObject: JValue = unboxResult(box, entityName)
+      } yield wrapBankId(bankId, (singleName(entityName) -> singleObject))
+    }
+
+  private def genericPatch(req: Request[IO], bankId: Option[String], entityName: String, id: String, isPersonalEntity: Boolean): IO[Response[IO]] =
+    EndpointHelpers.executeAndRespond(req) { cc =>
+      val callContext0 = enrichCallContext(cc, UPDATE, entityName, bankId, if (isPersonalEntity) "my" else "")
+      val operationId = callContext0.operationId.orNull
+      for {
+        _ <- failIf(beforeIntercept(callContext0, operationId), Some(callContext0))
+        (Full(u), callContext) <- authenticatedAccess(callContext0)
+        (_, callContext) <- bankCheck(bankId, callContext)
+        personalRequiresRole = DynamicEntityHelper.definitionsMap.get((bankId, entityName)).exists(_.personalRequiresRole)
+        // Baseline: PATCH needs the entity update role (like PUT) for unrestricted fields.
+        _ <- if (isPersonalEntity && !personalRequiresRole) Future.successful(true)
+             else NewStyle.function.hasEntitlement(bankId.getOrElse(""), u.userId, DynamicEntityInfo.canUpdateRole(entityName, bankId), callContext)
+        _ <- failIf(afterIntercept(callContext, operationId), callContext)
+        json <- NewStyle.function.tryons(InvalidJsonFormat, 400, callContext) { net.liftweb.json.parse(cc.httpBody.getOrElse("")) }
+        bodyObj = json.asInstanceOf[JObject]
+        // Per-field: every write-restricted field present in the body needs its field-level write role.
+        missingRoles = missingFieldWriteRoleNames(bodyObj.obj.map(_.name), bankId, entityName, u.userId)
+        _ <- Helper.booleanToFuture(s"$UserHasMissingRoles ${missingRoles.mkString(", ")}", 403, cc = callContext) { missingRoles.isEmpty }
+        (existing, _) <- NewStyle.function.invokeDynamicConnector(GET_ONE, entityName, None, Some(id), bankId, None, Some(u.userId), isPersonalEntity, Some(cc))
+        _ <- Helper.booleanToFuture(notFoundMsg(entityName, id, bankId), 404, cc = callContext) { existing.isDefined }
+        // PATCH = partial update: merge incoming fields over the existing record.
+        mergedJson = mergePatch(DynamicEntityHelper.definitionsMap.get((bankId, entityName)), existing.asInstanceOf[Box[JValue]], bodyObj)
+        (box: Box[JValue], _) <- NewStyle.function.invokeDynamicConnector(UPDATE, entityName, Some(mergedJson), Some(id), bankId, None, Some(u.userId), isPersonalEntity, Some(cc))
         singleObject: JValue = unboxResult(box, entityName)
       } yield wrapBankId(bankId, (singleName(entityName) -> singleObject))
     }
@@ -269,10 +362,11 @@ object Http4sDynamicEntity extends MdcLoggable {
       } yield {
         if (isGetAll) {
           val resultList: JArray = unboxResult(box.asInstanceOf[Box[JArray]], entityName)
-          wrapBankId(bankId, (listName(entityName) -> filterDynamicObjects(resultList, queryParams(req))))
+          val filtered = filterDynamicObjects(resultList, queryParams(req))
+          wrapBankId(bankId, (listName(entityName) -> applyReadRestrictions(filtered, bankId, entityName, None)))
         } else {
           val singleObject: JValue = unboxResult(box.asInstanceOf[Box[JValue]], entityName)
-          wrapBankId(bankId, (singleName(entityName) -> singleObject))
+          wrapBankId(bankId, (singleName(entityName) -> applyReadRestrictions(singleObject, bankId, entityName, None)))
         }
       }
     }
@@ -295,14 +389,15 @@ object Http4sDynamicEntity extends MdcLoggable {
         if (isGetAll) {
           val resultList: List[JObject] = DynamicDataProvider.connectorMethodProvider.vend.getAllDataJsonCommunity(bankId, entityName)
           val resultArray = JArray(resultList)
-          wrapBankId(bankId, (listName(entityName) -> filterDynamicObjects(resultArray, queryParams(req))))
+          val filtered = filterDynamicObjects(resultArray, queryParams(req))
+          wrapBankId(bankId, (listName(entityName) -> applyReadRestrictions(filtered, bankId, entityName, Some(u.userId))))
         } else {
           val singleResult = DynamicDataProvider.connectorMethodProvider.vend.getCommunity(bankId, entityName, id)
           val singleObject: JValue = singleResult match {
             case Full(data) => net.liftweb.json.parse(data.dataJson)
             case _ => throw new RuntimeException(notFoundMsg(entityName, id, bankId))
           }
-          wrapBankId(bankId, (singleName(entityName) -> singleObject))
+          wrapBankId(bankId, (singleName(entityName) -> applyReadRestrictions(singleObject, bankId, entityName, Some(u.userId))))
         }
       }
     }
@@ -325,6 +420,7 @@ object Http4sDynamicEntity extends MdcLoggable {
           case Method.GET    => Some(r => genericGet(r, bankId, entityName, id, isPersonalEntity))
           case Method.POST   => Some(r => genericPost(r, bankId, entityName, isPersonalEntity))
           case Method.PUT    => Some(r => genericPut(r, bankId, entityName, id, isPersonalEntity))
+          case Method.PATCH  => Some(r => genericPatch(r, bankId, entityName, id, isPersonalEntity))
           case Method.DELETE => Some(r => genericDelete(r, bankId, entityName, id, isPersonalEntity))
           case _             => None
         }

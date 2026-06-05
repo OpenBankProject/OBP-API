@@ -3,6 +3,9 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action
+05/06/2026    TBD           FEATURE: Dynamic Entity field-level write/read role permissions
+                            (per-property writeRole/readRole + PATCH write path; read-restricted
+                            fields omitted from GET). See Glossary "Dynamic-Entities".
 26/05/2026    TBD           BEHAVIOUR RESTORE: api_disabled_versions / api_enabled_versions
                             once again retire only the URL prefix, not the underlying endpoints
                             on newer prefixes — restoring the pre-http4s-migration cascade
