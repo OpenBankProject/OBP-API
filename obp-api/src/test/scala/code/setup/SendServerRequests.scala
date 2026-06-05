@@ -201,6 +201,13 @@ trait SendServerRequests {
     getAPIResponse(jsonReq)
   }
 
+  def makePatchRequest(req: Req, json: String, headers: (String, String) *) : APIResponse = {
+    val extra_headers = Map("Content-Type" -> "application/json") ++ headers.toMap
+    val reqData = extractParamsAndHeaders(req.PATCH, json, "UTF-8", extra_headers)
+    val jsonReq = createRequest(reqData)
+    getAPIResponse(jsonReq)
+  }
+
   def makePutRequestAsync(req: Req, json: String = ""): Future[APIResponse] = {
     val extra_headers = Map("Content-Type" -> "application/json")
     val reqData = extractParamsAndHeaders(req.PUT, json, "UTF-8", extra_headers)

@@ -337,6 +337,40 @@ object DynamicEntityHelper {
       createdByBankId= dynamicEntityInfo.bankId
     )
 
+    resourceDocs += (DynamicEntityOperation.PATCH, splitNameWithBankId) -> ResourceDoc(
+      implementedInApiVersion,
+      buildPatchFunctionName(bankId, entityName),
+      "PATCH",
+      s"$resourceDocUrl/$idNameInUrl",
+      s"Partially update $splitName",
+      s"""Partially update $splitName: only the fields supplied in the body are changed; others are preserved.
+         |
+         |This is also the write path for **field-level write-restricted** fields (those declared with
+         |`writeRoleRequired` or an explicit `writeRole`). To write such a field the caller must hold that field's
+         |write role; otherwise the request is rejected with 403 (missing role). Unrestricted fields require
+         |the entity update role, as for PUT.
+         |${dynamicEntityInfo.description}
+         |
+         |${dynamicEntityInfo.fieldsDescription}
+         |
+         |${methodRoutingExample(entityName)}
+         |
+         |${userAuthenticationMessage(true)}
+         |
+         |""",
+      dynamicEntityInfo.getSingleExampleWithoutId,
+      dynamicEntityInfo.getSingleExample,
+      List(
+        AuthenticatedUserIsRequired,
+        UserHasMissingRoles,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      List(apiTag, apiTagDynamicEntity, apiTagDynamic),
+      Some(List(dynamicEntityInfo.canUpdateRole)),
+      createdByBankId= dynamicEntityInfo.bankId
+    )
+
     resourceDocs += (DynamicEntityOperation.DELETE, splitNameWithBankId) -> ResourceDoc(
       implementedInApiVersion,
       buildDeleteFunctionName(bankId, entityName),
@@ -459,6 +493,33 @@ object DynamicEntityHelper {
            |
            |""",
         dynamicEntityInfo.getSingleExampleWithoutIdWritable,
+        dynamicEntityInfo.getSingleExample,
+        myErrorMessagesWithJson,
+        List(apiTag, apiTagDynamicEntity, apiTagDynamic),
+        if(personalRequiresRole) Some(List(dynamicEntityInfo.canUpdateRole)) else Some(List(dynamicEntityInfo.canUpdateRole)),
+        createdByBankId= dynamicEntityInfo.bankId
+      )
+
+      resourceDocs += (DynamicEntityOperation.PATCH, mySplitNameWithBankId) -> ResourceDoc(
+        implementedInApiVersion,
+        buildPatchFunctionName(bankId, s"My$entityName"),
+        "PATCH",
+        s"$myResourceDocUrl/$idNameInUrl",
+        s"Partially update My $splitName",
+        s"""Partially update My $splitName: only the fields supplied in the body are changed; others are preserved.
+           |
+           |This is also the write path for **field-level write-restricted** fields; writing such a field requires the
+           |caller to hold that field's write role.
+           |${dynamicEntityInfo.description}
+           |
+           |${dynamicEntityInfo.fieldsDescription}
+           |
+           |${methodRoutingExample(entityName)}
+           |
+           |${userAuthenticationMessage(true)}
+           |
+           |""",
+        dynamicEntityInfo.getSingleExampleWithoutId,
         dynamicEntityInfo.getSingleExample,
         myErrorMessagesWithJson,
         List(apiTag, apiTagDynamicEntity, apiTagDynamic),
@@ -615,6 +676,7 @@ object DynamicEntityHelper {
 
   private def buildCreateFunctionName(bankId:Option[String], entityName: String) = s"dynamicEntity_create${entityName}_${bankId.getOrElse("")}"
   private def buildUpdateFunctionName(bankId:Option[String], entityName: String) = s"dynamicEntity_update${entityName}_${bankId.getOrElse("")}"
+  private def buildPatchFunctionName(bankId:Option[String], entityName: String) = s"dynamicEntity_patch${entityName}_${bankId.getOrElse("")}"
   private def buildDeleteFunctionName(bankId:Option[String], entityName: String) = s"dynamicEntity_delete${entityName}_${bankId.getOrElse("")}"
   private def buildGetOneFunctionName(bankId:Option[String], entityName: String) = s"dynamicEntity_getSingle${entityName}_${bankId.getOrElse("")}"
   private def buildGetAllFunctionName(bankId:Option[String], entityName: String) = s"dynamicEntity_get${entityName}List_${bankId.getOrElse("")}"
@@ -694,13 +756,16 @@ case class DynamicEntityInfo(definition: String, entityName: String, bankId: Opt
           case _ => false
         }
       )
-    if(descriptions.nonEmpty) {
+    val propertyList = if(descriptions.nonEmpty) {
       descriptions
         .map(field => s"""* ${field.name}: ${(field.value \ "description").asInstanceOf[JString].s}""")
         .mkString("**Property List:** \n\n", "\n", "")
     } else {
       ""
     }
+    val writeNote = if(writeRestrictedFields.nonEmpty) s"\n\n**Write-restricted fields** (set only via PATCH by a holder of the field's write role): ${writeRestrictedFields.mkString(", ")}" else ""
+    val readNote = if(readRestrictedFields.nonEmpty) s"\n\n**Read-restricted fields** (returned only to callers holding the field's read role): ${readRestrictedFields.mkString(", ")}" else ""
+    propertyList + writeNote + readNote
   }
 
   def toResponse(result: JObject, id: Option[String]): JObject = {

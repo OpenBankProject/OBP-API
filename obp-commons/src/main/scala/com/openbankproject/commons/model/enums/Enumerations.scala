@@ -284,6 +284,9 @@ object DynamicEntityOperation extends OBPEnumeration[DynamicEntityOperation] {
   object CREATE extends Value
   object UPDATE extends Value
   object DELETE extends Value
+  // PATCH is used only as a resource-doc key for the field-level partial-update endpoint;
+  // it is never sent to connectors (PATCH requests are served via UPDATE internally).
+  object PATCH extends Value
 }
 
 sealed trait ContentParam extends EnumValue
