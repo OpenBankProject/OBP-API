@@ -479,12 +479,12 @@ class Boot extends MdcLoggable {
     enableVersionIfAllowed(ApiVersion.`dynamic-endpoint`)
     enableVersionIfAllowed(ApiVersion.`dynamic-entity`)
 
-    // OpenID Connect callbacks (/auth/openid-connect/callback{,-1,-2}), DirectLogin
-    // (POST /my/logins/direct) and aliveCheck (GET /alive) are now served by their
-    // native http4s counterparts wired into Http4sApp.baseServices
-    // (Http4sOpenIdConnect / DirectLoginRoutes / AliveCheckRoutes). The Lift
-    // dispatches were retired in the http4s migration; any prop gates
-    // (e.g. `openid_connect.enabled`, `allow_direct_login`) live with those routes.
+    // DirectLogin (POST /my/logins/direct) and aliveCheck (GET /alive) are now served
+    // by their native http4s counterparts wired into Http4sApp.baseServices
+    // (DirectLoginRoutes / AliveCheckRoutes). The Lift dispatches were retired in the
+    // http4s migration; any prop gates (e.g. `allow_direct_login`) live with those
+    // routes. The OBP-as-relying-party OpenID Connect callback was removed: OBP is a
+    // pure OAuth2 resource server (Bearer-JWT validation), login is done by the client/BFF.
 
     //////////////////////////////////////////////////////////////////////////////////////////////////
     // Resource Docs are used in the process of surfacing endpoints so we enable them explicitly
