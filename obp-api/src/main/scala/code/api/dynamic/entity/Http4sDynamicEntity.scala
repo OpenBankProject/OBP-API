@@ -30,6 +30,7 @@ import cats.effect.IO
 import code.DynamicData.{DynamicData, DynamicDataProvider}
 import code.api.Constant.PARAM_LOCALE
 import code.api.dynamic.entity.helper.{CommunityEntityName, DynamicEntityHelper, DynamicEntityInfo, EntityName, PublicEntityName}
+import code.api.dynamic.entity.query.{FieldSpec, InMemoryQueryExecutor, QueryParamParser, QueryPlan, QueryPlanner}
 import code.api.util.APIUtil._
 import code.api.util.ErrorMessages._
 import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps}
@@ -99,22 +100,46 @@ object Http4sDynamicEntity extends MdcLoggable {
     box.openOrThrowException("impossible error")
   }
 
+  // ----- DE_indexing: declarative filter / sort / paginate for GET-all list reads -----
+  // Replaces the old bare-param equality filter. The query contract is `obp_filter[FIELD]=OP:VALUE`
+  // (+ obp_sort_by / obp_sort_direction / obp_offset / obp_limit), validated against the entity's
+  // declared `indexed` fields. Phase 1 backend = in-memory portable floor (projection backend later).
+
+  private def deIndexedFields(bankId: Option[String], entityName: String): Map[String, FieldSpec] =
+    DynamicEntityHelper.definitionsMap.get((bankId, entityName)).map(_.indexedFields).getOrElse(Map.empty)
+
+  /** Parse + validate list-read query params into a QueryPlan; fail 400 (clear message) on any error. */
+  private def buildQueryPlan(req: Request[IO], bankId: Option[String], entityName: String, cc: Option[CallContext]): Future[QueryPlan] = {
+    val planned = for {
+      parsed <- QueryParamParser.parse(queryParams(req))
+      plan   <- QueryPlanner.plan(parsed._1, parsed._2, parsed._3, deIndexedFields(bankId, entityName))
+    } yield plan
+    planned match {
+      case Right(plan) => Future.successful(plan)
+      case Left(err)   => Helper.booleanToFuture(err.message, 400, cc = cc) { false }.map(_ => QueryPlan.empty)
+    }
+  }
+
+  /** Apply a validated plan to the fetched records (Phase 1: in-memory; the SQL backend comes later). */
+  private def applyQueryPlan(resultList: JArray, plan: QueryPlan, indexed: Map[String, FieldSpec]): JArray = {
+    val records = resultList.arr.collect { case o: JObject => o }
+    val fieldTypes = indexed.mapValues(_.fieldType).toMap
+    JArray(InMemoryQueryExecutor.execute(records, plan, fieldTypes))
+  }
+
   /**
-   * http4s equivalent of the Lift `filterDynamicObjects(resultList, req)`: filter GET-all
-   * results by query parameters (AND across keys, OR across a key's values), excluding the
-   * `locale` (PARAM_LOCALE) param.  Lift read `req.params`; here we read the http4s query
-   * multiParams (same `Map[String, List[String]]` shape).
+   * Legacy GET-all filter (documented, unversioned contract — preserved byte-for-byte): bare query
+   * params filter by field value, AND across distinct fields, OR across a field's repeated values,
+   * e.g. `?name=A&number=1&number=2` => name==A && (number==1 || number==2). Equality only; runs
+   * in-memory on any field. `locale` and the new `obp_*` params (which are handled by the QueryPlan
+   * path) are excluded. This composes with the new path: legacy filter first, then operators/sort/page.
    */
   private def filterDynamicObjects(resultList: JArray, params: Map[String, List[String]]): JArray = {
-    if (params.isEmpty) resultList
-    else {
-      val filtered = resultList.arr.filter { jValue =>
-        params.filter(_._1 != PARAM_LOCALE).forall { case (path, values) =>
-          values.exists(JsonUtils.isFieldEquals(jValue, path, _))
-        }
-      }
-      JArray(filtered)
-    }
+    val legacyParams = params.filter { case (k, _) => k != PARAM_LOCALE && !k.startsWith("obp_") }
+    if (legacyParams.isEmpty) resultList
+    else JArray(resultList.arr.filter { jValue =>
+      legacyParams.forall { case (path, values) => values.exists(JsonUtils.isFieldEquals(jValue, path, _)) }
+    })
   }
 
   private def queryParams(req: Request[IO]): Map[String, List[String]] =
@@ -242,12 +267,14 @@ object Http4sDynamicEntity extends MdcLoggable {
         _ <- if (isPersonalEntity && !personalRequiresRole) Future.successful(true)
              else NewStyle.function.hasEntitlement(bankId.getOrElse(""), u.userId, DynamicEntityInfo.canGetRole(entityName, bankId), callContext)
         _ <- failIf(afterIntercept(callContext, operationId), callContext)
+        queryPlan <- if (isGetAll) buildQueryPlan(req, bankId, entityName, callContext) else Future.successful(QueryPlan.empty)
         (box, _) <- NewStyle.function.invokeDynamicConnector(operation, entityName, None, Option(id).filter(StringUtils.isNotBlank), bankId, None, Some(u.userId), isPersonalEntity, Some(cc))
         _ <- Helper.booleanToFuture(notFoundMsg(entityName, id, bankId), 404, cc = callContext) { box.isDefined }
       } yield {
         if (isGetAll) {
           val resultList: JArray = unboxResult(box.asInstanceOf[Box[JArray]], entityName)
-          val filtered = filterDynamicObjects(resultList, queryParams(req))
+          val legacyFiltered = filterDynamicObjects(resultList, queryParams(req))
+          val filtered = applyQueryPlan(legacyFiltered, queryPlan, deIndexedFields(bankId, entityName))
           wrapBankId(bankId, (listName(entityName) -> applyReadRestrictions(filtered, bankId, entityName, Some(u.userId))))
         } else {
           val singleObject: JValue = unboxResult(box.asInstanceOf[Box[JValue]], entityName)
@@ -357,12 +384,14 @@ object Http4sDynamicEntity extends MdcLoggable {
         _ <- failIf(beforeIntercept(callContext0, operationId), Some(callContext0))
         (_, callContext) <- anonymousAccess(callContext0)
         (_, callContext) <- bankCheck(bankId, callContext)
+        queryPlan <- if (isGetAll) buildQueryPlan(req, bankId, entityName, callContext) else Future.successful(QueryPlan.empty)
         (box, _) <- NewStyle.function.invokeDynamicConnector(operation, entityName, None, Option(id).filter(StringUtils.isNotBlank), bankId, None, None, false, Some(cc))
         _ <- Helper.booleanToFuture(notFoundMsg(entityName, id, bankId), 404, cc = callContext) { box.isDefined }
       } yield {
         if (isGetAll) {
           val resultList: JArray = unboxResult(box.asInstanceOf[Box[JArray]], entityName)
-          val filtered = filterDynamicObjects(resultList, queryParams(req))
+          val legacyFiltered = filterDynamicObjects(resultList, queryParams(req))
+          val filtered = applyQueryPlan(legacyFiltered, queryPlan, deIndexedFields(bankId, entityName))
           wrapBankId(bankId, (listName(entityName) -> applyReadRestrictions(filtered, bankId, entityName, None)))
         } else {
           val singleObject: JValue = unboxResult(box.asInstanceOf[Box[JValue]], entityName)
@@ -385,11 +414,13 @@ object Http4sDynamicEntity extends MdcLoggable {
         (_, callContext) <- bankCheck(bankId, callContext)
         _ <- NewStyle.function.hasEntitlement(bankId.getOrElse(""), u.userId, DynamicEntityInfo.canGetRole(entityName, bankId), callContext)
         _ <- failIf(afterIntercept(callContext, operationId), callContext)
+        queryPlan <- if (isGetAll) buildQueryPlan(req, bankId, entityName, callContext) else Future.successful(QueryPlan.empty)
       } yield {
         if (isGetAll) {
           val resultList: List[JObject] = DynamicDataProvider.connectorMethodProvider.vend.getAllDataJsonCommunity(bankId, entityName)
           val resultArray = JArray(resultList)
-          val filtered = filterDynamicObjects(resultArray, queryParams(req))
+          val legacyFiltered = filterDynamicObjects(resultArray, queryParams(req))
+          val filtered = applyQueryPlan(legacyFiltered, queryPlan, deIndexedFields(bankId, entityName))
           wrapBankId(bankId, (listName(entityName) -> applyReadRestrictions(filtered, bankId, entityName, Some(u.userId))))
         } else {
           val singleResult = DynamicDataProvider.connectorMethodProvider.vend.getCommunity(bankId, entityName, id)
