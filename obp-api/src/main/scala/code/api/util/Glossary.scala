@@ -3206,6 +3206,20 @@ object Glossary extends MdcLoggable  {
 |* CanGetDynamicEntity_FooBar
 |* CanDeleteDynamicEntity_FooBar
 |
+|**Field-level write/read permissions (per property):**
+|
+|Each property in the schema can optionally restrict who may write or read that field, independently of the entity-level roles above:
+|
+|* `writeRoleRequired` (boolean) or `writeRole` (explicit role name) — the field becomes **write-restricted**: it cannot be set via POST or PUT (its existing value is preserved), only via **PATCH** by a caller holding the field's write role.
+|* `readRoleRequired` (boolean) or `readRole` (explicit role name) — the field becomes **read-restricted**: it is omitted from GET responses unless the caller holds the field's read role (public/anonymous access omits it entirely).
+|
+|Restriction is on if either the boolean is `true` or an explicit role name is given. When a boolean is used, OBP auto-generates the role; e.g. for entity 'FooBar' field 'owner':
+|
+|* CanWriteDynamicEntityField_FooBar__owner (bank level) / CanWriteDynamicEntityField_SystemFooBar__owner (system level)
+|* CanGetDynamicEntityField_FooBar__owner / CanGetDynamicEntityField_SystemFooBar__owner
+|
+|Naming an explicit `writeRole`/`readRole` lets several fields (even across entities) share a single role — useful for a privileged service (e.g. an indexer) that maintains many fields. Typical use: a field written only by a verifier/service or projected from an external system, but read by ordinary consumers.
+|
 |**Management endpoints:**
 |
 |* POST /management/system-dynamic-entities - Create system level entity
