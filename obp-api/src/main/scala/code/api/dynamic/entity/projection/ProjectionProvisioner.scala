@@ -18,9 +18,15 @@ import net.liftweb.mapper.By
  */
 object ProjectionProvisioner extends MdcLoggable {
 
-  /** Ensure the projection for (bankId, entityName) exists, is backfilled, indexed and marked ready. */
-  def ensureProvisioned(bankId: Option[String], entityName: String, isPersonalEntity: Boolean = false, userId: Option[String] = None): IO[Unit] = {
-    val indexed = indexedScalarFields(bankId, entityName)
+  /** Ensure the projection for (bankId, entityName) exists, is backfilled, indexed and marked ready.
+   *  Reads the entity's indexed fields from the (committed) definition map. */
+  def ensureProvisioned(bankId: Option[String], entityName: String, isPersonalEntity: Boolean = false, userId: Option[String] = None): IO[Unit] =
+    ensureProvisionedFields(bankId, entityName, indexedScalarFields(bankId, entityName), isPersonalEntity, userId)
+
+  /** As [[ensureProvisioned]] but with the indexed scalar fields passed in explicitly — used at
+   *  definition-create time, where the new definition isn't committed/visible in the map yet. */
+  def ensureProvisionedFields(bankId: Option[String], entityName: String, indexed: List[(String, FieldSpec)],
+                              isPersonalEntity: Boolean = false, userId: Option[String] = None): IO[Unit] = {
     if (indexed.isEmpty) IO.unit
     else {
       val safeTable = ProjectionNaming.tableName(bankId, entityName)
@@ -35,6 +41,10 @@ object ProjectionProvisioner extends MdcLoggable {
       } yield ()
     }
   }
+
+  /** Filter a definition's indexed fields to the scalar ones this phase provisions (spatial = Phase 4). */
+  def scalarFieldsOf(indexed: Map[String, FieldSpec]): List[(String, FieldSpec)] =
+    indexed.toList.filter(_._2.indexKind != OperatorMatrix.SPATIAL)
 
   /** Field names whose projection column is `ready` (used by backend selection). */
   def readyFields(bankId: Option[String], entityName: String): Set[String] =

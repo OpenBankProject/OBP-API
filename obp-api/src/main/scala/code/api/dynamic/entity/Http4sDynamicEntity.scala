@@ -31,6 +31,8 @@ import code.DynamicData.{DynamicData, DynamicDataProvider}
 import code.api.Constant.PARAM_LOCALE
 import code.api.dynamic.entity.helper.{CommunityEntityName, DynamicEntityHelper, DynamicEntityInfo, EntityName, PublicEntityName}
 import code.api.dynamic.entity.query.{FieldSpec, InMemoryQueryExecutor, QueryParamParser, QueryPlan, QueryPlanner}
+import code.api.dynamic.entity.projection.{IndexingCapabilities, PostgresProjectionBackend, ProjectionProvisioner}
+import cats.effect.unsafe.implicits.{global => ioRuntime} // aliased: avoids clashing with the EC `global` imported below
 import code.api.util.APIUtil._
 import code.api.util.ErrorMessages._
 import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps}
@@ -251,6 +253,31 @@ object Http4sDynamicEntity extends MdcLoggable {
     if (omit.isEmpty) value else omitFields(value, omit)
   }
 
+  // ----- DE_indexing: read-path backend selection (projection vs in-memory) -----
+  // Phase 3: applied to the authenticated genericGet only. Public/community stay in-memory for now
+  // (different scoping). Projection is used only for pure obp_filter/sort queries (no legacy bare
+  // params) whose every field is indexed AND ready; an indexed-but-not-ready field returns 409.
+  private sealed trait ProjDecision
+  private case object UseProjection extends ProjDecision
+  private case object PendingProjection extends ProjDecision
+  private case object UseInMemory extends ProjDecision
+
+  private def legacyParamsPresent(req: Request[IO]): Boolean =
+    queryParams(req).keys.exists(k => k != PARAM_LOCALE && !k.startsWith("obp_"))
+
+  private def planFields(plan: QueryPlan): List[String] =
+    (plan.filters.map(_.field) ++ plan.sort.map(_.field)).distinct
+
+  private def decideProjection(req: Request[IO], bankId: Option[String], entityName: String, plan: QueryPlan): ProjDecision =
+    if (!IndexingCapabilities.projectionEnabled || legacyParamsPresent(req) || planFields(plan).isEmpty) UseInMemory
+    else {
+      val ready = ProjectionProvisioner.readyFields(bankId, entityName)
+      if (planFields(plan).forall(ready.contains)) UseProjection else PendingProjection
+    }
+
+  private def projectionList(entityName: String, bankId: Option[String], userId: Option[String], isPersonalEntity: Boolean, plan: QueryPlan): Future[JArray] =
+    PostgresProjectionBackend.query(entityName, bankId, userId, isPersonalEntity, plan).map(JArray(_)).unsafeToFuture()(ioRuntime)
+
   // ----- generic endpoint (authenticated, system / bank / personal) -----
 
   private def genericGet(req: Request[IO], bankId: Option[String], entityName: String, id: String, isPersonalEntity: Boolean): IO[Response[IO]] =
@@ -268,13 +295,23 @@ object Http4sDynamicEntity extends MdcLoggable {
              else NewStyle.function.hasEntitlement(bankId.getOrElse(""), u.userId, DynamicEntityInfo.canGetRole(entityName, bankId), callContext)
         _ <- failIf(afterIntercept(callContext, operationId), callContext)
         queryPlan <- if (isGetAll) buildQueryPlan(req, bankId, entityName, callContext) else Future.successful(QueryPlan.empty)
-        (box, _) <- NewStyle.function.invokeDynamicConnector(operation, entityName, None, Option(id).filter(StringUtils.isNotBlank), bankId, None, Some(u.userId), isPersonalEntity, Some(cc))
-        _ <- Helper.booleanToFuture(notFoundMsg(entityName, id, bankId), 404, cc = callContext) { box.isDefined }
+        decision = if (isGetAll) decideProjection(req, bankId, entityName, queryPlan) else UseInMemory
+        _ <- if (decision == PendingProjection) Helper.booleanToFuture(DynamicEntityFieldNotYetQueryable, 409, cc = callContext) { false }
+             else Future.successful(true)
+        // Projection path: serve the list from SQL, skipping the fetch-all connector call.
+        projList <- if (decision == UseProjection) projectionList(entityName, bankId, Some(u.userId), isPersonalEntity, queryPlan).map(Option(_))
+                    else Future.successful(Option.empty[JArray])
+        (box, _) <- if (decision == UseProjection) Future.successful((net.liftweb.common.Empty: Box[JValue], callContext))
+                    else NewStyle.function.invokeDynamicConnector(operation, entityName, None, Option(id).filter(StringUtils.isNotBlank), bankId, None, Some(u.userId), isPersonalEntity, Some(cc))
+        _ <- if (decision == UseProjection) Future.successful(true)
+             else Helper.booleanToFuture(notFoundMsg(entityName, id, bankId), 404, cc = callContext) { box.isDefined }
       } yield {
         if (isGetAll) {
-          val resultList: JArray = unboxResult(box.asInstanceOf[Box[JArray]], entityName)
-          val legacyFiltered = filterDynamicObjects(resultList, queryParams(req))
-          val filtered = applyQueryPlan(legacyFiltered, queryPlan, deIndexedFields(bankId, entityName))
+          val filtered: JArray = projList.getOrElse {
+            val resultList: JArray = unboxResult(box.asInstanceOf[Box[JArray]], entityName)
+            val legacyFiltered = filterDynamicObjects(resultList, queryParams(req))
+            applyQueryPlan(legacyFiltered, queryPlan, deIndexedFields(bankId, entityName))
+          }
           wrapBankId(bankId, (listName(entityName) -> applyReadRestrictions(filtered, bankId, entityName, Some(u.userId))))
         } else {
           val singleObject: JValue = unboxResult(box.asInstanceOf[Box[JValue]], entityName)
