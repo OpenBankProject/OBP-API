@@ -1,7 +1,8 @@
 package code.api.v6_0_0
 
-import code.api.dynamic.entity.projection.{ProjectionDb, ProjectionDDL, ProjectionSql, ProjectionStore}
+import code.api.dynamic.entity.projection.{IndexingCapabilities, ProjectionDb, ProjectionDDL, ProjectionSql, ProjectionStore}
 import code.api.dynamic.entity.query._
+import code.api.util.APIUtil
 import cats.effect.unsafe.implicits.global
 import doobie.implicits._
 
@@ -26,6 +27,12 @@ class ProjectionDataPlaneIntegrationTest extends V600ServerSetup {
 
   feature("DE projection data-plane on Postgres") {
     scenario("create table, upsert rows, then filter / sort / paginate via compiled SQL") {
+      // Postgres-only: this test runs Postgres-specific SQL (ON CONFLICT) that H2 cannot execute.
+      // Gated OFF by default so CI / H2 / developer workstations skip it (canceled, not failed).
+      // Enable locally with `test.projection.postgres=true` in test.default.props AND a Postgres db.url.
+      if (!APIUtil.getPropsAsBoolValue("test.projection.postgres", false) || IndexingCapabilities.vendor != IndexingCapabilities.Postgres)
+        cancel("Postgres projection integration tests disabled (set test.projection.postgres=true with a Postgres db.url; cannot run on H2).")
+
       run(ProjectionDDL.dropTableIO(table))
       run(ProjectionDDL.createTableIO(table))
       run(ProjectionDDL.addColumnIO(table, priceCol, "numeric"))
