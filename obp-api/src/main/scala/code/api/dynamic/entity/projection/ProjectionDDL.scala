@@ -1,7 +1,6 @@
 package code.api.dynamic.entity.projection
 
 import cats.effect.IO
-import code.api.util.DoobieUtil
 import code.util.Helper.MdcLoggable
 import doobie._
 import doobie.implicits._
@@ -37,7 +36,12 @@ object ProjectionDDL extends MdcLoggable {
   def addColumnIO(safeTable: String, safeColumn: String, sqlType: String): IO[Int] =
     run(s"ALTER TABLE $safeTable ADD COLUMN IF NOT EXISTS $safeColumn $sqlType")
 
-  /** CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_... ON de_<hash> (c_<hash>). Must run outside a txn. */
+  /** CREATE INDEX IF NOT EXISTS idx_... ON de_<hash> (c_<hash>). Runs in any context (used in Phase 3). */
+  def createIndexIO(safeTable: String, safeColumn: String): IO[Int] =
+    run(s"CREATE INDEX IF NOT EXISTS ${ProjectionNaming.indexName(safeTable, safeColumn)} ON $safeTable ($safeColumn)")
+
+  /** CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_... — non-blocking on large tables, but must run
+   *  OUTSIDE a transaction (autocommit connection). Production refinement over [[createIndexIO]]. */
   def createIndexConcurrentlyIO(safeTable: String, safeColumn: String): IO[Int] =
     run(s"CREATE INDEX CONCURRENTLY IF NOT EXISTS ${ProjectionNaming.indexName(safeTable, safeColumn)} ON $safeTable ($safeColumn)")
 
@@ -47,5 +51,5 @@ object ProjectionDDL extends MdcLoggable {
 
   // All DDL identifiers originate from ProjectionNaming (hashed) — safe to inline via Fragment.const.
   private def run(ddl: String): IO[Int] =
-    DoobieUtil.runQueryIO(Fragment.const(ddl).update.run)
+    ProjectionDb.run(Fragment.const(ddl).update.run)
 }
