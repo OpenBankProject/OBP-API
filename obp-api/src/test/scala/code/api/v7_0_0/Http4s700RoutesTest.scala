@@ -6,7 +6,7 @@ import code.api.util.http4s.Http4sStandardHeaders
 import code.api.Constant.SYSTEM_OWNER_VIEW_ID
 import code.api.ResponseHeader
 import code.api.util.APIUtil
-import code.api.util.ApiRole.{canCreateEntitlementAtAnyBank, canCreateOrganisation, canCreateRoutingScheme, canDeleteEntitlementAtAnyBank, canDeleteOrganisation, canDeleteRoutingScheme, canUpdateSystemView, canGetAccountAccessTrace, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetCardsForBank, canGetConnectorHealth, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMetricsDiagnostics, canGetMigrations, canReadResourceDoc, canUpdateBankSupportedRoutingScheme, canUpdateOrganisation, canUpdateRoutingScheme}
+import code.api.util.ApiRole.{canCreateEntitlementAtAnyBank, canCreateOrganisation, canCreateRoutingScheme, canDeleteEntitlementAtAnyBank, canDeleteOrganisation, canDeleteRoutingScheme, canUpdateSystemView, canGetAccountAccessTrace, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetCardsForBank, canGetConnectorHealth, canCreateMetricsArchiveRun, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMetricsDiagnostics, canGetMigrations, canReadResourceDoc, canUpdateBankSupportedRoutingScheme, canUpdateOrganisation, canUpdateRoutingScheme}
 import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, BankNotFound, EntitlementAlreadyExists, InvalidOrganisationIdFormat, InvalidRoutingSchemeName, MobileWalletDestinationNotFound, MobileWalletInvalidMsisdn, OrganisationAlreadyExists, OrganisationNotFound, PayeeLookupAddressMismatch, PayeeLookupIdentifierTypeNotRegistered, PayeeNotFound, RoutingSchemeAlreadyExists, RoutingSchemeExampleAddressMismatch, RoutingSchemeNotFound, SystemViewNotFound, UserHasMissingRoles, UserNotFoundByUserId}
 import code.api.Constant.SYSTEM_AUDITOR_VIEW_ID
 import code.views.MapperViews
@@ -1933,6 +1933,85 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
           }
         case _ => fail("Expected JSON object for getMetricsDiagnostics")
       }
+    }
+  }
+
+  // ─── triggerMetricsArchiveRun ─────────────────────────────────────────────────
+
+  feature("Http4s700 triggerMetricsArchiveRun endpoint") {
+
+    val triggerPath = "/obp/v7.0.0/management/system/diagnostics/metrics/run"
+
+    scenario("Reject unauthenticated trigger of a metrics archive run", Http4s700RoutesTag) {
+      Given("POST the trigger path with no auth headers")
+      val (statusCode, json, _) = makeHttpRequestWithMethod("POST", triggerPath)
+
+      Then("Response is 401 with AuthenticatedUserIsRequired message")
+      statusCode shouldBe 401
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") match {
+            case Some(JString(msg)) => msg should include(AuthenticatedUserIsRequired)
+            case _ => fail("Expected message field")
+          }
+        case _ => fail("Expected JSON object")
+      }
+    }
+
+    scenario("Return 403 when authenticated but missing canCreateMetricsArchiveRun role", Http4s700RoutesTag) {
+      Given("POST the trigger path with DirectLogin header but no role")
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequestWithMethod("POST", triggerPath, headers)
+
+      Then("Response is 403 with UserHasMissingRoles and the role name")
+      statusCode shouldBe 403
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") match {
+            case Some(JString(msg)) =>
+              msg should include(UserHasMissingRoles)
+              msg should include(canCreateMetricsArchiveRun.toString)
+            case _ => fail("Expected message field")
+          }
+        case _ => fail("Expected JSON object")
+      }
+    }
+
+    scenario("Return 200 and run the archive when authenticated with canCreateMetricsArchiveRun role", Http4s700RoutesTag) {
+      Given("canCreateMetricsArchiveRun role granted to resourceUser1")
+      addEntitlement("", resourceUser1.userId, canCreateMetricsArchiveRun.toString)
+
+      When("POST the trigger path with DirectLogin header")
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequestWithMethod("POST", triggerPath, headers)
+
+      Then("Response is 200 with status=completed and a recorded run")
+      statusCode shouldBe 200
+      json match {
+        case JObject(fields) =>
+          val m = toFieldMap(fields)
+          m.get("status") match {
+            case Some(JString(s)) => s shouldBe "completed"
+            case _ => fail("Expected status field")
+          }
+          m.keys should contain("message")
+          m.get("run") match {
+            case Some(JObject(runFields)) =>
+              val r = toFieldMap(runFields)
+              r.keys should contain("run_id")
+              r.keys should contain("rows_moved_to_archive")
+              r.keys should contain("rows_deleted_from_archive")
+              r.get("success") match {
+                case Some(JBool(ok)) => ok shouldBe true
+                case _ => fail("Expected success field")
+              }
+            case _ => fail("Expected run object on a completed run")
+          }
+        case _ => fail("Expected JSON object for triggerMetricsArchiveRun")
+      }
+
+      And("the run was recorded in the metricsarchiverun log")
+      code.metrics.MetricsArchiveRun.lastRun.isDefined shouldBe true
     }
   }
 

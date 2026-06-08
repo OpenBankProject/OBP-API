@@ -1138,6 +1138,47 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
       remark                    = r.Remark.get
     )
 
+  // Result of manually triggering an archive run. `status` is one of
+  // "completed" (a run executed — inspect `run.success`) or
+  // "skipped_already_in_progress" (a run was already running, so none was started).
+  case class TriggerMetricsArchiveRunResponseJsonV700(
+    status: String,
+    message: String,
+    run: Option[MetricsArchiveRunJsonV700]
+  )
+
+  def createTriggerMetricsArchiveRunResponseJsonV700(outcome: code.scheduler.RunOutcome): TriggerMetricsArchiveRunResponseJsonV700 =
+    outcome match {
+      case code.scheduler.RunCompleted(r) =>
+        val msg =
+          if (r.Success.get)
+            s"Archive run completed: moved ${r.RowsMovedToArchive.get} rows to the archive, deleted ${r.RowsDeletedFromArchive.get} outdated archive rows."
+          else
+            s"Archive run completed with errors: ${r.Remark.get}"
+        TriggerMetricsArchiveRunResponseJsonV700("completed", msg, Some(metricsArchiveRunToJson(r)))
+      case code.scheduler.RunSkippedAlreadyInProgress =>
+        TriggerMetricsArchiveRunResponseJsonV700(
+          "skipped_already_in_progress",
+          "An archive run is already in progress; no new run was started.",
+          None)
+    }
+
+  lazy val triggerMetricsArchiveRunResponseJsonV700Example = TriggerMetricsArchiveRunResponseJsonV700(
+    status  = "completed",
+    message = "Archive run completed: moved 4000 rows to the archive, deleted 1500 outdated archive rows.",
+    run = Some(MetricsArchiveRunJsonV700(
+      run_id                    = "9f3c2b1a-7d4e-4c8a-9b2f-1e6d5a0c4b7e",
+      api_instance_id           = "obp",
+      started_at                = new Date(1717200000000L),
+      ended_at                  = new Date(1717200012000L),
+      duration_ms               = 12000L,
+      rows_moved_to_archive     = 4000,
+      rows_deleted_from_archive = 1500,
+      success                   = true,
+      remark                    = ""
+    ))
+  )
+
   private val metricsOneDayInMillis: Long = 86400000L
   private def metricsAgeInDays(d: Date, now: Date): Long =
     (now.getTime - d.getTime) / metricsOneDayInMillis

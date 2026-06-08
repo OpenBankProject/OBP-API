@@ -7,7 +7,7 @@ import code.api.Constant._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil.{EmptyBody, _}
 import code.api.util.{APIUtil, ApiRole, CallContext, CustomJsonFormats, Glossary, NewStyle}
-import code.api.util.ApiRole.{canCreateEntitlementAtAnyBank, canCreateEntitlementAtOneBank, canCreateOrganisation, canCreateRoutingScheme, canCreateTestEmail, canDeleteEntitlementAtAnyBank, canDeleteOrganisation, canDeleteRoutingScheme, canGetAccountAccessTrace, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetConnectorHealth, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMetricsDiagnostics, canGetMigrations, canUpdateBankSupportedRoutingScheme, canUpdateOrganisation, canUpdateRoutingScheme, canUpdateSystemView}
+import code.api.util.ApiRole.{canCreateEntitlementAtAnyBank, canCreateEntitlementAtOneBank, canCreateMetricsArchiveRun, canCreateOrganisation, canCreateRoutingScheme, canCreateTestEmail, canDeleteEntitlementAtAnyBank, canDeleteOrganisation, canDeleteRoutingScheme, canGetAccountAccessTrace, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetConnectorHealth, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMetricsDiagnostics, canGetMigrations, canUpdateBankSupportedRoutingScheme, canUpdateOrganisation, canUpdateRoutingScheme, canUpdateSystemView}
 import code.api.util.CommonsEmailWrapper
 import code.model.dataAccess.AuthUser
 import code.api.util.ApiTag._
@@ -3300,6 +3300,64 @@ object Http4s700 {
       apiTagMetric :: apiTagSystem :: apiTagApi :: Nil,
       Some(List(canGetMetricsDiagnostics)),
       http4sPartialFunction = Some(getMetricsDiagnostics)
+    )
+
+    // Route: POST /obp/v7.0.0/management/system/diagnostics/metrics/run
+    //
+    // Manually trigger one metrics-archive run. This calls the exact same
+    // `MetricsArchiveScheduler.runOnce()` the timer uses, so it honours the same
+    // concurrency lock (won't start if a run is already in progress), the same
+    // retention props/floors, and records the run in the `metricsarchiverun` log.
+    // The run executes synchronously and may take a while for large backlogs
+    // (it moves up to `retain_metrics_move_limit` rows).
+    val triggerMetricsArchiveRun: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "management" / "system" / "diagnostics" / "metrics" / "run" =>
+        EndpointHelpers.withUser(req) { (user, _) =>
+          Future {
+            val outcome = code.scheduler.MetricsArchiveScheduler.runOnce()
+            logger.info(s"AUDIT triggerMetricsArchiveRun: user_id=${user.userId} outcome=${outcome.getClass.getSimpleName}")
+            JSONFactory700.createTriggerMetricsArchiveRunResponseJsonV700(outcome)
+          }
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(triggerMetricsArchiveRun),
+      "POST",
+      "/management/system/diagnostics/metrics/run",
+      "Trigger a Metrics Archive Run",
+      s"""Manually run the metrics-archiving job once, on demand.
+         |
+         |This invokes the **same** code path as the scheduled
+         |`MetricsArchiveScheduler` run, so it respects all the same checks:
+         |
+         |* **Concurrency lock** — if an archive run is already in progress (the
+         |  `JobScheduler` lock is held, on this or another node), no new run is
+         |  started and the response `status` is `skipped_already_in_progress`.
+         |* **Retention rules** — moves `metric` rows older than the effective
+         |  `retain_metrics_days` (floored to 60) to `metricarchive`, up to
+         |  `retain_metrics_move_limit` rows; then deletes `metricarchive` rows
+         |  older than the effective `retain_archive_metrics_days` (floored to 365).
+         |* **Run log** — the outcome is written to the `metricsarchiverun` audit
+         |  log, exactly as a scheduled run would be.
+         |
+         |Response fields:
+         |* `status` — `completed` (a run executed — inspect `run.success`) or
+         |  `skipped_already_in_progress`.
+         |* `message` — human-readable summary.
+         |* `run` — the recorded run (run id, counts, duration, success, remark);
+         |  absent when skipped.
+         |
+         |Note: the run executes synchronously, so a large backlog may take a while.
+         |
+         |${userAuthenticationMessage(true)}""".stripMargin,
+      EmptyBody,
+      JSONFactory700.triggerMetricsArchiveRunResponseJsonV700Example,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      apiTagMetric :: apiTagSystem :: apiTagApi :: Nil,
+      Some(List(canCreateMetricsArchiveRun)),
+      http4sPartialFunction = Some(triggerMetricsArchiveRun)
     )
 
     // Enabled only in Lift test mode (Props.testMode == true, i.e. -Drun.mode=test).

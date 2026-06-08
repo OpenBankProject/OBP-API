@@ -451,6 +451,9 @@ object ApiRole extends MdcLoggable{
   case class CanGetMetricsDiagnostics(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetMetricsDiagnostics = CanGetMetricsDiagnostics()
 
+  case class CanCreateMetricsArchiveRun(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canCreateMetricsArchiveRun = CanCreateMetricsArchiveRun()
+
   case class CanGetConnectorHealth(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetConnectorHealth = CanGetConnectorHealth()
 
