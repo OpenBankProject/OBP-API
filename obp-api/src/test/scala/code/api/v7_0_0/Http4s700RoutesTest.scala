@@ -7,7 +7,8 @@ import code.api.Constant.SYSTEM_OWNER_VIEW_ID
 import code.api.ResponseHeader
 import code.api.util.APIUtil
 import code.api.util.ApiRole.{canCreateEntitlementAtAnyBank, canCreateOrganisation, canCreateRoutingScheme, canDeleteEntitlementAtAnyBank, canDeleteOrganisation, canDeleteRoutingScheme, canUpdateSystemView, canGetAccountAccessTrace, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetCardsForBank, canGetConnectorHealth, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMigrations, canReadResourceDoc, canUpdateBankSupportedRoutingScheme, canUpdateOrganisation, canUpdateRoutingScheme}
-import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, BankNotFound, EntitlementAlreadyExists, InvalidOrganisationIdFormat, InvalidRoutingSchemeName, MobileWalletDestinationNotFound, MobileWalletInvalidMsisdn, OrganisationAlreadyExists, OrganisationNotFound, PayeeLookupAddressMismatch, PayeeLookupIdentifierTypeNotRegistered, PayeeNotFound, RoutingSchemeAlreadyExists, RoutingSchemeExampleAddressMismatch, RoutingSchemeNotFound, SystemViewNotFound, UserHasMissingRoles, UserNotFoundByUserId}
+import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, BankNotFound, EntitlementAlreadyExists, InvalidOrganisationIdFormat, InvalidRoutingSchemeName, MobileWalletDestinationNotFound, MobileWalletInvalidMsisdn, OrganisationAlreadyExists, OrganisationNotFound, PayeeLookupAddressMismatch, PayeeLookupIdentifierTypeNotRegistered, PayeeNotFound, RoutingSchemeAlreadyExists, RoutingSchemeExampleAddressMismatch, RoutingSchemeNotFound, SystemViewNotFound, UserHasMissingRoles, UserNotFoundByUserId, UtilityIdentifierTypeWrongCategory, UtilityInvalidIdentifier}
+import code.utilitypayment.UtilityPaymentCallbacks
 import code.api.Constant.SYSTEM_AUDITOR_VIEW_ID
 import code.views.MapperViews
 import code.views.system.ViewPermission
@@ -1240,14 +1241,14 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
       createTestRoutingScheme(scheme)
 
       val headers = Map("DirectLogin" -> s"token=${token1.value}")
-      val body    = """{"enabled":true,"bank_notes":"Routed via Gateway X. Cutoff 22:00."}"""
+      val body    = """{"enabled":true,"bank_notes":"Routed via the payment gateway. Cutoff 22:00."}"""
       val (statusCode, json, _) = makeHttpRequestWithBody("PUT", s"/obp/v7.0.0/banks/$bankId/supported-routing-schemes/$scheme", body, headers)
       statusCode shouldBe 200
       json match {
         case JObject(fields) =>
           val map = toFieldMap(fields)
           map.get("scheme")     shouldBe Some(JString(scheme))
-          map.get("bank_notes") shouldBe Some(JString("Routed via Gateway X. Cutoff 22:00."))
+          map.get("bank_notes") shouldBe Some(JString("Routed via the payment gateway. Cutoff 22:00."))
         case _ => fail("Expected JSON object")
       }
     }
@@ -1613,6 +1614,152 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
           }
         case _ => fail("Expected JSON object")
       }
+    }
+  }
+
+  // ─── UTILITY transaction request ──────────────────────────────────────────
+
+  /** Seed a UTILITY/BILL-category routing scheme plus a destination account_routing
+    * so the biller resolves (mirrors seedPayeeForLookup but with a non-ACCOUNT category). */
+  private def seedUtilityBiller(prefix: String, category: String, address: String, destBankId: String, destAccountId: String): String = {
+    val scheme = freshSchemeName(prefix)
+    RoutingSchemes.routingScheme.vend.createRoutingScheme(
+      scheme = scheme, country = "TZ", category = category,
+      addressPattern = "^[0-9]+$", secondaryAddressPattern = None,
+      exampleAddress = address, description = "Test biller", downstreamRails = Nil,
+      status = "ACTIVE", createdByUserId = resourceUser1.userId
+    )
+    BankAccountRouting.create
+      .BankId(destBankId)
+      .AccountId(destAccountId)
+      .AccountRoutingScheme(scheme)
+      .AccountRoutingAddress(address)
+      .saveMe()
+    scheme
+  }
+
+  feature("Http4s700 createTransactionRequestUtility endpoint") {
+
+    scenario("Reject unauthenticated POST", Http4s700RoutesTag) {
+      val bankId = testBankId1.value
+      val accountId = testAccountId0.value
+      val body = """{"to":{"scheme":"TZ.UTILITY_METER","value":"24730238417"},"value":{"currency":"TZS","amount":"1000"},"description":"utility"}"""
+      val (statusCode, _, _) = makeHttpRequestWithBody("POST", s"/obp/v7.0.0/banks/$bankId/accounts/$accountId/owner/transaction-request-types/UTILITY/transaction-requests", body)
+      statusCode shouldBe 401
+    }
+
+    scenario("Return 400 when identifier scheme is not registered", Http4s700RoutesTag) {
+      val bankId = testBankId1.value
+      val accountId = testAccountId0.value
+      val body = """{"to":{"scheme":"TZ.UNKNOWN_BILLER","value":"24730238417"},"value":{"currency":"TZS","amount":"1000"},"description":"utility"}"""
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequestWithBody("POST", s"/obp/v7.0.0/banks/$bankId/accounts/$accountId/owner/transaction-request-types/UTILITY/transaction-requests", body, headers)
+      statusCode shouldBe 400
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") match {
+            case Some(JString(msg)) => msg should include(PayeeLookupIdentifierTypeNotRegistered)
+            case _ => fail("Expected message field")
+          }
+        case _ => fail("Expected JSON object")
+      }
+    }
+
+    scenario("Return 400 when identifier scheme category is not UTILITY or BILL", Http4s700RoutesTag) {
+      val bankId = testBankId1.value
+      val accountId = testAccountId0.value
+      // Register an ACCOUNT-category scheme — valid pattern, wrong category for a UTILITY payment.
+      val scheme = freshSchemeName("ACAT")
+      RoutingSchemes.routingScheme.vend.createRoutingScheme(
+        scheme = scheme, country = "TZ", category = "ACCOUNT",
+        addressPattern = "^[0-9]+$", secondaryAddressPattern = None,
+        exampleAddress = "24730238417", description = "Account scheme",
+        downstreamRails = Nil, status = "ACTIVE", createdByUserId = resourceUser1.userId
+      )
+      val body = s"""{"to":{"scheme":"$scheme","value":"24730238417"},"value":{"currency":"TZS","amount":"1000"},"description":"utility"}"""
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequestWithBody("POST", s"/obp/v7.0.0/banks/$bankId/accounts/$accountId/owner/transaction-request-types/UTILITY/transaction-requests", body, headers)
+      statusCode shouldBe 400
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") match {
+            case Some(JString(msg)) => msg should include(UtilityIdentifierTypeWrongCategory)
+            case _ => fail("Expected message field")
+          }
+        case _ => fail("Expected JSON object")
+      }
+    }
+
+    scenario("Return 400 when identifier value does not match the scheme's address_pattern", Http4s700RoutesTag) {
+      val bankId = testBankId1.value
+      val accountId = testAccountId0.value
+      // UTILITY-category scheme with a strict numeric pattern; send a non-numeric value.
+      val scheme = freshSchemeName("USTR")
+      RoutingSchemes.routingScheme.vend.createRoutingScheme(
+        scheme = scheme, country = "TZ", category = "UTILITY",
+        addressPattern = "^[0-9]{8,14}$", secondaryAddressPattern = None,
+        exampleAddress = "24730238417", description = "Strict meter",
+        downstreamRails = Nil, status = "ACTIVE", createdByUserId = resourceUser1.userId
+      )
+      val body = s"""{"to":{"scheme":"$scheme","value":"not-a-meter"},"value":{"currency":"TZS","amount":"1000"},"description":"utility"}"""
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequestWithBody("POST", s"/obp/v7.0.0/banks/$bankId/accounts/$accountId/owner/transaction-request-types/UTILITY/transaction-requests", body, headers)
+      statusCode shouldBe 400
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") match {
+            case Some(JString(msg)) => msg should include(UtilityInvalidIdentifier)
+            case _ => fail("Expected message field")
+          }
+        case _ => fail("Expected JSON object")
+      }
+    }
+
+    scenario("Return 201 with a registered callback when the biller resolves", Http4s700RoutesTag) {
+      val bankId = testBankId1.value
+      val accountId = testAccountId0.value
+      val acctCurrency = code.bankconnectors.Connector.connector.vend
+        .getBankAccountLegacy(testBankId1, testAccountId0, None)
+        .map(_._1.currency).openOrThrowException("test account")
+
+      val meter = s"247${(System.currentTimeMillis() % 100000000L).toString.reverse.padTo(8, '0').reverse}"
+      val scheme = seedUtilityBiller("UTIL", "UTILITY", meter, bankId, accountId)
+
+      val body =
+        s"""{
+           |  "to": {"scheme":"$scheme","value":"$meter"},
+           |  "value": {"currency":"$acctCurrency","amount":"1000"},
+           |  "description": "utility token purchase",
+           |  "client_reference": "ref-0001",
+           |  "payer": {"phone":"255700000000","name":"Jane Doe","email":"jane.doe@example.com"},
+           |  "callback_url": "https://example.com/utility/callback"
+           |}""".stripMargin
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequestWithBody("POST", s"/obp/v7.0.0/banks/$bankId/accounts/$accountId/owner/transaction-request-types/UTILITY/transaction-requests", body, headers)
+      statusCode shouldBe 201
+      val trId = json match {
+        case JObject(fields) =>
+          val map = toFieldMap(fields)
+          map.keys should contain allOf ("id", "type", "from", "details", "status", "callback")
+          map.get("type") shouldBe Some(JString("UTILITY"))
+          map.get("callback") match {
+            case Some(JObject(cbFields)) =>
+              val cb = toFieldMap(cbFields)
+              cb.get("callback_url") shouldBe Some(JString("https://example.com/utility/callback"))
+              cb.keys should contain allOf ("callback_id", "status")
+            case other => fail(s"Expected callback object, got: $other")
+          }
+          map.get("id") match {
+            case Some(JString(id)) => id
+            case _ => fail("Expected id as JSON string")
+          }
+        case _ => fail("Expected JSON object")
+      }
+
+      // The one-shot callback row was persisted against this transaction request.
+      val stored = UtilityPaymentCallbacks.utilityPaymentCallback.vend.getCallbackByTransactionRequestId(trId)
+      stored.isDefined shouldBe true
+      stored.openOrThrowException("callback row").callbackUrl shouldBe "https://example.com/utility/callback"
     }
   }
 

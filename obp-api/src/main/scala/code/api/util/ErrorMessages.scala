@@ -508,6 +508,15 @@ object ErrorMessages {
   val BulkPaymentAddressMismatch = "OBP-30543: A payment's address does not match the address_pattern of its routing_scheme."
   val BulkPaymentTransactionRequestError = "OBP-30544: Could not create BULK transaction request."
 
+  // UTILITY transaction-request (OBP-30546 .. OBP-30549)
+  // Polymorphic bill/utility payment (prepaid utility meter, bill control number, ...).
+  // The destination is identified by a QualifiedIdentifier whose `scheme` must be a
+  // registered routing scheme of category UTILITY or BILL.
+  val UtilityIdentifierTypeWrongCategory = "OBP-30546: identifier scheme category is not valid for a UTILITY payment. Allowed categories are: UTILITY, BILL."
+  val UtilityInvalidIdentifier = "OBP-30547: Invalid identifier value — does not match the address_pattern of the routing scheme (e.g. TZ.UTILITY_METER)."
+  val UtilityDestinationNotFound = "OBP-30548: No biller/utility account is registered for the supplied identifier. In mapped mode the destination must have an account routing for the identifier scheme (e.g. TZ.UTILITY_METER)."
+  val UtilityPaymentError = "OBP-30549: Could not create UTILITY transaction request."
+
   // Implicit OBP-family routing schemes (OBP-30545)
   // The schemes "OBP" / "OBP_ACCOUNT_ID" / "OBP_BANK_ID" are reserved self-identifiers —
   // they map (scheme, address) directly to (kind, primary_key) without a stored row.

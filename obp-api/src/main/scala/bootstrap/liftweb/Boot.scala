@@ -89,6 +89,7 @@ import code.group.Group
 import code.organisation.Organisation
 import code.routingscheme.{RoutingScheme, BankSupportedRoutingScheme}
 import code.payeelookup.PayeeLookup
+import code.utilitypayment.UtilityPaymentCallback
 import code.bulkpayment.{BulkPayment, BulkBatchReference}
 import code.kycchecks.MappedKycCheck
 import code.kycdocuments.MappedKycDocument
@@ -281,7 +282,7 @@ class Boot extends MdcLoggable {
     // Please note that migration scripts are executed after Lift Mapper Schemifier
     Migration.database.executeScripts(startedBeforeSchemifier = false)
 
-    // Idempotent seed of country-qualified routing schemes (TZ.MSISDN, GePG, Luku, etc.).
+    // Idempotent seed of country-qualified routing schemes (TZ.MSISDN, bill, utility, etc.).
     // Toggle off via routing_schemes.seed_defaults_at_boot=false in environments that don't want defaults.
     code.routingscheme.RoutingSchemeSeed.runIfEnabled()
 
@@ -1027,6 +1028,7 @@ object ToSchemify extends MdcLoggable {
     RoutingScheme,
     BankSupportedRoutingScheme,
     PayeeLookup,
+    UtilityPaymentCallback,
     BulkPayment,
     BulkBatchReference,
     AccountAccessRequest,
