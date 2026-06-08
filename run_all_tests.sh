@@ -805,6 +805,29 @@ if [ "$FOUND_FILES" = false ]; then
     log_message "No old test database files found"
 fi
 
+# --- Postgres test-DB clean (only when the suite is pointed at Postgres) ---
+# Persistent Postgres + OBP's re-schemify needs a clean schema each full run, else boot aborts with
+# "cannot alter type of a column used by a view". Tolerant: skipped on H2 / no psql / DB unreachable.
+PG_TEST_DB_NAME="${PG_TEST_DB_NAME:-obp_test_only}"
+PG_TEST_DB_USER="${PG_TEST_DB_USER:-obp_test_only}"
+PG_TEST_DB_PASS="${PG_TEST_DB_PASS:-changeme}"
+PG_TEST_DB_HOST="${PG_TEST_DB_HOST:-localhost}"
+PG_TEST_DB_PORT="${PG_TEST_DB_PORT:-5432}"
+if command -v psql >/dev/null 2>&1; then
+    PG_TEST_URL="postgresql://${PG_TEST_DB_USER}:${PG_TEST_DB_PASS}@${PG_TEST_DB_HOST}:${PG_TEST_DB_PORT}/${PG_TEST_DB_NAME}"
+    if psql "$PG_TEST_URL" -tAc "SELECT 1" >/dev/null 2>&1; then
+        if psql "$PG_TEST_URL" -c "DROP OWNED BY ${PG_TEST_DB_USER} CASCADE;" >/dev/null 2>&1; then
+            log_message "  [OK] Cleaned Postgres test schema: ${PG_TEST_DB_NAME}"
+        else
+            log_message "  [WARN] Could not clean Postgres test schema (continuing)"
+        fi
+    else
+        log_message "  Postgres test DB not reachable (H2 run?) - skipping Postgres clean"
+    fi
+else
+    log_message "  psql not found - skipping Postgres test-DB clean"
+fi
+
 log_message ""
 
 ################################################################################

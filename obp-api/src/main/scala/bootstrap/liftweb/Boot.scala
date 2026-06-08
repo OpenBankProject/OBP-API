@@ -946,6 +946,7 @@ object ToSchemify extends MdcLoggable {
     WebUiProps,
     DynamicEntity,
     DynamicData,
+    code.api.dynamic.entity.projection.DynamicEntityIndex,
     DynamicEndpoint,
     AccountIdMapping,
     DirectDebit,

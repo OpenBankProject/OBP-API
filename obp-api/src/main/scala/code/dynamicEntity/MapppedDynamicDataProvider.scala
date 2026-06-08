@@ -125,7 +125,12 @@ object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonForm
   }
 
   override def delete(bankId: Option[String], entityName: String, id: String, userId: Option[String], isPersonalEntity: Boolean) = {
-    get(bankId, entityName, id, userId, isPersonalEntity).map(_.asInstanceOf[DynamicData].delete_!)
+    get(bankId, entityName, id, userId, isPersonalEntity).map { d =>
+      val result = d.asInstanceOf[DynamicData].delete_!
+      // DE_indexing: remove the projection row in the same transaction (no-op unless projection enabled+ready).
+      code.api.dynamic.entity.projection.ProjectionDualWrite.onDelete(bankId, entityName, id)
+      result
+    }
   }
 
   // Community access: return ALL records regardless of userId/IsPersonalEntity
@@ -203,12 +208,15 @@ object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonForm
     val data: DynamicData = dynamicData
     tryo {
       val dataStr = json.compactRender(requestBody)
-     data.DataJson(dataStr)
+     val saved = data.DataJson(dataStr)
        .DynamicEntityName(entityName)
        .BankId(bankId.getOrElse(null))
        .UserId(userId.getOrElse(null))
        .IsPersonalEntity(isPersonalEntity)
        .saveMe()
+     // DE_indexing: keep the projection in sync in the same transaction (no-op unless projection enabled+ready).
+     code.api.dynamic.entity.projection.ProjectionDualWrite.onSave(bankId, entityName, saved.DynamicDataId.get, requestBody)
+     saved
     }
   }
 
