@@ -6,7 +6,7 @@ import code.api.util.http4s.Http4sStandardHeaders
 import code.api.Constant.SYSTEM_OWNER_VIEW_ID
 import code.api.ResponseHeader
 import code.api.util.APIUtil
-import code.api.util.ApiRole.{canCreateEntitlementAtAnyBank, canCreateOrganisation, canCreateRoutingScheme, canDeleteEntitlementAtAnyBank, canDeleteOrganisation, canDeleteRoutingScheme, canUpdateSystemView, canGetAccountAccessTrace, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetCardsForBank, canGetConnectorHealth, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMigrations, canReadResourceDoc, canUpdateBankSupportedRoutingScheme, canUpdateOrganisation, canUpdateRoutingScheme}
+import code.api.util.ApiRole.{canCreateEntitlementAtAnyBank, canCreateOrganisation, canCreateRoutingScheme, canDeleteEntitlementAtAnyBank, canDeleteOrganisation, canDeleteRoutingScheme, canUpdateSystemView, canGetAccountAccessTrace, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetCardsForBank, canGetConnectorHealth, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMetricsDiagnostics, canGetMigrations, canReadResourceDoc, canUpdateBankSupportedRoutingScheme, canUpdateOrganisation, canUpdateRoutingScheme}
 import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, BankNotFound, EntitlementAlreadyExists, InvalidOrganisationIdFormat, InvalidRoutingSchemeName, MobileWalletDestinationNotFound, MobileWalletInvalidMsisdn, OrganisationAlreadyExists, OrganisationNotFound, PayeeLookupAddressMismatch, PayeeLookupIdentifierTypeNotRegistered, PayeeNotFound, RoutingSchemeAlreadyExists, RoutingSchemeExampleAddressMismatch, RoutingSchemeNotFound, SystemViewNotFound, UserHasMissingRoles, UserNotFoundByUserId}
 import code.api.Constant.SYSTEM_AUDITOR_VIEW_ID
 import code.views.MapperViews
@@ -1819,6 +1819,118 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
             case _ => fail("Expected message field")
           }
         case _ => fail("Expected JSON object")
+      }
+    }
+  }
+
+  // ─── getMetricsDiagnostics ────────────────────────────────────────────────────
+
+  feature("Http4s700 getMetricsDiagnostics endpoint") {
+
+    val diagnosticsPath = "/obp/v7.0.0/management/system/diagnostics/metrics"
+
+    scenario("Reject unauthenticated access to the metrics diagnostics", Http4s700RoutesTag) {
+      Given("GET the diagnostics path with no auth headers")
+      val (statusCode, json, _) = makeHttpRequest(diagnosticsPath)
+
+      Then("Response is 401 with AuthenticatedUserIsRequired message")
+      statusCode shouldBe 401
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") match {
+            case Some(JString(msg)) => msg should include(AuthenticatedUserIsRequired)
+            case _ => fail("Expected message field")
+          }
+        case _ => fail("Expected JSON object")
+      }
+    }
+
+    scenario("Return 403 when authenticated but missing canGetMetricsDiagnostics role", Http4s700RoutesTag) {
+      Given("GET the diagnostics path with DirectLogin header but no role")
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequest(diagnosticsPath, headers)
+
+      Then("Response is 403 with UserHasMissingRoles and the role name")
+      statusCode shouldBe 403
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") match {
+            case Some(JString(msg)) =>
+              msg should include(UserHasMissingRoles)
+              msg should include(canGetMetricsDiagnostics.toString)
+            case _ => fail("Expected message field")
+          }
+        case _ => fail("Expected JSON object")
+      }
+    }
+
+    scenario("Return 200 with diagnostics shape when authenticated with canGetMetricsDiagnostics role", Http4s700RoutesTag) {
+      Given("canGetMetricsDiagnostics role granted to resourceUser1")
+      addEntitlement("", resourceUser1.userId, canGetMetricsDiagnostics.toString)
+
+      When("GET the diagnostics path with DirectLogin header")
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequest(diagnosticsPath, headers)
+
+      Then("Response is 200 with config, metric, metric_archive, checks and everything_as_expected")
+      statusCode shouldBe 200
+      json match {
+        case JObject(fields) =>
+          val m = toFieldMap(fields)
+          m.keys should contain("config")
+          m.keys should contain("metric")
+          m.keys should contain("metric_archive")
+          m.keys should contain("everything_as_expected")
+
+          And("config exposes the archiving props and their effective values")
+          m.get("config") match {
+            case Some(JObject(cfgFields)) =>
+              val cfg = toFieldMap(cfgFields)
+              cfg.keys should contain("write_metrics")
+              cfg.keys should contain("enable_metrics_scheduler")
+              cfg.keys should contain("retain_metrics_days")
+              cfg.keys should contain("retain_metrics_days_effective")
+              cfg.keys should contain("retain_archive_metrics_days")
+              cfg.keys should contain("retain_archive_metrics_days_effective")
+              cfg.keys should contain("retain_metrics_move_limit")
+            case _ => fail("Expected config object")
+          }
+
+          And("the metric table stats name the live metric table")
+          m.get("metric") match {
+            case Some(JObject(metricFields)) =>
+              toFieldMap(metricFields).get("table_name") match {
+                case Some(JString(name)) => name shouldBe "metric"
+                case _ => fail("Expected table_name field")
+              }
+            case _ => fail("Expected metric object")
+          }
+
+          And("the archive table stats name the metricarchive table")
+          m.get("metric_archive") match {
+            case Some(JObject(archiveFields)) =>
+              toFieldMap(archiveFields).get("table_name") match {
+                case Some(JString(name)) => name shouldBe "metricarchive"
+                case _ => fail("Expected table_name field")
+              }
+            case _ => fail("Expected metric_archive object")
+          }
+
+          And("checks is a non-empty array, each entry carrying name/status/message")
+          m.get("checks") match {
+            case Some(JArray(items)) =>
+              items should not be empty
+              items.foreach {
+                case JObject(checkFields) =>
+                  val c = toFieldMap(checkFields)
+                  c.keys should contain("name")
+                  c.keys should contain("status")
+                  c.keys should contain("message")
+                case _ => fail("Expected each check to be a JSON object")
+              }
+            case _ => fail("Expected checks array")
+          }
+        case _ => fail("Expected JSON object for getMetricsDiagnostics")
       }
     }
   }

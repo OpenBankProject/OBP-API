@@ -7,7 +7,7 @@ import code.api.Constant._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil.{EmptyBody, _}
 import code.api.util.{APIUtil, ApiRole, CallContext, CustomJsonFormats, Glossary, NewStyle}
-import code.api.util.ApiRole.{canCreateEntitlementAtAnyBank, canCreateEntitlementAtOneBank, canCreateOrganisation, canCreateRoutingScheme, canCreateTestEmail, canDeleteEntitlementAtAnyBank, canDeleteOrganisation, canDeleteRoutingScheme, canGetAccountAccessTrace, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetConnectorHealth, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMigrations, canUpdateBankSupportedRoutingScheme, canUpdateOrganisation, canUpdateRoutingScheme, canUpdateSystemView}
+import code.api.util.ApiRole.{canCreateEntitlementAtAnyBank, canCreateEntitlementAtOneBank, canCreateOrganisation, canCreateRoutingScheme, canCreateTestEmail, canDeleteEntitlementAtAnyBank, canDeleteOrganisation, canDeleteRoutingScheme, canGetAccountAccessTrace, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetConnectorHealth, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMetricsDiagnostics, canGetMigrations, canUpdateBankSupportedRoutingScheme, canUpdateOrganisation, canUpdateRoutingScheme, canUpdateSystemView}
 import code.api.util.CommonsEmailWrapper
 import code.model.dataAccess.AuthUser
 import code.api.util.ApiTag._
@@ -3238,6 +3238,61 @@ object Http4s700 {
       apiTagSystemView :: Nil,
       Some(List(canUpdateSystemView)),
       http4sPartialFunction = Some(factoryResetSystemView)
+    )
+
+    // Route: GET /obp/v7.0.0/management/system/diagnostics/metrics
+    //
+    // Operator diagnostic for the metrics-archiving pipeline. Reports the
+    // archiving props plus row counts and the oldest/newest record in both the
+    // `metric` and `metricarchive` tables, then runs integrity checks that
+    // surface whether MetricsArchiveScheduler is keeping each table inside its
+    // configured retention window. Intended for use from the API Manager.
+    val getMetricsDiagnostics: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "management" / "system" / "diagnostics" / "metrics" =>
+        EndpointHelpers.withUser(req) { (_, _) =>
+          Future {
+            JSONFactory700.createMetricsAndArchiveMetricsDiagnosticsJsonV700()
+          }
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(getMetricsDiagnostics),
+      "GET",
+      "/management/system/diagnostics/metrics",
+      "Get Metrics and Archive Metrics Diagnostics",
+      s"""Diagnostic for the metrics-archiving pipeline (`MetricsArchiveScheduler`).
+         |
+         |Returns:
+         |
+         |* `config` — the relevant props and their *effective* values after the
+         |  scheduler's floors are applied (`retain_metrics_days` floored to 60,
+         |  `retain_archive_metrics_days` floored to 365): `write_metrics`,
+         |  `enable_metrics_scheduler`, `retain_metrics_days`,
+         |  `retain_archive_metrics_days`, `retain_metrics_move_limit`.
+         |* `metric` — row count and oldest/newest record (date + age in days) of
+         |  the live `metric` table.
+         |* `metric_archive` — the same for the `metricarchive` table.
+         |* `checks` — a list of integrity checks, each with a `status` of `OK`,
+         |  `WARNING`, or `ERROR`:
+         |    * `write_metrics_enabled`
+         |    * `metrics_scheduler_enabled`
+         |    * `metric_oldest_within_retention` — flags if the oldest live metric
+         |      is older than the retention window (move job not keeping up / stopped).
+         |    * `archive_oldest_within_retention` — flags if the oldest archived
+         |      metric is older than the archive retention (cleanup not keeping up / stopped).
+         |    * `archive_recently_updated` — flags if a backlog exists but the newest
+         |      archived record is stale (move job stopped).
+         |* `everything_as_expected` — `true` only when every check is `OK`.
+         |
+         |${userAuthenticationMessage(true)}""".stripMargin,
+      EmptyBody,
+      JSONFactory700.metricsAndArchiveMetricsDiagnosticsJsonV700Example,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      apiTagMetric :: apiTagSystem :: apiTagApi :: Nil,
+      Some(List(canGetMetricsDiagnostics)),
+      http4sPartialFunction = Some(getMetricsDiagnostics)
     )
 
     // Enabled only in Lift test mode (Props.testMode == true, i.e. -Drun.mode=test).
