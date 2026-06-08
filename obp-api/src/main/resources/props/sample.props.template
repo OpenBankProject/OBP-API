@@ -806,51 +806,12 @@ super_admin_user_ids=USER_ID1,USER_ID2,
 ##########################
 
 
-## Open Id Connect (OIDC) can be used to retrieve User information from an
-## external OpenID Connect server.
-## This will enable authentication of an external user stored in an external db,
-## and will create a local OBP resource user in the OBP DB.
-## To use an external OpenID Connect server,
-## you will need to change these values.
-## The following values provided for a temp test account.
-## CallbackURL 127.0.0.1:8080 should work in most cases.
-## Note: The email address used for login must match one
-## registered on OBP localy.
-# openid_connect.enabled=false
-# CONFIG CAVEAT: portal-login was removed, so there is no server-side session state to compare.
-# The code default is true (fail-closed) and will reject every real (non-empty) state with 401 —
-# OIDC deployments MUST set this to false (or reintroduce state storage):
-# openid_connect.check_session_state=false
-# openid_connect.show_tokens=false
-# Response mode
-# possible values: query, fragment, form_post, query.jwt, fragment.jwt, form_post.jwt, jwt
-# openid_connect.response_mode=form_post
-# Response type
-# possible values: "code", "id_token", "code id_token"
-# openid_connect.response_type=code
-# Scope
-# possible values: "openid email profile", "openid email", "openid"
-# openid_connect.scope=openid email profile
-# First identity provider
-# openid_connect_1.button_text = Google
-# openid_connect_1.client_secret=OYdWujJlU7fFOW_NXzPlDI4T
-# openid_connect_1.client_id=883773244832-s4hi72j0rble0iiivq1gn09k7vvptdci.apps.googleusercontent.com
-# openid_connect_1.callback_url=http://127.0.0.1:8080/auth/openid-connect/callback
-# openid_connect_1.endpoint.authorization=https://accounts.google.com/o/oauth2/v2/auth
-# openid_connect_1.endpoint.userinfo=https://openidconnect.googleapis.com/v1/userinfo
-# openid_connect_1.endpoint.token=https://oauth2.googleapis.com/token
-# openid_connect_1.endpoint.jwks_uri=https://www.googleapis.com/oauth2/v3/certs
-# openid_connect_1.access_type_offline=true
-## Second identity provder
-# openid_connect_2.button_text = name of 2nd provider
-# openid_connect_2.client_secret=OYdWujJlU7fFOW_NXzPlDI4T
-# openid_connect_2.client_id=883773244832-s4hi72j0rble0iiivq1gn09k7vvptdci.apps.googleusercontent.com
-# openid_connect_2.callback_url=http://127.0.0.1:8080/auth/openid-connect/callback-2
-# openid_connect_2.endpoint.authorization=https://accounts.google.com/o/oauth2/v2/auth
-# openid_connect_2.endpoint.userinfo=https://openidconnect.googleapis.com/v1/userinfo
-# openid_connect_2.endpoint.token=https://oauth2.googleapis.com/token
-# openid_connect_2.endpoint.jwks_uri=https://www.googleapis.com/oauth2/v3/certs
-# openid_connect_2.access_type_offline=false
+# NOTE: OBP-API is a pure OAuth2 *resource server*. The OIDC relying-party login
+# callback (/auth/openid-connect/callback{,-1,-2}) and its openid_connect.* /
+# openid_connect_$n.* props were removed — the client/BFF runs the OIDC login
+# against the provider and calls OBP with `Authorization: Bearer <jwt>`.
+# Configure Bearer-JWT validation via the oauth2.* props further below
+# (oauth2.jwk_set.url, oauth2.keycloak.*, oauth2.obp_oidc.*).
 
 # When new consumers inserted they should use this setting.
 consumers_enabled_by_default=true
@@ -1320,18 +1281,6 @@ outboundAdapterCallContext.generalContext
 ## This should include the JWKS URI for OBP-OIDC provider
 ## Multiple JWKS URIs can be comma-separated
 #oauth2.jwk_set.url=http://localhost:9000/obp-oidc/jwks
-
-## OpenID Connect Client Configuration for OBP-OIDC
-#openid_connect_1.button_text=OBP-OIDC
-#openid_connect_1.client_id=obp-api-client
-#openid_connect_1.client_secret=your-client-secret-here
-#openid_connect_1.callback_url=http://localhost:8080/auth/openid-connect/callback
-#openid_connect_1.endpoint.discovery=http://localhost:9000/obp-oidc/.well-known/openid-configuration
-#openid_connect_1.endpoint.authorization=http://localhost:9000/obp-oidc/auth
-#openid_connect_1.endpoint.userinfo=http://localhost:9000/obp-oidc/userinfo
-#openid_connect_1.endpoint.token=http://localhost:9000/obp-oidc/token
-#openid_connect_1.endpoint.jwks_uri=http://localhost:9000/obp-oidc/jwks
-#openid_connect_1.access_type_offline=true
 # ------------------------------ OBP-OIDC oauth2 props end ------------------------------
 
 # ------------------------------ default entitlements ------------------------------
