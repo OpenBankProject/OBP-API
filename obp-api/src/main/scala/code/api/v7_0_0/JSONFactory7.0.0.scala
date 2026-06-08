@@ -7,7 +7,7 @@ import code.api.util.ErrorMessages.MandatoryPropertyIsNotSet
 import code.api.v4_0_0.{EnergySource400, HostedAt400, HostedBy400, PostSimpleCounterpartyJson400}
 import code.bankconnectors.Connector
 import code.customer.CustomerX
-import code.metrics.{MappedMetric, MetricArchive}
+import code.metrics.{MappedMetric, MetricArchive, MetricsArchiveRun}
 import code.util.Helper.MdcLoggable
 import code.views.Views
 import com.openbankproject.commons.model.{AccountId, AccountRoutingJsonV121, AmountOfMoneyJsonV121, BankId, BankIdAccountId, CoreAccount, TransactionRequest, TransactionRequestCommonBodyJSON, User}
@@ -1087,6 +1087,7 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
   case class MetricsArchiveConfigJsonV700(
     write_metrics: Boolean,
     enable_metrics_scheduler: Boolean,
+    retain_metrics_scheduler_interval_in_seconds: Int,
     retain_metrics_days: Long,
     retain_metrics_days_effective: Long,
     retain_archive_metrics_days: Long,
@@ -1101,13 +1102,41 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     message: String
   )
 
+  // One row of the metricsarchiverun audit log (a completed scheduler run).
+  case class MetricsArchiveRunJsonV700(
+    run_id: String,
+    api_instance_id: String,
+    started_at: Date,
+    ended_at: Date,
+    duration_ms: Long,
+    rows_moved_to_archive: Int,
+    rows_deleted_from_archive: Int,
+    success: Boolean,
+    remark: String
+  )
+
   case class MetricsAndArchiveMetricsDiagnosticsJsonV700(
     config: MetricsArchiveConfigJsonV700,
     metric: MetricsTableStatsJsonV700,
     metric_archive: MetricsTableStatsJsonV700,
+    last_run: Option[MetricsArchiveRunJsonV700],
+    last_successful_run: Option[MetricsArchiveRunJsonV700],
     checks: List[MetricsIntegrityCheckJsonV700],
     everything_as_expected: Boolean
   )
+
+  private def metricsArchiveRunToJson(r: MetricsArchiveRun): MetricsArchiveRunJsonV700 =
+    MetricsArchiveRunJsonV700(
+      run_id                    = r.RunId.get,
+      api_instance_id           = r.ApiInstanceId.get,
+      started_at                = r.StartedAt.get,
+      ended_at                  = r.EndedAt.get,
+      duration_ms               = r.DurationMs.get,
+      rows_moved_to_archive     = r.RowsMovedToArchive.get,
+      rows_deleted_from_archive = r.RowsDeletedFromArchive.get,
+      success                   = r.Success.get,
+      remark                    = r.Remark.get
+    )
 
   private val metricsOneDayInMillis: Long = 86400000L
   private def metricsAgeInDays(d: Date, now: Date): Long =
@@ -1128,6 +1157,7 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
 
     val writeMetrics      = APIUtil.getPropsAsBoolValue("write_metrics", false)
     val schedulerEnabled  = APIUtil.getPropsAsBoolValue("enable_metrics_scheduler", true)
+    val schedulerIntervalSeconds = APIUtil.getPropsAsIntValue("retain_metrics_scheduler_interval_in_seconds", 3600)
     val retainMetricsDays = APIUtil.getPropsAsLongValue("retain_metrics_days", 367)
     val retainMetricsDaysEffective = if (retainMetricsDays > 59) retainMetricsDays else 60L
     val retainArchiveMetricsDays   = APIUtil.getPropsAsLongValue("retain_archive_metrics_days", 365L * 3)
@@ -1137,6 +1167,7 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     val config = MetricsArchiveConfigJsonV700(
       write_metrics                         = writeMetrics,
       enable_metrics_scheduler              = schedulerEnabled,
+      retain_metrics_scheduler_interval_in_seconds = schedulerIntervalSeconds,
       retain_metrics_days                   = retainMetricsDays,
       retain_metrics_days_effective         = retainMetricsDaysEffective,
       retain_archive_metrics_days           = retainArchiveMetricsDays,
@@ -1223,10 +1254,35 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
           "No backlog of metrics older than the retention window — nothing to move right now.")
     }
 
+    // Run-log derived check: the durable record of scheduler runs (metricsarchiverun).
+    val lastRun = MetricsArchiveRun.lastRun
+    val lastSuccessfulRun = MetricsArchiveRun.lastSuccessfulRun
+    lastRun match {
+      case Some(r) if r.Success.get =>
+        val ageDays = metricsAgeInDays(r.StartedAt.get, now)
+        checks += MetricsIntegrityCheckJsonV700("archive_job_last_run", "OK",
+          s"Last archive run succeeded $ageDays days ago (moved ${r.RowsMovedToArchive.get} rows, deleted ${r.RowsDeletedFromArchive.get} outdated archive rows).")
+      case Some(r) =>
+        val ageDays = metricsAgeInDays(r.StartedAt.get, now)
+        val lastOkNote = lastSuccessfulRun
+          .map(s => s" Last successful run was ${metricsAgeInDays(s.StartedAt.get, now)} days ago.")
+          .getOrElse(" No successful run has ever been recorded.")
+        checks += MetricsIntegrityCheckJsonV700("archive_job_last_run", "ERROR",
+          s"The most recent archive run ($ageDays days ago) failed: ${r.Remark.get}.$lastOkNote")
+      case None if schedulerEnabled =>
+        checks += MetricsIntegrityCheckJsonV700("archive_job_last_run", "WARNING",
+          "No archive run has been recorded yet. The scheduler is enabled but may not have completed its first run since this table was introduced.")
+      case None =>
+        checks += MetricsIntegrityCheckJsonV700("archive_job_last_run", "OK",
+          "No archive run recorded — the scheduler is disabled, so this is expected.")
+    }
+
     MetricsAndArchiveMetricsDiagnosticsJsonV700(
       config                 = config,
       metric                 = metricStats,
       metric_archive         = archiveStats,
+      last_run               = lastRun.map(metricsArchiveRunToJson),
+      last_successful_run    = lastSuccessfulRun.map(metricsArchiveRunToJson),
       checks                 = checks.toList,
       everything_as_expected = checks.forall(_.status == "OK")
     )
@@ -1236,6 +1292,7 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     config = MetricsArchiveConfigJsonV700(
       write_metrics                         = true,
       enable_metrics_scheduler              = true,
+      retain_metrics_scheduler_interval_in_seconds = 3600,
       retain_metrics_days                   = 90,
       retain_metrics_days_effective         = 90,
       retain_archive_metrics_days           = 730,
@@ -1258,6 +1315,28 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
       oldest_record_age_days = Some(700L),
       newest_record_age_days = Some(92L)
     ),
+    last_run = Some(MetricsArchiveRunJsonV700(
+      run_id                    = "9f3c2b1a-7d4e-4c8a-9b2f-1e6d5a0c4b7e",
+      api_instance_id           = "obp",
+      started_at                = new Date(1717200000000L),
+      ended_at                  = new Date(1717200012000L),
+      duration_ms               = 12000L,
+      rows_moved_to_archive     = 4000,
+      rows_deleted_from_archive = 1500,
+      success                   = true,
+      remark                    = ""
+    )),
+    last_successful_run = Some(MetricsArchiveRunJsonV700(
+      run_id                    = "9f3c2b1a-7d4e-4c8a-9b2f-1e6d5a0c4b7e",
+      api_instance_id           = "obp",
+      started_at                = new Date(1717200000000L),
+      ended_at                  = new Date(1717200012000L),
+      duration_ms               = 12000L,
+      rows_moved_to_archive     = 4000,
+      rows_deleted_from_archive = 1500,
+      success                   = true,
+      remark                    = ""
+    )),
     checks = List(
       MetricsIntegrityCheckJsonV700("write_metrics_enabled", "OK",
         "write_metrics=true: API calls are being recorded into the metric table."),
@@ -1268,7 +1347,9 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
       MetricsIntegrityCheckJsonV700("archive_oldest_within_retention", "OK",
         "Oldest archived metric is 700 days old, within the effective archive retention of 730 days (+7d grace)."),
       MetricsIntegrityCheckJsonV700("archive_recently_updated", "OK",
-        "Newest archived metric is 92 days old, consistent with an active move job.")
+        "Newest archived metric is 92 days old, consistent with an active move job."),
+      MetricsIntegrityCheckJsonV700("archive_job_last_run", "OK",
+        "Last archive run succeeded 0 days ago (moved 4000 rows, deleted 1500 outdated archive rows).")
     ),
     everything_as_expected = true
   )

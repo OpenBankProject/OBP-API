@@ -6,7 +6,7 @@ import code.actorsystem.ObpActorSystem
 import code.api.Constant
 import code.api.util.APIUtil.generateUUID
 import code.api.util.{APIUtil, OBPLimit, OBPToDate}
-import code.metrics.{APIMetric, APIMetrics, MappedMetric, MetricArchive}
+import code.metrics.{APIMetric, APIMetrics, MappedMetric, MetricArchive, MetricsArchiveRun}
 import code.util.Helper.MdcLoggable
 import net.liftweb.common.Full
 import net.liftweb.mapper.{By, By_<=, By_>=}
@@ -55,10 +55,23 @@ object MetricsArchiveScheduler extends MdcLoggable {
                 .ApiInstanceId(apiInstanceId)
                 .saveMe()
               logger.info(s"Starting Job ID: $uniqueId")
-              conditionalDeleteMetricsRow()
-              deleteOutdatedRowsFromMetricsArchive()
-              JobScheduler.delete_!(job) // Allow future jobs
-              logger.info(s"End of Job ID: $uniqueId")
+              val startedAt = new Date()
+              var rowsMoved = 0
+              var rowsDeleted = 0
+              try {
+                rowsMoved = conditionalDeleteMetricsRow()
+                rowsDeleted = deleteOutdatedRowsFromMetricsArchive()
+                MetricsArchiveRun.recordRun(uniqueId, apiInstanceId, startedAt, new Date(),
+                  rowsMoved, rowsDeleted, success = true, None)
+              } catch {
+                case e: Exception =>
+                  logger.error(s"MetricsArchiveScheduler Job ID: $uniqueId failed", e)
+                  MetricsArchiveRun.recordRun(uniqueId, apiInstanceId, startedAt, new Date(),
+                    rowsMoved, rowsDeleted, success = false, Some(Option(e.getMessage).getOrElse(e.toString)))
+              } finally {
+                JobScheduler.delete_!(job) // Allow future jobs
+                logger.info(s"End of Job ID: $uniqueId (rows moved to archive: $rowsMoved, outdated archive rows deleted: $rowsDeleted)")
+              }
           }
         } 
       }
@@ -66,7 +79,8 @@ object MetricsArchiveScheduler extends MdcLoggable {
     logger.info("Bye from MetricsArchiveScheduler.start")
   }
 
-  def deleteOutdatedRowsFromMetricsArchive() = {
+  // Returns the number of outdated rows deleted from the "MetricArchive" table.
+  def deleteOutdatedRowsFromMetricsArchive(): Int = {
     logger.info("Hello from MetricsArchiveScheduler.deleteOutdatedRowsFromMetricsArchive")
     val currentTime = new Date()
     val defaultValue : Int = 365 * 3
@@ -75,12 +89,16 @@ object MetricsArchiveScheduler extends MdcLoggable {
       case _ => 365
     }
     val someYearsAgo: Date = new Date(currentTime.getTime - (oneDayInMillis * days))
-    // Delete the outdated rows from the table "MetricsArchive"
+    // Count before deleting so the run log records how many rows were removed.
+    val outdatedCount = MetricArchive.count(By_<=(MetricArchive.date, someYearsAgo)).toInt
+    // Delete the outdated rows from the table "MetricArchive"
     MetricArchive.bulkDelete_!!(By_<=(MetricArchive.date, someYearsAgo))
-    logger.info("Bye from MetricsArchiveScheduler.deleteOutdatedRowsFromMetricsArchive")
+    logger.info(s"Bye from MetricsArchiveScheduler.deleteOutdatedRowsFromMetricsArchive (deleted $outdatedCount rows)")
+    outdatedCount
   }
 
-  def conditionalDeleteMetricsRow() = {
+  // Returns the number of rows successfully moved from "Metric" to "MetricArchive".
+  def conditionalDeleteMetricsRow(): Int = {
     logger.info("Hello from MetricsArchiveScheduler.conditionalDeleteMetricsRow")
     val currentTime = new Date()
     val days = APIUtil.getPropsAsLongValue("retain_metrics_days", 367) match {
@@ -108,10 +126,12 @@ object MetricsArchiveScheduler extends MdcLoggable {
       }
     }
     logger.info("MetricsArchiveScheduler.conditionalDeleteMetricsRow says after maybeDeletedRows val")
-    maybeDeletedRows.filter(_._1 == false).map { i => 
+    maybeDeletedRows.filter(_._1 == false).map { i =>
       logger.warn(s"Row with primary key ${i._2} of the table Metric is not successfully copied.")
     }
-    logger.info("Bye from MetricsArchiveScheduler.conditionalDeleteMetricsRow")
+    val movedCount = maybeDeletedRows.count(_._1 == true)
+    logger.info(s"Bye from MetricsArchiveScheduler.conditionalDeleteMetricsRow (moved $movedCount rows)")
+    movedCount
   }
 
   private def copyRowToMetricsArchive(i: APIMetric): Unit = {

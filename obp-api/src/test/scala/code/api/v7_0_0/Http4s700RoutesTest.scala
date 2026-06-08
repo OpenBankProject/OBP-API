@@ -1888,6 +1888,7 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
               val cfg = toFieldMap(cfgFields)
               cfg.keys should contain("write_metrics")
               cfg.keys should contain("enable_metrics_scheduler")
+              cfg.keys should contain("retain_metrics_scheduler_interval_in_seconds")
               cfg.keys should contain("retain_metrics_days")
               cfg.keys should contain("retain_metrics_days_effective")
               cfg.keys should contain("retain_archive_metrics_days")

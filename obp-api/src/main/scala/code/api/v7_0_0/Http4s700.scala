@@ -3269,11 +3269,16 @@ object Http4s700 {
          |* `config` — the relevant props and their *effective* values after the
          |  scheduler's floors are applied (`retain_metrics_days` floored to 60,
          |  `retain_archive_metrics_days` floored to 365): `write_metrics`,
-         |  `enable_metrics_scheduler`, `retain_metrics_days`,
-         |  `retain_archive_metrics_days`, `retain_metrics_move_limit`.
+         |  `enable_metrics_scheduler`, `retain_metrics_scheduler_interval_in_seconds`,
+         |  `retain_metrics_days`, `retain_archive_metrics_days`,
+         |  `retain_metrics_move_limit`.
          |* `metric` — row count and oldest/newest record (date + age in days) of
          |  the live `metric` table.
          |* `metric_archive` — the same for the `metricarchive` table.
+         |* `last_run` / `last_successful_run` — the most recent (and most recent
+         |  successful) scheduler run from the `metricsarchiverun` audit log, including
+         |  rows moved, rows deleted, duration and success. Absent if no run has been
+         |  recorded yet.
          |* `checks` — a list of integrity checks, each with a `status` of `OK`,
          |  `WARNING`, or `ERROR`:
          |    * `write_metrics_enabled`
@@ -3284,6 +3289,8 @@ object Http4s700 {
          |      metric is older than the archive retention (cleanup not keeping up / stopped).
          |    * `archive_recently_updated` — flags if a backlog exists but the newest
          |      archived record is stale (move job stopped).
+         |    * `archive_job_last_run` — reports the outcome of the most recent run
+         |      from the run log (errors if the last run failed; warns if none recorded).
          |* `everything_as_expected` — `true` only when every check is `OK`.
          |
          |${userAuthenticationMessage(true)}""".stripMargin,
