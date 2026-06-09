@@ -5,13 +5,33 @@ import java.util.{Calendar, Date}
 import code.actorsystem.ObpActorSystem
 import code.api.Constant
 import code.api.util.APIUtil.generateUUID
-import code.api.util.{APIUtil, OBPLimit, OBPToDate}
-import code.metrics.{APIMetric, APIMetrics, MappedMetric, MetricArchive}
+import code.api.util.APIUtil
+import code.metrics.{APIMetric, APIMetrics, MappedMetric, MetricArchive, MetricsArchiveRun}
 import code.util.Helper.MdcLoggable
 import net.liftweb.common.Full
-import net.liftweb.mapper.{By, By_<=, By_>=}
+import net.liftweb.mapper.{Ascending, By, By_<=, By_>=, MaxRows, NotBy, OrderBy}
 
 import scala.concurrent.duration._
+
+
+/**
+ * Result of moving outdated rows from `Metric` to `MetricArchive`.
+ * @param moved  rows copied to the archive and deleted from `Metric`
+ * @param failed rows whose archive copy genuinely failed (a real problem)
+ *
+ * Rows that have no correlation id are not counted here at all — they are
+ * excluded by the candidate query (see `conditionalDeleteMetricsRow`) so the job
+ * never repeatedly scans them. Their current count is reported by the
+ * `/diagnostics/metrics` endpoint instead.
+ */
+case class ArchiveMoveResult(moved: Int, failed: Int)
+
+/** Outcome of a single [[MetricsArchiveScheduler.runOnce]] invocation. */
+sealed trait RunOutcome
+/** A run executed and was recorded (inspect `run.Success` for whether it errored). */
+case class RunCompleted(run: MetricsArchiveRun) extends RunOutcome
+/** No run started because one was already in progress (JobScheduler lock present). */
+case object RunSkippedAlreadyInProgress extends RunOutcome
 
 
 object MetricsArchiveScheduler extends MdcLoggable {
@@ -43,30 +63,69 @@ object MetricsArchiveScheduler extends MdcLoggable {
       initialDelay = Duration(intervalInSeconds, TimeUnit.SECONDS),
       interval = Duration(intervalInSeconds, TimeUnit.SECONDS),
       runnable = new Runnable {
-        def run(): Unit = {
-          JobScheduler.find(By(JobScheduler.Name, jobName)) match {
-            case Full(job) => // There is an ongoing/hanging job
-              logger.info(s"Cannot start MetricsArchiveScheduler.start.run due to ongoing job. Job ID: ${job.JobId}")
-            case _ => // Start a new job
-              val uniqueId = generateUUID()
-              val job = JobScheduler.create
-                .JobId(uniqueId)
-                .Name(jobName)
-                .ApiInstanceId(apiInstanceId)
-                .saveMe()
-              logger.info(s"Starting Job ID: $uniqueId")
-              conditionalDeleteMetricsRow()
-              deleteOutdatedRowsFromMetricsArchive()
-              JobScheduler.delete_!(job) // Allow future jobs
-              logger.info(s"End of Job ID: $uniqueId")
-          }
-        } 
+        def run(): Unit = { runOnce(); () }
       }
     )
     logger.info("Bye from MetricsArchiveScheduler.start")
   }
 
-  def deleteOutdatedRowsFromMetricsArchive() = {
+  /**
+   * Perform a single metrics-archive run: move outdated `Metric` rows to
+   * `MetricArchive`, delete outdated `MetricArchive` rows, and record the outcome
+   * in the `metricsarchiverun` log. Honours the same concurrency guard as the
+   * scheduler — if a `JobScheduler` lock for this job is already present (a run is
+   * in progress on this or another node) it returns [[RunSkippedAlreadyInProgress]]
+   * without doing anything.
+   *
+   * This is the single source of truth for "do an archive run", called both by
+   * the timer (every tick) and by the manual trigger endpoint, so a manual run
+   * respects exactly the same checks and retention rules as a scheduled one.
+   */
+  def runOnce(): RunOutcome = {
+    JobScheduler.find(By(JobScheduler.Name, jobName)) match {
+      case Full(job) => // There is an ongoing/hanging job
+        logger.info(s"MetricsArchiveScheduler.runOnce skipped due to ongoing job. Job ID: ${job.JobId}")
+        RunSkippedAlreadyInProgress
+      case _ => // Start a new job
+        val uniqueId = generateUUID()
+        val job = JobScheduler.create
+          .JobId(uniqueId)
+          .Name(jobName)
+          .ApiInstanceId(apiInstanceId)
+          .saveMe()
+        logger.info(s"Starting Job ID: $uniqueId")
+        val startedAt = new Date()
+        var rowsMoved = 0
+        var rowsDeleted = 0
+        try {
+          val moveResult = conditionalDeleteMetricsRow()
+          rowsMoved = moveResult.moved
+          rowsDeleted = deleteOutdatedRowsFromMetricsArchive()
+          // A genuine copy failure marks the run NOT successful, with a remark, so the
+          // run log and the diagnostics endpoint surface it instead of silently
+          // leaving rows behind.
+          val runSucceeded = moveResult.failed == 0
+          val remark =
+            if (moveResult.failed > 0) Some(s"${moveResult.failed} metric row(s) failed to copy to the archive and were left in place.")
+            else None
+          val run = MetricsArchiveRun.recordRun(uniqueId, apiInstanceId, startedAt, new Date(),
+            rowsMoved, rowsDeleted, success = runSucceeded, remark)
+          RunCompleted(run)
+        } catch {
+          case e: Exception =>
+            logger.error(s"MetricsArchiveScheduler Job ID: $uniqueId failed", e)
+            val run = MetricsArchiveRun.recordRun(uniqueId, apiInstanceId, startedAt, new Date(),
+              rowsMoved, rowsDeleted, success = false, Some(Option(e.getMessage).getOrElse(e.toString)))
+            RunCompleted(run)
+        } finally {
+          JobScheduler.delete_!(job) // Allow future jobs
+          logger.info(s"End of Job ID: $uniqueId (rows moved to archive: $rowsMoved, outdated archive rows deleted: $rowsDeleted)")
+        }
+    }
+  }
+
+  // Returns the number of outdated rows deleted from the "MetricArchive" table.
+  def deleteOutdatedRowsFromMetricsArchive(): Int = {
     logger.info("Hello from MetricsArchiveScheduler.deleteOutdatedRowsFromMetricsArchive")
     val currentTime = new Date()
     val defaultValue : Int = 365 * 3
@@ -75,12 +134,17 @@ object MetricsArchiveScheduler extends MdcLoggable {
       case _ => 365
     }
     val someYearsAgo: Date = new Date(currentTime.getTime - (oneDayInMillis * days))
-    // Delete the outdated rows from the table "MetricsArchive"
+    // Count before deleting so the run log records how many rows were removed.
+    val outdatedCount = MetricArchive.count(By_<=(MetricArchive.date, someYearsAgo)).toInt
+    // Delete the outdated rows from the table "MetricArchive"
     MetricArchive.bulkDelete_!!(By_<=(MetricArchive.date, someYearsAgo))
-    logger.info("Bye from MetricsArchiveScheduler.deleteOutdatedRowsFromMetricsArchive")
+    logger.info(s"Bye from MetricsArchiveScheduler.deleteOutdatedRowsFromMetricsArchive (deleted $outdatedCount rows)")
+    outdatedCount
   }
 
-  def conditionalDeleteMetricsRow() = {
+  // Move "Metric" rows older than retain_metrics_days into "MetricArchive", oldest
+  // first, deleting each source row only after its archive copy is verified.
+  def conditionalDeleteMetricsRow(): ArchiveMoveResult = {
     logger.info("Hello from MetricsArchiveScheduler.conditionalDeleteMetricsRow")
     val currentTime = new Date()
     val days = APIUtil.getPropsAsLongValue("retain_metrics_days", 367) match {
@@ -89,32 +153,45 @@ object MetricsArchiveScheduler extends MdcLoggable {
     }
     val someDaysAgo: Date = new Date(currentTime.getTime - (oneDayInMillis * days))
     val limit = APIUtil.getPropsAsIntValue("retain_metrics_move_limit", 50000)
-    // Get the data from the table "Metric" older than specified by retain_metrics_days
-    logger.info("MetricsArchiveScheduler.conditionalDeleteMetricsRow says before candidateMetricRowsToMove val")
-    val candidateMetricRowsToMove = APIMetrics.apiMetrics.vend.getAllMetrics(List(OBPToDate(someDaysAgo), OBPLimit(limit)))
-    logger.info("MetricsArchiveScheduler.conditionalDeleteMetricsRow says after candidateMetricRowsToMove val")
-    logger.info(s"Number of rows: ${candidateMetricRowsToMove.length}")
-    candidateMetricRowsToMove map { i =>
-      // and copy it to the table "MetricArchive"
-      copyRowToMetricsArchive(i)
-    }
-    logger.info("MetricsArchiveScheduler.conditionalDeleteMetricsRow says after coping all rows")
-    logger.info("MetricsArchiveScheduler.conditionalDeleteMetricsRow says before maybeDeletedRows val")
-    val maybeDeletedRows: List[(Boolean, Long)] = candidateMetricRowsToMove map { i =>
-      // and delete it after successful coping
-      MetricArchive.find(By(MetricArchive.metricId, i.getMetricId())) match {
-        case Full(_) => (MappedMetric.bulkDelete_!!(By(MappedMetric.id, i.getMetricId())), i.getMetricId())
-        case _ => (false, i.getMetricId())
+    // Query the live Metric table directly — oldest first, up to `limit` rows.
+    // We deliberately bypass APIMetrics.getAllMetrics here: that path is wrapped in
+    // a Redis cache (stable TTL for past-dated queries), and a "which rows should I
+    // move and delete" query must never be served from a stale snapshot.
+    //
+    // We also exclude rows with an empty correlation id: the archive's correlationId
+    // column requires a UUID, so those rows can't be archived. Filtering them in the
+    // query (rather than skipping them in the loop) means the job never repeatedly
+    // re-scans the same un-archivable rows — which, being the oldest, would otherwise
+    // permanently occupy the oldest-first candidate window. Their count is surfaced
+    // by the /diagnostics/metrics endpoint instead.
+    val candidateMetricRowsToMove: List[MappedMetric] = MappedMetric.findAll(
+      By_<=(MappedMetric.date, someDaysAgo),
+      NotBy(MappedMetric.correlationId, ""),
+      OrderBy(MappedMetric.date, Ascending),
+      MaxRows(limit)
+    )
+    logger.info(s"MetricsArchiveScheduler.conditionalDeleteMetricsRow: ${candidateMetricRowsToMove.length} candidate rows to move")
+
+    var moved = 0
+    var failed = 0
+    candidateMetricRowsToMove.foreach { i =>
+      // Copy first, then delete the source row only if the archive copy both saved
+      // and is verifiably readable back by metricId.
+      val copied = copyRowToMetricsArchive(i)
+      if (copied && MetricArchive.find(By(MetricArchive.metricId, i.getMetricId())).isDefined) {
+        MappedMetric.bulkDelete_!!(By(MappedMetric.id, i.getMetricId()))
+        moved += 1
+      } else {
+        failed += 1
+        logger.warn(s"Row with primary key ${i.getMetricId()} of the table Metric was not successfully copied to the archive; leaving it in place.")
       }
     }
-    logger.info("MetricsArchiveScheduler.conditionalDeleteMetricsRow says after maybeDeletedRows val")
-    maybeDeletedRows.filter(_._1 == false).map { i => 
-      logger.warn(s"Row with primary key ${i._2} of the table Metric is not successfully copied.")
-    }
-    logger.info("Bye from MetricsArchiveScheduler.conditionalDeleteMetricsRow")
+    logger.info(s"Bye from MetricsArchiveScheduler.conditionalDeleteMetricsRow (moved $moved, failed $failed)")
+    ArchiveMoveResult(moved, failed)
   }
 
-  private def copyRowToMetricsArchive(i: APIMetric): Unit = {
+  // Returns true when the archive copy was persisted, false otherwise.
+  private def copyRowToMetricsArchive(i: APIMetric): Boolean = {
     APIMetrics.apiMetrics.vend.saveMetricsArchive(
       i.getMetricId(),
       i.getUserId(),

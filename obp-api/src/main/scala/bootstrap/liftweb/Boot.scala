@@ -103,7 +103,7 @@ import code.metadata.tags.MappedTag
 import code.metadata.transactionimages.MappedTransactionImage
 import code.metadata.wheretags.MappedWhereTag
 import code.methodrouting.MethodRouting
-import code.metrics.{ConnectorTrace, MappedConnectorMetric, MappedMetric, MetricArchive}
+import code.metrics.{ConnectorTrace, MappedConnectorMetric, MappedMetric, MetricArchive, MetricsArchiveRun}
 import code.migration.MigrationScriptLog
 import code.model._
 import code.model.dataAccess._
@@ -994,6 +994,7 @@ object ToSchemify extends MdcLoggable {
     TransactionRequestAttribute,
     MappedMetric,
     MetricArchive,
+    MetricsArchiveRun,
     MapperAccountHolders,
     MappedEntitlement,
     MappedConnectorMetric,
