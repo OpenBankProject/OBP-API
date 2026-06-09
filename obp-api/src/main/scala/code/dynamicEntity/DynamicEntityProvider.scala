@@ -610,6 +610,33 @@ object DynamicEntityCommons extends Converter[DynamicEntityT, DynamicEntityCommo
       if(readRole != JNothing) {
         checkFormat(readRole.isInstanceOf[JString] && readRole.asInstanceOf[JString].s.nonEmpty, s"$DynamicEntityInstanceValidateFail The property of $fieldName's 'readRole' field must be a non-empty string.")
       }
+
+      // validate optional indexing keywords (DE_indexing). All optional; absence => field is not queryable.
+      // 'indexed': boolean — marks the field filterable/sortable.
+      // 'index'  : "scalar" (default, B-tree) | "spatial" (GeoJSON geometry, only on a json field).
+      val indexed = value \ "indexed"
+      if(indexed != JNothing) {
+        checkFormat(indexed.isInstanceOf[JBool], s"$DynamicEntityInstanceValidateFail The property of $fieldName's 'indexed' field must be boolean.")
+      }
+      val isIndexed = indexed.isInstanceOf[JBool] && indexed.asInstanceOf[JBool].value
+      val indexKind = value \ "index"
+      val indexKindName =
+        if(indexKind != JNothing) {
+          checkFormat(indexKind.isInstanceOf[JString], s"$DynamicEntityInstanceValidateFail The property of $fieldName's 'index' field must be a string.")
+          val k = indexKind.asInstanceOf[JString].s
+          checkFormat(Set("scalar", "spatial").contains(k), s"$DynamicEntityInstanceValidateFail The property of $fieldName's 'index' field must be one of: scalar, spatial.")
+          checkFormat(isIndexed, s"$DynamicEntityInstanceValidateFail The property of $fieldName's 'index' field is only valid when 'indexed' is true.")
+          k
+        } else "scalar"
+      if(isIndexed) {
+        val isJsonType = fieldTypeOp.exists(_ == DynamicEntityFieldType.json)
+        if(indexKindName == "spatial") {
+          checkFormat(isJsonType, s"$DynamicEntityInstanceValidateFail The property of $fieldName's 'index':'spatial' is only allowed on a 'json' (GeoJSON) field; field type is $fieldTypeName.")
+        }
+        if(isJsonType) {
+          checkFormat(indexKindName == "spatial", s"$DynamicEntityInstanceValidateFail The property of $fieldName is type 'json' and can only be indexed with 'index':'spatial' (GeoJSON geometry).")
+        }
+      }
     })
 
     DynamicEntityCommons(entityName, compactRender(jsonObject), dynamicEntityId, userId, bankId, hasPersonalEntityValue, hasPublicAccessValue, hasCommunityAccessValue, personalRequiresRoleValue)

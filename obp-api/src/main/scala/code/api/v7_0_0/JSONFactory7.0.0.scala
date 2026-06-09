@@ -7,11 +7,14 @@ import code.api.util.ErrorMessages.MandatoryPropertyIsNotSet
 import code.api.v4_0_0.{EnergySource400, HostedAt400, HostedBy400, PostSimpleCounterpartyJson400}
 import code.bankconnectors.Connector
 import code.customer.CustomerX
+import code.metrics.{MappedMetric, MetricArchive, MetricsArchiveRun}
 import code.util.Helper.MdcLoggable
 import code.views.Views
 import com.openbankproject.commons.model.{AccountId, AccountRoutingJsonV121, AmountOfMoneyJsonV121, BankId, BankIdAccountId, CoreAccount, TransactionRequest, TransactionRequestCommonBodyJSON, User}
 import com.openbankproject.commons.util.ApiVersion
+import java.util.Date
 import net.liftweb.common.Full
+import net.liftweb.mapper.{Ascending, By, By_<=, Descending, MaxRows, OrderBy}
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -1149,5 +1152,349 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
 
   lazy val validationEmailResponseJsonV700Example = ValidationEmailResponseJsonV700(
     message = "If an unvalidated account exists for this username and email, a validation email has been sent."
+  )
+
+  // ── Metrics & Archive Metrics diagnostics ──────────────────────────────────
+  //
+  // Reports the metrics-archiving configuration plus row counts and the
+  // oldest/newest record in both the `metric` and `metricarchive` tables, and
+  // runs a set of integrity checks that flag whether MetricsArchiveScheduler is
+  // actually keeping the tables within their configured retention windows.
+
+  case class MetricsTableStatsJsonV700(
+    table_name: String,
+    count: Long,
+    oldest_record_date: Option[Date],
+    newest_record_date: Option[Date],
+    oldest_record_age_days: Option[Long],
+    newest_record_age_days: Option[Long]
+  )
+
+  case class MetricsArchiveConfigJsonV700(
+    write_metrics: Boolean,
+    enable_metrics_scheduler: Boolean,
+    retain_metrics_scheduler_interval_in_seconds: Int,
+    retain_metrics_days: Long,
+    retain_metrics_days_effective: Long,
+    retain_archive_metrics_days: Long,
+    retain_archive_metrics_days_effective: Long,
+    retain_metrics_move_limit: Int
+  )
+
+  // status is one of "OK", "WARNING", "ERROR".
+  case class MetricsIntegrityCheckJsonV700(
+    name: String,
+    status: String,
+    message: String
+  )
+
+  // One row of the metricsarchiverun audit log (a completed scheduler run).
+  case class MetricsArchiveRunJsonV700(
+    run_id: String,
+    api_instance_id: String,
+    started_at: Date,
+    ended_at: Date,
+    duration_ms: Long,
+    rows_moved_to_archive: Int,
+    rows_deleted_from_archive: Int,
+    success: Boolean,
+    remark: String
+  )
+
+  case class MetricsAndArchiveMetricsDiagnosticsJsonV700(
+    config: MetricsArchiveConfigJsonV700,
+    metric: MetricsTableStatsJsonV700,
+    metric_archive: MetricsTableStatsJsonV700,
+    last_run: Option[MetricsArchiveRunJsonV700],
+    last_successful_run: Option[MetricsArchiveRunJsonV700],
+    checks: List[MetricsIntegrityCheckJsonV700],
+    everything_as_expected: Boolean
+  )
+
+  private def metricsArchiveRunToJson(r: MetricsArchiveRun): MetricsArchiveRunJsonV700 =
+    MetricsArchiveRunJsonV700(
+      run_id                    = r.RunId.get,
+      api_instance_id           = r.ApiInstanceId.get,
+      started_at                = r.StartedAt.get,
+      ended_at                  = r.EndedAt.get,
+      duration_ms               = r.DurationMs.get,
+      rows_moved_to_archive     = r.RowsMovedToArchive.get,
+      rows_deleted_from_archive = r.RowsDeletedFromArchive.get,
+      success                   = r.Success.get,
+      remark                    = r.Remark.get
+    )
+
+  // Result of manually triggering an archive run. `status` is one of
+  // "completed" (a run executed — inspect `run.success`) or
+  // "skipped_already_in_progress" (a run was already running, so none was started).
+  case class TriggerMetricsArchiveRunResponseJsonV700(
+    status: String,
+    message: String,
+    run: Option[MetricsArchiveRunJsonV700]
+  )
+
+  def createTriggerMetricsArchiveRunResponseJsonV700(outcome: code.scheduler.RunOutcome): TriggerMetricsArchiveRunResponseJsonV700 =
+    outcome match {
+      case code.scheduler.RunCompleted(r) =>
+        val msg =
+          if (r.Success.get)
+            s"Archive run completed: moved ${r.RowsMovedToArchive.get} rows to the archive, deleted ${r.RowsDeletedFromArchive.get} outdated archive rows."
+          else
+            s"Archive run completed with errors: ${r.Remark.get}"
+        TriggerMetricsArchiveRunResponseJsonV700("completed", msg, Some(metricsArchiveRunToJson(r)))
+      case code.scheduler.RunSkippedAlreadyInProgress =>
+        TriggerMetricsArchiveRunResponseJsonV700(
+          "skipped_already_in_progress",
+          "An archive run is already in progress; no new run was started.",
+          None)
+    }
+
+  lazy val triggerMetricsArchiveRunResponseJsonV700Example = TriggerMetricsArchiveRunResponseJsonV700(
+    status  = "completed",
+    message = "Archive run completed: moved 4000 rows to the archive, deleted 1500 outdated archive rows.",
+    run = Some(MetricsArchiveRunJsonV700(
+      run_id                    = "9f3c2b1a-7d4e-4c8a-9b2f-1e6d5a0c4b7e",
+      api_instance_id           = "obp",
+      started_at                = new Date(1717200000000L),
+      ended_at                  = new Date(1717200012000L),
+      duration_ms               = 12000L,
+      rows_moved_to_archive     = 4000,
+      rows_deleted_from_archive = 1500,
+      success                   = true,
+      remark                    = ""
+    ))
+  )
+
+  private val metricsOneDayInMillis: Long = 86400000L
+  private def metricsAgeInDays(d: Date, now: Date): Long =
+    (now.getTime - d.getTime) / metricsOneDayInMillis
+
+  /**
+   * Inspect the `metric` and `metricarchive` tables together with the archiving
+   * props and report whether the MetricsArchiveScheduler is behaving as
+   * configured. The effective retention values mirror the floors applied in
+   * `code.scheduler.MetricsArchiveScheduler` (retain_metrics_days floored to 60,
+   * retain_archive_metrics_days floored to 365).
+   *
+   * Note: this issues blocking Mapper queries (count + a single-row ORDER BY on
+   * the indexed `date` column) — call it from a Future.
+   */
+  def createMetricsAndArchiveMetricsDiagnosticsJsonV700(): MetricsAndArchiveMetricsDiagnosticsJsonV700 = {
+    val now = new Date()
+
+    val writeMetrics      = APIUtil.getPropsAsBoolValue("write_metrics", false)
+    val schedulerEnabled  = APIUtil.getPropsAsBoolValue("enable_metrics_scheduler", true)
+    val schedulerIntervalSeconds = APIUtil.getPropsAsIntValue("retain_metrics_scheduler_interval_in_seconds", 3600)
+    val retainMetricsDays = APIUtil.getPropsAsLongValue("retain_metrics_days", 367)
+    val retainMetricsDaysEffective = if (retainMetricsDays > 59) retainMetricsDays else 60L
+    val retainArchiveMetricsDays   = APIUtil.getPropsAsLongValue("retain_archive_metrics_days", 365L * 3)
+    val retainArchiveMetricsDaysEffective = if (retainArchiveMetricsDays > 364) retainArchiveMetricsDays else 365L
+    val moveLimit = APIUtil.getPropsAsIntValue("retain_metrics_move_limit", 50000)
+
+    val config = MetricsArchiveConfigJsonV700(
+      write_metrics                         = writeMetrics,
+      enable_metrics_scheduler              = schedulerEnabled,
+      retain_metrics_scheduler_interval_in_seconds = schedulerIntervalSeconds,
+      retain_metrics_days                   = retainMetricsDays,
+      retain_metrics_days_effective         = retainMetricsDaysEffective,
+      retain_archive_metrics_days           = retainArchiveMetricsDays,
+      retain_archive_metrics_days_effective = retainArchiveMetricsDaysEffective,
+      retain_metrics_move_limit             = moveLimit
+    )
+
+    def statsFor(tableName: String, count: Long, oldest: Option[Date], newest: Option[Date]) =
+      MetricsTableStatsJsonV700(
+        table_name             = tableName,
+        count                  = count,
+        oldest_record_date     = oldest,
+        newest_record_date     = newest,
+        oldest_record_age_days = oldest.map(metricsAgeInDays(_, now)),
+        newest_record_age_days = newest.map(metricsAgeInDays(_, now))
+      )
+
+    val metricOldest = MappedMetric.findAll(OrderBy(MappedMetric.date, Ascending), MaxRows(1)).headOption.map(_.getDate())
+    val metricNewest = MappedMetric.findAll(OrderBy(MappedMetric.date, Descending), MaxRows(1)).headOption.map(_.getDate())
+    val metricStats  = statsFor("metric", MappedMetric.count, metricOldest, metricNewest)
+
+    val archiveOldest = MetricArchive.findAll(OrderBy(MetricArchive.date, Ascending), MaxRows(1)).headOption.map(_.getDate())
+    val archiveNewest = MetricArchive.findAll(OrderBy(MetricArchive.date, Descending), MaxRows(1)).headOption.map(_.getDate())
+    val archiveStats  = statsFor("metricarchive", MetricArchive.count, archiveOldest, archiveNewest)
+
+    val graceDays = 7L
+    val checks = scala.collection.mutable.ListBuffer[MetricsIntegrityCheckJsonV700]()
+
+    checks += (if (writeMetrics)
+      MetricsIntegrityCheckJsonV700("check_metrics_are_being_written", "OK",
+        "write_metrics=true: API calls are being recorded into the metric table.")
+    else
+      MetricsIntegrityCheckJsonV700("check_metrics_are_being_written", "WARNING",
+        "write_metrics=false: no new API metrics are being written, so the metric table count will not grow."))
+
+    checks += (if (schedulerEnabled)
+      MetricsIntegrityCheckJsonV700("check_archive_scheduler_is_enabled", "OK",
+        "enable_metrics_scheduler=true: the archive/cleanup scheduler is active.")
+    else
+      MetricsIntegrityCheckJsonV700("check_archive_scheduler_is_enabled", "ERROR",
+        "enable_metrics_scheduler=false: old metrics are never moved to the archive nor deleted; the metric table will grow without bound."))
+
+    metricOldest match {
+      case Some(d) =>
+        val age = metricsAgeInDays(d, now)
+        if (age <= retainMetricsDaysEffective + graceDays)
+          checks += MetricsIntegrityCheckJsonV700("check_metric_retention_policy_is_respected", "OK",
+            s"Oldest metric is $age days old, within the effective retention of $retainMetricsDaysEffective days (+${graceDays}d grace).")
+        else
+          checks += MetricsIntegrityCheckJsonV700("check_metric_retention_policy_is_respected", "ERROR",
+            s"Oldest metric is $age days old but the effective retention is $retainMetricsDaysEffective days. Records older than this should have been moved to the archive — the archive move job is not keeping up or has stopped.")
+      case None =>
+        checks += MetricsIntegrityCheckJsonV700("check_metric_retention_policy_is_respected", "OK", "The metric table is empty.")
+    }
+
+    // Old metric rows with an empty correlation id can't be archived (the archive
+    // requires a UUID) and are excluded from the move job, so they sit in the metric
+    // table indefinitely. Surface their count so this is visible rather than looking
+    // like a stalled job in the oldest-within-retention check above.
+    val unarchivableOldMetricCount = MappedMetric.count(
+      By_<=(MappedMetric.date, new Date(now.getTime - retainMetricsDaysEffective * metricsOneDayInMillis)),
+      By(MappedMetric.correlationId, "")
+    )
+    if (unarchivableOldMetricCount == 0)
+      checks += MetricsIntegrityCheckJsonV700("check_all_old_metrics_can_be_archived", "OK",
+        "No metric rows older than the retention window are blocked from archiving.")
+    else
+      checks += MetricsIntegrityCheckJsonV700("check_all_old_metrics_can_be_archived", "WARNING",
+        s"$unarchivableOldMetricCount metric row(s) older than the retention window have an empty correlation id and cannot be archived (the archive requires a UUID). They remain in the metric table and are excluded from the move job — typically legacy rows that predate correlation ids.")
+
+    archiveOldest match {
+      case Some(d) =>
+        val age = metricsAgeInDays(d, now)
+        if (age <= retainArchiveMetricsDaysEffective + graceDays)
+          checks += MetricsIntegrityCheckJsonV700("check_archive_retention_policy_is_respected", "OK",
+            s"Oldest archived metric is $age days old, within the effective archive retention of $retainArchiveMetricsDaysEffective days (+${graceDays}d grace).")
+        else
+          checks += MetricsIntegrityCheckJsonV700("check_archive_retention_policy_is_respected", "ERROR",
+            s"Oldest archived metric is $age days old but the effective archive retention is $retainArchiveMetricsDaysEffective days. Records older than this should have been deleted — the archive cleanup job is not keeping up or has stopped.")
+      case None =>
+        checks += MetricsIntegrityCheckJsonV700("check_archive_retention_policy_is_respected", "OK", "The metricarchive table is empty.")
+    }
+
+    // If a backlog of metrics older than the retention window exists, the move
+    // job must be running, so the newest archived record should itself be
+    // roughly retain_metrics_days old. A much older newest-archive value means
+    // the move job stopped.
+    (metricOldest, archiveNewest) match {
+      case (Some(mo), Some(an)) if metricsAgeInDays(mo, now) > retainMetricsDaysEffective + graceDays =>
+        val newestArchiveAge = metricsAgeInDays(an, now)
+        if (newestArchiveAge <= retainMetricsDaysEffective + graceDays)
+          checks += MetricsIntegrityCheckJsonV700("check_archive_metrics_is_fresh_enough", "OK",
+            s"Newest archived metric is $newestArchiveAge days old, consistent with an active move job.")
+        else
+          checks += MetricsIntegrityCheckJsonV700("check_archive_metrics_is_fresh_enough", "ERROR",
+            s"There are metric rows older than the retention window, yet the newest archived record is $newestArchiveAge days old. The move job appears to have stopped roughly ${newestArchiveAge - retainMetricsDaysEffective} days ago.")
+      case _ =>
+        checks += MetricsIntegrityCheckJsonV700("check_archive_metrics_is_fresh_enough", "OK",
+          "No backlog of metrics older than the retention window — nothing to move right now.")
+    }
+
+    // Run-log derived check: the durable record of scheduler runs (metricsarchiverun).
+    val lastRun = MetricsArchiveRun.lastRun
+    val lastSuccessfulRun = MetricsArchiveRun.lastSuccessfulRun
+    lastRun match {
+      case Some(r) if r.Success.get =>
+        val ageDays = metricsAgeInDays(r.StartedAt.get, now)
+        checks += MetricsIntegrityCheckJsonV700("check_last_archive_run_succeeded", "OK",
+          s"Last archive run succeeded $ageDays days ago (moved ${r.RowsMovedToArchive.get} rows, deleted ${r.RowsDeletedFromArchive.get} outdated archive rows).")
+      case Some(r) =>
+        val ageDays = metricsAgeInDays(r.StartedAt.get, now)
+        val lastOkNote = lastSuccessfulRun
+          .map(s => s" Last successful run was ${metricsAgeInDays(s.StartedAt.get, now)} days ago.")
+          .getOrElse(" No successful run has ever been recorded.")
+        checks += MetricsIntegrityCheckJsonV700("check_last_archive_run_succeeded", "ERROR",
+          s"The most recent archive run ($ageDays days ago) failed: ${r.Remark.get}.$lastOkNote")
+      case None if schedulerEnabled =>
+        checks += MetricsIntegrityCheckJsonV700("check_last_archive_run_succeeded", "WARNING",
+          "No archive run has been recorded yet. The scheduler is enabled but may not have completed its first run since this table was introduced.")
+      case None =>
+        checks += MetricsIntegrityCheckJsonV700("check_last_archive_run_succeeded", "OK",
+          "No archive run recorded — the scheduler is disabled, so this is expected.")
+    }
+
+    MetricsAndArchiveMetricsDiagnosticsJsonV700(
+      config                 = config,
+      metric                 = metricStats,
+      metric_archive         = archiveStats,
+      last_run               = lastRun.map(metricsArchiveRunToJson),
+      last_successful_run    = lastSuccessfulRun.map(metricsArchiveRunToJson),
+      checks                 = checks.toList,
+      everything_as_expected = checks.forall(_.status == "OK")
+    )
+  }
+
+  lazy val metricsAndArchiveMetricsDiagnosticsJsonV700Example = MetricsAndArchiveMetricsDiagnosticsJsonV700(
+    config = MetricsArchiveConfigJsonV700(
+      write_metrics                         = true,
+      enable_metrics_scheduler              = true,
+      retain_metrics_scheduler_interval_in_seconds = 3600,
+      retain_metrics_days                   = 90,
+      retain_metrics_days_effective         = 90,
+      retain_archive_metrics_days           = 730,
+      retain_archive_metrics_days_effective = 730,
+      retain_metrics_move_limit             = 4000
+    ),
+    metric = MetricsTableStatsJsonV700(
+      table_name             = "metric",
+      count                  = 1240000L,
+      oldest_record_date     = Some(new Date(1709251200000L)),
+      newest_record_date     = Some(new Date(1717200000000L)),
+      oldest_record_age_days = Some(85L),
+      newest_record_age_days = Some(0L)
+    ),
+    metric_archive = MetricsTableStatsJsonV700(
+      table_name             = "metricarchive",
+      count                  = 9800000L,
+      oldest_record_date     = Some(new Date(1654041600000L)),
+      newest_record_date     = Some(new Date(1701907200000L)),
+      oldest_record_age_days = Some(700L),
+      newest_record_age_days = Some(92L)
+    ),
+    last_run = Some(MetricsArchiveRunJsonV700(
+      run_id                    = "9f3c2b1a-7d4e-4c8a-9b2f-1e6d5a0c4b7e",
+      api_instance_id           = "obp",
+      started_at                = new Date(1717200000000L),
+      ended_at                  = new Date(1717200012000L),
+      duration_ms               = 12000L,
+      rows_moved_to_archive     = 4000,
+      rows_deleted_from_archive = 1500,
+      success                   = true,
+      remark                    = ""
+    )),
+    last_successful_run = Some(MetricsArchiveRunJsonV700(
+      run_id                    = "9f3c2b1a-7d4e-4c8a-9b2f-1e6d5a0c4b7e",
+      api_instance_id           = "obp",
+      started_at                = new Date(1717200000000L),
+      ended_at                  = new Date(1717200012000L),
+      duration_ms               = 12000L,
+      rows_moved_to_archive     = 4000,
+      rows_deleted_from_archive = 1500,
+      success                   = true,
+      remark                    = ""
+    )),
+    checks = List(
+      MetricsIntegrityCheckJsonV700("check_metrics_are_being_written", "OK",
+        "write_metrics=true: API calls are being recorded into the metric table."),
+      MetricsIntegrityCheckJsonV700("check_archive_scheduler_is_enabled", "OK",
+        "enable_metrics_scheduler=true: the archive/cleanup scheduler is active."),
+      MetricsIntegrityCheckJsonV700("check_metric_retention_policy_is_respected", "OK",
+        "Oldest metric is 85 days old, within the effective retention of 90 days (+7d grace)."),
+      MetricsIntegrityCheckJsonV700("check_all_old_metrics_can_be_archived", "OK",
+        "No metric rows older than the retention window are blocked from archiving."),
+      MetricsIntegrityCheckJsonV700("check_archive_retention_policy_is_respected", "OK",
+        "Oldest archived metric is 700 days old, within the effective archive retention of 730 days (+7d grace)."),
+      MetricsIntegrityCheckJsonV700("check_archive_metrics_is_fresh_enough", "OK",
+        "Newest archived metric is 92 days old, consistent with an active move job."),
+      MetricsIntegrityCheckJsonV700("check_last_archive_run_succeeded", "OK",
+        "Last archive run succeeded 0 days ago (moved 4000 rows, deleted 1500 outdated archive rows).")
+    ),
+    everything_as_expected = true
   )
 }

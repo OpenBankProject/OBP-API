@@ -114,6 +114,12 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
 
   override def saveMetric(userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String, httpCode: Option[Int], correlationId: String,
                           responseBody: String, sourceIp: String, targetIp: String, apiInstanceId: String, consentReferenceId: String): Unit = {
+    // A correlation id is expected on every metric. Rows without one cannot be moved
+    // to the archive later (its correlationId column requires a UUID), so flag it at
+    // write time where the source of the missing id can actually be traced.
+    if (correlationId == null || correlationId.trim.isEmpty) {
+      logger.warn(s"saveMetric: writing a Metric row with an empty correlation id (url=$url, verb=$verb, consumerId=$consumerId, implementedInVersion=$implementedInVersion). This row will not be archivable.")
+    }
     MetricBatchWriter.enqueue(
       MetricBatchWriter.MetricRow(
         userId = userId,
@@ -143,8 +149,13 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
                                   implementedByPartialFunction: String, implementedInVersion: String,
                                   verb: String, httpCode: Option[Int], correlationId: String,
                                   responseBody: String, sourceIp: String, targetIp: String,
-                                  apiInstanceId: String, consentReferenceId: String): Unit = {
-    val metric = MetricArchive.find(By(MetricArchive.id, primaryKey)).getOrElse(MetricArchive.create)
+                                  apiInstanceId: String, consentReferenceId: String): Boolean = {
+    // Fix: dedup by the source metric's primary key stored in `metricId`, NOT by the
+    // archive's own auto-increment `id`. The two are unrelated id-spaces; matching on
+    // `id` overwrites an unrelated archived row once the archive's id sequence grows
+    // into the live metric id range.
+    val metric = MetricArchive.find(By(MetricArchive.metricId, primaryKey)).getOrElse(MetricArchive.create)
+
     metric
       .metricId(primaryKey)
       .userId(userId)
@@ -169,7 +180,14 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       case Some(code) => metric.httpCode(code)
       case None =>
     }
-    metric.save
+    // Fix: Lift's .save returns false (it does NOT throw) on a failed insert.
+    // Returning that result lets the caller skip the source-row delete and mark
+    // the run as failed instead of silently stalling.
+    val saved = metric.save
+    if (!saved) {
+      logger.error(s"saveMetricsArchive: failed to persist MetricArchive row for metricId=$primaryKey (url=$url, date=$date)")
+    }
+    saved
   }
 
   private def trueOrFalse(condition: Boolean): String = if (condition) s"1=1" else s"0=1"

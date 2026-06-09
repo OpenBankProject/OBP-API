@@ -76,6 +76,7 @@ object ErrorMessages {
   val DuplicateQueryParameters = "OBP-09016: Duplicate Query Parameters are not allowed."
   val DuplicateHeaderKeys = "OBP-09017: Duplicate Header Keys are not allowed."
   val InvalidDynamicEntityName = "OBP-09018: Invalid entity_name format. Entity names must be lowercase with underscores (snake_case), e.g. 'customer_preferences'. No uppercase letters or spaces allowed."
+  val DynamicEntityFieldNotYetQueryable = "OBP-09019: Requested field(s) are not yet queryable - the index is still being built. Please retry shortly."
 
 
   // General messages (OBP-10XXX)

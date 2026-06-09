@@ -61,7 +61,7 @@ object MappedDynamicEntityProvider extends DynamicEntityProvider with CustomJson
 
     tryo{
       try {
-        entityToPersist
+        val saved = entityToPersist
           .EntityName(dynamicEntity.entityName)
           .MetadataJson(dynamicEntity.metadataJson)
           .UserId(dynamicEntity.userId)
@@ -71,6 +71,25 @@ object MappedDynamicEntityProvider extends DynamicEntityProvider with CustomJson
           .HasCommunityAccess(dynamicEntity.hasCommunityAccess)
           .PersonalRequiresRole(dynamicEntity.personalRequiresRole)
           .saveMe()
+        // DE_indexing: provision/refresh the projection for this definition's indexed scalar fields.
+        // Guarded by projectionEnabled (default off); best-effort (a failure leaves the definition saved
+        // and queries reporting pending, not a broken create). Fields passed explicitly because the new
+        // definition isn't committed/visible in the definition map yet.
+        if (code.api.dynamic.entity.projection.IndexingCapabilities.projectionEnabled) {
+          try {
+            val info = code.api.dynamic.entity.helper.DynamicEntityInfo(
+              dynamicEntity.metadataJson, dynamicEntity.entityName, dynamicEntity.bankId,
+              dynamicEntity.hasPersonalEntity, dynamicEntity.hasPublicAccess, dynamicEntity.hasCommunityAccess, dynamicEntity.personalRequiresRole)
+            val scalar = code.api.dynamic.entity.projection.ProjectionProvisioner.scalarFieldsOf(info.indexedFields)
+            if (scalar.nonEmpty)
+              code.api.dynamic.entity.projection.ProjectionProvisioner
+                .ensureProvisionedFields(dynamicEntity.bankId, dynamicEntity.entityName, scalar)
+                .unsafeRunSync()(cats.effect.unsafe.implicits.global)
+          } catch {
+            case e: Throwable => logger.error(s"DE projection provisioning failed for ${dynamicEntity.entityName} (definition saved; queries will report pending)", e)
+          }
+        }
+        saved
       } catch {
         case e : Throwable =>
           logger.error("Create or Update DynamicEntity fail.", e)

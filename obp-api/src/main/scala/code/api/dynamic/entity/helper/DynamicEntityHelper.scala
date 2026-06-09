@@ -724,6 +724,7 @@ object DynamicEntityHelper {
 case class DynamicEntityInfo(definition: String, entityName: String, bankId: Option[String], hasPersonalEntity: Boolean, hasPublicAccess: Boolean = false, hasCommunityAccess: Boolean = false, personalRequiresRole: Boolean = false) {
 
   import net.liftweb.json
+  import code.api.dynamic.entity.query.FieldSpec
 
   val subEntities: List[DynamicEntityInfo] = Nil
 
@@ -857,6 +858,21 @@ case class DynamicEntityInfo(definition: String, entityName: String, bankId: Opt
   lazy val propertyNames: List[String] = (entity \ "properties") match {
     case props: JObject => props.obj.map(_.name)
     case _ => Nil
+  }
+
+  /**
+   * Fields declared `indexed` (DE_indexing): name -> (declared type, index kind "scalar"|"spatial").
+   * Only recognised DynamicEntityFieldType fields are surfaced; this is the queryable allow-list the
+   * planner validates against. (Reference-typed indexed fields are not yet supported.)
+   */
+  lazy val indexedFields: Map[String, FieldSpec] = (entity \ "properties") match {
+    case props: JObject => props.obj.collect {
+      case JField(name, propDef: JObject) if (propDef \ "indexed") == JBool(true) =>
+        val typeName = (propDef \ "type") match { case JString(s) => s; case _ => "" }
+        val kind = (propDef \ "index") match { case JString(s) => s; case _ => "scalar" }
+        DynamicEntityFieldType.withNameOption(typeName).map(ft => name -> FieldSpec(ft, kind))
+    }.flatten.toMap
+    case _ => Map.empty
   }
 }
 

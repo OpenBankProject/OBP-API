@@ -25,7 +25,7 @@ object ElasticsearchMetrics extends APIMetrics {
                                   sourceIp: String,
                                   targetIp: String,
                                   apiInstanceId: String,
-                                  consentReferenceId: String): Unit = ???
+                                  consentReferenceId: String): Boolean = ???
 
 //  override def getAllGroupedByUserId(): Map[String, List[APIMetric]] = {
 //    //TODO: replace the following with valid ES query
