@@ -7,7 +7,7 @@ import code.api.Constant._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil.{EmptyBody, _}
 import code.api.util.{APIUtil, ApiRole, CallContext, CustomJsonFormats, Glossary, NewStyle}
-import code.api.util.ApiRole.{canCreateEntitlementAtAnyBank, canCreateEntitlementAtOneBank, canCreateMetricsArchiveRun, canCreateOrganisation, canCreateRoutingScheme, canCreateTestEmail, canDeleteEntitlementAtAnyBank, canDeleteOrganisation, canDeleteRoutingScheme, canGetAccountAccessTrace, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetConnectorHealth, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMetricsDiagnostics, canGetMigrations, canUpdateBankSupportedRoutingScheme, canUpdateOrganisation, canUpdateRoutingScheme, canUpdateSystemView}
+import code.api.util.ApiRole.{canCreateEntitlementAtAnyBank, canCreateEntitlementAtOneBank, canCreateMetricsArchiveRun, canCreateOrganisation, canCreateRoutingScheme, canCreateTestEmail, canCreateUtilityVendResult, canDeleteEntitlementAtAnyBank, canDeleteOrganisation, canDeleteRoutingScheme, canGetAccountAccessTrace, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetConnectorHealth, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMetricsDiagnostics, canGetMigrations, canUpdateBankSupportedRoutingScheme, canUpdateOrganisation, canUpdateRoutingScheme, canUpdateSystemView}
 import code.api.util.CommonsEmailWrapper
 import code.model.dataAccess.AuthUser
 import code.api.util.ApiTag._
@@ -2959,7 +2959,11 @@ object Http4s700 {
               None,
               callCtx
             )
-            // 9. register + fire the one-shot result callback (step c), if asked.
+            // 9. Register the one-shot result callback (step c), if asked. It is NOT fired
+            //    here: the vend is asynchronous, so the token does not yet exist. The callback
+            //    is fired by createUtilityVendResult once the rail delivers the vend result —
+            //    carrying the real token, and from a separate, already-committed request (which
+            //    also avoids racing this request's transaction commit).
             callbackJson = body.callback_url.flatMap { url =>
               val callbackId = APIUtil.generateUUID()
               UtilityPaymentCallbacks.utilityPaymentCallback.vend.createCallback(
@@ -2972,12 +2976,6 @@ object Http4s700 {
                 fromAccountId = fromAccount.accountId.value,
                 createdByUserId = user.userId
               ).toOption.map { stored =>
-                // Deliver the TR result asynchronously; pass callback=None so the
-                // delivered payload carries the payment result, not its own status.
-                val payload = prettyRender(Extraction.decompose(
-                  JSONFactory700.createTransactionRequestWithChargeUtilityJsonV700(tr, body, None, Nil, Nil)
-                ))
-                UtilityCallbackDispatcher.deliver(callbackId, url, payload)
                 JSONFactory700.UtilityCallbackJsonV700(
                   callback_id = stored.callbackId,
                   callback_url = stored.callbackUrl,
@@ -2985,7 +2983,8 @@ object Http4s700 {
                 )
               }
             }
-          } yield JSONFactory700.createTransactionRequestWithChargeUtilityJsonV700(tr, body, callbackJson, Nil, Nil)
+            // vend_result is None at creation — it arrives asynchronously via createUtilityVendResult.
+          } yield JSONFactory700.createTransactionRequestWithChargeUtilityJsonV700(tr, body, callbackJson, None, Nil, Nil)
         }
     }
 
@@ -3021,7 +3020,7 @@ object Http4s700 {
         |
         |**Payer block**: `payer` carries the depositor's phone / name / email for the biller receipt.
         |
-        |**Callback** (optional): supply `callback_url` to register a one-shot callback; OBP POSTs the final transaction-request result to that URL asynchronously. A failed or unreachable callback never fails the payment.
+        |**Callback** (optional): supply `callback_url` to register a one-shot callback. The vend is asynchronous — the electricity token does not exist yet at creation, so the response returns `vend_result: null` and the registered callback's status is `REGISTERED`. Once the downstream rail delivers the vend result (via the system endpoint `POST /banks/BANK_ID/utility-payments/UTILITY_TRANSACTION_REQUEST_ID/vend-result`), OBP records the token/receipt on the transaction request and POSTs the enriched result to `callback_url`. A failed or unreachable callback never fails the payment.
         |
         |**Provider passthrough**: `data_fields` carries arbitrary name/value pairs that adapters forward to the downstream rail without OBP interpretation.
         |
@@ -3049,6 +3048,7 @@ object Http4s700 {
           callback_url = "https://example.com/utility/callback",
           status = "REGISTERED"
         )),
+        vend_result = None,
         attributes = None
       ),
       List($AuthenticatedUserIsRequired, InvalidJsonFormat,
@@ -3058,6 +3058,118 @@ object Http4s700 {
       apiTagTransactionRequest :: apiTagPayee :: Nil,
       None,
       http4sPartialFunction = Some(createTransactionRequestUtility)
+    )
+
+    // ── UTILITY vend-result delivery (inbound, asynchronous) ───────────────────
+    // The downstream rail/adapter calls this once the utility vend settles, delivering
+    // the electricity token / receipt (e.g. a LUKU 20-digit STS token). OBP persists the
+    // vend fields as transaction-request attributes and — if the payer registered a
+    // callback_url on the original request — POSTs the vend result to it. The rail is a
+    // trusted system actor, gated by canCreateUtilityVendResult. Returns 200.
+    // System path: a flat /utility-payments/UTILITY_TRANSACTION_REQUEST_ID segment avoids
+    // ACCOUNT_ID/VIEW_ID middleware resolution (the rail has no view on the payer's account).
+    val createUtilityVendResult: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "banks" / _ / "utility-payments" / trIdStr / "vend-result" =>
+        EndpointHelpers.withUserAndBody[JSONFactory700.PostUtilityVendResultJsonV700, JSONFactory700.UtilityVendResultResponseJsonV700](req) { (_, body, cc) =>
+          val callCtx = Some(cc)
+          val trId = com.openbankproject.commons.model.TransactionRequestId(trIdStr)
+          // Only present fields are persisted; the vend status is always written.
+          val attrs: List[(String, String)] =
+            (JSONFactory700.UtilityVendAttribute.VendStatus -> body.status) :: List(
+              body.luku_token.map(JSONFactory700.UtilityVendAttribute.Token -> _),
+              body.rcpt_num.map(JSONFactory700.UtilityVendAttribute.RcptNum -> _),
+              body.units.map(JSONFactory700.UtilityVendAttribute.Units -> _),
+              body.gwx_reference.map(JSONFactory700.UtilityVendAttribute.GwxReference -> _),
+              body.provider_message.map(JSONFactory700.UtilityVendAttribute.ProviderMessage -> _)
+            ).flatten
+          for {
+            // 1. The transaction request must exist (404 otherwise).
+            (tr, _) <- Future(BankConnector.connector.vend.getTransactionRequestImpl(trId, callCtx))
+              .map(unboxFullOrFail(_, callCtx, UtilityTransactionRequestNotFound, 404))
+            bankId = BankId(tr.from.bank_id)
+            // 2. Persist the vend fields as transaction-request attributes.
+            _ <- Future.sequence(attrs.map { case (name, value) =>
+              NewStyle.function.createOrUpdateTransactionRequestAttribute(
+                bankId, trId, None, name,
+                com.openbankproject.commons.model.enums.TransactionRequestAttributeType.STRING, value, callCtx
+              )
+            })
+            // 3. Read attributes back and project the typed vend_result.
+            (attributes, _) <- NewStyle.function.getTransactionRequestAttributesFromProvider(trId, callCtx)
+            vendResult = JSONFactory700.utilityVendResultFromAttributes(attributes)
+            // 4. If the payer registered a callback, deliver the vend result to it. The callback
+            //    row was committed by the create request, so the dispatcher's async status update
+            //    no longer races an uncommitted row. A failed callback never fails this request.
+            callbackJson = UtilityPaymentCallbacks.utilityPaymentCallback.vend
+              .getCallbackByTransactionRequestId(trIdStr).toOption.map { cb =>
+                val payload = prettyRender(Extraction.decompose(
+                  JSONFactory700.UtilityVendResultResponseJsonV700(
+                    transaction_request_id = tr.id.value, `type` = tr.`type`,
+                    status = tr.status, vend_result = vendResult, callback = None
+                  )
+                ))
+                UtilityCallbackDispatcher.deliver(cb.callbackId, cb.callbackUrl, payload)
+                JSONFactory700.UtilityCallbackJsonV700(
+                  callback_id = cb.callbackId, callback_url = cb.callbackUrl, status = cb.status
+                )
+              }
+          } yield JSONFactory700.UtilityVendResultResponseJsonV700(
+            transaction_request_id = tr.id.value, `type` = tr.`type`,
+            status = tr.status, vend_result = vendResult, callback = callbackJson
+          )
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(createUtilityVendResult),
+      "POST",
+      "/banks/BANK_ID/utility-payments/UTILITY_TRANSACTION_REQUEST_ID/vend-result",
+      "Deliver UTILITY Vend Result",
+      """**System endpoint** — called by the downstream rail/adapter (not the payer) to deliver the
+        |asynchronous result of a UTILITY payment, e.g. a LUKU (TANESCO prepaid electricity) purchase.
+        |
+        |The vend is asynchronous: the original `POST .../transaction-request-types/UTILITY/transaction-requests`
+        |returns immediately with `vend_result: null`, and the actual deliverable — the **20-digit STS
+        |electricity token** plus receipt (`rcpt_num`, `units`, provider reference) — arrives here once the
+        |rail settles the vend. OBP records the vend fields as attributes on the transaction request and,
+        |if the payer registered a `callback_url`, POSTs this vend result to that URL (a failed or
+        |unreachable callback never fails this request).
+        |
+        |`UTILITY_TRANSACTION_REQUEST_ID` is the `id` returned by the original UTILITY transaction request.
+        |
+        |Requires the `CanCreateUtilityVendResult` system entitlement.""".stripMargin,
+      JSONFactory700.PostUtilityVendResultJsonV700(
+        status = "COMPLETED",
+        luku_token = Some("1234 5678 9012 3456 7890"),
+        rcpt_num = Some("202306141018422348674"),
+        units = Some("46.5"),
+        gwx_reference = Some("GWX800930701197"),
+        provider_message = Some("Vend successful")
+      ),
+      JSONFactory700.UtilityVendResultResponseJsonV700(
+        transaction_request_id = "4050046c-63b3-4868-8a22-14b4181d33a6",
+        `type` = "UTILITY",
+        status = "COMPLETED",
+        vend_result = Some(JSONFactory700.UtilityVendResultJsonV700(
+          status = "COMPLETED",
+          luku_token = Some("1234 5678 9012 3456 7890"),
+          rcpt_num = Some("202306141018422348674"),
+          units = Some("46.5"),
+          gwx_reference = Some("GWX800930701197"),
+          provider_message = Some("Vend successful")
+        )),
+        callback = Some(JSONFactory700.UtilityCallbackJsonV700(
+          callback_id = "cbk_01HXY7Z8AB9C0D1E2F3G4H5J6K",
+          callback_url = "https://example.com/utility/callback",
+          status = "REGISTERED"
+        ))
+      ),
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat,
+           UtilityTransactionRequestNotFound, UnknownError),
+      apiTagTransactionRequest :: apiTagPayee :: Nil,
+      Some(List(canCreateUtilityVendResult)),
+      http4sPartialFunction = Some(createUtilityVendResult)
     )
 
     // ── End UTILITY ───────────────────────────────────────────────────────────

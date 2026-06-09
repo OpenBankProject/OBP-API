@@ -6,9 +6,9 @@ import code.api.util.http4s.Http4sStandardHeaders
 import code.api.Constant.SYSTEM_OWNER_VIEW_ID
 import code.api.ResponseHeader
 import code.api.util.APIUtil
-import code.api.util.ApiRole.{canCreateEntitlementAtAnyBank, canCreateOrganisation, canCreateRoutingScheme, canDeleteEntitlementAtAnyBank, canDeleteOrganisation, canDeleteRoutingScheme, canUpdateSystemView, canGetAccountAccessTrace, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetCardsForBank, canGetConnectorHealth, canCreateMetricsArchiveRun, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMetricsDiagnostics, canGetMigrations, canReadResourceDoc, canUpdateBankSupportedRoutingScheme, canUpdateOrganisation, canUpdateRoutingScheme}
-import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, BankNotFound, EntitlementAlreadyExists, InvalidOrganisationIdFormat, InvalidRoutingSchemeName, MobileWalletDestinationNotFound, MobileWalletInvalidMsisdn, OrganisationAlreadyExists, OrganisationNotFound, PayeeLookupAddressMismatch, PayeeLookupIdentifierTypeNotRegistered, PayeeNotFound, RoutingSchemeAlreadyExists, RoutingSchemeExampleAddressMismatch, RoutingSchemeNotFound, SystemViewNotFound, UserHasMissingRoles, UserNotFoundByUserId, UtilityIdentifierTypeWrongCategory, UtilityInvalidIdentifier}
-import code.utilitypayment.UtilityPaymentCallbacks
+import code.api.util.ApiRole.{canCreateEntitlementAtAnyBank, canCreateOrganisation, canCreateRoutingScheme, canCreateUtilityVendResult, canDeleteEntitlementAtAnyBank, canDeleteOrganisation, canDeleteRoutingScheme, canUpdateSystemView, canGetAccountAccessTrace, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetCardsForBank, canGetConnectorHealth, canCreateMetricsArchiveRun, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMetricsDiagnostics, canGetMigrations, canReadResourceDoc, canUpdateBankSupportedRoutingScheme, canUpdateOrganisation, canUpdateRoutingScheme}
+import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, BankNotFound, EntitlementAlreadyExists, InvalidOrganisationIdFormat, InvalidRoutingSchemeName, MobileWalletDestinationNotFound, MobileWalletInvalidMsisdn, OrganisationAlreadyExists, OrganisationNotFound, PayeeLookupAddressMismatch, PayeeLookupIdentifierTypeNotRegistered, PayeeNotFound, RoutingSchemeAlreadyExists, RoutingSchemeExampleAddressMismatch, RoutingSchemeNotFound, SystemViewNotFound, UserHasMissingRoles, UserNotFoundByUserId, UtilityIdentifierTypeWrongCategory, UtilityInvalidIdentifier, UtilityTransactionRequestNotFound}
+import code.utilitypayment.{UtilityCallbackStatus, UtilityPaymentCallbacks}
 import code.api.Constant.SYSTEM_AUDITOR_VIEW_ID
 import code.views.MapperViews
 import code.views.system.ViewPermission
@@ -27,7 +27,7 @@ import org.typelevel.ci.CIString
 import java.util.Date
 import code.setup.ServerSetupWithTestData
 import net.liftweb.json.JValue
-import net.liftweb.json.JsonAST.{JArray, JBool, JField, JObject, JString}
+import net.liftweb.json.JsonAST.{JArray, JBool, JField, JNull, JObject, JString}
 import net.liftweb.json.JsonParser.parse
 import org.scalatest.Tag
 
@@ -1747,8 +1747,13 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
               val cb = toFieldMap(cbFields)
               cb.get("callback_url") shouldBe Some(JString("https://example.com/utility/callback"))
               cb.keys should contain allOf ("callback_id", "status")
+              // The vend is asynchronous: the callback is only REGISTERED at create time,
+              // not yet fired (the token does not exist until the rail delivers the vend result).
+              cb.get("status") shouldBe Some(JString("REGISTERED"))
             case other => fail(s"Expected callback object, got: $other")
           }
+          // No token at creation time — vend_result must be absent / null.
+          map.get("vend_result").foreach(_ shouldBe JNull)
           map.get("id") match {
             case Some(JString(id)) => id
             case _ => fail("Expected id as JSON string")
@@ -1756,10 +1761,112 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
         case _ => fail("Expected JSON object")
       }
 
-      // The one-shot callback row was persisted against this transaction request.
+      // The one-shot callback row was persisted against this transaction request, still REGISTERED.
       val stored = UtilityPaymentCallbacks.utilityPaymentCallback.vend.getCallbackByTransactionRequestId(trId)
       stored.isDefined shouldBe true
       stored.openOrThrowException("callback row").callbackUrl shouldBe "https://example.com/utility/callback"
+      stored.openOrThrowException("callback row").status shouldBe UtilityCallbackStatus.Registered
+    }
+  }
+
+  // ─── UTILITY vend-result delivery (asynchronous token) ────────────────────
+
+  /** Create a UTILITY transaction request and return its id, so the vend-result endpoint
+    * has a real TR (with a registered callback) to deliver against. */
+  private def createUtilityTrWithCallback(): String = {
+    val bankId = testBankId1.value
+    val accountId = testAccountId0.value
+    val acctCurrency = code.bankconnectors.Connector.connector.vend
+      .getBankAccountLegacy(testBankId1, testAccountId0, None)
+      .map(_._1.currency).openOrThrowException("test account")
+    val meter = s"247${(System.currentTimeMillis() % 100000000L).toString.reverse.padTo(8, '0').reverse}"
+    val scheme = seedUtilityBiller("VEND", "UTILITY", meter, bankId, accountId)
+    val body =
+      s"""{
+         |  "to": {"scheme":"$scheme","value":"$meter"},
+         |  "value": {"currency":"$acctCurrency","amount":"1000"},
+         |  "description": "utility token purchase",
+         |  "callback_url": "https://example.com/utility/callback"
+         |}""".stripMargin
+    val headers = Map("DirectLogin" -> s"token=${token1.value}")
+    val (sc, json, _) = makeHttpRequestWithBody("POST", s"/obp/v7.0.0/banks/$bankId/accounts/$accountId/owner/transaction-request-types/UTILITY/transaction-requests", body, headers)
+    sc shouldBe 201
+    json match {
+      case JObject(fields) => toFieldMap(fields).get("id") match {
+        case Some(JString(id)) => id
+        case _ => fail("Expected id in create response")
+      }
+      case _ => fail("Expected JSON object from create")
+    }
+  }
+
+  feature("Http4s700 createUtilityVendResult endpoint") {
+
+    val vendBody =
+      """{"status":"COMPLETED","luku_token":"1234 5678 9012 3456 7890","rcpt_num":"202306141018422348674","units":"46.5","gwx_reference":"GWX800930701197"}"""
+
+    scenario("Reject unauthenticated POST", Http4s700RoutesTag) {
+      val (statusCode, _, _) = makeHttpRequestWithBody("POST", s"/obp/v7.0.0/banks/${testBankId1.value}/utility-payments/any-tr-id/vend-result", vendBody)
+      statusCode shouldBe 401
+    }
+
+    scenario("Return 403 when authenticated but missing canCreateUtilityVendResult role", Http4s700RoutesTag) {
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequestWithBody("POST", s"/obp/v7.0.0/banks/${testBankId1.value}/utility-payments/any-tr-id/vend-result", vendBody, headers)
+      statusCode shouldBe 403
+      json match {
+        case JObject(fields) => toFieldMap(fields).get("message") match {
+          case Some(JString(msg)) => msg should include(canCreateUtilityVendResult.toString)
+          case _ => fail("Expected message field")
+        }
+        case _ => fail("Expected JSON object")
+      }
+    }
+
+    scenario("Return 404 when the transaction request does not exist", Http4s700RoutesTag) {
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canCreateUtilityVendResult.toString)
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequestWithBody("POST", s"/obp/v7.0.0/banks/${testBankId1.value}/utility-payments/does-not-exist/vend-result", vendBody, headers)
+      statusCode shouldBe 404
+      json match {
+        case JObject(fields) => toFieldMap(fields).get("message") match {
+          case Some(JString(msg)) => msg should include(UtilityTransactionRequestNotFound)
+          case _ => fail("Expected message field")
+        }
+        case _ => fail("Expected JSON object")
+      }
+    }
+
+    scenario("Return 200 and persist the vend result (token) against the transaction request", Http4s700RoutesTag) {
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canCreateUtilityVendResult.toString)
+      val trId = createUtilityTrWithCallback()
+
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequestWithBody("POST", s"/obp/v7.0.0/banks/${testBankId1.value}/utility-payments/$trId/vend-result", vendBody, headers)
+      statusCode shouldBe 200
+      json match {
+        case JObject(fields) =>
+          val map = toFieldMap(fields)
+          map.get("transaction_request_id") shouldBe Some(JString(trId))
+          map.get("type") shouldBe Some(JString("UTILITY"))
+          map.get("vend_result") match {
+            case Some(JObject(vrFields)) =>
+              val vr = toFieldMap(vrFields)
+              vr.get("luku_token") shouldBe Some(JString("1234 5678 9012 3456 7890"))
+              vr.get("rcpt_num") shouldBe Some(JString("202306141018422348674"))
+              vr.get("status") shouldBe Some(JString("COMPLETED"))
+            case other => fail(s"Expected vend_result object, got: $other")
+          }
+          // The callback registered on the original request is surfaced here (delivery triggered).
+          map.get("callback") match {
+            case Some(JObject(cbFields)) =>
+              toFieldMap(cbFields).get("callback_url") shouldBe Some(JString("https://example.com/utility/callback"))
+            case other => fail(s"Expected callback object, got: $other")
+          }
+        case _ => fail("Expected JSON object")
+      }
+      // Note: the response's vend_result is built by reading the attributes back from the
+      // provider, so the assertions above already prove the token was persisted and round-tripped.
     }
   }
 

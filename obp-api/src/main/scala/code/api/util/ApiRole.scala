@@ -429,6 +429,12 @@ object ApiRole extends MdcLoggable{
   case class CanCreateSettlementAccountAtOneBank (requiresBankId: Boolean = true) extends ApiRole
   lazy val canCreateSettlementAccountAtOneBank = CanCreateSettlementAccountAtOneBank()
 
+  // System role for the south-side rail/adapter to deliver the asynchronous UTILITY (e.g. LUKU)
+  // vend result (electricity token / receipt) back to OBP. Not bank-scoped — the rail is a
+  // trusted system actor, not a per-bank user.
+  case class CanCreateUtilityVendResult (requiresBankId: Boolean = false) extends ApiRole
+  lazy val canCreateUtilityVendResult = CanCreateUtilityVendResult()
+
   case class CanGetSettlementAccountAtOneBank (requiresBankId: Boolean = true) extends ApiRole
   lazy val canGetSettlementAccountAtOneBank = CanGetSettlementAccountAtOneBank()
 

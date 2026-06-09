@@ -517,6 +517,7 @@ object ErrorMessages {
   val UtilityInvalidIdentifier = "OBP-30547: Invalid identifier value — does not match the address_pattern of the routing scheme (e.g. TZ.UTILITY_METER)."
   val UtilityDestinationNotFound = "OBP-30548: No biller/utility account is registered for the supplied identifier. In mapped mode the destination must have an account routing for the identifier scheme (e.g. TZ.UTILITY_METER)."
   val UtilityPaymentError = "OBP-30549: Could not create UTILITY transaction request."
+  val UtilityTransactionRequestNotFound = "OBP-30550: No UTILITY transaction request found for the supplied UTILITY_TRANSACTION_REQUEST_ID."
 
   // Implicit OBP-family routing schemes (OBP-30545)
   // The schemes "OBP" / "OBP_ACCOUNT_ID" / "OBP_BANK_ID" are reserved self-identifiers —
