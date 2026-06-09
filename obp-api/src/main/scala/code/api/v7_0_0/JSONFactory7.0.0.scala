@@ -14,7 +14,7 @@ import com.openbankproject.commons.model.{AccountId, AccountRoutingJsonV121, Amo
 import com.openbankproject.commons.util.ApiVersion
 import java.util.Date
 import net.liftweb.common.Full
-import net.liftweb.mapper.{Ascending, Descending, MaxRows, OrderBy}
+import net.liftweb.mapper.{Ascending, By, By_<=, Descending, MaxRows, OrderBy}
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -1264,6 +1264,21 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
         checks += MetricsIntegrityCheckJsonV700("metric_oldest_within_retention", "OK", "The metric table is empty.")
     }
 
+    // Old metric rows with an empty correlation id can't be archived (the archive
+    // requires a UUID) and are excluded from the move job, so they sit in the metric
+    // table indefinitely. Surface their count so this is visible rather than looking
+    // like a stalled job in the oldest-within-retention check above.
+    val unarchivableOldMetricCount = MappedMetric.count(
+      By_<=(MappedMetric.date, new Date(now.getTime - retainMetricsDaysEffective * metricsOneDayInMillis)),
+      By(MappedMetric.correlationId, "")
+    )
+    if (unarchivableOldMetricCount == 0)
+      checks += MetricsIntegrityCheckJsonV700("metric_unarchivable_rows", "OK",
+        "No metric rows older than the retention window are blocked from archiving.")
+    else
+      checks += MetricsIntegrityCheckJsonV700("metric_unarchivable_rows", "WARNING",
+        s"$unarchivableOldMetricCount metric row(s) older than the retention window have an empty correlation id and cannot be archived (the archive requires a UUID). They remain in the metric table and are excluded from the move job — typically legacy rows that predate correlation ids.")
+
     archiveOldest match {
       case Some(d) =>
         val age = metricsAgeInDays(d, now)
@@ -1385,6 +1400,8 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
         "enable_metrics_scheduler=true: the archive/cleanup scheduler is active."),
       MetricsIntegrityCheckJsonV700("metric_oldest_within_retention", "OK",
         "Oldest metric is 85 days old, within the effective retention of 90 days (+7d grace)."),
+      MetricsIntegrityCheckJsonV700("metric_unarchivable_rows", "OK",
+        "No metric rows older than the retention window are blocked from archiving."),
       MetricsIntegrityCheckJsonV700("archive_oldest_within_retention", "OK",
         "Oldest archived metric is 700 days old, within the effective archive retention of 730 days (+7d grace)."),
       MetricsIntegrityCheckJsonV700("archive_recently_updated", "OK",

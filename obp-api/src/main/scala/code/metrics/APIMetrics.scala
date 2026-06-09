@@ -77,7 +77,7 @@ trait APIMetrics {
                          targetIp: String,
                          apiInstanceId: String,
                          consentReferenceId: String
-                        ): Unit
+                        ): Boolean
 
 //  //TODO: ordering of list? should this be by date? currently not enforced
 //  def getAllGroupedByUrl() : Map[String, List[APIMetric]]
