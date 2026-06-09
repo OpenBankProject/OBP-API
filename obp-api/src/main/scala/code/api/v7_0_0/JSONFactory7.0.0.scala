@@ -1238,30 +1238,30 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     val checks = scala.collection.mutable.ListBuffer[MetricsIntegrityCheckJsonV700]()
 
     checks += (if (writeMetrics)
-      MetricsIntegrityCheckJsonV700("write_metrics_enabled", "OK",
+      MetricsIntegrityCheckJsonV700("check_metrics_are_being_written", "OK",
         "write_metrics=true: API calls are being recorded into the metric table.")
     else
-      MetricsIntegrityCheckJsonV700("write_metrics_enabled", "WARNING",
+      MetricsIntegrityCheckJsonV700("check_metrics_are_being_written", "WARNING",
         "write_metrics=false: no new API metrics are being written, so the metric table count will not grow."))
 
     checks += (if (schedulerEnabled)
-      MetricsIntegrityCheckJsonV700("metrics_scheduler_enabled", "OK",
+      MetricsIntegrityCheckJsonV700("check_archive_scheduler_is_enabled", "OK",
         "enable_metrics_scheduler=true: the archive/cleanup scheduler is active.")
     else
-      MetricsIntegrityCheckJsonV700("metrics_scheduler_enabled", "ERROR",
+      MetricsIntegrityCheckJsonV700("check_archive_scheduler_is_enabled", "ERROR",
         "enable_metrics_scheduler=false: old metrics are never moved to the archive nor deleted; the metric table will grow without bound."))
 
     metricOldest match {
       case Some(d) =>
         val age = metricsAgeInDays(d, now)
         if (age <= retainMetricsDaysEffective + graceDays)
-          checks += MetricsIntegrityCheckJsonV700("metric_oldest_within_retention", "OK",
+          checks += MetricsIntegrityCheckJsonV700("check_metric_retention_policy_is_respected", "OK",
             s"Oldest metric is $age days old, within the effective retention of $retainMetricsDaysEffective days (+${graceDays}d grace).")
         else
-          checks += MetricsIntegrityCheckJsonV700("metric_oldest_within_retention", "ERROR",
+          checks += MetricsIntegrityCheckJsonV700("check_metric_retention_policy_is_respected", "ERROR",
             s"Oldest metric is $age days old but the effective retention is $retainMetricsDaysEffective days. Records older than this should have been moved to the archive — the archive move job is not keeping up or has stopped.")
       case None =>
-        checks += MetricsIntegrityCheckJsonV700("metric_oldest_within_retention", "OK", "The metric table is empty.")
+        checks += MetricsIntegrityCheckJsonV700("check_metric_retention_policy_is_respected", "OK", "The metric table is empty.")
     }
 
     // Old metric rows with an empty correlation id can't be archived (the archive
@@ -1273,23 +1273,23 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
       By(MappedMetric.correlationId, "")
     )
     if (unarchivableOldMetricCount == 0)
-      checks += MetricsIntegrityCheckJsonV700("metric_unarchivable_rows", "OK",
+      checks += MetricsIntegrityCheckJsonV700("check_all_old_metrics_can_be_archived", "OK",
         "No metric rows older than the retention window are blocked from archiving.")
     else
-      checks += MetricsIntegrityCheckJsonV700("metric_unarchivable_rows", "WARNING",
+      checks += MetricsIntegrityCheckJsonV700("check_all_old_metrics_can_be_archived", "WARNING",
         s"$unarchivableOldMetricCount metric row(s) older than the retention window have an empty correlation id and cannot be archived (the archive requires a UUID). They remain in the metric table and are excluded from the move job — typically legacy rows that predate correlation ids.")
 
     archiveOldest match {
       case Some(d) =>
         val age = metricsAgeInDays(d, now)
         if (age <= retainArchiveMetricsDaysEffective + graceDays)
-          checks += MetricsIntegrityCheckJsonV700("archive_oldest_within_retention", "OK",
+          checks += MetricsIntegrityCheckJsonV700("check_archive_retention_policy_is_respected", "OK",
             s"Oldest archived metric is $age days old, within the effective archive retention of $retainArchiveMetricsDaysEffective days (+${graceDays}d grace).")
         else
-          checks += MetricsIntegrityCheckJsonV700("archive_oldest_within_retention", "ERROR",
+          checks += MetricsIntegrityCheckJsonV700("check_archive_retention_policy_is_respected", "ERROR",
             s"Oldest archived metric is $age days old but the effective archive retention is $retainArchiveMetricsDaysEffective days. Records older than this should have been deleted — the archive cleanup job is not keeping up or has stopped.")
       case None =>
-        checks += MetricsIntegrityCheckJsonV700("archive_oldest_within_retention", "OK", "The metricarchive table is empty.")
+        checks += MetricsIntegrityCheckJsonV700("check_archive_retention_policy_is_respected", "OK", "The metricarchive table is empty.")
     }
 
     // If a backlog of metrics older than the retention window exists, the move
@@ -1300,13 +1300,13 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
       case (Some(mo), Some(an)) if metricsAgeInDays(mo, now) > retainMetricsDaysEffective + graceDays =>
         val newestArchiveAge = metricsAgeInDays(an, now)
         if (newestArchiveAge <= retainMetricsDaysEffective + graceDays)
-          checks += MetricsIntegrityCheckJsonV700("archive_recently_updated", "OK",
+          checks += MetricsIntegrityCheckJsonV700("check_archive_metrics_is_fresh_enough", "OK",
             s"Newest archived metric is $newestArchiveAge days old, consistent with an active move job.")
         else
-          checks += MetricsIntegrityCheckJsonV700("archive_recently_updated", "ERROR",
+          checks += MetricsIntegrityCheckJsonV700("check_archive_metrics_is_fresh_enough", "ERROR",
             s"There are metric rows older than the retention window, yet the newest archived record is $newestArchiveAge days old. The move job appears to have stopped roughly ${newestArchiveAge - retainMetricsDaysEffective} days ago.")
       case _ =>
-        checks += MetricsIntegrityCheckJsonV700("archive_recently_updated", "OK",
+        checks += MetricsIntegrityCheckJsonV700("check_archive_metrics_is_fresh_enough", "OK",
           "No backlog of metrics older than the retention window — nothing to move right now.")
     }
 
@@ -1316,20 +1316,20 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     lastRun match {
       case Some(r) if r.Success.get =>
         val ageDays = metricsAgeInDays(r.StartedAt.get, now)
-        checks += MetricsIntegrityCheckJsonV700("archive_job_last_run", "OK",
+        checks += MetricsIntegrityCheckJsonV700("check_last_archive_run_succeeded", "OK",
           s"Last archive run succeeded $ageDays days ago (moved ${r.RowsMovedToArchive.get} rows, deleted ${r.RowsDeletedFromArchive.get} outdated archive rows).")
       case Some(r) =>
         val ageDays = metricsAgeInDays(r.StartedAt.get, now)
         val lastOkNote = lastSuccessfulRun
           .map(s => s" Last successful run was ${metricsAgeInDays(s.StartedAt.get, now)} days ago.")
           .getOrElse(" No successful run has ever been recorded.")
-        checks += MetricsIntegrityCheckJsonV700("archive_job_last_run", "ERROR",
+        checks += MetricsIntegrityCheckJsonV700("check_last_archive_run_succeeded", "ERROR",
           s"The most recent archive run ($ageDays days ago) failed: ${r.Remark.get}.$lastOkNote")
       case None if schedulerEnabled =>
-        checks += MetricsIntegrityCheckJsonV700("archive_job_last_run", "WARNING",
+        checks += MetricsIntegrityCheckJsonV700("check_last_archive_run_succeeded", "WARNING",
           "No archive run has been recorded yet. The scheduler is enabled but may not have completed its first run since this table was introduced.")
       case None =>
-        checks += MetricsIntegrityCheckJsonV700("archive_job_last_run", "OK",
+        checks += MetricsIntegrityCheckJsonV700("check_last_archive_run_succeeded", "OK",
           "No archive run recorded — the scheduler is disabled, so this is expected.")
     }
 
@@ -1394,19 +1394,19 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
       remark                    = ""
     )),
     checks = List(
-      MetricsIntegrityCheckJsonV700("write_metrics_enabled", "OK",
+      MetricsIntegrityCheckJsonV700("check_metrics_are_being_written", "OK",
         "write_metrics=true: API calls are being recorded into the metric table."),
-      MetricsIntegrityCheckJsonV700("metrics_scheduler_enabled", "OK",
+      MetricsIntegrityCheckJsonV700("check_archive_scheduler_is_enabled", "OK",
         "enable_metrics_scheduler=true: the archive/cleanup scheduler is active."),
-      MetricsIntegrityCheckJsonV700("metric_oldest_within_retention", "OK",
+      MetricsIntegrityCheckJsonV700("check_metric_retention_policy_is_respected", "OK",
         "Oldest metric is 85 days old, within the effective retention of 90 days (+7d grace)."),
-      MetricsIntegrityCheckJsonV700("metric_unarchivable_rows", "OK",
+      MetricsIntegrityCheckJsonV700("check_all_old_metrics_can_be_archived", "OK",
         "No metric rows older than the retention window are blocked from archiving."),
-      MetricsIntegrityCheckJsonV700("archive_oldest_within_retention", "OK",
+      MetricsIntegrityCheckJsonV700("check_archive_retention_policy_is_respected", "OK",
         "Oldest archived metric is 700 days old, within the effective archive retention of 730 days (+7d grace)."),
-      MetricsIntegrityCheckJsonV700("archive_recently_updated", "OK",
+      MetricsIntegrityCheckJsonV700("check_archive_metrics_is_fresh_enough", "OK",
         "Newest archived metric is 92 days old, consistent with an active move job."),
-      MetricsIntegrityCheckJsonV700("archive_job_last_run", "OK",
+      MetricsIntegrityCheckJsonV700("check_last_archive_run_succeeded", "OK",
         "Last archive run succeeded 0 days ago (moved 4000 rows, deleted 1500 outdated archive rows).")
     ),
     everything_as_expected = true
