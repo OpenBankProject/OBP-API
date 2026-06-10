@@ -582,6 +582,59 @@ object Glossary extends MdcLoggable  {
 	)
 
 	glossaryItems += GlossaryItem(
+		title = "Adapter",
+		description =
+			s"""
+				 |## Adapter
+				 |
+				 |In OBP, an Adapter is an out of process component that sits between OBP and a bank's systems of record (Core Banking System, Payment System, or database) and translates between them.
+				 |
+				 |An Adapter is paired with an Indirect [Connector](/glossary#Connector): the Connector inside OBP turns OBP function calls into messages and sends them over a transport (for example RabbitMQ, Akka, or a stored procedure call); the Adapter receives those messages, talks to the CBS, and returns a response in the agreed Outbound / Inbound message format.
+				 |
+				 |i.e. OBP API -> Connector -> Adapter -> CBS
+				 |
+				 |Key properties:
+				 |
+				 |* It runs outside OBP, in its own process, typically on the bank's side.
+				 |* It can be written in any language, as long as it respects the message format published in the Message Docs for the relevant Connector. This is the main advantage over a Direct Connector, which must be written in a JVM language.
+				 |* It usually contains bank specific integration code: the data access, field mappings, identifier translation, and quirks of that one bank's CBS. As a result, each bank typically has its own Adapter build.
+				 |* The Adapter is responsible for emitting OBP shaped values where required (for example a UUID shaped ACCOUNT_ID mapped to the underlying core banking account number).
+				 |
+				 |For worked examples of writing an Adapter, see [Adapter.Akka.Intro](/glossary#Adapter.Akka.Intro) and [Adapter.Stored_Procedure.Intro](/glossary#Adapter.Stored_Procedure.Intro).
+				 |""".stripMargin
+	)
+
+	glossaryItems += GlossaryItem(
+		title = "OBP Bank Node",
+		description =
+			s"""
+				 |## OBP Bank Node
+				 |
+				 |An OBP Bank Node is a standardised software component designed to run at many banks inside their own network that connect to their Core Banking System (CBS) to an OBP API instance operated by a platform operator (for example TESOBE), without the bank having to run any OBP infrastructure itself.
+				 |
+				 |It is deployed as a single self contained service (typically a Docker container). All of its network connections are outbound from the bank's network (or controlled cloud) and no inbound ports are exposed to the public internet. To the bank's CBS it presents one small local interface (for example few REST endpoints); everything else (talking to the OBP API, and any systems it integrates) happens behind that interface.
+				 |
+				 |### How it relates to a Connector and an Adapter
+				 |
+				 |The OBP Bank Node is neither an OBP [Connector](/glossary#Connector) nor a traditional South Side Adapter, although it sits in similar territory. Two properties make the difference:
+				 |
+				 |* Direction of control. A South Side Adapter is called by an OBP Connector over a message bus: OBP is the caller and the Adapter responds to request messages with CBS data. The OBP Bank Node does the opposite on its north side: it acts as a client of the OBP API, calling OBP's REST interface itself. It both initiates calls to OBP and exposes a local interface to the bank's CBS, rather than only responding.
+				 |
+				 |* Code versus configuration. A South Side Adapter usually carries a significant amount of bank specific code: the translation logic for one bank's CBS (its data access, field mappings, and integration quirks) is written into the Adapter, so each bank effectively gets its own Adapter build. The OBP Bank Node carries no bank specific code; its per bank behaviour is entirely configuration. Any bank specific code in an integration lives on the bank's own side of the local interface (for example the CBS code that receives the Node's notifications), never inside the Node.
+				 |
+				 |In short: an OBP Connector is JVM code inside OBP that talks to systems of record; an Adapter is an out of process component that an Indirect Connector calls and that contains bank specific integration code; the OBP Bank Node is a bank side gateway that is configured rather than coded per bank and that acts as a client of the OBP API.
+				 |
+				 |### Open or closed source
+				 |
+				 |Because it integrates through the OBP API's published interfaces, vendors can build and run their own implementations.
+					|
+					|### Use cases
+					| The Node approach is suitable when implementing an OBP platform business that involves many banks in a common use case - or where the Platform utilises other interfaces e.g. to blockchains.
+					|
+				 |""".stripMargin
+	)
+
+	glossaryItems += GlossaryItem(
 		title = "Connector.User.Authentication",
 		description =
 			s"""
