@@ -15,11 +15,11 @@
 
     <dependencies>
         <dependency>
-            <groupId>net.liftweb</groupId>
+            <groupId>com.github.hongwei1.framework</groupId>
             <artifactId>lift-common_${scala.version}</artifactId>
         </dependency>
         <dependency>
-            <groupId>net.liftweb</groupId>
+            <groupId>com.github.hongwei1.framework</groupId>
             <artifactId>lift-util_${scala.version}</artifactId>
             <exclusions>
                 <exclusion>
@@ -33,7 +33,7 @@
             </exclusions>
         </dependency>
         <dependency>
-            <groupId>net.liftweb</groupId>
+            <groupId>com.github.hongwei1.framework</groupId>
             <artifactId>lift-mapper_${scala.version}</artifactId>
         </dependency>
         <dependency>
@@ -51,7 +51,7 @@
             <artifactId>scalactic_${scala.version}</artifactId>
         </dependency>
         <dependency>
-            <groupId>net.liftweb</groupId>
+            <groupId>com.github.hongwei1.framework</groupId>
             <artifactId>lift-json_${scala.version}</artifactId>
             <version>${lift.version}</version>
         </dependency>

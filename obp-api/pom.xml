@@ -31,13 +31,22 @@
       <version>1.4.14</version>
     </dependency>
     <dependency>
-      <groupId>net.liftweb</groupId>
+      <groupId>com.github.hongwei1.framework</groupId>
       <artifactId>lift-mapper_${scala.version}</artifactId>
     </dependency>
     <dependency>
       <groupId>net.databinder.dispatch</groupId>
       <artifactId>dispatch-lift-json_${scala.version}</artifactId>
       <version>0.13.1</version>
+      <exclusions>
+        <!-- OBP fork: use the webkit-free fork's lift-json (com.github.hongwei1.framework),
+             not dispatch's transitive net.liftweb:lift-json:3.1.0. Under the net.liftweb
+             groupId maven mediation hid this duplicate; the jitpack groupId surfaced it. -->
+        <exclusion>
+          <groupId>net.liftweb</groupId>
+          <artifactId>lift-json_${scala.version}</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>
