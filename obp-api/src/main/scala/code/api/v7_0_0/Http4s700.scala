@@ -7,7 +7,7 @@ import code.api.Constant._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil.{EmptyBody, _}
 import code.api.util.{APIUtil, ApiRole, CallContext, CustomJsonFormats, Glossary, NewStyle}
-import code.api.util.ApiRole.{canCreateEntitlementAtAnyBank, canCreateEntitlementAtOneBank, canCreateMetricsArchiveRun, canCreateOrganisation, canCreateRoutingScheme, canCreateTestEmail, canDeleteEntitlementAtAnyBank, canDeleteOrganisation, canDeleteRoutingScheme, canGetAccountAccessTrace, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetConnectorHealth, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMetricsDiagnostics, canGetMigrations, canUpdateBankSupportedRoutingScheme, canUpdateOrganisation, canUpdateRoutingScheme, canUpdateSystemView}
+import code.api.util.ApiRole.{canCreateEntitlementAtAnyBank, canCreateEntitlementAtOneBank, canCreateMetricsArchiveRun, canCreateOrganisation, canCreateRoutingScheme, canCreateTestEmail, canDeleteEntitlementAtAnyBank, canDeleteOrganisation, canDeleteRoutingScheme, canDeleteSchedulerJobLock, canGetAccountAccessTrace, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetConnectorHealth, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMetricsDiagnostics, canGetMigrations, canGetSchedulerJobLocks, canUpdateBankSupportedRoutingScheme, canUpdateOrganisation, canUpdateRoutingScheme, canUpdateSystemView}
 import code.api.util.CommonsEmailWrapper
 import code.model.dataAccess.AuthUser
 import code.api.util.ApiTag._
@@ -3353,6 +3353,10 @@ object Http4s700 {
          |* `message` — human-readable summary.
          |* `run` — the recorded run (run id, counts, duration, success, remark);
          |  absent when skipped.
+         |* `in_progress` — present only when skipped: the lock that blocked the run
+         |  (`job_id`, `api_instance_id`, `started_at`, `age_seconds`). A large
+         |  `age_seconds` (much older than a normal run) indicates a stale lock left
+         |  by a dead JVM — clear the matching `jobscheduler` row to unblock.
          |
          |Note: the run executes synchronously, so a large backlog may take a while.
          |
@@ -3363,6 +3367,93 @@ object Http4s700 {
       apiTagMetric :: apiTagSystem :: apiTagApi :: Nil,
       Some(List(canCreateMetricsArchiveRun)),
       http4sPartialFunction = Some(triggerMetricsArchiveRun)
+    )
+
+    // Route: GET /obp/v7.0.0/management/system/scheduler/job-locks
+    //
+    // List the `jobscheduler` lock rows (newest first, capped at 100). This table
+    // holds a row only while a scheduled job holds its lock — the row is deleted
+    // when the job finishes — so in healthy operation this is empty. Any row here
+    // is a currently-running job or a stale lock left by a dead JVM; `age_seconds`
+    // tells them apart, and the row can be cleared with the DELETE route below.
+    val getSchedulerJobs: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "management" / "system" / "scheduler" / "job-locks" =>
+        EndpointHelpers.withUser(req) { (_, _) =>
+          Future {
+            JSONFactory700.createSchedulerJobsJsonV700(code.scheduler.JobScheduler.mostRecent(100))
+          }
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(getSchedulerJobs),
+      "GET",
+      "/management/system/scheduler/job-locks",
+      "Get Scheduler Job Locks",
+      s"""List the scheduler lock rows from the `jobscheduler` table (most recent first, up to 100).
+         |
+         |**This is a lock table, not a job-history log.** A row exists only while a
+         |scheduled job (e.g. `MetricsArchiveScheduler`) holds its lock; it is deleted
+         |when the job finishes. So in healthy operation this list is **empty**.
+         |
+         |A row that is present is therefore one of:
+         |* a job genuinely running right now (small `age_seconds`), or
+         |* a **stale lock** left by a JVM that died mid-run (large `age_seconds`) —
+         |  this blocks new runs of that job (e.g. "Trigger a Metrics Archive Run"
+         |  returns `skipped_already_in_progress`). Clear it with
+         |  `DELETE /management/system/scheduler/job-locks/JOB_ID`.
+         |
+         |Each row reports `job_id`, `name`, `api_instance_id`, `started_at` and
+         |`age_seconds` (seconds since the lock was taken).
+         |
+         |${userAuthenticationMessage(true)}""".stripMargin,
+      EmptyBody,
+      JSONFactory700.schedulerJobsJsonV700Example,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      apiTagSystem :: apiTagApi :: Nil,
+      Some(List(canGetSchedulerJobLocks)),
+      http4sPartialFunction = Some(getSchedulerJobs)
+    )
+
+    // Route: DELETE /obp/v7.0.0/management/system/scheduler/job-locks/JOB_ID
+    //
+    // Clear a scheduler lock row by its job id. Use this to release a stale lock
+    // left by a dead JVM so the job (e.g. metrics archiving) can run again.
+    // Idempotent — returns 204 even if the row is already gone.
+    val deleteSchedulerJob: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ DELETE -> `prefixPath` / "management" / "system" / "scheduler" / "job-locks" / jobId =>
+        EndpointHelpers.withUserDelete(req) { (_, _) =>
+          Future { code.scheduler.JobScheduler.deleteByJobId(jobId); () }
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(deleteSchedulerJob),
+      "DELETE",
+      "/management/system/scheduler/job-locks/JOB_ID",
+      "Delete Scheduler Job Lock",
+      s"""Clear a scheduler lock row from the `jobscheduler` table by its `JOB_ID`.
+         |
+         |Use this to release a **stale lock** left by a JVM that died mid-run, which
+         |would otherwise keep a scheduled job (e.g. `MetricsArchiveScheduler`) from
+         |starting — see "Get Scheduler Job Locks" to find the `job_id` and judge staleness
+         |from its `age_seconds`.
+         |
+         |**Caution:** if the job is genuinely still running on some node, deleting its
+         |lock lets a second run start concurrently. Only clear locks you have confirmed
+         |are stale (much older than a normal run).
+         |
+         |Idempotent — returns 204 even if no row with that `JOB_ID` exists.
+         |
+         |${userAuthenticationMessage(true)}""".stripMargin,
+      EmptyBody,
+      EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      apiTagSystem :: apiTagApi :: Nil,
+      Some(List(canDeleteSchedulerJobLock)),
+      http4sPartialFunction = Some(deleteSchedulerJob)
     )
 
     // Enabled only in Lift test mode (Props.testMode == true, i.e. -Drun.mode=test).

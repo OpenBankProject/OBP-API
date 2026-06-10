@@ -20,6 +20,24 @@ class JobScheduler extends JobSchedulerTrait with LongKeyedMapper[JobScheduler] 
 
 object JobScheduler extends JobScheduler with LongKeyedMetaMapper[JobScheduler] {
   override def dbIndexes: List[BaseIndex[JobScheduler]] = UniqueIndex(JobId) :: super.dbIndexes
+
+  /**
+   * The most recent scheduler-lock rows, newest first, capped at `limit`.
+   *
+   * Note: `jobscheduler` is a lock table, not a job-history log — a row exists
+   * only while a job holds the lock and is deleted when the job finishes. In
+   * healthy operation this returns an empty list; any rows present are either
+   * currently running or stale locks left by a dead JVM.
+   */
+  def mostRecent(limit: Int): List[JobScheduler] =
+    findAll(OrderBy(JobScheduler.createdAt, Descending), MaxRows(limit))
+
+  /** Delete the lock row with the given JobId; returns true if a row was removed. */
+  def deleteByJobId(jobId: String): Boolean =
+    find(By(JobScheduler.JobId, jobId)) match {
+      case net.liftweb.common.Full(job) => delete_!(job)
+      case _                            => false
+    }
 }
 
 

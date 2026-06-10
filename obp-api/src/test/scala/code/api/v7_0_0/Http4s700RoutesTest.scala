@@ -6,7 +6,9 @@ import code.api.util.http4s.Http4sStandardHeaders
 import code.api.Constant.SYSTEM_OWNER_VIEW_ID
 import code.api.ResponseHeader
 import code.api.util.APIUtil
-import code.api.util.ApiRole.{canCreateEntitlementAtAnyBank, canCreateOrganisation, canCreateRoutingScheme, canDeleteEntitlementAtAnyBank, canDeleteOrganisation, canDeleteRoutingScheme, canUpdateSystemView, canGetAccountAccessTrace, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetCardsForBank, canGetConnectorHealth, canCreateMetricsArchiveRun, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMetricsDiagnostics, canGetMigrations, canReadResourceDoc, canUpdateBankSupportedRoutingScheme, canUpdateOrganisation, canUpdateRoutingScheme}
+import code.api.util.ApiRole.{canCreateEntitlementAtAnyBank, canCreateOrganisation, canCreateRoutingScheme, canDeleteEntitlementAtAnyBank, canDeleteOrganisation, canDeleteRoutingScheme, canDeleteSchedulerJobLock, canUpdateSystemView, canGetAccountAccessTrace, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetCardsForBank, canGetConnectorHealth, canCreateMetricsArchiveRun, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMetricsDiagnostics, canGetMigrations, canGetSchedulerJobLocks, canReadResourceDoc, canUpdateBankSupportedRoutingScheme, canUpdateOrganisation, canUpdateRoutingScheme}
+import code.scheduler.JobScheduler
+import net.liftweb.mapper.By
 import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, BankNotFound, EntitlementAlreadyExists, InvalidOrganisationIdFormat, InvalidRoutingSchemeName, MobileWalletDestinationNotFound, MobileWalletInvalidMsisdn, OrganisationAlreadyExists, OrganisationNotFound, PayeeLookupAddressMismatch, PayeeLookupIdentifierTypeNotRegistered, PayeeNotFound, RoutingSchemeAlreadyExists, RoutingSchemeExampleAddressMismatch, RoutingSchemeNotFound, SystemViewNotFound, UserHasMissingRoles, UserNotFoundByUserId}
 import code.api.Constant.SYSTEM_AUDITOR_VIEW_ID
 import code.views.MapperViews
@@ -26,7 +28,7 @@ import org.typelevel.ci.CIString
 import java.util.Date
 import code.setup.ServerSetupWithTestData
 import net.liftweb.json.JValue
-import net.liftweb.json.JsonAST.{JArray, JBool, JField, JObject, JString}
+import net.liftweb.json.JsonAST.{JArray, JBool, JField, JInt, JObject, JString}
 import net.liftweb.json.JsonParser.parse
 import org.scalatest.Tag
 
@@ -336,6 +338,182 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
       val headers = Map("DirectLogin" -> s"token=${token1.value}")
       val (statusCode, _, _) = makeHttpRequestWithMethod(
         "DELETE", "/obp/v7.0.0/entitlements/non-existent-entitlement-id-xyz", headers)
+
+      Then("Response is 204 — delete is idempotent")
+      statusCode shouldBe 204
+    }
+  }
+
+  // ─── scheduler job-locks ──────────────────────────────────────────────────────
+
+  /** Remove every jobscheduler lock row so a scenario starts from a clean table. */
+  private def clearJobLocks(): Unit =
+    JobScheduler.findAll().foreach(JobScheduler.delete_!)
+
+  /** Seed one jobscheduler lock row and return its job id. */
+  private def seedJobLock(name: String = "MetricsArchiveScheduler", apiInstanceId: String = "test-node"): String = {
+    val jobId = APIUtil.generateUUID()
+    JobScheduler.create.JobId(jobId).Name(name).ApiInstanceId(apiInstanceId).saveMe()
+    jobId
+  }
+
+  feature("Http4s700 getSchedulerJobLocks endpoint") {
+
+    scenario("Reject unauthenticated GET to /management/system/scheduler/job-locks", Http4s700RoutesTag) {
+      Given("GET /obp/v7.0.0/management/system/scheduler/job-locks with no auth")
+      val (statusCode, json, _) = makeHttpRequest("/obp/v7.0.0/management/system/scheduler/job-locks")
+
+      Then("Response is 401")
+      statusCode shouldBe 401
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") match {
+            case Some(JString(msg)) => msg should include(AuthenticatedUserIsRequired)
+            case _ => fail("Expected message field")
+          }
+        case _ => fail("Expected JSON object")
+      }
+    }
+
+    scenario("Return 403 when authenticated but missing canGetSchedulerJobLocks role", Http4s700RoutesTag) {
+      Given("DirectLogin without the required role")
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequest("/obp/v7.0.0/management/system/scheduler/job-locks", headers)
+
+      Then("Response is 403 with UserHasMissingRoles message naming the role")
+      statusCode shouldBe 403
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") match {
+            case Some(JString(msg)) =>
+              msg should include(UserHasMissingRoles)
+              msg should include(canGetSchedulerJobLocks.toString)
+            case _ => fail("Expected message field")
+          }
+        case _ => fail("Expected JSON object")
+      }
+    }
+
+    scenario("Return 200 with an empty list when no locks are held", Http4s700RoutesTag) {
+      Given("canGetSchedulerJobLocks granted and the lock table cleared")
+      addEntitlement("", resourceUser1.userId, canGetSchedulerJobLocks.toString)
+      clearJobLocks()
+
+      When("GET /obp/v7.0.0/management/system/scheduler/job-locks with DirectLogin header")
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequest("/obp/v7.0.0/management/system/scheduler/job-locks", headers)
+
+      Then("Response is 200 with jobs=[] and count=0")
+      statusCode shouldBe 200
+      json match {
+        case JObject(fields) =>
+          val map = toFieldMap(fields)
+          map.get("count") shouldBe Some(JInt(0))
+          map.get("jobs") match {
+            case Some(JArray(items)) => items shouldBe empty
+            case _ => fail("Expected jobs array")
+          }
+        case _ => fail("Expected JSON object")
+      }
+    }
+
+    scenario("Return 200 listing a held lock with its fields", Http4s700RoutesTag) {
+      Given("canGetSchedulerJobLocks granted, the table cleared, and one seeded lock")
+      addEntitlement("", resourceUser1.userId, canGetSchedulerJobLocks.toString)
+      clearJobLocks()
+      val seededJobId = seedJobLock(name = "MetricsArchiveScheduler", apiInstanceId = "test-node")
+
+      When("GET /obp/v7.0.0/management/system/scheduler/job-locks with DirectLogin header")
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequest("/obp/v7.0.0/management/system/scheduler/job-locks", headers)
+
+      Then("Response is 200 with count=1 and the seeded lock fully described")
+      statusCode shouldBe 200
+      json match {
+        case JObject(fields) =>
+          val map = toFieldMap(fields)
+          map.get("count") shouldBe Some(JInt(1))
+          map.get("jobs") match {
+            case Some(JArray(List(JObject(jobFields)))) =>
+              val jobMap = toFieldMap(jobFields)
+              jobMap.keys should contain allOf ("job_id", "name", "api_instance_id", "started_at", "age_seconds")
+              jobMap.get("job_id") shouldBe Some(JString(seededJobId))
+              jobMap.get("name") shouldBe Some(JString("MetricsArchiveScheduler"))
+              jobMap.get("api_instance_id") shouldBe Some(JString("test-node"))
+              jobMap.get("age_seconds") match {
+                case Some(JInt(age)) => age.toLong should be >= 0L
+                case _ => fail("Expected numeric age_seconds")
+              }
+            case _ => fail("Expected a one-element jobs array of objects")
+          }
+        case _ => fail("Expected JSON object")
+      }
+    }
+  }
+
+  feature("Http4s700 deleteSchedulerJobLock endpoint") {
+
+    scenario("Reject unauthenticated DELETE to /management/system/scheduler/job-locks/JOB_ID", Http4s700RoutesTag) {
+      Given("DELETE /obp/v7.0.0/management/system/scheduler/job-locks/some-id with no auth")
+      val (statusCode, json, _) = makeHttpRequestWithMethod(
+        "DELETE", "/obp/v7.0.0/management/system/scheduler/job-locks/some-id")
+
+      Then("Response is 401")
+      statusCode shouldBe 401
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") match {
+            case Some(JString(msg)) => msg should include(AuthenticatedUserIsRequired)
+            case _ => fail("Expected message field")
+          }
+        case _ => fail("Expected JSON object")
+      }
+    }
+
+    scenario("Return 403 when authenticated but missing canDeleteSchedulerJobLock role", Http4s700RoutesTag) {
+      Given("DELETE without the required role")
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequestWithMethod(
+        "DELETE", "/obp/v7.0.0/management/system/scheduler/job-locks/some-id", headers)
+
+      Then("Response is 403 with UserHasMissingRoles message naming the role")
+      statusCode shouldBe 403
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") match {
+            case Some(JString(msg)) =>
+              msg should include(UserHasMissingRoles)
+              msg should include(canDeleteSchedulerJobLock.toString)
+            case _ => fail("Expected message field")
+          }
+        case _ => fail("Expected JSON object")
+      }
+    }
+
+    scenario("Return 204 and clear the lock when authenticated with role and the lock exists", Http4s700RoutesTag) {
+      Given("canDeleteSchedulerJobLock granted and one seeded lock")
+      addEntitlement("", resourceUser1.userId, canDeleteSchedulerJobLock.toString)
+      val seededJobId = seedJobLock()
+      JobScheduler.find(By(JobScheduler.JobId, seededJobId)).isDefined shouldBe true
+
+      When("DELETE /obp/v7.0.0/management/system/scheduler/job-locks/{jobId} with DirectLogin header")
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, _, _) = makeHttpRequestWithMethod(
+        "DELETE", s"/obp/v7.0.0/management/system/scheduler/job-locks/$seededJobId", headers)
+
+      Then("Response is 204 and the lock row is gone")
+      statusCode shouldBe 204
+      JobScheduler.find(By(JobScheduler.JobId, seededJobId)).isDefined shouldBe false
+    }
+
+    scenario("Return 204 even when the job id does not exist (idempotent)", Http4s700RoutesTag) {
+      Given("canDeleteSchedulerJobLock role granted and a non-existent job id")
+      addEntitlement("", resourceUser1.userId, canDeleteSchedulerJobLock.toString)
+
+      When("DELETE /obp/v7.0.0/management/system/scheduler/job-locks/non-existent with DirectLogin header")
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, _, _) = makeHttpRequestWithMethod(
+        "DELETE", "/obp/v7.0.0/management/system/scheduler/job-locks/non-existent-job-id-xyz", headers)
 
       Then("Response is 204 — delete is idempotent")
       statusCode shouldBe 204
