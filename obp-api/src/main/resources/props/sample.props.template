@@ -1607,10 +1607,17 @@ enable_metrics_scheduler = true
 retain_archive_metrics_days = 1095
 # Defines the number of days we keep rows in the table "Metric" former "MappedMetric"
 retain_metrics_days = 367
-# Defines the number of rows we can process at once
-retain_metrics_move_limit = 50000
-# Defines the interval of the scheduler
-retain_metrics_scheduler_interval_in_seconds = 3600
+# Defines the number of rows we can process at once.
+# Tuned for smaller, more frequent runs: 10000 rows every 599s (below) = ~60k/hr
+# ≈ 16.7 rows/sec max drain rate (keeps up with a sustained ~16 metric-generating
+# calls/sec). Keep (move_limit x runs-per-hour) >= your peak metric ingest rate, or
+# the archive backlog will grow. Smaller batches mean shorter runs and fewer stale
+# scheduler locks from a JVM dying mid-run.
+retain_metrics_move_limit = 10000
+# Defines the interval of the scheduler (seconds). 599 (a prime, ~10 min) rather
+# than 600 so successive runs drift across the wall clock instead of phase-locking
+# to every 10th minute and to other periodic schedulers.
+retain_metrics_scheduler_interval_in_seconds = 599
 
 
 # Defines endpoints we want to store responses at Metric table

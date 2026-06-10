@@ -149,12 +149,16 @@ class MetricsArchiveSchedulerTest extends ServerSetup {
     scenario("runOnce is skipped (no work, no log row) when a job lock is already present") {
       seedMetric(daysAgo(800), validUuid())
       // Simulate an in-progress run on this or another node.
-      JobScheduler.create.JobId(validUuid()).Name(jobName).ApiInstanceId("other-node").saveMe()
+      val lockJobId = validUuid()
+      JobScheduler.create.JobId(lockJobId).Name(jobName).ApiInstanceId("other-node").saveMe()
 
       val outcome = MetricsArchiveScheduler.runOnce()
 
       Then("the run is skipped and nothing changed")
-      outcome should equal(RunSkippedAlreadyInProgress)
+      outcome shouldBe a[RunSkippedAlreadyInProgress]
+      val skipped = outcome.asInstanceOf[RunSkippedAlreadyInProgress]
+      skipped.jobId should equal(lockJobId)
+      skipped.apiInstanceId should equal("other-node")
       MetricsArchiveRun.count should equal(0L)
       MappedMetric.count should equal(1L)
     }

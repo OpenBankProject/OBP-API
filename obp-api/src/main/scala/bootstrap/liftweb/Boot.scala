@@ -547,8 +547,12 @@ class Boot extends MdcLoggable {
 
     APIUtil.getPropsAsBoolValue("enable_metrics_scheduler", true) match {
       case true =>
+        // Default 599s (a prime, ~10 min) rather than a round 600: the odd interval
+        // makes successive runs drift across the wall clock instead of phase-locking
+        // to the top of every 10th minute (and to other periodic schedulers), so
+        // archive load is spread out rather than coinciding with other spikes.
         val interval =
-          APIUtil.getPropsAsIntValue("retain_metrics_scheduler_interval_in_seconds", 3600)
+          APIUtil.getPropsAsIntValue("retain_metrics_scheduler_interval_in_seconds", 599)
         MetricsArchiveScheduler.start(intervalInSeconds = interval)
       case false => // Do not start it
     }
