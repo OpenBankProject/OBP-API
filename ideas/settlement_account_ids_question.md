@@ -17,6 +17,203 @@ The whole reason `(OBP_ACCOUNT_ID, account_id)` is supposed to be a safe federat
 
 For now this is bounded — settlement accounts are internal plumbing, not user-facing routable accounts — but the carve-out should be documented and ideally closed.
 
+---
+
+## As-is state and current issue (code-verified 2026-06-10)
+
+### How settlement accounts work today
+
+**What they are.** When OBP records a historical payment as a double-entry pair (`makeHistoricalPayment` / `savePayment` in `LocalMappedConnector.scala`), it needs a real account on each leg. If one side has **no corresponding OBP account** (e.g. an external counterparty), the connector debits/credits a stand-in **settlement account** on the relevant bank — an internal placeholder that absorbs that leg of the entry.
+
+**Creation.** Every bank gets two settlement accounts:
+- per-bank, on bank creation — `createOrUpdateBank` (`:3412-3442`): EUR, `kind="SETTLEMENT"`, account_ids = the two literals.
+- the default sandbox bank, at boot — `createDefaultBankAndDefaultAccountsIfNotExisting` (`Boot.scala:625-647`): EUR, **but does not set `kind`**.
+- retroactively for existing banks — `MigrationOfSettlementAccounts.scala`.
+
+The two account_ids are hardcoded constants (`constant.scala:247-248`):
+- `INCOMING_SETTLEMENT_ACCOUNT_ID = "OBP-INCOMING-SETTLEMENT-ACCOUNT"`
+- `OUTGOING_SETTLEMENT_ACCOUNT_ID = "OBP-OUTGOING-SETTLEMENT-ACCOUNT"`
+
+**Lookup — a 3-tier cascade keyed on the `account_id` string** (duplicated in `makeHistoricalPayment:2264-2294` and `savePayment:2421-2450`). For each leg:
+1. **Tier 1** — `<TXTYPE>_SETTLEMENT_ACCOUNT_<CCY>` (most specific; manually created)
+2. **Tier 2** — `DEFAULT_SETTLEMENT_ACCOUNT_<CCY>` (currency default; manually created)
+3. **Tier 3** — the global EUR literal (`INCOMING_…`/`OUTGOING_…`; auto-created fallback)
+
+**Direction is implicit in *which bank* is queried**, not in the name: the incoming leg looks up on `toAccount.bankId`, the outgoing leg on `fromAccount.bankId`. Only tier-3 uses direction-specific names.
+
+**Tier-3 discrimination + FX.** Tier-3 accounts are EUR-only. After lookup, if it landed on the tier-3 fallback **and** the transaction currency ≠ EUR, the amount is FX-converted to EUR (`:2273-2276`, `:2298-2301`). That "did we hit the fallback?" decision is made by **string equality**: `settlementAccount.accountId.value == INCOMING_SETTLEMENT_ACCOUNT_ID`.
+
+**The `kind` column.** Set to `"SETTLEMENT"` on creation, and read in exactly one place — `getBankSettlementAccounts` (`:1513-1518`), a list endpoint. The cascade itself never consults `kind`; it relies entirely on the account_id string.
+
+### Diagram 1 — where settlement accounts come in (the double-entry fallback)
+
+```
+makeHistoricalPayment(fromAccount, toAccount, amount, currency, txType)
+│   records ONE payment as TWO half-entries (debit + credit)
+│
+├─ DEBIT leg ───────────────────────────────────────────────────────────┐
+│    try:  saveHistoricalTransaction(fromAccount → toAccount)            │
+│    └─ fromAccount has NO real OBP account?                             │
+│         settlement = cascade(bank = toAccount.bankId,  ccy = from.ccy) │  ← INCOMING
+│         if settlement is the tier-3 EUR fallback AND ccy ≠ EUR:        │
+│              amount = FX.convert(amount → EUR)                         │
+│         saveHistoricalTransaction(settlement → toAccount)             │
+│                                                                        │
+├─ CREDIT leg ──────────────────────────────────────────────────────────┤
+│    try:  saveHistoricalTransaction(toAccount → fromAccount)           │
+│    └─ toAccount has NO real OBP account?                               │
+│         settlement = cascade(bank = fromAccount.bankId, ccy = to.ccy)  │  ← OUTGOING
+│         if settlement is the tier-3 EUR fallback AND ccy ≠ EUR:        │
+│              amount = FX.convert(amount → EUR)                         │
+│         saveHistoricalTransaction(settlement → fromAccount)           │
+└────────────────────────────────────────────────────────────────────────┘
+       (identical logic is duplicated in savePayment)
+```
+
+### Diagram 2 — the lookup: a 3-tier cascade keyed on the `account_id` string
+
+```
+cascade(bankId, direction, ccy, txType):
+
+   ┌── Tier 1 ──  BankAccountX(bankId, "<txType>_SETTLEMENT_ACCOUNT_<ccy>")   most specific
+   │                  │ miss
+   │                  ▼
+   ├── Tier 2 ──  BankAccountX(bankId, "DEFAULT_SETTLEMENT_ACCOUNT_<ccy>")    currency default
+   │                  │ miss
+   │                  ▼
+   └── Tier 3 ──  BankAccountX(bankId, INCOMING_/OUTGOING_SETTLEMENT_ID)      global fallback
+                      (auto-created for EVERY bank · EUR-only · forces FX)
+
+   direction is NOT in the name — it's which bank you query, plus the tier-3 id:
+     INCOMING → bankId = toAccount.bankId    · tier-3 id = "OBP-INCOMING-SETTLEMENT-ACCOUNT"
+     OUTGOING → bankId = fromAccount.bankId  · tier-3 id = "OBP-OUTGOING-SETTLEMENT-ACCOUNT"
+
+   "did we hit tier-3?"  decided by STRING EQUALITY:
+       settlementAccount.accountId.value == INCOMING_SETTLEMENT_ACCOUNT_ID
+```
+
+### Diagram 3 — the `account_id` string is overloaded as a classifier
+
+```
+   SEPA_SETTLEMENT_ACCOUNT_USD          tier 1   ┌ txType = SEPA   ┌ ccy = USD
+   └──┬─┘                └─┬─┘                    └ both present  → most specific
+      txType              ccy
+
+   DEFAULT_SETTLEMENT_ACCOUNT_USD       tier 2   ( ccy only        → currency default )
+
+   OBP-INCOMING-SETTLEMENT-ACCOUNT      tier 3   ( direction in name, EUR, global )
+
+   ⇒ tier + txType + currency + direction are all encoded INTO the id string,
+     and the cascade + FX check read them back out of the string.
+     This is why the id cannot become a UUID without first moving the classifier out.
+```
+
+### Diagram 4 — the actual problem: global collision across banks
+
+```
+  mappedbankaccount
+  ┌────────────┬─────────────────────────────────────┬─────────────┐
+  │ bank_id    │ account_id (theAccountId)            │ kind        │
+  ├────────────┼─────────────────────────────────────┼─────────────┤
+  │ bank.uk    │ OBP-INCOMING-SETTLEMENT-ACCOUNT   ◄─┐│ SETTLEMENT  │
+  │ bank.uk    │ OBP-OUTGOING-SETTLEMENT-ACCOUNT   ◄┐││ SETTLEMENT  │
+  │ bank.de    │ OBP-INCOMING-SETTLEMENT-ACCOUNT   ◄┼┼┤ SETTLEMENT  │ same two strings,
+  │ bank.de    │ OBP-OUTGOING-SETTLEMENT-ACCOUNT   ◄┘││ SETTLEMENT  │ repeated per bank
+  │ bank.fr    │ OBP-INCOMING-SETTLEMENT-ACCOUNT   ◄─┼┘ SETTLEMENT  │
+  │ bank.fr    │ OBP-OUTGOING-SETTLEMENT-ACCOUNT   ◄─┘  SETTLEMENT  │
+  │ …          │ …                                   │             │
+  └────────────┴─────────────────────────────────────┴─────────────┘
+
+   (bank_id, account_id)  UNIQUE  ✔  — one row per bank, constraint holds
+    account_id  alone             ✘  — collides 2N times across N banks
+                                       ⇒ violates "account_id MUST be a UUID"
+                                       ⇒ breaks (OBP_ACCOUNT_ID, account_id) federation safety
+```
+
+### The issue, in one paragraph
+
+The settlement `account_id`s are **hardcoded, non-UUID, and globally collide across banks** (2N colliding rows for N banks). The `(bank_id, account_id)` constraint still holds, but `account_id` alone is no longer unique — violating the glossary contract that `Account.account_id` MUST be a UUID, and breaking the federation-safety guarantee of the `(OBP_ACCOUNT_ID, account_id)` routing pair. It can't be trivially fixed because the `account_id` string is **overloaded as a classifier** (tier + txType + currency + direction encoded in the name, read back by the cascade and the FX check) — so the id can't become a UUID until that classifier is moved out. Secondary issues in the same area: the tier-3 detection is brittle string equality; `Boot` doesn't set `kind="SETTLEMENT"` on the default bank's settlement accounts (so they're invisible to `getBankSettlementAccounts`); and the full cascade is duplicated across two functions.
+
+---
+
+## Refined plan (code-verified 2026-06-10)
+
+The original audit (below) was re-verified against the current `develop` (post-merge: upstream merges + the v7 UTILITY vend-result work + scheduler fix — **none of which touched any settlement code**). The strategy holds; the **dedicated lookup table** approach is chosen. This section records the corrections, resolves the one open design question, and locks the plan. **Plan-only — no code changed; for brainstorming.**
+
+### Corrections to the audit (drift since 2026-05-21)
+
+All settlement line numbers below were re-confirmed exact on 2026-06-10.
+
+- The two cascade functions are **`makeHistoricalPayment`** (`LocalMappedConnector.scala:2227-2334`) and private **`savePayment`** (`:2385-2489`) — still two near-identical copies of the three-tier cascade. (The audit's `saveDoubleEntryBookTransactionByCounterparty` name is stale.)
+- Discrimination checks live at `:2273`, `:2298` (in `makeHistoricalPayment`) and `:2429`, `:2454` (in `savePayment`).
+- New-bank creation is **`createOrUpdateBank`** (`:3367-3445`), settlement block `:3412-3442`.
+- Boot creation is **`createDefaultBankAndDefaultAccountsIfNotExisting`** (`Boot.scala:603-648`), settlement pair `:625-647`.
+- Constant definitions: `constant.scala:247-248`. **43** references across **6** files (constant.scala, LocalMappedConnector.scala, Boot.scala, MigrationOfSettlementAccounts.scala, v4 BankTests.scala, v5 BankTests.scala).
+- **The `kind` column IS queried** (the audit's "never queried" is stale): `getBankSettlementAccounts` (`LocalMappedConnector.scala:1513-1518`) filters `By(MappedBankAccount.kind, "SETTLEMENT")`. So `kind` is already load-bearing on a read path and can be leaned on.
+- **Latent bug to fix in passing**: `Boot.scala`'s default-bank settlement accounts do **not** set `kind="SETTLEMENT"` (lines 631/643 set only `theAccountId`), whereas per-bank `createOrUpdateBank` (`:3420`, `:3436`) and the migration both do. So the default bank's settlement accounts are invisible to `getBankSettlementAccounts`. The consolidated creation helper in PR 1 fixes this.
+
+### Resolved: the "tier-1/2 direction" question
+
+The audit flagged this as undecided. The code answers it: **direction is encoded by which bank's account is queried, not by the name.** Incoming → settlement account on `toAccount.bankId`; outgoing → on `fromAccount.bankId`. Only **tier-3** uses direction-specific literal names (`INCOMING_…`/`OUTGOING_…`). Therefore a single bank's `DEFAULT_SETTLEMENT_ACCOUNT_<CCY>` (tier-2) or `<TX>_SETTLEMENT_ACCOUNT_<CCY>` (tier-1) serves **both** directions intentionally.
+
+**Design consequence:** in the new table, **tier-1/2 rows are direction-agnostic (`direction = NULL`); only tier-3 rows carry a direction.** The lookup for direction `D` matches rows where `direction = D OR direction IS NULL`, most-specific tier winning.
+
+### Locked design — dedicated lookup table
+
+```
+MappedBankSettlementAccount
+  bank_id   direction  tx_type  currency  account_id(UUID)  tier
+  b.uk      INCOMING   null     null      9f2c-…             3
+  b.uk      OUTGOING   null     null      a17e-…             3
+  b.uk      null       SEPA     USD       c40b-…             1
+lookup(bankId, direction=D, txType, currency):
+  match rows where direction = D OR direction IS NULL,
+  return the highest-specificity (lowest tier number) match + its SettlementTier
+```
+
+The table is an index/classifier over existing `MappedBankAccount` rows; it frees `account_id` to be a UUID. The returned `tier` replaces the `accountId.value == CONSTANT` discrimination check.
+
+### PR 1 — lookup table + UUIDs for new banks (the real fix)
+
+1. **`obp-commons`**: add `SettlementDirection { INCOMING, OUTGOING }` and `SettlementTier { Specific=1, CurrencyDefault=2, GlobalFallback=3 }` enums (same mechanism as the `UTILITY` enum addition in `TransactionRequestTypes`).
+2. **New mapper** `code.bankconnectors.settlement.MappedBankSettlementAccount` with columns `(bank_id, direction nullable, tx_type nullable, currency nullable, account_id, tier)`, unique index `(bank_id, direction, tx_type, currency)`; register in `Boot` schemify; add `MigrationOfBankSettlementAccountTable` DDL.
+3. **`findSettlementAccount(bankId, direction, txType, currency): Option[(BankAccount, SettlementTier)]`** — most-specific match, `direction = D OR NULL`.
+4. **Consolidate creation** (`createOrUpdateBank` + `Boot`) into one helper: mint **UUID** account_ids, set `kind="SETTLEMENT"` (fixes the Boot bug), write two tier-3 rows (one per direction).
+5. **Deduplicate + refactor** `makeHistoricalPayment` and `savePayment` into one shared cascade helper that calls `findSettlementAccount`, replacing the discrimination check with `tier == GlobalFallback`. **Keep the legacy string cascade as a fallback** when the table has no row → zero behaviour change for unmigrated banks.
+6. **Tests**: existing v4/v5 `BankTests` assertions still pass for legacy banks via fallback; add UUID-path assertions.
+
+Federation-safety is satisfied for all **new** deployments at the end of PR 1.
+
+### PR 2 — backfill table for legacy banks (optional, low risk)
+
+For each `kind="SETTLEMENT"` account, decode its literal id → table row; **tier-1/2 rows written with `direction = NULL`** per the resolved question above. Underlying `mappedbankaccount.theaccountid` untouched. After this, every settlement account is reachable via the table and PR 1's legacy-fallback path becomes effectively dead (kept for safety). Federation-safety then holds for existing banks too.
+
+### PR 3 — rename legacy account_ids to UUIDs (far future, high risk)
+
+FK cascade across `mappedtransaction`, `mappedaccountattribute`, `viewdefinition`, `accountaccess`, … Probably never needed once the indirection exists; the legacy account_ids become an internal implementation detail.
+
+### Open questions for brainstorming
+
+- **`tier` column vs deriving tier from which columns are null**: storing `tier` explicitly is redundant with `(tx_type, currency)` nullness (tier-1 = both set, tier-2 = currency set, tier-3 = both null). Keep it for clarity/index, or derive it?
+- **Should `findSettlementAccount` live on `Connector` (so non-local connectors can override) or in a standalone `code.bankconnectors.settlement` service?** The two call sites are in `LocalMappedConnector`, but settlement is a connector concern.
+- **EUR-only global fallback**: tier-3 accounts are hardcoded EUR. Should the new model let a deployment declare a non-EUR global fallback, or is EUR-fallback-then-FX a permanent assumption?
+- **Backfill direction for tier-1/2 (PR 2)**: confirmed `direction = NULL` is correct — but do we also want to *stop* relying on bank-context-implies-direction long-term, i.e. eventually make direction explicit everywhere? (Probably out of scope.)
+
+### Updated file-by-file checklist
+
+- [ ] `obp-commons/.../model/enums/Enumerations.scala` — add `SettlementDirection`, `SettlementTier`
+- [ ] `obp-api/.../bankconnectors/settlement/MappedBankSettlementAccount.scala` — new mapper + provider + `findSettlementAccount`
+- [ ] `obp-api/.../api/util/migration/MigrationOfBankSettlementAccountTable.scala` — DDL
+- [ ] `obp-api/.../bootstrap/liftweb/Boot.scala` — register table in schemify; consolidate default-bank creation into the shared helper (mint UUIDs, set `kind`)
+- [ ] `obp-api/.../bankconnectors/LocalMappedConnector.scala:3412-3442` — use shared helper (UUIDs + table rows)
+- [ ] `obp-api/.../bankconnectors/LocalMappedConnector.scala:2227-2334, 2385-2489` — dedupe into one cascade helper; `findSettlementAccount` + `tier` check; legacy fallback retained
+- [ ] `obp-api/.../api/util/Glossary.scala` — "Known exception" note on `Account.account_id` until PR 2/3 land
+- [ ] `obp-api/src/test/scala/code/api/v4_0_0/BankTests.scala`, `v5_0_0/BankTests.scala` — update assertions (legacy stays; add UUID path)
+- [ ] (PR 2) backfill migration over `kind="SETTLEMENT"` accounts
+- [ ] (PR 3) rename + FK cascade
+
+---
+
 ## Where the literal IDs are referenced (today)
 
 Audit run 2026-05-21. 45 hits across 7 files.
