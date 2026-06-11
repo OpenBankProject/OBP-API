@@ -1,18 +1,21 @@
 package code.bankconnectors.storedprocedure
 
-import java.sql.Connection
-
+import cats.effect.IO
+import cats.effect.unsafe.implicits.global
 import code.api.util.APIUtil
 import code.api.util.migration.Migration
 import code.api.util.migration.Migration.DbFunction
 import code.bankconnectors.Connector
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model.TopicTrait
+import com.zaxxer.hikari.HikariDataSource
+import doobie._
+import doobie.implicits._
+import doobie.free.{connection => FC}
+import doobie.util.transactor.Strategy
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.json.Serialization.write
-import net.liftweb.mapper.{DB, Schemifier}
-import net.liftweb.util.DefaultConnectionIdentifier
-import scalikejdbc.{DB => scalikeDB, _}
+import net.liftweb.mapper.Schemifier
 
 /**
  * Stored procedure utils.
@@ -23,8 +26,8 @@ object StoredProcedureUtils extends MdcLoggable{
 
   private implicit val formats = code.api.util.CustomJsonFormats.nullTolerateFormats
 
-  // lazy initial DB connection
-  {
+  // lazy initial DB connection: separate HikariCP pool dedicated to the stored procedure connector
+  private lazy val spTransactor: Transactor[IO] = {
     val driver = APIUtil.getPropsValue("stored_procedure_connector.driver").openOrThrowException("mandatory property stored_procedure_connector.driver is missing!")
     val url = APIUtil.getPropsValue("stored_procedure_connector.url").openOrThrowException("mandatory property stored_procedure_connector.url is missing!")
     val user = APIUtil.getPropsValue("stored_procedure_connector.user").openOrThrowException("mandatory property stored_procedure_connector.user is missing!")
@@ -34,18 +37,20 @@ object StoredProcedureUtils extends MdcLoggable{
     val maxSize = APIUtil.getPropsAsIntValue("stored_procedure_connector.poolMaxSize", 20)
     val timeoutMillis = APIUtil.getPropsAsLongValue("stored_procedure_connector.poolConnectionTimeoutMillis", 3000L)
     val validationQuery = APIUtil.getPropsValue("stored_procedure_connector.poolValidationQuery", "select 1")
-    val poolFactoryName = APIUtil.getPropsValue("stored_procedure_connector.poolFactoryName", "commons-dbcp2")
-
 
     Class.forName(driver)
-    val settings = ConnectionPoolSettings(
-      initialSize = initialSize,
-      maxSize = maxSize,
-      connectionTimeoutMillis = timeoutMillis,
-      validationQuery = validationQuery,
-      connectionPoolFactoryName = poolFactoryName
-    )
-    ConnectionPool.singleton(url, user, password, settings)
+    val ds = new HikariDataSource()
+    ds.setJdbcUrl(url)
+    ds.setUsername(user)
+    ds.setPassword(password)
+    ds.setDriverClassName(driver)
+    ds.setMinimumIdle(initialSize)
+    ds.setMaximumPoolSize(maxSize)
+    ds.setConnectionTimeout(timeoutMillis)
+    ds.setConnectionTestQuery(validationQuery)
+
+    Transactor.fromDataSource[IO].apply(ds, scala.concurrent.ExecutionContext.global)
+      .copy(strategy0 = Strategy.void)
   }
 
 
@@ -69,66 +74,76 @@ object StoredProcedureUtils extends MdcLoggable{
   def getHealth(): StoredProcedureConnectorHealth = {
     val startTime = System.currentTimeMillis()
     try {
-      val (serverName, serverIp, databaseName) = scalikeDB readOnly { implicit session =>
+      val (serverName, serverIp, databaseName) = {
         val driver = APIUtil.getPropsValue("stored_procedure_connector.driver", "")
 
         if (driver.contains("sqlserver")) {
           // Microsoft SQL Server
-          val result = sql"""
+          FC.raw { conn =>
+            val rs = conn.createStatement().executeQuery("""
             SELECT
               @@SERVERNAME AS server_name,
               CAST(CONNECTIONPROPERTY('local_net_address') AS VARCHAR(50)) AS server_ip,
               DB_NAME() AS database_name
-          """.map(rs => (
-            Option(rs.string("server_name")),
-            Option(rs.string("server_ip")),
-            Option(rs.string("database_name"))
-          )).single.apply()
-          result.getOrElse((None, None, None))
+          """)
+            if (rs.next()) (
+              Option(rs.getString("server_name")),
+              Option(rs.getString("server_ip")),
+              Option(rs.getString("database_name"))
+            ) else (None, None, None)
+          }.transact(spTransactor).unsafeRunSync()
         } else if (driver.contains("postgresql")) {
           // PostgreSQL
-          val result = sql"""
+          FC.raw { conn =>
+            val rs = conn.createStatement().executeQuery("""
             SELECT
               inet_server_addr()::text AS server_ip,
               current_database() AS database_name,
               (SELECT setting FROM pg_settings WHERE name = 'cluster_name') AS server_name
-          """.map(rs => (
-            rs.stringOpt("server_name"),
-            rs.stringOpt("server_ip"),
-            rs.stringOpt("database_name")
-          )).single.apply()
-          result.getOrElse((None, None, None))
+          """)
+            if (rs.next()) (
+              Option(rs.getString("server_name")),
+              Option(rs.getString("server_ip")),
+              Option(rs.getString("database_name"))
+            ) else (None, None, None)
+          }.transact(spTransactor).unsafeRunSync()
         } else if (driver.contains("oracle")) {
           // Oracle
-          val result = sql"""
+          FC.raw { conn =>
+            val rs = conn.createStatement().executeQuery("""
             SELECT
               SYS_CONTEXT('USERENV', 'SERVER_HOST') AS server_name,
               SYS_CONTEXT('USERENV', 'IP_ADDRESS') AS server_ip,
               SYS_CONTEXT('USERENV', 'DB_NAME') AS database_name
             FROM DUAL
-          """.map(rs => (
-            Option(rs.string("server_name")),
-            Option(rs.string("server_ip")),
-            Option(rs.string("database_name"))
-          )).single.apply()
-          result.getOrElse((None, None, None))
+          """)
+            if (rs.next()) (
+              Option(rs.getString("server_name")),
+              Option(rs.getString("server_ip")),
+              Option(rs.getString("database_name"))
+            ) else (None, None, None)
+          }.transact(spTransactor).unsafeRunSync()
         } else if (driver.contains("mysql") || driver.contains("mariadb")) {
           // MySQL / MariaDB
-          val result = sql"""
+          FC.raw { conn =>
+            val rs = conn.createStatement().executeQuery("""
             SELECT
               @@hostname AS server_name,
               @@bind_address AS server_ip,
               DATABASE() AS database_name
-          """.map(rs => (
-            Option(rs.string("server_name")),
-            Option(rs.string("server_ip")),
-            Option(rs.string("database_name"))
-          )).single.apply()
-          result.getOrElse((None, None, None))
+          """)
+            if (rs.next()) (
+              Option(rs.getString("server_name")),
+              Option(rs.getString("server_ip")),
+              Option(rs.getString("database_name"))
+            ) else (None, None, None)
+          }.transact(spTransactor).unsafeRunSync()
         } else {
           // Generic fallback - just test connectivity
-          sql"SELECT 1".map(_ => ()).single.apply()
-          (None, None, None)
+          FC.raw { conn =>
+            conn.createStatement().executeQuery("SELECT 1")
+            (None, None, None)
+          }.transact(spTransactor).unsafeRunSync()
         }
       }
       val responseTime = System.currentTimeMillis() - startTime
@@ -159,11 +174,8 @@ object StoredProcedureUtils extends MdcLoggable{
     val procedureParam: String = write(outBound) // convert OutBound to json string
     logger.debug(s"${StoredProcedureConnector_vDec2019.toString} outBoundJson: $procedureName = $procedureParam" )
     val responseJson: String =
-      scalikeDB autoCommit { implicit session =>
-        val conn: Connection = session.connection
-        val sql = s"{ CALL $procedureName(?, ?) }"
-
-        val callableStatement = conn.prepareCall(sql)
+      FC.raw { conn =>
+        val callableStatement = conn.prepareCall(s"{ CALL $procedureName(?, ?) }")
         try {
           callableStatement.setString(1, procedureParam)
           callableStatement.registerOutParameter(2, java.sql.Types.LONGVARCHAR)
@@ -173,7 +185,7 @@ object StoredProcedureUtils extends MdcLoggable{
         } finally {
           callableStatement.close()
         }
-     }
+      }.transact(spTransactor).unsafeRunSync()
     logger.debug(s"${StoredProcedureConnector_vDec2019.toString} inBoundJson: $procedureName = $responseJson" )
     Connector.extractAdapterResponse[T](responseJson, Empty)
   }

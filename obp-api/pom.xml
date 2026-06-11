@@ -439,24 +439,7 @@
     </dependency>
     <!-- grpc related end-->
 
-    <!-- scalikejdbc for call stored procedure start-->
-    <dependency>
-      <groupId>org.scalikejdbc</groupId>
-      <artifactId>scalikejdbc_${scala.version}</artifactId>
-      <version>3.4.0</version>
-      <exclusions>
-        <exclusion>
-          <groupId>com.sun.activation</groupId>
-          <artifactId>javax.activation</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>javax.activation</groupId>
-          <artifactId>activation</artifactId>
-        </exclusion>
-      </exclusions>
-    </dependency>
-
-    <!-- Doobie - Pure functional JDBC layer for raw SQL queries -->
+    <!-- Doobie - Pure functional JDBC layer for raw SQL queries (also backs the stored procedure connector) -->
     <!-- Handles all JDBC types correctly (including SQL Server NVARCHAR) -->
     <dependency>
       <groupId>org.tpolecat</groupId>
@@ -473,7 +456,14 @@
       <artifactId>mssql-jdbc</artifactId>
       <version>13.4.0.jre${java.version}</version>
     </dependency>
-    <!-- scalikejdbc for call stored procedure end-->
+    <!-- scala-collection-compat provides scala.jdk.CollectionConverters on Scala 2.12
+         (used by code.util.ClassScanUtils). Previously supplied transitively by the
+         JDBC library that was removed during the Doobie migration; declared explicitly now. -->
+    <dependency>
+      <groupId>org.scala-lang.modules</groupId>
+      <artifactId>scala-collection-compat_${scala.version}</artifactId>
+      <version>2.1.2</version>
+    </dependency>
 
     <dependency>
       <groupId>org.scala-lang.modules</groupId>

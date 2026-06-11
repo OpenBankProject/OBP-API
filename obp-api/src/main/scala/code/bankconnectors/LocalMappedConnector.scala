@@ -82,8 +82,9 @@ import net.liftweb.mapper._
 import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers.{hours, now, time, tryo}
 import org.mindrot.jbcrypt.BCrypt
-import scalikejdbc.DB.CPContext
-import scalikejdbc.{ConnectionPool, ConnectionPoolSettings, MultipleConnectionPoolContext, DB => scalikeDB, _}
+import doobie._
+import doobie.implicits._
+import code.api.util.DoobieUtil
 
 import java.util.Date
 import java.util.UUID.randomUUID
@@ -1215,25 +1216,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     }
   }
   
-  /**
-   * this connection pool context corresponding db.url in default.props
-   */
-  implicit lazy val context: CPContext = {
-    val settings = ConnectionPoolSettings(
-      initialSize = 5,
-      maxSize = 20,
-      connectionTimeoutMillis = 3000L,
-      validationQuery = "select 1",
-      connectionPoolFactoryName = "commons-dbcp2"
-    )
-    val (dbUrl, user, password) = DBUtil.getDbConnectionParameters
-    val dbName = "DB_NAME" // corresponding props db.url DB
-    ConnectionPool.add(dbName, dbUrl, user, password, settings)
-    val connectionPool = ConnectionPool.get(dbName)
-    MultipleConnectionPoolContext(ConnectionPool.DEFAULT_NAME -> connectionPool)
-  }
-  
-  private def findFirehoseAccounts(bankId: BankId, ordering: SQLSyntax, limit: Int, offset: Int)(implicit session: DBSession = AutoSession) = {
+  private def findFirehoseAccounts(bankId: BankId, ordering: String, limit: Int, offset: Int): List[FastFirehoseAccount] = {
     def parseOwners(owners: String): List[FastFirehoseOwners] = {
       if(!owners.isEmpty) {
         transformString(owners).map {
@@ -1288,89 +1271,85 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       maps
     }
 
-    val sqlResult = sql"""
-       |select
-       |    mappedbankaccount.theaccountid as account_id,
-       |    mappedbankaccount.bank as bank_id,
-       |    mappedbankaccount.accountlabel as account_label,
-       |    mappedbankaccount.accountnumber as account_number,
-       |    (select
-       |        string_agg(
-       |            'user_id:'
-       |            || resourceuser.userid_
-       |            ||',provider:'
-       |            ||resourceuser.provider_
-       |            ||',user_name:'
-       |            ||resourceuser.name_,
-       |         '::') as owners
-       |     from resourceuser
-       |     where
-       |        resourceuser.id = mapperaccountholders.user_c
-       |    ),
-       |    mappedbankaccount.kind as kind,
-       |    mappedbankaccount.accountcurrency as account_currency ,
-       |    mappedbankaccount.accountbalance as account_balance,
-       |    (select 
-       |        string_agg(
-       |            'bank_id:'
-       |            ||bankaccountrouting.bankid 
-       |            ||',account_id:' 
-       |            ||bankaccountrouting.accountid,
-       |            '::'
-       |            ) as account_routings
-       |        from bankaccountrouting
-       |        where 
-       |              bankaccountrouting.accountid = mappedbankaccount.theaccountid
-       |     ),                                                          
-       |    (select 
-       |        string_agg(
-       |                'type:'
-       |                || mappedaccountattribute.mtype
-       |                ||',code:'
-       |                ||mappedaccountattribute.mcode
-       |                ||',value:'
-       |                ||mappedaccountattribute.mvalue,
-       |            '::') as account_attributes
-       |    from mappedaccountattribute
-       |    where
-       |         mappedaccountattribute.maccountid = mappedbankaccount.theaccountid
-       |     )
-       |from mappedbankaccount
-       |         LEFT JOIN mapperaccountholders
-       |                   ON (mappedbankaccount.bank = mapperaccountholders.accountbankpermalink and mappedbankaccount.theaccountid = mapperaccountholders.accountpermalink)
-       |WHERE mappedbankaccount.bank = ${bankId.value}
-       |ORDER BY mappedbankaccount.theaccountid $ordering
-       |LIMIT $limit
-       |OFFSET $offset ;
-       |
-       |
-       |""".stripMargin
-      .map {
-        rs => // Map result to case class
-          val owners = parseOwners(rs.stringOpt(5).map(_.toString).getOrElse(""))
-          val routings = parseRoutings(rs.stringOpt(9).map(_.toString).getOrElse(""))
-          val attributes = parseAttributes(rs.stringOpt(10).map(_.toString).getOrElse(""))
-          FastFirehoseAccount(
-            id = rs.stringOpt(1).map(_.toString).getOrElse(null),
-            bankId = rs.stringOpt(2).map(_.toString).getOrElse(null),
-            label = rs.stringOpt(3).map(_.toString).getOrElse(null),
-            number = rs.stringOpt(4).map(_.toString).getOrElse(null),
-            owners = owners,
-            productCode = rs.stringOpt(6).map(_.toString).getOrElse(null),
-            balance = AmountOfMoney(
-              currency = rs.stringOpt(7).map(_.toString).getOrElse(null),
-              amount = rs.bigIntOpt(8).map(a =>
-                Helper.smallestCurrencyUnitToBigDecimal(
-                  a.longValue(),
-                  rs.stringOpt(7).getOrElse("EUR")
-                ).toString()
-              ).getOrElse(null)
+    val query = (fr"""
+       select
+           mappedbankaccount.theaccountid as account_id,
+           mappedbankaccount.bank as bank_id,
+           mappedbankaccount.accountlabel as account_label,
+           mappedbankaccount.accountnumber as account_number,
+           (select
+               string_agg(
+                   'user_id:'
+                   || resourceuser.userid_
+                   ||',provider:'
+                   ||resourceuser.provider_
+                   ||',user_name:'
+                   ||resourceuser.name_,
+                '::') as owners
+            from resourceuser
+            where
+               resourceuser.id = mapperaccountholders.user_c
+           ),
+           mappedbankaccount.kind as kind,
+           mappedbankaccount.accountcurrency as account_currency ,
+           mappedbankaccount.accountbalance as account_balance,
+           (select
+               string_agg(
+                   'bank_id:'
+                   ||bankaccountrouting.bankid
+                   ||',account_id:'
+                   ||bankaccountrouting.accountid,
+                   '::'
+                   ) as account_routings
+               from bankaccountrouting
+               where
+                     bankaccountrouting.accountid = mappedbankaccount.theaccountid
             ),
-            accountRoutings = routings,
-            accountAttributes = attributes
-          )
-      }.list().apply()
-    sqlResult
+           (select
+               string_agg(
+                       'type:'
+                       || mappedaccountattribute.mtype
+                       ||',code:'
+                       ||mappedaccountattribute.mcode
+                       ||',value:'
+                       ||mappedaccountattribute.mvalue,
+                   '::') as account_attributes
+           from mappedaccountattribute
+           where
+                mappedaccountattribute.maccountid = mappedbankaccount.theaccountid
+            )
+       from mappedbankaccount
+                LEFT JOIN mapperaccountholders
+                          ON (mappedbankaccount.bank = mapperaccountholders.accountbankpermalink and mappedbankaccount.theaccountid = mapperaccountholders.accountpermalink)
+       WHERE mappedbankaccount.bank = ${bankId.value}
+       ORDER BY mappedbankaccount.theaccountid """ ++ Fragment.const(ordering) ++ fr"""
+       LIMIT $limit
+       OFFSET $offset
+       """)
+      .query[(Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[java.math.BigDecimal], Option[String], Option[String])]
+      .to[List]
+      .map(_.map { case (id, bankIdCol, label, number, owners, kind, currency, balance, routings, attributes) =>
+        FastFirehoseAccount(
+          id = id.orNull,
+          bankId = bankIdCol.orNull,
+          label = label.orNull,
+          number = number.orNull,
+          owners = parseOwners(owners.getOrElse("")),
+          productCode = kind.orNull,
+          balance = AmountOfMoney(
+            currency = currency.orNull,
+            amount = balance.map(a =>
+              Helper.smallestCurrencyUnitToBigDecimal(
+                a.longValue(),
+                currency.getOrElse("EUR")
+              ).toString()
+            ).orNull
+          ),
+          accountRoutings = parseRoutings(routings.getOrElse("")),
+          accountAttributes = parseAttributes(attributes.getOrElse(""))
+        )
+      })
+    DoobieUtil.runQuery(query)
   }
   
   override def getBankAccountsWithAttributes(bankId: BankId, queryParams: List[OBPQueryParam], callContext: Option[CallContext]): OBPReturnType[Box[List[FastFirehoseAccount]]] =
@@ -1381,17 +1360,13 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         case OBPOrdering(_, OBPDescending) => "DESC"
       }.headOption.getOrElse("ASC")
 
-      val ordering: SQLSyntax = if (orderBy =="DESC" ) sqls"DESC" else sqls"ASC"
+      val ordering: String = if (orderBy == "DESC") "DESC" else "ASC"
 
-      val firehoseAccounts = {
-        scalikeDB readOnly { implicit session =>
-          findFirehoseAccounts(bankId, ordering, limit, offset)
-        }
-      }
+      val firehoseAccounts = findFirehoseAccounts(bankId, ordering, limit, offset)
       (Full(firehoseAccounts), callContext)
     }
 
-  private def findAccountDirectory(bankId: BankId, ordering: SQLSyntax, limit: Int, offset: Int)(implicit session: DBSession = AutoSession) = {
+  private def findAccountDirectory(bankId: BankId, ordering: String, limit: Int, offset: Int): List[AccountDirectoryItem] = {
     def parseRoutings(routings: String): List[AccountRouting] = {
       if(!routings.isEmpty) {
         transformStringDirectory(routings).map {
@@ -1432,64 +1407,61 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       maps
     }
 
-    val sqlResult = sql"""
-       |select
-       |    mappedbankaccount.theaccountid as account_id,
-       |    mappedbankaccount.bank as bank_id,
-       |    mappedbankaccount.accountlabel as account_label,
-       |    mappedbankaccount.accountnumber as account_number,
-       |    mappedbankaccount.kind as kind,
-       |    mappedbankaccount.mbranchid as branch_id,
-       |    (select
-       |        string_agg(
-       |            'scheme:'
-       |            ||bankaccountrouting.accountroutingscheme
-       |            ||',address:'
-       |            ||bankaccountrouting.accountroutingaddress,
-       |            '::'
-       |            ) as account_routings
-       |        from bankaccountrouting
-       |        where
-       |              bankaccountrouting.accountid = mappedbankaccount.theaccountid
-       |          and bankaccountrouting.bankid = mappedbankaccount.bank
-       |     ),
-       |    (select
-       |        string_agg(
-       |                'type:'
-       |                || mappedaccountattribute.mtype
-       |                ||',code:'
-       |                ||mappedaccountattribute.mcode
-       |                ||',value:'
-       |                ||mappedaccountattribute.mvalue,
-       |            '::') as account_attributes
-       |    from mappedaccountattribute
-       |    where
-       |         mappedaccountattribute.maccountid = mappedbankaccount.theaccountid
-       |     )
-       |from mappedbankaccount
-       |WHERE mappedbankaccount.bank = ${bankId.value}
-       |ORDER BY mappedbankaccount.theaccountid $ordering
-       |LIMIT $limit
-       |OFFSET $offset ;
-       |
-       |
-       |""".stripMargin
-      .map {
-        rs =>
-          val routings = parseRoutings(rs.stringOpt(7).map(_.toString).getOrElse(""))
-          val attributes = parseAttributes(rs.stringOpt(8).map(_.toString).getOrElse(""))
-          AccountDirectoryItem(
-            id = rs.stringOpt(1).map(_.toString).getOrElse(null),
-            bankId = rs.stringOpt(2).map(_.toString).getOrElse(null),
-            label = rs.stringOpt(3).map(_.toString).getOrElse(null),
-            number = rs.stringOpt(4).map(_.toString).getOrElse(null),
-            productCode = rs.stringOpt(5).map(_.toString).getOrElse(null),
-            branchId = rs.stringOpt(6).map(_.toString).getOrElse(null),
-            accountRoutings = routings,
-            accountAttributes = attributes
-          )
-      }.list().apply()
-    sqlResult
+    val query = (fr"""
+       select
+           mappedbankaccount.theaccountid as account_id,
+           mappedbankaccount.bank as bank_id,
+           mappedbankaccount.accountlabel as account_label,
+           mappedbankaccount.accountnumber as account_number,
+           mappedbankaccount.kind as kind,
+           mappedbankaccount.mbranchid as branch_id,
+           (select
+               string_agg(
+                   'scheme:'
+                   ||bankaccountrouting.accountroutingscheme
+                   ||',address:'
+                   ||bankaccountrouting.accountroutingaddress,
+                   '::'
+                   ) as account_routings
+               from bankaccountrouting
+               where
+                     bankaccountrouting.accountid = mappedbankaccount.theaccountid
+                 and bankaccountrouting.bankid = mappedbankaccount.bank
+            ),
+           (select
+               string_agg(
+                       'type:'
+                       || mappedaccountattribute.mtype
+                       ||',code:'
+                       ||mappedaccountattribute.mcode
+                       ||',value:'
+                       ||mappedaccountattribute.mvalue,
+                   '::') as account_attributes
+           from mappedaccountattribute
+           where
+                mappedaccountattribute.maccountid = mappedbankaccount.theaccountid
+            )
+       from mappedbankaccount
+       WHERE mappedbankaccount.bank = ${bankId.value}
+       ORDER BY mappedbankaccount.theaccountid """ ++ Fragment.const(ordering) ++ fr"""
+       LIMIT $limit
+       OFFSET $offset
+       """)
+      .query[(Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[String], Option[String])]
+      .to[List]
+      .map(_.map { case (id, bankIdCol, label, number, kind, branchId, routings, attributes) =>
+        AccountDirectoryItem(
+          id = id.orNull,
+          bankId = bankIdCol.orNull,
+          label = label.orNull,
+          number = number.orNull,
+          productCode = kind.orNull,
+          branchId = branchId.orNull,
+          accountRoutings = parseRoutings(routings.getOrElse("")),
+          accountAttributes = parseAttributes(attributes.getOrElse(""))
+        )
+      })
+    DoobieUtil.runQuery(query)
   }
 
   override def getAccountDirectory(bankId: BankId, queryParams: List[OBPQueryParam], callContext: Option[CallContext]): OBPReturnType[Box[List[AccountDirectoryItem]]] =
@@ -1500,13 +1472,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         case OBPOrdering(_, OBPDescending) => "DESC"
       }.headOption.getOrElse("ASC")
 
-      val ordering: SQLSyntax = if (orderBy == "DESC") sqls"DESC" else sqls"ASC"
+      val ordering: String = if (orderBy == "DESC") "DESC" else "ASC"
 
-      val accounts = {
-        scalikeDB readOnly { implicit session =>
-          findAccountDirectory(bankId, ordering, limit, offset)
-        }
-      }
+      val accounts = findAccountDirectory(bankId, ordering, limit, offset)
       (Full(accounts), callContext)
     }
 
