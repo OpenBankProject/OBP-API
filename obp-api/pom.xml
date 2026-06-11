@@ -32,7 +32,7 @@
     </dependency>
     <dependency>
       <groupId>com.github.hongwei1.framework</groupId>
-      <artifactId>lift-mapper_${scala.version}</artifactId>
+      <artifactId>lift-persistence_${scala.version}</artifactId>
     </dependency>
     <dependency>
       <groupId>net.databinder.dispatch</groupId>

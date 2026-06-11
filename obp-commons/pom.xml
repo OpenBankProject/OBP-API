@@ -16,25 +16,7 @@
     <dependencies>
         <dependency>
             <groupId>com.github.hongwei1.framework</groupId>
-            <artifactId>lift-common_${scala.version}</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.github.hongwei1.framework</groupId>
-            <artifactId>lift-util_${scala.version}</artifactId>
-            <exclusions>
-                <exclusion>
-                    <groupId>javax.activation</groupId>
-                    <artifactId>activation</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>javax.mail</groupId>
-                    <artifactId>mail</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>com.github.hongwei1.framework</groupId>
-            <artifactId>lift-mapper_${scala.version}</artifactId>
+            <artifactId>lift-persistence_${scala.version}</artifactId>
         </dependency>
         <dependency>
             <groupId>org.scala-lang</groupId>
