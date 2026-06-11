@@ -658,6 +658,12 @@ class MappedMetric extends APIMetric with LongKeyedMapper[MappedMetric] with IdP
   //(GET, POST etc.) --S.request.get.requestType
   object verb extends MappedString(this, 16)
   object httpCode extends MappedInt(this)
+  // NOT necessarily a UUID, despite the generateUUID default. When the caller sends
+  // an `X-Request-ID` header (mandatory for Berlin Group / PSD2, optional elsewhere)
+  // that value is adopted verbatim as the correlation id (see APIUtil.scala ~2959),
+  // echoed back as the `Correlation-Id` response header. It is client-controlled and
+  // free-form on non-Berlin-Group paths, hence the generous 256 width. The archive
+  // copy (MetricArchive.correlationId) MUST keep the same width or the archiver fails.
   object correlationId extends MappedString(this, 256) {
     override def dbNotNull_? = true
     override def defaultValue = generateUUID()
@@ -725,7 +731,13 @@ class MetricArchive extends APIMetric with LongKeyedMapper[MetricArchive] with I
   //(GET, POST etc.) --S.request.get.requestType
   object verb extends MappedString(this, 16)
   object httpCode extends MappedInt(this)
-  object correlationId extends MappedUUID(this){
+  // Must mirror the source Metric.correlationId width (256), NOT a UUID's 36. The
+  // live correlation id is a free string (client-supplied or upstream trace id) that
+  // routinely exceeds 36 chars; as a MappedUUID (varchar 36) this column rejected the
+  // first such row the archiver copied with "value too long for type character
+  // varying(36)", failing every run — and since the archiver moves oldest-first, the
+  // same un-archivable rows were retried forever, so no run ever succeeded.
+  object correlationId extends MappedString(this, 256){
     override def dbNotNull_? = true
   }
   object responseBody extends MappedText(this)
