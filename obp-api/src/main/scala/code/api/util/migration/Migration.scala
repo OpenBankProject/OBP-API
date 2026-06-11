@@ -99,6 +99,7 @@ object Migration extends MdcLoggable {
       alterMappedCustomerAttribute(startedBeforeSchemifier)
       dropMappedBadLoginAttemptIndex()
       alterMetricColumnUrlLength()
+      alterMetricArchiveColumnCorrelationidLength()
 //      populateViewDefinitionCanAddTransactionRequestToBeneficiary()
 //      populateViewDefinitionCanSeeTransactionStatus()
       alterCounterpartyLimitFieldType()
@@ -490,6 +491,13 @@ object Migration extends MdcLoggable {
       val name = nameOf(alterMetricColumnUrlLength)
       runOnce(name) {
         MigrationOfMetricTable.alterColumnCorrelationidLength(name)
+      }
+    }
+
+    private def alterMetricArchiveColumnCorrelationidLength(): Boolean = {
+      val name = nameOf(alterMetricArchiveColumnCorrelationidLength)
+      runOnce(name) {
+        MigrationOfMetricArchiveTable.alterColumnCorrelationidLength(name)
       }
     }
 

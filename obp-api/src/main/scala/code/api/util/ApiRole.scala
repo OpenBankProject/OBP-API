@@ -460,6 +460,12 @@ object ApiRole extends MdcLoggable{
   case class CanCreateMetricsArchiveRun(requiresBankId: Boolean = false) extends ApiRole
   lazy val canCreateMetricsArchiveRun = CanCreateMetricsArchiveRun()
 
+  case class CanGetSchedulerJobLocks(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetSchedulerJobLocks = CanGetSchedulerJobLocks()
+
+  case class CanDeleteSchedulerJobLock(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canDeleteSchedulerJobLock = CanDeleteSchedulerJobLock()
+
   case class CanGetConnectorHealth(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetConnectorHealth = CanGetConnectorHealth()
 

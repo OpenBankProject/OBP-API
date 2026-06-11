@@ -1291,13 +1291,26 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
       remark                    = r.Remark.get
     )
 
+  // The in-progress archive job whose lock blocked a new run. Surfaced so an
+  // operator can tell a genuinely-running job from a stale lock left by a dead
+  // JVM: an `age_seconds` of seconds is a real run; minutes/hours/days is almost
+  // certainly abandoned and the `jobscheduler` lock row can be cleared by hand.
+  case class InProgressArchiveJobJsonV700(
+    job_id: String,
+    api_instance_id: String,
+    started_at: Date,
+    age_seconds: Long
+  )
+
   // Result of manually triggering an archive run. `status` is one of
   // "completed" (a run executed — inspect `run.success`) or
-  // "skipped_already_in_progress" (a run was already running, so none was started).
+  // "skipped_already_in_progress" (a run was already running, so none was started;
+  // `in_progress` then describes the lock that blocked it).
   case class TriggerMetricsArchiveRunResponseJsonV700(
     status: String,
     message: String,
-    run: Option[MetricsArchiveRunJsonV700]
+    run: Option[MetricsArchiveRunJsonV700],
+    in_progress: Option[InProgressArchiveJobJsonV700] = None
   )
 
   def createTriggerMetricsArchiveRunResponseJsonV700(outcome: code.scheduler.RunOutcome): TriggerMetricsArchiveRunResponseJsonV700 =
@@ -1309,11 +1322,15 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
           else
             s"Archive run completed with errors: ${r.Remark.get}"
         TriggerMetricsArchiveRunResponseJsonV700("completed", msg, Some(metricsArchiveRunToJson(r)))
-      case code.scheduler.RunSkippedAlreadyInProgress =>
+      case code.scheduler.RunSkippedAlreadyInProgress(jobId, apiInstanceId, startedAt) =>
+        val ageSeconds = (System.currentTimeMillis - startedAt.getTime) / 1000L
         TriggerMetricsArchiveRunResponseJsonV700(
           "skipped_already_in_progress",
-          "An archive run is already in progress; no new run was started.",
-          None)
+          s"An archive run started at $startedAt on api_instance_id '$apiInstanceId' is already in progress " +
+            s"(job $jobId, running for $ageSeconds seconds); no new run was started. " +
+            s"If this is much older than a normal run, the lock is likely stale and can be cleared.",
+          None,
+          Some(InProgressArchiveJobJsonV700(jobId, apiInstanceId, startedAt, ageSeconds)))
     }
 
   lazy val triggerMetricsArchiveRunResponseJsonV700Example = TriggerMetricsArchiveRunResponseJsonV700(
@@ -1330,6 +1347,49 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
       success                   = true,
       remark                    = ""
     ))
+  )
+
+  // One row of the `jobscheduler` lock table. This table holds a row only while a
+  // job holds the scheduler lock (deleted when the job finishes), so a row here is
+  // a currently-running job or a stale lock left by a dead JVM — `age_seconds`
+  // tells them apart.
+  case class SchedulerJobJsonV700(
+    job_id: String,
+    name: String,
+    api_instance_id: String,
+    started_at: Date,
+    age_seconds: Long
+  )
+
+  case class SchedulerJobsJsonV700(
+    jobs: List[SchedulerJobJsonV700],
+    count: Int
+  )
+
+  def createSchedulerJobsJsonV700(rows: List[code.scheduler.JobScheduler]): SchedulerJobsJsonV700 = {
+    val now = System.currentTimeMillis
+    val jobs = rows.map { r =>
+      val startedAt = r.createdAt.get
+      SchedulerJobJsonV700(
+        job_id          = r.JobId.get,
+        name            = r.Name.get,
+        api_instance_id = r.ApiInstanceId.get,
+        started_at      = startedAt,
+        age_seconds     = (now - startedAt.getTime) / 1000L
+      )
+    }
+    SchedulerJobsJsonV700(jobs, jobs.size)
+  }
+
+  lazy val schedulerJobsJsonV700Example = SchedulerJobsJsonV700(
+    jobs = List(SchedulerJobJsonV700(
+      job_id          = "9f3c2b1a-7d4e-4c8a-9b2f-1e6d5a0c4b7e",
+      name            = "MetricsArchiveScheduler",
+      api_instance_id = "obp",
+      started_at      = new Date(1717200000000L),
+      age_seconds     = 42L
+    )),
+    count = 1
   )
 
   private val metricsOneDayInMillis: Long = 86400000L

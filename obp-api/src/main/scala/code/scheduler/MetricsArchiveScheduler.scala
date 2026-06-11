@@ -30,8 +30,13 @@ case class ArchiveMoveResult(moved: Int, failed: Int)
 sealed trait RunOutcome
 /** A run executed and was recorded (inspect `run.Success` for whether it errored). */
 case class RunCompleted(run: MetricsArchiveRun) extends RunOutcome
-/** No run started because one was already in progress (JobScheduler lock present). */
-case object RunSkippedAlreadyInProgress extends RunOutcome
+/**
+ * No run started because one was already in progress (a `JobScheduler` lock is
+ * present). Carries the held lock's details so callers can tell a genuinely
+ * running job from a stale lock left by a dead JVM: a `startedAt` seconds ago is
+ * a real run; one minutes/hours/days old is almost certainly abandoned.
+ */
+case class RunSkippedAlreadyInProgress(jobId: String, apiInstanceId: String, startedAt: Date) extends RunOutcome
 
 
 object MetricsArchiveScheduler extends MdcLoggable {
@@ -91,8 +96,8 @@ object MetricsArchiveScheduler extends MdcLoggable {
   def runOnce(): RunOutcome = {
     JobScheduler.find(By(JobScheduler.Name, jobName)) match {
       case Full(job) => // There is an ongoing/hanging job
-        logger.info(s"MetricsArchiveScheduler.runOnce skipped due to ongoing job. Job ID: ${job.JobId}")
-        RunSkippedAlreadyInProgress
+        logger.info(s"MetricsArchiveScheduler.runOnce skipped due to ongoing job. Job ID: ${job.JobId.get}, started at: ${job.createdAt.get}, api_instance_id: ${job.ApiInstanceId.get}")
+        RunSkippedAlreadyInProgress(job.JobId.get, job.ApiInstanceId.get, job.createdAt.get)
       case _ => // Start a new job
         val uniqueId = generateUUID()
         val job = JobScheduler.create
@@ -159,7 +164,12 @@ object MetricsArchiveScheduler extends MdcLoggable {
       case _ => 60
     }
     val someDaysAgo: Date = new Date(currentTime.getTime - (oneDayInMillis * days))
-    val limit = APIUtil.getPropsAsIntValue("retain_metrics_move_limit", 50000)
+    // Default tuned for smaller, more frequent runs: 10k rows every ~10 min
+    // (see retain_metrics_scheduler_interval_in_seconds, default 599s) = ~60k rows/hr
+    // ≈ 16.7 rows/sec max drain rate, i.e. it keeps up with a sustained ~16
+    // metric-generating calls/sec. Much shorter per-run passes than a single 50k
+    // batch — fewer mid-run failures (stale locks) and less memory/lock contention.
+    val limit = APIUtil.getPropsAsIntValue("retain_metrics_move_limit", 10000)
     // Query the live Metric table directly — oldest first, up to `limit` rows.
     // We deliberately bypass APIMetrics.getAllMetrics here: that path is wrapped in
     // a Redis cache (stable TTL for past-dated queries), and a "which rows should I
