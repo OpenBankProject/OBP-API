@@ -1324,20 +1324,14 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
         checks += MetricsIntegrityCheckJsonV700("check_metric_retention_policy_is_respected", "OK", "The metric table is empty.")
     }
 
-    // Old metric rows with an empty correlation id can't be archived (the archive
-    // requires a UUID) and are excluded from the move job, so they sit in the metric
-    // table indefinitely. Surface their count so this is visible rather than looking
-    // like a stalled job in the oldest-within-retention check above.
-    val unarchivableOldMetricCount = MappedMetric.count(
-      By_<=(MappedMetric.date, new Date(now.getTime - retainMetricsDaysEffective * metricsOneDayInMillis)),
-      By(MappedMetric.correlationId, "")
-    )
-    if (unarchivableOldMetricCount == 0)
-      checks += MetricsIntegrityCheckJsonV700("check_all_old_metrics_can_be_archived", "OK",
-        "No metric rows older than the retention window are blocked from archiving.")
-    else
-      checks += MetricsIntegrityCheckJsonV700("check_all_old_metrics_can_be_archived", "WARNING",
-        s"$unarchivableOldMetricCount metric row(s) older than the retention window have an empty correlation id and cannot be archived (the archive requires a UUID). They remain in the metric table and are excluded from the move job — typically legacy rows that predate correlation ids.")
+    // Previously: rows with an empty/null correlation id could not be archived and were
+    // surfaced here as a permanent backlog. As of the synthetic-id change in
+    // MetricsArchiveScheduler.copyRowToMetricsArchive, such rows ARE archived (with an
+    // "ORIGINALLY_NOT_SET-<uuid>" correlation id), so there is no un-archivable category
+    // anymore. The check slot is retained (so consumers/dashboards keep a stable shape)
+    // but its condition is intentionally empty for now — it always reports OK.
+    checks += MetricsIntegrityCheckJsonV700("check_all_old_metrics_can_be_archived", "OK",
+      "All metric rows older than the retention window are archivable; rows with no correlation id are archived with a generated 'ORIGINALLY_NOT_SET-<uuid>' id.")
 
     archiveOldest match {
       case Some(d) =>
@@ -1461,7 +1455,7 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
       MetricsIntegrityCheckJsonV700("check_metric_retention_policy_is_respected", "OK",
         "Oldest metric is 85 days old, within the effective retention of 90 days (+7d grace)."),
       MetricsIntegrityCheckJsonV700("check_all_old_metrics_can_be_archived", "OK",
-        "No metric rows older than the retention window are blocked from archiving."),
+        "All metric rows older than the retention window are archivable; rows with no correlation id are archived with a generated 'ORIGINALLY_NOT_SET-<uuid>' id."),
       MetricsIntegrityCheckJsonV700("check_archive_retention_policy_is_respected", "OK",
         "Oldest archived metric is 700 days old, within the effective archive retention of 730 days (+7d grace)."),
       MetricsIntegrityCheckJsonV700("check_archive_metrics_is_fresh_enough", "OK",

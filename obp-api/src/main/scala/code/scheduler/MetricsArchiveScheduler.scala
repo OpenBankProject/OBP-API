@@ -9,7 +9,7 @@ import code.api.util.APIUtil
 import code.metrics.{APIMetric, APIMetrics, MappedMetric, MetricArchive, MetricsArchiveRun}
 import code.util.Helper.MdcLoggable
 import net.liftweb.common.Full
-import net.liftweb.mapper.{Ascending, By, By_<=, By_>=, MaxRows, NotBy, OrderBy}
+import net.liftweb.mapper.{Ascending, By, By_<=, By_>=, MaxRows, OrderBy}
 
 import scala.concurrent.duration._
 
@@ -175,15 +175,13 @@ object MetricsArchiveScheduler extends MdcLoggable {
     // a Redis cache (stable TTL for past-dated queries), and a "which rows should I
     // move and delete" query must never be served from a stale snapshot.
     //
-    // We also exclude rows with an empty correlation id: the archive's correlationId
-    // column requires a UUID, so those rows can't be archived. Filtering them in the
-    // query (rather than skipping them in the loop) means the job never repeatedly
-    // re-scans the same un-archivable rows — which, being the oldest, would otherwise
-    // permanently occupy the oldest-first candidate window. Their count is surfaced
-    // by the /diagnostics/metrics endpoint instead.
+    // Note: rows with an empty/null correlation id are NOT filtered out. They used to
+    // be (the archive's correlationId is non-null), which left them — being the oldest —
+    // permanently occupying the candidate window and stalling the job. copyRowToMetricsArchive
+    // now assigns those rows a synthetic "ORIGINALLY_NOT_SET-<uuid>" correlation id so
+    // they archive normally instead of accumulating forever in the live table.
     val candidateMetricRowsToMove: List[MappedMetric] = MappedMetric.findAll(
       By_<=(MappedMetric.date, someDaysAgo),
-      NotBy(MappedMetric.correlationId, ""),
       OrderBy(MappedMetric.date, Ascending),
       MaxRows(limit)
     )
@@ -209,6 +207,17 @@ object MetricsArchiveScheduler extends MdcLoggable {
 
   // Returns true when the archive copy was persisted, false otherwise.
   private def copyRowToMetricsArchive(i: APIMetric): Boolean = {
+    // Legacy rows can have an empty/null correlation id (they predate correlation ids,
+    // or were never authenticated via a consent / X-Request-ID). The archive's
+    // correlationId is non-null, so assign a traceable synthetic id rather than skipping
+    // — and thereby permanently accumulating — these rows. The "ORIGINALLY_NOT_SET-"
+    // prefix makes it obvious in the archive that the original value was absent.
+    val rawCorrelationId = i.getCorrelationId()
+    val correlationId =
+      if (rawCorrelationId == null || rawCorrelationId.isEmpty)
+        s"ORIGINALLY_NOT_SET-${generateUUID()}"
+      else
+        rawCorrelationId
     APIMetrics.apiMetrics.vend.saveMetricsArchive(
       i.getMetricId(),
       i.getUserId(),
@@ -223,7 +232,7 @@ object MetricsArchiveScheduler extends MdcLoggable {
       i.getImplementedInVersion(),
       i.getVerb(),
       Some(i.getHttpCode()),
-      i.getCorrelationId(),
+      correlationId,
       i.getResponseBody(),
       i.getSourceIp(),
       i.getTargetIp(),
