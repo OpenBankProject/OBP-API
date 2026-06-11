@@ -5,8 +5,7 @@ import java.util.{Calendar, Date}
 import code.actorsystem.ObpActorSystem
 import code.api.Constant
 import code.api.util.APIUtil.generateUUID
-import code.api.util.APIUtil
-import code.metrics.{APIMetric, APIMetrics, MappedMetric, MetricArchive, MetricsArchiveRun}
+import code.metrics.{APIMetric, APIMetrics, MappedMetric, MetricArchive, MetricsArchiveRun, MetricsProps}
 import code.util.Helper.MdcLoggable
 import net.liftweb.common.Full
 import net.liftweb.mapper.{Ascending, By, By_<=, By_>=, MaxRows, OrderBy}
@@ -140,11 +139,7 @@ object MetricsArchiveScheduler extends MdcLoggable {
   def deleteOutdatedRowsFromMetricsArchive(): Int = {
     logger.info("Hello from MetricsArchiveScheduler.deleteOutdatedRowsFromMetricsArchive")
     val currentTime = new Date()
-    val defaultValue : Int = 365 * 3
-    val days = APIUtil.getPropsAsLongValue("retain_archive_metrics_days", defaultValue) match {
-      case days if days > 364 => days
-      case _ => 365
-    }
+    val days = MetricsProps.retainArchiveMetricsDaysEffective
     val someYearsAgo: Date = new Date(currentTime.getTime - (oneDayInMillis * days))
     // Count before deleting so the run log records how many rows were removed.
     val outdatedCount = MetricArchive.count(By_<=(MetricArchive.date, someYearsAgo)).toInt
@@ -159,17 +154,10 @@ object MetricsArchiveScheduler extends MdcLoggable {
   def conditionalDeleteMetricsRow(): ArchiveMoveResult = {
     logger.info("Hello from MetricsArchiveScheduler.conditionalDeleteMetricsRow")
     val currentTime = new Date()
-    val days = APIUtil.getPropsAsLongValue("retain_metrics_days", 367) match {
-      case days if days > 59 => days
-      case _ => 60
-    }
+    val days = MetricsProps.retainMetricsDaysEffective
     val someDaysAgo: Date = new Date(currentTime.getTime - (oneDayInMillis * days))
-    // Default tuned for smaller, more frequent runs: 10k rows every ~10 min
-    // (see retain_metrics_scheduler_interval_in_seconds, default 599s) = ~60k rows/hr
-    // ≈ 16.7 rows/sec max drain rate, i.e. it keeps up with a sustained ~16
-    // metric-generating calls/sec. Much shorter per-run passes than a single 50k
-    // batch — fewer mid-run failures (stale locks) and less memory/lock contention.
-    val limit = APIUtil.getPropsAsIntValue("retain_metrics_move_limit", 10000)
+    // Batch-size rationale lives at MetricsProps.RetainMetricsMoveLimitDefault.
+    val limit = MetricsProps.retainMetricsMoveLimit
     // Query the live Metric table directly — oldest first, up to `limit` rows.
     // We deliberately bypass APIMetrics.getAllMetrics here: that path is wrapped in
     // a Redis cache (stable TTL for past-dated queries), and a "which rows should I

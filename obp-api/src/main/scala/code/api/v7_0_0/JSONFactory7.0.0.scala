@@ -7,7 +7,7 @@ import code.api.util.ErrorMessages.MandatoryPropertyIsNotSet
 import code.api.v4_0_0.{EnergySource400, HostedAt400, HostedBy400, PostSimpleCounterpartyJson400}
 import code.bankconnectors.Connector
 import code.customer.CustomerX
-import code.metrics.{MappedMetric, MetricArchive, MetricsArchiveRun}
+import code.metrics.{MappedMetric, MetricArchive, MetricsArchiveRun, MetricsProps}
 import code.util.Helper.MdcLoggable
 import code.views.Views
 import com.openbankproject.commons.model.{AccountId, AccountRoutingJsonV121, AmountOfMoneyJsonV121, BankId, BankIdAccountId, CoreAccount, TransactionRequest, TransactionRequestCommonBodyJSON, User}
@@ -1246,9 +1246,9 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
   /**
    * Inspect the `metric` and `metricarchive` tables together with the archiving
    * props and report whether the MetricsArchiveScheduler is behaving as
-   * configured. The effective retention values mirror the floors applied in
-   * `code.scheduler.MetricsArchiveScheduler` (retain_metrics_days floored to 60,
-   * retain_archive_metrics_days floored to 365).
+   * configured. All props are read through `code.metrics.MetricsProps` — the same
+   * accessors the scheduler acts on — so the reported values (fallback defaults
+   * and retention floors included) are by construction the effective ones.
    *
    * Note: this issues blocking Mapper queries (count + a single-row ORDER BY on
    * the indexed `date` column) — call it from a Future.
@@ -1256,14 +1256,14 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
   def createMetricsAndArchiveMetricsDiagnosticsJsonV700(): MetricsAndArchiveMetricsDiagnosticsJsonV700 = {
     val now = new Date()
 
-    val writeMetrics      = APIUtil.getPropsAsBoolValue("write_metrics", false)
-    val schedulerEnabled  = APIUtil.getPropsAsBoolValue("enable_metrics_scheduler", true)
-    val schedulerIntervalSeconds = APIUtil.getPropsAsIntValue("retain_metrics_scheduler_interval_in_seconds", 3600)
-    val retainMetricsDays = APIUtil.getPropsAsLongValue("retain_metrics_days", 367)
-    val retainMetricsDaysEffective = if (retainMetricsDays > 59) retainMetricsDays else 60L
-    val retainArchiveMetricsDays   = APIUtil.getPropsAsLongValue("retain_archive_metrics_days", 365L * 3)
-    val retainArchiveMetricsDaysEffective = if (retainArchiveMetricsDays > 364) retainArchiveMetricsDays else 365L
-    val moveLimit = APIUtil.getPropsAsIntValue("retain_metrics_move_limit", 50000)
+    val writeMetrics      = MetricsProps.writeMetrics
+    val schedulerEnabled  = MetricsProps.enableMetricsScheduler
+    val schedulerIntervalSeconds = MetricsProps.retainMetricsSchedulerIntervalInSeconds
+    val retainMetricsDays = MetricsProps.retainMetricsDays
+    val retainMetricsDaysEffective = MetricsProps.retainMetricsDaysEffective
+    val retainArchiveMetricsDays   = MetricsProps.retainArchiveMetricsDays
+    val retainArchiveMetricsDaysEffective = MetricsProps.retainArchiveMetricsDaysEffective
+    val moveLimit = MetricsProps.retainMetricsMoveLimit
 
     val config = MetricsArchiveConfigJsonV700(
       write_metrics                         = writeMetrics,

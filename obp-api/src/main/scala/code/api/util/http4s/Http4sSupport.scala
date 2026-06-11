@@ -1,7 +1,7 @@
 package code.api.util.http4s
 
 import cats.effect._
-import code.api.util.APIUtil.{HTTPParam, ResourceDoc, getPropsAsBoolValue}
+import code.api.util.APIUtil.{HTTPParam, ResourceDoc}
 import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, InvalidJsonFormat}
 import code.api.util.{AuthHeaderParser, CallContext, RemoteIpUtil, WriteMetricUtil}
 import code.util.Helper.MdcLoggable
@@ -123,7 +123,7 @@ object Http4sRequestAttributes {
     // Not fired as a background fiber: response waits for metric to be written,
     // matching v6 behaviour and avoiding unbounded concurrent H2 write contention.
     private def recordMetric(responseBody: Any, response: Response[IO])(implicit cc: CallContext): IO[Unit] =
-      if (!getPropsAsBoolValue("write_metrics", false)) IO.unit
+      if (!code.metrics.MetricsProps.writeMetrics) IO.unit
       else IO.blocking {
         val endTime = new Date()
         val duration = cc.startTime.map(s => endTime.getTime - s.getTime).getOrElse(-1L)
