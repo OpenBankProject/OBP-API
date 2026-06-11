@@ -2,7 +2,6 @@ package code.util
 
 import code.api.util.PegdownOptions
 import code.api.util.PegdownOptions.convertPegdownToHtmlTweaked
-import net.liftweb.util.Html5
 import org.scalatest.{FlatSpec, Matchers, Tag}
 
 import scala.xml.NodeSeq
@@ -14,9 +13,8 @@ class PegdownOptionsTest extends FlatSpec with Matchers {
    * @return
    */
   def stringToNodeSeq(html : String) : NodeSeq = {
-    val newHtmlString =scala.xml.XML.loadString("<div>" + html + "</div>").toString()
-    //Note: `parse` method: We much enclose the div, otherwise only the first element is returned. 
-    Html5.parse(newHtmlString).head
+    //Note: we must enclose the div, otherwise only the first element is returned.
+    scala.xml.XML.loadString("<div>" + html + "</div>")
   }
   object FunctionsTag extends Tag("PegdownOptions")
 

@@ -12,7 +12,6 @@ import io.swagger.parser.OpenAPIParser
 import net.liftweb.json
 import net.liftweb.json.JsonAST._
 import net.liftweb.json.{Formats, JString, Serializer, TypeInfo}
-import net.liftweb.util.Html5
 import org.scalatest.Tag
 
 import java.util
@@ -66,9 +65,8 @@ class SwaggerDocsTest extends ResourceDocsV140ServerSetup with PropsReset with D
    * @return
    */
   def stringToNodeSeq(html : String) : NodeSeq = {
-    val newHtmlString =scala.xml.XML.loadString("<div>" + html + "</div>").toString()
-    //Note: `parse` method: We much enclose the div, otherwise only the first element is returned. 
-    Html5.parse(newHtmlString).head
+    //Note: we must enclose the div, otherwise only the first element is returned.
+    scala.xml.XML.loadString("<div>" + html + "</div>")
   }
   
   

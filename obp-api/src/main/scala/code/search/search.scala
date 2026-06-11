@@ -14,7 +14,6 @@ import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.json
 import net.liftweb.json.JsonAST
 import net.liftweb.json.JsonAST._
-import net.liftweb.util.Helpers
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 import scala.util.control.NoStackTrace
@@ -120,6 +119,16 @@ class elasticsearch extends MdcLoggable {
       }
   }
 
+  private def appendParams(url: String, params: Seq[(String, String)]): String = {
+    def encode(s: String) = java.net.URLEncoder.encode(s, "UTF-8")
+    params.toList match {
+      case Nil => url
+      case xs =>
+        val query = xs.map { case (n, v) => encode(n) + "=" + encode(v) }.mkString("&")
+        url + (if (url.contains("?")) "&" else "?") + query
+    }
+  }
+
   private def constructQuery(userId: String, params: Map[String, String]): Req = {
     var esScroll = ""
     val esType = params.getOrElse("esType", "")
@@ -160,7 +169,7 @@ class elasticsearch extends MdcLoggable {
     else if (q == "" && source != "") {
       parameters = Seq(("source", source))
     }
-    val esUrl = Helpers.appendParams( s"${httpHost}/${esIndex}/${esType}${if (esType.nonEmpty) "/" else ""}_search${esScroll}", parameters )
+    val esUrl = appendParams( s"${httpHost}/${esIndex}/${esType}${if (esType.nonEmpty) "/" else ""}_search${esScroll}", parameters )
     //println("[ES.URL]===> " + esUrl)
 
     // Use this incase we cant log to elastic search

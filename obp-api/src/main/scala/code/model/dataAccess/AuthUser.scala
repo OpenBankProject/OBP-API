@@ -552,7 +552,7 @@ import net.liftweb.util.Helpers._
           .issueTime(new java.util.Date())
           .build()
         val jwtToken = CertificateUtil.jwtWithHmacProtection(claimsSet)
-        val validationLink = portalUrl+"/user-validation?token="+urlEncode(jwtToken)
+        val validationLink = portalUrl+"/user-validation?token="+java.net.URLEncoder.encode(jwtToken, "UTF-8")
         val email: String = user.getEmail
         val textContent = Some(s"Welcome! Please validate your account by clicking the following link: $validationLink")
         val htmlContent = Some(s"<p>Welcome! Please validate your account by clicking the following link:</p><p><a href='$validationLink'>$validationLink</a></p>")
@@ -1269,7 +1269,7 @@ def restoreSomeSessions(): Unit = {
           case Full(u) if u.name == name && u.emailAddress == email =>
             authUser.resetUniqueId().save
             val resetLink = Constant.HostName+
-              passwordResetPath.mkString("/", "/", "/")+urlEncode(authUser.getUniqueId())
+              passwordResetPath.mkString("/", "/", "/")+java.net.URLEncoder.encode(authUser.getUniqueId(), "UTF-8")
             logger.warn(s"Password reset url is created for this user: $email")
             // TODO Notify via email appropriate persons 
             resetLink

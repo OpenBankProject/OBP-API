@@ -13,7 +13,6 @@ import com.openbankproject.commons.util.{ApiVersion, Functions}
 import net.liftweb.json
 import net.liftweb.json.JsonAST._
 import net.liftweb.json.{Formats, JString, Serializer, TypeInfo}
-import net.liftweb.util.Html5
 import org.scalatest.Tag
 
 import scala.xml.NodeSeq
@@ -92,9 +91,8 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
    * @return
    */
   def stringToNodeSeq(html : String) : NodeSeq = {
-    val newHtmlString =scala.xml.XML.loadString("<div>" + html + "</div>").toString()
-    //Note: `parse` method: We much enclose the div, otherwise only the first element is returned. 
-    Html5.parse(newHtmlString).headOption.getOrElse(NodeSeq.Empty)
+    //Note: we must enclose the div, otherwise only the first element is returned.
+    scala.xml.XML.loadString("<div>" + html + "</div>")
   }
   
   
