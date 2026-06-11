@@ -139,7 +139,7 @@ object MetricsArchiveScheduler extends MdcLoggable {
   def deleteOutdatedRowsFromMetricsArchive(): Int = {
     logger.info("Hello from MetricsArchiveScheduler.deleteOutdatedRowsFromMetricsArchive")
     val currentTime = new Date()
-    val days = MetricsProps.retainArchiveMetricsDaysEffective
+    val days = MetricsProps.retainArchiveMetricsDays
     val someYearsAgo: Date = new Date(currentTime.getTime - (oneDayInMillis * days))
     // Count before deleting so the run log records how many rows were removed.
     val outdatedCount = MetricArchive.count(By_<=(MetricArchive.date, someYearsAgo)).toInt
@@ -154,7 +154,7 @@ object MetricsArchiveScheduler extends MdcLoggable {
   def conditionalDeleteMetricsRow(): ArchiveMoveResult = {
     logger.info("Hello from MetricsArchiveScheduler.conditionalDeleteMetricsRow")
     val currentTime = new Date()
-    val days = MetricsProps.retainMetricsDaysEffective
+    val days = MetricsProps.retainMetricsDays
     val someDaysAgo: Date = new Date(currentTime.getTime - (oneDayInMillis * days))
     // Batch-size rationale lives at MetricsProps.RetainMetricsMoveLimitDefault.
     val limit = MetricsProps.retainMetricsMoveLimit

@@ -4,8 +4,8 @@ import code.api.util.APIUtil
 
 /**
  * Single source of truth for the metrics / metrics-archiving props: each prop is
- * read in exactly one place, with its fallback default and any floor defined once
- * as a constant here.
+ * read in exactly one place, with its fallback default defined once as a
+ * constant here.
  *
  * Every consumer — `Boot` (scheduler wiring), `MetricsArchiveScheduler` (the job
  * itself), `WriteMetricUtil` / `Http4sSupport` (metric writing), and the
@@ -35,14 +35,8 @@ object MetricsProps {
   /** Days rows stay in the live `metric` table before being moved to the archive. */
   val RetainMetricsDaysDefault = 367L
 
-  /** `retain_metrics_days` values below this are floored to it. */
-  val RetainMetricsDaysFloor = 60L
-
   /** Days rows stay in the `metricarchive` table before being deleted. */
   val RetainArchiveMetricsDaysDefault: Long = 365L * 3
-
-  /** `retain_archive_metrics_days` values below this are floored to it. */
-  val RetainArchiveMetricsDaysFloor = 365L
 
   /**
    * Max rows moved from `metric` to `metricarchive` per scheduler run.
@@ -63,19 +57,11 @@ object MetricsProps {
   def retainMetricsSchedulerIntervalInSeconds: Int =
     APIUtil.getPropsAsIntValue("retain_metrics_scheduler_interval_in_seconds", RetainMetricsSchedulerIntervalInSecondsDefault)
 
-  /** The raw prop value — for display only; the scheduler acts on [[retainMetricsDaysEffective]]. */
   def retainMetricsDays: Long =
     APIUtil.getPropsAsLongValue("retain_metrics_days", RetainMetricsDaysDefault)
 
-  def retainMetricsDaysEffective: Long =
-    retainMetricsDays max RetainMetricsDaysFloor
-
-  /** The raw prop value — for display only; the scheduler acts on [[retainArchiveMetricsDaysEffective]]. */
   def retainArchiveMetricsDays: Long =
     APIUtil.getPropsAsLongValue("retain_archive_metrics_days", RetainArchiveMetricsDaysDefault)
-
-  def retainArchiveMetricsDaysEffective: Long =
-    retainArchiveMetricsDays max RetainArchiveMetricsDaysFloor
 
   def retainMetricsMoveLimit: Int =
     APIUtil.getPropsAsIntValue("retain_metrics_move_limit", RetainMetricsMoveLimitDefault)
