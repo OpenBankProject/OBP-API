@@ -951,9 +951,13 @@ object Http4s510 {
             (_, _) <- APIUtil.anonymousAccess(cc)
           } yield {
             val providerPropBox = APIUtil.getPropsValue("oauth2.oidc_provider")
+            // "google" is an intentional addition over the Lift original (obp-oidc/keycloak only):
+            // token validation for Google ID tokens already exists in OAuth2Login.Google,
+            // this just lets oauth2.oidc_provider advertise its well-known URL too.
             val availableProviders = Map(
               "obp-oidc" -> WellKnownUriJsonV510("obp-oidc", code.api.OAuth2Login.OBPOIDC.wellKnownOpenidConfiguration.toURL.toString),
-              "keycloak" -> WellKnownUriJsonV510("keycloak", code.api.OAuth2Login.Keycloak.wellKnownOpenidConfiguration.toURL.toString)
+              "keycloak" -> WellKnownUriJsonV510("keycloak", code.api.OAuth2Login.Keycloak.wellKnownOpenidConfiguration.toURL.toString),
+              "google" -> WellKnownUriJsonV510("google", code.api.OAuth2Login.Google.wellKnownOpenidConfiguration.toURL.toString)
             )
             val providersToShow: List[WellKnownUriJsonV510] = providerPropBox match {
               case Empty => Nil

@@ -920,6 +920,7 @@ display_internal_errors=false
 # Available values:
 #   - keycloak  → advertise Keycloak well-known URL
 #   - obp-oidc  → advertise OBP-OIDC well-known URL
+#   - google    → advertise Google well-known URL (https://accounts.google.com/.well-known/openid-configuration)
 #
 # Special cases:
 #   - (property missing) → show nothing
@@ -929,10 +930,16 @@ display_internal_errors=false
 # Examples:
 #   oauth2.oidc_provider=keycloak
 #   oauth2.oidc_provider=obp-oidc,keycloak
+#   oauth2.oidc_provider=obp-oidc,keycloak,google
 #   oauth2.oidc_provider=
 #   oauth2.oidc_provider=none
 #
 # Default: property missing (show nothing)
+#
+# Note on google: advertising it here only affects the /well-known endpoint. For Google
+# token validation to work, oauth2.jwk_set.url must also contain Google's JWKS URL
+# (https://www.googleapis.com/oauth2/v3/certs), and clients must send the Google id_token
+# as the Bearer value — Google access tokens (ya29...) are opaque, not JWTs.
 #oauth2.oidc_provider=obp-oidc,keycloak
 
 # OBP-OIDC OAuth2 Provider Settings
