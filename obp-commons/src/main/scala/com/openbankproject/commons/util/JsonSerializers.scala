@@ -105,8 +105,9 @@ object AbstractTypeDeserializer extends ObpDeSerializer[AnyRef] {
   override def deserialize(implicit format: Formats): PartialFunction[(TypeInfo, JValue), AnyRef] = {
     case (TypeInfo(clazz, _), json)
         if Modifier.isAbstract(clazz.getModifiers) && ReflectUtils.isObpClass(clazz)
-        && !enumValueClass.isAssignableFrom(clazz) =>
-      val Some(commonClass) = ReflectUtils.findImplementedClass(clazz)
+        && !enumValueClass.isAssignableFrom(clazz)
+        && ReflectUtils.findImplementedClass(clazz).isDefined =>
+      val commonClass = ReflectUtils.findImplementedClass(clazz).get
 
       implicit val manifest = ManifestFactory.classType[AnyRef](commonClass)
       json.extract[AnyRef](format, manifest)
