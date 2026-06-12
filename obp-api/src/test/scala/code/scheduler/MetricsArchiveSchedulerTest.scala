@@ -105,18 +105,22 @@ class MetricsArchiveSchedulerTest extends ServerSetup {
       run.RowsMovedToArchive.get should equal(1)
     }
 
-    scenario("Old rows with an empty correlation id are left in place, never archived") {
+    scenario("Old rows with an empty correlation id are archived with a synthetic ORIGINALLY_NOT_SET correlation id") {
       val noCorr = seedMetric(daysAgo(800), "")
 
       val outcome = MetricsArchiveScheduler.runOnce()
       outcome shouldBe a[RunCompleted]
 
-      Then("the row stays in metric and is not in the archive")
-      MappedMetric.find(By(MappedMetric.id, noCorr.id.get)).isDefined should equal(true)
-      MetricArchive.find(By(MetricArchive.metricId, noCorr.id.get)).isDefined should equal(false)
+      Then("the row is moved out of metric and into the archive")
+      MappedMetric.find(By(MappedMetric.id, noCorr.id.get)).isDefined should equal(false)
+      val archived = MetricArchive.find(By(MetricArchive.metricId, noCorr.id.get))
+      archived.isDefined should equal(true)
 
-      And("nothing was moved")
-      outcome.asInstanceOf[RunCompleted].run.RowsMovedToArchive.get should equal(0)
+      And("the archived copy was given a generated ORIGINALLY_NOT_SET correlation id")
+      archived.openOrThrowException("expected archived row").correlationId.get should startWith("ORIGINALLY_NOT_SET-")
+
+      And("exactly one row was moved")
+      outcome.asInstanceOf[RunCompleted].run.RowsMovedToArchive.get should equal(1)
     }
 
     scenario("Outdated archive rows are deleted; recent archive rows are kept") {
