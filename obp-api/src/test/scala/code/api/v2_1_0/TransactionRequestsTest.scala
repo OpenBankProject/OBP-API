@@ -184,7 +184,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
 
         if (withChellenge) {
           And("We should have the INITIATED status in response body")
-          (getTransactionRequestResponse.body \ "transaction_requests_with_charges" \ "status").values.toString should equal(TransactionRequestStatus.INITIATED.toString)
+          (getTransactionRequestResponse.body \ "transaction_requests_with_charges" \ "status").extract[List[String]] should equal(List(TransactionRequestStatus.INITIATED.toString))
 
           And("Challenge should be not null, this is the no challenge scenario")
           (getTransactionRequestResponse.body \ "transaction_requests_with_charges" \ "challenge").children.size should not equal (0)
@@ -193,7 +193,7 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
           (getTransactionRequestResponse.body \ "transaction_requests_with_charges" \ "transaction_ids").values.toString should equal("List()")
         } else {
           And("We should have the COMPLETED status in response body")
-          (getTransactionRequestResponse.body \ "transaction_requests_with_charges" \ "status").values.toString should equal(TransactionRequestStatus.COMPLETED.toString)
+          (getTransactionRequestResponse.body \ "transaction_requests_with_charges" \ "status").extract[List[String]] should equal(List(TransactionRequestStatus.COMPLETED.toString))
 
           And("Challenge should be null, this is the no challenge scenario")
           (getTransactionRequestResponse.body \ "transaction_requests_with_charges" \ "challenge").children.size should equal(0)

@@ -82,7 +82,8 @@ class MakerCheckerTransactionRequestTest extends V400ServerSetup with DefaultUse
 
     (createResponse.body \ "status").values.toString should equal(TransactionRequestStatus.INITIATED.toString)
 
-    val challengeId = (createResponse.body \ "challenges" \ "id").values.toString
+    val challengeId = (createResponse.body \ "challenges").extract[List[JValue]].headOption
+      .map(c => (c \ "id").values.toString).getOrElse("")
     challengeId should not equal ("")
 
     (bankId, fromAccount, transactionRequestType, transRequestId, challengeId)
