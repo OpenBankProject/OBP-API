@@ -64,10 +64,19 @@ class RestConnector_vMar2019_FrozenTest extends FlatSpec with Matchers with Befo
       .filterKeys(typeNameToFieldsInfoPersisted.contains(_))
       .toList
 
+      // Normalize type names so that reflection aliases produce equal strings:
+      // json4s defines package-level aliases (org.json4s.JValue) for types inside
+      // org.json4s.JsonAST; Scala reflection may report either form depending on how
+      // the import is written. Treat them as identical for structural comparison.
+      def normalizeTypeName(name: String): String =
+        name.replace("org.json4s.JsonAST.", "org.json4s.")
+      def normalizeStructure(m: Map[String, String]): Map[String, String] =
+        m.map { case (k, v) => k -> normalizeTypeName(v) }
+
       val theSameStructureAsFrozen: Matcher[(String, Map[String, String])] = Matcher{ fullNameAndStructure =>
         val (fullName: String, structure: Map[String, String]) = fullNameAndStructure
         MatchResult(
-          structure == typeNameToFieldsInfoPersisted(fullName),
+          normalizeStructure(structure) == normalizeStructure(typeNameToFieldsInfoPersisted(fullName)),
           s"$fullName structure is changed, frozen structure is ${typeNameToFieldsInfoPersisted(fullName)}, current structure is $structure",
           s"$fullName structure is not changed"
         )

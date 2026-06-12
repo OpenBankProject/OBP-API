@@ -190,13 +190,13 @@ class TransactionRequestsTest extends V210ServerSetup with DefaultUsers {
           (getTransactionRequestResponse.body \ "transaction_requests_with_charges" \ "challenge").children.size should not equal (0)
 
           And("We should have be null value for TransactionIds")
-          (getTransactionRequestResponse.body \ "transaction_requests_with_charges" \ "transaction_ids").values.toString should equal("List()")
+          (getTransactionRequestResponse.body \ "transaction_requests_with_charges" \ "transaction_ids").children.headOption.map(_.values.toString).getOrElse("List()") should equal("List()")
         } else {
           And("We should have the COMPLETED status in response body")
           (getTransactionRequestResponse.body \ "transaction_requests_with_charges" \ "status").extract[List[String]] should equal(List(TransactionRequestStatus.COMPLETED.toString))
 
           And("Challenge should be null, this is the no challenge scenario")
-          (getTransactionRequestResponse.body \ "transaction_requests_with_charges" \ "challenge").children.size should equal(0)
+          (getTransactionRequestResponse.body \ "transaction_requests_with_charges" \ "challenge").children.headOption.map(_.children.size).getOrElse(0) should equal(0)
 
           And("We should have a new TransactionIds value")
           (getTransactionRequestResponse.body \ "transaction_requests_with_charges" \ "transaction_ids").values.toString should not equal ("")

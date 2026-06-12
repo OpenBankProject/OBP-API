@@ -229,7 +229,8 @@ object Http4s510 {
             (obpQueryParams, _) <- createQueriesByHttpParamsFuture(httpParams, Some(cc))
             aggregateMetrics <- APIMetrics.apiMetrics.vend.getAllAggregateMetricsFuture(obpQueryParams, true)
               .map(x => unboxFullOrFail(x, Some(cc), GetAggregateMetricsError))
-          } yield createAggregateMetricJson(aggregateMetrics)
+          } yield createAggregateMetricJson(aggregateMetrics).headOption
+              .getOrElse(AggregateMetricJSON(0, 0.0, 0.0, 0.0))
         }
     }
 

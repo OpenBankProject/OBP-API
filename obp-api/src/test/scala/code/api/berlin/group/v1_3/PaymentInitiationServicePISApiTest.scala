@@ -378,8 +378,10 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
       Then(s"We can test the ${updatePaymentPsuDataTransactionAuthorisation.name}")
       val updatePaymentPsuDataJsonBody = Http4sBGv13PIS.resourceDocs
         .filter(_.partialFunctionName == "updatePaymentPsuDataTransactionAuthorisation")
-        .head.exampleRequestBody.asInstanceOf[JvalueCaseClass] //All the Json String convert to JvalueCaseClass implicitly
-        .jvalueToCaseclass
+        .head.exampleRequestBody match {
+          case jvc: JvalueCaseClass => jvc.jvalueToCaseclass
+          case jv: org.json4s.JValue => jv
+        }
       
       val requestUpdatePaymentPsuData = (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString / paymentId / "authorisations"/authorisationId).PUT <@ (user1)
       val responseUpdatePaymentPsuData: APIResponse = makePutRequest(requestUpdatePaymentPsuData, write(updatePaymentPsuDataJsonBody))
