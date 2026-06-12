@@ -42,9 +42,9 @@ import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model.User
 import net.liftweb.common._
 import net.liftweb.db.DB
-import net.liftweb.json
-import net.liftweb.json.JsonAST.prettyRender
-import net.liftweb.json.{Extraction, Formats}
+import com.openbankproject.commons.util.json
+import com.openbankproject.commons.util.JsonAliases.prettyRender
+import org.json4s.{Extraction, Formats}
 import net.liftweb.mapper.By
 import net.liftweb.util.DefaultConnectionIdentifier
 import net.liftweb.util.Helpers
