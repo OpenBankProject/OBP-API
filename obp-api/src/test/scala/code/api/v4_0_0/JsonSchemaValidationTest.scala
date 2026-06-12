@@ -1,5 +1,6 @@
 package code.api.v4_0_0
 
+import org.json4s._
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole
 import code.api.util.ApiRole._
@@ -11,9 +12,9 @@ import code.setup.APIResponse
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.ApiVersion
-import net.liftweb.json
-import net.liftweb.json.JsonAST.JBool
-import net.liftweb.json.{JArray, JString}
+import com.openbankproject.commons.util.json
+import org.json4s.JsonAST.JBool
+import org.json4s.{JArray, JString}
 import org.scalatest.Tag
 
 class JsonSchemaValidationTest extends V400ServerSetup {

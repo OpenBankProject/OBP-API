@@ -1,5 +1,6 @@
 package code.api.util.http4s
 
+import org.json4s._
 import cats.data.{EitherT, Kleisli, OptionT}
 import cats.effect._
 import code.api.Constant
@@ -312,8 +313,8 @@ object ResourceDocMiddleware extends MdcLoggable {
           // Old Style endpoints (v1.x, v2.0.0) keep 400 to match Lift Old Style behavior.
           // New Style endpoints (v2.1.0+) use the original failCode from the exception.
           val (failMsg, parsedCode) = scala.util.Try {
-            implicit val formats = net.liftweb.json.DefaultFormats
-            val parsed = net.liftweb.json.parse(e.getMessage).extract[APIFailureNewStyle]
+            implicit val formats = org.json4s.DefaultFormats
+            val parsed = com.openbankproject.commons.util.JsonAliases.parse(e.getMessage).extract[APIFailureNewStyle]
             (parsed.failMsg, parsed.failCode)
           }.getOrElse(($AuthenticatedUserIsRequired, 401))
           val oldStyleShortVersions = Set("v1.2.1", "v1.3.0", "v1.4.0", "v2.0.0")
@@ -473,8 +474,8 @@ object ResourceDocMiddleware extends MdcLoggable {
     val paramNames = queryString.split("&").map(s => s.split("=", 2)(0)).filter(_.nonEmpty)
     val hasDuplicates = paramNames.groupBy(identity).exists(_._2.length > 1)
     if (hasDuplicates) {
-      import net.liftweb.json.JsonDSL._
-      import net.liftweb.json.compactRender
+      import org.json4s.JsonDSL._
+      import com.openbankproject.commons.util.JsonAliases.compactRender
       // Match Lift's createErrorJsonResponse: {"code": 400, "message": "OBP-XXXXX: ..."}
       // The test asserts extract[ErrorMessage].message where ErrorMessage(code: Int, message: String).
       val body = compactRender(("code" -> 400) ~ ("message" -> code.api.util.ErrorMessages.DuplicateQueryParameters))

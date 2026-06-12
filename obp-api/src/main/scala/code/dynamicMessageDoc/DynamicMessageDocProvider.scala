@@ -1,9 +1,10 @@
 package code.dynamicMessageDoc
 
+import org.json4s._
 import java.net.URLDecoder
 import com.openbankproject.commons.model.JsonFieldReName
 import net.liftweb.common.Box
-import net.liftweb.json.JsonAST.JValue
+import org.json4s.JsonAST.JValue
 import net.liftweb.util.SimpleInjector
 
 import scala.collection.immutable.List

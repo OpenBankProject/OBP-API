@@ -1,5 +1,6 @@
 package code.api.v4_0_0
 
+import org.json4s._
 import code.api.Constant._
 import code.api.util.APIUtil
 import code.api.util.APIUtil.OAuth._
@@ -17,7 +18,7 @@ import com.openbankproject.commons.model.enums.TransactionRequestStatus
 import com.openbankproject.commons.model.enums.TransactionRequestTypes._
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.util.ApiVersion
-import net.liftweb.json.Serialization.write
+import org.json4s.native.Serialization.write
 import org.scalatest.Tag
 
 class MakerCheckerTransactionRequestTest extends V400ServerSetup with DefaultUsers {

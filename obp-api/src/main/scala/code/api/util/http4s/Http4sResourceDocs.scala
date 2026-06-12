@@ -1,5 +1,6 @@
 package code.api.util.http4s
 
+import org.json4s._
 import cats.effect.IO
 import code.api.Constant.HostName
 import code.api.ResourceDocs1_4_0.{ResourceDocs140, ResourceDocs300, ResourceDocsAPIMethodsUtil}
@@ -18,9 +19,10 @@ import com.openbankproject.commons.model.enums.ContentParam
 import com.openbankproject.commons.model.enums.ContentParam.{DYNAMIC, STATIC}
 import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.common.{Box, Empty, Full}
-import net.liftweb.json
-import net.liftweb.json.JsonAST.{JField, JObject, JString, JValue}
-import net.liftweb.json.{Extraction, prettyRender}
+import com.openbankproject.commons.util.json
+import org.json4s.JsonAST.{JField, JObject, JString, JValue}
+import org.json4s.Extraction
+import com.openbankproject.commons.util.JsonAliases.prettyRender
 import org.http4s.dsl.io._
 import org.http4s.headers.`Content-Type`
 import org.http4s._

@@ -1,5 +1,6 @@
 package code.api.v2_2_0
 
+import org.json4s._
 import code.api.Constant
 import code.api.util.APIUtil.OAuth._
 import code.api.util.APIUtil.extractErrorMessageCode
@@ -8,8 +9,7 @@ import code.api.util.ErrorMessages.UserHasMissingRoles
 import code.entitlement.Entitlement
 import code.setup.DefaultUsers
 import com.openbankproject.commons.model.{AccountRoutingJsonV121, AmountOfMoneyJsonV121}
-import net.liftweb.json.JsonAST._
-import net.liftweb.json.Serialization.write
+import org.json4s.native.Serialization.write
 
 import java.util.concurrent.TimeUnit
 import scala.util.Random

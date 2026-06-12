@@ -2,12 +2,13 @@ package code.endpointMapping
 
 /* For Connector endpoint routing, star connector use this provider to find proxy connector name */
 
+import org.json4s._
 import code.dynamicEntity.DynamicEntity
 import com.openbankproject.commons.model.{Converter, JsonFieldReName}
 import net.liftweb.common.Box
-import net.liftweb.json
-import net.liftweb.json.Formats
-import net.liftweb.json.JsonAST.{JArray, JField, JNull, JObject, JString, JValue}
+import com.openbankproject.commons.util.json
+import org.json4s.Formats
+import org.json4s.JsonAST.{JArray, JField, JNull, JObject, JString, JValue}
 import net.liftweb.util.SimpleInjector
 
 object EndpointMappingProvider extends SimpleInjector {

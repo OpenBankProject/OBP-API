@@ -2,8 +2,9 @@ package com.openbankproject.commons.model.enums
 
 import com.openbankproject.commons.util.{EnumValue, JsonAble, OBPEnumeration}
 import net.liftweb.common.Box
-import net.liftweb.json.JsonAST.{JNothing, JString}
-import net.liftweb.json._
+import org.json4s.JsonAST.{JNothing, JString}
+import org.json4s._
+import com.openbankproject.commons.util.JsonAliases._
 
 import java.time.format.DateTimeFormatter
 

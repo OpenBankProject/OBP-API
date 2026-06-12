@@ -1,5 +1,6 @@
 package code.api.v6_0_0
 
+import org.json4s._
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.CanGetAnyUser
 import code.api.util.ErrorMessages
@@ -58,8 +59,8 @@ class GetUserByUserIdTest extends V600ServerSetup with DefaultUsers {
       And("The response should contain user details")
       (response.body \ "user_id").extract[String] should equal(resourceUser1.userId)
       And("The response should include first_name and last_name fields")
-      response.body \ "first_name" should not equal net.liftweb.json.JNothing
-      response.body \ "last_name" should not equal net.liftweb.json.JNothing
+      response.body \ "first_name" should not equal org.json4s.JNothing
+      response.body \ "last_name" should not equal org.json4s.JNothing
     }
 
   }

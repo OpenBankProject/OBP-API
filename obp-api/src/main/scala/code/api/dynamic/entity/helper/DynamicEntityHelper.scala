@@ -7,8 +7,9 @@ import code.api.util.ErrorMessages.{InvalidJsonFormat, UnknownError, UserHasMiss
 import code.api.util._
 import com.openbankproject.commons.model.enums.{DynamicEntityFieldType, DynamicEntityOperation}
 import com.openbankproject.commons.util.ApiVersion
-import net.liftweb.json.JsonDSL._
-import net.liftweb.json._
+import org.json4s.JsonDSL._
+import org.json4s._
+import com.openbankproject.commons.util.JsonAliases._
 import net.liftweb.util.StringHelpers
 import org.apache.commons.lang3.StringUtils
 
@@ -723,7 +724,7 @@ object DynamicEntityHelper {
 }
 case class DynamicEntityInfo(definition: String, entityName: String, bankId: Option[String], hasPersonalEntity: Boolean, hasPublicAccess: Boolean = false, hasCommunityAccess: Boolean = false, personalRequiresRole: Boolean = false) {
 
-  import net.liftweb.json
+  import com.openbankproject.commons.util.json
   import code.api.dynamic.entity.query.FieldSpec
 
   val subEntities: List[DynamicEntityInfo] = Nil

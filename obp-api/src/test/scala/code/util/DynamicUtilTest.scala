@@ -27,13 +27,14 @@ TESOBE (http://www.tesobe.com/)
 
 package code.util
 
+import org.json4s._
 import code.api.util.DynamicUtil.Sandbox
 import code.api.util._
 import code.setup.PropsReset
 import com.openbankproject.commons.model.BankId
 import com.openbankproject.commons.util.{JsonUtils, ReflectUtils}
 import net.liftweb.common.{Box}
-import net.liftweb.json
+import com.openbankproject.commons.util.json
 import org.scalatest.{FeatureSpec, FlatSpec, GivenWhenThen, Matchers, Tag}
 
 import java.io.File
@@ -197,13 +198,13 @@ class DynamicUtilTest extends FlatSpec with Matchers {
       s"""
          | $caseClasses
          |
-         | // throws exception: net.liftweb.json.MappingException:
+         | // throws exception: org.json4s.MappingException:
          | //No usable value for name
          | //Did not find value which can be converted into java.lang.String
          |
          |implicit val formats = code.api.util.CustomJsonFormats.formats
          |(str: String) => {
-         |  net.liftweb.json.parse(str).extract[RootJsonClass]
+         |  com.openbankproject.commons.util.JsonAliases.parse(str).extract[RootJsonClass]
          |}
          |""".stripMargin
 

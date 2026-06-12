@@ -1,5 +1,6 @@
 package code.transactionrequests
 
+import org.json4s._
 import code.api.util.APIUtil.DateWithMsFormat
 import code.api.util.ErrorMessages._
 import code.api.util.{APIUtil, CallContext, CustomJsonFormats}
@@ -14,8 +15,8 @@ import com.openbankproject.commons.model.enums.TransactionRequestTypes.{COUNTERP
 import com.openbankproject.commons.model.enums.{AccountRoutingScheme, TransactionRequestStatus, TransactionRequestTypes}
 import net.liftweb.common.{Box, Failure, Full, Logger}
 import code.util.Helper.MdcLoggable
-import net.liftweb.json
-import net.liftweb.json.JsonAST.{JField, JObject, JString}
+import com.openbankproject.commons.util.json
+import org.json4s.JsonAST.{JField, JObject, JString}
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers._
 

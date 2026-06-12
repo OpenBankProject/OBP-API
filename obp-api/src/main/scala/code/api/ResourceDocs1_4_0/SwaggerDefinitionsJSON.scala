@@ -1,5 +1,6 @@
 package code.api.ResourceDocs1_4_0
 
+import org.json4s._
 import scala.language.implicitConversions
 import code.api.Constant
 import code.api.Constant._
@@ -30,7 +31,7 @@ import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.TransactionRequestTypes._
 import com.openbankproject.commons.model.enums.{AttributeCategory, CardAttributeType, ChallengeType, TransactionRequestStatus}
 import com.openbankproject.commons.util.{ApiVersion, FieldNameApiVersions, ReflectUtils}
-import net.liftweb.json
+import com.openbankproject.commons.util.json
 
 import java.net.URLEncoder
 import java.util.Date
@@ -6423,7 +6424,7 @@ object SwaggerDefinitionsJSON {
 
   // Signal Channels swagger examples
   lazy val postSignalMessageJsonV600 = PostSignalMessageJsonV600(
-    payload = net.liftweb.json.parse("""{"agent_name": "my-agent", "capabilities": ["summarize", "search"]}"""),
+    payload = com.openbankproject.commons.util.JsonAliases.parse("""{"agent_name": "my-agent", "capabilities": ["summarize", "search"]}"""),
     message_type = Some("announce"),
     to_user_id = None
   )
@@ -6436,7 +6437,7 @@ object SwaggerDefinitionsJSON {
     to_user_id = None,
     timestamp = "2026-02-20T10:30:00Z",
     message_type = "announce",
-    payload = net.liftweb.json.parse("""{"agent_name": "my-agent", "capabilities": ["summarize", "search"]}""")
+    payload = com.openbankproject.commons.util.JsonAliases.parse("""{"agent_name": "my-agent", "capabilities": ["summarize", "search"]}""")
   )
 
   lazy val signalMessagesJsonV600 = SignalMessagesJsonV600(

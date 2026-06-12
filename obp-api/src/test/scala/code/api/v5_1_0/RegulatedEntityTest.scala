@@ -1,5 +1,6 @@
 package code.api.v5_1_0
 
+import org.json4s._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.regulatedEntityPostJsonV510
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.{CanCreateRegulatedEntity, CanDeleteRegulatedEntity, CanGetSystemIntegrity}
@@ -9,7 +10,7 @@ import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.ApiVersion
-import net.liftweb.json.Serialization._
+import org.json4s.native.Serialization._
 import org.scalatest.Tag
 
 class RegulatedEntityTest extends V510ServerSetup {

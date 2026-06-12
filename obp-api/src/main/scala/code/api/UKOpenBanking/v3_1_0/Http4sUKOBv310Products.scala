@@ -1,5 +1,6 @@
 package code.api.UKOpenBanking.v3_1_0
 
+import org.json4s._
 import cats.data.{Kleisli, OptionT}
 import cats.effect.IO
 import code.api.util.APIUtil.{EmptyBody, ResourceDoc, mockedDataText}
@@ -13,7 +14,7 @@ import code.util.Helper.MdcLoggable
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
-import net.liftweb.json.Formats
+import org.json4s.Formats
 import org.http4s._
 import org.http4s.dsl.io._
 
@@ -35,7 +36,7 @@ object Http4sUKOBv310Products extends MdcLoggable {
 
   val implementedInApiVersion: ScannedApiVersion = ApiVersion.ukOpenBankingV31
   val resourceDocs = ArrayBuffer[ResourceDoc]()
-  private def parseBody(s: String): net.liftweb.json.JObject = net.liftweb.json.parse(s).asInstanceOf[net.liftweb.json.JObject]
+  private def parseBody(s: String): org.json4s.JObject = com.openbankproject.commons.util.JsonAliases.parse(s).asInstanceOf[org.json4s.JObject]
 
   val ukV31Prefix = Root / ApiVersion.ukOpenBankingV31.urlPrefix / ApiVersion.ukOpenBankingV31.apiShortVersion
 

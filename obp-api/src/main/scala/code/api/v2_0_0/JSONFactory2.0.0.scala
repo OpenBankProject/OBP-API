@@ -26,6 +26,7 @@ TESOBE (http://www.tesobe.com/)
   */
 package code.api.v2_0_0
 
+import org.json4s._
 import java.util.Date
 
 import code.TransactionTypes.TransactionType.TransactionType
@@ -41,8 +42,8 @@ import code.users.Users
 import code.views.Views
 import com.openbankproject.commons.model.{BankAccount, _}
 import net.liftweb.common.{Box, Full}
-import net.liftweb.json.Extraction
-import net.liftweb.json.JsonAST.JValue
+import org.json4s.Extraction
+import org.json4s.JsonAST.JValue
 
 
 

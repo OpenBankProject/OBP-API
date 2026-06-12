@@ -1,12 +1,12 @@
 package com.openbankproject.commons.util
 
+import org.json4s._
 import com.openbankproject.commons.util.Functions.Implicits._
-import net.liftweb
-import net.liftweb.json
-import net.liftweb.json.JsonAST._
-import net.liftweb.json.JsonDSL._
-import net.liftweb.json.JsonParser.ParseException
-import net.liftweb.json.{Diff, JDouble, JInt, JNothing, JNull, JString}
+import com.openbankproject.commons.util.json
+import com.openbankproject.commons.util.JsonAliases.RichJField
+import org.json4s.JsonDSL._
+import org.json4s.ParserUtil.ParseException
+import org.json4s.{Diff, JDouble, JInt, JNothing, JNull, JString}
 import org.apache.commons.lang3.{StringUtils, Validate}
 
 import java.util.Objects
@@ -262,7 +262,7 @@ object JsonUtils {
       //If it is the JObject, we need to loop the JObject(obj: List[JField]) obj field: 
       //for each field, we need to call `rec` until to Stop flag                                                                      
       case JObject(l) => JObject(l.map { field =>
-        f(field.copy(value = rec(field.value, buildPath(path, field.name))), path)
+        f(JField(field.name, rec(field.value, buildPath(path, field.name))), path)
       }
       )
       case JArray(l) => JArray(l.map(rec(_, path)))
@@ -638,7 +638,7 @@ object JsonUtils {
 
   /**
    * recursive delete fields of JValue.
-   * what different between this function with net.liftweb.json.JsonAST.JValue#removeField:
+   * what different between this function with org.json4s.JsonAST.JValue#removeField:
    * this function delete fields, removeField function set field's value to JNothing, this cause error when do deserialization
  *
    * @param jValue to delete fields json
@@ -648,7 +648,7 @@ object JsonUtils {
   def deleteFieldRec(jValue:JValue)(p: JField => Boolean): JValue = {
     def rec(v: JValue): JValue = v match {
       case JObject(l) => JObject(l.collect {
-        case field @JField(_, value) if !p(field) => field.copy(value = rec(value))
+        case field @JField(name, value) if !p(field) => JField(name, rec(value))
       })
       case JArray(l) => JArray(l.map(rec))
       case x => x
@@ -658,7 +658,7 @@ object JsonUtils {
 
   /**
    * delete fields of JValue.
-   * what different between this function with net.liftweb.json.JsonAST.JValue#removeField:
+   * what different between this function with org.json4s.JsonAST.JValue#removeField:
    * this function not delete nested fields, removeField function recursive set field's value to JNothing, this cause error when do deserialization
    * @param jValue to delete fields json
    * @param p checker of whether delete given field.

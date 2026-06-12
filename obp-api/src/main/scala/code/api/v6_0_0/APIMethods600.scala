@@ -32,7 +32,7 @@ trait APIMethods600
 //import code.api.util.JsonSchemaGenerator
 //import code.api.util.NewStyle.HttpCode
 //import code.api.util.{APIUtil, ApiVersionUtils, CallContext, DiagnosticDynamicEntityCheck, ErrorMessages, NewStyle, OBPLimit, OBPOffset, OBPSortBy, RateLimitingUtil}
-//import net.liftweb.json
+//import com.openbankproject.commons.util.json
 //import code.api.util.NewStyle.function.extractQueryParams
 //import code.api.util.newstyle.ViewNewStyle
 //import code.api.v3_0_0.JSONFactory300
@@ -83,9 +83,9 @@ trait APIMethods600
 //import net.liftweb.common.{Box, Empty, Failure, Full}
 //import net.liftweb.util.Helpers.tryo
 //import org.apache.commons.lang3.StringUtils
-//import net.liftweb.json.{Extraction, JsonParser}
-//import net.liftweb.json.JsonAST.{JArray, JField, JNothing, JObject, JString, JValue}
-//import net.liftweb.json.JsonDSL._
+//import org.json4s.{Extraction, JsonParser}
+//import org.json4s.JsonAST.{JArray, JField, JNothing, JObject, JString, JValue}
+//import org.json4s.JsonDSL._
 //import net.liftweb.mapper.{By, Descending, MaxRows, NullRef, OrderBy}
 //import code.api.util.ExampleValue
 //import code.api.util.ExampleValue.dynamicEntityResponseBodyExample
@@ -6303,7 +6303,7 @@ trait APIMethods600
 //            user_id = "user-456",
 //            bank_id = None,
 //            has_personal_entity = true,
-//            schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string"}, "language": {"type": "string"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject],
+//            schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string"}, "language": {"type": "string"}}}""").asInstanceOf[org.json4s.JsonAST.JObject],
 //            record_count = 42
 //          )
 //        )
@@ -6368,7 +6368,7 @@ trait APIMethods600
 //            user_id = "user-456",
 //            bank_id = Some("gh.29.uk"),
 //            has_personal_entity = true,
-//            schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string"}, "language": {"type": "string"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject],
+//            schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string"}, "language": {"type": "string"}}}""").asInstanceOf[org.json4s.JsonAST.JObject],
 //            record_count = 42
 //          )
 //        )
@@ -6520,7 +6520,7 @@ trait APIMethods600
 //        has_public_access = Some(false),
 //        has_community_access = Some(false),
 //        personal_requires_role = Some(false),
-//        schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+//        schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
 //      ),
 //      DynamicEntityDefinitionJsonV600(
 //        dynamic_entity_id = "abc-123-def",
@@ -6531,7 +6531,7 @@ trait APIMethods600
 //        has_public_access = false,
 //        has_community_access = false,
 //        personal_requires_role = false,
-//        schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+//        schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
 //      ),
 //      List(
 //        $AuthenticatedUserIsRequired,
@@ -6615,7 +6615,7 @@ trait APIMethods600
 //        has_public_access = Some(false),
 //        has_community_access = Some(false),
 //        personal_requires_role = Some(false),
-//        schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+//        schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
 //      ),
 //      DynamicEntityDefinitionJsonV600(
 //        dynamic_entity_id = "abc-123-def",
@@ -6626,7 +6626,7 @@ trait APIMethods600
 //        has_public_access = false,
 //        has_community_access = false,
 //        personal_requires_role = false,
-//        schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+//        schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
 //      ),
 //      List(
 //        $BankNotFound,
@@ -6697,7 +6697,7 @@ trait APIMethods600
 //        entity_name = "customer_preferences",
 //        has_personal_entity = Some(true),
 //        has_public_access = Some(false),
-//        schema = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+//        schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
 //      ),
 //      DynamicEntityDefinitionJsonV600(
 //        dynamic_entity_id = "abc-123-def",
@@ -6706,7 +6706,7 @@ trait APIMethods600
 //        bank_id = None,
 //        has_personal_entity = true,
 //        has_public_access = false,
-//        schema = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+//        schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
 //      ),
 //      List(
 //        $AuthenticatedUserIsRequired,
@@ -6776,7 +6776,7 @@ trait APIMethods600
 //        entity_name = "customer_preferences",
 //        has_personal_entity = Some(true),
 //        has_public_access = Some(false),
-//        schema = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+//        schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
 //      ),
 //      DynamicEntityDefinitionJsonV600(
 //        dynamic_entity_id = "abc-123-def",
@@ -6785,7 +6785,7 @@ trait APIMethods600
 //        bank_id = Some("gh.29.uk"),
 //        has_personal_entity = true,
 //        has_public_access = false,
-//        schema = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+//        schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
 //      ),
 //      List(
 //        $BankNotFound,
@@ -6856,7 +6856,7 @@ trait APIMethods600
 //        entity_name = "customer_preferences",
 //        has_personal_entity = Some(true),
 //        has_public_access = Some(false),
-//        schema = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+//        schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
 //      ),
 //      DynamicEntityDefinitionJsonV600(
 //        dynamic_entity_id = "abc-123-def",
@@ -6865,7 +6865,7 @@ trait APIMethods600
 //        bank_id = None,
 //        has_personal_entity = true,
 //        has_public_access = false,
-//        schema = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+//        schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
 //      ),
 //      List(
 //        $AuthenticatedUserIsRequired,
@@ -8869,7 +8869,7 @@ trait APIMethods600
 //            user_id = "user-456",
 //            bank_id = None,
 //            has_personal_entity = true,
-//            schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string"}, "language": {"type": "string"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject],
+//            schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string"}, "language": {"type": "string"}}}""").asInstanceOf[org.json4s.JsonAST.JObject],
 //            _links = Some(DynamicEntityLinksJsonV600(
 //              related = List(
 //                RelatedLinkJsonV600("personal-list", s"/obp/${ApiVersion.`dynamic-entity`}/my/customer_preferences", "GET"),
@@ -8933,7 +8933,7 @@ trait APIMethods600
 //            user_id = "user-456",
 //            bank_id = None,
 //            has_personal_entity = true,
-//            schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string"}, "language": {"type": "string"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject],
+//            schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string"}, "language": {"type": "string"}}}""").asInstanceOf[org.json4s.JsonAST.JObject],
 //            _links = Some(DynamicEntityLinksJsonV600(
 //              related = List(
 //                RelatedLinkJsonV600("personal-list", s"/obp/${ApiVersion.`dynamic-entity`}/my/customer_preferences", "GET"),
@@ -9747,11 +9747,11 @@ trait APIMethods600
 //            }
 //            tagFilter = req.params.get("tag").flatMap(_.headOption).map(_.trim).filter(_.nonEmpty)
 //            resultJson <- {
-//              implicit val formats: net.liftweb.json.Formats = net.liftweb.json.DefaultFormats
+//              implicit val formats: org.json4s.Formats = org.json4s.DefaultFormats
 //              val cacheKey = s"all:${tagFilter.getOrElse("")}"
 //              val cacheTTL = APIUtil.getPropsAsIntValue("getAllApiProductsV600.cache.ttl.seconds", 5)
 //              val hit = Caching.getApiProductsCache(cacheKey, cacheTTL)
-//                .flatMap(s => try Some(net.liftweb.json.parse(s).extract[ApiProductsJsonV600]) catch { case _: Throwable => None })
+//                .flatMap(s => try Some(com.openbankproject.commons.util.JsonAliases.parse(s).extract[ApiProductsJsonV600]) catch { case _: Throwable => None })
 //              hit match {
 //                case Some(cached) => Future.successful(cached)
 //                case None =>
@@ -9763,7 +9763,7 @@ trait APIMethods600
 //                    apiProducts = perBank.flatten
 //                  } yield {
 //                    val result = JSONFactory600.createApiProductsJsonV600(apiProducts)
-//                    Caching.setApiProductsCache(cacheKey, net.liftweb.json.compactRender(Extraction.decompose(result)), cacheTTL)
+//                    Caching.setApiProductsCache(cacheKey, com.openbankproject.commons.util.JsonAliases.compactRender(Extraction.decompose(result)), cacheTTL)
 //                    result
 //                  }
 //              }
@@ -9851,11 +9851,11 @@ trait APIMethods600
 //              // Short TTL is the freshness guarantee; an admin tag change becomes visible within the TTL.
 //              // Redis-backed with versioned namespace prefix so the cache shows up on /system/cache/info
 //              // and can be invalidated by bumping the namespace version.
-//              implicit val formats: net.liftweb.json.Formats = net.liftweb.json.DefaultFormats
+//              implicit val formats: org.json4s.Formats = org.json4s.DefaultFormats
 //              val cacheKey = APIMethods600.productsCacheKey(bankId.value, params)
 //              val cacheTTL = APIUtil.getPropsAsIntValue("getProductsV600.cache.ttl.seconds", 5)
 //              val hit = Caching.getFinancialProductsCache(cacheKey, cacheTTL)
-//                .flatMap(s => try Some(net.liftweb.json.parse(s).extract[ProductsJsonV600]) catch { case _: Throwable => None })
+//                .flatMap(s => try Some(com.openbankproject.commons.util.JsonAliases.parse(s).extract[ProductsJsonV600]) catch { case _: Throwable => None })
 //              hit match {
 //                case Some(cached) => Future.successful(cached)
 //                case None =>
@@ -9864,7 +9864,7 @@ trait APIMethods600
 //                  } yield {
 //                    val tagsByCode = ProductTagsProvider.getTagsByProductCodes(bankId, products.map(_.code.value))
 //                    val result = JSONFactory600.createProductsJsonV600(products, tagsByCode)
-//                    Caching.setFinancialProductsCache(cacheKey, net.liftweb.json.compactRender(Extraction.decompose(result)), cacheTTL)
+//                    Caching.setFinancialProductsCache(cacheKey, com.openbankproject.commons.util.JsonAliases.compactRender(Extraction.decompose(result)), cacheTTL)
 //                    result
 //                  }
 //              }
@@ -9903,11 +9903,11 @@ trait APIMethods600
 //            }
 //            params = req.params.toList.map(kv => GetProductsParam(kv._1, kv._2))
 //            resultJson <- {
-//              implicit val formats: net.liftweb.json.Formats = net.liftweb.json.DefaultFormats
+//              implicit val formats: org.json4s.Formats = org.json4s.DefaultFormats
 //              val cacheKey = APIMethods600.productsCacheKey("__all__", params)
 //              val cacheTTL = APIUtil.getPropsAsIntValue("getAllProductsV600.cache.ttl.seconds", 60)
 //              val hit = Caching.getFinancialProductsCache(cacheKey, cacheTTL)
-//                .flatMap(s => try Some(net.liftweb.json.parse(s).extract[ProductsJsonV600]) catch { case _: Throwable => None })
+//                .flatMap(s => try Some(com.openbankproject.commons.util.JsonAliases.parse(s).extract[ProductsJsonV600]) catch { case _: Throwable => None })
 //              hit match {
 //                case Some(cached) => Future.successful(cached)
 //                case None =>
@@ -9926,7 +9926,7 @@ trait APIMethods600
 //                    }.toMap
 //                    val tagsByCode = tagsByBank.values.foldLeft(Map.empty[String, List[String]])(_ ++ _)
 //                    val result = JSONFactory600.createProductsJsonV600(products, tagsByCode)
-//                    Caching.setFinancialProductsCache(cacheKey, net.liftweb.json.compactRender(Extraction.decompose(result)), cacheTTL)
+//                    Caching.setFinancialProductsCache(cacheKey, com.openbankproject.commons.util.JsonAliases.compactRender(Extraction.decompose(result)), cacheTTL)
 //                    result
 //                  }
 //              }
@@ -10409,7 +10409,7 @@ trait APIMethods600
 //        user_id = "user-456",
 //        bank_id = None,
 //        has_personal_entity = false,
-//        schema = net.liftweb.json.parse("""{"description": "Backup entity", "required": ["name"], "properties": {"name": {"type": "string", "example": "test"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+//        schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "Backup entity", "required": ["name"], "properties": {"name": {"type": "string", "example": "test"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
 //      ),
 //      List(
 //        $AuthenticatedUserIsRequired,
@@ -10454,7 +10454,7 @@ trait APIMethods600
 //        user_id = "user-456",
 //        bank_id = Some("gh.29.uk"),
 //        has_personal_entity = false,
-//        schema = net.liftweb.json.parse("""{"description": "Backup entity", "required": ["name"], "properties": {"name": {"type": "string", "example": "test"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+//        schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "Backup entity", "required": ["name"], "properties": {"name": {"type": "string", "example": "test"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
 //      ),
 //      List(
 //        $AuthenticatedUserIsRequired,
@@ -11106,7 +11106,7 @@ trait APIMethods600
 //                message_type = postJson.message_type.getOrElse(""),
 //                payload = postJson.payload
 //              )
-//              val messageJsonString = net.liftweb.json.compactRender(net.liftweb.json.Extraction.decompose(messageEnvelope))
+//              val messageJsonString = com.openbankproject.commons.util.JsonAliases.compactRender(org.json4s.Extraction.decompose(messageEnvelope))
 //              val count = RedisMessaging.publishMessage(channelName, messageJsonString)
 //              (messageId, timestamp, count)
 //            }
@@ -11172,7 +11172,7 @@ trait APIMethods600
 //            }
 //          } yield {
 //            val parsedMessages: List[SignalMessageJsonV600] = rawMessages.flatMap { msgStr =>
-//              scala.util.Try(net.liftweb.json.parse(msgStr).extract[SignalMessageJsonV600]).toOption
+//              scala.util.Try(com.openbankproject.commons.util.JsonAliases.parse(msgStr).extract[SignalMessageJsonV600]).toOption
 //            }
 //            // Privacy filter: only show broadcasts (to_user_id is None) and messages to/from this user
 //            val filteredMessages = parsedMessages.filter { msg =>
@@ -11233,7 +11233,7 @@ trait APIMethods600
 //                    val (messages, _) = RedisMessaging.fetchMessages(name, 0, count.toInt)
 //                    val hasBroadcast = messages.exists { msgStr =>
 //                      scala.util.Try {
-//                        val msg = net.liftweb.json.parse(msgStr).extract[SignalMessageJsonV600]
+//                        val msg = com.openbankproject.commons.util.JsonAliases.parse(msgStr).extract[SignalMessageJsonV600]
 //                        msg.to_user_id.isEmpty
 //                      }.getOrElse(false)
 //                    }
@@ -12187,9 +12187,9 @@ trait APIMethods600
 //              json.extract[CreateMandateProvisionJsonV600]
 //            }
 //            sigReqJson <- Future {
-//              import net.liftweb.json._
+//              import org.json4s._
 //              implicit val formats: Formats = DefaultFormats
-//              net.liftweb.json.Serialization.write(createJson.signatory_requirements)
+//              org.json4s.native.Serialization.write(createJson.signatory_requirements)
 //            }
 //            (provision, callContext) <- Connector.connector.vend.createMandateProvision(
 //              mandateId,
@@ -12376,9 +12376,9 @@ trait APIMethods600
 //              json.extract[UpdateMandateProvisionJsonV600]
 //            }
 //            sigReqJson <- Future {
-//              import net.liftweb.json._
+//              import org.json4s._
 //              implicit val formats: Formats = DefaultFormats
-//              net.liftweb.json.Serialization.write(updateJson.signatory_requirements)
+//              org.json4s.native.Serialization.write(updateJson.signatory_requirements)
 //            }
 //            (provision, callContext) <- Connector.connector.vend.updateMandateProvision(
 //              provisionId,

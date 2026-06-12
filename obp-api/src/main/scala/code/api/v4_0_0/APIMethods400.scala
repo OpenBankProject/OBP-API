@@ -90,9 +90,9 @@ trait APIMethods400
 //import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
 //import deletion._
 //import net.liftweb.common._
-//import net.liftweb.json.JsonAST.JValue
-//import net.liftweb.json.JsonDSL._
-//import net.liftweb.json._
+//import org.json4s.JsonAST.JValue
+//import org.json4s.JsonDSL._
+//import org.json4s._
 //import net.liftweb.util.Helpers.{now, tryo}
 //import net.liftweb.util.{Helpers, StringHelpers}
 //import org.apache.commons.lang3.StringUtils

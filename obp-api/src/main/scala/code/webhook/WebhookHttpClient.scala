@@ -1,11 +1,11 @@
 package code.webhook
 
+import org.json4s._
 import code.api.util.ApiTrigger.{OnBalanceChange, OnCreateTransaction, OnCreditTransaction, OnDebitTransaction}
 import code.api.util.{ApiTrigger, CustomJsonFormats}
 import code.util.Helper.MdcLoggable
 import code.webhook.WebhookActor.{AccountNotificationWebhookRequest, WebhookRequest, WebhookRequestTrait}
-import net.liftweb
-import net.liftweb.json.Extraction
+import org.json4s.Extraction
 import net.liftweb.mapper.By
 import okhttp3.{MediaType, Request, RequestBody}
 import code.webhook.OkHttpWebhookClient._
@@ -102,7 +102,7 @@ object WebhookHttpClient extends MdcLoggable {
     request.trigger match {
       case OnBalanceChange() | OnCreditTransaction() | OnDebitTransaction() | OnCreateTransaction() =>
         implicit val formats = CustomJsonFormats.formats
-        val json = liftweb.json.compactRender(Extraction.decompose(request.toEventPayload))
+        val json = com.openbankproject.commons.util.JsonAliases.compactRender(Extraction.decompose(request.toEventPayload))
         Some(json)
       case _ =>
         None
@@ -178,13 +178,13 @@ object WebhookHttpClient extends MdcLoggable {
     implicit val formats = CustomJsonFormats.formats
     case class User(name: String, job: String)
     val user = User("morpheus", "leader")
-    val json = liftweb.json.compactRender(Extraction.decompose(user))
+    val json = com.openbankproject.commons.util.JsonAliases.compactRender(Extraction.decompose(user))
     makeAsynchronousRequest(
       composeRequest("https://reqres.in/api/users", "POST", "HTTP/1.1", Some(json)), 
       request)
     
     val user2 = User("morpheus", "zion resident")
-    val json2 = liftweb.json.compactRender(Extraction.decompose(user2))
+    val json2 = com.openbankproject.commons.util.JsonAliases.compactRender(Extraction.decompose(user2))
     makeAsynchronousRequest(
       composeRequest("https://reqres.in/api/users/2", "PUT", "HTTP/1.1", Some(json2)), 
       request

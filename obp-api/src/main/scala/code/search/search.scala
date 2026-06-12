@@ -1,5 +1,6 @@
 package code.search
 
+import org.json4s._
 import java.nio.charset.Charset
 import java.util.Date
 
@@ -11,9 +12,8 @@ import com.sksamuel.elastic4s.{ElasticClient, ElasticProperties}
 import dispatch.Defaults._
 import dispatch.{Http, url, _}
 import net.liftweb.common.{Box, Empty, Failure, Full}
-import net.liftweb.json
-import net.liftweb.json.JsonAST
-import net.liftweb.json.JsonAST._
+import com.openbankproject.commons.util.json
+import org.json4s.JsonAST
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 import scala.util.control.NoStackTrace

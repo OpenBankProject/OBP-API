@@ -1,5 +1,6 @@
 package code.bankconnectors
 
+import org.json4s._
 import _root_.org.apache.pekko.http.scaladsl.model.HttpMethod
 import code.DynamicData.DynamicDataProvider
 import code.accountapplication.AccountApplicationX
@@ -76,8 +77,8 @@ import com.twilio.Twilio
 import com.twilio.`type`.PhoneNumber
 import com.twilio.rest.api.v2010.account.Message
 import net.liftweb.common._
-import net.liftweb.json
-import net.liftweb.json.{JArray, JBool, JObject, JValue}
+import com.openbankproject.commons.util.json
+import org.json4s.{JArray, JBool, JObject, JValue}
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers.{hours, now, time, tryo}

@@ -1,5 +1,6 @@
 package code.api.dynamic.endpoint.helper
 
+import org.json4s._
 import scala.language.existentials
 import org.apache.pekko.http.scaladsl.model.{HttpMethods, HttpMethod => PekkoHttpMethod}
 import code.DynamicData.{DynamicDataProvider, DynamicDataT}
@@ -17,11 +18,10 @@ import io.swagger.v3.oas.models.responses.{ApiResponse, ApiResponses}
 import io.swagger.v3.oas.models.{OpenAPI, Operation, PathItem}
 import io.swagger.v3.parser.OpenAPIV3Parser
 import net.liftweb.common.{Box, Full}
-import net.liftweb.json
-import net.liftweb.json.JsonAST.{JArray, JField, JNothing, JObject, JValue}
-import net.liftweb.json.JsonAST._
-import net.liftweb.json.JsonDSL._
-import net.liftweb.json.JsonParser.ParseException
+import com.openbankproject.commons.util.json
+import org.json4s.JsonAST.{JArray, JField, JNothing, JObject, JValue}
+import org.json4s.JsonDSL._
+import org.json4s.ParserUtil.ParseException
 import org.apache.commons.lang3.{StringUtils, Validate}
 import net.liftweb.util.{StringHelpers, ThreadGlobal}
 import org.apache.commons.io.FileUtils
@@ -34,12 +34,13 @@ import java.util.regex.Pattern
 import java.util.{Date, UUID}
 import com.openbankproject.commons.model.enums.DynamicEntityOperation.GET_ALL
 import io.swagger.v3.oas.models.examples.Example
-import net.liftweb.json.{Formats, JBool}
+import org.json4s.{Formats, JBool}
 
 import scala.collection.JavaConverters._
 import scala.collection.immutable.List
 import scala.collection.mutable
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
+import com.openbankproject.commons.util.JsonAliases.RichJField
 
 
 object DynamicEndpointHelper {

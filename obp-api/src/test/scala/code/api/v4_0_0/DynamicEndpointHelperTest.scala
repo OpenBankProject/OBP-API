@@ -1,12 +1,14 @@
 package code.api.v4_0_0
 
+import org.json4s._
 import code.DynamicData.DynamicDataT
 import code.api.dynamic.endpoint.helper.DynamicEndpointHelper
 import code.api.util.APIUtil.defaultBankId
 import code.connector.MockedCbsConnector.testBankId1
-import net.liftweb.json
-import net.liftweb.json.JsonAST.JValue
-import net.liftweb.json.{Formats, JArray, prettyRender}
+import com.openbankproject.commons.util.json
+import org.json4s.JsonAST.JValue
+import org.json4s.{Formats, JArray}
+import com.openbankproject.commons.util.JsonAliases.prettyRender
 import org.scalatest.{FlatSpec, Matchers, Tag}
 
 import scala.collection.immutable.List
@@ -14,7 +16,7 @@ import scala.collection.immutable.List
 
 class DynamicEndpointHelperTest extends FlatSpec with Matchers {
   object FunctionsTag extends Tag("DynamicEndpointHelper")
-  implicit def formats: Formats = net.liftweb.json.DefaultFormats
+  implicit def formats: Formats = org.json4s.DefaultFormats
 
   "prepareMappingFields single" should "work well" taggedAs FunctionsTag in {
 

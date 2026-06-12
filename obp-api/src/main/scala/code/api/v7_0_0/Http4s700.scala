@@ -1,5 +1,6 @@
 package code.api.v7_0_0
 
+import org.json4s._
 import cats.data.{Kleisli, OptionT}
 import cats.effect._
 import code.api.Constant
@@ -45,8 +46,8 @@ import code.loginattempts.LoginAttempt
 import code.metrics.MappedMetric
 import code.users.UserAgreementProvider
 import net.liftweb.common.Full
-import net.liftweb.json.JsonAST.prettyRender
-import net.liftweb.json.{Extraction, Formats}
+import com.openbankproject.commons.util.JsonAliases.prettyRender
+import org.json4s.{Extraction, Formats}
 import net.liftweb.mapper.{By, Descending, MaxRows, OrderBy}
 import org.http4s._
 import org.http4s.dsl.io._
@@ -1868,7 +1869,7 @@ object Http4s700 {
             posted <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The Json body should be the ${classOf[JSONFactory700.PostValidationEmailRequestJsonV700].getSimpleName}",
               400, Some(cc)) {
-              net.liftweb.json.parse(rawBody).extract[JSONFactory700.PostValidationEmailRequestJsonV700]
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[JSONFactory700.PostValidationEmailRequestJsonV700]
             }
           } yield {
             val username = Option(posted.username).map(_.trim).getOrElse("")

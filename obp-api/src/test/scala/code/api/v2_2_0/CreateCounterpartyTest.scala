@@ -1,5 +1,6 @@
 package code.api.v2_2_0
 
+import org.json4s._
 import code.api.Constant._
 import com.openbankproject.commons.model.ErrorMessage
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
@@ -8,8 +9,7 @@ import code.api.util.ErrorMessages
 import code.setup.DefaultUsers
 import code.views.Views
 import com.openbankproject.commons.model.{AccountId, BankId, ViewId, BankIdAccountIdViewId}
-import net.liftweb.json.JsonAST._
-import net.liftweb.json.Serialization.write
+import org.json4s.native.Serialization.write
 
 class CreateCounterpartyTest extends V220ServerSetup with DefaultUsers {
   

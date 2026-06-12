@@ -1,5 +1,6 @@
 package com.openbankproject.commons.util
 
+import org.json4s._
 import java.lang.reflect.{Field, Modifier}
 
 import net.liftweb.common.{Box, Empty, Failure, Full}
@@ -12,7 +13,7 @@ import scala.language.postfixOps
 import scala.reflect.runtime.universe._
 import scala.reflect.runtime.{universe => ru}
 import scala.util.Success
-import net.liftweb.json.JValue
+import org.json4s.JValue
 import org.apache.commons.lang3.StringUtils
 import org.apache.commons.lang3.reflect.FieldUtils
 

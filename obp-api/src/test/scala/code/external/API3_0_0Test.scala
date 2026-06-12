@@ -36,7 +36,7 @@
 //import code.api.v1_2._
 //import code.api.v3_0_0.V300ServerSetup
 //import code.setup.{APIResponse, DefaultUsers, User1AllPrivileges}
-//import net.liftweb.json._
+//import org.json4s._
 //import net.liftweb.util.Helpers._
 //import org.scalatest._
 //

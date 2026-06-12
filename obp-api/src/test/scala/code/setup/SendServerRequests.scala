@@ -33,8 +33,9 @@ import code.api.ResponseHeader
 import dispatch.Defaults._
 import dispatch._
 import net.liftweb.common.Full
-import net.liftweb.json.JsonAST.JValue
-import net.liftweb.json._
+import org.json4s.JsonAST.JValue
+import org.json4s._
+import com.openbankproject.commons.util.JsonAliases._
 import net.liftweb.util.Helpers._
 import java.net.URLDecoder
 

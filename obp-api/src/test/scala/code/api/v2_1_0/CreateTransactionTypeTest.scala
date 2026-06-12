@@ -1,5 +1,6 @@
 package code.api.v2_1_0
 
+import org.json4s._
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.CanCreateTransactionType
 import code.api.util.{APIUtil, ApiRole, ErrorMessages}
@@ -11,7 +12,7 @@ import code.transaction_types.MappedTransactionType
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.{AmountOfMoneyJsonV121, ErrorMessage, TransactionTypeId}
 import com.openbankproject.commons.util.ApiVersion
-import net.liftweb.json.Serialization._
+import org.json4s.native.Serialization._
 import org.scalatest.Tag
 
 /**

@@ -1,5 +1,6 @@
 package code.obp.grpc
 
+import org.json4s._
 import scala.language.existentials
 import scala.language.reflectiveCalls
 import code.api.util.newstyle.ViewNewStyle
@@ -16,9 +17,9 @@ import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
 import io.grpc.{Server, ServerBuilder}
 import net.liftweb.common.Full
-import net.liftweb.json.JsonAST.{JField, JObject}
-import net.liftweb.json.JsonDSL._
-import net.liftweb.json.{Extraction, JArray}
+import org.json4s.JsonAST.{JField, JObject}
+import org.json4s.JsonDSL._
+import org.json4s.{Extraction, JArray}
 
 import scala.concurrent.{ExecutionContext, Future}
 

@@ -1,13 +1,14 @@
 package code.api.http4sbridge
 
+import org.json4s._
 import code.Http4sTestServer
 import code.api.util.APIUtil
 import code.setup.{DefaultUsers, ServerSetup, ServerSetupWithTestData}
 import code.views.system.AccountAccess
 import dispatch.Defaults._
 import dispatch._
-import net.liftweb.json.JsonAST.JObject
-import net.liftweb.json.JsonParser.parse
+import org.json4s.JsonAST.JObject
+import com.openbankproject.commons.util.JsonAliases.parse
 import org.scalatest.Tag
 
 import scala.collection.JavaConverters._

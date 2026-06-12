@@ -1,10 +1,11 @@
 package code.api.util.http4s
 
+import org.json4s._
 import cats.effect.IO
 import cats.effect.unsafe.implicits.global
 import code.api.util.CallContext
 import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, callContextKey}
-import net.liftweb.json.{DefaultFormats, Formats}
+import org.json4s.{DefaultFormats, Formats}
 import org.http4s.{Request, Response}
 import org.scalatest.{FeatureSpec, GivenWhenThen, Matchers}
 import org.typelevel.ci.CIString

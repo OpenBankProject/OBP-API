@@ -1,12 +1,13 @@
 package code.api.cache
 
+import org.json4s._
 import code.api.util.ApiRole._
 import code.api.util.{APIUtil, ApiRole}
 import code.logcache.LogCacheEventBus
 
 import net.liftweb.common.{Box, Empty, Failure => LiftFailure, Full, Logger}
-import net.liftweb.json
-import net.liftweb.json.Serialization.write
+import com.openbankproject.commons.util.json
+import org.json4s.native.Serialization.write
 import redis.clients.jedis.{Jedis, Pipeline}
 
 import java.util.concurrent.{Executors, ScheduledThreadPoolExecutor, TimeUnit}

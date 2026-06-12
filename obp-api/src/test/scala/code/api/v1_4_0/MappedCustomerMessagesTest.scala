@@ -1,5 +1,6 @@
 package code.api.v1_4_0
 
+import org.json4s._
 import code.api.util.APIUtil.OAuth._
 import code.api.util.{APIUtil, ApiRole}
 import code.api.v1_4_0.JSONFactory1_4_0.{AddCustomerMessageJson, CustomerFaceImageJson, CustomerMessagesJson}
@@ -10,7 +11,7 @@ import code.setup.DefaultUsers
 import code.usercustomerlinks.UserCustomerLink
 import com.openbankproject.commons.model.Customer
 import net.liftweb.common.{Box, Empty, Full}
-import net.liftweb.json.Serialization.write
+import org.json4s.native.Serialization.write
 
 //TODO: API test should be independent of CustomerMessages implementation
 class MappedCustomerMessagesTest extends V140ServerSetup with DefaultUsers {

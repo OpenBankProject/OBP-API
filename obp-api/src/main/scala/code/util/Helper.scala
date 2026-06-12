@@ -1,5 +1,6 @@
 package code.util
 
+import org.json4s._
 import code.api.cache.{Redis, RedisLogger}
 
 import java.net.{Socket, SocketException, URL}
@@ -12,9 +13,8 @@ import code.customer.internalMapping.MappedCustomerIdMappingProvider
 import code.model.dataAccess.internalMapping.MappedAccountIdMappingProvider
 import code.transaction.internalMapping.MappedTransactionIdMappingProvider
 import net.liftweb.common._
-import net.liftweb.json.Extraction._
-import net.liftweb.json.JsonAST._
-import net.liftweb.json.{DateFormat, Formats}
+import org.json4s.Extraction._
+import org.json4s.{DateFormat, Formats}
 import org.apache.commons.lang3.StringUtils
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.{AccountBalance, AccountBalances, AccountHeld, AccountId, CoreAccount, Customer, CustomerId, Transaction, TransactionCore, TransactionId}
@@ -29,6 +29,7 @@ import scala.util.Random
 import scala.reflect.runtime.universe.Type
 import scala.reflect.runtime.universe._
 import scala.concurrent.duration._
+import com.openbankproject.commons.util.JsonAliases.prettyRender
 
 
 
@@ -211,7 +212,7 @@ object Helper extends Loggable {
   /**
     * change the TimeZone to the current TimeZOne
     * reference the following trait
-    * net.liftweb.json
+    * org.json4s
     * trait DefaultFormats
     * extends Formats
     */
@@ -228,6 +229,8 @@ object Helper extends Loggable {
       }
 
       def format(d: Date) = formatter.format(d)
+
+      def timezone: java.util.TimeZone = new GregorianCalendar().getTimeZone
 
       private def formatter = {
         val f = dateFormatter

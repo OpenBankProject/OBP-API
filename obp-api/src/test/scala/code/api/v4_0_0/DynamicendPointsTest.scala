@@ -1,5 +1,6 @@
 package code.api.v4_0_0
 
+import org.json4s._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole._
@@ -12,9 +13,9 @@ import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.ApiVersion
-import net.liftweb.json.JArray
-import net.liftweb.json.JsonAST.{JField, JString}
-import net.liftweb.json.Serialization.write
+import org.json4s.JArray
+import org.json4s.JsonAST.{JField, JString}
+import org.json4s.native.Serialization.write
 import org.scalatest.Tag
 
 class DynamicEndpointsTest extends V400ServerSetup {
@@ -1700,7 +1701,7 @@ class DynamicEndpointsTest extends V400ServerSetup {
       duplicatedRequest.body.extract[ErrorMessage].message.toString contains (DynamicEndpointExists) should be (true)
 
 
-      val id = responseWithRole.body.\\("dynamic_endpoint_id").values.get("dynamic_endpoint_id").head.toString
+      val id = responseWithRole.body.\\("dynamic_endpoint_id").values.toString
 
       val request400 = (v4_0_0_Request / "management" / "dynamic-endpoints" /id).GET<@ (user1)
       val response400 = makeGetRequest(request400)
@@ -1759,7 +1760,7 @@ class DynamicEndpointsTest extends V400ServerSetup {
       responseWithRole.code should equal(201)
 
 
-      val id = responseWithRole.body.\\("dynamic_endpoint_id").values.get("dynamic_endpoint_id").head.toString
+      val id = responseWithRole.body.\\("dynamic_endpoint_id").values.toString
 
       val request400 = (v4_0_0_Request / "management" / "dynamic-endpoints" /id).GET<@ (user1)
       val response400 = makeGetRequest(request400)
@@ -1797,7 +1798,7 @@ class DynamicEndpointsTest extends V400ServerSetup {
       responseWithRole.code should equal(201)
 
 
-      val id = responseWithRole.body.\\("dynamic_endpoint_id").values.get("dynamic_endpoint_id").head.toString
+      val id = responseWithRole.body.\\("dynamic_endpoint_id").values.toString
 
       val request400 = (v4_0_0_Request / "my" / "dynamic-endpoints").GET<@ (user1)
       val response400 = makeGetRequest(request400)

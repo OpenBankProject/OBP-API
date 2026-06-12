@@ -33,9 +33,10 @@ import com.openbankproject.commons.model.{BankId, ListResult, User}
 import com.openbankproject.commons.util.ApiStandards._
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
 import net.liftweb.common.{Box, Empty, Full}
-import net.liftweb.json
-import net.liftweb.json.JsonAST.{JField, JString, JValue}
-import net.liftweb.json._
+import com.openbankproject.commons.util.json
+import org.json4s.JsonAST.{JField, JString, JValue}
+import org.json4s._
+import com.openbankproject.commons.util.JsonAliases._
 
 import java.util.concurrent.ConcurrentHashMap
 import scala.collection.immutable

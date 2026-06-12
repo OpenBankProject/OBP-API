@@ -56,8 +56,9 @@ import com.openbankproject.commons.util.JsonUtils
 import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common._
 import code.api.JsonResponse
-import net.liftweb.json.JsonDSL._
-import net.liftweb.json._
+import org.json4s.JsonDSL._
+import org.json4s._
+import com.openbankproject.commons.util.JsonAliases._
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Props
 import org.apache.commons.lang3.StringUtils

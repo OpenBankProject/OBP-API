@@ -1,10 +1,11 @@
 package code.dynamicResourceDoc
 
+import org.json4s._
 import code.api.cache.Caching
 import code.api.util.APIUtil
 import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common.{Box, Empty, Full}
-import net.liftweb.json
+import com.openbankproject.commons.util.json
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Props

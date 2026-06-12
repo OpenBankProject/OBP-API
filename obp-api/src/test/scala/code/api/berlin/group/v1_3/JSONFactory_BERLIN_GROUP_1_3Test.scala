@@ -31,7 +31,8 @@ import code.api.util.CustomJsonFormats
 import code.model.ModeratedTransaction
 import code.setup.PropsReset
 import com.openbankproject.commons.model._
-import net.liftweb.json._
+import org.json4s._
+import com.openbankproject.commons.util.JsonAliases._
 import org.scalatest.{FeatureSpec, GivenWhenThen, Matchers}
 
 

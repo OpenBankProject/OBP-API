@@ -1,12 +1,13 @@
 package code.api.v6_0_0
 
+import org.json4s._
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ErrorMessages
 import code.api.util.ErrorMessages.InvalidStrongPasswordFormat
 import code.consumer.Consumers
 import code.model.dataAccess.AuthUser
 import com.openbankproject.commons.util.ApiVersion
-import net.liftweb.json.Serialization.write
+import org.json4s.native.Serialization.write
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.randomString
 import org.scalatest.Tag

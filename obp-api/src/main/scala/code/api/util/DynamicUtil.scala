@@ -1,5 +1,6 @@
 package code.api.util
 
+import org.json4s._
 import code.api.Constant.SHOW_USED_CONNECTOR_METHODS
 import code.api.{APIFailureNewStyle, JsonResponseException}
 import code.api.util.ErrorMessages.DynamicResourceDocMethodDependency
@@ -10,7 +11,8 @@ import com.openbankproject.commons.util.Functions.Memo
 import com.openbankproject.commons.util.{JsonUtils, ReflectUtils}
 import javassist.{ClassPool, LoaderClassPath}
 import net.liftweb.common.{Box, Empty, Failure, Full, ParamFailure}
-import net.liftweb.json.{Extraction, JValue, prettyRender}
+import org.json4s.{Extraction, JValue}
+import com.openbankproject.commons.util.JsonAliases.prettyRender
 import org.apache.commons.lang3.StringUtils
 import org.graalvm.polyglot.{Context, Engine, HostAccess, PolyglotAccess}
 
@@ -128,12 +130,12 @@ object DynamicUtil extends MdcLoggable{
       s"""
          | $caseClasses
          |
-         | // throws exception: net.liftweb.json.MappingException:
+         | // throws exception: org.json4s.MappingException:
          | //No usable value for name
          | //Did not find value which can be converted into java.lang.String
          |
          |implicit val formats = code.api.util.CustomJsonFormats.formats
-         |(jValue: net.liftweb.json.JsonAST.JValue) => {
+         |(jValue: org.json4s.JsonAST.JValue) => {
          |  jValue.extract[RootJsonClass]
          |}
          |""".stripMargin
@@ -286,11 +288,12 @@ object DynamicUtil extends MdcLoggable{
       |import com.openbankproject.commons.util.{JsonUtils, ReflectUtils}
       |// import com.tesobe.{CacheKeyFromArguments, CacheKeyOmit}
       |import net.liftweb.common.{Box, Empty, _}
-      |import net.liftweb.json
-      |import net.liftweb.json.Extraction.decompose
-      |import net.liftweb.json.JsonDSL._
-      |import net.liftweb.json.JsonParser.ParseException
-      |import net.liftweb.json.{JValue, _}
+      |import com.openbankproject.commons.util.json
+      |import org.json4s.Extraction.decompose
+      |import org.json4s.JsonDSL._
+      |import org.json4s.ParserUtil.ParseException
+      |import org.json4s.{JValue, _}
+      |import com.openbankproject.commons.util.JsonAliases._
       |import net.liftweb.util.Helpers.tryo
       |import org.apache.commons.lang3.StringUtils
       |
@@ -478,7 +481,7 @@ object DynamicUtil extends MdcLoggable{
 
   def createJavaFunction(methodBody:String): Box[DynamicFunction] = memoDynamicFunction.memoize("java:" + methodBody) {
     import com.openbankproject.commons.ExecutionContext.Implicits.global
-    import net.liftweb.json.compactRender
+    import com.openbankproject.commons.util.JsonAliases.compactRender
 
     Box tryo {
       val packageExp = UUID.randomUUID().toString.replaceAll("^|-", "_")

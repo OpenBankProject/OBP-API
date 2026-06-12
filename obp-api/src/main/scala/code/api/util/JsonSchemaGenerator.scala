@@ -1,9 +1,9 @@
 package code.api.util
 
+import org.json4s._
 import code.api.util.APIUtil.MessageDoc
 import com.openbankproject.commons.util.ReflectUtils
-import net.liftweb.json.JsonAST._
-import net.liftweb.json.JsonDSL._
+import org.json4s.JsonDSL._
 
 import scala.reflect.runtime.universe._
 

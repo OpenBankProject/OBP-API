@@ -1,4 +1,5 @@
 package code.api.v5_1_0
+import org.json4s._
 import java.util.UUID
 import code.api.Constant.{SYSTEM_OWNER_VIEW_ID}
 import code.api.util.ErrorMessages._
@@ -9,7 +10,7 @@ import code.api.v5_1_0.OBPAPI5_1_0.Implementations5_1_0
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.{AmountOfMoneyJsonV121, ErrorMessage}
 import com.openbankproject.commons.util.ApiVersion
-import net.liftweb.json.Serialization.write
+import org.json4s.native.Serialization.write
 import org.scalatest.Tag
 
 class CounterpartyLimitTest extends V510ServerSetup {

@@ -1,5 +1,6 @@
 package code.api.ResourceDocs1_4_0
 
+import org.json4s._
 import code.api.Constant
 import code.api.ResourceDocs1_4_0.ResourceDocs140.ImplementationsResourceDocs
 import code.api.berlin.group.ConstantsBG
@@ -10,9 +11,8 @@ import code.api.v1_4_0.JSONFactory1_4_0.ResourceDocsJson
 import code.setup.{DefaultUsers, PropsReset}
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.util.{ApiVersion, Functions}
-import net.liftweb.json
-import net.liftweb.json.JsonAST._
-import net.liftweb.json.{Formats, JString, Serializer, TypeInfo}
+import com.openbankproject.commons.util.json
+import org.json4s.{Formats, JString, Serializer, TypeInfo}
 import org.scalatest.Tag
 
 import scala.xml.NodeSeq

@@ -98,6 +98,11 @@
         <artifactId>lift-persistence_${scala.version}</artifactId>
         <version>${lift.version}</version>
       </dependency>
+      <dependency>
+        <groupId>org.json4s</groupId>
+        <artifactId>json4s-native_${scala.version}</artifactId>
+        <version>3.6.12</version>
+      </dependency>
       <!-- https://mvnrepository.com/artifact/org.apache.commons/commons-lang3 -->
       <dependency>
         <groupId>org.apache.commons</groupId>

@@ -1,5 +1,6 @@
 package code.api.v3_1_0
 
+import org.json4s._
 import code.api.util.APIUtil.OAuth.{Consumer, Token, _}
 import code.api.util.ApiRole.CanCreateProduct
 import code.api.v1_2_1._
@@ -8,7 +9,7 @@ import code.api.v3_0_0.{TransactionJsonV300, TransactionsJsonV300, ViewsJsonV300
 import code.entitlement.Entitlement
 import code.setup.{APIResponse, DefaultUsers, ServerSetupWithTestData}
 import dispatch.Req
-import net.liftweb.json.Serialization.write
+import org.json4s.native.Serialization.write
 
 import scala.util.Random.nextInt
 

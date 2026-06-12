@@ -1,14 +1,16 @@
 package code.api.util
 
+import org.json4s._
 import code.api.util.APIUtil.{BooleanBody, DoubleBody, EmptyBody, JArrayBody, LongBody, PrimaryDataBody, StringBody}
 import code.api.util.ApiRole.rolesMappedToClasses
 import com.openbankproject.commons.dto.InBoundTrait
 import com.openbankproject.commons.model.TopicTrait
 import com.openbankproject.commons.util.Functions.Memo
 import com.openbankproject.commons.util.{JsonUtils, _}
-import net.liftweb.json
-import net.liftweb.json.JsonAST.JValue
-import net.liftweb.json.{TypeInfo, _}
+import com.openbankproject.commons.util.json
+import org.json4s.JsonAST.JValue
+import org.json4s.{TypeInfo, _}
+import com.openbankproject.commons.util.JsonAliases._
 import org.apache.commons.lang3.StringUtils
 
 import java.text.SimpleDateFormat
@@ -25,14 +27,14 @@ object CustomJsonFormats {
   val formats: Formats = JsonSerializers.commonFormats + PrimaryDataBodySerializer + ToStringDeSerializer + TupleSerializer
 
 
-  val losslessFormats: Formats =  net.liftweb.json.DefaultFormats.lossless ++ JsonSerializers.serializers
+  val losslessFormats: Formats =  org.json4s.DefaultFormats.lossless ++ JsonSerializers.serializers
 
   val emptyHintFormats = DefaultFormats.withHints(ShortTypeHints(List())) ++ JsonSerializers.serializers
 
   implicit val nullTolerateFormats = JsonSerializers.nullTolerateFormats
 
   lazy val rolesMappedToClassesFormats: Formats = new Formats {
-    val dateFormat = net.liftweb.json.DefaultFormats.dateFormat
+    val dateFormat = org.json4s.DefaultFormats.dateFormat
 
     override val typeHints = ShortTypeHints(rolesMappedToClasses)
   } ++ JsonSerializers.serializers
@@ -158,7 +160,7 @@ object ToStringDeSerializer extends ObpDeSerializer[String] {
  * deserialize jvalue to string, even if jvalue is not JString type, it can deserialize successfully.
  */
 object TupleSerializer extends ObpSerializer[(String, Any)] {
-  import net.liftweb.json.JsonDSL._
+  import org.json4s.JsonDSL._
   override def serialize(implicit format: Formats): PartialFunction[Any, json.JValue] = {
     case (name: String, value: Any) =>
       name -> json.Extraction.decompose(value)

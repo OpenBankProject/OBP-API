@@ -5,10 +5,11 @@ import com.openbankproject.commons.model.{JsonFieldReName, ListResult}
 import com.openbankproject.commons.util.Functions.Implicits._
 import com.openbankproject.commons.util.Functions.Memo
 import net.liftweb.common.Box
-import net.liftweb.json
-import net.liftweb.json.JsonAST.JValue
-import net.liftweb.json.JsonDSL._
-import net.liftweb.json._
+import com.openbankproject.commons.util.json
+import org.json4s.JsonAST.JValue
+import org.json4s.JsonDSL._
+import org.json4s._
+import com.openbankproject.commons.util.JsonAliases._
 import net.liftweb.mapper.Mapper
 import net.liftweb.util.StringHelpers
 
@@ -19,7 +20,7 @@ import scala.reflect.runtime.{universe => ru}
 object JsonSerializers {
 
   object CustomFormats extends DefaultFormats {
-    private val defaultFormats =  net.liftweb.json.DefaultFormats
+    private val defaultFormats =  org.json4s.DefaultFormats
     val losslessDate = defaultFormats.losslessDate
     val UTC = defaultFormats.UTC
 
@@ -28,11 +29,14 @@ object JsonSerializers {
      * Here override it to: when execute fail, try to call constructor.getParamters
      */
     override val parameterNameReader: ParameterNameReader = new ParameterNameReader {
-      override def lookupParameterNames(constructor: Constructor[_]): Traversable[String] =  try {
-          defaultFormats.parameterNameReader.lookupParameterNames(constructor)
-        } catch {
-          case _ : Throwable => constructor.getParameters.map(_.getName)
-        }
+      override def lookupParameterNames(constructor: org.json4s.reflect.Executable): Seq[String] = try {
+        defaultFormats.parameterNameReader.lookupParameterNames(constructor)
+      } catch {
+        case _: Throwable =>
+          val underlying: java.lang.reflect.Executable =
+            if (constructor.constructor != null) constructor.constructor else constructor.method
+          underlying.getParameters.map(_.getName).toIndexedSeq
+      }
     }
   }
 
@@ -378,7 +382,7 @@ object JNothingSerializer extends ObpDeSerializer[Any] {
     }
 
   /**
-   * absolutely simulate net.liftweb.json.Meta.Constructor#bestMatching,
+   * absolutely simulate org.json4s.Meta.Constructor#bestMatching,
    * to find beast matching constructor parameters
    * @param constructors
    * @param names json object Field Names

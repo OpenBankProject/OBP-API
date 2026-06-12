@@ -1,5 +1,6 @@
 package code.obp.grpc.metricsstream
 
+import org.json4s._
 import code.api.util.APIUtil
 import code.api.util.APIUtil.UserOnly
 import code.api.util.ApiRole.canReadMetrics
@@ -9,8 +10,8 @@ import code.obp.grpc.metricsstream.api._
 import code.util.Helper.MdcLoggable
 import io.grpc.Status
 import io.grpc.stub.{ServerCallStreamObserver, StreamObserver}
-import net.liftweb.json
-import net.liftweb.json.JsonAST.JValue
+import com.openbankproject.commons.util.json
+import org.json4s.JsonAST.JValue
 
 /**
  * gRPC service implementation for metrics streaming.

@@ -1,5 +1,6 @@
 package code.api.v5_0_0
 
+import org.json4s._
 import code.Http4sTestServer
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil
@@ -9,15 +10,16 @@ import code.setup.ServerSetupWithTestData
 import code.views.system.AccountAccess
 import dispatch.Defaults._
 import dispatch._
-import net.liftweb.json.JValue
-import net.liftweb.json.JsonAST.{JField, JObject, JString}
-import net.liftweb.json.JsonParser.parse
-import net.liftweb.json.Serialization.write
+import org.json4s.JValue
+import org.json4s.JsonAST.{JField, JObject, JString}
+import com.openbankproject.commons.util.JsonAliases.parse
+import org.json4s.native.Serialization.write
 import net.liftweb.mapper.By
 import org.scalatest.Tag
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
+import com.openbankproject.commons.util.JsonAliases.RichJField
 
 /**
  * HTTP4S v5.0.0 System Views CRUD Integration Test

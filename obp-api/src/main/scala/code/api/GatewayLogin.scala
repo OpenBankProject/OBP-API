@@ -38,7 +38,8 @@ import code.util.Helper.MdcLoggable
 import com.nimbusds.jwt.JWTClaimsSet
 import com.openbankproject.commons.model.{InboundAccount, User}
 import net.liftweb.common._
-import net.liftweb.json._
+import org.json4s._
+import com.openbankproject.commons.util.JsonAliases._
 import net.liftweb.util.Helpers
 
 import com.openbankproject.commons.ExecutionContext.Implicits.global

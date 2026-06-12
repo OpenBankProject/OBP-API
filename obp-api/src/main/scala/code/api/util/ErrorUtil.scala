@@ -4,7 +4,8 @@ import code.api.APIFailureNewStyle
 import code.api.util.APIUtil.fullBoxOrException
 import com.openbankproject.commons.model.User
 import net.liftweb.common.{Box, Empty, Failure}
-import net.liftweb.json._
+import org.json4s._
+import com.openbankproject.commons.util.JsonAliases._
 
 
 object ErrorUtil {

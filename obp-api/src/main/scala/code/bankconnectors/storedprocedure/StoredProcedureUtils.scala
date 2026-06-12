@@ -1,5 +1,6 @@
 package code.bankconnectors.storedprocedure
 
+import org.json4s._
 import cats.effect.IO
 import cats.effect.unsafe.implicits.global
 import code.api.util.APIUtil
@@ -14,7 +15,7 @@ import doobie.implicits._
 import doobie.free.{connection => FC}
 import doobie.util.transactor.Strategy
 import net.liftweb.common.{Box, Empty, Full}
-import net.liftweb.json.Serialization.write
+import org.json4s.native.Serialization.write
 import net.liftweb.mapper.Schemifier
 
 /**

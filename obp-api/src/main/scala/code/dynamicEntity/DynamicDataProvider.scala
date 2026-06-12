@@ -1,8 +1,9 @@
 package code.DynamicData
 
+import org.json4s._
 import com.openbankproject.commons.model.{Converter, JsonFieldReName}
 import net.liftweb.common.Box
-import net.liftweb.json.JObject
+import org.json4s.JObject
 import net.liftweb.util.SimpleInjector
 
 object DynamicDataProvider extends SimpleInjector {

@@ -40,7 +40,7 @@ object APIMethods200 {
 //import com.openbankproject.commons.model._
 //import com.openbankproject.commons.util.ApiVersion
 //import net.liftweb.common._
-//import net.liftweb.json.JsonAST.JValue
+//import org.json4s.JsonAST.JValue
 //import net.liftweb.mapper.By
 //import net.liftweb.util.Helpers.tryo
 //import net.liftweb.util.StringHelpers
@@ -52,7 +52,7 @@ object APIMethods200 {
 //import code.api.util.ApiRole._
 //import code.api.util.ErrorMessages._
 //import com.openbankproject.commons.model.{AmountOfMoneyJsonV121 => AmountOfMoneyJSON121}
-//import net.liftweb.json.Extraction
+//import org.json4s.Extraction
 //
 //trait APIMethods200 {
 //  //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
@@ -1291,8 +1291,8 @@ object APIMethods200 {
 //    }
 //
 //
-//    import net.liftweb.json.Extraction._
-//    import net.liftweb.json.JsonAST._
+//    import org.json4s.Extraction._
+//    import org.json4s.JsonAST._
 //    val exchangeRates = prettyRender(decompose(fx.fallbackExchangeRates))
 //
 //    resourceDocs += ResourceDoc(

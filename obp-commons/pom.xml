@@ -32,7 +32,10 @@
             <groupId>org.scalactic</groupId>
             <artifactId>scalactic_${scala.version}</artifactId>
         </dependency>
-        <!-- net.liftweb.json now ships inside lift-persistence; no separate lift-json artifact -->
+        <dependency>
+            <groupId>org.json4s</groupId>
+            <artifactId>json4s-native_${scala.version}</artifactId>
+        </dependency>
         <!-- InheritableThreadLocal enhancement-->
         <dependency>
             <groupId>com.alibaba</groupId>

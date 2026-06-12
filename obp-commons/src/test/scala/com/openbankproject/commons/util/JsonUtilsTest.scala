@@ -1,12 +1,13 @@
 package com.openbankproject.commons.util
 
 import net.liftweb.common.Full
-import net.liftweb.json
+import com.openbankproject.commons.util.json
 
 import java.util.Date
-import net.liftweb.json.Extraction.decompose
-import net.liftweb.json._
-import net.liftweb.json.JsonAST.JValue
+import org.json4s.Extraction.decompose
+import org.json4s._
+import com.openbankproject.commons.util.JsonAliases._
+import org.json4s.JsonAST.JValue
 import org.scalatest.{FlatSpec, Matchers, Tag}
 
 import java.text.SimpleDateFormat
@@ -14,7 +15,7 @@ import scala.collection.immutable.{List, Nil}
 
 class JsonUtilsTest extends FlatSpec with Matchers {
   object FunctionsTag extends Tag("JsonUtils")
-  implicit def formats: Formats = net.liftweb.json.DefaultFormats
+  implicit def formats: Formats = org.json4s.DefaultFormats
 
   "collectFieldNames" should "return all the field names and path" taggedAs FunctionsTag in {
 
@@ -34,7 +35,7 @@ class JsonUtilsTest extends FlatSpec with Matchers {
       true
     )
 
-    implicit def formats: Formats = net.liftweb.json.DefaultFormats
+    implicit def formats: Formats = org.json4s.DefaultFormats
     val fields = JsonUtils.collectFieldNames(decompose(testObject))
 
     val names: List[String] = fields.map(_._1).toList
@@ -93,7 +94,7 @@ class JsonUtilsTest extends FlatSpec with Matchers {
       true
     )
 
-    implicit def formats: Formats = net.liftweb.json.DefaultFormats
+    implicit def formats: Formats = org.json4s.DefaultFormats
 
     val excludedFieldValues = Full(s"""["$DateWithSecondsExampleString", "", null, [], {}]""").map[JArray](it => json.parse(it).asInstanceOf[JArray])
 

@@ -1,12 +1,13 @@
 package code.bankconnectors.rabbitmq
 
+import org.json4s._
 import code.api.util.ErrorMessages.AdapterUnknownError
 import code.bankconnectors.Connector
 import code.util.Helper.MdcLoggable
 import code.api.util.APIUtil
 import com.openbankproject.commons.model.TopicTrait
 import net.liftweb.common.{Box, Empty, Failure, Full}
-import net.liftweb.json.Serialization.write
+import org.json4s.native.Serialization.write
 import com.rabbitmq.client.AMQP.BasicProperties
 import com.rabbitmq.client._
 import java.util

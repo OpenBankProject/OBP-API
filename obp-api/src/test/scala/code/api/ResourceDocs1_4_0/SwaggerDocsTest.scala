@@ -1,5 +1,6 @@
 package code.api.ResourceDocs1_4_0
 
+import org.json4s._
 import code.api.ResourceDocs1_4_0.ResourceDocs140.ImplementationsResourceDocs
 import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, UserHasMissingRoles}
 import code.api.util.{ApiRole, CustomJsonFormats}
@@ -9,9 +10,8 @@ import code.api.util.APIUtil.OAuth._
 import code.entitlement.Entitlement
 import com.openbankproject.commons.util.{ApiVersion, Functions}
 import io.swagger.parser.OpenAPIParser
-import net.liftweb.json
-import net.liftweb.json.JsonAST._
-import net.liftweb.json.{Formats, JString, Serializer, TypeInfo}
+import com.openbankproject.commons.util.json
+import org.json4s.{Formats, JString, Serializer, TypeInfo}
 import org.scalatest.Tag
 
 import java.util

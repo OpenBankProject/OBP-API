@@ -1,5 +1,6 @@
 package code.api.v2_1_0
 
+import org.json4s._
 import java.util.UUID
 
 import code.api.Constant._
@@ -20,7 +21,7 @@ import com.openbankproject.commons.model.enums.TransactionRequestStatus
 import com.openbankproject.commons.model.enums.TransactionRequestTypes._
 import com.openbankproject.commons.model.enums.TransactionRequestTypes
 import com.openbankproject.commons.model.{AccountId, BankAccount, TransactionRequestId}
-import net.liftweb.json.Serialization.write
+import org.json4s.native.Serialization.write
 import org.scalatest.Tag
 
 import scala.collection.immutable.List

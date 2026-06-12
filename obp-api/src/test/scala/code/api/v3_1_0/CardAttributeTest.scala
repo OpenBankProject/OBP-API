@@ -1,6 +1,7 @@
 package code.api.v3_1_0
 
 
+import org.json4s._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.createPhysicalCardJsonV310
 import code.api.util.APIUtil.OAuth._
@@ -11,7 +12,7 @@ import code.entitlement.Entitlement
 import code.setup.DefaultUsers
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.util.ApiVersion
-import net.liftweb.json.Serialization.write
+import org.json4s.native.Serialization.write
 import org.scalatest.Tag
 
 class CardAttributeTest extends V310ServerSetup with DefaultUsers {

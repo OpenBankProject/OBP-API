@@ -27,11 +27,12 @@ TESOBE (http://www.tesobe.com/)
 
 package code.model
 
+import org.json4s._
 import code.util.Helper
 import com.openbankproject.commons.model._
 import net.liftweb.common.{Box, Full}
-import net.liftweb.json.JsonAST.JObject
-import net.liftweb.json.JsonDSL._
+import org.json4s.JsonAST.JObject
+import org.json4s.JsonDSL._
 
 
 case class CommentExtended(val comment: Comment) {

@@ -10,8 +10,9 @@ import com.openbankproject.commons.model.enums.{DynamicEntityFieldType, DynamicE
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.DynamicEntityFieldType.DATE_WITH_DAY
 import net.liftweb.common.{Box, EmptyBox, Full}
-import net.liftweb.json.JsonDSL._
-import net.liftweb.json._
+import org.json4s.JsonDSL._
+import org.json4s._
+import com.openbankproject.commons.util.JsonAliases._
 import net.liftweb.util.SimpleInjector
 import org.apache.commons.lang3.StringUtils
 

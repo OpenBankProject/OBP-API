@@ -2,7 +2,8 @@ package code.api.v1_4_0
 
 import code.api.util.CustomJsonFormats
 import code.util.Helper.MdcLoggable
-import net.liftweb.json._
+import org.json4s._
+import com.openbankproject.commons.util.JsonAliases._
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, FeatureSpec, GivenWhenThen, Matchers}
 import java.util.Date
 
