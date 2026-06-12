@@ -2314,7 +2314,7 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
           m.keys should contain("metric_archive")
           m.keys should contain("everything_as_expected")
 
-          And("config exposes the archiving props and their effective values")
+          And("config exposes the archiving props as the scheduler reads them")
           m.get("config") match {
             case Some(JObject(cfgFields)) =>
               val cfg = toFieldMap(cfgFields)
@@ -2322,9 +2322,7 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
               cfg.keys should contain("enable_metrics_scheduler")
               cfg.keys should contain("retain_metrics_scheduler_interval_in_seconds")
               cfg.keys should contain("retain_metrics_days")
-              cfg.keys should contain("retain_metrics_days_effective")
               cfg.keys should contain("retain_archive_metrics_days")
-              cfg.keys should contain("retain_archive_metrics_days_effective")
               cfg.keys should contain("retain_metrics_move_limit")
             case _ => fail("Expected config object")
           }

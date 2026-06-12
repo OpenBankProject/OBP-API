@@ -1,6 +1,6 @@
 package code.api.util
 
-import code.api.util.APIUtil.{buildOperationId, getCorrelationId, getPropsAsBoolValue, getPropsValue}
+import code.api.util.APIUtil.{buildOperationId, getCorrelationId, getPropsValue}
 import code.metrics.APIMetrics
 import code.metricsstream.MetricsEventBus
 import code.util.Helper.MdcLoggable
@@ -27,7 +27,7 @@ object WriteMetricUtil extends MdcLoggable {
   def writeEndpointMetric(responseBody: Any, callContext: Option[CallContextLight]) = {
     callContext match {
       case Some(cc) =>
-        if (getPropsAsBoolValue("write_metrics", false)) {
+        if (code.metrics.MetricsProps.writeMetrics) {
           val userId = cc.userId.orNull
           val userName = cc.userName.orNull
 

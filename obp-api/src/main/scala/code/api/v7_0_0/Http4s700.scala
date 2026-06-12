@@ -3552,9 +3552,8 @@ object Http4s700 {
          |
          |Returns:
          |
-         |* `config` — the relevant props and their *effective* values after the
-         |  scheduler's floors are applied (`retain_metrics_days` floored to 60,
-         |  `retain_archive_metrics_days` floored to 365): `write_metrics`,
+         |* `config` — the relevant props as the scheduler reads them (configured
+         |  value, or the code default when unset): `write_metrics`,
          |  `enable_metrics_scheduler`, `retain_metrics_scheduler_interval_in_seconds`,
          |  `retain_metrics_days`, `retain_archive_metrics_days`,
          |  `retain_metrics_move_limit`.
@@ -3598,7 +3597,7 @@ object Http4s700 {
     // Manually trigger one metrics-archive run. This calls the exact same
     // `MetricsArchiveScheduler.runOnce()` the timer uses, so it honours the same
     // concurrency lock (won't start if a run is already in progress), the same
-    // retention props/floors, and records the run in the `metricsarchiverun` log.
+    // retention props, and records the run in the `metricsarchiverun` log.
     // The run executes synchronously and may take a while for large backlogs
     // (it moves up to `retain_metrics_move_limit` rows).
     val triggerMetricsArchiveRun: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -3626,10 +3625,10 @@ object Http4s700 {
          |* **Concurrency lock** — if an archive run is already in progress (the
          |  `JobScheduler` lock is held, on this or another node), no new run is
          |  started and the response `status` is `skipped_already_in_progress`.
-         |* **Retention rules** — moves `metric` rows older than the effective
-         |  `retain_metrics_days` (floored to 60) to `metricarchive`, up to
+         |* **Retention rules** — moves `metric` rows older than
+         |  `retain_metrics_days` to `metricarchive`, up to
          |  `retain_metrics_move_limit` rows; then deletes `metricarchive` rows
-         |  older than the effective `retain_archive_metrics_days` (floored to 365).
+         |  older than `retain_archive_metrics_days`.
          |* **Run log** — the outcome is written to the `metricsarchiverun` audit
          |  log, exactly as a scheduled run would be.
          |
