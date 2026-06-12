@@ -137,12 +137,19 @@ trait SendServerRequests {
         if (isYaml) {
           APIResponse(response.getStatusCode, JString(body), Some(response.getHeaders()))
         } else {
-          val parsedBody = tryo {
-            parse(body)
-          }
+          // json4s-native 3.6.x rejects primitive root values (booleans, strings, numbers, null).
+          // Wrap in a single-element array so the native parser accepts it, then extract the
+          // first element — handles all JSON primitive types generically.
+          val parsedBody: Option[JValue] = tryo { parse(body) }.toOption orElse
+            tryo {
+              parse(s"[$body]") match {
+                case JArray(v :: _) => v
+                case _ => throw new RuntimeException("empty array")
+              }
+            }.toOption
           parsedBody match {
-            case Full(b) => APIResponse(response.getStatusCode, b, Some(response.getHeaders()))
-            case _ => throw new Exception(s"couldn't parse response from ${req.url} : $body")
+            case Some(b) => APIResponse(response.getStatusCode, b, Some(response.getHeaders()))
+            case None => throw new Exception(s"couldn't parse response from ${req.url} : $body")
           }
         }
       }
