@@ -450,15 +450,23 @@ object ListResultSerializer extends Serializer[ListResult[_]] {
   def deserialize(implicit format: Formats): PartialFunction[(TypeInfo, JValue), ListResult[_]] = {
     case (typeInfoFull @ TypeInfo(entityType, Some(_)), json) if clazz.isAssignableFrom(entityType) => json match {
       case JObject(singleField::Nil) => {
-        // json4s erases type args in TypeInfo.parameterizedType; use SourceType.scalaType to recover them.
-        val resultsItemType: Class[_] = typeInfoFull match {
-          case st: org.json4s.reflect.SourceType =>
-            st.scalaType.typeArgs.head.typeArgs.head.erasure
-          case _ =>
+        // json4s passes a package-private SourceType subclass carrying the full ScalaType.
+        // Access it via Java reflection to recover non-erased type args without a compile-time
+        // dependency on the package-private SourceType trait.
+        val resultsItemType: Class[_] = {
+          import scala.util.Try
+          def invoke(obj: AnyRef, m: String): AnyRef = obj.getClass.getMethod(m).invoke(obj)
+          Try {
+            val scalaType = invoke(typeInfoFull, "scalaType")
+            val listSt    = invoke(scalaType, "typeArgs").asInstanceOf[Seq[_]].head.asInstanceOf[AnyRef]
+            val itemSt    = invoke(listSt,    "typeArgs").asInstanceOf[Seq[_]].head.asInstanceOf[AnyRef]
+            invoke(itemSt, "erasure").asInstanceOf[Class[_]]
+          }.getOrElse(
             throw new MappingException(
               "when do deserialize to type ListResult, should supply exactly type parameter, " +
               "should not give wildcard like this: jValue.extract[ListResult[List[_]]]"
             )
+          )
         }
         assume(resultsItemType != classOf[Object], "when do deserialize to type ListResult, should supply exactly type parameter, should not give wildcard like this: jValue.extract[ListResult[List[_]]]")
 
