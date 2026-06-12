@@ -100,8 +100,12 @@ object EnumValueSerializer extends Serializer[EnumValue] {
  */
 object AbstractTypeDeserializer extends ObpDeSerializer[AnyRef] {
 
+  private val enumValueClass = classOf[EnumValue]
+
   override def deserialize(implicit format: Formats): PartialFunction[(TypeInfo, JValue), AnyRef] = {
-    case (TypeInfo(clazz, _), json) if Modifier.isAbstract(clazz.getModifiers) && ReflectUtils.isObpClass(clazz) =>
+    case (TypeInfo(clazz, _), json)
+        if Modifier.isAbstract(clazz.getModifiers) && ReflectUtils.isObpClass(clazz)
+        && !enumValueClass.isAssignableFrom(clazz) =>
       val Some(commonClass) = ReflectUtils.findImplementedClass(clazz)
 
       implicit val manifest = ManifestFactory.classType[AnyRef](commonClass)
@@ -445,7 +449,8 @@ object ListResultSerializer extends Serializer[ListResult[_]] {
   def deserialize(implicit format: Formats): PartialFunction[(TypeInfo, JValue), ListResult[_]] = {
     case (TypeInfo(entityType, Some(parameterizedType)), json) if clazz.isAssignableFrom(entityType) => json match {
       case JObject(singleField::Nil) => {
-        val resultsItemType = parameterizedType.getActualTypeArguments.apply(1)
+        val listType = parameterizedType.getActualTypeArguments.apply(0).asInstanceOf[java.lang.reflect.ParameterizedType]
+        val resultsItemType = listType.getActualTypeArguments.apply(0)
         assume(resultsItemType != classOf[Object], "when do deserialize to type ListResult, should supply exactly type parameter, should not give wildcard like this: jValue.extract[ListResult[List[_]]]")
 
         val name = singleField.name

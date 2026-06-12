@@ -535,7 +535,14 @@ object JsonUtils {
           case (_, Nil)  => v
 
           case (JArray(arr), fieldName::tail) =>
-            val values = arr.map(_ \ fieldName)
+            val values = arr.map { jv =>
+              jv \ fieldName match {
+                // json4s JArray.\ always wraps in JArray even for single element;
+                // unwrap single-element results when the source element is itself a JArray
+                case JArray(List(single)) if jv.isInstanceOf[JArray] => single
+                case other => other
+              }
+            }
             val newArray = JArray(values)
             getField(newArray, tail)
 

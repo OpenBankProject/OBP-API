@@ -17,16 +17,16 @@ class JsonUtilsTest extends FlatSpec with Matchers {
   object FunctionsTag extends Tag("JsonUtils")
   implicit def formats: Formats = org.json4s.DefaultFormats
 
-  "collectFieldNames" should "return all the field names and path" taggedAs FunctionsTag in {
+  case class NestNestClass(nestNestField: String)
+  case class NestClass(nestField: String, nestNestClass: NestNestClass)
+  case class TestObject(
+    stringField: String,
+    nestClass: NestClass,
+    date: Date,
+    boolean: Boolean
+  )
 
-    case class NestNestClass(nestNestField: String)
-    case class NestClass(nestField: String, nestNestClass: NestNestClass)
-    case class TestObject(
-      stringField: String,
-      nestClass: NestClass,
-      date: Date,
-      boolean: Boolean
-    )
+  "collectFieldNames" should "return all the field names and path" taggedAs FunctionsTag in {
 
     val testObject = TestObject(
       "1",
@@ -49,15 +49,6 @@ class JsonUtilsTest extends FlatSpec with Matchers {
   }  
   
   "deleteFieldRec" should "work " taggedAs FunctionsTag in {
-
-    case class NestNestClass(nestNestField: String)
-    case class NestClass(nestField: String, nestNestClass: NestNestClass)
-    case class TestObject(
-      stringField: String,
-      nestClass: NestClass,
-      date: Date,
-      boolean: Boolean
-    )
 
     val DateWithDay = "yyyy-MM-dd"
     val DateWithDay2 = "yyyyMMdd"
