@@ -338,6 +338,8 @@ class Boot extends MdcLoggable {
 
     warnAboutEmailDeliveryConfiguration()
 
+    OAuth2Login.logConfigWarnings()
+
     createBootstrapOidcOperatorUser()
 
     createBootstrapOidcOperatorConsumer()

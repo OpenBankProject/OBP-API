@@ -294,6 +294,7 @@ object ErrorMessages {
   val Oauth2IsNotRecognized = "OBP-20214: OAuth2 Access Token is not recognised at this instance."
   val Oauth2ValidateAccessTokenError = "OBP-20215: There was a problem validating the OAuth2 access token. "
   val OneTimePasswordInvalid = "OBP-20216: The One Time Password (OTP) is invalid. "
+  val Oauth2TokenAudienceNotAllowed = "OBP-20217: The Bearer token was not issued for this API instance. Audience (aud) claim is not allowed."
 
   val AuthorizationHeaderAmbiguity = "OBP-20250: Request headers used for authorization are ambiguous. "
   val MissingMandatoryBerlinGroupHeaders= "OBP-20251: Missing mandatory request headers. "

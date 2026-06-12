@@ -940,7 +940,24 @@ display_internal_errors=false
 # token validation to work, oauth2.jwk_set.url must also contain Google's JWKS URL
 # (https://www.googleapis.com/oauth2/v3/certs), and clients must send the Google id_token
 # as the Bearer value — Google access tokens (ya29...) are opaque, not JWTs.
+# CAUTION: a google JWKS URL in oauth2.jwk_set.url enables Google token acceptance on its
+# own, regardless of this props — see oauth2.google.allowed_audiences below.
 #oauth2.oidc_provider=obp-oidc,keycloak
+
+# Audience (aud) allowlists for public identity providers - comma-separated OAuth2
+# client IDs per provider. Public providers (Google/Yahoo/Microsoft) issue id_tokens
+# to ANY registered application, so signature+issuer+expiry alone only proves
+# "the provider signed this for someone". Without these props, an id_token minted
+# for any other application (or for another OBP environment, e.g. a token obtained
+# on a test instance replayed against prod) authenticates here and auto-creates a user.
+# Set them to the client ID(s) of your own application(s) on any shared instance.
+# Unset or empty = no audience restriction (tokens for any client of that provider
+# are accepted) - a warning is logged at boot in that case.
+# Multiple applications (e.g. API Explorer and API Manager) are allowed by listing
+# their client IDs comma-separated:
+#oauth2.google.allowed_audiences=explorer-client-id.apps.googleusercontent.com,manager-client-id.apps.googleusercontent.com
+#oauth2.yahoo.allowed_audiences=your-yahoo-client-id
+#oauth2.microsoft.allowed_audiences=your-azure-application-id
 
 # OBP-OIDC OAuth2 Provider Settings
 #oauth2.obp_oidc.host=http://localhost:9000
