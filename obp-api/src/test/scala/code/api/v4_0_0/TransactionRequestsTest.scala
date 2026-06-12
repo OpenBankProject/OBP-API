@@ -234,7 +234,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
           (createTransactionRequestResponse.body \ "transaction_ids").values.toString should equal("List()")
           Then("Challenge should have body, this is the with challenge scenario")
           (createTransactionRequestResponse.body \ "challenges").children.size should not equal (0)
-          challengeId = (createTransactionRequestResponse.body \ "challenges" \ "id").values.toString
+          challengeId = (createTransactionRequestResponse.body \ "challenges" \ "id").children.headOption.map(_.values.toString).getOrElse("")
           challengeId should not equal ("")
         } else {
           Then("We should have the COMPLETED status in response body")
