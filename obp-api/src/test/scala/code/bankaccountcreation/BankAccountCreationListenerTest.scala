@@ -11,7 +11,6 @@ import net.liftweb.util.Props
 import org.scalatest.Tag
 import com.tesobe.model.CreateBankAccount
 import code.model.dataAccess.{BankAccountCreationListener, ResourceUser}
-import net.liftmodules.amqp.AMQPMessage
 import code.bankconnectors.Connector
 import code.connector.MockedCbsConnector.{defaultProvider, resourceUser1Name, resourceUser1}
 import code.model.UserX
@@ -82,10 +81,7 @@ class BankAccountCreationListenerTest extends ServerSetup with DefaultConnectorT
         //what to do if this slugification results in an id collision has not been determined yet
         val msgContent = CreateBankAccount(userProviderId, userProvider, accountNumber, bankIdentifier, expectedBankId)
 
-        BankAccountCreationListener.createBankAccountListener ! AMQPMessage(msgContent)
-
-        //sleep to give the actor time to process the message
-        Thread.sleep(5000)
+        BankAccountCreationListener.handleMessage(msgContent)
 
         thenCheckAccountCreated(user)
 
@@ -108,10 +104,7 @@ class BankAccountCreationListenerTest extends ServerSetup with DefaultConnectorT
         When("We create a bank account")
         val msgContent = CreateBankAccount(userProviderId, userProvider, accountNumber, createdBank.nationalIdentifier, createdBank.bankId.value)
 
-        BankAccountCreationListener.createBankAccountListener ! AMQPMessage(msgContent)
-
-        //sleep to give the actor time to process the message
-        Thread.sleep(5000)
+        BankAccountCreationListener.handleMessage(msgContent)
 
         thenCheckAccountCreated(user)
       }

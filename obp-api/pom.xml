@@ -186,12 +186,6 @@
     </dependency>
 
     <dependency>
-      <groupId>net.liftmodules</groupId>
-      <artifactId>amqp_3.1_${scala.version}</artifactId>
-      <version>1.5.0</version>
-    </dependency>
-
-    <dependency>
       <groupId>org.elasticsearch</groupId>
       <artifactId>elasticsearch</artifactId>
       <version>8.19.15</version>

@@ -80,7 +80,6 @@ import com.openbankproject.commons.util.Functions.Implicits._
 import com.openbankproject.commons.util._
 import javassist.expr.{ExprEditor, MethodCall}
 import javassist.{CannotCompileException, ClassPool, LoaderClassPath}
-import net.liftweb.actor.LAFuture
 import net.liftweb.common._
 import code.api.JsonResponse
 import com.openbankproject.commons.util.json
@@ -2666,23 +2665,6 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         Failure("extractToCaseClass unknown error"+in+m.getMessage)
     }
   }
-
-  def scalaFutureToLaFuture[T](scf: Future[T])(implicit m: Manifest[T]): LAFuture[T] = {
-    val laf = new LAFuture[T]
-    scf.onSuccess {
-      case v: T => laf.satisfy(v)
-      case _ => laf.abort
-    }
-    scf.onFailure {
-      case e: AccessControlException =>
-        laf.fail(Failure(s"$DynamicResourceDocMethodPermission No permission of: ${e.getPermission.toString}", Full(e), Empty))
-
-      case e: Throwable =>
-        laf.fail(Failure(e.getMessage(), Full(e), Empty))
-    }
-    laf
-  }
-
 
   def extractAPIFailureNewStyle(msg: String): Option[APIFailureNewStyle] = {
     try {
