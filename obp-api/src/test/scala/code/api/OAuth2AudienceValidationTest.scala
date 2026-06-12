@@ -19,6 +19,7 @@ class OAuth2AudienceValidationTest extends FeatureSpec with Matchers with GivenW
   net.liftweb.util.Props.get("force.lazy.lockedProviders.init")
 
   private val audiencePropsName = "oauth2.google.allowed_audiences"
+  private val oidcProviderPropsName = "oauth2.oidc_provider"
   private val ourClientId = "883773244832-ours.apps.googleusercontent.com"
   private val foreignClientId = "407408718192-foreign.apps.googleusercontent.com"
 
@@ -100,27 +101,27 @@ class OAuth2AudienceValidationTest extends FeatureSpec with Matchers with GivenW
       enablementProvider.validateProviderEnabledPublic should be(Full(()))
     }
     scenario("props set to empty string: all providers are enabled") {
-      setPropsValues("oauth2.oidc_provider" -> "")
+      setPropsValues(oidcProviderPropsName -> "")
       enablementProvider.validateProviderEnabledPublic should be(Full(()))
     }
     scenario("provider listed: enabled") {
-      setPropsValues("oauth2.oidc_provider" -> "obp-oidc,keycloak,google")
+      setPropsValues(oidcProviderPropsName -> "obp-oidc,keycloak,google")
       enablementProvider.validateProviderEnabledPublic should be(Full(()))
     }
     scenario("entries are trimmed and matched case-insensitively") {
-      setPropsValues("oauth2.oidc_provider" -> " obp-oidc , Google ")
+      setPropsValues(oidcProviderPropsName -> " obp-oidc , Google ")
       enablementProvider.validateProviderEnabledPublic should be(Full(()))
     }
     scenario("provider not listed: rejected") {
-      setPropsValues("oauth2.oidc_provider" -> "obp-oidc,keycloak")
+      setPropsValues(oidcProviderPropsName -> "obp-oidc,keycloak")
       enablementProvider.validateProviderEnabledPublic should be(Failure(ErrorMessages.Oauth2ProviderNotEnabled))
     }
     scenario("props set to none: public providers are rejected") {
-      setPropsValues("oauth2.oidc_provider" -> "none")
+      setPropsValues(oidcProviderPropsName -> "none")
       enablementProvider.validateProviderEnabledPublic should be(Failure(ErrorMessages.Oauth2ProviderNotEnabled))
     }
     scenario("provider without an oidc provider name is never subject to enforcement") {
-      setPropsValues("oauth2.oidc_provider" -> "obp-oidc")
+      setPropsValues(oidcProviderPropsName -> "obp-oidc")
       unrestrictedProvider.validateProviderEnabledPublic should be(Full(()))
     }
   }
