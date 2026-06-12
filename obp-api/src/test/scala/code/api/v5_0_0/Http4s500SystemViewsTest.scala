@@ -31,6 +31,18 @@ class Http4s500SystemViewsTest extends ServerSetupWithTestData {
   
   object Http4s500SystemViewsTag extends Tag("Http4s500SystemViews")
 
+  // json4s-native 3.6.x rejects primitive root values (e.g. a bare `true` from a DELETE).
+  // Wrap in a single-element array so the native parser accepts it, then extract the element.
+  private def parsePermissive(body: String): JValue =
+    try parse(body)
+    catch {
+      case _: Throwable =>
+        parse(s"[$body]") match {
+          case JArray(v :: _) => v
+          case other => other
+        }
+    }
+
   // Use Http4sTestServer for full integration testing
   private val http4sServer = Http4sTestServer
   private val baseUrl = s"http://${http4sServer.host}:${http4sServer.port}"
@@ -57,7 +69,7 @@ class Http4s500SystemViewsTest extends ServerSetupWithTestData {
     try {
       val response = Http.default(finalRequest.setHeader("Accept", "*/*") > as.Response(p => (p.getStatusCode, p.getResponseBody)))
       val (statusCode, responseBody) = Await.result(response, 10.seconds)
-      val json = if (responseBody.trim.isEmpty) JObject(Nil) else parse(responseBody)
+      val json = if (responseBody.trim.isEmpty) JObject(Nil) else parsePermissive(responseBody)
       (statusCode, json)
     } catch {
       case e: java.util.concurrent.ExecutionException =>
