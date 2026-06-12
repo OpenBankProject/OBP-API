@@ -15,7 +15,7 @@
 
     <dependencies>
         <dependency>
-            <groupId>com.github.hongwei1.framework</groupId>
+            <groupId>com.github.hongwei1.lift-persistence</groupId>
             <artifactId>lift-persistence_${scala.version}</artifactId>
         </dependency>
         <dependency>
