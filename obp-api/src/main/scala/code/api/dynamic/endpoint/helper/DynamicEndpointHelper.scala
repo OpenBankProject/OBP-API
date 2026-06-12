@@ -842,7 +842,7 @@ object DynamicEndpointHelper {
     //    //    } -->
     //    "field1"
     val JvalueReplaced = JvalueRemoved transform {
-      case JObject(List(JField("entity",JNothing), JField("field",v), JField("query",JNothing)))=> v
+      case JObject(List(JField("field", v))) => v
     }
     JvalueReplaced
   }

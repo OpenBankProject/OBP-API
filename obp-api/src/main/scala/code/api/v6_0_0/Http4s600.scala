@@ -5008,8 +5008,8 @@ object Http4s600 {
                   entity.bankId, entity.entityName, recordId, None, false))
               }
             }
-            deleted <- NewStyle.function.deleteDynamicEntity(None, dynamicEntityId)
-          } yield deleted
+            _ <- NewStyle.function.deleteDynamicEntity(None, dynamicEntityId)
+          } yield JObject(Nil)
         }
     }
 

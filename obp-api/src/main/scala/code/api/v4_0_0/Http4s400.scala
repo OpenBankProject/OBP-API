@@ -1819,7 +1819,7 @@ object Http4s400 {
     lazy val deleteSystemDynamicEntity: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ DELETE -> `prefixPath` / "management" / "system-dynamic-entities" / dynamicEntityId =>
         EndpointHelpers.withUser(req) { (_, cc) =>
-          deleteDynamicEntityImpl(None, dynamicEntityId, cc).map(Full(_))
+          deleteDynamicEntityImpl(None, dynamicEntityId, cc).map(_ => JObject(Nil))
         }
     }
 
@@ -1853,7 +1853,7 @@ object Http4s400 {
     lazy val deleteBankLevelDynamicEntity: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ DELETE -> `prefixPath` / "management" / "banks" / _ / "dynamic-entities" / dynamicEntityId =>
         EndpointHelpers.withUserAndBank(req) { (_, bank, cc) =>
-          deleteDynamicEntityImpl(Some(bank.bankId.value), dynamicEntityId, cc).map(Full(_))
+          deleteDynamicEntityImpl(Some(bank.bankId.value), dynamicEntityId, cc).map(_ => JObject(Nil))
         }
     }
 
@@ -1947,8 +1947,8 @@ object Http4s400 {
             _ <- code.util.Helper.booleanToFuture(DynamicEntityOperationNotAllowed, cc = Some(cc)) {
               resultList.arr.isEmpty
             }
-            deleted: Box[Boolean] <- NewStyle.function.deleteDynamicEntity(myEntity.bankId, dynamicEntityId)
-          } yield deleted
+            _ <- NewStyle.function.deleteDynamicEntity(myEntity.bankId, dynamicEntityId)
+          } yield JObject(Nil)
         }
     }
 

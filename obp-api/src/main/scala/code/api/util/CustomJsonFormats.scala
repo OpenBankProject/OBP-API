@@ -151,7 +151,7 @@ object ToStringDeSerializer extends ObpDeSerializer[String] {
   private val IntervalClass = classOf[String]
 
   override def deserialize(implicit format: Formats): PartialFunction[(TypeInfo, json.JValue), String] = {
-    case (TypeInfo(IntervalClass, _), json) if !json.isInstanceOf[JString] && json != JNothing =>
+    case (TypeInfo(IntervalClass, _), json) if !json.isInstanceOf[JString] && json != JNothing && json != JNull =>
       compactRender(json)
   }
 }

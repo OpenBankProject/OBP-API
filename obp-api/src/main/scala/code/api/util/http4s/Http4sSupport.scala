@@ -111,7 +111,11 @@ object Http4sRequestAttributes {
     private val jsonContentType = `Content-Type`(MediaType.application.json)
 
     private def toJsonOk[A](result: A)(implicit formats: Formats): IO[Response[IO]] = {
-      val jsonString = prettyRender(Extraction.decompose(result))
+      val jv = Extraction.decompose(result)
+      val jsonString = jv match {
+        case _: JObject | _: JArray => prettyRender(jv)
+        case _ => "{}"
+      }
       Ok(jsonString, jsonContentType)
     }
 

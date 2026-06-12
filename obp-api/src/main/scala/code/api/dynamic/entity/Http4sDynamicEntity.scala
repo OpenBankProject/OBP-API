@@ -406,8 +406,8 @@ object Http4sDynamicEntity extends MdcLoggable {
         (existing, _) <- NewStyle.function.invokeDynamicConnector(GET_ONE, entityName, None, Some(id), bankId, None, Some(u.userId), isPersonalEntity, Some(cc))
         _ <- Helper.booleanToFuture(notFoundMsg(entityName, id, bankId), 404, cc = callContext) { existing.isDefined }
         (box, _) <- NewStyle.function.invokeDynamicConnector(DELETE, entityName, None, Some(id), bankId, None, Some(u.userId), isPersonalEntity, Some(cc))
-        deleteResult: JBool = unboxResult(box.asInstanceOf[Box[JBool]], entityName)
-      } yield deleteResult
+        _: JBool = unboxResult(box.asInstanceOf[Box[JBool]], entityName)
+      } yield JObject(Nil)
     }
 
   // ----- public endpoint (anonymous, read-only; before-interceptors only, no role) -----
