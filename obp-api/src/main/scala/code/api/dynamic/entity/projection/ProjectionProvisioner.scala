@@ -66,7 +66,7 @@ object ProjectionProvisioner extends MdcLoggable {
     for {
       rows <- ProjectionDb.run(ProjectionStore.readBlobRows(bankId, entityName, isPersonalEntity, userId))
       _    <- rows.traverse_ { case (id, jsonStr) =>
-                val obj = net.liftweb.json.parse(jsonStr)
+                val obj = com.openbankproject.commons.util.JsonAliases.parse(jsonStr)
                 val cols = fields.map { case (f, spec) =>
                   ProjectionStore.ColumnValue(
                     ProjectionNaming.columnName(f),
