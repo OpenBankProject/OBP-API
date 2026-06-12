@@ -70,7 +70,7 @@ object JSONFactoryGateway {
 // HTTP routes of its own; the legacy `extends RestHelper` mixin was vestigial.
 object GatewayLogin extends MdcLoggable {
 
-  // For lift-json `.extract[PayloadOfJwtJSON]` calls below.
+  // For json4s `.extract[PayloadOfJwtJSON]` calls below.
   private implicit val formats: Formats = DefaultFormats
 
   val gateway = "Gateway" // This value is used for ResourceUser.provider and Consumer.description

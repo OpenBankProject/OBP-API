@@ -66,7 +66,7 @@ object JSONFactoryDAuth {
 // of its own; the legacy `extends RestHelper` mixin was vestigial.
 object DAuth extends MdcLoggable {
 
-  // For lift-json `.extract[...]` calls below.
+  // For json4s `.extract[...]` calls below.
   private implicit val formats: Formats = DefaultFormats
 
 
