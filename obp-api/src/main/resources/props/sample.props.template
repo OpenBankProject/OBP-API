@@ -936,12 +936,15 @@ display_internal_errors=false
 #
 # Default: property missing (show nothing)
 #
-# Note on google: advertising it here only affects the /well-known endpoint. For Google
-# token validation to work, oauth2.jwk_set.url must also contain Google's JWKS URL
-# (https://www.googleapis.com/oauth2/v3/certs), and clients must send the Google id_token
-# as the Bearer value — Google access tokens (ya29...) are opaque, not JWTs.
-# CAUTION: a google JWKS URL in oauth2.jwk_set.url enables Google token acceptance on its
-# own, regardless of this props — see oauth2.google.allowed_audiences below.
+# Note on google: besides being advertised at /well-known, this props is also the
+# registry of ENABLED public identity providers for token validation. When this props
+# is set, id_tokens from public providers (google/yahoo/microsoft) NOT listed here are
+# rejected with OBP-20218 even if their JWKS URL is configured in oauth2.jwk_set.url.
+# (Props missing = no restriction, for backward compatibility. Operator-controlled
+# issuers like keycloak/obp-oidc are not subject to this enforcement.)
+# For Google token validation to work, oauth2.jwk_set.url must also contain Google's
+# JWKS URL (https://www.googleapis.com/oauth2/v3/certs), and clients must send the
+# Google id_token as the Bearer value — Google access tokens (ya29...) are opaque, not JWTs.
 #oauth2.oidc_provider=obp-oidc,keycloak
 
 # Audience (aud) allowlists for public identity providers - comma-separated OAuth2
@@ -952,7 +955,9 @@ display_internal_errors=false
 # on a test instance replayed against prod) authenticates here and auto-creates a user.
 # Set them to the client ID(s) of your own application(s) on any shared instance.
 # Unset or empty = no audience restriction (tokens for any client of that provider
-# are accepted) - a warning is logged at boot in that case.
+# are accepted) - a warning is logged at boot in that case. Note that the provider
+# must also be enabled in oauth2.oidc_provider (see above); a JWKS URL configured for
+# a provider that is not enabled there is flagged at boot as a likely leftover.
 # Multiple applications (e.g. API Explorer and API Manager) are allowed by listing
 # their client IDs comma-separated:
 #oauth2.google.allowed_audiences=explorer-client-id.apps.googleusercontent.com,manager-client-id.apps.googleusercontent.com
