@@ -27,6 +27,7 @@ import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{
 }
 import code.api.v2_1_0.{ConsumerRedirectUrlJSON, JSONFactory210}
 import code.api.v3_0_0.JSONFactory300
+import code.api.v3_0_0.{AggregateMetricJSON, JSONFactory300}
 import code.api.v3_0_0.JSONFactory300.createAggregateMetricJson
 import code.api.v3_1_0.{ConsentChallengeJsonV310, ConsentJsonV310, JSONFactory310, PostConsentBodyCommonJson, PostConsentEmailJsonV310, PostConsentEntitlementJsonV310, PostConsentImplicitJsonV310, PostConsentPhoneJsonV310, PostConsentViewJsonV310}
 import code.api.v4_0_0.{PutConsentStatusJsonV400, PutConsentUserJsonV400}
