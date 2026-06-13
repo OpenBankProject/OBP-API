@@ -139,7 +139,32 @@ object MetricBatchWriter extends MdcLoggable {
       }
     } catch {
       case e: Exception =>
-        logger.error(s"MetricBatchWriter says: flush failed", e)
+        // JDBC batch failures wrap the real cause in the SQLException chain (getNextException),
+        // which the default stack trace does NOT print — without this, the log shows only
+        // "Batch entry 0 ... was aborted: call getNextException" and the actual reason
+        // (e.g. "value too long for type character varying(N)") is lost and metrics are
+        // silently dropped. Walk the chain so the root cause is always logged.
+        logger.error(s"MetricBatchWriter says: flush failed${sqlChainDetail(e)}", e)
     }
+  }
+
+  /** Render the nested java.sql.SQLException chain (getNextException), which the default
+    * Throwable stack trace omits. Returns "" when there is no SQL chain to add. */
+  private def sqlChainDetail(t: Throwable): String = {
+    val details = scala.collection.mutable.ListBuffer.empty[String]
+    var cause: Throwable = t
+    while (cause != null) {
+      cause match {
+        case sql: java.sql.SQLException =>
+          var next = sql.getNextException
+          while (next != null) {
+            details += s"${next.getClass.getSimpleName}: ${next.getMessage}"
+            next = next.getNextException
+          }
+        case _ =>
+      }
+      cause = cause.getCause
+    }
+    if (details.isEmpty) "" else details.mkString(" [SQL chain: ", " | ", "]")
   }
 }

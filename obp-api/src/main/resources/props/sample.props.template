@@ -807,51 +807,12 @@ super_admin_user_ids=USER_ID1,USER_ID2,
 ##########################
 
 
-## Open Id Connect (OIDC) can be used to retrieve User information from an
-## external OpenID Connect server.
-## This will enable authentication of an external user stored in an external db,
-## and will create a local OBP resource user in the OBP DB.
-## To use an external OpenID Connect server,
-## you will need to change these values.
-## The following values provided for a temp test account.
-## CallbackURL 127.0.0.1:8080 should work in most cases.
-## Note: The email address used for login must match one
-## registered on OBP localy.
-# openid_connect.enabled=false
-# CONFIG CAVEAT: portal-login was removed, so there is no server-side session state to compare.
-# The code default is true (fail-closed) and will reject every real (non-empty) state with 401 —
-# OIDC deployments MUST set this to false (or reintroduce state storage):
-# openid_connect.check_session_state=false
-# openid_connect.show_tokens=false
-# Response mode
-# possible values: query, fragment, form_post, query.jwt, fragment.jwt, form_post.jwt, jwt
-# openid_connect.response_mode=form_post
-# Response type
-# possible values: "code", "id_token", "code id_token"
-# openid_connect.response_type=code
-# Scope
-# possible values: "openid email profile", "openid email", "openid"
-# openid_connect.scope=openid email profile
-# First identity provider
-# openid_connect_1.button_text = Google
-# openid_connect_1.client_secret=OYdWujJlU7fFOW_NXzPlDI4T
-# openid_connect_1.client_id=883773244832-s4hi72j0rble0iiivq1gn09k7vvptdci.apps.googleusercontent.com
-# openid_connect_1.callback_url=http://127.0.0.1:8080/auth/openid-connect/callback
-# openid_connect_1.endpoint.authorization=https://accounts.google.com/o/oauth2/v2/auth
-# openid_connect_1.endpoint.userinfo=https://openidconnect.googleapis.com/v1/userinfo
-# openid_connect_1.endpoint.token=https://oauth2.googleapis.com/token
-# openid_connect_1.endpoint.jwks_uri=https://www.googleapis.com/oauth2/v3/certs
-# openid_connect_1.access_type_offline=true
-## Second identity provder
-# openid_connect_2.button_text = name of 2nd provider
-# openid_connect_2.client_secret=OYdWujJlU7fFOW_NXzPlDI4T
-# openid_connect_2.client_id=883773244832-s4hi72j0rble0iiivq1gn09k7vvptdci.apps.googleusercontent.com
-# openid_connect_2.callback_url=http://127.0.0.1:8080/auth/openid-connect/callback-2
-# openid_connect_2.endpoint.authorization=https://accounts.google.com/o/oauth2/v2/auth
-# openid_connect_2.endpoint.userinfo=https://openidconnect.googleapis.com/v1/userinfo
-# openid_connect_2.endpoint.token=https://oauth2.googleapis.com/token
-# openid_connect_2.endpoint.jwks_uri=https://www.googleapis.com/oauth2/v3/certs
-# openid_connect_2.access_type_offline=false
+# NOTE: OBP-API is a pure OAuth2 *resource server*. The OIDC relying-party login
+# callback (/auth/openid-connect/callback{,-1,-2}) and its openid_connect.* /
+# openid_connect_$n.* props were removed — the client/BFF runs the OIDC login
+# against the provider and calls OBP with `Authorization: Bearer <jwt>`.
+# Configure Bearer-JWT validation via the oauth2.* props further below
+# (oauth2.jwk_set.url, oauth2.keycloak.*, oauth2.obp_oidc.*).
 
 # When new consumers inserted they should use this setting.
 consumers_enabled_by_default=true
@@ -960,6 +921,7 @@ display_internal_errors=false
 # Available values:
 #   - keycloak  → advertise Keycloak well-known URL
 #   - obp-oidc  → advertise OBP-OIDC well-known URL
+#   - google    → advertise Google well-known URL (https://accounts.google.com/.well-known/openid-configuration)
 #
 # Special cases:
 #   - (property missing) → show nothing
@@ -969,11 +931,39 @@ display_internal_errors=false
 # Examples:
 #   oauth2.oidc_provider=keycloak
 #   oauth2.oidc_provider=obp-oidc,keycloak
+#   oauth2.oidc_provider=obp-oidc,keycloak,google
 #   oauth2.oidc_provider=
 #   oauth2.oidc_provider=none
 #
 # Default: property missing (show nothing)
+#
+# Note on google: besides being advertised at /well-known, this props is also the
+# registry of ENABLED public identity providers for token validation. When this props
+# is set, id_tokens from public providers (google/yahoo/microsoft) NOT listed here are
+# rejected with OBP-20218 even if their JWKS URL is configured in oauth2.jwk_set.url.
+# (Props missing = no restriction, for backward compatibility. Operator-controlled
+# issuers like keycloak/obp-oidc are not subject to this enforcement.)
+# For Google token validation to work, oauth2.jwk_set.url must also contain Google's
+# JWKS URL (https://www.googleapis.com/oauth2/v3/certs), and clients must send the
+# Google id_token as the Bearer value — Google access tokens (ya29...) are opaque, not JWTs.
 #oauth2.oidc_provider=obp-oidc,keycloak
+
+# Audience (aud) allowlists for public identity providers - comma-separated OAuth2
+# client IDs per provider. Public providers (Google/Yahoo/Microsoft) issue id_tokens
+# to ANY registered application, so signature+issuer+expiry alone only proves
+# "the provider signed this for someone". Without these props, an id_token minted
+# for any other application (or for another OBP environment, e.g. a token obtained
+# on a test instance replayed against prod) authenticates here and auto-creates a user.
+# Set them to the client ID(s) of your own application(s) on any shared instance.
+# Unset or empty = no audience restriction (tokens for any client of that provider
+# are accepted) - a warning is logged at boot in that case. Note that the provider
+# must also be enabled in oauth2.oidc_provider (see above); a JWKS URL configured for
+# a provider that is not enabled there is flagged at boot as a likely leftover.
+# Multiple applications (e.g. API Explorer and API Manager) are allowed by listing
+# their client IDs comma-separated:
+#oauth2.google.allowed_audiences=explorer-client-id.apps.googleusercontent.com,manager-client-id.apps.googleusercontent.com
+#oauth2.yahoo.allowed_audiences=your-yahoo-client-id
+#oauth2.microsoft.allowed_audiences=your-azure-application-id
 
 # OBP-OIDC OAuth2 Provider Settings
 #oauth2.obp_oidc.host=http://localhost:9000
@@ -1321,18 +1311,6 @@ outboundAdapterCallContext.generalContext
 ## This should include the JWKS URI for OBP-OIDC provider
 ## Multiple JWKS URIs can be comma-separated
 #oauth2.jwk_set.url=http://localhost:9000/obp-oidc/jwks
-
-## OpenID Connect Client Configuration for OBP-OIDC
-#openid_connect_1.button_text=OBP-OIDC
-#openid_connect_1.client_id=obp-api-client
-#openid_connect_1.client_secret=your-client-secret-here
-#openid_connect_1.callback_url=http://localhost:8080/auth/openid-connect/callback
-#openid_connect_1.endpoint.discovery=http://localhost:9000/obp-oidc/.well-known/openid-configuration
-#openid_connect_1.endpoint.authorization=http://localhost:9000/obp-oidc/auth
-#openid_connect_1.endpoint.userinfo=http://localhost:9000/obp-oidc/userinfo
-#openid_connect_1.endpoint.token=http://localhost:9000/obp-oidc/token
-#openid_connect_1.endpoint.jwks_uri=http://localhost:9000/obp-oidc/jwks
-#openid_connect_1.access_type_offline=true
 # ------------------------------ OBP-OIDC oauth2 props end ------------------------------
 
 # ------------------------------ default entitlements ------------------------------
