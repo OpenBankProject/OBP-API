@@ -3363,6 +3363,22 @@ object NewStyle extends MdcLoggable{
       }
     }
     
+    /**
+     * Invalidate the Redis-backed resource-doc caches whose contents include
+     * dynamic-entity documentation (the `dynamic` and `all` views). Bumping the
+     * namespace version orphans every cached key under that namespace, so the
+     * next `/resource-docs` request regenerates from the database instead of
+     * serving a pre-change snapshot (TTL is 1 hour by default).
+     *
+     * Call after a dynamic entity is created, updated, or deleted. The static
+     * resource-doc / swagger caches are not touched because dynamic entities
+     * never appear in them.
+     */
+    private def invalidateDynamicResourceDocCaches(): Unit = {
+      Constant.incrementCacheNamespaceVersion(Constant.RD_DYNAMIC_NAMESPACE)
+      Constant.incrementCacheNamespaceVersion(Constant.RD_ALL_NAMESPACE)
+    }
+
     private def createDynamicEntity(dynamicEntity: DynamicEntityT, callContext: Option[CallContext]): Future[Box[DynamicEntityT]] = {
       val existsDynamicEntity = DynamicEntityProvider.connectorMethodProvider.vend.getByEntityName(dynamicEntity.bankId, dynamicEntity.entityName)
 
@@ -3371,12 +3387,14 @@ object NewStyle extends MdcLoggable{
           s"$DynamicEntityNameAlreadyExists current entityName is '${dynamicEntity.entityName}'."
         else
           s"$DynamicEntityNameAlreadyExists current entityName is '${dynamicEntity.entityName}' bankId is ${dynamicEntity.bankId.getOrElse("")}."
-          
+
         return Helper.booleanToFuture(errorMsg, cc=callContext)(existsDynamicEntity.isEmpty).map(_.asInstanceOf[Box[DynamicEntityT]])
       }
 
       Future {
-        DynamicEntityProvider.connectorMethodProvider.vend.createOrUpdate(dynamicEntity)
+        val result = DynamicEntityProvider.connectorMethodProvider.vend.createOrUpdate(dynamicEntity)
+        if (result.isDefined) invalidateDynamicResourceDocCaches()
+        result
       }
     }
 
@@ -3405,7 +3423,9 @@ object NewStyle extends MdcLoggable{
       }
 
       Future {
-        DynamicEntityProvider.connectorMethodProvider.vend.createOrUpdate(dynamicEntity)
+        val result = DynamicEntityProvider.connectorMethodProvider.vend.createOrUpdate(dynamicEntity)
+        if (result.isDefined) invalidateDynamicResourceDocCaches()
+        result
       }
 
     }
@@ -3424,7 +3444,7 @@ object NewStyle extends MdcLoggable{
     def deleteDynamicEntity(bankId: Option[String], dynamicEntityId: String): Future[Box[Boolean]] = {
       validateBankId(bankId, None)
       Future {
-        for {
+        val result = for {
           entity <- DynamicEntityProvider.connectorMethodProvider.vend.getById(bankId, dynamicEntityId)
           deleteEntityResult <- DynamicEntityProvider.connectorMethodProvider.vend.delete(entity)
           deleteEntitleMentResult <- if (deleteEntityResult) {
@@ -3438,6 +3458,9 @@ object NewStyle extends MdcLoggable{
           }
           deleteEntitleMentResult
         }
+        // The entity (and its generated resource docs) are gone — drop the stale doc caches.
+        if (result.exists(deleted => deleted)) invalidateDynamicResourceDocCaches()
+        result
       }
     }
 

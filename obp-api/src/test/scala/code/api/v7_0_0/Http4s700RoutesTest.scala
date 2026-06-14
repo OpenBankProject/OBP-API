@@ -1981,7 +1981,7 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
   feature("Http4s700 createUtilityVendResult endpoint") {
 
     val vendBody =
-      """{"status":"COMPLETED","luku_token":"1234 5678 9012 3456 7890","rcpt_num":"202306141018422348674","units":"46.5","gwx_reference":"GWX800930701197"}"""
+      """{"status":"COMPLETED","token":"1234 5678 9012 3456 7890","rcpt_num":"202306141018422348674","units":"46.5","provider_reference":"REF800930701197"}"""
 
     scenario("Reject unauthenticated POST", Http4s700RoutesTag) {
       val (statusCode, _, _) = makeHttpRequestWithBody("POST", s"/obp/v7.0.0/banks/${testBankId1.value}/utility-payments/any-tr-id/vend-result", vendBody)
@@ -2030,7 +2030,7 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
           map.get("vend_result") match {
             case Some(JObject(vrFields)) =>
               val vr = toFieldMap(vrFields)
-              vr.get("luku_token") shouldBe Some(JString("1234 5678 9012 3456 7890"))
+              vr.get("token") shouldBe Some(JString("1234 5678 9012 3456 7890"))
               vr.get("rcpt_num") shouldBe Some(JString("202306141018422348674"))
               vr.get("status") shouldBe Some(JString("COMPLETED"))
             case other => fail(s"Expected vend_result object, got: $other")

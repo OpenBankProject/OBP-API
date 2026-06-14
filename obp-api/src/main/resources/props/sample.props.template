@@ -725,6 +725,29 @@ apiOptions.getAtmsIsPublic = true
 apiOptions.getProductsIsPublic = true
 apiOptions.getApiProductsIsPublic = true
 apiOptions.getTransactionTypesIsPublic = true
+
+# apiOptions.getCurrentFxRateIsPublic
+# Set to true to make Get Current FxRate publicly accessible (no authentication required).
+# Indicative reference FX rates are commonly treated as public data, but before enabling this
+# on a production instance, admins should be aware of the following:
+#
+# 1. Upstream data licensing (most likely blocker): if the bank's rates are sourced from a
+#    licensed vendor (e.g. Refinitiv/LSEG, Bloomberg, an FX aggregator), publicly
+#    redistributing them may breach that vendor's licence. This can be a legal "no" and is
+#    bank/instance specific.
+# 2. Indicative vs. executable rates: indicative mid-rates are generally fine to publish.
+#    Executable/dealable quotes with spreads are commercially sensitive and reveal pricing
+#    strategy to competitors - do not expose these publicly.
+# 3. Provenance/fallback: OBP resolves a rate from the connector first, then bundled fallback
+#    rate files, then a hardcoded map. A public endpoint silently returning a stale fallback as
+#    if it were the bank's live rate is a liability risk. If public, treat responses as
+#    "indicative only", timestamped, and ideally label the source.
+# 4. Benchmark regulation: if third parties come to rely on these rates as an index, you may
+#    drift into benchmark-regulation territory (e.g. EU BMR) with administrator obligations.
+# 5. Latency/gaming: a public, slightly-stale rate is easier to arbitrage when it feeds any
+#    downstream priced/tradeable process. Consider update frequency and deviation thresholds.
+# 6. Abuse surface: an unauthenticated endpoint loses metering/consumer visibility and is a
+#    scraping/DoS surface - mitigate with rate-limiting and caching.
 apiOptions.getCurrentFxRateIsPublic = true
 
 ## Default Bank. Incase the server wants to support a default bank so developers don't have to specify BANK_ID, the default value is OBP.
