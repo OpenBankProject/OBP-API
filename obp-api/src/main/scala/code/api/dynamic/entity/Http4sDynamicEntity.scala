@@ -213,14 +213,30 @@ object Http4sDynamicEntity extends MdcLoggable {
     }
   }
 
-  // ----- Field-level write path (PATCH): role-gated writes to restricted fields -----
-  // Names of the per-field write roles the caller is missing for the restricted fields present in the body.
-  private def missingFieldWriteRoleNames(bodyFieldNames: List[String], bankId: Option[String], entityName: String, userId: String): List[String] = {
+  // ----- Field-level write path (PATCH): per-field authorisation -----
+  // Authorisation is per field present in the body: a write-restricted field is governed by its field write
+  // role; an unrestricted field is governed by the entity update role. The caller may change a field iff they
+  // hold the role that governs it — there is no blanket entity-update precondition, so holding only a field's
+  // write role is sufficient to PATCH that field alone. Returns the distinct role names the caller is missing.
+  // For a personal entity that doesn't require a role, the entity update role on unrestricted fields is skipped,
+  // but write-restricted fields are still gated by their field write role.
+  private def missingPatchRoleNames(
+    bodyFieldNames: List[String], bankId: Option[String], entityName: String, userId: String, requireEntityRole: Boolean
+  ): List[String] = {
     val info = DynamicEntityHelper.definitionsMap.get((bankId, entityName))
-    val restrictedInBody = info.map(_.writeRestrictedFields).getOrElse(Nil).intersect(bodyFieldNames)
-    restrictedInBody.flatMap { f =>
-      val role = DynamicEntityInfo.fieldWriteRole(entityName, f, bankId, info.flatMap(_.explicitWriteRole(f)))
-      if (code.api.util.APIUtil.hasEntitlement(bankId.getOrElse(""), userId, role)) None else Some(role.toString())
+    // Only declared schema fields are meaningful (id/audit/unknown fields are ignored by the merge).
+    val schemaFields = info.map(_.propertyNames).getOrElse(bodyFieldNames)
+    val touched = bodyFieldNames.intersect(schemaFields)
+    val writeRestricted = info.map(_.writeRestrictedFields).getOrElse(Nil).toSet
+    def has(role: code.api.util.ApiRole): Boolean = code.api.util.APIUtil.hasEntitlement(bankId.getOrElse(""), userId, role)
+    touched.flatMap { f =>
+      if (writeRestricted.contains(f)) {
+        val role = DynamicEntityInfo.fieldWriteRole(entityName, f, bankId, info.flatMap(_.explicitWriteRole(f)))
+        if (has(role)) None else Some(role.toString())
+      } else if (requireEntityRole) {
+        val role = DynamicEntityInfo.canUpdateRole(entityName, bankId)
+        if (has(role)) None else Some(role.toString())
+      } else None
     }.distinct
   }
 
@@ -372,14 +388,14 @@ object Http4sDynamicEntity extends MdcLoggable {
         (Full(u), callContext) <- authenticatedAccess(callContext0)
         (_, callContext) <- bankCheck(bankId, callContext)
         personalRequiresRole = DynamicEntityHelper.definitionsMap.get((bankId, entityName)).exists(_.personalRequiresRole)
-        // Baseline: PATCH needs the entity update role (like PUT) for unrestricted fields.
-        _ <- if (isPersonalEntity && !personalRequiresRole) Future.successful(true)
-             else NewStyle.function.hasEntitlement(bankId.getOrElse(""), u.userId, DynamicEntityInfo.canUpdateRole(entityName, bankId), callContext)
         _ <- failIf(afterIntercept(callContext, operationId), callContext)
         json <- NewStyle.function.tryons(InvalidJsonFormat, 400, callContext) { net.liftweb.json.parse(cc.httpBody.getOrElse("")) }
         bodyObj = json.asInstanceOf[JObject]
-        // Per-field: every write-restricted field present in the body needs its field-level write role.
-        missingRoles = missingFieldWriteRoleNames(bodyObj.obj.map(_.name), bankId, entityName, u.userId)
+        // Per-field authorisation: each field present in the body needs the role that governs it — its field
+        // write role if write-restricted, otherwise the entity update role. No blanket entity-update precondition.
+        // For a personal entity without a required role, the entity role on unrestricted fields is skipped.
+        requireEntityRole = !(isPersonalEntity && !personalRequiresRole)
+        missingRoles = missingPatchRoleNames(bodyObj.obj.map(_.name), bankId, entityName, u.userId, requireEntityRole)
         _ <- Helper.booleanToFuture(s"$UserHasMissingRoles ${missingRoles.mkString(", ")}", 403, cc = callContext) { missingRoles.isEmpty }
         (existing, _) <- NewStyle.function.invokeDynamicConnector(GET_ONE, entityName, None, Some(id), bankId, None, Some(u.userId), isPersonalEntity, Some(cc))
         _ <- Helper.booleanToFuture(notFoundMsg(entityName, id, bankId), 404, cc = callContext) { existing.isDefined }
