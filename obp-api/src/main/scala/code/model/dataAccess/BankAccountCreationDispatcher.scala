@@ -54,7 +54,7 @@ package code.model.dataAccess {
   import com.tesobe.model.{CreateBankAccount, UpdateBankAccount}
   import net.liftweb.common.{Failure, Full}
 
-  import java.io.{ByteArrayInputStream, ObjectInputStream}
+  import java.io.{ByteArrayInputStream, ObjectInputFilter, ObjectInputStream}
 
   object BankAccountCreation extends MdcLoggable {
 
@@ -133,9 +133,13 @@ package code.model.dataAccess {
           body: Array[Byte]
         ): Unit = {
           try {
-            val msg = new ObjectInputStream(new ByteArrayInputStream(body))
-              .readObject()
-              .asInstanceOf[CreateBankAccount]
+            val ois = new ObjectInputStream(new ByteArrayInputStream(body))
+            // Allowlist: only CreateBankAccount (5 String fields) may be deserialized.
+            // Rejects gadget-chain classes (commons-collections, beanutils, etc.) at the
+            // filter layer, before readObject() can instantiate them.
+            ois.setObjectInputFilter(ObjectInputFilter.Config.createFilter(
+              "com.tesobe.model.CreateBankAccount;java.lang.*;!*"))
+            val msg = ois.readObject().asInstanceOf[CreateBankAccount]
             handleMessage(msg)
             channel.basicAck(envelope.getDeliveryTag, false)
           } catch {
