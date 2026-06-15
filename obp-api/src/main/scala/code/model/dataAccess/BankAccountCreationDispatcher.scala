@@ -141,6 +141,10 @@ package code.model.dataAccess {
           } catch {
             case ex: Exception =>
               logger.error(s"Failed to process AMQP message: ${ex.getMessage}", ex)
+              // Deliberately do not requeue: a failed create-account message is dropped rather
+              // than redelivered in a tight loop. This preserves the prior actor behaviour
+              // (failures were logged, never retried). Switch to a dead-letter queue if the
+              // adapter ever needs durable retry semantics.
               channel.basicNack(envelope.getDeliveryTag, false, false)
           }
         }

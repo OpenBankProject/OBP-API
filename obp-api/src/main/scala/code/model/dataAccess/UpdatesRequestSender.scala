@@ -55,20 +55,28 @@ package code.model.dataAccess {
       setUsername(APIUtil.getPropsValue("connection.user", DEFAULT_USER))
       setPassword(APIUtil.getPropsValue("connection.password", DEFAULT_PASS))
       setVirtualHost(DEFAULT_VHOST)
+      // Reuse a single connection across messages; the client transparently re-establishes
+      // a dropped connection on the next publish.
+      setAutomaticRecoveryEnabled(true)
     }
+
+    // One long-lived connection, initialised on first use. Channels are created per call:
+    // a Connection is thread-safe and meant to be shared, a Channel is not.
+    private lazy val connection = factory.newConnection()
 
     def sendMsg(message: UpdateBankAccount): Unit = {
       logger.info(s"Send message to get updates for the account ${message.accountNumber} at ${message.bankNationalIdentifier}")
       try {
-        val connection = factory.newConnection()
         val channel = connection.createChannel()
-        val bos = new ByteArrayOutputStream()
-        val oos = new ObjectOutputStream(bos)
-        oos.writeObject(message)
-        oos.flush()
-        channel.basicPublish("directExchange3", "transactions", null, bos.toByteArray)
-        channel.close()
-        connection.close()
+        try {
+          val bos = new ByteArrayOutputStream()
+          val oos = new ObjectOutputStream(bos)
+          oos.writeObject(message)
+          oos.flush()
+          channel.basicPublish("directExchange3", "transactions", null, bos.toByteArray)
+        } finally {
+          if (channel.isOpen) channel.close()
+        }
       } catch {
         case ex: Exception =>
           logger.error(s"Failed to send AMQP update message: ${ex.getMessage}", ex)
