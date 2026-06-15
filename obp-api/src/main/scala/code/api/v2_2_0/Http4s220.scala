@@ -290,6 +290,25 @@ object Http4s220 {
         }
     }
 
+    // TODO: Add a v7.0.0 of Get Current FxRate with a richer, provenance-aware response.
+    // The current (v2.2.0) response returns only conversion_value / inverse_conversion_value /
+    // effective_date, which cannot express how the rate was sourced or how much to trust it.
+    // Proposed improvements for the v7.0.0 response body:
+    //   - status / quality: "indicative" | "executable" | "fallback" — so consumers know whether
+    //     the rate is tradeable or for reference only (especially important when the endpoint is
+    //     public via apiOptions.getCurrentFxRateIsPublic).
+    //   - source / provenance: which tier produced the rate — "connector" | "fallback_file" |
+    //     "hardcoded_map" — so a stale fallback is never mistaken for the bank's live rate.
+    //   - bid / ask / mid + spread (instead of a single conversion_value), so indicative mid can
+    //     be distinguished from executable quotes, and spread can be withheld when public.
+    //   - retrieved_at (when OBP fetched it) and explicit age/staleness, alongside effective_date.
+    //   - precision/scale of the currency pair (ISO 4217 minor units) for correct rounding.
+    //   - optional `amount` query param to return a converted amount with documented rounding.
+    //   - first-class crypto asset support (e.g. lovelace, ETH) — already hinted at in the
+    //     InvalidISOCurrencyCode error message.
+    //   - a disclaimer field ("indicative only") + cache TTL hint when served publicly.
+    //   - consider a batch variant accepting multiple currency pairs in one request.
+    // Keep v2.2.0 in place for backward compatibility; v7.0.0 should be additive.
     resourceDocs += ResourceDoc(
       implementedInApiVersion, nameOf(getCurrentFxRate), "GET",
       "/banks/BANK_ID/fx/FROM_CURRENCY_CODE/TO_CURRENCY_CODE",

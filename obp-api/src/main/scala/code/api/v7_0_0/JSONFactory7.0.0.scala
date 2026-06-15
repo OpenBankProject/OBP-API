@@ -813,33 +813,32 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
   )
 
   // The asynchronous vend result delivered by the downstream rail/adapter after the
-  // utility purchase settles — e.g. the 20-digit STS electricity token for a LUKU
-  // (TANESCO prepaid electricity) meter. Field names mirror the Gateway X
-  // `gepgVendCustInfoRes` payload. Persisted on the transaction request as attributes
-  // and surfaced here (and on the client callback) once the vend completes.
+  // utility purchase settles — e.g. the STS token (typically 20 digits) for a prepaid
+  // electricity meter. Persisted on the transaction request as attributes and surfaced
+  // here (and on the client callback) once the vend completes.
   case class UtilityVendResultJsonV700(
       status: String,                        // ACCEPTED | COMPLETED | FAILED (provider vend status)
-      luku_token: Option[String],            // the 20-digit STS token the customer keys into the meter
+      token: Option[String],                 // the STS token the customer keys into the meter (e.g. 20 digits)
       rcpt_num: Option[String],              // provider receipt number
-      units: Option[String],                 // electricity units purchased (kWh)
-      gwx_reference: Option[String],         // downstream rail reference (gwxReference)
+      units: Option[String],                 // units purchased (e.g. electricity kWh)
+      provider_reference: Option[String],    // downstream rail / provider reference
       provider_message: Option[String]       // free-text provider remark
   )
 
   /** Inbound body for the vend-result delivery endpoint (rail/adapter → OBP). */
   case class PostUtilityVendResultJsonV700(
       status: String,
-      luku_token: Option[String],
+      token: Option[String],
       rcpt_num: Option[String],
       units: Option[String],
-      gwx_reference: Option[String],
+      provider_reference: Option[String],
       provider_message: Option[String]
   )
 
   // Response of the vend-result delivery endpoint, and the payload OBP POSTs to the
   // payer's registered callback_url. Deliberately lean — it carries the vend result
   // (the token), not an echo of the original request (the payer already has that from
-  // the create response). Mirrors the Gateway X callback, which delivers the vend result.
+  // the create response).
   case class UtilityVendResultResponseJsonV700(
       transaction_request_id: String,
       `type`: String,                       // always "UTILITY"
@@ -850,12 +849,12 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
 
   // Attribute names under which the vend result is persisted on the transaction request.
   object UtilityVendAttribute {
-    val Token          = "LUKU_TOKEN"
-    val RcptNum        = "LUKU_RCPT_NUM"
-    val Units          = "LUKU_UNITS"
-    val GwxReference   = "LUKU_GWX_REFERENCE"
-    val VendStatus     = "LUKU_VEND_STATUS"
-    val ProviderMessage = "LUKU_PROVIDER_MESSAGE"
+    val Token             = "UTILITY_VEND_TOKEN"
+    val RcptNum           = "UTILITY_VEND_RCPT_NUM"
+    val Units             = "UTILITY_VEND_UNITS"
+    val ProviderReference = "UTILITY_VEND_PROVIDER_REFERENCE"
+    val VendStatus        = "UTILITY_VEND_STATUS"
+    val ProviderMessage   = "UTILITY_VEND_PROVIDER_MESSAGE"
   }
 
   // v7 response shape for UTILITY. Mirrors MOBILE_WALLET's wrapper and adds the
@@ -913,10 +912,10 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     byName.get(UtilityVendAttribute.VendStatus).map { status =>
       UtilityVendResultJsonV700(
         status = status,
-        luku_token = byName.get(UtilityVendAttribute.Token),
+        token = byName.get(UtilityVendAttribute.Token),
         rcpt_num = byName.get(UtilityVendAttribute.RcptNum),
         units = byName.get(UtilityVendAttribute.Units),
-        gwx_reference = byName.get(UtilityVendAttribute.GwxReference),
+        provider_reference = byName.get(UtilityVendAttribute.ProviderReference),
         provider_message = byName.get(UtilityVendAttribute.ProviderMessage)
       )
     }

@@ -3062,7 +3062,7 @@ object Http4s700 {
 
     // ── UTILITY vend-result delivery (inbound, asynchronous) ───────────────────
     // The downstream rail/adapter calls this once the utility vend settles, delivering
-    // the electricity token / receipt (e.g. a LUKU 20-digit STS token). OBP persists the
+    // the token / receipt (e.g. a 20-digit STS prepaid-electricity token). OBP persists the
     // vend fields as transaction-request attributes and — if the payer registered a
     // callback_url on the original request — POSTs the vend result to it. The rail is a
     // trusted system actor, gated by canCreateUtilityVendResult. Returns 200.
@@ -3076,10 +3076,10 @@ object Http4s700 {
           // Only present fields are persisted; the vend status is always written.
           val attrs: List[(String, String)] =
             (JSONFactory700.UtilityVendAttribute.VendStatus -> body.status) :: List(
-              body.luku_token.map(JSONFactory700.UtilityVendAttribute.Token -> _),
+              body.token.map(JSONFactory700.UtilityVendAttribute.Token -> _),
               body.rcpt_num.map(JSONFactory700.UtilityVendAttribute.RcptNum -> _),
               body.units.map(JSONFactory700.UtilityVendAttribute.Units -> _),
-              body.gwx_reference.map(JSONFactory700.UtilityVendAttribute.GwxReference -> _),
+              body.provider_reference.map(JSONFactory700.UtilityVendAttribute.ProviderReference -> _),
               body.provider_message.map(JSONFactory700.UtilityVendAttribute.ProviderMessage -> _)
             ).flatten
           for {
@@ -3127,11 +3127,11 @@ object Http4s700 {
       "/banks/BANK_ID/utility-payments/UTILITY_TRANSACTION_REQUEST_ID/vend-result",
       "Deliver UTILITY Vend Result",
       """**System endpoint** — called by the downstream rail/adapter (not the payer) to deliver the
-        |asynchronous result of a UTILITY payment, e.g. a LUKU (TANESCO prepaid electricity) purchase.
+        |asynchronous result of a UTILITY payment, e.g. a prepaid-electricity purchase.
         |
         |The vend is asynchronous: the original `POST .../transaction-request-types/UTILITY/transaction-requests`
-        |returns immediately with `vend_result: null`, and the actual deliverable — the **20-digit STS
-        |electricity token** plus receipt (`rcpt_num`, `units`, provider reference) — arrives here once the
+        |returns immediately with `vend_result: null`, and the actual deliverable — the **STS prepaid token**
+        |(typically 20 digits) plus receipt (`rcpt_num`, `units`, `provider_reference`) — arrives here once the
         |rail settles the vend. OBP records the vend fields as attributes on the transaction request and,
         |if the payer registered a `callback_url`, POSTs this vend result to that URL (a failed or
         |unreachable callback never fails this request).
@@ -3141,10 +3141,10 @@ object Http4s700 {
         |Requires the `CanCreateUtilityVendResult` system entitlement.""".stripMargin,
       JSONFactory700.PostUtilityVendResultJsonV700(
         status = "COMPLETED",
-        luku_token = Some("1234 5678 9012 3456 7890"),
+        token = Some("1234 5678 9012 3456 7890"),
         rcpt_num = Some("202306141018422348674"),
         units = Some("46.5"),
-        gwx_reference = Some("GWX800930701197"),
+        provider_reference = Some("REF800930701197"),
         provider_message = Some("Vend successful")
       ),
       JSONFactory700.UtilityVendResultResponseJsonV700(
@@ -3153,10 +3153,10 @@ object Http4s700 {
         status = "COMPLETED",
         vend_result = Some(JSONFactory700.UtilityVendResultJsonV700(
           status = "COMPLETED",
-          luku_token = Some("1234 5678 9012 3456 7890"),
+          token = Some("1234 5678 9012 3456 7890"),
           rcpt_num = Some("202306141018422348674"),
           units = Some("46.5"),
-          gwx_reference = Some("GWX800930701197"),
+          provider_reference = Some("REF800930701197"),
           provider_message = Some("Vend successful")
         )),
         callback = Some(JSONFactory700.UtilityCallbackJsonV700(
