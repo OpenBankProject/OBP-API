@@ -88,6 +88,34 @@
         <artifactId>accessors-smart</artifactId>
         <version>2.6.0</version>
       </dependency>
+      <!-- Force org.json to 20250107 to override the 20171018 pulled in transitively
+           by everit-json-schema 1.6.1. Fixes CVE-2022-45688 and CVE-2023-5072. -->
+      <dependency>
+        <groupId>org.json</groupId>
+        <artifactId>json</artifactId>
+        <version>20250107</version>
+      </dependency>
+      <!-- Force commons-validator to 1.9.0 to override the 1.6 pulled in transitively
+           by everit-json-schema 1.6.1. Fixes CVE-2020-13956 (ReDoS in URL validation). -->
+      <dependency>
+        <groupId>commons-validator</groupId>
+        <artifactId>commons-validator</artifactId>
+        <version>1.9.0</version>
+      </dependency>
+      <!-- Force gson to 2.11.0 to override the 2.8.5 pulled in transitively by
+           stripe-java 12.1.0. Fixes CVE-2022-25647 (DoS via deeply nested structures). -->
+      <dependency>
+        <groupId>com.google.code.gson</groupId>
+        <artifactId>gson</artifactId>
+        <version>2.11.0</version>
+      </dependency>
+      <!-- Force Java-WebSocket to 1.5.4 to override the 1.5.3 pulled in transitively
+           by web3j 4.9.8. Fixes CVE-2023-43669 (path traversal in WebSocket server). -->
+      <dependency>
+        <groupId>org.java-websocket</groupId>
+        <artifactId>Java-WebSocket</artifactId>
+        <version>1.5.4</version>
+      </dependency>
       <dependency>
         <groupId>com.tesobe</groupId>
         <artifactId>obp-commons</artifactId>
