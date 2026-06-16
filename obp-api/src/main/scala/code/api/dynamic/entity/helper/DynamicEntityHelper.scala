@@ -347,9 +347,11 @@ object DynamicEntityHelper {
       s"""Partially update $splitName: only the fields supplied in the body are changed; others are preserved.
          |
          |This is also the write path for **field-level write-restricted** fields (those declared with
-         |`writeRoleRequired` or an explicit `writeRole`). To write such a field the caller must hold that field's
-         |write role; otherwise the request is rejected with 403 (missing role). Unrestricted fields require
-         |the entity update role, as for PUT.
+         |`write_role_required` or an explicit `write_role`). Authorisation is **per field present in the body**:
+         |a write-restricted field requires that field's write role, and an unrestricted field requires the entity
+         |update role. You may change a field if (and only if) you hold the role that governs it; the request is
+         |rejected with 403 (missing role) listing the roles you lack. There is no blanket entity-update
+         |precondition — holding only a field's write role is sufficient to PATCH that field alone.
          |${dynamicEntityInfo.description}
          |
          |${dynamicEntityInfo.fieldsDescription}
@@ -848,13 +850,13 @@ case class DynamicEntityInfo(definition: String, entityName: String, bankId: Opt
       case _ => Nil
     }
   /** Fields written only via the role-gated PATCH path (not via POST/PUT). */
-  lazy val writeRestrictedFields: List[String] = restrictedFields("writeRoleRequired", "writeRole")
+  lazy val writeRestrictedFields: List[String] = restrictedFields("write_role_required", "write_role")
   /** Fields omitted from GET unless the caller holds the read role. */
-  lazy val readRestrictedFields: List[String] = restrictedFields("readRoleRequired", "readRole")
+  lazy val readRestrictedFields: List[String] = restrictedFields("read_role_required", "read_role")
   def explicitWriteRole(fieldName: String): Option[String] =
-    (entity \ "properties" \ fieldName \ "writeRole") match { case JString(s) if s.nonEmpty => Some(s); case _ => None }
+    (entity \ "properties" \ fieldName \ "write_role") match { case JString(s) if s.nonEmpty => Some(s); case _ => None }
   def explicitReadRole(fieldName: String): Option[String] =
-    (entity \ "properties" \ fieldName \ "readRole") match { case JString(s) if s.nonEmpty => Some(s); case _ => None }
+    (entity \ "properties" \ fieldName \ "read_role") match { case JString(s) if s.nonEmpty => Some(s); case _ => None }
   /** Declared schema property names (used to bound a PATCH merge to real fields). */
   lazy val propertyNames: List[String] = (entity \ "properties") match {
     case props: JObject => props.obj.map(_.name)
@@ -908,7 +910,7 @@ object DynamicEntityInfo {
     canDeleteRole(entityName, bankId)
   ).map(_.toString())
 
-  // Field-level roles. If the definition declares an explicit writeRole/readRole, use it verbatim
+  // Field-level roles. If the definition declares an explicit write_role/read_role, use it verbatim
   // (so many fields/entities can share one role); otherwise auto-generate a per-field role.
   def fieldWriteRole(entityName: String, fieldName: String, bankId: Option[String], explicit: Option[String]): ApiRole =
     explicit match {

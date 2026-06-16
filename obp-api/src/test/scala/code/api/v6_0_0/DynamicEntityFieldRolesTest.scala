@@ -26,6 +26,7 @@ TESOBE (http://www.tesobe.com/)
 package code.api.v6_0_0
 
 import code.api.util.APIUtil.OAuth._
+import com.openbankproject.commons.model.ErrorMessage
 import code.api.util.ApiRole._
 import code.entitlement.Entitlement
 import com.openbankproject.commons.util.ApiVersion
@@ -50,6 +51,12 @@ class DynamicEntityFieldRolesTest extends V600ServerSetup {
 
   private def grant(role: String): Unit =
     Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, role)
+
+  // Grant to a specific user. Creating a dynamic entity auto-grants its CRUD roles to the *creator*
+  // (resourceUser1, via createSystemEntity), so the "no entity update role" scenarios use resourceUser2 —
+  // a user who did not create the entity and therefore only holds what we explicitly grant here.
+  private def grantTo(userId: String, role: String): Unit =
+    Entitlement.entitlement.vend.addEntitlement("", userId, role)
 
   private def createSystemEntity(entityJson: JValue): (Int, JValue) = {
     grant(CanCreateSystemLevelDynamicEntity.toString)
@@ -85,8 +92,8 @@ class DynamicEntityFieldRolesTest extends V600ServerSetup {
       |  "required": ["name"],
       |  "properties": {
       |    "name":          {"type": "string", "minLength": 1, "maxLength": 40, "example": "Acme"},
-      |    "internal_note": {"type": "string", "example": "set via patch", "writeRoleRequired": true},
-      |    "secret_note":   {"type": "string", "example": "hush", "readRoleRequired": true}
+      |    "internal_note": {"type": "string", "example": "set via patch", "write_role_required": true},
+      |    "secret_note":   {"type": "string", "example": "hush", "read_role_required": true}
       |  }
       |}
     """.stripMargin)
@@ -97,6 +104,26 @@ class DynamicEntityFieldRolesTest extends V600ServerSetup {
     ("schema" -> schema)
 
   private def recordId(createBody: JValue): String = (createBody \ single \ idName).extract[String]
+
+  // ---- Per-entity fixtures for the per-field authorisation scenarios ----
+  // Each scenario uses a UNIQUE entity name so the (entity-scoped) role names don't collide with grants
+  // accumulated by earlier scenarios on resourceUser1 — that's what lets us test "role X alone".
+  private def createRoleFor(n: String)    = s"CanCreateDynamicEntity_System$n"
+  private def getRoleFor(n: String)       = s"CanGetDynamicEntity_System$n"
+  private def updateRoleFor(n: String)    = s"CanUpdateDynamicEntity_System$n"
+  private def writeNoteRoleFor(n: String) = s"CanWriteDynamicEntityField_System${n}__internal_note"
+
+  private def fieldRolesEntity(n: String): JValue =
+    ("entity_name" -> n) ~
+    ("has_personal_entity" -> true) ~
+    ("schema" -> parse(
+      s"""{"description":"Per-field auth test entity.","required":["name"],
+         |"properties":{
+         |"name":{"type":"string","minLength":1,"maxLength":40,"example":"Acme"},
+         |"internal_note":{"type":"string","example":"set via patch","write_role_required":true},
+         |"secret_note":{"type":"string","example":"hush","read_role_required":true}}}""".stripMargin))
+
+  private def recordIdFor(n: String, body: JValue): String = (body \ n \ s"${n}_id").extract[String]
 
   // ==================== Scenarios ====================
 
@@ -198,6 +225,127 @@ class DynamicEntityFieldRolesTest extends V600ServerSetup {
         val getResp2 = makeGetRequest((dynamicEntity_Request / entityName / id).GET <@(user1))
         (getResp2.body \ single \ "secret_note").extract[String] should equal("hush")
       } finally deleteSystemEntity(dynamicEntityId)
+    }
+  }
+
+  feature("Per-field PATCH authorisation (no blanket entity-update precondition)") {
+
+    scenario("Field write role alone (no entity update role) can PATCH the restricted field", VersionOfApi) {
+      val n = "fr_field_alone"
+      val (code, body) = createSystemEntity(fieldRolesEntity(n))   // user1 is the creator (auto-granted entity roles)
+      code should equal(201)
+      val deId = (body \ "dynamic_entity_id").extract[String]
+      try {
+        val createResp = makePostRequest((dynamicEntity_Request / n).POST <@(user1), write(parse("""{"name":"Acme"}""")))
+        createResp.code should equal(201)
+        val id = recordIdFor(n, createResp.body)
+        // user2 (NOT the creator) holds ONLY the field write role — no entity update/get role.
+        grantTo(resourceUser2.userId, writeNoteRoleFor(n))
+
+        When("user2 PATCHes the restricted field holding only its field write role (no entity update role)")
+        val patch = makePatchRequest((dynamicEntity_Request / n / id).PATCH <@(user2), write(parse("""{"internal_note":"viaPatch"}""")))
+        Then("It succeeds — a field role alone is sufficient to write that field")
+        patch.code should equal(200)
+        val getResp = makeGetRequest((dynamicEntity_Request / n / id).GET <@(user1))
+        (getResp.body \ n \ "internal_note").extract[String] should equal("viaPatch")
+        (getResp.body \ n \ "name").extract[String] should equal("Acme")
+      } finally deleteSystemEntity(deId)
+    }
+
+    scenario("Field write role alone cannot PATCH an unrestricted field", VersionOfApi) {
+      val n = "fr_unrestricted_denied"
+      val (code, body) = createSystemEntity(fieldRolesEntity(n))   // user1 is the creator
+      code should equal(201)
+      val deId = (body \ "dynamic_entity_id").extract[String]
+      try {
+        val createResp = makePostRequest((dynamicEntity_Request / n).POST <@(user1), write(parse("""{"name":"Acme"}""")))
+        val id = recordIdFor(n, createResp.body)
+        // user2 (NOT the creator) holds ONLY the field write role — no entity update role.
+        grantTo(resourceUser2.userId, writeNoteRoleFor(n))
+
+        When("user2 PATCHes an unrestricted field without the entity update role")
+        val patch1 = makePatchRequest((dynamicEntity_Request / n / id).PATCH <@(user2), write(parse("""{"name":"Acme2"}""")))
+        Then("We get 403 naming the entity update role")
+        patch1.code should equal(403)
+        patch1.body.extract[ErrorMessage].message should include(updateRoleFor(n))
+
+        And("A mixed body (restricted + unrestricted) is also rejected")
+        val patch2 = makePatchRequest((dynamicEntity_Request / n / id).PATCH <@(user2), write(parse("""{"internal_note":"x","name":"Acme2"}""")))
+        patch2.code should equal(403)
+
+        And("The unrestricted field is unchanged")
+        val getResp = makeGetRequest((dynamicEntity_Request / n / id).GET <@(user1))
+        (getResp.body \ n \ "name").extract[String] should equal("Acme")
+      } finally deleteSystemEntity(deId)
+    }
+
+    scenario("Entity update role alone can PATCH unrestricted fields but not restricted ones", VersionOfApi) {
+      val n = "fr_baseline_only"
+      val (code, body) = createSystemEntity(fieldRolesEntity(n))
+      code should equal(201)
+      val deId = (body \ "dynamic_entity_id").extract[String]
+      try {
+        grant(createRoleFor(n)); grant(getRoleFor(n)); grant(updateRoleFor(n))   // NOT the field write role
+        val createResp = makePostRequest((dynamicEntity_Request / n).POST <@(user1), write(parse("""{"name":"Acme"}""")))
+        val id = recordIdFor(n, createResp.body)
+
+        When("We PATCH an unrestricted field with the entity update role")
+        val patch1 = makePatchRequest((dynamicEntity_Request / n / id).PATCH <@(user1), write(parse("""{"name":"Acme2"}""")))
+        Then("It succeeds")
+        patch1.code should equal(200)
+
+        When("We PATCH the restricted field without its field write role")
+        val patch2 = makePatchRequest((dynamicEntity_Request / n / id).PATCH <@(user1), write(parse("""{"internal_note":"x"}""")))
+        Then("We get 403 naming the field write role")
+        patch2.code should equal(403)
+        patch2.body.extract[ErrorMessage].message should include(writeNoteRoleFor(n))
+      } finally deleteSystemEntity(deId)
+    }
+
+    scenario("PATCH a restricted field with its current (unchanged) value still requires the role", VersionOfApi) {
+      val n = "fr_unchanged_value"
+      val (code, body) = createSystemEntity(fieldRolesEntity(n))
+      code should equal(201)
+      val deId = (body \ "dynamic_entity_id").extract[String]
+      try {
+        grant(createRoleFor(n)); grant(getRoleFor(n)); grant(updateRoleFor(n)); grant(writeNoteRoleFor(n))
+        val createResp = makePostRequest((dynamicEntity_Request / n).POST <@(user1), write(parse("""{"name":"Acme"}""")))
+        val id = recordIdFor(n, createResp.body)
+        // user1 (who holds the field role) sets internal_note to a known value
+        makePatchRequest((dynamicEntity_Request / n / id).PATCH <@(user1), write(parse("""{"internal_note":"verified"}"""))).code should equal(200)
+
+        When("user2 (no roles for this entity) PATCHes the restricted field to the SAME value")
+        val patch = makePatchRequest((dynamicEntity_Request / n / id).PATCH <@(user2), write(parse("""{"internal_note":"verified"}""")))
+        Then("It is still rejected — presence in the body is checked, not whether the value changed")
+        patch.code should equal(403)
+        patch.body.extract[ErrorMessage].message should include(writeNoteRoleFor(n))
+      } finally deleteSystemEntity(deId)
+    }
+
+    scenario("Personal entity without personal_requires_role: unrestricted PATCH needs no role; restricted still needs the field role", VersionOfApi) {
+      val n = "fr_personal"
+      val (code, body) = createSystemEntity(fieldRolesEntity(n))   // has_personal_entity=true, personal_requires_role defaults false
+      code should equal(201)
+      val deId = (body \ "dynamic_entity_id").extract[String]
+      try {
+        // user2 holds no roles for this entity; personal_requires_role defaults false.
+        When("user2 creates a personal record without any entity role")
+        val createResp = makePostRequest((dynamicEntity_Request / "my" / n).POST <@(user2), write(parse("""{"name":"Acme"}""")))
+        createResp.code should equal(201)
+        val id = recordIdFor(n, createResp.body)
+
+        Then("PATCH of an unrestricted field succeeds without any role")
+        makePatchRequest((dynamicEntity_Request / "my" / n / id).PATCH <@(user2), write(parse("""{"name":"Acme2"}"""))).code should equal(200)
+
+        And("PATCH of the restricted field is still rejected without the field write role")
+        val patch1 = makePatchRequest((dynamicEntity_Request / "my" / n / id).PATCH <@(user2), write(parse("""{"internal_note":"x"}""")))
+        patch1.code should equal(403)
+        patch1.body.extract[ErrorMessage].message should include(writeNoteRoleFor(n))
+
+        And("Granting the field write role lets the restricted field be PATCHed")
+        grantTo(resourceUser2.userId, writeNoteRoleFor(n))
+        makePatchRequest((dynamicEntity_Request / "my" / n / id).PATCH <@(user2), write(parse("""{"internal_note":"x"}"""))).code should equal(200)
+      } finally deleteSystemEntity(deId)
     }
   }
 }

@@ -769,6 +769,158 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     )
   }
 
+  // ── UTILITY transaction-request body ───────────────────────────────────────
+  //
+  // A polymorphic bill / utility payment. The destination is a QualifiedIdentifier
+  // whose `scheme` must be a registered routing scheme of category UTILITY or BILL
+  // — e.g. `TZ.UTILITY_METER` (prepaid electricity meter), later `TZ.BILL_CONTROL_NUMBER`.
+  // Mirrors the meter/bill token-purchase flow: verify the destination via
+  // POST .../payees/lookup, then pay quoting `verified_payee_lookup_id`.
+
+  /** Payer block — the depositor's phone / name / email for the biller receipt. */
+  case class UtilityPayerJsonV700(
+      phone: Option[String],
+      name: Option[String],
+      email: Option[String]
+  )
+
+  /**
+   * Body for `POST .../transaction-request-types/UTILITY/transaction-requests`.
+   *
+   * Implements `TransactionRequestCommonBodyJSON` so it plugs into the existing
+   * v400 transaction-request pipeline (which requires `value` + `description`).
+   *
+   * `callback_url`, when present, registers a fire-and-forget callback that OBP
+   * POSTs the final token-purchase result to.
+   */
+  case class TransactionRequestBodyUtilityJsonV700(
+      to: QualifiedIdentifierJsonV700,
+      value: com.openbankproject.commons.model.AmountOfMoneyJsonV121,
+      description: String,
+      client_reference: Option[String],
+      verified_payee_lookup_id: Option[String],
+      payer: Option[UtilityPayerJsonV700],
+      callback_url: Option[String],
+      data_fields: Option[List[MobileWalletDataFieldJsonV700]],
+      charge_policy: Option[String]
+  ) extends com.openbankproject.commons.model.TransactionRequestCommonBodyJSON
+
+  /** Registration status of the per-request callback (step c). */
+  case class UtilityCallbackJsonV700(
+      callback_id: String,
+      callback_url: String,
+      status: String                        // REGISTERED | DELIVERED | FAILED
+  )
+
+  // The asynchronous vend result delivered by the downstream rail/adapter after the
+  // utility purchase settles — e.g. the STS token (typically 20 digits) for a prepaid
+  // electricity meter. Persisted on the transaction request as attributes and surfaced
+  // here (and on the client callback) once the vend completes.
+  case class UtilityVendResultJsonV700(
+      status: String,                        // ACCEPTED | COMPLETED | FAILED (provider vend status)
+      token: Option[String],                 // the STS token the customer keys into the meter (e.g. 20 digits)
+      rcpt_num: Option[String],              // provider receipt number
+      units: Option[String],                 // units purchased (e.g. electricity kWh)
+      provider_reference: Option[String],    // downstream rail / provider reference
+      provider_message: Option[String]       // free-text provider remark
+  )
+
+  /** Inbound body for the vend-result delivery endpoint (rail/adapter → OBP). */
+  case class PostUtilityVendResultJsonV700(
+      status: String,
+      token: Option[String],
+      rcpt_num: Option[String],
+      units: Option[String],
+      provider_reference: Option[String],
+      provider_message: Option[String]
+  )
+
+  // Response of the vend-result delivery endpoint, and the payload OBP POSTs to the
+  // payer's registered callback_url. Deliberately lean — it carries the vend result
+  // (the token), not an echo of the original request (the payer already has that from
+  // the create response).
+  case class UtilityVendResultResponseJsonV700(
+      transaction_request_id: String,
+      `type`: String,                       // always "UTILITY"
+      status: String,                       // the transaction request's status
+      vend_result: Option[UtilityVendResultJsonV700],
+      callback: Option[UtilityCallbackJsonV700]   // delivery status, when a callback was registered
+  )
+
+  // Attribute names under which the vend result is persisted on the transaction request.
+  object UtilityVendAttribute {
+    val Token             = "UTILITY_VEND_TOKEN"
+    val RcptNum           = "UTILITY_VEND_RCPT_NUM"
+    val Units             = "UTILITY_VEND_UNITS"
+    val ProviderReference = "UTILITY_VEND_PROVIDER_REFERENCE"
+    val VendStatus        = "UTILITY_VEND_STATUS"
+    val ProviderMessage   = "UTILITY_VEND_PROVIDER_MESSAGE"
+  }
+
+  // v7 response shape for UTILITY. Mirrors MOBILE_WALLET's wrapper and adds the
+  // optional callback-registration block and the asynchronous vend result.
+  case class TransactionRequestWithChargeUtilityJsonV700(
+      id: String,
+      `type`: String,
+      from: code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140,
+      details: TransactionRequestBodyUtilityJsonV700,
+      transaction_ids: List[String],
+      status: String,
+      start_date: java.util.Date,
+      end_date: java.util.Date,
+      challenges: List[code.api.v4_0_0.ChallengeJsonV400],
+      charge: code.api.v2_0_0.TransactionRequestChargeJsonV200,
+      callback: Option[UtilityCallbackJsonV700],
+      vend_result: Option[UtilityVendResultJsonV700],
+      attributes: Option[List[code.api.v4_0_0.BankAttributeBankResponseJsonV400]]
+  )
+
+  def createTransactionRequestWithChargeUtilityJsonV700(
+      tr: com.openbankproject.commons.model.TransactionRequest,
+      requestBody: TransactionRequestBodyUtilityJsonV700,
+      callback: Option[UtilityCallbackJsonV700],
+      vendResult: Option[UtilityVendResultJsonV700],
+      challenges: List[com.openbankproject.commons.model.ChallengeTrait],
+      transactionRequestAttribute: List[com.openbankproject.commons.model.TransactionRequestAttributeTrait]
+  ): TransactionRequestWithChargeUtilityJsonV700 = {
+    val v4 = code.api.v4_0_0.JSONFactory400.createTransactionRequestWithChargeJSON(
+      tr, challenges, transactionRequestAttribute
+    )
+    TransactionRequestWithChargeUtilityJsonV700(
+      id = v4.id,
+      `type` = v4.`type`,
+      from = v4.from,
+      details = requestBody,
+      transaction_ids = v4.transaction_ids,
+      status = v4.status,
+      start_date = v4.start_date,
+      end_date = v4.end_date,
+      challenges = v4.challenges,
+      charge = v4.charge,
+      callback = callback,
+      vend_result = vendResult,
+      attributes = v4.attributes
+    )
+  }
+
+  /** Build the typed vend-result block from the transaction request's persisted attributes.
+    * Returns None when no vend has been recorded yet. */
+  def utilityVendResultFromAttributes(
+      attributes: List[com.openbankproject.commons.model.TransactionRequestAttributeTrait]
+  ): Option[UtilityVendResultJsonV700] = {
+    val byName = attributes.map(a => a.name -> a.value).toMap
+    byName.get(UtilityVendAttribute.VendStatus).map { status =>
+      UtilityVendResultJsonV700(
+        status = status,
+        token = byName.get(UtilityVendAttribute.Token),
+        rcpt_num = byName.get(UtilityVendAttribute.RcptNum),
+        units = byName.get(UtilityVendAttribute.Units),
+        provider_reference = byName.get(UtilityVendAttribute.ProviderReference),
+        provider_message = byName.get(UtilityVendAttribute.ProviderMessage)
+      )
+    }
+  }
+
   // ── BULK transaction-request body ─────────────────────────────────────────
 
   case class BulkPaymentItemJsonV700(

@@ -74,9 +74,9 @@ trait DynamicEntityT {
     case None => definition
   }
 
-  // ----- Field-level access control (writeRole / readRole) -----
-  // A field is write-restricted if it sets writeRoleRequired:true OR a non-empty writeRole.
-  // A field is read-restricted  if it sets readRoleRequired:true  OR a non-empty readRole.
+  // ----- Field-level access control (write_role / read_role) -----
+  // A field is write-restricted if it sets write_role_required:true OR a non-empty write_role.
+  // A field is read-restricted  if it sets read_role_required:true  OR a non-empty read_role.
   private def restrictedFieldNames(requiredFlag: String, roleKey: String): List[String] = {
     def isRestricted(propDef: JValue): Boolean =
       (propDef \ requiredFlag) == JBool(true) ||
@@ -88,19 +88,19 @@ trait DynamicEntityT {
   }
 
   /** Fields whose writing requires a field-level role (not writable via POST/PUT; only via the role-gated PATCH path). */
-  lazy val writeRestrictedFields: List[String] = restrictedFieldNames("writeRoleRequired", "writeRole")
+  lazy val writeRestrictedFields: List[String] = restrictedFieldNames("write_role_required", "write_role")
   /** Fields whose reading requires a field-level role (omitted from GET responses otherwise). */
-  lazy val readRestrictedFields: List[String] = restrictedFieldNames("readRoleRequired", "readRole")
+  lazy val readRestrictedFields: List[String] = restrictedFieldNames("read_role_required", "read_role")
 
-  /** Explicit writeRole declared on a field, if any (otherwise an auto-generated role applies). */
+  /** Explicit write_role declared on a field, if any (otherwise an auto-generated role applies). */
   def explicitWriteRole(fieldName: String): Option[String] =
-    (definition \ entityName \ "properties" \ fieldName \ "writeRole") match {
+    (definition \ entityName \ "properties" \ fieldName \ "write_role") match {
       case JString(s) if s.nonEmpty => Some(s)
       case _ => None
     }
-  /** Explicit readRole declared on a field, if any. */
+  /** Explicit read_role declared on a field, if any. */
   def explicitReadRole(fieldName: String): Option[String] =
-    (definition \ entityName \ "properties" \ fieldName \ "readRole") match {
+    (definition \ entityName \ "properties" \ fieldName \ "read_role") match {
       case JString(s) if s.nonEmpty => Some(s)
       case _ => None
     }
@@ -595,21 +595,21 @@ object DynamicEntityCommons extends Converter[DynamicEntityT, DynamicEntityCommo
       }
 
       // validate optional field-level access-control keywords (all optional; absence => unrestricted)
-      val writeRoleRequired = value \ "writeRoleRequired"
+      val writeRoleRequired = value \ "write_role_required"
       if(writeRoleRequired != JNothing) {
-        checkFormat(writeRoleRequired.isInstanceOf[JBool], s"$DynamicEntityInstanceValidateFail The property of $fieldName's 'writeRoleRequired' field must be boolean.")
+        checkFormat(writeRoleRequired.isInstanceOf[JBool], s"$DynamicEntityInstanceValidateFail The property of $fieldName's 'write_role_required' field must be boolean.")
       }
-      val readRoleRequired = value \ "readRoleRequired"
+      val readRoleRequired = value \ "read_role_required"
       if(readRoleRequired != JNothing) {
-        checkFormat(readRoleRequired.isInstanceOf[JBool], s"$DynamicEntityInstanceValidateFail The property of $fieldName's 'readRoleRequired' field must be boolean.")
+        checkFormat(readRoleRequired.isInstanceOf[JBool], s"$DynamicEntityInstanceValidateFail The property of $fieldName's 'read_role_required' field must be boolean.")
       }
-      val writeRole = value \ "writeRole"
+      val writeRole = value \ "write_role"
       if(writeRole != JNothing) {
-        checkFormat(writeRole.isInstanceOf[JString] && writeRole.asInstanceOf[JString].s.nonEmpty, s"$DynamicEntityInstanceValidateFail The property of $fieldName's 'writeRole' field must be a non-empty string.")
+        checkFormat(writeRole.isInstanceOf[JString] && writeRole.asInstanceOf[JString].s.nonEmpty, s"$DynamicEntityInstanceValidateFail The property of $fieldName's 'write_role' field must be a non-empty string.")
       }
-      val readRole = value \ "readRole"
+      val readRole = value \ "read_role"
       if(readRole != JNothing) {
-        checkFormat(readRole.isInstanceOf[JString] && readRole.asInstanceOf[JString].s.nonEmpty, s"$DynamicEntityInstanceValidateFail The property of $fieldName's 'readRole' field must be a non-empty string.")
+        checkFormat(readRole.isInstanceOf[JString] && readRole.asInstanceOf[JString].s.nonEmpty, s"$DynamicEntityInstanceValidateFail The property of $fieldName's 'read_role' field must be a non-empty string.")
       }
 
       // validate optional indexing keywords (DE_indexing). All optional; absence => field is not queryable.

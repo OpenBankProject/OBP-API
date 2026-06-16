@@ -475,17 +475,6 @@ object DirectLogin extends MdcLoggable {
     }
   }
 
-  /**
-   * Mint and persist a usable DirectLogin token for an already-authenticated user, bypassing the
-   * username/password validation in `createTokenCommonPart`. Used by the http4s OpenID Connect
-   * callback (`Http4sOpenIdConnect`) once the provider has verified the user's identity.
-   */
-  def issueTokenForUser(userPrimaryKey: Long, consumerKey: String): Box[String] = {
-    val (token, secret) = generateTokenAndSecret(JWTClaimsSet.parse("""{"":""}"""))
-    if (saveAuthorizationToken(Map("consumer_key" -> consumerKey), token, secret, userPrimaryKey)) Full(token)
-    else Failure("OpenIDConnect: could not persist DirectLogin token")
-  }
-
   def getUser : Box[User] = {
     val httpMethod = "GET"
     val (httpCode, message, directLoginParameters) = validator("protectedResource")

@@ -649,8 +649,11 @@ class MappedMetric extends APIMetric with LongKeyedMapper[MappedMetric] with IdP
   object appName extends MappedString(this, 64) // TODO constrain source value length / truncate value on insert
   object developerEmail extends MappedString(this, 64) // TODO constrain source value length / truncate value on insert
 
-  //The consumerId, Foreign key to Consumer not key
-  object consumerId extends UUIDString(this)
+  //The consumerId, Foreign key to Consumer not key.
+  // 250 to match Consumer.consumerId: OAuth2/OIDC auto-created consumers get a composed
+  // id of the form `${azp}_${uuid}` (OAuth.scala getOrCreateConsumer), which for public
+  // providers (e.g. a ~72-char Google client id) exceeds the old UUIDString(44) width.
+  object consumerId extends MappedString(this, 250)
   //name of the Scala Partial Function being used for the endpoint
   object implementedByPartialFunction  extends MappedString(this, 128)
   //name of version where the call is implemented) -- S.request.get.view
@@ -722,8 +725,11 @@ class MetricArchive extends APIMetric with LongKeyedMapper[MetricArchive] with I
   object appName extends MappedString(this, 64) // TODO constrain source value length / truncate value on insert
   object developerEmail extends MappedString(this, 64) // TODO constrain source value length / truncate value on insert
 
-  //The consumerId, Foreign key to Consumer not key
-  object consumerId extends UUIDString(this)
+  //The consumerId, Foreign key to Consumer not key.
+  // 250 to match Consumer.consumerId: OAuth2/OIDC auto-created consumers get a composed
+  // id of the form `${azp}_${uuid}` (OAuth.scala getOrCreateConsumer), which for public
+  // providers (e.g. a ~72-char Google client id) exceeds the old UUIDString(44) width.
+  object consumerId extends MappedString(this, 250)
   //name of the Scala Partial Function being used for the endpoint
   object implementedByPartialFunction  extends MappedString(this, 128)
   //name of version where the call is implemented) -- S.request.get.view

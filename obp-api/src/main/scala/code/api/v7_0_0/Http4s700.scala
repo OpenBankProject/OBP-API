@@ -8,7 +8,7 @@ import code.api.Constant._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil.{EmptyBody, _}
 import code.api.util.{APIUtil, ApiRole, CallContext, CustomJsonFormats, Glossary, NewStyle}
-import code.api.util.ApiRole.{canCreateEntitlementAtAnyBank, canCreateEntitlementAtOneBank, canCreateMetricsArchiveRun, canCreateOrganisation, canCreateRoutingScheme, canCreateTestEmail, canDeleteEntitlementAtAnyBank, canDeleteOrganisation, canDeleteRoutingScheme, canDeleteSchedulerJobLock, canGetAccountAccessTrace, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetConnectorHealth, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMetricsDiagnostics, canGetMigrations, canGetSchedulerJobLocks, canUpdateBankSupportedRoutingScheme, canUpdateOrganisation, canUpdateRoutingScheme, canUpdateSystemView}
+import code.api.util.ApiRole.{canCreateEntitlementAtAnyBank, canCreateEntitlementAtOneBank, canCreateMetricsArchiveRun, canCreateOrganisation, canCreateRoutingScheme, canCreateTestEmail, canCreateUtilityVendResult, canDeleteEntitlementAtAnyBank, canDeleteOrganisation, canDeleteRoutingScheme, canDeleteSchedulerJobLock, canGetAccountAccessTrace, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetConnectorHealth, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMetricsDiagnostics, canGetMigrations, canGetSchedulerJobLocks, canUpdateBankSupportedRoutingScheme, canUpdateOrganisation, canUpdateRoutingScheme, canUpdateSystemView}
 import code.api.util.CommonsEmailWrapper
 import code.model.dataAccess.AuthUser
 import code.api.util.ApiTag._
@@ -30,6 +30,7 @@ import code.entitlement.Entitlement
 import code.organisation.Organisations
 import code.routingscheme.{RoutingSchemes, RoutingSchemeValidation}
 import code.payeelookup.PayeeLookups
+import code.utilitypayment.{UtilityCallbackDispatcher, UtilityPaymentCallbacks}
 import code.bulkpayment.{BulkPaymentHandler, BulkPayments}
 import code.transactionrequests.MappedTransactionRequestProvider
 import com.openbankproject.commons.model.TransactionRequestCharge
@@ -2242,7 +2243,7 @@ object Http4s700 {
 
     // ── Routing Schemes ───────────────────────────────────────────────────────
     // A registry of country-qualified routing scheme names (e.g. TZ.MSISDN,
-    // TZ.GEPG_CONTROL_NUMBER) so that downstream adapters and clients agree on
+    // TZ.BILL_CONTROL_NUMBER) so that downstream adapters and clients agree on
     // identifier scheme semantics. Two tiers:
     //   • /routing-schemes              — system catalogue (5 endpoints)
     //   • /banks/BANK_ID/supported-routing-schemes — per-bank subset (2 endpoints)
@@ -2301,7 +2302,7 @@ object Http4s700 {
       "Create Routing Scheme",
       """Register a new routing scheme.
         |
-        |Scheme names follow the convention `<COUNTRY>.<LOCAL_SCHEME>` — uppercase ISO 3166-1 alpha-2 country code, a dot, then an uppercase local scheme name (e.g. `TZ.MSISDN`, `TZ.GEPG_CONTROL_NUMBER`).
+        |Scheme names follow the convention `<COUNTRY>.<LOCAL_SCHEME>` — uppercase ISO 3166-1 alpha-2 country code, a dot, then an uppercase local scheme name (e.g. `TZ.MSISDN`, `TZ.BILL_CONTROL_NUMBER`).
         |
         |Globally-unique schemes `IBAN`, `BIC`, `OBP` are accepted unprefixed; their `country` MUST be the literal `INT`.
         |
@@ -2377,7 +2378,7 @@ object Http4s700 {
         |- `country` — ISO 3166-1 alpha-2, e.g. `TZ`
         |- `category` — ACCOUNT, BANK, BRANCH, IDENTITY, BILL, UTILITY
         |- `status` — defaults to `ACTIVE`. Pass `ALL` to include DEPRECATED and RETIRED.
-        |- `rail` — match against the `downstream_rails` list (e.g. `TIPS`, `GEPG`)
+        |- `rail` — match against the `downstream_rails` list (e.g. `TIPS`, `RTGS`)
         |- `limit` (default 100, max 500), `offset` (default 0)""".stripMargin,
       EmptyBody,
       JSONFactory700.RoutingSchemesJsonV700(
@@ -2565,11 +2566,11 @@ object Http4s700 {
         |Authentication is Required.""".stripMargin,
       EmptyBody,
       JSONFactory700.BankSupportedRoutingSchemesJsonV700(
-        bank_id = "nmb.tz",
+        bank_id = "bank.tz",
         supported_routing_schemes = List(
           JSONFactory700.BankSupportedRoutingSchemeJsonV700(
             scheme = "TZ.MSISDN",
-            bank_notes = Some("Routed via Gateway X to TIPS.")
+            bank_notes = Some("Routed via the instant-payment rail (TIPS).")
           )
         )
       ),
@@ -2617,12 +2618,12 @@ object Http4s700 {
         |
         |Authentication is Required.""".stripMargin,
       JSONFactory700.PutBankSupportedRoutingSchemeJsonV700(
-        bank_notes = Some("Routed via Gateway X to TIPS. Daily cutoff 22:00 EAT."),
+        bank_notes = Some("Routed via the instant-payment rail (TIPS). Daily cutoff 22:00 EAT."),
         enabled = Some(true)
       ),
       JSONFactory700.BankSupportedRoutingSchemeJsonV700(
         scheme = "TZ.MSISDN",
-        bank_notes = Some("Routed via Gateway X to TIPS. Daily cutoff 22:00 EAT.")
+        bank_notes = Some("Routed via the instant-payment rail (TIPS). Daily cutoff 22:00 EAT.")
       ),
       List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat,
            BankNotFound, RoutingSchemeNotFound, RoutingSchemeNotSupportedByBank,
@@ -2722,8 +2723,8 @@ object Http4s700 {
         |Examples:
         |- Mobile-money / TIPS payee: `identifier: { scheme: TZ.MSISDN, value: 255778300336, fsp_id: 503 }`
         |- TIPS bank-account name verify: `identifier: { scheme: TZ.BANK_ACCOUNT, value: 24110000296 }`
-        |- GePG bill inquiry: `identifier: { scheme: TZ.GEPG_CONTROL_NUMBER, value: 991043383705 }`
-        |- Luku meter inquiry: `identifier: { scheme: TZ.LUKU_METER, value: 24730238417 }`
+        |- Bill inquiry: `identifier: { scheme: TZ.BILL_CONTROL_NUMBER, value: 991043383705 }`
+        |- Utility meter inquiry: `identifier: { scheme: TZ.UTILITY_METER, value: 24730238417 }`
         |
         |The response includes a `lookup_id` valid for 10 minutes. A subsequent transaction-request can quote it via `verified_payee_lookup_id` to prove the payer saw the resolved name (Confirmation-of-Payee handshake).
         |
@@ -2739,8 +2740,8 @@ object Http4s700 {
         identifier = JSONFactory700.QualifiedIdentifierJsonV700(
           scheme = "TZ.MSISDN", value = "255778300336", fsp_id = Some("503")
         ),
-        network_provider = Some("ZANTEL"),
-        full_name = "ERASTO EMILE MALEMA",
+        network_provider = Some("PROVIDERA"),
+        full_name = "Jane Doe",
         account_category = Some("PERSON"),
         account_type = Some("WALLET"),
         identity = None
@@ -2828,15 +2829,15 @@ object Http4s700 {
       to = JSONFactory700.MobileWalletToJsonV700(
         msisdn = "255778300336",
         fsp_id = Some("503"),
-        network_provider = Some("AIRTEL"),
-        full_name = Some("Chinua Achebe"),
+        network_provider = Some("PROVIDERA"),
+        full_name = Some("Jane Doe"),
         account_category = Some("PERSON"),
         account_type = Some("WALLET"),
         identity = None
       ),
       value = com.openbankproject.commons.model.AmountOfMoneyJsonV121(currency = "TZS", amount = "1000"),
-      description = "buy airtime",
-      client_reference = Some("MK45078200"),
+      description = "wallet payment",
+      client_reference = Some("ref-0001"),
       verified_payee_lookup_id = None,
       country_code = Some("TZ"),
       data_fields = Some(List(JSONFactory700.MobileWalletDataFieldJsonV700("fieldName1", "fieldValue1"))),
@@ -2888,6 +2889,291 @@ object Http4s700 {
     )
 
     // ── End MOBILE_WALLET ─────────────────────────────────────────────────────
+
+    // ── UTILITY transaction request ───────────────────────────────────────────
+    // Polymorphic bill / utility payment (prepaid utility meter token purchase, bill
+    // payment, ...). The destination biller is identified by a QualifiedIdentifier
+    // whose `scheme` must be a registered routing scheme of category UTILITY or BILL —
+    // e.g. TZ.UTILITY_METER (prepaid electricity meter). Verify the destination first
+    // via POST .../payees/lookup, then pay quoting `verified_payee_lookup_id`
+    // (Confirmation-of-Payee handshake). Plugs into the v400 payment pipeline.
+    // If `callback_url` is supplied, a one-shot callback is registered and the
+    // result is POSTed back asynchronously — a failed callback never fails the
+    // payment.
+    val UtilityValidCategories: Set[String] = Set("UTILITY", "BILL")
+
+    val createTransactionRequestUtility: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "transaction-request-types" / "UTILITY" / "transaction-requests" =>
+        EndpointHelpers.withViewAndBodyCreated[JSONFactory700.TransactionRequestBodyUtilityJsonV700, JSONFactory700.TransactionRequestWithChargeUtilityJsonV700](req) { (user, fromAccount, view, body, cc) =>
+          val callCtx = Some(cc)
+          val chargePolicy = body.charge_policy.getOrElse("SHARED")
+          for {
+            // 1. identifier.scheme must be a registered routing scheme.
+            scheme <- Future(RoutingSchemes.routingScheme.vend.getRoutingScheme(body.to.scheme))
+              .map(unboxFullOrFail(_, callCtx, PayeeLookupIdentifierTypeNotRegistered, 400))
+            // 2. scheme category must be UTILITY or BILL.
+            _ <- Helper.booleanToFuture(UtilityIdentifierTypeWrongCategory, 400, callCtx) {
+              UtilityValidCategories.contains(scheme.category)
+            }
+            // 3. identifier.value must match the scheme's address_pattern.
+            _ <- Helper.booleanToFuture(UtilityInvalidIdentifier, 400, callCtx) {
+              RoutingSchemeValidation.addressMatchesPattern(scheme.addressPattern, body.to.value)
+            }
+            // 4. optional Confirmation-of-Payee handshake against a prior lookup.
+            _ <- body.verified_payee_lookup_id match {
+              case Some(lkpId) =>
+                for {
+                  lkp <- Future(PayeeLookups.payeeLookup.vend.getActivePayeeLookup(lkpId))
+                    .map(unboxFullOrFail(_, callCtx, PayeeLookupExpiredOrNotFound, 400))
+                  _ <- Helper.booleanToFuture(PayeeLookupMismatch, 400, callCtx) {
+                    lkp.identifier == body.to.value && lkp.identifierType == body.to.scheme
+                  }
+                } yield ()
+              case None => Future.successful(())
+            }
+            // 5. resolve the destination biller/utility account via routing.
+            destinationBox <- BankConnector.connector.vend
+              .getBankAccountByRouting(None, body.to.scheme, body.to.value, callCtx)
+              .map(_._1)
+            toAccount <- Future {
+              unboxFullOrFail(destinationBox, callCtx, UtilityDestinationNotFound, 404)
+            }
+            // 6. standard view authorisation check (same as v4 COUNTERPARTY).
+            _ <- NewStyle.function.checkAuthorisationToCreateTransactionRequest(
+              view.viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId), user, callCtx
+            )
+            // 7. serialise the body to JSON for the connector's audit blob.
+            detailsPlain = prettyRender(Extraction.decompose(body))
+            // 8. create the transaction request via the standard pipeline.
+            txnReqType = TransactionRequestType("UTILITY")
+            (tr, _) <- NewStyle.function.createTransactionRequestv400(
+              user,
+              view.viewId,
+              fromAccount,
+              toAccount,
+              txnReqType,
+              body,
+              detailsPlain,
+              chargePolicy,
+              Some(ChallengeType.OBP_TRANSACTION_REQUEST_CHALLENGE),
+              None,
+              None,
+              callCtx
+            )
+            // 9. Register the one-shot result callback (step c), if asked. It is NOT fired
+            //    here: the vend is asynchronous, so the token does not yet exist. The callback
+            //    is fired by createUtilityVendResult once the rail delivers the vend result —
+            //    carrying the real token, and from a separate, already-committed request (which
+            //    also avoids racing this request's transaction commit).
+            callbackJson = body.callback_url.flatMap { url =>
+              val callbackId = APIUtil.generateUUID()
+              UtilityPaymentCallbacks.utilityPaymentCallback.vend.createCallback(
+                callbackId = callbackId,
+                transactionRequestId = tr.id.value,
+                callbackUrl = url,
+                identifierType = body.to.scheme,
+                identifier = body.to.value,
+                fromBankId = fromAccount.bankId.value,
+                fromAccountId = fromAccount.accountId.value,
+                createdByUserId = user.userId
+              ).toOption.map { stored =>
+                JSONFactory700.UtilityCallbackJsonV700(
+                  callback_id = stored.callbackId,
+                  callback_url = stored.callbackUrl,
+                  status = stored.status
+                )
+              }
+            }
+            // vend_result is None at creation — it arrives asynchronously via createUtilityVendResult.
+          } yield JSONFactory700.createTransactionRequestWithChargeUtilityJsonV700(tr, body, callbackJson, None, Nil, Nil)
+        }
+    }
+
+    val utilityBodyExample = JSONFactory700.TransactionRequestBodyUtilityJsonV700(
+      to = JSONFactory700.QualifiedIdentifierJsonV700(
+        scheme = "TZ.UTILITY_METER", value = "24730238417", fsp_id = None
+      ),
+      value = com.openbankproject.commons.model.AmountOfMoneyJsonV121(currency = "TZS", amount = "1000"),
+      description = "Prepaid utility meter token purchase",
+      client_reference = Some("ref-0001"),
+      verified_payee_lookup_id = None,
+      payer = Some(JSONFactory700.UtilityPayerJsonV700(
+        phone = Some("255700000000"),
+        name = Some("Jane Doe"),
+        email = Some("jane.doe@example.com")
+      )),
+      callback_url = Some("https://example.com/utility/callback"),
+      data_fields = None,
+      charge_policy = Some("SHARED")
+    )
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(createTransactionRequestUtility),
+      "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/UTILITY/transaction-requests",
+      "Create Transaction Request (UTILITY)",
+      """Initiate a bill / utility payment — e.g. a prepaid-electricity meter token purchase, or a bill payment.
+        |
+        |The endpoint is **polymorphic on `to.scheme`**: the destination biller is identified by a `QualifiedIdentifier` whose `scheme` must be a registered routing scheme of category **UTILITY** or **BILL** (e.g. `TZ.UTILITY_METER`, `TZ.BILL_CONTROL_NUMBER`). The scheme must be registered in the routing-scheme catalogue (`GET /obp/v7.0.0/routing-schemes/TZ.UTILITY_METER`) and `to.value` must match its `address_pattern`.
+        |
+        |**Confirmation-of-Payee handshake** (recommended): call `POST /banks/.../accounts/.../payees/lookup` first (the meter-number / control-number inquiry), then pass the returned `lookup_id` here as `verified_payee_lookup_id`. The endpoint rejects the request if the lookup has expired or does not match the supplied identifier.
+        |
+        |**Payer block**: `payer` carries the depositor's phone / name / email for the biller receipt.
+        |
+        |**Callback** (optional): supply `callback_url` to register a one-shot callback. The vend is asynchronous — the electricity token does not exist yet at creation, so the response returns `vend_result: null` and the registered callback's status is `REGISTERED`. Once the downstream rail delivers the vend result (via the system endpoint `POST /banks/BANK_ID/utility-payments/UTILITY_TRANSACTION_REQUEST_ID/vend-result`), OBP records the token/receipt on the transaction request and POSTs the enriched result to `callback_url`. A failed or unreachable callback never fails the payment.
+        |
+        |**Provider passthrough**: `data_fields` carries arbitrary name/value pairs that adapters forward to the downstream rail without OBP interpretation.
+        |
+        |Authentication is Required.""".stripMargin,
+      utilityBodyExample,
+      JSONFactory700.TransactionRequestWithChargeUtilityJsonV700(
+        id = "4050046c-63b3-4868-8a22-14b4181d33a6",
+        `type` = "UTILITY",
+        from = code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140(
+          bank_id = "gh.29.uk",
+          account_id = "8ca8a7e4-6d02-40e3-a129-0b2bf89de9f1"
+        ),
+        details = utilityBodyExample,
+        transaction_ids = List("902ba3bb-dedd-45e7-9319-2fd3f2cd98a1"),
+        status = "COMPLETED",
+        start_date = code.api.util.APIUtil.DateWithDayExampleObject,
+        end_date = code.api.util.APIUtil.DateWithDayExampleObject,
+        challenges = Nil,
+        charge = code.api.v2_0_0.TransactionRequestChargeJsonV200(
+          summary = "Total charges for completed transaction",
+          value = com.openbankproject.commons.model.AmountOfMoneyJsonV121(currency = "TZS", amount = "0.00")
+        ),
+        callback = Some(JSONFactory700.UtilityCallbackJsonV700(
+          callback_id = "cbk_01HXY7Z8AB9C0D1E2F3G4H5J6K",
+          callback_url = "https://example.com/utility/callback",
+          status = "REGISTERED"
+        )),
+        vend_result = None,
+        attributes = None
+      ),
+      List($AuthenticatedUserIsRequired, InvalidJsonFormat,
+           PayeeLookupIdentifierTypeNotRegistered, UtilityIdentifierTypeWrongCategory,
+           UtilityInvalidIdentifier, PayeeLookupExpiredOrNotFound, PayeeLookupMismatch,
+           UtilityDestinationNotFound, UtilityPaymentError, UnknownError),
+      apiTagTransactionRequest :: apiTagPayee :: Nil,
+      None,
+      http4sPartialFunction = Some(createTransactionRequestUtility)
+    )
+
+    // ── UTILITY vend-result delivery (inbound, asynchronous) ───────────────────
+    // The downstream rail/adapter calls this once the utility vend settles, delivering
+    // the token / receipt (e.g. a 20-digit STS prepaid-electricity token). OBP persists the
+    // vend fields as transaction-request attributes and — if the payer registered a
+    // callback_url on the original request — POSTs the vend result to it. The rail is a
+    // trusted system actor, gated by canCreateUtilityVendResult. Returns 200.
+    // System path: a flat /utility-payments/UTILITY_TRANSACTION_REQUEST_ID segment avoids
+    // ACCOUNT_ID/VIEW_ID middleware resolution (the rail has no view on the payer's account).
+    val createUtilityVendResult: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "banks" / _ / "utility-payments" / trIdStr / "vend-result" =>
+        EndpointHelpers.withUserAndBody[JSONFactory700.PostUtilityVendResultJsonV700, JSONFactory700.UtilityVendResultResponseJsonV700](req) { (_, body, cc) =>
+          val callCtx = Some(cc)
+          val trId = com.openbankproject.commons.model.TransactionRequestId(trIdStr)
+          // Only present fields are persisted; the vend status is always written.
+          val attrs: List[(String, String)] =
+            (JSONFactory700.UtilityVendAttribute.VendStatus -> body.status) :: List(
+              body.token.map(JSONFactory700.UtilityVendAttribute.Token -> _),
+              body.rcpt_num.map(JSONFactory700.UtilityVendAttribute.RcptNum -> _),
+              body.units.map(JSONFactory700.UtilityVendAttribute.Units -> _),
+              body.provider_reference.map(JSONFactory700.UtilityVendAttribute.ProviderReference -> _),
+              body.provider_message.map(JSONFactory700.UtilityVendAttribute.ProviderMessage -> _)
+            ).flatten
+          for {
+            // 1. The transaction request must exist (404 otherwise).
+            (tr, _) <- Future(BankConnector.connector.vend.getTransactionRequestImpl(trId, callCtx))
+              .map(unboxFullOrFail(_, callCtx, UtilityTransactionRequestNotFound, 404))
+            bankId = BankId(tr.from.bank_id)
+            // 2. Persist the vend fields as transaction-request attributes.
+            _ <- Future.sequence(attrs.map { case (name, value) =>
+              NewStyle.function.createOrUpdateTransactionRequestAttribute(
+                bankId, trId, None, name,
+                com.openbankproject.commons.model.enums.TransactionRequestAttributeType.STRING, value, callCtx
+              )
+            })
+            // 3. Read attributes back and project the typed vend_result.
+            (attributes, _) <- NewStyle.function.getTransactionRequestAttributesFromProvider(trId, callCtx)
+            vendResult = JSONFactory700.utilityVendResultFromAttributes(attributes)
+            // 4. If the payer registered a callback, deliver the vend result to it. The callback
+            //    row was committed by the create request, so the dispatcher's async status update
+            //    no longer races an uncommitted row. A failed callback never fails this request.
+            callbackJson = UtilityPaymentCallbacks.utilityPaymentCallback.vend
+              .getCallbackByTransactionRequestId(trIdStr).toOption.map { cb =>
+                val payload = prettyRender(Extraction.decompose(
+                  JSONFactory700.UtilityVendResultResponseJsonV700(
+                    transaction_request_id = tr.id.value, `type` = tr.`type`,
+                    status = tr.status, vend_result = vendResult, callback = None
+                  )
+                ))
+                UtilityCallbackDispatcher.deliver(cb.callbackId, cb.callbackUrl, payload)
+                JSONFactory700.UtilityCallbackJsonV700(
+                  callback_id = cb.callbackId, callback_url = cb.callbackUrl, status = cb.status
+                )
+              }
+          } yield JSONFactory700.UtilityVendResultResponseJsonV700(
+            transaction_request_id = tr.id.value, `type` = tr.`type`,
+            status = tr.status, vend_result = vendResult, callback = callbackJson
+          )
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(createUtilityVendResult),
+      "POST",
+      "/banks/BANK_ID/utility-payments/UTILITY_TRANSACTION_REQUEST_ID/vend-result",
+      "Deliver UTILITY Vend Result",
+      """**System endpoint** — called by the downstream rail/adapter (not the payer) to deliver the
+        |asynchronous result of a UTILITY payment, e.g. a prepaid-electricity purchase.
+        |
+        |The vend is asynchronous: the original `POST .../transaction-request-types/UTILITY/transaction-requests`
+        |returns immediately with `vend_result: null`, and the actual deliverable — the **STS prepaid token**
+        |(typically 20 digits) plus receipt (`rcpt_num`, `units`, `provider_reference`) — arrives here once the
+        |rail settles the vend. OBP records the vend fields as attributes on the transaction request and,
+        |if the payer registered a `callback_url`, POSTs this vend result to that URL (a failed or
+        |unreachable callback never fails this request).
+        |
+        |`UTILITY_TRANSACTION_REQUEST_ID` is the `id` returned by the original UTILITY transaction request.
+        |
+        |Requires the `CanCreateUtilityVendResult` system entitlement.""".stripMargin,
+      JSONFactory700.PostUtilityVendResultJsonV700(
+        status = "COMPLETED",
+        token = Some("1234 5678 9012 3456 7890"),
+        rcpt_num = Some("202306141018422348674"),
+        units = Some("46.5"),
+        provider_reference = Some("REF800930701197"),
+        provider_message = Some("Vend successful")
+      ),
+      JSONFactory700.UtilityVendResultResponseJsonV700(
+        transaction_request_id = "4050046c-63b3-4868-8a22-14b4181d33a6",
+        `type` = "UTILITY",
+        status = "COMPLETED",
+        vend_result = Some(JSONFactory700.UtilityVendResultJsonV700(
+          status = "COMPLETED",
+          token = Some("1234 5678 9012 3456 7890"),
+          rcpt_num = Some("202306141018422348674"),
+          units = Some("46.5"),
+          provider_reference = Some("REF800930701197"),
+          provider_message = Some("Vend successful")
+        )),
+        callback = Some(JSONFactory700.UtilityCallbackJsonV700(
+          callback_id = "cbk_01HXY7Z8AB9C0D1E2F3G4H5J6K",
+          callback_url = "https://example.com/utility/callback",
+          status = "REGISTERED"
+        ))
+      ),
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat,
+           UtilityTransactionRequestNotFound, UnknownError),
+      apiTagTransactionRequest :: apiTagPayee :: Nil,
+      Some(List(canCreateUtilityVendResult)),
+      http4sPartialFunction = Some(createUtilityVendResult)
+    )
+
+    // ── End UTILITY ───────────────────────────────────────────────────────────
 
     // ── OPEN_CORRIDOR transaction request ─────────────────────────────────────
     // Travel-Rule-friendly TR with FATF Recommendation 16 originator block.
@@ -3116,7 +3402,7 @@ object Http4s700 {
         batch_reference = "BATCH-2026-05-13-001",
         status = "COMPLETED",
         from = code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140(
-          bank_id = "nmb.tz", account_id = "8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0"
+          bank_id = "bank.tz", account_id = "8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0"
         ),
         total_value = com.openbankproject.commons.model.AmountOfMoneyJsonV121("TZS", "75000.00"),
         total_payments = 2,

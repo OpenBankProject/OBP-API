@@ -125,6 +125,18 @@ object OAuth2Login extends MdcLoggable {
     }
   }
 
+  /**
+    * Surface insecure-but-working OAuth2 configuration at startup. Called from Boot.
+    * Public identity providers (Google/Yahoo/Microsoft) issue tokens to any registered
+    * application, so accepting their tokens without an audience allowlist means any
+    * such token authenticates against this instance.
+    */
+  def logConfigWarnings(): Unit = {
+    Google.warnAboutProviderTokenConfig(Google.google)
+    Yahoo.warnAboutProviderTokenConfig(Yahoo.yahoo)
+    Azure.warnAboutProviderTokenConfig(Azure.microsoft)
+  }
+
 
   object Hydra extends OAuth2Util {
     override def wellKnownOpenidConfiguration: URI = new URI(hydraPublicUrl)
@@ -229,6 +241,99 @@ object OAuth2Login extends MdcLoggable {
     def wellKnownOpenidConfiguration: URI
 
     def urlOfJwkSets: Box[String] = Constant.oauth2JwkSetUrl
+
+    /**
+      * Name of the props key holding the comma-separated list of allowed audiences
+      * (OAuth2 client IDs) for this identity provider. None = no audience restriction.
+      *
+      * Public providers (e.g. Google) issue tokens to any registered application, so
+      * signature+issuer+expiry alone only proves "Google signed this for someone" —
+      * the aud claim is what binds the token to OUR application. Operator-controlled
+      * issuers (Keycloak, OBP-OIDC) don't override this because only their own
+      * applications can obtain tokens in the first place.
+      */
+    protected def allowedAudiencesPropsName: Option[String] = None
+
+    /**
+      * Name under which this provider appears in the oauth2.oidc_provider props -
+      * the list the ecosystem apps (API Explorer/Manager, Portal) read via the
+      * /well-known endpoint to offer login options. None = not subject to
+      * enablement enforcement (operator-controlled issuers like Keycloak/OBP-OIDC,
+      * whose tokens can only be obtained through the operator's own applications).
+      */
+    protected def oidcProviderName: Option[String] = None
+
+    /**
+      * Enforce oauth2.oidc_provider as the registry of enabled public identity
+      * providers: when the props is set, id_tokens from public providers not
+      * listed there are rejected even if their JWKS URL is configured (a leftover
+      * JWKS URL in oauth2.jwk_set.url no longer enables token acceptance on its own).
+      *
+      * Backward compatible: props missing = no restriction; empty string = all
+      * providers enabled (mirrors the /well-known "show all" semantics).
+      */
+    protected def validateProviderEnabled: Box[Unit] =
+      oidcProviderName match {
+        case None => Full(())
+        case Some(providerName) =>
+          APIUtil.getPropsValue("oauth2.oidc_provider").toOption.map(_.trim) match {
+            case None => Full(()) // props missing = no restriction (backward compatible)
+            case Some("") => Full(()) // empty string = all available providers are enabled
+            case Some(value) =>
+              if (value.split(",").map(_.trim.toLowerCase).contains(providerName)) Full(())
+              else Failure(Oauth2ProviderNotEnabled)
+          }
+      }
+
+    /**
+      * Check the token's aud claim against the provider's allowed-audiences props.
+      * Props absent or empty = allow (backward compatible). A multi-valued aud is
+      * accepted if ANY value is in the allowed set. Matching is case-sensitive
+      * (OAuth2 client IDs are case-sensitive).
+      */
+    protected def validateAudience(token: String): Box[Unit] =
+      allowedAudiencesPropsName
+        .flatMap(APIUtil.getPropsValue(_).toOption)
+        .map(_.split(",").map(_.trim).filter(_.nonEmpty).toSet)
+        .filter(_.nonEmpty) match {
+          case None => Full(())
+          case Some(allowed) =>
+            val audiences = JwtUtil.getAudience(token)
+            if (audiences.exists(allowed.contains)) Full(())
+            else {
+              logger.warn(s"validateAudience - rejected token: aud $audiences not in allowed audiences (${allowedAudiencesPropsName.getOrElse("")})")
+              Failure(Oauth2TokenAudienceNotAllowed)
+            }
+        }
+
+    /**
+      * Warn at startup about inconsistent or insecure provider configuration.
+      * Called from Boot via OAuth2Login.logConfigWarnings() — provider objects
+      * initialize lazily, so a warning in the object body would only appear on
+      * the first request instead of at startup.
+      *
+      * Two cases for a provider whose JWKS URL is configured in oauth2.jwk_set.url:
+      * - provider disabled by oauth2.oidc_provider: its tokens are rejected
+      *   (OBP-20218), so the JWKS URL is a leftover — surface the inconsistency.
+      * - provider enabled but no audience allowlist: id_tokens minted for ANY
+      *   application registered with this public provider would authenticate here.
+      */
+    def warnAboutProviderTokenConfig(identityProvider: String): Unit =
+      allowedAudiencesPropsName.foreach { propsName =>
+        val jwksConfigured = Constant.oauth2JwkSetUrl.toList.flatMap(_.split(","))
+          .exists(_.toLowerCase.contains(identityProvider))
+        if (jwksConfigured) {
+          if (validateProviderEnabled.isEmpty) {
+            logger.warn(s"oauth2.jwk_set.url contains a $identityProvider JWKS URL but $identityProvider is not listed " +
+              s"in oauth2.oidc_provider: $identityProvider tokens will be rejected (OBP-20218). " +
+              s"Remove the JWKS URL, or add $identityProvider to oauth2.oidc_provider to enable it.")
+          } else if (APIUtil.getPropsValue(propsName).toOption.forall(_.trim.isEmpty)) {
+            logger.warn(s"$identityProvider token validation is enabled (oauth2.jwk_set.url contains a $identityProvider JWKS URL) " +
+              s"but $propsName is not set: id_tokens issued to ANY $identityProvider OAuth client " +
+              s"will be accepted. Set $propsName to your client ID(s) on shared instances.")
+          }
+        }
+      }
 
     /**
       * Get all JWKS URLs from configuration.
@@ -529,14 +634,27 @@ object OAuth2Login extends MdcLoggable {
       val actualIssuer = JwtUtil.getIssuer(token).getOrElse("NO_ISSUER_CLAIM")
       logger.debug(s"applyIdTokenRules - JWT issuer claim: '$actualIssuer'")
 
+      // Checked before signature validation: a disabled provider needs no JWKS fetch.
+      validateProviderEnabled match {
+        case failure: Failure =>
+          logger.debug(s"applyIdTokenRules - provider not enabled in oauth2.oidc_provider, issuer was: '$actualIssuer'")
+          return (failure, Some(cc))
+        case _ => // enabled, or not subject to enablement enforcement
+      }
+
       validateIdToken(token) match {
         case Full(_) =>
           logger.debug("applyIdTokenRules - ID token validation successful")
-          val user = getOrCreateResourceUser(token)
-          val consumer = getOrCreateConsumer(token, user.map(_.userId), Some(Http4sOpenIdConnect.openIdConnect))
-          LoginAttempt.userIsLocked(user.map(_.provider).getOrElse(""), user.map(_.name).getOrElse("")) match {
-            case true => ((Failure(UsernameHasBeenLocked), Some(cc.copy(consumer = consumer))))
-            case false => (user, Some(cc.copy(consumer = consumer)))
+          validateAudience(token) match {
+            case Full(_) =>
+              val user = getOrCreateResourceUser(token)
+              val consumer = getOrCreateConsumer(token, user.map(_.userId), Some("OpenID Connect"))
+              LoginAttempt.userIsLocked(user.map(_.provider).getOrElse(""), user.map(_.name).getOrElse("")) match {
+                case true => ((Failure(UsernameHasBeenLocked), Some(cc.copy(consumer = consumer))))
+                case false => (user, Some(cc.copy(consumer = consumer)))
+              }
+            case audienceFailure: Failure => (audienceFailure, Some(cc))
+            case _ => (Failure(Oauth2TokenAudienceNotAllowed), Some(cc))
           }
         case ParamFailure(a, b, c, apiFailure : APIFailure) =>
           logger.debug(s"applyIdTokenRules - ParamFailure during token validation: $a")
@@ -567,24 +685,35 @@ object OAuth2Login extends MdcLoggable {
     }
 
     def applyAccessTokenRules(token: String, cc: CallContext): (Box[User], Some[CallContext]) = {
+      // Checked before signature validation: a disabled provider needs no JWKS fetch.
+      validateProviderEnabled match {
+        case failure: Failure => return (failure, Some(cc))
+        case _ => // enabled, or not subject to enablement enforcement
+      }
+
       validateAccessToken(token) match {
         case Full(_) =>
-          val user = getOrCreateResourceUser(token)
-          val consumer: Box[Consumer] = getOrCreateConsumer(token, user.map(_.userId), Some("OAuth 2.0"))
-          consumer match {
+          validateAudience(token) match {
             case Full(_) =>
-              LoginAttempt.userIsLocked(user.map(_.provider).getOrElse(""), user.map(_.name).getOrElse("")) match {
-                case true => ((Failure(UsernameHasBeenLocked), Some(cc.copy(consumer = consumer))))
-                case false => (user, Some(cc.copy(consumer = consumer)))
+              val user = getOrCreateResourceUser(token)
+              val consumer: Box[Consumer] = getOrCreateConsumer(token, user.map(_.userId), Some("OAuth 2.0"))
+              consumer match {
+                case Full(_) =>
+                  LoginAttempt.userIsLocked(user.map(_.provider).getOrElse(""), user.map(_.name).getOrElse("")) match {
+                    case true => ((Failure(UsernameHasBeenLocked), Some(cc.copy(consumer = consumer))))
+                    case false => (user, Some(cc.copy(consumer = consumer)))
+                  }
+                case ParamFailure(msg, exception, chain, apiFailure: APIFailure) =>
+                  logger.debug(s"ParamFailure - message: $msg, param: $apiFailure, exception: ${exception.map(_.getMessage).openOr("none")}, chain: ${chain.map(_.msg).openOr("none")}")
+                  (ParamFailure(msg, exception, chain, apiFailure: APIFailure), Some(cc))
+                case Failure(msg, exception, c) =>
+                  logger.error(s"Failure - message: $msg, exception: ${exception.map(_.getMessage).openOr("none")}")
+                  (Failure(msg, exception, c), Some(cc))
+                case _ =>
+                  (Failure(CreateConsumerError), Some(cc))
               }
-            case ParamFailure(msg, exception, chain, apiFailure: APIFailure) =>
-              logger.debug(s"ParamFailure - message: $msg, param: $apiFailure, exception: ${exception.map(_.getMessage).openOr("none")}, chain: ${chain.map(_.msg).openOr("none")}")
-              (ParamFailure(msg, exception, chain, apiFailure: APIFailure), Some(cc))
-            case Failure(msg, exception, c) =>
-              logger.error(s"Failure - message: $msg, exception: ${exception.map(_.getMessage).openOr("none")}")
-              (Failure(msg, exception, c), Some(cc))
-            case _ =>
-              (Failure(CreateConsumerError), Some(cc))
+            case audienceFailure: Failure => (audienceFailure, Some(cc))
+            case _ => (Failure(Oauth2TokenAudienceNotAllowed), Some(cc))
           }
         case ParamFailure(a, b, c, apiFailure: APIFailure) =>
           (ParamFailure(a, b, c, apiFailure: APIFailure), Some(cc))
@@ -608,6 +737,8 @@ object OAuth2Login extends MdcLoggable {
       */
     override def wellKnownOpenidConfiguration: URI = new URI("https://accounts.google.com/.well-known/openid-configuration")
     override def urlOfJwkSets: Box[String] = checkUrlOfJwkSets(identityProvider = google)
+    override protected def allowedAudiencesPropsName: Option[String] = Some("oauth2.google.allowed_audiences")
+    override protected def oidcProviderName: Option[String] = Some(google)
     def isIssuer(jwt: String): Boolean = isIssuer(jwtToken=jwt, identityProvider = google)
   }
 
@@ -620,6 +751,8 @@ object OAuth2Login extends MdcLoggable {
       */
     override def wellKnownOpenidConfiguration: URI = new URI("https://login.yahoo.com/.well-known/openid-configuration")
     override def urlOfJwkSets: Box[String] = checkUrlOfJwkSets(identityProvider = yahoo)
+    override protected def allowedAudiencesPropsName: Option[String] = Some("oauth2.yahoo.allowed_audiences")
+    override protected def oidcProviderName: Option[String] = Some(yahoo)
     def isIssuer(jwt: String): Boolean = isIssuer(jwtToken=jwt, identityProvider = yahoo)
   }
 
@@ -632,6 +765,8 @@ object OAuth2Login extends MdcLoggable {
       */
     override def wellKnownOpenidConfiguration: URI = new URI("https://login.microsoftonline.com/common/v2.0/.well-known/openid-configuration")
     override def urlOfJwkSets: Box[String] = checkUrlOfJwkSets(identityProvider = microsoft)
+    override protected def allowedAudiencesPropsName: Option[String] = Some("oauth2.microsoft.allowed_audiences")
+    override protected def oidcProviderName: Option[String] = Some(microsoft)
     def isIssuer(jwt: String): Boolean = isIssuer(jwtToken=jwt, identityProvider = microsoft)
   }
 
