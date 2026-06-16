@@ -15,7 +15,7 @@
     <pekko.version>1.1.5</pekko.version>
     <pekko-http.version>1.1.0</pekko-http.version>
     <avro.version>1.8.2</avro.version>
-    <lift.version>v1.0.2</lift.version>
+    <lift.version>v1.0.3</lift.version>
     <http4s.version>0.23.30</http4s.version>
     <!-- Common plugin settings -->
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
