@@ -25,10 +25,13 @@
       <artifactId>org.everit.json.schema</artifactId>
       <version>1.6.1</version>
     </dependency>
+    <!-- Upgraded from 1.4.14 (EOL branch) to 1.5.18. 1.4.x is end-of-life as of
+         2024; 1.5.x is the supported branch and requires Java 11+ (which we target).
+         Fixes CVE-2024-12798 (RCE via JaninoEventEvaluator in 1.4.x). -->
     <dependency>
       <groupId>ch.qos.logback</groupId>
       <artifactId>logback-classic</artifactId>
-      <version>1.4.14</version>
+      <version>1.5.18</version>
     </dependency>
     <dependency>
       <groupId>com.github.OpenBankProject.lift-persistence</groupId>
@@ -476,15 +479,20 @@
     </dependency>
 
 
+    <!-- Upgraded from 22.0.0.2 to 22.3.3. 22.3.3 is the final security maintenance
+         release in the 22.x series (last version compatible with JDK 11 as host).
+         Fixes CVE-2022-21476 (guest code could access host data across GraalVM
+         sandbox boundaries) and CVE-2022-21449 (ECDSA signature bypass present in
+         22.0 builds). GraalVM 23.0+ requires JDK 17+, so 22.3.3 is the target. -->
     <dependency>
       <groupId>org.graalvm.js</groupId>
       <artifactId>js</artifactId>
-      <version>22.0.0.2</version>
+      <version>22.3.3</version>
     </dependency>
     <dependency>
       <groupId>org.graalvm.js</groupId>
       <artifactId>js-scriptengine</artifactId>
-      <version>22.0.0.2</version>
+      <version>22.3.3</version>
     </dependency>
     <!--java dynamic compiler-->
     <dependency>
