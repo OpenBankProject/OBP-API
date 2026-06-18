@@ -23,6 +23,7 @@ Osloerstrasse 16/17
 Berlin 13359, Germany
 */
 
+import org.json4s._
 import code.api.util.APIUtil._
 import code.api.util.{CallContext, ErrorMessages, NewStyle}
 import code.api.v6_0_0.TransactionRequestBodyCardanoJsonV600
@@ -32,8 +33,8 @@ import code.util.Helper
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model._
 import net.liftweb.common._
-import net.liftweb.json
-import net.liftweb.json.JValue
+import com.openbankproject.commons.util.json
+import org.json4s.JValue
 
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future

@@ -26,6 +26,7 @@ TESOBE (http://www.tesobe.com/)
   */
 package code.api.v1_2_1
 
+import org.json4s._
 import code.api.Constant._
 import code.api.util.APIUtil
 import code.api.util.APIUtil._
@@ -34,8 +35,8 @@ import code.model._
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.common.{Box, Full}
-import net.liftweb.json.Extraction
-import net.liftweb.json.JsonAST.JValue
+import org.json4s.Extraction
+import org.json4s.JsonAST.JValue
 
 import java.util.Date
 

@@ -212,7 +212,8 @@ jwt.use.ssl=false
 
 
 ## Enable writing API metrics (which APIs are called) to RDBMS
-write_metrics=false
+## Default lives in code.metrics.MetricsProps (WriteMetricsDefault)
+# write_metrics=false
 ## Enable writing connector metrics (which methods are called)to RDBMS
 write_connector_metrics=false
 ## Enable writing connector traces (full outbound/inbound message payloads per call) to RDBMS table `connector_trace`. Verbose — keep off in prod unless debugging.
@@ -724,6 +725,29 @@ apiOptions.getAtmsIsPublic = true
 apiOptions.getProductsIsPublic = true
 apiOptions.getApiProductsIsPublic = true
 apiOptions.getTransactionTypesIsPublic = true
+
+# apiOptions.getCurrentFxRateIsPublic
+# Set to true to make Get Current FxRate publicly accessible (no authentication required).
+# Indicative reference FX rates are commonly treated as public data, but before enabling this
+# on a production instance, admins should be aware of the following:
+#
+# 1. Upstream data licensing (most likely blocker): if the bank's rates are sourced from a
+#    licensed vendor (e.g. Refinitiv/LSEG, Bloomberg, an FX aggregator), publicly
+#    redistributing them may breach that vendor's licence. This can be a legal "no" and is
+#    bank/instance specific.
+# 2. Indicative vs. executable rates: indicative mid-rates are generally fine to publish.
+#    Executable/dealable quotes with spreads are commercially sensitive and reveal pricing
+#    strategy to competitors - do not expose these publicly.
+# 3. Provenance/fallback: OBP resolves a rate from the connector first, then bundled fallback
+#    rate files, then a hardcoded map. A public endpoint silently returning a stale fallback as
+#    if it were the bank's live rate is a liability risk. If public, treat responses as
+#    "indicative only", timestamped, and ideally label the source.
+# 4. Benchmark regulation: if third parties come to rely on these rates as an index, you may
+#    drift into benchmark-regulation territory (e.g. EU BMR) with administrator obligations.
+# 5. Latency/gaming: a public, slightly-stale rate is easier to arbitrage when it feeds any
+#    downstream priced/tradeable process. Consider update frequency and deviation thresholds.
+# 6. Abuse surface: an unauthenticated endpoint loses metering/consumer visibility and is a
+#    scraping/DoS surface - mitigate with rate-limiting and caching.
 apiOptions.getCurrentFxRateIsPublic = true
 
 ## Default Bank. Incase the server wants to support a default bank so developers don't have to specify BANK_ID, the default value is OBP.
@@ -806,51 +830,12 @@ super_admin_user_ids=USER_ID1,USER_ID2,
 ##########################
 
 
-## Open Id Connect (OIDC) can be used to retrieve User information from an
-## external OpenID Connect server.
-## This will enable authentication of an external user stored in an external db,
-## and will create a local OBP resource user in the OBP DB.
-## To use an external OpenID Connect server,
-## you will need to change these values.
-## The following values provided for a temp test account.
-## CallbackURL 127.0.0.1:8080 should work in most cases.
-## Note: The email address used for login must match one
-## registered on OBP localy.
-# openid_connect.enabled=false
-# CONFIG CAVEAT: portal-login was removed, so there is no server-side session state to compare.
-# The code default is true (fail-closed) and will reject every real (non-empty) state with 401 —
-# OIDC deployments MUST set this to false (or reintroduce state storage):
-# openid_connect.check_session_state=false
-# openid_connect.show_tokens=false
-# Response mode
-# possible values: query, fragment, form_post, query.jwt, fragment.jwt, form_post.jwt, jwt
-# openid_connect.response_mode=form_post
-# Response type
-# possible values: "code", "id_token", "code id_token"
-# openid_connect.response_type=code
-# Scope
-# possible values: "openid email profile", "openid email", "openid"
-# openid_connect.scope=openid email profile
-# First identity provider
-# openid_connect_1.button_text = Google
-# openid_connect_1.client_secret=OYdWujJlU7fFOW_NXzPlDI4T
-# openid_connect_1.client_id=883773244832-s4hi72j0rble0iiivq1gn09k7vvptdci.apps.googleusercontent.com
-# openid_connect_1.callback_url=http://127.0.0.1:8080/auth/openid-connect/callback
-# openid_connect_1.endpoint.authorization=https://accounts.google.com/o/oauth2/v2/auth
-# openid_connect_1.endpoint.userinfo=https://openidconnect.googleapis.com/v1/userinfo
-# openid_connect_1.endpoint.token=https://oauth2.googleapis.com/token
-# openid_connect_1.endpoint.jwks_uri=https://www.googleapis.com/oauth2/v3/certs
-# openid_connect_1.access_type_offline=true
-## Second identity provder
-# openid_connect_2.button_text = name of 2nd provider
-# openid_connect_2.client_secret=OYdWujJlU7fFOW_NXzPlDI4T
-# openid_connect_2.client_id=883773244832-s4hi72j0rble0iiivq1gn09k7vvptdci.apps.googleusercontent.com
-# openid_connect_2.callback_url=http://127.0.0.1:8080/auth/openid-connect/callback-2
-# openid_connect_2.endpoint.authorization=https://accounts.google.com/o/oauth2/v2/auth
-# openid_connect_2.endpoint.userinfo=https://openidconnect.googleapis.com/v1/userinfo
-# openid_connect_2.endpoint.token=https://oauth2.googleapis.com/token
-# openid_connect_2.endpoint.jwks_uri=https://www.googleapis.com/oauth2/v3/certs
-# openid_connect_2.access_type_offline=false
+# NOTE: OBP-API is a pure OAuth2 *resource server*. The OIDC relying-party login
+# callback (/auth/openid-connect/callback{,-1,-2}) and its openid_connect.* /
+# openid_connect_$n.* props were removed — the client/BFF runs the OIDC login
+# against the provider and calls OBP with `Authorization: Bearer <jwt>`.
+# Configure Bearer-JWT validation via the oauth2.* props further below
+# (oauth2.jwk_set.url, oauth2.keycloak.*, oauth2.obp_oidc.*).
 
 # When new consumers inserted they should use this setting.
 consumers_enabled_by_default=true
@@ -959,6 +944,7 @@ display_internal_errors=false
 # Available values:
 #   - keycloak  → advertise Keycloak well-known URL
 #   - obp-oidc  → advertise OBP-OIDC well-known URL
+#   - google    → advertise Google well-known URL (https://accounts.google.com/.well-known/openid-configuration)
 #
 # Special cases:
 #   - (property missing) → show nothing
@@ -968,11 +954,39 @@ display_internal_errors=false
 # Examples:
 #   oauth2.oidc_provider=keycloak
 #   oauth2.oidc_provider=obp-oidc,keycloak
+#   oauth2.oidc_provider=obp-oidc,keycloak,google
 #   oauth2.oidc_provider=
 #   oauth2.oidc_provider=none
 #
 # Default: property missing (show nothing)
+#
+# Note on google: besides being advertised at /well-known, this props is also the
+# registry of ENABLED public identity providers for token validation. When this props
+# is set, id_tokens from public providers (google/yahoo/microsoft) NOT listed here are
+# rejected with OBP-20218 even if their JWKS URL is configured in oauth2.jwk_set.url.
+# (Props missing = no restriction, for backward compatibility. Operator-controlled
+# issuers like keycloak/obp-oidc are not subject to this enforcement.)
+# For Google token validation to work, oauth2.jwk_set.url must also contain Google's
+# JWKS URL (https://www.googleapis.com/oauth2/v3/certs), and clients must send the
+# Google id_token as the Bearer value — Google access tokens (ya29...) are opaque, not JWTs.
 #oauth2.oidc_provider=obp-oidc,keycloak
+
+# Audience (aud) allowlists for public identity providers - comma-separated OAuth2
+# client IDs per provider. Public providers (Google/Yahoo/Microsoft) issue id_tokens
+# to ANY registered application, so signature+issuer+expiry alone only proves
+# "the provider signed this for someone". Without these props, an id_token minted
+# for any other application (or for another OBP environment, e.g. a token obtained
+# on a test instance replayed against prod) authenticates here and auto-creates a user.
+# Set them to the client ID(s) of your own application(s) on any shared instance.
+# Unset or empty = no audience restriction (tokens for any client of that provider
+# are accepted) - a warning is logged at boot in that case. Note that the provider
+# must also be enabled in oauth2.oidc_provider (see above); a JWKS URL configured for
+# a provider that is not enabled there is flagged at boot as a likely leftover.
+# Multiple applications (e.g. API Explorer and API Manager) are allowed by listing
+# their client IDs comma-separated:
+#oauth2.google.allowed_audiences=explorer-client-id.apps.googleusercontent.com,manager-client-id.apps.googleusercontent.com
+#oauth2.yahoo.allowed_audiences=your-yahoo-client-id
+#oauth2.microsoft.allowed_audiences=your-azure-application-id
 
 # OBP-OIDC OAuth2 Provider Settings
 #oauth2.obp_oidc.host=http://localhost:9000
@@ -1320,18 +1334,6 @@ outboundAdapterCallContext.generalContext
 ## This should include the JWKS URI for OBP-OIDC provider
 ## Multiple JWKS URIs can be comma-separated
 #oauth2.jwk_set.url=http://localhost:9000/obp-oidc/jwks
-
-## OpenID Connect Client Configuration for OBP-OIDC
-#openid_connect_1.button_text=OBP-OIDC
-#openid_connect_1.client_id=obp-api-client
-#openid_connect_1.client_secret=your-client-secret-here
-#openid_connect_1.callback_url=http://localhost:8080/auth/openid-connect/callback
-#openid_connect_1.endpoint.discovery=http://localhost:9000/obp-oidc/.well-known/openid-configuration
-#openid_connect_1.endpoint.authorization=http://localhost:9000/obp-oidc/auth
-#openid_connect_1.endpoint.userinfo=http://localhost:9000/obp-oidc/userinfo
-#openid_connect_1.endpoint.token=http://localhost:9000/obp-oidc/token
-#openid_connect_1.endpoint.jwks_uri=http://localhost:9000/obp-oidc/jwks
-#openid_connect_1.access_type_offline=true
 # ------------------------------ OBP-OIDC oauth2 props end ------------------------------
 
 # ------------------------------ default entitlements ------------------------------
@@ -1600,24 +1602,26 @@ user_account_validated_redirect_url =
 # In case is not defined default value is false
 user_account_is_validated = false
 
+# Metrics archiving — all defaults below live in code.metrics.MetricsProps; the
+# values shown here MUST match the constants there.
 # Disable/Enable Metric Scheduler
-enable_metrics_scheduler = true
+# enable_metrics_scheduler = true
 # Defines the number of days we keep rows in the table "MetricArchive"
 # default value is 3 years
-retain_archive_metrics_days = 1095
+# retain_archive_metrics_days = 1095
 # Defines the number of days we keep rows in the table "Metric" former "MappedMetric"
-retain_metrics_days = 367
+# retain_metrics_days = 367
 # Defines the number of rows we can process at once.
 # Tuned for smaller, more frequent runs: 10000 rows every 599s (below) = ~60k/hr
 # ≈ 16.7 rows/sec max drain rate (keeps up with a sustained ~16 metric-generating
 # calls/sec). Keep (move_limit x runs-per-hour) >= your peak metric ingest rate, or
 # the archive backlog will grow. Smaller batches mean shorter runs and fewer stale
 # scheduler locks from a JVM dying mid-run.
-retain_metrics_move_limit = 10000
+# retain_metrics_move_limit = 10000
 # Defines the interval of the scheduler (seconds). 599 (a prime, ~10 min) rather
 # than 600 so successive runs drift across the wall clock instead of phase-locking
 # to every 10th minute and to other periodic schedulers.
-retain_metrics_scheduler_interval_in_seconds = 599
+# retain_metrics_scheduler_interval_in_seconds = 599
 
 
 # Defines endpoints we want to store responses at Metric table

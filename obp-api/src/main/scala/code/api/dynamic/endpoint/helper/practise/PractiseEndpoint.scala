@@ -1,5 +1,6 @@
 package code.api.dynamic.endpoint.helper.practise
 
+import org.json4s._
 import code.api.dynamic.endpoint.helper.DynamicCompileEndpoint
 
 // any import statement here need be moved into the process method body
@@ -24,7 +25,7 @@ object PractiseEndpoint extends DynamicCompileEndpoint {
 
   import cats.effect.IO
   import org.http4s.{Request, Response}
-  import net.liftweb.json.MappingException
+  import org.json4s.MappingException
 
   import scala.concurrent.Future
   import com.openbankproject.commons.ExecutionContext.Implicits.global
@@ -66,7 +67,7 @@ object PractiseEndpoint extends DynamicCompileEndpoint {
     val requestEntity = callContext.httpBody.filter(_.nonEmpty) match {
       case Some(rawBody) =>
         try {
-            net.liftweb.json.parse(rawBody).extract[RequestRootJsonClass]
+            com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[RequestRootJsonClass]
         } catch {
           case e: MappingException =>
             return errorResponse(s"$InvalidJsonFormat ${e.msg}")

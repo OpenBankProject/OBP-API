@@ -1,12 +1,13 @@
 package code.api
 
+import org.json4s._
 import code.api.util.{APIUtil, ErrorMessages}
 import com.openbankproject.commons.model._
 import code.setup.{APIResponse, DefaultUsers, ServerSetup}
 import net.liftweb.common.Full
-import net.liftweb.json
-import net.liftweb.json.Extraction
-import net.liftweb.json.JsonAST.{JField, JObject, JString}
+import com.openbankproject.commons.util.json
+import org.json4s.Extraction
+import org.json4s.JsonAST.{JField, JObject, JString}
 import net.liftweb.util.Props
 import org.scalatest._
 import code.api.util.APIUtil.OAuth._

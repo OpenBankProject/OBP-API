@@ -1,7 +1,8 @@
 package code.api.util.http4s
 
+import org.json4s._
 import cats.effect._
-import code.api.util.APIUtil.{HTTPParam, ResourceDoc, getPropsAsBoolValue}
+import code.api.util.APIUtil.{HTTPParam, ResourceDoc}
 import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, InvalidJsonFormat}
 import code.api.util.{AuthHeaderParser, CallContext, RemoteIpUtil, WriteMetricUtil}
 import code.util.Helper.MdcLoggable
@@ -101,8 +102,8 @@ object Http4sRequestAttributes {
    * - Ok response creation
    */
   object EndpointHelpers extends MdcLoggable {
-    import net.liftweb.json.JsonAST.prettyRender
-    import net.liftweb.json.{Extraction, Formats}
+    import com.openbankproject.commons.util.JsonAliases.prettyRender
+    import org.json4s.{Extraction, Formats}
 
     // OBP responses are always JSON. Passing a raw String to http4s' Ok/Created uses the
     // default EntityEncoder[String], which sets `Content-Type: text/plain`. Override it so
@@ -123,7 +124,7 @@ object Http4sRequestAttributes {
     // Not fired as a background fiber: response waits for metric to be written,
     // matching v6 behaviour and avoiding unbounded concurrent H2 write contention.
     private def recordMetric(responseBody: Any, response: Response[IO])(implicit cc: CallContext): IO[Unit] =
-      if (!getPropsAsBoolValue("write_metrics", false)) IO.unit
+      if (!code.metrics.MetricsProps.writeMetrics) IO.unit
       else IO.blocking {
         val endTime = new Date()
         val duration = cc.startTime.map(s => endTime.getTime - s.getTime).getOrElse(-1L)
@@ -201,7 +202,7 @@ object Http4sRequestAttributes {
       cc.httpBody match {
         case None | Some("") => Left(s"$InvalidJsonFormat Missing request body.")
         case Some(raw) =>
-          scala.util.Try(net.liftweb.json.parse(raw).extract[B]).toEither.left.map(_ => s"$InvalidJsonFormat ${mf.runtimeClass.getSimpleName}")
+          scala.util.Try(com.openbankproject.commons.util.JsonAliases.parse(raw).extract[B]).toEither.left.map(_ => s"$InvalidJsonFormat ${mf.runtimeClass.getSimpleName}")
       }
 
     /**

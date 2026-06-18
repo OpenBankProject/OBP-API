@@ -1,5 +1,6 @@
 package code.bankconnectors.akka
 
+import org.json4s._
 import java.util.Date
 import org.apache.pekko.pattern.ask
 import code.actorsystem.ObpLookupSystem
@@ -19,7 +20,7 @@ import com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatu
 import com.openbankproject.commons.model.enums.{AccountAttributeType, CardAttributeType, ChallengeType, CustomerAttributeType, ProductAttributeType, StrongCustomerAuthentication, TransactionAttributeType, TransactionRequestStatus}
 import com.sksamuel.avro4s.SchemaFor
 import net.liftweb.common.{Box, Full}
-import net.liftweb.json.parse
+import com.openbankproject.commons.util.JsonAliases.parse
 
 import scala.collection.immutable.{List, Nil}
 import scala.concurrent.Future

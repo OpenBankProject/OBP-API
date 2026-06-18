@@ -26,13 +26,14 @@ TESOBE (http://www.tesobe.com/)
   */
 package com.openbankproject.commons.model
 
+import org.json4s._
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.SCAStatus
 import com.openbankproject.commons.model.enums._
 import com.openbankproject.commons.util.{ReflectUtils, optional}
-import net.liftweb.json.JsonAST.{JObject, JValue}
-import net.liftweb.json.JsonDSL._
-import net.liftweb.json.{Formats, JInt, JString}
+import org.json4s.JsonAST.{JObject, JValue}
+import org.json4s.JsonDSL._
+import org.json4s.{Formats, JInt, JString}
 
 import java.lang
 import java.util.Date

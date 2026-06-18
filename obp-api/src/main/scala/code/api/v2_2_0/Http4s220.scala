@@ -1,5 +1,6 @@
 package code.api.v2_2_0
 
+import org.json4s._
 import cats.data.{Kleisli, OptionT}
 import cats.effect._
 import code.api.Constant._
@@ -30,8 +31,9 @@ import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.util.{ApiVersion, ApiVersionStatus, ScannedApiVersion}
 import net.liftweb.common.Full
-import net.liftweb.json.JsonAST.prettyRender
-import net.liftweb.json.{Extraction, Formats, Serialization}
+import com.openbankproject.commons.util.JsonAliases.prettyRender
+import org.json4s.{Extraction, Formats}
+import org.json4s.native.Serialization
 import net.liftweb.util.StringHelpers
 import org.http4s._
 import org.http4s.dsl.io._
@@ -180,7 +182,7 @@ object Http4s220 {
     private def createViewImpl(user: User, account: BankAccount, body: String, cc: CallContext): Future[ViewJSONV220] = {
       for {
         createBodyJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
-          net.liftweb.json.parse(body).extract[CreateViewJsonV121]
+          com.openbankproject.commons.util.JsonAliases.parse(body).extract[CreateViewJsonV121]
         }
         _ <- code.util.Helper.booleanToFuture(
           s"$InvalidCustomViewFormat Current view_name (${createBodyJson.name})", cc = Some(cc)) {
@@ -242,7 +244,7 @@ object Http4s220 {
     private def updateViewImpl(user: User, account: BankAccount, viewId: ViewId, body: String, cc: CallContext): Future[ViewJSONV220] = {
       for {
         updateBodyJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
-          net.liftweb.json.parse(body).extract[UpdateViewJsonV121]
+          com.openbankproject.commons.util.JsonAliases.parse(body).extract[UpdateViewJsonV121]
         }
         _ <- code.util.Helper.booleanToFuture(
           s"$InvalidCustomViewFormat Current view_name (${viewId.value})", cc = Some(cc)) {
@@ -290,6 +292,25 @@ object Http4s220 {
         }
     }
 
+    // TODO: Add a v7.0.0 of Get Current FxRate with a richer, provenance-aware response.
+    // The current (v2.2.0) response returns only conversion_value / inverse_conversion_value /
+    // effective_date, which cannot express how the rate was sourced or how much to trust it.
+    // Proposed improvements for the v7.0.0 response body:
+    //   - status / quality: "indicative" | "executable" | "fallback" — so consumers know whether
+    //     the rate is tradeable or for reference only (especially important when the endpoint is
+    //     public via apiOptions.getCurrentFxRateIsPublic).
+    //   - source / provenance: which tier produced the rate — "connector" | "fallback_file" |
+    //     "hardcoded_map" — so a stale fallback is never mistaken for the bank's live rate.
+    //   - bid / ask / mid + spread (instead of a single conversion_value), so indicative mid can
+    //     be distinguished from executable quotes, and spread can be withheld when public.
+    //   - retrieved_at (when OBP fetched it) and explicit age/staleness, alongside effective_date.
+    //   - precision/scale of the currency pair (ISO 4217 minor units) for correct rounding.
+    //   - optional `amount` query param to return a converted amount with documented rounding.
+    //   - first-class crypto asset support (e.g. lovelace, ETH) — already hinted at in the
+    //     InvalidISOCurrencyCode error message.
+    //   - a disclaimer field ("indicative only") + cache TTL hint when served publicly.
+    //   - consider a batch variant accepting multiple currency pairs in one request.
+    // Keep v2.2.0 in place for backward compatibility; v7.0.0 should be additive.
     resourceDocs += ResourceDoc(
       implementedInApiVersion, nameOf(getCurrentFxRate), "GET",
       "/banks/BANK_ID/fx/FROM_CURRENCY_CODE/TO_CURRENCY_CODE",
@@ -961,7 +982,7 @@ object Http4s220 {
         _ <- code.util.Helper.booleanToFuture(InvalidBankIdFormat, cc = Some(cc)) { isValidID(account.bankId.value) }
         postJson <- NewStyle.function.tryons(
           s"$InvalidJsonFormat The Json body should be the $PostCounterpartyJSON", 400, Some(cc)) {
-          net.liftweb.json.parse(body).extract[PostCounterpartyJSON]
+          com.openbankproject.commons.util.JsonAliases.parse(body).extract[PostCounterpartyJSON]
         }
         _ <- code.util.Helper.booleanToFuture(
           s"${NoViewPermission} You need the `${CAN_ADD_COUNTERPARTY}` permission on the View(${view.viewId.value})",

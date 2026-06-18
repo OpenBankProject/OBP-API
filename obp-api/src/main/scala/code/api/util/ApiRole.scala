@@ -1,11 +1,12 @@
 package code.api.util
 
+import org.json4s._
 import code.api.dynamic.endpoint.helper.DynamicEndpointHelper
 import code.api.dynamic.entity.helper.DynamicEntityHelper
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.util.{JsonAble, ReflectUtils}
-import net.liftweb.json.JsonDSL._
-import net.liftweb.json.{Formats, JsonAST}
+import org.json4s.JsonDSL._
+import org.json4s.{Formats, JsonAST}
 
 import java.util.concurrent.ConcurrentHashMap
 
@@ -428,6 +429,12 @@ object ApiRole extends MdcLoggable{
 
   case class CanCreateSettlementAccountAtOneBank (requiresBankId: Boolean = true) extends ApiRole
   lazy val canCreateSettlementAccountAtOneBank = CanCreateSettlementAccountAtOneBank()
+
+  // System role for the south-side rail/adapter to deliver the asynchronous UTILITY
+  // vend result (e.g. a prepaid-electricity token / receipt) back to OBP. Not bank-scoped — the rail is a
+  // trusted system actor, not a per-bank user.
+  case class CanCreateUtilityVendResult (requiresBankId: Boolean = false) extends ApiRole
+  lazy val canCreateUtilityVendResult = CanCreateUtilityVendResult()
 
   case class CanGetSettlementAccountAtOneBank (requiresBankId: Boolean = true) extends ApiRole
   lazy val canGetSettlementAccountAtOneBank = CanGetSettlementAccountAtOneBank()

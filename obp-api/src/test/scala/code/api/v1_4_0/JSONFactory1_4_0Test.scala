@@ -9,8 +9,9 @@ import code.api.util.CustomJsonFormats
 import code.api.v1_4_0.JSONFactory1_4_0.ResourceDocJson
 import code.api.v3_0_0.OBPAPI3_0_0
 import code.api.v1_2_1.OBPAPI1_2_1
-import net.liftweb.json.Extraction.decompose
-import net.liftweb.json._
+import org.json4s.Extraction.decompose
+import org.json4s._
+import com.openbankproject.commons.util.JsonAliases._
 import org.everit.json.schema.loader.SchemaLoader
 import org.json.JSONObject
 

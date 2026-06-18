@@ -26,6 +26,7 @@ TESOBE (http://www.tesobe.com/)
   */
 package bootstrap.liftweb
 
+import org.json4s._
 import code.CustomerDependants.MappedCustomerDependant
 import code.DynamicData.DynamicData
 import code.DynamicEndpoint.DynamicEndpoint
@@ -89,6 +90,7 @@ import code.group.Group
 import code.organisation.Organisation
 import code.routingscheme.{RoutingScheme, BankSupportedRoutingScheme}
 import code.payeelookup.PayeeLookup
+import code.utilitypayment.UtilityPaymentCallback
 import code.bulkpayment.{BulkPayment, BulkBatchReference}
 import code.kycchecks.MappedKycCheck
 import code.kycdocuments.MappedKycDocument
@@ -149,7 +151,7 @@ import com.openbankproject.commons.util.Functions.Implicits._
 import com.openbankproject.commons.util.{ApiVersion, Functions}
 import net.liftweb.common._
 import net.liftweb.db.{DB, DBLogEntry}
-import net.liftweb.json.Extraction
+import org.json4s.Extraction
 import net.liftweb.mapper.{DefaultConnectionIdentifier => _, _}
 // SiteMap imports removed - API-only mode, no portal pages
 import net.liftweb.util.Helpers._
@@ -281,7 +283,7 @@ class Boot extends MdcLoggable {
     // Please note that migration scripts are executed after Lift Mapper Schemifier
     Migration.database.executeScripts(startedBeforeSchemifier = false)
 
-    // Idempotent seed of country-qualified routing schemes (TZ.MSISDN, GePG, Luku, etc.).
+    // Idempotent seed of country-qualified routing schemes (TZ.MSISDN, bill, utility, etc.).
     // Toggle off via routing_schemes.seed_defaults_at_boot=false in environments that don't want defaults.
     code.routingscheme.RoutingSchemeSeed.runIfEnabled()
 
@@ -336,6 +338,8 @@ class Boot extends MdcLoggable {
     warnAboutSuperAdminUsers()
 
     warnAboutEmailDeliveryConfiguration()
+
+    OAuth2Login.logConfigWarnings()
 
     createBootstrapOidcOperatorUser()
 
@@ -479,12 +483,12 @@ class Boot extends MdcLoggable {
     enableVersionIfAllowed(ApiVersion.`dynamic-endpoint`)
     enableVersionIfAllowed(ApiVersion.`dynamic-entity`)
 
-    // OpenID Connect callbacks (/auth/openid-connect/callback{,-1,-2}), DirectLogin
-    // (POST /my/logins/direct) and aliveCheck (GET /alive) are now served by their
-    // native http4s counterparts wired into Http4sApp.baseServices
-    // (Http4sOpenIdConnect / DirectLoginRoutes / AliveCheckRoutes). The Lift
-    // dispatches were retired in the http4s migration; any prop gates
-    // (e.g. `openid_connect.enabled`, `allow_direct_login`) live with those routes.
+    // DirectLogin (POST /my/logins/direct) and aliveCheck (GET /alive) are now served
+    // by their native http4s counterparts wired into Http4sApp.baseServices
+    // (DirectLoginRoutes / AliveCheckRoutes). The Lift dispatches were retired in the
+    // http4s migration; any prop gates (e.g. `allow_direct_login`) live with those
+    // routes. The OBP-as-relying-party OpenID Connect callback was removed: OBP is a
+    // pure OAuth2 resource server (Bearer-JWT validation), login is done by the client/BFF.
 
     //////////////////////////////////////////////////////////////////////////////////////////////////
     // Resource Docs are used in the process of surfacing endpoints so we enable them explicitly
@@ -503,7 +507,7 @@ class Boot extends MdcLoggable {
 
     // API Metrics (logs of API calls)
     // If set to true we will write each URL with params to a datastore / log file
-    if (APIUtil.getPropsAsBoolValue("write_metrics", false)) {
+    if (code.metrics.MetricsProps.writeMetrics) {
       logger.info("writeMetrics is true. We will write API metrics")
       code.metrics.MetricBatchWriter.start()
     } else {
@@ -545,14 +549,11 @@ class Boot extends MdcLoggable {
     TransactionScheduler.startAll()
 
 
-    APIUtil.getPropsAsBoolValue("enable_metrics_scheduler", true) match {
+    code.metrics.MetricsProps.enableMetricsScheduler match {
       case true =>
-        // Default 599s (a prime, ~10 min) rather than a round 600: the odd interval
-        // makes successive runs drift across the wall clock instead of phase-locking
-        // to the top of every 10th minute (and to other periodic schedulers), so
-        // archive load is spread out rather than coinciding with other spikes.
-        val interval =
-          APIUtil.getPropsAsIntValue("retain_metrics_scheduler_interval_in_seconds", 599)
+        // Interval default rationale (599s prime) lives at
+        // MetricsProps.RetainMetricsSchedulerIntervalInSecondsDefault.
+        val interval = code.metrics.MetricsProps.retainMetricsSchedulerIntervalInSeconds
         MetricsArchiveScheduler.start(intervalInSeconds = interval)
       case false => // Do not start it
     }
@@ -1033,6 +1034,7 @@ object ToSchemify extends MdcLoggable {
     RoutingScheme,
     BankSupportedRoutingScheme,
     PayeeLookup,
+    UtilityPaymentCallback,
     BulkPayment,
     BulkBatchReference,
     AccountAccessRequest,

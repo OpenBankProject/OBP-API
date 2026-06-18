@@ -25,6 +25,7 @@ TESOBE (http://www.tesobe.com/)
 */
 package code.api.v5_1_0
 
+import org.json4s._
 import code.api.Constant
 import code.api.util.ErrorMessages._
 import code.api.util.APIUtil.OAuth._
@@ -36,7 +37,7 @@ import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.enums.TransactionRequestStatus
 import com.openbankproject.commons.model.{AmountOfMoneyJsonV121, ErrorMessage, TransactionRequestAttributeJsonV400}
 import com.openbankproject.commons.util.ApiVersion
-import net.liftweb.json.Serialization.write
+import org.json4s.native.Serialization.write
 import org.scalatest.Tag
 
 import java.util.UUID

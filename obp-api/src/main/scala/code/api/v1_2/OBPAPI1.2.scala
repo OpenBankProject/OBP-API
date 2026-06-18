@@ -32,8 +32,8 @@
 //package code.api.v1_2
 //
 //import code.api.util.APIUtil
-//import net.liftweb.json.Extraction
-//import net.liftweb.json.JsonAST._
+//import org.json4s.Extraction
+//import org.json4s.JsonAST._
 //import net.liftweb.common.{Box, Empty, Failure, Full}
 //import net.liftweb.mongodb._
 //import _root_.java.math.MathContext

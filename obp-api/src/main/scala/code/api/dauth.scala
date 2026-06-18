@@ -35,7 +35,8 @@ import code.util.Helper.MdcLoggable
 import com.nimbusds.jwt.JWTClaimsSet
 import com.openbankproject.commons.model.User
 import net.liftweb.common._
-import net.liftweb.json._
+import org.json4s._
+import com.openbankproject.commons.util.JsonAliases._
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import code.api.util.APIUtil.HTTPParam
 
@@ -65,7 +66,7 @@ object JSONFactoryDAuth {
 // of its own; the legacy `extends RestHelper` mixin was vestigial.
 object DAuth extends MdcLoggable {
 
-  // For lift-json `.extract[...]` calls below.
+  // For json4s `.extract[...]` calls below.
   private implicit val formats: Formats = DefaultFormats
 
 

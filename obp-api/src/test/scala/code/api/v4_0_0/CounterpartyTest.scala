@@ -1,5 +1,6 @@
 package code.api.v4_0_0
 
+import org.json4s._
 import code.api.Constant.SYSTEM_OWNER_VIEW_ID
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth._
@@ -11,7 +12,7 @@ import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.{AccountId, ErrorMessage, ViewId, BankIdAccountIdViewId}
 import com.openbankproject.commons.util.ApiVersion
-import net.liftweb.json.Serialization.write
+import org.json4s.native.Serialization.write
 import org.scalatest.Tag
 
 class CounterpartyTest extends V400ServerSetup {

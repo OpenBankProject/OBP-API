@@ -44,56 +44,25 @@ package com.tesobe.model {
 package code.model.dataAccess {
 
   import code.accountholders.AccountHolders
-  import code.api.Constant._
   import code.api.util.{APIUtil, CallContext}
-  import code.bankconnectors.{Connector, LocalMappedConnectorInternal}
+  import code.bankconnectors.LocalMappedConnectorInternal
   import code.users.Users
   import code.util.Helper.MdcLoggable
-  import code.views.Views
   import com.openbankproject.commons.ExecutionContext.Implicits.global
   import com.openbankproject.commons.model._
-  import com.rabbitmq.client.{Channel, ConnectionFactory}
+  import com.rabbitmq.client.{AMQP, ConnectionFactory, DefaultConsumer, Envelope}
   import com.tesobe.model.{CreateBankAccount, UpdateBankAccount}
-  import net.liftmodules.amqp.{AMQPAddListener, AMQPDispatcher, AMQPMessage, SerializedConsumer}
-  import net.liftweb.actor.LiftActor
   import net.liftweb.common.{Failure, Full}
 
-
-/**
-  *  an AMQP dispatcher that waits for message coming from a specif queue
-  *  and dispatching them to the subscribed actors
-  */
-  class BankAccountCreationDispatcher[T](factory: ConnectionFactory)
-      extends AMQPDispatcher[T](factory) {
-    override def configure(channel: Channel) {
-      channel.exchangeDeclare("directExchange4", "direct", false)
-      channel.queueDeclare("createBankAccount", false, false, false, null)
-      channel.queueBind ("createBankAccount", "directExchange4", "createBankAccount")
-      channel.basicConsume("createBankAccount", false, new SerializedConsumer(channel, this))
-    }
-  }
+  import java.io.{ByteArrayInputStream, ObjectInputFilter, ObjectInputStream}
 
   object BankAccountCreation extends MdcLoggable {
-  
-    /**
-      * 1 Set the User as the account Holder. 
-      * 2 Create `Owner` view if the account do not have `Owner` view. 
-      * 3 Add Permission to `Owner` view
-      * 
-      * @param bankId 
-      * @param accountId
-      * @param user the user can be Login user or other users(Have the CanCreateAccount role)
-      *             
-      * @return This is a procedure, no return value. Just use the side effect.
-      */
-    def setAccountHolderAndRefreshUserAccountAccess(bankId : BankId, accountId : AccountId, user: User, callContext: Option[CallContext])  = {
-      // 1st-getOrCreateAccountHolder: in this method, we only create the account holder, no view, account access involved here. 
+
+    def setAccountHolderAndRefreshUserAccountAccess(bankId: BankId, accountId: AccountId, user: User, callContext: Option[CallContext]) = {
       AccountHolders.accountHolders.vend.getOrCreateAccountHolder(user: User, BankIdAccountId(bankId, accountId))
-      
-      // 2rd-refreshUserAccountAccess:  in this method, we will simulate onboarding bank user processes. @refreshUserAccountAccess definition.
       AuthUser.refreshUser(user, callContext)
     }
-   
+
   }
 
   object BankAccountCreationListener extends MdcLoggable {
@@ -107,59 +76,83 @@ package code.model.dataAccess {
       setVirtualHost(DEFAULT_VHOST)
     }
 
-    val amqp = new BankAccountCreationDispatcher[CreateBankAccount](factory)
+    def handleMessage(message: CreateBankAccount): Unit = {
+      logger.debug(s"got message to create account/bank: ${message.accountNumber} / ${message.bankIdentifier}")
 
-    val createBankAccountListener = new LiftActor {
-      protected def messageHandler = {
-        case msg@AMQPMessage(message: CreateBankAccount) => {
-          logger.debug(s"got message to create account/bank: ${message.accountNumber} / ${message.bankIdentifier}")
+      val accountType = "AMPQ"
+      val accountLabel = message.accountNumber
+      val currency = "EUR"
 
-          //TODO: Revise those dummy values
-          val accountType = "AMPQ"
-          val accountLabel = message.accountNumber
-          val currency = "EUR"
-
-          val foundUser  = Users.users.vend.getUserByProviderId(message.accountOwnerProvider, message.accountOwnerId)
-          val result = for {
-            user <- foundUser ?~!
-              s"user ${message.accountOwnerId} at ${message.accountOwnerProvider} not found. Could not create the account with owner view"
-            (_, bankAccount) <- LocalMappedConnectorInternal.createBankAndAccount(
-              message.bankName,
-              message.bankIdentifier,
-              message.accountNumber,
-              accountType, accountLabel,
-              currency, user.name,
-              "",
-              "",
-              "", //added field in V220
-              None
-            )
-          } yield {
-            logger.debug(s"created account with id ${bankAccount.bankId.value} with number ${bankAccount.number} at bank with identifier ${message.bankIdentifier}")
-            // Use async version and handle Future result
-            BankAccountCreation.setAccountHolderAndRefreshUserAccountAccess(bankAccount.bankId, bankAccount.accountId, user, None).map { _ =>
-              logger.debug(s"Successfully set account holder and refreshed user account access for account ${bankAccount.accountId.value}")
-            }.recover {
-              case ex: Exception =>
-                logger.error(s"Failed to set account holder and refresh user account access: ${ex.getMessage}", ex)
-            }
-            bankAccount
-          }
-
-          result match {
-            case Full(_) =>
-              logger.debug(s"Send message to get updates for the account with account number ${message.accountNumber} at ${message.bankIdentifier}")
-              UpdatesRequestSender.sendMsg(UpdateBankAccount(message.accountNumber, message.bankIdentifier))
-            case Failure(msg, _, _) => logger.warn(s"account creation failed: $msg")
-            case _ => logger.warn(s"account creation failed")
-          }
-
+      val foundUser = Users.users.vend.getUserByProviderId(message.accountOwnerProvider, message.accountOwnerId)
+      val result = for {
+        user <- foundUser ?~!
+          s"user ${message.accountOwnerId} at ${message.accountOwnerProvider} not found. Could not create the account with owner view"
+        (_, bankAccount) <- LocalMappedConnectorInternal.createBankAndAccount(
+          message.bankName,
+          message.bankIdentifier,
+          message.accountNumber,
+          accountType, accountLabel,
+          currency, user.name,
+          "",
+          "",
+          "", //added field in V220
+          None
+        )
+      } yield {
+        logger.debug(s"created account with id ${bankAccount.bankId.value} with number ${bankAccount.number} at bank with identifier ${message.bankIdentifier}")
+        BankAccountCreation.setAccountHolderAndRefreshUserAccountAccess(bankAccount.bankId, bankAccount.accountId, user, None).map { _ =>
+          logger.debug(s"Successfully set account holder and refreshed user account access for account ${bankAccount.accountId.value}")
+        }.recover {
+          case ex: Exception =>
+            logger.error(s"Failed to set account holder and refresh user account access: ${ex.getMessage}", ex)
         }
+        bankAccount
+      }
+
+      result match {
+        case Full(_) =>
+          logger.debug(s"Send message to get updates for the account with account number ${message.accountNumber} at ${message.bankIdentifier}")
+          UpdatesRequestSender.sendMsg(UpdateBankAccount(message.accountNumber, message.bankIdentifier))
+        case Failure(msg, _, _) => logger.warn(s"account creation failed: $msg")
+        case _ => logger.warn(s"account creation failed")
       }
     }
-    def startListen = {
+
+    def startListen: Unit = {
       logger.debug("started to listen for bank account creation messages")
-      amqp ! AMQPAddListener(createBankAccountListener)
+      val connection = factory.newConnection()
+      val channel = connection.createChannel()
+      channel.exchangeDeclare("directExchange4", "direct", false)
+      channel.queueDeclare("createBankAccount", false, false, false, null)
+      channel.queueBind("createBankAccount", "directExchange4", "createBankAccount")
+      channel.basicConsume("createBankAccount", false, new DefaultConsumer(channel) {
+        override def handleDelivery(
+          consumerTag: String,
+          envelope: Envelope,
+          properties: AMQP.BasicProperties,
+          body: Array[Byte]
+        ): Unit = {
+          try {
+            val ois = new ObjectInputStream(new ByteArrayInputStream(body))
+            // Allowlist: only CreateBankAccount (5 String fields) may be deserialized.
+            // Rejects gadget-chain classes (commons-collections, beanutils, etc.) at the
+            // filter layer, before readObject() can instantiate them.
+            ois.setObjectInputFilter(ObjectInputFilter.Config.createFilter(
+              "com.tesobe.model.CreateBankAccount;java.lang.*;!*"))
+            val msg = ois.readObject().asInstanceOf[CreateBankAccount]
+            handleMessage(msg)
+            channel.basicAck(envelope.getDeliveryTag, false)
+          } catch {
+            case ex: Exception =>
+              logger.error(s"Failed to process AMQP message: ${ex.getMessage}", ex)
+              // Deliberately do not requeue: a failed create-account message is dropped rather
+              // than redelivered in a tight loop. This preserves the prior actor behaviour
+              // (failures were logged, never retried). Switch to a dead-letter queue if the
+              // adapter ever needs durable retry semantics.
+              channel.basicNack(envelope.getDeliveryTag, false, false)
+          }
+        }
+      })
     }
   }
 }

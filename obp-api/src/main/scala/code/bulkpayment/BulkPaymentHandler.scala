@@ -1,5 +1,6 @@
 package code.bulkpayment
 
+import org.json4s._
 import code.api.util.{APIUtil, CallContext, ErrorMessages, NewStyle}
 import code.api.util.ErrorMessages._
 import code.api.v7_0_0.JSONFactory700
@@ -11,8 +12,8 @@ import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.TransactionRequestStatus
 import net.liftweb.common.{Box, Full}
-import net.liftweb.json.{Extraction, Formats}
-import net.liftweb.json.JsonAST.prettyRender
+import org.json4s.{Extraction, Formats}
+import com.openbankproject.commons.util.JsonAliases.prettyRender
 
 import scala.concurrent.Future
 

@@ -16,8 +16,8 @@
 //import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
 //import dispatch.Future
 //import net.liftweb.common.{Box, Empty, Full}
-//import net.liftweb.json
-//import net.liftweb.json._
+//import com.openbankproject.commons.util.json
+//import org.json4s._
 //
 //import scala.collection.immutable.Nil
 //import scala.collection.mutable.ArrayBuffer

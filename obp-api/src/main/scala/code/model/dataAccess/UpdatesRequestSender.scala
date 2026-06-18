@@ -42,11 +42,10 @@ package code.model.dataAccess {
 
   import code.api.util.APIUtil
   import code.util.Helper.MdcLoggable
-  import com.rabbitmq.client.{Channel, ConnectionFactory}
+  import com.rabbitmq.client.ConnectionFactory
   import com.tesobe.model.UpdateBankAccount
-  import net.liftmodules.amqp.{AMQPMessage, AMQPSender}
 
-
+  import java.io.{ByteArrayOutputStream, ObjectOutputStream}
 
   object UpdatesRequestSender extends MdcLoggable {
     private val factory = new ConnectionFactory {
@@ -56,23 +55,32 @@ package code.model.dataAccess {
       setUsername(APIUtil.getPropsValue("connection.user", DEFAULT_USER))
       setPassword(APIUtil.getPropsValue("connection.password", DEFAULT_PASS))
       setVirtualHost(DEFAULT_VHOST)
+      // Reuse a single connection across messages; the client transparently re-establishes
+      // a dropped connection on the next publish.
+      setAutomaticRecoveryEnabled(true)
     }
 
-    private val amqp = new UpdateRequestsAMQPSender(factory, "directExchange3", "transactions")
+    // One long-lived connection, initialised on first use. Channels are created per call:
+    // a Connection is thread-safe and meant to be shared, a Channel is not.
+    private lazy val connection = factory.newConnection()
 
-
-    def sendMsg(message: UpdateBankAccount) = {
-      logger.info(s"""Send message to get updates for the account ${message.accountNumber} at ${message.bankNationalIdentifier}""")
-      amqp ! AMQPMessage(message)
-    }
-  }
-
-  class UpdateRequestsAMQPSender(cf: ConnectionFactory, exchange: String, routingKey: String)
-   extends AMQPSender[UpdateBankAccount](cf, exchange, routingKey) {
-    override def configure(channel: Channel) = {
-      val conn = cf.newConnection()
-      val channel = conn.createChannel()
-      channel
+    def sendMsg(message: UpdateBankAccount): Unit = {
+      logger.info(s"Send message to get updates for the account ${message.accountNumber} at ${message.bankNationalIdentifier}")
+      try {
+        val channel = connection.createChannel()
+        try {
+          val bos = new ByteArrayOutputStream()
+          val oos = new ObjectOutputStream(bos)
+          oos.writeObject(message)
+          oos.flush()
+          channel.basicPublish("directExchange3", "transactions", null, bos.toByteArray)
+        } finally {
+          if (channel.isOpen) channel.close()
+        }
+      } catch {
+        case ex: Exception =>
+          logger.error(s"Failed to send AMQP update message: ${ex.getMessage}", ex)
+      }
     }
   }
 }

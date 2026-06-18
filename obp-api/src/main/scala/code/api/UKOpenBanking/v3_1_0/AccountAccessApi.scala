@@ -13,8 +13,8 @@
 //import com.openbankproject.commons.ExecutionContext.Implicits.global
 //import com.openbankproject.commons.model.User
 //import net.liftweb.common.{Empty, Full}
-//import net.liftweb.json
-//import net.liftweb.json._
+//import com.openbankproject.commons.util.json
+//import org.json4s._
 //
 //import scala.collection.immutable.Nil
 //import scala.collection.mutable.ArrayBuffer
@@ -216,7 +216,7 @@
 //             consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
 //               unboxFullOrFail(_, callContext, s"$ConsentNotFound ($consentId)")
 //             }
-//             consentViews <- Future(JwtUtil.getSignedPayloadAsJson(consent.jsonWebToken).map(net.liftweb.json.parse(_).extract[ConsentJWT].views.map(_.view_id))) map {
+//             consentViews <- Future(JwtUtil.getSignedPayloadAsJson(consent.jsonWebToken).map(com.openbankproject.commons.util.JsonAliases.parse(_).extract[ConsentJWT].views.map(_.view_id))) map {
 //               unboxFullOrFail(_, callContext, s"$ConsentViewNotFund ($consentId)")
 //             }
 //             } yield {

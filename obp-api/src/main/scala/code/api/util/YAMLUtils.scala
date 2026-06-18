@@ -28,9 +28,10 @@ package code.api.util
 
 import com.fasterxml.jackson.databind.{JsonNode, ObjectMapper}
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
-import net.liftweb.json.JsonAST.JValue
-import net.liftweb.json._
-import net.liftweb.json.compactRender
+import org.json4s.JsonAST.JValue
+import org.json4s._
+import com.openbankproject.commons.util.JsonAliases._
+import com.openbankproject.commons.util.JsonAliases.compactRender
 import code.util.Helper.MdcLoggable
 import scala.util.{Try, Success, Failure}
 

@@ -1,5 +1,6 @@
 package code.api.util
 
+import org.json4s._
 import code.api.util.APIUtil.{buildOperationId, getCorrelationId, getPropsAsBoolValue, getPropsValue}
 import code.metrics.APIMetrics
 import code.metricsstream.MetricsEventBus
@@ -9,8 +10,9 @@ import java.util.Date
 import scala.collection.immutable
 import scala.concurrent.Future
 import com.openbankproject.commons.ExecutionContext.Implicits.global
-import net.liftweb.json.{Extraction, JValue, compactRender}
-import net.liftweb.json.Serialization.write
+import org.json4s.{Extraction, JValue}
+import com.openbankproject.commons.util.JsonAliases.compactRender
+import org.json4s.native.Serialization.write
 
 object WriteMetricUtil extends MdcLoggable {
 
@@ -27,7 +29,7 @@ object WriteMetricUtil extends MdcLoggable {
   def writeEndpointMetric(responseBody: Any, callContext: Option[CallContextLight]) = {
     callContext match {
       case Some(cc) =>
-        if (getPropsAsBoolValue("write_metrics", false)) {
+        if (code.metrics.MetricsProps.writeMetrics) {
           val userId = cc.userId.orNull
           val userName = cc.userName.orNull
 
@@ -91,7 +93,7 @@ object WriteMetricUtil extends MdcLoggable {
   }
 
 
-  private val metricFormats = net.liftweb.json.DefaultFormats
+  private val metricFormats = org.json4s.DefaultFormats
 
   /**
    * Publish a metric event to the gRPC pub/sub channel. No-op when the

@@ -1,5 +1,6 @@
 package code.api.v4_0_0
 
+import org.json4s._
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import code.api.Constant._
@@ -25,7 +26,7 @@ import code.transactionattribute.MappedTransactionAttribute
 import com.openbankproject.commons.model.{AccountId, AccountRoutingJsonV121, AmountOfMoneyJsonV121, BankId, CreateViewJson, UpdateViewJSON}
 import com.openbankproject.commons.util.ApiShortVersions
 import dispatch.Req
-import net.liftweb.json.Serialization.write
+import org.json4s.native.Serialization.write
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.randomString
 

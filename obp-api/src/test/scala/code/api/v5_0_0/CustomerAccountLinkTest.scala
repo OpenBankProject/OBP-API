@@ -1,5 +1,6 @@
 package code.api.v5_0_0
 
+import org.json4s._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.v5_0_0.OBPAPI5_0_0.Implementations5_0_0
 import code.setup.DefaultUsers
@@ -12,7 +13,7 @@ import code.api.util.ApiRole.{canCreateCustomerAccountLink, canDeleteCustomerAcc
 import code.api.util.ErrorMessages.{UserHasMissingRoles, AuthenticatedUserIsRequired}
 import code.entitlement.Entitlement
 import com.openbankproject.commons.model.ErrorMessage
-import net.liftweb.json.Serialization.write
+import org.json4s.native.Serialization.write
 
 class CustomerAccountLinkTest extends V500ServerSetup with DefaultUsers {
 

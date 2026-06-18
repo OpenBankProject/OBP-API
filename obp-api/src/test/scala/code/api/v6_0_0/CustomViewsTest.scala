@@ -1,5 +1,6 @@
 package code.api.v6_0_0
 
+import org.json4s._
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.{CanCreateCustomView, CanGetCustomViews}
 import code.api.util.ErrorMessages
@@ -12,7 +13,7 @@ import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.{BankId, ViewId}
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.ApiVersion
-import net.liftweb.json.JsonAST.JArray
+import org.json4s.JsonAST.JArray
 import org.scalatest.Tag
 
 class CustomViewsTest extends V600ServerSetup with DefaultUsers {

@@ -51,6 +51,8 @@ import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.common.Box
 
 import java.util.Date
+import org.json4s._
+import com.openbankproject.commons.util.JsonAliases._
 
 case class FeaturesJsonV600(
   allow_public_views: Boolean,
@@ -445,7 +447,7 @@ case class MetricJsonV600(
     duration: Long,
     source_ip: String,
     target_ip: String,
-    response_body: net.liftweb.json.JValue,
+    response_body: org.json4s.JValue,
     status_code: Int,
     operation_id: String,
     api_instance_id: String,
@@ -951,7 +953,7 @@ case class DynamicEntityDefinitionJsonV600(
     has_public_access: Boolean = false,
     has_community_access: Boolean = false,
     personal_requires_role: Boolean = false,
-    schema: net.liftweb.json.JsonAST.JObject,
+    schema: org.json4s.JsonAST.JObject,
     _links: Option[DynamicEntityLinksJsonV600] = None
 )
 
@@ -969,7 +971,7 @@ case class DynamicEntityDefinitionWithCountJsonV600(
     has_public_access: Boolean = false,
     has_community_access: Boolean = false,
     personal_requires_role: Boolean = false,
-    schema: net.liftweb.json.JsonAST.JObject,
+    schema: org.json4s.JsonAST.JObject,
     record_count: Long,
     _links: Option[DynamicEntityLinksJsonV600] = None
 )
@@ -985,7 +987,7 @@ case class CreateDynamicEntityRequestJsonV600(
     has_public_access: Option[Boolean] = None,  // defaults to false if not provided
     has_community_access: Option[Boolean] = None,  // defaults to false if not provided
     personal_requires_role: Option[Boolean] = None,  // defaults to false if not provided
-    schema: net.liftweb.json.JsonAST.JObject
+    schema: org.json4s.JsonAST.JObject
 )
 
 // Request format for updating a dynamic entity (v6.0.0 with snake_case)
@@ -995,7 +997,7 @@ case class UpdateDynamicEntityRequestJsonV600(
     has_public_access: Option[Boolean] = None,
     has_community_access: Option[Boolean] = None,
     personal_requires_role: Option[Boolean] = None,
-    schema: net.liftweb.json.JsonAST.JObject
+    schema: org.json4s.JsonAST.JObject
 )
 
 // Featured API Collections (v6.0.0)
@@ -1142,7 +1144,7 @@ case class ConfigPropJsonV600(name: String, value: String)
 
 // Signal Channels case classes (Redis-backed ephemeral messaging channels)
 case class PostSignalMessageJsonV600(
-    payload: net.liftweb.json.JsonAST.JValue,
+    payload: org.json4s.JsonAST.JValue,
     message_type: Option[String] = None,
     to_user_id: Option[String] = None
 )
@@ -1155,7 +1157,7 @@ case class SignalMessageJsonV600(
     to_user_id: Option[String],
     timestamp: String,
     message_type: String,
-    payload: net.liftweb.json.JsonAST.JValue
+    payload: org.json4s.JsonAST.JValue
 )
 
 case class SignalMessagesJsonV600(
@@ -1685,7 +1687,7 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       duration = metric.getDuration(),
       source_ip = metric.getSourceIp(),
       target_ip = metric.getTargetIp(),
-      response_body = net.liftweb.json.parseOpt(metric.getResponseBody()).getOrElse(net.liftweb.json.JString("Not enabled")),
+      response_body = com.openbankproject.commons.util.JsonAliases.parseOpt(metric.getResponseBody()).getOrElse(org.json4s.JString("Not enabled")),
       status_code = metric.getHttpCode(),
       operation_id = operationId,
       api_instance_id = metric.getApiInstanceId(),
@@ -2166,9 +2168,10 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
     if (json == null || json.isEmpty) Nil
     else {
       try {
-        import net.liftweb.json._
+        import org.json4s._
+        import com.openbankproject.commons.util.JsonAliases._
         implicit val formats: Formats = DefaultFormats
-        net.liftweb.json.parse(json).extract[List[SignatoryRequirementJsonV600]]
+        com.openbankproject.commons.util.JsonAliases.parse(json).extract[List[SignatoryRequirementJsonV600]]
       } catch {
         case _: Exception => Nil
       }
@@ -2527,8 +2530,7 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
   }
 
   def createMyDynamicEntitiesJson(dynamicEntities: List[code.dynamicEntity.DynamicEntityCommons]): MyDynamicEntitiesJsonV600 = {
-    import net.liftweb.json.JsonAST._
-    import net.liftweb.json.parse
+    import com.openbankproject.commons.util.JsonAliases.parse
     import net.liftweb.util.StringHelpers
 
     MyDynamicEntitiesJsonV600(
@@ -2575,8 +2577,7 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
   def createDynamicEntitiesWithCountJson(
     entitiesWithCounts: List[(code.dynamicEntity.DynamicEntityCommons, Long)]
   ): DynamicEntitiesWithCountJsonV600 = {
-    import net.liftweb.json.JsonAST._
-    import net.liftweb.json.parse
+    import com.openbankproject.commons.util.JsonAliases.parse
 
     DynamicEntitiesWithCountJsonV600(
       dynamic_entities = entitiesWithCounts.map { case (entity, recordCount) =>
@@ -2633,9 +2634,8 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
    *   "hasPersonalEntity": true
    * }
    */
-  def convertV600RequestToInternal(request: CreateDynamicEntityRequestJsonV600): net.liftweb.json.JsonAST.JObject = {
-    import net.liftweb.json.JsonAST._
-    import net.liftweb.json.JsonDSL._
+  def convertV600RequestToInternal(request: CreateDynamicEntityRequestJsonV600): org.json4s.JsonAST.JObject = {
+    import org.json4s.JsonDSL._
 
     val hasPersonalEntity = request.has_personal_entity.getOrElse(true)
     val hasPublicAccess = request.has_public_access.getOrElse(false)
@@ -2653,9 +2653,8 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
     )
   }
 
-  def convertV600UpdateRequestToInternal(request: UpdateDynamicEntityRequestJsonV600): net.liftweb.json.JsonAST.JObject = {
-    import net.liftweb.json.JsonAST._
-    import net.liftweb.json.JsonDSL._
+  def convertV600UpdateRequestToInternal(request: UpdateDynamicEntityRequestJsonV600): org.json4s.JsonAST.JObject = {
+    import org.json4s.JsonDSL._
 
     val hasPersonalEntity = request.has_personal_entity.getOrElse(true)
     val hasPublicAccess = request.has_public_access.getOrElse(false)

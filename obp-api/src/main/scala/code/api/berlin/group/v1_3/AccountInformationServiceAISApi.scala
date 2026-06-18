@@ -26,8 +26,8 @@
 //import com.openbankproject.commons.model.enums.{ChallengeType, StrongCustomerAuthenticationStatus, SuppliedAnswerType}
 //import net.liftweb
 //import net.liftweb.common.{Empty, Full}
-//import net.liftweb.json
-//import net.liftweb.json._
+//import com.openbankproject.commons.util.json
+//import org.json4s._
 //
 //import scala.collection.mutable.ArrayBuffer
 //import scala.concurrent.Future
@@ -1247,7 +1247,7 @@
 //           for {
 //             (Full(u), callContext) <- authenticatedAccess(cc)
 //           } yield {
-//             (liftweb.json.parse(
+//             (com.openbankproject.commons.util.JsonAliases.parse(
 //               """{
 //                   "scaStatus": "received",
 //                   "psuMessage": "Please use your BankApp for transaction Authorisation.",
@@ -1289,7 +1289,7 @@
 //           for {
 //             (Full(u), callContext) <- authenticatedAccess(cc)
 //           } yield {
-//             (liftweb.json.parse(
+//             (com.openbankproject.commons.util.JsonAliases.parse(
 //               """{
 //                   "scaStatus": "received",
 //                   "psuMessage": "Please use your BankApp for transaction Authorisation.",
@@ -1425,7 +1425,7 @@
 //             (Full(u), callContext) <- authenticatedAccess(cc)
 //             
 //           } yield {
-//             (liftweb.json.parse(
+//             (com.openbankproject.commons.util.JsonAliases.parse(
 //               """{ 
 //                 | "scaStatus": "psuAuthenticated",
 //                 | "_links": {
@@ -1470,7 +1470,7 @@
 //             (Full(u), callContext) <- authenticatedAccess(cc)
 //             
 //           } yield {
-//             (liftweb.json.parse(
+//             (com.openbankproject.commons.util.JsonAliases.parse(
 //               """{
 //                 |  "scaStatus": "scaMethodSelected",
 //                 |  "chosenScaMethod": {

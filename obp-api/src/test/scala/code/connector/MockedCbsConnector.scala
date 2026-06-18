@@ -1,5 +1,6 @@
 package code.connector
 
+import org.json4s._
 import code.api.Constant._
 import code.api.util.{CallContext, CustomJsonFormats}
 import code.bankconnectors._
@@ -10,7 +11,7 @@ import net.liftweb.common.{Box, Full}
 
 import scala.collection.immutable.List
 import com.openbankproject.commons.ExecutionContext.Implicits.global
-import net.liftweb.json.Formats
+import org.json4s.Formats
 
 import scala.concurrent.Future
 

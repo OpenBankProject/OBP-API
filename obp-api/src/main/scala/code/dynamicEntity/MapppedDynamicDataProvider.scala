@@ -1,13 +1,14 @@
 package code.DynamicData
 
+import org.json4s._
 import code.api.util.CustomJsonFormats
 import code.api.util.ErrorMessages.DynamicDataNotFound
 import code.util.MappedUUID
 import net.liftweb.common.{Box, Failure, Full}
-import net.liftweb.json
-import net.liftweb.json.JObject
-import net.liftweb.json.JsonAST.JString
-import net.liftweb.json.JsonDSL._
+import com.openbankproject.commons.util.json
+import org.json4s.JObject
+import org.json4s.JsonAST.JString
+import org.json4s.JsonDSL._
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo
 import org.apache.commons.lang3.StringUtils

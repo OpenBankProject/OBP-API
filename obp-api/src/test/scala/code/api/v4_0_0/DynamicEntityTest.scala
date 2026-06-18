@@ -33,9 +33,10 @@ import code.api.util.ErrorMessages._
 import code.api.v4_0_0.APIMethods400.Implementations4_0_0
 import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf
-import net.liftweb.json.JsonDSL._
-import net.liftweb.json.Serialization.write
-import net.liftweb.json._
+import org.json4s.JsonDSL._
+import org.json4s.native.Serialization.write
+import org.json4s._
+import com.openbankproject.commons.util.JsonAliases._
 import org.scalatest.Tag
 class DynamicEntityTest extends V400ServerSetup {
 

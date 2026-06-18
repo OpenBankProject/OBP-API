@@ -1,5 +1,6 @@
 package code.customer
 
+import org.json4s._
 import code.api.util.APIUtil.OAuth._
 import code.api.util.{APIUtil, ApiRole}
 import code.api.v1_4_0.JSONFactory1_4_0.CustomerFaceImageJson
@@ -11,7 +12,7 @@ import code.setup.DefaultUsers
 import code.usercustomerlinks.UserCustomerLink
 import com.openbankproject.commons.model.{BankId, Customer}
 import net.liftweb.common.{Box, Empty, Full}
-import net.liftweb.json.Serialization._
+import org.json4s.native.Serialization._
 
 class MappedCustomerProviderTest extends V140ServerSetup with DefaultUsers {
 

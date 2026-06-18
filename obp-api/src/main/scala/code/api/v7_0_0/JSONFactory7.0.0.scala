@@ -7,7 +7,7 @@ import code.api.util.ErrorMessages.MandatoryPropertyIsNotSet
 import code.api.v4_0_0.{EnergySource400, HostedAt400, HostedBy400, PostSimpleCounterpartyJson400}
 import code.bankconnectors.Connector
 import code.customer.CustomerX
-import code.metrics.{MappedMetric, MetricArchive, MetricsArchiveRun}
+import code.metrics.{MappedMetric, MetricArchive, MetricsArchiveRun, MetricsProps}
 import code.util.Helper.MdcLoggable
 import code.views.Views
 import com.openbankproject.commons.model.{AccountId, AccountRoutingJsonV121, AmountOfMoneyJsonV121, BankId, BankIdAccountId, CoreAccount, TransactionRequest, TransactionRequestCommonBodyJSON, User}
@@ -769,6 +769,158 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     )
   }
 
+  // ── UTILITY transaction-request body ───────────────────────────────────────
+  //
+  // A polymorphic bill / utility payment. The destination is a QualifiedIdentifier
+  // whose `scheme` must be a registered routing scheme of category UTILITY or BILL
+  // — e.g. `TZ.UTILITY_METER` (prepaid electricity meter), later `TZ.BILL_CONTROL_NUMBER`.
+  // Mirrors the meter/bill token-purchase flow: verify the destination via
+  // POST .../payees/lookup, then pay quoting `verified_payee_lookup_id`.
+
+  /** Payer block — the depositor's phone / name / email for the biller receipt. */
+  case class UtilityPayerJsonV700(
+      phone: Option[String],
+      name: Option[String],
+      email: Option[String]
+  )
+
+  /**
+   * Body for `POST .../transaction-request-types/UTILITY/transaction-requests`.
+   *
+   * Implements `TransactionRequestCommonBodyJSON` so it plugs into the existing
+   * v400 transaction-request pipeline (which requires `value` + `description`).
+   *
+   * `callback_url`, when present, registers a fire-and-forget callback that OBP
+   * POSTs the final token-purchase result to.
+   */
+  case class TransactionRequestBodyUtilityJsonV700(
+      to: QualifiedIdentifierJsonV700,
+      value: com.openbankproject.commons.model.AmountOfMoneyJsonV121,
+      description: String,
+      client_reference: Option[String],
+      verified_payee_lookup_id: Option[String],
+      payer: Option[UtilityPayerJsonV700],
+      callback_url: Option[String],
+      data_fields: Option[List[MobileWalletDataFieldJsonV700]],
+      charge_policy: Option[String]
+  ) extends com.openbankproject.commons.model.TransactionRequestCommonBodyJSON
+
+  /** Registration status of the per-request callback (step c). */
+  case class UtilityCallbackJsonV700(
+      callback_id: String,
+      callback_url: String,
+      status: String                        // REGISTERED | DELIVERED | FAILED
+  )
+
+  // The asynchronous vend result delivered by the downstream rail/adapter after the
+  // utility purchase settles — e.g. the STS token (typically 20 digits) for a prepaid
+  // electricity meter. Persisted on the transaction request as attributes and surfaced
+  // here (and on the client callback) once the vend completes.
+  case class UtilityVendResultJsonV700(
+      status: String,                        // ACCEPTED | COMPLETED | FAILED (provider vend status)
+      token: Option[String],                 // the STS token the customer keys into the meter (e.g. 20 digits)
+      rcpt_num: Option[String],              // provider receipt number
+      units: Option[String],                 // units purchased (e.g. electricity kWh)
+      provider_reference: Option[String],    // downstream rail / provider reference
+      provider_message: Option[String]       // free-text provider remark
+  )
+
+  /** Inbound body for the vend-result delivery endpoint (rail/adapter → OBP). */
+  case class PostUtilityVendResultJsonV700(
+      status: String,
+      token: Option[String],
+      rcpt_num: Option[String],
+      units: Option[String],
+      provider_reference: Option[String],
+      provider_message: Option[String]
+  )
+
+  // Response of the vend-result delivery endpoint, and the payload OBP POSTs to the
+  // payer's registered callback_url. Deliberately lean — it carries the vend result
+  // (the token), not an echo of the original request (the payer already has that from
+  // the create response).
+  case class UtilityVendResultResponseJsonV700(
+      transaction_request_id: String,
+      `type`: String,                       // always "UTILITY"
+      status: String,                       // the transaction request's status
+      vend_result: Option[UtilityVendResultJsonV700],
+      callback: Option[UtilityCallbackJsonV700]   // delivery status, when a callback was registered
+  )
+
+  // Attribute names under which the vend result is persisted on the transaction request.
+  object UtilityVendAttribute {
+    val Token             = "UTILITY_VEND_TOKEN"
+    val RcptNum           = "UTILITY_VEND_RCPT_NUM"
+    val Units             = "UTILITY_VEND_UNITS"
+    val ProviderReference = "UTILITY_VEND_PROVIDER_REFERENCE"
+    val VendStatus        = "UTILITY_VEND_STATUS"
+    val ProviderMessage   = "UTILITY_VEND_PROVIDER_MESSAGE"
+  }
+
+  // v7 response shape for UTILITY. Mirrors MOBILE_WALLET's wrapper and adds the
+  // optional callback-registration block and the asynchronous vend result.
+  case class TransactionRequestWithChargeUtilityJsonV700(
+      id: String,
+      `type`: String,
+      from: code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140,
+      details: TransactionRequestBodyUtilityJsonV700,
+      transaction_ids: List[String],
+      status: String,
+      start_date: java.util.Date,
+      end_date: java.util.Date,
+      challenges: List[code.api.v4_0_0.ChallengeJsonV400],
+      charge: code.api.v2_0_0.TransactionRequestChargeJsonV200,
+      callback: Option[UtilityCallbackJsonV700],
+      vend_result: Option[UtilityVendResultJsonV700],
+      attributes: Option[List[code.api.v4_0_0.BankAttributeBankResponseJsonV400]]
+  )
+
+  def createTransactionRequestWithChargeUtilityJsonV700(
+      tr: com.openbankproject.commons.model.TransactionRequest,
+      requestBody: TransactionRequestBodyUtilityJsonV700,
+      callback: Option[UtilityCallbackJsonV700],
+      vendResult: Option[UtilityVendResultJsonV700],
+      challenges: List[com.openbankproject.commons.model.ChallengeTrait],
+      transactionRequestAttribute: List[com.openbankproject.commons.model.TransactionRequestAttributeTrait]
+  ): TransactionRequestWithChargeUtilityJsonV700 = {
+    val v4 = code.api.v4_0_0.JSONFactory400.createTransactionRequestWithChargeJSON(
+      tr, challenges, transactionRequestAttribute
+    )
+    TransactionRequestWithChargeUtilityJsonV700(
+      id = v4.id,
+      `type` = v4.`type`,
+      from = v4.from,
+      details = requestBody,
+      transaction_ids = v4.transaction_ids,
+      status = v4.status,
+      start_date = v4.start_date,
+      end_date = v4.end_date,
+      challenges = v4.challenges,
+      charge = v4.charge,
+      callback = callback,
+      vend_result = vendResult,
+      attributes = v4.attributes
+    )
+  }
+
+  /** Build the typed vend-result block from the transaction request's persisted attributes.
+    * Returns None when no vend has been recorded yet. */
+  def utilityVendResultFromAttributes(
+      attributes: List[com.openbankproject.commons.model.TransactionRequestAttributeTrait]
+  ): Option[UtilityVendResultJsonV700] = {
+    val byName = attributes.map(a => a.name -> a.value).toMap
+    byName.get(UtilityVendAttribute.VendStatus).map { status =>
+      UtilityVendResultJsonV700(
+        status = status,
+        token = byName.get(UtilityVendAttribute.Token),
+        rcpt_num = byName.get(UtilityVendAttribute.RcptNum),
+        units = byName.get(UtilityVendAttribute.Units),
+        provider_reference = byName.get(UtilityVendAttribute.ProviderReference),
+        provider_message = byName.get(UtilityVendAttribute.ProviderMessage)
+      )
+    }
+  }
+
   // ── BULK transaction-request body ─────────────────────────────────────────
 
   case class BulkPaymentItemJsonV700(
@@ -1089,9 +1241,7 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     enable_metrics_scheduler: Boolean,
     retain_metrics_scheduler_interval_in_seconds: Int,
     retain_metrics_days: Long,
-    retain_metrics_days_effective: Long,
     retain_archive_metrics_days: Long,
-    retain_archive_metrics_days_effective: Long,
     retain_metrics_move_limit: Int
   )
 
@@ -1246,9 +1396,9 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
   /**
    * Inspect the `metric` and `metricarchive` tables together with the archiving
    * props and report whether the MetricsArchiveScheduler is behaving as
-   * configured. The effective retention values mirror the floors applied in
-   * `code.scheduler.MetricsArchiveScheduler` (retain_metrics_days floored to 60,
-   * retain_archive_metrics_days floored to 365).
+   * configured. All props are read through `code.metrics.MetricsProps` — the same
+   * accessors the scheduler acts on — so the reported values (fallback defaults
+   * included) are by construction the ones the scheduler uses.
    *
    * Note: this issues blocking Mapper queries (count + a single-row ORDER BY on
    * the indexed `date` column) — call it from a Future.
@@ -1256,23 +1406,19 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
   def createMetricsAndArchiveMetricsDiagnosticsJsonV700(): MetricsAndArchiveMetricsDiagnosticsJsonV700 = {
     val now = new Date()
 
-    val writeMetrics      = APIUtil.getPropsAsBoolValue("write_metrics", false)
-    val schedulerEnabled  = APIUtil.getPropsAsBoolValue("enable_metrics_scheduler", true)
-    val schedulerIntervalSeconds = APIUtil.getPropsAsIntValue("retain_metrics_scheduler_interval_in_seconds", 3600)
-    val retainMetricsDays = APIUtil.getPropsAsLongValue("retain_metrics_days", 367)
-    val retainMetricsDaysEffective = if (retainMetricsDays > 59) retainMetricsDays else 60L
-    val retainArchiveMetricsDays   = APIUtil.getPropsAsLongValue("retain_archive_metrics_days", 365L * 3)
-    val retainArchiveMetricsDaysEffective = if (retainArchiveMetricsDays > 364) retainArchiveMetricsDays else 365L
-    val moveLimit = APIUtil.getPropsAsIntValue("retain_metrics_move_limit", 50000)
+    val writeMetrics      = MetricsProps.writeMetrics
+    val schedulerEnabled  = MetricsProps.enableMetricsScheduler
+    val schedulerIntervalSeconds = MetricsProps.retainMetricsSchedulerIntervalInSeconds
+    val retainMetricsDays = MetricsProps.retainMetricsDays
+    val retainArchiveMetricsDays = MetricsProps.retainArchiveMetricsDays
+    val moveLimit = MetricsProps.retainMetricsMoveLimit
 
     val config = MetricsArchiveConfigJsonV700(
       write_metrics                         = writeMetrics,
       enable_metrics_scheduler              = schedulerEnabled,
       retain_metrics_scheduler_interval_in_seconds = schedulerIntervalSeconds,
       retain_metrics_days                   = retainMetricsDays,
-      retain_metrics_days_effective         = retainMetricsDaysEffective,
       retain_archive_metrics_days           = retainArchiveMetricsDays,
-      retain_archive_metrics_days_effective = retainArchiveMetricsDaysEffective,
       retain_metrics_move_limit             = moveLimit
     )
 
@@ -1314,12 +1460,12 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     metricOldest match {
       case Some(d) =>
         val age = metricsAgeInDays(d, now)
-        if (age <= retainMetricsDaysEffective + graceDays)
+        if (age <= retainMetricsDays + graceDays)
           checks += MetricsIntegrityCheckJsonV700("check_metric_retention_policy_is_respected", "OK",
-            s"Oldest metric is $age days old, within the effective retention of $retainMetricsDaysEffective days (+${graceDays}d grace).")
+            s"Oldest metric is $age days old, within the configured retention of $retainMetricsDays days (+${graceDays}d grace).")
         else
           checks += MetricsIntegrityCheckJsonV700("check_metric_retention_policy_is_respected", "ERROR",
-            s"Oldest metric is $age days old but the effective retention is $retainMetricsDaysEffective days. Records older than this should have been moved to the archive — the archive move job is not keeping up or has stopped.")
+            s"Oldest metric is $age days old but the configured retention is $retainMetricsDays days. Records older than this should have been moved to the archive — the archive move job is not keeping up or has stopped.")
       case None =>
         checks += MetricsIntegrityCheckJsonV700("check_metric_retention_policy_is_respected", "OK", "The metric table is empty.")
     }
@@ -1336,12 +1482,12 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     archiveOldest match {
       case Some(d) =>
         val age = metricsAgeInDays(d, now)
-        if (age <= retainArchiveMetricsDaysEffective + graceDays)
+        if (age <= retainArchiveMetricsDays + graceDays)
           checks += MetricsIntegrityCheckJsonV700("check_archive_retention_policy_is_respected", "OK",
-            s"Oldest archived metric is $age days old, within the effective archive retention of $retainArchiveMetricsDaysEffective days (+${graceDays}d grace).")
+            s"Oldest archived metric is $age days old, within the configured archive retention of $retainArchiveMetricsDays days (+${graceDays}d grace).")
         else
           checks += MetricsIntegrityCheckJsonV700("check_archive_retention_policy_is_respected", "ERROR",
-            s"Oldest archived metric is $age days old but the effective archive retention is $retainArchiveMetricsDaysEffective days. Records older than this should have been deleted — the archive cleanup job is not keeping up or has stopped.")
+            s"Oldest archived metric is $age days old but the configured archive retention is $retainArchiveMetricsDays days. Records older than this should have been deleted — the archive cleanup job is not keeping up or has stopped.")
       case None =>
         checks += MetricsIntegrityCheckJsonV700("check_archive_retention_policy_is_respected", "OK", "The metricarchive table is empty.")
     }
@@ -1351,14 +1497,14 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     // roughly retain_metrics_days old. A much older newest-archive value means
     // the move job stopped.
     (metricOldest, archiveNewest) match {
-      case (Some(mo), Some(an)) if metricsAgeInDays(mo, now) > retainMetricsDaysEffective + graceDays =>
+      case (Some(mo), Some(an)) if metricsAgeInDays(mo, now) > retainMetricsDays + graceDays =>
         val newestArchiveAge = metricsAgeInDays(an, now)
-        if (newestArchiveAge <= retainMetricsDaysEffective + graceDays)
+        if (newestArchiveAge <= retainMetricsDays + graceDays)
           checks += MetricsIntegrityCheckJsonV700("check_archive_metrics_is_fresh_enough", "OK",
             s"Newest archived metric is $newestArchiveAge days old, consistent with an active move job.")
         else
           checks += MetricsIntegrityCheckJsonV700("check_archive_metrics_is_fresh_enough", "ERROR",
-            s"There are metric rows older than the retention window, yet the newest archived record is $newestArchiveAge days old. The move job appears to have stopped roughly ${newestArchiveAge - retainMetricsDaysEffective} days ago.")
+            s"There are metric rows older than the retention window, yet the newest archived record is $newestArchiveAge days old. The move job appears to have stopped roughly ${newestArchiveAge - retainMetricsDays} days ago.")
       case _ =>
         checks += MetricsIntegrityCheckJsonV700("check_archive_metrics_is_fresh_enough", "OK",
           "No backlog of metrics older than the retention window — nothing to move right now.")
@@ -1402,11 +1548,9 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     config = MetricsArchiveConfigJsonV700(
       write_metrics                         = true,
       enable_metrics_scheduler              = true,
-      retain_metrics_scheduler_interval_in_seconds = 3600,
+      retain_metrics_scheduler_interval_in_seconds = 599,
       retain_metrics_days                   = 90,
-      retain_metrics_days_effective         = 90,
       retain_archive_metrics_days           = 730,
-      retain_archive_metrics_days_effective = 730,
       retain_metrics_move_limit             = 4000
     ),
     metric = MetricsTableStatsJsonV700(

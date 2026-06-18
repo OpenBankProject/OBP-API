@@ -6,9 +6,9 @@ import code.api.util.APIUtil.{HTTPParam, EmptyBody, JArrayBody, PrimaryDataBody,
 import code.api.util.ErrorMessages._
 import code.api.util._
 import com.openbankproject.commons.util.{ApiVersion, EnumValue, JsonAble, JsonUtils, OBPEnumeration, ReflectUtils, ScannedApiVersion}
-import net.liftweb
-import net.liftweb.json.JsonAST.JValue
-import net.liftweb.json._
+import org.json4s.JsonAST.JValue
+import org.json4s._
+import com.openbankproject.commons.util.JsonAliases._
 
 import scala.collection.immutable.ListMap
 import scala.reflect.runtime.universe._
@@ -33,7 +33,7 @@ import com.openbankproject.commons.model.ListResult
 import code.util.Helper.MdcLoggable
 import net.liftweb.common.Box.tryo
 import net.liftweb.common.{EmptyBox, Full}
-import net.liftweb.json
+import com.openbankproject.commons.util.json
 
 import scala.collection.GenTraversableLike
 import scala.reflect.runtime.universe
@@ -976,7 +976,7 @@ object SwaggerJSONFactory extends MdcLoggable {
     *         } ...
     */
   // link ->https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#definitionsObject
-  def loadDefinitions(resourceDocList: List[JSONFactory1_4_0.ResourceDocJson], allSwaggerDefinitionCaseClasses: Seq[AnyRef]): liftweb.json.JValue = {
+  def loadDefinitions(resourceDocList: List[JSONFactory1_4_0.ResourceDocJson], allSwaggerDefinitionCaseClasses: Seq[AnyRef]): org.json4s.JValue = {
 
     // filter function: not null and not type of EnumValue, PrimaryDataBody, JObject, JArray.
     val predicate: Any => Boolean = {

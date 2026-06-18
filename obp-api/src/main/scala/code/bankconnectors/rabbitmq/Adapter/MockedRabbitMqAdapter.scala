@@ -1,5 +1,6 @@
 package code.bankconnectors.rabbitmq.Adapter
 
+import org.json4s._
 import bootstrap.liftweb.ToSchemify
 import code.api.util.APIUtil
 import code.bankconnectors.rabbitmq.RabbitMQUtils
@@ -11,8 +12,8 @@ import com.openbankproject.commons.model._
 import com.rabbitmq.client.AMQP.BasicProperties
 import com.rabbitmq.client._
 import net.liftweb.db.DB
-import net.liftweb.json
-import net.liftweb.json.Serialization.write
+import com.openbankproject.commons.util.json
+import org.json4s.native.Serialization.write
 import net.liftweb.mapper.Schemifier
 
 import java.util.Date

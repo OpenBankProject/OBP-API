@@ -1,5 +1,6 @@
 package code.api.berlin.group.v1_3
 
+import org.json4s._
 import cats.data.{Kleisli, OptionT}
 import cats.effect._
 import code.api.APIFailureNewStyle
@@ -27,10 +28,9 @@ import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.{ChallengeType, StrongCustomerAuthenticationStatus, SuppliedAnswerType}
-import net.liftweb
 import net.liftweb.common.{Empty, Full}
-import net.liftweb.json
-import net.liftweb.json.Formats
+import com.openbankproject.commons.util.json
+import org.json4s.Formats
 import org.http4s._
 import org.http4s.dsl.io._
 
@@ -44,7 +44,7 @@ object Http4sBGv13AIS extends MdcLoggable {
 
   implicit val formats: Formats = CustomJsonFormats.formats
 
-  protected implicit def JvalueToSuper(what: net.liftweb.json.JValue): JvalueCaseClass = JvalueCaseClass(what)
+  protected implicit def JvalueToSuper(what: org.json4s.JValue): JvalueCaseClass = JvalueCaseClass(what)
 
   val implementedInApiVersion = ConstantsBG.berlinGroupVersion1
   val resourceDocs = ArrayBuffer[ResourceDoc]()
@@ -516,7 +516,7 @@ object Http4sBGv13AIS extends MdcLoggable {
           }
         } else {
           // mocked for updatePsuAuthentication and selectPsuAuthenticationMethod variants
-          Future.successful(liftweb.json.parse(
+          Future.successful(com.openbankproject.commons.util.JsonAliases.parse(
             """{
                 "scaStatus": "received",
                 "psuMessage": "Please use your BankApp for transaction Authorisation.",
@@ -582,7 +582,7 @@ object Http4sBGv13AIS extends MdcLoggable {
             createPutConsentResponseJson(consent.toList.head)
           }
         } else if (checkUpdatePsuAuthentication(parsedJson)) {
-          Future.successful(liftweb.json.parse(
+          Future.successful(com.openbankproject.commons.util.JsonAliases.parse(
             """{
                | "scaStatus": "psuAuthenticated",
                | "_links": {
@@ -590,7 +590,7 @@ object Http4sBGv13AIS extends MdcLoggable {
                | }
                |}""".stripMargin))
         } else if (checkSelectPsuAuthenticationMethod(parsedJson)) {
-          Future.successful(liftweb.json.parse(
+          Future.successful(com.openbankproject.commons.util.JsonAliases.parse(
             """{
                |  "scaStatus": "scaMethodSelected",
                |  "chosenScaMethod": {
@@ -605,7 +605,7 @@ object Http4sBGv13AIS extends MdcLoggable {
                |}""".stripMargin))
         } else {
           // authorisationConfirmation variant
-          Future.successful(liftweb.json.parse(
+          Future.successful(com.openbankproject.commons.util.JsonAliases.parse(
             """{
                |  "scaStatus": "finalised",
                |  "_links":{

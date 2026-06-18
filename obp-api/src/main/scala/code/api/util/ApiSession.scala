@@ -1,5 +1,6 @@
 package code.api.util
 
+import org.json4s._
 import code.api.JSONFactoryDAuth
 import java.util.{Date, UUID}
 import code.api.JSONFactoryGateway.PayloadOfJwtJSON
@@ -16,7 +17,7 @@ import code.views.Views
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.util.{EnumValue, OBPEnumeration}
 import net.liftweb.common.{Box, Empty}
-import net.liftweb.json.JsonAST.JValue
+import org.json4s.JsonAST.JValue
 import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers.tryo
 

@@ -1,5 +1,6 @@
 package code.api.dynamic.endpoint.helper
 
+import org.json4s._
 import cats.effect.IO
 import code.api.dynamic.endpoint.helper.practise.{DynamicEndpointCodeGenerator, PractiseEndpointGroup}
 import code.api.dynamic.endpoint.helper.practise.PractiseEndpointGroup
@@ -7,8 +8,8 @@ import code.api.util.DynamicUtil.{Sandbox, Validation}
 import code.api.util.APIUtil.{BooleanBody, DoubleBody, EmptyBody, LongBody, Http4sEndpointIO, PrimaryDataBody, ResourceDoc, StringBody, getDisabledEndpointOperationIds}
 import code.api.util.{CallContext, DynamicUtil}
 import net.liftweb.common.{Box, Failure, Full}
-import net.liftweb.json.{JNothing, JValue}
-import net.liftweb.json.JsonAST.{JBool, JDouble, JInt, JString}
+import org.json4s.{JNothing, JValue}
+import org.json4s.JsonAST.{JBool, JDouble, JInt, JString}
 import org.apache.commons.lang3.StringUtils
 import org.http4s.{Request, Response}
 
@@ -120,7 +121,7 @@ case class CompiledObjects(exampleRequestBody: Option[JValue], successResponseBo
          |import code.api.util.ErrorMessages.{InvalidJsonFormat, InvalidRequestPayload}
          |import code.api.util.NewStyle.HttpCode
          |import code.api.util.APIUtil.OBPReturnType
-         |import net.liftweb.json.MappingException
+         |import org.json4s.MappingException
          |import code.api.dynamic.endpoint.helper.DynamicCompileEndpoint._
          |
          |import scala.concurrent.Future

@@ -47,11 +47,12 @@ import com.openbankproject.commons.model.enums._
 import com.openbankproject.commons.model.{Meta, _}
 import com.openbankproject.commons.util.{JsonUtils, ReflectUtils}
 import net.liftweb.common._
-import net.liftweb.json
-import net.liftweb.json.Extraction.decompose
-import net.liftweb.json.JsonDSL._
-import net.liftweb.json.JsonParser.ParseException
-import net.liftweb.json._
+import com.openbankproject.commons.util.json
+import org.json4s.Extraction.decompose
+import org.json4s.JsonDSL._
+import org.json4s.ParserUtil.ParseException
+import org.json4s._
+import com.openbankproject.commons.util.JsonAliases._
 import net.liftweb.util.Helpers.tryo
 import org.apache.commons.lang3.StringUtils
 
@@ -7307,7 +7308,7 @@ trait RestConnector_vMar2019 extends Connector with MdcLoggable {
         val source = decompose(outBound)
         val builtJson = JsonUtils.buildJson(source, m)
         compactRender(builtJson)
-      case _ => net.liftweb.json.Serialization.write(outBound)
+      case _ => org.json4s.native.Serialization.write(outBound)
     }
     val request = prepareHttpRequest(url, method, HttpProtocol("HTTP/1.1"), outBoundJson).withHeaders(buildHeaders(url, outBoundJson, callContext))
     logger.debug(s"RestConnector_vMar2019 request is : $request")

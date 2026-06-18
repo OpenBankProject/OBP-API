@@ -22,8 +22,8 @@
 //import net.liftweb
 //import net.liftweb.common.Box.tryo
 //import net.liftweb.common.Full
-//import net.liftweb.json
-//import net.liftweb.json._
+//import com.openbankproject.commons.util.json
+//import org.json4s._
 //
 //import scala.collection.mutable.ArrayBuffer
 //import scala.concurrent.Future
@@ -539,7 +539,7 @@
 //  $additionalInstructions
 //
 //  """
-//    def initiatePaymentImplementation(paymentService: String, paymentProduct: String, json: liftweb.json.JValue, cc: CallContext) = {
+//    def initiatePaymentImplementation(paymentService: String, paymentProduct: String, json: org.json4s.JValue, cc: CallContext) = {
 //    for {
 //      (u, callContext) <- applicationAccess(cc)
 //      _ <- passesPsd2Pisp(callContext)
@@ -824,7 +824,7 @@
 //        for {
 //          (_, callContext) <- authenticatedAccess(cc)
 //        } yield {
-//          (liftweb.json.parse("""{
+//          (com.openbankproject.commons.util.JsonAliases.parse("""{
 //               "challengeData": {
 //                 "scaStatus": "received",
 //                 "authorisationId": "88695566-6642-46d5-9985-0d824624f507",
@@ -867,7 +867,7 @@
 //        for {
 //          (Full(u), callContext) <- authenticatedAccess(cc)
 //        } yield {
-//          (liftweb.json.parse(
+//          (com.openbankproject.commons.util.JsonAliases.parse(
 //            """{
 //                      "challengeData": {
 //                        "scaStatus": "received",
@@ -1073,7 +1073,7 @@
 //           for {
 //             (Full(u), callContext) <- authenticatedAccess(cc)
 //           } yield {
-//             (liftweb.json.parse(
+//             (com.openbankproject.commons.util.JsonAliases.parse(
 //               """{
 //               "scaStatus": "received",
 //               "authorisationId": "123auth456",
@@ -1117,7 +1117,7 @@
 //           for {
 //             (Full(u), callContext) <- authenticatedAccess(cc)
 //           } yield {
-//             (liftweb.json.parse(
+//             (com.openbankproject.commons.util.JsonAliases.parse(
 //               """{
 //               "scaStatus": "received",
 //               "authorisationId": "123auth456",
@@ -1281,7 +1281,7 @@
 //           for {
 //             (_, callContext) <- authenticatedAccess(cc)
 //           } yield {
-//             (net.liftweb.json.parse(
+//             (com.openbankproject.commons.util.JsonAliases.parse(
 //               """{
 //                 "scaStatus": "psuAuthenticated",
 //                 "_links": {
@@ -1323,7 +1323,7 @@
 //           for {
 //             (_, callContext) <- authenticatedAccess(cc)
 //           } yield {
-//             (net.liftweb.json.parse(
+//             (com.openbankproject.commons.util.JsonAliases.parse(
 //               """{
 //                 "scaStatus": "scaMethodSelected",
 //                 "chosenScaMethod": {
@@ -1365,7 +1365,7 @@
 //           for {
 //             (_, callContext) <- authenticatedAccess(cc)
 //           } yield {
-//             (net.liftweb.json.parse(
+//             (com.openbankproject.commons.util.JsonAliases.parse(
 //               """{
 //                    "scaStatus": "finalised",
 //                    "_links":{
@@ -1525,7 +1525,7 @@
 //             (Full(u), callContext) <- authenticatedAccess(cc)
 //
 //           } yield {
-//             (liftweb.json.parse(
+//             (com.openbankproject.commons.util.JsonAliases.parse(
 //               """{
 //                      "scaStatus": "finalised",
 //                      "_links": {
@@ -1569,7 +1569,7 @@
 //             (Full(u), callContext) <- authenticatedAccess(cc)
 //
 //           } yield {
-//             (liftweb.json.parse(
+//             (com.openbankproject.commons.util.JsonAliases.parse(
 //               """{
 //               "scaStatus": "scaMethodSelected",
 //               "chosenScaMethod": {
@@ -1613,7 +1613,7 @@
 //             (Full(u), callContext) <- authenticatedAccess(cc)
 //
 //           } yield {
-//             (liftweb.json.parse(
+//             (com.openbankproject.commons.util.JsonAliases.parse(
 //               """{
 //               "scaStatus": "finalised",
 //               "_links":{

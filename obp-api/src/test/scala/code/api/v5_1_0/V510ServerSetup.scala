@@ -1,5 +1,6 @@
 package code.api.v5_1_0
 
+import org.json4s._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.createViewJsonV300
 import code.api.util.APIUtil.OAuth.{Consumer, Token, _}
@@ -18,7 +19,7 @@ import code.setup.{APIResponse, DefaultUsers, ServerSetupWithTestData}
 import com.openbankproject.commons.model.{AccountRoutingJsonV121, AmountOfMoneyJsonV121, CreateViewJson}
 import com.openbankproject.commons.util.ApiShortVersions
 import dispatch.Req
-import net.liftweb.json.Serialization.write
+import org.json4s.native.Serialization.write
 
 import scala.util.Random
 import scala.util.Random.nextInt

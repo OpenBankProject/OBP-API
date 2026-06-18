@@ -144,7 +144,6 @@ object Http4sApp extends MdcLoggable {
         .orElse(dynamicEntityRoutes.run(req))
         .orElse(dynamicEndpointRoutes.run(req))
         .orElse(code.api.DirectLoginRoutes.routes.run(req))
-        .orElse(code.api.Http4sOpenIdConnect.routes.run(req))
         .orElse(code.api.AliveCheckRoutes.routes.run(req))
         .orElse(notFoundCatchAll.run(req))
     }

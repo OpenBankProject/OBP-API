@@ -1,12 +1,13 @@
 package code.api.v5_1_0
 
+import org.json4s._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.{postAgentJsonV510, putAgentJsonV510}
 import code.api.util.ErrorMessages.{BankNotFound, UserHasMissingRoles, AuthenticatedUserIsRequired}
 import code.api.v5_1_0.OBPAPI5_1_0.Implementations5_1_0
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.ApiVersion
-import net.liftweb.json.Serialization.write
+import org.json4s.native.Serialization.write
 import org.scalatest.Tag
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.{canUpdateAgentStatusAtAnyBank, canUpdateAgentStatusAtOneBank}

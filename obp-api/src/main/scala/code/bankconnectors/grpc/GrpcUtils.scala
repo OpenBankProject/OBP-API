@@ -1,5 +1,6 @@
 package code.bankconnectors.grpc
 
+import org.json4s._
 import code.api.util.APIUtil
 import code.api.util.ErrorMessages.AdapterUnknownError
 import code.bankconnectors.Connector
@@ -9,7 +10,7 @@ import com.openbankproject.commons.model.TopicTrait
 import io.grpc.netty.shaded.io.grpc.netty.{GrpcSslContexts, NettyChannelBuilder}
 import io.grpc.netty.shaded.io.netty.handler.ssl.SslContextBuilder
 import net.liftweb.common.{Box, Empty}
-import net.liftweb.json.Serialization.write
+import org.json4s.native.Serialization.write
 
 import java.io.File
 import java.util.concurrent.TimeUnit

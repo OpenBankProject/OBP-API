@@ -5,10 +5,11 @@ import com.openbankproject.commons.model.{JsonFieldReName, ListResult}
 import com.openbankproject.commons.util.Functions.Implicits._
 import com.openbankproject.commons.util.Functions.Memo
 import net.liftweb.common.Box
-import net.liftweb.json
-import net.liftweb.json.JsonAST.JValue
-import net.liftweb.json.JsonDSL._
-import net.liftweb.json._
+import com.openbankproject.commons.util.json
+import org.json4s.JsonAST.JValue
+import org.json4s.JsonDSL._
+import org.json4s._
+import com.openbankproject.commons.util.JsonAliases._
 import net.liftweb.mapper.Mapper
 import net.liftweb.util.StringHelpers
 
@@ -19,7 +20,7 @@ import scala.reflect.runtime.{universe => ru}
 object JsonSerializers {
 
   object CustomFormats extends DefaultFormats {
-    private val defaultFormats =  net.liftweb.json.DefaultFormats
+    private val defaultFormats =  org.json4s.DefaultFormats
     val losslessDate = defaultFormats.losslessDate
     val UTC = defaultFormats.UTC
 
@@ -28,11 +29,14 @@ object JsonSerializers {
      * Here override it to: when execute fail, try to call constructor.getParamters
      */
     override val parameterNameReader: ParameterNameReader = new ParameterNameReader {
-      override def lookupParameterNames(constructor: Constructor[_]): Traversable[String] =  try {
-          defaultFormats.parameterNameReader.lookupParameterNames(constructor)
-        } catch {
-          case _ : Throwable => constructor.getParameters.map(_.getName)
-        }
+      override def lookupParameterNames(constructor: org.json4s.reflect.Executable): Seq[String] = try {
+        defaultFormats.parameterNameReader.lookupParameterNames(constructor)
+      } catch {
+        case _: Throwable =>
+          val underlying: java.lang.reflect.Executable =
+            if (constructor.constructor != null) constructor.constructor else constructor.method
+          underlying.getParameters.map(_.getName).toIndexedSeq
+      }
     }
   }
 
@@ -96,9 +100,14 @@ object EnumValueSerializer extends Serializer[EnumValue] {
  */
 object AbstractTypeDeserializer extends ObpDeSerializer[AnyRef] {
 
+  private val enumValueClass = classOf[EnumValue]
+
   override def deserialize(implicit format: Formats): PartialFunction[(TypeInfo, JValue), AnyRef] = {
-    case (TypeInfo(clazz, _), json) if Modifier.isAbstract(clazz.getModifiers) && ReflectUtils.isObpClass(clazz) =>
-      val Some(commonClass) = ReflectUtils.findImplementedClass(clazz)
+    case (TypeInfo(clazz, _), json)
+        if Modifier.isAbstract(clazz.getModifiers) && ReflectUtils.isObpClass(clazz)
+        && !enumValueClass.isAssignableFrom(clazz)
+        && ReflectUtils.findImplementedClass(clazz).isDefined =>
+      val commonClass = ReflectUtils.findImplementedClass(clazz).get
 
       implicit val manifest = ManifestFactory.classType[AnyRef](commonClass)
       json.extract[AnyRef](format, manifest)
@@ -175,7 +184,7 @@ object StringDeserializer extends ObpDeSerializer[String] {
   private val IntervalClass = classOf[String]
 
   override def deserialize(implicit format: Formats): PartialFunction[(TypeInfo, JValue), String] = {
-    case (TypeInfo(IntervalClass, _), json) if !json.isInstanceOf[JString] =>
+    case (TypeInfo(IntervalClass, _), json) if !json.isInstanceOf[JString] && json != JNull && json != JNothing =>
       compactRender(json)
   }
 }
@@ -378,7 +387,7 @@ object JNothingSerializer extends ObpDeSerializer[Any] {
     }
 
   /**
-   * absolutely simulate net.liftweb.json.Meta.Constructor#bestMatching,
+   * absolutely simulate org.json4s.Meta.Constructor#bestMatching,
    * to find beast matching constructor parameters
    * @param constructors
    * @param names json object Field Names
@@ -439,9 +448,26 @@ object ListResultSerializer extends Serializer[ListResult[_]] {
   private val clazz = classOf[ListResult[_]]
 
   def deserialize(implicit format: Formats): PartialFunction[(TypeInfo, JValue), ListResult[_]] = {
-    case (TypeInfo(entityType, Some(parameterizedType)), json) if clazz.isAssignableFrom(entityType) => json match {
+    case (typeInfoFull @ TypeInfo(entityType, Some(_)), json) if clazz.isAssignableFrom(entityType) => json match {
       case JObject(singleField::Nil) => {
-        val resultsItemType = parameterizedType.getActualTypeArguments.apply(1)
+        // json4s passes a package-private SourceType subclass carrying the full ScalaType.
+        // Access it via Java reflection to recover non-erased type args without a compile-time
+        // dependency on the package-private SourceType trait.
+        val resultsItemType: Class[_] = {
+          import scala.util.Try
+          def invoke(obj: AnyRef, m: String): AnyRef = obj.getClass.getMethod(m).invoke(obj)
+          Try {
+            val scalaType = invoke(typeInfoFull, "scalaType")
+            val listSt    = invoke(scalaType, "typeArgs").asInstanceOf[Seq[_]].head.asInstanceOf[AnyRef]
+            val itemSt    = invoke(listSt,    "typeArgs").asInstanceOf[Seq[_]].head.asInstanceOf[AnyRef]
+            invoke(itemSt, "erasure").asInstanceOf[Class[_]]
+          }.getOrElse(
+            throw new MappingException(
+              "when do deserialize to type ListResult, should supply exactly type parameter, " +
+              "should not give wildcard like this: jValue.extract[ListResult[List[_]]]"
+            )
+          )
+        }
         assume(resultsItemType != classOf[Object], "when do deserialize to type ListResult, should supply exactly type parameter, should not give wildcard like this: jValue.extract[ListResult[List[_]]]")
 
         val name = singleField.name

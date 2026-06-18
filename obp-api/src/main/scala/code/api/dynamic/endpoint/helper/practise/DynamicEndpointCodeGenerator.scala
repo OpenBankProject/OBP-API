@@ -1,12 +1,13 @@
 package code.api.dynamic.endpoint.helper.practise
 
+import org.json4s._
 import code.api.util.APIUtil.ResourceDoc
 import code.api.v4_0_0.ResourceDocFragment
 import com.google.common.base.CaseFormat
 import com.openbankproject.commons.util.JsonUtils
-import net.liftweb.json
-import net.liftweb.json.JsonAST.{JBool, JDouble, JInt, JString}
-import net.liftweb.json.{JArray, JObject, JValue}
+import com.openbankproject.commons.util.json
+import org.json4s.JsonAST.{JBool, JDouble, JInt, JString}
+import org.json4s.{JArray, JObject, JValue}
 import org.apache.commons.lang3.{ArrayUtils, StringUtils}
 
 object DynamicEndpointCodeGenerator {

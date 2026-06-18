@@ -1,5 +1,6 @@
 package code.api.v5_1_0
 
+import org.json4s._
 import cats.data.{Kleisli, OptionT}
 import cats.effect._
 import code.api.Constant
@@ -26,6 +27,7 @@ import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{
 }
 import code.api.v2_1_0.{ConsumerRedirectUrlJSON, JSONFactory210}
 import code.api.v3_0_0.JSONFactory300
+import code.api.v3_0_0.{AggregateMetricJSON, JSONFactory300}
 import code.api.v3_0_0.JSONFactory300.createAggregateMetricJson
 import code.api.v3_1_0.{ConsentChallengeJsonV310, ConsentJsonV310, JSONFactory310, PostConsentBodyCommonJson, PostConsentEmailJsonV310, PostConsentEntitlementJsonV310, PostConsentImplicitJsonV310, PostConsentPhoneJsonV310, PostConsentViewJsonV310}
 import code.api.v4_0_0.{PutConsentStatusJsonV400, PutConsentUserJsonV400}
@@ -63,9 +65,10 @@ import com.openbankproject.commons.model.{
 import com.openbankproject.commons.model.enums.{AtmAttributeType, ConsentType, RegulatedEntityAttributeType, StrongCustomerAuthentication, TransactionRequestStatus, UserAttributeType}
 import com.openbankproject.commons.util.{ApiVersion, ApiVersionStatus, ScannedApiVersion}
 import net.liftweb.common.{Box, Empty, Full}
-import net.liftweb.json
-import net.liftweb.json.JsonAST.prettyRender
-import net.liftweb.json.{Extraction, Formats, compactRender}
+import com.openbankproject.commons.util.json
+import com.openbankproject.commons.util.JsonAliases.prettyRender
+import org.json4s.{Extraction, Formats}
+import com.openbankproject.commons.util.JsonAliases.compactRender
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.{Helpers, Props, StringHelpers}
@@ -227,7 +230,8 @@ object Http4s510 {
             (obpQueryParams, _) <- createQueriesByHttpParamsFuture(httpParams, Some(cc))
             aggregateMetrics <- APIMetrics.apiMetrics.vend.getAllAggregateMetricsFuture(obpQueryParams, true)
               .map(x => unboxFullOrFail(x, Some(cc), GetAggregateMetricsError))
-          } yield createAggregateMetricJson(aggregateMetrics)
+          } yield createAggregateMetricJson(aggregateMetrics).headOption
+              .getOrElse(AggregateMetricJSON(0, 0.0, 0.0, 0.0))
         }
     }
 
@@ -316,7 +320,7 @@ object Http4s510 {
           val bankId = BankId(bankIdStr)
           for {
             atmJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ${classOf[AtmJsonV510]}", 400, Some(cc)) {
-              val atm = net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[PostAtmJsonV510]
+              val atm = com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[PostAtmJsonV510]
               atm.id.get  // require id
               atm
             }
@@ -356,7 +360,7 @@ object Http4s510 {
           for {
             (_, _) <- NewStyle.function.getAtm(bankId, atmId, Some(cc))
             atmJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ${classOf[AtmJsonV510]}", 400, Some(cc)) {
-              net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[AtmJsonV510]
+              com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[AtmJsonV510]
             }
             _ <- Helper.booleanToFuture(s"$InvalidJsonValue BANK_ID has to be the same in the URL and Body", 400, Some(cc)) {
               atmJson.bank_id == bankId.value
@@ -598,7 +602,7 @@ object Http4s510 {
           for {
             user <- Future.successful(cc.user.openOrThrowException(AuthenticatedUserIsRequired))
             tup <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
-              val js = net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[CreateConsumerRequestJsonV510]
+              val js = com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[CreateConsumerRequestJsonV510]
               val appType = if (js.app_type.equals("Confidential")) AppType.valueOf("Confidential") else AppType.valueOf("Public")
               (js, appType)
             }
@@ -951,9 +955,13 @@ object Http4s510 {
             (_, _) <- APIUtil.anonymousAccess(cc)
           } yield {
             val providerPropBox = APIUtil.getPropsValue("oauth2.oidc_provider")
+            // "google" is an intentional addition over the Lift original (obp-oidc/keycloak only):
+            // token validation for Google ID tokens already exists in OAuth2Login.Google,
+            // this just lets oauth2.oidc_provider advertise its well-known URL too.
             val availableProviders = Map(
               "obp-oidc" -> WellKnownUriJsonV510("obp-oidc", code.api.OAuth2Login.OBPOIDC.wellKnownOpenidConfiguration.toURL.toString),
-              "keycloak" -> WellKnownUriJsonV510("keycloak", code.api.OAuth2Login.Keycloak.wellKnownOpenidConfiguration.toURL.toString)
+              "keycloak" -> WellKnownUriJsonV510("keycloak", code.api.OAuth2Login.Keycloak.wellKnownOpenidConfiguration.toURL.toString),
+              "google" -> WellKnownUriJsonV510("google", code.api.OAuth2Login.Google.wellKnownOpenidConfiguration.toURL.toString)
             )
             val providersToShow: List[WellKnownUriJsonV510] = providerPropBox match {
               case Empty => Nil
@@ -1039,7 +1047,7 @@ object Http4s510 {
       case req @ POST -> `prefixPath` / "regulated-entities" =>
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
-          val parsedBody = net.liftweb.json.parse(cc.httpBody.getOrElse(""))
+          val parsedBody = com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse(""))
           val failMsg = s"$InvalidJsonFormat The Json body should be the $RegulatedEntityPostJsonV510 "
           for {
             postedData <- NewStyle.function.tryons(failMsg, 400, Some(cc)) {
@@ -1340,7 +1348,7 @@ object Http4s510 {
           for {
             (_, _) <- NewStyle.function.getAtm(bankId, atmId, Some(cc))
             postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $AtmAttributeJsonV510 ", 400, Some(cc)) {
-              net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[AtmAttributeJsonV510]
+              com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[AtmAttributeJsonV510]
             }
             attrType <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
@@ -1440,7 +1448,7 @@ object Http4s510 {
           for {
             (_, _) <- NewStyle.function.getAtm(bankId, atmId, Some(cc))
             postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $AtmAttributeJsonV510 ", 400, Some(cc)) {
-              net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[AtmAttributeJsonV510]
+              com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[AtmAttributeJsonV510]
             }
             attrType <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
@@ -1513,7 +1521,7 @@ object Http4s510 {
           val bankId = BankId(bankIdStr)
           for {
             putData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostAgentJsonV510 ", 400, Some(cc)) {
-              net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[PostAgentJsonV510]
+              com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[PostAgentJsonV510]
             }
             (available, _) <- NewStyle.function.checkAgentNumberAvailable(bankId, putData.agent_number, Some(cc))
             _ <- Helper.booleanToFuture(s"$AgentNumberAlreadyExists Current agent_number(${putData.agent_number}) and Current bank_id(${bankId.value})", cc = Some(cc)) { available }
@@ -1548,7 +1556,7 @@ object Http4s510 {
           implicit val cc: code.api.util.CallContext = req.callContext
           for {
             postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostAgentJsonV510 ", 400, Some(cc)) {
-              net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[PutAgentJsonV510]
+              com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[PutAgentJsonV510]
             }
             (_, _) <- NewStyle.function.getAgentByAgentId(agentId, Some(cc))
             (links, _) <- NewStyle.function.getAgentAccountLinksByAgentId(agentId, Some(cc))
@@ -1644,7 +1652,7 @@ object Http4s510 {
           implicit val cc: code.api.util.CallContext = req.callContext
           for {
             postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $RegulatedEntityAttributeRequestJsonV510 ", 400, Some(cc)) {
-              net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[RegulatedEntityAttributeRequestJsonV510]
+              com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[RegulatedEntityAttributeRequestJsonV510]
             }
             attrType <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
@@ -1776,7 +1784,7 @@ object Http4s510 {
           implicit val cc: code.api.util.CallContext = req.callContext
           for {
             postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $RegulatedEntityAttributeRequestJsonV510 ", 400, Some(cc)) {
-              net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[RegulatedEntityAttributeRequestJsonV510]
+              com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[RegulatedEntityAttributeRequestJsonV510]
             }
             attrType <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
@@ -1850,7 +1858,7 @@ object Http4s510 {
           implicit val cc: code.api.util.CallContext = req.callContext
           for {
             putJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ${classOf[code.api.v4_0_0.PostApiCollectionJson400].getSimpleName}", 400, Some(cc)) {
-              net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[code.api.v4_0_0.PostApiCollectionJson400]
+              com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[code.api.v4_0_0.PostApiCollectionJson400]
             }
             (_, _) <- NewStyle.function.getApiCollectionById(apiCollectionId, Some(cc))
             (apiCollection, _) <- NewStyle.function.updateApiCollection(
@@ -2068,7 +2076,7 @@ object Http4s510 {
           for {
             (user, _) <- NewStyle.function.getUserByUserId(userId, Some(cc))
             postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $UserAttributeJsonV510 ", 400, Some(cc)) {
-              net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[UserAttributeJsonV510]
+              com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[UserAttributeJsonV510]
             }
             attrType <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The `Type` field can only accept the following field: " +
@@ -2569,7 +2577,7 @@ object Http4s510 {
           for {
             (bank, _) <- NewStyle.function.getBank(bankId, Some(cc))
             postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostCustomerLegalNameJsonV510 ", 400, Some(cc)) {
-              net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[PostCustomerLegalNameJsonV510]
+              com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[PostCustomerLegalNameJsonV510]
             }
             (customer, _) <- NewStyle.function.getCustomersByCustomerLegalName(bank.bankId, postedData.legal_name, Some(cc))
           } yield JSONFactory300.createCustomersJson(customer)
@@ -2790,7 +2798,7 @@ object Http4s510 {
               case false => NewStyle.function.hasEntitlement("", user.userId, ApiRole.canUpdateConsumerRedirectUrl, Some(cc))
             }
             postJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
-              net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[ConsumerRedirectUrlJSON]
+              com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[ConsumerRedirectUrlJSON]
             }
             consumer <- NewStyle.function.getConsumerByConsumerId(consumerId, Some(cc))
             _ <- Helper.booleanToFuture(UserNoPermissionUpdateConsumer, 400, Some(cc)) {
@@ -2833,7 +2841,7 @@ object Http4s510 {
           implicit val cc: code.api.util.CallContext = req.callContext
           for {
             postJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
-              net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[ConsumerLogoUrlJson]
+              com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[ConsumerLogoUrlJson]
             }
             consumer <- NewStyle.function.getConsumerByConsumerId(consumerId, Some(cc))
             updatedConsumer <- NewStyle.function.updateConsumer(
@@ -2870,7 +2878,7 @@ object Http4s510 {
           implicit val cc: code.api.util.CallContext = req.callContext
           for {
             postJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
-              net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[ConsumerCertificateJson]
+              com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[ConsumerCertificateJson]
             }
             consumer <- NewStyle.function.getConsumerByConsumerId(consumerId, Some(cc))
             updatedConsumer <- NewStyle.function.updateConsumer(
@@ -2907,7 +2915,7 @@ object Http4s510 {
           implicit val cc: code.api.util.CallContext = req.callContext
           for {
             postJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
-              net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[ConsumerNameJson]
+              com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[ConsumerNameJson]
             }
             consumer <- NewStyle.function.getConsumerByConsumerId(consumerId, Some(cc))
             updatedConsumer <- NewStyle.function.updateConsumer(
@@ -2975,7 +2983,7 @@ object Http4s510 {
           for {
             user <- Future.successful(cc.user.openOrThrowException(AuthenticatedUserIsRequired))
             tup <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
-              val js = net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[CreateConsumerRequestJsonV510]
+              val js = com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[CreateConsumerRequestJsonV510]
               val appType = if (js.app_type.equals("Confidential")) AppType.valueOf("Confidential") else AppType.valueOf("Public")
               (js, appType)
             }
@@ -3021,14 +3029,14 @@ object Http4s510 {
           implicit val cc: code.api.util.CallContext = req.callContext
           for {
             postedJwt <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
-              net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[ConsumerJwtPostJsonV510]
+              com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[ConsumerJwtPostJsonV510]
             }
             pem = APIUtil.`getPSD2-CERT`(cc.requestHeaders)
             _ <- Helper.booleanToFuture(PostJsonIsNotSigned, 400, Some(cc)) {
               JwtUtil.verifyJwt(postedJwt.jwt, pem.getOrElse(""))
             }
             postedJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
-              net.liftweb.json.parse(JwtUtil.getSignedPayloadAsJson(postedJwt.jwt).getOrElse("{}")).extract[ConsumerPostJsonV510]
+              com.openbankproject.commons.util.JsonAliases.parse(JwtUtil.getSignedPayloadAsJson(postedJwt.jwt).getOrElse("{}")).extract[ConsumerPostJsonV510]
             }
             certificateInfo: CertificateInfoJsonV510 <- Future(X509.getCertificateInfo(pem))
               .map(unboxFullOrFail(_, Some(cc), X509GeneralError))
@@ -3161,7 +3169,7 @@ object Http4s510 {
           for {
             user <- Future.successful(cc.user.openOrThrowException(AuthenticatedUserIsRequired))
             postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostAccountAccessJsonV510 ", 400, Some(cc)) {
-              net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[PostAccountAccessJsonV510]
+              com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[PostAccountAccessJsonV510]
             }
             targetViewId = ViewId(postJson.view_id)
             msg = getUserLacksGrantPermissionErrorMessage(viewId, targetViewId)
@@ -3234,7 +3242,7 @@ object Http4s510 {
           for {
             user <- Future.successful(cc.user.openOrThrowException(AuthenticatedUserIsRequired))
             postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ${classOf[code.api.v4_0_0.PostAccountAccessJsonV400].getSimpleName} ", 400, Some(cc)) {
-              net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[PostAccountAccessJsonV510]
+              com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[PostAccountAccessJsonV510]
             }
             targetViewId = ViewId(postJson.view_id)
             msg = getUserLacksRevokePermissionErrorMessage(viewId, targetViewId)
@@ -3281,7 +3289,7 @@ object Http4s510 {
           for {
             user <- Future.successful(cc.user.openOrThrowException(AuthenticatedUserIsRequired))
             postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostCreateUserAccountAccessJsonV510 ", 400, Some(cc)) {
-              net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[PostCreateUserAccountAccessJsonV510]
+              com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[PostCreateUserAccountAccessJsonV510]
             }
             _ <- Helper.booleanToFuture(s"$InvalidUserProvider The user.provider must be start with 'dauth.'", cc = Some(cc)) {
               postJson.provider.startsWith("dauth.")
@@ -3370,7 +3378,7 @@ object Http4s510 {
           for {
             user <- Future.successful(cc.user.openOrThrowException(AuthenticatedUserIsRequired))
             postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostTransactionRequestStatusJsonV510", 400, Some(cc)) {
-              net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[PostTransactionRequestStatusJsonV510]
+              com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[PostTransactionRequestStatusJsonV510]
             }
             (existing, _) <- NewStyle.function.getTransactionRequestImpl(requestId, Some(cc))
             _ <- NewStyle.function.hasAtLeastOneEntitlement(existing.from.bank_id, user.userId,
@@ -3502,7 +3510,7 @@ object Http4s510 {
           val bankId = BankId(bankIdStr); val accountId = AccountId(accountIdStr); val viewId = ViewId(viewIdStr); val counterpartyId = CounterpartyId(counterpartyIdStr)
           for {
             postLimit <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ${classOf[PostCounterpartyLimitV510]}", 400, Some(cc)) {
-              net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[PostCounterpartyLimitV510]
+              com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[PostCounterpartyLimitV510]
             }
             _ <- Helper.booleanToFuture(s"$InvalidISOCurrencyCode Current input is: '${postLimit.currency}'", cc = Some(cc)) {
               isValidCurrencyISOCode(postLimit.currency)
@@ -3560,7 +3568,7 @@ object Http4s510 {
           val bankId = BankId(bankIdStr); val accountId = AccountId(accountIdStr); val viewId = ViewId(viewIdStr); val counterpartyId = CounterpartyId(counterpartyIdStr)
           for {
             postLimit <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ${classOf[PostCounterpartyLimitV510]}", 400, Some(cc)) {
-              net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[PostCounterpartyLimitV510]
+              com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[PostCounterpartyLimitV510]
             }
             _ <- Helper.booleanToFuture(s"$InvalidISOCurrencyCode Current input is: '${postLimit.currency}'", cc = Some(cc)) {
               isValidCurrencyISOCode(postLimit.currency)
@@ -3730,7 +3738,7 @@ object Http4s510 {
           val bankId = BankId(bankIdStr); val accountId = AccountId(accountIdStr); val viewId = ViewId(viewIdStr)
           for {
             createJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ${classOf[com.openbankproject.commons.model.CreateViewJson]}", 400, Some(cc)) {
-              net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[CreateCustomViewJson]
+              com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[CreateCustomViewJson]
             }
             _ <- Helper.booleanToFuture(InvalidCustomViewFormat + s"Current view_name (${createJson.name})", cc = Some(cc)) {
               isValidCustomViewName(createJson.name)
@@ -3781,7 +3789,7 @@ object Http4s510 {
           val bankId = BankId(bankIdStr); val accountId = AccountId(accountIdStr); val viewId = ViewId(viewIdStr); val targetViewId = ViewId(targetViewIdStr)
           for {
             updateJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ${classOf[UpdateCustomViewJson]}", 400, Some(cc)) {
-              net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[UpdateCustomViewJson]
+              com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[UpdateCustomViewJson]
             }
             _ <- Helper.booleanToFuture(InvalidCustomViewFormat + s"Current TARGET_VIEW_ID (${targetViewId})", cc = Some(cc)) {
               isValidCustomViewId(targetViewId.value)
@@ -3908,7 +3916,7 @@ object Http4s510 {
           val bankId = BankId(bankIdStr); val accountId = AccountId(accountIdStr)
           for {
             postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $BankAccountBalanceRequestJsonV510 ", 400, Some(cc)) {
-              net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[BankAccountBalanceRequestJsonV510]
+              com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[BankAccountBalanceRequestJsonV510]
             }
             balanceAmount <- NewStyle.function.tryons(s"$InvalidNumber Current balance_amount is  ${postedData.balance_amount}", 400, Some(cc)) {
               BigDecimal(postedData.balance_amount)
@@ -3972,7 +3980,7 @@ object Http4s510 {
           val bankId = BankId(bankIdStr); val accountId = AccountId(accountIdStr); val balanceId = BalanceId(balanceIdStr)
           for {
             postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the BankAccountBalanceRequestJsonV510 ", 400, Some(cc)) {
-              net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[BankAccountBalanceRequestJsonV510]
+              com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[BankAccountBalanceRequestJsonV510]
             }
             balanceAmount <- NewStyle.function.tryons(s"$InvalidNumber Current balance_amount is  ${postedData.balance_amount}", 400, Some(cc)) {
               BigDecimal(postedData.balance_amount)
@@ -4040,7 +4048,7 @@ object Http4s510 {
           val viewId = ViewId(viewIdStr)
           for {
             createJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $CreateViewPermissionJson ", 400, Some(cc)) {
-              net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[CreateViewPermissionJson]
+              com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[CreateViewPermissionJson]
             }
             _ <- Helper.booleanToFuture(s"$InvalidViewPermissionName The current value is ${createJson.permission_name}", 400, Some(cc)) {
               ALL_VIEW_PERMISSION_NAMES.exists(_ == createJson.permission_name)
@@ -4096,7 +4104,7 @@ object Http4s510 {
           implicit val cc: code.api.util.CallContext = req.callContext
           for {
             consentJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PutConsentStatusJsonV400 ", 400, Some(cc)) {
-              net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[PutConsentStatusJsonV400]
+              com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[PutConsentStatusJsonV400]
             }
             _ <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId))
               .map(unboxFullOrFail(_, Some(cc), s"$ConsentNotFound ($consentId)", 404))
@@ -4142,7 +4150,7 @@ object Http4s510 {
             consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId))
               .map(unboxFullOrFail(_, Some(cc), s"$ConsentNotFound ($consentId)", 404))
             consentJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PutConsentPayloadJsonV510 ", 400, Some(cc)) {
-              net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[PutConsentPayloadJsonV510]
+              com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[PutConsentPayloadJsonV510]
             }
             _ <- Helper.booleanToFuture(s"$InvalidJsonFormat The Json body should be the $PutConsentPayloadJsonV510 ", 400, Some(cc)) {
               !(consentJson.access.accounts.isEmpty && consentJson.access.balances.isEmpty && consentJson.access.transactions.isEmpty)
@@ -4198,7 +4206,7 @@ object Http4s510 {
             consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId))
               .map(unboxFullOrFail(_, Some(cc), s"$ConsentNotFound ($consentId)", 404))
             consentJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PutConsentUserJsonV400 ", 400, Some(cc)) {
-              net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[PutConsentUserJsonV400]
+              com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[PutConsentUserJsonV400]
             }
             user <- Users.users.vend.getUserByUserIdFuture(consentJson.user_id)
               .map(x => unboxFullOrFail(x, Some(cc), s"$UserNotFoundByUserId Current UserId(${consentJson.user_id})"))
@@ -4673,7 +4681,7 @@ object Http4s510 {
                    StrongCustomerAuthentication.IMPLICIT.toString()).contains(scaMethod)
             }
             consentJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostConsentBodyCommonJson ", 400, callContextOpt) {
-              net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[PostConsentBodyCommonJson]
+              com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[PostConsentBodyCommonJson]
             }
             maxTimeToLive = APIUtil.getPropsAsIntValue(nameOfProperty = "consents.max_time_to_live", defaultValue = Constant.DEFAULT_CONSENT_TTL)
             _ <- Helper.booleanToFuture(s"$ConsentMaxTTL ($maxTimeToLive)", cc = callContextOpt) {
@@ -4733,7 +4741,7 @@ object Http4s510 {
                 case v if v == StrongCustomerAuthentication.EMAIL.toString =>
                   for {
                     postEmail <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostConsentEmailJsonV310", 400, callContextOpt) {
-                      net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[PostConsentEmailJsonV310]
+                      com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[PostConsentEmailJsonV310]
                     }
                     _ <- NewStyle.function.sendCustomerNotification(
                       StrongCustomerAuthentication.EMAIL, postEmail.email,
@@ -4742,7 +4750,7 @@ object Http4s510 {
                 case v if v == StrongCustomerAuthentication.SMS.toString =>
                   for {
                     postPhone <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostConsentPhoneJsonV310", 400, callContextOpt) {
-                      net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[PostConsentPhoneJsonV310]
+                      com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[PostConsentPhoneJsonV310]
                     }
                     _ <- NewStyle.function.sendCustomerNotification(
                       StrongCustomerAuthentication.SMS, postPhone.phone_number, None, challengeText, callContextOpt)
@@ -4840,7 +4848,7 @@ object Http4s510 {
         EndpointHelpers.executeFutureCreated(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
           val rawBody = cc.httpBody.getOrElse("")
-          val parsedBody = net.liftweb.json.parse(rawBody)
+          val parsedBody = com.openbankproject.commons.util.JsonAliases.parse(rawBody)
           for {
             (_, callContextOpt) <- APIUtil.applicationAccess(cc)
             _ <- APIUtil.passesPsd2Aisp(callContextOpt)
@@ -4875,7 +4883,7 @@ object Http4s510 {
                 postConsentRequestJsonV510.from_account.branch_routing.scheme,
                 postConsentRequestJsonV510.from_account.branch_routing.address)
             )
-            consentTypeJ = net.liftweb.json.parse(s"""{"consent_type": "${ConsentType.VRP}"}""")
+            consentTypeJ = com.openbankproject.commons.util.JsonAliases.parse(s"""{"consent_type": "${ConsentType.VRP}"}""")
             (_, _) <- NewStyle.function.getBankAccountByRoutings(fromBankAccountRoutings, callContextOpt)
             postConsentRequestJsonTweaked = postConsentRequestJsonV510.copy(
               from_account = fromAccountTweaked, to_account = toAccountTweaked)

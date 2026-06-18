@@ -25,6 +25,7 @@ TESOBE (http://www.tesobe.com/)
   */
 package code.api.v5_1_0
 
+import org.json4s._
 import code.api.RequestHeader
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.{accountRoutingJsonV121, bankRoutingJsonV121, branchRoutingJsonV141, postCounterpartyLimitV510}
@@ -49,7 +50,7 @@ import code.setup.PropsReset
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.{AmountOfMoneyJsonV121, ErrorMessage}
 import com.openbankproject.commons.util.ApiVersion
-import net.liftweb.json.Serialization.write
+import org.json4s.native.Serialization.write
 import org.scalatest.Tag
 
 import scala.language.postfixOps

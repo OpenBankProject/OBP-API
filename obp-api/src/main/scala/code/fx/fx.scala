@@ -7,7 +7,8 @@ import code.bankconnectors.LocalMappedConnectorInternal
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model.BankId
 import com.tesobe.CacheKeyFromArguments
-import net.liftweb.json._
+import org.json4s._
+import com.openbankproject.commons.util.JsonAliases._
 
 import scala.concurrent.duration._
 

@@ -18,8 +18,8 @@
 //import com.openbankproject.commons.ExecutionContext.Implicits.global
 //import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId}
 //import net.liftweb.common.Full
-//import net.liftweb.json
-//import net.liftweb.json._
+//import com.openbankproject.commons.util.json
+//import org.json4s._
 //
 //import scala.collection.mutable.ArrayBuffer
 //import scala.concurrent.Future

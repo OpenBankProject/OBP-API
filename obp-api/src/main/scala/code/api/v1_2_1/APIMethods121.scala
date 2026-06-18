@@ -29,8 +29,8 @@ object APIMethods121 {
 //import com.openbankproject.commons.util.ApiVersion
 //import com.tesobe.CacheKeyFromArguments
 //import net.liftweb.common._
-//import net.liftweb.json.Extraction
-//import net.liftweb.json.JsonAST.JValue
+//import org.json4s.Extraction
+//import org.json4s.JsonAST.JValue
 //import net.liftweb.util.Helpers._
 //
 //import java.net.URL

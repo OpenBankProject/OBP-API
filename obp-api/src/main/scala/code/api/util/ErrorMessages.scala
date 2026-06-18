@@ -1,9 +1,10 @@
 package code.api.util
 
+import org.json4s._
 import code.api.APIFailureNewStyle
 import code.api.util.ApiRole.{CanCreateAnyTransactionRequest, canCreateEntitlementAtAnyBank, canCreateEntitlementAtOneBank}
 import com.openbankproject.commons.model.enums.TransactionRequestStatus._
-import net.liftweb.json.{Extraction, JsonAST}
+import org.json4s.{Extraction, JsonAST}
 
 import java.util.Objects
 import java.util.regex.Pattern
@@ -20,7 +21,7 @@ object ErrorMessages {
   // 7) Since the existence of "OBP-..." in a message is used to determine if we should display to a user if display_internal_errors=false, do *not* concatenate internal or core banking system error messages to these strings.
 
 
-  def apiFailureToString(code: Int, message: String, context: Option[CallContext]): String = JsonAST.compactRender(
+  def apiFailureToString(code: Int, message: String, context: Option[CallContext]): String = com.openbankproject.commons.util.JsonAliases.compactRender(
     Extraction.decompose(
       APIFailureNewStyle(failMsg = message, failCode = code, context.map(_.toLight))
     )
@@ -294,6 +295,8 @@ object ErrorMessages {
   val Oauth2IsNotRecognized = "OBP-20214: OAuth2 Access Token is not recognised at this instance."
   val Oauth2ValidateAccessTokenError = "OBP-20215: There was a problem validating the OAuth2 access token. "
   val OneTimePasswordInvalid = "OBP-20216: The One Time Password (OTP) is invalid. "
+  val Oauth2TokenAudienceNotAllowed = "OBP-20217: The Bearer token was not issued for this API instance. Audience (aud) claim is not allowed."
+  val Oauth2ProviderNotEnabled = "OBP-20218: The token issuer is not an enabled OAuth2 provider at this API instance. The provider is not listed in the oauth2.oidc_provider props."
 
   val AuthorizationHeaderAmbiguity = "OBP-20250: Request headers used for authorization are ambiguous. "
   val MissingMandatoryBerlinGroupHeaders= "OBP-20251: Missing mandatory request headers. "
@@ -508,6 +511,16 @@ object ErrorMessages {
   val BulkPaymentRoutingSchemeWrongCategory = "OBP-30542: A payment's routing_scheme is not an ACCOUNT-category scheme — only ACCOUNT schemes are valid for BULK destinations."
   val BulkPaymentAddressMismatch = "OBP-30543: A payment's address does not match the address_pattern of its routing_scheme."
   val BulkPaymentTransactionRequestError = "OBP-30544: Could not create BULK transaction request."
+
+  // UTILITY transaction-request (OBP-30546 .. OBP-30549)
+  // Polymorphic bill/utility payment (prepaid utility meter, bill control number, ...).
+  // The destination is identified by a QualifiedIdentifier whose `scheme` must be a
+  // registered routing scheme of category UTILITY or BILL.
+  val UtilityIdentifierTypeWrongCategory = "OBP-30546: identifier scheme category is not valid for a UTILITY payment. Allowed categories are: UTILITY, BILL."
+  val UtilityInvalidIdentifier = "OBP-30547: Invalid identifier value — does not match the address_pattern of the routing scheme (e.g. TZ.UTILITY_METER)."
+  val UtilityDestinationNotFound = "OBP-30548: No biller/utility account is registered for the supplied identifier. In mapped mode the destination must have an account routing for the identifier scheme (e.g. TZ.UTILITY_METER)."
+  val UtilityPaymentError = "OBP-30549: Could not create UTILITY transaction request."
+  val UtilityTransactionRequestNotFound = "OBP-30550: No UTILITY transaction request found for the supplied UTILITY_TRANSACTION_REQUEST_ID."
 
   // Implicit OBP-family routing schemes (OBP-30545)
   // The schemes "OBP" / "OBP_ACCOUNT_ID" / "OBP_BANK_ID" are reserved self-identifiers —

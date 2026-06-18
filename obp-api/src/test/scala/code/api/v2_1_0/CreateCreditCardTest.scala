@@ -1,12 +1,13 @@
 package code.api.v2_1_0
 
+import org.json4s._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.postPhysicalCardJSON
 import code.api.util.APIUtil.OAuth._
 import code.api.util.{APIUtil, ApiRole}
 import code.api.util.ApiRole.CanCreateCardsForBank
 import code.api.v1_3_0.PhysicalCardJSON
 import code.setup.DefaultUsers
-import net.liftweb.json.Serialization.write
+import org.json4s.native.Serialization.write
 import code.api.util.ErrorMessages._
 
 class CreateCreditCardTest extends V210ServerSetup with DefaultUsers {

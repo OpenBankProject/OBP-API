@@ -1,5 +1,6 @@
 package code.api.berlin.group.v1_3
 
+import org.json4s._
 import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.ErrorMessagesBG
 import com.openbankproject.commons.model.ErrorMessage
 import code.api.berlin.group.v1_3.{Http4sBGv13PIIS => APIMethods_ConfirmationOfFundsServicePIISApi}
@@ -9,8 +10,8 @@ import code.model.dataAccess.{BankAccountRouting, MappedBankAccount}
 import code.setup.{APIResponse, DefaultUsers}
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.enums.AccountRoutingScheme
-import net.liftweb.json
-import net.liftweb.json.Serialization.write
+import com.openbankproject.commons.util.json
+import org.json4s.native.Serialization.write
 import net.liftweb.mapper.By
 import org.scalatest.Tag
 

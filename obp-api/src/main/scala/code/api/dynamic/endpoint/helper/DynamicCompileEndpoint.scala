@@ -1,5 +1,6 @@
 package code.api.dynamic.endpoint.helper
 
+import org.json4s._
 import scala.language.implicitConversions
 import cats.effect.IO
 import code.api.util.APIUtil.{Http4sEndpointIO, OBPReturnType}
@@ -47,8 +48,9 @@ trait DynamicCompileEndpoint {
 }
 
 object DynamicCompileEndpoint {
-  import net.liftweb.json.{Extraction, prettyRender}
-  import net.liftweb.json.JsonDSL._
+  import org.json4s.Extraction
+  import com.openbankproject.commons.util.JsonAliases.prettyRender
+  import org.json4s.JsonDSL._
   import org.http4s.Status
 
   /**

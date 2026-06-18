@@ -1,5 +1,6 @@
 package code.api.util
 
+import org.json4s._
 import code.accountholders.AccountHolders
 import code.api.berlin.group.ConstantsBG
 import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{ConsentAccessJson, PostConsentJson}
@@ -29,8 +30,9 @@ import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.util.ApiStandards
 import net.liftweb.common._
-import net.liftweb.json.JsonParser.ParseException
-import net.liftweb.json.{Extraction, MappingException, compactRender, parse}
+import org.json4s.ParserUtil.ParseException
+import org.json4s.{Extraction, MappingException}
+import com.openbankproject.commons.util.JsonAliases.{compactRender, parse}
 import net.liftweb.mapper.By
 import net.liftweb.util.Props
 import sh.ory.hydra.model.OAuth2TokenIntrospection
@@ -421,9 +423,9 @@ object Consent extends MdcLoggable {
     JwtUtil.getSignedPayloadAsJson(consentIdAsJwt) match {
       case Full(jsonAsString) =>
         try {
-          logger.debug(s"applyConsentRulesCommonOldStyle.getSignedPayloadAsJson.Start of net.liftweb.json.parse(jsonAsString).extract[ConsentJWT]: $jsonAsString")
-          val consent = net.liftweb.json.parse(jsonAsString).extract[ConsentJWT]
-          logger.debug(s"applyConsentRulesCommonOldStyle.getSignedPayloadAsJson.End of net.liftweb.json.parse(jsonAsString).extract[ConsentJWT]: $consent")
+          logger.debug(s"applyConsentRulesCommonOldStyle.getSignedPayloadAsJson.Start of com.openbankproject.commons.util.JsonAliases.parse(jsonAsString).extract[ConsentJWT]: $jsonAsString")
+          val consent = com.openbankproject.commons.util.JsonAliases.parse(jsonAsString).extract[ConsentJWT]
+          logger.debug(s"applyConsentRulesCommonOldStyle.getSignedPayloadAsJson.End of com.openbankproject.commons.util.JsonAliases.parse(jsonAsString).extract[ConsentJWT]: $consent")
           checkConsent(consent, consentIdAsJwt, calContext) match { // Check is it Consent-JWT expired
             case (Full(true)) => // OK
               applyConsentRules(consent)
@@ -501,9 +503,9 @@ object Consent extends MdcLoggable {
     JwtUtil.getSignedPayloadAsJson(consentAsJwt) match {
       case Full(jsonAsString) =>
         try {
-          logger.debug(s"applyConsentRulesCommon.Start of net.liftweb.json.parse(jsonAsString).extract[ConsentJWT]: $jsonAsString")
-          val consent = net.liftweb.json.parse(jsonAsString).extract[ConsentJWT]
-          logger.debug(s"applyConsentRulesCommon.End of net.liftweb.json.parse(jsonAsString).extract[ConsentJWT]: $consent")
+          logger.debug(s"applyConsentRulesCommon.Start of com.openbankproject.commons.util.JsonAliases.parse(jsonAsString).extract[ConsentJWT]: $jsonAsString")
+          val consent = com.openbankproject.commons.util.JsonAliases.parse(jsonAsString).extract[ConsentJWT]
+          logger.debug(s"applyConsentRulesCommon.End of com.openbankproject.commons.util.JsonAliases.parse(jsonAsString).extract[ConsentJWT]: $consent")
           checkConsent(consent, consentAsJwt, callContext) match { // Check is it Consent-JWT expired
             case (Full(true)) => // OK
               applyConsentRules(consent)
@@ -628,11 +630,11 @@ object Consent extends MdcLoggable {
           JwtUtil.getSignedPayloadAsJson(storedConsent.jsonWebToken) match {
             case Full(jsonAsString) =>
               try {
-                logger.debug(s"applyBerlinGroupConsentRulesCommon.Start of net.liftweb.json.parse(jsonAsString).extract[ConsentJWT]: $jsonAsString")
-                val consent = net.liftweb.json.parse(jsonAsString).extract[ConsentJWT]
-                logger.debug(s"applyBerlinGroupConsentRulesCommon.End of net.liftweb.json.parse(jsonAsString).extract[ConsentJWT]: $consent")
+                logger.debug(s"applyBerlinGroupConsentRulesCommon.Start of com.openbankproject.commons.util.JsonAliases.parse(jsonAsString).extract[ConsentJWT]: $jsonAsString")
+                val consent = com.openbankproject.commons.util.JsonAliases.parse(jsonAsString).extract[ConsentJWT]
+                logger.debug(s"applyBerlinGroupConsentRulesCommon.End of com.openbankproject.commons.util.JsonAliases.parse(jsonAsString).extract[ConsentJWT]: $consent")
                 val consentBox = checkConsent(consent, storedConsent.jsonWebToken, updatedCallContext)
-                logger.debug(s"End of net.liftweb.json.parse(jsonAsString).extract[ConsentJWT].checkConsent.consentBox: $consent")
+                logger.debug(s"End of com.openbankproject.commons.util.JsonAliases.parse(jsonAsString).extract[ConsentJWT].checkConsent.consentBox: $consent")
                 consentBox match { // Check is it Consent-JWT expired
                   case (Full(true)) => // OK
                     if(BerlinGroupCheck.isTppRequestsWithoutPsuInvolvement(callContext.requestHeaders)) {
@@ -887,7 +889,7 @@ object Consent extends MdcLoggable {
                                                  callContext: Option[CallContext]): Future[Box[String]] = {
     implicit val dateFormats = CustomJsonFormats.formats
     val payloadToUpdate: Box[ConsentJWT] = JwtUtil.getSignedPayloadAsJson(consent.jsonWebToken) // Payload as JSON string
-      .map(net.liftweb.json.parse(_).extract[ConsentJWT]) // Extract case class
+      .map(com.openbankproject.commons.util.JsonAliases.parse(_).extract[ConsentJWT]) // Extract case class
 
 
     // 1. Add access
@@ -947,7 +949,7 @@ object Consent extends MdcLoggable {
                                          callContext: Option[CallContext]): Future[Box[MappedConsent]] = {
     implicit val dateFormats = CustomJsonFormats.formats
     val payloadToUpdate: Box[ConsentJWT] = JwtUtil.getSignedPayloadAsJson(consent.jsonWebToken) // Payload as JSON string
-      .map(net.liftweb.json.parse(_).extract[ConsentJWT]) // Extract case class
+      .map(com.openbankproject.commons.util.JsonAliases.parse(_).extract[ConsentJWT]) // Extract case class
 
     val availableAccountsUserIbans: List[String] = payloadToUpdate match {
       case Full(consentJwt) =>
@@ -1008,7 +1010,7 @@ object Consent extends MdcLoggable {
                                           callContext: Option[CallContext]): Box[String] = {
     implicit val dateFormats = CustomJsonFormats.formats
     val payloadToUpdate: Box[ConsentJWT] = JwtUtil.getSignedPayloadAsJson(consent.jsonWebToken) // Payload as JSON string
-      .map(net.liftweb.json.parse(_).extract[ConsentJWT]) // Extract case class
+      .map(com.openbankproject.commons.util.JsonAliases.parse(_).extract[ConsentJWT]) // Extract case class
 
     val updatedPayload = payloadToUpdate.map(i => i.copy(createdByUserId = createdByUserId)) // Update only the field "createdByUserId"
     val jwtPayloadAsJson = compactRender(Extraction.decompose(updatedPayload))
