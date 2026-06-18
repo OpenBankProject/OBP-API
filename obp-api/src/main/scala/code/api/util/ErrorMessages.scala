@@ -78,6 +78,7 @@ object ErrorMessages {
   val DuplicateHeaderKeys = "OBP-09017: Duplicate Header Keys are not allowed."
   val InvalidDynamicEntityName = "OBP-09018: Invalid entity_name format. Entity names must be lowercase with underscores (snake_case), e.g. 'customer_preferences'. No uppercase letters or spaces allowed."
   val DynamicEntityFieldNotYetQueryable = "OBP-09019: Requested field(s) are not yet queryable - the index is still being built. Please retry shortly."
+  val RowLevelAccessRequiresLocalBacking = "OBP-09020: use_row_level_access is only supported for locally-backed dynamic entities. This entity is routed to an external connector (a method routing for dynamicEntityProcess exists for it), where the row-level ACL cannot be enforced. Remove the method routing or disable use_row_level_access."
 
 
   // General messages (OBP-10XXX)

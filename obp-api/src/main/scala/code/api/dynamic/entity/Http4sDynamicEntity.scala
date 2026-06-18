@@ -27,7 +27,7 @@ package code.api.dynamic.entity
 
 import cats.data.{Kleisli, OptionT}
 import cats.effect.IO
-import code.DynamicData.{DynamicData, DynamicDataProvider}
+import code.DynamicData.{DynamicData, DynamicDataProvider, DynamicDataAccessProvider, DynamicDataAccessPermission}
 import code.api.Constant.PARAM_LOCALE
 import code.api.dynamic.entity.helper.{CommunityEntityName, DynamicEntityHelper, DynamicEntityInfo, EntityName, PublicEntityName}
 import code.api.dynamic.entity.query.{FieldSpec, InMemoryQueryExecutor, QueryParamParser, QueryPlan, QueryPlanner}
@@ -295,10 +295,122 @@ object Http4sDynamicEntity extends MdcLoggable {
   private def projectionList(entityName: String, bankId: Option[String], userId: Option[String], isPersonalEntity: Boolean, plan: QueryPlan): Future[JArray] =
     PostgresProjectionBackend.query(entityName, bankId, userId, isPersonalEntity, plan).map(JArray(_)).unsafeToFuture()(ioRuntime)
 
+  // ----- row-level access (use_row_level_access) -----
+  // When an entity opts into row-level access the per-entity GET/UPDATE/DELETE roles do NOT
+  // gate access; the DynamicDataAccess ACL decides per row. Rows are fetched UNSCOPED (community
+  // path) so ownership doesn't pre-filter, then the ACL gates. Row-level entities are local by
+  // definition (§8.5 guard), so calling the local provider directly violates no abstraction.
+  // See ideas/DYNAMIC_ENTITY_ROW_LEVEL_ACCESS.md §5.
+
+  private def aclVend = DynamicDataAccessProvider.provider.vend
+  private def dataVend = DynamicDataProvider.connectorMethodProvider.vend
+  private def isRowLevel(bankId: Option[String], entityName: String): Boolean =
+    DynamicEntityHelper.definitionsMap.get((bankId, entityName)).exists(_.useRowLevelAccess)
+
+  private def rowLevelGet(req: Request[IO], cc: CallContext, bankId: Option[String], entityName: String, id: String): Future[JValue] = {
+    val isGetAll = StringUtils.isBlank(id)
+    val operation: DynamicEntityOperation = if (isGetAll) GET_ALL else GET_ONE
+    val callContext0 = enrichCallContext(cc, operation, entityName, bankId, "")
+    val operationId = callContext0.operationId.orNull
+    for {
+      _ <- failIf(beforeIntercept(callContext0, operationId), Some(callContext0))
+      (Full(u), callContext) <- authenticatedAccess(callContext0)
+      (_, callContext) <- bankCheck(bankId, callContext)
+      // Row-level: type-level get role is NOT required — the ACL decides per row.
+      _ <- failIf(afterIntercept(callContext, operationId), callContext)
+      result <- if (isGetAll) Future {
+                  // In-memory floor: fetch all rows (unscoped) and keep those the ACL marks readable.
+                  // (The projection EXISTS backend for row-level get-all is a documented follow-up; the
+                  // in-memory path is always correct, just not index-accelerated.)
+                  val readable = aclVend.getReadableRowIds(u.userId, entityName, bankId).toSet
+                  val readableRows = dataVend.getAllCommunity(bankId, entityName).filter(_.dynamicDataId.exists(readable.contains))
+                  val readableJson: JArray = JArray(readableRows.map(r => parse(r.dataJson)))
+                  val filtered = filterDynamicObjects(readableJson, queryParams(req))
+                  wrapBankId(bankId, (listName(entityName) -> applyReadRestrictions(filtered, bankId, entityName, Some(u.userId))))
+                } else {
+                  val box: Box[JValue] = dataVend.getCommunity(bankId, entityName, id).map(it => parse(it.dataJson))
+                  for {
+                    // Hide existence: a row you cannot read is indistinguishable from a missing row (404).
+                    _ <- Helper.booleanToFuture(notFoundMsg(entityName, id, bankId), 404, cc = callContext) {
+                           box.isDefined && aclVend.allows(id, u.userId, DynamicDataAccessPermission.Read)
+                         }
+                  } yield {
+                    val singleObject: JValue = unboxResult(box, entityName)
+                    wrapBankId(bankId, (singleName(entityName) -> applyReadRestrictions(singleObject, bankId, entityName, Some(u.userId))))
+                  }
+                }
+    } yield result
+  }
+
+  private def rowLevelPut(req: Request[IO], cc: CallContext, bankId: Option[String], entityName: String, id: String): Future[JValue] = {
+    val callContext0 = enrichCallContext(cc, UPDATE, entityName, bankId, "")
+    val operationId = callContext0.operationId.orNull
+    for {
+      _ <- failIf(beforeIntercept(callContext0, operationId), Some(callContext0))
+      (Full(u), callContext) <- authenticatedAccess(callContext0)
+      (_, callContext) <- bankCheck(bankId, callContext)
+      _ <- failIf(afterIntercept(callContext, operationId), callContext)
+      json <- NewStyle.function.tryons(InvalidJsonFormat, 400, callContext) { parse(cc.httpBody.getOrElse("")) }
+      existing: Box[JValue] = dataVend.getCommunity(bankId, entityName, id).map(it => parse(it.dataJson))
+      _ <- Helper.booleanToFuture(notFoundMsg(entityName, id, bankId), 404, cc = callContext) { existing.isDefined }
+      _ <- Helper.booleanToFuture(s"$UserHasMissingRoles update access on this row", 403, cc = callContext) {
+             aclVend.allows(id, u.userId, DynamicDataAccessPermission.Update) }
+      // Field-level write roles still apply on top of the row ACL.
+      updateJson = preserveRestrictedOnPut(json.asInstanceOf[JObject], existing, writeRestrictedFieldsOf(bankId, entityName))
+      box: Box[JValue] = dataVend.updateCommunity(bankId, entityName, updateJson, id).map(it => parse(it.dataJson))
+      singleObject: JValue = unboxResult(box, entityName)
+    } yield wrapBankId(bankId, (singleName(entityName) -> singleObject))
+  }
+
+  private def rowLevelPatch(req: Request[IO], cc: CallContext, bankId: Option[String], entityName: String, id: String): Future[JValue] = {
+    val callContext0 = enrichCallContext(cc, UPDATE, entityName, bankId, "")
+    val operationId = callContext0.operationId.orNull
+    for {
+      _ <- failIf(beforeIntercept(callContext0, operationId), Some(callContext0))
+      (Full(u), callContext) <- authenticatedAccess(callContext0)
+      (_, callContext) <- bankCheck(bankId, callContext)
+      _ <- failIf(afterIntercept(callContext, operationId), callContext)
+      json <- NewStyle.function.tryons(InvalidJsonFormat, 400, callContext) { parse(cc.httpBody.getOrElse("")) }
+      bodyObj = json.asInstanceOf[JObject]
+      // Row ACL replaces the entity-update role; per-field write roles still apply (requireEntityRole = false).
+      _ <- Helper.booleanToFuture(s"$UserHasMissingRoles update access on this row", 403, cc = callContext) {
+             aclVend.allows(id, u.userId, DynamicDataAccessPermission.Update) }
+      missingRoles = missingPatchRoleNames(bodyObj.obj.map(_.name), bankId, entityName, u.userId, requireEntityRole = false)
+      _ <- Helper.booleanToFuture(s"$UserHasMissingRoles ${missingRoles.mkString(", ")}", 403, cc = callContext) { missingRoles.isEmpty }
+      existing: Box[JValue] = dataVend.getCommunity(bankId, entityName, id).map(it => parse(it.dataJson))
+      _ <- Helper.booleanToFuture(notFoundMsg(entityName, id, bankId), 404, cc = callContext) { existing.isDefined }
+      mergedJson = mergePatch(DynamicEntityHelper.definitionsMap.get((bankId, entityName)), existing, bodyObj)
+      box: Box[JValue] = dataVend.updateCommunity(bankId, entityName, mergedJson, id).map(it => parse(it.dataJson))
+      singleObject: JValue = unboxResult(box, entityName)
+    } yield wrapBankId(bankId, (singleName(entityName) -> singleObject))
+  }
+
+  private def rowLevelDelete(req: Request[IO], cc: CallContext, bankId: Option[String], entityName: String, id: String): Future[JValue] = {
+    val callContext0 = enrichCallContext(cc, DELETE, entityName, bankId, "")
+    val operationId = callContext0.operationId.orNull
+    for {
+      _ <- failIf(beforeIntercept(callContext0, operationId), Some(callContext0))
+      (Full(u), callContext) <- authenticatedAccess(callContext0)
+      (_, callContext) <- bankCheck(bankId, callContext)
+      _ <- failIf(afterIntercept(callContext, operationId), callContext)
+      existing: Box[JValue] = dataVend.getCommunity(bankId, entityName, id).map(it => parse(it.dataJson))
+      _ <- Helper.booleanToFuture(notFoundMsg(entityName, id, bankId), 404, cc = callContext) { existing.isDefined }
+      _ <- Helper.booleanToFuture(s"$UserHasMissingRoles delete access on this row", 403, cc = callContext) {
+             aclVend.allows(id, u.userId, DynamicDataAccessPermission.Delete) }
+      _ = dataVend.deleteCommunity(bankId, entityName, id)
+      _ = aclVend.deleteAllForRow(id) // cascade the ACL rows for the deleted data row
+    } yield JObject(Nil)
+  }
+
   // ----- generic endpoint (authenticated, system / bank / personal) -----
 
   private def genericGet(req: Request[IO], bankId: Option[String], entityName: String, id: String, isPersonalEntity: Boolean): IO[Response[IO]] =
     EndpointHelpers.executeAndRespond(req) { cc =>
+      if (isRowLevel(bankId, entityName)) rowLevelGet(req, cc, bankId, entityName, id)
+      else _genericGet(req, cc, bankId, entityName, id, isPersonalEntity)
+    }
+
+  private def _genericGet(req: Request[IO], cc: CallContext, bankId: Option[String], entityName: String, id: String, isPersonalEntity: Boolean): Future[JValue] = {
       val isGetAll = StringUtils.isBlank(id)
       val operation: DynamicEntityOperation = if (isGetAll) GET_ALL else GET_ONE
       val callContext0 = enrichCallContext(cc, operation, entityName, bankId, if (isPersonalEntity) "my" else "")
@@ -355,11 +467,23 @@ object Http4sDynamicEntity extends MdcLoggable {
         createJson = stripFields(json.asInstanceOf[JObject], writeRestrictedFieldsOf(bankId, entityName))
         (box, _) <- NewStyle.function.invokeDynamicConnector(CREATE, entityName, Some(createJson), None, bankId, None, Some(u.userId), isPersonalEntity, Some(cc))
         singleObject: JValue = unboxResult(box.asInstanceOf[Box[JValue]], entityName)
+        // Row-level access: bootstrap the owner ACL row (R/U/D + Grant) so the creator can read,
+        // edit, and share their own record with no role and no meta-admin hop (§4 / §8.1).
+        _ = if (isRowLevel(bankId, entityName)) (singleObject \ DynamicEntityHelper.createEntityId(entityName)) match {
+              case JString(rid) =>
+                aclVend.grant(rid, u.userId, canRead = true, canUpdate = true, canDelete = true, canGrant = true, entityName, bankId, grantedBy = u.userId)
+              case _ =>
+            }
       } yield wrapBankId(bankId, (singleName(entityName) -> singleObject))
     }
 
   private def genericPut(req: Request[IO], bankId: Option[String], entityName: String, id: String, isPersonalEntity: Boolean): IO[Response[IO]] =
     EndpointHelpers.executeAndRespond(req) { cc =>
+      if (isRowLevel(bankId, entityName)) rowLevelPut(req, cc, bankId, entityName, id)
+      else _genericPut(req, cc, bankId, entityName, id, isPersonalEntity)
+    }
+
+  private def _genericPut(req: Request[IO], cc: CallContext, bankId: Option[String], entityName: String, id: String, isPersonalEntity: Boolean): Future[JValue] = {
       val callContext0 = enrichCallContext(cc, UPDATE, entityName, bankId, if (isPersonalEntity) "my" else "")
       val operationId = callContext0.operationId.orNull
       for {
@@ -382,6 +506,11 @@ object Http4sDynamicEntity extends MdcLoggable {
 
   private def genericPatch(req: Request[IO], bankId: Option[String], entityName: String, id: String, isPersonalEntity: Boolean): IO[Response[IO]] =
     EndpointHelpers.executeAndRespond(req) { cc =>
+      if (isRowLevel(bankId, entityName)) rowLevelPatch(req, cc, bankId, entityName, id)
+      else _genericPatch(req, cc, bankId, entityName, id, isPersonalEntity)
+    }
+
+  private def _genericPatch(req: Request[IO], cc: CallContext, bankId: Option[String], entityName: String, id: String, isPersonalEntity: Boolean): Future[JValue] = {
       val callContext0 = enrichCallContext(cc, UPDATE, entityName, bankId, if (isPersonalEntity) "my" else "")
       val operationId = callContext0.operationId.orNull
       for {
@@ -409,6 +538,11 @@ object Http4sDynamicEntity extends MdcLoggable {
 
   private def genericDelete(req: Request[IO], bankId: Option[String], entityName: String, id: String, isPersonalEntity: Boolean): IO[Response[IO]] =
     EndpointHelpers.executeAndRespond(req) { cc =>
+      if (isRowLevel(bankId, entityName)) rowLevelDelete(req, cc, bankId, entityName, id)
+      else _genericDelete(req, cc, bankId, entityName, id, isPersonalEntity)
+    }
+
+  private def _genericDelete(req: Request[IO], cc: CallContext, bankId: Option[String], entityName: String, id: String, isPersonalEntity: Boolean): Future[JValue] = {
       val callContext0 = enrichCallContext(cc, DELETE, entityName, bankId, if (isPersonalEntity) "my" else "")
       val operationId = callContext0.operationId.orNull
       for {

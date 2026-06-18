@@ -838,6 +838,7 @@ case class DynamicEntityInfo(definition: String, entityName: String, bankId: Opt
   val canUpdateRole: ApiRole = DynamicEntityInfo.canUpdateRole(entityName, bankId)
   val canGetRole: ApiRole = DynamicEntityInfo.canGetRole(entityName, bankId)
   val canDeleteRole: ApiRole = DynamicEntityInfo.canDeleteRole(entityName, bankId)
+  val canGrantRowAccessRole: ApiRole = DynamicEntityInfo.canGrantRowAccessRole(entityName, bankId)
 
   // ----- Field-level access control (mirrors DynamicEntityT; here `entity` is already the per-entity object) -----
   private def restrictedFields(requiredFlag: String, roleKey: String): List[String] =
@@ -903,11 +904,21 @@ object DynamicEntityInfo {
     else
       getOrCreateDynamicApiRole("CanDeleteDynamicEntity_System" + entityName, false)
 
+  // Admin override for row-level access (§3): a holder may grant/list/revoke per-row ACL
+  // on any row of the entity, even rows they cannot read. Ordinary owner-driven sharing
+  // does not need this role — it goes through the row's own ACL CanGrant (§8.1).
+  def canGrantRowAccessRole(entityName: String, bankId:Option[String]): ApiRole =
+    if(bankId.isDefined)
+      getOrCreateDynamicApiRole("CanGrantDynamicEntityRowAccess_" + entityName, true)
+    else
+      getOrCreateDynamicApiRole("CanGrantDynamicEntityRowAccess_System" + entityName, false)
+
   def roleNames(entityName: String, bankId:Option[String]): List[String] = List(
     canCreateRole(entityName, bankId),
     canUpdateRole(entityName, bankId),
     canGetRole(entityName, bankId),
-    canDeleteRole(entityName, bankId)
+    canDeleteRole(entityName, bankId),
+    canGrantRowAccessRole(entityName, bankId)
   ).map(_.toString())
 
   // Field-level roles. If the definition declares an explicit write_role/read_role, use it verbatim

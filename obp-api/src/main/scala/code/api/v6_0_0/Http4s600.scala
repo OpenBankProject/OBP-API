@@ -457,7 +457,16 @@ object Http4s600 {
       if (validEntityNamePattern.matcher(entityName).matches()) Future.successful(())
       else Future.failed(new RuntimeException(s"$InvalidDynamicEntityName Current value: '$entityName'"))
 
+    // §8.5: row-level access is only enforceable for a locally-backed entity. If the entity
+    // is routed to an external connector (a dynamicEntityProcess method routing keyed on its
+    // entityName exists), the ACL cannot police its data — reject the combination.
+    private def localBackingOkForRowLevel(dynamicEntity: DynamicEntityCommons): Boolean =
+      !dynamicEntity.useRowLevelAccess ||
+        !NewStyle.function.getMethodRoutings(Some("dynamicEntityProcess"))
+          .exists(_.parameters.exists(p => p.key == "entityName" && p.value == dynamicEntity.entityName))
+
     private def createDynamicEntityV600(cc: CallContext, dynamicEntity: DynamicEntityCommons) = for {
+      _ <- Helper.booleanToFuture(RowLevelAccessRequiresLocalBacking, 400, cc = Some(cc)) { localBackingOkForRowLevel(dynamicEntity) }
       // Wrap the connector call so a thrown RuntimeException (bad schema, etc.)
       // becomes a 400 InvalidJsonFormat — matches v6 Lift's dispatch wrapper.
       Full(result) <- NewStyle.function.createOrUpdateDynamicEntity(dynamicEntity, Some(cc))
@@ -473,6 +482,11 @@ object Http4s600 {
         DynamicEntityInfo.canUpdateRole(result.entityName, dynamicEntity.bankId),
         DynamicEntityInfo.canGetRole(result.entityName, dynamicEntity.bankId),
         DynamicEntityInfo.canDeleteRole(result.entityName, dynamicEntity.bankId)
+      ) ++ (
+        // Row-level entities: grant the definition creator the admin row-access role so they
+        // can bootstrap/administer per-row ACLs across the entity (§8.1 admin override).
+        if (dynamicEntity.useRowLevelAccess) List(DynamicEntityInfo.canGrantRowAccessRole(result.entityName, dynamicEntity.bankId))
+        else Nil
       )
     } yield {
       crudRoles.foreach(role =>
@@ -481,6 +495,7 @@ object Http4s600 {
     }
 
     private def updateDynamicEntityV600(cc: CallContext, dynamicEntity: DynamicEntityCommons) = for {
+      _ <- Helper.booleanToFuture(RowLevelAccessRequiresLocalBacking, 400, cc = Some(cc)) { localBackingOkForRowLevel(dynamicEntity) }
       Full(result) <- NewStyle.function.createOrUpdateDynamicEntity(dynamicEntity, Some(cc))
         .recoverWith {
           case e: Throwable if !Option(e.getMessage).exists(_.startsWith("OBP-")) =>
