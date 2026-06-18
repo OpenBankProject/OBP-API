@@ -25,6 +25,7 @@ TESOBE (http://www.tesobe.com/)
 */
 package code.api.v3_1_0
 
+import org.json4s._
 import code.api.cache.Redis
 
 import java.time.format.DateTimeFormatter
@@ -41,7 +42,7 @@ import code.setup.PropsReset
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.ApiVersion
-import net.liftweb.json.Serialization.write
+import org.json4s.native.Serialization.write
 import org.scalatest.Tag
 
 class RateLimitTest extends V310ServerSetup with PropsReset {

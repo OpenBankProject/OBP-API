@@ -27,6 +27,7 @@ TESOBE (http://www.tesobe.com/)
 
 package code.util
 
+import org.json4s._
 import code.api.Constant
 import code.api.util.APIUtil.{DateWithMsFormat, DefaultToDate, theEpochTime, _}
 import code.api.util.ErrorMessages._
@@ -37,7 +38,8 @@ import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.UserAuthContextCommons
 import net.liftweb.common.{Box, Empty, Full}
 import code.api.util.APIUtil.HTTPParam
-import net.liftweb.json.{JValue, parse}
+import org.json4s.JValue
+import com.openbankproject.commons.util.JsonAliases.parse
 import org.scalatest.{FeatureSpec, GivenWhenThen, Matchers}
 
 import java.time.format.DateTimeFormatter

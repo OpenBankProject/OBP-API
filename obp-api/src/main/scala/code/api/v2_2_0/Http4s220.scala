@@ -1,5 +1,6 @@
 package code.api.v2_2_0
 
+import org.json4s._
 import cats.data.{Kleisli, OptionT}
 import cats.effect._
 import code.api.Constant._
@@ -30,8 +31,9 @@ import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.util.{ApiVersion, ApiVersionStatus, ScannedApiVersion}
 import net.liftweb.common.Full
-import net.liftweb.json.JsonAST.prettyRender
-import net.liftweb.json.{Extraction, Formats, Serialization}
+import com.openbankproject.commons.util.JsonAliases.prettyRender
+import org.json4s.{Extraction, Formats}
+import org.json4s.native.Serialization
 import net.liftweb.util.StringHelpers
 import org.http4s._
 import org.http4s.dsl.io._
@@ -180,7 +182,7 @@ object Http4s220 {
     private def createViewImpl(user: User, account: BankAccount, body: String, cc: CallContext): Future[ViewJSONV220] = {
       for {
         createBodyJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
-          net.liftweb.json.parse(body).extract[CreateViewJsonV121]
+          com.openbankproject.commons.util.JsonAliases.parse(body).extract[CreateViewJsonV121]
         }
         _ <- code.util.Helper.booleanToFuture(
           s"$InvalidCustomViewFormat Current view_name (${createBodyJson.name})", cc = Some(cc)) {
@@ -242,7 +244,7 @@ object Http4s220 {
     private def updateViewImpl(user: User, account: BankAccount, viewId: ViewId, body: String, cc: CallContext): Future[ViewJSONV220] = {
       for {
         updateBodyJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
-          net.liftweb.json.parse(body).extract[UpdateViewJsonV121]
+          com.openbankproject.commons.util.JsonAliases.parse(body).extract[UpdateViewJsonV121]
         }
         _ <- code.util.Helper.booleanToFuture(
           s"$InvalidCustomViewFormat Current view_name (${viewId.value})", cc = Some(cc)) {
@@ -980,7 +982,7 @@ object Http4s220 {
         _ <- code.util.Helper.booleanToFuture(InvalidBankIdFormat, cc = Some(cc)) { isValidID(account.bankId.value) }
         postJson <- NewStyle.function.tryons(
           s"$InvalidJsonFormat The Json body should be the $PostCounterpartyJSON", 400, Some(cc)) {
-          net.liftweb.json.parse(body).extract[PostCounterpartyJSON]
+          com.openbankproject.commons.util.JsonAliases.parse(body).extract[PostCounterpartyJSON]
         }
         _ <- code.util.Helper.booleanToFuture(
           s"${NoViewPermission} You need the `${CAN_ADD_COUNTERPARTY}` permission on the View(${view.viewId.value})",

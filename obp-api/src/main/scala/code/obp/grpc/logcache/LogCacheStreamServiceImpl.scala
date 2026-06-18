@@ -1,5 +1,6 @@
 package code.obp.grpc.logcache
 
+import org.json4s._
 import code.api.cache.RedisLogger
 import code.api.util.APIUtil
 import code.api.util.APIUtil.UserOnly
@@ -10,8 +11,8 @@ import code.util.Helper.MdcLoggable
 import com.google.protobuf.timestamp.Timestamp
 import io.grpc.Status
 import io.grpc.stub.{ServerCallStreamObserver, StreamObserver}
-import net.liftweb.json
-import net.liftweb.json.JsonAST.JValue
+import com.openbankproject.commons.util.json
+import org.json4s.JsonAST.JValue
 
 /**
  * gRPC service implementation for log cache streaming.

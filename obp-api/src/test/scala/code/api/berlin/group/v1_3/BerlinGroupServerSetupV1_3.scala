@@ -1,5 +1,6 @@
 package code.api.berlin.group.v1_3
 
+import org.json4s._
 import code.api.Constant
 import code.api.Constant.SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID
 import code.api.berlin.group.ConstantsBG
@@ -9,7 +10,7 @@ import code.api.v4_0_0.{PostAccountAccessJsonV400, PostViewJsonV400}
 import code.setup.ServerSetupWithTestData
 import code.views.Views
 import dispatch.Req
-import net.liftweb.json.Serialization.write
+import org.json4s.native.Serialization.write
 import org.scalatest.Tag
 
 trait BerlinGroupServerSetupV1_3 extends ServerSetupWithTestData {

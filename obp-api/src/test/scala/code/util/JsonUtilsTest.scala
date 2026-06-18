@@ -1,10 +1,11 @@
 package code.util
 
+import org.json4s._
 import org.scalatest.{FlatSpec, Matchers, Tag}
 import com.openbankproject.commons.util.JsonUtils.buildJson
-import net.liftweb.json
-import net.liftweb.json.JBool
-import net.liftweb.json.JsonAST.{JNothing, JValue}
+import com.openbankproject.commons.util.json
+import org.json4s.JBool
+import org.json4s.JsonAST.{JNothing, JValue}
 
 class JsonUtilsTest extends FlatSpec with Matchers {
   object JsonUtilsTag extends Tag("JsonUtils")

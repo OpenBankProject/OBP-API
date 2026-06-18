@@ -1,19 +1,21 @@
 package code.api.v7_0_0
 
+import org.json4s._
 import code.Http4sTestServer
 import code.api.util.ApiRole.{canCreateEntitlementAtAnyBank, canDeleteEntitlementAtAnyBank}
 import code.entitlement.Entitlement
 import code.setup.ServerSetupWithTestData
 import dispatch.Defaults._
 import dispatch._
-import net.liftweb.json.JsonAST.{JObject, JString}
-import net.liftweb.json.JsonParser.parse
-import net.liftweb.json.JValue
+import org.json4s.JsonAST.{JObject, JString}
+import com.openbankproject.commons.util.JsonAliases.parse
+import org.json4s.JValue
 import org.scalatest.Tag
 
 import scala.collection.JavaConverters._
 import scala.concurrent.Await
 import scala.concurrent.duration._
+import com.openbankproject.commons.util.JsonAliases.RichJField
 
 /**
  * Integration tests for the v7 request-scoped transaction feature.

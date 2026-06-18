@@ -25,6 +25,7 @@ TESOBE (http://www.tesobe.com/)
   */
 package code.api.v5_0_0
 
+import org.json4s._
 import com.openbankproject.commons.model.ErrorMessage
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.{postUserAuthContextJson, postUserAuthContextUpdateJsonV310}
@@ -36,7 +37,7 @@ import code.api.v3_1_0.CustomerJsonV310
 import code.api.v5_0_0.OBPAPI5_0_0.Implementations5_0_0
 import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf
-import net.liftweb.json.Serialization.write
+import org.json4s.native.Serialization.write
 import org.scalatest.Tag
 
 import scala.language.postfixOps

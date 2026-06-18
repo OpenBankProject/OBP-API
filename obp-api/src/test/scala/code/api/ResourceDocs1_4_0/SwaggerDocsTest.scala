@@ -1,5 +1,6 @@
 package code.api.ResourceDocs1_4_0
 
+import org.json4s._
 import code.api.ResourceDocs1_4_0.ResourceDocs140.ImplementationsResourceDocs
 import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, UserHasMissingRoles}
 import code.api.util.{ApiRole, CustomJsonFormats}
@@ -9,10 +10,8 @@ import code.api.util.APIUtil.OAuth._
 import code.entitlement.Entitlement
 import com.openbankproject.commons.util.{ApiVersion, Functions}
 import io.swagger.parser.OpenAPIParser
-import net.liftweb.json
-import net.liftweb.json.JsonAST._
-import net.liftweb.json.{Formats, JString, Serializer, TypeInfo}
-import net.liftweb.util.Html5
+import com.openbankproject.commons.util.json
+import org.json4s.{Formats, JString, Serializer, TypeInfo}
 import org.scalatest.Tag
 
 import java.util
@@ -66,9 +65,8 @@ class SwaggerDocsTest extends ResourceDocsV140ServerSetup with PropsReset with D
    * @return
    */
   def stringToNodeSeq(html : String) : NodeSeq = {
-    val newHtmlString =scala.xml.XML.loadString("<div>" + html + "</div>").toString()
-    //Note: `parse` method: We much enclose the div, otherwise only the first element is returned. 
-    Html5.parse(newHtmlString).head
+    //Note: we must enclose the div, otherwise only the first element is returned.
+    scala.xml.XML.loadString("<div>" + html + "</div>")
   }
   
   

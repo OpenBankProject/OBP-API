@@ -46,9 +46,10 @@ import com.openbankproject.commons.model.enums.DynamicEntityOperation
 import com.openbankproject.commons.model.enums.DynamicEntityOperation._
 import com.openbankproject.commons.util.{ApiShortVersions, ApiStandards, JsonUtils}
 import net.liftweb.common._
-import net.liftweb.json.JsonAST.{JArray, JBool, JObject, JValue}
-import net.liftweb.json.JsonDSL._
-import net.liftweb.json._
+import org.json4s.JsonAST.{JArray, JBool, JObject, JValue}
+import org.json4s.JsonDSL._
+import org.json4s._
+import com.openbankproject.commons.util.JsonAliases._
 import net.liftweb.util.StringHelpers
 import org.apache.commons.lang3.StringUtils
 import org.http4s.{HttpRoutes, Method, Request, Response}
@@ -349,7 +350,7 @@ object Http4sDynamicEntity extends MdcLoggable {
         _ <- if (isPersonalEntity && !personalRequiresRole) Future.successful(true)
              else NewStyle.function.hasEntitlement(bankId.getOrElse(""), u.userId, DynamicEntityInfo.canCreateRole(entityName, bankId), callContext)
         _ <- failIf(afterIntercept(callContext, operationId), callContext)
-        json <- NewStyle.function.tryons(InvalidJsonFormat, 400, callContext) { net.liftweb.json.parse(cc.httpBody.getOrElse("")) }
+        json <- NewStyle.function.tryons(InvalidJsonFormat, 400, callContext) { com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")) }
         // Write-restricted fields are never set via POST; strip them before persisting.
         createJson = stripFields(json.asInstanceOf[JObject], writeRestrictedFieldsOf(bankId, entityName))
         (box, _) <- NewStyle.function.invokeDynamicConnector(CREATE, entityName, Some(createJson), None, bankId, None, Some(u.userId), isPersonalEntity, Some(cc))
@@ -369,7 +370,7 @@ object Http4sDynamicEntity extends MdcLoggable {
         _ <- if (isPersonalEntity && !personalRequiresRole) Future.successful(true)
              else NewStyle.function.hasEntitlement(bankId.getOrElse(""), u.userId, DynamicEntityInfo.canUpdateRole(entityName, bankId), callContext)
         _ <- failIf(afterIntercept(callContext, operationId), callContext)
-        json <- NewStyle.function.tryons(InvalidJsonFormat, 400, callContext) { net.liftweb.json.parse(cc.httpBody.getOrElse("")) }
+        json <- NewStyle.function.tryons(InvalidJsonFormat, 400, callContext) { com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")) }
         (existing, _) <- NewStyle.function.invokeDynamicConnector(GET_ONE, entityName, None, Some(id), bankId, None, Some(u.userId), isPersonalEntity, Some(cc))
         _ <- Helper.booleanToFuture(notFoundMsg(entityName, id, bankId), 404, cc = callContext) { existing.isDefined }
         // Write-restricted fields are not updated via PUT; preserve their existing values.
@@ -389,7 +390,7 @@ object Http4sDynamicEntity extends MdcLoggable {
         (_, callContext) <- bankCheck(bankId, callContext)
         personalRequiresRole = DynamicEntityHelper.definitionsMap.get((bankId, entityName)).exists(_.personalRequiresRole)
         _ <- failIf(afterIntercept(callContext, operationId), callContext)
-        json <- NewStyle.function.tryons(InvalidJsonFormat, 400, callContext) { net.liftweb.json.parse(cc.httpBody.getOrElse("")) }
+        json <- NewStyle.function.tryons(InvalidJsonFormat, 400, callContext) { com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")) }
         bodyObj = json.asInstanceOf[JObject]
         // Per-field authorisation: each field present in the body needs the role that governs it — its field
         // write role if write-restricted, otherwise the entity update role. No blanket entity-update precondition.
@@ -421,8 +422,8 @@ object Http4sDynamicEntity extends MdcLoggable {
         (existing, _) <- NewStyle.function.invokeDynamicConnector(GET_ONE, entityName, None, Some(id), bankId, None, Some(u.userId), isPersonalEntity, Some(cc))
         _ <- Helper.booleanToFuture(notFoundMsg(entityName, id, bankId), 404, cc = callContext) { existing.isDefined }
         (box, _) <- NewStyle.function.invokeDynamicConnector(DELETE, entityName, None, Some(id), bankId, None, Some(u.userId), isPersonalEntity, Some(cc))
-        deleteResult: JBool = unboxResult(box.asInstanceOf[Box[JBool]], entityName)
-      } yield deleteResult
+        _: JBool = unboxResult(box.asInstanceOf[Box[JBool]], entityName)
+      } yield JObject(Nil)
     }
 
   // ----- public endpoint (anonymous, read-only; before-interceptors only, no role) -----
@@ -478,7 +479,7 @@ object Http4sDynamicEntity extends MdcLoggable {
         } else {
           val singleResult = DynamicDataProvider.connectorMethodProvider.vend.getCommunity(bankId, entityName, id)
           val singleObject: JValue = singleResult match {
-            case Full(data) => net.liftweb.json.parse(data.dataJson)
+            case Full(data) => com.openbankproject.commons.util.JsonAliases.parse(data.dataJson)
             case _ => throw new RuntimeException(notFoundMsg(entityName, id, bankId))
           }
           wrapBankId(bankId, (singleName(entityName) -> applyReadRestrictions(singleObject, bankId, entityName, Some(u.userId))))

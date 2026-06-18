@@ -1,5 +1,6 @@
 package code.api.v3_1_0
 
+import org.json4s._
 import java.util.Date
 
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
@@ -11,7 +12,7 @@ import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
 import code.entitlement.Entitlement
 import code.setup.DefaultUsers
 import com.github.dwickern.macros.NameOf.nameOf
-import net.liftweb.json.Serialization.write
+import org.json4s.native.Serialization.write
 import org.scalatest.Tag
 import code.api.util.ErrorMessages._
 import code.api.v1_3_0.ReplacementJSON

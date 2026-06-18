@@ -1,5 +1,6 @@
 package code.api.UKOpenBanking.v3_1_0
 
+import org.json4s._
 import cats.data.{Kleisli, OptionT}
 import cats.effect.IO
 import code.api.Constant
@@ -16,8 +17,8 @@ import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.{AccountId, BankAccount, BankIdAccountId, View, ViewId}
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
 import net.liftweb.common.{Box, Empty, Full}
-import net.liftweb.json
-import net.liftweb.json.Formats
+import com.openbankproject.commons.util.json
+import org.json4s.Formats
 import org.http4s._
 import org.http4s.dsl.io._
 
@@ -34,7 +35,7 @@ object Http4sUKOBv310Accounts extends MdcLoggable {
   implicit val formats: Formats = CustomJsonFormats.formats
   val implementedInApiVersion: ScannedApiVersion = ApiVersion.ukOpenBankingV31
   val resourceDocs = ArrayBuffer[ResourceDoc]()
-  private def parseBody(s: String): net.liftweb.json.JObject = net.liftweb.json.parse(s).asInstanceOf[net.liftweb.json.JObject]
+  private def parseBody(s: String): org.json4s.JObject = com.openbankproject.commons.util.JsonAliases.parse(s).asInstanceOf[org.json4s.JObject]
   val ukV31Prefix = Root / ApiVersion.ukOpenBankingV31.urlPrefix / ApiVersion.ukOpenBankingV31.apiShortVersion
 
   lazy val getAccounts: HttpRoutes[IO] = HttpRoutes.of[IO] {

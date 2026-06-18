@@ -1,5 +1,6 @@
 package code.DynamicEndpoint
 
+import org.json4s._
 import java.util.UUID.randomUUID
 import code.api.cache.Caching
 import code.api.dynamic.endpoint.helper.DynamicEndpointHelper
@@ -7,8 +8,8 @@ import code.api.util.{APIUtil, CustomJsonFormats}
 import code.util.MappedUUID
 import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common.Box
-import net.liftweb.json
-import net.liftweb.json.JString
+import com.openbankproject.commons.util.json
+import org.json4s.JString
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Props

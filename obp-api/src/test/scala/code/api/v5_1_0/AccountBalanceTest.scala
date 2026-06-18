@@ -1,5 +1,6 @@
 package code.api.v5_1_0
 
+import org.json4s._
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ErrorMessages.AuthenticatedUserIsRequired
 import code.api.v4_0_0.{AccountsBalancesJsonV400, BalanceJsonV400}
@@ -8,7 +9,7 @@ import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.ApiVersion
 import dispatch.Req
-import net.liftweb.json
+import com.openbankproject.commons.util.json
 import org.scalatest.Tag
 
 class AccountBalanceTest extends V510ServerSetup {

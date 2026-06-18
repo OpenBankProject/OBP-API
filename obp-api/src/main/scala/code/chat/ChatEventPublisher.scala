@@ -1,8 +1,9 @@
 package code.chat
 
+import org.json4s._
 import code.util.Helper.MdcLoggable
-import net.liftweb.json
-import net.liftweb.json.Serialization.write
+import com.openbankproject.commons.util.json
+import org.json4s.native.Serialization.write
 // No async imports needed — broadcastUnreadCounts runs synchronously (1-2 fast queries)
 
 /**

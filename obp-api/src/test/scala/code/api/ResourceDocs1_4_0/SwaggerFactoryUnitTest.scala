@@ -1,5 +1,6 @@
 package code.api.ResourceDocs1_4_0
 
+import org.json4s._
 import code.api.util.APIUtil.ResourceDoc
 import code.api.v1_4_0.V140ServerSetup
 import code.api.v2_1_0.OBPAPI2_1_0
@@ -137,7 +138,7 @@ class SwaggerFactoryUnitTest extends V140ServerSetup with MdcLoggable {
       )
       val result = SwaggerJSONFactory.translateEntity(testObj)
       noException should be thrownBy {
-        net.liftweb.json.parse("{" + result + "}")
+        com.openbankproject.commons.util.JsonAliases.parse("{" + result + "}")
       }
       result should include("\\\"")
     }
@@ -146,7 +147,7 @@ class SwaggerFactoryUnitTest extends V140ServerSetup with MdcLoggable {
       val testObj = TestWithNewlines(text = "Line 1\nLine 2\tTab")
       val result = SwaggerJSONFactory.translateEntity(testObj)
       noException should be thrownBy {
-        net.liftweb.json.parse("{" + result + "}")
+        com.openbankproject.commons.util.JsonAliases.parse("{" + result + "}")
       }
       result should include("\\n")
     }
@@ -155,7 +156,7 @@ class SwaggerFactoryUnitTest extends V140ServerSetup with MdcLoggable {
       val testObj = AbacRule(rule = """user.emailAddress.contains(\"admin\")""")
       val result = SwaggerJSONFactory.translateEntity(testObj)
       noException should be thrownBy {
-        net.liftweb.json.parse("{" + result + "}")
+        com.openbankproject.commons.util.JsonAliases.parse("{" + result + "}")
       }
     }
 
@@ -173,8 +174,8 @@ class SwaggerFactoryUnitTest extends V140ServerSetup with MdcLoggable {
         success_response_body = SwaggerDefinitionsJSON.bankJSON,
         error_response_bodies = List("OBP-10000"),
         tags = List("Test"),
-        typed_request_body = net.liftweb.json.JNothing,
-        typed_success_response_body = net.liftweb.json.JNothing,
+        typed_request_body = org.json4s.JNothing,
+        typed_success_response_body = org.json4s.JNothing,
         roles = Some(List()),
         is_featured = false,
         special_instructions = "",

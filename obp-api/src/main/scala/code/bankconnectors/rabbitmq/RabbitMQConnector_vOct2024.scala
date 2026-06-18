@@ -37,7 +37,8 @@ import com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatu
 import com.openbankproject.commons.model.enums._
 import com.openbankproject.commons.model.{Meta, _}
 import net.liftweb.common._
-import net.liftweb.json._
+import org.json4s._
+import com.openbankproject.commons.util.JsonAliases._
 import net.liftweb.util.StringHelpers
 
 import java.util.Date

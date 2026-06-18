@@ -5,7 +5,7 @@ import code.api.dynamic.entity.helper.DynamicEntityHelper
 import code.api.dynamic.entity.query.{DynamicEntityQueryBackend, QueryPlan}
 import doobie._
 import doobie.implicits._
-import net.liftweb.json.JsonAST.JObject
+import org.json4s.JsonAST.JObject
 
 /**
  * Approach A query backend (DE_indexing, Phase 3): serves a validated [[QueryPlan]] from the entity's
@@ -42,7 +42,7 @@ object PostgresProjectionBackend extends DynamicEntityQueryBackend {
           fr"JOIN" ++ Fragment.const(s"${ProjectionStore.blobTable} $D") ++
           fr"ON" ++ Fragment.const(s"$D.${ProjectionStore.idColumn} = $P.data_id") ++
           whereAll ++ ords ++ ProjectionSql.limitOffset(plan)
-        ProjectionDb.run(q.query[String].to[List]).map(_.map(s => net.liftweb.json.parse(s).asInstanceOf[JObject]))
+        ProjectionDb.run(q.query[String].to[List]).map(_.map(s => com.openbankproject.commons.util.JsonAliases.parse(s).asInstanceOf[JObject]))
       case _ =>
         IO.raiseError(new RuntimeException(s"PostgresProjectionBackend: unresolved field in query plan for $entityName"))
     }

@@ -1,5 +1,6 @@
 package code.api.berlin.group.v1_3
 
+import org.json4s._
 import cats.data.{Kleisli, OptionT}
 import cats.effect._
 import code.api.berlin.group.ConstantsBG
@@ -24,10 +25,10 @@ import com.openbankproject.commons.model.enums.TransactionRequestTypes._
 import com.openbankproject.commons.model.enums.{ChallengeType, PaymentServiceTypes, StrongCustomerAuthenticationStatus, SuppliedAnswerType, TransactionRequestStatus, TransactionRequestTypes}
 import net.liftweb.common.Box.tryo
 import net.liftweb.common.Full
-import net.liftweb.json
-import net.liftweb.json.Formats
-import net.liftweb.json.JsonAST.prettyRender
-import net.liftweb.json.{Extraction => LiftExtraction}
+import com.openbankproject.commons.util.json
+import org.json4s.Formats
+import com.openbankproject.commons.util.JsonAliases.prettyRender
+import org.json4s.{Extraction => LiftExtraction}
 import org.http4s._
 import org.http4s.dsl.io._
 
@@ -46,7 +47,7 @@ object Http4sBGv13PIS extends MdcLoggable {
 
   implicit val formats: Formats = CustomJsonFormats.formats
 
-  protected implicit def JvalueToSuper(what: net.liftweb.json.JValue): JvalueCaseClass = JvalueCaseClass(what)
+  protected implicit def JvalueToSuper(what: org.json4s.JValue): JvalueCaseClass = JvalueCaseClass(what)
 
   val implementedInApiVersion = ConstantsBG.berlinGroupVersion1
   val resourceDocs = ArrayBuffer[ResourceDoc]()
@@ -76,7 +77,7 @@ object Http4sBGv13PIS extends MdcLoggable {
     paymentService: String,
     paymentProduct: String,
     callContext: Option[CallContext]
-  ): Future[net.liftweb.json.JValue] = {
+  ): Future[org.json4s.JValue] = {
     val u = callContext.flatMap(_.user.toOption)
     val rawBody = callContext.flatMap(_.httpBody).getOrElse("")
     val bodyJson = scala.util.Try(json.parse(rawBody)).getOrElse(json.JNothing)
@@ -323,7 +324,7 @@ object Http4sBGv13PIS extends MdcLoggable {
     case req @ GET -> `bgV13Prefix` / paymentService / paymentProduct / paymentId / "status" =>
       EndpointHelpers.executeAndRespond(req) { cc =>
         val callContext = Some(cc)
-        import net.liftweb.json.JsonDSL._
+        import org.json4s.JsonDSL._
         for {
           _ <- passesPsd2Pisp(callContext)
           _ <- NewStyle.function.tryons(checkPaymentServerTypeError(paymentService), 404, callContext) {

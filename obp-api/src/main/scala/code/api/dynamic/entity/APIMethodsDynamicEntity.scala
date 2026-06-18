@@ -14,9 +14,10 @@ import com.openbankproject.commons.model.enums.DynamicEntityOperation._
 import com.openbankproject.commons.model.enums._
 import com.openbankproject.commons.util.{ApiVersion, JsonUtils}
 import net.liftweb.common._
-import net.liftweb.json.JsonAST.JValue
-import net.liftweb.json.JsonDSL._
-import net.liftweb.json._
+import org.json4s.JsonAST.JValue
+import org.json4s.JsonDSL._
+import org.json4s._
+import com.openbankproject.commons.util.JsonAliases._
 import net.liftweb.util.StringHelpers
 import org.apache.commons.lang3.StringUtils
 

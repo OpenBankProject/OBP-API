@@ -38,7 +38,8 @@ import code.util.Helper.MdcLoggable
 import com.nimbusds.jwt.JWTClaimsSet
 import com.openbankproject.commons.model.{InboundAccount, User}
 import net.liftweb.common._
-import net.liftweb.json._
+import org.json4s._
+import com.openbankproject.commons.util.JsonAliases._
 import net.liftweb.util.Helpers
 
 import com.openbankproject.commons.ExecutionContext.Implicits.global
@@ -69,7 +70,7 @@ object JSONFactoryGateway {
 // HTTP routes of its own; the legacy `extends RestHelper` mixin was vestigial.
 object GatewayLogin extends MdcLoggable {
 
-  // For lift-json `.extract[PayloadOfJwtJSON]` calls below.
+  // For json4s `.extract[PayloadOfJwtJSON]` calls below.
   private implicit val formats: Formats = DefaultFormats
 
   val gateway = "Gateway" // This value is used for ResourceUser.provider and Consumer.description

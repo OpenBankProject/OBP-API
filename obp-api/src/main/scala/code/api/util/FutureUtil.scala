@@ -1,10 +1,11 @@
 package code.api.util
 
+import org.json4s._
 import java.util.concurrent.TimeoutException
 import java.util.{Timer, TimerTask}
 
 import code.api.{APIFailureNewStyle, Constant}
-import net.liftweb.json.{Extraction, JsonAST}
+import org.json4s.{Extraction, JsonAST}
 import code.api.util.APIUtil.{decrementFutureCounter, incrementFutureCounter}
 
 import scala.concurrent.{ExecutionContext, Future, Promise}

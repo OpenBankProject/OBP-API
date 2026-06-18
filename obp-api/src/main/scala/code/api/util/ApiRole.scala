@@ -1,11 +1,12 @@
 package code.api.util
 
+import org.json4s._
 import code.api.dynamic.endpoint.helper.DynamicEndpointHelper
 import code.api.dynamic.entity.helper.DynamicEntityHelper
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.util.{JsonAble, ReflectUtils}
-import net.liftweb.json.JsonDSL._
-import net.liftweb.json.{Formats, JsonAST}
+import org.json4s.JsonDSL._
+import org.json4s.{Formats, JsonAST}
 
 import java.util.concurrent.ConcurrentHashMap
 

@@ -80,13 +80,13 @@ import com.openbankproject.commons.util.Functions.Implicits._
 import com.openbankproject.commons.util._
 import javassist.expr.{ExprEditor, MethodCall}
 import javassist.{CannotCompileException, ClassPool, LoaderClassPath}
-import net.liftweb.actor.LAFuture
 import net.liftweb.common._
 import code.api.JsonResponse
-import net.liftweb.json
-import net.liftweb.json.JsonAST.{JField, JNothing, JObject, JString, JValue}
-import net.liftweb.json.JsonParser.ParseException
-import net.liftweb.json._
+import com.openbankproject.commons.util.json
+import org.json4s.JsonAST.{JField, JNothing, JObject, JString, JValue}
+import org.json4s.ParserUtil.ParseException
+import org.json4s._
+import com.openbankproject.commons.util.JsonAliases._
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers._
 import net.liftweb.util._
@@ -706,7 +706,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         val responseHeaders = getRequestHeadersNewStyle(callContext,httpBody).list
         JsonResponse(JNull, getHeaders() ::: headers.list ::: jwsHeaders ::: responseHeaders, Nil, 204)
       case Some(c) if c.httpCode.isDefined =>
-        val httpBody = Full(JsonAST.compactRender(jsonValue))
+        val httpBody = Full(com.openbankproject.commons.util.JsonAliases.compactRender(jsonValue))
         val jwsHeaders = getSignRequestHeadersNewStyle(callContext,httpBody).list
         val responseHeaders = getRequestHeadersNewStyle(callContext,httpBody).list
         val code = checkConditionalRequest(callContext, c.verb, c.httpCode.get, httpBody)
@@ -720,7 +720,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         val responseHeaders = getRequestHeadersNewStyle(callContext,httpBody).list
         JsonResponse(JNull, getHeaders() ::: headers.list ::: jwsHeaders ::: responseHeaders, Nil, 204)
       case _ =>
-        val httpBody = Full(JsonAST.compactRender(jsonValue))
+        val httpBody = Full(com.openbankproject.commons.util.JsonAliases.compactRender(jsonValue))
         val jwsHeaders = getSignRequestHeadersNewStyle(callContext,httpBody).list
         val responseHeaders = getRequestHeadersNewStyle(callContext,httpBody).list
         JsonResponse(jsonValue, getHeaders() ::: headers.list ::: jwsHeaders ::: responseHeaders, Nil, httpCode)
@@ -782,7 +782,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       }
     }
     val errorMessageAst: json.JValue = composeErrorMessage()
-    val httpBody = JsonAST.compactRender(errorMessageAst)
+    val httpBody = com.openbankproject.commons.util.JsonAliases.compactRender(errorMessageAst)
     val jwsHeaders: CustomResponseHeaders = getSignRequestHeadersError(callContextLight, httpBody)
     JsonResponse(errorMessageAst, responseHeaders ::: jwsHeaders.list, Nil, code)
   }
@@ -2666,23 +2666,6 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     }
   }
 
-  def scalaFutureToLaFuture[T](scf: Future[T])(implicit m: Manifest[T]): LAFuture[T] = {
-    val laf = new LAFuture[T]
-    scf.onSuccess {
-      case v: T => laf.satisfy(v)
-      case _ => laf.abort
-    }
-    scf.onFailure {
-      case e: AccessControlException =>
-        laf.fail(Failure(s"$DynamicResourceDocMethodPermission No permission of: ${e.getPermission.toString}", Full(e), Empty))
-
-      case e: Throwable =>
-        laf.fail(Failure(e.getMessage(), Full(e), Empty))
-    }
-    laf
-  }
-
-
   def extractAPIFailureNewStyle(msg: String): Option[APIFailureNewStyle] = {
     try {
       parse(msg).extractOpt[APIFailureNewStyle] match {
@@ -3178,11 +3161,11 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         val failuresMsg = filterMessage(obj)
         val callContext = af.ccl.map(_.copy(httpCode = Some(af.failCode)))
         val apiFailure = af.copy(failMsg = failuresMsg).copy(ccl = callContext)
-        throw new Exception(JsonAST.compactRender(Extraction.decompose(apiFailure)))
+        throw new Exception(com.openbankproject.commons.util.JsonAliases.compactRender(Extraction.decompose(apiFailure)))
       case ParamFailure(_, _, _, failure : APIFailure) =>
         val callContext = CallContextLight()
         val apiFailure = APIFailureNewStyle(failMsg = failure.msg, failCode = failure.responseCode, ccl = Some(callContext))
-        throw new Exception(JsonAST.compactRender(Extraction.decompose(apiFailure)))
+        throw new Exception(com.openbankproject.commons.util.JsonAliases.compactRender(Extraction.decompose(apiFailure)))
       case ParamFailure(msg,_,_,_) =>
         throw new Exception(msg)
       case obj@Failure(_, _, _) =>
@@ -4499,7 +4482,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     } else {
       AuthenticationTypeValidationProvider.validationProvider.vend.getByOperationId(operationId) match {
         case Full(v) if !v.authTypes.contains(callContext.authType)=>
-          import net.liftweb.json.JsonDSL._
+          import org.json4s.JsonDSL._
           val errorMsg = s"""$AuthenticationTypeIllegal allowed authentication types: ${v.authTypes.mkString("[", ", ", "]")}, current request auth type: $authType"""
           val errorCode = 400
           val errorResponse = ("code", errorCode) ~ ("message", errorMsg)
@@ -4547,7 +4530,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   }
 
   def createErrorJsonResponse(errorMsg: String, errorCode: Int, correlationId: String): JsonResponse = {
-    import net.liftweb.json.JsonDSL._
+    import org.json4s.JsonDSL._
     val errorResponse = ("code", errorCode) ~ ("message", errorMsg)
     val jsonResponse = JsonResponse(errorResponse, errorCode).asInstanceOf[JsonResponse]
     // add correlatedId to header
@@ -4558,7 +4541,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   object JsonResponseExtractor {
     def unapply(jsonResponse: JsonResponse): Option[(String, Int)] = jsonResponse match {
       case JsonResponse(bodyJson, _, _, code) =>
-        val responseBody = net.liftweb.json.compactRender(bodyJson)
+        val responseBody = com.openbankproject.commons.util.JsonAliases.compactRender(bodyJson)
         (parse(responseBody) \ "message") match {
           case JString(message) =>
             Some(message -> code)

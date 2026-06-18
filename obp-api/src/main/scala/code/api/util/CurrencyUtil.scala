@@ -1,6 +1,7 @@
 package code.api.util
 
-import net.liftweb.json.parse
+import org.json4s._
+import com.openbankproject.commons.util.JsonAliases.parse
 
 object CurrencyUtil {
   implicit val formats = CustomJsonFormats.formats

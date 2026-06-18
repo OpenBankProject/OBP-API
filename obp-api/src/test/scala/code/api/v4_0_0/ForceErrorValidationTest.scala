@@ -1,5 +1,6 @@
 package code.api.v4_0_0
 
+import org.json4s._
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole
 import code.api.util.ApiRole._
@@ -14,7 +15,8 @@ import code.setup.{APIResponse, PropsReset}
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.ApiVersion
-import net.liftweb.json.{JInt, JString, prettyRender}
+import org.json4s.{JInt, JString}
+import com.openbankproject.commons.util.JsonAliases.prettyRender
 import org.scalatest.Tag
 
 class ForceErrorValidationTest extends V400ServerSetup with PropsReset {

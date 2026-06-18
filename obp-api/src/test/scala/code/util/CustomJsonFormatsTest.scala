@@ -1,12 +1,13 @@
 package code.util
 
+import org.json4s._
 import code.api.UKOpenBanking.v2_0_0.OBP_UKOpenBanking_200
 import com.openbankproject.commons.util.ApiVersion
 import code.api.util.{ CustomJsonFormats}
 import com.openbankproject.commons.util.OBPRequired
-import net.liftweb.json
-import net.liftweb.json.JsonDSL._
-import net.liftweb.json.{Formats, JObject}
+import com.openbankproject.commons.util.json
+import org.json4s.JsonDSL._
+import org.json4s.{Formats, JObject}
 import org.scalatest.{FeatureSpec, GivenWhenThen, Matchers}
 
 case class FirstTypeForTest(val name: String, age: Option[Int])

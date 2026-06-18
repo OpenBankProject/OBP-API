@@ -1,5 +1,6 @@
 package code.api.v5_0_0
 
+import org.json4s._
 import cats.data.{Kleisli, OptionT}
 import cats.effect._
 import code.accountattribute.AccountAttributeX
@@ -47,9 +48,10 @@ import com.openbankproject.commons.model.{
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication
 import com.openbankproject.commons.util.{ApiVersion, ApiVersionStatus, ScannedApiVersion}
 import net.liftweb.common.{Empty, Full}
-import net.liftweb.json
-import net.liftweb.json.JsonAST.prettyRender
-import net.liftweb.json.{Extraction, Formats, compactRender}
+import com.openbankproject.commons.util.json
+import com.openbankproject.commons.util.JsonAliases.prettyRender
+import org.json4s.{Extraction, Formats}
+import com.openbankproject.commons.util.JsonAliases.compactRender
 import net.liftweb.mapper.By
 import net.liftweb.util.{Helpers, Props, StringHelpers}
 import org.http4s.{HttpRoutes, MediaType, Method, Request, Response, Status, Uri}
@@ -287,7 +289,7 @@ object Http4s500 {
               400,
               Some(cc)
             ) {
-              net.liftweb.json.parse(bodyString).extract[CreateViewJsonV500]
+              com.openbankproject.commons.util.JsonAliases.parse(bodyString).extract[CreateViewJsonV500]
             }
             _ <- code.util.Helper.booleanToFuture(
               SystemViewCannotBePublicError,
@@ -373,7 +375,7 @@ object Http4s500 {
               400,
               Some(cc)
             ) {
-              net.liftweb.json.parse(bodyString).extract[UpdateViewJsonV500]
+              com.openbankproject.commons.util.JsonAliases.parse(bodyString).extract[UpdateViewJsonV500]
             }
             _ <- code.util.Helper.booleanToFuture(
               SystemViewCannotBePublicError,
@@ -427,7 +429,7 @@ object Http4s500 {
           val failMsg = s"$InvalidJsonFormat The Json body should be the $PostBankJson500 "
           for {
             postJson <- NewStyle.function.tryons(failMsg, 400, Some(cc)) {
-              net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[PostBankJson500]
+              com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[PostBankJson500]
             }
             checkShortStringValue = APIUtil.checkOptionalShortString(postJson.id.getOrElse(SILENCE_IS_GOLDEN))
             _ <- Helper.booleanToFuture(s"$checkShortStringValue.", cc = Some(cc)) {
@@ -513,7 +515,7 @@ object Http4s500 {
           val failMsg = s"$InvalidJsonFormat The Json body should be the $PostBankJson500 "
           for {
             bank <- NewStyle.function.tryons(failMsg, 400, Some(cc)) {
-              net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[PostBankJson500]
+              com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[PostBankJson500]
             }
             _ <- Helper.booleanToFuture(InvalidConsumerCredentials, cc = Some(cc)) {
               cc.consumer.isDefined
@@ -577,7 +579,7 @@ object Http4s500 {
             (account, _) <- Connector.connector.vend.checkBankAccountExists(bankId, accountId, Some(cc))
             _ <- Helper.booleanToFuture(AccountIdAlreadyExists, cc = Some(cc)) { account.isEmpty }
             createAccountJson <- NewStyle.function.tryons(failMsg, 400, Some(cc)) {
-              net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[CreateAccountRequestJsonV500]
+              com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[CreateAccountRequestJsonV500]
             }
             loggedInUserId = user.userId
             userIdAccountOwner = createAccountJson.user_id.getOrElse(loggedInUserId)
@@ -664,7 +666,7 @@ object Http4s500 {
           val failMsg = s"$InvalidJsonFormat The Json body should be the $PostUserAuthContextJson "
           for {
             postedData <- NewStyle.function.tryons(failMsg, 400, Some(cc)) {
-              net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[PostUserAuthContextJson]
+              com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[PostUserAuthContextJson]
             }
             (user, _) <- NewStyle.function.findByUserId(userId, Some(cc))
             (userAuthContext, _) <- NewStyle.function.createUserAuthContext(
@@ -744,7 +746,7 @@ object Http4s500 {
             }
             failMsg = s"$InvalidJsonFormat The Json body should be the $PostUserAuthContextJson "
             postedData <- NewStyle.function.tryons(failMsg, 400, Some(cc)) {
-              net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[PostUserAuthContextJson]
+              com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[PostUserAuthContextJson]
             }
             (userAuthContextUpdate, _) <- NewStyle.function.validateUserAuthContextUpdateRequest(
               bankId.value, user.userId, postedData.key.trim, postedData.value.trim, scaMethod, Some(cc))
@@ -784,7 +786,7 @@ object Http4s500 {
           val failMsg = s"$InvalidJsonFormat The Json body should be the $PostUserAuthContextUpdateJsonV310 "
           for {
             postUserAuthContextUpdateJson <- NewStyle.function.tryons(failMsg, 400, Some(cc)) {
-              net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[PostUserAuthContextUpdateJsonV310]
+              com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[PostUserAuthContextUpdateJsonV310]
             }
             (userAuthContextUpdate, _) <- NewStyle.function.checkAnswer(authContextUpdateId, postUserAuthContextUpdateJson.answer, Some(cc))
             (user, _) <- NewStyle.function.getUserByUserId(userAuthContextUpdate.userId, Some(cc))
@@ -838,7 +840,7 @@ object Http4s500 {
             _ <- APIUtil.passesPsd2Aisp(callContextOpt)
             failMsg = s"$InvalidJsonFormat The Json body should be the $PostConsentBodyCommonJson "
             consentJson <- NewStyle.function.tryons(failMsg, 400, callContextOpt) {
-              net.liftweb.json.parse(rawBody).extract[PostConsentRequestJsonV500]
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[PostConsentRequestJsonV500]
             }
             maxTimeToLive = APIUtil.getPropsAsIntValue(nameOfProperty = "consents.max_time_to_live", defaultValue = DEFAULT_CONSENT_TTL)
             _ <- Helper.booleanToFuture(s"$ConsentMaxTTL ($maxTimeToLive)", cc = callContextOpt) {
@@ -849,7 +851,7 @@ object Http4s500 {
             }
             createdConsentRequest <- Future(ConsentRequests.consentRequestProvider.vend.createConsentRequest(
               callContextOpt.flatMap(_.consumer),
-              Some(compactRender(net.liftweb.json.parse(rawBody)))
+              Some(compactRender(com.openbankproject.commons.util.JsonAliases.parse(rawBody)))
             )).map(i => connectorEmptyResponse(i, callContextOpt))
           } yield JSONFactory500.createConsentRequestResponseJson(createdConsentRequest)
         }
@@ -1450,7 +1452,7 @@ object Http4s500 {
           for {
             postedData <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The Json body should be the $PostCustomerJsonV500 ", 400, Some(cc)) {
-              net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[PostCustomerJsonV500]
+              com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[PostCustomerJsonV500]
             }
             _ <- Helper.booleanToFuture(
               InvalidJsonContent + s" The field dependants(${postedData.dependants.getOrElse(0)}) not equal the length(${postedData.dob_of_dependants.getOrElse(Nil).length}) of dob_of_dependants array",
@@ -1525,7 +1527,7 @@ object Http4s500 {
           for {
             postedData <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The Json body should be the $PostCustomerOverviewJsonV500 ", 400, Some(cc)) {
-              net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[PostCustomerOverviewJsonV500]
+              com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[PostCustomerOverviewJsonV500]
             }
             (customer, _) <- NewStyle.function.getCustomerByCustomerNumber(postedData.customer_number, bankId, Some(cc))
             (customerAttributes, _) <- NewStyle.function.getCustomerAttributes(bankId, CustomerId(customer.customerId), Some(cc))
@@ -1568,7 +1570,7 @@ object Http4s500 {
           for {
             postedData <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The Json body should be the $PostCustomerOverviewJsonV500 ", 400, Some(cc)) {
-              net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[PostCustomerOverviewJsonV500]
+              com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[PostCustomerOverviewJsonV500]
             }
             (customer, _) <- NewStyle.function.getCustomerByCustomerNumber(postedData.customer_number, bankId, Some(cc))
             (customerAttributes, _) <- NewStyle.function.getCustomerAttributes(bankId, CustomerId(customer.customerId), Some(cc))
@@ -1748,7 +1750,7 @@ object Http4s500 {
               bankId.value, user.userId, createProductEntitlements, Some(cc))
             failMsg = s"$InvalidJsonFormat The Json body should be the $PutProductJsonV500 "
             product <- NewStyle.function.tryons(failMsg, 400, Some(cc)) {
-              net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[PutProductJsonV500]
+              com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[PutProductJsonV500]
             }
             (parentProduct, _) <- product.parent_product_code.trim.nonEmpty match {
               case false => Future.successful((Empty, Some(cc)))
@@ -1817,7 +1819,7 @@ object Http4s500 {
             (_, _) <- NewStyle.function.getBank(bankId, Some(cc))
             failMsg = s"$InvalidJsonFormat The Json body should be the $CreatePhysicalCardJsonV500 "
             postJson <- NewStyle.function.tryons(failMsg, 400, Some(cc)) {
-              net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[CreatePhysicalCardJsonV500]
+              com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[CreatePhysicalCardJsonV500]
             }
             _ <- postJson.allows match {
               case Nil => Future.successful(true)
@@ -2076,7 +2078,7 @@ object Http4s500 {
             (_, _) <- NewStyle.function.getBank(bankId, Some(cc))
             postedData <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The Json body should be the $CreateCustomerAccountLinkJson ", 400, Some(cc)) {
-              net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[CreateCustomerAccountLinkJson]
+              com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[CreateCustomerAccountLinkJson]
             }
             (customer, _) <- NewStyle.function.getCustomerByCustomerId(postedData.customer_id, Some(cc))
             _ <- booleanToFuture(
@@ -2216,7 +2218,7 @@ object Http4s500 {
             (_, _) <- NewStyle.function.getBank(bankId, Some(cc))
             postedData <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The Json body should be the $UpdateCustomerAccountLinkJson ", 400, Some(cc)) {
-              net.liftweb.json.parse(cc.httpBody.getOrElse("")).extract[UpdateCustomerAccountLinkJson]
+              com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[UpdateCustomerAccountLinkJson]
             }
             (_, _) <- NewStyle.function.getCustomerAccountLinkById(customerAccountLinkId, Some(cc))
             (link, _) <- NewStyle.function.updateCustomerAccountLinkById(customerAccountLinkId, postedData.relationship_type, Some(cc))
@@ -2376,7 +2378,7 @@ object Http4s500 {
         OptionT.liftF(IO.pure {
           val contentType = req.headers.get(CIString("Content-Type")).map(_.head.value).getOrElse("")
           Response[IO](status = Status.NotFound)
-            .withEntity(net.liftweb.json.compactRender(APIUtil.errorJsonResponse(s"${ErrorMessages.InvalidUri}Current Url is (${req.uri}), Current Content-Type Header is ($contentType)", 404).body))
+            .withEntity(com.openbankproject.commons.util.JsonAliases.compactRender(APIUtil.errorJsonResponse(s"${ErrorMessages.InvalidUri}Current Url is (${req.uri}), Current Content-Type Header is ($contentType)", 404).body))
             .withContentType(org.http4s.headers.`Content-Type`(MediaType.application.json))
         })
       }

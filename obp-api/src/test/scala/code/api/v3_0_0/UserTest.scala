@@ -1,5 +1,6 @@
 package code.api.v3_0_0
 
+import org.json4s._
 import com.openbankproject.commons.model.ErrorMessage
 import code.api.util.APIUtil.OAuth._
 import code.api.util.{ApiRole, ErrorMessages}
@@ -11,10 +12,10 @@ import code.entitlement.Entitlement
 import code.setup.DefaultUsers
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.util.ApiVersion
-import net.liftweb.json.JsonAST._
-import net.liftweb.json.Serialization.write
+import org.json4s.native.Serialization.write
 import net.liftweb.util.Helpers.randomString
 import org.scalatest.Tag
+import com.openbankproject.commons.util.JsonAliases.compactRender
 
 
 class UserTest extends V300ServerSetup with DefaultUsers {

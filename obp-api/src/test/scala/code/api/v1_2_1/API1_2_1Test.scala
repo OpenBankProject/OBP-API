@@ -26,7 +26,7 @@ TESOBE (http://www.tesobe.com/)
   */
 package code.api.v1_2_1
 
-import _root_.net.liftweb.json.Serialization.write
+import _root_.org.json4s.native.Serialization.write
 import code.api.Constant._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil
@@ -37,7 +37,8 @@ import code.bankconnectors.Connector
 import code.setup.{APIResponse, DefaultUsers, PrivateUser2AccountsAndSetUpWithTestData, ServerSetupWithTestData}
 import code.views.Views
 import com.openbankproject.commons.model._
-import net.liftweb.json._
+import org.json4s._
+import com.openbankproject.commons.util.JsonAliases._
 import net.liftweb.util.Helpers._
 import org.scalatest.Tag
 

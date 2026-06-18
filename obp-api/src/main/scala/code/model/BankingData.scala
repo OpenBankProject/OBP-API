@@ -26,6 +26,7 @@ TESOBE (http://www.tesobe.com/)
   */
 package code.model
 
+import org.json4s._
 import code.accountholders.AccountHolders
 import code.api.util.APIUtil.{OBPReturnType, canGrantAccessToMultipleViews, canGrantAccessToView, canRevokeAccessToAllViews, canRevokeAccessToView, unboxFullOrFail}
 import code.api.util.ErrorMessages._
@@ -39,8 +40,8 @@ import code.views.system.AccountAccess
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
 import net.liftweb.common._
-import net.liftweb.json.JsonDSL._
-import net.liftweb.json.{JArray, JObject}
+import org.json4s.JsonDSL._
+import org.json4s.{JArray, JObject}
 
 import java.util.Date
 import scala.collection.immutable.{List, Set}

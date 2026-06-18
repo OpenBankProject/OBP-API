@@ -5,7 +5,7 @@
 //import code.atms.MappedAtm
 //import code.bankattribute.BankAttribute
 //import com.openbankproject.commons.model.Bank
-//import net.liftweb.json.JValue
+//import org.json4s.JValue
 //
 //import scala.collection.immutable.List
 //import com.openbankproject.commons.model._

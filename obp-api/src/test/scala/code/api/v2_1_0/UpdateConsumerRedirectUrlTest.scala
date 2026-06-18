@@ -1,12 +1,13 @@
 package code.api.v2_1_0
 
+import org.json4s._
 import code.api.util.APIUtil.OAuth._
 import code.api.util.{APIUtil, ApiRole}
 import code.api.util.ApiRole.CanUpdateConsumerRedirectUrl
 import code.api.util.ErrorMessages.{UserHasMissingRoles, UserNoPermissionUpdateConsumer}
 import code.setup.DefaultUsers
-import net.liftweb.json.JsonAST.JString
-import net.liftweb.json.Serialization.write
+import org.json4s.JsonAST.JString
+import org.json4s.native.Serialization.write
 
 class UpdateConsumerRedirectUrlTest extends V210ServerSetup with DefaultUsers {
 

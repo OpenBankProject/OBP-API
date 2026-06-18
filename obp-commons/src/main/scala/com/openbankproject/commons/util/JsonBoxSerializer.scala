@@ -16,10 +16,11 @@
 
 package com.openbankproject.commons.util
 
+import org.json4s._
 import net.liftweb.common.{Box, Empty, Failure, Full, ParamFailure}
-import net.liftweb.json.Extraction.{decompose, extract}
-import net.liftweb.json.JsonAST.{JField, JNothing, JNull, JObject, JString, JValue}
-import net.liftweb.json.{Formats, MappingException, Serializer, TypeInfo}
+import org.json4s.Extraction.{decompose, extract}
+import org.json4s.JsonAST.{JField, JNothing, JNull, JObject, JString, JValue}
+import org.json4s.{Formats, MappingException, Serializer, TypeInfo}
 import org.apache.commons.codec.binary.Base64
 
 import java.io._

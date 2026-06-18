@@ -1,11 +1,11 @@
 package code.api.v2_0_0
 
+import org.json4s._
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ErrorMessages
 import code.setup.{DefaultUsers, PrivateUser2AccountsAndSetUpWithTestData}
 import com.openbankproject.commons.model.{AmountOfMoneyJsonV121 => AmountOfMoneyJSON121}
-import net.liftweb.json.JsonAST._
-import net.liftweb.json.Serialization.write
+import org.json4s.native.Serialization.write
 
 class AccountTest extends V200ServerSetup with DefaultUsers with PrivateUser2AccountsAndSetUpWithTestData {
   val mockAccountId1 = "NEW_ACCOUNT_ID_01"

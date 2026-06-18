@@ -2,10 +2,11 @@ package code.endpointTag
 
 /* For Connector endpoint routing, star connector use this provider to find proxy connector name */
 
+import org.json4s._
 import com.openbankproject.commons.model.{Converter, JsonFieldReName, EndpointTagT}
 import net.liftweb.common.Box
-import net.liftweb.json.Formats
-import net.liftweb.json.JsonAST.{JField, JNull, JObject, JString}
+import org.json4s.Formats
+import org.json4s.JsonAST.{JField, JNull, JObject, JString}
 import net.liftweb.util.SimpleInjector
 
 object EndpointTagProvider extends SimpleInjector {

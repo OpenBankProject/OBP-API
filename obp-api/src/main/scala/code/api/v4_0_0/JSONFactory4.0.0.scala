@@ -26,6 +26,7 @@
   */
 package code.api.v4_0_0
 
+import org.json4s._
 import code.api.Constant
 import code.api.attributedefinition.AttributeDefinition
 import code.api.util.APIUtil.{DateWithDay, DateWithSeconds, gitCommit, stringOptionOrNull, stringOrNull}
@@ -59,7 +60,7 @@ import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.ChallengeType
 import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.common.{Box, Full}
-import net.liftweb.json.JValue
+import org.json4s.JValue
 
 import java.text.SimpleDateFormat
 import java.util.Date

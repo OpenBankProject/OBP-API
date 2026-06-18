@@ -30,9 +30,10 @@ import com.openbankproject.commons.model.ErrorMessage
 import code.api.util.ApiRole._
 import code.entitlement.Entitlement
 import com.openbankproject.commons.util.ApiVersion
-import net.liftweb.json.JsonDSL._
-import net.liftweb.json.Serialization.write
-import net.liftweb.json._
+import org.json4s.JsonDSL._
+import org.json4s.native.Serialization.write
+import org.json4s._
+import com.openbankproject.commons.util.JsonAliases.parse
 import org.scalatest.Tag
 
 /**

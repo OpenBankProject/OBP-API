@@ -1,12 +1,13 @@
 package code.chat
 
+import org.json4s._
 import code.api.cache.Redis
 import code.api.util.APIUtil
 import code.util.Helper.MdcLoggable
 import io.grpc.stub.StreamObserver
-import net.liftweb.json
-import net.liftweb.json.{Extraction, JsonAST}
-import net.liftweb.json.Serialization.write
+import com.openbankproject.commons.util.json
+import org.json4s.{Extraction, JsonAST}
+import org.json4s.native.Serialization.write
 import redis.clients.jedis.{Jedis, JedisPubSub}
 
 import java.util.concurrent.{ConcurrentHashMap, CopyOnWriteArrayList}

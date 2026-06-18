@@ -1,5 +1,6 @@
 package code.api.util.http4s
 
+import org.json4s._
 import cats.effect._
 import code.api.util.APIUtil.{HTTPParam, ResourceDoc}
 import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, InvalidJsonFormat}
@@ -101,8 +102,8 @@ object Http4sRequestAttributes {
    * - Ok response creation
    */
   object EndpointHelpers extends MdcLoggable {
-    import net.liftweb.json.JsonAST.prettyRender
-    import net.liftweb.json.{Extraction, Formats}
+    import com.openbankproject.commons.util.JsonAliases.prettyRender
+    import org.json4s.{Extraction, Formats}
 
     // OBP responses are always JSON. Passing a raw String to http4s' Ok/Created uses the
     // default EntityEncoder[String], which sets `Content-Type: text/plain`. Override it so
@@ -201,7 +202,7 @@ object Http4sRequestAttributes {
       cc.httpBody match {
         case None | Some("") => Left(s"$InvalidJsonFormat Missing request body.")
         case Some(raw) =>
-          scala.util.Try(net.liftweb.json.parse(raw).extract[B]).toEither.left.map(_ => s"$InvalidJsonFormat ${mf.runtimeClass.getSimpleName}")
+          scala.util.Try(com.openbankproject.commons.util.JsonAliases.parse(raw).extract[B]).toEither.left.map(_ => s"$InvalidJsonFormat ${mf.runtimeClass.getSimpleName}")
       }
 
     /**

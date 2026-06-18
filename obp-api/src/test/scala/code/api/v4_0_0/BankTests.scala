@@ -1,5 +1,6 @@
 package code.api.v4_0_0
 
+import org.json4s._
 import code.api.Constant.{INCOMING_SETTLEMENT_ACCOUNT_ID, OUTGOING_SETTLEMENT_ACCOUNT_ID}
 import com.openbankproject.commons.model.{AccountId, BankId, ErrorMessage}
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.bankJson400
@@ -12,7 +13,7 @@ import code.entitlement.Entitlement
 import code.setup.{APIResponse, DefaultUsers}
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.util.ApiVersion
-import net.liftweb.json.Serialization.write
+import org.json4s.native.Serialization.write
 import org.scalatest.Tag
 
 class BankTests extends V400ServerSetupAsync with DefaultUsers {

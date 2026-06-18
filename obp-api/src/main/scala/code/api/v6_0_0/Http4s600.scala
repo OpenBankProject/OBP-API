@@ -1,5 +1,6 @@
 package code.api.v6_0_0
 
+import org.json4s._
 import cats.data.{Kleisli, OptionT}
 import cats.effect._
 import code.api.Constant._
@@ -91,8 +92,8 @@ import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.{BankId, BankIdAccountId, CustomerId, ListResult, ViewId}
 import com.openbankproject.commons.util.{ApiVersion, ApiVersionStatus, ScannedApiVersion}
 import net.liftweb.common.Full
-import net.liftweb.json.{Extraction, Formats}
-import net.liftweb.json.JsonAST.prettyRender
+import org.json4s.{Extraction, Formats}
+import com.openbankproject.commons.util.JsonAliases.prettyRender
 import org.http4s.{Header, HttpRoutes, Request, Response, Uri}
 import org.http4s.dsl.io._
 import org.typelevel.ci.CIString
@@ -420,7 +421,7 @@ object Http4s600 {
             postedData <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The Json body should be the ${classOf[PostCustomerNumberJsonV310].getSimpleName}",
               400, Some(cc)) {
-              net.liftweb.json.parse(rawBody).extract[PostCustomerNumberJsonV310]
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[PostCustomerNumberJsonV310]
             }
             (customer, callContext) <- NewStyle.function.getCustomerByCustomerNumber(
               postedData.customer_number, bank.bankId, Some(cc))
@@ -441,7 +442,7 @@ object Http4s600 {
             postedData <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The Json body should be the ${classOf[PostCustomerLegalNameJsonV510].getSimpleName}",
               400, Some(cc)) {
-              net.liftweb.json.parse(rawBody).extract[PostCustomerLegalNameJsonV510]
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[PostCustomerLegalNameJsonV510]
             }
             (customers, _) <- NewStyle.function.getCustomersByCustomerLegalName(
               bank.bankId, postedData.legal_name, Some(cc))
@@ -462,9 +463,9 @@ object Http4s600 {
       Full(result) <- NewStyle.function.createOrUpdateDynamicEntity(dynamicEntity, Some(cc))
         .recoverWith {
           case e: Throwable if !Option(e.getMessage).exists(_.startsWith("OBP-")) =>
-            val json = net.liftweb.json.Serialization.write(
+            val json = org.json4s.native.Serialization.write(
               code.api.APIFailureNewStyle(s"$InvalidJsonFormat ${e.getMessage}", 400, Some(cc).map(_.toLight))
-            )(net.liftweb.json.DefaultFormats)
+            )(org.json4s.DefaultFormats)
             Future.failed(new Exception(json))
         }
       crudRoles = List(
@@ -483,9 +484,9 @@ object Http4s600 {
       Full(result) <- NewStyle.function.createOrUpdateDynamicEntity(dynamicEntity, Some(cc))
         .recoverWith {
           case e: Throwable if !Option(e.getMessage).exists(_.startsWith("OBP-")) =>
-            val json = net.liftweb.json.Serialization.write(
+            val json = org.json4s.native.Serialization.write(
               code.api.APIFailureNewStyle(s"$InvalidJsonFormat ${e.getMessage}", 400, Some(cc).map(_.toLight))
-            )(net.liftweb.json.DefaultFormats)
+            )(org.json4s.DefaultFormats)
             Future.failed(new Exception(json))
         }
     } yield {
@@ -500,7 +501,7 @@ object Http4s600 {
           val rawBody = cc.httpBody.getOrElse("")
           for {
             request <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
-              net.liftweb.json.parse(rawBody).extract[CreateDynamicEntityRequestJsonV600]
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[CreateDynamicEntityRequestJsonV600]
             }
             _ <- validateEntityNameV600(request.entity_name, cc)
             dynamicEntity <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
@@ -520,7 +521,7 @@ object Http4s600 {
           val rawBody = cc.httpBody.getOrElse("")
           for {
             request <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
-              net.liftweb.json.parse(rawBody).extract[CreateDynamicEntityRequestJsonV600]
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[CreateDynamicEntityRequestJsonV600]
             }
             _ <- validateEntityNameV600(request.entity_name, cc)
             dynamicEntity <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
@@ -539,7 +540,7 @@ object Http4s600 {
           val rawBody = cc.httpBody.getOrElse("")
           for {
             request <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
-              net.liftweb.json.parse(rawBody).extract[UpdateDynamicEntityRequestJsonV600]
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[UpdateDynamicEntityRequestJsonV600]
             }
             _ <- validateEntityNameV600(request.entity_name, cc)
             internalJson = JSONFactory600.convertV600UpdateRequestToInternal(request)
@@ -557,7 +558,7 @@ object Http4s600 {
           val rawBody = cc.httpBody.getOrElse("")
           for {
             request <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
-              net.liftweb.json.parse(rawBody).extract[UpdateDynamicEntityRequestJsonV600]
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[UpdateDynamicEntityRequestJsonV600]
             }
             _ <- validateEntityNameV600(request.entity_name, cc)
             internalJson = JSONFactory600.convertV600UpdateRequestToInternal(request)
@@ -581,7 +582,7 @@ object Http4s600 {
               existingEntity.isDefined
             }
             request <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
-              net.liftweb.json.parse(rawBody).extract[UpdateDynamicEntityRequestJsonV600]
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[UpdateDynamicEntityRequestJsonV600]
             }
             _ <- validateEntityNameV600(request.entity_name, cc)
             internalJson = JSONFactory600.convertV600UpdateRequestToInternal(request)
@@ -606,7 +607,7 @@ object Http4s600 {
             }
             updateJson <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The Json body should be the UpdateViewJsonV600", 400, Some(cc)) {
-              net.liftweb.json.parse(rawBody).extract[UpdateViewJsonV600]
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[UpdateViewJsonV600]
             }
             _ <- Helper.booleanToFuture(SystemViewCannotBePublicError, failCode = 400, cc = Some(cc)) {
               updateJson.is_public == false
@@ -832,7 +833,7 @@ object Http4s600 {
           val failMsg = s"$InvalidJsonFormat The Json body should be the PostBankJson600"
           for {
             postJson <- NewStyle.function.tryons(failMsg, 400, Some(cc)) {
-              net.liftweb.json.parse(rawBody).extract[PostBankJson600]
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[PostBankJson600]
             }
             checkShortStringValue = APIUtil.checkOptionalShortString(postJson.bank_id)
             _ <- Helper.booleanToFuture(s"$InvalidJsonFormat BANK_ID: $checkShortStringValue", cc = Some(cc)) {
@@ -882,7 +883,7 @@ object Http4s600 {
           val failMsg = s"$InvalidJsonFormat The Json body should be the PostCustomerJsonV600 "
           for {
             postedData <- NewStyle.function.tryons(failMsg, 400, Some(cc)) {
-              net.liftweb.json.parse(rawBody).extract[PostCustomerJsonV600]
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[PostCustomerJsonV600]
             }
             _ <- Helper.booleanToFuture(InvalidJsonContent, 400, Some(cc)) {
               postedData.dependants.getOrElse(0) == postedData.dob_of_dependants.getOrElse(Nil).length
@@ -937,7 +938,7 @@ object Http4s600 {
           val rawBody = cc.httpBody.getOrElse("")
           for {
             postedData <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
-              net.liftweb.json.parse(rawBody).extract[CreateUserJsonV600]
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[CreateUserJsonV600]
             }
             _ <- Helper.booleanToFuture(InvalidStrongPasswordFormat, 400, Some(cc)) {
               APIUtil.fullPasswordValidation(postedData.password)
@@ -1012,7 +1013,7 @@ object Http4s600 {
             postedData <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The Json body should be the ${classOf[code.api.v6_0_0.JSONFactory600.PostResetPasswordUrlJsonV600]}",
               400, Some(cc)) {
-              net.liftweb.json.parse(rawBody).extract[code.api.v6_0_0.JSONFactory600.PostResetPasswordUrlJsonV600]
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[code.api.v6_0_0.JSONFactory600.PostResetPasswordUrlJsonV600]
             }
             authUserBox <- Future {
               AuthUser.find(net.liftweb.mapper.By(AuthUser.username, postedData.username))
@@ -1669,7 +1670,7 @@ object Http4s600 {
           existing <- Future(MappedWebUiPropsProvider.getByName(nameLower))
           resourceExists = existing.isDefined
           valueJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should contain a value field", 400, Some(cc)) {
-            net.liftweb.json.parse(rawBody).extract[code.webuiprops.WebUiPropsPutJsonV600]
+            com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[code.webuiprops.WebUiPropsPutJsonV600]
           }
           saved <- Future(MappedWebUiPropsProvider.createOrUpdate(WebUiPropsCommons(nameLower, valueJson.value)))
         } yield (saved.openOrThrowException("Could not save WebUiProps"), resourceExists)
@@ -1719,7 +1720,7 @@ object Http4s600 {
           val accountId = com.openbankproject.commons.model.AccountId(accountIdStr)
           for {
             createViewJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the CreateViewJson", 400, Some(cc)) {
-              net.liftweb.json.parse(rawBody).extract[com.openbankproject.commons.model.CreateViewJson]
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[com.openbankproject.commons.model.CreateViewJson]
             }
             _ <- Helper.booleanToFuture(InvalidCustomViewFormat + s"Current view_name (${createViewJson.name})", cc = Some(cc)) {
               APIUtil.isValidCustomViewName(createViewJson.name)
@@ -1757,7 +1758,7 @@ object Http4s600 {
               bank.bankId.value, user.userId, updateProductTagsEntitlements, Some(cc))
             (_, _) <- NewStyle.function.getProduct(bank.bankId, productCode, Some(cc))
             body <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ProductTagsJsonV600", 400, Some(cc)) {
-              net.liftweb.json.parse(rawBody).extract[ProductTagsJsonV600]
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[ProductTagsJsonV600]
             }
             updatedTags <- NewStyle.function.tryons(UpdateProductError, 400, Some(cc)) {
               code.products.ProductTagsProvider.setTags(bank.bankId, productCode, body.tags)
@@ -1797,7 +1798,7 @@ object Http4s600 {
           val rawBody = cc.httpBody.getOrElse("")
           for {
             postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the VerifyOidcClientRequestJsonV600", 400, Some(cc)) {
-              net.liftweb.json.parse(rawBody).extract[VerifyOidcClientRequestJsonV600]
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[VerifyOidcClientRequestJsonV600]
             }
             consumerBox <- Future(code.consumer.Consumers.consumers.vend.getConsumerByConsumerKey(postedData.client_id))
           } yield {
@@ -1840,7 +1841,7 @@ object Http4s600 {
           for {
             (user, _) <- NewStyle.function.getUserByUserId(userIdStr, Some(cc))
             postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the UserAttributeJsonV510", 400, Some(cc)) {
-              net.liftweb.json.parse(rawBody).extract[UserAttributeJsonV510]
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[UserAttributeJsonV510]
             }
             userAttributeType <- NewStyle.function.tryons(personalDataTypeErrorMsg, 400, Some(cc)) {
               UserAttributeType.withName(postedData.`type`)
@@ -1859,7 +1860,7 @@ object Http4s600 {
           for {
             (user, callContext) <- NewStyle.function.getUserByUserId(userIdStr, Some(cc))
             postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the UserAttributeJsonV510", 400, Some(cc)) {
-              net.liftweb.json.parse(rawBody).extract[UserAttributeJsonV510]
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[UserAttributeJsonV510]
             }
             userAttributeType <- NewStyle.function.tryons(personalDataTypeErrorMsg, 400, Some(cc)) {
               UserAttributeType.withName(postedData.`type`)
@@ -1896,7 +1897,7 @@ object Http4s600 {
           val user = cc.user.openOrThrowException(AuthenticatedUserIsRequired)
           for {
             postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the PostGroupMembershipJsonV600", 400, Some(cc)) {
-              net.liftweb.json.parse(rawBody).extract[JSONFactory600.PostGroupMembershipJsonV600]
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[JSONFactory600.PostGroupMembershipJsonV600]
             }
             _ <- NewStyle.function.findByUserId(userIdStr, Some(cc))
             group <- Future(code.group.GroupTrait.group.vend.getGroup(postJson.group_id))
@@ -2021,7 +2022,7 @@ object Http4s600 {
           val user = cc.user.openOrThrowException(AuthenticatedUserIsRequired)
           for {
             joiningKey <- Future(
-              (net.liftweb.json.parse(rawBody) \ "joining_key").extractOpt[String].getOrElse(""))
+              (com.openbankproject.commons.util.JsonAliases.parse(rawBody) \ "joining_key").extractOpt[String].getOrElse(""))
             room <- Future(code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoomByJoiningKey(joiningKey))
               .map(unboxFullOrFail(_, Some(cc), InvalidJoiningKey, 404))
             _ <- Helper.booleanToFuture(ChatRoomIsArchived, cc = Some(cc))(!room.isArchived)
@@ -2051,7 +2052,7 @@ object Http4s600 {
           val rawBody = cc.httpBody.getOrElse("")
           for {
             postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the CounterpartyAttributeRequestJsonV600", 400, Some(cc)) {
-              net.liftweb.json.parse(rawBody).extract[CounterpartyAttributeRequestJsonV600]
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[CounterpartyAttributeRequestJsonV600]
             }
             counterpartyAttributeType <- NewStyle.function.tryons(counterpartyAttributeTypeErrorMsg, 400, Some(cc)) {
               com.openbankproject.commons.model.enums.CounterpartyAttributeType.withName(postedData.attribute_type)
@@ -2104,7 +2105,7 @@ object Http4s600 {
           val rawBody = cc.httpBody.getOrElse("")
           for {
             postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the CounterpartyAttributeRequestJsonV600", 400, Some(cc)) {
-              net.liftweb.json.parse(rawBody).extract[CounterpartyAttributeRequestJsonV600]
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[CounterpartyAttributeRequestJsonV600]
             }
             counterpartyAttributeType <- NewStyle.function.tryons(counterpartyAttributeTypeErrorMsg, 400, Some(cc)) {
               com.openbankproject.commons.model.enums.CounterpartyAttributeType.withName(postedData.attribute_type)
@@ -2211,7 +2212,7 @@ object Http4s600 {
           for {
             jsonSchema <- if (cacheValueFromRedis.isDefined) {
               NewStyle.function.tryons(s"$UnknownError Cannot parse cached JSON Schema.", 400, Some(cc)) {
-                net.liftweb.json.parse(cacheValueFromRedis.get).asInstanceOf[net.liftweb.json.JObject]
+                com.openbankproject.commons.util.JsonAliases.parse(cacheValueFromRedis.get).asInstanceOf[org.json4s.JObject]
               }
             } else {
               NewStyle.function.tryons(s"$UnknownError Cannot generate JSON Schema.", 400, Some(cc)) {
@@ -2222,7 +2223,7 @@ object Http4s600 {
                 )
                 val schema = code.api.util.JsonSchemaGenerator.messageDocsToJsonSchema(
                   connectorObject.messageDocs.toList, connector)
-                val schemaString = net.liftweb.json.compactRender(schema)
+                val schemaString = com.openbankproject.commons.util.JsonAliases.compactRender(schema)
                 code.api.cache.Caching.setStaticSwaggerDocCache(cacheKey, schemaString)
                 schema
               }
@@ -2239,7 +2240,7 @@ object Http4s600 {
           for {
             postedData <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The Json body should be the PostVerifyUserCredentialsJsonV600", 400, Some(cc)) {
-              net.liftweb.json.parse(rawBody).extract[PostVerifyUserCredentialsJsonV600]
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[PostVerifyUserCredentialsJsonV600]
             }
             decodedProvider = java.net.URLDecoder.decode(postedData.provider, java.nio.charset.StandardCharsets.UTF_8)
             resourceUserIdBox = code.model.dataAccess.AuthUser.getResourceUserId(
@@ -2297,7 +2298,7 @@ object Http4s600 {
           val cacheKey = s"all:${tagFilter.getOrElse("")}"
           val cacheTTL = APIUtil.getPropsAsIntValue("getAllApiProductsV600.cache.ttl.seconds", 5)
           val hit = code.api.cache.Caching.getApiProductsCache(cacheKey, cacheTTL)
-            .flatMap(s => try Some(net.liftweb.json.parse(s).extract[ApiProductsJsonV600])
+            .flatMap(s => try Some(com.openbankproject.commons.util.JsonAliases.parse(s).extract[ApiProductsJsonV600])
                           catch { case _: Throwable => None })
           hit match {
             case Some(cached) => Future.successful(cached)
@@ -2310,7 +2311,7 @@ object Http4s600 {
               } yield {
                 val result = JSONFactory600.createApiProductsJsonV600(apiProducts)
                 code.api.cache.Caching.setApiProductsCache(
-                  cacheKey, net.liftweb.json.compactRender(Extraction.decompose(result)), cacheTTL)
+                  cacheKey, com.openbankproject.commons.util.JsonAliases.compactRender(Extraction.decompose(result)), cacheTTL)
                 result
               }
           }
@@ -2329,7 +2330,7 @@ object Http4s600 {
           }
           val cacheTTL = APIUtil.getPropsAsIntValue("getAllProductsV600.cache.ttl.seconds", 60)
           val hit = code.api.cache.Caching.getFinancialProductsCache(cacheKey, cacheTTL)
-            .flatMap(s => try Some(net.liftweb.json.parse(s).extract[ProductsJsonV600])
+            .flatMap(s => try Some(com.openbankproject.commons.util.JsonAliases.parse(s).extract[ProductsJsonV600])
                           catch { case _: Throwable => None })
           hit match {
             case Some(cached) => Future.successful(cached)
@@ -2342,7 +2343,7 @@ object Http4s600 {
               } yield {
                 val result = JSONFactory600.createProductsJsonV600(products, Map.empty)
                 code.api.cache.Caching.setFinancialProductsCache(
-                  cacheKey, net.liftweb.json.compactRender(Extraction.decompose(result)), cacheTTL)
+                  cacheKey, com.openbankproject.commons.util.JsonAliases.compactRender(Extraction.decompose(result)), cacheTTL)
                 result
               }
           }
@@ -2435,7 +2436,7 @@ object Http4s600 {
           for {
             postJson <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The Json body should be the PostAccountAccessRequestJsonV600", 400, Some(cc)) {
-              net.liftweb.json.parse(rawBody).extract[JSONFactory600.PostAccountAccessRequestJsonV600]
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[JSONFactory600.PostAccountAccessRequestJsonV600]
             }
             _ <- Helper.booleanToFuture(BusinessJustificationRequired, cc = Some(cc)) {
               postJson.business_justification.trim.nonEmpty
@@ -2474,7 +2475,7 @@ object Http4s600 {
           for {
             postJson <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The Json body should be the PostApproveAccountAccessRequestJsonV600", 400, Some(cc)) {
-              net.liftweb.json.parse(rawBody).extract[JSONFactory600.PostApproveAccountAccessRequestJsonV600]
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[JSONFactory600.PostApproveAccountAccessRequestJsonV600]
             }
             requestBox <- Future {
               code.accountaccessrequest.AccountAccessRequestTrait.accountAccessRequest.vend.getById(requestIdStr)
@@ -2522,7 +2523,7 @@ object Http4s600 {
           for {
             postJson <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The Json body should be the PostRejectAccountAccessRequestJsonV600", 400, Some(cc)) {
-              net.liftweb.json.parse(rawBody).extract[JSONFactory600.PostRejectAccountAccessRequestJsonV600]
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[JSONFactory600.PostRejectAccountAccessRequestJsonV600]
             }
             _ <- Helper.booleanToFuture(CheckerCommentRequiredForRejection, cc = Some(cc)) {
               postJson.comment.trim.nonEmpty
@@ -2563,7 +2564,7 @@ object Http4s600 {
               code.api.cache.RedisMessaging.channelInfo(name).map { case (count, ttl) =>
                 val (messages, _) = code.api.cache.RedisMessaging.fetchMessages(name, 0, count.toInt)
                 val hasBroadcast = messages.exists { s =>
-                  scala.util.Try(net.liftweb.json.parse(s).extract[SignalMessageJsonV600].to_user_id.isEmpty).getOrElse(false)
+                  scala.util.Try(com.openbankproject.commons.util.JsonAliases.parse(s).extract[SignalMessageJsonV600].to_user_id.isEmpty).getOrElse(false)
                 }
                 (name, count, ttl, hasBroadcast)
               }
@@ -2622,7 +2623,7 @@ object Http4s600 {
           for {
             postJson <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The Json body should be the PostSignalMessageJsonV600", 400, Some(cc)) {
-              net.liftweb.json.parse(rawBody).extract[PostSignalMessageJsonV600]
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[PostSignalMessageJsonV600]
             }
             _ <- Helper.booleanToFuture(InvalidSignalChannelName, cc = Some(cc)) {
               code.api.cache.RedisMessaging.validateChannelName(channelName)
@@ -2639,7 +2640,7 @@ object Http4s600 {
                 to_user_id = postJson.to_user_id, timestamp = timestamp,
                 message_type = postJson.message_type.getOrElse(""),
                 payload = postJson.payload)
-              val msgStr = net.liftweb.json.compactRender(Extraction.decompose(envelope))
+              val msgStr = com.openbankproject.commons.util.JsonAliases.compactRender(Extraction.decompose(envelope))
               val count = code.api.cache.RedisMessaging.publishMessage(channelName, msgStr)
               SignalMessagePublishedJsonV600(messageId, channelName, timestamp, count)
             }
@@ -2662,7 +2663,7 @@ object Http4s600 {
             (rawMessages, totalCount) <- Future(code.api.cache.RedisMessaging.fetchMessages(channelName, offset, limit))
           } yield {
             val parsed = rawMessages.flatMap { s =>
-              scala.util.Try(net.liftweb.json.parse(s).extract[SignalMessageJsonV600]).toOption
+              scala.util.Try(com.openbankproject.commons.util.JsonAliases.parse(s).extract[SignalMessageJsonV600]).toOption
             }
             val filtered = parsed.filter { msg =>
               msg.to_user_id.isEmpty ||
@@ -2867,7 +2868,7 @@ object Http4s600 {
           for {
             postJson <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The Json body should be the ChatRoomSearchRequestJsonV600", 400, Some(cc)) {
-              net.liftweb.json.parse(rawBody).extract[ChatRoomSearchRequestJsonV600]
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[ChatRoomSearchRequestJsonV600]
             }
             roomsBox <- Future(code.chat.ChatRoomTrait.chatRoomProvider.vend
               .searchChatRoomsForUserWithParticipants(user.userId, postJson.with_user_ids,
@@ -2939,7 +2940,7 @@ object Http4s600 {
           val rawBody = cc.httpBody.getOrElse("")
           val u = cc.user.openOrThrowException("User not found in CallContext")
           for {
-            json <- Future(net.liftweb.json.parse(rawBody))
+            json <- Future(com.openbankproject.commons.util.JsonAliases.parse(rawBody))
             joiningKey = (json \ "joining_key").extractOpt[String].getOrElse("")
             roomBox <- Future(code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoomByJoiningKey(joiningKey))
             room <- Future(unboxFullOrFail(roomBox, Some(cc), InvalidJoiningKey, 404))
@@ -3002,7 +3003,7 @@ object Http4s600 {
           for {
             postJson <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The Json body should be the PostChatRoomJsonV600", 400, Some(cc)) {
-              net.liftweb.json.parse(rawBody).extract[PostChatRoomJsonV600]
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[PostChatRoomJsonV600]
             }
             existing <- Future(code.chat.ChatRoomTrait.chatRoomProvider.vend
               .getChatRoomByBankIdAndName(bankIdStr, postJson.name))
@@ -3031,7 +3032,7 @@ object Http4s600 {
           for {
             postJson <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The Json body should be the PostChatRoomJsonV600", 400, Some(cc)) {
-              net.liftweb.json.parse(rawBody).extract[PostChatRoomJsonV600]
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[PostChatRoomJsonV600]
             }
             existing <- Future(code.chat.ChatRoomTrait.chatRoomProvider.vend
               .getChatRoomByBankIdAndName("", postJson.name))
@@ -3059,7 +3060,7 @@ object Http4s600 {
           for {
             putJson <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The Json body should be the PutChatRoomJsonV600", 400, Some(cc)) {
-              net.liftweb.json.parse(rawBody).extract[PutChatRoomJsonV600]
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[PutChatRoomJsonV600]
             }
             roomBox <- Future(code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId))
             _ <- Future(unboxFullOrFail(roomBox, Some(cc), ChatRoomNotFound, 404))
@@ -3084,7 +3085,7 @@ object Http4s600 {
           for {
             putJson <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The Json body should be the PutChatRoomJsonV600", 400, Some(cc)) {
-              net.liftweb.json.parse(rawBody).extract[PutChatRoomJsonV600]
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[PutChatRoomJsonV600]
             }
             roomBox <- Future(code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId))
             _ <- Future(unboxFullOrFail(roomBox, Some(cc), ChatRoomNotFound, 404))
@@ -3134,7 +3135,7 @@ object Http4s600 {
         EndpointHelpers.withUserAndBank(req) { (_, _, cc) =>
           val rawBody = cc.httpBody.getOrElse("")
           for {
-            json <- Future(net.liftweb.json.parse(rawBody))
+            json <- Future(com.openbankproject.commons.util.JsonAliases.parse(rawBody))
             isOpenRoom = (json \ "is_open_room").extractOrElse[Boolean](false)
             roomBox <- Future(code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId))
             _ <- Future(unboxFullOrFail(roomBox, Some(cc), ChatRoomNotFound, 404))
@@ -3153,7 +3154,7 @@ object Http4s600 {
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val rawBody = cc.httpBody.getOrElse("")
           for {
-            json <- Future(net.liftweb.json.parse(rawBody))
+            json <- Future(com.openbankproject.commons.util.JsonAliases.parse(rawBody))
             isOpenRoom = (json \ "is_open_room").extractOrElse[Boolean](false)
             roomBox <- Future(code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId))
             _ <- Future(unboxFullOrFail(roomBox, Some(cc), ChatRoomNotFound, 404))
@@ -3180,7 +3181,7 @@ object Http4s600 {
           for {
             postJson <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The Json body should be the PostParticipantJsonV600", 400, Some(cc)) {
-              net.liftweb.json.parse(rawBody).extract[PostParticipantJsonV600]
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[PostParticipantJsonV600]
             }
             roomBox <- Future(code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId))
             _ <- Future(unboxFullOrFail(roomBox, Some(cc), ChatRoomNotFound, 404))
@@ -3218,7 +3219,7 @@ object Http4s600 {
           for {
             postJson <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The Json body should be the PostParticipantJsonV600", 400, Some(cc)) {
-              net.liftweb.json.parse(rawBody).extract[PostParticipantJsonV600]
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[PostParticipantJsonV600]
             }
             roomBox <- Future(code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId))
             _ <- Future(unboxFullOrFail(roomBox, Some(cc), ChatRoomNotFound, 404))
@@ -3284,7 +3285,7 @@ object Http4s600 {
           for {
             putJson <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The Json body should be the PutParticipantPermissionsJsonV600", 400, Some(cc)) {
-              net.liftweb.json.parse(rawBody).extract[PutParticipantPermissionsJsonV600]
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[PutParticipantPermissionsJsonV600]
             }
             roomBox <- Future(code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId))
             _ <- Future(unboxFullOrFail(roomBox, Some(cc), ChatRoomNotFound, 404))
@@ -3308,7 +3309,7 @@ object Http4s600 {
           for {
             putJson <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The Json body should be the PutParticipantPermissionsJsonV600", 400, Some(cc)) {
-              net.liftweb.json.parse(rawBody).extract[PutParticipantPermissionsJsonV600]
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[PutParticipantPermissionsJsonV600]
             }
             roomBox <- Future(code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId))
             _ <- Future(unboxFullOrFail(roomBox, Some(cc), ChatRoomNotFound, 404))
@@ -3382,7 +3383,7 @@ object Http4s600 {
           for {
             postJson <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The Json body should be the PostChatMessageJsonV600", 400, Some(cc)) {
-              net.liftweb.json.parse(rawBody).extract[PostChatMessageJsonV600]
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[PostChatMessageJsonV600]
             }
             roomBox <- Future(code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId))
             room <- Future(unboxFullOrFail(roomBox, Some(cc), ChatRoomNotFound, 404))
@@ -3413,7 +3414,7 @@ object Http4s600 {
           for {
             postJson <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The Json body should be the PostChatMessageJsonV600", 400, Some(cc)) {
-              net.liftweb.json.parse(rawBody).extract[PostChatMessageJsonV600]
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[PostChatMessageJsonV600]
             }
             roomBox <- Future(code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId))
             room <- Future(unboxFullOrFail(roomBox, Some(cc), ChatRoomNotFound, 404))
@@ -3510,7 +3511,7 @@ object Http4s600 {
           for {
             putJson <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The Json body should be the PutChatMessageJsonV600", 400, Some(cc)) {
-              net.liftweb.json.parse(rawBody).extract[PutChatMessageJsonV600]
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[PutChatMessageJsonV600]
             }
             roomBox <- Future(code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId))
             _ <- Future(unboxFullOrFail(roomBox, Some(cc), ChatRoomNotFound, 404))
@@ -3538,7 +3539,7 @@ object Http4s600 {
           for {
             putJson <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The Json body should be the PutChatMessageJsonV600", 400, Some(cc)) {
-              net.liftweb.json.parse(rawBody).extract[PutChatMessageJsonV600]
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[PutChatMessageJsonV600]
             }
             roomBox <- Future(code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId))
             _ <- Future(unboxFullOrFail(roomBox, Some(cc), ChatRoomNotFound, 404))
@@ -3668,7 +3669,7 @@ object Http4s600 {
           for {
             postJson <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The Json body should be the PostChatMessageJsonV600", 400, Some(cc)) {
-              net.liftweb.json.parse(rawBody).extract[PostChatMessageJsonV600]
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[PostChatMessageJsonV600]
             }
             roomBox <- Future(code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId))
             room <- Future(unboxFullOrFail(roomBox, Some(cc), ChatRoomNotFound, 404))
@@ -3701,7 +3702,7 @@ object Http4s600 {
           for {
             postJson <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The Json body should be the PostChatMessageJsonV600", 400, Some(cc)) {
-              net.liftweb.json.parse(rawBody).extract[PostChatMessageJsonV600]
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[PostChatMessageJsonV600]
             }
             roomBox <- Future(code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId))
             room <- Future(unboxFullOrFail(roomBox, Some(cc), ChatRoomNotFound, 404))
@@ -3734,7 +3735,7 @@ object Http4s600 {
           for {
             postJson <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The Json body should be the PostReactionJsonV600", 400, Some(cc)) {
-              net.liftweb.json.parse(rawBody).extract[PostReactionJsonV600]
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[PostReactionJsonV600]
             }
             roomBox <- Future(code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId))
             _ <- Future(unboxFullOrFail(roomBox, Some(cc), ChatRoomNotFound, 404))
@@ -3762,7 +3763,7 @@ object Http4s600 {
           for {
             postJson <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The Json body should be the PostReactionJsonV600", 400, Some(cc)) {
-              net.liftweb.json.parse(rawBody).extract[PostReactionJsonV600]
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[PostReactionJsonV600]
             }
             roomBox <- Future(code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId))
             _ <- Future(unboxFullOrFail(roomBox, Some(cc), ChatRoomNotFound, 404))
@@ -3970,7 +3971,7 @@ object Http4s600 {
           val rawBody = cc.httpBody.getOrElse("")
           for {
             createJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
-              net.liftweb.json.parse(rawBody).extract[CreateSignatoryPanelJsonV600]
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[CreateSignatoryPanelJsonV600]
             }
             (panelBox, _) <- BankConnector.connector.vend.createSignatoryPanel(
               mandateId, createJson.panel_name, createJson.description,
@@ -4011,7 +4012,7 @@ object Http4s600 {
           val rawBody = cc.httpBody.getOrElse("")
           for {
             updateJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
-              net.liftweb.json.parse(rawBody).extract[UpdateSignatoryPanelJsonV600]
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[UpdateSignatoryPanelJsonV600]
             }
             (panelBox, _) <- BankConnector.connector.vend.updateSignatoryPanel(
               panelId, updateJson.panel_name, updateJson.description,
@@ -4048,7 +4049,7 @@ object Http4s600 {
           for {
             postedData <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The Json body should be the ValidateUserEmailJsonV600", 400, Some(cc)) {
-              net.liftweb.json.parse(rawBody).extract[JSONFactory600.ValidateUserEmailJsonV600]
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[JSONFactory600.ValidateUserEmailJsonV600]
             }
             token = postedData.token.trim
             _ <- Helper.booleanToFuture(s"$InvalidJsonFormat Token cannot be empty", cc = Some(cc)) {
@@ -4098,7 +4099,7 @@ object Http4s600 {
           for {
             postedData <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The Json body should be the PostResetPasswordCompleteJsonV600", 400, Some(cc)) {
-              net.liftweb.json.parse(rawBody).extract[JSONFactory600.PostResetPasswordCompleteJsonV600]
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[JSONFactory600.PostResetPasswordCompleteJsonV600]
             }
             token = postedData.token.trim
             _ <- Helper.booleanToFuture(s"$InvalidJsonFormat Token cannot be empty", cc = Some(cc)) {
@@ -4140,7 +4141,7 @@ object Http4s600 {
           for {
             postedData <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The Json body should be the PostResetPasswordUrlAnonymousJsonV600", 400, Some(cc)) {
-              net.liftweb.json.parse(rawBody).extract[JSONFactory600.PostResetPasswordUrlAnonymousJsonV600]
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[JSONFactory600.PostResetPasswordUrlAnonymousJsonV600]
             }
           } yield {
             val authUserBox = code.model.dataAccess.AuthUser.find(
@@ -4195,7 +4196,7 @@ object Http4s600 {
           for {
             body <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The Json body should be the JsonDynamicResourceDoc", 400, Some(cc)) {
-              net.liftweb.json.parse(rawBody).extract[code.dynamicResourceDoc.JsonDynamicResourceDoc]
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[code.dynamicResourceDoc.JsonDynamicResourceDoc]
             }
             _ <- Helper.booleanToFuture(
               s"""$InvalidJsonFormat The request_verb must be one of ["POST", "PUT", "GET", "DELETE"]""",
@@ -4206,9 +4207,9 @@ object Http4s600 {
               s"""$InvalidJsonFormat When request_verb is "GET" or "DELETE", the example_request_body must be a blank String "" or just totally omit the field""",
               cc = Some(cc)) {
               (body.requestVerb, body.exampleRequestBody) match {
-                case ("GET" | "DELETE", Some(net.liftweb.json.JString(s))) =>
+                case ("GET" | "DELETE", Some(org.json4s.JString(s))) =>
                   org.apache.commons.lang3.StringUtils.isBlank(s)
-                case ("GET" | "DELETE", Some(rb)) => rb == net.liftweb.json.JNothing
+                case ("GET" | "DELETE", Some(rb)) => rb == org.json4s.JNothing
                 case _ => true
               }
             }
@@ -4246,7 +4247,7 @@ object Http4s600 {
         val viewId = ViewId(viewIdStr)
         val txType = com.openbankproject.commons.model.TransactionRequestType(kind)
         for {
-          json <- Future(net.liftweb.json.parse(rawBody))
+          json <- Future(com.openbankproject.commons.util.JsonAliases.parse(rawBody))
           (resp, _) <- code.bankconnectors.LocalMappedConnectorInternal
             .createTransactionRequest(bankId, accountId, viewId, txType, json)
         } yield resp
@@ -4385,7 +4386,7 @@ object Http4s600 {
           for {
             postedData <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The Json body should be the PostRetailCustomerJsonV600", 400, Some(cc)) {
-              net.liftweb.json.parse(rawBody).extract[PostRetailCustomerJsonV600]
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[PostRetailCustomerJsonV600]
             }
             _ <- Helper.booleanToFuture(
               InvalidJsonContent + s" The field dependants(${postedData.dependants.getOrElse(0)}) not equal the length(${postedData.dob_of_dependants.getOrElse(Nil).length}) of dob_of_dependants array",
@@ -4445,7 +4446,7 @@ object Http4s600 {
           for {
             postedData <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The Json body should be the PostCorporateCustomerJsonV600", 400, Some(cc)) {
-              net.liftweb.json.parse(rawBody).extract[PostCorporateCustomerJsonV600]
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[PostCorporateCustomerJsonV600]
             }
             customerNumber = postedData.customer_number.getOrElse(scala.util.Random.nextInt(Integer.MAX_VALUE).toString)
             _ <- Helper.booleanToFuture(
@@ -4569,7 +4570,7 @@ object Http4s600 {
           val rawBody = cc.httpBody.getOrElse("")
           for {
             validateJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
-              net.liftweb.json.parse(rawBody).extract[ValidateAbacRuleJsonV600]
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[ValidateAbacRuleJsonV600]
             }
             _ <- NewStyle.function.tryons(AbacRuleCodeEmpty, 400, Some(cc)) {
               validateJson.rule_code.trim.nonEmpty
@@ -4615,7 +4616,7 @@ object Http4s600 {
           val u = cc.user.openOrThrowException("User not found in CallContext")
           for {
             execJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
-              net.liftweb.json.parse(rawBody).extract[ExecuteAbacRuleJsonV600]
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[ExecuteAbacRuleJsonV600]
             }
             ruleBox <- Future(code.abacrule.MappedAbacRuleProvider.getAbacRuleById(ruleId))
             _ <- Future(unboxFullOrFail(ruleBox, Some(cc), s"ABAC Rule not found with ID: $ruleId", 404))
@@ -4641,7 +4642,7 @@ object Http4s600 {
           val u = cc.user.openOrThrowException("User not found in CallContext")
           for {
             execJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
-              net.liftweb.json.parse(rawBody).extract[ExecuteAbacRuleJsonV600]
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[ExecuteAbacRuleJsonV600]
             }
             _ <- Future {
               if (Constant.ABAC_POLICIES.contains(policy)) Full(true)
@@ -4874,7 +4875,7 @@ object Http4s600 {
     private def backupDynamicEntityIo(
         entity: code.dynamicEntity.DynamicEntityT,
         backupName: String,
-        dataRecords: net.liftweb.json.JsonAST.JArray
+        dataRecords: org.json4s.JsonAST.JArray
     ): Unit = {
       code.dynamicEntity.DynamicEntityProvider.connectorMethodProvider.vend
         .getByEntityName(entity.bankId, backupName).foreach { existingBackup =>
@@ -4886,15 +4887,15 @@ object Http4s600 {
             }
           code.dynamicEntity.DynamicEntityProvider.connectorMethodProvider.vend.delete(existingBackup)
         }
-      val originalMetadata = net.liftweb.json.parse(entity.metadataJson).asInstanceOf[net.liftweb.json.JObject]
-      val backupMetadata = net.liftweb.json.JObject(originalMetadata.obj.map {
-        case net.liftweb.json.JField(name, value) if name == entity.entityName =>
-          net.liftweb.json.JField(backupName, value)
+      val originalMetadata = com.openbankproject.commons.util.JsonAliases.parse(entity.metadataJson).asInstanceOf[org.json4s.JObject]
+      val backupMetadata = org.json4s.JObject(originalMetadata.obj.map {
+        case org.json4s.JField(name, value) if name == entity.entityName =>
+          org.json4s.JField(backupName, value)
         case other => other
       })
       val backupEntity = code.dynamicEntity.DynamicEntityCommons(
         entityName = backupName,
-        metadataJson = net.liftweb.json.compactRender(backupMetadata),
+        metadataJson = com.openbankproject.commons.util.JsonAliases.compactRender(backupMetadata),
         dynamicEntityId = None,
         userId = entity.userId,
         bankId = entity.bankId,
@@ -4903,15 +4904,15 @@ object Http4s600 {
       val originalIdField = code.api.dynamic.entity.helper.DynamicEntityHelper.createEntityId(entity.entityName)
       val backupIdField = code.api.dynamic.entity.helper.DynamicEntityHelper.createEntityId(backupName)
       dataRecords.arr.foreach { record =>
-        val recordObj = record.asInstanceOf[net.liftweb.json.JObject]
+        val recordObj = record.asInstanceOf[org.json4s.JObject]
         val transformedFields = recordObj.obj.map {
-          case net.liftweb.json.JField(name, _) if name == originalIdField =>
-            net.liftweb.json.JField(backupIdField,
-              net.liftweb.json.JString(java.util.UUID.randomUUID().toString))
+          case org.json4s.JField(name, _) if name == originalIdField =>
+            org.json4s.JField(backupIdField,
+              org.json4s.JString(java.util.UUID.randomUUID().toString))
           case other => other
         }
         code.DynamicData.DynamicDataProvider.connectorMethodProvider.vend.save(
-          entity.bankId, backupName, net.liftweb.json.JObject(transformedFields),
+          entity.bankId, backupName, org.json4s.JObject(transformedFields),
           Some(entity.userId), entity.hasPersonalEntity)
       }
     }
@@ -4945,7 +4946,7 @@ object Http4s600 {
           com.openbankproject.commons.model.enums.DynamicEntityOperation.GET_ALL,
           entity.entityName, None, None, entity.bankId, None, None, false, Some(cc))
         resultList <- Future {
-          box.asInstanceOf[net.liftweb.common.Box[net.liftweb.json.JsonAST.JArray]]
+          box.asInstanceOf[net.liftweb.common.Box[org.json4s.JsonAST.JArray]]
             .openOrThrowException(s"$UnknownError ")
         }
         backupName = computeBackupNameIo(entity.bankId, entity.entityName)
@@ -4992,7 +4993,7 @@ object Http4s600 {
               com.openbankproject.commons.model.enums.DynamicEntityOperation.GET_ALL,
               entity.entityName, None, None, entity.bankId, None, None, false, Some(cc))
             resultList <- Future {
-              box.asInstanceOf[net.liftweb.common.Box[net.liftweb.json.JsonAST.JArray]]
+              box.asInstanceOf[net.liftweb.common.Box[org.json4s.JsonAST.JArray]]
                 .openOrThrowException(s"$UnknownError ")
             }
             _ <- Future {
@@ -5002,13 +5003,13 @@ object Http4s600 {
             _ <- Future.sequence {
               resultList.arr.map { record =>
                 val idField = code.api.dynamic.entity.helper.DynamicEntityHelper.createEntityId(entity.entityName)
-                val recordId = (record \ idField).asInstanceOf[net.liftweb.json.JString].s
+                val recordId = (record \ idField).asInstanceOf[org.json4s.JString].s
                 Future(code.DynamicData.DynamicDataProvider.connectorMethodProvider.vend.delete(
                   entity.bankId, entity.entityName, recordId, None, false))
               }
             }
-            deleted <- NewStyle.function.deleteDynamicEntity(None, dynamicEntityId)
-          } yield deleted
+            _ <- NewStyle.function.deleteDynamicEntity(None, dynamicEntityId)
+          } yield JObject(Nil)
         }
     }
 
@@ -5061,7 +5062,7 @@ object Http4s600 {
           val bank = cc.bank.get
           for {
             postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the PostCustomerLinkJsonV600", 400, Some(cc)) {
-              net.liftweb.json.parse(rawBody).extract[PostCustomerLinkJsonV600]
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[PostCustomerLinkJsonV600]
             }
             (customer, _) <- NewStyle.function.getCustomerByCustomerId(postedData.customer_id, Some(cc))
             _ <- Helper.booleanToFuture(
@@ -5109,7 +5110,7 @@ object Http4s600 {
           val rawBody = cc.httpBody.getOrElse("")
           for {
             postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the PutCustomerLinkJsonV600", 400, Some(cc)) {
-              net.liftweb.json.parse(rawBody).extract[PutCustomerLinkJsonV600]
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[PutCustomerLinkJsonV600]
             }
             (updated, _) <- NewStyle.function.updateCustomerLinkById(customerLinkId, postedData.relationship_to, Some(cc))
           } yield JSONFactory600.createCustomerLinkJson(updated)
@@ -5149,7 +5150,7 @@ object Http4s600 {
           val rawBody = cc.httpBody.getOrElse("")
           for {
             postJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
-              net.liftweb.json.parse(rawBody).extract[InvalidateCacheNamespaceJsonV600]
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[InvalidateCacheNamespaceJsonV600]
             }
             namespaceId = postJson.namespace_id
             _ <- Helper.booleanToFuture(
@@ -5345,7 +5346,7 @@ object Http4s600 {
           val user = cc.user.openOrThrowException(AuthenticatedUserIsRequired)
           for {
             postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the PostGroupJsonV600", 400, Some(cc)) {
-              net.liftweb.json.parse(rawBody).extract[PostGroupJsonV600]
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[PostGroupJsonV600]
             }
             _ <- Helper.booleanToFuture(s"$InvalidJsonFormat group_name cannot be empty", cc = Some(cc)) {
               postJson.group_name.nonEmpty
@@ -5403,7 +5404,7 @@ object Http4s600 {
           val user = cc.user.openOrThrowException(AuthenticatedUserIsRequired)
           for {
             putJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the PutGroupJsonV600", 400, Some(cc)) {
-              net.liftweb.json.parse(rawBody).extract[PutGroupJsonV600]
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[PutGroupJsonV600]
             }
             existing <- Future(code.group.GroupTrait.group.vend.getGroup(groupId))
               .map(x => unboxFullOrFail(x, Some(cc), s"$UnknownError Group not found", 404))
@@ -5469,7 +5470,7 @@ object Http4s600 {
           val user = cc.user.openOrThrowException(AuthenticatedUserIsRequired)
           for {
             createJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
-              net.liftweb.json.parse(rawBody).extract[CreateAbacRuleJsonV600]
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[CreateAbacRuleJsonV600]
             }
             _ <- Helper.booleanToFuture("Rule name must not be empty", cc = Some(cc)) { createJson.rule_name.nonEmpty }
             _ <- Helper.booleanToFuture("Rule code must not be empty", cc = Some(cc)) { createJson.rule_code.nonEmpty }
@@ -5523,7 +5524,7 @@ object Http4s600 {
           val user = cc.user.openOrThrowException(AuthenticatedUserIsRequired)
           for {
             updateJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
-              net.liftweb.json.parse(rawBody).extract[UpdateAbacRuleJsonV600]
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[UpdateAbacRuleJsonV600]
             }
             _ <- AbacRuleEngine.validateRuleCodeAsync(updateJson.rule_code)
               .map(unboxFullOrFail(_, Some(cc), "Invalid ABAC rule code", 400))
@@ -5568,7 +5569,7 @@ object Http4s600 {
           val user = cc.user.openOrThrowException(AuthenticatedUserIsRequired)
           for {
             postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the UserAttributeJsonV510", 400, Some(cc)) {
-              net.liftweb.json.parse(rawBody).extract[UserAttributeJsonV510]
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[UserAttributeJsonV510]
             }
             userAttributeType <- NewStyle.function.tryons(personalDataTypeErrorMsg, 400, Some(cc)) {
               UserAttributeType.withName(postedData.`type`)
@@ -5612,7 +5613,7 @@ object Http4s600 {
           val user = cc.user.openOrThrowException(AuthenticatedUserIsRequired)
           for {
             postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the UserAttributeJsonV510", 400, Some(cc)) {
-              net.liftweb.json.parse(rawBody).extract[UserAttributeJsonV510]
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[UserAttributeJsonV510]
             }
             userAttributeType <- NewStyle.function.tryons(personalDataTypeErrorMsg, 400, Some(cc)) {
               UserAttributeType.withName(postedData.`type`)
@@ -5664,7 +5665,7 @@ object Http4s600 {
           val rawBody = cc.httpBody.getOrElse("")
           for {
             postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the CallLimitPostJsonV600", 400, Some(cc)) {
-              net.liftweb.json.parse(rawBody).extract[CallLimitPostJsonV600]
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[CallLimitPostJsonV600]
             }
             _ <- NewStyle.function.getConsumerByConsumerId(consumerId, Some(cc))
             rateLimitingBox <- RateLimitingDI.rateLimiting.vend.createConsumerCallLimits(
@@ -5686,7 +5687,7 @@ object Http4s600 {
           val rawBody = cc.httpBody.getOrElse("")
           for {
             postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the CallLimitPostJsonV400", 400, Some(cc)) {
-              net.liftweb.json.parse(rawBody).extract[CallLimitPostJsonV400]
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[CallLimitPostJsonV400]
             }
             _ <- NewStyle.function.getConsumerByConsumerId(consumerId, Some(cc))
             _ <- RateLimitingDI.rateLimiting.vend.updateConsumerCallLimits(
@@ -5756,7 +5757,7 @@ object Http4s600 {
           val rawBody = cc.httpBody.getOrElse("")
           for {
             postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the PostFeaturedApiCollectionJsonV600", 400, Some(cc)) {
-              net.liftweb.json.parse(rawBody).extract[PostFeaturedApiCollectionJsonV600]
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[PostFeaturedApiCollectionJsonV600]
             }
             (apiCollection, _) <- NewStyle.function.getApiCollectionById(postJson.api_collection_id, Some(cc))
             _ <- Helper.booleanToFuture(s"$ApiCollectionNotFound The API Collection must be sharable to be featured.", cc = Some(cc)) {
@@ -5788,7 +5789,7 @@ object Http4s600 {
           val rawBody = cc.httpBody.getOrElse("")
           for {
             putJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the PutFeaturedApiCollectionJsonV600", 400, Some(cc)) {
-              net.liftweb.json.parse(rawBody).extract[PutFeaturedApiCollectionJsonV600]
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[PutFeaturedApiCollectionJsonV600]
             }
             (updated, _) <- NewStyle.function.updateFeaturedApiCollection(
               apiCollectionId, putJson.sort_order, Some(cc))
@@ -5822,7 +5823,7 @@ object Http4s600 {
           val bank = cc.bank.get
           for {
             postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the PostPutApiProductJsonV600", 400, Some(cc)) {
-              net.liftweb.json.parse(rawBody).extract[PostPutApiProductJsonV600]
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[PostPutApiProductJsonV600]
             }
             (apiProduct, _) <- NewStyle.function.createOrUpdateApiProduct(
               bank.bankId.value, apiProductCode,
@@ -5850,7 +5851,7 @@ object Http4s600 {
           val bank = cc.bank.get
           for {
             postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the PostPutApiProductJsonV600", 400, Some(cc)) {
-              net.liftweb.json.parse(rawBody).extract[PostPutApiProductJsonV600]
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[PostPutApiProductJsonV600]
             }
             (apiProduct, _) <- NewStyle.function.createOrUpdateApiProduct(
               bank.bankId.value, apiProductCode,
@@ -5915,7 +5916,7 @@ object Http4s600 {
           for {
             _ <- NewStyle.function.getApiProductByBankIdAndCode(bank.bankId.value, apiProductCode, Some(cc))
             postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ApiProductAttributeJsonV600", 400, Some(cc)) {
-              net.liftweb.json.parse(rawBody).extract[ApiProductAttributeJsonV600]
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[ApiProductAttributeJsonV600]
             }
             (attribute, _) <- NewStyle.function.createOrUpdateApiProductAttribute(
               bank.bankId.value, apiProductCode, None,
@@ -5934,7 +5935,7 @@ object Http4s600 {
           for {
             _ <- NewStyle.function.getApiProductByBankIdAndCode(bank.bankId.value, apiProductCode, Some(cc))
             postJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the ApiProductAttributeJsonV600", 400, Some(cc)) {
-              net.liftweb.json.parse(rawBody).extract[ApiProductAttributeJsonV600]
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[ApiProductAttributeJsonV600]
             }
             (attribute, _) <- NewStyle.function.createOrUpdateApiProductAttribute(
               bank.bankId.value, apiProductCode, Some(apiProductAttributeId),
@@ -5987,7 +5988,7 @@ object Http4s600 {
           val account = cc.bankAccount.get
           for {
             createJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
-              net.liftweb.json.parse(rawBody).extract[CreateMandateJsonV600]
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[CreateMandateJsonV600]
             }
             validFrom <- parseMandateDate(createJson.valid_from, "valid_from", cc)
             validTo <- parseMandateDate(createJson.valid_to, "valid_to", cc)
@@ -6034,7 +6035,7 @@ object Http4s600 {
           val rawBody = cc.httpBody.getOrElse("")
           for {
             updateJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
-              net.liftweb.json.parse(rawBody).extract[UpdateMandateJsonV600]
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[UpdateMandateJsonV600]
             }
             validFrom <- parseMandateDate(updateJson.valid_from, "valid_from", cc)
             validTo <- parseMandateDate(updateJson.valid_to, "valid_to", cc)
@@ -6062,7 +6063,7 @@ object Http4s600 {
 
     // Provision serializer — match Lift exactly.
     private def serializeSignatoryRequirements(any: Any): String = {
-      net.liftweb.json.Serialization.write(any.asInstanceOf[AnyRef])(net.liftweb.json.DefaultFormats)
+      org.json4s.native.Serialization.write(any.asInstanceOf[AnyRef])(org.json4s.DefaultFormats)
     }
 
     // Route: POST /obp/v6.0.0/banks/BANK_ID/mandates/MANDATE_ID/provisions (201)
@@ -6073,7 +6074,7 @@ object Http4s600 {
           val rawBody = cc.httpBody.getOrElse("")
           for {
             createJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
-              net.liftweb.json.parse(rawBody).extract[CreateMandateProvisionJsonV600]
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[CreateMandateProvisionJsonV600]
             }
             sigReqJson = serializeSignatoryRequirements(createJson.signatory_requirements)
             (provision, _) <- BankConnector.connector.vend.createMandateProvision(
@@ -6121,7 +6122,7 @@ object Http4s600 {
           val rawBody = cc.httpBody.getOrElse("")
           for {
             updateJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
-              net.liftweb.json.parse(rawBody).extract[UpdateMandateProvisionJsonV600]
+              com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[UpdateMandateProvisionJsonV600]
             }
             sigReqJson = serializeSignatoryRequirements(updateJson.signatory_requirements)
             (provision, _) <- BankConnector.connector.vend.updateMandateProvision(
@@ -6472,7 +6473,7 @@ object Http4s600 {
               user_id = "user-456",
               bank_id = None,
               has_personal_entity = true,
-              schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string"}, "language": {"type": "string"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject],
+              schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string"}, "language": {"type": "string"}}}""").asInstanceOf[org.json4s.JsonAST.JObject],
               _links = Some(DynamicEntityLinksJsonV600(
                 related = List(
                   RelatedLinkJsonV600("personal-list", s"/obp/${ApiVersion.`dynamic-entity`}/my/customer_preferences", "GET"),
@@ -6514,7 +6515,7 @@ object Http4s600 {
               user_id = "user-456",
               bank_id = None,
               has_personal_entity = true,
-              schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string"}, "language": {"type": "string"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject],
+              schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string"}, "language": {"type": "string"}}}""").asInstanceOf[org.json4s.JsonAST.JObject],
               record_count = 42
             )
           )
@@ -6548,7 +6549,7 @@ object Http4s600 {
               user_id = "user-456",
               bank_id = Some("gh.29.uk"),
               has_personal_entity = true,
-              schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string"}, "language": {"type": "string"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject],
+              schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string"}, "language": {"type": "string"}}}""").asInstanceOf[org.json4s.JsonAST.JObject],
               record_count = 42
             )
           )
@@ -6804,7 +6805,7 @@ object Http4s600 {
           has_public_access = Some(false),
           has_community_access = Some(false),
           personal_requires_role = Some(false),
-          schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "internal_note": {"type": "string", "example": "set by a privileged service", "description": "Field-level write-restricted (write_role_required)", "write_role_required": true}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+          schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "internal_note": {"type": "string", "example": "set by a privileged service", "description": "Field-level write-restricted (writeRoleRequired)", "write_role_required": true}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
         ),
         DynamicEntityDefinitionJsonV600(
           dynamic_entity_id = "abc-123-def",
@@ -6815,7 +6816,7 @@ object Http4s600 {
           has_public_access = false,
           has_community_access = false,
           personal_requires_role = false,
-          schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "internal_note": {"type": "string", "example": "set by a privileged service", "description": "Field-level write-restricted (write_role_required)", "write_role_required": true}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+          schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "internal_note": {"type": "string", "example": "set by a privileged service", "description": "Field-level write-restricted (writeRoleRequired)", "write_role_required": true}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
         ),
         List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
         apiTagManageDynamicEntity :: apiTagApi :: Nil,
@@ -6869,7 +6870,7 @@ object Http4s600 {
           has_public_access = Some(false),
           has_community_access = Some(false),
           personal_requires_role = Some(false),
-          schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "internal_note": {"type": "string", "example": "set by a privileged service", "description": "Field-level write-restricted (write_role_required)", "write_role_required": true}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+          schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "internal_note": {"type": "string", "example": "set by a privileged service", "description": "Field-level write-restricted (writeRoleRequired)", "write_role_required": true}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
         ),
         DynamicEntityDefinitionJsonV600(
           dynamic_entity_id = "abc-123-def",
@@ -6880,7 +6881,7 @@ object Http4s600 {
           has_public_access = false,
           has_community_access = false,
           personal_requires_role = false,
-          schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "internal_note": {"type": "string", "example": "set by a privileged service", "description": "Field-level write-restricted (write_role_required)", "write_role_required": true}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+          schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "internal_note": {"type": "string", "example": "set by a privileged service", "description": "Field-level write-restricted (writeRoleRequired)", "write_role_required": true}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
         ),
         List(
           $BankNotFound,
@@ -6937,7 +6938,7 @@ object Http4s600 {
           entity_name = "customer_preferences",
           has_personal_entity = Some(true),
           has_public_access = Some(false),
-          schema = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+          schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
         ),
         DynamicEntityDefinitionJsonV600(
           dynamic_entity_id = "abc-123-def",
@@ -6946,7 +6947,7 @@ object Http4s600 {
           bank_id = None,
           has_personal_entity = true,
           has_public_access = false,
-          schema = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+          schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
         ),
         List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
         apiTagManageDynamicEntity :: apiTagApi :: Nil,
@@ -6996,7 +6997,7 @@ object Http4s600 {
           entity_name = "customer_preferences",
           has_personal_entity = Some(true),
           has_public_access = Some(false),
-          schema = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+          schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
         ),
         DynamicEntityDefinitionJsonV600(
           dynamic_entity_id = "abc-123-def",
@@ -7005,7 +7006,7 @@ object Http4s600 {
           bank_id = Some("gh.29.uk"),
           has_personal_entity = true,
           has_public_access = false,
-          schema = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+          schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
         ),
         List(
           $BankNotFound,
@@ -7061,7 +7062,7 @@ object Http4s600 {
           entity_name = "customer_preferences",
           has_personal_entity = Some(true),
           has_public_access = Some(false),
-          schema = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+          schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
         ),
         DynamicEntityDefinitionJsonV600(
           dynamic_entity_id = "abc-123-def",
@@ -7070,7 +7071,7 @@ object Http4s600 {
           bank_id = None,
           has_personal_entity = true,
           has_public_access = false,
-          schema = net.liftweb.json.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+          schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
         ),
         List(
           $AuthenticatedUserIsRequired,
@@ -9248,7 +9249,7 @@ object Http4s600 {
               user_id = "user-456",
               bank_id = None,
               has_personal_entity = true,
-              schema = net.liftweb.json.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string"}, "language": {"type": "string"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject],
+              schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string"}, "language": {"type": "string"}}}""").asInstanceOf[org.json4s.JsonAST.JObject],
               _links = Some(DynamicEntityLinksJsonV600(
                 related = List(
                   RelatedLinkJsonV600("personal-list", s"/obp/${ApiVersion.`dynamic-entity`}/my/customer_preferences", "GET"),
@@ -12794,7 +12795,7 @@ object Http4s600 {
             user_id = "user-456",
             bank_id = None,
             has_personal_entity = false,
-            schema = net.liftweb.json.parse("""{"description": "Backup entity", "required": ["name"], "properties": {"name": {"type": "string", "example": "test"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+            schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "Backup entity", "required": ["name"], "properties": {"name": {"type": "string", "example": "test"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
           ),
           List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
           apiTagManageDynamicEntity :: apiTagApi :: Nil,
@@ -12827,7 +12828,7 @@ object Http4s600 {
             user_id = "user-456",
             bank_id = Some("gh.29.uk"),
             has_personal_entity = false,
-            schema = net.liftweb.json.parse("""{"description": "Backup entity", "required": ["name"], "properties": {"name": {"type": "string", "example": "test"}}}""").asInstanceOf[net.liftweb.json.JsonAST.JObject]
+            schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "Backup entity", "required": ["name"], "properties": {"name": {"type": "string", "example": "test"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
           ),
           List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
           apiTagManageDynamicEntity :: apiTagApi :: Nil,

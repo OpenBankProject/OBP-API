@@ -1,5 +1,6 @@
 package code.api.ResourceDocs1_4_0
 
+import org.json4s._
 import code.api.Constant
 import code.api.ResourceDocs1_4_0.ResourceDocs140.ImplementationsResourceDocs
 import code.api.berlin.group.ConstantsBG
@@ -10,10 +11,8 @@ import code.api.v1_4_0.JSONFactory1_4_0.ResourceDocsJson
 import code.setup.{DefaultUsers, PropsReset}
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.util.{ApiVersion, Functions}
-import net.liftweb.json
-import net.liftweb.json.JsonAST._
-import net.liftweb.json.{Formats, JString, Serializer, TypeInfo}
-import net.liftweb.util.Html5
+import com.openbankproject.commons.util.json
+import org.json4s.{Formats, JString, Serializer, TypeInfo}
 import org.scalatest.Tag
 
 import scala.xml.NodeSeq
@@ -92,9 +91,8 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
    * @return
    */
   def stringToNodeSeq(html : String) : NodeSeq = {
-    val newHtmlString =scala.xml.XML.loadString("<div>" + html + "</div>").toString()
-    //Note: `parse` method: We much enclose the div, otherwise only the first element is returned. 
-    Html5.parse(newHtmlString).headOption.getOrElse(NodeSeq.Empty)
+    //Note: we must enclose the div, otherwise only the first element is returned.
+    scala.xml.XML.loadString("<div>" + html + "</div>")
   }
   
   

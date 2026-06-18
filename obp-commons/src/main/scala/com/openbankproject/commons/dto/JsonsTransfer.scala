@@ -26,11 +26,12 @@
 
 package com.openbankproject.commons.dto
 
+import org.json4s._
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.SCAStatus
 import com.openbankproject.commons.model.enums.{TransactionRequestStatus, _}
-import net.liftweb.json.{JObject, JValue}
+import org.json4s.{JObject, JValue}
 
 import java.util.Date
 

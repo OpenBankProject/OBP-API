@@ -1,5 +1,6 @@
 package code.api.UKOpenBanking.v3_1_0
 
+import org.json4s._
 import cats.data.{Kleisli, OptionT}
 import cats.effect.IO
 import code.api.Constant
@@ -17,7 +18,7 @@ import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.User
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
-import net.liftweb.json.Formats
+import org.json4s.Formats
 import org.http4s._
 import org.http4s.dsl.io._
 
@@ -35,7 +36,7 @@ object Http4sUKOBv310AccountAccess extends MdcLoggable {
   implicit val formats: Formats = CustomJsonFormats.formats
   val implementedInApiVersion: ScannedApiVersion = ApiVersion.ukOpenBankingV31
   val resourceDocs = ArrayBuffer[ResourceDoc]()
-  private def parseBody(s: String): net.liftweb.json.JObject = net.liftweb.json.parse(s).asInstanceOf[net.liftweb.json.JObject]
+  private def parseBody(s: String): org.json4s.JObject = com.openbankproject.commons.util.JsonAliases.parse(s).asInstanceOf[org.json4s.JObject]
   val ukV31Prefix = Root / ApiVersion.ukOpenBankingV31.urlPrefix / ApiVersion.ukOpenBankingV31.apiShortVersion
 
   lazy val createAccountAccessConsents: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -51,7 +52,7 @@ object Http4sUKOBv310AccountAccess extends MdcLoggable {
             case None       => Future.failed(new RuntimeException(AuthenticatedUserIsRequired))
           }
           consentJson <- Future.fromTry(scala.util.Try(
-            net.liftweb.json.parse(cc.httpBody.getOrElse("{}")).extract[ConsentPostBodyUKV310]
+            com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("{}")).extract[ConsentPostBodyUKV310]
           ))
           consumerId = cc.consumer.map(_.consumerId.get)
           _ <- passesPsd2Aisp(Some(cc))
@@ -68,7 +69,7 @@ object Http4sUKOBv310AccountAccess extends MdcLoggable {
             apiVersion = Some("3.1.0")
           )) map { i => connectorEmptyResponse(i, Some(cc)) }
         } yield {
-          net.liftweb.json.parse(s"""{
+          com.openbankproject.commons.util.JsonAliases.parse(s"""{
             "Meta" : {
               "LastAvailableDateTime" : "2000-01-23T06:44:05.618Z",
               "FirstAvailableDateTime" : "2000-01-23T06:44:05.618Z",
@@ -178,10 +179,10 @@ object Http4sUKOBv310AccountAccess extends MdcLoggable {
             unboxFullOrFail(_, Some(cc), s"$ConsentNotFound ($consentId)")
           }
           consentViews <- Future(JwtUtil.getSignedPayloadAsJson(consent.jsonWebToken).map(
-            net.liftweb.json.parse(_).extract[ConsentJWT].views.map(_.view_id)
+            com.openbankproject.commons.util.JsonAliases.parse(_).extract[ConsentJWT].views.map(_.view_id)
           )) map { unboxFullOrFail(_, Some(cc), s"$ConsentViewNotFund ($consentId)") }
         } yield {
-          net.liftweb.json.parse(s"""{
+          com.openbankproject.commons.util.JsonAliases.parse(s"""{
             "Meta" : {
               "LastAvailableDateTime" : "2000-01-23T06:44:05.618Z",
               "FirstAvailableDateTime" : "2000-01-23T06:44:05.618Z",

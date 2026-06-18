@@ -27,16 +27,17 @@ TESOBE (http://www.tesobe.com/)
 
 package code.setup
 
+import org.json4s._
 import java.text.SimpleDateFormat
 
-import _root_.net.liftweb.json.JsonAST.JObject
+import _root_.org.json4s.JsonAST.JObject
 import code.TestServer
 import code.api.util.{APIUtil, CustomJsonFormats}
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model.{AccountId, BankId}
 import dispatch._
 import net.liftweb.common.{Empty, Full}
-import net.liftweb.json.JsonDSL._
+import org.json4s.JsonDSL._
 import org.scalatest._
 
 trait ServerSetupAsync extends AsyncFeatureSpec with SendServerRequests

@@ -1,5 +1,6 @@
 package code.api.v1_2_1
 
+import org.json4s._
 import cats.data.{Kleisli, OptionT}
 import cats.effect._
 import code.api.Constant._
@@ -22,7 +23,7 @@ import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.util.{ApiVersion, ApiVersionStatus, ScannedApiVersion}
 import net.liftweb.common.{Box, Full}
-import net.liftweb.json.{Extraction, Formats}
+import org.json4s.{Extraction, Formats}
 import net.liftweb.util.Helpers._
 import org.http4s._
 import org.http4s.dsl.io._
@@ -457,7 +458,7 @@ object Http4s121 {
               case _ => Future.failed(new RuntimeException(AuthenticatedUserIsRequired))
             }
             json <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
-              net.liftweb.json.parse(bodyStr).extract[UpdateAccountJSON]
+              com.openbankproject.commons.util.JsonAliases.parse(bodyStr).extract[UpdateAccountJSON]
             }
             (account, callContext) <- NewStyle.function.checkBankAccountExists(BankId(bankId), AccountId(accountId), Some(cc))
             permission <- NewStyle.function.permission(account.bankId, account.accountId, user, callContext)
@@ -561,7 +562,7 @@ object Http4s121 {
             (rawAccountBox, _) <- Connector.connector.vend.checkBankAccountExists(BankId(bankId), AccountId(accountId), Some(cc))
             account <- Future { unboxFullOrFail(rawAccountBox, Some(cc), s"$BankAccountNotFound Current BankId is $bankId and Current AccountId is $accountId") }
             createViewJsonV121 <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
-              net.liftweb.json.parse(bodyStr).extract[CreateViewJsonV121]
+              com.openbankproject.commons.util.JsonAliases.parse(bodyStr).extract[CreateViewJsonV121]
             }
             _ <- Helper.booleanToFuture(InvalidCustomViewFormat + s"Current view_name (${createViewJsonV121.name})", cc = Some(cc)) {
               isValidCustomViewName(createViewJsonV121.name)
@@ -793,7 +794,7 @@ object Http4s121 {
             (_, callContext) <- NewStyle.function.getBank(BankId(bankId), Some(cc))
             (account, callContext) <- NewStyle.function.getBankAccount(BankId(bankId), AccountId(accountId), callContext)
             viewIds <- NewStyle.function.tryons("wrong format JSON", 400, callContext) {
-              net.liftweb.json.parse(bodyStr).extract[ViewIdsJson]
+              com.openbankproject.commons.util.JsonAliases.parse(bodyStr).extract[ViewIdsJson]
             }
             (addedViews, callContext) <- ViewNewStyle.grantAccessToMultipleViews(
               account, user,
@@ -1053,7 +1054,7 @@ object Http4s121 {
             (otherBankAccount, _) <- NewStyle.function.moderatedOtherBankAccount(account, otherAccountId, view, Full(user), Some(cc))
             _ <- Helper.booleanToFuture(s"$NoViewPermission can_see_other_account_metadata. Current ViewId(${view.viewId})", cc = Some(cc))(otherBankAccount.metadata.isDefined)
             _ <- Helper.booleanToFuture(s"the view ${view.viewId} does not allow adding a public alias", cc = Some(cc))(otherBankAccount.metadata.get.addPublicAlias.isDefined)
-            aliasJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) { net.liftweb.json.parse(bodyStr).extract[AliasJSON] }
+            aliasJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) { com.openbankproject.commons.util.JsonAliases.parse(bodyStr).extract[AliasJSON] }
             added <- Future(Counterparties.counterparties.vend.addPublicAlias(otherAccountId, aliasJson.alias)) map { unboxFullOrFail(_, Some(cc), "Alias cannot be added", 400) }
             _ <- Helper.booleanToFuture("Alias cannot be added", 400, Some(cc))(added)
           } yield SuccessMessage("public alias added")
@@ -1097,7 +1098,7 @@ object Http4s121 {
             (otherBankAccount, _) <- NewStyle.function.moderatedOtherBankAccount(account, otherAccountId, view, Full(user), Some(cc))
             _ <- Helper.booleanToFuture(s"$NoViewPermission can_see_other_account_metadata. Current ViewId(${view.viewId})", cc = Some(cc))(otherBankAccount.metadata.isDefined)
             _ <- Helper.booleanToFuture(s"the view ${view.viewId} does not allow updating a public alias", cc = Some(cc))(otherBankAccount.metadata.get.addPublicAlias.isDefined)
-            aliasJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) { net.liftweb.json.parse(bodyStr).extract[AliasJSON] }
+            aliasJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) { com.openbankproject.commons.util.JsonAliases.parse(bodyStr).extract[AliasJSON] }
             updated <- Future(Counterparties.counterparties.vend.addPublicAlias(otherAccountId, aliasJson.alias)) map { unboxFullOrFail(_, Some(cc), "Alias cannot be updated", 400) }
             _ <- Helper.booleanToFuture("Alias cannot be updated", 400, Some(cc))(updated)
           } yield SuccessMessage("public alias updated")
@@ -1190,7 +1191,7 @@ object Http4s121 {
             (otherBankAccount, _) <- NewStyle.function.moderatedOtherBankAccount(account, otherAccountId, view, Full(user), Some(cc))
             _ <- Helper.booleanToFuture(s"$NoViewPermission can_see_other_account_metadata. Current ViewId(${view.viewId})", cc = Some(cc))(otherBankAccount.metadata.isDefined)
             _ <- Helper.booleanToFuture(s"the view ${view.viewId} does not allow adding a private alias", cc = Some(cc))(otherBankAccount.metadata.get.addPrivateAlias.isDefined)
-            aliasJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) { net.liftweb.json.parse(bodyStr).extract[AliasJSON] }
+            aliasJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) { com.openbankproject.commons.util.JsonAliases.parse(bodyStr).extract[AliasJSON] }
             added <- Future(Counterparties.counterparties.vend.addPrivateAlias(otherAccountId, aliasJson.alias)) map { unboxFullOrFail(_, Some(cc), "Alias cannot be added", 400) }
             _ <- Helper.booleanToFuture("Alias cannot be added", 400, Some(cc))(added)
           } yield SuccessMessage("private alias added")
@@ -1220,7 +1221,7 @@ object Http4s121 {
             (otherBankAccount, _) <- NewStyle.function.moderatedOtherBankAccount(account, otherAccountId, view, Full(user), Some(cc))
             _ <- Helper.booleanToFuture(s"$NoViewPermission can_see_other_account_metadata. Current ViewId(${view.viewId})", cc = Some(cc))(otherBankAccount.metadata.isDefined)
             _ <- Helper.booleanToFuture(s"the view ${view.viewId} does not allow updating a private alias", cc = Some(cc))(otherBankAccount.metadata.get.addPrivateAlias.isDefined)
-            aliasJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) { net.liftweb.json.parse(bodyStr).extract[AliasJSON] }
+            aliasJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) { com.openbankproject.commons.util.JsonAliases.parse(bodyStr).extract[AliasJSON] }
             updated <- Future(Counterparties.counterparties.vend.addPrivateAlias(otherAccountId, aliasJson.alias)) map { unboxFullOrFail(_, Some(cc), "Alias cannot be updated", 400) }
             _ <- Helper.booleanToFuture("Alias cannot be updated", 400, Some(cc))(updated)
           } yield SuccessMessage("private alias updated")
@@ -1280,7 +1281,7 @@ object Http4s121 {
             (otherBankAccount, _) <- NewStyle.function.moderatedOtherBankAccount(account, otherAccountId, view, Full(user), Some(cc))
             _ <- Helper.booleanToFuture(s"$NoViewPermission can_see_other_account_metadata. Current ViewId(${view.viewId})", cc = Some(cc))(otherBankAccount.metadata.isDefined)
             _ <- Helper.booleanToFuture(s"the view ${view.viewId} does not allow adding more info", cc = Some(cc))(otherBankAccount.metadata.get.addMoreInfo.isDefined)
-            moreInfoJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) { net.liftweb.json.parse(bodyStr).extract[MoreInfoJSON] }
+            moreInfoJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) { com.openbankproject.commons.util.JsonAliases.parse(bodyStr).extract[MoreInfoJSON] }
             added <- Future(Counterparties.counterparties.vend.addMoreInfo(otherAccountId, moreInfoJson.more_info)) map { unboxFullOrFail(_, Some(cc), "More Info cannot be added", 400) }
             _ <- Helper.booleanToFuture("More Info cannot be added", 400, Some(cc))(added)
           } yield SuccessMessage("more info added")
@@ -1318,7 +1319,7 @@ object Http4s121 {
             (otherBankAccount, _) <- NewStyle.function.moderatedOtherBankAccount(account, otherAccountId, view, Full(user), Some(cc))
             _ <- Helper.booleanToFuture(s"$NoViewPermission can_see_other_account_metadata. Current ViewId(${view.viewId})", cc = Some(cc))(otherBankAccount.metadata.isDefined)
             _ <- Helper.booleanToFuture(s"the view ${view.viewId} does not allow updating more info", cc = Some(cc))(otherBankAccount.metadata.get.addMoreInfo.isDefined)
-            moreInfoJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) { net.liftweb.json.parse(bodyStr).extract[MoreInfoJSON] }
+            moreInfoJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) { com.openbankproject.commons.util.JsonAliases.parse(bodyStr).extract[MoreInfoJSON] }
             updated <- Future(Counterparties.counterparties.vend.addMoreInfo(otherAccountId, moreInfoJson.more_info)) map { unboxFullOrFail(_, Some(cc), "More Info cannot be updated", 400) }
             _ <- Helper.booleanToFuture("More Info cannot be updated", 400, Some(cc))(updated)
           } yield SuccessMessage("more info updated")
@@ -1375,7 +1376,7 @@ object Http4s121 {
             (otherBankAccount, _) <- NewStyle.function.moderatedOtherBankAccount(account, otherAccountId, view, Full(user), Some(cc))
             _ <- Helper.booleanToFuture(s"$NoViewPermission can_see_other_account_metadata. Current ViewId(${view.viewId})", cc = Some(cc))(otherBankAccount.metadata.isDefined)
             _ <- Helper.booleanToFuture(s"the view ${view.viewId} does not allow adding a url", cc = Some(cc))(otherBankAccount.metadata.get.addURL.isDefined)
-            urlJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) { net.liftweb.json.parse(bodyStr).extract[UrlJSON] }
+            urlJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) { com.openbankproject.commons.util.JsonAliases.parse(bodyStr).extract[UrlJSON] }
             added <- Future(Counterparties.counterparties.vend.addURL(otherAccountId, urlJson.URL)) map { unboxFullOrFail(_, Some(cc), "URL cannot be added", 400) }
             _ <- Helper.booleanToFuture("URL cannot be added", 400, Some(cc))(added)
           } yield SuccessMessage("url added")
@@ -1402,7 +1403,7 @@ object Http4s121 {
             (otherBankAccount, _) <- NewStyle.function.moderatedOtherBankAccount(account, otherAccountId, view, Full(user), Some(cc))
             _ <- Helper.booleanToFuture(s"$NoViewPermission can_see_other_account_metadata. Current ViewId(${view.viewId})", cc = Some(cc))(otherBankAccount.metadata.isDefined)
             _ <- Helper.booleanToFuture(s"the view ${view.viewId} does not allow updating a url", cc = Some(cc))(otherBankAccount.metadata.get.addURL.isDefined)
-            urlJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) { net.liftweb.json.parse(bodyStr).extract[UrlJSON] }
+            urlJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) { com.openbankproject.commons.util.JsonAliases.parse(bodyStr).extract[UrlJSON] }
             updated <- Future(Counterparties.counterparties.vend.addURL(otherAccountId, urlJson.URL)) map { unboxFullOrFail(_, Some(cc), "URL cannot be updated", 400) }
             _ <- Helper.booleanToFuture("URL cannot be updated", 400, Some(cc))(updated)
           } yield SuccessMessage("url updated")
@@ -1456,7 +1457,7 @@ object Http4s121 {
             (otherBankAccount, _) <- NewStyle.function.moderatedOtherBankAccount(account, otherAccountId, view, Full(user), Some(cc))
             _ <- Helper.booleanToFuture(s"$NoViewPermission can_see_other_account_metadata. Current ViewId(${view.viewId})", cc = Some(cc))(otherBankAccount.metadata.isDefined)
             _ <- Helper.booleanToFuture(s"the view ${view.viewId} does not allow adding an image url", cc = Some(cc))(otherBankAccount.metadata.get.addImageURL.isDefined)
-            imageUrlJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) { net.liftweb.json.parse(bodyStr).extract[ImageUrlJSON] }
+            imageUrlJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) { com.openbankproject.commons.util.JsonAliases.parse(bodyStr).extract[ImageUrlJSON] }
             added <- Future(Counterparties.counterparties.vend.addImageURL(otherAccountId, imageUrlJson.image_URL)) map { unboxFullOrFail(_, Some(cc), "URL cannot be added", 400) }
             _ <- Helper.booleanToFuture("URL cannot be added", 400, Some(cc))(added)
           } yield SuccessMessage("image url added")
@@ -1483,7 +1484,7 @@ object Http4s121 {
             (otherBankAccount, _) <- NewStyle.function.moderatedOtherBankAccount(account, otherAccountId, view, Full(user), Some(cc))
             _ <- Helper.booleanToFuture(s"$NoViewPermission can_see_other_account_metadata. Current ViewId(${view.viewId})", cc = Some(cc))(otherBankAccount.metadata.isDefined)
             _ <- Helper.booleanToFuture(s"the view ${view.viewId} does not allow updating an image url", cc = Some(cc))(otherBankAccount.metadata.get.addImageURL.isDefined)
-            imageUrlJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) { net.liftweb.json.parse(bodyStr).extract[ImageUrlJSON] }
+            imageUrlJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) { com.openbankproject.commons.util.JsonAliases.parse(bodyStr).extract[ImageUrlJSON] }
             updated <- Future(Counterparties.counterparties.vend.addImageURL(otherAccountId, imageUrlJson.image_URL)) map { unboxFullOrFail(_, Some(cc), "URL cannot be updated", 400) }
             _ <- Helper.booleanToFuture("URL cannot be updated", 400, Some(cc))(updated)
           } yield SuccessMessage("image url updated")
@@ -1546,7 +1547,7 @@ object Http4s121 {
             (otherBankAccount, _) <- NewStyle.function.moderatedOtherBankAccount(account, otherAccountId, view, Full(user), Some(cc))
             _ <- Helper.booleanToFuture(s"$NoViewPermission can_see_other_account_metadata. Current ViewId(${view.viewId})", cc = Some(cc))(otherBankAccount.metadata.isDefined)
             _ <- Helper.booleanToFuture(s"the view ${view.viewId} does not allow adding an open corporate url", cc = Some(cc))(otherBankAccount.metadata.get.addOpenCorporatesURL.isDefined)
-            openCorpUrl <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) { net.liftweb.json.parse(bodyStr).extract[OpenCorporateUrlJSON] }
+            openCorpUrl <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) { com.openbankproject.commons.util.JsonAliases.parse(bodyStr).extract[OpenCorporateUrlJSON] }
             added <- Future(Counterparties.counterparties.vend.addOpenCorporatesURL(otherAccountId, openCorpUrl.open_corporates_URL)) map { unboxFullOrFail(_, Some(cc), "URL cannot be added", 400) }
             _ <- Helper.booleanToFuture("URL cannot be added", 400, Some(cc))(added)
           } yield SuccessMessage("open corporate url added")
@@ -1580,7 +1581,7 @@ object Http4s121 {
             (otherBankAccount, _) <- NewStyle.function.moderatedOtherBankAccount(account, otherAccountId, view, Full(user), Some(cc))
             _ <- Helper.booleanToFuture(s"$NoViewPermission can_see_other_account_metadata. Current ViewId(${view.viewId})", cc = Some(cc))(otherBankAccount.metadata.isDefined)
             _ <- Helper.booleanToFuture(s"the view ${view.viewId} does not allow updating an open corporate url", cc = Some(cc))(otherBankAccount.metadata.get.addOpenCorporatesURL.isDefined)
-            openCorpUrl <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) { net.liftweb.json.parse(bodyStr).extract[OpenCorporateUrlJSON] }
+            openCorpUrl <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) { com.openbankproject.commons.util.JsonAliases.parse(bodyStr).extract[OpenCorporateUrlJSON] }
             updated <- Future(Counterparties.counterparties.vend.addOpenCorporatesURL(otherAccountId, openCorpUrl.open_corporates_URL)) map { unboxFullOrFail(_, Some(cc), "URL cannot be updated", 400) }
             _ <- Helper.booleanToFuture("URL cannot be updated", 400, Some(cc))(updated)
           } yield SuccessMessage("open corporate url updated")
@@ -1634,7 +1635,7 @@ object Http4s121 {
             (otherBankAccount, _) <- NewStyle.function.moderatedOtherBankAccount(account, otherAccountId, view, Full(user), Some(cc))
             _ <- Helper.booleanToFuture(s"$NoViewPermission can_see_other_account_metadata. Current ViewId(${view.viewId})", cc = Some(cc))(otherBankAccount.metadata.isDefined)
             _ <- Helper.booleanToFuture(s"the view ${view.viewId} does not allow adding a corporate location", cc = Some(cc))(otherBankAccount.metadata.get.addCorporateLocation.isDefined)
-            corpLocationJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) { net.liftweb.json.parse(bodyStr).extract[CorporateLocationJSON] }
+            corpLocationJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) { com.openbankproject.commons.util.JsonAliases.parse(bodyStr).extract[CorporateLocationJSON] }
             _ <- Helper.booleanToFuture("Coordinates not possible", 400, Some(cc)) { checkIfLocationPossible(corpLocationJson.corporate_location.latitude, corpLocationJson.corporate_location.longitude) }
             added <- Future(Counterparties.counterparties.vend.addCorporateLocation(otherAccountId, user.userPrimaryKey, (now: TimeSpan), corpLocationJson.corporate_location.longitude, corpLocationJson.corporate_location.latitude)) map { unboxFullOrFail(_, Some(cc), "Corporate Location cannot be added", 400) }
             _ <- Helper.booleanToFuture("Corporate Location cannot be added", 400, Some(cc))(added)
@@ -1662,7 +1663,7 @@ object Http4s121 {
             (otherBankAccount, _) <- NewStyle.function.moderatedOtherBankAccount(account, otherAccountId, view, Full(user), Some(cc))
             _ <- Helper.booleanToFuture(s"$NoViewPermission can_see_other_account_metadata. Current ViewId(${view.viewId})", cc = Some(cc))(otherBankAccount.metadata.isDefined)
             _ <- Helper.booleanToFuture(s"the view ${view.viewId} does not allow updating a corporate location", cc = Some(cc))(otherBankAccount.metadata.get.addCorporateLocation.isDefined)
-            corpLocationJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) { net.liftweb.json.parse(bodyStr).extract[CorporateLocationJSON] }
+            corpLocationJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) { com.openbankproject.commons.util.JsonAliases.parse(bodyStr).extract[CorporateLocationJSON] }
             _ <- Helper.booleanToFuture("Coordinates not possible", 400, Some(cc)) { checkIfLocationPossible(corpLocationJson.corporate_location.latitude, corpLocationJson.corporate_location.longitude) }
             updated <- Future(Counterparties.counterparties.vend.addCorporateLocation(otherAccountId, user.userPrimaryKey, (now: TimeSpan), corpLocationJson.corporate_location.longitude, corpLocationJson.corporate_location.latitude)) map { unboxFullOrFail(_, Some(cc), "Corporate Location cannot be updated", 400) }
             _ <- Helper.booleanToFuture("Corporate Location cannot be updated", 400, Some(cc))(updated)
@@ -1717,7 +1718,7 @@ object Http4s121 {
             (otherBankAccount, _) <- NewStyle.function.moderatedOtherBankAccount(account, otherAccountId, view, Full(user), Some(cc))
             _ <- Helper.booleanToFuture(s"$NoViewPermission can_see_other_account_metadata. Current ViewId(${view.viewId})", cc = Some(cc))(otherBankAccount.metadata.isDefined)
             _ <- Helper.booleanToFuture(s"the view ${view.viewId} does not allow adding a physical location", cc = Some(cc))(otherBankAccount.metadata.get.addPhysicalLocation.isDefined)
-            physicalLocationJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) { net.liftweb.json.parse(bodyStr).extract[PhysicalLocationJSON] }
+            physicalLocationJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) { com.openbankproject.commons.util.JsonAliases.parse(bodyStr).extract[PhysicalLocationJSON] }
             _ <- Helper.booleanToFuture("Coordinates not possible", 400, Some(cc)) { checkIfLocationPossible(physicalLocationJson.physical_location.latitude, physicalLocationJson.physical_location.longitude) }
             added <- Future(Counterparties.counterparties.vend.addPhysicalLocation(otherAccountId, user.userPrimaryKey, (now: TimeSpan), physicalLocationJson.physical_location.longitude, physicalLocationJson.physical_location.latitude)) map { unboxFullOrFail(_, Some(cc), "Physical Location cannot be added", 400) }
             _ <- Helper.booleanToFuture("Physical Location cannot be added", 400, Some(cc))(added)
@@ -1745,7 +1746,7 @@ object Http4s121 {
             (otherBankAccount, _) <- NewStyle.function.moderatedOtherBankAccount(account, otherAccountId, view, Full(user), Some(cc))
             _ <- Helper.booleanToFuture(s"$NoViewPermission can_see_other_account_metadata. Current ViewId(${view.viewId})", cc = Some(cc))(otherBankAccount.metadata.isDefined)
             _ <- Helper.booleanToFuture(s"the view ${view.viewId} does not allow updating a physical location", cc = Some(cc))(otherBankAccount.metadata.get.addPhysicalLocation.isDefined)
-            physicalLocationJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) { net.liftweb.json.parse(bodyStr).extract[PhysicalLocationJSON] }
+            physicalLocationJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) { com.openbankproject.commons.util.JsonAliases.parse(bodyStr).extract[PhysicalLocationJSON] }
             _ <- Helper.booleanToFuture("Coordinates not possible", 400, Some(cc)) { checkIfLocationPossible(physicalLocationJson.physical_location.latitude, physicalLocationJson.physical_location.longitude) }
             updated <- Future(Counterparties.counterparties.vend.addPhysicalLocation(otherAccountId, user.userPrimaryKey, (now: TimeSpan), physicalLocationJson.physical_location.longitude, physicalLocationJson.physical_location.latitude)) map { unboxFullOrFail(_, Some(cc), "Physical Location cannot be updated", 400) }
             _ <- Helper.booleanToFuture("Physical Location cannot be updated", 400, Some(cc))(updated)
@@ -1912,7 +1913,7 @@ object Http4s121 {
               case None => Future.failed(new RuntimeException(ViewNotFound))
             }
             narrativeJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
-              net.liftweb.json.parse(bodyStr).extract[TransactionNarrativeJSON]
+              com.openbankproject.commons.util.JsonAliases.parse(bodyStr).extract[TransactionNarrativeJSON]
             }
             metadata <- moderatedTransactionMetadataFuture(account.bankId, account.accountId, view.viewId, TransactionId(transactionId), Full(user), Some(cc))
             addNarrative <- Future(metadata.addOwnerComment) map {
@@ -1975,7 +1976,7 @@ object Http4s121 {
               case None => Future.failed(new RuntimeException(ViewNotFound))
             }
             narrativeJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
-              net.liftweb.json.parse(bodyStr).extract[TransactionNarrativeJSON]
+              com.openbankproject.commons.util.JsonAliases.parse(bodyStr).extract[TransactionNarrativeJSON]
             }
             metadata <- moderatedTransactionMetadataFuture(account.bankId, account.accountId, view.viewId, TransactionId(transactionId), Full(user), Some(cc))
             addNarrative <- Future(metadata.addOwnerComment) map {
@@ -2084,7 +2085,7 @@ object Http4s121 {
               case None => Future.failed(new RuntimeException(ViewNotFound))
             }
             commentJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
-              net.liftweb.json.parse(bodyStr).extract[PostTransactionCommentJSON]
+              com.openbankproject.commons.util.JsonAliases.parse(bodyStr).extract[PostTransactionCommentJSON]
             }
             metadata <- moderatedTransactionMetadataFuture(account.bankId, account.accountId, view.viewId, TransactionId(transactionId), Full(user), Some(cc))
             addCommentFunc <- Future(metadata.addComment) map {
@@ -2195,7 +2196,7 @@ object Http4s121 {
               case None => Future.failed(new RuntimeException(ViewNotFound))
             }
             tagJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
-              net.liftweb.json.parse(bodyStr).extract[PostTransactionTagJSON]
+              com.openbankproject.commons.util.JsonAliases.parse(bodyStr).extract[PostTransactionTagJSON]
             }
             metadata <- moderatedTransactionMetadataFuture(account.bankId, account.accountId, view.viewId, TransactionId(transactionId), Full(user), Some(cc))
             addTagFunc <- Future(metadata.addTag) map {
@@ -2305,7 +2306,7 @@ object Http4s121 {
               case None => Future.failed(new RuntimeException(ViewNotFound))
             }
             imageJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
-              net.liftweb.json.parse(bodyStr).extract[PostTransactionImageJSON]
+              com.openbankproject.commons.util.JsonAliases.parse(bodyStr).extract[PostTransactionImageJSON]
             }
             metadata <- moderatedTransactionMetadataFuture(account.bankId, account.accountId, view.viewId, TransactionId(transactionId), Full(user), Some(cc))
             addImageFunc <- Future(metadata.addImage) map {
@@ -2441,7 +2442,7 @@ object Http4s121 {
               unboxFullOrFail(_, Some(cc), s"$NoViewPermission can_add_where_tag. Current ViewId(${view.viewId})")
             }
             whereJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
-              net.liftweb.json.parse(bodyStr).extract[PostTransactionWhereJSON]
+              com.openbankproject.commons.util.JsonAliases.parse(bodyStr).extract[PostTransactionWhereJSON]
             }
             _ <- Helper.booleanToFuture("Coordinates not possible", 400, Some(cc)) {
               checkIfLocationPossible(whereJson.where.latitude, whereJson.where.longitude)
@@ -2493,7 +2494,7 @@ object Http4s121 {
               unboxFullOrFail(_, Some(cc), s"$NoViewPermission can_add_where_tag. Current ViewId(${view.viewId})")
             }
             whereJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
-              net.liftweb.json.parse(bodyStr).extract[PostTransactionWhereJSON]
+              com.openbankproject.commons.util.JsonAliases.parse(bodyStr).extract[PostTransactionWhereJSON]
             }
             _ <- Helper.booleanToFuture("Coordinates not possible", 400, Some(cc)) {
               checkIfLocationPossible(whereJson.where.latitude, whereJson.where.longitude)

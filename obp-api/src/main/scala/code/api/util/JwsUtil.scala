@@ -1,5 +1,6 @@
 package code.api.util
 
+import org.json4s._
 import code.api.{CertificateConstants, Constant}
 import code.util.Helper.MdcLoggable
 import com.nimbusds.jose.crypto.RSASSAVerifier
@@ -9,7 +10,7 @@ import com.nimbusds.jose.{JWSAlgorithm, JWSHeader, JWSObject, Payload}
 import com.openbankproject.commons.model.User
 import net.liftweb.common.{Box, Failure, Full}
 import code.api.util.APIUtil.HTTPParam
-import net.liftweb.json
+import com.openbankproject.commons.util.json
 import net.liftweb.util.SecurityHelpers
 
 import java.security.interfaces.RSAPublicKey

@@ -1,7 +1,7 @@
 package code.api.dynamic.entity.query
 
 import cats.effect.IO
-import net.liftweb.json.JsonAST.JObject
+import org.json4s.JsonAST.JObject
 
 /**
  * The Shape B seam: one query contract, swappable implementations.

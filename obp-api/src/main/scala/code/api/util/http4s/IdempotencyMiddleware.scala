@@ -1,12 +1,13 @@
 package code.api.util.http4s
 
+import org.json4s._
 import cats.data.{Kleisli, OptionT}
 import cats.effect._
 import code.api.cache.Redis
 import code.util.Helper.MdcLoggable
-import net.liftweb.json.{compactRender, parse}
-import net.liftweb.json.JsonAST.{JField, JInt, JObject, JString}
-import net.liftweb.json.JsonDSL._
+import com.openbankproject.commons.util.JsonAliases.{compactRender, parse}
+import org.json4s.JsonAST.{JField, JInt, JObject, JString}
+import org.json4s.JsonDSL._
 import org.http4s._
 import org.http4s.headers.`Content-Type`
 import org.typelevel.ci.CIString

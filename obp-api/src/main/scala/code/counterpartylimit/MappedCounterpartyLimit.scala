@@ -1,14 +1,15 @@
 package code.counterpartylimit
 
+import org.json4s._
 import code.util.MappedUUID
 import net.liftweb.common.{Box, Full}
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo
 import com.openbankproject.commons.ExecutionContext.Implicits.global
-import net.liftweb.json
-import net.liftweb.json.Formats
-import net.liftweb.json.JsonAST.{JString, JValue}
-import net.liftweb.json.JsonDSL._
+import com.openbankproject.commons.util.json
+import org.json4s.Formats
+import org.json4s.JsonAST.{JString, JValue}
+import org.json4s.JsonDSL._
 
 import scala.concurrent.Future
 import com.openbankproject.commons.model.CounterpartyLimitTrait

@@ -2,12 +2,13 @@ package code.authtypevalidation
 
 /* For CardAttribute */
 
+import org.json4s._
 import code.api.util.AuthenticationType
 import com.openbankproject.commons.util.JsonAble
 import net.liftweb.common.Box
-import net.liftweb.json.JsonDSL._
-import net.liftweb.json
-import net.liftweb.json.{Formats, JsonAST}
+import org.json4s.JsonDSL._
+import com.openbankproject.commons.util.json
+import org.json4s.{Formats, JsonAST}
 import net.liftweb.util.SimpleInjector
 import org.apache.commons.lang3.StringUtils
 

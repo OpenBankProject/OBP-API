@@ -1,7 +1,7 @@
 package code.api.dynamic.entity.query
 
 import com.openbankproject.commons.model.enums.DynamicEntityFieldType
-import net.liftweb.json.JsonAST._
+import org.json4s.JsonAST._
 
 import scala.util.Try
 

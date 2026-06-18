@@ -1,5 +1,6 @@
 package code.bankconnectors
 
+import org.json4s._
 import scala.language.implicitConversions
 import org.apache.pekko.http.scaladsl.model.HttpMethod
 import code.api.attributedefinition.AttributeDefinition
@@ -29,8 +30,8 @@ import com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatu
 import com.openbankproject.commons.model.enums._
 import com.openbankproject.commons.util.{JsonUtils, ReflectUtils}
 import net.liftweb.common._
-import net.liftweb.json
-import net.liftweb.json.{Formats, JObject, JValue}
+import com.openbankproject.commons.util.json
+import org.json4s.{Formats, JObject, JValue}
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.SimpleInjector
 

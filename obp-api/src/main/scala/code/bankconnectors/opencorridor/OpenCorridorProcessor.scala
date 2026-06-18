@@ -1,5 +1,6 @@
 package code.bankconnectors.opencorridor
 
+import org.json4s._
 import code.api.ChargePolicy
 import code.api.util.APIUtil.getScaMethodAtInstance
 import code.api.util.ErrorMessages._
@@ -9,8 +10,9 @@ import code.util.Helper
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.ChallengeType.OBP_TRANSACTION_REQUEST_CHALLENGE
-import net.liftweb.json.Serialization.write
-import net.liftweb.json.{NoTypeHints, Serialization}
+import org.json4s.native.Serialization.write
+import org.json4s.NoTypeHints
+import org.json4s.native.Serialization
 import net.liftweb.util.StringHelpers
 
 import scala.concurrent.Future

@@ -1,5 +1,6 @@
 package code.api.v2_1_0
 
+import org.json4s._
 import cats.data.{Kleisli, OptionT}
 import cats.effect._
 import code.TransactionTypes.TransactionType
@@ -38,10 +39,11 @@ import com.openbankproject.commons.model.enums.TransactionRequestTypes._
 import com.openbankproject.commons.model.enums.{ChallengeType, SuppliedAnswerType, TransactionRequestTypes}
 import com.openbankproject.commons.util.{ApiVersion, ApiVersionStatus, ScannedApiVersion}
 import net.liftweb.common.{Failure, Full}
-import net.liftweb.json.JsonAST.{compactRender, prettyRender}
-import net.liftweb.json.JsonDSL._
-import net.liftweb.json.{Extraction, Formats, Serialization}
-import net.liftweb.json.Serialization.{write => liftWrite}
+import com.openbankproject.commons.util.JsonAliases.{compactRender, prettyRender}
+import org.json4s.JsonDSL._
+import org.json4s.{Extraction, Formats}
+import org.json4s.native.Serialization
+import org.json4s.native.Serialization.{write => liftWrite}
 import org.http4s._
 import org.http4s.dsl.io._
 
@@ -289,7 +291,7 @@ object Http4s210 {
         _ <- NewStyle.function.checkAuthorisationToCreateTransactionRequest(viewId, account, user, Some(cc))
         transDetailsJson <- NewStyle.function.tryons(
           s"$InvalidJsonFormat The Json body should be the $TransactionRequestBodyCommonJSON", 400, Some(cc)) {
-          net.liftweb.json.parse(jsonBody).extract[TransactionRequestBodyCommonJSON]
+          com.openbankproject.commons.util.JsonAliases.parse(jsonBody).extract[TransactionRequestBodyCommonJSON]
         }
         isValidAmountNumber <- NewStyle.function.tryons(
           s"$InvalidNumber Current input is ${transDetailsJson.value.amount}", 400, Some(cc)) {
@@ -308,7 +310,7 @@ object Http4s210 {
           cc = Some(cc)) {
           transDetailsJson.value.currency == fromAccount.currency
         }
-        parsedJson = net.liftweb.json.parse(jsonBody)
+        parsedJson = com.openbankproject.commons.util.JsonAliases.parse(jsonBody)
         (createdTransactionRequest, _) <- TransactionRequestTypes.withName(transactionRequestTypeStr) match {
           case SANDBOX_TAN =>
             for {
@@ -320,7 +322,7 @@ object Http4s210 {
               toAccountId = AccountId(body.to.account_id)
               (toAccount, _) <- NewStyle.function.checkBankAccountExists(toBankId, toAccountId, Some(cc))
               serialized <- NewStyle.function.tryons(UnknownError, 400, Some(cc)) {
-                liftWrite(body)(Serialization.formats(net.liftweb.json.NoTypeHints))
+                liftWrite(body)(Serialization.formats(org.json4s.NoTypeHints))
               }
               result <- NewStyle.function.createTransactionRequestv210(
                 user, viewId, fromAccount, toAccount,
@@ -343,7 +345,7 @@ object Http4s210 {
                 code.api.ChargePolicy.values.contains(code.api.ChargePolicy.withName(body.charge_policy))
               }
               serialized <- NewStyle.function.tryons(UnknownError, 400, Some(cc)) {
-                liftWrite(body)(Serialization.formats(net.liftweb.json.NoTypeHints))
+                liftWrite(body)(Serialization.formats(org.json4s.NoTypeHints))
               }
               result <- NewStyle.function.createTransactionRequestv210(
                 user, viewId, fromAccount, toAccount,
@@ -365,7 +367,7 @@ object Http4s210 {
                 code.api.ChargePolicy.values.contains(code.api.ChargePolicy.withName(body.charge_policy))
               }
               serialized <- NewStyle.function.tryons(UnknownError, 400, Some(cc)) {
-                liftWrite(body)(Serialization.formats(net.liftweb.json.NoTypeHints))
+                liftWrite(body)(Serialization.formats(org.json4s.NoTypeHints))
               }
               result <- NewStyle.function.createTransactionRequestv210(
                 user, viewId, fromAccount, toAccount,
@@ -379,7 +381,7 @@ object Http4s210 {
                 parsedJson.extract[TransactionRequestBodyFreeFormJSON]
               }
               serialized <- NewStyle.function.tryons(UnknownError, 400, Some(cc)) {
-                liftWrite(body)(Serialization.formats(net.liftweb.json.NoTypeHints))
+                liftWrite(body)(Serialization.formats(org.json4s.NoTypeHints))
               }
               result <- NewStyle.function.createTransactionRequestv210(
                 user, viewId, fromAccount, fromAccount,
@@ -393,7 +395,7 @@ object Http4s210 {
             // APIFailureNewStyle JSON so ErrorResponseConverter maps it to 400,
             // not 500.
             val af = code.api.APIFailureNewStyle(s"$InvalidTransactionRequestType: '$transactionRequestTypeStr'", 400, Some(cc.toLight))
-            Future.failed(new Exception(net.liftweb.json.JsonAST.compactRender(net.liftweb.json.Extraction.decompose(af))))
+            Future.failed(new Exception(com.openbankproject.commons.util.JsonAliases.compactRender(org.json4s.Extraction.decompose(af))))
         }
       } yield JSONFactory210.createTransactionRequestWithChargeJSON(createdTransactionRequest)
     }
@@ -491,7 +493,7 @@ object Http4s210 {
         _ <- code.util.Helper.booleanToFuture(InvalidBankIdFormat, cc = Some(cc)) { isValidID(fromAccount.bankId.value) }
         challengeAnswerJson <- NewStyle.function.tryons(
           s"$InvalidJsonFormat The Json body should be the ChallengeAnswerJSON", 400, Some(cc)) {
-          net.liftweb.json.parse(jsonBody).extract[code.api.v1_4_0.JSONFactory1_4_0.ChallengeAnswerJSON]
+          com.openbankproject.commons.util.JsonAliases.parse(jsonBody).extract[code.api.v1_4_0.JSONFactory1_4_0.ChallengeAnswerJSON]
         }
         account = BankIdAccountId(fromAccount.bankId, fromAccount.accountId)
         viewId <- Future {

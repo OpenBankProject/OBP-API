@@ -1,7 +1,9 @@
 package code.api.berlin.group.v2
 
+import org.json4s._
 import code.util.Helper.MdcLoggable
-import net.liftweb.json.{Extraction, Formats, prettyRender}
+import org.json4s.{Extraction, Formats}
+import com.openbankproject.commons.util.JsonAliases.prettyRender
 import code.api.util.CustomJsonFormats
 import org.scalatest.{FlatSpec, Matchers, Tag}
 

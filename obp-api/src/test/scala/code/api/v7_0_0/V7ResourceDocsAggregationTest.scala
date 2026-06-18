@@ -1,17 +1,19 @@
 package code.api.v7_0_0
 
+import org.json4s._
 import code.Http4sTestServer
 import code.setup.ServerSetupWithTestData
 import dispatch.Defaults._
 import dispatch._
-import net.liftweb.json.JValue
-import net.liftweb.json.JsonAST.{JArray, JObject, JString}
-import net.liftweb.json.JsonParser.parse
+import org.json4s.JValue
+import org.json4s.JsonAST.{JArray, JObject, JString}
+import com.openbankproject.commons.util.JsonAliases.parse
 import org.scalatest.Tag
 
 import scala.collection.JavaConverters._
 import scala.concurrent.Await
 import scala.concurrent.duration._
+import com.openbankproject.commons.util.JsonAliases.RichJField
 
 /**
  * Regression test for v7 Resource Docs Aggregation.
@@ -78,7 +80,7 @@ class V7ResourceDocsAggregationTest extends ServerSetupWithTestData {
     }
   }
 
-  private def toFieldMap(fields: List[net.liftweb.json.JsonAST.JField]): Map[String, JValue] =
+  private def toFieldMap(fields: List[org.json4s.JsonAST.JField]): Map[String, JValue] =
     fields.map(field => field.name -> field.value).toMap
 
   private def extractResourceDocs(json: JValue): List[JObject] = {

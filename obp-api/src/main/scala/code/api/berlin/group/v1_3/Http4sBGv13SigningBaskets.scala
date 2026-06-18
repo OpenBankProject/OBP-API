@@ -1,5 +1,6 @@
 package code.api.berlin.group.v1_3
 
+import org.json4s._
 import cats.data.{Kleisli, OptionT}
 import cats.effect._
 import code.api.berlin.group.ConstantsBG
@@ -20,8 +21,8 @@ import com.openbankproject.commons.model.enums.TransactionRequestStatus.{COMPLET
 import com.openbankproject.commons.model.enums.{ChallengeType, StrongCustomerAuthenticationStatus, SuppliedAnswerType}
 import com.openbankproject.commons.model.{ChallengeTrait, TransactionRequestId}
 import net.liftweb.common.Empty
-import net.liftweb.json
-import net.liftweb.json.Formats
+import com.openbankproject.commons.util.json
+import org.json4s.Formats
 import org.http4s._
 import org.http4s.dsl.io._
 
@@ -35,7 +36,7 @@ object Http4sBGv13SigningBaskets extends MdcLoggable {
 
   implicit val formats: Formats = CustomJsonFormats.formats
 
-  protected implicit def JvalueToSuper(what: net.liftweb.json.JValue): JvalueCaseClass = JvalueCaseClass(what)
+  protected implicit def JvalueToSuper(what: org.json4s.JValue): JvalueCaseClass = JvalueCaseClass(what)
 
   val implementedInApiVersion = ConstantsBG.berlinGroupVersion1
   val resourceDocs = ArrayBuffer[ResourceDoc]()

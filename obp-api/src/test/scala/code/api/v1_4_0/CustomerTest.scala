@@ -1,5 +1,6 @@
 package code.api.v1_4_0
 
+import org.json4s._
 import com.openbankproject.commons.model.ErrorMessage
 import code.api.util.APIUtil.OAuth._
 import code.api.util.{ApiRole, ErrorMessages}
@@ -9,7 +10,7 @@ import code.customer.CustomerX
 import code.entitlement.Entitlement
 import code.setup.DefaultUsers
 import code.usercustomerlinks.UserCustomerLink
-import net.liftweb.json.Serialization._
+import org.json4s.native.Serialization._
 
 class CustomerTest extends V200ServerSetup with DefaultUsers {
 

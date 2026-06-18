@@ -1,5 +1,6 @@
 package code.api.UKOpenBanking.v3_1_0
 
+import org.json4s._
 import java.util.Date
 
 import code.api.Constant
@@ -7,7 +8,7 @@ import code.api.util.APIUtil.DateWithDayExampleObject
 import code.api.util.CustomJsonFormats
 import code.model.{ModeratedBankAccount, ModeratedBankAccountCore, ModeratedTransaction}
 import com.openbankproject.commons.model.{AccountAttribute, AccountId, AmountOfMoneyJsonV121, BankAccount, BankId, TransactionAttribute, TransactionId, TransactionRequest, View}
-import net.liftweb.json.JsonAST.JObject
+import org.json4s.JsonAST.JObject
 
 import scala.collection.immutable.List
 

@@ -1,5 +1,6 @@
 package code.api.v5_1_0
 
+import org.json4s._
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.{CanGetSystemLogCacheAll,CanGetSystemLogCacheInfo}
 import code.api.util.ErrorMessages.{UserHasMissingRoles, AuthenticatedUserIsRequired}
@@ -8,7 +9,6 @@ import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.ApiVersion
-import net.liftweb.json.JsonAST._
 import org.scalatest.Tag
 
 class LogCacheEndpointTest extends V510ServerSetup {

@@ -50,8 +50,8 @@ trait APIMethods500
 //import com.openbankproject.commons.model.enums.StrongCustomerAuthentication
 //import com.openbankproject.commons.util.ApiVersion
 //import net.liftweb.common.{Empty, Full}
-//import net.liftweb.json
-//import net.liftweb.json.{Extraction, compactRender, prettyRender}
+//import com.openbankproject.commons.util.json
+//import org.json4s.{Extraction, compactRender, prettyRender}
 //import net.liftweb.mapper.By
 //import net.liftweb.util.Helpers.tryo
 //import net.liftweb.util.{Helpers, Props, StringHelpers}

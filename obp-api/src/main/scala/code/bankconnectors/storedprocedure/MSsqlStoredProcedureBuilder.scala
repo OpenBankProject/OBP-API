@@ -1,5 +1,6 @@
 package code.bankconnectors.storedprocedure
 
+import org.json4s._
 import java.io.File
 import java.util.{Date, TimeZone}
 
@@ -10,9 +11,9 @@ import code.api.util.{APIUtil, OptionalFieldSerializer}
 import code.bankconnectors.generator.ConnectorBuilderUtil._
 import com.openbankproject.commons.model.Status
 import com.openbankproject.commons.util.Functions
-import net.liftweb.json
-import net.liftweb.json.JsonAST.JValue
-import net.liftweb.json.{Formats, Serializer, TypeInfo}
+import com.openbankproject.commons.util.json
+import org.json4s.JsonAST.JValue
+import org.json4s.{Formats, Serializer, TypeInfo}
 import net.liftweb.util.StringHelpers
 import org.apache.commons.io.FileUtils
 

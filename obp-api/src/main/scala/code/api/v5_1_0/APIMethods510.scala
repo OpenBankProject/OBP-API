@@ -69,8 +69,8 @@ trait APIMethods510
 //import com.openbankproject.commons.model.enums.{TransactionRequestStatus, _}
 //import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
 //import net.liftweb.common.{Box, Empty, Full}
-//import net.liftweb.json
-//import net.liftweb.json.{Extraction, compactRender, parse, prettyRender}
+//import com.openbankproject.commons.util.json
+//import org.json4s.{Extraction, compactRender, parse, prettyRender}
 //import net.liftweb.mapper.By
 //import net.liftweb.util.Helpers.tryo
 //import net.liftweb.util.{Helpers, Props, StringHelpers}

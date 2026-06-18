@@ -25,6 +25,7 @@ TESOBE (http://www.tesobe.com/)
   */
 package code.api.v3_1_0
 
+import org.json4s._
 import com.openbankproject.commons.model.ErrorMessage
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole._
@@ -34,7 +35,7 @@ import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
 import code.entitlement.Entitlement
 import code.webuiprops.WebUiPropsCommons
 import com.github.dwickern.macros.NameOf.nameOf
-import net.liftweb.json.Serialization.write
+import org.json4s.native.Serialization.write
 import org.scalatest.Tag
 
 class WebUiPropsTest extends V310ServerSetup {

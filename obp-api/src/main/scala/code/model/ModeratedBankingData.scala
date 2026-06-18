@@ -27,6 +27,7 @@ TESOBE (http://www.tesobe.com/)
 
 package code.model
 
+import org.json4s._
 import scala.language.implicitConversions
 import code.api.Constant._
 import code.api.util.ErrorMessages._
@@ -35,8 +36,8 @@ import code.model.Moderation.Moderated
 import code.util.Helper
 import com.openbankproject.commons.model._
 import net.liftweb.common.{Box, Failure}
-import net.liftweb.json.JsonAST.{JField, JObject, JString}
-import net.liftweb.json.JsonDSL._
+import org.json4s.JsonAST.{JField, JObject, JString}
+import org.json4s.JsonDSL._
 
 import java.util.Date
 

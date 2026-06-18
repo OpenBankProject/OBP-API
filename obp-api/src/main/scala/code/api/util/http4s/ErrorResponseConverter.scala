@@ -1,5 +1,6 @@
 package code.api.util.http4s
 
+import org.json4s._
 import cats.effect._
 import code.api.APIFailureNewStyle
 import code.api.JsonResponseException
@@ -10,9 +11,10 @@ import code.api.util.BerlinGroupError
 import code.api.util.ErrorMessages._
 import code.api.util.CallContext
 import net.liftweb.common.{Failure => LiftFailure}
-import net.liftweb.json.JsonParser.parse
-import net.liftweb.json.{Extraction, compactRender}
-import net.liftweb.json.JsonDSL._
+import com.openbankproject.commons.util.JsonAliases.parse
+import org.json4s.Extraction
+import com.openbankproject.commons.util.JsonAliases.compactRender
+import org.json4s.JsonDSL._
 import org.http4s._
 import org.http4s.headers.`Content-Type`
 import org.typelevel.ci.CIString
@@ -32,7 +34,7 @@ import org.slf4j.LoggerFactory
  * - Appropriate HTTP status code
  */
 object ErrorResponseConverter {
-  import net.liftweb.json.Formats
+  import org.json4s.Formats
   import code.api.util.CustomJsonFormats
 
   private val logger = LoggerFactory.getLogger(getClass)

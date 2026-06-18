@@ -1,5 +1,6 @@
 package code.api.v7_0_0
 
+import org.json4s._
 import cats.effect.IO
 import cats.effect.unsafe.IORuntime
 import code.api.util.http4s.Http4sStandardHeaders
@@ -28,10 +29,11 @@ import org.typelevel.ci.CIString
 
 import java.util.Date
 import code.setup.ServerSetupWithTestData
-import net.liftweb.json.JValue
-import net.liftweb.json.JsonAST.{JArray, JBool, JField, JInt, JNull, JObject, JString}
-import net.liftweb.json.JsonParser.parse
+import org.json4s.JValue
+import org.json4s.JsonAST.{JArray, JBool, JField, JInt, JNull, JObject, JString}
+import com.openbankproject.commons.util.JsonAliases.parse
 import org.scalatest.Tag
+import com.openbankproject.commons.util.JsonAliases.RichJField
 
 /**
  * HTTP4S v7.0.0 Routes Test
@@ -1785,7 +1787,7 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
         case JObject(fields) =>
           val map = toFieldMap(fields)
           map.keys should contain allOf ("id", "batch_reference", "status", "total_payments", "succeeded_count", "failed_count", "payments")
-          map.get("total_payments")  shouldBe Some(net.liftweb.json.JsonAST.JInt(2))
+          map.get("total_payments")  shouldBe Some(org.json4s.JsonAST.JInt(2))
           map.get("status") match {
             case Some(JString(s)) => s should (be("PARTIALLY_COMPLETED") or be("FAILED") or be("COMPLETED"))
             case _ => fail("status should be a string")
