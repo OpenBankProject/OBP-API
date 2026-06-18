@@ -118,6 +118,32 @@ object CommunityEntityName {
   }
 }
 
+/**
+ * Row-level access (ACL) management routes: `.../<Entity>/<id>/access[/<userId>]`.
+ * Result: (bankId, entityName, dataId, grantedUserIdOpt). Matches whenever the entity exists
+ * (row-level or not); the handler returns 400 when the entity isn't row-level. See §6.
+ */
+object EntityAccessName {
+  private def entityExists(bankId: Option[String], entityName: String): Boolean =
+    DynamicEntityHelper.definitionsMap.exists { case ((b, n), info) => b == bankId && n == entityName && info.bankId == bankId }
+
+  def unapply(url: List[String]): Option[(Option[String], String, String, Option[String])] = url match {
+    //eg: /FooBar21/FOO_BAR21_ID/access
+    case entityName :: id :: "access" :: Nil if entityExists(None, entityName) =>
+      Some((None, entityName, id, None))
+    //eg: /FooBar21/FOO_BAR21_ID/access/USER_ID
+    case entityName :: id :: "access" :: userId :: Nil if entityExists(None, entityName) =>
+      Some((None, entityName, id, Some(userId)))
+    //eg: /banks/BANK_ID/FooBar21/FOO_BAR21_ID/access
+    case "banks" :: bankId :: entityName :: id :: "access" :: Nil if entityExists(Some(bankId), entityName) =>
+      Some((Some(bankId), entityName, id, None))
+    //eg: /banks/BANK_ID/FooBar21/FOO_BAR21_ID/access/USER_ID
+    case "banks" :: bankId :: entityName :: id :: "access" :: userId :: Nil if entityExists(Some(bankId), entityName) =>
+      Some((Some(bankId), entityName, id, Some(userId)))
+    case _ => None
+  }
+}
+
 object DynamicEntityHelper {
   private val implementedInApiVersion = ApiVersion.v4_0_0
 

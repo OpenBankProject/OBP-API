@@ -29,7 +29,7 @@ import cats.data.{Kleisli, OptionT}
 import cats.effect.IO
 import code.DynamicData.{DynamicData, DynamicDataProvider, DynamicDataAccessProvider, DynamicDataAccessPermission}
 import code.api.Constant.PARAM_LOCALE
-import code.api.dynamic.entity.helper.{CommunityEntityName, DynamicEntityHelper, DynamicEntityInfo, EntityName, PublicEntityName}
+import code.api.dynamic.entity.helper.{CommunityEntityName, DynamicEntityHelper, DynamicEntityInfo, EntityAccessName, EntityName, PublicEntityName}
 import code.api.dynamic.entity.query.{FieldSpec, InMemoryQueryExecutor, QueryParamParser, QueryPlan, QueryPlanner}
 import code.api.dynamic.entity.projection.{IndexingCapabilities, PostgresProjectionBackend, ProjectionProvisioner}
 import cats.effect.unsafe.implicits.{global => ioRuntime} // aliased: avoids clashing with the EC `global` imported below
@@ -402,6 +402,82 @@ object Http4sDynamicEntity extends MdcLoggable {
     } yield JObject(Nil)
   }
 
+  // ----- row-level access management: share / list / revoke (.../<Entity>/<id>/access) -----
+  // §6. Authorisation: ACL CanGrant on the row OR the per-entity admin role. The owner holds
+  // CanGrant via their bootstrap row, so they share their own records with no role (§8.1).
+
+  private def boolField(o: JObject, name: String, default: Boolean): Boolean =
+    (o \ name) match { case JBool(b) => b; case _ => default }
+  private def strField(o: JObject, name: String): Option[String] =
+    (o \ name) match { case JString(s) if s.nonEmpty => Some(s); case _ => None }
+
+  private def rowAccessRowJson(a: code.DynamicData.DynamicDataAccessT): JObject =
+    ("user_id" -> a.userId) ~
+    ("can_read" -> a.canRead) ~
+    ("can_update" -> a.canUpdate) ~
+    ("can_delete" -> a.canDelete) ~
+    ("can_grant" -> a.canGrant) ~
+    ("granted_by" -> a.grantedBy)
+
+  private def rowAccessListJson(dataId: String): JObject =
+    ("access" -> JArray(aclVend.getAccessForRow(dataId).map(rowAccessRowJson)))
+
+  // Shared preamble: before-intercept, auth, bank, flag-off (400), grant authorisation (403).
+  private def rowAccessAuthorise(cc: CallContext, bankId: Option[String], entityName: String, id: String,
+                                 operation: DynamicEntityOperation): Future[(User, Option[CallContext])] = {
+    val callContext0 = enrichCallContext(cc, operation, entityName, bankId, "")
+    val operationId = callContext0.operationId.orNull
+    for {
+      _ <- failIf(beforeIntercept(callContext0, operationId), Some(callContext0))
+      (Full(u), callContext) <- authenticatedAccess(callContext0)
+      (_, callContext2) <- bankCheck(bankId, callContext)
+      _ <- Helper.booleanToFuture(RowLevelAccessNotEnabled, 400, cc = callContext2) { isRowLevel(bankId, entityName) }
+      _ <- Helper.booleanToFuture(s"$UserHasMissingRoles grant access on this row", 403, cc = callContext2) {
+             aclVend.allows(id, u.userId, DynamicDataAccessPermission.Grant) ||
+               hasEntitlement(bankId.getOrElse(""), u.userId, DynamicEntityInfo.canGrantRowAccessRole(entityName, bankId))
+           }
+    } yield (u, callContext2)
+  }
+
+  private def listRowAccess(req: Request[IO], bankId: Option[String], entityName: String, id: String): IO[Response[IO]] =
+    EndpointHelpers.executeAndRespond(req) { cc =>
+      for {
+        _ <- rowAccessAuthorise(cc, bankId, entityName, id, GET_ALL)
+      } yield rowAccessListJson(id)
+    }
+
+  private def upsertRowAccess(req: Request[IO], bankId: Option[String], entityName: String, id: String): IO[Response[IO]] =
+    EndpointHelpers.executeAndRespond(req) { cc =>
+      for {
+        (granter, callContext) <- rowAccessAuthorise(cc, bankId, entityName, id, UPDATE)
+        json <- NewStyle.function.tryons(InvalidJsonFormat, 400, callContext) { parse(cc.httpBody.getOrElse("")) }
+        entries = json match {
+          case JArray(arr) => arr.collect { case o: JObject => o }
+          case o: JObject  => List(o)
+          case _           => Nil
+        }
+        _ <- Helper.booleanToFuture(s"$InvalidJsonFormat each access entry needs a non-empty user_id", 400, cc = callContext) {
+               entries.nonEmpty && entries.forall(o => strField(o, "user_id").isDefined)
+             }
+        _ = entries.foreach { o =>
+              aclVend.grant(id, strField(o, "user_id").get,
+                canRead = boolField(o, "can_read", default = false),
+                canUpdate = boolField(o, "can_update", default = false),
+                canDelete = boolField(o, "can_delete", default = false),
+                canGrant = boolField(o, "can_grant", default = true), // §8.1: re-share by default
+                entityName, bankId, grantedBy = granter.userId)
+            }
+      } yield rowAccessListJson(id)
+    }
+
+  private def revokeRowAccess(req: Request[IO], bankId: Option[String], entityName: String, id: String, grantUserId: String): IO[Response[IO]] =
+    EndpointHelpers.executeAndRespond(req) { cc =>
+      for {
+        _ <- rowAccessAuthorise(cc, bankId, entityName, id, DELETE)
+        removed = aclVend.revoke(id, grantUserId).getOrElse(0) // cascades to downstream grants (§7)
+      } yield (("revoked_count" -> removed): JObject)
+    }
+
   // ----- generic endpoint (authenticated, system / bank / personal) -----
 
   private def genericGet(req: Request[IO], bankId: Option[String], entityName: String, id: String, isPersonalEntity: Boolean): IO[Response[IO]] =
@@ -634,6 +710,13 @@ object Http4sDynamicEntity extends MdcLoggable {
         Some(r => publicGet(r, bankId, entityName, id))
       case (Method.GET, CommunityEntityName(bankId, entityName, id)) =>
         Some(r => communityGet(r, bankId, entityName, id))
+      // Row-level access management — must precede the generic EntityName match.
+      case (Method.GET, EntityAccessName(bankId, entityName, id, None)) =>
+        Some(r => listRowAccess(r, bankId, entityName, id))
+      case (Method.PUT, EntityAccessName(bankId, entityName, id, None)) =>
+        Some(r => upsertRowAccess(r, bankId, entityName, id))
+      case (Method.DELETE, EntityAccessName(bankId, entityName, id, Some(grantUserId))) =>
+        Some(r => revokeRowAccess(r, bankId, entityName, id, grantUserId))
       case (method, EntityName(bankId, entityName, id, isPersonalEntity)) =>
         method match {
           case Method.GET    => Some(r => genericGet(r, bankId, entityName, id, isPersonalEntity))
