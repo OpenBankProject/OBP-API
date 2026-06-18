@@ -347,5 +347,45 @@ class DynamicEntityFieldRolesTest extends V600ServerSetup {
         makePatchRequest((dynamicEntity_Request / "my" / n / id).PATCH <@(user2), write(parse("""{"internal_note":"x"}"""))).code should equal(200)
       } finally deleteSystemEntity(deId)
     }
+
+    // Mirrors the original reproduction: a field declares an EXPLICIT, shareable write_role (rather than the
+    // auto-generated CanWriteDynamicEntityField_* role). Granting that role to another user lets them PATCH the
+    // field on the field role ALONE — no entity update role required.
+    scenario("Explicit write_role: a named shareable role lets another user PATCH the field alone", VersionOfApi) {
+      val n = "fr_explicit_role"
+      val explicitRole = "CanUpdateWritableExplicit"   // explicit role named in the schema (cf. the ticket's CanUpdateWritable)
+      val (code, body) = createSystemEntity(
+        ("entity_name" -> n) ~
+        ("has_personal_entity" -> false) ~
+        ("schema" -> parse(
+          s"""{"description":"Explicit write_role test entity.","required":["some_id"],
+             |"properties":{
+             |"some_id":{"type":"string","minLength":1,"maxLength":40,"example":"3dece208"},
+             |"status_code":{"type":"string","example":"verified","write_role":"$explicitRole",
+             |"description":"in_progress, verified, failed"}}}""".stripMargin)))
+      code should equal(201)
+      val deId = (body \ "dynamic_entity_id").extract[String]
+      try {
+        grant(createRoleFor(n)); grant(getRoleFor(n))   // user1 (creator already auto-granted, but explicit for clarity)
+        val createResp = makePostRequest((dynamicEntity_Request / n).POST <@(user1), write(parse("""{"some_id":"x1"}""")))
+        createResp.code should equal(201)
+        val id = recordIdFor(n, createResp.body)
+
+        When("user2 PATCHes status_code WITHOUT the explicit role")
+        val patch1 = makePatchRequest((dynamicEntity_Request / n / id).PATCH <@(user2), write(parse("""{"status_code":"verified"}""")))
+        Then("We get 403 naming the explicit role (NOT the auto-generated field role)")
+        patch1.code should equal(403)
+        patch1.body.extract[ErrorMessage].message should include(explicitRole)
+
+        When("We grant the explicit role to user2 and PATCH again")
+        grantTo(resourceUser2.userId, explicitRole)
+        val patch2 = makePatchRequest((dynamicEntity_Request / n / id).PATCH <@(user2), write(parse("""{"status_code":"verified"}""")))
+        Then("It succeeds on the explicit field role alone — no entity update role needed")
+        patch2.code should equal(200)
+        val getResp = makeGetRequest((dynamicEntity_Request / n / id).GET <@(user1))
+        (getResp.body \ n \ "status_code").extract[String] should equal("verified")
+        (getResp.body \ n \ "some_id").extract[String] should equal("x1")
+      } finally deleteSystemEntity(deId)
+    }
   }
 }
