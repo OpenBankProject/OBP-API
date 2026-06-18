@@ -41,6 +41,7 @@ trait DynamicEntityT {
   def hasPublicAccess: Boolean
   def hasCommunityAccess: Boolean
   def personalRequiresRole: Boolean
+  def useRowLevelAccess: Boolean
 
   /**
    * Add Option(bank_id) to Dynamic Entity.
@@ -422,7 +423,8 @@ case class DynamicEntityCommons(entityName: String,
                                 hasPersonalEntity: Boolean,
                                 hasPublicAccess: Boolean = false,
                                 hasCommunityAccess: Boolean = false,
-                                personalRequiresRole: Boolean = false
+                                personalRequiresRole: Boolean = false,
+                                useRowLevelAccess: Boolean = false
                                ) extends DynamicEntityT with JsonFieldReName
 
 object DynamicEntityCommons extends Converter[DynamicEntityT, DynamicEntityCommons] {
@@ -467,7 +469,7 @@ object DynamicEntityCommons extends Converter[DynamicEntityT, DynamicEntityCommo
     val fields = jsonObject.obj
 
     // Known flag field names at the root level (not the entity definition itself)
-    val knownFlagFields = Set("hasPersonalEntity", "hasPublicAccess", "hasCommunityAccess", "personalRequiresRole")
+    val knownFlagFields = Set("hasPersonalEntity", "hasPublicAccess", "hasCommunityAccess", "personalRequiresRole", "useRowLevelAccess")
 
     // validate root object fields
     val fieldsSize = fields.size
@@ -482,12 +484,19 @@ object DynamicEntityCommons extends Converter[DynamicEntityT, DynamicEntityCommo
     val hasCommunityAccessValue: Boolean = fields.filter(_.name == "hasCommunityAccess").map(_.value.asInstanceOf[JBool].values).headOption.getOrElse(false)
     // Determine the value of personalRequiresRole; use the field's boolean value if provided, otherwise default to false
     val personalRequiresRoleValue: Boolean = fields.filter(_.name == "personalRequiresRole").map(_.value.asInstanceOf[JBool].values).headOption.getOrElse(false)
+    // Determine the value of useRowLevelAccess; use the field's boolean value if provided, otherwise default to false
+    val useRowLevelAccessValue: Boolean = fields.filter(_.name == "useRowLevelAccess").map(_.value.asInstanceOf[JBool].values).headOption.getOrElse(false)
 
     checkFormat(fields.nonEmpty, s"$DynamicEntityInstanceValidateFail The Json root object should have a single entity, but current have none.")
     checkFormat(entityFields.size == 1, s"$DynamicEntityInstanceValidateFail The Json root object should have exactly one entity field (plus optional flags: ${knownFlagFields.mkString(", ")}), but current root objects: ${fields.map(_.name).mkString(",  ")}")
     checkFormat(
       flagFields.forall(f => knownFlagFields.contains(f.name)),
       s"$DynamicEntityInstanceValidateFail Unknown flag fields. Allowed flags: ${knownFlagFields.mkString(", ")}. Current root objects: ${fields.map(_.name).mkString(",  ")}"
+    )
+    // §8.3: useRowLevelAccess is a master switch — mutually exclusive with public/community access.
+    checkFormat(
+      !(useRowLevelAccessValue && (hasPublicAccessValue || hasCommunityAccessValue)),
+      s"$DynamicEntityInstanceValidateFail useRowLevelAccess cannot be combined with hasPublicAccess or hasCommunityAccess."
     )
 
     val JField(entityName, metadataJson) = entityFields.head
@@ -640,7 +649,7 @@ object DynamicEntityCommons extends Converter[DynamicEntityT, DynamicEntityCommo
       }
     })
 
-    DynamicEntityCommons(entityName, compactRender(jsonObject), dynamicEntityId, userId, bankId, hasPersonalEntityValue, hasPublicAccessValue, hasCommunityAccessValue, personalRequiresRoleValue)
+    DynamicEntityCommons(entityName, compactRender(jsonObject), dynamicEntityId, userId, bankId, hasPersonalEntityValue, hasPublicAccessValue, hasCommunityAccessValue, personalRequiresRoleValue, useRowLevelAccessValue)
   }
 
   private def allowedFieldType: List[String] = DynamicEntityFieldType.values.map(_.toString) ++: ReferenceType.referenceTypeNames

@@ -59,6 +59,24 @@ object MappedDynamicEntityProvider extends DynamicEntityProvider with CustomJson
       case Full(dynamicEntity) => dynamicEntity
     }
 
+    // §8.4: switching useRowLevelAccess on for an entity that already has rows makes those
+    // rows admin-only (no backfill). Warn so the operator grants access deliberately.
+    val wasRowLevel = existsDynamicEntity.map(_.useRowLevelAccess).getOrElse(false)
+    if (!wasRowLevel && dynamicEntity.useRowLevelAccess) {
+      val existingRowCount = dynamicEntity.bankId match {
+        case Some(b) => code.DynamicData.DynamicData.count(
+          By(code.DynamicData.DynamicData.DynamicEntityName, dynamicEntity.entityName),
+          By(code.DynamicData.DynamicData.BankId, b))
+        case None => code.DynamicData.DynamicData.count(
+          By(code.DynamicData.DynamicData.DynamicEntityName, dynamicEntity.entityName),
+          NullRef(code.DynamicData.DynamicData.BankId))
+      }
+      if (existingRowCount > 0)
+        logger.warn(s"createOrUpdate says: useRowLevelAccess switched on for entity '${dynamicEntity.entityName}' " +
+          s"(bankId=${dynamicEntity.bankId.getOrElse("none")}) which already has $existingRowCount row(s); these are now " +
+          s"admin-only until access is granted via the ACL (no backfill — see DYNAMIC_ENTITY_ROW_LEVEL_ACCESS.md §8.4).")
+    }
+
     tryo{
       try {
         val saved = entityToPersist
@@ -70,6 +88,7 @@ object MappedDynamicEntityProvider extends DynamicEntityProvider with CustomJson
           .HasPublicAccess(dynamicEntity.hasPublicAccess)
           .HasCommunityAccess(dynamicEntity.hasCommunityAccess)
           .PersonalRequiresRole(dynamicEntity.personalRequiresRole)
+          .UseRowLevelAccess(dynamicEntity.useRowLevelAccess)
           .saveMe()
         // DE_indexing: provision/refresh the projection for this definition's indexed scalar fields.
         // Guarded by projectionEnabled (default off); best-effort (a failure leaves the definition saved
@@ -79,7 +98,7 @@ object MappedDynamicEntityProvider extends DynamicEntityProvider with CustomJson
           try {
             val info = code.api.dynamic.entity.helper.DynamicEntityInfo(
               dynamicEntity.metadataJson, dynamicEntity.entityName, dynamicEntity.bankId,
-              dynamicEntity.hasPersonalEntity, dynamicEntity.hasPublicAccess, dynamicEntity.hasCommunityAccess, dynamicEntity.personalRequiresRole)
+              dynamicEntity.hasPersonalEntity, dynamicEntity.hasPublicAccess, dynamicEntity.hasCommunityAccess, dynamicEntity.personalRequiresRole, dynamicEntity.useRowLevelAccess)
             val scalar = code.api.dynamic.entity.projection.ProjectionProvisioner.scalarFieldsOf(info.indexedFields)
             if (scalar.nonEmpty)
               code.api.dynamic.entity.projection.ProjectionProvisioner
@@ -124,6 +143,7 @@ class DynamicEntity extends DynamicEntityT with LongKeyedMapper[DynamicEntity] w
   object HasPublicAccess extends MappedBoolean(this)
   object HasCommunityAccess extends MappedBoolean(this)
   object PersonalRequiresRole extends MappedBoolean(this)
+  object UseRowLevelAccess extends MappedBoolean(this)
 
   override def dynamicEntityId: Option[String] = Option(DynamicEntityId.get)
   override def entityName: String = EntityName.get
@@ -134,6 +154,7 @@ class DynamicEntity extends DynamicEntityT with LongKeyedMapper[DynamicEntity] w
   override def hasPublicAccess: Boolean = HasPublicAccess.get
   override def hasCommunityAccess: Boolean = HasCommunityAccess.get
   override def personalRequiresRole: Boolean = PersonalRequiresRole.get
+  override def useRowLevelAccess: Boolean = UseRowLevelAccess.get
 }
 
 object DynamicEntity extends DynamicEntity with LongKeyedMetaMapper[DynamicEntity] {
