@@ -35,7 +35,8 @@ import code.model.BankAccountX
 import code.transaction.MappedTransaction
 import com.openbankproject.commons.model.{AccountId, AmountOfMoneyJsonV121}
 import com.openbankproject.commons.model.enums.TransactionRequestStatus
-import net.liftweb.json.Serialization.write
+import org.json4s.native.Serialization.write
+import org.json4s._
 import net.liftweb.mapper.By
 
 import java.util.Date
@@ -66,7 +67,7 @@ import scala.concurrent.duration._
  * unfixed — the "expected vs actual" clue is the evidence. Tagged ConcurrencyRace.
  */
 class ConcurrentTransferRaceTest extends ConcurrentRaceSetup {
-
+ 
   feature("Concurrent money movement on a single account (transaction-level isolation)") {
 
     scenario("A: N concurrent transfers from one account must not lose balance updates", ConcurrencyRace) {
@@ -145,7 +146,7 @@ class ConcurrentTransferRaceTest extends ConcurrentRaceSetup {
       // `challenges` is a JArray; pluck the first element's id rather than letting
       // `\ "id"` map over the array (which would stringify to "List(...)").
       val challengeId = (createResp.body \ "challenges") match {
-        case net.liftweb.json.JArray(h :: _) => (h \ "id").values.toString
+        case org.json4s.JArray(h :: _) => (h \ "id").values.toString
         case other                           => (other \ "id").values.toString
       }
 

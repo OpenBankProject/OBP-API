@@ -38,7 +38,7 @@ import code.model.dataAccess.ResourceUser
 import code.users.LiftUsers
 import code.usercustomerlinks.{MappedUserCustomerLink, MappedUserCustomerLinkProvider}
 import com.openbankproject.commons.model.{AccountId, BankIdAccountId}
-import net.liftweb.json.Serialization.write
+import org.json4s.native.Serialization.write
 import net.liftweb.mapper.By
 
 import java.util.{Date, UUID}
