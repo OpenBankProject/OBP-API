@@ -32,6 +32,7 @@ import bootstrap.liftweb.ToSchemify
 import code.TestServer
 import code.api.util.APIUtil._
 import code.api.util.{APIUtil, CustomJsonFormats}
+import code.migration.MigrationScriptLog
 import code.model.{Consumer, Nonce, Token}
 import code.model.dataAccess.{AuthUser, ResourceUser}
 import code.util.Helper.MdcLoggable
@@ -130,7 +131,12 @@ trait ServerSetup extends FeatureSpec with SendServerRequests
    */
   protected def resetDatabaseForTestClass(): Unit = {
     def exclusion(m: MetaMapper[_]): Boolean = {
-      m == Nonce || m == Token || m == Consumer || m == AuthUser || m == ResourceUser
+      // MigrationScriptLog is migration bookkeeping, not test data. Wiping it makes isExecuted always
+      // false, so every fresh `mvn test` JVM re-runs all migrations against a DB that already has the
+      // migration-created views (v_consent, v_metric, …) — and an in-place column retype on a
+      // view-projected column then fails ("cannot alter type of a column used by a view or rule"),
+      // aborting boot until the DB is manually reset. Preserve it so migrations run once per DB.
+      m == Nonce || m == Token || m == Consumer || m == AuthUser || m == ResourceUser || m == MigrationScriptLog
     }
 
     logger.info(s"[TEST ISOLATION] Resetting database before test class: ${this.getClass.getSimpleName}")
