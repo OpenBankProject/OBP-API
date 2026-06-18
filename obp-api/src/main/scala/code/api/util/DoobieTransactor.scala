@@ -149,6 +149,31 @@ object DoobieUtil extends MdcLoggable {
   }
 
   /**
+   * Fallback transactor that commits. Used for updates outside Lift requests.
+   */
+  private lazy val fallbackUpdateTransactor: Transactor[IO] = {
+    val liftDataSource = APIUtil.vendor.HikariDatasource.ds
+    Transactor.fromDataSource[IO].apply(
+      liftDataSource,
+      ExecutionContext.global
+    ) // Strategy.default includes commit/rollback
+  }
+
+  /**
+   * Run a Doobie update synchronously, sharing Lift's transaction when available.
+   * If not in a Lift request context, uses a transactor that COMMITs the connection.
+   */
+  def runUpdate[A](query: ConnectionIO[A]): A = {
+    liftCurrentConnection match {
+      case Some(conn) =>
+        query.transact(transactorFromConnection(conn)).unsafeRunSync()
+      case None =>
+        logger.debug("DoobieUtil.runUpdate: No Lift request context, using fallback update transactor")
+        query.transact(fallbackUpdateTransactor).unsafeRunSync()
+    }
+  }
+
+  /**
    * Check if the database is SQL Server (for syntax differences like TOP vs LIMIT)
    */
   def isSqlServer: Boolean = DBUtil.isSqlServer
