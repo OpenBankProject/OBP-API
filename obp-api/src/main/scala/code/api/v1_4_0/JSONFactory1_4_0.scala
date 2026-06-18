@@ -1,5 +1,6 @@
 package code.api.v1_4_0
 
+import org.json4s._
 import code.api.Constant.{CREATE_LOCALISED_RESOURCE_DOC_JSON_TTL, LOCALISED_RESOURCE_DOC_PREFIX}
 import code.api.berlin.group.v1_3.JvalueCaseClass
 import code.api.cache.Caching
@@ -17,10 +18,10 @@ import com.openbankproject.commons.model.{Product, _}
 import com.openbankproject.commons.model.enums.I18NResourceDocField
 import com.openbankproject.commons.util.{EnumValue, JsonUtils, OBPEnumeration, ReflectUtils}
 import net.liftweb.common.Full
-import net.liftweb.json
-import net.liftweb.json.Extraction.decompose
-import net.liftweb.json.{Extraction, Formats, JDouble, JInt, JString}
-import net.liftweb.json.JsonAST.{JArray, JBool, JNothing, JObject, JValue}
+import com.openbankproject.commons.util.json
+import org.json4s.Extraction.decompose
+import org.json4s.{Extraction, Formats, JDouble, JInt, JString}
+import org.json4s.JsonAST.{JArray, JBool, JNothing, JObject, JValue}
 import net.liftweb.util.StringHelpers
 import code.util.Helper.MdcLoggable
 import com.github.dwickern.macros.NameOf.nameOf
@@ -32,6 +33,7 @@ import java.util.regex.Pattern
 import java.lang.reflect.Field
 import java.util.UUID.randomUUID
 import scala.concurrent.duration._
+import com.openbankproject.commons.util.JsonAliases.RichJField
 
 object JSONFactory1_4_0 extends MdcLoggable{
   implicit def formats: Formats = CustomJsonFormats.formats

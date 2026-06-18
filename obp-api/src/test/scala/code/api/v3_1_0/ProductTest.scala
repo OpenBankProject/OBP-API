@@ -25,6 +25,7 @@ TESOBE (http://www.tesobe.com/)
   */
 package code.api.v3_1_0
 
+import org.json4s._
 import com.openbankproject.commons.model.ErrorMessage
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.productAttributeJson
@@ -35,8 +36,9 @@ import code.api.util.ErrorMessages._
 import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
 import code.entitlement.Entitlement
 import com.github.dwickern.macros.NameOf.nameOf
-import net.liftweb.json.{Extraction, prettyRender}
-import net.liftweb.json.Serialization.write
+import org.json4s.Extraction
+import com.openbankproject.commons.util.JsonAliases.prettyRender
+import org.json4s.native.Serialization.write
 import org.scalatest.Tag
 
 import scala.collection.immutable.{List, Nil}

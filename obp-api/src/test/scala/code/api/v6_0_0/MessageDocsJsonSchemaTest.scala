@@ -8,7 +8,8 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.github.dwickern.macros.NameOf.nameOf
 import com.networknt.schema.{JsonSchemaFactory, SpecVersion}
 import com.openbankproject.commons.util.ApiVersion
-import net.liftweb.json._
+import org.json4s._
+import com.openbankproject.commons.util.JsonAliases._
 import org.scalatest.Tag
 
 /**

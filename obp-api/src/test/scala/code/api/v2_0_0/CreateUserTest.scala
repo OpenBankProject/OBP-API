@@ -1,8 +1,9 @@
 package code.api.v2_0_0
 
+import org.json4s._
 import code.consumer.Consumers
-import net.liftweb.json.JsonAST.{JField, JObject, JString}
-import net.liftweb.json.Serialization.write
+import org.json4s.JsonAST.{JField, JObject, JString}
+import org.json4s.native.Serialization.write
 import net.liftweb.util.Helpers._
 import org.scalatest.{BeforeAndAfter, Tag}
 

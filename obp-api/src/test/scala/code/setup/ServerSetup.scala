@@ -27,7 +27,8 @@ TESOBE (http://www.tesobe.com/)
 
 package code.setup
 
-import _root_.net.liftweb.json.JsonAST.JObject
+import org.json4s._
+import _root_.org.json4s.JsonAST.JObject
 import bootstrap.liftweb.ToSchemify
 import code.TestServer
 import code.api.util.APIUtil._
@@ -38,7 +39,7 @@ import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model.{AccountId, BankId}
 import dispatch._
 import net.liftweb.common.{Empty, Full}
-import net.liftweb.json.JsonDSL._
+import org.json4s.JsonDSL._
 import net.liftweb.mapper.MetaMapper
 import org.scalatest._
 

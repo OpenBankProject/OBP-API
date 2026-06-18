@@ -32,9 +32,10 @@ import code.api.util._
 import code.api.v1_4_0.JSONFactory1_4_0.ResourceDocJson
 import com.openbankproject.commons.model.ListResult
 import com.openbankproject.commons.util.{ApiVersion, JsonAble, JsonUtils, ReflectUtils}
-import net.liftweb.json.JsonAST.{JArray, JObject, JValue}
-import net.liftweb.json._
-import net.liftweb.json.Extraction
+import org.json4s.JsonAST.{JArray, JObject, JValue}
+import org.json4s._
+import com.openbankproject.commons.util.JsonAliases._
+import org.json4s.Extraction
 
 import scala.collection.immutable.ListMap
 import scala.reflect.runtime.universe._

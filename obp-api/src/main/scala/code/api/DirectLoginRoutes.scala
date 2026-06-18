@@ -1,5 +1,6 @@
 package code.api
 
+import org.json4s._
 import cats.effect.IO
 import code.api.util.{CallContext, CustomJsonFormats}
 import code.api.util.http4s.{Http4sCallContextBuilder, Http4sRequestAttributes}
@@ -7,7 +8,7 @@ import code.api.util.http4s.Http4sRequestAttributes.EndpointHelpers
 import code.api.v6_0_0.JSONFactory600
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import net.liftweb.common.Empty
-import net.liftweb.json.Formats
+import org.json4s.Formats
 import org.http4s._
 import org.http4s.dsl.io._
 

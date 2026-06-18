@@ -25,6 +25,7 @@ TESOBE (http://www.tesobe.com/)
   */
 package code.api.dynamic.endpoint
 
+import org.json4s._
 import cats.data.{Kleisli, OptionT}
 import cats.effect.IO
 import code.api.dynamic.endpoint.helper.{DynamicEndpointHelper, DynamicEndpoints}
@@ -34,8 +35,8 @@ import code.api.util.http4s.{ErrorResponseConverter, Http4sCallContextBuilder, H
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.util.{ApiShortVersions, ApiStandards}
 import net.liftweb.common.{Box, Empty, Full}
-import net.liftweb.json.Formats
-import net.liftweb.json.JsonAST.{JNothing, JValue}
+import org.json4s.Formats
+import org.json4s.JsonAST.{JNothing, JValue}
 import org.http4s.{HttpRoutes, Request, Response}
 
 /**
@@ -93,7 +94,7 @@ object Http4sDynamicEndpoint extends MdcLoggable {
     OptionT {
       val partPath = req.uri.path.segments.drop(2).map(_.encoded).toList // segments after obp/dynamic-endpoint
       Http4sCallContextBuilder.fromRequest(req, apiVersionString).flatMap { cc0 =>
-        val bodyJValue: JValue = cc0.httpBody.filter(_.nonEmpty).map(net.liftweb.json.parse).getOrElse(JNothing)
+        val bodyJValue: JValue = cc0.httpBody.filter(_.nonEmpty).map(com.openbankproject.commons.util.JsonAliases.parse).getOrElse(JNothing)
         DynamicEndpointHelper.DynamicReq.resolveProxyTarget(req.method.name, partPath, queryParams(req), bodyJValue) match {
           case None => IO.pure(Option.empty[Response[IO]])
           case Some((url, json, method, params, pathParams, role, operationId, mockResponse, bankId)) =>
@@ -122,7 +123,7 @@ object Http4sDynamicEndpoint extends MdcLoggable {
           Http4sCallContextBuilder.fromRequest(req, apiVersionString).flatMap { cc0 =>
             val cc = cc0.copy(resourceDocument = Some(doc), operationId = Some(doc.operationId))
             val partPath = req.uri.path.segments.drop(2).map(_.encoded).toList
-            val bodyJValue: Box[JValue] = cc.httpBody.filter(_.nonEmpty).map(net.liftweb.json.parse) match {
+            val bodyJValue: Box[JValue] = cc.httpBody.filter(_.nonEmpty).map(com.openbankproject.commons.util.JsonAliases.parse) match {
               case Some(jv) => Full(jv)
               case None     => Empty
             }

@@ -1,9 +1,10 @@
 package code.api.util
 
+import org.json4s._
 import code.api.APIFailureNewStyle
 import code.api.util.ApiRole.{CanCreateAnyTransactionRequest, canCreateEntitlementAtAnyBank, canCreateEntitlementAtOneBank}
 import com.openbankproject.commons.model.enums.TransactionRequestStatus._
-import net.liftweb.json.{Extraction, JsonAST}
+import org.json4s.{Extraction, JsonAST}
 
 import java.util.Objects
 import java.util.regex.Pattern
@@ -20,7 +21,7 @@ object ErrorMessages {
   // 7) Since the existence of "OBP-..." in a message is used to determine if we should display to a user if display_internal_errors=false, do *not* concatenate internal or core banking system error messages to these strings.
 
 
-  def apiFailureToString(code: Int, message: String, context: Option[CallContext]): String = JsonAST.compactRender(
+  def apiFailureToString(code: Int, message: String, context: Option[CallContext]): String = com.openbankproject.commons.util.JsonAliases.compactRender(
     Extraction.decompose(
       APIFailureNewStyle(failMsg = message, failCode = code, context.map(_.toLight))
     )

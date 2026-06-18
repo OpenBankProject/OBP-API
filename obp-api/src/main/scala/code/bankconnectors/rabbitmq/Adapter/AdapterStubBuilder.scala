@@ -1,5 +1,6 @@
 package code.bankconnectors.rabbitmq.Adapter
 
+import org.json4s._
 import code.api.ResourceDocs1_4_0.MessageDocsSwaggerDefinitions.successStatus
 import code.api.util.APIUtil.MessageDoc
 import code.api.util.CustomJsonFormats.formats
@@ -9,9 +10,9 @@ import code.bankconnectors.generator.ConnectorBuilderUtil._
 import code.bankconnectors.rabbitmq.RabbitMQConnector_vOct2024
 import com.openbankproject.commons.model.{Status, TopicTrait}
 import com.openbankproject.commons.util.Functions
-import net.liftweb.json
-import net.liftweb.json.JsonAST.JValue
-import net.liftweb.json.{Formats, Serializer, TypeInfo}
+import com.openbankproject.commons.util.json
+import org.json4s.JsonAST.JValue
+import org.json4s.{Formats, Serializer, TypeInfo}
 import net.liftweb.util.StringHelpers
 import org.apache.commons.io.FileUtils
 

@@ -26,6 +26,7 @@ TESOBE (http://www.tesobe.com/)
   */
 package code.api.v2_2_0
 
+import org.json4s._
 import code.actorsystem.ObpActorConfig
 import code.api.Constant._
 import code.api.util.APIUtil.{EndpointInfo, MessageDoc, getPropsValue}
@@ -43,8 +44,8 @@ import code.util.Helper
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.util.{ReflectUtils, RequiredFields}
 import net.liftweb.common.{Box, Full}
-import net.liftweb.json.Extraction.decompose
-import net.liftweb.json.JsonAST.JValue
+import org.json4s.Extraction.decompose
+import org.json4s.JsonAST.JValue
 
 import java.util.Date
 

@@ -1,5 +1,6 @@
 package code.api.v3_1_0
 
+import org.json4s._
 import cats.data.{Kleisli, OptionT}
 import cats.effect._
 import code.api.Constant._
@@ -46,7 +47,7 @@ import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.util.{ApiVersion, ApiVersionStatus, ScannedApiVersion}
 import net.liftweb.common.{Empty, Full}
-import net.liftweb.json.Formats
+import org.json4s.Formats
 import net.liftweb.mapper.By
 import net.liftweb.util.{Helpers, Props}
 import org.apache.commons.lang3.StringUtils
@@ -1140,7 +1141,7 @@ object Http4s310 {
     val getServerJWK: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ GET -> `prefixPath` / "certs" =>
         EndpointHelpers.executeAndRespond(req) { _ =>
-          Future.successful(net.liftweb.json.parse(CertificateUtil.convertRSAPublicKeyToAnRSAJWK()))
+          Future.successful(com.openbankproject.commons.util.JsonAliases.parse(CertificateUtil.convertRSAPublicKeyToAnRSAJWK()))
         }
     }
 
@@ -3385,7 +3386,7 @@ object Http4s310 {
           for {
             createMeetingJson <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The Json body should be the ${classOf[code.api.v2_0_0.CreateMeetingJson].getSimpleName} ",
-              400, Some(cc)) { net.liftweb.json.parse(rawBody).extract[CreateMeetingJsonV310] }
+              400, Some(cc)) { com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[CreateMeetingJsonV310] }
             creator = ContactDetails(
               createMeetingJson.creator.name,
               createMeetingJson.creator.mobile_phone,
@@ -4443,7 +4444,7 @@ object Http4s310 {
                   for {
                     postConsentEmailJson <- NewStyle.function.tryons(
                       s"$InvalidJsonFormat The Json body should be the $PostConsentEmailJsonV310", 400, Some(cc)) {
-                      net.liftweb.json.parse(raw).extract[PostConsentEmailJsonV310]
+                      com.openbankproject.commons.util.JsonAliases.parse(raw).extract[PostConsentEmailJsonV310]
                     }
                     _ <- NewStyle.function.sendCustomerNotification(
                       StrongCustomerAuthentication.EMAIL,
@@ -4454,7 +4455,7 @@ object Http4s310 {
                   for {
                     postConsentPhoneJson <- NewStyle.function.tryons(
                       s"$InvalidJsonFormat The Json body should be the $PostConsentPhoneJsonV310", 400, Some(cc)) {
-                      net.liftweb.json.parse(raw).extract[PostConsentPhoneJsonV310]
+                      com.openbankproject.commons.util.JsonAliases.parse(raw).extract[PostConsentPhoneJsonV310]
                     }
                     _ <- NewStyle.function.sendCustomerNotification(
                       StrongCustomerAuthentication.SMS,

@@ -14,8 +14,8 @@
 //import com.openbankproject.commons.ExecutionContext.Implicits.global
 //import com.openbankproject.commons.util.ApiVersion
 //import net.liftweb.common.Full
-//import net.liftweb.json
-//import net.liftweb.json._
+//import com.openbankproject.commons.util.json
+//import org.json4s._
 //
 //import scala.collection.immutable.Nil
 //import scala.collection.mutable.ArrayBuffer
@@ -99,7 +99,7 @@
 //             fundsAvailable = (currentAccountBalance >= requestChangedCurrencyAmount)
 //            
 //             } yield {
-//             (net.liftweb.json.parse(s"""{
+//             (com.openbankproject.commons.util.JsonAliases.parse(s"""{
 //                  "fundsAvailable" : $fundsAvailable
 //                }"""), 
 //               callContext)

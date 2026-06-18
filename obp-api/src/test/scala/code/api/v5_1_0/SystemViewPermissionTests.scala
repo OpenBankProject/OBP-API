@@ -1,6 +1,7 @@
 package code.api.v5_1_0
 
-import _root_.net.liftweb.json.Serialization.write
+import org.json4s._
+import _root_.org.json4s.native.Serialization.write
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil
 import code.api.util.APIUtil.OAuth._

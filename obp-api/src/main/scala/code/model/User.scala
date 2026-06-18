@@ -27,6 +27,7 @@ TESOBE (http://www.tesobe.com/)
 
 package code.model
 
+import org.json4s._
 import code.api.Constant._
 import code.api.UserNotFound
 import code.api.util.{APIUtil, CallContext}
@@ -39,8 +40,8 @@ import code.views.Views
 import code.views.system.{AccountAccess, ViewDefinition}
 import com.openbankproject.commons.model.{BankIdAccountId, _}
 import net.liftweb.common.{Box, Failure, Full}
-import net.liftweb.json.JsonAST.JObject
-import net.liftweb.json.JsonDSL._
+import org.json4s.JsonAST.JObject
+import org.json4s.JsonDSL._
 import net.liftweb.mapper.By
 
 case class UserExtended(val user: User) extends MdcLoggable {

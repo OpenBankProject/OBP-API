@@ -828,7 +828,8 @@ object OAuth2Login extends MdcLoggable {
       val consumerId = getClaim(name = "azp", jwtToken = token).getOrElse("")
       if(sourceOfTruth) {
         logger.debug("Extracting roles from Access Token")
-        import net.liftweb.json._
+        import org.json4s._
+        import com.openbankproject.commons.util.JsonAliases._
         implicit val formats: Formats = DefaultFormats
         val jsonString = JwtUtil.getSignedPayloadAsJson(token)
         val json = parse(jsonString.getOrElse(""))

@@ -40,7 +40,7 @@ object APIMethods210 {
 //import com.openbankproject.commons.model.enums.TransactionRequestTypes._
 //import com.openbankproject.commons.model.enums.{ChallengeType, SuppliedAnswerType, TransactionRequestTypes}
 //import com.openbankproject.commons.util.ApiVersion
-//import net.liftweb.json.Extraction
+//import org.json4s.Extraction
 //import net.liftweb.util.Helpers.tryo
 //import net.liftweb.util.StringHelpers
 //
@@ -57,8 +57,8 @@ object APIMethods210 {
 //import code.util.Helper
 //import com.openbankproject.commons.ExecutionContext.Implicits.global
 //import net.liftweb.common.{Box, Full}
-//import net.liftweb.json.Serialization.write
-//import net.liftweb.json._
+//import org.json4s.native.Serialization.write
+//import org.json4s._
 //
 //trait APIMethods210 {
 //  //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
@@ -207,8 +207,8 @@ object APIMethods210 {
 //    }
 //
 //
-//    import net.liftweb.json.Extraction._
-//    import net.liftweb.json.JsonAST._
+//    import org.json4s.Extraction._
+//    import org.json4s.JsonAST._
 //    val exchangeRates = prettyRender(decompose(fx.fallbackExchangeRates))
 //
 //

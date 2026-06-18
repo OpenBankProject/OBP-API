@@ -11,8 +11,8 @@
 //import com.github.dwickern.macros.NameOf.nameOf
 //import com.openbankproject.commons.model.{AccountAttribute, AccountId, BankAccount, BankIdAccountId, View, ViewId}
 //import net.liftweb.common.{Box, Empty, Full}
-//import net.liftweb.json
-//import net.liftweb.json._
+//import com.openbankproject.commons.util.json
+//import org.json4s._
 //
 //import scala.collection.immutable.Nil
 //import scala.collection.mutable.ArrayBuffer

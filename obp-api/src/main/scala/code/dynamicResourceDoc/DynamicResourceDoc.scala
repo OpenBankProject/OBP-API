@@ -1,7 +1,8 @@
 package code.dynamicResourceDoc
 
+import org.json4s._
 import code.util.UUIDString
-import net.liftweb.json
+import com.openbankproject.commons.util.json
 import net.liftweb.mapper._
 import org.apache.commons.lang3.StringUtils
 

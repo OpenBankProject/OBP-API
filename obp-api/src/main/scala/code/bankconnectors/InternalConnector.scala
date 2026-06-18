@@ -1,5 +1,6 @@
 package code.bankconnectors
 
+import org.json4s._
 import code.api.util.DynamicUtil.compileScalaCode
 import code.api.util.ErrorMessages.{DynamicCodeLangNotSupport, InvalidConnectorMethodName}
 import net.liftweb.common.Full
@@ -84,7 +85,7 @@ object InternalConnector {
               implicit val formats = code.api.util.CustomJsonFormats.formats
               import scala.concurrent.duration._
               val f: Future[Box[($t, Option[CallContext])]] =
-                v.map(_.map(it =>(net.liftweb.json.parse(it._1).extract[$t], it._2)))(com.openbankproject.commons.ExecutionContext.Implicits.global)
+                v.map(_.map(it =>(com.openbankproject.commons.util.JsonAliases.parse(it._1).extract[$t], it._2)))(com.openbankproject.commons.ExecutionContext.Implicits.global)
               val result: Box[($t, Option[CallContext])] = scala.concurrent.Await.result(f, 5 minutes)
               result
             }"""
@@ -94,7 +95,7 @@ object InternalConnector {
               implicit val formats = code.api.util.CustomJsonFormats.formats
               import scala.concurrent.duration._
               val f: Future[Box[$t]] =
-                v.map(_.map(it =>net.liftweb.json.parse(it._1).extract[$t]))(com.openbankproject.commons.ExecutionContext.Implicits.global)
+                v.map(_.map(it =>com.openbankproject.commons.util.JsonAliases.parse(it._1).extract[$t]))(com.openbankproject.commons.ExecutionContext.Implicits.global)
               val result: Box[$t] = scala.concurrent.Await.result(f, 5 minutes)
               result
             }"""
@@ -103,7 +104,7 @@ object InternalConnector {
             s"""(v: scala.concurrent.Future[net.liftweb.common.Box[(String, scala.Option[code.api.util.CallContext])]]) =>{
               implicit val formats = code.api.util.CustomJsonFormats.formats
               val result : Future[Box[($t, Option[CallContext])]] =
-                v.map(_.map(it =>(net.liftweb.json.parse(it._1).extract[$t], it._2)))(com.openbankproject.commons.ExecutionContext.Implicits.global)
+                v.map(_.map(it =>(com.openbankproject.commons.util.JsonAliases.parse(it._1).extract[$t], it._2)))(com.openbankproject.commons.ExecutionContext.Implicits.global)
               result
             }"""
 
@@ -111,7 +112,7 @@ object InternalConnector {
             s"""(v: scala.concurrent.Future[net.liftweb.common.Box[(String, scala.Option[code.api.util.CallContext])]]) =>{
               implicit val formats = code.api.util.CustomJsonFormats.formats
               val result : Future[Box[$t]] =
-                v.map(_.map(it => net.liftweb.json.parse(it._1).extract[$t]))(com.openbankproject.commons.ExecutionContext.Implicits.global)
+                v.map(_.map(it => com.openbankproject.commons.util.JsonAliases.parse(it._1).extract[$t]))(com.openbankproject.commons.ExecutionContext.Implicits.global)
               result
             }"""
 
@@ -119,7 +120,7 @@ object InternalConnector {
             s"""(v: scala.concurrent.Future[net.liftweb.common.Box[(String, scala.Option[code.api.util.CallContext])]]) =>{
               implicit val formats = code.api.util.CustomJsonFormats.formats
               val result : Future[$t] =
-                v.map(_.map(it => net.liftweb.json.parse(it._1).extract[$t]).orNull)(com.openbankproject.commons.ExecutionContext.Implicits.global)
+                v.map(_.map(it => com.openbankproject.commons.util.JsonAliases.parse(it._1).extract[$t]).orNull)(com.openbankproject.commons.ExecutionContext.Implicits.global)
               result
             }"""
 
@@ -128,7 +129,7 @@ object InternalConnector {
               implicit val formats = code.api.util.CustomJsonFormats.formats
               val result : Future[(Box[$t], Option[CallContext])] = v.map { box =>
                   val net.liftweb.common.Full((zson , cc)) = box
-                  (Box !! net.liftweb.json.parse(zson).extract[$t]) -> cc
+                  (Box !! com.openbankproject.commons.util.JsonAliases.parse(zson).extract[$t]) -> cc
                 }(com.openbankproject.commons.ExecutionContext.Implicits.global)
               result
             }"""
@@ -138,7 +139,7 @@ object InternalConnector {
               implicit val formats = code.api.util.CustomJsonFormats.formats
               val result : Future[($t, Option[CallContext])] = v.map { box =>
                   val net.liftweb.common.Full((zson , cc )) = box
-                  net.liftweb.json.parse(zson).extract[$t] -> cc
+                  com.openbankproject.commons.util.JsonAliases.parse(zson).extract[$t] -> cc
                 }(com.openbankproject.commons.ExecutionContext.Implicits.global)
               result
             }"""
@@ -149,7 +150,7 @@ object InternalConnector {
               import scala.concurrent.duration._
               val f: Future[$t] = v.map { box =>
                   val net.liftweb.common.Full((zson , _ )) = box
-                  net.liftweb.json.parse(zson).extract[$t]
+                  com.openbankproject.commons.util.JsonAliases.parse(zson).extract[$t]
               }(com.openbankproject.commons.ExecutionContext.Implicits.global)
 
               val result: $t = scala.concurrent.Await.result(f, 5 minutes)

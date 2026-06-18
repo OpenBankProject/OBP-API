@@ -1,5 +1,6 @@
 package code.api.v3_0_0
 
+import org.json4s._
 import cats.data.{Kleisli, OptionT}
 import cats.effect._
 import code.api.Constant
@@ -34,9 +35,10 @@ import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.util.{ApiVersion, ApiVersionStatus, ScannedApiVersion}
 import net.liftweb.common.{Empty, Failure, Full, ParamFailure}
-import net.liftweb.json.JsonAST.JField
-import net.liftweb.json.compactRender
-import net.liftweb.json.{Extraction, Formats, Serialization}
+import org.json4s.JsonAST.JField
+import com.openbankproject.commons.util.JsonAliases.compactRender
+import org.json4s.{Extraction, Formats}
+import org.json4s.native.Serialization
 import net.liftweb.util.Helpers.tryo
 import org.http4s._
 import org.http4s.dsl.io._
@@ -44,6 +46,7 @@ import org.http4s.dsl.io._
 import java.util.regex.Pattern
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
+import com.openbankproject.commons.util.JsonAliases.RichJField
 
 object Http4s300 {
   val implementedInApiVersion: ScannedApiVersion = ApiVersion.v3_0_0
@@ -161,7 +164,7 @@ object Http4s300 {
         } yield result
         io.attempt.flatMap {
           case Right(result) =>
-            Created(net.liftweb.json.prettyRender(Extraction.decompose(result)))
+            Created(com.openbankproject.commons.util.JsonAliases.prettyRender(Extraction.decompose(result)))
           case Left(err) =>
             code.api.util.http4s.ErrorResponseConverter.toHttp4sResponse(err, cc)
         }
@@ -202,7 +205,7 @@ object Http4s300 {
     private def createViewImpl300(user: User, account: BankAccount, body: String, cc: CallContext): Future[ViewJsonV300] = {
       for {
         createBodyJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $CreateViewJsonV300", 400, Some(cc)) {
-          net.liftweb.json.parse(body).extract[CreateViewJsonV300]
+          com.openbankproject.commons.util.JsonAliases.parse(body).extract[CreateViewJsonV300]
         }
         _ <- code.util.Helper.booleanToFuture(
           s"$InvalidCustomViewFormat Current view_name (${createBodyJson.name})", cc = Some(cc)) {
@@ -231,7 +234,7 @@ object Http4s300 {
         } yield result
         io.attempt.flatMap {
           case Right(result) =>
-            Ok(net.liftweb.json.prettyRender(Extraction.decompose(result)))
+            Ok(com.openbankproject.commons.util.JsonAliases.prettyRender(Extraction.decompose(result)))
           case Left(err) =>
             code.api.util.http4s.ErrorResponseConverter.toHttp4sResponse(err, cc)
         }
@@ -260,7 +263,7 @@ object Http4s300 {
     private def updateViewImpl300(user: User, account: BankAccount, viewId: ViewId, body: String, cc: CallContext): Future[ViewJsonV300] = {
       for {
         updateBodyJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $UpdateViewJsonV300", 400, Some(cc)) {
-          net.liftweb.json.parse(body).extract[UpdateViewJsonV300]
+          com.openbankproject.commons.util.JsonAliases.parse(body).extract[UpdateViewJsonV300]
         }
         _ <- code.util.Helper.booleanToFuture(
           s"$InvalidCustomViewFormat Current view_name (${viewId.value})", cc = Some(cc)) {
@@ -755,7 +758,7 @@ object Http4s300 {
           result   <- code.api.util.http4s.RequestScopeConnection.fromFuture {
             for {
               _ <- code.util.Helper.booleanToFuture(ElasticSearchDisabled, cc = Some(cc)) { esw.isEnabled() }
-              json     <- Future { unboxFullOrFail(tryo(net.liftweb.json.parse(bodyText)), Some(cc), ElasticSearchEmptyQueryBody) }
+              json     <- Future { unboxFullOrFail(tryo(com.openbankproject.commons.util.JsonAliases.parse(bodyText)), Some(cc), ElasticSearchEmptyQueryBody) }
               maximumSize = APIUtil.getPropsAsIntValue("es.warehouse.allowed.maximum.pagesize", 10000)
               _ <- code.util.Helper.booleanToFuture(
                 maximumLimitExceeded.replace("Maximum number is 10000.", s"Please check query body, the maximum size is $maximumSize."),
@@ -770,7 +773,7 @@ object Http4s300 {
           }
         } yield result
         io.attempt.flatMap {
-          case Right(r) => Ok(net.liftweb.json.prettyRender(net.liftweb.json.Extraction.decompose(r)))
+          case Right(r) => Ok(com.openbankproject.commons.util.JsonAliases.prettyRender(org.json4s.Extraction.decompose(r)))
           case Left(e)  => code.api.util.http4s.ErrorResponseConverter.toHttp4sResponse(e, cc)
         }
     }
@@ -829,7 +832,7 @@ object Http4s300 {
           result   <- code.api.util.http4s.RequestScopeConnection.fromFuture {
             for {
               _ <- code.util.Helper.booleanToFuture(ElasticSearchDisabled, cc = Some(cc)) { esw.isEnabled() }
-              json     <- Future { unboxFullOrFail(tryo(net.liftweb.json.parse(bodyText)), Some(cc), ElasticSearchEmptyQueryBody) }
+              json     <- Future { unboxFullOrFail(tryo(com.openbankproject.commons.util.JsonAliases.parse(bodyText)), Some(cc), ElasticSearchEmptyQueryBody) }
               maximumSize = APIUtil.getPropsAsIntValue("es.warehouse.allowed.maximum.pagesize", 10000)
               _ <- code.util.Helper.booleanToFuture(
                 maximumLimitExceeded.replace("Maximum number is 10000.", s"Please check query body, the maximum size is $maximumSize."),
@@ -844,7 +847,7 @@ object Http4s300 {
           }
         } yield result
         io.attempt.flatMap {
-          case Right(r) => Ok(net.liftweb.json.prettyRender(net.liftweb.json.Extraction.decompose(r)))
+          case Right(r) => Ok(com.openbankproject.commons.util.JsonAliases.prettyRender(org.json4s.Extraction.decompose(r)))
           case Left(e)  => code.api.util.http4s.ErrorResponseConverter.toHttp4sResponse(e, cc)
         }
     }
@@ -1813,7 +1816,7 @@ object Http4s300 {
             result <- EntitlementRequest.entitlementRequest.vend.deleteEntitlementRequestFuture(entitlementRequestIdStr) map {
               connectorEmptyResponse(_, Some(cc))
             }
-          } yield net.liftweb.json.JBool(result)
+          } yield org.json4s.JBool(result)
         }
     }
 
@@ -2107,7 +2110,7 @@ object Http4s300 {
             }
             _ <- code.util.Helper.booleanToFuture(ConsumerDoesNotHaveScope, cc = Some(cc)) { scope.scopeId == scopeIdStr }
             _ <- Future { Scope.scope.vend.deleteScope(Full(scope)) }
-          } yield net.liftweb.json.JObject(Nil)
+          } yield org.json4s.JObject(Nil)
         }
     }
 

@@ -1,5 +1,6 @@
 package code.api.berlin.group.v1_3
 
+import org.json4s._
 import code.api.Constant.bgRemoveSignOfAmounts
 import code.api.berlin.group.ConstantsBG
 import code.api.berlin.group.v1_3.model.TransactionStatus.mapTransactionStatus
@@ -15,7 +16,8 @@ import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.{AccountRoutingScheme, TransactionRequestStatus}
 import net.liftweb.common.Box.tryo
 import net.liftweb.common.{Box, Full}
-import net.liftweb.json.{JValue, parse}
+import org.json4s.JValue
+import com.openbankproject.commons.util.JsonAliases.parse
 
 import java.text.SimpleDateFormat
 import java.util.Date

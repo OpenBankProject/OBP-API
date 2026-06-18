@@ -1,13 +1,14 @@
 package code.obp.grpc.chat
 
+import org.json4s._
 import code.chat.{ChatEventBus, ChatPermissions, ParticipantTrait}
 import code.obp.grpc.chat.api._
 import code.util.Helper.MdcLoggable
 import com.google.protobuf.timestamp.Timestamp
 import io.grpc.Status
 import io.grpc.stub.{ServerCallStreamObserver, StreamObserver}
-import net.liftweb.json
-import net.liftweb.json.JsonAST.JValue
+import com.openbankproject.commons.util.json
+import org.json4s.JsonAST.JValue
 
 import java.time.Instant
 import scala.util.Try

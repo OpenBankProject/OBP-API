@@ -25,6 +25,7 @@ TESOBE (http://www.tesobe.com/)
   */
 package code.api.v4_0_0
 
+import org.json4s._
 import java.util.UUID
 
 import com.openbankproject.commons.model.ErrorMessage
@@ -39,7 +40,7 @@ import code.users.Users
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.User
 import net.liftweb.common.Box
-import net.liftweb.json.Serialization.write
+import org.json4s.native.Serialization.write
 import net.liftweb.mapper.By
 import org.scalatest.Tag
 

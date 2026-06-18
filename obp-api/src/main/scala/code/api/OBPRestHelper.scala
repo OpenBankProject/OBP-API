@@ -27,6 +27,8 @@ TESOBE (http://www.tesobe.com/)
 
 package code.api
 
+import org.json4s._
+import java.lang.ThreadLocal
 import scala.language.reflectiveCalls
 import scala.language.implicitConversions
 import code.api.Constant._
@@ -37,8 +39,8 @@ import com.alibaba.ttl.TransmittableThreadLocal
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
 import net.liftweb.common._
-import net.liftweb.json.Extraction
-import net.liftweb.json.JsonAST.JValue
+import org.json4s.Extraction
+import org.json4s.JsonAST.JValue
 
 import java.util.{Locale, MissingResourceException, ResourceBundle}
 import scala.collection.mutable.ArrayBuffer

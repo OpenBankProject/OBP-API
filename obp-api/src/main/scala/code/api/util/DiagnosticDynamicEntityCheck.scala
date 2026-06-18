@@ -3,7 +3,8 @@ package code.api.util
 import code.api.dynamic.entity.helper.DynamicEntityInfo
 import code.DynamicData.{DynamicData, DynamicDataT}
 import code.dynamicEntity.DynamicEntityT
-import net.liftweb.json._
+import org.json4s._
+import com.openbankproject.commons.util.JsonAliases._
 import org.apache.commons.lang3.StringUtils
 
 /**

@@ -8,7 +8,7 @@
 //import code.api.builder.SigningBasketsApi.APIMethods_SigningBasketsApi
 //import code.api.util.APIUtil._
 //import com.openbankproject.commons.util.ApiVersion
-//import net.liftweb.json._
+//import org.json4s._
 //
 //import scala.collection.immutable.Nil
 //import scala.collection.mutable.ArrayBuffer

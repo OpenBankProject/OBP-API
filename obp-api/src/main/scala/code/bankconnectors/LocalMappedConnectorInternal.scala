@@ -1,5 +1,6 @@
 package code.bankconnectors
 
+import org.json4s._
 import code.accountattribute.AccountAttributeX
 import code.api.ChargePolicy
 import code.api.Constant._
@@ -33,9 +34,10 @@ import com.openbankproject.commons.model.enums.TransactionRequestTypes._
 import com.openbankproject.commons.model.enums.{TransactionRequestStatus, _}
 import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common._
-import net.liftweb.json.JsonAST.JValue
-import net.liftweb.json.Serialization.write
-import net.liftweb.json.{NoTypeHints, Serialization}
+import org.json4s.JsonAST.JValue
+import org.json4s.native.Serialization.write
+import org.json4s.NoTypeHints
+import org.json4s.native.Serialization
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers.{now, tryo}
 import net.liftweb.util.StringHelpers

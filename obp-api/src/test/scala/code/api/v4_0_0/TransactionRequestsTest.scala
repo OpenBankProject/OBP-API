@@ -1,5 +1,6 @@
 package code.api.v4_0_0
 
+import org.json4s._
 import code.api.Constant
 
 import java.util.{Date, UUID}
@@ -29,7 +30,7 @@ import com.openbankproject.commons.model.enums.TransactionRequestTypes
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.util.ApiVersion
-import net.liftweb.json.Serialization.write
+import org.json4s.native.Serialization.write
 import org.scalatest.Tag
 
 import scala.collection.immutable.List
@@ -233,7 +234,7 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
           (createTransactionRequestResponse.body \ "transaction_ids").values.toString should equal("List()")
           Then("Challenge should have body, this is the with challenge scenario")
           (createTransactionRequestResponse.body \ "challenges").children.size should not equal (0)
-          challengeId = (createTransactionRequestResponse.body \ "challenges" \ "id").values.toString
+          challengeId = (createTransactionRequestResponse.body \ "challenges" \ "id").children.headOption.map(_.values.toString).getOrElse("")
           challengeId should not equal ("")
         } else {
           Then("We should have the COMPLETED status in response body")
@@ -266,19 +267,19 @@ class TransactionRequestsTest extends V400ServerSetup with DefaultUsers {
 
         if (withChellenge) {
           And("We should have the INITIATED status in response body")
-          (getTransactionRequestResponse.body \ "transaction_requests_with_charges" \ "status").values.toString should equal(TransactionRequestStatus.INITIATED.toString)
+          (getTransactionRequestResponse.body \ "transaction_requests_with_charges" \ "status").extract[List[String]] should equal(List(TransactionRequestStatus.INITIATED.toString))
 
           And("Challenge should be not null, this is the no challenge scenario")
           (getTransactionRequestResponse.body \ "transaction_requests_with_charges" \ "challenge").children.size should not equal (0)
 
           And("We should have be null value for TransactionIds")
-          (getTransactionRequestResponse.body \ "transaction_requests_with_charges" \ "transaction_ids").values.toString should equal("List()")
+          (getTransactionRequestResponse.body \ "transaction_requests_with_charges" \ "transaction_ids").children.headOption.map(_.values.toString).getOrElse("List()") should equal("List()")
         } else {
           And("We should have the COMPLETED status in response body")
-          (getTransactionRequestResponse.body \ "transaction_requests_with_charges" \ "status").values.toString should equal(TransactionRequestStatus.COMPLETED.toString)
+          (getTransactionRequestResponse.body \ "transaction_requests_with_charges" \ "status").extract[List[String]] should equal(List(TransactionRequestStatus.COMPLETED.toString))
 
           And("Challenge should be null, this is the no challenge scenario")
-          (getTransactionRequestResponse.body \ "transaction_requests_with_charges" \ "challenge").children.size should equal(0)
+          (getTransactionRequestResponse.body \ "transaction_requests_with_charges" \ "challenge").children.headOption.map(_.children.size).getOrElse(0) should equal(0)
 
           And("We should have a new TransactionIds value")
           (getTransactionRequestResponse.body \ "transaction_requests_with_charges" \ "transaction_ids").values.toString should not equal ("")

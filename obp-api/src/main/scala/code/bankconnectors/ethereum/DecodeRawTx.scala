@@ -3,7 +3,8 @@ package code.bankconnectors.ethereum
 import java.math.BigInteger
 import org.web3j.crypto.{Hash, RawTransaction, TransactionDecoder, Sign, SignedRawTransaction}
 import org.web3j.utils.{Numeric => W3Numeric}
-import net.liftweb.json._
+import org.json4s._
+import com.openbankproject.commons.util.JsonAliases._
 
 object DecodeRawTx {
 

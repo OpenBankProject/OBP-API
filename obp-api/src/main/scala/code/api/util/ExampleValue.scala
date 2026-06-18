@@ -1,6 +1,7 @@
 package code.api.util
 
 
+import org.json4s._
 import code.api.Constant
 import code.api.Constant._
 import code.api.util.APIUtil.{DateWithMs, DateWithMsExampleString, formatDate, oneYearAgoDate, parseDate}
@@ -11,10 +12,10 @@ import code.dynamicEntity._
 import com.openbankproject.commons.model.CardAction
 import com.openbankproject.commons.model.enums.{CustomerAttributeType, DynamicEntityFieldType, TransactionRequestStatus, UserInvitationPurpose}
 import com.openbankproject.commons.util.ReflectUtils
-import net.liftweb.json
-import net.liftweb.json.JObject
-import net.liftweb.json.JsonAST.JField
-import net.liftweb.json.JsonDSL._
+import com.openbankproject.commons.util.json
+import org.json4s.JObject
+import org.json4s.JsonAST.JField
+import org.json4s.JsonDSL._
 
 case class ConnectorField(value: String, description: String) {
 
@@ -497,7 +498,7 @@ object ExampleValue {
     "ams.get(%22BANK_ID%22)%20will%20get%20Option(%22bank_x%22)%20value%0A%0A%20%20%20%20val%20myUserId%20%3D%20pat" +
     "hParams(%22MY_USER_ID%22)%0A%0A%0A%20%20%20%20val%20requestEntity%20%3D%20callContext.httpBody.filter(_.nonEmp" +
     "ty)%20match%20%7B%0A%20%20%20%20%20%20case%20Some(rawBody)%20%3D%3E%0A%20%20%20%20%20%20%20%20try%20%7B%0A%20%" +
-    "20%20%20%20%20%20%20%20%20net.liftweb.json.parse(rawBody).extract%5BRequestRootJsonClass%5D%0A%20%20%20%20%20%" +
+    "20%20%20%20%20%20%20%20%20com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract%5BRequestRootJsonClass%5D%0A%20%20%20%20%20%" +
     "20%20%20%7D%20catch%20%7B%0A%20%20%20%20%20%20%20%20%20%20case%20e%3A%20MappingException%20%3D%3E%0A%20%20%20%" +
     "20%20%20%20%20%20%20%20%20return%20errorResponse(s%22%24InvalidJsonFormat%20%24%7Be.msg%7D%22)%0A%20%20%20%20%" +
     "20%20%20%20%7D%0A%20%20%20%20%20%20case%20None%20%3D%3E%0A%20%20%20%20%20%20%20%20return%20errorResponse(s%22%" +

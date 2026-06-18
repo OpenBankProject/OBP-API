@@ -17,9 +17,10 @@ import com.openbankproject.commons.model.enums.DynamicEntityOperation._
 import com.openbankproject.commons.model.enums._
 import com.openbankproject.commons.util.{ApiVersion, JsonUtils}
 import net.liftweb.common._
-import net.liftweb.json.JsonAST.JValue
-import net.liftweb.json.JsonDSL._
-import net.liftweb.json._
+import org.json4s.JsonAST.JValue
+import org.json4s.JsonDSL._
+import org.json4s._
+import com.openbankproject.commons.util.JsonAliases._
 import net.liftweb.util.StringHelpers
 import org.apache.commons.lang3.StringUtils
 
@@ -110,9 +111,9 @@ trait APIMethodsDynamicEndpoint {
                 Future.successful((EndpointMappingCommons(None, "", "", "", None), callContext))
               }
               requestMappingString = endpointMapping.requestMapping
-              requestMappingJvalue = net.liftweb.json.parse(requestMappingString)
+              requestMappingJvalue = com.openbankproject.commons.util.JsonAliases.parse(requestMappingString)
               responseMappingString = endpointMapping.responseMapping
-              responseMappingJvalue = net.liftweb.json.parse(responseMappingString)
+              responseMappingJvalue = com.openbankproject.commons.util.JsonAliases.parse(responseMappingString)
 
               responseBody <- if (method.value.equalsIgnoreCase("get")) {
                 for {
@@ -122,7 +123,7 @@ trait APIMethodsDynamicEndpoint {
                   dynamicData <- Future {
                     DynamicDataProvider.connectorMethodProvider.vend.getAll(bankId, entityName, None, false)
                   }
-                  dynamicJsonData = JArray(dynamicData.map(it => net.liftweb.json.parse(it.dataJson)).map(_.asInstanceOf[JObject]))
+                  dynamicJsonData = JArray(dynamicData.map(it => com.openbankproject.commons.util.JsonAliases.parse(it.dataJson)).map(_.asInstanceOf[JObject]))
                   //                //We only get the value, but not sure the field name of it.
                   //                // we can get the field name from the mapping: `primary_query_key`
                   //                //requestBodyMapping --> Convert `RequestJson` --> `DynamicEntity Model.`  
@@ -162,7 +163,7 @@ trait APIMethodsDynamicEndpoint {
                     DynamicEndpointHelper.getEntityNameKeyAndValue(responseMappingString, pathParams)
                   }
                   dynamicData = DynamicDataProvider.connectorMethodProvider.vend.getAll(bankId, entityName, None,false)
-                  dynamicJsonData = JArray(dynamicData.map(it => net.liftweb.json.parse(it.dataJson)).map(_.asInstanceOf[JObject]))
+                  dynamicJsonData = JArray(dynamicData.map(it => com.openbankproject.commons.util.JsonAliases.parse(it.dataJson)).map(_.asInstanceOf[JObject]))
                   entityObject = DynamicEndpointHelper.getObjectByKeyValuePair(dynamicJsonData, entityIdKey, entityIdValueFromUrl.get)
                   isDeleted <- NewStyle.function.tryons(s"$InvalidEndpointMapping `response_mapping` must be linked to at least one valid dynamic entity!", 400, cc.callContext) {
                     val entityIdName = DynamicEntityHelper.createEntityId(entityName)
@@ -178,7 +179,7 @@ trait APIMethodsDynamicEndpoint {
                     DynamicEndpointHelper.getEntityNameKeyAndValue(responseMappingString, pathParams)
                   }
                   dynamicData = DynamicDataProvider.connectorMethodProvider.vend.getAll(bankId, entityName, None, false)
-                  dynamicJsonData = JArray(dynamicData.map(it => net.liftweb.json.parse(it.dataJson)).map(_.asInstanceOf[JObject]))
+                  dynamicJsonData = JArray(dynamicData.map(it => com.openbankproject.commons.util.JsonAliases.parse(it.dataJson)).map(_.asInstanceOf[JObject]))
                   entityObject = DynamicEndpointHelper.getObjectByKeyValuePair(dynamicJsonData, entityIdKey, entityIdValueFromUrl.get)
                   _ <- NewStyle.function.tryons(s"$InvalidEndpointMapping `response_mapping` must be linked to at least one valid dynamic entity!", 400, cc.callContext) {
                     val entityIdName = DynamicEntityHelper.createEntityId(entityName)

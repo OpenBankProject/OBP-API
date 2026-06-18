@@ -25,6 +25,7 @@ TESOBE (http://www.tesobe.com/)
 */
 package code.api.v3_1_0
 
+import org.json4s._
 import code.api.Constant._
 import com.openbankproject.commons.model.ErrorMessage
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
@@ -45,7 +46,7 @@ import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.AmountOfMoneyJsonV121
 import com.openbankproject.commons.util.ApiVersion
 import org.scalatest.Tag
-import net.liftweb.json.Serialization.write
+import org.json4s.native.Serialization.write
 
 class TransactionTest extends V310ServerSetup {
 

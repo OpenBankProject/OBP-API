@@ -8,7 +8,7 @@
 //import code.util.Helper
 //import code.util.Helper.MdcLoggable
 //import com.openbankproject.commons.util.ApiVersion
-//import net.liftweb.json.Extraction
+//import org.json4s.Extraction
 //import net.liftweb.util.Helpers._
 //
 //

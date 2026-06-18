@@ -1,5 +1,6 @@
 package code.api.UKOpenBanking.v2_0_0
 
+import org.json4s._
 import cats.data.{Kleisli, OptionT}
 import cats.effect.IO
 import code.api.APIFailureNewStyle
@@ -19,7 +20,7 @@ import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.{AccountId, BankIdAccountId}
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
 import net.liftweb.common.Full
-import net.liftweb.json.Formats
+import org.json4s.Formats
 import org.http4s._
 import org.http4s.dsl.io._
 

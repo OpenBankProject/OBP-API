@@ -1,5 +1,6 @@
 package code.api.v2_0_0
 
+import org.json4s._
 import cats.data.{Kleisli, OptionT}
 import cats.effect._
 import code.TransactionTypes.TransactionType
@@ -33,8 +34,8 @@ import com.openbankproject.commons.model.{AccountId, AmountOfMoneyJsonV121, Bank
 import com.openbankproject.commons.model.{AmountOfMoneyJsonV121 => AmountOfMoneyJSON121}
 import com.openbankproject.commons.util.{ApiVersion, ApiVersionStatus, ScannedApiVersion}
 import net.liftweb.common._
-import net.liftweb.json.JsonAST.JValue
-import net.liftweb.json.{Extraction, Formats}
+import org.json4s.JsonAST.JValue
+import org.json4s.{Extraction, Formats}
 import net.liftweb.mapper.By
 import org.http4s._
 import org.http4s.dsl.io._
@@ -125,7 +126,7 @@ object Http4s200 {
             val (privateViewsUserCanAccess, privateAccountAccess) = Views.views.vend.privateViewsUserCanAccess(user)
             val privateAccounts = BankAccountX.privateAccounts(privateAccountAccess)
             privateAccounts.map { account =>
-              createCoreAccountJSON(account, net.liftweb.json.JObject(Nil))
+              createCoreAccountJSON(account, org.json4s.JObject(Nil))
             }
           }
         }
@@ -179,7 +180,7 @@ object Http4s200 {
 
     def processAccounts(privateViews: List[com.openbankproject.commons.model.View],
                         accounts: List[com.openbankproject.commons.model.BankAccount]
-                       ): net.liftweb.json.JsonAST.JValue = {
+                       ): org.json4s.JsonAST.JValue = {
       val accJson = accounts.map { account =>
         val viewsAvailable = privateViews
           .filter(v => v.bankId == account.bankId && v.accountId == account.accountId && v.isPrivate)
@@ -187,7 +188,7 @@ object Http4s200 {
           .distinct
         createBasicAccountJSON(account, viewsAvailable)
       }
-      net.liftweb.json.Extraction.decompose(accJson)
+      org.json4s.Extraction.decompose(accJson)
     }
 
     // ─── getPrivateAccountsAtOneBank ──────────────────────────────────────────
@@ -241,7 +242,7 @@ object Http4s200 {
             }
             (privateAccountsForOneBank, _) <- BankExtended(bank).privateAccountsFuture(privateAccountAccess, Some(cc))
           } yield privateAccountsForOneBank.map(account =>
-            createCoreAccountJSON(account, net.liftweb.json.JObject(Nil)))
+            createCoreAccountJSON(account, org.json4s.JObject(Nil)))
         }
       case req @ GET -> `prefixPath` / "my" / "banks" / _ / "accounts" / "private" =>
         EndpointHelpers.withUserAndBank(req) { (user, bank, cc) =>
@@ -251,7 +252,7 @@ object Http4s200 {
             }
             (privateAccountsForOneBank, _) <- BankExtended(bank).privateAccountsFuture(privateAccountAccess, Some(cc))
           } yield privateAccountsForOneBank.map(account =>
-            createCoreAccountJSON(account, net.liftweb.json.JObject(Nil)))
+            createCoreAccountJSON(account, org.json4s.JObject(Nil)))
         }
       case req @ GET -> `prefixPath` / "bank" / "accounts" =>
         EndpointHelpers.withUser(req) { (user, cc) =>
@@ -262,7 +263,7 @@ object Http4s200 {
             }
             (availablePrivateAccounts, _) <- BankExtended(bank).privateAccountsFuture(privateAccountAccess, Some(cc))
           } yield availablePrivateAccounts.map(account =>
-            createCoreAccountJSON(account, net.liftweb.json.JObject(Nil)))
+            createCoreAccountJSON(account, org.json4s.JObject(Nil)))
         }
     }
 
@@ -867,7 +868,7 @@ object Http4s200 {
               initialBalanceAsNumber, postedOrLoggedInUser.name, "", List.empty, cc2)
             _ <- BankAccountCreation.setAccountHolderAndRefreshUserAccountAccess(
               bank.bankId, accountId, postedOrLoggedInUser, cc3)
-          } yield createCoreAccountJSON(bankAccount, net.liftweb.json.JObject(Nil))
+          } yield createCoreAccountJSON(bankAccount, org.json4s.JObject(Nil))
         }
     }
 

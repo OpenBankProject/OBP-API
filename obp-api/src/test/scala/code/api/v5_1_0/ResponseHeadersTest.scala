@@ -1,5 +1,6 @@
 package code.api.v5_1_0
 
+import org.json4s._
 import java.util.Date
 
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
@@ -11,7 +12,7 @@ import code.entitlement.Entitlement
 import code.setup.{APIResponse, DefaultUsers}
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.util.ApiVersion
-import net.liftweb.json.Serialization.write
+import org.json4s.native.Serialization.write
 import org.scalatest.Tag
 
 class ResponseHeadersTest extends V510ServerSetup with DefaultUsers {

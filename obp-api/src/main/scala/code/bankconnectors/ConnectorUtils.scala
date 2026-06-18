@@ -1,14 +1,15 @@
 package code.bankconnectors
 
+import org.json4s._
 import code.api.util.{CallContext, CustomJsonFormats, OBPQueryParam, OptionalFieldSerializer}
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.dto.{InBoundTrait, OutInBoundTransfer}
 import com.openbankproject.commons.model.TopicTrait
 import com.openbankproject.commons.util.ReflectUtils
 import net.liftweb.common.Full
-import net.liftweb.json
-import net.liftweb.json.JsonDSL._
-import net.liftweb.json.{Formats, JObject, JValue}
+import com.openbankproject.commons.util.json
+import org.json4s.JsonDSL._
+import org.json4s.{Formats, JObject, JValue}
 import net.sf.cglib.proxy.{Enhancer, MethodInterceptor, MethodProxy}
 import org.apache.commons.lang3.StringUtils
 import java.lang.reflect.Method

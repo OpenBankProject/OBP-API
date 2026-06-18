@@ -6,7 +6,8 @@ import org.scalatest.PartialFunctionValues._
 
 import scala.reflect.runtime.universe._
 import Functions.Implicits.RichCollection
-import net.liftweb.json._
+import org.json4s._
+import com.openbankproject.commons.util.JsonAliases._
 import RequiredFieldValidation.getRequiredInfo
 
 class RequiredFieldValidationTest extends FlatSpec with Matchers {
@@ -69,7 +70,7 @@ class RequiredFieldValidationTest extends FlatSpec with Matchers {
 
   // this test be grouped, every group is more complex than former.
   "method RequiredFieldValidation.getRequiredInfo" should "extract instance of T or invalid path names" taggedAs tag in {
-    implicit val formats = net.liftweb.json.DefaultFormats
+    implicit val formats = org.json4s.DefaultFormats
     val tp = typeOf[LevelFirst]
     val requiredInfo = getRequiredInfo(tp)
 

@@ -1,5 +1,6 @@
 package code.api.v5_0_0
 
+import org.json4s._
 import code.Http4sTestServer
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil
@@ -9,15 +10,16 @@ import code.setup.ServerSetupWithTestData
 import code.views.system.AccountAccess
 import dispatch.Defaults._
 import dispatch._
-import net.liftweb.json.JValue
-import net.liftweb.json.JsonAST.{JField, JObject, JString}
-import net.liftweb.json.JsonParser.parse
-import net.liftweb.json.Serialization.write
+import org.json4s.JValue
+import org.json4s.JsonAST.{JField, JObject, JString}
+import com.openbankproject.commons.util.JsonAliases.parse
+import org.json4s.native.Serialization.write
 import net.liftweb.mapper.By
 import org.scalatest.Tag
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
+import com.openbankproject.commons.util.JsonAliases.RichJField
 
 /**
  * HTTP4S v5.0.0 System Views CRUD Integration Test
@@ -28,6 +30,18 @@ import scala.concurrent.duration._
 class Http4s500SystemViewsTest extends ServerSetupWithTestData {
   
   object Http4s500SystemViewsTag extends Tag("Http4s500SystemViews")
+
+  // json4s-native 3.6.x rejects primitive root values (e.g. a bare `true` from a DELETE).
+  // Wrap in a single-element array so the native parser accepts it, then extract the element.
+  private def parsePermissive(body: String): JValue =
+    try parse(body)
+    catch {
+      case _: Throwable =>
+        parse(s"[$body]") match {
+          case JArray(v :: _) => v
+          case other => other
+        }
+    }
 
   // Use Http4sTestServer for full integration testing
   private val http4sServer = Http4sTestServer
@@ -55,7 +69,7 @@ class Http4s500SystemViewsTest extends ServerSetupWithTestData {
     try {
       val response = Http.default(finalRequest.setHeader("Accept", "*/*") > as.Response(p => (p.getStatusCode, p.getResponseBody)))
       val (statusCode, responseBody) = Await.result(response, 10.seconds)
-      val json = if (responseBody.trim.isEmpty) JObject(Nil) else parse(responseBody)
+      val json = if (responseBody.trim.isEmpty) JObject(Nil) else parsePermissive(responseBody)
       (statusCode, json)
     } catch {
       case e: java.util.concurrent.ExecutionException =>

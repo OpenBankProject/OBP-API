@@ -1,6 +1,7 @@
 package com.openbankproject.commons.util
 
-import net.liftweb.json._
+import org.json4s._
+import com.openbankproject.commons.util.JsonAliases._
 
 import java.util.concurrent.ConcurrentHashMap
 

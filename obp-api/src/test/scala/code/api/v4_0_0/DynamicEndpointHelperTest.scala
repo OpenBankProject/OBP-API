@@ -1,12 +1,14 @@
 package code.api.v4_0_0
 
+import org.json4s._
 import code.DynamicData.DynamicDataT
 import code.api.dynamic.endpoint.helper.DynamicEndpointHelper
 import code.api.util.APIUtil.defaultBankId
 import code.connector.MockedCbsConnector.testBankId1
-import net.liftweb.json
-import net.liftweb.json.JsonAST.JValue
-import net.liftweb.json.{Formats, JArray, prettyRender}
+import com.openbankproject.commons.util.json
+import org.json4s.JsonAST.JValue
+import org.json4s.{Formats, JArray}
+import com.openbankproject.commons.util.JsonAliases.prettyRender
 import org.scalatest.{FlatSpec, Matchers, Tag}
 
 import scala.collection.immutable.List
@@ -14,7 +16,7 @@ import scala.collection.immutable.List
 
 class DynamicEndpointHelperTest extends FlatSpec with Matchers {
   object FunctionsTag extends Tag("DynamicEndpointHelper")
-  implicit def formats: Formats = net.liftweb.json.DefaultFormats
+  implicit def formats: Formats = org.json4s.DefaultFormats
 
   "prepareMappingFields single" should "work well" taggedAs FunctionsTag in {
 
@@ -96,8 +98,8 @@ class DynamicEndpointHelperTest extends FlatSpec with Matchers {
         |  }
         |}""".stripMargin
 
-    val expectJsonResult = prettyRender(DynamicEndpointHelper.prepareMappingFields(orignalJson))
-    expectJson should equal(expectJsonResult)
+    val expectedJValue = json.parse(expectJson)
+    DynamicEndpointHelper.prepareMappingFields(orignalJson) should equal(expectedJValue)
   }
   "prepareMappingFields Array" should "work well" taggedAs FunctionsTag in {
     val orignalJson = """{
@@ -174,9 +176,8 @@ class DynamicEndpointHelperTest extends FlatSpec with Matchers {
         |  }
         |}""".stripMargin
 
-    val resultJson = prettyRender(DynamicEndpointHelper.prepareMappingFields(orignalJson))
-    println(resultJson)
-    expectJson should equal(resultJson)
+    val expectedJValue = json.parse(expectJson)
+    DynamicEndpointHelper.prepareMappingFields(orignalJson) should equal(expectedJValue)
   }
   
   "getAllEntitiesFromMapping " should "work well" taggedAs FunctionsTag in {
@@ -668,34 +669,7 @@ class DynamicEndpointHelperTest extends FlatSpec with Matchers {
 
     val result = DynamicEndpointHelper.getObjectsByParams(jArray, params)
 
-    val str1 = prettyRender(result)
-    println(str1)
-
-    val expectString ="""[
-                        |  {
-                        |    "field1":1,
-                        |    "field2":2,
-                        |    "field3":"field3-1",
-                        |    "field4":"field4-1",
-                        |    "field5":"field5-1",
-                        |    "field6":6,
-                        |    "field7":"field7-1",
-                        |    "field8":"available",
-                        |    "pet_entity_id":"bd1f083b-af72-42cf-8a70-21d7740f3861"
-                        |  },
-                        |  {
-                        |    "field1":3,
-                        |    "field2":222,
-                        |    "field3":"field3-3",
-                        |    "field4":"field4-3",
-                        |    "field5":"field5-3",
-                        |    "field6":666,
-                        |    "field7":"field7-3",
-                        |    "field8":"available",
-                        |    "pet_entity_id":"33ca0384-5835-431e-9b88-4257f71f1483"
-                        |  }
-                        |]""".stripMargin
-    expectString should equal(str1)
+    result should equal(JArray(List(jValue1, jValue3)))
   }
   "getObjectsByKeyValuePair no param" should "work well " taggedAs FunctionsTag in {
 

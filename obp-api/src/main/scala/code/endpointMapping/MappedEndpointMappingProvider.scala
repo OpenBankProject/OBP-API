@@ -1,15 +1,16 @@
 package code.endpointMapping
 
+import org.json4s._
 import code.api.util.CustomJsonFormats
 import code.util.MappedUUID
 import net.liftweb.common.{Box, Empty, EmptyBox, Full}
-import net.liftweb.json
+import com.openbankproject.commons.util.json
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo
 import org.apache.commons.lang3.StringUtils
-import net.liftweb.json.Serialization.write
+import org.json4s.native.Serialization.write
 import com.openbankproject.commons.util.Functions.Implicits._
-import net.liftweb.json.JsonAST.JArray
+import org.json4s.JsonAST.JArray
 
 object MappedEndpointMappingProvider extends EndpointMappingProvider with CustomJsonFormats{
 

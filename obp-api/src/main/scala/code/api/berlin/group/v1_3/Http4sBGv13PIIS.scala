@@ -1,5 +1,6 @@
 package code.api.berlin.group.v1_3
 
+import org.json4s._
 import cats.data.{Kleisli, OptionT}
 import cats.effect._
 import code.api.berlin.group.ConstantsBG
@@ -15,8 +16,8 @@ import code.util.Helper
 import code.util.Helper.MdcLoggable
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
-import net.liftweb.json
-import net.liftweb.json.Formats
+import com.openbankproject.commons.util.json
+import org.json4s.Formats
 import org.http4s._
 import org.http4s.dsl.io._
 
@@ -31,7 +32,7 @@ object Http4sBGv13PIIS extends MdcLoggable {
 
   // ResourceDoc example bodies are written as `json.parse(...)` (JValue); ResourceDoc requires
   // scala.Product, so wrap via the same implicit the Lift builder used (JvalueCaseClass is a Product).
-  protected implicit def JvalueToSuper(what: net.liftweb.json.JValue): JvalueCaseClass = JvalueCaseClass(what)
+  protected implicit def JvalueToSuper(what: org.json4s.JValue): JvalueCaseClass = JvalueCaseClass(what)
 
   val implementedInApiVersion = ConstantsBG.berlinGroupVersion1
   val resourceDocs = ArrayBuffer[ResourceDoc]()
@@ -78,7 +79,7 @@ object Http4sBGv13PIIS extends MdcLoggable {
           fundsAvailable = (currentAccountBalance >= requestChangedCurrencyAmount)
 
         } yield {
-          net.liftweb.json.parse(s"""{
+          com.openbankproject.commons.util.JsonAliases.parse(s"""{
                "fundsAvailable" : $fundsAvailable
              }""")
         }

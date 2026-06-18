@@ -26,6 +26,7 @@
   */
 package code.api.v5_0_0
 
+import org.json4s._
 import code.api.Constant
 import code.api.Constant._
 import code.api.util.APIUtil
@@ -42,7 +43,7 @@ import code.api.v4_0_0._
 import code.consent.ConsentRequest
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.util.ApiVersion
-import net.liftweb.json.JsonAST.JValue
+import org.json4s.JsonAST.JValue
 import net.liftweb.util.Helpers
 
 import java.lang
@@ -804,7 +805,7 @@ object JSONFactory500 {
   def createConsentRequestResponseJson(createdConsentRequest: ConsentRequest): ConsentRequestResponseJson = {
     ConsentRequestResponseJson(
       createdConsentRequest.consentRequestId,
-      net.liftweb.json.parse(createdConsentRequest.payload),
+      com.openbankproject.commons.util.JsonAliases.parse(createdConsentRequest.payload),
       createdConsentRequest.consumerId,
     )
   }

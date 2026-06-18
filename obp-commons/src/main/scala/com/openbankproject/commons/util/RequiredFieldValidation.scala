@@ -1,15 +1,16 @@
 package com.openbankproject.commons.util
 
+import org.json4s._
 import java.util.Objects
 
 import com.openbankproject.commons.util.ApiVersion.allVersion
-import net.liftweb.json.JsonAST.{JArray, JField, JNothing, JNull, JObject, JString}
+import org.json4s.JsonAST.{JArray, JField, JNothing, JNull, JObject, JString}
 
 import scala.annotation.StaticAnnotation
 import scala.reflect.runtime.universe._
 import Functions.Implicits._
-import net.liftweb.json.{Formats, JValue}
-import net.liftweb.json.JsonDSL._
+import org.json4s.{Formats, JValue}
+import org.json4s.JsonDSL._
 
 import scala.collection.GenTraversableOnce
 import scala.collection.mutable.ArrayBuffer

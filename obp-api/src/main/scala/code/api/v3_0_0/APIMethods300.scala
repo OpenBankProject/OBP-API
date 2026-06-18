@@ -58,8 +58,8 @@ object APIMethods300 {
 //import com.openbankproject.commons.model._
 //import com.openbankproject.commons.util.ApiVersion
 //import net.liftweb.common._
-//import net.liftweb.json.JsonAST.JField
-//import net.liftweb.json.compactRender
+//import org.json4s.JsonAST.JField
+//import com.openbankproject.commons.util.JsonAliases.compactRender
 //import net.liftweb.util.Helpers.tryo
 //
 //import java.util.regex.Pattern

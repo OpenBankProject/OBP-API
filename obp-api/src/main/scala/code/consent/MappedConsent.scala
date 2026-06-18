@@ -308,7 +308,8 @@ object MappedConsentProvider extends ConsentProvider with code.util.Helper.MdcLo
         // Parse JWT payload to denormalise exp and consent items
         val consentJWTParsed: Option[ConsentJWT] = if (payload != null) {
           try {
-            import net.liftweb.json._
+            import org.json4s._
+            import com.openbankproject.commons.util.JsonAliases._
             implicit val formats: DefaultFormats.type = DefaultFormats
             Some(parse(payload).extract[ConsentJWT])
           } catch {

@@ -35,9 +35,10 @@ import code.scope.Scope
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.ApiVersion
-import net.liftweb.json.JsonDSL._
-import net.liftweb.json.Serialization.write
-import net.liftweb.json._
+import org.json4s.JsonDSL._
+import org.json4s.native.Serialization.write
+import org.json4s._
+import com.openbankproject.commons.util.JsonAliases._
 import org.scalatest.Tag
 
 class DynamicEntityTest extends V600ServerSetup {

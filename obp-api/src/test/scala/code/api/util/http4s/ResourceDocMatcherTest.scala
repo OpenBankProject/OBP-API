@@ -1,10 +1,11 @@
 package code.api.util.http4s
 
+import org.json4s._
 import code.api.util.APIUtil.ResourceDoc
 import code.api.util.ApiTag.ResourceDocTag
 import com.openbankproject.commons.util.ApiShortVersions
 import com.openbankproject.commons.util.ApiVersion
-import net.liftweb.json.JsonAST.JObject
+import org.json4s.JsonAST.JObject
 import org.http4s._
 import org.scalatest.{FeatureSpec, GivenWhenThen, Matchers, Tag}
 

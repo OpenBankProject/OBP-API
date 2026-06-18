@@ -26,6 +26,7 @@ TESOBE (http://www.tesobe.com/)
   */
 package code.api.v2_1_0
 
+import org.json4s._
 import java.util.Date
 
 import code.api.Constant._
@@ -57,10 +58,12 @@ import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.AccountRoutingScheme
 import dispatch._
 import net.liftweb.common.{Empty, ParamFailure}
-import net.liftweb.json.JsonAST.{JObject, JValue}
-import net.liftweb.json.JsonDSL._
-import net.liftweb.json.Serialization.write
-import net.liftweb.json.{JField, _}
+import org.json4s.JsonAST.{JObject, JValue}
+import org.json4s.JsonDSL._
+import org.json4s.native.Serialization
+import org.json4s.native.Serialization.write
+import org.json4s.{JField, _}
+import com.openbankproject.commons.util.JsonAliases._
 import net.liftweb.mapper.{By, MetaMapper}
 import org.scalatest.{BeforeAndAfterEach, FlatSpec, Matchers}
 import code.model._
@@ -371,17 +374,24 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
   }
 
   def removeField(json : JValue, fieldSpecifier : List[String]): JValue = {
-    json.replace(fieldSpecifier, JNothing)
+    new org.json4s.MonadicJValue(json).replace(fieldSpecifier, JNothing)
   }
 
-  implicit class JValueWithSingleReplace(jValue : JValue) {
-    def replace(fieldName : String, fieldValue : String) =
-      jValue.replace(List(fieldName), fieldValue)
+  // Shadow jvalue2monadic from org.json4s to prevent ambiguity with JValueWithSingleReplace
+  private def jvalue2monadic(jv: JValue): JValueWithSingleReplace = JValueWithSingleReplace(jv)
+
+  implicit class JValueWithSingleReplace(jValue: JValue) {
+    def replace(fieldName: String, fieldValue: String): JValue =
+      new org.json4s.MonadicJValue(jValue).replace(List(fieldName), JString(fieldValue))
+    def replace(path: List[String], replacement: String): JValue =
+      new org.json4s.MonadicJValue(jValue).replace(path, JString(replacement))
+    def replace(path: List[String], replacement: JValue): JValue =
+      new org.json4s.MonadicJValue(jValue).replace(path, replacement)
   }
 
   //TODO: remove this method?
-  def replaceField(json : JValue, fieldName : String, fieldValue : String) =
-    json.replace(List(fieldName), fieldValue)
+  def replaceField(json : JValue, fieldName : String, fieldValue : String): JValue =
+    new org.json4s.MonadicJValue(json).replace(List(fieldName), JString(fieldValue))
 
   //TODO: remove this method?
   def replaceDisplayName(json : JValue, displayName : String) =

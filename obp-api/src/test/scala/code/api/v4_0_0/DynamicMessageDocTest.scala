@@ -25,6 +25,7 @@ TESOBE (http://www.tesobe.com/)
  */
 package code.api.v4_0_0
 
+import org.json4s._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole._
@@ -38,8 +39,8 @@ import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.{Bank, BankId, ErrorMessage}
 import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.common.Box
-import net.liftweb.json.JArray
-import net.liftweb.json.Serialization.write
+import org.json4s.JArray
+import org.json4s.native.Serialization.write
 import org.scalatest.Tag
 
 import scala.concurrent.Await

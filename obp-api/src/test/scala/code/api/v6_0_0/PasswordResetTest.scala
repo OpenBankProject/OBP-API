@@ -25,6 +25,7 @@ TESOBE (http://www.tesobe.com/)
   */
 package code.api.v6_0_0
 
+import org.json4s._
 import java.util.UUID
 import code.api.util.ExampleValue
 import com.openbankproject.commons.model.ErrorMessage
@@ -41,7 +42,7 @@ import code.users.Users
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.User
 import net.liftweb.common.{Box, Full}
-import net.liftweb.json.Serialization.write
+import org.json4s.native.Serialization.write
 import net.liftweb.mapper.By
 import org.scalatest.Tag
 
@@ -137,7 +138,7 @@ class PasswordResetTest extends V600ServerSetup {
       ack.status should equal("sent")
       ack.to should equal(postJson.email)
       And("The response body must NOT contain a reset_password_url field")
-      (response600.body \ "reset_password_url") should equal(net.liftweb.json.JNothing)
+      (response600.body \ "reset_password_url") should equal(org.json4s.JNothing)
     }
 
     scenario("We will call the endpoint with unvalidated user", ApiEndpoint1, VersionOfApi) {

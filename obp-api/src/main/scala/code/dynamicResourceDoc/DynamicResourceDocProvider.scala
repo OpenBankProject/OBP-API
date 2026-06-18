@@ -1,11 +1,12 @@
 package code.dynamicResourceDoc
 
+import org.json4s._
 import com.openbankproject.commons.model.JsonFieldReName
 import com.openbankproject.commons.util.JsonAble
 import net.liftweb.common.Box
-import net.liftweb.json
-import net.liftweb.json.JsonAST.JNothing
-import net.liftweb.json.{Formats, JValue, JsonAST}
+import com.openbankproject.commons.util.json
+import org.json4s.JsonAST.JNothing
+import org.json4s.{Formats, JValue, JsonAST}
 import net.liftweb.util.SimpleInjector
 import org.apache.commons.lang3.StringUtils
 

@@ -1,7 +1,7 @@
 package code.api.dynamic.entity.query
 
 import com.openbankproject.commons.model.enums.DynamicEntityFieldType
-import net.liftweb.json.JsonAST.JObject
+import org.json4s.JsonAST.JObject
 import org.scalatest.{FlatSpec, Matchers}
 
 /**
@@ -13,7 +13,7 @@ class QuerySpec extends FlatSpec with Matchers {
   private def params(kvs: (String, String)*): Map[String, List[String]] =
     kvs.groupBy(_._1).map { case (k, vs) => k -> vs.map(_._2).toList }
 
-  private def rec(s: String): JObject = net.liftweb.json.parse(s).asInstanceOf[JObject]
+  private def rec(s: String): JObject = com.openbankproject.commons.util.JsonAliases.parse(s).asInstanceOf[JObject]
 
   private val indexed: Map[String, FieldSpec] = Map(
     "price"  -> FieldSpec(DynamicEntityFieldType.number, "scalar"),

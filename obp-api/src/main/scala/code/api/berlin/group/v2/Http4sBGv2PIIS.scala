@@ -1,5 +1,6 @@
 package code.api.berlin.group.v2
 
+import org.json4s._
 import cats.data.{Kleisli, OptionT}
 import cats.effect._
 import code.api.berlin.group.ConstantsBG
@@ -9,8 +10,8 @@ import code.api.util.ErrorMessages._
 import code.api.util.CustomJsonFormats
 import code.util.Helper.MdcLoggable
 import com.github.dwickern.macros.NameOf.nameOf
-import net.liftweb.json.JsonAST.prettyRender
-import net.liftweb.json.{Extraction, Formats}
+import com.openbankproject.commons.util.JsonAliases.prettyRender
+import org.json4s.{Extraction, Formats}
 import org.http4s._
 import org.http4s.dsl.io._
 

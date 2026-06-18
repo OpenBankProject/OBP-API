@@ -1,9 +1,10 @@
 package code.api.ResourceDocs1_4_0
 
+import org.json4s._
 import code.api.Constant
 import code.setup.{PropsReset, ServerSetup}
 import com.openbankproject.commons.util.ApiVersion
-import net.liftweb.json.JsonAST.{JArray, JNothing, JNull, JString}
+import org.json4s.JsonAST.{JArray, JNothing, JNull, JString}
 
 class ResourceDocsTechnologyTest extends ServerSetup with PropsReset {
   private val v600 = ApiVersion.v6_0_0.toString

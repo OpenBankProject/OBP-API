@@ -1,5 +1,6 @@
 package code.bankconnectors
 
+import org.json4s._
 import code.api.APIFailureNewStyle
 import code.api.util.APIUtil._
 import code.api.util.NewStyle.HttpCode
@@ -12,8 +13,8 @@ import com.openbankproject.commons.util.ReflectUtils
 import com.openbankproject.commons.util.ReflectUtils.{getType, toValueObject}
 import net.liftweb.common.{Box, Empty, Failure, Full}
 import com.github.dwickern.macros.NameOf.nameOf
-import net.liftweb.json.JValue
-import net.liftweb.json.JsonAST.JNothing
+import org.json4s.JValue
+import org.json4s.JsonAST.JNothing
 import org.apache.commons.lang3.StringUtils
 
 import scala.annotation.tailrec
