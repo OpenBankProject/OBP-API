@@ -652,7 +652,10 @@ object DynamicEntityCommons extends Converter[DynamicEntityT, DynamicEntityCommo
     DynamicEntityCommons(entityName, compactRender(jsonObject), dynamicEntityId, userId, bankId, hasPersonalEntityValue, hasPublicAccessValue, hasCommunityAccessValue, personalRequiresRoleValue, useRowLevelAccessValue)
   }
 
-  private def allowedFieldType: List[String] = DynamicEntityFieldType.values.map(_.toString) ++: ReferenceType.referenceTypeNames
+  // `reference` is an internal query-layer type (see DynamicEntityFieldType.reference), never declared
+  // bare by callers — they declare `reference:<Target>`, which ReferenceType.referenceTypeNames supplies.
+  private def allowedFieldType: List[String] =
+    DynamicEntityFieldType.values.filterNot(_ == DynamicEntityFieldType.reference).map(_.toString) ++: ReferenceType.referenceTypeNames
 }
 
 /**

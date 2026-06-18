@@ -30,7 +30,7 @@ import cats.effect.IO
 import code.DynamicData.{DynamicData, DynamicDataProvider, DynamicDataAccessProvider, DynamicDataAccessPermission}
 import code.api.Constant.PARAM_LOCALE
 import code.api.dynamic.entity.helper.{CommunityEntityName, DynamicEntityHelper, DynamicEntityInfo, EntityAccessName, EntityName, PublicEntityName}
-import code.api.dynamic.entity.query.{FieldSpec, InMemoryQueryExecutor, QueryParamParser, QueryPlan, QueryPlanner}
+import code.api.dynamic.entity.query.{FieldSpec, InMemoryQueryExecutor, JoinTargetInfo, QueryParamParser, QueryPlan, QueryPlanner}
 import code.api.dynamic.entity.projection.{IndexingCapabilities, PostgresProjectionBackend, ProjectionProvisioner}
 import cats.effect.unsafe.implicits.{global => ioRuntime} // aliased: avoids clashing with the EC `global` imported below
 import code.api.util.APIUtil._
@@ -111,12 +111,19 @@ object Http4sDynamicEntity extends MdcLoggable {
   private def deIndexedFields(bankId: Option[String], entityName: String): Map[String, FieldSpec] =
     DynamicEntityHelper.definitionsMap.get((bankId, entityName)).map(_.indexedFields).getOrElse(Map.empty)
 
+  private def deReferenceFields(bankId: Option[String], entityName: String): Map[String, String] =
+    DynamicEntityHelper.definitionsMap.get((bankId, entityName)).map(_.referenceFields).getOrElse(Map.empty)
+
+  /** Resolve a join-target (child) entity's indexed + reference fields for the planner (same bank scope). */
+  private def childJoinInfo(bankId: Option[String])(child: String): Option[JoinTargetInfo] =
+    DynamicEntityHelper.definitionsMap.get((bankId, child)).map(i => JoinTargetInfo(i.indexedFields, i.referenceFields))
+
   /** Parse + validate list-read query params into a QueryPlan; fail 400 (clear message) on any error. */
   private def buildQueryPlan(req: Request[IO], bankId: Option[String], entityName: String, cc: Option[CallContext]): Future[QueryPlan] = {
-    val planned = for {
-      parsed <- QueryParamParser.parse(queryParams(req))
-      plan   <- QueryPlanner.plan(parsed._1, parsed._2, parsed._3, deIndexedFields(bankId, entityName))
-    } yield plan
+    val planned = QueryParamParser.parse(queryParams(req)).flatMap { case (filters, joins, sort, page) =>
+      QueryPlanner.plan(filters, joins, sort, page, entityName,
+        deIndexedFields(bankId, entityName), deReferenceFields(bankId, entityName), childJoinInfo(bankId))
+    }
     planned match {
       case Right(plan) => Future.successful(plan)
       case Left(err)   => Helper.booleanToFuture(err.message, 400, cc = cc) { false }.map(_ => QueryPlan.empty)
@@ -278,15 +285,34 @@ object Http4sDynamicEntity extends MdcLoggable {
   private case object UseProjection extends ProjDecision
   private case object PendingProjection extends ProjDecision
   private case object UseInMemory extends ProjDecision
+  private case object JoinsNeedProjection extends ProjDecision // joins present but projection unavailable -> 400
 
   private def legacyParamsPresent(req: Request[IO]): Boolean =
     queryParams(req).keys.exists(k => k != PARAM_LOCALE && !k.startsWith("obp_"))
+
+  /** True if the request carries any obp_exists / obp_not_exists join clause (used to reject joins on
+   *  the non-projection get-all paths: public, community, row-level). */
+  private def joinParamsPresent(req: Request[IO]): Boolean =
+    queryParams(req).keys.exists(k => k.startsWith("obp_exists[") || k.startsWith("obp_not_exists["))
 
   private def planFields(plan: QueryPlan): List[String] =
     (plan.filters.map(_.field) ++ plan.sort.map(_.field)).distinct
 
   private def decideProjection(req: Request[IO], bankId: Option[String], entityName: String, plan: QueryPlan): ProjDecision =
-    if (!IndexingCapabilities.projectionEnabled || legacyParamsPresent(req) || planFields(plan).isEmpty) UseInMemory
+    if (plan.joins.nonEmpty) {
+      // Joins are projection-only. Legacy bare params can't combine with joins (they force in-memory).
+      if (!IndexingCapabilities.projectionEnabled || legacyParamsPresent(req)) JoinsNeedProjection
+      else {
+        val parentReady = ProjectionProvisioner.readyFields(bankId, entityName)
+        val parentFieldsReady = planFields(plan).forall(parentReady.contains)
+        val joinsReady = plan.joins.forall { j =>
+          val childReady = ProjectionProvisioner.readyFields(bankId, j.childEntity)
+          val linkReady  = if (j.onChild) childReady.contains(j.linkField) else parentReady.contains(j.linkField)
+          linkReady && j.predicate.map(_.field).forall(childReady.contains)
+        }
+        if (parentFieldsReady && joinsReady) UseProjection else PendingProjection
+      }
+    } else if (!IndexingCapabilities.projectionEnabled || legacyParamsPresent(req) || planFields(plan).isEmpty) UseInMemory
     else {
       val ready = ProjectionProvisioner.readyFields(bankId, entityName)
       if (planFields(plan).forall(ready.contains)) UseProjection else PendingProjection
@@ -318,6 +344,9 @@ object Http4sDynamicEntity extends MdcLoggable {
       (_, callContext) <- bankCheck(bankId, callContext)
       // Row-level: type-level get role is NOT required — the ACL decides per row.
       _ <- failIf(afterIntercept(callContext, operationId), callContext)
+      // Row-level get-all is served in-memory (ACL-gated); joins require the projection backend.
+      _ <- if (isGetAll && joinParamsPresent(req)) Helper.booleanToFuture(DynamicEntityJoinRequiresProjection, 400, cc = callContext) { false }
+           else Future.successful(true)
       result <- if (isGetAll) Future {
                   // In-memory floor: fetch all rows (unscoped) and keep those the ACL marks readable.
                   // (The projection EXISTS backend for row-level get-all is a documented follow-up; the
@@ -501,6 +530,8 @@ object Http4sDynamicEntity extends MdcLoggable {
         _ <- failIf(afterIntercept(callContext, operationId), callContext)
         queryPlan <- if (isGetAll) buildQueryPlan(req, bankId, entityName, callContext) else Future.successful(QueryPlan.empty)
         decision = if (isGetAll) decideProjection(req, bankId, entityName, queryPlan) else UseInMemory
+        _ <- if (decision == JoinsNeedProjection) Helper.booleanToFuture(DynamicEntityJoinRequiresProjection, 400, cc = callContext) { false }
+             else Future.successful(true)
         _ <- if (decision == PendingProjection) Helper.booleanToFuture(DynamicEntityFieldNotYetQueryable, 409, cc = callContext) { false }
              else Future.successful(true)
         // Projection path: serve the list from SQL, skipping the fetch-all connector call.
@@ -649,6 +680,9 @@ object Http4sDynamicEntity extends MdcLoggable {
         (_, callContext) <- anonymousAccess(callContext0)
         (_, callContext) <- bankCheck(bankId, callContext)
         queryPlan <- if (isGetAll) buildQueryPlan(req, bankId, entityName, callContext) else Future.successful(QueryPlan.empty)
+        // Public reads are in-memory only; joins require the projection backend.
+        _ <- if (queryPlan.joins.nonEmpty) Helper.booleanToFuture(DynamicEntityJoinRequiresProjection, 400, cc = callContext) { false }
+             else Future.successful(true)
         (box, _) <- NewStyle.function.invokeDynamicConnector(operation, entityName, None, Option(id).filter(StringUtils.isNotBlank), bankId, None, None, false, Some(cc))
         _ <- Helper.booleanToFuture(notFoundMsg(entityName, id, bankId), 404, cc = callContext) { box.isDefined }
       } yield {
@@ -679,6 +713,9 @@ object Http4sDynamicEntity extends MdcLoggable {
         _ <- NewStyle.function.hasEntitlement(bankId.getOrElse(""), u.userId, DynamicEntityInfo.canGetRole(entityName, bankId), callContext)
         _ <- failIf(afterIntercept(callContext, operationId), callContext)
         queryPlan <- if (isGetAll) buildQueryPlan(req, bankId, entityName, callContext) else Future.successful(QueryPlan.empty)
+        // Community reads are in-memory only; joins require the projection backend.
+        _ <- if (queryPlan.joins.nonEmpty) Helper.booleanToFuture(DynamicEntityJoinRequiresProjection, 400, cc = callContext) { false }
+             else Future.successful(true)
       } yield {
         if (isGetAll) {
           val resultList: List[JObject] = DynamicDataProvider.connectorMethodProvider.vend.getAllDataJsonCommunity(bankId, entityName)
