@@ -122,6 +122,7 @@ object Migration extends MdcLoggable {
       migrateChatRoomCreatedByAndLastMessageSender()
       migrateConsentReferenceIdToUuid(startedBeforeSchemifier)
       migrateMetricConsentReferenceId(startedBeforeSchemifier)
+      dropFastFirehoseAccountsViews(startedBeforeSchemifier)
     }
     
     private def dummyScript(): Boolean = {
@@ -420,6 +421,21 @@ object Migration extends MdcLoggable {
         val name = nameOf(addFastFirehoseAccountsMaterializedView(startedBeforeSchemifier))
         runOnce(name) {
           MigrationOfFastFireHoseMaterializedView.addFastFireHoseMaterializedView(name)
+        }
+      }
+    }
+
+    // Retire the fast-firehose SQL views (firehose -> account directory + ABAC). Runs after the create
+    // migrations above, so a fresh DB creates-then-drops them and an existing DB just drops them. See
+    // MigrationOfDropFastFireHoseViews.
+    private def dropFastFirehoseAccountsViews(startedBeforeSchemifier: Boolean): Boolean = {
+      if(startedBeforeSchemifier == true) {
+        logger.warn(s"Migration.database.dropFastFirehoseAccountsViews(true) cannot be run before Schemifier.")
+        true
+      } else {
+        val name = nameOf(dropFastFirehoseAccountsViews(startedBeforeSchemifier))
+        runOnce(name) {
+          MigrationOfDropFastFireHoseViews.dropFastFireHoseViews(name)
         }
       }
     }

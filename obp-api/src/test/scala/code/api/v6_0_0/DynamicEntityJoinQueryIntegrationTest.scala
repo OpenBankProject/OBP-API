@@ -76,9 +76,7 @@ class DynamicEntityJoinQueryIntegrationTest extends V600ServerSetup {
       createDef(Contract, s"""{"${idField(Contract)}":{"type":"string"},"partner_ref":{"type":"reference:$Partner","indexed":true},"active":{"type":"boolean","indexed":true}}""")
       createDef(Deal, s"""{"${idField(Deal)}":{"type":"string"},"partner_ref":{"type":"reference:$Partner","indexed":true}}""", rowLevel = true)
 
-      // --- provision projections (empty), then write rows so dual-write populates them ---
-      List(Partner, Contract, Deal).foreach(e => run(ProjectionProvisioner.ensureProvisioned(None, e)))
-
+      // --- write all rows first ---
       val p1 = saveRec(Partner, "tier" -> JString("gold"))
       val p2 = saveRec(Partner, "tier" -> JString("silver"))
       val p3 = saveRec(Partner, "tier" -> JString("bronze")) // no contract at all
@@ -87,6 +85,16 @@ class DynamicEntityJoinQueryIntegrationTest extends V600ServerSetup {
       saveRec(Contract, "partner_ref" -> JString(p1), "active" -> JBool(false))  // P1 also has an inactive one
       saveRec(Contract, "partner_ref" -> JString(p2), "active" -> JBool(false))  // P2 only inactive
       saveRec(Contract, "active" -> JBool(false))                                // orphan: partner_ref absent (NULL)
+
+      val d1 = saveRec(Deal, "partner_ref" -> JString(p1))
+      saveRec(Deal, "partner_ref" -> JString(p2)) // d2: granted to nobody
+      DynamicDataAccessProvider.provider.vend.grant(d1, userA, canRead = true, canUpdate = false,
+        canDelete = false, canGrant = false, entityName = Deal, bankId = None, grantedBy = owner)
+
+      // --- provision AFTER writing, so the backfill populates projections from the blobs.
+      //     (This makes the test independent of dynamic_entity.indexing.backend; provisioning's backfill +
+      //     PostgresProjectionBackend.query do not consult that prop — only test.projection.postgres gates us.)
+      List(Partner, Contract, Deal).foreach(e => run(ProjectionProvisioner.ensureProvisioned(None, e)))
 
       // 1. EXISTS, predicate active=true  -> partners WITH an active contract
       queryPartnerIds(joinPlan(Quantifier.Exists, Contract, activeTrue), owner) shouldBe Set(p1)
@@ -103,12 +111,6 @@ class DynamicEntityJoinQueryIntegrationTest extends V600ServerSetup {
       // 5. NOT EXISTS, no predicate -> partners with NO contract at all.
       //    The orphan contract (NULL partner_ref) must not corrupt this (correlated NOT EXISTS, not NOT IN).
       queryPartnerIds(joinPlan(Quantifier.NotExists, Contract, Nil), owner) shouldBe Set(p3)
-
-      // --- user-scoped ACL on a row-level child (Deal) ---
-      val d1 = saveRec(Deal, "partner_ref" -> JString(p1))
-      saveRec(Deal, "partner_ref" -> JString(p2)) // d2: granted to nobody
-      DynamicDataAccessProvider.provider.vend.grant(d1, userA, canRead = true, canUpdate = false,
-        canDelete = false, canGrant = false, entityName = Deal, bankId = None, grantedBy = owner)
 
       val dealExists = joinPlan(Quantifier.Exists, Deal, Nil)
       // userA can read D1 -> P1 counts; D2 invisible -> P2 excluded.
