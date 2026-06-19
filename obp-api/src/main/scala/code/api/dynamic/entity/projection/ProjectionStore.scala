@@ -63,11 +63,14 @@ object ProjectionStore {
    */
   def scope(bankId: Option[String], entityName: String, isPersonalEntity: Boolean, userId: Option[String], alias: String = ""): Fragment = {
     val p = if (alias.isEmpty) "" else alias + "."
+    // Bind as Option[String]: a system-level entity has bankId=None, which must bind SQL NULL — `orNull`
+    // as a plain String trips doobie's non-nullable Put[String] ("oops, null"). Put[Option[String]]
+    // emits NULL for None, and `IS NOT DISTINCT FROM NULL` is the intended null-safe match.
     val byEntity   = Fragment.const(p + entityNameColumn) ++ fr"=" ++ fr0"$entityName"
-    val byBank     = Fragment.const(p + bankIdColumn) ++ fr"IS NOT DISTINCT FROM" ++ fr0"${bankId.orNull: String}"
+    val byBank     = Fragment.const(p + bankIdColumn) ++ fr"IS NOT DISTINCT FROM" ++ fr0"${bankId: Option[String]}"
     val byPersonal = Fragment.const(p + personalColumn) ++ fr"=" ++ fr0"$isPersonalEntity"
     val base = byEntity ++ fr"AND" ++ byBank ++ fr"AND" ++ byPersonal
-    if (isPersonalEntity) base ++ fr"AND" ++ Fragment.const(p + userIdColumn) ++ fr"IS NOT DISTINCT FROM" ++ fr0"${userId.orNull: String}"
+    if (isPersonalEntity) base ++ fr"AND" ++ Fragment.const(p + userIdColumn) ++ fr"IS NOT DISTINCT FROM" ++ fr0"${userId: Option[String]}"
     else base
   }
 }
