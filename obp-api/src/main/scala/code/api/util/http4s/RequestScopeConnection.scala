@@ -15,7 +15,7 @@ import java.sql.Connection
 import scala.concurrent.Future
 
 /**
- * Request-scoped transaction support for v7 http4s endpoints.
+ * Request-scoped transaction support for Http4s native endpoints.
  *
  * PROBLEM: Lift Mapper uses a plain ThreadLocal for connection tracking, while
  * cats-effect IO switches compute threads across flatMap / IO.fromFuture boundaries.
@@ -63,11 +63,11 @@ import scala.concurrent.Future
  * METRIC WRITES: recordMetric runs in IO.blocking (blocking pool, no TTL from compute
  * thread). currentProxy.get() returns null there, so RequestAwareConnectionManager
  * falls back to the pool — metric writes use a separate connection and commit
- * independently, matching v6 behaviour.
+ * independently, matching traditional Lift behaviour.
  *
- * NON-V7 PATHS (v6 via bridge, background tasks): requestProxyLocal is not set,
- * currentProxy is null — RequestAwareConnectionManager delegates to APIUtil.vendor
- * as before. DB.buildLoanWrapper (v6) continues to manage its own transaction.
+ * BACKGROUND TASKS / NON-HTTP PATHS: requestProxyLocal is not set, currentProxy is null
+ * — RequestAwareConnectionManager delegates to APIUtil.vendor. Any Lift Mapper operations
+ * outside of a Http4s request scope will auto-commit unless wrapped in a Lift LoanWrapper.
  */
 object RequestScopeConnection extends MdcLoggable {
 
@@ -186,7 +186,7 @@ object RequestScopeConnection extends MdcLoggable {
    * If no DB call was made: nothing to commit or close (pool unaffected).
    *
    * GET/HEAD must NOT be wrapped (they run on auto-commit vendor connections).  Used by
-   * ResourceDocMiddleware (v6/v7) and by services that build their own request scope
+   * ResourceDocMiddleware and by services that build their own request scope
    * without the middleware (e.g. Http4sDynamicEntity).
    */
   def withBusinessDBTransaction(io: IO[Response[IO]]): IO[Response[IO]] =
@@ -250,8 +250,8 @@ object RequestScopeConnection extends MdcLoggable {
  *   DB.defineConnectionManager(..., new RequestAwareConnectionManager(APIUtil.vendor))
  *
  * Used by:
- *   - v7 native endpoints (gets proxy from TTL, set right before Future submission)
- *   - v6 via bridge / background tasks (TTL is null → delegates to vendor as before)
+ *   - Http4s native endpoints (gets proxy from TTL, set right before Future submission)
+ *   - Background tasks / Non-HTTP paths (TTL is null → delegates to vendor as before)
  */
 class RequestAwareConnectionManager(delegate: ConnectionManager) extends ConnectionManager with MdcLoggable {
 
