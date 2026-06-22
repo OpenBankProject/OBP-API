@@ -42,13 +42,29 @@ object LoginAttempt extends MdcLoggable {
     MappedBadLoginAttempt.find(
       By(MappedBadLoginAttempt.Provider, provider),
       By(MappedBadLoginAttempt.mUsername, username)
-    ).or(Full(MappedBadLoginAttempt.create
-      .mUsername(username)
-      .Provider(provider)
-      .mLastFailureDate(now)
-      .mBadAttemptsSinceLastSuccessOrReset(0)
-      .saveMe()
-    ))
+    ) match {
+      case full @ Full(_) => full
+      case _ =>
+        // .or(Full(saveMe())) evaluates saveMe eagerly — two concurrent first-time callers
+        // both get Empty and both call saveMe; the loser hits UniqueIndex(Provider, mUsername).
+        tryo {
+          MappedBadLoginAttempt.create
+            .mUsername(username)
+            .Provider(provider)
+            .mLastFailureDate(now)
+            .mBadAttemptsSinceLastSuccessOrReset(0)
+            .saveMe()
+        } match {
+          case full @ Full(_) => full
+          case Failure(_, _, _) =>
+            // UniqueIndex violation from concurrent insert — re-fetch the committed row
+            MappedBadLoginAttempt.find(
+              By(MappedBadLoginAttempt.Provider, provider),
+              By(MappedBadLoginAttempt.mUsername, username)
+            )
+          case other => other
+        }
+    }
   }
 
   /**

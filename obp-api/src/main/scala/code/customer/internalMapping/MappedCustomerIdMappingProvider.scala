@@ -4,6 +4,7 @@ import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model.{BankId, CustomerId}
 import net.liftweb.common._
 import net.liftweb.mapper.By
+import net.liftweb.util.Helpers.tryo
 
 
 object MappedCustomerIdMappingProvider extends CustomerIdMappingProvider with MdcLoggable
@@ -26,15 +27,22 @@ object MappedCustomerIdMappingProvider extends CustomerIdMappingProvider with Md
         mappedCustomerIdMapping.map(_.customerId)
       }
       case Empty =>
-      {
-        val mappedCustomerIdMapping: MappedCustomerIdMapping =
+        tryo {
           MappedCustomerIdMapping
             .create
             .mCustomerPlainTextReference(customerPlainTextReference)
             .saveMe
-        logger.debug(s"getOrCreateCustomerId--> create mappedCustomerIdMapping : $mappedCustomerIdMapping")
-        Full(mappedCustomerIdMapping.customerId)
-      }
+        } match {
+          case Full(m) =>
+            logger.debug(s"getOrCreateCustomerId--> create mappedCustomerIdMapping : $m")
+            Full(m.customerId)
+          case Failure(_, _, _) =>
+            // UniqueIndex violation from concurrent insert — re-fetch the committed row
+            MappedCustomerIdMapping.find(
+              By(MappedCustomerIdMapping.mCustomerPlainTextReference, customerPlainTextReference)
+            ).map(_.customerId)
+          case other => other
+        }
       case Failure(msg, t, c) => Failure(msg, t, c)
       case ParamFailure(x,y,z,q) => ParamFailure(x,y,z,q)
     }
