@@ -69,13 +69,15 @@ object ConsentScheduler extends MdcLoggable {
       outdatedConsents.foreach { consent =>
         Try {
           val message = s"|---> Changed status from ${consent.status} to ${ConsentStatus.rejected} for consent ID: ${consent.id}"
-          val newNote = s"$currentDate\n$message\n" + Option(consent.note).getOrElse("") // Prepend to existing note if any
-          consent
-            .mStatus(ConsentStatus.rejected.toString)
-            .mNote(newNote)
-            .mStatusUpdateDateTime(new Date())
-            .save
-          logger.warn(message)
+          val newNote = s"$currentDate\n$message\n" + Option(consent.note).getOrElse("")
+          val rows = code.bankconnectors.DoobieConsentSchedulerQueries.conditionallyUpdateStatus(
+            consentRowId = consent.id.get,
+            guardStatus  = ConsentStatus.received.toString,
+            newStatus    = ConsentStatus.rejected.toString,
+            newNote      = newNote
+          )
+          if (rows > 0) logger.warn(message)
+          else logger.debug(s"|---> Skipped stale update for consent ${consent.id}: status already changed")
         } match {
           case Failure(ex) => logger.error(s"Failed to update consent ID: ${consent.id}", ex)
           case Success(_) => // Already logged
@@ -109,13 +111,13 @@ object ConsentScheduler extends MdcLoggable {
       expiredConsents.foreach { consent =>
         Try {
           val message = s"|---> Changed status from ${consent.status} to ${ConsentStatus.expired} for consent ID: ${consent.id}"
-          val newNote = s"$currentDate\n$message\n" + Option(consent.note).getOrElse("") // Prepend to existing note if any
-          consent
-            .mStatus(ConsentStatus.expired.toString)
-            .mNote(newNote)
-            .mStatusUpdateDateTime(new Date())
-            .save
-          logger.warn(message)
+          val newNote = s"$currentDate\n$message\n" + Option(consent.note).getOrElse("")
+          val rows = code.bankconnectors.DoobieConsentSchedulerQueries.conditionallyExpireValidBerlinGroupConsent(
+            consentRowId = consent.id.get,
+            newNote      = newNote
+          )
+          if (rows > 0) logger.warn(message)
+          else logger.debug(s"|---> Skipped stale update for consent ${consent.id}: status already changed")
         } match {
           case Failure(ex) => logger.error(s"Failed to update consent ID: ${consent.id}", ex)
           case Success(_) => // Already logged
@@ -141,13 +143,15 @@ object ConsentScheduler extends MdcLoggable {
       expiredConsents.foreach { consent =>
         Try {
           val message = s"|---> Changed status from ${consent.status} to ${ConsentStatus.EXPIRED.toString} for consent ID: ${consent.id}"
-          val newNote = s"$currentDate\n$message\n" + Option(consent.note).getOrElse("") // Prepend to existing note if any
-          consent
-            .mStatus(ConsentStatus.EXPIRED.toString)
-            .mNote(newNote)
-            .mStatusUpdateDateTime(new Date())
-            .save
-          logger.warn(message)
+          val newNote = s"$currentDate\n$message\n" + Option(consent.note).getOrElse("")
+          val rows = code.bankconnectors.DoobieConsentSchedulerQueries.conditionallyUpdateStatus(
+            consentRowId = consent.id.get,
+            guardStatus  = ConsentStatus.ACCEPTED.toString,
+            newStatus    = ConsentStatus.EXPIRED.toString,
+            newNote      = newNote
+          )
+          if (rows > 0) logger.warn(message)
+          else logger.debug(s"|---> Skipped stale update for OBP consent ${consent.id}: status already changed")
         } match {
           case Failure(ex) => logger.error(s"Failed to update consent ID: ${consent.id}", ex)
           case Success(_) => // Already logged

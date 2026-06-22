@@ -27,6 +27,7 @@ TESOBE (http://www.tesobe.com/)
 package code.concurrency
 
 import code.api.berlin.group.ConstantsBG
+import code.bankconnectors.DoobieConsentSchedulerQueries
 import code.consent.{ConsentStatus, MappedConsent}
 import net.liftweb.mapper.By
 
@@ -82,13 +83,11 @@ class ConcurrentConsentRaceTest extends ConcurrentRaceSetup {
       val afterRevoke = MappedConsent.find(By(MappedConsent.mConsentId, consentId))
         .map(_.status).getOrElse("missing")
 
-      And("the scheduler saves its stale copy — replicating the .save call inside expiredBerlinGroupConsents")
-      // This is the exact blind UPDATE that the scheduler performs:
-      //   consent.mStatus("expired").mNote(...).mStatusUpdateDateTime(...).save
-      staleConsent
-        .mStatus(ConsentStatus.expired.toString)
-        .mStatusUpdateDateTime(new Date())
-        .save
+      And("the scheduler attempts to expire its stale copy via the guarded conditional update")
+      DoobieConsentSchedulerQueries.conditionallyExpireValidBerlinGroupConsent(
+        consentRowId = staleConsent.id.get,
+        newNote      = ""
+      )
 
       Then("the final status must remain terminatedByTpp — the revoke must survive the stale save")
       val finalStatus = MappedConsent.find(By(MappedConsent.mConsentId, consentId))
@@ -126,11 +125,13 @@ class ConcurrentConsentRaceTest extends ConcurrentRaceSetup {
       val afterChange = MappedConsent.find(By(MappedConsent.mConsentId, consentId))
         .map(_.status).getOrElse("missing")
 
-      And("the scheduler saves its stale copy as rejected — replicating the .save in unfinishedBerlinGroupConsents")
-      staleConsent
-        .mStatus(ConsentStatus.rejected.toString)
-        .mStatusUpdateDateTime(new Date())
-        .save
+      And("the scheduler attempts to reject its stale copy via the guarded conditional update")
+      DoobieConsentSchedulerQueries.conditionallyUpdateStatus(
+        consentRowId = staleConsent.id.get,
+        guardStatus  = ConsentStatus.received.toString,
+        newStatus    = ConsentStatus.rejected.toString,
+        newNote      = ""
+      )
 
       Then("the final status must remain REVOKED — the committed change must survive the stale save")
       val finalStatus = MappedConsent.find(By(MappedConsent.mConsentId, consentId))
