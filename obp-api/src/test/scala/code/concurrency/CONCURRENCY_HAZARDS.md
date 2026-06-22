@@ -1,8 +1,7 @@
 # OBP-API Concurrency Hazard Test Suite
 
 **Branch**: `feature/concurrency-hazard-tests`  
-**Commit**: `92dc1d85e`  
-**Test run result**: 19 PASSED (all hazards fixed) · 0 FAILED · BUILD SUCCESS
+**Test run result**: 20 PASSED (all hazards fixed) · 0 FAILED · BUILD SUCCESS
 
 ---
 
@@ -40,18 +39,18 @@ mvn -pl obp-commons,obp-api scalatest:test \
 
 ---
 
-## Test Files (8 classes · 19 scenarios · 1,277 lines)
+## Test Files (8 classes · 20 scenarios)
 
-| File | Scenarios | Lines |
-|---|---|---|
-| `ConcurrentRaceSetup.scala` | base trait | 138 |
-| `ConcurrentTransferRaceTest.scala` | A, B, S | 219 |
-| `ConcurrentDuplicateCreationTest.scala` | C, D, F, I, L, W | 272 |
-| `ConcurrentConnectionMechanismTest.scala` | G1, G2 | 86 |
-| `ConcurrentSecurityRaceTest.scala` | H, K | 137 |
-| `ConcurrentConsentRaceTest.scala` | J, U | 148 |
-| `ConcurrentViewPermissionRaceTest.scala` | N, O, R | 205 |
-| `ConcurrentProviderRaceTest.scala` | AA | 72 |
+| File | Scenarios |
+|---|---|
+| `ConcurrentRaceSetup.scala` | base trait |
+| `ConcurrentTransferRaceTest.scala` | A, B, S |
+| `ConcurrentDuplicateCreationTest.scala` | C, D, F, I, L, W |
+| `ConcurrentConnectionMechanismTest.scala` | G1, G2 |
+| `ConcurrentSecurityRaceTest.scala` | H, K |
+| `ConcurrentConsentRaceTest.scala` | J, U |
+| `ConcurrentViewPermissionRaceTest.scala` | N, O, R, migrate |
+| `ConcurrentProviderRaceTest.scala` | AA |
 
 ---
 
@@ -125,8 +124,9 @@ mvn -pl obp-commons,obp-api scalatest:test \
 | **N** | 🟢 PASSED | 2 concurrent `getOrCreateCustomPublicView` calls: no exceptions, exactly 1 view (Try + re-fetch on constraint violation) | unique-constraint-unhandled | `MapperViews.getOrCreateCustomPublicView` |
 | **O** | 🟢 PASSED | 2 concurrent `resetViewPermissions` calls: no exceptions, exactly 1 row per permission (`Try { .save }` ignores duplicate) | unique-constraint-unhandled | `ViewPermission.resetViewPermissions` |
 | **R** | 🟢 PASSED | No orphaned `AccountAccess` after concurrent grant + view delete (`ViewDefinition.beforeDelete` cascade) | check-then-act | `MapperViews.removeCustomView` |
+| **migrate** | 🟢 PASSED | 2 concurrent `migrateViewPermissions` calls: no exceptions, exactly 1 row per enabled permission (`Try { .save }` ignores duplicate) | unique-constraint-unhandled | `MapperViews.migrateViewPermissions` |
 
-**Fix**: N/O — wrap inserts in `scala.util.Try`, ignore constraint violations. R — `ViewDefinition.beforeDelete` hook cascade-deletes `AccountAccess` rows so no orphans survive the delete.
+**Fix**: N/O/migrate — wrap inserts in `scala.util.Try`, ignore constraint violations. R — `ViewDefinition.beforeDelete` hook cascade-deletes `AccountAccess` rows so no orphans survive the delete. M and `getOrCreateSystemView` — same `Try` + re-fetch pattern as N (no standalone test; see Hazards Without Tests table).
 
 ---
 
@@ -168,19 +168,20 @@ Every scenario now lands in the **Gracefully handled** tier. The critical previo
 
 ## Verified-Real Hazards Without Standalone Tests
 
-These were confirmed real by source audit but are deliberately not given standalone tests.
+These were confirmed real by source audit. M and migrateViewPermissions have been fixed in code;
+their class is proven by N/O. The remaining entries (Q, T, V, X, Y) are intentionally untested.
 
-| ID | Hazard | Reason not tested |
-|---|---|---|
-| M | `getOrCreateSystemView` duplicate | Same `saveMe`-without-`tryo` root cause as N/O; system views are pinned to a global whitelist via `ViewDefinition.beforeSave` — deleting one would pollute other suites. **N** exercises the identical path on an isolated key. |
-| P | `factoryResetSystemView` concurrent reset | Drives `ViewPermission.resetViewPermissions` insert — the exact code **O** already pins. |
-| migrateViewPermissions | duplicate `ViewPermission` insert | Same insert-without-`tryo` root cause as **O**. |
-| Q | `revokeAccess` vs `grant` check-then-act | Same `AccountAccess` check-then-act family as **R**; the window is narrow → non-deterministic barrier test would be flaky (false-green). The class is proven by **R**. |
-| T | `createTransactionRequestBulk` per-leg balance | Verdict: unconfirmed intra-request self-race. `saveTransaction` mutates the passed object's `accountBalance` field — sequential legs may see the updated value, not a stale one. Writing a possibly-false test was rejected. |
-| V | Berlin Group `usesSoFarTodayCounter` lost-increment | Same counter lost-update class as H/K; requires fully-signed recurring BG consent + TPP headers — disproportionate setup for a class already proven. |
-| X | Consumer rate-limit `underConsumerLimits` TOCTOU | Real and high-impact (limit bypass), but active-limit lookup is cached ~1 hour → HTTP-layer timing unreliable → would be flaky. |
-| Y | `AuthRateLimiter` cold-start SET-vs-INCR collision | Same rate-limit class as X; runs in shadow mode by default. Same flakiness concern. |
-| Z | `MappedAgentProvider.updateAgentStatus` | Re-audited as **not a hazard**: sets both fields and `saveMe()`s the whole row — normal last-writer-wins PUT semantics, not field tearing. |
+| ID | Hazard | Fix status | Reason not tested |
+|---|---|---|---|
+| M | `getOrCreateSystemView` duplicate | ✅ Fixed (`scala.util.Try` + re-fetch) | System views are pinned to a global whitelist via `ViewDefinition.beforeSave` — deleting one would pollute other suites. **N** exercises the identical path on an isolated key. |
+| P | `factoryResetSystemView` concurrent reset | ✅ Fixed (via O — calls `resetViewPermissions`) | Drives `ViewPermission.resetViewPermissions` insert — the exact code **O** already pins. |
+| migrateViewPermissions | duplicate `ViewPermission` insert | ✅ Fixed (`scala.util.Try` on bare `.save`) + **migrate** scenario added | Standalone test added — see **migrate** scenario in `ConcurrentViewPermissionRaceTest`. |
+| Q | `revokeAccess` vs `grant` check-then-act | — | Same `AccountAccess` check-then-act family as **R**; the window is narrow → non-deterministic barrier test would be flaky (false-green). The class is proven by **R**. |
+| T | `createTransactionRequestBulk` per-leg balance | — | Verdict: unconfirmed intra-request self-race. `saveTransaction` mutates the passed object's `accountBalance` field — sequential legs may see the updated value, not a stale one. Writing a possibly-false test was rejected. |
+| V | Berlin Group `usesSoFarTodayCounter` lost-increment | — | Same counter lost-update class as H/K; requires fully-signed recurring BG consent + TPP headers — disproportionate setup for a class already proven. |
+| X | Consumer rate-limit `underConsumerLimits` TOCTOU | — | Real and high-impact (limit bypass), but active-limit lookup is cached ~1 hour → HTTP-layer timing unreliable → would be flaky. |
+| Y | `AuthRateLimiter` cold-start SET-vs-INCR collision | — | Same rate-limit class as X; runs in shadow mode by default. Same flakiness concern. |
+| Z | `MappedAgentProvider.updateAgentStatus` | — | Re-audited as **not a hazard**: sets both fields and `saveMe()`s the whole row — normal last-writer-wins PUT semantics, not field tearing. |
 
 ---
 

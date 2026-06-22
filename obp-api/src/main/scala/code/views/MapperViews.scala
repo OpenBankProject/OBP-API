@@ -757,22 +757,26 @@ object MapperViews extends Views with MdcLoggable {
             permission.extraData(permissionValueFromViewDefinition.get.mkString(",")).save
           //if the permission is not existing in ViewPermission,but it is defined in the viewDefinition, we create it. --systemView
           case Empty if (viewDefinition.isSystem && permissionValueFromViewDefinition.isDefined) =>
-            ViewPermission.create
-              .bank_id(null)
-              .account_id(null)
-              .view_id(viewDefinition.viewId.value)
-              .permission(permissionName)
-              .extraData(permissionValueFromViewDefinition.get.mkString(","))
-              .save
+            scala.util.Try {
+              ViewPermission.create
+                .bank_id(null)
+                .account_id(null)
+                .view_id(viewDefinition.viewId.value)
+                .permission(permissionName)
+                .extraData(permissionValueFromViewDefinition.get.mkString(","))
+                .save
+            }
           //if the permission is not existing in ViewPermission,but it is defined in the viewDefinition, we create it. --customView
           case Empty if (!viewDefinition.isSystem && permissionValueFromViewDefinition.isDefined) =>
-            ViewPermission.create
-              .bank_id(viewDefinition.bankId.value)
-              .account_id(viewDefinition.accountId.value)
-              .view_id(viewDefinition.viewId.value)
-              .permission(permissionName)
-              .extraData(permissionValueFromViewDefinition.get.mkString(","))
-              .save
+            scala.util.Try {
+              ViewPermission.create
+                .bank_id(viewDefinition.bankId.value)
+                .account_id(viewDefinition.accountId.value)
+                .view_id(viewDefinition.viewId.value)
+                .permission(permissionName)
+                .extraData(permissionValueFromViewDefinition.get.mkString(","))
+                .save
+            }
           case _ =>
             // This case should not happen, but if it does, we add an error log
             logger.error(s"Unexpected case for permission $permissionName for view ${viewDefinition.viewId.value}. No action taken.")
@@ -788,22 +792,26 @@ object MapperViews extends Views with MdcLoggable {
           // If the permission already exists in ViewPermission, but permissionValueFromViewdefinition is empty, we udpate it.
           case Full(permission) if permissionValue =>
             permission.permission(permissionName).save
-          //if the permission is not existing in ViewPermission, but it is defined in the viewDefinition, we create it. --systemView  
+          //if the permission is not existing in ViewPermission, but it is defined in the viewDefinition, we create it. --systemView
           case _ if (viewDefinition.isSystem && permissionValue) =>
-            ViewPermission.create
-              .bank_id(null)
-              .account_id(null)
-              .view_id(viewDefinition.viewId.value)
-              .permission(permissionName)
-              .save
-          //if the permission is not existing in ViewPermission, but it is defined in the viewDefinition, we create it. --customerView   
+            scala.util.Try {
+              ViewPermission.create
+                .bank_id(null)
+                .account_id(null)
+                .view_id(viewDefinition.viewId.value)
+                .permission(permissionName)
+                .save
+            }
+          //if the permission is not existing in ViewPermission, but it is defined in the viewDefinition, we create it. --customerView
           case _ if (!viewDefinition.isSystem && permissionValue) =>
-            ViewPermission.create
-              .bank_id(viewDefinition.bankId.value)
-              .account_id(viewDefinition.accountId.value)
-              .view_id(viewDefinition.viewId.value)
-              .permission(permissionName)
-              .save
+            scala.util.Try {
+              ViewPermission.create
+                .bank_id(viewDefinition.bankId.value)
+                .account_id(viewDefinition.accountId.value)
+                .view_id(viewDefinition.viewId.value)
+                .permission(permissionName)
+                .save
+            }
           case _ =>
             // This case should not happen, but if it does, we do nothing
             logger.warn(s"Unexpected case for permission $permissionName for view ${viewDefinition.viewId.value}. No action taken.")
@@ -815,7 +823,10 @@ object MapperViews extends Views with MdcLoggable {
   def getOrCreateSystemView(viewId: String) : Box[View] = {
     getExistingSystemView(viewId) match {
       case Empty =>
-        createDefaultSystemView(viewId)
+        scala.util.Try(createDefaultSystemView(viewId)) match {
+          case scala.util.Success(box) => box
+          case scala.util.Failure(_)   => getExistingSystemView(viewId)
+        }
       case Full(v) => Full(v)
       case Failure(msg, t, c) => Failure(msg, t, c)
       case ParamFailure(x,y,z,q) => ParamFailure(x,y,z,q)
