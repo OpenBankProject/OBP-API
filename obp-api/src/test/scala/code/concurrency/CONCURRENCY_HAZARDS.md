@@ -1,8 +1,8 @@
 # OBP-API Concurrency Hazard Test Suite
 
 **Branch**: `feature/concurrency-hazard-tests`  
-**Commit**: `92097220e`  
-**Test run result**: 16 FAILED (hazards confirmed) · 3 PASSED (safeguards verified) · BUILD SUCCESS
+**Commit**: `92dc1d85e`  
+**Test run result**: 19 PASSED (all hazards fixed) · 0 FAILED · BUILD SUCCESS
 
 ---
 
@@ -73,11 +73,11 @@ mvn -pl obp-commons,obp-api scalatest:test \
 
 | ID | Result | Description | Hazard Shape | Source Location |
 |---|---|---|---|---|
-| **A** | 🔴 FAILED | 10 concurrent SANDBOX_TAN transfers lost 9 balance updates (`actualDebited=100 expectedDebited=1000`) | lost-update | `LocalMappedConnectorInternal.scala:510` `saveTransaction` |
-| **B** | 🔴 FAILED | 8 concurrent challenge answers executed the payment 8 times (`mappedTxnCount=8`, expected 1) | check-then-act | `Http4s400.answerChallengeNormal` |
-| **S** | 🔴 FAILED | 8 concurrent `makeHistoricalPayment` calls lost 4 balance updates (`actualDebited=200 expectedDebited=600`) | lost-update | `LocalMappedConnector.saveHistoricalTransaction:2351` |
+| **A** | 🟢 PASSED | 10 concurrent SANDBOX_TAN transfers: all balance updates landed (Doobie SELECT FOR UPDATE on `mappedtransactionrequest`) | lost-update | `LocalMappedConnectorInternal.scala` `saveTransaction` |
+| **B** | 🟢 PASSED | 8 concurrent challenge answers: payment executed exactly once (conditional status update guards against double-spend) | check-then-act | `Http4s400.answerChallengeNormal` |
+| **S** | 🟢 PASSED | 8 concurrent `makeHistoricalPayment` calls: all balance updates landed (atomic Doobie balance update) | lost-update | `LocalMappedConnector.saveHistoricalTransaction` |
 
-**Impact**: Direct financial loss. A and S create phantom balances; B enables double-spend of a single transaction request.
+**Fix**: Doobie `SELECT FOR UPDATE` + atomic balance update for A/S; conditional `UPDATE WHERE status='INITIATED'` for B.
 
 ---
 
@@ -85,14 +85,14 @@ mvn -pl obp-commons,obp-api scalatest:test \
 
 | ID | Result | Description | Hazard Shape | Source Location |
 |---|---|---|---|---|
-| **C** | 🔴 FAILED | 8 concurrent entitlement grants created 8 rows (expected 1) | check-then-insert | `MappedEntitlementsProvider.addEntitlement` |
-| **D** | 🔴 FAILED | 8 concurrent `getOrCreateAccountHolder` calls created 8 rows (expected 1) | check-then-insert | `MapperAccountHolders.getOrCreateAccountHolder` |
-| **F** | 🔴 FAILED | 8 concurrent `getOrCreateMetadata` calls threw an exception (UniqueIndex present but unhandled) | unique-constraint-unhandled | `MappedCounterpartyMetadata.getOrCreateMetadata` |
-| **I** | 🔴 FAILED | 2 concurrent first-time OAuth logins: one got uncaught JDBC `23505` constraint-violation (500 at HTTP layer) | unique-constraint-unhandled | `LiftUsers.getOrCreateUserByProviderId` |
-| **L** | 🔴 FAILED | 8 concurrent `getOCreateUserCustomerLink` calls: second concurrent insert threw uncaught JDBC exception | unique-constraint-unhandled | `MappedUserCustomerLinkProvider.getOCreateUserCustomerLink` |
-| **W** | 🔴 FAILED | 2 concurrent `getOrCreateConsumer` calls: second insert swallowed into `Failure` box by `tryo` — caller receives no usable consumer | unique-constraint-unhandled | `OAuth.getOrCreateConsumer:535` |
+| **C** | 🟢 PASSED | 8 concurrent entitlement grants: exactly 1 row created (UniqueIndex + tryo + re-fetch) | check-then-insert | `MappedEntitlementsProvider.addEntitlement` |
+| **D** | 🟢 PASSED | 8 concurrent `getOrCreateAccountHolder` calls: exactly 1 row created (UniqueIndex + tryo + re-fetch) | check-then-insert | `MapperAccountHolders.getOrCreateAccountHolder` |
+| **F** | 🟢 PASSED | 8 concurrent `getOrCreateMetadata` calls: no exceptions, exactly 1 row (tryo + re-fetch on constraint violation) | unique-constraint-unhandled | `MappedCounterpartyMetadata.getOrCreateMetadata` |
+| **I** | 🟢 PASSED | 2 concurrent first-time OAuth logins: both succeed (Try + re-fetch by provider/providerId) | unique-constraint-unhandled | `LiftUsers.getOrCreateUserByProviderId` |
+| **L** | 🟢 PASSED | 8 concurrent `getOCreateUserCustomerLink` calls: no exceptions, exactly 1 row (Try + re-fetch) | unique-constraint-unhandled | `MappedUserCustomerLinkProvider.getOCreateUserCustomerLink` |
+| **W** | 🟢 PASSED | 2 concurrent `getOrCreateConsumer` calls: both callers receive a usable Full(consumer) (re-fetch on Failure) | unique-constraint-unhandled | `OAuth.getOrCreateConsumer` |
 
-**Impact**: C/D silently bloat entitlement and account-holder tables; I/L cause 500 for one of two simultaneous new users; W silently breaks OAuth2 authentication for one caller.
+**Fix**: UniqueIndex constraints added where missing; `saveMe()`/`save` wrapped in `tryo`/`Try`; on constraint violation, re-fetch the row committed by the winning thread.
 
 ---
 
@@ -100,12 +100,10 @@ mvn -pl obp-commons,obp-api scalatest:test \
 
 | ID | Result | Description | Hazard Shape | Source Location |
 |---|---|---|---|---|
-| **H** | 🔴 FAILED | 8 concurrent bad-login increments: only 1 landed (`finalCounter=1`, expected 8) — account lockout can be bypassed | lost-update | `LoginAttempt.incrementBadLoginAttempts` |
-| **K** | 🔴 FAILED | 8 concurrent wrong challenge answers: only 1 attempt counted (`finalCounter=1`, expected 8) — brute-force lockout can be bypassed | lost-update | `MappedChallengeProvider.validateChallenge:78` |
+| **H** | 🟢 PASSED | 8 concurrent bad-login increments: all 8 landed (Doobie `UPDATE … SET counter = counter + 1` with row-level locking) | lost-update | `LoginAttempt.incrementBadLoginAttempts` |
+| **K** | 🟢 PASSED | 8 concurrent wrong challenge answers: all 8 attempts counted (Doobie `UPDATE … SET counter = counter + 1 WHERE …`) | lost-update | `MappedChallengeProvider.validateChallenge` |
 
-**Impact**: Critical. An attacker can saturate the challenge-answer endpoint with concurrent
-requests, consuming only 1 of the permitted attempts per burst — effectively bypassing both
-account-lockout and transaction-challenge brute-force protection.
+**Fix**: Atomic SQL increment (`SET counter = counter + 1`) via Doobie, replacing the read-modify-write that allowed lost-updates.
 
 ---
 
@@ -113,11 +111,10 @@ account-lockout and transaction-challenge brute-force protection.
 
 | ID | Result | Description | Hazard Shape | Source Location |
 |---|---|---|---|---|
-| **J** | 🔴 FAILED | Scheduler stale-save resurrected a revoked consent (`afterRevoke=terminatedByTpp finalStatus=expired`) | lost-update | `ConsentScheduler.expiredBerlinGroupConsents:117` |
-| **U** | 🔴 FAILED | Unfinished-consent scheduler task overwrote a concurrent HTTP status change (`afterChange=REVOKED finalStatus=rejected`) | lost-update | `ConsentScheduler.unfinishedBerlinGroupConsents:77` |
+| **J** | 🟢 PASSED | Scheduler no longer resurrects revoked consents (conditional Doobie `UPDATE WHERE status=<guard>`) | lost-update | `ConsentScheduler.expiredBerlinGroupConsents` |
+| **U** | 🟢 PASSED | Scheduler no longer overwrites concurrent HTTP status changes (conditional Doobie `UPDATE WHERE status='received'`) | lost-update | `ConsentScheduler.unfinishedBerlinGroupConsents` |
 
-**Impact**: PSD2 compliance breach. A consent the user or TPP explicitly revoked can be silently
-resurrected as `expired` by a background scheduler task that holds a stale in-memory copy.
+**Fix**: `DoobieConsentSchedulerQueries` conditional UPDATE with a status guard — if HTTP already changed the status, the WHERE clause matches 0 rows and the stale save is silently a no-op.
 
 ---
 
@@ -125,11 +122,11 @@ resurrected as `expired` by a background scheduler task that holds a stale in-me
 
 | ID | Result | Description | Hazard Shape | Source Location |
 |---|---|---|---|---|
-| **N** | 🔴 FAILED | 2 concurrent `getOrCreateCustomPublicView` calls: second insert threw JDBC constraint violation on `ViewDefinition` unique index | unique-constraint-unhandled | `MapperViews.createAndSaveDefaultPublicCustomView:1054` |
-| **O** | 🔴 FAILED | 2 concurrent `resetViewPermissions` calls: second insert threw JDBC constraint violation on `ViewPermission` unique index | unique-constraint-unhandled | `ViewPermission.resetViewPermissions:137` |
-| **R** | 🔴 FAILED | `removeCustomView` emptiness check passed; concurrent grant committed `AccountAccess`; view deleted → 1 orphaned `AccountAccess` row pointing at non-existent view | check-then-act | `MapperViews.removeCustomView:502` |
+| **N** | 🟢 PASSED | 2 concurrent `getOrCreateCustomPublicView` calls: no exceptions, exactly 1 view (Try + re-fetch on constraint violation) | unique-constraint-unhandled | `MapperViews.getOrCreateCustomPublicView` |
+| **O** | 🟢 PASSED | 2 concurrent `resetViewPermissions` calls: no exceptions, exactly 1 row per permission (`Try { .save }` ignores duplicate) | unique-constraint-unhandled | `ViewPermission.resetViewPermissions` |
+| **R** | 🟢 PASSED | No orphaned `AccountAccess` after concurrent grant + view delete (`ViewDefinition.beforeDelete` cascade) | check-then-act | `MapperViews.removeCustomView` |
 
-**Impact**: N/O cause 500 errors during concurrent view provisioning; R leaves orphaned permission rows that reference deleted views.
+**Fix**: N/O — wrap inserts in `scala.util.Try`, ignore constraint violations. R — `ViewDefinition.beforeDelete` hook cascade-deletes `AccountAccess` rows so no orphans survive the delete.
 
 ---
 
@@ -137,11 +134,9 @@ resurrected as `expired` by a background scheduler task that holds a stale in-me
 
 | ID | Result | Description | Hazard Shape | Source Location |
 |---|---|---|---|---|
-| **AA** | 🟢 PASSED\* | 8 concurrent `incrementFutureCounter` calls: all increments landed in this run | counter-sequence | `APIUtil.incrementFutureCounter:4853` |
+| **AA** | 🟢 PASSED | 8 concurrent `incrementFutureCounter` calls: all 8 increments landed (`ConcurrentHashMap.compute` is atomic) | counter-sequence | `APIUtil.incrementFutureCounter` |
 
-\* AA uses `ConcurrentHashMap.getOrDefault + put` which is not atomic. The hazard is real but
-timing-sensitive — the race window is narrow and may not trigger in every run. The source-level
-audit confirms the structural hazard.
+**Fix**: Replaced `getOrDefault + put` (two separate CHM operations) with `ConcurrentHashMap.compute`, which holds the segment lock for the entire read-modify-write.
 
 ---
 
@@ -154,19 +149,20 @@ audit confirms the structural hazard.
 
 ---
 
-## Three-Tier Protection Picture
+## Three-Tier Protection Picture (post-fix)
 
-| Tier | DB constraint? | App guard? | Scenarios |
-|---|:---:|:---:|---|
-| **Silent data corruption** | ✗ | ✗ | A, S, H, K, AA, J, U, C, D, R |
-| **Uncaught 500 / swallowed Failure** | ✓ | ✗ | I, L, N, O, W, F |
-| **Gracefully handled** | ✓ | ✓ (`tryo`) | `createAccountIfNotExisting` (not broken) |
-| **Safeguard verified** | — | ✓ | G1, G2 |
+| Tier | DB constraint? | App guard? | Scenarios | Status |
+|---|:---:|:---:|---|---|
+| **Silent data corruption** | ✗ | ✗ | A, S, H, K, AA, J, U, C, D, R | ✅ All fixed |
+| **Uncaught 500 / swallowed Failure** | ✓ | ✗ | I, L, N, O, W, F | ✅ All fixed |
+| **Gracefully handled** | ✓ | ✓ | All 19 scenarios | ✅ 19/19 green |
+| **Safeguard verified** | — | ✓ | G1, G2 | ✅ Still passing |
 
-The most dangerous tier is **silent corruption**:
-- **H and K** turn a counter lost-update into an authentication **lockout bypass / brute-force bypass**
-- **J and U** silently **resurrect a revoked consent** — a PSD2 compliance breach
-- **A and S** produce phantom account balances — direct financial loss
+Every scenario now lands in the **Gracefully handled** tier. The critical previously-unsafe paths:
+- **H and K**: now use atomic SQL `SET counter = counter + 1` — lockout bypass eliminated
+- **J and U**: now use conditional `UPDATE WHERE status=<guard>` — PSD2 compliance restored
+- **A and S**: now use Doobie `SELECT FOR UPDATE` + atomic balance update — phantom balances eliminated
+- **B**: now uses conditional status transition — double-spend eliminated
 
 ---
 
@@ -192,7 +188,7 @@ These were confirmed real by source audit but are deliberately not given standal
 
 | Symbol | Why safe |
 |---|---|
-| `createAccountIfNotExisting` (`LocalMappedConnectorInternal.scala:283`) | The whole `find()`-then-`create()` is wrapped in `tryo`; the `UniqueIndex(bank, theAccountId)` violation is caught and converted to `Empty`/`Failure`. The caller handles `Empty` gracefully. This is the correct pattern that I/L/N/O are missing. |
+| `createAccountIfNotExisting` (`LocalMappedConnectorInternal.scala:283`) | The whole `find()`-then-`create()` is wrapped in `tryo`; the `UniqueIndex(bank, theAccountId)` violation is caught and converted to `Empty`/`Failure`. The caller handles `Empty` gracefully. This was the correct pattern; it has now been applied to all formerly-broken paths (C/D/F/I/L/W/N/O). |
 
 ---
 
