@@ -514,11 +514,12 @@
       <artifactId>jackson-databind</artifactId>
       <!-- version managed by jackson-bom in parent pom -->
     </dependency>
-      <!-- https://mvnrepository.com/artifact/tools.jackson.dataformat/jackson-dataformat-yaml -->
+    <!-- com.fasterxml YAML module (Jackson 2.x), version managed by jackson-bom in parent pom.
+         Replaces the incompatible tools.jackson 3.x line so a single Jackson generation is on
+         the classpath. YAMLUtils uses com.fasterxml.jackson.dataformat.yaml.YAMLFactory. -->
     <dependency>
-      <groupId>tools.jackson.dataformat</groupId>
+      <groupId>com.fasterxml.jackson.dataformat</groupId>
       <artifactId>jackson-dataformat-yaml</artifactId>
-      <version>3.0.4</version>
     </dependency>
     <!-- https://mvnrepository.com/artifact/com.squareup.okhttp3/okhttp -->
     <dependency>
