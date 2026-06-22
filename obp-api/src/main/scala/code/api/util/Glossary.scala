@@ -3318,6 +3318,67 @@ object Glossary extends MdcLoggable  {
 |
 |For more detailed information about managing Dynamic Entities, see ${getGlossaryItemLink("Dynamic-Entity-Intro")}
 |
+|---
+|
+|## Querying the list (GET) endpoint: filter, sort, paginate and one-hop joins
+|
+|The "Get ... List" endpoint of every Dynamic Entity accepts declarative query parameters:
+|
+|* **Filter**: `?obp_filter[FIELD]=OP:VALUE`. Operators: `eq`, `ne`, `in`, `lt`, `gt`, `le`, `ge`, `between`, `like`, `is_null`, `not_set`. `in`/`between` take comma-separated values; `is_null`/`not_set` take no value. Repeat the key to AND several constraints on one field.
+|* **Sort**: `?obp_sort_by=FIELD[,FIELD2]&obp_sort_direction=ASC` (or DESC).
+|* **Paginate**: `?obp_limit=20&obp_offset=40`.
+|
+|Only fields declared `"indexed": true` are queryable. Filtering, sorting, pagination and `is_null`/`not_set` work on any deployment.
+|
+|### One-hop joins (EXISTS / NOT EXISTS)
+|
+|You can filter one entity by a condition on a *related* entity that links to it through a declared `reference:` field — the relational "does a matching related record exist?" question:
+|
+|* `?obp_exists[child]` — keep parents that have at least one related child.
+|* `?obp_exists[child]=filter[status]=eq:active` — parents that have at least one child matching the predicate.
+|* `?obp_not_exists[child]` — parents with no related child at all.
+|* `?obp_not_exists[child]=filter[status]=eq:active` — parents with no matching child (this **includes** parents that have no child at all).
+|* If two entities are linked by more than one reference, disambiguate the edge with `via:`, e.g. `?obp_exists[child]=via:parent_ref;filter[status]=eq:active`.
+|
+|Mind the distinction: `obp_not_exists[child]=filter[x]=eq:true` (no child with x=true — includes childless parents) is NOT the same as `obp_exists[child]=filter[x]=ne:true` (has a child with x not equal to true — excludes childless parents).
+|
+|**Requirements for joins:**
+|
+|* The SQL projection backend must be enabled (`dynamic_entity.indexing.backend=auto` on Postgres or SQL Server). On an in-memory deployment a join query returns `400 (OBP-09022)`; while an index is still building it returns `409`.
+|* The link must be a field typed `reference:<Entity>` AND declared `"indexed": true`. A plain string field holding ids is not joinable.
+|* The queried (parent) entity must itself have at least one indexed field.
+|* Joins are available on the authenticated and `/my/` list endpoints, not on the public/community ones.
+|
+|### Worked example: entity `parent` and entity `child` whose field references `parent`
+|
+|1. Create `parent` with an indexed field (create it first, so `reference:parent` becomes a valid type):
+|```json
+|POST /obp/v6.0.0/management/system-dynamic-entities
+|{ "entity_name": "parent", "has_personal_entity": false,
+|  "schema": { "properties": { "name": {"type":"string","example":"Acme","indexed":true} } } }
+|```
+|2. Create `child` with a reference to `parent`:
+|```json
+|POST /obp/v6.0.0/management/system-dynamic-entities
+|{ "entity_name": "child", "has_personal_entity": false,
+|  "schema": { "properties": {
+|    "parent_ref": {"type":"reference:parent","example":"00000000-0000-0000-0000-000000000000","indexed":true},
+|    "status":     {"type":"string","example":"active","indexed":true} } } }
+|```
+|3. Create records. A `POST /obp/v6.0.0/parent` response contains a `parent_id`; put that value into the child's `parent_ref`:
+|```
+|POST /obp/v6.0.0/parent  {"name":"P1"}                                  -> returns parent_id (call it P1)
+|POST /obp/v6.0.0/child   {"parent_ref":"<P1>","status":"active"}
+|POST /obp/v6.0.0/child   {"parent_ref":"<P1>","status":"closed"}
+|```
+|4. Query parents by a condition on their children:
+|```
+|GET /obp/v6.0.0/parent?obp_exists[child]=filter[status]=eq:active        -> parents that have an active child
+|GET /obp/v6.0.0/parent?obp_not_exists[child]=filter[status]=eq:active    -> parents with no active child
+|GET /obp/v6.0.0/parent?obp_exists[child]                                 -> parents that have any child
+|GET /obp/v6.0.0/parent?obp_not_exists[child]                             -> parents with no child at all
+|```
+|
 """.stripMargin)
 
 	glossaryItems += GlossaryItem(

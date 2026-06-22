@@ -18,6 +18,31 @@ import java.util.Date
 import scala.collection.immutable
 import scala.collection.mutable.HashMap
 
+/**
+ * ==Schema drift & SQL views — the rule when altering a viewed column==
+ *
+ * Postgres refuses `ALTER COLUMN ... TYPE` on a column a view references:
+ * `ERROR: cannot alter type of a column used by a view or rule`. This is the recurring "schema drift"
+ * that aborts boot. It bites whenever a view (e.g. `v_account_access_with_views`, `v_consent`,
+ * `v_metric`) pins a column that a migration — or Lift Schemifier matching a changed model field width —
+ * wants to alter.
+ *
+ * DO NOT fix this by dropping all views on boot/migrate: in a multi-node deployment another node may be
+ * live and querying those views, so a global drop (even transient) errors the serving node.
+ * `v_account_access_with_views` and `v_consent` are read by live code.
+ *
+ * DO: when you add a migration that alters a column a view references, make that single `runOnce`
+ * migration do, as one unit (Postgres DDL is transactional, so other nodes never see the view missing):
+ *   DROP VIEW <only the dependent view(s)>  ->  ALTER COLUMN ...  ->  CREATE [OR REPLACE] VIEW ...
+ * Only drop a view when you must (to alter a column it pins). For a Schemifier-driven width change on a
+ * viewed column, drop the view in the pre-Schemifier pass (`startedBeforeSchemifier == true`) and
+ * recreate it in the post-Schemifier pass.
+ *
+ * To REPAIR an already-drifted DB forward-only, do NOT edit/duplicate the original migration — `runOnce`
+ * skips it once logged (`isExecuted`). Add a NEW migration (new name) doing DROP+ALTER+CREATE; it runs
+ * once to fix existing DBs and is a no-op (CREATE OR REPLACE / IF EXISTS) on fresh ones. The full
+ * drop-everything reset in running_tests_on_postgres.md is the local recovery path.
+ */
 object Migration extends MdcLoggable {
   private val migrationScriptsEnabled = ApiPropsWithAlias.migrationScriptsEnabled
   private val executeAll = getPropsAsBoolValue("migration_scripts.execute_all", false)
@@ -122,6 +147,7 @@ object Migration extends MdcLoggable {
       migrateChatRoomCreatedByAndLastMessageSender()
       migrateConsentReferenceIdToUuid(startedBeforeSchemifier)
       migrateMetricConsentReferenceId(startedBeforeSchemifier)
+      dropFastFirehoseAccountsViews(startedBeforeSchemifier)
     }
     
     private def dummyScript(): Boolean = {
@@ -420,6 +446,21 @@ object Migration extends MdcLoggable {
         val name = nameOf(addFastFirehoseAccountsMaterializedView(startedBeforeSchemifier))
         runOnce(name) {
           MigrationOfFastFireHoseMaterializedView.addFastFireHoseMaterializedView(name)
+        }
+      }
+    }
+
+    // Retire the fast-firehose SQL views (firehose -> account directory + ABAC). Runs after the create
+    // migrations above, so a fresh DB creates-then-drops them and an existing DB just drops them. See
+    // MigrationOfDropFastFireHoseViews.
+    private def dropFastFirehoseAccountsViews(startedBeforeSchemifier: Boolean): Boolean = {
+      if(startedBeforeSchemifier == true) {
+        logger.warn(s"Migration.database.dropFastFirehoseAccountsViews(true) cannot be run before Schemifier.")
+        true
+      } else {
+        val name = nameOf(dropFastFirehoseAccountsViews(startedBeforeSchemifier))
+        runOnce(name) {
+          MigrationOfDropFastFireHoseViews.dropFastFireHoseViews(name)
         }
       }
     }
@@ -753,6 +794,30 @@ object Migration extends MdcLoggable {
               }
     
             hasTable(rs)
+          }
+      }
+    }
+
+    /**
+      * Declared max length of a (var)char column, via JDBC metadata (portable across H2/Postgres/MSSQL).
+      * `None` if the column is absent or has no size (e.g. not a character type). Used by `alterColumn*`
+      * migrations to ALTER only when the width actually differs — re-issuing `ALTER ... TYPE` to the same
+      * width is rejected by Postgres when a view references the column (the recurring schema drift).
+      */
+    def columnMaxLength(tableNameLC: String, columnNameLC: String): Option[Int] = {
+      DB.use(net.liftweb.util.DefaultConnectionIdentifier) {
+        conn =>
+          val md = conn.getMetaData
+          val schema = getDefaultSchemaName(conn)
+          using(md.getColumns(null, schema, null, null)) { rs =>
+            def find(): Option[Int] =
+              if (!rs.next) None
+              else if (rs.getString(3).toLowerCase == tableNameLC.toLowerCase &&
+                       rs.getString(4).toLowerCase == columnNameLC.toLowerCase) {
+                val size = rs.getInt(7) // COLUMN_SIZE
+                if (rs.wasNull) None else Some(size)
+              } else find()
+            find()
           }
       }
     }

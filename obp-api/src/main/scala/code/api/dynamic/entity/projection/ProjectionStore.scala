@@ -24,6 +24,13 @@ object ProjectionStore {
   val userIdColumn: String    = DynamicData.UserId.dbColumnName
   val personalColumn: String  = DynamicData.IsPersonalEntity.dbColumnName
 
+  // Row-level access ACL table (Lift-mapped), for user-scoped EXISTS / NOT EXISTS join evaluation:
+  // a join onto a row-level child counts only child rows the caller can read.
+  val aclTable: String         = code.DynamicData.DynamicDataAccess.dbTableName
+  val aclDataIdColumn: String  = code.DynamicData.DynamicDataAccess.DynamicDataId.dbColumnName
+  val aclUserIdColumn: String  = code.DynamicData.DynamicDataAccess.UserId.dbColumnName
+  val aclCanReadColumn: String = code.DynamicData.DynamicDataAccess.CanRead.dbColumnName
+
   /** One indexed field's value for a record: safe column, SQL type, coerced text (None => NULL). */
   case class ColumnValue(safeColumn: String, sqlType: String, value: Option[String])
 
@@ -56,11 +63,14 @@ object ProjectionStore {
    */
   def scope(bankId: Option[String], entityName: String, isPersonalEntity: Boolean, userId: Option[String], alias: String = ""): Fragment = {
     val p = if (alias.isEmpty) "" else alias + "."
+    // Bind as Option[String]: a system-level entity has bankId=None, which must bind SQL NULL — `orNull`
+    // as a plain String trips doobie's non-nullable Put[String] ("oops, null"). Put[Option[String]]
+    // emits NULL for None, and `IS NOT DISTINCT FROM NULL` is the intended null-safe match.
     val byEntity   = Fragment.const(p + entityNameColumn) ++ fr"=" ++ fr0"$entityName"
-    val byBank     = Fragment.const(p + bankIdColumn) ++ fr"IS NOT DISTINCT FROM" ++ fr0"${bankId.orNull: String}"
+    val byBank     = Fragment.const(p + bankIdColumn) ++ fr"IS NOT DISTINCT FROM" ++ fr0"${bankId: Option[String]}"
     val byPersonal = Fragment.const(p + personalColumn) ++ fr"=" ++ fr0"$isPersonalEntity"
     val base = byEntity ++ fr"AND" ++ byBank ++ fr"AND" ++ byPersonal
-    if (isPersonalEntity) base ++ fr"AND" ++ Fragment.const(p + userIdColumn) ++ fr"IS NOT DISTINCT FROM" ++ fr0"${userId.orNull: String}"
+    if (isPersonalEntity) base ++ fr"AND" ++ Fragment.const(p + userIdColumn) ++ fr"IS NOT DISTINCT FROM" ++ fr0"${userId: Option[String]}"
     else base
   }
 }

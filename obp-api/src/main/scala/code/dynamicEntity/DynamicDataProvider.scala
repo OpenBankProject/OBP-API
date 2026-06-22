@@ -46,6 +46,12 @@ trait DynamicDataProvider {
   def getAllCommunity(bankId: Option[String], entityName: String): List[DynamicDataT]
   def getAllDataJsonCommunity(bankId: Option[String], entityName: String): List[JObject]
   def getCommunity(bankId: Option[String], entityName: String, id: String): Box[DynamicDataT]
+
+  // Community mutation methods - operate on a row regardless of owner (used by row-level access,
+  // where the ACL, not ownership, decides who may update/delete). Preserve the row's existing
+  // userId / isPersonalEntity so its provenance is unchanged.
+  def updateCommunity(bankId: Option[String], entityName: String, requestBody: JObject, id: String): Box[DynamicDataT]
+  def deleteCommunity(bankId: Option[String], entityName: String, id: String): Box[Boolean]
 }
 
 

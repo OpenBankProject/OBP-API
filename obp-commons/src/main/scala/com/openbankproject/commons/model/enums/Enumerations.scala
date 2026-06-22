@@ -272,6 +272,14 @@ object DynamicEntityFieldType extends OBPEnumeration[DynamicEntityFieldType]{
    }
    override def wrongTypeMsg: String = "the value's type should be a JSON object or array."
  }
+ // A field declared `reference:<Target>` (validated elsewhere via the "reference:" prefix). Its stored
+ // value is an id String, so it behaves like `string` for indexing/projection/query. This enum value is
+ // the internal type the query layer carries for such fields; the concrete target entity is tracked
+ // separately (DynamicEntityInfo.referenceFields). It is deliberately excluded from the declarable
+ // field-type allow-list (DynamicEntityProvider.allowedFieldType) — callers still declare `reference:X`.
+ object reference extends Value {
+   val jValueType = classOf[JString]
+ }
  //object array extends Value{val jValueType = classOf[JArray]}
  //object `object` extends Value{val jValueType = classOf[JObject]} //TODO in the future, we consider support nested type
 }
