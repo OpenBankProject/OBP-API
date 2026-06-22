@@ -115,6 +115,8 @@ class elasticsearch extends MdcLoggable {
         try {
           val bodyStr = Option(response.body()).map(_.string()).filter(_.nonEmpty).getOrElse("{}")
           promise.success(APIResponse(response.code(), json.parse(bodyStr)))
+        } catch {
+          case e: Throwable => promise.failure(e)
         } finally {
           response.close()
         }
