@@ -20,11 +20,6 @@
       <artifactId>obp-commons</artifactId>
     </dependency>
 
-    <dependency>
-      <groupId>com.github.everit-org.json-schema</groupId>
-      <artifactId>org.everit.json.schema</artifactId>
-      <version>1.6.1</version>
-    </dependency>
     <!-- Upgraded from 1.4.14 (EOL branch) to 1.5.18. 1.4.x is end-of-life as of
          2024; 1.5.x is the supported branch and requires Java 11+ (which we target).
          Fixes CVE-2024-12798 (RCE via JaninoEventEvaluator in 1.4.x). -->
@@ -127,14 +122,6 @@
       <groupId>org.xerial.snappy</groupId>
       <artifactId>snappy-java</artifactId>
       <version>1.1.10.4</version>
-    </dependency>
-    <!-- Pin commons-beanutils to override the 1.9.2 pulled in transitively via
-         everit json-schema → commons-validator. Fixes CVE-2025-48734, CVE-2019-10086;
-         1.11.0 adds the Improper-Access-Control fix (GHSA on top of those). -->
-    <dependency>
-      <groupId>commons-beanutils</groupId>
-      <artifactId>commons-beanutils</artifactId>
-      <version>1.11.0</version>
     </dependency>
     <!-- Pin msal4j to override the older version pulled in transitively by
          mssql-jdbc → azure-identity. Fixes CVE-2024-35255 (elevation of
