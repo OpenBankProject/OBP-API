@@ -836,10 +836,13 @@ object MapperViews extends Views with MdcLoggable {
 
   def getOrCreateCustomPublicView(bankId: BankId, accountId: AccountId, description: String = "Public View") : Box[View] = {
     getExistingCustomView(bankId, accountId, CUSTOM_PUBLIC_VIEW_ID) match {
-      case Empty=> 
-        createDefaultCustomPublicView(bankId, accountId, description)
-      case Full(v)=>
-        Full(v)
+      case Empty =>
+        scala.util.Try(createDefaultCustomPublicView(bankId, accountId, description)) match {
+          case scala.util.Success(box) => box
+          case scala.util.Failure(_) =>
+            getExistingCustomView(bankId, accountId, CUSTOM_PUBLIC_VIEW_ID)
+        }
+      case Full(v) => Full(v)
       case Failure(msg, t, c) => Failure(msg, t, c)
       case ParamFailure(x,y,z,q) => ParamFailure(x,y,z,q)
     }
