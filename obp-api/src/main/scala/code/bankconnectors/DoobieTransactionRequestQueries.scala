@@ -19,7 +19,7 @@ object DoobieTransactionRequestQueries {
 
   def lockTransactionRequest(transReqId: String): Box[String] = {
     tryo {
-      DoobieUtil.runQuery(atomicallyLockTransactionRequest(transReqId))
+      DoobieUtil.runUpdate(atomicallyLockTransactionRequest(transReqId))
     }
   }
 }

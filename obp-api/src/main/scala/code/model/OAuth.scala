@@ -538,8 +538,12 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
         } match {
           case Full(c) => Full(c)
           case Failure(_, _, _) =>
-            // UniqueIndex(azp, sub) violated by concurrent insert — re-fetch the committed row
-            Consumer.find(By(Consumer.azp, azp.getOrElse("")), By(Consumer.sub, sub.getOrElse("")))
+            // UniqueIndex violated by concurrent insert — re-fetch using the most specific available key.
+            // Searching by (azp="", sub="") when both are absent would match unrelated consumers.
+            (azp, sub) match {
+              case (Some(a), Some(s)) => Consumer.find(By(Consumer.azp, a), By(Consumer.sub, s))
+              case _                  => key.flatMap(k => Consumer.find(By(Consumer.key, k)))
+            }
           case other => other
         }
     }

@@ -890,6 +890,11 @@ object MapperViews extends Views with MdcLoggable {
   }
 
   def removeAllViewsAndVierPermissions(bankId: BankId, accountId: AccountId) : Boolean = {
+    // bulkDelete_!! bypasses beforeDelete hooks, so AccountAccess must be removed explicitly.
+    AccountAccess.bulkDelete_!!(
+      By(AccountAccess.bank_id, bankId.value),
+      By(AccountAccess.account_id, accountId.value)
+    )
     ViewDefinition.bulkDelete_!!(
       By(ViewDefinition.bank_id, bankId.value),
       By(ViewDefinition.account_id, accountId.value)

@@ -18,15 +18,19 @@ object LoginAttempt extends MdcLoggable {
       case false =>
         logger.debug(s"Hello from incrementBadLoginAttempts with $username")
 
-        // Atomically increment the counter; if no row exists yet, create one
+        // Atomically increment the counter; if no row exists yet, create one.
+        // The create path is itself a check-then-insert: two concurrent first-time bad logins both
+        // see rowsUpdated==0, so wrap in tryo to absorb the UniqueIndex violation from the loser.
         val rowsUpdated = code.bankconnectors.DoobieBadLoginAttemptQueries.incrementBadLoginAttempts(provider, username)
         if (rowsUpdated == 0) {
-          MappedBadLoginAttempt.create
-            .mUsername(username)
-            .Provider(provider)
-            .mLastFailureDate(now)
-            .mBadAttemptsSinceLastSuccessOrReset(1)
-            .save
+          tryo {
+            MappedBadLoginAttempt.create
+              .mUsername(username)
+              .Provider(provider)
+              .mLastFailureDate(now)
+              .mBadAttemptsSinceLastSuccessOrReset(1)
+              .save
+          }
           logger.debug(s"incrementBadLoginAttempts created loginAttempt")
         } else {
           logger.debug(s"incrementBadLoginAttempts atomically incremented for $username (rows=$rowsUpdated)")
