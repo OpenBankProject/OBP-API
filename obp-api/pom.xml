@@ -312,7 +312,7 @@
       <artifactId>json-smart</artifactId>
     </dependency>
     <!-- ********** flexmark START ********** -->
-    <!-- Library flexmark-all v0.40.8 is replaced with used modules -->
+    <!-- Library flexmark-all v0.40.8 is replaced with used module -->
     <!-- https://mvnrepository.com/artifact/com.vladsch.flexmark/flexmark-profile-pegdown -->
     <dependency>
       <groupId>com.vladsch.flexmark</groupId>
