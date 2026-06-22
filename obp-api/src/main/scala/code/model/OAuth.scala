@@ -533,9 +533,14 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
           }
           c.consumerId(actualConsumerId)
           val createdConsumer = c.saveMe()
-          // In case we use Hydra ORY as Identity Provider we create corresponding client at Hydra side a well
           if(integrateWithHydra) createHydraClient(createdConsumer)
           createdConsumer
+        } match {
+          case Full(c) => Full(c)
+          case Failure(_, _, _) =>
+            // UniqueIndex(azp, sub) violated by concurrent insert — re-fetch the committed row
+            Consumer.find(By(Consumer.azp, azp.getOrElse("")), By(Consumer.sub, sub.getOrElse("")))
+          case other => other
         }
     }
   }

@@ -8,7 +8,7 @@ import code.util.Helper.MdcLoggable
 import code.util._
 import com.openbankproject.commons.model._
 import com.tesobe.CacheKeyFromArguments
-import net.liftweb.common.{Box, Full}
+import net.liftweb.common.{Box, Failure, Full}
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.StringHelpers
@@ -75,15 +75,20 @@ object MapperCounterparties extends Counterparties with MdcLoggable {
           // Create it!
           case _ => {
             logger.debug(s"getOrCreateMetadata--Create MappedCounterpartyMetadata counterpartyId($counterpartyId)")
-            // Store a record that contains counterparty information from the perspective of an account at a bank
-            Full(MappedCounterpartyMetadata.create
-              // Core info
-              .counterpartyId(counterpartyId)
-              .thisBankId(bankId.value)
-              .thisAccountId(accountId.value)
-              .counterpartyName(counterpartyName)
-              .publicAlias(newPublicAliasName()) // The public alias this account gives to the counterparty.
-              .saveMe)
+            tryo {
+              MappedCounterpartyMetadata.create
+                .counterpartyId(counterpartyId)
+                .thisBankId(bankId.value)
+                .thisAccountId(accountId.value)
+                .counterpartyName(counterpartyName)
+                .publicAlias(newPublicAliasName())
+                .saveMe
+            } match {
+              case Full(created) => Full(created)
+              case Failure(_, _, _) =>
+                findMappedCounterpartyMetadataById(counterpartyId)
+              case other => other
+            }
           }
         }
       }

@@ -25,13 +25,18 @@ object MappedUserCustomerLinkProvider extends UserCustomerLinkProvider {
   def getOCreateUserCustomerLink(userId: String, customerId: String, dateInserted: Date, isActive: Boolean): Box[UserCustomerLink] = {
     getUserCustomerLink(userId, customerId) match {
       case Empty =>
-        val createUserCustomerLink = MappedUserCustomerLink.create
-          .mUserId(userId)
-          .mCustomerId(customerId)
-          .mDateInserted(new Date())
-          .mIsActive(isActive)
-          .saveMe()
-        Some(createUserCustomerLink)
+        scala.util.Try {
+          MappedUserCustomerLink.create
+            .mUserId(userId)
+            .mCustomerId(customerId)
+            .mDateInserted(new Date())
+            .mIsActive(isActive)
+            .saveMe()
+        } match {
+          case scala.util.Success(link) => Full(link)
+          case scala.util.Failure(_) =>
+            getUserCustomerLink(userId, customerId)
+        }
       case everythingElse => everythingElse
     }
   }
