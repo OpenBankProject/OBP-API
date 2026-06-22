@@ -4834,10 +4834,12 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   }
 
   def incrementFutureCounter(serviceName:String) = {
-    val (serviceNameCounter, serviceNameOpenFuturesCounter) = serviceNameCountersMap.getOrDefault(serviceName,(0,0))
-    serviceNameCountersMap.put(serviceName,(serviceNameCounter + 1,serviceNameOpenFuturesCounter+1))
-    val (serviceNameCounterLatest, serviceNameOpenFuturesCounterLatest) = serviceNameCountersMap.getOrDefault(serviceName,(0,0))
-    
+    val (serviceNameCounterLatest, serviceNameOpenFuturesCounterLatest) =
+      serviceNameCountersMap.compute(serviceName, (_, old) => {
+        val (c, o) = if (old == null) (0, 0) else old
+        (c + 1, o + 1)
+      })
+
     if(serviceNameOpenFuturesCounterLatest>=expectedOpenFuturesPerService) {
       logger.warn(s"WARNING! incrementFutureCounter says: serviceName is $serviceName, serviceNameOpenFuturesCounterLatest is ${serviceNameOpenFuturesCounterLatest}, which is over expectedOpenFuturesPerService($expectedOpenFuturesPerService)")
     }
@@ -4845,9 +4847,11 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   }
 
   def decrementFutureCounter(serviceName:String) = {
-    val (serviceNameCounter, serviceNameOpenFuturesCounter) = serviceNameCountersMap.getOrDefault(serviceName, (0, 1))
-    serviceNameCountersMap.put(serviceName, (serviceNameCounter, serviceNameOpenFuturesCounter - 1))
-    val (serviceNameCounterLatest, serviceNameOpenFuturesCounterLatest) = serviceNameCountersMap.getOrDefault(serviceName, (0, 1))
+    val (serviceNameCounterLatest, serviceNameOpenFuturesCounterLatest) =
+      serviceNameCountersMap.compute(serviceName, (_, old) => {
+        val (c, o) = if (old == null) (0, 1) else old
+        (c, o - 1)
+      })
     logger.debug(s"decrementFutureCounter says: serviceName is $serviceName, serviceNameCounterLatest is $serviceNameCounterLatest, serviceNameOpenFuturesCounterLatest is ${serviceNameOpenFuturesCounterLatest}")
   }
 
