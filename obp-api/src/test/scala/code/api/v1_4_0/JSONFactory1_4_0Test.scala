@@ -154,14 +154,15 @@ class JSONFactory1_4_0Test extends code.setup.ServerSetup {
     scenario("validate all the resourceDocs json schema, no exception is good enough") {
       val resourceDocsRaw= OBPAPI3_0_0.allResourceDocs
       val resourceDocs = JSONFactory1_4_0.createResourceDocsJson(resourceDocsRaw.toList,false, None)
+      val mapper = new ObjectMapper()
+      val schemaFactory = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V4)
 
       for{
         resourceDoc <- resourceDocs.resource_docs if (resourceDoc.request_verb != "DELETE")
         json <- List(compactRender(decompose(resourceDoc.success_response_body)))
         jsonSchema <- List(compactRender(resourceDoc.typed_success_response_body))
       } yield {
-        val mapper = new ObjectMapper()
-        val schema = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V4).getSchema(mapper.readTree(jsonSchema))
+        val schema = schemaFactory.getSchema(mapper.readTree(jsonSchema))
         val errors = schema.validate(mapper.readTree(json))
         assert(errors.isEmpty, s"JSON Schema validation failed: ${errors}")
       }

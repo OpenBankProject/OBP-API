@@ -123,13 +123,6 @@
       <artifactId>snappy-java</artifactId>
       <version>1.1.10.4</version>
     </dependency>
-    <!-- Pin commons-beanutils to 1.11.0. Fixes CVE-2025-48734, CVE-2019-10086;
-         1.11.0 adds the Improper-Access-Control fix (GHSA on top of those). -->
-    <dependency>
-      <groupId>commons-beanutils</groupId>
-      <artifactId>commons-beanutils</artifactId>
-      <version>1.11.0</version>
-    </dependency>
     <!-- Pin msal4j to override the older version pulled in transitively by
          mssql-jdbc → azure-identity. Fixes CVE-2024-35255 (elevation of
          privilege, fixed upstream in 1.15.1). Not used directly in source —
