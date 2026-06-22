@@ -319,12 +319,7 @@
       <artifactId>flexmark-profile-pegdown</artifactId>
       <version>0.40.8</version>
     </dependency>
-    <!-- https://mvnrepository.com/artifact/com.vladsch.flexmark/flexmark-util-options -->
-    <dependency>
-      <groupId>com.vladsch.flexmark</groupId>
-      <artifactId>flexmark-util-options</artifactId>
-      <version>0.64.0</version>
-    </dependency>
+
       <!-- https://mvnrepository.com/artifact/org.web3j/core -->
       <dependency>
           <groupId>org.web3j</groupId>
