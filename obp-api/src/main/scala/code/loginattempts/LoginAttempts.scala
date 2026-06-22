@@ -18,30 +18,18 @@ object LoginAttempt extends MdcLoggable {
       case false =>
         logger.debug(s"Hello from incrementBadLoginAttempts with $username")
 
-        // Find badLoginAttempt record if one exists for a user
-        MappedBadLoginAttempt.find(
-          By(MappedBadLoginAttempt.Provider, provider),
-          By(MappedBadLoginAttempt.mUsername, username)
-        ) match {
-          // If it exits update the date and increment
-          case Full(loginAttempt) =>
-
-            logger.debug(s"incrementBadLoginAttempts found ${loginAttempt.mBadAttemptsSinceLastSuccessOrReset} loginAttempt(s) with id ${loginAttempt.id}")
-
-            loginAttempt
-              .mLastFailureDate(now)
-              .mBadAttemptsSinceLastSuccessOrReset(loginAttempt.mBadAttemptsSinceLastSuccessOrReset + 1) // Increment
-              .save
-          case _ =>
-            // If none exists, add one
-            MappedBadLoginAttempt.create
-              .mUsername(username)
-              .Provider(provider)
-              .mLastFailureDate(now)
-              .mBadAttemptsSinceLastSuccessOrReset(1) // Start with 1
-              .save
-
-            logger.debug(s"incrementBadLoginAttempts created loginAttempt")
+        // Atomically increment the counter; if no row exists yet, create one
+        val rowsUpdated = code.bankconnectors.DoobieBadLoginAttemptQueries.incrementBadLoginAttempts(provider, username)
+        if (rowsUpdated == 0) {
+          MappedBadLoginAttempt.create
+            .mUsername(username)
+            .Provider(provider)
+            .mLastFailureDate(now)
+            .mBadAttemptsSinceLastSuccessOrReset(1)
+            .save
+          logger.debug(s"incrementBadLoginAttempts created loginAttempt")
+        } else {
+          logger.debug(s"incrementBadLoginAttempts atomically incremented for $username (rows=$rowsUpdated)")
         }
     }
   }
