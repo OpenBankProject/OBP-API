@@ -1416,34 +1416,12 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   //ended -- Filtering and Paging relevant methods  ////////////////////////////
 
 
-  /** Import this object's methods to add signing operators to dispatch.Request */
   object OAuth {
-    import dispatch.{Req => Request}
-
-    import scala.collection.Map
-
     case class Consumer(key: String, secret: String)
     case class Token(value: String, secret: String)
 
     /** Out-of-band callback code */
     val oob = "oob"
-
-    /** Add OAuth operators to dispatch.Request */
-    implicit def Request2RequestSigner(r: Request) = new RequestSigner(r)
-
-    class RequestSigner(rb: Request) {
-      /** sign a request with a consumer and a token, e.g. an OAuth-signed API request */
-      def <@ (consumer: Consumer, token: Token): Request = {
-        rb <:< Map("Authorization" -> s"""DirectLogin token="${token.value}"""")
-      }
-      def <@ (consumerAndToken: Option[(Consumer,Token)]): Request = {
-        consumerAndToken match {
-          case Some((_, token)) => 
-            rb <:< Map("Authorization" -> s"""DirectLogin token="${token.value}"""")
-          case None => rb
-        }
-      }
-    }
   }
 
   /*
