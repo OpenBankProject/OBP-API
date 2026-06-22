@@ -87,13 +87,15 @@ object DoobieUtil extends MdcLoggable {
    * None otherwise (background tasks, schedulers, tests without request context).
    */
   private def liftCurrentConnection: Option[java.sql.Connection] = {
-    // DB.currentConnection returns Box[SuperConnection]
-    // SuperConnection has implicit conversion to java.sql.Connection
-    DB.currentConnection match {
-      case Full(superConn) =>
-        val conn: java.sql.Connection = superConn.connection
-        if (!conn.isClosed) Some(conn) else None
-      case _ => None
+    // 1. Try to fetch the Http4s RequestScopeConnection proxy from Alibaba TTL
+    Option(code.api.util.http4s.RequestScopeConnection.currentProxy.get()).orElse {
+      // 2. Fallback: check Lift's DB.currentConnection
+      DB.currentConnection match {
+        case Full(superConn) =>
+          val conn: java.sql.Connection = superConn.connection
+          if (!conn.isClosed) Some(conn) else None
+        case _ => None
+      }
     }
   }
 

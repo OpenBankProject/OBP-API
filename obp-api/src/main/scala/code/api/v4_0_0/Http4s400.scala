@@ -3474,6 +3474,10 @@ object Http4s400 {
         }
         _ <- NewStyle.function.checkAuthorisationToCreateTransactionRequest(
           viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId), user, Some(cc))
+        // Lock the transaction request row before fetching to prevent Double-Spend MFA bypass
+        _ <- code.util.Helper.booleanToFuture("Failed to acquire transaction request lock", cc = Some(cc)) {
+          code.bankconnectors.DoobieTransactionRequestQueries.lockTransactionRequest(transReqId.value).isDefined
+        }
         (existingTransactionRequest, _) <- NewStyle.function.getTransactionRequestImpl(transReqId, Some(cc))
         _ <- code.util.Helper.booleanToFuture(
           TransactionRequestStatusNotInitiatedOrPendingOrForwarded, cc = Some(cc)) {
