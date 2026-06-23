@@ -32,7 +32,7 @@ trait AvroSerializer {
   }
 
   class StringInputStream(s: String) extends InputStream {
-    private val bytes = s.getBytes
+    private val bytes = s.getBytes("UTF-8")
 
     private var pos = 0
 
@@ -41,7 +41,7 @@ trait AvroSerializer {
     } else {
       val r = bytes(pos)
       pos += 1
-      r.toInt
+      r.toInt & 0xFF
     }
   }
 }

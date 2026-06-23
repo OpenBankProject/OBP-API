@@ -14,7 +14,8 @@
     <scala.compiler>2.12.20</scala.compiler>
     <pekko.version>1.1.5</pekko.version>
     <pekko-http.version>1.1.0</pekko-http.version>
-    <avro.version>4.1.2</avro.version>
+    <avro4s.version>4.1.2</avro4s.version>
+    <apache.avro.version>1.11.4</apache.avro.version>
     <lift.version>v1.0.4</lift.version>
     <http4s.version>0.23.30</http4s.version>
     <!-- Common plugin settings -->
