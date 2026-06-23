@@ -457,7 +457,16 @@ object Http4s600 {
       if (validEntityNamePattern.matcher(entityName).matches()) Future.successful(())
       else Future.failed(new RuntimeException(s"$InvalidDynamicEntityName Current value: '$entityName'"))
 
+    // §8.5: row-level access is only enforceable for a locally-backed entity. If the entity
+    // is routed to an external connector (a dynamicEntityProcess method routing keyed on its
+    // entityName exists), the ACL cannot police its data — reject the combination.
+    private def localBackingOkForRowLevel(dynamicEntity: DynamicEntityCommons): Boolean =
+      !dynamicEntity.useRowLevelAccess ||
+        !NewStyle.function.getMethodRoutings(Some("dynamicEntityProcess"))
+          .exists(_.parameters.exists(p => p.key == "entityName" && p.value == dynamicEntity.entityName))
+
     private def createDynamicEntityV600(cc: CallContext, dynamicEntity: DynamicEntityCommons) = for {
+      _ <- Helper.booleanToFuture(RowLevelAccessRequiresLocalBacking, 400, cc = Some(cc)) { localBackingOkForRowLevel(dynamicEntity) }
       // Wrap the connector call so a thrown RuntimeException (bad schema, etc.)
       // becomes a 400 InvalidJsonFormat — matches v6 Lift's dispatch wrapper.
       Full(result) <- NewStyle.function.createOrUpdateDynamicEntity(dynamicEntity, Some(cc))
@@ -473,6 +482,11 @@ object Http4s600 {
         DynamicEntityInfo.canUpdateRole(result.entityName, dynamicEntity.bankId),
         DynamicEntityInfo.canGetRole(result.entityName, dynamicEntity.bankId),
         DynamicEntityInfo.canDeleteRole(result.entityName, dynamicEntity.bankId)
+      ) ++ (
+        // Row-level entities: grant the definition creator the admin row-access role so they
+        // can bootstrap/administer per-row ACLs across the entity (§8.1 admin override).
+        if (dynamicEntity.useRowLevelAccess) List(DynamicEntityInfo.canGrantRowAccessRole(result.entityName, dynamicEntity.bankId))
+        else Nil
       )
     } yield {
       crudRoles.foreach(role =>
@@ -481,6 +495,7 @@ object Http4s600 {
     }
 
     private def updateDynamicEntityV600(cc: CallContext, dynamicEntity: DynamicEntityCommons) = for {
+      _ <- Helper.booleanToFuture(RowLevelAccessRequiresLocalBacking, 400, cc = Some(cc)) { localBackingOkForRowLevel(dynamicEntity) }
       Full(result) <- NewStyle.function.createOrUpdateDynamicEntity(dynamicEntity, Some(cc))
         .recoverWith {
           case e: Throwable if !Option(e.getMessage).exists(_.startsWith("OBP-")) =>
@@ -6783,7 +6798,10 @@ object Http4s600 {
         |    "properties": {
         |      "theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"},
         |      "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"},
-        |      "internal_note": {"type": "string", "example": "set by a privileged service", "description": "Field-level write-restricted", "write_role_required": true}
+        |      "internal_note": {"type": "string", "example": "set by a privileged service", "description": "Field-level write-restricted (auto-generated per-field role)", "write_role_required": true},
+        |      "audit_ref": {"type": "string", "example": "AUD-0001", "description": "Field-level write-restricted via an explicit, shareable role", "write_role": "CanWriteCustomerPreferencesAudit"},
+        |      "ssn": {"type": "string", "example": "123-45-6789", "description": "Field-level read-restricted (auto-generated per-field role)", "read_role_required": true},
+        |      "risk_score": {"type": "string", "example": "low", "description": "Field-level read-restricted via an explicit, shareable role", "read_role": "CanReadCustomerPreferencesRisk"}
         |    }
         |  }
         |}
@@ -6805,7 +6823,7 @@ object Http4s600 {
           has_public_access = Some(false),
           has_community_access = Some(false),
           personal_requires_role = Some(false),
-          schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "internal_note": {"type": "string", "example": "set by a privileged service", "description": "Field-level write-restricted (writeRoleRequired)", "write_role_required": true}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
+          schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "internal_note": {"type": "string", "example": "set by a privileged service", "description": "Field-level write-restricted (writeRoleRequired)", "write_role_required": true}, "audit_ref": {"type": "string", "example": "AUD-0001", "description": "Field-level write-restricted via an explicit, shareable role (writeRole)", "write_role": "CanWriteCustomerPreferencesAudit"}, "ssn": {"type": "string", "example": "123-45-6789", "description": "Field-level read-restricted (readRoleRequired)", "read_role_required": true}, "risk_score": {"type": "string", "example": "low", "description": "Field-level read-restricted via an explicit, shareable role (readRole)", "read_role": "CanReadCustomerPreferencesRisk"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
         ),
         DynamicEntityDefinitionJsonV600(
           dynamic_entity_id = "abc-123-def",
@@ -6816,7 +6834,7 @@ object Http4s600 {
           has_public_access = false,
           has_community_access = false,
           personal_requires_role = false,
-          schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "internal_note": {"type": "string", "example": "set by a privileged service", "description": "Field-level write-restricted (writeRoleRequired)", "write_role_required": true}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
+          schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "internal_note": {"type": "string", "example": "set by a privileged service", "description": "Field-level write-restricted (writeRoleRequired)", "write_role_required": true}, "audit_ref": {"type": "string", "example": "AUD-0001", "description": "Field-level write-restricted via an explicit, shareable role (writeRole)", "write_role": "CanWriteCustomerPreferencesAudit"}, "ssn": {"type": "string", "example": "123-45-6789", "description": "Field-level read-restricted (readRoleRequired)", "read_role_required": true}, "risk_score": {"type": "string", "example": "low", "description": "Field-level read-restricted via an explicit, shareable role (readRole)", "read_role": "CanReadCustomerPreferencesRisk"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
         ),
         List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
         apiTagManageDynamicEntity :: apiTagApi :: Nil,
@@ -6848,7 +6866,10 @@ object Http4s600 {
         |    "properties": {
         |      "theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"},
         |      "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"},
-        |      "internal_note": {"type": "string", "example": "set by a privileged service", "description": "Field-level write-restricted", "write_role_required": true}
+        |      "internal_note": {"type": "string", "example": "set by a privileged service", "description": "Field-level write-restricted (auto-generated per-field role)", "write_role_required": true},
+        |      "audit_ref": {"type": "string", "example": "AUD-0001", "description": "Field-level write-restricted via an explicit, shareable role", "write_role": "CanWriteCustomerPreferencesAudit"},
+        |      "ssn": {"type": "string", "example": "123-45-6789", "description": "Field-level read-restricted (auto-generated per-field role)", "read_role_required": true},
+        |      "risk_score": {"type": "string", "example": "low", "description": "Field-level read-restricted via an explicit, shareable role", "read_role": "CanReadCustomerPreferencesRisk"}
         |    }
         |  }
         |}
@@ -6870,7 +6891,7 @@ object Http4s600 {
           has_public_access = Some(false),
           has_community_access = Some(false),
           personal_requires_role = Some(false),
-          schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "internal_note": {"type": "string", "example": "set by a privileged service", "description": "Field-level write-restricted (writeRoleRequired)", "write_role_required": true}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
+          schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "internal_note": {"type": "string", "example": "set by a privileged service", "description": "Field-level write-restricted (writeRoleRequired)", "write_role_required": true}, "audit_ref": {"type": "string", "example": "AUD-0001", "description": "Field-level write-restricted via an explicit, shareable role (writeRole)", "write_role": "CanWriteCustomerPreferencesAudit"}, "ssn": {"type": "string", "example": "123-45-6789", "description": "Field-level read-restricted (readRoleRequired)", "read_role_required": true}, "risk_score": {"type": "string", "example": "low", "description": "Field-level read-restricted via an explicit, shareable role (readRole)", "read_role": "CanReadCustomerPreferencesRisk"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
         ),
         DynamicEntityDefinitionJsonV600(
           dynamic_entity_id = "abc-123-def",
@@ -6881,7 +6902,7 @@ object Http4s600 {
           has_public_access = false,
           has_community_access = false,
           personal_requires_role = false,
-          schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "internal_note": {"type": "string", "example": "set by a privileged service", "description": "Field-level write-restricted (writeRoleRequired)", "write_role_required": true}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
+          schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "internal_note": {"type": "string", "example": "set by a privileged service", "description": "Field-level write-restricted (writeRoleRequired)", "write_role_required": true}, "audit_ref": {"type": "string", "example": "AUD-0001", "description": "Field-level write-restricted via an explicit, shareable role (writeRole)", "write_role": "CanWriteCustomerPreferencesAudit"}, "ssn": {"type": "string", "example": "123-45-6789", "description": "Field-level read-restricted (readRoleRequired)", "read_role_required": true}, "risk_score": {"type": "string", "example": "low", "description": "Field-level read-restricted via an explicit, shareable role (readRole)", "read_role": "CanReadCustomerPreferencesRisk"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
         ),
         List(
           $BankNotFound,

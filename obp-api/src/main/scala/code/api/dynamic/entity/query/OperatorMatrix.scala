@@ -17,10 +17,12 @@ object OperatorMatrix {
   val SCALAR  = "scalar"
   val SPATIAL = "spatial"
 
-  private val numericOps: Set[FilterOp] = Set(Eq, Ne, In, Lt, Gt, Le, Ge, Between)
-  private val dateOps:    Set[FilterOp] = Set(Eq, Ne, In, Lt, Gt, Le, Ge, Between)
-  private val stringOps:  Set[FilterOp] = Set(Eq, Ne, In, Like)
-  private val boolOps:    Set[FilterOp] = Set(Eq, Ne)
+  // Value-absence ops are legal for every non-json type (json is never a plain scalar column).
+  private val nullOps:    Set[FilterOp] = Set(IsNull, NotSet)
+  private val numericOps: Set[FilterOp] = Set(Eq, Ne, In, Lt, Gt, Le, Ge, Between) ++ nullOps
+  private val dateOps:    Set[FilterOp] = Set(Eq, Ne, In, Lt, Gt, Le, Ge, Between) ++ nullOps
+  private val stringOps:  Set[FilterOp] = Set(Eq, Ne, In, Like) ++ nullOps
+  private val boolOps:    Set[FilterOp] = Set(Eq, Ne) ++ nullOps
 
   /** Operators permitted for a field of this type + index kind. Empty = field is not filterable. */
   def allowedOps(fieldType: DynamicEntityFieldType, indexKind: String): Set[FilterOp] =

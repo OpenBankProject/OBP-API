@@ -61,20 +61,30 @@ object MigrationOfResourceUser {
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
         var isSuccessful = false
+        val targetLength = 100
 
+        // Idempotent guard: only ALTER when the width actually differs. Re-issuing `ALTER ... TYPE` to
+        // the SAME width is rejected by Postgres when a view references the column ("cannot alter type of
+        // a column used by a view or rule") — which is what caused the recurring schema drift on re-runs
+        // (e.g. test-isolation resets that wipe the migration log but keep the views). See the doc comment
+        // at the top of Migration.scala.
         val executedSql =
-          DbFunction.maybeWrite(true, Schemifier.infoF _) {
-            APIUtil.getPropsValue("db.driver") match    {
-              case Full(dbDriver) if dbDriver.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
-                () =>
-                  """ALTER TABLE resourceuser ALTER COLUMN email varchar(100);
-                    |""".stripMargin
-              case _ =>
-                () =>
-                  """ALTER TABLE resourceuser ALTER COLUMN email type varchar(100);
-                    |""".stripMargin
-            }
+          if (DbFunction.columnMaxLength(ResourceUser._dbTableNameLC, "email").contains(targetLength)) {
+            s"-- skipped: resourceuser.email already varchar($targetLength)"
+          } else {
+            DbFunction.maybeWrite(true, Schemifier.infoF _) {
+              APIUtil.getPropsValue("db.driver") match    {
+                case Full(dbDriver) if dbDriver.contains("com.microsoft.sqlserver.jdbc.SQLServerDriver") =>
+                  () =>
+                    """ALTER TABLE resourceuser ALTER COLUMN email varchar(100);
+                      |""".stripMargin
+                case _ =>
+                  () =>
+                    """ALTER TABLE resourceuser ALTER COLUMN email type varchar(100);
+                      |""".stripMargin
+              }
 
+            }
           }
 
         val endDate = System.currentTimeMillis()

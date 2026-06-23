@@ -55,6 +55,9 @@ object ProjectionSql {
 
   private def predicate(f: Filter, columnOf: String => Option[String], sqlTypeOf: String => Option[String]): Option[Fragment] =
     if (FilterOp.spatial.contains(f.op)) None
+    // Nullary value-absence ops: an absent field projects to a NULL column, so is_null and not_set both
+    // compile to `IS NULL` (aliases — see ideas/DYNAMIC_ENTITY_JOIN_QUERIES.md OQ1). No cast / operand.
+    else if (FilterOp.nullary.contains(f.op)) columnOf(f.field).map(col => Fragment.const(col) ++ fr"IS NULL")
     else for {
       col     <- columnOf(f.field)
       sqlType <- sqlTypeOf(f.field)

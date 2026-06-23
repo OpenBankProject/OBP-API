@@ -50,6 +50,9 @@ object InMemoryQueryExecutor {
         case _             => false
       }
       case Like    => toStringValue(jv).exists(s => filter.values.exists(v => s.toLowerCase.contains(v.toLowerCase)))
+      // Value-absence: matches an absent field or an explicit JSON null — mirrors the projection
+      // backend, where both an absent field and JSON null project to a NULL column (is_null == not_set).
+      case IsNull | NotSet => jv match { case JNothing | JNull => true; case _ => false }
       case _       => false // spatial operators are not evaluable in memory
     }
   }

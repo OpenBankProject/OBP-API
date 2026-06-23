@@ -953,6 +953,7 @@ case class DynamicEntityDefinitionJsonV600(
     has_public_access: Boolean = false,
     has_community_access: Boolean = false,
     personal_requires_role: Boolean = false,
+    use_row_level_access: Boolean = false,
     schema: org.json4s.JsonAST.JObject,
     _links: Option[DynamicEntityLinksJsonV600] = None
 )
@@ -971,6 +972,7 @@ case class DynamicEntityDefinitionWithCountJsonV600(
     has_public_access: Boolean = false,
     has_community_access: Boolean = false,
     personal_requires_role: Boolean = false,
+    use_row_level_access: Boolean = false,
     schema: org.json4s.JsonAST.JObject,
     record_count: Long,
     _links: Option[DynamicEntityLinksJsonV600] = None
@@ -987,6 +989,7 @@ case class CreateDynamicEntityRequestJsonV600(
     has_public_access: Option[Boolean] = None,  // defaults to false if not provided
     has_community_access: Option[Boolean] = None,  // defaults to false if not provided
     personal_requires_role: Option[Boolean] = None,  // defaults to false if not provided
+    use_row_level_access: Option[Boolean] = None,  // defaults to false if not provided
     schema: org.json4s.JsonAST.JObject
 )
 
@@ -997,6 +1000,7 @@ case class UpdateDynamicEntityRequestJsonV600(
     has_public_access: Option[Boolean] = None,
     has_community_access: Option[Boolean] = None,
     personal_requires_role: Option[Boolean] = None,
+    use_row_level_access: Option[Boolean] = None,
     schema: org.json4s.JsonAST.JObject
 )
 
@@ -2541,7 +2545,7 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
         val schemaOption = fullJson.obj.find(_.name == entity.entityName).map(_.value.asInstanceOf[JObject])
 
         // Validate that the dynamic key matches entity_name
-        val knownFlagFields = Set("hasPersonalEntity", "hasPublicAccess", "hasCommunityAccess", "personalRequiresRole")
+        val knownFlagFields = Set("hasPersonalEntity", "hasPublicAccess", "hasCommunityAccess", "personalRequiresRole", "useRowLevelAccess")
         val dynamicKeyName = fullJson.obj.find(f => !knownFlagFields.contains(f.name)).map(_.name)
         if (dynamicKeyName.exists(_ != entity.entityName)) {
           throw new IllegalStateException(
@@ -2564,6 +2568,7 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
           has_public_access = entity.hasPublicAccess,
           has_community_access = entity.hasCommunityAccess,
           personal_requires_role = entity.personalRequiresRole,
+          use_row_level_access = entity.useRowLevelAccess,
           schema = schemaObj,
           _links = Some(links)
         )
@@ -2587,7 +2592,7 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
         val schemaOption = fullJson.obj.find(_.name == entity.entityName).map(_.value.asInstanceOf[JObject])
 
         // Validate that the dynamic key matches entity_name
-        val knownFlagFields = Set("hasPersonalEntity", "hasPublicAccess", "hasCommunityAccess", "personalRequiresRole")
+        val knownFlagFields = Set("hasPersonalEntity", "hasPublicAccess", "hasCommunityAccess", "personalRequiresRole", "useRowLevelAccess")
         val dynamicKeyName = fullJson.obj.find(f => !knownFlagFields.contains(f.name)).map(_.name)
         if (dynamicKeyName.exists(_ != entity.entityName)) {
           throw new IllegalStateException(
@@ -2610,6 +2615,7 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
           has_public_access = entity.hasPublicAccess,
           has_community_access = entity.hasCommunityAccess,
           personal_requires_role = entity.personalRequiresRole,
+          use_row_level_access = entity.useRowLevelAccess,
           schema = schema,
           record_count = recordCount,
           _links = Some(links)
@@ -2641,6 +2647,7 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
     val hasPublicAccess = request.has_public_access.getOrElse(false)
     val hasCommunityAccess = request.has_community_access.getOrElse(false)
     val personalRequiresRole = request.personal_requires_role.getOrElse(false)
+    val useRowLevelAccess = request.use_row_level_access.getOrElse(false)
 
     // Build the internal format: entity name as dynamic key + flags
     JObject(
@@ -2649,6 +2656,7 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       JField("hasPublicAccess", JBool(hasPublicAccess)) ::
       JField("hasCommunityAccess", JBool(hasCommunityAccess)) ::
       JField("personalRequiresRole", JBool(personalRequiresRole)) ::
+      JField("useRowLevelAccess", JBool(useRowLevelAccess)) ::
       Nil
     )
   }
@@ -2660,6 +2668,7 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
     val hasPublicAccess = request.has_public_access.getOrElse(false)
     val hasCommunityAccess = request.has_community_access.getOrElse(false)
     val personalRequiresRole = request.personal_requires_role.getOrElse(false)
+    val useRowLevelAccess = request.use_row_level_access.getOrElse(false)
 
     // Build the internal format: entity name as dynamic key + flags
     JObject(
@@ -2668,6 +2677,7 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       JField("hasPublicAccess", JBool(hasPublicAccess)) ::
       JField("hasCommunityAccess", JBool(hasCommunityAccess)) ::
       JField("personalRequiresRole", JBool(personalRequiresRole)) ::
+      JField("useRowLevelAccess", JBool(useRowLevelAccess)) ::
       Nil
     )
   }
