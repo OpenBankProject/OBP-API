@@ -41,16 +41,8 @@ class Http4sServerIntegrationTest extends ServerSetup with DefaultUsers with Ser
   }
 
   private def execOkHttp(req: OBPReq): (Int, String, Map[String, String]) = {
-    val response = OBPReq.client.newCall(req.toOkHttpRequest).execute()
-    try {
-      val body = Option(response.body()).map(_.string()).getOrElse("")
-      val code = response.code()
-      val hdrs = response.headers().toMultimap.asScala
-        .flatMap { case (k, vs) => vs.asScala.map(v => k -> v) }.toMap
-      (code, body, hdrs)
-    } finally {
-      response.close()
-    }
+    val (code, body, hdrs) = req.executeRaw()
+    (code, body, hdrs.toMultimap.asScala.flatMap { case (k, vs) => vs.asScala.map(v => k -> v) }.toMap)
   }
 
   private def buildHttp4sReq(path: String, method: String, body: String = "", hdrs: Map[String, String] = Map.empty): OBPReq = {

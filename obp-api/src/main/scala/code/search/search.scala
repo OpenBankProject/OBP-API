@@ -100,14 +100,11 @@ class elasticsearch extends MdcLoggable {
   }
 
   private def getAPIResponse(esUrl: String, body: String = ""): APIResponse = {
-    val request = buildRequest(esUrl, body)
-    val response = httpClient.newCall(request).execute()
-    try {
-      val bodyStr = Option(response.body()).map(_.string()).filter(_.nonEmpty).getOrElse("{}")
-      APIResponse(response.code(), json.parse(bodyStr))
-    } finally {
-      response.close()
-    }
+    val r = httpClient.newCall(buildRequest(esUrl, body)).execute()
+    val (statusCode, rawBody) = try {
+      (r.code(), Option(r.body()).map(_.string()).filter(_.nonEmpty).getOrElse("{}"))
+    } finally r.close()
+    APIResponse(statusCode, json.parse(rawBody))
   }
 
   private def getAPIResponseAsync(esUrl: String, body: String = ""): Future[APIResponse] =

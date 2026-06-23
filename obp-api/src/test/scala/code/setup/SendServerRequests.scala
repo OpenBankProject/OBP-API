@@ -107,15 +107,7 @@ trait SendServerRequests {
   }
 
   private def executeRequest(req: OBPReq): APIResponse = {
-    val okReq = req.toOkHttpRequest
-    val response = OBPReq.client.newCall(okReq).execute()
-    val bodyStr = try {
-      Option(response.body()).map(_.string()).getOrElse("")
-    } finally {
-      response.close()
-    }
-    val responseCode = response.code()
-    val okHeaders    = response.headers()
+    val (responseCode, bodyStr, okHeaders) = req.executeRaw()
 
     val corrList = okHeaders.values(ResponseHeader.`Correlation-Id`).asScala.toList
     if (corrList.isEmpty) {

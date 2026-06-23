@@ -3,7 +3,7 @@ package code.setup
 import java.nio.charset.{Charset, StandardCharsets}
 import java.util.concurrent.TimeUnit
 
-import okhttp3.{Headers => OkHeaders, MediaType => OkMediaType, OkHttpClient, Request, RequestBody, HttpUrl}
+import okhttp3.{Headers => OkHeaders, MediaType => OkMediaType, OkHttpClient, Request, RequestBody, HttpUrl, Response => OkResponse}
 
 /**
  * Immutable HTTP request builder backed by OkHttp3.
@@ -56,6 +56,15 @@ case class OBPReq(
   def url: String = baseUrl
 
   def toRequest(): Request = toOkHttpRequest
+
+  def executeRaw(): (Int, String, OkHeaders) = {
+    val response: OkResponse = OBPReq.client.newCall(toOkHttpRequest).execute()
+    try {
+      val code = response.code()
+      val body = Option(response.body()).fold("")(_.string())
+      (code, body, response.headers())
+    } finally { response.close() }
+  }
 
   def toOkHttpRequest: Request = {
     val parsedUrl = HttpUrl.parse(baseUrl)
