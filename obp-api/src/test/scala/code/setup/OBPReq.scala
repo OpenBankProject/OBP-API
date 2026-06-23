@@ -17,13 +17,17 @@ case class OBPReq(
   reqBody: String = "",
   bodyCharset: Charset = StandardCharsets.UTF_8,
   reqHeaders: Map[String, String] = Map.empty,
-  queryParams: Map[String, String] = Map.empty
+  queryParams: List[(String, String)] = Nil
 ) {
   def /(segment: Any): OBPReq = {
     val seg = segment.toString
     val cleanBase = if (baseUrl.endsWith("/")) baseUrl.dropRight(1) else baseUrl
-    val cleanSeg  = if (seg.startsWith("/")) seg.drop(1) else seg
-    copy(baseUrl = s"$cleanBase/$cleanSeg")
+    // Percent-encode characters that must not appear unencoded in a URI path segment.
+    // '/' is the path delimiter — encoding it prevents a URL-valued provider string
+    // (e.g. "http://localhost:8016") from being split into multiple path segments.
+    // This replicates dispatch's addPathPart percent-encoding behaviour.
+    val encodedSeg = seg.replace("/", "%2F").replace("?", "%3F").replace("#", "%23")
+    copy(baseUrl = s"$cleanBase/$encodedSeg")
   }
 
   def GET: OBPReq     = copy(method = "GET")
@@ -37,7 +41,7 @@ case class OBPReq(
   def secure: OBPReq = copy(baseUrl = baseUrl.replaceFirst("^http://", "https://"))
 
   def <:<(hdrs: Map[String, String]): OBPReq = copy(reqHeaders = reqHeaders ++ hdrs)
-  def <<?(params: Iterable[(String, String)]): OBPReq = copy(queryParams = queryParams ++ params)
+  def <<?(params: Iterable[(String, String)]): OBPReq = copy(queryParams = queryParams ++ params.toList)
   def <<(body: String): OBPReq = copy(reqBody = body)
 
   def addHeader(name: String, value: String): OBPReq = copy(reqHeaders = reqHeaders + (name -> value))

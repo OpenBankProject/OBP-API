@@ -78,7 +78,7 @@ trait SendServerRequests {
     body: String,
     body_encoding: String,
     headers: Map[String, String],
-    query_params: Map[String, String],
+    query_params: List[(String, String)],
     form_params: Map[String, String]
   )
 
