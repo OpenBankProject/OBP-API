@@ -16,14 +16,20 @@ object ObpLookupSystem extends ObpLookupSystem {
 }
 
 trait ObpLookupSystem extends MdcLoggable {
-  var obpLookupSystem: ActorSystem = null
+  // @volatile + synchronized double-checked init: without it two threads can both see null,
+  // both build an ActorSystem (resource leak), and a reader can observe a stale null.
+  @volatile var obpLookupSystem: ActorSystem = null
   val props_hostname = Helper.getHostname
 
   def init (): ActorSystem = {
-    if (obpLookupSystem == null ) {
-      val system = ActorSystem("ObpLookupSystem", ConfigFactory.load(ConfigFactory.parseString(ObpActorConfig.lookupConf)))
-      logger.info(ObpActorConfig.lookupConf)
-      obpLookupSystem = system
+    if (obpLookupSystem == null) {
+      synchronized {
+        if (obpLookupSystem == null) {
+          val system = ActorSystem("ObpLookupSystem", ConfigFactory.load(ConfigFactory.parseString(ObpActorConfig.lookupConf)))
+          logger.info(ObpActorConfig.lookupConf)
+          obpLookupSystem = system
+        }
+      }
     }
     obpLookupSystem
   }

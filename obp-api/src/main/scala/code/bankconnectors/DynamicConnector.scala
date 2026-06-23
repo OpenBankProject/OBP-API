@@ -20,7 +20,9 @@ object DynamicConnector {
   //  val heavyClassService: HeavyClass = DynamicConnector.getSingletonObject("heavyClassService").getOrElse(
   //            DynamicConnector.createSingletonObject("heavyClassService",new HeavyClass())
   //          ).asInstanceOf[HeavyClass]
-  private val singletonObjectMap = collection.mutable.Map[String, Any]()
+  // Thread-safe: concurrent createSingletonObject/getSingletonObject calls from different requests
+  // must not lose writes or corrupt the map during a resize. TrieMap is a lock-free concurrent Map.
+  private val singletonObjectMap = scala.collection.concurrent.TrieMap[String, Any]()
   def createSingletonObject (key:String, value: Any) =  singletonObjectMap.put(key, value)
   def getSingletonObject (key:String) =  singletonObjectMap.get(key)
   def updateSingletonObject(key:String, value: Any) = singletonObjectMap.update(key, value)
