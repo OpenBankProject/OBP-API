@@ -3294,9 +3294,23 @@ object Http4s700 {
             _ <- NewStyle.function.checkAuthorisationToCreateTransactionRequest(
               view.viewId, BankIdAccountId(fromAccount.bankId, fromAccount.accountId), user, callCtx
             )
-            // 3. Create the parent BULK TR row. toAccount = self (envelope only;
-            //    the real destinations live in the per-payment side-table).
             trId = APIUtil.generateUUID()
+            // 3. Claim the batch_reference for idempotency BEFORE creating the parent TR or
+            //    fanning out any payment. The UniqueIndex(FromBankId, FromAccountId, BatchReference)
+            //    makes this the single atomic point of idempotency: two concurrent submissions both
+            //    pass the earlier isBatchReferenceUsed check, but only one wins the INSERT here. The
+            //    loser's Box is a Failure — we must surface it (409) so it aborts before any payment,
+            //    rather than dropping it and double-charging.
+            _ <- Future {
+              unboxFullOrFail(
+                BulkPayments.bulkPayment.vend.claimBatchReference(
+                  fromAccount.bankId.value, fromAccount.accountId.value, body.batch_reference, trId
+                ),
+                callCtx, BulkBatchReferenceAlreadyUsed, 409
+              )
+            }
+            // 4. Create the parent BULK TR row. toAccount = self (envelope only;
+            //    the real destinations live in the per-payment side-table).
             detailsPlain = prettyRender(Extraction.decompose(body))
             parentTrBox = MappedTransactionRequestProvider.createTransactionRequestImpl210(
               com.openbankproject.commons.model.TransactionRequestId(trId),
@@ -3316,13 +3330,6 @@ object Http4s700 {
             )
             _ <- Future {
               unboxFullOrFail(parentTrBox, callCtx, BulkPaymentTransactionRequestError, 500)
-            }
-            // 4. Claim the batch_reference for idempotency. After this, a
-            //    second submission with the same batch_reference fails fast.
-            _ <- Future {
-              BulkPayments.bulkPayment.vend.claimBatchReference(
-                fromAccount.bankId.value, fromAccount.accountId.value, body.batch_reference, trId
-              )
             }
             // 5. Fan-out — sequential per-payment execution. Returns one row
             //    per input item (SUCCEEDED / FAILED + reason).

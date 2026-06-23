@@ -48,16 +48,19 @@ import java.util.UUID
  *   the result of claimBatchReference is dropped inside a bare Future { claimBatchReference(...) }
  *   with no unboxFullOrFail check, so the second request silently continues and double-charges.
  *
- * WHAT THIS TEST SHOWS:
- *   Scenario C1a verifies that claimBatchReference correctly produces a Failure when the row
- *   already exists. This confirms the UniqueIndex guard works at the DB level.
+ * WHAT THIS TEST SHOWS (guard-verification — both scenarios pass):
+ *   The provider layer is already sound: claimBatchReference wraps saveMe in tryo and the
+ *   UniqueIndex(FromBankId, FromAccountId, BatchReference) makes the duplicate INSERT fail, so the
+ *   losing caller receives a Failure (C1a) and exactly one row survives (C1b). These two scenarios
+ *   prove the *signal* exists for the call site to act on.
  *
- *   Scenario C1b reproduces the silent-drop bug: two concurrent callers both pass the
- *   isBatchReferenceUsed check and both proceed. The correct fix requires (1) moving
- *   claimBatchReference BEFORE the TransactionRequest fan-out, and (2) propagating the
- *   Failure with unboxFullOrFail so the second request aborts early.
+ *   The actual bug was at the call site: Http4s700.createTransactionRequestBulk ran
+ *   `Future { claimBatchReference(...) }` and DROPPED the Box, so the losing request silently fanned
+ *   out a duplicate payment. The fix (this PR) claims the batch_reference BEFORE creating the parent
+ *   TR or fanning out, and surfaces the Failure with unboxFullOrFail (409) so the loser aborts early.
+ *   The concurrent-duplicate HTTP path is additionally covered by the sequential 409-reuse scenario
+ *   in Http4s700RoutesTest ("Return 409 when batch_reference is reused on the same source account").
  *
- * EXPECTED TO FAIL (C1b) until claimBatchReference failure is properly propagated.
  * Tagged ConcurrencyRace.
  */
 class ConcurrentBulkPaymentRaceTest extends ConcurrentRaceSetup {
