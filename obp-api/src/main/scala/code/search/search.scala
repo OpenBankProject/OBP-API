@@ -12,14 +12,12 @@ import net.liftweb.common.{Box, Empty, Failure, Full}
 import com.openbankproject.commons.util.json
 import okhttp3.{MediaType => OkMediaType, OkHttpClient, Request => OkRequest, RequestBody}
 import org.json4s.JsonAST
-import scala.concurrent.{Await, ExecutionContext, Future, Promise}
-import scala.concurrent.duration.Duration
+import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.control.NoStackTrace
 
 
 class elasticsearch extends MdcLoggable {
-
-  private implicit val ec: ExecutionContext = ExecutionContext.global
 
   case class APIResponse(code: Int, body: JValue)
   case class ErrorMessage(error: String)
@@ -102,28 +100,18 @@ class elasticsearch extends MdcLoggable {
   }
 
   private def getAPIResponse(esUrl: String, body: String = ""): APIResponse = {
-    Await.result(getAPIResponseAsync(esUrl, body), Duration.Inf)
+    val request = buildRequest(esUrl, body)
+    val response = httpClient.newCall(request).execute()
+    try {
+      val bodyStr = Option(response.body()).map(_.string()).filter(_.nonEmpty).getOrElse("{}")
+      APIResponse(response.code(), json.parse(bodyStr))
+    } finally {
+      response.close()
+    }
   }
 
-  private def getAPIResponseAsync(esUrl: String, body: String = ""): Future[APIResponse] = {
-    val promise = Promise[APIResponse]()
-    val request = buildRequest(esUrl, body)
-    httpClient.newCall(request).enqueue(new okhttp3.Callback {
-      override def onFailure(call: okhttp3.Call, e: java.io.IOException): Unit =
-        promise.failure(e)
-      override def onResponse(call: okhttp3.Call, response: okhttp3.Response): Unit = {
-        try {
-          val bodyStr = Option(response.body()).map(_.string()).filter(_.nonEmpty).getOrElse("{}")
-          promise.success(APIResponse(response.code(), json.parse(bodyStr)))
-        } catch {
-          case e: Throwable => promise.failure(e)
-        } finally {
-          response.close()
-        }
-      }
-    })
-    promise.future
-  }
+  private def getAPIResponseAsync(esUrl: String, body: String = ""): Future[APIResponse] =
+    Future { scala.concurrent.blocking { getAPIResponse(esUrl, body) } }
 
   private def buildRequest(esUrl: String, body: String): OkRequest =
     if (body.nonEmpty)
