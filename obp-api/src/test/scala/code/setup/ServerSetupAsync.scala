@@ -35,7 +35,6 @@ import code.TestServer
 import code.api.util.{APIUtil, CustomJsonFormats}
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model.{AccountId, BankId}
-import dispatch._
 import net.liftweb.common.{Empty, Full}
 import org.json4s.JsonDSL._
 import org.scalatest._

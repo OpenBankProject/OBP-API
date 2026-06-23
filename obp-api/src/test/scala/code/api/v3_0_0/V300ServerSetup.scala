@@ -5,7 +5,7 @@ import code.api.util.APIUtil.OAuth.{Consumer, Token, _}
 import code.api.v1_2_1.{AccountJSON, AccountsJSON, BanksJSON, ViewsJSONV121}
 import code.api.v2_0_0.BasicAccountsJSON
 import code.setup.{APIResponse, DefaultUsers, ServerSetupWithTestData}
-import dispatch.Req
+import code.setup.OBPReq
 
 import scala.util.Random.nextInt
 
@@ -14,7 +14,7 @@ import scala.util.Random.nextInt
  */
 trait V300ServerSetup extends ServerSetupWithTestData with DefaultUsers {
 
-  def v3_0Request: Req = baseRequest / "obp" / "v3.0.0"
+  def v3_0Request: OBPReq = baseRequest / "obp" / "v3.0.0"
   
   
   //When new version, this would be the first endpoint to test, to make sure it works well. 

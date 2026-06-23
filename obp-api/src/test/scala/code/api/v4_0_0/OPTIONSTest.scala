@@ -25,14 +25,9 @@ TESOBE (http://www.tesobe.com/)
   */
 package code.api.v4_0_0
 
-import com.openbankproject.commons.ExecutionContext.Implicits.global
+import code.setup.OBPReq
 import com.openbankproject.commons.util.ApiVersion
-import dispatch.{Http, as}
-import org.asynchttpclient.Response
 import org.scalatest.Tag
-
-import scala.concurrent.Await
-import scala.concurrent.duration.Duration
 
 class OPTIONSTest extends V400ServerSetup {
 
@@ -51,22 +46,24 @@ class OPTIONSTest extends V400ServerSetup {
     scenario("We send a common OPTIONS http request", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
       val requestOPTIONS = (v4_0_0_Request / "banks").OPTIONS
-      val response204: Response = Await.result({
-        Http.default(requestOPTIONS > as.Response(p => p))
-      }, Duration.Inf)
+      val response204 = OBPReq.client.newCall(requestOPTIONS.toOkHttpRequest).execute()
 
-      Then("We should get a 204")
-      response204.getStatusCode() should equal(204)
+      try {
+        Then("We should get a 204")
+        response204.code() should equal(204)
 
-      Then("response header should be correct")
-      response204.getHeader("Access-Control-Allow-Origin") shouldBe "*"
-      response204.getHeader("Access-Control-Allow-Credentials") shouldBe "true"
-      // Content-Type is absent on 204 No Content — HTTP spec does not permit a body on 204,
-      // so Content-Type is irrelevant. The previous assertion reflected incidental Lift bridge
-      // behaviour; the native corsHandler correctly omits it.
+        Then("response header should be correct")
+        response204.header("Access-Control-Allow-Origin") shouldBe "*"
+        response204.header("Access-Control-Allow-Credentials") shouldBe "true"
+        // Content-Type is absent on 204 No Content — HTTP spec does not permit a body on 204,
+        // so Content-Type is irrelevant. The previous assertion reflected incidental Lift bridge
+        // behaviour; the native corsHandler correctly omits it.
 
-      Then("body should be empty")
-      response204.getResponseBody shouldBe empty
+        Then("body should be empty")
+        Option(response204.body()).map(_.string()).getOrElse("") shouldBe empty
+      } finally {
+        response204.close()
+      }
     }
   }
 

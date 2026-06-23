@@ -43,7 +43,7 @@ import net.liftweb.common.Full
 import org.json4s.JArray
 import org.json4s.native.Serialization.write
 import org.scalatest.Tag
-import dispatch.Req
+import code.setup.OBPReq
 import org.json4s.JArray
 
 import java.net.URLEncoder

@@ -2,13 +2,13 @@ package code.api.v5_0_0
 
 import code.api.v4_0_0.BanksJson400
 import code.setup._
-import dispatch.Req
+import code.setup.OBPReq
 
 import scala.util.Random.nextInt
 
 trait V500ServerSetupAsync extends ServerSetupWithTestDataAsync with DefaultUsers {
 
-  def v5_0_0_Request: Req = baseRequest / "obp" / "v5.0.0"
+  def v5_0_0_Request: OBPReq = baseRequest / "obp" / "v5.0.0"
 
   def randomBankId : String = {
     def getBanksInfo : APIResponse  = {

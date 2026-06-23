@@ -9,7 +9,7 @@ import code.api.v3_0_0.ViewJsonV300
 import code.api.v4_0_0.{PostAccountAccessJsonV400, PostViewJsonV400}
 import code.setup.ServerSetupWithTestData
 import code.views.Views
-import dispatch.Req
+import code.setup.OBPReq
 import org.json4s.native.Serialization.write
 import org.scalatest.Tag
 
@@ -18,7 +18,7 @@ trait BerlinGroupServerSetupV1_3 extends ServerSetupWithTestData {
   val berlinGroupVersion1: String = ConstantsBG.berlinGroupVersion1.apiShortVersion
   object BerlinGroupV1_3 extends Tag("BerlinGroup_v1_3")
   val V1_3_BG = baseRequest / ConstantsBG.berlinGroupVersion1.urlPrefix / ConstantsBG.berlinGroupVersion1.apiShortVersion
-  def v4_0_0_Request: Req = baseRequest / "obp" / "v4.0.0"
+  def v4_0_0_Request: OBPReq = baseRequest / "obp" / "v4.0.0"
 
   override def beforeEach() = {
     super.beforeEach()

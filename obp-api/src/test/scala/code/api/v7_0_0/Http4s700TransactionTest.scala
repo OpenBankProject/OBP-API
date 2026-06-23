@@ -4,18 +4,11 @@ import org.json4s._
 import code.Http4sTestServer
 import code.api.util.ApiRole.{canCreateEntitlementAtAnyBank, canDeleteEntitlementAtAnyBank}
 import code.entitlement.Entitlement
-import code.setup.ServerSetupWithTestData
-import dispatch.Defaults._
-import dispatch._
+import code.setup.{OBPReq, ServerSetupWithTestData}
 import org.json4s.JsonAST.{JObject, JString}
 import com.openbankproject.commons.util.JsonAliases.parse
 import org.json4s.JValue
 import org.scalatest.Tag
-
-import scala.collection.JavaConverters._
-import scala.concurrent.Await
-import scala.concurrent.duration._
-import com.openbankproject.commons.util.JsonAliases.RichJField
 
 /**
  * Integration tests for the v7 request-scoped transaction feature.
@@ -45,23 +38,25 @@ class Http4s700TransactionTest extends ServerSetupWithTestData {
   private val http4sServer = Http4sTestServer
   private val baseUrl      = s"http://${http4sServer.host}:${http4sServer.port}"
 
-  // ─── HTTP helpers (copied from Http4s700RoutesTest) ───────────────────────
+  // ─── HTTP helpers ────────────────────────────────────────────────────────────
 
   private def makeHttpRequest(
     path: String,
     headers: Map[String, String] = Map.empty
   ): (Int, JValue, Map[String, String]) = {
-    val request = url(s"$baseUrl$path")
-    val withHdr = headers.foldLeft(request) { case (r, (k, v)) => r.addHeader(k, v) }
-    val response = Http.default(
-      withHdr.setHeader("Accept", "*/*") > as.Response(p =>
-        (p.getStatusCode, p.getResponseBody,
-          p.getHeaders.iterator().asScala.map(e => e.getKey -> e.getValue).toMap)
-      )
-    )
-    val (status, body, hdrs) = Await.result(response, 10.seconds)
-    val json = if (body.trim.isEmpty) JObject(Nil) else parse(body)
-    (status, json, hdrs)
+    val req = headers.foldLeft(OBPReq.url(s"$baseUrl$path").addHeader("Accept", "*/*")) {
+      case (r, (k, v)) => r.addHeader(k, v)
+    }
+    val response = OBPReq.client.newCall(req.toOkHttpRequest).execute()
+    try {
+      val bodyStr = Option(response.body()).map(_.string()).getOrElse("")
+      val status  = response.code()
+      val hdrs    = response.headers().toMultimap.asScala.map { case (k, vs) => k -> vs.asScala.mkString(",") }.toMap
+      val json    = if (bodyStr.trim.isEmpty) JObject(Nil) else parse(bodyStr)
+      (status, json, hdrs)
+    } finally {
+      response.close()
+    }
   }
 
   private def makeHttpRequestWithBody(
@@ -70,24 +65,25 @@ class Http4s700TransactionTest extends ServerSetupWithTestData {
     body: String,
     headers: Map[String, String] = Map.empty
   ): (Int, JValue, Map[String, String]) = {
-    val base    = url(s"$baseUrl$path")
-    val withHdr = (headers + ("Content-Type" -> "application/json")).foldLeft(base) {
-      case (r, (k, v)) => r.addHeader(k, v)
-    }
-    val methodReq = method.toUpperCase match {
+    val base = OBPReq.url(s"$baseUrl$path")
+      .addHeader("Accept", "*/*")
+      .addHeader("Content-Type", "application/json")
+    val withHdr = headers.foldLeft(base) { case (r, (k, v)) => r.addHeader(k, v) }
+    val req = method.toUpperCase match {
       case "POST" => withHdr.POST << body
       case "PUT"  => withHdr.PUT  << body
       case _      => withHdr << body
     }
-    val response = Http.default(
-      methodReq.setHeader("Accept", "*/*") > as.Response(p =>
-        (p.getStatusCode, p.getResponseBody,
-          p.getHeaders.iterator().asScala.map(e => e.getKey -> e.getValue).toMap)
-      )
-    )
-    val (status, responseBody, hdrs) = Await.result(response, 10.seconds)
-    val json = if (responseBody.trim.isEmpty) JObject(Nil) else parse(responseBody)
-    (status, json, hdrs)
+    val response = OBPReq.client.newCall(req.toOkHttpRequest).execute()
+    try {
+      val responseBody = Option(response.body()).map(_.string()).getOrElse("")
+      val status = response.code()
+      val hdrs   = response.headers().toMultimap.asScala.map { case (k, vs) => k -> vs.asScala.mkString(",") }.toMap
+      val json   = if (responseBody.trim.isEmpty) JObject(Nil) else parse(responseBody)
+      (status, json, hdrs)
+    } finally {
+      response.close()
+    }
   }
 
   private def makeHttpRequestWithMethod(
@@ -95,23 +91,26 @@ class Http4s700TransactionTest extends ServerSetupWithTestData {
     path: String,
     headers: Map[String, String] = Map.empty
   ): (Int, JValue, Map[String, String]) = {
-    val base    = url(s"$baseUrl$path")
+    val base    = OBPReq.url(s"$baseUrl$path").addHeader("Accept", "*/*")
     val withHdr = headers.foldLeft(base) { case (r, (k, v)) => r.addHeader(k, v) }
-    val methodReq = method.toUpperCase match {
+    val req = method.toUpperCase match {
       case "DELETE" => withHdr.DELETE
       case "POST"   => withHdr.POST
       case _        => withHdr
     }
-    val response = Http.default(
-      methodReq.setHeader("Accept", "*/*") > as.Response(p =>
-        (p.getStatusCode, p.getResponseBody,
-          p.getHeaders.iterator().asScala.map(e => e.getKey -> e.getValue).toMap)
-      )
-    )
-    val (status, body, hdrs) = Await.result(response, 10.seconds)
-    val json = if (body.trim.isEmpty) JObject(Nil) else parse(body)
-    (status, json, hdrs)
+    val response = OBPReq.client.newCall(req.toOkHttpRequest).execute()
+    try {
+      val bodyStr = Option(response.body()).map(_.string()).getOrElse("")
+      val status  = response.code()
+      val hdrs    = response.headers().toMultimap.asScala.map { case (k, vs) => k -> vs.asScala.mkString(",") }.toMap
+      val json    = if (bodyStr.trim.isEmpty) JObject(Nil) else parse(bodyStr)
+      (status, json, hdrs)
+    } finally {
+      response.close()
+    }
   }
+
+  import scala.collection.JavaConverters._
 
   private def entitlementIdFromJson(json: JValue): String =
     json match {
@@ -229,7 +228,6 @@ class Http4s700TransactionTest extends ServerSetupWithTestData {
       }
 
       Then("All POST responses are 201 and all DELETE responses are 204")
-      // Filter to only the statuses we actually got (no skipped deletes)
       val postStatuses   = allStatuses.zipWithIndex.collect { case (s, i) if i % 2 == 0 => s }
       val deleteStatuses = allStatuses.zipWithIndex.collect { case (s, i) if i % 2 == 1 => s }
       postStatuses.forall(_ == 201) shouldBe true
@@ -238,7 +236,6 @@ class Http4s700TransactionTest extends ServerSetupWithTestData {
 
     scenario("A 4xx error response does not exhaust the connection pool", Http4s700TransactionTag) {
       Given("An unauthenticated POST request that will return 401")
-      // No auth header — 401 is guaranteed regardless of any prior role grants in this suite.
       val body = s"""{"bank_id":"","role_name":"CanGetAnyUser"}"""
       val (unauthStatus, _, _) = makeHttpRequestWithBody(
         "POST", s"/obp/v7.0.0/users/${resourceUser1.userId}/entitlements", body)

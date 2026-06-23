@@ -56,7 +56,6 @@ import code.views.Views
 import code.views.system.ViewDefinition
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.AccountRoutingScheme
-import dispatch._
 import net.liftweb.common.{Empty, ParamFailure}
 import org.json4s.JsonAST.{JObject, JValue}
 import org.json4s.JsonDSL._

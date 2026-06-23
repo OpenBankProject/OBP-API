@@ -2,7 +2,7 @@ package code.api.UKOpenBanking.v3_1_0
 
 import code.api.util.APIUtil.OAuth._
 import code.setup.{APIResponse, DefaultUsers, ServerSetupWithTestData}
-import dispatch.Req
+import code.setup.OBPReq
 
 /**
  * Shared setup + request helpers for the UK Open Banking v3.1 test suites.
@@ -14,10 +14,10 @@ import dispatch.Req
  */
 trait UKOpenBankingV310ServerSetup extends ServerSetupWithTestData with DefaultUsers {
 
-  def v31Request: Req = baseRequest / "open-banking" / "v3.1"
+  def v31Request: OBPReq = baseRequest / "open-banking" / "v3.1"
 
   // Build a request from path segments, e.g. v31("accounts", accountId, "balances").
-  def v31(segments: String*): Req = segments.foldLeft(v31Request)((req, s) => req / s)
+  def v31(segments: String*): OBPReq = segments.foldLeft(v31Request)((req, s) => req / s)
 
   def getAuthed(segments: String*): APIResponse = makeGetRequest(v31(segments: _*).GET <@ (user1))
   def getUnauthed(segments: String*): APIResponse = makeGetRequest(v31(segments: _*).GET)

@@ -33,12 +33,6 @@
       <artifactId>lift-persistence_${scala.version}</artifactId>
     </dependency>
     <dependency>
-      <groupId>net.databinder.dispatch</groupId>
-      <artifactId>dispatch-core_${scala.version}</artifactId>
-      <version>0.13.1</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
       <groupId>org.json4s</groupId>
       <artifactId>json4s-native_${scala.version}</artifactId>
     </dependency>
@@ -403,18 +397,6 @@
       <artifactId>grpc-services</artifactId>
       <version>1.75.0</version>
     </dependency>
-    <dependency>
-      <groupId>org.asynchttpclient</groupId>
-      <artifactId>async-http-client</artifactId>
-      <version>2.15.0</version>
-      <scope>test</scope>
-        <exclusions>
-            <exclusion>
-                <artifactId>javax.activation</artifactId>
-                <groupId>com.sun.activation</groupId>
-            </exclusion>
-        </exclusions>
-    </dependency>
     <!-- grpc related end-->
 
     <!-- Doobie - Pure functional JDBC layer for raw SQL queries (also backs the stored procedure connector) -->
@@ -471,14 +453,34 @@
          sandbox boundaries) and CVE-2022-21449 (ECDSA signature bypass present in
          22.0 builds). GraalVM 23.0+ requires JDK 17+, so 22.3.3 is the target. -->
     <dependency>
-      <groupId>org.graalvm.js</groupId>
-      <artifactId>js</artifactId>
-      <version>22.3.3</version>
+      <groupId>org.graalvm.polyglot</groupId>
+      <artifactId>polyglot</artifactId>
+      <version>24.1.2</version>
     </dependency>
     <dependency>
       <groupId>org.graalvm.js</groupId>
-      <artifactId>js-scriptengine</artifactId>
-      <version>22.3.3</version>
+      <artifactId>js-language</artifactId>
+      <version>24.1.2</version>
+    </dependency>
+    <dependency>
+      <groupId>org.graalvm.truffle</groupId>
+      <artifactId>truffle-api</artifactId>
+      <version>24.1.2</version>
+    </dependency>
+    <dependency>
+      <groupId>org.graalvm.truffle</groupId>
+      <artifactId>truffle-runtime</artifactId>
+      <version>24.1.2</version>
+    </dependency>
+    <dependency>
+      <groupId>org.graalvm.regex</groupId>
+      <artifactId>regex</artifactId>
+      <version>24.1.2</version>
+    </dependency>
+    <dependency>
+      <groupId>org.graalvm.shadowed</groupId>
+      <artifactId>icu4j</artifactId>
+      <version>24.1.2</version>
     </dependency>
     <!--java dynamic compiler-->
     <dependency>
