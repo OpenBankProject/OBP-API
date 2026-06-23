@@ -4834,10 +4834,15 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   }
 
   def incrementFutureCounter(serviceName:String) = {
+    // Atomically increment both the total-call counter and the open-futures counter for this
+    // service. ConcurrentHashMap.compute holds the segment lock for the entire lambda, so the
+    // read-modify-write is a single atomic step — no lost updates under concurrent callers.
+    // totalCallCount  : ever-increasing; used by canOpenFuture for back-off modulo arithmetic.
+    // openFuturesCount: tracks how many futures are currently in-flight for this service.
     val (serviceNameCounterLatest, serviceNameOpenFuturesCounterLatest) =
       serviceNameCountersMap.compute(serviceName, (_, old) => {
-        val (c, o) = if (old == null) (0, 0) else old
-        (c + 1, o + 1)
+        val (totalCallCount, openFuturesCount) = if (old == null) (0, 0) else old
+        (totalCallCount + 1, openFuturesCount + 1)
       })
 
     if(serviceNameOpenFuturesCounterLatest>=expectedOpenFuturesPerService) {
@@ -4847,10 +4852,14 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   }
 
   def decrementFutureCounter(serviceName:String) = {
+    // Atomically decrement only the open-futures counter; totalCallCount is left unchanged
+    // because it reflects the cumulative number of calls ever started, not the current load.
+    // The null-guard initialises to (0, 1) and subtracts 1 → (0, 0), which is the safe
+    // no-op fallback if decrement is somehow called before any increment.
     val (serviceNameCounterLatest, serviceNameOpenFuturesCounterLatest) =
       serviceNameCountersMap.compute(serviceName, (_, old) => {
-        val (c, o) = if (old == null) (0, 1) else old
-        (c, o - 1)
+        val (totalCallCount, openFuturesCount) = if (old == null) (0, 1) else old
+        (totalCallCount, openFuturesCount - 1)
       })
     logger.debug(s"decrementFutureCounter says: serviceName is $serviceName, serviceNameCounterLatest is $serviceNameCounterLatest, serviceNameOpenFuturesCounterLatest is ${serviceNameOpenFuturesCounterLatest}")
   }
