@@ -119,7 +119,43 @@ object Migration extends MdcLoggable {
       migrateConsentReferenceIdToUuid(startedBeforeSchemifier)
       migrateMetricConsentReferenceId(startedBeforeSchemifier)
     }
-    
+
+    def deduplicateBeforeUniqueIndexSchemify(): Unit = {
+      deduplicateNaturalKeyDups(
+        tableName = "mapperaccountholder",
+        idCol     = "id",
+        groupCols = List("user_", "accountbankpermalink", "accountpermalink")
+      )
+      deduplicateNaturalKeyDups(
+        tableName = "mappedentitlement",
+        idCol     = "id",
+        groupCols = List("mbankid", "muserid", "mrolename")
+      )
+    }
+
+    private def deduplicateNaturalKeyDups(tableName: String, idCol: String, groupCols: List[String]): Unit = {
+      if (DbFunction.tableExistsByName(tableName)) {
+        val groupBy = groupCols.mkString(", ")
+        val hasDups = DB.use(net.liftweb.util.DefaultConnectionIdentifier) { conn =>
+          val st = conn.createStatement()
+          try {
+            val rs = st.executeQuery(s"SELECT 1 FROM $tableName GROUP BY $groupBy HAVING COUNT(*) > 1")
+            try rs.next() finally rs.close()
+          } finally st.close()
+        }
+        if (hasDups) {
+          logger.warn(s"deduplicateBeforeUniqueIndexSchemify: duplicates found in $tableName – removing extras")
+          DB.use(net.liftweb.util.DefaultConnectionIdentifier) { conn =>
+            val st = conn.createStatement()
+            try {
+              st.execute(s"DELETE FROM $tableName WHERE $idCol NOT IN (SELECT MIN($idCol) FROM $tableName GROUP BY $groupBy)")
+            } finally st.close()
+          }
+          logger.warn(s"deduplicateBeforeUniqueIndexSchemify: dedup of $tableName complete")
+        }
+      }
+    }
+
     private def dummyScript(): Boolean = {
       val name = nameOf(dummyScript)
       runOnce(name) {
@@ -714,6 +750,20 @@ object Migration extends MdcLoggable {
           }
       }
     }
+    def tableExistsByName(tableName: String): Boolean = {
+      DB.use(net.liftweb.util.DefaultConnectionIdentifier) { conn =>
+        val md = conn.getMetaData
+        val schema = getDefaultSchemaName(conn)
+        using(md.getTables(null, schema, null, null)) { rs =>
+          def check(): Boolean =
+            if (!rs.next) false
+            else if (rs.getString(3).toLowerCase == tableName.toLowerCase) true
+            else check()
+          check()
+        }
+      }
+    }
+
     /**
       * The purpose is to provide answer does a procedure exist at a database instance.
       */

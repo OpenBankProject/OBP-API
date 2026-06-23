@@ -264,6 +264,7 @@ class Boot extends MdcLoggable {
      */
     MapperRules.createForeignKeys_? = (_) => APIUtil.getPropsAsBoolValue("mapper_rules.create_foreign_keys", false)
 
+    Migration.database.deduplicateBeforeUniqueIndexSchemify()
     schemifyAll()
 
     logger.info("Mapper database info: " + Migration.DbFunction.mapperDatabaseInfo)
