@@ -117,7 +117,14 @@
       <artifactId>protobuf-java</artifactId>
       <version>3.25.5</version>
     </dependency>
-    <!-- Pin snappy-java to override the 1.1.1.3 pulled in transitively by avro 1.8.2.
+    <!-- Pin org.apache.avro:avro to 1.11.4 to override the 1.9.2 pulled in transitively
+         by avro4s 4.1.2. Fixes CVE-2024-47561 (CVSS 9.8 — RCE via schema parsing). -->
+    <dependency>
+      <groupId>org.apache.avro</groupId>
+      <artifactId>avro</artifactId>
+      <version>${apache.avro.version}</version>
+    </dependency>
+    <!-- Pin snappy-java to override older versions pulled in transitively by avro.
          Fixes CVE-2023-34453, CVE-2023-34454, CVE-2023-34455, CVE-2023-43642. -->
     <dependency>
       <groupId>org.xerial.snappy</groupId>
@@ -229,7 +236,7 @@
     <dependency>
       <groupId>com.sksamuel.avro4s</groupId>
       <artifactId>avro4s-core_${scala.version}</artifactId>
-      <version>${avro.version}</version>
+      <version>${avro4s.version}</version>
     </dependency>
     <dependency>
       <groupId>org.apache.commons</groupId>
