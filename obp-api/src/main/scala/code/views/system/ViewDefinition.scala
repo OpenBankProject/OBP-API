@@ -60,6 +60,14 @@ class ViewDefinition extends View with LongKeyedMapper[ViewDefinition] with Many
     override def defaultValue = ""
   }
   
+  // Retired (issue #26): the per-permission boolean columns below have been replaced by the
+  // ViewPermission table. They are no longer read or written by any code path — the accessors
+  // above derive from `allowed_actions`, and view creation/update writes via
+  // ViewPermission.resetViewPermissions. Commenting them out makes Lift's Schemifier stop
+  // managing these columns; the physical DB columns remain untouched and can be dropped later
+  // via an explicit SQL migration. The two `MappedText` list columns (canGrantAccessToViews_ /
+  // canRevokeAccessToViews_) are intentionally kept above.
+  /*
   object canRevokeAccessToCustomViews_ extends MappedBoolean(this){
     override def defaultValue = false
   }
@@ -341,6 +349,7 @@ class ViewDefinition extends View with LongKeyedMapper[ViewDefinition] with Many
   object canSeeTransactionStatus_ extends MappedBoolean(this){
     override def defaultValue = false
   }
+  */
 
   //Important! If you add a field, be sure to handle it here in this function
   def setFromViewData(viewSpecification : ViewSpecification) = {
@@ -446,98 +455,104 @@ class ViewDefinition extends View with LongKeyedMapper[ViewDefinition] with Many
     })
   }
 
-  //TODO All the following methods can be removed later, we use ViewPermission table instead. 
-  override def canRevokeAccessToCustomViews : Boolean = canRevokeAccessToCustomViews_.get
-  override def canGrantAccessToCustomViews : Boolean = canGrantAccessToCustomViews_.get
-  def canSeeTransactionThisBankAccount : Boolean = canSeeTransactionThisBankAccount_.get
-  def canSeeTransactionRequests : Boolean = canSeeTransactionRequests_.get
-  def canSeeTransactionRequestTypes: Boolean = canSeeTransactionRequestTypes_.get
-  def canSeeTransactionOtherBankAccount : Boolean = canSeeTransactionOtherBankAccount_.get
-  def canSeeTransactionMetadata : Boolean = canSeeTransactionMetadata_.get
-  def canSeeTransactionDescription: Boolean = canSeeTransactionDescription_.get
-  def canSeeTransactionAmount: Boolean = canSeeTransactionAmount_.get
-  def canSeeTransactionType: Boolean = canSeeTransactionType_.get
-  def canSeeTransactionCurrency: Boolean = canSeeTransactionCurrency_.get
-  def canSeeTransactionStartDate: Boolean = canSeeTransactionStartDate_.get
-  def canSeeTransactionFinishDate: Boolean = canSeeTransactionFinishDate_.get
-  def canSeeTransactionBalance: Boolean = canSeeTransactionBalance_.get
-  def canSeeTransactionStatus: Boolean = canSeeTransactionStatus_.get
-  def canSeeComments: Boolean = canSeeComments_.get
-  def canSeeOwnerComment: Boolean = canSeeOwnerComment_.get
-  def canSeeTags : Boolean = canSeeTags_.get
-  def canSeeImages : Boolean = canSeeImages_.get
-  def canSeeAvailableViewsForBankAccount : Boolean = canSeeAvailableViewsForBankAccount_.get
-  def canSeeBankAccountOwners : Boolean = canSeeBankAccountOwners_.get
-  def canSeeBankAccountType : Boolean = canSeeBankAccountType_.get
-  def canSeeBankAccountBalance : Boolean = canSeeBankAccountBalance_.get
-  def canSeeBankAccountCurrency : Boolean = canSeeBankAccountCurrency_.get
-  def canQueryAvailableFunds : Boolean = canQueryAvailableFunds_.get
-  def canSeeBankAccountLabel : Boolean = canSeeBankAccountLabel_.get
-  def canUpdateBankAccountLabel : Boolean = canUpdateBankAccountLabel_.get
-  def canSeeBankAccountNationalIdentifier : Boolean = canSeeBankAccountNationalIdentifier_.get
-  def canSeeBankAccountSwiftBic : Boolean = canSeeBankAccountSwift_bic_.get
-  def canSeeBankAccountIban : Boolean = canSeeBankAccountIban_.get
-  def canSeeBankAccountNumber : Boolean = canSeeBankAccountNumber_.get
-  def canSeeBankAccountBankName : Boolean = canSeeBankAccountBankName_.get
-  def canSeeBankAccountBankPermalink : Boolean = canSeeBankAccountBankPermalink_.get
-  def canSeeBankRoutingScheme : Boolean = canSeeBankRoutingScheme_.get
-  def canSeeBankRoutingAddress : Boolean = canSeeBankRoutingAddress_.get
-  def canSeeBankAccountRoutingScheme : Boolean = canSeeBankAccountRoutingScheme_.get
-  def canSeeBankAccountRoutingAddress : Boolean = canSeeBankAccountRoutingAddress_.get
-  def canSeeViewsWithPermissionsForOneUser: Boolean = canSeeViewsWithPermissionsForOneUser_.get
-  def canSeeViewsWithPermissionsForAllUsers : Boolean = canSeeViewsWithPermissionsForAllUsers_.get
-  def canSeeOtherAccountNationalIdentifier : Boolean = canSeeOtherAccountNationalIdentifier_.get
-  def canSeeOtherAccountSwiftBic : Boolean = canSeeOtherAccountSWIFT_BIC_.get
-  def canSeeOtherAccountIban : Boolean = canSeeOtherAccountIBAN_.get
-  def canSeeOtherAccountBankName : Boolean = canSeeOtherAccountBankName_.get
-  def canSeeOtherAccountNumber : Boolean = canSeeOtherAccountNumber_.get
-  def canSeeOtherAccountMetadata : Boolean = canSeeOtherAccountMetadata_.get
-  def canSeeOtherAccountKind : Boolean = canSeeOtherAccountKind_.get
-  def canSeeOtherBankRoutingScheme : Boolean = canSeeOtherBankRoutingScheme_.get
-  def canSeeOtherBankRoutingAddress : Boolean = canSeeOtherBankRoutingAddress_.get
-  def canSeeOtherAccountRoutingScheme : Boolean = canSeeOtherAccountRoutingScheme_.get
-  def canSeeOtherAccountRoutingAddress : Boolean = canSeeOtherAccountRoutingAddress_.get
-  def canSeeMoreInfo: Boolean = canSeeMoreInfo_.get
-  def canSeeUrl: Boolean = canSeeUrl_.get
-  def canSeeImageUrl: Boolean = canSeeImageUrl_.get
-  def canSeeOpenCorporatesUrl: Boolean = canSeeOpenCorporatesUrl_.get
-  def canSeeCorporateLocation : Boolean = canSeeCorporateLocation_.get
-  def canSeePhysicalLocation : Boolean = canSeePhysicalLocation_.get
-  def canSeePublicAlias : Boolean = canSeePublicAlias_.get
-  def canSeePrivateAlias : Boolean = canSeePrivateAlias_.get
-  def canAddMoreInfo : Boolean = canAddMoreInfo_.get
-  def canAddUrl : Boolean = canAddURL_.get
-  def canAddImageUrl : Boolean = canAddImageURL_.get
-  def canAddOpenCorporatesUrl : Boolean = canAddOpenCorporatesUrl_.get
-  def canAddCorporateLocation : Boolean = canAddCorporateLocation_.get
-  def canAddPhysicalLocation : Boolean = canAddPhysicalLocation_.get
-  def canAddPublicAlias : Boolean = canAddPublicAlias_.get
-  def canAddPrivateAlias : Boolean = canAddPrivateAlias_.get
-  def canAddCounterparty : Boolean = canAddCounterparty_.get
-  def canGetCounterparty : Boolean = canGetCounterparty_.get
-  def canDeleteCounterparty : Boolean = canDeleteCounterparty_.get
-  def canDeleteCorporateLocation : Boolean = canDeleteCorporateLocation_.get
-  def canDeletePhysicalLocation : Boolean = canDeletePhysicalLocation_.get
-  def canEditOwnerComment: Boolean = canEditOwnerComment_.get
-  def canAddComment : Boolean = canAddComment_.get
-  def canDeleteComment: Boolean = canDeleteComment_.get
-  def canAddTag : Boolean = canAddTag_.get
-  def canDeleteTag : Boolean = canDeleteTag_.get
-  def canAddImage : Boolean = canAddImage_.get
-  def canDeleteImage : Boolean = canDeleteImage_.get
-  def canAddWhereTag : Boolean = canAddWhereTag_.get
-  def canSeeWhereTag : Boolean = canSeeWhereTag_.get
-  def canDeleteWhereTag : Boolean = canDeleteWhereTag_.get
+  // These permission accessors now derive from the ViewPermission table via `allowed_actions`,
+  // not the legacy per-permission boolean columns (issue #26). The boolean columns have been
+  // retired and the ViewPermission table is the single source of truth. Each accessor maps to
+  // exactly one permission-string constant (see code.api.Constant) — the same 1:1 mapping the
+  // former migration used via StringHelpers.camelifyMethod.
+  private def hasPermission(permission: String): Boolean = allowed_actions.exists(_ == permission)
+
+  override def canRevokeAccessToCustomViews : Boolean = hasPermission(CAN_REVOKE_ACCESS_TO_CUSTOM_VIEWS)
+  override def canGrantAccessToCustomViews : Boolean = hasPermission(CAN_GRANT_ACCESS_TO_CUSTOM_VIEWS)
+  def canSeeTransactionThisBankAccount : Boolean = hasPermission(CAN_SEE_TRANSACTION_THIS_BANK_ACCOUNT)
+  def canSeeTransactionRequests : Boolean = hasPermission(CAN_SEE_TRANSACTION_REQUESTS)
+  def canSeeTransactionRequestTypes: Boolean = hasPermission(CAN_SEE_TRANSACTION_REQUEST_TYPES)
+  def canSeeTransactionOtherBankAccount : Boolean = hasPermission(CAN_SEE_TRANSACTION_OTHER_BANK_ACCOUNT)
+  def canSeeTransactionMetadata : Boolean = hasPermission(CAN_SEE_TRANSACTION_METADATA)
+  def canSeeTransactionDescription: Boolean = hasPermission(CAN_SEE_TRANSACTION_DESCRIPTION)
+  def canSeeTransactionAmount: Boolean = hasPermission(CAN_SEE_TRANSACTION_AMOUNT)
+  def canSeeTransactionType: Boolean = hasPermission(CAN_SEE_TRANSACTION_TYPE)
+  def canSeeTransactionCurrency: Boolean = hasPermission(CAN_SEE_TRANSACTION_CURRENCY)
+  def canSeeTransactionStartDate: Boolean = hasPermission(CAN_SEE_TRANSACTION_START_DATE)
+  def canSeeTransactionFinishDate: Boolean = hasPermission(CAN_SEE_TRANSACTION_FINISH_DATE)
+  def canSeeTransactionBalance: Boolean = hasPermission(CAN_SEE_TRANSACTION_BALANCE)
+  def canSeeTransactionStatus: Boolean = hasPermission(CAN_SEE_TRANSACTION_STATUS)
+  def canSeeComments: Boolean = hasPermission(CAN_SEE_COMMENTS)
+  def canSeeOwnerComment: Boolean = hasPermission(CAN_SEE_OWNER_COMMENT)
+  def canSeeTags : Boolean = hasPermission(CAN_SEE_TAGS)
+  def canSeeImages : Boolean = hasPermission(CAN_SEE_IMAGES)
+  def canSeeAvailableViewsForBankAccount : Boolean = hasPermission(CAN_SEE_AVAILABLE_VIEWS_FOR_BANK_ACCOUNT)
+  def canSeeBankAccountOwners : Boolean = hasPermission(CAN_SEE_BANK_ACCOUNT_OWNERS)
+  def canSeeBankAccountType : Boolean = hasPermission(CAN_SEE_BANK_ACCOUNT_TYPE)
+  def canSeeBankAccountBalance : Boolean = hasPermission(CAN_SEE_BANK_ACCOUNT_BALANCE)
+  def canSeeBankAccountCurrency : Boolean = hasPermission(CAN_SEE_BANK_ACCOUNT_CURRENCY)
+  def canQueryAvailableFunds : Boolean = hasPermission(CAN_QUERY_AVAILABLE_FUNDS)
+  def canSeeBankAccountLabel : Boolean = hasPermission(CAN_SEE_BANK_ACCOUNT_LABEL)
+  def canUpdateBankAccountLabel : Boolean = hasPermission(CAN_UPDATE_BANK_ACCOUNT_LABEL)
+  def canSeeBankAccountNationalIdentifier : Boolean = hasPermission(CAN_SEE_BANK_ACCOUNT_NATIONAL_IDENTIFIER)
+  def canSeeBankAccountSwiftBic : Boolean = hasPermission(CAN_SEE_BANK_ACCOUNT_SWIFT_BIC)
+  def canSeeBankAccountIban : Boolean = hasPermission(CAN_SEE_BANK_ACCOUNT_IBAN)
+  def canSeeBankAccountNumber : Boolean = hasPermission(CAN_SEE_BANK_ACCOUNT_NUMBER)
+  def canSeeBankAccountBankName : Boolean = hasPermission(CAN_SEE_BANK_ACCOUNT_BANK_NAME)
+  def canSeeBankAccountBankPermalink : Boolean = hasPermission(CAN_SEE_BANK_ACCOUNT_BANK_PERMALINK)
+  def canSeeBankRoutingScheme : Boolean = hasPermission(CAN_SEE_BANK_ROUTING_SCHEME)
+  def canSeeBankRoutingAddress : Boolean = hasPermission(CAN_SEE_BANK_ROUTING_ADDRESS)
+  def canSeeBankAccountRoutingScheme : Boolean = hasPermission(CAN_SEE_BANK_ACCOUNT_ROUTING_SCHEME)
+  def canSeeBankAccountRoutingAddress : Boolean = hasPermission(CAN_SEE_BANK_ACCOUNT_ROUTING_ADDRESS)
+  def canSeeViewsWithPermissionsForOneUser: Boolean = hasPermission(CAN_SEE_VIEWS_WITH_PERMISSIONS_FOR_ONE_USER)
+  def canSeeViewsWithPermissionsForAllUsers : Boolean = hasPermission(CAN_SEE_VIEWS_WITH_PERMISSIONS_FOR_ALL_USERS)
+  def canSeeOtherAccountNationalIdentifier : Boolean = hasPermission(CAN_SEE_OTHER_ACCOUNT_NATIONAL_IDENTIFIER)
+  def canSeeOtherAccountSwiftBic : Boolean = hasPermission(CAN_SEE_OTHER_ACCOUNT_SWIFT_BIC)
+  def canSeeOtherAccountIban : Boolean = hasPermission(CAN_SEE_OTHER_ACCOUNT_IBAN)
+  def canSeeOtherAccountBankName : Boolean = hasPermission(CAN_SEE_OTHER_ACCOUNT_BANK_NAME)
+  def canSeeOtherAccountNumber : Boolean = hasPermission(CAN_SEE_OTHER_ACCOUNT_NUMBER)
+  def canSeeOtherAccountMetadata : Boolean = hasPermission(CAN_SEE_OTHER_ACCOUNT_METADATA)
+  def canSeeOtherAccountKind : Boolean = hasPermission(CAN_SEE_OTHER_ACCOUNT_KIND)
+  def canSeeOtherBankRoutingScheme : Boolean = hasPermission(CAN_SEE_OTHER_BANK_ROUTING_SCHEME)
+  def canSeeOtherBankRoutingAddress : Boolean = hasPermission(CAN_SEE_OTHER_BANK_ROUTING_ADDRESS)
+  def canSeeOtherAccountRoutingScheme : Boolean = hasPermission(CAN_SEE_OTHER_ACCOUNT_ROUTING_SCHEME)
+  def canSeeOtherAccountRoutingAddress : Boolean = hasPermission(CAN_SEE_OTHER_ACCOUNT_ROUTING_ADDRESS)
+  def canSeeMoreInfo: Boolean = hasPermission(CAN_SEE_MORE_INFO)
+  def canSeeUrl: Boolean = hasPermission(CAN_SEE_URL)
+  def canSeeImageUrl: Boolean = hasPermission(CAN_SEE_IMAGE_URL)
+  def canSeeOpenCorporatesUrl: Boolean = hasPermission(CAN_SEE_OPEN_CORPORATES_URL)
+  def canSeeCorporateLocation : Boolean = hasPermission(CAN_SEE_CORPORATE_LOCATION)
+  def canSeePhysicalLocation : Boolean = hasPermission(CAN_SEE_PHYSICAL_LOCATION)
+  def canSeePublicAlias : Boolean = hasPermission(CAN_SEE_PUBLIC_ALIAS)
+  def canSeePrivateAlias : Boolean = hasPermission(CAN_SEE_PRIVATE_ALIAS)
+  def canAddMoreInfo : Boolean = hasPermission(CAN_ADD_MORE_INFO)
+  def canAddUrl : Boolean = hasPermission(CAN_ADD_URL)
+  def canAddImageUrl : Boolean = hasPermission(CAN_ADD_IMAGE_URL)
+  def canAddOpenCorporatesUrl : Boolean = hasPermission(CAN_ADD_OPEN_CORPORATES_URL)
+  def canAddCorporateLocation : Boolean = hasPermission(CAN_ADD_CORPORATE_LOCATION)
+  def canAddPhysicalLocation : Boolean = hasPermission(CAN_ADD_PHYSICAL_LOCATION)
+  def canAddPublicAlias : Boolean = hasPermission(CAN_ADD_PUBLIC_ALIAS)
+  def canAddPrivateAlias : Boolean = hasPermission(CAN_ADD_PRIVATE_ALIAS)
+  def canAddCounterparty : Boolean = hasPermission(CAN_ADD_COUNTERPARTY)
+  def canGetCounterparty : Boolean = hasPermission(CAN_GET_COUNTERPARTY)
+  def canDeleteCounterparty : Boolean = hasPermission(CAN_DELETE_COUNTERPARTY)
+  def canDeleteCorporateLocation : Boolean = hasPermission(CAN_DELETE_CORPORATE_LOCATION)
+  def canDeletePhysicalLocation : Boolean = hasPermission(CAN_DELETE_PHYSICAL_LOCATION)
+  def canEditOwnerComment: Boolean = hasPermission(CAN_EDIT_OWNER_COMMENT)
+  def canAddComment : Boolean = hasPermission(CAN_ADD_COMMENT)
+  def canDeleteComment: Boolean = hasPermission(CAN_DELETE_COMMENT)
+  def canAddTag : Boolean = hasPermission(CAN_ADD_TAG)
+  def canDeleteTag : Boolean = hasPermission(CAN_DELETE_TAG)
+  def canAddImage : Boolean = hasPermission(CAN_ADD_IMAGE)
+  def canDeleteImage : Boolean = hasPermission(CAN_DELETE_IMAGE)
+  def canAddWhereTag : Boolean = hasPermission(CAN_ADD_WHERE_TAG)
+  def canSeeWhereTag : Boolean = hasPermission(CAN_SEE_WHERE_TAG)
+  def canDeleteWhereTag : Boolean = hasPermission(CAN_DELETE_WHERE_TAG)
   def canAddTransactionRequestToOwnAccount: Boolean = false //we do not need this field, set this to false.
-  def canAddTransactionRequestToAnyAccount: Boolean = canAddTransactionRequestToAnyAccount_.get
-  def canAddTransactionRequestToBeneficiary: Boolean = canAddTransactionRequestToBeneficiary_.get
-  def canSeeBankAccountCreditLimit: Boolean = canSeeBankAccountCreditLimit_.get
-  def canCreateDirectDebit: Boolean = canCreateDirectDebit_.get
-  def canCreateStandingOrder: Boolean = canCreateStandingOrder_.get
-  def canCreateCustomView: Boolean = canCreateCustomView_.get
-  def canDeleteCustomView: Boolean = canDeleteCustomView_.get
-  def canUpdateCustomView: Boolean = canUpdateCustomView_.get
-  def canGetCustomView: Boolean = canGetCustomView_.get
+  def canAddTransactionRequestToAnyAccount: Boolean = hasPermission(CAN_ADD_TRANSACTION_REQUEST_TO_ANY_ACCOUNT)
+  def canAddTransactionRequestToBeneficiary: Boolean = hasPermission(CAN_ADD_TRANSACTION_REQUEST_TO_BENEFICIARY)
+  def canSeeBankAccountCreditLimit: Boolean = hasPermission(CAN_SEE_BANK_ACCOUNT_CREDIT_LIMIT)
+  def canCreateDirectDebit: Boolean = hasPermission(CAN_CREATE_DIRECT_DEBIT)
+  def canCreateStandingOrder: Boolean = hasPermission(CAN_CREATE_STANDING_ORDER)
+  def canCreateCustomView: Boolean = hasPermission(CAN_CREATE_CUSTOM_VIEW)
+  def canDeleteCustomView: Boolean = hasPermission(CAN_DELETE_CUSTOM_VIEW)
+  def canUpdateCustomView: Boolean = hasPermission(CAN_UPDATE_CUSTOM_VIEW)
+  def canGetCustomView: Boolean = hasPermission(CAN_GET_CUSTOM_VIEW)
 }
 
 object ViewDefinition extends ViewDefinition with LongKeyedMetaMapper[ViewDefinition] {

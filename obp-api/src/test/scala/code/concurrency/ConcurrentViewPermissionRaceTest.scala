@@ -27,7 +27,7 @@ TESOBE (http://www.tesobe.com/)
 package code.concurrency
 
 import code.api.Constant.ALL_CONSUMERS
-import code.views.{MapperViews, Views}
+import code.views.Views
 import code.views.system.{AccountAccess, ViewDefinition, ViewPermission}
 import com.openbankproject.commons.model.{AccountId, BankId, ViewId}
 import net.liftweb.mapper.By
@@ -58,11 +58,6 @@ import java.util.UUID
  *     references the view, then deletes the view. The two steps are not atomic and there is no
  *     transaction, so a grant committing an AccountAccess in the window leaves a row pointing at a
  *     now-deleted view. This deterministically replays that window (the structural hazard).
- *
- *  migrate. migrateViewPermissions find-then-insert — migrateViewPermissions checks
- *     findViewPermission for each permission; on Empty it calls ViewPermission.create.save with no
- *     tryo. Two concurrent migrations for the same view both see Empty and both insert the same
- *     (bank,account,view,permission) tuple → the second INSERT violates the unique index, uncaught.
  *
  * Asserts the correct (graceful, exactly-one-row, no-orphan) outcome, so EXPECTED TO FAIL while the
  * paths are unguarded. Tagged ConcurrencyRace.
@@ -204,60 +199,6 @@ class ConcurrentViewPermissionRaceTest extends ConcurrentRaceSetup {
         s"leaves an AccountAccess pointing at a deleted view — "
       ) {
         orphans shouldBe empty
-      }
-    }
-
-    scenario("migrate: concurrent migrateViewPermissions must not throw and must leave exactly one row per enabled permission", ConcurrencyRace) {
-      Given("a custom view with exactly 3 boolean permissions enabled")
-      val bank      = createBank("__conc-migrate-bank")
-      val bankId    = bank.bankId
-      val accountId = AccountId("__conc_migrate_acc")
-      createAccountRelevantResource(Some(resourceUser1), bankId, accountId, "EUR")
-
-      val viewIdStr = "__conc_migrate_view_" + java.util.UUID.randomUUID.toString.take(8)
-      val view: ViewDefinition = ViewDefinition.create
-        .isSystem_(false)
-        .isFirehose_(false)
-        .bank_id(bankId.value)
-        .account_id(accountId.value)
-        .view_id(viewIdStr)
-        .name_("conc-migrate-view")
-        .description_("conc-migrate")
-        .isPublic_(false)
-        .canSeeTransactionAmount_(true)
-        .canSeeTransactionCurrency_(true)
-        .canSeeTransactionDescription_(true)
-        .canSeeAvailableViewsForBankAccount_(false)
-        .usePrivateAliasIfOneExists_(false)
-        .usePublicAliasIfOneExists_(false)
-        .hideOtherAccountMetadataIfAlias_(false)
-        .saveMe()
-
-      val enabledCount = 3
-
-      def permCount: Long = ViewPermission.count(
-        By(ViewPermission.bank_id, bankId.value),
-        By(ViewPermission.account_id, accountId.value),
-        By(ViewPermission.view_id, viewIdStr)
-      )
-
-      val n = 2
-
-      When(s"$n threads concurrently migrateViewPermissions for the same (empty) view")
-      val results = runConcurrentWithBarrier(n) { _ =>
-        MapperViews.migrateViewPermissions(view)
-      }
-
-      Then("no call may throw, and exactly one row per enabled permission must remain")
-      val thrown     = results.collect { case scala.util.Failure(e) => e.getClass.getSimpleName + ": " + e.getMessage.take(120) }
-      val finalCount = permCount
-      withClue(
-        s"thrown=$thrown finalCount=$finalCount (expected: no throws, $enabledCount rows) — " +
-        s"migrateViewPermissions .save() is unguarded against UniqueIndex(bank_id,account_id,view_id,permission); " +
-        s"concurrent migrations collide on the insert — "
-      ) {
-        thrown shouldBe empty
-        finalCount should equal(enabledCount.toLong)
       }
     }
   }

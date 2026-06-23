@@ -60,7 +60,6 @@ object Migration extends MdcLoggable {
     def executeScripts(startedBeforeSchemifier: Boolean): Boolean = executeScript {
       dummyScript()
       addAccountAccessConsumerId()
-//      populateMigrationOfViewDefinitionPermissions(startedBeforeSchemifier)
       generateAndPopulateMissingCustomerUUIDs(startedBeforeSchemifier)
       generateAndPopulateMissingConsumersUUIDs(startedBeforeSchemifier)
       populateTableRateLimiting()
@@ -100,10 +99,7 @@ object Migration extends MdcLoggable {
       dropMappedBadLoginAttemptIndex()
       alterMetricColumnUrlLength()
       alterMetricArchiveColumnCorrelationidLength()
-//      populateViewDefinitionCanAddTransactionRequestToBeneficiary()
-//      populateViewDefinitionCanSeeTransactionStatus()
       alterCounterpartyLimitFieldType()
-      populateMigrationOfViewPermissions(startedBeforeSchemifier)
       changeTypeOfAudFieldAtConsumerTable()
       renameCustomerRoleNames()
       addUniqueIndexOnResourceUserUserId()
@@ -137,44 +133,6 @@ object Migration extends MdcLoggable {
       }
     }
     
-//    private def populateViewDefinitionCanAddTransactionRequestToBeneficiary(): Boolean = {
-//      val name = nameOf(populateViewDefinitionCanAddTransactionRequestToBeneficiary)
-//      runOnce(name) {
-//        MigrationOfViewDefinitionCanAddTransactionRequestToBeneficiary.populateTheField(name)
-//      }
-//    }  
-
-//    private def populateViewDefinitionCanSeeTransactionStatus(): Boolean = {
-//      val name = nameOf(populateViewDefinitionCanSeeTransactionStatus)
-//      runOnce(name) {
-//        MigrationOfViewDefinitionCanSeeTransactionStatus.populateTheField(name)
-//      }
-//    }  
-    
-
-//    private def populateMigrationOfViewDefinitionPermissions(startedBeforeSchemifier: Boolean): Boolean = {
-//      if (startedBeforeSchemifier == true) {
-//        logger.warn(s"Migration.database.populateMigrationOfViewDefinitionPermissions(true) cannot be run before Schemifier.")
-//        true
-//      } else {
-//        val name = nameOf(populateMigrationOfViewDefinitionPermissions(startedBeforeSchemifier))
-//        runOnce(name) {
-//          MigrationOfViewDefinitionPermissions.populate(name)
-//        }
-//      }
-//    }  
-//
-    private def populateMigrationOfViewPermissions(startedBeforeSchemifier: Boolean): Boolean = {
-      if (startedBeforeSchemifier == true) {
-        logger.warn(s"Migration.database.populateMigrationOfViewPermissions(true) cannot be run before Schemifier.")
-        true
-      } else {
-        val name = nameOf(populateMigrationOfViewPermissions(startedBeforeSchemifier))
-        runOnce(name) {
-          MigrationOfViewPermissions.populate(name)
-        }
-      }
-    }  
     
     private def generateAndPopulateMissingCustomerUUIDs(startedBeforeSchemifier: Boolean): Boolean = {
       if(startedBeforeSchemifier == true) {
