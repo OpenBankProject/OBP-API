@@ -19,9 +19,10 @@ case class OBPReq(
   reqHeaders: Map[String, String] = Map.empty,
   queryParams: Map[String, String] = Map.empty
 ) {
-  def /(segment: String): OBPReq = {
+  def /(segment: Any): OBPReq = {
+    val seg = segment.toString
     val cleanBase = if (baseUrl.endsWith("/")) baseUrl.dropRight(1) else baseUrl
-    val cleanSeg  = if (segment.startsWith("/")) segment.drop(1) else segment
+    val cleanSeg  = if (seg.startsWith("/")) seg.drop(1) else seg
     copy(baseUrl = s"$cleanBase/$cleanSeg")
   }
 
@@ -36,11 +37,12 @@ case class OBPReq(
   def secure: OBPReq = copy(baseUrl = baseUrl.replaceFirst("^http://", "https://"))
 
   def <:<(hdrs: Map[String, String]): OBPReq = copy(reqHeaders = reqHeaders ++ hdrs)
-  def <<?(params: Map[String, String]): OBPReq = copy(queryParams = queryParams ++ params)
+  def <<?(params: Iterable[(String, String)]): OBPReq = copy(queryParams = queryParams ++ params)
   def <<(body: String): OBPReq = copy(reqBody = body)
 
   def addHeader(name: String, value: String): OBPReq = copy(reqHeaders = reqHeaders + (name -> value))
   def setHeader(name: String, value: String): OBPReq = copy(reqHeaders = reqHeaders + (name -> value))
+  def addQueryParameter(name: String, value: String): OBPReq = <<?(List((name, value)))
   def setMethod(m: String): OBPReq = copy(method = m)
   def setBody(body: String): OBPReq = copy(reqBody = body)
   def setBodyEncoding(charset: Charset): OBPReq = copy(bodyCharset = charset)
@@ -48,6 +50,8 @@ case class OBPReq(
     copy(reqHeaders = reqHeaders + ("Content-Type" -> s"$mediaType; charset=${charset.name()}"))
 
   def url: String = baseUrl
+
+  def toRequest(): Request = toOkHttpRequest
 
   def toOkHttpRequest: Request = {
     val parsedUrl = HttpUrl.parse(baseUrl)

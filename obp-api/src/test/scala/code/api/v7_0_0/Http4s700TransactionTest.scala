@@ -9,6 +9,7 @@ import org.json4s.JsonAST.{JObject, JString}
 import com.openbankproject.commons.util.JsonAliases.parse
 import org.json4s.JValue
 import org.scalatest.Tag
+import scala.collection.JavaConverters._
 
 /**
  * Integration tests for the v7 request-scoped transaction feature.
@@ -110,13 +111,11 @@ class Http4s700TransactionTest extends ServerSetupWithTestData {
     }
   }
 
-  import scala.collection.JavaConverters._
-
   private def entitlementIdFromJson(json: JValue): String =
     json match {
       case JObject(fields) =>
-        fields.collectFirst { case f if f.name == "entitlement_id" =>
-          f.value.asInstanceOf[JString].s
+        fields.collectFirst { case (name, value) if name == "entitlement_id" =>
+          value.asInstanceOf[JString].s
         }.getOrElse(fail("Expected entitlement_id in response"))
       case _ => fail("Expected JSON object in response")
     }
