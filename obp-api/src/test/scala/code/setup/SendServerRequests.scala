@@ -171,66 +171,44 @@ trait SendServerRequests {
     Future { getAPIResponse(req) }
   }
 
-  def makePostRequest(req: OBPReq, json: String, headers: List[(String, String)] = Nil): APIResponse = {
-    val extra_headers = Map("Content-Type" -> "application/json", "Accept" -> "application/json") ++ headers
-    val reqData = extractParamsAndHeaders(req.POST, json, "UTF-8", extra_headers)
-    getAPIResponse(createRequest(reqData))
-  }
+  private def sendSync(req: OBPReq, body: String = "", extraHeaders: Map[String, String] = Map.empty): APIResponse =
+    getAPIResponse(createRequest(extractParamsAndHeaders(req, body, "UTF-8", extraHeaders)))
 
-  def makePostRequestAsync(req: OBPReq, json: String = ""): Future[APIResponse] = {
-    val extra_headers = Map("Content-Type" -> "application/json", "Accept" -> "application/json")
-    val reqData = extractParamsAndHeaders(req.POST, json, "UTF-8", extra_headers)
-    getAPIResponseAsync(createRequest(reqData))
-  }
+  private def sendAsync(req: OBPReq, body: String = "", extraHeaders: Map[String, String] = Map.empty): Future[APIResponse] =
+    getAPIResponseAsync(createRequest(extractParamsAndHeaders(req, body, "UTF-8", extraHeaders)))
 
-  def makePostRequestAdditionalHeader(req: OBPReq, json: String = "", params: List[(String, String)] = Nil): APIResponse = {
-    val extra_headers = Map("Content-Type" -> "application/json", "Accept" -> "application/json") ++ params
-    val reqData = extractParamsAndHeaders(req.POST, json, "UTF-8", extra_headers)
-    getAPIResponse(createRequest(reqData))
-  }
+  private val jsonHeaders: Map[String, String] = Map("Content-Type" -> "application/json", "Accept" -> "application/json")
+  private val putHeaders:  Map[String, String] = Map("Content-Type" -> "application/json")
 
-  def makePutRequest(req: OBPReq, json: String, headers: (String, String)*): APIResponse = {
-    val extra_headers = Map("Content-Type" -> "application/json") ++ headers.toMap
-    val reqData = extractParamsAndHeaders(req.PUT, json, "UTF-8", extra_headers)
-    getAPIResponse(createRequest(reqData))
-  }
+  def makePostRequest(req: OBPReq, json: String, headers: List[(String, String)] = Nil): APIResponse =
+    sendSync(req.POST, json, jsonHeaders ++ headers)
 
-  def makePatchRequest(req: OBPReq, json: String, headers: (String, String)*): APIResponse = {
-    val extra_headers = Map("Content-Type" -> "application/json") ++ headers.toMap
-    val reqData = extractParamsAndHeaders(req.PATCH, json, "UTF-8", extra_headers)
-    getAPIResponse(createRequest(reqData))
-  }
+  def makePostRequestAsync(req: OBPReq, json: String = ""): Future[APIResponse] =
+    sendAsync(req.POST, json, jsonHeaders)
 
-  def makePutRequestAsync(req: OBPReq, json: String = ""): Future[APIResponse] = {
-    val extra_headers = Map("Content-Type" -> "application/json")
-    val reqData = extractParamsAndHeaders(req.PUT, json, "UTF-8", extra_headers)
-    getAPIResponseAsync(createRequest(reqData))
-  }
+  def makePostRequestAdditionalHeader(req: OBPReq, json: String = "", params: List[(String, String)] = Nil): APIResponse =
+    sendSync(req.POST, json, jsonHeaders ++ params)
 
-  def makeGetRequest(req: OBPReq, params: List[(String, String)] = Nil): APIResponse = {
-    val extra_headers = Map.empty[String, String] ++ params
-    val reqData = extractParamsAndHeaders(req.GET, "", "UTF-8", extra_headers)
-    getAPIResponse(createRequest(reqData))
-  }
+  def makePutRequest(req: OBPReq, json: String, headers: (String, String)*): APIResponse =
+    sendSync(req.PUT, json, putHeaders ++ headers.toMap)
 
-  def makeHeadRequest(req: OBPReq, params: List[(String, String)] = Nil): APIResponse = {
-    val extra_headers = Map.empty[String, String] ++ params
-    val reqData = extractParamsAndHeaders(req.HEAD, "", "UTF-8", extra_headers)
-    getAPIResponse(createRequest(reqData))
-  }
+  def makePatchRequest(req: OBPReq, json: String, headers: (String, String)*): APIResponse =
+    sendSync(req.PATCH, json, putHeaders ++ headers.toMap)
 
-  def makeGetRequestAsync(req: OBPReq, params: List[(String, String)] = Nil): Future[APIResponse] = {
-    val extra_headers = Map.empty[String, String] ++ params
-    val reqData = extractParamsAndHeaders(req.GET, "", "UTF-8", extra_headers)
-    getAPIResponseAsync(createRequest(reqData))
-  }
+  def makePutRequestAsync(req: OBPReq, json: String = ""): Future[APIResponse] =
+    sendAsync(req.PUT, json, putHeaders)
 
-  def makeDeleteRequest(req: OBPReq): APIResponse = {
-    getAPIResponse(req.DELETE)
-  }
+  def makeGetRequest(req: OBPReq, params: List[(String, String)] = Nil): APIResponse =
+    sendSync(req.GET, extraHeaders = Map.empty ++ params)
 
-  def makeDeleteRequestAsync(req: OBPReq): Future[APIResponse] = {
-    getAPIResponseAsync(req.DELETE)
-  }
+  def makeHeadRequest(req: OBPReq, params: List[(String, String)] = Nil): APIResponse =
+    sendSync(req.HEAD, extraHeaders = Map.empty ++ params)
+
+  def makeGetRequestAsync(req: OBPReq, params: List[(String, String)] = Nil): Future[APIResponse] =
+    sendAsync(req.GET, extraHeaders = Map.empty ++ params)
+
+  def makeDeleteRequest(req: OBPReq): APIResponse = getAPIResponse(req.DELETE)
+
+  def makeDeleteRequestAsync(req: OBPReq): Future[APIResponse] = getAPIResponseAsync(req.DELETE)
 
 }

@@ -53,53 +53,39 @@ class Http4sServerIntegrationTest extends ServerSetup with DefaultUsers with Ser
     }
   }
 
+  private def buildHttp4sReq(path: String, method: String, body: String = "", hdrs: Map[String, String] = Map.empty): OBPReq = {
+    val base = OBPReq.url(s"$baseUrl$path").setMethod(method).setBody(body).addHeader("Accept", "*/*")
+    hdrs.foldLeft(base) { case (r, (k, v)) => r.addHeader(k, v) }
+  }
+
+  private def makeHttp4sRequest(path: String, method: String, body: String = "", hdrs: Map[String, String] = Map.empty): (Int, String) = {
+    val (status, responseBody, _) = execOkHttp(buildHttp4sReq(path, method, body, hdrs))
+    (status, responseBody)
+  }
+
   private def makeHttp4sGetRequestFull(path: String, reqHeaders: Map[String, String] = Map.empty): (Int, String, Option[String]) = {
-    val req = reqHeaders.foldLeft(OBPReq.url(s"$baseUrl$path").addHeader("Accept", "*/*")) {
-      case (r, (k, v)) => r.addHeader(k, v)
-    }
-    val (status, body, hdrs) = execOkHttp(req)
-    val versionServed = hdrs.find { case (k, _) => k.equalsIgnoreCase("X-OBP-Version-Served") }
+    val (status, body, respHdrs) = execOkHttp(buildHttp4sReq(path, "GET", hdrs = reqHeaders))
+    val versionServed = respHdrs.find { case (k, _) => k.equalsIgnoreCase("X-OBP-Version-Served") }
       .map(_._2).filter(_.nonEmpty)
     (status, body, versionServed)
   }
 
-  private def makeHttp4sGetRequest(path: String, headers: Map[String, String] = Map.empty): (Int, String) = {
-    val req = headers.foldLeft(OBPReq.url(s"$baseUrl$path").addHeader("Accept", "*/*")) {
-      case (r, (k, v)) => r.addHeader(k, v)
-    }
-    val (status, body, _) = execOkHttp(req)
-    (status, body)
-  }
+  private def makeHttp4sGetRequest(path: String, headers: Map[String, String] = Map.empty): (Int, String) =
+    makeHttp4sRequest(path, "GET", hdrs = headers)
 
-  private def makeHttp4sPostRequest(path: String, body: String, headers: Map[String, String] = Map.empty): (Int, String) = {
-    val req = headers.foldLeft(OBPReq.url(s"$baseUrl$path").POST.setBody(body).addHeader("Accept", "*/*")) {
-      case (r, (k, v)) => r.addHeader(k, v)
-    }
-    val (status, responseBody, _) = execOkHttp(req)
-    (status, responseBody)
-  }
+  private def makeHttp4sPostRequest(path: String, body: String, headers: Map[String, String] = Map.empty): (Int, String) =
+    makeHttp4sRequest(path, "POST", body, headers)
 
-  private def makeHttp4sPutRequest(path: String, body: String, headers: Map[String, String] = Map.empty): (Int, String) = {
-    val req = headers.foldLeft(OBPReq.url(s"$baseUrl$path").PUT.setBody(body).addHeader("Accept", "*/*")) {
-      case (r, (k, v)) => r.addHeader(k, v)
-    }
-    val (status, responseBody, _) = execOkHttp(req)
-    (status, responseBody)
-  }
+  private def makeHttp4sPutRequest(path: String, body: String, headers: Map[String, String] = Map.empty): (Int, String) =
+    makeHttp4sRequest(path, "PUT", body, headers)
 
   private def makeHttp4sOptionsRequest(path: String): (Int, Map[String, String]) = {
-    val req = OBPReq.url(s"$baseUrl$path").OPTIONS.addHeader("Accept", "*/*")
-    val (status, _, hdrs) = execOkHttp(req)
+    val (status, _, hdrs) = execOkHttp(buildHttp4sReq(path, "OPTIONS"))
     (status, hdrs)
   }
 
-  private def makeHttp4sDeleteRequest(path: String, headers: Map[String, String] = Map.empty): (Int, String) = {
-    val req = headers.foldLeft(OBPReq.url(s"$baseUrl$path").DELETE.addHeader("Accept", "*/*")) {
-      case (r, (k, v)) => r.addHeader(k, v)
-    }
-    val (status, body, _) = execOkHttp(req)
-    (status, body)
-  }
+  private def makeHttp4sDeleteRequest(path: String, headers: Map[String, String] = Map.empty): (Int, String) =
+    makeHttp4sRequest(path, "DELETE", hdrs = headers)
 
   feature("HTTP4S Server Integration - Real Server Tests") {
 
