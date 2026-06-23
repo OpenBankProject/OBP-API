@@ -134,13 +134,15 @@ trait SendServerRequests {
     if (isYaml) {
       APIResponse(responseCode, JString(bodyStr), Some(okHeaders))
     } else {
-      val parsedBody: Option[JValue] = tryo { parse(bodyStr) }.toOption orElse
-        tryo {
-          parse(s"[$bodyStr]") match {
-            case JArray(v :: _) => v
-            case _ => throw new RuntimeException("empty array")
-          }
-        }.toOption
+      val parsedBody: Option[JValue] =
+        if (bodyStr.isEmpty) Some(JObject(Nil))
+        else tryo { parse(bodyStr) }.toOption orElse
+          tryo {
+            parse(s"[$bodyStr]") match {
+              case JArray(v :: _) => v
+              case _ => throw new RuntimeException("empty array")
+            }
+          }.toOption
       parsedBody match {
         case Some(b) => APIResponse(responseCode, b, Some(okHeaders))
         case None => throw new Exception(s"couldn't parse response from ${req.url} : $bodyStr")
