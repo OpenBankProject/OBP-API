@@ -41,6 +41,13 @@ class Http4s700TransactionTest extends ServerSetupWithTestData {
 
   // ─── HTTP helpers ────────────────────────────────────────────────────────────
 
+  private def execAndParse(req: OBPReq): (Int, JValue, Map[String, String]) = {
+    val (code, bodyStr, okHdrs) = req.executeRaw()
+    val json = if (bodyStr.trim.isEmpty) JObject(Nil) else parse(bodyStr)
+    val hdrs = okHdrs.toMultimap.asScala.map { case (k, vs) => k -> vs.asScala.mkString(",") }.toMap
+    (code, json, hdrs)
+  }
+
   private def makeHttpRequest(
     path: String,
     headers: Map[String, String] = Map.empty
@@ -48,16 +55,7 @@ class Http4s700TransactionTest extends ServerSetupWithTestData {
     val req = headers.foldLeft(OBPReq.url(s"$baseUrl$path").addHeader("Accept", "*/*")) {
       case (r, (k, v)) => r.addHeader(k, v)
     }
-    val response = OBPReq.client.newCall(req.toOkHttpRequest).execute()
-    try {
-      val bodyStr = Option(response.body()).map(_.string()).getOrElse("")
-      val status  = response.code()
-      val hdrs    = response.headers().toMultimap.asScala.map { case (k, vs) => k -> vs.asScala.mkString(",") }.toMap
-      val json    = if (bodyStr.trim.isEmpty) JObject(Nil) else parse(bodyStr)
-      (status, json, hdrs)
-    } finally {
-      response.close()
-    }
+    execAndParse(req)
   }
 
   private def makeHttpRequestWithBody(
@@ -66,25 +64,14 @@ class Http4s700TransactionTest extends ServerSetupWithTestData {
     body: String,
     headers: Map[String, String] = Map.empty
   ): (Int, JValue, Map[String, String]) = {
-    val base = OBPReq.url(s"$baseUrl$path")
-      .addHeader("Accept", "*/*")
-      .addHeader("Content-Type", "application/json")
+    val base = OBPReq.url(s"$baseUrl$path").addHeader("Accept", "*/*").addHeader("Content-Type", "application/json")
     val withHdr = headers.foldLeft(base) { case (r, (k, v)) => r.addHeader(k, v) }
     val req = method.toUpperCase match {
       case "POST" => withHdr.POST << body
       case "PUT"  => withHdr.PUT  << body
       case _      => withHdr << body
     }
-    val response = OBPReq.client.newCall(req.toOkHttpRequest).execute()
-    try {
-      val responseBody = Option(response.body()).map(_.string()).getOrElse("")
-      val status = response.code()
-      val hdrs   = response.headers().toMultimap.asScala.map { case (k, vs) => k -> vs.asScala.mkString(",") }.toMap
-      val json   = if (responseBody.trim.isEmpty) JObject(Nil) else parse(responseBody)
-      (status, json, hdrs)
-    } finally {
-      response.close()
-    }
+    execAndParse(req)
   }
 
   private def makeHttpRequestWithMethod(
@@ -92,23 +79,14 @@ class Http4s700TransactionTest extends ServerSetupWithTestData {
     path: String,
     headers: Map[String, String] = Map.empty
   ): (Int, JValue, Map[String, String]) = {
-    val base    = OBPReq.url(s"$baseUrl$path").addHeader("Accept", "*/*")
+    val base = OBPReq.url(s"$baseUrl$path").addHeader("Accept", "*/*")
     val withHdr = headers.foldLeft(base) { case (r, (k, v)) => r.addHeader(k, v) }
     val req = method.toUpperCase match {
       case "DELETE" => withHdr.DELETE
       case "POST"   => withHdr.POST
       case _        => withHdr
     }
-    val response = OBPReq.client.newCall(req.toOkHttpRequest).execute()
-    try {
-      val bodyStr = Option(response.body()).map(_.string()).getOrElse("")
-      val status  = response.code()
-      val hdrs    = response.headers().toMultimap.asScala.map { case (k, vs) => k -> vs.asScala.mkString(",") }.toMap
-      val json    = if (bodyStr.trim.isEmpty) JObject(Nil) else parse(bodyStr)
-      (status, json, hdrs)
-    } finally {
-      response.close()
-    }
+    execAndParse(req)
   }
 
   private def entitlementIdFromJson(json: JValue): String =

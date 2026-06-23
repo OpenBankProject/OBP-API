@@ -53,17 +53,10 @@ class V7ResourceDocsAggregationTest extends ServerSetupWithTestData {
     val req = headers.foldLeft(OBPReq.url(s"$baseUrl$path").addHeader("Accept", "*/*")) {
       case (r, (k, v)) => r.addHeader(k, v)
     }
-    val response = OBPReq.client.newCall(req.toOkHttpRequest).execute()
-    try {
-      val body    = Option(response.body()).map(_.string()).getOrElse("")
-      val status  = response.code()
-      val hdrs    = response.headers().toMultimap.asScala
-        .flatMap { case (k, vs) => vs.asScala.map(v => k -> v) }.toMap
-      val json    = if (body.trim.isEmpty) JObject(Nil) else parse(body)
-      (status, json, hdrs)
-    } finally {
-      response.close()
-    }
+    val (status, body, okHdrs) = req.executeRaw()
+    val json = if (body.trim.isEmpty) JObject(Nil) else parse(body)
+    val hdrs = okHdrs.toMultimap.asScala.flatMap { case (k, vs) => vs.asScala.map(v => k -> v) }.toMap
+    (status, json, hdrs)
   }
 
   private def toFieldMap(fields: List[org.json4s.JsonAST.JField]): Map[String, JValue] =

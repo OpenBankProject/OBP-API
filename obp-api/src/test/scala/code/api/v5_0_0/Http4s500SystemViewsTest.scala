@@ -58,15 +58,9 @@ class Http4s500SystemViewsTest extends ServerSetupWithTestData {
       case "DELETE" => withHdrs.DELETE
       case _        => withHdrs
     }
-    val response = OBPReq.client.newCall(finalRequest.toOkHttpRequest).execute()
-    try {
-      val responseBody = Option(response.body()).map(_.string()).getOrElse("")
-      val statusCode   = response.code()
-      val json = if (responseBody.trim.isEmpty) JObject(Nil) else parsePermissive(responseBody)
-      (statusCode, json)
-    } finally {
-      response.close()
-    }
+    val (statusCode, responseBody, _) = finalRequest.executeRaw()
+    val json = if (responseBody.trim.isEmpty) JObject(Nil) else parsePermissive(responseBody)
+    (statusCode, json)
   }
 
   private def toFieldMap(fields: List[JField]): Map[String, JValue] = {
