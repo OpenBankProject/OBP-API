@@ -5,33 +5,30 @@ import java.io.{ByteArrayOutputStream, InputStream}
 import com.sksamuel.avro4s._
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.Try
+import scala.util.Success
 
-/**
-  * Provides generic serialization/deserialization
-  */
 trait AvroSerializer {
 
-  def serialize[T: SchemaFor : ToRecord](event: T)(implicit executionContext: ExecutionContext): String = {
+  def serialize[T: Encoder](event: T)(implicit executionContext: ExecutionContext): String = {
     val baos = new ByteArrayOutputStream()
-    val output = AvroOutputStream.json[T](baos)
+    val output = AvroOutputStream.json[T].to(baos).build()
     output.write(event)
     output.close()
-    val r = baos.toString("UTF-8")
-    r
+    baos.toString("UTF-8")
   }
 
-  def serializeFuture[T: SchemaFor : ToRecord](event: T)(implicit executionContext: ExecutionContext): Future[String] =
+  def serializeFuture[T: Encoder](event: T)(implicit executionContext: ExecutionContext): Future[String] =
     Future(serialize(event))
 
-  def deserializeFuture[T >: Null : SchemaFor : FromRecord](data: String)(implicit executionContext: ExecutionContext): Future[Option[T]] =
+  def deserializeFuture[T >: Null : Decoder](data: String)(implicit executionContext: ExecutionContext): Future[Option[T]] =
     Future(deserialize[T](data))
 
-  def deserialize[T >: Null : SchemaFor : FromRecord](data: String)(implicit executionContext: ExecutionContext): Option[T] = {
-
-    val input = AvroInputStream.json[T](new StringInputStream(data))
-    val result: Try[T] = input.singleEntity
-    result.toOption
+  def deserialize[T >: Null : Decoder](data: String)(implicit executionContext: ExecutionContext): Option[T] = {
+    val schema = implicitly[Decoder[T]].schema
+    val input = AvroInputStream.json[T].from(new StringInputStream(data)).build(schema)
+    val result = input.tryIterator.collectFirst { case Success(v) => v }
+    input.close()
+    result
   }
 
   class StringInputStream(s: String) extends InputStream {

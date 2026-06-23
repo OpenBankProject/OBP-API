@@ -18,7 +18,6 @@ import com.openbankproject.commons.dto._
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.SCAStatus
 import com.openbankproject.commons.model.enums.{AccountAttributeType, CardAttributeType, ChallengeType, CustomerAttributeType, ProductAttributeType, StrongCustomerAuthentication, TransactionAttributeType, TransactionRequestStatus}
-import com.sksamuel.avro4s.SchemaFor
 import net.liftweb.common.{Box, Full}
 import com.openbankproject.commons.util.JsonAliases.parse
 
@@ -55,8 +54,8 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
         inboundStatus,
         inboundAdapterInfoInternal)
       ),
-    outboundAvroSchema = Some(parse(SchemaFor[OutBoundGetAdapterInfo]().toString(true))),
-    inboundAvroSchema = Some(parse(SchemaFor[InBoundGetAdapterInfo]().toString(true))),
+    outboundAvroSchema = None,
+    inboundAvroSchema = None,
     adapterImplementation = Some(AdapterImplementation("- Core", 1))
   )
   override def getAdapterInfo(callContext: Option[CallContext]): Future[Box[(InboundAdapterInfoInternal, Option[CallContext])]] = {
@@ -81,8 +80,8 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
         List(bankCommons)
       )
       ),
-    outboundAvroSchema = Some(parse(SchemaFor[OutBoundGetBanks]().toString(true))),
-    inboundAvroSchema =  Some(parse(SchemaFor[InBoundGetBanks]().toString(true))),
+    outboundAvroSchema = None,
+    inboundAvroSchema = None,
     adapterImplementation = Some(AdapterImplementation("- Core", 2))
   )
 
@@ -110,8 +109,8 @@ object AkkaConnector_vDec2018 extends Connector with AkkaConnectorActorInit {
         bankCommons
       )
       ),
-    outboundAvroSchema = Some(parse(SchemaFor[OutBoundGetBank]().toString(true))),
-    inboundAvroSchema = Some(parse(SchemaFor[InBoundGetBank]().toString(true))),
+    outboundAvroSchema = None,
+    inboundAvroSchema = None,
     adapterImplementation = Some(AdapterImplementation("- Core", 5))
   )
   override def getBank(bankId : BankId, callContext: Option[CallContext]): Future[Box[(Bank, Option[CallContext])]] = {
