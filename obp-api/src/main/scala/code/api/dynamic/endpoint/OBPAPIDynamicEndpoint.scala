@@ -33,7 +33,6 @@ import code.api.util.{APIUtil, VersionedOBPApis}
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.util.{ApiVersion,ApiVersionStatus}
 import net.liftweb.common.{Box, Full}
-import org.apache.http.HttpStatus
 
 /*
 This file defines which endpoints from all the versions are available in v4.0.0
