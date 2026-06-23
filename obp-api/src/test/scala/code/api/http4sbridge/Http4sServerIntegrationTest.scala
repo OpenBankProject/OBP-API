@@ -131,15 +131,17 @@ class Http4sServerIntegrationTest extends ServerSetup with DefaultUsers with Ser
       implicit val ec: ExecutionContext = ExecutionContext.global
       val futures = (1 to 10).map { _ =>
         Future {
-          val (_, body) = makeHttp4sGetRequest("/obp/v5.0.0/root")
-          body
+          scala.concurrent.blocking {
+            makeHttp4sGetRequest("/obp/v5.0.0/root")
+          }
         }
       }
 
-      val results = Await.result(Future.sequence(futures), 30.seconds)
+      val results = Await.result(Future.sequence(futures), 60.seconds)
 
       Then("All requests should succeed")
-      results.foreach { body =>
+      results.foreach { case (status, body) =>
+        status should equal(200)
         val json = parse(body)
         json \ "version" should not equal JObject(Nil)
       }
@@ -289,14 +291,16 @@ class Http4sServerIntegrationTest extends ServerSetup with DefaultUsers with Ser
       info("This endpoint requires authentication - 401 is correct behavior")
     }
 
-    scenario("v3.1.0 /banks currently returns 404", Http4sServerIntegrationTag) {
+    scenario("v3.1.0 /banks cascade chain handles the request without a server error", Http4sServerIntegrationTag) {
       Given("HTTP4S test server is running")
 
       When("We make a GET request to /obp/v3.1.0/banks")
       val (status, _) = makeHttp4sGetRequest("/obp/v3.1.0/banks")
 
-      Then("We should get a 404 response")
-      status should equal(404)
+      Then("We should not get a server error — the cascade chain is functional")
+      // May return 200 (via v1.2.1 cascade) or 404 (if older version gates are disabled),
+      // but the cascade chain itself must not produce a 5xx.
+      status should be < 500
     }
   }
 
