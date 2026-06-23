@@ -90,13 +90,12 @@ object MappedAccountAccessRequestProvider extends AccountAccessRequestProvider {
     checkerComment: String
   ): Box[AccountAccessRequestTrait] = {
     AccountAccessRequest.find(By(AccountAccessRequest.AccountAccessRequestId, accountAccessRequestId)).flatMap { request =>
-      tryo {
-        request
-          .Status(status)
-          .CheckerUserId(checkerUserId)
-          .CheckerComment(checkerComment)
-          .saveMe()
-      }
+      // Atomic guarded transition: an access request is actioned once, from INITIATED. The loser of a
+      // concurrent approve/decline gets 0 rows -> Failure, instead of silently overwriting the decision.
+      val rows = code.bankconnectors.DoobieBusinessStatusQueries.conditionalAccountAccessRequestStatus(
+        request.id.get, AccountAccessRequestStatus.INITIATED.toString, status, checkerUserId, checkerComment)
+      if (rows == 1) AccountAccessRequest.find(By(AccountAccessRequest.AccountAccessRequestId, accountAccessRequestId))
+      else net.liftweb.common.Failure("Account access request is no longer INITIATED; it was already actioned.")
     }
   }
 }

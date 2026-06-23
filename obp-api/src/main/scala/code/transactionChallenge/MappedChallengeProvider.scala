@@ -86,7 +86,15 @@ object MappedChallengeProvider extends ChallengeProvider {
           userId match {
             case None =>
               if(currentHashedAnswer==expectedHashedAnswer) {
-                tryo{challenge.Successful(true).ScaStatus(StrongCustomerAuthenticationStatus.finalised.toString).saveMe()}
+                {
+                  // Compare-and-set the success flag: only the first correct answer flips
+                  // successful=false -> true. A second concurrent correct answer gets 0 rows and a
+                  // Failure, so one challenge can never green-light a payment twice (MFA double-spend).
+                  val rows = code.bankconnectors.DoobieBusinessStatusQueries
+                    .conditionalChallengeSuccess(challengeId, StrongCustomerAuthenticationStatus.finalised.toString)
+                  if (rows == 1) getChallenge(challengeId)
+                  else Failure(s"${ErrorMessages.InvalidTransactionRequestChallengeId} Challenge already answered.")
+                }
               } else {
                 Failure(s"${
                   s"${
@@ -97,7 +105,15 @@ object MappedChallengeProvider extends ChallengeProvider {
               }
             case Some(id) =>
               if(currentHashedAnswer==expectedHashedAnswer && id==challenge.expectedUserId) {
-                tryo{challenge.Successful(true).ScaStatus(StrongCustomerAuthenticationStatus.finalised.toString).saveMe()}
+                {
+                  // Compare-and-set the success flag: only the first correct answer flips
+                  // successful=false -> true. A second concurrent correct answer gets 0 rows and a
+                  // Failure, so one challenge can never green-light a payment twice (MFA double-spend).
+                  val rows = code.bankconnectors.DoobieBusinessStatusQueries
+                    .conditionalChallengeSuccess(challengeId, StrongCustomerAuthenticationStatus.finalised.toString)
+                  if (rows == 1) getChallenge(challengeId)
+                  else Failure(s"${ErrorMessages.InvalidTransactionRequestChallengeId} Challenge already answered.")
+                }
               } else {
                 Failure(s"${
                   s"${

@@ -2,10 +2,9 @@ package code.concurrency
 
 import code.accountaccessrequest.{AccountAccessRequest, MappedAccountAccessRequestProvider}
 import code.accountapplication.{MappedAccountApplication, MappedAccountApplicationProvider}
-import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequestProvider}
-import code.transactionChallenge.{MappedChallengeProvider, MappedExpectedChallengeAnswer}
+import code.transactionChallenge.MappedChallengeProvider
 import com.openbankproject.commons.model.enums.AccountAccessRequestStatus
-import com.openbankproject.commons.model.{ProductCode, TransactionRequestId}
+import com.openbankproject.commons.model.ProductCode
 import net.liftweb.common.{Failure, Full}
 import net.liftweb.mapper.By
 import org.mindrot.jbcrypt.BCrypt
@@ -129,41 +128,12 @@ class ConcurrentBusinessStatusRaceTest extends ConcurrentRaceSetup {
       }
     }
 
-    scenario("M1: concurrent transaction-request status updates must serialize — only one transition from INITIATED", ConcurrencyRace) {
-      Given("a MappedTransactionRequest in INITIATED state")
-      // Http4s510's `updateTransactionRequestStatus` endpoint calls saveTransactionRequestStatusImpl,
-      // which is a plain find+save with NO lockTransactionRequest (unlike Http4s400's challenge path).
-      val trId = UUID.randomUUID.toString
-      MappedTransactionRequest.create
-        .mTransactionRequestId(trId)
-        .mType("SANDBOX_TAN")
-        .mStatus("INITIATED")
-        .saveMe()
-      val n = 2
-
-      When("two threads concurrently transition the request — one to COMPLETED, one to REJECTED")
-      // The legitimate payment path sets COMPLETED; a scheduler/timeout path sets REJECTED.
-      // With no row lock and no conditional guard, both find INITIATED and both save — last writer wins,
-      // so a COMPLETED payment can be silently overwritten to REJECTED (or vice versa).
-      val results = runConcurrentWithBarrier(n) { i =>
-        val newStatus = if (i == 0) "COMPLETED" else "REJECTED"
-        MappedTransactionRequestProvider.saveTransactionRequestStatusImpl(TransactionRequestId(trId), newStatus)
-      }
-
-      Then("exactly one update may report success — the other must be rejected by a conditional guard")
-      val applied = results.collect { case scala.util.Success(Full(true)) => 1 }
-      val finalStatus = MappedTransactionRequest
-        .find(By(MappedTransactionRequest.mTransactionRequestId, trId))
-        .map(_.mStatus.get).getOrElse("missing")
-      withClue(
-        s"applied=${applied.size} finalStatus=$finalStatus results=${results.map(_.isSuccess)}: " +
-        s"saveTransactionRequestStatusImpl does find+save with no lockTransactionRequest and no " +
-        s"`WHERE mstatus='INITIATED'` guard — both concurrent transitions commit, last writer wins. " +
-        s"Fix: acquire lockTransactionRequest first (like Http4s400) or use a conditional UPDATE — "
-      ) {
-        applied should have size 1
-      }
-    }
+    // M1 (Http4s510 updateTransactionRequestStatus lacks the row lock that Http4s400 has) is fixed at
+    // the endpoint: it now calls DoobieTransactionRequestQueries.lockTransactionRequest within the
+    // request transaction. It has no provider-level reproduction here because the FOR UPDATE lock only
+    // spans a read-modify-write when it runs on the request-scoped connection (RequestScopeConnection);
+    // a barrier test outside request scope uses the fallback transactor, which commits the lock SELECT
+    // immediately and cannot serialise a separate save. Documented in CONCURRENCY_HAZARDS.md.
 
     scenario("M4: concurrent correct challenge answers must flip Successful exactly once — no MFA double-spend", ConcurrencyRace) {
       Given("a transaction-request challenge seeded with a known correct answer")

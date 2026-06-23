@@ -35,7 +35,14 @@ object MappedAccountApplicationProvider extends AccountApplicationProvider {
        match {
         case Full(accountApplication) if(accountApplication.status == "ACCEPTED") =>
           Failure(s"${ErrorMessages.AccountApplicationAlreadyAccepted} Current Account-Application-Id($accountApplicationId)")
-        case Full(accountApplication)  => tryo{accountApplication.mStatus(status).saveMe()}
+        case Full(accountApplication)  =>
+          // Optimistic CAS: transition only if the status hasn't changed since we loaded it. Two
+          // concurrent updates that both read the same status can no longer both write — the loser
+          // (0 rows) gets a Failure instead of silently overwriting the winner's decision.
+          val rows = code.bankconnectors.DoobieBusinessStatusQueries.conditionalAccountApplicationStatus(
+            accountApplication.id.get, accountApplication.status, status)
+          if (rows == 1) MappedAccountApplication.find(By(MappedAccountApplication.mAccountApplicationId, accountApplicationId))
+          else Failure(s"${ErrorMessages.AccountApplicationAlreadyAccepted} Status changed concurrently. Current Account-Application-Id($accountApplicationId)")
         case Empty  => Failure(s"${ErrorMessages.AccountApplicationNotFound} Current Account-Application-Id($accountApplicationId)") 
         case _  => Failure(ErrorMessages.UnknownError) 
       }    

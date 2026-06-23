@@ -3380,6 +3380,14 @@ object Http4s510 {
             postedData <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostTransactionRequestStatusJsonV510", 400, Some(cc)) {
               com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[PostTransactionRequestStatusJsonV510]
             }
+            // Lock the transaction-request row for the duration of this request transaction (the
+            // FOR UPDATE lock runs on the request connection via RequestScopeConnection, so it is held
+            // through the read + status write below). Without it this management update races the
+            // challenge-answer path (Http4s400, which already locks) and can overwrite a COMPLETED
+            // payment with a stale status.
+            _ <- code.util.Helper.booleanToFuture("Failed to acquire transaction request lock", cc = Some(cc)) {
+              code.bankconnectors.DoobieTransactionRequestQueries.lockTransactionRequest(requestId.value).isDefined
+            }
             (existing, _) <- NewStyle.function.getTransactionRequestImpl(requestId, Some(cc))
             _ <- NewStyle.function.hasAtLeastOneEntitlement(existing.from.bank_id, user.userId,
               canUpdateTransactionRequestStatusAtOneBank :: canUpdateTransactionRequestStatusAtAnyBank :: Nil, Some(cc))
