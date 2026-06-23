@@ -244,22 +244,17 @@ object RateLimitingUtil extends MdcLoggable {
    *  No gates, no key formatting — call sites pass the final key and supply their own enable flags.
    *  Returns (ttl_seconds, current_count); (-1, -1) when Redis is unreachable. */
   private[util] def incrementCounter(key: String, period: LimitCallPeriod): (Long, Long) = {
-    val ttlOpt = Redis.use(JedisMethod.TTL, key).map(_.toInt)
-    ttlOpt match {
-      case Some(-2) => // Key does not exist, create it
-        val seconds = RateLimitingPeriod.toSeconds(period).toInt
-        Redis.use(JedisMethod.SET, key, Some(seconds), Some("1"))
-        (seconds, 1)
-      case Some(ttl) if ttl > 0 => // Key exists with TTL, increment it
-        val cnt = Redis.use(JedisMethod.INCR, key).map(_.toInt).getOrElse(1)
-        (ttl, cnt)
-      case Some(ttl) if ttl <= 0 => // Key expired or has no expiry (shouldn't happen)
-        logger.warn(s"Unexpected TTL state ($ttl) for key $key, period $period - recreating counter")
-        val seconds = RateLimitingPeriod.toSeconds(period).toInt
-        Redis.use(JedisMethod.SET, key, Some(seconds), Some("1"))
-        (seconds, 1)
-      case None => // Redis unavailable
-        logger.error(s"Redis unavailable when incrementing counter for key $key, period $period")
+    val seconds = RateLimitingPeriod.toSeconds(period).toInt
+    try {
+      // Atomic INCR + create-TTL in one Lua call. Replaces the former TTL-read-then-SET/INCR sequence,
+      // which could lose increments and race the expiry under concurrency. On first increment (cnt==1)
+      // the key gets its TTL atomically.
+      val cnt = Redis.incrementWithTtl(key, seconds)
+      val ttl = Redis.use(JedisMethod.TTL, key).map(_.toLong).getOrElse(seconds.toLong)
+      (ttl, cnt)
+    } catch {
+      case e: Throwable =>
+        logger.error(s"Redis unavailable when incrementing counter for key $key, period $period", e)
         (-1, -1)
     }
   }

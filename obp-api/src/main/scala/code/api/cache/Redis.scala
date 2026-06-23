@@ -202,6 +202,55 @@ object Redis extends MdcLoggable {
   }
 
   /**
+   * Atomic `SET key value EX ttlSeconds NX` (Jedis 2.9.0 five-arg overload). Sets the key with a TTL
+   * only if it does not already exist, in a single command. Returns true iff this call set the key.
+   *
+   * Use for first-write-wins caching (idempotency response cache) and lock acquisition: there is no
+   * window between "set value" and "set TTL" (unlike setnx + expire), so a crash can never leave a
+   * key without an expiry, and a second writer can never clobber the first.
+   */
+  def setNxEx(key: String, value: String, ttlSeconds: Int): Boolean = {
+    var jedisConnection: Option[Jedis] = None
+    try {
+      jedisConnection = Some(jedisPool.getResource())
+      jedisConnection.get.set(key, value, "NX", "EX", ttlSeconds) == "OK"
+    } catch {
+      case e: Throwable => throw new RuntimeException(e)
+    } finally {
+      if (jedisConnection.isDefined && jedisConnection.get != null)
+        jedisConnection.foreach(_.close())
+    }
+  }
+
+  /**
+   * Atomic increment-with-create-TTL via a single Lua script: INCR the key, and on first creation
+   * (value == 1) set its expiry. Returns the post-increment counter value. Because INCR and EXPIRE
+   * run atomically server-side, concurrent callers cannot lose increments or race the TTL set, and an
+   * increment-then-compare rate-limit check cannot be bypassed by interleaving.
+   */
+  def incrementWithTtl(key: String, ttlSeconds: Int): Long = {
+    val script =
+      """local c = redis.call('INCR', KEYS[1])
+        |if c == 1 then redis.call('EXPIRE', KEYS[1], ARGV[1]) end
+        |return c""".stripMargin
+    var jedisConnection: Option[Jedis] = None
+    try {
+      jedisConnection = Some(jedisPool.getResource())
+      val result = jedisConnection.get.eval(
+        script,
+        java.util.Collections.singletonList(key),
+        java.util.Collections.singletonList(ttlSeconds.toString)
+      )
+      result.asInstanceOf[java.lang.Long].longValue()
+    } catch {
+      case e: Throwable => throw new RuntimeException(e)
+    } finally {
+      if (jedisConnection.isDefined && jedisConnection.get != null)
+        jedisConnection.foreach(_.close())
+    }
+  }
+
+  /**
    * Delete all Redis keys matching a pattern using KEYS command
    * @param pattern Redis key pattern (e.g., "rl_active_CONSUMER123_*")
    * @return Number of keys deleted

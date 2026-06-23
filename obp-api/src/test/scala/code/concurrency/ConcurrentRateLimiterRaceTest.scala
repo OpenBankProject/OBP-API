@@ -41,18 +41,15 @@ class ConcurrentRateLimiterRaceTest extends ConcurrentRaceSetup {
       //   incr  = incrementConsumerCounters: INCR (or SET with ttl if key missing)
       val passed = new AtomicInteger(0)
 
-      When(s"$n threads concurrently run [check limit then increment], replicating RateLimitingUtil")
+      When(s"$n threads concurrently increment-then-check via the atomic Redis primitive")
+      // Fixed pattern: a single atomic INCR (with create-TTL) returns this caller's unique slot;
+      // the caller is allowed iff slot <= limit. There is no check/increment gap to interleave, so
+      // exactly `limit` callers can ever be allowed. (Pre-fix this was GET-then-INCR — two round
+      // trips — and far more than `limit` slipped through; see the red baseline.)
       val results = runConcurrentWithBarrier(n) { _ =>
-        // --- check phase (underConsumerLimits) ---
-        val current = Redis.use(JedisMethod.GET, key).map(_.toLong).getOrElse(0L)
-        val underLimit = current + 1 <= limit
-        if (underLimit) {
-          passed.incrementAndGet()
-          // --- increment phase (incrementConsumerCounters) ---
-          val ttlOpt = Redis.use(JedisMethod.TTL, key).map(_.toLong).getOrElse(-2L)
-          if (ttlOpt == -2L) Redis.use(JedisMethod.SET, key, Some(3600), Some("1"))
-          else Redis.use(JedisMethod.INCR, key)
-        }
+        val slot = Redis.incrementWithTtl(key, 3600)
+        val underLimit = slot <= limit
+        if (underLimit) passed.incrementAndGet()
         underLimit
       }
 
@@ -75,57 +72,43 @@ class ConcurrentRateLimiterRaceTest extends ConcurrentRaceSetup {
       val key = "__conc_m6_rd_" + UUID.randomUUID.toString.take(8)
       val ttl = 60
 
-      When("two responses are cached under the same key via the production primitive (Redis.use SET = setex)")
-      // IdempotencyMiddleware.writeResponseKey caches via setex (Redis.use SET-with-ttl), which
-      // UNCONDITIONALLY overwrites. So a second response for the same idempotency key clobbers the
-      // first — a replay of the original request can then return the WRONG body.
-      // The correct contract is first-write-wins: the first cached response is immutable for its TTL.
-      Redis.use(JedisMethod.SET, key, Some(ttl), Some("first"))
-      Redis.use(JedisMethod.SET, key, Some(ttl), Some("second"))
+      When("two responses are cached under the same key via the fixed primitive (Redis.setNxEx)")
+      // IdempotencyMiddleware.writeResponseKey now uses Redis.setNxEx (atomic SET NX EX). The first
+      // cached response is immutable for its TTL; a second concurrent response cannot clobber it, so a
+      // replay always returns the original body. (Pre-fix this used setex and overwrote — red baseline.)
+      Redis.setNxEx(key, "first", ttl)
+      Redis.setNxEx(key, "second", ttl) // no-op: the key already exists
 
       Then("the stored response must still be the FIRST one written, not the overwrite")
       val stored = Redis.use(JedisMethod.GET, key).orNull
       withClue(
-        s"stored=$stored: writeResponseKey uses `setex` (Redis.use SET-with-ttl), which overwrites — the " +
-        s"second write clobbers the first cached idempotent response. Fix: atomic `SET key value EX ttl NX` " +
-        s"(first-write-wins). Phase B adds Redis.setNxEx and retargets this test onto it — "
+        s"stored=$stored: writeResponseKey must be first-write-wins (Redis.setNxEx). If it overwrote " +
+        s"(setex), a replay of the idempotent request would return the wrong cached body — "
       ) {
-        // RED today: setex overwrote → stored == "second". GREEN after Phase B: SET NX EX keeps "first".
         stored shouldBe "first"
       }
     }
 
     scenario("M7: idempotency lock must be acquired atomically with its TTL (SET NX EX, not setnx+expire)", ConcurrencyRace) {
       assume(redisUp, "Redis not reachable — skipping M7")
-      Given("a lock key acquired the way IdempotencyMiddleware.tryAcquireLock does it")
-      val key       = "__conc_m7_lock_" + UUID.randomUUID.toString.take(8)
-      val lockTtl   = 60
+      Given("a lock key acquired the way IdempotencyMiddleware.tryAcquireLock now does it")
+      val key     = "__conc_m7_lock_" + UUID.randomUUID.toString.take(8)
+      val lockTtl = 60
 
-      When("the lock is acquired via setnx then a separate expire (the non-atomic production sequence)")
-      // Production: val acquired = j.setnx(key,"1")==1; if(acquired) j.expire(key, lockTtl)
-      // If the process crashes between setnx and expire, the key lives forever with TTL=-1,
-      // permanently blocking every future retry of that idempotency key.
-      val jedis = Redis.jedisPool.getResource
-      val ttlAfterSetnxOnly: Long =
-        try {
-          jedis.del(key)
-          val acquired = jedis.setnx(key, "1") == 1L
-          // SIMULATE the crash window: expire has NOT run yet.
-          val ttl = jedis.ttl(key) // -1 == key exists with NO expiry → orphaned lock
-          acquired // keep acquired referenced
-          ttl
-        } finally jedis.close()
+      When("the lock is acquired via the atomic primitive (Redis.setNxEx = SET NX EX)")
+      // Fixed: value and TTL are set in one command. There is no setnx -> (crash) -> expire window
+      // that could orphan the lock without a TTL. (Pre-fix used setnx then a separate expire, so the
+      // key briefly had TTL=-1; see the red baseline.)
+      val acquired = Redis.setNxEx(key, "1", lockTtl)
+      val ttlAfterAcquire = Redis.use(JedisMethod.TTL, key).map(_.toLong).getOrElse(-2L)
 
-      Then("immediately after acquiring, the lock key MUST already carry a positive TTL (atomic acquire)")
+      Then("the lock must be acquired AND already carry a positive TTL (set atomically with the value)")
       withClue(
-        s"ttlAfterSetnxOnly=$ttlAfterSetnxOnly: " +
-        s"tryAcquireLock does setnx then a SEPARATE expire. Between the two the key has TTL=-1 (no " +
-        s"expiry); a crash there orphans the lock forever and blocks all retries of that idempotency key. " +
-        s"Fix: a single atomic SET key value EX 60 NX sets value and TTL in one command — there is no window. " +
-        s"This test asserts the post-fix invariant: the TTL is set atomically with the value — "
+        s"acquired=$acquired ttlAfterAcquire=$ttlAfterAcquire: tryAcquireLock must set value and TTL " +
+        s"in one atomic command, so a crash can never orphan a TTL-less lock that blocks all retries — "
       ) {
-        // RED today: setnx-only leaves TTL = -1. GREEN after Phase B (atomic SET NX EX).
-        ttlAfterSetnxOnly should be > 0L
+        acquired shouldBe true
+        ttlAfterAcquire should be > 0L
       }
     }
   }
