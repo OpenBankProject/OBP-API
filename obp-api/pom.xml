@@ -36,6 +36,7 @@
       <groupId>net.databinder.dispatch</groupId>
       <artifactId>dispatch-core_${scala.version}</artifactId>
       <version>0.13.1</version>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.json4s</groupId>

@@ -1,7 +1,6 @@
 package code.search
 
 import org.json4s._
-import java.nio.charset.Charset
 import java.util.Date
 
 import code.api.util.APIUtil
@@ -9,17 +8,18 @@ import code.api.util.ErrorMessages._
 import code.util.Helper.MdcLoggable
 import com.sksamuel.elastic4s.http.JavaClient
 import com.sksamuel.elastic4s.{ElasticClient, ElasticProperties}
-import dispatch.Defaults._
-import dispatch.{Http, url, _}
 import net.liftweb.common.{Box, Empty, Failure, Full}
 import com.openbankproject.commons.util.json
+import okhttp3.{MediaType => OkMediaType, OkHttpClient, Request => OkRequest, RequestBody}
 import org.json4s.JsonAST
-import scala.concurrent.Await
+import scala.concurrent.{Await, ExecutionContext, Future, Promise}
 import scala.concurrent.duration.Duration
 import scala.util.control.NoStackTrace
 
 
 class elasticsearch extends MdcLoggable {
+
+  private implicit val ec: ExecutionContext = ExecutionContext.global
 
   case class APIResponse(code: Int, body: JValue)
   case class ErrorMessage(error: String)
@@ -32,6 +32,8 @@ class elasticsearch extends MdcLoggable {
   val esType = ""
   val esIndex = ""
 
+  private val httpClient = new OkHttpClient()
+  private val jsonMediaType = OkMediaType.parse("application/json; charset=UTF-8")
 
   def isEnabled(): Boolean = {
     APIUtil.getPropsAsBoolValue("allow_elasticsearch", false)
@@ -39,8 +41,8 @@ class elasticsearch extends MdcLoggable {
 
   def searchProxy(userId: String, queryString: String): JValue = {
     if (APIUtil.getPropsAsBoolValue("allow_elasticsearch", false)) {
-      val request = constructQuery(userId, getParameters(queryString))
-      getAPIResponse(request).body
+      val esUrl = constructQuery(userId, getParameters(queryString))
+      getAPIResponse(esUrl).body
     } else {
       json.JsonParser.parse("""{"error":"elasticsearch disabled"}""")
     }
@@ -52,27 +54,22 @@ class elasticsearch extends MdcLoggable {
       val esUrl = s"${httpHost}${uri.replaceAll("\"", "")}"
       logger.info(s"searchProxyV300 says esUrl is: $esUrl")
       logger.info(s"searchProxyV300 says body is: $body")
-      val request: Req = (url(esUrl).<<(body).GET).setContentType("application/json", Charset.forName("UTF-8"))
-      val response = getAPIResponse(request)
+      val response = getAPIResponse(esUrl, body)
       if (statsOnly) Full(privacyCheckStatistics(response.body))
       else Full(response.body)
     } else {
       Full(json.JsonParser.parse("""{"error":"elasticsearch disabled"}"""))
     }
   }
-  def searchProxyAsyncV300(userId: String, uri: String, body: String, statsOnly: Boolean = false): Future[APIResponse] = {
-      val httpHost = ("http://" +  esHost + ":" +  esPortHTTP)
-      val esUrl = s"${httpHost}${uri.replaceAll("\"" , "")}"
-      logger.info(s"searchProxyAsyncV300 says esUrl is: $esUrl")
-      logger.info(s"searchProxyAsyncV300 says body is: $body")
-      val request: Req = (url(esUrl).<<(body).GET).setContentType("application/json", Charset.forName("UTF-8")) // Note that WE ONLY do GET - Keep it this way!
-      logger.info(s"searchProxyAsyncV300 says request I will send to ES is: ${request.toRequest.toString}")
-      val response = getAPIResponseAsync(request)
-      logger.info (s"searchProxyAsyncV300 says response follows:")
 
-    response foreach {
-      msg => logger.info(msg.body)
-    }
+  def searchProxyAsyncV300(userId: String, uri: String, body: String, statsOnly: Boolean = false): Future[APIResponse] = {
+    val httpHost = "http://" + esHost + ":" + esPortHTTP
+    val esUrl = s"${httpHost}${uri.replaceAll("\"", "")}"
+    logger.info(s"searchProxyAsyncV300 says esUrl is: $esUrl")
+    logger.info(s"searchProxyAsyncV300 says body is: $body")
+    val response = getAPIResponseAsync(esUrl, body)
+    logger.info(s"searchProxyAsyncV300 says response follows:")
+    response foreach { msg => logger.info(msg.body) }
     response
   }
 
@@ -81,21 +78,20 @@ class elasticsearch extends MdcLoggable {
     else response.body
   }
 
-
   def searchProxyStatsV300(userId: String, uriPart: String, bodyPart: String, field: String): Box[JValue] =
     searchProxyV300(userId, uriPart, addAggregation(bodyPart, field), statsOnly = true)
-  def searchProxyStatsAsyncV300(userId: String, uriPart: String, bodyPart:String, field: String): Future[APIResponse] = {
-    searchProxyAsyncV300(userId, uriPart, addAggregation(bodyPart,field), true)
-  }
+
+  def searchProxyStatsAsyncV300(userId: String, uriPart: String, bodyPart: String, field: String): Future[APIResponse] =
+    searchProxyAsyncV300(userId, uriPart, addAggregation(bodyPart, field), true)
 
   private def addAggregation(bodyPart: String, field: String): String = {
-    bodyPart.dropRight(1).concat(",\"aggs\":{\"" + field + "\":{\"stats\":{\"field\":\""+ field + "\"}}}}")
+    bodyPart.dropRight(1).concat(",\"aggs\":{\"" + field + "\":{\"stats\":{\"field\":\"" + field + "\"}}}}")
   }
-  
+
   private def extractStatistics(body: JValue): JValue = {
-    body \  "aggregations" 
+    body \ "aggregations"
   }
-  
+
   private def privacyCheckStatistics(body: JValue): JValue = {
     println("Enter privacyCheckStatistics")
     logger.debug(body)
@@ -104,20 +100,39 @@ class elasticsearch extends MdcLoggable {
     if (count > 9) result
     else json.JsonParser.parse("{\"error\": \"" + NotEnoughtSearchStatisticsResults + "\"}")
   }
-  
-  private def getAPIResponse(req: Req): APIResponse = {
-    Await.result(
-      getAPIResponseAsync(req)
-      , Duration.Inf)
+
+  private def getAPIResponse(esUrl: String, body: String = ""): APIResponse = {
+    Await.result(getAPIResponseAsync(esUrl, body), Duration.Inf)
   }
 
-  private def getAPIResponseAsync(req: Req): Future[APIResponse] = {
-    for (response <- Http.default(req > as.Response(p => p)))
-      yield {
-        val body = if (response.getResponseBody().isEmpty) "{}" else response.getResponseBody()
-        APIResponse(response.getStatusCode, json.parse(body))
+  private def getAPIResponseAsync(esUrl: String, body: String = ""): Future[APIResponse] = {
+    val promise = Promise[APIResponse]()
+    val request = buildRequest(esUrl, body)
+    httpClient.newCall(request).enqueue(new okhttp3.Callback {
+      override def onFailure(call: okhttp3.Call, e: java.io.IOException): Unit =
+        promise.failure(e)
+      override def onResponse(call: okhttp3.Call, response: okhttp3.Response): Unit = {
+        try {
+          val bodyStr = Option(response.body()).map(_.string()).filter(_.nonEmpty).getOrElse("{}")
+          promise.success(APIResponse(response.code(), json.parse(bodyStr)))
+        } catch {
+          case e: Throwable => promise.failure(e)
+        } finally {
+          response.close()
+        }
       }
+    })
+    promise.future
   }
+
+  private def buildRequest(esUrl: String, body: String): OkRequest =
+    if (body.nonEmpty)
+      new OkRequest.Builder()
+        .url(esUrl)
+        .post(RequestBody.create(jsonMediaType, body))
+        .build()
+    else
+      new OkRequest.Builder().url(esUrl).get().build()
 
   private def appendParams(url: String, params: Seq[(String, String)]): String = {
     def encode(s: String) = java.net.URLEncoder.encode(s, "UTF-8")
@@ -129,16 +144,14 @@ class elasticsearch extends MdcLoggable {
     }
   }
 
-  private def constructQuery(userId: String, params: Map[String, String]): Req = {
+  private def constructQuery(userId: String, params: Map[String, String]): String = {
     var esScroll = ""
     val esType = params.getOrElse("esType", "")
     val q = params.getOrElse("q", "")
-    val source = params.getOrElse("source","")
-    //val jsonQuery = Json.encode(filteredParams)
-    //TODO: Workaround - HTTP and TCP ports differ. Should there be props entry for both?
-    val httpHost = ("http://" +  esHost + ":" + esPortHTTP)
+    val source = params.getOrElse("source", "")
+    val httpHost = "http://" + esHost + ":" + esPortHTTP
 
-    var parameters = Seq[(String,String)]()
+    var parameters = Seq[(String, String)]()
     if (q != "") {
       parameters = parameters ++ Seq(("q", q))
       val size = params.getOrElse("size", "")
@@ -148,46 +161,34 @@ class elasticsearch extends MdcLoggable {
       val scroll = params.getOrElse("scroll", "")
       val scroll_id = params.getOrElse("scroll_id", "")
       val search_type = params.getOrElse("search_type", "")
-      if (size != "")
-        parameters = parameters ++ Seq(("size", size))
-      if (sort != "")
-        parameters = parameters ++ Seq(("sort", sort))
-      if (from != "")
-        parameters = parameters ++ Seq(("from", from))
-      if (df != "")
-        parameters = parameters ++ Seq(("df", df))
-      if (scroll != "")
-        parameters = parameters ++ Seq(("scroll", scroll))
-      if (search_type != "")
-        parameters = parameters ++ Seq(("search_type", search_type))
-      // scroll needs specific URL
+      if (size != "") parameters = parameters ++ Seq(("size", size))
+      if (sort != "") parameters = parameters ++ Seq(("sort", sort))
+      if (from != "") parameters = parameters ++ Seq(("from", from))
+      if (df != "") parameters = parameters ++ Seq(("df", df))
+      if (scroll != "") parameters = parameters ++ Seq(("scroll", scroll))
+      if (search_type != "") parameters = parameters ++ Seq(("search_type", search_type))
       if (scroll_id != "" && scroll != "") {
         esScroll = "/scroll"
         parameters = Seq(("scroll", scroll)) ++ Seq(("scroll_id", scroll_id))
       }
-    }
-    else if (q == "" && source != "") {
+    } else if (q == "" && source != "") {
       parameters = Seq(("source", source))
     }
-    val esUrl = appendParams( s"${httpHost}/${esIndex}/${esType}${if (esType.nonEmpty) "/" else ""}_search${esScroll}", parameters )
-    //println("[ES.URL]===> " + esUrl)
 
-    // Use this incase we cant log to elastic search
+    val esUrl = appendParams(
+      s"${httpHost}/${esIndex}/${esType}${if (esType.nonEmpty) "/" else ""}_search${esScroll}",
+      parameters
+    )
     logger.info(s"esUrl is $esUrl parameters are $parameters user_id is $userId")
-
-    url(esUrl).GET
+    esUrl
   }
 
   private def getParameters(queryString: String): Map[String, String] = {
-    val res = queryString.split('&').map { str =>
-    val pair = str.split('=')
-      if (pair.length > 1)
-        (pair(0) -> pair(1))
-      else
-        (pair(0) -> "")
+    queryString.split('&').map { str =>
+      val pair = str.split('=')
+      if (pair.length > 1) (pair(0) -> pair(1))
+      else (pair(0) -> "")
     }.toMap
-
-    res
   }
 
   def createElasticSearchUriPart(index: String, topic: String): String = {
@@ -195,15 +196,14 @@ class elasticsearch extends MdcLoggable {
     val realIndex =
       if (index == "" || index == "ALL") APIUtil.getPropsValue("es.warehouse.allowed.indices").getOrElse(throw new RuntimeException)
       else index
-    if (! realIndex.split(",").toSet.subsetOf(validIndices)) throw new RuntimeException() with NoStackTrace
+    if (!realIndex.split(",").toSet.subsetOf(validIndices)) throw new RuntimeException() with NoStackTrace
     val addTopic = if (topic == "ALL") "" else "/" + topic
     "/" + realIndex + addTopic + "/_search"
   }
 
   def getElasticSearchUri(indexString: String): Box[String] = {
     val validIndices: List[String] = APIUtil.getPropsValue("es.warehouse.allowed.indices").getOrElse(
-      throw new RuntimeException(NoValidElasticsearchIndicesConfigured) with NoStackTrace).split(",").toList match
-    {
+      throw new RuntimeException(NoValidElasticsearchIndicesConfigured) with NoStackTrace).split(",").toList match {
       case List("ALL") => List("")
       case x => x
     }
@@ -214,12 +214,12 @@ class elasticsearch extends MdcLoggable {
     }
   }
 
-  def checkIndicesValidity(indexString: String, validIndices: List[String]): Box[String] ={
+  def checkIndicesValidity(indexString: String, validIndices: List[String]): Box[String] = {
     indexString match {
       case "ALL" => Empty
       case x => x match {
         case y if !y.split(",").toSet.subsetOf(validIndices.toSet) => Failure("")
-        case y   => Full(y)
+        case y => Full(y)
       }
     }
   }
@@ -237,9 +237,8 @@ class elasticsearchMetrics extends elasticsearch {
 
   val props = ElasticProperties(s"http://$esHost:${esPortTCP.toInt}")
   lazy val client = ElasticClient(JavaClient(props))
-  // we must import the dsl
   import com.sksamuel.elastic4s.ElasticDsl._
-  
+
   if (APIUtil.getPropsAsBoolValue("allow_elasticsearch", false) && APIUtil.getPropsAsBoolValue("allow_elasticsearch_metrics", false) ) {
     try {
       client.execute {
@@ -264,7 +263,6 @@ class elasticsearchMetrics extends elasticsearch {
   def indexMetric(userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String, correlationId: String, apiInstanceId: String) {
     if (APIUtil.getPropsAsBoolValue("allow_elasticsearch", false) && APIUtil.getPropsAsBoolValue("allow_elasticsearch_metrics", false) ) {
       try {
-        // we must import the dsl
         import com.sksamuel.elastic4s.ElasticDsl._
         client.execute {
           indexInto(s"$esIndex/request") fields (
@@ -296,10 +294,6 @@ class elasticsearchWarehouse extends elasticsearch {
   val props = ElasticProperties(s"http://$esHost:${esPortTCP.toInt}")
   var client: ElasticClient = null
   if (APIUtil.getPropsAsBoolValue("allow_elasticsearch", false) && APIUtil.getPropsAsBoolValue("allow_elasticsearch_warehouse", false) ) {
-    //this is not used in the current code, first comment to solve the vulnerability issue 
-    // val settings = Settings.builder().put("cluster.name", APIUtil.getPropsValue("es.cluster.name", "elasticsearch")).build()
     client = ElasticClient(JavaClient(props))
   }
 }
-
-
