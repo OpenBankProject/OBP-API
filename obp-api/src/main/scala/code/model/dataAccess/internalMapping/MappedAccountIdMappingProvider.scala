@@ -41,7 +41,7 @@ object MappedAccountIdMappingProvider extends AccountIdMappingProvider with MdcL
             AccountIdMapping.find(
               By(AccountIdMapping.mAccountPlainTextReference, accountPlainTextReference)
             ).map(_.accountId)
-          case other => other
+          case other => other.map(_.accountId)
         }
       case Failure(msg, t, c) => Failure(msg, t, c)
       case ParamFailure(x,y,z,q) => ParamFailure(x,y,z,q)

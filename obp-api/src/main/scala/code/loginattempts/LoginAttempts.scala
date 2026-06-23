@@ -3,7 +3,7 @@ package code.loginattempts
 import code.api.util.APIUtil
 import code.userlocks.UserLocksProvider
 import code.util.Helper.MdcLoggable
-import net.liftweb.common.{Box, Empty, Full}
+import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers._
 

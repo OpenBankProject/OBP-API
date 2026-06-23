@@ -41,7 +41,7 @@ object MappedTransactionIdMappingProvider extends TransactionIdMappingProvider w
             TransactionIdMapping.find(
               By(TransactionIdMapping.TransactionPlainTextReference, transactionPlainTextReference)
             ).map(_.transactionId)
-          case other => other
+          case other => other.map(_.transactionId)
         }
       case Failure(msg, t, c) => Failure(msg, t, c)
       case ParamFailure(x,y,z,q) => ParamFailure(x,y,z,q)

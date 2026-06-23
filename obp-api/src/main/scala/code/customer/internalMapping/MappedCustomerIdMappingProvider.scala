@@ -41,7 +41,7 @@ object MappedCustomerIdMappingProvider extends CustomerIdMappingProvider with Md
             MappedCustomerIdMapping.find(
               By(MappedCustomerIdMapping.mCustomerPlainTextReference, customerPlainTextReference)
             ).map(_.customerId)
-          case other => other
+          case other => other.map(_.customerId)
         }
       case Failure(msg, t, c) => Failure(msg, t, c)
       case ParamFailure(x,y,z,q) => ParamFailure(x,y,z,q)
