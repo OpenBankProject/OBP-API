@@ -4434,8 +4434,12 @@ object Http4s310 {
               APIUtil.ConsumerIdPair(grantorConsumerId, granteeConsumerId))
             _ <- if (shouldSkipConsentSca) {
               Future {
+                // Atomic guarded auto-accept: only move INITIATED -> ACCEPTED. If the consent was
+                // concurrently revoked, the conditional UPDATE is a 0-row no-op and the revoke stands,
+                // instead of the skip-SCA write blindly resurrecting it to ACCEPTED.
                 MappedConsent.find(By(MappedConsent.mConsentId, createdConsent.consentId))
-                  .map(_.mStatus(ConsentStatus.ACCEPTED.toString).saveMe()).head
+                  .map(c => code.bankconnectors.DoobieConsentStatusQueries
+                    .conditionalStatusTransition(c.id.get, ConsentStatus.INITIATED.toString, ConsentStatus.ACCEPTED.toString))
               }
             } else {
               val challengeText = s"Your consent challenge : $challengeAnswer, Application: $applicationText"

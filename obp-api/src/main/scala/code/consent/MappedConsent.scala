@@ -369,17 +369,19 @@ object MappedConsentProvider extends ConsentProvider with code.util.Helper.MdcLo
       case Full(consent) if consent.status == ConsentStatus.REVOKED.toString =>
         Failure(ErrorMessages.ConsentAlreadyRevoked)
       case Full(consent) =>
-        tryo(consent
-          .mStatus(ConsentStatus.REVOKED.toString)
-          .mLastActionDate(now)
-          .saveMe())
+        // Atomic guarded revoke: UPDATE ... WHERE mstatus <> 'REVOKED'. A concurrent request that
+        // already revoked makes this a 0-row no-op, so we never resurrect or double-revoke.
+        val rows = code.bankconnectors.DoobieConsentStatusQueries
+          .conditionalRevoke(consent.id.get, ConsentStatus.REVOKED.toString)
+        if (rows >= 1) MappedConsent.find(By(MappedConsent.mConsentId, consentId))
+        else Failure(ErrorMessages.ConsentAlreadyRevoked)
       case Empty =>
         Empty ?~! ErrorMessages.ConsentNotFound
       case Failure(msg, _, _) =>
         Failure(msg)
       case _ =>
         Failure(ErrorMessages.UnknownError)
-    } 
+    }
   }
   override def revokeBerlinGroupConsent(consentId: String): Box[MappedConsent] = {
     MappedConsent.find(By(MappedConsent.mConsentId, consentId)) match {
@@ -412,10 +414,16 @@ object MappedConsentProvider extends ConsentProvider with code.util.Helper.MdcLo
       case Full(consent) =>
         consent.status match {
           case value if value == ConsentStatus.INITIATED.toString =>
-            val status = 
-              if (isAnswerCorrect(consent.challenge, challengeAnswer, consent.mSalt.get)) ConsentStatus.ACCEPTED.toString 
+            val status =
+              if (isAnswerCorrect(consent.challenge, challengeAnswer, consent.mSalt.get)) ConsentStatus.ACCEPTED.toString
               else ConsentStatus.REJECTED.toString
-            tryo(consent.mStatus(status).mLastActionDate(now).saveMe())
+            // Atomic guarded transition: only one concurrent answer may move INITIATED -> status.
+            // The loser (0 rows) gets a Failure rather than a second "success" that would let two
+            // callers proceed past the SCA gate on one consent.
+            val rows = code.bankconnectors.DoobieConsentStatusQueries
+              .conditionalStatusTransition(consent.id.get, ConsentStatus.INITIATED.toString, status)
+            if (rows == 1) MappedConsent.find(By(MappedConsent.mConsentId, consentId))
+            else Failure("Consent status changed concurrently; it is no longer INITIATED.")
           case _ =>
             Full(consent)
         }

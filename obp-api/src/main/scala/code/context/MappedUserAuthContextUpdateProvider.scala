@@ -61,7 +61,12 @@ object MappedUserAuthContextUpdateProvider extends UserAuthContextUpdateProvider
           consent.status match {
             case value if value == UserAuthContextUpdateStatus.INITIATED.toString =>
               val status = if (consent.challenge == challenge) UserAuthContextUpdateStatus.ACCEPTED.toString else UserAuthContextUpdateStatus.REJECTED.toString
-              tryo(consent.mStatus(status).saveMe())
+              // Atomic guarded transition: only one concurrent answer may move INITIATED -> status,
+              // so two correct answers cannot both be accepted (MFA double-authorisation).
+              val rows = code.bankconnectors.DoobieUserAuthContextUpdateQueries
+                .conditionalStatusTransition(consent.id.get, UserAuthContextUpdateStatus.INITIATED.toString, status)
+              if (rows == 1) MappedUserAuthContextUpdate.find(By(MappedUserAuthContextUpdate.mUserAuthContextUpdateId, consentId))
+              else Failure("UserAuthContextUpdate status changed concurrently; it is no longer INITIATED.")
             case _ =>
               Full(consent)
           } 

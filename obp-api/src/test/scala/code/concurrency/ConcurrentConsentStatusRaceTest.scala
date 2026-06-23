@@ -96,7 +96,8 @@ class ConcurrentConsentStatusRaceTest extends ConcurrentRaceSetup {
 
     scenario("H2: two concurrent correct answers to the same UserAuthContextUpdate must not both succeed", ConcurrencyRace) {
       Given("a UserAuthContextUpdate in INITIATED state with known plain-text challenge")
-      val answer = "conc-h2-answer"
+      // mChallenge is VARCHAR(10) — keep the answer within the column limit.
+      val answer = "h2ans"
       val updateId = mkUserAuthContextUpdate(answer)
 
       When("2 threads concurrently submit the correct challenge")
