@@ -265,17 +265,33 @@ class Boot extends MdcLoggable {
      */
     MapperRules.createForeignKeys_? = (_) => APIUtil.getPropsAsBoolValue("mapper_rules.create_foreign_keys", false)
 
+    // Pre-Schemifier dedup: drop natural-key duplicate rows in mapperaccountholder /
+    // mappedentitlement BEFORE schemifyAll() issues their CREATE UNIQUE INDEX (declared in
+    // MapperAccountHolders / MappedEntitlement dbIndexes). On a long-lived DB that still holds
+    // duplicates the index DDL would otherwise abort boot.
+    //
+    // This MUST stay here and must NOT be moved into Migration.database.executeScripts:
+    //  - both executeScripts passes below run AFTER schemifyAll() (the index is already created
+    //    by then — the "executed before Schemifier" comment on the true-pass is historical), and
+    //  - executeScripts is gated by migration_scripts.* props (off in tests), whereas Schemifier —
+    //    and therefore this dedup — must run ungated in every environment, incl. the H2 test DB.
+    // The method self-guards (skips when the table is absent or has no duplicates), so running it
+    // on every boot is a cheap no-op on fresh/clean/test databases.
+    Migration.database.deduplicateBeforeUniqueIndexSchemify()
     schemifyAll()
 
     logger.info("Mapper database info: " + Migration.DbFunction.mapperDatabaseInfo)
 
+    // NOTE: both executeScripts passes below run AFTER schemifyAll() above. The
+    // `startedBeforeSchemifier = true` argument does NOT mean this pass runs before Schemifier — it
+    // marks the existing-DB pass, in which migrations that require post-Schemifier schema skip
+    // themselves (see Migration.executeScripts). The "before Schemifier" wording is historical: the
+    // call once sat before schemifyAll() but was moved ahead of it in 2021 (commit ea4537029).
     DbFunction.tableExists(ResourceUser) match {
-      case true => // DB already exist
-        // Migration Scripts are used to update the model of OBP-API DB to a latest version.
-        // Please note that migration scripts are executed before Lift Mapper Schemifier
+      case true => // DB already exists
         Migration.database.executeScripts(startedBeforeSchemifier = true)
-        logger.info("The Mapper database already exits. The scripts are executed BEFORE Lift Mapper Schemifier.")
-      case false => // DB is still not created. The scripts will be executed after Lift Mapper Schemifier
+        logger.info("The Mapper database already exists. Running the existing-DB migration pass (post-Schemifier; migrations needing fresh schema skip themselves).")
+      case false => // Fresh DB — its migrations run in the catch-all pass below (after Schemifier)
         logger.info("The Mapper database is still not created. The scripts are going to be executed AFTER Lift Mapper Schemifier.")
     }
 

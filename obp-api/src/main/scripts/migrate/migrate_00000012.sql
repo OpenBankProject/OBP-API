@@ -1,1 +1,0 @@
-CREATE INDEX  mappedmetric_date_c ON mappedmetric(date_c);

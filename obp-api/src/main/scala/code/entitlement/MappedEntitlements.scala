@@ -9,6 +9,7 @@ import code.api.util.{ErrorMessages, NotificationUtil}
 import code.util.{MappedUUID, UUIDString}
 import net.liftweb.common.{Box, Failure, Full}
 import net.liftweb.mapper._
+import net.liftweb.util.Helpers.tryo
 
 import scala.concurrent.Future
 import com.openbankproject.commons.ExecutionContext.Implicits.global
@@ -165,7 +166,7 @@ object MappedEntitlementsProvider extends EntitlementProvider {
       groupId: Option[String] = None,
       process: Option[String] = None
   ): Box[Entitlement] = {
-    def addEntitlementToUser(): Full[MappedEntitlement] = {
+    def addEntitlementToUser(): Box[MappedEntitlement] = {
       val entitlement = MappedEntitlement.create
         .mBankId(bankId)
         .mUserId(userId)
@@ -173,13 +174,19 @@ object MappedEntitlementsProvider extends EntitlementProvider {
         .mCreatedByProcess(createdByProcess)
       groupId.foreach(gid => entitlement.mGroupId(gid))
       process.foreach(p => entitlement.mProcess(p))
-      val addEntitlement = entitlement.saveMe()
-      // When a role is Granted, we should send an email to the Recipient telling them they have been granted the role.
-      NotificationUtil.sendEmailRegardingAssignedRole(
-        userId: String,
-        addEntitlement: Entitlement
-      )
-      Full(addEntitlement)
+      tryo(entitlement.saveMe()) match {
+        case Full(saved) =>
+          NotificationUtil.sendEmailRegardingAssignedRole(userId, saved)
+          Full(saved)
+        case Failure(_, _, _) =>
+          // UniqueIndex(mBankId, mUserId, mRoleName) violated by concurrent grant — return the committed row
+          MappedEntitlement.find(
+            By(MappedEntitlement.mBankId, bankId),
+            By(MappedEntitlement.mUserId, userId),
+            By(MappedEntitlement.mRoleName, roleName)
+          )
+        case other => other
+      }
     }
     // Return a Box so we can handle errors later.
     grantorUserId match {
@@ -261,5 +268,5 @@ class MappedEntitlement
 object MappedEntitlement
     extends MappedEntitlement
     with LongKeyedMetaMapper[MappedEntitlement] {
-  override def dbIndexes = UniqueIndex(mEntitlementId) :: super.dbIndexes
+  override def dbIndexes = UniqueIndex(mEntitlementId) :: UniqueIndex(mBankId, mUserId, mRoleName) :: super.dbIndexes
 }

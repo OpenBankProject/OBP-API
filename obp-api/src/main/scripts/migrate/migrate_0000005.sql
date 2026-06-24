@@ -1,1 +1,0 @@
-alter table mappedtransaction alter column counterpartyaccountholder type varchar(255);

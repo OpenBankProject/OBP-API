@@ -637,185 +637,14 @@ object MapperViews extends Views with MdcLoggable {
     theView
   }
 
-  /**
-   * This migrates the current View permissions to the new ViewPermission model.
-   * this will not add any new permission, it will only migrate the existing permissions.
-   * @param viewDefinition
-   */
-  def migrateViewPermissions(viewDefinition: View): Unit = {
-
-    //first, we list all the current view permissions.
-    val permissionNames: List[String] =   List(
-      CAN_SEE_TRANSACTION_OTHER_BANK_ACCOUNT,
-      CAN_SEE_TRANSACTION_METADATA,
-      CAN_SEE_TRANSACTION_DESCRIPTION,
-      CAN_SEE_TRANSACTION_AMOUNT,
-      CAN_SEE_TRANSACTION_TYPE,
-      CAN_SEE_TRANSACTION_CURRENCY,
-      CAN_SEE_TRANSACTION_START_DATE,
-      CAN_SEE_TRANSACTION_FINISH_DATE,
-      CAN_SEE_TRANSACTION_BALANCE,
-      CAN_SEE_COMMENTS,
-      CAN_SEE_OWNER_COMMENT,
-      CAN_SEE_TAGS,
-      CAN_SEE_IMAGES,
-      CAN_SEE_BANK_ACCOUNT_OWNERS,
-      CAN_SEE_BANK_ACCOUNT_TYPE,
-      CAN_SEE_BANK_ACCOUNT_BALANCE,
-      CAN_QUERY_AVAILABLE_FUNDS,
-      CAN_SEE_BANK_ACCOUNT_LABEL,
-      CAN_SEE_BANK_ACCOUNT_NATIONAL_IDENTIFIER,
-      CAN_SEE_BANK_ACCOUNT_SWIFT_BIC,
-      CAN_SEE_BANK_ACCOUNT_IBAN,
-      CAN_SEE_BANK_ACCOUNT_NUMBER,
-      CAN_SEE_BANK_ACCOUNT_BANK_NAME,
-      CAN_SEE_BANK_ACCOUNT_BANK_PERMALINK,
-      CAN_SEE_BANK_ROUTING_SCHEME,
-      CAN_SEE_BANK_ROUTING_ADDRESS,
-      CAN_SEE_BANK_ACCOUNT_ROUTING_SCHEME,
-      CAN_SEE_BANK_ACCOUNT_ROUTING_ADDRESS,
-      CAN_SEE_OTHER_ACCOUNT_NATIONAL_IDENTIFIER,
-      CAN_SEE_OTHER_ACCOUNT_SWIFT_BIC,
-      CAN_SEE_OTHER_ACCOUNT_IBAN,
-      CAN_SEE_OTHER_ACCOUNT_BANK_NAME,
-      CAN_SEE_OTHER_ACCOUNT_NUMBER,
-      CAN_SEE_OTHER_ACCOUNT_METADATA,
-      CAN_SEE_OTHER_ACCOUNT_KIND,
-      CAN_SEE_OTHER_BANK_ROUTING_SCHEME,
-      CAN_SEE_OTHER_BANK_ROUTING_ADDRESS,
-      CAN_SEE_OTHER_ACCOUNT_ROUTING_SCHEME,
-      CAN_SEE_OTHER_ACCOUNT_ROUTING_ADDRESS,
-      CAN_SEE_MORE_INFO,
-      CAN_SEE_URL,
-      CAN_SEE_IMAGE_URL,
-      CAN_SEE_OPEN_CORPORATES_URL,
-      CAN_SEE_CORPORATE_LOCATION,
-      CAN_SEE_PHYSICAL_LOCATION,
-      CAN_SEE_PUBLIC_ALIAS,
-      CAN_SEE_PRIVATE_ALIAS,
-      CAN_ADD_MORE_INFO,
-      CAN_ADD_URL,
-      CAN_ADD_IMAGE_URL,
-      CAN_ADD_OPEN_CORPORATES_URL,
-      CAN_ADD_CORPORATE_LOCATION,
-      CAN_ADD_PHYSICAL_LOCATION,
-      CAN_ADD_PUBLIC_ALIAS,
-      CAN_ADD_PRIVATE_ALIAS,
-      CAN_ADD_COUNTERPARTY,
-      CAN_GET_COUNTERPARTY,
-      CAN_DELETE_COUNTERPARTY,
-      CAN_DELETE_CORPORATE_LOCATION,
-      CAN_DELETE_PHYSICAL_LOCATION,
-      CAN_EDIT_OWNER_COMMENT,
-      CAN_ADD_COMMENT,
-      CAN_DELETE_COMMENT,
-      CAN_ADD_TAG,
-      CAN_DELETE_TAG,
-      CAN_ADD_IMAGE,
-      CAN_DELETE_IMAGE,
-      CAN_ADD_WHERE_TAG,
-      CAN_SEE_WHERE_TAG,
-      CAN_DELETE_WHERE_TAG,
-      CAN_ADD_TRANSACTION_REQUEST_TO_OWN_ACCOUNT,
-      CAN_ADD_TRANSACTION_REQUEST_TO_ANY_ACCOUNT,
-      CAN_SEE_BANK_ACCOUNT_CREDIT_LIMIT,
-      CAN_CREATE_DIRECT_DEBIT,
-      CAN_CREATE_STANDING_ORDER,
-      CAN_REVOKE_ACCESS_TO_CUSTOM_VIEWS,
-      CAN_GRANT_ACCESS_TO_CUSTOM_VIEWS,
-      CAN_SEE_TRANSACTION_REQUESTS,
-      CAN_SEE_TRANSACTION_REQUEST_TYPES,
-      CAN_SEE_AVAILABLE_VIEWS_FOR_BANK_ACCOUNT,
-      CAN_UPDATE_BANK_ACCOUNT_LABEL,
-      CAN_CREATE_CUSTOM_VIEW,
-      CAN_DELETE_CUSTOM_VIEW,
-      CAN_UPDATE_CUSTOM_VIEW,
-      CAN_GET_CUSTOM_VIEW,
-      CAN_SEE_VIEWS_WITH_PERMISSIONS_FOR_ALL_USERS,
-      CAN_SEE_VIEWS_WITH_PERMISSIONS_FOR_ONE_USER,
-      CAN_SEE_TRANSACTION_THIS_BANK_ACCOUNT,
-      CAN_SEE_TRANSACTION_STATUS,
-      CAN_SEE_BANK_ACCOUNT_CURRENCY,
-      CAN_ADD_TRANSACTION_REQUEST_TO_BENEFICIARY,
-      CAN_GRANT_ACCESS_TO_VIEWS,
-      CAN_REVOKE_ACCESS_TO_VIEWS
-    )
-
-    permissionNames.foreach { permissionName =>
-      // CAN_REVOKE_ACCESS_TO_VIEWS and CAN_GRANT_ACCESS_TO_VIEWS are special cases, they have a list of view ids as metadata.
-      // For the rest of the permissions, they are just boolean values.
-      if (permissionName == CAN_REVOKE_ACCESS_TO_VIEWS || permissionName == CAN_GRANT_ACCESS_TO_VIEWS) {
-
-        val permissionValueFromViewDefinition = viewDefinition.getClass.getMethod(StringHelpers.camelifyMethod(permissionName)).invoke(viewDefinition).asInstanceOf[Option[List[String]]]
-
-        ViewPermission.findViewPermission(viewDefinition, permissionName) match {
-          // If the permission already exists in ViewPermission, but permissionValueFromViewDefinition is empty, we delete it.
-          case Full(permission) if permissionValueFromViewDefinition.isEmpty =>
-            permission.delete_!
-          // If the permission already exists and permissionValueFromViewDefinition is defined, we update the metadata.
-          case Full(permission) if permissionValueFromViewDefinition.isDefined =>
-            permission.extraData(permissionValueFromViewDefinition.get.mkString(",")).save
-          //if the permission is not existing in ViewPermission,but it is defined in the viewDefinition, we create it. --systemView
-          case Empty if (viewDefinition.isSystem && permissionValueFromViewDefinition.isDefined) =>
-            ViewPermission.create
-              .bank_id(null)
-              .account_id(null)
-              .view_id(viewDefinition.viewId.value)
-              .permission(permissionName)
-              .extraData(permissionValueFromViewDefinition.get.mkString(","))
-              .save
-          //if the permission is not existing in ViewPermission,but it is defined in the viewDefinition, we create it. --customView
-          case Empty if (!viewDefinition.isSystem && permissionValueFromViewDefinition.isDefined) =>
-            ViewPermission.create
-              .bank_id(viewDefinition.bankId.value)
-              .account_id(viewDefinition.accountId.value)
-              .view_id(viewDefinition.viewId.value)
-              .permission(permissionName)
-              .extraData(permissionValueFromViewDefinition.get.mkString(","))
-              .save
-          case _ =>
-            // This case should not happen, but if it does, we add an error log
-            logger.error(s"Unexpected case for permission $permissionName for view ${viewDefinition.viewId.value}. No action taken.")
-        }
-      } else {
-        // For the rest of the permissions, they are just boolean values.
-        val permissionValue = viewDefinition.getClass.getMethod(StringHelpers.camelifyMethod(permissionName)).invoke(viewDefinition).asInstanceOf[Boolean]
-
-        ViewPermission.findViewPermission(viewDefinition, permissionName) match {
-          // If the permission already exists in ViewPermission, but permissionValueFromViewdefinition is false, we delete it.
-          case Full(permission) if !permissionValue =>
-            permission.delete_!
-          // If the permission already exists in ViewPermission, but permissionValueFromViewdefinition is empty, we udpate it.
-          case Full(permission) if permissionValue =>
-            permission.permission(permissionName).save
-          //if the permission is not existing in ViewPermission, but it is defined in the viewDefinition, we create it. --systemView  
-          case _ if (viewDefinition.isSystem && permissionValue) =>
-            ViewPermission.create
-              .bank_id(null)
-              .account_id(null)
-              .view_id(viewDefinition.viewId.value)
-              .permission(permissionName)
-              .save
-          //if the permission is not existing in ViewPermission, but it is defined in the viewDefinition, we create it. --customerView   
-          case _ if (!viewDefinition.isSystem && permissionValue) =>
-            ViewPermission.create
-              .bank_id(viewDefinition.bankId.value)
-              .account_id(viewDefinition.accountId.value)
-              .view_id(viewDefinition.viewId.value)
-              .permission(permissionName)
-              .save
-          case _ =>
-            // This case should not happen, but if it does, we do nothing
-            logger.warn(s"Unexpected case for permission $permissionName for view ${viewDefinition.viewId.value}. No action taken.")
-        }
-      }
-    }
-  }
   
   def getOrCreateSystemView(viewId: String) : Box[View] = {
     getExistingSystemView(viewId) match {
       case Empty =>
-        createDefaultSystemView(viewId)
+        scala.util.Try(createDefaultSystemView(viewId)) match {
+          case scala.util.Success(box) => box
+          case scala.util.Failure(_)   => getExistingSystemView(viewId)
+        }
       case Full(v) => Full(v)
       case Failure(msg, t, c) => Failure(msg, t, c)
       case ParamFailure(x,y,z,q) => ParamFailure(x,y,z,q)
@@ -836,10 +665,13 @@ object MapperViews extends Views with MdcLoggable {
 
   def getOrCreateCustomPublicView(bankId: BankId, accountId: AccountId, description: String = "Public View") : Box[View] = {
     getExistingCustomView(bankId, accountId, CUSTOM_PUBLIC_VIEW_ID) match {
-      case Empty=> 
-        createDefaultCustomPublicView(bankId, accountId, description)
-      case Full(v)=>
-        Full(v)
+      case Empty =>
+        scala.util.Try(createDefaultCustomPublicView(bankId, accountId, description)) match {
+          case scala.util.Success(box) => box
+          case scala.util.Failure(_) =>
+            getExistingCustomView(bankId, accountId, CUSTOM_PUBLIC_VIEW_ID)
+        }
+      case Full(v) => Full(v)
       case Failure(msg, t, c) => Failure(msg, t, c)
       case ParamFailure(x,y,z,q) => ParamFailure(x,y,z,q)
     }
@@ -876,6 +708,11 @@ object MapperViews extends Views with MdcLoggable {
   }
 
   def removeAllViewsAndVierPermissions(bankId: BankId, accountId: AccountId) : Boolean = {
+    // bulkDelete_!! bypasses beforeDelete hooks, so AccountAccess must be removed explicitly.
+    AccountAccess.bulkDelete_!!(
+      By(AccountAccess.bank_id, bankId.value),
+      By(AccountAccess.account_id, accountId.value)
+    )
     ViewDefinition.bulkDelete_!!(
       By(ViewDefinition.bank_id, bankId.value),
       By(ViewDefinition.account_id, accountId.value)
