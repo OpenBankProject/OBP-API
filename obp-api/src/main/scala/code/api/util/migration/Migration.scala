@@ -146,6 +146,18 @@ object Migration extends MdcLoggable {
       dropFastFirehoseAccountsViews(startedBeforeSchemifier)
     }
 
+    /**
+     * Remove natural-key duplicate rows so Schemifier's CREATE UNIQUE INDEX on
+     * `mapperaccountholder` (user_, bank, account) and `mappedentitlement` (bank, user, role)
+     * cannot abort boot on an existing DB that still holds duplicates.
+     *
+     * Deliberately invoked directly from `Boot` BEFORE `schemifyAll()` and NOT routed through
+     * `executeScripts`/`runOnce`: those passes run AFTER Schemifier (too late — the index DDL has
+     * already run) and are gated by `migration_scripts.*` props (off in tests), whereas Schemifier
+     * creates the index ungated in every environment incl. H2. Keeps each table's dedup self-guarded
+     * (table-existence + has-duplicates probe), so it is a cheap no-op on fresh/clean/test DBs and
+     * needs no `MigrationScriptLog` entry. See the call site in `Boot.scala` for the full rationale.
+     */
     def deduplicateBeforeUniqueIndexSchemify(): Unit = {
       deduplicateNaturalKeyDups(
         tableName = "mapperaccountholder",

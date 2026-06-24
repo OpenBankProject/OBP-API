@@ -265,6 +265,18 @@ class Boot extends MdcLoggable {
      */
     MapperRules.createForeignKeys_? = (_) => APIUtil.getPropsAsBoolValue("mapper_rules.create_foreign_keys", false)
 
+    // Pre-Schemifier dedup: drop natural-key duplicate rows in mapperaccountholder /
+    // mappedentitlement BEFORE schemifyAll() issues their CREATE UNIQUE INDEX (declared in
+    // MapperAccountHolders / MappedEntitlement dbIndexes). On a long-lived DB that still holds
+    // duplicates the index DDL would otherwise abort boot.
+    //
+    // This MUST stay here and must NOT be moved into Migration.database.executeScripts:
+    //  - both executeScripts passes below run AFTER schemifyAll() (the index is already created
+    //    by then — the "executed before Schemifier" comment on the true-pass is historical), and
+    //  - executeScripts is gated by migration_scripts.* props (off in tests), whereas Schemifier —
+    //    and therefore this dedup — must run ungated in every environment, incl. the H2 test DB.
+    // The method self-guards (skips when the table is absent or has no duplicates), so running it
+    // on every boot is a cheap no-op on fresh/clean/test databases.
     Migration.database.deduplicateBeforeUniqueIndexSchemify()
     schemifyAll()
 
