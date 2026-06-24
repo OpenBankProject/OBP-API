@@ -29,6 +29,7 @@ package bootstrap.liftweb
 import org.json4s._
 import code.CustomerDependants.MappedCustomerDependant
 import code.DynamicData.DynamicData
+import code.DynamicData.DynamicDataAccess
 import code.DynamicEndpoint.DynamicEndpoint
 import code.UserRefreshes.MappedUserRefreshes
 import code.abacrule.AbacRule
@@ -952,6 +953,7 @@ object ToSchemify extends MdcLoggable {
     WebUiProps,
     DynamicEntity,
     DynamicData,
+    DynamicDataAccess,
     code.api.dynamic.entity.projection.DynamicEntityIndex,
     DynamicEndpoint,
     AccountIdMapping,

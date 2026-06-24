@@ -27,7 +27,7 @@ class QuerySpec extends FlatSpec with Matchers {
   // ----- QueryParamParser -----
 
   "QueryParamParser" should "parse a scalar filter, sort and pagination" in {
-    val Right((filters, sort, page)) = QueryParamParser.parse(params(
+    val Right((filters, _, sort, page)) = QueryParamParser.parse(params(
       "obp_filter[price]" -> "lt:10", "obp_sort_by" -> "price", "obp_sort_direction" -> "DESC",
       "obp_limit" -> "20", "obp_offset" -> "40"))
     filters shouldBe List(Filter("price", FilterOp.Lt, List("10")))
@@ -36,7 +36,7 @@ class QuerySpec extends FlatSpec with Matchers {
   }
 
   it should "split in/between values on commas but keep other operands opaque" in {
-    val Right((filters, _, _)) = QueryParamParser.parse(params(
+    val Right((filters, _, _, _)) = QueryParamParser.parse(params(
       "obp_filter[status]" -> "in:a,b,c", "obp_filter[price]" -> "between:5,10"))
     filters.toSet shouldBe Set(
       Filter("status", FilterOp.In, List("a", "b", "c")),

@@ -284,6 +284,19 @@ db.url=jdbc:h2:./lift_proto.db;NON_KEYWORDS=VALUE;DB_CLOSE_ON_EXIT=FALSE
 #db.driver=com.microsoft.sqlserver.jdbc.SQLServerDriver
 #db.url=jdbc:sqlserver://localhost:1433;databaseName=PSD2_OBP;user=OBPApi;password=********;
 
+## Dynamic Entity list-query backend.
+## Controls how GET-all reads on Dynamic Entities are served:
+##   inmemory (default) = portable in-memory filter/sort/paginate; works on any database.
+##                        Cross-entity joins (obp_exists / obp_not_exists) are NOT available and return 400.
+##   auto               = push filtering/sort/paginate AND obp_exists/obp_not_exists joins to the database
+##                        via per-entity projection tables + indexes. Enables joins.
+## This is a strategy toggle, not a vendor name: with "auto" the projection backend matching your db.url
+## vendor is selected automatically (Postgres now; SQL Server when that backend ships) - the vendor is
+## detected from db.url, so there is no per-database value to set here. "auto" requires a Postgres (or
+## SQL Server) db.url; on any other vendor it falls back to inmemory. Projection tables are provisioned
+## when a Dynamic Entity definition is created/updated, so re-save existing definitions after enabling.
+#dynamic_entity.indexing.backend=inmemory
+
 ## Enable remote Akka actor for data split
 ## If set to true, must set hostname and port
 ## of remote machine

@@ -118,11 +118,37 @@ object CommunityEntityName {
   }
 }
 
+/**
+ * Row-level access (ACL) management routes: `.../<Entity>/<id>/access[/<userId>]`.
+ * Result: (bankId, entityName, dataId, grantedUserIdOpt). Matches whenever the entity exists
+ * (row-level or not); the handler returns 400 when the entity isn't row-level. See §6.
+ */
+object EntityAccessName {
+  private def entityExists(bankId: Option[String], entityName: String): Boolean =
+    DynamicEntityHelper.definitionsMap.exists { case ((b, n), info) => b == bankId && n == entityName && info.bankId == bankId }
+
+  def unapply(url: List[String]): Option[(Option[String], String, String, Option[String])] = url match {
+    //eg: /FooBar21/FOO_BAR21_ID/access
+    case entityName :: id :: "access" :: Nil if entityExists(None, entityName) =>
+      Some((None, entityName, id, None))
+    //eg: /FooBar21/FOO_BAR21_ID/access/USER_ID
+    case entityName :: id :: "access" :: userId :: Nil if entityExists(None, entityName) =>
+      Some((None, entityName, id, Some(userId)))
+    //eg: /banks/BANK_ID/FooBar21/FOO_BAR21_ID/access
+    case "banks" :: bankId :: entityName :: id :: "access" :: Nil if entityExists(Some(bankId), entityName) =>
+      Some((Some(bankId), entityName, id, None))
+    //eg: /banks/BANK_ID/FooBar21/FOO_BAR21_ID/access/USER_ID
+    case "banks" :: bankId :: entityName :: id :: "access" :: userId :: Nil if entityExists(Some(bankId), entityName) =>
+      Some((Some(bankId), entityName, id, Some(userId)))
+    case _ => None
+  }
+}
+
 object DynamicEntityHelper {
   private val implementedInApiVersion = ApiVersion.v4_0_0
 
   //                       (Some(BankId), EntityName, DynamicEntityInfo)
-  def definitionsMap: Map[(Option[String], String), DynamicEntityInfo] = NewStyle.function.getDynamicEntities(None, true).map(it => ((it.bankId, it.entityName), DynamicEntityInfo(it.metadataJson, it.entityName, it.bankId, it.hasPersonalEntity, it.hasPublicAccess, it.hasCommunityAccess, it.personalRequiresRole))).toMap
+  def definitionsMap: Map[(Option[String], String), DynamicEntityInfo] = NewStyle.function.getDynamicEntities(None, true).map(it => ((it.bankId, it.entityName), DynamicEntityInfo(it.metadataJson, it.entityName, it.bankId, it.hasPersonalEntity, it.hasPublicAccess, it.hasCommunityAccess, it.personalRequiresRole, it.useRowLevelAccess))).toMap
 
   def dynamicEntityRoles: List[String] = NewStyle.function.getDynamicEntities(None, true).flatMap { dEntity =>
     val baseRoles = DynamicEntityInfo.roleNames(dEntity.entityName, dEntity.bankId)
@@ -237,9 +263,7 @@ object DynamicEntityHelper {
          |
          |${userAuthenticationMessage(true)}
          |
-         |Can do filter on the fields
-         |e.g: /${entityName}?name=James%20Brown&number=123.456&number=11.11
-         |Will do filter by this rule: name == "James Brown" && (number==123.456 || number=11.11)
+         |${dynamicEntityInfo.listQueryDoc(joinsSupported = true)}
          |""".stripMargin,
       EmptyBody,
       dynamicEntityInfo.getExampleList,
@@ -420,9 +444,7 @@ object DynamicEntityHelper {
            |
            |${userAuthenticationMessage(true)}
            |
-           |Can do filter on the fields
-           |e.g: /${entityName}?name=James%20Brown&number=123.456&number=11.11
-           |Will do filter by this rule: name == "James Brown" && (number==123.456 || number=11.11)
+           |${dynamicEntityInfo.listQueryDoc(joinsSupported = true)}
            |""".stripMargin,
         EmptyBody,
         dynamicEntityInfo.getExampleList,
@@ -572,9 +594,7 @@ object DynamicEntityHelper {
            |
            |Authentication is Optional
            |
-           |Can do filter on the fields
-           |e.g: /${entityName}?name=James%20Brown&number=123.456&number=11.11
-           |Will do filter by this rule: name == "James Brown" && (number==123.456 || number=11.11)
+           |${dynamicEntityInfo.listQueryDoc(joinsSupported = false)}
            |""".stripMargin,
         EmptyBody,
         dynamicEntityInfo.getExampleList,
@@ -630,9 +650,7 @@ object DynamicEntityHelper {
            |
            |Authentication is Required
            |
-           |Can do filter on the fields
-           |e.g: /${entityName}?name=James%20Brown&number=123.456&number=11.11
-           |Will do filter by this rule: name == "James Brown" && (number==123.456 || number=11.11)
+           |${dynamicEntityInfo.listQueryDoc(joinsSupported = false)}
            |""".stripMargin,
         EmptyBody,
         dynamicEntityInfo.getExampleList,
@@ -724,7 +742,7 @@ object DynamicEntityHelper {
       |""".stripMargin
 
 }
-case class DynamicEntityInfo(definition: String, entityName: String, bankId: Option[String], hasPersonalEntity: Boolean, hasPublicAccess: Boolean = false, hasCommunityAccess: Boolean = false, personalRequiresRole: Boolean = false) {
+case class DynamicEntityInfo(definition: String, entityName: String, bankId: Option[String], hasPersonalEntity: Boolean, hasPublicAccess: Boolean = false, hasCommunityAccess: Boolean = false, personalRequiresRole: Boolean = false, useRowLevelAccess: Boolean = false) {
 
   import com.openbankproject.commons.util.json
   import code.api.dynamic.entity.query.FieldSpec
@@ -838,6 +856,7 @@ case class DynamicEntityInfo(definition: String, entityName: String, bankId: Opt
   val canUpdateRole: ApiRole = DynamicEntityInfo.canUpdateRole(entityName, bankId)
   val canGetRole: ApiRole = DynamicEntityInfo.canGetRole(entityName, bankId)
   val canDeleteRole: ApiRole = DynamicEntityInfo.canDeleteRole(entityName, bankId)
+  val canGrantRowAccessRole: ApiRole = DynamicEntityInfo.canGrantRowAccessRole(entityName, bankId)
 
   // ----- Field-level access control (mirrors DynamicEntityT; here `entity` is already the per-entity object) -----
   private def restrictedFields(requiredFlag: String, roleKey: String): List[String] =
@@ -865,17 +884,91 @@ case class DynamicEntityInfo(definition: String, entityName: String, bankId: Opt
 
   /**
    * Fields declared `indexed` (DE_indexing): name -> (declared type, index kind "scalar"|"spatial").
-   * Only recognised DynamicEntityFieldType fields are surfaced; this is the queryable allow-list the
-   * planner validates against. (Reference-typed indexed fields are not yet supported.)
+   * A `reference:<Target>` field surfaces as [[DynamicEntityFieldType.reference]] (its value is an id
+   * String, so it indexes/queries like a string); the target entity is tracked in [[referenceFields]].
+   * Other unrecognised types are dropped — this is the queryable allow-list the planner validates against.
    */
   lazy val indexedFields: Map[String, FieldSpec] = (entity \ "properties") match {
     case props: JObject => props.obj.collect {
       case JField(name, propDef: JObject) if (propDef \ "indexed") == JBool(true) =>
         val typeName = (propDef \ "type") match { case JString(s) => s; case _ => "" }
         val kind = (propDef \ "index") match { case JString(s) => s; case _ => "scalar" }
-        DynamicEntityFieldType.withNameOption(typeName).map(ft => name -> FieldSpec(ft, kind))
+        val fieldTypeOpt =
+          if (typeName.startsWith("reference:")) Some(DynamicEntityFieldType.reference)
+          else DynamicEntityFieldType.withNameOption(typeName)
+        fieldTypeOpt.map(ft => name -> FieldSpec(ft, kind))
     }.flatten.toMap
     case _ => Map.empty
+  }
+
+  /**
+   * Indexed `reference:<Target>` fields: fieldName -> target entity name (the part after "reference:").
+   * The join planner uses this to resolve one-hop EXISTS/NOT EXISTS edges between entities; only
+   * declared reference fields are joinable (a plain string field holding ids is not). See
+   * ideas/DYNAMIC_ENTITY_JOIN_QUERIES.md.
+   */
+  lazy val referenceFields: Map[String, String] = (entity \ "properties") match {
+    case props: JObject => props.obj.collect {
+      case JField(name, propDef: JObject)
+        if (propDef \ "indexed") == JBool(true) &&
+           ((propDef \ "type") match { case JString(s) => s.startsWith("reference:"); case _ => false }) =>
+        val target = ((propDef \ "type"): @unchecked) match { case JString(s) => s.stripPrefix("reference:") }
+        name -> target
+    }.toMap
+    case _ => Map.empty
+  }
+
+  /**
+   * Human-facing documentation of the list-endpoint query grammar (filter / sort / paginate / one-hop
+   * joins), appended to the GET-all ResourceDoc descriptions. `joinsSupported` is true on the
+   * authenticated + /my/ endpoints (which can use the SQL projection backend) and false on the public /
+   * community endpoints (in-memory only — a join there returns 400). See
+   * ideas/DYNAMIC_ENTITY_JOIN_QUERIES.md.
+   */
+  def listQueryDoc(joinsSupported: Boolean): String = {
+    val indexedNames = indexedFields.keys.toList.sorted
+    val indexedHint =
+      if (indexedNames.isEmpty) "_(no fields on this entity are declared `indexed`, so only the legacy bare-parameter filter below is available.)_"
+      else "Queryable (declared `indexed`) fields: " + indexedNames.mkString("`", "`, `", "`") + "."
+    val refHint =
+      if (referenceFields.isEmpty) ""
+      else "\n\nThis entity's reference fields (each usable as a one-hop join edge to its target entity): " +
+        referenceFields.toList.sortBy(_._1).map { case (f, t) => s"`$f` → `$t`" }.mkString(", ") + "."
+
+    val base =
+      s"""**Filtering, sorting and pagination** on the list endpoint:
+         |
+         |$indexedHint
+         |
+         |* **Filter**: `?obp_filter[FIELD]=OP:VALUE`. Operators: `eq`, `ne`, `in`, `lt`, `gt`, `le`, `ge`, `between`, `like`, `is_null`, `not_set`. `in` / `between` take comma-separated values; `is_null` / `not_set` take no value. Repeat the same key to AND several constraints on one field.
+         |  e.g. `?obp_filter[status]=eq:active&obp_filter[amount]=between:10,100` or `?obp_filter[closed_date]=not_set`
+         |* **Legacy filter** (still supported): bare field parameters, e.g. `?name=James%20Brown&number=123.456&number=11.11` filters by `name == "James Brown" && (number == 123.456 || number == 11.11)`.
+         |* **Sort**: `?obp_sort_by=FIELD[,FIELD2]&obp_sort_direction=ASC|DESC`.
+         |* **Paginate**: `?obp_limit=20&obp_offset=40`.
+         |
+         |Filtering, sorting, pagination and `is_null` / `not_set` work on every deployment (no special backend required).""".stripMargin
+
+    val joins =
+      if (!joinsSupported)
+        "\n\nOne-hop join queries (`obp_exists` / `obp_not_exists`) are not available on this endpoint."
+      else
+        s"""
+           |
+           |**One-hop joins (EXISTS / NOT EXISTS)** — filter this entity by a condition on a *related* entity linked through a declared `reference:` field:
+           |
+           |* `?obp_exists[RelatedEntity]` — keep rows that have at least one related RelatedEntity.
+           |* `?obp_exists[RelatedEntity]=filter[FIELD]=eq:VALUE` — ...that have at least one matching the predicate.
+           |* `?obp_not_exists[RelatedEntity]` — keep rows with NO related RelatedEntity at all.
+           |* `?obp_not_exists[RelatedEntity]=filter[FIELD]=eq:VALUE` — ...with no related RelatedEntity matching the predicate (this **includes** rows that have no related RelatedEntity).
+           |* If two entities are linked by more than one reference, disambiguate the edge with `via:`, e.g. `?obp_exists[RelatedEntity]=via:buyer_ref;filter[status]=eq:signed`.
+           |
+           |The nested `filter[...]` reuses the operator grammar above. Mind the distinction: `obp_not_exists[X]=filter[flag]=eq:true` (no related X with flag=true — includes rows with no X) is **not** the same as `obp_exists[X]=filter[flag]=ne:true` (has a related X with flag≠true — excludes rows with no X).
+           |
+           |Only a field typed `reference:<Entity>` **and** declared `indexed: true` forms a join edge; a plain string field holding ids is not joinable.$refHint
+           |
+           |**Joins require the SQL projection backend** (`dynamic_entity.indexing.backend=auto` on Postgres or SQL Server) with the involved fields indexed and ready. On an in-memory deployment a join query returns `400 (OBP-09022)`; while an index is still building it returns `409`. The plain filter / sort / paginate / `is_null` / `not_set` features above do **not** need the projection backend.""".stripMargin
+
+    base + joins
   }
 }
 
@@ -903,11 +996,21 @@ object DynamicEntityInfo {
     else
       getOrCreateDynamicApiRole("CanDeleteDynamicEntity_System" + entityName, false)
 
+  // Admin override for row-level access (§3): a holder may grant/list/revoke per-row ACL
+  // on any row of the entity, even rows they cannot read. Ordinary owner-driven sharing
+  // does not need this role — it goes through the row's own ACL CanGrant (§8.1).
+  def canGrantRowAccessRole(entityName: String, bankId:Option[String]): ApiRole =
+    if(bankId.isDefined)
+      getOrCreateDynamicApiRole("CanGrantDynamicEntityRowAccess_" + entityName, true)
+    else
+      getOrCreateDynamicApiRole("CanGrantDynamicEntityRowAccess_System" + entityName, false)
+
   def roleNames(entityName: String, bankId:Option[String]): List[String] = List(
     canCreateRole(entityName, bankId),
     canUpdateRole(entityName, bankId),
     canGetRole(entityName, bankId),
-    canDeleteRole(entityName, bankId)
+    canDeleteRole(entityName, bankId),
+    canGrantRowAccessRole(entityName, bankId)
   ).map(_.toString())
 
   // Field-level roles. If the definition declares an explicit write_role/read_role, use it verbatim

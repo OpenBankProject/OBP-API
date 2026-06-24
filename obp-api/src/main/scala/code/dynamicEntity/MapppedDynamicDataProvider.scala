@@ -177,6 +177,23 @@ object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonForm
     }
   }
 
+  override def updateCommunity(bankId: Option[String], entityName: String, requestBody: JObject, id: String): Box[DynamicDataT] = {
+    val dynamicData = getCommunity(bankId, entityName, id)
+      .openOrThrowException(s"$DynamicDataNotFound dynamicEntityName=$entityName, dynamicDataId=$id")
+      .asInstanceOf[DynamicData]
+    // Preserve the row's existing owner/personal flag — row-level access changes the data, not provenance.
+    saveOrUpdate(bankId, entityName, requestBody, Option(dynamicData.UserId.get), dynamicData.IsPersonalEntity.get, dynamicData)
+  }
+
+  override def deleteCommunity(bankId: Option[String], entityName: String, id: String): Box[Boolean] = {
+    getCommunity(bankId, entityName, id).map { d =>
+      val result = d.asInstanceOf[DynamicData].delete_!
+      // DE_indexing: remove the projection row in the same transaction (no-op unless projection enabled+ready).
+      code.api.dynamic.entity.projection.ProjectionDualWrite.onDelete(bankId, entityName, id)
+      result
+    }
+  }
+
   override def existsData(bankId: Option[String], dynamicEntityName: String, userId: Option[String], isPersonalEntity: Boolean): Boolean = {
     if(bankId.isEmpty && !isPersonalEntity){//isPersonalEntity == false, get all the data, no need for specific userId.
       DynamicData.find(
