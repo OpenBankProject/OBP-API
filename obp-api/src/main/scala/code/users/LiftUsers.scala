@@ -50,12 +50,12 @@ object LiftUsers extends Users with MdcLoggable{
   }
 
   def getOrCreateUserByProviderId(provider : String, idGivenByProvider : String, consentId: Option[String], name: Option[String], email: Option[String]) : (Box[User], Boolean) = {
-    val existingUser = Users.users.vend.getUserByProviderId(provider = provider, idGivenByProvider = idGivenByProvider) // Find a user
+    val existingUser = Users.users.vend.getUserByProviderId(provider = provider, idGivenByProvider = idGivenByProvider)
     existingUser match {
-      case Full(_) => // Existing user
+      case Full(_) =>
         (existingUser, false)
-      case _ => // Otherwise create a new one
-        val newUser = Users.users.vend.createResourceUser( 
+      case _ =>
+        scala.util.Try(Users.users.vend.createResourceUser(
           provider = provider,
           providerId = Some(idGivenByProvider),
           createdByConsentId = consentId,
@@ -65,8 +65,11 @@ object LiftUsers extends Users with MdcLoggable{
           createdByUserInvitationId = None,
           company = None,
           lastMarketingAgreementSignedDate = None
-        )
-        (newUser, true)
+        )) match {
+          case scala.util.Success(box) => (box, true)
+          case scala.util.Failure(_) =>
+            (Users.users.vend.getUserByProviderId(provider, idGivenByProvider), false)
+        }
     }
   }
   def getOrCreateUserByProviderIdFuture(provider : String, idGivenByProvider : String, consentId: Option[String], name: Option[String], email: Option[String]) : Future[(Box[User], Boolean)] = {

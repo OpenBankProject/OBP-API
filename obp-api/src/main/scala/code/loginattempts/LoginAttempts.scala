@@ -3,7 +3,7 @@ package code.loginattempts
 import code.api.util.APIUtil
 import code.userlocks.UserLocksProvider
 import code.util.Helper.MdcLoggable
-import net.liftweb.common.{Box, Empty, Full}
+import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers._
 
@@ -18,30 +18,22 @@ object LoginAttempt extends MdcLoggable {
       case false =>
         logger.debug(s"Hello from incrementBadLoginAttempts with $username")
 
-        // Find badLoginAttempt record if one exists for a user
-        MappedBadLoginAttempt.find(
-          By(MappedBadLoginAttempt.Provider, provider),
-          By(MappedBadLoginAttempt.mUsername, username)
-        ) match {
-          // If it exits update the date and increment
-          case Full(loginAttempt) =>
-
-            logger.debug(s"incrementBadLoginAttempts found ${loginAttempt.mBadAttemptsSinceLastSuccessOrReset} loginAttempt(s) with id ${loginAttempt.id}")
-
-            loginAttempt
-              .mLastFailureDate(now)
-              .mBadAttemptsSinceLastSuccessOrReset(loginAttempt.mBadAttemptsSinceLastSuccessOrReset + 1) // Increment
-              .save
-          case _ =>
-            // If none exists, add one
+        // Atomically increment the counter; if no row exists yet, create one.
+        // The create path is itself a check-then-insert: two concurrent first-time bad logins both
+        // see rowsUpdated==0, so wrap in tryo to absorb the UniqueIndex violation from the loser.
+        val rowsUpdated = code.bankconnectors.DoobieBadLoginAttemptQueries.incrementBadLoginAttempts(provider, username)
+        if (rowsUpdated == 0) {
+          tryo {
             MappedBadLoginAttempt.create
               .mUsername(username)
               .Provider(provider)
               .mLastFailureDate(now)
-              .mBadAttemptsSinceLastSuccessOrReset(1) // Start with 1
+              .mBadAttemptsSinceLastSuccessOrReset(1)
               .save
-
-            logger.debug(s"incrementBadLoginAttempts created loginAttempt")
+          }
+          logger.debug(s"incrementBadLoginAttempts created loginAttempt")
+        } else {
+          logger.debug(s"incrementBadLoginAttempts atomically incremented for $username (rows=$rowsUpdated)")
         }
     }
   }
@@ -50,13 +42,29 @@ object LoginAttempt extends MdcLoggable {
     MappedBadLoginAttempt.find(
       By(MappedBadLoginAttempt.Provider, provider),
       By(MappedBadLoginAttempt.mUsername, username)
-    ).or(Full(MappedBadLoginAttempt.create
-      .mUsername(username)
-      .Provider(provider)
-      .mLastFailureDate(now)
-      .mBadAttemptsSinceLastSuccessOrReset(0)
-      .saveMe()
-    ))
+    ) match {
+      case full @ Full(_) => full
+      case _ =>
+        // .or(Full(saveMe())) evaluates saveMe eagerly — two concurrent first-time callers
+        // both get Empty and both call saveMe; the loser hits UniqueIndex(Provider, mUsername).
+        tryo {
+          MappedBadLoginAttempt.create
+            .mUsername(username)
+            .Provider(provider)
+            .mLastFailureDate(now)
+            .mBadAttemptsSinceLastSuccessOrReset(0)
+            .saveMe()
+        } match {
+          case full @ Full(_) => full
+          case Failure(_, _, _) =>
+            // UniqueIndex violation from concurrent insert — re-fetch the committed row
+            MappedBadLoginAttempt.find(
+              By(MappedBadLoginAttempt.Provider, provider),
+              By(MappedBadLoginAttempt.mUsername, username)
+            )
+          case other => other
+        }
+    }
   }
 
   /**
