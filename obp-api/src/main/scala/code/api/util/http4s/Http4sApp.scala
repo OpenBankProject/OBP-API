@@ -149,20 +149,28 @@ object Http4sApp extends MdcLoggable {
     }
   }
 
+  // RFC 7230 §3.3: a server MUST NOT send a message body in a response to a HEAD request.
+  // Ember does not automatically strip bodies for explicitly-defined HEAD routes, so we strip
+  // here at the outermost layer to keep TCP connections clean for the OkHttp3 test client.
+  private def stripBodyForHead(req: Request[IO], resp: Response[IO]): Response[IO] =
+    if (req.method == Method.HEAD)
+      Response[IO](status = resp.status, httpVersion = resp.httpVersion, headers = resp.headers)
+    else resp
+
   def httpApp: HttpApp[IO] = {
     val app = baseServices.orNotFound
     Kleisli { req: Request[IO] =>
       app.run(req)
-        .map(resp => Http4sStandardHeaders(req, resp))
+        .map(resp => stripBodyForHead(req, Http4sStandardHeaders(req, resp)))
         .handleErrorWith { e =>
           logger.error(s"[Http4sApp] Uncaught exception: ${req.method} ${req.uri} - ${e.getMessage}", e)
           val errMsg = Option(e.getMessage).getOrElse("Internal Server Error")
             .replace("\\", "\\\\").replace("\"", "\\\"")
           val body = s"""{"code":500,"message":"$errMsg"}"""
-          IO.pure(Http4sStandardHeaders(req,
+          IO.pure(stripBodyForHead(req, Http4sStandardHeaders(req,
             Response[IO](status = Status.InternalServerError)
               .withEntity(body.getBytes("UTF-8"))
-              .withHeaders(Headers(Header.Raw(CIString("Content-Type"), "application/json; charset=utf-8")))))
+              .withHeaders(Headers(Header.Raw(CIString("Content-Type"), "application/json; charset=utf-8"))))))
         }
     }
   }
