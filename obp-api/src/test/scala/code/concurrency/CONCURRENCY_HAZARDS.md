@@ -39,6 +39,27 @@ mvn -pl obp-commons,obp-api scalatest:test \
 
 ---
 
+## Testing Notes — H2 Reproduction Caveats
+
+The test DB is in-memory H2 (`test.default.props`). When reading a red/green result, keep the
+following in mind:
+
+- **Application-layer hazards are DB-isolation-independent.** Lost-update (read-modify-write)
+  and check-then-insert hazards reproduce as long as both callers' *reads* happen before the
+  other's *write commits*. H2 **can** reproduce them — they are not a function of the isolation
+  level (H2 and Postgres both default to READ COMMITTED).
+- **H2 table-level locks can mask a hazard.** H2 may serialize some writes, lowering the
+  reproduction probability and occasionally turning a real hazard green. Countermeasures: keep
+  concurrency `N ≥ 8`; increase `N` or repeat rounds if a scenario flickers; and always print the
+  observed `expected vs actual` on failure — the red bar with its values is the evidence.
+- **Asymmetric conclusion (state it honestly).** Reproduced on H2 ⟹ Postgres definitely has it
+  (possibly worse). *Not* reproduced on H2 does **not** imply Postgres is safe.
+- **dispatch HttpClient pool pollution.** Concurrent sharing of `Http.default` sporadically throws
+  `"invalid version format"`; a retry-once fallback exists (`SendServerRequests.scala`). Keep
+  HTTP-level concurrency around 5–10 and tolerate the occasional retry.
+
+---
+
 ## Test Files (8 classes · 19 scenarios)
 
 | File | Scenarios |
