@@ -127,14 +127,16 @@ object ViewPermission extends ViewPermission with LongKeyedMetaMapper[ViewPermis
       // Remove existing conflicting record if any
       ViewPermission.find(conditions: _*).foreach(_.delete_!)
 
-      // Insert new permission
-      ViewPermission.create
-        .bank_id(bankId)
-        .account_id(accountId)
-        .view_id(view.viewId.value)
-        .permission(permissionName)
-        .extraData(extraData)
-        .save
+      // Insert new permission; ignore constraint violation from a concurrent reset
+      scala.util.Try {
+        ViewPermission.create
+          .bank_id(bankId)
+          .account_id(accountId)
+          .view_id(view.viewId.value)
+          .permission(permissionName)
+          .extraData(extraData)
+          .save
+      }
     }
   }
 

@@ -508,11 +508,12 @@ object LocalMappedConnectorInternal extends MdcLoggable {
     for {
 
       currency <- Full(fromAccount.currency)
-      //update the balance of the fromAccount for which a transaction is being created
-      newAccountBalance <- Full(Helper.convertToSmallestCurrencyUnits(fromAccount.balance, currency) + Helper.convertToSmallestCurrencyUnits(amount, currency))
-
-      //Here is the `LocalMappedConnector`, once get this point, fromAccount must be a mappedBankAccount. So can use asInstanceOf.... 
-      _ <- tryo(fromAccount.asInstanceOf[MappedBankAccount].accountBalance(newAccountBalance).save) ?~! UpdateBankAccountException
+      // atomically update the balance using Doobie and SELECT FOR UPDATE row locking
+      newAccountBalance <- DoobieBankAccountQueries.updateBalance(
+        fromAccount.bankId.value,
+        fromAccount.accountId.value,
+        Helper.convertToSmallestCurrencyUnits(amount, currency)
+      ) ?~! UpdateBankAccountException
 
       mappedTransaction <- tryo(MappedTransaction.create
         //No matter which type (SANDBOX_TAN,SEPA,FREE_FORM,COUNTERPARTYE), always filled the following nine fields.

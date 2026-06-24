@@ -9,6 +9,7 @@ import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId, Us
 import net.liftweb.common._
 import net.liftweb.mapper._
 import net.liftweb.common.Box
+import net.liftweb.util.Helpers.tryo
 
 
 /**
@@ -31,7 +32,7 @@ object MapperAccountHolders extends MapperAccountHolders with AccountHolders wit
 
   // NOTE: !!! Uses a DIFFERENT TABLE NAME PREFIX TO ALL OTHERS i.e. MAPPER not MAPPED !!!!!
 
-  override def dbIndexes = Index(accountBankPermalink, accountPermalink) :: Nil
+  override def dbIndexes = UniqueIndex(user, accountBankPermalink, accountPermalink) :: Nil
 
   //Note, this method, will not check the existing of bankAccount, any value of BankIdAccountId
   //Can create the MapperAccountHolders.
@@ -51,16 +52,25 @@ object MapperAccountHolders extends MapperAccountHolders with AccountHolders wit
         mapperAccountHolder
       }
       case Empty => {
-        val holder: MapperAccountHolders = MapperAccountHolders.create
-          .accountBankPermalink(bankIdAccountId.bankId.value)
-          .accountPermalink(bankIdAccountId.accountId.value)
-          .user(user.userPrimaryKey.value)
-          .source(source.getOrElse(null))
-          .saveMe
-        logger.debug(
-          s"getOrCreateAccountHolder--> create account holder: $holder"
-        )
-        Full(holder)
+        tryo {
+          MapperAccountHolders.create
+            .accountBankPermalink(bankIdAccountId.bankId.value)
+            .accountPermalink(bankIdAccountId.accountId.value)
+            .user(user.userPrimaryKey.value)
+            .source(source.getOrElse(null))
+            .saveMe
+        } match {
+          case Full(holder) =>
+            logger.debug(s"getOrCreateAccountHolder--> create account holder: $holder")
+            Full(holder)
+          case Failure(_, _, _) =>
+            MapperAccountHolders.find(
+              By(MapperAccountHolders.user, user.userPrimaryKey.value),
+              By(MapperAccountHolders.accountBankPermalink, bankIdAccountId.bankId.value),
+              By(MapperAccountHolders.accountPermalink, bankIdAccountId.accountId.value)
+            )
+          case other => other
+        }
       }
       case Failure(msg, t, c) => Failure(msg, t, c)
       case ParamFailure(x,y,z,q) => ParamFailure(x,y,z,q)
