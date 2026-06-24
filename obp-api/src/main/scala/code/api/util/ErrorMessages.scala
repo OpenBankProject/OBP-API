@@ -272,6 +272,17 @@ object ErrorMessages {
   val BerlinGroupConsentAccessFrequencyPerDay = s"OBP-20090: Frequency per day must be 1 when availableAccounts is used."
   val BerlinGroupConsentAccessAvailableAccounts = s"OBP-20091: availableAccounts must be exactly 'allAccounts'."
 
+  // SIWE (Sign-In With Ethereum, EIP-4361). Feature is off by default (allow_siwe=false).
+  val SiweNotEnabled = "OBP-20092: SIWE authentication is not enabled on this instance."
+  val SiweConfigMissing = "OBP-20093: SIWE is enabled but not fully configured. Missing required prop: "
+  val SiweMessageMalformed = "OBP-20094: The SIWE message could not be parsed as an EIP-4361 message."
+  val SiweInvalidAddress = "OBP-20095: The address in the SIWE message is not a valid Ethereum address."
+  val SiweDomainMismatch = "OBP-20096: The domain in the SIWE message does not match the configured siwe.domain."
+  val SiweChainIdNotAllowed = "OBP-20097: The Chain ID in the SIWE message is not in siwe.allowed_chain_ids."
+  val SiweNonceInvalid = "OBP-20098: The nonce is unknown, already used, or expired. Request a new challenge."
+  val SiweMessageExpired = "OBP-20099: The SIWE message has expired (Expiration Time is in the past)."
+  val SiweSignatureInvalid = "OBP-20100: The signature does not match the address claimed in the SIWE message."
+
   val UserNotSuperAdminOrMissRole = "OBP-20101: Current User is not super admin or is missing entitlements:"
   val CannotGetOrCreateUser = "OBP-20102: Cannot get or create user."
   val InvalidUserProvider = "OBP-20103: Invalid DAuth User Provider."
