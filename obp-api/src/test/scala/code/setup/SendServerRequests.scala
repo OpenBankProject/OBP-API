@@ -135,7 +135,7 @@ trait SendServerRequests {
       APIResponse(responseCode, JString(bodyStr), Some(okHeaders))
     } else {
       val parsedBody: Option[JValue] =
-        if (bodyStr.isEmpty) Some(JObject(Nil))
+        if (bodyStr.isEmpty) Some(JNothing)
         else tryo { parse(bodyStr) }.toOption orElse
           tryo {
             parse(s"[$bodyStr]") match {
