@@ -182,6 +182,29 @@ object Migration extends MdcLoggable {
       )
     }
 
+    /**
+     * Collapse natural-key duplicates in `tableName` down to one surviving row per key group.
+     *
+     * Survivor policy: KEEP the row with the lowest `idCol` (the oldest insert) per `groupCols`
+     * group, DELETE the rest. The discarded duplicates are NOT byte-identical to the survivor —
+     * only the natural key matches — so this is lossy by design:
+     *  - `mappedentitlement`: each duplicate carries its own `mentitlementid` UUID (the external
+     *    handle returned by the API and used by `getEntitlementById`/`deleteEntitlement`), plus
+     *    `created_by_process` / `group_id` / `process` / `entitlement_request_id` / timestamps.
+     *    Removing a duplicate invalidates any stale reference to *that* row's UUID. This is
+     *    acceptable: the surviving row encodes the identical (bank, user, role) grant, so
+     *    authorization is unaffected — only dead handles to the removed copies break.
+     *  - `mapperaccountholder`: duplicates may differ in `source` (provenance metadata). The
+     *    surviving row encodes the same (user, account) ownership link.
+     *
+     * Safe to run on every boot and under concurrent multi-node boot: the survivor set is a
+     * deterministic lowest-id-per-group, the DELETE is idempotent (re-running removes 0 rows), and
+     * Lift Mapper's Schemifier emits no DB-level FK constraints, so the DELETE neither cascades nor
+     * aborts on referential integrity. The has-duplicates probe keeps clean/fresh/test DBs on the
+     * cheap path — the heavier delete only runs when extras actually exist. The delete uses a
+     * derived-table + ROW_NUMBER() form (see inline note) so it is portable across every driver OBP
+     * ships, including MySQL/MariaDB, instead of the MySQL-incompatible `NOT IN (SELECT MIN ...)`.
+     */
     private def deduplicateNaturalKeyDups(tableName: String, idCol: String, groupCols: List[String]): Unit = {
       if (DbFunction.tableExistsByName(tableName)) {
         val groupBy = groupCols.mkString(", ")
@@ -193,14 +216,30 @@ object Migration extends MdcLoggable {
           } finally st.close()
         }
         if (hasDups) {
-          logger.warn(s"deduplicateBeforeUniqueIndexSchemify: duplicates found in $tableName – removing extras")
-          DB.use(net.liftweb.util.DefaultConnectionIdentifier) { conn =>
+          logger.warn(s"deduplicateBeforeUniqueIndexSchemify: duplicates found in $tableName – removing extras (keeping the lowest $idCol per [$groupBy])")
+          // Delete-set shape (target only the few extras), deliberately NOT survivor-set
+          // (`... NOT IN (SELECT MIN(id) FROM sameTable ...)`): the survivor-set form has the
+          // subquery's FROM name the very table being deleted, which throws MySQL/MariaDB
+          // ERROR 1093 ("can't specify target table for update in FROM clause") — and MySQL is a
+          // first-class OBP target (driver shipped, per-vendor branches throughout this package).
+          // Wrapping ROW_NUMBER() in a derived table (`(...) tmp`, no AS — Oracle-safe) is the one
+          // form portable across every driver OBP ships: the derived table is materialised, which
+          // sidesteps 1093, and window functions are supported by all of PostgreSQL, H2 2.x,
+          // MySQL 8+/MariaDB 10.2+, SQL Server and Oracle. `ORDER BY $idCol ASC` + `rn > 1` deletes
+          // all but the lowest id per group — the identical survivor the NOT IN/MIN form kept.
+          val deleteSql =
+            s"""DELETE FROM $tableName WHERE $idCol IN (
+               |  SELECT $idCol FROM (
+               |    SELECT $idCol, ROW_NUMBER() OVER (PARTITION BY $groupBy ORDER BY $idCol ASC) AS rn FROM $tableName
+               |  ) tmp WHERE rn > 1
+               |)""".stripMargin
+          val deleted = DB.use(net.liftweb.util.DefaultConnectionIdentifier) { conn =>
             val st = conn.createStatement()
             try {
-              st.execute(s"DELETE FROM $tableName WHERE $idCol NOT IN (SELECT MIN($idCol) FROM $tableName GROUP BY $groupBy)")
+              st.executeUpdate(deleteSql)
             } finally st.close()
           }
-          logger.warn(s"deduplicateBeforeUniqueIndexSchemify: dedup of $tableName complete")
+          logger.warn(s"deduplicateBeforeUniqueIndexSchemify: removed $deleted duplicate row(s) from $tableName")
         }
       }
     }
