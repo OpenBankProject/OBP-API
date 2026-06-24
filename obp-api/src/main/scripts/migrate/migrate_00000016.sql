@@ -1,1 +1,0 @@
-ALTER TABLE "mappedconsent" ALTER COLUMN "mjsonwebtoken" type varchar(4096);
