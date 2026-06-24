@@ -1423,7 +1423,7 @@ object Http4s500 {
           for {
             (_, _) <- if (getAtmsIsPublic) APIUtil.anonymousAccess(cc) else APIUtil.applicationAccess(cc)
           } yield ""
-        }
+        }.map(r => Response[IO](status = r.status, httpVersion = r.httpVersion, headers = r.headers))
     }
 
     resourceDocs += ResourceDoc(
