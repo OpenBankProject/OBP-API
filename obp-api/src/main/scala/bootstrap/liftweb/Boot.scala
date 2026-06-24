@@ -282,13 +282,16 @@ class Boot extends MdcLoggable {
 
     logger.info("Mapper database info: " + Migration.DbFunction.mapperDatabaseInfo)
 
+    // NOTE: both executeScripts passes below run AFTER schemifyAll() above. The
+    // `startedBeforeSchemifier = true` argument does NOT mean this pass runs before Schemifier — it
+    // marks the existing-DB pass, in which migrations that require post-Schemifier schema skip
+    // themselves (see Migration.executeScripts). The "before Schemifier" wording is historical: the
+    // call once sat before schemifyAll() but was moved ahead of it in 2021 (commit ea4537029).
     DbFunction.tableExists(ResourceUser) match {
-      case true => // DB already exist
-        // Migration Scripts are used to update the model of OBP-API DB to a latest version.
-        // Please note that migration scripts are executed before Lift Mapper Schemifier
+      case true => // DB already exists
         Migration.database.executeScripts(startedBeforeSchemifier = true)
-        logger.info("The Mapper database already exits. The scripts are executed BEFORE Lift Mapper Schemifier.")
-      case false => // DB is still not created. The scripts will be executed after Lift Mapper Schemifier
+        logger.info("The Mapper database already exists. Running the existing-DB migration pass (post-Schemifier; migrations needing fresh schema skip themselves).")
+      case false => // Fresh DB — its migrations run in the catch-all pass below (after Schemifier)
         logger.info("The Mapper database is still not created. The scripts are going to be executed AFTER Lift Mapper Schemifier.")
     }
 

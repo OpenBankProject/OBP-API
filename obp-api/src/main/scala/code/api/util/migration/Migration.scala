@@ -81,7 +81,18 @@ object Migration extends MdcLoggable {
   }
   
   object database {
-    
+
+    /**
+     * Runs the migration scripts. Called twice from Boot, BOTH times AFTER `schemifyAll()`.
+     *
+     * `startedBeforeSchemifier` does NOT mean "this pass runs before Schemifier" — despite the name
+     * and the historical Boot comments, both passes run after it. It selects which pass this is:
+     *  - `true`  = the existing-DB pass (only invoked when `tableExists(ResourceUser)`): migrations
+     *              that require post-Schemifier schema guard on this flag and skip themselves here.
+     *  - `false` = the catch-all pass that runs for every DB; the guarded migrations run in this one.
+     * `runOnce` (tracked in `MigrationScriptLog`) guarantees each named migration executes exactly
+     * once across both passes.
+     */
     def executeScripts(startedBeforeSchemifier: Boolean): Boolean = executeScript {
       dummyScript()
       addAccountAccessConsumerId()
