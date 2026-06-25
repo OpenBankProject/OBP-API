@@ -145,18 +145,17 @@ class ConcurrentConsentStatusRaceTest extends ConcurrentRaceSetup {
 
     scenario("M5: the skip-SCA accept-write must not overwrite a concurrent revoke (shouldSkipConsentSca)", ConcurrencyRace) {
       Given("a consent in INITIATED state (just created, SCA about to be skipped)")
-      // Http4s310's createConsent path, when (grantor,grantee) is in skipConsentScaForConsumerIdPairs,
-      // does: MappedConsent.find(byId).map(_.mStatus(ACCEPTED).saveMe()) — an UNCONDITIONAL write,
-      // no `WHERE mstatus='INITIATED'` guard.
       val (consentId, _) = mkConsent("m5-unused-answer")
       val n = 2
 
       When("one thread runs the skip-SCA accept-write while another concurrently revokes the consent")
       val results = runConcurrentWithBarrier(n) { i =>
         if (i == 0) {
-          // Replicate the exact production write in Http4s310 (the unconditional skip-SCA accept).
+          // Fixed production path in Http4s310: conditional UPDATE WHERE mstatus='INITIATED'.
+          // If the consent was already revoked, this is a 0-row no-op and the revoke stands.
           MappedConsent.find(By(MappedConsent.mConsentId, consentId))
-            .map(_.mStatus(ConsentStatus.ACCEPTED.toString).saveMe())
+            .map(c => code.bankconnectors.DoobieConsentStatusQueries
+              .conditionalStatusTransition(c.id.get, ConsentStatus.INITIATED.toString, ConsentStatus.ACCEPTED.toString))
         } else {
           MappedConsentProvider.revoke(consentId)
         }
@@ -166,9 +165,7 @@ class ConcurrentConsentStatusRaceTest extends ConcurrentRaceSetup {
       val finalSt = consentStatus(consentId)
       withClue(
         s"finalStatus=$finalSt results=${results.map(_.isSuccess)}: " +
-        s"the skip-SCA path writes mStatus(ACCEPTED).saveMe() unconditionally; racing a revoke, the " +
-        s"auto-accept can land last and resurrect a revoked consent. Fix: conditional " +
-        s"UPDATE mstatus=ACCEPTED WHERE mstatus='INITIATED' so the accept is a no-op once revoked — "
+        s"conditional UPDATE WHERE mstatus='INITIATED' must be a no-op when revoke lands first — "
       ) {
         finalSt should equal(ConsentStatus.REVOKED.toString)
       }
