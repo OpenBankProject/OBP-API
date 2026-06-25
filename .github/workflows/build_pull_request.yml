@@ -288,7 +288,10 @@ jobs:
             SHARD7="code.model code.views code.customer code.usercustomerlinks \
                     code.api.util code.errormessages code.atms code.branches \
                     code.products code.crm code.accountHolder code.api.berlin"
-            ASSIGNED="$SHARD1 $SHARD2 $SHARD3 $SHARD4 $SHARD5 $SHARD6 $SHARD7 ${{ matrix.test_filter }}"
+            # code.concurrency contains long-running race simulations (60-90s each)
+            # that are excluded from CI. Mark the package as assigned so the
+            # catch-all loop never appends it to any shard's filter.
+            ASSIGNED="$SHARD1 $SHARD2 $SHARD3 $SHARD4 $SHARD5 $SHARD6 $SHARD7 ${{ matrix.test_filter }} code.concurrency"
 
             # Discover all packages that contain at least one .scala test file
             ALL_PKGS=$(find obp-api/src/test/scala obp-commons/src/test/scala \
