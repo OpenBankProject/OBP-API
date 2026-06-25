@@ -28,10 +28,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up JDK 11
+      - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
-          java-version: "11"
+          java-version: "17"
           distribution: "adopt"
           cache: maven          # caches ~/.m2/repository keyed on pom.xml hash
 
@@ -180,10 +180,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up JDK 11
+      - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
-          java-version: "11"
+          java-version: "17"
           distribution: "adopt"
           cache: maven
 
@@ -324,12 +324,16 @@ jobs:
           # timeout 1500: hard-kill after 25 min to prevent Pekko non-daemon threads
           # (ConsentScheduler etc.) from keeping the JVM alive after tests complete.
           # Exit code 124 (timeout) is treated as success — tests are done, JVM just hung.
+          # set +e: GitHub Actions uses -eo pipefail by default; without it, a 124 exit from
+          # timeout would abort the step before the rc check below can run.
+          set +e
           MAVEN_OPTS="-Xmx3G -Xss2m -XX:MaxMetaspaceSize=1G" \
             timeout 1500 mvn process-resources scalatest:test -pl obp-commons,obp-api -DfailIfNoTests=false \
               -DwildcardSuites="$FILTER" \
               -DtagsToExclude=code.concurrency.ConcurrencyRace \
             > maven-build-shard${{ matrix.shard }}.log 2>&1
           rc=$?
+          set -e
           # timeout returns 124 when tests finished but JVM didn't exit — treat as success.
           [ $rc -eq 124 ] && rc=0
           exit $rc
