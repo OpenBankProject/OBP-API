@@ -133,6 +133,7 @@ object QueryPlanner {
         if (f.values.nonEmpty) Some(QueryError(s"Operator '${f.op.name}' on '${f.field}' takes no value.")) else None
       case Between if f.values.size != 2 => Some(QueryError(s"Operator 'between' on '${f.field}' requires exactly two values."))
       case In if f.values.isEmpty        => Some(QueryError(s"Operator 'in' on '${f.field}' requires at least one value."))
+      case In                            => None
       case _ if FilterOp.spatial.contains(f.op) => None // spatial operand shape validated by the spatial backend
       case _ if f.values.size != 1       => Some(QueryError(s"Operator '${f.op.name}' on '${f.field}' requires exactly one value."))
       case _                             => None
