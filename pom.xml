@@ -14,7 +14,8 @@
     <scala.compiler>2.12.20</scala.compiler>
     <pekko.version>1.1.5</pekko.version>
     <pekko-http.version>1.1.0</pekko-http.version>
-    <avro.version>1.8.2</avro.version>
+    <avro4s.version>4.1.2</avro4s.version>
+    <apache.avro.version>1.11.4</apache.avro.version>
     <lift.version>v1.0.4</lift.version>
     <http4s.version>0.23.30</http4s.version>
     <!-- Common plugin settings -->
@@ -88,15 +89,13 @@
         <artifactId>accessors-smart</artifactId>
         <version>2.6.0</version>
       </dependency>
-      <!-- Force org.json to 20250107 to override the 20171018 pulled in transitively
-           by everit-json-schema 1.6.1. Fixes CVE-2022-45688 and CVE-2023-5072. -->
+      <!-- Pin org.json to 20250107. Fixes CVE-2022-45688 and CVE-2023-5072. -->
       <dependency>
         <groupId>org.json</groupId>
         <artifactId>json</artifactId>
         <version>20250107</version>
       </dependency>
-      <!-- Force commons-validator to 1.9.0 to override the 1.6 pulled in transitively
-           by everit-json-schema 1.6.1. Fixes CVE-2020-13956 (ReDoS in URL validation). -->
+      <!-- Pin commons-validator to 1.9.0. Fixes CVE-2020-13956 (ReDoS in URL validation). -->
       <dependency>
         <groupId>commons-validator</groupId>
         <artifactId>commons-validator</artifactId>

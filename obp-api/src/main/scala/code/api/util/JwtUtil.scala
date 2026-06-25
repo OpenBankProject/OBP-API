@@ -15,7 +15,6 @@ import com.nimbusds.jose.util.{DefaultResourceRetriever, JSONObjectUtils}
 import com.nimbusds.jwt.proc.{BadJWTException, DefaultJWTProcessor}
 import com.nimbusds.jwt.{JWTClaimsSet, SignedJWT}
 import com.nimbusds.openid.connect.sdk.claims.IDTokenClaimsSet
-import dispatch.Future
 import net.liftweb.common.{Box, Empty, Failure, Full}
 
 object JwtUtil extends MdcLoggable {

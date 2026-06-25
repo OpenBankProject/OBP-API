@@ -20,11 +20,6 @@
       <artifactId>obp-commons</artifactId>
     </dependency>
 
-    <dependency>
-      <groupId>com.github.everit-org.json-schema</groupId>
-      <artifactId>org.everit.json.schema</artifactId>
-      <version>1.6.1</version>
-    </dependency>
     <!-- Upgraded from 1.4.14 (EOL branch) to 1.5.18. 1.4.x is end-of-life as of
          2024; 1.5.x is the supported branch and requires Java 11+ (which we target).
          Fixes CVE-2024-12798 (RCE via JaninoEventEvaluator in 1.4.x). -->
@@ -41,6 +36,7 @@
       <groupId>net.databinder.dispatch</groupId>
       <artifactId>dispatch-core_${scala.version}</artifactId>
       <version>0.13.1</version>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.json4s</groupId>
@@ -121,20 +117,19 @@
       <artifactId>protobuf-java</artifactId>
       <version>3.25.5</version>
     </dependency>
-    <!-- Pin snappy-java to override the 1.1.1.3 pulled in transitively by avro 1.8.2.
+    <!-- Pin org.apache.avro:avro to 1.11.4 to override the 1.9.2 pulled in transitively
+         by avro4s 4.1.2. Fixes CVE-2024-47561 (CVSS 9.8 — RCE via schema parsing). -->
+    <dependency>
+      <groupId>org.apache.avro</groupId>
+      <artifactId>avro</artifactId>
+      <version>${apache.avro.version}</version>
+    </dependency>
+    <!-- Pin snappy-java to override older versions pulled in transitively by avro.
          Fixes CVE-2023-34453, CVE-2023-34454, CVE-2023-34455, CVE-2023-43642. -->
     <dependency>
       <groupId>org.xerial.snappy</groupId>
       <artifactId>snappy-java</artifactId>
       <version>1.1.10.4</version>
-    </dependency>
-    <!-- Pin commons-beanutils to override the 1.9.2 pulled in transitively via
-         everit json-schema → commons-validator. Fixes CVE-2025-48734, CVE-2019-10086;
-         1.11.0 adds the Improper-Access-Control fix (GHSA on top of those). -->
-    <dependency>
-      <groupId>commons-beanutils</groupId>
-      <artifactId>commons-beanutils</artifactId>
-      <version>1.11.0</version>
     </dependency>
     <!-- Pin msal4j to override the older version pulled in transitively by
          mssql-jdbc → azure-identity. Fixes CVE-2024-35255 (elevation of
@@ -176,11 +171,6 @@
       <groupId>cglib</groupId>
       <artifactId>cglib</artifactId>
       <version>3.3.0</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.httpcomponents</groupId>
-      <artifactId>httpclient</artifactId>
-      <version>4.5.14</version>
     </dependency>
     <dependency>
       <groupId>org.apache.commons</groupId>
@@ -241,7 +231,7 @@
     <dependency>
       <groupId>com.sksamuel.avro4s</groupId>
       <artifactId>avro4s-core_${scala.version}</artifactId>
-      <version>${avro.version}</version>
+      <version>${avro4s.version}</version>
     </dependency>
     <dependency>
       <groupId>org.apache.commons</groupId>
@@ -312,19 +302,14 @@
       <artifactId>json-smart</artifactId>
     </dependency>
     <!-- ********** flexmark START ********** -->
-    <!-- Library flexmark-all v0.40.8 is replaced with used modules -->
+    <!-- Library flexmark-all v0.40.8 is replaced with used module -->
     <!-- https://mvnrepository.com/artifact/com.vladsch.flexmark/flexmark-profile-pegdown -->
     <dependency>
       <groupId>com.vladsch.flexmark</groupId>
       <artifactId>flexmark-profile-pegdown</artifactId>
       <version>0.40.8</version>
     </dependency>
-    <!-- https://mvnrepository.com/artifact/com.vladsch.flexmark/flexmark-util-options -->
-    <dependency>
-      <groupId>com.vladsch.flexmark</groupId>
-      <artifactId>flexmark-util-options</artifactId>
-      <version>0.64.0</version>
-    </dependency>
+
       <!-- https://mvnrepository.com/artifact/org.web3j/core -->
       <dependency>
           <groupId>org.web3j</groupId>
@@ -422,6 +407,7 @@
       <groupId>org.asynchttpclient</groupId>
       <artifactId>async-http-client</artifactId>
       <version>2.15.0</version>
+      <scope>test</scope>
         <exclusions>
             <exclusion>
                 <artifactId>javax.activation</artifactId>
@@ -514,11 +500,12 @@
       <artifactId>jackson-databind</artifactId>
       <!-- version managed by jackson-bom in parent pom -->
     </dependency>
-      <!-- https://mvnrepository.com/artifact/tools.jackson.dataformat/jackson-dataformat-yaml -->
+    <!-- com.fasterxml YAML module (Jackson 2.x), version managed by jackson-bom in parent pom.
+         Replaces the incompatible tools.jackson 3.x line so a single Jackson generation is on
+         the classpath. YAMLUtils uses com.fasterxml.jackson.dataformat.yaml.YAMLFactory. -->
     <dependency>
-      <groupId>tools.jackson.dataformat</groupId>
+      <groupId>com.fasterxml.jackson.dataformat</groupId>
       <artifactId>jackson-dataformat-yaml</artifactId>
-      <version>3.0.4</version>
     </dependency>
     <!-- https://mvnrepository.com/artifact/com.squareup.okhttp3/okhttp -->
     <dependency>

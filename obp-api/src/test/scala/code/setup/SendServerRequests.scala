@@ -57,7 +57,21 @@ case class APIResponse(code: Int, body: JValue, headers: Option[HttpHeaders])
 trait SendServerRequests {
 
   TimeZone.setDefault(TimeZone.getTimeZone("UTC"))
-  
+
+  import code.api.util.APIUtil.OAuth.{Consumer, Token}
+
+  implicit def Request2RequestSigner(r: Req): RequestSigner = new RequestSigner(r)
+
+  class RequestSigner(rb: Req) {
+    def <@(consumer: Consumer, token: Token): Req =
+      rb <:< Map("Authorization" -> s"""DirectLogin token="${token.value}"""")
+    def <@(consumerAndToken: Option[(Consumer, Token)]): Req =
+      consumerAndToken match {
+        case Some((_, token)) => rb <:< Map("Authorization" -> s"""DirectLogin token="${token.value}"""")
+        case None => rb
+      }
+  }
+
   case class ReqData (
                       url: String,
                       method: String,
