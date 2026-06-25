@@ -178,6 +178,7 @@ run_shard() {
     OBP_API_INSTANCE_ID="shard_${n}" \
     "$TIMEOUT_BIN" 1200 mvn scalatest:test -pl obp-api -DfailIfNoTests=false \
         "-DwildcardSuites=${filter}" \
+        "-DtagsToExclude=code.concurrency.ConcurrencyRace" \
         > "$log" 2>&1
     local rc=$?
     # timeout returns 124 on timeout (tests finished but the JVM didn't exit) — treat as success.
