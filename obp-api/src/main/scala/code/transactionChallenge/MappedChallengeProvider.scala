@@ -73,15 +73,13 @@ object MappedChallengeProvider extends ChallengeProvider {
   ): Box[ChallengeTrait] = {
     for{
        challenge <-  getChallenge(challengeId) ?~! s"${ErrorMessages.InvalidTransactionRequestChallengeId}"
-       currentAttemptCounterValue = challenge.attemptCounter
-        //We update the counter anyway.
-       _ = challenge.AttemptCounter(currentAttemptCounterValue+1).saveMe()
+       newAttemptCounterValue <- tryo(code.bankconnectors.DoobieChallengeQueries.incrementAndGetChallengeCounter(challengeId)) ?~! "Failed to update challenge attempt counter"
        createDateTime = challenge.createdAt.get
        challengeTTL : Long = Helpers.seconds(APIUtil.transactionRequestChallengeTtl)
 
        expiredDateTime: Long = createDateTime.getTime+challengeTTL
        currentTime: Long = Platform.currentTime
-       challenge <- if(currentAttemptCounterValue < APIUtil.allowedAnswerTransactionRequestChallengeAttempts){
+       challenge <- if(newAttemptCounterValue <= APIUtil.allowedAnswerTransactionRequestChallengeAttempts){
         if(expiredDateTime > currentTime) {
           val currentHashedAnswer = BCrypt.hashpw(challengeAnswer, challenge.salt).substring(0, 44)
           val expectedHashedAnswer = challenge.expectedAnswer

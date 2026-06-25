@@ -16,18 +16,19 @@ import scala.concurrent.{ExecutionContext, Future}
  *
  * Provides a type-safe, functional JDBC layer for raw SQL queries.
  * This handles all JDBC types correctly, including SQL Server's NVARCHAR (type -9)
- * which Lift's DB.runQuery doesn't handle.
+ * which Lift Mapper's DB.runQuery doesn't handle.
  *
  * TRANSACTION UNIFICATION:
- * When called within a Lift HTTP request context, Doobie uses the SAME Connection
- * that Lift is holding for the current request transaction (via Transactor.fromConnection).
- * This means Doobie queries participate in Lift's transaction boundary:
+ * When called within an http4s request scope, Doobie uses the SAME Connection that
+ * RequestScopeConnection holds for the current request transaction (via
+ * Transactor.fromConnection). This means Doobie queries participate in the request
+ * transaction boundary:
  * - Same connection, same transaction, same commit/rollback
- * - Doobie can see uncommitted Lift writes (same session)
- * - If Lift rolls back, Doobie's operations are also rolled back
+ * - Doobie can see uncommitted writes made earlier in the same request (same session)
+ * - If the request transaction rolls back, Doobie's operations are also rolled back
  *
- * When called outside a Lift request context (e.g., background tasks, schedulers),
- * falls back to Lift's shared HikariCP connection pool via Transactor.fromDataSource.
+ * When called outside an http4s request scope (e.g., background tasks, schedulers),
+ * falls back to the shared HikariCP connection pool via Transactor.fromDataSource.
  *
  * Benefits over DBUtil.runQuery:
  * - Type-safe query results via case classes
@@ -56,15 +57,15 @@ import scala.concurrent.{ExecutionContext, Future}
 object DoobieUtil extends MdcLoggable {
 
   /**
-   * Fallback transactor that shares Lift's HikariCP connection pool.
-   * Used when no Lift request context is available (background tasks, schedulers).
+   * Fallback transactor that shares the application HikariCP connection pool.
+   * Used when no http4s request scope is available (background tasks, schedulers).
    * Strategy.void: Doobie will not call setAutoCommit/commit/rollback.
    */
   private lazy val fallbackTransactor: Transactor[IO] = {
-    val liftDataSource = APIUtil.vendor.HikariDatasource.ds
-    logger.info("DoobieUtil: Initialized fallback transactor sharing Lift's HikariCP pool")
+    val sharedDataSource = APIUtil.vendor.HikariDatasource.ds
+    logger.info("DoobieUtil: Initialized fallback transactor sharing the application HikariCP pool")
     val xa = Transactor.fromDataSource[IO].apply(
-      liftDataSource,
+      sharedDataSource,
       ExecutionContext.global
     )
     xa.copy(strategy0 = Strategy.void)
@@ -72,7 +73,8 @@ object DoobieUtil extends MdcLoggable {
 
   /**
    * Create a transactor that wraps an existing JDBC Connection.
-   * Strategy.void ensures Doobie does not interfere with Lift's transaction management.
+   * Strategy.void ensures Doobie does not interfere with the request-scoped transaction
+   * management owned by RequestScopeConnection.withBusinessDBTransaction.
    */
   private def transactorFromConnection(conn: java.sql.Connection): Transactor[IO] = {
     val xa = Transactor.fromConnection[IO].apply(conn, None)
@@ -80,45 +82,52 @@ object DoobieUtil extends MdcLoggable {
   }
 
   /**
-   * Try to get the current Lift request's Connection.
-   * Uses DB.currentConnection which peeks at the DynoVar without
-   * triggering reference counting or creating a new connection.
-   * Returns Some(connection) if inside a Lift HTTP request context,
-   * None otherwise (background tasks, schedulers, tests without request context).
+   * Try to get the current request's Connection.
+   *
+   * Primary path is the http4s RequestScopeConnection proxy (set per request via TTL).
+   * As a secondary fallback it reads Lift Mapper's DB.currentConnection — this only
+   * resolves when the call happens to run inside an open Mapper DB.use scope (the proxy
+   * is also on Mapper's connection stack there); it peeks at the DynaVar without triggering
+   * reference counting or creating a new connection.
+   *
+   * Returns Some(connection) when a request-scoped connection is available, None otherwise
+   * (background tasks, schedulers, tests without a request scope).
    */
-  private def liftCurrentConnection: Option[java.sql.Connection] = {
-    // DB.currentConnection returns Box[SuperConnection]
-    // SuperConnection has implicit conversion to java.sql.Connection
-    DB.currentConnection match {
-      case Full(superConn) =>
-        val conn: java.sql.Connection = superConn.connection
-        if (!conn.isClosed) Some(conn) else None
-      case _ => None
+  private def currentRequestConnection: Option[java.sql.Connection] = {
+    // 1. Primary: the http4s RequestScopeConnection proxy from Alibaba TTL
+    Option(code.api.util.http4s.RequestScopeConnection.currentProxy.get()).orElse {
+      // 2. Fallback: Lift Mapper's DB.currentConnection (only Full inside an open DB.use scope)
+      DB.currentConnection match {
+        case Full(superConn) =>
+          val conn: java.sql.Connection = superConn.connection
+          if (!conn.isClosed) Some(conn) else None
+        case _ => None
+      }
     }
   }
 
   /**
-   * Run a Doobie query synchronously, sharing Lift's transaction when available.
+   * Run a Doobie query synchronously, sharing the request-scoped transaction when available.
    *
-   * When called within a Lift HTTP request context:
-   * - Uses the SAME Connection that Lift holds for the current request
-   * - Doobie query participates in Lift's transaction (same commit/rollback)
-   * - Can see uncommitted Lift writes (same database session)
+   * When called within an http4s request scope:
+   * - Uses the SAME Connection that RequestScopeConnection holds for the current request
+   * - Doobie query participates in the request transaction (same commit/rollback)
+   * - Can see uncommitted writes made earlier in the same request (same database session)
    *
-   * When called outside a Lift request context (background tasks, schedulers):
-   * - Falls back to Lift's shared HikariCP pool (separate connection)
+   * When called outside an http4s request scope (background tasks, schedulers):
+   * - Falls back to the shared HikariCP pool (separate connection)
    *
    * @param query The Doobie ConnectionIO query to execute
    * @return The query result
    */
   def runQuery[A](query: ConnectionIO[A]): A = {
-    liftCurrentConnection match {
+    currentRequestConnection match {
       case Some(conn) =>
-        // Inside Lift request: use the same connection for transaction unification
+        // Inside a request scope: use the same connection for transaction unification
         query.transact(transactorFromConnection(conn)).unsafeRunSync()
       case None =>
-        // Outside Lift request: fallback to shared pool
-        logger.debug("DoobieUtil.runQuery: No Lift request context, using fallback pool transactor")
+        // Outside a request scope: fallback to shared pool
+        logger.debug("DoobieUtil.runQuery: No request scope, using fallback pool transactor")
         query.transact(fallbackTransactor).unsafeRunSync()
     }
   }
@@ -126,7 +135,7 @@ object DoobieUtil extends MdcLoggable {
   /**
    * Run a Doobie query asynchronously, returning a Future.
    * Note: async queries always use the fallback pool transactor because
-   * Lift's request connection may not be available on a different thread.
+   * the request connection may not be available on a different thread.
    *
    * @param query The Doobie ConnectionIO query to execute
    * @param ec ExecutionContext for the Future
@@ -139,13 +148,39 @@ object DoobieUtil extends MdcLoggable {
   /**
    * Run a Doobie query and return an IO.
    * Note: IO queries always use the fallback pool transactor because
-   * the IO may be evaluated outside the Lift request context.
+   * the IO may be evaluated outside the http4s request scope.
    *
    * @param query The Doobie ConnectionIO query to execute
    * @return IO containing the query result
    */
   def runQueryIO[A](query: ConnectionIO[A]): IO[A] = {
     query.transact(fallbackTransactor)
+  }
+
+  /**
+   * Fallback transactor that commits. Used for updates outside an http4s request scope
+   * (background tasks, schedulers).
+   */
+  private lazy val fallbackUpdateTransactor: Transactor[IO] = {
+    val sharedDataSource = APIUtil.vendor.HikariDatasource.ds
+    Transactor.fromDataSource[IO].apply(
+      sharedDataSource,
+      ExecutionContext.global
+    ) // Strategy.default includes commit/rollback
+  }
+
+  /**
+   * Run a Doobie update synchronously, sharing the request-scoped transaction when available.
+   * Outside an http4s request scope, uses a transactor that COMMITs the connection.
+   */
+  def runUpdate[A](query: ConnectionIO[A]): A = {
+    currentRequestConnection match {
+      case Some(conn) =>
+        query.transact(transactorFromConnection(conn)).unsafeRunSync()
+      case None =>
+        logger.debug("DoobieUtil.runUpdate: No request scope, using fallback update transactor")
+        query.transact(fallbackUpdateTransactor).unsafeRunSync()
+    }
   }
 
   /**

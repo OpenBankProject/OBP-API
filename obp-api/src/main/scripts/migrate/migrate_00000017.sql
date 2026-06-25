@@ -1,1 +1,0 @@
-ALTER TABLE "webuiprops" ALTER COLUMN "value" TYPE text ;
