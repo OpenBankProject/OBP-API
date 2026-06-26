@@ -160,25 +160,7 @@
         <version>3.0.8</version>
         <scope>test</scope>
       </dependency>
-      <!-- GraalVM 22.3.3 is the final 22.x release (last series compatible with JDK 11
-           as host — class file version 55). GraalVM 23.0+ was recompiled for JDK 17
-           (class file 61), which throws UnsupportedClassVersionError on Java 11.
-           Pin the SDK artifact here so no transitive dependency can upgrade it to 23.x. -->
-      <dependency>
-        <groupId>org.graalvm.sdk</groupId>
-        <artifactId>graal-sdk</artifactId>
-        <version>22.3.3</version>
-      </dependency>
-      <dependency>
-        <groupId>org.graalvm.truffle</groupId>
-        <artifactId>truffle-api</artifactId>
-        <version>22.3.3</version>
-      </dependency>
-      <dependency>
-        <groupId>org.graalvm.regex</groupId>
-        <artifactId>regex</artifactId>
-        <version>22.3.3</version>
-      </dependency>
+
     </dependencies>
   </dependencyManagement>
 
