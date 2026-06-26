@@ -14,8 +14,8 @@ env:
 #
 # Wall-clock target:
 #   compile ~10 min  (parallel with setup of test shards)
-#   tests   ~8 min   (3 shards in parallel after compile finishes)
-#   total   ~18 min  (vs ~27 min single-job)
+#   tests   ~8 min   (8 shards in parallel after compile finishes)
+#   total   ~18 min  (vs ~40+ min single-job)
 # ---------------------------------------------------------------------------
 
 jobs:
@@ -73,13 +73,17 @@ jobs:
           path: pull/
 
   # --------------------------------------------------------------------------
-  # Job 2: test (4-way matrix)
+  # Job 2: test (8-way matrix)
   #
   # Shard assignment (based on actual clean-run timings):
-  #   Shard 1  ~258s  v4_0_0(258)
-  #   Shard 2  ~267s  v6_0_0(122) v5_0_0(42) v3_0_0(39) v2_1_0(35) v2_2_0(12) …
-  #   Shard 3  ~252s  v1_2_1(137) ResourceDocs(67) berlin(34) util(12) …
-  #   Shard 4  ~232s  v5_1_0(79) v3_1_0(65) http4sbridge(52) v7_0_0(45) … + catch-all
+  #   Shard 1  ~258s  v4_0_0 (bottleneck — isolated)
+  #   Shard 2  ~281s  v1_2_1 (largest single suite — isolated)
+  #   Shard 3  ~267s  v6_0_0 + v2_x
+  #   Shard 4  ~232s  v5_1_0 + v5_0_0 + v3_0_0
+  #   Shard 5  ~252s  ResourceDocs + v3_1_0 + v1_4_0 + v1_3_0
+  #   Shard 6  ~200s  v7_0_0 + http4sbridge + UKOpenBanking
+  #   Shard 7  ~220s  model + views + customer + util + berlin + small data
+  #   Shard 8  ~240s  connector + auth + login + mgmt + metrics + catch-all
   # --------------------------------------------------------------------------
   test:
     needs: compile

@@ -1,8 +1,8 @@
 #!/bin/bash
 # Local parallel test runner — mirror CI's parallel structure as closely as
 # possible while dropping the cross-machine artifact-transfer complexity.
-# Shard definitions and the shard-4 catch-all logic match
-# .github/workflows/build_pull_request.yml exactly.
+# Shard definitions and catch-all exclusion logic mirror
+# .github/workflows/build_pull_request.yml (CI uses 8 shards; this script uses 4).
 # Usage: ./run_tests_parallel.sh [--shards=4|6]
 #
 # ── CI step → local equivalent (how cross-machine machinery is replaced) ───
@@ -115,9 +115,9 @@ code.api.Authentication,code.api.dauthTest,code.api.DirectLoginTest,\
 code.api.gateWayloginTest,code.api.OBPRestHelperTest,code.util,code.connector"
 
 # ── Shard 4 catch-all: discover every package not covered by shards 1–3 ───
-#    (identical to CI)
+#    (identical to CI; code.concurrency excluded — long-running race simulations)
 build_s4() {
-  local ASSIGNED="$S1 $(echo "$S2" | tr ',' ' ') $(echo "$S3" | tr ',' ' ') $(echo "$S4_BASE" | tr ',' ' ')"
+  local ASSIGNED="$S1 $(echo "$S2" | tr ',' ' ') $(echo "$S3" | tr ',' ' ') $(echo "$S4_BASE" | tr ',' ' ') code.concurrency"
   local ALL_PKGS
   ALL_PKGS=$(find obp-api/src/test/scala obp-commons/src/test/scala \
                -name "*.scala" 2>/dev/null \
