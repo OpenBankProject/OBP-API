@@ -16,7 +16,7 @@ case class OBPReq(
   method: String = "GET",
   reqBody: String = "",
   bodyCharset: Charset = StandardCharsets.UTF_8,
-  reqHeaders: Map[String, String] = Map.empty,
+  reqHeaders: List[(String, String)] = Nil,
   queryParams: List[(String, String)] = Nil
 ) {
   def /(segment: Any): OBPReq = {
@@ -40,18 +40,18 @@ case class OBPReq(
 
   def secure: OBPReq = copy(baseUrl = baseUrl.replaceFirst("^http://", "https://"))
 
-  def <:<(hdrs: Map[String, String]): OBPReq = copy(reqHeaders = reqHeaders ++ hdrs)
+  def <:<(hdrs: Iterable[(String, String)]): OBPReq = copy(reqHeaders = reqHeaders ++ hdrs)
   def <<?(params: Iterable[(String, String)]): OBPReq = copy(queryParams = queryParams ++ params.toList)
   def <<(body: String): OBPReq = copy(reqBody = body)
 
-  def addHeader(name: String, value: String): OBPReq = copy(reqHeaders = reqHeaders + (name -> value))
-  def setHeader(name: String, value: String): OBPReq = copy(reqHeaders = reqHeaders + (name -> value))
+  def addHeader(name: String, value: String): OBPReq = copy(reqHeaders = reqHeaders :+ (name -> value))
+  def setHeader(name: String, value: String): OBPReq = copy(reqHeaders = reqHeaders.filterNot(_._1 == name) :+ (name -> value))
   def addQueryParameter(name: String, value: String): OBPReq = <<?(List((name, value)))
   def setMethod(m: String): OBPReq = copy(method = m)
   def setBody(body: String): OBPReq = copy(reqBody = body)
   def setBodyEncoding(charset: Charset): OBPReq = copy(bodyCharset = charset)
   def setContentType(mediaType: String, charset: Charset): OBPReq =
-    copy(reqHeaders = reqHeaders + ("Content-Type" -> s"$mediaType; charset=${charset.name()}"))
+    copy(reqHeaders = reqHeaders.filterNot(_._1 == "Content-Type") :+ ("Content-Type" -> s"$mediaType; charset=${charset.name()}"))
 
   def url: String = baseUrl
 
@@ -77,7 +77,7 @@ case class OBPReq(
       case "GET" | "HEAD" | "OPTIONS" => null
       case _ if reqBody.isEmpty => RequestBody.create(new Array[Byte](0), null)
       case _ =>
-        val mt = reqHeaders.get("Content-Type")
+        val mt = reqHeaders.toMap.get("Content-Type")
           .flatMap(ct => Option(OkMediaType.parse(ct)))
           .orNull
         RequestBody.create(reqBody.getBytes(bodyCharset), mt)

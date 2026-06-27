@@ -77,9 +77,8 @@ trait SendServerRequests {
     method: String,
     body: String,
     body_encoding: String,
-    headers: Map[String, String],
-    query_params: List[(String, String)],
-    form_params: Map[String, String]
+    headers: List[(String, String)],
+    query_params: List[(String, String)]
   )
 
   def encode_%(s: String) = java.net.URLEncoder.encode(s, StandardCharsets.UTF_8.name())
@@ -101,8 +100,7 @@ trait SendServerRequests {
       body = body,
       body_encoding = encoding,
       headers = req.reqHeaders ++ extra_headers,
-      query_params = req.queryParams,
-      form_params = Map.empty
+      query_params = req.queryParams
     )
   }
 
@@ -150,20 +148,10 @@ trait SendServerRequests {
     }
   }
 
-  private def getAPIResponse(req: OBPReq): APIResponse = {
-    try {
-      executeRequest(req)
-    } catch {
-      case e: Exception if e.getMessage != null && e.getMessage.contains("invalid version format") =>
-        Thread.sleep(100)
-        executeRequest(req)
-    }
-  }
+  private def getAPIResponse(req: OBPReq): APIResponse = executeRequest(req)
 
-  private def getAPIResponseAsync(req: OBPReq): Future[APIResponse] = {
-    implicit val ec: ExecutionContext = ExecutionContext.global
-    Future { getAPIResponse(req) }
-  }
+  private def getAPIResponseAsync(req: OBPReq): Future[APIResponse] =
+    Future { scala.concurrent.blocking { getAPIResponse(req) } }(ExecutionContext.global)
 
   private def sendSync(req: OBPReq, body: String = "", extraHeaders: Map[String, String] = Map.empty): APIResponse =
     getAPIResponse(createRequest(extractParamsAndHeaders(req, body, "UTF-8", extraHeaders)))
