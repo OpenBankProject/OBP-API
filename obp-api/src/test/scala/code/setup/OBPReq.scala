@@ -51,7 +51,7 @@ case class OBPReq(
   def setBody(body: String): OBPReq = copy(reqBody = body)
   def setBodyEncoding(charset: Charset): OBPReq = copy(bodyCharset = charset)
   def setContentType(mediaType: String, charset: Charset): OBPReq =
-    copy(reqHeaders = reqHeaders.filterNot(_._1 == "Content-Type") :+ ("Content-Type" -> s"$mediaType; charset=${charset.name()}"))
+    copy(reqHeaders = reqHeaders.filterNot(_._1 == OBPReq.ContentTypeHeader) :+ (OBPReq.ContentTypeHeader -> s"$mediaType; charset=${charset.name()}"))
 
   def url: String = baseUrl
 
@@ -77,7 +77,7 @@ case class OBPReq(
       case "GET" | "HEAD" | "OPTIONS" => null
       case _ if reqBody.isEmpty => RequestBody.create(new Array[Byte](0), null)
       case _ =>
-        val mt = reqHeaders.toMap.get("Content-Type")
+        val mt = reqHeaders.toMap.get(OBPReq.ContentTypeHeader)
           .flatMap(ct => Option(OkMediaType.parse(ct)))
           .orNull
         RequestBody.create(reqBody.getBytes(bodyCharset), mt)
@@ -93,6 +93,8 @@ case class OBPReq(
 }
 
 object OBPReq {
+  private[setup] val ContentTypeHeader = "Content-Type"
+
   val client: OkHttpClient = new OkHttpClient.Builder()
     .connectTimeout(30, TimeUnit.SECONDS)
     .readTimeout(60, TimeUnit.SECONDS)

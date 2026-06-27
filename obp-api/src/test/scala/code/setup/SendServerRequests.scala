@@ -126,7 +126,7 @@ trait SendServerRequests {
       )
     }
 
-    val contentTypeList = okHeaders.values("Content-Type").asScala.toList.map(_.toLowerCase)
+    val contentTypeList = okHeaders.values(OBPReq.ContentTypeHeader).asScala.toList.map(_.toLowerCase)
     val isYaml = contentTypeList.exists(_.contains("yaml"))
 
     if (isYaml) {
@@ -159,8 +159,11 @@ trait SendServerRequests {
   private def sendAsync(req: OBPReq, body: String = "", extraHeaders: Map[String, String] = Map.empty): Future[APIResponse] =
     getAPIResponseAsync(createRequest(extractParamsAndHeaders(req, body, "UTF-8", extraHeaders)))
 
-  private val jsonHeaders: Map[String, String] = Map("Content-Type" -> "application/json", "Accept" -> "application/json")
-  private val putHeaders:  Map[String, String] = Map("Content-Type" -> "application/json")
+  private val ContentType    = OBPReq.ContentTypeHeader
+  private val ApplicationJson = "application/json"
+
+  private val jsonHeaders: Map[String, String] = Map(ContentType -> ApplicationJson, "Accept" -> ApplicationJson)
+  private val putHeaders:  Map[String, String] = Map(ContentType -> ApplicationJson)
 
   def makePostRequest(req: OBPReq, json: String, headers: List[(String, String)] = Nil): APIResponse =
     sendSync(req.POST, json, jsonHeaders ++ headers)

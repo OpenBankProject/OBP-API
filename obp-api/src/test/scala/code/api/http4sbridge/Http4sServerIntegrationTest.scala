@@ -65,19 +65,10 @@ class Http4sServerIntegrationTest extends ServerSetup with DefaultUsers with Ser
   private def makeHttp4sGetRequest(path: String, headers: Map[String, String] = Map.empty): (Int, String) =
     makeHttp4sRequest(path, "GET", hdrs = headers)
 
-  private def makeHttp4sPostRequest(path: String, body: String, headers: Map[String, String] = Map.empty): (Int, String) =
-    makeHttp4sRequest(path, "POST", body, headers)
-
-  private def makeHttp4sPutRequest(path: String, body: String, headers: Map[String, String] = Map.empty): (Int, String) =
-    makeHttp4sRequest(path, "PUT", body, headers)
-
   private def makeHttp4sOptionsRequest(path: String): (Int, Map[String, String]) = {
     val (status, _, hdrs) = execOkHttp(buildHttp4sReq(path, "OPTIONS"))
     (status, hdrs)
   }
-
-  private def makeHttp4sDeleteRequest(path: String, headers: Map[String, String] = Map.empty): (Int, String) =
-    makeHttp4sRequest(path, "DELETE", hdrs = headers)
 
   feature("HTTP4S Server Integration - Real Server Tests") {
 
