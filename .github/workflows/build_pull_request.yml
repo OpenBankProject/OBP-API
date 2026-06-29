@@ -231,6 +231,7 @@ jobs:
               code.container
               code.management
               code.metrics
+              code.concurrency
           - shard: 9
             name: "v4 Dynamic tests"
             # v4_0_0 Dynamic* split: 6 heavy test classes (DynamicEndpointHelperTest 4206 lines,
@@ -366,10 +367,7 @@ jobs:
                     code.api.util code.errormessages code.atms code.branches \
                     code.products code.crm code.accountHolder code.api.berlin \
                     code.api.v2_1_0 code.api.v2_2_0 code.api.v2_0_0"
-            # code.concurrency contains long-running race simulations (60-90s each)
-            # that are excluded from CI. Mark the package as assigned so the
-            # catch-all loop never appends it to any shard's filter.
-            ASSIGNED="$SHARD1 $SHARD2 $SHARD3 $SHARD4 $SHARD5 $SHARD6 $SHARD7 ${{ matrix.test_filter }} code.concurrency"
+            ASSIGNED="$SHARD1 $SHARD2 $SHARD3 $SHARD4 $SHARD5 $SHARD6 $SHARD7 ${{ matrix.test_filter }}"
 
             # Discover all packages that contain at least one .scala test file
             ALL_PKGS=$(find obp-api/src/test/scala obp-commons/src/test/scala \
@@ -411,7 +409,6 @@ jobs:
           MAVEN_OPTS="-Xmx3G -Xss2m -XX:MaxMetaspaceSize=1G" \
             timeout 1500 mvn process-resources scalatest:test -pl obp-commons,obp-api -DfailIfNoTests=false \
               -DwildcardSuites="$FILTER" \
-              -DtagsToExclude=code.concurrency.ConcurrencyRace \
             > maven-build-shard${{ matrix.shard }}.log 2>&1
           rc=$?
           set -e

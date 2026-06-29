@@ -115,9 +115,9 @@ code.api.Authentication,code.api.dauthTest,code.api.DirectLoginTest,\
 code.api.gateWayloginTest,code.api.OBPRestHelperTest,code.util,code.connector"
 
 # ── Shard 4 catch-all: discover every package not covered by shards 1–3 ───
-#    (identical to CI; code.concurrency excluded — long-running race simulations)
+#    (identical to CI)
 build_s4() {
-  local ASSIGNED="$S1 $(echo "$S2" | tr ',' ' ') $(echo "$S3" | tr ',' ' ') $(echo "$S4_BASE" | tr ',' ' ') code.concurrency"
+  local ASSIGNED="$S1 $(echo "$S2" | tr ',' ' ') $(echo "$S3" | tr ',' ' ') $(echo "$S4_BASE" | tr ',' ' ')"
   local ALL_PKGS
   ALL_PKGS=$(find obp-api/src/test/scala obp-commons/src/test/scala \
                -name "*.scala" 2>/dev/null \
@@ -178,7 +178,6 @@ run_shard() {
     OBP_API_INSTANCE_ID="shard_${n}" \
     "$TIMEOUT_BIN" 1200 mvn scalatest:test -pl obp-api -DfailIfNoTests=false \
         "-DwildcardSuites=${filter}" \
-        "-DtagsToExclude=code.concurrency.ConcurrencyRace" \
         > "$log" 2>&1
     local rc=$?
     # timeout returns 124 on timeout (tests finished but the JVM didn't exit) — treat as success.
