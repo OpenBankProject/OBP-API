@@ -10,12 +10,12 @@ env:
 
 # ---------------------------------------------------------------------------
 # compile  — compiles everything once, packages the JAR, uploads classes
-# test     — 4-way matrix downloads compiled output and runs a shard of tests
+# test     — 9-way matrix downloads compiled output and runs a shard of tests
 # docker   — downloads compiled output, builds and pushes the container image
 #
 # Wall-clock target:
 #   compile ~10 min  (parallel with setup of test shards)
-#   tests   ~8 min   (4 shards in parallel after compile finishes)
+#   tests   ~8 min   (9 shards in parallel after compile finishes)
 #   docker  ~3 min   (after all shards pass)
 #   total   ~21 min  (vs ~30 min single-job)
 # ---------------------------------------------------------------------------
@@ -41,6 +41,9 @@ jobs:
         run: |
           cp obp-api/src/main/resources/props/sample.props.template \
              obp-api/src/main/resources/props/production.default.props
+
+      - name: Lint — test-isolation (no setPropsValues at class/feature body)
+        run: python3 .github/scripts/check_test_isolation.py
 
       - name: Compile and install (skip test execution)
         run: |
@@ -334,6 +337,12 @@ jobs:
           echo consents.allowed=true >> obp-api/src/main/resources/props/test.default.props
           echo hikari.maximumPoolSize=20 >> obp-api/src/main/resources/props/test.default.props
           echo write_metrics=false >> obp-api/src/main/resources/props/test.default.props
+          # Log emails instead of opening a real SMTP socket: without this,
+          # LocalMappedConnector.sendCustomerNotification's EMAIL branch calls
+          # CommonsEmailWrapper.sendTextEmail which throws ConnectException because
+          # there's no mail server in CI. That surfaces as 500 in any test that
+          # hits an endpoint triggering the notification (v5 consent flows, etc.).
+          echo mail.test.mode=true >> obp-api/src/main/resources/props/test.default.props
           # Permissions granted to runtime-compiled dynamic-endpoint code inside the security sandbox
           # (mirrors default.props / production.default.props). Required so dynamic resource-doc bodies
           # can do JSON extraction (reflection) and read OBP props (getenv); without it the sandbox
