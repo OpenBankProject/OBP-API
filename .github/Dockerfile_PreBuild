@@ -1,4 +1,4 @@
-FROM gcr.io/distroless/java:11
+FROM gcr.io/distroless/java17-debian12
 
 # Copy OBP source code
 # Copy build artifact (JAR file) from maven build
