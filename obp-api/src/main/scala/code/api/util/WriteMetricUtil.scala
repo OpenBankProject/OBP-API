@@ -53,14 +53,14 @@ object WriteMetricUtil extends MdcLoggable {
               "Not enabled"
             }
 
-          //execute saveMetric in future, as we do not need to know result of the operation
-          Future {
-            val consumerId = cc.consumerId.orNull
-            val appName = cc.appName.orNull
-            val developerEmail = cc.developerEmail.orNull
+          val consumerId = cc.consumerId.orNull
+          val appName = cc.appName.orNull
+          val developerEmail = cc.developerEmail.orNull
+          val sourceIp = cc.requestHeaders.find(_.name.toLowerCase() == "x-forwarded-for").map(_.values.mkString(",")).getOrElse("")
+          val targetIp = cc.requestHeaders.find(_.name.toLowerCase() == "x-forwarded-host").map(_.values.mkString(",")).getOrElse("")
 
-            val sourceIp = cc.requestHeaders.find(_.name.toLowerCase() == "x-forwarded-for").map(_.values.mkString(",")).getOrElse("")
-            val targetIp = cc.requestHeaders.find(_.name.toLowerCase() == "x-forwarded-host").map(_.values.mkString(",")).getOrElse("")
+          // enqueue synchronously so flush() in tests reliably drains this metric before assertions
+          try {
             APIMetrics.apiMetrics.vend.saveMetric(
               userId,
               cc.url,
@@ -81,6 +81,13 @@ object WriteMetricUtil extends MdcLoggable {
               code.api.Constant.ApiInstanceId,
               cc.consentReferenceId.orNull
             )
+          } catch {
+            case e: Throwable =>
+              logger.warn(s"WriteMetricUtil says: saveMetric failed: ${e.getMessage}")
+          }
+
+          // gRPC publish is potentially blocking — keep it async
+          Future {
             publishMetricEvent(userId, cc.url, cc.startTime.getOrElse(null), duration, userName, appName,
               developerEmail, consumerId, implementedByPartialFunction, cc.implementedInVersion, cc.verb,
               cc.httpCode, cc.correlationId, sourceIp, targetIp, cc.operationId.getOrElse(""),
