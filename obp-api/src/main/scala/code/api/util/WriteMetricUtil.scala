@@ -9,6 +9,7 @@ import code.util.Helper.MdcLoggable
 import java.util.Date
 import scala.collection.immutable
 import scala.concurrent.Future
+import scala.util.control.NonFatal
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import org.json4s.{Extraction, JValue}
 import com.openbankproject.commons.util.JsonAliases.compactRender
@@ -82,7 +83,7 @@ object WriteMetricUtil extends MdcLoggable {
               cc.consentReferenceId.orNull
             )
           } catch {
-            case e: Throwable =>
+            case NonFatal(e) =>
               logger.warn(s"WriteMetricUtil says: saveMetric failed: ${e.getMessage}")
           }
 
