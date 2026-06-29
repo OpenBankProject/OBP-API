@@ -42,7 +42,7 @@ import org.scalatest.Tag
 
 import scala.language.postfixOps
 
-class ATMTest extends V500ServerSetupAsync {
+class ATMTest extends V500ServerSetup {
 
   /**
     * Test tags

@@ -17,7 +17,7 @@ import com.openbankproject.commons.util.ApiVersion
 import org.json4s.native.Serialization.write
 import org.scalatest.Tag
 
-class EntitlementTests extends V400ServerSetupAsync with DefaultUsers {
+class EntitlementTests extends V400ServerSetup with DefaultUsers {
 
    override def beforeAll() {
      super.beforeAll()
@@ -44,25 +44,23 @@ class EntitlementTests extends V400ServerSetupAsync with DefaultUsers {
     scenario("We try to get entitlements without login - getEntitlements", ApiEndpoint1, VersionOfApi) {
       When("We make the request")
       val requestGet = (v4_0_0_Request / "users" / resourceUser1.userId / "entitlements").GET
-      val responseGet = makeGetRequestAsync(requestGet)
+      val responseGet = makeGetRequest(requestGet)
       Then("We should get a 401")
       And("We should get a message: " + ErrorMessages.AuthenticatedUserIsRequired)
-      responseGet map { r =>
-          r.code should equal(401)
-          r.body.extract[ErrorMessage].message should equal(ErrorMessages.AuthenticatedUserIsRequired)
-      }
+      val r = responseGet
+      r.code should equal(401)
+      r.body.extract[ErrorMessage].message should equal(ErrorMessages.AuthenticatedUserIsRequired)
     }
 
     scenario("We try to get entitlements without credentials - getEntitlements", ApiEndpoint1, VersionOfApi) {
       When("We make the request")
       val requestGet = (v4_0_0_Request / "users" / resourceUser1.userId / "entitlements").GET <@ (user1)
-      val responseGet = makeGetRequestAsync(requestGet)
+      val responseGet = makeGetRequest(requestGet)
       Then("We should get a 403")
       And("We should get a message: " + s"$CanGetEntitlementsForAnyUserAtAnyBank entitlement required")
-      responseGet map { r =>
-          r.code should equal(403)
-          r.body.extract[ErrorMessage].message should equal(UserHasMissingRoles + CanGetEntitlementsForAnyUserAtAnyBank)
-      }
+      val r = responseGet
+      r.code should equal(403)
+      r.body.extract[ErrorMessage].message should equal(UserHasMissingRoles + CanGetEntitlementsForAnyUserAtAnyBank)
     }
 
     scenario("We try to get entitlements with credentials - getEntitlements", ApiEndpoint1, VersionOfApi) {
@@ -70,24 +68,22 @@ class EntitlementTests extends V400ServerSetupAsync with DefaultUsers {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanGetEntitlementsForAnyUserAtAnyBank.toString)
       And("We make the request")
       val requestGet = (v4_0_0_Request / "users" / resourceUser1.userId / "entitlements").GET <@ (user1)
-      val responseGet = makeGetRequestAsync(requestGet)
+      val responseGet = makeGetRequest(requestGet)
       Then("We should get a 200")
-      responseGet map { r =>
-          r.code should equal(200)
-      }
+      val r = responseGet
+      r.code should equal(200)
     }
 
     scenario("We try to get entitlements without roles - getEntitlementsForBank", ApiEndpoint2, VersionOfApi) {
       When("We make the request")
       val requestGet = (v4_0_0_Request / "banks" / testBankId1.value / "entitlements").GET <@ (user1)
-      val responseGet = makeGetRequestAsync(requestGet)
+      val responseGet = makeGetRequest(requestGet)
       Then("We should get a 403")
 
-      responseGet map { r =>
-        r.code should equal(403)
-        r.body.extract[ErrorMessage].message contains(CanGetEntitlementsForOneBank.toString()) should be (true)
-        r.body.extract[ErrorMessage].message contains(CanGetEntitlementsForAnyBank.toString) should be (true)
-      }
+      val r = responseGet
+    r.code should equal(403)
+    r.body.extract[ErrorMessage].message contains(CanGetEntitlementsForOneBank.toString()) should be (true)
+    r.body.extract[ErrorMessage].message contains(CanGetEntitlementsForAnyBank.toString) should be (true)
     }
 
     scenario("We try to get entitlements with CanGetEntitlementsForOneBank role - getEntitlementsForBank", ApiEndpoint2, VersionOfApi) {
@@ -95,12 +91,11 @@ class EntitlementTests extends V400ServerSetupAsync with DefaultUsers {
       Entitlement.entitlement.vend.addEntitlement(testBankId1.value, resourceUser1.userId, ApiRole.CanGetEntitlementsForOneBank.toString)
       And("We make the request")
       val requestGet = (v4_0_0_Request / "banks" / testBankId1.value / "entitlements").GET <@ (user1)
-      val responseGet = makeGetRequestAsync(requestGet)
+      val responseGet = makeGetRequest(requestGet)
       Then("We should get a 200")
-      responseGet map { r =>
-        r.body.extract[EntitlementsJsonV400]
-        r.code should equal(200)
-      }
+      val r = responseGet
+    r.body.extract[EntitlementsJsonV400]
+    r.code should equal(200)
     }
 
     scenario("We try to get entitlements with CanGetEntitlementsForAnyBank role - getEntitlementsForBank", ApiEndpoint2, VersionOfApi) {
@@ -108,12 +103,11 @@ class EntitlementTests extends V400ServerSetupAsync with DefaultUsers {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanGetEntitlementsForAnyBank.toString)
       And("We make the request")
       val requestGet = (v4_0_0_Request / "banks" / testBankId1.value / "entitlements").GET <@ (user1)
-      val responseGet = makeGetRequestAsync(requestGet)
+      val responseGet = makeGetRequest(requestGet)
       Then("We should get a 200")
-      responseGet map { r =>
-        r.body.extract[EntitlementsJsonV400]
-        r.code should equal(200)
-      }
+      val r = responseGet
+    r.body.extract[EntitlementsJsonV400]
+    r.code should equal(200)
     }
 
     scenario("We try to - createUserWithRoles - not roles, only grant the roles the login user has ", ApiEndpoint3, VersionOfApi) {
@@ -127,12 +121,11 @@ class EntitlementTests extends V400ServerSetupAsync with DefaultUsers {
       ))
       val postJson = SwaggerDefinitionsJSON.postCreateUserWithRolesJsonV400.copy(roles= createEntitlements)
       val requestGet = (v4_0_0_Request / "user-entitlements").GET <@ (user1)
-      val responseGet = makePostRequestAsync(requestGet, write(postJson))
+      val responseGet = makePostRequest(requestGet, write(postJson))
       Then("We should get a 200")
-      responseGet map { r =>
-        r.code should equal(400)
-        r.body.toString contains (EntitlementCannotBeGranted) shouldBe(true)
-      }
+      val r = responseGet
+    r.code should equal(400)
+    r.body.toString contains (EntitlementCannotBeGranted) shouldBe(true)
     }
 
     scenario("We try to - createUserWithRoles - wrong user provider ", ApiEndpoint3, VersionOfApi) {
@@ -146,12 +139,11 @@ class EntitlementTests extends V400ServerSetupAsync with DefaultUsers {
       ))
       val postJson = SwaggerDefinitionsJSON.postCreateUserWithRolesJsonV400.copy(provider ="xx", roles= createEntitlements)
       val requestGet = (v4_0_0_Request / "user-entitlements").GET <@ (user1)
-      val responseGet = makePostRequestAsync(requestGet, write(postJson))
+      val responseGet = makePostRequest(requestGet, write(postJson))
       Then("We should get a 200")
-      responseGet map { r =>
-        r.code should equal(400)
-        r.body.toString contains (InvalidUserProvider) shouldBe(true)
-      }
+      val r = responseGet
+    r.code should equal(400)
+    r.body.toString contains (InvalidUserProvider) shouldBe(true)
     }
     
     scenario("We try to - createUserWithRoles", ApiEndpoint3, VersionOfApi) {
@@ -167,13 +159,12 @@ class EntitlementTests extends V400ServerSetupAsync with DefaultUsers {
       ))
       val postJson = SwaggerDefinitionsJSON.postCreateUserWithRolesJsonV400.copy(roles= createEntitlements)
       val requestGet = (v4_0_0_Request / "user-entitlements").GET <@ (user1)
-      val responseGet = makePostRequestAsync(requestGet, write(postJson))
+      val responseGet = makePostRequest(requestGet, write(postJson))
       Then("We should get a 200")
-      responseGet map { r =>
-        val entitlements = r.body.extract[EntitlementsJsonV400]
-        r.code should equal(201)
-        entitlements.list.length should be (2)
-      }
+      val r = responseGet
+    val entitlements = r.body.extract[EntitlementsJsonV400]
+    r.code should equal(201)
+    entitlements.list.length should be (2)
     }
   }
 
