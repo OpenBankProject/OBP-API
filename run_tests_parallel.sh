@@ -1,8 +1,10 @@
 #!/bin/bash
-# Local parallel test runner — mirror CI's parallel structure as closely as
-# possible while dropping the cross-machine artifact-transfer complexity.
-# Shard definitions and catch-all exclusion logic mirror
-# .github/workflows/build_pull_request.yml (CI uses 8 shards; this script uses 4).
+# Local parallel test runner — mirrors CI's test coverage on a single machine.
+# CI (build_pull_request.yml / build_container.yml) uses 9 shards across 9 VMs;
+# this script uses 4 coarser shards that achieve identical coverage via the
+# catch-all mechanism, without exhausting the single local DB connection pool
+# (> 4 shards causes connection-pool contention and spurious failures).
+# Catch-all logic (build_s4) is a direct port of CI's shard-8 catch-all.
 # Usage: ./run_tests_parallel.sh [--shards=4|6]
 #
 # ── CI step → local equivalent (how cross-machine machinery is replaced) ───
@@ -97,7 +99,11 @@ alloc_free_port() {
     return 1
 }
 
-# ── Shard definitions (identical to the CI matrix) ────────────────────────
+# ── Shard definitions ─────────────────────────────────────────────────────
+# Deliberately coarser than CI's 9 shards: CI splits each package onto its own
+# VM; locally we merge packages to stay within the shared DB connection pool.
+# Coverage is identical: the catch-all (build_s4) picks up any package not
+# named here, same as CI's shard-8 catch-all.
 S1="code.api.v4_0_0"
 
 S2="code.api.v6_0_0,code.api.v5_0_0,code.api.v3_0_0,code.api.v2_1_0,\
@@ -109,13 +115,13 @@ S3="code.api.v1_2_1,code.api.ResourceDocs1_4_0,code.api.util,code.api.berlin,\
 code.management,code.metrics,code.model,code.views,code.usercustomerlinks,\
 code.customer,code.errormessages"
 
-# Shard 4 base (identical to CI)
+# Shard 4 base — auth/login/connector/util plus any packages not in shards 1-3
 S4_BASE="code.api.v5_1_0,code.api.v3_1_0,code.api.http4sbridge,code.api.v7_0_0,\
 code.api.Authentication,code.api.dauthTest,code.api.DirectLoginTest,\
 code.api.gateWayloginTest,code.api.OBPRestHelperTest,code.util,code.connector"
 
 # ── Shard 4 catch-all: discover every package not covered by shards 1–3 ───
-#    (identical to CI)
+#    (same logic as CI shard-8 catch-all — ensures no new package is silently skipped)
 build_s4() {
   local ASSIGNED="$S1 $(echo "$S2" | tr ',' ' ') $(echo "$S3" | tr ',' ' ') $(echo "$S4_BASE" | tr ',' ' ')"
   local ALL_PKGS
