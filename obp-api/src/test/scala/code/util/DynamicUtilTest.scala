@@ -122,6 +122,8 @@ class DynamicUtilTest extends FlatSpec with Matchers {
   }
 
   "Sandbox.createSandbox method" should "should throw exception" taggedAs DynamicUtilsTag in {
+    assume(System.getSecurityManager != null,
+      "SecurityManager enforcement is not available on JDK 17+ (JEP 411); skip on JDK 21")
     val permissionList = List(
 //      new java.net.SocketPermission("ir.dcs.gla.ac.uk:80","connect,resolve"),
     )
@@ -146,6 +148,8 @@ class DynamicUtilTest extends FlatSpec with Matchers {
   }
   
   "Sandbox.sandbox method test bankId" should "should throw exception" taggedAs DynamicUtilsTag in {
+    assume(System.getSecurityManager != null,
+      "SecurityManager enforcement is not available on JDK 17+ (JEP 411); skip on JDK 21")
     intercept[AccessControlException] {
       Sandbox.sandbox(bankId= "abc").runInSandbox {
         BankId("123" )
@@ -160,6 +164,8 @@ class DynamicUtilTest extends FlatSpec with Matchers {
   }
 
   "Sandbox.sandbox method test default permission" should "should throw exception" taggedAs DynamicUtilsTag in {
+    assume(System.getSecurityManager != null,
+      "SecurityManager enforcement is not available on JDK 17+ (JEP 411); skip on JDK 21")
     intercept[AccessControlException] {
       Sandbox.sandbox(bankId= "abc").runInSandbox {
         scala.io.Source.fromURL("https://apisandbox.openbankproject.com/")
