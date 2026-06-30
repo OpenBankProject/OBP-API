@@ -4,5 +4,5 @@ FROM gcr.io/distroless/java17-debian12
 # Copy build artifact (JAR file) from maven build
 COPY /obp-api/target/obp-api.jar /app/obp-api.jar
 WORKDIR /app
-ENV JAVA_TOOL_OPTIONS="--add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.lang.reflect=ALL-UNNAMED --add-opens java.base/java.io=ALL-UNNAMED"
+ENV JDK_JAVA_OPTIONS="--add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.lang.reflect=ALL-UNNAMED --add-opens java.base/java.io=ALL-UNNAMED"
 CMD ["obp-api.jar"]
