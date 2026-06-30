@@ -28,9 +28,13 @@
     <vscaladoc.links.liftweb.baseurl>http://scala-tools.org/mvnsites/liftweb</vscaladoc.links.liftweb.baseurl>
 
     <!--java version-->
-    <java.version>11</java.version>
+    <java.version>21</java.version>
     <maven.compiler.source>${java.version}</maven.compiler.source>
     <maven.compiler.target>${java.version}</maven.compiler.target>
+    <!-- mssql-jdbc jre classifier is decoupled from java.version because
+         13.4.0 only publishes a jre11 artifact; jre11 is ABI-compatible with
+         any JRE 11+ including 21 (JDBC 4.3 spec). -->
+    <mssql.jre.version>11</mssql.jre.version>
   </properties>
 
   <modules>
