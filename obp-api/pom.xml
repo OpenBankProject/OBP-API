@@ -414,7 +414,7 @@
     <dependency>
       <groupId>com.microsoft.sqlserver</groupId>
       <artifactId>mssql-jdbc</artifactId>
-      <version>13.4.0.jre${java.version}</version>
+      <version>13.4.0.jre${mssql.jre.version}</version>
     </dependency>
     <!-- scala-collection-compat provides scala.jdk.CollectionConverters on Scala 2.12
          (used by code.util.ClassScanUtils). Previously supplied transitively by the

@@ -16,7 +16,10 @@ import com.openbankproject.commons.util.ApiVersion
 import org.json4s.native.Serialization.write
 import org.scalatest.Tag
 
-class BankTests extends V400ServerSetupAsync with DefaultUsers {
+import scala.concurrent.Await
+import scala.concurrent.duration._
+
+class BankTests extends V400ServerSetup with DefaultUsers {
 
    override def beforeAll() {
      super.beforeAll()
@@ -41,25 +44,21 @@ class BankTests extends V400ServerSetupAsync with DefaultUsers {
     scenario("We try to consume endpoint createBank - Anonymous access", ApiEndpoint1, VersionOfApi) {
       When("We make the request")
       val requestGet = (v4_0_0_Request / "banks").POST
-      val responseGet = makePostRequestAsync(requestGet, write(bankJson400))
+      val responseGet = makePostRequest(requestGet, write(bankJson400))
       Then("We should get a 401")
       And("We should get a message: " + ErrorMessages.AuthenticatedUserIsRequired)
-      responseGet map { r =>
-          r.code should equal(401)
-          r.body.extract[ErrorMessage].message should equal(ErrorMessages.AuthenticatedUserIsRequired)
-      }
+      responseGet.code should equal(401)
+      responseGet.body.extract[ErrorMessage].message should equal(ErrorMessages.AuthenticatedUserIsRequired)
     }
 
     scenario("We try to consume endpoint createBank without proper role - Authorized access", ApiEndpoint1, VersionOfApi) {
       When("We make the request")
       val requestGet = (v4_0_0_Request / "banks").POST <@ (user1)
-      val responseGet = makePostRequestAsync(requestGet, write(bankJson400))
+      val responseGet = makePostRequest(requestGet, write(bankJson400))
       Then("We should get a 403")
       And("We should get a message: " + s"$CanCreateBank entitlement required")
-      responseGet map { r =>
-          r.code should equal(403)
-          r.body.extract[ErrorMessage].message should equal(UserHasMissingRoles + CanCreateBank)
-      }
+      responseGet.code should equal(403)
+      responseGet.body.extract[ErrorMessage].message should equal(UserHasMissingRoles + CanCreateBank)
     }
 
     scenario("We try to consume endpoint createBank with proper role - Authorized access", ApiEndpoint1, VersionOfApi) {
@@ -67,26 +66,24 @@ class BankTests extends V400ServerSetupAsync with DefaultUsers {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanCreateBank.toString)
       And("We make the request")
       val requestGet = (v4_0_0_Request / "banks").POST <@ (user1)
-      val response = for {
-        before <- NewStyle.function.getEntitlementsByUserId(resourceUser1.userId, None) map {
-          _.exists( e => e.roleName == ApiRole.CanCreateEntitlementAtOneBank.toString && e.bankId == bankJson400.id)
-        }
-        response: APIResponse <- makePostRequestAsync(requestGet, write(bankJson400))
-        after <- NewStyle.function.getEntitlementsByUserId(resourceUser1.userId, None) map {
-          _.exists( e => e.roleName == ApiRole.CanCreateEntitlementAtOneBank.toString && e.bankId == bankJson400.id)
-        }
-      } yield (before, after, response)
+      val before = Await.result(
+        NewStyle.function.getEntitlementsByUserId(resourceUser1.userId, None), 10.seconds
+      ).exists(e => e.roleName == ApiRole.CanCreateEntitlementAtOneBank.toString && e.bankId == bankJson400.id)
+      val response = makePostRequest(requestGet, write(bankJson400))
+      val after = Await.result(
+        NewStyle.function.getEntitlementsByUserId(resourceUser1.userId, None), 10.seconds
+      ).exists(e => e.roleName == ApiRole.CanCreateEntitlementAtOneBank.toString && e.bankId == bankJson400.id)
       Then("We should get a 201")
-      response flatMap  { r =>
-          r._1 should equal(false) // Before we create a bank there is no role CanCreateEntitlementAtOneBank
-          r._2 should equal(true) // After we create a bank there is a role CanCreateEntitlementAtOneBank
-          r._3.code should equal(201)
-          Then("Default settlement accounts should be created")
-          val defaultOutgoingAccount = NewStyle.function.checkBankAccountExists(BankId(bankJson400.id), AccountId(OUTGOING_SETTLEMENT_ACCOUNT_ID), None)
-          val defaultIncomingAccount = NewStyle.function.checkBankAccountExists(BankId(bankJson400.id), AccountId(INCOMING_SETTLEMENT_ACCOUNT_ID), None)
-          defaultOutgoingAccount.map(account => account._1.accountId.value should equal(OUTGOING_SETTLEMENT_ACCOUNT_ID))
-          defaultIncomingAccount.map(account => account._1.accountId.value should equal(INCOMING_SETTLEMENT_ACCOUNT_ID))
-      }
+      before should equal(false) // Before we create a bank there is no role CanCreateEntitlementAtOneBank
+      after should equal(true) // After we create a bank there is a role CanCreateEntitlementAtOneBank
+      response.code should equal(201)
+      Then("Default settlement accounts should be created")
+      val defaultOutgoingAccount = Await.result(
+        NewStyle.function.checkBankAccountExists(BankId(bankJson400.id), AccountId(OUTGOING_SETTLEMENT_ACCOUNT_ID), None), 10.seconds)
+      val defaultIncomingAccount = Await.result(
+        NewStyle.function.checkBankAccountExists(BankId(bankJson400.id), AccountId(INCOMING_SETTLEMENT_ACCOUNT_ID), None), 10.seconds)
+      defaultOutgoingAccount._1.accountId.value should equal(OUTGOING_SETTLEMENT_ACCOUNT_ID)
+      defaultIncomingAccount._1.accountId.value should equal(INCOMING_SETTLEMENT_ACCOUNT_ID)
     }
   }
 

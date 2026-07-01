@@ -48,7 +48,7 @@ import org.scalatest.Tag
 import java.util.Date
 import scala.language.postfixOps
 
-class CustomerTest extends V500ServerSetupAsync {
+class CustomerTest extends V500ServerSetup {
 
   override def beforeAll(): Unit = {
     super.beforeAll()

@@ -9,7 +9,7 @@ import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.ApiVersion
 import org.scalatest.Tag
 
-class ConsentTests extends V400ServerSetupAsync with DefaultUsers {
+class ConsentTests extends V400ServerSetup with DefaultUsers {
 
    override def beforeAll() {
      super.beforeAll()

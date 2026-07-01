@@ -47,7 +47,7 @@ import org.scalatest.Tag
 
 import scala.language.postfixOps
 
-class ConsentRequestTest extends V500ServerSetupAsync with PropsReset{
+class ConsentRequestTest extends V500ServerSetup with PropsReset{
 
   /**
     * Test tags

@@ -1,5 +1,12 @@
 #!/bin/bash
 # Local parallel test runner — mirrors CI's test coverage on a single machine.
+# Pinned to JDK 21 (Scala 2.12 max supported LTS). Override JAVA_HOME before
+# running if a different JDK is needed.
+JAVA25_HOME="/Library/Java/JavaVirtualMachines/zulu-25.jdk/Contents/Home"
+if [ -d "$JAVA25_HOME" ]; then
+  export JAVA_HOME="$JAVA25_HOME"
+  export PATH="$JAVA_HOME/bin:$PATH"
+fi
 # CI (build_pull_request.yml / build_container.yml) uses 9 shards across 9 VMs;
 # this script uses 4 coarser shards that achieve identical coverage via the
 # catch-all mechanism, without exhausting the single local DB connection pool

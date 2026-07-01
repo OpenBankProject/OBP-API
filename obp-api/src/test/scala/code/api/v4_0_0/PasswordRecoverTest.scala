@@ -44,7 +44,7 @@ import org.json4s.native.Serialization.write
 import net.liftweb.mapper.By
 import org.scalatest.Tag
 
-class PasswordRecoverTest extends V400ServerSetupAsync {
+class PasswordRecoverTest extends V400ServerSetup {
 
   override def beforeEach() = {
     wipeTestData()
@@ -69,13 +69,11 @@ class PasswordRecoverTest extends V400ServerSetupAsync {
     scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "management" / "user" / "reset-password-url").POST
-      val response400 = makePostRequestAsync(request400, write(postJson))
+      val response400 = makePostRequest(request400, write(postJson))
       Then("We should get a 401")
-      response400 map { r => r.code should equal(401) }
+      response400.code should equal(401)
       And("error should be " + AuthenticatedUserIsRequired)
-      response400 map { r =>
-          r.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
-      }
+      response400.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
 
@@ -83,13 +81,11 @@ class PasswordRecoverTest extends V400ServerSetupAsync {
     scenario("We will call the endpoint without the proper Role " + canCreateResetPasswordUrl, ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0 without a Role " + canCreateResetPasswordUrl)
       val request400 = (v4_0_0_Request / "management" / "user" / "reset-password-url").POST <@(user1)
-      val response400 = makePostRequestAsync(request400, write(postJson))
+      val response400 = makePostRequest(request400, write(postJson))
       Then("We should get a 403")
-      response400 map { r => r.code should equal(400) }
+      response400.code should equal(403)
       And("error should be " + UserHasMissingRoles + CanCreateResetPasswordUrl)
-      response400 map { r =>
-        r.body.extract[ErrorMessage].message should equal((UserHasMissingRoles + CanCreateResetPasswordUrl))
-      }
+      response400.body.extract[ErrorMessage].message should equal((UserHasMissingRoles + CanCreateResetPasswordUrl))
     }
 
     scenario("We will call the endpoint with the proper Role " + canCreateResetPasswordUrl , ApiEndpoint1, VersionOfApi) {
@@ -98,12 +94,10 @@ class PasswordRecoverTest extends V400ServerSetupAsync {
       val resourceUser: Box[User] = Users.users.vend.getUserByResourceUserId(authUser.user.get)
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "management" / "user" / "reset-password-url").POST <@(user1)
-      val response400 = makePostRequestAsync(request400, write(postJson.copy(user_id = resourceUser.map(_.userId).getOrElse(""))))
+      val response400 = makePostRequest(request400, write(postJson.copy(user_id = resourceUser.map(_.userId).getOrElse(""))))
       Then("We should get a 201")
-      response400 map { r =>
-        r.code should equal(201)
-        r.body.extractOpt[ResetPasswordUrlJsonV400].isDefined should equal(true)
-      }
+      response400.code should equal(201)
+      response400.body.extractOpt[ResetPasswordUrlJsonV400].isDefined should equal(true)
     }
     
   }
