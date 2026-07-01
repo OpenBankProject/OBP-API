@@ -423,7 +423,7 @@ object MappedConsentProvider extends ConsentProvider with code.util.Helper.MdcLo
             val rows = code.bankconnectors.DoobieConsentStatusQueries
               .conditionalStatusTransition(consent.id.get, ConsentStatus.INITIATED.toString, status)
             if (rows == 1) MappedConsent.find(By(MappedConsent.mConsentId, consentId))
-            else Failure("Consent status changed concurrently; it is no longer INITIATED.")
+            else Failure(ErrorMessages.ConsentUpdateStatusError)
           case _ =>
             Full(consent)
         }

@@ -71,7 +71,7 @@ object MappedUserAuthContextUpdateProvider extends UserAuthContextUpdateProvider
           val rows = code.bankconnectors.DoobieUserAuthContextUpdateQueries
             .conditionalStatusTransition(consent.id.get, UserAuthContextUpdateStatus.INITIATED.toString, status)
           if (rows == 1) MappedUserAuthContextUpdate.find(By(MappedUserAuthContextUpdate.mUserAuthContextUpdateId, consentId))
-          else Failure("UserAuthContextUpdate status changed concurrently; it is no longer INITIATED.")
+          else Failure(ErrorMessages.UserAuthContextUpdateStatusError)
         case _ =>
           Full(consent)
       }

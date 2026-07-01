@@ -1,9 +1,10 @@
 package code.accountaccessrequest
 
 import java.util.Date
+import code.api.util.ErrorMessages
 import code.util.{MappedUUID, UUIDString}
 import com.openbankproject.commons.model.enums.AccountAccessRequestStatus
-import net.liftweb.common.{Box, Full}
+import net.liftweb.common.{Box, Failure, Full}
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo
 
@@ -95,7 +96,7 @@ object MappedAccountAccessRequestProvider extends AccountAccessRequestProvider {
       val rows = code.bankconnectors.DoobieBusinessStatusQueries.conditionalAccountAccessRequestStatus(
         request.id.get, AccountAccessRequestStatus.INITIATED.toString, status, checkerUserId, checkerComment)
       if (rows == 1) AccountAccessRequest.find(By(AccountAccessRequest.AccountAccessRequestId, accountAccessRequestId))
-      else net.liftweb.common.Failure("Account access request is no longer INITIATED; it was already actioned.")
+      else Failure(ErrorMessages.AccountAccessRequestStatusNotInitiated)
     }
   }
 }

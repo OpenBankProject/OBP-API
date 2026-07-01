@@ -3385,7 +3385,7 @@ object Http4s510 {
             // through the read + status write below). Without it this management update races the
             // challenge-answer path (Http4s400, which already locks) and can overwrite a COMPLETED
             // payment with a stale status.
-            _ <- code.util.Helper.booleanToFuture("Failed to acquire transaction request lock", cc = Some(cc)) {
+            _ <- code.util.Helper.booleanToFuture(TransactionRequestLockFailed, cc = Some(cc)) {
               code.bankconnectors.DoobieTransactionRequestQueries.lockTransactionRequest(requestId.value).isDefined
             }
             (existing, _) <- NewStyle.function.getTransactionRequestImpl(requestId, Some(cc))
