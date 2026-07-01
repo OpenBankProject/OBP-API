@@ -7,4 +7,8 @@ RUN addgroup -S obp && adduser -S obp -G obp
 COPY /obp-api/target/obp-api.jar /app/obp-api.jar
 WORKDIR /app
 USER obp
-ENTRYPOINT ["java", "-jar", "/app/obp-api.jar"]
+ENTRYPOINT ["java", \
+  "--add-opens", "java.base/java.lang=ALL-UNNAMED", \
+  "--add-opens", "java.base/java.lang.reflect=ALL-UNNAMED", \
+  "--add-opens", "java.base/java.io=ALL-UNNAMED", \
+  "-jar", "/app/obp-api.jar"]
