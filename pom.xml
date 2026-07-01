@@ -11,7 +11,7 @@
   <inceptionYear>2011</inceptionYear>
   <properties>
     <scala.version>2.12</scala.version>
-    <scala.compiler>2.12.20</scala.compiler>
+    <scala.compiler>2.12.21</scala.compiler>
     <pekko.version>1.1.5</pekko.version>
     <pekko-http.version>1.1.0</pekko-http.version>
     <avro4s.version>4.1.2</avro4s.version>
