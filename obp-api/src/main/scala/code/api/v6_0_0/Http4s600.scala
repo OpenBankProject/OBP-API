@@ -6796,7 +6796,7 @@ object Http4s600 {
         |    "description": "User preferences",
         |    "required": ["theme"],
         |    "properties": {
-        |      "theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"},
+        |      "theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference", "indexed": true},
         |      "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"},
         |      "internal_note": {"type": "string", "example": "set by a privileged service", "description": "Field-level write-restricted (auto-generated per-field role)", "write_role_required": true},
         |      "audit_ref": {"type": "string", "example": "AUD-0001", "description": "Field-level write-restricted via an explicit, shareable role", "write_role": "CanWriteCustomerPreferencesAudit"},
@@ -6811,6 +6811,7 @@ object Http4s600 {
         |* The `entity_name` must be lowercase with underscores (snake_case), e.g. `customer_preferences`. No uppercase letters or spaces allowed.
         |* Each property MUST include an `example` field with a valid example value.
         |* Each property can optionally include `description` (markdown text), and for string types: `minLength` and `maxLength`.
+        |* Each property can optionally be marked queryable with `"indexed": true` — only indexed fields may be used in the list endpoint's filter/sort query parameters (and a `reference:<Entity>` field must be indexed to form a join edge). Add `"index": "spatial"` for a GeoJSON geometry index (only valid on a `json` field); the default when omitted is `"index": "scalar"` (B-tree).
         |* Each property can optionally declare **field-level access control**: `write_role_required`/`read_role_required` (booleans — auto-generate a per-field role) or `write_role`/`read_role` (name an explicit, shareable role). Write-restricted fields are not set via POST/PUT (their existing value is preserved) and are written only via the role-gated PATCH path; read-restricted fields are omitted from GET for callers lacking the read role.
         |* Set `has_public_access` to `true` to generate read-only public endpoints (GET only, no authentication required) under `/public/`.
         |* Set `has_community_access` to `true` to generate read-only community endpoints (GET only, authentication required + CanGet role) under `/community/`. Community endpoints return ALL records (personal + non-personal from all users).
@@ -6823,7 +6824,7 @@ object Http4s600 {
           has_public_access = Some(false),
           has_community_access = Some(false),
           personal_requires_role = Some(false),
-          schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "internal_note": {"type": "string", "example": "set by a privileged service", "description": "Field-level write-restricted (writeRoleRequired)", "write_role_required": true}, "audit_ref": {"type": "string", "example": "AUD-0001", "description": "Field-level write-restricted via an explicit, shareable role (writeRole)", "write_role": "CanWriteCustomerPreferencesAudit"}, "ssn": {"type": "string", "example": "123-45-6789", "description": "Field-level read-restricted (readRoleRequired)", "read_role_required": true}, "risk_score": {"type": "string", "example": "low", "description": "Field-level read-restricted via an explicit, shareable role (readRole)", "read_role": "CanReadCustomerPreferencesRisk"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
+          schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference", "indexed": true}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "internal_note": {"type": "string", "example": "set by a privileged service", "description": "Field-level write-restricted (writeRoleRequired)", "write_role_required": true}, "audit_ref": {"type": "string", "example": "AUD-0001", "description": "Field-level write-restricted via an explicit, shareable role (writeRole)", "write_role": "CanWriteCustomerPreferencesAudit"}, "ssn": {"type": "string", "example": "123-45-6789", "description": "Field-level read-restricted (readRoleRequired)", "read_role_required": true}, "risk_score": {"type": "string", "example": "low", "description": "Field-level read-restricted via an explicit, shareable role (readRole)", "read_role": "CanReadCustomerPreferencesRisk"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
         ),
         DynamicEntityDefinitionJsonV600(
           dynamic_entity_id = "abc-123-def",
@@ -6834,7 +6835,7 @@ object Http4s600 {
           has_public_access = false,
           has_community_access = false,
           personal_requires_role = false,
-          schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "internal_note": {"type": "string", "example": "set by a privileged service", "description": "Field-level write-restricted (writeRoleRequired)", "write_role_required": true}, "audit_ref": {"type": "string", "example": "AUD-0001", "description": "Field-level write-restricted via an explicit, shareable role (writeRole)", "write_role": "CanWriteCustomerPreferencesAudit"}, "ssn": {"type": "string", "example": "123-45-6789", "description": "Field-level read-restricted (readRoleRequired)", "read_role_required": true}, "risk_score": {"type": "string", "example": "low", "description": "Field-level read-restricted via an explicit, shareable role (readRole)", "read_role": "CanReadCustomerPreferencesRisk"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
+          schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference", "indexed": true}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "internal_note": {"type": "string", "example": "set by a privileged service", "description": "Field-level write-restricted (writeRoleRequired)", "write_role_required": true}, "audit_ref": {"type": "string", "example": "AUD-0001", "description": "Field-level write-restricted via an explicit, shareable role (writeRole)", "write_role": "CanWriteCustomerPreferencesAudit"}, "ssn": {"type": "string", "example": "123-45-6789", "description": "Field-level read-restricted (readRoleRequired)", "read_role_required": true}, "risk_score": {"type": "string", "example": "low", "description": "Field-level read-restricted via an explicit, shareable role (readRole)", "read_role": "CanReadCustomerPreferencesRisk"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
         ),
         List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
         apiTagManageDynamicEntity :: apiTagApi :: Nil,
@@ -6864,7 +6865,7 @@ object Http4s600 {
         |    "description": "User preferences",
         |    "required": ["theme"],
         |    "properties": {
-        |      "theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"},
+        |      "theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference", "indexed": true},
         |      "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"},
         |      "internal_note": {"type": "string", "example": "set by a privileged service", "description": "Field-level write-restricted (auto-generated per-field role)", "write_role_required": true},
         |      "audit_ref": {"type": "string", "example": "AUD-0001", "description": "Field-level write-restricted via an explicit, shareable role", "write_role": "CanWriteCustomerPreferencesAudit"},
@@ -6879,6 +6880,7 @@ object Http4s600 {
         |* The `entity_name` must be lowercase with underscores (snake_case), e.g. `customer_preferences`. No uppercase letters or spaces allowed.
         |* Each property MUST include an `example` field with a valid example value.
         |* Each property can optionally include `description` (markdown text), and for string types: `minLength` and `maxLength`.
+        |* Each property can optionally be marked queryable with `"indexed": true` — only indexed fields may be used in the list endpoint's filter/sort query parameters (and a `reference:<Entity>` field must be indexed to form a join edge). Add `"index": "spatial"` for a GeoJSON geometry index (only valid on a `json` field); the default when omitted is `"index": "scalar"` (B-tree).
         |* Each property can optionally declare **field-level access control**: `write_role_required`/`read_role_required` (booleans — auto-generate a per-field role) or `write_role`/`read_role` (name an explicit, shareable role). Write-restricted fields are not set via POST/PUT (their existing value is preserved) and are written only via the role-gated PATCH path; read-restricted fields are omitted from GET for callers lacking the read role.
         |* Set `has_public_access` to `true` to generate read-only public endpoints (GET only, no authentication required) under `/public/`.
         |* Set `has_community_access` to `true` to generate read-only community endpoints (GET only, authentication required + CanGet role) under `/community/`. Community endpoints return ALL records (personal + non-personal from all users).
@@ -6891,7 +6893,7 @@ object Http4s600 {
           has_public_access = Some(false),
           has_community_access = Some(false),
           personal_requires_role = Some(false),
-          schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "internal_note": {"type": "string", "example": "set by a privileged service", "description": "Field-level write-restricted (writeRoleRequired)", "write_role_required": true}, "audit_ref": {"type": "string", "example": "AUD-0001", "description": "Field-level write-restricted via an explicit, shareable role (writeRole)", "write_role": "CanWriteCustomerPreferencesAudit"}, "ssn": {"type": "string", "example": "123-45-6789", "description": "Field-level read-restricted (readRoleRequired)", "read_role_required": true}, "risk_score": {"type": "string", "example": "low", "description": "Field-level read-restricted via an explicit, shareable role (readRole)", "read_role": "CanReadCustomerPreferencesRisk"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
+          schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference", "indexed": true}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "internal_note": {"type": "string", "example": "set by a privileged service", "description": "Field-level write-restricted (writeRoleRequired)", "write_role_required": true}, "audit_ref": {"type": "string", "example": "AUD-0001", "description": "Field-level write-restricted via an explicit, shareable role (writeRole)", "write_role": "CanWriteCustomerPreferencesAudit"}, "ssn": {"type": "string", "example": "123-45-6789", "description": "Field-level read-restricted (readRoleRequired)", "read_role_required": true}, "risk_score": {"type": "string", "example": "low", "description": "Field-level read-restricted via an explicit, shareable role (readRole)", "read_role": "CanReadCustomerPreferencesRisk"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
         ),
         DynamicEntityDefinitionJsonV600(
           dynamic_entity_id = "abc-123-def",
@@ -6902,7 +6904,7 @@ object Http4s600 {
           has_public_access = false,
           has_community_access = false,
           personal_requires_role = false,
-          schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "internal_note": {"type": "string", "example": "set by a privileged service", "description": "Field-level write-restricted (writeRoleRequired)", "write_role_required": true}, "audit_ref": {"type": "string", "example": "AUD-0001", "description": "Field-level write-restricted via an explicit, shareable role (writeRole)", "write_role": "CanWriteCustomerPreferencesAudit"}, "ssn": {"type": "string", "example": "123-45-6789", "description": "Field-level read-restricted (readRoleRequired)", "read_role_required": true}, "risk_score": {"type": "string", "example": "low", "description": "Field-level read-restricted via an explicit, shareable role (readRole)", "read_role": "CanReadCustomerPreferencesRisk"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
+          schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference", "indexed": true}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "internal_note": {"type": "string", "example": "set by a privileged service", "description": "Field-level write-restricted (writeRoleRequired)", "write_role_required": true}, "audit_ref": {"type": "string", "example": "AUD-0001", "description": "Field-level write-restricted via an explicit, shareable role (writeRole)", "write_role": "CanWriteCustomerPreferencesAudit"}, "ssn": {"type": "string", "example": "123-45-6789", "description": "Field-level read-restricted (readRoleRequired)", "read_role_required": true}, "risk_score": {"type": "string", "example": "low", "description": "Field-level read-restricted via an explicit, shareable role (readRole)", "read_role": "CanReadCustomerPreferencesRisk"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
         ),
         List(
           $BankNotFound,
@@ -6938,7 +6940,7 @@ object Http4s600 {
         |    "description": "User preferences updated",
         |    "required": ["theme"],
         |    "properties": {
-        |      "theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"},
+        |      "theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference", "indexed": true},
         |      "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"},
         |      "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}
         |    }
@@ -6949,6 +6951,7 @@ object Http4s600 {
         |**Note:**
         |* The `entity_name` must be lowercase with underscores (snake_case), e.g. `customer_preferences`. No uppercase letters or spaces allowed.
         |* Each property can optionally include `description` (markdown text), and for string types: `minLength` and `maxLength`.
+        |* Each property can optionally be marked queryable with `"indexed": true` — only indexed fields may be used in the list endpoint's filter/sort query parameters (and a `reference:<Entity>` field must be indexed to form a join edge). Add `"index": "spatial"` for a GeoJSON geometry index (only valid on a `json` field); the default when omitted is `"index": "scalar"` (B-tree).
         |* Each property can optionally declare **field-level access control**: `write_role_required`/`read_role_required` (booleans — auto-generate a per-field role) or `write_role`/`read_role` (name an explicit, shareable role). Write-restricted fields are not set via POST/PUT (their existing value is preserved) and are written only via the role-gated PATCH path; read-restricted fields are omitted from GET for callers lacking the read role.
         |* Set `has_public_access` to `true` to generate read-only public endpoints (GET only, no authentication required) under `/public/`.
         |* Set `has_community_access` to `true` to generate read-only community endpoints (GET only, authentication required + CanGet role) under `/community/`. Community endpoints return ALL records (personal + non-personal from all users).
@@ -6959,7 +6962,7 @@ object Http4s600 {
           entity_name = "customer_preferences",
           has_personal_entity = Some(true),
           has_public_access = Some(false),
-          schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
+          schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference", "indexed": true}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
         ),
         DynamicEntityDefinitionJsonV600(
           dynamic_entity_id = "abc-123-def",
@@ -6968,7 +6971,7 @@ object Http4s600 {
           bank_id = None,
           has_personal_entity = true,
           has_public_access = false,
-          schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
+          schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference", "indexed": true}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
         ),
         List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
         apiTagManageDynamicEntity :: apiTagApi :: Nil,
@@ -6997,7 +7000,7 @@ object Http4s600 {
         |    "description": "User preferences updated",
         |    "required": ["theme"],
         |    "properties": {
-        |      "theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"},
+        |      "theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference", "indexed": true},
         |      "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"},
         |      "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}
         |    }
@@ -7008,6 +7011,7 @@ object Http4s600 {
         |**Note:**
         |* The `entity_name` must be lowercase with underscores (snake_case), e.g. `customer_preferences`. No uppercase letters or spaces allowed.
         |* Each property can optionally include `description` (markdown text), and for string types: `minLength` and `maxLength`.
+        |* Each property can optionally be marked queryable with `"indexed": true` — only indexed fields may be used in the list endpoint's filter/sort query parameters (and a `reference:<Entity>` field must be indexed to form a join edge). Add `"index": "spatial"` for a GeoJSON geometry index (only valid on a `json` field); the default when omitted is `"index": "scalar"` (B-tree).
         |* Each property can optionally declare **field-level access control**: `write_role_required`/`read_role_required` (booleans — auto-generate a per-field role) or `write_role`/`read_role` (name an explicit, shareable role). Write-restricted fields are not set via POST/PUT (their existing value is preserved) and are written only via the role-gated PATCH path; read-restricted fields are omitted from GET for callers lacking the read role.
         |* Set `has_public_access` to `true` to generate read-only public endpoints (GET only, no authentication required) under `/public/`.
         |* Set `has_community_access` to `true` to generate read-only community endpoints (GET only, authentication required + CanGet role) under `/community/`. Community endpoints return ALL records (personal + non-personal from all users).
@@ -7018,7 +7022,7 @@ object Http4s600 {
           entity_name = "customer_preferences",
           has_personal_entity = Some(true),
           has_public_access = Some(false),
-          schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
+          schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference", "indexed": true}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
         ),
         DynamicEntityDefinitionJsonV600(
           dynamic_entity_id = "abc-123-def",
@@ -7027,7 +7031,7 @@ object Http4s600 {
           bank_id = Some("gh.29.uk"),
           has_personal_entity = true,
           has_public_access = false,
-          schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
+          schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference", "indexed": true}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
         ),
         List(
           $BankNotFound,
@@ -7062,7 +7066,7 @@ object Http4s600 {
         |    "description": "User preferences updated",
         |    "required": ["theme"],
         |    "properties": {
-        |      "theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"},
+        |      "theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference", "indexed": true},
         |      "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"},
         |      "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}
         |    }
@@ -7073,6 +7077,7 @@ object Http4s600 {
         |**Note:**
         |* The `entity_name` must be lowercase with underscores (snake_case), e.g. `customer_preferences`. No uppercase letters or spaces allowed.
         |* Each property can optionally include `description` (markdown text), and for string types: `minLength` and `maxLength`.
+        |* Each property can optionally be marked queryable with `"indexed": true` — only indexed fields may be used in the list endpoint's filter/sort query parameters (and a `reference:<Entity>` field must be indexed to form a join edge). Add `"index": "spatial"` for a GeoJSON geometry index (only valid on a `json` field); the default when omitted is `"index": "scalar"` (B-tree).
         |* Each property can optionally declare **field-level access control**: `write_role_required`/`read_role_required` (booleans — auto-generate a per-field role) or `write_role`/`read_role` (name an explicit, shareable role). Write-restricted fields are not set via POST/PUT (their existing value is preserved) and are written only via the role-gated PATCH path; read-restricted fields are omitted from GET for callers lacking the read role.
         |* Set `has_public_access` to `true` to generate read-only public endpoints (GET only, no authentication required) under `/public/`.
         |* Set `has_community_access` to `true` to generate read-only community endpoints (GET only, authentication required + CanGet role) under `/community/`. Community endpoints return ALL records (personal + non-personal from all users).
@@ -7083,7 +7088,7 @@ object Http4s600 {
           entity_name = "customer_preferences",
           has_personal_entity = Some(true),
           has_public_access = Some(false),
-          schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
+          schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference", "indexed": true}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
         ),
         DynamicEntityDefinitionJsonV600(
           dynamic_entity_id = "abc-123-def",
@@ -7092,7 +7097,7 @@ object Http4s600 {
           bank_id = None,
           has_personal_entity = true,
           has_public_access = false,
-          schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference"}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
+          schema = com.openbankproject.commons.util.JsonAliases.parse("""{"description": "User preferences updated", "required": ["theme"], "properties": {"theme": {"type": "string", "minLength": 1, "maxLength": 20, "example": "dark", "description": "The UI theme preference", "indexed": true}, "language": {"type": "string", "minLength": 2, "maxLength": 5, "example": "en", "description": "ISO language code"}, "notifications_enabled": {"type": "boolean", "example": "true", "description": "Whether to send notifications"}}}""").asInstanceOf[org.json4s.JsonAST.JObject]
         ),
         List(
           $AuthenticatedUserIsRequired,
@@ -7777,7 +7782,7 @@ object Http4s600 {
         nameOf(createUser),
         "POST",
         "/users",
-        "Create User (v6.0.0)",
+        "Create User (self-registration)",
         s"""Creates OBP user.
         | No authorisation required.
         |
@@ -7793,7 +7798,7 @@ object Http4s600 {
         | Email validation behavior:
         | - Controlled by property 'authUser.skipEmailValidation' (default: false)
         | - When false: User is created with validated=false and a validation email is sent to the user's email address
-        | - The validation link is constructed using the `portal_external_url` property which must be set
+        | - The validation link is constructed using the `portal_external_url` property which must be set (currently: `${APIUtil.getPropsValue("portal_external_url", "not set")}`).
         | - When true: User is created with validated=true and no validation email is sent
         | - Default entitlements are granted immediately regardless of validation status
         |
