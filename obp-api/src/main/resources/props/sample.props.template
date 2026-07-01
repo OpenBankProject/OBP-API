@@ -903,6 +903,20 @@ dauth.host=127.0.0.1
 # -------------------------------------- DAuth--
 
 
+# -- SIWE (Sign-In With Ethereum, EIP-4361) -----
+# A wallet-proves-possession auth method, sibling to DAuth. Phase 1 supports
+# Externally-Owned Accounts (EOA) only — pure local ecrecover, no RPC dependency.
+# Master on/off switch. Default is false (feature OFF) when not defined.
+# allow_siwe=false
+# Expected `domain` field of the SIWE message (anti-phishing). Required when allow_siwe=true.
+# siwe.domain=example.com
+# Comma-separated EVM chain IDs accepted (e.g. 1 = mainnet, 11155111 = sepolia). Required when allow_siwe=true.
+# siwe.allowed_chain_ids=1,11155111
+# Challenge nonce lifetime in seconds. Default is 300 (5 minutes).
+# siwe.nonce.ttl=300
+# -------------------------------------- SIWE--
+
+
 
 # -- Display internal errors --------------------------------------
 # Enable/Disable showing of nested/chained error messages to an end user
