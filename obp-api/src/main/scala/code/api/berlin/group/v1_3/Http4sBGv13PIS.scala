@@ -161,32 +161,37 @@ object Http4sBGv13PIS extends MdcLoggable {
             case TransactionRequestTypes.SEPA_CREDIT_TRANSFERS =>
               currentStatus match {
                 case TransactionStatus.RCVD.code | "INITIATED" =>
-                  NewStyle.function.saveTransactionRequestStatusImpl(transactionRequest.id, CANCELLED.toString, callContext)
-                  Future.successful((true, callContext, Some(false)))
+                  NewStyle.function.saveTransactionRequestStatusImpl(transactionRequest.id, CANCELLED.toString, callContext) map { _ =>
+                    (true, callContext, Some(false))
+                  }
                 case TransactionStatus.ACCP.code | "COMPLETED" =>
-                  NewStyle.function.cancelPaymentV400(TransactionId(transactionRequest.transaction_ids), callContext) map { x =>
+                  NewStyle.function.cancelPaymentV400(TransactionId(transactionRequest.transaction_ids), callContext) flatMap { x =>
                     x._1 match {
                       case CancelPayment(true, Some(startSca)) if startSca =>
-                        NewStyle.function.saveTransactionRequestStatusImpl(transactionRequest.id, CANCELLATION_PENDING.toString, callContext)
-                        (true, x._2, Some(startSca))
+                        NewStyle.function.saveTransactionRequestStatusImpl(transactionRequest.id, CANCELLATION_PENDING.toString, callContext) map { _ =>
+                          (true, x._2, Some(startSca))
+                        }
                       case CancelPayment(true, Some(startSca)) if !startSca =>
-                        NewStyle.function.saveTransactionRequestStatusImpl(transactionRequest.id, CANCELLED.toString, callContext)
-                        (true, x._2, Some(startSca))
+                        NewStyle.function.saveTransactionRequestStatusImpl(transactionRequest.id, CANCELLED.toString, callContext) map { _ =>
+                          (true, x._2, Some(startSca))
+                        }
                       case CancelPayment(false, _) =>
-                        (false, x._2, Some(false))
+                        Future.successful((false, x._2, Some(false)))
                     }
                   }
                 case TransactionStatus.PDNG.code | "PENDING" =>
-                  NewStyle.function.cancelPaymentV400(TransactionId(transactionRequest.transaction_ids), callContext) map { x =>
+                  NewStyle.function.cancelPaymentV400(TransactionId(transactionRequest.transaction_ids), callContext) flatMap { x =>
                     x._1 match {
                       case CancelPayment(true, Some(startSca)) if startSca =>
-                        NewStyle.function.saveTransactionRequestStatusImpl(transactionRequest.id, CANCELLATION_PENDING.toString, callContext)
-                        (true, x._2, Some(startSca))
+                        NewStyle.function.saveTransactionRequestStatusImpl(transactionRequest.id, CANCELLATION_PENDING.toString, callContext) map { _ =>
+                          (true, x._2, Some(startSca))
+                        }
                       case CancelPayment(true, Some(startSca)) if !startSca =>
-                        NewStyle.function.saveTransactionRequestStatusImpl(transactionRequest.id, CANCELLED.toString, callContext)
-                        (true, x._2, Some(startSca))
+                        NewStyle.function.saveTransactionRequestStatusImpl(transactionRequest.id, CANCELLED.toString, callContext) map { _ =>
+                          (true, x._2, Some(startSca))
+                        }
                       case CancelPayment(false, _) =>
-                        (false, x._2, Some(false))
+                        Future.successful((false, x._2, Some(false)))
                     }
                   }
                 case TransactionStatus.CANC.code | "CANCELLED" =>
