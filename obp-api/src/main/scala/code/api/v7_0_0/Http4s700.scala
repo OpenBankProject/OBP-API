@@ -3329,6 +3329,16 @@ object Http4s700 {
               callCtx
             )
             _ <- Future {
+              // Compensate before surfacing a parent-TR creation failure: the claim above has
+              // already been written, but NO payment has executed yet, so releasing the
+              // batch_reference is safe and lets the client retry a transient failure. Without
+              // this, the committed claim would 409 every retry of a batch that never ran.
+              // (Never release after the fan-out below — payments may have partially executed.)
+              if (parentTrBox.isEmpty) {
+                BulkPayments.bulkPayment.vend.releaseBatchReference(
+                  fromAccount.bankId.value, fromAccount.accountId.value, body.batch_reference, trId
+                )
+              }
               unboxFullOrFail(parentTrBox, callCtx, BulkPaymentTransactionRequestError, 500)
             }
             // 5. Fan-out — sequential per-payment execution. Returns one row

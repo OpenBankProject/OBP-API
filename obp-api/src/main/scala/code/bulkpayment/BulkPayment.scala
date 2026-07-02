@@ -57,6 +57,14 @@ object MappedBulkPaymentProvider extends BulkPaymentProvider {
         .saveMe()
       ()
     }
+
+  override def releaseBatchReference(fromBankId: String, fromAccountId: String, batchReference: String, transactionRequestId: String): Unit =
+    BulkBatchReference.find(
+      By(BulkBatchReference.FromBankId, fromBankId),
+      By(BulkBatchReference.FromAccountId, fromAccountId),
+      By(BulkBatchReference.BatchReference, batchReference),
+      By(BulkBatchReference.TransactionRequestId, transactionRequestId)
+    ).foreach(_.delete_!)
 }
 
 class BulkPayment extends BulkPaymentTrait with LongKeyedMapper[BulkPayment] with IdPK {
