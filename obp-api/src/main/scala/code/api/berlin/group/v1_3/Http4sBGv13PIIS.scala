@@ -22,7 +22,6 @@ import org.http4s._
 import org.http4s.dsl.io._
 
 import scala.collection.mutable.ArrayBuffer
-import scala.language.implicitConversions
 
 object Http4sBGv13PIIS extends MdcLoggable {
 
@@ -30,9 +29,11 @@ object Http4sBGv13PIIS extends MdcLoggable {
 
   implicit val formats: Formats = CustomJsonFormats.formats
 
-  // ResourceDoc example bodies are written as `json.parse(...)` (JValue); ResourceDoc requires
-  // scala.Product, so wrap via the same implicit the Lift builder used (JvalueCaseClass is a Product).
-  protected implicit def JvalueToSuper(what: org.json4s.JValue): JvalueCaseClass = JvalueCaseClass(what)
+  // ResourceDoc example bodies are written as `json.parse(...)` (JValue). Under lift-json the
+  // Lift builder relied on an implicit JValue => JvalueCaseClass because JValue was not a Product;
+  // json4s JValue already extends scala.Product, so that implicit never fires anymore. Wrap
+  // explicitly: resource-docs serialization special-cases JvalueCaseClass (strips the
+  // jvalueToCaseclass key, skips field reflection), and tests unwrap it to get the raw JValue.
 
   val implementedInApiVersion = ConstantsBG.berlinGroupVersion1
   val resourceDocs = ArrayBuffer[ResourceDoc]()
@@ -97,7 +98,7 @@ Creates a confirmation of funds request at the ASPSP. Checks whether a specific 
 of time of the request on an account linked to a given tuple card issuer(TPP)/card number, or addressed by
 IBAN and TPP respectively. If the related extended services are used a conditional Consent-ID is contained
 in the header. This field is contained but commented out in this specification.     """,
-    json.parse(
+    JvalueCaseClass(json.parse(
       """{
        "instructedAmount" : {
          "amount" : "123",
@@ -106,11 +107,11 @@ in the header. This field is contained but commented out in this specification. 
        "account" : {
          "iban" : "GR12 1234 5123 4511 3981 4475 477",
        }
-      }"""),
-    json.parse(
+      }""")),
+    JvalueCaseClass(json.parse(
       """{
        "fundsAvailable" : true
-      }"""),
+      }""")),
     List(AuthenticatedUserIsRequired, UnknownError),
     ApiTag("Confirmation of Funds Service (PIIS)") :: apiTagBerlinGroupM :: Nil,
     http4sPartialFunction = Some(checkAvailabilityOfFunds)
