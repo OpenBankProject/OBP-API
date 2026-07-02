@@ -93,7 +93,7 @@ ALLOC_PORT=""       # alloc_free_port returns its result here (no subshell — s
 # breaking the in-run dedup. Call as: `alloc_free_port || exit 1; X=$ALLOC_PORT`.
 alloc_free_port() {
     local tries=0 p
-    while [ $tries -lt 500 ]; do
+    while [[ $tries -lt 500 ]]; do
         p=$(( PORT_MIN + RANDOM % (PORT_MAX - PORT_MIN) ))
         if [[ " ${ASSIGNED_PORTS[*]} " != *" $p "* ]] && ! lsof -i :"$p" >/dev/null 2>&1; then
             ASSIGNED_PORTS+=("$p")
@@ -144,9 +144,9 @@ build_s4() {
         covered=true; break
       fi
     done
-    [ "$covered" = "false" ] && EXTRAS="${EXTRAS},${pkg}"
+    [[ "$covered" = "false" ]] && EXTRAS="${EXTRAS},${pkg}"
   done
-  if [ -n "$EXTRAS" ]; then
+  if [[ -n "$EXTRAS" ]]; then
     echo "  [Shard 4] Catch-all extras: $EXTRAS" >&2
   fi
   echo "${S4_BASE}${EXTRAS}"
@@ -252,13 +252,13 @@ MAVEN_OPTS="$MVN_OPTS" \
   mvn install -DskipTests -pl obp-commons -q > test-results/parallel/precompile.log 2>&1
 PRECOMPILE_RC=$?
 rm -rf "$OBC_LOCK"
-if [ $PRECOMPILE_RC -eq 0 ]; then
+if [[ $PRECOMPILE_RC -eq 0 ]]; then
   echo "Pre-compile 2/2: test-compile obp-api -> shared target/ ..."
   MAVEN_OPTS="$MVN_OPTS" \
     mvn test-compile -pl obp-api -q >> test-results/parallel/precompile.log 2>&1
   PRECOMPILE_RC=$?
 fi
-if [ $PRECOMPILE_RC -ne 0 ]; then
+if [[ $PRECOMPILE_RC -ne 0 ]]; then
   echo "❌ Pre-compile failed — see test-results/parallel/precompile.log" >&2
   tail -25 test-results/parallel/precompile.log >&2
   exit 1
@@ -270,7 +270,7 @@ rm -rf obp-api/target/surefire-reports obp-commons/target/surefire-reports
 echo "Pre-compile done, starting shards..." 
 echo ""
 
-if [ "$SHARDS" = "6" ]; then
+if [[ "$SHARDS" = "6" ]]; then
     echo "Starting 6 shards in parallel..."
     echo ""
     # Allocate two free ports per shard BEFORE forking. Sequential calls (not in a
@@ -339,15 +339,15 @@ done
 
 OVERALL_RC=0
 for rc in "${RCS[@]}"; do
-    [ $rc -ne 0 ] && OVERALL_RC=1
+    [[ $rc -ne 0 ]] && OVERALL_RC=1
 done
 
 # ── CI parity ("Report failing tests" step): extract failures for failed shards ──
-if [ $OVERALL_RC -ne 0 ]; then
+if [[ $OVERALL_RC -ne 0 ]]; then
     echo ""
     echo "── Failure diagnostics (CI-style report) ───────────"
     for (( n=1; n<=TOTAL_SHARDS; n++ )); do
-        [ "${RCS[$((n-1))]}" -eq 0 ] && continue
+        [[ "${RCS[$((n-1))]}" -eq 0 ]] && continue
         log="test-results/parallel/shard${n}.log"
         echo ""
         echo "### Shard $n ($log) ###"
@@ -386,14 +386,14 @@ for b in bad:
 read -r SF_TOTAL SF_FAIL SF_ERR SF_SKIP SF_BROKEN <<< "$(echo "$SF_AUDIT" | head -1)"
 echo ""
 echo "Surefire audit: ${SF_TOTAL:-?} tests, ${SF_FAIL:-?} failures, ${SF_ERR:-?} errors, ${SF_SKIP:-?} skipped/canceled"
-if [ "${SF_FAIL:-1}" != "0" ] || [ "${SF_ERR:-1}" != "0" ] || [ "${SF_BROKEN:-1}" != "0" ]; then
+if [[ "${SF_FAIL:-1}" != "0" ]] || [[ "${SF_ERR:-1}" != "0" ]] || [[ "${SF_BROKEN:-1}" != "0" ]]; then
     echo "$SF_AUDIT" | tail -n +2 | sed 's/^/  ✗ /'
     OVERALL_RC=1
 fi
 # Zero-test floor: -DfailIfNoTests=false means a broken wildcardSuites filter runs nothing
 # and "passes". The suite has ~2900 tests; a total far below that means shards ran
 # near-empty — fail instead of reporting a hollow green.
-if [ "${SF_TOTAL:-0}" -lt 2000 ]; then
+if [[ "${SF_TOTAL:-0}" -lt 2000 ]]; then
     echo "  ✗ suspicious total: only ${SF_TOTAL:-0} tests ran (< 2000 floor) — filter/discovery regression?"
     OVERALL_RC=1
 fi
@@ -411,7 +411,7 @@ fi
 # Final verdict LAST so `tail -N` always captures it, plus a machine-readable file
 # that survives any piping of stdout (`./run.sh | tail` reports tail's exit code).
 echo ""
-if [ $OVERALL_RC -eq 0 ]; then
+if [[ $OVERALL_RC -eq 0 ]]; then
     echo "✅ ALL SHARDS PASSED"
     echo "PASS" > test-results/parallel/RESULT
 else
