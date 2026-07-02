@@ -1,9 +1,10 @@
 package code.accountaccessrequest
 
 import java.util.Date
+import code.api.util.ErrorMessages
 import code.util.{MappedUUID, UUIDString}
 import com.openbankproject.commons.model.enums.AccountAccessRequestStatus
-import net.liftweb.common.{Box, Full}
+import net.liftweb.common.{Box, Failure, Full}
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo
 
@@ -90,13 +91,12 @@ object MappedAccountAccessRequestProvider extends AccountAccessRequestProvider {
     checkerComment: String
   ): Box[AccountAccessRequestTrait] = {
     AccountAccessRequest.find(By(AccountAccessRequest.AccountAccessRequestId, accountAccessRequestId)).flatMap { request =>
-      tryo {
-        request
-          .Status(status)
-          .CheckerUserId(checkerUserId)
-          .CheckerComment(checkerComment)
-          .saveMe()
-      }
+      // Atomic guarded transition: an access request is actioned once, from INITIATED. The loser of a
+      // concurrent approve/decline gets 0 rows -> Failure, instead of silently overwriting the decision.
+      val rows = code.bankconnectors.DoobieBusinessStatusQueries.conditionalAccountAccessRequestStatus(
+        request.id.get, AccountAccessRequestStatus.INITIATED.toString, status, checkerUserId, checkerComment)
+      if (rows == 1) AccountAccessRequest.find(By(AccountAccessRequest.AccountAccessRequestId, accountAccessRequestId))
+      else Failure(ErrorMessages.AccountAccessRequestStatusNotInitiated)
     }
   }
 }

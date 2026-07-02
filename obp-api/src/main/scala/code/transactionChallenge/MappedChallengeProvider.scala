@@ -58,6 +58,16 @@ object MappedChallengeProvider extends ChallengeProvider {
   override def getChallenge(challengeId: String): Box[MappedExpectedChallengeAnswer] =
       MappedExpectedChallengeAnswer.find(By(MappedExpectedChallengeAnswer.ChallengeId,challengeId))
 
+  /** Compare-and-set the success flag: only the first correct answer flips
+   *  successful=false -> true. A second concurrent correct answer gets 0 rows and a
+   *  Failure, so one challenge can never green-light a payment twice (MFA double-spend). */
+  private def markChallengeSuccessful(challengeId: String): Box[MappedExpectedChallengeAnswer] = {
+    val rows = code.bankconnectors.DoobieBusinessStatusQueries
+      .conditionalChallengeSuccess(challengeId, StrongCustomerAuthenticationStatus.finalised.toString)
+    if (rows == 1) getChallenge(challengeId)
+    else Failure(s"${ErrorMessages.InvalidTransactionRequestChallengeId} Challenge already answered.")
+  }
+
   override def getChallengesByTransactionRequestId(transactionRequestId: String): Box[List[ChallengeTrait]] =
     Full(MappedExpectedChallengeAnswer.findAll(By(MappedExpectedChallengeAnswer.TransactionRequestId,transactionRequestId)))
   
@@ -83,29 +93,16 @@ object MappedChallengeProvider extends ChallengeProvider {
         if(expiredDateTime > currentTime) {
           val currentHashedAnswer = BCrypt.hashpw(challengeAnswer, challenge.salt).substring(0, 44)
           val expectedHashedAnswer = challenge.expectedAnswer
-          userId match {
-            case None =>
-              if(currentHashedAnswer==expectedHashedAnswer) {
-                tryo{challenge.Successful(true).ScaStatus(StrongCustomerAuthenticationStatus.finalised.toString).saveMe()}
-              } else {
-                Failure(s"${
-                  s"${
-                    InvalidChallengeAnswer
-                      .replace("answer may be expired.", s"answer may be expired (${transactionRequestChallengeTtl} seconds).")
-                      .replace("up your allowed attempts.", s"up your allowed attempts (${allowedAnswerTransactionRequestChallengeAttempts} times).")
-                  }"}")
-              }
-            case Some(id) =>
-              if(currentHashedAnswer==expectedHashedAnswer && id==challenge.expectedUserId) {
-                tryo{challenge.Successful(true).ScaStatus(StrongCustomerAuthenticationStatus.finalised.toString).saveMe()}
-              } else {
-                Failure(s"${
-                  s"${
-                    InvalidChallengeAnswer
-                      .replace("answer may be expired.", s"answer may be expired (${transactionRequestChallengeTtl} seconds).")
-                      .replace("up your allowed attempts.", s"up your allowed attempts (${allowedAnswerTransactionRequestChallengeAttempts} times).")
-                  }"}")
-              }
+          val answerMatches = currentHashedAnswer == expectedHashedAnswer
+          val userMatches = userId.forall(_ == challenge.expectedUserId)
+          if (answerMatches && userMatches) {
+            markChallengeSuccessful(challengeId)
+          } else {
+            Failure(
+              InvalidChallengeAnswer
+                .replace("answer may be expired.", s"answer may be expired (${transactionRequestChallengeTtl} seconds).")
+                .replace("up your allowed attempts.", s"up your allowed attempts (${allowedAnswerTransactionRequestChallengeAttempts} times).")
+            )
           }
         }else{
           Failure(s"${ErrorMessages.OneTimePasswordExpired} Current expiration time is $transactionRequestChallengeTtl seconds")

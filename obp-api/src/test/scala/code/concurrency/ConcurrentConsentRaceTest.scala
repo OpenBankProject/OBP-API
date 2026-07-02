@@ -85,7 +85,7 @@ class ConcurrentConsentRaceTest extends ConcurrentRaceSetup {
 
       And("the scheduler attempts to expire its stale copy via the guarded conditional update")
       DoobieConsentSchedulerQueries.conditionallyExpireValidBerlinGroupConsent(
-        consentRowId = staleConsent.id.get,
+        consentPrimaryKey = staleConsent.id.get,
         newNote      = ""
       )
 
@@ -127,7 +127,7 @@ class ConcurrentConsentRaceTest extends ConcurrentRaceSetup {
 
       And("the scheduler attempts to reject its stale copy via the guarded conditional update")
       DoobieConsentSchedulerQueries.conditionallyUpdateStatus(
-        consentRowId = staleConsent.id.get,
+        consentPrimaryKey = staleConsent.id.get,
         guardStatus  = ConsentStatus.received.toString,
         newStatus    = ConsentStatus.rejected.toString,
         newNote      = ""

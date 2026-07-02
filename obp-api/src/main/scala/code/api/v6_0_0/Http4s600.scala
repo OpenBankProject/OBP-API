@@ -2506,6 +2506,18 @@ object Http4s600 {
               u.userId != request.requestorUserId
             }
             (targetUser, _) <- NewStyle.function.findByUserId(request.targetUserId, Some(cc))
+            // Win the INITIATED -> APPROVED transition BEFORE granting view access. The provider's
+            // conditional UPDATE makes this request the single actioner; the loser of a concurrent
+            // approve/reject race gets a 400 here with NO side effect. Granting first would leave
+            // the target user with view access when a concurrent rejection wins the status race.
+            updatedBox <- Future {
+              code.accountaccessrequest.AccountAccessRequestTrait.accountAccessRequest.vend.updateStatus(
+                requestIdStr,
+                com.openbankproject.commons.model.enums.AccountAccessRequestStatus.APPROVED.toString,
+                u.userId,
+                postJson.comment.getOrElse(""))
+            }
+            updated <- Future(unboxFullOrFail(updatedBox, Some(cc), AccountAccessRequestCannotBeUpdated, 400))
             _ <- if (request.isSystemView) {
               ViewNewStyle.systemView(ViewId(request.viewId), Some(cc)).flatMap { view =>
                 ViewNewStyle.grantAccessToSystemView(bankId, accountId, view, targetUser, Some(cc))
@@ -2516,14 +2528,6 @@ object Http4s600 {
                 ViewNewStyle.grantAccessToCustomView(view, targetUser, Some(cc))
               }
             }
-            updatedBox <- Future {
-              code.accountaccessrequest.AccountAccessRequestTrait.accountAccessRequest.vend.updateStatus(
-                requestIdStr,
-                com.openbankproject.commons.model.enums.AccountAccessRequestStatus.APPROVED.toString,
-                u.userId,
-                postJson.comment.getOrElse(""))
-            }
-            updated <- Future(unboxFullOrFail(updatedBox, Some(cc), AccountAccessRequestCannotBeUpdated, 400))
           } yield JSONFactory600.createAccountAccessRequestJsonV600(updated)
         }
     }
