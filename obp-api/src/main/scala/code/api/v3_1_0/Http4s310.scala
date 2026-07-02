@@ -4437,12 +4437,8 @@ object Http4s310 {
                 // Atomic guarded auto-accept: only move INITIATED -> ACCEPTED. If the consent was
                 // concurrently revoked, the conditional UPDATE is a 0-row no-op and the revoke stands,
                 // instead of the skip-SCA write blindly resurrecting it to ACCEPTED.
-                // The consent was just created above, so find must succeed; fail visibly (rather than
-                // silently leaving it INITIATED) if it has vanished — that is an internal inconsistency.
-                val consent = MappedConsent.find(By(MappedConsent.mConsentId, createdConsent.consentId))
-                  .openOrThrowException(s"Consent ${createdConsent.consentId} not found immediately after creation")
-                code.bankconnectors.DoobieConsentStatusQueries
-                  .conditionalStatusTransition(consent.id.get, ConsentStatus.INITIATED.toString, ConsentStatus.ACCEPTED.toString)
+                code.bankconnectors.DoobieConsentStatusQueries.conditionalStatusTransitionByConsentId(
+                  createdConsent.consentId, ConsentStatus.INITIATED.toString, ConsentStatus.ACCEPTED.toString)
               }
             } else {
               val challengeText = s"Your consent challenge : $challengeAnswer, Application: $applicationText"

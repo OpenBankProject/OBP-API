@@ -151,11 +151,11 @@ class ConcurrentConsentStatusRaceTest extends ConcurrentRaceSetup {
       When("one thread runs the skip-SCA accept-write while another concurrently revokes the consent")
       val results = runConcurrentWithBarrier(n) { i =>
         if (i == 0) {
-          // Fixed production path in Http4s310: conditional UPDATE WHERE mstatus='INITIATED'.
-          // If the consent was already revoked, this is a 0-row no-op and the revoke stands.
-          MappedConsent.find(By(MappedConsent.mConsentId, consentId))
-            .map(c => code.bankconnectors.DoobieConsentStatusQueries
-              .conditionalStatusTransition(c.id.get, ConsentStatus.INITIATED.toString, ConsentStatus.ACCEPTED.toString))
+          // The shared production skip-SCA helper (Http4s310/500/510 all call this exact method):
+          // conditional UPDATE WHERE mstatus='INITIATED'. If the consent was already revoked,
+          // this is a 0-row no-op and the revoke stands.
+          code.bankconnectors.DoobieConsentStatusQueries
+            .conditionalStatusTransitionByConsentId(consentId, ConsentStatus.INITIATED.toString, ConsentStatus.ACCEPTED.toString)
         } else {
           MappedConsentProvider.revoke(consentId)
         }
