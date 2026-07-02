@@ -180,8 +180,16 @@ run_shard() {
         "-DwildcardSuites=${filter}" \
         > "$log" 2>&1
     local rc=$?
-    # timeout returns 124 on timeout (tests finished but the JVM didn't exit) — treat as success.
-    [ $rc -eq 124 ] && rc=0
+    # timeout returns 124 when the JVM was killed. That is only benign when the tests had
+    # already finished green and only the JVM shutdown hung (Pekko non-daemon threads) —
+    # require proof from the log instead of blindly converting 124 to success.
+    if [ $rc -eq 124 ]; then
+        if grep -q "BUILD SUCCESS" "$log" 2>/dev/null; then
+            rc=0
+        else
+            echo "[Shard $n] ⏱ timeout: JVM killed BEFORE tests completed — counted as failure"
+        fi
+    fi
     if [ $rc -eq 0 ]; then
         echo "[Shard $n] ✅ BUILD SUCCESS"
     else
@@ -229,7 +237,11 @@ if [ $PRECOMPILE_RC -ne 0 ]; then
   tail -25 test-results/parallel/precompile.log >&2
   exit 1
 fi
-echo "Pre-compile done, starting shards..."
+# Fresh verdict basis: stale surefire XMLs from earlier runs would poison both the
+# surefire audit below and the speed report (observed: test counts drifting across runs).
+rm -rf obp-api/target/surefire-reports
+
+echo "Pre-compile done, starting shards..." 
 echo ""
 
 if [ "$SHARDS" = "6" ]; then
@@ -321,11 +333,32 @@ if [ $OVERALL_RC -ne 0 ]; then
     done
 fi
 
+# ── Authoritative verdict: audit the surefire XMLs. Per-shard mvn exit codes can lie
+#    (timeout-killed JVMs, plugins swallowing failures), so any failure/error recorded in
+#    the reports fails the run regardless of what the shards returned.
+SF_AUDIT=$(python3 -c '
+import xml.etree.ElementTree as ET, glob, os
+tot = fail = err = 0
+bad = []
+for f in glob.glob("obp-api/target/surefire-reports/TEST-*.xml"):
+    try:
+        r = ET.parse(f).getroot()
+        t, fa, e = int(r.get("tests", 0)), int(r.get("failures", 0)), int(r.get("errors", 0))
+        tot += t; fail += fa; err += e
+        if fa or e:
+            bad.append(os.path.basename(f)[5:-4] + ": " + str(fa) + " failed, " + str(e) + " errors")
+    except Exception:
+        pass
+print(tot, fail, err)
+for b in bad:
+    print(b)
+' 2>/dev/null)
+read -r SF_TOTAL SF_FAIL SF_ERR <<< "$(echo "$SF_AUDIT" | head -1)"
 echo ""
-if [ $OVERALL_RC -eq 0 ]; then
-    echo "✅ ALL SHARDS PASSED"
-else
-    echo "❌ SOME SHARDS FAILED — check test-results/parallel/shardN.log"
+echo "Surefire audit: ${SF_TOTAL:-?} tests, ${SF_FAIL:-?} failures, ${SF_ERR:-?} errors"
+if [ "${SF_FAIL:-1}" != "0" ] || [ "${SF_ERR:-1}" != "0" ]; then
+    echo "$SF_AUDIT" | tail -n +2 | sed 's/^/  ✗ /'
+    OVERALL_RC=1
 fi
 
 # ── CI parity (report job): http4s vs Lift per-test speed table; best-effort, ──
@@ -336,6 +369,17 @@ if ls "$REPORTS_DIR"/*.xml >/dev/null 2>&1; then
     echo "── Per-test speed (CI report-job equivalent) ───────"
     python3 .github/scripts/test_speed_report.py "$REPORTS_DIR" 2>/dev/null \
         || echo "  (speed report skipped)"
+fi
+
+# Final verdict LAST so `tail -N` always captures it, plus a machine-readable file
+# that survives any piping of stdout (`./run.sh | tail` reports tail's exit code).
+echo ""
+if [ $OVERALL_RC -eq 0 ]; then
+    echo "✅ ALL SHARDS PASSED"
+    echo "PASS" > test-results/parallel/RESULT
+else
+    echo "❌ SOME SHARDS FAILED — check test-results/parallel/shardN.log"
+    echo "FAIL" > test-results/parallel/RESULT
 fi
 
 exit $OVERALL_RC
