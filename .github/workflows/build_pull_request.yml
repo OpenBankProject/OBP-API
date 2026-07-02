@@ -412,8 +412,14 @@ jobs:
             > maven-build-shard${{ matrix.shard }}.log 2>&1
           rc=$?
           set -e
-          # timeout returns 124 when tests finished but JVM didn't exit — treat as success.
-          [ $rc -eq 124 ] && rc=0
+          # timeout returns 124 when the JVM was killed. That is only benign when the tests had
+          # successfully finished but Pekko non-daemon threads kept the JVM alive. We must
+          # require proof from the log instead of blindly converting 124 to success.
+          if [ $rc -eq 124 ]; then
+            if grep -q "BUILD SUCCESS" maven-build-shard${{ matrix.shard }}.log; then
+              rc=0
+            fi
+          fi
           exit $rc
 
       - name: Report failing tests — shard ${{ matrix.shard }}

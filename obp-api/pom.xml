@@ -750,7 +750,7 @@
                    Scala runtime reflection. Keeps the Docker ENTRYPOINTs a plain
                    `java -jar` with no external flag wiring. -->
               <manifestEntries>
-                <Add-Opens>java.base/java.lang java.base/java.lang.reflect java.base/java.util java.base/java.lang.invoke java.base/java.util.jar java.base/sun.reflect.generics.reflectiveObjects</Add-Opens>
+                <Add-Opens>java.base/java.lang java.base/java.lang.reflect java.base/java.util java.base/java.lang.invoke java.base/java.util.jar java.base/sun.reflect.generics.reflectiveObjects java.base/java.io java.base/java.util.concurrent</Add-Opens>
               </manifestEntries>
             </transformer>
             <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
