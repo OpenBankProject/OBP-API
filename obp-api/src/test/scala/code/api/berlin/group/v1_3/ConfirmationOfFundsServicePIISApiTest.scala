@@ -20,11 +20,16 @@ class ConfirmationOfFundsServicePIISApiTest extends BerlinGroupServerSetupV1_3 w
   object PIIS extends Tag("Confirmation of Funds Service (PIIS)")
   object checkAvailabilityOfFunds extends Tag(nameOf(APIMethods_ConfirmationOfFundsServicePIISApi.checkAvailabilityOfFunds))
 
-  val checkAvailabilityOfFundsJsonBody = APIMethods_ConfirmationOfFundsServicePIISApi
+  // Since the json4s migration, JValue itself extends Product, so the implicit
+  // JValue -> JvalueCaseClass wrap at the ResourceDoc registration site no longer
+  // fires and exampleRequestBody holds the raw JValue. Accept both shapes.
+  val checkAvailabilityOfFundsJsonBody: JValue = APIMethods_ConfirmationOfFundsServicePIISApi
     .resourceDocs
     .filter(_.partialFunctionName == "checkAvailabilityOfFunds")
-    .head.exampleRequestBody.asInstanceOf[JvalueCaseClass] //All the Json String convert to JvalueCaseClass implicitly
-    .jvalueToCaseclass
+    .head.exampleRequestBody match {
+      case j: JvalueCaseClass => j.jvalueToCaseclass
+      case j: JValue => j
+    }
   
 
   feature(s"BG v1.3 - ${checkAvailabilityOfFunds.name}") {
