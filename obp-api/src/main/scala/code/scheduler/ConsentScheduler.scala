@@ -71,7 +71,7 @@ object ConsentScheduler extends MdcLoggable {
           val message = s"|---> Changed status from ${consent.status} to ${ConsentStatus.rejected} for consent ID: ${consent.id}"
           val newNote = s"$currentDate\n$message\n" + Option(consent.note).getOrElse("")
           val rows = code.bankconnectors.DoobieConsentSchedulerQueries.conditionallyUpdateStatus(
-            consentRowId = consent.id.get,
+            consentPrimaryKey = consent.id.get,
             guardStatus  = ConsentStatus.received.toString,
             newStatus    = ConsentStatus.rejected.toString,
             newNote      = newNote
@@ -113,7 +113,7 @@ object ConsentScheduler extends MdcLoggable {
           val message = s"|---> Changed status from ${consent.status} to ${ConsentStatus.expired} for consent ID: ${consent.id}"
           val newNote = s"$currentDate\n$message\n" + Option(consent.note).getOrElse("")
           val rows = code.bankconnectors.DoobieConsentSchedulerQueries.conditionallyExpireValidBerlinGroupConsent(
-            consentRowId = consent.id.get,
+            consentPrimaryKey = consent.id.get,
             newNote      = newNote
           )
           if (rows > 0) logger.warn(message)
@@ -145,7 +145,7 @@ object ConsentScheduler extends MdcLoggable {
           val message = s"|---> Changed status from ${consent.status} to ${ConsentStatus.EXPIRED.toString} for consent ID: ${consent.id}"
           val newNote = s"$currentDate\n$message\n" + Option(consent.note).getOrElse("")
           val rows = code.bankconnectors.DoobieConsentSchedulerQueries.conditionallyUpdateStatus(
-            consentRowId = consent.id.get,
+            consentPrimaryKey = consent.id.get,
             guardStatus  = ConsentStatus.ACCEPTED.toString,
             newStatus    = ConsentStatus.EXPIRED.toString,
             newNote      = newNote

@@ -17,21 +17,21 @@ import doobie.implicits._
  */
 object DoobieConsentStatusQueries {
 
-  /** Transition mstatus from an expected guard value to a new value, keyed by row id
+  /** Transition mstatus from an expected guard value to a new value, keyed by primary key
    *  (for call sites already holding the loaded MappedConsent). Returns affected rows (0 or 1). */
-  def conditionalStatusTransition(consentRowId: Long, guardStatus: String, newStatus: String): Int =
+  def conditionalStatusTransition(consentPrimaryKey: Long, guardStatus: String, newStatus: String): Int =
     DoobieUtil.runUpdate(
       sql"""UPDATE mappedconsent
             SET mstatus = $newStatus,
                 mlastactiondate = NOW(),
                 updatedat = NOW()
-            WHERE id = $consentRowId
+            WHERE id = $consentPrimaryKey
               AND mstatus = $guardStatus""".update.run
     )
 
   /** Transition mstatus from an expected guard value to a new value, keyed by consent id.
    *  Used by the skip-SCA auto-accept in the createConsent endpoints (v3.1.0 / v5.0.0 / v5.1.0),
-   *  which hold only the consentId — no extra SELECT needed to obtain the row id.
+   *  which hold only the consentId — no extra SELECT needed to obtain the primary key.
    *  Returns affected rows (0 or 1). */
   def conditionalStatusTransitionByConsentId(consentId: String, guardStatus: String, newStatus: String): Int =
     DoobieUtil.runUpdate(
@@ -44,13 +44,13 @@ object DoobieConsentStatusQueries {
     )
 
   /** Revoke unless already at the given terminal status. Returns affected rows (0 or 1). */
-  def conditionalRevoke(consentRowId: Long, revokedStatus: String): Int =
+  def conditionalRevoke(consentPrimaryKey: Long, revokedStatus: String): Int =
     DoobieUtil.runUpdate(
       sql"""UPDATE mappedconsent
             SET mstatus = $revokedStatus,
                 mlastactiondate = NOW(),
                 updatedat = NOW()
-            WHERE id = $consentRowId
+            WHERE id = $consentPrimaryKey
               AND mstatus <> $revokedStatus""".update.run
     )
 }
