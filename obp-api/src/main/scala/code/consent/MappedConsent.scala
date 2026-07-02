@@ -373,7 +373,7 @@ object MappedConsentProvider extends ConsentProvider with code.util.Helper.MdcLo
         // already revoked makes this a 0-row no-op, so we never resurrect or double-revoke.
         val rows = code.bankconnectors.DoobieConsentStatusQueries
           .conditionalRevoke(consent.id.get, ConsentStatus.REVOKED.toString)
-        if (rows >= 1) MappedConsent.find(By(MappedConsent.mConsentId, consentId))
+        if (rows == 1) MappedConsent.find(By(MappedConsent.mConsentId, consentId))
         else Failure(ErrorMessages.ConsentAlreadyRevoked)
       case Empty =>
         Empty ?~! ErrorMessages.ConsentNotFound

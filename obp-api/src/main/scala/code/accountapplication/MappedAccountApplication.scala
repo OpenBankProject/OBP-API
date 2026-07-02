@@ -42,7 +42,9 @@ object MappedAccountApplicationProvider extends AccountApplicationProvider {
           val rows = code.bankconnectors.DoobieBusinessStatusQueries.conditionalAccountApplicationStatus(
             accountApplication.id.get, accountApplication.status, status)
           if (rows == 1) MappedAccountApplication.find(By(MappedAccountApplication.mAccountApplicationId, accountApplicationId))
-          else Failure(s"${ErrorMessages.AccountApplicationAlreadyAccepted} Status changed concurrently. Current Account-Application-Id($accountApplicationId)")
+          // Use the generic update-failure code here: the concurrent winner may have written any
+          // status (ACCEPTED or REJECTED), so the "already accepted" message would be misleading.
+          else Failure(s"${ErrorMessages.UpdateAccountApplicationStatusError} Status changed concurrently. Current Account-Application-Id($accountApplicationId)")
         case Empty  => Failure(s"${ErrorMessages.AccountApplicationNotFound} Current Account-Application-Id($accountApplicationId)") 
         case _  => Failure(ErrorMessages.UnknownError) 
       }    
