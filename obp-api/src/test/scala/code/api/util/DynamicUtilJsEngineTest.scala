@@ -14,6 +14,9 @@ import scala.concurrent.duration._
  */
 class DynamicUtilJsEngineTest extends FlatSpec with Matchers {
 
+  private val engineMustLoad = "GraalVM engine must load successfully"
+  private val promiseMustResolve = "JS promise must resolve"
+
   "DynamicUtil.createJsFunction" should "load the GraalVM JS engine without error" in {
     val result = DynamicUtil.createJsFunction("return 42;")
     result shouldBe a [Full[_]]
@@ -21,19 +24,19 @@ class DynamicUtilJsEngineTest extends FlatSpec with Matchers {
 
   it should "execute JS returning a literal and yield JSON-stringified result" in {
     val fn = DynamicUtil.createJsFunction("return 42;")
-      .openOrThrowException("GraalVM engine must load successfully")
+      .openOrThrowException(engineMustLoad)
     val boxResult = Await.result(fn(Array.empty[AnyRef], None), 10.seconds)
     boxResult shouldBe a [Full[_]]
-    val (json, _) = boxResult.openOrThrowException("JS promise must resolve")
+    val (json, _) = boxResult.openOrThrowException(promiseMustResolve)
     json shouldBe "42"
   }
 
   it should "execute JS returning an object and yield valid JSON" in {
     val fn = DynamicUtil.createJsFunction("""return {"status": "ok", "value": 99};""")
-      .openOrThrowException("GraalVM engine must load successfully")
+      .openOrThrowException(engineMustLoad)
     val boxResult = Await.result(fn(Array.empty[AnyRef], None), 10.seconds)
     boxResult shouldBe a [Full[_]]
-    val (json, _) = boxResult.openOrThrowException("JS promise must resolve")
+    val (json, _) = boxResult.openOrThrowException(promiseMustResolve)
     json should include ("\"status\"")
     json should include ("\"ok\"")
   }
@@ -45,10 +48,10 @@ class DynamicUtilJsEngineTest extends FlatSpec with Matchers {
 
   it should "pass args into JS and compute with them" in {
     val fn = DynamicUtil.createJsFunction("return args[0] * 2;")
-      .openOrThrowException("GraalVM engine must load successfully")
+      .openOrThrowException(engineMustLoad)
     val boxResult = Await.result(fn(Array[AnyRef](Integer.valueOf(21)), None), 10.seconds)
     boxResult shouldBe a [Full[_]]
-    val (json, _) = boxResult.openOrThrowException("JS promise must resolve")
+    val (json, _) = boxResult.openOrThrowException(promiseMustResolve)
     json shouldBe "42"
   }
 }

@@ -56,7 +56,7 @@ trait SendServerRequests {
 
   import code.api.util.APIUtil.OAuth.{Consumer, Token}
 
-  implicit def Request2RequestSigner(r: OBPReq): RequestSigner = new RequestSigner(r)
+  implicit def requestToRequestSigner(r: OBPReq): RequestSigner = new RequestSigner(r)
 
   class RequestSigner(rb: OBPReq) {
     def <@(consumer: Consumer, token: Token): OBPReq =
@@ -93,13 +93,13 @@ trait SendServerRequests {
     if (reqData.query_params.nonEmpty) rb <<? reqData.query_params else rb
   }
 
-  def extractParamsAndHeaders(req: OBPReq, body: String, encoding: String, extra_headers: Map[String, String] = Map.empty): ReqData = {
+  def extractParamsAndHeaders(req: OBPReq, body: String, encoding: String, extraHeaders: Map[String, String] = Map.empty): ReqData = {
     ReqData(
       url = req.baseUrl,
       method = req.method,
       body = body,
       body_encoding = encoding,
-      headers = req.reqHeaders ++ extra_headers,
+      headers = req.reqHeaders ++ extraHeaders,
       query_params = req.queryParams
     )
   }
@@ -107,46 +107,47 @@ trait SendServerRequests {
   private def executeRequest(req: OBPReq): APIResponse = {
     val (responseCode, bodyStr, okHeaders) = req.executeRaw()
 
-    val corrList = okHeaders.values(ResponseHeader.`Correlation-Id`).asScala.toList
-    if (corrList.isEmpty) {
-      val status = responseCode
-      val headersStr = okHeaders.toMultimap.asScala
-        .flatMap { case (k, vs) => vs.asScala.map(v => s"$k: $v") }
-        .mkString(", ")
-      val bodySnippet = if (bodyStr == null) "" else {
-        val maxLen = 1000
-        if (bodyStr.length > maxLen) bodyStr.take(maxLen) + "..." else bodyStr
-      }
-      throw new Exception(
-        s"""There is no ${ResponseHeader.`Correlation-Id`} in response header.
-           |Couldn't parse response from ${req.url}
-           |status=$status
-           |headers=[$headersStr]
-           |body-snippet=${bodySnippet}""".stripMargin
-      )
+    if (okHeaders.values(ResponseHeader.`Correlation-Id`).asScala.isEmpty) {
+      throw missingCorrelationIdException(req, responseCode, bodyStr, okHeaders)
     }
 
     val contentTypeList = okHeaders.values(OBPReq.ContentTypeHeader).asScala.toList.map(_.toLowerCase)
-    val isYaml = contentTypeList.exists(_.contains("yaml"))
-
-    if (isYaml) {
+    if (contentTypeList.exists(_.contains("yaml"))) {
       APIResponse(responseCode, JString(bodyStr), Some(okHeaders))
     } else {
-      val parsedBody: Option[JValue] =
-        if (bodyStr.isEmpty) Some(JNothing)
-        else tryo { parse(bodyStr) }.toOption orElse
-          tryo {
-            parse(s"[$bodyStr]") match {
-              case JArray(v :: _) => v
-              case _ => throw new RuntimeException("empty array")
-            }
-          }.toOption
-      parsedBody match {
+      parseJsonBody(bodyStr) match {
         case Some(b) => APIResponse(responseCode, b, Some(okHeaders))
         case None => throw new Exception(s"couldn't parse response from ${req.url} : $bodyStr")
       }
     }
   }
+
+  private def missingCorrelationIdException(req: OBPReq, responseCode: Int, bodyStr: String, okHeaders: OkHeaders): Exception = {
+    val headersStr = okHeaders.toMultimap.asScala
+      .flatMap { case (k, vs) => vs.asScala.map(v => s"$k: $v") }
+      .mkString(", ")
+    val maxLen = 1000
+    val bodySnippet =
+      if (bodyStr == null) ""
+      else if (bodyStr.length > maxLen) bodyStr.take(maxLen) + "..." else bodyStr
+    new Exception(
+      s"""There is no ${ResponseHeader.`Correlation-Id`} in response header.
+         |Couldn't parse response from ${req.url}
+         |status=$responseCode
+         |headers=[$headersStr]
+         |body-snippet=${bodySnippet}""".stripMargin
+    )
+  }
+
+  private def parseJsonBody(bodyStr: String): Option[JValue] =
+    if (bodyStr.isEmpty) Some(JNothing)
+    else tryo { parse(bodyStr) }.toOption orElse
+      tryo {
+        parse(s"[$bodyStr]") match {
+          case JArray(v :: _) => v
+          case _ => throw new RuntimeException("empty array")
+        }
+      }.toOption
 
   private def getAPIResponse(req: OBPReq): APIResponse = executeRequest(req)
 
