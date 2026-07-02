@@ -16,7 +16,8 @@ object DoobieUserAuthContextUpdateQueries {
   def conditionalStatusTransition(rowId: Long, guardStatus: String, newStatus: String): Int =
     DoobieUtil.runUpdate(
       sql"""UPDATE mappeduserauthcontextupdate
-            SET mstatus = $newStatus
+            SET mstatus = $newStatus,
+                updatedat = NOW()
             WHERE id = $rowId
               AND mstatus = $guardStatus""".update.run
     )

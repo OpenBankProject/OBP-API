@@ -9,6 +9,9 @@ import doobie.implicits._
  * methods were check-then-write (load row, compare status in memory, saveMe). Each method is a
  * single conditional UPDATE with a status guard, returning the affected-row count so the caller
  * can tell whether it won the transition (1) or lost it to a concurrent request (0).
+ *
+ * `updatedat` is bumped alongside each write so the UPDATE matches what the replaced Lift
+ * saveMe() (CreatedUpdated trait) persisted.
  */
 object DoobieBusinessStatusQueries {
 
@@ -23,7 +26,8 @@ object DoobieBusinessStatusQueries {
     sql"""UPDATE AccountAccessRequest
           SET status = $newStatus,
               checkeruserid = $checkerUserId,
-              checkercomment = $checkerComment
+              checkercomment = $checkerComment,
+              updatedat = NOW()
           WHERE id = $rowId
             AND status = $guardStatus""".update.run
   )
@@ -32,7 +36,8 @@ object DoobieBusinessStatusQueries {
   def conditionalAccountApplicationStatus(rowId: Long, guardStatus: String, newStatus: String): Int =
     DoobieUtil.runUpdate(
       sql"""UPDATE mappedaccountapplication
-            SET mstatus = $newStatus
+            SET mstatus = $newStatus,
+                updatedat = NOW()
             WHERE id = $rowId
               AND mstatus = $guardStatus""".update.run
     )
@@ -45,7 +50,8 @@ object DoobieBusinessStatusQueries {
       // NB: Lift MappedBoolean maps the `Successful` field to column `successful_c` (it appends _c).
       sql"""UPDATE ExpectedChallengeAnswer
             SET successful_c = ${true},
-                scastatus = $finalisedScaStatus
+                scastatus = $finalisedScaStatus,
+                updatedat = NOW()
             WHERE challengeid = $challengeId
               AND successful_c = ${false}""".update.run
     )
