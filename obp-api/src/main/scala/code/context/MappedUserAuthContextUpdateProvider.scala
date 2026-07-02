@@ -51,31 +51,31 @@ object MappedUserAuthContextUpdateProvider extends UserAuthContextUpdateProvider
 
   override def checkAnswer(consentId: String, challenge: String): Future[Box[MappedUserAuthContextUpdate]] = Future {
     MappedUserAuthContextUpdate.find(By(MappedUserAuthContextUpdate.mUserAuthContextUpdateId, consentId)) match {
-      case Full(consent) =>
-        val createDateTime = consent.createdAt.get
-        val challengeTTL : Long = Helpers.seconds(APIUtil.userAuthContextUpdateRequestChallengeTtl)
-        val expiredDateTime: Long = createDateTime.getTime+challengeTTL
-        val currentTime: Long = Platform.currentTime
-        
-        if(expiredDateTime > currentTime)
-          consent.status match {
-            case value if value == UserAuthContextUpdateStatus.INITIATED.toString =>
-              val status = if (consent.challenge == challenge) UserAuthContextUpdateStatus.ACCEPTED.toString else UserAuthContextUpdateStatus.REJECTED.toString
-              tryo(consent.mStatus(status).saveMe())
-            case _ =>
-              Full(consent)
-          } 
-        else{
-          Failure(s"${ErrorMessages.OneTimePasswordExpired} Current expiration time is ${APIUtil.userAuthContextUpdateRequestChallengeTtl} seconds")
-        }
-      case Empty =>
-        Empty ?~! ErrorMessages.UserAuthContextUpdateNotFound
-      case Failure(msg, _, _) =>
-        Failure(msg)
-      case _ =>
-        Failure(ErrorMessages.UnknownError)
+      case Full(consent)      => processUacAnswer(consent, challenge, consentId)
+      case Empty              => Empty ?~! ErrorMessages.UserAuthContextUpdateNotFound
+      case Failure(msg, _, _) => Failure(msg)
+      case _                  => Failure(ErrorMessages.UnknownError)
     }
+  }
 
+  private def processUacAnswer(consent: MappedUserAuthContextUpdate, challenge: String, consentId: String): Box[MappedUserAuthContextUpdate] = {
+    val expiredDateTime: Long = consent.createdAt.get.getTime + Helpers.seconds(APIUtil.userAuthContextUpdateRequestChallengeTtl)
+    if (expiredDateTime <= Platform.currentTime) {
+      Failure(s"${ErrorMessages.OneTimePasswordExpired} Current expiration time is ${APIUtil.userAuthContextUpdateRequestChallengeTtl} seconds")
+    } else {
+      consent.status match {
+        case value if value == UserAuthContextUpdateStatus.INITIATED.toString =>
+          val status = if (consent.challenge == challenge) UserAuthContextUpdateStatus.ACCEPTED.toString else UserAuthContextUpdateStatus.REJECTED.toString
+          // Atomic guarded transition: only one concurrent answer may move INITIATED -> status,
+          // so two correct answers cannot both be accepted (MFA double-authorisation).
+          val rows = code.bankconnectors.DoobieUserAuthContextUpdateQueries
+            .conditionalStatusTransition(consent.id.get, UserAuthContextUpdateStatus.INITIATED.toString, status)
+          if (rows == 1) MappedUserAuthContextUpdate.find(By(MappedUserAuthContextUpdate.mUserAuthContextUpdateId, consentId))
+          else Failure(ErrorMessages.UserAuthContextUpdateStatusError)
+        case _ =>
+          Full(consent)
+      }
+    }
   }
 }
 

@@ -4376,7 +4376,7 @@ trait APIMethods600
 //      nameOf(createUser),
 //      "POST",
 //      "/users",
-//      "Create User (v6.0.0)",
+//      "Create User (self-registration)",
 //      s"""Creates OBP user.
 //         | No authorisation required.
 //         |
@@ -4392,7 +4392,7 @@ trait APIMethods600
 //         | Email validation behavior:
 //         | - Controlled by property 'authUser.skipEmailValidation' (default: false)
 //         | - When false: User is created with validated=false and a validation email is sent to the user's email address
-//         | - The validation link is constructed using the `portal_external_url` property which must be set
+//         | - The validation link is constructed using the `portal_external_url` property which must be set (currently: `${APIUtil.getPropsValue("portal_external_url", "not set")}`).
 //         | - When true: User is created with validated=true and no validation email is sent
 //         | - Default entitlements are granted immediately regardless of validation status
 //         |

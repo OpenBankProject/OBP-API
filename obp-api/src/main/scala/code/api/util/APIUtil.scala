@@ -2882,6 +2882,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
           case _ =>
             Future { (Failure(ErrorMessages.DAuthUnknownError), None) }
         }
+      }  // SIWE (Sign-In With Ethereum). Token minted at POST /my/logins/siwe; carried as `SIWE: token=...`.
+      else if (getPropsAsBoolValue("allow_siwe", false) && code.api.SIWE.hasSiweHeader(cc.requestHeaders) && !url.contains("/my/logins/siwe")) {
+        code.api.SIWE.getUserFromSiweHeaderFuture(cc)
       }
       else if(Option(cc).flatMap(_.user).isDefined) {
         Future{(cc.user, Some(cc))}
@@ -4407,7 +4410,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    * value: dependent endpoint information list.
    * this is used by MessageDoc
    */
-  val connectorToEndpoint = mutable.Map[String, List[EndpointInfo]]()
+  // Thread-safe concurrent map: populated during startup scanning and read on the resource-docs
+  // path. TrieMap keeps the mutable.Map API (getOrElse/put) while being safe under concurrent access.
+  val connectorToEndpoint = scala.collection.concurrent.TrieMap[String, List[EndpointInfo]]()
 
   private def addEndpointInfos(connectorMethods: List[String], partialFunctionName: String, apiVersion: ScannedApiVersion) = {
     val endpointInfo = EndpointInfo(partialFunctionName, apiVersion.fullyQualifiedVersion)

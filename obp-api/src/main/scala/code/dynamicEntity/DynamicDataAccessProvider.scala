@@ -56,8 +56,8 @@ trait DynamicDataAccessProvider {
   /** All ACL rows for a single data row (for the GET .../access listing). */
   def getAccessForRow(dynamicDataId: String): List[DynamicDataAccessT]
 
-  /** Ids of the rows of `entityName`/`bankId` that `userId` may read — the get-all filter. */
-  def getReadableRowIds(userId: String, entityName: String, bankId: Option[String]): List[String]
+  /** DynamicDataIds of `entityName`/`bankId` that `userId` may read — the get-all filter. */
+  def getReadableDynamicDataIds(userId: String, entityName: String, bankId: Option[String]): List[String]
 
   /** Does `userId` hold `permission` on `dynamicDataId`? */
   def allows(dynamicDataId: String, userId: String, permission: DynamicDataAccessPermission): Boolean

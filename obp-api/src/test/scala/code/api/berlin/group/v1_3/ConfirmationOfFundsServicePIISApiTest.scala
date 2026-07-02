@@ -5,6 +5,7 @@ import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.ErrorMessagesBG
 import com.openbankproject.commons.model.ErrorMessage
 import code.api.berlin.group.v1_3.{Http4sBGv13PIIS => APIMethods_ConfirmationOfFundsServicePIISApi}
 import code.api.util.APIUtil.OAuth._
+import code.api.util.CustomJsonFormats
 import code.api.util.ErrorMessages.{BankAccountNotFound, BankAccountNotFoundByIban, InvalidJsonContent, InvalidJsonFormat}
 import code.model.dataAccess.{BankAccountRouting, MappedBankAccount}
 import code.setup.{APIResponse, DefaultUsers}
@@ -20,15 +21,16 @@ class ConfirmationOfFundsServicePIISApiTest extends BerlinGroupServerSetupV1_3 w
   object PIIS extends Tag("Confirmation of Funds Service (PIIS)")
   object checkAvailabilityOfFunds extends Tag(nameOf(APIMethods_ConfirmationOfFundsServicePIISApi.checkAvailabilityOfFunds))
 
-  // Since the json4s migration, JValue itself extends Product, so the implicit
-  // JValue -> JvalueCaseClass wrap at the ResourceDoc registration site no longer
-  // fires and exampleRequestBody holds the raw JValue. Accept both shapes.
+  // The example body is a JvalueCaseClass when the ResourceDoc wraps it explicitly, but a raw
+  // JValue when built via `json.parse(...)` alone (json4s JValue is already a scala.Product, so
+  // the old lift-json-era implicit wrapping never fires). Accept both shapes.
   val checkAvailabilityOfFundsJsonBody: JValue = APIMethods_ConfirmationOfFundsServicePIISApi
     .resourceDocs
     .filter(_.partialFunctionName == "checkAvailabilityOfFunds")
     .head.exampleRequestBody match {
-      case j: JvalueCaseClass => j.jvalueToCaseclass
-      case j: JValue => j
+      case JvalueCaseClass(jvalue) => jvalue
+      case jvalue: JValue => jvalue
+      case other => Extraction.decompose(other)(CustomJsonFormats.formats)
     }
   
 

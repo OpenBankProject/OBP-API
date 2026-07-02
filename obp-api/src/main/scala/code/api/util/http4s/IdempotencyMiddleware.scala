@@ -294,23 +294,21 @@ object IdempotencyMiddleware extends MdcLoggable {
       Option(j.get(key)).flatMap(envelopeFromJson)
     }
 
-  private def writeResponseKey(key: String, env: Envelope): Unit =
-    withJedis { j =>
-      j.setex(key, ResponseTtlSeconds, envelopeToJson(env))
-      ()
-    }
+  // First-write-wins via atomic SET NX EX: once a response is cached for an idempotency key it is
+  // immutable for its TTL, so a second concurrent response cannot clobber the first (which a replay
+  // would then return). Plain setex overwrites unconditionally.
+  private def writeResponseKey(key: String, env: Envelope): Unit = {
+    Redis.setNxEx(key, envelopeToJson(env), ResponseTtlSeconds)
+    ()
+  }
 
   /**
-   * SETNX + EXPIRE.  The brief window between the two has the lock without a
-   * TTL, but the key value is only ever a sentinel and the next overwrite (or
-   * crash recovery via the 60s TTL once expire lands) resolves it.
+   * Atomic SET NX EX: acquire the lock and set its TTL in one command. Unlike setnx + a separate
+   * expire, there is no window in which the key exists without a TTL, so a crash mid-acquire can
+   * never orphan the lock and permanently block retries of that idempotency key.
    */
   private def tryAcquireLock(key: String): Boolean =
-    withJedis { j =>
-      val acquired = j.setnx(key, "1") == 1L
-      if (acquired) j.expire(key, LockTtlSeconds)
-      acquired
-    }
+    Redis.setNxEx(key, "1", LockTtlSeconds)
 
   private def deleteKey(key: String): Unit =
     withJedis { j =>

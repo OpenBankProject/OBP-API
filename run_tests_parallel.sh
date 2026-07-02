@@ -179,6 +179,12 @@ run_shard() {
     # mail.test.mode (CI has it); without it, flows like consent actually open an
     # SMTP socket -> 500 (CI green, local red). We inject OBP_MAIL_TEST_MODE
     # instead of editing props so we don't clobber the user's local DB settings.
+    # OBP_DYNAMIC_CODE_SANDBOX_PERMISSIONS mirrors CI's dynamic_code_sandbox_permissions
+    # props line: without it the dynamic-code sandbox denies reflection/getenv and
+    # DynamicResourceDocTest's native-execution scenarios fail locally (CI green, local red).
+    # -pl obp-commons,obp-api mirrors CI: obp-commons' own util suites run on whichever
+    # shard's filter matches com.openbankproject.* (the shard-4 catch-all); on every other
+    # shard the filter matches nothing in obp-commons -> 0 tests there.
     # OBP_TESTS_PORT + OBP_HTTP4S_TEST_PORT carry the two dynamically-allocated free
     # ports (both test servers bind a real socket; see the port-allocation block).
     # Tests only, no recompile (the compile already happened in the pre-compile step).
@@ -188,13 +194,22 @@ run_shard() {
     OBP_HOSTNAME="http://localhost:${port}" \
     OBP_HTTP4S_TEST_PORT="${http4s_port}" \
     OBP_MAIL_TEST_MODE="true" \
+    OBP_DYNAMIC_CODE_SANDBOX_PERMISSIONS='[new java.net.NetPermission("specifyStreamHandler"), new java.lang.reflect.ReflectPermission("suppressAccessChecks"), new java.lang.RuntimePermission("getenv.*"), new java.util.PropertyPermission("cglib.useCache", "read"), new java.util.PropertyPermission("net.sf.cglib.test.stressHashCodes", "read"), new java.util.PropertyPermission("cglib.debugLocation", "read"), new java.lang.RuntimePermission("accessDeclaredMembers"), new java.lang.RuntimePermission("getClassLoader")]' \
     OBP_API_INSTANCE_ID="shard_${n}" \
-    "$TIMEOUT_BIN" 1200 mvn scalatest:test -pl obp-api -DfailIfNoTests=false \
+    "$TIMEOUT_BIN" 1200 mvn scalatest:test -pl obp-commons,obp-api -DfailIfNoTests=false \
         "-DwildcardSuites=${filter}" \
         > "$log" 2>&1
     local rc=$?
-    # timeout returns 124 on timeout (tests finished but the JVM didn't exit) — treat as success.
-    [ $rc -eq 124 ] && rc=0
+    # timeout returns 124 when the JVM was killed. That is only benign when the tests had
+    # already finished green and only the JVM shutdown hung (Pekko non-daemon threads) —
+    # require proof from the log instead of blindly converting 124 to success.
+    if [ $rc -eq 124 ]; then
+        if grep -q "BUILD SUCCESS" "$log" 2>/dev/null; then
+            rc=0
+        else
+            echo "[Shard $n] ⏱ timeout: JVM killed BEFORE tests completed — counted as failure"
+        fi
+    fi
     # maven.test.failure.ignore=true (root pom) makes mvn exit 0 even when suites
     # abort or tests fail — the exit code alone is not trustworthy. Scan the log for
     # scalatest's own failure markers (RUN ABORTED / SUITE ABORTED / failed N).
@@ -248,7 +263,11 @@ if [ $PRECOMPILE_RC -ne 0 ]; then
   tail -25 test-results/parallel/precompile.log >&2
   exit 1
 fi
-echo "Pre-compile done, starting shards..."
+# Fresh verdict basis: stale surefire XMLs from earlier runs would poison both the
+# surefire audit below and the speed report (observed: test counts drifting across runs).
+rm -rf obp-api/target/surefire-reports obp-commons/target/surefire-reports
+
+echo "Pre-compile done, starting shards..." 
 echo ""
 
 if [ "$SHARDS" = "6" ]; then
@@ -340,11 +359,43 @@ if [ $OVERALL_RC -ne 0 ]; then
     done
 fi
 
+# ── Authoritative verdict: audit the surefire XMLs. Per-shard mvn exit codes can lie
+#    (timeout-killed JVMs, plugins swallowing failures), so any failure/error recorded in
+#    the reports fails the run regardless of what the shards returned.
+SF_AUDIT=$(python3 -c '
+import xml.etree.ElementTree as ET, glob, os
+tot = fail = err = skip = broken = 0
+bad = []
+files = glob.glob("obp-api/target/surefire-reports/TEST-*.xml") + \
+        glob.glob("obp-commons/target/surefire-reports/TEST-*.xml")
+for f in files:
+    try:
+        r = ET.parse(f).getroot()
+        t, fa, e = int(r.get("tests", 0)), int(r.get("failures", 0)), int(r.get("errors", 0))
+        skip += int(r.get("skipped", 0))
+        tot += t; fail += fa; err += e
+        if fa or e:
+            bad.append(os.path.basename(f)[5:-4] + ": " + str(fa) + " failed, " + str(e) + " errors")
+    except Exception:
+        broken += 1
+        bad.append(os.path.basename(f) + ": UNPARSEABLE report (JVM killed mid-write?)")
+print(tot, fail, err, skip, broken)
+for b in bad:
+    print(b)
+' 2>/dev/null)
+read -r SF_TOTAL SF_FAIL SF_ERR SF_SKIP SF_BROKEN <<< "$(echo "$SF_AUDIT" | head -1)"
 echo ""
-if [ $OVERALL_RC -eq 0 ]; then
-    echo "✅ ALL SHARDS PASSED"
-else
-    echo "❌ SOME SHARDS FAILED — check test-results/parallel/shardN.log"
+echo "Surefire audit: ${SF_TOTAL:-?} tests, ${SF_FAIL:-?} failures, ${SF_ERR:-?} errors, ${SF_SKIP:-?} skipped/canceled"
+if [ "${SF_FAIL:-1}" != "0" ] || [ "${SF_ERR:-1}" != "0" ] || [ "${SF_BROKEN:-1}" != "0" ]; then
+    echo "$SF_AUDIT" | tail -n +2 | sed 's/^/  ✗ /'
+    OVERALL_RC=1
+fi
+# Zero-test floor: -DfailIfNoTests=false means a broken wildcardSuites filter runs nothing
+# and "passes". The suite has ~2900 tests; a total far below that means shards ran
+# near-empty — fail instead of reporting a hollow green.
+if [ "${SF_TOTAL:-0}" -lt 2000 ]; then
+    echo "  ✗ suspicious total: only ${SF_TOTAL:-0} tests ran (< 2000 floor) — filter/discovery regression?"
+    OVERALL_RC=1
 fi
 
 # ── CI parity (report job): http4s vs Lift per-test speed table; best-effort, ──
@@ -355,6 +406,17 @@ if ls "$REPORTS_DIR"/*.xml >/dev/null 2>&1; then
     echo "── Per-test speed (CI report-job equivalent) ───────"
     python3 .github/scripts/test_speed_report.py "$REPORTS_DIR" 2>/dev/null \
         || echo "  (speed report skipped)"
+fi
+
+# Final verdict LAST so `tail -N` always captures it, plus a machine-readable file
+# that survives any piping of stdout (`./run.sh | tail` reports tail's exit code).
+echo ""
+if [ $OVERALL_RC -eq 0 ]; then
+    echo "✅ ALL SHARDS PASSED"
+    echo "PASS" > test-results/parallel/RESULT
+else
+    echo "❌ SOME SHARDS FAILED — check test-results/parallel/shardN.log"
+    echo "FAIL" > test-results/parallel/RESULT
 fi
 
 exit $OVERALL_RC

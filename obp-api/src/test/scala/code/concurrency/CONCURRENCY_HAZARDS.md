@@ -227,3 +227,41 @@ When fixing a confirmed hazard, the corresponding test flips from red to green a
 | **unique-constraint-unhandled** | Wrap the existing `.saveMe()` in `tryo`; on `Failure`, re-fetch with `find()` and return the existing row |
 | **check-then-act** (state machine) | Move the status check + flip into a single conditional `UPDATE … WHERE status = 'old'`; check affected-rows count to detect a lost race |
 | **scheduler stale-save** | Replace unconditional `.save()` with a conditional `UPDATE … WHERE status = 'expected_status'`; skip if 0 rows updated |
+
+---
+
+## Batch 2 — Follow-up Hazards (17 · all fixed)
+
+A second codebase scan surfaced 17 more hazards (C1, H1–H7, M1–M9), fixed on
+`feature/concurrency-hazard-fixes-batch2`. Five suites (tagged `ConcurrencyRace`); red baseline
+confirmed before each fix, all green after.
+
+| ID | Suite | Source | Fix |
+|---|---|---|---|
+| **C1** | `ConcurrentBulkPaymentRaceTest` | `Http4s700.createTransactionRequestBulk` dropped `claimBatchReference`'s Box | Claim before fan-out; `unboxFullOrFail` → 409 (provider guard already sound — C1a/C1b are guard-verification) |
+| **H1** | `ConcurrentConsentStatusRaceTest` | `MappedConsentProvider.checkAnswer` TOCTOU | conditional `UPDATE … WHERE id=? AND mstatus='INITIATED'` (`DoobieConsentStatusQueries`) |
+| **H2** | ″ | `MappedUserAuthContextUpdateProvider.checkAnswer` TOCTOU | conditional UPDATE (`DoobieUserAuthContextUpdateQueries`) |
+| **H3** | ″ | `MappedConsentProvider.revoke` in-memory guard | conditional `UPDATE … WHERE mstatus<>'REVOKED'` |
+| **M5** | ″ | `Http4s310` skip-SCA unconditional accept | conditional `UPDATE … WHERE mstatus='INITIATED'` |
+| **H4** | `ConcurrentRateLimiterRaceTest` | `RateLimitingUtil` check-then-increment gap | atomic Lua `Redis.incrementWithTtl` (INCR + create-TTL) |
+| **M6** | ″ | `IdempotencyMiddleware.writeResponseKey` used `setex` (overwrite) | `Redis.setNxEx` (first-write-wins) |
+| **M7** | ″ | `IdempotencyMiddleware.tryAcquireLock` setnx + separate expire | `Redis.setNxEx` (value+TTL atomic) |
+| **H5** | `ConcurrentMutableSingletonRaceTest` | `DynamicConnector.singletonObjectMap` mutable.Map | `TrieMap` |
+| **H7** | ″ | `SecureLogging.customPatternCache` mutable.Map | `TrieMap` |
+| **M8** | ″ | `APIUtil.connectorToEndpoint` mutable.Map | `TrieMap` (structural reflection test) |
+| **H6** | ″ | `ObpLookupSystem.obpLookupSystem` unguarded var | `@volatile` + synchronized init (structural reflection test) |
+| **M9** | ″ | `ObpActorSystem` actor-system vars | `@volatile` + synchronized init (structural reflection test) |
+| **M2** | `ConcurrentBusinessStatusRaceTest` | `AccountAccessRequest.updateStatus` no terminal guard | conditional `UPDATE … WHERE status='INITIATED'` (`DoobieBusinessStatusQueries`) |
+| **M3** | ″ | `MappedAccountApplication.updateStatus` in-memory ACCEPTED guard | optimistic CAS `UPDATE … WHERE mstatus=<loaded>` |
+| **M4** | ″ | `MappedChallengeProvider.validateChallenge` non-CAS success flip | CAS `UPDATE … SET successful_c=true WHERE challengeid=? AND successful_c=false` |
+
+**M1** (`Http4s510.updateTransactionRequestStatus` lacked the row lock that `Http4s400` has) is fixed
+at the endpoint: it now calls `DoobieTransactionRequestQueries.lockTransactionRequest` within the
+request transaction. It has **no provider-level standalone test** — the `FOR UPDATE` lock only spans a
+read-modify-write when it runs on the request-scoped connection (`RequestScopeConnection`); a barrier
+test outside request scope uses the fallback transactor, which commits the lock SELECT immediately and
+cannot serialise a separate save. (Same "verified-real without standalone test" category as Q/T/V/X/Y.)
+
+> Lift→raw-SQL column gotcha hit here: `MappedBoolean` maps the `Successful` field to column
+> **`successful_c`** (Lift appends `_c`), not `successful`. Get column names from
+> `<Meta>.mappedFields.map(_.dbColumnName)` when unsure.

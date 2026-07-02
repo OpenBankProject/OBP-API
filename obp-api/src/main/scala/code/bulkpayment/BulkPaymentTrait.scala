@@ -35,6 +35,12 @@ trait BulkPaymentProvider {
   /** Mark that a batch_reference has been claimed by a TR (separate row in
    *  the batch-references table so the check above is O(1)). */
   def claimBatchReference(fromBankId: String, fromAccountId: String, batchReference: String, transactionRequestId: String): Box[Unit]
+
+  /** Release a previously claimed batch_reference — compensation for a claim whose bulk request
+   *  failed BEFORE any payment executed (e.g. the parent TR row could not be created), so the
+   *  client can retry the same batch_reference. Scoped to the claiming transactionRequestId so a
+   *  release can never delete a claim owned by a different request. */
+  def releaseBatchReference(fromBankId: String, fromAccountId: String, batchReference: String, transactionRequestId: String): Unit
 }
 
 /** One row per payment inside a bulk TR. */
