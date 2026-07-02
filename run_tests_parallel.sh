@@ -195,6 +195,12 @@ run_shard() {
     local rc=$?
     # timeout returns 124 on timeout (tests finished but the JVM didn't exit) — treat as success.
     [ $rc -eq 124 ] && rc=0
+    # maven.test.failure.ignore=true (root pom) makes mvn exit 0 even when suites
+    # abort or tests fail — the exit code alone is not trustworthy. Scan the log for
+    # scalatest's own failure markers (RUN ABORTED / SUITE ABORTED / failed N).
+    if [ $rc -eq 0 ] && grep -qE '\*\*\* RUN ABORTED \*\*\*|SUITE(S)? ABORTED|Tests: succeeded [0-9]+, failed [1-9]' "$log"; then
+        rc=1
+    fi
     if [ $rc -eq 0 ]; then
         echo "[Shard $n] ✅ BUILD SUCCESS"
     else

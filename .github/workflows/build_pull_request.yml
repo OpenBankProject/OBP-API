@@ -32,7 +32,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           java-version: "25"
-          distribution: "adopt"
+          distribution: "temurin"
           cache: maven          # caches ~/.m2/repository keyed on pom.xml hash
 
       - name: Setup production props
@@ -259,7 +259,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           java-version: "25"
-          distribution: "adopt"
+          distribution: "temurin"
           cache: maven
 
       - name: Download compiled output
