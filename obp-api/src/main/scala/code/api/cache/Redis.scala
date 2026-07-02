@@ -201,6 +201,14 @@ object Redis extends MdcLoggable {
     }
   }
 
+  /** Loan-pattern helper: lease a Jedis connection from the pool, run f, always close. */
+  private def withJedis[A](f: Jedis => A): A = {
+    val jedis = jedisPool.getResource()
+    try f(jedis)
+    catch { case e: Throwable => throw new RuntimeException(e) }
+    finally jedis.close()
+  }
+
   /**
    * Atomic `SET key value EX ttlSeconds NX` (Jedis 2.9.0 five-arg overload). Sets the key with a TTL
    * only if it does not already exist, in a single command. Returns true iff this call set the key.
@@ -209,45 +217,43 @@ object Redis extends MdcLoggable {
    * window between "set value" and "set TTL" (unlike setnx + expire), so a crash can never leave a
    * key without an expiry, and a second writer can never clobber the first.
    */
-  def setNxEx(key: String, value: String, ttlSeconds: Int): Boolean = {
-    var jedisConnection: Option[Jedis] = None
-    try {
-      jedisConnection = Some(jedisPool.getResource())
-      jedisConnection.get.set(key, value, "NX", "EX", ttlSeconds) == "OK"
-    } catch {
-      case e: Throwable => throw new RuntimeException(e)
-    } finally {
-      if (jedisConnection.isDefined && jedisConnection.get != null)
-        jedisConnection.foreach(_.close())
-    }
+  def setNxEx(key: String, value: String, ttlSeconds: Int): Boolean = withJedis { jedis =>
+    jedis.set(key, value, "NX", "EX", ttlSeconds) == "OK"
   }
 
   /**
-   * Atomic increment-with-create-TTL via a single Lua script: INCR the key, and on first creation
-   * (value == 1) set its expiry. Returns the post-increment counter value. Because INCR and EXPIRE
-   * run atomically server-side, concurrent callers cannot lose increments or race the TTL set, and an
+   * Counter script, executed atomically server-side:
+   *   - INCR the key; on first creation (count == 1) set its expiry.
+   *   - Self-heal: if the key exists WITHOUT an expiry (legacy writer, PERSIST, or an RDB restore
+   *     that dropped expiries), recreate it as a fresh window (count = 1, new TTL) instead of
+   *     incrementing a counter that never resets — the pre-Lua implementation had this recovery
+   *     branch, and without it the key's consumer would be rate-limited forever.
+   *   - Return {count, ttl} together so the caller needs no second round trip, and the pair is
+   *     consistent (a separate TTL read could observe a different window).
+   */
+  private val incrementWithTtlScript =
+    """local c = redis.call('INCR', KEYS[1])
+      |if c == 1 then
+      |  redis.call('EXPIRE', KEYS[1], ARGV[1])
+      |elseif redis.call('TTL', KEYS[1]) < 0 then
+      |  redis.call('SET', KEYS[1], 1, 'EX', ARGV[1])
+      |  c = 1
+      |end
+      |return {c, redis.call('TTL', KEYS[1])}""".stripMargin
+
+  /**
+   * Atomic increment-with-create-TTL via a single Lua script (see incrementWithTtlScript).
+   * Returns (post-increment count, remaining TTL seconds). Because everything runs atomically
+   * server-side, concurrent callers cannot lose increments or race the TTL set, and an
    * increment-then-compare rate-limit check cannot be bypassed by interleaving.
    */
-  def incrementWithTtl(key: String, ttlSeconds: Int): Long = {
-    val script =
-      """local c = redis.call('INCR', KEYS[1])
-        |if c == 1 then redis.call('EXPIRE', KEYS[1], ARGV[1]) end
-        |return c""".stripMargin
-    var jedisConnection: Option[Jedis] = None
-    try {
-      jedisConnection = Some(jedisPool.getResource())
-      val result = jedisConnection.get.eval(
-        script,
-        java.util.Collections.singletonList(key),
-        java.util.Collections.singletonList(ttlSeconds.toString)
-      )
-      result.asInstanceOf[java.lang.Long].longValue()
-    } catch {
-      case e: Throwable => throw new RuntimeException(e)
-    } finally {
-      if (jedisConnection.isDefined && jedisConnection.get != null)
-        jedisConnection.foreach(_.close())
-    }
+  def incrementWithTtl(key: String, ttlSeconds: Int): (Long, Long) = withJedis { jedis =>
+    val result = jedis.eval(
+      incrementWithTtlScript,
+      java.util.Collections.singletonList(key),
+      java.util.Collections.singletonList(ttlSeconds.toString)
+    ).asInstanceOf[java.util.List[java.lang.Long]]
+    (result.get(0).longValue(), result.get(1).longValue())
   }
 
   /**

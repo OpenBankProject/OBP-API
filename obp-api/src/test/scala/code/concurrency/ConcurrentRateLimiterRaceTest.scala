@@ -47,7 +47,7 @@ class ConcurrentRateLimiterRaceTest extends ConcurrentRaceSetup {
       // exactly `limit` callers can ever be allowed. (Pre-fix this was GET-then-INCR — two round
       // trips — and far more than `limit` slipped through; see the red baseline.)
       val results = runConcurrentWithBarrier(n) { _ =>
-        val slot = Redis.incrementWithTtl(key, 3600)
+        val (slot, _) = Redis.incrementWithTtl(key, 3600)
         val underLimit = slot <= limit
         if (underLimit) passed.incrementAndGet()
         underLimit

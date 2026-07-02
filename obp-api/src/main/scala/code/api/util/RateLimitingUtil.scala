@@ -247,10 +247,10 @@ object RateLimitingUtil extends MdcLoggable {
     val seconds = RateLimitingPeriod.toSeconds(period).toInt
     try {
       // Atomic INCR + create-TTL in one Lua call. Replaces the former TTL-read-then-SET/INCR sequence,
-      // which could lose increments and race the expiry under concurrency. On first increment (cnt==1)
-      // the key gets its TTL atomically.
-      val cnt = Redis.incrementWithTtl(key, seconds)
-      val ttl = Redis.use(JedisMethod.TTL, key).map(_.toLong).getOrElse(seconds.toLong)
+      // which could lose increments and race the expiry under concurrency. The script also self-heals
+      // a key stuck without an expiry and returns the TTL atomically with the count — one round trip,
+      // no separate TTL read that could observe a different window.
+      val (cnt, ttl) = Redis.incrementWithTtl(key, seconds)
       (ttl, cnt)
     } catch {
       case e: Throwable =>
