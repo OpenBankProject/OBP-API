@@ -2882,6 +2882,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
           case _ =>
             Future { (Failure(ErrorMessages.DAuthUnknownError), None) }
         }
+      }  // SIWE (Sign-In With Ethereum). Token minted at POST /my/logins/siwe; carried as `SIWE: token=...`.
+      else if (getPropsAsBoolValue("allow_siwe", false) && code.api.SIWE.hasSiweHeader(cc.requestHeaders) && !url.contains("/my/logins/siwe")) {
+        code.api.SIWE.getUserFromSiweHeaderFuture(cc)
       }
       else if(Option(cc).flatMap(_.user).isDefined) {
         Future{(cc.user, Some(cc))}
