@@ -13,12 +13,12 @@ import doobie.implicits._
  */
 object DoobieUserAuthContextUpdateQueries {
 
-  def conditionalStatusTransition(rowId: Long, guardStatus: String, newStatus: String): Int =
+  def conditionalStatusTransition(userAuthContextUpdateId: Long, guardStatus: String, newStatus: String): Int =
     DoobieUtil.runUpdate(
       sql"""UPDATE mappeduserauthcontextupdate
             SET mstatus = $newStatus,
                 updatedat = NOW()
-            WHERE id = $rowId
+            WHERE id = $userAuthContextUpdateId
               AND mstatus = $guardStatus""".update.run
     )
 }

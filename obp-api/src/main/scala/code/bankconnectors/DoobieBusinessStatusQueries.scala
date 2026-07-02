@@ -17,7 +17,7 @@ object DoobieBusinessStatusQueries {
 
   /** AccountAccessRequest: transition only from the guard status. Table has explicit dbTableName. */
   def conditionalAccountAccessRequestStatus(
-    rowId: Long,
+    accountAccessRequestId: Long,
     guardStatus: String,
     newStatus: String,
     checkerUserId: String,
@@ -28,17 +28,17 @@ object DoobieBusinessStatusQueries {
               checkeruserid = $checkerUserId,
               checkercomment = $checkerComment,
               updatedat = NOW()
-          WHERE id = $rowId
+          WHERE id = $accountAccessRequestId
             AND status = $guardStatus""".update.run
   )
 
   /** MappedAccountApplication: transition only from the guard status (a one-shot decision). */
-  def conditionalAccountApplicationStatus(rowId: Long, guardStatus: String, newStatus: String): Int =
+  def conditionalAccountApplicationStatus(accountApplicationId: Long, guardStatus: String, newStatus: String): Int =
     DoobieUtil.runUpdate(
       sql"""UPDATE mappedaccountapplication
             SET mstatus = $newStatus,
                 updatedat = NOW()
-            WHERE id = $rowId
+            WHERE id = $accountApplicationId
               AND mstatus = $guardStatus""".update.run
     )
 
