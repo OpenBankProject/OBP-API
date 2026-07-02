@@ -34,7 +34,6 @@ import org.http4s.dsl.io._
 
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
-import scala.language.implicitConversions
 
 /**
  * Native http4s aggregator for Berlin Group v1.3 – Payment Initiation Service (PIS).
@@ -47,7 +46,11 @@ object Http4sBGv13PIS extends MdcLoggable {
 
   implicit val formats: Formats = CustomJsonFormats.formats
 
-  protected implicit def JvalueToSuper(what: org.json4s.JValue): JvalueCaseClass = JvalueCaseClass(what)
+  // ResourceDoc example bodies are written as `json.parse(...)` (JValue). Since the json4s
+  // migration, JValue itself extends scala.Product, so an implicit JValue => JvalueCaseClass
+  // conversion never fires. Each example body is therefore wrapped explicitly in
+  // JvalueCaseClass(...) so resource-docs serialization takes its special-case path (no field
+  // reflection; the jvalueToCaseclass wrapper key is stripped) instead of reflecting on a raw JObject.
 
   val implementedInApiVersion = ConstantsBG.berlinGroupVersion1
   val resourceDocs = ArrayBuffer[ResourceDoc]()
@@ -735,7 +738,7 @@ The start authorisation process is a process which is needed for creating a new 
 or cancellation sub-resource.
 """
 
-  private val startPaymentAuthorisationResponse = json.parse("""{
+  private val startPaymentAuthorisationResponse = JvalueCaseClass(json.parse("""{
     "challengeData": {
       "scaStatus": "received",
       "authorisationId": "88695566-6642-46d5-9985-0d824624f507",
@@ -744,7 +747,7 @@ or cancellation sub-resource.
         "scaStatus": "/v1.3/payments/sepa-credit-transfers/88695566-6642-46d5-9985-0d824624f507"
       }
     }
-  }""")
+  }"""))
 
   private val generalStartPaymentInitiationCancellationAuthorisationSummary: String =
     s"""${mockedDataText(true)}
@@ -752,7 +755,7 @@ Creates an authorisation sub-resource and start the authorisation process of the
 The message might in addition transmit authentication and authorisation related data.
 """
 
-  private val startPaymentInitiationCancellationAuthorisationResponse = json.parse("""{
+  private val startPaymentInitiationCancellationAuthorisationResponse = JvalueCaseClass(json.parse("""{
     "scaStatus": "received",
     "authorisationId": "123auth456",
     "psuMessage": "Please use your BankApp for transaction Authorisation.",
@@ -761,7 +764,7 @@ The message might in addition transmit authentication and authorisation related 
         "href": "/v1.3/payments/qwer3456tzui7890/authorisations/123auth456"
       }
     }
-  }""")
+  }"""))
 
   private val generalUpdatePaymentCancellationPsuDataSummary: String =
     s"""${mockedDataText(true)}
@@ -815,7 +818,7 @@ or * access method is generally applicable, but further authorisation processes 
 This method returns the SCA status of a payment initiation's authorisation sub-resource.
 """,
       EmptyBody,
-      json.parse("""{"scaStatus" : "psuAuthenticated"}"""),
+      JvalueCaseClass(json.parse("""{"scaStatus" : "psuAuthenticated"}""")),
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil,
       http4sPartialFunction = Some(getPaymentCancellationScaStatus)
@@ -828,7 +831,7 @@ This method returns the SCA status of a payment initiation's authorisation sub-r
       s"""${mockedDataText(false)}
 Returns the content of a payment object""",
       EmptyBody,
-      json.parse("""{
+      JvalueCaseClass(json.parse("""{
         "debtorAccount":{
           "iban":"GR12 1234 5123 4511 3981 4475 477"
         },
@@ -840,7 +843,7 @@ Returns the content of a payment object""",
           "iban":"GR12 1234 5123 4514 4575 3645 077"
         },
         "creditorName":"70charname"
-      }"""),
+      }""")),
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil,
       http4sPartialFunction = Some(getPaymentInformation)
@@ -856,12 +859,12 @@ Read a list of all authorisation subresources IDs which have been created.
 This function returns an array of hyperlinks to all generated authorisation sub-resources.
 """,
       EmptyBody,
-      json.parse("""[{
+      JvalueCaseClass(json.parse("""[{
         "scaStatus": "received",
         "authorisationId": "940948c7-1c86-4d88-977e-e739bf2c1492",
         "psuMessage": "Please check your SMS at a mobile device.",
         "_links": {"scaStatus": "/v1.3/payments/sepa-credit-transfers/940948c7-1c86-4d88-977e-e739bf2c1492"}
-      }]"""),
+      }]""")),
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil,
       http4sPartialFunction = Some(getPaymentInitiationAuthorisation)
@@ -875,7 +878,7 @@ This function returns an array of hyperlinks to all generated authorisation sub-
 Retrieve a list of all created cancellation authorisation sub-resources.
 """,
       EmptyBody,
-      json.parse("""{"cancellationIds" : ["faa3657e-13f0-4feb-a6c3-34bf21a9ae8e"]}"""),
+      JvalueCaseClass(json.parse("""{"cancellationIds" : ["faa3657e-13f0-4feb-a6c3-34bf21a9ae8e"]}""")),
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil,
       http4sPartialFunction = Some(getPaymentInitiationCancellationAuthorisationInformation)
@@ -889,7 +892,7 @@ Retrieve a list of all created cancellation authorisation sub-resources.
 This method returns the SCA status of a payment initiation's authorisation sub-resource.
 """,
       EmptyBody,
-      json.parse("""{"scaStatus" : "psuAuthenticated"}"""),
+      JvalueCaseClass(json.parse("""{"scaStatus" : "psuAuthenticated"}""")),
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil,
       http4sPartialFunction = Some(getPaymentInitiationScaStatus)
@@ -902,7 +905,7 @@ This method returns the SCA status of a payment initiation's authorisation sub-r
       s"""${mockedDataText(false)}
 Check the transaction status of a payment initiation.""",
       EmptyBody,
-      json.parse(s"""{"transactionStatus": "${TransactionStatus.ACCP.code}"}"""),
+      JvalueCaseClass(json.parse(s"""{"transactionStatus": "${TransactionStatus.ACCP.code}"}""")),
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil,
       http4sPartialFunction = Some(getPaymentInitiationStatus)
@@ -910,13 +913,13 @@ Check the transaction status of a payment initiation.""",
   }
 
   private def initInitiatePaymentResourceDocs(): Unit = {
-    val initiatePaymentRequestBody = json.parse(s"""{
+    val initiatePaymentRequestBody = JvalueCaseClass(json.parse(s"""{
       "debtorAccount": {"iban": "DE123456987480123"},
       "instructedAmount": {"currency": "EUR", "amount": "100"},
       "creditorAccount": {"iban": "UK12 1234 5123 4517 2948 6166 077"},
       "creditorName": "70charname"
-    }""")
-    val initiatePaymentResponseBody = json.parse(s"""{
+    }"""))
+    val initiatePaymentResponseBody = JvalueCaseClass(json.parse(s"""{
       "transactionStatus": "${TransactionStatus.RCVD.code}",
       "paymentId": "1234-wertiq-983",
       "_links": {
@@ -925,7 +928,7 @@ Check the transaction status of a payment initiation.""",
         "status": {"href": "/v1.3/payments/1234-wertiq-983/status"},
         "scaStatus": {"href": "/v1.3/payments/1234-wertiq-983/authorisations/123auth456"}
       }
-    }""")
+    }"""))
 
     resourceDocs += ResourceDoc(
       implementedInApiVersion, nameOf(initiatePayments),
@@ -947,7 +950,7 @@ $generalPaymentSummaryText""",
       "Payment initiation request(periodic-payments)",
       s"""${mockedDataText(false)}
 $generalPaymentSummaryText""",
-      json.parse(s"""{
+      JvalueCaseClass(json.parse(s"""{
         "instructedAmount": {"currency": "EUR", "amount": "123"},
         "debtorAccount": {"iban": "DE40100100103307118608"},
         "creditorName": "Merchant123",
@@ -957,8 +960,8 @@ $generalPaymentSummaryText""",
         "executionRule": "preceding",
         "frequency": "Monthly",
         "dayOfExecution": "01"
-      }"""),
-      json.parse(s"""{
+      }""")),
+      JvalueCaseClass(json.parse(s"""{
         "transactionStatus": "${TransactionStatus.RCVD.code}",
         "paymentId": "1234-wertiq-983",
         "_links": {
@@ -967,7 +970,7 @@ $generalPaymentSummaryText""",
           "status": {"href": "/v1.3/periodic-payments/1234-wertiq-983/status"},
           "scaStatus": {"href": "/v1.3/periodic-payments/1234-wertiq-983/authorisations/123auth456"}
         }
-      }"""),
+      }""")),
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil,
       authMode = UserOrApplication,
@@ -980,7 +983,7 @@ $generalPaymentSummaryText""",
       "Payment initiation request(bulk-payments)",
       s"""${mockedDataText(true)}
 $generalPaymentSummaryText""",
-      json.parse(s"""{
+      JvalueCaseClass(json.parse(s"""{
         "batchBookingPreferred": "true",
         "debtorAccount": {"iban": "DE40100100103307118608"},
         "paymentInformationId": "my-bulk-identification-1234",
@@ -993,8 +996,8 @@ $generalPaymentSummaryText""",
            "creditorAccount": {"iban": "FR7612345987650123456789014"},
            "remittanceInformationUnstructured": "Ref Number Merchant 2"}
         ]
-      }"""),
-      json.parse(s"""{
+      }""")),
+      JvalueCaseClass(json.parse(s"""{
         "transactionStatus": "${TransactionStatus.RCVD.code}",
         "paymentId": "1234-wertiq-983",
         "_links": {
@@ -1003,7 +1006,7 @@ $generalPaymentSummaryText""",
           "status": {"href": "/v1.3/bulk-payments/1234-wertiq-983/status"},
           "scaStatus": {"href": "/v1.3/bulk-payments/1234-wertiq-983/authorisations/123auth456"}
         }
-      }"""),
+      }""")),
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil,
       authMode = UserOrApplication,
@@ -1019,7 +1022,7 @@ $generalPaymentSummaryText""",
       "POST", "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/authorisations",
       "Start the authorisation process for a payment initiation (updatePsuAuthentication)",
       generalStartPaymentAuthorisationSummary,
-      json.parse("""{"psuData": {"password": "start12"}}"""),
+      JvalueCaseClass(json.parse("""{"psuData": {"password": "start12"}}""")),
       startPaymentAuthorisationResponse,
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil,
@@ -1031,7 +1034,7 @@ $generalPaymentSummaryText""",
       "POST", "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/authorisations",
       "Start the authorisation process for a payment initiation (selectPsuAuthenticationMethod)",
       generalStartPaymentAuthorisationSummary,
-      json.parse("""{"authenticationMethodId":""}"""),
+      JvalueCaseClass(json.parse("""{"authenticationMethodId":""}""")),
       startPaymentAuthorisationResponse,
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil,
@@ -1046,7 +1049,7 @@ $generalPaymentSummaryText""",
 Create an authorisation sub-resource and start the authorisation process.
 The message might in addition transmit authentication and authorisation related data.
 """,
-      json.parse("""{"scaAuthenticationData":"123"}"""),
+      JvalueCaseClass(json.parse("""{"scaAuthenticationData":"123"}""")),
       startPaymentAuthorisationResponse,
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil,
@@ -1062,13 +1065,13 @@ The message might in addition transmit authentication and authorisation related 
       s"""${mockedDataText(false)}
 Creates an authorisation sub-resource and start the authorisation process of the cancellation of the addressed payment.
 """,
-      json.parse("""{"scaAuthenticationData":""}"""),
-      json.parse("""{
+      JvalueCaseClass(json.parse("""{"scaAuthenticationData":""}""")),
+      JvalueCaseClass(json.parse("""{
         "scaStatus": "received",
         "authorisationId": "123auth456",
         "psuMessage": "Please use your BankApp for transaction Authorisation.",
         "_links": {"scaStatus": {"href": "/v1.3/payments/qwer3456tzui7890/authorisations/123auth456"}}
-      }"""),
+      }""")),
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil,
       http4sPartialFunction = Some(startPaymentInitiationCancellationAuthorisationAll)
@@ -1079,7 +1082,7 @@ Creates an authorisation sub-resource and start the authorisation process of the
       "POST", "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/cancellation-authorisations",
       "Start the authorisation process for the cancellation of the addressed payment (updatePsuAuthentication)",
       generalStartPaymentInitiationCancellationAuthorisationSummary,
-      json.parse("""{"psuData": {"password": "start12"}}"""),
+      JvalueCaseClass(json.parse("""{"psuData": {"password": "start12"}}""")),
       startPaymentInitiationCancellationAuthorisationResponse,
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil,
@@ -1091,7 +1094,7 @@ Creates an authorisation sub-resource and start the authorisation process of the
       "POST", "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/cancellation-authorisations",
       "Start the authorisation process for the cancellation of the addressed payment (selectPsuAuthenticationMethod)",
       generalStartPaymentInitiationCancellationAuthorisationSummary,
-      json.parse("""{"authenticationMethodId":""}"""),
+      JvalueCaseClass(json.parse("""{"authenticationMethodId":""}""")),
       startPaymentInitiationCancellationAuthorisationResponse,
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil,
@@ -1109,12 +1112,12 @@ Creates an authorisation sub-resource and start the authorisation process of the
       s"""${mockedDataText(false)}
 This method updates PSU data on the cancellation authorisation resource if needed.
 """,
-      json.parse("""{"scaAuthenticationData":"123"}"""),
-      json.parse("""{
+      JvalueCaseClass(json.parse("""{"scaAuthenticationData":"123"}""")),
+      JvalueCaseClass(json.parse("""{
         "scaStatus":"finalised",
         "psuMessage":"Please check your SMS at a mobile device.",
         "_links":{"scaStatus":"/v1.3/payments/sepa-credit-transfers/PAYMENT_ID/4f4a8b7f-9968-4183-92ab-ca512b396bfc"}
-      }"""),
+      }""")),
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil,
       http4sPartialFunction = Some(updatePaymentCancellationPsuDataAll)
@@ -1125,11 +1128,11 @@ This method updates PSU data on the cancellation authorisation resource if neede
       "PUT", "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/cancellation-authorisations/AUTHORISATION_ID",
       "Update PSU Data for payment initiation cancellation (updatePsuAuthentication)",
       generalUpdatePaymentCancellationPsuDataSummary,
-      json.parse("""{"psuData":{"password":"start12"}}"""),
-      json.parse("""{
+      JvalueCaseClass(json.parse("""{"psuData":{"password":"start12"}}""")),
+      JvalueCaseClass(json.parse("""{
         "scaStatus": "psuAuthenticated",
         "_links": {"authoriseTransaction": {"href": "/psd2/v1.3/payments/1234-wertiq-983/authorisations/123auth456"}}
-      }"""),
+      }""")),
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil,
       http4sPartialFunction = Some(updatePaymentCancellationPsuDataAll)
@@ -1140,13 +1143,13 @@ This method updates PSU data on the cancellation authorisation resource if neede
       "PUT", "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/cancellation-authorisations/AUTHORISATION_ID",
       "Update PSU Data for payment initiation cancellation (selectPsuAuthenticationMethod)",
       generalUpdatePaymentCancellationPsuDataSummary,
-      json.parse("""{"authenticationMethodId":""}"""),
-      json.parse("""{
+      JvalueCaseClass(json.parse("""{"authenticationMethodId":""}""")),
+      JvalueCaseClass(json.parse("""{
         "scaStatus": "scaMethodSelected",
         "chosenScaMethod": {"authenticationType": "SMS_OTP", "authenticationMethodId": "myAuthenticationID"},
         "challengeData": {"otpMaxLength": 6, "otpFormat": "integer"},
         "_links": {"authoriseTransaction": {"href": "/psd2/v1.3/payments/1234-wertiq-983/authorisations/123auth456"}}
-      }"""),
+      }""")),
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil,
       http4sPartialFunction = Some(updatePaymentCancellationPsuDataAll)
@@ -1157,11 +1160,11 @@ This method updates PSU data on the cancellation authorisation resource if neede
       "PUT", "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/cancellation-authorisations/AUTHORISATION_ID",
       "Update PSU Data for payment initiation cancellation (authorisationConfirmation)",
       generalUpdatePaymentCancellationPsuDataSummary,
-      json.parse("""{"confirmationCode":"confirmationCode"}"""),
-      json.parse("""{
+      JvalueCaseClass(json.parse("""{"confirmationCode":"confirmationCode"}""")),
+      JvalueCaseClass(json.parse("""{
         "scaStatus": "finalised",
         "_links":{"status":  {"href":"/v1.3/payments/sepa-credit-transfers/qwer3456tzui7890/status"}}
-      }"""),
+      }""")),
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil,
       http4sPartialFunction = Some(updatePaymentCancellationPsuDataAll)
@@ -1174,12 +1177,12 @@ This method updates PSU data on the cancellation authorisation resource if neede
       "PUT", "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/authorisations/AUTHORISATION_ID",
       "Update PSU data for payment initiation (transactionAuthorisation)",
       generalUpdatePaymentPsuDataSummary,
-      json.parse("""{"scaAuthenticationData":"123"}"""),
-      json.parse("""{
+      JvalueCaseClass(json.parse("""{"scaAuthenticationData":"123"}""")),
+      JvalueCaseClass(json.parse("""{
         "scaStatus": "finalised",
         "psuMessage": "Please check your SMS at a mobile device.",
         "_links": {"scaStatus": {"href":"/v1.3/payments/sepa-credit-transfers/88695566-6642-46d5-9985-0d824624f507"}}
-      }"""),
+      }""")),
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil,
       http4sPartialFunction = Some(updatePaymentPsuDataAll)
@@ -1190,11 +1193,11 @@ This method updates PSU data on the cancellation authorisation resource if neede
       "PUT", "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/authorisations/AUTHORISATION_ID",
       "Update PSU data for payment initiation (updatePsuAuthentication)",
       generalUpdatePaymentPsuDataSummary,
-      json.parse("""{"psuData": {"password": "start12"}}"""),
-      json.parse("""{
+      JvalueCaseClass(json.parse("""{"psuData": {"password": "start12"}}""")),
+      JvalueCaseClass(json.parse("""{
         "scaStatus": "finalised",
         "_links": {"scaStatus": {"href":"/v1.3/payments/sepa-credit-transfers/88695566-6642-46d5-9985-0d824624f507"}}
-      }"""),
+      }""")),
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil,
       http4sPartialFunction = Some(updatePaymentPsuDataAll)
@@ -1205,13 +1208,13 @@ This method updates PSU data on the cancellation authorisation resource if neede
       "PUT", "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/authorisations/AUTHORISATION_ID",
       "Update PSU data for payment initiation (selectPsuAuthenticationMethod)",
       generalUpdatePaymentPsuDataSummary,
-      json.parse("""{"authenticationMethodId":""}"""),
-      json.parse("""{
+      JvalueCaseClass(json.parse("""{"authenticationMethodId":""}""")),
+      JvalueCaseClass(json.parse("""{
         "scaStatus": "scaMethodSelected",
         "chosenScaMethod": {"authenticationType": "SMS_OTP", "authenticationMethodId": "myAuthenticationID"},
         "challengeData": {"otpMaxLength": 6, "otpFormat": "integer"},
         "_links": {"authoriseTransaction": {"href": "/psd2/v1.3/payments/1234-wertiq-983/authorisations/123auth456"}}
-      }"""),
+      }""")),
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil,
       http4sPartialFunction = Some(updatePaymentPsuDataAll)
@@ -1222,11 +1225,11 @@ This method updates PSU data on the cancellation authorisation resource if neede
       "PUT", "/PAYMENT_SERVICE/PAYMENT_PRODUCT/PAYMENT_ID/authorisations/AUTHORISATION_ID",
       "Update PSU data for payment initiation (authorisationConfirmation)",
       generalUpdatePaymentPsuDataSummary,
-      json.parse("""{"confirmationCode":"confirmationCode"}"""),
-      json.parse("""{
+      JvalueCaseClass(json.parse("""{"confirmationCode":"confirmationCode"}""")),
+      JvalueCaseClass(json.parse("""{
         "scaStatus": "finalised",
         "_links":{"status":  {"href":"/v1.3/payments/sepa-credit-transfers/qwer3456tzui7890/status"}}
-      }"""),
+      }""")),
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Payment Initiation Service (PIS)") :: apiTagBerlinGroupM :: Nil,
       http4sPartialFunction = Some(updatePaymentPsuDataAll)

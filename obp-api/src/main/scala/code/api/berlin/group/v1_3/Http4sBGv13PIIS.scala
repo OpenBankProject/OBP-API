@@ -29,11 +29,11 @@ object Http4sBGv13PIIS extends MdcLoggable {
 
   implicit val formats: Formats = CustomJsonFormats.formats
 
-  // ResourceDoc example bodies are written as `json.parse(...)` (JValue). Under lift-json the
-  // Lift builder relied on an implicit JValue => JvalueCaseClass because JValue was not a Product;
-  // json4s JValue already extends scala.Product, so that implicit never fires anymore. Wrap
-  // explicitly: resource-docs serialization special-cases JvalueCaseClass (strips the
-  // jvalueToCaseclass key, skips field reflection), and tests unwrap it to get the raw JValue.
+  // ResourceDoc example bodies are written as `json.parse(...)` (JValue). Since the json4s
+  // migration, JValue itself extends scala.Product, so an implicit JValue => JvalueCaseClass
+  // conversion never fires. Each example body is therefore wrapped explicitly in
+  // JvalueCaseClass(...) so resource-docs serialization takes its special-case path (no field
+  // reflection; the jvalueToCaseclass wrapper key is stripped) instead of reflecting on a raw JObject.
 
   val implementedInApiVersion = ConstantsBG.berlinGroupVersion1
   val resourceDocs = ArrayBuffer[ResourceDoc]()
