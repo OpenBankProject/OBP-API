@@ -131,7 +131,10 @@ object SecureLogging {
   }
 
   // ===== Pattern cache for custom usage =====
-  private val customPatternCache: mutable.Map[String, Pattern] = mutable.Map.empty
+  // Thread-safe: maskWithCustomPattern is called concurrently from many request threads. A plain
+  // mutable.Map.getOrElseUpdate is not atomic and can corrupt the map during a concurrent resize.
+  private val customPatternCache: scala.collection.concurrent.Map[String, Pattern] =
+    scala.collection.concurrent.TrieMap.empty
   private def getOrCompileCustomPattern(regex: String): Pattern =
     customPatternCache.getOrElseUpdate(regex, Pattern.compile(regex, Pattern.CASE_INSENSITIVE))
 

@@ -93,6 +93,13 @@ object DoobieUtil extends MdcLoggable {
    * Returns Some(connection) when a request-scoped connection is available, None otherwise
    * (background tasks, schedulers, tests without a request scope).
    */
+  /** True iff a request-scoped connection is available, i.e. runUpdate will share the request
+   *  transaction rather than falling back to a standalone auto-commit transactor. Callers whose
+   *  correctness depends on the request transaction (e.g. SELECT ... FOR UPDATE row locks that
+   *  must be HELD after runUpdate returns) should check this and warn or fail when false —
+   *  the fallback transactor commits at transact end, releasing any lock immediately. */
+  def hasRequestScopeConnection: Boolean = currentRequestConnection.isDefined
+
   private def currentRequestConnection: Option[java.sql.Connection] = {
     // 1. Primary: the http4s RequestScopeConnection proxy from Alibaba TTL
     Option(code.api.util.http4s.RequestScopeConnection.currentProxy.get()).orElse {

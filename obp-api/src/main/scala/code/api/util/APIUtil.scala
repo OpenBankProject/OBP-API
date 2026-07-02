@@ -4410,7 +4410,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    * value: dependent endpoint information list.
    * this is used by MessageDoc
    */
-  val connectorToEndpoint = mutable.Map[String, List[EndpointInfo]]()
+  // Thread-safe concurrent map: populated during startup scanning and read on the resource-docs
+  // path. TrieMap keeps the mutable.Map API (getOrElse/put) while being safe under concurrent access.
+  val connectorToEndpoint = scala.collection.concurrent.TrieMap[String, List[EndpointInfo]]()
 
   private def addEndpointInfos(connectorMethods: List[String], partialFunctionName: String, apiVersion: ScannedApiVersion) = {
     val endpointInfo = EndpointInfo(partialFunctionName, apiVersion.fullyQualifiedVersion)

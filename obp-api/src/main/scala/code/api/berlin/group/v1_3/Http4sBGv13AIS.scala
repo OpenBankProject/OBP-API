@@ -36,7 +36,6 @@ import org.http4s.dsl.io._
 
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
-import scala.language.implicitConversions
 
 object Http4sBGv13AIS extends MdcLoggable {
 
@@ -44,7 +43,11 @@ object Http4sBGv13AIS extends MdcLoggable {
 
   implicit val formats: Formats = CustomJsonFormats.formats
 
-  protected implicit def JvalueToSuper(what: org.json4s.JValue): JvalueCaseClass = JvalueCaseClass(what)
+  // ResourceDoc example bodies are written as `json.parse(...)` (JValue). Since the json4s
+  // migration, JValue itself extends scala.Product, so an implicit JValue => JvalueCaseClass
+  // conversion never fires. Each example body is therefore wrapped explicitly in
+  // JvalueCaseClass(...) so resource-docs serialization takes its special-case path (no field
+  // reflection; the jvalueToCaseclass wrapper key is stripped) instead of reflecting on a raw JObject.
 
   val implementedInApiVersion = ConstantsBG.berlinGroupVersion1
   val resourceDocs = ArrayBuffer[ResourceDoc]()
@@ -713,7 +716,7 @@ This is returning the data for the TPP especially in cases,
 where the consent was directly managed between ASPSP and PSU e.g. in a re-direct SCA Approach.
 """,
       EmptyBody,
-      json.parse("""{
+      JvalueCaseClass(json.parse("""{
                     "access": {
                       "accounts": [
                         {
@@ -732,7 +735,7 @@ where the consent was directly managed between ASPSP and PSU e.g. in a re-direct
                     "combinedServiceIndicator": false,
                     "lastActionDate": "2019-06-30",
                     "consentStatus": "received"
-                  }"""),
+                  }""")),
       List(AuthenticatedUserIsRequired, ConsentNotFound, UnknownError),
       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil,
       authMode = UserOrApplication,
@@ -748,9 +751,9 @@ where the consent was directly managed between ASPSP and PSU e.g. in a re-direct
       s"""${mockedDataText(false)}
             Read the status of an account information consent resource.""",
       EmptyBody,
-      json.parse("""{
+      JvalueCaseClass(json.parse("""{
                     "consentStatus": "received"
-                   }"""),
+                   }""")),
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil,
       authMode = UserOrApplication,
@@ -787,7 +790,7 @@ using the extended forms as indicated above.
 
 """
 
-    val startConsentAuthorisationResponse = json.parse("""{
+    val startConsentAuthorisationResponse = JvalueCaseClass(json.parse("""{
                      "scaStatus": "received",
                      "psuMessage": "Please use your BankApp for transaction Authorisation.",
                      "authorisationId": "123auth456.",
@@ -795,7 +798,7 @@ using the extended forms as indicated above.
                        {
                          "scaStatus":  {"href":"/v1.3/consents/qwer3456tzui7890/authorisations/123auth456"}
                        }
-                   }""")
+                   }"""))
 
     resourceDocs += ResourceDoc(
       implementedInApiVersion,
@@ -804,7 +807,7 @@ using the extended forms as indicated above.
       "/consents/CONSENTID/authorisations",
       "Start the authorisation process for a consent(transactionAuthorisation)",
       generalStartConsentAuthorisationSummary,
-      json.parse("""{"scaAuthenticationData":""}"""),
+      JvalueCaseClass(json.parse("""{"scaAuthenticationData":""}""")),
       startConsentAuthorisationResponse,
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil,
@@ -818,7 +821,7 @@ using the extended forms as indicated above.
       "/consents/CONSENTID/authorisations",
       "Start the authorisation process for a consent(updatePsuAuthentication)",
       generalStartConsentAuthorisationSummary,
-      json.parse("""{"psuData": {"password": "start12"}}"""),
+      JvalueCaseClass(json.parse("""{"psuData": {"password": "start12"}}""")),
       startConsentAuthorisationResponse,
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil,
@@ -832,7 +835,7 @@ using the extended forms as indicated above.
       "/consents/CONSENTID/authorisations",
       "Start the authorisation process for a consent(selectPsuAuthenticationMethod)",
       generalStartConsentAuthorisationSummary,
-      json.parse("""{"authenticationMethodId":""}"""),
+      JvalueCaseClass(json.parse("""{"authenticationMethodId":""}""")),
       startConsentAuthorisationResponse,
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil,
@@ -875,7 +878,7 @@ Maybe in a later version the access path will change.
       "/consents/CONSENTID/authorisations/AUTHORISATIONID",
       "Update PSU Data for consents (transactionAuthorisation)",
       generalUpdateConsentsPsuDataSummary,
-      json.parse("""{"scaAuthenticationData":"123"}"""),
+      JvalueCaseClass(json.parse("""{"scaAuthenticationData":"123"}""")),
       ScaStatusResponse(
         scaStatus = "received",
         _links = Some(LinksAll(scaStatus = Some(HrefType(Some(s"/v1.3/consents/1234-wertiq-983/authorisations")))))
@@ -892,13 +895,13 @@ Maybe in a later version the access path will change.
       "/consents/CONSENTID/authorisations/AUTHORISATIONID",
       "Update PSU Data for consents (updatePsuAuthentication)",
       generalUpdateConsentsPsuDataSummary,
-      json.parse("""{"psuData": {"password": "start12"}}""".stripMargin),
-      json.parse("""{
+      JvalueCaseClass(json.parse("""{"psuData": {"password": "start12"}}""".stripMargin)),
+      JvalueCaseClass(json.parse("""{
          |          "scaStatus": "psuAuthenticated",
          |          "_links": {
          |           "authoriseTransaction": {"href": "/psd2/v1/payments/1234-wertiq-983/authorisations/123auth456"}
          |          }
-         |        }""".stripMargin),
+         |        }""".stripMargin)),
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil,
       http4sPartialFunction = Some(updateConsentsPsuDataAll)
@@ -911,10 +914,10 @@ Maybe in a later version the access path will change.
       "/consents/CONSENTID/authorisations/AUTHORISATIONID",
       "Update PSU Data for consents (selectPsuAuthenticationMethod)",
       generalUpdateConsentsPsuDataSummary,
-      json.parse("""{
+      JvalueCaseClass(json.parse("""{
                    |  "authenticationMethodId": "myAuthenticationID"
-                   |}""".stripMargin),
-      json.parse("""{
+                   |}""".stripMargin)),
+      JvalueCaseClass(json.parse("""{
                    |          "scaStatus": "scaMethodSelected",
                    |          "chosenScaMethod": {
                    |          "authenticationType": "SMS_OTP",
@@ -925,7 +928,7 @@ Maybe in a later version the access path will change.
                    |          "_links": {
                    |             "authoriseTransaction": {"href": "/psd2/v1/payments/1234-wertiq-983/authorisations/123auth456"}
                    |          }
-                   |        }""".stripMargin),
+                   |        }""".stripMargin)),
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil,
       http4sPartialFunction = Some(updateConsentsPsuDataAll)
@@ -938,13 +941,13 @@ Maybe in a later version the access path will change.
       "/consents/CONSENTID/authorisations/AUTHORISATIONID",
       "Update PSU Data for consents (authorisationConfirmation)",
       generalUpdateConsentsPsuDataSummary,
-      json.parse("""{"confirmationCode":"confirmationCode"}"""),
-      json.parse("""{
+      JvalueCaseClass(json.parse("""{"confirmationCode":"confirmationCode"}""")),
+      JvalueCaseClass(json.parse("""{
                    |          "scaStatus": "finalised",
                    |          "_links":{
                    |            "status":  {"href":"/v1/payments/sepa-credit-transfers/qwer3456tzui7890/status"}
                    |          }
-                   |        }""".stripMargin),
+                   |        }""".stripMargin)),
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil,
       http4sPartialFunction = Some(updateConsentsPsuDataAll)
@@ -978,7 +981,7 @@ In this case, this endpoint will deliver the information about all available pay
 of the PSU at this ASPSP.
 """,
       EmptyBody,
-      json.parse("""{
+      JvalueCaseClass(json.parse("""{
                    |  "accounts": [
                    |    {
                    |      "resourceId": "3dc3d5b3-7023-4848-9853-f5400a64e80f",
@@ -994,7 +997,7 @@ of the PSU at this ASPSP.
                    |      }
                    |    }
                    |  ]
-                   |}""".stripMargin),
+                   |}""".stripMargin)),
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil,
       http4sPartialFunction = Some(getAccountList)
@@ -1016,7 +1019,7 @@ This account-id then can be retrieved by the "GET Account List" call.
 The account-id is constant at least throughout the lifecycle of a given consent.
 """,
       EmptyBody,
-      json.parse("""{
+      JvalueCaseClass(json.parse("""{
   "account":{
     "iban":"DE91 1000 0000 0123 4567 89"
   },
@@ -1031,7 +1034,7 @@ The account-id is constant at least throughout the lifecycle of a given consent.
     "referenceDate":"2018-03-08"
   }]
 }
-"""),
+""")),
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil,
       http4sPartialFunction = Some(getBalances)
@@ -1050,7 +1053,7 @@ The addressed list of card accounts depends then on the PSU ID and the stored co
 respectively the OAuth2 access token.
 """,
       EmptyBody,
-      json.parse("""{
+      JvalueCaseClass(json.parse("""{
   "cardAccounts": [
     {
       "resourceId": "3d9a81b3-a47d-4130-8765-a9c0ff861b99",
@@ -1070,7 +1073,7 @@ respectively the OAuth2 access token.
       }
     }
   ]
-}"""),
+}""")),
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Account Information Service (AIS)") :: apiTagMockedData :: Nil,
       http4sPartialFunction = Some(getCardAccounts)
@@ -1093,7 +1096,7 @@ This account-id then can be retrieved by the
 "GET Card Account List" call
 """,
       EmptyBody,
-      json.parse("""{
+      JvalueCaseClass(json.parse("""{
   "cardAccount":{
     "iban":"DE91 1000 0000 0123 4567 89"
   },
@@ -1107,7 +1110,7 @@ This account-id then can be retrieved by the
     "lastCommittedTransaction":"String",
     "referenceDate":"2018-03-08"
   }]
-}"""),
+}""")),
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Account Information Service (AIS)") :: Nil,
       http4sPartialFunction = Some(getCardAccountBalances)
@@ -1123,7 +1126,7 @@ This account-id then can be retrieved by the
 Reads account data from a given card account addressed by "account-id".
 """,
       EmptyBody,
-      json.parse("""{
+      JvalueCaseClass(json.parse("""{
                     "cardAccount": {
                       "maskedPan": "525412******3241"
                     },
@@ -1135,7 +1138,7 @@ Reads account data from a given card account addressed by "account-id".
                         }
                       }
                     }
-                  }"""),
+                  }""")),
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil,
       http4sPartialFunction = Some(getCardAccountTransactionList)
@@ -1153,9 +1156,9 @@ Return a list of all authorisation subresources IDs which have been created.
 This function returns an array of hyperlinks to all generated authorisation sub-resources.
 """,
       EmptyBody,
-      json.parse("""{
+      JvalueCaseClass(json.parse("""{
   "authorisationIds" : "faa3657e-13f0-4feb-a6c3-34bf21a9ae8e"
-}"""),
+}""")),
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil,
       http4sPartialFunction = Some(getConsentAuthorisation)
@@ -1171,9 +1174,9 @@ This function returns an array of hyperlinks to all generated authorisation sub-
 This method returns the SCA status of a consent initiation's authorisation sub-resource.
 """,
       EmptyBody,
-      json.parse("""{
+      JvalueCaseClass(json.parse("""{
   "scaStatus" : "started"
-}"""),
+}""")),
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil,
       http4sPartialFunction = Some(getConsentScaStatus)
@@ -1194,7 +1197,7 @@ of the "Read Transaction List" call within the _links subfield.
 
             """,
       EmptyBody,
-      json.parse("""{
+      JvalueCaseClass(json.parse("""{
   "description": "Example for transaction details",
   "value": {
     "transactionsDetails": {
@@ -1208,7 +1211,7 @@ of the "Read Transaction List" call within the _links subfield.
       "valueDate": "2017-10-26"
     }
   }
-}"""),
+}""")),
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Account Information Service (AIS)") :: Nil,
       http4sPartialFunction = Some(getTransactionDetails)
@@ -1226,7 +1229,7 @@ depending on the steering parameter "bookingStatus" together with balances.
 For a given account, additional parameters are e.g. the attributes "dateFrom" and "dateTo".
 The ASPSP might add balance information, if transaction lists without balances are not supported. """,
       EmptyBody,
-      json.parse("""{
+      JvalueCaseClass(json.parse("""{
                     "account": {
                       "iban": "DE2310010010123456788"
                     },
@@ -1238,7 +1241,7 @@ The ASPSP might add balance information, if transaction lists without balances a
                         }
                       }
                     }
-                  }"""),
+                  }""")),
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil,
       http4sPartialFunction = Some(getTransactionList)
@@ -1260,7 +1263,7 @@ Give detailed information about the addressed account together with balance info
 
             """,
       EmptyBody,
-      json.parse("""{
+      JvalueCaseClass(json.parse("""{
   "account": {
     "resourceId": "3dc3d5b3-7023-4848-9853-f5400a64e80f",
     "iban": "FR7612345987650123456789014",
@@ -1274,7 +1277,7 @@ Give detailed information about the addressed account together with balance info
       }
     }
   }
-}"""),
+}""")),
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil,
       http4sPartialFunction = Some(getAccountDetails)
@@ -1293,7 +1296,7 @@ The addressed details of this account depends then on the stored consent address
 respectively the OAuth2 access token.
 """,
       EmptyBody,
-      json.parse("""{
+      JvalueCaseClass(json.parse("""{
                    |  "cardAccount": {
                    |    "resourceId": "3d9a81b3-a47d-4130-8765-a9c0ff861b99",
                    |    "maskedPan": "525412******3241",
@@ -1302,7 +1305,7 @@ respectively the OAuth2 access token.
                    |    "product": "Basic Credit",
                    |    "status": "enabled"
                    |  }
-                   |}""".stripMargin),
+                   |}""".stripMargin)),
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Account Information Service (AIS)") :: Nil,
       http4sPartialFunction = Some(readCardAccount)

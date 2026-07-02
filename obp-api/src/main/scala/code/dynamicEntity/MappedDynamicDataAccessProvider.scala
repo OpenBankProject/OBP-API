@@ -58,7 +58,7 @@ object MappedDynamicDataAccessProvider extends DynamicDataAccessProvider {
   override def getAccessForRow(dynamicDataId: String): List[DynamicDataAccessT] =
     DynamicDataAccess.findAll(By(DynamicDataAccess.DynamicDataId, dynamicDataId))
 
-  override def getReadableRowIds(userId: String, entityName: String, bankId: Option[String]): List[String] = {
+  override def getReadableDynamicDataIds(userId: String, entityName: String, bankId: Option[String]): List[String] = {
     val base: List[QueryParam[DynamicDataAccess]] = List(
       By(DynamicDataAccess.UserId, userId),
       By(DynamicDataAccess.EntityName, entityName),

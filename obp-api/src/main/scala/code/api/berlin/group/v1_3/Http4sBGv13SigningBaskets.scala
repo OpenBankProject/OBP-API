@@ -28,7 +28,6 @@ import org.http4s.dsl.io._
 
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
-import scala.language.implicitConversions
 
 object Http4sBGv13SigningBaskets extends MdcLoggable {
 
@@ -36,7 +35,11 @@ object Http4sBGv13SigningBaskets extends MdcLoggable {
 
   implicit val formats: Formats = CustomJsonFormats.formats
 
-  protected implicit def JvalueToSuper(what: org.json4s.JValue): JvalueCaseClass = JvalueCaseClass(what)
+  // ResourceDoc example bodies are written as `json.parse(...)` (JValue). Since the json4s
+  // migration, JValue itself extends scala.Product, so an implicit JValue => JvalueCaseClass
+  // conversion never fires. Each example body is therefore wrapped explicitly in
+  // JvalueCaseClass(...) so resource-docs serialization takes its special-case path (no field
+  // reflection; the jvalueToCaseclass wrapper key is stripped) instead of reflecting on a raw JObject.
 
   val implementedInApiVersion = ConstantsBG.berlinGroupVersion1
   val resourceDocs = ArrayBuffer[ResourceDoc]()
@@ -81,7 +84,7 @@ Create a signing basket resource for authorising several transactions with one S
 The resource identifications of these transactions are contained in the  payload of this access method
 """,
     PostSigningBasketJsonV13(paymentIds = Some(List("123qwert456789", "12345qwert7899")), None),
-    json.parse("""{
+    JvalueCaseClass(json.parse("""{
   "basketId" : "1234-basket-567",
   "challengeData" : {
     "otpMaxLength" : 0,
@@ -106,7 +109,7 @@ The resource identifications of these transactions are contained in the  payload
   "chosenScaMethod" : "",
   "transactionStatus" : "ACCP",
   "psuMessage" : { }
-}"""),
+}""")),
     List(AuthenticatedUserIsRequired, UnknownError),
     apiTagSigningBaskets :: Nil,
     http4sPartialFunction = Some(createSigningBasket)
@@ -171,11 +174,11 @@ Nevertheless, single transactions might be cancelled on an individual basis on t
     s"""${mockedDataText(false)}
 Returns the content of an signing basket object.""",
     EmptyBody,
-    json.parse("""{
+    JvalueCaseClass(json.parse("""{
   "transactionStatus" : "ACCP",
   "payments" : "",
   "consents" : ""
-}"""),
+}""")),
     List(AuthenticatedUserIsRequired, UnknownError),
     apiTagSigningBaskets :: Nil,
     http4sPartialFunction = Some(getSigningBasket)
@@ -207,9 +210,9 @@ Read a list of all authorisation subresources IDs which have been created.
 This function returns an array of hyperlinks to all generated authorisation sub-resources.
 """,
     EmptyBody,
-    json.parse("""{
+    JvalueCaseClass(json.parse("""{
   "authorisationIds" : ""
-}"""),
+}""")),
     List(AuthenticatedUserIsRequired, UnknownError),
     apiTagSigningBaskets :: Nil,
     http4sPartialFunction = Some(getSigningBasketAuthorisation)
@@ -243,9 +246,9 @@ This function returns an array of hyperlinks to all generated authorisation sub-
 This method returns the SCA status of a signing basket's authorisation sub-resource.
 """,
     EmptyBody,
-    json.parse("""{
+    JvalueCaseClass(json.parse("""{
   "scaStatus" : "psuAuthenticated"
-}"""),
+}""")),
     List(AuthenticatedUserIsRequired, UnknownError),
     apiTagSigningBaskets :: Nil,
     http4sPartialFunction = Some(getSigningBasketScaStatus)
@@ -277,9 +280,9 @@ This method returns the SCA status of a signing basket's authorisation sub-resou
 Returns the status of a signing basket object.
 """,
     EmptyBody,
-    json.parse("""{
+    JvalueCaseClass(json.parse("""{
   "transactionStatus" : "RCVD"
-}"""),
+}""")),
     List(AuthenticatedUserIsRequired, UnknownError),
     apiTagSigningBaskets :: Nil,
     http4sPartialFunction = Some(getSigningBasketStatus)
@@ -354,7 +357,7 @@ This applies in the following scenarios:
   * The signing basket needs to be authorised yet.
 """,
     EmptyBody,
-    json.parse("""{
+    JvalueCaseClass(json.parse("""{
   "challengeData" : {
     "otpMaxLength" : 0,
     "additionalInformation" : "additionalInformation",
@@ -377,7 +380,7 @@ This applies in the following scenarios:
   },
   "chosenScaMethod" : "",
   "psuMessage" : { }
-}"""),
+}""")),
     List(AuthenticatedUserIsRequired, UnknownError),
     apiTagSigningBaskets :: Nil,
     http4sPartialFunction = Some(startSigningBasketAuthorisation)
@@ -502,15 +505,15 @@ There are the following request types on this access path:
     therefore many optional elements are not present.
     Maybe in a later version the access path will change.
 """,
-    json.parse("""{"scaAuthenticationData":"123"}"""),
-    json.parse("""{
+    JvalueCaseClass(json.parse("""{"scaAuthenticationData":"123"}""")),
+    JvalueCaseClass(json.parse("""{
                   "scaStatus":"finalised",
                   "authorisationId":"4f4a8b7f-9968-4183-92ab-ca512b396bfc",
                   "psuMessage":"Please check your SMS at a mobile device.",
                   "_links":{
                     "scaStatus":"/v1.3/payments/sepa-credit-transfers/PAYMENT_ID/4f4a8b7f-9968-4183-92ab-ca512b396bfc"
                   }
-                }"""),
+                }""")),
     List(AuthenticatedUserIsRequired, UnknownError),
     apiTagSigningBaskets :: Nil,
     http4sPartialFunction = Some(updateSigningBasketPsuData)
