@@ -36,24 +36,37 @@ object WriteMetricUtil extends MdcLoggable {
       logger.error("CallContextLight is not defined. Metrics cannot be saved.")
   }
 
+  private case class MetricFields(userId: String,
+                                   userName: String,
+                                   appName: String,
+                                   developerEmail: String,
+                                   consumerId: String,
+                                   implementedByPartialFunction: String,
+                                   duration: Long,
+                                   responseBodyToWrite: String,
+                                   sourceIp: String,
+                                   targetIp: String)
+
   private def persistAndPublishMetric(responseBody: Any, cc: CallContextLight): Unit = {
-    val userId = cc.userId.orNull
-    val userName = cc.userName.orNull
-    val implementedByPartialFunction = cc.partialFunctionName
-    val duration = callDuration(cc)
-    val responseBodyToWrite = responseBodyForMetric(responseBody, cc)
-    val consumerId = cc.consumerId.orNull
-    val appName = cc.appName.orNull
-    val developerEmail = cc.developerEmail.orNull
-    val sourceIp = requestHeaderValue(cc, "x-forwarded-for")
-    val targetIp = requestHeaderValue(cc, "x-forwarded-host")
+    val fields = MetricFields(
+      userId = cc.userId.orNull,
+      userName = cc.userName.orNull,
+      appName = cc.appName.orNull,
+      developerEmail = cc.developerEmail.orNull,
+      consumerId = cc.consumerId.orNull,
+      implementedByPartialFunction = cc.partialFunctionName,
+      duration = callDuration(cc),
+      responseBodyToWrite = responseBodyForMetric(responseBody, cc),
+      sourceIp = requestHeaderValue(cc, "x-forwarded-for"),
+      targetIp = requestHeaderValue(cc, "x-forwarded-host")
+    )
 
     // enqueue synchronously so flush() in tests reliably drains this metric before assertions
-    saveMetricSafely(cc, userId, userName, appName, developerEmail, consumerId,
-      implementedByPartialFunction, duration, responseBodyToWrite, sourceIp, targetIp)
+    saveMetricSafely(cc, fields)
 
     // gRPC publish is potentially blocking — keep it async
     Future {
+      import fields._
       publishMetricEvent(userId, cc.url, cc.startTime.getOrElse(null), duration, userName, appName,
         developerEmail, consumerId, implementedByPartialFunction, cc.implementedInVersion, cc.verb,
         cc.httpCode, cc.correlationId, sourceIp, targetIp, cc.operationId.getOrElse(""),
@@ -80,17 +93,8 @@ object WriteMetricUtil extends MdcLoggable {
   private def requestHeaderValue(cc: CallContextLight, headerName: String): String =
     cc.requestHeaders.find(_.name.toLowerCase() == headerName).map(_.values.mkString(",")).getOrElse("")
 
-  private def saveMetricSafely(cc: CallContextLight,
-                                userId: String,
-                                userName: String,
-                                appName: String,
-                                developerEmail: String,
-                                consumerId: String,
-                                implementedByPartialFunction: String,
-                                duration: Long,
-                                responseBodyToWrite: String,
-                                sourceIp: String,
-                                targetIp: String): Unit = {
+  private def saveMetricSafely(cc: CallContextLight, fields: MetricFields): Unit = {
+    import fields._
     try {
       APIMetrics.apiMetrics.vend.saveMetric(
         userId,

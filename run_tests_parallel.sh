@@ -203,7 +203,7 @@ run_shard() {
     # timeout returns 124 when the JVM was killed. That is only benign when the tests had
     # already finished green and only the JVM shutdown hung (Pekko non-daemon threads) —
     # require proof from the log instead of blindly converting 124 to success.
-    if [ $rc -eq 124 ]; then
+    if [[ $rc -eq 124 ]]; then
         if grep -q "BUILD SUCCESS" "$log" 2>/dev/null; then
             rc=0
         else
@@ -213,10 +213,10 @@ run_shard() {
     # maven.test.failure.ignore=true (root pom) makes mvn exit 0 even when suites
     # abort or tests fail — the exit code alone is not trustworthy. Scan the log for
     # scalatest's own failure markers (RUN ABORTED / SUITE ABORTED / failed N).
-    if [ $rc -eq 0 ] && grep -qE '\*\*\* RUN ABORTED \*\*\*|SUITE(S)? ABORTED|Tests: succeeded [0-9]+, failed [1-9]' "$log"; then
+    if [[ $rc -eq 0 ]] && grep -qE '\*\*\* RUN ABORTED \*\*\*|SUITE(S)? ABORTED|Tests: succeeded [0-9]+, failed [1-9]' "$log"; then
         rc=1
     fi
-    if [ $rc -eq 0 ]; then
+    if [[ $rc -eq 0 ]]; then
         echo "[Shard $n] ✅ BUILD SUCCESS"
     else
         echo "[Shard $n] ❌ BUILD FAILURE — see $log"
