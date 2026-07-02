@@ -163,6 +163,7 @@ import java.io.{File, FileInputStream}
 import java.util.stream.Collectors
 import java.util.{Locale, TimeZone}
 import scala.concurrent.ExecutionContext
+import scala.util.control.NonFatal
 
 
 
@@ -551,7 +552,11 @@ class Boot extends MdcLoggable {
       if(useMessageQueue)
         BankAccountCreationListener.startListen
     } catch {
+      // ExceptionInInitializerError is a LinkageError, so NonFatal does not cover it.
+      // NonFatal covers e.g. java.net.ConnectException when the broker is unreachable;
+      // without it the exception escapes boot, the main thread dies and the server never binds.
       case e: ExceptionInInitializerError => logger.warn(s"BankAccountCreationListener Exception: $e")
+      case NonFatal(e) => logger.warn(s"BankAccountCreationListener Exception: $e")
     }
 
     if ( !APIUtil.getPropsAsLongValue("transaction_request_status_scheduler_delay").isEmpty ) {
