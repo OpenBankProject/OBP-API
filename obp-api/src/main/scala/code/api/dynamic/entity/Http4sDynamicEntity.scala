@@ -351,7 +351,7 @@ object Http4sDynamicEntity extends MdcLoggable {
                   // In-memory floor: fetch all rows (unscoped) and keep those the ACL marks readable.
                   // (The projection EXISTS backend for row-level get-all is a documented follow-up; the
                   // in-memory path is always correct, just not index-accelerated.)
-                  val readable = aclVend.getReadableRowIds(u.userId, entityName, bankId).toSet
+                  val readable = aclVend.getReadableDynamicDataIds(u.userId, entityName, bankId).toSet
                   val readableRows = dataVend.getAllCommunity(bankId, entityName).filter(_.dynamicDataId.exists(readable.contains))
                   val readableJson: JArray = JArray(readableRows.map(r => parse(r.dataJson)))
                   val filtered = filterDynamicObjects(readableJson, queryParams(req))
