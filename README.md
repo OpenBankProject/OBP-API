@@ -55,10 +55,11 @@ sdk env install
 
 #### Manually
 
-- OracleJDK: 1.8, 13
-- OpenJdk: 11
+The project targets **JDK 25 (LTS)** with Scala 2.12.21. Any OpenJDK 25 distribution works,
+for example:
 
-OpenJDK 11 is available for download here: [https://jdk.java.net/archive/](https://jdk.java.net/archive/).
+- Eclipse Temurin 25: [https://adoptium.net/](https://adoptium.net/)
+- Azul Zulu 25: [https://www.azul.com/downloads/](https://www.azul.com/downloads/)
 
 The project uses Maven 3 as its build tool.
 
@@ -72,6 +73,12 @@ java -jar obp-api/target/obp-api.jar
 ```
 
 The http4s server binds to `hostname` / `dev.port` as configured in your props file (defaults are `127.0.0.1` and `8080`).
+
+No `--add-opens` flags are needed on the command line: the executable jar's manifest carries
+an `Add-Opens` attribute (JEP 261) with all modules the runtime needs (CGLib proxy generation,
+Kryo serialization, Pekko remoting, Scala runtime reflection). Only when launching via a
+custom classpath (`java -cp ... bootstrap.http4s.Http4sServer`) do the flags need to be passed
+explicitly, since the manifest is only honored by `java -jar`.
 
 ### ZED IDE Setup
 

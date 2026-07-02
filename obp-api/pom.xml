@@ -363,7 +363,11 @@
     <dependency>
       <groupId>org.javassist</groupId>
       <artifactId>javassist</artifactId>
-      <version>3.25.0-GA</version>
+      <!-- 3.25.0-GA (2019) only reads class files up to major version 55 (Java 11).
+           JDK 25 javac output is major version 69; bumped to the latest release to
+           read modern class files in APIUtil's dependent-method analysis and the
+           dynamic-endpoint/connector-builder code paths. -->
+      <version>3.32.0-GA</version>
     </dependency>
     <!-- Stripe client library. It is a payment gateway. -->
     <dependency>
@@ -740,6 +744,14 @@
           <transformers>
             <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
               <mainClass>bootstrap.http4s.Http4sServer</mainClass>
+              <!-- JEP 261: the `java -jar` launcher honors Add-Opens from the manifest.
+                   Required on JDK 17+ for CGLib (StarConnector proxy generation via
+                   ClassLoader.defineClass), Kryo/chill serialization, Pekko remoting and
+                   Scala runtime reflection. Keeps the Docker ENTRYPOINTs a plain
+                   `java -jar` with no external flag wiring. -->
+              <manifestEntries>
+                <Add-Opens>java.base/java.lang java.base/java.lang.reflect java.base/java.util java.base/java.lang.invoke java.base/java.util.jar java.base/sun.reflect.generics.reflectiveObjects</Add-Opens>
+              </manifestEntries>
             </transformer>
             <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
               <resource>reference.conf</resource>
