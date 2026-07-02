@@ -30,8 +30,8 @@ So onboarding is **configuration only** — no code change.
 
 ## Required props
 
-Edit your `props` file (see `obp-api/src/main/resources/props/sample.props.template`,
-the OAuth2 section ~line 926 onward):
+Edit your `props` file (in `obp-api/src/main/resources/props/sample.props.template`,
+search for the `OAuth2 Provider Selection` section, or the `oauth2.oidc_provider` prop):
 
 ```properties
 # 1. OAuth2 must be enabled (default true)
