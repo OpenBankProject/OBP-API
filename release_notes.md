@@ -25,8 +25,9 @@ Date          Commit        Action
                             the middleware and kills the endpoint on every prefix it would
                             otherwise be reachable from.
 
-                            See LIFT_HTTP4S_MIGRATION.md § "Version enable/disable semantics"
-                            for the contract; ResourceDocMiddlewareEnableDisableTest pins it.
+                            The contract is enforced in ResourceDocMiddleware.scala / Http4sApp.gate;
+                            ResourceDocMiddlewareEnableDisableTest pins it. (Formerly documented in
+                            LIFT_HTTP4S_MIGRATION.md, retired after the Lift → http4s migration completed.)
 05/03/2026    TBD           BREAKING CHANGE: Removed allow_entitlements_or_scopes config flag.
                             This global flag allowed consumer scopes as an alternative to user
                             entitlements for ALL endpoints. It has been replaced by per-endpoint

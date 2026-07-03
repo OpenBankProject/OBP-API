@@ -586,7 +586,12 @@
             <forkMode>once</forkMode>
             <junitxml>.</junitxml>
             <filereports>WDF TestSuite.txt</filereports>
-            <argLine>-Drun.mode=test -XX:MaxMetaspaceSize=1g -Xms1g -Xmx2g --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.lang.reflect=ALL-UNNAMED --add-opens java.base/java.lang.invoke=ALL-UNNAMED --add-opens java.base/java.io=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED --add-opens java.base/java.util.jar=ALL-UNNAMED --add-opens java.base/java.security=ALL-UNNAMED</argLine>
+            <!-- Keep this module list identical to the shaded-jar manifest's Add-Opens
+                 (below, near maven-shade-plugin's ManifestResourceTransformer): a module
+                 opened for the test JVM but not production (or vice versa) causes an
+                 InaccessibleObjectException that only reproduces in whichever environment
+                 is missing it. -->
+            <argLine>-Drun.mode=test -XX:MaxMetaspaceSize=1g -Xms1g -Xmx2g --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.lang.reflect=ALL-UNNAMED --add-opens java.base/java.lang.invoke=ALL-UNNAMED --add-opens java.base/java.io=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED --add-opens java.base/java.util.concurrent=ALL-UNNAMED --add-opens java.base/java.util.jar=ALL-UNNAMED --add-opens java.base/java.security=ALL-UNNAMED --add-opens java.base/sun.reflect.generics.reflectiveObjects=ALL-UNNAMED</argLine>
             <tagsToExclude>code.external,GetBanksPerf</tagsToExclude>
             <testFailureIgnore>${maven.test.failure.ignore}</testFailureIgnore>
         </configuration>
@@ -747,10 +752,18 @@
               <!-- JEP 261: the `java -jar` launcher honors Add-Opens from the manifest.
                    Required on JDK 17+ for CGLib (StarConnector proxy generation via
                    ClassLoader.defineClass), Kryo/chill serialization, Pekko remoting and
-                   Scala runtime reflection. Keeps the Docker ENTRYPOINTs a plain
-                   `java -jar` with no external flag wiring. -->
+                   Scala runtime reflection. development/docker/Dockerfile (local dev
+                   image) relies on this and launches with a plain `java -jar`.
+                   .github/Dockerfile_PreBuild (the production image) instead keeps its
+                   own explicit "add-opens" ENTRYPOINT flags — that is the combination
+                   actually verified against the K8s deployment, so don't remove it in
+                   favor of this manifest alone without re-verifying in that environment.
+                   Keep this module list identical to the scalatest-maven-plugin argLine
+                   above (surefire test JVM): a module opened here but not there (or vice
+                   versa) causes an InaccessibleObjectException that only reproduces in
+                   whichever environment is missing it. -->
               <manifestEntries>
-                <Add-Opens>java.base/java.lang java.base/java.lang.reflect java.base/java.util java.base/java.lang.invoke java.base/java.util.jar java.base/sun.reflect.generics.reflectiveObjects java.base/java.io java.base/java.util.concurrent</Add-Opens>
+                <Add-Opens>java.base/java.lang java.base/java.lang.reflect java.base/java.util java.base/java.lang.invoke java.base/java.util.jar java.base/sun.reflect.generics.reflectiveObjects java.base/java.io java.base/java.util.concurrent java.base/java.security</Add-Opens>
               </manifestEntries>
             </transformer>
             <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">

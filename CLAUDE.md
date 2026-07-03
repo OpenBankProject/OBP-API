@@ -9,7 +9,7 @@
 
 ## Architecture (Onboarding)
 
-> **Migration plan**: see [`LIFT_HTTP4S_MIGRATION.md`](LIFT_HTTP4S_MIGRATION.md) for the full in-place Lift → http4s strategy, file order, auth stack workstream, and progress tracker.
+> **Migration status**: the Lift → http4s migration is complete — see the "CI (shard map + run tips)" section below for the historical-status note. The former in-place strategy/progress-tracker doc (`LIFT_HTTP4S_MIGRATION.md`) was retired once the migration finished; this file documents the resulting architecture and the gotchas encountered building it.
 
 The goal is a full http4s migration — replace Lift Web across all version files and remove it entirely. **API versions are tech-agnostic**: a version bump means a changed/new API signature, never a framework change. Framework migration happens in-place inside the existing version file. v7.0.0 currently serves 46 endpoints; most arrived there for historical reasons and stay as-is.
 
@@ -271,16 +271,21 @@ Perf note: integration tests are DB/HTTP-bound (~0.4 s/test) on both frameworks;
 
 ### Shard assignment
 
-Shards are defined by explicit package-prefix allowlists in `.github/workflows/build_pull_request.yml` (lines 89–143). Shard 4 also runs a **catch-all**: any `.scala` test file whose package is not covered by shards 1–3 is appended automatically at runtime — new packages are never silently skipped. Extras are printed in the step log under `"Catch-all extras added to shard 4:"`.
+Shards are defined per-matrix-entry in `.github/workflows/build_pull_request.yml` and `.github/workflows/build_container.yml` (both files carry an identical 9-shard matrix — update both when reshaping). Shard 8 runs a **catch-all**: any `.scala` test file whose package is not covered by shards 1–7 and 9 is appended automatically at runtime — new packages are never silently skipped. Extras are printed in the step log under `"Catch-all extras added to shard 8"`. Shard 1 (`code.api.v4_0_0` non-Dynamic) is itself discovered at runtime rather than hand-listed — see the "Run tests" step's `matrix.shard = 1` branch — specifically so a newly added class in that package can never fall through both shard 1 and the catch-all.
 
 | Package prefix | Shard |
 |---|---|
-| `code.api.v4_0_0` | 1 |
-| `code.api.v6_0_0`, `code.api.v5_0_0`, `code.api.v3_0_0`, `code.api.v2_*`, `code.api.v1_[34]_0`, `code.api.UKOpenBanking`, `code.atms`, `code.branches`, `code.products`, `code.crm`, `code.accountHolder`, `code.entitlement`, `code.bankaccountcreation`, `code.bankconnectors`, `code.container` | 2 |
-| `code.api.v1_2_1`, `code.api.ResourceDocs1_4_0`, `code.api.util`, `code.api.berlin`, `code.management`, `code.metrics`, `code.model`, `code.views`, `code.usercustomerlinks`, `code.customer`, `code.errormessages` | 3 |
-| `code.api.v5_1_0`, `code.api.v3_1_0`, `code.api.http4sbridge`, `code.api.v7_0_0`, `code.api.Authentication*`, `code.api.DirectLoginTest`, `code.api.dauthTest`, `code.api.gateWayloginTest`, `code.api.OBPRestHelperTest`, `code.util`, `code.connector` | 4 |
-| anything else | **4** (catch-all) |
+| `code.api.v4_0_0` (non-`Dynamic*`, discovered at runtime) | 1 |
+| `code.api.v1_2_1` | 2 |
+| `code.api.v6_0_0` | 3 |
+| `code.api.v5_1_0`, `code.api.v5_0_0`, `code.api.v3_0_0` | 4 |
+| `code.api.ResourceDocs1_4_0`, `code.api.v3_1_0`, `code.api.v1_4_0`, `code.api.v1_3_0` | 5 |
+| `code.api.v7_0_0`, `code.api.http4sbridge`, `code.api.UKOpenBanking` | 6 |
+| `code.model`, `code.views`, `code.customer`, `code.usercustomerlinks`, `code.api.util`, `code.errormessages`, `code.atms`, `code.branches`, `code.products`, `code.crm`, `code.accountHolder`, `code.api.berlin`, `code.api.v2_*` | 7 |
+| `code.connector`, `code.util`, `code.api.Authentication*`, `code.api.dauthTest`, `code.api.DirectLoginTest`, `code.api.gateWayloginTest`, `code.api.OBPRestHelperTest`, `code.entitlement`, `code.bankaccountcreation`, `code.bankconnectors`, `code.container`, `code.management`, `code.metrics`, `code.concurrency` | 8 |
+| anything else | **8** (catch-all) |
+| `code.api.v4_0_0.Dynamic*` | 9 |
 
-To explicitly move a package to a different shard, add it to that shard's `test_filter` block — it will be excluded from the catch-all automatically.
+To explicitly move a package to a different shard, add it to that shard's `test_filter` block — it will be excluded from the catch-all automatically. `run_tests_parallel.sh` (local runner) uses a coarser 4-shard layout that folds all 9 CI shards' coverage into 4 wildcardSuites groups — see its own header comment for the mapping.
 
-> **Migration status, per-version progress, drift audit, and open TODOs** live in [`LIFT_HTTP4S_MIGRATION.md`](LIFT_HTTP4S_MIGRATION.md) — the single source of truth for *what's done / what's left*. This file (CLAUDE.md) is **how-to + gotchas only**.
+> **Migration status**: the Lift → http4s migration is complete (`net.liftweb.http` is fully removed from `.scala` sources; there is no Lift fallback in the request chain — see the Architecture section above). The former progress-tracker docs (`LIFT_HTTP4S_MIGRATION.md`, `LIFT_HTTP4S_MIGRATION_V6_AUDIT.md`) were retired once the migration finished; this file (CLAUDE.md) remains the how-to + gotchas reference for the resulting http4s codebase.

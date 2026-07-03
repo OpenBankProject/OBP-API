@@ -80,52 +80,6 @@ Kryo serialization, Pekko remoting, Scala runtime reflection). Only when launchi
 custom classpath (`java -cp ... bootstrap.http4s.Http4sServer`) do the flags need to be passed
 explicitly, since the manifest is only honored by `java -jar`.
 
-### ZED IDE Setup
-
-For ZED IDE users, we provide a complete development environment with Scala language server support:
-
-```bash
-./zed/setup-zed-ide.sh
-```
-
-This sets up automated build tasks, code navigation, and real-time error checking. See [`zed/README.md`](zed/README.md) for complete documentation.
-
-In case the above command fails try the next one:
-
-```sh
-export MAVEN_OPTS="-Xss128m" && mvn install -pl .,obp-commons
-```
-
-Note: depending on your Java version you might need to do this in the OBP-API directory.
-This creates a .mvn/jvm.config File
-
-```sh
-mkdir -p .mvn
-cat > .mvn/jvm.config << 'EOF'
---add-opens java.base/java.lang=ALL-UNNAMED
---add-opens java.base/java.lang.reflect=ALL-UNNAMED
---add-opens java.base/java.security=ALL-UNNAMED
---add-opens java.base/java.util.jar=ALL-UNNAMED
---add-opens java.base/sun.nio.ch=ALL-UNNAMED
---add-opens java.base/java.nio=ALL-UNNAMED
---add-opens java.base/java.net=ALL-UNNAMED
---add-opens java.base/java.io=ALL-UNNAMED
-EOF
-```
-
-Then try the above command.
-
-Or use this approach:
-
-```sh
-
-export MAVEN_OPTS="-Xss128m \
- --add-opens=java.base/java.util.jar=ALL-UNNAMED \
- --add-opens=java.base/java.lang=ALL-UNNAMED \
- --add-opens=java.base/java.lang.reflect=ALL-UNNAMED"
-
-```
-
 [Note: How to run via IntelliJ IDEA](obp-api/src/main/docs/glossary/Run_via_IntelliJ_IDEA.md)
 
 ## Run some tests
@@ -985,7 +939,7 @@ OBP-API uses the following core technologies:
 - **ORM / Database:** [Lift Mapper](http://www.liftweb.net/) for database access and schema management.
 - **JSON:** Lift JSON utilities (`net.liftweb.json`) are used for parsing/serialization alongside native http4s handling.
 
-For the full Lift → http4s migration history, see [LIFT_HTTP4S_MIGRATION.md](LIFT_HTTP4S_MIGRATION.md).
+The Lift → http4s migration described above is complete; the tracking doc used during the migration was retired once it finished.
 
 Liftweb architecture: [http://exploring.liftweb.net/master/index-9.html](http://exploring.liftweb.net/master/index-9.html).
 

@@ -44,7 +44,7 @@ The rest of this document is the detailed playbook for one response to the stale
 
 Eliminate Lift Mapper as a data-access layer. All CRUD, queries, and reads/writes move to Doobie. Lift Mapper stays only for what is explicitly out of scope (see below) until a separate workstream removes it.
 
-This is the data-access counterpart to `LIFT_HTTP4S_MIGRATION.md`. The two migrations are independent — an http4s endpoint can call Doobie or Mapper, and a Lift endpoint can call either — but the end state is **no `net.liftweb.mapper.*` import outside the schema/migration layer**.
+This is the data-access counterpart to the (now-complete) Lift → http4s web-layer migration described in `CLAUDE.md`. The two migrations are independent — an http4s endpoint can call Doobie or Mapper, and a Lift endpoint can call either — but the end state is **no `net.liftweb.mapper.*` import outside the schema/migration layer**.
 
 API version numbers are unaffected: framework migrations happen in-place. A Mapper → Doobie swap inside `MappedFooProvider` does not justify a version bump unless the response shape changes.
 
@@ -363,7 +363,7 @@ Add a row per entity as you go. Status: `mapper` (untouched) → `dual` (Doobie 
 | AccountAccess + ViewDefinition | — | dual (partial) | — | `DoobieAccountAccessViewQueries` (account-listing hot path) |
 | _all other ~125 entities_ | various | mapper | — | not started |
 
-Fill in as PRs land. Mirror the format of `LIFT_HTTP4S_MIGRATION.md`'s tracker.
+Fill in as PRs land, keeping the table above in this same format.
 
 ---
 
