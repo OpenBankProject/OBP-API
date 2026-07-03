@@ -25,8 +25,12 @@ case class OBPReq(
     // Percent-encode characters that must not appear unencoded in a URI path segment.
     // '/' is the path delimiter — encoding it prevents a URL-valued provider string
     // (e.g. "http://localhost:8016") from being split into multiple path segments.
-    // This replicates dispatch's addPathPart percent-encoding behaviour.
-    val encodedSeg = seg.replace("/", "%2F").replace("?", "%3F").replace("#", "%23")
+    // '%' must be encoded FIRST — otherwise a literal '%' in a test id/label (e.g. a
+    // view name "50%") would either make HttpUrl.parse reject the segment as an invalid
+    // escape, or — if it happens to look like a valid escape (e.g. "%2F") — get silently
+    // decoded server-side into the character it "escapes", resolving to the wrong
+    // resource. This replicates dispatch's addPathPart percent-encoding behaviour.
+    val encodedSeg = seg.replace("%", "%25").replace("/", "%2F").replace("?", "%3F").replace("#", "%23")
     copy(baseUrl = s"$cleanBase/$encodedSeg")
   }
 
@@ -87,7 +91,19 @@ case class OBPReq(
       .url(urlBuilder.build())
       .method(method.toUpperCase, requestBody)
 
-    reqHeaders.foreach { case (k, v) => builder.addHeader(k, v) }
+    // Dedupe by header name (HTTP header names are case-insensitive), keeping the LAST
+    // value for a given name. reqHeaders accumulates via <:</addHeader without removing
+    // same-named entries, so e.g. makePostRequest's own Content-Type default appended
+    // after a caller-set Content-Type would otherwise be sent twice on the wire. "Last
+    // wins" matches the Content-Type lookup above (reqHeaders.toMap already takes the
+    // last occurrence) and restores the override semantics the old Map-based header
+    // merge had before the OkHttp port.
+    val dedupedHeaders = {
+      val seen = scala.collection.mutable.LinkedHashMap[String, (String, String)]()
+      reqHeaders.foreach { case (k, v) => seen(k.toLowerCase) = (k, v) }
+      seen.values
+    }
+    dedupedHeaders.foreach { case (k, v) => builder.addHeader(k, v) }
     builder.build()
   }
 }

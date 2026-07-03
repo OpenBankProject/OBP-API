@@ -116,7 +116,20 @@ trait SendServerRequests {
         }
       }.toOption
 
-  private def getAPIResponse(req: OBPReq): APIResponse = executeRequest(req)
+  private def getAPIResponse(req: OBPReq): APIResponse =
+    try {
+      executeRequest(req)
+    } catch {
+      case _: java.io.IOException =>
+        // Concurrent shards/tests share OBPReq.client's connection pool; one test's error
+        // response can corrupt a pooled connection, surfacing as a broken status line on
+        // the next request that reuses it. OkHttp does not retry this itself
+        // (RetryAndFollowUpInterceptor.recover() refuses to recover a ProtocolException).
+        // Retry once with a fresh connection after a brief delay — the same recovery the
+        // old dispatch-based client had for the same "invalid version format" symptom.
+        Thread.sleep(100)
+        executeRequest(req)
+    }
 
   private def getAPIResponseAsync(req: OBPReq): Future[APIResponse] =
     Future { scala.concurrent.blocking { getAPIResponse(req) } }(ExecutionContext.global)
