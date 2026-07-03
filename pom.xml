@@ -178,6 +178,16 @@
           <configuration>
             <scalaVersion>${scala.compiler}</scalaVersion>
             <charset>${project.build.sourceEncoding}</charset>
+            <!-- Pin scalac's -release independently of ${java.version}. javac needs -release 25
+                 for JDK 25, but the Scala 2.12.21 compiler only accepts -release up to 17 (its
+                 max supported Java API/target). Without this, scala-maven-plugin derives -release
+                 from maven.compiler.target (=${java.version}=25) and passes an unsupported
+                 -release 25 to scalac, failing the build with
+                 "'25' is not a valid choice for '-release'". Scala 2.12 emits Java 8 bytecode
+                 regardless, so this only bounds the visible JDK API surface; the classes still run
+                 on JDK 25. Bump this only when moving to a Scala version that supports a higher
+                 -release. -->
+            <release>17</release>
             <displayCmd>true</displayCmd>
             <!-- Optimized JVM settings for faster Scala compilation -->
             <jvmArgs>
