@@ -26,8 +26,7 @@ TESOBE (http://www.tesobe.com/)
   */
 package code.setup
 
-import java.net.URLDecoder
-import java.nio.charset.{Charset, StandardCharsets}
+import java.nio.charset.StandardCharsets
 import java.util.TimeZone
 
 import code.api.ResponseHeader
@@ -71,38 +70,6 @@ trait SendServerRequests {
   protected def url(s: String): OBPReq = OBPReq.url(s)
   protected def host(h: String, p: Int): OBPReq = OBPReq.host(h, p)
   protected def host(h: String): OBPReq = OBPReq.host(h)
-
-  case class ReqData(
-    url: String,
-    method: String,
-    body: String,
-    body_encoding: String,
-    headers: List[(String, String)],
-    query_params: List[(String, String)]
-  )
-
-  def encode_%(s: String) = java.net.URLEncoder.encode(s, StandardCharsets.UTF_8.name())
-  def decode_%(s: String) = URLDecoder.decode(s, StandardCharsets.UTF_8.name())
-
-  def createRequest(reqData: ReqData): OBPReq = {
-    val charset = if (reqData.body_encoding == "") Charset.defaultCharset() else Charset.forName(reqData.body_encoding)
-    val rb = OBPReq.url(reqData.url)
-      .setMethod(reqData.method)
-      .setBodyEncoding(charset)
-      .setBody(reqData.body) <:< reqData.headers
-    if (reqData.query_params.nonEmpty) rb <<? reqData.query_params else rb
-  }
-
-  def extractParamsAndHeaders(req: OBPReq, body: String, encoding: String, extraHeaders: Map[String, String] = Map.empty): ReqData = {
-    ReqData(
-      url = req.baseUrl,
-      method = req.method,
-      body = body,
-      body_encoding = encoding,
-      headers = req.reqHeaders ++ extraHeaders,
-      query_params = req.queryParams
-    )
-  }
 
   private def executeRequest(req: OBPReq): APIResponse = {
     val (responseCode, bodyStr, okHeaders) = req.executeRaw()
@@ -154,11 +121,14 @@ trait SendServerRequests {
   private def getAPIResponseAsync(req: OBPReq): Future[APIResponse] =
     Future { scala.concurrent.blocking { getAPIResponse(req) } }(ExecutionContext.global)
 
+  private def prepareRequest(req: OBPReq, body: String, extraHeaders: Map[String, String]): OBPReq =
+    req.setBody(body).setBodyEncoding(StandardCharsets.UTF_8) <:< extraHeaders
+
   private def sendSync(req: OBPReq, body: String = "", extraHeaders: Map[String, String] = Map.empty): APIResponse =
-    getAPIResponse(createRequest(extractParamsAndHeaders(req, body, "UTF-8", extraHeaders)))
+    getAPIResponse(prepareRequest(req, body, extraHeaders))
 
   private def sendAsync(req: OBPReq, body: String = "", extraHeaders: Map[String, String] = Map.empty): Future[APIResponse] =
-    getAPIResponseAsync(createRequest(extractParamsAndHeaders(req, body, "UTF-8", extraHeaders)))
+    getAPIResponseAsync(prepareRequest(req, body, extraHeaders))
 
   private val ContentType    = OBPReq.ContentTypeHeader
   private val ApplicationJson = "application/json"
