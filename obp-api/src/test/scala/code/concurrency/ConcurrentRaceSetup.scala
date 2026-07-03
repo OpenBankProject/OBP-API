@@ -28,9 +28,8 @@ package code.concurrency
 
 import code.entitlement.MappedEntitlement
 import code.model.dataAccess.MappedBankAccount
-import code.setup.{APIResponse, DefaultUsers, ServerSetupWithTestData}
+import code.setup.{APIResponse, DefaultUsers, OBPReq, ServerSetupWithTestData}
 import com.openbankproject.commons.model.{AccountId, BankId}
-import dispatch.Req
 import net.liftweb.mapper.By
 import org.scalatest.Tag
 
@@ -66,8 +65,8 @@ object ConcurrencyRace extends Tag("code.concurrency.ConcurrencyRace")
  *  - The whole JVM shares one server, one H2 DB and one Hikari pool (forkMode=once). Use dedicated
  *    bank/account/user ids and keep the concurrency count modest (≤ ~30) so the pool is not
  *    exhausted for sibling suites.
- *  - Concurrent use of the shared dispatch HttpClient can briefly corrupt a pooled connection
- *    ("invalid version format"); SendServerRequests already retries once.
+ *  - Concurrent use of the shared OkHttp client can briefly corrupt a pooled connection; retries
+ *    are handled by OBPReq / SendServerRequests.
  */
 trait ConcurrentRaceSetup extends ServerSetupWithTestData with DefaultUsers {
 
@@ -76,9 +75,9 @@ trait ConcurrentRaceSetup extends ServerSetupWithTestData with DefaultUsers {
   private implicit val raceEc: scala.concurrent.ExecutionContext =
     scala.concurrent.ExecutionContext.Implicits.global
 
-  def v4_0_0_Request: Req = baseRequest / "obp" / "v4.0.0"
-  def v3_0_0_Request: Req = baseRequest / "obp" / "v3.0.0"
-  def v2_0_0_Request: Req = baseRequest / "obp" / "v2.0.0"
+  def v4_0_0_Request: OBPReq = baseRequest / "obp" / "v4.0.0"
+  def v3_0_0_Request: OBPReq = baseRequest / "obp" / "v3.0.0"
+  def v2_0_0_Request: OBPReq = baseRequest / "obp" / "v2.0.0"
 
   /** System owner view — present on every test account, carries all read permissions. */
   val SystemOwnerViewId = "owner"

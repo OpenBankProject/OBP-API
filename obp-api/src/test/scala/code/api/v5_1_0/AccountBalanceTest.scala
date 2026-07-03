@@ -8,7 +8,7 @@ import code.api.v5_1_0.OBPAPI5_1_0.Implementations5_1_0
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.ApiVersion
-import dispatch.Req
+import code.setup.OBPReq
 import com.openbankproject.commons.util.json
 import org.scalatest.Tag
 
@@ -27,9 +27,9 @@ class AccountBalanceTest extends V510ServerSetup {
 
   lazy val bankId = randomBankId
   lazy val bankAccount = randomPrivateAccountViaEndpoint(bankId)
-  def requestGetAccountBalances(viewId: String = "None"): Req = (v5_1_0_Request / "banks" / bankAccount.bank_id / "accounts" / bankAccount.id / "views" / viewId / "balances").GET
-  def requestGetAccountsBalances(): Req = (v5_1_0_Request / "banks" / bankAccount.bank_id / "balances").GET
-  def requestGetAccountsBalancesThroughView(viewId: String = "None"): Req = (v5_1_0_Request / "banks" / bankAccount.bank_id / "views" / viewId / "balances").GET
+  def requestGetAccountBalances(viewId: String = "None"): OBPReq = (v5_1_0_Request / "banks" / bankAccount.bank_id / "accounts" / bankAccount.id / "views" / viewId / "balances").GET
+  def requestGetAccountsBalances(): OBPReq = (v5_1_0_Request / "banks" / bankAccount.bank_id / "balances").GET
+  def requestGetAccountsBalancesThroughView(viewId: String = "None"): OBPReq = (v5_1_0_Request / "banks" / bankAccount.bank_id / "views" / viewId / "balances").GET
 
   feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access") {
     scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {

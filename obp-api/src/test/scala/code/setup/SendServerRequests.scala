@@ -26,33 +26,28 @@ TESOBE (http://www.tesobe.com/)
   */
 package code.setup
 
-import java.nio.charset.{Charset, StandardCharsets}
+import java.nio.charset.StandardCharsets
 import java.util.TimeZone
 
 import code.api.ResponseHeader
-import dispatch.Defaults._
-import dispatch._
 import net.liftweb.common.Full
+import net.liftweb.util.Helpers._
+import okhttp3.{Headers => OkHeaders}
 import org.json4s.JsonAST.JValue
 import org.json4s._
 import com.openbankproject.commons.util.JsonAliases._
-import net.liftweb.util.Helpers._
-import java.net.URLDecoder
-
-import io.netty.handler.codec.http.HttpHeaders
 
 import scala.collection.JavaConverters._
-import scala.concurrent.Await
-import scala.concurrent.duration.Duration
+import scala.concurrent.{ExecutionContext, Future}
 
-case class APIResponse(code: Int, body: JValue, headers: Option[HttpHeaders])
+case class APIResponse(code: Int, body: JValue, headers: Option[OkHeaders])
 
 /**
   * This trait simulate the Rest process, HTTP parameters --> Reset parameters
-  * simulate the four methods GET, POST, DELETE and POST 
-  * Prepare the Headers, query parameters and form parameters, send these to OBP-API 
+  * simulate the four methods GET, POST, DELETE and POST
+  * Prepare the Headers, query parameters and form parameters, send these to OBP-API
   * and get the response code and response body back.
-  * 
+  *
   */
 trait SendServerRequests {
 
@@ -60,227 +55,129 @@ trait SendServerRequests {
 
   import code.api.util.APIUtil.OAuth.{Consumer, Token}
 
-  implicit def Request2RequestSigner(r: Req): RequestSigner = new RequestSigner(r)
+  implicit def requestToRequestSigner(r: OBPReq): RequestSigner = new RequestSigner(r)
 
-  class RequestSigner(rb: Req) {
-    def <@(consumer: Consumer, token: Token): Req =
+  class RequestSigner(rb: OBPReq) {
+    def <@(consumer: Consumer, token: Token): OBPReq =
       rb <:< Map("Authorization" -> s"""DirectLogin token="${token.value}"""")
-    def <@(consumerAndToken: Option[(Consumer, Token)]): Req =
+    def <@(consumerAndToken: Option[(Consumer, Token)]): OBPReq =
       consumerAndToken match {
         case Some((_, token)) => rb <:< Map("Authorization" -> s"""DirectLogin token="${token.value}"""")
         case None => rb
       }
   }
 
-  case class ReqData (
-                      url: String,
-                      method: String,
-                      body: String,
-                      body_encoding: String,
-                      headers: Map[String, String],
-                      query_params: Map[String,String],
-                      form_params: Map[String,String]
-                     )
+  protected def url(s: String): OBPReq = OBPReq.url(s)
+  protected def host(h: String, p: Int): OBPReq = OBPReq.host(h, p)
+  protected def host(h: String): OBPReq = OBPReq.host(h)
 
-  def encode_% (s: String) = java.net.URLEncoder.encode(s, StandardCharsets.UTF_8.name())
+  private def executeRequest(req: OBPReq): APIResponse = {
+    val (responseCode, bodyStr, okHeaders) = req.executeRaw()
 
-  def decode_% (s: String) = java.net.URLDecoder.decode(s, StandardCharsets.UTF_8.name())
+    if (okHeaders.values(ResponseHeader.`Correlation-Id`).asScala.isEmpty) {
+      throw missingCorrelationIdException(req, responseCode, bodyStr, okHeaders)
+    }
 
-  def createRequest( reqData: ReqData ): Req = {
-    val charset = if(reqData.body_encoding == "") Charset.defaultCharset() else Charset.forName(reqData.body_encoding)
-    val rb = url(reqData.url)
-      .setMethod(reqData.method)
-      .setBodyEncoding(charset)
-      .setBody(reqData.body) <:< reqData.headers
-    if (reqData.query_params.nonEmpty)
-      rb <<? reqData.query_params
-    rb
-  }
-
-  // generate the requestData from input values, such as request, body, encoding and headers.
-  def extractParamsAndHeaders(req: Req, body: String, encoding: String, extra_headers:Map[String,String] = Map.empty): ReqData= {
-    val r = req.toRequest
-    val query_params:Map[String,String] = r.getQueryParams.asScala.map(qp => qp.getName -> URLDecoder.decode(qp.getValue,"UTF-8")).toMap[String,String]
-    val form_params: Map[String,String] = r.getFormParams.asScala.map( fp => fp.getName -> fp.getValue).toMap[String,String]
-    val headers:Map[String,String] = r.getHeaders.entries().asScala.map (h => h.getKey -> h.getValue).toMap[String,String]
-    val url:String = r.getUrl
-    val method:String = r.getMethod
-
-    ReqData(url, method, body, encoding, headers ++ extra_headers, query_params, form_params)
-  }
-
-
-  private def ApiResponseCommonPart(req: Req) = {
-    for (response <- Http.default(req > as.Response(p => p)))
-      yield {
-        //{} -->parse(body) => JObject(List()) , this is not "NO Content", change "" --> JNothing
-        val body = if (response.getResponseBody().isEmpty) "" else response.getResponseBody()
-
-        // Check that every response has a correlationId at Response Header
-        val list = response.getHeaders(ResponseHeader.`Correlation-Id`).asScala.toList
-        list match {
-          case Nil =>
-            // Improve diagnostic information: include HTTP status, all response headers and a snippet of the body.
-            val status = response.getStatusCode
-            val headersStr = try {
-              // response.getHeaders().entries() returns a Java collection of header entries
-              response.getHeaders().entries().asScala.map(h => s"${h.getKey}: ${h.getValue}").mkString(", ")
-            } catch {
-              case _: Throwable => "unable to read headers"
-            }
-            val bodySnippet = if (body == null) {
-              ""
-            } else {
-              val maxLen = 1000
-              if (body.length > maxLen) body.take(maxLen) + "..." else body
-            }
-            throw new Exception(
-              s"""There is no ${ResponseHeader.`Correlation-Id`} in response header.
-                 |Couldn't parse response from ${req.url}
-                 |status=$status
-                 |headers=[$headersStr]
-                 |body-snippet=${bodySnippet}""".stripMargin
-            )
-          case _ =>
-        }
-
-        // Handle YAML responses: don't try to parse as JSON. Wrap YAML as a JString so tests
-        // that expect a JValue can still receive the body.
-        val contentTypeList = response.getHeaders("Content-Type").asScala.toList.map(_.toLowerCase)
-        val isYaml = contentTypeList.exists(_.contains("yaml"))
-        if (isYaml) {
-          APIResponse(response.getStatusCode, JString(body), Some(response.getHeaders()))
-        } else {
-          // json4s-native 3.6.x rejects primitive root values (booleans, strings, numbers, null).
-          // Wrap in a single-element array so the native parser accepts it, then extract the
-          // first element — handles all JSON primitive types generically.
-          val parsedBody: Option[JValue] = tryo { parse(body) }.toOption orElse
-            tryo {
-              parse(s"[$body]") match {
-                case JArray(v :: _) => v
-                case _ => throw new RuntimeException("empty array")
-              }
-            }.toOption
-          parsedBody match {
-            case Some(b) => APIResponse(response.getStatusCode, b, Some(response.getHeaders()))
-            case None => throw new Exception(s"couldn't parse response from ${req.url} : $body")
-          }
-        }
+    val contentTypeList = okHeaders.values(OBPReq.ContentTypeHeader).asScala.toList.map(_.toLowerCase)
+    if (contentTypeList.exists(_.contains("yaml"))) {
+      APIResponse(responseCode, JString(bodyStr), Some(okHeaders))
+    } else {
+      parseJsonBody(bodyStr) match {
+        case Some(b) => APIResponse(responseCode, b, Some(okHeaders))
+        case None => throw new Exception(s"couldn't parse response from ${req.url} : $bodyStr")
       }
-  }
-
-  private def getAPIResponse(req : Req) : APIResponse = {
-    try {
-      Await.result(ApiResponseCommonPart(req), Duration.Inf)
-    } catch {
-      case e: Exception if e.getMessage != null && e.getMessage.contains("invalid version format") =>
-        // Connection pool pollution detected - retry once with a fresh connection
-        // This happens when concurrent tests share the same HTTP client and one test's
-        // error response corrupts the connection state
-        Thread.sleep(100) // Brief delay to let connection close
-        Await.result(ApiResponseCommonPart(req), Duration.Inf)
     }
   }
 
-  private def getAPIResponseAsync(req: Req): Future[APIResponse] = {
-    ApiResponseCommonPart(req)
+  private def missingCorrelationIdException(req: OBPReq, responseCode: Int, bodyStr: String, okHeaders: OkHeaders): Exception = {
+    val headersStr = okHeaders.toMultimap.asScala
+      .flatMap { case (k, vs) => vs.asScala.map(v => s"$k: $v") }
+      .mkString(", ")
+    val maxLen = 1000
+    val bodySnippet =
+      if (bodyStr == null) ""
+      else if (bodyStr.length > maxLen) bodyStr.take(maxLen) + "..." else bodyStr
+    new Exception(
+      s"""There is no ${ResponseHeader.`Correlation-Id`} in response header.
+         |Couldn't parse response from ${req.url}
+         |status=$responseCode
+         |headers=[$headersStr]
+         |body-snippet=${bodySnippet}""".stripMargin
+    )
   }
 
-  /**
-  *this method does a POST request given a URL, a JSON
-    */
-  def makePostRequest(req: Req, json: String, headers: List[(String, String)] = Nil): APIResponse = {
-    val extra_headers = Map(  "Content-Type" -> "application/json",
-                              "Accept" -> "application/json") ++ headers
-    val reqData = extractParamsAndHeaders(req.POST, json, "UTF-8", extra_headers)
-    val jsonReq = createRequest(reqData)
-    getAPIResponse(jsonReq)
-  }
-  /**
-  *this method does a POST request given a URL, a JSON
-    */
-  def makePostRequestAsync(req: Req, json: String = ""): Future[APIResponse] = {
-    val extra_headers = Map(  "Content-Type" -> "application/json",
-                              "Accept" -> "application/json")
-    val reqData = extractParamsAndHeaders(req.POST, json, "UTF-8", extra_headers)
-    val jsonReq = createRequest(reqData)
-    getAPIResponseAsync(jsonReq)
-  }
+  private def parseJsonBody(bodyStr: String): Option[JValue] =
+    if (bodyStr.isEmpty) Some(JNothing)
+    else tryo { parse(bodyStr) }.toOption orElse
+      tryo {
+        parse(s"[$bodyStr]") match {
+          case JArray(v :: _) => v
+          case _ => throw new RuntimeException("empty array")
+        }
+      }.toOption
 
-// Accepts an additional option header Map
-  def makePostRequestAdditionalHeader(req: Req, json: String = "", params: List[(String, String)] = Nil): APIResponse = {
-    val extra_headers = Map(  "Content-Type" -> "application/json",
-                              "Accept" -> "application/json") ++ params
-    val reqData = extractParamsAndHeaders(req.POST, json, "UTF-8", extra_headers)
-    val jsonReq = createRequest(reqData)
-    getAPIResponse(jsonReq)
-  }
+  private def getAPIResponse(req: OBPReq): APIResponse =
+    try {
+      executeRequest(req)
+    } catch {
+      case _: java.io.IOException =>
+        // Concurrent shards/tests share OBPReq.client's connection pool; one test's error
+        // response can corrupt a pooled connection, surfacing as a broken status line on
+        // the next request that reuses it. OkHttp does not retry this itself
+        // (RetryAndFollowUpInterceptor.recover() refuses to recover a ProtocolException).
+        // Retry once with a fresh connection after a brief delay — the same recovery the
+        // old dispatch-based client had for the same "invalid version format" symptom.
+        Thread.sleep(100)
+        executeRequest(req)
+    }
 
-  def makePutRequest(req: Req, json: String, headers: (String, String) *) : APIResponse = {
-    val extra_headers = Map("Content-Type" -> "application/json") ++ headers.toMap
-    val reqData = extractParamsAndHeaders(req.PUT, json, "UTF-8", extra_headers)
-    val jsonReq = createRequest(reqData)
-    getAPIResponse(jsonReq)
-  }
+  private def getAPIResponseAsync(req: OBPReq): Future[APIResponse] =
+    Future { scala.concurrent.blocking { getAPIResponse(req) } }(ExecutionContext.global)
 
-  def makePatchRequest(req: Req, json: String, headers: (String, String) *) : APIResponse = {
-    val extra_headers = Map("Content-Type" -> "application/json") ++ headers.toMap
-    val reqData = extractParamsAndHeaders(req.PATCH, json, "UTF-8", extra_headers)
-    val jsonReq = createRequest(reqData)
-    getAPIResponse(jsonReq)
-  }
+  private def prepareRequest(req: OBPReq, body: String, extraHeaders: Map[String, String]): OBPReq =
+    req.setBody(body).setBodyEncoding(StandardCharsets.UTF_8) <:< extraHeaders
 
-  def makePutRequestAsync(req: Req, json: String = ""): Future[APIResponse] = {
-    val extra_headers = Map("Content-Type" -> "application/json")
-    val reqData = extractParamsAndHeaders(req.PUT, json, "UTF-8", extra_headers)
-    val jsonReq = createRequest(reqData)
-    getAPIResponseAsync(jsonReq)
-  }
+  private def sendSync(req: OBPReq, body: String = "", extraHeaders: Map[String, String] = Map.empty): APIResponse =
+    getAPIResponse(prepareRequest(req, body, extraHeaders))
 
-  /**
-   * this method does a GET request given a URL
-   */
-  def makeGetRequest(req: Req, params: List[(String, String)] = Nil) : APIResponse = {
-    val extra_headers = Map.empty ++ params
-    val reqData = extractParamsAndHeaders(req.GET, "", "UTF-8", extra_headers)
-    val jsonReq = createRequest(reqData)
-    getAPIResponse(jsonReq)
-  }
-  
-  /**
-   * this method does a HEAD request given a URL
-   */
-  def makeHeadRequest(req: Req, params: List[(String, String)] = Nil) : APIResponse = {
-    val extra_headers = Map.empty ++ params
-    val reqData = extractParamsAndHeaders(req.HEAD, "", "UTF-8", extra_headers)
-    val jsonReq = createRequest(reqData)
-    getAPIResponse(jsonReq)
-  }
-  /**
-   * this method does a GET request given a URL
-   */
-  def makeGetRequestAsync(req: Req, params: List[(String, String)] = Nil): Future[APIResponse] = {
-    val extra_headers = Map.empty ++ params
-    val reqData = extractParamsAndHeaders(req.GET, "", "UTF-8", extra_headers)
-    val jsonReq = createRequest(reqData)
-    getAPIResponseAsync(jsonReq)
-  }
+  private def sendAsync(req: OBPReq, body: String = "", extraHeaders: Map[String, String] = Map.empty): Future[APIResponse] =
+    getAPIResponseAsync(prepareRequest(req, body, extraHeaders))
 
-  /**
-   * this method does a delete request given a URL
-   */
-  def makeDeleteRequest(req: Req) : APIResponse = {
-    //Note: method will be set too late for oauth signing, so set it before using <@
-    val jsonReq = req.DELETE
-    getAPIResponse(jsonReq)
-  }
-  /**
-   * this method does a delete request given a URL
-   */
-  def makeDeleteRequestAsync(req: Req): Future[APIResponse] = {
-    //Note: method will be set too late for oauth signing, so set it before using <@
-    val jsonReq = req.DELETE
-    getAPIResponseAsync(jsonReq)
-  }
+  private val ContentType    = OBPReq.ContentTypeHeader
+  private val ApplicationJson = "application/json"
+
+  private val jsonHeaders: Map[String, String] = Map(ContentType -> ApplicationJson, "Accept" -> ApplicationJson)
+  private val putHeaders:  Map[String, String] = Map(ContentType -> ApplicationJson)
+
+  def makePostRequest(req: OBPReq, json: String, headers: List[(String, String)] = Nil): APIResponse =
+    sendSync(req.POST, json, jsonHeaders ++ headers)
+
+  def makePostRequestAsync(req: OBPReq, json: String = ""): Future[APIResponse] =
+    sendAsync(req.POST, json, jsonHeaders)
+
+  def makePostRequestAdditionalHeader(req: OBPReq, json: String = "", params: List[(String, String)] = Nil): APIResponse =
+    sendSync(req.POST, json, jsonHeaders ++ params)
+
+  def makePutRequest(req: OBPReq, json: String, headers: (String, String)*): APIResponse =
+    sendSync(req.PUT, json, putHeaders ++ headers.toMap)
+
+  def makePatchRequest(req: OBPReq, json: String, headers: (String, String)*): APIResponse =
+    sendSync(req.PATCH, json, putHeaders ++ headers.toMap)
+
+  def makePutRequestAsync(req: OBPReq, json: String = ""): Future[APIResponse] =
+    sendAsync(req.PUT, json, putHeaders)
+
+  def makeGetRequest(req: OBPReq, params: List[(String, String)] = Nil): APIResponse =
+    sendSync(req.GET, extraHeaders = Map.empty ++ params)
+
+  def makeHeadRequest(req: OBPReq, params: List[(String, String)] = Nil): APIResponse =
+    sendSync(req.HEAD, extraHeaders = Map.empty ++ params)
+
+  def makeGetRequestAsync(req: OBPReq, params: List[(String, String)] = Nil): Future[APIResponse] =
+    sendAsync(req.GET, extraHeaders = Map.empty ++ params)
+
+  def makeDeleteRequest(req: OBPReq): APIResponse = getAPIResponse(req.DELETE)
+
+  def makeDeleteRequestAsync(req: OBPReq): Future[APIResponse] = getAPIResponseAsync(req.DELETE)
 
 }

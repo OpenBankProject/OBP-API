@@ -33,12 +33,6 @@
       <artifactId>lift-persistence_${scala.version}</artifactId>
     </dependency>
     <dependency>
-      <groupId>net.databinder.dispatch</groupId>
-      <artifactId>dispatch-core_${scala.version}</artifactId>
-      <version>0.13.1</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
       <groupId>org.json4s</groupId>
       <artifactId>json4s-native_${scala.version}</artifactId>
     </dependency>
@@ -369,7 +363,11 @@
     <dependency>
       <groupId>org.javassist</groupId>
       <artifactId>javassist</artifactId>
-      <version>3.25.0-GA</version>
+      <!-- 3.25.0-GA (2019) only reads class files up to major version 55 (Java 11).
+           JDK 25 javac output is major version 69; bumped to the latest release to
+           read modern class files in APIUtil's dependent-method analysis and the
+           dynamic-endpoint/connector-builder code paths. -->
+      <version>3.32.0-GA</version>
     </dependency>
     <!-- Stripe client library. It is a payment gateway. -->
     <dependency>
@@ -403,18 +401,6 @@
       <artifactId>grpc-services</artifactId>
       <version>1.75.0</version>
     </dependency>
-    <dependency>
-      <groupId>org.asynchttpclient</groupId>
-      <artifactId>async-http-client</artifactId>
-      <version>2.15.0</version>
-      <scope>test</scope>
-        <exclusions>
-            <exclusion>
-                <artifactId>javax.activation</artifactId>
-                <groupId>com.sun.activation</groupId>
-            </exclusion>
-        </exclusions>
-    </dependency>
     <!-- grpc related end-->
 
     <!-- Doobie - Pure functional JDBC layer for raw SQL queries (also backs the stored procedure connector) -->
@@ -432,7 +418,7 @@
     <dependency>
       <groupId>com.microsoft.sqlserver</groupId>
       <artifactId>mssql-jdbc</artifactId>
-      <version>13.4.0.jre${java.version}</version>
+      <version>13.4.0.jre${mssql.jre.version}</version>
     </dependency>
     <!-- scala-collection-compat provides scala.jdk.CollectionConverters on Scala 2.12
          (used by code.util.ClassScanUtils). Previously supplied transitively by the
@@ -471,14 +457,34 @@
          sandbox boundaries) and CVE-2022-21449 (ECDSA signature bypass present in
          22.0 builds). GraalVM 23.0+ requires JDK 17+, so 22.3.3 is the target. -->
     <dependency>
-      <groupId>org.graalvm.js</groupId>
-      <artifactId>js</artifactId>
-      <version>22.3.3</version>
+      <groupId>org.graalvm.polyglot</groupId>
+      <artifactId>polyglot</artifactId>
+      <version>24.1.2</version>
     </dependency>
     <dependency>
       <groupId>org.graalvm.js</groupId>
-      <artifactId>js-scriptengine</artifactId>
-      <version>22.3.3</version>
+      <artifactId>js-language</artifactId>
+      <version>24.1.2</version>
+    </dependency>
+    <dependency>
+      <groupId>org.graalvm.truffle</groupId>
+      <artifactId>truffle-api</artifactId>
+      <version>24.1.2</version>
+    </dependency>
+    <dependency>
+      <groupId>org.graalvm.truffle</groupId>
+      <artifactId>truffle-runtime</artifactId>
+      <version>24.1.2</version>
+    </dependency>
+    <dependency>
+      <groupId>org.graalvm.regex</groupId>
+      <artifactId>regex</artifactId>
+      <version>24.1.2</version>
+    </dependency>
+    <dependency>
+      <groupId>org.graalvm.shadowed</groupId>
+      <artifactId>icu4j</artifactId>
+      <version>24.1.2</version>
     </dependency>
     <!--java dynamic compiler-->
     <dependency>
@@ -580,7 +586,12 @@
             <forkMode>once</forkMode>
             <junitxml>.</junitxml>
             <filereports>WDF TestSuite.txt</filereports>
-            <argLine>-Drun.mode=test -XX:MaxMetaspaceSize=1g -Xms1g -Xmx2g --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.lang.reflect=ALL-UNNAMED --add-opens java.base/java.lang.invoke=ALL-UNNAMED --add-opens java.base/java.io=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED --add-opens java.base/java.util.jar=ALL-UNNAMED --add-opens java.base/java.security=ALL-UNNAMED</argLine>
+            <!-- Keep this module list identical to the shaded-jar manifest's Add-Opens
+                 (below, near maven-shade-plugin's ManifestResourceTransformer): a module
+                 opened for the test JVM but not production (or vice versa) causes an
+                 InaccessibleObjectException that only reproduces in whichever environment
+                 is missing it. -->
+            <argLine>-Drun.mode=test -XX:MaxMetaspaceSize=1g -Xms1g -Xmx2g --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.lang.reflect=ALL-UNNAMED --add-opens java.base/java.lang.invoke=ALL-UNNAMED --add-opens java.base/java.io=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED --add-opens java.base/java.util.concurrent=ALL-UNNAMED --add-opens java.base/java.util.jar=ALL-UNNAMED --add-opens java.base/java.security=ALL-UNNAMED --add-opens java.base/sun.reflect.generics.reflectiveObjects=ALL-UNNAMED</argLine>
             <tagsToExclude>code.external,GetBanksPerf</tagsToExclude>
             <testFailureIgnore>${maven.test.failure.ignore}</testFailureIgnore>
         </configuration>
@@ -738,6 +749,22 @@
           <transformers>
             <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
               <mainClass>bootstrap.http4s.Http4sServer</mainClass>
+              <!-- JEP 261: the `java -jar` launcher honors Add-Opens from the manifest.
+                   Required on JDK 17+ for CGLib (StarConnector proxy generation via
+                   ClassLoader.defineClass), Kryo/chill serialization, Pekko remoting and
+                   Scala runtime reflection. development/docker/Dockerfile (local dev
+                   image) relies on this and launches with a plain `java -jar`.
+                   .github/Dockerfile_PreBuild (the production image) instead keeps its
+                   own explicit "add-opens" ENTRYPOINT flags — that is the combination
+                   actually verified against the K8s deployment, so don't remove it in
+                   favor of this manifest alone without re-verifying in that environment.
+                   Keep this module list identical to the scalatest-maven-plugin argLine
+                   above (surefire test JVM): a module opened here but not there (or vice
+                   versa) causes an InaccessibleObjectException that only reproduces in
+                   whichever environment is missing it. -->
+              <manifestEntries>
+                <Add-Opens>java.base/java.lang java.base/java.lang.reflect java.base/java.util java.base/java.lang.invoke java.base/java.util.jar java.base/sun.reflect.generics.reflectiveObjects java.base/java.io java.base/java.util.concurrent java.base/java.security</Add-Opens>
+              </manifestEntries>
             </transformer>
             <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
               <resource>reference.conf</resource>

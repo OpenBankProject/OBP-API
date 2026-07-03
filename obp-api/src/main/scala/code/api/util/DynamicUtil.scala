@@ -209,20 +209,36 @@ object DynamicUtil extends MdcLoggable{
   }
 
   object Sandbox {
-    // initialize SecurityManager if not initialized
-    if (System.getSecurityManager == null) {
-      Policy.setPolicy(new Policy() {
-        override def getPermissions(codeSource: CodeSource): PermissionCollection = {
-          for (element <- Thread.currentThread.getStackTrace) {
-            if ("sun.rmi.server.LoaderHandler" == element.getClassName && "loadClass" == element.getMethodName)
-              return new Permissions
+    // SecurityManager was deprecated for removal in JDK 17 (JEP 411) and setSecurityManager()
+    // now throws UnsupportedOperationException on this runtime (JDK 25). Catch and ignore so
+    // the rest of the Sandbox (AccessController.doPrivileged) still compiles and runs — but
+    // with no SecurityManager installed, AccessController.doPrivileged is a pass-through:
+    // Sandbox.runInSandbox no longer actually restricts what dynamic-endpoint/connector
+    // code can do (file/network/reflection access are all unguarded). Log loudly so this
+    // silent security regression isn't invisible in production — it was previously masked
+    // by three DynamicUtilTest scenarios that are now `assume`-skipped for the same reason.
+    try {
+      if (System.getSecurityManager == null) {
+        Policy.setPolicy(new Policy() {
+          override def getPermissions(codeSource: CodeSource): PermissionCollection = {
+            for (element <- Thread.currentThread.getStackTrace) {
+              if ("sun.rmi.server.LoaderHandler" == element.getClassName && "loadClass" == element.getMethodName)
+                return new Permissions
+            }
+            super.getPermissions(codeSource)
           }
-          super.getPermissions(codeSource)
-        }
 
-        override def implies(domain: ProtectionDomain, permission: Permission) = true
-      })
-      System.setSecurityManager(new SecurityManager)
+          override def implies(domain: ProtectionDomain, permission: Permission) = true
+        })
+        System.setSecurityManager(new SecurityManager)
+      }
+    } catch {
+      case _: UnsupportedOperationException =>
+        logger.warn("code.api.util.DynamicUtil.Sandbox: SecurityManager is unavailable on this JVM " +
+          "(JEP 486, JDK 24+). Sandbox.runInSandbox / Sandbox.createSandbox will NOT enforce any " +
+          "permission restrictions on dynamic-endpoint / connector-builder code — file, network and " +
+          "reflection access are unguarded. This is expected on JDK 24+ but is a real reduction in " +
+          "isolation for the dynamic-code feature; do not rely on this sandbox for untrusted code on this runtime.")
     }
 
     def createSandbox(permissionList: List[Permission]): Sandbox = {

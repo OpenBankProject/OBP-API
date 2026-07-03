@@ -25,7 +25,7 @@ import code.setup.{APIResponse, DefaultUsers, ServerSetupWithTestData}
 import code.transactionattribute.MappedTransactionAttribute
 import com.openbankproject.commons.model.{AccountId, AccountRoutingJsonV121, AmountOfMoneyJsonV121, BankId, CreateViewJson, UpdateViewJSON}
 import com.openbankproject.commons.util.ApiShortVersions
-import dispatch.Req
+import code.setup.OBPReq
 import org.json4s.native.Serialization.write
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.randomString
@@ -36,11 +36,11 @@ import scala.util.Random.nextInt
 
 trait V400ServerSetup extends ServerSetupWithTestData with DefaultUsers {
 
-  def v4_0_0_Request: Req = baseRequest / "obp" / "v4.0.0"
-  def v5_0_0_Request: Req = baseRequest / "obp" / "v5.0.0"
-  def v5_1_0_Request: Req = baseRequest / "obp" / "v5.1.0"
-  def dynamicEndpoint_Request: Req = baseRequest / "obp" / ApiShortVersions.`dynamic-endpoint`.toString
-  def dynamicEntity_Request: Req = baseRequest / "obp" / ApiShortVersions.`dynamic-entity`.toString
+  def v4_0_0_Request: OBPReq = baseRequest / "obp" / "v4.0.0"
+  def v5_0_0_Request: OBPReq = baseRequest / "obp" / "v5.0.0"
+  def v5_1_0_Request: OBPReq = baseRequest / "obp" / "v5.1.0"
+  def dynamicEndpoint_Request: OBPReq = baseRequest / "obp" / ApiShortVersions.`dynamic-endpoint`.toString
+  def dynamicEntity_Request: OBPReq = baseRequest / "obp" / ApiShortVersions.`dynamic-entity`.toString
 
   def randomBankId : String = {
     def getBanksInfo : APIResponse  = {

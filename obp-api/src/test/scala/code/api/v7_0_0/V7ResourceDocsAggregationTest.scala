@@ -2,17 +2,13 @@ package code.api.v7_0_0
 
 import org.json4s._
 import code.Http4sTestServer
-import code.setup.ServerSetupWithTestData
-import dispatch.Defaults._
-import dispatch._
+import code.setup.{OBPReq, ServerSetupWithTestData}
 import org.json4s.JValue
 import org.json4s.JsonAST.{JArray, JObject, JString}
 import com.openbankproject.commons.util.JsonAliases.parse
 import org.scalatest.Tag
 
 import scala.collection.JavaConverters._
-import scala.concurrent.Await
-import scala.concurrent.duration._
 import com.openbankproject.commons.util.JsonAliases.RichJField
 
 /**
@@ -54,30 +50,13 @@ class V7ResourceDocsAggregationTest extends ServerSetupWithTestData {
     path: String,
     headers: Map[String, String] = Map.empty
   ): (Int, JValue, Map[String, String]) = {
-    val request = url(s"$baseUrl$path")
-    val requestWithHeaders = headers.foldLeft(request) { case (req, (key, value)) =>
-      req.addHeader(key, value)
+    val req = headers.foldLeft(OBPReq.url(s"$baseUrl$path").addHeader("Accept", "*/*")) {
+      case (r, (k, v)) => r.addHeader(k, v)
     }
-
-    try {
-      val response = Http.default(
-        requestWithHeaders.setHeader("Accept", "*/*") > as.Response(p =>
-          (p.getStatusCode, p.getResponseBody, p.getHeaders.iterator().asScala.map(e => e.getKey -> e.getValue).toMap)
-        )
-      )
-      val (statusCode, body, responseHeaders) = Await.result(response, 30.seconds)
-      val json = if (body.trim.isEmpty) JObject(Nil) else parse(body)
-      (statusCode, json, responseHeaders)
-    } catch {
-      case e: java.util.concurrent.ExecutionException =>
-        val statusPattern = """(\d{3})""".r
-        statusPattern.findFirstIn(e.getCause.getMessage) match {
-          case Some(code) => (code.toInt, JObject(Nil), Map.empty)
-          case None => throw e
-        }
-      case e: Exception =>
-        throw e
-    }
+    val (status, body, okHdrs) = req.executeRaw()
+    val json = if (body.trim.isEmpty) JObject(Nil) else parse(body)
+    val hdrs = okHdrs.toMultimap.asScala.flatMap { case (k, vs) => vs.asScala.map(v => k -> v) }.toMap
+    (status, json, hdrs)
   }
 
   private def toFieldMap(fields: List[org.json4s.JsonAST.JField]): Map[String, JValue] =

@@ -8,14 +8,14 @@ import code.api.v2_0_0.BasicAccountsJSON
 import code.api.v3_0_0.{TransactionJsonV300, TransactionsJsonV300, ViewsJsonV300}
 import code.entitlement.Entitlement
 import code.setup.{APIResponse, DefaultUsers, ServerSetupWithTestData}
-import dispatch.Req
+import code.setup.OBPReq
 import org.json4s.native.Serialization.write
 
 import scala.util.Random.nextInt
 
 trait V310ServerSetup extends ServerSetupWithTestData with DefaultUsers {
 
-  def v3_1_0_Request: Req = baseRequest / "obp" / "v3.1.0"
+  def v3_1_0_Request: OBPReq = baseRequest / "obp" / "v3.1.0"
 
   //When new version, this would be the first endpoint to test, to make sure it works well. 
   def getAPIInfo : APIResponse = {

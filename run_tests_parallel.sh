@@ -1,8 +1,17 @@
 #!/bin/bash
-# Local parallel test runner — mirror CI's parallel structure as closely as
-# possible while dropping the cross-machine artifact-transfer complexity.
-# Shard definitions and the shard-4 catch-all logic match
-# .github/workflows/build_pull_request.yml exactly.
+# Local parallel test runner — mirrors CI's test coverage on a single machine.
+# Pinned to JDK 25 (Scala 2.12.21+). Override JAVA_HOME before running if a
+# different JDK is needed.
+JAVA25_HOME="/Library/Java/JavaVirtualMachines/zulu-25.jdk/Contents/Home"
+if [[ -d "$JAVA25_HOME" ]]; then
+  export JAVA_HOME="$JAVA25_HOME"
+  export PATH="$JAVA_HOME/bin:$PATH"
+fi
+# CI (build_pull_request.yml / build_container.yml) uses 9 shards across 9 VMs;
+# this script uses 4 coarser shards that achieve identical coverage via the
+# catch-all mechanism, without exhausting the single local DB connection pool
+# (> 4 shards causes connection-pool contention and spurious failures).
+# Catch-all logic (build_s4) is a direct port of CI's shard-8 catch-all.
 # Usage: ./run_tests_parallel.sh [--shards=4|6]
 #
 # ── CI step → local equivalent (how cross-machine machinery is replaced) ───
@@ -84,7 +93,7 @@ ALLOC_PORT=""       # alloc_free_port returns its result here (no subshell — s
 # breaking the in-run dedup. Call as: `alloc_free_port || exit 1; X=$ALLOC_PORT`.
 alloc_free_port() {
     local tries=0 p
-    while [ $tries -lt 500 ]; do
+    while [[ $tries -lt 500 ]]; do
         p=$(( PORT_MIN + RANDOM % (PORT_MAX - PORT_MIN) ))
         if [[ " ${ASSIGNED_PORTS[*]} " != *" $p "* ]] && ! lsof -i :"$p" >/dev/null 2>&1; then
             ASSIGNED_PORTS+=("$p")
@@ -97,7 +106,11 @@ alloc_free_port() {
     return 1
 }
 
-# ── Shard definitions (identical to the CI matrix) ────────────────────────
+# ── Shard definitions ─────────────────────────────────────────────────────
+# Deliberately coarser than CI's 9 shards: CI splits each package onto its own
+# VM; locally we merge packages to stay within the shared DB connection pool.
+# Coverage is identical: the catch-all (build_s4) picks up any package not
+# named here, same as CI's shard-8 catch-all.
 S1="code.api.v4_0_0"
 
 S2="code.api.v6_0_0,code.api.v5_0_0,code.api.v3_0_0,code.api.v2_1_0,\
@@ -109,13 +122,13 @@ S3="code.api.v1_2_1,code.api.ResourceDocs1_4_0,code.api.util,code.api.berlin,\
 code.management,code.metrics,code.model,code.views,code.usercustomerlinks,\
 code.customer,code.errormessages"
 
-# Shard 4 base (identical to CI)
+# Shard 4 base — auth/login/connector/util plus any packages not in shards 1-3
 S4_BASE="code.api.v5_1_0,code.api.v3_1_0,code.api.http4sbridge,code.api.v7_0_0,\
 code.api.Authentication,code.api.dauthTest,code.api.DirectLoginTest,\
 code.api.gateWayloginTest,code.api.OBPRestHelperTest,code.util,code.connector"
 
 # ── Shard 4 catch-all: discover every package not covered by shards 1–3 ───
-#    (identical to CI)
+#    (same logic as CI shard-8 catch-all — ensures no new package is silently skipped)
 build_s4() {
   local ASSIGNED="$S1 $(echo "$S2" | tr ',' ' ') $(echo "$S3" | tr ',' ' ') $(echo "$S4_BASE" | tr ',' ' ')"
   local ALL_PKGS
@@ -131,9 +144,9 @@ build_s4() {
         covered=true; break
       fi
     done
-    [ "$covered" = "false" ] && EXTRAS="${EXTRAS},${pkg}"
+    [[ "$covered" = "false" ]] && EXTRAS="${EXTRAS},${pkg}"
   done
-  if [ -n "$EXTRAS" ]; then
+  if [[ -n "$EXTRAS" ]]; then
     echo "  [Shard 4] Catch-all extras: $EXTRAS" >&2
   fi
   echo "${S4_BASE}${EXTRAS}"
@@ -190,14 +203,20 @@ run_shard() {
     # timeout returns 124 when the JVM was killed. That is only benign when the tests had
     # already finished green and only the JVM shutdown hung (Pekko non-daemon threads) —
     # require proof from the log instead of blindly converting 124 to success.
-    if [ $rc -eq 124 ]; then
+    if [[ $rc -eq 124 ]]; then
         if grep -q "BUILD SUCCESS" "$log" 2>/dev/null; then
             rc=0
         else
             echo "[Shard $n] ⏱ timeout: JVM killed BEFORE tests completed — counted as failure"
         fi
     fi
-    if [ $rc -eq 0 ]; then
+    # maven.test.failure.ignore=true (root pom) makes mvn exit 0 even when suites
+    # abort or tests fail — the exit code alone is not trustworthy. Scan the log for
+    # scalatest's own failure markers (RUN ABORTED / SUITE ABORTED / failed N).
+    if [[ $rc -eq 0 ]] && grep -qE '\*\*\* RUN ABORTED \*\*\*|SUITE(S)? ABORTED|Tests: succeeded [0-9]+, failed [1-9]' "$log"; then
+        rc=1
+    fi
+    if [[ $rc -eq 0 ]]; then
         echo "[Shard $n] ✅ BUILD SUCCESS"
     else
         echo "[Shard $n] ❌ BUILD FAILURE — see $log"
@@ -233,13 +252,13 @@ MAVEN_OPTS="$MVN_OPTS" \
   mvn install -DskipTests -pl obp-commons -q > test-results/parallel/precompile.log 2>&1
 PRECOMPILE_RC=$?
 rm -rf "$OBC_LOCK"
-if [ $PRECOMPILE_RC -eq 0 ]; then
+if [[ $PRECOMPILE_RC -eq 0 ]]; then
   echo "Pre-compile 2/2: test-compile obp-api -> shared target/ ..."
   MAVEN_OPTS="$MVN_OPTS" \
     mvn test-compile -pl obp-api -q >> test-results/parallel/precompile.log 2>&1
   PRECOMPILE_RC=$?
 fi
-if [ $PRECOMPILE_RC -ne 0 ]; then
+if [[ $PRECOMPILE_RC -ne 0 ]]; then
   echo "❌ Pre-compile failed — see test-results/parallel/precompile.log" >&2
   tail -25 test-results/parallel/precompile.log >&2
   exit 1
@@ -251,7 +270,7 @@ rm -rf obp-api/target/surefire-reports obp-commons/target/surefire-reports
 echo "Pre-compile done, starting shards..." 
 echo ""
 
-if [ "$SHARDS" = "6" ]; then
+if [[ "$SHARDS" = "6" ]]; then
     echo "Starting 6 shards in parallel..."
     echo ""
     # Allocate two free ports per shard BEFORE forking. Sequential calls (not in a
@@ -320,15 +339,15 @@ done
 
 OVERALL_RC=0
 for rc in "${RCS[@]}"; do
-    [ $rc -ne 0 ] && OVERALL_RC=1
+    [[ $rc -ne 0 ]] && OVERALL_RC=1
 done
 
 # ── CI parity ("Report failing tests" step): extract failures for failed shards ──
-if [ $OVERALL_RC -ne 0 ]; then
+if [[ $OVERALL_RC -ne 0 ]]; then
     echo ""
     echo "── Failure diagnostics (CI-style report) ───────────"
     for (( n=1; n<=TOTAL_SHARDS; n++ )); do
-        [ "${RCS[$((n-1))]}" -eq 0 ] && continue
+        [[ "${RCS[$((n-1))]}" -eq 0 ]] && continue
         log="test-results/parallel/shard${n}.log"
         echo ""
         echo "### Shard $n ($log) ###"
@@ -367,14 +386,14 @@ for b in bad:
 read -r SF_TOTAL SF_FAIL SF_ERR SF_SKIP SF_BROKEN <<< "$(echo "$SF_AUDIT" | head -1)"
 echo ""
 echo "Surefire audit: ${SF_TOTAL:-?} tests, ${SF_FAIL:-?} failures, ${SF_ERR:-?} errors, ${SF_SKIP:-?} skipped/canceled"
-if [ "${SF_FAIL:-1}" != "0" ] || [ "${SF_ERR:-1}" != "0" ] || [ "${SF_BROKEN:-1}" != "0" ]; then
+if [[ "${SF_FAIL:-1}" != "0" ]] || [[ "${SF_ERR:-1}" != "0" ]] || [[ "${SF_BROKEN:-1}" != "0" ]]; then
     echo "$SF_AUDIT" | tail -n +2 | sed 's/^/  ✗ /'
     OVERALL_RC=1
 fi
 # Zero-test floor: -DfailIfNoTests=false means a broken wildcardSuites filter runs nothing
 # and "passes". The suite has ~2900 tests; a total far below that means shards ran
 # near-empty — fail instead of reporting a hollow green.
-if [ "${SF_TOTAL:-0}" -lt 2000 ]; then
+if [[ "${SF_TOTAL:-0}" -lt 2000 ]]; then
     echo "  ✗ suspicious total: only ${SF_TOTAL:-0} tests ran (< 2000 floor) — filter/discovery regression?"
     OVERALL_RC=1
 fi
@@ -392,7 +411,7 @@ fi
 # Final verdict LAST so `tail -N` always captures it, plus a machine-readable file
 # that survives any piping of stdout (`./run.sh | tail` reports tail's exit code).
 echo ""
-if [ $OVERALL_RC -eq 0 ]; then
+if [[ $OVERALL_RC -eq 0 ]]; then
     echo "✅ ALL SHARDS PASSED"
     echo "PASS" > test-results/parallel/RESULT
 else

@@ -6,10 +6,8 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil
 import code.api.util.ApiRole.{CanCreateSystemView, CanDeleteSystemView, CanGetSystemView, CanUpdateSystemView}
 import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, SystemViewNotFound, UserHasMissingRoles}
-import code.setup.ServerSetupWithTestData
+import code.setup.{OBPReq, ServerSetupWithTestData}
 import code.views.system.AccountAccess
-import dispatch.Defaults._
-import dispatch._
 import org.json4s.JValue
 import org.json4s.JsonAST.{JField, JObject, JString}
 import com.openbankproject.commons.util.JsonAliases.parse
@@ -17,8 +15,6 @@ import org.json4s.native.Serialization.write
 import net.liftweb.mapper.By
 import org.scalatest.Tag
 
-import scala.concurrent.Await
-import scala.concurrent.duration._
 import com.openbankproject.commons.util.JsonAliases.RichJField
 
 /**
@@ -49,38 +45,22 @@ class Http4s500SystemViewsTest extends ServerSetupWithTestData {
 
   private def makeHttpRequest(
     method: String,
-    path: String, 
+    path: String,
     headers: Map[String, String] = Map.empty,
     body: Option[String] = None
   ): (Int, JValue) = {
-    val request = url(s"$baseUrl$path")
-    val requestWithHeaders = headers.foldLeft(request) { case (req, (key, value)) =>
-      req.addHeader(key, value)
-    }
-    
+    val base = OBPReq.url(s"$baseUrl$path").addHeader("Accept", "*/*")
+    val withHdrs = headers.foldLeft(base) { case (req, (key, value)) => req.addHeader(key, value) }
     val finalRequest = method.toUpperCase match {
-      case "GET" => requestWithHeaders
-      case "POST" => requestWithHeaders.POST.setBody(body.getOrElse("")).setContentType("application/json", java.nio.charset.StandardCharsets.UTF_8)
-      case "PUT" => requestWithHeaders.PUT.setBody(body.getOrElse("")).setContentType("application/json", java.nio.charset.StandardCharsets.UTF_8)
-      case "DELETE" => requestWithHeaders.DELETE
-      case _ => requestWithHeaders
+      case "GET"    => withHdrs
+      case "POST"   => withHdrs.POST.setBody(body.getOrElse("")).setContentType("application/json", java.nio.charset.StandardCharsets.UTF_8)
+      case "PUT"    => withHdrs.PUT.setBody(body.getOrElse("")).setContentType("application/json", java.nio.charset.StandardCharsets.UTF_8)
+      case "DELETE" => withHdrs.DELETE
+      case _        => withHdrs
     }
-    
-    try {
-      val response = Http.default(finalRequest.setHeader("Accept", "*/*") > as.Response(p => (p.getStatusCode, p.getResponseBody)))
-      val (statusCode, responseBody) = Await.result(response, 10.seconds)
-      val json = if (responseBody.trim.isEmpty) JObject(Nil) else parsePermissive(responseBody)
-      (statusCode, json)
-    } catch {
-      case e: java.util.concurrent.ExecutionException =>
-        val statusPattern = """(\d{3})""".r
-        statusPattern.findFirstIn(e.getCause.getMessage) match {
-          case Some(code) => (code.toInt, JObject(Nil))
-          case None => throw e
-        }
-      case e: Exception =>
-        throw e
-    }
+    val (statusCode, responseBody, _) = finalRequest.executeRaw()
+    val json = if (responseBody.trim.isEmpty) JObject(Nil) else parsePermissive(responseBody)
+    (statusCode, json)
   }
 
   private def toFieldMap(fields: List[JField]): Map[String, JValue] = {

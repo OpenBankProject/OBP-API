@@ -10,12 +10,12 @@ env:
 
 # ---------------------------------------------------------------------------
 # compile  — compiles everything once, packages the JAR, uploads classes
-# test     — 4-way matrix downloads compiled output and runs a shard of tests
+# test     — 9-way matrix downloads compiled output and runs a shard of tests
 # docker   — downloads compiled output, builds and pushes the container image
 #
 # Wall-clock target:
 #   compile ~10 min  (parallel with setup of test shards)
-#   tests   ~8 min   (4 shards in parallel after compile finishes)
+#   tests   ~8 min   (9 shards in parallel after compile finishes)
 #   docker  ~3 min   (after all shards pass)
 #   total   ~21 min  (vs ~30 min single-job)
 # ---------------------------------------------------------------------------
@@ -30,17 +30,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up JDK 11
+      - name: Set up JDK 25
         uses: actions/setup-java@v4
         with:
-          java-version: "11"
-          distribution: "adopt"
+          java-version: "25"
+          distribution: "temurin"
           cache: maven          # caches ~/.m2/repository keyed on pom.xml hash
 
       - name: Setup production props
         run: |
           cp obp-api/src/main/resources/props/sample.props.template \
              obp-api/src/main/resources/props/production.default.props
+
+      - name: Lint — test-isolation (no setPropsValues at class/feature body)
+        run: python3 .github/scripts/check_test_isolation.py
 
       - name: Compile and install (skip test execution)
         run: |
@@ -74,24 +77,36 @@ jobs:
           path: push/
 
   # --------------------------------------------------------------------------
-  # Job 2: test (4-way matrix)
+  # Job 2: test (9-way matrix, mirrors build_pull_request.yml shard layout)
   #
-  # Shard assignment (based on actual clean-run timings):
-  #   Shard 1  ~258s  v4_0_0(258)
-  #   Shard 2  ~267s  v6_0_0(122) v5_0_0(42) v3_0_0(39) v2_1_0(35) v2_2_0(12) …
-  #   Shard 3  ~252s  v1_2_1(137) ResourceDocs(67) berlin(34) util(12) …
-  #   Shard 4  ~232s  v5_1_0(79) v3_1_0(65) http4sbridge(52) v7_0_0(45) … + catch-all
+  # Shard assignment (wall-clock on GitHub-hosted ubuntu-latest runners):
+  #   Shard 1  ~157s  v4_0_0 non-Dynamic (explicit class list, ~58 classes)
+  #   Shard 2  ~257s  v1_2_1 (single 6604-line suite, isolated)
+  #   Shard 3  ~155s  v6_0_0 only (isolated after v2_x moved to shard 7)
+  #   Shard 4  ~183s  v5_1_0 v5_0_0 v3_0_0
+  #   Shard 5  ~193s  ResourceDocs v3_1_0 v1_4_0 v1_3_0
+  #   Shard 6  ~168s  v7_0_0 http4sbridge UKOpenBanking
+  #   Shard 7  ~280s  model + views + customer + util + berlin + v2_x
+  #   Shard 8  ~240s  connector + auth + login + mgmt + metrics + catch-all
+  #   Shard 9  ~110s  v4_0_0 Dynamic* (6 heavy test classes)
   # --------------------------------------------------------------------------
   test:
     needs: compile
     runs-on: ubuntu-latest
+    timeout-minutes: 35
     strategy:
       fail-fast: false
       matrix:
         include:
           - shard: 1
-            name: "v4 only (bottleneck pkg)"
-            # ~258s — single largest package, kept on its own shard
+            name: "v4 non-Dynamic"
+            # v4_0_0 split: non-Dynamic classes only. Dynamic* on shard 9.
+            # test_filter is a marker, not a literal wildcardSuites value: the "Run tests"
+            # step below discovers code.api.v4_0_0.* classes at runtime and excludes
+            # Dynamic* — a static class list here would silently drop any class added
+            # after the list was written (the shard-8 catch-all treats the whole
+            # code.api.v4_0_0 package as covered by shard 1, so an omitted class would
+            # never run on ANY shard). Runtime discovery keeps shard 1 self-updating.
             test_filter: >-
               code.api.v4_0_0
           - shard: 2
@@ -102,12 +117,11 @@ jobs:
             test_filter: >-
               code.api.v1_2_1
           - shard: 3
-            name: "v6 + v2_x"
+            name: "v6 only"
+            # v6_0_0 isolated: previously bundled with v2_x causing 700s+ runs;
+            # v2_x moved to shard 7 which had headroom.
             test_filter: >-
               code.api.v6_0_0
-              code.api.v2_1_0
-              code.api.v2_2_0
-              code.api.v2_0_0
           - shard: 4
             name: "v5_1 + v5_0 + v3_0"
             test_filter: >-
@@ -128,7 +142,8 @@ jobs:
               code.api.http4sbridge
               code.api.UKOpenBanking
           - shard: 7
-            name: "model + views + customer + util + small data + berlin"
+            name: "model + views + customer + util + small data + berlin + v2_x"
+            # v2_0_0/v2_1_0/v2_2_0 moved here from shard 3 to rebalance after v6_0_0 was isolated.
             test_filter: >-
               code.model
               code.views
@@ -142,9 +157,12 @@ jobs:
               code.crm
               code.accountHolder
               code.api.berlin
+              code.api.v2_1_0
+              code.api.v2_2_0
+              code.api.v2_0_0
           - shard: 8
             name: "connector + auth + login + mgmt + metrics + remaining (catch-all)"
-            # catch-all shard: appends any test package not assigned to shards 1-7
+            # catch-all shard: appends any test package not assigned to shards 1-7 and 9
             # Root-level code.api tests use class-name prefix matching (lowercase classes).
             # NOTE: classes that sit DIRECTLY in package code.api must be listed here by
             # FQN-prefix — the catch-all marks the parent package code.api as "covered" once
@@ -165,6 +183,15 @@ jobs:
               code.container
               code.management
               code.metrics
+              code.concurrency
+          - shard: 9
+            name: "v4 Dynamic tests"
+            # v4_0_0 Dynamic* split: 6 heavy test classes (DynamicEndpointHelperTest 4206 lines,
+            # DynamicEndpointsTest 2548, DynamicEntityTest 1974, plus 3 smaller ones).
+            # Prefix code.api.v4_0_0.Dynamic matches all 6 classes; shard 1's runtime
+            # discovery excludes this same prefix so no test runs in both shards.
+            test_filter: >-
+              code.api.v4_0_0.Dynamic
 
     services:
       redis:
@@ -180,11 +207,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up JDK 11
+      - name: Set up JDK 25
         uses: actions/setup-java@v4
         with:
-          java-version: "11"
-          distribution: "adopt"
+          java-version: "25"
+          distribution: "temurin"
           cache: maven
 
       - name: Download compiled output
@@ -258,6 +285,12 @@ jobs:
           echo consents.allowed=true >> obp-api/src/main/resources/props/test.default.props
           echo hikari.maximumPoolSize=20 >> obp-api/src/main/resources/props/test.default.props
           echo write_metrics=false >> obp-api/src/main/resources/props/test.default.props
+          # Log emails instead of opening a real SMTP socket: without this,
+          # LocalMappedConnector.sendCustomerNotification's EMAIL branch calls
+          # CommonsEmailWrapper.sendTextEmail which throws ConnectException because
+          # there's no mail server in CI. That surfaces as 500 in any test that
+          # hits an endpoint triggering the notification (v5 consent flows, etc.).
+          echo mail.test.mode=true >> obp-api/src/main/resources/props/test.default.props
           # Permissions granted to runtime-compiled dynamic-endpoint code inside the security sandbox
           # (mirrors default.props / production.default.props). Required so dynamic resource-doc bodies
           # can do JSON extraction (reflection) and read OBP props (getenv); without it the sandbox
@@ -270,19 +303,38 @@ jobs:
           # The YAML >- scalar collapses newlines to spaces, so we convert here.
           FILTER=$(echo "${{ matrix.test_filter }}" | tr ' ' ',')
 
+          # Shard 1 (v4 non-Dynamic): discover code.api.v4_0_0 classes at runtime and
+          # exclude Dynamic* (shard 9's domain), instead of a hand-maintained class list.
+          # This is what makes the shard-8 catch-all's "code.api.v4_0_0 is covered by
+          # shard 1" assumption actually true — a class list here could drift from the
+          # real directory contents and leave a new test running on no shard at all.
+          if [ "${{ matrix.shard }}" = "1" ]; then
+            FILTER=$(grep -l '^class.*extends' obp-api/src/test/scala/code/api/v4_0_0/*.scala \
+                       | xargs -I{} grep -hoP '^class \K[A-Z][A-Za-z0-9_]+' {} \
+                       | grep -v '^Dynamic' \
+                       | sed 's/^/code.api.v4_0_0./' \
+                       | paste -sd, -)
+          fi
+
           # Shard 8 is the catch-all: append any test package not explicitly
-          # assigned to shards 1–7, so new packages are never silently skipped.
+          # assigned to shards 1–7 and 9, so new packages are never silently skipped.
           if [ "${{ matrix.shard }}" = "8" ]; then
+            # Shard 1 discovers v4 non-Dynamic classes at runtime (see above); shard 9
+            # covers Dynamic*. Use code.api.v4_0_0 as the assigned prefix so the
+            # catch-all treats the whole v4_0_0 package as covered — true as long as
+            # shard 1's discovery and shard 9's Dynamic prefix together span it.
             SHARD1="code.api.v4_0_0"
             SHARD2="code.api.v1_2_1"
-            SHARD3="code.api.v6_0_0 code.api.v2_1_0 code.api.v2_2_0 code.api.v2_0_0"
+            SHARD3="code.api.v6_0_0"
             SHARD4="code.api.v5_1_0 code.api.v5_0_0 code.api.v3_0_0"
             SHARD5="code.api.ResourceDocs1_4_0 code.api.v3_1_0 code.api.v1_4_0 code.api.v1_3_0"
             SHARD6="code.api.v7_0_0 code.api.http4sbridge code.api.UKOpenBanking"
             SHARD7="code.model code.views code.customer code.usercustomerlinks \
                     code.api.util code.errormessages code.atms code.branches \
-                    code.products code.crm code.accountHolder code.api.berlin"
-            ASSIGNED="$SHARD1 $SHARD2 $SHARD3 $SHARD4 $SHARD5 $SHARD6 $SHARD7 ${{ matrix.test_filter }}"
+                    code.products code.crm code.accountHolder code.api.berlin \
+                    code.api.v2_1_0 code.api.v2_2_0 code.api.v2_0_0"
+            SHARD9="code.api.v4_0_0.Dynamic"
+            ASSIGNED="$SHARD1 $SHARD2 $SHARD3 $SHARD4 $SHARD5 $SHARD6 $SHARD7 $SHARD9 ${{ matrix.test_filter }}"
 
             # Discover all packages that contain at least one .scala test file
             ALL_PKGS=$(find obp-api/src/test/scala obp-commons/src/test/scala \
@@ -315,10 +367,27 @@ jobs:
           # -pl obp-commons,obp-api: obp-commons' own 5 util suites run on whichever
           # shard's filter matches com.openbankproject.* (the catch-all shard); on every
           # other shard the filter matches nothing in obp-commons → 0 tests there.
+          # timeout 1500: hard-kill after 25 min to prevent Pekko non-daemon threads
+          # (ConsentScheduler etc.) from keeping the JVM alive after tests complete.
+          # Exit code 124 (timeout) is treated as success — tests are done, JVM just hung.
+          # set +e: GitHub Actions uses -eo pipefail by default; without it, a 124 exit from
+          # timeout would abort the step before the rc check below can run.
+          set +e
           MAVEN_OPTS="-Xmx3G -Xss2m -XX:MaxMetaspaceSize=1G" \
-            mvn process-resources scalatest:test -pl obp-commons,obp-api -DfailIfNoTests=false \
+            timeout 1500 mvn process-resources scalatest:test -pl obp-commons,obp-api -DfailIfNoTests=false \
               -DwildcardSuites="$FILTER" \
             > maven-build-shard${{ matrix.shard }}.log 2>&1
+          rc=$?
+          set -e
+          # timeout returns 124 when the JVM was killed. That is only benign when the tests had
+          # successfully finished but Pekko non-daemon threads kept the JVM alive. We must
+          # require proof from the log instead of blindly converting 124 to success.
+          if [ $rc -eq 124 ]; then
+            if grep -q "BUILD SUCCESS" maven-build-shard${{ matrix.shard }}.log; then
+              rc=0
+            fi
+          fi
+          exit $rc
 
       - name: Report failing tests — shard ${{ matrix.shard }}
         if: always()

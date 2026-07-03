@@ -9,6 +9,7 @@ import code.util.Helper.MdcLoggable
 import java.util.Date
 import scala.collection.immutable
 import scala.concurrent.Future
+import scala.util.control.NonFatal
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import org.json4s.{Extraction, JValue}
 import com.openbankproject.commons.util.JsonAliases.compactRender
@@ -26,69 +27,98 @@ object WriteMetricUtil extends MdcLoggable {
     operationIds.contains(operationId.getOrElse("None"))
   }
 
-  def writeEndpointMetric(responseBody: Any, callContext: Option[CallContextLight]) = {
-    callContext match {
-      case Some(cc) =>
-        if (code.metrics.MetricsProps.writeMetrics) {
-          val userId = cc.userId.orNull
-          val userName = cc.userName.orNull
+  def writeEndpointMetric(responseBody: Any, callContext: Option[CallContextLight]): Unit = callContext match {
+    case Some(cc) if code.metrics.MetricsProps.writeMetrics =>
+      persistAndPublishMetric(responseBody, cc)
+    case Some(_) =>
+      // metrics disabled — nothing to do
+    case None =>
+      logger.error("CallContextLight is not defined. Metrics cannot be saved.")
+  }
 
-          val implementedByPartialFunction = cc.partialFunctionName
+  private case class MetricFields(userId: String,
+                                   userName: String,
+                                   appName: String,
+                                   developerEmail: String,
+                                   consumerId: String,
+                                   implementedByPartialFunction: String,
+                                   duration: Long,
+                                   responseBodyToWrite: String,
+                                   sourceIp: String,
+                                   targetIp: String)
 
-          val duration =
-            (cc.startTime, cc.endTime) match {
-              case (Some(s), Some(e)) => (e.getTime - s.getTime)
-              case _ => -1
-            }
+  private def persistAndPublishMetric(responseBody: Any, cc: CallContextLight): Unit = {
+    val fields = MetricFields(
+      userId = cc.userId.orNull,
+      userName = cc.userName.orNull,
+      appName = cc.appName.orNull,
+      developerEmail = cc.developerEmail.orNull,
+      consumerId = cc.consumerId.orNull,
+      implementedByPartialFunction = cc.partialFunctionName,
+      duration = callDuration(cc),
+      responseBodyToWrite = responseBodyForMetric(responseBody, cc),
+      sourceIp = requestHeaderValue(cc, "x-forwarded-for"),
+      targetIp = requestHeaderValue(cc, "x-forwarded-host")
+    )
 
-          val responseBodyToWrite: String =
-            if (writeMetricForOperationId(cc.operationId)) {
-              Extraction.decompose(responseBody) match {
-                case jValue: JValue =>
-                  compactRender(jValue)
-                case _ =>
-                  responseBody.toString
-              }
-            } else {
-              "Not enabled"
-            }
+    // enqueue synchronously so flush() in tests reliably drains this metric before assertions
+    saveMetricSafely(cc, fields)
 
-          //execute saveMetric in future, as we do not need to know result of the operation
-          Future {
-            val consumerId = cc.consumerId.orNull
-            val appName = cc.appName.orNull
-            val developerEmail = cc.developerEmail.orNull
+    // gRPC publish is potentially blocking — keep it async
+    Future {
+      import fields._
+      publishMetricEvent(userId, cc.url, cc.startTime.getOrElse(null), duration, userName, appName,
+        developerEmail, consumerId, implementedByPartialFunction, cc.implementedInVersion, cc.verb,
+        cc.httpCode, cc.correlationId, sourceIp, targetIp, cc.operationId.getOrElse(""),
+        cc.consentReferenceId.orNull)
+    }
+  }
 
-            val sourceIp = cc.requestHeaders.find(_.name.toLowerCase() == "x-forwarded-for").map(_.values.mkString(",")).getOrElse("")
-            val targetIp = cc.requestHeaders.find(_.name.toLowerCase() == "x-forwarded-host").map(_.values.mkString(",")).getOrElse("")
-            APIMetrics.apiMetrics.vend.saveMetric(
-              userId,
-              cc.url,
-              cc.startTime.getOrElse(null),
-              duration,
-              userName,
-              appName,
-              developerEmail,
-              consumerId,
-              implementedByPartialFunction,
-              cc.implementedInVersion,
-              cc.verb,
-              cc.httpCode,
-              cc.correlationId,
-              responseBodyToWrite,
-              sourceIp,
-              targetIp,
-              code.api.Constant.ApiInstanceId,
-              cc.consentReferenceId.orNull
-            )
-            publishMetricEvent(userId, cc.url, cc.startTime.getOrElse(null), duration, userName, appName,
-              developerEmail, consumerId, implementedByPartialFunction, cc.implementedInVersion, cc.verb,
-              cc.httpCode, cc.correlationId, sourceIp, targetIp, cc.operationId.getOrElse(""),
-              cc.consentReferenceId.orNull)
-          }
-        }
-      case _ =>
-        logger.error("CallContextLight is not defined. Metrics cannot be saved.")
+  private def callDuration(cc: CallContextLight): Long =
+    (cc.startTime, cc.endTime) match {
+      case (Some(s), Some(e)) => e.getTime - s.getTime
+      case _ => -1
+    }
+
+  private def responseBodyForMetric(responseBody: Any, cc: CallContextLight): String =
+    if (!writeMetricForOperationId(cc.operationId)) {
+      "Not enabled"
+    } else {
+      Extraction.decompose(responseBody) match {
+        case jValue: JValue => compactRender(jValue)
+        case _ => responseBody.toString
+      }
+    }
+
+  private def requestHeaderValue(cc: CallContextLight, headerName: String): String =
+    cc.requestHeaders.find(_.name.toLowerCase() == headerName).map(_.values.mkString(",")).getOrElse("")
+
+  private def saveMetricSafely(cc: CallContextLight, fields: MetricFields): Unit = {
+    import fields._
+    try {
+      APIMetrics.apiMetrics.vend.saveMetric(
+        userId,
+        cc.url,
+        cc.startTime.getOrElse(null),
+        duration,
+        userName,
+        appName,
+        developerEmail,
+        consumerId,
+        implementedByPartialFunction,
+        cc.implementedInVersion,
+        cc.verb,
+        cc.httpCode,
+        cc.correlationId,
+        responseBodyToWrite,
+        sourceIp,
+        targetIp,
+        code.api.Constant.ApiInstanceId,
+        cc.consentReferenceId.orNull
+      )
+    } catch {
+      case NonFatal(e) =>
+        logger.warn(s"WriteMetricUtil says: saveMetric failed: ${e.getMessage}")
     }
   }
 

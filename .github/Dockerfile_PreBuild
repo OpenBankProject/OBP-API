@@ -1,7 +1,16 @@
-FROM gcr.io/distroless/java:11
+FROM eclipse-temurin:25-jre-alpine
+
+RUN addgroup -S obp && adduser -S -h /app -G obp obp
 
 # Copy OBP source code
 # Copy build artifact (JAR file) from maven build
 COPY /obp-api/target/obp-api.jar /app/obp-api.jar
 WORKDIR /app
-CMD ["obp-api.jar"]
+USER obp
+ENTRYPOINT ["java", \
+  "--add-opens", "java.base/java.lang=ALL-UNNAMED", \
+  "--add-opens", "java.base/java.lang.reflect=ALL-UNNAMED", \
+  "--add-opens", "java.base/java.io=ALL-UNNAMED", \
+  "--add-opens", "java.base/java.util=ALL-UNNAMED", \
+  "--add-opens", "java.base/java.util.concurrent=ALL-UNNAMED", \
+  "-jar", "/app/obp-api.jar"]

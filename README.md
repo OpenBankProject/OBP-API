@@ -55,10 +55,11 @@ sdk env install
 
 #### Manually
 
-- OracleJDK: 1.8, 13
-- OpenJdk: 11
+The project targets **JDK 25 (LTS)** with Scala 2.12.21. Any OpenJDK 25 distribution works,
+for example:
 
-OpenJDK 11 is available for download here: [https://jdk.java.net/archive/](https://jdk.java.net/archive/).
+- Eclipse Temurin 25: [https://adoptium.net/](https://adoptium.net/)
+- Azul Zulu 25: [https://www.azul.com/downloads/](https://www.azul.com/downloads/)
 
 The project uses Maven 3 as its build tool.
 
@@ -73,51 +74,11 @@ java -jar obp-api/target/obp-api.jar
 
 The http4s server binds to `hostname` / `dev.port` as configured in your props file (defaults are `127.0.0.1` and `8080`).
 
-### ZED IDE Setup
-
-For ZED IDE users, we provide a complete development environment with Scala language server support:
-
-```bash
-./zed/setup-zed-ide.sh
-```
-
-This sets up automated build tasks, code navigation, and real-time error checking. See [`zed/README.md`](zed/README.md) for complete documentation.
-
-In case the above command fails try the next one:
-
-```sh
-export MAVEN_OPTS="-Xss128m" && mvn install -pl .,obp-commons
-```
-
-Note: depending on your Java version you might need to do this in the OBP-API directory.
-This creates a .mvn/jvm.config File
-
-```sh
-mkdir -p .mvn
-cat > .mvn/jvm.config << 'EOF'
---add-opens java.base/java.lang=ALL-UNNAMED
---add-opens java.base/java.lang.reflect=ALL-UNNAMED
---add-opens java.base/java.security=ALL-UNNAMED
---add-opens java.base/java.util.jar=ALL-UNNAMED
---add-opens java.base/sun.nio.ch=ALL-UNNAMED
---add-opens java.base/java.nio=ALL-UNNAMED
---add-opens java.base/java.net=ALL-UNNAMED
---add-opens java.base/java.io=ALL-UNNAMED
-EOF
-```
-
-Then try the above command.
-
-Or use this approach:
-
-```sh
-
-export MAVEN_OPTS="-Xss128m \
- --add-opens=java.base/java.util.jar=ALL-UNNAMED \
- --add-opens=java.base/java.lang=ALL-UNNAMED \
- --add-opens=java.base/java.lang.reflect=ALL-UNNAMED"
-
-```
+No `--add-opens` flags are needed on the command line: the executable jar's manifest carries
+an `Add-Opens` attribute (JEP 261) with all modules the runtime needs (CGLib proxy generation,
+Kryo serialization, Pekko remoting, Scala runtime reflection). Only when launching via a
+custom classpath (`java -cp ... bootstrap.http4s.Http4sServer`) do the flags need to be passed
+explicitly, since the manifest is only honored by `java -jar`.
 
 [Note: How to run via IntelliJ IDEA](obp-api/src/main/docs/glossary/Run_via_IntelliJ_IDEA.md)
 
@@ -978,7 +939,7 @@ OBP-API uses the following core technologies:
 - **ORM / Database:** [Lift Mapper](http://www.liftweb.net/) for database access and schema management.
 - **JSON:** Lift JSON utilities (`net.liftweb.json`) are used for parsing/serialization alongside native http4s handling.
 
-For the full Lift → http4s migration history, see [LIFT_HTTP4S_MIGRATION.md](LIFT_HTTP4S_MIGRATION.md).
+The Lift → http4s migration described above is complete; the tracking doc used during the migration was retired once it finished.
 
 Liftweb architecture: [http://exploring.liftweb.net/master/index-9.html](http://exploring.liftweb.net/master/index-9.html).
 
