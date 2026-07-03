@@ -100,67 +100,15 @@ jobs:
         include:
           - shard: 1
             name: "v4 non-Dynamic"
-            # v4_0_0 split: non-Dynamic classes only (~58 classes). Dynamic* on shard 9.
-            # Listed by FQN so wildcardSuites doesn't also match Dynamic* classes.
+            # v4_0_0 split: non-Dynamic classes only. Dynamic* on shard 9.
+            # test_filter is a marker, not a literal wildcardSuites value: the "Run tests"
+            # step below discovers code.api.v4_0_0.* classes at runtime and excludes
+            # Dynamic* — a static class list here would silently drop any class added
+            # after the list was written (the shard-8 catch-all treats the whole
+            # code.api.v4_0_0 package as covered by shard 1, so an omitted class would
+            # never run on ANY shard). Runtime discovery keeps shard 1 self-updating.
             test_filter: >-
-              code.api.v4_0_0.AccountAccessTest
-              code.api.v4_0_0.AccountBalanceTest
-              code.api.v4_0_0.AccountTagTest
-              code.api.v4_0_0.AccountTest
-              code.api.v4_0_0.ApiCollectionEndpointTest
-              code.api.v4_0_0.ApiCollectionTest
-              code.api.v4_0_0.AtmsTest
-              code.api.v4_0_0.AttributeDefinitionTransactionRequestTest
-              code.api.v4_0_0.AttributeDefinitionAttributeTest
-              code.api.v4_0_0.AttributeDefinitionCardTest
-              code.api.v4_0_0.AttributeDefinitionCustomerTest
-              code.api.v4_0_0.AttributeDefinitionProductTest
-              code.api.v4_0_0.AttributeDefinitionTransactionTest
-              code.api.v4_0_0.AuthenticationTypeValidationTest
-              code.api.v4_0_0.BankAttributeTests
-              code.api.v4_0_0.BankTests
-              code.api.v4_0_0.ConnectorMethodTest
-              code.api.v4_0_0.ConsentTests
-              code.api.v4_0_0.CorrelatedUserInfoTest
-              code.api.v4_0_0.CounterpartyTest
-              code.api.v4_0_0.CustomerAttributesTest
-              code.api.v4_0_0.CustomerMessageTest
-              code.api.v4_0_0.CustomerTest
-              code.api.v4_0_0.DeleteAccountCascadeTest
-              code.api.v4_0_0.DeleteBankCascadeTest
-              code.api.v4_0_0.DeleteCustomerCascadeTest
-              code.api.v4_0_0.DeleteProductCascadeTest
-              code.api.v4_0_0.DeleteTransactionCascadeTest
-              code.api.v4_0_0.DirectDebitTest
-              code.api.v4_0_0.DoubleEntryTransactionTest
-              code.api.v4_0_0.EndpointMappingBankLevelTest
-              code.api.v4_0_0.EndpointMappingTest
-              code.api.v4_0_0.EndpointTagTest
-              code.api.v4_0_0.EntitlementTests
-              code.api.v4_0_0.FirehoseTest
-              code.api.v4_0_0.ForceErrorValidationTest
-              code.api.v4_0_0.GetScannedApiVersionsTest
-              code.api.v4_0_0.JsonSchemaValidationTest
-              code.api.v4_0_0.LockUserTest
-              code.api.v4_0_0.MakerCheckerTransactionRequestTest
-              code.api.v4_0_0.MapperDatabaseInfoTest
-              code.api.v4_0_0.MySpaceTest
-              code.api.v4_0_0.OPTIONSTest
-              code.api.v4_0_0.PasswordRecoverTest
-              code.api.v4_0_0.ProductFeeTest
-              code.api.v4_0_0.ProductTest
-              code.api.v4_0_0.RateLimitingTest
-              code.api.v4_0_0.ScopesTest
-              code.api.v4_0_0.SettlementAccountTest
-              code.api.v4_0_0.StandingOrderTest
-              code.api.v4_0_0.TransactionAttributesTest
-              code.api.v4_0_0.TransactionRequestAttributesTest
-              code.api.v4_0_0.TransactionRequestsTest
-              code.api.v4_0_0.UserAttributesTest
-              code.api.v4_0_0.UserCustomerLinkTest
-              code.api.v4_0_0.UserInvitationApiTest
-              code.api.v4_0_0.UserTest
-              code.api.v4_0_0.WebhooksTest
+              code.api.v4_0_0
           - shard: 2
             name: "v1_2_1 only (largest unsplittable suite, isolated)"
             # API1_2_1Test is a single 6604-line suite (~333 scenarios, ~281s). Isolated
@@ -240,8 +188,8 @@ jobs:
             name: "v4 Dynamic tests"
             # v4_0_0 Dynamic* split: 6 heavy test classes (DynamicEndpointHelperTest 4206 lines,
             # DynamicEndpointsTest 2548, DynamicEntityTest 1974, plus 3 smaller ones).
-            # Prefix code.api.v4_0_0.Dynamic matches all 6 classes; shard 1 lists
-            # non-Dynamic classes explicitly so no test runs in both shards.
+            # Prefix code.api.v4_0_0.Dynamic matches all 6 classes; shard 1's runtime
+            # discovery excludes this same prefix so no test runs in both shards.
             test_filter: >-
               code.api.v4_0_0.Dynamic
 
@@ -355,9 +303,26 @@ jobs:
           # The YAML >- scalar collapses newlines to spaces, so we convert here.
           FILTER=$(echo "${{ matrix.test_filter }}" | tr ' ' ',')
 
+          # Shard 1 (v4 non-Dynamic): discover code.api.v4_0_0 classes at runtime and
+          # exclude Dynamic* (shard 9's domain), instead of a hand-maintained class list.
+          # This is what makes the shard-8 catch-all's "code.api.v4_0_0 is covered by
+          # shard 1" assumption actually true — a class list here could drift from the
+          # real directory contents and leave a new test running on no shard at all.
+          if [ "${{ matrix.shard }}" = "1" ]; then
+            FILTER=$(grep -l '^class.*extends' obp-api/src/test/scala/code/api/v4_0_0/*.scala \
+                       | xargs -I{} grep -hoP '^class \K[A-Z][A-Za-z0-9_]+' {} \
+                       | grep -v '^Dynamic' \
+                       | sed 's/^/code.api.v4_0_0./' \
+                       | paste -sd, -)
+          fi
+
           # Shard 8 is the catch-all: append any test package not explicitly
           # assigned to shards 1–7 and 9, so new packages are never silently skipped.
           if [ "${{ matrix.shard }}" = "8" ]; then
+            # Shard 1 discovers v4 non-Dynamic classes at runtime (see above); shard 9
+            # covers Dynamic*. Use code.api.v4_0_0 as the assigned prefix so the
+            # catch-all treats the whole v4_0_0 package as covered — true as long as
+            # shard 1's discovery and shard 9's Dynamic prefix together span it.
             SHARD1="code.api.v4_0_0"
             SHARD2="code.api.v1_2_1"
             SHARD3="code.api.v6_0_0"
