@@ -65,7 +65,10 @@ jobs:
             obp-commons/target/
 
       - name: Save .jar artifact
-        run: mkdir -p ./pull && cp obp-api/target/obp-api.jar ./pull/
+        run: |
+          mkdir -p ./pull
+          cp obp-api/target/obp-api.jar ./pull/
+          cp -r obp-api/target/lib ./pull/lib
 
       - uses: actions/upload-artifact@v4
         with:

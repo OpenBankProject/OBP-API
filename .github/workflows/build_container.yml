@@ -51,10 +51,12 @@ jobs:
           # Test classes must be in target/test-classes for the test shards.
           # `clean` for a guaranteed-correct build. A no-clean Zinc incremental cache
           # (actions/cache of target/) was measured and saved only ~17s: compile time is
-          # dominated by Maven startup + dependency resolution + packaging the ~297MB fat
-          # jar + install — NOT by Scala compilation (a zero-source-change rebuild was
-          # still 333s vs 350s). The stale-risk class of no-clean incremental builds is
-          # not worth ~2.7% of wall-clock, so we keep a full clean build.
+          # dominated by Maven startup + dependency resolution + install — NOT by Scala
+          # compilation (a zero-source-change rebuild was still 333s vs 350s; this was
+          # measured before the fat-jar-to-thin-jar switch, so the packaging share of
+          # that number no longer applies and hasn't been re-measured). The stale-risk
+          # class of no-clean incremental builds is not worth ~2.7% of wall-clock, so we
+          # keep a full clean build.
           MAVEN_OPTS="-Xmx3G -Xss2m -XX:MaxMetaspaceSize=1G" \
             mvn clean install -T 4 -Pprod -DskipTests
 
@@ -69,7 +71,10 @@ jobs:
             obp-commons/target/
 
       - name: Save .jar artifact
-        run: mkdir -p ./push && cp obp-api/target/obp-api.jar ./push/
+        run: |
+          mkdir -p ./push
+          cp obp-api/target/obp-api.jar ./push/
+          cp -r obp-api/target/lib ./push/lib
 
       - uses: actions/upload-artifact@v4
         with:

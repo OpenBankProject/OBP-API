@@ -74,11 +74,29 @@ java -jar obp-api/target/obp-api.jar
 
 The http4s server binds to `hostname` / `dev.port` as configured in your props file (defaults are `127.0.0.1` and `8080`).
 
-No `--add-opens` flags are needed on the command line: the executable jar's manifest carries
+`obp-api.jar` is a thin jar: it contains only this module's classes and resources. Its
+runtime dependencies are copied to the sibling `obp-api/target/lib/` directory by the build,
+and the jar's manifest carries a `Class-Path` entry pointing at `lib/`, so the jar and `lib/`
+must stay next to each other — copying the jar alone is not enough to run it.
+
+No `--add-opens` flags are needed on the command line: the jar's manifest also carries
 an `Add-Opens` attribute (JEP 261) with all modules the runtime needs (CGLib proxy generation,
 Kryo serialization, Pekko remoting, Scala runtime reflection). Only when launching via a
-custom classpath (`java -cp ... bootstrap.http4s.Http4sServer`) do the flags need to be passed
-explicitly, since the manifest is only honored by `java -jar`.
+custom classpath does the manifest not apply, since it is only honored by `java -jar`; the
+equivalent form needs the flags passed explicitly:
+
+```sh
+java --add-opens java.base/java.lang=ALL-UNNAMED \
+     --add-opens java.base/java.lang.reflect=ALL-UNNAMED \
+     --add-opens java.base/java.util=ALL-UNNAMED \
+     --add-opens java.base/java.lang.invoke=ALL-UNNAMED \
+     --add-opens java.base/java.util.jar=ALL-UNNAMED \
+     --add-opens java.base/sun.reflect.generics.reflectiveObjects=ALL-UNNAMED \
+     --add-opens java.base/java.io=ALL-UNNAMED \
+     --add-opens java.base/java.util.concurrent=ALL-UNNAMED \
+     --add-opens java.base/java.security=ALL-UNNAMED \
+     -cp "obp-api/target/obp-api.jar:obp-api/target/lib/*" bootstrap.http4s.Http4sServer
+```
 
 [Note: How to run via IntelliJ IDEA](obp-api/src/main/docs/glossary/Run_via_IntelliJ_IDEA.md)
 
