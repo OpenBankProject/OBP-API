@@ -4,12 +4,10 @@ WORKDIR /app
 
 # Copy Maven configuration files
 COPY pom.xml .
-COPY build.sbt .
 
 # Copy source code and necessary project files
 COPY obp-api/ ./obp-api/
 COPY obp-commons/ ./obp-commons/
-COPY project/ ./project/
 
 # Copy other necessary files for the build
 COPY jitpack.yml .
