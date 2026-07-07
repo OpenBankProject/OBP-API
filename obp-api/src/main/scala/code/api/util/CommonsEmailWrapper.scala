@@ -132,8 +132,8 @@ object CommonsEmailWrapper extends MdcLoggable {
 
   // Variant that preserves the exception so callers can classify SMTP failures
   // (auth / connect / TLS / recipient rejection) instead of returning a generic
-  // EmailSendingFailed. Used by the self-test endpoint; existing fire-and-forget
-  // callers (signup, password reset) keep using sendTextEmail above.
+  // EmailSendingFailed. Used by the self-test endpoint and the password-reset
+  // endpoint; existing fire-and-forget callers (signup) keep using sendTextEmail above.
   def sendTextEmailEither(content: EmailContent): Either[Throwable, String] = {
     if (isTestMode) Right("test-mode-message-id-" + System.currentTimeMillis())
     else sendTextEmailEither(getDefaultEmailConfig(), content)

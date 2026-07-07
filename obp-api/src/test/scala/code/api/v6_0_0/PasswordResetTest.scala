@@ -141,6 +141,27 @@ class PasswordResetTest extends V600ServerSetup {
       (response600.body \ "reset_password_url") should equal(org.json4s.JNothing)
     }
 
+    scenario("SMTP failure must surface as a 500, not a fake 'sent'", ApiEndpoint1, VersionOfApi) {
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateResetPasswordUrl.toString)
+      val authUser: AuthUser = AuthUser.create.email(postJson.email).username(postJson.username).validated(true).saveMe()
+      val resourceUser: Box[User] = Users.users.vend.getUserByResourceUserId(authUser.user.get)
+      And("SMTP is misconfigured (closed port) with test mode off, so the send must fail")
+      setPropsValues(
+        "mail.test.mode" -> "false",
+        "mail.smtp.host" -> "localhost",
+        "mail.smtp.port" -> "1" // reserved port, connection refused immediately
+      )
+      When("We make a request v6.0.0")
+      val request600 = (v6_0_0_Request / "management" / "user" / "reset-password-url").POST <@(user1)
+      val response600 = makePostRequest(request600, write(postJson.copy(user_id = resourceUser.map(_.userId).getOrElse(""))))
+      Then("We should get a 500 that says the email could not be sent")
+      withClue(s"Response body: ${response600.body} ") {
+        response600.code should equal(500)
+      }
+      response600.body.extract[ErrorMessage].message should include("Failed to send password reset email")
+      // beforeEach restores mail.test.mode=true for the remaining scenarios
+    }
+
     scenario("We will call the endpoint with unvalidated user", ApiEndpoint1, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateResetPasswordUrl.toString)
       val testUsername = "unvalidated@tesobe.com"
