@@ -1557,6 +1557,21 @@ personal_data_collection_consent_country_waiver_list = Austria, Belgium, Bulgari
 # user_invitation_link_base_URL=strongly recommended to use top level domain name so that all nodes in the cluster share same URL
 
 
+# --- Dynamic code execution kill-switch (security: RCE surface) ---
+# Master switch for USER-GENERATED code that OBP compiles and executes at runtime:
+#   - Dynamic Resource Docs (/management/dynamic-resource-docs)      -> compiles Scala
+#   - Connector Methods      (/management/connector-methods)         -> compiles Scala/JS/Java
+#   - Dynamic Message Docs   (/management/dynamic-message-docs)      -> compiles Scala/JS/Java
+#   - ABAC Rules             (/management/abac-rules)                -> compiles Scala
+# When false, these endpoints return OBP-50020 and NOTHING is compiled or executed.
+# This does NOT affect Dynamic Entities or Swagger Dynamic Endpoints (they store data /
+# proxy HTTP and do not execute code).
+# SECURITY: the runtime sandbox (SecurityManager) is a no-op on JDK 24+ (JEP 486) and the
+# GraalVM JS context is created with HostAccess.ALL, so enabled dynamic code runs UNSANDBOXED.
+# Leave false in production. Only enable on trusted sandbox/dev instances.
+# (Always ON in test/dev run modes regardless of this value, unless this prop is set explicitly.)
+allow_user_generated_scala_code=false
+
 # enable dynamic code sandbox, default is false, this will make sandbox works for code running in Future, will make performance lower than disable
 dynamic_code_sandbox_enable=false
 # Here is the default permissions if you set the dynamic_code_sandbox_enable = true. If you need more permission need to add it manually here.
