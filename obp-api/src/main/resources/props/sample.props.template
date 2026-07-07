@@ -80,7 +80,9 @@ starConnector_supported_types=mapped,internal
 #this cache is used in api level, will cache whole endpoint : v121.getTransactionsForBankAccount
 #api.cache.ttl.seconds.APIMethods121.getTransactions=0
 
-## MethodRouting cache time-to-live in seconds
+# TTL (seconds) for the MethodRouting lookup cache used by StarConnector on every connector
+# call. 0 disables the cache (every connector call re-queries the DB). Writes via
+# /management/method_routings invalidate the cache immediately, so this is a staleness backstop.
 #methodRouting.cache.ttl.seconds=30
 
 ## EndpointMapping cache time-to-live in seconds
