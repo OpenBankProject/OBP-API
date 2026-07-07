@@ -57,6 +57,10 @@ object RabbitMQUtils extends MdcLoggable{
   val RPC_QUEUE_NAME: String = APIUtil.getPropsValue("rabbitmq_connector.request_queue", "obp_rpc_queue")
   val RPC_REPLY_TO_QUEUE_NAME_PREFIX: String = APIUtil.getPropsValue("rabbitmq_connector.response_queue_prefix", "obp_reply_queue")
 
+  // Application-level cap on how long to wait for an adapter reply. Kept below the 60s reply-queue TTL/x-expires above.
+  val RABBITMQ_RESPONSE_TIMEOUT_IN_MILLIS: Long =
+    APIUtil.getPropsAsLongValue("rabbitmq_connector.response_timeout", code.api.Constant.longEndpointTimeoutInMillis)
+
   class ResponseCallback(val rabbitCorrelationId: String, channel: Channel) extends DeliverCallback {
 
     val promise = Promise[String]()
@@ -64,19 +68,16 @@ object RabbitMQUtils extends MdcLoggable{
 
     override def handle(consumerTag: String, message: Delivery): Unit = {
       if (message.getProperties.getCorrelationId.equals(rabbitCorrelationId)) {
-        {
-          promise.success {
-            val response =new String(message.getBody, "UTF-8");
-            try {
-              if (channel.isOpen) channel.close();
-            } catch {
-              case e: Throwable =>{
-                logger.debug(s"$AdapterUnknownError Can not close the channel properly! Details:$e")
-                throw new RuntimeException(s"$AdapterUnknownError Can not close the channel properly! Details:$e")
-              }
-            }
-            response
-          }
+        val response = new String(message.getBody, "UTF-8")
+        // Complete the promise BEFORE touching the channel. A channel-close failure must never
+        // prevent the waiting request from being satisfied, and must never escape onto the
+        // RabbitMQ dispatch thread. trySuccess is idempotent against duplicate deliveries.
+        promise.trySuccess(response)
+        try {
+          if (channel.isOpen) channel.close()
+        } catch {
+          case e: Throwable =>
+            logger.debug(s"$AdapterUnknownError Can not close the channel properly! Details:$e")
         }
       }
     }
@@ -146,7 +147,17 @@ object RabbitMQUtils extends MdcLoggable{
 
         val responseCallback = new ResponseCallback(rabbitMQCorrelationId, channel)
         channel.basicConsume(replyQueueName, true, responseCallback, cancelCallback)
-        responseCallback.take()
+        // Application-level timeout: if the adapter never replies, fail with 408 instead of hanging forever.
+        code.api.util.FutureUtil.futureWithTimeout(responseCallback.take())(
+          code.api.util.FutureUtil.EndpointTimeout(RABBITMQ_RESPONSE_TIMEOUT_IN_MILLIS),
+          code.api.util.FutureUtil.EndpointContext(None),
+          scala.concurrent.ExecutionContext.Implicits.global
+        ).andThen {
+          // On timeout/failure the ResponseCallback never ran, so the per-request channel is still open — release it.
+          case scala.util.Failure(_) =>
+            try { if (channel.isOpen) channel.close() }
+            catch { case e: Throwable => logger.debug(s"$AdapterUnknownError timeout channel cleanup failed: $e") }
+        }
       } catch {
         case e: RuntimeException if e.getMessage != null && e.getMessage.startsWith("OBP-") =>
           logger.debug(s"${RabbitMQConnector_vOct2024.toString} inBoundJson exception: $messageId = ${e}")

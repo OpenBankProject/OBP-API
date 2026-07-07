@@ -70,18 +70,42 @@ object FutureUtil {
     p.future
   }
 
-  def futureWithLimits[T](future: Future[T], serviceName: String)(implicit ec: ExecutionContext): Future[T] = {
+  def futureWithLimits[T](future: Future[T], serviceName: String)(implicit ec: ExecutionContext): Future[T] =
+    futureWithLimits(future, serviceName, Constant.longEndpointTimeoutInMillis)
+
+  /**
+   * Bound the open-futures counter with a self-healing reaper.
+   *
+   * incrementFutureCounter runs synchronously; the matching decrement must run exactly once,
+   * no matter whether the wrapped Future completes, fails, or NEVER completes (e.g. a connector
+   * call to a hung backend). Without the reaper a never-completing Future keeps its slot in
+   * openFuturesCount forever, ratcheting getBackOffFactor to its worst tier (1024) so that
+   * canOpenFuture rejects ~all subsequent calls with ServiceIsTooBusy until the JVM restarts.
+   *
+   * The reaper only frees the accounting slot; the underlying Future is left untouched (giving
+   * the returned Future a timeout is a separate concern — see the RabbitMQ no-timeout finding).
+   * decrementOnce is guarded by an AtomicBoolean so the reaper and the Future's own completion
+   * can never decrement twice (which would drive the counter negative).
+   */
+  def futureWithLimits[T](future: Future[T], serviceName: String, reaperTimeoutMillis: Long)
+                         (implicit ec: ExecutionContext): Future[T] = {
     incrementFutureCounter(serviceName)
+
+    val decremented = new java.util.concurrent.atomic.AtomicBoolean(false)
+    def decrementOnce(): Unit =
+      if (decremented.compareAndSet(false, true)) decrementFutureCounter(serviceName)
+
+    val reaper = new TimerTask() {
+      def run(): Unit = decrementOnce()
+    }
+    timer.schedule(reaper, reaperTimeoutMillis)
+
+    future.onComplete { _ =>
+      reaper.cancel()
+      decrementOnce()
+    }
+
     future
-      .map(
-        value => {
-          decrementFutureCounter(serviceName)
-          value
-      }).recover{
-        case exception: Throwable =>
-          decrementFutureCounter(serviceName)
-          throw exception
-      }
   }
 
 }
