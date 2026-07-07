@@ -897,6 +897,7 @@ object ErrorMessages {
   val NotAllowedEndpoint = "OBP-50017: The endpoint is not enabled at this OBP API instance."
   val UnderConstructionError = "OBP-50018: Under Construction Error."
   val DatabaseConnectionClosedError = "OBP-50019: Cannot connect to the OBP database."
+  val DynamicCodeExecutionDisabled = "OBP-50020: User-generated dynamic code execution is disabled on this API instance. Set allow_user_generated_scala_code=true to enable."
 
 
   // Connector Data Exceptions (OBP-502XX)
