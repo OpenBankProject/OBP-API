@@ -15,8 +15,8 @@ import scala.util.{Failure, Success, Try}
 
 
 object ConsentScheduler extends MdcLoggable {
-  val dateFormat = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss", Locale.ENGLISH)
-  def currentDate = dateFormat.format(new Date())
+  // SimpleDateFormat is not thread-safe; build a fresh instance per call (low frequency).
+  def currentDate: String = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss", Locale.ENGLISH).format(new Date())
 
   // Starts multiple scheduled tasks with different intervals.
   // All tasks are enabled by default. Set the interval prop to 0 to disable a task.

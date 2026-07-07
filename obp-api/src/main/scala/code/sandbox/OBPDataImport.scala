@@ -50,7 +50,8 @@ trait Saveable[T] {
  */
 trait OBPDataImport extends MdcLoggable {
   val datePattern = APIUtil.DateWithMs
-  val dateFormat = new SimpleDateFormat(datePattern)
+  // SimpleDateFormat is not thread-safe; build a fresh instance per call (low frequency).
+  protected def dateFormat = new SimpleDateFormat(datePattern)
 
   type BankType <: Bank
   type AccountType <: BankAccount
