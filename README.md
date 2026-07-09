@@ -46,9 +46,11 @@ This project is dual licensed under the AGPL V3 (see NOTICE) and commercial lice
 ## Setup
 
 ### Installing JDK
+
 #### With sdkman
 
 A good way to manage JDK versions and install the correct version for OBP is [sdkman](https://sdkman.io/). If you have this installed then you can install the correct JDK easily using:
+
 ```
 sdk env install
 ```
@@ -386,11 +388,13 @@ OBP-API now operates exclusively as a backend API server. There is no configurat
 If your props file contains `server_mode`, you can safely remove it. The property is ignored.
 
 **Before:**
+
 ```properties
 server_mode=apis
 ```
 
 **After:**
+
 ```properties
 # server_mode property removed - no configuration needed
 # OBP-API automatically runs in API-only mode
@@ -558,6 +562,7 @@ hostname=https://your-api-server.com
 If not configured, the application will fail to start with error "OBP-00001: Hostname not specified".
 
 The OpenAPI documentation will show a single server entry using the configured hostname:
+
 ```json
 "servers": [
   {"url": "https://your-api-server.com", "description": "Back-end server"}
@@ -701,17 +706,17 @@ If the email cannot be sent, returns 500 with the most specific OBP error code
 for the underlying cause. The exception chain (class name + message) is always
 appended after `Detail:` so the operator can diagnose without server logs:
 
-| Failure | Status | Code |
-|---|---|---|
-| Caller has no email address | 400 | `OBP-30339 UserEmailAddressMissing` |
-| `portal_external_url` unset | 500 | `OBP-10056 IncompleteServerConfiguration` |
-| `mail.users.userinfo.sender.address` is default | 500 | `OBP-10056 IncompleteServerConfiguration` |
-| SMTP rejected credentials | 500 | `OBP-30341 SmtpAuthenticationFailed` |
-| TCP connect / host unreachable / timeout / DNS fail | 500 | `OBP-30342 SmtpConnectionFailed` |
-| TLS / SSL handshake fail | 500 | `OBP-30343 SmtpTlsHandshakeFailed` |
-| Recipient / From / message rejected by server | 500 | `OBP-30344 SmtpRecipientRejected` |
-| Other Jakarta Mail protocol error | 500 | `OBP-30345 SmtpProtocolError` |
-| Truly unknown | 500 | `OBP-30340 EmailSendingFailed` (fallback) |
+| Failure                                             | Status | Code                                      |
+| --------------------------------------------------- | ------ | ----------------------------------------- |
+| Caller has no email address                         | 400    | `OBP-30339 UserEmailAddressMissing`       |
+| `portal_external_url` unset                         | 500    | `OBP-10056 IncompleteServerConfiguration` |
+| `mail.users.userinfo.sender.address` is default     | 500    | `OBP-10056 IncompleteServerConfiguration` |
+| SMTP rejected credentials                           | 500    | `OBP-30341 SmtpAuthenticationFailed`      |
+| TCP connect / host unreachable / timeout / DNS fail | 500    | `OBP-30342 SmtpConnectionFailed`          |
+| TLS / SSL handshake fail                            | 500    | `OBP-30343 SmtpTlsHandshakeFailed`        |
+| Recipient / From / message rejected by server       | 500    | `OBP-30344 SmtpRecipientRejected`         |
+| Other Jakarta Mail protocol error                   | 500    | `OBP-30345 SmtpProtocolError`             |
+| Truly unknown                                       | 500    | `OBP-30340 EmailSendingFailed` (fallback) |
 
 Use this from APIManager (or a `curl` with appropriate auth headers) to confirm
 that signup / password-reset emails will be deliverable on this instance,
@@ -736,7 +741,9 @@ Body: { "username": "alice", "email": "alice@example.com" }
   of whether the user exists, is already validated, the rate limit was hit, or
   the SMTP send failed:
   ```json
-  { "message": "If an unvalidated account exists for this username and email, a validation email has been sent." }
+  {
+    "message": "If an unvalidated account exists for this username and email, a validation email has been sent."
+  }
   ```
 - **Rate-limited**: 3 attempts per email per hour, Redis-backed. Over-limit
   requests still get the same 201.
@@ -998,3 +1005,7 @@ Steps to add Spanish language:
 - add file `lift-core_es_ES.properties` at the folder `/resources/i18n`
 
 Please note that default translation file is `lift-core.properties`
+
+## Funding Note
+
+This repository has recived funding via The OGCR Project which has received funding from the European Union's Horizon Europe programme under grant agreement 101218854.
