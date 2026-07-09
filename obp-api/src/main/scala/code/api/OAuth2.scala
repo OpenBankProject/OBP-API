@@ -585,11 +585,17 @@ object OAuth2Login extends MdcLoggable {
     }
 
     /**
-      * This function creates a consumer based on "azp", "sub", "iss", "name" and "email" fields
-      * Please note that a user must be created before consumer.
-      * Unique criteria to decide do we create or get a consumer is pair o values: < sub : azp > i.e.
-      * We cannot find consumer by sub and azp => Create
-      * We can find consumer by sub and azp => Get
+      * This function resolves the token to a consumer based on the "azp", "aud", "iss", "sub",
+      * "name" and "email" claims. Please note that a user must be created before consumer.
+      * Lookup order (see MappedConsumersProvider.getOrCreateConsumer):
+      *   1. by consumerId (not used from here — None is passed)
+      *   2. by Consumer.key == azp — a pre-registered consumer whose key is the OAuth2 client ID
+      *      takes priority over auto-created ones
+      *   3. by the (azp, iss) pair — the auto-created consumer for this client+issuer
+      * No match => a new consumer is auto-created for the (azp, iss) pair. Granularity is one
+      * consumer per OAuth client per issuer, NOT per user: the sub claim is stored on the
+      * consumer but is not part of the lookup key. The consumer name comes from the token's
+      * "name" claim (the first user who logged in with this client) falling back to description.
       * @param jwtToken Google's response example:
       *                {
       *                "access_token": "ya29.GluUBg5DflrJciFikW5hqeKEp9r1whWnU5x2JXCm9rKkRMs2WseXX8O5UugFMDsIKuKCZlE7tTm1fMII_YYpvcMX6quyR5DXNHH8Lbx5TrZN__fA92kszHJEVqPc",

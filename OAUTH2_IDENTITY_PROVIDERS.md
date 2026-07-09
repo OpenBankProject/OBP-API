@@ -69,13 +69,23 @@ allowlist mechanism supports all of these; the security and operational
 properties differ substantially.
 
 One implementation fact shapes the whole comparison: for public-IdP logins,
-OBP auto-creates Consumers keyed by the **`<sub, azp>` pair**
-(`OAuth2.scala`, `getOrCreateConsumer`). It does *not* create one Consumer
-per application — it creates one Consumer per **user per Google client**, all
-named "OpenID Connect". Everything OBP hangs off a Consumer (rate limits,
-metrics, the enable/disable switch) therefore has per-user-per-client
-granularity today. The client ID policy determines how much signal the `azp`
-axis carries.
+OBP resolves the token to a Consumer keyed by the **`(azp, iss)` pair**
+(`MappedConsumersProvider.getOrCreateConsumer`, `OAuth.scala`) — **one
+Consumer per OAuth client per issuer**, auto-created on first login. (The
+original implementation keyed Consumers by `<sub, azp>` — one per *user* per
+client; that is no longer the case, the `sub` claim is stored on the Consumer
+but is not part of the lookup key.) A **pre-registered** Consumer whose `key`
+equals the OAuth2 client ID takes priority over auto-creation (its
+`azp`/`iss` are populated on first use), so the operator can register one
+Consumer per Google client up front. Everything OBP hangs off a Consumer —
+rate limits, metrics, the enable/disable switch (enforced after auth by
+`AfterApiAuth.checkConsumerIsDisabled`) — therefore has per-client
+granularity: the client ID policy decides whether "per client" means per app,
+per instance, or per environment. One cosmetic caveat: auto-created Consumers
+take their name from the token's `name` claim — the display name of whichever
+user logged in first (falling back to "OpenID Connect") — so pre-register
+Consumers when you want meaningful app names in metrics. All of this is
+pinned down by `OAuth2ConsumerResolutionTest`.
 
 ### The four policies
 
@@ -84,7 +94,7 @@ axis carries.
 | Google clients needed | 1 | 1 per app (Explorer, Manager, Portal, …) | apps × environments | apps × environments × tenants |
 | `allowed_audiences` entries | 1 | one per app | one per app (each instance lists only its own environment's IDs) | per-tenant scoping **not expressible** in a flat props list |
 | Revoke a single app | ✗ — removing the entry kills all apps | ✓ — remove its entry | ✓ | ✓ |
-| Distinguish apps in Consumers / metrics | ✗ — same `azp` everywhere; per-user Consumers merge across apps | ✓ — distinct `azp` per app | ✓ | ✓ |
+| Distinguish apps in Consumers / metrics | ✗ — same `azp` everywhere; all apps share one Consumer | ✓ — one Consumer per app | ✓ | ✓ |
 | Cross-app token replay (token minted for app A used as app B) | possible by construction — all apps share one audience | prevented at the app boundary | prevented | prevented |
 | Cross-**environment** replay (test token → prod) | **open** if the same client ID is reused across environments | **open** if IDs are reused across environments | **closed** — prod allowlist never contains a test client ID | closed |
 | Blast radius of a leaked client secret | every app on the instance | one app | one app in one environment | one app in one environment for one tenant |
@@ -97,21 +107,23 @@ axis carries.
 only for throwaway sandboxes. Because every app presents the same `aud`/`azp`,
 the audience check degenerates to "is it ours at all": an id_token obtained by
 logging into the Portal is equally valid when replayed as if it came from API
-Manager, there is no per-app kill switch, and the `<sub, azp>` Consumer
-dedup merges all apps into a single Consumer per user — so per-Consumer rate
-limits and metrics cannot tell apps apart. A leaked client secret (for
+Manager, and all apps resolve to the same `(azp, iss)` Consumer — so
+per-Consumer rate limits, metrics and the disable switch cannot tell apps
+apart, and there is no per-app kill switch. A leaked client secret (for
 confidential flows) burns every app at once.
 
 **2. Per app.** The intended reading of the example in the audience-allowlist
 section above. Each ecosystem app (Explorer, Manager, Portal) gets its own
-Google OAuth client; all are listed comma-separated. Revoking one app is
-deleting one entry; distinct `azp` values yield distinct auto-created
-Consumers, so per-app signal exists in metrics; each app controls its own
-consent-screen branding and redirect URIs. Remaining weakness: the list is
-still flat — every listed client is equally trusted for the *entire* API
-surface (there is no "tokens from the Portal client may log in but not reach
-admin endpoints" distinction; that would require binding client IDs to
-Consumer-level policy, see "Beyond the flat list" below).
+Google OAuth client; all are listed comma-separated. Each app then maps to its
+own Consumer, so per-app rate limits and metrics work, and revoking one app
+can be done two ways: remove its allowlist entry (props change, needs a
+restart) or disable its Consumer (immediate, runtime). Each app controls its
+own consent-screen branding and redirect URIs. Remaining weakness: the
+allowlist is still flat — every listed client is equally trusted for the
+*entire* API surface (there is no "tokens from the Portal client may log in
+but not reach admin endpoints" distinction; that would require Consumer-level
+authorisation policy, see "Binding client IDs to registered Consumers"
+below).
 
 **3. Per app × environment (recommended).** Policy 2 plus the rule: **a
 Google client ID is never reused across environments.** This is the axis the
@@ -140,19 +152,27 @@ old entry. The overlap window is as long as you need. (A props change
 requires an instance restart to take effect — plan the two edits around
 normal restart cycles.)
 
-### Beyond the flat list (future direction, not implemented)
+### Binding client IDs to registered Consumers (half implemented)
 
-The natural end-state is binding accepted client IDs to **registered
-Consumers**: the operator pre-registers each Google client ID as an OBP
-Consumer (storing the `azp`), and validation becomes "does an enabled
-Consumer with this `azp` exist?". That would make the allowlist manageable at
-runtime via API Manager instead of props + restart, give per-app rate
-limits/disable switches through the existing Consumer machinery, express
-per-tenant scoping, and replace the per-user `<sub, azp>` Consumer
-proliferation with the one-Consumer-per-app model used by every other auth
-path (the Hydra introspection path already resolves consumers by client ID
-this way). Until then, the props list is the only control, and policy 3 above
-is the recommended way to use it.
+The **attachment** half already exists: `getOrCreateConsumer` gives priority
+to a pre-registered Consumer whose `key` equals the token's client ID
+(`azp`), before falling back to the auto-created `(azp, iss)` Consumer — and
+it displaces a stale auto-created Consumer holding the same `(azp, iss)`. So
+an operator can register one Consumer per Google client today and get
+meaningful Consumer names in metrics, per-app rate limits, and a runtime
+disable switch — instead of relying on auto-creation and its
+user-display-name naming.
+
+The **rejection** half is not implemented: an id_token whose client ID
+matches no registered Consumer is still accepted (a Consumer is auto-created
+on the fly), so `allowed_audiences` remains the only control that actually
+rejects foreign client IDs — and it is instance-global (no per-tenant
+scoping) and needs a restart to change. The natural end-state — validation
+asking "does an *enabled, registered* Consumer with this client ID exist?" —
+would make the allowlist manageable at runtime via API Manager and express
+per-tenant scoping (the Hydra introspection path already resolves consumers
+by client ID this way). Until then, the recommended combination is policy 3
+above for rejection plus pre-registered Consumers for per-app control.
 
 ## Operator-controlled IdPs (Keycloak, OBP-OIDC, Hydra)
 
@@ -185,3 +205,6 @@ JWKS URL must be present in `oauth2.jwk_set.url` for signature validation.
   and `OAuth2Util.validateProviderEnabled`
 - `obp-api/src/test/scala/code/api/OAuth2AudienceValidationTest.scala` —
   executable specification of both checks
+- `obp-api/src/test/scala/code/api/OAuth2ConsumerResolutionTest.scala` —
+  executable specification of token-to-Consumer resolution: `(azp, iss)`
+  granularity, pre-registered-Consumer priority, auto-created metadata
