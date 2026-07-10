@@ -1,12 +1,95 @@
 #!/bin/bash
 # Local parallel test runner — mirrors CI's test coverage on a single machine.
-# Pinned to JDK 25 (Scala 2.12.21+). Override JAVA_HOME before running if a
-# different JDK is needed.
-JAVA25_HOME="/Library/Java/JavaVirtualMachines/zulu-25.jdk/Contents/Home"
-if [[ -d "$JAVA25_HOME" ]]; then
-  export JAVA_HOME="$JAVA25_HOME"
-  export PATH="$JAVA_HOME/bin:$PATH"
+# Pinned to JDK 25 (Scala 2.12.21+): the suite MUST run on JDK 25, because a
+# different JDK produces different results. This script is portable — it does not
+# hard-code any one developer's install path. It discovers a JDK 25 across macOS
+# and Linux (see resolve_jdk25 below) and ABORTS with guidance if none is found,
+# rather than silently falling back to whatever JDK happens to be active.
+#
+# Override order (first match wins):
+#   1. $OBP_JDK25_HOME     — explicit escape hatch for non-standard installs
+#   2. $JAVA_HOME          — but only if it already points at a JDK 25
+#   3. macOS  /usr/libexec/java_home -v 25   (any vendor: Temurin/Zulu/Oracle/…)
+#   4. SDKMAN ~/.sdkman/candidates/java/*25*
+#   5. Linux  /usr/lib/jvm/*25*, /opt/java/*25*, etc.
+#   6. a `java` already on PATH that reports version 25
+
+# _java_is_25 <java-home-or-binary>: true iff it runs and reports Java 25.
+_java_is_25() {
+  local jb="$1"
+  [[ -d "$jb" ]] && jb="$jb/bin/java"
+  [[ -x "$jb" ]] || return 1
+  "$jb" -version 2>&1 | grep -qE 'version "25(\.|")'
+}
+
+resolve_jdk25() {
+  local c cand=()
+
+  # 1. Respect an already-correct JAVA_HOME (explicit user override).
+  if [[ -n "${JAVA_HOME:-}" ]] && _java_is_25 "$JAVA_HOME"; then
+    export PATH="$JAVA_HOME/bin:$PATH"
+    return 0
+  fi
+
+  # 2. Explicit escape hatch for odd install locations.
+  [[ -n "${OBP_JDK25_HOME:-}" ]] && cand+=("$OBP_JDK25_HOME")
+
+  # 3. macOS canonical resolver — vendor-agnostic.
+  if [[ -x /usr/libexec/java_home ]]; then
+    local mh; mh=$(/usr/libexec/java_home -v 25 2>/dev/null) && [[ -n "$mh" ]] && cand+=("$mh")
+  fi
+
+  # 4. SDKMAN-managed JDKs.
+  if [[ -d "${HOME:-}/.sdkman/candidates/java" ]]; then
+    for c in "$HOME/.sdkman/candidates/java"/*25*/; do [[ -d "$c" ]] && cand+=("${c%/}"); done
+  fi
+
+  # 5. Common Linux + macOS-bundle JVM locations (unmatched globs stay literal and
+  #    are filtered out by the [[ -d ]] test below).
+  for c in /usr/lib/jvm/*25* /usr/lib/jvm/*-25 /usr/lib/jvm/java-25* \
+           /opt/java/*25* /Library/Java/JavaVirtualMachines/*25*/Contents/Home; do
+    [[ -d "$c" ]] && cand+=("$c")
+  done
+
+  # 6. First candidate that actually reports Java 25 wins.
+  for c in "${cand[@]}"; do
+    if _java_is_25 "$c"; then
+      export JAVA_HOME="$c"
+      export PATH="$JAVA_HOME/bin:$PATH"
+      return 0
+    fi
+  done
+
+  # 7. Last resort: a `java` already on PATH that is version 25. Derive JAVA_HOME
+  #    from it so child mvn/JVMs agree on the same JDK.
+  if command -v java >/dev/null 2>&1 && java -version 2>&1 | grep -qE 'version "25(\.|")'; then
+    local jbin; jbin=$(command -v java)
+    command -v realpath >/dev/null 2>&1 && jbin=$(realpath "$jbin" 2>/dev/null || echo "$jbin")
+    local jhome; jhome=$(cd "$(dirname "$jbin")/.." 2>/dev/null && pwd)
+    if [[ -n "$jhome" ]] && _java_is_25 "$jhome"; then
+      export JAVA_HOME="$jhome"
+      export PATH="$JAVA_HOME/bin:$PATH"
+      return 0
+    fi
+  fi
+
+  return 1
+}
+
+if ! resolve_jdk25; then
+  cat >&2 <<'EOF'
+❌ JDK 25 not found. This suite is pinned to JDK 25 (Scala 2.12.21+); running on a
+   different JDK produces different results, so the script refuses to continue.
+   Install a JDK 25 and retry, e.g.:
+     • SDKMAN:  sdk install java 25-tem
+     • macOS:   brew install --cask temurin@25   (or download Zulu/Temurin 25)
+     • Linux:   install a temurin-25 / java-25-openjdk package
+   Or point the script at an existing install:
+     OBP_JDK25_HOME=/path/to/jdk-25  ./run_tests_parallel.sh
+EOF
+  exit 1
 fi
+echo "JDK: $("$JAVA_HOME/bin/java" -version 2>&1 | head -1)  (JAVA_HOME=$JAVA_HOME)"
 # CI (build_pull_request.yml / build_container.yml) uses 9 shards across 9 VMs;
 # this script uses 4 coarser shards that achieve identical coverage via the
 # catch-all mechanism, without exhausting the single local DB connection pool
@@ -53,6 +136,19 @@ elif command -v gtimeout >/dev/null 2>&1; then
 else
     echo "ERROR: neither 'timeout' nor 'gtimeout' found on PATH" >&2
     exit 1
+fi
+
+# Maven is required (every dev has it via the project README's setup).
+command -v mvn >/dev/null 2>&1 || { echo "ERROR: 'mvn' (Maven) not found on PATH" >&2; exit 1; }
+
+# python3 is used ONLY for the (non-authoritative) test-isolation lint and the
+# per-test speed report. The pass/fail verdict itself is computed in pure shell
+# (see the surefire audit near the end), so a missing or broken python3 never turns
+# a green run red — those two extras just skip with a visible warning.
+if command -v python3 >/dev/null 2>&1 && python3 -c 'import sys' >/dev/null 2>&1; then
+    HAVE_PY3=1
+else
+    HAVE_PY3=0
 fi
 
 # Cross-checkout mutex: the obp-commons `mvn install` writes to the shared ~/.m2.
@@ -182,6 +278,14 @@ run_shard() {
     # OBP_DYNAMIC_CODE_SANDBOX_PERMISSIONS mirrors CI's dynamic_code_sandbox_permissions
     # props line: without it the dynamic-code sandbox denies reflection/getenv and
     # DynamicResourceDocTest's native-execution scenarios fail locally (CI green, local red).
+    # OBP_RABBITMQ_CONNECTOR_* : RabbitMQUtils' object initializer reads 5 mandatory
+    # rabbitmq_connector.* props via openOrThrowException; the local test.default.props
+    # omits them (CI resolves them from the committed default.props), so
+    # RabbitMQUtilsResponseCallbackTest aborts locally with ExceptionInInitializerError
+    # (CI green, local red). These are the same inert placeholder values as default.props
+    # (localhost/5671/obp/obp//); the test mocks the channel and connector=star with
+    # starConnector_supported_types=mapped,internal never activates the rabbitmq connector,
+    # so nothing here opens a real broker connection.
     # -pl obp-commons,obp-api mirrors CI: obp-commons' own util suites run on whichever
     # shard's filter matches com.openbankproject.* (the shard-4 catch-all); on every other
     # shard the filter matches nothing in obp-commons -> 0 tests there.
@@ -195,6 +299,11 @@ run_shard() {
     OBP_HTTP4S_TEST_PORT="${http4s_port}" \
     OBP_MAIL_TEST_MODE="true" \
     OBP_DYNAMIC_CODE_SANDBOX_PERMISSIONS='[new java.net.NetPermission("specifyStreamHandler"), new java.lang.reflect.ReflectPermission("suppressAccessChecks"), new java.lang.RuntimePermission("getenv.*"), new java.util.PropertyPermission("cglib.useCache", "read"), new java.util.PropertyPermission("net.sf.cglib.test.stressHashCodes", "read"), new java.util.PropertyPermission("cglib.debugLocation", "read"), new java.lang.RuntimePermission("accessDeclaredMembers"), new java.lang.RuntimePermission("getClassLoader")]' \
+    OBP_RABBITMQ_CONNECTOR_HOST="localhost" \
+    OBP_RABBITMQ_CONNECTOR_PORT="5671" \
+    OBP_RABBITMQ_CONNECTOR_USERNAME="obp" \
+    OBP_RABBITMQ_CONNECTOR_PASSWORD="obp" \
+    OBP_RABBITMQ_CONNECTOR_VIRTUAL_HOST="/" \
     OBP_API_INSTANCE_ID="shard_${n}" \
     "$TIMEOUT_BIN" 1200 mvn scalatest:test -pl obp-commons,obp-api -DfailIfNoTests=false \
         "-DwildcardSuites=${filter}" \
@@ -227,10 +336,17 @@ run_shard() {
 START=$(date +%s)
 
 # ── Lint (CI compile job's first step): test-isolation static check; abort on fail ──
-echo "Lint: test-isolation check..."
-if ! python3 .github/scripts/check_test_isolation.py; then
-  echo "❌ Lint failed (setPropsValues at class/feature body). Fix before running." >&2
-  exit 1
+# CI always has python3. Locally, if python3 is unavailable we SKIP the lint with a
+# visible warning rather than fail — the authoritative test verdict below does not
+# depend on it (so a missing tool never masquerades as a lint/test failure).
+if [[ "$HAVE_PY3" = "1" ]]; then
+  echo "Lint: test-isolation check..."
+  if ! python3 .github/scripts/check_test_isolation.py; then
+    echo "❌ Lint failed (setPropsValues at class/feature body). Fix before running." >&2
+    exit 1
+  fi
+else
+  echo "⚠ Lint SKIPPED: python3 not available (test-isolation static check not run)." >&2
 fi
 echo ""
 
@@ -359,35 +475,42 @@ if [[ $OVERALL_RC -ne 0 ]]; then
     done
 fi
 
-# ── Authoritative verdict: audit the surefire XMLs. Per-shard mvn exit codes can lie
-#    (timeout-killed JVMs, plugins swallowing failures), so any failure/error recorded in
-#    the reports fails the run regardless of what the shards returned.
-SF_AUDIT=$(python3 -c '
-import xml.etree.ElementTree as ET, glob, os
-tot = fail = err = skip = broken = 0
-bad = []
-files = glob.glob("obp-api/target/surefire-reports/TEST-*.xml") + \
-        glob.glob("obp-commons/target/surefire-reports/TEST-*.xml")
-for f in files:
-    try:
-        r = ET.parse(f).getroot()
-        t, fa, e = int(r.get("tests", 0)), int(r.get("failures", 0)), int(r.get("errors", 0))
-        skip += int(r.get("skipped", 0))
-        tot += t; fail += fa; err += e
-        if fa or e:
-            bad.append(os.path.basename(f)[5:-4] + ": " + str(fa) + " failed, " + str(e) + " errors")
-    except Exception:
-        broken += 1
-        bad.append(os.path.basename(f) + ": UNPARSEABLE report (JVM killed mid-write?)")
-print(tot, fail, err, skip, broken)
-for b in bad:
-    print(b)
-' 2>/dev/null)
-read -r SF_TOTAL SF_FAIL SF_ERR SF_SKIP SF_BROKEN <<< "$(echo "$SF_AUDIT" | head -1)"
+# ── Authoritative verdict: audit the surefire XMLs in PURE SHELL (awk/grep) so the
+#    pass/fail verdict does NOT depend on python3 or its XML library being healthy —
+#    that dependency previously caused a false FAIL on a machine whose python3/expat
+#    was broken. Per-shard mvn exit codes can lie (timeout-killed JVMs, plugins
+#    swallowing failures), so any failure/error recorded in the reports fails the run
+#    regardless of what the shards returned. A file with no parseable
+#    <testsuite tests="…"> root (truncated: JVM killed mid-write) counts as broken.
+SF_TOTAL=0; SF_FAIL=0; SF_ERR=0; SF_SKIP=0; SF_BROKEN=0
+SF_BAD=()
+_sf_files=$(find obp-api/target/surefire-reports obp-commons/target/surefire-reports \
+              -name 'TEST-*.xml' 2>/dev/null)
+while IFS= read -r _f; do
+    [[ -z "$_f" ]] && continue
+    # The <testsuite …> root tag (carrying tests/failures/errors/skipped) sits at the
+    # very top of the file, before <properties>. Read only the head so we never match
+    # the same-looking text inside <system-out> CDATA. Attributes may be split across
+    # lines, so grab the first match of each independently (attribute-order-agnostic).
+    _head=$(head -c 8000 "$_f" 2>/dev/null)
+    _t=$(printf '%s' "$_head" | grep -oE 'tests="[0-9]+"' | head -1 | grep -oE '[0-9]+')
+    if [[ -z "$_t" ]]; then
+        SF_BROKEN=$((SF_BROKEN+1))
+        SF_BAD+=("$(basename "$_f"): UNPARSEABLE report (JVM killed mid-write?)")
+        continue
+    fi
+    _fa=$(printf '%s' "$_head" | grep -oE 'failures="[0-9]+"' | head -1 | grep -oE '[0-9]+'); _fa=${_fa:-0}
+    _e=$(printf  '%s' "$_head" | grep -oE 'errors="[0-9]+"'   | head -1 | grep -oE '[0-9]+'); _e=${_e:-0}
+    _sk=$(printf '%s' "$_head" | grep -oE 'skipped="[0-9]+"'  | head -1 | grep -oE '[0-9]+'); _sk=${_sk:-0}
+    SF_TOTAL=$((SF_TOTAL+_t)); SF_FAIL=$((SF_FAIL+_fa)); SF_ERR=$((SF_ERR+_e)); SF_SKIP=$((SF_SKIP+_sk))
+    if [[ $_fa -ne 0 || $_e -ne 0 ]]; then
+        SF_BAD+=("$(basename "$_f" | sed 's/^TEST-//; s/\.xml$//'): $_fa failed, $_e errors")
+    fi
+done <<< "$_sf_files"
 echo ""
-echo "Surefire audit: ${SF_TOTAL:-?} tests, ${SF_FAIL:-?} failures, ${SF_ERR:-?} errors, ${SF_SKIP:-?} skipped/canceled"
-if [[ "${SF_FAIL:-1}" != "0" ]] || [[ "${SF_ERR:-1}" != "0" ]] || [[ "${SF_BROKEN:-1}" != "0" ]]; then
-    echo "$SF_AUDIT" | tail -n +2 | sed 's/^/  ✗ /'
+echo "Surefire audit: ${SF_TOTAL} tests, ${SF_FAIL} failures, ${SF_ERR} errors, ${SF_SKIP} skipped/canceled"
+if [[ "$SF_FAIL" != "0" ]] || [[ "$SF_ERR" != "0" ]] || [[ "$SF_BROKEN" != "0" ]]; then
+    [[ ${#SF_BAD[@]} -gt 0 ]] && printf '  ✗ %s\n' "${SF_BAD[@]}"
     OVERALL_RC=1
 fi
 # Zero-test floor: -DfailIfNoTests=false means a broken wildcardSuites filter runs nothing
@@ -401,7 +524,7 @@ fi
 # ── CI parity (report job): http4s vs Lift per-test speed table; best-effort, ──
 #    does not affect the exit code.
 REPORTS_DIR="obp-api/target/surefire-reports"
-if ls "$REPORTS_DIR"/*.xml >/dev/null 2>&1; then
+if [[ "$HAVE_PY3" = "1" ]] && ls "$REPORTS_DIR"/*.xml >/dev/null 2>&1; then
     echo ""
     echo "── Per-test speed (CI report-job equivalent) ───────"
     python3 .github/scripts/test_speed_report.py "$REPORTS_DIR" 2>/dev/null \

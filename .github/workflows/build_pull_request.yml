@@ -295,6 +295,19 @@ jobs:
           # can do JSON extraction (reflection) and read OBP props (getenv); without it the sandbox
           # denies these and DynamicResourceDocTest's native-execution scenarios fail.
           echo 'dynamic_code_sandbox_permissions=[new java.net.NetPermission("specifyStreamHandler"), new java.lang.reflect.ReflectPermission("suppressAccessChecks"), new java.lang.RuntimePermission("getenv.*"), new java.util.PropertyPermission("cglib.useCache", "read"), new java.util.PropertyPermission("net.sf.cglib.test.stressHashCodes", "read"), new java.util.PropertyPermission("cglib.debugLocation", "read"), new java.lang.RuntimePermission("accessDeclaredMembers"), new java.lang.RuntimePermission("getClassLoader")]' >> obp-api/src/main/resources/props/test.default.props
+          # RabbitMQUtils' object initializer reads these 5 as mandatory props
+          # (openOrThrowException) purely to construct a client the tests never
+          # connect with — RabbitMQUtilsResponseCallbackTest mocks the channel and
+          # connector=star/starConnector_supported_types above never routes to the
+          # real rabbitmq connector. Without them the shard-8 catch-all aborts that
+          # suite with ExceptionInInitializerError (silently, until the abort-detection
+          # fix below started catching *** RUN ABORTED ***). Same inert placeholder
+          # values as the local default.props convention.
+          echo rabbitmq_connector.host=localhost >> obp-api/src/main/resources/props/test.default.props
+          echo rabbitmq_connector.port=5671 >> obp-api/src/main/resources/props/test.default.props
+          echo rabbitmq_connector.username=obp >> obp-api/src/main/resources/props/test.default.props
+          echo rabbitmq_connector.password=obp >> obp-api/src/main/resources/props/test.default.props
+          echo rabbitmq_connector.virtual_host=/ >> obp-api/src/main/resources/props/test.default.props
 
       - name: Run tests — shard ${{ matrix.shard }} (${{ matrix.name }})
         run: |
@@ -407,8 +420,14 @@ jobs:
             maven-build-shard${{ matrix.shard }}.log | head -200 || true
           echo ""
           echo "=== FAILING TEST SCENARIOS (with 30 lines context) ==="
-          if grep -C 30 -n "\*\*\* FAILED \*\*\*" maven-build-shard${{ matrix.shard }}.log; then
-            echo "Failing tests detected in shard ${{ matrix.shard }}."
+          # maven.test.failure.ignore=true (root pom) makes mvn exit 0 even when a suite
+          # aborts entirely — "*** FAILED ***" alone misses that, since scalatest prints
+          # "*** RUN ABORTED ***" / "*** SUITE ABORTED ***" instead for e.g. an
+          # ExceptionInInitializerError, and neither pattern was being checked. That let
+          # a genuinely aborted suite report CI green silently.
+          if grep -C 30 -n -E "\*\*\* FAILED \*\*\*|\*\*\* RUN ABORTED \*\*\*|\*\*\* SUITE ABORTED \*\*\*" \
+              maven-build-shard${{ matrix.shard }}.log; then
+            echo "Failing/aborted tests detected in shard ${{ matrix.shard }}."
             exit 1
           else
             echo "No failing tests detected in shard ${{ matrix.shard }}."
