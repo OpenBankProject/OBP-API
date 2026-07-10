@@ -469,6 +469,14 @@ fi
 #    swallowing failures), so any failure/error recorded in the reports fails the run
 #    regardless of what the shards returned. A file with no parseable
 #    <testsuite tests="…"> root (truncated: JVM killed mid-write) counts as broken.
+_SF_DIGITS='[0-9]+'   # shared pattern so the digit-match regex isn't repeated per attribute
+
+# _sf_attr <head> <attr-name>: print the integer value of the first attr="N" match, or
+# nothing if the attribute isn't present.
+_sf_attr() {
+    printf '%s' "$1" | grep -oE "${2}=\"${_SF_DIGITS}\"" | head -1 | grep -oE "$_SF_DIGITS"
+}
+
 SF_TOTAL=0; SF_FAIL=0; SF_ERR=0; SF_SKIP=0; SF_BROKEN=0
 SF_BAD=()
 _sf_files=$(find obp-api/target/surefire-reports obp-commons/target/surefire-reports \
@@ -480,15 +488,15 @@ while IFS= read -r _f; do
     # the same-looking text inside <system-out> CDATA. Attributes may be split across
     # lines, so grab the first match of each independently (attribute-order-agnostic).
     _head=$(head -c 8000 "$_f" 2>/dev/null)
-    _t=$(printf '%s' "$_head" | grep -oE 'tests="[0-9]+"' | head -1 | grep -oE '[0-9]+')
+    _t=$(_sf_attr "$_head" tests)
     if [[ -z "$_t" ]]; then
         SF_BROKEN=$((SF_BROKEN+1))
         SF_BAD+=("$(basename "$_f"): UNPARSEABLE report (JVM killed mid-write?)")
         continue
     fi
-    _fa=$(printf '%s' "$_head" | grep -oE 'failures="[0-9]+"' | head -1 | grep -oE '[0-9]+'); _fa=${_fa:-0}
-    _e=$(printf  '%s' "$_head" | grep -oE 'errors="[0-9]+"'   | head -1 | grep -oE '[0-9]+'); _e=${_e:-0}
-    _sk=$(printf '%s' "$_head" | grep -oE 'skipped="[0-9]+"'  | head -1 | grep -oE '[0-9]+'); _sk=${_sk:-0}
+    _fa=$(_sf_attr "$_head" failures); _fa=${_fa:-0}
+    _e=$(_sf_attr "$_head" errors);    _e=${_e:-0}
+    _sk=$(_sf_attr "$_head" skipped);  _sk=${_sk:-0}
     SF_TOTAL=$((SF_TOTAL+_t)); SF_FAIL=$((SF_FAIL+_fa)); SF_ERR=$((SF_ERR+_e)); SF_SKIP=$((SF_SKIP+_sk))
     if [[ $_fa -ne 0 || $_e -ne 0 ]]; then
         SF_BAD+=("$(basename "$_f" | sed 's/^TEST-//; s/\.xml$//'): $_fa failed, $_e errors")
