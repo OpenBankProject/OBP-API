@@ -278,14 +278,6 @@ run_shard() {
     # OBP_DYNAMIC_CODE_SANDBOX_PERMISSIONS mirrors CI's dynamic_code_sandbox_permissions
     # props line: without it the dynamic-code sandbox denies reflection/getenv and
     # DynamicResourceDocTest's native-execution scenarios fail locally (CI green, local red).
-    # OBP_RABBITMQ_CONNECTOR_* : RabbitMQUtils' object initializer reads 5 mandatory
-    # rabbitmq_connector.* props via openOrThrowException; the local test.default.props
-    # omits them (CI resolves them from the committed default.props), so
-    # RabbitMQUtilsResponseCallbackTest aborts locally with ExceptionInInitializerError
-    # (CI green, local red). These are the same inert placeholder values as default.props
-    # (localhost/5671/obp/obp//); the test mocks the channel and connector=star with
-    # starConnector_supported_types=mapped,internal never activates the rabbitmq connector,
-    # so nothing here opens a real broker connection.
     # -pl obp-commons,obp-api mirrors CI: obp-commons' own util suites run on whichever
     # shard's filter matches com.openbankproject.* (the shard-4 catch-all); on every other
     # shard the filter matches nothing in obp-commons -> 0 tests there.
@@ -299,11 +291,6 @@ run_shard() {
     OBP_HTTP4S_TEST_PORT="${http4s_port}" \
     OBP_MAIL_TEST_MODE="true" \
     OBP_DYNAMIC_CODE_SANDBOX_PERMISSIONS='[new java.net.NetPermission("specifyStreamHandler"), new java.lang.reflect.ReflectPermission("suppressAccessChecks"), new java.lang.RuntimePermission("getenv.*"), new java.util.PropertyPermission("cglib.useCache", "read"), new java.util.PropertyPermission("net.sf.cglib.test.stressHashCodes", "read"), new java.util.PropertyPermission("cglib.debugLocation", "read"), new java.lang.RuntimePermission("accessDeclaredMembers"), new java.lang.RuntimePermission("getClassLoader")]' \
-    OBP_RABBITMQ_CONNECTOR_HOST="localhost" \
-    OBP_RABBITMQ_CONNECTOR_PORT="5671" \
-    OBP_RABBITMQ_CONNECTOR_USERNAME="obp" \
-    OBP_RABBITMQ_CONNECTOR_PASSWORD="obp" \
-    OBP_RABBITMQ_CONNECTOR_VIRTUAL_HOST="/" \
     OBP_API_INSTANCE_ID="shard_${n}" \
     "$TIMEOUT_BIN" 1200 mvn scalatest:test -pl obp-commons,obp-api -DfailIfNoTests=false \
         "-DwildcardSuites=${filter}" \
