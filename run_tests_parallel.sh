@@ -474,7 +474,9 @@ _SF_DIGITS='[0-9]+'   # shared pattern so the digit-match regex isn't repeated p
 # _sf_attr <head> <attr-name>: print the integer value of the first attr="N" match, or
 # nothing if the attribute isn't present.
 _sf_attr() {
-    printf '%s' "$1" | grep -oE "${2}=\"${_SF_DIGITS}\"" | head -1 | grep -oE "$_SF_DIGITS"
+    local head="$1" attr="$2"
+    printf '%s' "$head" | grep -oE "${attr}=\"${_SF_DIGITS}\"" | head -1 | grep -oE "$_SF_DIGITS"
+    return $?
 }
 
 SF_TOTAL=0; SF_FAIL=0; SF_ERR=0; SF_SKIP=0; SF_BROKEN=0
