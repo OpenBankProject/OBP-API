@@ -292,7 +292,7 @@ fi
 
 echo ""
 echo "✓ Fast build completed successfully"
-echo "✓ JAR created: obp-api/target/obp-api.jar"
+echo "✓ JAR created: obp-api/target/obp-api.jar (thin jar — runtime deps in obp-api/target/lib/)"
 echo "✓ Build log saved to: fast_build.log"
 echo ""
 
@@ -315,7 +315,10 @@ JAVA_OPTS="--add-opens java.base/java.lang=ALL-UNNAMED \
 --add-opens java.base/java.util=ALL-UNNAMED \
 --add-opens java.base/java.lang.invoke=ALL-UNNAMED \
 --add-opens java.base/java.util.jar=ALL-UNNAMED \
---add-opens java.base/sun.reflect.generics.reflectiveObjects=ALL-UNNAMED"
+--add-opens java.base/sun.reflect.generics.reflectiveObjects=ALL-UNNAMED \
+--add-opens java.base/java.io=ALL-UNNAMED \
+--add-opens java.base/java.util.concurrent=ALL-UNNAMED \
+--add-opens java.base/java.security=ALL-UNNAMED"
 
 if [ "$RUN_BACKGROUND" = true ]; then
     # Run in background with output to log file

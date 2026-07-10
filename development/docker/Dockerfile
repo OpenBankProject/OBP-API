@@ -9,5 +9,6 @@ RUN --mount=type=cache,target=$HOME/.m2 MAVEN_OPTS="-Xmx3G -Xss2m" mvn install -
 RUN --mount=type=cache,target=$HOME/.m2 MAVEN_OPTS="-Xmx3G -Xss2m" mvn install -DskipTests -pl obp-api
 
 FROM eclipse-temurin:25-jre-alpine
+COPY --from=maven /usr/src/OBP-API/obp-api/target/lib /app/lib
 COPY --from=maven /usr/src/OBP-API/obp-api/target/obp-api.jar /app/obp-api.jar
 ENTRYPOINT ["java", "-jar", "/app/obp-api.jar"]

@@ -28,7 +28,10 @@ class CustomDBVendor(driverName: String,
     val config = new HikariConfig()
 
     val connectionTimeout = APIUtil.getPropsAsLongValue("hikari.connectionTimeout", 30000L)
-    val maximumPoolSize   = APIUtil.getPropsAsIntValue("hikari.maximumPoolSize", 10)
+    // Default 20: each request holds its transaction connection for its whole lifetime,
+    // so a pool of 10 exhausts at ~5 concurrent requests (rate-limit queries need a 2nd connection).
+    // Kept prop-overridable so ops can tune higher.
+    val maximumPoolSize   = APIUtil.getPropsAsIntValue("hikari.maximumPoolSize", 20)
     val idleTimeout       = APIUtil.getPropsAsLongValue("hikari.idleTimeout", 600000L)
     val keepaliveTime     = APIUtil.getPropsAsLongValue("hikari.keepaliveTime", 30000L)
     val maxLifetime       = APIUtil.getPropsAsLongValue("hikari.maxLifetime", 1800000L)
