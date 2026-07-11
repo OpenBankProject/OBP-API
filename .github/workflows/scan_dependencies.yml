@@ -1,0 +1,28 @@
+name: Scan Maven Dependencies
+
+on:
+  push:
+    paths:
+      - '**/pom.xml'
+  pull_request:
+    paths:
+      - '**/pom.xml'
+  workflow_dispatch:
+
+jobs:
+  scan-pom-vulnerabilities:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner on filesystem
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'          # Scan local filesystem instead of docker image
+          scan-ref: '.'            # Scan the entire repository for pom.xml files
+          format: 'table'          # Output results in table format
+          exit-code: '1'           # Fail the workflow if vulnerabilities are found
+          ignore-unfixed: true     # Ignore vulnerabilities without a fix
+          vuln-type: 'library'     # Scan third-party libraries only
+          severity: 'CRITICAL,HIGH' # Focus on critical and high severity vulnerabilities
