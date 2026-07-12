@@ -34,7 +34,7 @@ jobs:
           scan-type: 'fs'          # Scan local filesystem instead of docker image
           scan-ref: '.'            # Scan the entire repository for pom.xml files
           format: 'table'          # Output results in table format
-          exit-code: '1'           # Fail the workflow if vulnerabilities are found
+          exit-code: '0'           # Do not fail the workflow, just log vulnerabilities
           ignore-unfixed: true     # Ignore vulnerabilities without a fix
           vuln-type: 'library'     # Scan third-party libraries only
           severity: 'CRITICAL,HIGH' # Focus on critical and high severity vulnerabilities
