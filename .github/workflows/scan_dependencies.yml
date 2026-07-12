@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - '**/pom.xml'
+      - '.github/workflows/scan_dependencies.yml'
   pull_request:
     paths:
       - '**/pom.xml'
