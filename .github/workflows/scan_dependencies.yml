@@ -16,6 +16,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Set up JDK 21
+        uses: actions/setup-java@v3
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Pre-download Maven dependencies
+        run: mvn dependency:go-offline -B
+        continue-on-error: true # Even if go-offline fails partially, the cache is populated enough for Trivy
+
       - name: Run Trivy vulnerability scanner on filesystem
         uses: aquasecurity/trivy-action@master
         with:
