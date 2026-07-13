@@ -624,7 +624,7 @@ object Http4sBGv13PIS extends MdcLoggable {
             )
             _ <- challenge.scaStatus match {
               case Some(status) if status == StrongCustomerAuthenticationStatus.finalised =>
-                NewStyle.function.createTransactionAfterChallengeV210(fromAccount, existingTransactionRequest, callContext) map { _ =>
+                NewStyle.function.createTransactionAfterChallengeV210(fromAccount, existingTransactionRequest, callContext) flatMap { _ =>
                   NewStyle.function.saveTransactionRequestStatusImpl(existingTransactionRequest.id, COMPLETED.toString, callContext)
                 }
               case Some(status) if status == StrongCustomerAuthenticationStatus.failed =>

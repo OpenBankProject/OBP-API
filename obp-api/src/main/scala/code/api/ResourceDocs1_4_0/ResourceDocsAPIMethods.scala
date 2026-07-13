@@ -507,7 +507,14 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
 
       val staticDocs = getResourceDocsList(requestedApiVersion)
 
-      val allDocs = staticDocs.map(_ ++ filteredDocs)
+      // Only the `obp` standard shows dynamic docs (they are served under /obp/dynamic-entity/...
+      // and /obp/dynamic-endpoint/...). Other standards (BG, UK, ...) only show their own apis,
+      // mirroring the localResourceDocs guard in getResourceDocsList.
+      val allDocs = requestedApiVersion match {
+        case version: ScannedApiVersion if version.apiStandard == obp.toString =>
+          staticDocs.map(_ ++ filteredDocs)
+        case _ => staticDocs
+      }
 
       resourceDocsToResourceDocJson(allDocs, resourceDocTags, partialFunctionNames, isVersion4OrHigher, locale)
   

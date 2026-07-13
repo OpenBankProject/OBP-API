@@ -77,7 +77,7 @@ object JwtUtil extends MdcLoggable {
     * @return True or False
     */
   def verifyHmacSignedJwt(jwtToken: String, sharedSecret: String): Boolean = {
-    logger.debug(s"code.api.util.JwtUtil.verifyHmacSignedJwt beginning:: jwtToken($jwtToken), sharedSecret($sharedSecret)")
+    logger.debug("code.api.util.JwtUtil.verifyHmacSignedJwt beginning")
     val signedJWT = SignedJWT.parse(jwtToken)
     val verifier = new MACVerifier(sharedSecret)
     logger.debug(s"code.api.util.JwtUtil.verifyHmacSignedJwt beginning:: signedJWT($signedJWT)")
