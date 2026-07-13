@@ -6,7 +6,7 @@ backend half; the client/BFF half (running the actual Google login) is covered
 by `docs/GOOGLE_OIDC_ONBOARDING.md` in the API-Explorer-II repo.
 
 For the **why** behind these controls (public vs. operator-controlled IdPs,
-the threat model), read `OAUTH2_IDENTITY_PROVIDERS.md` first — this file is the
+the threat model), read `../OAUTH2_IDENTITY_PROVIDERS.md` first — this file is the
 step-by-step runbook.
 
 ---
@@ -65,7 +65,7 @@ Google Cloud Console, once per client app (Explorer, Manager, ...):
 
 Repeat step 3 for each app that should sign in via Google, and list every
 resulting client ID in the audience allowlist. One client ID per app — see
-`OAUTH2_IDENTITY_PROVIDERS.md` for why sharing one ID across apps weakens the
+`../OAUTH2_IDENTITY_PROVIDERS.md` for why sharing one ID across apps weakens the
 `(azp, iss)` consumer granularity.
 
 ## Required props
@@ -164,7 +164,7 @@ curl -s http://localhost:8080/obp/v5.1.0/users/current \
 
 ---
 
-**Related:** `OAUTH2_IDENTITY_PROVIDERS.md` (trust model & security rationale),
+**Related:** `../OAUTH2_IDENTITY_PROVIDERS.md` (trust model & security rationale),
 `obp-api/src/main/scala/code/api/OAuth2.scala` (`object Google`),
 `obp-api/src/main/resources/props/sample.props.template` (OAuth2 section),
 API-Explorer-II `docs/GOOGLE_OIDC_ONBOARDING.md` (client/BFF side).

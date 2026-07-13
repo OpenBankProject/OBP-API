@@ -16,7 +16,7 @@ import java.net.URI
  * Executable specification of how OAuth2/OIDC id_tokens are resolved to Consumers
  * (OAuth2Login.OAuth2Util.getOrCreateConsumer -> MappedConsumersProvider.getOrCreateConsumer).
  *
- * The contract under test (see OAUTH2_IDENTITY_PROVIDERS.md, "Google client ID policy"):
+ * The contract under test (see docs/IdP/OAUTH2_IDENTITY_PROVIDERS.md, "Google client ID policy"):
  *  - granularity is one Consumer per (azp, iss) — per OAuth client per issuer, NOT per user;
  *    the sub claim is stored on the Consumer but is not part of the lookup key
  *  - a pre-registered Consumer whose key equals the OAuth2 client ID takes priority over
