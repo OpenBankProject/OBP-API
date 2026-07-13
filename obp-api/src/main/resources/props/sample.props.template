@@ -1571,7 +1571,8 @@ personal_data_collection_consent_country_waiver_list = Austria, Belgium, Bulgari
 # SECURITY: the runtime sandbox (SecurityManager) is a no-op on JDK 24+ (JEP 486) and the
 # GraalVM JS context is created with HostAccess.ALL, so enabled dynamic code runs UNSANDBOXED.
 # Leave false in production. Only enable on trusted sandbox/dev instances.
-# (Always ON in test/dev run modes regardless of this value, unless this prop is set explicitly.)
+# Defaults to false everywhere (including test/dev run modes) when this prop is absent —
+# it must be set to true explicitly, there is no run-mode-based fallback.
 allow_user_generated_scala_code=false
 
 # enable dynamic code sandbox, default is false, this will make sandbox works for code running in Future, will make performance lower than disable
