@@ -5,7 +5,7 @@ import org.apache.pekko.http.scaladsl.model.HttpMethod
 import code.DynamicEndpoint.{DynamicEndpointProvider, DynamicEndpointT}
 import code.api.Constant.{SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID, SYSTEM_READ_BALANCES_BERLIN_GROUP_VIEW_ID}
 // checkPaymentServerTypeError was inlined from the retired BG v1.3 PIS builder (see PaymentInitiationServicePISApi.scala)
-import code.api.cache.Caching
+import code.api.cache.{Caching, Redis}
 import code.api.dynamic.endpoint.helper.DynamicEndpointHelper
 import code.api.dynamic.entity.helper.{DynamicEntityHelper, DynamicEntityInfo}
 import code.api.util.APIUtil._
@@ -3283,11 +3283,27 @@ object NewStyle extends MdcLoggable{
     }
 
     def createOrUpdateMethodRouting(methodRouting: MethodRoutingT) = Future {
-      MethodRoutingProvider.connectorMethodProvider.vend.createOrUpdate(methodRouting)
+      val result = MethodRoutingProvider.connectorMethodProvider.vend.createOrUpdate(methodRouting)
+      invalidateMethodRoutingCache()
+      result
      }
 
     def deleteMethodRouting(methodRoutingId: String) = Future {
-      MethodRoutingProvider.connectorMethodProvider.vend.delete(methodRoutingId)
+      val result = MethodRoutingProvider.connectorMethodProvider.vend.delete(methodRoutingId)
+      invalidateMethodRoutingCache()
+      result
+    }
+
+    /**
+     * Drop every memoized `getMethodRoutings(...)` entry after a routing is created,
+     * updated, or deleted, so the change takes effect on the next connector call instead
+     * of waiting out `methodRouting.cache.ttl.seconds`. The scalacache/Redis memoize key
+     * for these entries embeds the literal method name `getMethodRoutings`, so a single
+     * pattern delete clears all argument variants. No-op / logged when Redis is
+     * unavailable (deleteKeysByPattern swallows and returns 0).
+     */
+    private def invalidateMethodRoutingCache(): Unit = {
+      Redis.deleteKeysByPattern("*getMethodRoutings*")
     }
 
     def getMethodRoutingById(methodRoutingId : String, callContext: Option[CallContext]): OBPReturnType[MethodRoutingT] = {
@@ -3298,7 +3314,18 @@ object NewStyle extends MdcLoggable{
       }
     }
 
-    private[this] val methodRoutingTTL = APIUtil.getPropsValue(s"methodRouting.cache.ttl.seconds", "0").toInt 
+    // Default 30s. MethodRouting rows change only via the /management/method_routings API,
+    // which now invalidates this cache on write (see invalidateMethodRoutingCache), so the
+    // TTL is only a backstop against missed invalidations rather than the propagation path.
+    // 30s is enough to collapse the per-request DB storm: StarConnector intercepts every
+    // connector call and resolves routings up to twice per call, so a single API request
+    // issues dozens of identical getMethodRoutings queries.
+    // Set methodRouting.cache.ttl.seconds=0 to disable (e.g. in tests that mutate routings
+    // and assert immediately without going through NewStyle).
+    private[this] val methodRoutingTTL = {
+      if(Props.testMode || Props.devMode) 0
+      else APIUtil.getPropsValue(s"methodRouting.cache.ttl.seconds", "30").toInt
+    }
 
     def getMethodRoutings(methodName: Option[String], isBankIdExactMatch: Option[Boolean] = None, bankIdPattern: Option[String] = None): List[MethodRoutingT] = {
       import scala.concurrent.duration._
