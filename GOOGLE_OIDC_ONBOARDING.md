@@ -28,6 +28,46 @@ is hard-coded with:
 
 So onboarding is **configuration only** — no code change.
 
+## Google Cloud Console onboarding (getting a client ID)
+
+Before configuring OBP-API you need a Google OAuth **client ID** — that is the
+value that goes into `oauth2.google.allowed_audiences`. It is created in the
+Google Cloud Console, once per client app (Explorer, Manager, ...):
+
+1. **Create / pick a project** — <https://console.cloud.google.com/>, project
+   selector → *New Project* (or reuse an existing one). No Google APIs need to
+   be enabled for plain OIDC sign-in.
+2. **Configure the OAuth consent screen** — *APIs & Services → OAuth consent
+   screen* (branding):
+   - User type: **External** (any Google account) or **Internal** (only your
+     Google Workspace org — a cheap allowlist if all users share one org).
+   - App name, support email, developer contact — what users see on the
+     Google login prompt.
+   - Scopes: `openid`, `email`, `profile` are enough; they are non-sensitive,
+     so **no Google verification review is needed**.
+   - While *Publishing status* is **Testing**, only explicitly added test
+     users can log in; switch to **In production** to open it up.
+3. **Create the OAuth client** — *APIs & Services → Credentials → Create
+   Credentials → OAuth client ID*:
+   - Application type: **Web application**.
+   - **Authorized redirect URIs**: the *client/BFF's* callback URL (e.g. the
+     Explorer II BFF's `/auth/google/callback`) — **not** an OBP-API URL.
+     OBP-API never appears in the Google flow; it only receives the resulting
+     id_token as a Bearer. The exact URI is documented in the client repo
+     (API-Explorer-II `docs/GOOGLE_OIDC_ONBOARDING.md`).
+   - **Authorized JavaScript origins**: the client's origin(s), if it uses a
+     browser-side flow.
+4. **Copy the client ID** — it looks like
+   `1234567890-abc123.apps.googleusercontent.com`. This is the token's
+   `aud`/`azp`, and the value you list in `oauth2.google.allowed_audiences`
+   below. The **client secret** stays with the client/BFF; OBP-API never
+   needs it (signature verification uses Google's public JWKS).
+
+Repeat step 3 for each app that should sign in via Google, and list every
+resulting client ID in the audience allowlist. One client ID per app — see
+`OAUTH2_IDENTITY_PROVIDERS.md` for why sharing one ID across apps weakens the
+`(azp, iss)` consumer granularity.
+
 ## Required props
 
 Edit your `props` file (in `obp-api/src/main/resources/props/sample.props.template`,
