@@ -22,6 +22,7 @@ class ApiVersionUtilsTest extends V400ServerSetup {
     //NOTE, when we added the new version, better fix this number manually. and also check the versions
     // 26 -> 20: removed Lift standards STET v1.4, Polish v2.1.1.1, AUOpenBanking v1.0.0,
     // BahrainOBF v1.0.0, MxOF v1.0.0 and CNBV9 v1.0.0 (6 scanned versions).
-    versions.length shouldBe(20)
+    // 20 -> 21: added UK Open Banking Read/Write v4.0.1 (OBP_UKOpenBanking_401).
+    versions.length shouldBe(21)
   }}
 }

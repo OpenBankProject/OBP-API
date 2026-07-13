@@ -77,6 +77,7 @@ object Http4sApp extends MdcLoggable {
   // are migrated to http4s.
   private val ukV20Routes: HttpRoutes[IO] = gate(ApiVersion.ukOpenBankingV20, code.api.UKOpenBanking.v2_0_0.Http4sUKOBv200.wrappedRoutes)
   private val ukV31Routes: HttpRoutes[IO] = gate(ApiVersion.ukOpenBankingV31, code.api.UKOpenBanking.v3_1_0.Http4sUKOBv310.wrappedRoutes)
+  private val ukV401Routes: HttpRoutes[IO] = gate(ApiVersion.ukOpenBankingV401, code.api.UKOpenBanking.v4_0_1.Http4sUKOBv401.wrappedRoutes)
 
   // JSON 404 for all unmatched paths — terminal entry in baseServices.
   private val notFoundCatchAll: HttpRoutes[IO] = HttpRoutes[IO] { req =>
@@ -130,6 +131,7 @@ object Http4sApp extends MdcLoggable {
         .orElse(code.api.berlin.group.v2.Http4sBGv2.wrappedRoutes.run(req))
         .orElse(ukV20Routes.run(req))
         .orElse(ukV31Routes.run(req))
+        .orElse(ukV401Routes.run(req))
         .orElse(code.api.berlin.group.v1_3.Http4sBGv13.wrappedRoutes.run(req))
         .orElse(code.api.berlin.group.v1_3.Http4sBGv13Alias.wrappedRoutes.run(req))
         .orElse(v400Routes.run(req))

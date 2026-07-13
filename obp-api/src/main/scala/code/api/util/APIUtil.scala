@@ -34,6 +34,7 @@ import code.accountholders.AccountHolders
 import code.api.Constant._
 import code.api.UKOpenBanking.v2_0_0.OBP_UKOpenBanking_200
 import code.api.UKOpenBanking.v3_1_0.OBP_UKOpenBanking_310
+import code.api.UKOpenBanking.v4_0_1.OBP_UKOpenBanking_401
 import code.api._
 import code.api.berlin.group.ConstantsBG
 import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{ErrorMessageBG, ErrorMessagesBG}
@@ -4736,6 +4737,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   lazy val allStaticResourceDocs = (code.api.util.http4s.Http4sResourceDocAggregation.v600
     ++ OBP_UKOpenBanking_200.allResourceDocs
     ++ OBP_UKOpenBanking_310.allResourceDocs
+    ++ OBP_UKOpenBanking_401.allResourceDocs
     // Commented out: Lift endpoints migrated off / removed (Polish, STET, AUOpenBanking, MxOF/CNBV9, BahrainOBF)
     //    ++ code.api.Polish.v2_1_1_1.OBP_PAPI_2_1_1_1.allResourceDocs
     //    ++ code.api.STET.v1_4.OBP_STET_1_4.allResourceDocs
