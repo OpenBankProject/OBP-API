@@ -9,11 +9,19 @@ import net.liftweb.common.Box
 
 
 import scala.collection.immutable.List
+import scala.concurrent.Future
+import com.openbankproject.commons.ExecutionContext.Implicits.global
 
 object NotificationUtil extends MdcLoggable {
   def sendEmailRegardingAssignedRole(userId : String, entitlement: Entitlement): Unit = {
-    val user = Users.users.vend.getUserByUserId(userId)
-    sendEmailRegardingAssignedRole(user, entitlement)
+    // Fire-and-forget: the user lookup and the SMTP send both block, and the
+    // grant-entitlement response must not wait on them.
+    Future {
+      val user = Users.users.vend.getUserByUserId(userId)
+      sendEmailRegardingAssignedRole(user, entitlement)
+    }.failed.foreach(e =>
+      logger.error(s"sendEmailRegardingAssignedRole says: failed for userId=$userId role=${entitlement.roleName}", e)
+    )
   }
   def sendEmailRegardingAssignedRole(user: Box[User], entitlement: Entitlement): Unit = {
     val mailSent = for {
@@ -32,7 +40,8 @@ object NotificationUtil extends MdcLoggable {
         subject = s"You have been granted the role: ${entitlement.roleName}",
         textContent = Some(bodyOfMessage)
       )
-      //this is an async call
+      // Blocking SMTP send (Transport.send) — only call this off the request
+      // thread; the userId overload above wraps it in a Future.
       CommonsEmailWrapper.sendTextEmail(emailContent)
     }
     if(mailSent.isEmpty) {

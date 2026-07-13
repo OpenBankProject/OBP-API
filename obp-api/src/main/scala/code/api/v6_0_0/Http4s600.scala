@@ -13212,6 +13212,8 @@ object Http4s600 {
         None,
         http4sPartialFunction = Some(getConfigProps)
       )
+      // Intentional drift from Lift's APIMethods600.scala source-of-truth:
+      // description reworded to mention "config" explicitly (searchability), post-migration.
       resourceDocs += ResourceDoc(
         implementedInApiVersion,
         nameOf(getAppDirectory),
@@ -13220,11 +13222,11 @@ object Http4s600 {
         "Get App Directory",
         s"""Get connectivity information for apps in the OBP ecosystem.
         |
-        |Returns configuration properties that apps (Portal, API Explorer, API Manager,
+        |Returns config (configuration) properties that apps (Portal, API Explorer, API Manager,
         |Sandbox Populator, OIDC, Keycloak, Hola, MCP, Opey) and agents can use to discover
         |endpoints in the OBP ecosystem.
         |
-        |Any props starting with public_ and ending with _url are included automatically.
+        |Any config props starting with public_ and ending with _url are included automatically.
         |
         |Known public app URL props:
         |${APIUtil.publicAppUrlPropNames.mkString(", ")}
