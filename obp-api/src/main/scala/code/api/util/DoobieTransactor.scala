@@ -66,7 +66,7 @@ object DoobieUtil extends MdcLoggable {
     logger.info("DoobieUtil: Initialized fallback transactor sharing the application HikariCP pool")
     val xa = Transactor.fromDataSource[IO].apply(
       sharedDataSource,
-      ExecutionContext.global
+      BlockingIoExecutionContext.ec
     )
     xa.copy(strategy0 = Strategy.void)
   }
@@ -172,7 +172,7 @@ object DoobieUtil extends MdcLoggable {
     val sharedDataSource = APIUtil.vendor.HikariDatasource.ds
     Transactor.fromDataSource[IO].apply(
       sharedDataSource,
-      ExecutionContext.global
+      BlockingIoExecutionContext.ec
     ) // Strategy.default includes commit/rollback
   }
 

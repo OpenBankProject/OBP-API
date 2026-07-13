@@ -151,16 +151,27 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   val DateWithMs = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
   val DateWithMsAndTimeZoneOffset = "yyyy-MM-dd'T'HH:mm:ss.SSSZ"
 
-  val DateWithYearFormat = new SimpleDateFormat(DateWithYear)
-  val DateWithMonthFormat = new SimpleDateFormat(DateWithMonth)
-  val DateWithDayFormat = new SimpleDateFormat(DateWithDay)
-  val DateWithSecondsFormat = new SimpleDateFormat(DateWithSeconds)
+  // SimpleDateFormat is not thread-safe (parse and format both mutate the internal Calendar).
+  // Give every thread its own instance so shared use across concurrent requests is safe,
+  // while avoiding a fresh allocation on the hot from_date/to_date parse path.
+  private val DateWithYearFormatTL       = ThreadLocal.withInitial(() => new SimpleDateFormat(DateWithYear))
+  private val DateWithMonthFormatTL      = ThreadLocal.withInitial(() => new SimpleDateFormat(DateWithMonth))
+  private val DateWithDayFormatTL        = ThreadLocal.withInitial(() => new SimpleDateFormat(DateWithDay))
+  private val DateWithSecondsFormatTL    = ThreadLocal.withInitial(() => new SimpleDateFormat(DateWithSeconds))
+  private val DateWithMsFormatTL         = ThreadLocal.withInitial(() => new SimpleDateFormat(DateWithMs))
+  private val DateWithMsRollbackFormatTL = ThreadLocal.withInitial(() => new SimpleDateFormat(DateWithMsAndTimeZoneOffset))
+  private val rfc7231DateTL              = ThreadLocal.withInitial(() => new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z", Locale.ENGLISH))
+
+  def DateWithYearFormat: SimpleDateFormat    = DateWithYearFormatTL.get()
+  def DateWithMonthFormat: SimpleDateFormat   = DateWithMonthFormatTL.get()
+  def DateWithDayFormat: SimpleDateFormat     = DateWithDayFormatTL.get()
+  def DateWithSecondsFormat: SimpleDateFormat = DateWithSecondsFormatTL.get()
   // If you need UTC Z format, please continue to use DateWithMsFormat. eg: 2025-01-01T01:01:01.000Z
-  val DateWithMsFormat = new SimpleDateFormat(DateWithMs) 
+  def DateWithMsFormat: SimpleDateFormat = DateWithMsFormatTL.get()
   // If you need a format with timezone offset (+0000), please use DateWithMsRollbackFormat, eg: 2025-01-01T01:01:01.000+0000
-  val DateWithMsRollbackFormat = new SimpleDateFormat(DateWithMsAndTimeZoneOffset)
-  
-  val rfc7231Date = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z", Locale.ENGLISH)
+  def DateWithMsRollbackFormat: SimpleDateFormat = DateWithMsRollbackFormatTL.get()
+
+  def rfc7231Date: SimpleDateFormat = rfc7231DateTL.get()
 
   val DateWithYearExampleString: String = "1100"
   val DateWithMonthExampleString: String = "1100-01"

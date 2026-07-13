@@ -5,7 +5,7 @@ import code.api.cache.{Redis, RedisLogger}
 
 import java.net.{Socket, SocketException, URL}
 import java.util.UUID.randomUUID
-import java.util.{Date, GregorianCalendar}
+import java.util.Date
 import code.api.util.{APIUtil, CallContext, CallContextLight, CustomJsonFormats}
 import code.api.{APIFailureNewStyle, Constant}
 import code.api.util.APIUtil.fullBoxOrException
@@ -14,7 +14,6 @@ import code.model.dataAccess.internalMapping.MappedAccountIdMappingProvider
 import code.transaction.internalMapping.MappedTransactionIdMappingProvider
 import net.liftweb.common._
 import org.json4s.Extraction._
-import org.json4s.{DateFormat, Formats}
 import org.apache.commons.lang3.StringUtils
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.{AccountBalance, AccountBalances, AccountHeld, AccountId, CoreAccount, Customer, CustomerId, Transaction, TransactionCore, TransactionId}
@@ -209,39 +208,6 @@ object Helper extends Loggable {
     */
   val matchAnyStoredProcedure = "stored_procedure.*|star".r
 
-  /**
-    * change the TimeZone to the current TimeZOne
-    * reference the following trait
-    * org.json4s
-    * trait DefaultFormats
-    * extends Formats
-    */
-    //TODO need clean this format, we have set the TimeZone in boot.scala
-  val DateFormatWithCurrentTimeZone = new Formats {
-
-    import java.text.{ParseException, SimpleDateFormat}
-
-    val dateFormat = new DateFormat {
-      def parse(s: String) = try {
-        Some(formatter.parse(s))
-      } catch {
-        case e: ParseException => None
-      }
-
-      def format(d: Date) = formatter.format(d)
-
-      def timezone: java.util.TimeZone = new GregorianCalendar().getTimeZone
-
-      private def formatter = {
-        val f = dateFormatter
-        f.setTimeZone(new GregorianCalendar().getTimeZone)
-        f
-      }
-    }
-
-    protected def dateFormatter = APIUtil.DateWithMsFormat
-  }
-
   def getHostname(): String = {
     Constant.HostName match {
       case s: String if s.nonEmpty => s.split(":").lift(1) match {
@@ -303,11 +269,15 @@ object Helper extends Loggable {
 
         private val underlyingLogger = net.liftweb.common.Logger(loggerName)
 
-        private val dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ssX")
-        dateFormat.setTimeZone(java.util.TimeZone.getDefault) // force local TZ
+        // SimpleDateFormat is not thread-safe; one instance per thread.
+        private val dateFormatTL = ThreadLocal.withInitial(() => {
+          val f = new SimpleDateFormat("yyyy-MM-dd HH:mm:ssX")
+          f.setTimeZone(java.util.TimeZone.getDefault) // force local TZ
+          f
+        })
 
         private def toRedisFormat(msg: AnyRef): String = {
-          val ts = dateFormat.format(new Date())
+          val ts = dateFormatTL.get().format(new Date())
           val thread = Thread.currentThread().getName
           s"[$ts] [$thread] [$clazzName] ${msg.toString}"
         }
