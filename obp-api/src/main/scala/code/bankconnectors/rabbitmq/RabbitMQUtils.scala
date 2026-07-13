@@ -19,6 +19,38 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{Future, Promise}
 
 
+// Deliberately top-level (not nested in `object RabbitMQUtils`): referencing a class
+// nested inside an object forces Scala to fully initialize that object first (all its
+// `val`s, including the 5 mandatory rabbitmq_connector.* props read below) — which would
+// otherwise force any test exercising ResponseCallback in isolation to also configure
+// those props, even though this class itself never touches RabbitMQUtils or opens a
+// real connection.
+class ResponseCallback(val rabbitCorrelationId: String, channel: Channel) extends DeliverCallback with MdcLoggable {
+
+  val promise = Promise[String]()
+  val future: Future[String] = promise.future
+
+  override def handle(consumerTag: String, message: Delivery): Unit = {
+    if (message.getProperties.getCorrelationId.equals(rabbitCorrelationId)) {
+      val response = new String(message.getBody, "UTF-8")
+      // Complete the promise BEFORE touching the channel. A channel-close failure must never
+      // prevent the waiting request from being satisfied, and must never escape onto the
+      // RabbitMQ dispatch thread. trySuccess is idempotent against duplicate deliveries.
+      promise.trySuccess(response)
+      try {
+        if (channel.isOpen) channel.close()
+      } catch {
+        case e: Throwable =>
+          logger.debug(s"$AdapterUnknownError Can not close the channel properly! Details:$e")
+      }
+    }
+  }
+
+  def take(): Future[String] = {
+    future
+  }
+}
+
 /**
  * RabbitMQ utils.
  * The reason of extract this util: if not call RabbitMQ connector method, the db connection of RabbitMQ will not be initialized.
@@ -60,32 +92,6 @@ object RabbitMQUtils extends MdcLoggable{
   // Application-level cap on how long to wait for an adapter reply. Kept below the 60s reply-queue TTL/x-expires above.
   val RABBITMQ_RESPONSE_TIMEOUT_IN_MILLIS: Long =
     APIUtil.getPropsAsLongValue("rabbitmq_connector.response_timeout", code.api.Constant.longEndpointTimeoutInMillis)
-
-  class ResponseCallback(val rabbitCorrelationId: String, channel: Channel) extends DeliverCallback {
-
-    val promise = Promise[String]()
-    val future: Future[String] = promise.future
-
-    override def handle(consumerTag: String, message: Delivery): Unit = {
-      if (message.getProperties.getCorrelationId.equals(rabbitCorrelationId)) {
-        val response = new String(message.getBody, "UTF-8")
-        // Complete the promise BEFORE touching the channel. A channel-close failure must never
-        // prevent the waiting request from being satisfied, and must never escape onto the
-        // RabbitMQ dispatch thread. trySuccess is idempotent against duplicate deliveries.
-        promise.trySuccess(response)
-        try {
-          if (channel.isOpen) channel.close()
-        } catch {
-          case e: Throwable =>
-            logger.debug(s"$AdapterUnknownError Can not close the channel properly! Details:$e")
-        }
-      }
-    }
-
-    def take(): Future[String] = {
-      future
-    }
-  }
 
   val cancelCallback: CancelCallback = (consumerTag: String) =>  logger.info(s"consumerTag($consumerTag) is  cancelled!!")
   

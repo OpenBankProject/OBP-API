@@ -414,8 +414,14 @@ jobs:
             maven-build-shard${{ matrix.shard }}.log | head -200 || true
           echo ""
           echo "=== FAILING TEST SCENARIOS (with 30 lines context) ==="
-          if grep -C 30 -n "\*\*\* FAILED \*\*\*" maven-build-shard${{ matrix.shard }}.log; then
-            echo "Failing tests detected in shard ${{ matrix.shard }}."
+          # maven.test.failure.ignore=true (root pom) makes mvn exit 0 even when a suite
+          # aborts entirely — "*** FAILED ***" alone misses that, since scalatest prints
+          # "*** RUN ABORTED ***" / "*** SUITE ABORTED ***" instead for e.g. an
+          # ExceptionInInitializerError, and neither pattern was being checked. That let
+          # a genuinely aborted suite report CI green silently.
+          if grep -C 30 -n -E "\*\*\* FAILED \*\*\*|\*\*\* RUN ABORTED \*\*\*|\*\*\* SUITE ABORTED \*\*\*" \
+              maven-build-shard${{ matrix.shard }}.log; then
+            echo "Failing/aborted tests detected in shard ${{ matrix.shard }}."
             exit 1
           else
             echo "No failing tests detected in shard ${{ matrix.shard }}."

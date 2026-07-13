@@ -46,7 +46,7 @@ class RabbitMQUtilsResponseCallbackTest extends FlatSpec with Matchers {
   "ResponseCallback.handle" should "complete the promise with the message body even when channel.close() throws" in {
     val correlationId = UUID.randomUUID().toString
     val channel = channelWithFailingClose()
-    val callback = new RabbitMQUtils.ResponseCallback(correlationId, channel)
+    val callback = new ResponseCallback(correlationId, channel)
 
     val properties = new BasicProperties.Builder().correlationId(correlationId).build()
     val envelope = new Envelope(1L, false, "", "")
@@ -64,7 +64,7 @@ class RabbitMQUtilsResponseCallbackTest extends FlatSpec with Matchers {
     val correlationId = UUID.randomUUID().toString
     val otherCorrelationId = UUID.randomUUID().toString
     val channel = channelWithFailingClose()
-    val callback = new RabbitMQUtils.ResponseCallback(correlationId, channel)
+    val callback = new ResponseCallback(correlationId, channel)
 
     val properties = new BasicProperties.Builder().correlationId(otherCorrelationId).build()
     val envelope = new Envelope(1L, false, "", "")
