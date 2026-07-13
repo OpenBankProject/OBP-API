@@ -71,6 +71,7 @@ import code.api.v6_0_0.JSONFactory600.UpdateViewJsonV600
 import code.model._
 import code.model.dataAccess.AuthUser
 import code.users.{Users, DoobieUserQueries}
+import code.api.util.DynamicUtil
 import code.util.Helper.SILENCE_IS_GOLDEN
 import com.openbankproject.commons.dto.GetProductsParam
 import code.model.ModeratedTransaction
@@ -4588,6 +4589,7 @@ object Http4s600 {
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val rawBody = cc.httpBody.getOrElse("")
           for {
+            _ <- code.util.Helper.booleanToFuture(DynamicCodeExecutionDisabled, cc = Some(cc)) { DynamicUtil.dynamicCodeExecutionEnabled }
             validateJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
               com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[ValidateAbacRuleJsonV600]
             }
@@ -5488,6 +5490,7 @@ object Http4s600 {
           val rawBody = cc.httpBody.getOrElse("")
           val user = cc.user.openOrThrowException(AuthenticatedUserIsRequired)
           for {
+            _ <- Helper.booleanToFuture(DynamicCodeExecutionDisabled, cc = Some(cc)) { DynamicUtil.dynamicCodeExecutionEnabled }
             createJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
               com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[CreateAbacRuleJsonV600]
             }
@@ -5542,6 +5545,7 @@ object Http4s600 {
           val rawBody = cc.httpBody.getOrElse("")
           val user = cc.user.openOrThrowException(AuthenticatedUserIsRequired)
           for {
+            _ <- Helper.booleanToFuture(DynamicCodeExecutionDisabled, cc = Some(cc)) { DynamicUtil.dynamicCodeExecutionEnabled }
             updateJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
               com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[UpdateAbacRuleJsonV600]
             }
