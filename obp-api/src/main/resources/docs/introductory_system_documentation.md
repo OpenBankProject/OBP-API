@@ -22,12 +22,11 @@ For more detailed information or the sources of truths, please refer to the indi
    - 3.4 [Opey II (AI Agent)](#34-opey-ii-ai-agent)
    - 3.5 [OBP-OIDC (Development Provider)](#35-obp-oidc-development-provider)
    - 3.6 [Keycloak Integration (Production Provider)](#36-keycloak-integration-production-provider)
-   - 3.7 [Ory Hydra (Production Provider)](#37-ory-hydra-production-provider)
-   - 3.8 [OBP-Hola](#38-obp-hola)
-   - 3.9 [OBP-SEPA-Adapter](#39-obp-sepa-adapter)
-   - 3.10 [OBP-Rabbit-Cats-Adapter](#310-obp-rabbit-cats-adapter)
-   - 3.11 [Connectors](#311-connectors)
-   - 3.12 [Adapters](#312-adapters)
+   - 3.7 [OBP-Hola](#37-obp-hola)
+   - 3.8 [OBP-SEPA-Adapter](#38-obp-sepa-adapter)
+   - 3.9 [OBP-Rabbit-Cats-Adapter](#39-obp-rabbit-cats-adapter)
+   - 3.10 [Connectors](#310-connectors)
+   - 3.11 [Adapters](#311-adapters)
    - 3.13 [Message Docs](#313-message-docs)
    - 3.14 [OBP-MCP (Model Context Protocol Server)](#314-obp-mcp-model-context-protocol-server)
 4. [Standards Compliance](#standards-compliance)
@@ -395,7 +394,7 @@ The Open Bank Project (OBP) is an open-source RESTful API platform for banks tha
 
 **OIDC Providers:**
 
-- Production: Keycloak, Hydra, Google, Yahoo, Auth0, Azure AD
+- Production: Keycloak, Google, Yahoo, Auth0, Azure AD
 - Development/Testing: OBP-OIDC
 
 ---
@@ -739,120 +738,7 @@ docker pull openbankproject/obp-keycloak:main-themed
 
 ---
 
-### 3.7 Ory Hydra (Production Provider)
-
-**Purpose:** Cloud-native OAuth2 and OpenID Connect server for production deployments
-
-**Overview:**
-
-Ory Hydra is a hardened, open-source OAuth 2.0 and OpenID Connect server optimized for low-latency, high-throughput, and low resource consumption. It integrates with OBP-API to provide enterprise-grade authentication and authorization.
-
-**Key Features:**
-
-- **OAuth2 & OIDC Compliance:** Full implementation of OAuth 2.0 and OpenID Connect specifications
-- **Cloud Native:** Designed for containerized deployments (Docker, Kubernetes)
-- **Performance:** Low latency and high throughput
-- **Separation of Concerns:** Hydra handles OAuth/OIDC flow; identity management delegated to custom Identity Provider
-- **Security Hardened:** Regular security audits and compliance certifications
-- **Storage Backend:** PostgreSQL, MySQL, CockroachDB support
-
-**Architecture:**
-
-```
-Client → Hydra (OAuth2 Server) → OBP Hydra Identity Provider → OBP-API
-                ↓
-           Database (PostgreSQL)
-```
-
-**Components:**
-
-- **Ory Hydra:** OAuth2/OIDC server
-- **OBP Hydra Identity Provider:** Custom login/consent UI and user management
-- **OBP-API:** Banking API with Hydra integration
-
-**OBP-API Configuration:**
-
-```properties
-# Enable Hydra login
-login_with_hydra=true
-
-# Hydra server URLs
-hydra_public_url=http://127.0.0.1:4444
-hydra_admin_url=http://127.0.0.1:4445
-
-# Consent scopes
-hydra_consents=ReadAccountsBasic,ReadAccountsDetail,ReadBalances,ReadTransactionsBasic,ReadTransactionsDebits,ReadTransactionsDetail
-
-# JWKS validation
-oauth2.jwk_set.url=http://127.0.0.1:4444/.well-known/jwks.json
-
-# Mirror consumers to Hydra clients
-mirror_consumer_in_hydra=true
-```
-
-**Hydra Identity Provider Configuration:**
-
-```properties
-# Server port
-server.port=8086
-
-# OBP-API URL
-obp.base_url=http://localhost:8080
-endpoint.path.prefix=${obp.base_url}/obp/v4.0.0
-
-# Hydra admin URL
-oauth2.admin_url=http://127.0.0.1:4445
-
-# Service account credentials
-identity_provider.user.username=serviceuser
-identity_provider.user.password=password
-consumer_key=your-consumer-key
-
-# mTLS configuration (optional)
-mtls.keyStore.path=file:///path/to/keystore.jks
-mtls.keyStore.password=keystore-password
-mtls.trustStore.path=file:///path/to/truststore.jks
-mtls.trustStore.password=truststore-password
-```
-
-**Docker Deployment:**
-
-```bash
-# Start Hydra with docker-compose
-docker-compose -f quickstart.yml \
-    -f quickstart-postgres.yml \
-    up --build
-
-# Verify Hydra is running
-curl http://127.0.0.1:4444/.well-known/openid-configuration
-```
-
-**Hydra quickstart.yml environment:**
-
-```yaml
-environment:
-  - URLS_CONSENT=http://localhost:8086/consent
-  - URLS_LOGIN=http://localhost:8086/login
-  - URLS_LOGOUT=http://localhost:8086/logout
-```
-
-**Use Cases:**
-
-- High-performance OAuth2/OIDC deployments
-- Microservices architectures requiring centralized authentication
-- Multi-tenant banking platforms
-- Open Banking TPP integrations
-- Cloud-native banking solutions
-
-**Repositories:**
-
-- Ory Hydra: https://github.com/ory/hydra
-- OBP Hydra Identity Provider: https://github.com/OpenBankProject/OBP-Hydra-Identity-Provider
-- Demo OAuth2 Client: https://github.com/OpenBankProject/OBP-Hydra-OAuth2
-
----
-
-### 3.8 OBP-Hola
+### 3.7 OBP-Hola
 
 **Purpose:** Reference implementation for OAuth2 authentication and consent flow testing
 
@@ -878,8 +764,7 @@ OBP-Hola is a Java/Spring Boot application that demonstrates and tests OBP authe
 **Dependencies:**
 
 - **OBP-API:** Core banking API
-- **Ory Hydra:** OAuth2 server
-- **OBP Hydra Identity Provider:** Identity management
+- **An OIDC provider:** OBP-OIDC (development) or Keycloak (production)
 
 **Use Cases:**
 
@@ -934,7 +819,7 @@ docker run -p 48123:48123 \
 
 ---
 
-### 3.9 OBP-SEPA-Adapter
+### 3.8 OBP-SEPA-Adapter
 
 **Purpose:** Reference implementation for SEPA payment processing with OBP-API
 
@@ -1092,7 +977,7 @@ sbt "runMain sepa.scheduler.ProcessIncomingFilesActorSystem"
 
 ---
 
-### 3.10 OBP-Rabbit-Cats-Adapter
+### 3.9 OBP-Rabbit-Cats-Adapter
 
 **Purpose:** OBP-Rabbit-Cats-Adapter is a functional, type-safe adapter that bridges OBP-API with Core Banking Systems (CBS) using RabbitMQ messaging and/or gRPC. It is built on a modern Scala stack using Cats Effect and http4s.
 
@@ -1188,7 +1073,7 @@ When gRPC is enabled, the adapter starts a gRPC server alongside the RabbitMQ co
 
 ---
 
-### 3.11 Connectors
+### 3.10 Connectors
 
 **Purpose:** Connectors provide the integration layer between OBP-API and backend banking systems or data sources.
 
@@ -1257,7 +1142,7 @@ When gRPC is enabled, the adapter starts a gRPC server alongside the RabbitMQ co
 
 ---
 
-### 3.12 Adapters
+### 3.11 Adapters
 
 **Purpose:** Adapters are backend services that receive messages from OBP-API connectors and respond according to Message Doc definitions.
 
@@ -2677,7 +2562,7 @@ Authorization: Bearer ACCESS_TOKEN
 
 **Providers:**
 
-- **Production:** Keycloak, Hydra, Google, Yahoo, Auth0, Azure AD
+- **Production:** Keycloak, Google, Yahoo, Auth0, Azure AD
 - **Development:** OBP-OIDC
 
 **Configuration Example (Keycloak):**

@@ -170,17 +170,27 @@ rejects foreign client IDs — and it is instance-global (no per-tenant
 scoping) and needs a restart to change. The natural end-state — validation
 asking "does an *enabled, registered* Consumer with this client ID exist?" —
 would make the allowlist manageable at runtime via API Manager and express
-per-tenant scoping (the Hydra introspection path already resolves consumers
-by client ID this way). Until then, the recommended combination is policy 3
+per-tenant scoping. Until then, the recommended combination is policy 3
 above for rejection plus pre-registered Consumers for per-app control.
 
-## Operator-controlled IdPs (Keycloak, OBP-OIDC, Hydra)
+## Operator-controlled IdPs (Keycloak, OBP-OIDC)
 
 These run under the API operator's control: only applications the operator
 registers can obtain tokens at all, so the "any stranger's app gets valid
 tokens" problem does not exist. They are exempt from audience-allowlist and
-enablement enforcement (Hydra additionally uses token introspection rather
-than JWT validation).
+enablement enforcement. Both can be enabled simultaneously (e.g. OBP-OIDC for
+development, Keycloak for production) — tokens are dispatched per request by
+their `iss` claim.
+
+## Consent-bound flows (consent_id claim)
+
+Flows that bind an access token to a Consent (e.g. UK Open Banking AIS)
+require the IdP to include a `consent_id` claim in the access tokens it
+issues during the consent authorisation flow. OBP-API reads the claim and
+validates the consent (status, consumer match, revocation) against its own
+database on every request — the IdP never stores consent state. OBP-OIDC
+supports this natively; in Keycloak use a protocol mapper that copies the
+consent id from the auth session into the access token.
 
 ## Client requirement (all providers)
 

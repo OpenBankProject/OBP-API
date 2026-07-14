@@ -141,7 +141,6 @@ import code.customerlinks.CustomerLink
 import code.userlocks.UserLocks
 import code.users._
 import code.util.Helper.MdcLoggable
-import code.util.HydraUtil
 import code.validation.JsonSchemaValidation
 import code.views.Views
 import code.views.system.{AccountAccess, ViewDefinition, ViewPermission}
@@ -160,7 +159,6 @@ import net.liftweb.util._
 import org.apache.commons.io.FileUtils
 
 import java.io.{File, FileInputStream}
-import java.util.stream.Collectors
 import java.util.{Locale, TimeZone}
 import scala.util.control.NonFatal
 
@@ -582,35 +580,6 @@ class Boot extends MdcLoggable {
 
     // ConnectorEndpoints (connector.name.export.as.endpoints) registered via Lift statelessDispatch
     // which is no longer reachable (Lift bridge removed in Phase B). Disabled until migrated to http4s.
-    if(HydraUtil.integrateWithHydra && HydraUtil.mirrorConsumerInHydra) {
-      createHydraClients()
-    }
-
-  }
-
-  // create Hydra client if exists active consumer but missing Hydra client
-  def createHydraClients() = {
-    try {
-      import scala.concurrent.ExecutionContext.Implicits.global
-      // exists hydra clients id
-      val oAuth2ClientIds = HydraUtil.hydraAdmin.listOAuth2Clients(Long.MaxValue, 0L).stream()
-        .map[String](_.getClientId)
-        .collect(Collectors.toSet())
-
-      Consumers.consumers.vend.getConsumersFuture(Nil, None).foreach{ consumers =>
-        consumers.filter(consumer => consumer.isActive.get && !oAuth2ClientIds.contains(consumer.key.get))
-          .foreach(HydraUtil.createHydraClient(_))
-      }
-    } catch {
-      case e: Exception =>
-        if(HydraUtil.integrateWithHydra) {
-          logger.error("------------------------------ Mirror consumer in hydra issue ------------------------------")
-          e.printStackTrace()
-        } else {
-          logger.warn("------------------------------ Mirror consumer in hydra issue ------------------------------")
-          logger.warn(e)
-        }
-    }
   }
 
   def schemifyAll() = {

@@ -44,7 +44,6 @@ import code.token.TokensOpenIDConnect
 import code.users.{UserAgreementProvider, Users}
 import code.util.Helper
 import code.util.Helper.{MdcLoggable, ObpS}
-import code.util.HydraUtil._
 import code.views.Views
 import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 import com.openbankproject.commons.ExecutionContext.Implicits.global
@@ -54,8 +53,6 @@ import net.liftweb.common._
 import net.liftweb.mapper._
 import net.liftweb.util._
 import org.apache.commons.lang3.StringUtils
-import sh.ory.hydra.api.AdminApi
-import sh.ory.hydra.model.AcceptLoginRequest
 
 import java.util.UUID.randomUUID
 import scala.concurrent.Future
