@@ -278,6 +278,11 @@ run_shard() {
     # OBP_DYNAMIC_CODE_SANDBOX_PERMISSIONS mirrors CI's dynamic_code_sandbox_permissions
     # props line: without it the dynamic-code sandbox denies reflection/getenv and
     # DynamicResourceDocTest's native-execution scenarios fail locally (CI green, local red).
+    # OBP_ALLOW_USER_GENERATED_SCALA_CODE mirrors CI's allow_user_generated_scala_code=true:
+    # the kill-switch defaults to false everywhere (including test/dev) with no run-mode
+    # fallback, so DynamicUtilTest / ConnectorMethodTest / AbacRuleTests /
+    # DynamicResourceDocTest / DynamicMessageDocTest / DynamicCodeKillSwitchTest's ON
+    # scenarios need this set explicitly or they fail locally with OBP-50020.
     # -pl obp-commons,obp-api mirrors CI: obp-commons' own util suites run on whichever
     # shard's filter matches com.openbankproject.* (the shard-4 catch-all); on every other
     # shard the filter matches nothing in obp-commons -> 0 tests there.
@@ -291,6 +296,7 @@ run_shard() {
     OBP_HTTP4S_TEST_PORT="${http4s_port}" \
     OBP_MAIL_TEST_MODE="true" \
     OBP_DYNAMIC_CODE_SANDBOX_PERMISSIONS='[new java.net.NetPermission("specifyStreamHandler"), new java.lang.reflect.ReflectPermission("suppressAccessChecks"), new java.lang.RuntimePermission("getenv.*"), new java.util.PropertyPermission("cglib.useCache", "read"), new java.util.PropertyPermission("net.sf.cglib.test.stressHashCodes", "read"), new java.util.PropertyPermission("cglib.debugLocation", "read"), new java.lang.RuntimePermission("accessDeclaredMembers"), new java.lang.RuntimePermission("getClassLoader")]' \
+    OBP_ALLOW_USER_GENERATED_SCALA_CODE="true" \
     OBP_API_INSTANCE_ID="shard_${n}" \
     "$TIMEOUT_BIN" 1200 mvn scalatest:test -pl obp-commons,obp-api -DfailIfNoTests=false \
         "-DwildcardSuites=${filter}" \
