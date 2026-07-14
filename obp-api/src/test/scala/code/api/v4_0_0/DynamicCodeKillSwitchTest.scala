@@ -32,7 +32,7 @@ import code.api.util.{ApiRole, DynamicUtil}
 import code.connectormethod.{ConnectorMethodProvider, JsonConnectorMethod}
 import code.dynamicResourceDoc.JsonDynamicResourceDoc
 import code.entitlement.Entitlement
-import code.setup.OBPReq
+import code.setup.{EnvVarOverride, OBPReq}
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.common.{Failure, Full}
@@ -46,7 +46,7 @@ import org.scalatest.Tag
  * dynamic resource docs, ABAC rules), plus a regression check that Dynamic Entities
  * (which never execute user code) are unaffected when the switch is off.
  */
-class DynamicCodeKillSwitchTest extends V400ServerSetup {
+class DynamicCodeKillSwitchTest extends V400ServerSetup with EnvVarOverride {
 
   def v6_0_0_Request: OBPReq = baseRequest / "obp" / "v6.0.0"
 
@@ -77,20 +77,28 @@ class DynamicCodeKillSwitchTest extends V400ServerSetup {
       result should be(Full(42))
     }
 
+    // run_tests_parallel.sh exports OBP_ALLOW_USER_GENERATED_SCALA_CODE=true for every shard
+    // (mirroring CI's allow_user_generated_scala_code=true default), and that env var always
+    // wins over setPropsValues (see APIUtil.getPropsValue). withEnvOverride forces the env var
+    // out of the way for the scope of this scenario so the "false" prop actually takes effect.
     scenario("Explicit prop=false disables compilation regardless of run mode", VersionOfApi) {
-      setPropsValues("allow_user_generated_scala_code" -> "false")
+      withEnvOverride("OBP_ALLOW_USER_GENERATED_SCALA_CODE" -> "false") {
+        setPropsValues("allow_user_generated_scala_code" -> "false")
 
-      Then("the predicate should be false")
-      DynamicUtil.dynamicCodeExecutionEnabled should be(false)
+        Then("the predicate should be false")
+        DynamicUtil.dynamicCodeExecutionEnabled should be(false)
 
-      And("compileScalaCode should refuse to compile/execute and return the kill-switch Failure")
-      val result = DynamicUtil.compileScalaCode[Int]("41 + 1")
-      result should be(Failure(DynamicCodeExecutionDisabled))
+        And("compileScalaCode should refuse to compile/execute and return the kill-switch Failure")
+        val result = DynamicUtil.compileScalaCode[Int]("41 + 1")
+        result should be(Failure(DynamicCodeExecutionDisabled))
+      }
     }
 
     scenario("A later explicit prop=true re-enables after being forced off", VersionOfApi) {
-      setPropsValues("allow_user_generated_scala_code" -> "false")
-      DynamicUtil.dynamicCodeExecutionEnabled should be(false)
+      withEnvOverride("OBP_ALLOW_USER_GENERATED_SCALA_CODE" -> "false") {
+        setPropsValues("allow_user_generated_scala_code" -> "false")
+        DynamicUtil.dynamicCodeExecutionEnabled should be(false)
+      }
 
       setPropsValues("allow_user_generated_scala_code" -> "true")
 
@@ -102,22 +110,24 @@ class DynamicCodeKillSwitchTest extends V400ServerSetup {
   feature("Connector Methods endpoint respects the kill-switch") {
 
     scenario("OFF: create connector method returns 400 with the kill-switch error, nothing persisted", VersionOfApi) {
-      setPropsValues("allow_user_generated_scala_code" -> "false")
-      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.canCreateConnectorMethod.toString)
+      withEnvOverride("OBP_ALLOW_USER_GENERATED_SCALA_CODE" -> "false") {
+        setPropsValues("allow_user_generated_scala_code" -> "false")
+        Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.canCreateConnectorMethod.toString)
 
-      val countBefore = ConnectorMethodProvider.provider.vend.getAll().size
+        val countBefore = ConnectorMethodProvider.provider.vend.getAll().size
 
-      val request = (v4_0_0_Request / "management" / "connector-methods").POST <@ (user1)
-      lazy val postConnectorMethod = SwaggerDefinitionsJSON.jsonScalaConnectorMethod
+        val request = (v4_0_0_Request / "management" / "connector-methods").POST <@ (user1)
+        lazy val postConnectorMethod = SwaggerDefinitionsJSON.jsonScalaConnectorMethod
 
-      val response = makePostRequest(request, write(postConnectorMethod))
+        val response = makePostRequest(request, write(postConnectorMethod))
 
-      Then("We should get a 400, not a 500 and not a 201")
-      response.code should equal(400)
-      response.body.extract[ErrorMessage].message should equal(DynamicCodeExecutionDisabled)
+        Then("We should get a 400, not a 500 and not a 201")
+        response.code should equal(400)
+        response.body.extract[ErrorMessage].message should equal(DynamicCodeExecutionDisabled)
 
-      And("nothing should have been persisted")
-      ConnectorMethodProvider.provider.vend.getAll().size should equal(countBefore)
+        And("nothing should have been persisted")
+        ConnectorMethodProvider.provider.vend.getAll().size should equal(countBefore)
+      }
     }
 
     scenario("ON: create connector method returns 201 and is persisted", VersionOfApi) {
@@ -144,17 +154,19 @@ class DynamicCodeKillSwitchTest extends V400ServerSetup {
   feature("Dynamic Resource Doc endpoint respects the kill-switch") {
 
     scenario("OFF: create dynamic resource doc returns 400 with the kill-switch error", VersionOfApi) {
-      setPropsValues("allow_user_generated_scala_code" -> "false")
-      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.canCreateDynamicResourceDoc.toString)
+      withEnvOverride("OBP_ALLOW_USER_GENERATED_SCALA_CODE" -> "false") {
+        setPropsValues("allow_user_generated_scala_code" -> "false")
+        Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.canCreateDynamicResourceDoc.toString)
 
-      val request = (v4_0_0_Request / "management" / "dynamic-resource-docs").POST <@ (user1)
-      lazy val postDynamicResourceDoc = SwaggerDefinitionsJSON.jsonDynamicResourceDoc.copy(dynamicResourceDocId = None)
+        val request = (v4_0_0_Request / "management" / "dynamic-resource-docs").POST <@ (user1)
+        lazy val postDynamicResourceDoc = SwaggerDefinitionsJSON.jsonDynamicResourceDoc.copy(dynamicResourceDocId = None)
 
-      val response = makePostRequest(request, write(postDynamicResourceDoc))
+        val response = makePostRequest(request, write(postDynamicResourceDoc))
 
-      Then("We should get a 400, not a 500 and not a 201")
-      response.code should equal(400)
-      response.body.extract[ErrorMessage].message should equal(DynamicCodeExecutionDisabled)
+        Then("We should get a 400, not a 500 and not a 201")
+        response.code should equal(400)
+        response.body.extract[ErrorMessage].message should equal(DynamicCodeExecutionDisabled)
+      }
     }
 
     scenario("ON: create dynamic resource doc returns 201", VersionOfApi) {
@@ -176,22 +188,24 @@ class DynamicCodeKillSwitchTest extends V400ServerSetup {
   feature("ABAC Rule endpoint respects the kill-switch") {
 
     scenario("OFF: create ABAC rule returns 400 with the kill-switch error", VersionOfApi) {
-      setPropsValues("allow_user_generated_scala_code" -> "false")
-      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canCreateAbacRule.toString)
+      withEnvOverride("OBP_ALLOW_USER_GENERATED_SCALA_CODE" -> "false") {
+        setPropsValues("allow_user_generated_scala_code" -> "false")
+        Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canCreateAbacRule.toString)
 
-      val createJson = code.api.v6_0_0.CreateAbacRuleJsonV600(
-        rule_name = "kill-switch-off-test",
-        rule_code = "true",
-        description = "should not compile",
-        policy = "account-access",
-        is_active = true
-      )
-      val request = (v6_0_0_Request / "management" / "abac-rules").POST <@ (user1)
-      val response = makePostRequest(request, write(createJson))
+        val createJson = code.api.v6_0_0.CreateAbacRuleJsonV600(
+          rule_name = "kill-switch-off-test",
+          rule_code = "true",
+          description = "should not compile",
+          policy = "account-access",
+          is_active = true
+        )
+        val request = (v6_0_0_Request / "management" / "abac-rules").POST <@ (user1)
+        val response = makePostRequest(request, write(createJson))
 
-      Then("We should get a 400, not a 500 and not a 201")
-      response.code should equal(400)
-      response.body.extract[ErrorMessage].message should equal(DynamicCodeExecutionDisabled)
+        Then("We should get a 400, not a 500 and not a 201")
+        response.code should equal(400)
+        response.body.extract[ErrorMessage].message should equal(DynamicCodeExecutionDisabled)
+      }
     }
 
     scenario("ON: create ABAC rule returns 201", VersionOfApi) {
