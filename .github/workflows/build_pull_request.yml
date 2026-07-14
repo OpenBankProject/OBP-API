@@ -295,6 +295,11 @@ jobs:
           # can do JSON extraction (reflection) and read OBP props (getenv); without it the sandbox
           # denies these and DynamicResourceDocTest's native-execution scenarios fail.
           echo 'dynamic_code_sandbox_permissions=[new java.net.NetPermission("specifyStreamHandler"), new java.lang.reflect.ReflectPermission("suppressAccessChecks"), new java.lang.RuntimePermission("getenv.*"), new java.util.PropertyPermission("cglib.useCache", "read"), new java.util.PropertyPermission("net.sf.cglib.test.stressHashCodes", "read"), new java.util.PropertyPermission("cglib.debugLocation", "read"), new java.lang.RuntimePermission("accessDeclaredMembers"), new java.lang.RuntimePermission("getClassLoader")]' >> obp-api/src/main/resources/props/test.default.props
+          # allow_user_generated_scala_code defaults to false everywhere (including test/dev)
+          # with no run-mode fallback; CI must opt in explicitly so DynamicUtilTest,
+          # ConnectorMethodTest, AbacRuleTests, DynamicResourceDocTest, DynamicMessageDocTest
+          # and DynamicCodeKillSwitchTest's ON scenarios can still compile/execute dynamic code.
+          echo allow_user_generated_scala_code=true >> obp-api/src/main/resources/props/test.default.props
 
       - name: Run tests — shard ${{ matrix.shard }} (${{ matrix.name }})
         run: |

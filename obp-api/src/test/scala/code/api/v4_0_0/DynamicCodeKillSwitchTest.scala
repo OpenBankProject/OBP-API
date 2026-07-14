@@ -58,18 +58,26 @@ class DynamicCodeKillSwitchTest extends V400ServerSetup {
     setPropsValues("connector" -> "star")
   }
 
+  // The predicate defaults to false everywhere (including test/dev) with no run-mode
+  // fallback — it is false unless allow_user_generated_scala_code is explicitly set. This
+  // suite's baseline test.default.props sets it to true explicitly so the ON scenarios
+  // below can compile/execute dynamic code; there is no way, within this harness, to
+  // exercise the truly-absent case, since the base props file always supplies a value once
+  // set. The "absent -> false" branch is what protects deployers who never set the prop at
+  // all — it's covered by direct inspection of DynamicUtil.dynamicCodeExecutionEnabled's
+  // match expression, not by an integration test.
   feature("DynamicUtil.dynamicCodeExecutionEnabled predicate") {
 
-    scenario("Defaults to enabled in test mode when the prop is absent", VersionOfApi) {
-      Then("the predicate should be true (we are running under testMode)")
+    scenario("Explicit prop=true (this suite's baseline) enables compilation", VersionOfApi) {
+      Then("the predicate should be true given the explicit test-props value")
       DynamicUtil.dynamicCodeExecutionEnabled should be(true)
 
-      And("compileScalaCode should still compile and execute")
+      And("compileScalaCode should compile and execute")
       val result = DynamicUtil.compileScalaCode[Int]("41 + 1")
       result should be(Full(42))
     }
 
-    scenario("Explicit prop=false overrides testMode and disables compilation", VersionOfApi) {
+    scenario("Explicit prop=false disables compilation regardless of run mode", VersionOfApi) {
       setPropsValues("allow_user_generated_scala_code" -> "false")
 
       Then("the predicate should be false")
@@ -80,10 +88,13 @@ class DynamicCodeKillSwitchTest extends V400ServerSetup {
       result should be(Failure(DynamicCodeExecutionDisabled))
     }
 
-    scenario("Explicit prop=true overrides a false default", VersionOfApi) {
+    scenario("A later explicit prop=true re-enables after being forced off", VersionOfApi) {
+      setPropsValues("allow_user_generated_scala_code" -> "false")
+      DynamicUtil.dynamicCodeExecutionEnabled should be(false)
+
       setPropsValues("allow_user_generated_scala_code" -> "true")
 
-      Then("the predicate should be true")
+      Then("the predicate should be true again")
       DynamicUtil.dynamicCodeExecutionEnabled should be(true)
     }
   }

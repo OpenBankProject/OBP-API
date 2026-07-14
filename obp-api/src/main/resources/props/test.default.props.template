@@ -147,6 +147,12 @@ allow_public_views =true
 # the 10-thread concurrency tests. Set to 20 to provide headroom.
 hikari.maximumPoolSize=20
 
+# allow_user_generated_scala_code (RCE surface kill-switch) defaults to false everywhere,
+# including test/dev, with no run-mode fallback. Set explicitly here so DynamicUtilTest,
+# ConnectorMethodTest, AbacRuleTests, DynamicResourceDocTest, DynamicMessageDocTest and
+# DynamicCodeKillSwitchTest's ON scenarios can compile/execute dynamic code locally.
+allow_user_generated_scala_code=true
+
 # Permissions granted to runtime-compiled dynamic-endpoint code inside the security sandbox.
 # Mirrors default.props / production.default.props. Required so dynamic resource-doc bodies can do
 # JSON extraction (reflection) and read OBP props (getenv); without it the sandbox denies these and

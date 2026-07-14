@@ -32,12 +32,14 @@ import scala.tools.reflect.{ToolBox, ToolBoxError}
 
 object DynamicUtil extends MdcLoggable{
 
-  // Master kill-switch for user-generated dynamic code (RCE surface). Explicit prop always
-  // wins so tests can force OFF; absent the prop, ON in test/dev, OFF in production.
+  // Master kill-switch for user-generated dynamic code (RCE surface). Defaults to OFF
+  // everywhere — including test/dev — unless explicitly enabled via this prop. Tests that
+  // exercise dynamic-code compilation must set allow_user_generated_scala_code=true
+  // explicitly (see test.default.props / the CI "Setup props" step).
   def dynamicCodeExecutionEnabled: Boolean =
     APIUtil.getPropsValue("allow_user_generated_scala_code") match {
       case Full(v) => v.toBoolean
-      case _ => net.liftweb.util.Props.testMode || net.liftweb.util.Props.devMode
+      case _ => false
     }
 
   val toolBox: ToolBox[universe.type] = runtimeMirror(getClass.getClassLoader).mkToolBox()
