@@ -1,6 +1,16 @@
 ## Completed developments (most recent first)
 
-(a non exhaustive summary!)
+This is a curated log of major engineering milestones, deliberately **not** a complete history. The authoritative record of shipped API functionality is the Resource Docs / API Explorer, the glossary and the README — this file exists for the work those structurally cannot show: re-platforms, dependency removals, performance and architecture changes that alter no API signature.
+
+### Lift Web → http4s re-platform (2026)
+
+The entire OBP-API HTTP surface — every API version from v1.2.1 to v7.0.0, plus Berlin Group and UK Open Banking — now runs on [http4s](https://http4s.org/) and Cats IO. Lift Web and Jetty have been removed entirely.
+
+Key points:
+
+* Done **in place**, endpoint by endpoint, with zero API version bumps and zero signature changes — API versioning at OBP is tech-agnostic, so a framework migration is invisible to API consumers. (This is also why this milestone appears here and not in the API catalogs: it changed no API contract.)
+* Purely functional Scala (Cats Effect), non-blocking I/O.
+* Fewer dependencies; unblocks the Scala 2.13 / 3.x upgrade (see [roadmap.md](roadmap.md), Theme 3 — Lift Mapper persistence is the remaining Lift dependency).
 
 
 * New / Enhanced support for Berlin Group, STET, UK Open Banking, Polish and Australia CDR APIs e.g.
