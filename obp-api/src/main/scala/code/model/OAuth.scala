@@ -35,7 +35,6 @@ import code.nonce.NoncesProvider
 import code.token.TokensProvider
 import code.users.Users
 import code.util.Helper.MdcLoggable
-import code.util.HydraUtil._
 import com.github.dwickern.macros.NameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import net.liftweb.common._
@@ -223,7 +222,6 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
   }
 
   def deleteConsumer(consumer: Consumer): Boolean = {
-    if(integrateWithHydra) hydraAdmin.deleteOAuth2Client(consumer.key.get)
     Consumer.delete_!(consumer)
   }
 
@@ -293,28 +291,6 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
           case None =>
         }
         val updatedConsumer = c.saveMe()
-
-        // In case we use Hydra ORY as Identity Provider we update corresponding client at Hydra side a well
-        if(integrateWithHydra && isActive.isDefined) {
-          val clientId = c.key.get
-          val existsOAuth2Client = Box.tryo(hydraAdmin.getOAuth2Client(clientId))
-            .filter(null.!=)
-          // TODO Involve Hydra ORY version with working update mechanism
-          if (isActive == Some(false) && existsOAuth2Client.isDefined) {
-              existsOAuth2Client
-              .map { oAuth2Client =>
-                oAuth2Client.setClientSecretExpiresAt(System.currentTimeMillis())
-                hydraAdmin.updateOAuth2Client(clientId, oAuth2Client)
-              }
-          }
-          if(isActive == Some(true) && existsOAuth2Client.isDefined) {
-            existsOAuth2Client
-              .map { oAuth2Client =>
-                oAuth2Client.setClientSecretExpiresAt(0L)
-                hydraAdmin.updateOAuth2Client(clientId, oAuth2Client)
-              }
-          }
-        }
 
         updatedConsumer
       }
@@ -533,7 +509,6 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
           }
           c.consumerId(actualConsumerId)
           val createdConsumer = c.saveMe()
-          if(integrateWithHydra) createHydraClient(createdConsumer)
           createdConsumer
         } match {
           case Full(c) => Full(c)

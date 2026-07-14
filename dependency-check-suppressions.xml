@@ -3,20 +3,6 @@
 
     <suppress>
         <notes><![CDATA[
-            CPE collision. CVE-2026-33504 is a SQL injection in the Ory Hydra server
-            (the Go service, fixed in Hydra v26.2.0). The Java client SDK
-            sh.ory.hydra:hydra-client is a generated HTTP client with no SQL code,
-            so it cannot be affected.
-
-            Tracking the dep itself for eventual removal — integrate_with_hydra
-            defaults to false and TESOBE does not deploy with Hydra enabled.
-        ]]></notes>
-        <packageUrl regex="true">^pkg:maven/sh\.ory\.hydra/hydra-client@.*$</packageUrl>
-        <cve>CVE-2026-33504</cve>
-    </suppress>
-
-    <suppress>
-        <notes><![CDATA[
             CPE collision. CVE-2023-37475 is a DoS in Hamba Avro
             (github.com/hamba/avro/v2, a Go library, fixed in 2.13.0).
             dep-check matches our Apache Avro Java 1.8.2 and avro4s 1.8.2
