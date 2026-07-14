@@ -1544,7 +1544,7 @@ object Glossary extends MdcLoggable  {
 |
 |Direct Login is built into OBP and used for testing purposes / local installations.
 |
-|OAuth2 / Open ID Connect (OIDC) is the recommended method for production use, and depends on the configuration of Identity Provider solutions such as Keycloak or Hydra or external services such as Google or Yahoo.
+|OAuth2 / Open ID Connect (OIDC) is the recommended method for production use, and depends on the configuration of Identity Provider solutions such as Keycloak or OBP-OIDC or external services such as Google or Yahoo.
 |
 |Open Bank Project can support multiple identity providers per OBP instance. For example, for a single OBP installation, some Users could authenticate against Google and some could authenticate against a local identity provider.
 |In the cases where multiple identity providers are configured, OBP differentiates between Users by not only their Username but also by their "Identity Provider". i.e. J.Brown logged in via Google is distinct from J.Brown who logged in via a local OBP instance.

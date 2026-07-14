@@ -768,6 +768,7 @@ object ErrorMessages {
   val ConsentHeaderValueInvalid = "OBP-35032: The Consent's Request Header value is not formatted as UUID or JWT."
   val RolesForbiddenInConsent = s"OBP-35033: Consents cannot contain the following Roles: ${canCreateEntitlementAtOneBank} and ${canCreateEntitlementAtAnyBank}."
   val UserAuthContextUpdateRequestAllowedScaMethods = "OBP-35034: Unsupported as SCA method. "
+  val ConsentIdClaimMissing = "OBP-35035: The access token is not bound to a Consent. The identity provider must include a consent_id claim in access tokens issued via the consent authorisation flow. "
 
   //Authorisations
   val AuthorisationNotFound = "OBP-36001: Authorisation not found. Please specify valid values for PAYMENT_ID and AUTHORISATION_ID. "
@@ -1065,6 +1066,8 @@ object ErrorMessages {
     EntitlementCannotBeDeleted -> 500,
     ConsentStatusIssue -> 401,
     ConsentDisabled -> 401,
+    // 403 not 401: the token authenticated fine, it just isn't bound to a consent (UK OB: insufficient authorisation)
+    ConsentIdClaimMissing -> 403,
     InternalServerError -> 500,
   )
 

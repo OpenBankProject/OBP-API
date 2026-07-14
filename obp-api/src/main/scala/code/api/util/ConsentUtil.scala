@@ -23,7 +23,6 @@ import code.model.dataAccess.BankAccountRouting
 import code.scheduler.ConsentScheduler.currentDate
 import code.users.Users
 import code.util.Helper.MdcLoggable
-import code.util.HydraUtil
 import code.views.Views
 import com.nimbusds.jwt.JWTClaimsSet
 import com.openbankproject.commons.ExecutionContext.Implicits.global
@@ -35,7 +34,6 @@ import org.json4s.{Extraction, MappingException}
 import com.openbankproject.commons.util.JsonAliases.{compactRender, parse}
 import net.liftweb.mapper.By
 import net.liftweb.util.Props
-import sh.ory.hydra.model.OAuth2TokenIntrospection
 
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -1109,19 +1107,25 @@ object Consent extends MdcLoggable {
   }
 
 
+  /**
+   * Validates the UK Open Banking AIS consent bound to the presented OAuth2 access token.
+   *
+   * Provider contract (OBP-OIDC, Keycloak, or any other OIDC server): the Bearer access token
+   * is a JWT carrying a `consent_id` claim, planted by the identity provider during the consent
+   * authorisation flow. Signature, issuer and expiry of the token were already verified by the
+   * authentication layer (OAuth2Login issuer dispatch) before any endpoint reaches this check,
+   * so only the claim is extracted here. The OBP database remains authoritative for consent
+   * state: the status/consumer checks below run on every request, so revoking a consent takes
+   * effect immediately even though an already-issued JWT cannot itself be revoked.
+   */
   def checkUKConsent(user: User, calContext: Option[CallContext]): Box[Boolean] = {
-      val accessToken = calContext.flatMap(_.authReqHeaderField)
-        .map(_.replaceFirst("Bearer\\s+", ""))
-        .getOrElse(throw new RuntimeException("Not found http request header 'Authorization', it is mandatory."))
-    val introspectOAuth2Token: OAuth2TokenIntrospection = HydraUtil.hydraAdmin.introspectOAuth2Token(accessToken, null)
-    if(!introspectOAuth2Token.getActive) {
-      return Failure(ErrorMessages.ConsentExpiredIssue)
-    }
+    val accessToken = calContext.flatMap(_.authReqHeaderField)
+      .map(_.replaceFirst("Bearer\\s+", ""))
+      .getOrElse(throw new RuntimeException("Not found http request header 'Authorization', it is mandatory."))
 
-    val boxedConsent: Box[MappedConsent] = {
-      val accessExt = introspectOAuth2Token.getExt.asInstanceOf[java.util.Map[String, String]]
-      val consentId = accessExt.get("consent_id")
-      Consents.consentProvider.vend.getConsentByConsentId(consentId)
+    val boxedConsent: Box[MappedConsent] = JwtUtil.getOptionalClaim("consent_id", accessToken) match {
+      case Some(consentId) => Consents.consentProvider.vend.getConsentByConsentId(consentId)
+      case None => return Failure(ErrorMessages.ConsentIdClaimMissing)
     }
 
     boxedConsent match {

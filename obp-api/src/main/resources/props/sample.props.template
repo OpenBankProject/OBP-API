@@ -1330,27 +1330,15 @@ outboundAdapterCallContext.generalContext
 #connector.name.export.as.endpoints=stored_procedure_vDec2019
 # ------------------------------------------------------------------------------------------
 
-# ------------------------------ Hydra oauth2 props ------------------------------
-## if integrate_with_hydra set to true, all other props must not be empty
-#integrate_with_hydra=true
-#hydra_public_url=http://127.0.0.1:4444
-#hydra_admin_url=http://127.0.0.1:4445
-#hydra_consents=ReadAccountsBasic,ReadAccountsDetail,ReadBalances,ReadTransactionsBasic,ReadTransactionsDebits,ReadTransactionsDetail
-## check the oauth2.jwk_set.url props, it must contains jwks.json that locate in ${hydra_public_url}/.well-known/jwks.json
-##oauth2.jwk_set.url=http://localhost:4444/.well-known/jwks.json,https://www.googleapis.com/oauth2/v3/certs
-## whether create hydra client when create consumer, default is false
-#mirror_consumer_in_hydra=true
-# There are 2 ways of authenticating OAuth 2.0 Clients at the /oauth2/token we support: private_key_jwt and client_secret_post
-# hydra_token_endpoint_auth_method=private_key_jwt
-# hydra_supported_token_endpoint_auth_methods=client_secret_basic,client_secret_post,private_key_jwt
-## ORY Hydra login url is "obp-api-hostname/user_mgt/login" implies "true" in order to avoid creation of a new user during OIDC flow
-# hydra_uses_obp_user_credentials=true
-# ------------------------------ Hydra oauth2 props end ------------------------------
-
 # ------------------------------ OBP-OIDC oauth2 props ------------------------------
 ## OBP-OIDC Provider Configuration
-## Choose which OIDC provider to use: 'keycloak' or 'obp-oidc'
+## OIDC provider(s) to advertise via the /well-known endpoint: 'keycloak', 'obp-oidc',
+## or a comma-separated list to run several in parallel (tokens are dispatched per
+## request by their iss claim, so e.g. OBP-OIDC and Keycloak can serve side by side).
 #oauth2.oidc_provider=obp-oidc
+## Consent-bound flows (e.g. UK Open Banking AIS) additionally require the provider to
+## include a consent_id claim in the access tokens it issues during the consent
+## authorisation flow — OBP-API resolves and validates the consent from its own database.
 
 ## OBP-OIDC OAuth2 Provider Settings
 #oauth2.obp_oidc.host=http://localhost:9000
