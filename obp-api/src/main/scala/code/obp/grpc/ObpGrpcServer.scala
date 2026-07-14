@@ -30,7 +30,7 @@ import scala.concurrent.{ExecutionContext, Future}
 object ObpGrpcServer {
 
   def main(args: Array[String] = Array.empty): Unit = {
-    val server = new ObpGrpcServer(ExecutionContext.global)
+    val server = new ObpGrpcServer(code.api.util.BlockingIoExecutionContext.ec)
     server.start()
     server.blockUntilShutdown()
   }

@@ -50,7 +50,7 @@ object StoredProcedureUtils extends MdcLoggable{
     ds.setConnectionTimeout(timeoutMillis)
     ds.setConnectionTestQuery(validationQuery)
 
-    Transactor.fromDataSource[IO].apply(ds, scala.concurrent.ExecutionContext.global)
+    Transactor.fromDataSource[IO].apply(ds, code.api.util.BlockingIoExecutionContext.ec)
       .copy(strategy0 = Strategy.void)
   }
 

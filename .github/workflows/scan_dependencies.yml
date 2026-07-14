@@ -1,0 +1,40 @@
+name: Scan Maven Dependencies
+
+on:
+  push:
+    paths:
+      - '**/pom.xml'
+      - '.github/workflows/scan_dependencies.yml'
+  pull_request:
+    paths:
+      - '**/pom.xml'
+  workflow_dispatch:
+
+jobs:
+  scan-pom-vulnerabilities:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v3
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Pre-download Maven dependencies
+        run: mvn dependency:go-offline -B
+        continue-on-error: true # Even if go-offline fails partially, the cache is populated enough for Trivy
+
+      - name: Run Trivy vulnerability scanner on filesystem
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'          # Scan local filesystem instead of docker image
+          scan-ref: '.'            # Scan the entire repository for pom.xml files
+          format: 'table'          # Output results in table format
+          exit-code: '0'           # Do not fail the workflow, just log vulnerabilities
+          ignore-unfixed: true     # Ignore vulnerabilities without a fix
+          vuln-type: 'library'     # Scan third-party libraries only
+          severity: 'CRITICAL,HIGH' # Focus on critical and high severity vulnerabilities

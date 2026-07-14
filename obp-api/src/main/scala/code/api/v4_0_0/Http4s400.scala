@@ -48,6 +48,7 @@ import code.model.BankX
 import code.api.JsonResponseException
 import code.api.util.AuthenticationType
 import code.api.util.CommonsEmailWrapper.{EmailContent, sendHtmlEmail}
+import code.api.util.DynamicUtil
 import code.api.util.DynamicUtil.Validation
 import code.api.dynamic.endpoint.helper.CompiledObjects
 import code.api.dynamic.endpoint.helper.practise.DynamicEndpointCodeGenerator
@@ -9163,6 +9164,7 @@ object Http4s400 {
           val cc = req.callContext
           val rawBody = cc.httpBody.getOrElse("")
           for {
+            _ <- code.util.Helper.booleanToFuture(DynamicCodeExecutionDisabled, cc = Some(cc)) { DynamicUtil.dynamicCodeExecutionEnabled }
             jsonConnectorMethod <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The Json body should be the ${classOf[JsonConnectorMethod].getSimpleName}",
               400, Some(cc)) {
@@ -9192,6 +9194,7 @@ object Http4s400 {
         EndpointHelpers.executeAndRespond(req) { cc =>
           val rawBody = cc.httpBody.getOrElse("")
           for {
+            _ <- code.util.Helper.booleanToFuture(DynamicCodeExecutionDisabled, cc = Some(cc)) { DynamicUtil.dynamicCodeExecutionEnabled }
             connectorMethodBody <- NewStyle.function.tryons(
               s"$InvalidJsonFormat The Json body should be the ${classOf[JsonConnectorMethod].getSimpleName}",
               400, Some(cc)) {
@@ -9373,6 +9376,7 @@ object Http4s400 {
 
     private def createDynamicResourceDocImpl(bankId: Option[String], rawBody: String, cc: CallContext): Future[JsonDynamicResourceDoc] = {
       for {
+        _ <- code.util.Helper.booleanToFuture(DynamicCodeExecutionDisabled, cc = Some(cc)) { DynamicUtil.dynamicCodeExecutionEnabled }
         body <- NewStyle.function.tryons(
           s"$InvalidJsonFormat The Json body should be the ${classOf[JsonDynamicResourceDoc].getSimpleName}",
           400, Some(cc)) {
@@ -9391,6 +9395,7 @@ object Http4s400 {
 
     private def updateDynamicResourceDocImpl(bankId: Option[String], dynamicResourceDocId: String, rawBody: String, cc: CallContext): Future[JsonDynamicResourceDoc] = {
       for {
+        _ <- code.util.Helper.booleanToFuture(DynamicCodeExecutionDisabled, cc = Some(cc)) { DynamicUtil.dynamicCodeExecutionEnabled }
         body <- NewStyle.function.tryons(
           s"$InvalidJsonFormat The Json body should be the ${classOf[JsonDynamicResourceDoc].getSimpleName}",
           400, Some(cc)) {
@@ -9671,6 +9676,7 @@ object Http4s400 {
 
     private def createDynamicMessageDocImpl(bankId: Option[String], rawBody: String, cc: CallContext): Future[JsonDynamicMessageDoc] = {
       for {
+        _ <- code.util.Helper.booleanToFuture(DynamicCodeExecutionDisabled, cc = Some(cc)) { DynamicUtil.dynamicCodeExecutionEnabled }
         body <- NewStyle.function.tryons(
           s"$InvalidJsonFormat The Json body should be the ${classOf[JsonDynamicMessageDoc].getSimpleName}",
           400, Some(cc)) {
@@ -9693,6 +9699,7 @@ object Http4s400 {
 
     private def updateDynamicMessageDocImpl(bankId: Option[String], dynamicMessageDocId: String, rawBody: String, cc: CallContext): Future[JsonDynamicMessageDoc] = {
       for {
+        _ <- code.util.Helper.booleanToFuture(DynamicCodeExecutionDisabled, cc = Some(cc)) { DynamicUtil.dynamicCodeExecutionEnabled }
         body <- NewStyle.function.tryons(
           s"$InvalidJsonFormat The Json body should be the ${classOf[JsonDynamicMessageDoc].getSimpleName}",
           400, Some(cc)) {

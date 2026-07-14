@@ -36,7 +36,7 @@ object Http4sUKOBv310Products extends MdcLoggable {
 
   val implementedInApiVersion: ScannedApiVersion = ApiVersion.ukOpenBankingV31
   val resourceDocs = ArrayBuffer[ResourceDoc]()
-  private def parseBody(s: String): org.json4s.JObject = com.openbankproject.commons.util.JsonAliases.parse(s).asInstanceOf[org.json4s.JObject]
+  private def parseBody(s: String): code.api.berlin.group.v1_3.JvalueCaseClass = code.api.berlin.group.v1_3.JvalueCaseClass(com.openbankproject.commons.util.JsonAliases.parse(s).asInstanceOf[org.json4s.JObject])
 
   val ukV31Prefix = Root / ApiVersion.ukOpenBankingV31.urlPrefix / ApiVersion.ukOpenBankingV31.apiShortVersion
 

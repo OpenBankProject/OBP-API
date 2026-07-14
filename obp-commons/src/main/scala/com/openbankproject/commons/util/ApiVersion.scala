@@ -148,6 +148,7 @@ object ApiVersion {
   val auOpenBankingV100 = ScannedApiVersion("cds-au", "AU", "v1.0.0")
   val ukOpenBankingV20 = ScannedApiVersion("open-banking", "UK", "v2.0")
   val ukOpenBankingV31 = ScannedApiVersion("open-banking", "UK", "v3.1")
+  val ukOpenBankingV401 = ScannedApiVersion("open-banking", "UK", "v4.0.1")
   val stetV14 = ScannedApiVersion("stet", "STET", "v1.4")
   val cdsAuV100 = ScannedApiVersion("cds-au", "AU", "v1.0.0")
   val polishApiV2111 = ScannedApiVersion("polish-api", "PAPI", "v2.1.1.1")

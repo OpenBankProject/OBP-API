@@ -80,7 +80,9 @@ starConnector_supported_types=mapped,internal
 #this cache is used in api level, will cache whole endpoint : v121.getTransactionsForBankAccount
 #api.cache.ttl.seconds.APIMethods121.getTransactions=0
 
-## MethodRouting cache time-to-live in seconds
+# TTL (seconds) for the MethodRouting lookup cache used by StarConnector on every connector
+# call. 0 disables the cache (every connector call re-queries the DB). Writes via
+# /management/method_routings invalidate the cache immediately, so this is a staleness backstop.
 #methodRouting.cache.ttl.seconds=30
 
 ## EndpointMapping cache time-to-live in seconds
@@ -1556,6 +1558,22 @@ personal_data_collection_consent_country_waiver_list = Austria, Belgium, Bulgari
 # it defaults to the "portal_hostname" as a 1st choise and to the "hostname" props value as a 2nd choise
 # user_invitation_link_base_URL=strongly recommended to use top level domain name so that all nodes in the cluster share same URL
 
+
+# --- Dynamic code execution kill-switch (security: RCE surface) ---
+# Master switch for USER-GENERATED code that OBP compiles and executes at runtime:
+#   - Dynamic Resource Docs (/management/dynamic-resource-docs)      -> compiles Scala
+#   - Connector Methods      (/management/connector-methods)         -> compiles Scala/JS/Java
+#   - Dynamic Message Docs   (/management/dynamic-message-docs)      -> compiles Scala/JS/Java
+#   - ABAC Rules             (/management/abac-rules)                -> compiles Scala
+# When false, these endpoints return OBP-50020 and NOTHING is compiled or executed.
+# This does NOT affect Dynamic Entities or Swagger Dynamic Endpoints (they store data /
+# proxy HTTP and do not execute code).
+# SECURITY: the runtime sandbox (SecurityManager) is a no-op on JDK 24+ (JEP 486) and the
+# GraalVM JS context is created with HostAccess.ALL, so enabled dynamic code runs UNSANDBOXED.
+# Leave false in production. Only enable on trusted sandbox/dev instances.
+# Defaults to false everywhere (including test/dev run modes) when this prop is absent —
+# it must be set to true explicitly, there is no run-mode-based fallback.
+allow_user_generated_scala_code=false
 
 # enable dynamic code sandbox, default is false, this will make sandbox works for code running in Future, will make performance lower than disable
 dynamic_code_sandbox_enable=false

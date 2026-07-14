@@ -310,8 +310,15 @@ object Redis extends MdcLoggable {
       tryDecode match {
         case Success(v) => v.asInstanceOf[T]
         case Failure(e) =>
-          logger.error(e)
-          "NONE".asInstanceOf[T]
+          // Deserialization failed: corrupt bytes, a class-shape change across a redeploy,
+          // Kryo registration drift, etc. Returning a sentinel value cast to T poisons the
+          // cache - scalacache treats it as a HIT and hands e.g. a String to a caller
+          // expecting List[MethodRoutingT], throwing ClassCastException for the whole TTL.
+          // Rethrow instead: scalacache.TypedApi._caching treats a failed read as a cache
+          // miss, recomputes from the source block, and repopulates the key with a fresh,
+          // valid serialization (self-healing).
+          logger.error("Redis cache deserialization failed; treating as a cache miss and recomputing.", e)
+          throw e
       }
     }
   }

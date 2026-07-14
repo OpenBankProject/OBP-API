@@ -1,11 +1,9 @@
 package code.api.dynamic.entity.projection
 
 import cats.effect.IO
-import code.api.util.APIUtil
+import code.api.util.{APIUtil, BlockingIoExecutionContext}
 import doobie._
 import doobie.implicits._
-
-import scala.concurrent.ExecutionContext
 
 /**
  * A **committing** Doobie transactor over the shared HikariCP pool, for projection operations that
@@ -19,7 +17,7 @@ import scala.concurrent.ExecutionContext
  */
 object ProjectionDb {
   private lazy val xa: Transactor[IO] =
-    Transactor.fromDataSource[IO].apply(APIUtil.vendor.HikariDatasource.ds, ExecutionContext.global)
+    Transactor.fromDataSource[IO].apply(APIUtil.vendor.HikariDatasource.ds, BlockingIoExecutionContext.ec)
 
   def run[A](program: ConnectionIO[A]): IO[A] = program.transact(xa)
 }

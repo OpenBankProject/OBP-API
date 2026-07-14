@@ -23,6 +23,7 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.{NotSupportedYet, notSu
 //import code.api.STET.v1_4.OBP_STET_1_4
 import code.api.UKOpenBanking.v2_0_0.OBP_UKOpenBanking_200
 import code.api.UKOpenBanking.v3_1_0.OBP_UKOpenBanking_310
+import code.api.UKOpenBanking.v4_0_1.OBP_UKOpenBanking_401
 import code.api.berlin.group.v1_3.{OBP_BERLIN_GROUP_1_3, OBP_BERLIN_GROUP_1_3_Alias}
 import code.api.v1_4_0.JSONFactory1_4_0
 import com.openbankproject.commons.model.JsonFieldReName
@@ -336,6 +337,7 @@ object SwaggerJSONFactory extends MdcLoggable {
               // Commented out: STET / Polish / AUOpenBanking Lift endpoints removed
               if (apiVersion == OBP_UKOpenBanking_200.apiVersion
                 || OBP_UKOpenBanking_310.apiVersion == OBP_UKOpenBanking_200.apiVersion
+                || apiVersion == OBP_UKOpenBanking_401.apiVersion
               )  s"custom, proprietary license: personal use is allowed and free, modifications or re-publishing is not allowed"
               else if (apiVersion == OBP_BERLIN_GROUP_1_3.apiVersion
                 || apiVersion == OBP_BERLIN_GROUP_1_3_Alias.apiVersion

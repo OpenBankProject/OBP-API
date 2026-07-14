@@ -32,6 +32,16 @@ import scala.tools.reflect.{ToolBox, ToolBoxError}
 
 object DynamicUtil extends MdcLoggable{
 
+  // Master kill-switch for user-generated dynamic code (RCE surface). Defaults to OFF
+  // everywhere — including test/dev — unless explicitly enabled via this prop. Tests that
+  // exercise dynamic-code compilation must set allow_user_generated_scala_code=true
+  // explicitly (see test.default.props / the CI "Setup props" step).
+  def dynamicCodeExecutionEnabled: Boolean =
+    APIUtil.getPropsValue("allow_user_generated_scala_code") match {
+      case Full(v) => v.toBoolean
+      case _ => false
+    }
+
   val toolBox: ToolBox[universe.type] = runtimeMirror(getClass.getClassLoader).mkToolBox()
   private val memoClassPool = new Memo[ClassLoader, ClassPool]
 
@@ -54,6 +64,14 @@ object DynamicUtil extends MdcLoggable{
    * @return compiled Full[function|object|class] or Failure
    */
   def compileScalaCode[T](code: String): Box[T] = {
+    if (!dynamicCodeExecutionEnabled)
+      return Failure(ErrorMessages.DynamicCodeExecutionDisabled)
+    compileScalaCodeUnchecked[T](code)
+  }
+
+  // Used ONLY by DynamicUtil.Validation's props-driven config parsing (operator config,
+  // not user-generated code) so the app can still boot with the kill-switch off.
+  private def compileScalaCodeUnchecked[T](code: String): Box[T] = {
     logger.trace(s"code.api.util.DynamicUtil.compileScalaCode.size is ${dynamicCompileResult.size()}")
     val compiledResult: Box[Any] = dynamicCompileResult.computeIfAbsent(code, _ => {
       val tree = try {
@@ -344,7 +362,7 @@ object DynamicUtil extends MdcLoggable{
 
     val dynamicCodeSandboxPermissions = APIUtil.getPropsValue("dynamic_code_sandbox_permissions", "[]").trim
     val scalaCodePermissioins = "List[java.security.Permission]"+dynamicCodeSandboxPermissions.replaceFirst("\\[","(").dropRight(1)+")"
-    val permissions:Box[List[java.security.Permission]] = DynamicUtil.compileScalaCode(scalaCodePermissioins)
+    val permissions:Box[List[java.security.Permission]] = DynamicUtil.compileScalaCodeUnchecked(scalaCodePermissioins)
     
     // all Permissions put at here
     // Here is the Java Permission document, please extend these permissions carefully. 
@@ -368,7 +386,7 @@ object DynamicUtil extends MdcLoggable{
 
     val dependenciesString = APIUtil.getPropsValue("dynamic_code_compile_validate_dependencies", "[]").trim
     val scalaCodeDependencies = s"${DynamicUtil.importStatements}"+dependenciesString.replaceFirst("\\[","Map(").dropRight(1) +").mapValues(v => StringUtils.split(v, ',').map(_.trim).toSet)"
-    val dependenciesBox: Box[Map[String, Set[String]]] = DynamicUtil.compileScalaCode(scalaCodeDependencies)
+    val dependenciesBox: Box[Map[String, Set[String]]] = DynamicUtil.compileScalaCodeUnchecked(scalaCodeDependencies)
     
     /**
      * Compilation OBP Dependencies Guard, only checked the OBP methods, not scala/Java libraies(are checked during the runtime.).
@@ -452,7 +470,9 @@ object DynamicUtil extends MdcLoggable{
 
   private val memoDynamicFunction = new Memo[String, Box[DynamicFunction]]
 
-  def createJsFunction(methodBody:String, bindingVars: Map[String, AnyRef] = Map.empty): Box[DynamicFunction] = memoDynamicFunction.memoize("Javascript:" + methodBody) {
+  def createJsFunction(methodBody:String, bindingVars: Map[String, AnyRef] = Map.empty): Box[DynamicFunction] =
+    if (!dynamicCodeExecutionEnabled) Failure(ErrorMessages.DynamicCodeExecutionDisabled)
+    else memoDynamicFunction.memoize("Javascript:" + methodBody) {
     Box tryo {
       val jsCode = s"""async function processor(args, callContext) {
        $methodBody
@@ -495,7 +515,9 @@ object DynamicUtil extends MdcLoggable{
 
   private val javaEngine = (new ScriptEngineManager).getEngineByName("java")
 
-  def createJavaFunction(methodBody:String): Box[DynamicFunction] = memoDynamicFunction.memoize("java:" + methodBody) {
+  def createJavaFunction(methodBody:String): Box[DynamicFunction] =
+    if (!dynamicCodeExecutionEnabled) Failure(ErrorMessages.DynamicCodeExecutionDisabled)
+    else memoDynamicFunction.memoize("java:" + methodBody) {
     import com.openbankproject.commons.ExecutionContext.Implicits.global
     import com.openbankproject.commons.util.JsonAliases.compactRender
 

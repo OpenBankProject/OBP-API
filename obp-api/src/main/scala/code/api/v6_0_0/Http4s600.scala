@@ -71,6 +71,7 @@ import code.api.v6_0_0.JSONFactory600.UpdateViewJsonV600
 import code.model._
 import code.model.dataAccess.AuthUser
 import code.users.{Users, DoobieUserQueries}
+import code.api.util.DynamicUtil
 import code.util.Helper.SILENCE_IS_GOLDEN
 import com.openbankproject.commons.dto.GetProductsParam
 import code.model.ModeratedTransaction
@@ -1048,30 +1049,42 @@ object Http4s600 {
               case Full(url) => Future.successful(url)
               case _ => Future.failed(new Exception(s"$IncompleteServerConfiguration public_obp_portal_url (or legacy portal_external_url) is not set"))
             }
-          } yield {
-            val user: AuthUser = authUser
-            user.uniqueId.set(java.util.UUID.randomUUID().toString.replace("-", ""))
-            user.save
-            val expiryMinutes = APIUtil.getPropsAsIntValue("password_reset_token_expiry_minutes", 120)
-            val claimsSet = new com.nimbusds.jwt.JWTClaimsSet.Builder()
-              .subject(user.uniqueId.get)
-              .expirationTime(new java.util.Date(System.currentTimeMillis() + expiryMinutes * 60L * 1000L))
-              .issueTime(new java.util.Date()).build()
-            val jwtToken = CertificateUtil.jwtWithHmacProtection(claimsSet)
-            val resetLink = portalUrl + "/reset-password/" + java.net.URLEncoder.encode(jwtToken, "UTF-8")
-            CommonsEmailWrapper.sendHtmlEmail(CommonsEmailWrapper.EmailContent(
+            resetLink <- Future {
+              val user: AuthUser = authUser
+              user.uniqueId.set(java.util.UUID.randomUUID().toString.replace("-", ""))
+              user.save
+              val expiryMinutes = APIUtil.getPropsAsIntValue("password_reset_token_expiry_minutes", 120)
+              val claimsSet = new com.nimbusds.jwt.JWTClaimsSet.Builder()
+                .subject(user.uniqueId.get)
+                .expirationTime(new java.util.Date(System.currentTimeMillis() + expiryMinutes * 60L * 1000L))
+                .issueTime(new java.util.Date()).build()
+              val jwtToken = CertificateUtil.jwtWithHmacProtection(claimsSet)
+              portalUrl + "/reset-password/" + java.net.URLEncoder.encode(jwtToken, "UTF-8")
+            }
+            // The caller is an admin with canCreateResetPasswordUrl who already knows the
+            // target user's email, so anti-enumeration does not apply here: if the email
+            // cannot be sent, say so instead of reporting "sent".
+            _ <- CommonsEmailWrapper.sendHtmlEmailEither(CommonsEmailWrapper.EmailContent(
               from = AuthUser.emailFrom,
-              to = List(user.email.get),
+              to = List(authUser.email.get),
               bcc = AuthUser.bccEmail.toList,
-              subject = "Reset your password - " + user.username.get,
+              subject = "Reset your password - " + authUser.username.get,
               textContent = Some(s"Please reset your password: $resetLink"),
               htmlContent = Some(s"<p>Please reset your password: <a href='$resetLink'>$resetLink</a></p>")
-            ))
+            )) match {
+              case Right(_) => Future.successful(())
+              case Left(e) =>
+                val json = org.json4s.native.Serialization.write(
+                  code.api.APIFailureNewStyle(s"$UnknownError Failed to send password reset email: ${e.getMessage}", 500, Some(cc).map(_.toLight))
+                )(org.json4s.DefaultFormats)
+                Future.failed(new Exception(json))
+            }
+          } yield {
             // The reset URL is intentionally NOT returned in the response. Returning
             // it would let any caller with canCreateResetPasswordUrl complete a reset
             // without controlling the target mailbox, defeating the email-proves-
             // mailbox-ownership property of the flow. The link goes via email only.
-            JSONFactory600.ResetPasswordEmailSentJsonV600(status = "sent", to = user.email.get)
+            JSONFactory600.ResetPasswordEmailSentJsonV600(status = "sent", to = authUser.email.get)
           }
         }
     }
@@ -4588,6 +4601,7 @@ object Http4s600 {
         EndpointHelpers.executeAndRespond(req) { implicit cc =>
           val rawBody = cc.httpBody.getOrElse("")
           for {
+            _ <- code.util.Helper.booleanToFuture(DynamicCodeExecutionDisabled, cc = Some(cc)) { DynamicUtil.dynamicCodeExecutionEnabled }
             validateJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
               com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[ValidateAbacRuleJsonV600]
             }
@@ -5488,6 +5502,7 @@ object Http4s600 {
           val rawBody = cc.httpBody.getOrElse("")
           val user = cc.user.openOrThrowException(AuthenticatedUserIsRequired)
           for {
+            _ <- Helper.booleanToFuture(DynamicCodeExecutionDisabled, cc = Some(cc)) { DynamicUtil.dynamicCodeExecutionEnabled }
             createJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
               com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[CreateAbacRuleJsonV600]
             }
@@ -5542,6 +5557,7 @@ object Http4s600 {
           val rawBody = cc.httpBody.getOrElse("")
           val user = cc.user.openOrThrowException(AuthenticatedUserIsRequired)
           for {
+            _ <- Helper.booleanToFuture(DynamicCodeExecutionDisabled, cc = Some(cc)) { DynamicUtil.dynamicCodeExecutionEnabled }
             updateJson <- NewStyle.function.tryons(InvalidJsonFormat, 400, Some(cc)) {
               com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[UpdateAbacRuleJsonV600]
             }
