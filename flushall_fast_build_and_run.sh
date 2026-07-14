@@ -297,6 +297,32 @@ echo "✓ Build log saved to: fast_build.log"
 echo ""
 
 ################################################################################
+# PICK A FREE PORT (auto-switch if the configured one is already in use)
+################################################################################
+
+# dev.port -> OBP_DEV_PORT env var (APIUtil.getPropsValue checks env before
+# props, see Http4sServer.scala's getPropsAsIntValue("dev.port", 8080)), so
+# exporting this here is enough to actually move the server off a busy port.
+DEV_PORT="${OBP_DEV_PORT:-8080}"
+if lsof -nP -iTCP:"$DEV_PORT" -sTCP:LISTEN >/dev/null 2>&1; then
+    ORIGINAL_PORT="$DEV_PORT"
+    FOUND_FREE_PORT=false
+    for candidate in $(seq $((DEV_PORT + 1)) $((DEV_PORT + 50))); do
+        if ! lsof -nP -iTCP:"$candidate" -sTCP:LISTEN >/dev/null 2>&1; then
+            DEV_PORT="$candidate"
+            FOUND_FREE_PORT=true
+            break
+        fi
+    done
+    if [ "$FOUND_FREE_PORT" = false ]; then
+        echo "❌ Port $ORIGINAL_PORT is already in use and no free port was found in $((ORIGINAL_PORT + 1))-$((ORIGINAL_PORT + 50))."
+        exit 1
+    fi
+    echo "⚠ Port $ORIGINAL_PORT is already in use — switching to port $DEV_PORT"
+fi
+export OBP_DEV_PORT="$DEV_PORT"
+
+################################################################################
 # RUN HTTP4S SERVER
 ################################################################################
 
@@ -306,6 +332,7 @@ if [ "$RUN_BACKGROUND" = true ]; then
 else
     echo "Starting HTTP4S server (foreground)..."
 fi
+echo "  PORT: $DEV_PORT"
 echo "=========================================="
 
 # Java options for runtime

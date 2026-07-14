@@ -129,6 +129,32 @@ echo "✓ Build log saved to: build.log"
 echo ""
 
 ################################################################################
+# PICK A FREE PORT (auto-switch if the configured one is already in use)
+################################################################################
+
+# dev.port -> OBP_DEV_PORT env var (APIUtil.getPropsValue checks env before
+# props, see Http4sServer.scala's getPropsAsIntValue("dev.port", 8080)), so
+# exporting this here is enough to actually move the server off a busy port.
+DEV_PORT="${OBP_DEV_PORT:-8080}"
+if lsof -nP -iTCP:"$DEV_PORT" -sTCP:LISTEN >/dev/null 2>&1; then
+    ORIGINAL_PORT="$DEV_PORT"
+    FOUND_FREE_PORT=false
+    for candidate in $(seq $((DEV_PORT + 1)) $((DEV_PORT + 50))); do
+        if ! lsof -nP -iTCP:"$candidate" -sTCP:LISTEN >/dev/null 2>&1; then
+            DEV_PORT="$candidate"
+            FOUND_FREE_PORT=true
+            break
+        fi
+    done
+    if [ "$FOUND_FREE_PORT" = false ]; then
+        echo "❌ Port $ORIGINAL_PORT is already in use and no free port was found in $((ORIGINAL_PORT + 1))-$((ORIGINAL_PORT + 50))."
+        exit 1
+    fi
+    echo "⚠ Port $ORIGINAL_PORT is already in use — switching to port $DEV_PORT"
+fi
+export OBP_DEV_PORT="$DEV_PORT"
+
+################################################################################
 # RUN HTTP4S SERVER
 ################################################################################
 
@@ -138,6 +164,7 @@ if [ "$RUN_BACKGROUND" = true ]; then
 else
     echo "Starting HTTP4S server (foreground)..."
 fi
+echo "  PORT: $DEV_PORT"
 echo "=========================================="
 
 # Java options for runtime
@@ -155,15 +182,21 @@ JAVA_OPTS="--add-opens java.base/java.lang=ALL-UNNAMED \
 RUNTIME_LOG=/tmp/obp-api.log
 
 if [ "$RUN_BACKGROUND" = true ]; then
-    # Run in background with output to log file (tee'd to /tmp as well)
-    nohup java $JAVA_OPTS -jar obp-api/target/obp-api.jar > >(tee "$RUNTIME_LOG") 2>&1 &
+    # Run in background with output to log file. Redirect straight to the file
+    # (not `> >(tee "$RUNTIME_LOG")`): that process-substitution form spawns a
+    # `tee` that inherits this script's own stdout fd, which — when this script
+    # is itself invoked from a caller capturing output via `$(... | tee ...)`
+    # (e.g. smoke_test.sh's start_and_test) — keeps that caller's pipe open for
+    # as long as the server runs, so `$(...)` never returns. A plain file
+    # redirect closes cleanly with this script's own exit.
+    nohup java $JAVA_OPTS -jar obp-api/target/obp-api.jar > "$RUNTIME_LOG" 2>&1 &
     SERVER_PID=$!
     echo "✓ HTTP4S server started in background"
     echo "  PID: $SERVER_PID"
-    echo "  Log: http4s-server.log (also $RUNTIME_LOG)"
+    echo "  Log: $RUNTIME_LOG"
     echo ""
     echo "To stop the server: kill $SERVER_PID"
-    echo "To view logs: tail -f http4s-server.log"
+    echo "To view logs: tail -f $RUNTIME_LOG"
 else
     # Run in foreground (Ctrl+C to stop). Also tee output to /tmp so it can be
     # tailed from another terminal without taking over this one.
