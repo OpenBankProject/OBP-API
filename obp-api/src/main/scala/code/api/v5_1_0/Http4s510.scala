@@ -4262,6 +4262,76 @@ object Http4s510 {
       http4sPartialFunction = Some(updateConsentUserIdByConsentId)
     )
 
+    // Authorise a UK Open Banking account-access consent as the current PSU.
+    //
+    // UK consents are lodged by the TPP via client_credentials (no user, status
+    // AWAITINGAUTHORISATION). After the PSU authenticates at the identity provider,
+    // Portal calls this endpoint with the PSU's own access token to bind the consent
+    // to that user and flip it to AUTHORISED — the missing "authorisation binding"
+    // step of the UK flow. It is user-authenticated but role-free (the account holder
+    // is approving their own consent), mirroring the SCA challenge endpoint.
+    val authoriseUKConsent: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "banks" / _ / "consents" / consentId / "authorise" =>
+        EndpointHelpers.executeFuture(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          for {
+            user <- Future.successful(cc.user.openOrThrowException(AuthenticatedUserIsRequired))
+            consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId))
+              .map(unboxFullOrFail(_, Some(cc), s"$ConsentNotFound ($consentId)", 404))
+            // Only a consent still awaiting authorisation can be authorised. This status
+            // is UK-specific (Berlin Group uses "received", OBP uses INITIATED), so the
+            // guard also effectively scopes this endpoint to the UK flow.
+            _ <- Helper.booleanToFuture(s"$ConsentStatusIssue${ConsentStatus.AWAITINGAUTHORISATION.toString} to be authorised (current: ${consent.status}).", 400, Some(cc)) {
+              consent.status.toUpperCase == ConsentStatus.AWAITINGAUTHORISATION.toString
+            }
+            // Bind the PSU as the consent's user in the DB (mUserId).
+            consentAfterBind <- Future(Consents.consentProvider.vend.updateConsentUser(consentId, user))
+              .map(i => connectorEmptyResponse(i, Some(cc)))
+            // Also stamp the PSU into the consent JWT's createdByUserId, so consent-scoped
+            // identity resolution (e.g. GET /users/current) reports the authorising user
+            // rather than the client_credentials pseudo-user the consent was lodged under.
+            // Despite its name, updateUserIdOfBerlinGroupConsentJWT only rewrites
+            // createdByUserId (via ConsentJWT.copy) — the UK permission views are preserved.
+            updatedJwt <- Future(Consent.updateUserIdOfBerlinGroupConsentJWT(user.userId, consentAfterBind, Some(cc)))
+              .map(i => connectorEmptyResponse(i, Some(cc)))
+            _ <- Future(Consents.consentProvider.vend.setJsonWebToken(consentId, updatedJwt))
+              .map(i => connectorEmptyResponse(i, Some(cc)))
+            updatedConsent <- Future(Consents.consentProvider.vend.updateConsentStatus(consentId, ConsentStatus.AUTHORISED))
+              .map(i => connectorEmptyResponse(i, Some(cc)))
+          } yield ConsentJsonV310(updatedConsent.consentId, updatedConsent.jsonWebToken, updatedConsent.status)
+        }
+    }
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(authoriseUKConsent),
+      "POST",
+      "/banks/BANK_ID/consents/CONSENT_ID/authorise",
+      "Authorise UK Consent",
+      s"""
+      |
+      |Authorise a UK Open Banking account-access consent as the current (PSU) user.
+      |
+      |The TPP first lodges the intent via `POST /account-access-consents`; the consent is
+      |created in ${ConsentStatus.AWAITINGAUTHORISATION} state with no bound user. After the
+      |PSU authenticates, this endpoint binds the consent to the PSU and transitions it to
+      |${ConsentStatus.AUTHORISED}, so subsequent UK data calls whose access token carries the
+      |`consent_id` claim pass the consent check.
+      |
+      |${userAuthenticationMessage(true)}
+      |
+      |""",
+      EmptyBody,
+      ConsentJsonV310(
+        "9d429899-24f5-42c8-8565-943ffa6a7945",
+        "eyJhbGciOiJIUzI1NiJ9.eyJ2aWV3cyI6W119.signature",
+        "AUTHORISED"
+      ),
+      List($AuthenticatedUserIsRequired, ConsentNotFound, ConsentStatusIssue, InvalidConnectorResponse, UnknownError),
+      apiTagConsent :: apiTagPSD2AIS :: Nil,
+      None,
+      http4sPartialFunction = Some(authoriseUKConsent)
+    )
+
     val getMyConsents: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ GET -> `prefixPath` / "my" / "consents" =>
         EndpointHelpers.executeFuture(req) {
@@ -5060,6 +5130,7 @@ object Http4s510 {
           .orElse(updateConsentStatusByConsent(req))
           .orElse(updateConsentAccountAccessByConsentId(req))
           .orElse(updateConsentUserIdByConsentId(req))
+          .orElse(authoriseUKConsent(req))
           .orElse(getMyConsents(req))
           .orElse(getConsentsAtBank(req))
           .orElse(getConsents(req))
