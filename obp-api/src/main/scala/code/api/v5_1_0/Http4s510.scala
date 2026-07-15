@@ -62,7 +62,7 @@ import com.openbankproject.commons.model.{
   BranchRoutingJsonV141, CounterpartyId, CustomerId, ListResult, ProductCode,
   RegulatedEntityId, TransactionRequestId, User, View, ViewId
 }
-import com.openbankproject.commons.model.enums.{AtmAttributeType, ConsentType, RegulatedEntityAttributeType, StrongCustomerAuthentication, TransactionRequestStatus, UserAttributeType}
+import com.openbankproject.commons.model.enums.{AtmAttributeType, ChallengeType, ConsentType, RegulatedEntityAttributeType, StrongCustomerAuthentication, StrongCustomerAuthenticationStatus, SuppliedAnswerType, TransactionRequestStatus, UserAttributeType}
 import com.openbankproject.commons.util.{ApiVersion, ApiVersionStatus, ScannedApiVersion}
 import net.liftweb.common.{Box, Empty, Full}
 import com.openbankproject.commons.util.json
@@ -83,6 +83,11 @@ import java.util.Date
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
 import scala.language.{higherKinds, implicitConversions}
+
+// UK Open Banking consent SCA (see authoriseUKConsentChallenge / authoriseUKConsent):
+// the challenge-start endpoint returns this; the authorise endpoint consumes the answer.
+case class UKConsentScaChallengeJsonV510(challenge_id: String, sca_status: String, sca_method: String)
+case class PostUKConsentAuthoriseJsonV510(challenge_id: String, answer: String)
 
 object Http4s510 {
 
@@ -4262,14 +4267,75 @@ object Http4s510 {
       http4sPartialFunction = Some(updateConsentUserIdByConsentId)
     )
 
-    // Authorise a UK Open Banking account-access consent as the current PSU.
+    // Start SCA for a UK Open Banking consent: issue a one-time challenge (OTP) to the PSU.
+    // Uses the shared OBP challenge engine (createChallengesC2) — the same one Berlin Group
+    // uses — with ChallengeType.OBP_CONSENT_CHALLENGE, which is status-agnostic and so works
+    // on an AWAITINGAUTHORISATION consent. The OTP is delivered per the configured SCA method
+    // (props suggested_default_sca_method: DUMMY answer "123" for dev, EMAIL/SMS for prod).
+    val authoriseUKConsentChallenge: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "banks" / _ / "consents" / consentId / "authorise" / "challenge" =>
+        EndpointHelpers.executeFuture(req) {
+          implicit val cc: code.api.util.CallContext = req.callContext
+          val scaMethod = getSuggestedDefaultScaMethod()
+          for {
+            user <- Future.successful(cc.user.openOrThrowException(AuthenticatedUserIsRequired))
+            consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId))
+              .map(unboxFullOrFail(_, Some(cc), s"$ConsentNotFound ($consentId)", 404))
+            _ <- Helper.booleanToFuture(s"$ConsentStatusIssue${ConsentStatus.AWAITINGAUTHORISATION.toString} to start SCA (current: ${consent.status}).", 400, Some(cc)) {
+              consent.status.toUpperCase == ConsentStatus.AWAITINGAUTHORISATION.toString
+            }
+            (challenges, _) <- NewStyle.function.createChallengesC2(
+              List(user.userId),
+              ChallengeType.OBP_CONSENT_CHALLENGE,
+              None,
+              scaMethod,
+              Some(StrongCustomerAuthenticationStatus.received),
+              Some(consentId),
+              None,
+              Some(cc))
+            challenge <- NewStyle.function.tryons(s"$InvalidConnectorResponseForCreateChallenge", 400, Some(cc)) {
+              challenges.head
+            }
+          } yield UKConsentScaChallengeJsonV510(
+            challenge.challengeId,
+            challenge.scaStatus.map(_.toString).getOrElse(StrongCustomerAuthenticationStatus.received.toString),
+            scaMethod.map(_.toString).getOrElse("")
+          )
+        }
+    }
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(authoriseUKConsentChallenge),
+      "POST",
+      "/banks/BANK_ID/consents/CONSENT_ID/authorise/challenge",
+      "Start UK Consent SCA Challenge",
+      s"""
+      |
+      |Start Strong Customer Authentication for a UK Open Banking account-access consent: issue a
+      |one-time challenge (OTP) to the current (PSU) user, delivered per the configured SCA method.
+      |
+      |Call this before `POST /banks/BANK_ID/consents/CONSENT_ID/authorise`, then submit the
+      |returned `challenge_id` together with the OTP answer to that endpoint to complete authorisation.
+      |
+      |${userAuthenticationMessage(true)}
+      |
+      |""",
+      EmptyBody,
+      UKConsentScaChallengeJsonV510("74a8ebda-9e5a-4c3f-9b0b-1a2b3c4d5e6f", "received", "SMS"),
+      List($AuthenticatedUserIsRequired, ConsentNotFound, ConsentStatusIssue, InvalidConnectorResponse, UnknownError),
+      apiTagConsent :: apiTagPSD2AIS :: Nil,
+      None,
+      http4sPartialFunction = Some(authoriseUKConsentChallenge)
+    )
+
+    // Authorise a UK Open Banking account-access consent as the current PSU, after SCA.
     //
     // UK consents are lodged by the TPP via client_credentials (no user, status
-    // AWAITINGAUTHORISATION). After the PSU authenticates at the identity provider,
-    // Portal calls this endpoint with the PSU's own access token to bind the consent
-    // to that user and flip it to AUTHORISED — the missing "authorisation binding"
-    // step of the UK flow. It is user-authenticated but role-free (the account holder
-    // is approving their own consent), mirroring the SCA challenge endpoint.
+    // AWAITINGAUTHORISATION). After the PSU authenticates and answers the SCA challenge
+    // (started via .../authorise/challenge), Portal calls this endpoint with the PSU's own
+    // access token + the challenge answer to verify SCA, bind the consent to that user, and
+    // flip it to AUTHORISED — the missing "authorisation binding" step of the UK flow.
+    // User-authenticated but role-free (the account holder is approving their own consent).
     val authoriseUKConsent: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ POST -> `prefixPath` / "banks" / _ / "consents" / consentId / "authorise" =>
         EndpointHelpers.executeFuture(req) {
@@ -4283,6 +4349,23 @@ object Http4s510 {
             // guard also effectively scopes this endpoint to the UK flow.
             _ <- Helper.booleanToFuture(s"$ConsentStatusIssue${ConsentStatus.AWAITINGAUTHORISATION.toString} to be authorised (current: ${consent.status}).", 400, Some(cc)) {
               consent.status.toUpperCase == ConsentStatus.AWAITINGAUTHORISATION.toString
+            }
+            // Verify the SCA challenge answer before authorising (dynamic linking to this consent).
+            // The challenge must have been started via POST .../authorise/challenge.
+            authJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostUKConsentAuthoriseJsonV510 ", 400, Some(cc)) {
+              com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[PostUKConsentAuthoriseJsonV510]
+            }
+            (_, _) <- NewStyle.function.getChallenge(authJson.challenge_id, Some(cc))
+            (challenge, _) <- NewStyle.function.validateChallengeAnswerC4(
+              ChallengeType.OBP_CONSENT_CHALLENGE,
+              None,
+              Some(consentId),
+              authJson.challenge_id,
+              authJson.answer,
+              SuppliedAnswerType.PLAIN_TEXT_VALUE,
+              Some(cc))
+            _ <- Helper.booleanToFuture(s"$InvalidChallengeAnswer", 403, Some(cc)) {
+              challenge.scaStatus.contains(StrongCustomerAuthenticationStatus.finalised)
             }
             // Bind the PSU as the consent's user in the DB (mUserId).
             consentAfterBind <- Future(Consents.consentProvider.vend.updateConsentUser(consentId, user))
@@ -4309,24 +4392,25 @@ object Http4s510 {
       "Authorise UK Consent",
       s"""
       |
-      |Authorise a UK Open Banking account-access consent as the current (PSU) user.
+      |Authorise a UK Open Banking account-access consent as the current (PSU) user, after SCA.
       |
       |The TPP first lodges the intent via `POST /account-access-consents`; the consent is
-      |created in ${ConsentStatus.AWAITINGAUTHORISATION} state with no bound user. After the
-      |PSU authenticates, this endpoint binds the consent to the PSU and transitions it to
-      |${ConsentStatus.AUTHORISED}, so subsequent UK data calls whose access token carries the
-      |`consent_id` claim pass the consent check.
+      |created in ${ConsentStatus.AWAITINGAUTHORISATION} state with no bound user. The PSU then
+      |starts SCA via `POST .../authorise/challenge` and submits the resulting `challenge_id`
+      |plus the OTP `answer` here. On a valid answer this binds the consent to the PSU and
+      |transitions it to ${ConsentStatus.AUTHORISED}, so subsequent UK data calls whose access
+      |token carries the `consent_id` claim pass the consent check.
       |
       |${userAuthenticationMessage(true)}
       |
       |""",
-      EmptyBody,
+      PostUKConsentAuthoriseJsonV510("74a8ebda-9e5a-4c3f-9b0b-1a2b3c4d5e6f", "123"),
       ConsentJsonV310(
         "9d429899-24f5-42c8-8565-943ffa6a7945",
         "eyJhbGciOiJIUzI1NiJ9.eyJ2aWV3cyI6W119.signature",
         "AUTHORISED"
       ),
-      List($AuthenticatedUserIsRequired, ConsentNotFound, ConsentStatusIssue, InvalidConnectorResponse, UnknownError),
+      List($AuthenticatedUserIsRequired, ConsentNotFound, ConsentStatusIssue, InvalidJsonFormat, InvalidChallengeAnswer, InvalidConnectorResponse, UnknownError),
       apiTagConsent :: apiTagPSD2AIS :: Nil,
       None,
       http4sPartialFunction = Some(authoriseUKConsent)
@@ -5130,6 +5214,7 @@ object Http4s510 {
           .orElse(updateConsentStatusByConsent(req))
           .orElse(updateConsentAccountAccessByConsentId(req))
           .orElse(updateConsentUserIdByConsentId(req))
+          .orElse(authoriseUKConsentChallenge(req))
           .orElse(authoriseUKConsent(req))
           .orElse(getMyConsents(req))
           .orElse(getConsentsAtBank(req))
