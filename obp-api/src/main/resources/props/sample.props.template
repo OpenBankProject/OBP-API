@@ -161,6 +161,21 @@ jwt.use.ssl=false
 #truststore.path=/path/to/api.truststore.jks
 
 
+## In-process mTLS termination for the http4s server (DEV ONLY).
+## Honoured only when run.mode=development — in production terminate mTLS at a reverse proxy
+## that forwards the verified client certificate as the PSD2-CERT request header.
+## When enabled, dev.port serves HTTPS with mutual TLS and the verified client certificate is
+## injected as the PSD2-CERT header (any client-supplied PSD2-CERT header is stripped).
+## The paths below point at the JKS pair checked into the repo for local development.
+# mtls.enabled=true
+# mtls.keystore.path=obp-api/src/test/resources/cert/server.jks
+# mtls.keystore.password=123456
+# mtls.truststore.path=obp-api/src/test/resources/cert/server.trust.jks
+# mtls.truststore.password=123456
+## need = reject handshakes without a client certificate; want = client certificate optional
+# mtls.client_auth=need
+
+
 ## Enable mTLS for Redis, if set to true must set paths for the keystore and truststore locations
 # redis.use.ssl=false
 ## Client
