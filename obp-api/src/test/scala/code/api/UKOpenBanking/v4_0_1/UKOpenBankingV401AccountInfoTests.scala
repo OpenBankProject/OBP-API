@@ -1,7 +1,9 @@
 package code.api.UKOpenBanking.v4_0_1
 
 import code.api.util.APIUtil.DateWithDayFormat
+import code.api.util.ErrorMessages.ConsentIdClaimMissing
 import code.consent.Consents
+import com.openbankproject.commons.model.ErrorMessage
 import org.json4s._
 import org.scalatest.Tag
 
@@ -12,17 +14,17 @@ import org.scalatest.Tag
 // seeded data -> 200/201/204 with real field values, error paths (unknown
 // consent/account), and a full consent create -> get -> delete -> get lifecycle.
 //
-// getAccounts / getAccountsAccountIdBalances / getAccountsAccountIdTransactions /
-// getBalances / getTransactions call NewStyle.function.checkUKConsent, which
-// requires the Bearer access token to be a JWT carrying a consent_id claim bound
-// to an AUTHORISED consent of the calling user+consumer (see
-// code.api.util.ConsentUtil.checkUKConsent). The test framework's DirectLogin
-// tokens carry no consent_id, so (mirroring UKOpenBankingV310AisTests' precedent
-// for the same v3.1 endpoints) only "unauthenticated -> 401" and "authenticated ->
-// not 401" are asserted for those five. getBalances / getTransactions previously
-// skipped the consent check entirely and returned real data straight from a
-// DirectLogin token, which let a token with no bound consent reach 500 instead of
-// the 403 OBP-35035 every other AISP data endpoint gives it.
+// getAccounts / getAccountsAccountIdBalances / getAccountsAccountIdTransactions call
+// NewStyle.function.checkUKConsent (code.api.util.ConsentUtil.checkUKConsent), which reads
+// the `consent_id` claim off the Bearer access token — no external identity-provider call.
+// These OAuth1-signed test requests carry no Bearer JWT, so the claim lookup deterministically
+// fails with a 403 ConsentIdClaimMissing (see the scenario comments on those three features).
+// getBalances / getTransactions (the account-aggregate variants) share the same
+// checkUKConsent guard but only assert "unauthenticated -> 401" / "authenticated ->
+// not 401" (mirroring UKOpenBankingV310AisTests' precedent): they previously skipped
+// the consent check entirely and returned real data straight from a DirectLogin
+// token, which let a token with no bound consent reach 500 instead of the 403
+// OBP-35035 every other AISP data endpoint gives it.
 //
 // The remaining 80 endpoints are still static spec-faithful stubs; their tests
 // are unchanged (two scenarios: authenticated -> fixed code, unauthenticated -> 401).
@@ -108,10 +110,15 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
     }
   }
   // ── AccountsApi ────────────────────────────────────────────────────
-  // DATA-DEPENDENT: checkUKConsent requires a consent-bound token (consent_id claim — see class doc above).
+  // checkUKConsent extracts the `consent_id` claim from the Bearer access token (no external
+  // Hydra call since Consent.checkUKConsent dropped the Hydra dependency). These OAuth1-signed
+  // test requests carry no Bearer JWT at all, so the claim lookup deterministically fails ->
+  // 403 ConsentIdClaimMissing, mirroring "authenticated but no bound consent" in production.
   feature("UKOB v4.0.1 GET /aisp/accounts") {
-    scenario("authenticated", UKOpenBankingV401AccountInfo) {
-      getAuthed("aisp", "accounts").code should not equal (401)
+    scenario("authenticated without a consent-bound token -> 403", UKOpenBankingV401AccountInfo) {
+      val response = getAuthed("aisp", "accounts")
+      response.code should equal(403)
+      response.body.extract[ErrorMessage].message.trim should equal(ConsentIdClaimMissing.trim)
     }
     scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
       getUnauthed("aisp", "accounts").code should equal(401)
@@ -137,8 +144,10 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
     }
   }
   feature("UKOB v4.0.1 GET /aisp/accounts/ACCOUNT_ID/balances") {
-    scenario("authenticated", UKOpenBankingV401AccountInfo) {
-      getAuthed("aisp", "accounts", acc, "balances").code should not equal (401)
+    scenario("authenticated without a consent-bound token -> 403", UKOpenBankingV401AccountInfo) {
+      val response = getAuthed("aisp", "accounts", acc, "balances")
+      response.code should equal(403)
+      response.body.extract[ErrorMessage].message.trim should equal(ConsentIdClaimMissing.trim)
     }
     scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
       getUnauthed("aisp", "accounts", acc, "balances").code should equal(401)
@@ -241,10 +250,12 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
     }
   }
   // ── TransactionsApi ────────────────────────────────────────────────
-  // DATA-DEPENDENT: checkUKConsent requires a consent-bound token (consent_id claim — see class doc above).
+  // See the "no external Hydra call" note above feature("UKOB v4.0.1 GET /aisp/accounts").
   feature("UKOB v4.0.1 GET /aisp/accounts/ACCOUNT_ID/transactions") {
-    scenario("authenticated", UKOpenBankingV401AccountInfo) {
-      getAuthed("aisp", "accounts", acc, "transactions").code should not equal (401)
+    scenario("authenticated without a consent-bound token -> 403", UKOpenBankingV401AccountInfo) {
+      val response = getAuthed("aisp", "accounts", acc, "transactions")
+      response.code should equal(403)
+      response.body.extract[ErrorMessage].message.trim should equal(ConsentIdClaimMissing.trim)
     }
     scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
       getUnauthed("aisp", "accounts", acc, "transactions").code should equal(401)
