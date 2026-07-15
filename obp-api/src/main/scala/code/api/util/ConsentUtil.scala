@@ -426,7 +426,15 @@ object Consent extends MdcLoggable {
           logger.debug(s"applyConsentRulesCommonOldStyle.getSignedPayloadAsJson.End of com.openbankproject.commons.util.JsonAliases.parse(jsonAsString).extract[ConsentJWT]: $consent")
           checkConsent(consent, consentIdAsJwt, calContext) match { // Check is it Consent-JWT expired
             case (Full(true)) => // OK
-              applyConsentRules(consent)
+              // A Consent-JWT / Consent-Id is an OBP-native gate: reject a consent created by
+              // another standard. A JWT with no backing MappedConsent row is grandfathered.
+              Consents.consentProvider.vend.getConsentByConsentId(consent.jti) match {
+                case Full(mc) => assertConsentStandard(mc, ConsentStandardOBP) match {
+                  case Some(failure) => failure
+                  case None => applyConsentRules(consent)
+                }
+                case _ => applyConsentRules(consent)
+              }
             case failure@Failure(_, _, _) => // Handled errors
               failure
             case _ => // Unexpected errors
@@ -506,7 +514,15 @@ object Consent extends MdcLoggable {
           logger.debug(s"applyConsentRulesCommon.End of com.openbankproject.commons.util.JsonAliases.parse(jsonAsString).extract[ConsentJWT]: $consent")
           checkConsent(consent, consentAsJwt, callContext) match { // Check is it Consent-JWT expired
             case (Full(true)) => // OK
-              applyConsentRules(consent)
+              // A Consent-JWT / Consent-Id is an OBP-native gate: reject a consent created by
+              // another standard. A JWT with no backing MappedConsent row is grandfathered.
+              Consents.consentProvider.vend.getConsentByConsentId(consent.jti) match {
+                case Full(mc) => assertConsentStandard(mc, ConsentStandardOBP) match {
+                  case Some(failure) => Future(failure, Some(callContext))
+                  case None => applyConsentRules(consent)
+                }
+                case _ => applyConsentRules(consent)
+              }
             case failure@Failure(_, _, _) => // Handled errors
               Future(failure, Some(callContext))
             case _ => // Unexpected errors
@@ -618,6 +634,9 @@ object Consent extends MdcLoggable {
 
     // 1st we need to find a Consent via the field MappedConsent.consentId
     Consents.consentProvider.vend.getConsentByConsentId(consentId) match {
+      // A consent may only be exercised by its own standard: reject a non-BG consent here.
+      case Full(storedConsent) if assertConsentStandard(storedConsent, ConsentStandardBG).isDefined =>
+        Future(assertConsentStandard(storedConsent, ConsentStandardBG).get, Some(callContext))
       case Full(storedConsent) =>
         val user = Users.users.vend.getUserByUserId(storedConsent.userId)
         logger.debug(s"applyBerlinGroupConsentRulesCommon.storedConsent.user : $user")
@@ -1107,6 +1126,38 @@ object Consent extends MdcLoggable {
   }
 
 
+  // Canonical apiStandard values stamped on a MappedConsent at creation time. A consent may
+  // only be *exercised* (used for data access) through endpoints of the standard that created
+  // it — enforced by assertConsentStandard at each exercise gate. Reduction (revoke/expire) and
+  // read/audit deliberately stay cross-standard; the OBP-hosted authorise ceremony acts on a
+  // consent as its own standard, so it is not blocked here.
+  val ConsentStandardOBP: String = ApiStandards.obp.toString                  // "obp"
+  val ConsentStandardBG: String = ConstantsBG.berlinGroupVersion1.apiStandard // "BG"
+  val ConsentStandardUK: String = "UKOpenBanking"
+
+  /**
+   * Check whether a stored consent may be exercised by the standard now using it.
+   * Returns None when allowed, Some(Failure) on a known mismatch. Returning the Failure (a
+   * `Box[Nothing]`) lets callers propagate it into any `Box[User]` / `Box[Boolean]` result.
+   *
+   * Option A (grandfathering): a legacy consent whose apiStandard is blank/null is allowed
+   * (with a warning) so pre-existing consents keep working; only a KNOWN mismatch is rejected.
+   * Every live creator now stamps a standard, so blank means "old row" — backfill mApiStandard
+   * to 'obp' to remove the grandfathering path and tighten to strict equality later.
+   */
+  def assertConsentStandard(storedConsent: MappedConsent, expectedStandard: String): Option[Failure] = {
+    val actualStandard = Option(storedConsent.apiStandard).map(_.trim).getOrElse("")
+    if (actualStandard.isEmpty) {
+      logger.warn(s"assertConsentStandard: consent ${storedConsent.consentId} has no apiStandard; " +
+        s"grandfathering it for '$expectedStandard' access. Consider backfilling mApiStandard.")
+      None
+    } else if (actualStandard == expectedStandard) {
+      None
+    } else {
+      Some(Failure(s"${ErrorMessages.ConsentDoesNotMatchStandard}Consent standard: $actualStandard, required: $expectedStandard."))
+    }
+  }
+
   /**
    * Validates the UK Open Banking AIS consent bound to the presented OAuth2 access token.
    *
@@ -1134,24 +1185,29 @@ object Consent extends MdcLoggable {
     }
 
     boxedConsent match {
-      case Full(c) if c.mStatus.toString().toUpperCase() == ConsentStatus.AUTHORISED.toString =>
-        System.currentTimeMillis match {
-          case currentTimeMillis if currentTimeMillis < c.creationDateTime.getTime =>
-            Failure(ErrorMessages.ConsentNotBeforeIssue)
-          case _ if c.mUserId.get != user.userId =>
-            Failure(ErrorMessages.ConsentDoesNotMatchUser)
+      case Full(c) => assertConsentStandard(c, ConsentStandardUK) match {
+        case Some(failure) => failure // Wrong standard — reject before status/user checks
+        case None => c.mStatus.toString().toUpperCase() match {
+          case status if status == ConsentStatus.AUTHORISED.toString =>
+            System.currentTimeMillis match {
+              case currentTimeMillis if currentTimeMillis < c.creationDateTime.getTime =>
+                Failure(ErrorMessages.ConsentNotBeforeIssue)
+              case _ if c.mUserId.get != user.userId =>
+                Failure(ErrorMessages.ConsentDoesNotMatchUser)
+              case _ =>
+                val consumerIdOfLoggedInUser: Option[String] = calContext.flatMap(_.consumer.map(_.consumerId.get))
+                implicit val dateFormats = CustomJsonFormats.formats
+                val consent: Box[ConsentJWT] = JwtUtil.getSignedPayloadAsJson(c.jsonWebToken)
+                  .map(parse(_).extract[ConsentJWT])
+                checkConsumerIsActiveAndMatchedUK(
+                  consent.openOrThrowException("Parsing of the consent failed."),
+                  consumerIdOfLoggedInUser
+                )
+            }
           case _ =>
-            val consumerIdOfLoggedInUser: Option[String] = calContext.flatMap(_.consumer.map(_.consumerId.get))
-            implicit val dateFormats = CustomJsonFormats.formats
-            val consent: Box[ConsentJWT] = JwtUtil.getSignedPayloadAsJson(c.jsonWebToken)
-              .map(parse(_).extract[ConsentJWT])
-            checkConsumerIsActiveAndMatchedUK(
-              consent.openOrThrowException("Parsing of the consent failed."),
-              consumerIdOfLoggedInUser
-            )
+            Failure(s"${ErrorMessages.ConsentStatusIssue}${ConsentStatus.AUTHORISED.toString}.")
         }
-      case Full(c) if c.mStatus.toString().toUpperCase() != ConsentStatus.AUTHORISED.toString =>
-        Failure(s"${ErrorMessages.ConsentStatusIssue}${ConsentStatus.AUTHORISED.toString}.")
+      }
       case _ =>
         Failure(ErrorMessages.ConsentNotFound)
     }
