@@ -293,12 +293,12 @@ object JSONFactory_UKOpenBanking_401 extends CustomJsonFormats {
   }
 
   def createTransactionsJsonNew(
+    accountId: String,
     bankId: BankId,
     moderatedTransactions: List[ModeratedTransaction],
     attributes: List[TransactionAttribute],
     view: View
   ): TransactionsUKV401 = {
-    val accountId = moderatedTransactions.headOption.flatMap(_.bankAccount.map(_.accountId.value)).orNull
     val transactions = moderatedTransactions.map(t => transactionJson(accountId, bankId, t, attributes, Some(view)))
     TransactionsUKV401(
       Data = TransactionDataV401(transactions),

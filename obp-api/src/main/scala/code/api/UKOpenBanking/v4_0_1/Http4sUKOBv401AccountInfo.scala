@@ -2236,7 +2236,7 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
             transactions.map(_.id),
             view.viewId,
             Some(cc))
-        } yield JSONFactory_UKOpenBanking_401.createTransactionsJsonNew(account.bankId, transactions, moderatedAttributes, view)
+        } yield JSONFactory_UKOpenBanking_401.createTransactionsJsonNew(accountId.value, account.bankId, transactions, moderatedAttributes, view)
       }
   }
   resourceDocs += ResourceDoc(
@@ -2305,6 +2305,8 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
     case req @ GET -> `ukV401Prefix` / "aisp" / "balances" =>
       EndpointHelpers.withUser(req) { (u, cc) =>
         for {
+          _ <- NewStyle.function.checkUKConsent(u, Some(cc))
+          _ <- passesPsd2Aisp(Some(cc))
           availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
           (accounts, _) <- NewStyle.function.getBankAccounts(availablePrivateAccounts, Some(cc))
         } yield JSONFactory_UKOpenBanking_401.createBalancesJSON(accounts)
@@ -3446,6 +3448,8 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
     case req @ GET -> `ukV401Prefix` / "aisp" / "transactions" =>
       EndpointHelpers.withUser(req) { (u, cc) =>
         for {
+          _ <- NewStyle.function.checkUKConsent(u, Some(cc))
+          _ <- passesPsd2Aisp(Some(cc))
           (bank, _) <- NewStyle.function.getBank(BankId(defaultBankId), Some(cc))
           availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
           (accounts, _) <- NewStyle.function.getBankAccounts(availablePrivateAccounts, Some(cc))
