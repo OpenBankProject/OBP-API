@@ -14,14 +14,15 @@ import org.scalatest.Tag
 //
 // getAccounts / getAccountsAccountIdBalances / getAccountsAccountIdTransactions /
 // getBalances / getTransactions call NewStyle.function.checkUKConsent, which
-// requires a live Hydra OAuth2 introspection endpoint (see
-// code.api.util.ConsentUtil.checkUKConsent) — there is no local test double for
-// Hydra, so (mirroring UKOpenBankingV310AisTests' precedent for the same v3.1
-// endpoints) only "unauthenticated -> 401" and "authenticated -> not 401" are
-// asserted for those five. getBalances / getTransactions previously skipped the
-// consent check entirely and returned real data straight from a DirectLogin
-// token, which let a token with no bound consent reach 500 instead of the
-// 403 OBP-35035 every other AISP data endpoint gives it.
+// requires the Bearer access token to be a JWT carrying a consent_id claim bound
+// to an AUTHORISED consent of the calling user+consumer (see
+// code.api.util.ConsentUtil.checkUKConsent). The test framework's DirectLogin
+// tokens carry no consent_id, so (mirroring UKOpenBankingV310AisTests' precedent
+// for the same v3.1 endpoints) only "unauthenticated -> 401" and "authenticated ->
+// not 401" are asserted for those five. getBalances / getTransactions previously
+// skipped the consent check entirely and returned real data straight from a
+// DirectLogin token, which let a token with no bound consent reach 500 instead of
+// the 403 OBP-35035 every other AISP data endpoint gives it.
 //
 // The remaining 80 endpoints are still static spec-faithful stubs; their tests
 // are unchanged (two scenarios: authenticated -> fixed code, unauthenticated -> 401).
@@ -107,7 +108,7 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
     }
   }
   // ── AccountsApi ────────────────────────────────────────────────────
-  // DATA-DEPENDENT: checkUKConsent requires live Hydra (see class doc above).
+  // DATA-DEPENDENT: checkUKConsent requires a consent-bound token (consent_id claim — see class doc above).
   feature("UKOB v4.0.1 GET /aisp/accounts") {
     scenario("authenticated", UKOpenBankingV401AccountInfo) {
       getAuthed("aisp", "accounts").code should not equal (401)
@@ -240,7 +241,7 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
     }
   }
   // ── TransactionsApi ────────────────────────────────────────────────
-  // DATA-DEPENDENT: checkUKConsent requires live Hydra (see class doc above).
+  // DATA-DEPENDENT: checkUKConsent requires a consent-bound token (consent_id claim — see class doc above).
   feature("UKOB v4.0.1 GET /aisp/accounts/ACCOUNT_ID/transactions") {
     scenario("authenticated", UKOpenBankingV401AccountInfo) {
       getAuthed("aisp", "accounts", acc, "transactions").code should not equal (401)

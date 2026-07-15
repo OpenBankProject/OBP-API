@@ -769,6 +769,7 @@ object ErrorMessages {
   val RolesForbiddenInConsent = s"OBP-35033: Consents cannot contain the following Roles: ${canCreateEntitlementAtOneBank} and ${canCreateEntitlementAtAnyBank}."
   val UserAuthContextUpdateRequestAllowedScaMethods = "OBP-35034: Unsupported as SCA method. "
   val ConsentIdClaimMissing = "OBP-35035: The access token is not bound to a Consent. The identity provider must include a consent_id claim in access tokens issued via the consent authorisation flow. "
+  val ConsentDoesNotMatchStandard = "OBP-35036: The Consent was created by a different API standard than the endpoint using it. A consent may only be used by endpoints of the standard that created it. "
 
   //Authorisations
   val AuthorisationNotFound = "OBP-36001: Authorisation not found. Please specify valid values for PAYMENT_ID and AUTHORISATION_ID. "
@@ -1068,6 +1069,8 @@ object ErrorMessages {
     ConsentDisabled -> 401,
     // 403 not 401: the token authenticated fine, it just isn't bound to a consent (UK OB: insufficient authorisation)
     ConsentIdClaimMissing -> 403,
+    // 403: authenticated + a real consent, but it belongs to another API standard — forbidden here.
+    ConsentDoesNotMatchStandard -> 403,
     InternalServerError -> 500,
   )
 
