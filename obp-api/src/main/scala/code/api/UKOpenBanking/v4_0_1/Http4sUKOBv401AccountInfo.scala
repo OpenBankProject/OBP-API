@@ -2,15 +2,26 @@ package code.api.UKOpenBanking.v4_0_1
 
 import cats.data.{Kleisli, OptionT}
 import cats.effect.IO
-import code.api.util.APIUtil.{EmptyBody, ResourceDoc}
+import code.api.APIFailureNewStyle
+import code.api.Constant
+import code.api.UKOpenBanking.v3_1_0.JSONFactory_UKOpenBanking_310.ConsentPostBodyUKV310
+import code.api.util.APIUtil.{EmptyBody, ResourceDoc, HTTPParam, connectorEmptyResponse, createQueriesByHttpParams, defaultBankId, fullBoxOrException, passesPsd2Aisp, unboxFull, unboxFullOrFail, DateWithDayFormat}
 import code.api.util.ApiTag
+import code.api.util.CallContext
 import code.api.util.CustomJsonFormats
-import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, UnknownError}
-import code.api.util.http4s.Http4sRequestAttributes.EndpointHelpers
+import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, ConsentNotFound, ConsentViewNotFund, UnknownError}
+import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps}
+import code.api.util.newstyle.ViewNewStyle
+import code.api.util.{APIUtil, ConsentJWT, JwtUtil, NewStyle}
+import code.consent.Consents
+import code.model.{BankAccountExtended, UserExtended}
 import code.util.Helper.MdcLoggable
+import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
+import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId, TransactionAttribute, View, ViewId}
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
 import com.openbankproject.commons.util.JsonAliases
+import net.liftweb.common.Full
 import org.json4s.{Formats, JObject}
 import org.http4s._
 import org.http4s.dsl.io._
@@ -78,7 +89,46 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
 }"""
   lazy val createAccountAccessConsents: HttpRoutes[IO] = HttpRoutes.of[IO] {
     case req @ POST -> `ukV401Prefix` / "aisp" / "account-access-consents" =>
-      EndpointHelpers.executeFutureCreated(req)(Future.successful(parseBody(EX_createAccountAccessConsents)))
+      // Check auth FIRST (before body parsing) to mirror Lift's wrappedWithAuthCheck behaviour:
+      // unauthenticated -> 401, invalid body -> 400.
+      EndpointHelpers.executeFutureCreated(req) {
+        implicit val cc: CallContext = req.callContext
+        for {
+          u <- cc.user.toOption match {
+            case Some(user) => Future.successful(user)
+            case None       => Future.failed(new RuntimeException(AuthenticatedUserIsRequired))
+          }
+          consentJson <- Future.fromTry(scala.util.Try(
+            JsonAliases.parse(cc.httpBody.getOrElse("{}")).extract[ConsentPostBodyUKV310]
+          ))
+          consumerId = cc.consumer.map(_.consumerId.get)
+          _ <- passesPsd2Aisp(Some(cc))
+          createdConsent <- Future(Consents.consentProvider.vend.saveUKConsent(
+            Some(u),
+            bankId = None,
+            accountIds = None,
+            consumerId = consumerId,
+            permissions = consentJson.Data.Permissions,
+            expirationDateTime = DateWithDayFormat.parse(consentJson.Data.ExpirationDateTime),
+            transactionFromDateTime = DateWithDayFormat.parse(consentJson.Data.TransactionFromDateTime),
+            transactionToDateTime = DateWithDayFormat.parse(consentJson.Data.TransactionToDateTime),
+            apiStandard = Some("UKOpenBanking"),
+            apiVersion = Some("4.0.1")
+          )) map { i => connectorEmptyResponse(i, Some(cc)) }
+        } yield {
+          JSONFactory_UKOpenBanking_401.createConsentResponseJSON(
+            consentId = createdConsent.consentId,
+            creationDateTime = createdConsent.creationDateTime.toString,
+            status = createdConsent.status,
+            statusUpdateDateTime = createdConsent.statusUpdateDateTime.toString,
+            permissions = consentJson.Data.Permissions,
+            expirationDateTime = consentJson.Data.ExpirationDateTime,
+            transactionFromDateTime = consentJson.Data.TransactionFromDateTime,
+            transactionToDateTime = consentJson.Data.TransactionToDateTime,
+            selfPath = "/aisp/account-access-consents"
+          )
+        }
+      }
   }
   resourceDocs += ResourceDoc(
     implementedInApiVersion,
@@ -130,7 +180,28 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
 }"""
   lazy val getAccountAccessConsentsConsentId: HttpRoutes[IO] = HttpRoutes.of[IO] {
     case req @ GET -> `ukV401Prefix` / "aisp" / "account-access-consents" / consentId =>
-      EndpointHelpers.withUser(req) { (u, cc) => Future.successful(parseBody(EX_getAccountAccessConsentsConsentId)) }
+      EndpointHelpers.withUser(req) { (_, cc) =>
+        for {
+          consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
+            unboxFullOrFail(_, Some(cc), s"$ConsentNotFound ($consentId)")
+          }
+          consentViews <- Future(JwtUtil.getSignedPayloadAsJson(consent.jsonWebToken).map(
+            JsonAliases.parse(_).extract[ConsentJWT].views.map(_.view_id)
+          )) map { unboxFullOrFail(_, Some(cc), s"$ConsentViewNotFund ($consentId)") }
+        } yield {
+          JSONFactory_UKOpenBanking_401.createConsentResponseJSON(
+            consentId = consent.consentId,
+            creationDateTime = consent.creationDateTime.toString,
+            status = consent.status,
+            statusUpdateDateTime = consent.statusUpdateDateTime.toString,
+            permissions = consentViews,
+            expirationDateTime = consent.expirationDateTime.toString,
+            transactionFromDateTime = consent.transactionFromDateTime.toString,
+            transactionToDateTime = consent.transactionToDateTime.toString,
+            selfPath = s"/aisp/account-access-consents/$consentId"
+          )
+        }
+      }
   }
   resourceDocs += ResourceDoc(
     implementedInApiVersion,
@@ -149,7 +220,17 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
   private val EX_deleteAccountAccessConsentsConsentId: String = """{}"""
   lazy val deleteAccountAccessConsentsConsentId: HttpRoutes[IO] = HttpRoutes.of[IO] {
     case req @ DELETE -> `ukV401Prefix` / "aisp" / "account-access-consents" / consentId =>
-      EndpointHelpers.executeDelete(req) { cc => Future.successful(()) }
+      EndpointHelpers.withUserDelete(req) { (_, cc) =>
+        for {
+          _ <- passesPsd2Aisp(Some(cc))
+          _ <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
+            unboxFullOrFail(_, Some(cc), ConsentNotFound)
+          }
+          _ <- Future(Consents.consentProvider.vend.revoke(consentId)) map {
+            i => connectorEmptyResponse(i, Some(cc))
+          }
+        } yield ()
+      }
   }
   resourceDocs += ResourceDoc(
     implementedInApiVersion,
@@ -239,7 +320,27 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
 }"""
   lazy val getAccounts: HttpRoutes[IO] = HttpRoutes.of[IO] {
     case req @ GET -> `ukV401Prefix` / "aisp" / "accounts" =>
-      EndpointHelpers.withUser(req) { (u, cc) => Future.successful(parseBody(EX_getAccounts)) }
+      EndpointHelpers.withUser(req) { (u, cc) =>
+        val detailViewId = ViewId(Constant.SYSTEM_READ_ACCOUNTS_DETAIL_VIEW_ID)
+        val basicViewId = ViewId(Constant.SYSTEM_READ_ACCOUNTS_BASIC_VIEW_ID)
+        for {
+          _ <- NewStyle.function.checkUKConsent(u, Some(cc))
+          _ <- passesPsd2Aisp(Some(cc))
+          availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
+          (accounts, _) <- NewStyle.function.getBankAccounts(availablePrivateAccounts, Some(cc))
+          (moderatedAttributes, _) <- NewStyle.function.getModeratedAccountAttributesByAccounts(
+            accounts.map(a => BankIdAccountId(a.bankId, a.accountId)),
+            basicViewId,
+            Some(cc))
+        } yield {
+          val accountsWithView = accounts.flatMap { account =>
+            APIUtil.checkViewAccessAndReturnView(detailViewId, BankIdAccountId(account.bankId, account.accountId), Full(u), Some(cc)).or(
+              APIUtil.checkViewAccessAndReturnView(basicViewId, BankIdAccountId(account.bankId, account.accountId), Full(u), Some(cc))
+            ).toOption.map(view => (account, view))
+          }
+          JSONFactory_UKOpenBanking_401.createAccountsListJSON(accountsWithView, moderatedAttributes)
+        }
+      }
   }
   resourceDocs += ResourceDoc(
     implementedInApiVersion,
@@ -328,8 +429,29 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
   }
 }"""
   lazy val getAccountsAccountId: HttpRoutes[IO] = HttpRoutes.of[IO] {
-    case req @ GET -> `ukV401Prefix` / "aisp" / "accounts" / accountId =>
-      EndpointHelpers.withUser(req) { (u, cc) => Future.successful(parseBody(EX_getAccountsAccountId)) }
+    case req @ GET -> `ukV401Prefix` / "aisp" / "accounts" / accountIdStr =>
+      EndpointHelpers.withUser(req) { (u, cc) =>
+        val accountId = AccountId(accountIdStr)
+        val detailViewId = ViewId(Constant.SYSTEM_READ_ACCOUNTS_DETAIL_VIEW_ID)
+        val basicViewId = ViewId(Constant.SYSTEM_READ_ACCOUNTS_BASIC_VIEW_ID)
+        for {
+          availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u) map {
+            _.filter(_.accountId.value == accountId.value)
+          }
+          (accounts, _) <- NewStyle.function.getBankAccounts(availablePrivateAccounts, Some(cc))
+          (moderatedAttributes, _) <- NewStyle.function.getModeratedAccountAttributesByAccounts(
+            accounts.map(a => BankIdAccountId(a.bankId, a.accountId)),
+            basicViewId,
+            Some(cc))
+        } yield {
+          val accountsWithView = accounts.flatMap { account =>
+            APIUtil.checkViewAccessAndReturnView(detailViewId, BankIdAccountId(account.bankId, account.accountId), Full(u), Some(cc)).or(
+              APIUtil.checkViewAccessAndReturnView(basicViewId, BankIdAccountId(account.bankId, account.accountId), Full(u), Some(cc))
+            ).toOption.map(view => (account, view))
+          }
+          JSONFactory_UKOpenBanking_401.createAccountsListJSON(accountsWithView, moderatedAttributes)
+        }
+      }
   }
   resourceDocs += ResourceDoc(
     implementedInApiVersion,
@@ -394,8 +516,18 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
   }
 }"""
   lazy val getAccountsAccountIdBalances: HttpRoutes[IO] = HttpRoutes.of[IO] {
-    case req @ GET -> `ukV401Prefix` / "aisp" / "accounts" / accountId / "balances" =>
-      EndpointHelpers.withUser(req) { (u, cc) => Future.successful(parseBody(EX_getAccountsAccountIdBalances)) }
+    case req @ GET -> `ukV401Prefix` / "aisp" / "accounts" / accountIdStr / "balances" =>
+      EndpointHelpers.withUser(req) { (u, cc) =>
+        val accountId = AccountId(accountIdStr)
+        val viewId = ViewId(Constant.SYSTEM_READ_BALANCES_VIEW_ID)
+        for {
+          _ <- NewStyle.function.checkUKConsent(u, Some(cc))
+          _ <- passesPsd2Aisp(Some(cc))
+          (account, _) <- NewStyle.function.getBankAccountByAccountId(accountId, Some(cc))
+          view <- ViewNewStyle.checkViewAccessAndReturnView(viewId, BankIdAccountId(account.bankId, accountId), Full(u), Some(cc))
+          moderatedAccount <- NewStyle.function.moderatedBankAccountCore(account, view, Full(u), Some(cc))
+        } yield JSONFactory_UKOpenBanking_401.createAccountBalanceJSON(moderatedAccount)
+      }
   }
   resourceDocs += ResourceDoc(
     implementedInApiVersion,
@@ -2080,8 +2212,32 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
   }
 }"""
   lazy val getAccountsAccountIdTransactions: HttpRoutes[IO] = HttpRoutes.of[IO] {
-    case req @ GET -> `ukV401Prefix` / "aisp" / "accounts" / accountId / "transactions" =>
-      EndpointHelpers.withUser(req) { (u, cc) => Future.successful(parseBody(EX_getAccountsAccountIdTransactions)) }
+    case req @ GET -> `ukV401Prefix` / "aisp" / "accounts" / accountIdStr / "transactions" =>
+      EndpointHelpers.withUser(req) { (u, cc) =>
+        val accountId = AccountId(accountIdStr)
+        val detailViewId = ViewId(Constant.SYSTEM_READ_TRANSACTIONS_DETAIL_VIEW_ID)
+        val basicViewId = ViewId(Constant.SYSTEM_READ_TRANSACTIONS_BASIC_VIEW_ID)
+        for {
+          _ <- NewStyle.function.checkUKConsent(u, Some(cc))
+          _ <- passesPsd2Aisp(Some(cc))
+          (account, _) <- NewStyle.function.getBankAccountByAccountId(accountId, Some(cc))
+          (bank, _) <- NewStyle.function.getBank(account.bankId, Some(cc))
+          view <- ViewNewStyle.checkViewsAccessAndReturnView(detailViewId, basicViewId, BankIdAccountId(account.bankId, accountId), Full(u), Some(cc))
+          params <- Future {
+            createQueriesByHttpParams(req.headers.headers.toList.map(h => HTTPParam(h.name.toString, List(h.value))))
+          } map { x =>
+            unboxFull(fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, Some(cc.toLight))))
+          }
+          (transactions, _) <- BankAccountExtended(account).getModeratedTransactionsFuture(bank, Full(u), view, Some(cc), params) map { x =>
+            unboxFull(fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, Some(cc.toLight))))
+          }
+          (moderatedAttributes: List[TransactionAttribute], _) <- NewStyle.function.getModeratedAttributesByTransactions(
+            account.bankId,
+            transactions.map(_.id),
+            view.viewId,
+            Some(cc))
+        } yield JSONFactory_UKOpenBanking_401.createTransactionsJsonNew(account.bankId, transactions, moderatedAttributes, view)
+      }
   }
   resourceDocs += ResourceDoc(
     implementedInApiVersion,
@@ -2147,7 +2303,12 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
 }"""
   lazy val getBalances: HttpRoutes[IO] = HttpRoutes.of[IO] {
     case req @ GET -> `ukV401Prefix` / "aisp" / "balances" =>
-      EndpointHelpers.withUser(req) { (u, cc) => Future.successful(parseBody(EX_getBalances)) }
+      EndpointHelpers.withUser(req) { (u, cc) =>
+        for {
+          availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
+          (accounts, _) <- NewStyle.function.getBankAccounts(availablePrivateAccounts, Some(cc))
+        } yield JSONFactory_UKOpenBanking_401.createBalancesJSON(accounts)
+      }
   }
   resourceDocs += ResourceDoc(
     implementedInApiVersion,
@@ -3283,7 +3444,22 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
 }"""
   lazy val getTransactions: HttpRoutes[IO] = HttpRoutes.of[IO] {
     case req @ GET -> `ukV401Prefix` / "aisp" / "transactions" =>
-      EndpointHelpers.withUser(req) { (u, cc) => Future.successful(parseBody(EX_getTransactions)) }
+      EndpointHelpers.withUser(req) { (u, cc) =>
+        for {
+          (bank, _) <- NewStyle.function.getBank(BankId(defaultBankId), Some(cc))
+          availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
+          (accounts, _) <- NewStyle.function.getBankAccounts(availablePrivateAccounts, Some(cc))
+          allTxns <- Future {
+            accounts.flatMap { bankAccount =>
+              (for {
+                view <- UserExtended(u).checkOwnerViewAccessAndReturnOwnerView(BankIdAccountId(bankAccount.bankId, bankAccount.accountId), Some(cc))
+                params = createQueriesByHttpParams(req.headers.headers.toList.map(h => HTTPParam(h.name.toString, List(h.value)))).getOrElse(Nil)
+                (transactions, _) <- BankAccountExtended(bankAccount).getModeratedTransactions(bank, Full(u), view, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), Some(cc), params)
+              } yield transactions).getOrElse(Nil)
+            }
+          }
+        } yield JSONFactory_UKOpenBanking_401.createTransactionsJson(bank.bankId, allTxns)
+      }
   }
   resourceDocs += ResourceDoc(
     implementedInApiVersion,

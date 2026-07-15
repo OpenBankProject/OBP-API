@@ -52,7 +52,7 @@ import org.scalatest.Tag
  * - Anonymous request: POST /obp/v6.0.0/users/password-reset-url
  * - Anonymous complete: POST /obp/v6.0.0/users/password
  */
-class PasswordResetTest extends V600ServerSetup {
+class PasswordResetTest extends V600ServerSetup with code.setup.EnvVarOverride {
 
   override def beforeEach() = {
     wipeTestData()
@@ -151,14 +151,21 @@ class PasswordResetTest extends V600ServerSetup {
         "mail.smtp.host" -> "localhost",
         "mail.smtp.port" -> "1" // reserved port, connection refused immediately
       )
-      When("We make a request v6.0.0")
-      val request600 = (v6_0_0_Request / "management" / "user" / "reset-password-url").POST <@(user1)
-      val response600 = makePostRequest(request600, write(postJson.copy(user_id = resourceUser.map(_.userId).getOrElse(""))))
-      Then("We should get a 500 that says the email could not be sent")
-      withClue(s"Response body: ${response600.body} ") {
-        response600.code should equal(500)
+      // run_tests_parallel.sh (local runner) exports OBP_MAIL_TEST_MODE=true for
+      // every shard so other tests don't open a real SMTP socket. APIUtil.getPropsValue
+      // checks that env var before the setPropsValues override above, so without this,
+      // "mail.test.mode" -> "false" is silently ignored locally (CI has no such env var,
+      // only a props-file default, so it isn't affected either way).
+      withEnvOverride("OBP_MAIL_TEST_MODE" -> "false") {
+        When("We make a request v6.0.0")
+        val request600 = (v6_0_0_Request / "management" / "user" / "reset-password-url").POST <@(user1)
+        val response600 = makePostRequest(request600, write(postJson.copy(user_id = resourceUser.map(_.userId).getOrElse(""))))
+        Then("We should get a 500 that says the email could not be sent")
+        withClue(s"Response body: ${response600.body} ") {
+          response600.code should equal(500)
+        }
+        response600.body.extract[ErrorMessage].message should include("Failed to send password reset email")
       }
-      response600.body.extract[ErrorMessage].message should include("Failed to send password reset email")
       // beforeEach restores mail.test.mode=true for the remaining scenarios
     }
 
