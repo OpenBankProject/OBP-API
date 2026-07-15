@@ -324,8 +324,12 @@ if [ "$RUN_BACKGROUND" = true ]; then
     # Run in background with output to log file
     nohup java $JAVA_OPTS -jar obp-api/target/obp-api.jar > http4s-server.log 2>&1 &
     SERVER_PID=$!
+    # Report the port the server will actually bind (dev.port in props), so callers
+    # that capture this script's output (e.g. smoke_test.sh) can parse it out.
+    SERVER_PORT=$(grep -E '^dev.port=' obp-api/src/main/resources/props/default.props 2>/dev/null | cut -d= -f2)
     echo "✓ HTTP4S server started in background"
     echo "  PID: $SERVER_PID"
+    echo "  PORT: ${SERVER_PORT:-8080}"
     echo "  Log: http4s-server.log"
     echo ""
     echo "To stop the server: kill $SERVER_PID"
