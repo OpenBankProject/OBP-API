@@ -1115,8 +1115,13 @@ object Consent extends MdcLoggable {
    * authorisation flow. Signature, issuer and expiry of the token were already verified by the
    * authentication layer (OAuth2Login issuer dispatch) before any endpoint reaches this check,
    * so only the claim is extracted here. The OBP database remains authoritative for consent
-   * state: the status/consumer checks below run on every request, so revoking a consent takes
-   * effect immediately even though an already-issued JWT cannot itself be revoked.
+   * state: the status/user/consumer checks below run on every request, so revoking a consent
+   * takes effect immediately even though an already-issued JWT cannot itself be revoked.
+   *
+   * The user-binding check matters because the consent_id claim is NOT validated by the IdP:
+   * it must only pass for the PSU who authorised the consent (bound via updateConsentUser in
+   * the authorise step), otherwise any user of the same consumer could present a foreign
+   * consent_id and exercise a consent they never authorised.
    */
   def checkUKConsent(user: User, calContext: Option[CallContext]): Box[Boolean] = {
     val accessToken = calContext.flatMap(_.authReqHeaderField)
@@ -1133,13 +1138,15 @@ object Consent extends MdcLoggable {
         System.currentTimeMillis match {
           case currentTimeMillis if currentTimeMillis < c.creationDateTime.getTime =>
             Failure(ErrorMessages.ConsentNotBeforeIssue)
+          case _ if c.mUserId.get != user.userId =>
+            Failure(ErrorMessages.ConsentDoesNotMatchUser)
           case _ =>
             val consumerIdOfLoggedInUser: Option[String] = calContext.flatMap(_.consumer.map(_.consumerId.get))
             implicit val dateFormats = CustomJsonFormats.formats
             val consent: Box[ConsentJWT] = JwtUtil.getSignedPayloadAsJson(c.jsonWebToken)
               .map(parse(_).extract[ConsentJWT])
             checkConsumerIsActiveAndMatchedUK(
-              consent.openOrThrowException("Parsing of the consent failed."), 
+              consent.openOrThrowException("Parsing of the consent failed."),
               consumerIdOfLoggedInUser
             )
         }
