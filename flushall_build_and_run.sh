@@ -155,15 +155,20 @@ JAVA_OPTS="--add-opens java.base/java.lang=ALL-UNNAMED \
 RUNTIME_LOG=/tmp/obp-api.log
 
 if [ "$RUN_BACKGROUND" = true ]; then
-    # Run in background with output to log file (tee'd to /tmp as well)
-    nohup java $JAVA_OPTS -jar obp-api/target/obp-api.jar > >(tee "$RUNTIME_LOG") 2>&1 &
+    # Run in background with output redirected straight to a log file. Do NOT
+    # use `> >(tee "$RUNTIME_LOG")` here: process substitution's tee inherits
+    # this script's own stdout, so a caller that captures this script's output
+    # via `out=$(./flushall_build_and_run.sh --background ...)` never sees EOF
+    # — the substitution hangs forever, since the server (and thus the tee
+    # process backing the substitution) never exits on its own.
+    nohup java $JAVA_OPTS -jar obp-api/target/obp-api.jar > "$RUNTIME_LOG" 2>&1 &
     SERVER_PID=$!
     echo "✓ HTTP4S server started in background"
     echo "  PID: $SERVER_PID"
-    echo "  Log: http4s-server.log (also $RUNTIME_LOG)"
+    echo "  Log: $RUNTIME_LOG"
     echo ""
     echo "To stop the server: kill $SERVER_PID"
-    echo "To view logs: tail -f http4s-server.log"
+    echo "To view logs: tail -f $RUNTIME_LOG"
 else
     # Run in foreground (Ctrl+C to stop). Also tee output to /tmp so it can be
     # tailed from another terminal without taking over this one.
