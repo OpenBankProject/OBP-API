@@ -252,7 +252,7 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
   }
 
   // ── BalancesApi ────────────────────────────────────────────────────
-  // DATA-DEPENDENT: checkUKConsent requires live Hydra (see class doc above).
+  // DATA-DEPENDENT: checkUKConsent requires a consent-bound token (see class doc above).
   feature("UKOB v4.0.1 GET /aisp/balances") {
     scenario("authenticated", UKOpenBankingV401AccountInfo) {
       getAuthed("aisp", "balances").code should not equal (401)
@@ -325,7 +325,7 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
       getUnauthed("aisp", "statements").code should equal(401)
     }
   }
-  // DATA-DEPENDENT: checkUKConsent requires live Hydra (see class doc above).
+  // DATA-DEPENDENT: checkUKConsent requires a consent-bound token (see class doc above).
   feature("UKOB v4.0.1 GET /aisp/transactions") {
     scenario("authenticated", UKOpenBankingV401AccountInfo) {
       getAuthed("aisp", "transactions").code should not equal (401)
