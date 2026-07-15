@@ -12,7 +12,7 @@ The fix is to put setPropsValues inside `scenario { ... }`, `beforeEach()`,
 `beforeAll()`, `afterEach()`, or `afterAll()` — blocks that run at test-execution
 time, not class-instantiation time.
 
-See TEST_ISOLATION_ADVISE.md at the repo root.
+See docs/testing/TEST_ISOLATION_ADVISE.md.
 
 Run from the repo root:
     python3 .github/scripts/check_test_isolation.py
@@ -219,7 +219,7 @@ def main() -> int:
             f"\n{total} test-isolation violation(s) found.\n"
             "Wrap setPropsValues inside scenario {{ ... }} or "
             "beforeEach()/beforeAll()/afterEach()/afterAll().\n"
-            "See TEST_ISOLATION_ADVISE.md.",
+            "See docs/testing/TEST_ISOLATION_ADVISE.md.",
             file=sys.stderr,
         )
         return 1

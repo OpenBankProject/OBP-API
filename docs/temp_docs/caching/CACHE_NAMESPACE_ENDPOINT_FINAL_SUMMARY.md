@@ -111,7 +111,7 @@ curl -X GET https://your-api/obp/v6.0.0/system/cache/namespaces \
 ## Documentation
 
 - **Full Plan**: `ideas/CACHE_NAMESPACE_STANDARDIZATION.md`
-- **Implementation Details**: `IMPLEMENTATION_SUMMARY.md`
+- **Implementation Details**: `CACHE_NAMESPACE_IMPLEMENTATION_SUMMARY.md`
 
 ## Summary
 
