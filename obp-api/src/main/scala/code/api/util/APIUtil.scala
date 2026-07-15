@@ -3584,11 +3584,6 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    */
   def getServerUrl: String = getPropsValue("documented_server_url").openOr(MissingPropsValueAtThisInstance + "documented_server_url")
 
-  /**
-   *  This value is used to construct some urls in Glossary
-   */
-  def getHydraPublicServerUrl: String = getPropsValue("hydra_public_url").openOr(MissingPropsValueAtThisInstance + "hydra_public_url")
-
   // All OBP REST end points start with /obp
   def getObpApiRoot: String = s"$getServerUrl/obp"
   

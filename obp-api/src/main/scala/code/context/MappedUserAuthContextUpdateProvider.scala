@@ -73,7 +73,10 @@ object MappedUserAuthContextUpdateProvider extends UserAuthContextUpdateProvider
           if (rows == 1) MappedUserAuthContextUpdate.find(By(MappedUserAuthContextUpdate.mUserAuthContextUpdateId, consentId))
           else Failure(ErrorMessages.UserAuthContextUpdateStatusError)
         case _ =>
-          Full(consent)
+          // Already left INITIATED (e.g. a concurrent answer committed before our read).
+          // A late second answer must fail like the atomic-transition loser above —
+          // returning Full here would allow MFA double-authorisation.
+          Failure(ErrorMessages.UserAuthContextUpdateStatusError)
       }
     }
   }

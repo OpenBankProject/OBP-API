@@ -425,7 +425,10 @@ object MappedConsentProvider extends ConsentProvider with code.util.Helper.MdcLo
             if (rows == 1) MappedConsent.find(By(MappedConsent.mConsentId, consentId))
             else Failure(ErrorMessages.ConsentUpdateStatusError)
           case _ =>
-            Full(consent)
+            // Already left INITIATED (e.g. a concurrent answer committed before our read).
+            // A late second answer must fail like the atomic-transition loser above —
+            // returning Full here would let two callers pass the SCA gate on one consent.
+            Failure(ErrorMessages.ConsentUpdateStatusError)
         }
       case Empty =>
         Empty ?~! ErrorMessages.ConsentNotFound

@@ -275,6 +275,10 @@ run_shard() {
     # mail.test.mode (CI has it); without it, flows like consent actually open an
     # SMTP socket -> 500 (CI green, local red). We inject OBP_MAIL_TEST_MODE
     # instead of editing props so we don't clobber the user's local DB settings.
+    # This env var always outranks a test's setPropsValues("mail.test.mode" -> "false", ...)
+    # (see APIUtil.getPropsValue precedence above), so PasswordResetTest's real-SMTP-failure
+    # scenario mutates this specific env var for its own scope via code.setup.EnvVarOverride
+    # rather than relying on setPropsValues alone.
     # OBP_DYNAMIC_CODE_SANDBOX_PERMISSIONS mirrors CI's dynamic_code_sandbox_permissions
     # props line: without it the dynamic-code sandbox denies reflection/getenv and
     # DynamicResourceDocTest's native-execution scenarios fail locally (CI green, local red).
