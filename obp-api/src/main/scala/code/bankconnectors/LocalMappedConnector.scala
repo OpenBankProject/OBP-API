@@ -977,14 +977,18 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
   override def getBankAccounts(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]): OBPReturnType[Box[List[BankAccount]]] = {
     Future {
+      // Tolerate stale account access: a user can hold a view/grant on an account that has
+      // since been deleted (a dangling BankIdAccountId). Skip such accounts instead of
+      // throwing, which would otherwise 500 an entire "list my accounts" call because of one
+      // orphaned grant. Callers that need a specific account use getBankAccount(single).
       (Full(
-        bankIdAccountIds.map(
+        bankIdAccountIds.flatMap(
           bankIdAccountId =>
             getBankAccountLegacy(
               bankIdAccountId.bankId,
               bankIdAccountId.accountId,
               callContext
-            ).map(_._1).openOrThrowException(s"${ErrorMessages.BankAccountNotFound} current BANK_ID(${bankIdAccountId.bankId}) and ACCOUNT_ID(${bankIdAccountId.accountId})"))
+            ).map(_._1).toList)
       ), callContext)
     }
   }
