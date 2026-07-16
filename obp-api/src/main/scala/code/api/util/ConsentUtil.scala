@@ -1145,6 +1145,11 @@ object Consent extends MdcLoggable {
    * Every live creator now stamps a standard, so blank means "old row" — backfill mApiStandard
    * to 'obp' to remove the grandfathering path and tighten to strict equality later.
    */
+  // Test seam: assert the standard by consentId (used by ConsentStandardBoundaryTest).
+  def assertConsentStandardById(consentId: String, expectedStandard: String): Option[Failure] =
+    Consents.consentProvider.vend.getConsentByConsentId(consentId).toOption
+      .flatMap(assertConsentStandard(_, expectedStandard))
+
   def assertConsentStandard(storedConsent: MappedConsent, expectedStandard: String): Option[Failure] = {
     val actualStandard = Option(storedConsent.apiStandard).map(_.trim).getOrElse("")
     if (actualStandard.isEmpty) {
