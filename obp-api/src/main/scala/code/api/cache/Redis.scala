@@ -290,7 +290,11 @@ object Redis extends MdcLoggable {
     }
   }
 
-  implicit val scalaCache = ScalaCache(RedisCache(url, port))
+  // Reuse the pool built above so the memoize-backed cache shares the same authenticated,
+  // optionally SSL-configured connection. The RedisCache(url, port) overload builds its own
+  // JedisPool internally with no password and no SSL, so with `requirepass` enabled it fails
+  // with NOAUTH while the jedisPool-based paths keep working.
+  implicit val scalaCache = ScalaCache(RedisCache(jedisPool))
   implicit val flags = Flags(readsEnabled = true, writesEnabled = true)
 
   implicit def anyToByte[T](implicit m: Manifest[T]) = new Codec[T, Array[Byte]] {
