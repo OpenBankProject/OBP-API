@@ -102,8 +102,7 @@ object MetricsEventBus extends MdcLoggable {
 
     subscriberThread = new Thread(() => {
       try {
-        subscriberJedis = new Jedis(Redis.url, Redis.port, Redis.timeout)
-        if (Redis.password != null) subscriberJedis.auth(Redis.password)
+        subscriberJedis = Redis.newSubscriberConnection()
         logger.info(s"MetricsEventBus says: Redis subscriber started, subscribing to $ALL_CHANNEL")
         subscriberJedis.subscribe(pubSub, ALL_CHANNEL)
       } catch {

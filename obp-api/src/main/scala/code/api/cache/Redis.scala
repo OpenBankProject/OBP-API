@@ -46,15 +46,34 @@ object Redis extends MdcLoggable {
   poolConfig.setNumTestsPerEvictionRun(3)
   poolConfig.setBlockWhenExhausted(true)
 
+  // Lazy so the keystore/truststore files are only read when redis.use.ssl is on, and only once
+  // even though both jedisPool and every subscriber connection need the socket factory.
+  private lazy val sslContext: SSLContext = configureSslContext()
+
   val jedisPool =
     if (useSsl) {
       // SSL connection: Use SSLContext with JedisPool
-      val sslContext = configureSslContext()
       new JedisPool(poolConfig, url, port, timeout, password, true, sslContext.getSocketFactory, null, null)
     } else {
       // Non-SSL connection
       new JedisPool(poolConfig, url, port, timeout, password)
     }
+
+  /**
+   * Build a dedicated, non-pooled connection for a pub/sub subscriber.
+   *
+   * `subscribe`/`psubscribe` occupy their connection for the whole life of the subscription,
+   * so subscribers cannot lease from jedisPool. They must still apply the same password and
+   * TLS settings the pool uses: the plain `Jedis(url, port, timeout)` constructor is
+   * unencrypted, so building one directly silently ignores redis.use.ssl.
+   */
+  def newSubscriberConnection(): Jedis = {
+    val jedis =
+      if (useSsl) new Jedis(url, port, timeout, true, sslContext.getSocketFactory, null, null)
+      else new Jedis(url, port, timeout)
+    if (password != null) jedis.auth(password)
+    jedis
+  }
 
   // Redis startup health check
   private def performStartupHealthCheck(): Unit = {
@@ -290,7 +309,11 @@ object Redis extends MdcLoggable {
     }
   }
 
-  implicit val scalaCache = ScalaCache(RedisCache(url, port))
+  // Reuse the pool built above so the memoize-backed cache shares the same authenticated,
+  // optionally SSL-configured connection. The RedisCache(url, port) overload builds its own
+  // JedisPool internally with no password and no SSL, so with `requirepass` enabled it fails
+  // with NOAUTH while the jedisPool-based paths keep working.
+  implicit val scalaCache = ScalaCache(RedisCache(jedisPool))
   implicit val flags = Flags(readsEnabled = true, writesEnabled = true)
 
   implicit def anyToByte[T](implicit m: Manifest[T]) = new Codec[T, Array[Byte]] {

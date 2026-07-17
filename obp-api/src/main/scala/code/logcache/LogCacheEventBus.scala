@@ -107,8 +107,7 @@ object LogCacheEventBus extends MdcLoggable {
 
     subscriberThread = new Thread(() => {
       try {
-        subscriberJedis = new Jedis(Redis.url, Redis.port, Redis.timeout)
-        if (Redis.password != null) subscriberJedis.auth(Redis.password)
+        subscriberJedis = Redis.newSubscriberConnection()
         logger.info(s"LogCacheEventBus says: Redis subscriber started, pattern-subscribing to ${CHANNEL_PREFIX}*")
         subscriberJedis.psubscribe(pubSub, s"${CHANNEL_PREFIX}*")
       } catch {
