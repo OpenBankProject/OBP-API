@@ -2236,7 +2236,7 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
             transactions.map(_.id),
             view.viewId,
             Some(cc))
-        } yield JSONFactory_UKOpenBanking_401.createTransactionsJsonNew(accountId.value, account.bankId, transactions, moderatedAttributes, view)
+        } yield JSONFactory_UKOpenBanking_401.createTransactionsJsonNew(account.bankId, accountId.value, transactions, moderatedAttributes, view)
       }
   }
   resourceDocs += ResourceDoc(

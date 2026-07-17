@@ -293,8 +293,8 @@ object JSONFactory_UKOpenBanking_401 extends CustomJsonFormats {
   }
 
   def createTransactionsJsonNew(
-    accountId: String,
     bankId: BankId,
+    accountId: String,
     moderatedTransactions: List[ModeratedTransaction],
     attributes: List[TransactionAttribute],
     view: View
