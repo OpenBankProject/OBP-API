@@ -1266,6 +1266,12 @@ object Consent extends MdcLoggable {
             System.currentTimeMillis match {
               case currentTimeMillis if currentTimeMillis < c.creationDateTime.getTime =>
                 Failure(ErrorMessages.ConsentNotBeforeIssue)
+              // A null expirationDateTime means the consent never expires (0..1 per spec,
+              // open-ended if absent -- see createUKConsentJWT). ConsentScheduler.expiredUKConsents
+              // proactively flips long-past-expiry consents to EXPIRED, but that runs on an
+              // interval; this reactive check closes the gap immediately regardless of timing.
+              case currentTimeMillis if Option(c.expirationDateTime).exists(_.getTime < currentTimeMillis) =>
+                Failure(ErrorMessages.ConsentExpiredIssue)
               case _ if c.mUserId.get != user.userId =>
                 Failure(ErrorMessages.ConsentDoesNotMatchUser)
               case _ =>

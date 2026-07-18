@@ -1,7 +1,7 @@
 package code.scheduler
 
 import code.api.berlin.group.ConstantsBG
-import code.api.util.APIUtil
+import code.api.util.{APIUtil, Consent}
 import code.consent.{ConsentStatus, MappedConsent}
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.util.{ApiStandards, ApiVersion}
@@ -49,6 +49,17 @@ object ConsentScheduler extends MdcLoggable {
       initialDelay = initialDelay + 10
     } else {
       logger.warn("|---> Skipping expiredObpConsents task: obp_expired_consents_interval_in_seconds set to 0")
+    }
+
+    // UK Open Banking. checkUKConsent (ConsentUtil.scala) also reactively rejects an expired
+    // AUTHORISED consent on every request regardless of this task's timing -- this proactive
+    // sweep just keeps the stored status accurate for GET/dashboard purposes.
+    val ukExpiredInterval = APIUtil.getPropsAsIntValue("uk_open_banking_expired_consents_interval_in_seconds", 601)
+    if (ukExpiredInterval > 0) {
+      SchedulerUtil.startTask(interval = ukExpiredInterval, () => expiredUKConsents(), initialDelay)
+      initialDelay = initialDelay + 10
+    } else {
+      logger.warn("|---> Skipping expiredUKConsents task: uk_open_banking_expired_consents_interval_in_seconds set to 0")
     }
   }
 
@@ -159,6 +170,42 @@ object ConsentScheduler extends MdcLoggable {
       }
     } match {
       case Failure(ex) => logger.error("Error in expiredObpConsents!", ex)
+      case Success(_) => logger.debug("|---> Task executed successfully")
+    }
+  }
+  private def expiredUKConsents(): Unit = {
+    Try {
+      logger.debug("|---> Checking for expired UK Open Banking consents...")
+
+      // A null mExpirationDateTime (never set -- 0..1 per spec, open-ended if absent) never
+      // matches By_< against a real Date, so perpetual consents are correctly never selected here.
+      val expiredConsents = MappedConsent.findAll(
+        By(MappedConsent.mStatus, ConsentStatus.AUTHORISED.toString),
+        By(MappedConsent.mApiStandard, Consent.ConsentStandardUK),
+        By_<(MappedConsent.mExpirationDateTime, new Date())
+      )
+
+      logger.debug(s"|---> Found ${expiredConsents.size} expired consents")
+
+      expiredConsents.foreach { consent =>
+        Try {
+          val message = s"|---> Changed status from ${consent.status} to ${ConsentStatus.EXPIRED.toString} for consent ID: ${consent.id}"
+          val newNote = s"$currentDate\n$message\n" + Option(consent.note).getOrElse("")
+          val rows = code.bankconnectors.DoobieConsentSchedulerQueries.conditionallyUpdateStatus(
+            consentPrimaryKey = consent.id.get,
+            guardStatus  = ConsentStatus.AUTHORISED.toString,
+            newStatus    = ConsentStatus.EXPIRED.toString,
+            newNote      = newNote
+          )
+          if (rows > 0) logger.warn(message)
+          else logger.debug(s"|---> Skipped stale update for UK consent ${consent.id}: status already changed")
+        } match {
+          case Failure(ex) => logger.error(s"Failed to update consent ID: ${consent.id}", ex)
+          case Success(_) => // Already logged
+        }
+      }
+    } match {
+      case Failure(ex) => logger.error("Error in expiredUKConsents!", ex)
       case Success(_) => logger.debug("|---> Task executed successfully")
     }
   }

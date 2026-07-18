@@ -2,12 +2,13 @@ package code.api.UKOpenBanking.v4_0_1
 
 import code.api.Constant
 import code.api.util.APIUtil.DateWithDayFormat
-import code.api.util.ErrorMessages.ConsentIdClaimMissing
-import code.api.util.Consent
-import code.consent.Consents
+import code.api.util.ErrorMessages.{ConsentExpiredIssue, ConsentIdClaimMissing}
+import code.api.util.{CallContext, CertificateUtil, Consent}
+import code.consent.{ConsentStatus, Consents}
 import code.model.UserExtended
 import code.views.Views
 import com.openbankproject.commons.model.{BankIdAccountId, ErrorMessage, ViewId}
+import net.liftweb.common.{Failure, Full}
 import org.json4s._
 import org.scalatest.Tag
 
@@ -211,6 +212,44 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
       userExtended.hasAccountAccess(
         Views.views.vend.getOrCreateSystemView(Constant.SYSTEM_READ_BALANCES_VIEW_ID).openOrThrowException("view"),
         bankIdAccountId, None) should equal(false)
+    }
+  }
+
+  // Regression coverage for Gap 14 (UK consents previously never expired): checkUKConsent must
+  // reactively reject an AUTHORISED consent whose ExpirationDateTime has passed, independent of
+  // ConsentScheduler's proactive sweep timing. Exercised by calling Consent.checkUKConsent
+  // directly with a hand-built CallContext carrying a self-signed Bearer JWT with a consent_id
+  // claim -- JwtUtil.getOptionalClaim only parses the JWT structurally (SignedJWT.parse), it does
+  // not verify the signature, so this doesn't need to be signed with the real shared secret. This
+  // sidesteps the suite-wide limitation noted above (OAuth1-signed test requests carry no real
+  // Bearer JWT) for the one scenario that specifically needs one.
+  feature("UKOB v4.0.1 Consent.checkUKConsent rejects an authorised consent past its ExpirationDateTime") {
+    scenario("expired consent -> Failure(ConsentExpiredIssue), not silently accepted", UKOpenBankingV401AccountInfo) {
+      val consent = Consents.consentProvider.vend.saveUKConsent(
+        user = Some(resourceUser1),
+        bankId = None,
+        accountIds = None,
+        consumerId = None,
+        permissions = consentPermissions,
+        expirationDateTime = Some(new java.util.Date(System.currentTimeMillis() - 60000L)), // 1 minute ago
+        transactionFromDateTime = None,
+        transactionToDateTime = None,
+        apiStandard = Some("UKOpenBanking"),
+        apiVersion = Some("4.0.1")
+      ).openOrThrowException("consent creation failed")
+      Consents.consentProvider.vend.updateConsentUser(consent.consentId, resourceUser1)
+      Consents.consentProvider.vend.updateConsentStatus(consent.consentId, ConsentStatus.AUTHORISED)
+
+      val claimsSet = new com.nimbusds.jwt.JWTClaimsSet.Builder()
+        .claim("consent_id", consent.consentId)
+        .build()
+      val jwt = CertificateUtil.jwtWithHmacProtection(claimsSet)
+      val callContext = CallContext(authReqHeaderField = Full(s"Bearer $jwt"))
+
+      Consent.checkUKConsent(resourceUser1, Some(callContext)) match {
+        case Failure(msg, _, _) => msg.contains(ConsentExpiredIssue) should equal(true)
+        case other => fail(s"expected Failure(ConsentExpiredIssue), got $other")
+      }
     }
   }
 
