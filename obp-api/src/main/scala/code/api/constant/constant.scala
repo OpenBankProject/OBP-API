@@ -161,6 +161,7 @@ object Constant extends MdcLoggable {
   final val SYSTEM_READ_BALANCES_VIEW_ID = "ReadBalances"
   final val SYSTEM_READ_TRANSACTIONS_BASIC_VIEW_ID = "ReadTransactionsBasic"
   final val SYSTEM_READ_TRANSACTIONS_DEBITS_VIEW_ID = "ReadTransactionsDebits"
+  final val SYSTEM_READ_TRANSACTIONS_CREDITS_VIEW_ID = "ReadTransactionsCredits"
   final val SYSTEM_READ_TRANSACTIONS_DETAIL_VIEW_ID = "ReadTransactionsDetail"
   // Berlin Group
   final val SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID = "ReadAccountsBerlinGroup"
@@ -182,6 +183,7 @@ object Constant extends MdcLoggable {
     SYSTEM_READ_BALANCES_VIEW_ID::
     SYSTEM_READ_TRANSACTIONS_BASIC_VIEW_ID::
     SYSTEM_READ_TRANSACTIONS_DEBITS_VIEW_ID::
+    SYSTEM_READ_TRANSACTIONS_CREDITS_VIEW_ID::
     SYSTEM_READ_TRANSACTIONS_DETAIL_VIEW_ID::
     SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID::
     SYSTEM_READ_BALANCES_BERLIN_GROUP_VIEW_ID::
@@ -667,9 +669,23 @@ object Constant extends MdcLoggable {
     CAN_SEE_TRANSACTION_STATUS
   )
 
-  // ReadTransactionsDebits is direction-filtered at the query layer (see Gap 2 in the plan
-  // above) — it is not itself a wider or narrower view, so it shares Basic's field visibility.
+  // ReadTransactionsDebits / ReadTransactionsCredits (UK v4.0.1 spec: independently-selectable
+  // Permissions codes) are direction-filtered, not field-filtered — a PSU who only grants
+  // ReadTransactionsCredits should see the same transaction fields as ReadTransactionsBasic,
+  // just restricted to credit-direction rows. Neither view widens or narrows field visibility,
+  // so both share Basic's permission set here.
+  //
+  // Enforcement mechanism (decided, not yet wired into the transactions endpoint): filter by
+  // which of the two view_ids the consent granted, resolved the same way
+  // Http4sUKOBv401AccountInfo.getAccountsAccountIdTransactions already resolves Basic-or-Detail
+  // via ViewNewStyle.checkViewsAccessAndReturnView — no new can_* permission string, since
+  // direction is a query-parameter-shaped concern, not a field-visibility one. Wiring this in
+  // requires the endpoint to also filter the returned transaction list by amount sign, which in
+  // turn depends on fixing JSONFactory_UKOpenBanking_401.transactionJson's separate,
+  // pre-existing CreditDebitIndicator hardcoding (always "Credit", never derived from the
+  // transaction) — tracked as a follow-up, out of scope for this view/permission gap.
   final val SYSTEM_READ_TRANSACTIONS_DEBITS_VIEW_PERMISSION = SYSTEM_READ_TRANSACTIONS_BASIC_VIEW_PERMISSION
+  final val SYSTEM_READ_TRANSACTIONS_CREDITS_VIEW_PERMISSION = SYSTEM_READ_TRANSACTIONS_BASIC_VIEW_PERMISSION
 
   final val SYSTEM_READ_TRANSACTIONS_DETAIL_VIEW_PERMISSION = SYSTEM_READ_TRANSACTIONS_BASIC_VIEW_PERMISSION ++ List(
     CAN_SEE_TRANSACTION_OTHER_BANK_ACCOUNT,

@@ -852,6 +852,12 @@ object MapperViews extends Views with MdcLoggable {
           SYSTEM_READ_TRANSACTIONS_DEBITS_VIEW_PERMISSION
         )
         entity
+      case SYSTEM_READ_TRANSACTIONS_CREDITS_VIEW_ID =>
+        ViewPermission.resetViewPermissions(
+          entity,
+          SYSTEM_READ_TRANSACTIONS_CREDITS_VIEW_PERMISSION
+        )
+        entity
       case SYSTEM_READ_TRANSACTIONS_DETAIL_VIEW_ID =>
         ViewPermission.resetViewPermissions(
           entity,

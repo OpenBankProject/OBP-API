@@ -409,6 +409,7 @@ trait OBPDataImport extends MdcLoggable {
     val readBalancesView = Views.views.vend.getOrCreateSystemView(SYSTEM_READ_BALANCES_VIEW_ID).asInstanceOf[Box[ViewType]]
     val readTransactionsBasicView = Views.views.vend.getOrCreateSystemView(SYSTEM_READ_TRANSACTIONS_BASIC_VIEW_ID).asInstanceOf[Box[ViewType]]
     val readTransactionsDebitsView = Views.views.vend.getOrCreateSystemView(SYSTEM_READ_TRANSACTIONS_DEBITS_VIEW_ID).asInstanceOf[Box[ViewType]]
+    val readTransactionsCreditsView = Views.views.vend.getOrCreateSystemView(SYSTEM_READ_TRANSACTIONS_CREDITS_VIEW_ID).asInstanceOf[Box[ViewType]]
     val readTransactionsDetailView = Views.views.vend.getOrCreateSystemView(SYSTEM_READ_TRANSACTIONS_DETAIL_VIEW_ID).asInstanceOf[Box[ViewType]]
     // Berlin Group
     val readAccountsBerlinGroupView = Views.views.vend.getOrCreateSystemView(SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID).asInstanceOf[Box[ViewType]]
@@ -427,9 +428,10 @@ trait OBPDataImport extends MdcLoggable {
       readAccountsBasicView, 
       readAccountsDetailView, 
       readBalancesView, 
-      readTransactionsBasicView, 
-      readTransactionsDebitsView, 
-      readTransactionsDetailView, 
+      readTransactionsBasicView,
+      readTransactionsDebitsView,
+      readTransactionsCreditsView,
+      readTransactionsDetailView,
       readAccountsBerlinGroupView, 
       readBalancesBerlinGroupView, 
       readTransactionsBerlinGroupView, 

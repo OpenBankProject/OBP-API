@@ -95,7 +95,39 @@ class MappedViewsTest extends ServerSetup with DefaultUsers{
       MapperViews.factoryResetSystemView(ViewId("does-not-exist")) shouldBe Empty
     }
 
+    // Regression coverage for the UK Open Banking / Berlin Group views-permissions gap
+    // remediation (Gap 1, 2, 5): each of these views previously either shared the generic
+    // SYSTEM_VIEW_PERMISSION_COMMON set (so "Detail" granted nothing beyond "Basic") or had no
+    // ViewPermission rows at all (the two BG views). Assert each view's allowed_actions match
+    // its target set exactly — no more, no less.
+    scenario("UK and Berlin Group system views have exact, differentiated can_* permission sets") {
+      // UK/BG views are opt-in (created on demand), not unconditionally present like auditor —
+      // getOrCreateSystemView creates them fresh with current code defaults; afterEach's
+      // ViewDefinition.bulkDelete_!! guarantees no stale permissions leak in between scenarios.
+      def actionsOf(viewId: String): Set[String] =
+        MapperViews.getOrCreateSystemView(viewId)
+          .openOrThrowException(s"$viewId should be a known system view")
+          .allowed_actions.toSet
 
+      actionsOf(Constant.SYSTEM_READ_ACCOUNTS_BASIC_VIEW_ID) should equal(Constant.SYSTEM_READ_ACCOUNTS_BASIC_VIEW_PERMISSION.toSet)
+      actionsOf(Constant.SYSTEM_READ_ACCOUNTS_DETAIL_VIEW_ID) should equal(Constant.SYSTEM_READ_ACCOUNTS_DETAIL_VIEW_PERMISSION.toSet)
+      actionsOf(Constant.SYSTEM_READ_BALANCES_VIEW_ID) should equal(Constant.SYSTEM_READ_BALANCES_VIEW_PERMISSION.toSet)
+      actionsOf(Constant.SYSTEM_READ_TRANSACTIONS_BASIC_VIEW_ID) should equal(Constant.SYSTEM_READ_TRANSACTIONS_BASIC_VIEW_PERMISSION.toSet)
+      actionsOf(Constant.SYSTEM_READ_TRANSACTIONS_DEBITS_VIEW_ID) should equal(Constant.SYSTEM_READ_TRANSACTIONS_DEBITS_VIEW_PERMISSION.toSet)
+      actionsOf(Constant.SYSTEM_READ_TRANSACTIONS_CREDITS_VIEW_ID) should equal(Constant.SYSTEM_READ_TRANSACTIONS_CREDITS_VIEW_PERMISSION.toSet)
+      actionsOf(Constant.SYSTEM_READ_TRANSACTIONS_DETAIL_VIEW_ID) should equal(Constant.SYSTEM_READ_TRANSACTIONS_DETAIL_VIEW_PERMISSION.toSet)
+      actionsOf(Constant.SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID) should equal(Constant.SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_PERMISSION.toSet)
+      actionsOf(Constant.SYSTEM_READ_BALANCES_BERLIN_GROUP_VIEW_ID) should equal(Constant.SYSTEM_READ_BALANCES_BERLIN_GROUP_VIEW_PERMISSION.toSet)
+
+      Then("Detail must be a strict superset of Basic (never narrower), for both Accounts and Transactions")
+      Constant.SYSTEM_READ_ACCOUNTS_DETAIL_VIEW_PERMISSION.toSet should contain allElementsOf Constant.SYSTEM_READ_ACCOUNTS_BASIC_VIEW_PERMISSION
+      Constant.SYSTEM_READ_ACCOUNTS_DETAIL_VIEW_PERMISSION.toSet.size should be > Constant.SYSTEM_READ_ACCOUNTS_BASIC_VIEW_PERMISSION.toSet.size
+      Constant.SYSTEM_READ_TRANSACTIONS_DETAIL_VIEW_PERMISSION.toSet should contain allElementsOf Constant.SYSTEM_READ_TRANSACTIONS_BASIC_VIEW_PERMISSION
+      Constant.SYSTEM_READ_TRANSACTIONS_DETAIL_VIEW_PERMISSION.toSet.size should be > Constant.SYSTEM_READ_TRANSACTIONS_BASIC_VIEW_PERMISSION.toSet.size
+
+      Then("Balances must not carry transaction- or counterparty-visibility permissions")
+      actionsOf(Constant.SYSTEM_READ_BALANCES_VIEW_ID) should equal(Set(Constant.CAN_SEE_BANK_ACCOUNT_BALANCE, Constant.CAN_QUERY_AVAILABLE_FUNDS))
+    }
 
   }
   
