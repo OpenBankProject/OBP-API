@@ -3,13 +3,16 @@ package code.api.berlin.group.v1_3
 import org.json4s._
 import code.api.Constant
 import code.api.Constant.{SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID, SYSTEM_READ_BALANCES_BERLIN_GROUP_VIEW_ID, SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID}
+import code.api.berlin.group.ConstantsBG
 import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3._
 import code.api.berlin.group.v1_3.Http4sBGv13AIS
 import code.api.util.APIUtil
 import code.api.util.APIUtil.OAuth._
+import code.api.berlin.group.v1_3.model.ScaStatusResponse
+import code.api.util.Consent
 import code.api.util.ErrorMessages._
 import code.api.v4_0_0.PostViewJsonV400
-import code.consent.ConsentStatus
+import code.consent.{ConsentStatus, ConsentTrait, Consents}
 import code.model.dataAccess.BankAccountRouting
 import code.setup.{APIResponse, DefaultUsers}
 import com.github.dwickern.macros.NameOf.nameOf
@@ -21,6 +24,8 @@ import org.scalatest.Tag
 
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import scala.concurrent.Await
+import scala.concurrent.duration._
 
 class AccountInformationServiceAISApiTest extends BerlinGroupServerSetupV1_3 with DefaultUsers {
 
@@ -762,6 +767,120 @@ class AccountInformationServiceAISApiTest extends BerlinGroupServerSetupV1_3 wit
         val responseStartConsentAuthorisation = makePutRequest(requestStartConsentAuthorisation, """{"confirmationCode":"confirmationCode"}""")
         responseStartConsentAuthorisation.code should be (200)
       }
-    }  
+    }
+
+  // Builds an unclaimed (PSU-less) Berlin Group consent directly via the provider, mirroring
+  // how POST /consents builds one for a client_credentials caller (createdByUser = None).
+  def createUnclaimedBerlinGroupConsent(): ConsentTrait = {
+    val accountsRoutingIban = BankAccountRouting.findAll(By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString))
+    val acountRoutingIban = accountsRoutingIban.head
+    val postJsonBody = PostConsentJson(
+      access = ConsentAccessJson(
+        accounts = Option(List(ConsentAccessAccountsJson(
+          iban = Some(acountRoutingIban.accountRouting.address),
+          bban = None,
+          pan = None,
+          maskedPan = None,
+          msisdn = None,
+          currency = None,
+        ))),
+        balances = None,
+        transactions = None,
+        availableAccounts = None,
+        allPsd2 = None
+      ),
+      recurringIndicator = true,
+      validUntil = getNextMonthDate(),
+      frequencyPerDay = 4,
+      combinedServiceIndicator = Some(false)
+    )
+    val validUntilDate = BgSpecValidation.getDate(postJsonBody.validUntil)
+
+    val createdConsent = Consents.consentProvider.vend.createBerlinGroupConsent(
+      user = None,
+      consumer = Some(testConsumer),
+      recurringIndicator = postJsonBody.recurringIndicator,
+      validUntil = validUntilDate,
+      frequencyPerDay = postJsonBody.frequencyPerDay,
+      combinedServiceIndicator = postJsonBody.combinedServiceIndicator.getOrElse(false),
+      apiStandard = Some(ConstantsBG.berlinGroupVersion1.apiStandard),
+      apiVersion = Some(ConstantsBG.berlinGroupVersion1.apiShortVersion)
+    ).openOrThrowException("test consent creation failed")
+
+    val consentJWT = Await.result(
+      Consent.createBerlinGroupConsentJWT(
+        None,
+        postJsonBody,
+        createdConsent.secret,
+        createdConsent.consentId,
+        Some(testConsumer.consumerId.get),
+        Some(validUntilDate),
+        None
+      ),
+      10.seconds
+    ).openOrThrowException("test consent JWT creation failed")
+    Consents.consentProvider.vend.setJsonWebToken(createdConsent.consentId, consentJWT)
+
+    createdConsent
+  }
+
+  feature(s"BG v1.3 - unclaimed consent SCA (regression: GET /obp/v5.1.0/user/current/consents/CONSENT_ID 404 before SCA, wrong authorisationId from ${startConsentAuthorisationTransactionAuthorisation.name})") {
+    scenario("Unclaimed consent: viewable pre-SCA by any user, authorisable, and claimed by the answering PSU on correct OTP", BerlinGroupV1_3, startConsentAuthorisationTransactionAuthorisation, updateConsentsPsuDataTransactionAuthorisation) {
+      setPropsValues("suggested_default_sca_method" -> "DUMMY")
+
+      val createdConsent = createUnclaimedBerlinGroupConsent()
+      Option(createdConsent.userId).forall(_.isBlank) should be (true)
+      val consentId = createdConsent.consentId
+
+      Then("A different logged-in user can GET the unclaimed consent — this used to 404 (Bug A)")
+      val requestGetConsent = (baseRequest / "obp" / "v5.1.0" / "user" / "current" / "consents" / consentId).GET <@ (user2)
+      val responseGetConsent = makeGetRequest(requestGetConsent)
+      responseGetConsent.code should be (200)
+
+      Then(s"We test the $startConsentAuthorisationTransactionAuthorisation")
+      val requestStartConsentAuthorisation = (V1_3_BG / "consents" / consentId / "authorisations").POST <@ (user1)
+      val responseStartConsentAuthorisation = makePostRequest(requestStartConsentAuthorisation, """{"scaAuthenticationData":""}""")
+      responseStartConsentAuthorisation.code should be (201)
+      val authorisationId = responseStartConsentAuthorisation.body.extract[StartConsentAuthorisationJson].authorisationId
+
+      Then("The returned authorisationId must resolve on GET — this used to be the wrong field (Bug C)")
+      val requestGetConsentScaStatus = (V1_3_BG / "consents" / consentId / "authorisations" / authorisationId).GET <@ (user1)
+      val responseGetConsentScaStatus = makeGetRequest(requestGetConsentScaStatus)
+      responseGetConsentScaStatus.code should be (200)
+
+      Then(s"We submit the correct OTP to $updateConsentsPsuDataTransactionAuthorisation and the consent becomes valid, owned by the answering PSU")
+      val requestUpdatePsuData = (V1_3_BG / "consents" / consentId / "authorisations" / authorisationId).PUT <@ (user1)
+      val responseUpdatePsuData = makePutRequest(requestUpdatePsuData, """{"scaAuthenticationData":"123"}""")
+      responseUpdatePsuData.code should be (200)
+      responseUpdatePsuData.body.extract[ScaStatusResponse].scaStatus should be ("valid")
+
+      val updatedConsent = Consents.consentProvider.vend.getConsentByConsentId(consentId).openOrThrowException("test consent lookup failed")
+      updatedConsent.userId should be (resourceUser1.userId)
+      updatedConsent.status should be (ConsentStatus.valid.toString)
+    }
+
+    scenario("Unclaimed consent: an incorrect OTP is rejected with 400 and the consent stays unclaimed (documents that updateConsentUser in updateConsentsPsuDataAll is never reached on a failed challenge answer, unrelated to this fix)", BerlinGroupV1_3, updateConsentsPsuDataTransactionAuthorisation) {
+      setPropsValues("suggested_default_sca_method" -> "DUMMY")
+
+      val createdConsent = createUnclaimedBerlinGroupConsent()
+      val consentId = createdConsent.consentId
+
+      val requestStartConsentAuthorisation = (V1_3_BG / "consents" / consentId / "authorisations").POST <@ (user1)
+      val responseStartConsentAuthorisation = makePostRequest(requestStartConsentAuthorisation, """{"scaAuthenticationData":""}""")
+      responseStartConsentAuthorisation.code should be (201)
+      val authorisationId = responseStartConsentAuthorisation.body.extract[StartConsentAuthorisationJson].authorisationId
+
+      Then("We submit a wrong OTP")
+      val requestUpdatePsuData = (V1_3_BG / "consents" / consentId / "authorisations" / authorisationId).PUT <@ (user1)
+      val responseUpdatePsuData = makePutRequest(requestUpdatePsuData, """{"scaAuthenticationData":"wrong-otp"}""")
+      responseUpdatePsuData.code should be (400)
+      responseUpdatePsuData.body.extract[ErrorMessagesBG].tppMessages.head.text should include ("OBP-40016")
+
+      Then("The consent is not claimed — validateChallengeAnswerC4 fails the Box before updateConsentUser runs")
+      val updatedConsent = Consents.consentProvider.vend.getConsentByConsentId(consentId).openOrThrowException("test consent lookup failed")
+      Option(updatedConsent.userId).forall(_.isBlank) should be (true)
+      updatedConsent.status should be (ConsentStatus.received.toString)
+    }
+  }
 
 }
