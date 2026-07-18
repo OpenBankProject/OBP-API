@@ -47,10 +47,13 @@ object Http4sUKOBv310AccountAccess extends MdcLoggable {
       EndpointHelpers.executeFutureCreated(req) {
         implicit val cc: CallContext = req.callContext
         for {
-          u <- cc.user.toOption match {
-            case Some(user) => Future.successful(user)
-            case None       => Future.failed(new RuntimeException(AuthenticatedUserIsRequired))
-          }
+          // Client-credentials lodging: require some authentication (consumer or user) but not a
+          // PSU specifically; reject only a fully anonymous request. The PSU is bound later at
+          // authorise time. Mirrors the Berlin Group native consent flow and the v4.0.1 handler.
+          _ <- if (cc.user.isEmpty && cc.consumer.isEmpty)
+                 Future.failed(new RuntimeException(AuthenticatedUserIsRequired))
+               else Future.successful(())
+          createdByUser = cc.user.toOption
           consentJson <- Future.fromTry(scala.util.Try(
             com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("{}")).extract[ConsentPostBodyUKV310]
           ))
@@ -70,7 +73,7 @@ object Http4sUKOBv310AccountAccess extends MdcLoggable {
           consumerId = cc.consumer.map(_.consumerId.get)
           _ <- passesPsd2Aisp(Some(cc))
           createdConsent <- Future(Consents.consentProvider.vend.saveUKConsent(
-            Some(u),
+            createdByUser,
             bankId = None,
             accountIds = None,
             consumerId = consumerId,

@@ -94,10 +94,16 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
       EndpointHelpers.executeFutureCreated(req) {
         implicit val cc: CallContext = req.callContext
         for {
-          u <- cc.user.toOption match {
-            case Some(user) => Future.successful(user)
-            case None       => Future.failed(new RuntimeException(AuthenticatedUserIsRequired))
-          }
+          // Spec Step 2: the TPP lodges the consent via a client-credentials grant -- authenticated
+          // as an app (consumer) but with no PSU yet. Require some authentication (a consumer or a
+          // user) but not a PSU specifically; reject only a fully anonymous request. The PSU is
+          // bound later at authorise time (mUserId stays null until then), mirroring the Berlin
+          // Group native consent flow (Http4sBGv13AIS.createConsent). A request with a real user
+          // (e.g. DirectLogin) still works -- createdByUser just carries it through.
+          _ <- if (cc.user.isEmpty && cc.consumer.isEmpty)
+                 Future.failed(new RuntimeException(AuthenticatedUserIsRequired))
+               else Future.successful(())
+          createdByUser = cc.user.toOption
           consentJson <- Future.fromTry(scala.util.Try(
             JsonAliases.parse(cc.httpBody.getOrElse("{}")).extract[ConsentPostBodyUKV310]
           ))
@@ -117,7 +123,7 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
           consumerId = cc.consumer.map(_.consumerId.get)
           _ <- passesPsd2Aisp(Some(cc))
           createdConsent <- Future(Consents.consentProvider.vend.saveUKConsent(
-            Some(u),
+            createdByUser,
             bankId = None,
             accountIds = None,
             consumerId = consumerId,
