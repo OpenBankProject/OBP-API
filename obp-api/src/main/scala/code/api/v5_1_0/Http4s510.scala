@@ -87,7 +87,9 @@ import scala.language.{higherKinds, implicitConversions}
 // UK Open Banking consent SCA (see authoriseUKConsentChallenge / authoriseUKConsent):
 // the challenge-start endpoint returns this; the authorise endpoint consumes the answer.
 case class UKConsentScaChallengeJsonV510(challenge_id: String, sca_status: String, sca_method: String)
-case class PostUKConsentAuthoriseJsonV510(challenge_id: String, answer: String)
+// account_ids: the accounts the PSU is selecting for this consent's granted permissions —
+// see the Gap 4 remediation note above authoriseUKConsent (bankId comes from the URL BANK_ID).
+case class PostUKConsentAuthoriseJsonV510(challenge_id: String, answer: String, account_ids: List[String])
 
 object Http4s510 {
 
@@ -4337,7 +4339,7 @@ object Http4s510 {
     // flip it to AUTHORISED — the missing "authorisation binding" step of the UK flow.
     // User-authenticated but role-free (the account holder is approving their own consent).
     val authoriseUKConsent: HttpRoutes[IO] = HttpRoutes.of[IO] {
-      case req @ POST -> `prefixPath` / "banks" / _ / "consents" / consentId / "authorise" =>
+      case req @ POST -> `prefixPath` / "banks" / bankIdStr / "consents" / consentId / "authorise" =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
           for {
@@ -4354,6 +4356,12 @@ object Http4s510 {
             // The challenge must have been started via POST .../authorise/challenge.
             authJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostUKConsentAuthoriseJsonV510 ", 400, Some(cc)) {
               com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[PostUKConsentAuthoriseJsonV510]
+            }
+            // The PSU must select at least one account for the consented permissions to bind to —
+            // see grantUKConsentAccountAccess (Gap 4 remediation: previously the consent's
+            // Permissions were never bound to a real account and had zero enforcement effect).
+            _ <- Helper.booleanToFuture(s"$InvalidJsonFormat The Json body should be the $PostUKConsentAuthoriseJsonV510 (account_ids must not be empty) ", 400, Some(cc)) {
+              authJson.account_ids.nonEmpty
             }
             (_, _) <- NewStyle.function.getChallenge(authJson.challenge_id, Some(cc))
             (challenge, _) <- NewStyle.function.validateChallengeAnswerC4(
@@ -4377,9 +4385,14 @@ object Http4s510 {
             // createdByUserId (via ConsentJWT.copy) — the UK permission views are preserved.
             updatedJwt <- Future(Consent.updateUserIdOfBerlinGroupConsentJWT(user.userId, consentAfterBind, Some(cc)))
               .map(i => connectorEmptyResponse(i, Some(cc)))
-            _ <- Future(Consents.consentProvider.vend.setJsonWebToken(consentId, updatedJwt))
+            consentWithUser <- Future(Consents.consentProvider.vend.setJsonWebToken(consentId, updatedJwt))
               .map(i => connectorEmptyResponse(i, Some(cc)))
-            updatedConsent <- Future(Consents.consentProvider.vend.updateConsentStatus(consentId, ConsentStatus.AUTHORISED))
+            // Bind the consented permissions to the PSU-selected accounts, replacing the
+            // (bank_id=null, account_id=null) dead views createUKConsentJWT wrote at consent
+            // creation time, and eagerly grant the corresponding AccountAccess rows.
+            consentWithAccountAccess <- Consent.grantUKConsentAccountAccess(user, BankId(bankIdStr), authJson.account_ids, consentWithUser, Some(cc))
+              .map(i => connectorEmptyResponse(i, Some(cc)))
+            updatedConsent <- Future(Consents.consentProvider.vend.updateConsentStatus(consentWithAccountAccess.consentId, ConsentStatus.AUTHORISED))
               .map(i => connectorEmptyResponse(i, Some(cc)))
           } yield ConsentJsonV310(updatedConsent.consentId, updatedConsent.jsonWebToken, updatedConsent.status)
         }
@@ -4395,22 +4408,25 @@ object Http4s510 {
       |Authorise a UK Open Banking account-access consent as the current (PSU) user, after SCA.
       |
       |The TPP first lodges the intent via `POST /account-access-consents`; the consent is
-      |created in ${ConsentStatus.AWAITINGAUTHORISATION} state with no bound user. The PSU then
-      |starts SCA via `POST .../authorise/challenge` and submits the resulting `challenge_id`
-      |plus the OTP `answer` here. On a valid answer this binds the consent to the PSU and
-      |transitions it to ${ConsentStatus.AUTHORISED}, so subsequent UK data calls whose access
-      |token carries the `consent_id` claim pass the consent check.
+      |created in ${ConsentStatus.AWAITINGAUTHORISATION} state with no bound user and no bound
+      |accounts. The PSU then starts SCA via `POST .../authorise/challenge` and submits the
+      |resulting `challenge_id` plus the OTP `answer`, together with the `account_ids` the PSU
+      |is selecting for this consent, here. On a valid answer this binds the consent to the PSU
+      |and to those accounts — every permission the consent declared is granted on each selected
+      |account — and transitions it to ${ConsentStatus.AUTHORISED}, so subsequent UK data calls
+      |whose access token carries the `consent_id` claim pass the consent check and are scoped to
+      |exactly the accounts and permissions the PSU approved.
       |
       |${userAuthenticationMessage(true)}
       |
       |""",
-      PostUKConsentAuthoriseJsonV510("74a8ebda-9e5a-4c3f-9b0b-1a2b3c4d5e6f", "123"),
+      PostUKConsentAuthoriseJsonV510("74a8ebda-9e5a-4c3f-9b0b-1a2b3c4d5e6f", "123", List("8ca8a7e4-6d05-4b21-a165-c02c39d77e55")),
       ConsentJsonV310(
         "9d429899-24f5-42c8-8565-943ffa6a7945",
         "eyJhbGciOiJIUzI1NiJ9.eyJ2aWV3cyI6W119.signature",
         "AUTHORISED"
       ),
-      List($AuthenticatedUserIsRequired, ConsentNotFound, ConsentStatusIssue, InvalidJsonFormat, InvalidChallengeAnswer, InvalidConnectorResponse, UnknownError),
+      List($AuthenticatedUserIsRequired, ConsentNotFound, ConsentStatusIssue, InvalidJsonFormat, InvalidChallengeAnswer, $BankAccountNotFound, InvalidConnectorResponse, UnknownError),
       apiTagConsent :: apiTagPSD2AIS :: Nil,
       None,
       http4sPartialFunction = Some(authoriseUKConsent)

@@ -1107,6 +1107,67 @@ object Consent extends MdcLoggable {
     CertificateUtil.jwtWithHmacProtection(jwtClaims, secret)
   }
 
+  /**
+   * Binds a UK Open Banking account-access consent to the PSU-selected accounts.
+   *
+   * createUKConsentJWT (called from POST /account-access-consents, before any account is known)
+   * writes every granted permission as ConsentView(bank_id=null, account_id=null, view_id=permission)
+   * — a row that can never match a real account (see User.hasAccountAccess: plain equality on
+   * bank_id/account_id, no wildcard). Call this once the PSU has selected which accounts the
+   * consent applies to (currently: the UK authorise step, since OBP has no separate
+   * ASPSP-hosted account-selection UI) to replace those dead rows with real per-account
+   * ConsentViews, and to eagerly grant the corresponding AccountAccess rows — mirroring how
+   * updateViewsOfBerlinGroupConsentJWT resolves BG's IBAN-keyed access into real accounts.
+   */
+  def grantUKConsentAccountAccess(user: User,
+                                   bankId: BankId,
+                                   accountIds: List[String],
+                                   consent: MappedConsent,
+                                   callContext: Option[CallContext]): Future[Box[MappedConsent]] = {
+    implicit val dateFormats = CustomJsonFormats.formats
+    val payloadToUpdate: Box[ConsentJWT] = JwtUtil.getSignedPayloadAsJson(consent.jsonWebToken)
+      .map(com.openbankproject.commons.util.JsonAliases.parse(_).extract[ConsentJWT])
+
+    val permissions: List[String] = payloadToUpdate match {
+      case Full(consentJwt) => consentJwt.views.map(_.view_id).distinct
+      case _ => Nil
+    }
+
+    val accountChecks: List[Future[Box[BankAccount]]] = accountIds.distinct.map { accountId =>
+      Connector.connector.vend.checkBankAccountExists(bankId, AccountId(accountId), callContext).map(_._1)
+    }
+
+    Future.sequence(accountChecks).map { boxes =>
+      val error = s"$BankAccountNotFound BankId(${bankId.value})"
+      val validatedAccountIds: List[String] = boxes.map(_.openOrThrowException(error)).map(_.accountId.value)
+
+      val newViews: List[ConsentView] = for {
+        accountId <- validatedAccountIds
+        permission <- permissions
+      } yield ConsentView(bank_id = bankId.value, account_id = accountId, view_id = permission, None)
+
+      if (newViews.isEmpty) {
+        Empty
+      } else {
+        val updatedPayload = payloadToUpdate.map(_.copy(views = newViews))
+        val jwtPayloadAsJson = compactRender(Extraction.decompose(updatedPayload))
+        val jwtClaims: JWTClaimsSet = JWTClaimsSet.parse(jwtPayloadAsJson)
+        val jwt = CertificateUtil.jwtWithHmacProtection(jwtClaims, consent.secret)
+        // Eagerly grant real AccountAccess now: UK consents are exercised via an opaque OAuth2
+        // Bearer token (checkUKConsent), not the Consent-JWT header BG/OBP consents use to
+        // lazily re-derive access on every call — so the grant has to happen once, here.
+        updatedPayload.foreach { consentJwt =>
+          grantAccessToViews(user, consentJwt) match {
+            case Failure(msg, _, _) =>
+              logger.warn(s"grantUKConsentAccountAccess: grantAccessToViews reported: $msg")
+            case _ =>
+          }
+        }
+        Consents.consentProvider.vend.setJsonWebToken(consent.consentId, jwt)
+      }
+    }
+  }
+
   private def checkConsumerIsActiveAndMatchedUK(consent: ConsentJWT, consumerIdOfLoggedInUser: Option[String]): Box[Boolean] = {
     Consumers.consumers.vend.getConsumerByConsumerId(consent.aud) match {
       case Full(consumerFromConsent) if consumerFromConsent.isActive.get == true => // Consumer is active

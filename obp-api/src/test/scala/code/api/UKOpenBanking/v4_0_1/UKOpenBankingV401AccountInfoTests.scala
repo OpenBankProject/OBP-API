@@ -1,11 +1,18 @@
 package code.api.UKOpenBanking.v4_0_1
 
+import code.api.Constant
 import code.api.util.APIUtil.DateWithDayFormat
 import code.api.util.ErrorMessages.ConsentIdClaimMissing
+import code.api.util.Consent
 import code.consent.Consents
-import com.openbankproject.commons.model.ErrorMessage
+import code.model.UserExtended
+import code.views.Views
+import com.openbankproject.commons.model.{BankIdAccountId, ErrorMessage, ViewId}
 import org.json4s._
 import org.scalatest.Tag
+
+import scala.concurrent.Await
+import scala.concurrent.duration._
 
 // Test suite for UK Open Banking Read/Write v4.0.1 (AccountInfo).
 //
@@ -109,6 +116,48 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
       deleteUnauthed("aisp", "account-access-consents", "fake-consentid").code should equal(401)
     }
   }
+  // ── Consent.grantUKConsentAccountAccess (Gap 4 fix) ───────────────────
+  // Regression test for the previously-unverified scenario: before this fix,
+  // createUKConsentJWT wrote every permission as ConsentView(bank_id=null,
+  // account_id=null, view_id=permission) — a row that could never match a real
+  // account (see User.hasAccountAccess: plain bank_id/account_id equality, no
+  // wildcard) — so a UK consent's declared Permissions had zero effect on what
+  // could actually be read. This exercises the fix at the same access-check
+  // layer checkViewAccessAndReturnView (and therefore every UK data endpoint)
+  // relies on, since the full HTTP path requires a Bearer JWT with a consent_id
+  // claim that this OAuth1-signed test suite cannot mint (see the comment above
+  // "GET /aisp/accounts" below).
+  feature("UKOB v4.0.1 Consent.grantUKConsentAccountAccess binds permissions to the selected account only") {
+    scenario("consent scoped to ReadAccountsBasic grants that view but not ReadBalances", UKOpenBankingV401AccountInfo) {
+      val userExtended = UserExtended(resourceUser1)
+      val bankIdAccountId = BankIdAccountId(testBankId1, testAccountId1)
+
+      // Baseline: ServerSetupWithTestData's default view grants don't include the UK read views.
+      userExtended.hasAccountAccess(
+        Views.views.vend.getOrCreateSystemView(Constant.SYSTEM_READ_ACCOUNTS_BASIC_VIEW_ID).openOrThrowException("view"),
+        bankIdAccountId, None) should equal(false)
+
+      val consentId = createRealConsent() // permissions = List("ReadAccountsBasic") only
+      val consent = Consents.consentProvider.vend.getConsentByConsentId(consentId).openOrThrowException("consent")
+
+      val result = Await.result(
+        Consent.grantUKConsentAccountAccess(resourceUser1, testBankId1, List(acc), consent, None),
+        10.seconds)
+      result.isDefined should equal(true)
+
+      // Granted: the account now has a real (non-null) AccountAccess row for the consented view.
+      userExtended.hasAccountAccess(
+        Views.views.vend.getOrCreateSystemView(Constant.SYSTEM_READ_ACCOUNTS_BASIC_VIEW_ID).openOrThrowException("view"),
+        bankIdAccountId, None) should equal(true)
+
+      // Not granted: ReadBalances was never in the consent's Permissions, so it must stay locked —
+      // this is the check GET /aisp/accounts/ACCOUNT_ID/balances relies on (checkViewAccessAndReturnView).
+      userExtended.hasAccountAccess(
+        Views.views.vend.getOrCreateSystemView(Constant.SYSTEM_READ_BALANCES_VIEW_ID).openOrThrowException("view"),
+        bankIdAccountId, None) should equal(false)
+    }
+  }
+
   // ── AccountsApi ────────────────────────────────────────────────────
   // checkUKConsent extracts the `consent_id` claim from the Bearer access token (no external
   // Hydra call since Consent.checkUKConsent dropped the Hydra dependency). These OAuth1-signed
