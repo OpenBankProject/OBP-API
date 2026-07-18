@@ -782,8 +782,17 @@ object MapperViews extends Views with MdcLoggable {
           SYSTEM_VIEW_PERMISSION_COMMON
         )
         entity.isFirehose_(true)
-      case SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID |
-           SYSTEM_READ_BALANCES_BERLIN_GROUP_VIEW_ID =>
+      case SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID =>
+        ViewPermission.resetViewPermissions(
+          entity,
+          SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_PERMISSION
+        )
+        entity
+      case SYSTEM_READ_BALANCES_BERLIN_GROUP_VIEW_ID =>
+        ViewPermission.resetViewPermissions(
+          entity,
+          SYSTEM_READ_BALANCES_BERLIN_GROUP_VIEW_PERMISSION
+        )
         entity
       case SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID =>
         ViewPermission.resetViewPermissions(
@@ -803,16 +812,50 @@ object MapperViews extends Views with MdcLoggable {
           SYSTEM_AUDITOR_VIEW_PERMISSION
         )
         entity
-      case SYSTEM_ACCOUNTANT_VIEW_ID |
-        SYSTEM_READ_ACCOUNTS_BASIC_VIEW_ID |
-        SYSTEM_READ_ACCOUNTS_DETAIL_VIEW_ID |
-        SYSTEM_READ_BALANCES_VIEW_ID |
-        SYSTEM_READ_TRANSACTIONS_BASIC_VIEW_ID |
-        SYSTEM_READ_TRANSACTIONS_DEBITS_VIEW_ID |
-        SYSTEM_READ_TRANSACTIONS_DETAIL_VIEW_ID =>
+      case SYSTEM_ACCOUNTANT_VIEW_ID =>
         ViewPermission.resetViewPermissions(
           entity,
           SYSTEM_VIEW_PERMISSION_COMMON
+        )
+        entity
+      // UK Open Banking v4.0.1 system views — each gets the can_* set matching its place in
+      // the spec's Basic/Detail permission hierarchy (see Constant.SYSTEM_READ_*_VIEW_PERMISSION
+      // definitions). Previously all six shared SYSTEM_VIEW_PERMISSION_COMMON, so "Detail"
+      // granted nothing beyond "Basic" and Balances alone exposed full transaction data.
+      case SYSTEM_READ_ACCOUNTS_BASIC_VIEW_ID =>
+        ViewPermission.resetViewPermissions(
+          entity,
+          SYSTEM_READ_ACCOUNTS_BASIC_VIEW_PERMISSION
+        )
+        entity
+      case SYSTEM_READ_ACCOUNTS_DETAIL_VIEW_ID =>
+        ViewPermission.resetViewPermissions(
+          entity,
+          SYSTEM_READ_ACCOUNTS_DETAIL_VIEW_PERMISSION
+        )
+        entity
+      case SYSTEM_READ_BALANCES_VIEW_ID =>
+        ViewPermission.resetViewPermissions(
+          entity,
+          SYSTEM_READ_BALANCES_VIEW_PERMISSION
+        )
+        entity
+      case SYSTEM_READ_TRANSACTIONS_BASIC_VIEW_ID =>
+        ViewPermission.resetViewPermissions(
+          entity,
+          SYSTEM_READ_TRANSACTIONS_BASIC_VIEW_PERMISSION
+        )
+        entity
+      case SYSTEM_READ_TRANSACTIONS_DEBITS_VIEW_ID =>
+        ViewPermission.resetViewPermissions(
+          entity,
+          SYSTEM_READ_TRANSACTIONS_DEBITS_VIEW_PERMISSION
+        )
+        entity
+      case SYSTEM_READ_TRANSACTIONS_DETAIL_VIEW_ID =>
+        ViewPermission.resetViewPermissions(
+          entity,
+          SYSTEM_READ_TRANSACTIONS_DETAIL_VIEW_PERMISSION
         )
         entity
       case _ =>

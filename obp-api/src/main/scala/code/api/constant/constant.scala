@@ -632,6 +632,76 @@ object Constant extends MdcLoggable {
     CAN_ANSWER_TRANSACTION_REQUEST_CHALLENGE
   )
 
+  // UK Open Banking v4.0.1 system views — previously all six shared the generic
+  // SYSTEM_VIEW_PERMISSION_COMMON set, so "Detail" granted nothing beyond "Basic" and a
+  // consent scoped to Balances alone still exposed full transaction/counterparty data.
+  // Mapped from the UK v4.0.1 spec's Detail Permissions table (see
+  // standards-permissions-research/uk-v401/account-and-transaction-api-profile.html).
+  final val SYSTEM_READ_ACCOUNTS_BASIC_VIEW_PERMISSION = List(
+    CAN_SEE_BANK_ACCOUNT_LABEL,
+    CAN_SEE_BANK_ACCOUNT_TYPE,
+    CAN_SEE_BANK_ACCOUNT_CURRENCY,
+    CAN_SEE_BANK_ACCOUNT_BANK_NAME
+  )
+
+  final val SYSTEM_READ_ACCOUNTS_DETAIL_VIEW_PERMISSION = SYSTEM_READ_ACCOUNTS_BASIC_VIEW_PERMISSION ++ List(
+    CAN_SEE_BANK_ACCOUNT_IBAN,
+    CAN_SEE_BANK_ACCOUNT_NUMBER,
+    CAN_SEE_BANK_ACCOUNT_SWIFT_BIC,
+    CAN_SEE_BANK_ACCOUNT_ROUTING_SCHEME,
+    CAN_SEE_BANK_ACCOUNT_ROUTING_ADDRESS
+  )
+
+  final val SYSTEM_READ_BALANCES_VIEW_PERMISSION = List(
+    CAN_SEE_BANK_ACCOUNT_BALANCE,
+    CAN_QUERY_AVAILABLE_FUNDS
+  )
+
+  final val SYSTEM_READ_TRANSACTIONS_BASIC_VIEW_PERMISSION = List(
+    CAN_SEE_TRANSACTION_THIS_BANK_ACCOUNT,
+    CAN_SEE_TRANSACTION_AMOUNT,
+    CAN_SEE_TRANSACTION_TYPE,
+    CAN_SEE_TRANSACTION_CURRENCY,
+    CAN_SEE_TRANSACTION_START_DATE,
+    CAN_SEE_TRANSACTION_FINISH_DATE,
+    CAN_SEE_TRANSACTION_STATUS
+  )
+
+  // ReadTransactionsDebits is direction-filtered at the query layer (see Gap 2 in the plan
+  // above) — it is not itself a wider or narrower view, so it shares Basic's field visibility.
+  final val SYSTEM_READ_TRANSACTIONS_DEBITS_VIEW_PERMISSION = SYSTEM_READ_TRANSACTIONS_BASIC_VIEW_PERMISSION
+
+  final val SYSTEM_READ_TRANSACTIONS_DETAIL_VIEW_PERMISSION = SYSTEM_READ_TRANSACTIONS_BASIC_VIEW_PERMISSION ++ List(
+    CAN_SEE_TRANSACTION_OTHER_BANK_ACCOUNT,
+    CAN_SEE_OTHER_ACCOUNT_IBAN,
+    CAN_SEE_OTHER_ACCOUNT_BANK_NAME,
+    CAN_SEE_OTHER_ACCOUNT_NUMBER,
+    CAN_SEE_OTHER_ACCOUNT_KIND,
+    CAN_SEE_OTHER_ACCOUNT_SWIFT_BIC,
+    CAN_SEE_OTHER_ACCOUNT_NATIONAL_IDENTIFIER,
+    CAN_SEE_OTHER_ACCOUNT_ROUTING_SCHEME,
+    CAN_SEE_OTHER_ACCOUNT_ROUTING_ADDRESS,
+    CAN_SEE_OTHER_BANK_ROUTING_SCHEME,
+    CAN_SEE_OTHER_BANK_ROUTING_ADDRESS
+  )
+
+  // Berlin Group NextGenPSD2 system views — these two previously had zero ViewPermission rows
+  // at all (pure membership gating), unlike ReadTransactionsBerlinGroup which already has a
+  // full permission set above. BG's access object is IBAN-keyed, so unlike UK's Basic/Detail
+  // split, the account identifier (IBAN) is included by default here.
+  final val SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_PERMISSION = List(
+    CAN_SEE_BANK_ACCOUNT_LABEL,
+    CAN_SEE_BANK_ACCOUNT_TYPE,
+    CAN_SEE_BANK_ACCOUNT_CURRENCY,
+    CAN_SEE_BANK_ACCOUNT_BANK_NAME,
+    CAN_SEE_BANK_ACCOUNT_IBAN
+  )
+
+  final val SYSTEM_READ_BALANCES_BERLIN_GROUP_VIEW_PERMISSION = List(
+    CAN_SEE_BANK_ACCOUNT_BALANCE,
+    CAN_QUERY_AVAILABLE_FUNDS
+  )
+
   // Auditor system view: read-only on the account itself. The auditor can
   // see everything but cannot modify account data, counterparties, images,
   // locations, aliases, URLs, or initiate / approve payments.
