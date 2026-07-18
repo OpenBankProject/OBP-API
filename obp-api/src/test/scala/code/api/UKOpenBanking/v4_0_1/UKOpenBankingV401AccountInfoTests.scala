@@ -77,6 +77,9 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
       consentId should not be empty
       Consents.consentProvider.vend.getConsentByConsentId(consentId).isDefined should equal(true)
       (response.body \ "Data" \ "Permissions").extract[List[String]] should equal(consentPermissions)
+      // v4.0.1 four-letter status codes on the wire (not the stored long name) + StatusReason.
+      (response.body \ "Data" \ "Status").extract[String] should equal("AWAU")
+      (response.body \ "Data" \ "StatusReason" \ "StatusReasonCode").extract[List[String]] should equal(List("U036"))
     }
     scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
       postUnauthed(consentPostBody, "aisp", "account-access-consents").code should equal(401)
@@ -89,6 +92,8 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
       response.code should equal(200)
       (response.body \ "Data" \ "ConsentId").extract[String] should equal(consentId)
       (response.body \ "Data" \ "Permissions").extract[List[String]] should equal(consentPermissions)
+      // freshly-created consent is AWAITINGAUTHORISATION → wire code AWAU
+      (response.body \ "Data" \ "Status").extract[String] should equal("AWAU")
     }
     scenario("authenticated with unknown consent -> 400", UKOpenBankingV401AccountInfo) {
       getAuthed("aisp", "account-access-consents", "fake-consentid").code should equal(400)
@@ -107,7 +112,8 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
 
       val afterDelete = getAuthed("aisp", "account-access-consents", consentId)
       afterDelete.code should equal(200)
-      (afterDelete.body \ "Data" \ "Status").extract[String] should equal("REVOKED")
+      // stored status is REVOKED, but the v4.0.1 wire format reports the spec's CANC code
+      (afterDelete.body \ "Data" \ "Status").extract[String] should equal("CANC")
     }
     scenario("authenticated with unknown consent -> 400", UKOpenBankingV401AccountInfo) {
       deleteAuthed("aisp", "account-access-consents", "fake-consentid").code should equal(400)

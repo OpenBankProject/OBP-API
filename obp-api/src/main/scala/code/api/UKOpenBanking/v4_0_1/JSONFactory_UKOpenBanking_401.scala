@@ -132,10 +132,15 @@ object JSONFactory_UKOpenBanking_401 extends CustomJsonFormats {
   // ---------------------------------------------------------------------
   // Consent
   // ---------------------------------------------------------------------
+  case class StatusReasonV401(
+    StatusReasonCode: String,
+    StatusReasonDescription: String
+  )
   case class ConsentDataV401(
     ConsentId: String,
     CreationDateTime: String,
     Status: String,
+    StatusReason: List[StatusReasonV401],
     StatusUpdateDateTime: String,
     Permissions: List[String],
     ExpirationDateTime: String,
@@ -319,6 +324,31 @@ object JSONFactory_UKOpenBanking_401 extends CustomJsonFormats {
     )
   }
 
+  // v4.0.1 uses ISO 20022-style four-letter status codes on the wire (AWAU/AUTH/RJCT/CANC/EXPD),
+  // whereas OBP stores the long enum names (AWAITINGAUTHORISATION/AUTHORISED/REJECTED/REVOKED/EXPIRED).
+  // Map at the serialization boundary only — storage keeps the long names. REVOKED maps to CANC
+  // because the spec's revoke-side status is CANC and OBP does not distinguish dashboard-cancel from
+  // AISP-DELETE-revoke. Unknown/other statuses pass through unchanged so nothing is silently hidden.
+  def ukConsentStatusCode(status: String): String = status.toUpperCase match {
+    case "AWAITINGAUTHORISATION" => "AWAU"
+    case "AUTHORISED"            => "AUTH"
+    case "REJECTED"              => "RJCT"
+    case "REVOKED"               => "CANC"
+    case "EXPIRED"               => "EXPD"
+    case _                       => status
+  }
+
+  // Minimal StatusReason per the current status, mirroring the spec's own example wording/codes
+  // (OBReadConsentResponse1). Richer per-transition reasons can follow later.
+  private def ukConsentStatusReason(fourLetterCode: String): List[StatusReasonV401] = fourLetterCode match {
+    case "AWAU" => List(StatusReasonV401("U036", "Waiting for completion of consent authorisation to be completed by user"))
+    case "AUTH" => List(StatusReasonV401("U110", "The account access consent has been successfully authorised"))
+    case "RJCT" => List(StatusReasonV401("U111", "The account access consent has been rejected"))
+    case "CANC" => List(StatusReasonV401("U112", "The account access consent has been cancelled"))
+    case "EXPD" => List(StatusReasonV401("U113", "The account access consent has passed its expiry date"))
+    case _      => Nil
+  }
+
   def createConsentResponseJSON(
     consentId: String,
     creationDateTime: String,
@@ -330,11 +360,13 @@ object JSONFactory_UKOpenBanking_401 extends CustomJsonFormats {
     transactionToDateTime: String,
     selfPath: String
   ): ConsentResponseV401 = {
+    val statusCode = ukConsentStatusCode(status)
     ConsentResponseV401(
       Data = ConsentDataV401(
         ConsentId = consentId,
         CreationDateTime = creationDateTime,
-        Status = status,
+        Status = statusCode,
+        StatusReason = ukConsentStatusReason(statusCode),
         StatusUpdateDateTime = statusUpdateDateTime,
         Permissions = permissions,
         ExpirationDateTime = expirationDateTime,
