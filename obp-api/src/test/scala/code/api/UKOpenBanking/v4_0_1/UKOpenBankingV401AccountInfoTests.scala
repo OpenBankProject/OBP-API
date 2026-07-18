@@ -2,7 +2,7 @@ package code.api.UKOpenBanking.v4_0_1
 
 import code.api.Constant
 import code.api.util.APIUtil.DateWithDayFormat
-import code.api.util.ErrorMessages.{ConsentExpiredIssue, ConsentIdClaimMissing}
+import code.api.util.ErrorMessages.{ConsentDoesNotMatchUser, ConsentExpiredIssue, ConsentIdClaimMissing}
 import code.api.util.{CallContext, CertificateUtil, Consent}
 import code.consent.{ConsentStatus, Consents}
 import code.model.UserExtended
@@ -251,6 +251,47 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
         case other => fail(s"expected Failure(ConsentExpiredIssue), got $other")
       }
     }
+  }
+
+  // Gap 12 (re-authentication) security guards on POST /obp/v5.1.0/banks/BANK_ID/consents/
+  // CONSENT_ID/authorise/challenge -- the first step of the ceremony, so it can be exercised
+  // without a completed SCA/OTP. The successful re-auth path (start challenge -> answer OTP ->
+  // stays AUTHORISED) needs the full OTP ceremony, which has no test harness in this repo yet
+  // (the authorise endpoints shipped with no coverage), so it's not asserted here; these cover
+  // the security-relevant rejection branches the re-auth relaxation introduces.
+  private def scaChallengeRequest(consentId: String) =
+    (baseRequest / "obp" / "v5.1.0" / "banks" / testBankId1.value / "consents" / consentId / "authorise" / "challenge").POST
+  private def createUKConsent(user: com.openbankproject.commons.model.User, expiration: Option[java.util.Date]): String = {
+    val consent = Consents.consentProvider.vend.saveUKConsent(
+      user = Some(user), bankId = None, accountIds = None, consumerId = None,
+      permissions = consentPermissions, expirationDateTime = expiration,
+      transactionFromDateTime = None, transactionToDateTime = None,
+      apiStandard = Some("UKOpenBanking"), apiVersion = Some("4.0.1")
+    ).openOrThrowException("consent creation failed")
+    consent.consentId
+  }
+  feature("UKOB v4.0.1 re-authentication guards on the SCA challenge endpoint") {
+    scenario("challenge-start on an already-authorised consent bound to a different PSU -> 403", UKOpenBankingV401AccountInfo) {
+      val consentId = createUKConsent(resourceUser1, Some(new java.util.Date(System.currentTimeMillis() + 3600000L)))
+      Consents.consentProvider.vend.updateConsentUser(consentId, resourceUser1)
+      Consents.consentProvider.vend.updateConsentStatus(consentId, ConsentStatus.AUTHORISED)
+      // user2 != the bound resourceUser1 -> hijack guard rejects
+      val response = makePostRequest(scaChallengeRequest(consentId) <@ (user2), "")
+      response.code should equal(403)
+      response.body.extract[ErrorMessage].message.contains(ConsentDoesNotMatchUser) should equal(true)
+    }
+    scenario("challenge-start on an authorised consent past its ExpirationDateTime -> 400 ConsentExpiredIssue", UKOpenBankingV401AccountInfo) {
+      val consentId = createUKConsent(resourceUser1, Some(new java.util.Date(System.currentTimeMillis() - 60000L)))
+      Consents.consentProvider.vend.updateConsentUser(consentId, resourceUser1)
+      Consents.consentProvider.vend.updateConsentStatus(consentId, ConsentStatus.AUTHORISED)
+      val response = makePostRequest(scaChallengeRequest(consentId) <@ (user1), "")
+      response.code should equal(400)
+      response.body.extract[ErrorMessage].message.contains(ConsentExpiredIssue) should equal(true)
+    }
+    // Note: the terminal-status rejection (EXPIRED/REJECTED can't be re-authed) is enforced by
+    // ukReAuthableStatuses not containing those; it isn't asserted via a third HTTP scenario here
+    // because a second same-user OAuth1 call within this block collides on the test harness's
+    // nonce/timestamp replay check (a harness artifact -- production UK uses OAuth2 Bearer).
   }
 
   // ── AccountsApi ────────────────────────────────────────────────────

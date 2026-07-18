@@ -106,6 +106,17 @@ object Http4s510 {
 
     val prefixPath = Root / ApiPathZero.toString / implementedInApiVersion.toString
 
+    // Statuses from which a UK Open Banking consent may be (re-)authorised. AWAITINGAUTHORISATION
+    // is the initial authorise; AUTHORISED and REVOKED (wire: CANC) are the re-authentication
+    // cases per the UK spec ("re-authenticate ... if the account-access-consent has a Status of
+    // AUTH or CANC and the ExpirationDateTime has not elapsed"). EXPIRED and REJECTED are terminal
+    // -- the TPP must create a new consent rather than re-authenticate.
+    private val ukReAuthableStatuses: Set[String] = Set(
+      ConsentStatus.AWAITINGAUTHORISATION.toString,
+      ConsentStatus.AUTHORISED.toString,
+      ConsentStatus.REVOKED.toString
+    )
+
     // Used by lifted consumer-management endpoint descriptions.
     private def consumerDisabledText(): String = {
       if (APIUtil.getPropsAsBoolValue("consumers_enabled_by_default", false) == false) {
@@ -4283,8 +4294,18 @@ object Http4s510 {
             user <- Future.successful(cc.user.openOrThrowException(AuthenticatedUserIsRequired))
             consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId))
               .map(unboxFullOrFail(_, Some(cc), s"$ConsentNotFound ($consentId)", 404))
-            _ <- Helper.booleanToFuture(s"$ConsentStatusIssue${ConsentStatus.AWAITINGAUTHORISATION.toString} to start SCA (current: ${consent.status}).", 400, Some(cc)) {
-              consent.status.toUpperCase == ConsentStatus.AWAITINGAUTHORISATION.toString
+            _ <- Helper.booleanToFuture(s"$ConsentStatusIssue one of ${ukReAuthableStatuses.mkString(", ")} to start SCA (current: ${consent.status}).", 400, Some(cc)) {
+              ukReAuthableStatuses.contains(consent.status.toUpperCase)
+            }
+            // Re-authentication is only allowed before the consent's ExpirationDateTime (a null
+            // ExpirationDateTime = never expires); an expired consent must be recreated.
+            _ <- Helper.booleanToFuture(s"$ConsentExpiredIssue", 400, Some(cc)) {
+              Option(consent.expirationDateTime).forall(_.getTime >= System.currentTimeMillis)
+            }
+            // A consent already bound to a PSU may only be (re-)authorised by that same PSU --
+            // otherwise a different user of the same consumer could hijack it.
+            _ <- Helper.booleanToFuture(s"$ConsentDoesNotMatchUser", 403, Some(cc)) {
+              Option(consent.userId).forall(_.isBlank) || consent.userId == user.userId
             }
             (challenges, _) <- NewStyle.function.createChallengesC2(
               List(user.userId),
@@ -4324,7 +4345,7 @@ object Http4s510 {
       |""",
       EmptyBody,
       UKConsentScaChallengeJsonV510("74a8ebda-9e5a-4c3f-9b0b-1a2b3c4d5e6f", "received", "SMS"),
-      List($AuthenticatedUserIsRequired, ConsentNotFound, ConsentStatusIssue, InvalidConnectorResponse, UnknownError),
+      List($AuthenticatedUserIsRequired, ConsentNotFound, ConsentStatusIssue, ConsentExpiredIssue, ConsentDoesNotMatchUser, InvalidConnectorResponse, UnknownError),
       apiTagConsent :: apiTagPSD2AIS :: Nil,
       None,
       http4sPartialFunction = Some(authoriseUKConsentChallenge)
@@ -4346,11 +4367,23 @@ object Http4s510 {
             user <- Future.successful(cc.user.openOrThrowException(AuthenticatedUserIsRequired))
             consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId))
               .map(unboxFullOrFail(_, Some(cc), s"$ConsentNotFound ($consentId)", 404))
-            // Only a consent still awaiting authorisation can be authorised. This status
-            // is UK-specific (Berlin Group uses "received", OBP uses INITIATED), so the
-            // guard also effectively scopes this endpoint to the UK flow.
-            _ <- Helper.booleanToFuture(s"$ConsentStatusIssue${ConsentStatus.AWAITINGAUTHORISATION.toString} to be authorised (current: ${consent.status}).", 400, Some(cc)) {
-              consent.status.toUpperCase == ConsentStatus.AWAITINGAUTHORISATION.toString
+            // The initial authorisation (AWAITINGAUTHORISATION) and re-authentication of an
+            // already-authorised or dashboard-revoked (wire: CANC) consent are both allowed --
+            // see ukReAuthableStatuses. EXPIRED/REJECTED are terminal. These statuses are
+            // UK-specific (Berlin Group uses "received", OBP uses INITIATED), so the guard also
+            // effectively scopes this endpoint to the UK flow.
+            _ <- Helper.booleanToFuture(s"$ConsentStatusIssue one of ${ukReAuthableStatuses.mkString(", ")} to be authorised (current: ${consent.status}).", 400, Some(cc)) {
+              ukReAuthableStatuses.contains(consent.status.toUpperCase)
+            }
+            // Re-authentication is only allowed before the consent's ExpirationDateTime (a null
+            // ExpirationDateTime = never expires); an expired consent must be recreated.
+            _ <- Helper.booleanToFuture(s"$ConsentExpiredIssue", 400, Some(cc)) {
+              Option(consent.expirationDateTime).forall(_.getTime >= System.currentTimeMillis)
+            }
+            // A consent already bound to a PSU may only be (re-)authorised by that same PSU --
+            // otherwise a different user of the same consumer could hijack it.
+            _ <- Helper.booleanToFuture(s"$ConsentDoesNotMatchUser", 403, Some(cc)) {
+              Option(consent.userId).forall(_.isBlank) || consent.userId == user.userId
             }
             // Verify the SCA challenge answer before authorising (dynamic linking to this consent).
             // The challenge must have been started via POST .../authorise/challenge.
@@ -4426,7 +4459,7 @@ object Http4s510 {
         "eyJhbGciOiJIUzI1NiJ9.eyJ2aWV3cyI6W119.signature",
         "AUTHORISED"
       ),
-      List($AuthenticatedUserIsRequired, ConsentNotFound, ConsentStatusIssue, InvalidJsonFormat, InvalidChallengeAnswer, $BankAccountNotFound, InvalidConnectorResponse, UnknownError),
+      List($AuthenticatedUserIsRequired, ConsentNotFound, ConsentStatusIssue, ConsentExpiredIssue, ConsentDoesNotMatchUser, InvalidJsonFormat, InvalidChallengeAnswer, $BankAccountNotFound, InvalidConnectorResponse, UnknownError),
       apiTagConsent :: apiTagPSD2AIS :: Nil,
       None,
       http4sPartialFunction = Some(authoriseUKConsent)
