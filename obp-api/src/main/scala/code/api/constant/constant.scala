@@ -634,6 +634,13 @@ object Constant extends MdcLoggable {
     CAN_ANSWER_TRANSACTION_REQUEST_CHALLENGE
   )
 
+  // Design boundary for every SYSTEM_READ_*_VIEW_PERMISSION set below: these express what
+  // *fields* a view exposes, never a consent's time-boxing or access-frequency limit. BG's
+  // frequencyPerDay/recurringIndicator/validUntil and UK's TransactionFromDateTime/ToDateTime/
+  // ExpirationDateTime belong on the consent record (see ConsentJWT in ConsentUtil.scala), not
+  // here — do not add a can_* string like "can_see_transactions_last_90_days" to narrow a view
+  // by date range or usage count; that's the consent's job, applied before the view is reached.
+
   // UK Open Banking v4.0.1 system views — previously all six shared the generic
   // SYSTEM_VIEW_PERMISSION_COMMON set, so "Detail" granted nothing beyond "Basic" and a
   // consent scoped to Balances alone still exposed full transaction/counterparty data.

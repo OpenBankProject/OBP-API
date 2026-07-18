@@ -40,6 +40,14 @@ import java.util.Date
 import scala.collection.immutable.{List, Nil}
 import scala.concurrent.Future
 
+// Design boundary (not enforced by the compiler — keep it that way by convention): consent-layer
+// attributes belong on the consent record, never as a View can_* permission. BG's
+// frequencyPerDay/recurringIndicator/validUntil and UK's TransactionFromDateTime/ToDateTime/
+// ExpirationDateTime (exp/nbf above) already live here for that reason. Do not add a can_* string
+// like "can_see_transactions_last_90_days" to a system view's permission set to express a
+// consent's time-boxing or access-frequency limit — that's a property of *this* consent, not of
+// the account's view. See MapperViews.applyDefaultsForSystemView / Constant.SYSTEM_READ_*_VIEW_PERMISSION
+// for where view-layer can_* sets are defined.
 case class ConsentJWT(createdByUserId: String,
                       sub: String, // An identifier for the user, unique among all OBP-API users and never reused
                       iss: String, // The Issuer Identifier for the Issuer of the response.
