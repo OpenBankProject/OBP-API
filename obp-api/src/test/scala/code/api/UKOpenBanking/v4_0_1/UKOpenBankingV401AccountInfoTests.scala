@@ -294,6 +294,28 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
     // nonce/timestamp replay check (a harness artifact -- production UK uses OAuth2 Bearer).
   }
 
+  // Gap 15: every UK v4.0.1 response carries x-fapi-interaction-id (FAPI tracing). Uses a stub
+  // endpoint that returns 200 so the assertion is purely about the header, independent of consent.
+  feature("UKOB v4.0.1 x-fapi-interaction-id response header") {
+    scenario("generated as a UUID when the request omits it", UKOpenBankingV401AccountInfo) {
+      val response = getAuthed("aisp", "accounts", "fake-accountid", "beneficiaries")
+      response.code should equal(200)
+      val interactionId = response.headers.map(_.get("x-fapi-interaction-id")).orNull
+      interactionId should not be null
+      interactionId should not be empty
+      // a generated value is a UUID
+      java.util.UUID.fromString(interactionId).toString should equal(interactionId)
+    }
+    scenario("echoed verbatim when the request supplies it", UKOpenBankingV401AccountInfo) {
+      val supplied = "test-interaction-id-12345"
+      val response = makeGetRequest(
+        v401("aisp", "accounts", "fake-accountid", "beneficiaries").GET <@ (user1),
+        List(("x-fapi-interaction-id", supplied)))
+      response.code should equal(200)
+      response.headers.map(_.get("x-fapi-interaction-id")).orNull should equal(supplied)
+    }
+  }
+
   // ── AccountsApi ────────────────────────────────────────────────────
   // checkUKConsent extracts the `consent_id` claim from the Bearer access token (no external
   // Hydra call since Consent.checkUKConsent dropped the Hydra dependency). These OAuth1-signed
