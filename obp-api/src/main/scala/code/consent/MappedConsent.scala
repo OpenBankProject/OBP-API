@@ -267,9 +267,9 @@ object MappedConsentProvider extends ConsentProvider with code.util.Helper.MdcLo
     accountIds: Option[List[String]],//for UK Open Banking endpoints, there is no accountIds there.
     consumerId: Option[String],
     permissions: List[String],
-    expirationDateTime: Date,
-    transactionFromDateTime: Date,
-    transactionToDateTime: Date,
+    expirationDateTime: Option[Date],
+    transactionFromDateTime: Option[Date],
+    transactionToDateTime: Option[Date],
     apiStandard: Option[String],
     apiVersion: Option[String]
   ) ={
@@ -279,9 +279,9 @@ object MappedConsentProvider extends ConsentProvider with code.util.Helper.MdcLo
         .mUserId(user.map(_.userId).getOrElse(null))
         .mConsumerId(consumerId.getOrElse(null))
         .mStatus(ConsentStatus.AWAITINGAUTHORISATION.toString)
-        .mExpirationDateTime(expirationDateTime)
-        .mTransactionFromDateTime(transactionFromDateTime)
-        .mTransactionToDateTime(transactionToDateTime)
+        .mExpirationDateTime(expirationDateTime.orNull)
+        .mTransactionFromDateTime(transactionFromDateTime.orNull)
+        .mTransactionToDateTime(transactionToDateTime.orNull)
         .mStatusUpdateDateTime(now)
         .mApiVersion(apiVersion.getOrElse(null))
         .mApiStandard(apiStandard.getOrElse(null))
@@ -291,9 +291,9 @@ object MappedConsentProvider extends ConsentProvider with code.util.Helper.MdcLo
         bankId: Option[String],
         accountIds: Option[List[String]],
         permissions: List[String],
-        expirationDateTime: Date,
-        transactionFromDateTime: Date,
-        transactionToDateTime: Date,
+        expirationDateTime: Option[Date],
+        transactionFromDateTime: Option[Date],
+        transactionToDateTime: Option[Date],
         secret = consent.secret,
         consentId = consent.consentId,
         consumerId: Option[String]

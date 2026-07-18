@@ -204,11 +204,13 @@ object JSONFactory_UKOpenBanking_310 extends CustomJsonFormats {
     Links: LinksV310,
     Risk: String
   )
+  // The three datetimes are 0..1 (open-ended if absent) per the UK spec's OBReadConsent1 —
+  // shared by the v3.1.0 and v4.0.1 consent-creation handlers.
   case class ConsentPostBodyDataUKV310(
-    TransactionToDateTime: String,
-    ExpirationDateTime: String,
+    TransactionToDateTime: Option[String],
+    ExpirationDateTime: Option[String],
     Permissions: List[String],
-    TransactionFromDateTime: String
+    TransactionFromDateTime: Option[String]
   )
   case class ConsentPostBodyUKV310(
     Data: ConsentPostBodyDataUKV310,

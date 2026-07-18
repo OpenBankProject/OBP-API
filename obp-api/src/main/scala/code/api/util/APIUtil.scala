@@ -174,6 +174,21 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
   def rfc7231Date: SimpleDateFormat = rfc7231DateTL.get()
 
+  /**
+   * Parses a full ISO-8601 datetime with offset (e.g. "2020-01-01T00:00:00+00:00") or, failing
+   * that, a bare "yyyy-MM-dd" date (midnight UTC). Unlike DateWithDayFormat (a SimpleDateFormat
+   * with "yyyy-MM-dd"), this does not silently truncate a full datetime's time/offset — it parses
+   * the whole value or throws java.time.format.DateTimeParseException on genuinely malformed input.
+   */
+  def parseIso8601OrDayDate(s: String): Date = {
+    try {
+      Date.from(java.time.OffsetDateTime.parse(s).toInstant)
+    } catch {
+      case _: java.time.format.DateTimeParseException =>
+        Date.from(java.time.LocalDate.parse(s).atStartOfDay(java.time.ZoneOffset.UTC).toInstant)
+    }
+  }
+
   val DateWithYearExampleString: String = "1100"
   val DateWithMonthExampleString: String = "1100-01"
   val DateWithDayExampleString: String = "1100-01-01"

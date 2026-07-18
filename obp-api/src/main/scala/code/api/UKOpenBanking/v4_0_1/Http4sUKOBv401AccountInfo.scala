@@ -5,11 +5,11 @@ import cats.effect.IO
 import code.api.APIFailureNewStyle
 import code.api.Constant
 import code.api.UKOpenBanking.v3_1_0.JSONFactory_UKOpenBanking_310.ConsentPostBodyUKV310
-import code.api.util.APIUtil.{EmptyBody, ResourceDoc, HTTPParam, connectorEmptyResponse, createQueriesByHttpParams, defaultBankId, fullBoxOrException, passesPsd2Aisp, unboxFull, unboxFullOrFail, DateWithDayFormat}
+import code.api.util.APIUtil.{EmptyBody, ResourceDoc, HTTPParam, connectorEmptyResponse, createQueriesByHttpParams, defaultBankId, fullBoxOrException, passesPsd2Aisp, unboxFull, unboxFullOrFail, parseIso8601OrDayDate}
 import code.api.util.ApiTag
 import code.api.util.CallContext
 import code.api.util.CustomJsonFormats
-import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, ConsentNotFound, ConsentViewNotFund, UnknownError}
+import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, ConsentNotFound, ConsentViewNotFund, InvalidJsonFormat, UnknownError}
 import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps}
 import code.api.util.newstyle.ViewNewStyle
 import code.api.util.{APIUtil, ConsentJWT, JwtUtil, NewStyle}
@@ -101,6 +101,19 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
           consentJson <- Future.fromTry(scala.util.Try(
             JsonAliases.parse(cc.httpBody.getOrElse("{}")).extract[ConsentPostBodyUKV310]
           ))
+          // Separate step (not inlined into the saveUKConsent call below) so a bad date string
+          // fails here -> 400. NewStyle.function.tryons (not Future.fromTry) is required for
+          // that: ErrorResponseConverter only special-cases APIFailureNewStyle to preserve a set
+          // HTTP code -- tryons wraps failures that way, a bare Future.fromTry(Try(...)) doesn't
+          // and falls through to unknownErrorToResponse, i.e. 500.
+          (expirationDateTime, transactionFromDateTime, transactionToDateTime) <- NewStyle.function.tryons(
+            s"$InvalidJsonFormat The Json body should have valid ISO-8601 ExpirationDateTime/TransactionFromDateTime/TransactionToDateTime values ", 400, Some(cc)) {
+            (
+              consentJson.Data.ExpirationDateTime.map(parseIso8601OrDayDate),
+              consentJson.Data.TransactionFromDateTime.map(parseIso8601OrDayDate),
+              consentJson.Data.TransactionToDateTime.map(parseIso8601OrDayDate)
+            )
+          }
           consumerId = cc.consumer.map(_.consumerId.get)
           _ <- passesPsd2Aisp(Some(cc))
           createdConsent <- Future(Consents.consentProvider.vend.saveUKConsent(
@@ -109,9 +122,9 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
             accountIds = None,
             consumerId = consumerId,
             permissions = consentJson.Data.Permissions,
-            expirationDateTime = DateWithDayFormat.parse(consentJson.Data.ExpirationDateTime),
-            transactionFromDateTime = DateWithDayFormat.parse(consentJson.Data.TransactionFromDateTime),
-            transactionToDateTime = DateWithDayFormat.parse(consentJson.Data.TransactionToDateTime),
+            expirationDateTime = expirationDateTime,
+            transactionFromDateTime = transactionFromDateTime,
+            transactionToDateTime = transactionToDateTime,
             apiStandard = Some("UKOpenBanking"),
             apiVersion = Some("4.0.1")
           )) map { i => connectorEmptyResponse(i, Some(cc)) }
@@ -195,9 +208,9 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
             status = consent.status,
             statusUpdateDateTime = consent.statusUpdateDateTime.toString,
             permissions = consentViews,
-            expirationDateTime = consent.expirationDateTime.toString,
-            transactionFromDateTime = consent.transactionFromDateTime.toString,
-            transactionToDateTime = consent.transactionToDateTime.toString,
+            expirationDateTime = Option(consent.expirationDateTime).map(_.toString),
+            transactionFromDateTime = Option(consent.transactionFromDateTime).map(_.toString),
+            transactionToDateTime = Option(consent.transactionToDateTime).map(_.toString),
             selfPath = s"/aisp/account-access-consents/$consentId"
           )
         }

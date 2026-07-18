@@ -5,13 +5,13 @@ import cats.data.{Kleisli, OptionT}
 import cats.effect.IO
 import code.api.Constant
 import code.api.UKOpenBanking.v3_1_0.JSONFactory_UKOpenBanking_310.ConsentPostBodyUKV310
-import code.api.util.APIUtil.{EmptyBody, ResourceDoc, connectorEmptyResponse, mockedDataText, passesPsd2Aisp, unboxFullOrFail, DateWithDayFormat}
+import code.api.util.APIUtil.{EmptyBody, ResourceDoc, connectorEmptyResponse, mockedDataText, passesPsd2Aisp, unboxFullOrFail, parseIso8601OrDayDate}
 import code.api.util.ApiTag
 import code.api.util.CustomJsonFormats
-import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, ConsentNotFound, ConsentViewNotFund, UnknownError}
+import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, ConsentNotFound, ConsentViewNotFund, InvalidJsonFormat, UnknownError}
 import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps}
 import code.api.util.CallContext
-import code.api.util.{ConsentJWT, JwtUtil}
+import code.api.util.{ConsentJWT, JwtUtil, NewStyle}
 import code.consent.Consents
 import code.util.Helper.MdcLoggable
 import com.github.dwickern.macros.NameOf.nameOf
@@ -54,6 +54,19 @@ object Http4sUKOBv310AccountAccess extends MdcLoggable {
           consentJson <- Future.fromTry(scala.util.Try(
             com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("{}")).extract[ConsentPostBodyUKV310]
           ))
+          // Separate step (not inlined into the saveUKConsent call below) so a bad date string
+          // fails here -> 400. NewStyle.function.tryons (not Future.fromTry) is required for
+          // that: ErrorResponseConverter only special-cases APIFailureNewStyle to preserve a set
+          // HTTP code -- tryons wraps failures that way, a bare Future.fromTry(Try(...)) doesn't
+          // and falls through to unknownErrorToResponse, i.e. 500.
+          (expirationDateTime, transactionFromDateTime, transactionToDateTime) <- NewStyle.function.tryons(
+            s"$InvalidJsonFormat The Json body should have valid ISO-8601 ExpirationDateTime/TransactionFromDateTime/TransactionToDateTime values ", 400, Some(cc)) {
+            (
+              consentJson.Data.ExpirationDateTime.map(parseIso8601OrDayDate),
+              consentJson.Data.TransactionFromDateTime.map(parseIso8601OrDayDate),
+              consentJson.Data.TransactionToDateTime.map(parseIso8601OrDayDate)
+            )
+          }
           consumerId = cc.consumer.map(_.consumerId.get)
           _ <- passesPsd2Aisp(Some(cc))
           createdConsent <- Future(Consents.consentProvider.vend.saveUKConsent(
@@ -62,9 +75,9 @@ object Http4sUKOBv310AccountAccess extends MdcLoggable {
             accountIds = None,
             consumerId = consumerId,
             permissions = consentJson.Data.Permissions,
-            expirationDateTime = DateWithDayFormat.parse(consentJson.Data.ExpirationDateTime),
-            transactionFromDateTime = DateWithDayFormat.parse(consentJson.Data.TransactionFromDateTime),
-            transactionToDateTime = DateWithDayFormat.parse(consentJson.Data.TransactionToDateTime),
+            expirationDateTime = expirationDateTime,
+            transactionFromDateTime = transactionFromDateTime,
+            transactionToDateTime = transactionToDateTime,
             apiStandard = Some("UKOpenBanking"),
             apiVersion = Some("3.1.0")
           )) map { i => connectorEmptyResponse(i, Some(cc)) }
@@ -83,11 +96,11 @@ object Http4sUKOBv310AccountAccess extends MdcLoggable {
               "Status" : "${createdConsent.status}",
               "StatusUpdateDateTime" : "${createdConsent.statusUpdateDateTime}",
               "CreationDateTime" : "${createdConsent.creationDateTime}",
-              "TransactionToDateTime" : "${consentJson.Data.TransactionToDateTime}",
-              "ExpirationDateTime" : "${consentJson.Data.ExpirationDateTime}",
+              "TransactionToDateTime" : "${consentJson.Data.TransactionToDateTime.getOrElse("")}",
+              "ExpirationDateTime" : "${consentJson.Data.ExpirationDateTime.getOrElse("")}",
               "Permissions" : ${consentJson.Data.Permissions.mkString("[\"", "\",\"", "\"]")},
               "ConsentId" : "${createdConsent.consentId}",
-              "TransactionFromDateTime" : "${consentJson.Data.TransactionFromDateTime}"
+              "TransactionFromDateTime" : "${consentJson.Data.TransactionFromDateTime.getOrElse("")}"
             }
           }""")
         }
@@ -196,11 +209,11 @@ object Http4sUKOBv310AccountAccess extends MdcLoggable {
               "Status" : "${consent.status}",
               "StatusUpdateDateTime" : "${consent.statusUpdateDateTime}",
               "CreationDateTime" : "${consent.creationDateTime}",
-              "TransactionToDateTime" : "${consent.transactionToDateTime}",
-              "ExpirationDateTime" : "${consent.expirationDateTime}",
+              "TransactionToDateTime" : "${Option(consent.transactionToDateTime).getOrElse("")}",
+              "ExpirationDateTime" : "${Option(consent.expirationDateTime).getOrElse("")}",
               "Permissions" : ${consentViews.mkString("[\"", "\",\"", "\"]")},
               "ConsentId" : "${consent.consentId}",
-              "TransactionFromDateTime" : "${consent.transactionFromDateTime}"
+              "TransactionFromDateTime" : "${Option(consent.transactionFromDateTime).getOrElse("")}"
             }
           }""")
         }

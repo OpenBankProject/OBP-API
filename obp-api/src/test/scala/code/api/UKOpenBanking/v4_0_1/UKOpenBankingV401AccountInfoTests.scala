@@ -59,9 +59,9 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
       accountIds = None,
       consumerId = None,
       permissions = consentPermissions,
-      expirationDateTime = DateWithDayFormat.parse("2030-01-01"),
-      transactionFromDateTime = DateWithDayFormat.parse("2020-01-01"),
-      transactionToDateTime = DateWithDayFormat.parse("2030-01-01"),
+      expirationDateTime = Some(DateWithDayFormat.parse("2030-01-01")),
+      transactionFromDateTime = Some(DateWithDayFormat.parse("2020-01-01")),
+      transactionToDateTime = Some(DateWithDayFormat.parse("2030-01-01")),
       apiStandard = Some("UKOpenBanking"),
       apiVersion = Some("4.0.1")
     ).openOrThrowException("test consent creation failed")
@@ -83,6 +83,56 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
     }
     scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
       postUnauthed(consentPostBody, "aisp", "account-access-consents").code should equal(401)
+    }
+    scenario("all three datetime fields omitted -> 201, open-ended (no expiry/date restriction)", UKOpenBankingV401AccountInfo) {
+      val bodyWithoutDates =
+        """{
+          |  "Data": {
+          |    "Permissions": ["ReadAccountsBasic"]
+          |  },
+          |  "Risk": {}
+          |}""".stripMargin
+      val response = postAuthed(bodyWithoutDates, "aisp", "account-access-consents")
+      response.code should equal(201)
+      val consentId = (response.body \ "Data" \ "ConsentId").extract[String]
+      val consent = Consents.consentProvider.vend.getConsentByConsentId(consentId).openOrThrowException("consent")
+      // MappedDateTime fields left unset by a null write come back as Java null, not a sentinel date.
+      consent.expirationDateTime should equal(null)
+      consent.transactionFromDateTime should equal(null)
+      consent.transactionToDateTime should equal(null)
+    }
+    scenario("full ISO-8601 datetime with time and offset is preserved, not truncated to a bare date", UKOpenBankingV401AccountInfo) {
+      val bodyWithFullDatetime =
+        """{
+          |  "Data": {
+          |    "Permissions": ["ReadAccountsBasic"],
+          |    "ExpirationDateTime": "2030-06-15T13:45:30+02:00",
+          |    "TransactionFromDateTime": "2020-01-01",
+          |    "TransactionToDateTime": "2030-01-01"
+          |  },
+          |  "Risk": {}
+          |}""".stripMargin
+      val response = postAuthed(bodyWithFullDatetime, "aisp", "account-access-consents")
+      response.code should equal(201)
+      val consentId = (response.body \ "Data" \ "ConsentId").extract[String]
+      val consent = Consents.consentProvider.vend.getConsentByConsentId(consentId).openOrThrowException("consent")
+      // 2030-06-15T13:45:30+02:00 == 2030-06-15T11:45:30Z -- if the parser truncated to the bare
+      // date (the pre-fix DateWithDayFormat behaviour), this would be 2030-06-15T00:00:00Z instead.
+      consent.expirationDateTime.getTime should equal(
+        java.time.OffsetDateTime.parse("2030-06-15T13:45:30+02:00").toInstant.toEpochMilli)
+    }
+    scenario("malformed datetime -> 400, not 500", UKOpenBankingV401AccountInfo) {
+      val bodyWithBadDate =
+        """{
+          |  "Data": {
+          |    "Permissions": ["ReadAccountsBasic"],
+          |    "ExpirationDateTime": "not-a-date",
+          |    "TransactionFromDateTime": "2020-01-01",
+          |    "TransactionToDateTime": "2030-01-01"
+          |  },
+          |  "Risk": {}
+          |}""".stripMargin
+      postAuthed(bodyWithBadDate, "aisp", "account-access-consents").code should equal(400)
     }
   }
   feature("UKOB v4.0.1 GET /aisp/account-access-consents/CONSENT_ID") {

@@ -143,9 +143,9 @@ object JSONFactory_UKOpenBanking_401 extends CustomJsonFormats {
     StatusReason: List[StatusReasonV401],
     StatusUpdateDateTime: String,
     Permissions: List[String],
-    ExpirationDateTime: String,
-    TransactionFromDateTime: String,
-    TransactionToDateTime: String
+    ExpirationDateTime: Option[String],
+    TransactionFromDateTime: Option[String],
+    TransactionToDateTime: Option[String]
   )
   case class ConsentResponseV401(
     Data: ConsentDataV401,
@@ -355,9 +355,9 @@ object JSONFactory_UKOpenBanking_401 extends CustomJsonFormats {
     status: String,
     statusUpdateDateTime: String,
     permissions: List[String],
-    expirationDateTime: String,
-    transactionFromDateTime: String,
-    transactionToDateTime: String,
+    expirationDateTime: Option[String],
+    transactionFromDateTime: Option[String],
+    transactionToDateTime: Option[String],
     selfPath: String
   ): ConsentResponseV401 = {
     val statusCode = ukConsentStatusCode(status)

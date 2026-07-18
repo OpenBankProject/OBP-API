@@ -1048,9 +1048,9 @@ object Consent extends MdcLoggable {
     bankId: Option[String],
     accountIds: Option[List[String]],
     permissions: List[String],
-    expirationDateTime: Date,
-    transactionFromDateTime: Date,
-    transactionToDateTime: Date,
+    expirationDateTime: Option[Date],
+    transactionFromDateTime: Option[Date],
+    transactionToDateTime: Option[Date],
     secret: String,
     consentId: String,
     consumerId: Option[String]
@@ -1059,7 +1059,12 @@ object Consent extends MdcLoggable {
     val createdByUserId = user.map(_.userId).getOrElse("None")
     val currentConsumerId = Consumer.findAll(By(Consumer.createdByUserId, createdByUserId)).map(_.consumerId.get).headOption.getOrElse("")
     val currentTimeInSeconds = System.currentTimeMillis / 1000
-    val validUntilTimeInSeconds = expirationDateTime.getTime() / 1000
+    // No ExpirationDateTime means the consent never expires (UK spec: 0..1, open-ended if absent).
+    // Use Long.MaxValue rather than e.g. "now" (the convention createBerlinGroupConsentJWT falls
+    // back to for its own optional validUntil) since that would make the JWT read as already
+    // expired -- wrong for "no limit". Nothing currently reads this exp claim for UK consents
+    // (checkUKConsent doesn't check expiry at all yet), so this only matters once that's added.
+    val validUntilTimeInSeconds = expirationDateTime.map(_.getTime / 1000).getOrElse(Long.MaxValue)
     // Write Consent's Auth Context to the DB
     user map { u =>
       val authContexts = UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContextsBox(u.userId)
