@@ -4594,7 +4594,7 @@ object Http4s510 {
             consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId))
               .map(unboxFullOrFail(_, Some(cc), ConsentNotFound, 404))
             _ <- Helper.booleanToFuture(failMsg = ConsentNotFound, failCode = 404, cc = Some(cc)) {
-              consent.mUserId == cc.userId
+              consent.mUserId == cc.userId || Option(consent.userId).forall(_.isBlank)
             }
           } yield JSONFactory510.getConsentInfoJson(consent)
         }

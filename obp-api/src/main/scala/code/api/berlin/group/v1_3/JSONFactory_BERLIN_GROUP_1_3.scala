@@ -724,7 +724,7 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats with MdcLoggable{
   def createStartConsentAuthorisationJson(consent: ConsentTrait, challenge: ChallengeTrait) : StartConsentAuthorisationJson = {
     StartConsentAuthorisationJson(
       scaStatus = challenge.scaStatus.map(_.toString).getOrElse("None"),
-      authorisationId = challenge.authenticationMethodId.getOrElse("None"),
+      authorisationId = challenge.challengeId,
       pushMessage = "started", //TODO Not implement how to fill this.
       _links =  ScaStatusJsonV13(s"/${ConstantsBG.berlinGroupVersion1.apiShortVersion}/consents/${consent.consentId}/authorisations/${challenge.challengeId}")//TODO, Not sure, what is this for??
     )
