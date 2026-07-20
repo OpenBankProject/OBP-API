@@ -55,6 +55,44 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
     consent.consentId
   }
 
+  // Create a UK consent row with an arbitrary apiStandard value (to simulate a foreign-standard
+  // or legacy consent for the cross-standard boundary test).
+  private def createConsentWithStandard(standard: Option[String]): String =
+    Consents.consentProvider.vend.saveUKConsent(
+      user = Some(resourceUser1),
+      bankId = None,
+      accountIds = None,
+      consumerId = None,
+      permissions = consentPermissions,
+      expirationDateTime = DateWithDayFormat.parse("2030-01-01"),
+      transactionFromDateTime = DateWithDayFormat.parse("2020-01-01"),
+      transactionToDateTime = DateWithDayFormat.parse("2030-01-01"),
+      apiStandard = standard,
+      apiVersion = Some("4.0.1")
+    ).openOrThrowException("test consent creation failed").consentId
+
+  // ── Cross-standard exercise boundary (ConsentUtil.assertConsentStandard) ──
+  feature("A consent may only be exercised by the standard that created it") {
+    import code.api.util.Consent
+    scenario("a UK consent is accepted by the UK gate, rejected by OBP and BG gates", UKOpenBankingV401AccountInfo) {
+      val consentId = createConsentWithStandard(Some(Consent.ConsentStandardUK))
+      Consent.assertConsentStandardById(consentId, Consent.ConsentStandardUK) should equal(None)
+      Consent.assertConsentStandardById(consentId, Consent.ConsentStandardOBP).isDefined should equal(true)
+      Consent.assertConsentStandardById(consentId, Consent.ConsentStandardBG).isDefined should equal(true)
+    }
+    scenario("an OBP consent is rejected by the UK gate", UKOpenBankingV401AccountInfo) {
+      val consentId = createConsentWithStandard(Some(Consent.ConsentStandardOBP))
+      Consent.assertConsentStandardById(consentId, Consent.ConsentStandardUK).isDefined should equal(true)
+      Consent.assertConsentStandardById(consentId, Consent.ConsentStandardOBP) should equal(None)
+    }
+    scenario("a legacy consent with no standard is grandfathered for every gate", UKOpenBankingV401AccountInfo) {
+      val consentId = createConsentWithStandard(None)
+      Consent.assertConsentStandardById(consentId, Consent.ConsentStandardUK) should equal(None)
+      Consent.assertConsentStandardById(consentId, Consent.ConsentStandardOBP) should equal(None)
+      Consent.assertConsentStandardById(consentId, Consent.ConsentStandardBG) should equal(None)
+    }
+  }
+
   // ── AccountAccessApi ───────────────────────────────────────────────
   feature("UKOB v4.0.1 POST /aisp/account-access-consents") {
     scenario("authenticated with real body -> 201 real ConsentId", UKOpenBankingV401AccountInfo) {

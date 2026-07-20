@@ -741,6 +741,7 @@ object ResourceDocMatcher extends code.util.Helper.MdcLoggable {
     "SANDBOX_TAN", "COUNTERPARTY", "SEPA", "FREE_FORM",
     "ACCOUNT", "ACCOUNT_OTP", "REFUND", "SIMPLE",
     "AGENT_CASH_WITHDRAWAL", "CARD",
+    "OPEN_CORRIDOR_PROMISE", "OPEN_CORRIDOR_SETTLEMENT",
     // SCA methods (POST /banks/BANK_ID/my/consents/{EMAIL|SMS|IMPLICIT})
     "EMAIL", "SMS", "IMPLICIT", "NOT_EMAIL_NEITHER_SMS"
   )

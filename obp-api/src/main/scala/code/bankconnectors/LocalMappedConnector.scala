@@ -5259,12 +5259,12 @@ object LocalMappedConnector extends Connector with MdcLoggable {
           } yield {
             (transactionId, callContext)
           }
-        // OPEN_CORRIDOR: money-movement is identical to SIMPLE today (same beneficiary
+        // OPEN_CORRIDOR_PROMISE: money-movement is identical to SIMPLE today (same beneficiary
         // routing shape). The originator block is persisted on the TR row by
         // MappedTransactionRequestProvider and surfaced on v7 responses by
         // JSONFactory700.buildTransactionRequestOriginatorJson — neither is needed here.
         // Reuses the SIMPLE path via body.to_simple.
-        case OPEN_CORRIDOR =>
+        case OPEN_CORRIDOR_PROMISE =>
           for {
             bodyToSimple <- NewStyle.function.tryons(s"$TransactionRequestDetailsExtractException It can not extract to $TransactionRequestBodyCounterpartyJSON", 400, callContext) {
               body.to_simple.get

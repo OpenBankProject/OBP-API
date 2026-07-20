@@ -127,7 +127,8 @@ object TransactionRequestTypes extends  OBPEnumeration[TransactionRequestTypes]{
   object ETH_SEND_RAW_TRANSACTION extends Value
   object MOBILE_WALLET extends Value
   object BULK extends Value
-  object OPEN_CORRIDOR extends Value
+  object OPEN_CORRIDOR_PROMISE extends Value
+  object OPEN_CORRIDOR_SETTLEMENT extends Value
   object UTILITY extends Value
 }
 

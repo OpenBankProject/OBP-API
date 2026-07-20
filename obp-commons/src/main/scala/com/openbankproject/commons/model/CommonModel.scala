@@ -1117,7 +1117,7 @@ case class TransactionRequest (
                               )
 
 // FATF Recommendation 16 "Travel Rule" originator block (who the payment is from).
-// Optional on the TR model; required by the OPEN_CORRIDOR Transaction Request type.
+// Optional on the TR model; required by the OPEN_CORRIDOR_PROMISE Transaction Request type.
 // When not explicitly stored, the v7 JSON response layer virtually fills it from
 // the from-account's linked Customer via customer_account_link.
 case class TransactionRequestOriginator(

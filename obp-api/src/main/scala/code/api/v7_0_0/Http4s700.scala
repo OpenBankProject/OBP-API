@@ -3175,14 +3175,14 @@ object Http4s700 {
 
     // ── End UTILITY ───────────────────────────────────────────────────────────
 
-    // ── OPEN_CORRIDOR transaction request ─────────────────────────────────────
+    // ── OPEN_CORRIDOR_PROMISE transaction request ─────────────────────────────
     // Travel-Rule-friendly TR with FATF Recommendation 16 originator block.
     // Money-movement is identical to SIMPLE; the originator is persisted as a
     // side-car on the TR row and surfaced on the v7 response. Lives natively at
     // v7 (rather than bridging to v4) because only v7's response shape carries
     // the originator block.
     val createTransactionRequestOpenCorridor: HttpRoutes[IO] = HttpRoutes.of[IO] {
-      case req @ POST -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "transaction-request-types" / "OPEN_CORRIDOR" / "transaction-requests" =>
+      case req @ POST -> `prefixPath` / "banks" / _ / "accounts" / _ / _ / "transaction-request-types" / "OPEN_CORRIDOR_PROMISE" / "transaction-requests" =>
         EndpointHelpers.withViewAndBodyCreated[JSONFactory700.TransactionRequestBodyOpenCorridorJsonV700, JSONFactory700.TransactionRequestWithChargeOpenCorridorJsonV700](req) { (user, fromAccount, view, body, cc) =>
           val callCtx = Some(cc)
           for {
@@ -3211,7 +3211,7 @@ object Http4s700 {
         other_branch_routing_address = ""
       ),
       value = com.openbankproject.commons.model.AmountOfMoneyJsonV121(currency = "EUR", amount = "100.00"),
-      description = "OPEN_CORRIDOR Travel-Rule payment",
+      description = "Open Corridor Travel-Rule payment",
       charge_policy = "SHARED",
       originator = com.openbankproject.commons.model.TransactionRequestOriginator(
         name = "Alice Sender",
@@ -3228,9 +3228,9 @@ object Http4s700 {
       implementedInApiVersion,
       nameOf(createTransactionRequestOpenCorridor),
       "POST",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/OPEN_CORRIDOR/transaction-requests",
-      "Create Transaction Request (OPEN_CORRIDOR)",
-      """Initiate an OPEN_CORRIDOR Transaction Request — a Travel-Rule-friendly payment that carries FATF Recommendation 16 originator information about the actual payer.
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/OPEN_CORRIDOR_PROMISE/transaction-requests",
+      "Create Transaction Request (OPEN_CORRIDOR_PROMISE)",
+      """Initiate an OPEN_CORRIDOR_PROMISE Transaction Request — an Open Corridor Travel-Rule-friendly payment that carries FATF Recommendation 16 originator information about the actual payer.
         |
         |Money-movement is identical to the SIMPLE transaction request type (same beneficiary routing fields). What's distinct: the `originator` block is mandatory and is persisted alongside the transaction request. The v7 response includes a populated originator block.
         |
@@ -3238,7 +3238,7 @@ object Http4s700 {
       openCorridorBodyExample,
       JSONFactory700.TransactionRequestWithChargeOpenCorridorJsonV700(
         id = "4050046c-63b3-4868-8a22-14b4181d33a6",
-        `type` = "OPEN_CORRIDOR",
+        `type` = "OPEN_CORRIDOR_PROMISE",
         from = code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140(
           bank_id = "gh.29.uk",
           account_id = "8ca8a7e4-6d02-40e3-a129-0b2bf89de9f1"
@@ -3271,7 +3271,7 @@ object Http4s700 {
       http4sPartialFunction = Some(createTransactionRequestOpenCorridor)
     )
 
-    // ── End OPEN_CORRIDOR ─────────────────────────────────────────────────────
+    // ── End OPEN_CORRIDOR_PROMISE ─────────────────────────────────────────────
 
     // ── BULK transaction request ──────────────────────────────────────────────
     // One TransactionRequest with type=BULK serves as the envelope; N actual
