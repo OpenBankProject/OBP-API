@@ -78,9 +78,9 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
       accountIds = None,
       consumerId = None,
       permissions = consentPermissions,
-      expirationDateTime = DateWithDayFormat.parse("2030-01-01"),
-      transactionFromDateTime = DateWithDayFormat.parse("2020-01-01"),
-      transactionToDateTime = DateWithDayFormat.parse("2030-01-01"),
+      expirationDateTime = Some(DateWithDayFormat.parse("2030-01-01")),
+      transactionFromDateTime = Some(DateWithDayFormat.parse("2020-01-01")),
+      transactionToDateTime = Some(DateWithDayFormat.parse("2030-01-01")),
       apiStandard = standard,
       apiVersion = Some("4.0.1")
     ).openOrThrowException("test consent creation failed").consentId
