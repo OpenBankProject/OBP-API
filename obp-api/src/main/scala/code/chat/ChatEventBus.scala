@@ -123,8 +123,7 @@ object ChatEventBus extends MdcLoggable {
     subscriberThread = new Thread(() => {
       try {
         // Dedicated connection for the subscriber (not from the pool)
-        subscriberJedis = new Jedis(Redis.url, Redis.port, Redis.timeout)
-        if (Redis.password != null) subscriberJedis.auth(Redis.password)
+        subscriberJedis = Redis.newSubscriberConnection()
         logger.info(s"ChatEventBus says: Redis subscriber started, pattern-subscribing to ${CHANNEL_PREFIX}*")
         subscriberJedis.psubscribe(pubSub, s"${CHANNEL_PREFIX}*")
       } catch {

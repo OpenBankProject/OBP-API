@@ -1624,6 +1624,167 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
     }
   }
 
+  // ─── OPEN_CORRIDOR_PROMISE transaction request ────────────────────────────
+
+  /** Full, valid OPEN_CORRIDOR_PROMISE create body. The beneficiary uses OBP routing
+    * to a real account on the second test bank, so getBankAccountFromCounterparty
+    * resolves a real destination and the mapped payment path can post both legs
+    * (a phantom external destination would fail the credit leg: the test DB has no
+    * settlement accounts to fall back to). */
+  private def openCorridorPromiseBody(
+    currency: String,
+    originatorName: String = "Alice Sender",
+    originatorRoutingAddress: String = "GB29 NWBK 6016 1331 9268 19"
+  ): String =
+    s"""{
+       |  "to": {
+       |    "name": "OC Beneficiary ${APIUtil.generateUUID().take(8)}",
+       |    "description": "Beneficiary at receiving institution",
+       |    "other_bank_routing_scheme": "OBP",
+       |    "other_bank_routing_address": "${testBankId2.value}",
+       |    "other_branch_routing_scheme": "",
+       |    "other_branch_routing_address": "",
+       |    "other_account_routing_scheme": "OBP",
+       |    "other_account_routing_address": "${testAccountId1.value}",
+       |    "other_account_secondary_routing_scheme": "",
+       |    "other_account_secondary_routing_address": ""
+       |  },
+       |  "value": {"currency": "$currency", "amount": "3.00"},
+       |  "description": "Open Corridor promise test payment",
+       |  "charge_policy": "SHARED",
+       |  "originator": {
+       |    "name": "$originatorName",
+       |    "address": "1 Sender Street, London, UK",
+       |    "account_routing": {"scheme": "IBAN", "address": "$originatorRoutingAddress"}
+       |  }
+       |}""".stripMargin
+
+  private def openCorridorPromisePath(bankId: String, accountId: String): String =
+    s"/obp/v7.0.0/banks/$bankId/accounts/$accountId/owner/transaction-request-types/OPEN_CORRIDOR_PROMISE/transaction-requests"
+
+  feature("Http4s700 createTransactionRequestOpenCorridor (OPEN_CORRIDOR_PROMISE) endpoint") {
+
+    scenario("Reject unauthenticated POST", Http4s700RoutesTag) {
+      val (statusCode, _, _) = makeHttpRequestWithBody("POST",
+        openCorridorPromisePath(testBankId1.value, testAccountId0.value),
+        openCorridorPromiseBody("EUR"))
+      statusCode shouldBe 401
+    }
+
+    scenario("Return 400 InvalidJsonFormat when the originator block is missing", Http4s700RoutesTag) {
+      // Same shape but no `originator` field — extraction to the OPEN_CORRIDOR_PROMISE body class must fail.
+      val body =
+        """{
+          |  "to": {
+          |    "name": "OC Beneficiary", "description": "x",
+          |    "other_bank_routing_scheme": "BIC", "other_bank_routing_address": "DEUTDEFF",
+          |    "other_branch_routing_scheme": "", "other_branch_routing_address": "",
+          |    "other_account_routing_scheme": "CORRIDOR_ACCOUNT", "other_account_routing_address": "OC-1",
+          |    "other_account_secondary_routing_scheme": "", "other_account_secondary_routing_address": ""
+          |  },
+          |  "value": {"currency": "EUR", "amount": "3.00"},
+          |  "description": "x",
+          |  "charge_policy": "SHARED"
+          |}""".stripMargin
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequestWithBody("POST",
+        openCorridorPromisePath(testBankId1.value, testAccountId0.value), body, headers)
+      statusCode shouldBe 400
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") match {
+            case Some(JString(msg)) => msg should include(code.api.util.ErrorMessages.InvalidJsonFormat)
+            case _ => fail("Expected message field")
+          }
+        case _ => fail("Expected JSON object")
+      }
+    }
+
+    scenario("Return 400 InvalidJsonValue when originator.name is empty", Http4s700RoutesTag) {
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequestWithBody("POST",
+        openCorridorPromisePath(testBankId1.value, testAccountId0.value),
+        openCorridorPromiseBody("EUR", originatorName = ""), headers)
+      statusCode shouldBe 400
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") match {
+            case Some(JString(msg)) => msg should include("originator.name must be non-empty")
+            case _ => fail("Expected message field")
+          }
+        case _ => fail("Expected JSON object")
+      }
+    }
+
+    scenario("Return 400 InvalidJsonValue when originator.account_routing.address is empty", Http4s700RoutesTag) {
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequestWithBody("POST",
+        openCorridorPromisePath(testBankId1.value, testAccountId0.value),
+        openCorridorPromiseBody("EUR", originatorRoutingAddress = ""), headers)
+      statusCode shouldBe 400
+      json match {
+        case JObject(fields) =>
+          toFieldMap(fields).get("message") match {
+            case Some(JString(msg)) => msg should include("originator.account_routing.address must be non-empty")
+            case _ => fail("Expected message field")
+          }
+        case _ => fail("Expected JSON object")
+      }
+    }
+
+    scenario("Return 201 with type OPEN_CORRIDOR_PROMISE and the originator echoed as explicit", Http4s700RoutesTag) {
+      val bankId = testBankId1.value
+      val accountId = testAccountId0.value
+      // Match the source account's currency so the payment path doesn't reject on currency.
+      val acctCurrency = code.bankconnectors.Connector.connector.vend
+        .getBankAccountLegacy(testBankId1, testAccountId0, None)
+        .map(_._1.currency).openOrThrowException("test account")
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequestWithBody("POST",
+        openCorridorPromisePath(bankId, accountId),
+        openCorridorPromiseBody(acctCurrency), headers)
+      statusCode shouldBe 201
+      json match {
+        case JObject(fields) =>
+          val map = toFieldMap(fields)
+          map.keys should contain allOf ("id", "type", "from", "details", "transaction_ids", "status", "charge", "originator")
+          map.get("type") shouldBe Some(JString("OPEN_CORRIDOR_PROMISE"))
+          map.get("id") match {
+            case Some(JString(id)) => id should not be empty
+            case _ => fail("id should be a non-empty string")
+          }
+          map.get("from") match {
+            case Some(JObject(fromFields)) =>
+              val fromMap = toFieldMap(fromFields)
+              fromMap.get("bank_id") shouldBe Some(JString(bankId))
+              fromMap.get("account_id") shouldBe Some(JString(accountId))
+            case _ => fail("from should be an object")
+          }
+          // 3.00 is far below the default 1000 EUR challenge threshold and the test props set
+          // no transaction_request_status_scheduler_delay, so the TR auto-completes today.
+          // NOTE: when the netting hold-at-PENDING change lands (OPEN_CORRIDOR_SIMPLE_NETTING.md §5),
+          // this assertion must flip to PENDING with empty transaction_ids.
+          map.get("status") shouldBe Some(JString("COMPLETED"))
+          map.get("originator") match {
+            case Some(JObject(origFields)) =>
+              val origMap = toFieldMap(origFields)
+              origMap.get("name") shouldBe Some(JString("Alice Sender"))
+              origMap.get("address") shouldBe Some(JString("1 Sender Street, London, UK"))
+              origMap.get("source") shouldBe Some(JString("explicit"))
+              origMap.get("account_routing") match {
+                case Some(JObject(routingFields)) =>
+                  val routingMap = toFieldMap(routingFields)
+                  routingMap.get("scheme") shouldBe Some(JString("IBAN"))
+                  routingMap.get("address") shouldBe Some(JString("GB29 NWBK 6016 1331 9268 19"))
+                case _ => fail("originator.account_routing should be an object")
+              }
+            case _ => fail("originator should be an object")
+          }
+        case _ => fail("Expected JSON object")
+      }
+    }
+  }
+
   // ─── BULK transaction request ─────────────────────────────────────────────
 
   /** Fresh batch reference for each test scenario to avoid idempotency collisions. */

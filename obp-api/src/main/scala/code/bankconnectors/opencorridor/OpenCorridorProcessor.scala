@@ -17,16 +17,16 @@ import net.liftweb.util.StringHelpers
 
 import scala.concurrent.Future
 
-// OPEN_CORRIDOR Transaction Request — Travel-Rule-friendly payment.
+// OPEN_CORRIDOR_PROMISE Transaction Request — Travel-Rule-friendly payment.
 //
 // Money-movement is identical to SIMPLE today (same beneficiary routing shape).
 // What's distinct is the mandatory `originator` block, persisted alongside the TR
-// and surfaced on v7 responses. Lives in its own package so future OPEN_CORRIDOR
+// and surfaced on v7 responses. Lives in its own package so future Open Corridor
 // extensions (Cardano Promise, netting, settlement) have a home that does not bloat
 // `LocalMappedConnector`.
 object OpenCorridorProcessor {
 
-  // Create an OPEN_CORRIDOR Transaction Request: validate the originator block,
+  // Create an OPEN_CORRIDOR_PROMISE Transaction Request: validate the originator block,
   // resolve the destination counterparty (via the same getOrCreateCounterparty
   // path SIMPLE uses), persist the TR with the originator side-car, and return it.
   def create(
@@ -39,7 +39,7 @@ object OpenCorridorProcessor {
     callContext: Option[CallContext]
   ): Future[(TransactionRequest, Option[CallContext])] = {
 
-    val transactionRequestType = TransactionRequestType("OPEN_CORRIDOR")
+    val transactionRequestType = TransactionRequestType("OPEN_CORRIDOR_PROMISE")
 
     for {
       _ <- Helper.booleanToFuture(s"$InvalidJsonValue originator.name must be non-empty", cc = callContext) {

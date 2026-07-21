@@ -1085,10 +1085,14 @@ featured_apis=elasticSearchWarehouseV300
 ## Note: You do NOT need to include anything here for this to work.
 
 # -- Redis cache -------------------------------------
+# The 127.0.0.1 default is a deliberate security default: Redis must not be bound to a
+# public interface. If you enable authentication (requirepass) or TLS on Redis, set the
+# properties below - they are honoured by both the direct and the memoize-backed cache paths.
 # cache.redis.url=127.0.0.1
 # cache.redis.port=6379
 # Default value is empty or omitted props
 # cache.redis.password =
+# redis.use.ssl=false
 # ---------------------------------------------------------
 
 # -- New Style Endpoints -----------------------

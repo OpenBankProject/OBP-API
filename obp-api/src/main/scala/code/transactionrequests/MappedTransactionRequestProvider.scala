@@ -104,7 +104,7 @@ object MappedTransactionRequestProvider extends TransactionRequestProvider with 
     val consentOption = consentIdOption.map(consentId =>Consents.consentProvider.vend.getConsentByConsentId(consentId).toOption).flatten
     val consentReferenceIdOption = consentOption.map(_.consentReferenceId)
 
-    // Explicit originator (FATF Rec 16). Only the OPEN_CORRIDOR body carries this today;
+    // Explicit originator (FATF Rec 16). Only the OPEN_CORRIDOR_PROMISE body carries this today;
     // other TR types leave the columns null.
     val explicitOriginator: Option[TransactionRequestOriginator] = transactionRequestCommonBody match {
       case openCorridorBody: TransactionRequestBodyOpenCorridorJsonV700 => Some(openCorridorBody.originator)
@@ -168,7 +168,7 @@ object MappedTransactionRequestProvider extends TransactionRequestProvider with 
       .mUserId(callContext.flatMap(_.user.map(_.userId)).getOrElse(null))
       .mOnBehalfOfUserId(callContext.flatMap(cc => cc.onBehalfOfUser.or(cc.consenter).map(_.userId)).getOrElse(null))
 
-      // Explicit originator fields (FATF Rec 16, OPEN_CORRIDOR type only — null otherwise).
+      // Explicit originator fields (FATF Rec 16, OPEN_CORRIDOR_PROMISE type only — null otherwise).
       .mOriginator_Name(explicitOriginator.map(_.name).getOrElse(null))
       .mOriginator_Address(explicitOriginator.map(_.address).getOrElse(null))
       .mOriginator_AccountRoutingScheme(explicitOriginator.map(_.account_routing.scheme).getOrElse(null))
@@ -272,7 +272,7 @@ class MappedTransactionRequest extends LongKeyedMapper[MappedTransactionRequest]
   object mIsBeneficiary extends MappedBoolean(this)
 
   // Originator fields (FATF Recommendation 16 "Travel Rule" — who the payment is from).
-  // Populated only for OPEN_CORRIDOR Transaction Requests. For other TR types these are null
+  // Populated only for OPEN_CORRIDOR_PROMISE Transaction Requests. For other TR types these are null
   // and the v7 JSON response layer can virtually fill from customer_account_link.
   object mOriginator_Name extends MappedString(this, 140)
   object mOriginator_Address extends MappedString(this, 2000)
@@ -344,10 +344,10 @@ class MappedTransactionRequest extends LongKeyedMapper[MappedTransactionRequest]
     else
       None
 
-    // OPEN_CORRIDOR's persisted body has the same `to: PostSimpleCounterpartyJson400` shape
+    // OPEN_CORRIDOR_PROMISE's persisted body has the same `to: PostSimpleCounterpartyJson400` shape
     // as SIMPLE, so we reuse this SIMPLE branch's JSON-field extraction.
     val t_to_simple = if ((TransactionRequestTypes.withName(transactionType) == TransactionRequestTypes.SIMPLE ||
-      TransactionRequestTypes.withName(transactionType) == TransactionRequestTypes.OPEN_CORRIDOR) && details.nonEmpty){
+      TransactionRequestTypes.withName(transactionType) == TransactionRequestTypes.OPEN_CORRIDOR_PROMISE) && details.nonEmpty){
       val transactionRequestSimples = for {
         JObject(child) <- parsedDetails
         JField("other_bank_routing_scheme", JString(otherBankRoutingScheme)) <- child

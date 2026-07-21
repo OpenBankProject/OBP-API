@@ -1011,7 +1011,7 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     )
   }
 
-  // ─── OPEN_CORRIDOR Transaction Request type ────────────────────────────────
+  // ─── OPEN_CORRIDOR_PROMISE Transaction Request type ────────────────────────
   //
   // SIMPLE-shaped beneficiary routing plus a REQUIRED `originator` block carrying
   // FATF Recommendation 16 (Travel Rule) information about the actual payer. The
@@ -1042,7 +1042,7 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     address: String
   )
 
-  // OPEN_CORRIDOR response wrapper — v4 TransactionRequestWithChargeJSON400 shape
+  // OPEN_CORRIDOR_PROMISE response wrapper — v4 TransactionRequestWithChargeJSON400 shape
   // plus the originator block. `originator` is None when there's no explicit value
   // stored AND no customer_account_link for the from-account; serializes as null.
   case class TransactionRequestWithChargeOpenCorridorJsonV700(
