@@ -174,6 +174,10 @@ fi
 } > fast_build.log
 
 # Run Maven build and append to log
+# set +e around the build: this script runs under `set -e`, which would abort here
+# on a failing build and make BUILD_EXIT_CODE — and the auto-retry-with-clean block
+# below — unreachable. We want to inspect the failure, not die at it.
+set +e
 mvn -pl obp-api -am \
     $DO_CLEAN \
     package \
@@ -184,8 +188,8 @@ mvn -pl obp-api -am \
     -Dcheckstyle.skip=true \
     -Dspotbugs.skip=true \
     -Dpmd.skip=true >> fast_build.log 2>&1
-
 BUILD_EXIT_CODE=$?
+set -e
 
 # Record build end time and calculate duration
 if command -v gdate &> /dev/null; then
@@ -246,7 +250,8 @@ if [ $BUILD_EXIT_CODE -ne 0 ] && [ -z "$DO_CLEAN" ]; then
             echo ""
         } > fast_build.log
         
-        # Run clean build
+        # Run clean build (set +e for the same reason as the first invocation)
+        set +e
         mvn -pl obp-api -am \
             clean \
             package \
@@ -257,8 +262,8 @@ if [ $BUILD_EXIT_CODE -ne 0 ] && [ -z "$DO_CLEAN" ]; then
             -Dcheckstyle.skip=true \
             -Dspotbugs.skip=true \
             -Dpmd.skip=true >> fast_build.log 2>&1
-        
         BUILD_EXIT_CODE=$?
+        set -e
         
         # Record retry end time and calculate duration
         if command -v gdate &> /dev/null; then

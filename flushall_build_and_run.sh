@@ -118,8 +118,12 @@ echo "Build output will be saved to: build.log"
 # Show last 3 lines of build output in real-time
 tail -n 3 -f build.log &
 TAIL_PID=$!
+# set +e: this script runs under `set -e`, which would abort at a failing build
+# before the BUILD_EXIT check below could print the log tail.
+set +e
 mvn -pl obp-api -am clean package -DskipTests=true -Dmaven.test.skip=true -T 4 > build.log 2>&1
 BUILD_EXIT=$?
+set -e
 kill $TAIL_PID 2>/dev/null || true
 wait $TAIL_PID 2>/dev/null || true
 
