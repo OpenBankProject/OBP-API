@@ -3849,19 +3849,56 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     currentSupportFormats.toStream.map(_.parse(date, parsePosition)).find(null.!=)
   }
 
+  /**
+   * The certificate identifying the TPP, taken from the channel the request's API standard
+   * actually uses.
+   *
+   * Berlin Group signs requests and carries the signing certificate in TPP-Signature-Certificate.
+   * UK Open Banking does not use that header at all: OBIE identifies the TPP by the mTLS transport
+   * certificate, which reaches us as PSD2-CERT (set by the reverse proxy that terminates mTLS, or
+   * by bootstrap.http4s.Http4sMtls in development). Reading the Berlin Group header on a UK
+   * endpoint therefore rejects a correctly-behaving OBIE client for missing a header its
+   * specification never mentions.
+   *
+   * BerlinGroupCheck.validate already scopes every OTHER piece of Berlin Group machinery -- the
+   * mandatory headers, the request-signature verification, the on-the-fly consumer creation -- to
+   * Berlin Group URLs. The PSD2 gate was the one place that crossed that boundary; this brings it
+   * in line. Non-UK standards keep the previous behaviour byte for byte.
+   *
+   * Note this changes only WHERE the certificate comes from, not what is then done with it: both
+   * paths feed the same regulated-entity lookup, which matches on issuer CN + serial number and so
+   * works with any X509 certificate.
+   */
+  private def tppCertificateForStandard(cc: Option[CallContext]): Box[java.security.cert.X509Certificate] = {
+    val requestHeaders = cc.map(_.requestHeaders).getOrElse(Nil)
+    val url = cc.map(_.url).getOrElse("")
+    val isUkOpenBanking = url.contains(s"/${ApiVersion.ukOpenBankingV31.urlPrefix}/")
+    if (isUkOpenBanking) {
+      `getPSD2-CERT`(requestHeaders) match {
+        case Some(pem) =>
+          tryo(BerlinGroupSigning.parseCertificate(pem)) ?~ X509GeneralError
+        case None =>
+          logger.debug(s"tppCertificateForStandard: UK Open Banking request with no ${RequestHeader.`PSD2-CERT`} header")
+          Failure(X509CannotGetCertificate)
+      }
+    } else {
+      BerlinGroupSigning.getCertificateFromTppSignatureCertificate(requestHeaders)
+    }
+  }
+
   private def passesPsd2ServiceProviderCommon(cc: Option[CallContext], serviceProvider: String) = {
     val result = getPropsValue("requirePsd2Certificates", "NONE") match {
       case value if value.toUpperCase == "ONLINE" =>
         val requestHeaders = cc.map(_.requestHeaders).getOrElse(Nil)
         val consumerName = cc.flatMap(_.consumer.map(_.name.get)).getOrElse("")
-        getCertificateFromTppSignatureCertificate(requestHeaders) match {
-          // No usable TPP-Signature-Certificate: fail closed. passesPsd2ServiceProvider maps a
-          // Failure to a 401 -- this used to throw out of the base64 decode and become a 500.
+        tppCertificateForStandard(cc) match {
+          // No usable certificate: fail closed. passesPsd2ServiceProvider maps a Failure to a 401
+          // -- this used to throw out of the base64 decode and become a 500.
           case failure: Failure =>
-            logger.debug(s"passesPsd2ServiceProvider: no usable TPP-Signature-Certificate: $failure")
+            logger.debug(s"passesPsd2ServiceProvider: no usable TPP certificate: $failure")
             Future(failure)
           case Empty =>
-            logger.debug("passesPsd2ServiceProvider: no TPP-Signature-Certificate header")
+            logger.debug("passesPsd2ServiceProvider: no TPP certificate header")
             Future(Failure(X509CannotGetCertificate))
           case Full(certificate) =>
             for {
