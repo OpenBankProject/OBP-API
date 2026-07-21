@@ -3854,27 +3854,37 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       case value if value.toUpperCase == "ONLINE" =>
         val requestHeaders = cc.map(_.requestHeaders).getOrElse(Nil)
         val consumerName = cc.flatMap(_.consumer.map(_.name.get)).getOrElse("")
-        val certificate = getCertificateFromTppSignatureCertificate(requestHeaders)
-        for {
-          tpps <- BerlinGroupSigning.getRegulatedEntityByCertificate(certificate, cc)
-        } yield {
-          tpps match {
-            case Nil =>
-              ObpApiFailure(RegulatedEntityNotFoundByCertificate, 401, cc)
-            case single :: Nil =>
-              logger.debug(s"Regulated entity by certificate: $single")
-              // Only one match, proceed to role check
-              if (single.services.contains(serviceProvider)) {
-                logger.debug(s"Regulated entity by certificate (single.services: ${single.services}, serviceProvider: $serviceProvider): ")
-                Full(true)
-              } else {
-                ObpApiFailure(X509ActionIsNotAllowed, 403, cc)
+        getCertificateFromTppSignatureCertificate(requestHeaders) match {
+          // No usable TPP-Signature-Certificate: fail closed. passesPsd2ServiceProvider maps a
+          // Failure to a 401 -- this used to throw out of the base64 decode and become a 500.
+          case failure: Failure =>
+            logger.debug(s"passesPsd2ServiceProvider: no usable TPP-Signature-Certificate: $failure")
+            Future(failure)
+          case Empty =>
+            logger.debug("passesPsd2ServiceProvider: no TPP-Signature-Certificate header")
+            Future(Failure(X509CannotGetCertificate))
+          case Full(certificate) =>
+            for {
+              tpps <- BerlinGroupSigning.getRegulatedEntityByCertificate(certificate, cc)
+            } yield {
+              tpps match {
+                case Nil =>
+                  ObpApiFailure(RegulatedEntityNotFoundByCertificate, 401, cc)
+                case single :: Nil =>
+                  logger.debug(s"Regulated entity by certificate: $single")
+                  // Only one match, proceed to role check
+                  if (single.services.contains(serviceProvider)) {
+                    logger.debug(s"Regulated entity by certificate (single.services: ${single.services}, serviceProvider: $serviceProvider): ")
+                    Full(true)
+                  } else {
+                    ObpApiFailure(X509ActionIsNotAllowed, 403, cc)
+                  }
+                case multiple =>
+                  // Ambiguity detected: more than one TPP matches the certificate
+                  val names = multiple.map(e => s"'${e.entityName}' (Code: ${e.entityCode})").mkString(", ")
+                  ObpApiFailure(s"$RegulatedEntityAmbiguityByCertificate: multiple TPPs found: $names", 401, cc)
               }
-            case multiple =>
-              // Ambiguity detected: more than one TPP matches the certificate
-              val names = multiple.map(e => s"'${e.entityName}' (Code: ${e.entityCode})").mkString(", ")
-              ObpApiFailure(s"$RegulatedEntityAmbiguityByCertificate: multiple TPPs found: $names", 401, cc)
-          }
+            }
         }
       case value if value.toUpperCase == "CERTIFICATE" => Future {
         `getPSD2-CERT`(cc.map(_.requestHeaders).getOrElse(Nil)) match {
