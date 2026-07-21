@@ -253,6 +253,43 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
     }
   }
 
+  // ── Consent.grantUKConsentAccountAccess must reject accounts the PSU does not hold ──
+  // Regression test for the account-ownership gap: grantUKConsentAccountAccess only verified
+  // that the requested account_ids *exist* (checkBankAccountExists), never that the PSU
+  // authorising the consent actually holds them. Without this check, any authenticated user
+  // could authorise a UK consent naming ANY existing account_id (e.g. testAccountId1, held by
+  // resourceUser1) and be granted every consented view on it -- an account-access IDOR. This
+  // mirrors the existing "binds permissions to the selected account only" scenario above but
+  // asserts on account holder-ship (AccountHolders.getAccountsHeld) rather than permission scope.
+  feature("UKOB v4.0.1 Consent.grantUKConsentAccountAccess rejects an account the PSU does not hold") {
+    scenario("resourceUser2 tries to authorise a consent naming resourceUser1's account -> rejected, no access granted", UKOpenBankingV401AccountInfo) {
+      val userExtended = UserExtended(resourceUser2)
+      val bankIdAccountId = BankIdAccountId(testBankId1, testAccountId1)
+
+      // testAccountId1 is held by resourceUser1 (ServerSetupWithTestData.beforeEach), not resourceUser2.
+      code.accountholders.AccountHolders.accountHolders.vend
+        .getAccountsHeld(testBankId1, resourceUser2)
+        .contains(bankIdAccountId) should equal(false)
+
+      val consentId = createRealConsent() // permissions = List("ReadAccountsBasic")
+      val consent = Consents.consentProvider.vend.getConsentByConsentId(consentId).openOrThrowException("consent")
+
+      val result = Await.result(
+        Consent.grantUKConsentAccountAccess(resourceUser2, testBankId1, List(acc), consent, None),
+        10.seconds)
+      result.isDefined should equal(false)
+      result match {
+        case Failure(msg, _, _) => msg should include("OBP-35037")
+        case other => fail(s"expected Failure(OBP-35037...), got $other")
+      }
+
+      // No AccountAccess row must have been created for resourceUser2 on this account.
+      userExtended.hasAccountAccess(
+        Views.views.vend.getOrCreateSystemView(Constant.SYSTEM_READ_ACCOUNTS_BASIC_VIEW_ID).openOrThrowException("view"),
+        bankIdAccountId, None) should equal(false)
+    }
+  }
+
   // Regression coverage for Gap 14 (UK consents previously never expired): checkUKConsent must
   // reactively reject an AUTHORISED consent whose ExpirationDateTime has passed, independent of
   // ConsentScheduler's proactive sweep timing. Exercised by calling Consent.checkUKConsent

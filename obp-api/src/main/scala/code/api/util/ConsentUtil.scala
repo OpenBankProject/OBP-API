@@ -1154,12 +1154,22 @@ object Consent extends MdcLoggable {
       val error = s"$BankAccountNotFound BankId(${bankId.value})"
       val validatedAccountIds: List[String] = boxes.map(_.openOrThrowException(error)).map(_.accountId.value)
 
+      // Existence alone is not enough: only bind the consent to accounts the authorising PSU
+      // actually holds -- otherwise any authenticated user could authorise a consent naming an
+      // arbitrary existing account_id and be granted every consented view on it.
+      val heldAccountIds: Set[String] = AccountHolders.accountHolders.vend
+        .getAccountsHeld(bankId, user)
+        .map(_.accountId.value)
+      val notHeld: List[String] = validatedAccountIds.filterNot(heldAccountIds.contains)
+
       val newViews: List[ConsentView] = for {
         accountId <- validatedAccountIds
         permission <- permissions
       } yield ConsentView(bank_id = bankId.value, account_id = accountId, view_id = permission, None)
 
-      if (newViews.isEmpty) {
+      if (notHeld.nonEmpty) {
+        Failure(s"$ConsentAccountNotHeldByUser Account(s): ${notHeld.mkString(", ")}")
+      } else if (newViews.isEmpty) {
         Empty
       } else {
         val updatedPayload = payloadToUpdate.map(_.copy(views = newViews))
