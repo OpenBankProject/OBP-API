@@ -72,7 +72,22 @@ To accept a whole CA instead of individual client certs, import the CA certifica
 
 ### 2. Configure props
 
-In your props file (e.g. `obp-api/src/main/resources/props/default.props`):
+**The short way — no props edit at all:**
+
+```sh
+./flushall_fast_build_and_run.sh --mtls
+```
+
+The flag sources `scripts/mtls_env.sh`, which exports the `OBP_MTLS_*` environment overrides
+(every OBP prop is settable as `OBP_<NAME>` with dots replaced by underscores —
+`APIUtil.getPropsValue` reads the environment ahead of the props file) pointing at the dev
+keystore pair checked into the repo. It also flips `hostname` to `https://` **and** pins
+`local_identity_provider` to the pre-toggle hostname — see the note under "Props reference"
+for why that pinning matters. Anything you pre-export wins, so
+`OBP_MTLS_CLIENT_AUTH=want ./flushall_fast_build_and_run.sh --mtls` works.
+
+To make the mode permanent instead, put it in your props file
+(e.g. `obp-api/src/main/resources/props/default.props`):
 
 ```properties
 mtls.enabled=true
@@ -91,12 +106,20 @@ hostname=https://localhost:8080
 consumer_validation_method_for_consent=CONSUMER_CERTIFICATE
 ```
 
+Only `mtls.enabled` is actually required. The four store props default to the checked-in dev
+pair (`obp-api/src/test/resources/cert/server.jks` / `server.trust.jks`, password `123456`),
+resolved relative to the working directory — so they work when the server is launched from the
+repo root, which is what the run scripts do. Each fallback is logged at WARN naming the resolved
+absolute file, and a missing store fails at startup with the resolved path and working directory
+in the message rather than a bare `FileNotFoundException`.
+
 `run.mode` must be `development` (it is with the standard local run scripts).
 
 ### 3. Run
 
 ```sh
-./flushall_build_and_run.sh
+./flushall_build_and_run.sh --mtls        # or: ./flushall_fast_build_and_run.sh --mtls
+./flushall_build_and_run.sh               # props-driven, if you configured them above
 ```
 
 Boot log confirms the mode:
@@ -170,21 +193,35 @@ Consumer — presenting a different client certificate is rejected.
 
 | Prop | Default | Meaning |
 |---|---|---|
-| `mtls.enabled` | `false` | Master switch. Only honoured when `run.mode=development`. |
-| `mtls.keystore.path` | — (required) | JKS with the server's private key + certificate. |
-| `mtls.keystore.password` | — (required) | Password for keystore and key. |
-| `mtls.truststore.path` | — (required) | JKS with client certificates / CAs the server accepts. |
-| `mtls.truststore.password` | — (required) | Truststore password. |
+| `mtls.enabled` | `false` | Master switch. Only honoured when `run.mode=development`. The one genuinely required prop. |
+| `mtls.keystore.path` | `obp-api/src/test/resources/cert/server.jks` | Store with the server's private key + certificate. `.p12`/`.pfx` are read as PKCS12, anything else as JKS. |
+| `mtls.keystore.password` | `123456` | Password for keystore and key. |
+| `mtls.truststore.path` | `obp-api/src/test/resources/cert/server.trust.jks` | Store with client certificates / CAs the server accepts. Same type detection as the keystore. |
+| `mtls.truststore.password` | `123456` | Truststore password. |
 | `mtls.client_auth` | `need` | `need` rejects certless handshakes; `want` makes the client certificate optional. |
+
+Each of these is also settable from the environment as `OBP_MTLS_ENABLED`,
+`OBP_MTLS_KEYSTORE_PATH`, … which is what `--mtls` uses.
+
+> **`hostname` and `local_identity_provider` move together.** Turning mTLS on means generated
+> links should say `https://`, so `hostname` changes. But `hostname` is also the default for
+> `local_identity_provider` (`code/api/constant/constant.scala`), which is the `provider` column
+> every `AuthUser` / `ResourceUser` row is keyed on. Changing `hostname` alone gives your existing
+> local users a different provider string, orphaning them — logins start failing after a toggle.
+> `scripts/mtls_env.sh` handles this by pinning `local_identity_provider` to the pre-toggle
+> hostname. If you configure mTLS through props instead, set `local_identity_provider` explicitly
+> to whatever `hostname` was before you added the `https://`.
 
 ## Troubleshooting
 
 | Symptom | Cause |
 |---|---|
 | Boot warning `mtls.enabled=true is ignored` | `run.mode` is not `development`. |
-| Boot fails with `requires the props value 'mtls.…'` | One of the four keystore/truststore props is missing. |
+| Boot fails with `points at '…', which does not exist` | The store file isn't there. If you relied on the defaults, the server was launched from somewhere other than the repo root — the message prints the resolved path and the working directory. Use `--mtls` (absolute paths) or set the props absolutely. |
+| Logins that worked over plain HTTP now fail | `hostname` changed scheme without `local_identity_provider` being pinned — see the note under "Props reference". |
 | `curl: (35)` / `alert certificate required` | No (or untrusted) client certificate in `need` mode — check the cert is in `server.trust.jks`. |
 | `curl: (60) SSL certificate problem` | curl doesn't trust the server cert — pass `--cacert server.crt` (or `-k` for a quick look). |
+| Client rejects the server cert with "no alternative certificate subject name matches" | The default `server.jks` leaf has **no SAN**. curl/OpenSSL and Java's `DefaultHostnameVerifier` fall back to CN (`localhost`) so both accept it, but stricter clients won't. Point `mtls.keystore.path` at `obp-api/src/test/resources/cert/localhost_san_dns_ip.pfx` (password `123456`), which carries `DNS:localhost, IP:127.0.0.1`. |
 | Plain `http://` requests hang or error | The port serves HTTPS when mTLS is enabled — use `https://`. |
 | Cert reaches OBP but consumer lookup fails | The Consumer's Client Certificate field doesn't contain the client cert's PEM (lookup is by PEM match, with a whitespace-normalized fallback). |
 | DirectLogin returns `OBP-20073: The user email has not been validated` | A freshly created user must validate their email first. In local dev, either click the link from the validation email (see the `mail.*` props) or set the flag directly in the DB: `update authuser set validated=true where username='YOUR_USER';` |
@@ -208,6 +245,8 @@ header. Two important rules for any proxy config:
 |---|---|
 | `obp-api/src/main/scala/bootstrap/http4s/Http4sMtls.scala` | Props, SSLContext/TLSContext construction, `PSD2-CERT` injection middleware. |
 | `obp-api/src/main/scala/bootstrap/http4s/Http4sServer.scala` | `mtls.enabled` branch on the Ember builder. |
+| `scripts/mtls_env.sh` | The `OBP_MTLS_*` environment overrides behind the `--mtls` flag of both `flushall_*build_and_run.sh` scripts. Sourceable on its own. |
+| `scripts/java_env.sh` | Selects a JDK >= 17 for the run scripts. The build compiles with `-release 17`; on a default JDK 11 it otherwise fails with the misleading `'17' is not a valid choice for '-release'`. |
 | `obp-api/src/test/scala/bootstrap/http4s/Http4sMtlsTest.scala` | Unit tests: PEM encoding, header injection/stripping, SSLContext from the checked-in keystores. |
 | `obp-api/src/test/scala/bootstrap/http4s/Http4sMtlsHandshakeTest.scala` | End-to-end: real Ember server + real mTLS handshake; proves the verified client cert surfaces as `PSD2-CERT` and certless handshakes are rejected. |
 

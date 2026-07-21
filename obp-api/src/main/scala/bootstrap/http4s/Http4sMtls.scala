@@ -1,6 +1,6 @@
 package bootstrap.http4s
 
-import java.io.FileInputStream
+import java.io.{File, FileInputStream}
 import java.nio.charset.StandardCharsets
 import java.security.KeyStore
 import java.security.cert.X509Certificate
@@ -32,6 +32,12 @@ import org.typelevel.ci.CIString
  *   mtls.truststore.password=...
  *   mtls.client_auth=need                           (need = reject certless handshakes; want = optional)
  *
+ * Only `mtls.enabled` is mandatory: the four store props fall back to the checked-in dev keystore
+ * pair (see DevKeystorePath below) so that switching a local server to mTLS is a single toggle.
+ * Every fallback is logged at WARN naming the resolved file, so the default is never silent.
+ * Like every OBP prop these are also settable from the environment as OBP_MTLS_ENABLED,
+ * OBP_MTLS_KEYSTORE_PATH, ... (see APIUtil.getPropsValue, which reads the environment first).
+ *
  * The prop is honoured ONLY in Development run mode. In production OBP must sit behind a reverse
  * proxy that terminates mTLS and forwards the client certificate as the PSD2-CERT header — this
  * feature exists so local development does not need that proxy.
@@ -57,29 +63,72 @@ object Http4sMtls extends MdcLoggable {
     } else propEnabled
   }
 
+  // The checked-in dev pair: a CN=localhost server keypair and the TESOBE CA that signs the dev
+  // client certificates. Repo-relative, so they resolve when the server is launched from the repo
+  // root (which is what the build_and_run scripts do). Only ever reached in Development run mode.
+  private val DevKeystorePath = "obp-api/src/test/resources/cert/server.jks"
+  private val DevTruststorePath = "obp-api/src/test/resources/cert/server.trust.jks"
+  private val DevStorePassword = "123456"
+
+  /** The OBP_-prefixed environment variable APIUtil.getPropsValue consults ahead of the props file. */
+  private def envVarOf(propName: String): String = "OBP_" + propName.replace('.', '_').toUpperCase
+
   lazy val config: MtlsConfig = {
-    def required(name: String): String = APIUtil.getPropsValue(name)
-      .openOrThrowException(s"mtls.enabled=true requires the props value '$name' to be set")
+    def prop(name: String): Option[String] =
+      APIUtil.getPropsValue(name).toOption.map(_.trim).filter(_.nonEmpty)
+
+    // Returns the absolute store path plus its password, defaulting both to the dev pair.
+    def store(pathProp: String, devPath: String, passwordProp: String): (String, String) = {
+      val path = prop(pathProp).getOrElse {
+        logger.warn(s"'$pathProp' is not set — falling back to the checked-in dev store '$devPath'. " +
+          s"Set '$pathProp' (or ${envVarOf(pathProp)}) to use your own certificates.")
+        devPath
+      }
+      val file = new File(path)
+      if (!file.isFile) throw new RuntimeException(
+        s"mtls.enabled=true but '$pathProp' points at '$path', which does not exist " +
+          s"(resolved to ${file.getAbsolutePath} from working directory ${new File(".").getAbsolutePath}). " +
+          s"Launch from the repo root or set '$pathProp' to an absolute path.")
+      val password = prop(passwordProp).getOrElse {
+        logger.warn(s"'$passwordProp' is not set — falling back to the checked-in dev store password.")
+        DevStorePassword
+      }
+      (file.getAbsolutePath, password)
+    }
+
+    val (keystorePath, keystorePassword) = store("mtls.keystore.path", DevKeystorePath, "mtls.keystore.password")
+    val (truststorePath, truststorePassword) = store("mtls.truststore.path", DevTruststorePath, "mtls.truststore.password")
     MtlsConfig(
-      keystorePath = required("mtls.keystore.path"),
-      keystorePassword = required("mtls.keystore.password"),
-      truststorePath = required("mtls.truststore.path"),
-      truststorePassword = required("mtls.truststore.password"),
+      keystorePath = keystorePath,
+      keystorePassword = keystorePassword,
+      truststorePath = truststorePath,
+      truststorePassword = truststorePassword,
       needClientAuth = APIUtil.getPropsValue("mtls.client_auth", "need").toLowerCase != "want"
     )
   }
 
+  /**
+   * KeyStore type for a store file, by extension: `.p12` / `.pfx` are PKCS12, everything else JKS.
+   * Both formats are common for the certificates a TPP hands over — `obp-api/src/test/resources/cert`
+   * carries examples of each — and guessing wrong fails at load with an opaque parse error.
+   */
+  private[http4s] def keyStoreTypeOf(path: String): String =
+    path.toLowerCase match {
+      case p if p.endsWith(".p12") || p.endsWith(".pfx") => "PKCS12"
+      case _ => "JKS"
+    }
+
   def buildSslContext(config: MtlsConfig): SSLContext = {
-    def loadJks(path: String, password: String): KeyStore = {
-      val keyStore = KeyStore.getInstance("JKS")
+    def loadStore(path: String, password: String): KeyStore = {
+      val keyStore = KeyStore.getInstance(keyStoreTypeOf(path))
       val in = new FileInputStream(path)
       try keyStore.load(in, password.toCharArray) finally in.close()
       keyStore
     }
     val keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm)
-    keyManagerFactory.init(loadJks(config.keystorePath, config.keystorePassword), config.keystorePassword.toCharArray)
+    keyManagerFactory.init(loadStore(config.keystorePath, config.keystorePassword), config.keystorePassword.toCharArray)
     val trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm)
-    trustManagerFactory.init(loadJks(config.truststorePath, config.truststorePassword))
+    trustManagerFactory.init(loadStore(config.truststorePath, config.truststorePassword))
     val sslContext = SSLContext.getInstance("TLS")
     sslContext.init(keyManagerFactory.getKeyManagers, trustManagerFactory.getTrustManagers, null)
     sslContext

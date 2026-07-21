@@ -96,4 +96,27 @@ class Http4sMtlsTest extends FlatSpec with Matchers {
     sslContext should not be null
     sslContext.getProtocol shouldEqual "TLS"
   }
+
+  // A TPP's certificates arrive as often in PKCS12 as in JKS, and the store type cannot be
+  // sniffed from the bytes cheaply — getting it wrong fails at load with an opaque parse error.
+  "keyStoreTypeOf" should "select PKCS12 for .p12/.pfx and JKS otherwise" in {
+    Http4sMtls.keyStoreTypeOf("/path/server.p12") shouldEqual "PKCS12"
+    Http4sMtls.keyStoreTypeOf("/path/server.PFX") shouldEqual "PKCS12"
+    Http4sMtls.keyStoreTypeOf("/path/server.jks") shouldEqual "JKS"
+    Http4sMtls.keyStoreTypeOf("/path/server") shouldEqual "JKS"
+  }
+
+  it should "let buildSslContext load a PKCS12 keystore" in {
+    val certDir = new java.io.File(getClass.getResource("/cert/server.jks").toURI).getParent
+    // localhost_san_dns_ip.pfx carries SAN DNS:localhost + IP:127.0.0.1, which JKS server.jks
+    // lacks — clients that do not fall back to CN need this one.
+    val config = Http4sMtls.MtlsConfig(
+      keystorePath = s"$certDir/localhost_san_dns_ip.pfx",
+      keystorePassword = "123456",
+      truststorePath = s"$certDir/server.trust.jks",
+      truststorePassword = "123456",
+      needClientAuth = true
+    )
+    Http4sMtls.buildSslContext(config) should not be null
+  }
 }

@@ -17,6 +17,7 @@
 #   ./fast_build_and_run.sh --online       - Check remote repositories
 #   ./fast_build_and_run.sh --no-flush     - Skip Redis flush
 #   ./fast_build_and_run.sh --background   - Run server in background
+#   ./fast_build_and_run.sh --mtls         - Serve HTTPS with mutual TLS (dev only)
 #
 # Typical speedup: 2-5x faster than regular build for incremental changes
 ################################################################################
@@ -28,6 +29,7 @@ DO_CLEAN=""
 OFFLINE_FLAG="-o"  # Default to offline mode for faster builds
 FLUSH_REDIS=true
 RUN_BACKGROUND=false
+USE_MTLS=false
 
 for arg in "$@"; do
     case $arg in
@@ -47,8 +49,15 @@ for arg in "$@"; do
             RUN_BACKGROUND=true
             echo ">>> Server will run in background"
             ;;
+        --mtls)
+            USE_MTLS=true
+            echo ">>> mTLS mode requested (dev-only in-process TLS termination)"
+            ;;
     esac
 done
+
+# Select a JDK >= 17 before any Maven work (the build compiles with -release 17).
+. "$(dirname "${BASH_SOURCE[0]}")/scripts/java_env.sh"
 
 # Show offline mode status if not explicitly set
 if [ "$OFFLINE_FLAG" = "-o" ]; then
@@ -299,6 +308,12 @@ echo ""
 ################################################################################
 # RUN HTTP4S SERVER
 ################################################################################
+
+# Applied after the build so it only affects the running server, never compilation.
+if [ "$USE_MTLS" = true ]; then
+    . "$(dirname "${BASH_SOURCE[0]}")/scripts/mtls_env.sh"
+    echo ""
+fi
 
 echo "=========================================="
 if [ "$RUN_BACKGROUND" = true ]; then
