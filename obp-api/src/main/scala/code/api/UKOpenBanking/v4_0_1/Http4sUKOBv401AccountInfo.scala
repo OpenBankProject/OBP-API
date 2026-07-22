@@ -103,7 +103,13 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
           _ <- if (cc.user.isEmpty && cc.consumer.isEmpty)
                  Future.failed(new RuntimeException(AuthenticatedUserIsRequired))
                else Future.successful(())
+          // A pure client-credentials token still resolves cc.user to an auto-vivified
+          // pseudo-user (idGivenByProvider == the calling consumer's own client key) rather than
+          // leaving it Empty -- that pseudo-user is not a PSU, so it must not become the
+          // consent's owner (it would permanently block the real PSU's authorise-time
+          // ConsentDoesNotMatchUser check). Only carry a genuine PSU session through.
           createdByUser = cc.user.toOption
+            .filterNot(u => cc.consumer.map(_.key.get).contains(u.idGivenByProvider))
           consentJson <- Future.fromTry(scala.util.Try(
             JsonAliases.parse(cc.httpBody.getOrElse("{}")).extract[ConsentPostBodyUKV310]
           ))
