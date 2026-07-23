@@ -24,6 +24,11 @@ obp-api/src/main/resources/*
 obp-api/src/test/resources/**
 !obp-api/src/test/resources/frozen_type_meta_data
 !obp-api/src/test/resources/logback-test.xml
+# The development certificate set (scripts/generate_dev_certs.sh) is a test fixture and belongs in
+# the repository. Without these two lines a regenerated set is silently untracked and the tests
+# that depend on it fail everywhere except the machine that ran the script.
+!obp-api/src/test/resources/cert/
+!obp-api/src/test/resources/cert/**
 *.iml
 obp-api/src/main/resources/log4j.properties
 obp-api/src/main/scripts/kafka/kafka_*

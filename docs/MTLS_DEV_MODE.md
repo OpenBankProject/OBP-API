@@ -43,32 +43,44 @@ whether or not TLS terminates here.
 
 ### 0. The 30-second path — no certificates to generate
 
-The repository's dev pair is self-sufficient: `server.trust.jks` trusts the `CN=TESOBE CA`
-certificate (alias `mykey`, `CA:TRUE`), and `localhost_san_dns_ip.pfx` is a client identity signed
-by exactly that CA, private key included, password `123456`. So the checked-in keystore, truststore
-and a usable client certificate all line up out of the box.
+`obp-api/src/test/resources/cert` carries a development set, one file per role, all signed by one
+CA and all with the password `123456`:
+
+| File | Subject | Role |
+|---|---|---|
+| `dev-ca.crt` | `CN=OBP Dev CA, O=TESOBE GmbH, C=DE` | signs the rest; the only entry in the truststore |
+| `dev-truststore.p12` | — | what the server accepts: the CA, nothing else |
+| `obp-server.p12` | `CN=localhost, OU=OBP Server, O=TESOBE GmbH` | what OBP presents (`serverAuth`, SAN `DNS:localhost, IP:127.0.0.1`) |
+| `tpp-client.p12` (+ `.crt`/`.key`) | `CN=test-tpp, OU=TPP, O=Example TPP Ltd` | the calling App (`clientAuth`) |
+| `proxy-client.p12` | `CN=nginx-dev-1, OU=Edge Proxy, O=TESOBE GmbH` | a reverse proxy forwarding someone else's certificate |
+| `expired-tpp.p12` | `CN=expired-tpp, OU=TPP, O=Example TPP Ltd` | expired on purpose, for negative tests |
+
+Regenerate with `./scripts/generate_dev_certs.sh`. `DevCertificateSetTest` asserts the properties
+above still hold, so a regenerated set that loses a SAN or an EKU fails the build.
 
 ```sh
-# Start the server with mTLS on
-./flushall_fast_build_and_run.sh --mtls
+# Start the server on the role-named set
+CERT=$PWD/obp-api/src/test/resources/cert
+OBP_MTLS_KEYSTORE_PATH=$CERT/obp-server.p12 \
+OBP_MTLS_TRUSTSTORE_PATH=$CERT/dev-truststore.p12 \
+  ./flushall_fast_build_and_run.sh --mtls
 
-# Unpack the checked-in client identity for curl (once)
-CERT=obp-api/src/test/resources/cert
-openssl pkcs12 -in $CERT/localhost_san_dns_ip.pfx -passin pass:123456 -nokeys -clcerts -out /tmp/client.crt
-openssl pkcs12 -in $CERT/localhost_san_dns_ip.pfx -passin pass:123456 -nocerts -nodes -out /tmp/client.key
-
-# 200
-curl -k --cert /tmp/client.crt --key /tmp/client.key https://localhost:8080/obp/v5.1.0/root
+# 200 — and the server certificate verifies properly, no -k needed
+curl --cacert $CERT/dev-ca.crt --cert $CERT/tpp-client.crt --key $CERT/tpp-client.key \
+  https://localhost:8080/obp/v5.1.0/root
 
 # 56 — a handshake with no client certificate is rejected under client_auth=need
-curl -k https://localhost:8080/obp/v5.1.0/root
+curl --cacert $CERT/dev-ca.crt https://localhost:8080/obp/v5.1.0/root
 ```
 
-`-k` skips verification of the *server* certificate, which is `CN=localhost` with no SAN. Step 1
-below generates a pair with a proper SAN if you would rather use `--cacert` and verify properly.
+The props still default to the older `server.jks` / `server.trust.jks` pair, which also works —
+`server.trust.jks` trusts `CN=TESOBE CA` (alias `mykey`), and `localhost_san_dns_ip.pfx` is a client
+identity signed by it. Its drawbacks are why the set above exists: the server leaf has no SAN (so
+curl needs `-k`), the client identity is called `CN=localhost` rather than named for a TPP, and the
+truststore additionally holds five expired certificates and two public web CAs.
 
-Generate your own certificates instead when you need a specific subject (for a Consumer or
-regulated-entity lookup that matches on it), or a second identity to test rejection.
+Generate your own instead when you need a specific subject that a Consumer or regulated-entity
+lookup matches on.
 
 ### 1. Generate certificates
 
@@ -306,6 +318,8 @@ code path.
 | `scripts/java_env.sh` | Selects a JDK >= 17 for the run scripts. The build compiles with `-release 17`; on a default JDK 11 it otherwise fails with the misleading `'17' is not a valid choice for '-release'`. |
 | `obp-api/src/test/scala/bootstrap/http4s/Http4sMtlsTest.scala` | Unit tests: PEM encoding, header injection/stripping, SSLContext from the checked-in keystores. |
 | [`docs/MTLS_TOPOLOGIES.md`](MTLS_TOPOLOGIES.md) | **Proposal, not implemented.** Generalising the above to mTLS on the proxy → OBP hop, and to OBP as the TLS edge in production. |
+| `scripts/generate_dev_certs.sh` | Regenerates the role-named development certificate set (CA, server, TPP, proxy, expired fixture). |
+| `obp-api/src/test/scala/bootstrap/http4s/DevCertificateSetTest.scala` | Guards that set over a real handshake: names, EKUs, SAN, CA-only truststore, expired certificate rejected. |
 | `obp-api/src/test/scala/bootstrap/http4s/Http4sMtlsHandshakeTest.scala` | End-to-end: real Ember server + real mTLS handshake; proves the verified client cert surfaces as `PSD2-CERT` and certless handshakes are rejected. |
 
 Run the tests:
