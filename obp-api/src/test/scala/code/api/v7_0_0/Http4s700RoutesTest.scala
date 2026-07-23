@@ -8,7 +8,7 @@ import code.api.Constant.SYSTEM_OWNER_VIEW_ID
 import code.api.ResponseHeader
 import code.api.util.APIUtil
 import code.api.util.ApiRole.{canCreateEntitlementAtAnyBank, canCreateOrganisation, canCreateRoutingScheme, canCreateUtilityVendResult, canDeleteEntitlementAtAnyBank, canDeleteOrganisation, canDeleteRoutingScheme, canDeleteSchedulerJobLock, canUpdateSystemView, canGetAccountAccessTrace, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetCardsForBank, canGetConnectorHealth, canCreateMetricsArchiveRun, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMetricsDiagnostics, canGetMigrations, canGetSchedulerJobLocks, canReadResourceDoc, canUpdateBankSupportedRoutingScheme, canUpdateOrganisation, canUpdateRoutingScheme}
-import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, BankNotFound, EntitlementAlreadyExists, InvalidOrganisationIdFormat, InvalidRoutingSchemeName, MobileWalletDestinationNotFound, MobileWalletInvalidMsisdn, OrganisationAlreadyExists, OrganisationNotFound, PayeeLookupAddressMismatch, PayeeLookupIdentifierTypeNotRegistered, PayeeNotFound, RoutingSchemeAlreadyExists, RoutingSchemeExampleAddressMismatch, RoutingSchemeNotFound, SystemViewNotFound, UserHasMissingRoles, UserNotFoundByUserId, UtilityIdentifierTypeWrongCategory, UtilityInvalidIdentifier, UtilityTransactionRequestNotFound}
+import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, BankNotFound, EntitlementAlreadyExists, InvalidJsonFormat, InvalidOrganisationIdFormat, InvalidRoutingSchemeName, MobileWalletDestinationNotFound, MobileWalletInvalidMsisdn, OrganisationAlreadyExists, OrganisationNotFound, PayeeLookupAddressMismatch, PayeeLookupIdentifierTypeNotRegistered, PayeeNotFound, RoutingSchemeAlreadyExists, RoutingSchemeExampleAddressMismatch, RoutingSchemeNotFound, SelfServiceBankCreationDisabled, SelfServiceBankLimitReached, SystemViewNotFound, UserHasMissingRoles, UserNotFoundByUserId, UtilityIdentifierTypeWrongCategory, UtilityInvalidIdentifier, UtilityTransactionRequestNotFound}
 import code.utilitypayment.{UtilityCallbackStatus, UtilityPaymentCallbacks}
 import code.scheduler.JobScheduler
 import net.liftweb.mapper.By
@@ -2605,6 +2605,115 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
 
       And("the run was recorded in the metricsarchiverun log")
       code.metrics.MetricsArchiveRun.lastRun.isDefined shouldBe true
+    }
+  }
+
+  // ─── /my/banks — self-service bank creation ─────────────────────────────────
+
+  feature("Http4s700 self-service bank creation — /my/banks") {
+
+    def extractMessage(json: JValue): String = json match {
+      case JObject(fields) =>
+        toFieldMap(fields).get("message") match {
+          case Some(JString(msg)) => msg
+          case _                  => fail("Expected message field in error response")
+        }
+      case _ => fail("Expected JSON object error response")
+    }
+
+    scenario("Unauthenticated POST /my/banks returns 401", Http4s700RoutesTag) {
+      Given("self_service_bank_creation.limit is 1 but no auth is supplied")
+      setPropsValues("self_service_bank_creation.limit" -> "1")
+      val (statusCode, json, _) = makeHttpRequestWithMethod("POST", "/obp/v7.0.0/my/banks")
+      Then("Response is 401")
+      statusCode shouldBe 401
+      extractMessage(json) should include(AuthenticatedUserIsRequired)
+    }
+
+    scenario("Unauthenticated GET /my/banks returns 401", Http4s700RoutesTag) {
+      val (statusCode, json, _) = makeHttpRequest("/obp/v7.0.0/my/banks")
+      statusCode shouldBe 401
+      extractMessage(json) should include(AuthenticatedUserIsRequired)
+    }
+
+    scenario("POST /my/banks returns 400 when self-service creation is disabled (default limit 0)", Http4s700RoutesTag) {
+      Given("self_service_bank_creation.limit is 0 (the default)")
+      setPropsValues("self_service_bank_creation.limit" -> "0")
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequestWithMethod("POST", "/obp/v7.0.0/my/banks", headers)
+      Then("Response is 400 with SelfServiceBankCreationDisabled")
+      statusCode shouldBe 400
+      extractMessage(json) should include(SelfServiceBankCreationDisabled)
+    }
+
+    scenario("POST /my/banks with a non-empty body returns 400", Http4s700RoutesTag) {
+      Given("self_service_bank_creation.limit is 1 and a body is supplied")
+      setPropsValues("self_service_bank_creation.limit" -> "1")
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) =
+        makeHttpRequestWithBody("POST", "/obp/v7.0.0/my/banks", """{"full_name":"VERY RUDE BANK NAME"}""", headers)
+      Then("Response is 400 — the bank identity is server-generated, no body is accepted")
+      statusCode shouldBe 400
+      extractMessage(json) should include(InvalidJsonFormat)
+    }
+
+    scenario("POST /my/banks creates a generated bank; second POST is 403; GET /my/banks lists it", Http4s700RoutesTag) {
+      Given("self_service_bank_creation.limit is 1")
+      setPropsValues("self_service_bank_creation.limit" -> "1")
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+
+      When("POST /obp/v7.0.0/my/banks with an empty JSON object body (as API Explorer sends)")
+      val (statusCode, json, _) = makeHttpRequestWithBody("POST", "/obp/v7.0.0/my/banks", "{}", headers)
+
+      Then("Response is 201 with a fully generated bank identity")
+      statusCode shouldBe 201
+      val fieldMap = json match {
+        case JObject(fields) => toFieldMap(fields)
+        case _               => fail("Expected JSON object for created bank")
+      }
+      val bankId = fieldMap.get("bank_id") match {
+        case Some(JString(id)) => id
+        case _                 => fail("Expected bank_id field")
+      }
+      bankId should fullyMatch regex "[a-z]+-[a-z]+-[a-z]+-[0-9a-f]{4}"
+      val fullName = fieldMap.get("full_name") match {
+        case Some(JString(name)) => name
+        case _                   => fail("Expected full_name field")
+      }
+      fullName should endWith(" Bank")
+
+      And("the creator is granted CanCreateEntitlementAtOneBank at the new bank")
+      Entitlement.entitlement.vend
+        .getEntitlement(bankId, resourceUser1.userId, "CanCreateEntitlementAtOneBank")
+        .isDefined shouldBe true
+
+      And("GET /my/banks lists the created bank")
+      val (getStatus, getJson, _) = makeHttpRequest("/obp/v7.0.0/my/banks", headers)
+      getStatus shouldBe 200
+      val listedBankIds = getJson \ "banks" match {
+        case JArray(banks) => banks.map(bank => bank \ "bank_id").collect { case JString(id) => id }
+        case _             => fail("Expected banks array")
+      }
+      listedBankIds should contain(bankId)
+
+      And("a second POST returns 403 — the quota is exhausted")
+      val (secondStatus, secondJson, _) = makeHttpRequestWithMethod("POST", "/obp/v7.0.0/my/banks", headers)
+      secondStatus shouldBe 403
+      extractMessage(secondJson) should include(SelfServiceBankLimitReached)
+    }
+
+    scenario("Each user has an independent self-service quota", Http4s700RoutesTag) {
+      Given("user1 has exhausted their quota but user2 has not")
+      setPropsValues("self_service_bank_creation.limit" -> "1")
+      val headers = Map("DirectLogin" -> s"token=${token2.value}")
+      When("user2 POSTs /obp/v7.0.0/my/banks")
+      val (statusCode, json, _) = makeHttpRequestWithMethod("POST", "/obp/v7.0.0/my/banks", headers)
+      Then("Response is 201")
+      statusCode shouldBe 201
+      json \ "bank_id" match {
+        case JString(id) => id should fullyMatch regex "[a-z]+-[a-z]+-[a-z]+-[0-9a-f]{4}"
+        case _           => fail("Expected bank_id field")
+      }
     }
   }
 

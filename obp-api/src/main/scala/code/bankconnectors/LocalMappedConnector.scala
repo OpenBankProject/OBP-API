@@ -3378,6 +3378,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             .national_identifier(national_identifier)
             .mBankRoutingScheme(bankRoutingScheme)
             .mBankRoutingAddress(bankRoutingAddress)
+            .CreatedByUserId(callContext.map(_.user).flatMap(_.toOption).map(_.userId).getOrElse(""))
             .saveMe()
         } ?~! ErrorMessages.UpdateBankError
     }

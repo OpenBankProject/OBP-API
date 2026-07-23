@@ -10,7 +10,7 @@ import code.api.util.APIUtil.{EmptyBody, _}
 import code.api.util.{APIUtil, ApiRole, CallContext, CustomJsonFormats, Glossary, NewStyle}
 import code.api.util.ApiRole.{canCreateEntitlementAtAnyBank, canCreateEntitlementAtOneBank, canCreateMetricsArchiveRun, canCreateOrganisation, canCreateRoutingScheme, canCreateTestEmail, canCreateUtilityVendResult, canDeleteEntitlementAtAnyBank, canDeleteOrganisation, canDeleteRoutingScheme, canDeleteSchedulerJobLock, canGetAccountAccessTrace, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetConnectorHealth, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMetricsDiagnostics, canGetMigrations, canGetSchedulerJobLocks, canUpdateBankSupportedRoutingScheme, canUpdateOrganisation, canUpdateRoutingScheme, canUpdateSystemView}
 import code.api.util.CommonsEmailWrapper
-import code.model.dataAccess.AuthUser
+import code.model.dataAccess.{AuthUser, MappedBank}
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.http4s.{ErrorResponseConverter, Http4sRequestAttributes, IdempotencyMiddleware, RequestScopeConnection, ResourceDocMiddleware, ResourceDocMatcher}
@@ -20,7 +20,7 @@ import code.api.v1_4_0.JSONFactory1_4_0
 import code.api.v2_0_0.AccountsHelper.accountTypeFilterText
 import code.api.v2_0_0.{BasicViewJson, CreateEntitlementJSON, JSONFactory200}
 import code.api.v4_0_0.JSONFactory400
-import code.api.v6_0_0.{BasicAccountJsonV600, BasicAccountsJsonV600, BankJsonV600, CacheConfigJsonV600, CacheInfoJsonV600, CacheNamespaceInfoJsonV600, CacheNamespaceJsonV600, CacheNamespacesJsonV600, ConnectorInfoJsonV600, ConnectorsJsonV600, DatabasePoolInfoJsonV600, FeaturesJsonV600, InMemoryCacheStatusJsonV600, JSONFactory600, RedisCacheStatusJsonV600, StoredProcedureConnectorHealthJsonV600, UserV600}
+import code.api.v6_0_0.{BasicAccountJsonV600, BasicAccountsJsonV600, BankJsonV600, BanksJsonV600, CacheConfigJsonV600, CacheInfoJsonV600, CacheNamespaceInfoJsonV600, CacheNamespaceJsonV600, CacheNamespacesJsonV600, ConnectorInfoJsonV600, ConnectorsJsonV600, DatabasePoolInfoJsonV600, FeaturesJsonV600, InMemoryCacheStatusJsonV600, JSONFactory600, RedisCacheStatusJsonV600, StoredProcedureConnectorHealthJsonV600, UserV600}
 import code.api.v6_0_0.JSONFactory600.ViewJsonV600
 import code.api.cache.Redis
 import code.bankconnectors.storedprocedure.StoredProcedureUtils
@@ -58,7 +58,7 @@ import scala.collection.JavaConverters._
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
 import scala.language.{higherKinds, implicitConversions}
-import code.util.Helper
+import code.util.{BankNameGenerator, Helper}
 
 object Http4s700 {
 
@@ -71,54 +71,54 @@ object Http4s700 {
   val versionStatus = ApiVersionStatus.BLEEDING_EDGE.toString
   val resourceDocs = ArrayBuffer[ResourceDoc]()
 
-  /* 
+  /*
    * IMPORTANT: Endpoint Exclusion Pattern
-   * 
+   *
    * excludeEndpoints is used to filter out old endpoints when v7.0.0 has a DIFFERENT URL pattern.
-   * 
+   *
    * WHEN TO EXCLUDE:
    * - Old and new endpoints have DIFFERENT URLs (e.g., v4.0.0: /users/:username vs v7.0.0: /providers/:provider/users/:username)
    * - The old endpoint should not be accessible via v7.0.0 at all
-   * 
+   *
    * WHEN NOT TO EXCLUDE:
    * - Old and new endpoints have the SAME URL and HTTP method (e.g., GET /api/versions)
    * - In this case, collectResourceDocs() automatically deduplicates by (URL, method) and keeps newest version
    * - Excluding by function name would remove BOTH versions since they share the same name!
-   * 
+   *
    * Why? The routing works as follows:
    * 1. allResourceDocs = collectResourceDocs() deduplicates docs by (URL, method), keeps newest
    * 2. excludeEndpoints filters ResourceDocs by partialFunctionName (removes by name, not by version)
    * 3. The filtered docs determine which endpoints are available
-   * 
+   *
    * Pattern: Add nameOf(Implementations{version}.endpointName) :: with a comment explaining why
-   * 
+   *
    * NOTE: Currently empty - no v7-specific exclusions have been identified yet.
    * As v7.0.0 introduces endpoints with different URL patterns than previous versions,
    * add those old endpoint names here with explanatory comments.
    */
-  lazy val excludeEndpoints: List[String] = 
+  lazy val excludeEndpoints: List[String] =
     // Add exclusions here when v7.0.0 replaces old endpoints with different URLs
     // Example: nameOf(Implementations3_0_0.getUserByUsername) :: // v7.0.0 uses /providers/:provider/users/:username
     Nil
 
   /**
    * Aggregated resource docs from all API versions (v7.0.0 + v6.0.0 + v5.1.0 + ... + v1.3.0)
-   * 
+   *
    * This method implements the resource docs aggregation pattern for v7.0.0:
    * 1. Takes OBPAPI6_0_0.allResourceDocs (which already contains v6.0.0 + v5.1.0 + ... + v1.3.0)
    * 2. Adds v7.0.0's own resourceDocs
    * 3. Deduplicates by (requestUrl, requestVerb), keeping the newest version
    * 4. Filters out explicitly excluded old endpoints
-   * 
+   *
    * Note: We cannot extend OBPRestHelper (Lift framework) in Http4s700 (Http4s framework)
    * due to type incompatibilities. Instead, we implement the collectResourceDocs logic inline.
-   * 
+   *
    * The deduplication algorithm:
    * - Sort all docs by API version (descending: v7.0.0, v6.0.0, v5.1.0, ...)
    * - For each doc, check if (requestUrl, requestVerb) has been seen
    * - If not seen, add to result (this keeps the newest version)
    * - If seen, skip (this omits older versions of the same endpoint)
-   * 
+   *
    * Performance: Computed once and cached (lazy val) to avoid recomputation on every request.
    */
   lazy val allResourceDocs: ArrayBuffer[ResourceDoc] = {
@@ -130,19 +130,19 @@ object Http4s700 {
     // v6.0.0's aggregated docs (v6.0.0 + v5.1.0 + ... + v1.2.1), sourced Lift-free.
     // Combine with v7.0.0's docs.
     val allDocs = code.api.util.http4s.Http4sResourceDocAggregation.v600 ++ resourceDocs
-    
+
     // Deduplicate by (requestUrl, requestVerb), keeping newest version
     // Sort by API version (descending) so newer versions come first
     implicit val ordering = new Ordering[ScannedApiVersion] {
-      override def compare(x: ScannedApiVersion, y: ScannedApiVersion): Int = 
+      override def compare(x: ScannedApiVersion, y: ScannedApiVersion): Int =
         y.toString().compareTo(x.toString())
     }
-    
+
     val sortedDocs = allDocs.sortBy(_.implementedInApiVersion)
-    
+
     val result = ArrayBuffer[ResourceDoc]()
     val urlAndMethods = scala.collection.mutable.Set[(String, String)]()
-    
+
     for (doc <- sortedDocs) {
       val urlAndMethod = (doc.requestUrl, doc.requestVerb)
       if (!urlAndMethods.contains(urlAndMethod)) {
@@ -150,7 +150,7 @@ object Http4s700 {
         result += doc
       }
     }
-    
+
     // Filter out explicitly excluded old endpoints
     if (excludeEndpoints.isEmpty) {
       result
@@ -277,6 +277,147 @@ object Http4s700 {
         }
       }
     }
+
+    // ─── Self-service bank creation — /my/banks ──────────────────────────────
+    // One bank per registered user, gated by props self_service_bank_creation.limit
+    // (default 0 = disabled). Every public-facing string (bank_id, short name, full
+    // name) is generated by BankNameGenerator, so no user-supplied text can reach the
+    // anonymous GET /banks listing — which is why the POST takes an empty body.
+    // Response shapes reuse the v6 bank JSON (BankJson600 / BanksJsonV600).
+
+    // Baked into the ResourceDoc description at boot so API consumers see the effective
+    // value on this instance (props changes require a restart anyway). The handler reads
+    // the prop per-request, so tests overriding props are unaffected.
+    private val selfServiceBankCreationConfiguredLimit =
+      APIUtil.getPropsAsIntValue("self_service_bank_creation.limit", 0)
+    private val selfServiceBankCreationStatusText =
+      if (selfServiceBankCreationConfiguredLimit > 0)
+        s"On this instance, each User may create up to $selfServiceBankCreationConfiguredLimit bank(s) via this endpoint."
+      else
+        "On this instance, self-service bank creation is currently disabled."
+
+    val createMyBank: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "my" / "banks" =>
+        EndpointHelpers.executeFutureCreated(req) {
+          implicit val cc: CallContext = req.callContext
+          val selfServiceBankLimit = APIUtil.getPropsAsIntValue("self_service_bank_creation.limit", 0)
+          for {
+            _ <- Helper.booleanToFuture(SelfServiceBankCreationDisabled, cc = Some(cc)) {
+              selfServiceBankLimit > 0
+            }
+            _ <- Helper.booleanToFuture(
+              s"$InvalidJsonFormat The request body must be empty or an empty JSON object {} — the bank identity is generated by the server.",
+              cc = Some(cc)) {
+              // API Explorer and similar clients send {} for POSTs — treat it as empty.
+              cc.httpBody.forall(requestBody => {
+                val withoutWhitespace = requestBody.replaceAll("\\s", "")
+                withoutWhitespace.isEmpty || withoutWhitespace == "{}"
+              })
+            }
+            banksCreatedByUser <- Future(MappedBank.count(By(MappedBank.CreatedByUserId, cc.userId)))
+            _ <- Helper.booleanToFuture(SelfServiceBankLimitReached, failCode = 403, cc = Some(cc)) {
+              banksCreatedByUser < selfServiceBankLimit
+            }
+            generatedName <- Future {
+              unboxFullOrFail(
+                BankNameGenerator.generateUnique(candidateBankId =>
+                  MappedBank.findByBankId(BankId(candidateBankId)).isDefined),
+                Some(cc), UnknownError, 500
+              )
+            }
+            (bank, _) <- NewStyle.function.createOrUpdateBank(
+              generatedName.bankId,
+              generatedName.fullName,
+              generatedName.shortName,
+              "", "", "", "", "", "",
+              Some(cc)
+            )
+            _ <- Future(Entitlement.entitlement.vend.addEntitlement(
+              generatedName.bankId, cc.userId, canCreateEntitlementAtOneBank.toString()))
+          } yield JSONFactory600.createBankJSON600(bank)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(createMyBank),
+      "POST",
+      "/my/banks",
+      "Create My Bank (Self-Service)",
+      s"""Create a bank for the current User without requiring the role CanCreateBank.
+      |
+      |This is the self-service flavour of Create Bank, intended for
+      |sandbox instances.
+      |
+      |$selfServiceBankCreationStatusText
+      |
+      |When the limit is reached, further banks require the role CanCreateBank
+      |(see POST /banks).
+      |
+      |The request body must be empty (an empty JSON object `{}` is also accepted):
+      |the bank_id, short name and full name are
+      |auto-generated by the server (e.g. bank_id `granite-astra-falcon-4f2a`, full name
+      |`Granite Astra Falcon Bank`) and are permanent. Users holding the role CanCreateBank can instead use POST /banks to create
+      |banks with chosen names and branding.
+      |
+      |The user creating the bank is automatically assigned the Role
+      |CanCreateEntitlementAtOneBank at the new bank, and can therefore manage the bank
+      |and assign Roles to other Users.
+      |
+      |The settlement accounts are automatically created by the system when the bank is
+      |created, as for POST /banks.
+      |
+      |${userAuthenticationMessage(true)}
+      |""",
+      EmptyBody,
+      bankJson600,
+      List(
+        $AuthenticatedUserIsRequired,
+        SelfServiceBankCreationDisabled,
+        SelfServiceBankLimitReached,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      apiTagBank :: Nil,
+      None,
+      http4sPartialFunction = Some(createMyBank)
+    )
+
+    val getMyBanks: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "my" / "banks" =>
+        EndpointHelpers.withUser(req) { (user, cc) =>
+          for {
+            banksCreatedByUser <- Future(MappedBank.findAll(By(MappedBank.CreatedByUserId, user.userId)))
+          } yield JSONFactory600.createBanksJsonV600(banksCreatedByUser)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(getMyBanks),
+      "GET",
+      "/my/banks",
+      "Get My Banks",
+      s"""Returns the banks created by the current User — via self-service bank creation
+      |(POST /my/banks) or any other bank-creation endpoint.
+      |
+      |${userAuthenticationMessage(true)}
+      |""",
+      EmptyBody,
+      BanksJsonV600(List(BankJsonV600(
+        bank_id = "granite-astra-falcon-4f2a",
+        bank_code = "",
+        full_name = "Granite Astra Falcon Bank",
+        logo = "",
+        website = "",
+        bank_routings = Nil,
+        attributes = None
+      ))),
+      List($AuthenticatedUserIsRequired, UnknownError),
+      apiTagBank :: Nil,
+      None,
+      http4sPartialFunction = Some(getMyBanks)
+    )
 
     // Category: withUserDelete (user auth, 204 No Content)
     val deleteEntitlement: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -642,7 +783,7 @@ object Http4s700 {
     )
 
     // ── Trading Endpoints ──────────────────────────────────────────────────
-    
+
     // Route: POST /obp/v7.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/trading/offers
     val createTradingOffer: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ POST -> `prefixPath` / "banks" / bankId / "accounts" / accountId / "views" / viewId / "trading" / "offers" =>
@@ -684,7 +825,7 @@ object Http4s700 {
           } yield JSONFactory700.createTradingOfferJson(offer)
         }
     }
-    
+
     resourceDocs += ResourceDoc(
       implementedInApiVersion,
       nameOf(createTradingOffer),
@@ -735,7 +876,7 @@ object Http4s700 {
       apiTagTrading :: apiTagTrade :: Nil,
       http4sPartialFunction = Some(createTradingOffer)
     )
-    
+
     // Route: GET /obp/v7.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/trading/offers/OFFER_ID
     val getTradingOffer: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ GET -> `prefixPath` / "banks" / bankId / "accounts" / accountId / "views" / viewId / "trading" / "offers" / offerId =>
@@ -795,7 +936,7 @@ object Http4s700 {
           // Extract query parameters
           val status = req.uri.query.params.get("status")
           val offerType = req.uri.query.params.get("offer_type")
-          
+
           for {
             // Invoke connector
             (offers, callContext) <- NewStyle.function.getTradingOffers(
@@ -863,7 +1004,7 @@ object Http4s700 {
       apiTagTrading :: apiTagTrade :: Nil,
       http4sPartialFunction = Some(getTradingOffers)
     )
-    
+
     // Route: DELETE /obp/v7.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/trading/offers/OFFER_ID
     val cancelTradingOffer: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ DELETE -> `prefixPath` / "banks" / bankId / "accounts" / accountId / "views" / viewId / "trading" / "offers" / offerId =>
@@ -1405,14 +1546,14 @@ object Http4s700 {
 //          for {
 //            // Validate bank and account
 //            (_, callContext) <- NewStyle.function.getBankAccount(BankId(bankId), AccountId(accountId), Some(cc))
-//            
+//
 //            // Validate amount
 //            _ <- Helper.booleanToFuture(
 //              failMsg = InvalidTradingAmount,
 //              failCode = 400,
 //              cc = callContext
 //            )(createAuthJson.amount_fiat > 0)
-//            
+//
 //            // Invoke connector to create payment authorization (PREAUTH state)
 //            (auth, callContext2) <- NewStyle.function.createPaymentAuth(
 //              BankId(bankId),
@@ -1482,7 +1623,7 @@ object Http4s700 {
 //          for {
 //            // Validate bank and account
 //            (_, callContext) <- NewStyle.function.getBankAccount(BankId(bankId), AccountId(accountId), Some(cc))
-//            
+//
 //            // Invoke connector to capture payment (PREAUTH → CAPTURED)
 //            (auth, callContext2) <- NewStyle.function.capturePaymentAuth(
 //              BankId(bankId),
@@ -1539,7 +1680,7 @@ object Http4s700 {
 //          for {
 //            // Validate bank and account
 //            (_, callContext) <- NewStyle.function.getBankAccount(BankId(bankId), AccountId(accountId), Some(cc))
-//            
+//
 //            // Invoke connector to release payment (PREAUTH/CAPTURED → RELEASED)
 //            (auth, callContext2) <- NewStyle.function.releasePaymentAuth(
 //              BankId(bankId),
@@ -1596,7 +1737,7 @@ object Http4s700 {
 //          for {
 //            // Validate bank and account
 //            (_, callContext) <- NewStyle.function.getBankAccount(BankId(bankId), AccountId(accountId), Some(cc))
-//            
+//
 //            // Invoke connector to get payment authorization
 //            (auth, callContext2) <- NewStyle.function.getPaymentAuth(
 //              BankId(bankId),

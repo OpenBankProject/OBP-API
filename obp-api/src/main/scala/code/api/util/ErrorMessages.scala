@@ -637,6 +637,8 @@ object ErrorMessages {
   val UpdateCustomerAccountLinkError = "OBP-30227: Could not update the customer account link."
   val DeleteCustomerAccountLinkError = "OBP-30228: Could not delete the customer account link."
   val GetConsentImplicitSCAError = "OBP-30229: Could not get the implicit SCA consent."
+  val SelfServiceBankCreationDisabled = "OBP-30230: Self-service bank creation is disabled on this instance."
+  val SelfServiceBankLimitReached = "OBP-30231: Self-service bank creation limit reached. To create more banks you require the role CanCreateBank."
 
   val CreateSystemViewError = "OBP-30250: Could not create the system view"
   val DeleteSystemViewError = "OBP-30251: Could not delete the system view"
