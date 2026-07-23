@@ -232,10 +232,13 @@ Do **not** use this feature in production (it is disabled outside development mo
 Terminate mTLS at a reverse proxy and forward the verified certificate as the `PSD2-CERT`
 header. Two important rules for any proxy config:
 
-1. The header value must be **plain PEM** — OBP does not URL-decode. nginx's
-   `$ssl_client_escaped_cert` is URL-encoded and needs decoding (e.g. via njs) before
-   forwarding; HAProxy can rebuild a single-line PEM directly:
+1. The header value may be PEM (multi-line or single-line), nginx's percent-encoded
+   `$ssl_client_escaped_cert`, or bare base64 — all of them are decoded and rewritten to one
+   canonical PEM on ingress (`Psd2CertIngress`), so no njs decoding step is needed. HAProxy can
+   also rebuild a single-line PEM directly:
    `http-request set-header PSD2-CERT "-----BEGIN CERTIFICATE-----%[ssl_c_der,base64]-----END CERTIFICATE-----"`.
+   A value that is not a parseable certificate is passed through untouched and rejected later by
+   the authorisation code, not by this layer.
 2. The proxy must **overwrite** any client-supplied `PSD2-CERT` header, and the OBP port must
    not be reachable except through the proxy — otherwise the header can be spoofed.
 

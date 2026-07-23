@@ -1,9 +1,10 @@
 # mTLS topologies: peer vs caller
 
-**Status: proposal.** Nothing here is implemented. `docs/MTLS_DEV_MODE.md` documents the mTLS
-support that exists today; this document proposes generalising it so that OBP-API can terminate
-mutual TLS in production as well as development, behind a proxy or as the edge, without a separate
-code path per deployment.
+**Status: proposal, first phase implemented.** §11.2 (PR 1, ingress normalisation) is merged;
+everything else here — the peer-vs-forwarder rule itself included — is still a proposal.
+`docs/MTLS_DEV_MODE.md` documents the mTLS support that exists today; this document proposes
+generalising it so that OBP-API can terminate mutual TLS in production as well as development,
+behind a proxy or as the edge, without a separate code path per deployment.
 
 ## 1. What prompted this
 
@@ -303,11 +304,24 @@ The decision table in §3 then becomes a table-driven unit test needing no serve
 middleware reduces to a shell that calls `resolve` and rewrites the header. Every later phase gets
 cheaper for it.
 
-### 11.2 PR 1 — normalize `PSD2-CERT` on ingress
+### 11.2 PR 1 — normalize `PSD2-CERT` on ingress — **implemented**
 
-Implements §5.2. Adds the always-on middleware; parses the header once and re-emits canonical PEM
-via the existing `Http4sMtls.toPem`; removes the ad-hoc compensations at `ConsentUtil.scala:159-167`
-and `ConsentUtil.scala:207`.
+Implements §5.2. `Psd2CertIngress.canonicalize` runs unconditionally from `Http4sApp.httpApp`;
+`CertificateUtil.canonicalizePemX509Certificate` percent-decodes, parses and re-emits canonical PEM
+through `CertificateUtil.toPem`, which `Http4sMtls.toPem` now delegates to so the dev injector and
+a forwarded certificate produce byte-identical values.
+
+Two deviations from the plan as written, both deliberate:
+
+- **The downstream compensations were kept, not removed.** `ConsentUtil.scala:159-167` looks the
+  Consumer up in the database, so only the request side of that comparison can be normalised; the
+  stored certificate is whatever was pasted at registration. The `removeBreakLines` comparison in
+  the consent check is now *alternative* to `comparePemX509Certificates` rather than replaced by it
+  — neither subsumes the other for every stored form, and accepting either keeps the change
+  strictly more permissive. Removing them safely needs the stored certificates normalised at write
+  time plus a migration, which is its own change.
+- **Percent-decoding is hand-rolled rather than `java.net.URLDecoder`.** URLDecoder maps `+` to a
+  space, which is correct for form encoding and silently corrupts a base64 payload.
 
 **This is the one phase with a genuine regression path.** A Consumer registered with a
 non-canonical PEM currently matches through the raw-value lookup that runs first; normalizing the

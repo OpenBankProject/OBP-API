@@ -1,15 +1,14 @@
 package bootstrap.http4s
 
 import java.io.{File, FileInputStream}
-import java.nio.charset.StandardCharsets
 import java.security.KeyStore
 import java.security.cert.X509Certificate
 import javax.net.ssl.{KeyManagerFactory, SSLContext, TrustManagerFactory}
 
 import cats.data.Kleisli
 import cats.effect.IO
-import code.api.{CertificateConstants, RequestHeader}
-import code.api.util.APIUtil
+import code.api.RequestHeader
+import code.api.util.{APIUtil, CertificateUtil}
 import code.util.Helper.MdcLoggable
 import fs2.io.net.tls.{TLSContext, TLSParameters}
 import net.liftweb.util.Props
@@ -142,13 +141,11 @@ object Http4sMtls extends MdcLoggable {
 
   private val psd2CertHeaderName = CIString(RequestHeader.`PSD2-CERT`)
 
-  // Canonical PEM: 64-column base64 with \n separators, the format developers paste when
-  // registering a Consumer, so the verbatim clientCertificate DB lookup can match. The
-  // normalizePemX509Certificate fallback and the consent removeBreakLines compare cover the rest.
-  private val pemEncoder = java.util.Base64.getMimeEncoder(64, "\n".getBytes(StandardCharsets.US_ASCII))
-
-  def toPem(certificate: X509Certificate): String =
-    s"${CertificateConstants.BEGIN_CERT}\n${pemEncoder.encodeToString(certificate.getEncoded)}\n${CertificateConstants.END_CERT}"
+  // Canonical PEM, via the one emitter every path shares (CertificateUtil.toPem): the format
+  // developers paste when registering a Consumer, so the verbatim clientCertificate DB lookup can
+  // match. Ingress normalisation rewrites forwarded certificates into this same form, so a
+  // certificate injected here and the same certificate arriving through a proxy are byte-identical.
+  def toPem(certificate: X509Certificate): String = CertificateUtil.toPem(certificate)
 
   /**
    * Replaces the Jetty customizer of the old RunMTLSWebApp: takes the client certificate that
