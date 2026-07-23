@@ -10,7 +10,8 @@ import code.api.util.APIUtil.{EmptyBody, _}
 import code.api.util.{APIUtil, ApiRole, CallContext, CustomJsonFormats, Glossary, NewStyle}
 import code.api.util.ApiRole.{canCreateEntitlementAtAnyBank, canCreateEntitlementAtOneBank, canCreateMetricsArchiveRun, canCreateOrganisation, canCreateRoutingScheme, canCreateTestEmail, canCreateUtilityVendResult, canDeleteEntitlementAtAnyBank, canDeleteOrganisation, canDeleteRoutingScheme, canDeleteSchedulerJobLock, canGetAccountAccessTrace, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetConnectorHealth, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMetricsDiagnostics, canGetMigrations, canGetSchedulerJobLocks, canUpdateBankSupportedRoutingScheme, canUpdateOrganisation, canUpdateRoutingScheme, canUpdateSystemView}
 import code.api.util.CommonsEmailWrapper
-import code.model.dataAccess.{AuthUser, MappedBank}
+import code.model.dataAccess.{AuthUser, MappedBank, ResourceUser}
+import code.consent.Consents
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.http4s.{ErrorResponseConverter, Http4sRequestAttributes, IdempotencyMiddleware, RequestScopeConnection, ResourceDocMiddleware, ResourceDocMatcher}
@@ -49,7 +50,7 @@ import code.users.UserAgreementProvider
 import net.liftweb.common.Full
 import com.openbankproject.commons.util.JsonAliases.prettyRender
 import org.json4s.{Extraction, Formats}
-import net.liftweb.mapper.{By, Descending, MaxRows, OrderBy}
+import net.liftweb.mapper.{By, ByList, Descending, MaxRows, OrderBy}
 import org.http4s._
 import org.http4s.dsl.io._
 import org.typelevel.ci.CIString
@@ -285,6 +286,23 @@ object Http4s700 {
     // anonymous GET /banks listing — which is why the POST takes an empty body.
     // Response shapes reuse the v6 bank JSON (BankJson600 / BanksJsonV600).
 
+    // ─── Delegation fan-down for /my/banks ───────────────────────────────────
+    // Resolving UP (agent caller → the granting human) is cc.effectiveHumanUserId.
+    // This is the fan DOWN: the human plus every agent user minted from any Consent the
+    // human granted — i.e. all user ids whose creations belong to that human. Match the
+    // result against CreatedByUserId. Reads only server-written columns
+    // (MappedConsent.mUserId, ResourceUser.CreatedByConsentId); the input must be an
+    // already-resolved human id (cc.effectiveHumanUserId), never a raw caller value.
+
+    private def humanAndAgentUserIds(humanUserId: String): List[String] = {
+      val consentIds = Consents.consentProvider.vend.getConsentsByUser(humanUserId)
+        .map(_.consentId).filter(_.nonEmpty)
+      val agentUserIds =
+        if (consentIds.isEmpty) Nil
+        else ResourceUser.findAll(ByList(ResourceUser.CreatedByConsentId, consentIds)).map(_.userId)
+      (humanUserId :: agentUserIds).filter(_.nonEmpty).distinct
+    }
+
     // Baked into the ResourceDoc description at boot so API consumers see the effective
     // value on this instance (props changes require a restart anyway). The handler reads
     // the prop per-request, so tests overriding props are unaffected.
@@ -314,7 +332,13 @@ object Http4s700 {
                 withoutWhitespace.isEmpty || withoutWhitespace == "{}"
               })
             }
-            banksCreatedByUser <- Future(MappedBank.count(By(MappedBank.CreatedByUserId, cc.userId)))
+            banksCreatedByUser <- Future {
+              // Quota binds to the human: banks created by the human directly or by any
+              // of their consent-agents count toward the same limit — otherwise every
+              // new consent would arrive with a fresh quota.
+              val creatorUserIds = humanAndAgentUserIds(cc.effectiveHumanUserId)
+              MappedBank.count(ByList(MappedBank.CreatedByUserId, creatorUserIds))
+            }
             _ <- Helper.booleanToFuture(SelfServiceBankLimitReached, failCode = 403, cc = Some(cc)) {
               banksCreatedByUser < selfServiceBankLimit
             }
@@ -352,7 +376,9 @@ object Http4s700 {
       |$selfServiceBankCreationStatusText
       |
       |When the limit is reached, further banks require the role CanCreateBank
-      |(see POST /banks).
+      |(see POST /banks). The limit binds to the human User: banks created by the User
+      |directly and by any agent acting for the User under a Consent count toward the
+      |same limit.
       |
       |The request body must be empty (an empty JSON object `{}` is also accepted):
       |the bank_id, short name and full name are
@@ -387,7 +413,10 @@ object Http4s700 {
       case req @ GET -> `prefixPath` / "my" / "banks" =>
         EndpointHelpers.withUser(req) { (user, cc) =>
           for {
-            banksCreatedByUser <- Future(MappedBank.findAll(By(MappedBank.CreatedByUserId, user.userId)))
+            banksCreatedByUser <- Future {
+              val creatorUserIds = humanAndAgentUserIds(cc.effectiveHumanUserId)
+              MappedBank.findAll(ByList(MappedBank.CreatedByUserId, creatorUserIds))
+            }
           } yield JSONFactory600.createBanksJsonV600(banksCreatedByUser)
         }
     }
@@ -398,8 +427,13 @@ object Http4s700 {
       "GET",
       "/my/banks",
       "Get My Banks",
-      s"""Returns the banks created by the current User — via self-service bank creation
-      |(POST /my/banks) or any other bank-creation endpoint.
+      s"""Returns the banks belonging to the current User — created directly by the User,
+      |or created by an agent acting for the User under a Consent.
+      |
+      |Delegation is resolved server-side from the Consent records: when the caller is a
+      |consent-based agent, the list shows the granting User's banks; when the caller is
+      |the User, the list includes banks created by any of their consent-based agents.
+      |Nothing is accepted from the caller to influence this resolution.
       |
       |${userAuthenticationMessage(true)}
       |""",

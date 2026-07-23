@@ -2702,6 +2702,63 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
       extractMessage(secondJson) should include(SelfServiceBankLimitReached)
     }
 
+    scenario("Different consent-agents and the human itself create banks — all listed, one shared quota", Http4s700RoutesTag) {
+
+      /** Simulate a consent granted by the human minting an agent user which creates a bank. */
+      def createBankViaNewConsentAgent(humanUserId: String): String = {
+        val consent = code.consent.MappedConsent.create.mUserId(humanUserId).saveMe()
+        val agentUser = code.users.Users.users.vend.createResourceUser(
+          provider = "test-consent-issuer",
+          providerId = Some(APIUtil.generateUUID()),
+          createdByConsentId = Some(consent.consentId),
+          name = Some("test-agent-user"),
+          email = None,
+          userId = None,
+          createdByUserInvitationId = None,
+          company = None,
+          lastMarketingAgreementSignedDate = None
+        ).openOrThrowException("Expected agent user to be created")
+        val agentBankId = s"agent-made-${APIUtil.generateUUID().take(8)}"
+        code.model.dataAccess.MappedBank.create
+          .permalink(agentBankId)
+          .fullBankName("Agent Made Bank")
+          .shortBankName("Agent Made")
+          .CreatedByUserId(agentUser.userId)
+          .saveMe()
+        agentBankId
+      }
+
+      Given("user3 granted two different consents whose agents each created a bank")
+      setPropsValues("self_service_bank_creation.limit" -> "3")
+      val bankFromAgent1 = createBankViaNewConsentAgent(resourceUser3.userId)
+      val bankFromAgent2 = createBankViaNewConsentAgent(resourceUser3.userId)
+      val headers = Map("DirectLogin" -> s"token=${token3.value}")
+
+      When("user3 creates a bank directly — quota is 2 of 3 so this succeeds")
+      val (postStatus, postJson, _) = makeHttpRequestWithMethod("POST", "/obp/v7.0.0/my/banks", headers)
+      postStatus shouldBe 201
+      val directBankId = postJson \ "bank_id" match {
+        case JString(id) => id
+        case _           => fail("Expected bank_id field")
+      }
+
+      Then("GET /my/banks lists all three: both agents' banks and the direct one")
+      val (getStatus, getJson, _) = makeHttpRequest("/obp/v7.0.0/my/banks", headers)
+      getStatus shouldBe 200
+      val listedBankIds = getJson \ "banks" match {
+        case JArray(banks) => banks.map(bank => bank \ "bank_id").collect { case JString(id) => id }
+        case _             => fail("Expected banks array")
+      }
+      listedBankIds should contain(bankFromAgent1)
+      listedBankIds should contain(bankFromAgent2)
+      listedBankIds should contain(directBankId)
+
+      And("the quota is shared — a fourth bank is refused with 403")
+      val (secondPostStatus, secondPostJson, _) = makeHttpRequestWithMethod("POST", "/obp/v7.0.0/my/banks", headers)
+      secondPostStatus shouldBe 403
+      extractMessage(secondPostJson) should include(SelfServiceBankLimitReached)
+    }
+
     scenario("Each user has an independent self-service quota", Http4s700RoutesTag) {
       Given("user1 has exhausted their quota but user2 has not")
       setPropsValues("self_service_bank_creation.limit" -> "1")
