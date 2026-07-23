@@ -163,10 +163,12 @@ object Http4sApp extends MdcLoggable {
   def httpApp: HttpApp[IO] = {
     val app = baseServices.orNotFound
     Kleisli { rawReq: Request[IO] =>
-      // Canonicalise PSD2-CERT before anything reads it. Unconditional on purpose: the deployment
-      // that needs it most — a proxy forwarding the header over a plain HTTP hop — enables no TLS
-      // middleware at all, so it cannot live in the mtls.enabled branch of Http4sServer.
-      val req = Psd2CertIngress.canonicalize(rawReq)
+      // Establish who is calling before anything reads PSD2-CERT: canonicalise the header into the
+      // one form the rest of OBP compares, then decide whether the TLS peer is that caller or a
+      // trusted forwarder naming it. Unconditional on purpose — the deployment where the answer is
+      // least obvious, a proxy forwarding the header over a hop with no client certificate, enables
+      // no TLS middleware at all, so neither step can live in Http4sServer's mtls.enabled branch.
+      val req = CallerCertificate.resolveCaller(Psd2CertIngress.canonicalize(rawReq))
       app.run(req)
         .map(resp => stripBodyForHead(req, Http4sStandardHeaders(req, resp)))
         .handleErrorWith { e =>

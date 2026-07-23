@@ -32,9 +32,12 @@ object Http4sServer extends IOApp with MdcLoggable {
         s"keystore=${Http4sMtls.config.keystorePath}, truststore=${Http4sMtls.config.truststorePath}")
       if (code.api.Constant.HostName.startsWith("http://"))
         logger.warn("mtls.enabled=true but the hostname prop still starts with http:// — set it to https:// so generated links match the TLS listener.")
+      // No certificate middleware here: Http4sApp.httpApp resolves the caller for every request,
+      // TLS or not (code.api.util.http4s.CallerCertificate). Ember exposes the handshake
+      // certificate on the request, which is all this branch needs to contribute.
       builder
         .withTLS(Http4sMtls.tlsContext, Http4sMtls.tlsParameters)
-        .withHttpApp(Http4sMtls.injectClientCertificate(httpApp))
+        .withHttpApp(httpApp)
     } else {
       builder.withHttpApp(httpApp)
     }

@@ -8,7 +8,9 @@ import javax.net.ssl.{HttpsURLConnection, KeyManagerFactory, SSLContext, TrustMa
 
 import cats.effect.IO
 import cats.effect.unsafe.implicits.global
+import code.api.util.{CertificateUtil, PeerTrust}
 import code.api.util.SelfSignedCertificateUtil.generateSelfSignedCert
+import code.api.util.http4s.CallerCertificate
 import com.comcast.ip4s.{Host, Port}
 import fs2.io.net.tls.{TLSContext, TLSParameters}
 import org.http4s.{HttpApp, Response, Status}
@@ -17,11 +19,12 @@ import org.scalatest.{BeforeAndAfterAll, FlatSpec, Matchers}
 import org.typelevel.ci.CIString
 
 /**
- * End-to-end proof of the dev-only mTLS mode: a real Ember server built the same way as
- * Http4sServer's mtls.enabled branch (buildSslContext from JKS files -> TLSContext ->
- * withTLS(needClientAuth) -> injectClientCertificate middleware), exercised over a real
- * TLS handshake with a client certificate. This is the only place Ember's population of
- * ServerRequestKeys.SecureSession is actually verified.
+ * End-to-end proof of mTLS termination: a real Ember server built the same way as Http4sServer's
+ * mtls.enabled branch (buildSslContext from JKS files -> TLSContext -> withTLS(needClientAuth)),
+ * with the caller resolved exactly as Http4sApp.httpApp does it, exercised over a real TLS
+ * handshake. This is the only place Ember's population of ServerRequestKeys.SecureSession is
+ * actually verified — and therefore the only place proving the peer certificate the whole
+ * peer-vs-forwarder rule depends on is really there.
  */
 class Http4sMtlsHandshakeTest extends FlatSpec with Matchers with BeforeAndAfterAll {
 
@@ -49,6 +52,23 @@ class Http4sMtlsHandshakeTest extends FlatSpec with Matchers with BeforeAndAfter
     IO.pure(Response[IO](Status.Ok).withEntity(headerValue))
   }
 
+  // Two deployments served by one server, selected by path, so both are exercised over a real
+  // handshake rather than only in the pure tests:
+  //   /as-edge      — nothing is a forwarder, so the handshake certificate is the caller
+  //   /behind-proxy — the client certificate IS the trusted proxy, so the header names the caller
+  private val asEdge = PeerTrust.TrustConfig(Nil, trustForwardedHeaderWithoutTls = false)
+  private lazy val behindProxy = {
+    val proxyDn = PeerTrust.canonicalDn(
+      clientCert.asInstanceOf[X509Certificate].getSubjectX500Principal.getName).get
+    PeerTrust.TrustConfig(List(PeerTrust.TrustedProxy(proxyDn, Some(proxyDn))),
+      trustForwardedHeaderWithoutTls = false)
+  }
+
+  private val resolvingApp: HttpApp[IO] = HttpApp[IO] { req =>
+    val config = if (req.uri.path.renderString.startsWith("/behind-proxy")) behindProxy else asEdge
+    echoApp(CallerCertificate.resolveCaller(req, config))
+  }
+
   private var shutdown: IO[Unit] = IO.unit
   private var serverPort: Int = 0
 
@@ -65,7 +85,7 @@ class Http4sMtlsHandshakeTest extends FlatSpec with Matchers with BeforeAndAfter
       .withHost(Host.fromString("127.0.0.1").get)
       .withPort(Port.fromInt(0).get)
       .withTLS(TLSContext.Builder.forAsync[IO].fromSSLContext(sslContext), TLSParameters(needClientAuth = true))
-      .withHttpApp(Http4sMtls.injectClientCertificate(echoApp))
+      .withHttpApp(resolvingApp)
       .build
       .allocated
       .unsafeRunSync()
@@ -94,14 +114,15 @@ class Http4sMtlsHandshakeTest extends FlatSpec with Matchers with BeforeAndAfter
     sslContext
   }
 
-  private def get(withClientCert: Boolean): String = {
-    val connection = new URL(s"https://127.0.0.1:$serverPort/anything")
+  private def get(withClientCert: Boolean, path: String = "/as-edge",
+                  forwarded: String = "spoofed-value"): String = {
+    val connection = new URL(s"https://127.0.0.1:$serverPort$path")
       .openConnection().asInstanceOf[HttpsURLConnection]
     connection.setSSLSocketFactory(clientSslContext(withClientCert).getSocketFactory)
     // the throwaway server cert has no SAN; a custom verifier also disables the JDK's
     // in-handshake endpoint identification, which would otherwise reject it
     connection.setHostnameVerifier((_, _) => true)
-    connection.setRequestProperty("PSD2-CERT", "spoofed-value")
+    connection.setRequestProperty("PSD2-CERT", forwarded)
     try scala.io.Source.fromInputStream(connection.getInputStream).mkString
     finally connection.disconnect()
   }
@@ -112,5 +133,20 @@ class Http4sMtlsHandshakeTest extends FlatSpec with Matchers with BeforeAndAfter
 
   "a TLS handshake without a client certificate" should "be rejected when client_auth=need" in {
     an[Exception] should be thrownBy get(withClientCert = false)
+  }
+
+  // The production topology, over a real handshake: the peer authenticates as the trusted proxy and
+  // the certificate it forwards survives. The old middleware would have overwritten it with the
+  // proxy's own, which is the failure this whole design exists to prevent.
+  "a request from a trusted forwarder" should "keep the forwarded certificate, not the peer's" in {
+    // Single-line: an HTTP header value cannot contain newlines, so this is the only shape a real
+    // proxy can forward — canonical multi-line PEM is rejected outright by the client here. It is
+    // also why Psd2CertIngress has to canonicalise on the way in rather than assuming a form.
+    val forwardedPem = CertificateUtil.normalizePemX509Certificate(
+      CertificateUtil.toPem(serverCert.asInstanceOf[X509Certificate]))
+    val seenByApp = get(withClientCert = true, path = "/behind-proxy", forwarded = forwardedPem)
+
+    seenByApp shouldEqual forwardedPem
+    seenByApp should not equal Http4sMtls.toPem(clientCert.asInstanceOf[X509Certificate])
   }
 }

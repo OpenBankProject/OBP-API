@@ -1,10 +1,11 @@
 # mTLS topologies: peer vs caller
 
-**Status: proposal, first phase implemented.** §11.2 (PR 1, ingress normalisation) is merged;
-everything else here — the peer-vs-forwarder rule itself included — is still a proposal.
-`docs/MTLS_DEV_MODE.md` documents the mTLS support that exists today; this document proposes
-generalising it so that OBP-API can terminate mutual TLS in production as well as development,
-behind a proxy or as the edge, without a separate code path per deployment.
+**Status: §11.2 and §11.3 implemented; §11.4 onward still proposed.** The peer-vs-forwarder rule of
+§3 lives in `code.api.util.PeerTrust` and runs for every request. What remains is the
+dev-behind-nginx harness (§11.4) and the per-environment rollout (§11.5), which is where any
+deployment's behaviour actually changes — the shipped defaults reproduce what every deployment did
+before. `docs/MTLS_DEV_MODE.md` is the operator-facing guide; this document is why it looks the way
+it does.
 
 ## 1. What prompted this
 
@@ -18,8 +19,11 @@ Four deployments are in scope, all of them considered legitimate:
 
 |                | OBP-API is the TLS edge | OBP-API behind nginx |
 |----------------|-------------------------|----------------------|
-| **development** | supported today (`--mtls`) | **not currently possible** |
-| **production**  | blocked by the run-mode gate | supported today (plain HTTP hop) |
+| **development** | supported before this work (`--mtls`) | needs the harness of §11.4 |
+| **production**  | possible since §11.3; not scheduled (§11.7) | supported; mTLS on the hop is §11.5 |
+
+At the time of writing, the second column's production cell ran over a plain HTTP hop and the
+run-mode gate blocked the first column's.
 
 ## 2. Is the proxy a second Consumer?
 
@@ -75,31 +79,32 @@ Development and production then differ only in keystore paths and in how strict 
 defaults are. There is no topology mode, no run-mode branch, and no second middleware to keep in
 step with the first.
 
-**Corollary: run mode is not a topology axis.** The existing `Props.mode == Development` gate
-(`Http4sMtls.scala:56`) encodes an assumption about deployment that all four supported cases
-falsify. §5.3 proposes what should replace it.
+**Corollary: run mode is not a topology axis.** The `Props.mode == Development` gate encoded an
+assumption about deployment that all four supported cases falsify. §5.3 records what replaced it.
 
 **Corollary: do not add a topology prop.** An explicit `mtls.topology=edge|behind_proxy` would
 reintroduce exactly what this design removes: two pieces of state that can disagree with each
 other. The topology is *inferred* from whether the allowlist is empty.
 
-## 4. What the current implementation does, and why it does not generalise
+## 4. What the original implementation did, and why it did not generalise
 
-`Http4sMtls.injectClientCertificate` (`Http4sMtls.scala:159`) strips any inbound `PSD2-CERT` and
-replaces it with the certificate from the TLS handshake. That is correct for the one deployment it
-was written for — OBP as the mTLS edge in development, where an inbound `PSD2-CERT` can only be a
-spoof — and it is deliberately confined there (`Http4sMtls.scala:56-64`).
+Kept as the rationale for §3; the code described here was replaced in §11.3.
 
-Its role is to **mimic nginx**: terminate the handshake, translate the verified client certificate
-into the single representation OBP consumes downstream (a PEM `PSD2-CERT` header,
-`Http4sMtls.scala:148-151`), and hand the request to the identical code path production uses. There
-is no second authentication mechanism in development, and no second identity — the client
-certificate simply *is* the App.
+`Http4sMtls.injectClientCertificate` stripped any inbound `PSD2-CERT` and replaced it with the
+certificate from the TLS handshake. That is correct for the one deployment it was written for — OBP
+as the mTLS edge in development, where an inbound `PSD2-CERT` can only be a spoof — and it was
+deliberately confined there by a run-mode gate.
 
-That is also why enabling it in production as-is would be wrong: it would faithfully do its job and
-overwrite the App certificate forwarded by nginx with nginx's own handshake certificate. Every
-request would arrive as the proxy. The trusted-forwarder rule in §3 is what generalises the
-behaviour rather than special-casing it.
+Its role was to **mimic nginx**: terminate the handshake, translate the verified client certificate
+into the single representation OBP consumes downstream (a PEM `PSD2-CERT` header), and hand the
+request to the identical code path production uses. There was no second authentication mechanism in
+development and no second identity — the client certificate simply *was* the App.
+
+That is also why enabling it in production as-is would have been wrong: it would faithfully do its
+job and overwrite the App certificate forwarded by nginx with nginx's own handshake certificate.
+Every request would arrive as the proxy. The trusted-forwarder rule of §3 generalises the behaviour
+instead of special-casing it, and that failure is now pinned by a test
+(`CallerCertificateTest`: "keep the App's certificate, not the proxy's").
 
 ## 5. Design choices
 
@@ -382,7 +387,7 @@ non-canonically stored Consumer.
 
 Small; mostly deletion downstream.
 
-### 11.3 PR 2 — peer-vs-forwarder resolution
+### 11.3 PR 2 — peer-vs-forwarder resolution — **implemented**
 
 Implements §3, §5.1, §5.3, §5.4 and §5.5 — the bulk of the design. Adds `resolve` and its config,
 reduces `injectClientCertificate` to a caller of it, and introduces:
@@ -405,7 +410,20 @@ Tests: the five-state table as pure unit tests, plus an extension of
 asserting the header survives. That harness already generates certificates on the fly and builds a
 real Ember server, so simulating nginx costs one additional generated keypair and no nginx.
 
-Medium.
+Two things found while building it, both now pinned by tests:
+
+- **The empty string is a valid X.500 name.** `X500Principal("")` parses and canonicalises back to
+  `""`, so a blank `mtls.trusted_proxy.N.subject` would have become a rule matching any certificate
+  with an empty subject rather than a configuration error. `canonicalDn` rejects blanks explicitly.
+- **An HTTP header value cannot contain newlines**, so a proxy can only ever forward a single-line
+  PEM — canonical multi-line PEM is rejected by the client before it reaches the wire. This is
+  what makes §5.2's ingress canonicalisation load-bearing rather than cosmetic, and it is the
+  reason PR 1's regression analysis holds: the header side of every stored-certificate comparison
+  was always single-line.
+
+Deviation from the plan: the `Rejected` case of the sketched ADT was not implemented. Nothing
+produces it — a peer that is not a trusted forwarder is simply the caller, and an unusable
+certificate is the authorisation layer's to reject, not this layer's. Three cases, no dead branch.
 
 ### 11.4 PR 3 — dev-behind-nginx
 

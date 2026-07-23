@@ -1,13 +1,14 @@
-# Running OBP-API in mTLS Mode (Dev Feature)
+# Running OBP-API in mTLS Mode
 
-OBP-API can terminate **mutual TLS (mTLS) in-process** for local development: the http4s (Ember)
-server itself does the TLS handshake, requires a client certificate, and hands the verified
-certificate to the application as the `PSD2-CERT` request header. No reverse proxy needed.
+OBP-API can terminate **mutual TLS (mTLS) in-process**: the http4s (Ember) server itself does the
+TLS handshake, requires a client certificate, and identifies the caller from it. No reverse proxy
+needed. This is the usual way to develop against mTLS locally.
 
-> **Dev only.** The feature is honoured **only when `run.mode=development`**. In any other run
-> mode `mtls.enabled=true` is ignored with a boot warning. In production, terminate mTLS at a
-> reverse proxy (nginx/HAProxy/Apache) that forwards the verified client certificate as the
-> `PSD2-CERT` header — see [Production deployments](#production-deployments) below.
+> **Who the certificate identifies depends on the deployment.** When OBP is the TLS edge, the
+> handshake certificate IS the caller. When a reverse proxy terminates mTLS and forwards the
+> client certificate as `PSD2-CERT`, the handshake certificate is the *proxy* and the header names
+> the caller. Both are supported and both are decided by one rule per request — see
+> [`MTLS_TOPOLOGIES.md`](MTLS_TOPOLOGIES.md) and the `mtls.trusted_proxy.*` props below.
 
 This is the http4s successor of the old `RunMTLSWebApp.scala` launcher, which was removed with
 the Lift/Jetty teardown. Instead of a separate launcher, it is a props toggle on the normal
@@ -20,9 +21,11 @@ curl --cert client.crt ── TLS handshake ──► Ember server (mtls.enabled
                                              │  verifies client cert against mtls.truststore
                                              │  exposes it via ServerRequestKeys.SecureSession
                                              ▼
-                                            Http4sMtls.injectClientCertificate middleware
-                                             │  strips any client-supplied PSD2-CERT header (anti-spoofing)
-                                             │  injects the verified cert as PSD2-CERT (PEM)
+                                            Psd2CertIngress + CallerCertificate middleware
+                                             │  canonicalises any forwarded PSD2-CERT header
+                                             │  peer is not a trusted proxy, so it IS the caller:
+                                             │  strips that header (anti-spoofing) and injects
+                                             │  the verified handshake cert as PSD2-CERT (PEM)
                                              ▼
                                             OBP application layer (unchanged)
                                              • consumer lookup by certificate
@@ -31,8 +34,10 @@ curl --cert client.crt ── TLS handshake ──► Ember server (mtls.enabled
 ```
 
 Everything downstream of the header is the pre-existing OBP machinery — the same code path a
-production reverse proxy feeds. Implementation: `bootstrap/http4s/Http4sMtls.scala`, wired in
-`bootstrap/http4s/Http4sServer.scala`.
+production reverse proxy feeds. Implementation: `bootstrap/http4s/Http4sMtls.scala` (TLS context and
+stores, wired in `bootstrap/http4s/Http4sServer.scala`) plus `code/api/util/PeerTrust.scala` and
+`code/api/util/http4s/CallerCertificate.scala` (who the caller is), which run for every request
+whether or not TLS terminates here.
 
 ## Quick start
 
@@ -113,7 +118,9 @@ repo root, which is what the run scripts do. Each fallback is logged at WARN nam
 absolute file, and a missing store fails at startup with the resolved path and working directory
 in the message rather than a bare `FileNotFoundException`.
 
-`run.mode` must be `development` (it is with the standard local run scripts).
+Any `run.mode` works. A Production server refuses to boot on the development certificates checked
+into this repository — they are recognised by digest wherever they are copied to, since the private
+key is public and the password is in the source.
 
 ### 3. Run
 
@@ -125,7 +132,8 @@ in the message rather than a bare `FileNotFoundException`.
 Boot log confirms the mode:
 
 ```
-mTLS termination is ENABLED (dev-only): serving HTTPS on port 8080, client_auth=need, keystore=..., truststore=...
+mTLS termination is ENABLED: serving HTTPS on port 8080, client_auth=need, keystore=..., truststore=...
+No mtls.trusted_proxy.N.issuer configured: OBP treats its TLS peer as the caller (it is the edge).
 ```
 
 `dev.port` (default 8080) now speaks **HTTPS only** — plain `http://localhost:8080` requests
@@ -161,8 +169,9 @@ curl --cacert server.crt --cert client.crt --key client.key \
 # → subject CN=test-tpp, issuer, validity dates...
 ```
 
-Note that any `PSD2-CERT` header you send yourself is discarded — the middleware always replaces
-it with the certificate from the TLS handshake.
+Note that any `PSD2-CERT` header you send yourself is discarded — with no trusted proxies
+configured, OBP is the edge, so your TLS peer is the caller and a forwarded certificate can only be
+a spoofing attempt. Configure `mtls.trusted_proxy.*` and the header is honoured instead.
 
 ### 5. Pin a Consumer to the certificate
 
@@ -193,12 +202,19 @@ Consumer — presenting a different client certificate is rejected.
 
 | Prop | Default | Meaning |
 |---|---|---|
-| `mtls.enabled` | `false` | Master switch. Only honoured when `run.mode=development`. The one genuinely required prop. |
+| `mtls.enabled` | `false` | Master switch, honoured in every run mode. The one genuinely required prop. |
 | `mtls.keystore.path` | `obp-api/src/test/resources/cert/server.jks` | Store with the server's private key + certificate. `.p12`/`.pfx` are read as PKCS12, anything else as JKS. |
 | `mtls.keystore.password` | `123456` | Password for keystore and key. |
 | `mtls.truststore.path` | `obp-api/src/test/resources/cert/server.trust.jks` | Store with client certificates / CAs the server accepts. Same type detection as the keystore. |
 | `mtls.truststore.password` | `123456` | Truststore password. |
 | `mtls.client_auth` | `need` | `need` rejects certless handshakes; `want` makes the client certificate optional. |
+| `mtls.trusted_proxy.N.issuer` | — | Issuer DN of a peer allowed to forward someone else's certificate. Indexed from 1; scanning stops at the first missing index. Empty (the default) means OBP is the edge. |
+| `mtls.trusted_proxy.N.subject` | any | Subject DN of that peer. `*` or unset accepts any subject the issuer signed — free proxy rotation, but only as tight as that CA. |
+| `mtls.trust_forwarded_header_without_tls` | `true` | Whether a `PSD2-CERT` header is trusted when the sender presented no client certificate. `true` is the pre-existing behaviour of a plain proxy hop; set it to `false` once the proxy authenticates itself. |
+
+DNs are compared in canonical form, so case and spacing do not matter — but **RDN order does**.
+Print the exact values to paste with
+`openssl x509 -in proxy.crt -noout -issuer -subject -nameopt RFC2253`.
 
 Each of these is also settable from the environment as `OBP_MTLS_ENABLED`,
 `OBP_MTLS_KEYSTORE_PATH`, … which is what `--mtls` uses.
@@ -216,7 +232,9 @@ Each of these is also settable from the environment as `OBP_MTLS_ENABLED`,
 
 | Symptom | Cause |
 |---|---|
-| Boot warning `mtls.enabled=true is ignored` | `run.mode` is not `development`. |
+| Boot fails with `which is one of the development stores checked into the OBP-API repository` | `run.mode=production` with the repo's dev keystore or truststore. Supply your own certificates. |
+| Every request logs `none: PSD2-CERT was sent over a hop with no client certificate` | `mtls.trust_forwarded_header_without_tls=false` but the proxy is not presenting a client certificate. |
+| A TPP behind the proxy is suddenly anonymous | The proxy's certificate is not matching `mtls.trusted_proxy.N.*`, so it is being treated as the caller and its forwarded header discarded. The rejection is logged with the peer's canonical issuer and subject — paste those into the props. |
 | Boot fails with `points at '…', which does not exist` | The store file isn't there. If you relied on the defaults, the server was launched from somewhere other than the repo root — the message prints the resolved path and the working directory. Use `--mtls` (absolute paths) or set the props absolutely. |
 | Logins that worked over plain HTTP now fail | `hostname` changed scheme without `local_identity_provider` being pinned — see the note under "Props reference". |
 | `curl: (35)` / `alert certificate required` | No (or untrusted) client certificate in `need` mode — check the cert is in `server.trust.jks`. |
