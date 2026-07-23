@@ -270,3 +270,119 @@ nginx without needing nginx in the unit tier. Cases that must be covered explici
 | `obp-api/src/main/scala/code/api/util/CertificateUtil.scala` | `normalizePemX509Certificate` (`:233`) |
 | `obp-api/src/main/scala/code/api/util/CertificateVerifier.scala` | PKIX chain + CRL validation; currently reached only from the Berlin Group signature path |
 | `docs/MTLS_DEV_MODE.md` | The mTLS support that exists today, including the proxy configuration rules |
+
+## 11. Implementation plan
+
+Five changes, sequenced. Each is independently shippable, and PRs 1 and 2 are behaviour-preserving
+in every existing deployment — the rollout is entirely in PR 4's configuration.
+
+### 11.1 Two decisions that shape all of it
+
+**The middleware must be wired unconditionally.** `injectClientCertificate` runs only when
+`Http4sMtls.enabled` (`Http4sServer.scala:29-40`). In today's production topology — nginx over a
+plain HTTP hop — no certificate middleware runs at all and the header passes straight through to
+`ConsentUtil`. So this work cannot be done by extending the existing wrapper in place: the
+resolution middleware has to wrap `Http4sApp.httpApp` unconditionally, with the TLS branch only
+supplying the peer certificate. That refactor is what makes §11.2 and §11.3 possible at all.
+
+**The rule of §3 should be a pure function, not middleware logic.**
+
+```scala
+sealed trait Resolution
+case class DirectCaller(cert: X509Certificate) extends Resolution
+case class ForwardedCaller(cert: X509Certificate, via: X509Certificate) extends Resolution
+case class NoCaller(reason: String) extends Resolution
+case class Rejected(reason: String) extends Resolution
+
+def resolve(peer: Option[X509Certificate],
+            forwarded: Option[String],
+            config: TrustConfig): Resolution
+```
+
+The decision table in §3 then becomes a table-driven unit test needing no server and no TLS, and the
+middleware reduces to a shell that calls `resolve` and rewrites the header. Every later phase gets
+cheaper for it.
+
+### 11.2 PR 1 — normalize `PSD2-CERT` on ingress
+
+Implements §5.2. Adds the always-on middleware; parses the header once and re-emits canonical PEM
+via the existing `Http4sMtls.toPem`; removes the ad-hoc compensations at `ConsentUtil.scala:159-167`
+and `ConsentUtil.scala:207`.
+
+**This is the one phase with a genuine regression path.** A Consumer registered with a
+non-canonical PEM currently matches through the raw-value lookup that runs first; normalizing the
+header alone would make that comparison fail. The mitigation is to normalize **both sides** — the
+incoming header and the stored `clientCertificate` — at comparison time, which is strictly more
+permissive than today, so no existing match can break. Moving normalization to ingress and deleting
+the fallback is *not* equivalent and must not be done.
+
+Tests: one table covering URL-encoded (nginx), single-line PEM (HAProxy), canonical PEM (the dev
+injector) and whitespace-mangled input all reducing to one value, plus a regression test for a
+non-canonically stored Consumer.
+
+Small; mostly deletion downstream.
+
+### 11.3 PR 2 — peer-vs-forwarder resolution
+
+Implements §3, §5.1, §5.3, §5.4 and §5.5 — the bulk of the design. Adds `resolve` and its config,
+reduces `injectClientCertificate` to a caller of it, and introduces:
+
+| Prop | Default | Meaning |
+|---|---|---|
+| `mtls.trusted_proxy_issuers` | empty | issuer CN + subject DN pairs treated as forwarders (§5.1) |
+| `mtls.trust_forwarded_header_without_tls` | `true` | today's behaviour on a plain hop, now named (§5.4) |
+
+An empty allowlist reproduces current dev-as-edge behaviour exactly; `true` on the legacy prop
+reproduces current production behaviour exactly. **Net behaviour change in every existing
+deployment: none** — which is what makes this safe to merge well ahead of any rollout.
+
+Also in this PR: the run-mode gate at `Http4sMtls.scala:56` is replaced by the dev-keystore
+fingerprint refusal of §5.3, and the resolution is recorded on the `CallContext` for metrics and
+audit per §5.5.
+
+Tests: the five-state table as pure unit tests, plus an extension of
+`Http4sMtlsHandshakeTest.scala` with a proxy certificate in the allowlist and a forwarded header,
+asserting the header survives. That harness already generates certificates on the fly and builds a
+real Ember server, so simulating nginx costs one additional generated keypair and no nginx.
+
+Medium.
+
+### 11.4 PR 3 — dev-behind-nginx
+
+Implements §6.1. No production code: a docker-compose with real nginx in front, a make target and
+the CI job. Exercises the encoding disagreement, allowlist rotation, spoofing attempts arriving
+through the proxy, and the missed-overwrite misconfiguration.
+
+Cheap once PR 2 exists, and it is what gives PRs 4 and 5 a local reproduction. Worth resisting the
+temptation to defer: this is the phase that pays for the others.
+
+### 11.5 PR 4 — prod-behind-nginx rollout
+
+Configuration rather than code, ordered per environment: enable the mTLS hop, set that
+environment's forwarder allowlist, confirm from the §5.5 logs that requests resolve as
+`ForwardedCaller`, and only then set `trust_forwarded_header_without_tls` to `false` there. Roll to
+the remaining environments, then delete the legacy default in a small follow-up.
+
+The observability from PR 2 is the gate: do not flip the prop in an environment until its logs show
+every request resolving as forwarded.
+
+### 11.6 PR 5 — prod-as-edge, blocked on §6.2
+
+Enable revocation checking on the TLS context and/or route the handshake certificate through
+`CertificateVerifier`, whose CRL machinery and `use_tpp_signature_revocation_list` toggle already
+exist (`CertificateVerifier.scala:83-86`) and are simply never reached from this path. Needs a test
+with an actually revoked certificate — the piece that turns §6.2 from inference into fact.
+
+Sizing depends on the answers in §11.7, so this is deliberately left unscheduled.
+
+### 11.7 Decisions needed before PR 2 starts
+
+1. **Allowlist by issuer CA + subject DN, or by leaf fingerprint?** §5.1 recommends the former. This
+   is the only choice here that is hard to reverse, because it shapes a config format operators will
+   already have deployed.
+2. **Is `trust_forwarded_header_without_tls=true` an acceptable default to ship?** It preserves
+   current behaviour, which is the safe engineering answer, but it ships a prop whose default is the
+   insecure setting. The alternative — defaulting it false — requires every existing deployment to
+   set it in the same release, i.e. a flag day.
+3. **Does prod-as-edge have a real consumer?** If nobody is asking for it, PR 5 stays a documented
+   gap rather than scheduled work.
