@@ -41,6 +41,35 @@ whether or not TLS terminates here.
 
 ## Quick start
 
+### 0. The 30-second path — no certificates to generate
+
+The repository's dev pair is self-sufficient: `server.trust.jks` trusts the `CN=TESOBE CA`
+certificate (alias `mykey`, `CA:TRUE`), and `localhost_san_dns_ip.pfx` is a client identity signed
+by exactly that CA, private key included, password `123456`. So the checked-in keystore, truststore
+and a usable client certificate all line up out of the box.
+
+```sh
+# Start the server with mTLS on
+./flushall_fast_build_and_run.sh --mtls
+
+# Unpack the checked-in client identity for curl (once)
+CERT=obp-api/src/test/resources/cert
+openssl pkcs12 -in $CERT/localhost_san_dns_ip.pfx -passin pass:123456 -nokeys -clcerts -out /tmp/client.crt
+openssl pkcs12 -in $CERT/localhost_san_dns_ip.pfx -passin pass:123456 -nocerts -nodes -out /tmp/client.key
+
+# 200
+curl -k --cert /tmp/client.crt --key /tmp/client.key https://localhost:8080/obp/v5.1.0/root
+
+# 56 — a handshake with no client certificate is rejected under client_auth=need
+curl -k https://localhost:8080/obp/v5.1.0/root
+```
+
+`-k` skips verification of the *server* certificate, which is `CN=localhost` with no SAN. Step 1
+below generates a pair with a proper SAN if you would rather use `--cacert` and verify properly.
+
+Generate your own certificates instead when you need a specific subject (for a Consumer or
+regulated-entity lookup that matches on it), or a second identity to test rejection.
+
 ### 1. Generate certificates
 
 You need: a server keypair (JKS), a truststore containing the client certificate (JKS), and a
@@ -69,11 +98,11 @@ keytool -importcert -noprompt -alias test-tpp -file client.crt \
 To accept a whole CA instead of individual client certs, import the CA certificate into
 `server.trust.jks` and sign client certs with that CA.
 
-> There is also a keystore pair checked into the repo
-> (`obp-api/src/test/resources/cert/server.jks` + `server.trust.jks`, password `123456`),
-> but its truststore contains no client certificate you own a private key for, and its server
-> certificate has no `localhost` SAN — generating fresh certificates as above is the smoother
-> path.
+> The pair checked into the repo (`obp-api/src/test/resources/cert/server.jks` +
+> `server.trust.jks`, password `123456`) already works for a full handshake — see step 0. Its one
+> limitation is that the server certificate has no `localhost` SAN, so clients that do not fall
+> back to CN need `-k`, or `mtls.keystore.path` pointed at `localhost_san_dns_ip.pfx`, which
+> carries `DNS:localhost, IP:127.0.0.1`.
 
 ### 2. Configure props
 
