@@ -48,7 +48,7 @@ CA and all with the password `123456`:
 
 | File | Subject | Role |
 |---|---|---|
-| `dev-ca.crt` | `CN=OBP Dev CA, O=TESOBE GmbH, C=DE` | signs the rest; the only entry in the truststore |
+| `dev-ca.crt` + `dev-ca.key` | `CN=OBP Dev CA, O=TESOBE GmbH, C=DE` | signs the rest; the only entry in the truststore. The key is committed so the counterpart app (OBP-Hola) can sign its own client certificate against it — see below. |
 | `dev-truststore.p12` | — | what the server accepts: the CA, nothing else |
 | `obp-server.p12` | `CN=localhost, OU=OBP Server, O=TESOBE GmbH` | what OBP presents (`serverAuth`, SAN `DNS:localhost, IP:127.0.0.1`) |
 | `tpp-client.p12` (+ `.crt`/`.key`) | `CN=test-tpp, OU=TPP, O=Example TPP Ltd` | the calling App (`clientAuth`) |
@@ -57,6 +57,13 @@ CA and all with the password `123456`:
 
 Regenerate with `./scripts/generate_dev_certs.sh`. `DevCertificateSetTest` asserts the properties
 above still hold, so a regenerated set that loses a SAN or an EKU fails the build.
+
+> **The CA private key is committed on purpose.** OBP-API owns the truststore, so it owns the trust
+> root, and a counterpart application has to be able to obtain a certificate this server will accept
+> — which is also the real arrangement, where the TPP holds its own key and the bank's CA signs it.
+> OBP-Hola's `scripts/generate_dev_certs.sh` signs against this key. It is safe only because it can
+> never matter: it is named `OBP Dev CA` wherever it appears, and `Http4sMtls` refuses to boot a
+> Production server on these stores.
 
 ```sh
 # Start the server on the role-named set

@@ -136,10 +136,17 @@ rm -f dev-truststore.p12
 keytool -importcert -noprompt -alias dev-ca -file dev-ca.crt \
     -keystore dev-truststore.p12 -storetype PKCS12 -storepass "$PASSWORD" 2>/dev/null
 
-# The CA key is deliberately NOT kept: everything is reproducible from this
-# script, and a signing key is the one thing worth not committing even in a set
-# that is public by design.
-rm -f dev-ca.key dev-ca.srl
+# dev-ca.key IS kept, unlike the first version of this script. OBP-API owns the
+# truststore, so it owns the trust root, and the counterpart application
+# (OBP-Hola) has to be able to sign a client certificate that OBP-API will then
+# accept -- which mirrors the real arrangement, where the TPP holds its own key
+# and the bank's CA signs it. Regenerating the whole set from a shared script is
+# not a workable substitute across two repositories.
+#
+# The key is safe to commit only because it can never matter: it signs nothing
+# outside development, it is named "OBP Dev CA" wherever it appears, and
+# Http4sMtls refuses to boot a Production server on these stores at all.
+rm -f dev-ca.srl
 
 # The .crt/.key PEM pairs are kept alongside the .p12 bundles on purpose: Java wants PKCS12, while
 # curl and nginx want PEM, and making the reader convert first is friction in both directions. The
@@ -147,7 +154,7 @@ rm -f dev-ca.key dev-ca.srl
 
 echo
 echo ">>> Done. Password for every store: $PASSWORD"
-for f in dev-ca.crt dev-truststore.p12 obp-server.p12 tpp-client.p12 tpp-client.crt \
+for f in dev-ca.crt dev-ca.key dev-truststore.p12 obp-server.p12 tpp-client.p12 tpp-client.crt \
          tpp-client.key proxy-client.p12 expired-tpp.p12; do
     [ -f "$f" ] && echo "      $f"
 done
