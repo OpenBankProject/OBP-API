@@ -239,6 +239,13 @@ header. Two important rules for any proxy config:
 2. The proxy must **overwrite** any client-supplied `PSD2-CERT` header, and the OBP port must
    not be reachable except through the proxy — otherwise the header can be spoofed.
 
+Rule 2 is the reason [`MTLS_TOPOLOGIES.md`](MTLS_TOPOLOGIES.md) exists: it makes the header only as
+trustworthy as the network isolation around the OBP port. That document is a **proposal** (nothing
+in it is implemented) to run mutual TLS on the proxy → OBP hop as well, so the forwarded header is
+trusted because an authenticated peer sent it. It generalises the middleware described here to
+cover OBP as the TLS edge or behind a proxy, in development or production, without a per-deployment
+code path.
+
 ## Implementation & tests
 
 | File | Role |
@@ -248,6 +255,7 @@ header. Two important rules for any proxy config:
 | `scripts/mtls_env.sh` | The `OBP_MTLS_*` environment overrides behind the `--mtls` flag of both `flushall_*build_and_run.sh` scripts. Sourceable on its own. |
 | `scripts/java_env.sh` | Selects a JDK >= 17 for the run scripts. The build compiles with `-release 17`; on a default JDK 11 it otherwise fails with the misleading `'17' is not a valid choice for '-release'`. |
 | `obp-api/src/test/scala/bootstrap/http4s/Http4sMtlsTest.scala` | Unit tests: PEM encoding, header injection/stripping, SSLContext from the checked-in keystores. |
+| [`docs/MTLS_TOPOLOGIES.md`](MTLS_TOPOLOGIES.md) | **Proposal, not implemented.** Generalising the above to mTLS on the proxy → OBP hop, and to OBP as the TLS edge in production. |
 | `obp-api/src/test/scala/bootstrap/http4s/Http4sMtlsHandshakeTest.scala` | End-to-end: real Ember server + real mTLS handshake; proves the verified client cert surfaces as `PSD2-CERT` and certless handshakes are rejected. |
 
 Run the tests:
