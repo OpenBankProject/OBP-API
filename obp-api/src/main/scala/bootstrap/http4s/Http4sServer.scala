@@ -27,7 +27,7 @@ object Http4sServer extends IOApp with MdcLoggable {
       .withHost(Host.fromString(host).get)
       .withPort(Port.fromInt(port).get)
     val configuredBuilder = if (Http4sMtls.enabled) {
-      logger.info(s"mTLS termination is ENABLED (dev-only): serving HTTPS on port $port, " +
+      logger.info(s"mTLS termination is ENABLED: serving HTTPS on port $port, " +
         s"client_auth=${if (Http4sMtls.config.needClientAuth) "need" else "want"}, " +
         s"keystore=${Http4sMtls.config.keystorePath}, truststore=${Http4sMtls.config.truststorePath}")
       if (code.api.Constant.HostName.startsWith("http://"))
