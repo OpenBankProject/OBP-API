@@ -46,7 +46,6 @@ import code.api.dynamic.entity.helper.DynamicEntityHelper
 import code.api.util.APIUtil.ResourceDoc.{findPathVariableNames, isPathVariable}
 import code.api.util.ApiRole._
 import code.api.util.ApiTag.{ResourceDocTag, apiTagBank}
-import code.api.util.BerlinGroupSigning.getCertificateFromTppSignatureCertificate
 import code.api.util.Consent.getConsumerKey
 import code.api.util.FutureUtil.{EndpointContext, EndpointTimeout}
 import code.api.util.Glossary.GlossaryItem
