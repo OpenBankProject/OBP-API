@@ -1,6 +1,6 @@
 #!/bin/bash
 ################################################################################
-# OBP-API dev-only mTLS environment
+# OBP-API mTLS environment
 #
 # Exports the OBP_* overrides that switch the http4s server into in-process mTLS
 # termination (see obp-api/src/main/scala/bootstrap/http4s/Http4sMtls.scala and
@@ -77,7 +77,7 @@ if [ -n "$mtls_props_hostname" ]; then
     export OBP_HOSTNAME
 fi
 
-echo ">>> mTLS enabled (dev-only in-process TLS termination)"
+echo ">>> mTLS enabled (in-process TLS termination)"
 echo "      keystore   : $OBP_MTLS_KEYSTORE_PATH"
 echo "      truststore : $OBP_MTLS_TRUSTSTORE_PATH"
 echo "      client_auth: $OBP_MTLS_CLIENT_AUTH"

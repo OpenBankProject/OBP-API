@@ -51,7 +51,7 @@ for arg in "$@"; do
             ;;
         --mtls)
             USE_MTLS=true
-            echo ">>> mTLS mode requested (dev-only in-process TLS termination)"
+            echo ">>> mTLS mode requested (in-process TLS termination)"
             ;;
     esac
 done
