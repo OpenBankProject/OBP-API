@@ -119,8 +119,39 @@ A sub-choice within (b) has real operational consequences:
 - **issuer CA + subject DN** — rotation under the internal CA is free, at the cost that anything
   that CA signs can act as a forwarder.
 
-**Recommendation: issuer CA + subject DN** for an internal CA, stated explicitly in the operator
-documentation so the implication is not a surprise.
+**Decided (2026-07-23): (b), keyed on issuer CA + subject DN.**
+
+Indexed prop pairs, because a DN contains commas and any comma-separated list of DNs is ambiguous
+the first time someone writes a real one:
+
+```properties
+# Peers whose handshake certificate makes them a forwarder rather than a caller.
+# Empty (the default) = OBP is the TLS edge: the handshake certificate IS the caller.
+mtls.trusted_proxy.1.issuer=CN=TESOBE Internal CA,O=TESOBE GmbH,C=DE
+mtls.trusted_proxy.1.subject=CN=nginx-prod-1,OU=Edge,O=TESOBE GmbH,C=DE
+
+mtls.trusted_proxy.2.issuer=CN=TESOBE Internal CA,O=TESOBE GmbH,C=DE
+mtls.trusted_proxy.2.subject=CN=nginx-prod-2,OU=Edge,O=TESOBE GmbH,C=DE
+```
+
+Settable from the environment like every OBP prop:
+`OBP_MTLS_TRUSTED_PROXY_1_ISSUER`, `OBP_MTLS_TRUSTED_PROXY_1_SUBJECT`.
+
+`subject=*` accepts any subject signed by that issuer. This is the configuration that makes proxy
+rotation genuinely free — sign the new proxy with the same CA, change nothing in OBP — and it is
+also the configuration where "what else does this CA sign" becomes the entire security argument.
+Support it; do not default to it; log a warning at boot when it is in use.
+
+Implementation notes that the format depends on:
+
+- Compare `X500Principal.getName(X500Principal.CANONICAL)` on both sides. It normalises case and
+  whitespace, so operators need not match those exactly — but it does **not** reorder RDNs, so
+  components written in a different order than the certificate silently fail to match.
+- Document the command that prints exactly what to paste:
+  `openssl x509 -in nginx-prod-1.crt -noout -issuer -subject -nameopt RFC2253`.
+- When a peer is rejected as not-a-forwarder, log its canonical issuer and subject. The failure
+  mode is "all TPP traffic through this proxy is suddenly anonymous", and it should be diagnosable
+  from one log line rather than a debugging session.
 
 ### 5.2 Normalize the certificate on ingress
 
@@ -161,10 +192,16 @@ that can route to the port can currently forge any TPP identity. Removing that e
 central security argument for this work — it converts *trust the network* into *trust an
 authenticated peer*.
 
-That cannot be a flag day. **Recommendation:** an explicit
-`mtls.trust_forwarded_header_without_tls` prop, defaulting to today's behaviour, so the insecure
-case is named and opt-in rather than implicit, and can be switched off per environment as each
-gains the mTLS hop.
+That cannot be a flag day. **Decided (2026-07-23):** an explicit
+`mtls.trust_forwarded_header_without_tls` prop **defaulting to `true`** — today's behaviour — so the
+insecure case is named rather than implicit, and can be switched off per environment as each gains
+the mTLS hop. Defaulting it to `false` was rejected: it would require every deployment to set the
+prop in the same release, and anything missed fails closed, i.e. TPP traffic stops.
+
+The cost of that choice is shipping a security-relevant prop whose default is the permissive
+setting. Mitigate it by logging a warning at boot whenever it resolves to `true`, so the state is
+noisy rather than silent, and remove the default entirely once §11.5 has rolled through every
+environment.
 
 ### 5.5 Observability
 
@@ -253,13 +290,22 @@ nginx without needing nginx in the unit tier. Cases that must be covered explici
   `TPP-Signature-Certificate` carries). They have different serial numbers and often different
   issuing CAs, and the regulated-entity lookup matches on issuer CN + serial — the same split
   addressed for UK Open Banking in commit `bc08fc098`.
-- **Is authenticating the hop required in its own right** (audit, regulator, zero-trust posture), or
-  is network isolation currently considered sufficient? This materially changes the priority of
-  phases 4 and 5.
-- **Does anything need to authorise on the proxy identity**, or only to prove "this is our proxy"?
-  If the latter — as §2 assumes — the two-Consumers question does not arise.
 - **Cost of TLS termination in Ember** relative to per-request database work. Expected to be
   negligible, but worth a measurement before it is asked about.
+- **What "the nginx → OBP connection is already secured" means concretely** (§11.7 decision 3). If
+  that hop already carries TLS without client authentication, OBP terminates TLS but has no peer
+  certificate — the fourth row of the §3 table, not the fifth — and
+  `mtls.trust_forwarded_header_without_tls`, which keys off *no TLS at all*, would not be the prop
+  governing it. Worth pinning down before §11.5, because it decides which row that deployment
+  lands on.
+
+Answered on 2026-07-23, kept for the record:
+
+- ~~Is authenticating the hop required in its own right, or is network isolation sufficient?~~ The
+  hop is already secured by other means; this work removes the dependence on that, and is not
+  urgent remediation of an open exposure.
+- ~~Does anything need to authorise on the proxy identity?~~ No — it need only prove "this is our
+  proxy", so the two-Consumers question of §2 does not arise.
 
 ## 10. Reference
 
@@ -380,7 +426,11 @@ the remaining environments, then delete the legacy default in a small follow-up.
 The observability from PR 2 is the gate: do not flip the prop in an environment until its logs show
 every request resolving as forwarded.
 
-### 11.6 PR 5 — prod-as-edge, blocked on §6.2
+### 11.6 PR 5 — prod-as-edge — **not scheduled** (§11.7 decision 3)
+
+Kept here because the gap it closes is real and will matter if the deployment assumption ever
+changes. Nothing below is planned work.
+
 
 Enable revocation checking on the TLS context and/or route the handshake certificate through
 `CertificateVerifier`, whose CRL machinery and `use_tpp_signature_revocation_list` toggle already
@@ -389,14 +439,17 @@ with an actually revoked certificate — the piece that turns §6.2 from inferen
 
 Sizing depends on the answers in §11.7, so this is deliberately left unscheduled.
 
-### 11.7 Decisions needed before PR 2 starts
+### 11.7 Decisions taken (2026-07-23)
 
-1. **Allowlist by issuer CA + subject DN, or by leaf fingerprint?** §5.1 recommends the former. This
-   is the only choice here that is hard to reverse, because it shapes a config format operators will
-   already have deployed.
-2. **Is `trust_forwarded_header_without_tls=true` an acceptable default to ship?** It preserves
-   current behaviour, which is the safe engineering answer, but it ships a prop whose default is the
-   insecure setting. The alternative — defaulting it false — requires every existing deployment to
-   set it in the same release, i.e. a flag day.
-3. **Does prod-as-edge have a real consumer?** If nobody is asking for it, PR 5 stays a documented
-   gap rather than scheduled work.
+1. **How a forwarder is recognised** → issuer CA + subject DN, in the prop format now written out in
+   §5.1. Leaf fingerprints were rejected for the config change they impose on every proxy rotation.
+2. **`trust_forwarded_header_without_tls` default** → `true`, preserving current behaviour, with a
+   boot warning when it resolves that way. See §5.4 for why a `false` default was rejected.
+3. **prod-as-edge** → enumerated for completeness; nobody is asking for it, and the nginx → OBP
+   connection is already secured by other means. PR 5 (§11.6) is therefore **not scheduled**, and
+   the revocation gap in §6.2 stays a documented gap rather than blocking work. It must be
+   reopened before any deployment makes OBP the public TLS edge.
+4. **Normalising stored certificates at write time** → not scheduled. PR 1 normalises the request
+   side; the compensating fallbacks on the stored side stay, with the comments in `ConsentUtil`
+   explaining why they are not redundant. Revisit if certificate-mismatch incidents suggest the
+   stored values are the problem.
