@@ -1,10 +1,10 @@
 # mTLS topologies: peer vs caller
 
-**Status: §11.2 and §11.3 implemented; §11.4 onward still proposed.** The peer-vs-forwarder rule of
-§3 lives in `code.api.util.PeerTrust` and runs for every request. What remains is the
-dev-behind-nginx harness (§11.4) and the per-environment rollout (§11.5), which is where any
-deployment's behaviour actually changes — the shipped defaults reproduce what every deployment did
-before. `docs/MTLS.md` is the operator-facing guide; this document is why it looks the way
+**Status: §11.2–§11.4 implemented; §11.5 onward still proposed.** The peer-vs-forwarder rule of
+§3 lives in `code.api.util.PeerTrust` and runs for every request, and the dev-behind-nginx harness
+(§11.4) verifies it against real nginx. What remains is the per-environment rollout (§11.5), which
+is where any deployment's behaviour actually changes — the shipped defaults reproduce what every
+deployment did before. `docs/MTLS.md` is the operator-facing guide; this document is why it looks the way
 it does.
 
 ## 1. What prompted this
@@ -19,7 +19,7 @@ Four deployments are in scope, all of them considered legitimate:
 
 |                | OBP-API is the TLS edge | OBP-API behind nginx |
 |----------------|-------------------------|----------------------|
-| **development** | supported before this work (`--mtls`) | needs the harness of §11.4 |
+| **development** | supported before this work (`--mtls`) | verified by §11.4's harness (NginxForwarderTest) |
 | **production**  | possible since §11.3; not scheduled (§11.7) | supported; mTLS on the hop is §11.5 |
 
 At the time of writing, the second column's production cell ran over a plain HTTP hop and the
@@ -425,14 +425,18 @@ Deviation from the plan: the `Rejected` case of the sketched ADT was not impleme
 produces it — a peer that is not a trusted forwarder is simply the caller, and an unusable
 certificate is the authorisation layer's to reject, not this layer's. Three cases, no dead branch.
 
-### 11.4 PR 3 — dev-behind-nginx
+### 11.4 PR 3 — dev-behind-nginx — **implemented**
 
-Implements §6.1. No production code: a docker-compose with real nginx in front, a make target and
-the CI job. Exercises the encoding disagreement, allowlist rotation, spoofing attempts arriving
-through the proxy, and the missed-overwrite misconfiguration.
+Implements §6.1. `NginxForwarderTest` runs the real nginx:1.27-alpine image in front of the real
+caller-resolution middleware and asserts all four risks: the URL-encoded `$ssl_client_escaped_cert`
+decode, the forwarder allowlist (a peer outside it is a direct caller), spoof overwrite, and the
+missed-overwrite misconfiguration (asserted as a failure mode, so a broken proxy config is caught
+here). Requires Docker; skipped without it. The reusable reference config and a manual full-OBP-API
+reproduction live in `dev/mtls-nginx/` (nginx.conf + docker-compose.yml).
 
-Cheap once PR 2 exists, and it is what gives PRs 4 and 5 a local reproduction. Worth resisting the
-temptation to defer: this is the phase that pays for the others.
+The upstream under nginx is the middleware, not the whole of OBP-API — the four risks all live in
+that layer. A CI job wiring is still open; the test is the local reproduction the later phases lean
+on.
 
 ### 11.5 PR 4 — prod-behind-nginx rollout
 
