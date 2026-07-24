@@ -3852,17 +3852,21 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    * The certificate identifying the TPP, taken from the channel the request's API standard
    * actually uses.
    *
-   * Berlin Group signs requests and carries the signing certificate in TPP-Signature-Certificate.
-   * UK Open Banking does not use that header at all: OBIE identifies the TPP by the mTLS transport
-   * certificate, which reaches us as PSD2-CERT (set by the reverse proxy that terminates mTLS, or
-   * by bootstrap.http4s.Http4sMtls in development). Reading the Berlin Group header on a UK
-   * endpoint therefore rejects a correctly-behaving OBIE client for missing a header its
-   * specification never mentions.
+   * TPP-Signature-Certificate is a Berlin Group NextGenPSD2 header: the TPP signs each request and
+   * carries the signing certificate (its QSEAL) in it. It belongs to that standard alone. Neither
+   * UK Open Banking nor OBP's own endpoints use it -- both identify the TPP by the mTLS transport
+   * certificate (the QWAC), which reaches us as PSD2-CERT (set by the reverse proxy that terminates
+   * mTLS, or by bootstrap.http4s.Http4sMtls in development). Reading the Berlin Group header on a
+   * UK or OBP endpoint rejects a correctly-behaving client for omitting a header its specification
+   * never mentions.
+   *
+   * So the split is by whether the request is Berlin Group, not by whether it is UK:
+   *   - Berlin Group URLs (/berlin-group/) -> TPP-Signature-Certificate
+   *   - everything else, UK and OBP-native alike -> PSD2-CERT
    *
    * BerlinGroupCheck.validate already scopes every OTHER piece of Berlin Group machinery -- the
    * mandatory headers, the request-signature verification, the on-the-fly consumer creation -- to
-   * Berlin Group URLs. The PSD2 gate was the one place that crossed that boundary; this brings it
-   * in line. Non-UK standards keep the previous behaviour byte for byte.
+   * Berlin Group URLs. This keeps the PSD2 gate on the same boundary.
    *
    * Note this changes only WHERE the certificate comes from, not what is then done with it: both
    * paths feed the same regulated-entity lookup, which matches on issuer CN + serial number and so
@@ -3871,17 +3875,17 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   private def tppCertificateForStandard(cc: Option[CallContext]): Box[java.security.cert.X509Certificate] = {
     val requestHeaders = cc.map(_.requestHeaders).getOrElse(Nil)
     val url = cc.map(_.url).getOrElse("")
-    val isUkOpenBanking = url.contains(s"/${ApiVersion.ukOpenBankingV31.urlPrefix}/")
-    if (isUkOpenBanking) {
+    val isBerlinGroup = url.contains(s"/${ApiVersion.berlinGroupV13.urlPrefix}/")
+    if (isBerlinGroup) {
+      BerlinGroupSigning.getCertificateFromTppSignatureCertificate(requestHeaders)
+    } else {
       `getPSD2-CERT`(requestHeaders) match {
         case Some(pem) =>
           tryo(BerlinGroupSigning.parseCertificate(pem)) ?~ X509GeneralError
         case None =>
-          logger.debug(s"tppCertificateForStandard: UK Open Banking request with no ${RequestHeader.`PSD2-CERT`} header")
+          logger.debug(s"tppCertificateForStandard: non-Berlin-Group request ($url) with no ${RequestHeader.`PSD2-CERT`} header")
           Failure(X509CannotGetCertificate)
       }
-    } else {
-      BerlinGroupSigning.getCertificateFromTppSignatureCertificate(requestHeaders)
     }
   }
 
