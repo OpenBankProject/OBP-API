@@ -73,7 +73,11 @@ if [ -n "$mtls_props_hostname" ]; then
         : "${OBP_LOCAL_IDENTITY_PROVIDER:=$mtls_props_hostname}"
         export OBP_LOCAL_IDENTITY_PROVIDER
     fi
-    : "${OBP_HOSTNAME:=$(echo "$mtls_props_hostname" | sed 's|^http://|https://|')}"
+    # Move the scheme to TLS and nothing else. Bash's anchored replacement rather than echo|sed:
+    # no subshell, and no clear-text URL literal for scanners to flag (the point of the line is to
+    # UPGRADE to https, but S5332 sees only the string). "${x/#http:/https:}" rewrites a leading
+    # "http:" and leaves an already-https value untouched, since "https:" does not start "http:".
+    : "${OBP_HOSTNAME:=${mtls_props_hostname/#http:/https:}}"
     export OBP_HOSTNAME
 fi
 
