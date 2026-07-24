@@ -19,7 +19,7 @@ import org.typelevel.ci.CIString
  * mechanism behind "it works in development and fails in production".
  *
  * Normalising here, once, at the outermost layer, makes all of those comparisons exact. It also
- * removes the requirement documented in docs/MTLS_DEV_MODE.md that a proxy must hand OBP plain PEM:
+ * removes the requirement documented in docs/MTLS.md that a proxy must hand OBP plain PEM:
  * nginx's percent-encoded form is understood directly, so no njs decoding step is needed.
  *
  * This layer never rejects a request. A header that cannot be parsed as a certificate is passed

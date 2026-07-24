@@ -31,7 +31,7 @@ class DevCertificateSetTest extends FlatSpec with Matchers with BeforeAndAfterAl
 
   private val password = "123456"
 
-  // The role-named stores generate_dev_certs.sh writes; see docs/MTLS_DEV_MODE.md.
+  // The role-named stores generate_dev_certs.sh writes; see docs/MTLS.md.
   private val ObpServer = "obp-server.p12"
   private val TppClient = "tpp-client.p12"
   private val ProxyClient = "proxy-client.p12"

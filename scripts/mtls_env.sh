@@ -4,7 +4,7 @@
 #
 # Exports the OBP_* overrides that switch the http4s server into in-process mTLS
 # termination (see obp-api/src/main/scala/bootstrap/http4s/Http4sMtls.scala and
-# docs/MTLS_DEV_MODE.md). Sourced by the --mtls flag of the build_and_run
+# docs/MTLS.md). Sourced by the --mtls flag of the build_and_run
 # scripts; can also be sourced by hand for a jar that is already built:
 #
 #   . scripts/mtls_env.sh && java -jar obp-api/target/obp-api.jar

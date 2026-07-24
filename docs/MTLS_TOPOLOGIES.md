@@ -4,7 +4,7 @@
 §3 lives in `code.api.util.PeerTrust` and runs for every request. What remains is the
 dev-behind-nginx harness (§11.4) and the per-environment rollout (§11.5), which is where any
 deployment's behaviour actually changes — the shipped defaults reproduce what every deployment did
-before. `docs/MTLS_DEV_MODE.md` is the operator-facing guide; this document is why it looks the way
+before. `docs/MTLS.md` is the operator-facing guide; this document is why it looks the way
 it does.
 
 ## 1. What prompted this
@@ -192,7 +192,7 @@ it catches the failure that would actually cause harm.
 
 Existing production deployments run nginx → OBP over plain HTTP and trust the `PSD2-CERT` header
 unconditionally. The only thing protecting that today is the network rule in
-`docs/MTLS_DEV_MODE.md` ("the OBP port must not be reachable except through the proxy"): anything
+`docs/MTLS.md` ("the OBP port must not be reachable except through the proxy"): anything
 that can route to the port can currently forge any TPP identity. Removing that exposure is the
 central security argument for this work — it converts *trust the network* into *trust an
 authenticated peer*.
@@ -321,7 +321,7 @@ Answered on 2026-07-23, kept for the record:
 | `obp-api/src/main/scala/code/api/util/ConsentUtil.scala` | Consumer lookup by certificate and the consent/Consumer match — the three normalizations of §5.2 |
 | `obp-api/src/main/scala/code/api/util/CertificateUtil.scala` | `normalizePemX509Certificate` (`:233`) |
 | `obp-api/src/main/scala/code/api/util/CertificateVerifier.scala` | PKIX chain + CRL validation; currently reached only from the Berlin Group signature path |
-| `docs/MTLS_DEV_MODE.md` | The mTLS support that exists today, including the proxy configuration rules |
+| `docs/MTLS.md` | The mTLS support that exists today, including the proxy configuration rules |
 
 ## 11. Implementation plan
 
