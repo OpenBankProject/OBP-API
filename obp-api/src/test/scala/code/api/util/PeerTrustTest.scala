@@ -15,6 +15,8 @@ import org.scalatest.{FlatSpec, Matchers}
  */
 class PeerTrustTest extends FlatSpec with Matchers {
 
+  private val ProxyCn = "CN=nginx-prod-1"
+
   private def certFor(cn: String): X509Certificate =
     generateSelfSignedCert(cn)._2.asInstanceOf[X509Certificate]
 
@@ -25,7 +27,7 @@ class PeerTrustTest extends FlatSpec with Matchers {
 
   // Self-signed, so issuer == subject. Real proxies are CA-signed; the matching logic is the same.
   private val proxyIsTrusted = TrustConfig(
-    trustedProxies = List(TrustedProxy(canonical("CN=nginx-prod-1"), Some(canonical("CN=nginx-prod-1")))),
+    trustedProxies = List(TrustedProxy(canonical(ProxyCn), Some(canonical(ProxyCn)))),
     trustForwardedHeaderWithoutTls = false
   )
   private val nothingIsTrusted = TrustConfig(Nil, trustForwardedHeaderWithoutTls = false)
@@ -88,7 +90,7 @@ class PeerTrustTest extends FlatSpec with Matchers {
 
   "issuer matching" should "accept any subject when the allowlist entry has none" in {
     val anySubjectFromThatIssuer =
-      TrustConfig(List(TrustedProxy(canonical("CN=nginx-prod-1"), None)), trustForwardedHeaderWithoutTls = false)
+      TrustConfig(List(TrustedProxy(canonical(ProxyCn), None)), trustForwardedHeaderWithoutTls = false)
     resolve(Some(proxyCert), Some(forwardedPem), anySubjectFromThatIssuer) shouldBe a[ForwardedCaller]
     // A different certificate is not covered: its issuer differs.
     resolve(Some(appCert), Some(forwardedPem), anySubjectFromThatIssuer) shouldBe a[DirectCaller]
@@ -96,7 +98,7 @@ class PeerTrustTest extends FlatSpec with Matchers {
 
   it should "reject a subject that does not match, even from the right issuer" in {
     val wrongSubject = TrustConfig(
-      List(TrustedProxy(canonical("CN=nginx-prod-1"), Some(canonical("CN=nginx-prod-2")))),
+      List(TrustedProxy(canonical(ProxyCn), Some(canonical("CN=nginx-prod-2")))),
       trustForwardedHeaderWithoutTls = false
     )
     resolve(Some(proxyCert), Some(forwardedPem), wrongSubject) shouldBe a[DirectCaller]

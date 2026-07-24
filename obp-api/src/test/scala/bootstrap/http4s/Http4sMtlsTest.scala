@@ -10,9 +10,11 @@ import org.scalatest.{FlatSpec, Matchers}
 
 class Http4sMtlsTest extends FlatSpec with Matchers {
 
+  private val ServerJksResource = "/cert/server.jks"
+
   private def loadTestKeystore: KeyStore = {
     val keyStore = KeyStore.getInstance("JKS")
-    val in = getClass.getResourceAsStream("/cert/server.jks")
+    val in = getClass.getResourceAsStream(ServerJksResource)
     try keyStore.load(in, "123456".toCharArray) finally in.close()
     keyStore
   }
@@ -48,20 +50,20 @@ class Http4sMtlsTest extends FlatSpec with Matchers {
   // constants must track the files. Regenerating the dev pair without updating them would leave a
   // check that silently matches nothing — this test is what turns that into a build failure.
   "the dev store digests" should "still match the checked-in files" in {
-    val certDir = new java.io.File(getClass.getResource("/cert/server.jks").toURI).getParentFile
+    val certDir = new java.io.File(getClass.getResource(ServerJksResource).toURI).getParentFile
     Http4sMtls.sha256Of(new java.io.File(certDir, "server.jks")) shouldEqual Http4sMtls.DevKeystoreSha256
     Http4sMtls.sha256Of(new java.io.File(certDir, "server.trust.jks")) shouldEqual Http4sMtls.DevTruststoreSha256
   }
 
   // Outside Production the guard must not fire: development is the whole point of the dev pair.
   it should "not block a non-production run" in {
-    val certDir = new java.io.File(getClass.getResource("/cert/server.jks").toURI).getParentFile
+    val certDir = new java.io.File(getClass.getResource(ServerJksResource).toURI).getParentFile
     noException should be thrownBy
       Http4sMtls.assertNotADevStoreInProduction("mtls.keystore.path", new java.io.File(certDir, "server.jks"))
   }
 
   "buildSslContext" should "build an SSLContext from the checked-in dev keystores" in {
-    val certDir = new java.io.File(getClass.getResource("/cert/server.jks").toURI).getParent
+    val certDir = new java.io.File(getClass.getResource(ServerJksResource).toURI).getParent
     val config = Http4sMtls.MtlsConfig(
       keystorePath = s"$certDir/server.jks",
       keystorePassword = "123456",
@@ -84,7 +86,7 @@ class Http4sMtlsTest extends FlatSpec with Matchers {
   }
 
   it should "let buildSslContext load a PKCS12 keystore" in {
-    val certDir = new java.io.File(getClass.getResource("/cert/server.jks").toURI).getParent
+    val certDir = new java.io.File(getClass.getResource(ServerJksResource).toURI).getParent
     // localhost_san_dns_ip.pfx carries SAN DNS:localhost + IP:127.0.0.1, which JKS server.jks
     // lacks — clients that do not fall back to CN need this one.
     val config = Http4sMtls.MtlsConfig(

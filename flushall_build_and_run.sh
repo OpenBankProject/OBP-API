@@ -146,7 +146,7 @@ echo ""
 ################################################################################
 
 # Applied after the build so it only affects the running server, never compilation.
-if [ "$USE_MTLS" = true ]; then
+if [[ "$USE_MTLS" = true ]]; then
     . "$(dirname "${BASH_SOURCE[0]}")/scripts/mtls_env.sh"
     echo ""
 fi

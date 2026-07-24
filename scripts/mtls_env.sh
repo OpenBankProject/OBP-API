@@ -35,13 +35,14 @@ for mtls_candidate in \
     "$mtls_props_dir/$mtls_user.props" \
     "$mtls_props_dir/$mtls_host.props" \
     "$mtls_props_dir/default.props"; do
-    if [ -f "$mtls_candidate" ]; then mtls_props_file="$mtls_candidate"; break; fi
+    if [[ -f "$mtls_candidate" ]]; then mtls_props_file="$mtls_candidate"; break; fi
 done
 
 # Echoes the value of a prop from that file, or nothing when it is absent/commented out.
 mtls_prop() {
-    [ -n "$mtls_props_file" ] || return 0
-    grep -E "^[[:space:]]*$1[[:space:]]*=" "$mtls_props_file" \
+    local prop_name="$1"
+    [[ -n "$mtls_props_file" ]] || return 0
+    grep -E "^[[:space:]]*$prop_name[[:space:]]*=" "$mtls_props_file" \
         | tail -1 | cut -d= -f2- | sed 's/^[[:space:]]*//;s/[[:space:]]*$//'
 }
 
@@ -68,8 +69,8 @@ export OBP_MTLS_TRUSTSTORE_PATH OBP_MTLS_TRUSTSTORE_PASSWORD OBP_MTLS_CLIENT_AUT
 # pre-toggle hostname and let only the scheme move. Skipped when the props file
 # already sets local_identity_provider explicitly — then there is nothing to pin.
 mtls_props_hostname="$(mtls_prop hostname)"
-if [ -n "$mtls_props_hostname" ]; then
-    if [ -z "$(mtls_prop local_identity_provider)" ]; then
+if [[ -n "$mtls_props_hostname" ]]; then
+    if [[ -z "$(mtls_prop local_identity_provider)" ]]; then
         : "${OBP_LOCAL_IDENTITY_PROVIDER:=$mtls_props_hostname}"
         export OBP_LOCAL_IDENTITY_PROVIDER
     fi
@@ -88,6 +89,6 @@ echo "      client_auth: $OBP_MTLS_CLIENT_AUTH"
 echo "      hostname   : ${OBP_HOSTNAME:-<unchanged, no hostname in props>}"
 # Plain `if`, not `[ … ] && echo`: this is the last command of a sourced file, and the callers
 # run under `set -e` — a false test would take its exit status and abort the caller.
-if [ -n "$OBP_LOCAL_IDENTITY_PROVIDER" ]; then
+if [[ -n "$OBP_LOCAL_IDENTITY_PROVIDER" ]]; then
     echo "      local_identity_provider pinned to: $OBP_LOCAL_IDENTITY_PROVIDER"
 fi

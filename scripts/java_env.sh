@@ -19,7 +19,7 @@
 # Echoes the feature version (e.g. 17) of the java binary passed in, or nothing.
 java_major_of() {
     local java_bin="$1"
-    [ -x "$java_bin" ] || return 0
+    [[ -x "$java_bin" ]] || return 0
     "$java_bin" -version 2>&1 \
         | head -1 \
         | sed -nE 's/.*version "([0-9]+)(\.[0-9]+)*.*/\1/p'
@@ -29,9 +29,10 @@ java_env_required=17
 java_env_selected=""
 
 # 1. An adequate JAVA_HOME already in the environment wins — do not second-guess it.
-if [ -n "$JAVA_HOME" ]; then
+if [[ -n "$JAVA_HOME" ]]; then
     java_env_current="$(java_major_of "$JAVA_HOME/bin/java")"
-    if [ -n "$java_env_current" ] && [ "$java_env_current" -ge "$java_env_required" ] 2>/dev/null; then
+    # -n first so -ge only ever evaluates a digit string ([[ ]] does arithmetic on its operands).
+    if [[ -n "$java_env_current" && "$java_env_current" -ge "$java_env_required" ]]; then
         java_env_selected="$JAVA_HOME"
     else
         echo ">>> JAVA_HOME points at Java ${java_env_current:-unknown}, but the build needs >= $java_env_required — looking for another JDK"
@@ -39,7 +40,7 @@ if [ -n "$JAVA_HOME" ]; then
 fi
 
 # 2. Otherwise search the usual locations (Linux distro paths, then macOS).
-if [ -z "$java_env_selected" ]; then
+if [[ -z "$java_env_selected" ]]; then
     for java_env_candidate in \
         /usr/lib/jvm/java-17-openjdk-amd64 \
         /usr/lib/jvm/java-17-openjdk \
@@ -47,9 +48,9 @@ if [ -z "$java_env_selected" ]; then
         /usr/lib/jvm/java-21-openjdk \
         "$(/usr/libexec/java_home -v 17 2>/dev/null)" \
         "$(/usr/libexec/java_home -v 21 2>/dev/null)"; do
-        [ -n "$java_env_candidate" ] || continue
+        [[ -n "$java_env_candidate" ]] || continue
         java_env_candidate_major="$(java_major_of "$java_env_candidate/bin/java")"
-        if [ -n "$java_env_candidate_major" ] && [ "$java_env_candidate_major" -ge "$java_env_required" ] 2>/dev/null; then
+        if [[ -n "$java_env_candidate_major" && "$java_env_candidate_major" -ge "$java_env_required" ]]; then
             java_env_selected="$java_env_candidate"
             break
         fi
@@ -57,7 +58,7 @@ if [ -z "$java_env_selected" ]; then
 fi
 
 # 3. Fall back to whatever `java` is on PATH, warning if it cannot build.
-if [ -n "$java_env_selected" ]; then
+if [[ -n "$java_env_selected" ]]; then
     export JAVA_HOME="$java_env_selected"
     export PATH="$JAVA_HOME/bin:$PATH"
     echo ">>> Using JDK $(java_major_of "$JAVA_HOME/bin/java") at $JAVA_HOME"

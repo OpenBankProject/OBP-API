@@ -156,5 +156,5 @@ echo
 echo ">>> Done. Password for every store: $PASSWORD"
 for f in dev-ca.crt dev-ca.key dev-truststore.p12 obp-server.p12 tpp-client.p12 tpp-client.crt \
          tpp-client.key proxy-client.p12 expired-tpp.p12; do
-    [ -f "$f" ] && echo "      $f"
+    [[ -f "$f" ]] && echo "      $f"
 done

@@ -18,6 +18,7 @@ import org.typelevel.ci.CIString
 class Psd2CertIngressTest extends FlatSpec with Matchers {
 
   private val psd2CertHeader = CIString("PSD2-CERT")
+  private val NotACertificate = "not a certificate"
 
   private val certificate: X509Certificate =
     generateSelfSignedCert("test-tpp")._2.asInstanceOf[X509Certificate]
@@ -72,7 +73,7 @@ class Psd2CertIngressTest extends FlatSpec with Matchers {
   it should "return None for values that are not certificates" in {
     CertificateUtil.canonicalizePemX509Certificate("") shouldBe None
     CertificateUtil.canonicalizePemX509Certificate("   ") shouldBe None
-    CertificateUtil.canonicalizePemX509Certificate("not a certificate") shouldBe None
+    CertificateUtil.canonicalizePemX509Certificate(NotACertificate) shouldBe None
     CertificateUtil.canonicalizePemX509Certificate("-4611686018427387904") shouldBe None // the getHeaderValue sentinel
   }
 
@@ -90,7 +91,7 @@ class Psd2CertIngressTest extends FlatSpec with Matchers {
   it should "pass an unparseable header through unchanged rather than rejecting it" in {
     // Normalisation is not authentication: the authorisation layer owns the error code, so a
     // garbage header must survive to reach it rather than being dropped or 400'd here.
-    canonicalizedHeaderOf("not a certificate") shouldEqual Some("not a certificate")
+    canonicalizedHeaderOf(NotACertificate) shouldEqual Some(NotACertificate)
   }
 
   // The regression this phase had to be designed around. Consumers are registered by pasting a PEM,

@@ -316,63 +316,74 @@ object BerlinGroupSigning extends MdcLoggable {
         Future(forwardResult)
       // Dynamic consumer creation/update, when TPP-Signature-Certificate holds a real certificate
       case Full(certificate) =>
-        val extractedEmail = emailPattern.findFirstMatchIn(certificate.getSubjectDN.getName).map(_.group(1))
-        val extractOrganisation = organisationlPattern.findFirstMatchIn(certificate.getSubjectDN.getName).map(_.group(1))
+        createOrUpdateConsumerForCertificate(certificate, requestHeaders, forwardResult)
+    }
+  }
 
-        for {
-          entities <- getRegulatedEntityByCertificate(certificate, forwardResult._2)
-        } yield {
-          entities match {
-            case Nil =>
-              (ObpApiFailure(ErrorMessages.RegulatedEntityNotFoundByCertificate, 401, forwardResult._2), forwardResult._2)
+  // The good-certificate branch of getOrCreateConsumer, extracted so that method stays within one
+  // screen and one nesting level. Looks the regulated entity up by certificate, then creates and
+  // stamps a Consumer for it; ambiguity or no match leaves the caller's result as a Failure.
+  private def createOrUpdateConsumerForCertificate(
+    certificate: X509Certificate,
+    requestHeaders: List[HTTPParam],
+    forwardResult: (Box[User], Option[CallContext])
+  ): OBPReturnType[Box[User]] = {
+    val extractedEmail = emailPattern.findFirstMatchIn(certificate.getSubjectDN.getName).map(_.group(1))
+    val extractOrganisation = organisationlPattern.findFirstMatchIn(certificate.getSubjectDN.getName).map(_.group(1))
 
-            case single :: Nil =>
-              val idno = single.entityCode
-              val entityName = Option(single.entityName)
+    for {
+      entities <- getRegulatedEntityByCertificate(certificate, forwardResult._2)
+    } yield {
+      entities match {
+        case Nil =>
+          (ObpApiFailure(ErrorMessages.RegulatedEntityNotFoundByCertificate, 401, forwardResult._2), forwardResult._2)
 
-              val consumer: Box[Consumer] = Consumers.consumers.vend.getOrCreateConsumer(
-                consumerId = None,
-                key = Some(Helpers.randomString(40).toLowerCase),
-                secret = Some(Helpers.randomString(40).toLowerCase),
-                aud = None,
-                azp = Some(idno),
-                iss = Some(RequestHeader.`TPP-Signature-Certificate`),
-                sub = None,
-                Some(true),
+        case single :: Nil =>
+          val idno = single.entityCode
+          val entityName = Option(single.entityName)
+
+          val consumer: Box[Consumer] = Consumers.consumers.vend.getOrCreateConsumer(
+            consumerId = None,
+            key = Some(Helpers.randomString(40).toLowerCase),
+            secret = Some(Helpers.randomString(40).toLowerCase),
+            aud = None,
+            azp = Some(idno),
+            iss = Some(RequestHeader.`TPP-Signature-Certificate`),
+            sub = None,
+            Some(true),
+            name = entityName,
+            appType = None,
+            description = Some(s"Certificate serial number:${certificate.getSerialNumber}"),
+            developerEmail = extractedEmail,
+            redirectURL = None,
+            createdByUserId = None,
+            certificate = None,
+            logoUrl = code.api.Constant.consumerDefaultLogoUrl
+          )
+
+          consumer match {
+            case Full(consumer) =>
+              val certificateFromHeader = getHeaderValue(RequestHeader.`TPP-Signature-Certificate`, requestHeaders)
+              Consumers.consumers.vend.updateConsumer(
+                id = consumer.id.get,
                 name = entityName,
-                appType = None,
-                description = Some(s"Certificate serial number:${certificate.getSerialNumber}"),
-                developerEmail = extractedEmail,
-                redirectURL = None,
-                createdByUserId = None,
-                certificate = None,
-                logoUrl = code.api.Constant.consumerDefaultLogoUrl
-              )
-
-              consumer match {
-                case Full(consumer) =>
-                  val certificateFromHeader = getHeaderValue(RequestHeader.`TPP-Signature-Certificate`, requestHeaders)
-                  Consumers.consumers.vend.updateConsumer(
-                    id = consumer.id.get,
-                    name = entityName,
-                    certificate = Some(certificateFromHeader)
-                  ) match {
-                    case Full(updatedConsumer) =>
-                      (forwardResult._1, forwardResult._2.map(_.copy(consumer = Full(updatedConsumer))))
-                    case error =>
-                      logger.debug(error)
-                      (Failure(s"${ErrorMessages.CreateConsumerError} Regulated entity: $idno"), forwardResult._2)
-                  }
+                certificate = Some(certificateFromHeader)
+              ) match {
+                case Full(updatedConsumer) =>
+                  (forwardResult._1, forwardResult._2.map(_.copy(consumer = Full(updatedConsumer))))
                 case error =>
                   logger.debug(error)
                   (Failure(s"${ErrorMessages.CreateConsumerError} Regulated entity: $idno"), forwardResult._2)
               }
-
-            case multiple =>
-              val names = multiple.map(e => s"'${e.entityName}' (Code: ${e.entityCode})").mkString(", ")
-              (ObpApiFailure(s"${ErrorMessages.RegulatedEntityAmbiguityByCertificate}: multiple TPPs found: $names", 401, forwardResult._2), forwardResult._2)
+            case error =>
+              logger.debug(error)
+              (Failure(s"${ErrorMessages.CreateConsumerError} Regulated entity: $idno"), forwardResult._2)
           }
-        }
+
+        case multiple =>
+          val names = multiple.map(e => s"'${e.entityName}' (Code: ${e.entityCode})").mkString(", ")
+          (ObpApiFailure(s"${ErrorMessages.RegulatedEntityAmbiguityByCertificate}: multiple TPPs found: $names", 401, forwardResult._2), forwardResult._2)
+      }
     }
   }
 

@@ -30,6 +30,13 @@ import org.typelevel.ci.CIString
 class DevCertificateSetTest extends FlatSpec with Matchers with BeforeAndAfterAll {
 
   private val password = "123456"
+
+  // The role-named stores generate_dev_certs.sh writes; see docs/MTLS_DEV_MODE.md.
+  private val ObpServer = "obp-server.p12"
+  private val TppClient = "tpp-client.p12"
+  private val ProxyClient = "proxy-client.p12"
+  private val DevTruststore = "dev-truststore.p12"
+  private val ExpiredTpp = "expired-tpp.p12"
   private val certDir = new File(getClass.getResource("/cert/dev-ca.crt").toURI).getParentFile
   private def path(name: String) = new File(certDir, name).getAbsolutePath
 
@@ -52,7 +59,7 @@ class DevCertificateSetTest extends FlatSpec with Matchers with BeforeAndAfterAl
 
   // The proxy identity exists so a deployment where OBP sits behind nginx can be described at all.
   private lazy val behindProxy = {
-    val proxy = certOf("proxy-client.p12")
+    val proxy = certOf(ProxyClient)
     // Issuer is the CA, NOT the proxy's own subject. Obvious written down, easy to get wrong: it
     // holds for self-signed certificates, so a config that works against a throwaway pair silently
     // matches nothing once the proxy is properly CA-signed.
@@ -74,9 +81,9 @@ class DevCertificateSetTest extends FlatSpec with Matchers with BeforeAndAfterAl
   override def beforeAll(): Unit = {
     // Exactly how Http4sServer builds it, but pointed at the new set.
     val sslContext = Http4sMtls.buildSslContext(Http4sMtls.MtlsConfig(
-      keystorePath = path("obp-server.p12"),
+      keystorePath = path(ObpServer),
       keystorePassword = password,
-      truststorePath = path("dev-truststore.p12"),
+      truststorePath = path(DevTruststore),
       truststorePassword = password,
       needClientAuth = true
     ))
@@ -97,7 +104,7 @@ class DevCertificateSetTest extends FlatSpec with Matchers with BeforeAndAfterAl
 
   private def clientContext(identity: Option[String]): SSLContext = {
     val trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm)
-    trustManagerFactory.init(loadP12("dev-truststore.p12"))
+    trustManagerFactory.init(loadP12(DevTruststore))
     val keyManagers = identity.map { name =>
       val keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm)
       keyManagerFactory.init(loadP12(name), password.toCharArray)
@@ -119,20 +126,20 @@ class DevCertificateSetTest extends FlatSpec with Matchers with BeforeAndAfterAl
   "the dev server certificate" should "be verifiable by hostname, with no need to disable checking" in {
     // The old server.jks leaf has no SAN, so every documented curl needed -k or a CN fallback.
     // Reaching it as "localhost" without a custom HostnameVerifier is the assertion.
-    get(Some("tpp-client.p12")) shouldEqual CertificateUtil.toPem(certOf("tpp-client.p12"))
+    get(Some(TppClient)) shouldEqual CertificateUtil.toPem(certOf(TppClient))
   }
 
   "the TPP client identity" should "be trusted through the CA alone" in {
     // Nothing is pinned in the truststore: only dev-ca is there, so this passing means the chain
     // was built and validated rather than the leaf being listed.
-    val store = loadP12("dev-truststore.p12")
+    val store = loadP12(DevTruststore)
     java.util.Collections.list(store.aliases()).size shouldEqual 1
     store.isCertificateEntry("dev-ca") shouldBe true
   }
 
   "the expired client identity" should "be rejected by the handshake" in {
     // Certificate expiry had no coverage before this fixture existed.
-    an[Exception] should be thrownBy get(Some("expired-tpp.p12"))
+    an[Exception] should be thrownBy get(Some(ExpiredTpp))
   }
 
   "a certless handshake" should "be rejected under client_auth=need" in {
@@ -140,8 +147,8 @@ class DevCertificateSetTest extends FlatSpec with Matchers with BeforeAndAfterAl
   }
 
   "the proxy identity" should "be usable as a forwarder, keeping the App's certificate" in {
-    val appPem = CertificateUtil.toPem(certOf("tpp-client.p12"))
-    get(Some("proxy-client.p12"), "/behind-proxy", Some(
+    val appPem = CertificateUtil.toPem(certOf(TppClient))
+    get(Some(ProxyClient), "/behind-proxy", Some(
       CertificateUtil.normalizePemX509Certificate(appPem))) shouldEqual
       CertificateUtil.normalizePemX509Certificate(appPem)
   }
@@ -150,27 +157,27 @@ class DevCertificateSetTest extends FlatSpec with Matchers with BeforeAndAfterAl
   // into mtls.trusted_proxy.N.subject. If a regenerated set changes them, the examples go stale
   // silently, so pin the names here.
   "the identities" should "carry the documented role-named subjects" in {
-    certOf("obp-server.p12").getSubjectX500Principal.getName should include("CN=localhost")
-    certOf("tpp-client.p12").getSubjectX500Principal.getName should include("CN=test-tpp")
-    certOf("proxy-client.p12").getSubjectX500Principal.getName should include("CN=nginx-dev-1")
+    certOf(ObpServer).getSubjectX500Principal.getName should include("CN=localhost")
+    certOf(TppClient).getSubjectX500Principal.getName should include("CN=test-tpp")
+    certOf(ProxyClient).getSubjectX500Principal.getName should include("CN=nginx-dev-1")
     // The App is a different organisation from the bank: a TPP sharing TESOBE's O would make the
     // Consumer and regulated-entity lookups look better tested than they are.
-    certOf("tpp-client.p12").getSubjectX500Principal.getName should include("O=Example TPP Ltd")
-    certOf("obp-server.p12").getSubjectX500Principal.getName should include("O=TESOBE GmbH")
+    certOf(TppClient).getSubjectX500Principal.getName should include("O=Example TPP Ltd")
+    certOf(ObpServer).getSubjectX500Principal.getName should include("O=TESOBE GmbH")
   }
 
   it should "separate client and server extended key usage" in {
     // serverAuth on a client certificate would let a mix-up work anyway, and hide it.
-    certOf("obp-server.p12").getExtendedKeyUsage should contain("1.3.6.1.5.5.7.3.1")   // serverAuth
-    certOf("obp-server.p12").getExtendedKeyUsage should not contain "1.3.6.1.5.5.7.3.2"
-    certOf("tpp-client.p12").getExtendedKeyUsage should contain("1.3.6.1.5.5.7.3.2")   // clientAuth
-    certOf("tpp-client.p12").getExtendedKeyUsage should not contain "1.3.6.1.5.5.7.3.1"
+    certOf(ObpServer).getExtendedKeyUsage should contain("1.3.6.1.5.5.7.3.1")   // serverAuth
+    certOf(ObpServer).getExtendedKeyUsage should not contain "1.3.6.1.5.5.7.3.2"
+    certOf(TppClient).getExtendedKeyUsage should contain("1.3.6.1.5.5.7.3.2")   // clientAuth
+    certOf(TppClient).getExtendedKeyUsage should not contain "1.3.6.1.5.5.7.3.1"
   }
 
   "every identity except the expired fixture" should "be valid for years to come" in {
     // Five of the seven entries in the old truststore had expired unnoticed.
     val fiveYears = new java.util.Date(System.currentTimeMillis() + 5L * 365 * 24 * 60 * 60 * 1000)
-    List("obp-server.p12", "tpp-client.p12", "proxy-client.p12").foreach { name =>
+    List(ObpServer, TppClient, ProxyClient).foreach { name =>
       withClue(s"$name: ") { noException should be thrownBy certOf(name).checkValidity(fiveYears) }
     }
   }
