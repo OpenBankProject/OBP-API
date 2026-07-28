@@ -256,11 +256,76 @@ object CertificateUtil extends MdcLoggable {
     val normalizedPem2 = normalizePemX509Certificate(pem2)
 
     val result = normalizedPem1 == normalizedPem2
-    if(!result) { 
+    if(!result) {
       logger.debug(s"normalizedPem1: ${normalizedPem1}")
       logger.debug(s"normalizedPem2: ${normalizedPem2}")
     }
     result
+  }
+
+  // Canonical PEM: 64-column base64 between the standard header and footer, "\n" separated. This is
+  // the single form every part of OBP should see, whoever terminated TLS — see canonicalizePemX509Certificate.
+  private val canonicalPemEncoder =
+    java.util.Base64.getMimeEncoder(64, "\n".getBytes(java.nio.charset.StandardCharsets.US_ASCII))
+
+  /** An X509 certificate rendered as canonical PEM. */
+  def toPem(certificate: X509Certificate): String =
+    s"${CertificateConstants.BEGIN_CERT}\n${canonicalPemEncoder.encodeToString(certificate.getEncoded)}\n${CertificateConstants.END_CERT}"
+
+  /**
+   * Percent-decoding that leaves '+' alone.
+   *
+   * `java.net.URLDecoder` decodes '+' to a space, which is correct for form encoding and wrong
+   * here: '+' is a base64 alphabet character, so a certificate carrying one would be corrupted.
+   * nginx's `$ssl_client_escaped_cert` percent-escapes everything it needs to, '+' included, so
+   * there is nothing to gain from the form-encoding rule and a certificate to lose.
+   */
+  private def percentDecode(value: String): String = {
+    val out = new java.io.ByteArrayOutputStream(value.length)
+    var i = 0
+    while (i < value.length) {
+      value.charAt(i) match {
+        case '%' if i + 2 < value.length =>
+          try {
+            out.write(Integer.parseInt(value.substring(i + 1, i + 3), 16))
+            i += 3
+          } catch {
+            case _: NumberFormatException => out.write('%'.toInt); i += 1 // not an escape, keep it
+          }
+        case c =>
+          out.write(c.toString.getBytes(java.nio.charset.StandardCharsets.UTF_8))
+          i += 1
+      }
+    }
+    new String(out.toByteArray, java.nio.charset.StandardCharsets.UTF_8)
+  }
+
+  /**
+   * Whatever representation of an X509 certificate arrived, rendered as canonical PEM — or None if
+   * it is not a certificate at all.
+   *
+   * The same certificate reaches OBP in several encodings depending on who terminated TLS: nginx's
+   * `$ssl_client_escaped_cert` is percent-encoded, HAProxy rebuilds a single-line PEM, the dev-mode
+   * in-process terminator injects canonical PEM, and a hand-built client may send bare base64 with
+   * no PEM markers at all. Downstream code then compares certificates as strings, so each encoding
+   * silently behaves like a different certificate — which is how a deployment works in development
+   * and fails in production.
+   *
+   * Normalising once on ingress makes every one of those comparisons exact. Note this is stricter
+   * than [[normalizePemX509Certificate]], which only rewrites whitespace and cannot tell a
+   * certificate from any other string: this parses, and so also rejects non-certificates.
+   */
+  def canonicalizePemX509Certificate(raw: String): Option[String] = {
+    val trimmed = raw.trim
+    if (trimmed.isEmpty) None
+    else {
+      val decoded = if (trimmed.contains('%')) percentDecode(trimmed) else trimmed
+      // X509CertUtils.parse wants the PEM markers; supply them for bare base64.
+      val withMarkers =
+        if (decoded.contains(CertificateConstants.BEGIN_CERT)) decoded
+        else s"${CertificateConstants.BEGIN_CERT}\n$decoded\n${CertificateConstants.END_CERT}"
+      Option(X509CertUtils.parse(withMarkers)).map(toPem)
+    }
   }
 
 

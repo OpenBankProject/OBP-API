@@ -168,40 +168,46 @@ object BerlinGroupSigning extends MdcLoggable {
         forwardResult
       case true =>
         val requestHeaders = forwardResult._2.map(_.requestHeaders).getOrElse(Nil)
-        val certificate = getCertificateFromTppSignatureCertificate(requestHeaders)
-        X509.validateCertificate(certificate) match {
-          case Full(true) => // PEM certificate is ok
-            val generatedDigest = generateDigest(body.getOrElse(""))
-            val requestHeaderDigest = getHeaderValue(RequestHeader.Digest, requestHeaders)
-            if(generatedDigest == requestHeaderDigest) { // Verifying the Hash in the Digest Field
-              val signatureHeaderValue = getHeaderValue(RequestHeader.Signature, requestHeaders)
-              val signature = parseSignatureHeader(signatureHeaderValue).getOrElse("signature", "NONE")
-              val headersToSign = parseSignatureHeader(signatureHeaderValue).getOrElse("headers", "").split(" ").toList
-              val sn = parseSignatureHeader(signatureHeaderValue).getOrElse("keyId", "").split(" ").toList
-              val headers = headersToSign.map(h =>
-                if (h.toLowerCase() == RequestHeader.Digest.toLowerCase()) {
-                  s"$h: $generatedDigest"
-                } else {
-                  s"$h: ${getHeaderValue(h, requestHeaders)}"
+        // checkRequestIsSigned only proves the header is present, not that it holds a usable
+        // certificate — an unparseable one is a 401, not a 500.
+        getCertificateFromTppSignatureCertificate(requestHeaders) match {
+          case Full(certificate) =>
+            X509.validateCertificate(certificate) match {
+              case Full(true) => // PEM certificate is ok
+                val generatedDigest = generateDigest(body.getOrElse(""))
+                val requestHeaderDigest = getHeaderValue(RequestHeader.Digest, requestHeaders)
+                if(generatedDigest == requestHeaderDigest) { // Verifying the Hash in the Digest Field
+                  val signatureHeaderValue = getHeaderValue(RequestHeader.Signature, requestHeaders)
+                  val signature = parseSignatureHeader(signatureHeaderValue).getOrElse("signature", "NONE")
+                  val headersToSign = parseSignatureHeader(signatureHeaderValue).getOrElse("headers", "").split(" ").toList
+                  val sn = parseSignatureHeader(signatureHeaderValue).getOrElse("keyId", "").split(" ").toList
+                  val headers = headersToSign.map(h =>
+                    if (h.toLowerCase() == RequestHeader.Digest.toLowerCase()) {
+                      s"$h: $generatedDigest"
+                    } else {
+                      s"$h: ${getHeaderValue(h, requestHeaders)}"
+                    }
+                  )
+                  val signingString = headers.mkString("\n")
+                  val isVerified = verifySignature(signingString, signature, certificate.getPublicKey)
+                  val isValidated = CertificateVerifier.validateCertificate(certificate)
+                  val bypassValidation = APIUtil.getPropsAsBoolValue("bypass_tpp_signature_validation", defaultValue = false)
+                  (isVerified, isValidated) match {
+                    case (true, true) => forwardResult
+                    case (true, false) if bypassValidation => forwardResult
+                    case (true, false) => apiFailure(ErrorMessages.X509PublicKeyCannotBeValidated, 401)(forwardResult)
+                    case (false, _) => apiFailure(ErrorMessages.X509PublicKeyCannotVerify, 401)(forwardResult)
+                  }
+                } else { // The two DIGEST hashes do NOT match, the integrity of the request body is NOT confirmed.
+                  logger.debug(s"Generated digest: $generatedDigest")
+                  logger.debug(s"Request header digest: $requestHeaderDigest")
+                  apiFailure(ErrorMessages.X509PublicKeyCannotVerify, 401)(forwardResult)
                 }
-              )
-              val signingString = headers.mkString("\n")
-              val isVerified = verifySignature(signingString, signature, certificate.getPublicKey)
-              val isValidated = CertificateVerifier.validateCertificate(certificate)
-              val bypassValidation = APIUtil.getPropsAsBoolValue("bypass_tpp_signature_validation", defaultValue = false)
-              (isVerified, isValidated) match {
-                case (true, true) => forwardResult
-                case (true, false) if bypassValidation => forwardResult
-                case (true, false) => apiFailure(ErrorMessages.X509PublicKeyCannotBeValidated, 401)(forwardResult)
-                case (false, _) => apiFailure(ErrorMessages.X509PublicKeyCannotVerify, 401)(forwardResult)
-              }
-            } else { // The two DIGEST hashes do NOT match, the integrity of the request body is NOT confirmed.
-              logger.debug(s"Generated digest: $generatedDigest")
-              logger.debug(s"Request header digest: $requestHeaderDigest")
-              apiFailure(ErrorMessages.X509PublicKeyCannotVerify, 401)(forwardResult)
+              case Failure(msg, t, c) => (Failure(msg, t, c), forwardResult._2) // PEM certificate is not valid
+              case _ => apiFailure(ErrorMessages.X509GeneralError, 401)(forwardResult) // PEM certificate cannot be validated
             }
-          case Failure(msg, t, c) => (Failure(msg, t, c), forwardResult._2) // PEM certificate is not valid
-          case _ => apiFailure(ErrorMessages.X509GeneralError, 401)(forwardResult) // PEM certificate cannot be validated
+          case Failure(msg, t, c) => (Failure(msg, t, c), forwardResult._2) // certificate header unusable
+          case _ => apiFailure(ErrorMessages.X509CannotGetCertificate, 401)(forwardResult)
         }
     }
   }
@@ -210,15 +216,40 @@ object BerlinGroupSigning extends MdcLoggable {
     requestHeaders.find(_.name.toLowerCase() == name.toLowerCase()).map(_.values.mkString)
       .getOrElse(SecureRandomUtil.csprng.nextLong().toString)
   }
-  def getCertificateFromTppSignatureCertificate(requestHeaders: List[HTTPParam]): X509Certificate = {
-    val certificate = getHeaderValue(RequestHeader.`TPP-Signature-Certificate`, requestHeaders)
-    // Decode the Base64 string
-    val decodedBytes = Base64.getDecoder.decode(certificate)
-    // Convert the bytes to a string (it could be PEM format for public key)
-    val decodedString = new String(decodedBytes, StandardCharsets.UTF_8)
-
-    val certificatePemString = getCertificatePem(decodedString)
-    parseCertificate(certificatePemString)
+  /**
+   * The `TPP-Signature-Certificate` header parsed into an X509 certificate, or a Failure saying why
+   * it could not be.
+   *
+   * Returns a Box rather than throwing. Every step here consumes caller-supplied input and can fail
+   * on data we do not control: the header may be absent, not base64, base64 of something that is
+   * not a PEM, or a PEM that is not a certificate. Callers map the Failure to a 401; an exception
+   * would surface as a 500 instead.
+   *
+   * In particular this must NOT use `getHeaderValue`, which substitutes a random Long for an absent
+   * header. That is a serviceable "never matches" sentinel for the string comparisons it was
+   * written for (Digest, Signature), but not for a value about to be Base64-decoded: a negative
+   * Long renders with a leading '-', and `Base64.getDecoder` rejects it with
+   * "Illegal base64 character 2d" — so a merely missing header became a 500, and only for the
+   * ~half of calls where the random Long happened to be negative.
+   */
+  def getCertificateFromTppSignatureCertificate(requestHeaders: List[HTTPParam]): Box[X509Certificate] = {
+    requestHeaders
+      .find(_.name.equalsIgnoreCase(RequestHeader.`TPP-Signature-Certificate`))
+      .map(_.values.mkString.trim)
+      .filter(_.nonEmpty) match {
+      case None =>
+        Failure(ErrorMessages.X509CannotGetCertificate)
+      case Some(headerValue) =>
+        // Decode the Base64 string, then pull the PEM certificate out of whatever it decoded to.
+        Helpers.tryo(new String(Base64.getDecoder.decode(headerValue), StandardCharsets.UTF_8)) match {
+          case Full(decodedString) =>
+            getCertificatePem(decodedString) match {
+              case "" => Failure(ErrorMessages.X509CannotGetCertificate)
+              case certificatePemString => Helpers.tryo(parseCertificate(certificatePemString)) ?~ ErrorMessages.X509GeneralError
+            }
+          case _ => Failure(ErrorMessages.X509GeneralError)
+        }
+    }
   }
 
   private def getCertificatePem(decodedString: String) = {
@@ -276,65 +307,82 @@ object BerlinGroupSigning extends MdcLoggable {
     val tppSignatureCert: String = APIUtil.getRequestHeader(RequestHeader.`TPP-Signature-Certificate`, requestHeaders)
     if (tppSignatureCert.isEmpty) {
       Future(forwardResult)
-    } else { // Dynamic consumer creation/update works in case that RequestHeader.`TPP-Signature-Certificate` is present
-      val certificate = getCertificateFromTppSignatureCertificate(requestHeaders)
+    } else getCertificateFromTppSignatureCertificate(requestHeaders) match {
+      // Header present but unusable: leave the caller's result untouched rather than throwing.
+      // Consumer creation is a side effect of a signed request, not the thing being authorised —
+      // verifySignedRequest is what rejects a bad certificate.
+      case unusable if unusable.isEmpty =>
+        logger.debug(s"getOrCreateConsumer: unusable TPP-Signature-Certificate: $unusable")
+        Future(forwardResult)
+      // Dynamic consumer creation/update, when TPP-Signature-Certificate holds a real certificate
+      case Full(certificate) =>
+        createOrUpdateConsumerForCertificate(certificate, requestHeaders, forwardResult)
+    }
+  }
 
-      val extractedEmail = emailPattern.findFirstMatchIn(certificate.getSubjectDN.getName).map(_.group(1))
-      val extractOrganisation = organisationlPattern.findFirstMatchIn(certificate.getSubjectDN.getName).map(_.group(1))
+  // The good-certificate branch of getOrCreateConsumer, extracted so that method stays within one
+  // screen and one nesting level. Looks the regulated entity up by certificate, then creates and
+  // stamps a Consumer for it; ambiguity or no match leaves the caller's result as a Failure.
+  private def createOrUpdateConsumerForCertificate(
+    certificate: X509Certificate,
+    requestHeaders: List[HTTPParam],
+    forwardResult: (Box[User], Option[CallContext])
+  ): OBPReturnType[Box[User]] = {
+    val extractedEmail = emailPattern.findFirstMatchIn(certificate.getSubjectDN.getName).map(_.group(1))
+    val extractOrganisation = organisationlPattern.findFirstMatchIn(certificate.getSubjectDN.getName).map(_.group(1))
 
-      for {
-        entities <- getRegulatedEntityByCertificate(certificate, forwardResult._2)
-      } yield {
-        entities match {
-          case Nil =>
-            (ObpApiFailure(ErrorMessages.RegulatedEntityNotFoundByCertificate, 401, forwardResult._2), forwardResult._2)
+    for {
+      entities <- getRegulatedEntityByCertificate(certificate, forwardResult._2)
+    } yield {
+      entities match {
+        case Nil =>
+          (ObpApiFailure(ErrorMessages.RegulatedEntityNotFoundByCertificate, 401, forwardResult._2), forwardResult._2)
 
-          case single :: Nil =>
-            val idno = single.entityCode
-            val entityName = Option(single.entityName)
+        case single :: Nil =>
+          val idno = single.entityCode
+          val entityName = Option(single.entityName)
 
-            val consumer: Box[Consumer] = Consumers.consumers.vend.getOrCreateConsumer(
-              consumerId = None,
-              key = Some(Helpers.randomString(40).toLowerCase),
-              secret = Some(Helpers.randomString(40).toLowerCase),
-              aud = None,
-              azp = Some(idno),
-              iss = Some(RequestHeader.`TPP-Signature-Certificate`),
-              sub = None,
-              Some(true),
-              name = entityName,
-              appType = None,
-              description = Some(s"Certificate serial number:${certificate.getSerialNumber}"),
-              developerEmail = extractedEmail,
-              redirectURL = None,
-              createdByUserId = None,
-              certificate = None,
-              logoUrl = code.api.Constant.consumerDefaultLogoUrl
-            )
+          val consumer: Box[Consumer] = Consumers.consumers.vend.getOrCreateConsumer(
+            consumerId = None,
+            key = Some(Helpers.randomString(40).toLowerCase),
+            secret = Some(Helpers.randomString(40).toLowerCase),
+            aud = None,
+            azp = Some(idno),
+            iss = Some(RequestHeader.`TPP-Signature-Certificate`),
+            sub = None,
+            Some(true),
+            name = entityName,
+            appType = None,
+            description = Some(s"Certificate serial number:${certificate.getSerialNumber}"),
+            developerEmail = extractedEmail,
+            redirectURL = None,
+            createdByUserId = None,
+            certificate = None,
+            logoUrl = code.api.Constant.consumerDefaultLogoUrl
+          )
 
-            consumer match {
-              case Full(consumer) =>
-                val certificateFromHeader = getHeaderValue(RequestHeader.`TPP-Signature-Certificate`, requestHeaders)
-                Consumers.consumers.vend.updateConsumer(
-                  id = consumer.id.get,
-                  name = entityName,
-                  certificate = Some(certificateFromHeader)
-                ) match {
-                  case Full(updatedConsumer) =>
-                    (forwardResult._1, forwardResult._2.map(_.copy(consumer = Full(updatedConsumer))))
-                  case error =>
-                    logger.debug(error)
-                    (Failure(s"${ErrorMessages.CreateConsumerError} Regulated entity: $idno"), forwardResult._2)
-                }
-              case error =>
-                logger.debug(error)
-                (Failure(s"${ErrorMessages.CreateConsumerError} Regulated entity: $idno"), forwardResult._2)
-            }
+          consumer match {
+            case Full(consumer) =>
+              val certificateFromHeader = getHeaderValue(RequestHeader.`TPP-Signature-Certificate`, requestHeaders)
+              Consumers.consumers.vend.updateConsumer(
+                id = consumer.id.get,
+                name = entityName,
+                certificate = Some(certificateFromHeader)
+              ) match {
+                case Full(updatedConsumer) =>
+                  (forwardResult._1, forwardResult._2.map(_.copy(consumer = Full(updatedConsumer))))
+                case error =>
+                  logger.debug(error)
+                  (Failure(s"${ErrorMessages.CreateConsumerError} Regulated entity: $idno"), forwardResult._2)
+              }
+            case error =>
+              logger.debug(error)
+              (Failure(s"${ErrorMessages.CreateConsumerError} Regulated entity: $idno"), forwardResult._2)
+          }
 
-          case multiple =>
-            val names = multiple.map(e => s"'${e.entityName}' (Code: ${e.entityCode})").mkString(", ")
-            (ObpApiFailure(s"${ErrorMessages.RegulatedEntityAmbiguityByCertificate}: multiple TPPs found: $names", 401, forwardResult._2), forwardResult._2)
-        }
+        case multiple =>
+          val names = multiple.map(e => s"'${e.entityName}' (Code: ${e.entityCode})").mkString(", ")
+          (ObpApiFailure(s"${ErrorMessages.RegulatedEntityAmbiguityByCertificate}: multiple TPPs found: $names", 401, forwardResult._2), forwardResult._2)
       }
     }
   }

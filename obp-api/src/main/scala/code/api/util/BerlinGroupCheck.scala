@@ -141,16 +141,19 @@ object BerlinGroupCheck extends MdcLoggable {
             logger.debug(s"  Algorithm: ${parsed.algorithm}")
             logger.debug(s"  Signature: ${parsed.signature}")
 
-            val certificate = getCertificateFromTppSignatureCertificate(reqHeaders)
-            val certSerialNumber = certificate.getSerialNumber
+            // A Signature header without a usable TPP-Signature-Certificate cannot have its keyId.SN
+            // checked against anything, so it is an invalid signature header (400) — not a 500.
+            val certSerialNumber = getCertificateFromTppSignatureCertificate(reqHeaders).map(_.getSerialNumber)
 
-            logger.debug(s"Certificate serial number (decimal): ${certSerialNumber.toString}")
-            logger.debug(s"Certificate serial number (hex): ${certSerialNumber.toString(16).toUpperCase}")
+            logger.debug(s"Certificate serial number (decimal): ${certSerialNumber.map(_.toString)}")
+            logger.debug(s"Certificate serial number (hex): ${certSerialNumber.map(sn => sn.toString(16).toUpperCase)}")
 
-            val snMatches = BerlinGroupSignatureHeaderParser.doesSerialNumberMatch(parsed.keyId.sn, certSerialNumber)
+            val snMatches = certSerialNumber
+              .map(BerlinGroupSignatureHeaderParser.doesSerialNumberMatch(parsed.keyId.sn, _))
+              .getOrElse(false)
 
             if (!snMatches) {
-              logger.debug(s"Serial number mismatch. Parsed SN: ${parsed.keyId.sn}, Certificate decimal: ${certSerialNumber.toString}, Certificate hex: ${certSerialNumber.toString(16).toUpperCase}")
+              logger.debug(s"Serial number mismatch (or no usable certificate). Parsed SN: ${parsed.keyId.sn}, Certificate decimal: ${certSerialNumber.map(_.toString)}, Certificate hex: ${certSerialNumber.map(sn => sn.toString(16).toUpperCase)}")
               Some(
                 (
                   fullBoxOrException(

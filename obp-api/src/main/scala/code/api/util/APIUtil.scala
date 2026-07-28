@@ -46,7 +46,6 @@ import code.api.dynamic.entity.helper.DynamicEntityHelper
 import code.api.util.APIUtil.ResourceDoc.{findPathVariableNames, isPathVariable}
 import code.api.util.ApiRole._
 import code.api.util.ApiTag.{ResourceDocTag, apiTagBank}
-import code.api.util.BerlinGroupSigning.getCertificateFromTppSignatureCertificate
 import code.api.util.Consent.getConsumerKey
 import code.api.util.FutureUtil.{EndpointContext, EndpointTimeout}
 import code.api.util.Glossary.GlossaryItem
@@ -3849,32 +3848,83 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     currentSupportFormats.toStream.map(_.parse(date, parsePosition)).find(null.!=)
   }
 
+  /**
+   * The certificate identifying the TPP, taken from the channel the request's API standard
+   * actually uses.
+   *
+   * TPP-Signature-Certificate is a Berlin Group NextGenPSD2 header: the TPP signs each request and
+   * carries the signing certificate (its QSEAL) in it. It belongs to that standard alone. Neither
+   * UK Open Banking nor OBP's own endpoints use it -- both identify the TPP by the mTLS transport
+   * certificate (the QWAC), which reaches us as PSD2-CERT (set by the reverse proxy that terminates
+   * mTLS, or by bootstrap.http4s.Http4sMtls in development). Reading the Berlin Group header on a
+   * UK or OBP endpoint rejects a correctly-behaving client for omitting a header its specification
+   * never mentions.
+   *
+   * So the split is by whether the request is Berlin Group, not by whether it is UK:
+   *   - Berlin Group URLs (/berlin-group/) -> TPP-Signature-Certificate
+   *   - everything else, UK and OBP-native alike -> PSD2-CERT
+   *
+   * BerlinGroupCheck.validate already scopes every OTHER piece of Berlin Group machinery -- the
+   * mandatory headers, the request-signature verification, the on-the-fly consumer creation -- to
+   * Berlin Group URLs. This keeps the PSD2 gate on the same boundary.
+   *
+   * Note this changes only WHERE the certificate comes from, not what is then done with it: both
+   * paths feed the same regulated-entity lookup, which matches on issuer CN + serial number and so
+   * works with any X509 certificate.
+   */
+  private def tppCertificateForStandard(cc: Option[CallContext]): Box[java.security.cert.X509Certificate] = {
+    val requestHeaders = cc.map(_.requestHeaders).getOrElse(Nil)
+    val url = cc.map(_.url).getOrElse("")
+    val isBerlinGroup = url.contains(s"/${ApiVersion.berlinGroupV13.urlPrefix}/")
+    if (isBerlinGroup) {
+      BerlinGroupSigning.getCertificateFromTppSignatureCertificate(requestHeaders)
+    } else {
+      `getPSD2-CERT`(requestHeaders) match {
+        case Some(pem) =>
+          tryo(BerlinGroupSigning.parseCertificate(pem)) ?~ X509GeneralError
+        case None =>
+          logger.debug(s"tppCertificateForStandard: non-Berlin-Group request ($url) with no ${RequestHeader.`PSD2-CERT`} header")
+          Failure(X509CannotGetCertificate)
+      }
+    }
+  }
+
   private def passesPsd2ServiceProviderCommon(cc: Option[CallContext], serviceProvider: String) = {
     val result = getPropsValue("requirePsd2Certificates", "NONE") match {
       case value if value.toUpperCase == "ONLINE" =>
         val requestHeaders = cc.map(_.requestHeaders).getOrElse(Nil)
         val consumerName = cc.flatMap(_.consumer.map(_.name.get)).getOrElse("")
-        val certificate = getCertificateFromTppSignatureCertificate(requestHeaders)
-        for {
-          tpps <- BerlinGroupSigning.getRegulatedEntityByCertificate(certificate, cc)
-        } yield {
-          tpps match {
-            case Nil =>
-              ObpApiFailure(RegulatedEntityNotFoundByCertificate, 401, cc)
-            case single :: Nil =>
-              logger.debug(s"Regulated entity by certificate: $single")
-              // Only one match, proceed to role check
-              if (single.services.contains(serviceProvider)) {
-                logger.debug(s"Regulated entity by certificate (single.services: ${single.services}, serviceProvider: $serviceProvider): ")
-                Full(true)
-              } else {
-                ObpApiFailure(X509ActionIsNotAllowed, 403, cc)
+        tppCertificateForStandard(cc) match {
+          // No usable certificate: fail closed. passesPsd2ServiceProvider maps a Failure to a 401
+          // -- this used to throw out of the base64 decode and become a 500.
+          case failure: Failure =>
+            logger.debug(s"passesPsd2ServiceProvider: no usable TPP certificate: $failure")
+            Future(failure)
+          case Empty =>
+            logger.debug("passesPsd2ServiceProvider: no TPP certificate header")
+            Future(Failure(X509CannotGetCertificate))
+          case Full(certificate) =>
+            for {
+              tpps <- BerlinGroupSigning.getRegulatedEntityByCertificate(certificate, cc)
+            } yield {
+              tpps match {
+                case Nil =>
+                  ObpApiFailure(RegulatedEntityNotFoundByCertificate, 401, cc)
+                case single :: Nil =>
+                  logger.debug(s"Regulated entity by certificate: $single")
+                  // Only one match, proceed to role check
+                  if (single.services.contains(serviceProvider)) {
+                    logger.debug(s"Regulated entity by certificate (single.services: ${single.services}, serviceProvider: $serviceProvider): ")
+                    Full(true)
+                  } else {
+                    ObpApiFailure(X509ActionIsNotAllowed, 403, cc)
+                  }
+                case multiple =>
+                  // Ambiguity detected: more than one TPP matches the certificate
+                  val names = multiple.map(e => s"'${e.entityName}' (Code: ${e.entityCode})").mkString(", ")
+                  ObpApiFailure(s"$RegulatedEntityAmbiguityByCertificate: multiple TPPs found: $names", 401, cc)
               }
-            case multiple =>
-              // Ambiguity detected: more than one TPP matches the certificate
-              val names = multiple.map(e => s"'${e.entityName}' (Code: ${e.entityCode})").mkString(", ")
-              ObpApiFailure(s"$RegulatedEntityAmbiguityByCertificate: multiple TPPs found: $names", 401, cc)
-          }
+            }
         }
       case value if value.toUpperCase == "CERTIFICATE" => Future {
         `getPSD2-CERT`(cc.map(_.requestHeaders).getOrElse(Nil)) match {
