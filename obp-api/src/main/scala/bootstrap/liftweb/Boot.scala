@@ -135,6 +135,7 @@ import code.transactionRequestAttribute.TransactionRequestAttribute
 import code.transactionStatusScheduler.TransactionRequestStatusScheduler
 import code.transaction_types.MappedTransactionType
 import code.transactionattribute.MappedTransactionAttribute
+import code.bankconnectors.opencorridor.OpenCorridorBankBroker
 import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequestTypeCharge, TransactionRequestReasons}
 import code.usercustomerlinks.MappedUserCustomerLink
 import code.customerlinks.CustomerLink
@@ -988,6 +989,7 @@ object ToSchemify extends MdcLoggable {
     MappedCounterpartyWhereTag,
     MappedTransactionRequest,
     TransactionRequestAttribute,
+    OpenCorridorBankBroker,
     MappedMetric,
     MetricArchive,
     MetricsArchiveRun,

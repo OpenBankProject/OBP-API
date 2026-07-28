@@ -1071,7 +1071,9 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
       `type` = v4.`type`,
       from = v4.from,
       details = requestBody,
-      transaction_ids = v4.transaction_ids,
+      // The v4 factory emits List("") for a TR with no transactions; a held promise
+      // genuinely has none, so v7 emits a truly empty list instead.
+      transaction_ids = v4.transaction_ids.filter(_.trim.nonEmpty),
       status = v4.status,
       start_date = v4.start_date,
       end_date = v4.end_date,
@@ -1080,6 +1082,57 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
       originator = originator
     )
   }
+
+  // ─── OPEN_CORRIDOR promise report-back (salt relay intake) ─────────────────
+  //
+  // After the Bank Node writes the Promise commitment to Cardano, it reports the
+  // on-chain references and the commit–reveal evidence back so OBP-API can relay
+  // the salt to the beneficiary bank in `obp_credit_notification`. The evidence
+  // fields are opaque to OBP-API: it stores and relays them, it never needs to
+  // parse the preimage.
+
+  // `tx_hash` is deliberately chain-neutral: the chain is identified by `blockchain`
+  // (e.g. "cardano"), so the hash field must not bake a chain name in.
+  case class PostOpenCorridorPromiseJsonV700(
+    tx_hash: String,
+    blockchain: String,
+    commitment: String,
+    salt: String,
+    preimage: String
+  )
+
+  case class OpenCorridorPromiseJsonV700(
+    transaction_request_id: String,
+    transaction_request_status: String,
+    tx_hash: String,
+    blockchain: String,
+    commitment: String,
+    salt: String,
+    preimage: String,
+    reported_by_user_id: String,
+    reported_at: String
+  )
+
+  // ─── OPEN_CORRIDOR per-bank broker registry (admin) ────────────────────────
+
+  case class PostOpenCorridorBankBrokerJsonV700(
+    host: String,
+    port: Int,
+    virtual_host: String,
+    username: String,
+    password: String,
+    use_ssl: Boolean
+  )
+
+  // The password is write-only: never echoed on any response.
+  case class OpenCorridorBankBrokerJsonV700(
+    bank_id: String,
+    host: String,
+    port: Int,
+    virtual_host: String,
+    username: String,
+    use_ssl: Boolean
+  )
 
   // Build the originator block for a TR response. Returns None when there's no
   // explicit originator and no customer_account_link for the from-account — the

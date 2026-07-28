@@ -7,8 +7,8 @@ import code.api.util.http4s.Http4sStandardHeaders
 import code.api.Constant.SYSTEM_OWNER_VIEW_ID
 import code.api.ResponseHeader
 import code.api.util.APIUtil
-import code.api.util.ApiRole.{canCreateEntitlementAtAnyBank, canCreateOrganisation, canCreateRoutingScheme, canCreateUtilityVendResult, canDeleteEntitlementAtAnyBank, canDeleteOrganisation, canDeleteRoutingScheme, canDeleteSchedulerJobLock, canUpdateSystemView, canGetAccountAccessTrace, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetCardsForBank, canGetConnectorHealth, canCreateMetricsArchiveRun, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMetricsDiagnostics, canGetMigrations, canGetSchedulerJobLocks, canReadResourceDoc, canUpdateBankSupportedRoutingScheme, canUpdateOrganisation, canUpdateRoutingScheme}
-import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, BankNotFound, EntitlementAlreadyExists, InvalidJsonFormat, InvalidOrganisationIdFormat, InvalidRoutingSchemeName, MobileWalletDestinationNotFound, MobileWalletInvalidMsisdn, OrganisationAlreadyExists, OrganisationNotFound, PayeeLookupAddressMismatch, PayeeLookupIdentifierTypeNotRegistered, PayeeNotFound, RoutingSchemeAlreadyExists, RoutingSchemeExampleAddressMismatch, RoutingSchemeNotFound, SelfServiceBankCreationDisabled, SelfServiceBankLimitReached, SystemViewNotFound, UserHasMissingRoles, UserNotFoundByUserId, UtilityIdentifierTypeWrongCategory, UtilityInvalidIdentifier, UtilityTransactionRequestNotFound}
+import code.api.util.ApiRole.{canAttachOpenCorridorPromise, canCreateEntitlementAtAnyBank, canCreateOrganisation, canCreateRoutingScheme, canCreateUtilityVendResult, canDeleteEntitlementAtAnyBank, canDeleteOrganisation, canDeleteRoutingScheme, canDeleteSchedulerJobLock, canUpdateSystemView, canGetAccountAccessTrace, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetCardsForBank, canGetConnectorHealth, canCreateMetricsArchiveRun, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMetricsDiagnostics, canGetMigrations, canGetSchedulerJobLocks, canReadResourceDoc, canUpdateBankSupportedRoutingScheme, canUpdateOrganisation, canUpdateRoutingScheme}
+import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, BankNotFound, EntitlementAlreadyExists, InvalidJsonFormat, InvalidJsonValue, InvalidOrganisationIdFormat, InvalidRoutingSchemeName, InvalidTransactionRequestId, MobileWalletDestinationNotFound, MobileWalletInvalidMsisdn, OpenCorridorPromiseEvidenceConflict, OpenCorridorPromiseNotPending, OpenCorridorPromiseTypeMismatch, OrganisationAlreadyExists, OrganisationNotFound, PayeeLookupAddressMismatch, PayeeLookupIdentifierTypeNotRegistered, PayeeNotFound, RoutingSchemeAlreadyExists, RoutingSchemeExampleAddressMismatch, RoutingSchemeNotFound, SelfServiceBankCreationDisabled, SelfServiceBankLimitReached, SystemViewNotFound, UserHasMissingRoles, UserNotFoundByUserId, UtilityIdentifierTypeWrongCategory, UtilityInvalidIdentifier, UtilityTransactionRequestNotFound}
 import code.utilitypayment.{UtilityCallbackStatus, UtilityPaymentCallbacks}
 import code.scheduler.JobScheduler
 import net.liftweb.mapper.By
@@ -1760,11 +1760,11 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
               fromMap.get("account_id") shouldBe Some(JString(accountId))
             case _ => fail("from should be an object")
           }
-          // 3.00 is far below the default 1000 EUR challenge threshold and the test props set
-          // no transaction_request_status_scheduler_delay, so the TR auto-completes today.
-          // NOTE: when the netting hold-at-PENDING change lands (OPEN_CORRIDOR_SIMPLE_NETTING.md §5),
-          // this assertion must flip to PENDING with empty transaction_ids.
-          map.get("status") shouldBe Some(JString("COMPLETED"))
+          // Hold-at-PENDING (OPEN_CORRIDOR_SIMPLE_NETTING.md §5): the promise never posts a
+          // Transaction at create time — it accumulates for bilateral netting and the
+          // settle-pair step posts the net later.
+          map.get("status") shouldBe Some(JString("PENDING"))
+          map.get("transaction_ids") shouldBe Some(JArray(Nil))
           map.get("originator") match {
             case Some(JObject(origFields)) =>
               val origMap = toFieldMap(origFields)
@@ -1782,6 +1782,199 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
           }
         case _ => fail("Expected JSON object")
       }
+    }
+  }
+
+  // ─── OPEN_CORRIDOR promise report-back (salt relay intake) ────────────────
+
+  private def promiseEvidencePath(bankId: String, accountId: String, transactionRequestId: String): String =
+    s"/obp/v7.0.0/banks/$bankId/accounts/$accountId/transaction-requests/$transactionRequestId/open-corridor/promise"
+
+  private def promiseEvidenceBody(
+    txHash: String = "63eacfe3dbc133f922d461bd3e6488ce21d55f03c5131cd79c965fe2e7491642",
+    commitment: String = "9c56cc51b374c3ba189210d5b6d4bf57790d351c96c47c02190ecf1e430ba0d1"
+  ): String =
+    s"""{
+       |  "tx_hash": "$txHash",
+       |  "blockchain": "cardano",
+       |  "commitment": "$commitment",
+       |  "salt": "5f4dcc3b5aa765d61d8327deb882cf99",
+       |  "preimage": "{\\"tx_request_id\\":\\"tr-abc-123\\"}"
+       |}""".stripMargin
+
+  /** Create an OPEN_CORRIDOR_PROMISE TR via the v7 endpoint; asserts hold-at-PENDING
+    * and returns the new TRANSACTION_REQUEST_ID. */
+  private def createPendingPromise(): String = {
+    val acctCurrency = code.bankconnectors.Connector.connector.vend
+      .getBankAccountLegacy(testBankId1, testAccountId0, None)
+      .map(_._1.currency).openOrThrowException("test account")
+    val headers = Map("DirectLogin" -> s"token=${token1.value}")
+    val (statusCode, json, _) = makeHttpRequestWithBody("POST",
+      openCorridorPromisePath(testBankId1.value, testAccountId0.value),
+      openCorridorPromiseBody(acctCurrency), headers)
+    statusCode shouldBe 201
+    json match {
+      case JObject(fields) =>
+        val map = toFieldMap(fields)
+        map.get("status") shouldBe Some(JString("PENDING"))
+        map.get("id") match {
+          case Some(JString(id)) if id.nonEmpty => id
+          case _ => fail("id should be a non-empty string")
+        }
+      case _ => fail("Expected JSON object")
+    }
+  }
+
+  private def messageOf(json: JValue): String = json match {
+    case JObject(fields) => toFieldMap(fields).get("message") match {
+      case Some(JString(msg)) => msg
+      case _ => fail("Expected message field")
+    }
+    case _ => fail("Expected JSON object")
+  }
+
+  feature("Http4s700 attachOpenCorridorPromise (promise report-back) endpoint") {
+
+    scenario("Reject unauthenticated POST", Http4s700RoutesTag) {
+      val (statusCode, _, _) = makeHttpRequestWithBody("POST",
+        promiseEvidencePath(testBankId1.value, testAccountId0.value, "some-tr-id"),
+        promiseEvidenceBody())
+      statusCode shouldBe 401
+    }
+
+    scenario("Return 403 when authenticated without CanAttachOpenCorridorPromise", Http4s700RoutesTag) {
+      val headers = Map("DirectLogin" -> s"token=${token2.value}")
+      val (statusCode, json, _) = makeHttpRequestWithBody("POST",
+        promiseEvidencePath(testBankId1.value, testAccountId0.value, "some-tr-id"),
+        promiseEvidenceBody(), headers)
+      statusCode shouldBe 403
+      messageOf(json) should include(UserHasMissingRoles)
+      messageOf(json) should include("CanAttachOpenCorridorPromise")
+    }
+
+    scenario("Attach evidence: 201, idempotent re-post, conflict refused", Http4s700RoutesTag) {
+      Given("A PENDING OPEN_CORRIDOR_PROMISE and the role granted")
+      addEntitlement(testBankId1.value, resourceUser1.userId, canAttachOpenCorridorPromise.toString)
+      val transactionRequestId = createPendingPromise()
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+
+      When("Evidence is attached the first time")
+      val (statusCode, json, _) = makeHttpRequestWithBody("POST",
+        promiseEvidencePath(testBankId1.value, testAccountId0.value, transactionRequestId),
+        promiseEvidenceBody(), headers)
+
+      Then("201 with the stored evidence and audit fields")
+      statusCode shouldBe 201
+      json match {
+        case JObject(fields) =>
+          val map = toFieldMap(fields)
+          map.get("transaction_request_id") shouldBe Some(JString(transactionRequestId))
+          map.get("transaction_request_status") shouldBe Some(JString("PENDING"))
+          map.get("tx_hash") shouldBe Some(JString("63eacfe3dbc133f922d461bd3e6488ce21d55f03c5131cd79c965fe2e7491642"))
+          map.get("blockchain") shouldBe Some(JString("cardano"))
+          map.get("commitment") shouldBe Some(JString("9c56cc51b374c3ba189210d5b6d4bf57790d351c96c47c02190ecf1e430ba0d1"))
+          map.get("salt") shouldBe Some(JString("5f4dcc3b5aa765d61d8327deb882cf99"))
+          map.get("preimage") shouldBe Some(JString("""{"tx_request_id":"tr-abc-123"}"""))
+          map.get("reported_by_user_id") shouldBe Some(JString(resourceUser1.userId))
+          map.get("reported_at") match {
+            case Some(JString(reportedAt)) => reportedAt should not be empty
+            case _ => fail("reported_at should be a non-empty string")
+          }
+        case _ => fail("Expected JSON object")
+      }
+
+      When("The identical evidence is re-posted (Bank Node outbox redelivery)")
+      val (retryCode, retryJson, _) = makeHttpRequestWithBody("POST",
+        promiseEvidencePath(testBankId1.value, testAccountId0.value, transactionRequestId),
+        promiseEvidenceBody(), headers)
+
+      Then("201 with the stored record — idempotent")
+      retryCode shouldBe 201
+      retryJson match {
+        case JObject(fields) =>
+          val map = toFieldMap(fields)
+          map.get("commitment") shouldBe Some(JString("9c56cc51b374c3ba189210d5b6d4bf57790d351c96c47c02190ecf1e430ba0d1"))
+          map.get("reported_by_user_id") shouldBe Some(JString(resourceUser1.userId))
+        case _ => fail("Expected JSON object")
+      }
+
+      When("Different evidence is posted for the same Transaction Request")
+      val (conflictCode, conflictJson, _) = makeHttpRequestWithBody("POST",
+        promiseEvidencePath(testBankId1.value, testAccountId0.value, transactionRequestId),
+        promiseEvidenceBody(commitment = "0000000000000000000000000000000000000000000000000000000000000000"), headers)
+
+      Then("400 — evidence is append-once")
+      conflictCode shouldBe 400
+      messageOf(conflictJson) should include(OpenCorridorPromiseEvidenceConflict)
+    }
+
+    scenario("Return 400 InvalidJsonValue when tx_hash is empty", Http4s700RoutesTag) {
+      addEntitlement(testBankId1.value, resourceUser1.userId, canAttachOpenCorridorPromise.toString)
+      val transactionRequestId = createPendingPromise()
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequestWithBody("POST",
+        promiseEvidencePath(testBankId1.value, testAccountId0.value, transactionRequestId),
+        promiseEvidenceBody(txHash = ""), headers)
+      statusCode shouldBe 400
+      messageOf(json) should include(InvalidJsonValue)
+    }
+
+    scenario("Return 400 InvalidTransactionRequestId for an unknown Transaction Request", Http4s700RoutesTag) {
+      addEntitlement(testBankId1.value, resourceUser1.userId, canAttachOpenCorridorPromise.toString)
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequestWithBody("POST",
+        promiseEvidencePath(testBankId1.value, testAccountId0.value, "no-such-transaction-request-id"),
+        promiseEvidenceBody(), headers)
+      statusCode shouldBe 400
+      messageOf(json) should include(InvalidTransactionRequestId)
+    }
+
+    scenario("Return 400 when the Transaction Request is not OPEN_CORRIDOR_PROMISE", Http4s700RoutesTag) {
+      Given("A PENDING Transaction Request of type SIMPLE created via the provider")
+      addEntitlement(testBankId1.value, resourceUser1.userId, canAttachOpenCorridorPromise.toString)
+      val fromAccount = code.bankconnectors.Connector.connector.vend
+        .getBankAccountLegacy(testBankId1, testAccountId0, None)
+        .map(_._1).openOrThrowException("test from account")
+      val toAccount = code.bankconnectors.Connector.connector.vend
+        .getBankAccountLegacy(testBankId2, testAccountId1, None)
+        .map(_._1).openOrThrowException("test to account")
+      val simpleTr = code.transactionrequests.TransactionRequests.transactionRequestProvider.vend
+        .createTransactionRequestImpl210(
+          com.openbankproject.commons.model.TransactionRequestId(APIUtil.generateUUID()),
+          com.openbankproject.commons.model.TransactionRequestType("SIMPLE"),
+          fromAccount,
+          toAccount,
+          com.openbankproject.commons.model.TransactionRequestCommonBodyJSONCommons(
+            com.openbankproject.commons.model.AmountOfMoneyJsonV121(fromAccount.currency, "3.00"), "wrong type"),
+          "{}",
+          "PENDING",
+          com.openbankproject.commons.model.TransactionRequestCharge(
+            "Total charges for completed transaction",
+            com.openbankproject.commons.model.AmountOfMoney(fromAccount.currency, "0.00")),
+          "SHARED",
+          None, None, None, None, None
+        ).openOrThrowException("SIMPLE TR should be created")
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequestWithBody("POST",
+        promiseEvidencePath(testBankId1.value, testAccountId0.value, simpleTr.id.value),
+        promiseEvidenceBody(), headers)
+      statusCode shouldBe 400
+      messageOf(json) should include(OpenCorridorPromiseTypeMismatch)
+    }
+
+    scenario("Return 400 when the promise is no longer PENDING", Http4s700RoutesTag) {
+      Given("A promise flipped to COMPLETED via the provider (as the settle step will do)")
+      addEntitlement(testBankId1.value, resourceUser1.userId, canAttachOpenCorridorPromise.toString)
+      val transactionRequestId = createPendingPromise()
+      code.transactionrequests.TransactionRequests.transactionRequestProvider.vend
+        .saveTransactionRequestStatusImpl(
+          com.openbankproject.commons.model.TransactionRequestId(transactionRequestId), "COMPLETED")
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequestWithBody("POST",
+        promiseEvidencePath(testBankId1.value, testAccountId0.value, transactionRequestId),
+        promiseEvidenceBody(), headers)
+      statusCode shouldBe 400
+      messageOf(json) should include(OpenCorridorPromiseNotPending)
     }
   }
 

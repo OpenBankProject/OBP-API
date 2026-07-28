@@ -207,6 +207,16 @@ object ApiRole extends MdcLoggable{
   case class CanCreateAnyTransactionRequest(requiresBankId: Boolean = true) extends ApiRole
   lazy val canCreateAnyTransactionRequest = CanCreateAnyTransactionRequest()
 
+  // Open Corridor: the bank's own Bank Node (M2M service user) reports Cardano promise
+  // evidence back to the PENDING OPEN_CORRIDOR_PROMISE Transaction Request.
+  case class CanAttachOpenCorridorPromise(requiresBankId: Boolean = true) extends ApiRole
+  lazy val canAttachOpenCorridorPromise = CanAttachOpenCorridorPromise()
+
+  // Open Corridor: operator role for registering each onboarded bank's RabbitMQ broker
+  // coordinates (host/port/vhost/credentials) in the per-bank publish registry.
+  case class CanConfigureOpenCorridorBroker(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canConfigureOpenCorridorBroker = CanConfigureOpenCorridorBroker()
+
   case class CanAddSocialMediaHandle(requiresBankId: Boolean = true) extends ApiRole
   lazy val canAddSocialMediaHandle = CanAddSocialMediaHandle()
 

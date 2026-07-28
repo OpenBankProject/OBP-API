@@ -4,12 +4,15 @@ import org.json4s._
 import code.api.ChargePolicy
 import code.api.util.APIUtil.getScaMethodAtInstance
 import code.api.util.ErrorMessages._
-import code.api.util.{CallContext, NewStyle}
-import code.api.v7_0_0.JSONFactory700.TransactionRequestBodyOpenCorridorJsonV700
+import code.api.util.{APIUtil, CallContext, NewStyle}
+import code.api.v7_0_0.JSONFactory700.{OpenCorridorPromiseJsonV700, PostOpenCorridorPromiseJsonV700, TransactionRequestBodyOpenCorridorJsonV700}
 import code.util.Helper
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.ChallengeType.OBP_TRANSACTION_REQUEST_CHALLENGE
+import com.openbankproject.commons.model.enums.{TransactionRequestAttributeType, TransactionRequestStatus, TransactionRequestTypes}
+
+import java.util.Date
 import org.json4s.native.Serialization.write
 import org.json4s.NoTypeHints
 import org.json4s.native.Serialization
@@ -101,4 +104,115 @@ object OpenCorridorProcessor {
       )
     } yield (createdTransactionRequest, callContext)
   }
+
+  // ─── Promise report-back (salt relay intake) ────────────────────────────────
+  //
+  // Transaction Request attribute names carrying the on-chain promise evidence.
+  // The evidence triplet (commitment, salt, preimage) is opaque to OBP-API: it is
+  // stored verbatim and relayed to the beneficiary bank in obp_credit_notification,
+  // where the receiving Bank Node recomputes SHA-256(salt ‖ preimage) against the
+  // on-chain commitment and refuses to credit on a mismatch.
+  val PromiseAttributeTxHash     = "open_corridor_tx_hash"
+  val PromiseAttributeBlockchain = "open_corridor_blockchain"
+  val PromiseAttributeCommitment = "open_corridor_commitment"
+  val PromiseAttributeSalt       = "open_corridor_salt"
+  val PromiseAttributePreimage   = "open_corridor_preimage"
+  // Audit side-car: who attached the evidence, and when.
+  val PromiseAttributeReportedBy = "open_corridor_promise_reported_by"
+  val PromiseAttributeReportedAt = "open_corridor_promise_reported_at"
+
+  private val promiseEvidenceAttributeNames = Set(
+    PromiseAttributeTxHash, PromiseAttributeBlockchain,
+    PromiseAttributeCommitment, PromiseAttributeSalt, PromiseAttributePreimage
+  )
+
+  // Attach the Bank Node's on-chain promise evidence to a PENDING OPEN_CORRIDOR_PROMISE
+  // Transaction Request. Idempotent: re-reporting identical evidence returns the stored
+  // record; differing evidence is refused (OBP-40053) — evidence is append-once, so a
+  // recorded commitment can never be silently replaced after the fact.
+  def attachPromiseEvidence(
+    user: User,
+    bankId: BankId,
+    accountId: AccountId,
+    transactionRequestId: TransactionRequestId,
+    body: PostOpenCorridorPromiseJsonV700,
+    callContext: Option[CallContext]
+  ): Future[(OpenCorridorPromiseJsonV700, Option[CallContext])] = {
+    val submittedEvidence = Map(
+      PromiseAttributeTxHash     -> body.tx_hash,
+      PromiseAttributeBlockchain -> body.blockchain,
+      PromiseAttributeCommitment -> body.commitment,
+      PromiseAttributeSalt       -> body.salt,
+      PromiseAttributePreimage   -> body.preimage
+    )
+    for {
+      _ <- Helper.booleanToFuture(
+        s"$InvalidJsonValue tx_hash, blockchain, commitment, salt and preimage must all be non-empty",
+        cc = callContext) {
+        submittedEvidence.values.forall(_.trim.nonEmpty)
+      }
+      (tr, callContext) <- NewStyle.function.getTransactionRequestImpl(transactionRequestId, callContext)
+      // Row lock for the rest of the request transaction: closes the race where two
+      // concurrent report-backs both see "no evidence yet" and both write.
+      _ <- Helper.booleanToFuture(TransactionRequestLockFailed, cc = callContext) {
+        code.bankconnectors.DoobieTransactionRequestQueries.lockTransactionRequest(transactionRequestId.value).isDefined
+      }
+      _ <- Helper.booleanToFuture(
+        s"$InvalidTransactionRequestId Transaction Request ${transactionRequestId.value} does not belong to BANK_ID ${bankId.value} and ACCOUNT_ID ${accountId.value}.",
+        cc = callContext) {
+        tr.from.bank_id == bankId.value && tr.from.account_id == accountId.value
+      }
+      _ <- Helper.booleanToFuture(s"$OpenCorridorPromiseTypeMismatch Current type: ${tr.`type`}.", cc = callContext) {
+        tr.`type` == TransactionRequestTypes.OPEN_CORRIDOR_PROMISE.toString
+      }
+      _ <- Helper.booleanToFuture(s"$OpenCorridorPromiseNotPending Current status: ${tr.status}.", cc = callContext) {
+        tr.status == TransactionRequestStatus.PENDING.toString
+      }
+      (existingAttributes, callContext) <- NewStyle.function.getTransactionRequestAttributes(bankId, transactionRequestId, callContext)
+      existingEvidence = existingAttributes
+        .filter(attribute => promiseEvidenceAttributeNames.contains(attribute.name))
+        .map(attribute => attribute.name -> attribute.value).toMap
+      _ <- Helper.booleanToFuture(OpenCorridorPromiseEvidenceConflict, cc = callContext) {
+        existingEvidence.isEmpty || existingEvidence == submittedEvidence
+      }
+      (promiseJson, callContext) <-
+        if (existingEvidence.isEmpty) {
+          val reportedAt = APIUtil.DateWithMsFormat.format(new Date())
+          val attributes = (submittedEvidence
+            + (PromiseAttributeReportedBy -> user.userId)
+            + (PromiseAttributeReportedAt -> reportedAt))
+            .toList.map { case (name, value) =>
+              TransactionRequestAttributeJsonV400(name, TransactionRequestAttributeType.STRING.toString, value)
+            }
+          NewStyle.function.createTransactionRequestAttributes(
+            bankId, transactionRequestId, attributes, isPersonal = false, callContext
+          ) map { case (_, callContext) =>
+            (buildPromiseJson(tr, submittedEvidence, user.userId, reportedAt), callContext)
+          }
+        } else {
+          // Idempotent redelivery: identical evidence already attached — return the stored record.
+          val reportedBy = existingAttributes.find(_.name == PromiseAttributeReportedBy).map(_.value).getOrElse("")
+          val reportedAt = existingAttributes.find(_.name == PromiseAttributeReportedAt).map(_.value).getOrElse("")
+          Future.successful((buildPromiseJson(tr, existingEvidence, reportedBy, reportedAt), callContext))
+        }
+    } yield (promiseJson, callContext)
+  }
+
+  private def buildPromiseJson(
+    tr: TransactionRequest,
+    evidence: Map[String, String],
+    reportedByUserId: String,
+    reportedAt: String
+  ): OpenCorridorPromiseJsonV700 =
+    OpenCorridorPromiseJsonV700(
+      transaction_request_id = tr.id.value,
+      transaction_request_status = tr.status,
+      tx_hash = evidence.getOrElse(PromiseAttributeTxHash, ""),
+      blockchain = evidence.getOrElse(PromiseAttributeBlockchain, ""),
+      commitment = evidence.getOrElse(PromiseAttributeCommitment, ""),
+      salt = evidence.getOrElse(PromiseAttributeSalt, ""),
+      preimage = evidence.getOrElse(PromiseAttributePreimage, ""),
+      reported_by_user_id = reportedByUserId,
+      reported_at = reportedAt
+    )
 }
