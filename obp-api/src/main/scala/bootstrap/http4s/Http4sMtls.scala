@@ -63,17 +63,29 @@ object Http4sMtls extends MdcLoggable {
   private val DevStorePassword = "123456"
 
   /**
-   * SHA-256 of the checked-in dev stores, so they can be recognised wherever they are copied to.
+   * SHA-256 of EVERY store checked into `obp-api/src/test/resources/cert`, keyed by filename, so
+   * they can be recognised wherever they are copied to.
    *
-   * These are public: the private key is in the repository and the password is in this file. A
-   * production server using either would accept forged client certificates and present a
-   * certificate anyone can impersonate, so [[assertNotADevStoreInProduction]] refuses to boot.
+   * All of them are public: the private keys are in the repository and the password is in the
+   * source. A production server using any of them would accept forged client certificates and
+   * present a certificate anyone can impersonate, so [[assertNotADevStoreInProduction]] refuses to
+   * boot. The list must cover both the legacy JKS pair (the prop defaults) and the role-named
+   * PKCS12 set that generate_dev_certs.sh writes — docs/MTLS.md steers readers to the latter, so
+   * guarding only the pair the props default to would leave the recommended set unguarded.
    *
-   * Http4sMtlsTest asserts these digests still match the files, so regenerating the dev pair fails
-   * the build here rather than silently disarming the check.
+   * Http4sMtlsTest asserts these digests still match the files, so regenerating any dev store
+   * fails the build here rather than silently disarming the check.
    */
-  private[http4s] val DevKeystoreSha256 = "c51d3c1694b3d3a5cb9fd7d41011b75ec22c2a35ef48f9713f9b0e00d54d78eb"
-  private[http4s] val DevTruststoreSha256 = "f47613f7ec4de4e291668c070047c256bf4578cfa9b1dabe5a61d056461473d0"
+  private[http4s] val DevStoreDigests: Map[String, String] = Map(
+    "server.jks"               -> "c51d3c1694b3d3a5cb9fd7d41011b75ec22c2a35ef48f9713f9b0e00d54d78eb",
+    "server.trust.jks"         -> "f47613f7ec4de4e291668c070047c256bf4578cfa9b1dabe5a61d056461473d0",
+    "localhost_san_dns_ip.pfx" -> "e78c09858fe0659bc67d14570e67e57d750280d10db43980992e54ba60a7427d",
+    "obp-server.p12"           -> "e56ec88d23fb1691d494090f6abec98332b3410e75251814f70ac0ed981bf918",
+    "dev-truststore.p12"       -> "9c606b3012ffc01e85d26c196b80d1ad5f731fa6a7b5c6ed94736d79d800e3ec",
+    "tpp-client.p12"           -> "717bdb83aa3d85f6245cf99762a080cfdf45d9e87de699d7339e600a90754e4a",
+    "proxy-client.p12"         -> "e7f1e212a25642daaabd587184836afcf05506cdf19eb5ad570bdbe3352d82a8",
+    "expired-tpp.p12"          -> "42c9564f96b21354f3b0f9a91925c2e81a22bad6850070d1618966a2cafe0e09"
+  )
 
   private[http4s] def sha256Of(file: File): String = {
     val digest = java.security.MessageDigest.getInstance("SHA-256")
@@ -101,9 +113,9 @@ object Http4sMtls extends MdcLoggable {
   private[http4s] def assertNotADevStoreInProduction(propName: String, file: File): Unit =
     if (Props.mode == Props.RunModes.Production) {
       val digest = sha256Of(file)
-      if (digest == DevKeystoreSha256 || digest == DevTruststoreSha256) {
+      DevStoreDigests.find(_._2 == digest).foreach { case (knownAs, _) =>
         throw new RuntimeException(
-          s"'$propName' points at ${file.getAbsolutePath}, which is one of the development stores " +
+          s"'$propName' points at ${file.getAbsolutePath}, which is the development store '$knownAs' " +
             "checked into the OBP-API repository. Its private key is public and its password is " +
             "'123456', so it cannot be used with run.mode=production. Supply your own certificates.")
       }
@@ -118,7 +130,8 @@ object Http4sMtls extends MdcLoggable {
 
     // Returns the absolute store path plus its password, defaulting both to the dev pair.
     def store(pathProp: String, devPath: String, passwordProp: String): (String, String) = {
-      val path = prop(pathProp).getOrElse {
+      val configuredPath = prop(pathProp)
+      val path = configuredPath.getOrElse {
         logger.warn(s"'$pathProp' is not set — falling back to the checked-in dev store '$devPath'. " +
           s"Set '$pathProp' (or ${envVarOf(pathProp)}) to use your own certificates.")
         devPath
@@ -129,9 +142,16 @@ object Http4sMtls extends MdcLoggable {
           s"(resolved to ${file.getAbsolutePath} from working directory ${new File(".").getAbsolutePath}). " +
           s"Launch from the repo root or set '$pathProp' to an absolute path.")
       assertNotADevStoreInProduction(pathProp, file)
+      // The password only follows the dev default when the store itself does. An operator-supplied
+      // store with a missing password prop must fail here, by name — falling back to '123456'
+      // would surface later as an opaque keystore integrity error instead.
       val password = prop(passwordProp).getOrElse {
-        logger.warn(s"'$passwordProp' is not set — falling back to the checked-in dev store password.")
-        DevStorePassword
+        if (configuredPath.isEmpty) {
+          logger.warn(s"'$passwordProp' is not set — using the checked-in dev store password to match the dev store.")
+          DevStorePassword
+        } else throw new RuntimeException(
+          s"'$pathProp' is set but '$passwordProp' is not. Set '$passwordProp' (or ${envVarOf(passwordProp)}) " +
+            "to the password of that store.")
       }
       (file.getAbsolutePath, password)
     }

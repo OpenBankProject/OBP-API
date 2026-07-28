@@ -162,14 +162,25 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   private val DateWithMsRollbackFormatTL = ThreadLocal.withInitial(() => new SimpleDateFormat(DateWithMsAndTimeZoneOffset))
   private val rfc7231DateTL              = ThreadLocal.withInitial(() => new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z", Locale.ENGLISH))
 
-  def DateWithYearFormat: SimpleDateFormat    = DateWithYearFormatTL.get()
-  def DateWithMonthFormat: SimpleDateFormat   = DateWithMonthFormatTL.get()
-  def DateWithDayFormat: SimpleDateFormat     = DateWithDayFormatTL.get()
-  def DateWithSecondsFormat: SimpleDateFormat = DateWithSecondsFormatTL.get()
+  // SimpleDateFormat captures the JVM default time zone at CONSTRUCTION, and these instances are
+  // cached per thread. Boot.scala sets the default zone to UTC during startup, so an instance
+  // constructed on a thread that ran earlier (a test class's field initializers, an early boot
+  // thread on a non-UTC machine) would keep the machine's zone forever — while Calendar.getInstance
+  // elsewhere follows the new default, skewing parsed dates by the zone offset. Re-pin on every
+  // access so the cached instance always follows the current default; setTimeZone is a field write.
+  private def withCurrentZone(format: SimpleDateFormat): SimpleDateFormat = {
+    format.setTimeZone(java.util.TimeZone.getDefault)
+    format
+  }
+
+  def DateWithYearFormat: SimpleDateFormat    = withCurrentZone(DateWithYearFormatTL.get())
+  def DateWithMonthFormat: SimpleDateFormat   = withCurrentZone(DateWithMonthFormatTL.get())
+  def DateWithDayFormat: SimpleDateFormat     = withCurrentZone(DateWithDayFormatTL.get())
+  def DateWithSecondsFormat: SimpleDateFormat = withCurrentZone(DateWithSecondsFormatTL.get())
   // If you need UTC Z format, please continue to use DateWithMsFormat. eg: 2025-01-01T01:01:01.000Z
-  def DateWithMsFormat: SimpleDateFormat = DateWithMsFormatTL.get()
+  def DateWithMsFormat: SimpleDateFormat = withCurrentZone(DateWithMsFormatTL.get())
   // If you need a format with timezone offset (+0000), please use DateWithMsRollbackFormat, eg: 2025-01-01T01:01:01.000+0000
-  def DateWithMsRollbackFormat: SimpleDateFormat = DateWithMsRollbackFormatTL.get()
+  def DateWithMsRollbackFormat: SimpleDateFormat = withCurrentZone(DateWithMsRollbackFormatTL.get())
 
   def rfc7231Date: SimpleDateFormat = rfc7231DateTL.get()
 
@@ -1199,6 +1210,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         case "iss" => Full(OBPIss(values.head))
         case "consent_id" => Full(OBPConsentId(values.head))
         case "consent_reference_id" => Full(OBPConsentReferenceId(values.head))
+        case "certificate_trust" => Full(OBPCertificateTrust(values.head))
         case "user_id" => Full(OBPUserId(values.head))
         case "provider_provider_id" => Full(ProviderProviderId(values.head))
         case "bank_id" => Full(OBPBankId(values.head))
@@ -1334,6 +1346,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     val azp =  getHttpRequestUrlParam(httpRequestUrl,"azp")
     val consentId =  getHttpRequestUrlParam(httpRequestUrl,"consent_id")
     val consentReferenceId =  getHttpRequestUrlParam(httpRequestUrl,"consent_reference_id")
+    val certificateTrust =  getHttpRequestUrlParam(httpRequestUrl,"certificate_trust")
     val userId =  getHttpRequestUrlParam(httpRequestUrl, "user_id")
     val providerProviderId =  getHttpRequestUrlParam(httpRequestUrl, "provider_provider_id")
     val bankId =  getHttpRequestUrlParam(httpRequestUrl, "bank_id")
@@ -1369,7 +1382,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
     Full(List(
       HTTPParam("sort_by",sortBy), HTTPParam("sort_direction",sortDirection), HTTPParam("from_date",fromDate), HTTPParam("to_date", toDate), HTTPParam("limit",limit), HTTPParam("offset",offset),
-      HTTPParam("anon", anon), HTTPParam("status", status), HTTPParam("consumer_id", consumerId), HTTPParam("azp", azp), HTTPParam("iss", iss), HTTPParam("consent_id", consentId), HTTPParam("consent_reference_id", consentReferenceId), HTTPParam("user_id", userId), HTTPParam("provider_provider_id", providerProviderId), HTTPParam("url", url), HTTPParam("app_name", appName),
+      HTTPParam("anon", anon), HTTPParam("status", status), HTTPParam("consumer_id", consumerId), HTTPParam("azp", azp), HTTPParam("iss", iss), HTTPParam("consent_id", consentId), HTTPParam("consent_reference_id", consentReferenceId), HTTPParam("certificate_trust", certificateTrust), HTTPParam("user_id", userId), HTTPParam("provider_provider_id", providerProviderId), HTTPParam("url", url), HTTPParam("app_name", appName),
       HTTPParam("implemented_by_partial_function",implementedByPartialFunction), HTTPParam("implemented_in_version",implementedInVersion), HTTPParam("verb", verb),
       HTTPParam("correlation_id", correlationId), HTTPParam("duration", duration), HTTPParam("exclude_app_names", excludeAppNames),
       HTTPParam("exclude_url_patterns", excludeUrlPattern),HTTPParam("exclude_implemented_by_partial_functions", excludeImplementedByPartialfunctions), 

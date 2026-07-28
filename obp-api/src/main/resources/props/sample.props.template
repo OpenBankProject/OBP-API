@@ -177,6 +177,8 @@ jwt.use.ssl=false
 # mtls.trusted_proxy.1.subject=CN=nginx-prod-1,O=Your Org,C=DE
 ## Whether a forwarded PSD2-CERT is trusted when the sender presented no client certificate.
 ## True is the long-standing behaviour of a plain proxy hop; set false once the proxy uses mTLS.
+## Ignored (treated as false) when mtls.enabled=true and no trusted proxies are configured:
+## OBP is then the TLS edge, so a header from a certless peer can only be a spoofing attempt.
 # mtls.trust_forwarded_header_without_tls=true
 # mtls.enabled=true
 # mtls.keystore.path=obp-api/src/test/resources/cert/server.jks

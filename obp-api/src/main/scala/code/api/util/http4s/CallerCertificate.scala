@@ -55,7 +55,7 @@ object CallerCertificate extends MdcLoggable {
         case Some(pem) => req.putHeaders(Header.Raw(psd2CertHeaderName, pem))
         case None => req.removeHeader(psd2CertHeaderName)
       }
-      withHeader.withAttribute(Http4sRequestAttributes.callerCertificateTrustKey, resolution.describe)
+      withHeader.withAttribute(Http4sRequestAttributes.callerCertificateTrustKey, resolution)
     }
   }
 }

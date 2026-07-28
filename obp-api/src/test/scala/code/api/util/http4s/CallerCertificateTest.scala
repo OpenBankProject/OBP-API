@@ -104,9 +104,15 @@ class CallerCertificateTest extends FlatSpec with Matchers {
       CallerCertificate.resolveCaller(req, config)
         .attributes.lookup(Http4sRequestAttributes.callerCertificateTrustKey)
 
-    trustOf(requestWith(Some(clientCert), None), asEdge) shouldEqual Some("direct")
-    trustOf(requestWith(Some(proxyCert), Some("pem")), behindProxy).get should startWith("forwarded via")
-    trustOf(requestWith(None, Some("pem")), asEdge).get should startWith("none:")
+    trustOf(requestWith(Some(clientCert), None), asEdge).map(_.mode) shouldEqual Some("direct")
+    trustOf(requestWith(Some(proxyCert), Some("pem")), behindProxy).get.mode shouldEqual "forwarded"
+    trustOf(requestWith(None, Some("pem")), asEdge).get.mode shouldEqual "none"
+
+    // The detail is what makes the metric row diagnosable: WHICH proxy vouched, or WHY nobody did.
+    trustOf(requestWith(Some(clientCert), None), asEdge).get.detail shouldBe None
+    trustOf(requestWith(Some(proxyCert), Some("pem")), behindProxy).get.detail shouldEqual
+      Some(PeerTrust.canonicalDn("CN=nginx-prod-1").get)
+    trustOf(requestWith(None, Some("pem")), asEdge).get.detail.get should include("no client certificate")
   }
 
   it should "not be set on a request that carries no certificate material at all" in {

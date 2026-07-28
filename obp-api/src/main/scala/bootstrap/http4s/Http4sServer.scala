@@ -22,6 +22,11 @@ object Http4sServer extends IOApp with MdcLoggable {
   val httpApp = Http4sApp.httpApp
 
   override def run(args: List[String]): IO[ExitCode] = {
+    // Force the peer-trust configuration at boot. It is a lazy val first needed when a request
+    // carries certificate material, so without this an unparseable mtls.trusted_proxy.N DN (logged
+    // at ERROR, proxy silently untrusted) would surface mid-traffic instead of in the boot log.
+    code.api.util.PeerTrust.config
+
     val builder = EmberServerBuilder
       .default[IO]
       .withHost(Host.fromString(host).get)

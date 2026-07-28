@@ -113,7 +113,8 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
   }
 
   override def saveMetric(userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String, httpCode: Option[Int], correlationId: String,
-                          responseBody: String, sourceIp: String, targetIp: String, apiInstanceId: String, consentReferenceId: String): Unit = {
+                          responseBody: String, sourceIp: String, targetIp: String, apiInstanceId: String, consentReferenceId: String,
+                          certificateTrust: String, certificateTrustDetail: String): Unit = {
     // A correlation id is expected on every metric. Rows without one cannot be moved
     // to the archive later (its correlationId column requires a UUID), so flag it at
     // write time where the source of the missing id can actually be traced.
@@ -139,7 +140,9 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
         sourceIp = sourceIp,
         targetIp = targetIp,
         apiInstanceId = apiInstanceId,
-        consentReferenceId = consentReferenceId
+        consentReferenceId = consentReferenceId,
+        certificateTrust = certificateTrust,
+        certificateTrustDetail = certificateTrustDetail
       )
     )
   }
@@ -149,7 +152,8 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
                                   implementedByPartialFunction: String, implementedInVersion: String,
                                   verb: String, httpCode: Option[Int], correlationId: String,
                                   responseBody: String, sourceIp: String, targetIp: String,
-                                  apiInstanceId: String, consentReferenceId: String): Boolean = {
+                                  apiInstanceId: String, consentReferenceId: String,
+                                  certificateTrust: String, certificateTrustDetail: String): Boolean = {
     // Fix: dedup by the source metric's primary key stored in `metricId`, NOT by the
     // archive's own auto-increment `id`. The two are unrelated id-spaces; matching on
     // `id` overwrites an unrelated archived row once the archive's id sequence grows
@@ -175,6 +179,8 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       .targetIp(targetIp)
       .apiInstanceId(apiInstanceId)
       .consentReferenceId(consentReferenceId)
+      .certificateTrust(certificateTrust)
+      .certificateTrustDetail(certificateTrustDetail)
 
     httpCode match {
       case Some(code) => metric.httpCode(code)
@@ -282,6 +288,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
     val duration = queryParams.collect { case OBPDuration(value) => By_>(MappedMetric.duration, value) }.headOption
     val httpStatusCode = queryParams.collect { case OBPHttpStatusCode(value) => By(MappedMetric.httpCode, value) }.headOption
     val consentReferenceId = queryParams.collect { case OBPConsentReferenceId(value) => By(MappedMetric.consentReferenceId, value) }.headOption
+    val certificateTrust = queryParams.collect { case OBPCertificateTrust(value) => By(MappedMetric.certificateTrust, value) }.headOption
     val anon = queryParams.collect {
       case OBPAnon(true) => By(MappedMetric.userId, "null")
       case OBPAnon(false) => NotBy(MappedMetric.userId, "null")
@@ -309,6 +316,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       duration.toSeq,
       httpStatusCode.toSeq,
       consentReferenceId.toSeq,
+      certificateTrust.toSeq,
       anon.toSeq,
       excludeAppNames.toSeq.flatten
     ).flatten
@@ -680,6 +688,19 @@ class MappedMetric extends APIMetric with LongKeyedMapper[MappedMetric] with IdP
     override def dbColumnName = "consent_reference_id"
     override def defaultValue = null
   }
+  // How the caller's certificate was established (PeerTrust.Resolution.mode): "direct",
+  // "forwarded" or "none". Null when the request carried no certificate material at all.
+  // Not indexed: three values combined with the indexed date range is selective enough.
+  object certificateTrust extends MappedString(this, 32) {
+    override def dbColumnName = "certificate_trust"
+    override def defaultValue = null
+  }
+  // The specifics behind certificateTrust (PeerTrust.Resolution.detail): the forwarding proxy's
+  // canonical subject DN for "forwarded", the rejection reason for "none". Null for "direct".
+  object certificateTrustDetail extends MappedString(this, 255) {
+    override def dbColumnName = "certificate_trust_detail"
+    override def defaultValue = null
+  }
 
   override def getMetricId(): Long = id.get
   override def getUrl(): String = url.get
@@ -700,6 +721,8 @@ class MappedMetric extends APIMetric with LongKeyedMapper[MappedMetric] with IdP
   override def getTargetIp(): String = targetIp.get
   override def getApiInstanceId(): String = apiInstanceId.get
   override def getConsentReferenceId(): String = consentReferenceId.get
+  override def getCertificateTrust(): String = certificateTrust.get
+  override def getCertificateTrustDetail(): String = certificateTrustDetail.get
 }
 
 object MappedMetric extends MappedMetric with LongKeyedMetaMapper[MappedMetric] {
@@ -755,6 +778,16 @@ class MetricArchive extends APIMetric with LongKeyedMapper[MetricArchive] with I
     override def dbColumnName = "consent_reference_id"
     override def defaultValue = null
   }
+  // Mirror of Metric.certificateTrust / certificateTrustDetail — same widths, or the archiver
+  // fails on copy (see the correlationId width lesson above).
+  object certificateTrust extends MappedString(this, 32) {
+    override def dbColumnName = "certificate_trust"
+    override def defaultValue = null
+  }
+  object certificateTrustDetail extends MappedString(this, 255) {
+    override def dbColumnName = "certificate_trust_detail"
+    override def defaultValue = null
+  }
 
 
   override def getMetricId(): Long = metricId.get
@@ -776,6 +809,8 @@ class MetricArchive extends APIMetric with LongKeyedMapper[MetricArchive] with I
   override def getTargetIp(): String = targetIp.get
   override def getApiInstanceId(): String = apiInstanceId.get
   override def getConsentReferenceId(): String = consentReferenceId.get
+  override def getCertificateTrust(): String = certificateTrust.get
+  override def getCertificateTrustDetail(): String = certificateTrustDetail.get
 }
 object MetricArchive extends MetricArchive with LongKeyedMetaMapper[MetricArchive] {
   override def dbIndexes =

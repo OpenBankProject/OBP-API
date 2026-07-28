@@ -47,12 +47,24 @@ class Http4sMtlsTest extends FlatSpec with Matchers {
   // CallerCertificateTest, where they are now one row of a table rather than the whole behaviour.
 
   // The dev-store guard recognises these files by digest wherever they have been copied to, so the
-  // constants must track the files. Regenerating the dev pair without updating them would leave a
+  // constants must track the files. Regenerating any dev store without updating them would leave a
   // check that silently matches nothing — this test is what turns that into a build failure.
   "the dev store digests" should "still match the checked-in files" in {
     val certDir = new java.io.File(getClass.getResource(ServerJksResource).toURI).getParentFile
-    Http4sMtls.sha256Of(new java.io.File(certDir, "server.jks")) shouldEqual Http4sMtls.DevKeystoreSha256
-    Http4sMtls.sha256Of(new java.io.File(certDir, "server.trust.jks")) shouldEqual Http4sMtls.DevTruststoreSha256
+    Http4sMtls.DevStoreDigests.foreach { case (name, digest) =>
+      withClue(s"$name (regenerated without updating Http4sMtls.DevStoreDigests?): ") {
+        Http4sMtls.sha256Of(new java.io.File(certDir, name)) shouldEqual digest
+      }
+    }
+  }
+
+  it should "cover every store checked into the cert directory" in {
+    // A store the map does not know is a store the production guard will not refuse to boot on.
+    // .crt/.key PEM files are not loadable as keystores, so only store extensions matter here.
+    val certDir = new java.io.File(getClass.getResource(ServerJksResource).toURI).getParentFile
+    val storeFiles = certDir.listFiles().map(_.getName)
+      .filter(n => n.endsWith(".jks") || n.endsWith(".p12") || n.endsWith(".pfx"))
+    storeFiles.toSet shouldEqual Http4sMtls.DevStoreDigests.keySet
   }
 
   // Outside Production the guard must not fire: development is the whole point of the dev pair.

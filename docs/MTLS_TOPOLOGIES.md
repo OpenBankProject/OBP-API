@@ -208,6 +208,14 @@ setting. Mitigate it by logging a warning at boot whenever it resolves to `true`
 noisy rather than silent, and remove the default entirely once §11.5 has rolled through every
 environment.
 
+One deployment shape is carved out of the default (added 2026-07-28): when `mtls.enabled=true`
+and the forwarder allowlist is empty, OBP is provably the edge — every legitimate caller identity
+arrives in the handshake — so the prop is ignored and the header stripped. Honouring the
+permissive default there would have re-opened a hole the pre-generalisation middleware had
+closed: under `mtls.client_auth=want` a certless peer could spoof `PSD2-CERT`, where
+`injectClientCertificate` used to strip it unconditionally. `PeerTrust.effectiveTrustWithoutTls`
+implements the carve-out; the prop keeps its meaning for the plain-hop and behind-proxy shapes.
+
 ### 5.5 Observability
 
 Record, per request, which branch of §3 resolved (direct caller vs forwarded) and the peer subject,

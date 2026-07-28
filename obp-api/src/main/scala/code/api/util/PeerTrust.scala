@@ -55,25 +55,43 @@ object PeerTrust extends MdcLoggable {
   sealed trait Resolution {
     /** The certificate identifying the caller, as it should reach the rest of OBP. */
     def callerPem: Option[String]
-    /** One line for the log and the metric row. */
+    /**
+     * The trust mode alone — "direct", "forwarded" or "none". This is what the metric row stores
+     * (certificate_trust): three values, so per-environment questions like "is everything here
+     * resolving as forwarded yet?" are a GROUP BY, not a LIKE over prose.
+     */
+    def mode: String
+    /**
+     * The specifics behind the mode — the forwarding proxy's canonical subject DN for "forwarded",
+     * the rejection reason for "none", nothing for "direct" (the handshake says it all). Stored as
+     * certificate_trust_detail on the metric row.
+     */
+    def detail: Option[String]
+    /** One line for the log: the mode and the detail together. */
     def describe: String
   }
 
   /** The TLS peer is the caller: OBP is the edge. */
   case class DirectCaller(pem: String) extends Resolution {
     val callerPem: Option[String] = Some(pem)
+    val mode: String = "direct"
+    val detail: Option[String] = None
     val describe: String = "direct"
   }
 
   /** A trusted forwarder named the caller. */
   case class ForwardedCaller(pem: String, via: String) extends Resolution {
     val callerPem: Option[String] = Some(pem)
+    val mode: String = "forwarded"
+    val detail: Option[String] = Some(via)
     val describe: String = s"forwarded via $via"
   }
 
   /** Nobody is identified by a certificate. Most OBP endpoints do not need one. */
   case class NoCaller(reason: String) extends Resolution {
     val callerPem: Option[String] = None
+    val mode: String = "none"
+    val detail: Option[String] = Some(reason)
     val describe: String = s"none: $reason"
   }
 
@@ -182,13 +200,20 @@ object PeerTrust extends MdcLoggable {
         }
       }.toList
 
-    val trustWithoutTls = APIUtil.getPropsAsBoolValue(TrustForwardedWithoutTlsProp, defaultValue = true)
+    val trustWithoutTlsProp = APIUtil.getPropsAsBoolValue(TrustForwardedWithoutTlsProp, defaultValue = true)
+    val mtlsEnabled = APIUtil.getPropsAsBoolValue("mtls.enabled", defaultValue = false)
+    val trustWithoutTls = effectiveTrustWithoutTls(trustWithoutTlsProp, proxies.isEmpty, mtlsEnabled)
 
     if (proxies.isEmpty) {
       logger.info("No mtls.trusted_proxy.N.issuer configured: OBP treats its TLS peer as the caller " +
         "(it is the edge). Configure trusted proxies if a reverse proxy forwards PSD2-CERT.")
     } else {
       logger.info(s"Trusted forwarders: ${proxies.map(p => p.subject.getOrElse("<any subject>") + " issued by " + p.issuer).mkString("; ")}")
+    }
+    if (trustWithoutTlsProp && !trustWithoutTls) {
+      logger.info(s"$TrustForwardedWithoutTlsProp=true is ignored: mtls.enabled=true with no trusted " +
+        "proxies makes OBP the TLS edge, so a PSD2-CERT header from a peer that presented no client " +
+        "certificate can only be a spoofing attempt and is stripped.")
     }
     if (trustWithoutTls) {
       // Deliberately noisy: the default is the permissive setting, chosen so that existing
@@ -199,4 +224,18 @@ object PeerTrust extends MdcLoggable {
     }
     TrustConfig(proxies, trustWithoutTls)
   }
+
+  /**
+   * Whether a `PSD2-CERT` header on a request with no TLS client certificate may name the caller.
+   *
+   * The prop exists for the plain-proxy-hop deployment, where OBP terminates no TLS and the header
+   * is all there is. But when OBP terminates mTLS itself AND no trusted forwarder is configured,
+   * OBP is provably the edge: every legitimate caller identity arrives in the handshake, so a
+   * header on a certless request (possible under `mtls.client_auth=want`) can only be a spoofing
+   * attempt. The pre-generalisation middleware (`Http4sMtls.injectClientCertificate`) always
+   * stripped it in that deployment; honouring the prop's permissive default there would silently
+   * re-open the hole the old code closed, so the prop is ignored for that one shape.
+   */
+  private[util] def effectiveTrustWithoutTls(propValue: Boolean, noProxiesConfigured: Boolean, mtlsEnabled: Boolean): Boolean =
+    propValue && !(mtlsEnabled && noProxiesConfigured)
 }

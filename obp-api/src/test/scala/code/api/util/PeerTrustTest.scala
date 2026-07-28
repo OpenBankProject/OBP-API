@@ -117,4 +117,44 @@ class PeerTrustTest extends FlatSpec with Matchers {
     canonicalDn("nginx-prod-1") shouldBe None
     canonicalDn("") shouldBe None
   }
+
+  // The metric row stores the structured form (certificate_trust / certificate_trust_detail),
+  // not the describe sentence — so the mode/detail split is contract, not presentation.
+  "the resolution's structured form" should "expose mode and detail separately" in {
+    val forwarded = resolve(Some(proxyCert), Some(forwardedPem), proxyIsTrusted)
+    forwarded.mode shouldEqual "forwarded"
+    forwarded.detail shouldEqual Some(canonical(ProxyCn))
+
+    val direct = resolve(Some(appCert), None, proxyIsTrusted)
+    direct.mode shouldEqual "direct"
+    direct.detail shouldBe None
+
+    val none = resolve(None, None, proxyIsTrusted)
+    none.mode shouldEqual "none"
+    none.detail.get should include("no TLS client certificate")
+  }
+
+  // mtls.trust_forwarded_header_without_tls exists for the plain-proxy-hop deployment. When OBP
+  // terminates mTLS itself and no forwarder is configured it is provably the edge, and the prop's
+  // permissive default would re-open the spoofing hole the pre-generalisation middleware closed
+  // (a certless peer under client_auth=want sending its own PSD2-CERT).
+  "trust_forwarded_header_without_tls" should "be ignored when OBP terminates mTLS as the edge" in {
+    PeerTrust.effectiveTrustWithoutTls(propValue = true, noProxiesConfigured = true, mtlsEnabled = true) shouldBe false
+  }
+
+  it should "be honoured on a plain proxy hop, where the header is all there is" in {
+    PeerTrust.effectiveTrustWithoutTls(propValue = true, noProxiesConfigured = true, mtlsEnabled = false) shouldBe true
+  }
+
+  it should "be honoured when trusted proxies are configured, mTLS or not" in {
+    // With an allowlist the deployment is behind-proxy; certless hops may still be legitimate
+    // (e.g. one proxy already on mTLS, another not yet migrated).
+    PeerTrust.effectiveTrustWithoutTls(propValue = true, noProxiesConfigured = false, mtlsEnabled = true) shouldBe true
+    PeerTrust.effectiveTrustWithoutTls(propValue = true, noProxiesConfigured = false, mtlsEnabled = false) shouldBe true
+  }
+
+  it should "never turn an explicit false back on" in {
+    PeerTrust.effectiveTrustWithoutTls(propValue = false, noProxiesConfigured = true, mtlsEnabled = true) shouldBe false
+    PeerTrust.effectiveTrustWithoutTls(propValue = false, noProxiesConfigured = false, mtlsEnabled = false) shouldBe false
+  }
 }

@@ -7293,6 +7293,8 @@ object Http4s600 {
            |
            |17 consent_reference_id (if null ignore) - Returns calls authenticated via the consent with this reference id. eg: consent_reference_id=fd13b9af-4f74-4d52-a7f1-7c2c12f3aa11
            |
+           |18 certificate_trust (if null ignore) - Returns calls by how the caller's certificate was established: direct (the TLS peer was the caller), forwarded (a trusted proxy forwarded the caller's certificate) or none (certificate material was present but no caller was identified). eg: certificate_trust=forwarded
+           |
         """.stripMargin,
         EmptyBody,
         metricsJsonV600,
