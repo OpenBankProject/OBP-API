@@ -225,7 +225,9 @@ object MetricsArchiveScheduler extends MdcLoggable {
       i.getSourceIp(),
       i.getTargetIp(),
       i.getApiInstanceId(),
-      i.getConsentReferenceId()
+      i.getConsentReferenceId(),
+      i.getCertificateTrust(),
+      i.getCertificateTrustDetail()
     )
   }
 

@@ -55,25 +55,43 @@ object PeerTrust extends MdcLoggable {
   sealed trait Resolution {
     /** The certificate identifying the caller, as it should reach the rest of OBP. */
     def callerPem: Option[String]
-    /** One line for the log and the metric row. */
+    /**
+     * The trust mode alone — "direct", "forwarded" or "none". This is what the metric row stores
+     * (certificate_trust): three values, so per-environment questions like "is everything here
+     * resolving as forwarded yet?" are a GROUP BY, not a LIKE over prose.
+     */
+    def mode: String
+    /**
+     * The specifics behind the mode — the forwarding proxy's canonical subject DN for "forwarded",
+     * the rejection reason for "none", nothing for "direct" (the handshake says it all). Stored as
+     * certificate_trust_detail on the metric row.
+     */
+    def detail: Option[String]
+    /** One line for the log: the mode and the detail together. */
     def describe: String
   }
 
   /** The TLS peer is the caller: OBP is the edge. */
   case class DirectCaller(pem: String) extends Resolution {
     val callerPem: Option[String] = Some(pem)
+    val mode: String = "direct"
+    val detail: Option[String] = None
     val describe: String = "direct"
   }
 
   /** A trusted forwarder named the caller. */
   case class ForwardedCaller(pem: String, via: String) extends Resolution {
     val callerPem: Option[String] = Some(pem)
+    val mode: String = "forwarded"
+    val detail: Option[String] = Some(via)
     val describe: String = s"forwarded via $via"
   }
 
   /** Nobody is identified by a certificate. Most OBP endpoints do not need one. */
   case class NoCaller(reason: String) extends Resolution {
     val callerPem: Option[String] = None
+    val mode: String = "none"
+    val detail: Option[String] = Some(reason)
     val describe: String = s"none: $reason"
   }
 

@@ -118,6 +118,22 @@ class PeerTrustTest extends FlatSpec with Matchers {
     canonicalDn("") shouldBe None
   }
 
+  // The metric row stores the structured form (certificate_trust / certificate_trust_detail),
+  // not the describe sentence — so the mode/detail split is contract, not presentation.
+  "the resolution's structured form" should "expose mode and detail separately" in {
+    val forwarded = resolve(Some(proxyCert), Some(forwardedPem), proxyIsTrusted)
+    forwarded.mode shouldEqual "forwarded"
+    forwarded.detail shouldEqual Some(canonical(ProxyCn))
+
+    val direct = resolve(Some(appCert), None, proxyIsTrusted)
+    direct.mode shouldEqual "direct"
+    direct.detail shouldBe None
+
+    val none = resolve(None, None, proxyIsTrusted)
+    none.mode shouldEqual "none"
+    none.detail.get should include("no TLS client certificate")
+  }
+
   // mtls.trust_forwarded_header_without_tls exists for the plain-proxy-hop deployment. When OBP
   // terminates mTLS itself and no forwarder is configured it is provably the edge, and the prop's
   // permissive default would re-open the spoofing hole the pre-generalisation middleware closed

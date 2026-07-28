@@ -68,16 +68,16 @@ object Http4sRequestAttributes {
     Key.newKey[IO, Option[String]].unsafeRunSync()(cats.effect.unsafe.IORuntime.global)
 
   /**
-   * Vault key for how the caller's certificate was established — "direct", "forwarded via <proxy>",
-   * or "none: <reason>" (see PeerTrust.Resolution.describe).
+   * Vault key for how the caller's certificate was established — the full PeerTrust.Resolution,
+   * from which the CallContext takes certificateTrust (the mode: "direct" / "forwarded" / "none")
+   * and certificateTrustDetail (the forwarding proxy's subject DN, or the rejection reason).
    *
-   * Carried onto the CallContext (CallContext.certificateTrust) so metrics and audit CAN record it.
-   * NOTE: nothing persists it to metric rows yet — until that lands, the per-request trail is the
-   * CallerCertificate debug log. Without at least that, "why is this TPP suddenly anonymous" is
-   * answerable only by guessing at the deployment's trust configuration.
+   * Both are persisted on the metric row (certificate_trust / certificate_trust_detail), so "why
+   * is this TPP suddenly anonymous" is a metrics query rather than a guess at the deployment's
+   * trust configuration.
    */
-  val callerCertificateTrustKey: Key[String] =
-    Key.newKey[IO, String].unsafeRunSync()(cats.effect.unsafe.IORuntime.global)
+  val callerCertificateTrustKey: Key[code.api.util.PeerTrust.Resolution] =
+    Key.newKey[IO, code.api.util.PeerTrust.Resolution].unsafeRunSync()(cats.effect.unsafe.IORuntime.global)
 
 
   /**
@@ -563,7 +563,8 @@ object Http4sCallContextBuilder {
       correlationId = extractCorrelationId(request),
       ipAddress = extractIpAddress(request),
       requestHeaders = extractHeaders(request),
-      certificateTrust = request.attributes.lookup(Http4sRequestAttributes.callerCertificateTrustKey),
+      certificateTrust = request.attributes.lookup(Http4sRequestAttributes.callerCertificateTrustKey).map(_.mode),
+      certificateTrustDetail = request.attributes.lookup(Http4sRequestAttributes.callerCertificateTrustKey).flatMap(_.detail),
       httpBody = body,
       authReqHeaderField = extractAuthHeader(request),
       directLoginParams = extractDirectLoginParams(request),

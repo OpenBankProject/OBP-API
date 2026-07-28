@@ -70,7 +70,7 @@ object WriteMetricUtil extends MdcLoggable {
       publishMetricEvent(userId, cc.url, cc.startTime.getOrElse(null), duration, userName, appName,
         developerEmail, consumerId, implementedByPartialFunction, cc.implementedInVersion, cc.verb,
         cc.httpCode, cc.correlationId, sourceIp, targetIp, cc.operationId.getOrElse(""),
-        cc.consentReferenceId.orNull)
+        cc.consentReferenceId.orNull, cc.certificateTrust.orNull, cc.certificateTrustDetail.orNull)
     }
   }
 
@@ -114,7 +114,9 @@ object WriteMetricUtil extends MdcLoggable {
         sourceIp,
         targetIp,
         code.api.Constant.ApiInstanceId,
-        cc.consentReferenceId.orNull
+        cc.consentReferenceId.orNull,
+        cc.certificateTrust.orNull,
+        cc.certificateTrustDetail.orNull
       )
     } catch {
       case NonFatal(e) =>
@@ -146,7 +148,9 @@ object WriteMetricUtil extends MdcLoggable {
                                  sourceIp: String,
                                  targetIp: String,
                                  operationId: String,
-                                 consentReferenceId: String): Unit = {
+                                 consentReferenceId: String,
+                                 certificateTrust: String,
+                                 certificateTrustDetail: String): Unit = {
     if (!MetricsEventBus.isEnabled) return
     try {
       implicit val fmts = metricFormats
@@ -171,7 +175,9 @@ object WriteMetricUtil extends MdcLoggable {
         "target_ip"                       -> Option(targetIp).getOrElse(""),
         "api_instance_id"                 -> code.api.Constant.ApiInstanceId,
         "operation_id"                    -> Option(operationId).getOrElse(""),
-        "consent_reference_id"            -> Option(consentReferenceId).getOrElse("")
+        "consent_reference_id"            -> Option(consentReferenceId).getOrElse(""),
+        "certificate_trust"               -> Option(certificateTrust).getOrElse(""),
+        "certificate_trust_detail"        -> Option(certificateTrustDetail).getOrElse("")
       ))
       MetricsEventBus.publish(payload)
     } catch {

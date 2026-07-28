@@ -3195,7 +3195,9 @@ object SwaggerDefinitionsJSON {
     status_code = 401,
     operation_id = "OBPv4.0.0-getBanks",
     api_instance_id = "obp_node_a",
-    consent_reference_id = Some(ExampleValue.consentReferenceIdExample.value)
+    consent_reference_id = Some(ExampleValue.consentReferenceIdExample.value),
+    certificate_trust = Some("forwarded"),
+    certificate_trust_detail = Some("cn=nginx-prod-1,ou=edge,o=tesobe gmbh,c=de")
   )
   lazy val metricsJsonV600 = MetricsJsonV600(
     metrics = List(metricJsonV600)

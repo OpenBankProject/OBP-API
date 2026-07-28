@@ -61,10 +61,13 @@ case class CallContext(
                         counterparty: Option[CounterpartyTrait] = None,
                         // Set when the request is authenticated via a consent. Persisted on metric rows for search/audit.
                         consentReferenceId: Option[String] = None,
-                        // How the caller's certificate was established: "direct", "forwarded via <proxy>",
-                        // or "none: <reason>". See PeerTrust.Resolution — the trust decision that turned a
-                        // TLS peer plus a header into an identity. Not yet persisted on metric rows.
-                        certificateTrust: Option[String] = None
+                        // How the caller's certificate was established (PeerTrust.Resolution.mode):
+                        // "direct", "forwarded" or "none". Persisted on metric rows as certificate_trust.
+                        certificateTrust: Option[String] = None,
+                        // The specifics behind certificateTrust (PeerTrust.Resolution.detail): the forwarding
+                        // proxy's canonical subject DN, or the reason no caller was identified; None for
+                        // "direct". Persisted on metric rows as certificate_trust_detail.
+                        certificateTrustDetail: Option[String] = None
                       ) extends MdcLoggable {
   override def toString: String = SecureLogging.maskSensitive(
     s"${this.getClass.getSimpleName}(${this.productIterator.mkString(", ")})"
@@ -151,7 +154,9 @@ case class CallContext(
       xRateLimitReset = this.xRateLimitReset,
       paginationOffset = this.paginationOffset,
       paginationLimit = this.paginationLimit,
-      consentReferenceId = this.consentReferenceId
+      consentReferenceId = this.consentReferenceId,
+      certificateTrust = this.certificateTrust,
+      certificateTrustDetail = this.certificateTrustDetail
     )
   }
 
@@ -249,7 +254,9 @@ case class CallContextLight(gatewayLoginRequestPayload: Option[PayloadOfJwtJSON]
                             xRateLimitReset : Long = -1,
                             paginationOffset : Option[String] = None,
                             paginationLimit : Option[String] = None,
-                            consentReferenceId: Option[String] = None
+                            consentReferenceId: Option[String] = None,
+                            certificateTrust: Option[String] = None,
+                            certificateTrustDetail: Option[String] = None
                            )
 
 trait LoginParam

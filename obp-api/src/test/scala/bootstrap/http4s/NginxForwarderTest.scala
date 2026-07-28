@@ -81,7 +81,7 @@ class NginxForwarderTest extends FlatSpec with Matchers with BeforeAndAfterAll {
     val config = if (req.uri.path.renderString.startsWith("/untrusted")) emptyAllowlist else trustsNginx
     val resolved = CallerCertificate.resolveCaller(Psd2CertIngress.canonicalize(req), config)
     val caller = resolved.headers.get(CIString("PSD2-CERT")).map(_.head.value).getOrElse("NONE")
-    val trust = resolved.attributes.lookup(Http4sRequestAttributes.callerCertificateTrustKey).getOrElse("none")
+    val trust = resolved.attributes.lookup(Http4sRequestAttributes.callerCertificateTrustKey).map(_.describe).getOrElse("none")
     IO.pure(Response[IO](Status.Ok).withEntity(caller).putHeaders(Header.Raw(CIString("X-Trust"), trust)))
   }
 
