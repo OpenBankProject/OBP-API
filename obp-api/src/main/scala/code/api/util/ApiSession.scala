@@ -60,7 +60,11 @@ case class CallContext(
                         view: Option[View] = None,
                         counterparty: Option[CounterpartyTrait] = None,
                         // Set when the request is authenticated via a consent. Persisted on metric rows for search/audit.
-                        consentReferenceId: Option[String] = None
+                        consentReferenceId: Option[String] = None,
+                        // How the caller's certificate was established: "direct", "forwarded via <proxy>",
+                        // or "none: <reason>". See PeerTrust.Resolution — the audit trail for the trust
+                        // decision that turned a TLS peer plus a header into an identity.
+                        certificateTrust: Option[String] = None
                       ) extends MdcLoggable {
   override def toString: String = SecureLogging.maskSensitive(
     s"${this.getClass.getSimpleName}(${this.productIterator.mkString(", ")})"

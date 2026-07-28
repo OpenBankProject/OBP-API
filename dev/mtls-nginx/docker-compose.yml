@@ -1,0 +1,42 @@
+# Manual reproduction of the "OBP-API behind an mTLS reverse proxy" topology.
+#
+# nginx terminates the TPP's mTLS and forwards the verified client certificate as PSD2-CERT to a
+# running OBP-API over a second mTLS hop. OBP-API must be started separately (this compose only runs
+# nginx) with mtls.enabled=true and nginx listed as a trusted forwarder:
+#
+#   OBP_MTLS_ENABLED=true \
+#   OBP_MTLS_KEYSTORE_PATH=$PWD/obp-api/src/test/resources/cert/obp-server.p12 \
+#   OBP_MTLS_TRUSTSTORE_PATH=$PWD/obp-api/src/test/resources/cert/dev-truststore.p12 \
+#   OBP_MTLS_TRUSTED_PROXY_1_ISSUER='CN=OBP Dev CA,O=TESOBE GmbH,C=DE' \
+#   OBP_MTLS_TRUSTED_PROXY_1_SUBJECT='CN=nginx-dev-1,OU=Edge Proxy,O=TESOBE GmbH,C=DE' \
+#   OBP_MTLS_TRUST_FORWARDED_HEADER_WITHOUT_TLS=false \
+#     ./flushall_fast_build_and_run.sh --mtls
+#
+# Then, from the repo root:
+#   OBP_UPSTREAM=host.docker.internal:8080 docker compose -f dev/mtls-nginx/docker-compose.yml up
+#
+# and call OBP-API THROUGH nginx (port 8443), presenting the TPP client certificate:
+#   CERT=$PWD/obp-api/src/test/resources/cert
+#   curl --cacert $CERT/dev-ca.crt --cert $CERT/tpp-client.crt --key $CERT/tpp-client.key \
+#        https://localhost:8443/obp/v5.1.0/root
+#
+# The automated behavioural check is NginxForwarderTest (same nginx image, real middleware); this
+# compose is for eyeballing a full OBP-API through the proxy.
+
+services:
+  nginx:
+    image: nginx:1.27-alpine
+    ports:
+      - "8443:8443"
+    environment:
+      # Where OBP-API's mTLS listener is, from inside the container.
+      OBP_UPSTREAM: ${OBP_UPSTREAM:-host.docker.internal:8080}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./nginx.conf:/etc/nginx/templates/nginx.conf.template:ro
+      - ../../obp-api/src/test/resources/cert:/certs:ro
+    # nginx:alpine substitutes ${OBP_UPSTREAM} from the template into the live config on startup.
+    command: >
+      /bin/sh -c "envsubst '$$OBP_UPSTREAM' < /etc/nginx/templates/nginx.conf.template > /etc/nginx/nginx.conf
+                  && exec nginx -g 'daemon off;'"
