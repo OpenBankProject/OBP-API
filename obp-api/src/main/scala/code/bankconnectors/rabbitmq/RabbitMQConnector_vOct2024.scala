@@ -7349,12 +7349,17 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
   // no outboundAdapterCallContext wrapper). The reply arrives on `replyTo`
   // correlated by `correlationId`, as the OBP inbound envelope with
   // `status.errorCode == ""` meaning success.
+  //
+  // `process` below follows the connector-wide doc convention (obp.camelCase);
+  // the on-wire AMQP messageId stays snake_case (`obp_credit_notification` /
+  // `obp_settlement_instruction`) exactly as the Bank Node expects.
 
   messageDocs += openCorridorCreditNotificationDoc
   def openCorridorCreditNotificationDoc = MessageDoc(
-    process = "obp_credit_notification",
+    process = "obp.openCorridorCreditNotification",
     messageFormat = messageFormat,
     description = "Open Corridor: notify the creditor (beneficiary) bank's Bank Node to credit its customer. " +
+      "AMQP messageId on the wire: obp_credit_notification. " +
       "Carries the commit–reveal evidence triplet (promise_commitment, promise_salt, promise_preimage) " +
       "relayed verbatim from the originating Bank Node's promise report-back, so the beneficiary can verify " +
       "SHA-256(salt ‖ preimage) against the on-chain commitment. Published to the creditor bank's vhost.",
@@ -7392,10 +7397,10 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
 
   messageDocs += openCorridorSettlementInstructionDoc
   def openCorridorSettlementInstructionDoc = MessageDoc(
-    process = "obp_settlement_instruction",
+    process = "obp.openCorridorSettlementInstruction",
     messageFormat = messageFormat,
     description = "Open Corridor: instruct the debtor bank's Bank Node to settle the net amount on its " +
-      "settlement rail (e.g. cardano-ada). `amount` is in major units. `idempotency_key` is required — " +
+      "settlement rail (e.g. cardano-ada). AMQP messageId on the wire: obp_settlement_instruction. `amount` is in major units. `idempotency_key` is required — " +
       "the Bank Node keeps a durable settlement record per key and never pays twice; re-publishing the same " +
       "instruction returns the recorded state (redelivery doubles as SUBMITTED → FINAL status polling). " +
       "Published to the debtor bank's vhost.",
