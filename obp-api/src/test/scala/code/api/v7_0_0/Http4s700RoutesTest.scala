@@ -7,8 +7,8 @@ import code.api.util.http4s.Http4sStandardHeaders
 import code.api.Constant.SYSTEM_OWNER_VIEW_ID
 import code.api.ResponseHeader
 import code.api.util.APIUtil
-import code.api.util.ApiRole.{canAttachOpenCorridorPromise, canCreateEntitlementAtAnyBank, canCreateOrganisation, canCreateRoutingScheme, canCreateUtilityVendResult, canDeleteEntitlementAtAnyBank, canDeleteOrganisation, canDeleteRoutingScheme, canDeleteSchedulerJobLock, canUpdateSystemView, canGetAccountAccessTrace, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetCardsForBank, canGetConnectorHealth, canCreateMetricsArchiveRun, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMetricsDiagnostics, canGetMigrations, canGetSchedulerJobLocks, canReadResourceDoc, canUpdateBankSupportedRoutingScheme, canUpdateOrganisation, canUpdateRoutingScheme}
-import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, BankNotFound, EntitlementAlreadyExists, InvalidJsonFormat, InvalidJsonValue, InvalidOrganisationIdFormat, InvalidRoutingSchemeName, InvalidTransactionRequestId, MobileWalletDestinationNotFound, MobileWalletInvalidMsisdn, OpenCorridorPromiseEvidenceConflict, OpenCorridorPromiseNotPending, OpenCorridorPromiseTypeMismatch, OrganisationAlreadyExists, OrganisationNotFound, PayeeLookupAddressMismatch, PayeeLookupIdentifierTypeNotRegistered, PayeeNotFound, RoutingSchemeAlreadyExists, RoutingSchemeExampleAddressMismatch, RoutingSchemeNotFound, SelfServiceBankCreationDisabled, SelfServiceBankLimitReached, SystemViewNotFound, UserHasMissingRoles, UserNotFoundByUserId, UtilityIdentifierTypeWrongCategory, UtilityInvalidIdentifier, UtilityTransactionRequestNotFound}
+import code.api.util.ApiRole.{canAttachOpenCorridorPromise, canConfigureOpenCorridorBroker, canSettleOpenCorridor, canCreateEntitlementAtAnyBank, canCreateOrganisation, canCreateRoutingScheme, canCreateUtilityVendResult, canDeleteEntitlementAtAnyBank, canDeleteOrganisation, canDeleteRoutingScheme, canDeleteSchedulerJobLock, canUpdateSystemView, canGetAccountAccessTrace, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetCardsForBank, canGetConnectorHealth, canCreateMetricsArchiveRun, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMetricsDiagnostics, canGetMigrations, canGetSchedulerJobLocks, canReadResourceDoc, canUpdateBankSupportedRoutingScheme, canUpdateOrganisation, canUpdateRoutingScheme}
+import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, BankNotFound, EntitlementAlreadyExists, InvalidJsonFormat, InvalidJsonValue, InvalidOrganisationIdFormat, InvalidRoutingSchemeName, InvalidTransactionRequestId, MobileWalletDestinationNotFound, MobileWalletInvalidMsisdn, OpenCorridorBankBrokerNotConfigured, OpenCorridorDisabled, OpenCorridorPromiseEvidenceConflict, OpenCorridorPromiseNotPending, OpenCorridorPromiseTypeMismatch, OpenCorridorSettlementAddressMissing, OrganisationAlreadyExists, OrganisationNotFound, PayeeLookupAddressMismatch, PayeeLookupIdentifierTypeNotRegistered, PayeeNotFound, RoutingSchemeAlreadyExists, RoutingSchemeExampleAddressMismatch, RoutingSchemeNotFound, SelfServiceBankCreationDisabled, SelfServiceBankLimitReached, SystemViewNotFound, UserHasMissingRoles, UserNotFoundByUserId, UtilityIdentifierTypeWrongCategory, UtilityInvalidIdentifier, UtilityTransactionRequestNotFound}
 import code.utilitypayment.{UtilityCallbackStatus, UtilityPaymentCallbacks}
 import code.scheduler.JobScheduler
 import net.liftweb.mapper.By
@@ -1634,22 +1634,25 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
   private def openCorridorPromiseBody(
     currency: String,
     originatorName: String = "Alice Sender",
-    originatorRoutingAddress: String = "GB29 NWBK 6016 1331 9268 19"
+    originatorRoutingAddress: String = "GB29 NWBK 6016 1331 9268 19",
+    amount: String = "3.00",
+    beneficiaryBankId: String = testBankId2.value,
+    beneficiaryAccountId: String = testAccountId1.value
   ): String =
     s"""{
        |  "to": {
        |    "name": "OC Beneficiary ${APIUtil.generateUUID().take(8)}",
        |    "description": "Beneficiary at receiving institution",
        |    "other_bank_routing_scheme": "OBP",
-       |    "other_bank_routing_address": "${testBankId2.value}",
+       |    "other_bank_routing_address": "$beneficiaryBankId",
        |    "other_branch_routing_scheme": "",
        |    "other_branch_routing_address": "",
        |    "other_account_routing_scheme": "OBP",
-       |    "other_account_routing_address": "${testAccountId1.value}",
+       |    "other_account_routing_address": "$beneficiaryAccountId",
        |    "other_account_secondary_routing_scheme": "",
        |    "other_account_secondary_routing_address": ""
        |  },
-       |  "value": {"currency": "$currency", "amount": "3.00"},
+       |  "value": {"currency": "$currency", "amount": "$amount"},
        |  "description": "Open Corridor promise test payment",
        |  "charge_policy": "SHARED",
        |  "originator": {
@@ -1803,15 +1806,23 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
        |}""".stripMargin
 
   /** Create an OPEN_CORRIDOR_PROMISE TR via the v7 endpoint; asserts hold-at-PENDING
-    * and returns the new TRANSACTION_REQUEST_ID. */
-  private def createPendingPromise(): String = {
+    * and returns the new TRANSACTION_REQUEST_ID. Defaults: bank1/account0 promising
+    * to bank2/account1. */
+  private def createPendingPromise(
+    fromBankId: CommBankId = testBankId1,
+    fromAccountId: com.openbankproject.commons.model.AccountId = testAccountId0,
+    beneficiaryBankId: String = testBankId2.value,
+    beneficiaryAccountId: String = testAccountId1.value,
+    amount: String = "3.00"
+  ): String = {
     val acctCurrency = code.bankconnectors.Connector.connector.vend
-      .getBankAccountLegacy(testBankId1, testAccountId0, None)
+      .getBankAccountLegacy(fromBankId, fromAccountId, None)
       .map(_._1.currency).openOrThrowException("test account")
     val headers = Map("DirectLogin" -> s"token=${token1.value}")
     val (statusCode, json, _) = makeHttpRequestWithBody("POST",
-      openCorridorPromisePath(testBankId1.value, testAccountId0.value),
-      openCorridorPromiseBody(acctCurrency), headers)
+      openCorridorPromisePath(fromBankId.value, fromAccountId.value),
+      openCorridorPromiseBody(acctCurrency, amount = amount,
+        beneficiaryBankId = beneficiaryBankId, beneficiaryAccountId = beneficiaryAccountId), headers)
     statusCode shouldBe 201
     json match {
       case JObject(fields) =>
@@ -1975,6 +1986,294 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
         promiseEvidenceBody(), headers)
       statusCode shouldBe 400
       messageOf(json) should include(OpenCorridorPromiseNotPending)
+    }
+  }
+
+  // ─── OPEN_CORRIDOR broker registry + settle-pair ──────────────────────────
+
+  private def brokerPath(bankId: String): String =
+    s"/obp/v7.0.0/banks/$bankId/open-corridor/broker"
+
+  private def brokerBody(settlementAddress: String = "addr_test_creditor"): String =
+    s"""{
+       |  "host": "rabbitmq.bank.example.com",
+       |  "port": 5672,
+       |  "virtual_host": "/bank.test",
+       |  "username": "obp-api",
+       |  "password": "secret-not-echoed",
+       |  "use_ssl": false,
+       |  "settlement_address": "$settlementAddress"
+       |}""".stripMargin
+
+  private def ensureSettlementAccounts(bankId: String, currency: String): Unit = {
+    import code.model.dataAccess.MappedBankAccount
+    List(code.api.Constant.INCOMING_SETTLEMENT_ACCOUNT_ID, code.api.Constant.OUTGOING_SETTLEMENT_ACCOUNT_ID).foreach { accountId =>
+      if (MappedBankAccount.find(By(MappedBankAccount.bank, bankId), By(MappedBankAccount.theAccountId, accountId)).isEmpty) {
+        MappedBankAccount.create.bank(bankId).theAccountId(accountId).accountCurrency(currency).saveMe()
+      }
+    }
+  }
+
+  private def promiseStatus(transactionRequestId: String): String =
+    code.transactionrequests.TransactionRequests.transactionRequestProvider.vend
+      .getTransactionRequestFromProvider(com.openbankproject.commons.model.TransactionRequestId(transactionRequestId))
+      .map(_.status).openOrThrowException("TR should exist")
+
+  private def promiseAttributes(transactionRequestId: String): Map[String, String] = {
+    import scala.concurrent.Await
+    import scala.concurrent.duration._
+    Await.result(
+      code.transactionRequestAttribute.TransactionRequestAttributeX.transactionRequestAttributeProvider.vend
+        .getTransactionRequestAttributesFromProvider(com.openbankproject.commons.model.TransactionRequestId(transactionRequestId)),
+      10.seconds
+    ).openOrThrowException("attributes should load").map(a => a.name -> a.value).toMap
+  }
+
+  feature("Http4s700 Open Corridor bank broker registry endpoints") {
+
+    scenario("Reject unauthenticated PUT", Http4s700RoutesTag) {
+      val (statusCode, _, _) = makeHttpRequestWithBody("PUT", brokerPath(testBankId1.value), brokerBody())
+      statusCode shouldBe 401
+    }
+
+    scenario("Return 403 without CanConfigureOpenCorridorBroker", Http4s700RoutesTag) {
+      val headers = Map("DirectLogin" -> s"token=${token2.value}")
+      val (statusCode, json, _) = makeHttpRequestWithBody("PUT", brokerPath(testBankId1.value), brokerBody(), headers)
+      statusCode shouldBe 403
+      messageOf(json) should include("CanConfigureOpenCorridorBroker")
+    }
+
+    scenario("Broker registry CRUD round-trip; password is never echoed", Http4s700RoutesTag) {
+      addEntitlement("", resourceUser1.userId, canConfigureOpenCorridorBroker.toString)
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+
+      When("DELETE clears any previous registration (idempotent)")
+      val (deleteCode, _, _) = makeHttpRequestWithMethod("DELETE", brokerPath(testBankId1.value), headers)
+      deleteCode shouldBe 204
+
+      Then("GET without a registration is refused")
+      val (missingCode, missingJson, _) = makeHttpRequest(brokerPath(testBankId1.value), headers)
+      missingCode shouldBe 400
+      messageOf(missingJson) should include(OpenCorridorBankBrokerNotConfigured)
+
+      When("PUT registers the broker")
+      val (putCode, putJson, _) = makeHttpRequestWithBody("PUT", brokerPath(testBankId1.value), brokerBody(), headers)
+      putCode shouldBe 200
+      putJson match {
+        case JObject(fields) =>
+          val map = toFieldMap(fields)
+          map.get("bank_id") shouldBe Some(JString(testBankId1.value))
+          map.get("host") shouldBe Some(JString("rabbitmq.bank.example.com"))
+          map.get("settlement_address") shouldBe Some(JString("addr_test_creditor"))
+          map.keys should not contain "password"
+        case _ => fail("Expected JSON object")
+      }
+
+      Then("GET returns the registration, still without the password")
+      val (getCode, getJson, _) = makeHttpRequest(brokerPath(testBankId1.value), headers)
+      getCode shouldBe 200
+      getJson match {
+        case JObject(fields) =>
+          val map = toFieldMap(fields)
+          map.get("virtual_host") shouldBe Some(JString("/bank.test"))
+          map.keys should not contain "password"
+        case _ => fail("Expected JSON object")
+      }
+
+      And("DELETE removes it again")
+      val (deleteCode2, _, _) = makeHttpRequestWithMethod("DELETE", brokerPath(testBankId1.value), headers)
+      deleteCode2 shouldBe 204
+      val (goneCode, _, _) = makeHttpRequest(brokerPath(testBankId1.value), headers)
+      goneCode shouldBe 400
+    }
+  }
+
+  feature("Http4s700 settleOpenCorridorPair endpoint (bilateral netting)") {
+
+    def settleBody(currency: String): String =
+      s"""{"bank_id_a": "${testBankId1.value}", "bank_id_b": "${testBankId2.value}", "currency": "$currency"}"""
+
+    def registerBrokers(): Unit = {
+      code.bankconnectors.opencorridor.OpenCorridorBankBroker.upsert(
+        testBankId1.value, "localhost", 5672, "/bank.a", "u", "p", false, "addr_test_bank_a")
+      code.bankconnectors.opencorridor.OpenCorridorBankBroker.upsert(
+        testBankId2.value, "localhost", 5672, "/bank.b", "u", "p", false, "addr_test_bank_b")
+    }
+
+    scenario("Reject unauthenticated POST", Http4s700RoutesTag) {
+      val (statusCode, _, _) = makeHttpRequestWithBody("POST", "/obp/v7.0.0/open-corridor/settle", settleBody("EUR"))
+      statusCode shouldBe 401
+    }
+
+    scenario("Return 403 without CanSettleOpenCorridor", Http4s700RoutesTag) {
+      val headers = Map("DirectLogin" -> s"token=${token2.value}")
+      val (statusCode, json, _) = makeHttpRequestWithBody("POST", "/obp/v7.0.0/open-corridor/settle", settleBody("EUR"), headers)
+      statusCode shouldBe 403
+      messageOf(json) should include("CanSettleOpenCorridor")
+    }
+
+    scenario("Return 400 when open_corridor_enabled is not set", Http4s700RoutesTag) {
+      addEntitlement("", resourceUser1.userId, canSettleOpenCorridor.toString)
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequestWithBody("POST", "/obp/v7.0.0/open-corridor/settle", settleBody("EUR"), headers)
+      statusCode shouldBe 400
+      messageOf(json) should include(OpenCorridorDisabled)
+    }
+
+    scenario("Net a pair: N promises collapse into one settlement, evidence relayed via outbox", Http4s700RoutesTag) {
+      setPropsValues("open_corridor_enabled" -> "true")
+      addEntitlement("", resourceUser1.userId, canSettleOpenCorridor.toString)
+      addEntitlement(testBankId1.value, resourceUser1.userId, canAttachOpenCorridorPromise.toString)
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+
+      Given("Matching currencies, settlement accounts and broker registrations for both banks")
+      val currency = code.bankconnectors.Connector.connector.vend
+        .getBankAccountLegacy(testBankId1, testAccountId0, None)
+        .map(_._1.currency).openOrThrowException("test account")
+      val currency2 = code.bankconnectors.Connector.connector.vend
+        .getBankAccountLegacy(testBankId2, testAccountId1, None)
+        .map(_._1.currency).openOrThrowException("test account")
+      currency2 shouldBe currency
+      ensureSettlementAccounts(testBankId1.value, currency)
+      ensureSettlementAccounts(testBankId2.value, currency)
+
+      And("Three pending promises: A→B 5.00 + 2.00, B→A 3.00")
+      def assertPromiseRow(trId: String, fromBank: String, toBank: String): Unit = {
+        val row = code.transactionrequests.MappedTransactionRequest
+          .find(By(code.transactionrequests.MappedTransactionRequest.mTransactionRequestId, trId))
+          .openOrThrowException("promise TR row should exist")
+        withClue(s"TR $trId row: from=${row.mFrom_BankId.get} to=${row.mTo_BankId.get} " +
+          s"currency=${row.mBody_Value_Currency.get} status=${row.mStatus.get} type=${row.mType.get} — ") {
+          row.mFrom_BankId.get shouldBe fromBank
+          row.mTo_BankId.get shouldBe toBank
+          row.mBody_Value_Currency.get shouldBe currency
+        }
+      }
+      val promise1 = createPendingPromise(amount = "5.00")
+      val promise2 = createPendingPromise(amount = "2.00")
+      val promise3 = createPendingPromise(testBankId2, testAccountId1, testBankId1.value, testAccountId0.value, "3.00")
+      assertPromiseRow(promise1, testBankId1.value, testBankId2.value)
+      assertPromiseRow(promise3, testBankId2.value, testBankId1.value)
+
+      And("Promise 1 has its on-chain evidence attached (report-back)")
+      val (evidenceCode, _, _) = makeHttpRequestWithBody("POST",
+        promiseEvidencePath(testBankId1.value, testAccountId0.value, promise1),
+        promiseEvidenceBody(), headers)
+      evidenceCode shouldBe 201
+
+      When("Settle is triggered while the creditor bank has no settlement address")
+      code.bankconnectors.opencorridor.OpenCorridorBankBroker.upsert(
+        testBankId1.value, "localhost", 5672, "/bank.a", "u", "p", false, "addr_test_bank_a")
+      code.bankconnectors.opencorridor.OpenCorridorBankBroker.upsert(
+        testBankId2.value, "localhost", 5672, "/bank.b", "u", "p", false, "")
+      val (noAddressCode, noAddressJson, _) = makeHttpRequestWithBody("POST",
+        "/obp/v7.0.0/open-corridor/settle", settleBody(currency), headers)
+      noAddressCode shouldBe 400
+      messageOf(noAddressJson) should include(OpenCorridorSettlementAddressMissing)
+      promiseStatus(promise1) shouldBe "PENDING"
+
+      Then("With both brokers fully registered the settle succeeds")
+      registerBrokers()
+      val (statusCode, json, _) = makeHttpRequestWithBody("POST",
+        "/obp/v7.0.0/open-corridor/settle", settleBody(currency), headers)
+      statusCode shouldBe 201
+      val (settlementId, transactionId) = json match {
+        case JObject(fields) =>
+          val map = toFieldMap(fields)
+          map.get("net_amount") shouldBe Some(JString("4.00"))
+          map.get("debtor_bank_id") shouldBe Some(JString(testBankId1.value))
+          map.get("creditor_bank_id") shouldBe Some(JString(testBankId2.value))
+          map.get("credit_notifications_enqueued") shouldBe Some(JInt(3))
+          map.get("settlement_instructions_enqueued") shouldBe Some(JInt(1))
+          map.get("covered_transaction_request_ids") match {
+            case Some(JArray(ids)) => ids.collect { case JString(id) => id }.toSet shouldBe Set(promise1, promise2, promise3)
+            case _ => fail("covered_transaction_request_ids should be an array")
+          }
+          val sid = map.get("settlement_id").collect { case JString(s) => s }.getOrElse(fail("settlement_id missing"))
+          val tid = map.get("transaction_id").collect { case JString(s) => s }.getOrElse(fail("transaction_id missing"))
+          sid should not be empty
+          tid should not be empty
+          (sid, tid)
+        case _ => fail("Expected JSON object")
+      }
+
+      And("Every covered promise is COMPLETED with the discharge linkage attributes")
+      List(promise1, promise2, promise3).foreach { promiseId =>
+        promiseStatus(promiseId) shouldBe "COMPLETED"
+        val attributes = promiseAttributes(promiseId)
+        attributes.get(code.bankconnectors.opencorridor.OpenCorridorSettlement.AttrSettledByTransactionIds) shouldBe Some(transactionId)
+        attributes.get(code.bankconnectors.opencorridor.OpenCorridorSettlement.AttrSettledByTransactionRequestId) shouldBe Some(settlementId)
+      }
+
+      And("The outbox holds 3 credit notifications + 1 settlement instruction, evidence relayed verbatim")
+      val outboxRows = code.bankconnectors.opencorridor.OpenCorridorOutbox.bySettlementId(settlementId)
+      outboxRows.size shouldBe 4
+      val creditRows = outboxRows.filter(_.messageId == "obp_credit_notification")
+      creditRows.map(_.targetBankId).sorted shouldBe List(testBankId1.value, testBankId2.value, testBankId2.value).sorted
+      val instructionRow = outboxRows.filter(_.messageId == "obp_settlement_instruction") match {
+        case row :: Nil => row
+        case other => fail(s"Expected exactly one settlement instruction row, got ${other.size}")
+      }
+      instructionRow.targetBankId shouldBe testBankId1.value
+      val instructionJson = parse(instructionRow.payloadJson)
+      (instructionJson \ "amount") shouldBe JString("4.00")
+      (instructionJson \ "creditor_address") shouldBe JString("addr_test_bank_b")
+      (instructionJson \ "idempotency_key") shouldBe JString(settlementId)
+      val promise1Credit = creditRows.map(row => parse(row.payloadJson))
+        .find(payload => (payload \ "transaction_request_id") == JString(promise1))
+        .getOrElse(fail("promise1's credit notification should be enqueued"))
+      (promise1Credit \ "promise_salt") shouldBe JString("5f4dcc3b5aa765d61d8327deb882cf99")
+      (promise1Credit \ "promise_commitment") shouldBe JString("9c56cc51b374c3ba189210d5b6d4bf57790d351c96c47c02190ecf1e430ba0d1")
+
+      And("A re-trigger with nothing pending is a no-op")
+      val (noopCode, noopJson, _) = makeHttpRequestWithBody("POST",
+        "/obp/v7.0.0/open-corridor/settle", settleBody(currency), headers)
+      noopCode shouldBe 201
+      noopJson match {
+        case JObject(fields) =>
+          val map = toFieldMap(fields)
+          map.get("covered_transaction_request_ids") shouldBe Some(JArray(Nil))
+          map.get("settlement_id") shouldBe Some(JString(""))
+        case _ => fail("Expected JSON object")
+      }
+    }
+
+    scenario("Exactly offsetting flows discharge at net zero with no Transaction", Http4s700RoutesTag) {
+      setPropsValues("open_corridor_enabled" -> "true")
+      addEntitlement("", resourceUser1.userId, canSettleOpenCorridor.toString)
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val currency = code.bankconnectors.Connector.connector.vend
+        .getBankAccountLegacy(testBankId1, testAccountId0, None)
+        .map(_._1.currency).openOrThrowException("test account")
+      ensureSettlementAccounts(testBankId1.value, currency)
+      ensureSettlementAccounts(testBankId2.value, currency)
+      registerBrokers()
+
+      val promiseAToB = createPendingPromise(amount = "3.00")
+      val promiseBToA = createPendingPromise(testBankId2, testAccountId1, testBankId1.value, testAccountId0.value, "3.00")
+
+      val (statusCode, json, _) = makeHttpRequestWithBody("POST",
+        "/obp/v7.0.0/open-corridor/settle", settleBody(currency), headers)
+      statusCode shouldBe 201
+      val settlementId = json match {
+        case JObject(fields) =>
+          val map = toFieldMap(fields)
+          map.get("net_amount") shouldBe Some(JString("0.00"))
+          map.get("transaction_id") shouldBe Some(JString(""))
+          map.get("credit_notifications_enqueued") shouldBe Some(JInt(2))
+          map.get("settlement_instructions_enqueued") shouldBe Some(JInt(0))
+          map.get("settlement_id").collect { case JString(s) => s }.getOrElse(fail("settlement_id missing"))
+        case _ => fail("Expected JSON object")
+      }
+
+      List(promiseAToB, promiseBToA).foreach { promiseId =>
+        promiseStatus(promiseId) shouldBe "COMPLETED"
+        val attributes = promiseAttributes(promiseId)
+        attributes.get(code.bankconnectors.opencorridor.OpenCorridorSettlement.AttrSettledByTransactionRequestId) shouldBe Some(settlementId)
+        attributes.get(code.bankconnectors.opencorridor.OpenCorridorSettlement.AttrSettledByTransactionIds) shouldBe None
+      }
+      code.bankconnectors.opencorridor.OpenCorridorOutbox.bySettlementId(settlementId)
+        .filter(_.messageId == "obp_settlement_instruction") shouldBe Nil
     }
   }
 

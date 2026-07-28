@@ -312,6 +312,20 @@ TransactionRequest:
 
 ### 5.2 Server-initiated publish capability
 
+> **BUILT (2026-07-28, branch `open-corridor-salt-relay`).**
+> `OpenCorridorBankBroker` (Mapper table, unique per bank_id: host/port/vhost/
+> credentials/use_ssl + `settlement_address`, schemified in Boot) with v7 admin
+> endpoints `PUT|GET|DELETE /banks/BANK_ID/open-corridor/broker` (system role
+> `CanConfigureOpenCorridorBroker`; password write-only, never echoed).
+> `OpenCorridorPublisher` does publish-and-await-reply to the bank's vhost
+> (queue `obp_rpc_queue`, AMQP messageId/correlationId/replyTo, §4.2 envelope
+> parse) with one cached auto-recovering connection per bank — deliberately
+> self-contained from `RabbitMQUtils` (whose object init hard-requires the
+> global `rabbitmq_connector.*` props describing the OBP adapter broker, not
+> these per-bank brokers). Errors OBP-40054 (no broker registered) /
+> OBP-40055 (publish failed). Open decision 5 (creditor address source) is
+> RESOLVED: `settlement_address` lives on the broker registration row.
+
 Add a publish-and-await-reply to the bank's vhost. **Reuse the existing RPC
 shape** (`RabbitMQUtils.sendRequestUndGetResponseFromRabbitMQ`, `:90`) — it
 already does publish-to-`obp_rpc_queue` + await-on-`replyTo` + correlate. The new
@@ -331,6 +345,29 @@ parts:
   surface the `errorCode` to the caller / mark the TR `EXCEPTION`.
 
 ### 5.3 The trigger: the admin settle-pair endpoint (revised 2026-07-18)
+
+> **BUILT (2026-07-28, branch `open-corridor-salt-relay`).**
+> `POST /obp/v7.0.0/open-corridor/settle` `{bank_id_a, bank_id_b, currency}`,
+> system role `CanSettleOpenCorridor`, gated by `open_corridor_enabled`
+> (OBP-40057). `OpenCorridorSettlement.settlePair`: row-locks each candidate
+> promise (re-read under lock, so a concurrent double-trigger cannot settle the
+> same promises twice; no-pending re-trigger is a no-op), nets both directions,
+> mints + executes TR B between the pair's settlement accounts
+> (`OBP-OUTGOING-SETTLEMENT-ACCOUNT` → `OBP-INCOMING-SETTLEMENT-ACCOUNT`),
+> writes `settled_by_transaction_ids` AND `settled_by_transaction_request_id`
+> (TR B's id — kept even at net zero) attributes on each covered promise,
+> flips them COMPLETED, and enqueues the messages into the `OpenCorridorOutbox`
+> Mapper table in the same request DB transaction. `OpenCorridorOutboxRelay`
+> (Boot-started when `open_corridor_enabled`, `open_corridor.outbox_relay_interval`
+> default 10s) publishes with exponential backoff and records each §4.2 reply:
+> settlement rows stay PENDING through SUBMITTED/SETTLING (redelivery-as-polling,
+> §4.4) until FINAL; refutable business errors (COMMITMENT-MISMATCH etc.) go
+> STICKY for operator reconciliation, never swallowed. Fails fast pre-mutation
+> when either bank lacks a broker registration or (net ≠ 0) the creditor lacks a
+> `settlement_address` (OBP-40056). **Open decision 9 (net-equals-zero) is
+> RESOLVED:** TR B is still minted (audit object) and completes with empty
+> `transaction_ids`; promises discharge with `settled_by_transaction_request_id`
+> only; no settlement instruction is sent; credit notifications still go out.
 
 The trigger is the settle-pair endpoint from `OPEN_CORRIDOR_SIMPLE_NETTING.md`
 §6 — **not** a per-promise "settle now" action. With one pending promise it

@@ -89,9 +89,13 @@ object OpenCorridorPublisher extends MdcLoggable {
    * parsing — callers must handle non-empty error codes explicitly (they must
    * never be swallowed).
    */
-  def publishAndAwaitReply(bankId: String, messageId: String, wireBody: AnyRef): Future[Box[InBoundOpenCorridorReply]] = {
+  def publishAndAwaitReply(bankId: String, messageId: String, wireBody: AnyRef): Future[Box[InBoundOpenCorridorReply]] =
+    publishRawAndAwaitReply(bankId, messageId, write(wireBody))
+
+  /** Same, but with an already-serialized wire body (the outbox stores payloads as JSON). */
+  def publishRawAndAwaitReply(bankId: String, messageId: String, bodyJson: String): Future[Box[InBoundOpenCorridorReply]] = {
     OpenCorridorBankBroker.findByBankId(bankId) match {
-      case Full(broker) => publishToBroker(broker, messageId, write(wireBody))
+      case Full(broker) => publishToBroker(broker, messageId, bodyJson)
       case _ => Future.successful(Failure(s"$OpenCorridorBankBrokerNotConfigured BANK_ID: $bankId"))
     }
   }

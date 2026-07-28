@@ -217,6 +217,11 @@ object ApiRole extends MdcLoggable{
   case class CanConfigureOpenCorridorBroker(requiresBankId: Boolean = false) extends ApiRole
   lazy val canConfigureOpenCorridorBroker = CanConfigureOpenCorridorBroker()
 
+  // Open Corridor: operator role for the settle-pair trigger — nets a bank pair's
+  // PENDING promises, posts the net Transaction and enqueues the Interface C messages.
+  case class CanSettleOpenCorridor(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canSettleOpenCorridor = CanSettleOpenCorridor()
+
   case class CanAddSocialMediaHandle(requiresBankId: Boolean = true) extends ApiRole
   lazy val canAddSocialMediaHandle = CanAddSocialMediaHandle()
 

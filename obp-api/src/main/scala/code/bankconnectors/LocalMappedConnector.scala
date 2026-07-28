@@ -1632,19 +1632,28 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     callContext: Option[CallContext]
   ): OBPReturnType[Box[CounterpartyTrait]] = Future {
     
-    lazy val counterpartyFromRoutings= Counterparties.counterparties.vend.getCounterpartyByRoutings(
-      otherBankRoutingScheme: String,
-      otherBankRoutingAddress: String,
-      otherBranchRoutingScheme: String,
-      otherBranchRoutingAddress: String,
-      otherAccountRoutingScheme: String,
-      otherAccountRoutingAddress: String
-    ) 
-    
-    lazy val counterpartyFromSecondaryRouting = Counterparties.counterparties.vend.getCounterpartyBySecondaryRouting(
-      otherAccountSecondaryRoutingScheme: String,
-      otherAccountSecondaryRoutingAddress: String
-    )
+    // Empty routing values must never be used as a lookup key: matching on ("", "")
+    // returns an arbitrary counterparty that happens to have the field empty — the
+    // caller would silently get a beneficiary pointing at the wrong bank/account.
+    lazy val counterpartyFromRoutings =
+      if (otherAccountRoutingScheme.trim.nonEmpty && otherAccountRoutingAddress.trim.nonEmpty)
+        Counterparties.counterparties.vend.getCounterpartyByRoutings(
+          otherBankRoutingScheme: String,
+          otherBankRoutingAddress: String,
+          otherBranchRoutingScheme: String,
+          otherBranchRoutingAddress: String,
+          otherAccountRoutingScheme: String,
+          otherAccountRoutingAddress: String
+        )
+      else Empty
+
+    lazy val counterpartyFromSecondaryRouting =
+      if (otherAccountSecondaryRoutingScheme.trim.nonEmpty && otherAccountSecondaryRoutingAddress.trim.nonEmpty)
+        Counterparties.counterparties.vend.getCounterpartyBySecondaryRouting(
+          otherAccountSecondaryRoutingScheme: String,
+          otherAccountSecondaryRoutingAddress: String
+        )
+      else Empty
 
 
     if(counterpartyFromRoutings.isDefined) {

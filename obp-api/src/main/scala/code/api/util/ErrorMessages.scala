@@ -891,6 +891,8 @@ object ErrorMessages {
   val OpenCorridorPromiseEvidenceConflict = "OBP-40053: Open Corridor promise evidence is already attached to this Transaction Request with different values. Evidence cannot be overwritten."
   val OpenCorridorBankBrokerNotConfigured = "OBP-40054: No Open Corridor broker is configured for this bank. Register the bank's RabbitMQ coordinates first."
   val OpenCorridorPublishFailed = "OBP-40055: Could not publish the Open Corridor message to the bank's broker or no reply arrived in time."
+  val OpenCorridorSettlementAddressMissing = "OBP-40056: The creditor bank has no settlement address registered in its Open Corridor broker registration, so the settlement instruction cannot be addressed."
+  val OpenCorridorDisabled = "OBP-40057: Open Corridor is not enabled on this API instance. Set open_corridor_enabled=true in the props."
   // Exceptions (OBP-50XXX)
   val UnknownError = "OBP-50000: Unknown Error."
   val FutureTimeoutException = "OBP-50001: Future Timeout Exception."

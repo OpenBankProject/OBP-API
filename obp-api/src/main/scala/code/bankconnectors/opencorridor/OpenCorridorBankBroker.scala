@@ -27,6 +27,11 @@ class OpenCorridorBankBroker extends LongKeyedMapper[OpenCorridorBankBroker] wit
   object UseSsl extends MappedBoolean(this) {
     override def defaultValue = false
   }
+  /** The bank's settlement-rail (e.g. Cardano bech32) receiving address. Used as
+    * `creditor_address` in `obp_settlement_instruction` when this bank is the
+    * creditor of a netted settle (open decision §8.5 of the publish plan: the
+    * onboarding row carries it, not an account attribute). */
+  object SettlementAddress extends MappedString(this, 255)
 
   def bankId: String = BankId.get
   def host: String = Host.get
@@ -35,6 +40,7 @@ class OpenCorridorBankBroker extends LongKeyedMapper[OpenCorridorBankBroker] wit
   def username: String = Username.get
   def password: String = Password.get
   def useSsl: Boolean = UseSsl.get
+  def settlementAddress: String = SettlementAddress.get
 }
 
 object OpenCorridorBankBroker extends OpenCorridorBankBroker with LongKeyedMetaMapper[OpenCorridorBankBroker] {
@@ -51,7 +57,8 @@ object OpenCorridorBankBroker extends OpenCorridorBankBroker with LongKeyedMetaM
     virtualHost: String,
     username: String,
     password: String,
-    useSsl: Boolean
+    useSsl: Boolean,
+    settlementAddress: String
   ): OpenCorridorBankBroker = {
     val row = findByBankId(bankId).getOrElse(OpenCorridorBankBroker.create.BankId(bankId))
     row
@@ -61,6 +68,7 @@ object OpenCorridorBankBroker extends OpenCorridorBankBroker with LongKeyedMetaM
       .Username(username)
       .Password(password)
       .UseSsl(useSsl)
+      .SettlementAddress(settlementAddress)
       .saveMe()
   }
 

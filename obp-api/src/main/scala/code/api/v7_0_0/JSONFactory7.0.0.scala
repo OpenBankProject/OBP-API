@@ -1121,7 +1121,8 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     virtual_host: String,
     username: String,
     password: String,
-    use_ssl: Boolean
+    use_ssl: Boolean,
+    settlement_address: String
   )
 
   // The password is write-only: never echoed on any response.
@@ -1131,7 +1132,39 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     port: Int,
     virtual_host: String,
     username: String,
-    use_ssl: Boolean
+    use_ssl: Boolean,
+    settlement_address: String
+  )
+
+  // ─── OPEN_CORRIDOR settle-pair ─────────────────────────────────────────────
+
+  case class PostOpenCorridorSettleJsonV700(
+    bank_id_a: String,
+    bank_id_b: String,
+    currency: String
+  )
+
+  /**
+   * Result of a settle-pair run. `transaction_id` is empty when the pair's flows
+   * offset exactly (net zero: promises are discharged, nothing moves) and when
+   * `covered_transaction_request_ids` is empty (no-op: nothing was pending).
+   * NOTE: the posted net Transaction deliberately does NOT match any single
+   * promise — it is the offset difference, between the settlement accounts,
+   * possibly opposite in direction to a given covered promise. Reconciliation
+   * must use `settled_by_transaction_ids` on each promise, never assume the
+   * Transaction mirrors the promise body.
+   */
+  case class OpenCorridorSettleResultJsonV700(
+    settlement_id: String,
+    settlement_transaction_request_id: String,
+    transaction_id: String,
+    debtor_bank_id: String,
+    creditor_bank_id: String,
+    currency: String,
+    net_amount: String,
+    covered_transaction_request_ids: List[String],
+    credit_notifications_enqueued: Int,
+    settlement_instructions_enqueued: Int
   )
 
   // Build the originator block for a TR response. Returns None when there's no
