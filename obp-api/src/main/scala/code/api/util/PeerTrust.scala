@@ -182,13 +182,20 @@ object PeerTrust extends MdcLoggable {
         }
       }.toList
 
-    val trustWithoutTls = APIUtil.getPropsAsBoolValue(TrustForwardedWithoutTlsProp, defaultValue = true)
+    val trustWithoutTlsProp = APIUtil.getPropsAsBoolValue(TrustForwardedWithoutTlsProp, defaultValue = true)
+    val mtlsEnabled = APIUtil.getPropsAsBoolValue("mtls.enabled", defaultValue = false)
+    val trustWithoutTls = effectiveTrustWithoutTls(trustWithoutTlsProp, proxies.isEmpty, mtlsEnabled)
 
     if (proxies.isEmpty) {
       logger.info("No mtls.trusted_proxy.N.issuer configured: OBP treats its TLS peer as the caller " +
         "(it is the edge). Configure trusted proxies if a reverse proxy forwards PSD2-CERT.")
     } else {
       logger.info(s"Trusted forwarders: ${proxies.map(p => p.subject.getOrElse("<any subject>") + " issued by " + p.issuer).mkString("; ")}")
+    }
+    if (trustWithoutTlsProp && !trustWithoutTls) {
+      logger.info(s"$TrustForwardedWithoutTlsProp=true is ignored: mtls.enabled=true with no trusted " +
+        "proxies makes OBP the TLS edge, so a PSD2-CERT header from a peer that presented no client " +
+        "certificate can only be a spoofing attempt and is stripped.")
     }
     if (trustWithoutTls) {
       // Deliberately noisy: the default is the permissive setting, chosen so that existing
@@ -199,4 +206,18 @@ object PeerTrust extends MdcLoggable {
     }
     TrustConfig(proxies, trustWithoutTls)
   }
+
+  /**
+   * Whether a `PSD2-CERT` header on a request with no TLS client certificate may name the caller.
+   *
+   * The prop exists for the plain-proxy-hop deployment, where OBP terminates no TLS and the header
+   * is all there is. But when OBP terminates mTLS itself AND no trusted forwarder is configured,
+   * OBP is provably the edge: every legitimate caller identity arrives in the handshake, so a
+   * header on a certless request (possible under `mtls.client_auth=want`) can only be a spoofing
+   * attempt. The pre-generalisation middleware (`Http4sMtls.injectClientCertificate`) always
+   * stripped it in that deployment; honouring the prop's permissive default there would silently
+   * re-open the hole the old code closed, so the prop is ignored for that one shape.
+   */
+  private[util] def effectiveTrustWithoutTls(propValue: Boolean, noProxiesConfigured: Boolean, mtlsEnabled: Boolean): Boolean =
+    propValue && !(mtlsEnabled && noProxiesConfigured)
 }

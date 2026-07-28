@@ -347,7 +347,7 @@ Consumer — presenting a different client certificate is rejected.
 | `mtls.client_auth` | `need` | `need` rejects certless handshakes; `want` makes the client certificate optional. |
 | `mtls.trusted_proxy.N.issuer` | — | Issuer DN of a peer allowed to forward someone else's certificate. Indexed from 1; scanning stops at the first missing index. Empty (the default) means OBP is the edge. |
 | `mtls.trusted_proxy.N.subject` | any | Subject DN of that peer. `*` or unset accepts any subject the issuer signed — free proxy rotation, but only as tight as that CA. |
-| `mtls.trust_forwarded_header_without_tls` | `true` | Whether a `PSD2-CERT` header is trusted when the sender presented no client certificate. `true` is the pre-existing behaviour of a plain proxy hop; set it to `false` once the proxy authenticates itself. |
+| `mtls.trust_forwarded_header_without_tls` | `true` | Whether a `PSD2-CERT` header is trusted when the sender presented no client certificate. `true` is the pre-existing behaviour of a plain proxy hop; set it to `false` once the proxy authenticates itself. **Ignored (treated as `false`) when `mtls.enabled=true` and no trusted proxies are configured** — OBP is then the TLS edge, so a header from a certless peer (possible under `client_auth=want`) can only be a spoofing attempt and is stripped. |
 
 DNs are compared in canonical form, so case and spacing do not matter — but **RDN order does**.
 Print the exact values to paste with

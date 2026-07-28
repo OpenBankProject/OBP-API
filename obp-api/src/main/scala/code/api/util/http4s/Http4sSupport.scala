@@ -71,8 +71,10 @@ object Http4sRequestAttributes {
    * Vault key for how the caller's certificate was established — "direct", "forwarded via <proxy>",
    * or "none: <reason>" (see PeerTrust.Resolution.describe).
    *
-   * Carried onto the CallContext so it reaches the metric row. Without it, "why is this TPP suddenly
-   * anonymous" is answerable only by guessing at the deployment's trust configuration.
+   * Carried onto the CallContext (CallContext.certificateTrust) so metrics and audit CAN record it.
+   * NOTE: nothing persists it to metric rows yet — until that lands, the per-request trail is the
+   * CallerCertificate debug log. Without at least that, "why is this TPP suddenly anonymous" is
+   * answerable only by guessing at the deployment's trust configuration.
    */
   val callerCertificateTrustKey: Key[String] =
     Key.newKey[IO, String].unsafeRunSync()(cats.effect.unsafe.IORuntime.global)
