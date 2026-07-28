@@ -7334,7 +7334,105 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
   }
           
 // ---------- created on 2025-06-10T12:05:04Z
-//---------------- dynamic end ---------------------please don't modify this line                                                              
+//---------------- dynamic end ---------------------please don't modify this line
+
+  // ─── Open Corridor Interface C messages (OBP-API → Bank Node) ──────────────
+  //
+  // These two MessageDocs LOCK the Open Corridor wire format. The consuming side
+  // is already implemented and transport-integration-tested in the OBP Bank Node
+  // (`OBP-Bank-Node/crates/obp-bank-node/src/interface_c/{types.rs,router.rs}`);
+  // any change here is a breaking change to that contract.
+  //
+  // Unlike the dynamic docs above, these messages are published server-initiated
+  // to the BANK's own RabbitMQ vhost (queue `obp_rpc_queue`), with the operation
+  // in the AMQP `messageId` property and the body serialized flat (lower_snake_case,
+  // no outboundAdapterCallContext wrapper). The reply arrives on `replyTo`
+  // correlated by `correlationId`, as the OBP inbound envelope with
+  // `status.errorCode == ""` meaning success.
+
+  messageDocs += openCorridorCreditNotificationDoc
+  def openCorridorCreditNotificationDoc = MessageDoc(
+    process = "obp_credit_notification",
+    messageFormat = messageFormat,
+    description = "Open Corridor: notify the creditor (beneficiary) bank's Bank Node to credit its customer. " +
+      "Carries the commit–reveal evidence triplet (promise_commitment, promise_salt, promise_preimage) " +
+      "relayed verbatim from the originating Bank Node's promise report-back, so the beneficiary can verify " +
+      "SHA-256(salt ‖ preimage) against the on-chain commitment. Published to the creditor bank's vhost.",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = (
+      OutBoundOpenCorridorCreditNotification(
+        transaction_request_id = "tr-abc-123",
+        value = OpenCorridorMoneyValue(currency = "KES", amount = "1500.00"),
+        description = Some("Invoice 4471"),
+        originator = Some(OpenCorridorOriginator(name = "Acme Coffee Ltd", address = Some("Nairobi"))),
+        netting_snapshot_id = Some("snap-1"),
+        promise_id = Some("63eacfe3dbc133f922d461bd3e6488ce21d55f03c5131cd79c965fe2e7491642"),
+        promise_blockchain = Some("cardano"),
+        promise_commitment = Some("9c56cc51b374c3ba189210d5b6d4bf57790d351c96c47c02190ecf1e430ba0d1"),
+        promise_salt = Some("5f4dcc3b5aa765d61d8327deb882cf99"),
+        promise_preimage = Some("""{"tx_request_id":"tr-abc-123","instruction":"..."}""")
+      )
+    ),
+    exampleInboundMessage = (
+      InBoundOpenCorridorReply(
+        inboundAdapterCallContext = OpenCorridorInboundCallContext(correlationId = "1flssoftxq0cr1nssr68u0mioj"),
+        status = OpenCorridorReplyStatus(errorCode = "", backendMessages = Nil),
+        data = Extraction.decompose(
+          InBoundOpenCorridorCreditNotificationData(
+            transaction_request_id = "tr-abc-123",
+            verified = true,
+            cbs_reference = Some("CBS-1")
+          )
+        )(DefaultFormats)
+      )
+    ),
+    adapterImplementation = Some(AdapterImplementation("Open Corridor", 1))
+  )
+
+  messageDocs += openCorridorSettlementInstructionDoc
+  def openCorridorSettlementInstructionDoc = MessageDoc(
+    process = "obp_settlement_instruction",
+    messageFormat = messageFormat,
+    description = "Open Corridor: instruct the debtor bank's Bank Node to settle the net amount on its " +
+      "settlement rail (e.g. cardano-ada). `amount` is in major units. `idempotency_key` is required — " +
+      "the Bank Node keeps a durable settlement record per key and never pays twice; re-publishing the same " +
+      "instruction returns the recorded state (redelivery doubles as SUBMITTED → FINAL status polling). " +
+      "Published to the debtor bank's vhost.",
+    outboundTopic = None,
+    inboundTopic = None,
+    exampleOutboundMessage = (
+      OutBoundOpenCorridorSettlementInstruction(
+        snapshot_id = Some("snap-1"),
+        settlement_id = "settle-1",
+        settlement_system = "cardano-ada",
+        currency = "KES",
+        amount = "1500.00",
+        creditor_bank_id = "gh.29.uk",
+        creditor_address = "addr_test1vqn7sn79x6k9a2353l458mk2gccmwqk7nza93zydpuvl7lquy6jcl",
+        idempotency_key = "settle-1"
+      )
+    ),
+    exampleInboundMessage = (
+      InBoundOpenCorridorReply(
+        inboundAdapterCallContext = OpenCorridorInboundCallContext(correlationId = "1flssoftxq0cr1nssr68u0mioj"),
+        status = OpenCorridorReplyStatus(errorCode = "", backendMessages = Nil),
+        data = Extraction.decompose(
+          InBoundOpenCorridorSettlementData(
+            settlement_id = "settle-1",
+            status = "SUBMITTED",
+            tx_id = Some("787e857c1d49735603d283965b010c0c721aa4cdea627ec1ce8be266a5112845"),
+            blockchain = Some("cardano"),
+            asset = Some("ADA"),
+            asset_amount = Some("10.000000"),
+            depth = Some(0L),
+            finality_depth = Some(15L)
+          )
+        )(DefaultFormats)
+      )
+    ),
+    adapterImplementation = Some(AdapterImplementation("Open Corridor", 1))
+  )
 
   private val availableOperation = DynamicEntityOperation.values.map(it => s""""$it"""").mkString("[", ", ", "]")
 

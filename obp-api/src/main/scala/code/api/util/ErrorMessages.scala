@@ -886,6 +886,13 @@ object ErrorMessages {
 
   val InvalidOperationId = "OBP-40048: Invalid operation_id, please specify valid operation_id."
   val TransactionRequestLockFailed = "OBP-40050: Could not acquire a lock on the Transaction Request. Please try again."
+  val OpenCorridorPromiseTypeMismatch = "OBP-40051: The Transaction Request is not of type OPEN_CORRIDOR_PROMISE."
+  val OpenCorridorPromiseNotPending = "OBP-40052: The Open Corridor promise Transaction Request is not in PENDING status."
+  val OpenCorridorPromiseEvidenceConflict = "OBP-40053: Open Corridor promise evidence is already attached to this Transaction Request with different values. Evidence cannot be overwritten."
+  val OpenCorridorBankBrokerNotConfigured = "OBP-40054: No Open Corridor broker is configured for this bank. Register the bank's RabbitMQ coordinates first."
+  val OpenCorridorPublishFailed = "OBP-40055: Could not publish the Open Corridor message to the bank's broker or no reply arrived in time."
+  val OpenCorridorSettlementAddressMissing = "OBP-40056: The creditor bank has no settlement address registered in its Open Corridor broker registration, so the settlement instruction cannot be addressed."
+  val OpenCorridorDisabled = "OBP-40057: Open Corridor is not enabled on this API instance. Set open_corridor_enabled=true in the props."
   // Exceptions (OBP-50XXX)
   val UnknownError = "OBP-50000: Unknown Error."
   val FutureTimeoutException = "OBP-50001: Future Timeout Exception."

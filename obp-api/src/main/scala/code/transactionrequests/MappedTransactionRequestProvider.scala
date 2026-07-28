@@ -39,6 +39,9 @@ object MappedTransactionRequestProvider extends TransactionRequestProvider with 
     transactionRequests.map{ tr =>
       for {
         transactionRequest <- tr.toTransactionRequest
+        // Open Corridor TRs are held at PENDING by design (promises awaiting the settle-pair
+        // netting step) — the external bulk-status feed must never flip them to COMPLETED.
+        if !transactionRequest.`type`.startsWith("OPEN_CORRIDOR")
         if (statuses.exists(i => i.transactionRequestId -> i.bulkTransactionsStatus == transactionRequest.id -> List("APVD")))
       } yield {
         tr.updateStatus(TransactionRequestStatus.COMPLETED.toString)
