@@ -107,6 +107,8 @@ object Http4sUKOBv310Accounts extends MdcLoggable {
         val detailViewId = ViewId(Constant.SYSTEM_READ_ACCOUNTS_DETAIL_VIEW_ID)
         val basicViewId = ViewId(Constant.SYSTEM_READ_ACCOUNTS_BASIC_VIEW_ID)
         for {
+          _ <- NewStyle.function.checkUKConsent(u, Some(cc))
+          _ <- passesPsd2Aisp(Some(cc))
           availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u) map {
             _.filter(_.accountId.value == accountId.value)
           }

@@ -28,7 +28,8 @@ import scala.collection.mutable.ArrayBuffer
 /**
  * UK Open Banking v3.1 — BalancesApi, migrated from Lift to http4s.
  * getAccountsAccountIdBalances: real business logic with UK consent check.
- * getBalances: real business logic, no consent check (mirrors Lift).
+ * getBalances: real business logic, UK consent check (kept consistent with the v4.0.1
+ * equivalent -- see Http4sUKOBv401AccountInfo.getBalances).
  */
 object Http4sUKOBv310Balances extends MdcLoggable {
   type HttpF[A] = OptionT[IO, A]
@@ -136,6 +137,8 @@ object Http4sUKOBv310Balances extends MdcLoggable {
     case req @ GET -> `ukV31Prefix` / "balances" =>
       EndpointHelpers.withUser(req) { (u, cc) =>
         for {
+          _ <- NewStyle.function.checkUKConsent(u, Some(cc))
+          _ <- passesPsd2Aisp(Some(cc))
           availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
           (accounts, _) <- NewStyle.function.getBankAccounts(availablePrivateAccounts, Some(cc))
         } yield JSONFactory_UKOpenBanking_310.createBalancesJSON(accounts)

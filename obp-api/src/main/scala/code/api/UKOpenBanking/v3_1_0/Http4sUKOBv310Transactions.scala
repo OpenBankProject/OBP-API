@@ -37,7 +37,8 @@ import scala.concurrent.Future
  * Http4sUKOBv310Statements (which takes precedence in the Lift priority order).
  * This file owns:
  *   - getAccountsAccountIdTransactions: real business logic with UK consent check.
- *   - getTransactions: real business logic, bulk (no consent check, mirrors Lift).
+ *   - getTransactions: real business logic, bulk, UK consent check (kept consistent with
+ *     the v4.0.1 equivalent -- see Http4sUKOBv401AccountInfo.getTransactions).
  */
 object Http4sUKOBv310Transactions extends MdcLoggable {
   type HttpF[A] = OptionT[IO, A]
@@ -574,6 +575,8 @@ object Http4sUKOBv310Transactions extends MdcLoggable {
     case req @ GET -> `ukV31Prefix` / "transactions" =>
       EndpointHelpers.withUser(req) { (u, cc) =>
         for {
+          _ <- NewStyle.function.checkUKConsent(u, Some(cc))
+          _ <- passesPsd2Aisp(Some(cc))
           (bank, _) <- NewStyle.function.getBank(BankId(defaultBankId), Some(cc))
           availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
           (accounts, _) <- NewStyle.function.getBankAccounts(availablePrivateAccounts, Some(cc))
