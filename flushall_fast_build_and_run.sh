@@ -17,6 +17,7 @@
 #   ./fast_build_and_run.sh --online       - Check remote repositories
 #   ./fast_build_and_run.sh --no-flush     - Skip Redis flush
 #   ./fast_build_and_run.sh --background   - Run server in background
+#   ./fast_build_and_run.sh --mtls         - Serve HTTPS with mutual TLS (dev only)
 #
 # Typical speedup: 2-5x faster than regular build for incremental changes
 ################################################################################
@@ -28,6 +29,7 @@ DO_CLEAN=""
 OFFLINE_FLAG="-o"  # Default to offline mode for faster builds
 FLUSH_REDIS=true
 RUN_BACKGROUND=false
+USE_MTLS=false
 
 for arg in "$@"; do
     case $arg in
@@ -47,8 +49,15 @@ for arg in "$@"; do
             RUN_BACKGROUND=true
             echo ">>> Server will run in background"
             ;;
+        --mtls)
+            USE_MTLS=true
+            echo ">>> mTLS mode requested (in-process TLS termination)"
+            ;;
     esac
 done
+
+# Select a JDK >= 17 before any Maven work (the build compiles with -release 17).
+. "$(dirname "${BASH_SOURCE[0]}")/scripts/java_env.sh"
 
 # Show offline mode status if not explicitly set
 if [ "$OFFLINE_FLAG" = "-o" ]; then
@@ -165,6 +174,10 @@ fi
 } > fast_build.log
 
 # Run Maven build and append to log
+# set +e around the build: this script runs under `set -e`, which would abort here
+# on a failing build and make BUILD_EXIT_CODE — and the auto-retry-with-clean block
+# below — unreachable. We want to inspect the failure, not die at it.
+set +e
 mvn -pl obp-api -am \
     $DO_CLEAN \
     package \
@@ -175,8 +188,8 @@ mvn -pl obp-api -am \
     -Dcheckstyle.skip=true \
     -Dspotbugs.skip=true \
     -Dpmd.skip=true >> fast_build.log 2>&1
-
 BUILD_EXIT_CODE=$?
+set -e
 
 # Record build end time and calculate duration
 if command -v gdate &> /dev/null; then
@@ -237,7 +250,8 @@ if [ $BUILD_EXIT_CODE -ne 0 ] && [ -z "$DO_CLEAN" ]; then
             echo ""
         } > fast_build.log
         
-        # Run clean build
+        # Run clean build (set +e for the same reason as the first invocation)
+        set +e
         mvn -pl obp-api -am \
             clean \
             package \
@@ -248,8 +262,8 @@ if [ $BUILD_EXIT_CODE -ne 0 ] && [ -z "$DO_CLEAN" ]; then
             -Dcheckstyle.skip=true \
             -Dspotbugs.skip=true \
             -Dpmd.skip=true >> fast_build.log 2>&1
-        
         BUILD_EXIT_CODE=$?
+        set -e
         
         # Record retry end time and calculate duration
         if command -v gdate &> /dev/null; then
@@ -299,6 +313,12 @@ echo ""
 ################################################################################
 # RUN HTTP4S SERVER
 ################################################################################
+
+# Applied after the build so it only affects the running server, never compilation.
+if [[ "$USE_MTLS" = true ]]; then
+    . "$(dirname "${BASH_SOURCE[0]}")/scripts/mtls_env.sh"
+    echo ""
+fi
 
 echo "=========================================="
 if [ "$RUN_BACKGROUND" = true ]; then

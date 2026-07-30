@@ -451,7 +451,12 @@ case class MetricJsonV600(
     status_code: Int,
     operation_id: String,
     api_instance_id: String,
-    consent_reference_id: Option[String]
+    consent_reference_id: Option[String],
+    // How the caller's certificate was established: "direct", "forwarded" or "none";
+    // absent when the request carried no certificate material. See PeerTrust.Resolution.
+    certificate_trust: Option[String],
+    // The forwarding proxy's subject DN, or the reason no caller was identified.
+    certificate_trust_detail: Option[String]
 )
 case class MetricsJsonV600(metrics: List[MetricJsonV600])
 
@@ -1695,7 +1700,9 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       status_code = metric.getHttpCode(),
       operation_id = operationId,
       api_instance_id = metric.getApiInstanceId(),
-      consent_reference_id = Option(metric.getConsentReferenceId()).filter(_.nonEmpty)
+      consent_reference_id = Option(metric.getConsentReferenceId()).filter(_.nonEmpty),
+      certificate_trust = Option(metric.getCertificateTrust()).filter(_.nonEmpty),
+      certificate_trust_detail = Option(metric.getCertificateTrustDetail()).filter(_.nonEmpty)
     )
   }
 

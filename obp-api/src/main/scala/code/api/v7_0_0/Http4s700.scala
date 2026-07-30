@@ -8,9 +8,10 @@ import code.api.Constant._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil.{EmptyBody, _}
 import code.api.util.{APIUtil, ApiRole, CallContext, CustomJsonFormats, Glossary, NewStyle}
-import code.api.util.ApiRole.{canCreateEntitlementAtAnyBank, canCreateEntitlementAtOneBank, canCreateMetricsArchiveRun, canCreateOrganisation, canCreateRoutingScheme, canCreateTestEmail, canCreateUtilityVendResult, canDeleteEntitlementAtAnyBank, canDeleteOrganisation, canDeleteRoutingScheme, canDeleteSchedulerJobLock, canGetAccountAccessTrace, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetConnectorHealth, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMetricsDiagnostics, canGetMigrations, canGetSchedulerJobLocks, canUpdateBankSupportedRoutingScheme, canUpdateOrganisation, canUpdateRoutingScheme, canUpdateSystemView}
+import code.api.util.ApiRole.{canAttachOpenCorridorPromise, canConfigureOpenCorridorBroker, canSettleOpenCorridor, canCreateEntitlementAtAnyBank, canCreateEntitlementAtOneBank, canCreateMetricsArchiveRun, canCreateOrganisation, canCreateRoutingScheme, canCreateTestEmail, canCreateUtilityVendResult, canDeleteEntitlementAtAnyBank, canDeleteOrganisation, canDeleteRoutingScheme, canDeleteSchedulerJobLock, canGetAccountAccessTrace, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetConnectorHealth, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMetricsDiagnostics, canGetMigrations, canGetSchedulerJobLocks, canUpdateBankSupportedRoutingScheme, canUpdateOrganisation, canUpdateRoutingScheme, canUpdateSystemView}
 import code.api.util.CommonsEmailWrapper
-import code.model.dataAccess.AuthUser
+import code.model.dataAccess.{AuthUser, MappedBank, ResourceUser}
+import code.consent.Consents
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.http4s.{ErrorResponseConverter, Http4sRequestAttributes, IdempotencyMiddleware, RequestScopeConnection, ResourceDocMiddleware, ResourceDocMatcher}
@@ -20,7 +21,7 @@ import code.api.v1_4_0.JSONFactory1_4_0
 import code.api.v2_0_0.AccountsHelper.accountTypeFilterText
 import code.api.v2_0_0.{BasicViewJson, CreateEntitlementJSON, JSONFactory200}
 import code.api.v4_0_0.JSONFactory400
-import code.api.v6_0_0.{BasicAccountJsonV600, BasicAccountsJsonV600, BankJsonV600, CacheConfigJsonV600, CacheInfoJsonV600, CacheNamespaceInfoJsonV600, CacheNamespaceJsonV600, CacheNamespacesJsonV600, ConnectorInfoJsonV600, ConnectorsJsonV600, DatabasePoolInfoJsonV600, FeaturesJsonV600, InMemoryCacheStatusJsonV600, JSONFactory600, RedisCacheStatusJsonV600, StoredProcedureConnectorHealthJsonV600, UserV600}
+import code.api.v6_0_0.{BasicAccountJsonV600, BasicAccountsJsonV600, BankJsonV600, BanksJsonV600, CacheConfigJsonV600, CacheInfoJsonV600, CacheNamespaceInfoJsonV600, CacheNamespaceJsonV600, CacheNamespacesJsonV600, ConnectorInfoJsonV600, ConnectorsJsonV600, DatabasePoolInfoJsonV600, FeaturesJsonV600, InMemoryCacheStatusJsonV600, JSONFactory600, RedisCacheStatusJsonV600, StoredProcedureConnectorHealthJsonV600, UserV600}
 import code.api.v6_0_0.JSONFactory600.ViewJsonV600
 import code.api.cache.Redis
 import code.bankconnectors.storedprocedure.StoredProcedureUtils
@@ -49,7 +50,7 @@ import code.users.UserAgreementProvider
 import net.liftweb.common.Full
 import com.openbankproject.commons.util.JsonAliases.prettyRender
 import org.json4s.{Extraction, Formats}
-import net.liftweb.mapper.{By, Descending, MaxRows, OrderBy}
+import net.liftweb.mapper.{By, ByList, Descending, MaxRows, OrderBy}
 import org.http4s._
 import org.http4s.dsl.io._
 import org.typelevel.ci.CIString
@@ -58,7 +59,7 @@ import scala.collection.JavaConverters._
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
 import scala.language.{higherKinds, implicitConversions}
-import code.util.Helper
+import code.util.{BankNameGenerator, Helper}
 
 object Http4s700 {
 
@@ -71,54 +72,54 @@ object Http4s700 {
   val versionStatus = ApiVersionStatus.BLEEDING_EDGE.toString
   val resourceDocs = ArrayBuffer[ResourceDoc]()
 
-  /* 
+  /*
    * IMPORTANT: Endpoint Exclusion Pattern
-   * 
+   *
    * excludeEndpoints is used to filter out old endpoints when v7.0.0 has a DIFFERENT URL pattern.
-   * 
+   *
    * WHEN TO EXCLUDE:
    * - Old and new endpoints have DIFFERENT URLs (e.g., v4.0.0: /users/:username vs v7.0.0: /providers/:provider/users/:username)
    * - The old endpoint should not be accessible via v7.0.0 at all
-   * 
+   *
    * WHEN NOT TO EXCLUDE:
    * - Old and new endpoints have the SAME URL and HTTP method (e.g., GET /api/versions)
    * - In this case, collectResourceDocs() automatically deduplicates by (URL, method) and keeps newest version
    * - Excluding by function name would remove BOTH versions since they share the same name!
-   * 
+   *
    * Why? The routing works as follows:
    * 1. allResourceDocs = collectResourceDocs() deduplicates docs by (URL, method), keeps newest
    * 2. excludeEndpoints filters ResourceDocs by partialFunctionName (removes by name, not by version)
    * 3. The filtered docs determine which endpoints are available
-   * 
+   *
    * Pattern: Add nameOf(Implementations{version}.endpointName) :: with a comment explaining why
-   * 
+   *
    * NOTE: Currently empty - no v7-specific exclusions have been identified yet.
    * As v7.0.0 introduces endpoints with different URL patterns than previous versions,
    * add those old endpoint names here with explanatory comments.
    */
-  lazy val excludeEndpoints: List[String] = 
+  lazy val excludeEndpoints: List[String] =
     // Add exclusions here when v7.0.0 replaces old endpoints with different URLs
     // Example: nameOf(Implementations3_0_0.getUserByUsername) :: // v7.0.0 uses /providers/:provider/users/:username
     Nil
 
   /**
    * Aggregated resource docs from all API versions (v7.0.0 + v6.0.0 + v5.1.0 + ... + v1.3.0)
-   * 
+   *
    * This method implements the resource docs aggregation pattern for v7.0.0:
    * 1. Takes OBPAPI6_0_0.allResourceDocs (which already contains v6.0.0 + v5.1.0 + ... + v1.3.0)
    * 2. Adds v7.0.0's own resourceDocs
    * 3. Deduplicates by (requestUrl, requestVerb), keeping the newest version
    * 4. Filters out explicitly excluded old endpoints
-   * 
+   *
    * Note: We cannot extend OBPRestHelper (Lift framework) in Http4s700 (Http4s framework)
    * due to type incompatibilities. Instead, we implement the collectResourceDocs logic inline.
-   * 
+   *
    * The deduplication algorithm:
    * - Sort all docs by API version (descending: v7.0.0, v6.0.0, v5.1.0, ...)
    * - For each doc, check if (requestUrl, requestVerb) has been seen
    * - If not seen, add to result (this keeps the newest version)
    * - If seen, skip (this omits older versions of the same endpoint)
-   * 
+   *
    * Performance: Computed once and cached (lazy val) to avoid recomputation on every request.
    */
   lazy val allResourceDocs: ArrayBuffer[ResourceDoc] = {
@@ -130,19 +131,19 @@ object Http4s700 {
     // v6.0.0's aggregated docs (v6.0.0 + v5.1.0 + ... + v1.2.1), sourced Lift-free.
     // Combine with v7.0.0's docs.
     val allDocs = code.api.util.http4s.Http4sResourceDocAggregation.v600 ++ resourceDocs
-    
+
     // Deduplicate by (requestUrl, requestVerb), keeping newest version
     // Sort by API version (descending) so newer versions come first
     implicit val ordering = new Ordering[ScannedApiVersion] {
-      override def compare(x: ScannedApiVersion, y: ScannedApiVersion): Int = 
+      override def compare(x: ScannedApiVersion, y: ScannedApiVersion): Int =
         y.toString().compareTo(x.toString())
     }
-    
+
     val sortedDocs = allDocs.sortBy(_.implementedInApiVersion)
-    
+
     val result = ArrayBuffer[ResourceDoc]()
     val urlAndMethods = scala.collection.mutable.Set[(String, String)]()
-    
+
     for (doc <- sortedDocs) {
       val urlAndMethod = (doc.requestUrl, doc.requestVerb)
       if (!urlAndMethods.contains(urlAndMethod)) {
@@ -150,7 +151,7 @@ object Http4s700 {
         result += doc
       }
     }
-    
+
     // Filter out explicitly excluded old endpoints
     if (excludeEndpoints.isEmpty) {
       result
@@ -277,6 +278,180 @@ object Http4s700 {
         }
       }
     }
+
+    // ─── Self-service bank creation — /my/banks ──────────────────────────────
+    // One bank per registered user, gated by props self_service_bank_creation.limit
+    // (default 0 = disabled). Every public-facing string (bank_id, short name, full
+    // name) is generated by BankNameGenerator, so no user-supplied text can reach the
+    // anonymous GET /banks listing — which is why the POST takes an empty body.
+    // Response shapes reuse the v6 bank JSON (BankJson600 / BanksJsonV600).
+
+    // ─── Delegation fan-down for /my/banks ───────────────────────────────────
+    // Resolving UP (agent caller → the granting human) is cc.effectiveHumanUserId.
+    // This is the fan DOWN: the human plus every agent user minted from any Consent the
+    // human granted — i.e. all user ids whose creations belong to that human. Match the
+    // result against CreatedByUserId. Reads only server-written columns
+    // (MappedConsent.mUserId, ResourceUser.CreatedByConsentId); the input must be an
+    // already-resolved human id (cc.effectiveHumanUserId), never a raw caller value.
+
+    private def humanAndAgentUserIds(humanUserId: String): List[String] = {
+      val consentIds = Consents.consentProvider.vend.getConsentsByUser(humanUserId)
+        .map(_.consentId).filter(_.nonEmpty)
+      val agentUserIds =
+        if (consentIds.isEmpty) Nil
+        else ResourceUser.findAll(ByList(ResourceUser.CreatedByConsentId, consentIds)).map(_.userId)
+      (humanUserId :: agentUserIds).filter(_.nonEmpty).distinct
+    }
+
+    // Baked into the ResourceDoc description at boot so API consumers see the effective
+    // value on this instance (props changes require a restart anyway). The handler reads
+    // the prop per-request, so tests overriding props are unaffected.
+    private val selfServiceBankCreationConfiguredLimit =
+      APIUtil.getPropsAsIntValue("self_service_bank_creation.limit", 0)
+    private val selfServiceBankCreationStatusText =
+      if (selfServiceBankCreationConfiguredLimit > 0)
+        s"On this instance, each User may create up to $selfServiceBankCreationConfiguredLimit bank(s) via this endpoint."
+      else
+        "On this instance, self-service bank creation is currently disabled."
+
+    val createMyBank: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "my" / "banks" =>
+        EndpointHelpers.executeFutureCreated(req) {
+          implicit val cc: CallContext = req.callContext
+          val selfServiceBankLimit = APIUtil.getPropsAsIntValue("self_service_bank_creation.limit", 0)
+          for {
+            _ <- Helper.booleanToFuture(SelfServiceBankCreationDisabled, cc = Some(cc)) {
+              selfServiceBankLimit > 0
+            }
+            _ <- Helper.booleanToFuture(
+              s"$InvalidJsonFormat The request body must be empty or an empty JSON object {} — the bank identity is generated by the server.",
+              cc = Some(cc)) {
+              // API Explorer and similar clients send {} for POSTs — treat it as empty.
+              cc.httpBody.forall(requestBody => {
+                val withoutWhitespace = requestBody.replaceAll("\\s", "")
+                withoutWhitespace.isEmpty || withoutWhitespace == "{}"
+              })
+            }
+            banksCreatedByUser <- Future {
+              // Quota binds to the human: banks created by the human directly or by any
+              // of their consent-agents count toward the same limit — otherwise every
+              // new consent would arrive with a fresh quota.
+              val creatorUserIds = humanAndAgentUserIds(cc.effectiveHumanUserId)
+              MappedBank.count(ByList(MappedBank.CreatedByUserId, creatorUserIds))
+            }
+            _ <- Helper.booleanToFuture(SelfServiceBankLimitReached, failCode = 403, cc = Some(cc)) {
+              banksCreatedByUser < selfServiceBankLimit
+            }
+            generatedName <- Future {
+              unboxFullOrFail(
+                BankNameGenerator.generateUnique(candidateBankId =>
+                  MappedBank.findByBankId(BankId(candidateBankId)).isDefined),
+                Some(cc), UnknownError, 500
+              )
+            }
+            (bank, _) <- NewStyle.function.createOrUpdateBank(
+              generatedName.bankId,
+              generatedName.fullName,
+              generatedName.shortName,
+              "", "", "", "", "", "",
+              Some(cc)
+            )
+            _ <- Future(Entitlement.entitlement.vend.addEntitlement(
+              generatedName.bankId, cc.userId, canCreateEntitlementAtOneBank.toString()))
+          } yield JSONFactory600.createBankJSON600(bank)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(createMyBank),
+      "POST",
+      "/my/banks",
+      "Create My Bank (Self-Service)",
+      s"""Create a bank for the current User without requiring the role CanCreateBank.
+      |
+      |This is the self-service flavour of Create Bank, intended for
+      |sandbox instances.
+      |
+      |$selfServiceBankCreationStatusText
+      |
+      |When the limit is reached, further banks require the role CanCreateBank
+      |(see POST /banks). The limit binds to the human User: banks created by the User
+      |directly and by any agent acting for the User under a Consent count toward the
+      |same limit.
+      |
+      |The request body must be empty (an empty JSON object `{}` is also accepted):
+      |the bank_id, short name and full name are
+      |auto-generated by the server (e.g. bank_id `granite-astra-falcon-4f2a`, full name
+      |`Granite Astra Falcon Bank`) and are permanent. Users holding the role CanCreateBank can instead use POST /banks to create
+      |banks with chosen names and branding.
+      |
+      |The user creating the bank is automatically assigned the Role
+      |CanCreateEntitlementAtOneBank at the new bank, and can therefore manage the bank
+      |and assign Roles to other Users.
+      |
+      |The settlement accounts are automatically created by the system when the bank is
+      |created, as for POST /banks.
+      |
+      |${userAuthenticationMessage(true)}
+      |""",
+      EmptyBody,
+      bankJson600,
+      List(
+        $AuthenticatedUserIsRequired,
+        SelfServiceBankCreationDisabled,
+        SelfServiceBankLimitReached,
+        InvalidJsonFormat,
+        UnknownError
+      ),
+      apiTagBank :: Nil,
+      None,
+      http4sPartialFunction = Some(createMyBank)
+    )
+
+    val getMyBanks: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "my" / "banks" =>
+        EndpointHelpers.withUser(req) { (user, cc) =>
+          for {
+            banksCreatedByUser <- Future {
+              val creatorUserIds = humanAndAgentUserIds(cc.effectiveHumanUserId)
+              MappedBank.findAll(ByList(MappedBank.CreatedByUserId, creatorUserIds))
+            }
+          } yield JSONFactory600.createBanksJsonV600(banksCreatedByUser)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(getMyBanks),
+      "GET",
+      "/my/banks",
+      "Get My Banks",
+      s"""Returns the banks belonging to the current User — created directly by the User,
+      |or created by an agent acting for the User under a Consent.
+      |
+      |Delegation is resolved server-side from the Consent records: when the caller is a
+      |consent-based agent, the list shows the granting User's banks; when the caller is
+      |the User, the list includes banks created by any of their consent-based agents.
+      |Nothing is accepted from the caller to influence this resolution.
+      |
+      |${userAuthenticationMessage(true)}
+      |""",
+      EmptyBody,
+      BanksJsonV600(List(BankJsonV600(
+        bank_id = "granite-astra-falcon-4f2a",
+        bank_code = "",
+        full_name = "Granite Astra Falcon Bank",
+        logo = "",
+        website = "",
+        bank_routings = Nil,
+        attributes = None
+      ))),
+      List($AuthenticatedUserIsRequired, UnknownError),
+      apiTagBank :: Nil,
+      None,
+      http4sPartialFunction = Some(getMyBanks)
+    )
 
     // Category: withUserDelete (user auth, 204 No Content)
     val deleteEntitlement: HttpRoutes[IO] = HttpRoutes.of[IO] {
@@ -642,7 +817,7 @@ object Http4s700 {
     )
 
     // ── Trading Endpoints ──────────────────────────────────────────────────
-    
+
     // Route: POST /obp/v7.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/trading/offers
     val createTradingOffer: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ POST -> `prefixPath` / "banks" / bankId / "accounts" / accountId / "views" / viewId / "trading" / "offers" =>
@@ -684,7 +859,7 @@ object Http4s700 {
           } yield JSONFactory700.createTradingOfferJson(offer)
         }
     }
-    
+
     resourceDocs += ResourceDoc(
       implementedInApiVersion,
       nameOf(createTradingOffer),
@@ -735,7 +910,7 @@ object Http4s700 {
       apiTagTrading :: apiTagTrade :: Nil,
       http4sPartialFunction = Some(createTradingOffer)
     )
-    
+
     // Route: GET /obp/v7.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/trading/offers/OFFER_ID
     val getTradingOffer: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ GET -> `prefixPath` / "banks" / bankId / "accounts" / accountId / "views" / viewId / "trading" / "offers" / offerId =>
@@ -795,7 +970,7 @@ object Http4s700 {
           // Extract query parameters
           val status = req.uri.query.params.get("status")
           val offerType = req.uri.query.params.get("offer_type")
-          
+
           for {
             // Invoke connector
             (offers, callContext) <- NewStyle.function.getTradingOffers(
@@ -863,7 +1038,7 @@ object Http4s700 {
       apiTagTrading :: apiTagTrade :: Nil,
       http4sPartialFunction = Some(getTradingOffers)
     )
-    
+
     // Route: DELETE /obp/v7.0.0/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID/trading/offers/OFFER_ID
     val cancelTradingOffer: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ DELETE -> `prefixPath` / "banks" / bankId / "accounts" / accountId / "views" / viewId / "trading" / "offers" / offerId =>
@@ -1405,14 +1580,14 @@ object Http4s700 {
 //          for {
 //            // Validate bank and account
 //            (_, callContext) <- NewStyle.function.getBankAccount(BankId(bankId), AccountId(accountId), Some(cc))
-//            
+//
 //            // Validate amount
 //            _ <- Helper.booleanToFuture(
 //              failMsg = InvalidTradingAmount,
 //              failCode = 400,
 //              cc = callContext
 //            )(createAuthJson.amount_fiat > 0)
-//            
+//
 //            // Invoke connector to create payment authorization (PREAUTH state)
 //            (auth, callContext2) <- NewStyle.function.createPaymentAuth(
 //              BankId(bankId),
@@ -1482,7 +1657,7 @@ object Http4s700 {
 //          for {
 //            // Validate bank and account
 //            (_, callContext) <- NewStyle.function.getBankAccount(BankId(bankId), AccountId(accountId), Some(cc))
-//            
+//
 //            // Invoke connector to capture payment (PREAUTH → CAPTURED)
 //            (auth, callContext2) <- NewStyle.function.capturePaymentAuth(
 //              BankId(bankId),
@@ -1539,7 +1714,7 @@ object Http4s700 {
 //          for {
 //            // Validate bank and account
 //            (_, callContext) <- NewStyle.function.getBankAccount(BankId(bankId), AccountId(accountId), Some(cc))
-//            
+//
 //            // Invoke connector to release payment (PREAUTH/CAPTURED → RELEASED)
 //            (auth, callContext2) <- NewStyle.function.releasePaymentAuth(
 //              BankId(bankId),
@@ -1596,7 +1771,7 @@ object Http4s700 {
 //          for {
 //            // Validate bank and account
 //            (_, callContext) <- NewStyle.function.getBankAccount(BankId(bankId), AccountId(accountId), Some(cc))
-//            
+//
 //            // Invoke connector to get payment authorization
 //            (auth, callContext2) <- NewStyle.function.getPaymentAuth(
 //              BankId(bankId),
@@ -3232,7 +3407,9 @@ object Http4s700 {
       "Create Transaction Request (OPEN_CORRIDOR_PROMISE)",
       """Initiate an OPEN_CORRIDOR_PROMISE Transaction Request — an Open Corridor Travel-Rule-friendly payment that carries FATF Recommendation 16 originator information about the actual payer.
         |
-        |Money-movement is identical to the SIMPLE transaction request type (same beneficiary routing fields). What's distinct: the `originator` block is mandatory and is persisted alongside the transaction request. The v7 response includes a populated originator block.
+        |The beneficiary routing fields are the same shape as the SIMPLE transaction request type, and the `originator` block is mandatory and persisted alongside the transaction request. The v7 response includes a populated originator block.
+        |
+        |An OPEN_CORRIDOR_PROMISE does not post a Transaction at create time: the request is held at status `PENDING` as a promise, accumulating for bilateral netting. The Open Corridor settle step later nets all pending promises between a bank pair and posts one net Transaction, at which point covered promises become `COMPLETED`.
         |
         |Authentication is Required.""".stripMargin,
       openCorridorBodyExample,
@@ -3244,8 +3421,10 @@ object Http4s700 {
           account_id = "8ca8a7e4-6d02-40e3-a129-0b2bf89de9f1"
         ),
         details = openCorridorBodyExample,
-        transaction_ids = List("902ba3bb-dedd-45e7-9319-2fd3f2cd98a1"),
-        status = "COMPLETED",
+        // Promises are held at PENDING with no posted Transaction: they accumulate for
+        // bilateral netting and the settle-pair step posts the net later.
+        transaction_ids = Nil,
+        status = "PENDING",
         start_date = code.api.util.APIUtil.DateWithDayExampleObject,
         end_date = code.api.util.APIUtil.DateWithDayExampleObject,
         challenges = Nil,
@@ -3269,6 +3448,260 @@ object Http4s700 {
       apiTagTransactionRequest :: Nil,
       None,
       http4sPartialFunction = Some(createTransactionRequestOpenCorridor)
+    )
+
+    // ── OPEN_CORRIDOR promise report-back (salt relay intake) ────────────────
+    // After the bank's Bank Node writes the Promise commitment on-chain, it reports
+    // the tx hash and the commit–reveal evidence (commitment, salt, preimage) back
+    // here. OBP-API stores them as Transaction Request attributes on the PENDING
+    // promise TR and later relays the evidence to the beneficiary bank inside
+    // obp_credit_notification. The evidence is opaque to OBP-API.
+    val attachOpenCorridorPromise: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "banks" / _ / "accounts" / _ / "transaction-requests" / transactionRequestIdStr / "open-corridor" / "promise" if transactionRequestIdStr.nonEmpty =>
+        EndpointHelpers.withUserAndBankAndBodyCreated[JSONFactory700.PostOpenCorridorPromiseJsonV700, JSONFactory700.OpenCorridorPromiseJsonV700](req) { (user, bank, body, cc) =>
+          for {
+            account <- scala.concurrent.Future(cc.bankAccount.getOrElse(throw new RuntimeException(BankAccountNotFound)))
+            (promiseJson, _) <- code.bankconnectors.opencorridor.OpenCorridorProcessor.attachPromiseEvidence(
+              user, bank.bankId, account.accountId,
+              com.openbankproject.commons.model.TransactionRequestId(transactionRequestIdStr), body, Some(cc)
+            )
+          } yield promiseJson
+        }
+    }
+
+    val openCorridorPromiseBodyExample = JSONFactory700.PostOpenCorridorPromiseJsonV700(
+      tx_hash = "63eacfe3dbc133f922d461bd3e6488ce21d55f03c5131cd79c965fe2e7491642",
+      blockchain = "cardano",
+      commitment = "9c56cc51b374c3ba189210d5b6d4bf57790d351c96c47c02190ecf1e430ba0d1",
+      salt = "5f4dcc3b5aa765d61d8327deb882cf99",
+      preimage = "{\"tx_request_id\":\"tr-abc-123\",\"instruction\":\"...\"}"
+    )
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(attachOpenCorridorPromise),
+      "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/transaction-requests/TRANSACTION_REQUEST_ID/open-corridor/promise",
+      "Attach Open Corridor Promise Evidence",
+      """Attach on-chain promise evidence to a PENDING OPEN_CORRIDOR_PROMISE Transaction Request.
+        |
+        |Called by the bank's own Bank Node (machine-to-machine) after it has written the Promise commitment to the blockchain. The body carries the transaction hash of the on-chain write plus the commit–reveal evidence: the `commitment` (the hash written on-chain), the `salt`, and the `preimage`. OBP-API stores these as Transaction Request attributes and later relays them to the beneficiary bank inside the `obp_credit_notification` message, enabling the beneficiary to verify `SHA-256(salt ‖ preimage)` against the on-chain commitment without the originating bank's cooperation.
+        |
+        |The evidence fields are opaque strings to OBP-API — they are stored and relayed verbatim, never parsed.
+        |
+        |This call is idempotent: re-posting identical evidence returns the stored record. Posting different evidence for a Transaction Request that already has evidence attached is refused — evidence is append-once and cannot be overwritten.
+        |
+        |Authentication is Required.""".stripMargin,
+      openCorridorPromiseBodyExample,
+      JSONFactory700.OpenCorridorPromiseJsonV700(
+        transaction_request_id = "4050046c-63b3-4868-8a22-14b4181d33a6",
+        transaction_request_status = "PENDING",
+        tx_hash = "63eacfe3dbc133f922d461bd3e6488ce21d55f03c5131cd79c965fe2e7491642",
+        blockchain = "cardano",
+        commitment = "9c56cc51b374c3ba189210d5b6d4bf57790d351c96c47c02190ecf1e430ba0d1",
+        salt = "5f4dcc3b5aa765d61d8327deb882cf99",
+        preimage = "{\"tx_request_id\":\"tr-abc-123\",\"instruction\":\"...\"}",
+        reported_by_user_id = "9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+        reported_at = "2026-07-28T10:00:00.000Z"
+      ),
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, $BankNotFound, $BankAccountNotFound,
+           InvalidJsonFormat, InvalidJsonValue, InvalidTransactionRequestId,
+           OpenCorridorPromiseTypeMismatch, OpenCorridorPromiseNotPending,
+           OpenCorridorPromiseEvidenceConflict, TransactionRequestLockFailed, UnknownError),
+      apiTagTransactionRequest :: Nil,
+      Some(List(canAttachOpenCorridorPromise)),
+      http4sPartialFunction = Some(attachOpenCorridorPromise)
+    )
+
+    // ── OPEN_CORRIDOR per-bank broker registry (admin) ────────────────────────
+    // Operator endpoints for the per-bank RabbitMQ publish registry: each onboarded
+    // bank's Bank Node consumes on its own vhost, so Interface C publishing needs
+    // the bank's broker coordinates. Passwords are write-only (never echoed).
+
+    val setOpenCorridorBankBroker: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ PUT -> `prefixPath` / "banks" / _ / "open-corridor" / "broker" =>
+        EndpointHelpers.withUserAndBankAndBody[JSONFactory700.PostOpenCorridorBankBrokerJsonV700, JSONFactory700.OpenCorridorBankBrokerJsonV700](req) { (_, bank, body, cc) =>
+          for {
+            _ <- code.util.Helper.booleanToFuture(s"$InvalidJsonValue host, virtual_host and username must be non-empty and port must be positive", cc = Some(cc)) {
+              body.host.trim.nonEmpty && body.virtual_host.trim.nonEmpty && body.username.trim.nonEmpty && body.port > 0
+            }
+            broker <- scala.concurrent.Future {
+              code.bankconnectors.opencorridor.OpenCorridorBankBroker.upsert(
+                bank.bankId.value, body.host, body.port, body.virtual_host, body.username, body.password, body.use_ssl,
+                body.settlement_address
+              )
+            }
+          } yield JSONFactory700.OpenCorridorBankBrokerJsonV700(
+            bank_id = broker.bankId, host = broker.host, port = broker.port,
+            virtual_host = broker.virtualHost, username = broker.username, use_ssl = broker.useSsl,
+            settlement_address = broker.settlementAddress
+          )
+        }
+    }
+
+    val getOpenCorridorBankBroker: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / _ / "open-corridor" / "broker" =>
+        EndpointHelpers.withUserAndBank(req) { (_, bank, cc) =>
+          scala.concurrent.Future {
+            code.bankconnectors.opencorridor.OpenCorridorBankBroker.findByBankId(bank.bankId.value) match {
+              case net.liftweb.common.Full(broker) =>
+                JSONFactory700.OpenCorridorBankBrokerJsonV700(
+                  bank_id = broker.bankId, host = broker.host, port = broker.port,
+                  virtual_host = broker.virtualHost, username = broker.username, use_ssl = broker.useSsl,
+                  settlement_address = broker.settlementAddress
+                )
+              case _ =>
+                throw new RuntimeException(s"$OpenCorridorBankBrokerNotConfigured BANK_ID: ${bank.bankId.value}")
+            }
+          }
+        }
+    }
+
+    val deleteOpenCorridorBankBroker: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ DELETE -> `prefixPath` / "banks" / _ / "open-corridor" / "broker" =>
+        EndpointHelpers.withUserAndBankDelete(req) { (_, bank, cc) =>
+          scala.concurrent.Future {
+            code.bankconnectors.opencorridor.OpenCorridorBankBroker.deleteByBankId(bank.bankId.value)
+          }
+        }
+    }
+
+    val openCorridorBrokerBodyExample = JSONFactory700.PostOpenCorridorBankBrokerJsonV700(
+      host = "rabbitmq.bank.example.com",
+      port = 5672,
+      virtual_host = "/bank.gh.29.uk",
+      username = "obp-api",
+      password = "***",
+      use_ssl = false,
+      settlement_address = "addr_test1vqn7sn79x6k9a2353l458mk2gccmwqk7nza93zydpuvl7lquy6jcl"
+    )
+    val openCorridorBrokerResponseExample = JSONFactory700.OpenCorridorBankBrokerJsonV700(
+      bank_id = "gh.29.uk",
+      host = "rabbitmq.bank.example.com",
+      port = 5672,
+      virtual_host = "/bank.gh.29.uk",
+      username = "obp-api",
+      use_ssl = false,
+      settlement_address = "addr_test1vqn7sn79x6k9a2353l458mk2gccmwqk7nza93zydpuvl7lquy6jcl"
+    )
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(setOpenCorridorBankBroker),
+      "PUT",
+      "/banks/BANK_ID/open-corridor/broker",
+      "Set Open Corridor Bank Broker",
+      """Register (or replace) the RabbitMQ broker coordinates for a bank in the Open Corridor per-bank publish registry.
+        |
+        |Each onboarded bank's Bank Node consumes Interface C messages on its own vhost with its own credentials; OBP-API publishes `obp_credit_notification` to the creditor bank's vhost and `obp_settlement_instruction` to the debtor bank's vhost using the coordinates registered here. One registration per bank (upsert semantics).
+        |
+        |The password is write-only and never returned by any endpoint.
+        |
+        |Authentication is Required.""".stripMargin,
+      openCorridorBrokerBodyExample,
+      openCorridorBrokerResponseExample,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, $BankNotFound, InvalidJsonFormat, InvalidJsonValue, UnknownError),
+      apiTagBank :: Nil,
+      Some(List(canConfigureOpenCorridorBroker)),
+      http4sPartialFunction = Some(setOpenCorridorBankBroker)
+    )
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(getOpenCorridorBankBroker),
+      "GET",
+      "/banks/BANK_ID/open-corridor/broker",
+      "Get Open Corridor Bank Broker",
+      """Get the registered Open Corridor RabbitMQ broker coordinates for a bank (password omitted).
+        |
+        |Authentication is Required.""".stripMargin,
+      EmptyBody,
+      openCorridorBrokerResponseExample,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, $BankNotFound, OpenCorridorBankBrokerNotConfigured, UnknownError),
+      apiTagBank :: Nil,
+      Some(List(canConfigureOpenCorridorBroker)),
+      http4sPartialFunction = Some(getOpenCorridorBankBroker)
+    )
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(deleteOpenCorridorBankBroker),
+      "DELETE",
+      "/banks/BANK_ID/open-corridor/broker",
+      "Delete Open Corridor Bank Broker",
+      """Remove a bank's Open Corridor RabbitMQ broker registration. Idempotent.
+        |
+        |Authentication is Required.""".stripMargin,
+      EmptyBody,
+      EmptyBody,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, $BankNotFound, UnknownError),
+      apiTagBank :: Nil,
+      Some(List(canConfigureOpenCorridorBroker)),
+      http4sPartialFunction = Some(deleteOpenCorridorBankBroker)
+    )
+
+    // ── OPEN_CORRIDOR settle-pair (the netting trigger) ───────────────────────
+    // Bilateral settle-on-demand: nets the pair's PENDING OPEN_CORRIDOR_PROMISE
+    // TRs (SUM(A→B) − SUM(B→A)), posts ONE net Transaction between the pair's
+    // settlement accounts via an internal OPEN_CORRIDOR_SETTLEMENT TR, discharges
+    // the covered promises, and enqueues the Interface C messages in the same DB
+    // transaction (transactional outbox; the relay publishes them).
+    val settleOpenCorridorPair: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "open-corridor" / "settle" =>
+        EndpointHelpers.withUserAndBodyCreated[JSONFactory700.PostOpenCorridorSettleJsonV700, JSONFactory700.OpenCorridorSettleResultJsonV700](req) { (user, body, cc) =>
+          for {
+            _ <- code.util.Helper.booleanToFuture(OpenCorridorDisabled, cc = Some(cc)) {
+              APIUtil.getPropsAsBoolValue("open_corridor_enabled", false)
+            }
+            _ <- code.util.Helper.booleanToFuture(s"$InvalidJsonValue bank_id_a, bank_id_b and currency must be non-empty and the banks must differ", cc = Some(cc)) {
+              body.bank_id_a.trim.nonEmpty && body.bank_id_b.trim.nonEmpty &&
+                body.currency.trim.nonEmpty && body.bank_id_a != body.bank_id_b
+            }
+            (_, _) <- NewStyle.function.getBank(BankId(body.bank_id_a), Some(cc))
+            (_, _) <- NewStyle.function.getBank(BankId(body.bank_id_b), Some(cc))
+            (result, _) <- code.bankconnectors.opencorridor.OpenCorridorSettlement.settlePair(
+              user, body.bank_id_a, body.bank_id_b, body.currency, Some(cc))
+          } yield result
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(settleOpenCorridorPair),
+      "POST",
+      "/open-corridor/settle",
+      "Settle Open Corridor Pair",
+      """Trigger bilateral Open Corridor netting for a bank pair and currency.
+        |
+        |Computes `net = SUM(PENDING A→B promises) − SUM(PENDING B→A promises)`, mints one internal OPEN_CORRIDOR_SETTLEMENT Transaction Request between the pair's settlement accounts whose execution posts ONE net Transaction (debtor's outgoing settlement account → creditor's incoming), records that Transaction's id on each covered promise in the `settled_by_transaction_ids` attribute (and the settlement TR's id in `settled_by_transaction_request_id`), and sets the covered promises to COMPLETED. N promises collapse into one settlement — that compression is the netting.
+        |
+        |In the same database transaction, the Interface C messages are written to the transactional outbox: one `obp_credit_notification` per covered promise to its beneficiary bank (relaying the commit–reveal evidence triplet), and one `obp_settlement_instruction` for the net amount to the debtor bank. The outbox relay publishes them and records each bank's reply.
+        |
+        |NOTE: the posted net Transaction deliberately does not mirror any single covered promise — it can differ in direction, amount and accounts. Reconciliation must follow the `settled_by_transaction_ids` linkage, never assume the Transaction matches the promise body.
+        |
+        |A trigger for a pair with no PENDING promises is a no-op. When the flows offset exactly (net zero) the promises are discharged with no Transaction posted and no settlement instruction sent — the credit notifications still go out.
+        |
+        |Requires `open_corridor_enabled=true` on this instance.
+        |
+        |Authentication is Required.""".stripMargin,
+      JSONFactory700.PostOpenCorridorSettleJsonV700(bank_id_a = "gh.29.uk", bank_id_b = "ke.01.kcs", currency = "KES"),
+      JSONFactory700.OpenCorridorSettleResultJsonV700(
+        settlement_id = "6bb27397-6c9b-4c5c-b28f-b19f26d1c6f4",
+        settlement_transaction_request_id = "6bb27397-6c9b-4c5c-b28f-b19f26d1c6f4",
+        transaction_id = "902ba3bb-dedd-45e7-9319-2fd3f2cd98a1",
+        debtor_bank_id = "gh.29.uk",
+        creditor_bank_id = "ke.01.kcs",
+        currency = "KES",
+        net_amount = "2500.00",
+        covered_transaction_request_ids = List("4050046c-63b3-4868-8a22-14b4181d33a6"),
+        credit_notifications_enqueued = 3,
+        settlement_instructions_enqueued = 1
+      ),
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, OpenCorridorDisabled, InvalidJsonFormat, InvalidJsonValue,
+           $BankNotFound, OpenCorridorBankBrokerNotConfigured, OpenCorridorSettlementAddressMissing, UnknownError),
+      apiTagTransactionRequest :: Nil,
+      Some(List(canSettleOpenCorridor)),
+      http4sPartialFunction = Some(settleOpenCorridorPair)
     )
 
     // ── End OPEN_CORRIDOR_PROMISE ─────────────────────────────────────────────

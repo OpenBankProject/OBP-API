@@ -60,7 +60,14 @@ case class CallContext(
                         view: Option[View] = None,
                         counterparty: Option[CounterpartyTrait] = None,
                         // Set when the request is authenticated via a consent. Persisted on metric rows for search/audit.
-                        consentReferenceId: Option[String] = None
+                        consentReferenceId: Option[String] = None,
+                        // How the caller's certificate was established (PeerTrust.Resolution.mode):
+                        // "direct", "forwarded" or "none". Persisted on metric rows as certificate_trust.
+                        certificateTrust: Option[String] = None,
+                        // The specifics behind certificateTrust (PeerTrust.Resolution.detail): the forwarding
+                        // proxy's canonical subject DN, or the reason no caller was identified; None for
+                        // "direct". Persisted on metric rows as certificate_trust_detail.
+                        certificateTrustDetail: Option[String] = None
                       ) extends MdcLoggable {
   override def toString: String = SecureLogging.maskSensitive(
     s"${this.getClass.getSimpleName}(${this.productIterator.mkString(", ")})"
@@ -147,12 +154,45 @@ case class CallContext(
       xRateLimitReset = this.xRateLimitReset,
       paginationOffset = this.paginationOffset,
       paginationLimit = this.paginationLimit,
-      consentReferenceId = this.consentReferenceId
+      consentReferenceId = this.consentReferenceId,
+      certificateTrust = this.certificateTrust,
+      certificateTrustDetail = this.certificateTrustDetail
     )
   }
 
   // for endpoint body convenient get userId
   def userId: String  = user.map(_.userId).openOrThrowException(AuthenticatedUserIsRequired)
+
+  /**
+   * The human User this request is really about.
+   *
+   * The authenticated `user` may be the human themselves, or an agent user minted by a
+   * Consent the human granted (e.g. Opey / MCP acting under a consent). Resolution order:
+   *  1. `onBehalfOfUser` or `consenter`, when a middleware populated them (free);
+   *  2. otherwise resolve via the delegation registry: the caller's ResourceUser row's
+   *     CreatedByConsentId names the Consent that minted it, and that Consent's userId
+   *     names the granting human;
+   *  3. otherwise the caller IS the human.
+   *
+   * IMPORTANT: this reads only the authenticated user and server-written columns
+   * (ResourceUser.CreatedByConsentId, MappedConsent.mUserId). It deliberately takes no
+   * parameters so nothing caller-asserted (body/header/query values) can ever influence
+   * the resolution — identity-sensitive queries (e.g. /my/banks) depend on that.
+   */
+  def effectiveHumanUserId: String = {
+    val delegatedHumanUserId = onBehalfOfUser.or(consenter).map(_.userId).filter(_.nonEmpty)
+    delegatedHumanUserId.openOr {
+      val authenticatedUserId = user.map(_.userId).openOr("")
+      val grantingHumanUserId = for {
+        callerResourceUser <- code.model.dataAccess.ResourceUser.find(
+          net.liftweb.mapper.By(code.model.dataAccess.ResourceUser.userId_, authenticatedUserId))
+        consentId <- net.liftweb.common.Full(callerResourceUser.CreatedByConsentId.get)
+          .filter(id => id != null && id.nonEmpty)
+        consent <- code.consent.Consents.consentProvider.vend.getConsentByConsentId(consentId)
+      } yield consent.userId
+      grantingHumanUserId.filter(_.nonEmpty).openOr(authenticatedUserId)
+    }
+  }
   def userPrimaryKey: UserPrimaryKey = user.map(_.userPrimaryKey).openOrThrowException(AuthenticatedUserIsRequired)
   def loggedInUser: User = user.openOrThrowException(AuthenticatedUserIsRequired)
   // for endpoint body convenient get cc.callContext
@@ -214,7 +254,9 @@ case class CallContextLight(gatewayLoginRequestPayload: Option[PayloadOfJwtJSON]
                             xRateLimitReset : Long = -1,
                             paginationOffset : Option[String] = None,
                             paginationLimit : Option[String] = None,
-                            consentReferenceId: Option[String] = None
+                            consentReferenceId: Option[String] = None,
+                            certificateTrust: Option[String] = None,
+                            certificateTrustDetail: Option[String] = None
                            )
 
 trait LoginParam

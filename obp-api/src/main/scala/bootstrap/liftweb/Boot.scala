@@ -135,6 +135,7 @@ import code.transactionRequestAttribute.TransactionRequestAttribute
 import code.transactionStatusScheduler.TransactionRequestStatusScheduler
 import code.transaction_types.MappedTransactionType
 import code.transactionattribute.MappedTransactionAttribute
+import code.bankconnectors.opencorridor.{OpenCorridorBankBroker, OpenCorridorOutbox, OpenCorridorOutboxRelay}
 import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequestTypeCharge, TransactionRequestReasons}
 import code.usercustomerlinks.MappedUserCustomerLink
 import code.customerlinks.CustomerLink
@@ -560,6 +561,11 @@ class Boot extends MdcLoggable {
     if ( !APIUtil.getPropsAsLongValue("transaction_request_status_scheduler_delay").isEmpty ) {
       val delay = APIUtil.getPropsAsLongValue("transaction_request_status_scheduler_delay").openOrThrowException("Incorrect value for transaction_request_status_scheduler_delay, please provide number of seconds.")
       TransactionRequestStatusScheduler.start(delay)
+    }
+    // Open Corridor: the transactional-outbox relay publishing Interface C messages
+    // (credit notifications + settlement instructions) to the banks' own vhosts.
+    if (APIUtil.getPropsAsBoolValue("open_corridor_enabled", false)) {
+      OpenCorridorOutboxRelay.start(APIUtil.getPropsAsLongValue("open_corridor.outbox_relay_interval", 10L))
     }
     APIUtil.getPropsAsLongValue("database_messages_scheduler_interval") match {
       case Full(i) => DatabaseDriverScheduler.start(i)
@@ -989,6 +995,8 @@ object ToSchemify extends MdcLoggable {
     MappedCounterpartyWhereTag,
     MappedTransactionRequest,
     TransactionRequestAttribute,
+    OpenCorridorBankBroker,
+    OpenCorridorOutbox,
     MappedMetric,
     MetricArchive,
     MetricsArchiveRun,

@@ -66,7 +66,20 @@ object Http4sRequestAttributes {
    */
   val cachedBodyKey: Key[Option[String]] =
     Key.newKey[IO, Option[String]].unsafeRunSync()(cats.effect.unsafe.IORuntime.global)
-  
+
+  /**
+   * Vault key for how the caller's certificate was established — the full PeerTrust.Resolution,
+   * from which the CallContext takes certificateTrust (the mode: "direct" / "forwarded" / "none")
+   * and certificateTrustDetail (the forwarding proxy's subject DN, or the rejection reason).
+   *
+   * Both are persisted on the metric row (certificate_trust / certificate_trust_detail), so "why
+   * is this TPP suddenly anonymous" is a metrics query rather than a guess at the deployment's
+   * trust configuration.
+   */
+  val callerCertificateTrustKey: Key[code.api.util.PeerTrust.Resolution] =
+    Key.newKey[IO, code.api.util.PeerTrust.Resolution].unsafeRunSync()(cats.effect.unsafe.IORuntime.global)
+
+
   /**
    * Implicit class that adds .callContext accessor to Request[IO].
    * 
@@ -550,6 +563,8 @@ object Http4sCallContextBuilder {
       correlationId = extractCorrelationId(request),
       ipAddress = extractIpAddress(request),
       requestHeaders = extractHeaders(request),
+      certificateTrust = request.attributes.lookup(Http4sRequestAttributes.callerCertificateTrustKey).map(_.mode),
+      certificateTrustDetail = request.attributes.lookup(Http4sRequestAttributes.callerCertificateTrustKey).flatMap(_.detail),
       httpBody = body,
       authReqHeaderField = extractAuthHeader(request),
       directLoginParams = extractDirectLoginParams(request),

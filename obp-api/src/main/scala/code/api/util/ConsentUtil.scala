@@ -215,8 +215,19 @@ object Consent extends MdcLoggable {
             val clientCert: String = APIUtil.`getPSD2-CERT`(callContext.requestHeaders).getOrElse(SecureRandomUtil.csprng.nextLong().toString)
             logger.debug(s"| Consent.checkConsumerIsActiveAndMatched | clientCert | $clientCert |")
             logger.debug(s"| Consent.checkConsumerIsActiveAndMatched | consumerFromConsent.clientCertificate | ${consumerFromConsent.clientCertificate} |")
-            if (removeBreakLines(clientCert) == removeBreakLines(consumerFromConsent.clientCertificate.get)) {
-              logger.debug(s"| removeBreakLines(clientCert) == removeBreakLines(consumerFromConsent.clientCertificate.get | true |")
+            // Normalise BOTH sides. PSD2-CERT is canonicalised on ingress (Psd2CertIngress), but the
+            // stored certificate is whatever was pasted when the Consumer was registered, so only
+            // the request side is under our control. The removeBreakLines comparison is kept as an
+            // alternative rather than replaced: it strips line breaks only, where
+            // comparePemX509Certificates rewrites whitespace between the PEM markers and leaves a
+            // marker-less value untouched. Neither subsumes the other for every stored form, so
+            // accepting either keeps this strictly more permissive than before — no Consumer that
+            // matched previously can stop matching.
+            val certificateMatches =
+              CertificateUtil.comparePemX509Certificates(clientCert, consumerFromConsent.clientCertificate.get) ||
+                removeBreakLines(clientCert) == removeBreakLines(consumerFromConsent.clientCertificate.get)
+            if (certificateMatches) {
+              logger.debug(s"| Consent.checkConsumerIsActiveAndMatched | certificate matches | true |")
               Full(true) // This consent can be used by current application
             } else { // This consent can NOT be used by current application
               Failure(s"${ErrorMessages.ConsentDoesNotMatchConsumer} CONSUMER_CERTIFICATE")

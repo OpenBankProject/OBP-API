@@ -3,6 +3,30 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action
+28/07/2026    bc2b2aeb3     BEHAVIOUR CHANGE: UK Open Banking PSD2 gate now reads the mTLS
+                            transport certificate (PSD2-CERT), not TPP-Signature-Certificate.
+                            When requirePsd2Certificates=ONLINE, the certificate identifying the
+                            TPP is now taken per API standard (APIUtil.tppCertificateForStandard):
+                            - Berlin Group URLs (/berlin-group/): TPP-Signature-Certificate
+                              (the QSEAL signing certificate) — unchanged.
+                            - UK Open Banking (/open-banking/) and OBP-native (/obp/) URLs:
+                              PSD2-CERT (the mTLS transport certificate / QWAC, set by the
+                              reverse proxy that terminates mTLS, or by in-process mTLS
+                              termination via mtls.enabled=true).
+                            Previously ALL standards read TPP-Signature-Certificate, which the
+                            UK Open Banking specification never mentions.
+
+                            Who is affected: instances running requirePsd2Certificates=ONLINE
+                            whose UK Open Banking TPPs currently pass the gate by sending
+                            TPP-Signature-Certificate. After upgrading, those requests fail with
+                            OBP-20306 (X509CannotGetCertificate) until the TPP's transport
+                            certificate reaches OBP as PSD2-CERT. Before upgrading such an
+                            instance, confirm the mTLS/proxy hop forwards the client certificate
+                            (see docs/MTLS.md, "Which certificate identifies the TPP") and that
+                            the regulated-entity records match the QWAC's issuer CN + serial
+                            number (a QWAC and a QSEAL usually differ in both). Instances with
+                            requirePsd2Certificates=NONE or CERTIFICATE are unaffected, as are
+                            Berlin Group consumers.
 05/06/2026    TBD           FEATURE: Dynamic Entity field-level write/read role permissions
                             (per-property writeRole/readRole + PATCH write path; read-restricted
                             fields omitted from GET). See Glossary "Dynamic-Entities".

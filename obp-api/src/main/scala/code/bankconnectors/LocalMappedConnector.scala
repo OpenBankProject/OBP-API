@@ -173,7 +173,14 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                      username: String,
                                      callContext: Option[CallContext]): OBPReturnType[Box[AmountOfMoney]] = Future {
     val propertyName = "transactionRequests_challenge_threshold_" + transactionRequestType.toUpperCase
-    val threshold = BigDecimal(APIUtil.getPropsValue(propertyName, "1000"))
+    // OPEN_CORRIDOR_PROMISE traffic is M2M (OAuth2 client-credentials; the customer's SCA
+    // happened at the originating bank's own channel), so its default threshold is effectively
+    // infinite and no challenge fires. An operator can still set the prop explicitly to turn
+    // the challenge into a four-eyes control for high-value corridor payments.
+    val defaultThreshold =
+      if (transactionRequestType.equalsIgnoreCase(TransactionRequestTypes.OPEN_CORRIDOR_PROMISE.toString)) "999999999999"
+      else "1000"
+    val threshold = BigDecimal(APIUtil.getPropsValue(propertyName, defaultThreshold))
     logger.debug(s"threshold is $threshold")
 
     val thresholdCurrency: String = APIUtil.getPropsValue("transactionRequests_challenge_currency", "EUR")
@@ -1628,19 +1635,28 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     callContext: Option[CallContext]
   ): OBPReturnType[Box[CounterpartyTrait]] = Future {
     
-    lazy val counterpartyFromRoutings= Counterparties.counterparties.vend.getCounterpartyByRoutings(
-      otherBankRoutingScheme: String,
-      otherBankRoutingAddress: String,
-      otherBranchRoutingScheme: String,
-      otherBranchRoutingAddress: String,
-      otherAccountRoutingScheme: String,
-      otherAccountRoutingAddress: String
-    ) 
-    
-    lazy val counterpartyFromSecondaryRouting = Counterparties.counterparties.vend.getCounterpartyBySecondaryRouting(
-      otherAccountSecondaryRoutingScheme: String,
-      otherAccountSecondaryRoutingAddress: String
-    )
+    // Empty routing values must never be used as a lookup key: matching on ("", "")
+    // returns an arbitrary counterparty that happens to have the field empty — the
+    // caller would silently get a beneficiary pointing at the wrong bank/account.
+    lazy val counterpartyFromRoutings =
+      if (otherAccountRoutingScheme.trim.nonEmpty && otherAccountRoutingAddress.trim.nonEmpty)
+        Counterparties.counterparties.vend.getCounterpartyByRoutings(
+          otherBankRoutingScheme: String,
+          otherBankRoutingAddress: String,
+          otherBranchRoutingScheme: String,
+          otherBranchRoutingAddress: String,
+          otherAccountRoutingScheme: String,
+          otherAccountRoutingAddress: String
+        )
+      else Empty
+
+    lazy val counterpartyFromSecondaryRouting =
+      if (otherAccountSecondaryRoutingScheme.trim.nonEmpty && otherAccountSecondaryRoutingAddress.trim.nonEmpty)
+        Counterparties.counterparties.vend.getCounterpartyBySecondaryRouting(
+          otherAccountSecondaryRoutingScheme: String,
+          otherAccountSecondaryRoutingAddress: String
+        )
+      else Empty
 
 
     if(counterpartyFromRoutings.isDefined) {
@@ -3381,6 +3397,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             .national_identifier(national_identifier)
             .mBankRoutingScheme(bankRoutingScheme)
             .mBankRoutingAddress(bankRoutingAddress)
+            .CreatedByUserId(callContext.map(_.user).flatMap(_.toOption).map(_.userId).getOrElse(""))
             .saveMe()
         } ?~! ErrorMessages.UpdateBankError
     }
@@ -4662,7 +4679,15 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   // Set initial status
   override def getStatus(challengeThresholdAmount: BigDecimal, transactionRequestCommonBodyAmount: BigDecimal, transactionRequestType: TransactionRequestType, callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequestStatus.Value]]  = {
     Future(Full(
-      if (transactionRequestCommonBodyAmount < challengeThresholdAmount && transactionRequestType.value != REFUND.toString) {
+      // OPEN_CORRIDOR_PROMISE is held at PENDING: promises accumulate for bilateral netting
+      // and no Transaction may post at create time — the settle-pair step posts the net later
+      // (OPEN_CORRIDOR_SIMPLE_NETTING.md). At/above the challenge threshold the INITIATED +
+      // challenge seam still applies (four-eyes); the challenge answer also lands at PENDING
+      // (see createTransactionAfterChallengeV210).
+      if (transactionRequestType.value == TransactionRequestTypes.OPEN_CORRIDOR_PROMISE.toString
+          && transactionRequestCommonBodyAmount < challengeThresholdAmount) {
+        TransactionRequestStatus.PENDING
+      } else if (transactionRequestCommonBodyAmount < challengeThresholdAmount && transactionRequestType.value != REFUND.toString) {
         // For any connector != mapped we should probably assume that transaction_request_status_scheduler_delay will be > 0
         // so that getTransactionRequestStatuses needs to be implemented for all connectors except mapped.
         // i.e. if we are certain that saveTransaction will be honored immediately by the backend, then transaction_request_status_scheduler_delay
@@ -5117,6 +5142,18 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   }
   
   override def createTransactionAfterChallengeV210(fromAccount: BankAccount, transactionRequest: TransactionRequest, callContext: Option[CallContext]): OBPReturnType[Box[TransactionRequest]] = {
+    // OPEN_CORRIDOR_PROMISE never posts at challenge-answer: a successfully answered challenge
+    // (four-eyes control) admits the promise into the corridor at PENDING, where it accumulates
+    // for bilateral netting. The settle-pair step posts the net Transaction later
+    // (OPEN_CORRIDOR_SIMPLE_NETTING.md). Posting here would move funds outside the netting model.
+    if (transactionRequest.`type` == TransactionRequestTypes.OPEN_CORRIDOR_PROMISE.toString) {
+      for {
+        _ <- NewStyle.function.saveTransactionRequestStatusImpl(transactionRequest.id, TransactionRequestStatus.PENDING.toString, callContext)
+        (heldTransactionRequest, callContext) <- NewStyle.function.getTransactionRequestImpl(transactionRequest.id, callContext)
+      } yield {
+        (Full(heldTransactionRequest), callContext)
+      }
+    } else
     for {
       body <- Future(transactionRequest.body)
 
@@ -5262,60 +5299,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
           } yield {
             (transactionId, callContext)
           }
-        // OPEN_CORRIDOR_PROMISE: money-movement is identical to SIMPLE today (same beneficiary
-        // routing shape). The originator block is persisted on the TR row by
-        // MappedTransactionRequestProvider and surfaced on v7 responses by
-        // JSONFactory700.buildTransactionRequestOriginatorJson — neither is needed here.
-        // Reuses the SIMPLE path via body.to_simple.
-        case OPEN_CORRIDOR_PROMISE =>
-          for {
-            bodyToSimple <- NewStyle.function.tryons(s"$TransactionRequestDetailsExtractException It can not extract to $TransactionRequestBodyCounterpartyJSON", 400, callContext) {
-              body.to_simple.get
-            }
-            (toCounterparty, callContext) <- NewStyle.function.getCounterpartyByRoutings(
-              bodyToSimple.otherBankRoutingScheme,
-              bodyToSimple.otherBankRoutingAddress,
-              bodyToSimple.otherBranchRoutingScheme,
-              bodyToSimple.otherBranchRoutingAddress,
-              bodyToSimple.otherAccountRoutingScheme,
-              bodyToSimple.otherAccountRoutingAddress,
-              bodyToSimple.otherAccountSecondaryRoutingScheme,
-              bodyToSimple.otherAccountSecondaryRoutingAddress,
-              callContext
-            )
-            (toAccount, callContext) <- NewStyle.function.getBankAccountFromCounterparty(toCounterparty, true, callContext)
-            counterpartyBody = TransactionRequestBodySimpleJsonV400(
-              to = PostSimpleCounterpartyJson400(
-                name = toCounterparty.name,
-                description = toCounterparty.description,
-                other_bank_routing_scheme = toCounterparty.otherBankRoutingScheme,
-                other_bank_routing_address = toCounterparty.otherBankRoutingAddress,
-                other_account_routing_scheme = toCounterparty.otherAccountRoutingScheme,
-                other_account_routing_address = toCounterparty.otherAccountRoutingAddress,
-                other_account_secondary_routing_scheme = toCounterparty.otherAccountSecondaryRoutingScheme,
-                other_account_secondary_routing_address = toCounterparty.otherAccountSecondaryRoutingAddress,
-                other_branch_routing_scheme = toCounterparty.otherBranchRoutingScheme,
-                other_branch_routing_address = toCounterparty.otherBranchRoutingAddress,
-              ),
-              value = AmountOfMoneyJsonV121(body.value.currency, body.value.amount),
-              description = body.description,
-              charge_policy = transactionRequest.charge_policy,
-              future_date = transactionRequest.future_date
-            )
-            (transactionId, callContext) <- NewStyle.function.makePaymentv210(
-              fromAccount,
-              toAccount,
-              transactionRequest.id,
-              transactionRequestCommonBody = counterpartyBody,
-              BigDecimal(counterpartyBody.value.amount),
-              counterpartyBody.description,
-              TransactionRequestType(transactionRequestType),
-              transactionRequest.charge_policy,
-              callContext
-            )
-          } yield {
-            (transactionId, callContext)
-          }
+        // OPEN_CORRIDOR_PROMISE is handled by the hold-at-PENDING branch at the top of this
+        // method and never reaches this match.
         // In the case of a REFUND (currently working only implemented for SEPA refund request)
         case REFUND =>
           for {

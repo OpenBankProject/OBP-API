@@ -46,7 +46,6 @@ import code.api.dynamic.entity.helper.DynamicEntityHelper
 import code.api.util.APIUtil.ResourceDoc.{findPathVariableNames, isPathVariable}
 import code.api.util.ApiRole._
 import code.api.util.ApiTag.{ResourceDocTag, apiTagBank}
-import code.api.util.BerlinGroupSigning.getCertificateFromTppSignatureCertificate
 import code.api.util.Consent.getConsumerKey
 import code.api.util.FutureUtil.{EndpointContext, EndpointTimeout}
 import code.api.util.Glossary.GlossaryItem
@@ -163,14 +162,25 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   private val DateWithMsRollbackFormatTL = ThreadLocal.withInitial(() => new SimpleDateFormat(DateWithMsAndTimeZoneOffset))
   private val rfc7231DateTL              = ThreadLocal.withInitial(() => new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z", Locale.ENGLISH))
 
-  def DateWithYearFormat: SimpleDateFormat    = DateWithYearFormatTL.get()
-  def DateWithMonthFormat: SimpleDateFormat   = DateWithMonthFormatTL.get()
-  def DateWithDayFormat: SimpleDateFormat     = DateWithDayFormatTL.get()
-  def DateWithSecondsFormat: SimpleDateFormat = DateWithSecondsFormatTL.get()
+  // SimpleDateFormat captures the JVM default time zone at CONSTRUCTION, and these instances are
+  // cached per thread. Boot.scala sets the default zone to UTC during startup, so an instance
+  // constructed on a thread that ran earlier (a test class's field initializers, an early boot
+  // thread on a non-UTC machine) would keep the machine's zone forever — while Calendar.getInstance
+  // elsewhere follows the new default, skewing parsed dates by the zone offset. Re-pin on every
+  // access so the cached instance always follows the current default; setTimeZone is a field write.
+  private def withCurrentZone(format: SimpleDateFormat): SimpleDateFormat = {
+    format.setTimeZone(java.util.TimeZone.getDefault)
+    format
+  }
+
+  def DateWithYearFormat: SimpleDateFormat    = withCurrentZone(DateWithYearFormatTL.get())
+  def DateWithMonthFormat: SimpleDateFormat   = withCurrentZone(DateWithMonthFormatTL.get())
+  def DateWithDayFormat: SimpleDateFormat     = withCurrentZone(DateWithDayFormatTL.get())
+  def DateWithSecondsFormat: SimpleDateFormat = withCurrentZone(DateWithSecondsFormatTL.get())
   // If you need UTC Z format, please continue to use DateWithMsFormat. eg: 2025-01-01T01:01:01.000Z
-  def DateWithMsFormat: SimpleDateFormat = DateWithMsFormatTL.get()
+  def DateWithMsFormat: SimpleDateFormat = withCurrentZone(DateWithMsFormatTL.get())
   // If you need a format with timezone offset (+0000), please use DateWithMsRollbackFormat, eg: 2025-01-01T01:01:01.000+0000
-  def DateWithMsRollbackFormat: SimpleDateFormat = DateWithMsRollbackFormatTL.get()
+  def DateWithMsRollbackFormat: SimpleDateFormat = withCurrentZone(DateWithMsRollbackFormatTL.get())
 
   def rfc7231Date: SimpleDateFormat = rfc7231DateTL.get()
 
@@ -1215,6 +1225,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         case "iss" => Full(OBPIss(values.head))
         case "consent_id" => Full(OBPConsentId(values.head))
         case "consent_reference_id" => Full(OBPConsentReferenceId(values.head))
+        case "certificate_trust" => Full(OBPCertificateTrust(values.head))
         case "user_id" => Full(OBPUserId(values.head))
         case "provider_provider_id" => Full(ProviderProviderId(values.head))
         case "bank_id" => Full(OBPBankId(values.head))
@@ -1350,6 +1361,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     val azp =  getHttpRequestUrlParam(httpRequestUrl,"azp")
     val consentId =  getHttpRequestUrlParam(httpRequestUrl,"consent_id")
     val consentReferenceId =  getHttpRequestUrlParam(httpRequestUrl,"consent_reference_id")
+    val certificateTrust =  getHttpRequestUrlParam(httpRequestUrl,"certificate_trust")
     val userId =  getHttpRequestUrlParam(httpRequestUrl, "user_id")
     val providerProviderId =  getHttpRequestUrlParam(httpRequestUrl, "provider_provider_id")
     val bankId =  getHttpRequestUrlParam(httpRequestUrl, "bank_id")
@@ -1385,7 +1397,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
     Full(List(
       HTTPParam("sort_by",sortBy), HTTPParam("sort_direction",sortDirection), HTTPParam("from_date",fromDate), HTTPParam("to_date", toDate), HTTPParam("limit",limit), HTTPParam("offset",offset),
-      HTTPParam("anon", anon), HTTPParam("status", status), HTTPParam("consumer_id", consumerId), HTTPParam("azp", azp), HTTPParam("iss", iss), HTTPParam("consent_id", consentId), HTTPParam("consent_reference_id", consentReferenceId), HTTPParam("user_id", userId), HTTPParam("provider_provider_id", providerProviderId), HTTPParam("url", url), HTTPParam("app_name", appName),
+      HTTPParam("anon", anon), HTTPParam("status", status), HTTPParam("consumer_id", consumerId), HTTPParam("azp", azp), HTTPParam("iss", iss), HTTPParam("consent_id", consentId), HTTPParam("consent_reference_id", consentReferenceId), HTTPParam("certificate_trust", certificateTrust), HTTPParam("user_id", userId), HTTPParam("provider_provider_id", providerProviderId), HTTPParam("url", url), HTTPParam("app_name", appName),
       HTTPParam("implemented_by_partial_function",implementedByPartialFunction), HTTPParam("implemented_in_version",implementedInVersion), HTTPParam("verb", verb),
       HTTPParam("correlation_id", correlationId), HTTPParam("duration", duration), HTTPParam("exclude_app_names", excludeAppNames),
       HTTPParam("exclude_url_patterns", excludeUrlPattern),HTTPParam("exclude_implemented_by_partial_functions", excludeImplementedByPartialfunctions), 
@@ -3864,32 +3876,83 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     currentSupportFormats.toStream.map(_.parse(date, parsePosition)).find(null.!=)
   }
 
+  /**
+   * The certificate identifying the TPP, taken from the channel the request's API standard
+   * actually uses.
+   *
+   * TPP-Signature-Certificate is a Berlin Group NextGenPSD2 header: the TPP signs each request and
+   * carries the signing certificate (its QSEAL) in it. It belongs to that standard alone. Neither
+   * UK Open Banking nor OBP's own endpoints use it -- both identify the TPP by the mTLS transport
+   * certificate (the QWAC), which reaches us as PSD2-CERT (set by the reverse proxy that terminates
+   * mTLS, or by bootstrap.http4s.Http4sMtls in development). Reading the Berlin Group header on a
+   * UK or OBP endpoint rejects a correctly-behaving client for omitting a header its specification
+   * never mentions.
+   *
+   * So the split is by whether the request is Berlin Group, not by whether it is UK:
+   *   - Berlin Group URLs (/berlin-group/) -> TPP-Signature-Certificate
+   *   - everything else, UK and OBP-native alike -> PSD2-CERT
+   *
+   * BerlinGroupCheck.validate already scopes every OTHER piece of Berlin Group machinery -- the
+   * mandatory headers, the request-signature verification, the on-the-fly consumer creation -- to
+   * Berlin Group URLs. This keeps the PSD2 gate on the same boundary.
+   *
+   * Note this changes only WHERE the certificate comes from, not what is then done with it: both
+   * paths feed the same regulated-entity lookup, which matches on issuer CN + serial number and so
+   * works with any X509 certificate.
+   */
+  private def tppCertificateForStandard(cc: Option[CallContext]): Box[java.security.cert.X509Certificate] = {
+    val requestHeaders = cc.map(_.requestHeaders).getOrElse(Nil)
+    val url = cc.map(_.url).getOrElse("")
+    val isBerlinGroup = url.contains(s"/${ApiVersion.berlinGroupV13.urlPrefix}/")
+    if (isBerlinGroup) {
+      BerlinGroupSigning.getCertificateFromTppSignatureCertificate(requestHeaders)
+    } else {
+      `getPSD2-CERT`(requestHeaders) match {
+        case Some(pem) =>
+          tryo(BerlinGroupSigning.parseCertificate(pem)) ?~ X509GeneralError
+        case None =>
+          logger.debug(s"tppCertificateForStandard: non-Berlin-Group request ($url) with no ${RequestHeader.`PSD2-CERT`} header")
+          Failure(X509CannotGetCertificate)
+      }
+    }
+  }
+
   private def passesPsd2ServiceProviderCommon(cc: Option[CallContext], serviceProvider: String) = {
     val result = getPropsValue("requirePsd2Certificates", "NONE") match {
       case value if value.toUpperCase == "ONLINE" =>
         val requestHeaders = cc.map(_.requestHeaders).getOrElse(Nil)
         val consumerName = cc.flatMap(_.consumer.map(_.name.get)).getOrElse("")
-        val certificate = getCertificateFromTppSignatureCertificate(requestHeaders)
-        for {
-          tpps <- BerlinGroupSigning.getRegulatedEntityByCertificate(certificate, cc)
-        } yield {
-          tpps match {
-            case Nil =>
-              ObpApiFailure(RegulatedEntityNotFoundByCertificate, 401, cc)
-            case single :: Nil =>
-              logger.debug(s"Regulated entity by certificate: $single")
-              // Only one match, proceed to role check
-              if (single.services.contains(serviceProvider)) {
-                logger.debug(s"Regulated entity by certificate (single.services: ${single.services}, serviceProvider: $serviceProvider): ")
-                Full(true)
-              } else {
-                ObpApiFailure(X509ActionIsNotAllowed, 403, cc)
+        tppCertificateForStandard(cc) match {
+          // No usable certificate: fail closed. passesPsd2ServiceProvider maps a Failure to a 401
+          // -- this used to throw out of the base64 decode and become a 500.
+          case failure: Failure =>
+            logger.debug(s"passesPsd2ServiceProvider: no usable TPP certificate: $failure")
+            Future(failure)
+          case Empty =>
+            logger.debug("passesPsd2ServiceProvider: no TPP certificate header")
+            Future(Failure(X509CannotGetCertificate))
+          case Full(certificate) =>
+            for {
+              tpps <- BerlinGroupSigning.getRegulatedEntityByCertificate(certificate, cc)
+            } yield {
+              tpps match {
+                case Nil =>
+                  ObpApiFailure(RegulatedEntityNotFoundByCertificate, 401, cc)
+                case single :: Nil =>
+                  logger.debug(s"Regulated entity by certificate: $single")
+                  // Only one match, proceed to role check
+                  if (single.services.contains(serviceProvider)) {
+                    logger.debug(s"Regulated entity by certificate (single.services: ${single.services}, serviceProvider: $serviceProvider): ")
+                    Full(true)
+                  } else {
+                    ObpApiFailure(X509ActionIsNotAllowed, 403, cc)
+                  }
+                case multiple =>
+                  // Ambiguity detected: more than one TPP matches the certificate
+                  val names = multiple.map(e => s"'${e.entityName}' (Code: ${e.entityCode})").mkString(", ")
+                  ObpApiFailure(s"$RegulatedEntityAmbiguityByCertificate: multiple TPPs found: $names", 401, cc)
               }
-            case multiple =>
-              // Ambiguity detected: more than one TPP matches the certificate
-              val names = multiple.map(e => s"'${e.entityName}' (Code: ${e.entityCode})").mkString(", ")
-              ObpApiFailure(s"$RegulatedEntityAmbiguityByCertificate: multiple TPPs found: $names", 401, cc)
-          }
+            }
         }
       case value if value.toUpperCase == "CERTIFICATE" => Future {
         `getPSD2-CERT`(cc.map(_.requestHeaders).getOrElse(Nil)) match {

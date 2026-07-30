@@ -11,6 +11,7 @@
 #   ./build_and_run.sh              - Build and run with Redis flush
 #   ./build_and_run.sh --no-flush   - Build and run without Redis flush
 #   ./build_and_run.sh --background - Run server in background
+#   ./build_and_run.sh --mtls       - Serve HTTPS with mutual TLS (dev only)
 #
 # The HTTP4S server runs on the port configured in your props file
 # (default: 8080 for dev.port, or 8086 for hostname port)
@@ -21,6 +22,7 @@ set -e  # Exit on error
 # Parse arguments
 FLUSH_REDIS=true
 RUN_BACKGROUND=false
+USE_MTLS=false
 
 for arg in "$@"; do
     case $arg in
@@ -32,8 +34,15 @@ for arg in "$@"; do
             RUN_BACKGROUND=true
             echo ">>> Server will run in background"
             ;;
+        --mtls)
+            USE_MTLS=true
+            echo ">>> mTLS mode requested (in-process TLS termination)"
+            ;;
     esac
 done
+
+# Select a JDK >= 17 before any Maven work (the build compiles with -release 17).
+. "$(dirname "${BASH_SOURCE[0]}")/scripts/java_env.sh"
 
 ################################################################################
 # FLUSH REDIS CACHE (OPTIONAL)
@@ -109,8 +118,12 @@ echo "Build output will be saved to: build.log"
 # Show last 3 lines of build output in real-time
 tail -n 3 -f build.log &
 TAIL_PID=$!
+# set +e: this script runs under `set -e`, which would abort at a failing build
+# before the BUILD_EXIT check below could print the log tail.
+set +e
 mvn -pl obp-api -am clean package -DskipTests=true -Dmaven.test.skip=true -T 4 > build.log 2>&1
 BUILD_EXIT=$?
+set -e
 kill $TAIL_PID 2>/dev/null || true
 wait $TAIL_PID 2>/dev/null || true
 
@@ -131,6 +144,12 @@ echo ""
 ################################################################################
 # RUN HTTP4S SERVER
 ################################################################################
+
+# Applied after the build so it only affects the running server, never compilation.
+if [[ "$USE_MTLS" = true ]]; then
+    . "$(dirname "${BASH_SOURCE[0]}")/scripts/mtls_env.sh"
+    echo ""
+fi
 
 echo "=========================================="
 if [ "$RUN_BACKGROUND" = true ]; then

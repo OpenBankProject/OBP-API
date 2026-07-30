@@ -56,7 +56,9 @@ trait APIMetrics {
                  sourceIp: String,
                  targetIp: String,
                  apiInstanceId: String,
-                 consentReferenceId: String): Unit
+                 consentReferenceId: String,
+                 certificateTrust: String,
+                 certificateTrustDetail: String): Unit
 
   def saveMetricsArchive(primaryKey: Long,
                          userId: String,
@@ -76,7 +78,9 @@ trait APIMetrics {
                          sourceIp: String,
                          targetIp: String,
                          apiInstanceId: String,
-                         consentReferenceId: String
+                         consentReferenceId: String,
+                         certificateTrust: String,
+                         certificateTrustDetail: String
                         ): Boolean
 
 //  //TODO: ordering of list? should this be by date? currently not enforced
@@ -127,6 +131,8 @@ trait APIMetric {
   def getTargetIp(): String
   def getApiInstanceId(): String
   def getConsentReferenceId(): String
+  def getCertificateTrust(): String
+  def getCertificateTrustDetail(): String
 
 }
 
