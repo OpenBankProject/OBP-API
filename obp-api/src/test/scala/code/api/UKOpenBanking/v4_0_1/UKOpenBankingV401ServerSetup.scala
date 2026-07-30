@@ -78,4 +78,8 @@ trait UKOpenBankingV401ServerSetup extends ServerSetupWithTestData with DefaultU
 
   def deleteAuthed(segments: String*): APIResponse = makeDeleteRequest(v401(segments: _*).DELETE <@ (user1))
   def deleteUnauthed(segments: String*): APIResponse = makeDeleteRequest(v401(segments: _*).DELETE)
+
+  // For IDOR regression tests: user2 authenticated, but acting on a resource (e.g. a consent)
+  // that belongs to a different user (typically resourceUser1).
+  def deleteAuthedAsUser2(segments: String*): APIResponse = makeDeleteRequest(v401(segments: _*).DELETE <@ (user2))
 }

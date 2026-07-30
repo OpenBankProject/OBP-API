@@ -9,12 +9,13 @@ import code.api.util.APIUtil.{EmptyBody, ResourceDoc, HTTPParam, connectorEmptyR
 import code.api.util.ApiTag
 import code.api.util.CallContext
 import code.api.util.CustomJsonFormats
-import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, ConsentNotFound, ConsentViewNotFund, InvalidJsonFormat, UnknownError}
+import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, ConsentDoesNotMatchConsumer, ConsentDoesNotMatchUser, ConsentNotFound, ConsentViewNotFund, InvalidJsonFormat, UnknownError}
 import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps}
 import code.api.util.newstyle.ViewNewStyle
 import code.api.util.{APIUtil, ConsentJWT, JwtUtil, NewStyle}
 import code.consent.Consents
 import code.model.{BankAccountExtended, UserExtended}
+import code.util.Helper
 import code.util.Helper.MdcLoggable
 import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
@@ -205,10 +206,24 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
 }"""
   lazy val getAccountAccessConsentsConsentId: HttpRoutes[IO] = HttpRoutes.of[IO] {
     case req @ GET -> `ukV401Prefix` / "aisp" / "account-access-consents" / consentId =>
-      EndpointHelpers.withUser(req) { (_, cc) =>
+      EndpointHelpers.withUser(req) { (user, cc) =>
         for {
           consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
             unboxFullOrFail(_, Some(cc), s"$ConsentNotFound ($consentId)")
+          }
+          // A consent already bound to a PSU may only be read by that same PSU -- otherwise any
+          // authenticated party could read another party's consent details (IDOR). Mirrors the
+          // identity contract enforced at consent authorise time (Http4s510: consent.userId == user.userId).
+          _ <- Helper.booleanToFuture(s"$ConsentDoesNotMatchUser", 403, Some(cc)) {
+            Option(consent.userId).forall(_.isBlank) || consent.userId == user.userId
+          }
+          // A consent not yet bound to any PSU may only be read by the Consumer that created it --
+          // otherwise a second TPP could read a first TPP's still-pending consent by guessing its
+          // consentId. Once a PSU is bound the check above already governs, so this is a no-op then.
+          _ <- Helper.booleanToFuture(s"$ConsentDoesNotMatchConsumer", 403, Some(cc)) {
+            !Option(consent.userId).forall(_.isBlank) ||
+              Option(consent.consumerId).forall(_.isBlank) ||
+              cc.consumer.map(_.consumerId.get).contains(consent.consumerId)
           }
           consentViews <- Future(JwtUtil.getSignedPayloadAsJson(consent.jsonWebToken).map(
             JsonAliases.parse(_).extract[ConsentJWT].views.map(_.view_id)
@@ -245,11 +260,26 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
   private val EX_deleteAccountAccessConsentsConsentId: String = """{}"""
   lazy val deleteAccountAccessConsentsConsentId: HttpRoutes[IO] = HttpRoutes.of[IO] {
     case req @ DELETE -> `ukV401Prefix` / "aisp" / "account-access-consents" / consentId =>
-      EndpointHelpers.withUserDelete(req) { (_, cc) =>
+      EndpointHelpers.withUserDelete(req) { (user, cc) =>
         for {
           _ <- passesPsd2Aisp(Some(cc))
-          _ <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
+          consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
             unboxFullOrFail(_, Some(cc), ConsentNotFound)
+          }
+          // A consent already bound to a PSU may only be revoked by that same PSU -- otherwise any
+          // authenticated party could revoke another party's consent (IDOR, and the most severe of
+          // the two since it's destructive). Mirrors the identity contract enforced at consent
+          // authorise time (Http4s510: consent.userId == user.userId).
+          _ <- Helper.booleanToFuture(s"$ConsentDoesNotMatchUser", 403, Some(cc)) {
+            Option(consent.userId).forall(_.isBlank) || consent.userId == user.userId
+          }
+          // A consent not yet bound to any PSU may only be revoked by the Consumer that created
+          // it -- otherwise a second TPP could revoke a first TPP's still-pending consent. Once a
+          // PSU is bound the check above already governs, so this is a no-op then.
+          _ <- Helper.booleanToFuture(s"$ConsentDoesNotMatchConsumer", 403, Some(cc)) {
+            !Option(consent.userId).forall(_.isBlank) ||
+              Option(consent.consumerId).forall(_.isBlank) ||
+              cc.consumer.map(_.consumerId.get).contains(consent.consumerId)
           }
           _ <- Future(Consents.consentProvider.vend.revoke(consentId)) map {
             i => connectorEmptyResponse(i, Some(cc))
@@ -460,6 +490,8 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
         val detailViewId = ViewId(Constant.SYSTEM_READ_ACCOUNTS_DETAIL_VIEW_ID)
         val basicViewId = ViewId(Constant.SYSTEM_READ_ACCOUNTS_BASIC_VIEW_ID)
         for {
+          _ <- NewStyle.function.checkUKConsent(u, Some(cc))
+          _ <- passesPsd2Aisp(Some(cc))
           availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u) map {
             _.filter(_.accountId.value == accountId.value)
           }

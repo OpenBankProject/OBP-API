@@ -2,7 +2,7 @@ package code.api.UKOpenBanking.v4_0_1
 
 import code.api.Constant
 import code.api.util.APIUtil.DateWithDayFormat
-import code.api.util.ErrorMessages.{ConsentDoesNotMatchUser, ConsentExpiredIssue, ConsentIdClaimMissing}
+import code.api.util.ErrorMessages.{ConsentDoesNotMatchConsumer, ConsentDoesNotMatchUser, ConsentExpiredIssue, ConsentIdClaimMissing}
 import code.api.util.{CallContext, CertificateUtil, Consent}
 import code.consent.{ConsentStatus, Consents}
 import code.model.UserExtended
@@ -82,6 +82,24 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
       transactionFromDateTime = Some(DateWithDayFormat.parse("2020-01-01")),
       transactionToDateTime = Some(DateWithDayFormat.parse("2030-01-01")),
       apiStandard = standard,
+      apiVersion = Some("4.0.1")
+    ).openOrThrowException("test consent creation failed").consentId
+
+  // A pending (not yet authorised -- no bound PSU) consent, created by "consumer" (the OAuth1
+  // consumer backing user1). For the cross-consumer regression tests: user2 authenticates with a
+  // *different* consumer (consumer2, see DefaultUsers), so this simulates a second TPP trying to
+  // reach a first TPP's still-pending consent before any PSU has authorised it.
+  private def createPendingConsentForConsumer1(): String =
+    Consents.consentProvider.vend.saveUKConsent(
+      user = None,
+      bankId = None,
+      accountIds = None,
+      consumerId = Some(testConsumer.consumerId.get),
+      permissions = consentPermissions,
+      expirationDateTime = Some(DateWithDayFormat.parse("2030-01-01")),
+      transactionFromDateTime = Some(DateWithDayFormat.parse("2020-01-01")),
+      transactionToDateTime = Some(DateWithDayFormat.parse("2030-01-01")),
+      apiStandard = Some("UKOpenBanking"),
       apiVersion = Some("4.0.1")
     ).openOrThrowException("test consent creation failed").consentId
 
@@ -190,6 +208,31 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
     scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
       getUnauthed("aisp", "account-access-consents", "fake-consentid").code should equal(401)
     }
+    // IDOR regression (currently RED): the endpoint only checks that the consent exists, never
+    // that the caller owns it (see Http4sUKOBv401AccountInfo.getAccountAccessConsentsConsentId,
+    // which discards the resolved user via `(_, cc)` before the lookup). Any authenticated party
+    // can currently read any other party's consent details -- this must become a 403
+    // ConsentDoesNotMatchUser once the ownership check is added, mirroring the identity contract
+    // already enforced at consent authorise time (Http4s510: consent.userId == user.userId).
+    scenario("authenticated as a different user than the consent owner -> 403, not 200", UKOpenBankingV401AccountInfo) {
+      val consentId = createRealConsent() // owned by resourceUser1
+      val response = getAuthedAsUser2("aisp", "account-access-consents", consentId)
+      response.code should equal(403)
+      response.body.extract[ErrorMessage].message should startWith(ConsentDoesNotMatchUser)
+    }
+    // Cross-consumer regression (currently RED): a pending consent (no bound PSU yet) is
+    // currently readable by ANY authenticated party, because the ownership check
+    // (Option(consent.userId).forall(_.isBlank) || ...) deliberately lets pending consents
+    // through -- it only guards against a *different bound user*, not a *different consumer*.
+    // getAuthedAsUser2 authenticates as consumer2 (see DefaultUsers), a different OAuth1
+    // consumer than the one that created this pending consent (testConsumer/consumer). Once
+    // fixed, a different consumer must get 403 ConsentDoesNotMatchConsumer here.
+    scenario("authenticated as a different consumer than the creator, pending consent -> 403, not 200", UKOpenBankingV401AccountInfo) {
+      val consentId = createPendingConsentForConsumer1()
+      val response = getAuthedAsUser2("aisp", "account-access-consents", consentId)
+      response.code should equal(403)
+      response.body.extract[ErrorMessage].message should startWith(ConsentDoesNotMatchConsumer)
+    }
   }
   feature("UKOB v4.0.1 DELETE /aisp/account-access-consents/CONSENT_ID") {
     scenario("full consent lifecycle: create -> get -> delete -> get", UKOpenBankingV401AccountInfo) {
@@ -209,6 +252,36 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
     }
     scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
       deleteUnauthed("aisp", "account-access-consents", "fake-consentid").code should equal(401)
+    }
+    // IDOR regression (currently RED, most severe of the two): deleteAccountAccessConsentsConsentId
+    // (Http4sUKOBv401AccountInfo) resolves the consent by id and calls
+    // Consents.consentProvider.vend.revoke(consentId) directly -- no ownership check at all. Any
+    // authenticated party can currently revoke any other party's consent. Once fixed this must be
+    // a 403 ConsentDoesNotMatchUser, and -- critically -- the consent's stored status must be left
+    // untouched (still AWAITINGAUTHORISATION), proving the rejected delete had zero side effect.
+    scenario("authenticated as a different user than the consent owner -> 403, and consent is left untouched", UKOpenBankingV401AccountInfo) {
+      val consentId = createRealConsent() // owned by resourceUser1
+      val response = deleteAuthedAsUser2("aisp", "account-access-consents", consentId)
+      response.code should equal(403)
+      response.body.extract[ErrorMessage].message should startWith(ConsentDoesNotMatchUser)
+
+      val stillThere = Consents.consentProvider.vend.getConsentByConsentId(consentId).openOrThrowException("consent")
+      stillThere.status should equal(ConsentStatus.AWAITINGAUTHORISATION.toString)
+    }
+    // Cross-consumer regression (currently RED, most severe of this pair): a pending consent
+    // (no bound PSU yet) is currently revokable by ANY authenticated party -- same root cause
+    // as the GET cross-consumer gap above (the ownership check treats "no bound user yet" as
+    // "anyone may proceed"). getAuthedAsUser2/deleteAuthedAsUser2 authenticate as consumer2, a
+    // different OAuth1 consumer than the one that created this pending consent. Once fixed,
+    // this must be 403 ConsentDoesNotMatchConsumer, and the consent must be left untouched.
+    scenario("authenticated as a different consumer than the creator, pending consent -> 403, and consent is left untouched", UKOpenBankingV401AccountInfo) {
+      val consentId = createPendingConsentForConsumer1()
+      val response = deleteAuthedAsUser2("aisp", "account-access-consents", consentId)
+      response.code should equal(403)
+      response.body.extract[ErrorMessage].message should startWith(ConsentDoesNotMatchConsumer)
+
+      val stillThere = Consents.consentProvider.vend.getConsentByConsentId(consentId).openOrThrowException("consent")
+      stillThere.status should equal(ConsentStatus.AWAITINGAUTHORISATION.toString)
     }
   }
   // ── Consent.grantUKConsentAccountAccess (Gap 4 fix) ───────────────────
@@ -407,19 +480,16 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
     }
   }
   feature("UKOB v4.0.1 GET /aisp/accounts/ACCOUNT_ID") {
-    scenario("authenticated with granted read view -> 200 real account data", UKOpenBankingV401AccountInfo) {
+    // Issue A fix: this endpoint now runs checkUKConsent before the account lookup, matching
+    // its sibling /balances and /transactions endpoints below. This OAuth1-signed test suite
+    // carries no Bearer JWT, so the consent check deterministically 403s here -- the previous
+    // "200 real account data" scenarios (dropped) actually reached real data with zero consent
+    // enforcement, which was Issue A itself.
+    scenario("authenticated without a consent-bound token -> 403", UKOpenBankingV401AccountInfo) {
       grantUKReadViews(testAccountId1, resourceUser1)
       val response = getAuthed("aisp", "accounts", acc)
-      response.code should equal(200)
-      val accounts = (response.body \ "Data" \ "Account").children
-      accounts should not be empty
-      (accounts.head \ "AccountId").extract[String] should equal(acc)
-      (accounts.head \ "Currency").extract[String] should equal("EUR")
-    }
-    scenario("authenticated with fake account id -> 200 empty Account list", UKOpenBankingV401AccountInfo) {
-      val response = getAuthed("aisp", "accounts", "fake-accountid")
-      response.code should equal(200)
-      (response.body \ "Data" \ "Account").children should be(empty)
+      response.code should equal(403)
+      response.body.extract[ErrorMessage].message.trim should equal(ConsentIdClaimMissing.trim)
     }
     scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
       getUnauthed("aisp", "accounts", acc).code should equal(401)

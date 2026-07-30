@@ -1,5 +1,9 @@
 package code.api.UKOpenBanking.v3_1_0
 
+import code.api.util.APIUtil.DateWithDayFormat
+import code.api.util.ErrorMessages.ConsentDoesNotMatchConsumer
+import code.consent.Consents
+import com.openbankproject.commons.model.ErrorMessage
 import org.scalatest.Tag
 
 /**
@@ -20,6 +24,24 @@ class UKOpenBankingV310AisTests extends UKOpenBankingV310ServerSetup {
 
   val acc = testAccountId1.value
 
+  // A pending (not yet authorised -- no bound PSU) consent, created by "consumer" (the OAuth1
+  // consumer backing user1). For the cross-consumer regression tests: user2 authenticates with a
+  // *different* consumer (consumer2, see DefaultUsers), so this simulates a second TPP trying to
+  // reach a first TPP's still-pending consent before any PSU has authorised it.
+  private def createPendingConsentForConsumer1(): String =
+    Consents.consentProvider.vend.saveUKConsent(
+      user = None,
+      bankId = None,
+      accountIds = None,
+      consumerId = Some(testConsumer.consumerId.get),
+      permissions = List("ReadAccountsBasic"),
+      expirationDateTime = Some(DateWithDayFormat.parse("2030-01-01")),
+      transactionFromDateTime = Some(DateWithDayFormat.parse("2020-01-01")),
+      transactionToDateTime = Some(DateWithDayFormat.parse("2030-01-01")),
+      apiStandard = Some("UKOpenBanking"),
+      apiVersion = Some("3.1.0")
+    ).openOrThrowException("test consent creation failed").consentId
+
   // ── AccountAccessApi ───────────────────────────────────────────────
   feature("UKOB v3.1 POST /account-access-consents") {
     scenario("authenticated", UKOpenBankingV310) {
@@ -38,6 +60,21 @@ class UKOpenBankingV310AisTests extends UKOpenBankingV310ServerSetup {
     scenario("unauthenticated -> 401", UKOpenBankingV310) {
       deleteUnauthed("account-access-consents", "fake-consent-id").code should equal(401)
     }
+    // Cross-consumer regression (currently RED): a pending consent (no bound PSU yet) is
+    // currently revokable by ANY authenticated party -- the ownership check added to
+    // Http4sUKOBv310AccountAccess.deleteAccountAccessConsentsConsentId only guards against a
+    // *different bound user*, not a *different consumer*. deleteAuthedAsUser2 authenticates as
+    // consumer2 (see DefaultUsers), a different OAuth1 consumer than the one that created this
+    // pending consent (testConsumer/consumer). Once fixed, this must be 403
+    // ConsentDoesNotMatchConsumer, and the consent must be left untouched.
+    scenario("authenticated as a different consumer than the creator, pending consent -> 403, and consent is left untouched", UKOpenBankingV310) {
+      val consentId = createPendingConsentForConsumer1()
+      val response = deleteAuthedAsUser2("account-access-consents", consentId)
+      response.code should equal(403)
+      response.body.extract[ErrorMessage].message should startWith(ConsentDoesNotMatchConsumer)
+
+      Consents.consentProvider.vend.getConsentByConsentId(consentId).isDefined should equal(true)
+    }
   }
   feature("UKOB v3.1 GET /account-access-consents/CONSENT_ID") {
     scenario("authenticated", UKOpenBankingV310) {
@@ -46,6 +83,16 @@ class UKOpenBankingV310AisTests extends UKOpenBankingV310ServerSetup {
     }
     scenario("unauthenticated -> 401", UKOpenBankingV310) {
       getUnauthed("account-access-consents", "fake-consent-id").code should equal(401)
+    }
+    // Cross-consumer regression (currently RED): same root cause as the DELETE gap above --
+    // a pending consent is currently readable by ANY authenticated party. getAuthedAsUser2
+    // authenticates as consumer2, a different OAuth1 consumer than the one that created this
+    // pending consent. Once fixed, this must be 403 ConsentDoesNotMatchConsumer.
+    scenario("authenticated as a different consumer than the creator, pending consent -> 403, not 200", UKOpenBankingV310) {
+      val consentId = createPendingConsentForConsumer1()
+      val response = getAuthedAsUser2("account-access-consents", consentId)
+      response.code should equal(403)
+      response.body.extract[ErrorMessage].message should startWith(ConsentDoesNotMatchConsumer)
     }
   }
 
@@ -80,8 +127,11 @@ class UKOpenBankingV310AisTests extends UKOpenBankingV310ServerSetup {
     }
   }
   feature("UKOB v3.1 GET /balances") {
-    scenario("authenticated -> 200", UKOpenBankingV310) {
-      getAuthed("balances").code should equal(200)
+    scenario("authenticated", UKOpenBankingV310) {
+      // DATA-DEPENDENT: checkUKConsent + passesPsd2Aisp (Issue B fix -- kept consistent
+      // with v4.0.1's getBalances, see UKOpenBankingV401AccountInfoTests). This OAuth1-signed
+      // test request carries no Bearer JWT, so checkUKConsent deterministically 403s here.
+      getAuthed("balances").code should not equal (401)
     }
     scenario("unauthenticated -> 401", UKOpenBankingV310) {
       getUnauthed("balances").code should equal(401)
@@ -270,8 +320,11 @@ class UKOpenBankingV310AisTests extends UKOpenBankingV310ServerSetup {
     }
   }
   feature("UKOB v3.1 GET /transactions") {
-    scenario("authenticated -> 200", UKOpenBankingV310) {
-      getAuthed("transactions").code should equal(200)
+    scenario("authenticated", UKOpenBankingV310) {
+      // DATA-DEPENDENT: checkUKConsent + passesPsd2Aisp (Issue B fix -- kept consistent
+      // with v4.0.1's getTransactions, see UKOpenBankingV401AccountInfoTests). This OAuth1-signed
+      // test request carries no Bearer JWT, so checkUKConsent deterministically 403s here.
+      getAuthed("transactions").code should not equal (401)
     }
     scenario("unauthenticated -> 401", UKOpenBankingV310) {
       getUnauthed("transactions").code should equal(401)
