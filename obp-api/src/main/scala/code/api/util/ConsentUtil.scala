@@ -1281,6 +1281,39 @@ object Consent extends MdcLoggable {
         val jwtPayloadAsJson = compactRender(Extraction.decompose(updatedPayload))
         val jwtClaims: JWTClaimsSet = JWTClaimsSet.parse(jwtPayloadAsJson)
         val jwt = CertificateUtil.jwtWithHmacProtection(jwtClaims, consent.secret)
+        // Drop the UK permission views this consent does NOT declare, on the accounts it binds.
+        // grantAccessToViews only revokes-and-regrants the views named in the consent it is given,
+        // so without this a permission granted by an earlier, broader consent survives forever and
+        // silently widens every later one: after any consent covering ReadBalances, a subsequent
+        // ReadAccountsBasic-only consent would still read balances. The consent has to be
+        // authoritative for its own accounts, or narrowing it means nothing.
+        //
+        // Deliberately narrow: only the seven UK permission views, only on the accounts named in
+        // this consent. owner / ManageCustomViews come from account ownership and the
+        // *BerlinGroup views from the other standard — none of those are this consent's to revoke.
+        //
+        // Caveat: these grants are ALL_CONSUMERS, so two concurrent UK consents from different
+        // TPPs over the same account are indistinguishable here and the later authorisation trims
+        // the earlier one's permissions. Fixing that properly means scoping the grants by
+        // consumer_id (AccountAccess already has the column); out of scope here.
+        val ukPermissionViewIds: Set[String] = Set(
+          Constant.SYSTEM_READ_ACCOUNTS_BASIC_VIEW_ID,
+          Constant.SYSTEM_READ_ACCOUNTS_DETAIL_VIEW_ID,
+          Constant.SYSTEM_READ_BALANCES_VIEW_ID,
+          Constant.SYSTEM_READ_TRANSACTIONS_BASIC_VIEW_ID,
+          Constant.SYSTEM_READ_TRANSACTIONS_DEBITS_VIEW_ID,
+          Constant.SYSTEM_READ_TRANSACTIONS_CREDITS_VIEW_ID,
+          Constant.SYSTEM_READ_TRANSACTIONS_DETAIL_VIEW_ID
+        )
+        for {
+          accountId <- validatedAccountIds
+          staleViewId <- (ukPermissionViewIds -- permissions.toSet).toList
+        } {
+          // Idempotent: a view the PSU never held simply reports CannotFindAccountAccess.
+          Views.views.vend.revokeAccess(
+            BankIdAccountIdViewId(bankId, AccountId(accountId), ViewId(staleViewId)), user)
+        }
+
         // Eagerly grant real AccountAccess now: UK consents are exercised via an opaque OAuth2
         // Bearer token (checkUKConsent), not the Consent-JWT header BG/OBP consents use to
         // lazily re-derive access on every call — so the grant has to happen once, here.
