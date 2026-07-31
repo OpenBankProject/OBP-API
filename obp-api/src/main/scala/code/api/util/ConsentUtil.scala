@@ -1367,17 +1367,34 @@ object Consent extends MdcLoggable {
         val jwtPayloadAsJson = compactRender(Extraction.decompose(updatedPayload))
         val jwtClaims: JWTClaimsSet = JWTClaimsSet.parse(jwtPayloadAsJson)
         val jwt = CertificateUtil.jwtWithHmacProtection(jwtClaims, consent.secret)
-        // Drop the UK permission views this consent does NOT declare, on the accounts it binds.
-        // grantAccessToViews only revokes-and-regrants the views named in the consent it is given,
-        // so without this a permission granted by an earlier, broader consent survives forever and
-        // silently widens every later one: after any consent covering ReadBalances, a subsequent
-        // ReadAccountsBasic-only consent would still read balances. The consent has to be
-        // authoritative for its own accounts, or narrowing it means nothing.
+        // Drop the UK permission views this consent does NOT declare, across every account the PSU
+        // holds at this bank. grantAccessToViews only revokes-and-regrants the views named in the
+        // consent it is given, so without this a permission granted by an earlier, broader consent
+        // survives forever and silently widens every later one: after any consent covering
+        // ReadBalances, a subsequent ReadAccountsBasic-only consent would still read balances.
         //
-        // Deliberately narrow: only the seven UK permission views, only on the accounts named in
-        // this consent, and only rows belonging to this consent's own consumer -- owner /
-        // ManageCustomViews come from account ownership, the *BerlinGroup views from the other
-        // standard, and another TPP's rows are that TPP's business, not this consent's.
+        // The sweep has to cover all held accounts, not just the ones this consent names: an
+        // account dropped from the selection at re-authorisation is exactly the case where nothing
+        // else would ever clear it. Rows carry no consent identity (see AccountAccess), and
+        // User.hasAccountAccess only asks whether a (user, account, view, consumer) row exists --
+        // never whether the account belongs to the consent presented on this request -- so a row
+        // left behind by an earlier, wider consent is indistinguishable from one this consent
+        // granted. Sweeping only validatedAccountIds left those rows in place and let a consent
+        // read accounts it never declared. The consent has to be authoritative for the PSU's whole
+        // holding at this bank, or narrowing it means nothing.
+        //
+        // Deliberately narrow in the other two dimensions: only the seven UK permission views, and
+        // only rows belonging to this consent's own consumer -- owner / ManageCustomViews come from
+        // account ownership, the *BerlinGroup views from the other standard, and another TPP's rows
+        // are that TPP's business, not this consent's.
+        //
+        // Accepted cost: two live consents held by the same TPP for the same PSU now trim each
+        // other on the accounts they do not share -- authorising the second one revokes the first
+        // one's rows on accounts only the first names. That is the same limitation AccountAccess
+        // already has within a single account (rows carry no consent identity, so the latest
+        // authorisation wins), now applied across accounts. Erring towards under-granting is the
+        // right side to err on for a consent-scope check; the complete fix is a consent_id column
+        // on AccountAccess, which is tracked separately.
         //
         // The second pass sweeps the same views at ALL_CONSUMERS. Those rows can only have come
         // from a UK consent authorised before grants carried a consumer (account ownership never
@@ -1400,8 +1417,10 @@ object Consent extends MdcLoggable {
         // it behaves exactly as it did before, rather than writing rows under an empty consumer id.
         val consentConsumerId =
           Option(consent.consumerId).map(_.trim).filterNot(_.isEmpty).getOrElse(Constant.ALL_CONSUMERS)
+        // notHeld above already guarantees boundAccountIds is a subset of heldAccountIds.
+        val boundAccountIds: Set[String] = validatedAccountIds.toSet
         for {
-          accountId <- validatedAccountIds
+          accountId <- heldAccountIds.toList
           viewId <- ukPermissionViewIds.toList
         } {
           val bankIdAccountIdViewId = BankIdAccountIdViewId(bankId, AccountId(accountId), ViewId(viewId))
@@ -1410,7 +1429,8 @@ object Consent extends MdcLoggable {
           // re-granted under this consumer immediately below, so nothing this consent is entitled to
           // is lost, and nothing it is not entitled to survives for another TPP to inherit.
           Views.views.vend.revokeAccessToViewForUserAndConsumer(bankIdAccountIdViewId, user, Constant.ALL_CONSUMERS)
-          if (!permissions.contains(viewId)) {
+          // On an account this consent does not name, no UK permission view survives at all.
+          if (!boundAccountIds.contains(accountId) || !permissions.contains(viewId)) {
             Views.views.vend.revokeAccessToViewForUserAndConsumer(bankIdAccountIdViewId, user, consentConsumerId)
           }
         }

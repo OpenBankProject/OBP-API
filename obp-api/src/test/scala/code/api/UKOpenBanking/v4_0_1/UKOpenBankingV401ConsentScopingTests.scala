@@ -38,7 +38,9 @@ class UKOpenBankingV401ConsentScopingTests extends UKOpenBankingV401ServerSetup 
   object UKConsentScoping extends Tag("UKConsentScoping")
 
   private val acc = testAccountId1.value
+  private val otherAcc = testAccountId0.value
   private val bankIdAccountId = BankIdAccountId(testBankId1, testAccountId1)
+  private val otherBankIdAccountId = BankIdAccountId(testBankId1, testAccountId0)
 
   private val ReadAccountsBasic = Constant.SYSTEM_READ_ACCOUNTS_BASIC_VIEW_ID
   private val ReadBalances = Constant.SYSTEM_READ_BALANCES_VIEW_ID
@@ -50,7 +52,9 @@ class UKOpenBankingV401ConsentScopingTests extends UKOpenBankingV401ServerSetup 
    * Create a UK consent held by `consumerId` and run the authorise-time grant on it, i.e. the same
    * call the POST /consents/CONSENT_ID/authorise endpoint makes once SCA has passed.
    */
-  private def authoriseConsentFor(consumerId: String, permissions: List[String]): Unit = {
+  private def authoriseConsentFor(consumerId: String,
+                                  permissions: List[String],
+                                  accountIds: List[String] = List(acc)): Unit = {
     val consentId = Consents.consentProvider.vend.saveUKConsent(
       user = Some(resourceUser1),
       bankId = None,
@@ -74,16 +78,18 @@ class UKOpenBankingV401ConsentScopingTests extends UKOpenBankingV401ServerSetup 
     permissions.foreach(systemView)
 
     Await.result(
-      Consent.grantUKConsentAccountAccess(resourceUser1, testBankId1, List(acc), consent, None),
+      Consent.grantUKConsentAccountAccess(resourceUser1, testBankId1, accountIds, consent, None),
       10.seconds)
   }
 
   /** Access as it is evaluated for a request arriving from `consumer` -- the consumer is what
    *  User.hasAccountAccess keys its consumer-specific lookup on before falling back to ALL_CONSUMERS. */
-  private def canRead(viewId: String, consumer: code.model.Consumer): Boolean =
+  private def canRead(viewId: String,
+                      consumer: code.model.Consumer,
+                      account: BankIdAccountId = bankIdAccountId): Boolean =
     UserExtended(resourceUser1).hasAccountAccess(
       systemView(viewId),
-      bankIdAccountId,
+      account,
       Some(CallContext(consumer = Full(consumer))))
 
   feature("A UK consent is authoritative for the permissions it declares") {
@@ -96,6 +102,24 @@ class UKOpenBankingV401ConsentScopingTests extends UKOpenBankingV401ServerSetup 
       authoriseConsentFor(testConsumer.consumerId.get, List(ReadAccountsBasic))
       canRead(ReadAccountsBasic, testConsumer) should equal(true)
       canRead(ReadBalances, testConsumer) should equal(false)
+    }
+  }
+
+  feature("A UK consent is authoritative for the accounts it names") {
+    scenario("re-authorising with fewer accounts drops the accounts left out", UKConsentScoping) {
+      authoriseConsentFor(testConsumer.consumerId.get, List(ReadAccountsBasic, ReadBalances),
+        accountIds = List(acc, otherAcc))
+      canRead(ReadAccountsBasic, testConsumer, otherBankIdAccountId) should equal(true)
+      canRead(ReadBalances, testConsumer, otherBankIdAccountId) should equal(true)
+
+      // Same TPP, same permissions, but the PSU dropped otherAcc from the selection this time.
+      // The account the consent no longer names must lose every UK permission view with it --
+      // otherwise the consent reads accounts it never declared.
+      authoriseConsentFor(testConsumer.consumerId.get, List(ReadAccountsBasic, ReadBalances),
+        accountIds = List(acc))
+      canRead(ReadAccountsBasic, testConsumer) should equal(true)
+      canRead(ReadAccountsBasic, testConsumer, otherBankIdAccountId) should equal(false)
+      canRead(ReadBalances, testConsumer, otherBankIdAccountId) should equal(false)
     }
   }
 
