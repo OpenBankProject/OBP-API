@@ -61,6 +61,11 @@ case class CallContext(
                         counterparty: Option[CounterpartyTrait] = None,
                         // Set when the request is authenticated via a consent. Persisted on metric rows for search/audit.
                         consentReferenceId: Option[String] = None,
+                        // Set when a UK Open Banking consent authenticated this request via the Consent-Id /
+                        // Consent-JWT header rather than a Bearer token. checkUKConsent short-circuits on this:
+                        // the consent has already been fully validated (standard, status, expiry, consumer,
+                        // signature) and the PSU resolved from MappedConsent.mUserId.
+                        ukConsentId: Option[String] = None,
                         // How the caller's certificate was established (PeerTrust.Resolution.mode):
                         // "direct", "forwarded" or "none". Persisted on metric rows as certificate_trust.
                         certificateTrust: Option[String] = None,

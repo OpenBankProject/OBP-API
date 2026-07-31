@@ -2806,21 +2806,24 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
           consumerByCertificate
         }
         Consent.applyBerlinGroupRules(APIUtil.`getConsent-ID`(reqHeaders), cc.copy(consumer = consumerForConsent))
-      } else if (APIUtil.hasConsentJWT(reqHeaders)) { // Open Bank Project's Consent
+      } else if (APIUtil.hasConsentJWT(reqHeaders)) { // Open Bank Project's or UK Open Banking's Consent
         val consentValue = APIUtil.getConsentJWT(reqHeaders)
-        Consent.getConsentJwtValueByConsentId(consentValue.getOrElse("")) match {
+        // Note: At this point we are getting the Consumer from the Consumer in the Consent.
+        // This may later be cross checked via the value in consumer_validation_method_for_consent.
+        // Get the source of truth for Consumer (e.g. CONSUMER_CERTIFICATE) as early as possible.
+        val ccWithConsumer = cc.copy(consumer = consumerByCertificate.orElse(consumerByConsumerKey))
+        Consent.getConsentByHeaderValue(consentValue.getOrElse("")) match {
+          // A UK consent normally travels as a consent_id claim inside an OAuth2 access token. It may
+          // also be presented on its own here, with no Authorization header -- the same shape Berlin
+          // Group and OBP-native clients use. applyUKRules applies every gate checkUKConsent does.
+          case Some(consent) if consent.apiStandard == Consent.ConsentStandardUK =>
+            Consent.applyUKRules(consent, consentValue.getOrElse(""), ccWithConsumer)
           case Some(consent) => // JWT value obtained via "Consent-Id" request header
-            Consent.applyRules(
-              Some(consent.jsonWebToken),
-              // Note: At this point we are getting the Consumer from the Consumer in the Consent.
-              // This may later be cross checked via the value in consumer_validation_method_for_consent.
-              // Get the source of truth for Consumer (e.g. CONSUMER_CERTIFICATE) as early as possible.
-              cc.copy(consumer = consumerByCertificate.orElse(consumerByConsumerKey))
-            )
+            Consent.applyRules(Some(consent.jsonWebToken), ccWithConsumer)
           case _ =>
             JwtUtil.checkIfStringIsJWTValue(consentValue.getOrElse("")).isDefined match {
               case true => // It's JWT obtained via "Consent-JWT" request header
-                Consent.applyRules(APIUtil.getConsentJWT(reqHeaders), cc.copy(consumer = consumerByCertificate.orElse(consumerByConsumerKey)))
+                Consent.applyRules(APIUtil.getConsentJWT(reqHeaders), ccWithConsumer)
               case false => // Unrecognised consent value
                 Future { (Failure(ErrorMessages.ConsentHeaderValueInvalid), None) }
             }

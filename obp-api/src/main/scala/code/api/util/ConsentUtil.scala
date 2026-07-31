@@ -579,6 +579,22 @@ object Consent extends MdcLoggable {
     }
   }
 
+  /**
+   * Resolve the stored consent behind either spelling of the OBP consent header: a bare consent id
+   * in Consent-Id, or the consent JWT itself in Consent-JWT (whose jti is the consent id).
+   *
+   * Returns the row whatever standard created it -- the caller decides which gate to apply. Nothing
+   * here is authentication: the value is unverified caller input until one of the applyXxxRules
+   * functions has checked it.
+   */
+  def getConsentByHeaderValue(headerValue: String): Option[MappedConsent] = {
+    getConsentJwtValueByConsentId(headerValue) // Consent-Id: a bare consent id
+      .orElse { // Consent-JWT: the consent JWT itself
+        JwtUtil.getOptionalClaim("jti", headerValue)
+          .flatMap(jti => Consents.consentProvider.vend.getConsentByConsentId(jti).toOption)
+      }
+  }
+
   private def copyAuthContextOfConsentToUser(consentId: String, userId: String, newUser: Boolean): Box[List[UserAuthContext]] = {
     if(newUser) {
       val authContexts = ConsentAuthContextProvider.consentAuthContextProvider.vend.getConsentAuthContextsBox(consentId)
@@ -719,6 +735,84 @@ object Consent extends MdcLoggable {
       case (None, _) => Future((Failure(ErrorMessages.ConsentHeaderNotFound), Some(callContext)))
     }
   }  
+  /**
+   * Authenticate a request that presents a UK Open Banking consent as its sole credential, in a
+   * Consent-Id / Consent-JWT request header, with no Authorization header at all.
+   *
+   * UK Open Banking itself binds a consent to an OAuth2 access token (the consent_id claim that
+   * checkUKConsent reads). This is an OBP extension alongside that: it lets a client exercise a UK
+   * consent the way Berlin Group and OBP-native clients already exercise theirs. The token path is
+   * unaffected.
+   *
+   * Every gate checkUKConsent applies is applied here too -- standard, AUTHORISED status, not-before
+   * / expiry, and the consumer match -- so the header path is never the weaker of the two. The
+   * user-binding check that checkUKConsent performs (consent.mUserId == the token's user) has no
+   * analogue here and needs none: there is no independently-authenticated user to disagree with,
+   * because the PSU *is* resolved from the consent's own mUserId.
+   *
+   * Signature verification is stricter than the token path needs. On the token path OAuth2Login has
+   * already verified the access token's signature before checkUKConsent runs; here the caller may
+   * hand us the consent JWT itself, so it is verified against the consent's stored secret.
+   *
+   * Deliberately does NOT reuse applyConsentRules: that resolves the principal with
+   * getOrCreateUser(consent.sub, ...), and createUKConsentJWT sets sub to a fresh UUID rather than
+   * the PSU -- reusing it would mint a phantom user and grant it the consent's views.
+   */
+  def applyUKRules(storedConsent: MappedConsent,
+                   consentHeaderValue: String,
+                   callContext: CallContext): Future[(Box[User], Option[CallContext])] = Future {
+    val allowed = APIUtil.getPropsAsBoolValue(nameOfProperty = "consents.allowed", defaultValue = false)
+    if (!allowed) {
+      (Failure(ErrorMessages.ConsentDisabled), Some(callContext))
+    } else {
+      val result: Box[(User, CallContext)] = for {
+        // A consent may only be exercised by its own standard.
+        _ <- assertConsentStandard(storedConsent, ConsentStandardUK) match {
+          case Some(failure) => failure
+          case None => Full(true)
+        }
+        _ <- if (storedConsent.status.toUpperCase == ConsentStatus.AUTHORISED.toString) Full(true)
+             else Failure(s"${ErrorMessages.ConsentStatusIssue}${ConsentStatus.AUTHORISED.toString}.")
+        currentTimeMillis = System.currentTimeMillis
+        _ <- if (currentTimeMillis >= storedConsent.creationDateTime.getTime) Full(true)
+             else Failure(ErrorMessages.ConsentNotBeforeIssue)
+        // A null expirationDateTime means the consent never expires (0..1 per spec, open-ended if
+        // absent -- see createUKConsentJWT).
+        _ <- if (!Option(storedConsent.expirationDateTime).exists(_.getTime < currentTimeMillis)) Full(true)
+             else Failure(ErrorMessages.ConsentExpiredIssue)
+        // Only meaningful when the caller supplied the JWT itself; a bare consent id carries
+        // nothing to forge, since the JWT is then read straight from our own row.
+        _ <- if (!JwtUtil.checkIfStringIsJWTValue(consentHeaderValue).isDefined) Full(true)
+             else if (verifyHmacSignedJwt(consentHeaderValue, storedConsent)) Full(true)
+             else Failure(ErrorMessages.ConsentVerificationIssue)
+        consentJwt <- {
+          implicit val dateFormats = CustomJsonFormats.formats
+          JwtUtil.getSignedPayloadAsJson(storedConsent.jsonWebToken).map(parse(_).extract[ConsentJWT])
+        } ?~! ErrorMessages.ConsentNotFound
+        _ <- checkConsumerIsActiveAndMatchedUK(
+          consentJwt,
+          callContext.consumer.map(_.consumerId.get)
+        )
+        // The PSU bound to the consent by updateConsentUser during the authorise ceremony. A
+        // consent that was never authorised has no user, and the status gate above already
+        // rejected it -- this is the belt to that braces.
+        user <- Users.users.vend.getUserByUserId(storedConsent.userId) ?~! ErrorMessages.ConsentNotFound
+      } yield {
+        (user, callContext.copy(
+          consenter = Full(user),
+          ukConsentId = Some(storedConsent.consentId),
+          consentReferenceId = Some(storedConsent.consentReferenceId)
+        ))
+      }
+
+      result match {
+        case Full((user, updatedCallContext)) => (Full(user), Some(updatedCallContext))
+        case failure@Failure(_, _, _) => (failure, Some(callContext))
+        case _ => (Failure(ErrorMessages.ConsentNotFound), Some(callContext))
+      }
+    }
+  }
+
   def applyRulesOldStyle(consentId: Option[String], callContext: CallContext): (Box[User], CallContext) = {
     val allowed = APIUtil.getPropsAsBoolValue(nameOfProperty="consents.allowed", defaultValue=false)
     (consentId, allowed) match {
@@ -1275,6 +1369,12 @@ object Consent extends MdcLoggable {
    * consent_id and exercise a consent they never authorised.
    */
   def checkUKConsent(user: User, calContext: Option[CallContext]): Box[Boolean] = {
+    // The request may instead have been authenticated by the consent itself, presented in a
+    // Consent-Id / Consent-JWT header with no Authorization header at all. applyUKRules has then
+    // already run every check below -- and resolved this very user from the consent -- so there is
+    // nothing left to re-derive from a token that does not exist.
+    if (calContext.flatMap(_.ukConsentId).isDefined) return Full(true)
+
     val accessToken = calContext.flatMap(_.authReqHeaderField)
       .map(_.replaceFirst("Bearer\\s+", ""))
       .getOrElse(throw new RuntimeException("Not found http request header 'Authorization', it is mandatory."))
