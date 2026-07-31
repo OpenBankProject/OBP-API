@@ -36,6 +36,13 @@ trait Views {
   def revokeAccessToSystemViewForConsumer(bankId: BankId, accountId: AccountId, view : View, consumerId : String) : Box[Boolean]
   def revokeAccessToCustomViewForConsumer(view : View, consumerId : String) : Box[Boolean]
 
+  // Grant/revoke a single application's access, rather than access shared by every application.
+  // Used by the consent flows: what one TPP's consent grants is that TPP's alone, so narrowing or
+  // re-authorising it must not touch another TPP's grants on the same account.
+  def grantAccessToSystemViewForConsumer(bankId: BankId, accountId: AccountId, view : View, user : User, consumerId : String) : Box[View]
+  def grantAccessToCustomViewForConsumer(bankIdAccountIdViewId : BankIdAccountIdViewId, user : User, consumerId : String) : Box[View]
+  def revokeAccessToViewForUserAndConsumer(bankIdAccountIdViewId : BankIdAccountIdViewId, user : User, consumerId : String) : Box[Boolean]
+
   def customView(viewId : ViewId, bankAccountId: BankIdAccountId) : Box[View]
   def systemView(viewId : ViewId) : Box[View]
   def customViewFuture(viewId : ViewId, bankAccountId: BankIdAccountId) : Future[Box[View]]

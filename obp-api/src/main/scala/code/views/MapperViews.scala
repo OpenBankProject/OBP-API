@@ -130,22 +130,28 @@ object MapperViews extends Views with MdcLoggable {
     Full(Permission(user, getViewsForUser(user)))
   }
   // This is an idempotent function
-  private def getOrGrantAccessToViewCommon(user: User, viewDefinition: View, bankId: String, accountId: String): Box[View] = {
+  //
+  // consumerId defaults to ALL_CONSUMERS, which is what account ownership wants: holding an account
+  // is not something any one application owns. A grant that IS owned by one application -- a consent
+  // exercised by a specific TPP -- passes that TPP's consumerId instead, so it becomes a row of its
+  // own rather than sharing (and overwriting) everybody else's. User.hasAccountAccess already reads
+  // it that way: consumer-specific row first, ALL_CONSUMERS as the fallback.
+  private def getOrGrantAccessToViewCommon(user: User, viewDefinition: View, bankId: String, accountId: String, consumerId: String = ALL_CONSUMERS): Box[View] = {
     if (AccountAccess.findByUniqueIndex(
       BankId(bankId),
-      AccountId(accountId), 
+      AccountId(accountId),
       viewDefinition.viewId,
-      user.userPrimaryKey, 
-      ALL_CONSUMERS).isEmpty) {
+      user.userPrimaryKey,
+      consumerId).isEmpty) {
       logger.debug(s"getOrGrantAccessToViewCommon AccountAccess.create" +
-        s"user(UserId(${user.userId}), ViewId(${viewDefinition.viewId.value}), bankId($bankId), accountId($accountId), consumerId($ALL_CONSUMERS)")
+        s"user(UserId(${user.userId}), ViewId(${viewDefinition.viewId.value}), bankId($bankId), accountId($accountId), consumerId($consumerId)")
       // SQL Insert AccountAccessList
       val saved = AccountAccess.create.
         user_fk(user.userPrimaryKey.value).
         bank_id(bankId).
         account_id(accountId).
         view_id(viewDefinition.viewId.value).
-        consumer_id(ALL_CONSUMERS).
+        consumer_id(consumerId).
         save
       if (saved) {
         //logger.debug("saved AccountAccessList")
@@ -187,6 +193,32 @@ object MapperViews extends Views with MdcLoggable {
     { view.isPublic && !allowPublicViews } match {
       case true => Failure(PublicViewsNotAllowedOnThisInstance)
       case false => getOrGrantAccessToSystemView(bankId: BankId, accountId: AccountId, user, view)
+    }
+  }
+
+  // The consumer-scoped counterparts of the two grants above, mirroring the revoke...ForConsumer
+  // pair further down. Access granted through one application's consent belongs to that application
+  // alone: keeping it on its own row is what stops a second TPP's consent from rewriting it, and
+  // what makes narrowing a consent narrow only that consent.
+  def grantAccessToSystemViewForConsumer(bankId: BankId, accountId: AccountId, view: View, user: User, consumerId: String): Box[View] = {
+    { view.isPublic && !allowPublicViews } match {
+      case true => Failure(PublicViewsNotAllowedOnThisInstance)
+      case false => getOrGrantAccessToViewCommon(user, view, bankId.value, accountId.value, consumerId)
+    }
+  }
+
+  def grantAccessToCustomViewForConsumer(bankIdAccountIdViewId: BankIdAccountIdViewId, user: User, consumerId: String): Box[View] = {
+    val viewDefinition = ViewDefinition.findCustomView(
+      bankIdAccountIdViewId.bankId.value,
+      bankIdAccountIdViewId.accountId.value,
+      bankIdAccountIdViewId.viewId.value)
+
+    viewDefinition match {
+      case Full(v) =>
+        if (v.isPublic && !allowPublicViews) Failure(PublicViewsNotAllowedOnThisInstance)
+        else getOrGrantAccessToViewCommon(user, v, bankIdAccountIdViewId.bankId.value, bankIdAccountIdViewId.accountId.value, consumerId)
+      case _ =>
+        Empty ~> APIFailure(s"View ${bankIdAccountIdViewId.viewId} not found", 404)
     }
   }
 
@@ -314,6 +346,46 @@ object MapperViews extends Views with MdcLoggable {
     } yield {
       accountAccess.delete_!
     }
+  }
+
+  /**
+   * Revoke exactly one grant: this user's, under this consumer, on this view.
+   *
+   * revokeAccess matches on (bank, account, view, user) and so cannot tell two applications' grants
+   * apart; revokeAccessTo*ForConsumer match on (bank, account, view, consumer) and so cannot tell
+   * two users apart -- on a joint account they would delete whichever row came back first. Undoing
+   * one consent's grant needs both, hence AccountAccess's full unique index.
+   */
+  def revokeAccessToViewForUserAndConsumer(bankIdAccountIdViewId: BankIdAccountIdViewId, user: User, consumerId: String): Box[Boolean] = {
+    def accountAccessRow = AccountAccess.findByUniqueIndex(
+      bankIdAccountIdViewId.bankId,
+      bankIdAccountIdViewId.accountId,
+      bankIdAccountIdViewId.viewId,
+      user.userPrimaryKey,
+      consumerId
+    ) ?~! CannotFindAccountAccess
+
+    val isRevokedCustomViewAccess =
+      for {
+        _ <- ViewDefinition.findCustomView(
+          bankIdAccountIdViewId.bankId.value,
+          bankIdAccountIdViewId.accountId.value,
+          bankIdAccountIdViewId.viewId.value)
+        accountAccess <- accountAccessRow
+      } yield {
+        accountAccess.delete_!
+      }
+
+    val isRevokedSystemViewAccess =
+      for {
+        systemViewDefinition <- ViewDefinition.findSystemView(bankIdAccountIdViewId.viewId.value)
+        accountAccess <- accountAccessRow
+        _ <- canRevokeOwnerAccessAsBox(bankIdAccountIdViewId.bankId, bankIdAccountIdViewId.accountId, systemViewDefinition, user)
+      } yield {
+        accountAccess.delete_!
+      }
+
+    isRevokedCustomViewAccess or isRevokedSystemViewAccess
   }
 
   //returns Full if deletable, Failure if not

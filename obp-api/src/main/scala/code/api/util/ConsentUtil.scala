@@ -389,12 +389,25 @@ object Consent extends MdcLoggable {
 
   }
 
-  private def grantAccessToViews(user: User, consent: ConsentJWT): Box[User] = {
+  /**
+   * Materialise a consent's views as AccountAccess rows.
+   *
+   * consumerId defaults to ALL_CONSUMERS, which is what Berlin Group and OBP-native want: each of
+   * their consents already resolves to its own shadow user (createXxxConsentJWT gives every consent
+   * a random `sub`, and applyConsentRules turns that into a distinct user), so their grants are
+   * isolated by construction and there is nothing for a consumer to disambiguate.
+   *
+   * UK is the exception -- it grants to the real PSU -- so it passes the consent's own consumerId
+   * and gets rows only that TPP can claim.
+   */
+  private def grantAccessToViews(user: User, consent: ConsentJWT, consumerId: String = Constant.ALL_CONSUMERS): Box[User] = {
+    val isConsumerScoped = consumerId != Constant.ALL_CONSUMERS
     for {
       view <- consent.views
     } yield {
       val bankIdAccountIdViewId = BankIdAccountIdViewId(BankId(view.bank_id), AccountId(view.account_id),ViewId(view.view_id))
-      Views.views.vend.revokeAccess(bankIdAccountIdViewId, user)
+      if (isConsumerScoped) Views.views.vend.revokeAccessToViewForUserAndConsumer(bankIdAccountIdViewId, user, consumerId)
+      else Views.views.vend.revokeAccess(bankIdAccountIdViewId, user)
     }
     val result: List[Box[View]] = {
       for {
@@ -403,10 +416,16 @@ object Consent extends MdcLoggable {
         val bankIdAccountIdViewId = BankIdAccountIdViewId(BankId(view.bank_id), AccountId(view.account_id),ViewId(view.view_id))
         Views.views.vend.systemView(ViewId(view.view_id)) match {
           case Full(systemView) =>
-            Views.views.vend.grantAccessToSystemView(BankId(view.bank_id), AccountId(view.account_id), systemView, user)
+            if (isConsumerScoped)
+              Views.views.vend.grantAccessToSystemViewForConsumer(BankId(view.bank_id), AccountId(view.account_id), systemView, user, consumerId)
+            else
+              Views.views.vend.grantAccessToSystemView(BankId(view.bank_id), AccountId(view.account_id), systemView, user)
           case _ =>
             // It's not system view
-            Views.views.vend.grantAccessToCustomView(bankIdAccountIdViewId, user)
+            if (isConsumerScoped)
+              Views.views.vend.grantAccessToCustomViewForConsumer(bankIdAccountIdViewId, user, consumerId)
+            else
+              Views.views.vend.grantAccessToCustomView(bankIdAccountIdViewId, user)
         }
       }
     }
@@ -1289,13 +1308,18 @@ object Consent extends MdcLoggable {
         // authoritative for its own accounts, or narrowing it means nothing.
         //
         // Deliberately narrow: only the seven UK permission views, only on the accounts named in
-        // this consent. owner / ManageCustomViews come from account ownership and the
-        // *BerlinGroup views from the other standard — none of those are this consent's to revoke.
+        // this consent, and only rows belonging to this consent's own consumer -- owner /
+        // ManageCustomViews come from account ownership, the *BerlinGroup views from the other
+        // standard, and another TPP's rows are that TPP's business, not this consent's.
         //
-        // Caveat: these grants are ALL_CONSUMERS, so two concurrent UK consents from different
-        // TPPs over the same account are indistinguishable here and the later authorisation trims
-        // the earlier one's permissions. Fixing that properly means scoping the grants by
-        // consumer_id (AccountAccess already has the column); out of scope here.
+        // The second pass sweeps the same views at ALL_CONSUMERS. Those rows can only have come
+        // from a UK consent authorised before grants carried a consumer (account ownership never
+        // grants these seven -- see LocalMappedConnector's viewsToGenerate), and leaving them would
+        // silently defeat the whole fix: User.hasAccountAccess falls back to ALL_CONSUMERS when it
+        // finds no consumer-specific row, so a pre-existing ReadBalances row would still answer for
+        // a consent that never asked for balances. Each account heals the first time it is
+        // re-authorised; the cost is that a TPP whose access predates this change has to
+        // re-authorise to get its own scoped rows back.
         val ukPermissionViewIds: Set[String] = Set(
           Constant.SYSTEM_READ_ACCOUNTS_BASIC_VIEW_ID,
           Constant.SYSTEM_READ_ACCOUNTS_DETAIL_VIEW_ID,
@@ -1305,20 +1329,33 @@ object Consent extends MdcLoggable {
           Constant.SYSTEM_READ_TRANSACTIONS_CREDITS_VIEW_ID,
           Constant.SYSTEM_READ_TRANSACTIONS_DETAIL_VIEW_ID
         )
+        // A consent without a consumer cannot own rows of its own; fall back to the shared scope so
+        // it behaves exactly as it did before, rather than writing rows under an empty consumer id.
+        val consentConsumerId =
+          Option(consent.consumerId).map(_.trim).filterNot(_.isEmpty).getOrElse(Constant.ALL_CONSUMERS)
         for {
           accountId <- validatedAccountIds
-          staleViewId <- (ukPermissionViewIds -- permissions.toSet).toList
+          viewId <- ukPermissionViewIds.toList
         } {
+          val bankIdAccountIdViewId = BankIdAccountIdViewId(bankId, AccountId(accountId), ViewId(viewId))
           // Idempotent: a view the PSU never held simply reports CannotFindAccountAccess.
-          Views.views.vend.revokeAccess(
-            BankIdAccountIdViewId(bankId, AccountId(accountId), ViewId(staleViewId)), user)
+          // Legacy shared rows go regardless of what this consent declares -- the declared ones are
+          // re-granted under this consumer immediately below, so nothing this consent is entitled to
+          // is lost, and nothing it is not entitled to survives for another TPP to inherit.
+          Views.views.vend.revokeAccessToViewForUserAndConsumer(bankIdAccountIdViewId, user, Constant.ALL_CONSUMERS)
+          if (!permissions.contains(viewId)) {
+            Views.views.vend.revokeAccessToViewForUserAndConsumer(bankIdAccountIdViewId, user, consentConsumerId)
+          }
         }
 
         // Eagerly grant real AccountAccess now: UK consents are exercised via an opaque OAuth2
         // Bearer token (checkUKConsent), not the Consent-JWT header BG/OBP consents use to
         // lazily re-derive access on every call — so the grant has to happen once, here.
+        //
+        // Scoped to this consent's consumer, so the rows are this TPP's alone: another TPP's
+        // consent over the same account neither reads nor rewrites them.
         updatedPayload.foreach { consentJwt =>
-          grantAccessToViews(user, consentJwt) match {
+          grantAccessToViews(user, consentJwt, consentConsumerId) match {
             case Failure(msg, _, _) =>
               logger.warn(s"grantUKConsentAccountAccess: grantAccessToViews reported: $msg")
             case _ =>
