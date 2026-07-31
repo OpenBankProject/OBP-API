@@ -27,6 +27,15 @@ object StatusPage extends MdcLoggable {
   private def gitCommit: String =
     Option(gitProps.getProperty("git.commit.id")).getOrElse("unknown")
 
+  /**
+   * True when the build had uncommitted changes. Reported alongside the commit because the plugin
+   * stamps the last commit, not what was compiled: a build from a modified working tree names a
+   * revision whose source never produced this artifact, and checking that id out would not
+   * reproduce it. Absent from older stamps, so it defaults to false rather than failing.
+   */
+  private def gitDirty: Boolean =
+    Option(gitProps.getProperty("git.dirty")).exists(_.trim.equalsIgnoreCase("true"))
+
   private def apiInstanceId: String = code.api.Constant.ApiInstanceId
 
   private def uptimeSeconds: Long =
@@ -159,6 +168,7 @@ object StatusPage extends MdcLoggable {
          |  "status": "$status",
          |  "api_instance_id": "$apiInstanceId",
          |  "git_commit": "$gitCommit",
+         |  "git_dirty": $gitDirty,
          |  "uptime_seconds": $uptimeSeconds,
          |  "checks": {
          |    "database": "${checks.database}",
@@ -211,7 +221,14 @@ object StatusPage extends MdcLoggable {
          |  <h2>Instance</h2>
          |  <table>
          |    <tr><th>api_instance_id</th><td>$apiInstanceId</td></tr>
-         |    <tr><th>git_commit</th><td>$gitCommit</td></tr>
+         |    <tr><th>git_commit</th><td>$gitCommit${
+              if (gitDirty)
+                """ <span style="color: #ef6c00; font-weight: bold;">dirty</span>""" +
+                """<div style="color: #666; font-size: 0.85em; margin-top: 4px;">""" +
+                "built from a working tree with uncommitted changes &mdash; this names the last " +
+                "commit, not necessarily what is running</div>"
+              else ""
+            }</td></tr>
          |    <tr><th>uptime_seconds</th><td>$uptimeSeconds</td></tr>
          |  </table>
          |
