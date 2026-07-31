@@ -1167,6 +1167,73 @@ object Consent extends MdcLoggable {
     Full(CertificateUtil.jwtWithHmacProtection(jwtClaims, consent.secret))
   }
   
+  /**
+   * The permission codes UK Open Banking defines for an account-access-consent.
+   *
+   * Taken from the Account and Transaction API profile's permission table. Codes outside this set
+   * are not UK permission codes at all, which is a different thing from a code this ASPSP happens
+   * not to implement -- see validateUKConsentPermissions.
+   */
+  private val ukPermissionCodes: Set[String] = Set(
+    "ReadAccountsBasic", "ReadAccountsDetail",
+    "ReadBalances",
+    "ReadBeneficiariesBasic", "ReadBeneficiariesDetail",
+    "ReadDirectDebits",
+    "ReadOffers",
+    "ReadPAN",
+    "ReadParty", "ReadPartyPSU",
+    "ReadProducts",
+    "ReadScheduledPaymentsBasic", "ReadScheduledPaymentsDetail",
+    "ReadStandingOrdersBasic", "ReadStandingOrdersDetail",
+    "ReadStatementsBasic", "ReadStatementsDetail",
+    "ReadTransactionsBasic", "ReadTransactionsCredits",
+    "ReadTransactionsDebits", "ReadTransactionsDetail"
+  )
+
+  /**
+   * Check a UK account-access-consent's Permissions array against the combinations the standard
+   * forbids, returning the reason it must be refused or None when it is well formed.
+   *
+   * The Account and Transaction API profile requires the ASPSP to reject these with 400, and the
+   * rules are not arbitrary: every AIS endpoint other than /accounts is /accounts/{AccountId}/...,
+   * so a consent without an account-read permission can never discover the ids it would need and
+   * is a dead end -- it authorises data the AISP has no way to reach. Accepting one produces a
+   * consent that looks authorised and returns an empty account list forever.
+   *
+   * Deliberately not enforced: "a permission code that is not supported by the ASPSP". That rule
+   * is about the endpoint subset an ASPSP publishes, and OBP publishes no such list, so rejecting
+   * on it would be guesswork. A code that is not a UK permission code at all is still refused.
+   *
+   * Requesting both a Basic and its corresponding Detail code is explicitly allowed: the profile
+   * calls it duplication but forbids rejecting on that basis alone.
+   */
+  def validateUKConsentPermissions(permissions: List[String]): Option[String] = {
+    val granted = permissions.toSet
+    val transactionDepth = Set("ReadTransactionsBasic", "ReadTransactionsDetail")
+    val transactionDirection = Set("ReadTransactionsCredits", "ReadTransactionsDebits")
+
+    if (permissions.isEmpty) {
+      Some("The Permissions array must not be empty.")
+    } else {
+      val unknown = granted.diff(ukPermissionCodes)
+      if (unknown.nonEmpty) {
+        Some(s"Unknown permission code(s): ${unknown.toList.sorted.mkString(", ")}.")
+      } else if (granted.intersect(Set("ReadAccountsBasic", "ReadAccountsDetail")).isEmpty) {
+        Some("The Permissions array must contain at least one of ReadAccountsBasic and ReadAccountsDetail.")
+      } else if (granted.intersect(transactionDepth).nonEmpty &&
+                 granted.intersect(transactionDirection).isEmpty) {
+        Some("A Permissions array containing ReadTransactionsBasic or ReadTransactionsDetail must also " +
+          "contain at least one of ReadTransactionsCredits and ReadTransactionsDebits.")
+      } else if (granted.intersect(transactionDirection).nonEmpty &&
+                 granted.intersect(transactionDepth).isEmpty) {
+        Some("A Permissions array containing ReadTransactionsCredits or ReadTransactionsDebits must also " +
+          "contain at least one of ReadTransactionsBasic and ReadTransactionsDetail.")
+      } else {
+        None
+      }
+    }
+  }
+
   def createUKConsentJWT(
     user: Option[User],
     bankId: Option[String],

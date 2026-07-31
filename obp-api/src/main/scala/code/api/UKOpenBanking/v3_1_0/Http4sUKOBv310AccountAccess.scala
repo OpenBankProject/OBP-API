@@ -8,10 +8,10 @@ import code.api.UKOpenBanking.v3_1_0.JSONFactory_UKOpenBanking_310.ConsentPostBo
 import code.api.util.APIUtil.{EmptyBody, ResourceDoc, connectorEmptyResponse, mockedDataText, passesPsd2Aisp, unboxFullOrFail, parseIso8601OrDayDate}
 import code.api.util.ApiTag
 import code.api.util.CustomJsonFormats
-import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, ConsentDoesNotMatchConsumer, ConsentDoesNotMatchUser, ConsentNotFound, ConsentViewNotFund, InvalidJsonFormat, UnknownError}
+import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, ConsentDoesNotMatchConsumer, ConsentDoesNotMatchUser, ConsentNotFound, ConsentViewNotFund, InvalidJsonFormat, InvalidUKConsentPermissions, UnknownError}
 import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps}
 import code.api.util.CallContext
-import code.api.util.{ConsentJWT, JwtUtil, NewStyle}
+import code.api.util.{Consent, ConsentJWT, JwtUtil, NewStyle}
 import code.consent.Consents
 import code.util.Helper
 import code.util.Helper.MdcLoggable
@@ -76,6 +76,14 @@ object Http4sUKOBv310AccountAccess extends MdcLoggable {
               consentJson.Data.TransactionFromDateTime.map(parseIso8601OrDayDate),
               consentJson.Data.TransactionToDateTime.map(parseIso8601OrDayDate)
             )
+          }
+          // The standard requires the ASPSP to refuse malformed permission combinations with 400
+          // rather than create a consent that can never be exercised -- see
+          // Consent.validateUKConsentPermissions for the rules and why they matter.
+          _ <- Consent.validateUKConsentPermissions(consentJson.Data.Permissions) match {
+            case Some(reason) =>
+              Helper.booleanToFuture(s"$InvalidUKConsentPermissions$reason", 400, Some(cc))(false)
+            case None => Future.successful(true)
           }
           consumerId = cc.consumer.map(_.consumerId.get)
           _ <- passesPsd2Aisp(Some(cc))
