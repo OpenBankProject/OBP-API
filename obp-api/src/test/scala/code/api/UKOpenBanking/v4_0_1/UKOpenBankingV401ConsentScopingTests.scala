@@ -24,9 +24,14 @@ import scala.concurrent.duration._
  * to the authorising PSU, so every UK consent for that PSU lands on the same (user, account, view)
  * rows -- and those rows carry no consent identity at all.
  *
- * That makes two properties worth pinning down, neither of which any existing suite covers:
- *  - narrowing: re-authorising with fewer permissions must actually drop the ones left out;
- *  - isolation: one TPP's authorisation must not rewrite another TPP's access to the same account.
+ * That makes three properties worth pinning down, none of which any existing suite covers:
+ *  - narrowing: re-authorising with fewer permissions -- or fewer accounts -- must actually drop
+ *    what was left out;
+ *  - isolation: one TPP's authorisation must not rewrite another TPP's access to the same account;
+ *  - and the one place narrowing still cannot hold: two consents live at once under the SAME TPP,
+ *    which share a single set of rows. That is pinned as a characterisation test at the bottom of
+ *    this file rather than left unstated -- it is the remaining half of the same gap, and it only
+ *    closes when AccountAccess carries a consent_id.
  *
  * Asserted at the UserExtended.hasAccountAccess layer because that is exactly what
  * APIUtil.checkViewAccessAndReturnView -- and therefore every UK data endpoint -- consults. The
@@ -54,7 +59,7 @@ class UKOpenBankingV401ConsentScopingTests extends UKOpenBankingV401ServerSetup 
    */
   private def authoriseConsentFor(consumerId: String,
                                   permissions: List[String],
-                                  accountIds: List[String] = List(acc)): Unit = {
+                                  accountIds: List[String] = List(acc)): String = {
     val consentId = Consents.consentProvider.vend.saveUKConsent(
       user = Some(resourceUser1),
       bankId = None,
@@ -77,6 +82,17 @@ class UKOpenBankingV401ConsentScopingTests extends UKOpenBankingV401ServerSetup 
     // does not set it), so they have to exist before the grant can bind them.
     permissions.foreach(systemView)
 
+    Await.result(
+      Consent.grantUKConsentAccountAccess(resourceUser1, testBankId1, accountIds, consent, None),
+      10.seconds)
+    consentId
+  }
+
+  /** Re-run the authorise-time grant on a consent that already exists and is still live -- the PSU
+   *  re-authenticating against a consent the TPP never revoked. */
+  private def reAuthorise(consentId: String, accountIds: List[String]): Unit = {
+    val consent = Consents.consentProvider.vend.getConsentByConsentId(consentId)
+      .openOrThrowException(s"consent $consentId not found")
     Await.result(
       Consent.grantUKConsentAccountAccess(resourceUser1, testBankId1, accountIds, consent, None),
       10.seconds)
@@ -120,6 +136,34 @@ class UKOpenBankingV401ConsentScopingTests extends UKOpenBankingV401ServerSetup 
       canRead(ReadAccountsBasic, testConsumer) should equal(true)
       canRead(ReadAccountsBasic, testConsumer, otherBankIdAccountId) should equal(false)
       canRead(ReadBalances, testConsumer, otherBankIdAccountId) should equal(false)
+    }
+  }
+
+  /**
+   * Characterisation test: this pins behaviour that is WRONG but currently accepted, so that the
+   * limitation is visible in the suite rather than only in a status file. When AccountAccess grows
+   * a consent_id column the assertions below become false and this scenario fails -- that failure
+   * is the signal to flip them to the values the comments name, not to relax them.
+   */
+  feature("KNOWN LIMITATION: two live consents held by the same TPP share one set of rows") {
+    scenario("re-authorising the wider consent widens a narrower live one", UKConsentScoping) {
+      val wide = authoriseConsentFor(testConsumer.consumerId.get, List(ReadAccountsBasic),
+        accountIds = List(acc, otherAcc))
+      val narrow = authoriseConsentFor(testConsumer.consumerId.get, List(ReadAccountsBasic),
+        accountIds = List(acc))
+
+      // The fix this suite pins: authorising `narrow` drops the account it does not name.
+      canRead(ReadAccountsBasic, testConsumer, otherBankIdAccountId) should equal(false)
+
+      // But `wide` was never revoked, and the PSU re-authenticating against it re-grants otherAcc.
+      // Both consents are live and both resolve to the same (user, account, view, consumer) rows,
+      // so there is no answer that is right for both: whichever was authorised last wins.
+      reAuthorise(wide, List(acc, otherAcc))
+
+      // Correct for `wide`. WRONG for `narrow`, which still names only `acc` -- with a consent_id
+      // column this stays false when the request presents `narrow`. Asserted true because that is
+      // what the code does today, and pretending otherwise would hide the hole.
+      canRead(ReadAccountsBasic, testConsumer, otherBankIdAccountId) should equal(true)
     }
   }
 
