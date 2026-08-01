@@ -424,13 +424,15 @@ object Consent extends MdcLoggable {
     val heldSet = held.toSet
     val result: List[Box[View]] = {
       for {
-        view <- consent.views
+        // A view that is already granted and still wanted needs nothing done to it, and nothing
+        // looked up either: on a consent that has been used before -- the common case, since this
+        // runs on every request -- this loop does no work at all.
+        view <- consent.views.filterNot { view =>
+          heldSet.contains(BankIdAccountIdViewId(BankId(view.bank_id), AccountId(view.account_id), ViewId(view.view_id)))
+        }
       } yield {
         val bankIdAccountIdViewId = BankIdAccountIdViewId(BankId(view.bank_id), AccountId(view.account_id),ViewId(view.view_id))
-        if (heldSet.contains(bankIdAccountIdViewId)) {
-          // Already granted and still wanted -- leave the row alone.
-          Views.views.vend.systemView(ViewId(view.view_id)).or(Views.views.vend.customView(ViewId(view.view_id), BankIdAccountId(BankId(view.bank_id), AccountId(view.account_id))))
-        } else Views.views.vend.systemView(ViewId(view.view_id)) match {
+        Views.views.vend.systemView(ViewId(view.view_id)) match {
           case Full(systemView) =>
             if (isConsumerScoped)
               Views.views.vend.grantAccessToSystemViewForConsumer(BankId(view.bank_id), AccountId(view.account_id), systemView, user, consumerId)
