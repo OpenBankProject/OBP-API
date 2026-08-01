@@ -177,16 +177,22 @@ object LiftUsers extends Users with MdcLoggable{
       Some(By(ResourceUser.IsDeleted, false)) // There is no query parameter "is_deleted"
     )
 
-    val optionalParams: Seq[QueryParam[ResourceUser]] = Seq(limit.toSeq, offset.toSeq, deleted.toSeq).flatten
-
     // Users a consent minted for itself are not people and do not belong in a list of people: they
     // have no username and no email, there is one of them for every consent ever granted, and they
     // outnumber real users by orders of magnitude on any busy instance. They stay reachable by id
     // and through the account-access data; they just do not pad out this list.
-    def isConsentPrincipal(user: ResourceUser): Boolean =
-      Option(user.CreatedByConsentId.get).exists(_.trim.nonEmpty)
+    //
+    // Filtered in SQL rather than after the fact, so it composes with the limit/offset above: a
+    // filter applied to an already-paginated result returns short pages, which is exactly the
+    // defect the ?locked= path below has.
+    val notMintedByAConsent = BySql[ResourceUser](
+      "(createdbyconsentid IS NULL OR createdbyconsentid = '')",
+      IHaveValidatedThisSQL("hongwei", "2026-08-01"))
 
-    def getAllResourceUsers(): List[ResourceUser] = ResourceUser.findAll(optionalParams: _*).filterNot(isConsentPrincipal)
+    val optionalParams: Seq[QueryParam[ResourceUser]] =
+      Seq(limit.toSeq, offset.toSeq, deleted.toSeq, Seq(notMintedByAConsent)).flatten
+
+    def getAllResourceUsers(): List[ResourceUser] = ResourceUser.findAll(optionalParams: _*)
 
     val showUsers: List[ResourceUser] = locked.map(_.toLowerCase()) match {
       case Some("active") =>
