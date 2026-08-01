@@ -179,7 +179,14 @@ object LiftUsers extends Users with MdcLoggable{
 
     val optionalParams: Seq[QueryParam[ResourceUser]] = Seq(limit.toSeq, offset.toSeq, deleted.toSeq).flatten
 
-    def getAllResourceUsers(): List[ResourceUser] = ResourceUser.findAll(optionalParams: _*)
+    // Users a consent minted for itself are not people and do not belong in a list of people: they
+    // have no username and no email, there is one of them for every consent ever granted, and they
+    // outnumber real users by orders of magnitude on any busy instance. They stay reachable by id
+    // and through the account-access data; they just do not pad out this list.
+    def isConsentPrincipal(user: ResourceUser): Boolean =
+      Option(user.CreatedByConsentId.get).exists(_.trim.nonEmpty)
+
+    def getAllResourceUsers(): List[ResourceUser] = ResourceUser.findAll(optionalParams: _*).filterNot(isConsentPrincipal)
 
     val showUsers: List[ResourceUser] = locked.map(_.toLowerCase()) match {
       case Some("active") =>

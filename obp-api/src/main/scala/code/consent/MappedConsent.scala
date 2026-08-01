@@ -373,7 +373,13 @@ object MappedConsentProvider extends ConsentProvider with code.util.Helper.MdcLo
         // already revoked makes this a 0-row no-op, so we never resurrect or double-revoke.
         val rows = code.bankconnectors.DoobieConsentStatusQueries
           .conditionalRevoke(consent.id.get, ConsentStatus.REVOKED.toString)
-        if (rows == 1) MappedConsent.find(By(MappedConsent.mConsentId, consentId))
+        if (rows == 1) {
+          // Every revoke endpoint funnels through here, so this is the one place that has to give
+          // the granted access back. The status flip alone leaves the AccountAccess rows live in
+          // the table for anything that reads them without asking the consent first.
+          code.api.util.Consent.revokeConsentAccountAccess(consent)
+          MappedConsent.find(By(MappedConsent.mConsentId, consentId))
+        }
         else Failure(ErrorMessages.ConsentAlreadyRevoked)
       case Empty =>
         Empty ?~! ErrorMessages.ConsentNotFound
@@ -388,10 +394,14 @@ object MappedConsentProvider extends ConsentProvider with code.util.Helper.MdcLo
       case Full(consent) if consent.status == ConsentStatus.terminatedByTpp.toString =>
         Failure(ErrorMessages.ConsentAlreadyRevoked)
       case Full(consent) =>
-        tryo(consent
-          .mStatus(ConsentStatus.terminatedByTpp.toString)
-          .mLastActionDate(now)
-          .saveMe())
+        tryo {
+          val terminated = consent
+            .mStatus(ConsentStatus.terminatedByTpp.toString)
+            .mLastActionDate(now)
+            .saveMe()
+          code.api.util.Consent.revokeConsentAccountAccess(terminated)
+          terminated
+        }
       case Empty =>
         Empty ?~! ErrorMessages.ConsentNotFound
       case Failure(msg, _, _) =>

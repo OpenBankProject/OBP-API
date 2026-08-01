@@ -296,7 +296,7 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
   // claim that this OAuth1-signed test suite cannot mint (see the comment above
   // "GET /aisp/accounts" below).
   feature("UKOB v4.0.1 Consent.grantUKConsentAccountAccess binds permissions to the selected account only") {
-    scenario("consent scoped to ReadAccountsBasic grants that view but not ReadBalances", UKOpenBankingV401AccountInfo) {
+    scenario("the consent's scope lands in its JWT, and the PSU gains nothing", UKOpenBankingV401AccountInfo) {
       val userExtended = UserExtended(resourceUser1)
       val bankIdAccountId = BankIdAccountId(testBankId1, testAccountId1)
 
@@ -313,13 +313,26 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
         10.seconds)
       result.isDefined should equal(true)
 
-      // Granted: the account now has a real (non-null) AccountAccess row for the consented view.
+      // The JWT is the consent's scope: binding replaces the (null, null, permission) placeholders
+      // createUKConsentJWT wrote with the real account, for the declared permission and no other.
+      // What that scope is worth at request time is pinned in UKOpenBankingV401ConsentScopingTests,
+      // which drives the whole applyUKRules path.
+      val boundViews = {
+        implicit val formats = code.api.util.CustomJsonFormats.formats
+        val updated = Consents.consentProvider.vend.getConsentByConsentId(consentId).openOrThrowException("consent")
+        code.api.util.JwtUtil.getSignedPayloadAsJson(updated.jsonWebToken)
+          .map(com.openbankproject.commons.util.JsonAliases.parse(_).extract[code.api.util.ConsentJWT])
+          .openOrThrowException("consent jwt").views
+      }
+      boundViews.map(v => (v.bank_id, v.account_id, v.view_id)) should equal(
+        List((testBankId1.value, acc, Constant.SYSTEM_READ_ACCOUNTS_BASIC_VIEW_ID)))
+
+      // And the PSU is left exactly as they were. Binding used to write AccountAccess rows under
+      // the PSU, which is what made every consent that PSU granted share one set of rows; the
+      // consent's access now belongs to a principal of its own.
       userExtended.hasAccountAccess(
         Views.views.vend.getOrCreateSystemView(Constant.SYSTEM_READ_ACCOUNTS_BASIC_VIEW_ID).openOrThrowException("view"),
-        bankIdAccountId, None) should equal(true)
-
-      // Not granted: ReadBalances was never in the consent's Permissions, so it must stay locked —
-      // this is the check GET /aisp/accounts/ACCOUNT_ID/balances relies on (checkViewAccessAndReturnView).
+        bankIdAccountId, None) should equal(false)
       userExtended.hasAccountAccess(
         Views.views.vend.getOrCreateSystemView(Constant.SYSTEM_READ_BALANCES_VIEW_ID).openOrThrowException("view"),
         bankIdAccountId, None) should equal(false)

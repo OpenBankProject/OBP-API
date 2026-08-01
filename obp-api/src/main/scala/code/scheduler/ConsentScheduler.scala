@@ -87,7 +87,11 @@ object ConsentScheduler extends MdcLoggable {
             newStatus    = ConsentStatus.rejected.toString,
             newNote      = newNote
           )
-          if (rows > 0) logger.warn(message)
+          if (rows > 0) {
+            // An expired consent must give its granted access back, exactly as a revoked one does.
+            Consent.revokeConsentAccountAccess(consent)
+            logger.warn(message)
+          }
           else logger.debug(s"|---> Skipped stale update for consent ${consent.id}: status already changed")
         } match {
           case Failure(ex) => logger.error(s"Failed to update consent ID: ${consent.id}", ex)
@@ -127,7 +131,11 @@ object ConsentScheduler extends MdcLoggable {
             consentPrimaryKey = consent.id.get,
             newNote      = newNote
           )
-          if (rows > 0) logger.warn(message)
+          if (rows > 0) {
+            // An expired consent must give its granted access back, exactly as a revoked one does.
+            Consent.revokeConsentAccountAccess(consent)
+            logger.warn(message)
+          }
           else logger.debug(s"|---> Skipped stale update for consent ${consent.id}: status already changed")
         } match {
           case Failure(ex) => logger.error(s"Failed to update consent ID: ${consent.id}", ex)
@@ -161,7 +169,11 @@ object ConsentScheduler extends MdcLoggable {
             newStatus    = ConsentStatus.EXPIRED.toString,
             newNote      = newNote
           )
-          if (rows > 0) logger.warn(message)
+          if (rows > 0) {
+            // An expired consent must give its granted access back, exactly as a revoked one does.
+            Consent.revokeConsentAccountAccess(consent)
+            logger.warn(message)
+          }
           else logger.debug(s"|---> Skipped stale update for OBP consent ${consent.id}: status already changed")
         } match {
           case Failure(ex) => logger.error(s"Failed to update consent ID: ${consent.id}", ex)
@@ -197,7 +209,11 @@ object ConsentScheduler extends MdcLoggable {
             newStatus    = ConsentStatus.EXPIRED.toString,
             newNote      = newNote
           )
-          if (rows > 0) logger.warn(message)
+          if (rows > 0) {
+            // An expired consent must give its granted access back, exactly as a revoked one does.
+            Consent.revokeConsentAccountAccess(consent)
+            logger.warn(message)
+          }
           else logger.debug(s"|---> Skipped stale update for UK consent ${consent.id}: status already changed")
         } match {
           case Failure(ex) => logger.error(s"Failed to update consent ID: ${consent.id}", ex)

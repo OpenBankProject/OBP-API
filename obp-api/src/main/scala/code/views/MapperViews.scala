@@ -388,6 +388,13 @@ object MapperViews extends Views with MdcLoggable {
     isRevokedCustomViewAccess or isRevokedSystemViewAccess
   }
 
+  def accessGrantedToUserForConsumer(user: User, consumerId: String): List[BankIdAccountIdViewId] = {
+    AccountAccess.findAll(
+      By(AccountAccess.user_fk, user.userPrimaryKey.value),
+      By(AccountAccess.consumer_id, consumerId)
+    ).map(row => BankIdAccountIdViewId(BankId(row.bank_id.get), AccountId(row.account_id.get), ViewId(row.view_id.get)))
+  }
+
   //returns Full if deletable, Failure if not
   def canRevokeOwnerAccessAsBox(bankId: BankId, accountId: AccountId, viewDefinition : ViewDefinition, user : User) : Box[Unit] = {
     if(canRevokeOwnerAccess(bankId: BankId, accountId: AccountId, viewDefinition, user)) Full(Unit)

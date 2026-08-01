@@ -2369,12 +2369,23 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
   lazy val getBalances: HttpRoutes[IO] = HttpRoutes.of[IO] {
     case req @ GET -> `ukV401Prefix` / "aisp" / "balances" =>
       EndpointHelpers.withUser(req) { (u, cc) =>
+        val balancesViewId = ViewId(Constant.SYSTEM_READ_BALANCES_VIEW_ID)
         for {
           _ <- NewStyle.function.checkUKConsent(u, Some(cc))
           _ <- passesPsd2Aisp(Some(cc))
           availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
           (accounts, _) <- NewStyle.function.getBankAccounts(availablePrivateAccounts, Some(cc))
-        } yield JSONFactory_UKOpenBanking_401.createBalancesJSON(accounts)
+        } yield {
+          // Holding some view on an account is not the same as being allowed to read its balance:
+          // ReadBalances is a permission a consent may simply never have asked for. The per-account
+          // balances endpoint checks it, this one did not -- so it answered for every account the
+          // caller could see, whatever the consent said. Filter on the same view it does.
+          val readable = accounts.filter { account =>
+            APIUtil.checkViewAccessAndReturnView(
+              balancesViewId, BankIdAccountId(account.bankId, account.accountId), Full(u), Some(cc)).isDefined
+          }
+          JSONFactory_UKOpenBanking_401.createBalancesJSON(readable)
+        }
       }
   }
   resourceDocs += ResourceDoc(
@@ -3519,9 +3530,17 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
           availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
           (accounts, _) <- NewStyle.function.getBankAccounts(availablePrivateAccounts, Some(cc))
           allTxns <- Future {
+            val detailViewId = ViewId(Constant.SYSTEM_READ_TRANSACTIONS_DETAIL_VIEW_ID)
+            val basicViewId = ViewId(Constant.SYSTEM_READ_TRANSACTIONS_BASIC_VIEW_ID)
             accounts.flatMap { bankAccount =>
               (for {
-                view <- UserExtended(u).checkOwnerViewAccessAndReturnOwnerView(BankIdAccountId(bankAccount.bankId, bankAccount.accountId), Some(cc))
+                // The owner view, which this used to gate on, comes from holding the account and so
+                // says nothing about what a consent permits -- it let a consent that never asked for
+                // transactions read them, and moderated them as the owner rather than as the granted
+                // view. Gate on the transaction views the consent actually grants, exactly as the
+                // per-account endpoint does.
+                view <- APIUtil.checkViewAccessAndReturnView(detailViewId, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), Full(u), Some(cc))
+                  .or(APIUtil.checkViewAccessAndReturnView(basicViewId, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), Full(u), Some(cc)))
                 params = createQueriesByHttpParams(req.headers.headers.toList.map(h => HTTPParam(h.name.toString, List(h.value)))).getOrElse(Nil)
                 (transactions, _) <- BankAccountExtended(bankAccount).getModeratedTransactions(bank, Full(u), view, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), Some(cc), params)
               } yield transactions).getOrElse(Nil)

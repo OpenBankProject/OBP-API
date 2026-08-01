@@ -2971,6 +2971,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       x => (x._1, x._2.map(_.copy(httpBody = body.toOption)))
     } map { // Inject logged in user into CallContext data
       x => (x._1, x._2.map(_.copy(user = x._1)))
+    } map { // A UK Open Banking consent presented as a token claim runs as that consent's shadow user
+      x => Consent.applyUKConsentPrincipalFromToken(x._1, x._2)
     }
 
   }

@@ -77,16 +77,29 @@ case class CallContext(
   override def toString: String = SecureLogging.maskSensitive(
     s"${this.getClass.getSimpleName}(${this.productIterator.mkString(", ")})"
   )
+  /**
+   * The human being this request is on behalf of, where one is known.
+   *
+   * `user` is not always a person: a consent resolves to a shadow user that exists only for that
+   * consent (Berlin Group, OBP-native, and -- since UK consents moved to the same model -- UK too).
+   * Anything that must name a human rather than a principal reads this instead: the CBS adapter,
+   * which tells the core banking system who is asking, and metric attribution.
+   */
+  def humanUser: Box[User] = onBehalfOfUser.or(consenter).or(user)
+
   //This is only used to connect the back adapter. not useful for sandbox mode.
   def toOutboundAdapterCallContext: OutboundAdapterCallContext= {
     for{
       user <- this.user //If there is no user, then will go to `.openOr` method, to return anonymousAccess box.
-      username <- tryo(Some(user.name))
-      currentResourceUserId <- tryo(Some(user.userId))
+      // The adapter is told which human is asking. A shadow user has no name and no customer links,
+      // so sending it would make every consent-borne request look like a different, unknown caller.
+      psu <- this.humanUser
+      username <- tryo(Some(psu.name))
+      currentResourceUserId <- tryo(Some(psu.userId))
       consumerId = this.consumer.map(_.consumerId.get).openOr("") // if none, just return ""
       permission <- Views.views.vend.getPermissionForUser(user)
       views <- tryo(permission.views)
-      linkedCustomers <- tryo(CustomerX.customerProvider.vend.getCustomersByUserId(user.userId))
+      linkedCustomers <- tryo(CustomerX.customerProvider.vend.getCustomersByUserId(psu.userId))
       likedCustomersBasic = if (linkedCustomers.isEmpty) None else Some(createInternalLinkedBasicCustomersJson(linkedCustomers))
       userAuthContexts<- UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContextsBox(user.userId)
       basicUserAuthContextsFromDatabase = if (userAuthContexts.isEmpty) None else Some(createBasicUserAuthContextJson(userAuthContexts))
@@ -135,8 +148,12 @@ case class CallContext(
     CallContextLight(
       gatewayLoginRequestPayload = this.gatewayLoginRequestPayload,
       gatewayLoginResponseHeader = this.gatewayLoginResponseHeader,
-      userId = this.user.map(_.userId).toOption,
-      userName = this.user.map(_.name).toOption,
+      // Metrics name the human, not the principal. A consent's shadow user would record a per-consent
+      // UUID and an empty username, which is what Berlin Group and OBP-native traffic has always
+      // looked like on the metrics table; the consent itself stays identifiable via
+      // consentReferenceId below.
+      userId = this.humanUser.map(_.userId).toOption,
+      userName = this.humanUser.map(_.name).toOption,
       consumerId = this.consumer.map(_.consumerId.get).toOption,
       appName = this.consumer.map(_.name.get).toOption,
       developerEmail = this.consumer.map(_.developerEmail.get).toOption,

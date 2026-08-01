@@ -402,19 +402,35 @@ object Consent extends MdcLoggable {
    */
   private def grantAccessToViews(user: User, consent: ConsentJWT, consumerId: String = Constant.ALL_CONSUMERS): Box[User] = {
     val isConsumerScoped = consumerId != Constant.ALL_CONSUMERS
+    val wanted: List[BankIdAccountIdViewId] = consent.views.map { view =>
+      BankIdAccountIdViewId(BankId(view.bank_id), AccountId(view.account_id), ViewId(view.view_id))
+    }.distinct
+
+    // Reconcile rather than revoke-then-regrant. This runs on every request that presents the
+    // consent, so deleting a row and putting it back left a window in which the row did not exist:
+    // a second concurrent request for the same consent would delete the row the first had just
+    // re-granted, and the first would then fail its own access check with a 403 it could do nothing
+    // about. Two requests could also insert the same row at once and collide on the unique index.
+    // Touching only the difference means a steady-state request writes nothing at all.
+    val held: List[BankIdAccountIdViewId] = Views.views.vend.accessGrantedToUserForConsumer(user, consumerId)
+    val wantedSet = wanted.toSet
     for {
-      view <- consent.views
+      staleAccess <- held.filterNot(wantedSet.contains)
     } yield {
-      val bankIdAccountIdViewId = BankIdAccountIdViewId(BankId(view.bank_id), AccountId(view.account_id),ViewId(view.view_id))
-      if (isConsumerScoped) Views.views.vend.revokeAccessToViewForUserAndConsumer(bankIdAccountIdViewId, user, consumerId)
-      else Views.views.vend.revokeAccess(bankIdAccountIdViewId, user)
+      if (isConsumerScoped) Views.views.vend.revokeAccessToViewForUserAndConsumer(staleAccess, user, consumerId)
+      else Views.views.vend.revokeAccess(staleAccess, user)
     }
+
+    val heldSet = held.toSet
     val result: List[Box[View]] = {
       for {
         view <- consent.views
       } yield {
         val bankIdAccountIdViewId = BankIdAccountIdViewId(BankId(view.bank_id), AccountId(view.account_id),ViewId(view.view_id))
-        Views.views.vend.systemView(ViewId(view.view_id)) match {
+        if (heldSet.contains(bankIdAccountIdViewId)) {
+          // Already granted and still wanted -- leave the row alone.
+          Views.views.vend.systemView(ViewId(view.view_id)).or(Views.views.vend.customView(ViewId(view.view_id), BankIdAccountId(BankId(view.bank_id), AccountId(view.account_id))))
+        } else Views.views.vend.systemView(ViewId(view.view_id)) match {
           case Full(systemView) =>
             if (isConsumerScoped)
               Views.views.vend.grantAccessToSystemViewForConsumer(BankId(view.bank_id), AccountId(view.account_id), systemView, user, consumerId)
@@ -773,9 +789,8 @@ object Consent extends MdcLoggable {
    * already verified the access token's signature before checkUKConsent runs; here the caller may
    * hand us the consent JWT itself, so it is verified against the consent's stored secret.
    *
-   * Deliberately does NOT reuse applyConsentRules: that resolves the principal with
-   * getOrCreateUser(consent.sub, ...), and createUKConsentJWT sets sub to a fresh UUID rather than
-   * the PSU -- reusing it would mint a phantom user and grant it the consent's views.
+   * The principal is the consent's own shadow user (see resolveUKConsentShadowUser); the PSU the
+   * consent belongs to is carried alongside it on the CallContext as `consenter`.
    */
   def applyUKRules(storedConsent: MappedConsent,
                    consentHeaderValue: String,
@@ -815,10 +830,13 @@ object Consent extends MdcLoggable {
         // The PSU bound to the consent by updateConsentUser during the authorise ceremony. A
         // consent that was never authorised has no user, and the status gate above already
         // rejected it -- this is the belt to that braces.
-        user <- Users.users.vend.getUserByUserId(storedConsent.userId) ?~! ErrorMessages.ConsentNotFound
+        psu <- Users.users.vend.getUserByUserId(storedConsent.userId) ?~! ErrorMessages.ConsentNotFound
+        principal <- resolveUKConsentPrincipal(storedConsent, consentJwt, psu)
       } yield {
-        (user, callContext.copy(
-          consenter = Full(user),
+        (principal, callContext.copy(
+          // The PSU stays reachable for everything that needs a human: the CBS adapter, metric
+          // attribution, and CallContext.effectiveHumanUserId.
+          consenter = Full(psu),
           ukConsentId = Some(storedConsent.consentId),
           consentReferenceId = Some(storedConsent.consentReferenceId)
         ))
@@ -829,6 +847,151 @@ object Consent extends MdcLoggable {
         case failure@Failure(_, _, _) => (failure, Some(callContext))
         case _ => (Failure(ErrorMessages.ConsentNotFound), Some(callContext))
       }
+    }
+  }
+
+  /**
+   * Drop the account access a consent's shadow user holds.
+   *
+   * Revoking or expiring a consent only ever flipped a status column, which was enough while the
+   * status gate was the only thing standing between the caller and the data. It leaves the granted
+   * AccountAccess rows in the table forever, so anything that reads them without going through the
+   * consent gate -- the account-permissions listing, a future endpoint, an operator looking at the
+   * database -- still sees a revoked consent's access as live. A shadow user's rows belong to
+   * exactly one consent, so for the first time they can be cleaned up without guessing.
+   *
+   * Safe for a consent whose shadow user was never minted (one that predates account binding and
+   * still runs as the PSU): the lookup simply finds nothing. It must never fall back to the PSU --
+   * that would delete access the PSU holds in their own right.
+   */
+  def revokeConsentAccountAccess(consent: code.consent.ConsentTrait): Unit = {
+    implicit val dateFormats = CustomJsonFormats.formats
+    val revoked = for {
+      consentJwt <- JwtUtil.getSignedPayloadAsJson(consent.jsonWebToken).map(parse(_).extract[ConsentJWT])
+      shadowUser <- Users.users.vend.getUserByProviderId(provider = consentJwt.iss, idGivenByProvider = consentJwt.sub)
+    } yield {
+      Views.views.vend.accessGrantedToUserForConsumer(shadowUser, Constant.ALL_CONSUMERS).map { access =>
+        Views.views.vend.revokeAccessToViewForUserAndConsumer(access, shadowUser, Constant.ALL_CONSUMERS)
+      }.size
+    }
+    revoked match {
+      case Full(count) if count > 0 =>
+        logger.info(s"revokeConsentAccountAccess: dropped $count account access rows for consent ${consent.consentId}")
+      case _ =>
+    }
+  }
+
+  /**
+   * The Bearer-token half of the shadow-user resolution.
+   *
+   * A UK consent normally travels as a `consent_id` claim inside an OAuth2 access token. On that
+   * path the request is authenticated as the PSU long before any UK code runs, and checkUKConsent --
+   * which validates the consent -- executes inside the endpoint, by which point the principal is
+   * already fixed. So the swap has to happen here, at the end of authentication, where the
+   * CallContext the endpoint will see is still being assembled.
+   *
+   * This performs no validation and cannot widen anything: it either narrows the principal to the
+   * consent's shadow user or leaves the request exactly as it was. checkUKConsent still runs
+   * afterwards and still rejects a consent that is the wrong standard, revoked, expired, bound to a
+   * different PSU, or held by a different consumer -- with the same status codes as before.
+   */
+  def applyUKConsentPrincipalFromToken(user: Box[User],
+                                       callContext: Option[CallContext]): (Box[User], Option[CallContext]) = {
+    def swap: Option[(Box[User], Option[CallContext])] = for {
+      cc <- callContext
+      // The Consent-Id / Consent-JWT header path resolved the principal already, in applyUKRules.
+      if cc.ukConsentId.isEmpty
+      psu <- user.toOption
+      accessToken <- cc.authReqHeaderField.toOption.map(_.replaceFirst("Bearer\\s+", "").trim)
+      if JwtUtil.checkIfStringIsJWTValue(accessToken).isDefined
+      consentId <- JwtUtil.getOptionalClaim("consent_id", accessToken)
+      storedConsent <- Consents.consentProvider.vend.getConsentByConsentId(consentId).toOption
+      if storedConsent.apiStandard == ConsentStandardUK
+      consentJwt <- {
+        implicit val dateFormats = CustomJsonFormats.formats
+        JwtUtil.getSignedPayloadAsJson(storedConsent.jsonWebToken).map(parse(_).extract[ConsentJWT]).toOption
+      }
+      principal <- resolveUKConsentPrincipal(storedConsent, consentJwt, psu).toOption
+    } yield {
+      (Full(principal), Some(cc.copy(
+        user = Full(principal),
+        consenter = Full(psu),
+        consentReferenceId = Some(storedConsent.consentReferenceId)
+      )))
+    }
+    // Anything unexpected -- an unparseable token, a consent row that has gone -- leaves the request
+    // as it is rather than failing authentication for a reason the caller cannot act on.
+    scala.util.Try(swap).toOption.flatten.getOrElse((user, callContext))
+  }
+
+  /**
+   * The user a UK consent's data access runs as: the consent's own shadow user.
+   *
+   * Every consent JWT carries a random UUID in `sub` (createUKConsentJWT, same as Berlin Group and
+   * OBP-native). Berlin Group and OBP-native resolve that UUID to a user of its own and grant it the
+   * consent's views, so one consent's AccountAccess rows can never be another's. UK used to skip
+   * that and grant to the real PSU instead, which is why two consents held by the same TPP for the
+   * same PSU wrote to one set of rows and rewrote each other -- and why a consent could read
+   * accounts it never named. Resolving to the shadow user makes the isolation structural: the rows
+   * belong to an identity that exists only for this consent.
+   *
+   * It also closes the bypasses for free. The shadow user holds no entitlements (a UK consent JWT
+   * carries `entitlements = Nil`), so account firehose and the ABAC fallback -- both of which are
+   * consulted before the AccountAccess check in APIUtil.hasAccountAccess -- can never answer for it.
+   * And it holds no `owner` view, so the account-listing query (a bare WHERE user_id = ?) returns
+   * exactly the consent's accounts without the query having to learn about consents at all.
+   *
+   * The views are re-granted from the JWT on every request, as Berlin Group does: the JWT is the
+   * source of truth, and the rows are only its materialisation. Narrowing a consent therefore takes
+   * effect immediately, with no sweep of anything.
+   *
+   * Grandfathering: a consent authorised before grantUKConsentAccountAccess existed still carries
+   * the `(null, null, permission)` placeholder views createUKConsentJWT writes at creation time.
+   * Those name no account, so a shadow user would be granted nothing and every request would 403.
+   * Such a consent had no enforcement to begin with, so it keeps running as the PSU -- the status
+   * quo, logged so it is visible.
+   */
+  private def resolveUKConsentPrincipal(storedConsent: MappedConsent, consentJwt: ConsentJWT, psu: User): Box[User] = {
+    val namesRealAccounts = consentJwt.views.exists { view =>
+      Option(view.bank_id).exists(_.trim.nonEmpty) && Option(view.account_id).exists(_.trim.nonEmpty)
+    }
+    if (!namesRealAccounts) {
+      logger.warn(
+        s"UK consent ${storedConsent.consentId} names no real account in its JWT views -- it predates " +
+        s"account binding. Falling back to the PSU, which means this consent's declared Permissions " +
+        s"place no limit on what it can read. Re-authorise it to bind it to accounts.")
+      Full(psu)
+    } else {
+      for {
+        shadowUser <- getOrCreateUKConsentShadowUser(storedConsent, consentJwt)
+        _ <- grantAccessToViews(shadowUser, consentJwt)
+      } yield shadowUser
+    }
+  }
+
+  /**
+   * Get (or first mint) the shadow user for a UK consent, copying the consent's snapshot of the
+   * PSU's auth context onto it the first time -- the connectors read those key/value pairs to
+   * identify the customer, so a shadow user without them would be a different caller to the CBS.
+   */
+  private def getOrCreateUKConsentShadowUser(storedConsent: MappedConsent, consentJwt: ConsentJWT): Box[User] = {
+    Users.users.vend.getUserByProviderId(provider = consentJwt.iss, idGivenByProvider = consentJwt.sub) match {
+      case Full(existing) => Full(existing)
+      case _ =>
+        for {
+          created <- Users.users.vend.createResourceUser(
+            provider = consentJwt.iss,
+            providerId = Some(consentJwt.sub),
+            createdByConsentId = Some(storedConsent.consentId),
+            name = None,
+            email = None,
+            userId = None,
+            createdByUserInvitationId = None,
+            company = None,
+            lastMarketingAgreementSignedDate = None
+          ) ?~! ErrorMessages.CannotGetOrCreateUser
+          _ = copyAuthContextOfConsentToUser(storedConsent.consentId, created.userId, newUser = true)
+        } yield created
     }
   }
 
@@ -1320,8 +1483,13 @@ object Consent extends MdcLoggable {
    * bank_id/account_id, no wildcard). Call this once the PSU has selected which accounts the
    * consent applies to (currently: the UK authorise step, since OBP has no separate
    * ASPSP-hosted account-selection UI) to replace those dead rows with real per-account
-   * ConsentViews, and to eagerly grant the corresponding AccountAccess rows — mirroring how
-   * updateViewsOfBerlinGroupConsentJWT resolves BG's IBAN-keyed access into real accounts.
+   * ConsentViews — mirroring how updateViewsOfBerlinGroupConsentJWT resolves BG's IBAN-keyed access
+   * into real accounts.
+   *
+   * The JWT it writes is the consent's whole scope: resolveUKConsentPrincipal re-derives the
+   * consent's AccountAccess from it on every request. So this grants nothing itself, and must keep
+   * running as the real PSU -- the account-holdership check below is the security control that stops
+   * a consent being bound to somebody else's accounts, and only the PSU holds accounts.
    */
   def grantUKConsentAccountAccess(user: User,
                                    bankId: BankId,
@@ -1367,87 +1535,15 @@ object Consent extends MdcLoggable {
         val jwtPayloadAsJson = compactRender(Extraction.decompose(updatedPayload))
         val jwtClaims: JWTClaimsSet = JWTClaimsSet.parse(jwtPayloadAsJson)
         val jwt = CertificateUtil.jwtWithHmacProtection(jwtClaims, consent.secret)
-        // Drop the UK permission views this consent does NOT declare, across every account the PSU
-        // holds at this bank. grantAccessToViews only revokes-and-regrants the views named in the
-        // consent it is given, so without this a permission granted by an earlier, broader consent
-        // survives forever and silently widens every later one: after any consent covering
-        // ReadBalances, a subsequent ReadAccountsBasic-only consent would still read balances.
+        // Writing the JWT is the whole job. Nothing is granted here.
         //
-        // The sweep has to cover all held accounts, not just the ones this consent names: an
-        // account dropped from the selection at re-authorisation is exactly the case where nothing
-        // else would ever clear it. Rows carry no consent identity (see AccountAccess), and
-        // User.hasAccountAccess only asks whether a (user, account, view, consumer) row exists --
-        // never whether the account belongs to the consent presented on this request -- so a row
-        // left behind by an earlier, wider consent is indistinguishable from one this consent
-        // granted. Sweeping only validatedAccountIds left those rows in place and let a consent
-        // read accounts it never declared. The consent has to be authoritative for the PSU's whole
-        // holding at this bank, or narrowing it means nothing.
-        //
-        // Deliberately narrow in the other two dimensions: only the seven UK permission views, and
-        // only rows belonging to this consent's own consumer -- owner / ManageCustomViews come from
-        // account ownership, the *BerlinGroup views from the other standard, and another TPP's rows
-        // are that TPP's business, not this consent's.
-        //
-        // Accepted cost: two live consents held by the same TPP for the same PSU now trim each
-        // other on the accounts they do not share -- authorising the second one revokes the first
-        // one's rows on accounts only the first names. That is the same limitation AccountAccess
-        // already has within a single account (rows carry no consent identity, so the latest
-        // authorisation wins), now applied across accounts. Erring towards under-granting is the
-        // right side to err on for a consent-scope check; the complete fix is a consent_id column
-        // on AccountAccess, which is tracked separately.
-        //
-        // The second pass sweeps the same views at ALL_CONSUMERS. Those rows can only have come
-        // from a UK consent authorised before grants carried a consumer (account ownership never
-        // grants these seven -- see LocalMappedConnector's viewsToGenerate), and leaving them would
-        // silently defeat the whole fix: User.hasAccountAccess falls back to ALL_CONSUMERS when it
-        // finds no consumer-specific row, so a pre-existing ReadBalances row would still answer for
-        // a consent that never asked for balances. Each account heals the first time it is
-        // re-authorised; the cost is that a TPP whose access predates this change has to
-        // re-authorise to get its own scoped rows back.
-        val ukPermissionViewIds: Set[String] = Set(
-          Constant.SYSTEM_READ_ACCOUNTS_BASIC_VIEW_ID,
-          Constant.SYSTEM_READ_ACCOUNTS_DETAIL_VIEW_ID,
-          Constant.SYSTEM_READ_BALANCES_VIEW_ID,
-          Constant.SYSTEM_READ_TRANSACTIONS_BASIC_VIEW_ID,
-          Constant.SYSTEM_READ_TRANSACTIONS_DEBITS_VIEW_ID,
-          Constant.SYSTEM_READ_TRANSACTIONS_CREDITS_VIEW_ID,
-          Constant.SYSTEM_READ_TRANSACTIONS_DETAIL_VIEW_ID
-        )
-        // A consent without a consumer cannot own rows of its own; fall back to the shared scope so
-        // it behaves exactly as it did before, rather than writing rows under an empty consumer id.
-        val consentConsumerId =
-          Option(consent.consumerId).map(_.trim).filterNot(_.isEmpty).getOrElse(Constant.ALL_CONSUMERS)
-        // notHeld above already guarantees boundAccountIds is a subset of heldAccountIds.
-        val boundAccountIds: Set[String] = validatedAccountIds.toSet
-        for {
-          accountId <- heldAccountIds.toList
-          viewId <- ukPermissionViewIds.toList
-        } {
-          val bankIdAccountIdViewId = BankIdAccountIdViewId(bankId, AccountId(accountId), ViewId(viewId))
-          // Idempotent: a view the PSU never held simply reports CannotFindAccountAccess.
-          // Legacy shared rows go regardless of what this consent declares -- the declared ones are
-          // re-granted under this consumer immediately below, so nothing this consent is entitled to
-          // is lost, and nothing it is not entitled to survives for another TPP to inherit.
-          Views.views.vend.revokeAccessToViewForUserAndConsumer(bankIdAccountIdViewId, user, Constant.ALL_CONSUMERS)
-          // On an account this consent does not name, no UK permission view survives at all.
-          if (!boundAccountIds.contains(accountId) || !permissions.contains(viewId)) {
-            Views.views.vend.revokeAccessToViewForUserAndConsumer(bankIdAccountIdViewId, user, consentConsumerId)
-          }
-        }
-
-        // Eagerly grant real AccountAccess now: UK consents are exercised via an opaque OAuth2
-        // Bearer token (checkUKConsent), not the Consent-JWT header BG/OBP consents use to
-        // lazily re-derive access on every call — so the grant has to happen once, here.
-        //
-        // Scoped to this consent's consumer, so the rows are this TPP's alone: another TPP's
-        // consent over the same account neither reads nor rewrites them.
-        updatedPayload.foreach { consentJwt =>
-          grantAccessToViews(user, consentJwt, consentConsumerId) match {
-            case Failure(msg, _, _) =>
-              logger.warn(s"grantUKConsentAccountAccess: grantAccessToViews reported: $msg")
-            case _ =>
-          }
-        }
+        // This used to eagerly write AccountAccess rows for the PSU, and then sweep away the rows
+        // an earlier, wider consent had left behind -- necessary only because those rows were keyed
+        // to the PSU and so were shared by every consent that PSU had granted. Data access now runs
+        // as the consent's own shadow user (resolveUKConsentPrincipal), which re-derives its views
+        // from this JWT on every request, so a consent's rows are its own and narrowing one takes
+        // effect the moment this JWT is written. There is nothing left to sweep, and an eager grant
+        // to the PSU would only put back the rows that caused the problem.
         Consents.consentProvider.vend.setJsonWebToken(consent.consentId, jwt)
       }
     }
@@ -1555,7 +1651,11 @@ object Consent extends MdcLoggable {
               // interval; this reactive check closes the gap immediately regardless of timing.
               case currentTimeMillis if Option(c.expirationDateTime).exists(_.getTime < currentTimeMillis) =>
                 Failure(ErrorMessages.ConsentExpiredIssue)
-              case _ if c.mUserId.get != user.userId =>
+              // The consent must belong to the PSU the access token authenticated. Data access runs
+              // as the consent's shadow user (applyUKConsentPrincipalFromToken), so compare against
+              // the PSU that swap set aside rather than against the principal -- a shadow user's id
+              // can never equal mUserId. `user` is the fallback for a request the swap left alone.
+              case _ if c.mUserId.get != calContext.flatMap(_.consenter.toOption).getOrElse(user).userId =>
                 Failure(ErrorMessages.ConsentDoesNotMatchUser)
               case _ =>
                 val consumerIdOfLoggedInUser: Option[String] = calContext.flatMap(_.consumer.map(_.consumerId.get))

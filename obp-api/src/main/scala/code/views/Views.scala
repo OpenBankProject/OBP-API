@@ -42,6 +42,10 @@ trait Views {
   def grantAccessToSystemViewForConsumer(bankId: BankId, accountId: AccountId, view : View, user : User, consumerId : String) : Box[View]
   def grantAccessToCustomViewForConsumer(bankIdAccountIdViewId : BankIdAccountIdViewId, user : User, consumerId : String) : Box[View]
   def revokeAccessToViewForUserAndConsumer(bankIdAccountIdViewId : BankIdAccountIdViewId, user : User, consumerId : String) : Box[Boolean]
+  // Everything a user currently holds under one application's scope. The consent flows reconcile
+  // against this: a consent's granted views are whatever its JWT says, so the rows that back it are
+  // brought to match rather than deleted and rewritten.
+  def accessGrantedToUserForConsumer(user : User, consumerId : String) : List[BankIdAccountIdViewId]
 
   def customView(viewId : ViewId, bankAccountId: BankIdAccountId) : Box[View]
   def systemView(viewId : ViewId) : Box[View]
