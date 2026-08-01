@@ -219,6 +219,55 @@ class UKOpenBankingV401ConsentScopingTests extends UKOpenBankingV401ServerSetup 
     }
   }
 
+  /**
+   * The consent normally arrives as a `consent_id` claim inside the OAuth2 access token, not in a
+   * Consent-Id header. On that path the request is authenticated as the PSU before any UK code
+   * runs, so the principal is swapped at the end of authentication instead
+   * (Consent.applyUKConsentPrincipalFromToken). Everything above drives the header path; this
+   * drives the token one, since it is the path the standard actually specifies.
+   *
+   * The token is self-signed: JwtUtil.getOptionalClaim parses structurally and does not verify, and
+   * the real access token would have been verified by OAuth2Login long before this point.
+   */
+  private def bearerContextFor(consentId: String, consumer: code.model.Consumer): CallContext = {
+    val claims = new com.nimbusds.jwt.JWTClaimsSet.Builder().claim("consent_id", consentId).build()
+    CallContext(
+      user = Full(resourceUser1),
+      consumer = Full(consumer),
+      authReqHeaderField = Full(s"Bearer ${code.api.util.CertificateUtil.jwtWithHmacProtection(claims)}"))
+  }
+
+  feature("A UK consent presented in an access token resolves the same way as one in a header") {
+    scenario("the principal is swapped, the PSU is kept, and the scope is the consent's", UKConsentScoping) {
+      val consentId = authoriseConsentFor(testConsumer.consumerId.get, List(ReadAccountsBasic),
+        accountIds = List(acc))
+
+      val (principal, callContext) =
+        Consent.applyUKConsentPrincipalFromToken(Full(resourceUser1), Some(bearerContextFor(consentId, testConsumer)))
+      val resolved = principal.openOrThrowException("token path did not resolve a principal")
+      val cc = callContext.getOrElse(fail("token path dropped the CallContext"))
+
+      resolved.userId should not equal resourceUser1.userId
+      // The PSU has to survive the swap: checkUKConsent compares the consent's owner against it,
+      // and the CBS adapter and metrics both name it.
+      cc.consenter.map(_.userId) should equal(Full(resourceUser1.userId))
+
+      UserExtended(resolved).hasAccountAccess(systemView(ReadAccountsBasic), bankIdAccountId, Some(cc)) should equal(true)
+      UserExtended(resolved).hasAccountAccess(systemView(ReadBalances), bankIdAccountId, Some(cc)) should equal(false)
+      UserExtended(resolved).hasAccountAccess(systemView(ReadAccountsBasic), otherBankIdAccountId, Some(cc)) should equal(false)
+
+      // And the consent's ownership check still passes, because it is asked about the PSU.
+      Consent.checkUKConsent(resolved, Some(cc)).isDefined should equal(true)
+    }
+
+    scenario("a token with no consent claim is left exactly as it is", UKConsentScoping) {
+      val plain = CallContext(user = Full(resourceUser1), consumer = Full(testConsumer))
+      val (principal, callContext) = Consent.applyUKConsentPrincipalFromToken(Full(resourceUser1), Some(plain))
+      principal.map(_.userId) should equal(Full(resourceUser1.userId))
+      callContext.flatMap(_.consenter.toOption) should equal(None)
+    }
+  }
+
   feature("Revoking a UK consent takes its access away") {
     scenario("the granted rows are gone, not merely unreachable", UKConsentScoping) {
       val consentId = authoriseConsentFor(testConsumer.consumerId.get, List(ReadAccountsBasic))
