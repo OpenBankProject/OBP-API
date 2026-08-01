@@ -977,24 +977,19 @@ object Consent extends MdcLoggable {
    * identify the customer, so a shadow user without them would be a different caller to the CBS.
    */
   private def getOrCreateUKConsentShadowUser(storedConsent: MappedConsent, consentJwt: ConsentJWT): Box[User] = {
-    Users.users.vend.getUserByProviderId(provider = consentJwt.iss, idGivenByProvider = consentJwt.sub) match {
-      case Full(existing) => Full(existing)
-      case _ =>
-        for {
-          created <- Users.users.vend.createResourceUser(
-            provider = consentJwt.iss,
-            providerId = Some(consentJwt.sub),
-            createdByConsentId = Some(storedConsent.consentId),
-            name = None,
-            email = None,
-            userId = None,
-            createdByUserInvitationId = None,
-            company = None,
-            lastMarketingAgreementSignedDate = None
-          ) ?~! ErrorMessages.CannotGetOrCreateUser
-          _ = copyAuthContextOfConsentToUser(storedConsent.consentId, created.userId, newUser = true)
-        } yield created
-    }
+    // Reuses the shared get-or-create rather than doing its own find-then-insert: this runs on
+    // every request, so the very first two requests for a new consent race, and only the shared one
+    // recovers from the resulting unique-index violation by re-reading.
+    val (user, isNew) = Users.users.vend.getOrCreateUserByProviderId(
+      provider = consentJwt.iss,
+      idGivenByProvider = consentJwt.sub,
+      consentId = Some(storedConsent.consentId),
+      name = None,
+      email = None)
+    for {
+      shadowUser <- user ?~! ErrorMessages.CannotGetOrCreateUser
+      _ = if (isNew) copyAuthContextOfConsentToUser(storedConsent.consentId, shadowUser.userId, newUser = true)
+    } yield shadowUser
   }
 
   def applyRulesOldStyle(consentId: Option[String], callContext: CallContext): (Box[User], CallContext) = {
