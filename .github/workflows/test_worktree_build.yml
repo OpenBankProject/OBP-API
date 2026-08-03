@@ -18,15 +18,19 @@ jobs:
           ref: ${{ github.event.inputs.branch }}
           fetch-depth: 0
 
-      - name: Set up JDK 11
+      # Same JDK as build_pull_request.yml — the build compiles with -release 25,
+      # so the JDK 11 this job used to request could never get past compilation.
+      - name: Set up JDK
         uses: actions/setup-java@v4
         with:
-          java-version: "11"
-          distribution: "adopt"
+          java-version: "25"
+          distribution: "temurin"
           cache: maven
 
+      # On a branch, not detached: the point of this job is that the stamp names
+      # THIS working copy, and a detached worktree has no branch to compare against.
       - name: Create git worktree
-        run: git worktree add --detach ../obp-api-worktree HEAD
+        run: git worktree add -b worktree-stamp-probe ../obp-api-worktree HEAD
 
       - name: Build from worktree
         working-directory: ../obp-api-worktree
@@ -34,7 +38,11 @@ jobs:
           set -o pipefail
           MAVEN_OPTS="-Xmx3G -Xss2m -XX:MaxMetaspaceSize=1G" mvn clean package -DskipTests 2>&1 | tee "$GITHUB_WORKSPACE/worktree-build.log"
 
-      - name: Verify git.properties was generated
+      # A worktree build used to inherit the MAIN checkout's branch and commit
+      # (git-commit-id-maven-plugin redirected the worktree gitdir to the main .git),
+      # so "the fields are non-empty" passed while the values were wrong. Compare
+      # them against the worktree's own HEAD instead.
+      - name: Verify the stamp describes the worktree
         run: |
           PROPS_FILE="../obp-api-worktree/obp-api/target/classes/git.properties"
           if [ ! -f "$PROPS_FILE" ]; then
@@ -44,20 +52,85 @@ jobs:
           echo "Contents of git.properties:"
           cat "$PROPS_FILE"
 
-          check_field() {
-            local field=$1
-            local value
-            value=$(grep "^${field}=" "$PROPS_FILE" | cut -d'=' -f2-)
-            if [ -z "$value" ]; then
-              echo "FAIL: $field is empty or missing"
-              exit 1
-            fi
-            echo "OK: $field=$value"
+          read_field() {
+            grep "^${1}=" "$PROPS_FILE" | cut -d'=' -f2- | sed 's/\\//g'
           }
 
-          check_field "git.commit.id"
-          check_field "git.branch"
-          check_field "git.build.time"
+          expect_field() {
+            local field=$1 expected=$2 actual
+            actual=$(read_field "$field")
+            if [ "$actual" != "$expected" ]; then
+              echo "FAIL: $field is '$actual', expected '$expected'"
+              exit 1
+            fi
+            echo "OK: $field=$actual"
+          }
+
+          expect_field "git.commit.id" "$(git -C ../obp-api-worktree rev-parse HEAD)"
+          expect_field "git.branch" "worktree-stamp-probe"
+
+          BUILD_TIME=$(read_field "git.build.time")
+          if [ -z "$BUILD_TIME" ]; then
+            echo "FAIL: git.build.time is empty"
+            exit 1
+          fi
+          echo "OK: git.build.time=$BUILD_TIME"
+          echo "FIRST_COMMIT=$(read_field git.commit.id)" >> "$GITHUB_ENV"
+          echo "FIRST_BUILD_TIME=$BUILD_TIME" >> "$GITHUB_ENV"
+
+      # The other half of the bug: the stamp was written once and then reused, so an
+      # incremental rebuild at a new commit shipped the previous commit's values.
+      - name: Rebuild at a new commit without clean and verify the stamp moved
+        working-directory: ../obp-api-worktree
+        run: |
+          set -o pipefail
+          sleep 1
+          git -c user.name=ci -c user.email=ci@example.com commit --allow-empty -m "stamp probe"
+          MAVEN_OPTS="-Xmx3G -Xss2m -XX:MaxMetaspaceSize=1G" mvn package -DskipTests 2>&1 | tee -a "$GITHUB_WORKSPACE/worktree-build.log"
+
+          PROPS_FILE="obp-api/target/classes/git.properties"
+          read_field() {
+            grep "^${1}=" "$PROPS_FILE" | cut -d'=' -f2- | sed 's/\\//g'
+          }
+
+          NEW_COMMIT=$(read_field git.commit.id)
+          NEW_BUILD_TIME=$(read_field git.build.time)
+
+          if [ "$NEW_COMMIT" != "$(git rev-parse HEAD)" ]; then
+            echo "FAIL: after the rebuild git.commit.id is '$NEW_COMMIT', expected '$(git rev-parse HEAD)'"
+            exit 1
+          fi
+          if [ "$NEW_COMMIT" = "$FIRST_COMMIT" ]; then
+            echo "FAIL: git.commit.id did not change across commits (stale stamp)"
+            exit 1
+          fi
+          if [ "$NEW_BUILD_TIME" = "$FIRST_BUILD_TIME" ]; then
+            echo "FAIL: git.build.time did not change across builds (stale stamp)"
+            exit 1
+          fi
+          echo "OK: stamp tracks the rebuild — $NEW_COMMIT at $NEW_BUILD_TIME"
+
+          # The stamp belongs to obp-api alone; a second copy elsewhere on the
+          # classpath makes which one /status reports a coin flip.
+          FOUND=$(find . -name git.properties -not -path '*/target/lib/*' | sort)
+          if [ "$FOUND" != "./obp-api/target/classes/git.properties" ]; then
+            echo "FAIL: expected exactly one git.properties, found:"
+            echo "$FOUND"
+            exit 1
+          fi
+          echo "OK: single git.properties on the classpath"
+
+      - name: Verify the jar ships the stamp
+        working-directory: ../obp-api-worktree
+        run: |
+          unzip -p obp-api/target/obp-api.jar git.properties > /tmp/jar-git.properties
+          cat /tmp/jar-git.properties
+          JAR_COMMIT=$(grep '^git.commit.id=' /tmp/jar-git.properties | cut -d'=' -f2- | sed 's/\\//g')
+          if [ "$JAR_COMMIT" != "$(git rev-parse HEAD)" ]; then
+            echo "FAIL: jar stamp is '$JAR_COMMIT', expected '$(git rev-parse HEAD)'"
+            exit 1
+          fi
+          echo "OK: obp-api.jar carries the current commit"
 
       - name: Upload build log
         if: always()

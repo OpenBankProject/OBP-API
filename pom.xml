@@ -288,25 +288,12 @@
 
 
 
-        <plugin>
-          <groupId>io.github.git-commit-id</groupId>
-          <artifactId>git-commit-id-maven-plugin</artifactId>
-          <version>9.0.1</version>
-          <executions>
-            <execution>
-              <goals>
-                <goal>revision</goal>
-              </goals>
-            </execution>
-          </executions>
-          <configuration>
-            <dotGitDirectory>${project.basedir}/.git</dotGitDirectory>
-            <generateGitPropertiesFile>true</generateGitPropertiesFile>
-            <generateGitPropertiesFilename>src/main/resources/git.properties</generateGitPropertiesFilename>
-            <failOnNoGitDirectory>false</failOnNoGitDirectory>
-          </configuration>
-        </plugin>
-
+        <!-- The build stamp (git.properties) is produced by
+             scripts/write_git_properties.sh, wired into obp-api's build. It used to
+             come from git-commit-id-maven-plugin, declared here so every module got
+             one; that put two git.properties on the runtime classpath and, worse,
+             stamped the wrong repository for any build run from a git worktree. See
+             the obp-api/pom.xml execution and the script header for the details. -->
 
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>

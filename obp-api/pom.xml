@@ -620,6 +620,33 @@
         <artifactId>maven-antrun-plugin</artifactId>
         <version>3.1.0</version>
         <executions>
+          <!-- Build stamp for /status. Runs before maven-resources copies
+               src/main/resources into target/classes (that copy leaves files it did
+               not write alone), so the stamp lands in the jar without ever being
+               written into the source tree.
+
+               This replaces git-commit-id-maven-plugin: its bundled JGit 6.7 has no
+               `commondir` support, so GitDirLocator.resolveWorktree() redirects a
+               linked worktree's gitdir to the main checkout's .git and every build
+               run from a worktree stamped the wrong branch and commit — and its
+               "skip the rewrite when only git.build.time changed" optimisation then
+               froze the timestamp too. The git CLI has neither limitation. The
+               script never fails the build; see its header. -->
+          <execution>
+            <id>generate-git-properties</id>
+            <phase>generate-resources</phase>
+            <goals>
+              <goal>run</goal>
+            </goals>
+            <configuration>
+              <target>
+                <exec executable="/bin/bash" failonerror="false">
+                  <arg value="${project.basedir}/../scripts/write_git_properties.sh"/>
+                  <arg value="${project.build.outputDirectory}/git.properties"/>
+                </exec>
+              </target>
+            </configuration>
+          </execution>
           <execution>
             <id>delete-surefire-xml-after-html</id>
             <phase>verify</phase>
@@ -704,24 +731,6 @@
           </executions>
         </plugin>
 
-        <plugin>
-          <groupId>io.github.git-commit-id</groupId>
-          <artifactId>git-commit-id-maven-plugin</artifactId>
-          <version>9.0.1</version>
-          <executions>
-            <execution>
-              <goals>
-                <goal>revision</goal>
-              </goals>
-            </execution>
-          </executions>
-          <configuration>
-            <dotGitDirectory>${project.basedir}/.git</dotGitDirectory>
-            <generateGitPropertiesFile>true</generateGitPropertiesFile>
-            <generateGitPropertiesFilename>src/main/resources/git.properties</generateGitPropertiesFilename>
-            <failOnNoGitDirectory>false</failOnNoGitDirectory>
-          </configuration>
-        </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
