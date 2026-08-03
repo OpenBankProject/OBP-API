@@ -68,10 +68,13 @@ object Http4sBGv13AIS extends MdcLoggable {
       EndpointHelpers.executeFutureCreated(req) {
         val cc = req.callContext
         val callContext = Some(cc)
-        val createdByUser: Option[User] = cc.user match {
-          case Full(user) => Some(user)
-          case _ => None
-        }
+        // A pure client-credentials token still resolves cc.user to an auto-vivified
+        // pseudo-user (idGivenByProvider == the calling consumer's own client key) rather than
+        // leaving it Empty -- that pseudo-user is not a PSU, so it must not become the
+        // consent's owner (it would permanently block the real PSU's authorise-time
+        // ConsentDoesNotMatchUser check). Only carry a genuine PSU session through.
+        val createdByUser: Option[User] = cc.user.toOption
+          .filterNot(u => cc.consumer.map(_.key.get).contains(u.idGivenByProvider))
         for {
           _ <- passesPsd2Aisp(callContext)
           failMsg = s"$InvalidJsonFormat The Json body should be the $PostConsentJson "

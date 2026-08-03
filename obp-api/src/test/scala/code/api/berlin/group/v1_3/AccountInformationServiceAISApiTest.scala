@@ -13,17 +13,23 @@ import code.api.util.Consent
 import code.api.util.ErrorMessages._
 import code.api.v4_0_0.PostViewJsonV400
 import code.consent.{ConsentStatus, ConsentTrait, Consents}
-import code.model.dataAccess.BankAccountRouting
+import code.model.TokenType.Access
+import code.model.UserX
+import code.model.dataAccess.{BankAccountRouting, ResourceUser}
 import code.setup.{APIResponse, DefaultUsers}
+import code.token.Tokens
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.model.enums.AccountRoutingScheme
 import org.json4s.native.Serialization.write
 import net.liftweb.mapper.By
+import net.liftweb.util.Helpers.randomString
+import net.liftweb.util.TimeHelpers.TimeSpan
 import org.scalatest.Tag
 
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.util.Date
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
@@ -880,6 +886,101 @@ class AccountInformationServiceAISApiTest extends BerlinGroupServerSetupV1_3 wit
       val updatedConsent = Consents.consentProvider.vend.getConsentByConsentId(consentId).openOrThrowException("test consent lookup failed")
       Option(updatedConsent.userId).forall(_.isBlank) should be (true)
       updatedConsent.status should be (ConsentStatus.received.toString)
+    }
+  }
+
+  // The consent body used by the ownership scenarios below: one account, addressed by the first
+  // IBAN routing in the test data — the same shape createUnclaimedBerlinGroupConsent() builds.
+  def bgConsentPostBody(): PostConsentJson = {
+    val accountsRoutingIban = BankAccountRouting.findAll(By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString))
+    val acountRoutingIban = accountsRoutingIban.head
+    PostConsentJson(
+      access = ConsentAccessJson(
+        accounts = Option(List(ConsentAccessAccountsJson(
+          iban = Some(acountRoutingIban.accountRouting.address),
+          bban = None,
+          pan = None,
+          maskedPan = None,
+          msisdn = None,
+          currency = None,
+        ))),
+        balances = None,
+        transactions = None,
+        availableAccounts = None,
+        allPsd2 = None
+      ),
+      recurringIndicator = true,
+      validUntil = getNextMonthDate(),
+      frequencyPerDay = 4,
+      combinedServiceIndicator = Some(false)
+    )
+  }
+
+  // A client_credentials token carries the caller's own client id in `sub`, and OAuth2's
+  // getOrCreateResourceUser turns `sub` into idGivenByProvider — so such a token resolves cc.user to
+  // an auto-vivified pseudo-user keyed on the consumer's client key rather than leaving it Empty.
+  // The OAuth1-signed test harness cannot mint that token, so build the same CallContext shape
+  // directly: a user whose idGivenByProvider IS testConsumer's client key, plus an access token for
+  // it issued under testConsumer. Signing with this pair gives POST /consents exactly what a
+  // client_credentials TPP gives it — cc.user.idGivenByProvider == cc.consumer.key.
+  lazy val pseudoUserOfTestConsumer: ResourceUser =
+    UserX.findByProviderId(provider = defaultProvider, idGivenByProvider = testConsumer.key.get)
+      .map(_.asInstanceOf[ResourceUser])
+      .getOrElse {
+        UserX.createResourceUser(
+          provider = defaultProvider,
+          providerId = Some(testConsumer.key.get),
+          createdByConsentId = None,
+          name = Some(testConsumer.key.get),
+          email = Some("pseudo.user.of.test.consumer@example.com"),
+          userId = None,
+          company = Some("Tesobe GmbH")
+        ).openOrThrowException("test pseudo user creation failed")
+      }
+
+  lazy val pseudoUserToken = Tokens.tokens.vend.createToken(
+    Access,
+    Some(testConsumer.id.get),
+    Some(pseudoUserOfTestConsumer.id.get),
+    Some(randomString(40).toLowerCase),
+    Some(randomString(40).toLowerCase),
+    Some(tokenDuration),
+    Some(TimeSpan(tokenDuration + System.currentTimeMillis())),
+    Some(new Date(System.currentTimeMillis())),
+    None
+  ).openOrThrowException("test pseudo user token creation failed")
+
+  // Same consumer as user1, different token: cc.consumer is testConsumer, cc.user is the pseudo-user.
+  lazy val clientCredentialsSession = Some(consumer, Token(pseudoUserToken.key.get, pseudoUserToken.secret.get))
+
+  feature(s"BG v1.3 - $createConsent consent ownership") {
+    scenario("A consent lodged on a client-credentials session is left unowned, not bound to the consumer's own pseudo-user", BerlinGroupV1_3, createConsent) {
+      val requestPost = (V1_3_BG / "consents").POST <@ (clientCredentialsSession)
+      val response: APIResponse = makePostRequest(requestPost, write(bgConsentPostBody()))
+
+      Then("We should get a 201")
+      response.code should equal(201)
+      val consentId = response.body.extract[PostConsentResponseJson].consentId
+
+      Then("The consent must be left unowned — a pseudo-user owner is neither blank nor the PSU, so it " +
+        "would fail the mUserId guard on GET /obp/v5.1.0/user/current/consents/CONSENT_ID and hide the " +
+        "consent from the real PSU at SCA time (OBP-35001)")
+      val createdConsent = Consents.consentProvider.vend.getConsentByConsentId(consentId).openOrThrowException("test consent lookup failed")
+      Option(createdConsent.userId).forall(_.isBlank) should be (true)
+      createdConsent.status should be (ConsentStatus.received.toString)
+    }
+
+    scenario("A consent lodged on a genuine PSU session is still owned by that PSU", BerlinGroupV1_3, createConsent) {
+      val requestPost = (V1_3_BG / "consents").POST <@ (user1)
+      val response: APIResponse = makePostRequest(requestPost, write(bgConsentPostBody()))
+
+      Then("We should get a 201")
+      response.code should equal(201)
+      val consentId = response.body.extract[PostConsentResponseJson].consentId
+
+      Then("Filtering out the consumer's pseudo-user must not drop a real PSU session (DirectLogin/OAuth1)")
+      val createdConsent = Consents.consentProvider.vend.getConsentByConsentId(consentId).openOrThrowException("test consent lookup failed")
+      createdConsent.userId should be (resourceUser1.userId)
     }
   }
 
