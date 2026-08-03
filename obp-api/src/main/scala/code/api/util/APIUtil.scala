@@ -3046,23 +3046,32 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   }
 
   /**
-   * This function is used to introduce Rate Limit at an unauthorized endpoint
-   * @param cc The call context of an request
-   * @return Failure in case we exceeded rate limit
+   * The parts of a request that both [[JwsUtil.verifySignedRequest]] and
+   * [[BerlinGroupCheck.validate]] take, in the order they take them.
    */
-  def anonymousAccess(cc: CallContext): OBPReturnType[Box[User]] = {
-    getUserAndSessionContextFuture(cc)  map { result =>
-      val url = result._2.map(_.url).getOrElse("None")
-      val verb = result._2.map(_.verb).getOrElse("None")
-      val body = result._2.flatMap(_.httpBody)
-      val reqHeaders = result._2.map(_.requestHeaders).getOrElse(Nil)
+  private def requestPartsOf(result: (Box[User], Option[CallContext])) = {
+    val callContext = result._2
+    (
+      callContext.flatMap(_.httpBody),
+      callContext.map(_.verb).getOrElse("None"),
+      callContext.map(_.url).getOrElse("None"),
+      callContext.map(_.requestHeaders).getOrElse(Nil)
+    )
+  }
+
+  /**
+   * The pre-processing shared by [[anonymousAccess]] and [[applicationAccess]]: resolve the
+   * user and session, verify the signed request, run the Berlin Group checks and apply rate
+   * limiting. Each caller decides on its own what to make of the outcome.
+   * @param cc The call context of an request
+   */
+  private def accessPipeline(cc: CallContext): OBPReturnType[Box[User]] = {
+    getUserAndSessionContextFuture(cc) map { result =>
+      val (body, verb, url, reqHeaders) = requestPartsOf(result)
       // Verify signed request
       JwsUtil.verifySignedRequest(body, verb, url, reqHeaders, result)
     } flatMap { result =>
-      val url = result._2.map(_.url).getOrElse("None")
-      val verb = result._2.map(_.verb).getOrElse("None")
-      val body = result._2.flatMap(_.httpBody)
-      val reqHeaders = result._2.map(_.requestHeaders).getOrElse(Nil)
+      val (body, verb, url, reqHeaders) = requestPartsOf(result)
       // Berlin Group checks
       BerlinGroupCheck.validate(body, verb, url, reqHeaders, result)
     } map {
@@ -3072,7 +3081,16 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
           case Some(functionName) if excludeFunctions.exists(_ == functionName) => result
           case _ => RateLimitingUtil.underCallLimits(result)
         }
-    }  map {
+    }
+  }
+
+  /**
+   * This function is used to introduce Rate Limit at an unauthorized endpoint
+   * @param cc The call context of an request
+   * @return Failure in case we exceeded rate limit
+   */
+  def anonymousAccess(cc: CallContext): OBPReturnType[Box[User]] = {
+    accessPipeline(cc) map {
       it =>
         val callContext = it._2
 
@@ -3107,32 +3125,13 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    * @return Tuple (User, Call Context)
    */
   def applicationAccess(cc: CallContext): Future[(Box[User], Option[CallContext])] =
-    getUserAndSessionContextFuture(cc) map { result =>
-      val url = result._2.map(_.url).getOrElse("None")
-      val verb = result._2.map(_.verb).getOrElse("None")
-      val body = result._2.flatMap(_.httpBody)
-      val reqHeaders = result._2.map(_.requestHeaders).getOrElse(Nil)
-      // Verify signed request if need be
-      JwsUtil.verifySignedRequest(body, verb, url, reqHeaders, result)
-    } flatMap { result =>
-      val url = result._2.map(_.url).getOrElse("None")
-      val verb = result._2.map(_.verb).getOrElse("None")
-      val body = result._2.flatMap(_.httpBody)
-      val reqHeaders = result._2.map(_.requestHeaders).getOrElse(Nil)
-      // Berlin Group checks
-      BerlinGroupCheck.validate(body, verb, url, reqHeaders, result)
-    } map {
-      result =>
-        val excludeFunctions = getPropsValue("rate_limiting.exclude_endpoints", "root,getOAuth2ServerWellKnown").split(",").toList
-        cc.resourceDocument.map(_.partialFunctionName) match {
-          case Some(functionName) if excludeFunctions.exists(_ == functionName) => result
-          case _ => RateLimitingUtil.underCallLimits(result)
-        }
-    } map { result =>
+    accessPipeline(cc) map { result =>
       result._1 match {
+        case Full(_) => // The user is known, so the application is too
+          result
         case Empty if result._2.flatMap(_.consumer).isDefined => // There is no error and Consumer is defined
           result
-        case _ =>
+        case _ => // No Consumer, or a Failure whose reason we deliberately do not disclose here
           (
             fullBoxOrException(result._1 ~> APIFailureNewStyle(ApplicationNotIdentified, 401, Some(cc.toLight))),
             result._2
