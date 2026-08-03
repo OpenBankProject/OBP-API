@@ -1,13 +1,14 @@
 package code.api.UKOpenBanking.v4_0_1
 
 import code.api.Constant
-import code.api.util.APIUtil.DateWithDayFormat
+import code.api.util.APIUtil.{DateWithDayFormat, ResourceDoc, UserOrApplication, buildOperationId}
 import code.api.util.ErrorMessages.{ConsentDoesNotMatchConsumer, ConsentDoesNotMatchUser, ConsentExpiredIssue, ConsentIdClaimMissing}
 import code.api.util.{CallContext, CertificateUtil, Consent}
 import code.consent.{ConsentStatus, Consents}
 import code.model.UserExtended
 import code.views.Views
 import com.openbankproject.commons.model.{BankIdAccountId, ErrorMessage, ViewId}
+import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.common.{Failure, Full}
 import org.json4s._
 import org.scalatest.Tag
@@ -140,6 +141,18 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
     }
     scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
       postUnauthed(consentPostBody, "aisp", "account-access-consents").code should equal(401)
+    }
+    // Lodging a consent is a client-credentials call: the TPP is authenticated as an app and no PSU
+    // exists yet. UserOnly (the ResourceDoc default) sends ResourceDocMiddleware down anonymousAccess,
+    // which 401s a request carrying no user. Pinned here because nothing else would notice the doc
+    // silently reverting to the default -- the endpoint would keep working for as long as OAuth2
+    // token parsing auto-vivifies a user for a client-credentials token, and start 401ing the day
+    // that stops.
+    scenario("ResourceDoc declares UserOrApplication so a PSU-less TPP call is not rejected", UKOpenBankingV401AccountInfo) {
+      val docs = ResourceDoc.getResourceDocs(
+        List(buildOperationId(ApiVersion.ukOpenBankingV401, "createAccountAccessConsents")))
+      docs should not be empty
+      docs.foreach(_.authMode should equal(UserOrApplication))
     }
     scenario("all three datetime fields omitted -> 201, open-ended (no expiry/date restriction)", UKOpenBankingV401AccountInfo) {
       val bodyWithoutDates =

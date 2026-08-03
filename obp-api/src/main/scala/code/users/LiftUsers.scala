@@ -185,6 +185,8 @@ object LiftUsers extends Users with MdcLoggable{
     // Filtered in SQL rather than after the fact, so it composes with the limit/offset above: a
     // filter applied to an already-paginated result returns short pages, which is exactly the
     // defect the ?locked= path below has.
+    //
+    // The v6.0.0 search path applies the same predicate -- see DoobieUserQueries.getUsers.
     val notMintedByAConsent = BySql[ResourceUser](
       "(createdbyconsentid IS NULL OR createdbyconsentid = '')",
       IHaveValidatedThisSQL("hongwei", "2026-08-01"))

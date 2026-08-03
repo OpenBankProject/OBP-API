@@ -5,7 +5,7 @@ import cats.data.{Kleisli, OptionT}
 import cats.effect.IO
 import code.api.Constant
 import code.api.UKOpenBanking.v3_1_0.JSONFactory_UKOpenBanking_310.ConsentPostBodyUKV310
-import code.api.util.APIUtil.{EmptyBody, ResourceDoc, connectorEmptyResponse, mockedDataText, passesPsd2Aisp, unboxFullOrFail, parseIso8601OrDayDate}
+import code.api.util.APIUtil.{EmptyBody, ResourceDoc, UserOrApplication, connectorEmptyResponse, mockedDataText, passesPsd2Aisp, unboxFullOrFail, parseIso8601OrDayDate}
 import code.api.util.ApiTag
 import code.api.util.CustomJsonFormats
 import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, ConsentDoesNotMatchConsumer, ConsentDoesNotMatchUser, ConsentNotFound, ConsentViewNotFund, InvalidJsonFormat, InvalidUKConsentPermissions, UnknownError}
@@ -169,6 +169,13 @@ object Http4sUKOBv310AccountAccess extends MdcLoggable {
 }"""),
     List(AuthenticatedUserIsRequired, UnknownError),
     ApiTag("Account Access") :: Nil,
+    // Consent lodging is a client-credentials call: the TPP is authenticated as an app, and there
+    // is no PSU yet. The handler above already says so; this makes the ResourceDoc say it too.
+    // Without it the doc defaults to UserOnly, which sends the middleware down anonymousAccess and
+    // 401s any request that carries no user -- so the endpoint only works today because OAuth2
+    // token parsing auto-vivifies a user for a client-credentials token. Matches the Berlin Group
+    // twin (Http4sBGv13AIS.createConsent), which has always been UserOrApplication.
+    authMode = UserOrApplication,
     http4sPartialFunction = Some(createAccountAccessConsents)
   )
 
