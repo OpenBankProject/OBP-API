@@ -294,6 +294,17 @@ run_shard() {
     # ports (both test servers bind a real socket; see the port-allocation block).
     # Tests only, no recompile (the compile already happened in the pre-compile step).
     # ${TIMEOUT_BIN} 1200: hard-kill after 20 min to prevent Pekko non-daemon threads from hanging.
+    # OBP_API_INSTANCE_ID feeds Constant.getGlobalCacheNamespacePrefix, which prefixes every
+    # Redis cache key with "{api_instance_id}_{runmode}_". Ports and the H2 database are already
+    # isolated per run, but Redis is not: every checkout on this machine talks to the same
+    # 127.0.0.1:6379. A plain "shard_${n}" is therefore identical in every checkout, so two
+    # concurrent runs share one key namespace -- and LocalMappedConnectorTestSetup.wipeTestData
+    # deletes that whole namespace after EVERY test. Run A's teardown was wiping run B's live
+    # rate-limit counters, once per test. Nothing failed because the rate-limit suites seed their
+    # counters immediately before asserting, but that is luck, not isolation. Mixing in the
+    # already-allocated random port makes the namespace unique per run, so a teardown only ever
+    # deletes its own keys. Keys are still cleaned up: wipeTestData removes the whole prefix at
+    # the end of every test, so unique namespaces do not accumulate garbage in the shared Redis.
     MAVEN_OPTS="$MVN_OPTS" \
     OBP_TESTS_PORT="${port}" \
     OBP_HOSTNAME="http://localhost:${port}" \
@@ -301,7 +312,7 @@ run_shard() {
     OBP_MAIL_TEST_MODE="true" \
     OBP_DYNAMIC_CODE_SANDBOX_PERMISSIONS='[new java.net.NetPermission("specifyStreamHandler"), new java.lang.reflect.ReflectPermission("suppressAccessChecks"), new java.lang.RuntimePermission("getenv.*"), new java.util.PropertyPermission("cglib.useCache", "read"), new java.util.PropertyPermission("net.sf.cglib.test.stressHashCodes", "read"), new java.util.PropertyPermission("cglib.debugLocation", "read"), new java.lang.RuntimePermission("accessDeclaredMembers"), new java.lang.RuntimePermission("getClassLoader")]' \
     OBP_ALLOW_USER_GENERATED_SCALA_CODE="true" \
-    OBP_API_INSTANCE_ID="shard_${n}" \
+    OBP_API_INSTANCE_ID="shard_${n}_${port}" \
     "$TIMEOUT_BIN" 1200 mvn scalatest:test -pl obp-commons,obp-api -DfailIfNoTests=false \
         "-DwildcardSuites=${filter}" \
         > "$log" 2>&1
