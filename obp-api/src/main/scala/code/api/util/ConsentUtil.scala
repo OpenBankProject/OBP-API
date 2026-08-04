@@ -1394,6 +1394,53 @@ object Consent extends MdcLoggable {
     }
   }
 
+  /**
+   * Decide whether a caller may read or revoke a UK account-access-consent, returning the reason to
+   * refuse with 403 or None when it is allowed.
+   *
+   * The standard names one caller, and it is not the PSU. In the Endpoints table of
+   * account-access-consents, in both v3.1 and v4.0.1, GET and DELETE carry Grant Type "Client
+   * Credentials", and the prose repeats it: "Prior to calling the API, the AISP must have an access
+   * token issued by the ASPSP using a client credentials grant." GET retrieves a consent "that they
+   * have created"; DELETE is what the AISP does after the PSU has revoked consent with the AISP.
+   * So for a standard caller there is no PSU in the session at all, and the Consumer the consent was
+   * lodged under is the whole of the authorisation: that AISP may read and revoke it whatever its
+   * status, and no other Consumer may.
+   *
+   * The user check is kept for a caller that does present a PSU. OBP allows credentials the standard
+   * does not describe here, and for those the stricter rule applies: a session acting as one PSU
+   * cannot reach another PSU's consent, and the lodging TPP cannot use a PSU session to do it
+   * either. That path is a superset of the standard, never a way around it -- the PSU comparison
+   * only ever narrows, and a caller with no PSU never reaches it.
+   *
+   * Blank ids are treated as absent: a consent that was never authorised stores no user id, and one
+   * lodged before consumer binding existed stores no consumer id.
+   *
+   * Kept here rather than inline so the four endpoints that need it (v3.1 and v4.0.1, GET and
+   * DELETE) share one definition, and so the rule can be tested without standing up a request --
+   * same reasoning as validateUKConsentPermissions above.
+   */
+  def checkUKConsentAccess(
+    consentUserId: String,
+    consentConsumerId: String,
+    callerUserId: Option[String],
+    callerConsumerId: Option[String]
+  ): Option[String] = {
+    def present(s: String): Option[String] = Option(s).map(_.trim).filter(_.nonEmpty)
+
+    (present(consentUserId), callerUserId.flatMap(present)) match {
+      case (Some(psu), Some(caller)) =>
+        // The consent belongs to a PSU and the caller is acting as one: they must be the same PSU.
+        if (psu == caller) None else Some(ErrorMessages.ConsentDoesNotMatchUser)
+      case _ =>
+        // Either the consent has no PSU yet, or the caller is not acting as one. Either way the
+        // Consumer that lodged it is what identifies a legitimate caller.
+        val owner = present(consentConsumerId)
+        if (owner.forall(id => callerConsumerId.flatMap(present).contains(id))) None
+        else Some(ErrorMessages.ConsentDoesNotMatchConsumer)
+    }
+  }
+
   def createUKConsentJWT(
     user: Option[User],
     bankId: Option[String],
