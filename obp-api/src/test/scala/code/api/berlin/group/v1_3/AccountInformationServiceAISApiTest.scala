@@ -33,7 +33,7 @@ import java.util.Date
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
-class AccountInformationServiceAISApiTest extends BerlinGroupServerSetupV1_3 with DefaultUsers {
+class AccountInformationServiceAISApiTest extends BerlinGroupConsentFixtures {
 
   object getAccountList extends Tag(nameOf(Http4sBGv13AIS.getAccountList))
 
@@ -68,11 +68,6 @@ class AccountInformationServiceAISApiTest extends BerlinGroupServerSetupV1_3 wit
   object updateConsentsPsuDataUpdatePsuAuthentication extends Tag("updateConsentsPsuDataUpdatePsuAuthentication")
   object updateConsentsPsuDataUpdateSelectPsuAuthenticationMethod extends Tag("updateConsentsPsuDataUpdateSelectPsuAuthenticationMethod")
   object updateConsentsPsuDataUpdateAuthorisationConfirmation extends Tag("updateConsentsPsuDataUpdateAuthorisationConfirmation")
-
-  def getNextMonthDate(): String = {
-    val nextMonthDate = LocalDate.now().plusMonths(1)
-    nextMonthDate.format(DateTimeFormatter.ISO_LOCAL_DATE)
-  }
 
   feature(s"BG v1.3 - $getAccountList") {
     scenario("Not Authentication User, test failed ", BerlinGroupV1_3, getAccountList) {
@@ -775,61 +770,6 @@ class AccountInformationServiceAISApiTest extends BerlinGroupServerSetupV1_3 wit
       }
     }
 
-  // Builds an unclaimed (PSU-less) Berlin Group consent directly via the provider, mirroring
-  // how POST /consents builds one for a client_credentials caller (createdByUser = None).
-  def createUnclaimedBerlinGroupConsent(): ConsentTrait = {
-    val accountsRoutingIban = BankAccountRouting.findAll(By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString))
-    val acountRoutingIban = accountsRoutingIban.head
-    val postJsonBody = PostConsentJson(
-      access = ConsentAccessJson(
-        accounts = Option(List(ConsentAccessAccountsJson(
-          iban = Some(acountRoutingIban.accountRouting.address),
-          bban = None,
-          pan = None,
-          maskedPan = None,
-          msisdn = None,
-          currency = None,
-        ))),
-        balances = None,
-        transactions = None,
-        availableAccounts = None,
-        allPsd2 = None
-      ),
-      recurringIndicator = true,
-      validUntil = getNextMonthDate(),
-      frequencyPerDay = 4,
-      combinedServiceIndicator = Some(false)
-    )
-    val validUntilDate = BgSpecValidation.getDate(postJsonBody.validUntil)
-
-    val createdConsent = Consents.consentProvider.vend.createBerlinGroupConsent(
-      user = None,
-      consumer = Some(testConsumer),
-      recurringIndicator = postJsonBody.recurringIndicator,
-      validUntil = validUntilDate,
-      frequencyPerDay = postJsonBody.frequencyPerDay,
-      combinedServiceIndicator = postJsonBody.combinedServiceIndicator.getOrElse(false),
-      apiStandard = Some(ConstantsBG.berlinGroupVersion1.apiStandard),
-      apiVersion = Some(ConstantsBG.berlinGroupVersion1.apiShortVersion)
-    ).openOrThrowException("test consent creation failed")
-
-    val consentJWT = Await.result(
-      Consent.createBerlinGroupConsentJWT(
-        None,
-        postJsonBody,
-        createdConsent.secret,
-        createdConsent.consentId,
-        Some(testConsumer.consumerId.get),
-        Some(validUntilDate),
-        None
-      ),
-      10.seconds
-    ).openOrThrowException("test consent JWT creation failed")
-    Consents.consentProvider.vend.setJsonWebToken(createdConsent.consentId, consentJWT)
-
-    createdConsent
-  }
-
   feature(s"BG v1.3 - unclaimed consent SCA (regression: GET /obp/v5.1.0/user/current/consents/CONSENT_ID 404 before SCA, wrong authorisationId from ${startConsentAuthorisationTransactionAuthorisation.name})") {
     scenario("Unclaimed consent: viewable pre-SCA by any user, authorisable, and claimed by the answering PSU on correct OTP", BerlinGroupV1_3, startConsentAuthorisationTransactionAuthorisation, updateConsentsPsuDataTransactionAuthorisation) {
       setPropsValues("suggested_default_sca_method" -> "DUMMY")
@@ -888,70 +828,6 @@ class AccountInformationServiceAISApiTest extends BerlinGroupServerSetupV1_3 wit
       updatedConsent.status should be (ConsentStatus.received.toString)
     }
   }
-
-  // The consent body used by the ownership scenarios below: one account, addressed by the first
-  // IBAN routing in the test data — the same shape createUnclaimedBerlinGroupConsent() builds.
-  def bgConsentPostBody(): PostConsentJson = {
-    val accountsRoutingIban = BankAccountRouting.findAll(By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString))
-    val acountRoutingIban = accountsRoutingIban.head
-    PostConsentJson(
-      access = ConsentAccessJson(
-        accounts = Option(List(ConsentAccessAccountsJson(
-          iban = Some(acountRoutingIban.accountRouting.address),
-          bban = None,
-          pan = None,
-          maskedPan = None,
-          msisdn = None,
-          currency = None,
-        ))),
-        balances = None,
-        transactions = None,
-        availableAccounts = None,
-        allPsd2 = None
-      ),
-      recurringIndicator = true,
-      validUntil = getNextMonthDate(),
-      frequencyPerDay = 4,
-      combinedServiceIndicator = Some(false)
-    )
-  }
-
-  // A client_credentials token carries the caller's own client id in `sub`, and OAuth2's
-  // getOrCreateResourceUser turns `sub` into idGivenByProvider — so such a token resolves cc.user to
-  // an auto-vivified pseudo-user keyed on the consumer's client key rather than leaving it Empty.
-  // The OAuth1-signed test harness cannot mint that token, so build the same CallContext shape
-  // directly: a user whose idGivenByProvider IS testConsumer's client key, plus an access token for
-  // it issued under testConsumer. Signing with this pair gives POST /consents exactly what a
-  // client_credentials TPP gives it — cc.user.idGivenByProvider == cc.consumer.key.
-  lazy val pseudoUserOfTestConsumer: ResourceUser =
-    UserX.findByProviderId(provider = defaultProvider, idGivenByProvider = testConsumer.key.get)
-      .map(_.asInstanceOf[ResourceUser])
-      .getOrElse {
-        UserX.createResourceUser(
-          provider = defaultProvider,
-          providerId = Some(testConsumer.key.get),
-          createdByConsentId = None,
-          name = Some(testConsumer.key.get),
-          email = Some("pseudo.user.of.test.consumer@example.com"),
-          userId = None,
-          company = Some("Tesobe GmbH")
-        ).openOrThrowException("test pseudo user creation failed")
-      }
-
-  lazy val pseudoUserToken = Tokens.tokens.vend.createToken(
-    Access,
-    Some(testConsumer.id.get),
-    Some(pseudoUserOfTestConsumer.id.get),
-    Some(randomString(40).toLowerCase),
-    Some(randomString(40).toLowerCase),
-    Some(tokenDuration),
-    Some(TimeSpan(tokenDuration + System.currentTimeMillis())),
-    Some(new Date(System.currentTimeMillis())),
-    None
-  ).openOrThrowException("test pseudo user token creation failed")
-
-  // Same consumer as user1, different token: cc.consumer is testConsumer, cc.user is the pseudo-user.
-  lazy val clientCredentialsSession = Some(consumer, Token(pseudoUserToken.key.get, pseudoUserToken.secret.get))
 
   feature(s"BG v1.3 - $createConsent consent ownership") {
     scenario("A consent lodged on a client-credentials session is left unowned, not bound to the consumer's own pseudo-user", BerlinGroupV1_3, createConsent) {

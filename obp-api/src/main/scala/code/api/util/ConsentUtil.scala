@@ -1425,6 +1425,64 @@ object Consent extends MdcLoggable {
     consentConsumerId: String,
     callerUserId: Option[String],
     callerConsumerId: Option[String]
+  ): Option[String] =
+    psuOrLodgingTppRefusal(consentUserId, consentConsumerId, callerUserId, callerConsumerId)
+
+  /**
+   * Decide whether a caller may drive a Berlin Group consent's authorisation sub-resources --
+   * starting one, and answering it, the two steps that bind the consent to a PSU -- returning the
+   * reason to refuse with 403 or None when it is allowed.
+   *
+   * The Consumer half is the standard's own blanket rule, not a UK import. The Implementation
+   * Guidelines state it once for the whole API, in section 4.11 "API Access Methods" (p.24): "all
+   * methods submitted by a TPP, which are addressing dynamically created resources in this API, may
+   * only apply to resources which have been created by the same TPP before." A consent and its
+   * authorisation sub-resources are exactly such dynamically created resources, so the Consumer the
+   * consent was lodged under is what identifies a legitimate caller. Two endpoints in this family
+   * already enforce that inline -- deleteConsent and getConsentInformation -- and only the
+   * authorisation pair was left without it.
+   *
+   * Note who that caller is. In Berlin Group the PSU does not call the API: under the Redirect
+   * approach it authenticates at the ASPSP, and under Embedded it hands its authentication factors
+   * to the TPP, which relays them. So on this pair the session is the TPP's, and a Consumer check is
+   * the substantive one -- which is why callerUserId must be a genuine PSU (see genuinePsu) rather
+   * than whatever principal the token resolved to.
+   *
+   * The PSU half covers re-binding. updateConsentUser overwrites mUserId unconditionally, so without
+   * it a second party could take over a consent another PSU has already authorised. The standard
+   * leaves PSU identity to the ASPSP to enforce and says so where it defines the PSU-ID header: "the
+   * ASPSP might check whether PSU-ID and token match, according to ASPSP documentation". Where the
+   * caller does present a genuine PSU and the consent already names one, they must be the same.
+   *
+   * This lands on the same rule as checkUKConsentAccess, and the agreement is worth stating because
+   * the two derivations are not the same. UK's rests on a per-endpoint claim -- its Endpoints table
+   * marks these calls Client Credentials, so no PSU is party to them. Berlin Group's rests on the
+   * blanket same-TPP rule above plus PSU binding happening at SCA time. Different premises, same
+   * conclusion, so they share one implementation rather than one being copied onto the other.
+   */
+  def checkBerlinGroupConsentAccess(
+    consentUserId: String,
+    consentConsumerId: String,
+    callerUserId: Option[String],
+    callerConsumerId: Option[String]
+  ): Option[String] =
+    psuOrLodgingTppRefusal(consentUserId, consentConsumerId, callerUserId, callerConsumerId)
+
+  /**
+   * The rule shared by checkUKConsentAccess and checkBerlinGroupConsentAccess: a consent bound to a
+   * PSU belongs to that PSU, and otherwise belongs to the Consumer that lodged it.
+   *
+   * Blank ids are treated as absent: a consent that was never authorised stores no user id, and one
+   * lodged before consumer binding existed stores no consumer id.
+   *
+   * Private on purpose. Each standard states its own case in its own scaladoc above; this is only
+   * the mechanism they turned out to share, and it carries no argument of its own.
+   */
+  private def psuOrLodgingTppRefusal(
+    consentUserId: String,
+    consentConsumerId: String,
+    callerUserId: Option[String],
+    callerConsumerId: Option[String]
   ): Option[String] = {
     def present(s: String): Option[String] = Option(s).map(_.trim).filter(_.nonEmpty)
 
@@ -1440,6 +1498,59 @@ object Consent extends MdcLoggable {
         else Some(ErrorMessages.ConsentDoesNotMatchConsumer)
     }
   }
+
+  /**
+   * Decide whether a caller may read an OBP-native consent through GET /user/current/consents/CONSENT_ID,
+   * returning the reason to refuse or None when it is allowed.
+   *
+   * OBP-native answers to no external standard, so the contract is OBP's own API surface, and that
+   * surface is explicit about the subject: this endpoint is /user/current/..., while its sibling
+   * /consumer/current/consents/CONSENT_ID is the Consumer-scoped read. Two endpoints, two subjects.
+   * So the comparison here is against the human the request is on behalf of -- CallContext.humanUser,
+   * not CallContext.userId, which returns the authenticated principal and under consent
+   * authentication is the per-consent shadow user rather than the PSU. checkUKConsent already
+   * resolves the human this way for the same comparison.
+   *
+   * A consent with no PSU yet stays readable, and that is deliberate rather than an oversight
+   * inherited from the previous guard. This endpoint is where the PSU inspects a consent before
+   * deciding to authorise it, in both the Berlin Group and UK journeys, and the app doing the
+   * inspecting is the PSU's own -- a different Consumer from the TPP that lodged the consent. Adding
+   * the Consumer fallback checkUKConsentAccess uses would therefore break the journey, not tighten
+   * it; that is where OBP-native's rule genuinely parts company with the standards', and why this is
+   * its own function rather than a second caller of theirs.
+   *
+   * What that leaves open, stated plainly: an unbound consent's metadata can be read by any
+   * authenticated caller who knows its consent id. Claiming one is a separate matter and is gated
+   * where the binding happens.
+   *
+   * Refuses with ConsentNotFound rather than a distinct message, preserving the endpoint's existing
+   * 404 so it does not tell a stranger that a consent id exists.
+   */
+  def checkObpConsentUserAccess(consentUserId: String, callerHumanUserId: Option[String]): Option[String] = {
+    def present(s: String): Option[String] = Option(s).map(_.trim).filter(_.nonEmpty)
+
+    present(consentUserId) match {
+      case Some(psu) if !callerHumanUserId.flatMap(present).contains(psu) =>
+        Some(ErrorMessages.ConsentNotFound)
+      case _ => None
+    }
+  }
+
+  /**
+   * The PSU behind a request, where the session really carries one.
+   *
+   * A pure client-credentials token still resolves to a user: OAuth2.getOrCreateResourceUser maps
+   * the JWT sub onto idGivenByProvider, and in that grant the sub is the caller's own client id, so
+   * an auto-vivified pseudo-user appears where the code expects a person. Ownership checks must not
+   * mistake it for a PSU -- doing so would refuse a legitimate TPP poll by comparing the TPP's own
+   * pseudo-identity against the consent's real owner.
+   *
+   * Berlin Group consent lodging filters the same way inline (see createConsent); that site was left
+   * duplicated deliberately while ConsentUtil was being edited on another branch. This is that
+   * extraction, used by the checks added here.
+   */
+  def genuinePsu(callContext: CallContext): Option[User] =
+    callContext.user.toOption.filterNot(u => callContext.consumer.map(_.key.get).contains(u.idGivenByProvider))
 
   def createUKConsentJWT(
     user: Option[User],

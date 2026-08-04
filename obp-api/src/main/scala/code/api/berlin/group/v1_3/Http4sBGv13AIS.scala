@@ -14,7 +14,7 @@ import code.api.util.CallContext
 import code.api.util.ApiTag._
 import code.api.util.CustomJsonFormats
 import code.api.util.ErrorMessages._
-import code.api.util.{ApiTag, NewStyle}
+import code.api.util.{ApiTag, Consent, NewStyle}
 import code.api.util.newstyle.ViewNewStyle
 import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps}
 import code.consent.{ConsentStatus, Consents}
@@ -504,6 +504,15 @@ object Http4sBGv13AIS extends MdcLoggable {
             consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
               unboxFullOrFail(_, callContext, ConsentNotFound, 403)
             }
+            // Starting an authorisation is the entry to claiming the consent: the challenge minted
+            // here is what the PUT twin answers before binding a PSU. Without this, any authenticated
+            // caller could raise a challenge on any consent id and then answer their own.
+            _ <- Consent.checkBerlinGroupConsentAccess(
+              consent.userId, consent.consumerId,
+              Consent.genuinePsu(cc).map(_.userId), cc.consumer.map(_.consumerId.get)) match {
+              case Some(reason) => booleanToFuture(failMsg = reason, failCode = 403, cc = callContext)(false)
+              case None => Future.successful(true)
+            }
             (challenges, callContext) <- NewStyle.function.createChallengesC2(
               List(u.userId),
               ChallengeType.BERLIN_GROUP_CONSENT_CHALLENGE,
@@ -546,8 +555,16 @@ object Http4sBGv13AIS extends MdcLoggable {
         if (checkTransactionAuthorisation(parsedJson)) {
           for {
             _ <- passesPsd2Aisp(callContext)
-            _ <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
+            storedConsent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
               unboxFullOrFail(_, callContext, ConsentNotFound, 403)
+            }
+            // updateConsentUser below overwrites mUserId unconditionally, so this is the check that
+            // decides who a consent ends up belonging to. See Consent.checkBerlinGroupConsentAccess.
+            _ <- Consent.checkBerlinGroupConsentAccess(
+              storedConsent.userId, storedConsent.consumerId,
+              Consent.genuinePsu(cc).map(_.userId), cc.consumer.map(_.consumerId.get)) match {
+              case Some(reason) => booleanToFuture(failMsg = reason, failCode = 403, cc = callContext)(false)
+              case None => Future.successful(true)
             }
             failMsg = s"$InvalidJsonFormat The Json body should be the $TransactionAuthorisation "
             updateJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
