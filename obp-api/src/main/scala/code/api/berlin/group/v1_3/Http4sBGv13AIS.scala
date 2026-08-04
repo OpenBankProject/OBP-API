@@ -1164,6 +1164,17 @@ This function returns an array of hyperlinks to all generated authorisation sub-
 }""")),
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil,
+      // The TPP reads its own consent's authorisation sub-resources; no PSU is party to the call.
+      // The Implementation Guidelines put it plainly (§4.6, Authorisation Endpoints): the ASPSP
+      // "will give access to these sub-resources to the TPP by returning corresponding hyperlinks",
+      // and "the authorisation status would still result by submitting the command GET
+      // .../authorisations/authorisationId". In Berlin Group the PSU never calls the API at all --
+      // it authenticates at the ASPSP under Redirect, or hands its factors to the TPP under
+      // Embedded. The handler already reflects that, taking no user; only the doc disagreed, and a
+      // doc left on the UserOnly default sends the middleware down anonymousAccess, which 401s a
+      // request carrying no user. Brings these into line with the consent endpoints in this same
+      // file, which have been UserOrApplication all along.
+      authMode = UserOrApplication,
       http4sPartialFunction = Some(getConsentAuthorisation)
     )
 
@@ -1182,6 +1193,8 @@ This method returns the SCA status of a consent initiation's authorisation sub-r
 }""")),
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil,
+      // As above -- reading the SCA status is the TPP polling its own authorisation sub-resource.
+      authMode = UserOrApplication,
       http4sPartialFunction = Some(getConsentScaStatus)
     )
 

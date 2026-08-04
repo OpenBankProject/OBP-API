@@ -984,4 +984,25 @@ class AccountInformationServiceAISApiTest extends BerlinGroupServerSetupV1_3 wit
     }
   }
 
+  // Reading a consent's authorisation sub-resources is the TPP polling its own consent -- in Berlin
+  // Group the PSU never calls the API at all, it authenticates at the ASPSP under Redirect or hands
+  // its factors to the TPP under Embedded. Both handlers already reflect that, taking no user. The
+  // ResourceDocs did not, and a doc left on the UserOnly default sends the middleware down
+  // anonymousAccess, which 401s a request carrying no user.
+  //
+  // Pinned because nothing else would notice a revert: these keep working for as long as OAuth2
+  // token parsing auto-vivifies a user for a client-credentials token, and start 401ing the day
+  // that stops. The consent endpoints in the same file have been UserOrApplication all along, so
+  // this is also a consistency guard within the family.
+  feature("BG v1.3 - consent authorisation sub-resources accept a client-credentials caller") {
+    for (name <- List(nameOf(Http4sBGv13AIS.getConsentAuthorisation), nameOf(Http4sBGv13AIS.getConsentScaStatus))) {
+      scenario(s"$name declares UserOrApplication", BerlinGroupV1_3) {
+        val docs = APIUtil.ResourceDoc.getResourceDocs(
+          List(APIUtil.buildOperationId(ConstantsBG.berlinGroupVersion1, name)))
+        docs should not be empty
+        docs.foreach(_.authMode should equal(APIUtil.UserOrApplication))
+      }
+    }
+  }
+
 }
