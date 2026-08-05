@@ -931,6 +931,12 @@ object RequestHeader {
   final lazy val `PSD2-CERT` = "PSD2-CERT"
   final lazy val `If-None-Match` = "If-None-Match"
 
+  // "Client ID of the PSU in the ASPSP client interface" -- the only place Berlin Group carries the
+  // PSU's identity, psuData being passwords only. Conditional rather than mandatory: the standard
+  // asks for it when the ASPSP does not already know who the PSU is (Implementation Guidelines
+  // V1.3.12, sections 7.1 p.195 and 7.2.1 p.206), which is why it stays out of BerlinGroupCheck's
+  // mandatory header list.
+  final lazy val `PSU-ID` = "PSU-ID" // Berlin Group
   final lazy val `PSU-Geo-Location` = "PSU-Geo-Location" // Berlin Group
   final lazy val `PSU-Device-Name` = "PSU-Device-Name" // Berlin Group
   final lazy val `PSU-Device-ID` = "PSU-Device-ID" // Berlin Group

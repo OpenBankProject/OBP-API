@@ -111,6 +111,10 @@ object LiftUsers extends Users with MdcLoggable{
     }
   }
 
+  override def getUsersByUsername(userName: String): List[User] = {
+    ResourceUser.findAll(By(ResourceUser.name_, userName))
+  }
+
   override def getUserByEmail(email: String): Box[List[ResourceUser]] = {
     Full(ResourceUser.findAll(By(ResourceUser.email, email)))
   }

@@ -9,6 +9,8 @@ import code.api.berlin.group.ConstantsBG
 import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3._
 import code.api.berlin.group.v1_3.model._
 import code.api.berlin.group.v1_3.{BgSpecValidation, JSONFactory_BERLIN_GROUP_1_3, JvalueCaseClass}
+import code.api.RequestHeader
+import code.api.util.APIUtil
 import code.api.util.APIUtil.{EmptyBody, ResourceDoc, UserOrApplication, connectorEmptyResponse, createQueriesByHttpParams, fullBoxOrException, getHttpRequestUrlParam, getSuggestedDefaultScaMethod, mockedDataText, passesPsd2Aisp, unboxFull, unboxFullOrFail}
 import code.api.util.CallContext
 import code.api.util.ApiTag._
@@ -490,13 +492,30 @@ object Http4sBGv13AIS extends MdcLoggable {
       }
   }
 
+  /**
+   * The PSU-ID request header, resolved to the user id it names.
+   *
+   * Berlin Group makes the header conditional rather than mandatory, so absent is a conforming
+   * answer and gives None -- the caller may be identifying the PSU some other way, which
+   * Consent.resolveBerlinGroupPsu works out. A value the ASPSP cannot resolve is a different matter
+   * and is refused with the code the standard reserves for exactly it: PSU_CREDENTIALS_INVALID, 401,
+   * "PSU-ID cannot be found by ASPSP".
+   */
+  private def resolvePsuIdHeader(cc: CallContext, callContext: Option[CallContext]): Future[Option[String]] =
+    Option(APIUtil.getRequestHeader(RequestHeader.`PSU-ID`, cc.requestHeaders)).map(_.trim).filter(_.nonEmpty) match {
+      case None => Future.successful(None)
+      case Some(psuId) =>
+        Future(Consent.findPsuByPsuId(psuId)) map { psu =>
+          Some(unboxFullOrFail(psu, callContext, UserNotFoundByProviderAndUsername, 401).userId)
+        }
+    }
+
   // ── POST /consents/CONSENTID/authorisations (3 body-guard variants) ─────
   lazy val startConsentAuthorisationAll: HttpRoutes[IO] = HttpRoutes.of[IO] {
     case req @ POST -> `bgV13Prefix` / "consents" / consentId / "authorisations" =>
       EndpointHelpers.executeFutureCreated(req) {
         val cc = req.callContext
         val callContext = Some(cc)
-        val u = cc.user.openOrThrowException(AuthenticatedUserIsRequired)
         val parsedJson = scala.util.Try(json.parse(cc.httpBody.getOrElse(""))).getOrElse(json.JNothing)
         if (checkTransactionAuthorisation(parsedJson)) {
           for {
@@ -513,8 +532,22 @@ object Http4sBGv13AIS extends MdcLoggable {
               case Some(reason) => booleanToFuture(failMsg = reason, failCode = 403, cc = callContext)(false)
               case None => Future.successful(true)
             }
+            headerPsuUserId <- resolvePsuIdHeader(cc, callContext)
+            // Whose challenge this is, which is also where the OTP gets sent. Not the session's
+            // principal: in Berlin Group the caller is the TPP. See Consent.resolveBerlinGroupPsu.
+            psuUserId <- Consent.resolveBerlinGroupPsu(
+              consent.userId, Consent.genuinePsu(cc).map(_.userId), headerPsuUserId) match {
+              case Right(userId) => Future.successful(userId)
+              // A PSU-ID contradicting what the ASPSP already knows is an ownership refusal (403,
+              // like the guard above); no PSU identifiable at all is the standard's own
+              // PSU_CREDENTIALS_INVALID (401). booleanToFuture(false) always fails, so the mapped
+              // value is never reached -- it only lines the two branches up.
+              case Left(reason) =>
+                val failCode = if (reason == ConsentDoesNotMatchUser) 403 else 401
+                booleanToFuture(failMsg = reason, failCode = failCode, cc = callContext)(false).map(_ => "")
+            }
             (challenges, callContext) <- NewStyle.function.createChallengesC2(
-              List(u.userId),
+              List(psuUserId),
               ChallengeType.BERLIN_GROUP_CONSENT_CHALLENGE,
               None,
               getSuggestedDefaultScaMethod(),
@@ -550,7 +583,6 @@ object Http4sBGv13AIS extends MdcLoggable {
     case req @ PUT -> `bgV13Prefix` / "consents" / consentId / "authorisations" / authorisationId =>
       EndpointHelpers.executeAndRespond(req) { cc =>
         val callContext = Some(cc)
-        val u = cc.user.openOrThrowException(AuthenticatedUserIsRequired)
         val parsedJson = scala.util.Try(json.parse(cc.httpBody.getOrElse(""))).getOrElse(json.JNothing)
         if (checkTransactionAuthorisation(parsedJson)) {
           for {
@@ -570,15 +602,29 @@ object Http4sBGv13AIS extends MdcLoggable {
             updateJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
               parsedJson.extract[TransactionAuthorisation]
             }
-            (_, callContext) <- NewStyle.function.getChallenge(authorisationId, callContext)
-            (challenge, callContext) <- NewStyle.function.validateChallengeAnswerC4(
+            (startedChallenge, callContext) <- NewStyle.function.getChallenge(authorisationId, callContext)
+            // The connector's validateChallengeAnswerC4 matches on challengeId alone and ignores the
+            // consentId it is handed, so without this a challenge minted on one consent could be
+            // answered on another's path -- and the ownership decision below reads off that
+            // challenge, so it has to be this consent's.
+            _ <- booleanToFuture(
+              failMsg = s"$InvalidChallengeChallengeId Current challengeId($authorisationId) does not belong to CONSENTID($consentId) ",
+              failCode = 400, cc = callContext)(startedChallenge.consentId.contains(consentId))
+            // Who this consent binds to. The POST twin minted the challenge for a particular PSU and
+            // the OTP was delivered to that person, so the challenge is the record of whose
+            // authorisation this is -- the session is the TPP's and cannot say.
+            (psu, callContext) <- NewStyle.function.findByUserId(startedChallenge.expectedUserId, callContext)
+            // Berlin Group Embedded has the TPP relay the PSU's OTP, so the identity the answer is
+            // validated against is the challenge's PSU rather than the principal on the token. The
+            // caller's own right to be here was settled by checkBerlinGroupConsentAccess above.
+            (challenge, _) <- NewStyle.function.validateChallengeAnswerC4(
               ChallengeType.BERLIN_GROUP_CONSENT_CHALLENGE,
               None,
               Some(consentId),
               authorisationId,
               updateJson.scaAuthenticationData,
               SuppliedAnswerType.PLAIN_TEXT_VALUE,
-              callContext
+              callContext.map(_.copy(user = Full(psu)))
             )
             consent <- challenge.scaStatus match {
               case Some(status) if status == StrongCustomerAuthenticationStatus.finalised =>
@@ -592,13 +638,13 @@ object Http4sBGv13AIS extends MdcLoggable {
               consent.toList.size == 1
             }
             _ <- Future {
-              val authContexts = UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContextsBox(u.userId)
+              val authContexts = UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContextsBox(psu.userId)
                 .map(_.map(i => BasicUserAuthContext(i.key, i.value)))
               ConsentAuthContextProvider.consentAuthContextProvider.vend.createOrUpdateConsentAuthContexts(consentId, authContexts.getOrElse(Nil))
             } map {
               unboxFullOrFail(_, callContext, ConsentUserAuthContextCannotBeAdded)
             }
-            _ <- Future(Consents.consentProvider.vend.updateConsentUser(consentId, u)) map {
+            _ <- Future(Consents.consentProvider.vend.updateConsentUser(consentId, psu)) map {
               unboxFullOrFail(_, callContext, ConsentUserCannotBeAdded)
             }
           } yield {
@@ -831,6 +877,13 @@ using the extended forms as indicated above.
       startConsentAuthorisationResponse,
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil,
+      // Berlin Group's Embedded SCA step, and the TPP is the caller: the PSU either authenticated
+      // at the ASPSP under Redirect or handed its factors to the TPP under Embedded. Which PSU the
+      // challenge is for no longer comes from the session -- see Consent.resolveBerlinGroupPsu --
+      // so the doc can now say what the call actually is, as its GET siblings already do. Left on
+      // the UserOnly default it would 401 a client-credentials caller the day OAuth2 token parsing
+      // stops auto-vivifying a user.
+      authMode = UserOrApplication,
       http4sPartialFunction = Some(startConsentAuthorisationAll)
     )
 
@@ -845,6 +898,7 @@ using the extended forms as indicated above.
       startConsentAuthorisationResponse,
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil,
+      authMode = UserOrApplication,
       http4sPartialFunction = Some(startConsentAuthorisationAll)
     )
 
@@ -859,6 +913,7 @@ using the extended forms as indicated above.
       startConsentAuthorisationResponse,
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil,
+      authMode = UserOrApplication,
       http4sPartialFunction = Some(startConsentAuthorisationAll)
     )
 
@@ -905,6 +960,7 @@ Maybe in a later version the access path will change.
       ),
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil,
+      authMode = UserOrApplication,
       http4sPartialFunction = Some(updateConsentsPsuDataAll)
     )
 
@@ -924,6 +980,7 @@ Maybe in a later version the access path will change.
          |        }""".stripMargin)),
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil,
+      authMode = UserOrApplication,
       http4sPartialFunction = Some(updateConsentsPsuDataAll)
     )
 
@@ -951,6 +1008,7 @@ Maybe in a later version the access path will change.
                    |        }""".stripMargin)),
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil,
+      authMode = UserOrApplication,
       http4sPartialFunction = Some(updateConsentsPsuDataAll)
     )
 
@@ -970,6 +1028,7 @@ Maybe in a later version the access path will change.
                    |        }""".stripMargin)),
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil,
+      authMode = UserOrApplication,
       http4sPartialFunction = Some(updateConsentsPsuDataAll)
     )
   }

@@ -774,6 +774,7 @@ object ErrorMessages {
   val ConsentDoesNotMatchStandard = "OBP-35036: The Consent was created by a different API standard than the endpoint using it. A consent may only be used by endpoints of the standard that created it. "
   val ConsentAccountNotHeldByUser = "OBP-35037: One or more of the specified account_ids is not held by the current user. A consent may only be authorised for accounts the authorising user holds. "
   val InvalidUKConsentPermissions = "OBP-35038: The Permissions array is not a valid combination for UK Open Banking. "
+  val BerlinGroupPsuNotIdentified = "OBP-35039: The PSU this authorisation is for cannot be identified. Send the PSU-ID header, or authenticate as the PSU. "
 
   //Authorisations
   val AuthorisationNotFound = "OBP-36001: Authorisation not found. Please specify valid values for PAYMENT_ID and AUTHORISATION_ID. "
