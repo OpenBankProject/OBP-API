@@ -229,12 +229,7 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
           consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
             unboxFullOrFail(_, Some(cc), s"$ConsentNotFound ($consentId)")
           }
-          _ <- Consent.checkUKConsentAccess(
-            consent.userId, consent.consumerId,
-            cc.user.toOption.map(_.userId), cc.consumer.map(_.consumerId.get)) match {
-            case Some(reason) => Helper.booleanToFuture(reason, 403, Some(cc))(false)
-            case None => Future.successful(true)
-          }
+          _ <- Consent.assertUKConsentAccess(consent.userId, consent.consumerId, cc)
           consentViews <- Future(JwtUtil.getSignedPayloadAsJson(consent.jsonWebToken).map(
             JsonAliases.parse(_).extract[ConsentJWT].views.map(_.view_id)
           )) map { unboxFullOrFail(_, Some(cc), s"$ConsentViewNotFund ($consentId)") }
@@ -280,12 +275,7 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
           consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
             unboxFullOrFail(_, Some(cc), ConsentNotFound)
           }
-          _ <- Consent.checkUKConsentAccess(
-            consent.userId, consent.consumerId,
-            cc.user.toOption.map(_.userId), cc.consumer.map(_.consumerId.get)) match {
-            case Some(reason) => Helper.booleanToFuture(reason, 403, Some(cc))(false)
-            case None => Future.successful(true)
-          }
+          _ <- Consent.assertUKConsentAccess(consent.userId, consent.consumerId, cc)
           _ <- Future(Consents.consentProvider.vend.revoke(consentId)) map {
             i => connectorEmptyResponse(i, Some(cc))
           }

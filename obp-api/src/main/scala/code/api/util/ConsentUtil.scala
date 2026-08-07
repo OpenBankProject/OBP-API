@@ -22,6 +22,7 @@ import code.model.Consumer
 import code.model.dataAccess.BankAccountRouting
 import code.scheduler.ConsentScheduler.currentDate
 import code.users.Users
+import code.util.Helper
 import code.util.Helper.MdcLoggable
 import code.views.Views
 import com.nimbusds.jwt.JWTClaimsSet
@@ -1551,6 +1552,47 @@ object Consent extends MdcLoggable {
    */
   def genuinePsu(callContext: CallContext): Option[User] =
     callContext.user.toOption.filterNot(u => callContext.consumer.map(_.key.get).contains(u.idGivenByProvider))
+
+  /**
+   * The PSU a caller is acting as, or None when it is acting only as itself.
+   *
+   * genuinePsu answers this for every credential except one: a request authenticated by the consent
+   * itself. applyUKRules swaps callContext.user to the consent's shadow user and sets aside the real
+   * PSU on consenter, and a shadow user's idGivenByProvider is a random UUID rather than the
+   * consumer key, so genuinePsu waves it through as if it were a person. An ownership check handed
+   * that principal compares the shadow user against the consent's owner and can never match --
+   * checkUKConsent already reads consenter for exactly this reason, and says so at its own PSU
+   * comparison.
+   *
+   * So: the PSU the swap set aside if there is one, otherwise whatever genuine PSU the session
+   * carries. Both absent is the standard's own AISP call -- a client-credentials token with no PSU
+   * anywhere -- and None is the answer that lets checkUKConsentAccess fall through to the Consumer
+   * rule, which is the whole of the authorisation there.
+   */
+  def actingPsu(callContext: CallContext): Option[User] =
+    callContext.consenter.toOption.orElse(genuinePsu(callContext))
+
+  /**
+   * The whole guard the four UK consent-by-id endpoints apply: resolve who the caller is acting as,
+   * put that to checkUKConsentAccess, and refuse with 403 when it says so.
+   *
+   * The rule and the identity it is asked about belong together. Keeping them apart is what let the
+   * four sites settle on callContext.user -- a value that is never absent on a request reaching
+   * them, so the rule's own "caller with no PSU" branch was unreachable from every one of them,
+   * however well that branch was tested in isolation.
+   */
+  def assertUKConsentAccess(
+    consentUserId: String,
+    consentConsumerId: String,
+    callContext: CallContext
+  ): Future[Box[Unit]] = {
+    val refusal = checkUKConsentAccess(
+      consentUserId, consentConsumerId,
+      actingPsu(callContext).map(_.userId), callContext.consumer.map(_.consumerId.get))
+    // booleanToFuture only reads failMsg when the statement is false, so the empty default is never
+    // the message anyone sees.
+    Helper.booleanToFuture(refusal.getOrElse(""), 403, Some(callContext))(refusal.isEmpty)
+  }
 
   /**
    * Resolve the PSU a Berlin Group consent authorisation is for, returning that PSU's user id or the

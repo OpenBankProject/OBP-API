@@ -1,9 +1,13 @@
 package code.api.UKOpenBanking.v4_0_1
 
 import code.api.util.APIUtil.{ResourceDoc, UserOrApplication, buildOperationId}
-import code.api.util.Consent
+import code.api.util.{CallContext, Consent}
 import code.api.util.ErrorMessages.{ConsentDoesNotMatchConsumer, ConsentDoesNotMatchUser}
+import code.model.UserX
+import code.model.dataAccess.ResourceUser
 import com.openbankproject.commons.util.ApiVersion
+import net.liftweb.common.{Empty, Full}
+import net.liftweb.util.Helpers.randomString
 import org.scalatest.Tag
 
 // Who may read or revoke a UK account-access-consent.
@@ -33,6 +37,34 @@ class UKOpenBankingV401ConsentAccessTests extends UKOpenBankingV401ServerSetup {
   private val otherPsu = "someone-else-user-id"
   private val tpp = "lodging-consumer-id"
   private val otherTpp = "second-consumer-id"
+
+  // A client_credentials token carries the caller's own client id in `sub`, and OAuth2's
+  // getOrCreateResourceUser turns `sub` into idGivenByProvider -- so the token resolves cc.user to an
+  // auto-vivified pseudo-user keyed on the consumer's client key rather than leaving it Empty. The
+  // OAuth1-signed harness cannot mint that token, so build the same shape directly.
+  private lazy val pseudoUserOfConsumer: ResourceUser =
+    getOrCreateUser(idGivenByProvider = testConsumer.key.get, name = testConsumer.key.get)
+
+  // What applyUKRules puts on cc.user for a request authenticated by the consent itself: a user
+  // minted from the consent JWT's `sub`, which is a random UUID per consent. Nothing about it says
+  // "not a person" -- that is precisely why genuinePsu cannot filter it and consenter is needed.
+  private lazy val shadowUserOfConsent: ResourceUser =
+    getOrCreateUser(idGivenByProvider = s"uk-consent-shadow-${randomString(16)}", name = "")
+
+  private def getOrCreateUser(idGivenByProvider: String, name: String): ResourceUser =
+    UserX.findByProviderId(provider = defaultProvider, idGivenByProvider = idGivenByProvider)
+      .map(_.asInstanceOf[ResourceUser])
+      .getOrElse {
+        UserX.createResourceUser(
+          provider = defaultProvider,
+          providerId = Some(idGivenByProvider),
+          createdByConsentId = None,
+          name = Some(name),
+          email = Some(s"${randomString(10)}@example.com"),
+          userId = None,
+          company = None
+        ).openOrThrowException(s"test user creation failed for $idGivenByProvider")
+      }
 
   feature("Consent.checkUKConsentAccess") {
 
@@ -90,6 +122,75 @@ class UKOpenBankingV401ConsentAccessTests extends UKOpenBankingV401ServerSetup {
       Consent.checkUKConsentAccess(null, null, None, None) should equal(None)
       // A blank caller user id is not a PSU either -- it must not accidentally match a blank binding.
       Consent.checkUKConsentAccess(psu, tpp, Some("  "), Some(tpp)) should equal(None)
+    }
+  }
+
+  // The rule above is only ever as good as the identity handed to it, and that is where this family
+  // was actually failing: every combination with `None` for the caller is tested there, and no
+  // caller could produce one. cc.user is never Empty on a request that reaches these handlers -- a
+  // client-credentials token auto-vivifies a pseudo-user, and consent-header authentication swaps in
+  // the consent's shadow user -- so the rule was being asked about the wrong person and an
+  // authorised consent answered 403 ConsentDoesNotMatchUser to both callers the standard describes.
+  //
+  // Consent.actingPsu is the missing step. These pin the four shapes a caller can arrive in, and the
+  // last scenario pins the composition, which is the part that regressed rather than either half.
+  feature("Consent.actingPsu") {
+
+    scenario("a session with no user at all is acting as nobody", UKOpenBankingV401ConsentAccess) {
+      Consent.actingPsu(CallContext(user = Empty, consumer = Full(testConsumer))) should equal(None)
+    }
+
+    scenario("a client-credentials caller is acting only as itself", UKOpenBankingV401ConsentAccess) {
+      // The AISP call the standard describes. None is the right answer, not a missing one: it is
+      // what lets checkUKConsentAccess fall through to the Consumer rule.
+      Consent.actingPsu(
+        CallContext(user = Full(pseudoUserOfConsumer), consumer = Full(testConsumer))) should equal(None)
+    }
+
+    scenario("a real person authenticated in the session is the PSU", UKOpenBankingV401ConsentAccess) {
+      Consent.actingPsu(CallContext(user = Full(resourceUser1), consumer = Full(testConsumer)))
+        .map(_.userId) should equal(Some(resourceUser1.userId))
+    }
+
+    scenario("under consent-header authentication the PSU is the one the swap set aside", UKOpenBankingV401ConsentAccess) {
+      // applyUKRules leaves the consent's shadow user on `user` and the real PSU on `consenter`. A
+      // shadow user's idGivenByProvider is a random UUID rather than the consumer key, so genuinePsu
+      // alone waves it through -- this is the case that needs consenter.
+      val consentHeaderContext = CallContext(
+        user = Full(shadowUserOfConsent), consenter = Full(resourceUser1), consumer = Full(testConsumer))
+
+      Consent.actingPsu(consentHeaderContext).map(_.userId) should equal(Some(resourceUser1.userId))
+      Consent.genuinePsu(consentHeaderContext).map(_.userId) should equal(Some(shadowUserOfConsent.userId))
+    }
+
+    scenario("the consenter outranks the session principal whenever both are present", UKOpenBankingV401ConsentAccess) {
+      Consent.actingPsu(CallContext(
+        user = Full(resourceUser2), consenter = Full(resourceUser1), consumer = Full(testConsumer)))
+        .map(_.userId) should equal(Some(resourceUser1.userId))
+    }
+
+    scenario("the composition the endpoints perform lets both standard callers through", UKOpenBankingV401ConsentAccess) {
+      // A consent bound to resourceUser1 and lodged by testConsumer, reached the two ways a TPP can
+      // reach it. Both used to be refused with ConsentDoesNotMatchUser.
+      val bound = resourceUser1.userId
+      val lodger = testConsumer.consumerId.get
+
+      val viaClientCredentials =
+        CallContext(user = Full(pseudoUserOfConsumer), consumer = Full(testConsumer))
+      Consent.checkUKConsentAccess(
+        bound, lodger, Consent.actingPsu(viaClientCredentials).map(_.userId), Some(lodger)) should equal(None)
+
+      val viaConsentHeader = CallContext(
+        user = Full(shadowUserOfConsent), consenter = Full(resourceUser1), consumer = Full(testConsumer))
+      Consent.checkUKConsentAccess(
+        bound, lodger, Consent.actingPsu(viaConsentHeader).map(_.userId), Some(lodger)) should equal(None)
+
+      // And it still narrows: a session acting as a different PSU cannot reach the consent, which is
+      // the whole reason the user half is kept.
+      val viaOtherPsu = CallContext(user = Full(resourceUser2), consumer = Full(testConsumer))
+      Consent.checkUKConsentAccess(
+        bound, lodger, Consent.actingPsu(viaOtherPsu).map(_.userId), Some(lodger)) should
+        equal(Some(ConsentDoesNotMatchUser))
     }
   }
 
