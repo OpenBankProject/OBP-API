@@ -1136,11 +1136,13 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     settlement_address: String
   )
 
-  // ─── OPEN_CORRIDOR settle-pair ─────────────────────────────────────────────
+  // ─── OPEN_CORRIDOR settlements ─────────────────────────────────────────────
 
-  case class PostOpenCorridorSettleJsonV700(
-    bank_id_a: String,
-    bank_id_b: String,
+  /** POST /banks/BANK_ID/open-corridor/settlements: the URL bank is one side of
+    * the pair, the body names the other. The caller's role is checked at the
+    * URL bank, so a bank can only trigger settlement of corridors it is party to. */
+  case class PostOpenCorridorSettlementJsonV700(
+    other_bank_id: String,
     currency: String
   )
 
@@ -1165,6 +1167,43 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     covered_transaction_request_ids: List[String],
     credit_notifications_enqueued: Int,
     settlement_instructions_enqueued: Int
+  )
+
+  /** One Interface C outbox message belonging to a settlement, for the GET
+    * status view. `delivery_status` is the outbox row lifecycle
+    * (PENDING / DELIVERED / STICKY), not the rail state. */
+  case class OpenCorridorSettlementMessageJsonV700(
+    message_id: String,
+    target_bank_id: String,
+    delivery_status: String,
+    attempts: Int,
+    last_error: String
+  )
+
+  /**
+   * GET view of one settlement. The ledger side (`ledger_status`) completes at
+   * settle time; the rail side (`settlement_status`) completes only when the
+   * debtor bank's node reports FINAL via the outbox relay's redelivery poll:
+   *   NET_ZERO   — flows offset exactly; nothing to move on any rail
+   *   INSTRUCTED — instruction enqueued, no node reply recorded yet
+   *   SETTLING / SUBMITTED — the node's last reported rail state (with
+   *                `settlement_depth` = confirmation depth when reported)
+   *   FINAL      — the node reported finality; the instruction row is DELIVERED
+   *   ERROR      — the node replied with a non-retryable error (row STICKY);
+   *                operator reconciliation required, see the message's last_error
+   */
+  case class OpenCorridorSettlementStatusJsonV700(
+    settlement_id: String,
+    debtor_bank_id: String,
+    creditor_bank_id: String,
+    currency: String,
+    net_amount: String,
+    transaction_id: String,
+    ledger_status: String,
+    settlement_status: String,
+    settlement_depth: Option[Int],
+    covered_transaction_request_ids: List[String],
+    messages: List[OpenCorridorSettlementMessageJsonV700]
   )
 
   // Build the originator block for a TR response. Returns None when there's no

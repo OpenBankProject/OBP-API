@@ -3640,38 +3640,41 @@ object Http4s700 {
       http4sPartialFunction = Some(deleteOpenCorridorBankBroker)
     )
 
-    // ── OPEN_CORRIDOR settle-pair (the netting trigger) ───────────────────────
+    // ── OPEN_CORRIDOR settlements (the netting trigger + status resource) ─────
     // Bilateral settle-on-demand: nets the pair's PENDING OPEN_CORRIDOR_PROMISE
     // TRs (SUM(A→B) − SUM(B→A)), posts ONE net Transaction between the pair's
     // settlement accounts via an internal OPEN_CORRIDOR_SETTLEMENT TR, discharges
     // the covered promises, and enqueues the Interface C messages in the same DB
     // transaction (transactional outbox; the relay publishes them).
-    val settleOpenCorridorPair: HttpRoutes[IO] = HttpRoutes.of[IO] {
-      case req @ POST -> `prefixPath` / "open-corridor" / "settle" =>
-        EndpointHelpers.withUserAndBodyCreated[JSONFactory700.PostOpenCorridorSettleJsonV700, JSONFactory700.OpenCorridorSettleResultJsonV700](req) { (user, body, cc) =>
+    // The URL bank is one side of the pair; CanSettleOpenCorridor is bank-scoped
+    // and checked there, so a bank can only settle corridors it is party to.
+    val createOpenCorridorSettlement: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "banks" / _ / "open-corridor" / "settlements" =>
+        EndpointHelpers.withUserAndBankAndBodyCreated[JSONFactory700.PostOpenCorridorSettlementJsonV700, JSONFactory700.OpenCorridorSettleResultJsonV700](req) { (user, bank, body, cc) =>
           for {
             _ <- code.util.Helper.booleanToFuture(OpenCorridorDisabled, cc = Some(cc)) {
               APIUtil.getPropsAsBoolValue("open_corridor_enabled", false)
             }
-            _ <- code.util.Helper.booleanToFuture(s"$InvalidJsonValue bank_id_a, bank_id_b and currency must be non-empty and the banks must differ", cc = Some(cc)) {
-              body.bank_id_a.trim.nonEmpty && body.bank_id_b.trim.nonEmpty &&
-                body.currency.trim.nonEmpty && body.bank_id_a != body.bank_id_b
+            _ <- code.util.Helper.booleanToFuture(s"$InvalidJsonValue other_bank_id and currency must be non-empty and the other bank must differ from BANK_ID", cc = Some(cc)) {
+              body.other_bank_id.trim.nonEmpty && body.currency.trim.nonEmpty &&
+                body.other_bank_id != bank.bankId.value
             }
-            (_, _) <- NewStyle.function.getBank(BankId(body.bank_id_a), Some(cc))
-            (_, _) <- NewStyle.function.getBank(BankId(body.bank_id_b), Some(cc))
+            (_, _) <- NewStyle.function.getBank(BankId(body.other_bank_id), Some(cc))
             (result, _) <- code.bankconnectors.opencorridor.OpenCorridorSettlement.settlePair(
-              user, body.bank_id_a, body.bank_id_b, body.currency, Some(cc))
+              user, bank.bankId.value, body.other_bank_id, body.currency, Some(cc))
           } yield result
         }
     }
 
     resourceDocs += ResourceDoc(
       implementedInApiVersion,
-      nameOf(settleOpenCorridorPair),
+      nameOf(createOpenCorridorSettlement),
       "POST",
-      "/open-corridor/settle",
-      "Settle Open Corridor Pair",
-      """Trigger bilateral Open Corridor netting for a bank pair and currency.
+      "/banks/BANK_ID/open-corridor/settlements",
+      "Create Open Corridor Settlement",
+      """Trigger bilateral Open Corridor netting between BANK_ID and the other bank (`other_bank_id`), and create the settlement resource that tracks it.
+        |
+        |This creates the settlement; it does not mean value has moved when the call returns. The OBP ledger side completes here (netting, promise discharge, the one net ledger Transaction), while the value leg is executed asynchronously by the debtor bank's node on its settlement rail. Poll the settlement with GET /banks/BANK_ID/open-corridor/settlements/SETTLEMENT_ID to observe SETTLING → SUBMITTED → FINAL.
         |
         |Computes `net = SUM(PENDING A→B promises) − SUM(PENDING B→A promises)`, mints one internal OPEN_CORRIDOR_SETTLEMENT Transaction Request between the pair's settlement accounts whose execution posts ONE net Transaction (debtor's outgoing settlement account → creditor's incoming), records that Transaction's id on each covered promise in the `settled_by_transaction_ids` attribute (and the settlement TR's id in `settled_by_transaction_request_id`), and sets the covered promises to COMPLETED. N promises collapse into one settlement — that compression is the netting.
         |
@@ -3681,10 +3684,12 @@ object Http4s700 {
         |
         |A trigger for a pair with no PENDING promises is a no-op. When the flows offset exactly (net zero) the promises are discharged with no Transaction posted and no settlement instruction sent — the credit notifications still go out.
         |
-        |Requires `open_corridor_enabled=true` on this instance.
+        |`net_amount` is always the absolute value; direction is carried by `debtor_bank_id` → `creditor_bank_id` (assigned from the sign of the net). Either bank in the pair may trigger settlement — the role is checked at the URL's BANK_ID, and who ends up debtor is decided by the net, not by who called.
+        |
+        |Requires `open_corridor_enabled=true` on this instance and the `CanSettleOpenCorridor` role at BANK_ID.
         |
         |Authentication is Required.""".stripMargin,
-      JSONFactory700.PostOpenCorridorSettleJsonV700(bank_id_a = "gh.29.uk", bank_id_b = "ke.01.kcs", currency = "KES"),
+      JSONFactory700.PostOpenCorridorSettlementJsonV700(other_bank_id = "ke.01.kcs", currency = "KES"),
       JSONFactory700.OpenCorridorSettleResultJsonV700(
         settlement_id = "6bb27397-6c9b-4c5c-b28f-b19f26d1c6f4",
         settlement_transaction_request_id = "6bb27397-6c9b-4c5c-b28f-b19f26d1c6f4",
@@ -3701,7 +3706,68 @@ object Http4s700 {
            $BankNotFound, OpenCorridorBankBrokerNotConfigured, OpenCorridorSettlementAddressMissing, UnknownError),
       apiTagTransactionRequest :: Nil,
       Some(List(canSettleOpenCorridor)),
-      http4sPartialFunction = Some(settleOpenCorridorPair)
+      http4sPartialFunction = Some(createOpenCorridorSettlement)
+    )
+
+    // The settlement resource's read side: ledger fields from the
+    // OPEN_CORRIDOR_SETTLEMENT TR, rail status from the settlement-instruction
+    // outbox row (the node's last reply — redelivery doubles as the poll).
+    val getOpenCorridorSettlement: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / _ / "open-corridor" / "settlements" / settlementId =>
+        EndpointHelpers.withUserAndBank(req) { (_, bank, cc) =>
+          for {
+            _ <- code.util.Helper.booleanToFuture(OpenCorridorDisabled, cc = Some(cc)) {
+              APIUtil.getPropsAsBoolValue("open_corridor_enabled", false)
+            }
+            (result, _) <- code.bankconnectors.opencorridor.OpenCorridorSettlement.getSettlementStatus(
+              bank.bankId.value, settlementId, Some(cc))
+          } yield result
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(getOpenCorridorSettlement),
+      "GET",
+      "/banks/BANK_ID/open-corridor/settlements/SETTLEMENT_ID",
+      "Get Open Corridor Settlement",
+      """Read one Open Corridor settlement. BANK_ID must be a party (debtor or creditor) of the settlement — other banks get a 404.
+        |
+        |The two status fields deliberately separate the two layers:
+        |
+        |* `ledger_status` — the OBP-side OPEN_CORRIDOR_SETTLEMENT Transaction Request (COMPLETED at settle time: netting, promise discharge and the net ledger Transaction are done).
+        |* `settlement_status` — the value leg on the rail, as last reported by the debtor bank's node: `NET_ZERO` (nothing to move), `INSTRUCTED` (no node reply yet), `SETTLING` / `SUBMITTED` (in flight, with `settlement_depth` = confirmation depth when reported), `FINAL` (node reported finality), `ERROR` (non-retryable node error; operator reconciliation — see the message's `last_error`).
+        |
+        |`messages` lists the settlement's Interface C outbox rows (credit notifications and the settlement instruction) with their delivery state.
+        |
+        |Requires `open_corridor_enabled=true` on this instance and the `CanSettleOpenCorridor` role at BANK_ID.
+        |
+        |Authentication is Required.""".stripMargin,
+      EmptyBody,
+      JSONFactory700.OpenCorridorSettlementStatusJsonV700(
+        settlement_id = "6bb27397-6c9b-4c5c-b28f-b19f26d1c6f4",
+        debtor_bank_id = "gh.29.uk",
+        creditor_bank_id = "ke.01.kcs",
+        currency = "KES",
+        net_amount = "2500.00",
+        transaction_id = "902ba3bb-dedd-45e7-9319-2fd3f2cd98a1",
+        ledger_status = "COMPLETED",
+        settlement_status = "SUBMITTED",
+        settlement_depth = Some(2),
+        covered_transaction_request_ids = List("4050046c-63b3-4868-8a22-14b4181d33a6"),
+        messages = List(JSONFactory700.OpenCorridorSettlementMessageJsonV700(
+          message_id = "obp_settlement_instruction",
+          target_bank_id = "gh.29.uk",
+          delivery_status = "PENDING",
+          attempts = 3,
+          last_error = ""
+        ))
+      ),
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, OpenCorridorDisabled, $BankNotFound,
+           OpenCorridorSettlementNotFound, UnknownError),
+      apiTagTransactionRequest :: Nil,
+      Some(List(canSettleOpenCorridor)),
+      http4sPartialFunction = Some(getOpenCorridorSettlement)
     )
 
     // ── End OPEN_CORRIDOR_PROMISE ─────────────────────────────────────────────

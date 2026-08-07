@@ -1,11 +1,12 @@
 package code.bankconnectors.opencorridor
 
 import code.api.Constant.{INCOMING_SETTLEMENT_ACCOUNT_ID, OUTGOING_SETTLEMENT_ACCOUNT_ID}
-import code.api.util.APIUtil.generateUUID
+import code.api.util.APIUtil.{generateUUID, unboxFullOrFail}
 import code.api.util.ErrorMessages._
 import code.api.util.{CallContext, NewStyle}
-import code.api.v7_0_0.JSONFactory700.OpenCorridorSettleResultJsonV700
+import code.api.v7_0_0.JSONFactory700.{OpenCorridorSettleResultJsonV700, OpenCorridorSettlementMessageJsonV700, OpenCorridorSettlementStatusJsonV700}
 import code.bankconnectors.DoobieTransactionRequestQueries
+import code.transactionRequestAttribute.TransactionRequestAttribute
 import code.transactionrequests.{MappedTransactionRequest, TransactionRequests}
 import code.util.Helper
 import code.util.Helper.MdcLoggable
@@ -259,6 +260,86 @@ object OpenCorridorSettlement extends MdcLoggable {
       ), callContext)
     }
   }
+
+  /**
+   * The GET view of one settlement (the resource minted by settlePair).
+   *
+   * Visibility: the URL bank must be a party — debtor or creditor — of the
+   * settlement; anything else is a 404 (existence is not disclosed to third
+   * banks). The ledger side is final at settle time; the rail side is read off
+   * the settlement-instruction outbox row, whose LastReplyJson holds the debtor
+   * node's most recent §4.2 reply (redelivery-as-polling, publish plan §4.4):
+   *   no instruction row                    → NET_ZERO (nothing to move)
+   *   row PENDING, no reply yet             → INSTRUCTED
+   *   row PENDING, node replied             → the node's reported status
+   *                                           (SETTLING / SUBMITTED) + depth
+   *   row DELIVERED                         → FINAL
+   *   row STICKY                            → ERROR (operator reconciliation)
+   */
+  def getSettlementStatus(
+    bankId: String,
+    settlementId: String,
+    callContext: Option[CallContext]
+  ): Future[(OpenCorridorSettlementStatusJsonV700, Option[CallContext])] = Future {
+    val settlementTr = unboxFullOrFail(
+      MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, settlementId))
+        .filter(_.mType.get == TransactionRequestTypes.OPEN_CORRIDOR_SETTLEMENT.toString)
+        .filter(row => row.mFrom_BankId.get == bankId || row.mTo_BankId.get == bankId),
+      callContext, OpenCorridorSettlementNotFound, 404)
+
+    val outboxRows = OpenCorridorOutbox.bySettlementId(settlementId)
+    val coveredTrIds = TransactionRequestAttribute.findAll(
+      By(TransactionRequestAttribute.Name, AttrSettledByTransactionRequestId),
+      By(TransactionRequestAttribute.`Value`, settlementId)
+    ).map(_.TransactionRequestId.get).distinct
+
+    val instructionRow = outboxRows.find(_.messageId == "obp_settlement_instruction")
+    val (settlementStatus, settlementDepth) = instructionRow match {
+      case None => ("NET_ZERO", None)
+      case Some(row) => row.status match {
+        case OpenCorridorOutbox.STATUS_DELIVERED => ("FINAL", nodeReportedDepth(row))
+        case OpenCorridorOutbox.STATUS_STICKY    => ("ERROR", nodeReportedDepth(row))
+        case _ => nodeReportedField(row, "status").filter(_.nonEmpty)
+          .map(status => (status, nodeReportedDepth(row)))
+          .getOrElse(("INSTRUCTED", None))
+      }
+    }
+
+    (OpenCorridorSettlementStatusJsonV700(
+      settlement_id = settlementId,
+      debtor_bank_id = settlementTr.mFrom_BankId.get,
+      creditor_bank_id = settlementTr.mTo_BankId.get,
+      currency = settlementTr.mBody_Value_Currency.get,
+      net_amount = settlementTr.mBody_Value_Amount.get,
+      transaction_id = settlementTr.mTransactionIDs.get,
+      ledger_status = settlementTr.mStatus.get,
+      settlement_status = settlementStatus,
+      settlement_depth = settlementDepth,
+      covered_transaction_request_ids = coveredTrIds,
+      messages = outboxRows.map(row => OpenCorridorSettlementMessageJsonV700(
+        message_id = row.messageId,
+        target_bank_id = row.targetBankId,
+        delivery_status = row.status,
+        attempts = row.attempts,
+        last_error = row.LastError.get
+      ))
+    ), callContext)
+  }
+
+  /** Extract one field of the node's last reply (`data.<field>` of the §4.2
+    * envelope recorded on the outbox row); None when no reply is recorded. */
+  private def nodeReportedField(row: OpenCorridorOutbox, field: String): Option[String] = {
+    Option(row.LastReplyJson.get).filter(_.nonEmpty).flatMap { replyJson =>
+      scala.util.Try(org.json4s.native.JsonMethods.parse(replyJson) \ "data" \ field).toOption
+    }.flatMap {
+      case org.json4s.JString(s) => Some(s)
+      case org.json4s.JInt(i)    => Some(i.toString)
+      case _                     => None
+    }
+  }
+
+  private def nodeReportedDepth(row: OpenCorridorOutbox): Option[Int] =
+    nodeReportedField(row, "depth").flatMap(s => scala.util.Try(s.toInt).toOption)
 
   /** Build the credit notification for one covered promise, addressed to its
     * beneficiary (to-side) bank, relaying the §5.1 evidence attributes verbatim. */
