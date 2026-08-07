@@ -435,9 +435,11 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
   // the security-relevant rejection branches the re-auth relaxation introduces.
   private def scaChallengeRequest(consentId: String) =
     (baseRequest / "obp" / "v5.1.0" / "banks" / testBankId1.value / "consents" / consentId / "authorise" / "challenge").POST
-  private def createUKConsent(user: com.openbankproject.commons.model.User, expiration: Option[java.util.Date]): String = {
+  // Option, because the state that matters for the authorise guards is the one a TPP actually
+  // lodges: no PSU bound yet. saveUKConsent writes mUserId straight from this.
+  private def createUKConsent(user: Option[com.openbankproject.commons.model.User], expiration: Option[java.util.Date]): String = {
     val consent = Consents.consentProvider.vend.saveUKConsent(
-      user = Some(user), bankId = None, accountIds = None, consumerId = None,
+      user = user, bankId = None, accountIds = None, consumerId = None,
       permissions = consentPermissions, expirationDateTime = expiration,
       transactionFromDateTime = None, transactionToDateTime = None,
       apiStandard = Some("UKOpenBanking"), apiVersion = Some("4.0.1")
@@ -446,7 +448,7 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
   }
   feature("UKOB v4.0.1 re-authentication guards on the SCA challenge endpoint") {
     scenario("challenge-start on an already-authorised consent bound to a different PSU -> 403", UKOpenBankingV401AccountInfo) {
-      val consentId = createUKConsent(resourceUser1, Some(new java.util.Date(System.currentTimeMillis() + 3600000L)))
+      val consentId = createUKConsent(Some(resourceUser1), Some(new java.util.Date(System.currentTimeMillis() + 3600000L)))
       Consents.consentProvider.vend.updateConsentUser(consentId, resourceUser1)
       Consents.consentProvider.vend.updateConsentStatus(consentId, ConsentStatus.AUTHORISED)
       // user2 != the bound resourceUser1 -> hijack guard rejects
@@ -455,7 +457,7 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
       response.body.extract[ErrorMessage].message.contains(ConsentDoesNotMatchUser) should equal(true)
     }
     scenario("challenge-start on an authorised consent past its ExpirationDateTime -> 400 ConsentExpiredIssue", UKOpenBankingV401AccountInfo) {
-      val consentId = createUKConsent(resourceUser1, Some(new java.util.Date(System.currentTimeMillis() - 60000L)))
+      val consentId = createUKConsent(Some(resourceUser1), Some(new java.util.Date(System.currentTimeMillis() - 60000L)))
       Consents.consentProvider.vend.updateConsentUser(consentId, resourceUser1)
       Consents.consentProvider.vend.updateConsentStatus(consentId, ConsentStatus.AUTHORISED)
       val response = makePostRequest(scaChallengeRequest(consentId) <@ (user1), "")
@@ -721,6 +723,58 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
     }
     scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
       getUnauthed("aisp", "transactions").code should equal(401)
+    }
+  }
+
+  // A refused authorisation must leave the consent exactly as it found it.
+  //
+  // POST .../consents/CONSENT_ID/authorise used to bind the PSU (updateConsentUser) before
+  // grantUKConsentAccountAccess had decided whether the request was acceptable at all, and nothing
+  // in the sequence is transactional. A rejected attempt therefore claimed the consent for whoever
+  // made it: status still AWAITINGAUTHORISATION, mUserId now the caller. From there the
+  // ConsentDoesNotMatchUser guard at the top of the same endpoint locked the genuine PSU out of
+  // their own consent, and the lodging TPP lost its GET/DELETE as well, with no way back through
+  // the API. Consent ids reach the browser in the authorisation redirect, so one failing request
+  // from anyone who had seen one was enough to destroy it.
+  //
+  // The endpoint asserts the outcome; the DB assertions after it are the actual regression -- a
+  // 400 alone was always true, and was true while the consent was being claimed.
+  private def authoriseRequest(consentId: String) =
+    (baseRequest / "obp" / "v5.1.0" / "banks" / testBankId1.value / "consents" / consentId / "authorise").POST
+  private def storedConsent(consentId: String) =
+    Consents.consentProvider.vend.getConsentByConsentId(consentId).openOrThrowException(s"consent $consentId")
+  // An unbound consent stores mUserId as null rather than "", so read it defensively -- the
+  // assertion is "nobody", and both spellings mean that.
+  private def boundPsuOf(consentId: String): String =
+    Option(storedConsent(consentId).userId).map(_.trim).getOrElse("")
+
+  feature("UKOB v4.0.1 a refused authorisation does not claim the consent") {
+    scenario("account_ids naming an account the PSU does not hold -> refused, consent left unbound", UKOpenBankingV401AccountInfo) {
+      // The dummy SCA answer is `123` only when this is set; test props leave it unset, so the
+      // challenge would otherwise refuse before the account check is ever reached. Same as the
+      // Berlin Group authorisation scenarios do.
+      setPropsValues("suggested_default_sca_method" -> "DUMMY")
+      // Lodged the way a TPP lodges one: no PSU yet.
+      val consentId = createUKConsent(None, Some(new java.util.Date(System.currentTimeMillis() + 3600000L)))
+      boundPsuOf(consentId) should equal("")
+
+      // testAccountId1 belongs to resourceUser1, so user2 authorising against it is the refusal.
+      code.accountholders.AccountHolders.accountHolders.vend
+        .getAccountsHeld(testBankId1, resourceUser2)
+        .contains(BankIdAccountId(testBankId1, testAccountId1)) should equal(false)
+
+      val challenge = makePostRequest(scaChallengeRequest(consentId) <@ (user2), "")
+      challenge.code should equal(200)
+      val challengeId = (challenge.body \ "challenge_id").extract[String]
+
+      val refused = makePostRequest(authoriseRequest(consentId) <@ (user2),
+        s"""{"account_ids":["$acc"],"challenge_id":"$challengeId","answer":"123"}""")
+      refused.code should not equal 200
+      refused.body.extract[ErrorMessage].message should include("OBP-35037")
+
+      // The regression: before the reorder both of these came back naming resourceUser2.
+      boundPsuOf(consentId) should equal("")
+      storedConsent(consentId).status should equal(ConsentStatus.AWAITINGAUTHORISATION.toString)
     }
   }
 }

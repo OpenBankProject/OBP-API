@@ -4408,6 +4408,22 @@ object Http4s510 {
             _ <- Helper.booleanToFuture(s"$InvalidChallengeAnswer", 403, Some(cc)) {
               challenge.scaStatus.contains(StrongCustomerAuthenticationStatus.finalised)
             }
+            // Bind the consented permissions to the PSU-selected accounts, replacing the
+            // (bank_id=null, account_id=null) dead views createUKConsentJWT wrote at consent
+            // creation time.
+            //
+            // This runs before anything is written because it is the last step that can still
+            // refuse the request: it rejects an account_id the PSU does not hold
+            // (ConsentAccountNotHeldByUser) or one that does not exist at this bank. It used to run
+            // after updateConsentUser, and a refused authorisation therefore left the consent bound
+            // to whoever attempted it -- status still AWAITINGAUTHORISATION, mUserId now the
+            // caller. The ConsentDoesNotMatchUser guard above then locked the real PSU out of their
+            // own consent, and the lodging TPP lost it too, with no way back through the API. A
+            // consent id travels to the browser in the authorisation redirect, so a single failing
+            // request from anyone who had seen one was enough. Nothing here is transactional, so
+            // ordering is what has to carry it: refuse first, commit afterwards.
+            _ <- Consent.grantUKConsentAccountAccess(user, BankId(bankIdStr), authJson.account_ids, consent, Some(cc))
+              .map(i => connectorEmptyResponse(i, Some(cc)))
             // Bind the PSU as the consent's user in the DB (mUserId).
             consentAfterBind <- Future(Consents.consentProvider.vend.updateConsentUser(consentId, user))
               .map(i => connectorEmptyResponse(i, Some(cc)))
@@ -4416,16 +4432,13 @@ object Http4s510 {
             // rather than the client_credentials pseudo-user the consent was lodged under.
             // Despite its name, updateUserIdOfBerlinGroupConsentJWT only rewrites
             // createdByUserId (via ConsentJWT.copy) — the UK permission views are preserved.
+            // updateConsentUser re-reads the row from the database, so the JWT copied here is the
+            // one grantUKConsentAccountAccess just wrote, views and all.
             updatedJwt <- Future(Consent.updateUserIdOfBerlinGroupConsentJWT(user.userId, consentAfterBind, Some(cc)))
               .map(i => connectorEmptyResponse(i, Some(cc)))
             consentWithUser <- Future(Consents.consentProvider.vend.setJsonWebToken(consentId, updatedJwt))
               .map(i => connectorEmptyResponse(i, Some(cc)))
-            // Bind the consented permissions to the PSU-selected accounts, replacing the
-            // (bank_id=null, account_id=null) dead views createUKConsentJWT wrote at consent
-            // creation time, and eagerly grant the corresponding AccountAccess rows.
-            consentWithAccountAccess <- Consent.grantUKConsentAccountAccess(user, BankId(bankIdStr), authJson.account_ids, consentWithUser, Some(cc))
-              .map(i => connectorEmptyResponse(i, Some(cc)))
-            updatedConsent <- Future(Consents.consentProvider.vend.updateConsentStatus(consentWithAccountAccess.consentId, ConsentStatus.AUTHORISED))
+            updatedConsent <- Future(Consents.consentProvider.vend.updateConsentStatus(consentWithUser.consentId, ConsentStatus.AUTHORISED))
               .map(i => connectorEmptyResponse(i, Some(cc)))
           } yield ConsentJsonV310(updatedConsent.consentId, updatedConsent.jsonWebToken, updatedConsent.status)
         }
