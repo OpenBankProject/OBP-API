@@ -6,7 +6,7 @@ import code.api.util.ErrorMessages.{ConsentDoesNotMatchConsumer, ConsentDoesNotM
 import code.model.UserX
 import code.model.dataAccess.ResourceUser
 import com.openbankproject.commons.util.ApiVersion
-import net.liftweb.common.{Empty, Full}
+import net.liftweb.common.{Empty, Failure, Full}
 import net.liftweb.util.Helpers.randomString
 import org.scalatest.Tag
 
@@ -68,60 +68,82 @@ class UKOpenBankingV401ConsentAccessTests extends UKOpenBankingV401ServerSetup {
 
   feature("Consent.checkUKConsentAccess") {
 
+    // The ASPSP's own approval screen arrives under its own Consumer, never the TPP's, so the
+    // lodging-Consumer comparison refuses exactly the caller whose job is to show the PSU what they
+    // are being asked to grant -- and the screen renders with no permissions, status or expiry.
+    scenario("a declared SCA front end may read a consent nobody has claimed yet", UKOpenBankingV401ConsentAccess) {
+      Consent.checkUKConsentAccess("", tpp, Some(psu), Some(otherTpp), callerIsScaFrontEnd = true) should equal(None)
+      Consent.checkUKConsentAccess("", tpp, None, Some(otherTpp), callerIsScaFrontEnd = true) should equal(None)
+    }
+
+    scenario("but not once a PSU has claimed it", UKOpenBankingV401ConsentAccess) {
+      // The window the approval screen exists for has closed; from here the PSU half governs, and a
+      // declared front end gets no further than anyone else would.
+      Consent.checkUKConsentAccess(psu, tpp, Some(otherPsu), Some(otherTpp), callerIsScaFrontEnd = true) should
+        equal(Some(ConsentDoesNotMatchUser))
+      Consent.checkUKConsentAccess(psu, tpp, None, Some(otherTpp), callerIsScaFrontEnd = true) should
+        equal(Some(ConsentDoesNotMatchConsumer))
+    }
+
+    scenario("and an undeclared caller is still refused on an unclaimed consent", UKOpenBankingV401ConsentAccess) {
+      Consent.checkUKConsentAccess("", tpp, Some(psu), Some(otherTpp), callerIsScaFrontEnd = false) should
+        equal(Some(ConsentDoesNotMatchConsumer))
+    }
+
     scenario("the PSU a consent is bound to may use it", UKOpenBankingV401ConsentAccess) {
-      Consent.checkUKConsentAccess(psu, tpp, Some(psu), Some(tpp)) should equal(None)
+      Consent.checkUKConsentAccess(psu, tpp, Some(psu), Some(tpp), callerIsScaFrontEnd = false) should equal(None)
     }
 
     scenario("a different PSU may not use a bound consent", UKOpenBankingV401ConsentAccess) {
-      Consent.checkUKConsentAccess(psu, tpp, Some(otherPsu), Some(tpp)) should
+      Consent.checkUKConsentAccess(psu, tpp, Some(otherPsu), Some(tpp), callerIsScaFrontEnd = false) should
         equal(Some(ConsentDoesNotMatchUser))
     }
 
     scenario("the PSU check wins over the Consumer once a consent is bound", UKOpenBankingV401ConsentAccess) {
       // Even the Consumer that lodged it cannot act as another PSU.
-      Consent.checkUKConsentAccess(psu, tpp, Some(otherPsu), Some(tpp)) should
+      Consent.checkUKConsentAccess(psu, tpp, Some(otherPsu), Some(tpp), callerIsScaFrontEnd = false) should
         equal(Some(ConsentDoesNotMatchUser))
     }
 
     scenario("an unbound consent may be used by the Consumer that lodged it", UKOpenBankingV401ConsentAccess) {
-      Consent.checkUKConsentAccess("", tpp, Some(psu), Some(tpp)) should equal(None)
+      Consent.checkUKConsentAccess("", tpp, Some(psu), Some(tpp), callerIsScaFrontEnd = false) should equal(None)
     }
 
     scenario("an unbound consent may not be used by a second TPP", UKOpenBankingV401ConsentAccess) {
-      Consent.checkUKConsentAccess("", tpp, Some(psu), Some(otherTpp)) should
+      Consent.checkUKConsentAccess("", tpp, Some(psu), Some(otherTpp), callerIsScaFrontEnd = false) should
         equal(Some(ConsentDoesNotMatchConsumer))
     }
 
     // The client-credentials cases: no PSU in the session at all.
     scenario("a PSU-less call may use an unbound consent it lodged", UKOpenBankingV401ConsentAccess) {
-      Consent.checkUKConsentAccess("", tpp, None, Some(tpp)) should equal(None)
+      Consent.checkUKConsentAccess("", tpp, None, Some(tpp), callerIsScaFrontEnd = false) should equal(None)
     }
 
     scenario("a PSU-less call may use a bound consent it lodged", UKOpenBankingV401ConsentAccess) {
       // The one combination whose outcome changes, and the reason: this is how the standard has the
       // AISP poll and revoke its own consent after the PSU has authorised it. It used to be refused.
-      Consent.checkUKConsentAccess(psu, tpp, None, Some(tpp)) should equal(None)
+      Consent.checkUKConsentAccess(psu, tpp, None, Some(tpp), callerIsScaFrontEnd = false) should equal(None)
     }
 
     scenario("a PSU-less call from a second TPP is still refused", UKOpenBankingV401ConsentAccess) {
       // Dropping the user check does not open the consent to everyone: the Consumer still decides.
-      Consent.checkUKConsentAccess(psu, tpp, None, Some(otherTpp)) should
+      Consent.checkUKConsentAccess(psu, tpp, None, Some(otherTpp), callerIsScaFrontEnd = false) should
         equal(Some(ConsentDoesNotMatchConsumer))
-      Consent.checkUKConsentAccess("", tpp, None, Some(otherTpp)) should
+      Consent.checkUKConsentAccess("", tpp, None, Some(otherTpp), callerIsScaFrontEnd = false) should
         equal(Some(ConsentDoesNotMatchConsumer))
     }
 
     scenario("a PSU-less call with no Consumer at all is refused", UKOpenBankingV401ConsentAccess) {
-      Consent.checkUKConsentAccess(psu, tpp, None, None) should equal(Some(ConsentDoesNotMatchConsumer))
+      Consent.checkUKConsentAccess(psu, tpp, None, None, callerIsScaFrontEnd = false) should equal(Some(ConsentDoesNotMatchConsumer))
     }
 
     scenario("blank ids count as absent, not as a value to match", UKOpenBankingV401ConsentAccess) {
       // A consent lodged before consumer binding existed stores no consumer id; nothing identifies a
       // wrong caller, so it cannot be refused on that basis.
-      Consent.checkUKConsentAccess("", "", None, Some(tpp)) should equal(None)
-      Consent.checkUKConsentAccess(null, null, None, None) should equal(None)
+      Consent.checkUKConsentAccess("", "", None, Some(tpp), callerIsScaFrontEnd = false) should equal(None)
+      Consent.checkUKConsentAccess(null, null, None, None, callerIsScaFrontEnd = false) should equal(None)
       // A blank caller user id is not a PSU either -- it must not accidentally match a blank binding.
-      Consent.checkUKConsentAccess(psu, tpp, Some("  "), Some(tpp)) should equal(None)
+      Consent.checkUKConsentAccess(psu, tpp, Some("  "), Some(tpp), callerIsScaFrontEnd = false) should equal(None)
     }
   }
 
@@ -178,19 +200,42 @@ class UKOpenBankingV401ConsentAccessTests extends UKOpenBankingV401ServerSetup {
       val viaClientCredentials =
         CallContext(user = Full(pseudoUserOfConsumer), consumer = Full(testConsumer))
       Consent.checkUKConsentAccess(
-        bound, lodger, Consent.actingPsu(viaClientCredentials).map(_.userId), Some(lodger)) should equal(None)
+        bound, lodger, Consent.actingPsu(viaClientCredentials).map(_.userId), Some(lodger), callerIsScaFrontEnd = false) should equal(None)
 
       val viaConsentHeader = CallContext(
         user = Full(shadowUserOfConsent), consenter = Full(resourceUser1), consumer = Full(testConsumer))
       Consent.checkUKConsentAccess(
-        bound, lodger, Consent.actingPsu(viaConsentHeader).map(_.userId), Some(lodger)) should equal(None)
+        bound, lodger, Consent.actingPsu(viaConsentHeader).map(_.userId), Some(lodger), callerIsScaFrontEnd = false) should equal(None)
 
       // And it still narrows: a session acting as a different PSU cannot reach the consent, which is
       // the whole reason the user half is kept.
       val viaOtherPsu = CallContext(user = Full(resourceUser2), consumer = Full(testConsumer))
       Consent.checkUKConsentAccess(
-        bound, lodger, Consent.actingPsu(viaOtherPsu).map(_.userId), Some(lodger)) should
+        bound, lodger, Consent.actingPsu(viaOtherPsu).map(_.userId), Some(lodger), callerIsScaFrontEnd = false) should
         equal(Some(ConsentDoesNotMatchUser))
+    }
+  }
+
+  // A consent of another standard reaching a UK endpoint is a refusal, not a server fault.
+  // checkUKConsent used to throw when there was no Authorization header, which is exactly the
+  // shape such a request has: the dispatcher routes the consent into its own standard's branch,
+  // that branch authenticates the request, and ukConsentId is never set. The uncaught throw came
+  // back as OBP-50000 Unknown Error at 500.
+  feature("Consent.checkUKConsent refuses rather than throws when no UK consent is in play") {
+
+    scenario("a request with neither a UK consent nor an Authorization header is refused", UKOpenBankingV401ConsentAccess) {
+      val result = Consent.checkUKConsent(resourceUser1, Some(CallContext()))
+      result match {
+        case Failure(msg, _, _) => msg should include("OBP-35036")
+        case other => fail(s"expected a Failure naming the standard mismatch, got $other")
+      }
+    }
+
+    scenario("a request the consent header already settled is still waved through", UKOpenBankingV401ConsentAccess) {
+      // applyUKRules sets ukConsentId once it has run every gate, and this short-circuit is what
+      // keeps consent-header authentication working -- the refusal above must not reach it.
+      Consent.checkUKConsent(resourceUser1, Some(CallContext(ukConsentId = Some("any-consent-id")))) should
+        equal(Full(true))
     }
   }
 

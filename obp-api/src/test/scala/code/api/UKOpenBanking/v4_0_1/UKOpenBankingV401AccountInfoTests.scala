@@ -769,8 +769,16 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
 
       val refused = makePostRequest(authoriseRequest(consentId) <@ (user2),
         s"""{"account_ids":["$acc"],"challenge_id":"$challengeId","answer":"123"}""")
-      refused.code should not equal 200
-      refused.body.extract[ErrorMessage].message should include("OBP-35037")
+      // 403, the same answer the ConsentDoesNotMatchUser guard earlier in this endpoint gives:
+      // both are "you may not authorise this", not "your request was malformed".
+      refused.code should equal(403)
+      val message = refused.body.extract[ErrorMessage].message
+      message should include("OBP-35037")
+      // And it has to arrive as itself. Passing this Box through connectorEmptyResponse reported
+      // an authorisation decision as InvalidConnectorResponse, burying the reason behind a cause
+      // it has nothing to do with.
+      message should not include "OBP-50200"
+      message should not include "connectorEmptyResponse"
 
       // The regression: before the reorder both of these came back naming resourceUser2.
       boundPsuOf(consentId) should equal("")

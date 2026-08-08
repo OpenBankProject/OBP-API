@@ -48,49 +48,82 @@ class BerlinGroupV13ConsentAccessTests extends BerlinGroupConsentFixtures {
   feature("Consent.checkBerlinGroupConsentAccess") {
 
     scenario("the TPP that lodged an unowned consent may authorise it", BerlinGroupV13ConsentAccess) {
-      Consent.checkBerlinGroupConsentAccess("", tpp, Some(psu), Some(tpp)) should equal(None)
+      Consent.checkBerlinGroupConsentAccess("", tpp, Some(psu), Some(tpp), callerIsScaFrontEnd = false) should equal(None)
     }
 
     scenario("a second TPP may not authorise a consent it did not lodge", BerlinGroupV13ConsentAccess) {
-      Consent.checkBerlinGroupConsentAccess("", tpp, Some(psu), Some(otherTpp)) should
+      Consent.checkBerlinGroupConsentAccess("", tpp, Some(psu), Some(otherTpp), callerIsScaFrontEnd = false) should
         equal(Some(ConsentDoesNotMatchConsumer))
     }
 
     scenario("a PSU-less call may drive a consent its own Consumer lodged", BerlinGroupV13ConsentAccess) {
-      Consent.checkBerlinGroupConsentAccess("", tpp, None, Some(tpp)) should equal(None)
-      Consent.checkBerlinGroupConsentAccess(psu, tpp, None, Some(tpp)) should equal(None)
+      Consent.checkBerlinGroupConsentAccess("", tpp, None, Some(tpp), callerIsScaFrontEnd = false) should equal(None)
+      Consent.checkBerlinGroupConsentAccess(psu, tpp, None, Some(tpp), callerIsScaFrontEnd = false) should equal(None)
     }
 
     scenario("a PSU-less call from a second TPP is still refused", BerlinGroupV13ConsentAccess) {
-      Consent.checkBerlinGroupConsentAccess("", tpp, None, Some(otherTpp)) should
+      Consent.checkBerlinGroupConsentAccess("", tpp, None, Some(otherTpp), callerIsScaFrontEnd = false) should
         equal(Some(ConsentDoesNotMatchConsumer))
-      Consent.checkBerlinGroupConsentAccess(psu, tpp, None, Some(otherTpp)) should
+      Consent.checkBerlinGroupConsentAccess(psu, tpp, None, Some(otherTpp), callerIsScaFrontEnd = false) should
         equal(Some(ConsentDoesNotMatchConsumer))
     }
 
     scenario("a PSU-less call with no Consumer at all is refused", BerlinGroupV13ConsentAccess) {
-      Consent.checkBerlinGroupConsentAccess(psu, tpp, None, None) should
+      Consent.checkBerlinGroupConsentAccess(psu, tpp, None, None, callerIsScaFrontEnd = false) should
         equal(Some(ConsentDoesNotMatchConsumer))
     }
 
     scenario("the PSU a consent is already bound to may re-authorise it", BerlinGroupV13ConsentAccess) {
-      Consent.checkBerlinGroupConsentAccess(psu, tpp, Some(psu), Some(tpp)) should equal(None)
+      Consent.checkBerlinGroupConsentAccess(psu, tpp, Some(psu), Some(tpp), callerIsScaFrontEnd = false) should equal(None)
     }
 
     scenario("a different PSU may not re-bind a consent that is already owned", BerlinGroupV13ConsentAccess) {
-      Consent.checkBerlinGroupConsentAccess(psu, tpp, Some(otherPsu), Some(tpp)) should
+      Consent.checkBerlinGroupConsentAccess(psu, tpp, Some(otherPsu), Some(tpp), callerIsScaFrontEnd = false) should
         equal(Some(ConsentDoesNotMatchUser))
     }
 
     scenario("the PSU check wins over the Consumer once a consent is bound", BerlinGroupV13ConsentAccess) {
-      Consent.checkBerlinGroupConsentAccess(psu, tpp, Some(otherPsu), Some(otherTpp)) should
+      Consent.checkBerlinGroupConsentAccess(psu, tpp, Some(otherPsu), Some(otherTpp), callerIsScaFrontEnd = false) should
         equal(Some(ConsentDoesNotMatchUser))
     }
 
     scenario("blank ids count as absent, not as a value to match", BerlinGroupV13ConsentAccess) {
-      Consent.checkBerlinGroupConsentAccess(null, null, None, None) should equal(None)
-      Consent.checkBerlinGroupConsentAccess("   ", tpp, Some(psu), Some(tpp)) should equal(None)
-      Consent.checkBerlinGroupConsentAccess(psu, tpp, Some("  "), Some(tpp)) should equal(None)
+      Consent.checkBerlinGroupConsentAccess(null, null, None, None, callerIsScaFrontEnd = false) should equal(None)
+      Consent.checkBerlinGroupConsentAccess("   ", tpp, Some(psu), Some(tpp), callerIsScaFrontEnd = false) should equal(None)
+      Consent.checkBerlinGroupConsentAccess(psu, tpp, Some("  "), Some(tpp), callerIsScaFrontEnd = false) should equal(None)
+    }
+  }
+
+  // The Redirect approach: the PSU authenticates at the ASPSP, so these calls arrive from the
+  // ASPSP's own front end under its own Consumer -- never the one that lodged the consent. The
+  // same-TPP rule would refuse the only caller Redirect has, which is what blocked the scaRedirect
+  // ceremony outright. Nothing in the request separates that front end from a second TPP holding a
+  // PSU session, so it is declared rather than inferred; these pin that the declaration is the only
+  // thing that changes, and that it does not reach the PSU half.
+  feature("Consent.checkBerlinGroupConsentAccess and the ASPSP's declared SCA front end") {
+
+    scenario("a declared front end may start an authorisation on a consent it did not lodge", BerlinGroupV13ConsentAccess) {
+      Consent.checkBerlinGroupConsentAccess("", tpp, Some(psu), Some(otherTpp), callerIsScaFrontEnd = false) should
+        equal(Some(ConsentDoesNotMatchConsumer))
+      Consent.checkBerlinGroupConsentAccess("", tpp, Some(psu), Some(otherTpp), callerIsScaFrontEnd = true) should
+        equal(None)
+    }
+
+    scenario("a declared front end still cannot re-bind another PSU's consent", BerlinGroupV13ConsentAccess) {
+      Consent.checkBerlinGroupConsentAccess(psu, tpp, Some(otherPsu), Some(otherTpp), callerIsScaFrontEnd = true) should
+        equal(Some(ConsentDoesNotMatchUser))
+    }
+
+    scenario("a declared front end acting for the consent's own PSU is fine", BerlinGroupV13ConsentAccess) {
+      Consent.checkBerlinGroupConsentAccess(psu, tpp, Some(psu), Some(otherTpp), callerIsScaFrontEnd = true) should
+        equal(None)
+    }
+
+    scenario("the declaration is by consumer id and nothing else", BerlinGroupV13ConsentAccess) {
+      // Empty config is the default, and it must leave the same-TPP rule applying to everyone.
+      Consent.isScaFrontEnd(Some(otherTpp)) should equal(false)
+      Consent.isScaFrontEnd(None) should equal(false)
+      Consent.isScaFrontEnd(Some("   ")) should equal(false)
     }
   }
 
@@ -100,6 +133,22 @@ class BerlinGroupV13ConsentAccessTests extends BerlinGroupConsentFixtures {
   // travelling in the body rather than in the session, so None is the normal answer for a
   // conforming call -- not a failure to defend against. checkBerlinGroupConsentAccess is written
   // for that: a caller with no PSU skips the PSU comparison and is judged on its Consumer alone.
+  // A refusal tells the TPP which view and which account it was refused, and that is all it
+  // should tell them. Under consent authentication the principal is the consent's own shadow
+  // user, so putting its id in the message hands the TPP an internal identifier it cannot act
+  // on and was never party to.
+  feature("BG v1.3 - a view refusal does not disclose the internal principal") {
+    scenario("the refusal names the view and the account, and no user id", BerlinGroupV13ConsentAccess) {
+      // user2 holds no Berlin Group view on testAccountId1, so this is a real refusal.
+      val response = makeGetRequest((V1_3_BG / "accounts" / testAccountId1.value / "balances").GET <@ (user2))
+      response.code should equal(403)
+      val body = response.body.toString
+      body should include("OBP-20060")
+      body should not include "userId :"
+      body should not include resourceUser2.userId
+    }
+  }
+
   feature("Consent.genuinePsu") {
 
     scenario("a session with no user at all has no PSU", BerlinGroupV13ConsentAccess) {
@@ -123,9 +172,9 @@ class BerlinGroupV13ConsentAccessTests extends BerlinGroupConsentFixtures {
       Consent.genuinePsu(CallContext(user = Full(pseudoUserOfTestConsumer), consumer = Empty))
         .map(_.userId) should equal(Some(pseudoUserOfTestConsumer.userId))
 
-      Consent.checkBerlinGroupConsentAccess(psu, tpp, Some(pseudoUserOfTestConsumer.userId), None) should
+      Consent.checkBerlinGroupConsentAccess(psu, tpp, Some(pseudoUserOfTestConsumer.userId), None, callerIsScaFrontEnd = false) should
         equal(Some(ConsentDoesNotMatchUser))
-      Consent.checkBerlinGroupConsentAccess("", tpp, Some(pseudoUserOfTestConsumer.userId), None) should
+      Consent.checkBerlinGroupConsentAccess("", tpp, Some(pseudoUserOfTestConsumer.userId), None, callerIsScaFrontEnd = false) should
         equal(Some(ConsentDoesNotMatchConsumer))
     }
   }

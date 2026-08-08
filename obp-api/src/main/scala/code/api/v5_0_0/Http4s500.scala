@@ -962,7 +962,7 @@ object Http4s500 {
               val isVrpConsent = (viewsFromJwtToken.length == 1) &&
                 viewsFromJwtToken.head.bank_id.nonEmpty &&
                 viewsFromJwtToken.head.account_id.nonEmpty &&
-                viewsFromJwtToken.head.view_id.startsWith("_vrp-")
+                viewsFromJwtToken.head.view_id.startsWith(VRP_VIEW_ID_PREFIX)
               if (isVrpConsent) {
                 val bId = BankId(viewsFromJwtToken.head.bank_id)
                 val aId = AccountId(viewsFromJwtToken.head.account_id)
@@ -1083,7 +1083,7 @@ object Http4s500 {
               }
             (bankId, accountId, viewId, counterpartyId) <- if (isVRPConsentRequest) {
               val postConsentRequestJsonV510 = json.parse(createdConsentRequest.payload).extract[code.api.v5_1_0.PostVRPConsentRequestJsonV510]
-              val vrpViewId = s"_vrp-${UUID.randomUUID.toString}".dropRight(5)
+              val vrpViewId = s"${VRP_VIEW_ID_PREFIX}${UUID.randomUUID.toString}".dropRight(5)
               val targetPermissions = List(
                 CAN_ADD_TRANSACTION_REQUEST_TO_BENEFICIARY,
                 CAN_GET_COUNTERPARTY,

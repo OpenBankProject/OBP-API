@@ -169,6 +169,11 @@ object Constant extends MdcLoggable {
   final val SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID = "ReadTransactionsBerlinGroup"
   final val SYSTEM_INITIATE_PAYMENTS_BERLIN_GROUP_VIEW_ID = "InitiatePaymentsBerlinGroup"
 
+  // A VRP mandate gets its own private custom view, named after the mandate. The prefix is how the
+  // consent conversion recognises a VRP consent, and how revocation finds the artefacts to release,
+  // so both ends read it from here rather than repeating the literal.
+  final val VRP_VIEW_ID_PREFIX = "_vrp-"
+
   //This is used for the canRevokeAccessToViews_ and canGrantAccessToViews_ fields of SYSTEM_OWNER_VIEW_ID or SYSTEM_STANDARD_VIEW_ID.
   final val DEFAULT_CAN_GRANT_AND_REVOKE_ACCESS_TO_VIEWS =
     SYSTEM_OWNER_VIEW_ID::

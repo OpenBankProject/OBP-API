@@ -1,5 +1,7 @@
 package code.api.UKOpenBanking.v4_0_1
 
+import code.api.UKOpenBanking.UKAmounts
+
 import java.util.Date
 
 import code.api.Constant
@@ -114,7 +116,9 @@ object JSONFactory_UKOpenBanking_401 extends CustomJsonFormats {
     TransactionId: String,
     TransactionReference: Option[String] = None,
     StatementReference: List[String] = Nil,
-    CreditDebitIndicator: String = "Credit",
+    // No default: the direction has to be derived from the amount at every construction site
+    // (see UKAmounts). A default is how "Credit" ended up on every debit.
+    CreditDebitIndicator: String,
     Status: String = "BOOK",
     TransactionMutability: String = "Mutable",
     BookingDateTime: Date,
@@ -220,13 +224,14 @@ object JSONFactory_UKOpenBanking_401 extends CustomJsonFormats {
 
   def createAccountBalanceJSON(moderatedAccount: ModeratedBankAccountCore): BalancesUKV401 = {
     val accountId = moderatedAccount.accountId.value
+    val rawBalance = moderatedAccount.balance.getOrElse("")
     val amount = AmountV401(
-      Amount = moderatedAccount.balance.getOrElse(""),
+      Amount = UKAmounts.unsignedAmountString(rawBalance),
       Currency = moderatedAccount.currency.getOrElse("")
     )
     val balance = BalanceV401(
       AccountId = accountId,
-      CreditDebitIndicator = "Credit",
+      CreditDebitIndicator = UKAmounts.creditDebitIndicatorOfString(rawBalance),
       Type = "ClosingAvailable",
       DateTime = None,
       Amount = amount,
@@ -241,10 +246,10 @@ object JSONFactory_UKOpenBanking_401 extends CustomJsonFormats {
 
   def createBalancesJSON(accounts: List[BankAccount]): BalancesUKV401 = {
     val balances = accounts.map { account =>
-      val amount = AmountV401(Amount = account.balance.toString(), Currency = account.currency)
+      val amount = AmountV401(Amount = UKAmounts.unsignedAmount(account.balance), Currency = account.currency)
       BalanceV401(
         AccountId = account.accountId.value,
-        CreditDebitIndicator = "Credit",
+        CreditDebitIndicator = UKAmounts.creditDebitIndicator(account.balance),
         Type = "ClosingAvailable",
         DateTime = Some(account.lastUpdate),
         Amount = amount,
@@ -276,8 +281,9 @@ object JSONFactory_UKOpenBanking_401 extends CustomJsonFormats {
       case _ => None
     }
 
+    // UK keeps the sign out of Amount and in CreditDebitIndicator; OBP holds one signed number.
     val amount = AmountV401(
-      Amount = moderatedTransaction.amount.getOrElse(BigDecimal(0)).toString(),
+      Amount = UKAmounts.unsignedAmount(moderatedTransaction.amount),
       Currency = moderatedTransaction.currency.getOrElse("")
     )
     TransactionV401(
@@ -288,10 +294,13 @@ object JSONFactory_UKOpenBanking_401 extends CustomJsonFormats {
       BookingDateTime = moderatedTransaction.startDate.get,
       ValueDateTime = moderatedTransaction.finishDate.get,
       Amount = amount,
+      CreditDebitIndicator = UKAmounts.creditDebitIndicator(moderatedTransaction.amount),
       Balance = Some(TransactionBalanceV401(
-        CreditDebitIndicator = "Credit",
+        CreditDebitIndicator = UKAmounts.creditDebitIndicatorOfString(moderatedTransaction.balance),
         Type = "InterimBooked",
-        Amount = AmountV401(Amount = moderatedTransaction.balance, Currency = moderatedTransaction.currency.getOrElse(""))
+        Amount = AmountV401(
+          Amount = UKAmounts.unsignedAmountString(moderatedTransaction.balance),
+          Currency = moderatedTransaction.currency.getOrElse(""))
       )),
       MerchantDetails = getMerchantDetails
     )

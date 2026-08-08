@@ -24,6 +24,8 @@ import code.scheduler.ConsentScheduler.currentDate
 import code.users.Users
 import code.util.Helper
 import code.util.Helper.MdcLoggable
+import code.counterpartylimit.CounterpartyLimitProvider
+import code.metadata.counterparties.Counterparties
 import code.views.Views
 import com.nimbusds.jwt.JWTClaimsSet
 import com.openbankproject.commons.ExecutionContext.Implicits.global
@@ -39,7 +41,10 @@ import net.liftweb.util.Props
 import java.text.SimpleDateFormat
 import java.util.Date
 import scala.collection.immutable.{List, Nil}
-import scala.concurrent.Future
+import scala.concurrent.{Await, Future}
+import scala.concurrent.duration._
+// Not scala.util.Failure: net.liftweb.common._ above already binds that name to Box's failure case.
+import scala.util.{Success, Try}
 
 // Design boundary (not enforced by the compiler — keep it that way by convention): consent-layer
 // attributes belong on the consent record, never as a View can_* permission. BG's
@@ -677,8 +682,24 @@ object Consent extends MdcLoggable {
       }
     }
 
+    /**
+     * Whether this pass through the authentication pipeline is the one that will actually serve the
+     * request, and so the one that should spend a frequencyPerDay access.
+     *
+     * The pipeline runs many times per HTTP request: each API version wraps its own routes in its
+     * own ResourceDocMiddleware, and a middleware whose index holds no matching doc still runs
+     * best-effort authentication before falling through to the next one
+     * (ResourceDocMiddleware.scala, the `case None` branch). Only the middleware that matched a
+     * ResourceDoc attaches it to the CallContext, so its presence is exactly the distinction.
+     *
+     * Without this, one request spent an access per middleware in the chain, which drove the
+     * counter to frequencyPerDay before the request was served: a consent asking for four accesses
+     * a day got none, answering 429 to its very first call.
+     */
+    def isTheServingPass: Boolean = callContext.resourceDocument.isDefined
+
     def checkFrequencyPerDay(storedConsent: consent.ConsentTrait) = {
-      if(BerlinGroupCheck.isTppRequestsWithoutPsuInvolvement(callContext.requestHeaders)) {
+      if(isTheServingPass && BerlinGroupCheck.isTppRequestsWithoutPsuInvolvement(callContext.requestHeaders)) {
         def isSameDay(date1: Date, date2: Date): Boolean = {
           val fmt = new SimpleDateFormat("yyyyMMdd")
           fmt.format(date1).equals(fmt.format(date2))
@@ -727,7 +748,7 @@ object Consent extends MdcLoggable {
                 logger.debug(s"End of com.openbankproject.commons.util.JsonAliases.parse(jsonAsString).extract[ConsentJWT].checkConsent.consentBox: $consent")
                 consentBox match { // Check is it Consent-JWT expired
                   case (Full(true)) => // OK
-                    if(BerlinGroupCheck.isTppRequestsWithoutPsuInvolvement(callContext.requestHeaders)) {
+                    if(isTheServingPass && BerlinGroupCheck.isTppRequestsWithoutPsuInvolvement(callContext.requestHeaders)) {
                       // Update MappedConsent.usesSoFarTodayCounter field
                       val consentUpdatedBox = Consents.consentProvider.vend.updateBerlinGroupConsent(consentId, currentCounterState + 1)
                       logger.debug(s"applyBerlinGroupConsentRulesCommon.consentUpdatedBox: $consentUpdatedBox")
@@ -869,8 +890,10 @@ object Consent extends MdcLoggable {
    */
   def revokeConsentAccountAccess(consent: code.consent.ConsentTrait): Unit = {
     implicit val dateFormats = CustomJsonFormats.formats
+    val consentJwtBox = JwtUtil.getSignedPayloadAsJson(consent.jsonWebToken).map(parse(_).extract[ConsentJWT])
+
     val revoked = for {
-      consentJwt <- JwtUtil.getSignedPayloadAsJson(consent.jsonWebToken).map(parse(_).extract[ConsentJWT])
+      consentJwt <- consentJwtBox
       shadowUser <- Users.users.vend.getUserByProviderId(provider = consentJwt.iss, idGivenByProvider = consentJwt.sub)
     } yield {
       Views.views.vend.accessGrantedToUserForConsumer(shadowUser, Constant.ALL_CONSUMERS).map { access =>
@@ -882,7 +905,88 @@ object Consent extends MdcLoggable {
         logger.info(s"revokeConsentAccountAccess: dropped $count account access rows for consent ${consent.consentId}")
       case _ =>
     }
+
+    // Deliberately outside the comprehension above, and after it. Outside, because a VRP consent
+    // that never reached SCA has no shadow user, and its mandate still has to be released -- an
+    // abandoned mandate is exactly the case that used to accumulate. After, because the view can
+    // only be removed once every access row pointing at it is gone, the shadow user's included.
+    consentJwtBox.foreach(releaseVrpMandateArtefacts(consent, _))
   }
+
+  /**
+   * Release the artefacts a VRP mandate created, when the consent that owns them is revoked.
+   *
+   * Converting a VRP consent-request builds a private custom view named `_vrp-<uuid>`, grants it to
+   * the PSU, hangs a counterparty off it and gives that counterparty a limit. Together they are the
+   * mandate: the view carries CAN_ADD_TRANSACTION_REQUEST_TO_BENEFICIARY, and the limit is how much
+   * may be paid under it. Revoking the consent used to drop only the shadow user's access, so the
+   * PSU kept a live standing payment authority for a mandate they had just cancelled -- and one set
+   * of these accumulated on the account for every mandate ever requested, revoked or abandoned.
+   *
+   * Each artefact is named after the view, and the view belongs to exactly one consent, so this can
+   * be undone without guessing. What gets released, and what deliberately does not:
+   *
+   *  - the PSU's grant on the view, which is the authority itself;
+   *  - the counterparty's limit, which is the amount that authority was good for;
+   *  - the view, but only once no access row is left pointing at it -- removeCustomView refuses
+   *    otherwise, so a view some other principal still holds is left alone rather than orphaning it.
+   *
+   * The counterparty row stays. It is a payee record that settled transactions refer to, and
+   * deleting it would take history with it; with the view and the limit gone it grants nothing.
+   */
+  private def releaseVrpMandateArtefacts(consent: code.consent.ConsentTrait, consentJwt: ConsentJWT): Unit = {
+    val vrpViews = consentJwt.views.filter(_.view_id.startsWith(Constant.VRP_VIEW_ID_PREFIX))
+    if (vrpViews.nonEmpty) {
+      Users.users.vend.getUserByUserId(consent.userId) match {
+        case Full(psu) =>
+          vrpViews.foreach { consentView =>
+            val bankId = BankId(consentView.bank_id)
+            val accountId = AccountId(consentView.account_id)
+            val viewId = ViewId(consentView.view_id)
+
+            Views.views.vend.revokeAccessToViewForUserAndConsumer(
+              BankIdAccountIdViewId(bankId, accountId, viewId), psu, Constant.ALL_CONSUMERS)
+
+            // A Failure here is not "this view has no counterparties" -- treating it as such would
+            // skip the deletions and still report success below.
+            Counterparties.counterparties.vend.getCounterparties(bankId, accountId, viewId) match {
+              case Full(counterparties) =>
+                counterparties.foreach { counterparty =>
+                  // Awaited so the deletion's outcome is observed rather than left in an unwatched
+                  // Future -- but caught, because the caller has already committed the revoke. The
+                  // status flip and the shadow user's access are gone by the time this runs, and a
+                  // second attempt is refused with ConsentAlreadyRevoked, so letting a timeout or a
+                  // connector failure escape would turn a completed revoke into a 500 and abandon
+                  // the views still queued behind this one.
+                  Try(Await.result(
+                    CounterpartyLimitProvider.counterpartyLimit.vend.deleteCounterpartyLimit(
+                      bankId.value, accountId.value, viewId.value, counterparty.counterpartyId),
+                    10.seconds)) match {
+                    case Success(deleted) if deleted.isDefined => // released
+                    case other => logger.warn(
+                      s"releaseVrpMandateArtefacts: could not delete the limit on ${viewId.value} " +
+                      s"for counterparty ${counterparty.counterpartyId}: $other")
+                  }
+                }
+              case other =>
+                logger.warn(s"releaseVrpMandateArtefacts: could not list counterparties on " +
+                  s"${viewId.value} for consent ${consent.consentId}, limits left in place: $other")
+            }
+
+            Views.views.vend.removeCustomView(viewId, BankIdAccountId(bankId, accountId)) match {
+              case Full(_) =>
+                logger.info(s"releaseVrpMandateArtefacts: released ${viewId.value} for consent ${consent.consentId}")
+              case other =>
+                // Something still holds the view. Its authority is gone either way; say so and stop.
+                logger.info(s"releaseVrpMandateArtefacts: kept ${viewId.value} for consent ${consent.consentId}: $other")
+            }
+          }
+        case _ =>
+          logger.warn(s"releaseVrpMandateArtefacts: no PSU on consent ${consent.consentId}, mandate views left in place")
+      }
+    }
+  }
+
 
   /**
    * The Bearer-token half of the shadow-user resolution.
@@ -1425,9 +1529,22 @@ object Consent extends MdcLoggable {
     consentUserId: String,
     consentConsumerId: String,
     callerUserId: Option[String],
-    callerConsumerId: Option[String]
-  ): Option[String] =
-    psuOrLodgingTppRefusal(consentUserId, consentConsumerId, callerUserId, callerConsumerId)
+    callerConsumerId: Option[String],
+    callerIsScaFrontEnd: Boolean
+  ): Option[String] = {
+    val stillUnclaimed = Option(consentUserId).map(_.trim).forall(_.isEmpty)
+    // The ASPSP's own approval screen has to read the consent to show the PSU what they are being
+    // asked to grant, and it arrives under its own Consumer rather than the TPP's -- so the lodging
+    // Consumer comparison refuses precisely the caller whose whole job is to inform the PSU, and the
+    // screen renders with no permissions, no status and no expiry.
+    //
+    // Narrow on purpose. It applies only while the consent is still unclaimed, which is the only
+    // window the approval screen exists for; once a PSU is bound, the PSU half below governs and a
+    // declared front end gets no further than anyone else. And it is inert unless an ASPSP has
+    // declared a front end at all.
+    if (callerIsScaFrontEnd && stillUnclaimed) None
+    else psuOrLodgingTppRefusal(consentUserId, consentConsumerId, callerUserId, callerConsumerId)
+  }
 
   /**
    * Decide whether a caller may drive a Berlin Group consent's authorisation sub-resources --
@@ -1460,14 +1577,55 @@ object Consent extends MdcLoggable {
    * marks these calls Client Credentials, so no PSU is party to them. Berlin Group's rests on the
    * blanket same-TPP rule above plus PSU binding happening at SCA time. Different premises, same
    * conclusion, so they share one implementation rather than one being copied onto the other.
+   *
+   * With one exception, and it is in the wording of the rule itself: it binds "methods submitted by
+   * a TPP". Under the Redirect approach the PSU authenticates at the ASPSP, so these calls arrive
+   * from the ASPSP's own front end -- not a TPP, and never the Consumer that lodged the consent.
+   * Applying the rule there refuses the only caller Redirect has, and the scaRedirect ceremony
+   * cannot complete at all.
+   *
+   * Nothing in the request tells that front end apart from a second TPP holding a PSU session --
+   * both are an authenticated person arriving under a Consumer that did not lodge the consent -- so
+   * the ASPSP declares its own, and callerIsScaFrontEnd is that declaration reaching this rule. See
+   * APIUtil.scaFrontEndConsumerIds. It is not a way past the PSU half: a consent already
+   * bound to someone still only re-binds to them.
+   *
+   * What it is emphatically not is a substitute for checking that the claiming PSU has anything to
+   * do with the accounts the consent names. A Consumer comparison could never have provided that --
+   * the TPP that lodged the consent passes it by definition, and is the party the access accrues to
+   * -- so that check lives on its own in assertBerlinGroupConsentAccountsHeld, which the
+   * authorisation pair applies before anything is written.
    */
   def checkBerlinGroupConsentAccess(
     consentUserId: String,
     consentConsumerId: String,
     callerUserId: Option[String],
-    callerConsumerId: Option[String]
-  ): Option[String] =
-    psuOrLodgingTppRefusal(consentUserId, consentConsumerId, callerUserId, callerConsumerId)
+    callerConsumerId: Option[String],
+    callerIsScaFrontEnd: Boolean
+  ): Option[String] = {
+    def present(s: String): Option[String] = Option(s).map(_.trim).filter(_.nonEmpty)
+
+    (present(consentUserId), callerUserId.flatMap(present)) match {
+      case (Some(psu), Some(caller)) if psu != caller => Some(ErrorMessages.ConsentDoesNotMatchUser)
+      case (Some(_), Some(_)) => None
+      // Only while the consent is still unclaimed. A caller with no PSU used to reach this too, so a
+      // declared front end presenting client credentials could drive the authorisation of a consent
+      // already bound to somebody else -- the opposite of what the paragraph above promises.
+      case (None, _) if callerIsScaFrontEnd => None
+      case _ => psuOrLodgingTppRefusal(consentUserId, consentConsumerId, callerUserId, callerConsumerId)
+    }
+  }
+
+  /**
+   * Whether the Consumer making this call is one the ASPSP declared as its own SCA front end.
+   *
+   * Not Berlin-Group-specific: the same front end drives the UK approval screen, and the same
+   * difficulty applies there -- nothing in the request distinguishes the ASPSP's own screen from a
+   * second TPP holding a PSU session, so the ASPSP has to say which Consumer is its own.
+   */
+  def isScaFrontEnd(callerConsumerId: Option[String]): Boolean =
+    callerConsumerId.map(_.trim).filter(_.nonEmpty)
+      .exists(APIUtil.scaFrontEndConsumerIds.contains)
 
   /**
    * The rule shared by checkUKConsentAccess and checkBerlinGroupConsentAccess: a consent bound to a
@@ -1554,6 +1712,55 @@ object Consent extends MdcLoggable {
     callContext.user.toOption.filterNot(u => callContext.consumer.map(_.key.get).contains(u.idGivenByProvider))
 
   /**
+   * Refuse a Berlin Group consent authorisation unless the PSU claiming it holds every account the
+   * consent names, returning the reason to refuse or None.
+   *
+   * A Berlin Group consent carries its accounts from the moment it is created: the TPP lists IBANs
+   * in the access object and createBerlinGroupConsentJWT resolves each one to a (bank_id,
+   * account_id) view before any PSU is involved. Nothing until now checked that the PSU who
+   * eventually authorises it has anything to do with those accounts, and the consequence was
+   * reachable rather than theoretical -- a consent naming another customer's IBAN, authorised by a
+   * PSU who does not hold it, bound and then served that account's details and balances to the TPP.
+   * It is the same gap UK closed at its own authorise step, and the same error answers it.
+   *
+   * Read off the JWT rather than the access object because the JWT is what the read path will
+   * actually grant: applyConsentRules materialises exactly these views for the consent's shadow
+   * user. Checking anything else would leave the two able to disagree.
+   *
+   * A consent whose JWT names no account yet is not refused here. That is the availableAccounts
+   * ("allAccounts") shape, whose views are materialised later and against the PSU's own holdings,
+   * so there is nothing for this check to compare and nothing it could wrongly let through.
+   */
+  def assertBerlinGroupConsentAccountsHeld(
+    psu: User,
+    storedConsent: consent.ConsentTrait,
+    callContext: Option[CallContext]
+  ): Future[Box[Unit]] = Future {
+    implicit val dateFormats: Formats = CustomJsonFormats.formats
+    val consentAccounts: List[(String, String)] = JwtUtil.getSignedPayloadAsJson(storedConsent.jsonWebToken)
+      .map(com.openbankproject.commons.util.JsonAliases.parse(_).extract[ConsentJWT])
+      .map(_.views.map(v => (v.bank_id, v.account_id)).distinct)
+      .getOrElse(Nil)
+      .filter { case (bankId, accountId) => bankId != null && accountId != null }
+
+    val notHeld: List[String] = consentAccounts
+      .groupBy(_._1)
+      .toList
+      .flatMap { case (bankId, pairs) =>
+        val held = AccountHolders.accountHolders.vend
+          .getAccountsHeld(BankId(bankId), psu)
+          .map(_.accountId.value)
+        pairs.map(_._2).filterNot(held.contains)
+      }
+
+    (notHeld.isEmpty, notHeld): (Boolean, List[String])
+  } flatMap { case (allHeld: Boolean, notHeld: List[String]) =>
+    Helper.booleanToFuture(
+      s"${ErrorMessages.ConsentAccountNotHeldByUser} Account(s): ${notHeld.mkString(", ")}",
+      403, callContext)(allHeld)
+  }
+
+  /**
    * The PSU a caller is acting as, or None when it is acting only as itself.
    *
    * genuinePsu answers this for every credential except one: a request authenticated by the consent
@@ -1588,7 +1795,8 @@ object Consent extends MdcLoggable {
   ): Future[Box[Unit]] = {
     val refusal = checkUKConsentAccess(
       consentUserId, consentConsumerId,
-      actingPsu(callContext).map(_.userId), callContext.consumer.map(_.consumerId.get))
+      actingPsu(callContext).map(_.userId), callContext.consumer.map(_.consumerId.get),
+      isScaFrontEnd(callContext.consumer.map(_.consumerId.get)))
     // booleanToFuture only reads failMsg when the statement is false, so the empty default is never
     // the message anyone sees.
     Helper.booleanToFuture(refusal.getOrElse(""), 403, Some(callContext))(refusal.isEmpty)
@@ -1904,9 +2112,19 @@ object Consent extends MdcLoggable {
     // nothing left to re-derive from a token that does not exist.
     if (calContext.flatMap(_.ukConsentId).isDefined) return Full(true)
 
+    // No Authorization header, and applyUKRules did not run either. The usual way to arrive here
+    // is a consent of another standard: the dispatcher routes it into that standard's branch,
+    // which authenticates the request and leaves ukConsentId unset, and then a UK endpoint asks
+    // this question. That is an ordinary refusal and the mirror of what the Berlin Group side
+    // answers for a UK consent, so it gets the same code. Throwing instead surfaced it as
+    // OBP-50000 Unknown Error at 500 -- a server fault for a request that was merely not
+    // entitled.
     val accessToken = calContext.flatMap(_.authReqHeaderField)
-      .map(_.replaceFirst("Bearer\\s+", ""))
-      .getOrElse(throw new RuntimeException("Not found http request header 'Authorization', it is mandatory."))
+      .map(_.replaceFirst("Bearer\\s+", "")) match {
+      case Some(token) => token
+      case None =>
+        return Failure(s"$ConsentDoesNotMatchStandard Required: $ConsentStandardUK.")
+    }
 
     val boxedConsent: Box[MappedConsent] = JwtUtil.getOptionalClaim("consent_id", accessToken) match {
       case Some(consentId) => Consents.consentProvider.vend.getConsentByConsentId(consentId)

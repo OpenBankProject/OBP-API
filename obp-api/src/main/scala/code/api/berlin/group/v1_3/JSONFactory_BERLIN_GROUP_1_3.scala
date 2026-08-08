@@ -889,6 +889,27 @@ object JSONFactory_BERLIN_GROUP_1_3 extends CustomJsonFormats with MdcLoggable{
     JsonPost.extract[TransactionAuthorisation]
   }.isDefined
 
+  /**
+   * Whether this POST body means "start the authorisation process".
+   *
+   * Berlin Group hangs four request bodies off one path. An **empty body** is the plain start of an
+   * authorisation and the entry point of the Redirect approach; `updatePsuAuthentication` and
+   * `selectPsuAuthenticationMethod` are later Embedded-approach steps; `transactionAuthorisation`
+   * carries an SCA answer.
+   *
+   * The start handlers dispatch on the body's shape and only ever recognised the last of those, so
+   * an empty body fell to the same catch-all as the unimplemented variants and was answered with a
+   * hardcoded example -- HTTP 201 carrying the literal authorisationId "123auth456.". A TPP starting
+   * an authorisation the way the standard describes got a fabricated id back, and only found out at
+   * the PUT, where that id matched no challenge. It went unnoticed because OBP's own clients send
+   * `{"scaAuthenticationData": ""}`, so the one branch ever exercised was the one that worked.
+   *
+   * An empty body and a transactionAuthorisation body are the same request here: neither start
+   * handler reads scaAuthenticationData. The POST mints the challenge; the PUT twin answers it.
+   */
+  def startsAuthorisation(JsonPost: JValue): Boolean =
+    JsonPost == JNothing || JsonPost == JObject(Nil) || checkTransactionAuthorisation(JsonPost)
+
   def checkUpdatePsuAuthentication(JsonPost: JValue) = tryo {
     JsonPost.extract[UpdatePsuAuthentication]
   }.isDefined

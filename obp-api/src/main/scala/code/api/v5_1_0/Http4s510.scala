@@ -64,7 +64,7 @@ import com.openbankproject.commons.model.{
 }
 import com.openbankproject.commons.model.enums.{AtmAttributeType, ChallengeType, ConsentType, RegulatedEntityAttributeType, StrongCustomerAuthentication, StrongCustomerAuthenticationStatus, SuppliedAnswerType, TransactionRequestStatus, UserAttributeType}
 import com.openbankproject.commons.util.{ApiVersion, ApiVersionStatus, ScannedApiVersion}
-import net.liftweb.common.{Box, Empty, Full}
+import net.liftweb.common.{Box, Empty, Failure, Full}
 import com.openbankproject.commons.util.json
 import com.openbankproject.commons.util.JsonAliases.prettyRender
 import org.json4s.{Extraction, Formats}
@@ -4422,8 +4422,23 @@ object Http4s510 {
             // consent id travels to the browser in the authorisation redirect, so a single failing
             // request from anyone who had seen one was enough. Nothing here is transactional, so
             // ordering is what has to carry it: refuse first, commit afterwards.
+            //
+            // Not connectorEmptyResponse: that turns every Box into InvalidConnectorResponse at
+            // 400, so the refusal reached the TPP as "OBP-50200 Connector cannot return the data
+            // we requested. connectorEmptyResponse <- OBP-35037 ..." -- an authorisation decision
+            // presented as a connector fault, with the reason buried behind a cause it has
+            // nothing to do with. A Failure here carries its own message and is the same kind of
+            // answer as the ConsentDoesNotMatchUser guard above, so it gets the same 403. Only a
+            // genuinely empty Box is a connector problem.
             _ <- Consent.grantUKConsentAccountAccess(user, BankId(bankIdStr), authJson.account_ids, consent, Some(cc))
-              .map(i => connectorEmptyResponse(i, Some(cc)))
+              .flatMap {
+                case Full(granted) => Future.successful(granted)
+                case Failure(reason, _, _) =>
+                  // booleanToFuture(false) always fails, so the mapped value is never reached --
+                  // it only lines the branches up to one type.
+                  Helper.booleanToFuture(reason, 403, Some(cc))(false).map(_ => consent)
+                case Empty => Future.successful(connectorEmptyResponse(Empty: Box[MappedConsent], Some(cc)))
+              }
             // Bind the PSU as the consent's user in the DB (mUserId).
             consentAfterBind <- Future(Consents.consentProvider.vend.updateConsentUser(consentId, user))
               .map(i => connectorEmptyResponse(i, Some(cc)))

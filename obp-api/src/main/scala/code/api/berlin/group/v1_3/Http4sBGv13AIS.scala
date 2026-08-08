@@ -60,7 +60,12 @@ object Http4sBGv13AIS extends MdcLoggable {
     Future {
       Helper.booleanToBox(u.hasViewAccess(BankIdAccountId(account.bankId, account.accountId), viewId, callContext))
     } map {
-      unboxFullOrFail(_, callContext, s"$NoViewReadAccountsBerlinGroup ${viewId.value} userId : ${u.userId}. account : ${account.accountId}", 403)
+      // No user id in the message. Under consent authentication `u` is the consent's own shadow
+      // user -- an internal identifier the TPP has no business learning and cannot act on. What
+      // the refusal is actually about is the view and the account, both of which the caller
+      // already named. The user id stays in the logs for anyone diagnosing it.
+      unboxFullOrFail(_, callContext,
+        s"$NoViewReadAccountsBerlinGroup ${viewId.value}. account : ${account.accountId}", 403)
     }
   }
 
@@ -311,6 +316,17 @@ object Http4sBGv13AIS extends MdcLoggable {
         val callContext = Some(cc)
         for {
           _ <- passesPsd2Aisp(callContext)
+          // The same ownership test its sibling GET /consents/CONSENTID applies twelve lines below.
+          // Without it any PSD2-AISP caller could list the authorisation ids of a consent lodged by
+          // somebody else -- the PUT that answers one is guarded, so this leaked identifiers rather
+          // than access, but the asymmetry between two neighbouring reads of the same consent was an
+          // oversight, not a decision.
+          consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
+            unboxFullOrFail(_, callContext, s"$ConsentNotFound ($consentId)")
+          }
+          _ <- booleanToFuture(failMsg = ConsentNotFound, failCode = 403, cc = callContext) {
+            consent.mConsumerId.get == cc.consumer.map(_.consumerId.get).getOrElse("None")
+          }
           (challenges, callContext) <- NewStyle.function.getChallengesByConsentId(consentId, callContext)
         } yield {
           JSONFactory_BERLIN_GROUP_1_3.AuthorisationJsonV13(challenges.map(_.challengeId))
@@ -517,7 +533,7 @@ object Http4sBGv13AIS extends MdcLoggable {
         val cc = req.callContext
         val callContext = Some(cc)
         val parsedJson = scala.util.Try(json.parse(cc.httpBody.getOrElse(""))).getOrElse(json.JNothing)
-        if (checkTransactionAuthorisation(parsedJson)) {
+        if (startsAuthorisation(parsedJson)) {
           for {
             _ <- passesPsd2Aisp(callContext)
             consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
@@ -528,7 +544,8 @@ object Http4sBGv13AIS extends MdcLoggable {
             // caller could raise a challenge on any consent id and then answer their own.
             _ <- Consent.checkBerlinGroupConsentAccess(
               consent.userId, consent.consumerId,
-              Consent.genuinePsu(cc).map(_.userId), cc.consumer.map(_.consumerId.get)) match {
+              Consent.genuinePsu(cc).map(_.userId), cc.consumer.map(_.consumerId.get),
+              Consent.isScaFrontEnd(cc.consumer.map(_.consumerId.get))) match {
               case Some(reason) => booleanToFuture(failMsg = reason, failCode = 403, cc = callContext)(false)
               case None => Future.successful(true)
             }
@@ -546,6 +563,12 @@ object Http4sBGv13AIS extends MdcLoggable {
                 val failCode = if (reason == ConsentDoesNotMatchUser) 403 else 401
                 booleanToFuture(failMsg = reason, failCode = failCode, cc = callContext)(false).map(_ => "")
             }
+            // Refuse here rather than at the PUT, even though binding happens there: the next step
+            // sends this person an OTP out of band. A consent naming accounts they do not hold can
+            // never legitimately bind to them, so minting the challenge would only deliver a code to
+            // someone the TPP nominated for an authorisation that must fail.
+            (psuForCheck, callContext) <- NewStyle.function.findByUserId(psuUserId, callContext)
+            _ <- Consent.assertBerlinGroupConsentAccountsHeld(psuForCheck, consent, callContext)
             (challenges, callContext) <- NewStyle.function.createChallengesC2(
               List(psuUserId),
               ChallengeType.BERLIN_GROUP_CONSENT_CHALLENGE,
@@ -562,8 +585,12 @@ object Http4sBGv13AIS extends MdcLoggable {
           } yield {
             createStartConsentAuthorisationJson(consent, challenge)
           }
-        } else {
-          // mocked for updatePsuAuthentication and selectPsuAuthenticationMethod variants
+        } else if (checkUpdatePsuAuthentication(parsedJson) || checkSelectPsuAuthenticationMethod(parsedJson)) {
+          // Mocked for the updatePsuAuthentication and selectPsuAuthenticationMethod variants, which
+          // are Embedded-approach steps OBP does not implement. Guarded now: this was the
+          // unconditional final else, so any body the server could not recognise was answered with
+          // this example -- a fabricated authorisationId, returned 201, that matches no challenge.
+          // The TPP only discovers it at the PUT, where the id resolves to nothing.
           Future.successful(com.openbankproject.commons.util.JsonAliases.parse(
             """{
                 "scaStatus": "received",
@@ -574,6 +601,13 @@ object Http4sBGv13AIS extends MdcLoggable {
                     "scaStatus":  {"href":"/v1.3/consents/qwer3456tzui7890/authorisations/123auth456"}
                   }
               }"""))
+        } else {
+          // None of the recognised shapes. A malformed request has to be reported as one; handing
+          // back an id that was never minted only moves the failure somewhere harder to read.
+          Helper.booleanToFuture(
+            failMsg = s"$InvalidJsonFormat The Json body should be empty, or one of " +
+              s"updatePsuAuthentication, selectPsuAuthenticationMethod or transactionAuthorisation.",
+            failCode = 400, cc = callContext)(false).map(_ => json.parse("{}"))
         }
       }
   }
@@ -594,7 +628,8 @@ object Http4sBGv13AIS extends MdcLoggable {
             // decides who a consent ends up belonging to. See Consent.checkBerlinGroupConsentAccess.
             _ <- Consent.checkBerlinGroupConsentAccess(
               storedConsent.userId, storedConsent.consumerId,
-              Consent.genuinePsu(cc).map(_.userId), cc.consumer.map(_.consumerId.get)) match {
+              Consent.genuinePsu(cc).map(_.userId), cc.consumer.map(_.consumerId.get),
+              Consent.isScaFrontEnd(cc.consumer.map(_.consumerId.get))) match {
               case Some(reason) => booleanToFuture(failMsg = reason, failCode = 403, cc = callContext)(false)
               case None => Future.successful(true)
             }
@@ -614,6 +649,12 @@ object Http4sBGv13AIS extends MdcLoggable {
             // the OTP was delivered to that person, so the challenge is the record of whose
             // authorisation this is -- the session is the TPP's and cannot say.
             (psu, callContext) <- NewStyle.function.findByUserId(startedChallenge.expectedUserId, callContext)
+            // The binding point, so the holdings check is repeated here rather than trusted from the
+            // POST: the two calls are separate requests and an account can change hands between
+            // them. It runs before validateChallengeAnswerC4 and before the status update, because
+            // none of what follows is transactional -- a refusal after any of it would leave the
+            // consent half-claimed.
+            _ <- Consent.assertBerlinGroupConsentAccountsHeld(psu, storedConsent, callContext)
             // Berlin Group Embedded has the TPP relay the PSU's OTP, so the identity the answer is
             // validated against is the challenge's PSU rather than the principal on the token. The
             // caller's own right to be here was settled by checkBerlinGroupConsentAccess above.
@@ -672,8 +713,11 @@ object Http4sBGv13AIS extends MdcLoggable {
                |    "authoriseTransaction": {"href": "/psd2/v1/payments/1234-wertiq-983/authorisations/123auth456"}
                |  }
                |}""".stripMargin))
-        } else {
-          // authorisationConfirmation variant
+        } else if (checkAuthorisationConfirmation(parsedJson)) {
+          // authorisationConfirmation variant. Guarded by the checker that already existed for it:
+          // this was the unconditional final else, so a body matching none of the four shapes -- an
+          // empty one included -- was answered "scaStatus": "finalised", the terminal success state
+          // of strong customer authentication, for an authorisation nothing had happened to.
           Future.successful(com.openbankproject.commons.util.JsonAliases.parse(
             """{
                |  "scaStatus": "finalised",
@@ -681,6 +725,13 @@ object Http4sBGv13AIS extends MdcLoggable {
                |    "status":  {"href":"/v1/payments/sepa-credit-transfers/qwer3456tzui7890/status"}
                |  }
                |}""".stripMargin))
+        } else {
+          // None of the four Berlin Group shapes. Malformed, and it has to say so: claiming an SCA
+          // outcome for a request the server could not read is worse than any of them.
+          Helper.booleanToFuture(
+            failMsg = s"$InvalidJsonFormat The Json body should be one of updatePsuAuthentication, " +
+              s"selectPsuAuthenticationMethod, transactionAuthorisation or authorisationConfirmation.",
+            failCode = 400, cc = callContext)(false).map(_ => json.parse("{}"))
         }
       }
   }

@@ -4744,6 +4744,22 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     APIUtil.getPropsValue("email_domain_to_space_mappings").map(extractor).getOrElse(Nil)
   }
 
+  /**
+   * The Consumers the ASPSP declares to be its own SCA front end.
+   *
+   * Read from `sca_front_end_consumer_ids`. The Berlin-Group-specific key this started life as is
+   * still honoured, so an instance already configured for the Berlin Group redirect flow keeps
+   * working without being edited.
+   *
+   * Empty by default, which is what makes every use of it a no-op unless an ASPSP opts in.
+   */
+  val scaFrontEndConsumerIds: List[String] = {
+    def read(key: String) = APIUtil.getPropsValue(key)
+      .map(_.split(",").toList.map(_.trim).filter(_.nonEmpty))
+      .getOrElse(Nil)
+    (read("sca_front_end_consumer_ids") ++ read("berlin_group_sca_front_end_consumer_ids")).distinct
+  }
+
   val skipConsentScaForConsumerIdPairs: List[ConsumerIdPair] = {
     def extractor(str: String) = try {
       val consumerIdPair =  json.parse(str).extract[List[ConsumerIdPair]]
