@@ -1166,7 +1166,7 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
 
   // Transport coordinates only. The settlement address is NOT part of the broker
   // record: it is the CARDANO account routing on OBP-INCOMING-SETTLEMENT-ACCOUNT.
-  case class PostOpenCorridorBankBrokerJsonV700(
+  case class PostAmqpBankBrokerJsonV700(
     host: String,
     port: Int,
     virtual_host: String,
@@ -1176,7 +1176,7 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
   )
 
   // The password is write-only: never echoed on any response.
-  case class OpenCorridorBankBrokerJsonV700(
+  case class AmqpBankBrokerJsonV700(
     bank_id: String,
     host: String,
     port: Int,
@@ -1184,6 +1184,45 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     username: String,
     use_ssl: Boolean
   )
+
+  // ─── Message outbox (operator) ─────────────────────────────────────────────
+
+  /** One message-outbox row. `subject_id`/`subject_id_type` name the business
+    * object the message is about (NOT the per-REST-call Correlation-Id). The
+    * wire payload is deliberately NOT exposed here: it can carry commit–reveal
+    * evidence and originator PII. */
+  case class MessageOutboxRowJsonV700(
+    outbox_id: Long,
+    outbox_type: String,
+    subject_id: String,
+    subject_id_type: String,
+    operation_name: String,
+    target_id: String,
+    status: String,
+    attempts: Int,
+    last_error: String,
+    created_at: String,
+    updated_at: String
+  )
+
+  case class MessageOutboxJsonV700(rows: List[MessageOutboxRowJsonV700])
+
+  def createMessageOutboxRowJson(
+    row: code.messageoutbox.MessageOutbox
+  ): MessageOutboxRowJsonV700 =
+    MessageOutboxRowJsonV700(
+      outbox_id = row.id.get,
+      outbox_type = row.outboxType,
+      subject_id = row.subjectId,
+      subject_id_type = row.subjectIdType,
+      operation_name = row.operationName,
+      target_id = row.targetId,
+      status = row.status,
+      attempts = row.attempts,
+      last_error = row.LastError.get,
+      created_at = APIUtil.DateWithMsFormat.format(row.CreatedAt.get),
+      updated_at = APIUtil.DateWithMsFormat.format(row.UpdatedAt.get)
+    )
 
   // ─── OPEN_CORRIDOR settlements ─────────────────────────────────────────────
 
@@ -1222,7 +1261,7 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     * status view. `delivery_status` is the outbox row lifecycle
     * (PENDING / DELIVERED / STICKY), not the rail state. */
   case class OpenCorridorSettlementMessageJsonV700(
-    message_id: String,
+    operation_name: String,
     target_bank_id: String,
     delivery_status: String,
     attempts: Int,

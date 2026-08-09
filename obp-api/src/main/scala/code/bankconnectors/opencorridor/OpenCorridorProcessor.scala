@@ -12,6 +12,7 @@ import com.openbankproject.commons.dto.{OpenCorridorMoneyValue, OpenCorridorOrig
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.ChallengeType.OBP_TRANSACTION_REQUEST_CHALLENGE
 import com.openbankproject.commons.model.enums.{TransactionRequestAttributeType, TransactionRequestStatus, TransactionRequestTypes}
+import code.messageoutbox.MessageOutbox
 import code.transactionrequests.MappedTransactionRequest
 import net.liftweb.mapper.By
 
@@ -231,8 +232,10 @@ object OpenCorridorProcessor {
           promise_salt = evidence.get(PromiseAttributeSalt),
           promise_preimage = evidence.get(PromiseAttributePreimage)
         )
-        OpenCorridorOutbox.enqueue(
-          transactionRequestId.value, "obp_credit_notification", row.mTo_BankId.get,
+        MessageOutbox.enqueue(
+          MessageOutbox.TYPE_OPEN_CORRIDOR, transactionRequestId.value,
+          MessageOutbox.SUBJECT_TYPE_TRANSACTION_REQUEST_ID,
+          "obp_credit_notification", row.mTo_BankId.get,
           Serialization.write(wireBody))
       }
 

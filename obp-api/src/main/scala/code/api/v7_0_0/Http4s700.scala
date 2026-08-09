@@ -8,7 +8,7 @@ import code.api.Constant._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil.{EmptyBody, _}
 import code.api.util.{APIUtil, ApiRole, CallContext, CustomJsonFormats, Glossary, NewStyle}
-import code.api.util.ApiRole.{canAttachOpenCorridorPromise, canConfigureOpenCorridorBroker, canSettleOpenCorridor, canCreateAccount, canCreateEntitlementAtAnyBank, canCreateEntitlementAtOneBank, canCreateMetricsArchiveRun, canCreateOrganisation, canCreateRoutingScheme, canCreateTestEmail, canCreateUtilityVendResult, canDeleteEntitlementAtAnyBank, canDeleteOrganisation, canDeleteRoutingScheme, canDeleteSchedulerJobLock, canGetAccountAccessTrace, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetConnectorHealth, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMetricsDiagnostics, canGetMigrations, canGetSchedulerJobLocks, canUpdateBankSupportedRoutingScheme, canUpdateOrganisation, canUpdateRoutingScheme, canUpdateSystemView}
+import code.api.util.ApiRole.{canAttachOpenCorridorPromise, canConfigureAmqpBankBroker, canGetMessageOutbox, canRetryMessageOutbox, canSettleOpenCorridor, canCreateAccount, canCreateEntitlementAtAnyBank, canCreateEntitlementAtOneBank, canCreateMetricsArchiveRun, canCreateOrganisation, canCreateRoutingScheme, canCreateTestEmail, canCreateUtilityVendResult, canDeleteEntitlementAtAnyBank, canDeleteOrganisation, canDeleteRoutingScheme, canDeleteSchedulerJobLock, canGetAccountAccessTrace, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetConnectorHealth, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMetricsDiagnostics, canGetMigrations, canGetSchedulerJobLocks, canUpdateBankSupportedRoutingScheme, canUpdateOrganisation, canUpdateRoutingScheme, canUpdateSystemView}
 import code.api.util.CommonsEmailWrapper
 import code.model.dataAccess.{AuthUser, BankAccountCreation, MappedBank, ResourceUser}
 import code.consent.Consents
@@ -3515,6 +3515,105 @@ object Http4s700 {
       http4sPartialFunction = Some(attachOpenCorridorPromise)
     )
 
+    // ── Message outbox (operator) ─────────────────────────────────────────────
+    // Read/repair access to the generic transactional outbox. The relay retries
+    // transient failures itself; STICKY rows wait here for a human.
+
+    val getMessageOutbox: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "management" / "message-outbox" =>
+        EndpointHelpers.withUser(req) { (_, cc) =>
+          scala.concurrent.Future {
+            import code.messageoutbox.MessageOutbox
+            val params = req.uri.query.params
+            val limit = params.get("limit").flatMap(l => scala.util.Try(l.toInt).toOption)
+              .filter(l => l > 0 && l <= 500).getOrElse(100)
+            val filters: List[net.liftweb.mapper.QueryParam[MessageOutbox]] = List(
+              params.get("status").map(_.trim.toUpperCase).filter(_.nonEmpty).map(s => By(MessageOutbox.Status, s)),
+              params.get("outbox_type").map(_.trim.toUpperCase).filter(_.nonEmpty).map(t => By(MessageOutbox.OutboxType, t))
+            ).flatten
+            val rows = MessageOutbox.findAll(
+              (filters ::: List(OrderBy(MessageOutbox.id, Descending), MaxRows[MessageOutbox](limit))): _*)
+            JSONFactory700.MessageOutboxJsonV700(rows.map(JSONFactory700.createMessageOutboxRowJson))
+          }
+        }
+    }
+
+    val retryMessageOutboxRow: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "management" / "message-outbox" / outboxIdStr / "retry" =>
+        EndpointHelpers.withUser(req) { (_, cc) =>
+          import code.messageoutbox.MessageOutbox
+          val rowOpt: Option[MessageOutbox] = scala.util.Try(outboxIdStr.toLong).toOption
+            .flatMap(id => MessageOutbox.find(By(MessageOutbox.id, id)).toOption)
+          for {
+            _ <- Helper.booleanToFuture(s"$MessageOutboxRowNotFound OUTBOX_ID: $outboxIdStr", failCode = 404, cc = Some(cc)) {
+              rowOpt.isDefined
+            }
+            row = rowOpt.get
+            _ <- Helper.booleanToFuture(s"$MessageOutboxRowNotSticky Current status: ${row.status}.", cc = Some(cc)) {
+              row.status == MessageOutbox.STATUS_STICKY
+            }
+            updated <- scala.concurrent.Future {
+              row.Status(MessageOutbox.STATUS_PENDING).Attempts(0).LastError("").saveMe()
+            }
+          } yield JSONFactory700.createMessageOutboxRowJson(updated)
+        }
+    }
+
+    val messageOutboxRowExampleV700 = JSONFactory700.MessageOutboxRowJsonV700(
+      outbox_id = 42L,
+      outbox_type = "OPEN_CORRIDOR",
+      subject_id = "4050046c-63b3-4868-8a22-14b4181d33a6",
+      subject_id_type = "transaction_request_id",
+      operation_name = "obp_credit_notification",
+      target_id = "gh.29.uk",
+      status = "STICKY",
+      attempts = 3,
+      last_error = "OBP-BANK-NODE-COMMITMENT-MISMATCH",
+      created_at = "2026-08-09T15:17:02.000Z",
+      updated_at = "2026-08-09T15:26:27.000Z"
+    )
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(getMessageOutbox),
+      "GET",
+      "/management/message-outbox",
+      "Get Message Outbox",
+      """List rows of the generic transactional message outbox — the messages OBP-API must deliver asynchronously, written in the same DB transaction as the business event that caused them and published by the relay with at-least-once redelivery.
+        |
+        |Filter with `outbox_type` (e.g. `OPEN_CORRIDOR`), `status` (`PENDING` / `DELIVERED` / `STICKY`) and `limit` (default 100, max 500). `subject_id` + `subject_id_type` name the business object each message is about (a settlement, a transaction request, ...) — not to be confused with the per-request Correlation-Id.
+        |
+        |STICKY rows are failures redelivery cannot fix; after reconciliation, re-queue one with the retry endpoint. The wire payload is not exposed: it can carry commit-reveal evidence and originator PII.
+        |
+        |Authentication is Required.""".stripMargin,
+      EmptyBody,
+      JSONFactory700.MessageOutboxJsonV700(List(messageOutboxRowExampleV700)),
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
+      apiTagApi :: Nil,
+      Some(List(canGetMessageOutbox)),
+      http4sPartialFunction = Some(getMessageOutbox)
+    )
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(retryMessageOutboxRow),
+      "POST",
+      "/management/message-outbox/OUTBOX_ID/retry",
+      "Retry Message Outbox Row",
+      """Re-queue one STICKY message-outbox row after operator reconciliation: the row flips back to PENDING with its attempts reset, and the relay redelivers it on the next pass.
+        |
+        |Only STICKY rows can be re-queued — PENDING rows retry automatically, and DELIVERED rows are done.
+        |
+        |Authentication is Required.""".stripMargin,
+      EmptyBody,
+      messageOutboxRowExampleV700,
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles,
+        MessageOutboxRowNotFound, MessageOutboxRowNotSticky, UnknownError),
+      apiTagApi :: Nil,
+      Some(List(canRetryMessageOutbox)),
+      http4sPartialFunction = Some(retryMessageOutboxRow)
+    )
+
     // ── Create Account ────────────────────────────────────────────────────────
     // v7.0.0 successor of v4.0.0 addAccount (POST, server-generated id) and
     // v5.0.0 createAccount (PUT, caller-chosen id). Differences from those:
@@ -3680,52 +3779,52 @@ object Http4s700 {
     // bank's Bank Node consumes on its own vhost, so Interface C publishing needs
     // the bank's broker coordinates. Passwords are write-only (never echoed).
 
-    val setOpenCorridorBankBroker: HttpRoutes[IO] = HttpRoutes.of[IO] {
-      case req @ PUT -> `prefixPath` / "banks" / _ / "open-corridor" / "broker" =>
-        EndpointHelpers.withUserAndBankAndBody[JSONFactory700.PostOpenCorridorBankBrokerJsonV700, JSONFactory700.OpenCorridorBankBrokerJsonV700](req) { (_, bank, body, cc) =>
+    val setAmqpBankBroker: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ PUT -> `prefixPath` / "banks" / _ / "amqp-broker" =>
+        EndpointHelpers.withUserAndBankAndBody[JSONFactory700.PostAmqpBankBrokerJsonV700, JSONFactory700.AmqpBankBrokerJsonV700](req) { (_, bank, body, cc) =>
           for {
             _ <- code.util.Helper.booleanToFuture(s"$InvalidJsonValue host, virtual_host and username must be non-empty and port must be positive", cc = Some(cc)) {
               body.host.trim.nonEmpty && body.virtual_host.trim.nonEmpty && body.username.trim.nonEmpty && body.port > 0
             }
             broker <- scala.concurrent.Future {
-              code.bankconnectors.opencorridor.OpenCorridorBankBroker.upsert(
+              code.amqpbroker.AmqpBankBroker.upsert(
                 bank.bankId.value, body.host, body.port, body.virtual_host, body.username, body.password, body.use_ssl
               )
             }
-          } yield JSONFactory700.OpenCorridorBankBrokerJsonV700(
+          } yield JSONFactory700.AmqpBankBrokerJsonV700(
             bank_id = broker.bankId, host = broker.host, port = broker.port,
             virtual_host = broker.virtualHost, username = broker.username, use_ssl = broker.useSsl
           )
         }
     }
 
-    val getOpenCorridorBankBroker: HttpRoutes[IO] = HttpRoutes.of[IO] {
-      case req @ GET -> `prefixPath` / "banks" / _ / "open-corridor" / "broker" =>
+    val getAmqpBankBroker: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "banks" / _ / "amqp-broker" =>
         EndpointHelpers.withUserAndBank(req) { (_, bank, cc) =>
           scala.concurrent.Future {
-            code.bankconnectors.opencorridor.OpenCorridorBankBroker.findByBankId(bank.bankId.value) match {
+            code.amqpbroker.AmqpBankBroker.findByBankId(bank.bankId.value) match {
               case net.liftweb.common.Full(broker) =>
-                JSONFactory700.OpenCorridorBankBrokerJsonV700(
+                JSONFactory700.AmqpBankBrokerJsonV700(
                   bank_id = broker.bankId, host = broker.host, port = broker.port,
                   virtual_host = broker.virtualHost, username = broker.username, use_ssl = broker.useSsl
                 )
               case _ =>
-                throw new RuntimeException(s"$OpenCorridorBankBrokerNotConfigured BANK_ID: ${bank.bankId.value}")
+                throw new RuntimeException(s"$AmqpBankBrokerNotConfigured BANK_ID: ${bank.bankId.value}")
             }
           }
         }
     }
 
-    val deleteOpenCorridorBankBroker: HttpRoutes[IO] = HttpRoutes.of[IO] {
-      case req @ DELETE -> `prefixPath` / "banks" / _ / "open-corridor" / "broker" =>
+    val deleteAmqpBankBroker: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ DELETE -> `prefixPath` / "banks" / _ / "amqp-broker" =>
         EndpointHelpers.withUserAndBankDelete(req) { (_, bank, cc) =>
           scala.concurrent.Future {
-            code.bankconnectors.opencorridor.OpenCorridorBankBroker.deleteByBankId(bank.bankId.value)
+            code.amqpbroker.AmqpBankBroker.deleteByBankId(bank.bankId.value)
           }
         }
     }
 
-    val openCorridorBrokerBodyExample = JSONFactory700.PostOpenCorridorBankBrokerJsonV700(
+    val openCorridorBrokerBodyExample = JSONFactory700.PostAmqpBankBrokerJsonV700(
       host = "rabbitmq.bank.example.com",
       port = 5672,
       virtual_host = "/bank.gh.29.uk",
@@ -3733,7 +3832,7 @@ object Http4s700 {
       password = "***",
       use_ssl = false
     )
-    val openCorridorBrokerResponseExample = JSONFactory700.OpenCorridorBankBrokerJsonV700(
+    val openCorridorBrokerResponseExample = JSONFactory700.AmqpBankBrokerJsonV700(
       bank_id = "gh.29.uk",
       host = "rabbitmq.bank.example.com",
       port = 5672,
@@ -3744,13 +3843,13 @@ object Http4s700 {
 
     resourceDocs += ResourceDoc(
       implementedInApiVersion,
-      nameOf(setOpenCorridorBankBroker),
+      nameOf(setAmqpBankBroker),
       "PUT",
-      "/banks/BANK_ID/open-corridor/broker",
-      "Set Open Corridor Bank Broker",
-      """Register (or replace) the RabbitMQ broker coordinates for a bank in the Open Corridor per-bank publish registry.
+      "/banks/BANK_ID/amqp-broker",
+      "Set AMQP Bank Broker",
+      """Register (or replace) the AMQP broker coordinates for a bank — where OBP-API publishes messages destined for that bank's own infrastructure. Named by transport, not by consumer; Open Corridor Interface C is the first consumer.
         |
-        |Each onboarded bank's Bank Node consumes Interface C messages on its own vhost with its own credentials; OBP-API publishes `obp_credit_notification` to the creditor bank's vhost and `obp_settlement_instruction` to the debtor bank's vhost using the coordinates registered here. One registration per bank (upsert semantics).
+        |Each onboarded bank's Bank Node consumes Interface C messages on its own vhost with its own credentials; OBP-API publishes `obp_credit_notification` to the creditor bank's vhost and `obp_settlement_instruction` / `obp_settlement_advice` using the coordinates registered here. One registration per bank (upsert semantics).
         |
         |The password is write-only and never returned by any endpoint.
         |
@@ -3761,33 +3860,33 @@ object Http4s700 {
       openCorridorBrokerResponseExample,
       List($AuthenticatedUserIsRequired, UserHasMissingRoles, $BankNotFound, InvalidJsonFormat, InvalidJsonValue, UnknownError),
       apiTagBank :: Nil,
-      Some(List(canConfigureOpenCorridorBroker)),
-      http4sPartialFunction = Some(setOpenCorridorBankBroker)
+      Some(List(canConfigureAmqpBankBroker)),
+      http4sPartialFunction = Some(setAmqpBankBroker)
     )
 
     resourceDocs += ResourceDoc(
       implementedInApiVersion,
-      nameOf(getOpenCorridorBankBroker),
+      nameOf(getAmqpBankBroker),
       "GET",
-      "/banks/BANK_ID/open-corridor/broker",
-      "Get Open Corridor Bank Broker",
+      "/banks/BANK_ID/amqp-broker",
+      "Get AMQP Bank Broker",
       """Get the registered Open Corridor RabbitMQ broker coordinates for a bank (password omitted).
         |
         |Authentication is Required.""".stripMargin,
       EmptyBody,
       openCorridorBrokerResponseExample,
-      List($AuthenticatedUserIsRequired, UserHasMissingRoles, $BankNotFound, OpenCorridorBankBrokerNotConfigured, UnknownError),
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, $BankNotFound, AmqpBankBrokerNotConfigured, UnknownError),
       apiTagBank :: Nil,
-      Some(List(canConfigureOpenCorridorBroker)),
-      http4sPartialFunction = Some(getOpenCorridorBankBroker)
+      Some(List(canConfigureAmqpBankBroker)),
+      http4sPartialFunction = Some(getAmqpBankBroker)
     )
 
     resourceDocs += ResourceDoc(
       implementedInApiVersion,
-      nameOf(deleteOpenCorridorBankBroker),
+      nameOf(deleteAmqpBankBroker),
       "DELETE",
-      "/banks/BANK_ID/open-corridor/broker",
-      "Delete Open Corridor Bank Broker",
+      "/banks/BANK_ID/amqp-broker",
+      "Delete AMQP Bank Broker",
       """Remove a bank's Open Corridor RabbitMQ broker registration. Idempotent.
         |
         |Authentication is Required.""".stripMargin,
@@ -3795,8 +3894,8 @@ object Http4s700 {
       EmptyBody,
       List($AuthenticatedUserIsRequired, UserHasMissingRoles, $BankNotFound, UnknownError),
       apiTagBank :: Nil,
-      Some(List(canConfigureOpenCorridorBroker)),
-      http4sPartialFunction = Some(deleteOpenCorridorBankBroker)
+      Some(List(canConfigureAmqpBankBroker)),
+      http4sPartialFunction = Some(deleteAmqpBankBroker)
     )
 
     // ── OPEN_CORRIDOR settlements (the netting trigger + status resource) ─────
@@ -3864,7 +3963,7 @@ object Http4s700 {
         settlement_instructions_enqueued = 1
       ),
       List($AuthenticatedUserIsRequired, UserHasMissingRoles, OpenCorridorDisabled, InvalidJsonFormat, InvalidJsonValue,
-           $BankNotFound, OpenCorridorBankBrokerNotConfigured, OpenCorridorSettlementAddressMissing, UnknownError),
+           $BankNotFound, AmqpBankBrokerNotConfigured, OpenCorridorSettlementAddressMissing, UnknownError),
       apiTagTransactionRequest :: Nil,
       Some(List(canSettleOpenCorridor)),
       http4sPartialFunction = Some(createOpenCorridorSettlement)
@@ -3917,7 +4016,7 @@ object Http4s700 {
         settlement_depth = Some(2),
         covered_transaction_request_ids = List("4050046c-63b3-4868-8a22-14b4181d33a6"),
         messages = List(JSONFactory700.OpenCorridorSettlementMessageJsonV700(
-          message_id = "obp_settlement_instruction",
+          operation_name = "obp_settlement_instruction",
           target_bank_id = "gh.29.uk",
           delivery_status = "PENDING",
           attempts = 3,
