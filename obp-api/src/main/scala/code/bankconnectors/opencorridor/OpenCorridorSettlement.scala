@@ -85,6 +85,13 @@ object OpenCorridorSettlement extends MdcLoggable {
           if (DoobieTransactionRequestQueries.lockTransactionRequest(trId).isEmpty) {
             logger.warn(s"Open Corridor settle: could not lock promise TR $trId — skipping")
             None
+          } else if (!hasPromiseEvidence(trId)) {
+            // No on-chain evidence yet means the beneficiary bank was never
+            // notified and never paid out — netting it would move value between
+            // banks for a payment nobody delivered. It stays PENDING for a
+            // later cycle, once the originating node reports back.
+            logger.info(s"Open Corridor settle: promise TR $trId has no on-chain evidence yet — skipping")
+            None
           } else {
             MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, trId))
               .filter(_.mStatus.get == TransactionRequestStatus.PENDING.toString)
@@ -103,7 +110,7 @@ object OpenCorridorSettlement extends MdcLoggable {
             currency = currency,
             net_amount = "0",
             covered_transaction_request_ids = Nil,
-            credit_notifications_enqueued = 0,
+            settlement_advices_enqueued = 0,
             settlement_instructions_enqueued = 0
           ), callContext))
         } else {
@@ -222,12 +229,23 @@ object OpenCorridorSettlement extends MdcLoggable {
       })
 
       // Enqueue the Interface C messages in this same DB transaction (the outbox).
-      creditNotifications <- Future.sequence(covered.map(row => buildCreditNotification(row, callContext)))
-      _ <- Future {
-        creditNotifications.foreach { case (beneficiaryBankId, wireBody) =>
+      // Credit notifications went to each beneficiary at promise-report-back time
+      // (OpenCorridorProcessor); settlement sends each beneficiary an advice so
+      // its already-paid-out credits get marked settled.
+      settlementAdviceCount <- Future {
+        covered.groupBy(_.mTo_BankId.get).map { case (beneficiaryBankId, rows) =>
+          val advice = OutBoundOpenCorridorSettlementAdvice(
+            settlement_id = settlementTrId,
+            currency = currency,
+            net_amount = netAbs.toString(),
+            debtor_bank_id = debtorBankId,
+            creditor_bank_id = creditorBankId,
+            covered_transaction_request_ids = rows.map(_.mTransactionRequestId.get),
+            idempotency_key = settlementTrId
+          )
           OpenCorridorOutbox.enqueue(
-            settlementTrId, "obp_credit_notification", beneficiaryBankId, Serialization.write(wireBody))
-        }
+            settlementTrId, "obp_settlement_advice", beneficiaryBankId, Serialization.write(advice))
+        }.size
       }
       settlementInstructionCount <- Future {
         if (netAbs > 0) {
@@ -259,11 +277,19 @@ object OpenCorridorSettlement extends MdcLoggable {
         currency = currency,
         net_amount = netAbs.toString(),
         covered_transaction_request_ids = covered.map(_.mTransactionRequestId.get),
-        credit_notifications_enqueued = creditNotifications.size,
+        settlement_advices_enqueued = settlementAdviceCount,
         settlement_instructions_enqueued = settlementInstructionCount
       ), callContext)
     }
   }
+
+  /** True once the promise's on-chain evidence was attached (report-back done) —
+    * the precondition for the beneficiary having been notified and paid out. */
+  private def hasPromiseEvidence(trId: String): Boolean =
+    TransactionRequestAttribute.find(
+      By(TransactionRequestAttribute.Name, OpenCorridorProcessor.PromiseAttributeCommitment),
+      By(TransactionRequestAttribute.TransactionRequestId, trId)
+    ).isDefined
 
   /**
    * The GET view of one settlement (the resource minted by settlePair).
@@ -347,31 +373,4 @@ object OpenCorridorSettlement extends MdcLoggable {
 
   /** Build the credit notification for one covered promise, addressed to its
     * beneficiary (to-side) bank, relaying the §5.1 evidence attributes verbatim. */
-  private def buildCreditNotification(
-    row: MappedTransactionRequest,
-    callContext: Option[CallContext]
-  ): Future[(String, OutBoundOpenCorridorCreditNotification)] = {
-    val promiseTrId = TransactionRequestId(row.mTransactionRequestId.get)
-    for {
-      (attributes, _) <- NewStyle.function.getTransactionRequestAttributes(
-        BankId(row.mFrom_BankId.get), promiseTrId, callContext)
-    } yield {
-      def attr(name: String): Option[String] =
-        attributes.find(_.name == name).map(_.value).filter(_.nonEmpty)
-      val wireBody = OutBoundOpenCorridorCreditNotification(
-        transaction_request_id = promiseTrId.value,
-        value = OpenCorridorMoneyValue(row.mBody_Value_Currency.get, row.mBody_Value_Amount.get),
-        description = Option(row.mBody_Description.get).filter(_.nonEmpty),
-        originator = Option(row.mOriginator_Name.get).filter(_.nonEmpty).map(name =>
-          OpenCorridorOriginator(name, Option(row.mOriginator_Address.get).filter(_.nonEmpty))),
-        netting_snapshot_id = None,
-        promise_id = attr(OpenCorridorProcessor.PromiseAttributeTxHash),
-        promise_blockchain = attr(OpenCorridorProcessor.PromiseAttributeBlockchain),
-        promise_commitment = attr(OpenCorridorProcessor.PromiseAttributeCommitment),
-        promise_salt = attr(OpenCorridorProcessor.PromiseAttributeSalt),
-        promise_preimage = attr(OpenCorridorProcessor.PromiseAttributePreimage)
-      )
-      (row.mTo_BankId.get, wireBody)
-    }
-  }
 }

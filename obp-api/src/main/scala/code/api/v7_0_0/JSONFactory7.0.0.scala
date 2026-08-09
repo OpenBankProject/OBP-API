@@ -1132,6 +1132,7 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
 
   case class CreateAccountResponseJsonV700(
     account_id: String,
+    bank_id: String,
     user_id: String,
     label: String,
     product_code: String,
@@ -1148,6 +1149,7 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
   ): CreateAccountResponseJsonV700 =
     CreateAccountResponseJsonV700(
       account_id = account.accountId.value,
+      bank_id = account.bankId.value,
       user_id = userId,
       label = account.label,
       product_code = account.accountType,
@@ -1212,7 +1214,7 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     currency: String,
     net_amount: String,
     covered_transaction_request_ids: List[String],
-    credit_notifications_enqueued: Int,
+    settlement_advices_enqueued: Int,
     settlement_instructions_enqueued: Int
   )
 

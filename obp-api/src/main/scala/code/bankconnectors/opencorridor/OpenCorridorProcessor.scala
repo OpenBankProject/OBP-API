@@ -8,9 +8,12 @@ import code.api.util.{APIUtil, CallContext, NewStyle}
 import code.api.v7_0_0.JSONFactory700.{OpenCorridorPromiseJsonV700, PostOpenCorridorPromiseJsonV700, TransactionRequestBodyOpenCorridorJsonV700}
 import code.util.Helper
 import com.openbankproject.commons.ExecutionContext.Implicits.global
+import com.openbankproject.commons.dto.{OpenCorridorMoneyValue, OpenCorridorOriginator, OutBoundOpenCorridorCreditNotification}
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.ChallengeType.OBP_TRANSACTION_REQUEST_CHALLENGE
 import com.openbankproject.commons.model.enums.{TransactionRequestAttributeType, TransactionRequestStatus, TransactionRequestTypes}
+import code.transactionrequests.MappedTransactionRequest
+import net.liftweb.mapper.By
 
 import java.util.Date
 import org.json4s.native.Serialization.write
@@ -187,6 +190,11 @@ object OpenCorridorProcessor {
           NewStyle.function.createTransactionRequestAttributes(
             bankId, transactionRequestId, attributes, isPersonal = false, callContext
           ) map { case (_, callContext) =>
+            // First attach only (idempotent redeliveries skip this branch): the
+            // promise now exists on-chain, so the beneficiary bank gets its
+            // evidence-bearing credit notification immediately — the promise is
+            // what gives it the confidence to pay out ahead of settlement.
+            enqueueCreditNotification(transactionRequestId, submittedEvidence)
             (buildPromiseJson(tr, submittedEvidence, user.userId, reportedAt), callContext)
           }
         } else {
@@ -197,6 +205,36 @@ object OpenCorridorProcessor {
         }
     } yield (promiseJson, callContext)
   }
+
+  private implicit val wireFormats: Formats = Serialization.formats(NoTypeHints)
+
+  /** Build and enqueue the `obp_credit_notification` for a promise whose evidence
+    * was just attached. The outbox row's correlation id is the promise TR id
+    * (settlement-scoped messages use the settlement id there instead). */
+  private def enqueueCreditNotification(
+    transactionRequestId: TransactionRequestId,
+    evidence: Map[String, String]
+  ): Unit =
+    MappedTransactionRequest
+      .find(By(MappedTransactionRequest.mTransactionRequestId, transactionRequestId.value))
+      .foreach { row =>
+        val wireBody = OutBoundOpenCorridorCreditNotification(
+          transaction_request_id = transactionRequestId.value,
+          value = OpenCorridorMoneyValue(row.mBody_Value_Currency.get, row.mBody_Value_Amount.get),
+          description = Option(row.mBody_Description.get).filter(_.nonEmpty),
+          originator = Option(row.mOriginator_Name.get).filter(_.nonEmpty).map(name =>
+            OpenCorridorOriginator(name, Option(row.mOriginator_Address.get).filter(_.nonEmpty))),
+          netting_snapshot_id = None,
+          promise_id = evidence.get(PromiseAttributeTxHash),
+          promise_blockchain = evidence.get(PromiseAttributeBlockchain),
+          promise_commitment = evidence.get(PromiseAttributeCommitment),
+          promise_salt = evidence.get(PromiseAttributeSalt),
+          promise_preimage = evidence.get(PromiseAttributePreimage)
+        )
+        OpenCorridorOutbox.enqueue(
+          transactionRequestId.value, "obp_credit_notification", row.mTo_BankId.get,
+          Serialization.write(wireBody))
+      }
 
   private def buildPromiseJson(
     tr: TransactionRequest,

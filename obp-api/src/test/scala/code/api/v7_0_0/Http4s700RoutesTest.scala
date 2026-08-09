@@ -444,6 +444,7 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
         case JString(id) => id should not be empty; id
         case _ => fail("Expected account_id")
       }
+      (json \ "bank_id") shouldBe JString(testBankId1.value)
       (json \ "user_id") shouldBe JString(resourceUser1.userId)
       val pairs = routingPairs(json)
       pairs should contain(("OBP", accountId))
@@ -2340,14 +2341,32 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
       val promise1 = createPendingPromise(amount = "5.00")
       val promise2 = createPendingPromise(amount = "2.00")
       val promise3 = createPendingPromise(testBankId2, testAccountId1, testBankId1.value, testAccountId0.value, "3.00")
+      val promise4NoEvidence = createPendingPromise(amount = "9.00")
       assertPromiseRow(promise1, testBankId1.value, testBankId2.value)
       assertPromiseRow(promise3, testBankId2.value, testBankId1.value)
 
-      And("Promise 1 has its on-chain evidence attached (report-back)")
-      val (evidenceCode, _, _) = makeHttpRequestWithBody("POST",
-        promiseEvidencePath(testBankId1.value, testAccountId0.value, promise1),
-        promiseEvidenceBody(), headers)
-      evidenceCode shouldBe 201
+      And("Promises 1-3 have their on-chain evidence attached (report-back); promise 4 has none")
+      addEntitlement(testBankId2.value, resourceUser1.userId, canAttachOpenCorridorPromise.toString)
+      List(
+        (testBankId1.value, testAccountId0.value, promise1),
+        (testBankId1.value, testAccountId0.value, promise2),
+        (testBankId2.value, testAccountId1.value, promise3)
+      ).foreach { case (bankId, accountId, promiseId) =>
+        val (evidenceCode, _, _) = makeHttpRequestWithBody("POST",
+          promiseEvidencePath(bankId, accountId, promiseId), promiseEvidenceBody(), headers)
+        evidenceCode shouldBe 201
+      }
+
+      Then("Each attach immediately enqueued the beneficiary's credit notification with the evidence")
+      val promise1CreditRows = code.bankconnectors.opencorridor.OpenCorridorOutbox.bySettlementId(promise1)
+      promise1CreditRows.map(_.messageId) shouldBe List("obp_credit_notification")
+      promise1CreditRows.head.targetBankId shouldBe testBankId2.value
+      val promise1Credit = parse(promise1CreditRows.head.payloadJson)
+      (promise1Credit \ "promise_salt") shouldBe JString("5f4dcc3b5aa765d61d8327deb882cf99")
+      (promise1Credit \ "promise_commitment") shouldBe JString("9c56cc51b374c3ba189210d5b6d4bf57790d351c96c47c02190ecf1e430ba0d1")
+      code.bankconnectors.opencorridor.OpenCorridorOutbox.bySettlementId(promise3)
+        .map(_.targetBankId) shouldBe List(testBankId1.value)
+      code.bankconnectors.opencorridor.OpenCorridorOutbox.bySettlementId(promise4NoEvidence) shouldBe Nil
 
       When("Settle is triggered while the creditor bank's incoming settlement account has no CARDANO routing")
       code.bankconnectors.opencorridor.OpenCorridorBankBroker.upsert(
@@ -2373,7 +2392,7 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
           map.get("net_amount") shouldBe Some(JString("4.00"))
           map.get("debtor_bank_id") shouldBe Some(JString(testBankId1.value))
           map.get("creditor_bank_id") shouldBe Some(JString(testBankId2.value))
-          map.get("credit_notifications_enqueued") shouldBe Some(JInt(3))
+          map.get("settlement_advices_enqueued") shouldBe Some(JInt(2))
           map.get("settlement_instructions_enqueued") shouldBe Some(JInt(1))
           map.get("covered_transaction_request_ids") match {
             case Some(JArray(ids)) => ids.collect { case JString(id) => id }.toSet shouldBe Set(promise1, promise2, promise3)
@@ -2387,19 +2406,28 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
         case _ => fail("Expected JSON object")
       }
 
-      And("Every covered promise is COMPLETED with the discharge linkage attributes")
+      And("Every covered promise is COMPLETED with the discharge linkage attributes; the unevidenced one stays PENDING")
       List(promise1, promise2, promise3).foreach { promiseId =>
         promiseStatus(promiseId) shouldBe "COMPLETED"
         val attributes = promiseAttributes(promiseId)
         attributes.get(code.bankconnectors.opencorridor.OpenCorridorSettlement.AttrSettledByTransactionIds) shouldBe Some(transactionId)
         attributes.get(code.bankconnectors.opencorridor.OpenCorridorSettlement.AttrSettledByTransactionRequestId) shouldBe Some(settlementId)
       }
+      promiseStatus(promise4NoEvidence) shouldBe "PENDING"
 
-      And("The outbox holds 3 credit notifications + 1 settlement instruction, evidence relayed verbatim")
+      And("The outbox holds 2 settlement advices + 1 settlement instruction for this settlement")
       val outboxRows = code.bankconnectors.opencorridor.OpenCorridorOutbox.bySettlementId(settlementId)
-      outboxRows.size shouldBe 4
-      val creditRows = outboxRows.filter(_.messageId == "obp_credit_notification")
-      creditRows.map(_.targetBankId).sorted shouldBe List(testBankId1.value, testBankId2.value, testBankId2.value).sorted
+      outboxRows.size shouldBe 3
+      val adviceRows = outboxRows.filter(_.messageId == "obp_settlement_advice")
+      adviceRows.map(_.targetBankId).sorted shouldBe List(testBankId1.value, testBankId2.value).sorted
+      val bank2Advice = adviceRows.find(_.targetBankId == testBankId2.value)
+        .map(row => parse(row.payloadJson))
+        .getOrElse(fail("bank2's settlement advice should be enqueued"))
+      (bank2Advice \ "settlement_id") shouldBe JString(settlementId)
+      (bank2Advice \ "covered_transaction_request_ids") match {
+        case JArray(ids) => ids.collect { case JString(id) => id }.toSet shouldBe Set(promise1, promise2)
+        case _ => fail("covered_transaction_request_ids should be an array")
+      }
       val instructionRow = outboxRows.filter(_.messageId == "obp_settlement_instruction") match {
         case row :: Nil => row
         case other => fail(s"Expected exactly one settlement instruction row, got ${other.size}")
@@ -2409,11 +2437,6 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
       (instructionJson \ "amount") shouldBe JString("4.00")
       (instructionJson \ "creditor_address") shouldBe JString("addr_test_bank_b")
       (instructionJson \ "idempotency_key") shouldBe JString(settlementId)
-      val promise1Credit = creditRows.map(row => parse(row.payloadJson))
-        .find(payload => (payload \ "transaction_request_id") == JString(promise1))
-        .getOrElse(fail("promise1's credit notification should be enqueued"))
-      (promise1Credit \ "promise_salt") shouldBe JString("5f4dcc3b5aa765d61d8327deb882cf99")
-      (promise1Credit \ "promise_commitment") shouldBe JString("9c56cc51b374c3ba189210d5b6d4bf57790d351c96c47c02190ecf1e430ba0d1")
 
       And("A re-trigger with nothing pending is a no-op")
       val (noopCode, noopJson, _) = makeHttpRequestWithBody("POST",
@@ -2445,7 +2468,9 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
             case _ => fail("covered_transaction_request_ids should be an array")
           }
           map.get("messages") match {
-            case Some(JArray(messages)) => messages.size shouldBe 4
+            // 2 settlement advices + 1 settlement instruction (credit
+            // notifications correlate to their promise ids, not the settlement).
+            case Some(JArray(messages)) => messages.size shouldBe 3
             case _ => fail("messages should be an array")
           }
         case _ => fail("Expected JSON object")
@@ -2479,6 +2504,16 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
 
       val promiseAToB = createPendingPromise(amount = "3.00")
       val promiseBToA = createPendingPromise(testBankId2, testAccountId1, testBankId1.value, testAccountId0.value, "3.00")
+      addEntitlement(testBankId1.value, resourceUser1.userId, canAttachOpenCorridorPromise.toString)
+      addEntitlement(testBankId2.value, resourceUser1.userId, canAttachOpenCorridorPromise.toString)
+      List(
+        (testBankId1.value, testAccountId0.value, promiseAToB),
+        (testBankId2.value, testAccountId1.value, promiseBToA)
+      ).foreach { case (bankId, accountId, promiseId) =>
+        val (evidenceCode, _, _) = makeHttpRequestWithBody("POST",
+          promiseEvidencePath(bankId, accountId, promiseId), promiseEvidenceBody(), headers)
+        evidenceCode shouldBe 201
+      }
 
       val (statusCode, json, _) = makeHttpRequestWithBody("POST",
         settlementsPath(testBankId1.value), settleBody(currency), headers)
@@ -2488,7 +2523,7 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
           val map = toFieldMap(fields)
           map.get("net_amount") shouldBe Some(JString("0.00"))
           map.get("transaction_id") shouldBe Some(JString(""))
-          map.get("credit_notifications_enqueued") shouldBe Some(JInt(2))
+          map.get("settlement_advices_enqueued") shouldBe Some(JInt(2))
           map.get("settlement_instructions_enqueued") shouldBe Some(JInt(0))
           map.get("settlement_id").collect { case JString(s) => s }.getOrElse(fail("settlement_id missing"))
         case _ => fail("Expected JSON object")

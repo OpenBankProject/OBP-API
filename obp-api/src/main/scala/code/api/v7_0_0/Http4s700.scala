@@ -3487,7 +3487,7 @@ object Http4s700 {
       "Attach Open Corridor Promise Evidence",
       """Attach on-chain promise evidence to a PENDING OPEN_CORRIDOR_PROMISE Transaction Request.
         |
-        |Called by the bank's own Bank Node (machine-to-machine) after it has written the Promise commitment to the blockchain. The body carries the transaction hash of the on-chain write plus the commit–reveal evidence: the `commitment` (the hash written on-chain), the `salt`, and the `preimage`. OBP-API stores these as Transaction Request attributes and later relays them to the beneficiary bank inside the `obp_credit_notification` message, enabling the beneficiary to verify `SHA-256(salt ‖ preimage)` against the on-chain commitment without the originating bank's cooperation.
+        |Called by the bank's own Bank Node (machine-to-machine) after it has written the Promise commitment to the blockchain. The body carries the transaction hash of the on-chain write plus the commit–reveal evidence: the `commitment` (the hash written on-chain), the `salt`, and the `preimage`. OBP-API stores these as Transaction Request attributes and immediately relays them to the beneficiary bank inside the `obp_credit_notification` message (enqueued to the transactional outbox on the first successful attach), enabling the beneficiary to verify `SHA-256(salt ‖ preimage)` against the on-chain commitment without the originating bank's cooperation — and to credit its customer ahead of settlement on the strength of that verified promise.
         |
         |The evidence fields are opaque strings to OBP-API — they are stored and relayed verbatim, never parsed.
         |
@@ -3608,6 +3608,7 @@ object Http4s700 {
     )
     val createAccountResponseExampleV700 = JSONFactory700.CreateAccountResponseJsonV700(
       account_id = "8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
+      bank_id = "gh.29.uk",
       user_id = "9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
       label = "My Account",
       product_code = "OPEN_CORRIDOR",
@@ -3836,11 +3837,13 @@ object Http4s700 {
         |
         |Computes `net = SUM(PENDING A→B promises) − SUM(PENDING B→A promises)`, mints one internal OPEN_CORRIDOR_SETTLEMENT Transaction Request between the pair's settlement accounts whose execution posts ONE net Transaction (debtor's outgoing settlement account → creditor's incoming), records that Transaction's id on each covered promise in the `settled_by_transaction_ids` attribute (and the settlement TR's id in `settled_by_transaction_request_id`), and sets the covered promises to COMPLETED. N promises collapse into one settlement — that compression is the netting.
         |
-        |In the same database transaction, the Interface C messages are written to the transactional outbox: one `obp_credit_notification` per covered promise to its beneficiary bank (relaying the commit–reveal evidence triplet), and one `obp_settlement_instruction` for the net amount to the debtor bank. The outbox relay publishes them and records each bank's reply.
+        |Only promises whose on-chain evidence has been attached are covered: an unevidenced promise generated no credit notification and no beneficiary payout, so netting it would move value for a payment nobody delivered — it stays PENDING for a later cycle.
+        |
+        |In the same database transaction, the Interface C messages are written to the transactional outbox: one `obp_settlement_advice` per beneficiary bank listing the covered promise ids it already paid out against (credit notifications travel at promise-report-back time, not here), and one `obp_settlement_instruction` for the net amount to the debtor bank. The outbox relay publishes them and records each bank's reply.
         |
         |NOTE: the posted net Transaction deliberately does not mirror any single covered promise — it can differ in direction, amount and accounts. Reconciliation must follow the `settled_by_transaction_ids` linkage, never assume the Transaction matches the promise body.
         |
-        |A trigger for a pair with no PENDING promises is a no-op. When the flows offset exactly (net zero) the promises are discharged with no Transaction posted and no settlement instruction sent — the credit notifications still go out.
+        |A trigger for a pair with no PENDING evidenced promises is a no-op. When the flows offset exactly (net zero) the promises are discharged with no Transaction posted and no settlement instruction sent — the settlement advices still go out.
         |
         |`net_amount` is always the absolute value; direction is carried by `debtor_bank_id` → `creditor_bank_id` (assigned from the sign of the net). Either bank in the pair may trigger settlement — the role is checked at the URL's BANK_ID, and who ends up debtor is decided by the net, not by who called.
         |
@@ -3857,7 +3860,7 @@ object Http4s700 {
         currency = "KES",
         net_amount = "2500.00",
         covered_transaction_request_ids = List("4050046c-63b3-4868-8a22-14b4181d33a6"),
-        credit_notifications_enqueued = 3,
+        settlement_advices_enqueued = 1,
         settlement_instructions_enqueued = 1
       ),
       List($AuthenticatedUserIsRequired, UserHasMissingRoles, OpenCorridorDisabled, InvalidJsonFormat, InvalidJsonValue,
@@ -3896,7 +3899,7 @@ object Http4s700 {
         |* `ledger_status` — the OBP-side OPEN_CORRIDOR_SETTLEMENT Transaction Request (COMPLETED at settle time: netting, promise discharge and the net ledger Transaction are done).
         |* `settlement_status` — the value leg on the rail, as last reported by the debtor bank's node: `NET_ZERO` (nothing to move), `INSTRUCTED` (no node reply yet), `SETTLING` / `SUBMITTED` (in flight, with `settlement_depth` = confirmation depth when reported), `FINAL` (node reported finality), `ERROR` (non-retryable node error; operator reconciliation — see the message's `last_error`).
         |
-        |`messages` lists the settlement's Interface C outbox rows (credit notifications and the settlement instruction) with their delivery state.
+        |`messages` lists the settlement's Interface C outbox rows (settlement advices and the settlement instruction) with their delivery state.
         |
         |Requires `open_corridor_enabled=true` on this instance and the `CanSettleOpenCorridor` role at BANK_ID.
         |
