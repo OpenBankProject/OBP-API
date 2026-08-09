@@ -44,16 +44,22 @@
   </modules>
 
   <!--
-    oss.sonatype.org (OSSRH) was retired and now answers 403 to everything, so the two repositories
-    that pointed at it could only ever fail. They did so intermittently rather than always, which is
-    what made this hard to see: Maven consults a remote repository only when a POM is not already in
-    the local cache, so a warm runner never touched them and a cold one failed the whole build
-    before a single test ran: the same commit passing in one CI run and failing in the next.
+    oss.sonatype.org (OSSRH) was retired. It now 302-redirects to repo1.maven.org, so the two
+    repositories that pointed at it served nothing Maven Central does not already serve, and Maven
+    consults Central by default: they were pure duplicates that could only add failure modes.
 
-    Nothing was resolved from them. Everything they were asked for (slf4j-api, commons-codec,
-    commons-lang3, commons-text, junit-bom, and the plugins) lives on Maven Central, which Maven
-    consults by default. Verified by resolving the full reactor against an empty local repository
-    with these removed.
+    One of those failure modes was real. From GitHub Actions runners the same host answers 403,
+    which killed a build outright. It did so intermittently rather than always, which is what made
+    it hard to attribute: Maven consults a remote repository only when a POM is not already in the
+    local cache, so a warm runner never touched them and a cold one failed the whole build before a
+    single test ran: the same commit passing in one CI run and failing in the next.
+
+    Because they were listed first, Maven attributed downloads to them, and a local cache built
+    before this change records artifacts against those ids in _remote.repositories. That is only a
+    bookkeeping detail (both are redirects to Central, so the bytes came from Central either way),
+    but it does mean an existing cache needs one online run per goal to be re-stamped before
+    `mvn -o` works again. Verified by resolving, and compiling, the full reactor against an empty
+    local repository with these removed.
 
     The two that remain are load-bearing: git-OpenBankProject serves OBP's own published artifacts,
     and jitpack.io serves the pinned lift-persistence build.

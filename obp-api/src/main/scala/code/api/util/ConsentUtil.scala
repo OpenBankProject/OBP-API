@@ -1059,22 +1059,43 @@ object Consent extends MdcLoggable {
    * source of truth, and the rows are only its materialisation. Narrowing a consent therefore takes
    * effect immediately, with no sweep of anything.
    *
-   * Grandfathering: a consent authorised before grantUKConsentAccountAccess existed still carries
-   * the `(null, null, permission)` placeholder views createUKConsentJWT writes at creation time.
-   * Those name no account, so a shadow user would be granted nothing and every request would 403.
-   * Such a consent had no enforcement to begin with, so it keeps running as the PSU -- the status
-   * quo, logged so it is visible.
+   * ==A consent that names no account grants no access==
+   *
+   * A consent authorised before grantUKConsentAccountAccess existed still carries the
+   * `(null, null, permission)` placeholder views createUKConsentJWT writes at creation time. Nothing
+   * created today can look like that: the authorise endpoint rejects an empty account_ids with 400,
+   * so every consent it accepts names real accounts. These are old rows and nothing else.
+   *
+   * Such a consent used to fall back to running as the PSU. That is the widest possible reading of a
+   * consent that selected nothing -- the PSU's own AccountAccess rows govern, so the TPP saw
+   * everything the PSU can see, and the consent's declared Permissions constrained none of it. The
+   * fallback was chosen to avoid breaking rows that predated the feature, but "we cannot tell which
+   * accounts this consent covers" is a reason to serve nothing, not a reason to serve everything.
+   *
+   * So it is refused. Re-authorising binds the consent to accounts and it works again; the error
+   * says so. `uk_consent_allow_unbound_legacy` restores the old behaviour for an operator who needs
+   * a migration window and accepts what it means -- default false, and it warns on every use.
    */
   private def resolveUKConsentPrincipal(storedConsent: MappedConsent, consentJwt: ConsentJWT, psu: User): Box[User] = {
     val namesRealAccounts = consentJwt.views.exists { view =>
       Option(view.bank_id).exists(_.trim.nonEmpty) && Option(view.account_id).exists(_.trim.nonEmpty)
     }
     if (!namesRealAccounts) {
-      logger.warn(
-        s"UK consent ${storedConsent.consentId} names no real account in its JWT views -- it predates " +
-        s"account binding. Falling back to the PSU, which means this consent's declared Permissions " +
-        s"place no limit on what it can read. Re-authorise it to bind it to accounts.")
-      Full(psu)
+      if (APIUtil.getPropsAsBoolValue(nameOfProperty = "uk_consent_allow_unbound_legacy", defaultValue = false)) {
+        logger.warn(
+          s"UK consent ${storedConsent.consentId} names no real account in its JWT views -- it predates " +
+          s"account binding. uk_consent_allow_unbound_legacy is set, so it runs as the PSU: this consent's " +
+          s"declared Permissions place no limit on what it can read. Re-authorise it to bind it to accounts, " +
+          s"then unset the property.")
+        Full(psu)
+      } else {
+        logger.warn(
+          s"UK consent ${storedConsent.consentId} names no real account in its JWT views -- it predates " +
+          s"account binding, so there is nothing it can be scoped to and it is refused. Re-authorise it to " +
+          s"bind it to accounts. Set uk_consent_allow_unbound_legacy=true to serve it as the PSU meanwhile, " +
+          s"which places no limit on what it can read.")
+        Failure(ErrorMessages.ConsentNamesNoAccount)
+      }
     } else {
       for {
         shadowUser <- getOrCreateUKConsentShadowUser(storedConsent, consentJwt)
