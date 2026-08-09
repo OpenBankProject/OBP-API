@@ -1723,6 +1723,15 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       _autoValidateRoles = false
       this
     }
+
+    /**
+     * Whether the declared roles are enforced automatically (Lift wrappedWithAuthCheck /
+     * http4s ResourceDocMiddleware). False when the endpoint declared
+     * disableAutoValidateRoles() because enforcement is conditional and done in the
+     * handler — the roles stay in the doc for the catalog / API Explorer / entitlement
+     * requests.
+     */
+    def isAutoValidateRoles: Boolean = _autoValidateRoles
     private var _autoValidateAuthenticate = true
     def disableAutoValidateAuthenticate(): ResourceDoc = {
       _autoValidateAuthenticate = false

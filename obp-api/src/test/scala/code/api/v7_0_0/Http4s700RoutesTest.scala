@@ -7,8 +7,8 @@ import code.api.util.http4s.Http4sStandardHeaders
 import code.api.Constant.SYSTEM_OWNER_VIEW_ID
 import code.api.ResponseHeader
 import code.api.util.APIUtil
-import code.api.util.ApiRole.{canAttachOpenCorridorPromise, canConfigureOpenCorridorBroker, canSettleOpenCorridor, canCreateEntitlementAtAnyBank, canCreateOrganisation, canCreateRoutingScheme, canCreateUtilityVendResult, canDeleteEntitlementAtAnyBank, canDeleteOrganisation, canDeleteRoutingScheme, canDeleteSchedulerJobLock, canUpdateSystemView, canGetAccountAccessTrace, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetCardsForBank, canGetConnectorHealth, canCreateMetricsArchiveRun, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMetricsDiagnostics, canGetMigrations, canGetSchedulerJobLocks, canReadResourceDoc, canUpdateBankSupportedRoutingScheme, canUpdateOrganisation, canUpdateRoutingScheme}
-import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, BankNotFound, EntitlementAlreadyExists, InvalidJsonFormat, InvalidJsonValue, InvalidOrganisationIdFormat, InvalidRoutingSchemeName, InvalidTransactionRequestId, MobileWalletDestinationNotFound, MobileWalletInvalidMsisdn, OpenCorridorBankBrokerNotConfigured, OpenCorridorDisabled, OpenCorridorPromiseEvidenceConflict, OpenCorridorPromiseNotPending, OpenCorridorPromiseTypeMismatch, OpenCorridorSettlementAddressMissing, OpenCorridorSettlementNotFound, OrganisationAlreadyExists, OrganisationNotFound, PayeeLookupAddressMismatch, PayeeLookupIdentifierTypeNotRegistered, PayeeNotFound, RoutingSchemeAlreadyExists, RoutingSchemeExampleAddressMismatch, RoutingSchemeNotFound, SelfServiceBankCreationDisabled, SelfServiceBankLimitReached, SystemViewNotFound, UserHasMissingRoles, UserNotFoundByUserId, UtilityIdentifierTypeWrongCategory, UtilityInvalidIdentifier, UtilityTransactionRequestNotFound}
+import code.api.util.ApiRole.{canAttachOpenCorridorPromise, canConfigureOpenCorridorBroker, canSettleOpenCorridor, canCreateAccount, canCreateEntitlementAtAnyBank, canCreateOrganisation, canCreateRoutingScheme, canCreateUtilityVendResult, canDeleteEntitlementAtAnyBank, canDeleteOrganisation, canDeleteRoutingScheme, canDeleteSchedulerJobLock, canUpdateSystemView, canGetAccountAccessTrace, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetCardsForBank, canGetConnectorHealth, canCreateMetricsArchiveRun, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMetricsDiagnostics, canGetMigrations, canGetSchedulerJobLocks, canReadResourceDoc, canUpdateBankSupportedRoutingScheme, canUpdateOrganisation, canUpdateRoutingScheme}
+import code.api.util.ErrorMessages.{AccountIdAlreadyExists, AuthenticatedUserIsRequired, BankNotFound, EntitlementAlreadyExists, InvalidAccountRoutings, InvalidJsonFormat, InvalidJsonValue, InvalidOrganisationIdFormat, InvalidRoutingSchemeName, InvalidTransactionRequestId, MobileWalletDestinationNotFound, MobileWalletInvalidMsisdn, OpenCorridorBankBrokerNotConfigured, OpenCorridorDisabled, OpenCorridorPromiseEvidenceConflict, OpenCorridorPromiseNotPending, OpenCorridorPromiseTypeMismatch, OpenCorridorSettlementAddressMissing, OpenCorridorSettlementNotFound, OrganisationAlreadyExists, OrganisationNotFound, PayeeLookupAddressMismatch, PayeeLookupIdentifierTypeNotRegistered, PayeeNotFound, RoutingSchemeAlreadyExists, RoutingSchemeExampleAddressMismatch, RoutingSchemeNotFound, SelfServiceBankCreationDisabled, SelfServiceBankLimitReached, SystemViewNotFound, UserHasMissingRoles, UserNotFoundByUserId, UtilityIdentifierTypeWrongCategory, UtilityInvalidIdentifier, UtilityTransactionRequestNotFound}
 import code.utilitypayment.{UtilityCallbackStatus, UtilityPaymentCallbacks}
 import code.scheduler.JobScheduler
 import net.liftweb.mapper.By
@@ -344,6 +344,164 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
 
       Then("Response is 204 — delete is idempotent")
       statusCode shouldBe 204
+    }
+  }
+
+  // ─── createAccount (POST generated id / PUT chosen id) ───────────────────────
+
+  private def createAccountBody(
+    userId: Option[String] = None,
+    routings: List[(String, String)] = Nil
+  ): String = {
+    val userField = userId.map(u => s""""user_id": "$u",""").getOrElse("")
+    val routingsJson = routings
+      .map { case (scheme, address) => s"""{"scheme": "$scheme", "address": "$address"}""" }
+      .mkString("[", ",", "]")
+    s"""{
+       |  $userField
+       |  "label": "V7 test account",
+       |  "product_code": "OPEN_CORRIDOR",
+       |  "balance": {"currency": "EUR", "amount": "0"},
+       |  "branch_id": "",
+       |  "account_routings": $routingsJson
+       |}""".stripMargin
+  }
+
+  private def routingPairs(json: JValue): List[(String, String)] =
+    json \ "account_routings" match {
+      case JArray(items) => items.map { item =>
+        (item \ "scheme", item \ "address") match {
+          case (JString(scheme), JString(address)) => (scheme, address)
+          case _ => fail("Expected scheme/address strings in account_routings")
+        }
+      }
+      case _ => fail("Expected account_routings array")
+    }
+
+  feature("Http4s700 createAccount endpoints") {
+
+    scenario("Reject unauthenticated POST to /banks/BANK_ID/accounts", Http4s700RoutesTag) {
+      Given("POST with no auth")
+      val (statusCode, json, _) = makeHttpRequestWithBody(
+        "POST", s"/obp/v7.0.0/banks/${testBankId1.value}/accounts", createAccountBody())
+
+      Then("Response is 401")
+      statusCode shouldBe 401
+      (json \ "message") match {
+        case JString(msg) => msg should include(AuthenticatedUserIsRequired)
+        case _ => fail("Expected message field")
+      }
+    }
+
+    scenario("Reject an explicit OBP routing in account_routings", Http4s700RoutesTag) {
+      Given("A body carrying scheme OBP — the routing is implicit in v7.0.0")
+      addEntitlement(testBankId1.value, resourceUser1.userId, canCreateAccount.toString)
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val body = createAccountBody(routings = List(("OBP", "some-address")))
+      val (statusCode, json, _) = makeHttpRequestWithBody(
+        "POST", s"/obp/v7.0.0/banks/${testBankId1.value}/accounts", body, headers)
+
+      Then("Response is 400 with the implicit-routing refusal")
+      statusCode shouldBe 400
+      (json \ "message") match {
+        case JString(msg) =>
+          msg should include(InvalidAccountRoutings)
+          msg should include("implicit")
+        case _ => fail("Expected message field")
+      }
+    }
+
+    scenario("Reject OBP_ACCOUNT_ID scheme case-insensitively", Http4s700RoutesTag) {
+      Given("A body carrying scheme obp_account_id in lower case")
+      addEntitlement(testBankId1.value, resourceUser1.userId, canCreateAccount.toString)
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val body = createAccountBody(routings = List(("obp_account_id", "some-address")))
+      val (statusCode, json, _) = makeHttpRequestWithBody(
+        "POST", s"/obp/v7.0.0/banks/${testBankId1.value}/accounts", body, headers)
+
+      Then("Response is 400 with the implicit-routing refusal")
+      statusCode shouldBe 400
+      (json \ "message") match {
+        case JString(msg) => msg should include(InvalidAccountRoutings)
+        case _ => fail("Expected message field")
+      }
+    }
+
+    scenario("POST creates a caller-owned account with a generated id and the implicit OBP routing", Http4s700RoutesTag) {
+      Given("CanCreateAccount granted and a valid body with one IBAN routing, no user_id (owner defaults to the caller)")
+      addEntitlement(testBankId1.value, resourceUser1.userId, canCreateAccount.toString)
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val iban = s"DE-TEST-${APIUtil.generateUUID().take(12)}"
+      val body = createAccountBody(routings = List(("IBAN", iban)))
+
+      When("POST /banks/BANK_ID/accounts")
+      val (statusCode, json, _) = makeHttpRequestWithBody(
+        "POST", s"/obp/v7.0.0/banks/${testBankId1.value}/accounts", body, headers)
+
+      Then("Response is 201, the id is server-generated, and routings carry OBP + IBAN")
+      statusCode shouldBe 201
+      val accountId = (json \ "account_id") match {
+        case JString(id) => id should not be empty; id
+        case _ => fail("Expected account_id")
+      }
+      (json \ "user_id") shouldBe JString(resourceUser1.userId)
+      val pairs = routingPairs(json)
+      pairs should contain(("OBP", accountId))
+      pairs should contain(("IBAN", iban))
+    }
+
+    scenario("Return 403 without CanCreateAccount — even when creating for yourself", Http4s700RoutesTag) {
+      Given("resourceUser2 (no roles granted anywhere in this suite) creates with no user_id in the body")
+      val headers = Map("DirectLogin" -> s"token=${token2.value}")
+      val (statusCode, json, _) = makeHttpRequestWithBody(
+        "POST", s"/obp/v7.0.0/banks/${testBankId1.value}/accounts", createAccountBody(), headers)
+
+      Then("Response is 403 — v7.0.0 deprecates role-free self-service account creation")
+      statusCode shouldBe 403
+      (json \ "message") match {
+        case JString(msg) =>
+          msg should include(UserHasMissingRoles)
+          msg should include(canCreateAccount.toString)
+        case _ => fail("Expected message field")
+      }
+    }
+
+    scenario("Create for another user with CanCreateAccount at the bank", Http4s700RoutesTag) {
+      Given("resourceUser1 holds CanCreateAccount at the bank and targets resourceUser2")
+      addEntitlement(testBankId1.value, resourceUser1.userId, canCreateAccount.toString)
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val body = createAccountBody(userId = Some(resourceUser2.userId))
+      val (statusCode, json, _) = makeHttpRequestWithBody(
+        "POST", s"/obp/v7.0.0/banks/${testBankId1.value}/accounts", body, headers)
+
+      Then("Response is 201 and the account is owned by resourceUser2")
+      statusCode shouldBe 201
+      (json \ "user_id") shouldBe JString(resourceUser2.userId)
+    }
+
+    scenario("PUT creates the account under the chosen id; a second PUT is refused", Http4s700RoutesTag) {
+      Given("CanCreateAccount granted and a caller-chosen account id")
+      addEntitlement(testBankId1.value, resourceUser1.userId, canCreateAccount.toString)
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val chosenId = s"v7-put-${APIUtil.generateUUID().take(12)}"
+
+      When(s"PUT /banks/BANK_ID/accounts/$chosenId")
+      val (statusCode, json, _) = makeHttpRequestWithBody(
+        "PUT", s"/obp/v7.0.0/banks/${testBankId1.value}/accounts/$chosenId", createAccountBody(), headers)
+
+      Then("Response is 201 with the chosen id and its implicit OBP routing")
+      statusCode shouldBe 201
+      (json \ "account_id") shouldBe JString(chosenId)
+      routingPairs(json) should contain(("OBP", chosenId))
+
+      And("A second PUT under the same id is refused")
+      val (statusCode2, json2, _) = makeHttpRequestWithBody(
+        "PUT", s"/obp/v7.0.0/banks/${testBankId1.value}/accounts/$chosenId", createAccountBody(), headers)
+      statusCode2 should not be 201
+      (json2 \ "message") match {
+        case JString(msg) => msg should include(AccountIdAlreadyExists)
+        case _ => fail("Expected message field")
+      }
     }
   }
 
@@ -1994,15 +2152,14 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
   private def brokerPath(bankId: String): String =
     s"/obp/v7.0.0/banks/$bankId/open-corridor/broker"
 
-  private def brokerBody(settlementAddress: String = "addr_test_creditor"): String =
+  private def brokerBody(): String =
     s"""{
        |  "host": "rabbitmq.bank.example.com",
        |  "port": 5672,
        |  "virtual_host": "/bank.test",
        |  "username": "obp-api",
        |  "password": "secret-not-echoed",
-       |  "use_ssl": false,
-       |  "settlement_address": "$settlementAddress"
+       |  "use_ssl": false
        |}""".stripMargin
 
   private def ensureSettlementAccounts(bankId: String, currency: String): Unit = {
@@ -2012,6 +2169,23 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
         MappedBankAccount.create.bank(bankId).theAccountId(accountId).accountCurrency(currency).saveMe()
       }
     }
+  }
+
+  /** The bank's settlement address is the CARDANO routing on its incoming
+    * settlement account; empty address removes the routing. */
+  private def setIncomingSettlementCardanoAddress(bankId: String, address: String): Unit = {
+    val existing = BankAccountRouting.find(
+      By(BankAccountRouting.BankId, bankId),
+      By(BankAccountRouting.AccountId, code.api.Constant.INCOMING_SETTLEMENT_ACCOUNT_ID),
+      By(BankAccountRouting.AccountRoutingScheme, "CARDANO"))
+    if (address.isEmpty) existing.foreach(_.delete_!)
+    else existing
+      .getOrElse(BankAccountRouting.create
+        .BankId(bankId)
+        .AccountId(code.api.Constant.INCOMING_SETTLEMENT_ACCOUNT_ID)
+        .AccountRoutingScheme("CARDANO"))
+      .AccountRoutingAddress(address)
+      .saveMe()
   }
 
   private def promiseStatus(transactionRequestId: String): String =
@@ -2064,7 +2238,7 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
           val map = toFieldMap(fields)
           map.get("bank_id") shouldBe Some(JString(testBankId1.value))
           map.get("host") shouldBe Some(JString("rabbitmq.bank.example.com"))
-          map.get("settlement_address") shouldBe Some(JString("addr_test_creditor"))
+          map.keys should not contain "settlement_address"
           map.keys should not contain "password"
         case _ => fail("Expected JSON object")
       }
@@ -2098,9 +2272,11 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
 
     def registerBrokers(): Unit = {
       code.bankconnectors.opencorridor.OpenCorridorBankBroker.upsert(
-        testBankId1.value, "localhost", 5672, "/bank.a", "u", "p", false, "addr_test_bank_a")
+        testBankId1.value, "localhost", 5672, "/bank.a", "u", "p", false)
       code.bankconnectors.opencorridor.OpenCorridorBankBroker.upsert(
-        testBankId2.value, "localhost", 5672, "/bank.b", "u", "p", false, "addr_test_bank_b")
+        testBankId2.value, "localhost", 5672, "/bank.b", "u", "p", false)
+      setIncomingSettlementCardanoAddress(testBankId1.value, "addr_test_bank_a")
+      setIncomingSettlementCardanoAddress(testBankId2.value, "addr_test_bank_b")
     }
 
     scenario("Reject unauthenticated POST", Http4s700RoutesTag) {
@@ -2173,11 +2349,13 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
         promiseEvidenceBody(), headers)
       evidenceCode shouldBe 201
 
-      When("Settle is triggered while the creditor bank has no settlement address")
+      When("Settle is triggered while the creditor bank's incoming settlement account has no CARDANO routing")
       code.bankconnectors.opencorridor.OpenCorridorBankBroker.upsert(
-        testBankId1.value, "localhost", 5672, "/bank.a", "u", "p", false, "addr_test_bank_a")
+        testBankId1.value, "localhost", 5672, "/bank.a", "u", "p", false)
       code.bankconnectors.opencorridor.OpenCorridorBankBroker.upsert(
-        testBankId2.value, "localhost", 5672, "/bank.b", "u", "p", false, "")
+        testBankId2.value, "localhost", 5672, "/bank.b", "u", "p", false)
+      setIncomingSettlementCardanoAddress(testBankId1.value, "addr_test_bank_a")
+      setIncomingSettlementCardanoAddress(testBankId2.value, "")
       val (noAddressCode, noAddressJson, _) = makeHttpRequestWithBody("POST",
         settlementsPath(testBankId1.value), settleBody(currency), headers)
       noAddressCode shouldBe 400

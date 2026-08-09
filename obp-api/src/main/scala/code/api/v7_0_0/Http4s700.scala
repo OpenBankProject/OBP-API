@@ -8,9 +8,9 @@ import code.api.Constant._
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil.{EmptyBody, _}
 import code.api.util.{APIUtil, ApiRole, CallContext, CustomJsonFormats, Glossary, NewStyle}
-import code.api.util.ApiRole.{canAttachOpenCorridorPromise, canConfigureOpenCorridorBroker, canSettleOpenCorridor, canCreateEntitlementAtAnyBank, canCreateEntitlementAtOneBank, canCreateMetricsArchiveRun, canCreateOrganisation, canCreateRoutingScheme, canCreateTestEmail, canCreateUtilityVendResult, canDeleteEntitlementAtAnyBank, canDeleteOrganisation, canDeleteRoutingScheme, canDeleteSchedulerJobLock, canGetAccountAccessTrace, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetConnectorHealth, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMetricsDiagnostics, canGetMigrations, canGetSchedulerJobLocks, canUpdateBankSupportedRoutingScheme, canUpdateOrganisation, canUpdateRoutingScheme, canUpdateSystemView}
+import code.api.util.ApiRole.{canAttachOpenCorridorPromise, canConfigureOpenCorridorBroker, canSettleOpenCorridor, canCreateAccount, canCreateEntitlementAtAnyBank, canCreateEntitlementAtOneBank, canCreateMetricsArchiveRun, canCreateOrganisation, canCreateRoutingScheme, canCreateTestEmail, canCreateUtilityVendResult, canDeleteEntitlementAtAnyBank, canDeleteOrganisation, canDeleteRoutingScheme, canDeleteSchedulerJobLock, canGetAccountAccessTrace, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetConnectorHealth, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMetricsDiagnostics, canGetMigrations, canGetSchedulerJobLocks, canUpdateBankSupportedRoutingScheme, canUpdateOrganisation, canUpdateRoutingScheme, canUpdateSystemView}
 import code.api.util.CommonsEmailWrapper
-import code.model.dataAccess.{AuthUser, MappedBank, ResourceUser}
+import code.model.dataAccess.{AuthUser, BankAccountCreation, MappedBank, ResourceUser}
 import code.consent.Consents
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
@@ -39,7 +39,7 @@ import code.metadata.tags.Tags
 import code.views.Views
 import code.accountattribute.AccountAttributeX
 import code.users.{Users => UserVend}
-import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId, CoreAccount, CounterpartyId, CustomerId, ListResult, TransactionRequestType, ViewId}
+import com.openbankproject.commons.model.{AccountId, AccountRouting, AccountRoutingJsonV121, AmountOfMoneyJsonV121, Bank, BankId, BankIdAccountId, CoreAccount, CounterpartyId, CustomerId, ListResult, ProductCode, TransactionRequestType, User, ViewId}
 import com.openbankproject.commons.model.enums.ChallengeType
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
@@ -3515,6 +3515,165 @@ object Http4s700 {
       http4sPartialFunction = Some(attachOpenCorridorPromise)
     )
 
+    // ── Create Account ────────────────────────────────────────────────────────
+    // v7.0.0 successor of v4.0.0 addAccount (POST, server-generated id) and
+    // v5.0.0 createAccount (PUT, caller-chosen id). Differences from those:
+    // the response applies the implicit OBP routing (like every v6.0.0+ read),
+    // OBP-family schemes are refused in the request body since they are
+    // derived, never stored, and CanCreateAccount is required unconditionally
+    // (self-service account opening without the role is deprecated — Account
+    // Applications are the self-service path), so the docs auto-validate.
+
+    private def createAccountCommon(
+      user: User,
+      bank: Bank,
+      body: JSONFactory700.CreateAccountRequestJsonV700,
+      accountIdOpt: Option[String],
+      cc: CallContext
+    ): Future[JSONFactory700.CreateAccountResponseJsonV700] = {
+      val bankId = bank.bankId
+      val routings = body.account_routings.getOrElse(Nil)
+      for {
+        _ <- Helper.booleanToFuture(
+          s"$InvalidAccountRoutings The OBP routing is implicit: scheme OBP (or OBP_ACCOUNT_ID) cannot be supplied in account_routings; it is derived from the account id.",
+          400, cc = Some(cc)) {
+          !routings.exists(r => Constant.isImplicitOBPAccountScheme(r.scheme))
+        }
+        accountId <- accountIdOpt match {
+          case Some(id) =>
+            for {
+              _ <- Helper.booleanToFuture(InvalidAccountIdFormat, 400, cc = Some(cc)) { isValidID(id) }
+              (existing, _) <- BankConnector.connector.vend.checkBankAccountExists(bankId, AccountId(id), Some(cc))
+              _ <- Helper.booleanToFuture(AccountIdAlreadyExists, cc = Some(cc)) { existing.isEmpty }
+            } yield AccountId(id)
+          case None => Future.successful(AccountId(APIUtil.generateUUID()))
+        }
+        // CanCreateAccount is enforced by ResourceDocMiddleware from the doc.
+        ownerId = body.user_id.filter(_.trim.nonEmpty).getOrElse(user.userId)
+        (owner, _) <- NewStyle.function.findByUserId(ownerId, Some(cc))
+        initialBalance <- NewStyle.function.tryons(InvalidAccountInitialBalance, 400, Some(cc)) {
+          BigDecimal(body.balance.amount)
+        }
+        _ <- Helper.booleanToFuture(InitialBalanceMustBeZero, cc = Some(cc)) { 0 == initialBalance }
+        _ <- Helper.booleanToFuture(InvalidISOCurrencyCode, cc = Some(cc)) {
+          isValidCurrencyISOCode(body.balance.currency)
+        }
+        _ <- Helper.booleanToFuture(
+          s"$InvalidAccountRoutings Duplication detected in account routings, please specify only one value per routing scheme",
+          400, cc = Some(cc)) {
+          routings.map(_.scheme).distinct.size == routings.size
+        }
+        alreadyExisting <- Future.sequence(routings.map(routing =>
+          NewStyle.function.getAccountRouting(Some(bankId), routing.scheme, routing.address, Some(cc))
+            .map(_ => Some(routing)).fallbackTo(Future.successful(None))))
+        conflicts = alreadyExisting.collect {
+          case Some(r) => s"bankId: ${bankId.value}, scheme: ${r.scheme}, address: ${r.address}"
+        }
+        _ <- Helper.booleanToFuture(s"$AccountRoutingAlreadyExist (${conflicts.mkString("; ")})", cc = Some(cc)) {
+          conflicts.isEmpty
+        }
+        (bankAccount, _) <- NewStyle.function.createBankAccount(
+          bankId, accountId, body.product_code, body.label, body.balance.currency,
+          initialBalance, owner.name, body.branch_id.getOrElse(""),
+          routings.map(r => AccountRouting(r.scheme, r.address)), Some(cc))
+        (productAttributes, _) <- NewStyle.function.getProductAttributesByBankAndCode(
+          bankId, ProductCode(body.product_code), Some(cc))
+        (accountAttributes, _) <- NewStyle.function.createAccountAttributes(
+          bankId, accountId, ProductCode(body.product_code), productAttributes, None, Some(cc))
+        _ <- BankAccountCreation.setAccountHolderAndRefreshUserAccountAccess(bankId, accountId, owner, Some(cc))
+      } yield JSONFactory700.createAccountJsonV700(ownerId, bankAccount, accountAttributes)
+    }
+
+    val createAccountV700: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "banks" / _ / "accounts" =>
+        EndpointHelpers.withUserAndBankAndBodyCreated[JSONFactory700.CreateAccountRequestJsonV700, JSONFactory700.CreateAccountResponseJsonV700](req) { (user, bank, body, cc) =>
+          createAccountCommon(user, bank, body, None, cc)
+        }
+    }
+
+    val createAccountWithIdV700: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ PUT -> `prefixPath` / "banks" / _ / "accounts" / accountIdStr =>
+        EndpointHelpers.withUserAndBankAndBodyCreated[JSONFactory700.CreateAccountRequestJsonV700, JSONFactory700.CreateAccountResponseJsonV700](req) { (user, bank, body, cc) =>
+          createAccountCommon(user, bank, body, Some(accountIdStr), cc)
+        }
+    }
+
+    val createAccountRequestBodyExampleV700 = JSONFactory700.CreateAccountRequestJsonV700(
+      user_id = Some("9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1"),
+      label = "My Account",
+      product_code = "OPEN_CORRIDOR",
+      balance = AmountOfMoneyJsonV121("EUR", "0"),
+      branch_id = Some(""),
+      account_routings = Some(List(AccountRoutingJsonV121("IBAN", "DE91100000000123456789")))
+    )
+    val createAccountResponseExampleV700 = JSONFactory700.CreateAccountResponseJsonV700(
+      account_id = "8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0",
+      user_id = "9ca9a7e4-6d02-40e3-a129-0b2bf89de9b1",
+      label = "My Account",
+      product_code = "OPEN_CORRIDOR",
+      balance = AmountOfMoneyJsonV121("EUR", "0"),
+      branch_id = "",
+      account_routings = List(
+        AccountRoutingJsonV121("OBP", "8ca8a7e4-6d02-40e3-a129-0b2bf89de9f0"),
+        AccountRoutingJsonV121("IBAN", "DE91100000000123456789")
+      ),
+      account_attributes = Nil
+    )
+
+    val createAccountDescriptionV700 =
+      """Create an Account at the bank specified by BANK_ID.
+        |
+        |The logged-in user must have the Role CanCreateAccount at BANK_ID. Unlike the v4.0.0/v5.0.0 Create Account, creating an account for yourself does not waive the Role: self-service account opening is deprecated in v7.0.0 — use Account Applications for customer-initiated account opening.
+        |
+        |The body USER_ID is optional; when present the created Account is owned by the User specified by USER_ID, otherwise by the logged-in User.
+        |
+        |The `product_code` SHOULD be a product_code from Product. If it matches one, Account Attributes are created from the Product Attributes.
+        |
+        |`account_routings` carries external routings only (e.g. IBAN). The OBP-family schemes (`OBP`, `OBP_ACCOUNT_ID`) are refused: the canonical `{"scheme": "OBP", "address": "<account_id>"}` routing is implicit and included in every response, never stored. One routing per scheme; a routing address already registered at the bank is refused.
+        |
+        |The balance amount MUST be zero.
+        |
+        |Authentication is Required.""".stripMargin
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(createAccountV700),
+      "POST",
+      "/banks/BANK_ID/accounts",
+      "Create Account (POST)",
+      s"""$createAccountDescriptionV700
+        |
+        |The ACCOUNT_ID is generated by the server and returned in the response. To specify the ACCOUNT_ID yourself, use the PUT variant.""".stripMargin,
+      createAccountRequestBodyExampleV700,
+      createAccountResponseExampleV700,
+      List($AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat, UserNotFoundById,
+        UserHasMissingRoles, InvalidAccountRoutings, AccountRoutingAlreadyExist,
+        InvalidAccountInitialBalance, InitialBalanceMustBeZero, InvalidISOCurrencyCode, UnknownError),
+      apiTagAccount :: apiTagOnboarding :: Nil,
+      Some(List(canCreateAccount)),
+      http4sPartialFunction = Some(createAccountV700)
+    )
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(createAccountWithIdV700),
+      "PUT",
+      "/banks/BANK_ID/accounts/NEW_ACCOUNT_ID",
+      "Create Account (PUT)",
+      s"""$createAccountDescriptionV700
+        |
+        |The Account is created with the NEW_ACCOUNT_ID given in the URL, which must not already exist at the bank. To let the server generate the ACCOUNT_ID, use the POST variant.""".stripMargin,
+      createAccountRequestBodyExampleV700,
+      createAccountResponseExampleV700,
+      List($AuthenticatedUserIsRequired, $BankNotFound, InvalidJsonFormat, UserNotFoundById,
+        UserHasMissingRoles, InvalidAccountIdFormat, AccountIdAlreadyExists,
+        InvalidAccountRoutings, AccountRoutingAlreadyExist,
+        InvalidAccountInitialBalance, InitialBalanceMustBeZero, InvalidISOCurrencyCode, UnknownError),
+      apiTagAccount :: apiTagOnboarding :: Nil,
+      Some(List(canCreateAccount)),
+      http4sPartialFunction = Some(createAccountWithIdV700)
+    )
+
     // ── OPEN_CORRIDOR per-bank broker registry (admin) ────────────────────────
     // Operator endpoints for the per-bank RabbitMQ publish registry: each onboarded
     // bank's Bank Node consumes on its own vhost, so Interface C publishing needs
@@ -3529,14 +3688,12 @@ object Http4s700 {
             }
             broker <- scala.concurrent.Future {
               code.bankconnectors.opencorridor.OpenCorridorBankBroker.upsert(
-                bank.bankId.value, body.host, body.port, body.virtual_host, body.username, body.password, body.use_ssl,
-                body.settlement_address
+                bank.bankId.value, body.host, body.port, body.virtual_host, body.username, body.password, body.use_ssl
               )
             }
           } yield JSONFactory700.OpenCorridorBankBrokerJsonV700(
             bank_id = broker.bankId, host = broker.host, port = broker.port,
-            virtual_host = broker.virtualHost, username = broker.username, use_ssl = broker.useSsl,
-            settlement_address = broker.settlementAddress
+            virtual_host = broker.virtualHost, username = broker.username, use_ssl = broker.useSsl
           )
         }
     }
@@ -3549,8 +3706,7 @@ object Http4s700 {
               case net.liftweb.common.Full(broker) =>
                 JSONFactory700.OpenCorridorBankBrokerJsonV700(
                   bank_id = broker.bankId, host = broker.host, port = broker.port,
-                  virtual_host = broker.virtualHost, username = broker.username, use_ssl = broker.useSsl,
-                  settlement_address = broker.settlementAddress
+                  virtual_host = broker.virtualHost, username = broker.username, use_ssl = broker.useSsl
                 )
               case _ =>
                 throw new RuntimeException(s"$OpenCorridorBankBrokerNotConfigured BANK_ID: ${bank.bankId.value}")
@@ -3574,8 +3730,7 @@ object Http4s700 {
       virtual_host = "/bank.gh.29.uk",
       username = "obp-api",
       password = "***",
-      use_ssl = false,
-      settlement_address = "addr_test1vqn7sn79x6k9a2353l458mk2gccmwqk7nza93zydpuvl7lquy6jcl"
+      use_ssl = false
     )
     val openCorridorBrokerResponseExample = JSONFactory700.OpenCorridorBankBrokerJsonV700(
       bank_id = "gh.29.uk",
@@ -3583,8 +3738,7 @@ object Http4s700 {
       port = 5672,
       virtual_host = "/bank.gh.29.uk",
       username = "obp-api",
-      use_ssl = false,
-      settlement_address = "addr_test1vqn7sn79x6k9a2353l458mk2gccmwqk7nza93zydpuvl7lquy6jcl"
+      use_ssl = false
     )
 
     resourceDocs += ResourceDoc(
@@ -3598,6 +3752,8 @@ object Http4s700 {
         |Each onboarded bank's Bank Node consumes Interface C messages on its own vhost with its own credentials; OBP-API publishes `obp_credit_notification` to the creditor bank's vhost and `obp_settlement_instruction` to the debtor bank's vhost using the coordinates registered here. One registration per bank (upsert semantics).
         |
         |The password is write-only and never returned by any endpoint.
+        |
+        |This record carries transport coordinates only. The bank's on-chain settlement address is NOT part of it: it is the `CARDANO` account routing on the bank's `OBP-INCOMING-SETTLEMENT-ACCOUNT` (manage it via Update Account / Create Account).
         |
         |Authentication is Required.""".stripMargin,
       openCorridorBrokerBodyExample,

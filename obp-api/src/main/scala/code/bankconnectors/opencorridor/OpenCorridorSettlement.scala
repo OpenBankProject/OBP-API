@@ -141,17 +141,21 @@ object OpenCorridorSettlement extends MdcLoggable {
       _ <- Helper.booleanToFuture(s"$OpenCorridorBankBrokerNotConfigured BANK_ID: $bankIdB", cc = callContext) {
         OpenCorridorBankBroker.findByBankId(bankIdB).isDefined
       }
-      creditorSettlementAddress = OpenCorridorBankBroker.findByBankId(creditorBankId)
-        .map(_.settlementAddress).getOrElse("")
-      _ <- Helper.booleanToFuture(s"$OpenCorridorSettlementAddressMissing BANK_ID: $creditorBankId", cc = callContext) {
-        netAbs == 0 || creditorSettlementAddress.trim.nonEmpty
-      }
 
       // The settlement accounts (created at boot for every bank).
       (debtorOutgoing, callContext) <- NewStyle.function.getBankAccount(
         BankId(debtorBankId), AccountId(OUTGOING_SETTLEMENT_ACCOUNT_ID), callContext)
       (creditorIncoming, callContext) <- NewStyle.function.getBankAccount(
         BankId(creditorBankId), AccountId(INCOMING_SETTLEMENT_ACCOUNT_ID), callContext)
+
+      // The creditor's on-chain receiving address is the CARDANO routing on its
+      // incoming settlement account (the broker row is transport only). Checked
+      // before anything is mutated: a non-zero net needs somewhere to send funds.
+      creditorSettlementAddress = creditorIncoming.accountRoutings
+        .find(_.scheme.equalsIgnoreCase("CARDANO")).map(_.address).getOrElse("")
+      _ <- Helper.booleanToFuture(s"$OpenCorridorSettlementAddressMissing BANK_ID: $creditorBankId", cc = callContext) {
+        netAbs == 0 || creditorSettlementAddress.trim.nonEmpty
+      }
 
       // Mint TR B — the settle event's audit object and the settlement_id.
       settlementTrId = generateUUID()

@@ -10,7 +10,8 @@ import code.customer.CustomerX
 import code.metrics.{MappedMetric, MetricArchive, MetricsArchiveRun, MetricsProps}
 import code.util.Helper.MdcLoggable
 import code.views.Views
-import com.openbankproject.commons.model.{AccountId, AccountRoutingJsonV121, AmountOfMoneyJsonV121, BankId, BankIdAccountId, CoreAccount, TransactionRequest, TransactionRequestCommonBodyJSON, User}
+import code.api.v3_1_0.{AccountAttributeResponseJson, JSONFactory310}
+import com.openbankproject.commons.model.{AccountAttribute, AccountId, AccountRoutingJsonV121, AmountOfMoneyJsonV121, BankAccount, BankId, BankIdAccountId, CoreAccount, TransactionRequest, TransactionRequestCommonBodyJSON, User}
 import com.openbankproject.commons.util.ApiVersion
 import java.util.Date
 import net.liftweb.common.Full
@@ -1113,16 +1114,63 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     reported_at: String
   )
 
+  // ─── Create Account ────────────────────────────────────────────────────────
+
+  /** Request body for POST /banks/BANK_ID/accounts (server-generated id) and
+    * PUT /banks/BANK_ID/accounts/ACCOUNT_ID (caller-chosen id). The OBP-family
+    * routing schemes (OBP, OBP_ACCOUNT_ID) are implicit — supplying one in
+    * account_routings is refused; the canonical OBP routing is derived from
+    * the account id on every read. */
+  case class CreateAccountRequestJsonV700(
+    user_id: Option[String],
+    label: String,
+    product_code: String,
+    balance: AmountOfMoneyJsonV121,
+    branch_id: Option[String],
+    account_routings: Option[List[AccountRoutingJsonV121]]
+  )
+
+  case class CreateAccountResponseJsonV700(
+    account_id: String,
+    user_id: String,
+    label: String,
+    product_code: String,
+    balance: AmountOfMoneyJsonV121,
+    branch_id: String,
+    account_routings: List[AccountRoutingJsonV121],
+    account_attributes: List[AccountAttributeResponseJson]
+  )
+
+  def createAccountJsonV700(
+    userId: String,
+    account: BankAccount,
+    accountAttributes: List[AccountAttribute]
+  ): CreateAccountResponseJsonV700 =
+    CreateAccountResponseJsonV700(
+      account_id = account.accountId.value,
+      user_id = userId,
+      label = account.label,
+      product_code = account.accountType,
+      balance = AmountOfMoneyJsonV121(account.currency, account.balance.toString()),
+      branch_id = account.branchId,
+      account_routings = Constant.accountRoutingsWithImplicitOBP(
+        account.accountId.value,
+        account.accountRoutings.map(r => AccountRoutingJsonV121(r.scheme, r.address))
+      ),
+      account_attributes = accountAttributes.map(JSONFactory310.createAccountAttributeJson)
+    )
+
   // ─── OPEN_CORRIDOR per-bank broker registry (admin) ────────────────────────
 
+  // Transport coordinates only. The settlement address is NOT part of the broker
+  // record: it is the CARDANO account routing on OBP-INCOMING-SETTLEMENT-ACCOUNT.
   case class PostOpenCorridorBankBrokerJsonV700(
     host: String,
     port: Int,
     virtual_host: String,
     username: String,
     password: String,
-    use_ssl: Boolean,
-    settlement_address: String
+    use_ssl: Boolean
   )
 
   // The password is write-only: never echoed on any response.
@@ -1132,8 +1180,7 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     port: Int,
     virtual_host: String,
     username: String,
-    use_ssl: Boolean,
-    settlement_address: String
+    use_ssl: Boolean
   )
 
   // ─── OPEN_CORRIDOR settlements ─────────────────────────────────────────────

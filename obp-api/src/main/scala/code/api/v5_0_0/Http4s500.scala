@@ -657,7 +657,7 @@ object Http4s500 {
       List(apiTagAccount, apiTagOnboarding),
       Some(List(canCreateAccount)),
       http4sPartialFunction = Some(createAccount)
-    )
+    ).disableAutoValidateRoles() // Lift parity: "role or self-create" is enforced in the handler
 
     // ─── createUserAuthContext (POST /users/USER_ID/auth-context → 201) ─────
 
