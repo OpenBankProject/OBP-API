@@ -468,12 +468,14 @@ object Http4s500 {
             _ <- entitlementsByBank.exists(_.roleName == CanCreateEntitlementAtOneBank.toString()) match {
               case true  => Future.successful(())
               case false => Future(Entitlement.entitlement.vend.addEntitlement(
-                postJson.id.getOrElse(""), cc.userId, CanCreateEntitlementAtOneBank.toString()))
+                postJson.id.getOrElse(""), cc.userId, CanCreateEntitlementAtOneBank.toString(),
+                grantedByUserId = Some(cc.userId)))
             }
             _ <- entitlementsByBank.exists(_.roleName == CanReadDynamicResourceDocsAtOneBank.toString()) match {
               case true  => Future.successful(())
               case false => Future(Entitlement.entitlement.vend.addEntitlement(
-                postJson.id.getOrElse(""), cc.userId, CanReadDynamicResourceDocsAtOneBank.toString()))
+                postJson.id.getOrElse(""), cc.userId, CanReadDynamicResourceDocsAtOneBank.toString(),
+                grantedByUserId = Some(cc.userId)))
             }
           } yield JSONFactory500.createBankJSON500(success)
         }

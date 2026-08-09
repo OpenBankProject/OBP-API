@@ -2292,7 +2292,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
                   bankId,
                   userId,
                   role.toString,
-                  "create_just_in_time_entitlements"
+                  "create_just_in_time_entitlements",
+                  grantedByUserId = Some(userId)
                 )
                 logger.info(s"Just in Time Entitlements: $addedEntitlement")
                 addedEntitlement.isDefined
@@ -2347,7 +2348,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
                 hasEntitlement("", userId, ApiRole.canCreateEntitlementAtAnyBank)) &&
                 roles.forall { role =>
                   val addedEntitlement = Entitlement.entitlement.vend.addEntitlement(
-                    bankId, userId, role.toString, "create_just_in_time_entitlements"
+                    bankId, userId, role.toString, "create_just_in_time_entitlements",
+                    grantedByUserId = Some(userId)
                   )
                   logger.info(s"Just in Time Entitlements: $addedEntitlement")
                   addedEntitlement.isDefined

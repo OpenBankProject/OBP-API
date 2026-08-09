@@ -162,16 +162,22 @@ object MappedEntitlementsProvider extends EntitlementProvider {
       userId: String,
       roleName: String,
       createdByProcess: String = "manual",
-      grantorUserId: Option[String] = None,
+      grantedByUserId: Option[String] = None,
       groupId: Option[String] = None,
       process: Option[String] = None
   ): Box[Entitlement] = {
+    // grantedByUserId is audit metadata, stored as-is: authorization is the
+    // calling endpoint's responsibility. (Until 2026-08-09 an unused
+    // grantorUserId parameter gated on the grantor's granting roles here —
+    // no caller ever passed it, and the check ignored super admins, whose
+    // granting rights are virtual and have no rows to find.)
     def addEntitlementToUser(): Box[MappedEntitlement] = {
       val entitlement = MappedEntitlement.create
         .mBankId(bankId)
         .mUserId(userId)
         .mRoleName(roleName)
         .mCreatedByProcess(createdByProcess)
+      grantedByUserId.foreach(g => entitlement.mGrantedByUserId(g))
       groupId.foreach(gid => entitlement.mGroupId(gid))
       process.foreach(p => entitlement.mProcess(p))
       tryo(entitlement.saveMe()) match {
@@ -188,25 +194,7 @@ object MappedEntitlementsProvider extends EntitlementProvider {
         case other => other
       }
     }
-    // Return a Box so we can handle errors later.
-    grantorUserId match {
-      case Some(userId) =>
-        val canCreateEntitlementAtAnyBank = MappedEntitlement
-          .findAll(By(MappedEntitlement.mUserId, userId))
-          .exists(e => e.roleName == CanCreateEntitlementAtAnyBank)
-        val canCreateEntitlementAtOneBank = MappedEntitlement
-          .findAll(By(MappedEntitlement.mUserId, userId))
-          .exists(e =>
-            e.roleName == CanCreateEntitlementAtOneBank && e.bankId == bankId
-          )
-        if (canCreateEntitlementAtAnyBank || canCreateEntitlementAtOneBank) {
-          addEntitlementToUser()
-        } else {
-          Failure(ErrorMessages.EntitlementCannotBeGrantedGrantorIssue)
-        }
-      case None =>
-        addEntitlementToUser()
-    }
+    addEntitlementToUser()
   }
 }
 
@@ -239,6 +227,11 @@ class MappedEntitlement
     override def defaultValue = null
   }
 
+  object mGrantedByUserId extends UUIDString(this) {
+    override def dbColumnName = "granted_by_user_id"
+    override def defaultValue = ""
+  }
+
   override def entitlementId: String = mEntitlementId.get.toString
   override def bankId: String = mBankId.get
   override def userId: String = mUserId.get
@@ -254,14 +247,15 @@ class MappedEntitlement
     val p = mProcess.get
     if (p == null || p.isEmpty) None else Some(p)
   }
+  override def grantedByUserId: Option[String] = {
+    val g = mGrantedByUserId.get
+    if (g == null || g.isEmpty) None else Some(g)
+  }
   override def entitlementRequestId: Option[String] = {
-    entitlement_request_id.get match {
-      case uuid
-          if uuid.toString.nonEmpty && uuid.toString != "00000000-0000-0000-0000-000000000000" =>
-        Some(uuid.toString)
-      case _ =>
-        None
-    }
+    // The column defaults to null (only request-born grants set it).
+    Option(entitlement_request_id.get)
+      .map(_.toString)
+      .filter(uuid => uuid.nonEmpty && uuid != "00000000-0000-0000-0000-000000000000")
   }
 }
 

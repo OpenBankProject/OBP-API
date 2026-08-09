@@ -200,6 +200,7 @@ object Http4s600 {
                 def entitlementRequestId: Option[String] = None
                 def groupId: Option[String]              = None
                 def process: Option[String]              = None
+                def grantedByUserId: Option[String]      = None
               }
             }
             val currentUser = UserV600(user, entitlements ::: virtualEntitlements, permissions)
@@ -491,7 +492,8 @@ object Http4s600 {
       )
     } yield {
       crudRoles.foreach(role =>
-        Entitlement.entitlement.vend.addEntitlement(dynamicEntity.bankId.getOrElse(""), cc.userId, role.toString()))
+        Entitlement.entitlement.vend.addEntitlement(dynamicEntity.bankId.getOrElse(""), cc.userId, role.toString(),
+          grantedByUserId = Some(cc.userId)))
       JSONFactory600.createMyDynamicEntitiesJson(List(result: DynamicEntityCommons)).dynamic_entities.head
     }
 
@@ -883,7 +885,8 @@ object Http4s600 {
             entitlements <- NewStyle.function.getEntitlementsByUserId(cc.userId, Some(cc))
             entitlementsByBank = entitlements.filter(_.bankId == postJson.bank_id)
             _ = if (!entitlementsByBank.exists(_.roleName == CanCreateEntitlementAtOneBank.toString))
-              Entitlement.entitlement.vend.addEntitlement(postJson.bank_id, cc.userId, CanCreateEntitlementAtOneBank.toString)
+              Entitlement.entitlement.vend.addEntitlement(postJson.bank_id, cc.userId, CanCreateEntitlementAtOneBank.toString,
+                grantedByUserId = Some(cc.userId))
           } yield JSONFactory600.createBankJSON600(success)
         }
     }
@@ -1941,7 +1944,7 @@ object Http4s600 {
                 if (!alreadyHas) {
                   Entitlement.entitlement.vend.addEntitlement(
                     group.bankId.getOrElse(""), userIdStr, roleName, "manual",
-                    None, Some(postJson.group_id), Some("GROUP_MEMBERSHIP"))
+                    Some(user.userId), Some(postJson.group_id), Some("GROUP_MEMBERSHIP"))
                   (roleName, true)
                 } else (roleName, false)
               }
@@ -4986,7 +4989,8 @@ object Http4s600 {
         _ <- Future(backupDynamicEntityIo(entity, backupName, resultList))
         backupCanGetRole = code.api.dynamic.entity.helper.DynamicEntityInfo.canGetRole(backupName, entity.bankId)
         _ <- Future(code.entitlement.Entitlement.entitlement.vend.addEntitlement(
-          entity.bankId.getOrElse(""), cc.userId, backupCanGetRole.toString()))
+          entity.bankId.getOrElse(""), cc.userId, backupCanGetRole.toString(),
+          grantedByUserId = Some(cc.userId)))
         backupEntity <- Future {
           code.dynamicEntity.DynamicEntityProvider.connectorMethodProvider.vend
             .getByEntityName(entity.bankId, backupName)

@@ -498,7 +498,9 @@ object Http4s700 {
                    canCreateEntitlementAtOneBank :: canCreateEntitlementAtAnyBank :: Nil, Some(cc)).map(_ => ())
             _ <- Helper.booleanToFuture(failMsg = EntitlementAlreadyExists, failCode = 409, cc = Some(cc))(
               !hasEntitlement(body.bank_id, userId, role))
-            entitlement <- Future(Entitlement.entitlement.vend.addEntitlement(body.bank_id, userId, body.role_name))
+            entitlement <- Future(Entitlement.entitlement.vend.addEntitlement(
+              body.bank_id, userId, body.role_name,
+              grantedByUserId = Some(user.userId)))
               .map(e => unboxFull(e))
           } yield JSONFactory200.createEntitlementJSON(entitlement)
         }
