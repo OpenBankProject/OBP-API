@@ -430,10 +430,32 @@ object Consent extends MdcLoggable {
     // Touching only the difference means a steady-state request writes nothing at all.
     val held: List[BankIdAccountIdViewId] = Views.views.vend.accessGrantedToUserForConsumer(user, consumerId)
     val wantedSet = wanted.toSet
+    // A failed revoke leaves the consent holding a view it no longer declares, which is the one
+    // direction of this reconciliation that matters: a grant that fails denies access the consent
+    // asked for, and the caller sees that immediately, but a revoke that fails keeps access the
+    // consent gave up, and nothing downstream can tell. The result used to be discarded outright,
+    // so the only symptom was data the consent no longer covered still being served.
+    //
+    // Logged rather than returned. Failing the request would make a consent stuck in this state
+    // unusable altogether -- its remaining, legitimate views included -- and the operator would have
+    // no way back short of deleting rows by hand. The narrower reading is that the consent still
+    // holds everything it declares, plus one view it should have lost; refusing everything is a
+    // worse answer to that than serving it and saying so loudly.
+    //
+    // canRevokeOwnerAccess is the realistic trigger (MapperViews): it refuses to drop an `owner`
+    // row when no other principal holds one on that account, which an OBP-native consent can reach
+    // because createConsentJWT takes its views from whatever the PSU already holds, `owner` included.
     for {
       staleAccess <- held.filterNot(wantedSet.contains)
     } yield {
-      Views.views.vend.revokeAccess(staleAccess, user)
+      Views.views.vend.revokeAccess(staleAccess, user) match {
+        case Full(true) => // gone
+        case other =>
+          logger.warn(
+            s"grantAccessToViews: could not revoke ${staleAccess.viewId.value} on " +
+            s"${staleAccess.bankId.value}/${staleAccess.accountId.value} from user ${user.userId}, " +
+            s"which consent ${consent.jti} no longer declares. The access is still held: $other")
+      }
     }
 
     val heldSet = held.toSet
