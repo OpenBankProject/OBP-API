@@ -925,13 +925,27 @@ object Consent extends MdcLoggable {
       consentJwt <- consentJwtBox
       shadowUser <- Users.users.vend.getUserByProviderId(provider = consentJwt.iss, idGivenByProvider = consentJwt.sub)
     } yield {
-      Views.views.vend.accessGrantedToUserForConsumer(shadowUser, Constant.ALL_CONSUMERS).map { access =>
-        Views.views.vend.revokeAccessToViewForUserAndConsumer(access, shadowUser, Constant.ALL_CONSUMERS)
-      }.size
+      val (dropped, stuck) = Views.views.vend.accessGrantedToUserForConsumer(shadowUser, Constant.ALL_CONSUMERS)
+        .map(access => access -> Views.views.vend.revokeAccessToViewForUserAndConsumer(access, shadowUser, Constant.ALL_CONSUMERS))
+        .partition(_._2 == Full(true))
+      (dropped.size, stuck)
     }
     revoked match {
-      case Full(count) if count > 0 =>
-        logger.info(s"revokeConsentAccountAccess: dropped $count account access rows for consent ${consent.consentId}")
+      case Full((count, stuck)) =>
+        if (count > 0) {
+          logger.info(s"revokeConsentAccountAccess: dropped $count account access rows for consent ${consent.consentId}")
+        }
+        // revokeAccessToViewForUserAndConsumer can refuse -- canRevokeOwnerAccess will not drop the
+        // last `owner` row on an account -- so counting the attempts rather than the successes
+        // reported rows as gone while they were still there. On a revoked consent that is the worst
+        // version of this to get wrong: the access outlives the consent entirely, and nothing else
+        // ever comes back for it.
+        for ((access, outcome) <- stuck) {
+          logger.warn(
+            s"revokeConsentAccountAccess: could not revoke ${access.viewId.value} on " +
+            s"${access.bankId.value}/${access.accountId.value} for revoked consent " +
+            s"${consent.consentId}. The access outlives the consent: $outcome")
+        }
       case _ =>
     }
 
