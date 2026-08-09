@@ -396,18 +396,28 @@ object Consent extends MdcLoggable {
   }
 
   /**
-   * Materialise a consent's views as AccountAccess rows.
+   * Materialise a consent's views as AccountAccess rows, always under ALL_CONSUMERS.
    *
-   * consumerId defaults to ALL_CONSUMERS, which is what Berlin Group and OBP-native want: each of
-   * their consents already resolves to its own shadow user (createXxxConsentJWT gives every consent
-   * a random `sub`, and applyConsentRules turns that into a distinct user), so their grants are
-   * isolated by construction and there is nothing for a consumer to disambiguate.
+   * Every standard wants this and none wants anything else: each consent resolves to its own shadow
+   * user (createXxxConsentJWT gives every consent a random `sub`, which applyConsentRules and
+   * resolveUKConsentPrincipal turn into a distinct user), so a consent's rows are isolated by
+   * construction and there is nothing for a consumer to disambiguate. UK used to be the exception --
+   * it granted to the real PSU and passed the consent's own consumerId -- but it moved to the shadow
+   * user like the others, which left the parameter with no caller and the scaladoc describing an
+   * arrangement that no longer existed.
    *
-   * UK is the exception -- it grants to the real PSU -- so it passes the consent's own consumerId
-   * and gets rows only that TPP can claim.
+   * ==Do not reintroduce consumer scoping here without changing revokeConsentAccountAccess==
+   *
+   * That is why the parameter is gone rather than merely unused. AccountAccess.consumer_id holds the
+   * literal string ALL_CONSUMERS, not a wildcard, and every lookup matches it by equality
+   * (MapperViews.accessGrantedToUserForConsumer, User.hasAccountAccess). revokeConsentAccountAccess
+   * sweeps a revoked consent's rows by asking for exactly ALL_CONSUMERS, so a row written under a
+   * real consumer id would have been invisible to it and would have outlived the consent that
+   * created it -- access that no longer has a consent behind it, left in the table with nothing to
+   * remove it. Keeping the branch as dead code kept that trap armed for whoever used it next.
    */
-  private def grantAccessToViews(user: User, consent: ConsentJWT, consumerId: String = Constant.ALL_CONSUMERS): Box[User] = {
-    val isConsumerScoped = consumerId != Constant.ALL_CONSUMERS
+  private def grantAccessToViews(user: User, consent: ConsentJWT): Box[User] = {
+    val consumerId = Constant.ALL_CONSUMERS
     val wanted: List[BankIdAccountIdViewId] = consent.views.map { view =>
       BankIdAccountIdViewId(BankId(view.bank_id), AccountId(view.account_id), ViewId(view.view_id))
     }.distinct
@@ -423,8 +433,7 @@ object Consent extends MdcLoggable {
     for {
       staleAccess <- held.filterNot(wantedSet.contains)
     } yield {
-      if (isConsumerScoped) Views.views.vend.revokeAccessToViewForUserAndConsumer(staleAccess, user, consumerId)
-      else Views.views.vend.revokeAccess(staleAccess, user)
+      Views.views.vend.revokeAccess(staleAccess, user)
     }
 
     val heldSet = held.toSet
@@ -440,16 +449,10 @@ object Consent extends MdcLoggable {
         val bankIdAccountIdViewId = BankIdAccountIdViewId(BankId(view.bank_id), AccountId(view.account_id),ViewId(view.view_id))
         Views.views.vend.systemView(ViewId(view.view_id)) match {
           case Full(systemView) =>
-            if (isConsumerScoped)
-              Views.views.vend.grantAccessToSystemViewForConsumer(BankId(view.bank_id), AccountId(view.account_id), systemView, user, consumerId)
-            else
-              Views.views.vend.grantAccessToSystemView(BankId(view.bank_id), AccountId(view.account_id), systemView, user)
+            Views.views.vend.grantAccessToSystemView(BankId(view.bank_id), AccountId(view.account_id), systemView, user)
           case _ =>
             // It's not system view
-            if (isConsumerScoped)
-              Views.views.vend.grantAccessToCustomViewForConsumer(bankIdAccountIdViewId, user, consumerId)
-            else
-              Views.views.vend.grantAccessToCustomView(bankIdAccountIdViewId, user)
+            Views.views.vend.grantAccessToCustomView(bankIdAccountIdViewId, user)
         }
       }
     }
@@ -887,6 +890,10 @@ object Consent extends MdcLoggable {
    * Safe for a consent whose shadow user was never minted (one that predates account binding and
    * still runs as the PSU): the lookup simply finds nothing. It must never fall back to the PSU --
    * that would delete access the PSU holds in their own right.
+   *
+   * The ALL_CONSUMERS below is an exact match on the column, not a wildcard, so this is complete
+   * only because grantAccessToViews writes nothing else. The two have to stay in step: see the
+   * warning on grantAccessToViews before giving a consent's rows a real consumer id.
    */
   def revokeConsentAccountAccess(consent: code.consent.ConsentTrait): Unit = {
     implicit val dateFormats = CustomJsonFormats.formats
