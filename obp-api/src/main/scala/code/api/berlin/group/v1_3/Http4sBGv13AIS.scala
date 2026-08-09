@@ -362,8 +362,14 @@ object Http4sBGv13AIS extends MdcLoggable {
         val callContext = Some(cc)
         for {
           _ <- passesPsd2Aisp(callContext)
-          _ <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
+          // Same ownership test as the three sibling reads of this consent. The consent was already
+          // being fetched here purely to prove it exists, so the SCA status of anyone's consent was
+          // readable by any AISP that knew the id.
+          consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
             unboxFullOrFail(_, callContext, s"$ConsentNotFound ($consentId)", 403)
+          }
+          _ <- booleanToFuture(failMsg = ConsentNotFound, failCode = 403, cc = callContext) {
+            consent.mConsumerId.get == cc.consumer.map(_.consumerId.get).getOrElse("None")
           }
           (challenges, callContext) <- NewStyle.function.getChallengesByConsentId(consentId, callContext)
         } yield {
@@ -383,6 +389,12 @@ object Http4sBGv13AIS extends MdcLoggable {
           _ <- passesPsd2Aisp(callContext)
           consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
             unboxFullOrFail(_, callContext, ConsentNotFound, 403)
+          }
+          // Same ownership test as the three sibling reads of this consent. Without it the status of
+          // any consent was readable by any AISP holding its id -- which is enough to confirm the
+          // consent exists and to watch it move through authorisation.
+          _ <- booleanToFuture(failMsg = ConsentNotFound, failCode = 403, cc = callContext) {
+            consent.mConsumerId.get == cc.consumer.map(_.consumerId.get).getOrElse("None")
           }
         } yield {
           JSONFactory_BERLIN_GROUP_1_3.ConsentStatusJsonV13(consent.status)
