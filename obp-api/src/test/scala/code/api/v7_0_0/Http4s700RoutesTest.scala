@@ -1890,10 +1890,9 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
   // ─── OPEN_CORRIDOR_PROMISE transaction request ────────────────────────────
 
   /** Full, valid OPEN_CORRIDOR_PROMISE create body. The beneficiary uses OBP routing
-    * to a real account on the second test bank, so getBankAccountFromCounterparty
-    * resolves a real destination and the mapped payment path can post both legs
-    * (a phantom external destination would fail the credit leg: the test DB has no
-    * settlement accounts to fall back to). */
+    * to the second test bank. Only the far BANK must exist — the beneficiary
+    * account is not resolved (it lives in the far bank's CBS); the default here
+    * happens to be a real account only for convenience. */
   private def openCorridorPromiseBody(
     currency: String,
     originatorName: String = "Alice Sender",
@@ -2048,6 +2047,50 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
           }
         case _ => fail("Expected JSON object")
       }
+    }
+
+    scenario("Return 201 when the beneficiary account exists only at the far bank's CBS (not in OBP-API)", Http4s700RoutesTag) {
+      val acctCurrency = code.bankconnectors.Connector.connector.vend
+        .getBankAccountLegacy(testBankId1, testAccountId0, None)
+        .map(_._1.currency).openOrThrowException("test account")
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      // An account id no OBP bank account carries: customer accounts live in the
+      // far bank's CBS, and the beneficiary Bank Node validates them at credit
+      // time — OBP-API must not require them to exist here.
+      val cbsOnlyAccountId = s"cbs-only-${APIUtil.generateUUID().take(8)}"
+      val (statusCode, json, _) = makeHttpRequestWithBody("POST",
+        openCorridorPromisePath(testBankId1.value, testAccountId0.value),
+        openCorridorPromiseBody(acctCurrency, beneficiaryAccountId = cbsOnlyAccountId), headers)
+      statusCode shouldBe 201
+      val trId = json match {
+        case JObject(fields) =>
+          val map = toFieldMap(fields)
+          map.get("status") shouldBe Some(JString("PENDING"))
+          map.get("id") match {
+            case Some(JString(id)) if id.nonEmpty => id
+            case _ => fail("id should be a non-empty string")
+          }
+        case _ => fail("Expected JSON object")
+      }
+      // The far bank id is stamped on the row — the settle-pair netting selects
+      // promises by mTo_BankId, so a CBS-only beneficiary must still net.
+      val row = code.transactionrequests.MappedTransactionRequest
+        .find(By(code.transactionrequests.MappedTransactionRequest.mTransactionRequestId, trId))
+        .openOrThrowException("promise TR row should exist")
+      row.mTo_BankId.get shouldBe testBankId2.value
+      row.mTo_AccountId.get shouldBe cbsOnlyAccountId
+    }
+
+    scenario("Return 404 BankNotFound when the beneficiary bank is not registered", Http4s700RoutesTag) {
+      val acctCurrency = code.bankconnectors.Connector.connector.vend
+        .getBankAccountLegacy(testBankId1, testAccountId0, None)
+        .map(_._1.currency).openOrThrowException("test account")
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequestWithBody("POST",
+        openCorridorPromisePath(testBankId1.value, testAccountId0.value),
+        openCorridorPromiseBody(acctCurrency, beneficiaryBankId = s"no-such-bank-${APIUtil.generateUUID().take(8)}"), headers)
+      statusCode shouldBe 404
+      messageOf(json) should include("OBP-30001")
     }
   }
 

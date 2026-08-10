@@ -14,6 +14,7 @@ import com.openbankproject.commons.model.enums.ChallengeType.OBP_TRANSACTION_REQ
 import com.openbankproject.commons.model.enums.{TransactionRequestAttributeType, TransactionRequestStatus, TransactionRequestTypes}
 import code.messageoutbox.MessageOutbox
 import code.transactionrequests.MappedTransactionRequest
+import net.liftweb.common.Box
 import net.liftweb.mapper.By
 
 import java.util.Date
@@ -80,12 +81,50 @@ object OpenCorridorProcessor {
         otherAccountSecondaryRoutingAddress = body.to.other_account_secondary_routing_address,
         callContext
       )
-      (toAccount, callContext) <- NewStyle.function.getBankAccountFromCounterparty(toCounterparty, true, callContext)
+      // Resolve the far BANK only — it must be registered here (the corridor
+      // registry is what OBP-API authoritatively knows), and its id is stamped
+      // on the TR as mTo_BankId, which the settle-pair netting selects by. The
+      // beneficiary ACCOUNT is deliberately NOT resolved: it lives in the far
+      // bank's CBS and is validated by the beneficiary Bank Node at credit
+      // time — requiring it to exist in OBP-API would demand an integration to
+      // the far bank's account list.
+      (toBank, callContext) <- resolveFarBank(
+        StringHelpers.snakify(body.to.other_bank_routing_scheme).toUpperCase,
+        body.to.other_bank_routing_address,
+        callContext
+      )
       // A corridor is inter-bank by definition: a same-bank "promise" needs no
       // Travel-Rule relay and can never be settled (settlement is pairwise).
       _ <- Helper.booleanToFuture(s"$OpenCorridorSameBankNotAllowed", cc = callContext) {
-        toAccount.bankId.value != bankId.value
+        toBank.bankId.value != bankId.value
       }
+      // Routing-only carrier for the TR row and charge plumbing. No Transaction
+      // ever posts against it: promises are held at PENDING (getStatus) and the
+      // net later moves between the settlement accounts, which the settle-pair
+      // step resolves separately.
+      toAccount = BankAccountCommons(
+        accountId = AccountId(body.to.other_account_routing_address),
+        accountType = "",
+        balance = 0,
+        currency = body.value.currency,
+        name = body.to.name,
+        label = "",
+        number = "",
+        bankId = toBank.bankId,
+        lastUpdate = new Date(),
+        branchId = "",
+        accountRoutings = List(
+          AccountRouting(
+            StringHelpers.snakify(body.to.other_account_routing_scheme).toUpperCase,
+            body.to.other_account_routing_address)) ++
+          (if (body.to.other_account_secondary_routing_scheme.trim.nonEmpty)
+            List(AccountRouting(
+              StringHelpers.snakify(body.to.other_account_secondary_routing_scheme).toUpperCase,
+              body.to.other_account_secondary_routing_address))
+          else Nil),
+        accountRules = List.empty,
+        accountHolder = body.to.name
+      )
       _ <- Helper.booleanToFuture(s"$CounterpartyBeneficiaryPermit", cc = callContext) {
         toCounterparty.isBeneficiary
       }
@@ -112,6 +151,24 @@ object OpenCorridorProcessor {
         callContext
       )
     } yield (createdTransactionRequest, callContext)
+  }
+
+  // The far bank must exist in the corridor registry. OBP-scheme routing names
+  // the bank id directly; any other scheme (BIC, ...) is matched against the
+  // registered banks' bank routing.
+  private def resolveFarBank(
+    scheme: String,
+    address: String,
+    callContext: Option[CallContext]
+  ): Future[(Bank, Option[CallContext])] = {
+    if (scheme == "OBP" || scheme == "OBP_BANK_ID")
+      NewStyle.function.getBank(BankId(address), callContext)
+    else
+      NewStyle.function.getBanks(callContext).map { case (banks, cc) =>
+        val bank = banks.find(b =>
+          b.bankRoutingScheme.equalsIgnoreCase(scheme) && b.bankRoutingAddress == address)
+        (APIUtil.unboxFullOrFail(Box(bank), cc, s"$BankNotFound bank_routing: $scheme $address", 404), cc)
+      }
   }
 
   // ─── Promise report-back (salt relay intake) ────────────────────────────────

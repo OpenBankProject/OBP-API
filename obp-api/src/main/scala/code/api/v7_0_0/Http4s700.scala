@@ -3913,9 +3913,11 @@ object Http4s700 {
             _ <- code.util.Helper.booleanToFuture(OpenCorridorDisabled, cc = Some(cc)) {
               APIUtil.getPropsAsBoolValue("open_corridor_enabled", false)
             }
-            _ <- code.util.Helper.booleanToFuture(s"$InvalidJsonValue other_bank_id and currency must be non-empty and the other bank must differ from BANK_ID", cc = Some(cc)) {
-              body.other_bank_id.trim.nonEmpty && body.currency.trim.nonEmpty &&
-                body.other_bank_id != bank.bankId.value
+            _ <- code.util.Helper.booleanToFuture(s"$InvalidJsonValue other_bank_id and currency must be non-empty", cc = Some(cc)) {
+              body.other_bank_id.trim.nonEmpty && body.currency.trim.nonEmpty
+            }
+            _ <- code.util.Helper.booleanToFuture(s"$OpenCorridorSameBankNotAllowed", cc = Some(cc)) {
+              body.other_bank_id != bank.bankId.value
             }
             (_, _) <- NewStyle.function.getBank(BankId(body.other_bank_id), Some(cc))
             (result, _) <- code.bankconnectors.opencorridor.OpenCorridorSettlement.settlePair(
@@ -3963,6 +3965,7 @@ object Http4s700 {
         settlement_instructions_enqueued = 1
       ),
       List($AuthenticatedUserIsRequired, UserHasMissingRoles, OpenCorridorDisabled, InvalidJsonFormat, InvalidJsonValue,
+           OpenCorridorSameBankNotAllowed,
            $BankNotFound, AmqpBankBrokerNotConfigured, OpenCorridorSettlementAddressMissing, UnknownError),
       apiTagTransactionRequest :: Nil,
       Some(List(canSettleOpenCorridor)),
