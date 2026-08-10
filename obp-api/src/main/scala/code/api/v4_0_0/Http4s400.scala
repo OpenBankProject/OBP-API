@@ -10569,7 +10569,7 @@ object Http4s400 {
         List(apiTagAccount),
         Some(List(canCreateAccount)),
         http4sPartialFunction = Some(addAccount)
-      )
+      ).disableAutoValidateRoles() // Lift parity: "role or self-create" is enforced in the handler
 
       staticResourceDocs += ResourceDoc(
         implementedInApiVersion,

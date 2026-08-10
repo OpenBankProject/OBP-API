@@ -1723,6 +1723,15 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       _autoValidateRoles = false
       this
     }
+
+    /**
+     * Whether the declared roles are enforced automatically (Lift wrappedWithAuthCheck /
+     * http4s ResourceDocMiddleware). False when the endpoint declared
+     * disableAutoValidateRoles() because enforcement is conditional and done in the
+     * handler — the roles stay in the doc for the catalog / API Explorer / entitlement
+     * requests.
+     */
+    def isAutoValidateRoles: Boolean = _autoValidateRoles
     private var _autoValidateAuthenticate = true
     def disableAutoValidateAuthenticate(): ResourceDoc = {
       _autoValidateAuthenticate = false
@@ -2292,7 +2301,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
                   bankId,
                   userId,
                   role.toString,
-                  "create_just_in_time_entitlements"
+                  "create_just_in_time_entitlements",
+                  grantedByUserId = Some(userId)
                 )
                 logger.info(s"Just in Time Entitlements: $addedEntitlement")
                 addedEntitlement.isDefined
@@ -2347,7 +2357,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
                 hasEntitlement("", userId, ApiRole.canCreateEntitlementAtAnyBank)) &&
                 roles.forall { role =>
                   val addedEntitlement = Entitlement.entitlement.vend.addEntitlement(
-                    bankId, userId, role.toString, "create_just_in_time_entitlements"
+                    bankId, userId, role.toString, "create_just_in_time_entitlements",
+                    grantedByUserId = Some(userId)
                   )
                   logger.info(s"Just in Time Entitlements: $addedEntitlement")
                   addedEntitlement.isDefined

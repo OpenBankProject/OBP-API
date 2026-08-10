@@ -331,8 +331,11 @@ object ResourceDocMiddleware extends MdcLoggable {
   private def authorizeRoles(resourceDoc: ResourceDoc, pathParams: Map[String, String], ctx: ValidationContext): Validation[ValidationContext] = {
     import DSL._
 
+    // Docs may declare roles purely for the catalog and enforce them conditionally in
+    // the handler (disableAutoValidateRoles, e.g. create-account's "role or self") —
+    // mirror Lift's isNeedCheckRoles = _autoValidateRoles && rolesForCheck.nonEmpty.
     resourceDoc.roles match {
-      case Some(roles) if roles.nonEmpty =>
+      case Some(roles) if roles.nonEmpty && resourceDoc.isAutoValidateRoles =>
         ctx.user match {
           case Full(user) =>
             val bankId = pathParams.getOrElse("BANK_ID", "")

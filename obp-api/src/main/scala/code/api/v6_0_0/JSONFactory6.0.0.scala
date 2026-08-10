@@ -276,13 +276,32 @@ case class TransactionRequestBodyHoldJsonV600(
     description: String
 ) extends TransactionRequestCommonBodyJSON
 
+// v6 entitlement JSON carries created_by_process ("manual",
+// "create_just_in_time_entitlements", or "super_admin_user_ids" /
+// "oidc_operator_user_ids" for the virtual entitlements merged into
+// GET /users/current) — older versions' EntitlementJSON omits it.
+case class EntitlementJsonV600(
+    entitlement_id: String,
+    role_name: String,
+    bank_id: String,
+    created_by_process: String,
+    // Set when the entitlement was granted off an entitlement request —
+    // links the grant back to who asked for it.
+    entitlement_request_id: Option[String],
+    // user_id of the granter when a person made the grant (directly or as a
+    // self-grant); absent for system-process grants, virtual entitlements,
+    // and rows created before the field existed (2026-08-09).
+    granted_by_user_id: Option[String]
+)
+case class EntitlementsJsonV600(list: List[EntitlementJsonV600])
+
 case class UserJsonV600(
     user_id: String,
     email: String,
     provider_id: String,
     provider: String,
     username: String,
-    entitlements: EntitlementJSONs,
+    entitlements: EntitlementsJsonV600,
     views: Option[ViewsJSON300],
     on_behalf_of: Option[UserJsonV300]
 )
@@ -1416,8 +1435,18 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       username = stringOrNull(current_user.user.name),
       provider_id = current_user.user.idGivenByProvider,
       provider = stringOrNull(current_user.user.provider),
-      entitlements =
-        JSONFactory200.createEntitlementJSONs(current_user.entitlements),
+      entitlements = EntitlementsJsonV600(
+        current_user.entitlements.map(e =>
+          EntitlementJsonV600(
+            e.entitlementId,
+            e.roleName,
+            e.bankId,
+            e.createdByProcess,
+            e.entitlementRequestId,
+            e.grantedByUserId
+          )
+        )
+      ),
       views = current_user.views.map(y =>
         ViewsJSON300(
           y.views.map(

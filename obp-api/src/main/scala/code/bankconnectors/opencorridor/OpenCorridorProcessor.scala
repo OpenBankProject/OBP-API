@@ -8,9 +8,14 @@ import code.api.util.{APIUtil, CallContext, NewStyle}
 import code.api.v7_0_0.JSONFactory700.{OpenCorridorPromiseJsonV700, PostOpenCorridorPromiseJsonV700, TransactionRequestBodyOpenCorridorJsonV700}
 import code.util.Helper
 import com.openbankproject.commons.ExecutionContext.Implicits.global
+import com.openbankproject.commons.dto.{OpenCorridorMoneyValue, OpenCorridorOriginator, OutBoundOpenCorridorCreditNotification}
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.ChallengeType.OBP_TRANSACTION_REQUEST_CHALLENGE
 import com.openbankproject.commons.model.enums.{TransactionRequestAttributeType, TransactionRequestStatus, TransactionRequestTypes}
+import code.messageoutbox.MessageOutbox
+import code.transactionrequests.MappedTransactionRequest
+import net.liftweb.common.Box
+import net.liftweb.mapper.By
 
 import java.util.Date
 import org.json4s.native.Serialization.write
@@ -76,7 +81,50 @@ object OpenCorridorProcessor {
         otherAccountSecondaryRoutingAddress = body.to.other_account_secondary_routing_address,
         callContext
       )
-      (toAccount, callContext) <- NewStyle.function.getBankAccountFromCounterparty(toCounterparty, true, callContext)
+      // Resolve the far BANK only — it must be registered here (the corridor
+      // registry is what OBP-API authoritatively knows), and its id is stamped
+      // on the TR as mTo_BankId, which the settle-pair netting selects by. The
+      // beneficiary ACCOUNT is deliberately NOT resolved: it lives in the far
+      // bank's CBS and is validated by the beneficiary Bank Node at credit
+      // time — requiring it to exist in OBP-API would demand an integration to
+      // the far bank's account list.
+      (toBank, callContext) <- resolveFarBank(
+        StringHelpers.snakify(body.to.other_bank_routing_scheme).toUpperCase,
+        body.to.other_bank_routing_address,
+        callContext
+      )
+      // A corridor is inter-bank by definition: a same-bank "promise" needs no
+      // Travel-Rule relay and can never be settled (settlement is pairwise).
+      _ <- Helper.booleanToFuture(s"$OpenCorridorSameBankNotAllowed", cc = callContext) {
+        toBank.bankId.value != bankId.value
+      }
+      // Routing-only carrier for the TR row and charge plumbing. No Transaction
+      // ever posts against it: promises are held at PENDING (getStatus) and the
+      // net later moves between the settlement accounts, which the settle-pair
+      // step resolves separately.
+      toAccount = BankAccountCommons(
+        accountId = AccountId(body.to.other_account_routing_address),
+        accountType = "",
+        balance = 0,
+        currency = body.value.currency,
+        name = body.to.name,
+        label = "",
+        number = "",
+        bankId = toBank.bankId,
+        lastUpdate = new Date(),
+        branchId = "",
+        accountRoutings = List(
+          AccountRouting(
+            StringHelpers.snakify(body.to.other_account_routing_scheme).toUpperCase,
+            body.to.other_account_routing_address)) ++
+          (if (body.to.other_account_secondary_routing_scheme.trim.nonEmpty)
+            List(AccountRouting(
+              StringHelpers.snakify(body.to.other_account_secondary_routing_scheme).toUpperCase,
+              body.to.other_account_secondary_routing_address))
+          else Nil),
+        accountRules = List.empty,
+        accountHolder = body.to.name
+      )
       _ <- Helper.booleanToFuture(s"$CounterpartyBeneficiaryPermit", cc = callContext) {
         toCounterparty.isBeneficiary
       }
@@ -103,6 +151,24 @@ object OpenCorridorProcessor {
         callContext
       )
     } yield (createdTransactionRequest, callContext)
+  }
+
+  // The far bank must exist in the corridor registry. OBP-scheme routing names
+  // the bank id directly; any other scheme (BIC, ...) is matched against the
+  // registered banks' bank routing.
+  private def resolveFarBank(
+    scheme: String,
+    address: String,
+    callContext: Option[CallContext]
+  ): Future[(Bank, Option[CallContext])] = {
+    if (scheme == "OBP" || scheme == "OBP_BANK_ID")
+      NewStyle.function.getBank(BankId(address), callContext)
+    else
+      NewStyle.function.getBanks(callContext).map { case (banks, cc) =>
+        val bank = banks.find(b =>
+          b.bankRoutingScheme.equalsIgnoreCase(scheme) && b.bankRoutingAddress == address)
+        (APIUtil.unboxFullOrFail(Box(bank), cc, s"$BankNotFound bank_routing: $scheme $address", 404), cc)
+      }
   }
 
   // ─── Promise report-back (salt relay intake) ────────────────────────────────
@@ -187,6 +253,11 @@ object OpenCorridorProcessor {
           NewStyle.function.createTransactionRequestAttributes(
             bankId, transactionRequestId, attributes, isPersonal = false, callContext
           ) map { case (_, callContext) =>
+            // First attach only (idempotent redeliveries skip this branch): the
+            // promise now exists on-chain, so the beneficiary bank gets its
+            // evidence-bearing credit notification immediately — the promise is
+            // what gives it the confidence to pay out ahead of settlement.
+            enqueueCreditNotification(transactionRequestId, submittedEvidence)
             (buildPromiseJson(tr, submittedEvidence, user.userId, reportedAt), callContext)
           }
         } else {
@@ -197,6 +268,38 @@ object OpenCorridorProcessor {
         }
     } yield (promiseJson, callContext)
   }
+
+  private implicit val wireFormats: Formats = Serialization.formats(NoTypeHints)
+
+  /** Build and enqueue the `obp_credit_notification` for a promise whose evidence
+    * was just attached. The outbox row's correlation id is the promise TR id
+    * (settlement-scoped messages use the settlement id there instead). */
+  private def enqueueCreditNotification(
+    transactionRequestId: TransactionRequestId,
+    evidence: Map[String, String]
+  ): Unit =
+    MappedTransactionRequest
+      .find(By(MappedTransactionRequest.mTransactionRequestId, transactionRequestId.value))
+      .foreach { row =>
+        val wireBody = OutBoundOpenCorridorCreditNotification(
+          transaction_request_id = transactionRequestId.value,
+          value = OpenCorridorMoneyValue(row.mBody_Value_Currency.get, row.mBody_Value_Amount.get),
+          description = Option(row.mBody_Description.get).filter(_.nonEmpty),
+          originator = Option(row.mOriginator_Name.get).filter(_.nonEmpty).map(name =>
+            OpenCorridorOriginator(name, Option(row.mOriginator_Address.get).filter(_.nonEmpty))),
+          netting_snapshot_id = None,
+          promise_id = evidence.get(PromiseAttributeTxHash),
+          promise_blockchain = evidence.get(PromiseAttributeBlockchain),
+          promise_commitment = evidence.get(PromiseAttributeCommitment),
+          promise_salt = evidence.get(PromiseAttributeSalt),
+          promise_preimage = evidence.get(PromiseAttributePreimage)
+        )
+        MessageOutbox.enqueue(
+          MessageOutbox.TYPE_OPEN_CORRIDOR, transactionRequestId.value,
+          MessageOutbox.SUBJECT_TYPE_TRANSACTION_REQUEST_ID,
+          "obp_credit_notification", row.mTo_BankId.get,
+          Serialization.write(wireBody))
+      }
 
   private def buildPromiseJson(
     tr: TransactionRequest,

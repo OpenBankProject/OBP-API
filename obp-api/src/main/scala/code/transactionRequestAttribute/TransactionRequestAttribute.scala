@@ -35,7 +35,9 @@ class TransactionRequestAttribute extends TransactionRequestAttributeTrait with 
 
   object Type extends MappedString(this, 50)
 
-  object `Value` extends MappedString(this, 255)
+  // TEXT, not varchar(255): Open Corridor promise evidence stores the full
+  // A1.1 preimage JSON here, which exceeds any fixed varchar bound.
+  object `Value` extends MappedText(this)
   
   object IsPersonal extends MappedBoolean(this)
 

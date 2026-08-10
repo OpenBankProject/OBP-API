@@ -212,15 +212,26 @@ object ApiRole extends MdcLoggable{
   case class CanAttachOpenCorridorPromise(requiresBankId: Boolean = true) extends ApiRole
   lazy val canAttachOpenCorridorPromise = CanAttachOpenCorridorPromise()
 
-  // Open Corridor: operator role for registering each onboarded bank's RabbitMQ broker
-  // coordinates (host/port/vhost/credentials) in the per-bank publish registry.
-  case class CanConfigureOpenCorridorBroker(requiresBankId: Boolean = false) extends ApiRole
-  lazy val canConfigureOpenCorridorBroker = CanConfigureOpenCorridorBroker()
+  // Operator role for registering each onboarded bank's AMQP broker coordinates
+  // (host/port/vhost/credentials) in the per-bank publish registry. Transport
+  // registry, not corridor-specific; Open Corridor Interface C is the first consumer.
+  case class CanConfigureAmqpBankBroker(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canConfigureAmqpBankBroker = CanConfigureAmqpBankBroker()
 
   // Open Corridor: operator role for the settle-pair trigger — nets a bank pair's
   // PENDING promises, posts the net Transaction and enqueues the Interface C messages.
-  case class CanSettleOpenCorridor(requiresBankId: Boolean = false) extends ApiRole
+  case class CanSettleOpenCorridor(requiresBankId: Boolean = true) extends ApiRole
   lazy val canSettleOpenCorridor = CanSettleOpenCorridor()
+
+  // Operator role for reading the generic message outbox (delivery states,
+  // sticky failures) across all outbox types.
+  case class CanGetMessageOutbox(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canGetMessageOutbox = CanGetMessageOutbox()
+
+  // Operator role for re-queuing a STICKY message-outbox row after
+  // reconciliation — flips it back to PENDING for the relay to redeliver.
+  case class CanRetryMessageOutbox(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canRetryMessageOutbox = CanRetryMessageOutbox()
 
   case class CanAddSocialMediaHandle(requiresBankId: Boolean = true) extends ApiRole
   lazy val canAddSocialMediaHandle = CanAddSocialMediaHandle()

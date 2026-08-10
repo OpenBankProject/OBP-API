@@ -135,7 +135,8 @@ import code.transactionRequestAttribute.TransactionRequestAttribute
 import code.transactionStatusScheduler.TransactionRequestStatusScheduler
 import code.transaction_types.MappedTransactionType
 import code.transactionattribute.MappedTransactionAttribute
-import code.bankconnectors.opencorridor.{OpenCorridorBankBroker, OpenCorridorOutbox, OpenCorridorOutboxRelay}
+import code.amqpbroker.AmqpBankBroker
+import code.messageoutbox.{MessageOutbox, MessageOutboxRelay}
 import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequestTypeCharge, TransactionRequestReasons}
 import code.usercustomerlinks.MappedUserCustomerLink
 import code.customerlinks.CustomerLink
@@ -564,7 +565,7 @@ class Boot extends MdcLoggable {
     // Open Corridor: the transactional-outbox relay publishing Interface C messages
     // (credit notifications + settlement instructions) to the banks' own vhosts.
     if (APIUtil.getPropsAsBoolValue("open_corridor_enabled", false)) {
-      OpenCorridorOutboxRelay.start(APIUtil.getPropsAsLongValue("open_corridor.outbox_relay_interval", 10L))
+      MessageOutboxRelay.start(APIUtil.getPropsAsLongValue("open_corridor.outbox_relay_interval", 10L))
     }
     APIUtil.getPropsAsLongValue("database_messages_scheduler_interval") match {
       case Full(i) => DatabaseDriverScheduler.start(i)
@@ -994,8 +995,8 @@ object ToSchemify extends MdcLoggable {
     MappedCounterpartyWhereTag,
     MappedTransactionRequest,
     TransactionRequestAttribute,
-    OpenCorridorBankBroker,
-    OpenCorridorOutbox,
+    AmqpBankBroker,
+    MessageOutbox,
     MappedMetric,
     MetricArchive,
     MetricsArchiveRun,

@@ -1,11 +1,14 @@
 package code.bankconnectors.opencorridor
 
+import code.amqpbroker.AmqpBankBroker
 import code.api.Constant.{INCOMING_SETTLEMENT_ACCOUNT_ID, OUTGOING_SETTLEMENT_ACCOUNT_ID}
-import code.api.util.APIUtil.generateUUID
+import code.api.util.APIUtil.{generateUUID, unboxFullOrFail}
 import code.api.util.ErrorMessages._
 import code.api.util.{CallContext, NewStyle}
-import code.api.v7_0_0.JSONFactory700.OpenCorridorSettleResultJsonV700
+import code.api.v7_0_0.JSONFactory700.{OpenCorridorSettleResultJsonV700, OpenCorridorSettlementMessageJsonV700, OpenCorridorSettlementStatusJsonV700}
 import code.bankconnectors.DoobieTransactionRequestQueries
+import code.messageoutbox.MessageOutbox
+import code.transactionRequestAttribute.TransactionRequestAttribute
 import code.transactionrequests.{MappedTransactionRequest, TransactionRequests}
 import code.util.Helper
 import code.util.Helper.MdcLoggable
@@ -38,7 +41,7 @@ import scala.concurrent.Future
  *
  * The outbound Interface C messages (credit notification per covered promise to
  * its beneficiary bank, the net settlement instruction to the debtor) are
- * written to the OpenCorridorOutbox in the SAME request DB transaction — the
+ * written to the message_outbox in the SAME request DB transaction — the
  * ResourceDocMiddleware transaction wrapper makes the whole settle atomic: a
  * crash rolls back money movement and outbox rows together.
  *
@@ -73,6 +76,11 @@ object OpenCorridorSettlement extends MdcLoggable {
       )
 
     for {
+      // Settlement is pairwise between two DIFFERENT banks; a same-bank pair
+      // would fetch the same promise rows in both directions.
+      _ <- Helper.booleanToFuture(s"$OpenCorridorSameBankNotAllowed", cc = callContext) {
+        bankIdA != bankIdB
+      }
       // Candidate discovery, then row-lock each candidate and re-read its status
       // under the lock — a concurrent settle may have completed it in between.
       candidates <- Future {
@@ -83,6 +91,13 @@ object OpenCorridorSettlement extends MdcLoggable {
           val trId = row.mTransactionRequestId.get
           if (DoobieTransactionRequestQueries.lockTransactionRequest(trId).isEmpty) {
             logger.warn(s"Open Corridor settle: could not lock promise TR $trId — skipping")
+            None
+          } else if (!hasPromiseEvidence(trId)) {
+            // No on-chain evidence yet means the beneficiary bank was never
+            // notified and never paid out — netting it would move value between
+            // banks for a payment nobody delivered. It stays PENDING for a
+            // later cycle, once the originating node reports back.
+            logger.info(s"Open Corridor settle: promise TR $trId has no on-chain evidence yet — skipping")
             None
           } else {
             MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, trId))
@@ -102,7 +117,7 @@ object OpenCorridorSettlement extends MdcLoggable {
             currency = currency,
             net_amount = "0",
             covered_transaction_request_ids = Nil,
-            credit_notifications_enqueued = 0,
+            settlement_advices_enqueued = 0,
             settlement_instructions_enqueued = 0
           ), callContext))
         } else {
@@ -134,16 +149,11 @@ object OpenCorridorSettlement extends MdcLoggable {
       // Fail fast BEFORE mutating anything: both banks need a broker registration
       // (credit notifications go to each beneficiary's vhost), and a non-zero net
       // needs the creditor's settlement address for the instruction.
-      _ <- Helper.booleanToFuture(s"$OpenCorridorBankBrokerNotConfigured BANK_ID: $bankIdA", cc = callContext) {
-        OpenCorridorBankBroker.findByBankId(bankIdA).isDefined
+      _ <- Helper.booleanToFuture(s"$AmqpBankBrokerNotConfigured BANK_ID: $bankIdA", cc = callContext) {
+        AmqpBankBroker.findByBankId(bankIdA).isDefined
       }
-      _ <- Helper.booleanToFuture(s"$OpenCorridorBankBrokerNotConfigured BANK_ID: $bankIdB", cc = callContext) {
-        OpenCorridorBankBroker.findByBankId(bankIdB).isDefined
-      }
-      creditorSettlementAddress = OpenCorridorBankBroker.findByBankId(creditorBankId)
-        .map(_.settlementAddress).getOrElse("")
-      _ <- Helper.booleanToFuture(s"$OpenCorridorSettlementAddressMissing BANK_ID: $creditorBankId", cc = callContext) {
-        netAbs == 0 || creditorSettlementAddress.trim.nonEmpty
+      _ <- Helper.booleanToFuture(s"$AmqpBankBrokerNotConfigured BANK_ID: $bankIdB", cc = callContext) {
+        AmqpBankBroker.findByBankId(bankIdB).isDefined
       }
 
       // The settlement accounts (created at boot for every bank).
@@ -151,6 +161,15 @@ object OpenCorridorSettlement extends MdcLoggable {
         BankId(debtorBankId), AccountId(OUTGOING_SETTLEMENT_ACCOUNT_ID), callContext)
       (creditorIncoming, callContext) <- NewStyle.function.getBankAccount(
         BankId(creditorBankId), AccountId(INCOMING_SETTLEMENT_ACCOUNT_ID), callContext)
+
+      // The creditor's on-chain receiving address is the CARDANO routing on its
+      // incoming settlement account (the broker row is transport only). Checked
+      // before anything is mutated: a non-zero net needs somewhere to send funds.
+      creditorSettlementAddress = creditorIncoming.accountRoutings
+        .find(_.scheme.equalsIgnoreCase("CARDANO")).map(_.address).getOrElse("")
+      _ <- Helper.booleanToFuture(s"$OpenCorridorSettlementAddressMissing BANK_ID: $creditorBankId", cc = callContext) {
+        netAbs == 0 || creditorSettlementAddress.trim.nonEmpty
+      }
 
       // Mint TR B — the settle event's audit object and the settlement_id.
       settlementTrId = generateUUID()
@@ -217,12 +236,24 @@ object OpenCorridorSettlement extends MdcLoggable {
       })
 
       // Enqueue the Interface C messages in this same DB transaction (the outbox).
-      creditNotifications <- Future.sequence(covered.map(row => buildCreditNotification(row, callContext)))
-      _ <- Future {
-        creditNotifications.foreach { case (beneficiaryBankId, wireBody) =>
-          OpenCorridorOutbox.enqueue(
-            settlementTrId, "obp_credit_notification", beneficiaryBankId, Serialization.write(wireBody))
-        }
+      // Credit notifications went to each beneficiary at promise-report-back time
+      // (OpenCorridorProcessor); settlement sends each beneficiary an advice so
+      // its already-paid-out credits get marked settled.
+      settlementAdviceCount <- Future {
+        covered.groupBy(_.mTo_BankId.get).map { case (beneficiaryBankId, rows) =>
+          val advice = OutBoundOpenCorridorSettlementAdvice(
+            settlement_id = settlementTrId,
+            currency = currency,
+            net_amount = netAbs.toString(),
+            debtor_bank_id = debtorBankId,
+            creditor_bank_id = creditorBankId,
+            covered_transaction_request_ids = rows.map(_.mTransactionRequestId.get),
+            idempotency_key = settlementTrId
+          )
+          MessageOutbox.enqueue(
+            MessageOutbox.TYPE_OPEN_CORRIDOR, settlementTrId, MessageOutbox.SUBJECT_TYPE_SETTLEMENT_ID,
+            "obp_settlement_advice", beneficiaryBankId, Serialization.write(advice))
+        }.size
       }
       settlementInstructionCount <- Future {
         if (netAbs > 0) {
@@ -236,8 +267,9 @@ object OpenCorridorSettlement extends MdcLoggable {
             creditor_address = creditorSettlementAddress,
             idempotency_key = settlementTrId
           )
-          OpenCorridorOutbox.enqueue(
-            settlementTrId, "obp_settlement_instruction", debtorBankId, Serialization.write(instruction))
+          MessageOutbox.enqueue(
+            MessageOutbox.TYPE_OPEN_CORRIDOR, settlementTrId, MessageOutbox.SUBJECT_TYPE_SETTLEMENT_ID,
+            "obp_settlement_instruction", debtorBankId, Serialization.write(instruction))
           1
         } else 0
       }
@@ -254,39 +286,100 @@ object OpenCorridorSettlement extends MdcLoggable {
         currency = currency,
         net_amount = netAbs.toString(),
         covered_transaction_request_ids = covered.map(_.mTransactionRequestId.get),
-        credit_notifications_enqueued = creditNotifications.size,
+        settlement_advices_enqueued = settlementAdviceCount,
         settlement_instructions_enqueued = settlementInstructionCount
       ), callContext)
     }
   }
 
-  /** Build the credit notification for one covered promise, addressed to its
-    * beneficiary (to-side) bank, relaying the §5.1 evidence attributes verbatim. */
-  private def buildCreditNotification(
-    row: MappedTransactionRequest,
+  /** True once the promise's on-chain evidence was attached (report-back done) —
+    * the precondition for the beneficiary having been notified and paid out. */
+  private def hasPromiseEvidence(trId: String): Boolean =
+    TransactionRequestAttribute.find(
+      By(TransactionRequestAttribute.Name, OpenCorridorProcessor.PromiseAttributeCommitment),
+      By(TransactionRequestAttribute.TransactionRequestId, trId)
+    ).isDefined
+
+  /**
+   * The GET view of one settlement (the resource minted by settlePair).
+   *
+   * Visibility: the URL bank must be a party — debtor or creditor — of the
+   * settlement; anything else is a 404 (existence is not disclosed to third
+   * banks). The ledger side is final at settle time; the rail side is read off
+   * the settlement-instruction outbox row, whose LastReplyJson holds the debtor
+   * node's most recent §4.2 reply (redelivery-as-polling, publish plan §4.4):
+   *   no instruction row                    → NET_ZERO (nothing to move)
+   *   row PENDING, no reply yet             → INSTRUCTED
+   *   row PENDING, node replied             → the node's reported status
+   *                                           (SETTLING / SUBMITTED) + depth
+   *   row DELIVERED                         → FINAL
+   *   row STICKY                            → ERROR (operator reconciliation)
+   */
+  def getSettlementStatus(
+    bankId: String,
+    settlementId: String,
     callContext: Option[CallContext]
-  ): Future[(String, OutBoundOpenCorridorCreditNotification)] = {
-    val promiseTrId = TransactionRequestId(row.mTransactionRequestId.get)
-    for {
-      (attributes, _) <- NewStyle.function.getTransactionRequestAttributes(
-        BankId(row.mFrom_BankId.get), promiseTrId, callContext)
-    } yield {
-      def attr(name: String): Option[String] =
-        attributes.find(_.name == name).map(_.value).filter(_.nonEmpty)
-      val wireBody = OutBoundOpenCorridorCreditNotification(
-        transaction_request_id = promiseTrId.value,
-        value = OpenCorridorMoneyValue(row.mBody_Value_Currency.get, row.mBody_Value_Amount.get),
-        description = Option(row.mBody_Description.get).filter(_.nonEmpty),
-        originator = Option(row.mOriginator_Name.get).filter(_.nonEmpty).map(name =>
-          OpenCorridorOriginator(name, Option(row.mOriginator_Address.get).filter(_.nonEmpty))),
-        netting_snapshot_id = None,
-        promise_id = attr(OpenCorridorProcessor.PromiseAttributeTxHash),
-        promise_blockchain = attr(OpenCorridorProcessor.PromiseAttributeBlockchain),
-        promise_commitment = attr(OpenCorridorProcessor.PromiseAttributeCommitment),
-        promise_salt = attr(OpenCorridorProcessor.PromiseAttributeSalt),
-        promise_preimage = attr(OpenCorridorProcessor.PromiseAttributePreimage)
-      )
-      (row.mTo_BankId.get, wireBody)
+  ): Future[(OpenCorridorSettlementStatusJsonV700, Option[CallContext])] = Future {
+    val settlementTr = unboxFullOrFail(
+      MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, settlementId))
+        .filter(_.mType.get == TransactionRequestTypes.OPEN_CORRIDOR_SETTLEMENT.toString)
+        .filter(row => row.mFrom_BankId.get == bankId || row.mTo_BankId.get == bankId),
+      callContext, OpenCorridorSettlementNotFound, 404)
+
+    val outboxRows = MessageOutbox.bySubjectId(settlementId)
+    val coveredTrIds = TransactionRequestAttribute.findAll(
+      By(TransactionRequestAttribute.Name, AttrSettledByTransactionRequestId),
+      By(TransactionRequestAttribute.`Value`, settlementId)
+    ).map(_.TransactionRequestId.get).distinct
+
+    val instructionRow = outboxRows.find(_.operationName == "obp_settlement_instruction")
+    val (settlementStatus, settlementDepth) = instructionRow match {
+      case None => ("NET_ZERO", None)
+      case Some(row) => row.status match {
+        case MessageOutbox.STATUS_DELIVERED => ("FINAL", nodeReportedDepth(row))
+        case MessageOutbox.STATUS_STICKY    => ("ERROR", nodeReportedDepth(row))
+        case _ => nodeReportedField(row, "status").filter(_.nonEmpty)
+          .map(status => (status, nodeReportedDepth(row)))
+          .getOrElse(("INSTRUCTED", None))
+      }
+    }
+
+    (OpenCorridorSettlementStatusJsonV700(
+      settlement_id = settlementId,
+      debtor_bank_id = settlementTr.mFrom_BankId.get,
+      creditor_bank_id = settlementTr.mTo_BankId.get,
+      currency = settlementTr.mBody_Value_Currency.get,
+      net_amount = settlementTr.mBody_Value_Amount.get,
+      transaction_id = settlementTr.mTransactionIDs.get,
+      ledger_status = settlementTr.mStatus.get,
+      settlement_status = settlementStatus,
+      settlement_depth = settlementDepth,
+      covered_transaction_request_ids = coveredTrIds,
+      messages = outboxRows.map(row => OpenCorridorSettlementMessageJsonV700(
+        operation_name = row.operationName,
+        target_bank_id = row.targetId,
+        delivery_status = row.status,
+        attempts = row.attempts,
+        last_error = row.LastError.get
+      ))
+    ), callContext)
+  }
+
+  /** Extract one field of the node's last reply (`data.<field>` of the §4.2
+    * envelope recorded on the outbox row); None when no reply is recorded. */
+  private def nodeReportedField(row: MessageOutbox, field: String): Option[String] = {
+    Option(row.LastReplyJson.get).filter(_.nonEmpty).flatMap { replyJson =>
+      scala.util.Try(org.json4s.native.JsonMethods.parse(replyJson) \ "data" \ field).toOption
+    }.flatMap {
+      case org.json4s.JString(s) => Some(s)
+      case org.json4s.JInt(i)    => Some(i.toString)
+      case _                     => None
     }
   }
+
+  private def nodeReportedDepth(row: MessageOutbox): Option[Int] =
+    nodeReportedField(row, "depth").flatMap(s => scala.util.Try(s.toInt).toOption)
+
+  /** Build the credit notification for one covered promise, addressed to its
+    * beneficiary (to-side) bank, relaying the §5.1 evidence attributes verbatim. */
 }

@@ -39,7 +39,11 @@ trait EntitlementProvider {
       userId: String,
       roleName: String,
       createdByProcess: String = "manual",
-      grantorUserId: Option[String] = None,
+      // Audit only — who granted (the logged-in granter, or the user
+      // themselves on self-grant flows). None for system processes, where
+      // createdByProcess carries the provenance. Authorization is the
+      // calling endpoint's responsibility, not this method's.
+      grantedByUserId: Option[String] = None,
       groupId: Option[String] = None,
       process: Option[String] = None
   ): Box[Entitlement]
@@ -59,4 +63,9 @@ trait Entitlement {
   def entitlementRequestId: Option[String]
   def groupId: Option[String]
   def process: Option[String]
+
+  /** user_id of the granter, when the grant was made by a person (directly
+    * or as a self-grant). None for system-process grants and virtual
+    * entitlements. */
+  def grantedByUserId: Option[String]
 }

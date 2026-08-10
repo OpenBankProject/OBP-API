@@ -1,5 +1,6 @@
 package code.bankconnectors.opencorridor
 
+import code.amqpbroker.AmqpBankBroker
 import code.api.util.APIUtil
 import code.api.util.ErrorMessages._
 import code.bankconnectors.rabbitmq.ResponseCallback
@@ -18,7 +19,7 @@ import scala.concurrent.Future
 
 /**
  * Open Corridor Interface C publisher: server-initiated publish-and-await-reply to a
- * BANK's own RabbitMQ vhost, keyed by bank_id through the OpenCorridorBankBroker
+ * BANK's own RabbitMQ vhost, keyed by bank_id through the AmqpBankBroker
  * registry.
  *
  * Structurally the same RPC shape as `RabbitMQUtils.sendRequestUndGetResponseFromRabbitMQ`
@@ -56,7 +57,7 @@ object OpenCorridorPublisher extends MdcLoggable {
     * RabbitMQUtils. */
   private val connections = new ConcurrentHashMap[String, Connection]()
 
-  private def connectionFor(broker: OpenCorridorBankBroker): Connection = {
+  private def connectionFor(broker: AmqpBankBroker): Connection = {
     connections.compute(broker.bankId, (_, existing) => {
       if (existing != null && existing.isOpen) existing
       else {
@@ -94,13 +95,13 @@ object OpenCorridorPublisher extends MdcLoggable {
 
   /** Same, but with an already-serialized wire body (the outbox stores payloads as JSON). */
   def publishRawAndAwaitReply(bankId: String, messageId: String, bodyJson: String): Future[Box[InBoundOpenCorridorReply]] = {
-    OpenCorridorBankBroker.findByBankId(bankId) match {
+    AmqpBankBroker.findByBankId(bankId) match {
       case Full(broker) => publishToBroker(broker, messageId, bodyJson)
-      case _ => Future.successful(Failure(s"$OpenCorridorBankBrokerNotConfigured BANK_ID: $bankId"))
+      case _ => Future.successful(Failure(s"$AmqpBankBrokerNotConfigured BANK_ID: $bankId"))
     }
   }
 
-  private def publishToBroker(broker: OpenCorridorBankBroker, messageId: String, bodyJson: String): Future[Box[InBoundOpenCorridorReply]] = {
+  private def publishToBroker(broker: AmqpBankBroker, messageId: String, bodyJson: String): Future[Box[InBoundOpenCorridorReply]] = {
     val replyJsonFuture: Future[String] =
       try {
         val connection = connectionFor(broker)
@@ -135,7 +136,11 @@ object OpenCorridorPublisher extends MdcLoggable {
           .build()
 
         logger.info(s"Open Corridor publish: bank=${broker.bankId} messageId=$messageId correlationId=$correlationId replyTo=$replyQueueName")
-        logger.debug(s"Open Corridor publish body: $bodyJson")
+        // Body content is never logged: credit notifications carry the commit–reveal
+        // evidence (promise_salt / promise_preimage, with the payment instruction
+        // embedded in the preimage) plus originator PII, none of which
+        // SecureLogging.maskSensitive knows how to mask.
+        logger.debug(s"Open Corridor publish body: ${bodyJson.length} chars (content not logged)")
         channel.basicPublish("", RPC_QUEUE_NAME, props, bodyJson.getBytes("UTF-8"))
 
         val responseCallback = new ResponseCallback(correlationId, channel)
@@ -157,12 +162,19 @@ object OpenCorridorPublisher extends MdcLoggable {
       }
 
     replyJsonFuture.map { replyJson =>
-      logger.debug(s"Open Corridor reply: bank=${broker.bankId} messageId=$messageId body=$replyJson")
+      logger.debug(s"Open Corridor reply: bank=${broker.bankId} messageId=$messageId body=${replyJson.length} chars (content not logged)")
       net.liftweb.util.Helpers.tryo(
         org.json4s.native.JsonMethods.parse(replyJson).extract[InBoundOpenCorridorReply]
       ) match {
-        case Full(reply) => Full(reply)
-        case _ => Failure(s"$InvalidConnectorResponse Open Corridor reply did not parse as the inbound envelope. Body: $replyJson")
+        case Full(reply) =>
+          logger.debug(s"Open Corridor reply parsed: bank=${broker.bankId} messageId=$messageId errorCode='${reply.status.errorCode}'")
+          Full(reply)
+        case _ =>
+          // The raw body stays out of the Failure message — it propagates to callers
+          // and can surface in API error responses. Log it at debug only, truncated,
+          // where the SecureLogging funnel at least applies.
+          logger.debug(s"Open Corridor reply did not parse as the inbound envelope: bank=${broker.bankId} messageId=$messageId body=${replyJson.take(500)}")
+          Failure(s"$InvalidConnectorResponse Open Corridor reply did not parse as the inbound envelope. bank=${broker.bankId} messageId=$messageId")
       }
     }.recover {
       case e: Throwable => Failure(s"$OpenCorridorPublishFailed bank=${broker.bankId} messageId=$messageId Details: ${e.getMessage}")
