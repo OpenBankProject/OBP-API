@@ -8,7 +8,7 @@ import code.api.Constant.SYSTEM_OWNER_VIEW_ID
 import code.api.ResponseHeader
 import code.api.util.APIUtil
 import code.api.util.ApiRole.{canAttachOpenCorridorPromise, canConfigureAmqpBankBroker, canGetMessageOutbox, canRetryMessageOutbox, canSettleOpenCorridor, canCreateAccount, canCreateEntitlementAtAnyBank, canCreateOrganisation, canCreateRoutingScheme, canCreateUtilityVendResult, canDeleteEntitlementAtAnyBank, canDeleteOrganisation, canDeleteRoutingScheme, canDeleteSchedulerJobLock, canUpdateSystemView, canGetAccountAccessTrace, canGetAnyOrganisation, canGetAnyUser, canGetCacheConfig, canGetCacheInfo, canGetCacheNamespaces, canGetCardsForBank, canGetConnectorHealth, canCreateMetricsArchiveRun, canGetCustomersAtOneBank, canGetDatabasePoolInfo, canGetMetricsDiagnostics, canGetMigrations, canGetSchedulerJobLocks, canReadResourceDoc, canUpdateBankSupportedRoutingScheme, canUpdateOrganisation, canUpdateRoutingScheme}
-import code.api.util.ErrorMessages.{AccountIdAlreadyExists, AuthenticatedUserIsRequired, BankNotFound, EntitlementAlreadyExists, InvalidAccountRoutings, InvalidJsonFormat, InvalidJsonValue, InvalidOrganisationIdFormat, InvalidRoutingSchemeName, InvalidTransactionRequestId, MessageOutboxRowNotFound, MessageOutboxRowNotSticky, MobileWalletDestinationNotFound, MobileWalletInvalidMsisdn, AmqpBankBrokerNotConfigured, OpenCorridorDisabled, OpenCorridorPromiseEvidenceConflict, OpenCorridorPromiseNotPending, OpenCorridorPromiseTypeMismatch, OpenCorridorSettlementAddressMissing, OpenCorridorSettlementNotFound, OrganisationAlreadyExists, OrganisationNotFound, PayeeLookupAddressMismatch, PayeeLookupIdentifierTypeNotRegistered, PayeeNotFound, RoutingSchemeAlreadyExists, RoutingSchemeExampleAddressMismatch, RoutingSchemeNotFound, SelfServiceBankCreationDisabled, SelfServiceBankLimitReached, SystemViewNotFound, UserHasMissingRoles, UserNotFoundByUserId, UtilityIdentifierTypeWrongCategory, UtilityInvalidIdentifier, UtilityTransactionRequestNotFound}
+import code.api.util.ErrorMessages.{AccountIdAlreadyExists, AuthenticatedUserIsRequired, BankNotFound, EntitlementAlreadyExists, InvalidAccountRoutings, InvalidJsonFormat, InvalidJsonValue, InvalidOrganisationIdFormat, InvalidRoutingSchemeName, InvalidTransactionRequestId, MessageOutboxRowNotFound, MessageOutboxRowNotSticky, MobileWalletDestinationNotFound, MobileWalletInvalidMsisdn, AmqpBankBrokerNotConfigured, OpenCorridorDisabled, OpenCorridorPromiseEvidenceConflict, OpenCorridorPromiseNotPending, OpenCorridorPromiseTypeMismatch, OpenCorridorSameBankNotAllowed, OpenCorridorSettlementAddressMissing, OpenCorridorSettlementNotFound, OrganisationAlreadyExists, OrganisationNotFound, PayeeLookupAddressMismatch, PayeeLookupIdentifierTypeNotRegistered, PayeeNotFound, RoutingSchemeAlreadyExists, RoutingSchemeExampleAddressMismatch, RoutingSchemeNotFound, SelfServiceBankCreationDisabled, SelfServiceBankLimitReached, SystemViewNotFound, UserHasMissingRoles, UserNotFoundByUserId, UtilityIdentifierTypeWrongCategory, UtilityInvalidIdentifier, UtilityTransactionRequestNotFound}
 import code.utilitypayment.{UtilityCallbackStatus, UtilityPaymentCallbacks}
 import code.scheduler.JobScheduler
 import net.liftweb.mapper.By
@@ -503,6 +503,36 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
         case JString(msg) => msg should include(AccountIdAlreadyExists)
         case _ => fail("Expected message field")
       }
+    }
+  }
+
+  // ─── same-bank corridor guard ─────────────────────────────────────────────────
+
+  feature("Http4s700 OPEN_CORRIDOR same-bank guard") {
+
+    scenario("Refuse an OPEN_CORRIDOR promise whose beneficiary bank is the sending bank", Http4s700RoutesTag) {
+      setPropsValues("open_corridor_enabled" -> "true")
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val currency = code.bankconnectors.Connector.connector.vend
+        .getBankAccountLegacy(testBankId1, testAccountId0, None)
+        .map(_._1.currency).openOrThrowException("test account")
+      val (statusCode, json, _) = makeHttpRequestWithBody("POST",
+        openCorridorPromisePath(testBankId1.value, testAccountId0.value),
+        openCorridorPromiseBody(currency, amount = "1.00",
+          beneficiaryBankId = testBankId1.value, beneficiaryAccountId = testAccountId0.value), headers)
+      statusCode shouldBe 400
+      messageOf(json) should include(OpenCorridorSameBankNotAllowed)
+    }
+
+    scenario("Refuse a settle whose pair is the same bank twice", Http4s700RoutesTag) {
+      setPropsValues("open_corridor_enabled" -> "true")
+      addEntitlement(testBankId1.value, resourceUser1.userId, canSettleOpenCorridor.toString)
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val (statusCode, json, _) = makeHttpRequestWithBody("POST",
+        s"/obp/v7.0.0/banks/${testBankId1.value}/open-corridor/settlements",
+        s"""{"other_bank_id": "${testBankId1.value}", "currency": "KES"}""", headers)
+      statusCode shouldBe 400
+      messageOf(json) should include(OpenCorridorSameBankNotAllowed)
     }
   }
 

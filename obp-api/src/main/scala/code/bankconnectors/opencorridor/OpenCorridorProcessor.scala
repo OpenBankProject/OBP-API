@@ -81,6 +81,11 @@ object OpenCorridorProcessor {
         callContext
       )
       (toAccount, callContext) <- NewStyle.function.getBankAccountFromCounterparty(toCounterparty, true, callContext)
+      // A corridor is inter-bank by definition: a same-bank "promise" needs no
+      // Travel-Rule relay and can never be settled (settlement is pairwise).
+      _ <- Helper.booleanToFuture(s"$OpenCorridorSameBankNotAllowed", cc = callContext) {
+        toAccount.bankId.value != bankId.value
+      }
       _ <- Helper.booleanToFuture(s"$CounterpartyBeneficiaryPermit", cc = callContext) {
         toCounterparty.isBeneficiary
       }

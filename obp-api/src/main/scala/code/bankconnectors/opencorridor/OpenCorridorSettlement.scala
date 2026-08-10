@@ -76,6 +76,11 @@ object OpenCorridorSettlement extends MdcLoggable {
       )
 
     for {
+      // Settlement is pairwise between two DIFFERENT banks; a same-bank pair
+      // would fetch the same promise rows in both directions.
+      _ <- Helper.booleanToFuture(s"$OpenCorridorSameBankNotAllowed", cc = callContext) {
+        bankIdA != bankIdB
+      }
       // Candidate discovery, then row-lock each candidate and re-read its status
       // under the lock — a concurrent settle may have completed it in between.
       candidates <- Future {

@@ -894,6 +894,7 @@ object ErrorMessages {
   val OpenCorridorSettlementAddressMissing = "OBP-40056: The creditor bank has no settlement address registered in its Open Corridor broker registration, so the settlement instruction cannot be addressed."
   val OpenCorridorDisabled = "OBP-40057: Open Corridor is not enabled on this API instance. Set open_corridor_enabled=true in the props."
   val OpenCorridorSettlementNotFound = "OBP-40058: No Open Corridor settlement with this SETTLEMENT_ID exists for this bank."
+  val OpenCorridorSameBankNotAllowed = "OBP-40061: OPEN_CORRIDOR is inter-bank: the beneficiary bank must differ from the sending bank. Use an ordinary payment for intra-bank transfers."
   val MessageOutboxRowNotFound = "OBP-40059: No message outbox row with this OUTBOX_ID exists."
   val MessageOutboxRowNotSticky = "OBP-40060: The message outbox row is not STICKY. Only STICKY rows can be re-queued; PENDING rows retry automatically."
   // Exceptions (OBP-50XXX)
