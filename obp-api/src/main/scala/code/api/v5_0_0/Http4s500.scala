@@ -657,7 +657,8 @@ object Http4s500 {
       List(apiTagAccount, apiTagOnboarding),
       Some(List(canCreateAccount)),
       http4sPartialFunction = Some(createAccount)
-    ).disableAutoValidateRoles() // Lift parity: "role or self-create" is enforced in the handler
+    ) // Lift parity: unlike v4 addAccount, the v5 Lift doc did NOT disableAutoValidateRoles —
+      // canCreateAccount is always enforced; the inline "role or self-create" check is a safety net.
 
     // ─── createUserAuthContext (POST /users/USER_ID/auth-context → 201) ─────
 
