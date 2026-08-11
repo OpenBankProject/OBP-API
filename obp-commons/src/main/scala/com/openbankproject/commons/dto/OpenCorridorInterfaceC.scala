@@ -32,20 +32,37 @@ case class OpenCorridorOriginator(
   address: Option[String]
 )
 
+case class OpenCorridorAccountRouting(
+  scheme: String,
+  address: String
+)
+
+/** The customer the beneficiary bank's CBS is asked to credit. */
+case class OpenCorridorBeneficiary(
+  name: String,
+  account_routing: OpenCorridorAccountRouting
+)
+
 /**
  * `obp_credit_notification` — published to the CREDITOR (beneficiary) bank's
- * vhost: "credit your customer". The three `promise_*` evidence fields are the
- * point of the salt relay: they carry the commit–reveal data (commitment, salt,
- * preimage) so the beneficiary bank can open the originating bank's on-chain
- * commitment without its cooperation. They are opaque to OBP-API — relayed
- * verbatim from what the originating Bank Node reported back (§5.1 report-back
- * endpoint), never parsed.
+ * vhost: "credit your customer". `beneficiary` names the customer and account
+ * to credit — the CBS cannot act (or refuse) without it. The three `promise_*`
+ * evidence fields are the point of the salt relay: they carry the commit–reveal
+ * data (commitment, salt, preimage) so the beneficiary bank can open the
+ * originating bank's on-chain commitment without its cooperation. They are
+ * opaque to OBP-API — relayed verbatim from what the originating Bank Node
+ * reported back (§5.1 report-back endpoint), never parsed.
  */
 case class OutBoundOpenCorridorCreditNotification(
   transaction_request_id: String,
   value: OpenCorridorMoneyValue,
   description: Option[String],
   originator: Option[OpenCorridorOriginator],
+  beneficiary: Option[OpenCorridorBeneficiary],
+  /// Set when this credit is a RETURN: the transaction_request_id of the
+  /// original promise whose credit was refused. The receiving node must not
+  /// return a return — a refused return parks for an operator instead.
+  return_of: Option[String],
   netting_snapshot_id: Option[String],
   promise_id: Option[String],
   promise_blockchain: Option[String],

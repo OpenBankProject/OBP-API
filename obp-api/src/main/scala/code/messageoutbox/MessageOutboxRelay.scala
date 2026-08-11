@@ -33,9 +33,12 @@ import scala.concurrent.duration._
  *    both are transient on the node side and redelivery is safe (idempotent
  *    verification; the CBS dedupes on transaction_request_id).
  *  - COMMITMENT-MISMATCH / BAD-MESSAGE / NOT-IMPLEMENTED /
- *    SETTLEMENT-NOT-CONFIGURED → STICKY: retry cannot fix it; it needs an
- *    operator (GET /management/message-outbox + /retry). The error and full
- *    reply are recorded — never swallowed.
+ *    SETTLEMENT-NOT-CONFIGURED / CBS-REJECTED → STICKY: retry cannot fix it;
+ *    it needs an operator (GET /management/message-outbox + /retry). The
+ *    error and full reply are recorded — never swallowed. CBS-REJECTED is
+ *    the bank's CBS refusing the credit itself (unknown account, name
+ *    mismatch) — the asynchronous beneficiary refusal, distinct from the
+ *    transient CBS-DELIVERY-FAILED.
  */
 object MessageOutboxRelay extends MdcLoggable {
 
@@ -50,12 +53,15 @@ object MessageOutboxRelay extends MdcLoggable {
   // OPEN_CORRIDOR errors retrying cannot fix. CBS-DELIVERY-FAILED is
   // deliberately NOT here: a CBS being down is transient, and with credit
   // notifications sent at promise time a sticky classification would park
-  // every credit that hits a CBS blip.
+  // every credit that hits a CBS blip. CBS-REJECTED IS here: the CBS
+  // answered and refused the beneficiary — redelivering the same credit
+  // cannot change its mind.
   private val openCorridorStickyErrorCodes = Set(
     "OBP-BANK-NODE-COMMITMENT-MISMATCH",
     "OBP-BANK-NODE-BAD-MESSAGE",
     "OBP-BANK-NODE-NOT-IMPLEMENTED",
-    "OBP-BANK-NODE-SETTLEMENT-NOT-CONFIGURED"
+    "OBP-BANK-NODE-SETTLEMENT-NOT-CONFIGURED",
+    "OBP-BANK-NODE-CBS-REJECTED"
   )
 
   def start(intervalSeconds: Long): Unit = {
