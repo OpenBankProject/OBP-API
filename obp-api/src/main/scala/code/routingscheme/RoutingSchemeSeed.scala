@@ -33,6 +33,24 @@ object RoutingSchemeSeed {
     downstreamRails: List[String]
   )
 
+  // Global (unprefixed, country INT) schemes every OBP instance should know:
+  // the three allow-listed international schemes used by bank/account
+  // routing pairs (e.g. Open Corridor payment validation).
+  val globalSeeds: List[Entry] = List(
+    Entry("OBP",  "INT", "ACCOUNT",
+      "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$", "gh.29.uk",
+      "OBP bank id or account id, as used in OBP account routings.",
+      Nil),
+    Entry("IBAN", "INT", "ACCOUNT",
+      "^[A-Z]{2}[0-9]{2}[A-Z0-9]{1,30}$", "GB29NWBK60161331926819",
+      "International Bank Account Number (ISO 13616), no spaces.",
+      Nil),
+    Entry("BIC",  "INT", "BANK",
+      "^[A-Z]{6}[A-Z0-9]{2}([A-Z0-9]{3})?$", "NWBKGB2LXXX",
+      "ISO 9362 Business Identifier Code, 8 or 11 characters.",
+      Nil)
+  )
+
   val tzSeeds: List[Entry] = List(
     Entry("TZ.MSISDN",              "TZ", "ACCOUNT",
       "^255[0-9]{9}$", "255778300336",
@@ -90,7 +108,8 @@ object RoutingSchemeSeed {
       return
     }
     val provider = MappedRoutingSchemeProvider
-    val (inserted, skipped, failed) = tzSeeds.foldLeft((0, 0, 0)) {
+    val allSeeds = globalSeeds ++ tzSeeds
+    val (inserted, skipped, failed) = allSeeds.foldLeft((0, 0, 0)) {
       case ((ins, skp, fld), entry) =>
         provider.getRoutingScheme(entry.scheme) match {
           case Full(_) =>
@@ -116,6 +135,6 @@ object RoutingSchemeSeed {
             }
         }
     }
-    logger.info(s"[RoutingSchemeSeed] inserted=$inserted skipped=$skipped failed=$failed (of ${tzSeeds.size} total seeds)")
+    logger.info(s"[RoutingSchemeSeed] inserted=$inserted skipped=$skipped failed=$failed (of ${allSeeds.size} total seeds)")
   }
 }

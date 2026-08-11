@@ -136,6 +136,7 @@ object Migration extends MdcLoggable {
       alterMetricColumnUrlLength()
       alterMetricArchiveColumnCorrelationidLength()
       alterCounterpartyLimitFieldType()
+      alterTransactionRequestAttributeValueType()
       changeTypeOfAudFieldAtConsumerTable()
       renameCustomerRoleNames()
       addUniqueIndexOnResourceUserUserId()
@@ -576,6 +577,13 @@ object Migration extends MdcLoggable {
       val name = nameOf(alterWebhookColumnUrlLength)
       runOnce(name) {
         MigrationOfWebhookUrlFieldLength.alterColumnUrlLength(name)
+      }
+    }
+
+    private def alterTransactionRequestAttributeValueType(): Boolean = {
+      val name = nameOf(alterTransactionRequestAttributeValueType)
+      runOnce(name) {
+        MigrationOfTransactionRequestAttributeValueType.alterColumnValueType(name)
       }
     }
 

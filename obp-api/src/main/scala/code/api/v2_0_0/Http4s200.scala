@@ -1213,7 +1213,10 @@ object Http4s200 {
               !hasEntitlement(body.bank_id, userId, role)
             }
             addedEntitlement <- Future {
-              unboxFull(Entitlement.entitlement.vend.addEntitlement(body.bank_id, userId, body.role_name))
+              // Audit only (no wire change): record who granted.
+              unboxFull(Entitlement.entitlement.vend.addEntitlement(
+                body.bank_id, userId, body.role_name,
+                grantedByUserId = Some(user.userId)))
             }
           } yield JSONFactory200.createEntitlementJSON(addedEntitlement)
         }

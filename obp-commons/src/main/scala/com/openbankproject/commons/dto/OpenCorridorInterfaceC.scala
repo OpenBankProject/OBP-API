@@ -86,6 +86,30 @@ case class OutBoundOpenCorridorSettlementInstruction(
 )
 
 /**
+ * `obp_settlement_advice` — published to each BENEFICIARY bank's vhost after a
+ * netted settle: "the promises you already paid out against are now covered".
+ * Purely reconciliatory — no money moves on this message (the debtor's
+ * `obp_settlement_instruction` does that). One advice per beneficiary bank,
+ * listing exactly the covered promise ids where that bank was the creditor.
+ * Credit notifications themselves travel at promise-report-back time, not here.
+ */
+case class OutBoundOpenCorridorSettlementAdvice(
+  settlement_id: String,
+  currency: String,
+  net_amount: String,
+  debtor_bank_id: String,
+  creditor_bank_id: String,
+  covered_transaction_request_ids: List[String],
+  idempotency_key: String
+)
+
+/** Reply `data` for `obp_settlement_advice`: the bank marked the listed credits settled. */
+case class InBoundOpenCorridorSettlementAdviceData(
+  settlement_id: String,
+  acknowledged: Boolean
+)
+
+/**
  * Reply `data` for `obp_settlement_instruction`. `status` is one of:
  *  - SETTLING  — an attempt is in flight (or crashed mid-flight; the node will
  *                not auto-retry an ambiguous attempt)

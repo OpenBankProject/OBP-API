@@ -10,7 +10,8 @@ import code.customer.CustomerX
 import code.metrics.{MappedMetric, MetricArchive, MetricsArchiveRun, MetricsProps}
 import code.util.Helper.MdcLoggable
 import code.views.Views
-import com.openbankproject.commons.model.{AccountId, AccountRoutingJsonV121, AmountOfMoneyJsonV121, BankId, BankIdAccountId, CoreAccount, TransactionRequest, TransactionRequestCommonBodyJSON, User}
+import code.api.v3_1_0.{AccountAttributeResponseJson, JSONFactory310}
+import com.openbankproject.commons.model.{AccountAttribute, AccountId, AccountRoutingJsonV121, AmountOfMoneyJsonV121, BankAccount, BankId, BankIdAccountId, CoreAccount, TransactionRequest, TransactionRequestCommonBodyJSON, User}
 import com.openbankproject.commons.util.ApiVersion
 import java.util.Date
 import net.liftweb.common.Full
@@ -1113,34 +1114,123 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     reported_at: String
   )
 
+  // ─── Create Account ────────────────────────────────────────────────────────
+
+  /** Request body for POST /banks/BANK_ID/accounts (server-generated id) and
+    * PUT /banks/BANK_ID/accounts/ACCOUNT_ID (caller-chosen id). The OBP-family
+    * routing schemes (OBP, OBP_ACCOUNT_ID) are implicit — supplying one in
+    * account_routings is refused; the canonical OBP routing is derived from
+    * the account id on every read. */
+  case class CreateAccountRequestJsonV700(
+    user_id: Option[String],
+    label: String,
+    product_code: String,
+    balance: AmountOfMoneyJsonV121,
+    branch_id: Option[String],
+    account_routings: Option[List[AccountRoutingJsonV121]]
+  )
+
+  case class CreateAccountResponseJsonV700(
+    account_id: String,
+    bank_id: String,
+    user_id: String,
+    label: String,
+    product_code: String,
+    balance: AmountOfMoneyJsonV121,
+    branch_id: String,
+    account_routings: List[AccountRoutingJsonV121],
+    account_attributes: List[AccountAttributeResponseJson]
+  )
+
+  def createAccountJsonV700(
+    userId: String,
+    account: BankAccount,
+    accountAttributes: List[AccountAttribute]
+  ): CreateAccountResponseJsonV700 =
+    CreateAccountResponseJsonV700(
+      account_id = account.accountId.value,
+      bank_id = account.bankId.value,
+      user_id = userId,
+      label = account.label,
+      product_code = account.accountType,
+      balance = AmountOfMoneyJsonV121(account.currency, account.balance.toString()),
+      branch_id = account.branchId,
+      account_routings = Constant.accountRoutingsWithImplicitOBP(
+        account.accountId.value,
+        account.accountRoutings.map(r => AccountRoutingJsonV121(r.scheme, r.address))
+      ),
+      account_attributes = accountAttributes.map(JSONFactory310.createAccountAttributeJson)
+    )
+
   // ─── OPEN_CORRIDOR per-bank broker registry (admin) ────────────────────────
 
-  case class PostOpenCorridorBankBrokerJsonV700(
+  // Transport coordinates only. The settlement address is NOT part of the broker
+  // record: it is the CARDANO account routing on OBP-INCOMING-SETTLEMENT-ACCOUNT.
+  case class PostAmqpBankBrokerJsonV700(
     host: String,
     port: Int,
     virtual_host: String,
     username: String,
     password: String,
-    use_ssl: Boolean,
-    settlement_address: String
+    use_ssl: Boolean
   )
 
   // The password is write-only: never echoed on any response.
-  case class OpenCorridorBankBrokerJsonV700(
+  case class AmqpBankBrokerJsonV700(
     bank_id: String,
     host: String,
     port: Int,
     virtual_host: String,
     username: String,
-    use_ssl: Boolean,
-    settlement_address: String
+    use_ssl: Boolean
   )
 
-  // ─── OPEN_CORRIDOR settle-pair ─────────────────────────────────────────────
+  // ─── Message outbox (operator) ─────────────────────────────────────────────
 
-  case class PostOpenCorridorSettleJsonV700(
-    bank_id_a: String,
-    bank_id_b: String,
+  /** One message-outbox row. `subject_id`/`subject_id_type` name the business
+    * object the message is about (NOT the per-REST-call Correlation-Id). The
+    * wire payload is deliberately NOT exposed here: it can carry commit–reveal
+    * evidence and originator PII. */
+  case class MessageOutboxRowJsonV700(
+    outbox_id: Long,
+    outbox_type: String,
+    subject_id: String,
+    subject_id_type: String,
+    operation_name: String,
+    target_id: String,
+    status: String,
+    attempts: Int,
+    last_error: String,
+    created_at: String,
+    updated_at: String
+  )
+
+  case class MessageOutboxJsonV700(rows: List[MessageOutboxRowJsonV700])
+
+  def createMessageOutboxRowJson(
+    row: code.messageoutbox.MessageOutbox
+  ): MessageOutboxRowJsonV700 =
+    MessageOutboxRowJsonV700(
+      outbox_id = row.id.get,
+      outbox_type = row.outboxType,
+      subject_id = row.subjectId,
+      subject_id_type = row.subjectIdType,
+      operation_name = row.operationName,
+      target_id = row.targetId,
+      status = row.status,
+      attempts = row.attempts,
+      last_error = row.LastError.get,
+      created_at = APIUtil.DateWithMsFormat.format(row.CreatedAt.get),
+      updated_at = APIUtil.DateWithMsFormat.format(row.UpdatedAt.get)
+    )
+
+  // ─── OPEN_CORRIDOR settlements ─────────────────────────────────────────────
+
+  /** POST /banks/BANK_ID/open-corridor/settlements: the URL bank is one side of
+    * the pair, the body names the other. The caller's role is checked at the
+    * URL bank, so a bank can only trigger settlement of corridors it is party to. */
+  case class PostOpenCorridorSettlementJsonV700(
+    other_bank_id: String,
     currency: String
   )
 
@@ -1163,8 +1253,45 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     currency: String,
     net_amount: String,
     covered_transaction_request_ids: List[String],
-    credit_notifications_enqueued: Int,
+    settlement_advices_enqueued: Int,
     settlement_instructions_enqueued: Int
+  )
+
+  /** One Interface C outbox message belonging to a settlement, for the GET
+    * status view. `delivery_status` is the outbox row lifecycle
+    * (PENDING / DELIVERED / STICKY), not the rail state. */
+  case class OpenCorridorSettlementMessageJsonV700(
+    operation_name: String,
+    target_bank_id: String,
+    delivery_status: String,
+    attempts: Int,
+    last_error: String
+  )
+
+  /**
+   * GET view of one settlement. The ledger side (`ledger_status`) completes at
+   * settle time; the rail side (`settlement_status`) completes only when the
+   * debtor bank's node reports FINAL via the outbox relay's redelivery poll:
+   *   NET_ZERO   — flows offset exactly; nothing to move on any rail
+   *   INSTRUCTED — instruction enqueued, no node reply recorded yet
+   *   SETTLING / SUBMITTED — the node's last reported rail state (with
+   *                `settlement_depth` = confirmation depth when reported)
+   *   FINAL      — the node reported finality; the instruction row is DELIVERED
+   *   ERROR      — the node replied with a non-retryable error (row STICKY);
+   *                operator reconciliation required, see the message's last_error
+   */
+  case class OpenCorridorSettlementStatusJsonV700(
+    settlement_id: String,
+    debtor_bank_id: String,
+    creditor_bank_id: String,
+    currency: String,
+    net_amount: String,
+    transaction_id: String,
+    ledger_status: String,
+    settlement_status: String,
+    settlement_depth: Option[Int],
+    covered_transaction_request_ids: List[String],
+    messages: List[OpenCorridorSettlementMessageJsonV700]
   )
 
   // Build the originator block for a TR response. Returns None when there's no

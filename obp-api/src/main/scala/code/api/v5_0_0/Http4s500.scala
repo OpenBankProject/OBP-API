@@ -468,12 +468,14 @@ object Http4s500 {
             _ <- entitlementsByBank.exists(_.roleName == CanCreateEntitlementAtOneBank.toString()) match {
               case true  => Future.successful(())
               case false => Future(Entitlement.entitlement.vend.addEntitlement(
-                postJson.id.getOrElse(""), cc.userId, CanCreateEntitlementAtOneBank.toString()))
+                postJson.id.getOrElse(""), cc.userId, CanCreateEntitlementAtOneBank.toString(),
+                grantedByUserId = Some(cc.userId)))
             }
             _ <- entitlementsByBank.exists(_.roleName == CanReadDynamicResourceDocsAtOneBank.toString()) match {
               case true  => Future.successful(())
               case false => Future(Entitlement.entitlement.vend.addEntitlement(
-                postJson.id.getOrElse(""), cc.userId, CanReadDynamicResourceDocsAtOneBank.toString()))
+                postJson.id.getOrElse(""), cc.userId, CanReadDynamicResourceDocsAtOneBank.toString(),
+                grantedByUserId = Some(cc.userId)))
             }
           } yield JSONFactory500.createBankJSON500(success)
         }
@@ -655,7 +657,8 @@ object Http4s500 {
       List(apiTagAccount, apiTagOnboarding),
       Some(List(canCreateAccount)),
       http4sPartialFunction = Some(createAccount)
-    )
+    ) // Lift parity: unlike v4 addAccount, the v5 Lift doc did NOT disableAutoValidateRoles —
+      // canCreateAccount is always enforced; the inline "role or self-create" check is a safety net.
 
     // ─── createUserAuthContext (POST /users/USER_ID/auth-context → 201) ─────
 

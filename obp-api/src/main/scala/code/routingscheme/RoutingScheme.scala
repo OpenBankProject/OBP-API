@@ -213,8 +213,12 @@ object BankSupportedRoutingScheme
 
 object RoutingSchemeValidation {
   // Server-side guards. Mirrored in glossary + JSON-schema for clients.
-  private val NameRegex     = "^(?:IBAN|BIC|OBP|[A-Z]{2}(?:\\.[A-Z][A-Z0-9_]*)+)$".r
-  private val GlobalAllowList = Set("IBAN", "BIC", "OBP")
+  // CARDANO / ETHEREUM: global blockchain rails (country INT). CARDANO carries
+  // the Open Corridor settlement address as an account routing on
+  // OBP-INCOMING-SETTLEMENT-ACCOUNT; ETHEREUM is allowlisted for the same use
+  // when a second rail backend exists.
+  private val NameRegex     = "^(?:IBAN|BIC|OBP|CARDANO|ETHEREUM|[A-Z]{2}(?:\\.[A-Z][A-Z0-9_]*)+)$".r
+  private val GlobalAllowList = Set("IBAN", "BIC", "OBP", "CARDANO", "ETHEREUM")
   val ValidCategories: Set[String] = Set("ACCOUNT", "BANK", "BRANCH", "IDENTITY", "BILL", "UTILITY")
   val ValidStatuses: Set[String]   = Set("ACTIVE", "RESERVED", "DEPRECATED", "RETIRED")
 
