@@ -36,6 +36,17 @@ trait Views {
   def revokeAccessToSystemViewForConsumer(bankId: BankId, accountId: AccountId, view : View, consumerId : String) : Box[Boolean]
   def revokeAccessToCustomViewForConsumer(view : View, consumerId : String) : Box[Boolean]
 
+  // Grant/revoke a single application's access, rather than access shared by every application.
+  // Used by the consent flows: what one TPP's consent grants is that TPP's alone, so narrowing or
+  // re-authorising it must not touch another TPP's grants on the same account.
+  def grantAccessToSystemViewForConsumer(bankId: BankId, accountId: AccountId, view : View, user : User, consumerId : String) : Box[View]
+  def grantAccessToCustomViewForConsumer(bankIdAccountIdViewId : BankIdAccountIdViewId, user : User, consumerId : String) : Box[View]
+  def revokeAccessToViewForUserAndConsumer(bankIdAccountIdViewId : BankIdAccountIdViewId, user : User, consumerId : String) : Box[Boolean]
+  // Everything a user currently holds under one application's scope. The consent flows reconcile
+  // against this: a consent's granted views are whatever its JWT says, so the rows that back it are
+  // brought to match rather than deleted and rewritten.
+  def accessGrantedToUserForConsumer(user : User, consumerId : String) : List[BankIdAccountIdViewId]
+
   def customView(viewId : ViewId, bankAccountId: BankIdAccountId) : Box[View]
   def systemView(viewId : ViewId) : Box[View]
   def customViewFuture(viewId : ViewId, bankAccountId: BankIdAccountId) : Future[Box[View]]
@@ -107,6 +118,19 @@ trait Views {
    * system view exists.
    */
   def factoryResetSystemView(viewId: ViewId) : Box[View]
+
+  /**
+   * Get or create a system view AND bring its permissions into line with the code.
+   *
+   * getOrCreateSystemView returns an existing row untouched, so a view created by an older
+   * version keeps whatever permission set that version gave it -- a change to a view's can_*
+   * set in code therefore reaches new installations only. This is what boot calls instead, so
+   * the code stays the source of truth for the views it defines on every installation.
+   *
+   * Only the permission set is reconciled. Unlike factoryResetSystemView this leaves the row's
+   * name, description and flags alone, so an operator's edits to those survive.
+   */
+  def ensureSystemViewUpToDate(viewId: String) : Box[View]
 
   def getOwners(view: View): Set[User]
   

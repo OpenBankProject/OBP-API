@@ -1,9 +1,20 @@
 package code.api.UKOpenBanking.v4_0_1
 
-import code.api.util.APIUtil.DateWithDayFormat
-import code.consent.Consents
+import code.api.Constant
+import code.api.util.APIUtil.{DateWithDayFormat, ResourceDoc, UserOrApplication, buildOperationId}
+import code.api.util.ErrorMessages.{ConsentDoesNotMatchConsumer, ConsentDoesNotMatchUser, ConsentExpiredIssue, ConsentIdClaimMissing}
+import code.api.util.{CallContext, CertificateUtil, Consent}
+import code.consent.{ConsentStatus, Consents}
+import code.model.UserExtended
+import code.views.Views
+import com.openbankproject.commons.model.{BankIdAccountId, ErrorMessage, ViewId}
+import com.openbankproject.commons.util.ApiVersion
+import net.liftweb.common.{Failure, Full}
 import org.json4s._
 import org.scalatest.Tag
+
+import scala.concurrent.Await
+import scala.concurrent.duration._
 
 // Test suite for UK Open Banking Read/Write v4.0.1 (AccountInfo).
 //
@@ -12,13 +23,17 @@ import org.scalatest.Tag
 // seeded data -> 200/201/204 with real field values, error paths (unknown
 // consent/account), and a full consent create -> get -> delete -> get lifecycle.
 //
-// getAccounts / getAccountsAccountIdBalances / getAccountsAccountIdTransactions
-// call NewStyle.function.checkUKConsent, which requires the Bearer access token
-// to be a JWT carrying a consent_id claim bound to an AUTHORISED consent of the
-// calling user+consumer (see code.api.util.ConsentUtil.checkUKConsent). The test
-// framework's DirectLogin tokens carry no consent_id, so (mirroring
-// UKOpenBankingV310AisTests' precedent for the same three v3.1 endpoints) only
-// "unauthenticated -> 401" and "authenticated -> not 401" are asserted for those three.
+// getAccounts / getAccountsAccountIdBalances / getAccountsAccountIdTransactions call
+// NewStyle.function.checkUKConsent (code.api.util.ConsentUtil.checkUKConsent), which reads
+// the `consent_id` claim off the Bearer access token — no external identity-provider call.
+// These OAuth1-signed test requests carry no Bearer JWT, so the claim lookup deterministically
+// fails with a 403 ConsentIdClaimMissing (see the scenario comments on those three features).
+// getBalances / getTransactions (the account-aggregate variants) share the same
+// checkUKConsent guard but only assert "unauthenticated -> 401" / "authenticated ->
+// not 401" (mirroring UKOpenBankingV310AisTests' precedent): they previously skipped
+// the consent check entirely and returned real data straight from a DirectLogin
+// token, which let a token with no bound consent reach 500 instead of the 403
+// OBP-35035 every other AISP data endpoint gives it.
 //
 // The remaining 80 endpoints are still static spec-faithful stubs; their tests
 // are unchanged (two scenarios: authenticated -> fixed code, unauthenticated -> 401).
@@ -46,9 +61,9 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
       accountIds = None,
       consumerId = None,
       permissions = consentPermissions,
-      expirationDateTime = DateWithDayFormat.parse("2030-01-01"),
-      transactionFromDateTime = DateWithDayFormat.parse("2020-01-01"),
-      transactionToDateTime = DateWithDayFormat.parse("2030-01-01"),
+      expirationDateTime = Some(DateWithDayFormat.parse("2030-01-01")),
+      transactionFromDateTime = Some(DateWithDayFormat.parse("2020-01-01")),
+      transactionToDateTime = Some(DateWithDayFormat.parse("2030-01-01")),
       apiStandard = Some("UKOpenBanking"),
       apiVersion = Some("4.0.1")
     ).openOrThrowException("test consent creation failed")
@@ -64,10 +79,28 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
       accountIds = None,
       consumerId = None,
       permissions = consentPermissions,
-      expirationDateTime = DateWithDayFormat.parse("2030-01-01"),
-      transactionFromDateTime = DateWithDayFormat.parse("2020-01-01"),
-      transactionToDateTime = DateWithDayFormat.parse("2030-01-01"),
+      expirationDateTime = Some(DateWithDayFormat.parse("2030-01-01")),
+      transactionFromDateTime = Some(DateWithDayFormat.parse("2020-01-01")),
+      transactionToDateTime = Some(DateWithDayFormat.parse("2030-01-01")),
       apiStandard = standard,
+      apiVersion = Some("4.0.1")
+    ).openOrThrowException("test consent creation failed").consentId
+
+  // A pending (not yet authorised -- no bound PSU) consent, created by "consumer" (the OAuth1
+  // consumer backing user1). For the cross-consumer regression tests: user2 authenticates with a
+  // *different* consumer (consumer2, see DefaultUsers), so this simulates a second TPP trying to
+  // reach a first TPP's still-pending consent before any PSU has authorised it.
+  private def createPendingConsentForConsumer1(): String =
+    Consents.consentProvider.vend.saveUKConsent(
+      user = None,
+      bankId = None,
+      accountIds = None,
+      consumerId = Some(testConsumer.consumerId.get),
+      permissions = consentPermissions,
+      expirationDateTime = Some(DateWithDayFormat.parse("2030-01-01")),
+      transactionFromDateTime = Some(DateWithDayFormat.parse("2020-01-01")),
+      transactionToDateTime = Some(DateWithDayFormat.parse("2030-01-01")),
+      apiStandard = Some("UKOpenBanking"),
       apiVersion = Some("4.0.1")
     ).openOrThrowException("test consent creation failed").consentId
 
@@ -102,9 +135,74 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
       consentId should not be empty
       Consents.consentProvider.vend.getConsentByConsentId(consentId).isDefined should equal(true)
       (response.body \ "Data" \ "Permissions").extract[List[String]] should equal(consentPermissions)
+      // v4.0.1 four-letter status codes on the wire (not the stored long name) + StatusReason.
+      (response.body \ "Data" \ "Status").extract[String] should equal("AWAU")
+      (response.body \ "Data" \ "StatusReason" \ "StatusReasonCode").extract[List[String]] should equal(List("U036"))
     }
     scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
       postUnauthed(consentPostBody, "aisp", "account-access-consents").code should equal(401)
+    }
+    // Lodging a consent is a client-credentials call: the TPP is authenticated as an app and no PSU
+    // exists yet. UserOnly (the ResourceDoc default) sends ResourceDocMiddleware down anonymousAccess,
+    // which 401s a request carrying no user. Pinned here because nothing else would notice the doc
+    // silently reverting to the default -- the endpoint would keep working for as long as OAuth2
+    // token parsing auto-vivifies a user for a client-credentials token, and start 401ing the day
+    // that stops.
+    scenario("ResourceDoc declares UserOrApplication so a PSU-less TPP call is not rejected", UKOpenBankingV401AccountInfo) {
+      val docs = ResourceDoc.getResourceDocs(
+        List(buildOperationId(ApiVersion.ukOpenBankingV401, "createAccountAccessConsents")))
+      docs should not be empty
+      docs.foreach(_.authMode should equal(UserOrApplication))
+    }
+    scenario("all three datetime fields omitted -> 201, open-ended (no expiry/date restriction)", UKOpenBankingV401AccountInfo) {
+      val bodyWithoutDates =
+        """{
+          |  "Data": {
+          |    "Permissions": ["ReadAccountsBasic"]
+          |  },
+          |  "Risk": {}
+          |}""".stripMargin
+      val response = postAuthed(bodyWithoutDates, "aisp", "account-access-consents")
+      response.code should equal(201)
+      val consentId = (response.body \ "Data" \ "ConsentId").extract[String]
+      val consent = Consents.consentProvider.vend.getConsentByConsentId(consentId).openOrThrowException("consent")
+      // MappedDateTime fields left unset by a null write come back as Java null, not a sentinel date.
+      consent.expirationDateTime should equal(null)
+      consent.transactionFromDateTime should equal(null)
+      consent.transactionToDateTime should equal(null)
+    }
+    scenario("full ISO-8601 datetime with time and offset is preserved, not truncated to a bare date", UKOpenBankingV401AccountInfo) {
+      val bodyWithFullDatetime =
+        """{
+          |  "Data": {
+          |    "Permissions": ["ReadAccountsBasic"],
+          |    "ExpirationDateTime": "2030-06-15T13:45:30+02:00",
+          |    "TransactionFromDateTime": "2020-01-01",
+          |    "TransactionToDateTime": "2030-01-01"
+          |  },
+          |  "Risk": {}
+          |}""".stripMargin
+      val response = postAuthed(bodyWithFullDatetime, "aisp", "account-access-consents")
+      response.code should equal(201)
+      val consentId = (response.body \ "Data" \ "ConsentId").extract[String]
+      val consent = Consents.consentProvider.vend.getConsentByConsentId(consentId).openOrThrowException("consent")
+      // 2030-06-15T13:45:30+02:00 == 2030-06-15T11:45:30Z -- if the parser truncated to the bare
+      // date (the pre-fix DateWithDayFormat behaviour), this would be 2030-06-15T00:00:00Z instead.
+      consent.expirationDateTime.getTime should equal(
+        java.time.OffsetDateTime.parse("2030-06-15T13:45:30+02:00").toInstant.toEpochMilli)
+    }
+    scenario("malformed datetime -> 400, not 500", UKOpenBankingV401AccountInfo) {
+      val bodyWithBadDate =
+        """{
+          |  "Data": {
+          |    "Permissions": ["ReadAccountsBasic"],
+          |    "ExpirationDateTime": "not-a-date",
+          |    "TransactionFromDateTime": "2020-01-01",
+          |    "TransactionToDateTime": "2030-01-01"
+          |  },
+          |  "Risk": {}
+          |}""".stripMargin
+      postAuthed(bodyWithBadDate, "aisp", "account-access-consents").code should equal(400)
     }
   }
   feature("UKOB v4.0.1 GET /aisp/account-access-consents/CONSENT_ID") {
@@ -114,12 +212,39 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
       response.code should equal(200)
       (response.body \ "Data" \ "ConsentId").extract[String] should equal(consentId)
       (response.body \ "Data" \ "Permissions").extract[List[String]] should equal(consentPermissions)
+      // freshly-created consent is AWAITINGAUTHORISATION → wire code AWAU
+      (response.body \ "Data" \ "Status").extract[String] should equal("AWAU")
     }
     scenario("authenticated with unknown consent -> 400", UKOpenBankingV401AccountInfo) {
       getAuthed("aisp", "account-access-consents", "fake-consentid").code should equal(400)
     }
     scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
       getUnauthed("aisp", "account-access-consents", "fake-consentid").code should equal(401)
+    }
+    // IDOR regression (currently RED): the endpoint only checks that the consent exists, never
+    // that the caller owns it (see Http4sUKOBv401AccountInfo.getAccountAccessConsentsConsentId,
+    // which discards the resolved user via `(_, cc)` before the lookup). Any authenticated party
+    // can currently read any other party's consent details -- this must become a 403
+    // ConsentDoesNotMatchUser once the ownership check is added, mirroring the identity contract
+    // already enforced at consent authorise time (Http4s510: consent.userId == user.userId).
+    scenario("authenticated as a different user than the consent owner -> 403, not 200", UKOpenBankingV401AccountInfo) {
+      val consentId = createRealConsent() // owned by resourceUser1
+      val response = getAuthedAsUser2("aisp", "account-access-consents", consentId)
+      response.code should equal(403)
+      response.body.extract[ErrorMessage].message should startWith(ConsentDoesNotMatchUser)
+    }
+    // Cross-consumer regression (currently RED): a pending consent (no bound PSU yet) is
+    // currently readable by ANY authenticated party, because the ownership check
+    // (Option(consent.userId).forall(_.isBlank) || ...) deliberately lets pending consents
+    // through -- it only guards against a *different bound user*, not a *different consumer*.
+    // getAuthedAsUser2 authenticates as consumer2 (see DefaultUsers), a different OAuth1
+    // consumer than the one that created this pending consent (testConsumer/consumer). Once
+    // fixed, a different consumer must get 403 ConsentDoesNotMatchConsumer here.
+    scenario("authenticated as a different consumer than the creator, pending consent -> 403, not 200", UKOpenBankingV401AccountInfo) {
+      val consentId = createPendingConsentForConsumer1()
+      val response = getAuthedAsUser2("aisp", "account-access-consents", consentId)
+      response.code should equal(403)
+      response.body.extract[ErrorMessage].message should startWith(ConsentDoesNotMatchConsumer)
     }
   }
   feature("UKOB v4.0.1 DELETE /aisp/account-access-consents/CONSENT_ID") {
@@ -132,7 +257,8 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
 
       val afterDelete = getAuthed("aisp", "account-access-consents", consentId)
       afterDelete.code should equal(200)
-      (afterDelete.body \ "Data" \ "Status").extract[String] should equal("REVOKED")
+      // stored status is REVOKED, but the v4.0.1 wire format reports the spec's CANC code
+      (afterDelete.body \ "Data" \ "Status").extract[String] should equal("CANC")
     }
     scenario("authenticated with unknown consent -> 400", UKOpenBankingV401AccountInfo) {
       deleteAuthed("aisp", "account-access-consents", "fake-consentid").code should equal(400)
@@ -140,39 +266,268 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
     scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
       deleteUnauthed("aisp", "account-access-consents", "fake-consentid").code should equal(401)
     }
+    // IDOR regression (currently RED, most severe of the two): deleteAccountAccessConsentsConsentId
+    // (Http4sUKOBv401AccountInfo) resolves the consent by id and calls
+    // Consents.consentProvider.vend.revoke(consentId) directly -- no ownership check at all. Any
+    // authenticated party can currently revoke any other party's consent. Once fixed this must be
+    // a 403 ConsentDoesNotMatchUser, and -- critically -- the consent's stored status must be left
+    // untouched (still AWAITINGAUTHORISATION), proving the rejected delete had zero side effect.
+    scenario("authenticated as a different user than the consent owner -> 403, and consent is left untouched", UKOpenBankingV401AccountInfo) {
+      val consentId = createRealConsent() // owned by resourceUser1
+      val response = deleteAuthedAsUser2("aisp", "account-access-consents", consentId)
+      response.code should equal(403)
+      response.body.extract[ErrorMessage].message should startWith(ConsentDoesNotMatchUser)
+
+      val stillThere = Consents.consentProvider.vend.getConsentByConsentId(consentId).openOrThrowException("consent")
+      stillThere.status should equal(ConsentStatus.AWAITINGAUTHORISATION.toString)
+    }
+    // Cross-consumer regression (currently RED, most severe of this pair): a pending consent
+    // (no bound PSU yet) is currently revokable by ANY authenticated party -- same root cause
+    // as the GET cross-consumer gap above (the ownership check treats "no bound user yet" as
+    // "anyone may proceed"). getAuthedAsUser2/deleteAuthedAsUser2 authenticate as consumer2, a
+    // different OAuth1 consumer than the one that created this pending consent. Once fixed,
+    // this must be 403 ConsentDoesNotMatchConsumer, and the consent must be left untouched.
+    scenario("authenticated as a different consumer than the creator, pending consent -> 403, and consent is left untouched", UKOpenBankingV401AccountInfo) {
+      val consentId = createPendingConsentForConsumer1()
+      val response = deleteAuthedAsUser2("aisp", "account-access-consents", consentId)
+      response.code should equal(403)
+      response.body.extract[ErrorMessage].message should startWith(ConsentDoesNotMatchConsumer)
+
+      val stillThere = Consents.consentProvider.vend.getConsentByConsentId(consentId).openOrThrowException("consent")
+      stillThere.status should equal(ConsentStatus.AWAITINGAUTHORISATION.toString)
+    }
   }
+  // ── Consent.grantUKConsentAccountAccess (Gap 4 fix) ───────────────────
+  // Regression test for the previously-unverified scenario: before this fix,
+  // createUKConsentJWT wrote every permission as ConsentView(bank_id=null,
+  // account_id=null, view_id=permission) — a row that could never match a real
+  // account (see User.hasAccountAccess: plain bank_id/account_id equality, no
+  // wildcard) — so a UK consent's declared Permissions had zero effect on what
+  // could actually be read. This exercises the fix at the same access-check
+  // layer checkViewAccessAndReturnView (and therefore every UK data endpoint)
+  // relies on, since the full HTTP path requires a Bearer JWT with a consent_id
+  // claim that this OAuth1-signed test suite cannot mint (see the comment above
+  // "GET /aisp/accounts" below).
+  feature("UKOB v4.0.1 Consent.grantUKConsentAccountAccess binds permissions to the selected account only") {
+    scenario("the consent's scope lands in its JWT, and the PSU gains nothing", UKOpenBankingV401AccountInfo) {
+      val userExtended = UserExtended(resourceUser1)
+      val bankIdAccountId = BankIdAccountId(testBankId1, testAccountId1)
+
+      // Baseline: ServerSetupWithTestData's default view grants don't include the UK read views.
+      userExtended.hasAccountAccess(
+        Views.views.vend.getOrCreateSystemView(Constant.SYSTEM_READ_ACCOUNTS_BASIC_VIEW_ID).openOrThrowException("view"),
+        bankIdAccountId, None) should equal(false)
+
+      val consentId = createRealConsent() // permissions = List("ReadAccountsBasic") only
+      val consent = Consents.consentProvider.vend.getConsentByConsentId(consentId).openOrThrowException("consent")
+
+      val result = Await.result(
+        Consent.grantUKConsentAccountAccess(resourceUser1, testBankId1, List(acc), consent, None),
+        10.seconds)
+      result.isDefined should equal(true)
+
+      // The JWT is the consent's scope: binding replaces the (null, null, permission) placeholders
+      // createUKConsentJWT wrote with the real account, for the declared permission and no other.
+      // What that scope is worth at request time is pinned in UKOpenBankingV401ConsentScopingTests,
+      // which drives the whole applyUKRules path.
+      val boundViews = {
+        implicit val formats = code.api.util.CustomJsonFormats.formats
+        val updated = Consents.consentProvider.vend.getConsentByConsentId(consentId).openOrThrowException("consent")
+        code.api.util.JwtUtil.getSignedPayloadAsJson(updated.jsonWebToken)
+          .map(com.openbankproject.commons.util.JsonAliases.parse(_).extract[code.api.util.ConsentJWT])
+          .openOrThrowException("consent jwt").views
+      }
+      boundViews.map(v => (v.bank_id, v.account_id, v.view_id)) should equal(
+        List((testBankId1.value, acc, Constant.SYSTEM_READ_ACCOUNTS_BASIC_VIEW_ID)))
+
+      // And the PSU is left exactly as they were. Binding used to write AccountAccess rows under
+      // the PSU, which is what made every consent that PSU granted share one set of rows; the
+      // consent's access now belongs to a principal of its own.
+      userExtended.hasAccountAccess(
+        Views.views.vend.getOrCreateSystemView(Constant.SYSTEM_READ_ACCOUNTS_BASIC_VIEW_ID).openOrThrowException("view"),
+        bankIdAccountId, None) should equal(false)
+      userExtended.hasAccountAccess(
+        Views.views.vend.getOrCreateSystemView(Constant.SYSTEM_READ_BALANCES_VIEW_ID).openOrThrowException("view"),
+        bankIdAccountId, None) should equal(false)
+    }
+  }
+
+  // ── Consent.grantUKConsentAccountAccess must reject accounts the PSU does not hold ──
+  // Regression test for the account-ownership gap: grantUKConsentAccountAccess only verified
+  // that the requested account_ids *exist* (checkBankAccountExists), never that the PSU
+  // authorising the consent actually holds them. Without this check, any authenticated user
+  // could authorise a UK consent naming ANY existing account_id (e.g. testAccountId1, held by
+  // resourceUser1) and be granted every consented view on it -- an account-access IDOR. This
+  // mirrors the existing "binds permissions to the selected account only" scenario above but
+  // asserts on account holder-ship (AccountHolders.getAccountsHeld) rather than permission scope.
+  feature("UKOB v4.0.1 Consent.grantUKConsentAccountAccess rejects an account the PSU does not hold") {
+    scenario("resourceUser2 tries to authorise a consent naming resourceUser1's account -> rejected, no access granted", UKOpenBankingV401AccountInfo) {
+      val userExtended = UserExtended(resourceUser2)
+      val bankIdAccountId = BankIdAccountId(testBankId1, testAccountId1)
+
+      // testAccountId1 is held by resourceUser1 (ServerSetupWithTestData.beforeEach), not resourceUser2.
+      code.accountholders.AccountHolders.accountHolders.vend
+        .getAccountsHeld(testBankId1, resourceUser2)
+        .contains(bankIdAccountId) should equal(false)
+
+      val consentId = createRealConsent() // permissions = List("ReadAccountsBasic")
+      val consent = Consents.consentProvider.vend.getConsentByConsentId(consentId).openOrThrowException("consent")
+
+      val result = Await.result(
+        Consent.grantUKConsentAccountAccess(resourceUser2, testBankId1, List(acc), consent, None),
+        10.seconds)
+      result.isDefined should equal(false)
+      result match {
+        case Failure(msg, _, _) => msg should include("OBP-35037")
+        case other => fail(s"expected Failure(OBP-35037...), got $other")
+      }
+
+      // No AccountAccess row must have been created for resourceUser2 on this account.
+      userExtended.hasAccountAccess(
+        Views.views.vend.getOrCreateSystemView(Constant.SYSTEM_READ_ACCOUNTS_BASIC_VIEW_ID).openOrThrowException("view"),
+        bankIdAccountId, None) should equal(false)
+    }
+  }
+
+  // Regression coverage for Gap 14 (UK consents previously never expired): checkUKConsent must
+  // reactively reject an AUTHORISED consent whose ExpirationDateTime has passed, independent of
+  // ConsentScheduler's proactive sweep timing. Exercised by calling Consent.checkUKConsent
+  // directly with a hand-built CallContext carrying a self-signed Bearer JWT with a consent_id
+  // claim -- JwtUtil.getOptionalClaim only parses the JWT structurally (SignedJWT.parse), it does
+  // not verify the signature, so this doesn't need to be signed with the real shared secret. This
+  // sidesteps the suite-wide limitation noted above (OAuth1-signed test requests carry no real
+  // Bearer JWT) for the one scenario that specifically needs one.
+  feature("UKOB v4.0.1 Consent.checkUKConsent rejects an authorised consent past its ExpirationDateTime") {
+    scenario("expired consent -> Failure(ConsentExpiredIssue), not silently accepted", UKOpenBankingV401AccountInfo) {
+      val consent = Consents.consentProvider.vend.saveUKConsent(
+        user = Some(resourceUser1),
+        bankId = None,
+        accountIds = None,
+        consumerId = None,
+        permissions = consentPermissions,
+        expirationDateTime = Some(new java.util.Date(System.currentTimeMillis() - 60000L)), // 1 minute ago
+        transactionFromDateTime = None,
+        transactionToDateTime = None,
+        apiStandard = Some("UKOpenBanking"),
+        apiVersion = Some("4.0.1")
+      ).openOrThrowException("consent creation failed")
+      Consents.consentProvider.vend.updateConsentUser(consent.consentId, resourceUser1)
+      Consents.consentProvider.vend.updateConsentStatus(consent.consentId, ConsentStatus.AUTHORISED)
+
+      val claimsSet = new com.nimbusds.jwt.JWTClaimsSet.Builder()
+        .claim("consent_id", consent.consentId)
+        .build()
+      val jwt = CertificateUtil.jwtWithHmacProtection(claimsSet)
+      val callContext = CallContext(authReqHeaderField = Full(s"Bearer $jwt"))
+
+      Consent.checkUKConsent(resourceUser1, Some(callContext)) match {
+        case Failure(msg, _, _) => msg.contains(ConsentExpiredIssue) should equal(true)
+        case other => fail(s"expected Failure(ConsentExpiredIssue), got $other")
+      }
+    }
+  }
+
+  // Gap 12 (re-authentication) security guards on POST /obp/v5.1.0/banks/BANK_ID/consents/
+  // CONSENT_ID/authorise/challenge -- the first step of the ceremony, so it can be exercised
+  // without a completed SCA/OTP. The successful re-auth path (start challenge -> answer OTP ->
+  // stays AUTHORISED) needs the full OTP ceremony, which has no test harness in this repo yet
+  // (the authorise endpoints shipped with no coverage), so it's not asserted here; these cover
+  // the security-relevant rejection branches the re-auth relaxation introduces.
+  private def scaChallengeRequest(consentId: String) =
+    (baseRequest / "obp" / "v5.1.0" / "banks" / testBankId1.value / "consents" / consentId / "authorise" / "challenge").POST
+  // Option, because the state that matters for the authorise guards is the one a TPP actually
+  // lodges: no PSU bound yet. saveUKConsent writes mUserId straight from this.
+  private def createUKConsent(user: Option[com.openbankproject.commons.model.User], expiration: Option[java.util.Date]): String = {
+    val consent = Consents.consentProvider.vend.saveUKConsent(
+      user = user, bankId = None, accountIds = None, consumerId = None,
+      permissions = consentPermissions, expirationDateTime = expiration,
+      transactionFromDateTime = None, transactionToDateTime = None,
+      apiStandard = Some("UKOpenBanking"), apiVersion = Some("4.0.1")
+    ).openOrThrowException("consent creation failed")
+    consent.consentId
+  }
+  feature("UKOB v4.0.1 re-authentication guards on the SCA challenge endpoint") {
+    scenario("challenge-start on an already-authorised consent bound to a different PSU -> 403", UKOpenBankingV401AccountInfo) {
+      val consentId = createUKConsent(Some(resourceUser1), Some(new java.util.Date(System.currentTimeMillis() + 3600000L)))
+      Consents.consentProvider.vend.updateConsentUser(consentId, resourceUser1)
+      Consents.consentProvider.vend.updateConsentStatus(consentId, ConsentStatus.AUTHORISED)
+      // user2 != the bound resourceUser1 -> hijack guard rejects
+      val response = makePostRequest(scaChallengeRequest(consentId) <@ (user2), "")
+      response.code should equal(403)
+      response.body.extract[ErrorMessage].message.contains(ConsentDoesNotMatchUser) should equal(true)
+    }
+    scenario("challenge-start on an authorised consent past its ExpirationDateTime -> 400 ConsentExpiredIssue", UKOpenBankingV401AccountInfo) {
+      val consentId = createUKConsent(Some(resourceUser1), Some(new java.util.Date(System.currentTimeMillis() - 60000L)))
+      Consents.consentProvider.vend.updateConsentUser(consentId, resourceUser1)
+      Consents.consentProvider.vend.updateConsentStatus(consentId, ConsentStatus.AUTHORISED)
+      val response = makePostRequest(scaChallengeRequest(consentId) <@ (user1), "")
+      response.code should equal(400)
+      response.body.extract[ErrorMessage].message.contains(ConsentExpiredIssue) should equal(true)
+    }
+    // Note: the terminal-status rejection (EXPIRED/REJECTED can't be re-authed) is enforced by
+    // ukReAuthableStatuses not containing those; it isn't asserted via a third HTTP scenario here
+    // because a second same-user OAuth1 call within this block collides on the test harness's
+    // nonce/timestamp replay check (a harness artifact -- production UK uses OAuth2 Bearer).
+  }
+
+  // Gap 15: every UK v4.0.1 response carries x-fapi-interaction-id (FAPI tracing). Uses a stub
+  // endpoint that returns 200 so the assertion is purely about the header, independent of consent.
+  feature("UKOB v4.0.1 x-fapi-interaction-id response header") {
+    scenario("generated as a UUID when the request omits it", UKOpenBankingV401AccountInfo) {
+      val response = getAuthed("aisp", "accounts", "fake-accountid", "beneficiaries")
+      response.code should equal(200)
+      val interactionId = response.headers.map(_.get("x-fapi-interaction-id")).orNull
+      interactionId should not be null
+      interactionId should not be empty
+      // a generated value is a UUID
+      java.util.UUID.fromString(interactionId).toString should equal(interactionId)
+    }
+    scenario("echoed verbatim when the request supplies it", UKOpenBankingV401AccountInfo) {
+      val supplied = "test-interaction-id-12345"
+      val response = makeGetRequest(
+        v401("aisp", "accounts", "fake-accountid", "beneficiaries").GET <@ (user1),
+        List(("x-fapi-interaction-id", supplied)))
+      response.code should equal(200)
+      response.headers.map(_.get("x-fapi-interaction-id")).orNull should equal(supplied)
+    }
+  }
+
   // ── AccountsApi ────────────────────────────────────────────────────
-  // DATA-DEPENDENT: checkUKConsent requires a consent-bound token (consent_id claim — see class doc above).
+  // checkUKConsent extracts the `consent_id` claim from the Bearer access token (no external
+  // Hydra call since Consent.checkUKConsent dropped the Hydra dependency). These OAuth1-signed
+  // test requests carry no Bearer JWT at all, so the claim lookup deterministically fails ->
+  // 403 ConsentIdClaimMissing, mirroring "authenticated but no bound consent" in production.
   feature("UKOB v4.0.1 GET /aisp/accounts") {
-    scenario("authenticated", UKOpenBankingV401AccountInfo) {
-      getAuthed("aisp", "accounts").code should not equal (401)
+    scenario("authenticated without a consent-bound token -> 403", UKOpenBankingV401AccountInfo) {
+      val response = getAuthed("aisp", "accounts")
+      response.code should equal(403)
+      response.body.extract[ErrorMessage].message.trim should equal(ConsentIdClaimMissing.trim)
     }
     scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
       getUnauthed("aisp", "accounts").code should equal(401)
     }
   }
   feature("UKOB v4.0.1 GET /aisp/accounts/ACCOUNT_ID") {
-    scenario("authenticated with granted read view -> 200 real account data", UKOpenBankingV401AccountInfo) {
+    // Issue A fix: this endpoint now runs checkUKConsent before the account lookup, matching
+    // its sibling /balances and /transactions endpoints below. This OAuth1-signed test suite
+    // carries no Bearer JWT, so the consent check deterministically 403s here -- the previous
+    // "200 real account data" scenarios (dropped) actually reached real data with zero consent
+    // enforcement, which was Issue A itself.
+    scenario("authenticated without a consent-bound token -> 403", UKOpenBankingV401AccountInfo) {
       grantUKReadViews(testAccountId1, resourceUser1)
       val response = getAuthed("aisp", "accounts", acc)
-      response.code should equal(200)
-      val accounts = (response.body \ "Data" \ "Account").children
-      accounts should not be empty
-      (accounts.head \ "AccountId").extract[String] should equal(acc)
-      (accounts.head \ "Currency").extract[String] should equal("EUR")
-    }
-    scenario("authenticated with fake account id -> 200 empty Account list", UKOpenBankingV401AccountInfo) {
-      val response = getAuthed("aisp", "accounts", "fake-accountid")
-      response.code should equal(200)
-      (response.body \ "Data" \ "Account").children should be(empty)
+      response.code should equal(403)
+      response.body.extract[ErrorMessage].message.trim should equal(ConsentIdClaimMissing.trim)
     }
     scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
       getUnauthed("aisp", "accounts", acc).code should equal(401)
     }
   }
   feature("UKOB v4.0.1 GET /aisp/accounts/ACCOUNT_ID/balances") {
-    scenario("authenticated", UKOpenBankingV401AccountInfo) {
-      getAuthed("aisp", "accounts", acc, "balances").code should not equal (401)
+    scenario("authenticated without a consent-bound token -> 403", UKOpenBankingV401AccountInfo) {
+      val response = getAuthed("aisp", "accounts", acc, "balances")
+      response.code should equal(403)
+      response.body.extract[ErrorMessage].message.trim should equal(ConsentIdClaimMissing.trim)
     }
     scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
       getUnauthed("aisp", "accounts", acc, "balances").code should equal(401)
@@ -275,10 +630,12 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
     }
   }
   // ── TransactionsApi ────────────────────────────────────────────────
-  // DATA-DEPENDENT: checkUKConsent requires a consent-bound token (consent_id claim — see class doc above).
+  // See the "no external Hydra call" note above feature("UKOB v4.0.1 GET /aisp/accounts").
   feature("UKOB v4.0.1 GET /aisp/accounts/ACCOUNT_ID/transactions") {
-    scenario("authenticated", UKOpenBankingV401AccountInfo) {
-      getAuthed("aisp", "accounts", acc, "transactions").code should not equal (401)
+    scenario("authenticated without a consent-bound token -> 403", UKOpenBankingV401AccountInfo) {
+      val response = getAuthed("aisp", "accounts", acc, "transactions")
+      response.code should equal(403)
+      response.body.extract[ErrorMessage].message.trim should equal(ConsentIdClaimMissing.trim)
     }
     scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
       getUnauthed("aisp", "accounts", acc, "transactions").code should equal(401)
@@ -286,23 +643,10 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
   }
 
   // ── BalancesApi ────────────────────────────────────────────────────
+  // DATA-DEPENDENT: checkUKConsent requires a consent-bound token (see class doc above).
   feature("UKOB v4.0.1 GET /aisp/balances") {
-    scenario("authenticated with real account -> 200 real balance", UKOpenBankingV401AccountInfo) {
-      val response = getAuthed("aisp", "balances")
-      response.code should equal(200)
-      // resourceUser1 owns accounts on several test banks (see TestConnectorSetup.
-      // createAccountRelevantResources), so testAccountId1's entry isn't necessarily
-      // first — find it rather than assume position 0.
-      val balances = (response.body \ "Data" \ "Balance").children
-      balances should not be empty
-      val myBalance = balances.find(b => (b \ "AccountId").extract[String] == acc)
-      myBalance shouldBe defined
-      (myBalance.get \ "Amount" \ "Currency").extract[String] should equal("EUR")
-    }
-    scenario("authenticated with no private accounts -> 200 empty Balance list", UKOpenBankingV401AccountInfo) {
-      val response = getAuthedAsUser2("aisp", "balances")
-      response.code should equal(200)
-      (response.body \ "Data" \ "Balance").children should be(empty)
+    scenario("authenticated", UKOpenBankingV401AccountInfo) {
+      getAuthed("aisp", "balances").code should not equal (401)
     }
     scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
       getUnauthed("aisp", "balances").code should equal(401)
@@ -372,26 +716,73 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
       getUnauthed("aisp", "statements").code should equal(401)
     }
   }
+  // DATA-DEPENDENT: checkUKConsent requires a consent-bound token (see class doc above).
   feature("UKOB v4.0.1 GET /aisp/transactions") {
-    scenario("authenticated with seeded transactions -> 200 real data", UKOpenBankingV401AccountInfo) {
-      val seeded = seedTransactions(testAccountId1)
-      val response = getAuthed("aisp", "transactions")
-      response.code should equal(200)
-      // resourceUser1 owns accounts on several test banks, but only testAccountId1
-      // has seeded transactions here, so every returned entry should belong to it.
-      val transactions = (response.body \ "Data" \ "Transaction").children
-      transactions should not be empty
-      transactions.foreach(t => (t \ "AccountId").extract[String] should equal(acc))
-      (transactions.head \ "Amount" \ "Currency").extract[String] should equal("EUR")
-      transactions.map(t => (t \ "TransactionId").extract[String]) should contain (seeded.head.id.value)
-    }
-    scenario("authenticated with no private accounts -> 200 empty Transaction list", UKOpenBankingV401AccountInfo) {
-      val response = getAuthedAsUser2("aisp", "transactions")
-      response.code should equal(200)
-      (response.body \ "Data" \ "Transaction").children should be(empty)
+    scenario("authenticated", UKOpenBankingV401AccountInfo) {
+      getAuthed("aisp", "transactions").code should not equal (401)
     }
     scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
       getUnauthed("aisp", "transactions").code should equal(401)
+    }
+  }
+
+  // A refused authorisation must leave the consent exactly as it found it.
+  //
+  // POST .../consents/CONSENT_ID/authorise used to bind the PSU (updateConsentUser) before
+  // grantUKConsentAccountAccess had decided whether the request was acceptable at all, and nothing
+  // in the sequence is transactional. A rejected attempt therefore claimed the consent for whoever
+  // made it: status still AWAITINGAUTHORISATION, mUserId now the caller. From there the
+  // ConsentDoesNotMatchUser guard at the top of the same endpoint locked the genuine PSU out of
+  // their own consent, and the lodging TPP lost its GET/DELETE as well, with no way back through
+  // the API. Consent ids reach the browser in the authorisation redirect, so one failing request
+  // from anyone who had seen one was enough to destroy it.
+  //
+  // The endpoint asserts the outcome; the DB assertions after it are the actual regression -- a
+  // 400 alone was always true, and was true while the consent was being claimed.
+  private def authoriseRequest(consentId: String) =
+    (baseRequest / "obp" / "v5.1.0" / "banks" / testBankId1.value / "consents" / consentId / "authorise").POST
+  private def storedConsent(consentId: String) =
+    Consents.consentProvider.vend.getConsentByConsentId(consentId).openOrThrowException(s"consent $consentId")
+  // An unbound consent stores mUserId as null rather than "", so read it defensively -- the
+  // assertion is "nobody", and both spellings mean that.
+  private def boundPsuOf(consentId: String): String =
+    Option(storedConsent(consentId).userId).map(_.trim).getOrElse("")
+
+  feature("UKOB v4.0.1 a refused authorisation does not claim the consent") {
+    scenario("account_ids naming an account the PSU does not hold -> refused, consent left unbound", UKOpenBankingV401AccountInfo) {
+      // The dummy SCA answer is `123` only when this is set; test props leave it unset, so the
+      // challenge would otherwise refuse before the account check is ever reached. Same as the
+      // Berlin Group authorisation scenarios do.
+      setPropsValues("suggested_default_sca_method" -> "DUMMY")
+      // Lodged the way a TPP lodges one: no PSU yet.
+      val consentId = createUKConsent(None, Some(new java.util.Date(System.currentTimeMillis() + 3600000L)))
+      boundPsuOf(consentId) should equal("")
+
+      // testAccountId1 belongs to resourceUser1, so user2 authorising against it is the refusal.
+      code.accountholders.AccountHolders.accountHolders.vend
+        .getAccountsHeld(testBankId1, resourceUser2)
+        .contains(BankIdAccountId(testBankId1, testAccountId1)) should equal(false)
+
+      val challenge = makePostRequest(scaChallengeRequest(consentId) <@ (user2), "")
+      challenge.code should equal(200)
+      val challengeId = (challenge.body \ "challenge_id").extract[String]
+
+      val refused = makePostRequest(authoriseRequest(consentId) <@ (user2),
+        s"""{"account_ids":["$acc"],"challenge_id":"$challengeId","answer":"123"}""")
+      // 403, the same answer the ConsentDoesNotMatchUser guard earlier in this endpoint gives:
+      // both are "you may not authorise this", not "your request was malformed".
+      refused.code should equal(403)
+      val message = refused.body.extract[ErrorMessage].message
+      message should include("OBP-35037")
+      // And it has to arrive as itself. Passing this Box through connectorEmptyResponse reported
+      // an authorisation decision as InvalidConnectorResponse, burying the reason behind a cause
+      // it has nothing to do with.
+      message should not include "OBP-50200"
+      message should not include "connectorEmptyResponse"
+
+      // The regression: before the reorder both of these came back naming resourceUser2.
+      boundPsuOf(consentId) should equal("")
+      storedConsent(consentId).status should equal(ConsentStatus.AWAITINGAUTHORISATION.toString)
     }
   }
 }

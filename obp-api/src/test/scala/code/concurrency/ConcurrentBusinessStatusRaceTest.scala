@@ -40,7 +40,15 @@ import scala.concurrent.duration._
  *   the guard, and both write — the last one wins non-deterministically. A legitimate ACCEPTED
  *   transition can be overwritten by a concurrent REJECTED.
  *
- * EXPECTED TO FAIL (M2, M3) until a conditional UPDATE WHERE status='<current>' is used.
+ * M3b (testable, deterministic):
+ *   The sequential form of M3, and the reason M3 stayed intermittently red after the conditional
+ *   UPDATE was introduced. That UPDATE guarded on the status the caller had just loaded, so it only
+ *   caught the interleaving where both callers read the same old value. When the two calls serialise,
+ *   the second one loads what the first wrote and its guard matches — the decision is overwritten
+ *   with no error. M3b reproduces that with two ordinary sequential calls, no threads involved.
+ *
+ * All four are fixed. M2/M3/M3b/M4 now guard on a fixed starting state
+ * (INITIATED / REQUESTED / successful_c=false) so each decision can only be taken once.
  * Tagged ConcurrencyRace.
  */
 class ConcurrentBusinessStatusRaceTest extends ConcurrentRaceSetup {
@@ -125,6 +133,43 @@ class ConcurrentBusinessStatusRaceTest extends ConcurrentRaceSetup {
       ) {
         val successes = results.collect { case scala.util.Success(Full(_)) => 1 }
         successes should have size 1
+      }
+    }
+
+    scenario("M3b: a REJECTED AccountApplication must not be silently re-decided as ACCEPTED", ConcurrencyRace) {
+      Given("an AccountApplication in REQUESTED state")
+      val appId = UUID.randomUUID.toString
+      MappedAccountApplication.create
+        .mAccountApplicationId(appId)
+        .mCode(ProductCode("__conc_m3b_product").value)
+        .mUserId(resourceUser1.userId)
+        .mCustomerId(UUID.randomUUID.toString)
+        .mStatus("REQUESTED")
+        .saveMe()
+
+      When("it is REJECTED and then a second decision tries to ACCEPT it")
+      // The deterministic (sequential) form of the M3 race. M3's threads only both write when the
+      // barrier releases them close enough together to both read REQUESTED; when they serialise, the
+      // second call reads the status the first one wrote. A guard keyed on that freshly-read status
+      // matches its own read and lets the overwrite through, so the outcome below is exactly what M3
+      // observes intermittently — reproduced here with no threads and no timing dependency.
+      val rejected = Await.result(MappedAccountApplicationProvider.updateStatus(appId, "REJECTED"), 10.seconds)
+      val accepted = Await.result(MappedAccountApplicationProvider.updateStatus(appId, "ACCEPTED"), 10.seconds)
+
+      val finalStatus = MappedAccountApplication
+        .find(By(MappedAccountApplication.mAccountApplicationId, appId))
+        .map(_.status).getOrElse("missing")
+
+      Then("only the first decision may take effect — the application stays REJECTED")
+      withClue(
+        s"rejected=$rejected accepted=$accepted finalStatus=$finalStatus: " +
+        s"the decision on an account application is one-shot — it may only be taken from REQUESTED. " +
+        s"Accepting an already-REJECTED application also creates a bank account, so a silent " +
+        s"re-decision is not recoverable — "
+      ) {
+        rejected shouldBe a[Full[_]]
+        accepted shouldBe a[Failure]
+        finalStatus should equal("REJECTED")
       }
     }
 

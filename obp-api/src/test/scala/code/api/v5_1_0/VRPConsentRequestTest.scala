@@ -32,7 +32,15 @@ import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON.{accountRoutingJsonV121
 import code.api.v5_0_0.ConsentJsonV500
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole._
+import code.api.Constant
+import com.openbankproject.commons.model.{AccountId, BankId, ViewId}
 import code.api.util.Consent
+import code.consent.Consents
+import code.counterpartylimit.CounterpartyLimitProvider
+import code.metadata.counterparties.Counterparties
+import code.views.system.{AccountAccess, ViewDefinition}
+import scala.concurrent.Await
+import scala.concurrent.duration._
 import code.api.util.ErrorMessages._
 import code.api.util.ExampleValue.counterpartyNameExample
 import code.api.v2_1_0.{CounterpartyIdJson, TransactionRequestBodyCounterpartyJSON}
@@ -234,6 +242,51 @@ class VRPConsentRequestTest extends V510ServerSetup with PropsReset{
       response.body.extract[TransactionRequestWithChargeJSON400].status shouldBe("COMPLETED")
     }
   
+
+    scenario("Revoking a VRP consent releases the mandate it created", ApiEndpoint1, ApiEndpoint3, VersionOfApi) {
+      When("the PSU creates a VRP consent request and converts it")
+      val createConsentResponse = makePostRequest(createVRPConsentRequestUrl, write(postVRPConsentRequestMonthlyGuardJson))
+      createConsentResponse.code should equal(201)
+      val consentRequestId = createConsentResponse.body.extract[ConsentRequestResponseJson].consent_request_id
+
+      Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetAnyUser.toString)
+      val createConsentByRequestResponse = makePostRequest(createConsentByConsentRequestIdEmail(consentRequestId), write(""))
+      createConsentByRequestResponse.code should equal(201)
+      val consentJson = createConsentByRequestResponse.body.extract[ConsentJsonV500]
+      val consentId = consentJson.consent_id
+      val access = consentJson.account_access.getOrElse(fail("the converted consent named no account access"))
+      val bankId = BankId(access.bank_id)
+      val accountId = AccountId(access.account_id)
+      val viewId = ViewId(access.view_id)
+      viewId.value should startWith(Constant.VRP_VIEW_ID_PREFIX)
+
+      Then("the mandate exists: the PSU holds the view, and its counterparty has a limit")
+      ViewDefinition.findCustomView(bankId.value, accountId.value, viewId.value).isDefined should be(true)
+      AccountAccess.findAllByBankIdAccountIdViewId(bankId, accountId, viewId).size should be > 0
+      val counterparties = Counterparties.counterparties.vend.getCounterparties(bankId, accountId, viewId).getOrElse(Nil)
+      counterparties.size should be > 0
+      counterparties.foreach { counterparty =>
+        Await.result(CounterpartyLimitProvider.counterpartyLimit.vend.getCounterpartyLimit(
+          bankId.value, accountId.value, viewId.value, counterparty.counterpartyId), 10.seconds
+        ).isDefined should be(true)
+      }
+
+      When("the consent is revoked")
+      Consents.consentProvider.vend.revoke(consentId).isDefined should be(true)
+
+      Then("nothing of the mandate is left to pay with")
+      // The authority the PSU held, the amount it was good for, and the view that carried it.
+      AccountAccess.findAllByBankIdAccountIdViewId(bankId, accountId, viewId).size should be(0)
+      counterparties.foreach { counterparty =>
+        Await.result(CounterpartyLimitProvider.counterpartyLimit.vend.getCounterpartyLimit(
+          bankId.value, accountId.value, viewId.value, counterparty.counterpartyId), 10.seconds
+        ).isDefined should be(false)
+      }
+      ViewDefinition.findCustomView(bankId.value, accountId.value, viewId.value).isDefined should be(false)
+
+      And("the PSU's own access to the account is untouched")
+      AccountAccess.findAllByBankIdAccountIdViewId(bankId, accountId, ViewId(Constant.SYSTEM_OWNER_VIEW_ID)).size should be > 0
+    }
     scenario("We will call the Create (IMPLICIT), Get and Delete endpoints with user credentials ", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, ApiEndpoint5, ApiEndpoint6, VersionOfApi) {
       When(s"We try $ApiEndpoint1 v5.1.0")
       val createConsentResponse = makePostRequest(createVRPConsentRequestUrl, write(postVRPConsentRequestMonthlyGuardJson))

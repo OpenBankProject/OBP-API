@@ -10,7 +10,11 @@ import code.api.util.APIUtil.OAuth._
 import code.api.util.APIUtil.extractErrorMessageCode
 import code.api.util.ErrorMessages._
 import code.model.dataAccess.{BankAccountRouting, MappedBankAccount}
+import code.model.TokenType
 import code.setup.{APIResponse, DefaultUsers}
+import code.token.Tokens
+import net.liftweb.util.Helpers.randomString
+import net.liftweb.util.TimeHelpers.TimeSpan
 import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.enums.{AccountRoutingScheme, PaymentServiceTypes, TransactionRequestTypes}
@@ -758,11 +762,127 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
         "NON_EXISTING_PAYMENT_ID" /
         "cancellation-authorisations").POST <@ (user1)
       val response: APIResponse = makeGetRequest(requestGet)
-      Then("We should get a 200 ")
-      response.code should equal(200)
-      val payment = response.body.extract[CancellationJsonV13]
-      payment.cancellationIds should be equals(0)
+      Then("We should get a 400 - the payment has to exist before its cancellation authorisations can be listed")
+      response.code should equal(400)
+      response.body.extract[ErrorMessagesBG].tppMessages.head.text should startWith (InvalidTransactionRequestId)
     }
   }
+
+  // Berlin Group addresses a payment by its id alone. Nothing in the route ties the payment to the
+  // caller, so without an explicit check a paymentId is a bearer token: whoever holds it can read
+  // the payment, list and start authorisations on it, and cancel it. The payment records who lodged
+  // it; these scenarios hold every payment-scoped route to that record.
+  feature("test the BG v1.3 - a payment is only addressable by the party that initiated it") {
+    scenario("a second TPP can neither read, authorise, nor cancel a payment it did not initiate", BerlinGroupV1_3, PIS, initiatePayment) {
+      val accountsRoutingIban = BankAccountRouting.findAll(By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString))
+        .filterNot(_.bankId.value == "DEFAULT_BANK_ID_NOT_SET")
+      val ibanFrom = accountsRoutingIban.head
+      val ibanTo = accountsRoutingIban.last
+
+      def balanceOf(routing: BankAccountRouting) = MappedBankAccount.find(
+        By(MappedBankAccount.bank, routing.bankId.value),
+        By(MappedBankAccount.theAccountId, routing.accountId.value))
+        .map(_.balance).openOrThrowException("Can not be empty here")
+
+      grantAccountAccess(ibanFrom)
+
+      // Over the challenge threshold, so the payment stays in RCVD awaiting SCA — the state in which
+      // a hijacked authorisation would actually move money.
+      val initiatePaymentJson =
+        s"""{
+           | "debtorAccount": { "iban": "${ibanFrom.accountRouting.address}" },
+           | "instructedAmount": { "currency": "EUR", "amount": "2001" },
+           | "creditorAccount": { "iban": "${ibanTo.accountRouting.address}" },
+           | "creditorName": "70charname"
+            }""".stripMargin
+
+      When("user1 initiates a payment")
+      val responseInitiate: APIResponse = makePostRequest(
+        (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString).POST <@ (user1),
+        initiatePaymentJson)
+      responseInitiate.code should equal(201)
+      val paymentId = responseInitiate.body.extract[InitiatePaymentResponseJson].paymentId
+
+      val fromBalanceBefore = balanceOf(ibanFrom)
+      val toBalanceBefore = balanceOf(ibanTo)
+
+      val payment = V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString / paymentId
+
+      Then("user2 is refused on every payment-scoped route")
+      val refusals = List(
+        "read the payment" -> makeGetRequest((payment).GET <@ (user2)),
+        "read its status" -> makeGetRequest((payment / "status").GET <@ (user2)),
+        "list its authorisations" -> makeGetRequest((payment / "authorisations").GET <@ (user2)),
+        "list its cancellation authorisations" -> makeGetRequest((payment / "cancellation-authorisations").GET <@ (user2)),
+        "start an authorisation on it" -> makePostRequest((payment / "authorisations").POST <@ (user2), """{"scaAuthenticationData":"123"}"""),
+        "cancel it" -> makeDeleteRequest((payment).DELETE <@ (user2))
+      )
+      refusals.foreach { case (what, response) =>
+        withClue(s"user2 was allowed to $what: ") {
+          response.code should equal(403)
+          response.body.extract[ErrorMessagesBG].tppMessages.head.text should startWith (PaymentNotInitiatedByCaller)
+        }
+      }
+
+      And("no money moved")
+      balanceOf(ibanFrom) should equal(fromBalanceBefore)
+      balanceOf(ibanTo) should equal(toBalanceBefore)
+
+      And("user1, who initiated it, still can address it")
+      val ownerResponse = makeGetRequest((payment / "status").GET <@ (user1))
+      ownerResponse.code should equal(200)
+    }
+    scenario("a second TPP acting for the same PSU is refused too", BerlinGroupV1_3, PIS, initiatePayment) {
+      val accountsRoutingIban = BankAccountRouting.findAll(By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString))
+        .filterNot(_.bankId.value == "DEFAULT_BANK_ID_NOT_SET")
+      val ibanFrom = accountsRoutingIban.head
+      val ibanTo = accountsRoutingIban.last
+
+      grantAccountAccess(ibanFrom)
+
+      val initiatePaymentJson =
+        s"""{
+           | "debtorAccount": { "iban": "${ibanFrom.accountRouting.address}" },
+           | "instructedAmount": { "currency": "EUR", "amount": "2001" },
+           | "creditorAccount": { "iban": "${ibanTo.accountRouting.address}" },
+           | "creditorName": "70charname"
+            }""".stripMargin
+
+      When("the PSU lodges a payment through one TPP")
+      val responseInitiate: APIResponse = makePostRequest(
+        (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString).POST <@ (user1),
+        initiatePaymentJson)
+      responseInitiate.code should equal(201)
+      val paymentId = responseInitiate.body.extract[InitiatePaymentResponseJson].paymentId
+      val payment = V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString / paymentId
+
+      Then("the same PSU acting through a second TPP still cannot address it")
+      // The person matches and only the TPP differs -- the case a person-only check waves through,
+      // and the reason the payment has to record which consumer lodged it.
+      val response = makeGetRequest((payment / "status").GET <@ (samePsuUnderSecondConsumer))
+      response.code should equal(403)
+      response.body.extract[ErrorMessagesBG].tppMessages.head.text should startWith (PaymentNotInitiatedByCaller)
+
+      And("the TPP that lodged it still can")
+      makeGetRequest((payment / "status").GET <@ (user1)).code should equal(200)
+    }
+  }
+  // resourceUser1's own token, issued under a second consumer: same person, different TPP.
+  // DefaultUsers has no such pair -- user2 and user3 change the person as well as the consumer.
+  private lazy val samePsuUnderSecondConsumer = {
+    val token = Tokens.tokens.vend.createToken(
+      TokenType.Access,
+      Some(testConsumer2.id.get),
+      Some(resourceUser1.id.get),
+      Some(randomString(40).toLowerCase),
+      Some(randomString(40).toLowerCase),
+      Some(tokenDuration),
+      Some(TimeSpan(tokenDuration + System.currentTimeMillis())),
+      Some(new java.util.Date(System.currentTimeMillis())),
+      None
+    ).openOrThrowException("test token creation failed")
+    Some(consumer2, Token(token.key.get, token.secret.get))
+  }
+
 
 }

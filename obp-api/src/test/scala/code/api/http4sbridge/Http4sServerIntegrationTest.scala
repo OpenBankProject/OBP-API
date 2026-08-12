@@ -83,6 +83,29 @@ class Http4sServerIntegrationTest extends ServerSetup with DefaultUsers with Ser
       http4sServer.port should equal(APIUtil.getPropsAsIntValue("http4s.test.port", 8087))
     }
 
+    // The point of /status is telling an operator which build is running. It reported the
+    // wrong branch and a frozen build time for any build made from a git worktree, so pin
+    // what it reports to the stamp the artifact actually carries (scripts/write_git_properties.sh
+    // writes it; APIUtil.gitCommit reads the same file from the classpath).
+    scenario("GET /status reports the build stamp this artifact carries", Http4sServerIntegrationTag) {
+      Given("HTTP4S test server is running")
+
+      When("We request the status page as JSON")
+      val (status, body) = makeHttp4sGetRequest("/status", Map("Accept" -> "application/json"))
+
+      Then("We should get a status response")
+      status should (equal(200) or equal(503))
+
+      And("It should carry the commit the running classes were built from")
+      val json = parse(body)
+      (json \ "git_commit").extract[String] should equal(APIUtil.gitCommit)
+
+      And("It should also name the branch, the dirty flag and the build time")
+      (json \ "git_branch").extract[String] should not be empty
+      (json \ "git_build_time").extract[String] should not be empty
+      List(JBool(true), JBool(false)) should contain(json \ "git_dirty")
+    }
+
     scenario("Server handles 404 for unknown routes", Http4sServerIntegrationTag) {
       Given("HTTP4S test server is running")
 

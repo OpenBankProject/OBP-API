@@ -64,7 +64,7 @@ import com.openbankproject.commons.model.{
 }
 import com.openbankproject.commons.model.enums.{AtmAttributeType, ChallengeType, ConsentType, RegulatedEntityAttributeType, StrongCustomerAuthentication, StrongCustomerAuthenticationStatus, SuppliedAnswerType, TransactionRequestStatus, UserAttributeType}
 import com.openbankproject.commons.util.{ApiVersion, ApiVersionStatus, ScannedApiVersion}
-import net.liftweb.common.{Box, Empty, Full}
+import net.liftweb.common.{Box, Empty, Failure, Full}
 import com.openbankproject.commons.util.json
 import com.openbankproject.commons.util.JsonAliases.prettyRender
 import org.json4s.{Extraction, Formats}
@@ -87,7 +87,9 @@ import scala.language.{higherKinds, implicitConversions}
 // UK Open Banking consent SCA (see authoriseUKConsentChallenge / authoriseUKConsent):
 // the challenge-start endpoint returns this; the authorise endpoint consumes the answer.
 case class UKConsentScaChallengeJsonV510(challenge_id: String, sca_status: String, sca_method: String)
-case class PostUKConsentAuthoriseJsonV510(challenge_id: String, answer: String)
+// account_ids: the accounts the PSU is selecting for this consent's granted permissions —
+// see the Gap 4 remediation note above authoriseUKConsent (bankId comes from the URL BANK_ID).
+case class PostUKConsentAuthoriseJsonV510(challenge_id: String, answer: String, account_ids: List[String])
 
 object Http4s510 {
 
@@ -103,6 +105,17 @@ object Http4s510 {
   object Implementations5_1_0 {
 
     val prefixPath = Root / ApiPathZero.toString / implementedInApiVersion.toString
+
+    // Statuses from which a UK Open Banking consent may be (re-)authorised. AWAITINGAUTHORISATION
+    // is the initial authorise; AUTHORISED and REVOKED (wire: CANC) are the re-authentication
+    // cases per the UK spec ("re-authenticate ... if the account-access-consent has a Status of
+    // AUTH or CANC and the ExpirationDateTime has not elapsed"). EXPIRED and REJECTED are terminal
+    // -- the TPP must create a new consent rather than re-authenticate.
+    private val ukReAuthableStatuses: Set[String] = Set(
+      ConsentStatus.AWAITINGAUTHORISATION.toString,
+      ConsentStatus.AUTHORISED.toString,
+      ConsentStatus.REVOKED.toString
+    )
 
     // Used by lifted consumer-management endpoint descriptions.
     private def consumerDisabledText(): String = {
@@ -4281,8 +4294,18 @@ object Http4s510 {
             user <- Future.successful(cc.user.openOrThrowException(AuthenticatedUserIsRequired))
             consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId))
               .map(unboxFullOrFail(_, Some(cc), s"$ConsentNotFound ($consentId)", 404))
-            _ <- Helper.booleanToFuture(s"$ConsentStatusIssue${ConsentStatus.AWAITINGAUTHORISATION.toString} to start SCA (current: ${consent.status}).", 400, Some(cc)) {
-              consent.status.toUpperCase == ConsentStatus.AWAITINGAUTHORISATION.toString
+            _ <- Helper.booleanToFuture(s"$ConsentStatusIssue one of ${ukReAuthableStatuses.mkString(", ")} to start SCA (current: ${consent.status}).", 400, Some(cc)) {
+              ukReAuthableStatuses.contains(consent.status.toUpperCase)
+            }
+            // Re-authentication is only allowed before the consent's ExpirationDateTime (a null
+            // ExpirationDateTime = never expires); an expired consent must be recreated.
+            _ <- Helper.booleanToFuture(s"$ConsentExpiredIssue", 400, Some(cc)) {
+              Option(consent.expirationDateTime).forall(_.getTime >= System.currentTimeMillis)
+            }
+            // A consent already bound to a PSU may only be (re-)authorised by that same PSU --
+            // otherwise a different user of the same consumer could hijack it.
+            _ <- Helper.booleanToFuture(s"$ConsentDoesNotMatchUser", 403, Some(cc)) {
+              Option(consent.userId).forall(_.isBlank) || consent.userId == user.userId
             }
             (challenges, _) <- NewStyle.function.createChallengesC2(
               List(user.userId),
@@ -4322,7 +4345,7 @@ object Http4s510 {
       |""",
       EmptyBody,
       UKConsentScaChallengeJsonV510("74a8ebda-9e5a-4c3f-9b0b-1a2b3c4d5e6f", "received", "SMS"),
-      List($AuthenticatedUserIsRequired, ConsentNotFound, ConsentStatusIssue, InvalidConnectorResponse, UnknownError),
+      List($AuthenticatedUserIsRequired, ConsentNotFound, ConsentStatusIssue, ConsentExpiredIssue, ConsentDoesNotMatchUser, InvalidConnectorResponse, UnknownError),
       apiTagConsent :: apiTagPSD2AIS :: Nil,
       None,
       http4sPartialFunction = Some(authoriseUKConsentChallenge)
@@ -4337,23 +4360,41 @@ object Http4s510 {
     // flip it to AUTHORISED — the missing "authorisation binding" step of the UK flow.
     // User-authenticated but role-free (the account holder is approving their own consent).
     val authoriseUKConsent: HttpRoutes[IO] = HttpRoutes.of[IO] {
-      case req @ POST -> `prefixPath` / "banks" / _ / "consents" / consentId / "authorise" =>
+      case req @ POST -> `prefixPath` / "banks" / bankIdStr / "consents" / consentId / "authorise" =>
         EndpointHelpers.executeFuture(req) {
           implicit val cc: code.api.util.CallContext = req.callContext
           for {
             user <- Future.successful(cc.user.openOrThrowException(AuthenticatedUserIsRequired))
             consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId))
               .map(unboxFullOrFail(_, Some(cc), s"$ConsentNotFound ($consentId)", 404))
-            // Only a consent still awaiting authorisation can be authorised. This status
-            // is UK-specific (Berlin Group uses "received", OBP uses INITIATED), so the
-            // guard also effectively scopes this endpoint to the UK flow.
-            _ <- Helper.booleanToFuture(s"$ConsentStatusIssue${ConsentStatus.AWAITINGAUTHORISATION.toString} to be authorised (current: ${consent.status}).", 400, Some(cc)) {
-              consent.status.toUpperCase == ConsentStatus.AWAITINGAUTHORISATION.toString
+            // The initial authorisation (AWAITINGAUTHORISATION) and re-authentication of an
+            // already-authorised or dashboard-revoked (wire: CANC) consent are both allowed --
+            // see ukReAuthableStatuses. EXPIRED/REJECTED are terminal. These statuses are
+            // UK-specific (Berlin Group uses "received", OBP uses INITIATED), so the guard also
+            // effectively scopes this endpoint to the UK flow.
+            _ <- Helper.booleanToFuture(s"$ConsentStatusIssue one of ${ukReAuthableStatuses.mkString(", ")} to be authorised (current: ${consent.status}).", 400, Some(cc)) {
+              ukReAuthableStatuses.contains(consent.status.toUpperCase)
+            }
+            // Re-authentication is only allowed before the consent's ExpirationDateTime (a null
+            // ExpirationDateTime = never expires); an expired consent must be recreated.
+            _ <- Helper.booleanToFuture(s"$ConsentExpiredIssue", 400, Some(cc)) {
+              Option(consent.expirationDateTime).forall(_.getTime >= System.currentTimeMillis)
+            }
+            // A consent already bound to a PSU may only be (re-)authorised by that same PSU --
+            // otherwise a different user of the same consumer could hijack it.
+            _ <- Helper.booleanToFuture(s"$ConsentDoesNotMatchUser", 403, Some(cc)) {
+              Option(consent.userId).forall(_.isBlank) || consent.userId == user.userId
             }
             // Verify the SCA challenge answer before authorising (dynamic linking to this consent).
             // The challenge must have been started via POST .../authorise/challenge.
             authJson <- NewStyle.function.tryons(s"$InvalidJsonFormat The Json body should be the $PostUKConsentAuthoriseJsonV510 ", 400, Some(cc)) {
               com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("")).extract[PostUKConsentAuthoriseJsonV510]
+            }
+            // The PSU must select at least one account for the consented permissions to bind to —
+            // see grantUKConsentAccountAccess (Gap 4 remediation: previously the consent's
+            // Permissions were never bound to a real account and had zero enforcement effect).
+            _ <- Helper.booleanToFuture(s"$InvalidJsonFormat The Json body should be the $PostUKConsentAuthoriseJsonV510 (account_ids must not be empty) ", 400, Some(cc)) {
+              authJson.account_ids.nonEmpty
             }
             (_, _) <- NewStyle.function.getChallenge(authJson.challenge_id, Some(cc))
             (challenge, _) <- NewStyle.function.validateChallengeAnswerC4(
@@ -4367,6 +4408,37 @@ object Http4s510 {
             _ <- Helper.booleanToFuture(s"$InvalidChallengeAnswer", 403, Some(cc)) {
               challenge.scaStatus.contains(StrongCustomerAuthenticationStatus.finalised)
             }
+            // Bind the consented permissions to the PSU-selected accounts, replacing the
+            // (bank_id=null, account_id=null) dead views createUKConsentJWT wrote at consent
+            // creation time.
+            //
+            // This runs before anything is written because it is the last step that can still
+            // refuse the request: it rejects an account_id the PSU does not hold
+            // (ConsentAccountNotHeldByUser) or one that does not exist at this bank. It used to run
+            // after updateConsentUser, and a refused authorisation therefore left the consent bound
+            // to whoever attempted it -- status still AWAITINGAUTHORISATION, mUserId now the
+            // caller. The ConsentDoesNotMatchUser guard above then locked the real PSU out of their
+            // own consent, and the lodging TPP lost it too, with no way back through the API. A
+            // consent id travels to the browser in the authorisation redirect, so a single failing
+            // request from anyone who had seen one was enough. Nothing here is transactional, so
+            // ordering is what has to carry it: refuse first, commit afterwards.
+            //
+            // Not connectorEmptyResponse: that turns every Box into InvalidConnectorResponse at
+            // 400, so the refusal reached the TPP as "OBP-50200 Connector cannot return the data
+            // we requested. connectorEmptyResponse <- OBP-35037 ..." -- an authorisation decision
+            // presented as a connector fault, with the reason buried behind a cause it has
+            // nothing to do with. A Failure here carries its own message and is the same kind of
+            // answer as the ConsentDoesNotMatchUser guard above, so it gets the same 403. Only a
+            // genuinely empty Box is a connector problem.
+            _ <- Consent.grantUKConsentAccountAccess(user, BankId(bankIdStr), authJson.account_ids, consent, Some(cc))
+              .flatMap {
+                case Full(granted) => Future.successful(granted)
+                case Failure(reason, _, _) =>
+                  // booleanToFuture(false) always fails, so the mapped value is never reached --
+                  // it only lines the branches up to one type.
+                  Helper.booleanToFuture(reason, 403, Some(cc))(false).map(_ => consent)
+                case Empty => Future.successful(connectorEmptyResponse(Empty: Box[MappedConsent], Some(cc)))
+              }
             // Bind the PSU as the consent's user in the DB (mUserId).
             consentAfterBind <- Future(Consents.consentProvider.vend.updateConsentUser(consentId, user))
               .map(i => connectorEmptyResponse(i, Some(cc)))
@@ -4375,11 +4447,13 @@ object Http4s510 {
             // rather than the client_credentials pseudo-user the consent was lodged under.
             // Despite its name, updateUserIdOfBerlinGroupConsentJWT only rewrites
             // createdByUserId (via ConsentJWT.copy) — the UK permission views are preserved.
+            // updateConsentUser re-reads the row from the database, so the JWT copied here is the
+            // one grantUKConsentAccountAccess just wrote, views and all.
             updatedJwt <- Future(Consent.updateUserIdOfBerlinGroupConsentJWT(user.userId, consentAfterBind, Some(cc)))
               .map(i => connectorEmptyResponse(i, Some(cc)))
-            _ <- Future(Consents.consentProvider.vend.setJsonWebToken(consentId, updatedJwt))
+            consentWithUser <- Future(Consents.consentProvider.vend.setJsonWebToken(consentId, updatedJwt))
               .map(i => connectorEmptyResponse(i, Some(cc)))
-            updatedConsent <- Future(Consents.consentProvider.vend.updateConsentStatus(consentId, ConsentStatus.AUTHORISED))
+            updatedConsent <- Future(Consents.consentProvider.vend.updateConsentStatus(consentWithUser.consentId, ConsentStatus.AUTHORISED))
               .map(i => connectorEmptyResponse(i, Some(cc)))
           } yield ConsentJsonV310(updatedConsent.consentId, updatedConsent.jsonWebToken, updatedConsent.status)
         }
@@ -4395,22 +4469,25 @@ object Http4s510 {
       |Authorise a UK Open Banking account-access consent as the current (PSU) user, after SCA.
       |
       |The TPP first lodges the intent via `POST /account-access-consents`; the consent is
-      |created in ${ConsentStatus.AWAITINGAUTHORISATION} state with no bound user. The PSU then
-      |starts SCA via `POST .../authorise/challenge` and submits the resulting `challenge_id`
-      |plus the OTP `answer` here. On a valid answer this binds the consent to the PSU and
-      |transitions it to ${ConsentStatus.AUTHORISED}, so subsequent UK data calls whose access
-      |token carries the `consent_id` claim pass the consent check.
+      |created in ${ConsentStatus.AWAITINGAUTHORISATION} state with no bound user and no bound
+      |accounts. The PSU then starts SCA via `POST .../authorise/challenge` and submits the
+      |resulting `challenge_id` plus the OTP `answer`, together with the `account_ids` the PSU
+      |is selecting for this consent, here. On a valid answer this binds the consent to the PSU
+      |and to those accounts — every permission the consent declared is granted on each selected
+      |account — and transitions it to ${ConsentStatus.AUTHORISED}, so subsequent UK data calls
+      |whose access token carries the `consent_id` claim pass the consent check and are scoped to
+      |exactly the accounts and permissions the PSU approved.
       |
       |${userAuthenticationMessage(true)}
       |
       |""",
-      PostUKConsentAuthoriseJsonV510("74a8ebda-9e5a-4c3f-9b0b-1a2b3c4d5e6f", "123"),
+      PostUKConsentAuthoriseJsonV510("74a8ebda-9e5a-4c3f-9b0b-1a2b3c4d5e6f", "123", List("8ca8a7e4-6d05-4b21-a165-c02c39d77e55")),
       ConsentJsonV310(
         "9d429899-24f5-42c8-8565-943ffa6a7945",
         "eyJhbGciOiJIUzI1NiJ9.eyJ2aWV3cyI6W119.signature",
         "AUTHORISED"
       ),
-      List($AuthenticatedUserIsRequired, ConsentNotFound, ConsentStatusIssue, InvalidJsonFormat, InvalidChallengeAnswer, InvalidConnectorResponse, UnknownError),
+      List($AuthenticatedUserIsRequired, ConsentNotFound, ConsentStatusIssue, ConsentExpiredIssue, ConsentDoesNotMatchUser, InvalidJsonFormat, InvalidChallengeAnswer, $BankAccountNotFound, InvalidConnectorResponse, UnknownError),
       apiTagConsent :: apiTagPSD2AIS :: Nil,
       None,
       http4sPartialFunction = Some(authoriseUKConsent)
@@ -4577,8 +4654,13 @@ object Http4s510 {
           for {
             consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId))
               .map(unboxFullOrFail(_, Some(cc), ConsentNotFound, 404))
-            _ <- Helper.booleanToFuture(failMsg = ConsentNotFound, failCode = 404, cc = Some(cc)) {
-              consent.mUserId == cc.userId
+            // cc.humanUser, not cc.userId: under consent authentication the principal is the
+            // per-consent shadow user, so comparing it against the consent's PSU never matched and
+            // the PSU got a 404 for their own consent. See Consent.checkObpConsentUserAccess for
+            // why an unbound consent stays readable.
+            _ <- Consent.checkObpConsentUserAccess(consent.userId, cc.humanUser.toOption.map(_.userId)) match {
+              case Some(reason) => Helper.booleanToFuture(failMsg = reason, failCode = 404, cc = Some(cc))(false)
+              case None => Future.successful(true)
             }
           } yield JSONFactory510.getConsentInfoJson(consent)
         }

@@ -174,7 +174,7 @@ The Open Bank Project (OBP) is an open-source RESTful API platform for banks tha
 - **Caching**: Multi-layer caching strategy with ETags
 - **Metrics & Monitoring**: API usage metrics, performance tracking
 - **Database Support**: PostgreSQL, Oracle, MySQL, MS SQL Server, H2
-- **Akka Integration**: Actor-based concurrency model
+- **Pekko Integration**: Actor-based concurrency model (Pekko is the renamed Akka fork; the connector and props names still read `akka`)
 - **Connection Pooling**: Efficient database connection management
 
 #### 1.2.13 Developer Experience
@@ -354,12 +354,12 @@ The Open Bank Project (OBP) is an open-source RESTful API platform for banks tha
 
 **Backend (OBP-API):**
 
-- Language: Scala 2.12/2.13
-- Framework: Liftweb (API logic), HTTP4S (runtime server)
+- Language: Scala 2.12.21
+- Framework: HTTP4S (API logic and runtime server); Lift survives only as the Mapper ORM
 - Build Tool: Maven 3
-- Server: HTTP4S (Blaze) - standalone executable JAR, no application server required
-- Concurrency: Akka
-- JDK: OpenJDK 11+
+- Server: HTTP4S (Ember) - standalone executable JAR, no application server required
+- Concurrency: Pekko (the renamed Akka fork; connector names and props keep the `akka` spelling)
+- JDK: OpenJDK 25 (pinned; see `<java.version>` in `pom.xml`)
 - Modules: `obp-commons` + `obp-api` (2-module structure)
 
 **Frontend (API Explorer II):**
@@ -1522,7 +1522,7 @@ POST /open-banking/v3.1/cbpii/funds-confirmation-consents
 
 **Software Requirements:**
 
-- Java: OpenJDK 11+ or Oracle JDK 1.8/13
+- Java: OpenJDK 25 (pinned; older JDKs are rejected by the build)
 - Maven: 3.6+
 - Node.js: 18+ (for frontend components)
 - PostgreSQL: 12+ (production)
@@ -1597,7 +1597,7 @@ mvn install -pl .,obp-commons -DskipTests && mvn package -pl obp-api -DskipTests
 java -Xss128m -jar obp-api/target/obp-api.jar
 ```
 
-**For Java 11+ (if needed):**
+**The `--add-opens` flags (required on the pinned JDK 25, as on any Java 11+):**
 
 ```bash
 mkdir -p .mvn
@@ -3976,7 +3976,7 @@ sudo systemctl start obp-api
 
 ```bash
 # Install Java
-sdk install java 11.0.2-open
+sdk install java 25-tem
 
 # Install Maven
 sdk install maven 3.8.6

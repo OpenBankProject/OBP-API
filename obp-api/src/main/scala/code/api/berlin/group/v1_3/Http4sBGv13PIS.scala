@@ -11,10 +11,12 @@ import code.api.util.APIUtil.{EmptyBody, ResourceDoc, UserOrApplication, getScaM
 import code.api.util.ApiTag._
 import code.api.util.ErrorMessages._
 import code.api.util.CustomJsonFormats
-import code.api.util.{ApiTag, CallContext, NewStyle}
+import code.api.util.APIUtil.OBPReturnType
+import code.api.util.{ApiTag, CallContext, Consent, NewStyle}
 import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps}
 import code.api.util.http4s.{ErrorResponseConverter, RequestScopeConnection}
 import code.fx.fx
+import code.transactionrequests.TransactionRequests
 import code.util.Helper
 import code.util.Helper.{MdcLoggable, booleanToFuture}
 import com.github.dwickern.macros.NameOf.nameOf
@@ -70,6 +72,46 @@ object Http4sBGv13PIS extends MdcLoggable {
   private def checkPaymentServiceType(paymentService: String) = tryo {
     PaymentServiceTypes.withName(paymentService.replaceAll("-", "_"))
   }.isDefined
+
+  /**
+   * Fetch a payment the caller is entitled to address.
+   *
+   * Berlin Group names a payment by its id alone — there is no account in the path — so nothing in
+   * the route ties the payment to whoever is calling. Fetching one must therefore also establish
+   * that the caller is the party that lodged it; otherwise any authenticated TPP holding a paymentId
+   * could read another TPP's payment, list or start authorisations on it, or cancel it. Under
+   * NextGenPSD2 a payment initiation resource belongs to the TPP that created it, and only that TPP
+   * addresses it afterwards.
+   *
+   * Two things have to line up, because Berlin Group binds a payment to the TPP and the ASPSP
+   * separately knows which PSU it is for.
+   *
+   *  - The TPP. The consumer that lodged the payment is recorded on it, and a caller presenting a
+   *    different one is refused even when it is acting for the same PSU: one TPP's mandate over a
+   *    payment is not another's. Payments lodged before the consumer was recorded carry none, and
+   *    fall back to the person check alone rather than becoming unaddressable.
+   *  - The person. A payment records the principal that lodged it and, when it was lodged under a
+   *    consent, the PSU it was lodged for; a caller presents the same two. Any overlap is enough, so
+   *    a payment lodged on a client-credentials token can still be authorised under the PSU's token
+   *    and the other way round. A payment carrying neither identity belongs to nobody.
+   */
+  private def getOwnPaymentImpl(paymentId: String, callContext: Option[CallContext]): OBPReturnType[TransactionRequest] =
+    for {
+      (transactionRequest, callContext) <- NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentId), callContext)
+      initiators = Set(transactionRequest.user_id, transactionRequest.on_behalf_of_user_id).flatten.filter(_.nonEmpty)
+      callers = callContext.toSet[CallContext].flatMap(cc => cc.user.toOption.map(_.userId) ++ Consent.actingPsu(cc).map(_.userId))
+      callingConsumer = callContext.flatMap(_.consumer.map(_.consumerId.get))
+      // Read straight off the stored row rather than through the TransactionRequest model: which
+      // TPP lodged a payment is this guard's business, not something every REST connector needs on
+      // the wire, and that model's shape is a frozen contract.
+      lodgedByConsumer = TransactionRequests.transactionRequestProvider.vend
+        .getMappedTransactionRequest(TransactionRequestId(paymentId))
+        .map(_.mConsumerId.get).toOption.filter(_.nonEmpty)
+      sameTpp = lodgedByConsumer.forall(lodgedBy => callingConsumer.contains(lodgedBy))
+      _ <- Helper.booleanToFuture(s"$PaymentNotInitiatedByCaller Payment id: $paymentId.", 403, callContext) {
+        sameTpp && initiators.exists(callers)
+      }
+    } yield (transactionRequest, callContext)
 
   /**
    * Shared business logic for all three initiate-payment variants (payments / periodic-payments /
@@ -145,7 +187,7 @@ object Http4sBGv13PIS extends MdcLoggable {
           transactionRequestTypes <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct), 404, callContext) {
             TransactionRequestTypes.withName(paymentProduct.replaceAll("-", "_").toUpperCase)
           }
-          (transactionRequest, _) <- NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentId), callContext)
+          (transactionRequest, _) <- getOwnPaymentImpl(paymentId, callContext)
           transactionRequestBody <- NewStyle.function.tryons(s"${UnknownError} No data for Payment Body ", 400, callContext) {
             transactionRequest.body.to_sepa_credit_transfers.get
           }
@@ -189,7 +231,7 @@ object Http4sBGv13PIS extends MdcLoggable {
             failMsg = s"$TransactionRequestCannotBeCancelled Payment status: $mappedStatus. Only payments in RCVD, ACCP, PDNG, or CANC status can be cancelled.",
             cc = callContext
           ) { canBeCancelled == true }
-          (updatedTransactionRequest, _) <- NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentId), callContext)
+          (updatedTransactionRequest, _) <- getOwnPaymentImpl(paymentId, callContext)
         } yield {
           startSca.getOrElse(false) match {
             case true  => Some(createCancellationTransactionRequestJson(updatedTransactionRequest))
@@ -219,7 +261,7 @@ object Http4sBGv13PIS extends MdcLoggable {
           _ <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct), 404, callContext) {
             TransactionRequestTypes.withName(paymentProduct.replaceAll("-", "_").toUpperCase)
           }
-          (_, _) <- NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentId), callContext)
+          (_, _) <- getOwnPaymentImpl(paymentId, callContext)
           (challenge, _) <- NewStyle.function.getChallenge(cancellationId, callContext)
         } yield {
           JSONFactory_BERLIN_GROUP_1_3.ScaStatusJsonV13(challenge.scaStatus.map(_.toString).getOrElse("None"))
@@ -240,7 +282,7 @@ object Http4sBGv13PIS extends MdcLoggable {
           _ <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct), 404, callContext) {
             TransactionRequestTypes.withName(paymentProduct.replaceAll("-", "_").toUpperCase)
           }
-          (transactionRequest, _) <- NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentId), callContext)
+          (transactionRequest, _) <- getOwnPaymentImpl(paymentId, callContext)
           transactionRequestBody <- NewStyle.function.tryons(s"${UnknownError} No data for Payment Body ", 400, callContext) {
             transactionRequest.body.to_sepa_credit_transfers.get
           }
@@ -263,7 +305,7 @@ object Http4sBGv13PIS extends MdcLoggable {
           _ <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct), 404, callContext) {
             TransactionRequestTypes.withName(paymentProduct.replaceAll("-", "_").toUpperCase)
           }
-          (_, _) <- NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentId), callContext)
+          (_, _) <- getOwnPaymentImpl(paymentId, callContext)
           (challenges, _) <- NewStyle.function.getChallengesByTransactionRequestId(paymentId, callContext)
         } yield {
           JSONFactory_BERLIN_GROUP_1_3.createStartPaymentAuthorisationsJson(challenges)
@@ -284,6 +326,7 @@ object Http4sBGv13PIS extends MdcLoggable {
           _ <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct), 404, callContext) {
             TransactionRequestTypes.withName(paymentProduct.replaceAll("-", "_").toUpperCase)
           }
+          (_, _) <- getOwnPaymentImpl(paymentId, callContext)
           (challenges, _) <- NewStyle.function.getChallengesByTransactionRequestId(paymentId, callContext)
         } yield {
           JSONFactory_BERLIN_GROUP_1_3.CancellationJsonV13(challenges.map(_.challengeId))
@@ -304,7 +347,7 @@ object Http4sBGv13PIS extends MdcLoggable {
           _ <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct), 404, callContext) {
             TransactionRequestTypes.withName(paymentProduct.replaceAll("-", "_").toUpperCase)
           }
-          (_, _) <- NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentId), callContext)
+          (_, _) <- getOwnPaymentImpl(paymentId, callContext)
           (challenge, _) <- NewStyle.function.getChallenge(authorisationId, callContext)
         } yield {
           json.parse(s"""{"scaStatus" : "${challenge.scaStatus.getOrElse("None")}"}""")
@@ -326,7 +369,7 @@ object Http4sBGv13PIS extends MdcLoggable {
           _ <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct), 404, callContext) {
             TransactionRequestTypes.withName(paymentProduct.replaceAll("-", "_").toUpperCase)
           }
-          (transactionRequest, _) <- NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentId), callContext)
+          (transactionRequest, _) <- getOwnPaymentImpl(paymentId, callContext)
           transactionRequestStatus = mapTransactionStatus(transactionRequest.status)
           transactionRequestAmount <- NewStyle.function.tryons(s"${InvalidNumber} transaction request amount cannot convert to a Decimal", 400, callContext) {
             BigDecimal(transactionRequest.body.to_sepa_credit_transfers.get.instructedAmount.amount)
@@ -394,7 +437,7 @@ object Http4sBGv13PIS extends MdcLoggable {
         val callContext = Some(cc)
         val u           = cc.user.openOrThrowException(AuthenticatedUserIsRequired)
         val parsedJson  = scala.util.Try(json.parse(cc.httpBody.getOrElse(""))).getOrElse(json.JNothing)
-        if (checkTransactionAuthorisation(parsedJson)) {
+        if (startsAuthorisation(parsedJson)) {
           for {
             _ <- passesPsd2Pisp(callContext)
             _ <- NewStyle.function.tryons(checkPaymentServerTypeError(paymentService), 404, callContext) {
@@ -403,7 +446,7 @@ object Http4sBGv13PIS extends MdcLoggable {
             _ <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct), 404, callContext) {
               TransactionRequestTypes.withName(paymentProduct.replaceAll("-", "_").toUpperCase)
             }
-            (_, _) <- NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentId), callContext)
+            (_, _) <- getOwnPaymentImpl(paymentId, callContext)
             (challenges, _) <- NewStyle.function.createChallengesC2(
               List(u.userId),
               ChallengeType.BERLIN_GROUP_PAYMENT_CHALLENGE,
@@ -420,8 +463,12 @@ object Http4sBGv13PIS extends MdcLoggable {
           } yield {
             JSONFactory_BERLIN_GROUP_1_3.createStartPaymentAuthorisationJson(challenge)
           }
-        } else {
-          // Mocked response for updatePsuAuthentication and selectPsuAuthenticationMethod variants
+        } else if (checkUpdatePsuAuthentication(parsedJson) || checkSelectPsuAuthenticationMethod(parsedJson)) {
+          // Mocked for the updatePsuAuthentication and selectPsuAuthenticationMethod variants, which
+          // are Embedded-approach steps OBP does not implement. Guarded now: this was the
+          // unconditional final else, so any body the server could not recognise was answered with
+          // this example -- a fabricated authorisationId, returned 201, that matches no challenge.
+          // The TPP only discovers it at the PUT, where the id resolves to nothing.
           Future.successful(json.parse(
             """{
               "challengeData": {
@@ -433,6 +480,13 @@ object Http4sBGv13PIS extends MdcLoggable {
                 }
               }
             }"""))
+        } else {
+          // None of the recognised shapes. A malformed request has to be reported as one; handing
+          // back an id that was never minted only moves the failure somewhere harder to read.
+          Helper.booleanToFuture(
+            failMsg = s"$InvalidJsonFormat The Json body should be empty, or one of " +
+              s"updatePsuAuthentication, selectPsuAuthenticationMethod or transactionAuthorisation.",
+            failCode = 400, cc = callContext)(false).map(_ => json.parse("{}"))
         }
       }
   }
@@ -445,7 +499,7 @@ object Http4sBGv13PIS extends MdcLoggable {
         val callContext = Some(cc)
         val u           = cc.user.openOrThrowException(AuthenticatedUserIsRequired)
         val parsedJson  = scala.util.Try(json.parse(cc.httpBody.getOrElse(""))).getOrElse(json.JNothing)
-        if (checkTransactionAuthorisation(parsedJson)) {
+        if (startsAuthorisation(parsedJson)) {
           for {
             _ <- passesPsd2Pisp(callContext)
             _ <- NewStyle.function.tryons(checkPaymentServerTypeError(paymentService), 404, callContext) {
@@ -454,7 +508,7 @@ object Http4sBGv13PIS extends MdcLoggable {
             _ <- NewStyle.function.tryons(checkPaymentProductError(paymentProduct), 404, callContext) {
               TransactionRequestTypes.withName(paymentProduct.replaceAll("-", "_").toUpperCase)
             }
-            (transactionRequest, _) <- NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentId), callContext)
+            (transactionRequest, _) <- getOwnPaymentImpl(paymentId, callContext)
             _ <- Helper.booleanToFuture(failMsg = CannotStartTheAuthorisationProcessForTheCancellation, cc = callContext) {
               transactionRequest.status == TransactionRequestStatus.CANCELLATION_PENDING.toString
             }
@@ -476,8 +530,12 @@ object Http4sBGv13PIS extends MdcLoggable {
               challenge, paymentService, paymentProduct, paymentId
             )
           }
-        } else {
-          // Mocked for updatePsuAuthentication and selectPsuAuthenticationMethod variants
+        } else if (checkUpdatePsuAuthentication(parsedJson) || checkSelectPsuAuthenticationMethod(parsedJson)) {
+          // Mocked for the updatePsuAuthentication and selectPsuAuthenticationMethod variants, which
+          // are Embedded-approach steps OBP does not implement. Guarded now: this was the
+          // unconditional final else, so any body the server could not recognise was answered with
+          // this example -- a fabricated authorisationId, returned 201, that matches no challenge.
+          // The TPP only discovers it at the PUT, where the id resolves to nothing.
           Future.successful(json.parse(
             """{
               "scaStatus": "received",
@@ -489,6 +547,13 @@ object Http4sBGv13PIS extends MdcLoggable {
                 }
               }
             }"""))
+        } else {
+          // None of the recognised shapes. A malformed request has to be reported as one; handing
+          // back an id that was never minted only moves the failure somewhere harder to read.
+          Helper.booleanToFuture(
+            failMsg = s"$InvalidJsonFormat The Json body should be empty, or one of " +
+              s"updatePsuAuthentication, selectPsuAuthenticationMethod or transactionAuthorisation.",
+            failCode = 400, cc = callContext)(false).map(_ => json.parse("{}"))
         }
       }
   }
@@ -513,13 +578,13 @@ object Http4sBGv13PIS extends MdcLoggable {
               TransactionRequestTypes.withName(paymentProduct.replaceAll("-", "_").toUpperCase)
             }
             transactionRequestId = TransactionRequestId(paymentId)
-            (existingTransactionRequest, _) <- NewStyle.function.getTransactionRequestImpl(transactionRequestId, callContext)
+            (existingTransactionRequest, _) <- getOwnPaymentImpl(transactionRequestId.value, callContext)
             _ <- Helper.booleanToFuture(failMsg = CannotUpdatePSUDataCancellation, cc = callContext) {
               existingTransactionRequest.status == TransactionRequestStatus.INITIATED.toString ||
               existingTransactionRequest.status == TransactionRequestStatus.CANCELLATION_PENDING.toString ||
               existingTransactionRequest.status == TransactionRequestStatus.COMPLETED.toString
             }
-            (_, _) <- NewStyle.function.getTransactionRequestImpl(TransactionRequestId(paymentId), callContext)
+            (_, _) <- getOwnPaymentImpl(paymentId, callContext)
             (challenge, _) <- NewStyle.function.validateChallengeAnswerC4(
               ChallengeType.BERLIN_GROUP_PAYMENT_CHALLENGE,
               Some(paymentId),
@@ -569,8 +634,11 @@ object Http4sBGv13PIS extends MdcLoggable {
                 "authoriseTransaction": {"href": "/psd2/v1.3/payments/1234-wertiq-983/authorisations/123auth456"}
               }
             }"""))
-        } else {
-          // authorisationConfirmation variant
+        } else if (checkAuthorisationConfirmation(parsedJson)) {
+          // authorisationConfirmation variant. Guarded by the checker that already existed for it:
+          // this was the unconditional final else, so a body matching none of the four shapes -- an
+          // empty one included -- was answered "scaStatus": "finalised", the terminal success state
+          // of strong customer authentication, for an authorisation nothing had happened to.
           Future.successful(json.parse(
             """{
               "scaStatus": "finalised",
@@ -578,6 +646,13 @@ object Http4sBGv13PIS extends MdcLoggable {
                 "status":  {"href":"/v1.3/payments/sepa-credit-transfers/qwer3456tzui7890/status"}
               }
             }"""))
+        } else {
+          // None of the four Berlin Group shapes. Malformed, and it has to say so: claiming an SCA
+          // outcome for a request the server could not read is worse than any of them.
+          Helper.booleanToFuture(
+            failMsg = s"$InvalidJsonFormat The Json body should be one of updatePsuAuthentication, " +
+              s"selectPsuAuthenticationMethod, transactionAuthorisation or authorisationConfirmation.",
+            failCode = 400, cc = callContext)(false).map(_ => json.parse("{}"))
         }
       }
   }
@@ -603,7 +678,7 @@ object Http4sBGv13PIS extends MdcLoggable {
               TransactionRequestTypes.withName(paymentProduct.replaceAll("-", "_").toUpperCase)
             }
             transactionRequestId = TransactionRequestId(paymentId)
-            (existingTransactionRequest, _) <- NewStyle.function.getTransactionRequestImpl(transactionRequestId, callContext)
+            (existingTransactionRequest, _) <- getOwnPaymentImpl(transactionRequestId.value, callContext)
             _ <- Helper.booleanToFuture(failMsg = CannotUpdatePSUData, cc = callContext) {
               existingTransactionRequest.status == TransactionStatus.RCVD.code
             }
@@ -657,8 +732,11 @@ object Http4sBGv13PIS extends MdcLoggable {
                 "authoriseTransaction": {"href": "/psd2/v1.3/payments/1234-wertiq-983/authorisations/123auth456"}
               }
             }"""))
-        } else {
-          // authorisationConfirmation variant
+        } else if (checkAuthorisationConfirmation(parsedJson)) {
+          // authorisationConfirmation variant. Guarded by the checker that already existed for it:
+          // this was the unconditional final else, so a body matching none of the four shapes -- an
+          // empty one included -- was answered "scaStatus": "finalised", the terminal success state
+          // of strong customer authentication, for an authorisation nothing had happened to.
           Future.successful(json.parse(
             """{
               "scaStatus": "finalised",
@@ -666,6 +744,13 @@ object Http4sBGv13PIS extends MdcLoggable {
                 "status":  {"href":"/v1.3/payments/sepa-credit-transfers/qwer3456tzui7890/status"}
               }
             }"""))
+        } else {
+          // None of the four Berlin Group shapes. Malformed, and it has to say so: claiming an SCA
+          // outcome for a request the server could not read is worse than any of them.
+          Helper.booleanToFuture(
+            failMsg = s"$InvalidJsonFormat The Json body should be one of updatePsuAuthentication, " +
+              s"selectPsuAuthenticationMethod, transactionAuthorisation or authorisationConfirmation.",
+            failCode = 400, cc = callContext)(false).map(_ => json.parse("{}"))
         }
       }
   }

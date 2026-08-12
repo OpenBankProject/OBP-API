@@ -2,9 +2,10 @@ package code.views
 
 import code.api.Constant
 import code.api.util.ErrorMessages.ViewIdNotSupported
+import code.model.ViewExtended
 import code.setup.{DefaultUsers, ServerSetup}
 import code.views.system.{ViewDefinition, ViewPermission}
-import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId, ViewId}
+import com.openbankproject.commons.model.{AccountId, BankAccountCommons, BankId, BankIdAccountId, ViewId}
 import net.liftweb.common.{Empty, Failure}
 
 class MappedViewsTest extends ServerSetup with DefaultUsers{
@@ -95,7 +96,192 @@ class MappedViewsTest extends ServerSetup with DefaultUsers{
       MapperViews.factoryResetSystemView(ViewId("does-not-exist")) shouldBe Empty
     }
 
+    // Regression coverage for the UK Open Banking / Berlin Group views-permissions gap
+    // remediation (Gap 1, 2, 5): each of these views previously either shared the generic
+    // SYSTEM_VIEW_PERMISSION_COMMON set (so "Detail" granted nothing beyond "Basic") or had no
+    // ViewPermission rows at all (the two BG views). Assert each view's allowed_actions match
+    // its target set exactly — no more, no less.
+    scenario("UK and Berlin Group system views have exact, differentiated can_* permission sets") {
+      // UK/BG views are opt-in (created on demand), not unconditionally present like auditor —
+      // getOrCreateSystemView creates them fresh with current code defaults; afterEach's
+      // ViewDefinition.bulkDelete_!! guarantees no stale permissions leak in between scenarios.
+      def actionsOf(viewId: String): Set[String] =
+        MapperViews.getOrCreateSystemView(viewId)
+          .openOrThrowException(s"$viewId should be a known system view")
+          .allowed_actions.toSet
 
+      actionsOf(Constant.SYSTEM_READ_ACCOUNTS_BASIC_VIEW_ID) should equal(Constant.SYSTEM_READ_ACCOUNTS_BASIC_VIEW_PERMISSION.toSet)
+      actionsOf(Constant.SYSTEM_READ_ACCOUNTS_DETAIL_VIEW_ID) should equal(Constant.SYSTEM_READ_ACCOUNTS_DETAIL_VIEW_PERMISSION.toSet)
+      actionsOf(Constant.SYSTEM_READ_BALANCES_VIEW_ID) should equal(Constant.SYSTEM_READ_BALANCES_VIEW_PERMISSION.toSet)
+      actionsOf(Constant.SYSTEM_READ_TRANSACTIONS_BASIC_VIEW_ID) should equal(Constant.SYSTEM_READ_TRANSACTIONS_BASIC_VIEW_PERMISSION.toSet)
+      actionsOf(Constant.SYSTEM_READ_TRANSACTIONS_DEBITS_VIEW_ID) should equal(Constant.SYSTEM_READ_TRANSACTIONS_DEBITS_VIEW_PERMISSION.toSet)
+      actionsOf(Constant.SYSTEM_READ_TRANSACTIONS_CREDITS_VIEW_ID) should equal(Constant.SYSTEM_READ_TRANSACTIONS_CREDITS_VIEW_PERMISSION.toSet)
+      actionsOf(Constant.SYSTEM_READ_TRANSACTIONS_DETAIL_VIEW_ID) should equal(Constant.SYSTEM_READ_TRANSACTIONS_DETAIL_VIEW_PERMISSION.toSet)
+      actionsOf(Constant.SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID) should equal(Constant.SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_PERMISSION.toSet)
+      actionsOf(Constant.SYSTEM_READ_BALANCES_BERLIN_GROUP_VIEW_ID) should equal(Constant.SYSTEM_READ_BALANCES_BERLIN_GROUP_VIEW_PERMISSION.toSet)
+
+      Then("Detail must be a strict superset of Basic (never narrower), for both Accounts and Transactions")
+      Constant.SYSTEM_READ_ACCOUNTS_DETAIL_VIEW_PERMISSION.toSet should contain allElementsOf Constant.SYSTEM_READ_ACCOUNTS_BASIC_VIEW_PERMISSION
+      Constant.SYSTEM_READ_ACCOUNTS_DETAIL_VIEW_PERMISSION.toSet.size should be > Constant.SYSTEM_READ_ACCOUNTS_BASIC_VIEW_PERMISSION.toSet.size
+      Constant.SYSTEM_READ_TRANSACTIONS_DETAIL_VIEW_PERMISSION.toSet should contain allElementsOf Constant.SYSTEM_READ_TRANSACTIONS_BASIC_VIEW_PERMISSION
+      Constant.SYSTEM_READ_TRANSACTIONS_DETAIL_VIEW_PERMISSION.toSet.size should be > Constant.SYSTEM_READ_TRANSACTIONS_BASIC_VIEW_PERMISSION.toSet.size
+
+      // This assertion used to read `should equal(Set(BALANCE, AVAILABLE_FUNDS))`. It was weakened
+      // on purpose and the reason is recorded rather than quietly absorbed: the set now also
+      // carries CAN_SEE_TRANSACTION_THIS_BANK_ACCOUNT, without which the view cannot moderate an
+      // account at all and the balances endpoint answers OBP-20022 instead of a balance (see the
+      // moderation scenario below). It is a gate, not a field -- so what the view must still not
+      // carry is the transaction *content* and anything about the other party, and that is what is
+      // asserted now. Rewriting this to match whatever the constant happens to contain would have
+      // thrown away the property the scenario exists for.
+      Then("Balances must carry no transaction content and nothing about the other party")
+      val balances = actionsOf(Constant.SYSTEM_READ_BALANCES_VIEW_ID)
+      balances should contain(Constant.CAN_SEE_BANK_ACCOUNT_BALANCE)
+      balances should contain(Constant.CAN_QUERY_AVAILABLE_FUNDS)
+      balances should not contain Constant.CAN_SEE_TRANSACTION_AMOUNT
+      balances should not contain Constant.CAN_SEE_TRANSACTION_TYPE
+      balances should not contain Constant.CAN_SEE_TRANSACTION_START_DATE
+      balances should not contain Constant.CAN_SEE_TRANSACTION_FINISH_DATE
+      balances.filter(_.contains("other_account")) shouldBe empty
+      balances.filter(_.contains("counterparty")) shouldBe empty
+      // The one transaction-named permission it may hold, and only that one.
+      balances.filter(_.startsWith("can_see_transaction")) should
+        equal(Set(Constant.CAN_SEE_TRANSACTION_THIS_BANK_ACCOUNT))
+    }
+
+    /**
+     * The scenario above proves the permission sets are right when a view is *created*. That is
+     * the only path it can reach: afterEach drops every ViewDefinition, so every scenario starts
+     * on an empty table and getOrCreateSystemView always takes its create branch.
+     *
+     * The upgrade path is the one that matters and was never covered. applyDefaultsForSystemView
+     * runs from unsavedSystemView (creation) and factoryResetSystemView (an admin endpoint);
+     * getOrCreateSystemView -- what boot calls -- returns an existing row untouched. So on a
+     * database where these views already exist carrying the generic set an older version gave
+     * them, tightening the sets in code changes nothing at all: "Detail" still grants nothing
+     * beyond "Basic", and Balances alone still exposes transaction and counterparty data.
+     *
+     * These build that database and then do what boot does.
+     */
+    val upgradedViews = List(
+      Constant.SYSTEM_READ_ACCOUNTS_BASIC_VIEW_ID -> Constant.SYSTEM_READ_ACCOUNTS_BASIC_VIEW_PERMISSION,
+      Constant.SYSTEM_READ_ACCOUNTS_DETAIL_VIEW_ID -> Constant.SYSTEM_READ_ACCOUNTS_DETAIL_VIEW_PERMISSION,
+      Constant.SYSTEM_READ_BALANCES_VIEW_ID -> Constant.SYSTEM_READ_BALANCES_VIEW_PERMISSION,
+      Constant.SYSTEM_READ_TRANSACTIONS_BASIC_VIEW_ID -> Constant.SYSTEM_READ_TRANSACTIONS_BASIC_VIEW_PERMISSION,
+      Constant.SYSTEM_READ_TRANSACTIONS_DEBITS_VIEW_ID -> Constant.SYSTEM_READ_TRANSACTIONS_DEBITS_VIEW_PERMISSION,
+      Constant.SYSTEM_READ_TRANSACTIONS_CREDITS_VIEW_ID -> Constant.SYSTEM_READ_TRANSACTIONS_CREDITS_VIEW_PERMISSION,
+      Constant.SYSTEM_READ_TRANSACTIONS_DETAIL_VIEW_ID -> Constant.SYSTEM_READ_TRANSACTIONS_DETAIL_VIEW_PERMISSION,
+      Constant.SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID -> Constant.SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_PERMISSION,
+      Constant.SYSTEM_READ_BALANCES_BERLIN_GROUP_VIEW_ID -> Constant.SYSTEM_READ_BALANCES_BERLIN_GROUP_VIEW_PERMISSION
+    )
+
+    /** A database written by the version that gave all of these one generic permission set. */
+    def seedPreUpgradeDatabase(): Unit = upgradedViews.foreach { case (viewId, _) =>
+      val view = MapperViews.getOrCreateSystemView(viewId)
+        .openOrThrowException(s"$viewId should be a known system view")
+      ViewPermission.resetViewPermissions(view, Constant.SYSTEM_VIEW_PERMISSION_COMMON)
+    }
+
+    def permissionsOf(viewId: String): Set[String] =
+      ViewDefinition.findSystemView(viewId)
+        .openOrThrowException(s"$viewId should exist by now").allowed_actions.toSet
+
+    scenario("an upgrade brings existing system views into line with the code") {
+      Given("a database whose nine UK/BG views carry the old generic permission set")
+      seedPreUpgradeDatabase()
+      permissionsOf(Constant.SYSTEM_READ_BALANCES_VIEW_ID) should
+        equal(Constant.SYSTEM_VIEW_PERMISSION_COMMON.toSet)
+
+      When("boot sets the system views up")
+      upgradedViews.foreach { case (viewId, _) => MapperViews.ensureSystemViewUpToDate(viewId) }
+
+      Then("every one of them matches what the code defines")
+      upgradedViews.foreach { case (viewId, expected) =>
+        withClue(s"$viewId: ") { permissionsOf(viewId) should equal(expected.toSet) }
+      }
+
+      And("Balances in particular no longer carries transaction content or counterparty visibility")
+      // Same weakening as the scenario above, for the same reason: the only transaction-named
+      // permission this view may hold is the moderation gate, which reveals nothing by itself.
+      val balances = permissionsOf(Constant.SYSTEM_READ_BALANCES_VIEW_ID)
+      balances.filter(_.startsWith("can_see_transaction")) should
+        equal(Set(Constant.CAN_SEE_TRANSACTION_THIS_BANK_ACCOUNT))
+      balances.filter(_.contains("other_account")) shouldBe empty
+    }
+
+    scenario("reconciling twice is a no-op, not a second write") {
+      seedPreUpgradeDatabase()
+      upgradedViews.foreach { case (viewId, _) => MapperViews.ensureSystemViewUpToDate(viewId) }
+      val afterFirst = upgradedViews.map { case (viewId, _) => viewId -> permissionsOf(viewId) }.toMap
+
+      When("boot runs again, as it does on every restart")
+      upgradedViews.foreach { case (viewId, _) => MapperViews.ensureSystemViewUpToDate(viewId) }
+
+      Then("nothing has changed, and no duplicate rows have accumulated")
+      upgradedViews.foreach { case (viewId, _) =>
+        withClue(s"$viewId: ") {
+          permissionsOf(viewId) should equal(afterFirst(viewId))
+          val rows = ViewPermission.findSystemViewPermissions(ViewId(viewId))
+          rows.map(_.permission.get).distinct.size should equal(rows.size)
+        }
+      }
+    }
+
+    /**
+     * The scenarios above compare each view's permission set against the constant that defines it,
+     * which is the constant compared with itself: they cannot tell whether a set is one an endpoint
+     * can actually use. That gap shipped a real defect. SYSTEM_READ_BALANCES_VIEW_PERMISSION was
+     * exactly {balance, available funds}, and the UK balances endpoint answered
+     *
+     *   OBP-20022 ... You need the `can_see_transaction_this_bank_account` permission on the
+     *   view(ReadBalances)
+     *
+     * because ViewExtended.moderateAccountCore gates the whole ModeratedBankAccount on that one
+     * permission, whatever field the caller wants. Every existing check stayed green: the view
+     * assertions compared the set with itself, the in-repo balances test only asserts 401/403 and
+     * never reads a balance, and the probe suite ran against a database whose ReadBalances still
+     * carried the old 74-permission set, so the code-defined one was exercised nowhere.
+     *
+     * So assert the property that actually matters -- the view can moderate an account -- by
+     * calling the gate rather than by reading the constant back.
+     */
+    scenario("the view the balances endpoints moderate an account through can actually do it") {
+      // A plain value: moderateAccountCore reads fields off it and does not go to the database,
+      // so the gate under test is reached without standing up an account fixture.
+      val account = BankAccountCommons(
+        accountId = AccountId("moderation-test-account"), accountType = "CURRENT",
+        balance = BigDecimal("1.00"), currency = "EUR", name = "moderation test",
+        label = "moderation test", number = "1", bankId = BankId("moderation-test-bank"),
+        lastUpdate = new java.util.Date(), branchId = "", accountRoutings = Nil,
+        accountRules = Nil, accountHolder = "")
+      // Exactly the views an endpoint reaches an account through, established by grepping the
+      // callers of moderatedBankAccountCore rather than assumed: the UK v3.1 and v4.0.1 balances
+      // endpoints, both of which resolve ReadBalances. Nothing else moderates an account.
+      //
+      // ReadAccountsBasic, ReadAccountsDetail and the two Berlin Group views cannot moderate one
+      // either -- none of them carries the gate. That is latent rather than broken, because no
+      // endpoint asks them to: the UK account reads resolve their fields without moderating, and
+      // Berlin Group has its own path. Asserting it here would either freeze that as correct or
+      // fail for endpoints that do not exist, so it is recorded and not asserted. If a future
+      // endpoint starts moderating through one of them, this list is where to add it.
+      val moderated = List(Constant.SYSTEM_READ_BALANCES_VIEW_ID)
+      moderated.foreach { viewId =>
+        val view = MapperViews.getOrCreateSystemView(viewId)
+          .openOrThrowException(s"$viewId should be a known system view")
+        withClue(s"$viewId cannot moderate an account, so every endpoint reading one through it " +
+                 s"answers OBP-20022 rather than data: ") {
+          ViewExtended(view).moderateAccountCore(account).isDefined should equal(true)
+        }
+      }
+    }
+
+    scenario("a view the code does not define is left alone") {
+      val owner = MapperViews.getOrCreateSystemView(Constant.SYSTEM_OWNER_VIEW_ID)
+        .openOrThrowException("owner should be a known system view")
+      val before = owner.allowed_actions.toSet
+      MapperViews.ensureSystemViewUpToDate(Constant.SYSTEM_READ_BALANCES_VIEW_ID)
+      permissionsOf(Constant.SYSTEM_OWNER_VIEW_ID) should equal(before)
+    }
 
   }
   

@@ -28,7 +28,8 @@ import scala.collection.mutable.ArrayBuffer
 /**
  * UK Open Banking v3.1 — BalancesApi, migrated from Lift to http4s.
  * getAccountsAccountIdBalances: real business logic with UK consent check.
- * getBalances: real business logic, no consent check (mirrors Lift).
+ * getBalances: real business logic, UK consent check (kept consistent with the v4.0.1
+ * equivalent -- see Http4sUKOBv401AccountInfo.getBalances).
  */
 object Http4sUKOBv310Balances extends MdcLoggable {
   type HttpF[A] = OptionT[IO, A]
@@ -135,10 +136,22 @@ object Http4sUKOBv310Balances extends MdcLoggable {
   lazy val getBalances: HttpRoutes[IO] = HttpRoutes.of[IO] {
     case req @ GET -> `ukV31Prefix` / "balances" =>
       EndpointHelpers.withUser(req) { (u, cc) =>
+        val balancesViewId = ViewId(Constant.SYSTEM_READ_BALANCES_VIEW_ID)
         for {
+          _ <- NewStyle.function.checkUKConsent(u, Some(cc))
+          _ <- passesPsd2Aisp(Some(cc))
           availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
           (accounts, _) <- NewStyle.function.getBankAccounts(availablePrivateAccounts, Some(cc))
-        } yield JSONFactory_UKOpenBanking_310.createBalancesJSON(accounts)
+        } yield {
+          // See the v4.0.1 twin: holding some view on an account does not make its balance readable,
+          // and this endpoint used to answer for every account the caller could see regardless of
+          // what the consent asked for. Filter on the same view the per-account endpoint checks.
+          val readable = accounts.filter { account =>
+            code.api.util.APIUtil.checkViewAccessAndReturnView(
+              balancesViewId, BankIdAccountId(account.bankId, account.accountId), Full(u), Some(cc)).isDefined
+          }
+          JSONFactory_UKOpenBanking_310.createBalancesJSON(readable)
+        }
       }
   }
   resourceDocs += ResourceDoc(

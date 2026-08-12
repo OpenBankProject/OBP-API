@@ -196,18 +196,34 @@ object BerlinGroupCheck extends MdcLoggable {
       .getOrElse(forwardResult)
   }
 
+  /**
+   * Whether the PSU was behind this request, which is what `frequencyPerDay` counts: it is "the
+   * requested maximum frequency for an access without PSU involvement per day".
+   *
+   * NextGenPSD2 settles the question with one header. On every AIS read and consent-management call,
+   * `PSU-IP-Address` "shall be contained if and only if this request was actively initiated by the
+   * PSU" (psd2-api v1.3, parameter `PSU-IP-Address_conditionalForAis`). Omitting it is therefore the
+   * TPP's declaration that no PSU is involved, and that is the case the daily limit governs.
+   *
+   * This used to be read the other way round: only a request carrying a sentinel value counted, so a
+   * TPP that simply sent nothing — the very shape the spec reserves for unattended access — was never
+   * counted at all, and each TPP decided whether its own daily limit applied to it.
+   *
+   * The two sentinels are still honoured, for a TPP that sends the header unconditionally and marks
+   * the no-PSU case in the value rather than by omission.
+   */
   def isTppRequestsWithoutPsuInvolvement(requestHeaders: List[HTTPParam]): Boolean = {
-    val psuIpAddress = getHeaderValue(RequestHeader.`PSU-IP-Address`, requestHeaders)
-    val psuDeviceId = getHeaderValue(RequestHeader.`PSU-Device-ID`, requestHeaders)
-    val psuDeviceNAme = getHeaderValue(RequestHeader.`PSU-Device-Name`, requestHeaders)
-    if(psuIpAddress == "0.0.0.0" || psuDeviceId == "no-psu-involved" || psuDeviceNAme == "no-psu-involved") {
-      logger.debug(s"isTppRequestsWithoutPsuInvolvement.psuIpAddress: $psuIpAddress")
-      logger.debug(s"isTppRequestsWithoutPsuInvolvement.psuDeviceId: $psuDeviceId")
-      logger.debug(s"isTppRequestsWithoutPsuInvolvement.psuDeviceNAme: $psuDeviceNAme")
-      true
-    } else {
-      false
-    }
+    def valueOf(name: String): Option[String] =
+      requestHeaders.find(_.name.equalsIgnoreCase(name)).map(_.values.mkString.trim).filter(_.nonEmpty)
+
+    val psuIpAddress = valueOf(RequestHeader.`PSU-IP-Address`)
+    val markedAsUnattended = psuIpAddress.contains("0.0.0.0") ||
+      valueOf(RequestHeader.`PSU-Device-ID`).contains("no-psu-involved") ||
+      valueOf(RequestHeader.`PSU-Device-Name`).contains("no-psu-involved")
+
+    val withoutPsu = psuIpAddress.isEmpty || markedAsUnattended
+    logger.debug(s"isTppRequestsWithoutPsuInvolvement: $withoutPsu (PSU-IP-Address: $psuIpAddress)")
+    withoutPsu
   }
 
   def validate(body: Box[String], verb: String, url: String, reqHeaders: List[HTTPParam], forwardResult: (Box[User], Option[CallContext])): OBPReturnType[Box[User]] = {

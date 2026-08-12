@@ -14,6 +14,9 @@ import scala.concurrent.Future
 
 object MappedAccountApplicationProvider extends AccountApplicationProvider {
 
+  /** The status every application starts in, and the only status a decision may be taken from. */
+  private val RequestedStatus = "REQUESTED"
+
   override def getAll(): Future[Box[List[AccountApplication]]] = Future {
     tryo{MappedAccountApplication.findAll()}
   }
@@ -25,7 +28,7 @@ object MappedAccountApplicationProvider extends AccountApplicationProvider {
   override def createAccountApplication(productCode: ProductCode, userId: Option[String], customerId: Option[String]): Future[Box[AccountApplication]] =
     Future {
       tryo {
-        MappedAccountApplication.create.mCode(productCode.value).mUserId(userId.orNull).mCustomerId(customerId.orNull).mStatus("REQUESTED").saveMe()
+        MappedAccountApplication.create.mCode(productCode.value).mUserId(userId.orNull).mCustomerId(customerId.orNull).mStatus(RequestedStatus).saveMe()
       }
   }
 
@@ -36,15 +39,18 @@ object MappedAccountApplicationProvider extends AccountApplicationProvider {
         case Full(accountApplication) if(accountApplication.status == "ACCEPTED") =>
           Failure(s"${ErrorMessages.AccountApplicationAlreadyAccepted} Current Account-Application-Id($accountApplicationId)")
         case Full(accountApplication)  =>
-          // Optimistic CAS: transition only if the status hasn't changed since we loaded it. Two
-          // concurrent updates that both read the same status can no longer both write — the loser
-          // (0 rows) gets a Failure instead of silently overwriting the winner's decision.
+          // The decision is one-shot: it may only be taken from REQUESTED. Guarding on the fixed
+          // initial status rather than the one just loaded is what makes that hold. A guard built
+          // from the loaded status matches whatever a preceding decision wrote, so a REJECTED
+          // application could be re-decided as ACCEPTED — and the ACCEPTED branch of the endpoint
+          // opens a bank account, so that overwrite is not recoverable.
           val rows = code.bankconnectors.DoobieBusinessStatusQueries.conditionalAccountApplicationStatus(
-            accountApplication.id.get, accountApplication.status, status)
+            accountApplication.id.get, RequestedStatus, status)
           if (rows == 1) MappedAccountApplication.find(By(MappedAccountApplication.mAccountApplicationId, accountApplicationId))
-          // Use the generic update-failure code here: the concurrent winner may have written any
-          // status (ACCEPTED or REJECTED), so the "already accepted" message would be misleading.
-          else Failure(s"${ErrorMessages.UpdateAccountApplicationStatusError} Status changed concurrently. Current Account-Application-Id($accountApplicationId)")
+          // 0 rows means the application left REQUESTED — either a concurrent decision won the race
+          // or one was already recorded. Use the generic update-failure code: the winner may have
+          // written any status, so the "already accepted" message would be misleading.
+          else Failure(s"${ErrorMessages.UpdateAccountApplicationStatusError} The account application is no longer in $RequestedStatus status. Current Account-Application-Id($accountApplicationId)")
         case Empty  => Failure(s"${ErrorMessages.AccountApplicationNotFound} Current Account-Application-Id($accountApplicationId)") 
         case _  => Failure(ErrorMessages.UnknownError) 
       }    

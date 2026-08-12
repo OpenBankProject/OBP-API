@@ -57,6 +57,11 @@ object BerlinGroupError {
       case "401" if message.contains("OBP-20203") => "PSU_CREDENTIALS_INVALID"
       case "401" if message.contains("OBP-20206") => "PSU_CREDENTIALS_INVALID"
       case "401" if message.contains("OBP-20207") => "PSU_CREDENTIALS_INVALID"
+      // The table above defines this code as "PSU-ID cannot be found by ASPSP", which is both of
+      // these: a PSU-ID naming nobody (OBP-20027), and an authorisation with no PSU identifiable at
+      // all (OBP-35039).
+      case "401" if message.contains("OBP-20027") => "PSU_CREDENTIALS_INVALID"
+      case "401" if message.contains("OBP-35039") => "PSU_CREDENTIALS_INVALID"
 
       case "401" if message.contains("OBP-20204") => "TOKEN_EXPIRED"
       case "401" if message.contains("OBP-20215") => "TOKEN_INVALID"

@@ -24,6 +24,43 @@ case class OBPOffset(value: Int) extends OBPQueryParam
 case class OBPFromDate(value: Date) extends OBPQueryParam
 case class OBPToDate(value: Date) extends OBPQueryParam
 case class OBPOrdering(field: Option[String], order: OBPOrder) extends OBPQueryParam
+/**
+ * Restrict a transaction query to one direction, so the database applies the restriction and any
+ * page limit together.
+ *
+ * `credits = true` keeps money in, `false` keeps money out. Zero counts as a credit, which is what
+ * UK Open Banking states and what UKAmounts.creditDebitIndicator implements -- the two have to
+ * agree, or a row could be labelled one direction in the response and selected as the other.
+ *
+ * A connector that does not honour this returns more rows than asked for, never fewer, so callers
+ * that use it to enforce a consent's scope must still filter what comes back.
+ */
+case class OBPTransactionDirection(credits: Boolean) extends OBPQueryParam
+object OBPTransactionDirection {
+
+  /**
+   * Where a credit starts, in the smallest currency unit. Inclusive, because zero is a credit.
+   *
+   * Lives beside the param because two enforcements have to agree on it: the connector's SQL
+   * predicate and the endpoint's filter over the rows that came back. A connector holding its own
+   * literal could drift from the filter, and a row would then be selected by one and dropped by the
+   * other.
+   */
+  val creditFloorInSmallestUnit = 0L
+
+  /**
+   * Whether the restriction this param expresses keeps a row of the given amount.
+   *
+   * The in-memory statement of what the connector's query does, so a test can hold the two sides of
+   * the rule against each other without standing up a database. Not a substitute for reading real
+   * rows through the real query -- uk_direction_paging.py does that -- but it pins the boundary.
+   */
+  def admits(param: OBPQueryParam, amountInSmallestUnit: Long): Boolean = param match {
+    case OBPTransactionDirection(true) => amountInSmallestUnit >= creditFloorInSmallestUnit
+    case OBPTransactionDirection(false) => amountInSmallestUnit < creditFloorInSmallestUnit
+    case _ => true
+  }
+}
 case class OBPConsumerId(value: String) extends OBPQueryParam
 case class OBPSortBy(value: String) extends OBPQueryParam
 case class OBPAzp(value: String) extends OBPQueryParam

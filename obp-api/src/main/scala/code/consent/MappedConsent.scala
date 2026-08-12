@@ -267,9 +267,9 @@ object MappedConsentProvider extends ConsentProvider with code.util.Helper.MdcLo
     accountIds: Option[List[String]],//for UK Open Banking endpoints, there is no accountIds there.
     consumerId: Option[String],
     permissions: List[String],
-    expirationDateTime: Date,
-    transactionFromDateTime: Date,
-    transactionToDateTime: Date,
+    expirationDateTime: Option[Date],
+    transactionFromDateTime: Option[Date],
+    transactionToDateTime: Option[Date],
     apiStandard: Option[String],
     apiVersion: Option[String]
   ) ={
@@ -279,9 +279,9 @@ object MappedConsentProvider extends ConsentProvider with code.util.Helper.MdcLo
         .mUserId(user.map(_.userId).getOrElse(null))
         .mConsumerId(consumerId.getOrElse(null))
         .mStatus(ConsentStatus.AWAITINGAUTHORISATION.toString)
-        .mExpirationDateTime(expirationDateTime)
-        .mTransactionFromDateTime(transactionFromDateTime)
-        .mTransactionToDateTime(transactionToDateTime)
+        .mExpirationDateTime(expirationDateTime.orNull)
+        .mTransactionFromDateTime(transactionFromDateTime.orNull)
+        .mTransactionToDateTime(transactionToDateTime.orNull)
         .mStatusUpdateDateTime(now)
         .mApiVersion(apiVersion.getOrElse(null))
         .mApiStandard(apiStandard.getOrElse(null))
@@ -291,9 +291,9 @@ object MappedConsentProvider extends ConsentProvider with code.util.Helper.MdcLo
         bankId: Option[String],
         accountIds: Option[List[String]],
         permissions: List[String],
-        expirationDateTime: Date,
-        transactionFromDateTime: Date,
-        transactionToDateTime: Date,
+        expirationDateTime: Option[Date],
+        transactionFromDateTime: Option[Date],
+        transactionToDateTime: Option[Date],
         secret = consent.secret,
         consentId = consent.consentId,
         consumerId: Option[String]
@@ -373,7 +373,13 @@ object MappedConsentProvider extends ConsentProvider with code.util.Helper.MdcLo
         // already revoked makes this a 0-row no-op, so we never resurrect or double-revoke.
         val rows = code.bankconnectors.DoobieConsentStatusQueries
           .conditionalRevoke(consent.id.get, ConsentStatus.REVOKED.toString)
-        if (rows == 1) MappedConsent.find(By(MappedConsent.mConsentId, consentId))
+        if (rows == 1) {
+          // Every revoke endpoint funnels through here, so this is the one place that has to give
+          // the granted access back. The status flip alone leaves the AccountAccess rows live in
+          // the table for anything that reads them without asking the consent first.
+          code.api.util.Consent.revokeConsentAccountAccess(consent)
+          MappedConsent.find(By(MappedConsent.mConsentId, consentId))
+        }
         else Failure(ErrorMessages.ConsentAlreadyRevoked)
       case Empty =>
         Empty ?~! ErrorMessages.ConsentNotFound
@@ -388,10 +394,14 @@ object MappedConsentProvider extends ConsentProvider with code.util.Helper.MdcLo
       case Full(consent) if consent.status == ConsentStatus.terminatedByTpp.toString =>
         Failure(ErrorMessages.ConsentAlreadyRevoked)
       case Full(consent) =>
-        tryo(consent
-          .mStatus(ConsentStatus.terminatedByTpp.toString)
-          .mLastActionDate(now)
-          .saveMe())
+        tryo {
+          val terminated = consent
+            .mStatus(ConsentStatus.terminatedByTpp.toString)
+            .mLastActionDate(now)
+            .saveMe()
+          code.api.util.Consent.revokeConsentAccountAccess(terminated)
+          terminated
+        }
       case Empty =>
         Empty ?~! ErrorMessages.ConsentNotFound
       case Failure(msg, _, _) =>

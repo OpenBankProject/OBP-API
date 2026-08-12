@@ -57,38 +57,36 @@ object Caching extends MdcLoggable {
     }
   }
 
-  def getDynamicResourceDocCache(key: String) = {
-    use(JedisMethod.GET, (DYNAMIC_RESOURCE_DOC_CACHE_KEY_PREFIX + key).intern(), Some(GET_DYNAMIC_RESOURCE_DOCS_TTL))
-  }
-  
-  def setDynamicResourceDocCache(key:String, value: String)= {
-    use(JedisMethod.SET, (DYNAMIC_RESOURCE_DOC_CACHE_KEY_PREFIX+key).intern(), Some(GET_DYNAMIC_RESOURCE_DOCS_TTL), Some(value))
-  }
+  // Resource-doc / swagger caches. These go through the same fail-safe wrappers as the product
+  // caches below: the cache is an optimisation, and an unreachable Redis must degrade to a miss
+  // (recompute and serve) rather than turn every /resource-docs, /swagger and message-docs request
+  // into a 500. These are the documents API Explorer and Portal load on startup, so a Redis blip
+  // used to take the whole surface down.
+  def getDynamicResourceDocCache(key: String): Option[String] =
+    tryGet(DYNAMIC_RESOURCE_DOC_CACHE_KEY_PREFIX, key, GET_DYNAMIC_RESOURCE_DOCS_TTL)
 
-  def getStaticResourceDocCache(key: String) = {
-    use(JedisMethod.GET, (STATIC_RESOURCE_DOC_CACHE_KEY_PREFIX + key).intern(), Some(GET_STATIC_RESOURCE_DOCS_TTL))
-  }
-  
-  def setStaticResourceDocCache(key:String, value: String)= {
-    use(JedisMethod.SET, (STATIC_RESOURCE_DOC_CACHE_KEY_PREFIX+key).intern(), Some(GET_STATIC_RESOURCE_DOCS_TTL), Some(value))
-  }
+  def setDynamicResourceDocCache(key: String, value: String): Unit =
+    trySet(DYNAMIC_RESOURCE_DOC_CACHE_KEY_PREFIX, key, GET_DYNAMIC_RESOURCE_DOCS_TTL, value)
 
-  def getAllResourceDocCache(key: String) = {
-    use(JedisMethod.GET, (ALL_RESOURCE_DOC_CACHE_KEY_PREFIX + key).intern(), Some(GET_DYNAMIC_RESOURCE_DOCS_TTL))
-  }
-  
-  def setAllResourceDocCache(key:String, value: String)= {
-    use(JedisMethod.SET, (ALL_RESOURCE_DOC_CACHE_KEY_PREFIX+key).intern(), Some(GET_DYNAMIC_RESOURCE_DOCS_TTL), Some(value))
-  }
+  def getStaticResourceDocCache(key: String): Option[String] =
+    tryGet(STATIC_RESOURCE_DOC_CACHE_KEY_PREFIX, key, GET_STATIC_RESOURCE_DOCS_TTL)
 
-  def getStaticSwaggerDocCache(key: String) = {
-    use(JedisMethod.GET, (STATIC_SWAGGER_DOC_CACHE_KEY_PREFIX + key).intern(), Some(GET_STATIC_RESOURCE_DOCS_TTL))
-  }
-  
-  def setStaticSwaggerDocCache(key:String, value: String)= {
-    use(JedisMethod.SET, (STATIC_SWAGGER_DOC_CACHE_KEY_PREFIX+key).intern(), Some(GET_STATIC_RESOURCE_DOCS_TTL), Some(value))
-  }
-  // Fail-safe wrappers around Redis.use for product caches. If Redis is unreachable (dev without a
+  def setStaticResourceDocCache(key: String, value: String): Unit =
+    trySet(STATIC_RESOURCE_DOC_CACHE_KEY_PREFIX, key, GET_STATIC_RESOURCE_DOCS_TTL, value)
+
+  def getAllResourceDocCache(key: String): Option[String] =
+    tryGet(ALL_RESOURCE_DOC_CACHE_KEY_PREFIX, key, GET_DYNAMIC_RESOURCE_DOCS_TTL)
+
+  def setAllResourceDocCache(key: String, value: String): Unit =
+    trySet(ALL_RESOURCE_DOC_CACHE_KEY_PREFIX, key, GET_DYNAMIC_RESOURCE_DOCS_TTL, value)
+
+  def getStaticSwaggerDocCache(key: String): Option[String] =
+    tryGet(STATIC_SWAGGER_DOC_CACHE_KEY_PREFIX, key, GET_STATIC_RESOURCE_DOCS_TTL)
+
+  def setStaticSwaggerDocCache(key: String, value: String): Unit =
+    trySet(STATIC_SWAGGER_DOC_CACHE_KEY_PREFIX, key, GET_STATIC_RESOURCE_DOCS_TTL, value)
+
+  // Fail-safe wrappers around Redis.use. If Redis is unreachable (dev without a
   // running Redis, transient failure, etc.) we treat it as a miss and recompute instead of failing
   // the whole request.
   private def tryGet(prefix: String, key: String, ttlSeconds: Int): Option[String] =

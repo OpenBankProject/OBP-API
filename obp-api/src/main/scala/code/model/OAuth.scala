@@ -647,6 +647,9 @@ class Consumer extends LongKeyedMapper[Consumer] with CreatedUpdated{
     override def defaultValue : Long = APIUtil.getPropsAsLongValue("rate_limiting_per_month", -1)
   }
   object clientCertificate extends MappedString(this, 4000)
+  // FAPI 1.0 Advanced: URL where this client publishes its JWKS, used to verify
+  // signed request objects and private_key_jwt client assertions (OBP-OIDC).
+  object jwksUri extends MappedString(this, 500)
   object company extends MappedString(this, 100) {
     override def displayName = "Company:"
   }

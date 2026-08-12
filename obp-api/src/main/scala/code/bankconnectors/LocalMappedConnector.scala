@@ -712,13 +712,28 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       .map(transaction => (transaction, callContext))
   }
 
-  override def getTransactionsLegacy(bankId: BankId, accountId: AccountId, callContext: Option[CallContext], queryParams: List[OBPQueryParam]) = {
-
-    // TODO Refactor this. No need for database lookups etc.
+  /**
+   * The OBPQueryParams a transaction read carries, as Mapper query params.
+   *
+   * One copy for both transaction reads below. They had identical translations, and the direction
+   * restriction had to be written into each of them -- a rule that decides what a consent may see
+   * should exist once, not once per caller that remembers to add it.
+   *
+   * The direction restriction is pushed into the query rather than applied to the rows afterwards,
+   * so the database narrows and paginates in the same pass; filtering an already-limited page hands
+   * the caller a short page it cannot distinguish from the end of the data. Zero counts as a credit,
+   * matching UKAmounts.creditDebitIndicator -- `amount` is signed and in the smallest currency unit,
+   * so its sign is all this needs.
+   */
+  private def transactionQueryParams(queryParams: List[OBPQueryParam]): Seq[QueryParam[MappedTransaction]] = {
     val limit = queryParams.collect { case OBPLimit(value) => MaxRows[MappedTransaction](value) }.headOption
     val offset = queryParams.collect { case OBPOffset(value) => StartAt[MappedTransaction](value) }.headOption
     val fromDate = queryParams.collect { case OBPFromDate(date) => By_>=(MappedTransaction.tFinishDate, date) }.headOption
     val toDate = queryParams.collect { case OBPToDate(date) => By_<=(MappedTransaction.tFinishDate, date) }.headOption
+    val direction = queryParams.collect {
+      case OBPTransactionDirection(true) => By_>=(MappedTransaction.amount, OBPTransactionDirection.creditFloorInSmallestUnit)
+      case OBPTransactionDirection(false) => By_<(MappedTransaction.amount, OBPTransactionDirection.creditFloorInSmallestUnit)
+    }.headOption
     val ordering = queryParams.collect {
       //we don't care about the intended sort field and only sort on finish date for now
       case OBPOrdering(_, direction) =>
@@ -727,8 +742,13 @@ object LocalMappedConnector extends Connector with MdcLoggable {
           case OBPDescending => OrderBy(MappedTransaction.tFinishDate, Descending)
         }
     }
+    Seq(limit.toSeq, offset.toSeq, fromDate.toSeq, toDate.toSeq, direction.toSeq, ordering.toSeq).flatten
+  }
 
-    val optionalParams: Seq[QueryParam[MappedTransaction]] = Seq(limit.toSeq, offset.toSeq, fromDate.toSeq, toDate.toSeq, ordering.toSeq).flatten
+  override def getTransactionsLegacy(bankId: BankId, accountId: AccountId, callContext: Option[CallContext], queryParams: List[OBPQueryParam]) = {
+
+    // TODO Refactor this. No need for database lookups etc.
+    val optionalParams: Seq[QueryParam[MappedTransaction]] = transactionQueryParams(queryParams)
     val mapperParams = Seq(By(MappedTransaction.bank, bankId.value), By(MappedTransaction.account, accountId.value)) ++ optionalParams
 
     def getTransactionsCached(bankId: BankId, accountId: AccountId, optionalParams: Seq[QueryParam[MappedTransaction]]): Box[List[Transaction]]
@@ -761,20 +781,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   override def getTransactionsCore(bankId: BankId, accountId: AccountId, queryParams: List[OBPQueryParam], callContext: Option[CallContext]): OBPReturnType[Box[List[TransactionCore]]] = {
 
     // TODO Refactor this. No need for database lookups etc.
-    val limit = queryParams.collect { case OBPLimit(value) => MaxRows[MappedTransaction](value) }.headOption
-    val offset = queryParams.collect { case OBPOffset(value) => StartAt[MappedTransaction](value) }.headOption
-    val fromDate = queryParams.collect { case OBPFromDate(date) => By_>=(MappedTransaction.tFinishDate, date) }.headOption
-    val toDate = queryParams.collect { case OBPToDate(date) => By_<=(MappedTransaction.tFinishDate, date) }.headOption
-    val ordering = queryParams.collect {
-      //we don't care about the intended sort field and only sort on finish date for now
-      case OBPOrdering(_, direction) =>
-        direction match {
-          case OBPAscending => OrderBy(MappedTransaction.tFinishDate, Ascending)
-          case OBPDescending => OrderBy(MappedTransaction.tFinishDate, Descending)
-        }
-    }
-
-    val optionalParams: Seq[QueryParam[MappedTransaction]] = Seq(limit.toSeq, offset.toSeq, fromDate.toSeq, toDate.toSeq, ordering.toSeq).flatten
+    val optionalParams: Seq[QueryParam[MappedTransaction]] = transactionQueryParams(queryParams)
     val mapperParams = Seq(By(MappedTransaction.bank, bankId.value), By(MappedTransaction.account, accountId.value)) ++ optionalParams
 
     def getTransactionsCached(bankId: BankId, accountId: AccountId, optionalParams: Seq[QueryParam[MappedTransaction]]): Box[List[TransactionCore]]
@@ -879,23 +886,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
   override def getBankAccountByRoutingLegacy(bankId: Option[BankId], scheme: String, address: String, callContext: Option[CallContext]): Box[(BankAccount, Option[CallContext])] = {
 
-    // OBP-family schemes (OBP / OBP_ACCOUNT_ID) are implicit self-identifiers
-    // — address IS the account_id. Resolve directly against the BankAccount
-    // table without touching BankAccountRouting.
-    if (isImplicitOBPAccountScheme(scheme)) {
-      bankId match {
-        case Some(bankId) =>
-          getBankAccountCommon(bankId, AccountId(address), callContext)
-        case None =>
-          // No bank context — accept only when the account_id is globally unique.
-          MappedBankAccount.findAll(By(MappedBankAccount.theAccountId, address)) match {
-            case account :: Nil => Full((account, callContext))
-            case Nil            => Empty
-            case _              =>
-              Failure(s"$AccountRoutingNotUnique (scheme: $scheme, address: $address)")
-          }
-      }
-    } else {
+    def byRoutingTable: Box[(MappedBankAccount, Option[CallContext])] = {
       def handleRouting(routing: List[BankAccountRouting]): Box[(MappedBankAccount, Option[CallContext])] = {
         if (routing.size > 1) { // Handle more than 1 occurrence
           // Routing MUST be unique
@@ -916,6 +907,43 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             .findAll(By(BankAccountRouting.AccountRoutingScheme, scheme), By(BankAccountRouting.AccountRoutingAddress, address))
           handleRouting(routing)
       }
+    }
+
+    // OBP-family schemes (OBP / OBP_ACCOUNT_ID) are implicit self-identifiers — address IS the
+    // account_id — so they resolve directly against the BankAccount table.
+    //
+    // But that is not the only thing an OBP-scheme address can be. A bank may also *register* an
+    // `OBP` routing whose address is something other than the account id, and BankAccountRouting
+    // stores it like any other. Treating the implicit reading as the only one made those accounts
+    // unreachable through every endpoint that resolves by routing: the account was right there in
+    // the table, and the answer was "Bank Account not found".
+    //
+    // So try the implicit reading first, and fall back to the registered routing when it finds
+    // nothing. The implicit reading still wins where both would match, which is what happened
+    // before, so no address that resolves today resolves differently now.
+    if (isImplicitOBPAccountScheme(scheme)) {
+      val implicitly = bankId match {
+        case Some(bankId) =>
+          getBankAccountCommon(bankId, AccountId(address), callContext)
+        case None =>
+          // No bank context — accept only when the account_id is globally unique.
+          MappedBankAccount.findAll(By(MappedBankAccount.theAccountId, address)) match {
+            case account :: Nil => Full((account, callContext))
+            case Nil            => Empty
+            case _              =>
+              Failure(s"$AccountRoutingNotUnique (scheme: $scheme, address: $address)")
+          }
+      }
+      implicitly match {
+        // Nothing answers to the implicit reading, so try a registered routing.
+        case Empty => byRoutingTable
+        // A hit, or an ambiguity. `or` would have replaced the ambiguity with whatever the routing
+        // table said, which for an ambiguous address is nothing -- turning "this address matches
+        // several accounts" into a bare "not found". Keep what the implicit reading concluded.
+        case decided => decided
+      }
+    } else {
+      byRoutingTable
     }
   }
 
@@ -1166,10 +1194,18 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         && (bankAccountRoutings.account.scheme.equalsIgnoreCase("OBP") || bankAccountRoutings.account.scheme.equalsIgnoreCase("OBP_ACCOUNT_ID"))){
         for{
           (_, callContext) <- NewStyle.function.getBank(BankId(bankAccountRoutings.bank.address), callContext)
-          (account, callContext) <- NewStyle.function.checkBankAccountExists(
-            BankId(bankAccountRoutings.bank.address),
-            AccountId(bankAccountRoutings.account.address), 
-            callContext)
+          bankId = BankId(bankAccountRoutings.bank.address)
+          // The OBP scheme reads two ways -- the address is normally the account id, but a bank may
+          // also have registered an OBP routing whose address is something else. Ask the resolver
+          // that knows both rather than assuming the first, and fall back to checkBankAccountExists
+          // when neither answers, so a genuinely unknown account still reports itself the same way.
+          (account, callContext) <- getBankAccountByRoutingLegacy(
+            Some(bankId), bankAccountRoutings.account.scheme, bankAccountRoutings.account.address, callContext
+          ) match {
+            case Full((resolved, cc)) => Future.successful((resolved, cc))
+            case _ => NewStyle.function.checkBankAccountExists(
+              bankId, AccountId(bankAccountRoutings.account.address), callContext)
+          }
         } yield {
           (account, callContext)
         }
@@ -1204,13 +1240,16 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   override def getCoreBankAccountsLegacy(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]): Box[(List[CoreAccount], Option[CallContext])] = {
     Full(
       bankIdAccountIds
-        .map(bankIdAccountId =>
+        // Tolerate stale account access: a user can hold a view/grant on an account that has
+        // since been deleted (a dangling BankIdAccountId). Skip such accounts instead of
+        // throwing, which would otherwise 500 an entire "list my accounts" call because of one
+        // orphaned grant. Callers that need a specific account use getBankAccount(single).
+        .flatMap(bankIdAccountId =>
           getBankAccountLegacy(
             bankIdAccountId.bankId,
             bankIdAccountId.accountId,
             callContext
-          ).map(_._1)
-            .openOrThrowException(s"${ErrorMessages.BankAccountNotFound} current BANK_ID(${bankIdAccountId.bankId}) and ACCOUNT_ID(${bankIdAccountId.accountId})"))
+          ).map(_._1).toList)
         .map(account =>
           CoreAccount(
             account.accountId.value,

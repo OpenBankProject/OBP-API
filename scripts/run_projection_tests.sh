@@ -19,6 +19,10 @@
 #
 set -uo pipefail   # not -e: we want to proceed even if the clean step warns
 
+# Pin the JDK before any Maven work, exactly as the other runners do — the suite must
+# run on the project's JDK, because a different one produces different results.
+. "$(dirname "${BASH_SOURCE[0]}")/java_env.sh"
+
 DB_NAME="${DB_NAME:-obp_test_only}"
 DB_USER="${DB_USER:-obp_test_only}"
 DB_PASS="${DB_PASS:-changeme}"

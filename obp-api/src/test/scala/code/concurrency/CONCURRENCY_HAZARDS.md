@@ -252,7 +252,8 @@ confirmed before each fix, all green after.
 | **H6** | ″ | `ObpLookupSystem.obpLookupSystem` unguarded var | `@volatile` + synchronized init (structural reflection test) |
 | **M9** | ″ | `ObpActorSystem` actor-system vars | `@volatile` + synchronized init (structural reflection test) |
 | **M2** | `ConcurrentBusinessStatusRaceTest` | `AccountAccessRequest.updateStatus` no terminal guard | conditional `UPDATE … WHERE status='INITIATED'` (`DoobieBusinessStatusQueries`) |
-| **M3** | ″ | `MappedAccountApplication.updateStatus` in-memory ACCEPTED guard | optimistic CAS `UPDATE … WHERE mstatus=<loaded>` |
+| **M3** | ″ | `MappedAccountApplication.updateStatus` in-memory ACCEPTED guard | conditional `UPDATE … WHERE mstatus='REQUESTED'` (`DoobieBusinessStatusQueries`) |
+| **M3b** | ″ | ″ — the first CAS guarded on the *loaded* status, so a serialised second decision matched its own read and overwrote the first | same fixed-`REQUESTED` guard; deterministic sequential reproduction |
 | **M4** | ″ | `MappedChallengeProvider.validateChallenge` non-CAS success flip | CAS `UPDATE … SET successful_c=true WHERE challengeid=? AND successful_c=false` |
 
 **M1** (`Http4s510.updateTransactionRequestStatus` lacked the row lock that `Http4s400` has) is fixed

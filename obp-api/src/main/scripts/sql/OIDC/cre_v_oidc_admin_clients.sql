@@ -28,6 +28,7 @@ name
 ,logourl
 ,userauthenticationurl
 ,clientcertificate
+,jwksuri
 ,company
 ,key_c
 ,isactive

@@ -48,9 +48,9 @@ trait ConsentProvider {
     accountIds: Option[List[String]],//for UK Open Banking endpoints, there is no accountIds there.
     consumerId: Option[String],
     permissions: List[String],
-    expirationDateTime: Date,
-    transactionFromDateTime: Date,
-    transactionToDateTime: Date,
+    expirationDateTime: Option[Date], //0..1 per spec: None = open-ended / never expires
+    transactionFromDateTime: Option[Date], //0..1 per spec: None = no restriction on history start
+    transactionToDateTime: Option[Date], //0..1 per spec: None = no restriction on history end
     apiStandard: Option[String],
     apiVersion: Option[String]
   ): Box[ConsentTrait]

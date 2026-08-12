@@ -22,9 +22,16 @@ trait UKOpenBankingV310ServerSetup extends ServerSetupWithTestData with DefaultU
   def getAuthed(segments: String*): APIResponse = makeGetRequest(v31(segments: _*).GET <@ (user1))
   def getUnauthed(segments: String*): APIResponse = makeGetRequest(v31(segments: _*).GET)
 
+  // For IDOR regression tests: user2 authenticated (a different user AND a different OAuth1
+  // consumer than user1, see DefaultUsers), acting on a resource (e.g. a consent) that belongs
+  // to a different user/consumer.
+  def getAuthedAsUser2(segments: String*): APIResponse = makeGetRequest(v31(segments: _*).GET <@ (user2))
+
   def postAuthed(body: String, segments: String*): APIResponse = makePostRequest(v31(segments: _*).POST <@ (user1), body)
   def postUnauthed(body: String, segments: String*): APIResponse = makePostRequest(v31(segments: _*).POST, body)
 
   def deleteAuthed(segments: String*): APIResponse = makeDeleteRequest(v31(segments: _*).DELETE <@ (user1))
   def deleteUnauthed(segments: String*): APIResponse = makeDeleteRequest(v31(segments: _*).DELETE)
+
+  def deleteAuthedAsUser2(segments: String*): APIResponse = makeDeleteRequest(v31(segments: _*).DELETE <@ (user2))
 }
