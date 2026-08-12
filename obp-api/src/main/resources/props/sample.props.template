@@ -1293,18 +1293,35 @@ database_messages_scheduler_interval=3600
 # Create System Views At Boot -----------------------------------------------
 # In case is not defined default value is true
 # create_system_views_at_boot=true
+#
+# The UK Open Banking and Berlin Group views the code defines can_* sets for are created
+# unconditionally and no longer need listing here -- the code depends on them existing. A UK
+# consent naming ReadTransactionsCredits cannot be granted if that view is absent, and a
+# conforming consent is *required* to name a direction permission whenever it names a
+# transaction-depth one, so leaving their creation to a props file made conforming consents
+# unusable on instances whose props predated them:
+#   ReadAccountsBasic, ReadAccountsDetail, ReadBalances, ReadTransactionsBasic,
+#   ReadTransactionsDebits, ReadTransactionsCredits, ReadTransactionsDetail,
+#   ReadAccountsBerlinGroup, ReadBalancesBerlinGroup
+#
 # additional_system_views=
-# Possible values for additional_system_views are: ReadAccountsBasic,\
-                                                    ReadAccountsDetail,\
-                                                    ReadBalances,\
-                                                    ReadTransactionsBasic,\
-                                                    ReadTransactionsDebits,\
-                                                    ReadTransactionsCredits,\
-                                                    ReadTransactionsDetail, \
-                                                    ReadAccountsBerlinGroup, \
-                                                    ReadBalancesBerlinGroup, \
-                                                    ReadTransactionsBerlinGroup, \
+# Possible values for additional_system_views are: ReadTransactionsBerlinGroup, \
                                                     InitiatePaymentsBerlinGroup
+#
+# Whether boot brings existing system views' permissions back in line with what this build
+# defines. Default true.
+#
+# getOrCreateSystemView returns an existing row untouched, so before this a view created by an
+# older version kept that version's permission set for good: a set tightened in code reached new
+# installations and no others. That is how "ReadAccountsDetail granted nothing beyond
+# ReadAccountsBasic" and "ReadBalances alone exposed transaction and counterparty data" could be
+# fixed in code and still be true of every upgraded database.
+#
+# Only the permission set is reconciled -- a view's name, description, isPublic and alias flags
+# are left alone, so operator edits to those survive. Set to false only if you deliberately
+# hand-tune these rows and intend to keep them current yourself; every reconciliation is logged
+# with the permissions added and removed.
+# system_views.reconcile_permissions_at_boot=true
 # -----------------------------------------------------------------------------
 
 

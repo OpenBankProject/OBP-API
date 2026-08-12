@@ -317,19 +317,49 @@ class Boot extends MdcLoggable {
         Views.views.vend.getOrCreateSystemView(SYSTEM_FIREHOSE_VIEW_ID).isDefined
       else Empty.isDefined
 
+      // The UK Open Banking and Berlin Group views whose can_* sets the code defines
+      // (Constant.SYSTEM_READ_*_VIEW_PERMISSION). Ensured unconditionally rather than through
+      // additional_system_views: the code already depends on them existing. A UK consent naming
+      // ReadTransactionsCredits cannot be granted if that view is absent, and
+      // validateUKConsentPermissions *requires* a direction permission whenever a
+      // transaction-depth one is granted -- so a conforming consent could not be exercised on an
+      // instance whose props predated the view.
+      //
+      // ensureSystemViewUpToDate, not getOrCreateSystemView: the latter returns an existing row
+      // untouched, so a view created by an older version keeps that version's permission set for
+      // good and a tightening in code reaches new installations only. That is how "Detail granted
+      // nothing beyond Basic" and "Balances alone exposed transaction data" survived being fixed.
+      val codeDefinedSystemViews = List(
+        SYSTEM_READ_ACCOUNTS_BASIC_VIEW_ID,
+        SYSTEM_READ_ACCOUNTS_DETAIL_VIEW_ID,
+        SYSTEM_READ_BALANCES_VIEW_ID,
+        SYSTEM_READ_TRANSACTIONS_BASIC_VIEW_ID,
+        SYSTEM_READ_TRANSACTIONS_DEBITS_VIEW_ID,
+        SYSTEM_READ_TRANSACTIONS_CREDITS_VIEW_ID,
+        SYSTEM_READ_TRANSACTIONS_DETAIL_VIEW_ID,
+        SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID,
+        SYSTEM_READ_BALANCES_BERLIN_GROUP_VIEW_ID
+      )
+      // Default true: a permission set the code tightened must reach the installations that have
+      // the problem, not only fresh ones. An operator who has deliberately hand-tuned these rows
+      // turns it off and takes responsibility for keeping them current.
+      if (APIUtil.getPropsAsBoolValue("system_views.reconcile_permissions_at_boot", true)) {
+        codeDefinedSystemViews.foreach(Views.views.vend.ensureSystemViewUpToDate)
+      } else {
+        logger.warn("system_views.reconcile_permissions_at_boot is false: the UK Open Banking and " +
+          "Berlin Group system views keep whatever permissions they already carry, which may be " +
+          "an older and wider set than this build defines.")
+        codeDefinedSystemViews.foreach(Views.views.vend.getOrCreateSystemView)
+      }
+
+      // The remaining two stay opt-in: nothing in the code requires them to exist, so whether an
+      // instance has them is still the operator's call. Their permission sets ARE code-defined
+      // though, so where they do exist they are kept current the same way -- the prop decides
+      // existence, not whether the code is authoritative about what a view grants.
       APIUtil.getPropsValue("additional_system_views") match {
         case Full(value) =>
           val additionalSystemViewsFromProps = value.split(",").map(_.trim).toList
           val additionalSystemViews = List(
-            SYSTEM_READ_ACCOUNTS_BASIC_VIEW_ID,
-            SYSTEM_READ_ACCOUNTS_DETAIL_VIEW_ID,
-            SYSTEM_READ_BALANCES_VIEW_ID,
-            SYSTEM_READ_TRANSACTIONS_BASIC_VIEW_ID,
-            SYSTEM_READ_TRANSACTIONS_DEBITS_VIEW_ID,
-            SYSTEM_READ_TRANSACTIONS_CREDITS_VIEW_ID,
-            SYSTEM_READ_TRANSACTIONS_DETAIL_VIEW_ID,
-            SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID,
-            SYSTEM_READ_BALANCES_BERLIN_GROUP_VIEW_ID,
             SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID,
             SYSTEM_INITIATE_PAYMENTS_BERLIN_GROUP_VIEW_ID
           )
@@ -337,7 +367,7 @@ class Boot extends MdcLoggable {
             systemView <- additionalSystemViewsFromProps
             if additionalSystemViews.exists(_ == systemView)
           } {
-            Views.views.vend.getOrCreateSystemView(systemView)
+            Views.views.vend.ensureSystemViewUpToDate(systemView)
           }
         case _ => // Do nothing
       }

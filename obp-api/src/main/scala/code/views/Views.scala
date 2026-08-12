@@ -119,6 +119,19 @@ trait Views {
    */
   def factoryResetSystemView(viewId: ViewId) : Box[View]
 
+  /**
+   * Get or create a system view AND bring its permissions into line with the code.
+   *
+   * getOrCreateSystemView returns an existing row untouched, so a view created by an older
+   * version keeps whatever permission set that version gave it -- a change to a view's can_*
+   * set in code therefore reaches new installations only. This is what boot calls instead, so
+   * the code stays the source of truth for the views it defines on every installation.
+   *
+   * Only the permission set is reconciled. Unlike factoryResetSystemView this leaves the row's
+   * name, description and flags alone, so an operator's edits to those survive.
+   */
+  def ensureSystemViewUpToDate(viewId: String) : Box[View]
+
   def getOwners(view: View): Set[User]
   
   def removeAllAccountAccess(bankId: BankId, accountId: AccountId) : Boolean

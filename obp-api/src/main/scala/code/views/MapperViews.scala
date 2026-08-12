@@ -717,6 +717,46 @@ object MapperViews extends Views with MdcLoggable {
   }
 
   
+  /**
+   * Create the view if it is missing, and bring an existing one's permissions back in line with
+   * `applyDefaultsForSystemView`.
+   *
+   * getOrCreateSystemView returns an existing row untouched, and applyDefaultsForSystemView runs
+   * only from unsavedSystemView (creation) and factoryResetSystemView (an admin endpoint). So a
+   * view created by an older version keeps that version's permission set for good: tightening a
+   * set in code reaches new installations and no others.
+   *
+   * Re-applied rather than compared-then-applied. resetViewPermissions already deletes before it
+   * inserts, so the write is idempotent, and at nine views once per boot the cost is not worth a
+   * second source of truth for what each view's target set is. The before/after comparison is kept
+   * for the log line only -- an operator upgrading should be able to see exactly which views moved.
+   *
+   * A view id applyDefaultsForSystemView does not know falls through its `case _`, so nothing is
+   * written and this is then just getOrCreateSystemView.
+   *
+   * Only permissions. Unlike factoryResetSystemView this leaves name, description, isPublic_ and
+   * the alias flags alone, so an operator's edits to those survive an upgrade.
+   */
+  def ensureSystemViewUpToDate(viewId: String) : Box[View] = {
+    for {
+      _ <- getOrCreateSystemView(viewId)
+      entity <- ViewDefinition.findSystemView(viewId) ?~! s"$SystemViewNotFound $viewId"
+    } yield {
+      val before = entity.allowed_actions.toSet
+      applyDefaultsForSystemView(entity, viewId)
+      val saved = entity.saveMe()
+      val after = saved.allowed_actions.toSet
+      if (after != before) {
+        logger.warn(
+          s"ensureSystemViewUpToDate: system view $viewId carried ${before.size} permission(s) " +
+          s"but the code defines ${after.size}. Brought into line. " +
+          s"Removed: ${(before -- after).toList.sorted.mkString(", ")}. " +
+          s"Added: ${(after -- before).toList.sorted.mkString(", ")}.")
+      }
+      saved
+    }
+  }
+
   def getOrCreateSystemView(viewId: String) : Box[View] = {
     getExistingSystemView(viewId) match {
       case Empty =>
