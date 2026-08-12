@@ -32,9 +32,14 @@
     <java.version>25</java.version>
     <maven.compiler.source>${java.version}</maven.compiler.source>
     <maven.compiler.target>${java.version}</maven.compiler.target>
-    <!-- mssql-jdbc jre classifier is decoupled from java.version because
-         13.4.0 only publishes a jre11 artifact; jre11 is ABI-compatible with
-         any JRE 11+ including 21 (JDBC 4.3 spec). -->
+    <!-- The mssql-jdbc jre suffix is part of the version string, not a classifier, and it is
+         decoupled from java.version because the driver has no artifact at our Java level: 13.4.0
+         ships only jre8 and jre11, and so does every other current release including the 13.5.x
+         previews. Microsoft published jre17/18/20 builds for 10.2.x through 12.3.0 and then went
+         back to two targets, so there is nothing newer to move to. jre11 is what runs: its classes
+         are major version 55, it carries no module-info and no META-INF/versions entries, and the
+         driver loads on JDK 25. Revisit only if a release appears with a jre suffix at or above
+         java.version. -->
     <mssql.jre.version>11</mssql.jre.version>
   </properties>
 
