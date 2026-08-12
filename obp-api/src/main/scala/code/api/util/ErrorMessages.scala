@@ -772,6 +772,10 @@ object ErrorMessages {
   val UserAuthContextUpdateRequestAllowedScaMethods = "OBP-35034: Unsupported as SCA method. "
   val ConsentIdClaimMissing = "OBP-35035: The access token is not bound to a Consent. The identity provider must include a consent_id claim in access tokens issued via the consent authorisation flow. "
   val ConsentDoesNotMatchStandard = "OBP-35036: The Consent was created by a different API standard than the endpoint using it. A consent may only be used by endpoints of the standard that created it. "
+  val ConsentAccountNotHeldByUser = "OBP-35037: One or more of the specified account_ids is not held by the current user. A consent may only be authorised for accounts the authorising user holds. "
+  val InvalidUKConsentPermissions = "OBP-35038: The Permissions array is not a valid combination for UK Open Banking. "
+  val BerlinGroupPsuNotIdentified = "OBP-35039: The PSU this authorisation is for cannot be identified. Send the PSU-ID header, or authenticate as the PSU. "
+  val ConsentNamesNoAccount = "OBP-35040: The Consent names no account, so it grants no access. It was authorised before consents were bound to accounts; re-authorise it to select which accounts it applies to. "
 
   //Authorisations
   val AuthorisationNotFound = "OBP-36001: Authorisation not found. Please specify valid values for PAYMENT_ID and AUTHORISATION_ID. "
@@ -897,6 +901,12 @@ object ErrorMessages {
   val OpenCorridorSameBankNotAllowed = "OBP-40061: OPEN_CORRIDOR is inter-bank: the beneficiary bank must differ from the sending bank. Use an ordinary payment for intra-bank transfers."
   val MessageOutboxRowNotFound = "OBP-40059: No message outbox row with this OUTBOX_ID exists."
   val MessageOutboxRowNotSticky = "OBP-40060: The message outbox row is not STICKY. Only STICKY rows can be re-queued; PENDING rows retry automatically."
+  // Renumbered from OBP-40058 on merge: develop had meanwhile taken 40058 through 40061 for Open
+  // Corridor settlements and the message outbox. An error number is part of the API's contract, so
+  // the two cannot share one -- DuplicatedMessages enforces that -- and the Open Corridor block is
+  // the published side. Both call sites name the constant rather than the literal, so nothing but
+  // the number moves.
+  val PaymentNotInitiatedByCaller = "OBP-40062: The addressed payment was not initiated by you. "
   // Exceptions (OBP-50XXX)
   val UnknownError = "OBP-50000: Unknown Error."
   val FutureTimeoutException = "OBP-50001: Future Timeout Exception."

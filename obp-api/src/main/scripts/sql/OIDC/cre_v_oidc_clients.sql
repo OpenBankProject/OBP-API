@@ -25,7 +25,9 @@ SELECT
     name as client_name,
     'code' as response_types,
     'client_secret_post' as token_endpoint_auth_method,
-    createdat as created_at
+    createdat as created_at,
+    jwksuri as jwks_uri,
+    clientcertificate as client_certificate
 FROM consumer
 WHERE isactive = true  -- Only expose active consumers to OIDC service
 ORDER BY client_name;

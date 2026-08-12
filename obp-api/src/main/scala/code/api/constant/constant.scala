@@ -161,12 +161,18 @@ object Constant extends MdcLoggable {
   final val SYSTEM_READ_BALANCES_VIEW_ID = "ReadBalances"
   final val SYSTEM_READ_TRANSACTIONS_BASIC_VIEW_ID = "ReadTransactionsBasic"
   final val SYSTEM_READ_TRANSACTIONS_DEBITS_VIEW_ID = "ReadTransactionsDebits"
+  final val SYSTEM_READ_TRANSACTIONS_CREDITS_VIEW_ID = "ReadTransactionsCredits"
   final val SYSTEM_READ_TRANSACTIONS_DETAIL_VIEW_ID = "ReadTransactionsDetail"
   // Berlin Group
   final val SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID = "ReadAccountsBerlinGroup"
   final val SYSTEM_READ_BALANCES_BERLIN_GROUP_VIEW_ID = "ReadBalancesBerlinGroup"
   final val SYSTEM_READ_TRANSACTIONS_BERLIN_GROUP_VIEW_ID = "ReadTransactionsBerlinGroup"
   final val SYSTEM_INITIATE_PAYMENTS_BERLIN_GROUP_VIEW_ID = "InitiatePaymentsBerlinGroup"
+
+  // A VRP mandate gets its own private custom view, named after the mandate. The prefix is how the
+  // consent conversion recognises a VRP consent, and how revocation finds the artefacts to release,
+  // so both ends read it from here rather than repeating the literal.
+  final val VRP_VIEW_ID_PREFIX = "_vrp-"
 
   //This is used for the canRevokeAccessToViews_ and canGrantAccessToViews_ fields of SYSTEM_OWNER_VIEW_ID or SYSTEM_STANDARD_VIEW_ID.
   final val DEFAULT_CAN_GRANT_AND_REVOKE_ACCESS_TO_VIEWS =
@@ -182,6 +188,7 @@ object Constant extends MdcLoggable {
     SYSTEM_READ_BALANCES_VIEW_ID::
     SYSTEM_READ_TRANSACTIONS_BASIC_VIEW_ID::
     SYSTEM_READ_TRANSACTIONS_DEBITS_VIEW_ID::
+    SYSTEM_READ_TRANSACTIONS_CREDITS_VIEW_ID::
     SYSTEM_READ_TRANSACTIONS_DETAIL_VIEW_ID::
     SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID::
     SYSTEM_READ_BALANCES_BERLIN_GROUP_VIEW_ID::
@@ -632,6 +639,108 @@ object Constant extends MdcLoggable {
     CAN_ANSWER_TRANSACTION_REQUEST_CHALLENGE
   )
 
+  // Design boundary for every SYSTEM_READ_*_VIEW_PERMISSION set below: these express what
+  // *fields* a view exposes, never a consent's time-boxing or access-frequency limit. BG's
+  // frequencyPerDay/recurringIndicator/validUntil and UK's TransactionFromDateTime/ToDateTime/
+  // ExpirationDateTime belong on the consent record (see ConsentJWT in ConsentUtil.scala), not
+  // here — do not add a can_* string like "can_see_transactions_last_90_days" to narrow a view
+  // by date range or usage count; that's the consent's job, applied before the view is reached.
+
+  // UK Open Banking v4.0.1 system views — previously all six shared the generic
+  // SYSTEM_VIEW_PERMISSION_COMMON set, so "Detail" granted nothing beyond "Basic" and a
+  // consent scoped to Balances alone still exposed full transaction/counterparty data.
+  // Mapped from the UK v4.0.1 spec's Detail Permissions table (see
+  // standards-permissions-research/uk-v401/account-and-transaction-api-profile.html).
+  final val SYSTEM_READ_ACCOUNTS_BASIC_VIEW_PERMISSION = List(
+    CAN_SEE_BANK_ACCOUNT_LABEL,
+    CAN_SEE_BANK_ACCOUNT_TYPE,
+    CAN_SEE_BANK_ACCOUNT_CURRENCY,
+    CAN_SEE_BANK_ACCOUNT_BANK_NAME
+  )
+
+  final val SYSTEM_READ_ACCOUNTS_DETAIL_VIEW_PERMISSION = SYSTEM_READ_ACCOUNTS_BASIC_VIEW_PERMISSION ++ List(
+    CAN_SEE_BANK_ACCOUNT_IBAN,
+    CAN_SEE_BANK_ACCOUNT_NUMBER,
+    CAN_SEE_BANK_ACCOUNT_SWIFT_BIC,
+    CAN_SEE_BANK_ACCOUNT_ROUTING_SCHEME,
+    CAN_SEE_BANK_ACCOUNT_ROUTING_ADDRESS
+  )
+
+  // CAN_SEE_TRANSACTION_THIS_BANK_ACCOUNT is not here to expose transactions -- this view shows
+  // none. It is here because View.moderateAccount gates the whole ModeratedBankAccount on it,
+  // whatever field the caller actually wants, and the UK balances endpoint reaches the account
+  // through moderatedBankAccountCore. Without it, GET /aisp/accounts/ACCOUNT_ID/balances answers
+  // OBP-20022 "You need the `can_see_transaction_this_bank_account` permission on the
+  // view(ReadBalances)" -- the endpoint is unusable for the one thing the view exists for.
+  //
+  // That gate is the thing worth fixing: a permission named for transactions should not decide
+  // whether an account can be read at all. Doing it properly means changing every view and every
+  // caller of moderateAccount, so it is tracked separately rather than smuggled in here.
+  final val SYSTEM_READ_BALANCES_VIEW_PERMISSION = List(
+    CAN_SEE_BANK_ACCOUNT_BALANCE,
+    CAN_QUERY_AVAILABLE_FUNDS,
+    CAN_SEE_TRANSACTION_THIS_BANK_ACCOUNT
+  )
+
+  final val SYSTEM_READ_TRANSACTIONS_BASIC_VIEW_PERMISSION = List(
+    CAN_SEE_TRANSACTION_THIS_BANK_ACCOUNT,
+    CAN_SEE_TRANSACTION_AMOUNT,
+    CAN_SEE_TRANSACTION_TYPE,
+    CAN_SEE_TRANSACTION_CURRENCY,
+    CAN_SEE_TRANSACTION_START_DATE,
+    CAN_SEE_TRANSACTION_FINISH_DATE,
+    CAN_SEE_TRANSACTION_STATUS
+  )
+
+  // ReadTransactionsDebits / ReadTransactionsCredits (UK v4.0.1 spec: independently-selectable
+  // Permissions codes) are direction-filtered, not field-filtered — a PSU who only grants
+  // ReadTransactionsCredits should see the same transaction fields as ReadTransactionsBasic,
+  // just restricted to credit-direction rows. Neither view widens or narrows field visibility,
+  // so both share Basic's permission set here.
+  //
+  // Enforcement mechanism (decided, not yet wired into the transactions endpoint): filter by
+  // which of the two view_ids the consent granted, resolved the same way
+  // Http4sUKOBv401AccountInfo.getAccountsAccountIdTransactions already resolves Basic-or-Detail
+  // via ViewNewStyle.checkViewsAccessAndReturnView — no new can_* permission string, since
+  // direction is a query-parameter-shaped concern, not a field-visibility one. Wiring this in
+  // requires the endpoint to also filter the returned transaction list by amount sign, which in
+  // turn depends on fixing JSONFactory_UKOpenBanking_401.transactionJson's separate,
+  // pre-existing CreditDebitIndicator hardcoding (always "Credit", never derived from the
+  // transaction) — tracked as a follow-up, out of scope for this view/permission gap.
+  final val SYSTEM_READ_TRANSACTIONS_DEBITS_VIEW_PERMISSION = SYSTEM_READ_TRANSACTIONS_BASIC_VIEW_PERMISSION
+  final val SYSTEM_READ_TRANSACTIONS_CREDITS_VIEW_PERMISSION = SYSTEM_READ_TRANSACTIONS_BASIC_VIEW_PERMISSION
+
+  final val SYSTEM_READ_TRANSACTIONS_DETAIL_VIEW_PERMISSION = SYSTEM_READ_TRANSACTIONS_BASIC_VIEW_PERMISSION ++ List(
+    CAN_SEE_TRANSACTION_OTHER_BANK_ACCOUNT,
+    CAN_SEE_OTHER_ACCOUNT_IBAN,
+    CAN_SEE_OTHER_ACCOUNT_BANK_NAME,
+    CAN_SEE_OTHER_ACCOUNT_NUMBER,
+    CAN_SEE_OTHER_ACCOUNT_KIND,
+    CAN_SEE_OTHER_ACCOUNT_SWIFT_BIC,
+    CAN_SEE_OTHER_ACCOUNT_NATIONAL_IDENTIFIER,
+    CAN_SEE_OTHER_ACCOUNT_ROUTING_SCHEME,
+    CAN_SEE_OTHER_ACCOUNT_ROUTING_ADDRESS,
+    CAN_SEE_OTHER_BANK_ROUTING_SCHEME,
+    CAN_SEE_OTHER_BANK_ROUTING_ADDRESS
+  )
+
+  // Berlin Group NextGenPSD2 system views — these two previously had zero ViewPermission rows
+  // at all (pure membership gating), unlike ReadTransactionsBerlinGroup which already has a
+  // full permission set above. BG's access object is IBAN-keyed, so unlike UK's Basic/Detail
+  // split, the account identifier (IBAN) is included by default here.
+  final val SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_PERMISSION = List(
+    CAN_SEE_BANK_ACCOUNT_LABEL,
+    CAN_SEE_BANK_ACCOUNT_TYPE,
+    CAN_SEE_BANK_ACCOUNT_CURRENCY,
+    CAN_SEE_BANK_ACCOUNT_BANK_NAME,
+    CAN_SEE_BANK_ACCOUNT_IBAN
+  )
+
+  final val SYSTEM_READ_BALANCES_BERLIN_GROUP_VIEW_PERMISSION = List(
+    CAN_SEE_BANK_ACCOUNT_BALANCE,
+    CAN_QUERY_AVAILABLE_FUNDS
+  )
+
   // Auditor system view: read-only on the account itself. The auditor can
   // see everything but cannot modify account data, counterparties, images,
   // locations, aliases, URLs, or initiate / approve payments.
@@ -838,6 +947,12 @@ object RequestHeader {
   final lazy val `PSD2-CERT` = "PSD2-CERT"
   final lazy val `If-None-Match` = "If-None-Match"
 
+  // "Client ID of the PSU in the ASPSP client interface" -- the only place Berlin Group carries the
+  // PSU's identity, psuData being passwords only. Conditional rather than mandatory: the standard
+  // asks for it when the ASPSP does not already know who the PSU is (Implementation Guidelines
+  // V1.3.12, sections 7.1 p.195 and 7.2.1 p.206), which is why it stays out of BerlinGroupCheck's
+  // mandatory header list.
+  final lazy val `PSU-ID` = "PSU-ID" // Berlin Group
   final lazy val `PSU-Geo-Location` = "PSU-Geo-Location" // Berlin Group
   final lazy val `PSU-Device-Name` = "PSU-Device-Name" // Berlin Group
   final lazy val `PSU-Device-ID` = "PSU-Device-ID" // Berlin Group

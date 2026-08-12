@@ -240,6 +240,7 @@ object ResourceDocMiddleware extends MdcLoggable {
     val result: Validation[ValidationContext] = for {
       context <- validateDuplicateQueryParams(cc, initialContext)
       context <- authenticate(req, resourceDoc, context)
+      context <- refuseUnresolvedUKConsent(resourceDoc, context)
       context <- validateBank(pathParams, context)
       context <- authorizeRoles(resourceDoc, pathParams, context)
       context <- validateAccount(pathParams, context)
@@ -422,6 +423,44 @@ object ResourceDocMiddleware extends MdcLoggable {
    * isn't on the allow-list (anonymous requests skip — they already failed auth
    * if the endpoint required it).
    */
+  /**
+   * Refuse a request whose Bearer token named a UK Open Banking consent that could not be resolved
+   * to its shadow user (Consent.applyUKConsentPrincipalFromToken, CallContext.ukConsentUnresolved).
+   *
+   * The principal is then still the PSU, whose own AccountAccess rows are wider than any consent.
+   * checkUKConsent refuses that, but only the UK data-read endpoints call checkUKConsent -- so
+   * without this the same request was still served the PSU's full scope by every other endpoint
+   * family. Worse, it was served MORE than a working consent would be: when the swap succeeds the
+   * principal narrows to the shadow user for every endpoint, so a consent we failed to understand
+   * outranked one we understood everywhere the UK gate does not run.
+   *
+   * Placed straight after authenticate so the answer is about the consent, rather than a 404 from
+   * the bank or account lookup that would otherwise run first.
+   *
+   * ==The exemption==
+   *
+   * The account-access-consent endpoints stay reachable. They are how a TPP inspects and revokes
+   * the very consent this is about, they answer from the consent row rather than from the
+   * principal, and they have their own guard already (Consent.assertUKConsentAccess). Refusing them
+   * would leave a TPP holding a consent it can neither use nor clean up.
+   *
+   * The rule itself, exemption included, is Consent.unresolvedUKConsentRefusal -- extracted so it
+   * can be tested without standing up a request, as checkUKConsentAccess is. This method is only
+   * the wiring.
+   */
+  private def refuseUnresolvedUKConsent(resourceDoc: ResourceDoc, ctx: ValidationContext): Validation[ValidationContext] = {
+    import DSL._
+    val cc = ctx.callContext
+    code.api.util.Consent.unresolvedUKConsentRefusal(cc.ukConsentUnresolved, resourceDoc.requestUrl) match {
+      case Some(reason) =>
+        EitherT[IO, Response[IO], ValidationContext](
+          ErrorResponseConverter.createErrorResponse(403, reason, cc)
+            .map[Either[Response[IO], ValidationContext]](Left(_))
+        )
+      case None => success(ctx)
+    }
+  }
+
   private def validateAuthType(resourceDoc: ResourceDoc, ctx: ValidationContext): Validation[ValidationContext] = {
     import DSL._
     val cc = ctx.callContext

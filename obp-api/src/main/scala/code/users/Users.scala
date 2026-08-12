@@ -31,15 +31,26 @@ trait Users {
   def getUserByProviderId(provider : String, idGivenByProvider : String) : Box[User]
   def getUserByProviderIdFuture(provider : String, idGivenByProvider : String) : Future[Box[User]]
   def getOrCreateUserByProviderIdFuture(provider : String, idGivenByProvider : String, consentId: Option[String], name: Option[String], email: Option[String]) : Future[(Box[User], Boolean)]
+  // The synchronous form of the above, for callers already inside a Box for-comprehension. Carries
+  // the same duplicate-key recovery: two concurrent first requests both find nothing and both
+  // insert, so the loser re-reads instead of failing. Second element is true when the user was
+  // created by this call.
+  def getOrCreateUserByProviderId(provider : String, idGivenByProvider : String, consentId: Option[String], name: Option[String], email: Option[String]) : (Box[User], Boolean)
 
   //resourceuser has two ids: id(Long)and userid_(String), this method use userid_(String)
   def getUserByUserId(userId : String) : Box[User]
   def getUserByUserIdFuture(userId : String) : Future[Box[User]]
   def getUsersByUserIdsFuture(userIds : List[String]) : Future[List[User]]
 
-  // find ResourceUser by Resourceuser username 
+  // find ResourceUser by Resourceuser username
   def getUserByProviderAndUsername(provider: String, userName: String) : Box[User]
   def getUserByProviderAndUsernameFuture(provider: String, username: String): Future[Box[User]]
+
+  // Every user answering to this username, whichever provider they came from. Username is only
+  // unique per provider, so this can return more than one; callers that need a single user must say
+  // what they do with an ambiguous answer. Added for Berlin Group PSU-ID resolution, where the
+  // header names a username and the PSU may be federated rather than local.
+  def getUsersByUsername(userName: String) : List[User]
 
   def getUserByEmail(email: String) : Box[List[ResourceUser]]
   def getUserByEmailFuture(email: String) : Future[List[(ResourceUser, Box[List[Entitlement]])]]

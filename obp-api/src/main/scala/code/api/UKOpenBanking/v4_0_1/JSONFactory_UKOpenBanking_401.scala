@@ -1,5 +1,7 @@
 package code.api.UKOpenBanking.v4_0_1
 
+import code.api.UKOpenBanking.UKAmounts
+
 import java.util.Date
 
 import code.api.Constant
@@ -114,7 +116,9 @@ object JSONFactory_UKOpenBanking_401 extends CustomJsonFormats {
     TransactionId: String,
     TransactionReference: Option[String] = None,
     StatementReference: List[String] = Nil,
-    CreditDebitIndicator: String = "Credit",
+    // No default: the direction has to be derived from the amount at every construction site
+    // (see UKAmounts). A default is how "Credit" ended up on every debit.
+    CreditDebitIndicator: String,
     Status: String = "BOOK",
     TransactionMutability: String = "Mutable",
     BookingDateTime: Date,
@@ -132,15 +136,20 @@ object JSONFactory_UKOpenBanking_401 extends CustomJsonFormats {
   // ---------------------------------------------------------------------
   // Consent
   // ---------------------------------------------------------------------
+  case class StatusReasonV401(
+    StatusReasonCode: String,
+    StatusReasonDescription: String
+  )
   case class ConsentDataV401(
     ConsentId: String,
     CreationDateTime: String,
     Status: String,
+    StatusReason: List[StatusReasonV401],
     StatusUpdateDateTime: String,
     Permissions: List[String],
-    ExpirationDateTime: String,
-    TransactionFromDateTime: String,
-    TransactionToDateTime: String
+    ExpirationDateTime: Option[String],
+    TransactionFromDateTime: Option[String],
+    TransactionToDateTime: Option[String]
   )
   case class ConsentResponseV401(
     Data: ConsentDataV401,
@@ -215,13 +224,14 @@ object JSONFactory_UKOpenBanking_401 extends CustomJsonFormats {
 
   def createAccountBalanceJSON(moderatedAccount: ModeratedBankAccountCore): BalancesUKV401 = {
     val accountId = moderatedAccount.accountId.value
+    val rawBalance = moderatedAccount.balance.getOrElse("")
     val amount = AmountV401(
-      Amount = moderatedAccount.balance.getOrElse(""),
+      Amount = UKAmounts.unsignedAmountString(rawBalance),
       Currency = moderatedAccount.currency.getOrElse("")
     )
     val balance = BalanceV401(
       AccountId = accountId,
-      CreditDebitIndicator = "Credit",
+      CreditDebitIndicator = UKAmounts.creditDebitIndicatorOfString(rawBalance),
       Type = "ClosingAvailable",
       DateTime = None,
       Amount = amount,
@@ -236,10 +246,10 @@ object JSONFactory_UKOpenBanking_401 extends CustomJsonFormats {
 
   def createBalancesJSON(accounts: List[BankAccount]): BalancesUKV401 = {
     val balances = accounts.map { account =>
-      val amount = AmountV401(Amount = account.balance.toString(), Currency = account.currency)
+      val amount = AmountV401(Amount = UKAmounts.unsignedAmount(account.balance), Currency = account.currency)
       BalanceV401(
         AccountId = account.accountId.value,
-        CreditDebitIndicator = "Credit",
+        CreditDebitIndicator = UKAmounts.creditDebitIndicator(account.balance),
         Type = "ClosingAvailable",
         DateTime = Some(account.lastUpdate),
         Amount = amount,
@@ -271,8 +281,9 @@ object JSONFactory_UKOpenBanking_401 extends CustomJsonFormats {
       case _ => None
     }
 
+    // UK keeps the sign out of Amount and in CreditDebitIndicator; OBP holds one signed number.
     val amount = AmountV401(
-      Amount = moderatedTransaction.amount.getOrElse(BigDecimal(0)).toString(),
+      Amount = UKAmounts.unsignedAmount(moderatedTransaction.amount),
       Currency = moderatedTransaction.currency.getOrElse("")
     )
     TransactionV401(
@@ -283,10 +294,13 @@ object JSONFactory_UKOpenBanking_401 extends CustomJsonFormats {
       BookingDateTime = moderatedTransaction.startDate.get,
       ValueDateTime = moderatedTransaction.finishDate.get,
       Amount = amount,
+      CreditDebitIndicator = UKAmounts.creditDebitIndicator(moderatedTransaction.amount),
       Balance = Some(TransactionBalanceV401(
-        CreditDebitIndicator = "Credit",
+        CreditDebitIndicator = UKAmounts.creditDebitIndicatorOfString(moderatedTransaction.balance),
         Type = "InterimBooked",
-        Amount = AmountV401(Amount = moderatedTransaction.balance, Currency = moderatedTransaction.currency.getOrElse(""))
+        Amount = AmountV401(
+          Amount = UKAmounts.unsignedAmountString(moderatedTransaction.balance),
+          Currency = moderatedTransaction.currency.getOrElse(""))
       )),
       MerchantDetails = getMerchantDetails
     )
@@ -294,11 +308,11 @@ object JSONFactory_UKOpenBanking_401 extends CustomJsonFormats {
 
   def createTransactionsJsonNew(
     bankId: BankId,
+    accountId: String,
     moderatedTransactions: List[ModeratedTransaction],
     attributes: List[TransactionAttribute],
     view: View
   ): TransactionsUKV401 = {
-    val accountId = moderatedTransactions.headOption.flatMap(_.bankAccount.map(_.accountId.value)).orNull
     val transactions = moderatedTransactions.map(t => transactionJson(accountId, bankId, t, attributes, Some(view)))
     TransactionsUKV401(
       Data = TransactionDataV401(transactions),
@@ -319,22 +333,49 @@ object JSONFactory_UKOpenBanking_401 extends CustomJsonFormats {
     )
   }
 
+  // v4.0.1 uses ISO 20022-style four-letter status codes on the wire (AWAU/AUTH/RJCT/CANC/EXPD),
+  // whereas OBP stores the long enum names (AWAITINGAUTHORISATION/AUTHORISED/REJECTED/REVOKED/EXPIRED).
+  // Map at the serialization boundary only — storage keeps the long names. REVOKED maps to CANC
+  // because the spec's revoke-side status is CANC and OBP does not distinguish dashboard-cancel from
+  // AISP-DELETE-revoke. Unknown/other statuses pass through unchanged so nothing is silently hidden.
+  def ukConsentStatusCode(status: String): String = status.toUpperCase match {
+    case "AWAITINGAUTHORISATION" => "AWAU"
+    case "AUTHORISED"            => "AUTH"
+    case "REJECTED"              => "RJCT"
+    case "REVOKED"               => "CANC"
+    case "EXPIRED"               => "EXPD"
+    case _                       => status
+  }
+
+  // Minimal StatusReason per the current status, mirroring the spec's own example wording/codes
+  // (OBReadConsentResponse1). Richer per-transition reasons can follow later.
+  private def ukConsentStatusReason(fourLetterCode: String): List[StatusReasonV401] = fourLetterCode match {
+    case "AWAU" => List(StatusReasonV401("U036", "Waiting for completion of consent authorisation to be completed by user"))
+    case "AUTH" => List(StatusReasonV401("U110", "The account access consent has been successfully authorised"))
+    case "RJCT" => List(StatusReasonV401("U111", "The account access consent has been rejected"))
+    case "CANC" => List(StatusReasonV401("U112", "The account access consent has been cancelled"))
+    case "EXPD" => List(StatusReasonV401("U113", "The account access consent has passed its expiry date"))
+    case _      => Nil
+  }
+
   def createConsentResponseJSON(
     consentId: String,
     creationDateTime: String,
     status: String,
     statusUpdateDateTime: String,
     permissions: List[String],
-    expirationDateTime: String,
-    transactionFromDateTime: String,
-    transactionToDateTime: String,
+    expirationDateTime: Option[String],
+    transactionFromDateTime: Option[String],
+    transactionToDateTime: Option[String],
     selfPath: String
   ): ConsentResponseV401 = {
+    val statusCode = ukConsentStatusCode(status)
     ConsentResponseV401(
       Data = ConsentDataV401(
         ConsentId = consentId,
         CreationDateTime = creationDateTime,
-        Status = status,
+        Status = statusCode,
+        StatusReason = ukConsentStatusReason(statusCode),
         StatusUpdateDateTime = statusUpdateDateTime,
         Permissions = permissions,
         ExpirationDateTime = expirationDateTime,

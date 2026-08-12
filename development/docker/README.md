@@ -6,8 +6,8 @@ This Docker Compose setup provides a complete **live development environment** f
 
 ### 🏦 **obp-api-app** 
 - Main OBP-API application with **live development mode**
-- Built with Maven 3.9.6 + OpenJDK 17
-- Runs with Jetty Maven Plugin (`mvn jetty:run`)
+- Built with Maven + Eclipse Temurin 25 (see `Dockerfile` / `Dockerfile.dev`)
+- Runs the packaged jar via `entrypoint.sh` (`java -jar obp-api.jar`)
 - Port: `8080`
 - **Features**: Hot reloading, incremental compilation, live props changes
 
@@ -105,11 +105,11 @@ Environment variables take precedence over props files using OBP's built-in syst
 
 ### Live Development Features
 
-**🔥 Hot Reloading**: `Dockerfile.dev` uses `mvn jetty:run` for automatic recompilation and reloading:
-- ✅ **Scala code changes** - Automatic recompilation and reload
-- ✅ **Props file changes** - Live configuration updates via volume mount
-- ✅ **Resource changes** - Instant refresh without container restart
-- ✅ **Incremental builds** - Only changed files are recompiled
+**Live configuration**: `Dockerfile.dev` builds in the container and starts the jar through
+`entrypoint.sh`. Props and resources are volume-mounted from the host:
+- ✅ **Props file changes** - picked up from the mount (restart the container to apply)
+- ✅ **Incremental builds** - Maven reuses the container's local repository between builds
+- ⚠️ **Scala code changes** - require a rebuild/restart; there is no in-place reload
 
 **Volume Mounts for Development**:
 ```yaml
@@ -207,7 +207,6 @@ Host Machine
 
 ### ⚡ **Live Development Mode** (`Dockerfile.dev`)
 - **Single-stage build** optimized for development speed
-- **Hot reloading** with `mvn jetty:run` - code changes are reflected instantly
 - **Incremental compilation** - only changed files are rebuilt
 - **Live props updates** - configuration changes without container restart
 - **Security compliant** - selective file copying (SonarQube approved)
@@ -221,7 +220,7 @@ Host Machine
 - Redis data persists in `obp-api-redis-data` volume
 - Props files are live-mounted from host for instant updates
 - Environment variables override props file values automatically
-- Java 17 with proper module system compatibility
+- Java 25, with the `--add-opens` flags the runtime needs (see `entrypoint.sh`)
 - All containers restart automatically unless stopped manually
 
 ---

@@ -1,20 +1,23 @@
 package code.api.UKOpenBanking.v4_0_1
 
+import code.api.UKOpenBanking.{UKAmounts, UKTransactionsQuery}
+
 import cats.data.{Kleisli, OptionT}
 import cats.effect.IO
 import code.api.APIFailureNewStyle
 import code.api.Constant
 import code.api.UKOpenBanking.v3_1_0.JSONFactory_UKOpenBanking_310.ConsentPostBodyUKV310
-import code.api.util.APIUtil.{EmptyBody, ResourceDoc, HTTPParam, connectorEmptyResponse, createQueriesByHttpParams, defaultBankId, fullBoxOrException, passesPsd2Aisp, unboxFull, unboxFullOrFail, DateWithDayFormat}
+import code.api.util.APIUtil.{EmptyBody, ResourceDoc, HTTPParam, UserOrApplication, connectorEmptyResponse, createQueriesByHttpParams, defaultBankId, fullBoxOrException, passesPsd2Aisp, unboxFull, unboxFullOrFail, parseIso8601OrDayDate}
 import code.api.util.ApiTag
 import code.api.util.CallContext
 import code.api.util.CustomJsonFormats
-import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, ConsentNotFound, ConsentViewNotFund, UnknownError}
+import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, ConsentNotFound, ConsentViewNotFund, InvalidJsonFormat, InvalidUKConsentPermissions, UnknownError}
 import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps}
 import code.api.util.newstyle.ViewNewStyle
-import code.api.util.{APIUtil, ConsentJWT, JwtUtil, NewStyle}
+import code.api.util.{APIUtil, Consent, ConsentJWT, JwtUtil, NewStyle}
 import code.consent.Consents
 import code.model.{BankAccountExtended, UserExtended}
+import code.util.Helper
 import code.util.Helper.MdcLoggable
 import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
@@ -94,24 +97,57 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
       EndpointHelpers.executeFutureCreated(req) {
         implicit val cc: CallContext = req.callContext
         for {
-          u <- cc.user.toOption match {
-            case Some(user) => Future.successful(user)
-            case None       => Future.failed(new RuntimeException(AuthenticatedUserIsRequired))
-          }
+          // Spec Step 2: the TPP lodges the consent via a client-credentials grant -- authenticated
+          // as an app (consumer) but with no PSU yet. Require some authentication (a consumer or a
+          // user) but not a PSU specifically; reject only a fully anonymous request. The PSU is
+          // bound later at authorise time (mUserId stays null until then), mirroring the Berlin
+          // Group native consent flow (Http4sBGv13AIS.createConsent). A request with a real user
+          // (e.g. DirectLogin) still works -- createdByUser just carries it through.
+          _ <- if (cc.user.isEmpty && cc.consumer.isEmpty)
+                 Future.failed(new RuntimeException(AuthenticatedUserIsRequired))
+               else Future.successful(())
+          // A pure client-credentials token still resolves cc.user to an auto-vivified
+          // pseudo-user (idGivenByProvider == the calling consumer's own client key) rather than
+          // leaving it Empty -- that pseudo-user is not a PSU, so it must not become the
+          // consent's owner (it would permanently block the real PSU's authorise-time
+          // ConsentDoesNotMatchUser check). Only carry a genuine PSU session through.
+          createdByUser = cc.user.toOption
+            .filterNot(u => cc.consumer.map(_.key.get).contains(u.idGivenByProvider))
           consentJson <- Future.fromTry(scala.util.Try(
             JsonAliases.parse(cc.httpBody.getOrElse("{}")).extract[ConsentPostBodyUKV310]
           ))
+          // Separate step (not inlined into the saveUKConsent call below) so a bad date string
+          // fails here -> 400. NewStyle.function.tryons (not Future.fromTry) is required for
+          // that: ErrorResponseConverter only special-cases APIFailureNewStyle to preserve a set
+          // HTTP code -- tryons wraps failures that way, a bare Future.fromTry(Try(...)) doesn't
+          // and falls through to unknownErrorToResponse, i.e. 500.
+          (expirationDateTime, transactionFromDateTime, transactionToDateTime) <- NewStyle.function.tryons(
+            s"$InvalidJsonFormat The Json body should have valid ISO-8601 ExpirationDateTime/TransactionFromDateTime/TransactionToDateTime values ", 400, Some(cc)) {
+            (
+              consentJson.Data.ExpirationDateTime.map(parseIso8601OrDayDate),
+              consentJson.Data.TransactionFromDateTime.map(parseIso8601OrDayDate),
+              consentJson.Data.TransactionToDateTime.map(parseIso8601OrDayDate)
+            )
+          }
+          // The standard requires the ASPSP to refuse malformed permission combinations with 400
+          // rather than create a consent that can never be exercised -- see
+          // Consent.validateUKConsentPermissions for the rules and why they matter.
+          _ <- Consent.validateUKConsentPermissions(consentJson.Data.Permissions) match {
+            case Some(reason) =>
+              Helper.booleanToFuture(s"$InvalidUKConsentPermissions$reason", 400, Some(cc))(false)
+            case None => Future.successful(true)
+          }
           consumerId = cc.consumer.map(_.consumerId.get)
           _ <- passesPsd2Aisp(Some(cc))
           createdConsent <- Future(Consents.consentProvider.vend.saveUKConsent(
-            Some(u),
+            createdByUser,
             bankId = None,
             accountIds = None,
             consumerId = consumerId,
             permissions = consentJson.Data.Permissions,
-            expirationDateTime = DateWithDayFormat.parse(consentJson.Data.ExpirationDateTime),
-            transactionFromDateTime = DateWithDayFormat.parse(consentJson.Data.TransactionFromDateTime),
-            transactionToDateTime = DateWithDayFormat.parse(consentJson.Data.TransactionToDateTime),
+            expirationDateTime = expirationDateTime,
+            transactionFromDateTime = transactionFromDateTime,
+            transactionToDateTime = transactionToDateTime,
             apiStandard = Some("UKOpenBanking"),
             apiVersion = Some("4.0.1")
           )) map { i => connectorEmptyResponse(i, Some(cc)) }
@@ -141,6 +177,13 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
     parseBody(EX_createAccountAccessConsents),
     List(AuthenticatedUserIsRequired, UnknownError),
     ApiTag("Account Access Consents") :: Nil,
+    // Consent lodging is a client-credentials call: the TPP is authenticated as an app, and there
+    // is no PSU yet. The handler above already says so; this makes the ResourceDoc say it too.
+    // Without it the doc defaults to UserOnly, which sends the middleware down anonymousAccess and
+    // 401s any request that carries no user -- so the endpoint only works today because OAuth2
+    // token parsing auto-vivifies a user for a client-credentials token. Matches the Berlin Group
+    // twin (Http4sBGv13AIS.createConsent), which has always been UserOrApplication.
+    authMode = UserOrApplication,
     http4sPartialFunction = Some(createAccountAccessConsents)
   )
 
@@ -180,11 +223,15 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
 }"""
   lazy val getAccountAccessConsentsConsentId: HttpRoutes[IO] = HttpRoutes.of[IO] {
     case req @ GET -> `ukV401Prefix` / "aisp" / "account-access-consents" / consentId =>
-      EndpointHelpers.withUser(req) { (_, cc) =>
+      // Not withUser: the standard has the AISP poll its own consent with a client-credentials
+      // token, which carries no PSU. Consent.checkUKConsentAccess decides who may read it from
+      // whichever identity the session does carry.
+      EndpointHelpers.executeAndRespond(req) { cc =>
         for {
           consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
             unboxFullOrFail(_, Some(cc), s"$ConsentNotFound ($consentId)")
           }
+          _ <- Consent.assertUKConsentAccess(consent.userId, consent.consumerId, cc)
           consentViews <- Future(JwtUtil.getSignedPayloadAsJson(consent.jsonWebToken).map(
             JsonAliases.parse(_).extract[ConsentJWT].views.map(_.view_id)
           )) map { unboxFullOrFail(_, Some(cc), s"$ConsentViewNotFund ($consentId)") }
@@ -195,9 +242,9 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
             status = consent.status,
             statusUpdateDateTime = consent.statusUpdateDateTime.toString,
             permissions = consentViews,
-            expirationDateTime = consent.expirationDateTime.toString,
-            transactionFromDateTime = consent.transactionFromDateTime.toString,
-            transactionToDateTime = consent.transactionToDateTime.toString,
+            expirationDateTime = Option(consent.expirationDateTime).map(_.toString),
+            transactionFromDateTime = Option(consent.transactionFromDateTime).map(_.toString),
+            transactionToDateTime = Option(consent.transactionToDateTime).map(_.toString),
             selfPath = s"/aisp/account-access-consents/$consentId"
           )
         }
@@ -214,18 +261,23 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
     parseBody(EX_getAccountAccessConsentsConsentId),
     List(AuthenticatedUserIsRequired, UnknownError),
     ApiTag("Account Access Consents") :: Nil,
+    // Same reasoning as the POST that lodges the consent: the AISP polls it with a
+    // client-credentials token, so a PSU cannot be required. See Consent.checkUKConsentAccess.
+    authMode = UserOrApplication,
     http4sPartialFunction = Some(getAccountAccessConsentsConsentId)
   )
 
   private val EX_deleteAccountAccessConsentsConsentId: String = """{}"""
   lazy val deleteAccountAccessConsentsConsentId: HttpRoutes[IO] = HttpRoutes.of[IO] {
     case req @ DELETE -> `ukV401Prefix` / "aisp" / "account-access-consents" / consentId =>
-      EndpointHelpers.withUserDelete(req) { (_, cc) =>
+      // Not withUserDelete -- see the GET twin above.
+      EndpointHelpers.executeDelete(req) { cc =>
         for {
           _ <- passesPsd2Aisp(Some(cc))
-          _ <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
+          consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
             unboxFullOrFail(_, Some(cc), ConsentNotFound)
           }
+          _ <- Consent.assertUKConsentAccess(consent.userId, consent.consumerId, cc)
           _ <- Future(Consents.consentProvider.vend.revoke(consentId)) map {
             i => connectorEmptyResponse(i, Some(cc))
           }
@@ -243,6 +295,8 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
     parseBody(EX_deleteAccountAccessConsentsConsentId),
     List(AuthenticatedUserIsRequired, UnknownError),
     ApiTag("Account Access Consents") :: Nil,
+    // As above: revoking is a client-credentials call in the standard's AISP flow.
+    authMode = UserOrApplication,
     http4sPartialFunction = Some(deleteAccountAccessConsentsConsentId)
   )
 
@@ -435,6 +489,8 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
         val detailViewId = ViewId(Constant.SYSTEM_READ_ACCOUNTS_DETAIL_VIEW_ID)
         val basicViewId = ViewId(Constant.SYSTEM_READ_ACCOUNTS_BASIC_VIEW_ID)
         for {
+          _ <- NewStyle.function.checkUKConsent(u, Some(cc))
+          _ <- passesPsd2Aisp(Some(cc))
           availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u) map {
             _.filter(_.accountId.value == accountId.value)
           }
@@ -2215,28 +2271,11 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
     case req @ GET -> `ukV401Prefix` / "aisp" / "accounts" / accountIdStr / "transactions" =>
       EndpointHelpers.withUser(req) { (u, cc) =>
         val accountId = AccountId(accountIdStr)
-        val detailViewId = ViewId(Constant.SYSTEM_READ_TRANSACTIONS_DETAIL_VIEW_ID)
-        val basicViewId = ViewId(Constant.SYSTEM_READ_TRANSACTIONS_BASIC_VIEW_ID)
-        for {
-          _ <- NewStyle.function.checkUKConsent(u, Some(cc))
-          _ <- passesPsd2Aisp(Some(cc))
-          (account, _) <- NewStyle.function.getBankAccountByAccountId(accountId, Some(cc))
-          (bank, _) <- NewStyle.function.getBank(account.bankId, Some(cc))
-          view <- ViewNewStyle.checkViewsAccessAndReturnView(detailViewId, basicViewId, BankIdAccountId(account.bankId, accountId), Full(u), Some(cc))
-          params <- Future {
-            createQueriesByHttpParams(req.headers.headers.toList.map(h => HTTPParam(h.name.toString, List(h.value))))
-          } map { x =>
-            unboxFull(fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, Some(cc.toLight))))
-          }
-          (transactions, _) <- BankAccountExtended(account).getModeratedTransactionsFuture(bank, Full(u), view, Some(cc), params) map { x =>
-            unboxFull(fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, Some(cc.toLight))))
-          }
-          (moderatedAttributes: List[TransactionAttribute], _) <- NewStyle.function.getModeratedAttributesByTransactions(
-            account.bankId,
-            transactions.map(_.id),
-            view.viewId,
-            Some(cc))
-        } yield JSONFactory_UKOpenBanking_401.createTransactionsJsonNew(account.bankId, transactions, moderatedAttributes, view)
+        // The read itself is shared with v3.1 -- see UKTransactionsQuery. Only the factory differs.
+        UKTransactionsQuery.read(req, u, cc, accountId) map { result =>
+          JSONFactory_UKOpenBanking_401.createTransactionsJsonNew(
+            result.account.bankId, accountId.value, result.transactions, result.attributes, result.view)
+        }
       }
   }
   resourceDocs += ResourceDoc(
@@ -2304,10 +2343,23 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
   lazy val getBalances: HttpRoutes[IO] = HttpRoutes.of[IO] {
     case req @ GET -> `ukV401Prefix` / "aisp" / "balances" =>
       EndpointHelpers.withUser(req) { (u, cc) =>
+        val balancesViewId = ViewId(Constant.SYSTEM_READ_BALANCES_VIEW_ID)
         for {
+          _ <- NewStyle.function.checkUKConsent(u, Some(cc))
+          _ <- passesPsd2Aisp(Some(cc))
           availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
           (accounts, _) <- NewStyle.function.getBankAccounts(availablePrivateAccounts, Some(cc))
-        } yield JSONFactory_UKOpenBanking_401.createBalancesJSON(accounts)
+        } yield {
+          // Holding some view on an account is not the same as being allowed to read its balance:
+          // ReadBalances is a permission a consent may simply never have asked for. The per-account
+          // balances endpoint checks it, this one did not -- so it answered for every account the
+          // caller could see, whatever the consent said. Filter on the same view it does.
+          val readable = accounts.filter { account =>
+            APIUtil.checkViewAccessAndReturnView(
+              balancesViewId, BankIdAccountId(account.bankId, account.accountId), Full(u), Some(cc)).isDefined
+          }
+          JSONFactory_UKOpenBanking_401.createBalancesJSON(readable)
+        }
       }
   }
   resourceDocs += ResourceDoc(
@@ -3446,13 +3498,23 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
     case req @ GET -> `ukV401Prefix` / "aisp" / "transactions" =>
       EndpointHelpers.withUser(req) { (u, cc) =>
         for {
+          _ <- NewStyle.function.checkUKConsent(u, Some(cc))
+          _ <- passesPsd2Aisp(Some(cc))
           (bank, _) <- NewStyle.function.getBank(BankId(defaultBankId), Some(cc))
           availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
           (accounts, _) <- NewStyle.function.getBankAccounts(availablePrivateAccounts, Some(cc))
           allTxns <- Future {
+            val detailViewId = ViewId(Constant.SYSTEM_READ_TRANSACTIONS_DETAIL_VIEW_ID)
+            val basicViewId = ViewId(Constant.SYSTEM_READ_TRANSACTIONS_BASIC_VIEW_ID)
             accounts.flatMap { bankAccount =>
               (for {
-                view <- UserExtended(u).checkOwnerViewAccessAndReturnOwnerView(BankIdAccountId(bankAccount.bankId, bankAccount.accountId), Some(cc))
+                // The owner view, which this used to gate on, comes from holding the account and so
+                // says nothing about what a consent permits -- it let a consent that never asked for
+                // transactions read them, and moderated them as the owner rather than as the granted
+                // view. Gate on the transaction views the consent actually grants, exactly as the
+                // per-account endpoint does.
+                view <- APIUtil.checkViewAccessAndReturnView(detailViewId, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), Full(u), Some(cc))
+                  .or(APIUtil.checkViewAccessAndReturnView(basicViewId, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), Full(u), Some(cc)))
                 params = createQueriesByHttpParams(req.headers.headers.toList.map(h => HTTPParam(h.name.toString, List(h.value)))).getOrElse(Nil)
                 (transactions, _) <- BankAccountExtended(bankAccount).getModeratedTransactions(bank, Full(u), view, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), Some(cc), params)
               } yield transactions).getOrElse(Nil)

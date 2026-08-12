@@ -1293,15 +1293,35 @@ database_messages_scheduler_interval=3600
 # Create System Views At Boot -----------------------------------------------
 # In case is not defined default value is true
 # create_system_views_at_boot=true
+#
+# The UK Open Banking and Berlin Group views the code defines can_* sets for are created
+# unconditionally and no longer need listing here -- the code depends on them existing. A UK
+# consent naming ReadTransactionsCredits cannot be granted if that view is absent, and a
+# conforming consent is *required* to name a direction permission whenever it names a
+# transaction-depth one, so leaving their creation to a props file made conforming consents
+# unusable on instances whose props predated them:
+#   ReadAccountsBasic, ReadAccountsDetail, ReadBalances, ReadTransactionsBasic,
+#   ReadTransactionsDebits, ReadTransactionsCredits, ReadTransactionsDetail,
+#   ReadAccountsBerlinGroup, ReadBalancesBerlinGroup
+#
 # additional_system_views=
-# Possible values for additional_system_views are: ReadAccountsBasic,\
-                                                    ReadAccountsDetail,\
-                                                    ReadBalances,\
-                                                    ReadTransactionsBasic,\
-                                                    ReadTransactionsDebits,\
-                                                    ReadTransactionsDetail, \
-                                                    ReadAccountsBerlinGroup, \
+# Possible values for additional_system_views are: ReadTransactionsBerlinGroup, \
                                                     InitiatePaymentsBerlinGroup
+#
+# Whether boot brings existing system views' permissions back in line with what this build
+# defines. Default true.
+#
+# getOrCreateSystemView returns an existing row untouched, so before this a view created by an
+# older version kept that version's permission set for good: a set tightened in code reached new
+# installations and no others. That is how "ReadAccountsDetail granted nothing beyond
+# ReadAccountsBasic" and "ReadBalances alone exposed transaction and counterparty data" could be
+# fixed in code and still be true of every upgraded database.
+#
+# Only the permission set is reconciled -- a view's name, description, isPublic and alias flags
+# are left alone, so operator edits to those survive. Set to false only if you deliberately
+# hand-tune these rows and intend to keep them current yourself; every reconciliation is logged
+# with the permissions added and removed.
+# system_views.reconcile_permissions_at_boot=true
 # -----------------------------------------------------------------------------
 
 
@@ -1860,3 +1880,27 @@ securelogging_mask_email=true
 ############################################
 # messaging.channel.ttl.seconds=3600
 # messaging.channel.max.messages=1000
+
+# The Consumers that are this ASPSP's own Strong Customer Authentication front end, comma separated
+# consumer ids. Two consent standards need this, for the same reason: the approval screen arrives
+# under its own Consumer rather than the TPP's, and nothing in the request tells it apart from a
+# second TPP holding a PSU session, so it has to be declared.
+#
+#   Berlin Group -- see the note below, which this key supersedes.
+#   UK Open Banking -- the screen reads the consent to show the PSU which permissions, status and
+#     expiry they are being asked to approve. Only while the consent is still unclaimed; once a PSU
+#     is bound to it, a declared front end gets no further than any other caller.
+#
+# Leave empty unless you run your own SCA screen: empty keeps the lodging-TPP rule applying to
+# everyone. The older berlin_group_sca_front_end_consumer_ids below is still read, so an instance
+# already configured for Berlin Group Redirect SCA needs no edit.
+# sca_front_end_consumer_ids=
+
+# Berlin Group: the Consumers that are this ASPSP's own Strong Customer Authentication front end,
+# comma separated consumer ids. Under the Redirect approach the PSU authenticates at the ASPSP, so
+# the authorisation calls on /berlin-group/v1.3/consents/{id}/authorisations arrive from that front
+# end rather than from the TPP that lodged the consent -- and the standard's same-TPP rule
+# (Implementation Guidelines 4.11) would otherwise refuse them. Nothing in the request tells the
+# ASPSP's own front end apart from a second TPP holding a PSU session, so it has to be declared.
+# Leave empty unless you use Redirect SCA: empty keeps the same-TPP rule applying to every caller.
+# berlin_group_sca_front_end_consumer_ids=

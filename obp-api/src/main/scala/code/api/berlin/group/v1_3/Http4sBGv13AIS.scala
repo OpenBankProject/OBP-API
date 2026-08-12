@@ -9,12 +9,14 @@ import code.api.berlin.group.ConstantsBG
 import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3._
 import code.api.berlin.group.v1_3.model._
 import code.api.berlin.group.v1_3.{BgSpecValidation, JSONFactory_BERLIN_GROUP_1_3, JvalueCaseClass}
+import code.api.RequestHeader
+import code.api.util.APIUtil
 import code.api.util.APIUtil.{EmptyBody, ResourceDoc, UserOrApplication, connectorEmptyResponse, createQueriesByHttpParams, fullBoxOrException, getHttpRequestUrlParam, getSuggestedDefaultScaMethod, mockedDataText, passesPsd2Aisp, unboxFull, unboxFullOrFail}
 import code.api.util.CallContext
 import code.api.util.ApiTag._
 import code.api.util.CustomJsonFormats
 import code.api.util.ErrorMessages._
-import code.api.util.{ApiTag, NewStyle}
+import code.api.util.{ApiTag, Consent, NewStyle}
 import code.api.util.newstyle.ViewNewStyle
 import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps}
 import code.consent.{ConsentStatus, Consents}
@@ -58,7 +60,12 @@ object Http4sBGv13AIS extends MdcLoggable {
     Future {
       Helper.booleanToBox(u.hasViewAccess(BankIdAccountId(account.bankId, account.accountId), viewId, callContext))
     } map {
-      unboxFullOrFail(_, callContext, s"$NoViewReadAccountsBerlinGroup ${viewId.value} userId : ${u.userId}. account : ${account.accountId}", 403)
+      // No user id in the message. Under consent authentication `u` is the consent's own shadow
+      // user -- an internal identifier the TPP has no business learning and cannot act on. What
+      // the refusal is actually about is the view and the account, both of which the caller
+      // already named. The user id stays in the logs for anyone diagnosing it.
+      unboxFullOrFail(_, callContext,
+        s"$NoViewReadAccountsBerlinGroup ${viewId.value}. account : ${account.accountId}", 403)
     }
   }
 
@@ -68,10 +75,13 @@ object Http4sBGv13AIS extends MdcLoggable {
       EndpointHelpers.executeFutureCreated(req) {
         val cc = req.callContext
         val callContext = Some(cc)
-        val createdByUser: Option[User] = cc.user match {
-          case Full(user) => Some(user)
-          case _ => None
-        }
+        // A pure client-credentials token still resolves cc.user to an auto-vivified
+        // pseudo-user (idGivenByProvider == the calling consumer's own client key) rather than
+        // leaving it Empty -- that pseudo-user is not a PSU, so it must not become the
+        // consent's owner (it would permanently block the real PSU's authorise-time
+        // ConsentDoesNotMatchUser check). Only carry a genuine PSU session through.
+        val createdByUser: Option[User] = cc.user.toOption
+          .filterNot(u => cc.consumer.map(_.key.get).contains(u.idGivenByProvider))
         for {
           _ <- passesPsd2Aisp(callContext)
           failMsg = s"$InvalidJsonFormat The Json body should be the $PostConsentJson "
@@ -306,6 +316,17 @@ object Http4sBGv13AIS extends MdcLoggable {
         val callContext = Some(cc)
         for {
           _ <- passesPsd2Aisp(callContext)
+          // The same ownership test its sibling GET /consents/CONSENTID applies twelve lines below.
+          // Without it any PSD2-AISP caller could list the authorisation ids of a consent lodged by
+          // somebody else -- the PUT that answers one is guarded, so this leaked identifiers rather
+          // than access, but the asymmetry between two neighbouring reads of the same consent was an
+          // oversight, not a decision.
+          consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
+            unboxFullOrFail(_, callContext, s"$ConsentNotFound ($consentId)")
+          }
+          _ <- booleanToFuture(failMsg = ConsentNotFound, failCode = 403, cc = callContext) {
+            consent.mConsumerId.get == cc.consumer.map(_.consumerId.get).getOrElse("None")
+          }
           (challenges, callContext) <- NewStyle.function.getChallengesByConsentId(consentId, callContext)
         } yield {
           JSONFactory_BERLIN_GROUP_1_3.AuthorisationJsonV13(challenges.map(_.challengeId))
@@ -341,8 +362,14 @@ object Http4sBGv13AIS extends MdcLoggable {
         val callContext = Some(cc)
         for {
           _ <- passesPsd2Aisp(callContext)
-          _ <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
+          // Same ownership test as the three sibling reads of this consent. The consent was already
+          // being fetched here purely to prove it exists, so the SCA status of anyone's consent was
+          // readable by any AISP that knew the id.
+          consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
             unboxFullOrFail(_, callContext, s"$ConsentNotFound ($consentId)", 403)
+          }
+          _ <- booleanToFuture(failMsg = ConsentNotFound, failCode = 403, cc = callContext) {
+            consent.mConsumerId.get == cc.consumer.map(_.consumerId.get).getOrElse("None")
           }
           (challenges, callContext) <- NewStyle.function.getChallengesByConsentId(consentId, callContext)
         } yield {
@@ -362,6 +389,12 @@ object Http4sBGv13AIS extends MdcLoggable {
           _ <- passesPsd2Aisp(callContext)
           consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
             unboxFullOrFail(_, callContext, ConsentNotFound, 403)
+          }
+          // Same ownership test as the three sibling reads of this consent. Without it the status of
+          // any consent was readable by any AISP holding its id -- which is enough to confirm the
+          // consent exists and to watch it move through authorisation.
+          _ <- booleanToFuture(failMsg = ConsentNotFound, failCode = 403, cc = callContext) {
+            consent.mConsumerId.get == cc.consumer.map(_.consumerId.get).getOrElse("None")
           }
         } yield {
           JSONFactory_BERLIN_GROUP_1_3.ConsentStatusJsonV13(consent.status)
@@ -487,22 +520,69 @@ object Http4sBGv13AIS extends MdcLoggable {
       }
   }
 
+  /**
+   * The PSU-ID request header, resolved to the user id it names.
+   *
+   * Berlin Group makes the header conditional rather than mandatory, so absent is a conforming
+   * answer and gives None -- the caller may be identifying the PSU some other way, which
+   * Consent.resolveBerlinGroupPsu works out. A value the ASPSP cannot resolve is a different matter
+   * and is refused with the code the standard reserves for exactly it: PSU_CREDENTIALS_INVALID, 401,
+   * "PSU-ID cannot be found by ASPSP".
+   */
+  private def resolvePsuIdHeader(cc: CallContext, callContext: Option[CallContext]): Future[Option[String]] =
+    Option(APIUtil.getRequestHeader(RequestHeader.`PSU-ID`, cc.requestHeaders)).map(_.trim).filter(_.nonEmpty) match {
+      case None => Future.successful(None)
+      case Some(psuId) =>
+        Future(Consent.findPsuByPsuId(psuId)) map { psu =>
+          Some(unboxFullOrFail(psu, callContext, UserNotFoundByProviderAndUsername, 401).userId)
+        }
+    }
+
   // ── POST /consents/CONSENTID/authorisations (3 body-guard variants) ─────
   lazy val startConsentAuthorisationAll: HttpRoutes[IO] = HttpRoutes.of[IO] {
     case req @ POST -> `bgV13Prefix` / "consents" / consentId / "authorisations" =>
       EndpointHelpers.executeFutureCreated(req) {
         val cc = req.callContext
         val callContext = Some(cc)
-        val u = cc.user.openOrThrowException(AuthenticatedUserIsRequired)
         val parsedJson = scala.util.Try(json.parse(cc.httpBody.getOrElse(""))).getOrElse(json.JNothing)
-        if (checkTransactionAuthorisation(parsedJson)) {
+        if (startsAuthorisation(parsedJson)) {
           for {
             _ <- passesPsd2Aisp(callContext)
             consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
               unboxFullOrFail(_, callContext, ConsentNotFound, 403)
             }
+            // Starting an authorisation is the entry to claiming the consent: the challenge minted
+            // here is what the PUT twin answers before binding a PSU. Without this, any authenticated
+            // caller could raise a challenge on any consent id and then answer their own.
+            _ <- Consent.checkBerlinGroupConsentAccess(
+              consent.userId, consent.consumerId,
+              Consent.genuinePsu(cc).map(_.userId), cc.consumer.map(_.consumerId.get),
+              Consent.isScaFrontEnd(cc.consumer.map(_.consumerId.get))) match {
+              case Some(reason) => booleanToFuture(failMsg = reason, failCode = 403, cc = callContext)(false)
+              case None => Future.successful(true)
+            }
+            headerPsuUserId <- resolvePsuIdHeader(cc, callContext)
+            // Whose challenge this is, which is also where the OTP gets sent. Not the session's
+            // principal: in Berlin Group the caller is the TPP. See Consent.resolveBerlinGroupPsu.
+            psuUserId <- Consent.resolveBerlinGroupPsu(
+              consent.userId, Consent.genuinePsu(cc).map(_.userId), headerPsuUserId) match {
+              case Right(userId) => Future.successful(userId)
+              // A PSU-ID contradicting what the ASPSP already knows is an ownership refusal (403,
+              // like the guard above); no PSU identifiable at all is the standard's own
+              // PSU_CREDENTIALS_INVALID (401). booleanToFuture(false) always fails, so the mapped
+              // value is never reached -- it only lines the two branches up.
+              case Left(reason) =>
+                val failCode = if (reason == ConsentDoesNotMatchUser) 403 else 401
+                booleanToFuture(failMsg = reason, failCode = failCode, cc = callContext)(false).map(_ => "")
+            }
+            // Refuse here rather than at the PUT, even though binding happens there: the next step
+            // sends this person an OTP out of band. A consent naming accounts they do not hold can
+            // never legitimately bind to them, so minting the challenge would only deliver a code to
+            // someone the TPP nominated for an authorisation that must fail.
+            (psuForCheck, callContext) <- NewStyle.function.findByUserId(psuUserId, callContext)
+            _ <- Consent.assertBerlinGroupConsentAccountsHeld(psuForCheck, consent, callContext)
             (challenges, callContext) <- NewStyle.function.createChallengesC2(
-              List(u.userId),
+              List(psuUserId),
               ChallengeType.BERLIN_GROUP_CONSENT_CHALLENGE,
               None,
               getSuggestedDefaultScaMethod(),
@@ -517,8 +597,12 @@ object Http4sBGv13AIS extends MdcLoggable {
           } yield {
             createStartConsentAuthorisationJson(consent, challenge)
           }
-        } else {
-          // mocked for updatePsuAuthentication and selectPsuAuthenticationMethod variants
+        } else if (checkUpdatePsuAuthentication(parsedJson) || checkSelectPsuAuthenticationMethod(parsedJson)) {
+          // Mocked for the updatePsuAuthentication and selectPsuAuthenticationMethod variants, which
+          // are Embedded-approach steps OBP does not implement. Guarded now: this was the
+          // unconditional final else, so any body the server could not recognise was answered with
+          // this example -- a fabricated authorisationId, returned 201, that matches no challenge.
+          // The TPP only discovers it at the PUT, where the id resolves to nothing.
           Future.successful(com.openbankproject.commons.util.JsonAliases.parse(
             """{
                 "scaStatus": "received",
@@ -529,6 +613,13 @@ object Http4sBGv13AIS extends MdcLoggable {
                     "scaStatus":  {"href":"/v1.3/consents/qwer3456tzui7890/authorisations/123auth456"}
                   }
               }"""))
+        } else {
+          // None of the recognised shapes. A malformed request has to be reported as one; handing
+          // back an id that was never minted only moves the failure somewhere harder to read.
+          Helper.booleanToFuture(
+            failMsg = s"$InvalidJsonFormat The Json body should be empty, or one of " +
+              s"updatePsuAuthentication, selectPsuAuthenticationMethod or transactionAuthorisation.",
+            failCode = 400, cc = callContext)(false).map(_ => json.parse("{}"))
         }
       }
   }
@@ -538,27 +629,55 @@ object Http4sBGv13AIS extends MdcLoggable {
     case req @ PUT -> `bgV13Prefix` / "consents" / consentId / "authorisations" / authorisationId =>
       EndpointHelpers.executeAndRespond(req) { cc =>
         val callContext = Some(cc)
-        val u = cc.user.openOrThrowException(AuthenticatedUserIsRequired)
         val parsedJson = scala.util.Try(json.parse(cc.httpBody.getOrElse(""))).getOrElse(json.JNothing)
         if (checkTransactionAuthorisation(parsedJson)) {
           for {
             _ <- passesPsd2Aisp(callContext)
-            _ <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
+            storedConsent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
               unboxFullOrFail(_, callContext, ConsentNotFound, 403)
+            }
+            // updateConsentUser below overwrites mUserId unconditionally, so this is the check that
+            // decides who a consent ends up belonging to. See Consent.checkBerlinGroupConsentAccess.
+            _ <- Consent.checkBerlinGroupConsentAccess(
+              storedConsent.userId, storedConsent.consumerId,
+              Consent.genuinePsu(cc).map(_.userId), cc.consumer.map(_.consumerId.get),
+              Consent.isScaFrontEnd(cc.consumer.map(_.consumerId.get))) match {
+              case Some(reason) => booleanToFuture(failMsg = reason, failCode = 403, cc = callContext)(false)
+              case None => Future.successful(true)
             }
             failMsg = s"$InvalidJsonFormat The Json body should be the $TransactionAuthorisation "
             updateJson <- NewStyle.function.tryons(failMsg, 400, callContext) {
               parsedJson.extract[TransactionAuthorisation]
             }
-            (_, callContext) <- NewStyle.function.getChallenge(authorisationId, callContext)
-            (challenge, callContext) <- NewStyle.function.validateChallengeAnswerC4(
+            (startedChallenge, callContext) <- NewStyle.function.getChallenge(authorisationId, callContext)
+            // The connector's validateChallengeAnswerC4 matches on challengeId alone and ignores the
+            // consentId it is handed, so without this a challenge minted on one consent could be
+            // answered on another's path -- and the ownership decision below reads off that
+            // challenge, so it has to be this consent's.
+            _ <- booleanToFuture(
+              failMsg = s"$InvalidChallengeChallengeId Current challengeId($authorisationId) does not belong to CONSENTID($consentId) ",
+              failCode = 400, cc = callContext)(startedChallenge.consentId.contains(consentId))
+            // Who this consent binds to. The POST twin minted the challenge for a particular PSU and
+            // the OTP was delivered to that person, so the challenge is the record of whose
+            // authorisation this is -- the session is the TPP's and cannot say.
+            (psu, callContext) <- NewStyle.function.findByUserId(startedChallenge.expectedUserId, callContext)
+            // The binding point, so the holdings check is repeated here rather than trusted from the
+            // POST: the two calls are separate requests and an account can change hands between
+            // them. It runs before validateChallengeAnswerC4 and before the status update, because
+            // none of what follows is transactional -- a refusal after any of it would leave the
+            // consent half-claimed.
+            _ <- Consent.assertBerlinGroupConsentAccountsHeld(psu, storedConsent, callContext)
+            // Berlin Group Embedded has the TPP relay the PSU's OTP, so the identity the answer is
+            // validated against is the challenge's PSU rather than the principal on the token. The
+            // caller's own right to be here was settled by checkBerlinGroupConsentAccess above.
+            (challenge, _) <- NewStyle.function.validateChallengeAnswerC4(
               ChallengeType.BERLIN_GROUP_CONSENT_CHALLENGE,
               None,
               Some(consentId),
               authorisationId,
               updateJson.scaAuthenticationData,
               SuppliedAnswerType.PLAIN_TEXT_VALUE,
-              callContext
+              callContext.map(_.copy(user = Full(psu)))
             )
             consent <- challenge.scaStatus match {
               case Some(status) if status == StrongCustomerAuthenticationStatus.finalised =>
@@ -572,13 +691,13 @@ object Http4sBGv13AIS extends MdcLoggable {
               consent.toList.size == 1
             }
             _ <- Future {
-              val authContexts = UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContextsBox(u.userId)
+              val authContexts = UserAuthContextProvider.userAuthContextProvider.vend.getUserAuthContextsBox(psu.userId)
                 .map(_.map(i => BasicUserAuthContext(i.key, i.value)))
               ConsentAuthContextProvider.consentAuthContextProvider.vend.createOrUpdateConsentAuthContexts(consentId, authContexts.getOrElse(Nil))
             } map {
               unboxFullOrFail(_, callContext, ConsentUserAuthContextCannotBeAdded)
             }
-            _ <- Future(Consents.consentProvider.vend.updateConsentUser(consentId, u)) map {
+            _ <- Future(Consents.consentProvider.vend.updateConsentUser(consentId, psu)) map {
               unboxFullOrFail(_, callContext, ConsentUserCannotBeAdded)
             }
           } yield {
@@ -606,8 +725,11 @@ object Http4sBGv13AIS extends MdcLoggable {
                |    "authoriseTransaction": {"href": "/psd2/v1/payments/1234-wertiq-983/authorisations/123auth456"}
                |  }
                |}""".stripMargin))
-        } else {
-          // authorisationConfirmation variant
+        } else if (checkAuthorisationConfirmation(parsedJson)) {
+          // authorisationConfirmation variant. Guarded by the checker that already existed for it:
+          // this was the unconditional final else, so a body matching none of the four shapes -- an
+          // empty one included -- was answered "scaStatus": "finalised", the terminal success state
+          // of strong customer authentication, for an authorisation nothing had happened to.
           Future.successful(com.openbankproject.commons.util.JsonAliases.parse(
             """{
                |  "scaStatus": "finalised",
@@ -615,6 +737,13 @@ object Http4sBGv13AIS extends MdcLoggable {
                |    "status":  {"href":"/v1/payments/sepa-credit-transfers/qwer3456tzui7890/status"}
                |  }
                |}""".stripMargin))
+        } else {
+          // None of the four Berlin Group shapes. Malformed, and it has to say so: claiming an SCA
+          // outcome for a request the server could not read is worse than any of them.
+          Helper.booleanToFuture(
+            failMsg = s"$InvalidJsonFormat The Json body should be one of updatePsuAuthentication, " +
+              s"selectPsuAuthenticationMethod, transactionAuthorisation or authorisationConfirmation.",
+            failCode = 400, cc = callContext)(false).map(_ => json.parse("{}"))
         }
       }
   }
@@ -811,6 +940,13 @@ using the extended forms as indicated above.
       startConsentAuthorisationResponse,
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil,
+      // Berlin Group's Embedded SCA step, and the TPP is the caller: the PSU either authenticated
+      // at the ASPSP under Redirect or handed its factors to the TPP under Embedded. Which PSU the
+      // challenge is for no longer comes from the session -- see Consent.resolveBerlinGroupPsu --
+      // so the doc can now say what the call actually is, as its GET siblings already do. Left on
+      // the UserOnly default it would 401 a client-credentials caller the day OAuth2 token parsing
+      // stops auto-vivifying a user.
+      authMode = UserOrApplication,
       http4sPartialFunction = Some(startConsentAuthorisationAll)
     )
 
@@ -825,6 +961,7 @@ using the extended forms as indicated above.
       startConsentAuthorisationResponse,
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil,
+      authMode = UserOrApplication,
       http4sPartialFunction = Some(startConsentAuthorisationAll)
     )
 
@@ -839,6 +976,7 @@ using the extended forms as indicated above.
       startConsentAuthorisationResponse,
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil,
+      authMode = UserOrApplication,
       http4sPartialFunction = Some(startConsentAuthorisationAll)
     )
 
@@ -885,6 +1023,7 @@ Maybe in a later version the access path will change.
       ),
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil,
+      authMode = UserOrApplication,
       http4sPartialFunction = Some(updateConsentsPsuDataAll)
     )
 
@@ -904,6 +1043,7 @@ Maybe in a later version the access path will change.
          |        }""".stripMargin)),
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil,
+      authMode = UserOrApplication,
       http4sPartialFunction = Some(updateConsentsPsuDataAll)
     )
 
@@ -931,6 +1071,7 @@ Maybe in a later version the access path will change.
                    |        }""".stripMargin)),
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil,
+      authMode = UserOrApplication,
       http4sPartialFunction = Some(updateConsentsPsuDataAll)
     )
 
@@ -950,6 +1091,7 @@ Maybe in a later version the access path will change.
                    |        }""".stripMargin)),
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil,
+      authMode = UserOrApplication,
       http4sPartialFunction = Some(updateConsentsPsuDataAll)
     )
   }
@@ -1161,6 +1303,17 @@ This function returns an array of hyperlinks to all generated authorisation sub-
 }""")),
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil,
+      // The TPP reads its own consent's authorisation sub-resources; no PSU is party to the call.
+      // The Implementation Guidelines put it plainly (§4.6, Authorisation Endpoints): the ASPSP
+      // "will give access to these sub-resources to the TPP by returning corresponding hyperlinks",
+      // and "the authorisation status would still result by submitting the command GET
+      // .../authorisations/authorisationId". In Berlin Group the PSU never calls the API at all --
+      // it authenticates at the ASPSP under Redirect, or hands its factors to the TPP under
+      // Embedded. The handler already reflects that, taking no user; only the doc disagreed, and a
+      // doc left on the UserOnly default sends the middleware down anonymousAccess, which 401s a
+      // request carrying no user. Brings these into line with the consent endpoints in this same
+      // file, which have been UserOrApplication all along.
+      authMode = UserOrApplication,
       http4sPartialFunction = Some(getConsentAuthorisation)
     )
 
@@ -1179,6 +1332,8 @@ This method returns the SCA status of a consent initiation's authorisation sub-r
 }""")),
       List(AuthenticatedUserIsRequired, UnknownError),
       ApiTag("Account Information Service (AIS)") :: apiTagBerlinGroupM :: Nil,
+      // As above -- reading the SCA status is the TPP polling its own authorisation sub-resource.
+      authMode = UserOrApplication,
       http4sPartialFunction = Some(getConsentScaStatus)
     )
 

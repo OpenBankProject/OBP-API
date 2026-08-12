@@ -184,6 +184,21 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
   def rfc7231Date: SimpleDateFormat = rfc7231DateTL.get()
 
+  /**
+   * Parses a full ISO-8601 datetime with offset (e.g. "2020-01-01T00:00:00+00:00") or, failing
+   * that, a bare "yyyy-MM-dd" date (midnight UTC). Unlike DateWithDayFormat (a SimpleDateFormat
+   * with "yyyy-MM-dd"), this does not silently truncate a full datetime's time/offset — it parses
+   * the whole value or throws java.time.format.DateTimeParseException on genuinely malformed input.
+   */
+  def parseIso8601OrDayDate(s: String): Date = {
+    try {
+      Date.from(java.time.OffsetDateTime.parse(s).toInstant)
+    } catch {
+      case _: java.time.format.DateTimeParseException =>
+        Date.from(java.time.LocalDate.parse(s).atStartOfDay(java.time.ZoneOffset.UTC).toInstant)
+    }
+  }
+
   val DateWithYearExampleString: String = "1100"
   val DateWithMonthExampleString: String = "1100-01"
   val DateWithDayExampleString: String = "1100-01-01"
@@ -2802,21 +2817,24 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
           consumerByCertificate
         }
         Consent.applyBerlinGroupRules(APIUtil.`getConsent-ID`(reqHeaders), cc.copy(consumer = consumerForConsent))
-      } else if (APIUtil.hasConsentJWT(reqHeaders)) { // Open Bank Project's Consent
+      } else if (APIUtil.hasConsentJWT(reqHeaders)) { // Open Bank Project's or UK Open Banking's Consent
         val consentValue = APIUtil.getConsentJWT(reqHeaders)
-        Consent.getConsentJwtValueByConsentId(consentValue.getOrElse("")) match {
+        // Note: At this point we are getting the Consumer from the Consumer in the Consent.
+        // This may later be cross checked via the value in consumer_validation_method_for_consent.
+        // Get the source of truth for Consumer (e.g. CONSUMER_CERTIFICATE) as early as possible.
+        val ccWithConsumer = cc.copy(consumer = consumerByCertificate.orElse(consumerByConsumerKey))
+        Consent.getConsentByHeaderValue(consentValue.getOrElse("")) match {
+          // A UK consent normally travels as a consent_id claim inside an OAuth2 access token. It may
+          // also be presented on its own here, with no Authorization header -- the same shape Berlin
+          // Group and OBP-native clients use. applyUKRules applies every gate checkUKConsent does.
+          case Some(consent) if consent.apiStandard == Consent.ConsentStandardUK =>
+            Consent.applyUKRules(consent, consentValue.getOrElse(""), ccWithConsumer)
           case Some(consent) => // JWT value obtained via "Consent-Id" request header
-            Consent.applyRules(
-              Some(consent.jsonWebToken),
-              // Note: At this point we are getting the Consumer from the Consumer in the Consent.
-              // This may later be cross checked via the value in consumer_validation_method_for_consent.
-              // Get the source of truth for Consumer (e.g. CONSUMER_CERTIFICATE) as early as possible.
-              cc.copy(consumer = consumerByCertificate.orElse(consumerByConsumerKey))
-            )
+            Consent.applyRules(Some(consent.jsonWebToken), ccWithConsumer)
           case _ =>
             JwtUtil.checkIfStringIsJWTValue(consentValue.getOrElse("")).isDefined match {
               case true => // It's JWT obtained via "Consent-JWT" request header
-                Consent.applyRules(APIUtil.getConsentJWT(reqHeaders), cc.copy(consumer = consumerByCertificate.orElse(consumerByConsumerKey)))
+                Consent.applyRules(APIUtil.getConsentJWT(reqHeaders), ccWithConsumer)
               case false => // Unrecognised consent value
                 Future { (Failure(ErrorMessages.ConsentHeaderValueInvalid), None) }
             }
@@ -2964,6 +2982,8 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       x => (x._1, x._2.map(_.copy(httpBody = body.toOption)))
     } map { // Inject logged in user into CallContext data
       x => (x._1, x._2.map(_.copy(user = x._1)))
+    } map { // A UK Open Banking consent presented as a token claim runs as that consent's shadow user
+      x => Consent.applyUKConsentPrincipalFromToken(x._1, x._2)
     }
 
   }
@@ -3037,23 +3057,32 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   }
 
   /**
-   * This function is used to introduce Rate Limit at an unauthorized endpoint
-   * @param cc The call context of an request
-   * @return Failure in case we exceeded rate limit
+   * The parts of a request that both [[JwsUtil.verifySignedRequest]] and
+   * [[BerlinGroupCheck.validate]] take, in the order they take them.
    */
-  def anonymousAccess(cc: CallContext): OBPReturnType[Box[User]] = {
-    getUserAndSessionContextFuture(cc)  map { result =>
-      val url = result._2.map(_.url).getOrElse("None")
-      val verb = result._2.map(_.verb).getOrElse("None")
-      val body = result._2.flatMap(_.httpBody)
-      val reqHeaders = result._2.map(_.requestHeaders).getOrElse(Nil)
+  private def requestPartsOf(result: (Box[User], Option[CallContext])) = {
+    val callContext = result._2
+    (
+      callContext.flatMap(_.httpBody),
+      callContext.map(_.verb).getOrElse("None"),
+      callContext.map(_.url).getOrElse("None"),
+      callContext.map(_.requestHeaders).getOrElse(Nil)
+    )
+  }
+
+  /**
+   * The pre-processing shared by [[anonymousAccess]] and [[applicationAccess]]: resolve the
+   * user and session, verify the signed request, run the Berlin Group checks and apply rate
+   * limiting. Each caller decides on its own what to make of the outcome.
+   * @param cc The call context of an request
+   */
+  private def accessPipeline(cc: CallContext): OBPReturnType[Box[User]] = {
+    getUserAndSessionContextFuture(cc) map { result =>
+      val (body, verb, url, reqHeaders) = requestPartsOf(result)
       // Verify signed request
       JwsUtil.verifySignedRequest(body, verb, url, reqHeaders, result)
     } flatMap { result =>
-      val url = result._2.map(_.url).getOrElse("None")
-      val verb = result._2.map(_.verb).getOrElse("None")
-      val body = result._2.flatMap(_.httpBody)
-      val reqHeaders = result._2.map(_.requestHeaders).getOrElse(Nil)
+      val (body, verb, url, reqHeaders) = requestPartsOf(result)
       // Berlin Group checks
       BerlinGroupCheck.validate(body, verb, url, reqHeaders, result)
     } map {
@@ -3063,7 +3092,16 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
           case Some(functionName) if excludeFunctions.exists(_ == functionName) => result
           case _ => RateLimitingUtil.underCallLimits(result)
         }
-    }  map {
+    }
+  }
+
+  /**
+   * This function is used to introduce Rate Limit at an unauthorized endpoint
+   * @param cc The call context of an request
+   * @return Failure in case we exceeded rate limit
+   */
+  def anonymousAccess(cc: CallContext): OBPReturnType[Box[User]] = {
+    accessPipeline(cc) map {
       it =>
         val callContext = it._2
 
@@ -3098,32 +3136,13 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    * @return Tuple (User, Call Context)
    */
   def applicationAccess(cc: CallContext): Future[(Box[User], Option[CallContext])] =
-    getUserAndSessionContextFuture(cc) map { result =>
-      val url = result._2.map(_.url).getOrElse("None")
-      val verb = result._2.map(_.verb).getOrElse("None")
-      val body = result._2.flatMap(_.httpBody)
-      val reqHeaders = result._2.map(_.requestHeaders).getOrElse(Nil)
-      // Verify signed request if need be
-      JwsUtil.verifySignedRequest(body, verb, url, reqHeaders, result)
-    } flatMap { result =>
-      val url = result._2.map(_.url).getOrElse("None")
-      val verb = result._2.map(_.verb).getOrElse("None")
-      val body = result._2.flatMap(_.httpBody)
-      val reqHeaders = result._2.map(_.requestHeaders).getOrElse(Nil)
-      // Berlin Group checks
-      BerlinGroupCheck.validate(body, verb, url, reqHeaders, result)
-    } map {
-      result =>
-        val excludeFunctions = getPropsValue("rate_limiting.exclude_endpoints", "root,getOAuth2ServerWellKnown").split(",").toList
-        cc.resourceDocument.map(_.partialFunctionName) match {
-          case Some(functionName) if excludeFunctions.exists(_ == functionName) => result
-          case _ => RateLimitingUtil.underCallLimits(result)
-        }
-    } map { result =>
+    accessPipeline(cc) map { result =>
       result._1 match {
+        case Full(_) => // The user is known, so the application is too
+          result
         case Empty if result._2.flatMap(_.consumer).isDefined => // There is no error and Consumer is defined
           result
-        case _ =>
+        case _ => // No Consumer, or a Failure whose reason we deliberately do not disclose here
           (
             fullBoxOrException(result._1 ~> APIFailureNewStyle(ApplicationNotIdentified, 401, Some(cc.toLight))),
             result._2
@@ -4734,6 +4753,22 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     }
 
     APIUtil.getPropsValue("email_domain_to_space_mappings").map(extractor).getOrElse(Nil)
+  }
+
+  /**
+   * The Consumers the ASPSP declares to be its own SCA front end.
+   *
+   * Read from `sca_front_end_consumer_ids`. The Berlin-Group-specific key this started life as is
+   * still honoured, so an instance already configured for the Berlin Group redirect flow keeps
+   * working without being edited.
+   *
+   * Empty by default, which is what makes every use of it a no-op unless an ASPSP opts in.
+   */
+  val scaFrontEndConsumerIds: List[String] = {
+    def read(key: String) = APIUtil.getPropsValue(key)
+      .map(_.split(",").toList.map(_.trim).filter(_.nonEmpty))
+      .getOrElse(Nil)
+    (read("sca_front_end_consumer_ids") ++ read("berlin_group_sca_front_end_consumer_ids")).distinct
   }
 
   val skipConsentScaForConsumerIdPairs: List[ConsumerIdPair] = {

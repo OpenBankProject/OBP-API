@@ -5,7 +5,7 @@ import scala.language.implicitConversions
 import code.api.Constant
 import code.api.Constant._
 import code.api.UKOpenBanking.v2_0_0.JSONFactory_UKOpenBanking_200
-import code.api.UKOpenBanking.v2_0_0.JSONFactory_UKOpenBanking_200.{Account, AccountBalancesUKV200, AccountInner, AccountList, Accounts, BalanceJsonUKV200, BalanceUKOpenBankingJson, BankTransactionCodeJson, CreditLineJson, DataJsonUKV200, Links, MetaBisJson, MetaInnerJson, TransactionCodeJson, TransactionInnerJson, TransactionsInnerJson, TransactionsJsonUKV200}
+import code.api.UKOpenBanking.v2_0_0.JSONFactory_UKOpenBanking_200.{Account, AmountUKOpenBankingJson, AccountBalancesUKV200, AccountInner, AccountList, Accounts, BalanceJsonUKV200, BalanceUKOpenBankingJson, BankTransactionCodeJson, CreditLineJson, DataJsonUKV200, Links, MetaBisJson, MetaInnerJson, TransactionCodeJson, TransactionInnerJson, TransactionsInnerJson, TransactionsJsonUKV200}
 import code.api.dynamic.endpoint.helper.practise.PractiseEndpoint
 import code.api.util.APIUtil.{defaultJValue, _}
 import code.api.util.ApiRole._
@@ -552,6 +552,12 @@ object SwaggerDefinitionsJSON {
   lazy val amountOfMoneyJsonV121 = AmountOfMoneyJsonV121(
     currency = "EUR",
     amount = "0"
+  )
+
+  // UK Open Banking spells the same two members capitalised, so its examples take its own shape.
+  lazy val amountUKOpenBankingJson = AmountUKOpenBankingJson(
+    Amount = "0",
+    Currency = "EUR"
   )
 
   lazy val transactionRequestTransferToPhone = TransactionRequestTransferToPhone(
@@ -4002,7 +4008,7 @@ object SwaggerDefinitionsJSON {
   )
 
   lazy val balanceUKOpenBankingJson = BalanceUKOpenBankingJson(
-    Amount = amountOfMoneyJsonV121,
+    Amount = amountUKOpenBankingJson,
     CreditDebitIndicator = "Credit",
     Type = "InterimBooked"
   )
@@ -4016,7 +4022,7 @@ object SwaggerDefinitionsJSON {
     AccountId = accountIdSwagger.value,
     TransactionId  = "123",
     TransactionReference = "Ref 1",
-    Amount = amountOfMoneyJsonV121,
+    Amount = amountUKOpenBankingJson,
     CreditDebitIndicator = "Credit",
     Status = "Booked",
     BookingDateTime = DateWithDayExampleObject,
@@ -4045,13 +4051,13 @@ object SwaggerDefinitionsJSON {
   
   lazy val creditLineJson = CreditLineJson(
     Included = true,
-    Amount = amountOfMoneyJsonV121,
+    Amount = amountUKOpenBankingJson,
     Type = "Pre-Agreed"
   )
   
   lazy val balanceJsonUK200 = BalanceJsonUKV200(
     AccountId = "22289",
-    Amount = amountOfMoneyJsonV121,
+    Amount = amountUKOpenBankingJson,
     CreditDebitIndicator = "Credit",
     Type = "InterimAvailable",
     DateTime = DateWithDayExampleObject,

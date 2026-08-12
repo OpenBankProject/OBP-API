@@ -1,5 +1,7 @@
 package code.api.UKOpenBanking.v3_1_0
 
+import code.api.UKOpenBanking.{UKAmounts, UKTransactionsQuery}
+
 import org.json4s._
 import cats.data.{Kleisli, OptionT}
 import cats.effect.IO
@@ -37,7 +39,8 @@ import scala.concurrent.Future
  * Http4sUKOBv310Statements (which takes precedence in the Lift priority order).
  * This file owns:
  *   - getAccountsAccountIdTransactions: real business logic with UK consent check.
- *   - getTransactions: real business logic, bulk (no consent check, mirrors Lift).
+ *   - getTransactions: real business logic, bulk, UK consent check (kept consistent with
+ *     the v4.0.1 equivalent -- see Http4sUKOBv401AccountInfo.getTransactions).
  */
 object Http4sUKOBv310Transactions extends MdcLoggable {
   type HttpF[A] = OptionT[IO, A]
@@ -305,28 +308,11 @@ object Http4sUKOBv310Transactions extends MdcLoggable {
     case req @ GET -> `ukV31Prefix` / "accounts" / accountIdStr / "transactions" =>
       EndpointHelpers.withUser(req) { (u, cc) =>
         val accountId = AccountId(accountIdStr)
-        val detailViewId = ViewId(Constant.SYSTEM_READ_TRANSACTIONS_DETAIL_VIEW_ID)
-        val basicViewId = ViewId(Constant.SYSTEM_READ_TRANSACTIONS_BASIC_VIEW_ID)
-        for {
-          _ <- NewStyle.function.checkUKConsent(u, Some(cc))
-          _ <- passesPsd2Aisp(Some(cc))
-          (account, _) <- NewStyle.function.getBankAccountByAccountId(accountId, Some(cc))
-          (bank, _) <- NewStyle.function.getBank(account.bankId, Some(cc))
-          view <- ViewNewStyle.checkViewsAccessAndReturnView(detailViewId, basicViewId, BankIdAccountId(account.bankId, accountId), Full(u), Some(cc))
-          params <- Future {
-            createQueriesByHttpParams(req.headers.headers.toList.map(h => HTTPParam(h.name.toString, List(h.value))))
-          } map { x =>
-            unboxFull(fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, Some(cc.toLight))))
-          }
-          (transactions, _) <- BankAccountExtended(account).getModeratedTransactionsFuture(bank, Full(u), view, Some(cc), params) map { x =>
-            unboxFull(fullBoxOrException(x ~> APIFailureNewStyle(UnknownError, 400, Some(cc.toLight))))
-          }
-          (moderatedAttributes: List[TransactionAttribute], _) <- NewStyle.function.getModeratedAttributesByTransactions(
-            account.bankId,
-            transactions.map(_.id),
-            view.viewId,
-            Some(cc))
-        } yield JSONFactory_UKOpenBanking_310.createTransactionsJsonNew(account.bankId, transactions, moderatedAttributes, view)
+        // The read itself is shared with v4.0.1 -- see UKTransactionsQuery. Only the factory differs.
+        UKTransactionsQuery.read(req, u, cc, accountId) map { result =>
+          JSONFactory_UKOpenBanking_310.createTransactionsJsonNew(
+            result.account.bankId, result.transactions, result.attributes, result.view)
+        }
       }
   }
   resourceDocs += ResourceDoc(
@@ -574,13 +560,23 @@ object Http4sUKOBv310Transactions extends MdcLoggable {
     case req @ GET -> `ukV31Prefix` / "transactions" =>
       EndpointHelpers.withUser(req) { (u, cc) =>
         for {
+          _ <- NewStyle.function.checkUKConsent(u, Some(cc))
+          _ <- passesPsd2Aisp(Some(cc))
           (bank, _) <- NewStyle.function.getBank(BankId(defaultBankId), Some(cc))
           availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
           (accounts, _) <- NewStyle.function.getBankAccounts(availablePrivateAccounts, Some(cc))
           allTxns <- Future {
+            val detailViewId = ViewId(Constant.SYSTEM_READ_TRANSACTIONS_DETAIL_VIEW_ID)
+            val basicViewId = ViewId(Constant.SYSTEM_READ_TRANSACTIONS_BASIC_VIEW_ID)
             accounts.flatMap { bankAccount =>
               (for {
-                view <- UserExtended(u).checkOwnerViewAccessAndReturnOwnerView(BankIdAccountId(bankAccount.bankId, bankAccount.accountId), Some(cc))
+                // The owner view, which this used to gate on, comes from holding the account and so
+                // says nothing about what a consent permits -- it let a consent that never asked for
+                // transactions read them, and moderated them as the owner rather than as the granted
+                // view. Gate on the transaction views the consent actually grants, exactly as the
+                // per-account endpoint above does.
+                view <- code.api.util.APIUtil.checkViewAccessAndReturnView(detailViewId, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), Full(u), Some(cc))
+                  .or(code.api.util.APIUtil.checkViewAccessAndReturnView(basicViewId, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), Full(u), Some(cc)))
                 params = createQueriesByHttpParams(req.headers.headers.toList.map(h => HTTPParam(h.name.toString, List(h.value)))).getOrElse(Nil)
                 (transactions, _) <- BankAccountExtended(bankAccount).getModeratedTransactions(bank, Full(u), view, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), Some(cc), params)
               } yield transactions).getOrElse(Nil)

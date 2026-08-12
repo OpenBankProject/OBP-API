@@ -134,6 +134,14 @@ object DoobieUserQueries {
         Fragment.empty
     }
 
+    // Users a consent minted for itself are excluded here exactly as LiftUsers.getUsersCommon
+    // excludes them from the older list endpoints — see the comment there for why they are not
+    // people. That filter was only ever applied to the Lift path, so this newer search endpoint
+    // still listed them. Applied in SQL for the same reason: filtering after LIMIT/OFFSET returns
+    // short pages.
+    val notMintedByAConsentFilter: Fragment =
+      fr"AND (ru.createdbyconsentid IS NULL OR ru.createdbyconsentid = '')"
+
     // role_name/bank_id via EXISTS subquery against mappedentitlement — keeps
     // the outer row count correct (no duplicates when a user has many entitlements).
     val roleFilter: Fragment = roleName match {
@@ -160,6 +168,7 @@ object DoobieUserQueries {
         deletedFilter ++
         lockedFilter ++
         roleFilter ++
+        notMintedByAConsentFilter ++
         orderBy ++
         fr"LIMIT $limit OFFSET $offset")
         .query[UserSearchRow]

@@ -5,14 +5,15 @@ import cats.data.{Kleisli, OptionT}
 import cats.effect.IO
 import code.api.Constant
 import code.api.UKOpenBanking.v3_1_0.JSONFactory_UKOpenBanking_310.ConsentPostBodyUKV310
-import code.api.util.APIUtil.{EmptyBody, ResourceDoc, connectorEmptyResponse, mockedDataText, passesPsd2Aisp, unboxFullOrFail, DateWithDayFormat}
+import code.api.util.APIUtil.{EmptyBody, ResourceDoc, UserOrApplication, connectorEmptyResponse, mockedDataText, passesPsd2Aisp, unboxFullOrFail, parseIso8601OrDayDate}
 import code.api.util.ApiTag
 import code.api.util.CustomJsonFormats
-import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, ConsentNotFound, ConsentViewNotFund, UnknownError}
+import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, ConsentNotFound, ConsentViewNotFund, InvalidJsonFormat, InvalidUKConsentPermissions, UnknownError}
 import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps}
 import code.api.util.CallContext
-import code.api.util.{ConsentJWT, JwtUtil}
+import code.api.util.{Consent, ConsentJWT, JwtUtil, NewStyle}
 import code.consent.Consents
+import code.util.Helper
 import code.util.Helper.MdcLoggable
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.ExecutionContext.Implicits.global
@@ -47,24 +48,54 @@ object Http4sUKOBv310AccountAccess extends MdcLoggable {
       EndpointHelpers.executeFutureCreated(req) {
         implicit val cc: CallContext = req.callContext
         for {
-          u <- cc.user.toOption match {
-            case Some(user) => Future.successful(user)
-            case None       => Future.failed(new RuntimeException(AuthenticatedUserIsRequired))
-          }
+          // Client-credentials lodging: require some authentication (consumer or user) but not a
+          // PSU specifically; reject only a fully anonymous request. The PSU is bound later at
+          // authorise time. Mirrors the Berlin Group native consent flow and the v4.0.1 handler.
+          _ <- if (cc.user.isEmpty && cc.consumer.isEmpty)
+                 Future.failed(new RuntimeException(AuthenticatedUserIsRequired))
+               else Future.successful(())
+          // A pure client-credentials token still resolves cc.user to an auto-vivified
+          // pseudo-user (idGivenByProvider == the calling consumer's own client key) rather than
+          // leaving it Empty -- that pseudo-user is not a PSU, so it must not become the
+          // consent's owner (it would permanently block the real PSU's authorise-time
+          // ConsentDoesNotMatchUser check). Only carry a genuine PSU session through.
+          createdByUser = cc.user.toOption
+            .filterNot(u => cc.consumer.map(_.key.get).contains(u.idGivenByProvider))
           consentJson <- Future.fromTry(scala.util.Try(
             com.openbankproject.commons.util.JsonAliases.parse(cc.httpBody.getOrElse("{}")).extract[ConsentPostBodyUKV310]
           ))
+          // Separate step (not inlined into the saveUKConsent call below) so a bad date string
+          // fails here -> 400. NewStyle.function.tryons (not Future.fromTry) is required for
+          // that: ErrorResponseConverter only special-cases APIFailureNewStyle to preserve a set
+          // HTTP code -- tryons wraps failures that way, a bare Future.fromTry(Try(...)) doesn't
+          // and falls through to unknownErrorToResponse, i.e. 500.
+          (expirationDateTime, transactionFromDateTime, transactionToDateTime) <- NewStyle.function.tryons(
+            s"$InvalidJsonFormat The Json body should have valid ISO-8601 ExpirationDateTime/TransactionFromDateTime/TransactionToDateTime values ", 400, Some(cc)) {
+            (
+              consentJson.Data.ExpirationDateTime.map(parseIso8601OrDayDate),
+              consentJson.Data.TransactionFromDateTime.map(parseIso8601OrDayDate),
+              consentJson.Data.TransactionToDateTime.map(parseIso8601OrDayDate)
+            )
+          }
+          // The standard requires the ASPSP to refuse malformed permission combinations with 400
+          // rather than create a consent that can never be exercised -- see
+          // Consent.validateUKConsentPermissions for the rules and why they matter.
+          _ <- Consent.validateUKConsentPermissions(consentJson.Data.Permissions) match {
+            case Some(reason) =>
+              Helper.booleanToFuture(s"$InvalidUKConsentPermissions$reason", 400, Some(cc))(false)
+            case None => Future.successful(true)
+          }
           consumerId = cc.consumer.map(_.consumerId.get)
           _ <- passesPsd2Aisp(Some(cc))
           createdConsent <- Future(Consents.consentProvider.vend.saveUKConsent(
-            Some(u),
+            createdByUser,
             bankId = None,
             accountIds = None,
             consumerId = consumerId,
             permissions = consentJson.Data.Permissions,
-            expirationDateTime = DateWithDayFormat.parse(consentJson.Data.ExpirationDateTime),
-            transactionFromDateTime = DateWithDayFormat.parse(consentJson.Data.TransactionFromDateTime),
-            transactionToDateTime = DateWithDayFormat.parse(consentJson.Data.TransactionToDateTime),
+            expirationDateTime = expirationDateTime,
+            transactionFromDateTime = transactionFromDateTime,
+            transactionToDateTime = transactionToDateTime,
             apiStandard = Some("UKOpenBanking"),
             apiVersion = Some("3.1.0")
           )) map { i => connectorEmptyResponse(i, Some(cc)) }
@@ -83,11 +114,11 @@ object Http4sUKOBv310AccountAccess extends MdcLoggable {
               "Status" : "${createdConsent.status}",
               "StatusUpdateDateTime" : "${createdConsent.statusUpdateDateTime}",
               "CreationDateTime" : "${createdConsent.creationDateTime}",
-              "TransactionToDateTime" : "${consentJson.Data.TransactionToDateTime}",
-              "ExpirationDateTime" : "${consentJson.Data.ExpirationDateTime}",
+              "TransactionToDateTime" : "${consentJson.Data.TransactionToDateTime.getOrElse("")}",
+              "ExpirationDateTime" : "${consentJson.Data.ExpirationDateTime.getOrElse("")}",
               "Permissions" : ${consentJson.Data.Permissions.mkString("[\"", "\",\"", "\"]")},
               "ConsentId" : "${createdConsent.consentId}",
-              "TransactionFromDateTime" : "${consentJson.Data.TransactionFromDateTime}"
+              "TransactionFromDateTime" : "${consentJson.Data.TransactionFromDateTime.getOrElse("")}"
             }
           }""")
         }
@@ -138,17 +169,28 @@ object Http4sUKOBv310AccountAccess extends MdcLoggable {
 }"""),
     List(AuthenticatedUserIsRequired, UnknownError),
     ApiTag("Account Access") :: Nil,
+    // Consent lodging is a client-credentials call: the TPP is authenticated as an app, and there
+    // is no PSU yet. The handler above already says so; this makes the ResourceDoc say it too.
+    // Without it the doc defaults to UserOnly, which sends the middleware down anonymousAccess and
+    // 401s any request that carries no user -- so the endpoint only works today because OAuth2
+    // token parsing auto-vivifies a user for a client-credentials token. Matches the Berlin Group
+    // twin (Http4sBGv13AIS.createConsent), which has always been UserOrApplication.
+    authMode = UserOrApplication,
     http4sPartialFunction = Some(createAccountAccessConsents)
   )
 
   lazy val deleteAccountAccessConsentsConsentId: HttpRoutes[IO] = HttpRoutes.of[IO] {
     case req @ DELETE -> `ukV31Prefix` / "account-access-consents" / consentId =>
-      EndpointHelpers.withUserDelete(req) { (_, cc) =>
+      // Not withUserDelete: the standard has the AISP revoke its own consent with a
+      // client-credentials token, which carries no PSU. Consent.checkUKConsentAccess decides who
+      // may revoke it from whichever identity the session does carry.
+      EndpointHelpers.executeDelete(req) { cc =>
         for {
           _ <- passesPsd2Aisp(Some(cc))
-          _ <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
+          consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
             unboxFullOrFail(_, Some(cc), ConsentNotFound)
           }
+          _ <- Consent.assertUKConsentAccess(consent.userId, consent.consumerId, cc)
           _ <- Future(Consents.consentProvider.vend.revoke(consentId)) map {
             i => connectorEmptyResponse(i, Some(cc))
           }
@@ -168,16 +210,21 @@ object Http4sUKOBv310AccountAccess extends MdcLoggable {
     EmptyBody,
     List(AuthenticatedUserIsRequired, UnknownError),
     ApiTag("Account Access") :: Nil,
+    // As with the POST that lodges the consent: revoking is a client-credentials call in the
+    // standard's AISP flow, so a PSU cannot be required. See Consent.checkUKConsentAccess.
+    authMode = UserOrApplication,
     http4sPartialFunction = Some(deleteAccountAccessConsentsConsentId)
   )
 
   lazy val getAccountAccessConsentsConsentId: HttpRoutes[IO] = HttpRoutes.of[IO] {
     case req @ GET -> `ukV31Prefix` / "account-access-consents" / consentId =>
-      EndpointHelpers.withUser(req) { (_, cc) =>
+      // Not withUser -- see the DELETE twin above.
+      EndpointHelpers.executeAndRespond(req) { cc =>
         for {
           consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
             unboxFullOrFail(_, Some(cc), s"$ConsentNotFound ($consentId)")
           }
+          _ <- Consent.assertUKConsentAccess(consent.userId, consent.consumerId, cc)
           consentViews <- Future(JwtUtil.getSignedPayloadAsJson(consent.jsonWebToken).map(
             com.openbankproject.commons.util.JsonAliases.parse(_).extract[ConsentJWT].views.map(_.view_id)
           )) map { unboxFullOrFail(_, Some(cc), s"$ConsentViewNotFund ($consentId)") }
@@ -196,11 +243,11 @@ object Http4sUKOBv310AccountAccess extends MdcLoggable {
               "Status" : "${consent.status}",
               "StatusUpdateDateTime" : "${consent.statusUpdateDateTime}",
               "CreationDateTime" : "${consent.creationDateTime}",
-              "TransactionToDateTime" : "${consent.transactionToDateTime}",
-              "ExpirationDateTime" : "${consent.expirationDateTime}",
+              "TransactionToDateTime" : "${Option(consent.transactionToDateTime).getOrElse("")}",
+              "ExpirationDateTime" : "${Option(consent.expirationDateTime).getOrElse("")}",
               "Permissions" : ${consentViews.mkString("[\"", "\",\"", "\"]")},
               "ConsentId" : "${consent.consentId}",
-              "TransactionFromDateTime" : "${consent.transactionFromDateTime}"
+              "TransactionFromDateTime" : "${Option(consent.transactionFromDateTime).getOrElse("")}"
             }
           }""")
         }
@@ -242,6 +289,8 @@ object Http4sUKOBv310AccountAccess extends MdcLoggable {
 }"""),
     List(AuthenticatedUserIsRequired, UnknownError),
     ApiTag("Account Access") :: Nil,
+    // As above: the AISP polls its own consent with a client-credentials token.
+    authMode = UserOrApplication,
     http4sPartialFunction = Some(getAccountAccessConsentsConsentId)
   )
 
