@@ -2,9 +2,10 @@ package code.views
 
 import code.api.Constant
 import code.api.util.ErrorMessages.ViewIdNotSupported
+import code.model.ViewExtended
 import code.setup.{DefaultUsers, ServerSetup}
 import code.views.system.{ViewDefinition, ViewPermission}
-import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId, ViewId}
+import com.openbankproject.commons.model.{AccountId, BankAccountCommons, BankId, BankIdAccountId, ViewId}
 import net.liftweb.common.{Empty, Failure}
 
 class MappedViewsTest extends ServerSetup with DefaultUsers{
@@ -125,8 +126,27 @@ class MappedViewsTest extends ServerSetup with DefaultUsers{
       Constant.SYSTEM_READ_TRANSACTIONS_DETAIL_VIEW_PERMISSION.toSet should contain allElementsOf Constant.SYSTEM_READ_TRANSACTIONS_BASIC_VIEW_PERMISSION
       Constant.SYSTEM_READ_TRANSACTIONS_DETAIL_VIEW_PERMISSION.toSet.size should be > Constant.SYSTEM_READ_TRANSACTIONS_BASIC_VIEW_PERMISSION.toSet.size
 
-      Then("Balances must not carry transaction- or counterparty-visibility permissions")
-      actionsOf(Constant.SYSTEM_READ_BALANCES_VIEW_ID) should equal(Set(Constant.CAN_SEE_BANK_ACCOUNT_BALANCE, Constant.CAN_QUERY_AVAILABLE_FUNDS))
+      // This assertion used to read `should equal(Set(BALANCE, AVAILABLE_FUNDS))`. It was weakened
+      // on purpose and the reason is recorded rather than quietly absorbed: the set now also
+      // carries CAN_SEE_TRANSACTION_THIS_BANK_ACCOUNT, without which the view cannot moderate an
+      // account at all and the balances endpoint answers OBP-20022 instead of a balance (see the
+      // moderation scenario below). It is a gate, not a field -- so what the view must still not
+      // carry is the transaction *content* and anything about the other party, and that is what is
+      // asserted now. Rewriting this to match whatever the constant happens to contain would have
+      // thrown away the property the scenario exists for.
+      Then("Balances must carry no transaction content and nothing about the other party")
+      val balances = actionsOf(Constant.SYSTEM_READ_BALANCES_VIEW_ID)
+      balances should contain(Constant.CAN_SEE_BANK_ACCOUNT_BALANCE)
+      balances should contain(Constant.CAN_QUERY_AVAILABLE_FUNDS)
+      balances should not contain Constant.CAN_SEE_TRANSACTION_AMOUNT
+      balances should not contain Constant.CAN_SEE_TRANSACTION_TYPE
+      balances should not contain Constant.CAN_SEE_TRANSACTION_START_DATE
+      balances should not contain Constant.CAN_SEE_TRANSACTION_FINISH_DATE
+      balances.filter(_.contains("other_account")) shouldBe empty
+      balances.filter(_.contains("counterparty")) shouldBe empty
+      // The one transaction-named permission it may hold, and only that one.
+      balances.filter(_.startsWith("can_see_transaction")) should
+        equal(Set(Constant.CAN_SEE_TRANSACTION_THIS_BANK_ACCOUNT))
     }
 
     /**
@@ -180,9 +200,12 @@ class MappedViewsTest extends ServerSetup with DefaultUsers{
         withClue(s"$viewId: ") { permissionsOf(viewId) should equal(expected.toSet) }
       }
 
-      And("Balances in particular no longer carries transaction or counterparty visibility")
+      And("Balances in particular no longer carries transaction content or counterparty visibility")
+      // Same weakening as the scenario above, for the same reason: the only transaction-named
+      // permission this view may hold is the moderation gate, which reveals nothing by itself.
       val balances = permissionsOf(Constant.SYSTEM_READ_BALANCES_VIEW_ID)
-      balances.filter(_.contains("transaction")) shouldBe empty
+      balances.filter(_.startsWith("can_see_transaction")) should
+        equal(Set(Constant.CAN_SEE_TRANSACTION_THIS_BANK_ACCOUNT))
       balances.filter(_.contains("other_account")) shouldBe empty
     }
 
@@ -200,6 +223,54 @@ class MappedViewsTest extends ServerSetup with DefaultUsers{
           permissionsOf(viewId) should equal(afterFirst(viewId))
           val rows = ViewPermission.findSystemViewPermissions(ViewId(viewId))
           rows.map(_.permission.get).distinct.size should equal(rows.size)
+        }
+      }
+    }
+
+    /**
+     * The scenarios above compare each view's permission set against the constant that defines it,
+     * which is the constant compared with itself: they cannot tell whether a set is one an endpoint
+     * can actually use. That gap shipped a real defect. SYSTEM_READ_BALANCES_VIEW_PERMISSION was
+     * exactly {balance, available funds}, and the UK balances endpoint answered
+     *
+     *   OBP-20022 ... You need the `can_see_transaction_this_bank_account` permission on the
+     *   view(ReadBalances)
+     *
+     * because ViewExtended.moderateAccountCore gates the whole ModeratedBankAccount on that one
+     * permission, whatever field the caller wants. Every existing check stayed green: the view
+     * assertions compared the set with itself, the in-repo balances test only asserts 401/403 and
+     * never reads a balance, and the probe suite ran against a database whose ReadBalances still
+     * carried the old 74-permission set, so the code-defined one was exercised nowhere.
+     *
+     * So assert the property that actually matters -- the view can moderate an account -- by
+     * calling the gate rather than by reading the constant back.
+     */
+    scenario("the view the balances endpoints moderate an account through can actually do it") {
+      // A plain value: moderateAccountCore reads fields off it and does not go to the database,
+      // so the gate under test is reached without standing up an account fixture.
+      val account = BankAccountCommons(
+        accountId = AccountId("moderation-test-account"), accountType = "CURRENT",
+        balance = BigDecimal("1.00"), currency = "EUR", name = "moderation test",
+        label = "moderation test", number = "1", bankId = BankId("moderation-test-bank"),
+        lastUpdate = new java.util.Date(), branchId = "", accountRoutings = Nil,
+        accountRules = Nil, accountHolder = "")
+      // Exactly the views an endpoint reaches an account through, established by grepping the
+      // callers of moderatedBankAccountCore rather than assumed: the UK v3.1 and v4.0.1 balances
+      // endpoints, both of which resolve ReadBalances. Nothing else moderates an account.
+      //
+      // ReadAccountsBasic, ReadAccountsDetail and the two Berlin Group views cannot moderate one
+      // either -- none of them carries the gate. That is latent rather than broken, because no
+      // endpoint asks them to: the UK account reads resolve their fields without moderating, and
+      // Berlin Group has its own path. Asserting it here would either freeze that as correct or
+      // fail for endpoints that do not exist, so it is recorded and not asserted. If a future
+      // endpoint starts moderating through one of them, this list is where to add it.
+      val moderated = List(Constant.SYSTEM_READ_BALANCES_VIEW_ID)
+      moderated.foreach { viewId =>
+        val view = MapperViews.getOrCreateSystemView(viewId)
+          .openOrThrowException(s"$viewId should be a known system view")
+        withClue(s"$viewId cannot moderate an account, so every endpoint reading one through it " +
+                 s"answers OBP-20022 rather than data: ") {
+          ViewExtended(view).moderateAccountCore(account).isDefined should equal(true)
         }
       }
     }

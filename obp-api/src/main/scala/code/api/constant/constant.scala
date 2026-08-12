@@ -666,9 +666,20 @@ object Constant extends MdcLoggable {
     CAN_SEE_BANK_ACCOUNT_ROUTING_ADDRESS
   )
 
+  // CAN_SEE_TRANSACTION_THIS_BANK_ACCOUNT is not here to expose transactions -- this view shows
+  // none. It is here because View.moderateAccount gates the whole ModeratedBankAccount on it,
+  // whatever field the caller actually wants, and the UK balances endpoint reaches the account
+  // through moderatedBankAccountCore. Without it, GET /aisp/accounts/ACCOUNT_ID/balances answers
+  // OBP-20022 "You need the `can_see_transaction_this_bank_account` permission on the
+  // view(ReadBalances)" -- the endpoint is unusable for the one thing the view exists for.
+  //
+  // That gate is the thing worth fixing: a permission named for transactions should not decide
+  // whether an account can be read at all. Doing it properly means changing every view and every
+  // caller of moderateAccount, so it is tracked separately rather than smuggled in here.
   final val SYSTEM_READ_BALANCES_VIEW_PERMISSION = List(
     CAN_SEE_BANK_ACCOUNT_BALANCE,
-    CAN_QUERY_AVAILABLE_FUNDS
+    CAN_QUERY_AVAILABLE_FUNDS,
+    CAN_SEE_TRANSACTION_THIS_BANK_ACCOUNT
   )
 
   final val SYSTEM_READ_TRANSACTIONS_BASIC_VIEW_PERMISSION = List(
