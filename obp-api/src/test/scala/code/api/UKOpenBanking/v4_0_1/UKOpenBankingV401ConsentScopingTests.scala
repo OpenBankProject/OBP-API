@@ -266,6 +266,35 @@ class UKOpenBankingV401ConsentScopingTests extends UKOpenBankingV401ServerSetup 
       principal.map(_.userId) should equal(Full(resourceUser1.userId))
       callContext.flatMap(_.consenter.toOption) should equal(None)
     }
+
+    // The PSU used to be taken from the token rather than from the consent, and nothing here
+    // compared the two. So a token belonging to anyone at all, carrying a consent_id that is not
+    // theirs, was swapped onto that consent's shadow user -- with `consenter` set to the token's
+    // holder rather than to the person the consent is about.
+    //
+    // checkUKConsent then caught it, because it compares the consent's mUserId against `consenter`
+    // and they disagreed. But only the UK read endpoints call checkUKConsent: on every other
+    // endpoint family the swapped principal stood, and it carries the consent's account access. The
+    // refusal has to be decided here, where it is recorded on the CallContext and enforced for every
+    // endpoint by ResourceDocMiddleware.
+    scenario("a token whose subject is not the consent's PSU is refused, not swapped", UKConsentScoping) {
+      val consentId = authoriseConsentFor(testConsumer.consumerId.get, List(ReadAccountsBasic),
+        accountIds = List(acc))
+
+      Given("resourceUser2's session presenting a consent authorised by resourceUser1")
+      val (principal, callContext) =
+        Consent.applyUKConsentPrincipalFromToken(Full(resourceUser2), Some(bearerContextFor(consentId, testConsumer)))
+      val cc = callContext.getOrElse(fail("token path dropped the CallContext"))
+
+      Then("the principal is left alone rather than swapped onto the consent")
+      principal.map(_.userId) should equal(Full(resourceUser2.userId))
+      cc.consenter.toOption should equal(None)
+
+      And("the refusal is recorded, so every endpoint family enforces it and not just the UK reads")
+      cc.ukConsentUnresolved should equal(Some(ErrorMessages.ConsentDoesNotMatchUser))
+      Consent.unresolvedUKConsentRefusal(cc.ukConsentUnresolved, "/obp/v5.1.0/my/accounts") should
+        equal(Some(ErrorMessages.ConsentDoesNotMatchUser))
+    }
   }
 
   /**
@@ -381,6 +410,35 @@ class UKOpenBankingV401ConsentScopingTests extends UKOpenBankingV401ServerSetup 
       Consent.unresolvedUKConsentRefusal(None, "/obp/v5.1.0/my/accounts") should equal(None)
       Consent.unresolvedUKConsentRefusal(
         None, "/open-banking/v4.0.1/aisp/account-access-consents") should equal(None)
+    }
+
+    /**
+     * Which PSU the token path runs for. Extracted for the same reason as the rule above: the
+     * decision is worth pinning and the path that uses it cannot be driven from this suite.
+     *
+     * The consent row is the source of truth, as it already is on the header path, and the token's
+     * subject must agree with it. Losing the second half is the easy mistake, and it is silent:
+     * checkUKConsent compares the consent's mUserId against `consenter`, so deriving `consenter`
+     * from mUserId without also comparing the token would have that check compare the consent's user
+     * with itself and pass for anybody's token.
+     */
+    scenario("the token path takes its PSU from the consent, and the token must agree", UKConsentScoping) {
+      val psu = "the-psu-user-id"
+      val someoneElse = "a-different-user-id"
+
+      Given("a consent bound to a PSU")
+      Then("a token for that PSU resolves to them")
+      Consent.ukTokenPathPsuId(psu, psu) should equal(Right(psu))
+
+      And("a token for anyone else is refused, which is the check that must not be lost")
+      Consent.ukTokenPathPsuId(psu, someoneElse) should equal(Left(ErrorMessages.ConsentDoesNotMatchUser))
+
+      And("a consent naming no PSU was never authorised, so there is nobody it is on behalf of")
+      // Not a fallback to the token's user: that would serve everything that user can see, which is
+      // the whole of what a consent exists to narrow.
+      Consent.ukTokenPathPsuId("", psu) should equal(Left(ErrorMessages.ConsentNotFound))
+      Consent.ukTokenPathPsuId(null, psu) should equal(Left(ErrorMessages.ConsentNotFound))
+      Consent.ukTokenPathPsuId("   ", psu) should equal(Left(ErrorMessages.ConsentNotFound))
     }
 
     scenario("the consent stays inspectable and revocable by the TPP that lodged it", UKConsentScoping) {

@@ -1078,6 +1078,33 @@ object Consent extends MdcLoggable {
    * checkUKConsent still applies everything it did before as well: wrong standard, revoked, expired,
    * bound to a different PSU, held by a different consumer.
    */
+  /**
+   * Which PSU a UK consent named on an access token runs for, or the reason to refuse.
+   *
+   * The PSU comes off the consent row, as it does on the header path in applyUKRules -- the consent
+   * is the record of whose data this is, and the token is a claim about it. The token's subject then
+   * has to BE that PSU, which is the substance of the profile binding a token to one consent and one
+   * person: the intent id is carried into the request object so that "the access token that is
+   * eventually generated [is] bound to a specific consent".
+   *
+   * Both halves matter and one of them is easy to lose. Deriving the PSU from the consent and
+   * dropping the comparison would make checkUKConsent's own check -- mUserId against consenter --
+   * compare the consent's user with itself and pass for anybody's token. So the comparison moves
+   * here rather than going away, and moving it is the gain: this runs on every request and its
+   * refusal is enforced by ResourceDocMiddleware, whereas checkUKConsent runs only on the UK read
+   * endpoints.
+   *
+   * A consent naming no PSU is refused rather than falling back to the token's user. Such a consent
+   * was never authorised, so there is nobody it is on behalf of, and "we cannot tell whose this is"
+   * is a reason to serve nothing.
+   */
+  def ukTokenPathPsuId(consentUserId: String, tokenUserId: String): Either[String, String] =
+    present(consentUserId) match {
+      case None => Left(ErrorMessages.ConsentNotFound)
+      case Some(psuId) if psuId != tokenUserId => Left(ErrorMessages.ConsentDoesNotMatchUser)
+      case Some(psuId) => Right(psuId)
+    }
+
   def applyUKConsentPrincipalFromToken(user: Box[User],
                                        callContext: Option[CallContext]): (Box[User], Option[CallContext]) = {
     // Whether this request is exercising a UK consent at all. None at any step means it is not --
@@ -1100,23 +1127,29 @@ object Consent extends MdcLoggable {
     // "carry on as the PSU": that serves everything the PSU can see, which is the whole of what the
     // consent exists to narrow. ConsentNotFound for an unreadable JWT matches what applyUKRules
     // answers on the header path for the same row.
-    def resolve(psu: User, storedConsent: MappedConsent): Box[User] = for {
+    // Returns the principal to run as and the PSU it is running on behalf of, in that order.
+    def resolve(tokenUser: User, storedConsent: MappedConsent): Box[(User, User)] = for {
       consentJwt <- {
         implicit val dateFormats = CustomJsonFormats.formats
         JwtUtil.getSignedPayloadAsJson(storedConsent.jsonWebToken).map(parse(_).extract[ConsentJWT])
       } ?~! ErrorMessages.ConsentNotFound
+      psuId <- ukTokenPathPsuId(storedConsent.userId, tokenUser.userId) match {
+        case Right(id) => Full(id)
+        case Left(reason) => Failure(reason)
+      }
+      psu <- Users.users.vend.getUserByUserId(psuId) ?~! ErrorMessages.ConsentNotFound
       principal <- resolveUKConsentPrincipal(storedConsent, consentJwt, psu)
-    } yield principal
+    } yield (principal, psu)
 
     namedConsent match {
       case None => (user, callContext)
-      case Some((cc, psu, storedConsent)) =>
+      case Some((cc, tokenUser, storedConsent)) =>
         // A throw is as unresolved as a Failure, and for the same reason it must not fall through:
         // the fallback is the PSU. Box.map does not catch, so an unextractable ConsentJWT arrives
         // here as a MappingException rather than as a Failure.
-        val outcome = Try(resolve(psu, storedConsent))
+        val outcome = Try(resolve(tokenUser, storedConsent))
         outcome match {
-          case Success(Full(principal)) =>
+          case Success(Full((principal, psu))) =>
             (Full(principal), Some(cc.copy(
               user = Full(principal),
               consenter = Full(psu),
@@ -2018,9 +2051,18 @@ object Consent extends MdcLoggable {
       consentUserId, consentConsumerId,
       actingPsu(callContext).map(_.userId), callContext.consumer.map(_.consumerId.get),
       isScaFrontEnd(callContext.consumer.map(_.consumerId.get)))
-    // booleanToFuture only reads failMsg when the statement is false, so the empty default is never
-    // the message anyone sees.
-    Helper.booleanToFuture(refusal.getOrElse(""), 403, Some(callContext))(refusal.isEmpty)
+    // ConsentNotFound whatever the reason, and the same answer these endpoints give for a consent id
+    // that matches nothing at all. A caller who is not entitled to a consent must not be able to
+    // tell "there is no such consent" from "that one is not yours", or the endpoint is a way to
+    // confirm which ids exist. The rule's own ConsentDoesNotMatchUser / ConsentDoesNotMatchConsumer
+    // say which, so the reason is logged rather than returned -- same shape as the Berlin Group
+    // read wrapper above, which is the answer this one was brought into line with.
+    refusal.foreach { reason =>
+      logger.info(
+        s"A UK consent read was refused: $reason. Reported as ${ErrorMessages.ConsentNotFound} so " +
+        s"the caller cannot tell a consent that is not theirs from one that does not exist.")
+    }
+    Helper.booleanToFuture(ErrorMessages.ConsentNotFound, 403, Some(callContext))(refusal.isEmpty)
   }
 
   /**

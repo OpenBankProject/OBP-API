@@ -318,7 +318,7 @@ object Http4sBGv13AIS extends MdcLoggable {
           // than access, but the asymmetry between two neighbouring reads of the same consent was an
           // oversight, not a decision.
           consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
-            unboxFullOrFail(_, callContext, s"$ConsentNotFound ($consentId)")
+            unboxFullOrFail(_, callContext, ConsentNotFound, 403)
           }
           _ <- Consent.assertBerlinGroupConsentReadAccess(consent.userId, consent.consumerId, cc)
           (challenges, callContext) <- NewStyle.function.getChallengesByConsentId(consentId, callContext)
@@ -336,7 +336,7 @@ object Http4sBGv13AIS extends MdcLoggable {
         for {
           _ <- passesPsd2Aisp(callContext)
           consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
-            unboxFullOrFail(_, callContext, s"$ConsentNotFound ($consentId)")
+            unboxFullOrFail(_, callContext, ConsentNotFound, 403)
           }
           _ <- Consent.assertBerlinGroupConsentReadAccess(consent.userId, consent.consumerId, cc)
         } yield {

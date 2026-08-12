@@ -1,7 +1,7 @@
 package code.api.UKOpenBanking.v3_1_0
 
 import code.api.util.APIUtil.{DateWithDayFormat, ResourceDoc, UserOrApplication, buildOperationId}
-import code.api.util.ErrorMessages.ConsentDoesNotMatchConsumer
+import code.api.util.ErrorMessages.ConsentNotFound
 import code.consent.Consents
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.ApiVersion
@@ -75,13 +75,19 @@ class UKOpenBankingV310AisTests extends UKOpenBankingV310ServerSetup {
     // Http4sUKOBv310AccountAccess.deleteAccountAccessConsentsConsentId only guards against a
     // *different bound user*, not a *different consumer*. deleteAuthedAsUser2 authenticates as
     // consumer2 (see DefaultUsers), a different OAuth1 consumer than the one that created this
-    // pending consent (testConsumer/consumer). Once fixed, this must be 403
-    // ConsentDoesNotMatchConsumer, and the consent must be left untouched.
+    // pending consent (testConsumer/consumer). It is refused with 403, and the consent must be
+    // left untouched. The refusal says ConsentNotFound rather than naming the consumer: these
+    // endpoints answer the same thing for a consent that is not yours and one that does not exist,
+    // so that a caller cannot use them to find out which ids are real.
     scenario("authenticated as a different consumer than the creator, pending consent -> 403, and consent is left untouched", UKOpenBankingV310) {
       val consentId = createPendingConsentForConsumer1()
       val response = deleteAuthedAsUser2("account-access-consents", consentId)
       response.code should equal(403)
-      response.body.extract[ErrorMessage].message should startWith(ConsentDoesNotMatchConsumer)
+      // The refusal is still a 403 and still has no side effect, which is what this scenario
+      // guards. Only the wording moved: these endpoints now answer ConsentNotFound whatever the
+      // reason, so a caller cannot tell "that one is not yours" from "there is no such consent".
+      // The specific reason is logged instead.
+      response.body.extract[ErrorMessage].message should startWith(ConsentNotFound)
 
       Consents.consentProvider.vend.getConsentByConsentId(consentId).isDefined should equal(true)
     }
@@ -97,12 +103,17 @@ class UKOpenBankingV310AisTests extends UKOpenBankingV310ServerSetup {
     // Cross-consumer regression (currently RED): same root cause as the DELETE gap above --
     // a pending consent is currently readable by ANY authenticated party. getAuthedAsUser2
     // authenticates as consumer2, a different OAuth1 consumer than the one that created this
-    // pending consent. Once fixed, this must be 403 ConsentDoesNotMatchConsumer.
+    // pending consent. It is refused with 403 ConsentNotFound -- the same answer an id that
+    // matches nothing gets, deliberately.
     scenario("authenticated as a different consumer than the creator, pending consent -> 403, not 200", UKOpenBankingV310) {
       val consentId = createPendingConsentForConsumer1()
       val response = getAuthedAsUser2("account-access-consents", consentId)
       response.code should equal(403)
-      response.body.extract[ErrorMessage].message should startWith(ConsentDoesNotMatchConsumer)
+      // The refusal is still a 403 and still has no side effect, which is what this scenario
+      // guards. Only the wording moved: these endpoints now answer ConsentNotFound whatever the
+      // reason, so a caller cannot tell "that one is not yours" from "there is no such consent".
+      // The specific reason is logged instead.
+      response.body.extract[ErrorMessage].message should startWith(ConsentNotFound)
     }
   }
 
