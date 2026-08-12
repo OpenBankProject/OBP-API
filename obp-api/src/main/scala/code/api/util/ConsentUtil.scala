@@ -137,6 +137,24 @@ object Consent extends MdcLoggable {
   final lazy val challengeAnswerAtTestEnvironment = "123"
 
   /**
+   * An identifier a row does not carry, read safely: None for absent, blank, or whitespace.
+   *
+   * Every id the ownership rules below compare arrives out of a MappedString, and a MappedString
+   * that was never written holds a Java null rather than "" -- MappedConsent and
+   * MappedTransactionRequestProvider both write the absent case as a literal null. So `.nonEmpty`
+   * on the raw value is not a blankness test, it is a NullPointerException waiting for the first
+   * row that predates the column, and on any long-lived instance nearly every row does.
+   *
+   * Trimming as well, because "the consent names no TPP" and "the consent names a TPP whose id is
+   * three spaces" have to reach the same decision -- a rule that refuses one and admits the other
+   * is not a rule.
+   *
+   * Public rather than local to each caller: it was written four times inside this object before a
+   * fifth caller in Http4sBGv13PIS omitted it and returned 500 on 1757 of 1800 stored payments.
+   */
+  def present(s: String): Option[String] = Option(s).map(_.trim).filter(_.nonEmpty)
+
+  /**
     * Purpose of this helper function is to get the Consumer-Key value from a Request Headers.
     * @return the Consumer-Key value from a Request Header as a String
     */
@@ -1721,8 +1739,6 @@ object Consent extends MdcLoggable {
     callerConsumerId: Option[String],
     callerIsScaFrontEnd: Boolean
   ): Option[String] = {
-    def present(s: String): Option[String] = Option(s).map(_.trim).filter(_.nonEmpty)
-
     (present(consentUserId), callerUserId.flatMap(present)) match {
       case (Some(psu), Some(caller)) if psu != caller => Some(ErrorMessages.ConsentDoesNotMatchUser)
       case (Some(_), Some(_)) => None
@@ -1761,8 +1777,6 @@ object Consent extends MdcLoggable {
     callerUserId: Option[String],
     callerConsumerId: Option[String]
   ): Option[String] = {
-    def present(s: String): Option[String] = Option(s).map(_.trim).filter(_.nonEmpty)
-
     (present(consentUserId), callerUserId.flatMap(present)) match {
       case (Some(psu), Some(caller)) =>
         // The consent belongs to a PSU and the caller is acting as one: they must be the same PSU.
@@ -1836,8 +1850,6 @@ object Consent extends MdcLoggable {
     ukConsentUnresolved.filterNot(_ => requestUrl.contains(UK_CONSENT_MANAGEMENT_URL_SEGMENT))
 
   def checkObpConsentUserAccess(consentUserId: String, callerHumanUserId: Option[String]): Option[String] = {
-    def present(s: String): Option[String] = Option(s).map(_.trim).filter(_.nonEmpty)
-
     present(consentUserId) match {
       case Some(psu) if !callerHumanUserId.flatMap(present).contains(psu) =>
         Some(ErrorMessages.ConsentNotFound)
@@ -2001,8 +2013,6 @@ object Consent extends MdcLoggable {
     sessionPsuId: Option[String],
     headerPsuId: Option[String]
   ): Either[String, String] = {
-    def present(s: String): Option[String] = Option(s).map(_.trim).filter(_.nonEmpty)
-
     val alreadyKnown = present(consentUserId).orElse(sessionPsuId.flatMap(present))
 
     (alreadyKnown, headerPsuId.flatMap(present)) match {
