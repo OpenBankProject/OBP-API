@@ -66,6 +66,17 @@ case class CallContext(
                         // the consent has already been fully validated (standard, status, expiry, consumer,
                         // signature) and the PSU resolved from MappedConsent.mUserId.
                         ukConsentId: Option[String] = None,
+                        // Set when a Bearer token's consent_id claim named a UK Open Banking consent that could
+                        // not be resolved to its shadow user. The principal is then still the PSU, which is wider
+                        // than the consent -- so this is what checkUKConsent refuses on.
+                        //
+                        // Deliberately a flag rather than a failed authentication. The swap runs for every
+                        // request, but only the data-read endpoints run on the principal; the consent-management
+                        // endpoints (GET/DELETE account-access-consents) do not, and they are how a TPP inspects
+                        // or revokes the very consent that cannot be resolved. Failing at authentication would
+                        // lock that door too -- and, since those endpoints are UserOrApplication, would report it
+                        // as ApplicationNotIdentified rather than as anything to do with the consent.
+                        ukConsentUnresolved: Option[String] = None,
                         // How the caller's certificate was established (PeerTrust.Resolution.mode):
                         // "direct", "forwarded" or "none". Persisted on metric rows as certificate_trust.
                         certificateTrust: Option[String] = None,

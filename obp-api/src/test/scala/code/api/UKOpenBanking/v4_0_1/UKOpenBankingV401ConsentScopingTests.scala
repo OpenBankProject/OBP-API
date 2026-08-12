@@ -2,14 +2,14 @@ package code.api.UKOpenBanking.v4_0_1
 
 import code.api.Constant
 import code.api.util.APIUtil.DateWithDayFormat
-import code.api.util.{CallContext, Consent}
+import code.api.util.{CallContext, Consent, ErrorMessages}
 import code.consent.{ConsentStatus, Consents}
 import code.entitlement.Entitlement
 import code.model.UserExtended
 import code.views.Views
 import code.views.system.AccountAccess
 import com.openbankproject.commons.model.{BankIdAccountId, User, ViewId}
-import net.liftweb.common.Full
+import net.liftweb.common.{Box, Full}
 import org.scalatest.Tag
 
 import scala.concurrent.Await
@@ -265,6 +265,144 @@ class UKOpenBankingV401ConsentScopingTests extends UKOpenBankingV401ServerSetup 
       val (principal, callContext) = Consent.applyUKConsentPrincipalFromToken(Full(resourceUser1), Some(plain))
       principal.map(_.userId) should equal(Full(resourceUser1.userId))
       callContext.flatMap(_.consenter.toOption) should equal(None)
+    }
+  }
+
+  /**
+   * A UK consent the token names but that cannot be resolved to its shadow user.
+   *
+   * The principal then stays the PSU, and the PSU's own AccountAccess rows are wider than any
+   * consent -- so serving the request would hand the caller everything the PSU can see under a
+   * consent that named something else, or nothing. That is the widest possible reading of a consent
+   * we just failed to understand, and it is what the token path used to do silently: every failure
+   * inside resolveUKConsentPrincipal collapsed to None, and None meant "leave the request as it
+   * was". The Consent-Id header path refused the same consent all along.
+   *
+   * The refusal deliberately lands in checkUKConsent rather than in authentication -- see the third
+   * scenario, which is what stops it being "simplified" back.
+   */
+  private def unresolvableConsent(permissions: List[String], bindAccounts: Boolean): String = {
+    val consentId = Consents.consentProvider.vend.saveUKConsent(
+      user = Some(resourceUser1),
+      bankId = None,
+      accountIds = None,
+      consumerId = Some(testConsumer.consumerId.get),
+      permissions = permissions,
+      expirationDateTime = Some(DateWithDayFormat.parse("2030-01-01")),
+      transactionFromDateTime = Some(DateWithDayFormat.parse("2020-01-01")),
+      transactionToDateTime = Some(DateWithDayFormat.parse("2030-01-01")),
+      apiStandard = Some("UKOpenBanking"),
+      apiVersion = Some("4.0.1")
+    ).openOrThrowException("test consent creation failed").consentId
+    // Deliberately no `permissions.foreach(systemView)`: the views these name must NOT exist.
+    if (bindAccounts) reAuthorise(consentId, List(acc))
+    Consents.consentProvider.vend.updateConsentStatus(consentId, ConsentStatus.AUTHORISED)
+    consentId
+  }
+
+  /** The swap's verdict on a consent presented in an access token. */
+  private def swapFor(consentId: String): (Box[User], CallContext) = {
+    val (principal, callContext) =
+      Consent.applyUKConsentPrincipalFromToken(Full(resourceUser1), Some(bearerContextFor(consentId, testConsumer)))
+    (principal, callContext.getOrElse(fail("token path dropped the CallContext")))
+  }
+
+  feature("A UK consent named by a token but not resolvable is refused, not served as the PSU") {
+
+    scenario("a consent that names no account: the principal is not swapped and data access is refused", UKConsentScoping) {
+      // Never bound to accounts, so its JWT still carries createUKConsentJWT's
+      // (bank_id=null, account_id=null, permission) placeholders -- a consent authorised before
+      // account binding existed.
+      val consentId = unresolvableConsent(List(ReadAccountsBasic), bindAccounts = false)
+      val (principal, cc) = swapFor(consentId)
+
+      principal.map(_.userId) should equal(Full(resourceUser1.userId))
+      cc.consenter.toOption should equal(None)
+      cc.ukConsentUnresolved.getOrElse("") should include("OBP-35040")
+
+      // checkUKConsent throws a JSON-encoded APIFailureNewStyle, which ErrorResponseConverter turns
+      // into the response -- the same mechanism checkConsent uses for its own coded refusals.
+      val refusal = intercept[Exception] {
+        Consent.checkUKConsent(principal.openOrThrowException("no principal"), Some(cc))
+      }
+      refusal.getMessage should include("OBP-35040")
+      refusal.getMessage should include("403")
+    }
+
+    scenario("a consent naming a view that does not exist is refused too", UKConsentScoping) {
+      // Bound to a real account, but for a permission whose system view was never created --
+      // exactly what an instance whose additional_system_views predates ReadTransactionsCredits
+      // does with a conforming consent. grantAccessToViews then fails and, before this fix, the
+      // request was served as the PSU with a partially-granted shadow user left behind.
+      val consentId = unresolvableConsent(List("ReadTransactionsCreditsNotSeededInThisTestDb"), bindAccounts = true)
+      val (principal, cc) = swapFor(consentId)
+
+      principal.map(_.userId) should equal(Full(resourceUser1.userId))
+      cc.ukConsentUnresolved.isDefined should equal(true)
+
+      val refusal = intercept[Exception] {
+        Consent.checkUKConsent(principal.openOrThrowException("no principal"), Some(cc))
+      }
+      // The reason must be the one this scenario is about -- a bare "403" would also be satisfied
+      // by a role, consumer or ownership refusal arriving from somewhere else entirely.
+      refusal.getMessage should include("OBP-20059") // CouldNotAssignAccountAccess
+      refusal.getMessage should include("403")
+    }
+
+    /**
+     * The rule ResourceDocMiddleware applies to every endpoint family, including the ones that
+     * never call checkUKConsent.
+     *
+     * Tested here rather than over HTTP because the token path cannot be driven from this suite:
+     * setting ukConsentUnresolved requires an authenticated request whose Authorization header is a
+     * Bearer JWT, and authenticating one needs a JWKS the suite has no signing key for. That is also
+     * why the scenarios above call applyUKConsentPrincipalFromToken directly. The wiring -- that the
+     * middleware consults this rule at all -- is covered by the probe matrix, which drives a real
+     * OBP-native endpoint with a real token against a running instance.
+     */
+    scenario("the refusal rule covers other endpoint families, and exempts consent management", UKConsentScoping) {
+      val reason = Some(ErrorMessages.ConsentNamesNoAccount)
+
+      Given("a request whose token named a UK consent that could not be resolved")
+      Then("an endpoint that does not call checkUKConsent is refused all the same")
+      Consent.unresolvedUKConsentRefusal(reason, "/obp/v5.1.0/my/accounts") should equal(reason)
+      Consent.unresolvedUKConsentRefusal(reason, "/obp/v4.0.0/banks/BANK_ID/accounts") should equal(reason)
+
+      And("so is a UK data endpoint, which checkUKConsent would also have caught")
+      Consent.unresolvedUKConsentRefusal(reason, "/open-banking/v4.0.1/aisp/accounts") should equal(reason)
+
+      And("but the consent-management endpoints stay reachable, or the TPP cannot clear it up")
+      Consent.unresolvedUKConsentRefusal(
+        reason, "/open-banking/v4.0.1/aisp/account-access-consents/CONSENT_ID") should equal(None)
+      Consent.unresolvedUKConsentRefusal(
+        reason, "/open-banking/v3.1/account-access-consents") should equal(None)
+
+      And("a request with no unresolved consent is never refused by this rule")
+      Consent.unresolvedUKConsentRefusal(None, "/obp/v5.1.0/my/accounts") should equal(None)
+      Consent.unresolvedUKConsentRefusal(
+        None, "/open-banking/v4.0.1/aisp/account-access-consents") should equal(None)
+    }
+
+    scenario("the consent stays inspectable and revocable by the TPP that lodged it", UKConsentScoping) {
+      val consentId = unresolvableConsent(List(ReadAccountsBasic), bindAccounts = false)
+      val (principal, cc) = swapFor(consentId)
+      val consent = Consents.consentProvider.vend.getConsentByConsentId(consentId)
+        .openOrThrowException(s"consent $consentId not found")
+
+      // Authentication itself must still succeed. If the refusal were raised in the swap instead,
+      // this box would carry the failure and GET/DELETE account-access-consents -- which never call
+      // checkUKConsent -- would 401 as ApplicationNotIdentified, locking the TPP out of the only
+      // endpoints that can clear up the consent this is all about.
+      principal.isDefined should equal(true)
+
+      // And the rule those two endpoints actually apply still says yes, for the same request the
+      // data endpoints refuse.
+      Consent.checkUKConsentAccess(
+        consent.userId, consent.consumerId,
+        Consent.actingPsu(cc).map(_.userId),
+        cc.consumer.map(_.consumerId.get),
+        Consent.isScaFrontEnd(cc.consumer.map(_.consumerId.get))
+      ) should equal(None)
     }
   }
 

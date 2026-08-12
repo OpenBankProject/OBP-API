@@ -1040,14 +1040,33 @@ object Consent extends MdcLoggable {
    * already fixed. So the swap has to happen here, at the end of authentication, where the
    * CallContext the endpoint will see is still being assembled.
    *
-   * This performs no validation and cannot widen anything: it either narrows the principal to the
-   * consent's shadow user or leaves the request exactly as it was. checkUKConsent still runs
-   * afterwards and still rejects a consent that is the wrong standard, revoked, expired, bound to a
-   * different PSU, or held by a different consumer -- with the same status codes as before.
+   * There are three outcomes, and the third is the one that matters.
+   *
+   *  1. The request has nothing to do with a UK consent -- no token, no `consent_id` claim, no such
+   *     consent, another standard. Left exactly as it was.
+   *  2. The consent resolves. The principal narrows to its shadow user and the PSU moves to
+   *     `consenter`.
+   *  3. The consent is named but cannot be resolved. The principal CANNOT stay the PSU: the PSU's
+   *     own AccountAccess rows govern, so the caller would see everything the PSU can see and the
+   *     consent's Permissions would constrain none of it -- the widest possible reading of a consent
+   *     we just failed to understand. `ukConsentUnresolved` records why, and checkUKConsent refuses
+   *     on it.
+   *
+   * Case 3 used to be folded into case 1 by a `.toOption.getOrElse`, which is what made the token
+   * path fail open while the Consent-Id header path (applyUKRules) refused the same consent.
+   *
+   * The refusal is deferred to checkUKConsent rather than raised here because this runs for every
+   * request while only the data-read endpoints run on the principal -- see CallContext.ukConsentUnresolved.
+   * checkUKConsent still applies everything it did before as well: wrong standard, revoked, expired,
+   * bound to a different PSU, held by a different consumer.
    */
   def applyUKConsentPrincipalFromToken(user: Box[User],
                                        callContext: Option[CallContext]): (Box[User], Option[CallContext]) = {
-    def swap: Option[(Box[User], Option[CallContext])] = for {
+    // Whether this request is exercising a UK consent at all. None at any step means it is not --
+    // no CallContext, the header path already resolved one, no Bearer token, no consent_id claim, no
+    // such consent row, or a consent belonging to another standard. All of those leave the request
+    // exactly as it was, which is the behaviour every non-UK caller depends on.
+    def namedConsent: Option[(CallContext, User, MappedConsent)] = for {
       cc <- callContext
       // The Consent-Id / Consent-JWT header path resolved the principal already, in applyUKRules.
       if cc.ukConsentId.isEmpty
@@ -1057,21 +1076,56 @@ object Consent extends MdcLoggable {
       consentId <- JwtUtil.getOptionalClaim("consent_id", accessToken)
       storedConsent <- Consents.consentProvider.vend.getConsentByConsentId(consentId).toOption
       if storedConsent.apiStandard == ConsentStandardUK
+    } yield (cc, psu, storedConsent)
+
+    // Past that point the request IS exercising a UK consent, so a failure here can no longer mean
+    // "carry on as the PSU": that serves everything the PSU can see, which is the whole of what the
+    // consent exists to narrow. ConsentNotFound for an unreadable JWT matches what applyUKRules
+    // answers on the header path for the same row.
+    def resolve(psu: User, storedConsent: MappedConsent): Box[User] = for {
       consentJwt <- {
         implicit val dateFormats = CustomJsonFormats.formats
-        JwtUtil.getSignedPayloadAsJson(storedConsent.jsonWebToken).map(parse(_).extract[ConsentJWT]).toOption
-      }
-      principal <- resolveUKConsentPrincipal(storedConsent, consentJwt, psu).toOption
-    } yield {
-      (Full(principal), Some(cc.copy(
-        user = Full(principal),
-        consenter = Full(psu),
-        consentReferenceId = Some(storedConsent.consentReferenceId)
-      )))
+        JwtUtil.getSignedPayloadAsJson(storedConsent.jsonWebToken).map(parse(_).extract[ConsentJWT])
+      } ?~! ErrorMessages.ConsentNotFound
+      principal <- resolveUKConsentPrincipal(storedConsent, consentJwt, psu)
+    } yield principal
+
+    namedConsent match {
+      case None => (user, callContext)
+      case Some((cc, psu, storedConsent)) =>
+        // A throw is as unresolved as a Failure, and for the same reason it must not fall through:
+        // the fallback is the PSU. Box.map does not catch, so an unextractable ConsentJWT arrives
+        // here as a MappingException rather than as a Failure.
+        val outcome = Try(resolve(psu, storedConsent))
+        outcome match {
+          case Success(Full(principal)) =>
+            (Full(principal), Some(cc.copy(
+              user = Full(principal),
+              consenter = Full(psu),
+              consentReferenceId = Some(storedConsent.consentReferenceId)
+            )))
+          case _ =>
+            val reason = outcome match {
+              case Success(Failure(msg, _, _)) => msg
+              case _ => ErrorMessages.ConsentNotFound
+            }
+            // Warn rather than fail authentication. The refusal lands in checkUKConsent, which only
+            // the data-read endpoints call -- the consent-management endpoints stay reachable so the
+            // TPP can still inspect and revoke the consent this is about. See CallContext.
+            logger.warn(
+              s"applyUKConsentPrincipalFromToken: UK consent ${storedConsent.consentId} could not be " +
+              s"resolved to its shadow user, so this request is NOT scoped to it. Data access is " +
+              s"refused by checkUKConsent. Reason: $reason" +
+              outcome.failed.map(e => s" (threw ${e.getClass.getSimpleName}: ${e.getMessage})").getOrElse(""))
+            // consentReferenceId as well as the refusal: a refused call must still be attributable
+            // to the consent that caused it from the metrics table, which is where consent traffic
+            // is searchable. Without it the 403s are visible only in the application log.
+            (user, Some(cc.copy(
+              ukConsentUnresolved = Some(reason),
+              consentReferenceId = Some(storedConsent.consentReferenceId)
+            )))
+        }
     }
-    // Anything unexpected -- an unparseable token, a consent row that has gone -- leaves the request
-    // as it is rather than failing authentication for a reason the caller cannot act on.
-    scala.util.Try(swap).toOption.flatten.getOrElse((user, callContext))
   }
 
   /**
@@ -1749,6 +1803,38 @@ object Consent extends MdcLoggable {
    * Refuses with ConsentNotFound rather than a distinct message, preserving the endpoint's existing
    * 404 so it does not tell a stranger that a consent id exists.
    */
+  /**
+   * The URL segment shared by the UK account-access-consent endpoints, and by nothing else.
+   * Named here rather than repeated at the one place it is matched, so the exemption below and any
+   * future reader of those endpoints see the same string.
+   */
+  val UK_CONSENT_MANAGEMENT_URL_SEGMENT = "account-access-consents"
+
+  /**
+   * Whether a request must be refused because the Bearer token named a UK consent that could not be
+   * resolved to its shadow user. Returns the reason to refuse with 403, or None when it may proceed.
+   *
+   * The principal in that state is still the PSU, whose own AccountAccess rows are wider than any
+   * consent. checkUKConsent refuses it, but only the UK data-read endpoints call checkUKConsent, so
+   * this is what ResourceDocMiddleware applies to every other endpoint family. Without it a consent
+   * we failed to understand outranked one we understood: the successful swap narrows the principal
+   * to the shadow user everywhere, the failed one left the PSU in place everywhere the UK gate does
+   * not run.
+   *
+   * The account-access-consent endpoints are exempt. They are how a TPP inspects and revokes the
+   * very consent this is about, they answer from the consent row rather than from the principal, and
+   * they carry their own guard (assertUKConsentAccess). Refusing them would leave a TPP holding a
+   * consent it can neither use nor clean up.
+   *
+   * Extracted from the middleware for the same reason checkUKConsentAccess is extracted from its
+   * four endpoints: the rule -- and in particular the exemption, which is the part that can go
+   * quietly wrong -- can then be tested without standing up a request. The token path itself cannot
+   * be driven over HTTP from the test suite, since authenticating a Bearer token needs a JWKS the
+   * suite has no key for; that half is covered by the out-of-repo probe matrix.
+   */
+  def unresolvedUKConsentRefusal(ukConsentUnresolved: Option[String], requestUrl: String): Option[String] =
+    ukConsentUnresolved.filterNot(_ => requestUrl.contains(UK_CONSENT_MANAGEMENT_URL_SEGMENT))
+
   def checkObpConsentUserAccess(consentUserId: String, callerHumanUserId: Option[String]): Option[String] = {
     def present(s: String): Option[String] = Option(s).map(_.trim).filter(_.nonEmpty)
 
@@ -2175,6 +2261,21 @@ object Consent extends MdcLoggable {
     // already run every check below -- and resolved this very user from the consent -- so there is
     // nothing left to re-derive from a token that does not exist.
     if (calContext.flatMap(_.ukConsentId).isDefined) return Full(true)
+
+    // The token named a UK consent that could not be resolved to its shadow user
+    // (applyUKConsentPrincipalFromToken). The principal is therefore still the PSU, which is wider
+    // than the consent rather than narrower -- serving it would hand the caller every account the
+    // PSU holds under a consent that named other accounts, or none. Refused here rather than at
+    // authentication so the consent-management endpoints, which never reach this check, stay usable
+    // for inspecting and revoking that consent.
+    //
+    // 403 rather than 401: the caller authenticated fine, it is the consent's scope that cannot be
+    // honoured. apiFailureToBox is what carries the code -- a bare Failure would take
+    // fullBoxOrException's default (see NewStyle.function.checkUKConsent, which unboxes this).
+    calContext.flatMap(_.ukConsentUnresolved) match {
+      case Some(reason) => return ErrorUtil.apiFailureToBox(reason, 403)(calContext)
+      case None => // resolved, or not a UK consent request at all
+    }
 
     // No Authorization header, and applyUKRules did not run either. The usual way to arrive here
     // is a consent of another standard: the dispatcher routes it into that standard's branch,
