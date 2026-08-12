@@ -424,7 +424,7 @@ implemented — it says which.
 | `code/api/util/APIUtil.scala` (`tppCertificateForStandard`) | Per-standard certificate source: Berlin Group → `TPP-Signature-Certificate`, UK / OBP → `PSD2-CERT`. |
 | `scripts/generate_dev_certs.sh` | Regenerates the role-named development certificate set (CA, server, TPP, proxy, expired fixture). |
 | `scripts/mtls_env.sh` | The `OBP_MTLS_*` environment overrides behind the `--mtls` flag of both `flushall_*build_and_run.sh` scripts. Sourceable on its own. |
-| `scripts/java_env.sh` | Selects a JDK >= 17 for the run scripts. The build compiles with `-release 17`; on a default JDK 11 it otherwise fails with the misleading `'17' is not a valid choice for '-release'`. |
+| `scripts/java_env.sh` | Selects the project's JDK (pom.xml `<java.version>`) for the build, run and test scripts, and aborts if it is absent. Without it a stale `java`/`mvn` silently builds on a JDK that CI never used, and one too old for `-release` fails with the misleading `'NN' is not a valid choice for '-release'`. |
 | `obp-api/src/test/scala/bootstrap/http4s/Http4sMtlsTest.scala` | Unit tests: PEM encoding, SSLContext from the checked-in keystores, the dev-store digest guard. |
 | `obp-api/src/test/scala/bootstrap/http4s/DevCertificateSetTest.scala` | Guards the role-named set over a real handshake: names, EKUs, SAN, CA-only truststore, expired certificate rejected. |
 | `obp-api/src/test/scala/bootstrap/http4s/Http4sMtlsHandshakeTest.scala` | End-to-end: real Ember server + real mTLS handshake; proves the verified client cert surfaces as `PSD2-CERT` and certless handshakes are rejected. |

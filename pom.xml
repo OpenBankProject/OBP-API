@@ -41,6 +41,32 @@
          driver loads on JDK 25. Revisit only if a release appears with a jre suffix at or above
          java.version. -->
     <mssql.jre.version>11</mssql.jre.version>
+
+    <!-- The -release scala-maven-plugin passes to scalac, and on to javac for the .java sources
+         that live under src/main/scala. It bounds which JDK API our own sources may reference.
+
+         Kept aligned with java.version: there is no supported configuration below it. The test
+         runner aborts unless it finds exactly that JDK, every Dockerfile is eclipse-temurin:25,
+         and every CI job sets java-version 25 - so a build host on an older JDK does not exist,
+         and capping this lower would only hide APIs we are entitled to use.
+
+         Still a separate property rather than a direct ${java.version} reference, because the two
+         express different constraints. java.version is the JDK we target and ship on; this is the
+         highest -release the *compiler* will accept, which is the spec version of the JDK actually
+         running scalac - not a property of the Scala version. The same scalac 2.12.21 accepts up
+         to 17 on JDK 17, up to 21 on JDK 21 and up to 25 on JDK 25. So whenever java.version moves
+         ahead of the JDK on the build host, the two must be able to come apart; wiring this to
+         ${java.version} would make that impossible to express. That is exactly what happened on
+         2026-07-03: java.version had just gone to 25 while a build host was still on 21, scalac
+         rejected -release 25 with "'25' is not a valid choice for '-release'", and the symptom was
+         read as a Scala-version limit. maven-enforcer-plugin now fails fast on that case instead.
+
+         Caveat: on Scala 2.12 this only widens the visible API surface, it does not raise the
+         class-file version. 2.12 emits Java 8 class files whatever -release says, so a Scala class
+         that calls a Java 25 method fails at run time with NoSuchMethodError instead of at load
+         time with UnsupportedClassVersionError. Getting that check back needs Scala 2.13+. javac
+         does honour it, so the .java sources under src/main/scala track this value. -->
+    <scalac.release>25</scalac.release>
   </properties>
 
   <modules>
@@ -192,16 +218,10 @@
           <configuration>
             <scalaVersion>${scala.compiler}</scalaVersion>
             <charset>${project.build.sourceEncoding}</charset>
-            <!-- Pin scalac's -release independently of ${java.version}. javac needs -release 25
-                 for JDK 25, but the Scala 2.12.21 compiler only accepts -release up to 17 (its
-                 max supported Java API/target). Without this, scala-maven-plugin derives -release
-                 from maven.compiler.target (=${java.version}=25) and passes an unsupported
-                 -release 25 to scalac, failing the build with
-                 "'25' is not a valid choice for '-release'". Scala 2.12 emits Java 8 bytecode
-                 regardless, so this only bounds the visible JDK API surface; the classes still run
-                 on JDK 25. Bump this only when moving to a Scala version that supports a higher
-                 -release. -->
-            <release>17</release>
+            <!-- Set explicitly because scala-maven-plugin otherwise derives -release from
+                 maven.compiler.target (= ${java.version}), which would demand a JDK 25 build host.
+                 See the scalac.release property for the ceiling rule and its caveats. -->
+            <release>${scalac.release}</release>
             <displayCmd>true</displayCmd>
             <!-- Optimized JVM settings for faster Scala compilation -->
             <jvmArgs>
@@ -294,6 +314,38 @@
                     <filtering>true</filtering>
                   </resource>
                 </resources>
+              </configuration>
+            </execution>
+          </executions>
+        </plugin>
+        <!-- Fail fast when the build JDK is older than scalac's -release. scalac cannot target a
+             release newer than the JDK running it, so without this check the build dies minutes
+             later inside scala-maven-plugin with "'25' is not a valid choice for '-release'" -
+             which reads as a Scala-version limit rather than a stale build host, and was misread
+             that way on 2026-07-03. The bound is ${scalac.release} itself, not a literal, so the
+             rule can never drift from the actual constraint.
+
+             No custom <message>: the rule's default text is strictly more useful here, naming the
+             detected version, its JAVA_HOME and the required range, e.g.
+               Detected JDK version 17.0.5 (JAVA_HOME=...) is not in the allowed range [25,).
+             A custom message would replace that rather than add to it. -->
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-enforcer-plugin</artifactId>
+          <version>3.5.0</version>
+          <executions>
+            <execution>
+              <id>enforce-build-jdk</id>
+              <phase>validate</phase>
+              <goals>
+                <goal>enforce</goal>
+              </goals>
+              <configuration>
+                <rules>
+                  <requireJavaVersion>
+                    <version>[${scalac.release},)</version>
+                  </requireJavaVersion>
+                </rules>
               </configuration>
             </execution>
           </executions>

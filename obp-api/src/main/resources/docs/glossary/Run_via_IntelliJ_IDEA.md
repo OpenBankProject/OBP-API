@@ -2,9 +2,9 @@
 
 ### Prerequisites
 
-* **JDK 25.** `pom.xml` sets `<java.version>25</java.version>`, so anything older will not compile. Any OpenJDK 25 distribution works (Eclipse Temurin, Azul Zulu, …).
+* **JDK 25.** `pom.xml` sets `<java.version>25</java.version>`, so anything older will not compile. Any OpenJDK 25 distribution works (Eclipse Temurin, Azul Zulu, …). `<scalac.release>` is 25 as well, so the IDE SDK, the command-line build and CI all sit on the same Java level — there is no second, lower level to account for.
 
-  Note that `pom.xml` also pins `<release>17</release>` for *scalac only* — the Scala 2.12.21 compiler accepts `-release` no higher than 17. That is not a project-wide Java level; do not set the IDE SDK to 17 because of it.
+  If a build ever fails with `'25' is not a valid choice for '-release'`, it means scalac is running on a JDK older than 25, not that the Scala version is too old: the highest `-release` scalac accepts is the version of the JDK running it. `maven-enforcer-plugin` catches that up front, so from the command line you would see `Detected JDK version … is not in the allowed range [25,)` first.
 
 * **Scala 2.12.21** (`<scala.compiler>` in `pom.xml`).
 

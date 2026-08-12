@@ -41,7 +41,8 @@ for arg in "$@"; do
     esac
 done
 
-# Select a JDK >= 17 before any Maven work (the build compiles with -release 17).
+# Pin the JDK before any Maven work: the project builds and runs on one JDK only
+# (pom.xml <java.version>), and scripts/java_env.sh aborts if it is not available.
 . "$(dirname "${BASH_SOURCE[0]}")/scripts/java_env.sh"
 
 ################################################################################

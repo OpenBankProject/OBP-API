@@ -1,95 +1,16 @@
 #!/bin/bash
 # Local parallel test runner — mirrors CI's test coverage on a single machine.
-# Pinned to JDK 25 (Scala 2.12.21+): the suite MUST run on JDK 25, because a
-# different JDK produces different results. This script is portable — it does not
-# hard-code any one developer's install path. It discovers a JDK 25 across macOS
-# and Linux (see resolve_jdk25 below) and ABORTS with guidance if none is found,
-# rather than silently falling back to whatever JDK happens to be active.
-#
-# Override order (first match wins):
-#   1. $OBP_JDK25_HOME     — explicit escape hatch for non-standard installs
-#   2. $JAVA_HOME          — but only if it already points at a JDK 25
-#   3. macOS  /usr/libexec/java_home -v 25   (any vendor: Temurin/Zulu/Oracle/…)
-#   4. SDKMAN ~/.sdkman/candidates/java/*25*
-#   5. Linux  /usr/lib/jvm/*25*, /opt/java/*25*, etc.
-#   6. a `java` already on PATH that reports version 25
+# Pinned to the project's JDK: the suite MUST run on it, because a different JDK
+# produces different results. JDK selection lives in scripts/java_env.sh, which is
+# shared with the build/run scripts so all three agree, reads the required version
+# from pom.xml's <java.version>, and ABORTS with guidance if it is missing rather
+# than silently falling back to whatever JDK happens to be active. See that file
+# for the full override order (JAVA_HOME, $OBP_JDK_HOME, java_home, SDKMAN, …).
 
-# _java_is_25 <java-home-or-binary>: true iff it runs and reports Java 25.
-_java_is_25() {
-  local jb="$1"
-  [[ -d "$jb" ]] && jb="$jb/bin/java"
-  [[ -x "$jb" ]] || return 1
-  "$jb" -version 2>&1 | grep -qE 'version "25(\.|")'
-}
-
-resolve_jdk25() {
-  local c cand=()
-
-  # 1. Respect an already-correct JAVA_HOME (explicit user override).
-  if [[ -n "${JAVA_HOME:-}" ]] && _java_is_25 "$JAVA_HOME"; then
-    export PATH="$JAVA_HOME/bin:$PATH"
-    return 0
-  fi
-
-  # 2. Explicit escape hatch for odd install locations.
-  [[ -n "${OBP_JDK25_HOME:-}" ]] && cand+=("$OBP_JDK25_HOME")
-
-  # 3. macOS canonical resolver — vendor-agnostic.
-  if [[ -x /usr/libexec/java_home ]]; then
-    local mh; mh=$(/usr/libexec/java_home -v 25 2>/dev/null) && [[ -n "$mh" ]] && cand+=("$mh")
-  fi
-
-  # 4. SDKMAN-managed JDKs.
-  if [[ -d "${HOME:-}/.sdkman/candidates/java" ]]; then
-    for c in "$HOME/.sdkman/candidates/java"/*25*/; do [[ -d "$c" ]] && cand+=("${c%/}"); done
-  fi
-
-  # 5. Common Linux + macOS-bundle JVM locations (unmatched globs stay literal and
-  #    are filtered out by the [[ -d ]] test below).
-  for c in /usr/lib/jvm/*25* /usr/lib/jvm/*-25 /usr/lib/jvm/java-25* \
-           /opt/java/*25* /Library/Java/JavaVirtualMachines/*25*/Contents/Home; do
-    [[ -d "$c" ]] && cand+=("$c")
-  done
-
-  # 6. First candidate that actually reports Java 25 wins.
-  for c in "${cand[@]}"; do
-    if _java_is_25 "$c"; then
-      export JAVA_HOME="$c"
-      export PATH="$JAVA_HOME/bin:$PATH"
-      return 0
-    fi
-  done
-
-  # 7. Last resort: a `java` already on PATH that is version 25. Derive JAVA_HOME
-  #    from it so child mvn/JVMs agree on the same JDK.
-  if command -v java >/dev/null 2>&1 && java -version 2>&1 | grep -qE 'version "25(\.|")'; then
-    local jbin; jbin=$(command -v java)
-    command -v realpath >/dev/null 2>&1 && jbin=$(realpath "$jbin" 2>/dev/null || echo "$jbin")
-    local jhome; jhome=$(cd "$(dirname "$jbin")/.." 2>/dev/null && pwd)
-    if [[ -n "$jhome" ]] && _java_is_25 "$jhome"; then
-      export JAVA_HOME="$jhome"
-      export PATH="$JAVA_HOME/bin:$PATH"
-      return 0
-    fi
-  fi
-
-  return 1
-}
-
-if ! resolve_jdk25; then
-  cat >&2 <<'EOF'
-❌ JDK 25 not found. This suite is pinned to JDK 25 (Scala 2.12.21+); running on a
-   different JDK produces different results, so the script refuses to continue.
-   Install a JDK 25 and retry, e.g.:
-     • SDKMAN:  sdk install java 25-tem
-     • macOS:   brew install --cask temurin@25   (or download Zulu/Temurin 25)
-     • Linux:   install a temurin-25 / java-25-openjdk package
-   Or point the script at an existing install:
-     OBP_JDK25_HOME=/path/to/jdk-25  ./run_tests_parallel.sh
-EOF
-  exit 1
-fi
-echo "JDK: $("$JAVA_HOME/bin/java" -version 2>&1 | head -1)  (JAVA_HOME=$JAVA_HOME)"
+# Shared with flushall_build_and_run.sh / flushall_fast_build_and_run.sh so the
+# build, the server and the tests can never run on different JDKs. Aborts if the
+# required JDK is absent.
+. "$(dirname "${BASH_SOURCE[0]}")/scripts/java_env.sh"
 # CI (build_pull_request.yml / build_container.yml) uses 9 shards across 9 VMs;
 # this script uses 4 coarser shards that achieve identical coverage via the
 # catch-all mechanism, without exhausting the single local DB connection pool

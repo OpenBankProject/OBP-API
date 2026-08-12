@@ -39,6 +39,10 @@
 
 set -eo pipefail
 
+# Pin the JDK before any Maven work, exactly as the other runners do — the suite must
+# run on the project's JDK, because a different one produces different results.
+. "$(dirname "${BASH_SOURCE[0]}")/scripts/java_env.sh"
+
 ################################################################################
 # CONFIGURATION
 ################################################################################

@@ -56,7 +56,8 @@ for arg in "$@"; do
     esac
 done
 
-# Select a JDK >= 17 before any Maven work (the build compiles with -release 17).
+# Pin the JDK before any Maven work: the project builds and runs on one JDK only
+# (pom.xml <java.version>), and scripts/java_env.sh aborts if it is not available.
 . "$(dirname "${BASH_SOURCE[0]}")/scripts/java_env.sh"
 
 # Show offline mode status if not explicitly set
@@ -212,6 +213,34 @@ BUILD_DURATION_MS=$((BUILD_DURATION % 1000))
     echo "Build result: $([ $BUILD_EXIT_CODE -eq 0 ] && echo 'SUCCESS' || echo 'FAILED')"
     echo "================================================================================"
 } >> fast_build.log
+
+# Auto-retry online if the offline default could not resolve something. This build
+# runs with -o by default, so any artifact that is not in the local repository yet
+# fails the whole build - including a plugin newly added to pom.xml, which no
+# amount of cleaning or rebuilding can fix. Retrying once online is the only thing
+# that helps, and it leaves the local repository warm for subsequent offline runs.
+if [ $BUILD_EXIT_CODE -ne 0 ] && [ -n "$OFFLINE_FLAG" ] \
+   && grep -q "in offline mode" fast_build.log; then
+    echo ""
+    echo "⚠️  Offline build could not resolve an artifact. Retrying once with network access..."
+    { grep -oE "The following artifacts could not be resolved: [^ ]+|Plugin [^ ]+ or one of its dependencies could not be resolved" fast_build.log | head -1 | sed 's/^/   /'; } || true
+    mv fast_build.log fast_build_offline_failed.log
+    echo "   Previous build log saved to: fast_build_offline_failed.log"
+    OFFLINE_FLAG=""
+    set +e
+    mvn -pl obp-api -am \
+        $DO_CLEAN \
+        package \
+        -T 1C \
+        -DskipTests=true \
+        -Dmaven.test.skip=true \
+        -Dcheckstyle.skip=true \
+        -Dspotbugs.skip=true \
+        -Dpmd.skip=true >> fast_build.log 2>&1
+    BUILD_EXIT_CODE=$?
+    set -e
+    echo "   Online retry: $([ $BUILD_EXIT_CODE -eq 0 ] && echo 'SUCCESS' || echo 'FAILED')"
+fi
 
 # Auto-retry with clean build if incremental build fails
 if [ $BUILD_EXIT_CODE -ne 0 ] && [ -z "$DO_CLEAN" ]; then
