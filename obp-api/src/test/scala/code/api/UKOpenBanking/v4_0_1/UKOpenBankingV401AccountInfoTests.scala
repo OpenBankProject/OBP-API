@@ -54,12 +54,18 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
       |  "Risk": {}
       |}""".stripMargin
 
+  // consumerId is the consumer these consents are then read with (getAuthed signs as testConsumer),
+  // because that is what the endpoint itself records -- createAccountAccessConsents passes the
+  // calling consumer straight into saveUKConsent. It used to pass None here, which produced a row
+  // no production path creates: one naming no lodging TPP. That was invisible while such a row was
+  // readable by anyone, and became a 403 the moment "records no TPP" stopped meaning "matches every
+  // caller". The fixture was the thing that was wrong.
   private def createRealConsent(): String = {
     val consent = Consents.consentProvider.vend.saveUKConsent(
       user = Some(resourceUser1),
       bankId = None,
       accountIds = None,
-      consumerId = None,
+      consumerId = Some(testConsumer.consumerId.get),
       permissions = consentPermissions,
       expirationDateTime = Some(DateWithDayFormat.parse("2030-01-01")),
       transactionFromDateTime = Some(DateWithDayFormat.parse("2020-01-01")),
@@ -747,6 +753,47 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
   // assertion is "nobody", and both spellings mean that.
   private def boundPsuOf(consentId: String): String =
     Option(storedConsent(consentId).userId).map(_.trim).getOrElse("")
+
+  // The profile defines the authentication journey as taking place in the context of one consent:
+  // the ConsentId is the intent identifier, and the intent id is carried into the request object so
+  // that "the access token that is eventually generated [is] bound to a specific consent". OBP mints
+  // its own OTP challenge instead of using that mechanism, so the binding the profile gets
+  // structurally has to be asserted here -- and the connector will not do it: LocalMappedConnector's
+  // validateChallengeAnswerC4 ignores the consentId it is handed and matches on challengeId, answer
+  // and userId alone. The Berlin Group twin of this endpoint already asserts it
+  // (Http4sBGv13AIS: startedChallenge.consentId.contains(consentId)).
+  feature("UKOB v4.0.1 a challenge only authorises the consent it was minted for") {
+    scenario("a challenge minted on one consent cannot authorise another -> 400, and the other consent is untouched", UKOpenBankingV401AccountInfo) {
+      setPropsValues("suggested_default_sca_method" -> "DUMMY")
+      val expiry = Some(new java.util.Date(System.currentTimeMillis() + 3600000L))
+      // Two consents the same PSU may authorise. The PSU guard at the top of the authorise endpoint
+      // passes for both, so nothing but the binding stands between them.
+      val challenged = createUKConsent(None, expiry)
+      val other = createUKConsent(None, expiry)
+
+      val challenge = makePostRequest(scaChallengeRequest(challenged) <@ (user1), "")
+      challenge.code should equal(200)
+      val challengeId = (challenge.body \ "challenge_id").extract[String]
+
+      When("the challenge minted on one consent is answered against the other")
+      val refused = makePostRequest(authoriseRequest(other) <@ (user1),
+        s"""{"account_ids":["$acc"],"challenge_id":"$challengeId","answer":"123"}""")
+
+      Then("it is refused with the same answer the Berlin Group twin gives")
+      refused.code should equal(400)
+      refused.body.extract[ErrorMessage].message should include("OBP-40022")
+
+      // The refusal is the point, but so is what it did not do: an authorisation that got this far
+      // used to bind the PSU and flip the status on a consent nobody authenticated for.
+      And("the consent it was aimed at is left exactly as it was")
+      boundPsuOf(other) should equal("")
+      storedConsent(other).status should equal(ConsentStatus.AWAITINGAUTHORISATION.toString)
+
+      And("so is the consent the challenge actually belonged to")
+      boundPsuOf(challenged) should equal("")
+      storedConsent(challenged).status should equal(ConsentStatus.AWAITINGAUTHORISATION.toString)
+    }
+  }
 
   feature("UKOB v4.0.1 a refused authorisation does not claim the consent") {
     scenario("account_ids naming an account the PSU does not hold -> refused, consent left unbound", UKOpenBankingV401AccountInfo) {

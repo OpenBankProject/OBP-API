@@ -1741,13 +1741,49 @@ object Consent extends MdcLoggable {
   ): Option[String] = {
     (present(consentUserId), callerUserId.flatMap(present)) match {
       case (Some(psu), Some(caller)) if psu != caller => Some(ErrorMessages.ConsentDoesNotMatchUser)
-      case (Some(_), Some(_)) => None
+      // The PSU matches, which is necessary but not sufficient: the Consumer still has to, and that
+      // comparison is below. The exception is the ASPSP's own front end, which under Redirect is by
+      // definition not the Consumer that lodged the consent -- that is the whole reason it has to be
+      // declared. Without this case a declared front end could not complete an SCA it is allowed to
+      // start, because psuOrLodgingTppRefusal would refuse it on the Consumer.
+      case (Some(_), Some(_)) if callerIsScaFrontEnd => None
       // Only while the consent is still unclaimed. A caller with no PSU used to reach this too, so a
       // declared front end presenting client credentials could drive the authorisation of a consent
       // already bound to somebody else -- the opposite of what the paragraph above promises.
       case (None, _) if callerIsScaFrontEnd => None
       case _ => psuOrLodgingTppRefusal(consentUserId, consentConsumerId, callerUserId, callerConsumerId)
     }
+  }
+
+  /**
+   * checkBerlinGroupConsentAccess for the five endpoints that read or delete a consent resource,
+   * refusing with the answer those endpoints have always given.
+   *
+   * They answer `ConsentNotFound` at 403 whatever the reason, which is deliberate: a caller who is
+   * not entitled to a consent should not be able to tell "it is not yours" from "there is no such
+   * consent", or the endpoint becomes a way to confirm that an id exists. The rule's own
+   * ConsentDoesNotMatchUser / ConsentDoesNotMatchConsumer say which, so the reason is logged rather
+   * than returned. The authorisation pair does return it -- there the caller is mid-ceremony on a
+   * consent it has already been handed, and needs to know why it was stopped.
+   *
+   * Not a general-purpose wrapper: assertUKConsentAccess next to it passes the reason through, and
+   * that difference is the point rather than an inconsistency to iron out.
+   */
+  def assertBerlinGroupConsentReadAccess(
+    consentUserId: String,
+    consentConsumerId: String,
+    callContext: CallContext
+  ): Future[Box[Unit]] = {
+    val refusal = checkBerlinGroupConsentAccess(
+      consentUserId, consentConsumerId,
+      genuinePsu(callContext).map(_.userId), callContext.consumer.map(_.consumerId.get),
+      isScaFrontEnd(callContext.consumer.map(_.consumerId.get)))
+    refusal.foreach { reason =>
+      logger.info(
+        s"A consent read was refused: $reason. Reported as ${ErrorMessages.ConsentNotFound} so the " +
+        s"caller cannot tell a consent that is not theirs from one that does not exist.")
+    }
+    Helper.booleanToFuture(ErrorMessages.ConsentNotFound, 403, Some(callContext))(refusal.isEmpty)
   }
 
   /**
@@ -1777,16 +1813,39 @@ object Consent extends MdcLoggable {
     callerUserId: Option[String],
     callerConsumerId: Option[String]
   ): Option[String] = {
+    // The Consumer that lodged the consent is what identifies a legitimate caller, and a consent
+    // recording none belongs to nobody. This used to read `owner.forall(...)`, which is vacuously
+    // true when there is no owner -- so a consent with no lodging TPP was addressable by every
+    // authenticated caller. "Absent" was being read as "matches everything" where it means "there is
+    // nobody this belongs to", and neither standard supports the first reading: Berlin Group scopes
+    // a resource to "the same TPP" that created it (IG 4.11), and UK scopes GET and DELETE to "an
+    // account-access-consent resource that they have created".
+    //
+    // It is a live population -- 10 of 566 Berlin Group, 50 of 463 OBP-native and 4 of 753 UK
+    // consents record no consumer on a long-lived instance -- so the prop is there for an operator
+    // who needs a migration window and accepts what it means. Default false, and it says so every
+    // time it is used.
+    def lodgingTppRefusal: Option[String] = present(consentConsumerId) match {
+      case Some(owner) if callerConsumerId.flatMap(present).contains(owner) => None
+      case Some(_) => Some(ErrorMessages.ConsentDoesNotMatchConsumer)
+      case None if APIUtil.getPropsAsBoolValue("consent_allow_legacy_unrecorded_tpp", defaultValue = false) =>
+        logger.warn(
+          "A consent recording no lodging TPP was addressed and allowed through because " +
+          "consent_allow_legacy_unrecorded_tpp is set. Any authenticated caller can read and revoke " +
+          "such a consent while that stays on. Re-lodge the affected consents and turn it off.")
+        None
+      case None => Some(ErrorMessages.ConsentDoesNotMatchConsumer)
+    }
+
     (present(consentUserId), callerUserId.flatMap(present)) match {
-      case (Some(psu), Some(caller)) =>
-        // The consent belongs to a PSU and the caller is acting as one: they must be the same PSU.
-        if (psu == caller) None else Some(ErrorMessages.ConsentDoesNotMatchUser)
-      case _ =>
-        // Either the consent has no PSU yet, or the caller is not acting as one. Either way the
-        // Consumer that lodged it is what identifies a legitimate caller.
-        val owner = present(consentConsumerId)
-        if (owner.forall(id => callerConsumerId.flatMap(present).contains(id))) None
-        else Some(ErrorMessages.ConsentDoesNotMatchConsumer)
+      // The consent belongs to a PSU and the caller is acting as one: they must be the same PSU.
+      case (Some(psu), Some(caller)) if psu != caller => Some(ErrorMessages.ConsentDoesNotMatchUser)
+      // Matching the PSU is necessary, not sufficient. This used to return None here, so agreeing on
+      // the person ended the enquiry and the Consumer was never looked at -- a second TPP holding a
+      // session for the same PSU could read and revoke the consent a first TPP lodged. One TPP's
+      // mandate over a consent is not another's, and IG 4.11's same-TPP rule admits no PSU
+      // exception. So a PSU match falls through to the Consumer comparison rather than skipping it.
+      case _ => lodgingTppRefusal
     }
   }
 

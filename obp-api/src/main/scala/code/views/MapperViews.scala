@@ -196,32 +196,6 @@ object MapperViews extends Views with MdcLoggable {
     }
   }
 
-  // The consumer-scoped counterparts of the two grants above, mirroring the revoke...ForConsumer
-  // pair further down. Access granted through one application's consent belongs to that application
-  // alone: keeping it on its own row is what stops a second TPP's consent from rewriting it, and
-  // what makes narrowing a consent narrow only that consent.
-  def grantAccessToSystemViewForConsumer(bankId: BankId, accountId: AccountId, view: View, user: User, consumerId: String): Box[View] = {
-    { view.isPublic && !allowPublicViews } match {
-      case true => Failure(PublicViewsNotAllowedOnThisInstance)
-      case false => getOrGrantAccessToViewCommon(user, view, bankId.value, accountId.value, consumerId)
-    }
-  }
-
-  def grantAccessToCustomViewForConsumer(bankIdAccountIdViewId: BankIdAccountIdViewId, user: User, consumerId: String): Box[View] = {
-    val viewDefinition = ViewDefinition.findCustomView(
-      bankIdAccountIdViewId.bankId.value,
-      bankIdAccountIdViewId.accountId.value,
-      bankIdAccountIdViewId.viewId.value)
-
-    viewDefinition match {
-      case Full(v) =>
-        if (v.isPublic && !allowPublicViews) Failure(PublicViewsNotAllowedOnThisInstance)
-        else getOrGrantAccessToViewCommon(user, v, bankIdAccountIdViewId.bankId.value, bankIdAccountIdViewId.accountId.value, consumerId)
-      case _ =>
-        Empty ~> APIFailure(s"View ${bankIdAccountIdViewId.viewId} not found", 404)
-    }
-  }
-
   def grantAccessToMultipleViews(views: List[BankIdAccountIdViewId], user: User, callContext: Option[CallContext]): Box[List[View]] = {
     val viewDefinitions: List[(ViewDefinition, BankIdAccountIdViewId)] = views.map {
       uid => ViewDefinition.findCustomView(uid.bankId.value,uid.accountId.value, uid.viewId.value).map((_, uid))

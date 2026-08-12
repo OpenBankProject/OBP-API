@@ -1896,6 +1896,20 @@ securelogging_mask_email=true
 # already configured for Berlin Group Redirect SCA needs no edit.
 # sca_front_end_consumer_ids=
 
+# Let a consent that records no lodging TPP be addressed by any authenticated caller.
+#
+# A consent belongs to the Consumer that lodged it -- Berlin Group states it for the whole API
+# ("all methods submitted by a TPP ... may only apply to resources which have been created by the
+# same TPP before", Implementation Guidelines 4.11) and UK scopes GET and DELETE of an
+# account-access-consent to one "that they have created". A row recording no Consumer therefore
+# matches no caller, and is refused.
+#
+# Rows like that exist: they predate the Consumer being recorded on a consent at all. Turning this
+# on restores the old behaviour for them -- and the old behaviour is that ANY authenticated caller
+# can read and revoke them, which is why it is off by default and warns on every use. It is a
+# migration window, not a setting: re-lodge the affected consents and turn it back off.
+# consent_allow_legacy_unrecorded_tpp=false
+
 # Berlin Group: the Consumers that are this ASPSP's own Strong Customer Authentication front end,
 # comma separated consumer ids. Under the Redirect approach the PSU authenticates at the ASPSP, so
 # the authorisation calls on /berlin-group/v1.3/consents/{id}/authorisations arrive from that front

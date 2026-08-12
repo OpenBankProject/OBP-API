@@ -417,6 +417,37 @@ class UKOpenBankingV401ConsentScopingTests extends UKOpenBankingV401ServerSetup 
       // Revocation used to flip a status column and leave the granted rows in the table for good.
       Views.views.vend.accessGrantedToUserForConsumer(principal, Constant.ALL_CONSUMERS) shouldBe empty
     }
+
+    // The clean-up runs after conditionalRevoke has already committed the status change, so a throw
+    // in it does not undo the revoke -- it only hides that the revoke happened. The caller gets a
+    // 500 and the retry gets ConsentAlreadyRevoked, which leaves an AISP unable to complete the
+    // DELETE the profile requires of it, with no correct next step. The Berlin Group sibling a few
+    // lines away in MappedConsent already wraps its equivalent; this one did not.
+    //
+    // A stored JWT whose payload does not extract is enough to get there. getSignedPayloadAsJson
+    // does not verify the signature -- it parses the structure and hands back the claims -- so the
+    // extract that follows is what throws, and Box.map does not catch. The same trap is already
+    // documented on applyUKConsentPrincipalFromToken.
+    scenario("a consent whose stored JWT cannot be read is still revoked, and says so", UKConsentScoping) {
+      val consentId = authoriseConsentFor(testConsumer.consumerId.get, List(ReadAccountsBasic))
+
+      // Structurally a JWT, and the claims parse as JSON -- they are simply not a ConsentJWT.
+      def b64(s: String) = java.util.Base64.getUrlEncoder.withoutPadding.encodeToString(s.getBytes("UTF-8"))
+      Consents.consentProvider.vend.setJsonWebToken(
+        consentId, s"${b64("""{"alg":"HS256"}""")}.${b64("""{"not":"a consent"}""")}.signature-is-never-checked")
+
+      val revoked = Consents.consentProvider.vend.revoke(consentId)
+
+      withClue("the revoke threw rather than reporting the outcome: ") {
+        revoked.isDefined should equal(true)
+      }
+      Consents.consentProvider.vend.getConsentByConsentId(consentId)
+        .map(_.status) should equal(Full(ConsentStatus.REVOKED.toString))
+
+      // And it stays revoked: a second attempt is the ConsentAlreadyRevoked the caller used to be
+      // pushed into by the failure, rather than a way out of it.
+      Consents.consentProvider.vend.revoke(consentId).isDefined should equal(false)
+    }
   }
 
 }

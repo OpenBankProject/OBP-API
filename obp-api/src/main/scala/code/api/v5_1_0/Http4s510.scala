@@ -4396,7 +4396,22 @@ object Http4s510 {
             _ <- Helper.booleanToFuture(s"$InvalidJsonFormat The Json body should be the $PostUKConsentAuthoriseJsonV510 (account_ids must not be empty) ", 400, Some(cc)) {
               authJson.account_ids.nonEmpty
             }
-            (_, _) <- NewStyle.function.getChallenge(authJson.challenge_id, Some(cc))
+            (startedChallenge, _) <- NewStyle.function.getChallenge(authJson.challenge_id, Some(cc))
+            // The consent this challenge was minted for is the consent it may authorise, and nothing
+            // below establishes that: validateChallengeAnswerC4 is handed the consentId but the
+            // connector ignores it and matches on challengeId, answer and expected user alone. So a
+            // PSU holding an OTP raised for one consent could answer it against another of their own
+            // -- and since the two need not carry the same Permissions, an OTP the PSU was given for
+            // a narrow consent authorised a wider one, which is precisely the dynamic linking the
+            // profile is asking for ("all authentication journeys take place in the context of a
+            // consent"; the ConsentId is the intent identifier).
+            //
+            // Same guard, message and code as the Berlin Group twin in Http4sBGv13AIS, which gets
+            // the binding structurally by nesting authorisations under the consent's own path. It
+            // also refuses a transaction-request challenge here for free: that carries no consentId.
+            _ <- Helper.booleanToFuture(s"$InvalidChallengeChallengeId Current challengeId(${authJson.challenge_id}) does not belong to CONSENTID($consentId) ", 400, Some(cc)) {
+              startedChallenge.consentId.contains(consentId)
+            }
             (challenge, _) <- NewStyle.function.validateChallengeAnswerC4(
               ChallengeType.OBP_CONSENT_CHALLENGE,
               None,

@@ -138,12 +138,34 @@ class UKOpenBankingV401ConsentAccessTests extends UKOpenBankingV401ServerSetup {
     }
 
     scenario("blank ids count as absent, not as a value to match", UKOpenBankingV401ConsentAccess) {
-      // A consent lodged before consumer binding existed stores no consumer id; nothing identifies a
-      // wrong caller, so it cannot be refused on that basis.
-      Consent.checkUKConsentAccess("", "", None, Some(tpp), callerIsScaFrontEnd = false) should equal(None)
-      Consent.checkUKConsentAccess(null, null, None, None, callerIsScaFrontEnd = false) should equal(None)
-      // A blank caller user id is not a PSU either -- it must not accidentally match a blank binding.
+      // A blank caller user id is not a PSU -- it must not accidentally match a blank binding.
       Consent.checkUKConsentAccess(psu, tpp, Some("  "), Some(tpp), callerIsScaFrontEnd = false) should equal(None)
+    }
+
+    // The two assertions that used to sit in the scenario above have inverted. They read
+    //   checkUKConsentAccess("", "", None, Some(tpp), false) should equal(None)
+    //   checkUKConsentAccess(null, null, None, None, false)  should equal(None)
+    // on the reasoning that a consent lodged before consumer binding existed "cannot be refused on
+    // that basis" because nothing identifies a wrong caller. The other half of that is that nothing
+    // identifies a RIGHT one either, and the profile scopes these endpoints to "an
+    // account-access-consent resource that they have created" -- a row naming no creator matches no
+    // caller rather than every caller. 4 of 753 UK consents on a long-lived instance record no
+    // consumer, and until now any authenticated caller could read and revoke them.
+    scenario("a consent that records no lodging TPP belongs to nobody", UKOpenBankingV401ConsentAccess) {
+      Consent.checkUKConsentAccess("", "", None, Some(tpp), callerIsScaFrontEnd = false) should
+        equal(Some(ConsentDoesNotMatchConsumer))
+      Consent.checkUKConsentAccess(null, null, None, None, callerIsScaFrontEnd = false) should
+        equal(Some(ConsentDoesNotMatchConsumer))
+    }
+
+    // Matching the PSU is necessary, not sufficient: the rule used to stop as soon as the two PSU
+    // ids agreed, so a second TPP holding a session for the same person reached a first TPP's
+    // consent. The UK case for the Consumer comparison is per-endpoint rather than blanket -- the
+    // Endpoints table marks GET and DELETE Client Credentials, so no PSU is party to them at all,
+    // and a PSU session here is an OBP extension that cannot be the thing that waives it.
+    scenario("a second TPP holding a session for the consent's own PSU is still refused", UKOpenBankingV401ConsentAccess) {
+      Consent.checkUKConsentAccess(psu, tpp, Some(psu), Some(otherTpp), callerIsScaFrontEnd = false) should
+        equal(Some(ConsentDoesNotMatchConsumer))
     }
   }
 

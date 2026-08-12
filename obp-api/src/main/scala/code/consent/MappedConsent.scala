@@ -377,7 +377,25 @@ object MappedConsentProvider extends ConsentProvider with code.util.Helper.MdcLo
           // Every revoke endpoint funnels through here, so this is the one place that has to give
           // the granted access back. The status flip alone leaves the AccountAccess rows live in
           // the table for anything that reads them without asking the consent first.
-          code.api.util.Consent.revokeConsentAccountAccess(consent)
+          //
+          // Guarded because conditionalRevoke above has already committed, so a throw here cannot
+          // undo the revoke -- it can only hide that it happened. The caller got a 500 and the
+          // retry got ConsentAlreadyRevoked, which leaves an AISP unable to complete the DELETE the
+          // standards require of it and with no correct next step. It does not take much to get
+          // there: revokeConsentAccountAccess extracts the stored JWT through Box.map, which does
+          // not catch, so a payload that no longer matches ConsentJWT arrives as a MappingException.
+          //
+          // Logged at error, not swallowed. The consent IS revoked and the API is right to say so,
+          // but rows that should have been dropped are still live, and that is the one thing about
+          // a revoked consent nobody comes back for. Same shape as the sibling below.
+          tryo(code.api.util.Consent.revokeConsentAccountAccess(consent)) match {
+            case Failure(msg, ex, _) =>
+              logger.error(
+                s"revoke: consent $consentId is revoked, but its account access could not be given " +
+                s"back and those rows are still live: $msg" +
+                ex.map(e => s" (${e.getClass.getSimpleName}: ${e.getMessage})").getOrElse(""))
+            case _ =>
+          }
           MappedConsent.find(By(MappedConsent.mConsentId, consentId))
         }
         else Failure(ErrorMessages.ConsentAlreadyRevoked)
