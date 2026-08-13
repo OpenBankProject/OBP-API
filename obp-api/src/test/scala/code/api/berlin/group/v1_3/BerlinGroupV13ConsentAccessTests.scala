@@ -87,10 +87,45 @@ class BerlinGroupV13ConsentAccessTests extends BerlinGroupConsentFixtures {
         equal(Some(ConsentDoesNotMatchUser))
     }
 
+    // Matching the PSU is necessary, not sufficient. It used to be sufficient: the rule returned
+    // None the moment the two PSU ids agreed, without ever looking at the Consumer, so a second TPP
+    // holding a session for the same person could read and revoke the consent a first TPP lodged.
+    // One TPP's mandate over a consent is not another's -- the same principle the payment guard in
+    // Http4sBGv13PIS states, and IG 4.11's "may only apply to resources which have been created by
+    // the same TPP before" admits no PSU exception.
+    scenario("a second TPP holding a session for the consent's own PSU is still refused", BerlinGroupV13ConsentAccess) {
+      Consent.checkBerlinGroupConsentAccess(psu, tpp, Some(psu), Some(otherTpp), callerIsScaFrontEnd = false) should
+        equal(Some(ConsentDoesNotMatchConsumer))
+    }
+
     scenario("blank ids count as absent, not as a value to match", BerlinGroupV13ConsentAccess) {
-      Consent.checkBerlinGroupConsentAccess(null, null, None, None, callerIsScaFrontEnd = false) should equal(None)
       Consent.checkBerlinGroupConsentAccess("   ", tpp, Some(psu), Some(tpp), callerIsScaFrontEnd = false) should equal(None)
       Consent.checkBerlinGroupConsentAccess(psu, tpp, Some("  "), Some(tpp), callerIsScaFrontEnd = false) should equal(None)
+    }
+
+    // This assertion is inverted from what it used to say. It read
+    //   checkBerlinGroupConsentAccess(null, null, None, None, false) should equal(None)
+    // which pinned a consent recording no TPP as addressable by anybody -- "absent" was being read
+    // as "matches everything" rather than as "there is nobody this belongs to". Neither standard
+    // supports that: IG 4.11 scopes a resource to the TPP that created it, and UK scopes GET and
+    // DELETE to "an account-access-consent resource that they have created". A row naming no TPP
+    // satisfies neither, so it belongs to nobody and is refused.
+    //
+    // It is a real population, not a hypothetical: 10 of 566 Berlin Group consents and 4 of 753 UK
+    // consents record no consumer on a long-lived instance. They are already unreachable in Berlin
+    // Group today, by accident -- the hand-rolled `null == "None"` compare in the five reads is
+    // false for everyone -- so refusing them here changes nothing for those callers and only stops
+    // the UK pair, and the reads once they move onto this rule, from opening up.
+    scenario("a consent that records no lodging TPP belongs to nobody", BerlinGroupV13ConsentAccess) {
+      Consent.checkBerlinGroupConsentAccess(null, null, None, None, callerIsScaFrontEnd = false) should
+        equal(Some(ConsentDoesNotMatchConsumer))
+      Consent.checkBerlinGroupConsentAccess(null, "  ", Some(psu), Some(tpp), callerIsScaFrontEnd = false) should
+        equal(Some(ConsentDoesNotMatchConsumer))
+    }
+
+    scenario("an operator can restore the old behaviour for a migration window", BerlinGroupV13ConsentAccess) {
+      setPropsValues("consent_allow_legacy_unrecorded_tpp" -> "true")
+      Consent.checkBerlinGroupConsentAccess(null, null, None, None, callerIsScaFrontEnd = false) should equal(None)
     }
   }
 
@@ -258,6 +293,54 @@ class BerlinGroupV13ConsentAccessTests extends BerlinGroupConsentFixtures {
       headers: _*)
 
   private def psuIdHeader(userName: String) = List(("PSU-ID", userName))
+
+  // The five reads of a consent resource. They each used to compare
+  //   consent.mConsumerId.get == cc.consumer.map(_.consumerId.get).getOrElse("None")
+  // by hand, five separate times, rather than going through checkBerlinGroupConsentAccess like the
+  // authorisation pair above. Five copies of one security decision is how the two fail-opens fixed
+  // in the previous commit came to be fixed in the rule and not at these call sites: a hand-rolled
+  // Consumer compare cannot notice that the PSU half exists at all.
+  private def consentReads(consentId: String, session: Option[(Consumer, Token)]) = List(
+    "read the consent" -> makeGetRequest((V1_3_BG / "consents" / consentId).GET <@ (session)),
+    "read its status" -> makeGetRequest((V1_3_BG / "consents" / consentId / "status").GET <@ (session)),
+    "list its authorisations" -> makeGetRequest((V1_3_BG / "consents" / consentId / "authorisations").GET <@ (session)),
+    "read an authorisation's SCA status" ->
+      makeGetRequest((V1_3_BG / "consents" / consentId / "authorisations" / "any-authorisation-id").GET <@ (session))
+  )
+
+  feature("BG v1.3 - the consent reads apply the same ownership rule as the authorisation pair") {
+
+    scenario("the lodging TPP acting for a second PSU cannot read a consent bound to the first", BerlinGroupV13ConsentAccess) {
+      val consentId = createUnclaimedBerlinGroupConsent().consentId
+      Consents.consentProvider.vend.updateConsentUser(consentId, resourceUser1)
+
+      Then("the same TPP, but acting for a different person, is refused on every read")
+      // The Consumer matches -- this IS the TPP that lodged it -- so a Consumer-only compare says
+      // yes. The consent is bound to resourceUser1 and the session is resourceUser2's, and once a
+      // consent names a PSU the rule requires that PSU, which is what the authorisation pair has
+      // enforced all along and these reads did not.
+      consentReads(consentId, secondPsuOfTestConsumerSession).foreach { case (what, response) =>
+        withClue(s"a second PSU of the lodging TPP was allowed to $what: ") {
+          response.code should equal(403)
+        }
+      }
+
+      And("the lodging TPP on a client-credentials session still can")
+      // The normal Berlin Group caller: no genuine PSU in the session at all, so the PSU half does
+      // not apply and the Consumer decides. This is the half that must not regress.
+      consentReads(consentId, clientCredentialsSession).foreach { case (what, response) =>
+        withClue(s"the lodging TPP could not $what: ") {
+          response.code should equal(200)
+        }
+      }
+
+      And("so does DELETE, which is the fifth site and mutates, hence last")
+      makeDeleteRequest((V1_3_BG / "consents" / consentId).DELETE <@ (secondPsuOfTestConsumerSession))
+        .code should equal(403)
+      makeDeleteRequest((V1_3_BG / "consents" / consentId).DELETE <@ (clientCredentialsSession))
+        .code should equal(204)
+    }
+  }
 
   feature("BG v1.3 - a consent's authorisation sub-resources answer only to the TPP that lodged it") {
 

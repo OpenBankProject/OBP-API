@@ -11,7 +11,7 @@ import code.api.util.APIUtil.{EmptyBody, ResourceDoc, HTTPParam, UserOrApplicati
 import code.api.util.ApiTag
 import code.api.util.CallContext
 import code.api.util.CustomJsonFormats
-import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, ConsentNotFound, ConsentViewNotFund, InvalidJsonFormat, InvalidUKConsentPermissions, UnknownError}
+import code.api.util.ErrorMessages.{AuthenticatedUserIsRequired, BankNotFound, ConsentNotFound, ConsentViewNotFund, InvalidJsonFormat, InvalidUKConsentPermissions, UnknownError}
 import code.api.util.http4s.Http4sRequestAttributes.{EndpointHelpers, RequestOps}
 import code.api.util.newstyle.ViewNewStyle
 import code.api.util.{APIUtil, Consent, ConsentJWT, JwtUtil, NewStyle}
@@ -24,7 +24,7 @@ import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId, TransactionAttribute, View, ViewId}
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
 import com.openbankproject.commons.util.JsonAliases
-import net.liftweb.common.Full
+import net.liftweb.common.{Box, Full}
 import org.json4s.{Formats, JObject}
 import org.http4s._
 import org.http4s.dsl.io._
@@ -229,7 +229,7 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
       EndpointHelpers.executeAndRespond(req) { cc =>
         for {
           consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
-            unboxFullOrFail(_, Some(cc), s"$ConsentNotFound ($consentId)")
+            unboxFullOrFail(_, Some(cc), ConsentNotFound, 403)
           }
           _ <- Consent.assertUKConsentAccess(consent.userId, consent.consumerId, cc)
           consentViews <- Future(JwtUtil.getSignedPayloadAsJson(consent.jsonWebToken).map(
@@ -275,7 +275,7 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
         for {
           _ <- passesPsd2Aisp(Some(cc))
           consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
-            unboxFullOrFail(_, Some(cc), ConsentNotFound)
+            unboxFullOrFail(_, Some(cc), ConsentNotFound, 403)
           }
           _ <- Consent.assertUKConsentAccess(consent.userId, consent.consumerId, cc)
           _ <- Future(Consents.consentProvider.vend.revoke(consentId)) map {
@@ -3503,6 +3503,11 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
           (bank, _) <- NewStyle.function.getBank(BankId(defaultBankId), Some(cc))
           availablePrivateAccounts <- Views.views.vend.getPrivateBankAccountsFuture(u)
           (accounts, _) <- NewStyle.function.getBankAccounts(availablePrivateAccounts, Some(cc))
+          // One lookup per distinct bank rather than one per account: a consent may name accounts at
+          // several banks, and moderation needs each account's own.
+          banksById <- Future.sequence(accounts.map(_.bankId).distinct.map { bankId =>
+            NewStyle.function.getBank(bankId, Some(cc)).map { case (b, _) => bankId -> b }
+          }).map(_.toMap)
           allTxns <- Future {
             val detailViewId = ViewId(Constant.SYSTEM_READ_TRANSACTIONS_DETAIL_VIEW_ID)
             val basicViewId = ViewId(Constant.SYSTEM_READ_TRANSACTIONS_BASIC_VIEW_ID)
@@ -3515,9 +3520,25 @@ object Http4sUKOBv401AccountInfo extends MdcLoggable {
                 // per-account endpoint does.
                 view <- APIUtil.checkViewAccessAndReturnView(detailViewId, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), Full(u), Some(cc))
                   .or(APIUtil.checkViewAccessAndReturnView(basicViewId, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), Full(u), Some(cc)))
+                // The account's own bank, not the instance's default one. moderateTransactionsWithSameAccount
+                // builds the moderated account from whatever Bank it is handed and then refuses every
+                // transaction that does not belong to it -- so passing the default bank returned an empty
+                // list for every account not held there, logging "Attempted to moderate a transaction using
+                // the incorrect moderated account" once per row. The `.getOrElse(Nil)` below is what made
+                // that look like "this account has no transactions" rather than like a failure.
+                accountBank <- Box(banksById.get(bankAccount.bankId)) ?~! s"$BankNotFound ${bankAccount.bankId.value}"
                 params = createQueriesByHttpParams(req.headers.headers.toList.map(h => HTTPParam(h.name.toString, List(h.value)))).getOrElse(Nil)
-                (transactions, _) <- BankAccountExtended(bankAccount).getModeratedTransactions(bank, Full(u), view, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), Some(cc), params)
-              } yield transactions).getOrElse(Nil)
+                // Resolved per account, because a consent can grant different directions on different
+                // accounts. Same three calls the per-account endpoint makes through UKTransactionsQuery:
+                // the query param so the database applies the restriction with the page limit, and the
+                // filter so the restriction still holds when the connector ignores the param.
+                grantsCredits = UKAmounts.grantsView(Constant.SYSTEM_READ_TRANSACTIONS_CREDITS_VIEW_ID, bankAccount.bankId, bankAccount.accountId, u, cc)
+                grantsDebits = UKAmounts.grantsView(Constant.SYSTEM_READ_TRANSACTIONS_DEBITS_VIEW_ID, bankAccount.bankId, bankAccount.accountId, u, cc)
+                directedParams = params ++ UKAmounts.directionQueryParam(grantsCredits, grantsDebits)
+                (transactions, _) <- BankAccountExtended(bankAccount).getModeratedTransactions(accountBank, Full(u), view, BankIdAccountId(bankAccount.bankId, bankAccount.accountId), Some(cc), directedParams)
+                directed = UKAmounts.filterByGrantedDirections(transactions, grantsCredits, grantsDebits)
+                _ = UKTransactionsQuery.warnIfPageWasTrimmed(transactions, directed, directedParams, cc)
+              } yield directed).getOrElse(Nil)
             }
           }
         } yield JSONFactory_UKOpenBanking_401.createTransactionsJson(bank.bankId, allTxns)

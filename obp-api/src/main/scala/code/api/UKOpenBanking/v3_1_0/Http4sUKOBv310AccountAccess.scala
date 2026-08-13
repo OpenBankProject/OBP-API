@@ -188,7 +188,7 @@ object Http4sUKOBv310AccountAccess extends MdcLoggable {
         for {
           _ <- passesPsd2Aisp(Some(cc))
           consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
-            unboxFullOrFail(_, Some(cc), ConsentNotFound)
+            unboxFullOrFail(_, Some(cc), ConsentNotFound, 403)
           }
           _ <- Consent.assertUKConsentAccess(consent.userId, consent.consumerId, cc)
           _ <- Future(Consents.consentProvider.vend.revoke(consentId)) map {
@@ -222,7 +222,7 @@ object Http4sUKOBv310AccountAccess extends MdcLoggable {
       EndpointHelpers.executeAndRespond(req) { cc =>
         for {
           consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
-            unboxFullOrFail(_, Some(cc), s"$ConsentNotFound ($consentId)")
+            unboxFullOrFail(_, Some(cc), ConsentNotFound, 403)
           }
           _ <- Consent.assertUKConsentAccess(consent.userId, consent.consumerId, cc)
           consentViews <- Future(JwtUtil.getSignedPayloadAsJson(consent.jsonWebToken).map(

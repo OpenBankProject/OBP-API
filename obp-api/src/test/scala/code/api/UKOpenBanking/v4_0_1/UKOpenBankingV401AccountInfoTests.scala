@@ -2,7 +2,7 @@ package code.api.UKOpenBanking.v4_0_1
 
 import code.api.Constant
 import code.api.util.APIUtil.{DateWithDayFormat, ResourceDoc, UserOrApplication, buildOperationId}
-import code.api.util.ErrorMessages.{ConsentDoesNotMatchConsumer, ConsentDoesNotMatchUser, ConsentExpiredIssue, ConsentIdClaimMissing}
+import code.api.util.ErrorMessages.{ConsentDoesNotMatchConsumer, ConsentDoesNotMatchUser, ConsentExpiredIssue, ConsentIdClaimMissing, ConsentNotFound}
 import code.api.util.{CallContext, CertificateUtil, Consent}
 import code.consent.{ConsentStatus, Consents}
 import code.model.UserExtended
@@ -35,6 +35,13 @@ import scala.concurrent.duration._
 // token, which let a token with no bound consent reach 500 instead of the 403
 // OBP-35035 every other AISP data endpoint gives it.
 //
+// That 401/not-401 limit is also why the two aggregate endpoints' substance is covered out of
+// repo. What getTransactions does per account -- resolve that account's own bank for moderation,
+// and resolve and apply the consent's granted transaction directions -- only happens once a real
+// consent is in play, which needs a Bearer token this suite cannot mint. uk_direction.py drives it
+// against a running instance with a real consent, on the bulk path as well as the per-account one;
+// it was the bulk path being absent from that probe that let the gap stand.
+//
 // The remaining 80 endpoints are still static spec-faithful stubs; their tests
 // are unchanged (two scenarios: authenticated -> fixed code, unauthenticated -> 401).
 class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
@@ -54,12 +61,18 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
       |  "Risk": {}
       |}""".stripMargin
 
+  // consumerId is the consumer these consents are then read with (getAuthed signs as testConsumer),
+  // because that is what the endpoint itself records -- createAccountAccessConsents passes the
+  // calling consumer straight into saveUKConsent. It used to pass None here, which produced a row
+  // no production path creates: one naming no lodging TPP. That was invisible while such a row was
+  // readable by anyone, and became a 403 the moment "records no TPP" stopped meaning "matches every
+  // caller". The fixture was the thing that was wrong.
   private def createRealConsent(): String = {
     val consent = Consents.consentProvider.vend.saveUKConsent(
       user = Some(resourceUser1),
       bankId = None,
       accountIds = None,
-      consumerId = None,
+      consumerId = Some(testConsumer.consumerId.get),
       permissions = consentPermissions,
       expirationDateTime = Some(DateWithDayFormat.parse("2030-01-01")),
       transactionFromDateTime = Some(DateWithDayFormat.parse("2020-01-01")),
@@ -215,8 +228,30 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
       // freshly-created consent is AWAITINGAUTHORISATION → wire code AWAU
       (response.body \ "Data" \ "Status").extract[String] should equal("AWAU")
     }
-    scenario("authenticated with unknown consent -> 400", UKOpenBankingV401AccountInfo) {
-      getAuthed("aisp", "account-access-consents", "fake-consentid").code should equal(400)
+    scenario("authenticated with unknown consent -> 403", UKOpenBankingV401AccountInfo) {
+      getAuthed("aisp", "account-access-consents", "fake-consentid").code should equal(403)
+    }
+    // A caller who is not entitled to a consent must not be able to tell "there is no such consent"
+    // from "that one is not yours". The two used to answer differently -- 400 with the id spelled
+    // back, against 403 -- which turns the endpoint into a way of confirming that an id exists.
+    // Berlin Group's equivalents already answer the same thing both ways.
+    scenario("a consent that does not exist and one that is not yours answer identically", UKOpenBankingV401AccountInfo) {
+      val someoneElses = createRealConsent() // resourceUser1's, lodged under testConsumer
+
+      val missing = getAuthedAsUser2("aisp", "account-access-consents", "no-such-consent-at-all")
+      val foreign = getAuthedAsUser2("aisp", "account-access-consents", someoneElses)
+
+      withClue("the two answers differ, so the endpoint confirms which ids exist: ") {
+        missing.code should equal(foreign.code)
+        missing.body should equal(foreign.body)
+      }
+      missing.code should equal(403)
+
+      And("neither answer names a consent")
+      val message = missing.body.extract[ErrorMessage].message
+      message should startWith(ConsentNotFound)
+      message should not include someoneElses
+      message should not include "no-such-consent-at-all"
     }
     scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
       getUnauthed("aisp", "account-access-consents", "fake-consentid").code should equal(401)
@@ -231,7 +266,11 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
       val consentId = createRealConsent() // owned by resourceUser1
       val response = getAuthedAsUser2("aisp", "account-access-consents", consentId)
       response.code should equal(403)
-      response.body.extract[ErrorMessage].message should startWith(ConsentDoesNotMatchUser)
+      // The refusal is still a 403 and still has no side effect, which is what this scenario
+      // guards. Only the wording moved: these endpoints now answer ConsentNotFound whatever the
+      // reason, so a caller cannot tell "that one is not yours" from "there is no such consent".
+      // The specific reason is logged instead.
+      response.body.extract[ErrorMessage].message should startWith(ConsentNotFound)
     }
     // Cross-consumer regression (currently RED): a pending consent (no bound PSU yet) is
     // currently readable by ANY authenticated party, because the ownership check
@@ -244,7 +283,11 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
       val consentId = createPendingConsentForConsumer1()
       val response = getAuthedAsUser2("aisp", "account-access-consents", consentId)
       response.code should equal(403)
-      response.body.extract[ErrorMessage].message should startWith(ConsentDoesNotMatchConsumer)
+      // The refusal is still a 403 and still has no side effect, which is what this scenario
+      // guards. Only the wording moved: these endpoints now answer ConsentNotFound whatever the
+      // reason, so a caller cannot tell "that one is not yours" from "there is no such consent".
+      // The specific reason is logged instead.
+      response.body.extract[ErrorMessage].message should startWith(ConsentNotFound)
     }
   }
   feature("UKOB v4.0.1 DELETE /aisp/account-access-consents/CONSENT_ID") {
@@ -260,8 +303,9 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
       // stored status is REVOKED, but the v4.0.1 wire format reports the spec's CANC code
       (afterDelete.body \ "Data" \ "Status").extract[String] should equal("CANC")
     }
-    scenario("authenticated with unknown consent -> 400", UKOpenBankingV401AccountInfo) {
-      deleteAuthed("aisp", "account-access-consents", "fake-consentid").code should equal(400)
+    scenario("authenticated with unknown consent -> 403", UKOpenBankingV401AccountInfo) {
+      // Same answer as a consent that exists but is not the caller's, on purpose -- see the GET twin.
+      deleteAuthed("aisp", "account-access-consents", "fake-consentid").code should equal(403)
     }
     scenario("unauthenticated -> 401", UKOpenBankingV401AccountInfo) {
       deleteUnauthed("aisp", "account-access-consents", "fake-consentid").code should equal(401)
@@ -276,7 +320,11 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
       val consentId = createRealConsent() // owned by resourceUser1
       val response = deleteAuthedAsUser2("aisp", "account-access-consents", consentId)
       response.code should equal(403)
-      response.body.extract[ErrorMessage].message should startWith(ConsentDoesNotMatchUser)
+      // The refusal is still a 403 and still has no side effect, which is what this scenario
+      // guards. Only the wording moved: these endpoints now answer ConsentNotFound whatever the
+      // reason, so a caller cannot tell "that one is not yours" from "there is no such consent".
+      // The specific reason is logged instead.
+      response.body.extract[ErrorMessage].message should startWith(ConsentNotFound)
 
       val stillThere = Consents.consentProvider.vend.getConsentByConsentId(consentId).openOrThrowException("consent")
       stillThere.status should equal(ConsentStatus.AWAITINGAUTHORISATION.toString)
@@ -291,7 +339,11 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
       val consentId = createPendingConsentForConsumer1()
       val response = deleteAuthedAsUser2("aisp", "account-access-consents", consentId)
       response.code should equal(403)
-      response.body.extract[ErrorMessage].message should startWith(ConsentDoesNotMatchConsumer)
+      // The refusal is still a 403 and still has no side effect, which is what this scenario
+      // guards. Only the wording moved: these endpoints now answer ConsentNotFound whatever the
+      // reason, so a caller cannot tell "that one is not yours" from "there is no such consent".
+      // The specific reason is logged instead.
+      response.body.extract[ErrorMessage].message should startWith(ConsentNotFound)
 
       val stillThere = Consents.consentProvider.vend.getConsentByConsentId(consentId).openOrThrowException("consent")
       stillThere.status should equal(ConsentStatus.AWAITINGAUTHORISATION.toString)
@@ -747,6 +799,47 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
   // assertion is "nobody", and both spellings mean that.
   private def boundPsuOf(consentId: String): String =
     Option(storedConsent(consentId).userId).map(_.trim).getOrElse("")
+
+  // The profile defines the authentication journey as taking place in the context of one consent:
+  // the ConsentId is the intent identifier, and the intent id is carried into the request object so
+  // that "the access token that is eventually generated [is] bound to a specific consent". OBP mints
+  // its own OTP challenge instead of using that mechanism, so the binding the profile gets
+  // structurally has to be asserted here -- and the connector will not do it: LocalMappedConnector's
+  // validateChallengeAnswerC4 ignores the consentId it is handed and matches on challengeId, answer
+  // and userId alone. The Berlin Group twin of this endpoint already asserts it
+  // (Http4sBGv13AIS: startedChallenge.consentId.contains(consentId)).
+  feature("UKOB v4.0.1 a challenge only authorises the consent it was minted for") {
+    scenario("a challenge minted on one consent cannot authorise another -> 400, and the other consent is untouched", UKOpenBankingV401AccountInfo) {
+      setPropsValues("suggested_default_sca_method" -> "DUMMY")
+      val expiry = Some(new java.util.Date(System.currentTimeMillis() + 3600000L))
+      // Two consents the same PSU may authorise. The PSU guard at the top of the authorise endpoint
+      // passes for both, so nothing but the binding stands between them.
+      val challenged = createUKConsent(None, expiry)
+      val other = createUKConsent(None, expiry)
+
+      val challenge = makePostRequest(scaChallengeRequest(challenged) <@ (user1), "")
+      challenge.code should equal(200)
+      val challengeId = (challenge.body \ "challenge_id").extract[String]
+
+      When("the challenge minted on one consent is answered against the other")
+      val refused = makePostRequest(authoriseRequest(other) <@ (user1),
+        s"""{"account_ids":["$acc"],"challenge_id":"$challengeId","answer":"123"}""")
+
+      Then("it is refused with the same answer the Berlin Group twin gives")
+      refused.code should equal(400)
+      refused.body.extract[ErrorMessage].message should include("OBP-40022")
+
+      // The refusal is the point, but so is what it did not do: an authorisation that got this far
+      // used to bind the PSU and flip the status on a consent nobody authenticated for.
+      And("the consent it was aimed at is left exactly as it was")
+      boundPsuOf(other) should equal("")
+      storedConsent(other).status should equal(ConsentStatus.AWAITINGAUTHORISATION.toString)
+
+      And("so is the consent the challenge actually belonged to")
+      boundPsuOf(challenged) should equal("")
+      storedConsent(challenged).status should equal(ConsentStatus.AWAITINGAUTHORISATION.toString)
+    }
+  }
 
   feature("UKOB v4.0.1 a refused authorisation does not claim the consent") {
     scenario("account_ids naming an account the PSU does not hold -> refused, consent left unbound", UKOpenBankingV401AccountInfo) {

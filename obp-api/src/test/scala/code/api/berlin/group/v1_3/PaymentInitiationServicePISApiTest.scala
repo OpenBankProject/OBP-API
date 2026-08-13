@@ -13,6 +13,7 @@ import code.model.dataAccess.{BankAccountRouting, MappedBankAccount}
 import code.model.TokenType
 import code.setup.{APIResponse, DefaultUsers}
 import code.token.Tokens
+import code.transactionrequests.MappedTransactionRequest
 import net.liftweb.util.Helpers.randomString
 import net.liftweb.util.TimeHelpers.TimeSpan
 import code.views.Views
@@ -772,41 +773,50 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
   // caller, so without an explicit check a paymentId is a bearer token: whoever holds it can read
   // the payment, list and start authorisations on it, and cancel it. The payment records who lodged
   // it; these scenarios hold every payment-scoped route to that record.
+  // Every scenario in the feature below needs the same starting point: one payment lodged by user1
+  // over the challenge threshold, so it sits awaiting SCA — the state in which a hijacked
+  // authorisation would actually move money. Shared rather than repeated because what each scenario
+  // is about is what happens *after* this, and three copies of the lodging made that hard to see.
+  private def ibanAccounts = BankAccountRouting
+    .findAll(By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString))
+    .filterNot(_.bankId.value == "DEFAULT_BANK_ID_NOT_SET")
+
+  private def balanceOf(routing: BankAccountRouting) = MappedBankAccount.find(
+    By(MappedBankAccount.bank, routing.bankId.value),
+    By(MappedBankAccount.theAccountId, routing.accountId.value))
+    .map(_.balance).openOrThrowException("Can not be empty here")
+
+  private def paymentUrl(paymentId: String) =
+    V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString / paymentId
+
+  /** Lodges a payment as user1 and returns its id alongside the two accounts it moves between. */
+  private def lodgePaymentAsUser1(): (String, BankAccountRouting, BankAccountRouting) = {
+    val ibanFrom = ibanAccounts.head
+    val ibanTo = ibanAccounts.last
+    grantAccountAccess(ibanFrom)
+    val initiatePaymentJson =
+      s"""{
+         | "debtorAccount": { "iban": "${ibanFrom.accountRouting.address}" },
+         | "instructedAmount": { "currency": "EUR", "amount": "2001" },
+         | "creditorAccount": { "iban": "${ibanTo.accountRouting.address}" },
+         | "creditorName": "70charname"
+          }""".stripMargin
+    val responseInitiate: APIResponse = makePostRequest(
+      (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString).POST <@ (user1),
+      initiatePaymentJson)
+    responseInitiate.code should equal(201)
+    (responseInitiate.body.extract[InitiatePaymentResponseJson].paymentId, ibanFrom, ibanTo)
+  }
+
   feature("test the BG v1.3 - a payment is only addressable by the party that initiated it") {
     scenario("a second TPP can neither read, authorise, nor cancel a payment it did not initiate", BerlinGroupV1_3, PIS, initiatePayment) {
-      val accountsRoutingIban = BankAccountRouting.findAll(By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString))
-        .filterNot(_.bankId.value == "DEFAULT_BANK_ID_NOT_SET")
-      val ibanFrom = accountsRoutingIban.head
-      val ibanTo = accountsRoutingIban.last
-
-      def balanceOf(routing: BankAccountRouting) = MappedBankAccount.find(
-        By(MappedBankAccount.bank, routing.bankId.value),
-        By(MappedBankAccount.theAccountId, routing.accountId.value))
-        .map(_.balance).openOrThrowException("Can not be empty here")
-
-      grantAccountAccess(ibanFrom)
-
-      // Over the challenge threshold, so the payment stays in RCVD awaiting SCA — the state in which
-      // a hijacked authorisation would actually move money.
-      val initiatePaymentJson =
-        s"""{
-           | "debtorAccount": { "iban": "${ibanFrom.accountRouting.address}" },
-           | "instructedAmount": { "currency": "EUR", "amount": "2001" },
-           | "creditorAccount": { "iban": "${ibanTo.accountRouting.address}" },
-           | "creditorName": "70charname"
-            }""".stripMargin
-
       When("user1 initiates a payment")
-      val responseInitiate: APIResponse = makePostRequest(
-        (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString).POST <@ (user1),
-        initiatePaymentJson)
-      responseInitiate.code should equal(201)
-      val paymentId = responseInitiate.body.extract[InitiatePaymentResponseJson].paymentId
+      val (paymentId, ibanFrom, ibanTo) = lodgePaymentAsUser1()
 
       val fromBalanceBefore = balanceOf(ibanFrom)
       val toBalanceBefore = balanceOf(ibanTo)
 
-      val payment = V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString / paymentId
+      val payment = paymentUrl(paymentId)
 
       Then("user2 is refused on every payment-scoped route")
       val refusals = List(
@@ -833,28 +843,9 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
       ownerResponse.code should equal(200)
     }
     scenario("a second TPP acting for the same PSU is refused too", BerlinGroupV1_3, PIS, initiatePayment) {
-      val accountsRoutingIban = BankAccountRouting.findAll(By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString))
-        .filterNot(_.bankId.value == "DEFAULT_BANK_ID_NOT_SET")
-      val ibanFrom = accountsRoutingIban.head
-      val ibanTo = accountsRoutingIban.last
-
-      grantAccountAccess(ibanFrom)
-
-      val initiatePaymentJson =
-        s"""{
-           | "debtorAccount": { "iban": "${ibanFrom.accountRouting.address}" },
-           | "instructedAmount": { "currency": "EUR", "amount": "2001" },
-           | "creditorAccount": { "iban": "${ibanTo.accountRouting.address}" },
-           | "creditorName": "70charname"
-            }""".stripMargin
-
       When("the PSU lodges a payment through one TPP")
-      val responseInitiate: APIResponse = makePostRequest(
-        (V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString).POST <@ (user1),
-        initiatePaymentJson)
-      responseInitiate.code should equal(201)
-      val paymentId = responseInitiate.body.extract[InitiatePaymentResponseJson].paymentId
-      val payment = V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString / paymentId
+      val (paymentId, _, _) = lodgePaymentAsUser1()
+      val payment = paymentUrl(paymentId)
 
       Then("the same PSU acting through a second TPP still cannot address it")
       // The person matches and only the TPP differs -- the case a person-only check waves through,
@@ -865,6 +856,28 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
 
       And("the TPP that lodged it still can")
       makeGetRequest((payment / "status").GET <@ (user1)).code should equal(200)
+    }
+    scenario("a payment lodged before the consumer was recorded is still readable", BerlinGroupV1_3, PIS, initiatePayment) {
+      When("a payment is lodged")
+      val (paymentId, _, _) = lodgePaymentAsUser1()
+      val payment = paymentUrl(paymentId)
+
+      And("the recorded consumer is cleared, as it is on every payment lodged before the field existed")
+      // Not "": MappedTransactionRequestProvider writes the absent consumer as a literal null, so
+      // the column is SQL NULL and MappedString reads a null back out. The overwhelming majority of
+      // rows on any long-lived instance are in this state, so whatever the guard does with them it
+      // must not be to throw.
+      MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, paymentId))
+        .map(_.mConsumerId(null).saveMe())
+        .openOrThrowException("the payment just lodged must be findable")
+
+      Then("the party that lodged it can still read it, its status and its authorisations")
+      List("read the payment" -> payment, "read its status" -> (payment / "status"),
+        "list its authorisations" -> (payment / "authorisations")).foreach { case (what, url) =>
+        withClue(s"the initiator could not $what: ") {
+          makeGetRequest(url.GET <@ (user1)).code should equal(200)
+        }
+      }
     }
   }
   // resourceUser1's own token, issued under a second consumer: same person, different TPP.

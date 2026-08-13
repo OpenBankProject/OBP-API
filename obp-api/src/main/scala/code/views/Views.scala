@@ -36,11 +36,15 @@ trait Views {
   def revokeAccessToSystemViewForConsumer(bankId: BankId, accountId: AccountId, view : View, consumerId : String) : Box[Boolean]
   def revokeAccessToCustomViewForConsumer(view : View, consumerId : String) : Box[Boolean]
 
-  // Grant/revoke a single application's access, rather than access shared by every application.
-  // Used by the consent flows: what one TPP's consent grants is that TPP's alone, so narrowing or
-  // re-authorising it must not touch another TPP's grants on the same account.
-  def grantAccessToSystemViewForConsumer(bankId: BankId, accountId: AccountId, view : View, user : User, consumerId : String) : Box[View]
-  def grantAccessToCustomViewForConsumer(bankIdAccountIdViewId : BankIdAccountIdViewId, user : User, consumerId : String) : Box[View]
+  // Revoke and enumerate one application's access, rather than access shared by every application.
+  // The consent flows use these against Constant.ALL_CONSUMERS, which is the literal every consent
+  // grant is written under -- not a wildcard, and every lookup matches it by equality.
+  //
+  // There is deliberately no grant...ForConsumer counterpart. Two existed and had no callers, and
+  // could not have gained one safely: a row written under a real consumer id is invisible to
+  // revokeConsentAccountAccess, which sweeps by asking for exactly ALL_CONSUMERS, so the access
+  // would outlive the consent that granted it. Grants go through grantAccessToSystemView /
+  // grantAccessToCustomView, which write ALL_CONSUMERS and are therefore revocable.
   def revokeAccessToViewForUserAndConsumer(bankIdAccountIdViewId : BankIdAccountIdViewId, user : User, consumerId : String) : Box[Boolean]
   // Everything a user currently holds under one application's scope. The consent flows reconcile
   // against this: a consent's granted views are whatever its JWT says, so the rows that back it are

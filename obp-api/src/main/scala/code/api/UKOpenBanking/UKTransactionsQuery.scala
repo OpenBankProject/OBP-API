@@ -101,7 +101,7 @@ object UKTransactionsQuery extends MdcLoggable {
    * that lost rows to the filter is the exact signature, and it tells an operator which connector
    * still needs to honour the param.
    */
-  private def warnIfPageWasTrimmed(
+  def warnIfPageWasTrimmed(
     fetched: List[ModeratedTransaction],
     kept: List[ModeratedTransaction],
     params: List[OBPQueryParam],

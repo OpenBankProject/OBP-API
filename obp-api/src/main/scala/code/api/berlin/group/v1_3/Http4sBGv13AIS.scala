@@ -163,11 +163,7 @@ object Http4sBGv13AIS extends MdcLoggable {
           consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
             unboxFullOrFail(_, callContext, ConsentNotFound, 403)
           }
-          consumerIdFromConsent = consent.mConsumerId.get
-          consumerIdFromCurrentCall = callContext.map(_.consumer.map(_.consumerId.get).getOrElse("None")).getOrElse("None")
-          _ <- booleanToFuture(failMsg = ConsentNotFound, failCode = 403, cc = callContext) {
-            consumerIdFromConsent == consumerIdFromCurrentCall
-          }
+          _ <- Consent.assertBerlinGroupConsentReadAccess(consent.userId, consent.consumerId, cc)
           _ <- Future(Consents.consentProvider.vend.revokeBerlinGroupConsent(consentId)) map {
             i => connectorEmptyResponse(i, callContext)
           }
@@ -322,11 +318,9 @@ object Http4sBGv13AIS extends MdcLoggable {
           // than access, but the asymmetry between two neighbouring reads of the same consent was an
           // oversight, not a decision.
           consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
-            unboxFullOrFail(_, callContext, s"$ConsentNotFound ($consentId)")
+            unboxFullOrFail(_, callContext, ConsentNotFound, 403)
           }
-          _ <- booleanToFuture(failMsg = ConsentNotFound, failCode = 403, cc = callContext) {
-            consent.mConsumerId.get == cc.consumer.map(_.consumerId.get).getOrElse("None")
-          }
+          _ <- Consent.assertBerlinGroupConsentReadAccess(consent.userId, consent.consumerId, cc)
           (challenges, callContext) <- NewStyle.function.getChallengesByConsentId(consentId, callContext)
         } yield {
           JSONFactory_BERLIN_GROUP_1_3.AuthorisationJsonV13(challenges.map(_.challengeId))
@@ -342,13 +336,9 @@ object Http4sBGv13AIS extends MdcLoggable {
         for {
           _ <- passesPsd2Aisp(callContext)
           consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
-            unboxFullOrFail(_, callContext, s"$ConsentNotFound ($consentId)")
+            unboxFullOrFail(_, callContext, ConsentNotFound, 403)
           }
-          consumerIdFromConsent = consent.mConsumerId.get
-          consumerIdFromCurrentCall = callContext.map(_.consumer.map(_.consumerId.get).getOrElse("None")).getOrElse("None")
-          _ <- booleanToFuture(failMsg = ConsentNotFound, failCode = 403, cc = callContext) {
-            consumerIdFromConsent == consumerIdFromCurrentCall
-          }
+          _ <- Consent.assertBerlinGroupConsentReadAccess(consent.userId, consent.consumerId, cc)
         } yield {
           createGetConsentResponseJson(consent)
         }
@@ -368,9 +358,7 @@ object Http4sBGv13AIS extends MdcLoggable {
           consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
             unboxFullOrFail(_, callContext, s"$ConsentNotFound ($consentId)", 403)
           }
-          _ <- booleanToFuture(failMsg = ConsentNotFound, failCode = 403, cc = callContext) {
-            consent.mConsumerId.get == cc.consumer.map(_.consumerId.get).getOrElse("None")
-          }
+          _ <- Consent.assertBerlinGroupConsentReadAccess(consent.userId, consent.consumerId, cc)
           (challenges, callContext) <- NewStyle.function.getChallengesByConsentId(consentId, callContext)
         } yield {
           val challengeStatus = challenges.filter(_.challengeId == authorisationId)
@@ -393,9 +381,7 @@ object Http4sBGv13AIS extends MdcLoggable {
           // Same ownership test as the three sibling reads of this consent. Without it the status of
           // any consent was readable by any AISP holding its id -- which is enough to confirm the
           // consent exists and to watch it move through authorisation.
-          _ <- booleanToFuture(failMsg = ConsentNotFound, failCode = 403, cc = callContext) {
-            consent.mConsumerId.get == cc.consumer.map(_.consumerId.get).getOrElse("None")
-          }
+          _ <- Consent.assertBerlinGroupConsentReadAccess(consent.userId, consent.consumerId, cc)
         } yield {
           JSONFactory_BERLIN_GROUP_1_3.ConsentStatusJsonV13(consent.status)
         }

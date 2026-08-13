@@ -106,7 +106,7 @@ object Http4sBGv13PIS extends MdcLoggable {
       // the wire, and that model's shape is a frozen contract.
       lodgedByConsumer = TransactionRequests.transactionRequestProvider.vend
         .getMappedTransactionRequest(TransactionRequestId(paymentId))
-        .map(_.mConsumerId.get).toOption.filter(_.nonEmpty)
+        .toOption.flatMap(tr => Consent.present(tr.mConsumerId.get))
       sameTpp = lodgedByConsumer.forall(lodgedBy => callingConsumer.contains(lodgedBy))
       _ <- Helper.booleanToFuture(s"$PaymentNotInitiatedByCaller Payment id: $paymentId.", 403, callContext) {
         sameTpp && initiators.exists(callers)
