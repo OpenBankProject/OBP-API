@@ -769,7 +769,9 @@ object Http4s700 {
     val getChatConfig: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ GET -> `prefixPath` / "public" / "chat-config" =>
         EndpointHelpers.executeAndRespond(req) { _ =>
-          Future(JSONFactory700.ChatConfigJsonV700(code.chat.ChatLinkPolicy.allowedHosts.toList.sorted))
+          Future(JSONFactory700.ChatConfigJsonV700(
+            code.chat.ChatLinkPolicy.allowedHosts.toList.sorted,
+            code.chat.ChatContentPolicy.maxContentLength))
         }
     }
 
@@ -779,16 +781,19 @@ object Http4s700 {
       "GET",
       "/public/chat-config",
       "Get Chat Config",
-      """Returns the chat configuration this instance enforces, currently the link-host whitelist.
+      """Returns the chat configuration this instance enforces.
         |
-        |Chat message content is rejected with `OBP-39015` when it contains an http(s) link to a
-        |host that is not in `allowed_link_hosts` (exact match or subdomain). The list is derived
-        |from this instance's own host, the hosts of the apps in its App Directory
-        |(`public_*_url` props), and the `chat.allowed_link_hosts` prop (defaulting to
-        |tesobe.com and openbankproject.com when that prop is not defined).
+        |* `allowed_link_hosts` — chat message content is rejected with `OBP-39015` when it
+        |contains an http(s) link to a host not in this list (exact match or subdomain). The
+        |list is derived from this instance's own host, the hosts of the apps in its App
+        |Directory (`public_*_url` props), and the `chat.allowed_link_hosts` prop (defaulting
+        |to tesobe.com and openbankproject.com when that prop is not defined).
+        |* `max_message_length` — content longer than this is rejected with `OBP-39016`
+        |(prop `chat.max_message_length`, default 10000 characters).
         |
-        |Chat clients should apply the same policy at render time: show links to hosts outside
-        |this list as plain text rather than making them clickable.
+        |Chat clients should apply the same policy at render time and in composers: show links
+        |to hosts outside the list as plain text rather than making them clickable, and cap
+        |input at the maximum length.
         |
         |No Authentication is Required.""".stripMargin,
       EmptyBody,

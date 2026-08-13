@@ -1298,6 +1298,8 @@ database_messages_scheduler_interval=3600
 # is tesobe.com,openbankproject.com — defining the prop replaces the default
 # entirely (the instance's own host stays allowed either way). Example:
 # chat.allowed_link_hosts = portal.example.com,github.com
+# Maximum chat message content length in characters (OBP-39016 when exceeded).
+# chat.max_message_length = 10000
 
 # Create System Views At Boot -----------------------------------------------
 # In case is not defined default value is true
