@@ -235,6 +235,29 @@ object OpenCorridorSettlement extends MdcLoggable {
         } yield ()
       })
 
+      // Accrue the platform fee for each covered promise (originator pays;
+      // the charge was stamped on the TR at create time). Returns are
+      // fee-exempt: involuntary housekeeping originated by the beneficiary
+      // bank. Idempotent per TR id — a re-settle cannot double-charge.
+      _ <- Future {
+        covered.foreach { row =>
+          val isReturn = scala.util.Try(org.json4s.native.JsonMethods.parse(row.mDetails.get))
+            .toOption.exists(_ \ "return_of" match {
+              case org.json4s.JString(s) => s.trim.nonEmpty
+              case _ => false
+            })
+          if (!isReturn) {
+            code.opencorridorfees.OpenCorridorFeeAccrual.accrue(
+              debtorBankId = row.mFrom_BankId.get,
+              transactionRequestId = row.mTransactionRequestId.get,
+              currency = row.mCharge_Currency.get,
+              amount = row.mCharge_Amount.get,
+              coveredBySettlementId = settlementTrId
+            )
+          }
+        }
+      }
+
       // Enqueue the Interface C messages in this same DB transaction (the outbox).
       // Credit notifications went to each beneficiary at promise-report-back time
       // (OpenCorridorProcessor); settlement sends each beneficiary an advice so

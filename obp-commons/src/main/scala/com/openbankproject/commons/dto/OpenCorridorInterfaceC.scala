@@ -99,7 +99,11 @@ case class OutBoundOpenCorridorSettlementInstruction(
   amount: String,
   creditor_bank_id: String,
   creditor_address: String,
-  idempotency_key: String
+  idempotency_key: String,
+  /// What the transfer is for: absent = a corridor net settlement;
+  /// "PLATFORM_FEE" = the periodic platform fee sweep (creditor = the
+  /// platform's settlement account). Same execution semantics either way.
+  purpose: Option[String] = None
 )
 
 /**

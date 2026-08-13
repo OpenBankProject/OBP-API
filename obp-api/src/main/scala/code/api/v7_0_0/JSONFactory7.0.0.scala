@@ -1239,6 +1239,11 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     currency: String
   )
 
+  /** Body of the platform fee sweep trigger (fee-settlements). */
+  case class PostOpenCorridorFeeSettlementJsonV700(
+    currency: String
+  )
+
   /**
    * Result of a settle-pair run. `transaction_id` is empty when the pair's flows
    * offset exactly (net zero: promises are discharged, nothing moves) and when

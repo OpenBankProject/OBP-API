@@ -3972,6 +3972,59 @@ object Http4s700 {
       http4sPartialFunction = Some(createOpenCorridorSettlement)
     )
 
+    // ── Platform fee sweep (fees in ADA, rail-decoupled) ─────────────────────
+    // Sums BANK_ID's unswept fee accruals (originator-pays bps stamped on each
+    // covered promise; returns exempt) and enqueues ONE settlement instruction
+    // with purpose=PLATFORM_FEE — creditor is the PLATFORM's settlement
+    // account. The bank's node pays it in ADA like any settlement.
+    val createOpenCorridorFeeSettlement: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ POST -> `prefixPath` / "banks" / _ / "open-corridor" / "fee-settlements" =>
+        EndpointHelpers.withUserAndBankAndBodyCreated[JSONFactory700.PostOpenCorridorFeeSettlementJsonV700, code.opencorridorfees.OpenCorridorFeeSweepResultJsonV700](req) { (_, bank, body, cc) =>
+          for {
+            _ <- code.util.Helper.booleanToFuture(OpenCorridorDisabled, cc = Some(cc)) {
+              APIUtil.getPropsAsBoolValue("open_corridor_enabled", false)
+            }
+            _ <- code.util.Helper.booleanToFuture(s"$InvalidJsonValue currency must be non-empty", cc = Some(cc)) {
+              body.currency.trim.nonEmpty
+            }
+            (result, _) <- code.opencorridorfees.OpenCorridorFees.sweep(
+              bank.bankId.value, body.currency, Some(cc))
+          } yield result
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(createOpenCorridorFeeSettlement),
+      "POST",
+      "/banks/BANK_ID/open-corridor/fee-settlements",
+      "Create Open Corridor Fee Settlement",
+      """Sweep BANK_ID's accrued platform fees into one fee settlement.
+        |
+        |Fees accrue when a netting cycle covers a promise BANK_ID originated (originator pays; the amount is the charge stamped on the promise at create time; RETURN promises are fee-exempt). This endpoint sums the unswept accruals in `currency` and enqueues one `obp_settlement_instruction` with `purpose = "PLATFORM_FEE"` to BANK_ID's node: creditor is the platform's incoming settlement account (its CARDANO routing; the platform is configured as a bank via `open_corridor.platform_bank_id`), `settlement_system = cardano-ada` regardless of the corridor's settlement rail — every Bank Node holds an ADA wallet for promise commitments.
+        |
+        |The node executes it like any settlement: idempotent on the fee settlement id, converted at settle-time FX (persisted and displayed), promoted to FINAL at confirmation depth. The outbox row's redelivery doubles as the status poll. Swept accruals are stamped with the fee settlement id; a sweep with nothing owed is a no-op returning amount 0.
+        |
+        |Requires `open_corridor_enabled=true` and the `CanSettleOpenCorridor` role at BANK_ID (interim — a platform-operator role may replace this).
+        |
+        |Authentication is Required.""".stripMargin,
+      JSONFactory700.PostOpenCorridorFeeSettlementJsonV700(currency = "KES"),
+      code.opencorridorfees.OpenCorridorFeeSweepResultJsonV700(
+        fee_settlement_id = "8cc38498-7d0c-4d6d-c39f-c20f37e2d7g5",
+        debtor_bank_id = "ke.01.kcs",
+        platform_bank_id = "obp.platform",
+        currency = "KES",
+        amount = "42.00",
+        accruals_swept = 21,
+        settlement_instructions_enqueued = 1
+      ),
+      List($AuthenticatedUserIsRequired, UserHasMissingRoles, OpenCorridorDisabled, InvalidJsonFormat, InvalidJsonValue,
+           $BankNotFound, AmqpBankBrokerNotConfigured, OpenCorridorSettlementAddressMissing, UnknownError),
+      apiTagTransactionRequest :: Nil,
+      Some(List(canSettleOpenCorridor)),
+      http4sPartialFunction = Some(createOpenCorridorFeeSettlement)
+    )
+
     // The settlement resource's read side: ledger fields from the
     // OPEN_CORRIDOR_SETTLEMENT TR, rail status from the settlement-instruction
     // outbox row (the node's last reply — redelivery doubles as the poll).
