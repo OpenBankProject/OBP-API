@@ -6,8 +6,10 @@ import code.api.util.ErrorMessages.{ConsentDoesNotMatchConsumer, ConsentDoesNotM
 import code.api.util.{CallContext, CertificateUtil, Consent}
 import code.consent.{ConsentStatus, Consents}
 import code.model.UserExtended
+import code.transactionChallenge.Challenges
 import code.views.Views
 import com.openbankproject.commons.model.{BankIdAccountId, ErrorMessage, ViewId}
+import com.openbankproject.commons.model.enums.ChallengeType
 import com.openbankproject.commons.util.ApiVersion
 import net.liftweb.common.{Failure, Full}
 import org.json4s._
@@ -838,6 +840,27 @@ class UKOpenBankingV401AccountInfoTests extends UKOpenBankingV401ServerSetup {
       And("so is the consent the challenge actually belonged to")
       boundPsuOf(challenged) should equal("")
       storedConsent(challenged).status should equal(ConsentStatus.AWAITINGAUTHORISATION.toString)
+    }
+  }
+
+  // The challenge type the caller asks for is the type that has to be stored. createChallengesC2
+  // took the ChallengeType argument and then wrote OBP_TRANSACTION_REQUEST_CHALLENGE for every
+  // caller, so every consent challenge -- UK here, Berlin Group through the same connector call --
+  // was persisted as a transaction-request challenge. The column is what an operator reads to tell
+  // a payment SCA from a consent SCA, and what any connector implementing this trait is handed.
+  feature("UKOB v4.0.1 the consent SCA challenge is stored as a consent challenge") {
+    scenario("challenge-start persists challengeType OBP_CONSENT_CHALLENGE, bound to the consent", UKOpenBankingV401AccountInfo) {
+      setPropsValues("suggested_default_sca_method" -> "DUMMY")
+      val consentId = createUKConsent(None, Some(new java.util.Date(System.currentTimeMillis() + 3600000L)))
+
+      val challenge = makePostRequest(scaChallengeRequest(consentId) <@ (user1), "")
+      challenge.code should equal(200)
+      val challengeId = (challenge.body \ "challenge_id").extract[String]
+
+      val stored = Challenges.ChallengeProvider.vend.getChallenge(challengeId)
+        .openOrThrowException(s"challenge $challengeId")
+      stored.challengeType should equal(ChallengeType.OBP_CONSENT_CHALLENGE.toString)
+      stored.consentId should equal(Some(consentId))
     }
   }
 

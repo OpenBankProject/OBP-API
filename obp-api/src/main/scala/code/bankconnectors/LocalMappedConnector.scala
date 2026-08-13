@@ -332,7 +332,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         consentId,
         None, // Signing Baskets are introduced in case of version createChallengesC3
         authenticationMethodId,
-        challengeType = OBP_TRANSACTION_REQUEST_CHALLENGE.toString,
+        challengeType = challengeType.toString,
         callContext
       )
       challengeId.toList
