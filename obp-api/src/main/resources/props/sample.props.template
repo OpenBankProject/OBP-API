@@ -1301,6 +1301,20 @@ database_messages_scheduler_interval=3600
 # Maximum chat message content length in characters (OBP-39016 when exceeded).
 # chat.max_message_length = 10000
 
+# Chat email digest ---------------------------------------------------------
+# When enabled, users are emailed an occasional digest of chat messages they
+# have not read (metadata only: room names and counts, no message content).
+# Local users are emailed only after validating their email (AuthUser.validated);
+# users from external identity providers (Google, Keycloak, ...) are assumed
+# validated — the provider verified the address before issuing tokens.
+# At most one email per user per min_interval; nothing while they are actively
+# reading (any read-marker update within active_grace suppresses it); an
+# unchanged backlog is never re-notified. Uses the mail.smtp.* settings.
+# chat.email_digest_enabled = false
+# chat.email_digest_tick_seconds = 300
+# chat.email_digest_min_interval_minutes = 60
+# chat.email_digest_active_grace_minutes = 10
+
 # Create System Views At Boot -----------------------------------------------
 # In case is not defined default value is true
 # create_system_views_at_boot=true
