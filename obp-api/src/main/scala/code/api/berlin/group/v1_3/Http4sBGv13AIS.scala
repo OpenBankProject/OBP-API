@@ -356,7 +356,7 @@ object Http4sBGv13AIS extends MdcLoggable {
           // being fetched here purely to prove it exists, so the SCA status of anyone's consent was
           // readable by any AISP that knew the id.
           consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId)) map {
-            unboxFullOrFail(_, callContext, s"$ConsentNotFound ($consentId)", 403)
+            unboxFullOrFail(_, callContext, ConsentNotFound, 403)
           }
           _ <- Consent.assertBerlinGroupConsentReadAccess(consent.userId, consent.consumerId, cc)
           (challenges, callContext) <- NewStyle.function.getChallengesByConsentId(consentId, callContext)

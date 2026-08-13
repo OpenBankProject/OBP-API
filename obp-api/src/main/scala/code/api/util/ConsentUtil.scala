@@ -14,6 +14,8 @@ import code.api.{APIFailure, APIFailureNewStyle, Constant, RequestHeader}
 import code.bankconnectors.Connector
 import code.consent
 import code.consent.ConsentStatus.ConsentStatus
+import code.loginattempts.LoginAttempt
+import net.liftweb.util.Helpers.tryo
 import code.consent.{ConsentStatus, Consents, MappedConsent}
 import code.consumer.Consumers
 import code.context.{ConsentAuthContextProvider, UserAuthContextProvider}
@@ -1991,27 +1993,44 @@ object Consent extends MdcLoggable {
     callContext: Option[CallContext]
   ): Future[Box[Unit]] = Future {
     implicit val dateFormats: Formats = CustomJsonFormats.formats
-    val consentAccounts: List[(String, String)] = JwtUtil.getSignedPayloadAsJson(storedConsent.jsonWebToken)
-      .map(com.openbankproject.commons.util.JsonAliases.parse(_).extract[ConsentJWT])
-      .map(_.views.map(v => (v.bank_id, v.account_id)).distinct)
-      .getOrElse(Nil)
-      .filter { case (bankId, accountId) => bankId != null && accountId != null }
+    // The Box is carried rather than flattened to Nil. "This consent names no accounts" is a
+    // legitimate state -- the availableAccounts shape described above -- and "its JWT cannot be
+    // read" is not, and a `getOrElse(Nil)` collapsed the second into the first: the guard then
+    // found nothing to object to and passed on a consent it had learned nothing about.
+    //
+    // tryo around the Box as well, because Box.map does not catch: getSignedPayloadAsJson returns a
+    // Failure only for a structurally invalid JWT, while a well-formed one carrying some other
+    // payload throws out of the extract instead. Both are the same answer here -- we cannot tell
+    // what this consent covers -- and both now reach it as a refusal rather than one as a 500.
+    val consentAccounts: Box[List[(String, String)]] = tryo {
+      JwtUtil.getSignedPayloadAsJson(storedConsent.jsonWebToken)
+        .map(com.openbankproject.commons.util.JsonAliases.parse(_).extract[ConsentJWT])
+    }.flatMap(box => box)
+      .map(_.views.map(v => (v.bank_id, v.account_id)).distinct
+        .filter { case (bankId, accountId) => bankId != null && accountId != null })
 
-    val notHeld: List[String] = consentAccounts
-      .groupBy(_._1)
-      .toList
-      .flatMap { case (bankId, pairs) =>
-        val held = AccountHolders.accountHolders.vend
-          .getAccountsHeld(BankId(bankId), psu)
-          .map(_.accountId.value)
-        pairs.map(_._2).filterNot(held.contains)
-      }
-
-    (notHeld.isEmpty, notHeld): (Boolean, List[String])
-  } flatMap { case (allHeld: Boolean, notHeld: List[String]) =>
-    Helper.booleanToFuture(
-      s"${ErrorMessages.ConsentAccountNotHeldByUser} Account(s): ${notHeld.mkString(", ")}",
-      403, callContext)(allHeld)
+    consentAccounts.map { accounts =>
+      accounts
+        .groupBy(_._1)
+        .toList
+        .flatMap { case (bankId, pairs) =>
+          val held = AccountHolders.accountHolders.vend
+            .getAccountsHeld(BankId(bankId), psu)
+            .map(_.accountId.value)
+          pairs.map(_._2).filterNot(held.contains)
+        }
+    }
+  } flatMap {
+    case Full(notHeld) =>
+      Helper.booleanToFuture(
+        s"${ErrorMessages.ConsentAccountNotHeldByUser} Account(s): ${notHeld.mkString(", ")}",
+        403, callContext)(notHeld.isEmpty)
+    case unreadable =>
+      logger.warn(
+        s"assertBerlinGroupConsentAccountsHeld: consent ${storedConsent.consentId} has no readable " +
+        s"JWT, so which accounts it covers cannot be established and the authorisation is refused: " +
+        s"$unreadable")
+      Helper.booleanToFuture(ErrorMessages.ConsentNotFound, 403, callContext)(false)
   }
 
   /**
@@ -2133,13 +2152,44 @@ object Consent extends MdcLoggable {
    * that is not local is looked up across providers and accepted only when exactly one user answers
    * to it. Two would make the header ambiguous, and choosing between them is not the ASPSP's to do
    * on the PSU's behalf.
+   *
+   * ==A deleted or locked user does not answer to it==
+   *
+   * This header names somebody the ASPSP then acts for: the PSU it resolves to is checked against
+   * the consent's accounts, an SCA challenge is minted for them and an OTP goes out to them, and the
+   * PUT twin binds the consent to them, after which it grants access to their accounts. None of that
+   * authenticates the PSU -- under Berlin Group the caller is the TPP and the PSU arrives as a header
+   * value -- so AfterApiAuth.checkUserIsDeletedOrLocked, which every authenticated request passes
+   * through, never runs on this path.
+   *
+   * A lock is the ASPSP's decision that this user may not authenticate. Resolving them here anyway
+   * routes around that decision, and nothing downstream catches it: the accounts really are theirs,
+   * so the holdings check passes. Same predicates as the canonical guard rather than a second
+   * opinion about what "usable" means.
+   *
+   * Refused as Empty, not with a reason of its own. resolvePsuIdHeader turns an unresolved header
+   * into UserNotFoundByProviderAndUsername at 401 -- the standard's PSU_CREDENTIALS_INVALID -- and a
+   * locked user has to get that same answer. A distinct "that user is locked" would tell a TPP the
+   * username exists, which is the existence oracle the consent reads were unified to close.
    */
   def findPsuByPsuId(psuId: String): Box[User] =
-    Users.users.vend.getUserByProviderAndUsername(Constant.localIdentityProvider, psuId) or {
+    Users.users.vend.getUserByProviderAndUsername(Constant.localIdentityProvider, psuId).or {
       Users.users.vend.getUsersByUsername(psuId) match {
         case theOnlyOne :: Nil => Full(theOnlyOne)
         case _                 => Empty
       }
+    }.filter { user =>
+      val unusable =
+        if (user.isDeleted.getOrElse(false)) Some(ErrorMessages.UserIsDeleted)
+        else if (LoginAttempt.userIsLocked(user.provider, user.name)) Some(ErrorMessages.UsernameHasBeenLocked)
+        else None
+      unusable.foreach { reason =>
+        logger.info(
+          s"findPsuByPsuId: PSU-ID named a user who may not act ($reason). Reported as " +
+          s"${ErrorMessages.UserNotFoundByProviderAndUsername} so the caller cannot tell that the " +
+          s"username exists.")
+      }
+      unusable.isEmpty
     }
 
   def createUKConsentJWT(
