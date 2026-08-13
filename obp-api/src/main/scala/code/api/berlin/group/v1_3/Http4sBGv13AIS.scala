@@ -665,6 +665,22 @@ object Http4sBGv13AIS extends MdcLoggable {
               SuppliedAnswerType.PLAIN_TEXT_VALUE,
               callContext.map(_.copy(user = Full(psu)))
             )
+            // Bind an "availableAccounts": "allAccounts" consent to this PSU's own accounts. That
+            // shape names no IBAN, so createBerlinGroupConsentJWT wrote no views for it and the
+            // consent would otherwise go valid and serve an empty account list. Any other shape
+            // resolved its accounts at creation and passes through untouched.
+            //
+            // On a finalised answer only: a failed or still-pending SCA must not grant anything.
+            // And before the status update, because none of this is transactional -- a consent that
+            // reached `valid` and then failed to gain its views would be an authorised consent that
+            // serves nothing, with no way to repair it through the API. Refuse first, commit after,
+            // same ordering as the UK twin in Http4s510.authoriseUKConsent.
+            _ <- if (challenge.scaStatus.contains(StrongCustomerAuthenticationStatus.finalised)) {
+              Consent.grantBerlinGroupAvailableAccountsAccess(psu, storedConsent)
+                .map(unboxFullOrFail(_, callContext, ConsentAccountAccessCannotBeGranted))
+            } else {
+              Future.successful(storedConsent)
+            }
             consent <- challenge.scaStatus match {
               case Some(status) if status == StrongCustomerAuthenticationStatus.finalised =>
                 Future(Consents.consentProvider.vend.updateConsentStatus(consentId, ConsentStatus.valid))
