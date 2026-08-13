@@ -1025,7 +1025,12 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     description: String,
     charge_policy: String,
     originator: com.openbankproject.commons.model.TransactionRequestOriginator,
-    future_date: Option[String] = None
+    future_date: Option[String] = None,
+    /// Set when this promise is a RETURN of an earlier promise whose credit
+    /// the beneficiary bank's CBS refused: the original transaction_request_id.
+    /// Carried opaque onto the credit notification so the receiving bank knows
+    /// it is being repaid (and never returns a return — one hop only).
+    return_of: Option[String] = None
   ) extends TransactionRequestCommonBodyJSON
 
   // Outbound originator block emitted on v7 TR responses. `source` discriminates:
@@ -1231,6 +1236,11 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     * URL bank, so a bank can only trigger settlement of corridors it is party to. */
   case class PostOpenCorridorSettlementJsonV700(
     other_bank_id: String,
+    currency: String
+  )
+
+  /** Body of the platform fee sweep trigger (fee-settlements). */
+  case class PostOpenCorridorFeeSettlementJsonV700(
     currency: String
   )
 

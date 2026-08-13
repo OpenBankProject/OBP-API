@@ -1899,7 +1899,8 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
     originatorRoutingAddress: String = "GB29 NWBK 6016 1331 9268 19",
     amount: String = "3.00",
     beneficiaryBankId: String = testBankId2.value,
-    beneficiaryAccountId: String = testAccountId1.value
+    beneficiaryAccountId: String = testAccountId1.value,
+    returnOf: Option[String] = None
   ): String =
     s"""{
        |  "to": {
@@ -1916,7 +1917,7 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
        |  },
        |  "value": {"currency": "$currency", "amount": "$amount"},
        |  "description": "Open Corridor promise test payment",
-       |  "charge_policy": "SHARED",
+       |  "charge_policy": "SHARED",${returnOf.map(r => s""" "return_of": "$r",""").getOrElse("")}
        |  "originator": {
        |    "name": "$originatorName",
        |    "address": "1 Sender Street, London, UK",
@@ -2091,6 +2092,38 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
         openCorridorPromiseBody(acctCurrency, beneficiaryBankId = s"no-such-bank-${APIUtil.generateUUID().take(8)}"), headers)
       statusCode shouldBe 404
       messageOf(json) should include("OBP-30001")
+    }
+
+    scenario("A RETURN promise (return_of) is accepted and relayed onto its credit notification", Http4s700RoutesTag) {
+      setPropsValues("open_corridor_enabled" -> "true")
+      val acctCurrency = code.bankconnectors.Connector.connector.vend
+        .getBankAccountLegacy(testBankId1, testAccountId0, None)
+        .map(_._1.currency).openOrThrowException("test account")
+      val headers = Map("DirectLogin" -> s"token=${token1.value}")
+      val originalId = s"tr-orig-${APIUtil.generateUUID().take(8)}"
+      val (statusCode, json, _) = makeHttpRequestWithBody("POST",
+        openCorridorPromisePath(testBankId1.value, testAccountId0.value),
+        openCorridorPromiseBody(acctCurrency, returnOf = Some(originalId)), headers)
+      statusCode shouldBe 201
+      val returnTrId = json match {
+        case JObject(fields) => toFieldMap(fields).get("id") match {
+          case Some(JString(id)) if id.nonEmpty => id
+          case _ => fail("id should be a non-empty string")
+        }
+        case _ => fail("Expected JSON object")
+      }
+
+      // Attach evidence — that enqueues the credit notification, which must
+      // carry return_of so the receiving node knows it is being repaid. The
+      // role is checked at the path's bank (the promise's from-bank).
+      addEntitlement(testBankId1.value, resourceUser1.userId, canAttachOpenCorridorPromise.toString)
+      val (evidenceCode, _, _) = makeHttpRequestWithBody("POST",
+        promiseEvidencePath(testBankId1.value, testAccountId0.value, returnTrId),
+        promiseEvidenceBody(), headers)
+      evidenceCode shouldBe 201
+      val creditRows = code.messageoutbox.MessageOutbox.bySubjectId(returnTrId)
+      creditRows.map(_.operationName) shouldBe List("obp_credit_notification")
+      (parse(creditRows.head.payloadJson) \ "return_of") shouldBe JString(originalId)
     }
   }
 
@@ -2511,6 +2544,14 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
       val promise1Credit = parse(promise1CreditRows.head.payloadJson)
       (promise1Credit \ "promise_salt") shouldBe JString("5f4dcc3b5aa765d61d8327deb882cf99")
       (promise1Credit \ "promise_commitment") shouldBe JString("9c56cc51b374c3ba189210d5b6d4bf57790d351c96c47c02190ecf1e430ba0d1")
+      // The CBS is told whom to credit: beneficiary name + account routing,
+      // read back from the promise TR's stored create body.
+      (promise1Credit \ "beneficiary" \ "account_routing" \ "scheme") shouldBe JString("OBP")
+      (promise1Credit \ "beneficiary" \ "account_routing" \ "address") shouldBe JString(testAccountId1.value)
+      (promise1Credit \ "beneficiary" \ "name") match {
+        case JString(name) => name should startWith("OC Beneficiary")
+        case other => fail(s"beneficiary.name should be a string, got $other")
+      }
       code.messageoutbox.MessageOutbox.bySubjectId(promise3)
         .map(_.targetId) shouldBe List(testBankId1.value)
       code.messageoutbox.MessageOutbox.bySubjectId(promise4NoEvidence) shouldBe Nil
@@ -2636,6 +2677,68 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
       val (notFoundCode, notFoundJson, _) = makeHttpRequest(s"${settlementsPath(testBankId1.value)}/does-not-exist", headers)
       notFoundCode shouldBe 404
       messageOf(notFoundJson) should include(OpenCorridorSettlementNotFound)
+
+      And("The settle accrued a platform fee per covered promise, owed by the originator")
+      import code.opencorridorfees.OpenCorridorFeeAccrual
+      def accrualFor(trId: String) = OpenCorridorFeeAccrual.find(
+        net.liftweb.mapper.By(OpenCorridorFeeAccrual.TransactionRequestId, trId))
+      def chargeOf(trId: String): BigDecimal = BigDecimal(
+        code.transactionrequests.MappedTransactionRequest
+          .find(net.liftweb.mapper.By(code.transactionrequests.MappedTransactionRequest.mTransactionRequestId, trId))
+          .map(_.mCharge_Amount.get).openOrThrowException("promise TR row"))
+      List(promise1 -> testBankId1.value, promise2 -> testBankId1.value, promise3 -> testBankId2.value)
+        .foreach { case (trId, originator) =>
+          val accrual = accrualFor(trId).openOrThrowException(s"accrual for $trId should exist")
+          accrual.debtorBankId shouldBe originator
+          BigDecimal(accrual.amount) shouldBe chargeOf(trId)
+          accrual.feeSettlementId shouldBe ""
+        }
+      accrualFor(promise4NoEvidence) shouldBe net.liftweb.common.Empty
+
+      When("Bank1's fees are swept to the platform (configured as a bank)")
+      setPropsValues("open_corridor.platform_bank_id" -> testBankId2.value)
+      val expectedFees = chargeOf(promise1) + chargeOf(promise2)
+      val (sweepCode, sweepJson, _) = makeHttpRequestWithBody("POST",
+        s"/obp/v7.0.0/banks/${testBankId1.value}/open-corridor/fee-settlements",
+        s"""{"currency": "$currency"}""", headers)
+      sweepCode shouldBe 201
+      val feeSettlementId = sweepJson match {
+        case JObject(fields) =>
+          val map = toFieldMap(fields)
+          map.get("debtor_bank_id") shouldBe Some(JString(testBankId1.value))
+          map.get("platform_bank_id") shouldBe Some(JString(testBankId2.value))
+          map.get("amount") shouldBe Some(JString(expectedFees.toString))
+          map.get("accruals_swept") shouldBe Some(JInt(2))
+          map.get("settlement_instructions_enqueued") shouldBe Some(JInt(1))
+          map.get("fee_settlement_id").collect { case JString(s) => s }.getOrElse(fail("fee_settlement_id missing"))
+        case _ => fail("Expected JSON object")
+      }
+
+      Then("One PLATFORM_FEE settlement instruction is enqueued to the debtor's vhost")
+      val feeRows = code.messageoutbox.MessageOutbox.bySubjectId(feeSettlementId)
+      feeRows.map(_.operationName) shouldBe List("obp_settlement_instruction")
+      feeRows.head.targetId shouldBe testBankId1.value
+      val feeInstruction = parse(feeRows.head.payloadJson)
+      (feeInstruction \ "purpose") shouldBe JString("PLATFORM_FEE")
+      (feeInstruction \ "amount") shouldBe JString(expectedFees.toString)
+      (feeInstruction \ "creditor_bank_id") shouldBe JString(testBankId2.value)
+      (feeInstruction \ "creditor_address") shouldBe JString("addr_test_bank_b")
+
+      And("The swept accruals are stamped; bank2's accrual stays open; a re-sweep is a no-op")
+      accrualFor(promise1).map(_.feeSettlementId) shouldBe net.liftweb.common.Full(feeSettlementId)
+      accrualFor(promise2).map(_.feeSettlementId) shouldBe net.liftweb.common.Full(feeSettlementId)
+      accrualFor(promise3).map(_.feeSettlementId) shouldBe net.liftweb.common.Full("")
+      val (resweepCode, resweepJson, _) = makeHttpRequestWithBody("POST",
+        s"/obp/v7.0.0/banks/${testBankId1.value}/open-corridor/fee-settlements",
+        s"""{"currency": "$currency"}""", headers)
+      resweepCode shouldBe 201
+      resweepJson match {
+        case JObject(fields) =>
+          val map = toFieldMap(fields)
+          map.get("amount") shouldBe Some(JString("0"))
+          map.get("accruals_swept") shouldBe Some(JInt(0))
+        case _ => fail("Expected JSON object")
+      }
     }
 
     scenario("Exactly offsetting flows discharge at net zero with no Transaction", Http4s700RoutesTag) {

@@ -8,7 +8,7 @@ import code.api.util.{APIUtil, CallContext, NewStyle}
 import code.api.v7_0_0.JSONFactory700.{OpenCorridorPromiseJsonV700, PostOpenCorridorPromiseJsonV700, TransactionRequestBodyOpenCorridorJsonV700}
 import code.util.Helper
 import com.openbankproject.commons.ExecutionContext.Implicits.global
-import com.openbankproject.commons.dto.{OpenCorridorMoneyValue, OpenCorridorOriginator, OutBoundOpenCorridorCreditNotification}
+import com.openbankproject.commons.dto.{OpenCorridorAccountRouting, OpenCorridorBeneficiary, OpenCorridorMoneyValue, OpenCorridorOriginator, OutBoundOpenCorridorCreditNotification}
 import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.ChallengeType.OBP_TRANSACTION_REQUEST_CHALLENGE
 import com.openbankproject.commons.model.enums.{TransactionRequestAttributeType, TransactionRequestStatus, TransactionRequestTypes}
@@ -281,12 +281,37 @@ object OpenCorridorProcessor {
     MappedTransactionRequest
       .find(By(MappedTransactionRequest.mTransactionRequestId, transactionRequestId.value))
       .foreach { row =>
+        // The CBS is asked to credit a specific customer: name + account
+        // routing, read back from the promise TR's stored create body
+        // (`mDetails`). Absent only when a legacy row predates the field.
+        val beneficiary = scala.util.Try(org.json4s.native.JsonMethods.parse(row.mDetails.get))
+          .toOption.flatMap { details =>
+            def str(field: JValue): Option[String] = field match {
+              case JString(s) if s.trim.nonEmpty => Some(s)
+              case _ => None
+            }
+            str(details \ "to" \ "other_account_routing_address").map { address =>
+              OpenCorridorBeneficiary(
+                name = str(details \ "to" \ "name").getOrElse(""),
+                account_routing = OpenCorridorAccountRouting(
+                  scheme = str(details \ "to" \ "other_account_routing_scheme").getOrElse(""),
+                  address = address
+                )
+              )
+            }
+          }
         val wireBody = OutBoundOpenCorridorCreditNotification(
           transaction_request_id = transactionRequestId.value,
           value = OpenCorridorMoneyValue(row.mBody_Value_Currency.get, row.mBody_Value_Amount.get),
           description = Option(row.mBody_Description.get).filter(_.nonEmpty),
           originator = Option(row.mOriginator_Name.get).filter(_.nonEmpty).map(name =>
             OpenCorridorOriginator(name, Option(row.mOriginator_Address.get).filter(_.nonEmpty))),
+          beneficiary = beneficiary,
+          return_of = scala.util.Try(org.json4s.native.JsonMethods.parse(row.mDetails.get))
+            .toOption.flatMap(_ \ "return_of" match {
+              case JString(s) if s.trim.nonEmpty => Some(s)
+              case _ => None
+            }),
           netting_snapshot_id = None,
           promise_id = evidence.get(PromiseAttributeTxHash),
           promise_blockchain = evidence.get(PromiseAttributeBlockchain),

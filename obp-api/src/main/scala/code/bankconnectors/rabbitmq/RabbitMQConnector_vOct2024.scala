@@ -7371,6 +7371,10 @@ trait RabbitMQConnector_vOct2024 extends Connector with MdcLoggable {
         value = OpenCorridorMoneyValue(currency = "KES", amount = "1500.00"),
         description = Some("Invoice 4471"),
         originator = Some(OpenCorridorOriginator(name = "Acme Coffee Ltd", address = Some("Nairobi"))),
+        beneficiary = Some(OpenCorridorBeneficiary(
+          name = "Bea Beneficiary",
+          account_routing = OpenCorridorAccountRouting(scheme = "OBP", address = "acct-77"))),
+        return_of = None,
         netting_snapshot_id = Some("snap-1"),
         promise_id = Some("63eacfe3dbc133f922d461bd3e6488ce21d55f03c5131cd79c965fe2e7491642"),
         promise_blockchain = Some("cardano"),
