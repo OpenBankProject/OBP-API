@@ -718,6 +718,47 @@ object Http4s700 {
       http4sPartialFunction = Some(getConsentsConfig)
     )
 
+    // Route: GET /obp/v7.0.0/users/password-policy
+    // Anonymous: clients need the policy before they hold credentials, to validate
+    // a proposed password locally during signup or password reset.
+    val getPasswordPolicy: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "users" / "password-policy" =>
+        EndpointHelpers.executeAndRespond(req) { _ =>
+          Future.successful(JSONFactory700.passwordPoliciesJsonV700)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(getPasswordPolicy),
+      "GET",
+      "/users/password-policy",
+      "Get Password Policy",
+      """Returns the password policy this instance enforces when a password is set (user creation and password reset).
+        |
+        |A password is valid if it satisfies AT LEAST ONE of the `policies`. For each policy:
+        |
+        |* `min_length` / `max_length` — inclusive length bounds.
+        |* `required_character_classes` — the password must contain at least one character matching each class `regex`.
+        |* `allowed_characters` — every character of the password must be one of these.
+        |* `regex` — a single pattern equivalent to the three rules above, written in a portable
+        |regex subset that behaves identically in Java, JavaScript and Python, so it can be used verbatim.
+        |
+        |The structured fields are the normative contract; `regex` is a convenience.
+        |Clients can use either to give immediate feedback while a user types a new password.
+        |The server remains the final enforcer: a password failing the policy is rejected
+        |with `OBP-30207` (InvalidStrongPasswordFormat).
+        |
+        |The policy applies only when a password is set; already-stored passwords are never re-checked against it (we don't store the password in plain text).
+        |
+        |No Authentication is Required.""".stripMargin,
+      EmptyBody,
+      JSONFactory700.passwordPoliciesJsonV700,
+      List(UnknownError),
+      apiTagUser :: apiTagApi :: Nil,
+      http4sPartialFunction = Some(getPasswordPolicy)
+    )
+
     // Route: GET /obp/v7.0.0/api/error-messages
     val getErrorMessages: HttpRoutes[IO] = HttpRoutes.of[IO] {
       case req @ GET -> `prefixPath` / "api" / "error-messages" =>

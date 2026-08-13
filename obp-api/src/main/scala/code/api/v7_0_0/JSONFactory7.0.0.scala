@@ -1427,6 +1427,63 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     sca_enabled = true
   )
 
+  // ─── Password policy — published so clients can validate locally before user creation /
+  // password reset. The structured fields are the normative contract; `regex` is a convenience
+  // written in the portable subset that behaves identically in Java, JavaScript and Python.
+  // A password is valid if it satisfies AT LEAST ONE of the policies.
+
+  case class RequiredCharacterClassJsonV700(
+    name: String,
+    regex: String
+  )
+
+  case class PasswordPolicyJsonV700(
+    description: String,
+    min_length: Int,
+    max_length: Int,
+    required_character_classes: List[RequiredCharacterClassJsonV700],
+    allowed_characters: String,
+    regex: String
+  )
+
+  case class PasswordPoliciesJsonV700(
+    description: String,
+    policies: List[PasswordPolicyJsonV700]
+  )
+
+  // printable ASCII without space — the character set both policy branches accept
+  private val passwordAllowedCharacters = (0x21 to 0x7e).map(_.toChar).mkString
+
+  lazy val passwordPoliciesJsonV700 = PasswordPoliciesJsonV700(
+    description = "A password must satisfy at least one of the policies: " +
+      "10 to 16 characters including at least one digit, one lower case letter, one upper case letter " +
+      "and one special character - or a passphrase of 17 to 512 characters.",
+    policies = List(
+      PasswordPolicyJsonV700(
+        description = "10 to 16 characters (printable ASCII, no space) including at least one digit, " +
+          "one lower case letter, one upper case letter and one special character.",
+        min_length = 10,
+        max_length = 16,
+        required_character_classes = List(
+          RequiredCharacterClassJsonV700("digit", "[0-9]"),
+          RequiredCharacterClassJsonV700("lowercase letter", "[a-z]"),
+          RequiredCharacterClassJsonV700("uppercase letter", "[A-Z]"),
+          RequiredCharacterClassJsonV700("special character", """[\x21-\x2f\x3a-\x40\x5b-\x60\x7b-\x7e]""")
+        ),
+        allowed_characters = passwordAllowedCharacters,
+        regex = APIUtil.passwordCompositionPolicyRegex
+      ),
+      PasswordPolicyJsonV700(
+        description = "A passphrase of 17 to 512 characters (printable ASCII, no space), no composition rules.",
+        min_length = 17,
+        max_length = 512,
+        required_character_classes = Nil,
+        allowed_characters = passwordAllowedCharacters,
+        regex = APIUtil.passwordPassphrasePolicyRegex
+      )
+    )
+  )
+
   // ─── Validation email (anonymous resend) ────────────────────────────────────
   // The request identifies the target by (username, email). The response is the
   // same generic acknowledgement regardless of whether the user exists, is
