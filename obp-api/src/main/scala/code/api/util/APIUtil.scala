@@ -859,7 +859,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
 
 
-  /** Password policy pattern strings, published verbatim via GET /users/password-policy (v7.0.0)
+  /** Password policy pattern strings, published verbatim via GET /public/password-config (v7.0.0)
    * and enforced by fullPasswordValidation below. Written in the portable regex subset only
    * (no Java nested character classes, no \d), so the identical string gives the same verdicts
    * in Java, JavaScript and Python.

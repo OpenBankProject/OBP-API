@@ -3420,6 +3420,10 @@ object Http4s600 {
               s"$InvalidJsonFormat The Json body should be the PostChatMessageJsonV600", 400, Some(cc)) {
               com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[PostChatMessageJsonV600]
             }
+            badLinkHosts = code.chat.ChatLinkPolicy.disallowedLinkHosts(postJson.content)
+            _ <- Helper.booleanToFuture(
+              s"$ChatMessageLinkHostNotAllowed Disallowed host(s): ${badLinkHosts.mkString(", ")}",
+              cc = Some(cc)) { badLinkHosts.isEmpty }
             roomBox <- Future(code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId))
             room <- Future(unboxFullOrFail(roomBox, Some(cc), ChatRoomNotFound, 404))
             partBox <- Future(code.chat.ChatPermissions.isParticipant(chatRoomId, u.userId))
@@ -3451,6 +3455,10 @@ object Http4s600 {
               s"$InvalidJsonFormat The Json body should be the PostChatMessageJsonV600", 400, Some(cc)) {
               com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[PostChatMessageJsonV600]
             }
+            badLinkHosts = code.chat.ChatLinkPolicy.disallowedLinkHosts(postJson.content)
+            _ <- Helper.booleanToFuture(
+              s"$ChatMessageLinkHostNotAllowed Disallowed host(s): ${badLinkHosts.mkString(", ")}",
+              cc = Some(cc)) { badLinkHosts.isEmpty }
             roomBox <- Future(code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId))
             room <- Future(unboxFullOrFail(roomBox, Some(cc), ChatRoomNotFound, 404))
             partBox <- Future(code.chat.ChatPermissions.isParticipant(chatRoomId, u.userId))
@@ -3548,6 +3556,10 @@ object Http4s600 {
               s"$InvalidJsonFormat The Json body should be the PutChatMessageJsonV600", 400, Some(cc)) {
               com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[PutChatMessageJsonV600]
             }
+            badLinkHosts = code.chat.ChatLinkPolicy.disallowedLinkHosts(putJson.content)
+            _ <- Helper.booleanToFuture(
+              s"$ChatMessageLinkHostNotAllowed Disallowed host(s): ${badLinkHosts.mkString(", ")}",
+              cc = Some(cc)) { badLinkHosts.isEmpty }
             roomBox <- Future(code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId))
             _ <- Future(unboxFullOrFail(roomBox, Some(cc), ChatRoomNotFound, 404))
             partBox <- Future(code.chat.ChatPermissions.isParticipant(chatRoomId, user.userId))
@@ -3576,6 +3588,10 @@ object Http4s600 {
               s"$InvalidJsonFormat The Json body should be the PutChatMessageJsonV600", 400, Some(cc)) {
               com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[PutChatMessageJsonV600]
             }
+            badLinkHosts = code.chat.ChatLinkPolicy.disallowedLinkHosts(putJson.content)
+            _ <- Helper.booleanToFuture(
+              s"$ChatMessageLinkHostNotAllowed Disallowed host(s): ${badLinkHosts.mkString(", ")}",
+              cc = Some(cc)) { badLinkHosts.isEmpty }
             roomBox <- Future(code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId))
             _ <- Future(unboxFullOrFail(roomBox, Some(cc), ChatRoomNotFound, 404))
             partBox <- Future(code.chat.ChatPermissions.isParticipant(chatRoomId, user.userId))
@@ -3706,6 +3722,10 @@ object Http4s600 {
               s"$InvalidJsonFormat The Json body should be the PostChatMessageJsonV600", 400, Some(cc)) {
               com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[PostChatMessageJsonV600]
             }
+            badLinkHosts = code.chat.ChatLinkPolicy.disallowedLinkHosts(postJson.content)
+            _ <- Helper.booleanToFuture(
+              s"$ChatMessageLinkHostNotAllowed Disallowed host(s): ${badLinkHosts.mkString(", ")}",
+              cc = Some(cc)) { badLinkHosts.isEmpty }
             roomBox <- Future(code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId))
             room <- Future(unboxFullOrFail(roomBox, Some(cc), ChatRoomNotFound, 404))
             partBox <- Future(code.chat.ChatPermissions.isParticipant(chatRoomId, u.userId))
@@ -3739,6 +3759,10 @@ object Http4s600 {
               s"$InvalidJsonFormat The Json body should be the PostChatMessageJsonV600", 400, Some(cc)) {
               com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[PostChatMessageJsonV600]
             }
+            badLinkHosts = code.chat.ChatLinkPolicy.disallowedLinkHosts(postJson.content)
+            _ <- Helper.booleanToFuture(
+              s"$ChatMessageLinkHostNotAllowed Disallowed host(s): ${badLinkHosts.mkString(", ")}",
+              cc = Some(cc)) { badLinkHosts.isEmpty }
             roomBox <- Future(code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId))
             room <- Future(unboxFullOrFail(roomBox, Some(cc), ChatRoomNotFound, 404))
             partBox <- Future(code.chat.ChatPermissions.isParticipant(chatRoomId, u.userId))

@@ -924,7 +924,7 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with Prop
       basicPasswordValidation("") shouldBe InvalidValueCharacters
     }
 
-    scenario(s"the published password policy (GET /users/password-policy) agrees with ${nameOf(APIUtil.fullPasswordValidation _)}") {
+    scenario(s"the published password policy (GET /public/password-config) agrees with ${nameOf(APIUtil.fullPasswordValidation _)}") {
       val publishedPolicy = code.api.v7_0_0.JSONFactory700.passwordPoliciesJsonV700
 
       // the documented client algorithm over the NORMATIVE structured fields

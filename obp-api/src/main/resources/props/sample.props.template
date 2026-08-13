@@ -1290,6 +1290,15 @@ database_messages_scheduler_interval=3600
 # DirectLogin or OAuth tokens as the REST API.
 # See src/main/protobuf/chat.proto for the service contract.
 
+# Chat link policy ----------------------------------------------------------
+# Chat message content is rejected (OBP-39015) when it contains an http(s)
+# link to a host that is neither this instance's own host (from `hostname`)
+# nor whitelisted. Comma-separated hostnames or URLs; subdomains of a listed
+# host are allowed too. When this prop is NOT defined, the default whitelist
+# is tesobe.com,openbankproject.com — defining the prop replaces the default
+# entirely (the instance's own host stays allowed either way). Example:
+# chat.allowed_link_hosts = portal.example.com,github.com
+
 # Create System Views At Boot -----------------------------------------------
 # In case is not defined default value is true
 # create_system_views_at_boot=true

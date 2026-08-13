@@ -821,6 +821,7 @@ object ErrorMessages {
   val ReactionAlreadyExists = "OBP-39012: You have already added this reaction to this message."
   val ReactionNotFound = "OBP-39013: Reaction not found."
   val MustSpecifyUserIdOrConsumerId = "OBP-39014: Must specify either user_id or consumer_id, but not both."
+  val ChatMessageLinkHostNotAllowed = "OBP-39015: Chat message contains a link to a host that is not allowed on this instance."
 
   // Transaction Request related messages (OBP-40XXX)
   val InvalidTransactionRequestType = "OBP-40001: Invalid value for TRANSACTION_REQUEST_TYPE"

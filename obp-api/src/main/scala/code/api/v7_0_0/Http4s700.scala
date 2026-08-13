@@ -685,10 +685,11 @@ object Http4s700 {
 
     // ── Phase 1 — Simple GETs ───────────────────────────────────────────────
 
-    // Route: GET /obp/v7.0.0/consents/config
-    // Anonymous: operator-published policy that TPPs/agents need to know before issuing a consent.
+    // Route: GET /obp/v7.0.0/public/consent-config
+    // Anonymous: operator-published policy that TPPs/agents need to know before issuing
+    // a consent. The /public prefix marks client-facing config that needs no authentication.
     val getConsentsConfig: HttpRoutes[IO] = HttpRoutes.of[IO] {
-      case req @ GET -> `prefixPath` / "consents" / "config" =>
+      case req @ GET -> `prefixPath` / "public" / "consent-config" =>
         EndpointHelpers.executeAndRespond(req) { _ =>
           Future.successful(JSONFactory700.ConsentsConfigJsonV700(
             consents_allowed            = APIUtil.getPropsAsBoolValue("consents.allowed", false),
@@ -702,7 +703,7 @@ object Http4s700 {
       implementedInApiVersion,
       nameOf(getConsentsConfig),
       "GET",
-      "/consents/config",
+      "/public/consent-config",
       "Get Consents Configuration",
       """Returns the operator-configured consent policy for this OBP instance:
         |
@@ -718,11 +719,12 @@ object Http4s700 {
       http4sPartialFunction = Some(getConsentsConfig)
     )
 
-    // Route: GET /obp/v7.0.0/users/password-policy
+    // Route: GET /obp/v7.0.0/public/password-config
     // Anonymous: clients need the policy before they hold credentials, to validate
-    // a proposed password locally during signup or password reset.
+    // a proposed password locally during signup or password reset. The /public
+    // prefix marks client-facing config that needs no authentication.
     val getPasswordPolicy: HttpRoutes[IO] = HttpRoutes.of[IO] {
-      case req @ GET -> `prefixPath` / "users" / "password-policy" =>
+      case req @ GET -> `prefixPath` / "public" / "password-config" =>
         EndpointHelpers.executeAndRespond(req) { _ =>
           Future.successful(JSONFactory700.passwordPoliciesJsonV700)
         }
@@ -732,7 +734,7 @@ object Http4s700 {
       implementedInApiVersion,
       nameOf(getPasswordPolicy),
       "GET",
-      "/users/password-policy",
+      "/public/password-config",
       "Get Password Policy",
       """Returns the password policy this instance enforces when a password is set (user creation and password reset).
         |
@@ -755,8 +757,45 @@ object Http4s700 {
       EmptyBody,
       JSONFactory700.passwordPoliciesJsonV700,
       List(UnknownError),
-      apiTagUser :: apiTagApi :: Nil,
+      apiTagApi :: apiTagUser :: Nil,
       http4sPartialFunction = Some(getPasswordPolicy)
+    )
+
+    // Route: GET /obp/v7.0.0/public/chat-config
+    // Anonymous: chat clients need the link-host whitelist to render messages
+    // (links to non-whitelisted hosts stay inert text) before and regardless
+    // of authentication. The /public prefix marks client-facing config that
+    // needs no authentication.
+    val getChatConfig: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "public" / "chat-config" =>
+        EndpointHelpers.executeAndRespond(req) { _ =>
+          Future(JSONFactory700.ChatConfigJsonV700(code.chat.ChatLinkPolicy.allowedHosts.toList.sorted))
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(getChatConfig),
+      "GET",
+      "/public/chat-config",
+      "Get Chat Config",
+      """Returns the chat configuration this instance enforces, currently the link-host whitelist.
+        |
+        |Chat message content is rejected with `OBP-39015` when it contains an http(s) link to a
+        |host that is not in `allowed_link_hosts` (exact match or subdomain). The list is derived
+        |from this instance's own host, the hosts of the apps in its App Directory
+        |(`public_*_url` props), and the `chat.allowed_link_hosts` prop (defaulting to
+        |tesobe.com and openbankproject.com when that prop is not defined).
+        |
+        |Chat clients should apply the same policy at render time: show links to hosts outside
+        |this list as plain text rather than making them clickable.
+        |
+        |No Authentication is Required.""".stripMargin,
+      EmptyBody,
+      JSONFactory700.chatConfigJsonV700Example,
+      List(UnknownError),
+      apiTagApi :: Nil,
+      http4sPartialFunction = Some(getChatConfig)
     )
 
     // Route: GET /obp/v7.0.0/api/error-messages

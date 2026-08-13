@@ -1484,6 +1484,18 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     )
   )
 
+  // ─── Chat config — published so chat clients can apply the same link-host
+  // policy at render time that the server enforces on message input
+  // (code.chat.ChatLinkPolicy). ───────────────────────────────────────────────
+
+  case class ChatConfigJsonV700(
+    allowed_link_hosts: List[String]
+  )
+
+  lazy val chatConfigJsonV700Example = ChatConfigJsonV700(
+    allowed_link_hosts = List("apisandbox.openbankproject.com", "openbankproject.com", "tesobe.com")
+  )
+
   // ─── Validation email (anonymous resend) ────────────────────────────────────
   // The request identifies the target by (username, email). The response is the
   // same generic acknowledgement regardless of whether the user exists, is

@@ -203,8 +203,8 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
   feature("Http4s700 getPasswordPolicy endpoint") {
 
     scenario("Anonymous GET returns the published password policy", Http4s700RoutesTag) {
-      Given("GET /obp/v7.0.0/users/password-policy with no auth")
-      val (statusCode, json, _) = makeHttpRequest("/obp/v7.0.0/users/password-policy")
+      Given("GET /obp/v7.0.0/public/password-config with no auth")
+      val (statusCode, json, _) = makeHttpRequest("/obp/v7.0.0/public/password-config")
 
       Then("Response is 200 with the two policy branches")
       statusCode shouldBe 200
