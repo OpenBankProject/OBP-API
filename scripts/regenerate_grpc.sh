@@ -71,7 +71,7 @@ CLASSIFIER="$OS-$ARCH"
 PROTOC="$CACHE_DIR/protoc-$PROTOC_VERSION-$CLASSIFIER"
 if [[ ! -x "$PROTOC" ]]; then
   echo "Fetching protoc $PROTOC_VERSION ($CLASSIFIER) ..."
-  curl -fsSL -o "$PROTOC" \
+  curl --proto '=https' --tlsv1.2 -fsSL -o "$PROTOC" \
     "https://repo1.maven.org/maven2/com/google/protobuf/protoc/$PROTOC_VERSION/protoc-$PROTOC_VERSION-$CLASSIFIER.exe"
   chmod +x "$PROTOC"
 fi
@@ -80,7 +80,7 @@ fi
 SCALAPBC_HOME="$CACHE_DIR/scalapbc-$SCALAPB_VERSION"
 if [[ ! -d "$SCALAPBC_HOME" ]]; then
   echo "Fetching scalapbc $SCALAPB_VERSION ..."
-  curl -fsSL -o "$CACHE_DIR/scalapbc.zip" \
+  curl --proto '=https' --tlsv1.2 -fsSL -o "$CACHE_DIR/scalapbc.zip" \
     "https://github.com/scalapb/ScalaPB/releases/download/v$SCALAPB_VERSION/scalapbc-$SCALAPB_VERSION.zip"
   unzip -q -d "$CACHE_DIR" "$CACHE_DIR/scalapbc.zip"
   rm -f "$CACHE_DIR/scalapbc.zip"
