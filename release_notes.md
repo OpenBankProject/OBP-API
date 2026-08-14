@@ -3,6 +3,80 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action
+13/08/2026    298e1af87     Added props open_corridor.platform_bank_id.
+                            The platform fee accrual endpoints settle to the platform, which is
+                            modelled as a bank; this names its BANK_ID. There is no usable default,
+                            so sweeping accrued platform fees fails with OBP-10035 until it is set
+                            rather than paying an unintended bank. Only relevant on an instance that
+                            has Open Corridor turned on and settles platform fees; instances that do
+                            not need no action.
+
+13/08/2026    7bfefcb9f     BEHAVIOUR CHANGE: a consent is now resolved against the Consumer that
+                            lodged it, which makes sca_front_end_consumer_ids REQUIRED for anyone
+                            running Redirect SCA or their own approval screen.
+                            Berlin Group scopes a dynamically created resource to "the same TPP"
+                            that created it (Implementation Guidelines 4.11) and UK scopes GET and
+                            DELETE of an account-access-consent to one "that they have created".
+                            Previously a PSU match ended the enquiry before the Consumer was ever
+                            compared, so a second TPP holding a session for the same PSU could read
+                            and revoke a consent the first TPP had lodged. That short circuit is
+                            gone.
+
+                            Who is affected: any instance whose Strong Customer Authentication
+                            screen is served by a different Consumer than the TPP that lodges the
+                            consent — which is every Berlin Group Redirect deployment, because under
+                            Redirect the PSU authenticates at the ASPSP and the authorisation calls
+                            therefore arrive from the ASPSP's own front end. Nothing in the request
+                            distinguishes that front end from a second TPP holding a PSU session, so
+                            the ASPSP has to declare it.
+
+                            Symptom if you do not:
+                            POST /berlin-group/v1.3/consents/{consentId}/authorisations returns
+                            403 OBP-35015 (ConsentDoesNotMatchConsumer). SCA cannot start and the
+                            consent stays at "received". The UK approval screen's read of an
+                            unclaimed consent is governed by the same declaration.
+
+                            Action: set sca_front_end_consumer_ids to the consumer_id (not the
+                            consumer key) of whatever serves the approval screen — the OBP Portal in
+                            a stock deployment, found with
+                              select consumerid, name, redirecturl from consumer
+                                where redirecturl like '%<sca-frontend-host>%';
+                            Comma separate several. The older
+                            berlin_group_sca_front_end_consumer_ids is still read, so an instance
+                            already configured for Berlin Group Redirect SCA needs no edit. Empty
+                            stays the default, and empty keeps the lodging-TPP rule applying to
+                            every caller.
+
+                            Note APIUtil.scaFrontEndConsumerIds is a val read at class
+                            initialisation and props are packaged inside obp-api.jar, so the change
+                            needs a rebuild before restarting — a plain restart keeps the old value.
+
+                            Also added props consent_allow_legacy_unrecorded_tpp (default false).
+                            A consent recording no lodging Consumer now matches no caller and is
+                            refused; rows like that predate the Consumer being recorded at all.
+                            Turning this on restores the old behaviour for them, and the old
+                            behaviour is that ANY authenticated caller can read and revoke them,
+                            which is why it warns on every use. It is a migration window, not a
+                            setting: re-lodge the affected consents and turn it back off.
+
+12/08/2026    5f1f90694     Added props uk_open_banking_expired_consents_interval_in_seconds
+                            (default 601) and system_views.reconcile_permissions_at_boot.
+                            The consent expiry sweep is the UK counterpart of the existing
+                            berlin_group_ and obp_ keys, but unlike those it runs by default; set it
+                            to 0 to stop it. Turning it off does not grant access to an expired
+                            consent — checkUKConsent rejects one reactively on every request — the
+                            sweep only keeps the stored status accurate for GET and dashboard
+                            purposes.
+
+                            system_views.reconcile_permissions_at_boot defaults to TRUE, and that
+                            default rewrites data: at every boot the UK Open Banking and Berlin
+                            Group system views are reconciled to the permission set this build
+                            defines. It is deliberate — a permission set the code tightened has to
+                            reach the installations that have the problem, not only fresh ones — but
+                            an operator who has hand-tuned those rows will see the edits overwritten
+                            and should set it to false, which logs a warning and falls back to
+                            create-if-absent.
+
 28/07/2026    bc2b2aeb3     BEHAVIOUR CHANGE: UK Open Banking PSD2 gate now reads the mTLS
                             transport certificate (PSD2-CERT), not TPP-Signature-Certificate.
                             When requirePsd2Certificates=ONLINE, the certificate identifying the

@@ -14,6 +14,8 @@ import code.api.{APIFailure, APIFailureNewStyle, Constant, RequestHeader}
 import code.bankconnectors.Connector
 import code.consent
 import code.consent.ConsentStatus.ConsentStatus
+import code.loginattempts.LoginAttempt
+import net.liftweb.util.Helpers.tryo
 import code.consent.{ConsentStatus, Consents, MappedConsent}
 import code.consumer.Consumers
 import code.context.{ConsentAuthContextProvider, UserAuthContextProvider}
@@ -30,6 +32,7 @@ import code.views.Views
 import com.nimbusds.jwt.JWTClaimsSet
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
+import com.openbankproject.commons.model.enums.AccountRoutingScheme
 import com.openbankproject.commons.util.ApiStandards
 import net.liftweb.common._
 import org.json4s.ParserUtil.ParseException
@@ -1527,66 +1530,104 @@ object Consent extends MdcLoggable {
       }
     }
   }
-  def updateViewsOfBerlinGroupConsentJWT(user: User,
-                                         consent: MappedConsent,
-                                         callContext: Option[CallContext]): Future[Box[MappedConsent]] = {
-    implicit val dateFormats = CustomJsonFormats.formats
-    val payloadToUpdate: Box[ConsentJWT] = JwtUtil.getSignedPayloadAsJson(consent.jsonWebToken) // Payload as JSON string
-      .map(com.openbankproject.commons.util.JsonAliases.parse(_).extract[ConsentJWT]) // Extract case class
+  /**
+   * Binds a Berlin Group `"access": {"availableAccounts": "allAccounts"}` consent to the accounts
+   * the authorising PSU actually holds, and returns the consent (unchanged for any other shape).
+   *
+   * That shape names no IBAN — the standard requires accounts/balances/transactions to be absent or
+   * empty when it is used — so createBerlinGroupConsentJWT, which builds views by resolving the
+   * IBANs in the access object, has nothing to resolve and writes `views: []`. The consent means
+   * "every account this PSU holds", and which accounts those are cannot be known at lodging time:
+   * the TPP lodges the consent, and the PSU is only settled at SCA. So this is where the accounts
+   * become known, and it must run as the PSU — the holdings are the whole of the scope.
+   *
+   * Until this existed the shape was accepted, validated and authorised, and then served nothing:
+   * the JWT kept its empty view list, grantAccessToViews granted the consent's shadow user no
+   * access, and GET /accounts answered with an empty list for a consent whose status was `valid`.
+   *
+   * Views are added, not replaced. A consent that also named IBANs explicitly (which the standard
+   * forbids alongside availableAccounts, but POST /consents does not currently reject) keeps the
+   * balances and transactions views createBerlinGroupConsentJWT resolved for it; replacing would
+   * silently drop them. Equally, the grant here is confined to
+   * SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID: availableAccounts buys the account *list* and
+   * nothing else, so it must not hand out balances or transactions on accounts the consent never
+   * asked about.
+   *
+   * Only accounts with an IBAN routing are included. Berlin Group addresses accounts by IBAN
+   * throughout, so an account with no IBAN is not addressable through this API and granting a view
+   * on it would widen the consent without making anything reachable.
+   *
+   * A JWT that cannot be read is refused rather than treated as "not this shape". This function's
+   * whole job is to write the consent's next JWT, and it cannot do that from a payload it could not
+   * parse. On the Berlin Group authorise path assertBerlinGroupConsentAccountsHeld has already
+   * turned that case away, so this is the second refusal rather than the only one -- kept because
+   * the two are independent and this one belongs to whoever calls this function, not to the order
+   * the caller happens to run its checks in.
+   */
+  def grantBerlinGroupAvailableAccountsAccess(psu: User,
+                                              storedConsent: consent.ConsentTrait): Future[Box[consent.ConsentTrait]] = Future {
+    implicit val dateFormats: Formats = CustomJsonFormats.formats
+    val payload: Box[ConsentJWT] = JwtUtil.getSignedPayloadAsJson(storedConsent.jsonWebToken)
+      .map(com.openbankproject.commons.util.JsonAliases.parse(_).extract[ConsentJWT])
 
-    val availableAccountsUserIbans: List[String] = payloadToUpdate match {
+    payload match {
+      case Full(consentJwt) if !isAvailableAccountsConsent(consentJwt) =>
+        // Nothing to do: this consent named its accounts, and they were resolved at creation.
+        Full(storedConsent)
       case Full(consentJwt) =>
-        val availableAccountsUserIbans: List[String] =
-          if (consentJwt.access.map(_.availableAccounts.contains("allAccounts")).isDefined) {
-            // Get all accounts held by the current user
-            val userAccounts: List[BankIdAccountId] =
-              AccountHolders.accountHolders.vend.getAccountsHeldByUser(user, Some(null)).toList
-            userAccounts.flatMap { acc =>
-              BankAccountRouting.find(
-                By(BankAccountRouting.BankId, acc.bankId.value),
-                By(BankAccountRouting.AccountId, acc.accountId.value),
-                By(BankAccountRouting.AccountRoutingScheme, "IBAN")
-              ).map(_.AccountRoutingAddress.get)
-            }
-          } else {
-            val emptyList: List[String] = Nil
-            emptyList
+        // .exists, not .isDefined: the predecessor of this function asked
+        // `access.map(_.availableAccounts.contains("allAccounts")).isDefined`, which is true
+        // whenever `access` is present at all -- and createBerlinGroupConsentJWT always writes
+        // `access`. Every consent would have taken this branch, so a consent narrowed to one IBAN
+        // would have been widened to the PSU's whole estate. See isAvailableAccountsConsent.
+        val heldWithIban: List[ConsentView] = AccountHolders.accountHolders.vend
+          .getAccountsHeldByUser(psu).toList
+          .filter { held =>
+            BankAccountRouting.find(
+              By(BankAccountRouting.BankId, held.bankId.value),
+              By(BankAccountRouting.AccountId, held.accountId.value),
+              By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString)
+            ).isDefined
           }
-        availableAccountsUserIbans
+          .map { held =>
+            ConsentView(
+              bank_id = held.bankId.value,
+              account_id = held.accountId.value,
+              view_id = Constant.SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID,
+              None
+            )
+          }
+        val merged = (consentJwt.views ::: heldWithIban).distinct
+        if (merged == consentJwt.views) {
+          // The PSU holds no IBAN-addressable account, or every one of them is already named. Not
+          // an error -- an "allAccounts" consent over an empty estate is a consent over nothing --
+          // so leave the JWT alone rather than re-signing it to the same content.
+          logger.debug(s"grantBerlinGroupAvailableAccountsAccess: consent ${storedConsent.consentId} " +
+            s"gained no view; the PSU holds ${heldWithIban.size} IBAN-addressable account(s).")
+          Full(storedConsent)
+        } else {
+          val jwtPayloadAsJson = compactRender(Extraction.decompose(consentJwt.copy(views = merged)))
+          val jwtClaims: JWTClaimsSet = JWTClaimsSet.parse(jwtPayloadAsJson)
+          val jwt = CertificateUtil.jwtWithHmacProtection(jwtClaims, storedConsent.secret)
+          Consents.consentProvider.vend.setJsonWebToken(storedConsent.consentId, jwt)
+        }
+      case failure @ Failure(_, _, _) =>
+        failure
       case _ =>
-        val emptyList: List[String] = Nil
-        emptyList
-    }
-
-
-    // 1. Add access
-    val availableAccounts: List[Future[ConsentView]] = availableAccountsUserIbans.distinct map { iban =>
-      Connector.connector.vend.getBankAccountByIban(iban, callContext) map { bankAccount =>
-        logger.debug(s"createBerlinGroupConsentJWT.accounts.bankAccount: $bankAccount")
-        val error = s"${InvalidConnectorResponse} IBAN: ${iban} ${handleBox(bankAccount._1)}"
-        ConsentView(
-          bank_id = bankAccount._1.map(_.bankId.value).getOrElse(""),
-          account_id = bankAccount._1.map(_.accountId.value).openOrThrowException(error),
-          view_id = Constant.SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID,
-          None
-        )
-      }
-    }
-
-    Future.sequence(availableAccounts) map { views =>
-      if(views.isEmpty) {
-        Empty
-      } else {
-        val updatedPayload = payloadToUpdate.map(i =>
-          i.copy(views = views) // Update the field "views"
-        )
-        val jwtPayloadAsJson = compactRender(Extraction.decompose(updatedPayload))
-        val jwtClaims: JWTClaimsSet = JWTClaimsSet.parse(jwtPayloadAsJson)
-        val jwt = CertificateUtil.jwtWithHmacProtection(jwtClaims, consent.secret)
-        Consents.consentProvider.vend.setJsonWebToken(consent.consentId, jwt)
-      }
+        Failure(s"$InvalidConnectorResponse The consent's JWT could not be read.")
     }
   }
+
+  /**
+   * Whether a Berlin Group consent asks for access to all of the PSU's accounts.
+   *
+   * POST /consents already refuses any value of availableAccounts other than "allAccounts"
+   * (BerlinGroupConsentAccessAvailableAccounts), so this is the only value that can reach a stored
+   * consent -- but read it off the JWT rather than assuming, because the JWT is what every other
+   * decision about this consent is taken from.
+   */
+  private def isAvailableAccountsConsent(consentJwt: ConsentJWT): Boolean =
+    consentJwt.access.exists(_.availableAccounts.contains("allAccounts"))
 
   def updateUserIdOfBerlinGroupConsentJWT(createdByUserId: String,
                                           consent: MappedConsent,
@@ -1982,8 +2023,10 @@ object Consent extends MdcLoggable {
    * user. Checking anything else would leave the two able to disagree.
    *
    * A consent whose JWT names no account yet is not refused here. That is the availableAccounts
-   * ("allAccounts") shape, whose views are materialised later and against the PSU's own holdings,
-   * so there is nothing for this check to compare and nothing it could wrongly let through.
+   * ("allAccounts") shape, which names no IBAN by definition: its views are materialised a few
+   * steps further on, by grantBerlinGroupAvailableAccountsAccess, and against this same PSU's own
+   * holdings. So there is nothing for this check to compare and nothing it could wrongly let
+   * through.
    */
   def assertBerlinGroupConsentAccountsHeld(
     psu: User,
@@ -1991,27 +2034,44 @@ object Consent extends MdcLoggable {
     callContext: Option[CallContext]
   ): Future[Box[Unit]] = Future {
     implicit val dateFormats: Formats = CustomJsonFormats.formats
-    val consentAccounts: List[(String, String)] = JwtUtil.getSignedPayloadAsJson(storedConsent.jsonWebToken)
-      .map(com.openbankproject.commons.util.JsonAliases.parse(_).extract[ConsentJWT])
-      .map(_.views.map(v => (v.bank_id, v.account_id)).distinct)
-      .getOrElse(Nil)
-      .filter { case (bankId, accountId) => bankId != null && accountId != null }
+    // The Box is carried rather than flattened to Nil. "This consent names no accounts" is a
+    // legitimate state -- the availableAccounts shape described above -- and "its JWT cannot be
+    // read" is not, and a `getOrElse(Nil)` collapsed the second into the first: the guard then
+    // found nothing to object to and passed on a consent it had learned nothing about.
+    //
+    // tryo around the Box as well, because Box.map does not catch: getSignedPayloadAsJson returns a
+    // Failure only for a structurally invalid JWT, while a well-formed one carrying some other
+    // payload throws out of the extract instead. Both are the same answer here -- we cannot tell
+    // what this consent covers -- and both now reach it as a refusal rather than one as a 500.
+    val consentAccounts: Box[List[(String, String)]] = tryo {
+      JwtUtil.getSignedPayloadAsJson(storedConsent.jsonWebToken)
+        .map(com.openbankproject.commons.util.JsonAliases.parse(_).extract[ConsentJWT])
+    }.flatMap(box => box)
+      .map(_.views.map(v => (v.bank_id, v.account_id)).distinct
+        .filter { case (bankId, accountId) => bankId != null && accountId != null })
 
-    val notHeld: List[String] = consentAccounts
-      .groupBy(_._1)
-      .toList
-      .flatMap { case (bankId, pairs) =>
-        val held = AccountHolders.accountHolders.vend
-          .getAccountsHeld(BankId(bankId), psu)
-          .map(_.accountId.value)
-        pairs.map(_._2).filterNot(held.contains)
-      }
-
-    (notHeld.isEmpty, notHeld): (Boolean, List[String])
-  } flatMap { case (allHeld: Boolean, notHeld: List[String]) =>
-    Helper.booleanToFuture(
-      s"${ErrorMessages.ConsentAccountNotHeldByUser} Account(s): ${notHeld.mkString(", ")}",
-      403, callContext)(allHeld)
+    consentAccounts.map { accounts =>
+      accounts
+        .groupBy(_._1)
+        .toList
+        .flatMap { case (bankId, pairs) =>
+          val held = AccountHolders.accountHolders.vend
+            .getAccountsHeld(BankId(bankId), psu)
+            .map(_.accountId.value)
+          pairs.map(_._2).filterNot(held.contains)
+        }
+    }
+  } flatMap {
+    case Full(notHeld) =>
+      Helper.booleanToFuture(
+        s"${ErrorMessages.ConsentAccountNotHeldByUser} Account(s): ${notHeld.mkString(", ")}",
+        403, callContext)(notHeld.isEmpty)
+    case unreadable =>
+      logger.warn(
+        s"assertBerlinGroupConsentAccountsHeld: consent ${storedConsent.consentId} has no readable " +
+        s"JWT, so which accounts it covers cannot be established and the authorisation is refused: " +
+        s"$unreadable")
+      Helper.booleanToFuture(ErrorMessages.ConsentNotFound, 403, callContext)(false)
   }
 
   /**
@@ -2133,13 +2193,44 @@ object Consent extends MdcLoggable {
    * that is not local is looked up across providers and accepted only when exactly one user answers
    * to it. Two would make the header ambiguous, and choosing between them is not the ASPSP's to do
    * on the PSU's behalf.
+   *
+   * ==A deleted or locked user does not answer to it==
+   *
+   * This header names somebody the ASPSP then acts for: the PSU it resolves to is checked against
+   * the consent's accounts, an SCA challenge is minted for them and an OTP goes out to them, and the
+   * PUT twin binds the consent to them, after which it grants access to their accounts. None of that
+   * authenticates the PSU -- under Berlin Group the caller is the TPP and the PSU arrives as a header
+   * value -- so AfterApiAuth.checkUserIsDeletedOrLocked, which every authenticated request passes
+   * through, never runs on this path.
+   *
+   * A lock is the ASPSP's decision that this user may not authenticate. Resolving them here anyway
+   * routes around that decision, and nothing downstream catches it: the accounts really are theirs,
+   * so the holdings check passes. Same predicates as the canonical guard rather than a second
+   * opinion about what "usable" means.
+   *
+   * Refused as Empty, not with a reason of its own. resolvePsuIdHeader turns an unresolved header
+   * into UserNotFoundByProviderAndUsername at 401 -- the standard's PSU_CREDENTIALS_INVALID -- and a
+   * locked user has to get that same answer. A distinct "that user is locked" would tell a TPP the
+   * username exists, which is the existence oracle the consent reads were unified to close.
    */
   def findPsuByPsuId(psuId: String): Box[User] =
-    Users.users.vend.getUserByProviderAndUsername(Constant.localIdentityProvider, psuId) or {
+    Users.users.vend.getUserByProviderAndUsername(Constant.localIdentityProvider, psuId).or {
       Users.users.vend.getUsersByUsername(psuId) match {
         case theOnlyOne :: Nil => Full(theOnlyOne)
         case _                 => Empty
       }
+    }.filter { user =>
+      val unusable =
+        if (user.isDeleted.getOrElse(false)) Some(ErrorMessages.UserIsDeleted)
+        else if (LoginAttempt.userIsLocked(user.provider, user.name)) Some(ErrorMessages.UsernameHasBeenLocked)
+        else None
+      unusable.foreach { reason =>
+        logger.info(
+          s"findPsuByPsuId: PSU-ID named a user who may not act ($reason). Reported as " +
+          s"${ErrorMessages.UserNotFoundByProviderAndUsername} so the caller cannot tell that the " +
+          s"username exists.")
+      }
+      unusable.isEmpty
     }
 
   def createUKConsentJWT(
@@ -2228,8 +2319,9 @@ object Consent extends MdcLoggable {
    * bank_id/account_id, no wildcard). Call this once the PSU has selected which accounts the
    * consent applies to (currently: the UK authorise step, since OBP has no separate
    * ASPSP-hosted account-selection UI) to replace those dead rows with real per-account
-   * ConsentViews — mirroring how updateViewsOfBerlinGroupConsentJWT resolves BG's IBAN-keyed access
-   * into real accounts.
+   * ConsentViews — the same shape of step as grantBerlinGroupAvailableAccountsAccess, which
+   * resolves BG's "all of this PSU's accounts" consent into real accounts at its own authorise
+   * step.
    *
    * The JWT it writes is the consent's whole scope: resolveUKConsentPrincipal re-derives the
    * consent's AccountAccess from it on every request. So this grants nothing itself, and must keep

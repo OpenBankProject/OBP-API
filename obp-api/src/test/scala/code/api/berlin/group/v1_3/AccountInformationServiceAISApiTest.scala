@@ -494,6 +494,67 @@ class AccountInformationServiceAISApiTest extends BerlinGroupConsentFixtures {
       jsonResponse.consentId should not be (empty)
       jsonResponse.consentStatus should be (ConsentStatus.received.toString)
     }
+
+    scenario("An availableAccounts consent gains the PSU's own accounts when it is authorised", BerlinGroupV1_3, updateConsentsPsuDataTransactionAuthorisation) {
+      setPropsValues("suggested_default_sca_method" -> "DUMMY")
+
+      Given("An availableAccounts consent, which names no IBAN")
+      val requestPost = (V1_3_BG / "consents").POST <@ (user1)
+      val responsePost = makePostRequest(requestPost, write(postJsonBody))
+      responsePost.code should equal(201)
+      val consentId = responsePost.body.extract[PostConsentResponseJson].consentId
+
+      Then("Nothing can be resolved at creation: the consent is lodged with an empty view list")
+      consentViewsOf(consentId) should be (Nil)
+
+      When("The PSU answers the SCA challenge")
+      val requestStartAuthorisation = (V1_3_BG / "consents" / consentId / "authorisations").POST <@ (user1)
+      val responseStartAuthorisation = makePostRequest(requestStartAuthorisation, """{"scaAuthenticationData":""}""")
+      responseStartAuthorisation.code should be (201)
+      val authorisationId = responseStartAuthorisation.body.extract[StartConsentAuthorisationJson].authorisationId
+
+      val requestUpdatePsuData = (V1_3_BG / "consents" / consentId / "authorisations" / authorisationId).PUT <@ (user1)
+      val responseUpdatePsuData = makePutRequest(requestUpdatePsuData, """{"scaAuthenticationData":"123"}""")
+      responseUpdatePsuData.code should be (200)
+      responseUpdatePsuData.body.extract[ScaStatusResponse].scaStatus should be ("valid")
+
+      Then("The consent covers every IBAN-addressable account the authorising PSU holds, and only for reading the account list")
+      val grantedViews = consentViewsOf(consentId)
+      grantedViews should not be (empty)
+      grantedViews.map(_.view_id).distinct should be (List(SYSTEM_READ_ACCOUNTS_BERLIN_GROUP_VIEW_ID))
+      grantedViews.map(v => (v.bank_id, v.account_id)).toSet should be (ibanAddressableAccountsHeldBy(resourceUser1))
+
+      And("The account list it serves is not empty — before the views were materialised here, an authorised availableAccounts consent answered with nothing")
+      ibanAddressableAccountsHeldBy(resourceUser1) should not be (empty)
+    }
+
+    scenario("Authorising a consent that names one IBAN does not widen it to the PSU's other accounts", BerlinGroupV1_3, updateConsentsPsuDataTransactionAuthorisation) {
+      setPropsValues("suggested_default_sca_method" -> "DUMMY")
+
+      Given("A consent narrowed to a single IBAN, and a PSU who holds more than that one account")
+      ibanAddressableAccountsHeldBy(resourceUser1).size should be > 1
+      val requestPost = (V1_3_BG / "consents").POST <@ (user1)
+      val responsePost = makePostRequest(requestPost, write(bgConsentPostBody()))
+      responsePost.code should equal(201)
+      val consentId = responsePost.body.extract[PostConsentResponseJson].consentId
+      val viewsAtCreation = consentViewsOf(consentId)
+      viewsAtCreation should not be (empty)
+
+      When("The PSU authorises it")
+      val requestStartAuthorisation = (V1_3_BG / "consents" / consentId / "authorisations").POST <@ (user1)
+      val responseStartAuthorisation = makePostRequest(requestStartAuthorisation, """{"scaAuthenticationData":""}""")
+      responseStartAuthorisation.code should be (201)
+      val authorisationId = responseStartAuthorisation.body.extract[StartConsentAuthorisationJson].authorisationId
+
+      val requestUpdatePsuData = (V1_3_BG / "consents" / consentId / "authorisations" / authorisationId).PUT <@ (user1)
+      val responseUpdatePsuData = makePutRequest(requestUpdatePsuData, """{"scaAuthenticationData":"123"}""")
+      responseUpdatePsuData.code should be (200)
+
+      Then("Its accounts are exactly the ones it named. This is the availableAccounts test's mirror image: " +
+        "the predicate that decides whether to resolve the PSU's holdings must read the value of " +
+        "availableAccounts, not merely whether an access object is present — every consent carries one")
+      consentViewsOf(consentId) should be (viewsAtCreation)
+    }
   }
 
   feature(s"BG v1.3 - $createConsent") {
