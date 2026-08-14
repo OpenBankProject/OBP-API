@@ -36,11 +36,14 @@ import net.liftweb.common.Box.tryo
 import net.liftweb.common.{EmptyBox, Full}
 import com.openbankproject.commons.util.json
 
-import scala.collection.GenTraversableLike
+import scala.collection.compat._
 import scala.reflect.runtime.universe
 
 object SwaggerJSONFactory extends MdcLoggable {
-  type Coll[T] = GenTraversableLike[T, _]
+  // GenTraversableLike is gone in 2.13. This alias only ever feeds reflective subtype tests
+  // against declared field types - List[X], Seq[X], Set[X] - and every one of those is an
+  // Iterable[X], so the tests keep selecting the same fields.
+  type Coll[T] = Iterable[T]
 
   /**
    * Escapes a string value to be safely included in JSON.
@@ -371,7 +374,7 @@ object SwaggerJSONFactory extends MdcLoggable {
     //        "400": {
     //          "description": "Error",
     //          "schema": {"$ref": "#/definitions/Error"
-    val paths: ListMap[String, Map[String, OperationObjectJson]] = resourceDocList.groupBy(x => x.specified_url).toSeq.sortBy(x => x._1).map { mrd =>
+    val pathPairs = resourceDocList.groupBy(x => x.specified_url).toSeq.sortBy(x => x._1).map { mrd =>
       
       //`/banks/BANK_ID` --> `/obp/v3.0.0/banks/BANK_ID` 
       val pathAddedObpandVersion = mrd._1
@@ -583,7 +586,11 @@ object SwaggerJSONFactory extends MdcLoggable {
         )
       ).toMap
       (path, operationObjects.toSeq.sortBy(m => m._1).toMap)
-    }(collection.breakOut)
+    // breakOut is removed in 2.13. Collecting the pairs and handing them to ListMap builds the
+    // same value on both versions, at the cost of one intermediate sequence that breakOut avoided.
+    // Order is unaffected: the sortBy above fixes it and ListMap preserves insertion order.
+    }
+    val paths: ListMap[String, Map[String, OperationObjectJson]] = ListMap(pathPairs: _*)
 
     SwaggerResourceDoc(
       swagger = "2.0",

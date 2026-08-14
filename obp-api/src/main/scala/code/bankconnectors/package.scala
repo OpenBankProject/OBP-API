@@ -20,7 +20,6 @@ import net.liftweb.util.Helpers.now
 import net.liftweb.util.ThreadGlobal
 
 import scala.collection.mutable.ArrayBuffer
-import scala.collection.GenTraversableOnce
 import scala.concurrent.Future
 import scala.reflect.runtime.universe.{MethodSymbol, Type, typeOf}
 import scala.util.{Success => TrySuccess, Failure => TryFailure}
@@ -339,14 +338,14 @@ package object bankconnectors extends MdcLoggable {
       case Unit | null => value
       case v @(_: EmptyBox, Some(_:CallContext) | None) => v
       case n @(_:EmptyBox | None |  Array()) => n
-      case n : GenTraversableOnce[_] if n.isEmpty => n
+      case n : Iterable[_] if n.isEmpty => n
 
       // all the follow return value need do validation of requied fields.
-      case coll @(_:Array[_] | _: ArrayBuffer[_] | _: GenTraversableOnce[_]) =>
+      case coll @(_:Array[_] | _: ArrayBuffer[_] | _: Iterable[_]) =>
         val elementTpe = returnType.typeArgs.head
         validate(value, elementTpe, coll, apiVersion, None, false)
 
-      case Full((coll: GenTraversableOnce[_], cc: Option[_]))
+      case Full((coll: Iterable[_], cc: Option[_]))
         if coll.nonEmpty && returnType <:< typeOf[Box[(_, Option[CallContext])]] =>
         val elementTpe = getNestTypeArg(returnType, 0, 0, 0)
         val callContext = cc.asInstanceOf[Option[CallContext]]
@@ -364,19 +363,19 @@ package object bankconnectors extends MdcLoggable {
         validateMultiple(value, apiVersion)(v1 -> tpe1, v2 -> tpe2)
 
       // return type is: Box[List[(ProductCollectionItem, Product, List[ProductAttribute])]]
-      case Full(coll: Traversable[_])
+      case Full(coll: Iterable[_])
         if coll.nonEmpty &&
-          getNestTypeArg(returnType, 0, 0) <:< typeOf[(_, _, GenTraversableOnce[_])] =>
+          getNestTypeArg(returnType, 0, 0) <:< typeOf[(_, _, Iterable[_])] =>
         val tpe1 = getNestTypeArg(returnType, 0, 0, 0)
         val tpe2 = getNestTypeArg(returnType, 0, 0, 1)
         val tpe3 = getNestTypeArg(returnType, 0, 0, 2, 0)
-        val collTuple = coll.asInstanceOf[Traversable[(_, _, _)]]
+        val collTuple = coll.asInstanceOf[Iterable[(_, _, _)]]
         val v1 = collTuple.map(_._1)
         val v2 = collTuple.map(_._2)
         val v3 = collTuple.map(_._3)
         validateMultiple(value, apiVersion)(v1 -> tpe1, v2 -> tpe2, v3 -> tpe3)
 
-      case Full(coll: GenTraversableOnce[_]) if coll.nonEmpty =>
+      case Full(coll: Iterable[_]) if coll.nonEmpty =>
         val elementTpe = getNestTypeArg(returnType, 0, 0)
         validate(value, elementTpe, coll, apiVersion)
 
