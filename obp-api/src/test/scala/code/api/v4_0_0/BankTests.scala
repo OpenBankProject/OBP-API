@@ -21,11 +21,11 @@ import scala.concurrent.duration._
 
 class BankTests extends V400ServerSetup with DefaultUsers {
 
-   override def beforeAll() {
+   override def beforeAll(): Unit = {
      super.beforeAll()
    }
 
-   override def afterAll() {
+   override def afterAll(): Unit = {
      super.afterAll()
    }
 

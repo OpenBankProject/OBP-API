@@ -14,7 +14,7 @@ class MappedUserCustomerLinkProviderTest extends ServerSetup {
 
     def userCustomerLink(userId: String, customerId: String) = UserCustomerLink.userCustomerLink.vend.createUserCustomerLink(userId, customerId, new Date(12340000), true)
 
-  private def delete() {
+  private def delete(): Unit = {
     UserCustomerLink.userCustomerLink.vend.bulkDeleteUserCustomerLinks()
   }
 

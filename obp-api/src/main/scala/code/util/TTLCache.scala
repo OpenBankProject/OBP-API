@@ -43,7 +43,7 @@ class Cache[K <: String, V <: AnyRef](cache: GuavaCache[K,V]) extends Caching[K,
     * @param k key
     * @param v value
     */
-  def set(k: K, v: V) {
+  def set(k: K, v: V): Unit = {
     cache.put(k, v)
   }
 
@@ -52,7 +52,7 @@ class Cache[K <: String, V <: AnyRef](cache: GuavaCache[K,V]) extends Caching[K,
     *
     * @param k the key to evict
     */
-  def remove(k: K) {
+  def remove(k: K): Unit = {
     cache.invalidate(k)
   }
 
@@ -60,7 +60,7 @@ class Cache[K <: String, V <: AnyRef](cache: GuavaCache[K,V]) extends Caching[K,
     * Clear all items in the cache
     *
     */
-  def clear() {
+  def clear(): Unit = {
     cache.invalidateAll()
   }
 

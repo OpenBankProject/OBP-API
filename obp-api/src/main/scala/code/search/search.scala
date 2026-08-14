@@ -245,7 +245,7 @@ class elasticsearchMetrics extends elasticsearch {
     }
   }
 
-  def indexMetric(userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String, correlationId: String, apiInstanceId: String) {
+  def indexMetric(userId: String, url: String, date: Date, duration: Long, userName: String, appName: String, developerEmail: String, correlationId: String, apiInstanceId: String): Unit = {
     if (APIUtil.getPropsAsBoolValue("allow_elasticsearch", false) && APIUtil.getPropsAsBoolValue("allow_elasticsearch_metrics", false) ) {
       try {
         import com.sksamuel.elastic4s.ElasticDsl._

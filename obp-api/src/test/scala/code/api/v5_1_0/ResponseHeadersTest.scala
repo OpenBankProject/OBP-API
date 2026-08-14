@@ -17,11 +17,11 @@ import org.scalatest.Tag
 
 class ResponseHeadersTest extends V510ServerSetup with DefaultUsers {
 
-   override def beforeAll() {
+   override def beforeAll(): Unit = {
      super.beforeAll()
    }
 
-   override def afterAll() {
+   override def afterAll(): Unit = {
      super.afterAll()
    }
 

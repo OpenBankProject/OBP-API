@@ -37,11 +37,11 @@ class CustomerTest extends V200ServerSetup with DefaultUsers {
   }
 
 
-  override def beforeAll() {
+  override def beforeAll(): Unit = {
     super.beforeAll()
   }
 
-  override def afterAll() {
+  override def afterAll(): Unit = {
     super.afterAll()
     CustomerX.customerProvider.vend.bulkDeleteCustomers()
     UserCustomerLink.userCustomerLink.vend.bulkDeleteUserCustomerLinks()

@@ -1795,7 +1795,7 @@ class API1_2_1Test extends ServerSetupWithTestData with DefaultUsers with Privat
       reply.code should equal (200)
       val permissions = reply.body.extract[PermissionsJSON]
 
-      def stringNotEmpty(s : String) {
+      def stringNotEmpty(s : String): Unit = {
         s should not equal null
         s should not equal ""
       }
