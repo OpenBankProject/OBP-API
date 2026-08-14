@@ -347,8 +347,8 @@ object JSONFactory1_4_0 extends MdcLoggable{
                              summary: String,
                              description: String, //This will be a `HTML` format.
                              description_markdown: String,// This will be a `MARK_DOWN` format.
-                             example_request_body: scala.Product,
-                             success_response_body: scala.Product,
+                             example_request_body: Any,
+                             success_response_body: Any,
                              error_response_bodies: List[String],
                              tags: List[String],
                              typed_request_body: JValue, //JSON Schema --> https://spacetelescope.github.io/understanding-json-schema/index.html
@@ -482,39 +482,38 @@ object JSONFactory1_4_0 extends MdcLoggable{
   }
   }
 
-  def getAllFields(jsonBody: scala.Product): List[Field] = {
-    def loopAllFields(rootFields: List[Field]) = {
+  def getAllFields(jsonBody: Any): List[Field] = {
+    def loopAllFields(product: scala.Product, rootFields: List[Field]) = {
       val fields = for {
-        field <- jsonBody.productIterator.toList if (field.isInstanceOf[scala.Product] && field != jsonBody)
+        field <- product.productIterator.toList if (field.isInstanceOf[scala.Product] && field != product)
         fields = getAllFields(field.asInstanceOf[scala.Product])
       } yield
         fields
       (rootFields ++ fields.flatten).toSet.toList
     }
 
-    //The root level is a list: eg: List[Users]
-    if(jsonBody.isInstanceOf[List[Any]] && jsonBody.productIterator.toList.nonEmpty){
-      val rootFields: List[Field] = jsonBody.productIterator.toSet.head.getClass.getDeclaredFields.toList
-      loopAllFields(rootFields)
-    }else {
-      jsonBody match {
-        case JvalueCaseClass(jValue) =>
-          val types = Nil
-          types
-        case _ =>
-          val rootFields: List[Field] = jsonBody.getClass().getDeclaredFields().toSet.toList
-          loopAllFields(rootFields)
-      }
+    jsonBody match {
+      // A root-level collection - eg List[Users] - documents the fields of what it holds, not of
+      // the collection. Any, rather than scala.Product, because 2.13's List is not a Product: on
+      // 2.12 this arrived through productIterator, and `head` was picked out of a Set of two, so
+      // the tail could win the coin toss and the fields came out wrong. Reading .head is both
+      // version-independent and deterministic.
+      case coll: Iterable[_] =>
+        coll.headOption.map(getAllFields).getOrElse(Nil)
+      case JvalueCaseClass(_) => Nil
+      case product: scala.Product =>
+        loopAllFields(product, product.getClass().getDeclaredFields().toSet.toList)
+      case _ => Nil
     }
   }
   
-  def checkFieldOption(jsonBody: scala.Product, rootFields: List[Field]) = {
+  def checkFieldOption(jsonBody: Any, rootFields: List[Field]) = {
     val types = rootFields.map(f => (f.getName(), f.getType().getCanonicalName().contains("Option")))
     (decompose(jsonBody), types)
   }
   
     
-  def prepareJsonFieldDescription(jsonBody: scala.Product, jsonType: String, jsonRequestBodyFieldsI18n: String, jsonResponseBodyFieldsI18n: String): String = {
+  def prepareJsonFieldDescription(jsonBody: Any, jsonType: String, jsonRequestBodyFieldsI18n: String, jsonResponseBodyFieldsI18n: String): String = {
     val allFields = getAllFields(jsonBody)
     val (jsonBodyJValue: json.JValue, allFieldsAndOptionStatus) = checkFieldOption(jsonBody, allFields)
     // Group by is mandatory criteria and sort those 2 groups by name of the field
@@ -910,7 +909,7 @@ object JSONFactory1_4_0 extends MdcLoggable{
     definition
   }
   
-  def createTypedBody(exampleRequestBody: scala.Product): JValue = {
+  def createTypedBody(exampleRequestBody: Any): JValue = {
     def res = translateEntity(exampleRequestBody,false)
     exampleRequestBody match {
       case EmptyBody => JNothing

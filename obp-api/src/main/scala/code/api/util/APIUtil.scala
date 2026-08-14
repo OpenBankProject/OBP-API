@@ -1556,24 +1556,6 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   case class BigIntBody(value: BigInt) extends PrimaryDataBody[BigInt]
   case class JArrayBody(value: JArray) extends PrimaryDataBody[JArray]
 
-  /**
-   * Documents a body that is a JSON array of entities rather than an object.
-   *
-   * Some ResourceDocs used to pass a bare List for this. That compiled on 2.12 only because
-   * List extended Product there, and it was never right: getAllFields walks the value with
-   * productIterator, and a List's product elements are `head` and `tl`, so those endpoints
-   * documented two fields by those names instead of the entity's own. 2.13 drops
-   * List <: Product and turns the mistake into a compile error.
-   *
-   * JArrayBody is what the codebase already provides for array-shaped bodies - its
-   * swaggerDataTypeName is "array" and createTypedBody unwraps PrimaryDataBody - so the
-   * rendered example keeps its array shape.
-   */
-  def jArrayBodyOf(values: List[Any]): JArrayBody = {
-    implicit val formats: Formats = CustomJsonFormats.formats
-    JArrayBody(JArray(values.map(Extraction.decompose)))
-  }
-
   object ResourceDoc{
     private val operationIdToResourceDoc: ConcurrentHashMap[String, ResourceDoc] = new ConcurrentHashMap[String, ResourceDoc]
 
@@ -1613,8 +1595,12 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
                           requestUrl: String, // The URL. THIS GETS MODIFIED TO include the implemented in prefix e.g. /obp/vX.X). Starts with / No trailing slash.
                           summary: String, // A summary of the call (originally taken from code comment) SHOULD be under 120 chars to be inline with Swagger
                           var description: String, // Longer description (originally taken from github wiki)
-                          exampleRequestBody: scala.Product, // An example of the request body, any type of: case class, JObject, EmptyBody or sub type of PrimaryDataBody, PrimaryDataBody is for primary type
-                          successResponseBody: scala.Product, // A successful response body, any type of: case class, JObject, EmptyBody or sub type of PrimaryDataBody, PrimaryDataBody is for primary type
+                          // Any rather than scala.Product: 2.12's List was a Product and 2.13's is
+                          // not, and a list is a legitimate body here - getAllFields has always had
+                          // a branch for one. The bound never bought type safety anyway; these
+                          // values are reflected over and serialised, never read as products.
+                          exampleRequestBody: Any, // An example of the request body, any type of: case class, List, JObject, EmptyBody or sub type of PrimaryDataBody, PrimaryDataBody is for primary type
+                          successResponseBody: Any, // A successful response body, any type of: case class, List, JObject, EmptyBody or sub type of PrimaryDataBody, PrimaryDataBody is for primary type
                           var errorResponseBodies: List[String], // Possible error responses
                           tags: List[ResourceDocTag],
                           var roles: Option[List[ApiRole]] = None,

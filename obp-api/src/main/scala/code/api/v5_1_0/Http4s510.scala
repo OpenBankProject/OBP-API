@@ -3348,7 +3348,7 @@ object Http4s510 {
       |
       |""",
       postCreateUserAccountAccessJsonV400,
-      jArrayBodyOf(List(viewJsonV300)),
+      List(viewJsonV300),
       List($AuthenticatedUserIsRequired, $BankNotFound, $BankAccountNotFound, $UserNoPermissionAccessView,
       UserLacksPermissionCanGrantAccessToSystemViewForTargetAccount,
       UserLacksPermissionCanGrantAccessToCustomViewForTargetAccount,

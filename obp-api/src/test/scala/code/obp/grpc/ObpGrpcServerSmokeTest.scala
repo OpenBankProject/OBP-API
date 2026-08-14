@@ -34,13 +34,26 @@ class ObpGrpcServerSmokeTest extends ServerSetupWithTestData {
 
   private var grpcServer: ObpGrpcServer = _
   private var channel: ManagedChannel = _
+  private var grpcPort: Int = _
+
+  /**
+   * An ephemeral port rather than the configured one. Shards run as parallel JVMs, and two of them
+   * starting this server on the same port aborts one of the runs with a BindException - which is
+   * what happens today with the default, and why every other server-starting suite here takes its
+   * port from the shard rather than from a global.
+   */
+  private def freePort(): Int = {
+    val socket = new java.net.ServerSocket(0)
+    try socket.getLocalPort finally socket.close()
+  }
 
   override def beforeAll(): Unit = {
     super.beforeAll()
-    grpcServer = new ObpGrpcServer(scala.concurrent.ExecutionContext.global)
+    grpcPort = freePort()
+    grpcServer = new ObpGrpcServer(scala.concurrent.ExecutionContext.global, grpcPort)
     grpcServer.start()
     channel = ManagedChannelBuilder
-      .forAddress("localhost", ObpGrpcServer.port)
+      .forAddress("localhost", grpcPort)
       .usePlaintext()
       .asInstanceOf[ManagedChannelBuilder[_]]
       .build()

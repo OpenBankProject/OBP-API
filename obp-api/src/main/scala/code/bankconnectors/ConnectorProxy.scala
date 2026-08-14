@@ -20,8 +20,14 @@ import net.bytebuddy.matcher.ElementMatchers
  * `Connector` is a trait, so the generated class implements it rather than extending it - both
  * Enhancer.setSuperclass and ByteBuddy.subclass accept an interface and do the right thing.
  *
- * Every virtual method is intercepted, which is what Enhancer with a single callback did, so the
- * handlers keep seeing exactly the calls they saw before, Object's methods included.
+ * Object's own methods are left alone. Enhancer routed them to the callback as well, and for two of
+ * the three handlers that was harmless because they forward by `method.invoke(delegate, ...)`. It
+ * was not harmless for InternalConnector, whose handler reads any unrecognised name as a dynamic
+ * connector method to look up and compile: toString, hashCode and equals on that proxy all threw
+ * IllegalStateException, so logging the connector, interpolating it into a string, or using it as a
+ * map key blew up. Excluding them gives the generated class the ordinary Object implementations,
+ * which is also what makes proxy identity behave - reference equality, and a toString that does not
+ * depend on a delegate.
  *
  * One difference between proxy libraries is worth stating, because all three handlers forward with
  * `method.invoke(target, args: _*)` and that expression throws on a null array:
@@ -36,7 +42,7 @@ private[bankconnectors] object ConnectorProxy {
   def create(handler: InvocationHandler): Connector =
     new ByteBuddy()
       .subclass(classOf[Connector])
-      .method(ElementMatchers.any())
+      .method(ElementMatchers.any().and(ElementMatchers.not(ElementMatchers.isDeclaredBy(classOf[Object]))))
       .intercept(InvocationHandlerAdapter.of(handler))
       .make()
       // WRAPPER puts the generated class in a child class loader of the one that defines Connector.

@@ -88,6 +88,7 @@ class JSONFactory1_4_0_LightTest extends FeatureSpec
     
     scenario("getJValueAndAllFields -input it the complexNestedClass") {
       val listFields: List[Field] = JSONFactory1_4_0.getAllFields(complexNestedClass)
+      val fieldNames = listFields.map(_.getName)
 
       // The assertions that named library and JDK internals - Nil$.MODULE$, None$, Some.value,
       // $outer, java.lang.String.hash and its serialVersionUID - are gone. They pinned reflection
@@ -95,14 +96,14 @@ class JSONFactory1_4_0_LightTest extends FeatureSpec
       // one of them even asserted that String.hash appears immediately before the entity's own
       // field. What remains checks the fields the entities actually declare.
       
-       listFields.toString contains ("private final java.lang.String code.api.v1_4_0.JSONFactory1_4_0_LightTest$ComplexNestedClass$1.complexNestedClassString, ") shouldBe  (true)
-       listFields.toString contains ("private final int code.api.v1_4_0.JSONFactory1_4_0_LightTest$ComplexNestedClass$1.complexNestedClassInt, ") shouldBe (true)
-       listFields.toString contains ("private final scala.collection.immutable.List code.api.v1_4_0.JSONFactory1_4_0_LightTest$ComplexNestedClass$1.classes2, ") shouldBe (true)
-       listFields.toString contains ("private final java.lang.String code.api.v1_4_0.JSONFactory1_4_0_LightTest$ClassTwo$1.string2, ") shouldBe (true)
-       listFields.toString contains ("private final scala.Option code.api.v1_4_0.JSONFactory1_4_0_LightTest$ComplexNestedClass$1.complexNestedClassOptionSomeInt") shouldBe (true)
-       listFields.toString contains ("private final java.util.Date code.api.v1_4_0.JSONFactory1_4_0_LightTest$ComplexNestedClass$1.complexNestedClassDate, ") shouldBe (true)
-       listFields.toString contains ("private final scala.collection.immutable.List code.api.v1_4_0.JSONFactory1_4_0_LightTest$ClassTwo$1.strings2, ") shouldBe (true)
-       listFields.toString contains ("private final scala.Option code.api.v1_4_0.JSONFactory1_4_0_LightTest$ComplexNestedClass$1.complexNestedClassOptionNoneIn") shouldBe (true)
+       fieldNames should contain ("complexNestedClassString")
+       fieldNames should contain ("complexNestedClassInt")
+       fieldNames should contain ("classes2")
+       fieldNames should contain ("string2")
+       fieldNames should contain ("complexNestedClassOptionSomeInt")
+       fieldNames should contain ("complexNestedClassDate")
+       fieldNames should contain ("strings2")
+       fieldNames should contain ("complexNestedClassOptionNoneInt")
 //      println(listFields)
     }
 

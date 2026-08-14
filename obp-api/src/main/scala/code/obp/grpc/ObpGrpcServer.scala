@@ -38,7 +38,10 @@ object ObpGrpcServer {
   val port = APIUtil.getPropsAsIntValue("grpc.server.port", 50051)
 }
 
-class ObpGrpcServer(executionContext: ExecutionContext) extends MdcLoggable { self =>
+// The port is a constructor parameter defaulting to the configured one, so a test can bind an
+// ephemeral port instead of the single global. Shards run as parallel JVMs, and two of them
+// starting this server on the same port aborts one run with a BindException.
+class ObpGrpcServer(executionContext: ExecutionContext, port: Int = ObpGrpcServer.port) extends MdcLoggable { self =>
   private[this] var server: Server = null
   def start(): Unit = {
 
@@ -51,7 +54,7 @@ class ObpGrpcServer(executionContext: ExecutionContext) extends MdcLoggable { se
     // Start metrics event bus (no-op if grpc.metrics_stream.enabled=false)
     code.metricsstream.MetricsEventBus.start()
 
-    val baseBuilder = ServerBuilder.forPort(ObpGrpcServer.port)
+    val baseBuilder = ServerBuilder.forPort(port)
       .addService(ObpServiceGrpc.bindService(ObpServiceImpl, executionContext))
       .addService(code.obp.grpc.chat.api.ChatStreamServiceGrpc.bindService(
         code.obp.grpc.chat.ChatStreamServiceImpl, executionContext))
@@ -71,7 +74,7 @@ class ObpGrpcServer(executionContext: ExecutionContext) extends MdcLoggable { se
        else withLogCache)
       .asInstanceOf[ServerBuilder[_]]
     server = serverBuilder.build.start;
-    logger.info("Server started, listening on " + ObpGrpcServer.port)
+    logger.info("Server started, listening on " + port)
     sys.addShutdownHook {
       System.err.println("*** shutting down gRPC server since JVM is shutting down")
       self.stop()
