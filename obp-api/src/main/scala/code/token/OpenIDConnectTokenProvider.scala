@@ -4,7 +4,7 @@ import net.liftweb.common.Box
 import net.liftweb.util.SimpleInjector
 
 object TokensOpenIDConnect extends SimpleInjector {
-  val tokens = new Inject(buildOne _) {}
+  val tokens = new Inject(() => buildOne) {}
   def buildOne: OpenIDConnectTokensProvider = MappedOpenIDConnectTokensProvider
 }
 

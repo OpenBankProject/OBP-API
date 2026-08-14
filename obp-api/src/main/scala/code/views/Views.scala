@@ -13,7 +13,7 @@ import scala.concurrent.Future
 
 object Views  extends SimpleInjector {
 
-  val views = new Inject(buildOne _) {}
+  val views = new Inject(() => buildOne) {}
  
   def buildOne: Views = MapperViews
  

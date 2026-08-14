@@ -12,7 +12,7 @@ import scala.concurrent.Future
 
 object Nonces extends SimpleInjector {
 
-  val nonces = new Inject(buildOne _) {}
+  val nonces = new Inject(() => buildOne) {}
 
   def buildOne: NoncesProvider = MappedNonceProvider
   

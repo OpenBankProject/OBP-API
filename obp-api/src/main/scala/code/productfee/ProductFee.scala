@@ -13,7 +13,7 @@ import scala.math.BigDecimal
 
 object ProductFeeX extends SimpleInjector {
 
-  val productFeeProvider = new Inject(buildOne _) {}
+  val productFeeProvider = new Inject(() => buildOne) {}
 
   def buildOne: ProductFeeProvider = MappedProductFeeProvider
 

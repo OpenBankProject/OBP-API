@@ -5,7 +5,7 @@
 //
 //
 //object Authorisations extends SimpleInjector {
-//  val authorisationProvider = new Inject(buildOne _) {}
+//  val authorisationProvider = new Inject(() => buildOne) {}
 //  def buildOne: AuthorisationProvider = MappedAuthorisationProvider
 //}
 //

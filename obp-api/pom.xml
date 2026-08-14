@@ -701,6 +701,11 @@
             <args>
               <arg>-deprecation</arg>
               <arg>-feature</arg>
+              <!-- This module declares its own <args>, which replaces rather than
+                   extends the list in the parent pom, so -Xsource:2.13 has to be
+                   repeated here. See the parent pom for what the flag does and does
+                   not cover. -->
+              <arg>-Xsource:2.13</arg>
             </args>
           </configuration>
         </plugin>

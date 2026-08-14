@@ -10,7 +10,7 @@ import scala.concurrent.Future
 
 object ProductCollectionX extends SimpleInjector {
 
-  val productCollection = new Inject(buildOne _) {}
+  val productCollection = new Inject(() => buildOne) {}
 
   def buildOne: ProductCollectionProvider = MappedProductCollectionProvider 
   

@@ -10,7 +10,7 @@ import scala.concurrent.Future
 
 object AccountApplicationX extends SimpleInjector {
 
-  val accountApplication = new Inject(buildOne _) {}
+  val accountApplication = new Inject(() => buildOne) {}
 
   def buildOne: AccountApplicationProvider = MappedAccountApplicationProvider
   

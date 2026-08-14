@@ -10,7 +10,7 @@ import scala.concurrent.Future
 
 object CustomerLinkX extends SimpleInjector {
 
-  val customerLink = new Inject(buildOne _) {}
+  val customerLink = new Inject(() => buildOne) {}
 
   def buildOne: CustomerLinkProvider = MappedCustomerLinkProvider
 

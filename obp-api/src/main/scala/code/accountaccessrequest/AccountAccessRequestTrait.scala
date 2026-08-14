@@ -5,7 +5,7 @@ import net.liftweb.common.Box
 import net.liftweb.util.SimpleInjector
 
 object AccountAccessRequestTrait extends SimpleInjector {
-  val accountAccessRequest = new Inject(buildOne _) {}
+  val accountAccessRequest = new Inject(() => buildOne) {}
 
   def buildOne: AccountAccessRequestProvider = MappedAccountAccessRequestProvider
 }

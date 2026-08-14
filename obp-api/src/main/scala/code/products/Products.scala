@@ -12,7 +12,7 @@ import com.openbankproject.commons.model.Product
 
 object Products extends SimpleInjector {
 
-  val productsProvider = new Inject(buildOne _) {}
+  val productsProvider = new Inject(() => buildOne) {}
 
   def buildOne: ProductsProvider = MappedProductsProvider
 

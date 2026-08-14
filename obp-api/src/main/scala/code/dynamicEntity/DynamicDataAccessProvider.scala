@@ -11,7 +11,7 @@ import net.liftweb.util.SimpleInjector
  * per-entity owner/community scope. See ideas/DYNAMIC_ENTITY_ROW_LEVEL_ACCESS.md.
  */
 object DynamicDataAccessProvider extends SimpleInjector {
-  val provider = new Inject(buildOne _) {}
+  val provider = new Inject(() => buildOne) {}
   def buildOne: MappedDynamicDataAccessProvider.type = MappedDynamicDataAccessProvider
 }
 

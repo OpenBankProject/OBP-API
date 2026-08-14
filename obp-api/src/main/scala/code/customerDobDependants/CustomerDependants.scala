@@ -8,7 +8,7 @@ import scala.collection.immutable.List
 
 object CustomerDependants extends SimpleInjector {
 
-  val CustomerDependants = new Inject(buildOne _) {}
+  val CustomerDependants = new Inject(() => buildOne) {}
 
   def buildOne: CustomerDependants = MappedCustomerDependants
 

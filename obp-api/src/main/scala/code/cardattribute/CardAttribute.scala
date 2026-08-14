@@ -13,7 +13,7 @@ import scala.concurrent.Future
 
 object CardAttributeX extends SimpleInjector {
 
-  val cardAttributeProvider = new Inject(buildOne _) {}
+  val cardAttributeProvider = new Inject(() => buildOne) {}
 
   def buildOne: CardAttributeProvider = MappedCardAttributeProvider
   // Helper to get the count out of an option

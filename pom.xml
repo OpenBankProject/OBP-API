@@ -243,6 +243,11 @@
               <arg>-explaintypes</arg>
               -->
               <arg>-Ypartial-unification</arg>
+              <!-- Compile 2.12 sources under 2.13 language rules, so constructs that
+                   change meaning in 2.13 are reported here rather than at the version
+                   flip. Note this covers language semantics only: it does not report
+                   uses of collection types 2.13 removes outright. -->
+              <arg>-Xsource:2.13</arg>
               <!-- Parallel compilation optimization -->
               <arg>-Ybackend-parallelism</arg>
               <arg>4</arg>

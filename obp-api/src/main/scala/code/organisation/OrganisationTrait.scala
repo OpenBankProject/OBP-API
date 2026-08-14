@@ -6,7 +6,7 @@ import net.liftweb.util.SimpleInjector
 import scala.concurrent.Future
 
 object Organisations extends SimpleInjector {
-  val organisation = new Inject(buildOne _) {}
+  val organisation = new Inject(() => buildOne) {}
 
   def buildOne: OrganisationProvider = MappedOrganisationProvider
 }

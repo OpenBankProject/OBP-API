@@ -22,7 +22,7 @@ import scala.util.matching.Regex
 
 object DynamicEntityProvider extends SimpleInjector {
 
-  val connectorMethodProvider = new Inject(buildOne _) {}
+  val connectorMethodProvider = new Inject(() => buildOne) {}
 
   def buildOne: MappedDynamicEntityProvider.type = MappedDynamicEntityProvider
 }

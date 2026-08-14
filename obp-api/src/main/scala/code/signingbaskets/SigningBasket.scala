@@ -7,7 +7,7 @@ import net.liftweb.util.SimpleInjector
 import code.util.Helper.MdcLoggable
 
 object SigningBasketX extends SimpleInjector {
-  val signingBasketProvider: SigningBasketX.Inject[SigningBasketProvider] = new Inject(buildOne _) {}
+  val signingBasketProvider: SigningBasketX.Inject[SigningBasketProvider] = new Inject(() => buildOne) {}
   private def buildOne: SigningBasketProvider = MappedSigningBasketProvider
 }
 

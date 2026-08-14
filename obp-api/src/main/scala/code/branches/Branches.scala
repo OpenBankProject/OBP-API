@@ -191,7 +191,7 @@ object Branches extends SimpleInjector {
 
 
 
-  val branchesProvider = new Inject(buildOne _) {}
+  val branchesProvider = new Inject(() => buildOne) {}
 
   def buildOne: BranchesProvider = MappedBranchesProvider
 

@@ -10,7 +10,7 @@ import net.liftweb.util.{Props, SimpleInjector}
 
 object Tags  extends SimpleInjector {
 
-  val tags = new Inject(buildOne _) {}
+  val tags = new Inject(() => buildOne) {}
 
   def buildOne: Tags = MappedTags
   

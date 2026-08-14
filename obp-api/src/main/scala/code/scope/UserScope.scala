@@ -5,7 +5,7 @@ import net.liftweb.util.SimpleInjector
 
 object UserScope extends SimpleInjector {
 
-  val userScope = new Inject(buildOne _) {}
+  val userScope = new Inject(() => buildOne) {}
 
   def buildOne: UserScopeProvider = MappedUserScopeProvider
 }
