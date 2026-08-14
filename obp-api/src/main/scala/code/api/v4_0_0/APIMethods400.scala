@@ -101,7 +101,7 @@ trait APIMethods400
 //import java.text.SimpleDateFormat
 //import java.util
 //import java.util.{Calendar, Date}
-//import scala.collection.JavaConverters._
+//import scala.jdk.CollectionConverters._
 //import scala.collection.immutable.{List, Nil}
 //import scala.collection.mutable.ArrayBuffer
 //import scala.concurrent.Future

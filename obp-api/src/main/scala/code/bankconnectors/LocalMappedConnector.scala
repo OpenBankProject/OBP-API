@@ -90,7 +90,7 @@ import code.api.util.DoobieUtil
 import java.util.Date
 import java.util.UUID.randomUUID
 import scala.collection.immutable.{List, Nil}
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.concurrent._
 import scala.concurrent.duration._
 import scala.language.postfixOps

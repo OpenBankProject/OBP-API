@@ -36,7 +36,7 @@ import com.openbankproject.commons.model.enums.DynamicEntityOperation.GET_ALL
 import io.swagger.v3.oas.models.examples.Example
 import org.json4s.{Formats, JBool}
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.collection.immutable.List
 import scala.collection.mutable
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}

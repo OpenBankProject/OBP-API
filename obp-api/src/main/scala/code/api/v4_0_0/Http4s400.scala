@@ -73,7 +73,7 @@ import java.text.SimpleDateFormat
 import java.util
 import com.networknt.schema.ValidationMessage
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import code.model._   // implicit BankAccountExtended → moderatedBankAccount
 import code.model.dataAccess.AuthUser
 import code.ratelimiting.RateLimitingDI

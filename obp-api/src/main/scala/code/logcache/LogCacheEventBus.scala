@@ -8,7 +8,7 @@ import redis.clients.jedis.{Jedis, JedisPubSub, Pipeline}
 
 import java.util.concurrent.{ArrayBlockingQueue, ConcurrentHashMap, CopyOnWriteArrayList, TimeUnit}
 import java.util.concurrent.atomic.AtomicLong
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 /**
  * Redis pub/sub event bus for log cache streaming.

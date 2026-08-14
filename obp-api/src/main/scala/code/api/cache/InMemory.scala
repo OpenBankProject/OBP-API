@@ -35,7 +35,7 @@ object InMemory extends MdcLoggable {
     try {
       val regex = pattern.replace("*", ".*").r
       val allKeys = underlyingGuavaCache.asMap().keySet()
-      import scala.collection.JavaConverters._
+      import scala.jdk.CollectionConverters._
       allKeys.asScala.count(key => regex.pattern.matcher(key).matches())
     } catch {
       case e: Throwable =>

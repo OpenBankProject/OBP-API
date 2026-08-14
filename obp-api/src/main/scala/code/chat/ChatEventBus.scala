@@ -11,7 +11,7 @@ import org.json4s.native.Serialization.write
 import redis.clients.jedis.{Jedis, JedisPubSub}
 
 import java.util.concurrent.{ConcurrentHashMap, CopyOnWriteArrayList}
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 /**
  * Redis pub/sub event bus for chat real-time streaming.

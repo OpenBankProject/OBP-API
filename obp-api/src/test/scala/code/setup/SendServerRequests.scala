@@ -37,7 +37,7 @@ import org.json4s.JsonAST.JValue
 import org.json4s._
 import com.openbankproject.commons.util.JsonAliases._
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.concurrent.{ExecutionContext, Future}
 
 case class APIResponse(code: Int, body: JValue, headers: Option[OkHeaders])

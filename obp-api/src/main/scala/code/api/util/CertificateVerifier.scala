@@ -8,7 +8,7 @@ import java.security.cert._
 import java.util.{Base64, Collections}
 import javax.net.ssl.TrustManagerFactory
 import scala.io.Source
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.util.{Failure, Success, Try}
 
 object CertificateVerifier extends MdcLoggable {

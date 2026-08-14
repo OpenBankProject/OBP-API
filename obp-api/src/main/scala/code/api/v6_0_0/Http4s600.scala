@@ -99,7 +99,7 @@ import org.http4s.{Header, HttpRoutes, Request, Response, Uri}
 import org.http4s.dsl.io._
 import org.typelevel.ci.CIString
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
 
