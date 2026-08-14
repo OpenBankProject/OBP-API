@@ -106,9 +106,16 @@ class ObpGrpcServer(executionContext: ExecutionContext) extends MdcLoggable { se
           val (bankList, _) = it
           val json40: BanksJson400 = JSONFactory400.createBanksJson(bankList)
           val grpcBanks: List[BankJson400Grpc] = json40.banks.map(bank => {
-            val BankJson400(id, short_name, full_name, logo, website, bank_routings, None) = bank
-            val bankRoutingGrpcs = bank_routings.map(routings => BankRoutingJsonV121Grpc(routings.scheme, routings.address))
-            BankJson400Grpc(id, short_name, full_name, logo, website, bankRoutingGrpcs)
+            // This used to destructure with `val BankJson400(..., None) = bank`, a refutable
+            // pattern in a val definition: any bank whose attributes are Some - Some(List())
+            // included - threw a MatchError, which the client saw as INTERNAL. The attributes are
+            // not carried over the wire anyway, so read the fields instead of matching on them.
+            val bankRoutingGrpcs = bank.bank_routings.map(routings => BankRoutingJsonV121Grpc(routings.scheme, routings.address))
+            // protobuf string fields reject null, and logo and website are both nullable here.
+            def orEmpty(value: String): String = Option(value).getOrElse("")
+            BankJson400Grpc(
+              bank.id, bank.short_name, bank.full_name,
+              orEmpty(bank.logo), orEmpty(bank.website), bankRoutingGrpcs)
           })
           BanksJson400Grpc(grpcBanks)
         })
