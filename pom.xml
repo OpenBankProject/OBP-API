@@ -11,8 +11,8 @@
   <name>Open Bank Project API Parent</name>
   <inceptionYear>2011</inceptionYear>
   <properties>
-    <scala.version>2.12</scala.version>
-    <scala.compiler>2.12.21</scala.compiler>
+    <scala.version>2.13</scala.version>
+    <scala.compiler>2.13.18</scala.compiler>
     <pekko.version>1.1.5</pekko.version>
     <pekko-http.version>1.1.0</pekko-http.version>
     <avro4s.version>4.1.2</avro4s.version>
@@ -64,11 +64,21 @@
          rejected -release 25 with "'25' is not a valid choice for '-release'", and the symptom was
          read as a Scala-version limit. maven-enforcer-plugin now fails fast on that case instead.
 
-         Caveat: on Scala 2.12 this only widens the visible API surface, it does not raise the
-         class-file version. 2.12 emits Java 8 class files whatever -release says, so a Scala class
-         that calls a Java 25 method fails at run time with NoSuchMethodError instead of at load
-         time with UnsupportedClassVersionError. Getting that check back needs Scala 2.13+. javac
-         does honour it, so the .java sources under src/main/scala track this value. -->
+         On Scala 2.12 this only widened the visible API surface and did not raise the class-file
+         version: 2.12 emitted Java 8 class files whatever -release said, so a Scala class calling a
+         Java 25 method failed at run time with NoSuchMethodError rather than at load time with
+         UnsupportedClassVersionError. Scala 2.13 honours it fully and emits class files at this
+         level, so that check is now real.
+
+         The 2.13 migration planned to hold this at 8 across the flip, so that the language version
+         and the bytecode version moved in separate, separately revertible commits. That is not
+         possible: the visible API surface is not decorative even on 2.12. The sources call
+         String.isBlank (Java 11) in five places and java.io.ObjectInputFilter (Java 9) in
+         BankAccountCreationDispatcher, where it filters deserialization - and -release 8 hides
+         both, so the module does not compile. Dropping the filter to satisfy a build property
+         would trade a security control for tidiness, so the two axes move together and the
+         verification that belonged to the bytecode step - confirming the class-file level actually
+         moved, and exercising everything that reads bytecode at run time - happens on this. -->
     <scalac.release>25</scalac.release>
   </properties>
 
@@ -245,12 +255,13 @@
               <arg>-deprecation</arg>
               <arg>-explaintypes</arg>
               -->
-              <arg>-Ypartial-unification</arg>
               <!-- Compile 2.12 sources under 2.13 language rules, so constructs that
                    change meaning in 2.13 are reported here rather than at the version
                    flip. Note this covers language semantics only: it does not report
                    uses of collection types 2.13 removes outright. -->
               <arg>-Xsource:2.13</arg>
+              <!-- Replaces the paradise compiler plugin; enables macro annotations on 2.13. -->
+              <arg>-Ymacro-annotations</arg>
               <!-- Parallel compilation optimization -->
               <arg>-Ybackend-parallelism</arg>
               <arg>4</arg>
@@ -288,15 +299,9 @@
           <groupId>net.alchim31.maven</groupId>
           <artifactId>scala-maven-plugin</artifactId>
           <configuration>
-            <compilerPlugins>
-              <!--scala 2.12.x need the paradise plugin to support macros annotation, 2.13.x value not need this plugin,
-              just add -Ymacro-annotations flag -->
-              <compilerPlugin>
-                <groupId>org.scalamacros</groupId>
-                <artifactId>paradise_${scala.compiler}</artifactId>
-                <version>2.1.1</version>
-              </compilerPlugin>
-            </compilerPlugins>
+            <!-- Macro annotations were a compiler plugin on 2.12 (paradise, released per compiler
+                 patch version and abandoned in 2019) and are a compiler flag on 2.13. The flag is
+                 added to <args> below; there is no plugin to declare. -->
           </configuration>
         </plugin>
         <plugin>

@@ -1,10 +1,7 @@
 package com.openbankproject.commons.util
 import java.util.regex.Pattern
 
-import scala.collection.immutable
-// Factory lives in scala.collection on 2.13 and in scala.collection.compat on 2.12; this import
-// is the spelling that works on both, which is the whole point of the compat module.
-import scala.collection.compat._
+import scala.collection.{Factory, immutable}
 import scala.reflect.runtime.universe.Type
 
 /**
@@ -195,7 +192,7 @@ object Functions {
             iterable match {
               case seq: scala.collection.Seq[A @unchecked] => seq.contains(ele)
               case set: scala.collection.Set[A @unchecked] => set.contains(ele)
-              case _ => iterable.exists(ele ==)
+              case _ => iterable.exists(ele == _)
             }
           }
 

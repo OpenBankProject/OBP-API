@@ -152,7 +152,7 @@ case class RequiredInfo(requiredArgs: Seq[RequiredArgs]) extends RequiredFields 
 
       val scannedPathValue: Any = prePathValue match {
           case null => null
-          case arr: Array[_] => arr.filterNot(null ==)
+          case arr: Array[_] => arr.filterNot(null == _)
             .map(ele => ReflectUtils.getField(ele.asInstanceOf[AnyRef], currentPath))
           case any: AnyRef => ReflectUtils.getField(any, currentPath)
         }
@@ -163,7 +163,7 @@ case class RequiredInfo(requiredArgs: Seq[RequiredArgs]) extends RequiredFields 
       if(scannedPath == fieldPath) {
         if(prePathValue != JNull) {
           (prePathValue, scannedPathValue) match {
-            case (_: Array[_], arr: Array[_]) if arr.exists(null ==) => noValuePath += fieldPath
+            case (_: Array[_], arr: Array[_]) if arr.exists(null == _) => noValuePath += fieldPath
             case (_: AnyRef, null) => noValuePath += fieldPath
             case _ =>  () // do nothing
           }
@@ -211,7 +211,7 @@ case class RequiredArgs(fieldPath:String, include: Array[ApiVersion],
   {
     val includeAll = include.contains(allVersion)
     val excludeAll = exclude.contains(allVersion)
-    val excludeSome = exclude.filterNot(allVersion ==).nonEmpty
+    val excludeSome = exclude.filterNot(allVersion == _).nonEmpty
 
     def assertNot(assertion: Boolean, message: => Any) = assert(!assertion, message)
 
