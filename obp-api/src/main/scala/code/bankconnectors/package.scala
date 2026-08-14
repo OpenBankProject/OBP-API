@@ -1,6 +1,6 @@
 package code
 
-import java.lang.reflect.Method
+import java.lang.reflect.{InvocationHandler, Method}
 import java.util.regex.Pattern
 
 import org.apache.pekko.http.scaladsl.model.HttpMethod
@@ -18,7 +18,6 @@ import com.openbankproject.commons.ExecutionContext.Implicits.global
 import net.liftweb.common.{Box, Empty, EmptyBox, Failure, Full, ParamFailure}
 import net.liftweb.util.Helpers.now
 import net.liftweb.util.ThreadGlobal
-import net.sf.cglib.proxy.{Enhancer, MethodInterceptor, MethodProxy}
 
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.GenTraversableOnce
@@ -49,50 +48,81 @@ package object bankconnectors extends MdcLoggable {
     //this object is a empty Connector implementation, just for supply default args
     object StubConnector extends Connector
 
-    val intercept:MethodInterceptor = (_: Any, method: Method, args: Array[AnyRef], _: MethodProxy) => {
-      if (method.getReturnType.getName == "scala.concurrent.Future" && !canOpenFuture(method.getName)) {
-        throw new RuntimeException(ServiceIsTooBusy + s"Current Service(${method.getName})")
-      } else {
-        if (method.getName.contains("$default$")) {
-          val connectorMethodResult = method.invoke(StubConnector, args:_*)
-          if (connectorMethodResult.isInstanceOf[Future[_]] && canOpenFuture(method.getName)) {
-            FutureUtil.futureWithLimits(connectorMethodResult.asInstanceOf[Future[_]], method.getName)
-          }
-          connectorMethodResult
+    val intercept: InvocationHandler = new InvocationHandler {
+      override def invoke(proxy: AnyRef, method: Method, args: Array[AnyRef]): AnyRef = {
+        if (method.getReturnType.getName == "scala.concurrent.Future" && !canOpenFuture(method.getName)) {
+          throw new RuntimeException(ServiceIsTooBusy + s"Current Service(${method.getName})")
         } else {
-          val methodName = method.getName
-          val argNameToValue: Array[(String, AnyRef)] = method.getParameters.map(_.getName).zip(args)
-          // TODO: getConnectorNameAndMethodRouting is also called inside invokeMethod.
-          // Consider refactoring invokeMethod to accept a pre-resolved connectorName to avoid the duplicate lookup.
-          val (_, connectorName) = getConnectorNameAndMethodRouting(methodName, argNameToValue)
+          if (method.getName.contains("$default$")) {
+            val connectorMethodResult = method.invoke(StubConnector, args:_*)
+            if (connectorMethodResult.isInstanceOf[Future[_]] && canOpenFuture(method.getName)) {
+              FutureUtil.futureWithLimits(connectorMethodResult.asInstanceOf[Future[_]], method.getName)
+            }
+            connectorMethodResult
+          } else {
+            val methodName = method.getName
+            val argNameToValue: Array[(String, AnyRef)] = method.getParameters.map(_.getName).zip(args)
+            // TODO: getConnectorNameAndMethodRouting is also called inside invokeMethod.
+            // Consider refactoring invokeMethod to accept a pre-resolved connectorName to avoid the duplicate lookup.
+            val (_, connectorName) = getConnectorNameAndMethodRouting(methodName, argNameToValue)
 
-          // Extract correlationId from CallContext before entering any Future callback,
-          // because Lift's S.containerSession is unavailable in async contexts.
-          val correlationId: String = args.collectFirst {
-            case Some(cc: CallContext) => cc.correlationId
-            case Full(cc: CallContext) => cc.correlationId
-          }.getOrElse(getCorrelationId()) // fallback to Lift session if no CallContext in args
+            // Extract correlationId from CallContext before entering any Future callback,
+            // because Lift's S.containerSession is unavailable in async contexts.
+            val correlationId: String = args.collectFirst {
+              case Some(cc: CallContext) => cc.correlationId
+              case Full(cc: CallContext) => cc.correlationId
+            }.getOrElse(getCorrelationId()) // fallback to Lift session if no CallContext in args
 
-          // Record outbound (before call)
-          ConnectorCountsRedis.incrementOutbound(connectorName, methodName)
-          val t0 = System.currentTimeMillis()
+            // Record outbound (before call)
+            ConnectorCountsRedis.incrementOutbound(connectorName, methodName)
+            val t0 = System.currentTimeMillis()
 
-          val (connectorMethodResult, methodSymbol) = invokeMethod(method, args)
+            val (connectorMethodResult, methodSymbol) = invokeMethod(method, args)
 
-          // Track metrics for Future results
-          if (connectorMethodResult.isInstanceOf[Future[_]]) {
-            val future = connectorMethodResult.asInstanceOf[Future[Any]]
-            future.onComplete { result =>
-              val duration = System.currentTimeMillis() - t0
-              val isSuccess = result match {
-                case TrySuccess(value) => !isFailureBox(value)
-                case TryFailure(_) => false
+            // Track metrics for Future results
+            if (connectorMethodResult.isInstanceOf[Future[_]]) {
+              val future = connectorMethodResult.asInstanceOf[Future[Any]]
+              future.onComplete { result =>
+                val duration = System.currentTimeMillis() - t0
+                val isSuccess = result match {
+                  case TrySuccess(value) => !isFailureBox(value)
+                  case TryFailure(_) => false
+                }
+
+                // Record inbound
+                ConnectorCountsRedis.incrementInbound(connectorName, methodName, isSuccess)
+
+                // Record detailed metric to DB
+                if (getPropsAsBoolValue("write_connector_metrics", false)) {
+                  val params = extractKeyParams(args)
+                  Future {
+                    ConnectorMetricsProvider.metrics.vend.saveConnectorMetric(
+                      connectorName, methodName, correlationId, now, duration, params, isSuccess)
+                  }
+                }
+
+                // Record connector trace (outbound/inbound messages)
+                if (getPropsAsBoolValue("write_connector_trace", false)) {
+                  val outbound = serializeOutboundArgs(method, args)
+                  val inbound = serializeInboundResult(result)
+                  val correlationId = getCorrelationId()
+                  val (detailUserId, detailHttpVerb, detailApiUrl) = extractCallContextInfo(args)
+                  val bankIdValue = extractBankIdFromArgs(args)
+                  Future {
+                    ConnectorTraceProvider.saveConnectorTrace(
+                      correlationId, connectorName, methodName, bankIdValue,
+                      outbound, inbound, now, duration, isSuccess,
+                      detailUserId, detailHttpVerb, detailApiUrl)
+                  }
+                }
               }
+            } else {
+              // Non-future (legacy Box) result - track synchronously
+              val duration = System.currentTimeMillis() - t0
+              val isSuccess = !isFailureBox(connectorMethodResult)
 
-              // Record inbound
               ConnectorCountsRedis.incrementInbound(connectorName, methodName, isSuccess)
 
-              // Record detailed metric to DB
               if (getPropsAsBoolValue("write_connector_metrics", false)) {
                 val params = extractKeyParams(args)
                 Future {
@@ -104,7 +134,7 @@ package object bankconnectors extends MdcLoggable {
               // Record connector trace (outbound/inbound messages)
               if (getPropsAsBoolValue("write_connector_trace", false)) {
                 val outbound = serializeOutboundArgs(method, args)
-                val inbound = serializeInboundResult(result)
+                val inbound = serializeInboundResult(TrySuccess(connectorMethodResult))
                 val correlationId = getCorrelationId()
                 val (detailUserId, detailHttpVerb, detailApiUrl) = extractCallContextInfo(args)
                 val bankIdValue = extractBankIdFromArgs(args)
@@ -116,50 +146,18 @@ package object bankconnectors extends MdcLoggable {
                 }
               }
             }
-          } else {
-            // Non-future (legacy Box) result - track synchronously
-            val duration = System.currentTimeMillis() - t0
-            val isSuccess = !isFailureBox(connectorMethodResult)
 
-            ConnectorCountsRedis.incrementInbound(connectorName, methodName, isSuccess)
-
-            if (getPropsAsBoolValue("write_connector_metrics", false)) {
-              val params = extractKeyParams(args)
-              Future {
-                ConnectorMetricsProvider.metrics.vend.saveConnectorMetric(
-                  connectorName, methodName, correlationId, now, duration, params, isSuccess)
-              }
+            if (connectorMethodResult.isInstanceOf[Future[_]] && canOpenFuture(method.getName)) {
+              FutureUtil.futureWithLimits(connectorMethodResult.asInstanceOf[Future[_]], method.getName)
             }
-
-            // Record connector trace (outbound/inbound messages)
-            if (getPropsAsBoolValue("write_connector_trace", false)) {
-              val outbound = serializeOutboundArgs(method, args)
-              val inbound = serializeInboundResult(TrySuccess(connectorMethodResult))
-              val correlationId = getCorrelationId()
-              val (detailUserId, detailHttpVerb, detailApiUrl) = extractCallContextInfo(args)
-              val bankIdValue = extractBankIdFromArgs(args)
-              Future {
-                ConnectorTraceProvider.saveConnectorTrace(
-                  correlationId, connectorName, methodName, bankIdValue,
-                  outbound, inbound, now, duration, isSuccess,
-                  detailUserId, detailHttpVerb, detailApiUrl)
-              }
-            }
+            logger.debug(s"do required field validation for ${methodSymbol.typeSignature}")
+            val apiVersion = ApiVersionHolder.getApiVersion
+            validateRequiredFields(connectorMethodResult, methodSymbol.returnType, apiVersion)
           }
-
-          if (connectorMethodResult.isInstanceOf[Future[_]] && canOpenFuture(method.getName)) {
-            FutureUtil.futureWithLimits(connectorMethodResult.asInstanceOf[Future[_]], method.getName)
-          }
-          logger.debug(s"do required field validation for ${methodSymbol.typeSignature}")
-          val apiVersion = ApiVersionHolder.getApiVersion
-          validateRequiredFields(connectorMethodResult, methodSymbol.returnType, apiVersion)
         }
       }
     }
-    val enhancer: Enhancer = new Enhancer()
-    enhancer.setSuperclass(classOf[Connector])
-    enhancer.setCallback(intercept)
-    enhancer.create().asInstanceOf[Connector]
+    ConnectorProxy.create(intercept)
   }
 
   /**

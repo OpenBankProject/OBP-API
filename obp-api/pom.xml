@@ -161,10 +161,14 @@
       <artifactId>scalatest_${scala.version}</artifactId>
     </dependency>
 
+    <!-- Replaces cglib 3.3.0, which generates the three Connector proxies. cglib bundles ASM 7.1
+         and so refuses to read class files above major 57; Scala 2.13 with -release 25 emits major
+         69. byte-buddy 1.18.11 knows class file versions up to JAVA_V27. Use the plain artifact,
+         not the -jdk5 variant: that one is compiled for a JDK we left behind long ago. -->
     <dependency>
-      <groupId>cglib</groupId>
-      <artifactId>cglib</artifactId>
-      <version>3.3.0</version>
+      <groupId>net.bytebuddy</groupId>
+      <artifactId>byte-buddy</artifactId>
+      <version>1.18.11</version>
     </dependency>
     <dependency>
       <groupId>org.apache.commons</groupId>

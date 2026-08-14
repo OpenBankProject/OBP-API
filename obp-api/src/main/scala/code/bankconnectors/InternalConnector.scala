@@ -9,9 +9,7 @@ import scala.concurrent.Future
 import code.connectormethod.{ConnectorMethodProvider, JsonConnectorMethod}
 import com.github.dwickern.macros.NameOf.nameOf
 import net.liftweb.common.{Box, Failure}
-import net.sf.cglib.proxy.{Enhancer, MethodInterceptor, MethodProxy}
-
-import java.lang.reflect.Method
+import java.lang.reflect.{InvocationHandler, Method}
 import code.api.util.{CallContext, DynamicUtil}
 import org.apache.commons.lang3.StringUtils
 import org.apache.commons.text.StringEscapeUtils
@@ -27,10 +25,7 @@ import scala.reflect.runtime.universe.{MethodSymbol, TermSymbol, typeOf}
 object InternalConnector {
 
   lazy val instance: Connector = {
-    val enhancer: Enhancer = new Enhancer()
-    enhancer.setSuperclass(classOf[Connector])
-    enhancer.setCallback(intercept)
-    enhancer.create().asInstanceOf[Connector]
+    ConnectorProxy.create(intercept)
   }
 
   //this object is a empty Connector implementation, just for supply default args
@@ -39,15 +34,17 @@ object InternalConnector {
     // in this object, you must make sure this object is empty.
   }
 
-  private val intercept:MethodInterceptor = (_: Any, method: Method, args: Array[AnyRef], _: MethodProxy) => {
-    val methodName = method.getName
-    if(methodName == nameOf(connector.callableMethods)) {
-      this.callableMethods
-    } else if (methodName.contains("$default$")) {
-      method.invoke(connector, args:_*)
-    } else {
-      val function = getFunction(methodName)
-      DynamicUtil.executeFunction(methodName, function, args)
+  private val intercept: InvocationHandler = new InvocationHandler {
+    override def invoke(proxy: AnyRef, method: Method, args: Array[AnyRef]): AnyRef = {
+      val methodName = method.getName
+      if(methodName == nameOf(connector.callableMethods)) {
+        InternalConnector.this.callableMethods
+      } else if (methodName.contains("$default$")) {
+        method.invoke(connector, args:_*)
+      } else {
+        val function = getFunction(methodName)
+        DynamicUtil.executeFunction(methodName, function, args)
+      }
     }
   }
 
