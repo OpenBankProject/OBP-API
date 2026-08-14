@@ -1,10 +1,10 @@
 package code.api.cache
 
 import code.util.Helper.MdcLoggable
-import com.google.common.cache.CacheBuilder
-import scalacache.ScalaCache
+import com.google.common.cache.{CacheBuilder, Cache => GuavaUnderlying}
+import scalacache.{Cache, Entry}
 import scalacache.guava.GuavaCache
-import scalacache.memoization.{cacheKeyExclude, memoize, memoizeSync}
+import scalacache.memoization.{cacheKeyExclude, memoizeF, memoizeSync}
 
 import scala.concurrent.Future
 import scala.concurrent.duration.Duration
@@ -13,17 +13,28 @@ import com.openbankproject.commons.ExecutionContext.Implicits.global
 
 object InMemory extends MdcLoggable {
 
-  val underlyingGuavaCache = CacheBuilder.newBuilder().maximumSize(100000L).build[String, Object]
-  implicit val scalaCache  = ScalaCache(GuavaCache(underlyingGuavaCache))
+  // scalacache 0.28 types its Cache by the value type, while these wrappers are generic in A and
+  // a single Guava instance has to serve every one of them. The underlying store is declared at
+  // Entry[Any] and narrowed per call: the cast is erased at run time, and a given key always holds
+  // the type its own call site wrote, which is the same assumption the untyped ScalaCache made.
+  val underlyingGuavaCache: GuavaUnderlying[String, Entry[Any]] =
+    CacheBuilder.newBuilder().maximumSize(100000L).build[String, Entry[Any]]()
+
+  private def cacheFor[A]: Cache[A] =
+    GuavaCache(underlyingGuavaCache.asInstanceOf[GuavaUnderlying[String, Entry[A]]])
 
   def memoizeSyncWithInMemory[A](cacheKey: Option[String])(@cacheKeyExclude ttl: Duration)(@cacheKeyExclude f: => A): A = {
     logger.trace(s"InMemory.memoizeSyncWithInMemory.underlyingGuavaCache size ${underlyingGuavaCache.size()}, current cache key is $cacheKey")
-    memoizeSync(ttl)(f)
+    import scalacache.modes.sync._
+    implicit val cache: Cache[A] = cacheFor[A]
+    memoizeSync(Some(ttl))(f)
   }
 
   def memoizeWithInMemory[A](cacheKey: Option[String])(@cacheKeyExclude ttl: Duration)(@cacheKeyExclude f: => Future[A])(implicit @cacheKeyExclude m: Manifest[A]): Future[A] = {
     logger.trace(s"InMemory.memoizeWithInMemory.underlyingGuavaCache size ${underlyingGuavaCache.size()}, current cache key is $cacheKey")
-    memoize(ttl)(f)
+    import scalacache.modes.scalaFuture._
+    implicit val cache: Cache[A] = cacheFor[A]
+    memoizeF(Some(ttl))(f)
   }
 
   /**
