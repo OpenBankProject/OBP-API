@@ -1315,6 +1315,17 @@ database_messages_scheduler_interval=3600
 # chat.email_digest_min_interval_minutes = 60
 # chat.email_digest_active_grace_minutes = 10
 
+# Signal channels -----------------------------------------------------------
+# Redis-backed ephemeral channels (/signal/channels endpoints) for lightweight
+# agent-to-agent coordination. Per-channel TTL (refreshed on every publish)
+# and per-channel message cap:
+# messaging.channel.ttl.seconds = 3600
+# messaging.channel.max.messages = 1000
+# Maximum accepted publish request body length in characters (OBP-39019 when
+# exceeded). Messages containing control or bidirectional-override characters
+# are rejected with OBP-39020; accepted payloads are stored verbatim.
+# messaging.channel.max.payload.length = 65536
+
 # Create System Views At Boot -----------------------------------------------
 # In case is not defined default value is true
 # create_system_views_at_boot=true

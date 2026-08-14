@@ -825,6 +825,8 @@ object ErrorMessages {
   val ChatMessageTooLong = "OBP-39016: Chat message content exceeds the maximum allowed length."
   val ChatMentionedUserNotParticipant = "OBP-39017: One or more mentioned users are not participants of this Chat Room."
   val ChatMessageTypeNotAllowed = "OBP-39018: Invalid message_type. Allowed values: text, system."
+  val SignalMessageTooLong = "OBP-39019: Signal message exceeds the maximum allowed length."
+  val SignalMessageContainsDangerousCharacters = "OBP-39020: Signal message contains control or bidirectional-override characters, which are not allowed."
 
   // Transaction Request related messages (OBP-40XXX)
   val InvalidTransactionRequestType = "OBP-40001: Invalid value for TRANSACTION_REQUEST_TYPE"

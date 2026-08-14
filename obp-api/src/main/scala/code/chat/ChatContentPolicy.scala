@@ -17,13 +17,9 @@ object ChatContentPolicy {
       .flatMap(v => Try(v.trim.toInt).toOption.filter(_ > 0))
       .getOrElse(10000)
 
-  // C0 controls except \t \n \r, DEL + C1 controls, and the Unicode bidi
-  // override/isolate/mark characters ("Trojan Source" family): none have a
-  // legitimate use in chat, and the bidi ones can visually reverse text to
-  // disguise what a URL or name says.
-  private val DangerousCharacters =
-    "[\\u0000-\\u0008\\u000B\\u000C\\u000E-\\u001F\\u007F-\\u009F\\u061C\\u200E\\u200F\\u202A-\\u202E\\u2066-\\u2069]"
-
+  // Character class shared with SignalContentPolicy — see
+  // code.util.DangerousCharacters for the rationale and the strip-vs-reject
+  // asymmetry between chat and signal.
   def stripDangerousCharacters(content: String): String =
-    content.replaceAll(DangerousCharacters, "")
+    code.util.DangerousCharacters.strip(content)
 }
