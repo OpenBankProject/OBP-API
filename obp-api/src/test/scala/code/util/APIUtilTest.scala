@@ -862,6 +862,8 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with Prop
   }
 
   feature(s"test ${nameOf(APIUtil.basicPasswordValidation _)} and ${nameOf(APIUtil.fullPasswordValidation _)}") {
+    // shortest password satisfying every composition rule — shared across scenarios
+    val validCompositionPassword = "Abcdefgh!1"
     
     scenario(s"Test the ${nameOf(APIUtil.basicPasswordValidation _)} method") {
       val firefoxStrongPasswordProposal = "9YF]gZnXzAENM+]"
@@ -883,7 +885,7 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with Prop
       fullPasswordValidation(firefoxStrongPasswordProposal) shouldBe true//  true
       fullPasswordValidation("Abcd!123xyz") shouldBe true //  true
       fullPasswordValidation("SuperStrong#123") shouldBe true //  true
-      fullPasswordValidation("Abcdefgh!1") shouldBe true //  true
+      fullPasswordValidation(validCompositionPassword) shouldBe true //  true
       fullPasswordValidation("short1!") shouldBe false //  false（too short）
       fullPasswordValidation("alllowercase123!") shouldBe false //  false（no capital letter）
       fullPasswordValidation("ALLUPPERCASE123!") shouldBe false//  false（no smaller case letter）
@@ -902,7 +904,7 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with Prop
 
     scenario(s"${nameOf(APIUtil.fullPasswordValidation _)} composition branch boundaries (10-16 chars)") {
       fullPasswordValidation("Abcdefg!1") shouldBe false // 9 chars, all classes present
-      fullPasswordValidation("Abcdefgh!1") shouldBe true // 10 chars
+      fullPasswordValidation(validCompositionPassword) shouldBe true // 10 chars
       fullPasswordValidation("Abcdefghijklmn!1") shouldBe true // 16 chars
       fullPasswordValidation("Abcdefghijklmno1") shouldBe false // 16 chars but no special character
       fullPasswordValidation("Abc 123!Xy") shouldBe false // space is not accepted in new passwords (basicPasswordValidation still accepts it for stored ones at login)
@@ -952,7 +954,7 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with Prop
         (1 to length).map(_ => alphabet(deterministicRandom.nextInt(alphabet.length))).mkString
       }
       val corpus = (1 to 500).map(_ => randomPassword()) ++
-        List("", "a" * 16, "a" * 17, "a" * 512, "a" * 513, "Abcdefgh!1", "Abc 123!Xy", "with space but seventeen")
+        List("", "a" * 16, "a" * 17, "a" * 512, "a" * 513, validCompositionPassword, "Abc 123!Xy", "with space but seventeen")
 
       for (password <- corpus) {
         withClue(s"structured fields verdict for [${password.take(40)}] (length ${password.length}): ") {

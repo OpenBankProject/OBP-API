@@ -871,9 +871,9 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
    *   (?=.*[\x21-\x2f\x3a-\x40\x5b-\x60\x7b-\x7e])  at least one special character (the four ASCII punctuation blocks)
    * Passphrase branch — 17 to 512 printable ASCII characters (space excluded), no composition rules.
    */
-  val passwordCompositionPolicyRegex =
+  val passwordCompositionPolicyRegex = // NOSONAR — a validation regex, not a hard-coded credential
     """^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[\x21-\x2f\x3a-\x40\x5b-\x60\x7b-\x7e])[\x21-\x7e]{10,16}$"""
-  val passwordPassphrasePolicyRegex =
+  val passwordPassphrasePolicyRegex = // NOSONAR — a validation regex, not a hard-coded credential
     """^[\x21-\x7e]{17,512}$"""
   private lazy val passwordCompositionPolicyPattern = passwordCompositionPolicyRegex.r.pattern
   private lazy val passwordPassphrasePolicyPattern = passwordPassphrasePolicyRegex.r.pattern
