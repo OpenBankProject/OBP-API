@@ -1290,6 +1290,31 @@ database_messages_scheduler_interval=3600
 # DirectLogin or OAuth tokens as the REST API.
 # See src/main/protobuf/chat.proto for the service contract.
 
+# Chat link policy ----------------------------------------------------------
+# Chat message content is rejected (OBP-39015) when it contains an http(s)
+# link to a host that is neither this instance's own host (from `hostname`)
+# nor whitelisted. Comma-separated hostnames or URLs; subdomains of a listed
+# host are allowed too. When this prop is NOT defined, the default whitelist
+# is tesobe.com,openbankproject.com — defining the prop replaces the default
+# entirely (the instance's own host stays allowed either way). Example:
+# chat.allowed_link_hosts = portal.example.com,github.com
+# Maximum chat message content length in characters (OBP-39016 when exceeded).
+# chat.max_message_length = 10000
+
+# Chat email digest ---------------------------------------------------------
+# When enabled, users are emailed an occasional digest of chat messages they
+# have not read (metadata only: room names and counts, no message content).
+# Local users are emailed only after validating their email (AuthUser.validated);
+# users from external identity providers (Google, Keycloak, ...) are assumed
+# validated — the provider verified the address before issuing tokens.
+# At most one email per user per min_interval; nothing while they are actively
+# reading (any read-marker update within active_grace suppresses it); an
+# unchanged backlog is never re-notified. Uses the mail.smtp.* settings.
+# chat.email_digest_enabled = false
+# chat.email_digest_tick_seconds = 300
+# chat.email_digest_min_interval_minutes = 60
+# chat.email_digest_active_grace_minutes = 10
+
 # Create System Views At Boot -----------------------------------------------
 # In case is not defined default value is true
 # create_system_views_at_boot=true

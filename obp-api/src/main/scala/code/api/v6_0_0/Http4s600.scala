@@ -3420,13 +3420,32 @@ object Http4s600 {
               s"$InvalidJsonFormat The Json body should be the PostChatMessageJsonV600", 400, Some(cc)) {
               com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[PostChatMessageJsonV600]
             }
+            cleanContent = code.chat.ChatContentPolicy.stripDangerousCharacters(postJson.content)
+            _ <- Helper.booleanToFuture(
+              s"$ChatMessageTooLong Maximum: ${code.chat.ChatContentPolicy.maxContentLength} characters.",
+              cc = Some(cc)) { cleanContent.length <= code.chat.ChatContentPolicy.maxContentLength }
+            badLinkHosts = code.chat.ChatLinkPolicy.disallowedLinkHosts(cleanContent)
+            _ <- Helper.booleanToFuture(
+              s"$ChatMessageLinkHostNotAllowed Disallowed host(s): ${badLinkHosts.mkString(", ")}",
+              cc = Some(cc)) { badLinkHosts.isEmpty }
             roomBox <- Future(code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId))
             room <- Future(unboxFullOrFail(roomBox, Some(cc), ChatRoomNotFound, 404))
             partBox <- Future(code.chat.ChatPermissions.isParticipant(chatRoomId, u.userId))
             _ <- Future(unboxFullOrFail(partBox, Some(cc), NotChatRoomParticipant, 403))
             _ <- Helper.booleanToFuture(ChatRoomIsArchived, cc = Some(cc)) { !room.isArchived }
+            _ <- Helper.booleanToFuture(ChatMessageTypeNotAllowed, cc = Some(cc)) {
+              code.chat.ChatMessageValidation.isAllowedMessageType(postJson.message_type) }
+            badMentions = code.chat.ChatMessageValidation.nonParticipantMentions(
+              chatRoomId, postJson.mentioned_user_ids.getOrElse(List.empty))
+            _ <- Helper.booleanToFuture(
+              s"$ChatMentionedUserNotParticipant Not participants: ${badMentions.mkString(", ")}",
+              cc = Some(cc)) { badMentions.isEmpty }
+            _ <- Helper.booleanToFuture(ChatMessageNotFound, 404, cc = Some(cc)) {
+              code.chat.ChatMessageValidation.referenceInRoom(chatRoomId, postJson.reply_to_message_id.getOrElse("")) }
+            _ <- Helper.booleanToFuture(ChatMessageNotFound, 404, cc = Some(cc)) {
+              code.chat.ChatMessageValidation.referenceInRoom(chatRoomId, postJson.thread_id.getOrElse("")) }
             msgBox <- Future(code.chat.ChatMessageTrait.chatMessageProvider.vend.createMessage(
-              chatRoomId, u.userId, "", postJson.content,
+              chatRoomId, u.userId, "", cleanContent,
               postJson.message_type.getOrElse("text"),
               postJson.mentioned_user_ids.getOrElse(List.empty),
               postJson.reply_to_message_id.getOrElse(""),
@@ -3451,13 +3470,32 @@ object Http4s600 {
               s"$InvalidJsonFormat The Json body should be the PostChatMessageJsonV600", 400, Some(cc)) {
               com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[PostChatMessageJsonV600]
             }
+            cleanContent = code.chat.ChatContentPolicy.stripDangerousCharacters(postJson.content)
+            _ <- Helper.booleanToFuture(
+              s"$ChatMessageTooLong Maximum: ${code.chat.ChatContentPolicy.maxContentLength} characters.",
+              cc = Some(cc)) { cleanContent.length <= code.chat.ChatContentPolicy.maxContentLength }
+            badLinkHosts = code.chat.ChatLinkPolicy.disallowedLinkHosts(cleanContent)
+            _ <- Helper.booleanToFuture(
+              s"$ChatMessageLinkHostNotAllowed Disallowed host(s): ${badLinkHosts.mkString(", ")}",
+              cc = Some(cc)) { badLinkHosts.isEmpty }
             roomBox <- Future(code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId))
             room <- Future(unboxFullOrFail(roomBox, Some(cc), ChatRoomNotFound, 404))
             partBox <- Future(code.chat.ChatPermissions.isParticipant(chatRoomId, u.userId))
             _ <- Future(unboxFullOrFail(partBox, Some(cc), NotChatRoomParticipant, 403))
             _ <- Helper.booleanToFuture(ChatRoomIsArchived, cc = Some(cc)) { !room.isArchived }
+            _ <- Helper.booleanToFuture(ChatMessageTypeNotAllowed, cc = Some(cc)) {
+              code.chat.ChatMessageValidation.isAllowedMessageType(postJson.message_type) }
+            badMentions = code.chat.ChatMessageValidation.nonParticipantMentions(
+              chatRoomId, postJson.mentioned_user_ids.getOrElse(List.empty))
+            _ <- Helper.booleanToFuture(
+              s"$ChatMentionedUserNotParticipant Not participants: ${badMentions.mkString(", ")}",
+              cc = Some(cc)) { badMentions.isEmpty }
+            _ <- Helper.booleanToFuture(ChatMessageNotFound, 404, cc = Some(cc)) {
+              code.chat.ChatMessageValidation.referenceInRoom(chatRoomId, postJson.reply_to_message_id.getOrElse("")) }
+            _ <- Helper.booleanToFuture(ChatMessageNotFound, 404, cc = Some(cc)) {
+              code.chat.ChatMessageValidation.referenceInRoom(chatRoomId, postJson.thread_id.getOrElse("")) }
             msgBox <- Future(code.chat.ChatMessageTrait.chatMessageProvider.vend.createMessage(
-              chatRoomId, u.userId, "", postJson.content,
+              chatRoomId, u.userId, "", cleanContent,
               postJson.message_type.getOrElse("text"),
               postJson.mentioned_user_ids.getOrElse(List.empty),
               postJson.reply_to_message_id.getOrElse(""),
@@ -3548,6 +3586,14 @@ object Http4s600 {
               s"$InvalidJsonFormat The Json body should be the PutChatMessageJsonV600", 400, Some(cc)) {
               com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[PutChatMessageJsonV600]
             }
+            cleanContent = code.chat.ChatContentPolicy.stripDangerousCharacters(putJson.content)
+            _ <- Helper.booleanToFuture(
+              s"$ChatMessageTooLong Maximum: ${code.chat.ChatContentPolicy.maxContentLength} characters.",
+              cc = Some(cc)) { cleanContent.length <= code.chat.ChatContentPolicy.maxContentLength }
+            badLinkHosts = code.chat.ChatLinkPolicy.disallowedLinkHosts(cleanContent)
+            _ <- Helper.booleanToFuture(
+              s"$ChatMessageLinkHostNotAllowed Disallowed host(s): ${badLinkHosts.mkString(", ")}",
+              cc = Some(cc)) { badLinkHosts.isEmpty }
             roomBox <- Future(code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId))
             _ <- Future(unboxFullOrFail(roomBox, Some(cc), ChatRoomNotFound, 404))
             partBox <- Future(code.chat.ChatPermissions.isParticipant(chatRoomId, user.userId))
@@ -3557,7 +3603,7 @@ object Http4s600 {
             _ <- Helper.booleanToFuture(CannotEditOthersMessage, cc = Some(cc)) {
               msg.senderUserId == user.userId
             }
-            updBox <- Future(code.chat.ChatMessageTrait.chatMessageProvider.vend.updateMessage(chatMessageId, putJson.content))
+            updBox <- Future(code.chat.ChatMessageTrait.chatMessageProvider.vend.updateMessage(chatMessageId, cleanContent))
             updated <- Future(unboxFullOrFail(updBox, Some(cc), s"$UnknownError Cannot edit message", 400))
             reactions <- Future(code.chat.ReactionTrait.reactionProvider.vend.getReactions(chatMessageId).openOr(List.empty))
           } yield {
@@ -3576,6 +3622,14 @@ object Http4s600 {
               s"$InvalidJsonFormat The Json body should be the PutChatMessageJsonV600", 400, Some(cc)) {
               com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[PutChatMessageJsonV600]
             }
+            cleanContent = code.chat.ChatContentPolicy.stripDangerousCharacters(putJson.content)
+            _ <- Helper.booleanToFuture(
+              s"$ChatMessageTooLong Maximum: ${code.chat.ChatContentPolicy.maxContentLength} characters.",
+              cc = Some(cc)) { cleanContent.length <= code.chat.ChatContentPolicy.maxContentLength }
+            badLinkHosts = code.chat.ChatLinkPolicy.disallowedLinkHosts(cleanContent)
+            _ <- Helper.booleanToFuture(
+              s"$ChatMessageLinkHostNotAllowed Disallowed host(s): ${badLinkHosts.mkString(", ")}",
+              cc = Some(cc)) { badLinkHosts.isEmpty }
             roomBox <- Future(code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId))
             _ <- Future(unboxFullOrFail(roomBox, Some(cc), ChatRoomNotFound, 404))
             partBox <- Future(code.chat.ChatPermissions.isParticipant(chatRoomId, user.userId))
@@ -3585,7 +3639,7 @@ object Http4s600 {
             _ <- Helper.booleanToFuture(CannotEditOthersMessage, cc = Some(cc)) {
               msg.senderUserId == user.userId
             }
-            updBox <- Future(code.chat.ChatMessageTrait.chatMessageProvider.vend.updateMessage(chatMessageId, putJson.content))
+            updBox <- Future(code.chat.ChatMessageTrait.chatMessageProvider.vend.updateMessage(chatMessageId, cleanContent))
             updated <- Future(unboxFullOrFail(updBox, Some(cc), s"$UnknownError Cannot edit message", 400))
             reactions <- Future(code.chat.ReactionTrait.reactionProvider.vend.getReactions(chatMessageId).openOr(List.empty))
           } yield {
@@ -3706,6 +3760,14 @@ object Http4s600 {
               s"$InvalidJsonFormat The Json body should be the PostChatMessageJsonV600", 400, Some(cc)) {
               com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[PostChatMessageJsonV600]
             }
+            cleanContent = code.chat.ChatContentPolicy.stripDangerousCharacters(postJson.content)
+            _ <- Helper.booleanToFuture(
+              s"$ChatMessageTooLong Maximum: ${code.chat.ChatContentPolicy.maxContentLength} characters.",
+              cc = Some(cc)) { cleanContent.length <= code.chat.ChatContentPolicy.maxContentLength }
+            badLinkHosts = code.chat.ChatLinkPolicy.disallowedLinkHosts(cleanContent)
+            _ <- Helper.booleanToFuture(
+              s"$ChatMessageLinkHostNotAllowed Disallowed host(s): ${badLinkHosts.mkString(", ")}",
+              cc = Some(cc)) { badLinkHosts.isEmpty }
             roomBox <- Future(code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId))
             room <- Future(unboxFullOrFail(roomBox, Some(cc), ChatRoomNotFound, 404))
             partBox <- Future(code.chat.ChatPermissions.isParticipant(chatRoomId, u.userId))
@@ -3713,8 +3775,22 @@ object Http4s600 {
             _ <- Helper.booleanToFuture(ChatRoomIsArchived, cc = Some(cc)) { !room.isArchived }
             parentBox <- Future(code.chat.ChatMessageTrait.chatMessageProvider.vend.getMessage(chatMessageId))
             _ <- Future(unboxFullOrFail(parentBox, Some(cc), ChatMessageNotFound, 404))
+            // the parent must live in the room the reply is posted to
+            _ <- Helper.booleanToFuture(ChatMessageNotFound, 404, cc = Some(cc)) {
+              parentBox.exists(_.chatRoomId == chatRoomId) }
+            _ <- Helper.booleanToFuture(ChatMessageTypeNotAllowed, cc = Some(cc)) {
+              code.chat.ChatMessageValidation.isAllowedMessageType(postJson.message_type) }
+            badMentions = code.chat.ChatMessageValidation.nonParticipantMentions(
+              chatRoomId, postJson.mentioned_user_ids.getOrElse(List.empty))
+            _ <- Helper.booleanToFuture(
+              s"$ChatMentionedUserNotParticipant Not participants: ${badMentions.mkString(", ")}",
+              cc = Some(cc)) { badMentions.isEmpty }
+            _ <- Helper.booleanToFuture(ChatMessageNotFound, 404, cc = Some(cc)) {
+              code.chat.ChatMessageValidation.referenceInRoom(chatRoomId, postJson.reply_to_message_id.getOrElse("")) }
+            _ <- Helper.booleanToFuture(ChatMessageNotFound, 404, cc = Some(cc)) {
+              code.chat.ChatMessageValidation.referenceInRoom(chatRoomId, postJson.thread_id.getOrElse("")) }
             msgBox <- Future(code.chat.ChatMessageTrait.chatMessageProvider.vend.createMessage(
-              chatRoomId, u.userId, "", postJson.content,
+              chatRoomId, u.userId, "", cleanContent,
               postJson.message_type.getOrElse("text"),
               postJson.mentioned_user_ids.getOrElse(List.empty),
               postJson.reply_to_message_id.getOrElse(""),
@@ -3739,6 +3815,14 @@ object Http4s600 {
               s"$InvalidJsonFormat The Json body should be the PostChatMessageJsonV600", 400, Some(cc)) {
               com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[PostChatMessageJsonV600]
             }
+            cleanContent = code.chat.ChatContentPolicy.stripDangerousCharacters(postJson.content)
+            _ <- Helper.booleanToFuture(
+              s"$ChatMessageTooLong Maximum: ${code.chat.ChatContentPolicy.maxContentLength} characters.",
+              cc = Some(cc)) { cleanContent.length <= code.chat.ChatContentPolicy.maxContentLength }
+            badLinkHosts = code.chat.ChatLinkPolicy.disallowedLinkHosts(cleanContent)
+            _ <- Helper.booleanToFuture(
+              s"$ChatMessageLinkHostNotAllowed Disallowed host(s): ${badLinkHosts.mkString(", ")}",
+              cc = Some(cc)) { badLinkHosts.isEmpty }
             roomBox <- Future(code.chat.ChatRoomTrait.chatRoomProvider.vend.getChatRoom(chatRoomId))
             room <- Future(unboxFullOrFail(roomBox, Some(cc), ChatRoomNotFound, 404))
             partBox <- Future(code.chat.ChatPermissions.isParticipant(chatRoomId, u.userId))
@@ -3746,8 +3830,22 @@ object Http4s600 {
             _ <- Helper.booleanToFuture(ChatRoomIsArchived, cc = Some(cc)) { !room.isArchived }
             parentBox <- Future(code.chat.ChatMessageTrait.chatMessageProvider.vend.getMessage(chatMessageId))
             _ <- Future(unboxFullOrFail(parentBox, Some(cc), ChatMessageNotFound, 404))
+            // the parent must live in the room the reply is posted to
+            _ <- Helper.booleanToFuture(ChatMessageNotFound, 404, cc = Some(cc)) {
+              parentBox.exists(_.chatRoomId == chatRoomId) }
+            _ <- Helper.booleanToFuture(ChatMessageTypeNotAllowed, cc = Some(cc)) {
+              code.chat.ChatMessageValidation.isAllowedMessageType(postJson.message_type) }
+            badMentions = code.chat.ChatMessageValidation.nonParticipantMentions(
+              chatRoomId, postJson.mentioned_user_ids.getOrElse(List.empty))
+            _ <- Helper.booleanToFuture(
+              s"$ChatMentionedUserNotParticipant Not participants: ${badMentions.mkString(", ")}",
+              cc = Some(cc)) { badMentions.isEmpty }
+            _ <- Helper.booleanToFuture(ChatMessageNotFound, 404, cc = Some(cc)) {
+              code.chat.ChatMessageValidation.referenceInRoom(chatRoomId, postJson.reply_to_message_id.getOrElse("")) }
+            _ <- Helper.booleanToFuture(ChatMessageNotFound, 404, cc = Some(cc)) {
+              code.chat.ChatMessageValidation.referenceInRoom(chatRoomId, postJson.thread_id.getOrElse("")) }
             msgBox <- Future(code.chat.ChatMessageTrait.chatMessageProvider.vend.createMessage(
-              chatRoomId, u.userId, "", postJson.content,
+              chatRoomId, u.userId, "", cleanContent,
               postJson.message_type.getOrElse("text"),
               postJson.mentioned_user_ids.getOrElse(List.empty),
               postJson.reply_to_message_id.getOrElse(""),

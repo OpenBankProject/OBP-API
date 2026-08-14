@@ -1273,6 +1273,29 @@ object Glossary extends MdcLoggable  {
 		  """)
 
 	  glossaryItems += GlossaryItem(
+		title = "Password Policy",
+		description =
+		  s"""
+			|The rules a password must satisfy when it is set — at user creation (POST /users) and at password reset.
+			|
+			|A password is valid if it satisfies AT LEAST ONE of the following policies:
+			|
+			|1) **Composition**: 10 to 16 printable ASCII characters (no space), including at least one digit, one lower case letter, one upper case letter and one special character.
+			|
+			|2) **Passphrase**: 17 to 512 printable ASCII characters (no space), with no composition rules.
+			|
+			|The machine-readable policy is published anonymously at `GET /obp/v7.0.0/public/password-config`, including per-policy length bounds, required character classes, allowed characters, and an equivalent regular expression written in a portable subset that behaves identically in Java, JavaScript and Python — so client applications can validate locally, while the user types, using either the structured fields (normative) or the regex (convenience):
+			|
+			|Composition: `${APIUtil.passwordCompositionPolicyRegex}`
+			|
+			|Passphrase: `${APIUtil.passwordPassphrasePolicyRegex}`
+			|
+			|The server remains the final enforcer: a password failing the policy is rejected with error OBP-30207 (InvalidStrongPasswordFormat).
+			|
+			|The policy applies only when a password is set. Already-stored passwords are never re-checked against it, so tightening the policy does not lock out existing users.
+		  """)
+
+	  glossaryItems += GlossaryItem(
 		title = "User Customer Links",
 		description =
 		  """

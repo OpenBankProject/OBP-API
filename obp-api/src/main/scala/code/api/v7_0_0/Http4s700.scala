@@ -685,10 +685,11 @@ object Http4s700 {
 
     // ── Phase 1 — Simple GETs ───────────────────────────────────────────────
 
-    // Route: GET /obp/v7.0.0/consents/config
-    // Anonymous: operator-published policy that TPPs/agents need to know before issuing a consent.
+    // Route: GET /obp/v7.0.0/public/consent-config
+    // Anonymous: operator-published policy that TPPs/agents need to know before issuing
+    // a consent. The /public prefix marks client-facing config that needs no authentication.
     val getConsentsConfig: HttpRoutes[IO] = HttpRoutes.of[IO] {
-      case req @ GET -> `prefixPath` / "consents" / "config" =>
+      case req @ GET -> `prefixPath` / "public" / "consent-config" =>
         EndpointHelpers.executeAndRespond(req) { _ =>
           Future.successful(JSONFactory700.ConsentsConfigJsonV700(
             consents_allowed            = APIUtil.getPropsAsBoolValue("consents.allowed", false),
@@ -702,7 +703,7 @@ object Http4s700 {
       implementedInApiVersion,
       nameOf(getConsentsConfig),
       "GET",
-      "/consents/config",
+      "/public/consent-config",
       "Get Consents Configuration",
       """Returns the operator-configured consent policy for this OBP instance:
         |
@@ -716,6 +717,90 @@ object Http4s700 {
       List(UnknownError),
       apiTagConsent :: apiTagApi :: Nil,
       http4sPartialFunction = Some(getConsentsConfig)
+    )
+
+    // Route: GET /obp/v7.0.0/public/password-config
+    // Anonymous: clients need the policy before they hold credentials, to validate
+    // a proposed password locally during signup or password reset. The /public
+    // prefix marks client-facing config that needs no authentication.
+    val getPasswordPolicy: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "public" / "password-config" =>
+        EndpointHelpers.executeAndRespond(req) { _ =>
+          Future.successful(JSONFactory700.passwordPoliciesJsonV700)
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(getPasswordPolicy),
+      "GET",
+      "/public/password-config",
+      "Get Password Policy",
+      """Returns the password policy this instance enforces when a password is set (user creation and password reset).
+        |
+        |A password is valid if it satisfies AT LEAST ONE of the `policies`. For each policy:
+        |
+        |* `min_length` / `max_length` — inclusive length bounds.
+        |* `required_character_classes` — the password must contain at least one character matching each class `regex`.
+        |* `allowed_characters` — every character of the password must be one of these.
+        |* `regex` — a single pattern equivalent to the three rules above, written in a portable
+        |regex subset that behaves identically in Java, JavaScript and Python, so it can be used verbatim.
+        |
+        |The structured fields are the normative contract; `regex` is a convenience.
+        |Clients can use either to give immediate feedback while a user types a new password.
+        |The server remains the final enforcer: a password failing the policy is rejected
+        |with `OBP-30207` (InvalidStrongPasswordFormat).
+        |
+        |The policy applies only when a password is set; already-stored passwords are never re-checked against it (we don't store the password in plain text).
+        |
+        |No Authentication is Required.""".stripMargin,
+      EmptyBody,
+      JSONFactory700.passwordPoliciesJsonV700,
+      List(UnknownError),
+      apiTagApi :: apiTagUser :: Nil,
+      http4sPartialFunction = Some(getPasswordPolicy)
+    )
+
+    // Route: GET /obp/v7.0.0/public/chat-config
+    // Anonymous: chat clients need the link-host whitelist to render messages
+    // (links to non-whitelisted hosts stay inert text) before and regardless
+    // of authentication. The /public prefix marks client-facing config that
+    // needs no authentication.
+    val getChatConfig: HttpRoutes[IO] = HttpRoutes.of[IO] {
+      case req @ GET -> `prefixPath` / "public" / "chat-config" =>
+        EndpointHelpers.executeAndRespond(req) { _ =>
+          Future(JSONFactory700.ChatConfigJsonV700(
+            code.chat.ChatLinkPolicy.allowedHosts.toList.sorted,
+            code.chat.ChatContentPolicy.maxContentLength))
+        }
+    }
+
+    resourceDocs += ResourceDoc(
+      implementedInApiVersion,
+      nameOf(getChatConfig),
+      "GET",
+      "/public/chat-config",
+      "Get Chat Config",
+      """Returns the chat configuration this instance enforces.
+        |
+        |* `allowed_link_hosts` — chat message content is rejected with `OBP-39015` when it
+        |contains an http(s) link to a host not in this list (exact match or subdomain). The
+        |list is derived from this instance's own host, the hosts of the apps in its App
+        |Directory (`public_*_url` props), and the `chat.allowed_link_hosts` prop (defaulting
+        |to tesobe.com and openbankproject.com when that prop is not defined).
+        |* `max_message_length` — content longer than this is rejected with `OBP-39016`
+        |(prop `chat.max_message_length`, default 10000 characters).
+        |
+        |Chat clients should apply the same policy at render time and in composers: show links
+        |to hosts outside the list as plain text rather than making them clickable, and cap
+        |input at the maximum length.
+        |
+        |No Authentication is Required.""".stripMargin,
+      EmptyBody,
+      JSONFactory700.chatConfigJsonV700Example,
+      List(UnknownError),
+      apiTagApi :: Nil,
+      http4sPartialFunction = Some(getChatConfig)
     )
 
     // Route: GET /obp/v7.0.0/api/error-messages
