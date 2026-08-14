@@ -10,7 +10,7 @@ object ApiProto extends _root_.scalapb.GeneratedFileObject {
     com.google.protobuf.empty.EmptyProto,
     com.google.protobuf.timestamp.TimestampProto
   )
-  lazy val messagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_]] = Seq(
+  lazy val messagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_ <: _root_.scalapb.GeneratedMessage]] = Seq(
     code.obp.grpc.api.BanksJson400Grpc,
     code.obp.grpc.api.AccountsJSONGrpc,
     code.obp.grpc.api.AccountJSONGrpc,

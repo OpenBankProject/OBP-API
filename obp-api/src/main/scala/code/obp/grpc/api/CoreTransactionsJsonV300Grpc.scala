@@ -92,7 +92,7 @@ object CoreTransactionsJsonV300Grpc extends scalapb.GeneratedMessageCompanion[co
     }
     __out
   }
-  lazy val nestedMessagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_]] = Seq[_root_.scalapb.GeneratedMessageCompanion[_]](
+  lazy val nestedMessagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_ <: _root_.scalapb.GeneratedMessage]] = Seq[_root_.scalapb.GeneratedMessageCompanion[_ <: _root_.scalapb.GeneratedMessage]](
     _root_.code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionJsonV300Grpc,
     _root_.code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountHolderJSONGrpc,
     _root_.code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountRoutingJsonV121Grpc,
@@ -249,7 +249,7 @@ object CoreTransactionsJsonV300Grpc extends scalapb.GeneratedMessageCompanion[co
       }
       __out
     }
-    lazy val nestedMessagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_]] = Seq.empty
+    lazy val nestedMessagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_ <: _root_.scalapb.GeneratedMessage]] = Seq.empty
     def enumCompanionForFieldNumber(__fieldNumber: _root_.scala.Int): _root_.scalapb.GeneratedEnumCompanion[_] = throw new MatchError(__fieldNumber)
     lazy val defaultInstance = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionJsonV300Grpc(
     )
@@ -370,7 +370,7 @@ object CoreTransactionsJsonV300Grpc extends scalapb.GeneratedMessageCompanion[co
     def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.javaDescriptor.getNestedTypes.get(1)
     def scalaDescriptor: _root_.scalapb.descriptors.Descriptor = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.scalaDescriptor.nestedMessages(1)
     def messageCompanionForFieldNumber(__number: _root_.scala.Int): _root_.scalapb.GeneratedMessageCompanion[_] = throw new MatchError(__number)
-    lazy val nestedMessagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_]] = Seq.empty
+    lazy val nestedMessagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_ <: _root_.scalapb.GeneratedMessage]] = Seq.empty
     def enumCompanionForFieldNumber(__fieldNumber: _root_.scala.Int): _root_.scalapb.GeneratedEnumCompanion[_] = throw new MatchError(__fieldNumber)
     lazy val defaultInstance = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountHolderJSONGrpc(
     )
@@ -484,7 +484,7 @@ object CoreTransactionsJsonV300Grpc extends scalapb.GeneratedMessageCompanion[co
     def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.javaDescriptor.getNestedTypes.get(2)
     def scalaDescriptor: _root_.scalapb.descriptors.Descriptor = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.scalaDescriptor.nestedMessages(2)
     def messageCompanionForFieldNumber(__number: _root_.scala.Int): _root_.scalapb.GeneratedMessageCompanion[_] = throw new MatchError(__number)
-    lazy val nestedMessagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_]] = Seq.empty
+    lazy val nestedMessagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_ <: _root_.scalapb.GeneratedMessage]] = Seq.empty
     def enumCompanionForFieldNumber(__fieldNumber: _root_.scala.Int): _root_.scalapb.GeneratedEnumCompanion[_] = throw new MatchError(__fieldNumber)
     lazy val defaultInstance = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountRoutingJsonV121Grpc(
     )
@@ -598,7 +598,7 @@ object CoreTransactionsJsonV300Grpc extends scalapb.GeneratedMessageCompanion[co
     def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.javaDescriptor.getNestedTypes.get(3)
     def scalaDescriptor: _root_.scalapb.descriptors.Descriptor = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.scalaDescriptor.nestedMessages(3)
     def messageCompanionForFieldNumber(__number: _root_.scala.Int): _root_.scalapb.GeneratedMessageCompanion[_] = throw new MatchError(__number)
-    lazy val nestedMessagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_]] = Seq.empty
+    lazy val nestedMessagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_ <: _root_.scalapb.GeneratedMessage]] = Seq.empty
     def enumCompanionForFieldNumber(__fieldNumber: _root_.scala.Int): _root_.scalapb.GeneratedEnumCompanion[_] = throw new MatchError(__fieldNumber)
     lazy val defaultInstance = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.BankRoutingJsonV121Grpc(
     )
@@ -756,7 +756,7 @@ object CoreTransactionsJsonV300Grpc extends scalapb.GeneratedMessageCompanion[co
       }
       __out
     }
-    lazy val nestedMessagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_]] = Seq.empty
+    lazy val nestedMessagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_ <: _root_.scalapb.GeneratedMessage]] = Seq.empty
     def enumCompanionForFieldNumber(__fieldNumber: _root_.scala.Int): _root_.scalapb.GeneratedEnumCompanion[_] = throw new MatchError(__fieldNumber)
     lazy val defaultInstance = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.ThisAccountJsonV300Grpc(
     )
@@ -918,7 +918,7 @@ object CoreTransactionsJsonV300Grpc extends scalapb.GeneratedMessageCompanion[co
       }
       __out
     }
-    lazy val nestedMessagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_]] = Seq.empty
+    lazy val nestedMessagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_ <: _root_.scalapb.GeneratedMessage]] = Seq.empty
     def enumCompanionForFieldNumber(__fieldNumber: _root_.scala.Int): _root_.scalapb.GeneratedEnumCompanion[_] = throw new MatchError(__fieldNumber)
     lazy val defaultInstance = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreCounterpartyJsonV300Grpc(
     )
@@ -1038,7 +1038,7 @@ object CoreTransactionsJsonV300Grpc extends scalapb.GeneratedMessageCompanion[co
     def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.javaDescriptor.getNestedTypes.get(6)
     def scalaDescriptor: _root_.scalapb.descriptors.Descriptor = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.scalaDescriptor.nestedMessages(6)
     def messageCompanionForFieldNumber(__number: _root_.scala.Int): _root_.scalapb.GeneratedMessageCompanion[_] = throw new MatchError(__number)
-    lazy val nestedMessagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_]] = Seq.empty
+    lazy val nestedMessagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_ <: _root_.scalapb.GeneratedMessage]] = Seq.empty
     def enumCompanionForFieldNumber(__fieldNumber: _root_.scala.Int): _root_.scalapb.GeneratedEnumCompanion[_] = throw new MatchError(__fieldNumber)
     lazy val defaultInstance = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AmountOfMoneyJsonV121Grpc(
     )
@@ -1239,7 +1239,7 @@ object CoreTransactionsJsonV300Grpc extends scalapb.GeneratedMessageCompanion[co
       }
       __out
     }
-    lazy val nestedMessagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_]] = Seq.empty
+    lazy val nestedMessagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_ <: _root_.scalapb.GeneratedMessage]] = Seq.empty
     def enumCompanionForFieldNumber(__fieldNumber: _root_.scala.Int): _root_.scalapb.GeneratedEnumCompanion[_] = throw new MatchError(__fieldNumber)
     lazy val defaultInstance = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionDetailsJSONGrpc(
     )
