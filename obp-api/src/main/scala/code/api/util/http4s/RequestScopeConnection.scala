@@ -112,7 +112,7 @@ object RequestScopeConnection extends MdcLoggable {
    */
   val currentProxy: TransmittableThreadLocal[Connection] =
     new TransmittableThreadLocal[Connection]() {
-      override protected def childValue(parentValue: Connection): Connection = null
+      override def childValue(parentValue: Connection): Connection = null
     }
 
   /**

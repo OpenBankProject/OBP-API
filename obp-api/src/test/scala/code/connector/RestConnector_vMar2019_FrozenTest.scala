@@ -135,7 +135,7 @@ object RestConnector_vMar2019_FrozenUtil {
       .map(it => ReflectUtils.getDeepGenericType(it).head)
       .toSet
       .filter(ReflectUtils.isObpType)
-      .filterNot(tp ==)  // avoid infinite recursive
+      .filterNot(tp == _)  // avoid infinite recursive
     match {
       case set if(set.size > 0) => set.flatMap(getNestedOBPType) + tp
       case _ =>  Set(tp)

@@ -112,7 +112,7 @@ class InternalConnectorTest extends FlatSpec with Matchers {
 
     val getBankResult = DynamicUtil.executeFunction("getBank", resultScala, Array(BankId("1"), Some(CallContext()))).asInstanceOf[Future[Box[(Bank, Option[CallContext])]]]
 
-    val result: Box[(Bank, Option[CallContext])] = scala.concurrent.Await.result(getBankResult, 5 minutes)
+    val result: Box[(Bank, Option[CallContext])] = scala.concurrent.Await.result(getBankResult, 5.minutes)
 
 
     result.map(_._1.bankId.value) equals Full("Hello bank id")
@@ -120,7 +120,7 @@ class InternalConnectorTest extends FlatSpec with Matchers {
     {
       val getBankResult = DynamicUtil.executeFunction("getBank", resultJava, Array(BankId("1"), Some(CallContext()))).asInstanceOf[Future[Box[(Bank, Option[CallContext])]]]
 
-      val result: Box[(Bank, Option[CallContext])] = scala.concurrent.Await.result(getBankResult, 5 minutes)
+      val result: Box[(Bank, Option[CallContext])] = scala.concurrent.Await.result(getBankResult, 5.minutes)
 
       result.map(_._1.fullName) equals Full("The Js Bank of Scotland")
       
@@ -128,7 +128,7 @@ class InternalConnectorTest extends FlatSpec with Matchers {
     {
       val getBankResult = DynamicUtil.executeFunction("getBank", resultJs, Array(BankId("1"), Some(CallContext()))).asInstanceOf[Future[Box[(Bank, Option[CallContext])]]]
 
-      val result: Box[(Bank, Option[CallContext])] = scala.concurrent.Await.result(getBankResult, 5 minutes)
+      val result: Box[(Bank, Option[CallContext])] = scala.concurrent.Await.result(getBankResult, 5.minutes)
 
       result.map(_._1.shortName) equals Full("The Java Bank of Scotland")
     }

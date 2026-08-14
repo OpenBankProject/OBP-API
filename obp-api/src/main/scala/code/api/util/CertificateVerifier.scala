@@ -69,7 +69,7 @@ object CertificateVerifier extends MdcLoggable {
       trustManagerFactory.init(trustStore)
 
       // Get trusted CAs from the trust store
-      val trustAnchors = enumerationAsScalaIterator(trustStore.aliases())
+      val trustAnchors = trustStore.aliases().asScala
         .filter(trustStore.isCertificateEntry(_))
         .map(alias => trustStore.getCertificate(alias).asInstanceOf[X509Certificate])
         .map(cert => new TrustAnchor(cert, null))

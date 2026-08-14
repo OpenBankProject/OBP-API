@@ -112,7 +112,7 @@ final case class AccountJSONGrpc(
       (__field.number: @_root_.scala.unchecked) match {
         case 1 => _root_.scalapb.descriptors.PString(id)
         case 2 => _root_.scalapb.descriptors.PString(label)
-        case 3 => _root_.scalapb.descriptors.PRepeated(viewsAvailable.map(_.toPMessage)(_root_.scala.collection.breakOut))
+        case 3 => _root_.scalapb.descriptors.PRepeated(viewsAvailable.iterator.map(_.toPMessage).toVector)
         case 4 => _root_.scalapb.descriptors.PString(bankId)
       }
     }

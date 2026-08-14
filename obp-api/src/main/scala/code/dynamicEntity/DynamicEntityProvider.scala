@@ -563,7 +563,7 @@ object DynamicEntityCommons extends Converter[DynamicEntityT, DynamicEntityCommo
       if(fieldTypeOp.exists(_ == DynamicEntityFieldType.string)) {
         val minLength = value \ "minLength"
         val maxLength = value \ "maxLength"
-        def toInt(jValue: JValue) = jValue.asInstanceOf[JInt].num.intValue()
+        def toInt(jValue: JValue) = jValue.asInstanceOf[JInt].num.intValue
         if(minLength != JNothing) {
           checkFormat(minLength.isInstanceOf[JInt], s"$DynamicEntityInstanceValidateFail The property of minLength's 'type' should be integer")
           checkFormat(toInt(minLength) >= 0, s"$DynamicEntityInstanceValidateFail The property of minLength value should be non-negative integer, current value: ${toInt(minLength)}")

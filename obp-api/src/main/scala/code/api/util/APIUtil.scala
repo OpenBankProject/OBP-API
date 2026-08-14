@@ -1530,7 +1530,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
         case BigIntBody(v) => JInt(v)
         case FloatBody(v) => JDouble(v)
         case DoubleBody(v) => JDouble(v)
-        case BigDecimalBody(v) => JDouble(v.doubleValue())
+        case BigDecimalBody(v) => JDouble(v.doubleValue)
         case JArrayBody(v) => v
         case _ => throw new RuntimeException(s"$value is not supported, please add a case for it.")
       }
@@ -1555,6 +1555,24 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   case class BigDecimalBody(value: BigDecimal) extends PrimaryDataBody[BigDecimal]
   case class BigIntBody(value: BigInt) extends PrimaryDataBody[BigInt]
   case class JArrayBody(value: JArray) extends PrimaryDataBody[JArray]
+
+  /**
+   * Documents a body that is a JSON array of entities rather than an object.
+   *
+   * Some ResourceDocs used to pass a bare List for this. That compiled on 2.12 only because
+   * List extended Product there, and it was never right: getAllFields walks the value with
+   * productIterator, and a List's product elements are `head` and `tl`, so those endpoints
+   * documented two fields by those names instead of the entity's own. 2.13 drops
+   * List <: Product and turns the mistake into a compile error.
+   *
+   * JArrayBody is what the codebase already provides for array-shaped bodies - its
+   * swaggerDataTypeName is "array" and createTypedBody unwraps PrimaryDataBody - so the
+   * rendered example keeps its array shape.
+   */
+  def jArrayBodyOf(values: List[Any]): JArrayBody = {
+    implicit val formats: Formats = CustomJsonFormats.formats
+    JArrayBody(JArray(values.map(Extraction.decompose)))
+  }
 
   object ResourceDoc{
     private val operationIdToResourceDoc: ConcurrentHashMap[String, ResourceDoc] = new ConcurrentHashMap[String, ResourceDoc]
@@ -1825,7 +1843,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
           val errorMessage = if (rolesForCheck.filter(_.requiresBankId).isEmpty) UserHasMissingRoles + rolesForCheck.mkString(" or ")
                              else UserHasMissingRoles + rolesForCheck.mkString(" or ") + s" for BankId($bankIdStr)."
           Helper.booleanToFuture(errorMessage, cc = callContext) { APIUtil.handleAccessControlWithAuthMode(bankIdStr, userIdStr, consumerId, rolesForCheck, authMode) }
-        } else Future.successful(Full(Unit))
+        } else Future.successful(Full(()))
       def checkAccount(bankId: Option[BankId], accountId: Option[AccountId], callContext: Option[CallContext]): Future[(BankAccount, Option[CallContext])] =
         if (isNeedCheckAccount && bankId.isDefined && accountId.isDefined) checkAccountFun(bankId.get)(accountId.get, callContext) else Future.successful(null.asInstanceOf[BankAccount] -> callContext)
       def checkView(viewId: Option[ViewId], bankId: Option[BankId], accountId: Option[AccountId], boxUser: Box[User], callContext: Option[CallContext]): Future[View] =

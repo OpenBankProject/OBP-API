@@ -291,10 +291,16 @@ echo ""
 # The obp-commons install holds OBC_LOCK (see top) so concurrent checkouts don't
 # race on the shared ~/.m2 write.  The subsequent test-compile writes only to this
 # checkout's own target/ and is safe to run in parallel across checkouts.
-echo "Pre-compile 1/2: install obp-commons -> ~/.m2 ..."
+echo "Pre-compile 1/2: install obp-parent + obp-commons -> ~/.m2 ..."
 until mkdir "$OBC_LOCK" 2>/dev/null; do sleep 2; done
+# -am so the parent pom is installed alongside obp-commons. Installing the module alone leaves
+# whatever obp-parent is already in ~/.m2, and obp-api resolves its dependencies through that pom -
+# scala.version, lift.version and the rest live there. A stale parent therefore pulls _2.12
+# artifacts onto the classpath next to a freshly built obp-commons, and because com.tesobe:obp-commons
+# carries no Scala suffix nothing detects the mismatch: the build succeeds and the tests die at run
+# time with ClassNotFoundException: scala.Serializable.
 MAVEN_OPTS="$MVN_OPTS" \
-  mvn install -DskipTests -pl obp-commons -q > test-results/parallel/precompile.log 2>&1
+  mvn install -DskipTests -pl obp-commons -am -q > test-results/parallel/precompile.log 2>&1
 PRECOMPILE_RC=$?
 rm -rf "$OBC_LOCK"
 if [[ $PRECOMPILE_RC -eq 0 ]]; then

@@ -319,9 +319,9 @@ class BranchesTest extends V300ServerSetup with DefaultUsers {
   override def beforeEach(): Unit = {
     super.beforeEach()
     Connector.connector.vend.createOrUpdateBank(bankId, "exists bank", "bank", "string", "string", "string", "string", "string", "string", None)
-    Await.result(Connector.connector.vend.createOrUpdateBranch(deletedBranch, None),10 seconds)
-    Await.result(Connector.connector.vend.createOrUpdateBranch(existsBranch1, None),10 seconds)
-    Await.result(Connector.connector.vend.createOrUpdateBranch(existsBranch2, None),10 seconds)
+    Await.result(Connector.connector.vend.createOrUpdateBranch(deletedBranch, None),10.seconds)
+    Await.result(Connector.connector.vend.createOrUpdateBranch(existsBranch1, None),10.seconds)
+    Await.result(Connector.connector.vend.createOrUpdateBranch(existsBranch2, None),10.seconds)
   }
 
   override def afterEach(): Unit = super.afterEach()

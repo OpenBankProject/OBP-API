@@ -113,7 +113,7 @@ final case class BasicAccountJSONGrpc(
         case 1 => _root_.scalapb.descriptors.PString(id)
         case 2 => _root_.scalapb.descriptors.PString(label)
         case 3 => _root_.scalapb.descriptors.PString(bankId)
-        case 4 => _root_.scalapb.descriptors.PRepeated(viewsAvailable.map(_.toPMessage)(_root_.scala.collection.breakOut))
+        case 4 => _root_.scalapb.descriptors.PRepeated(viewsAvailable.iterator.map(_.toPMessage).toVector)
       }
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)

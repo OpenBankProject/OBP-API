@@ -255,7 +255,14 @@ object InternalConnector {
     case (methodName, methodSymbol) =>
       val signature = methodSymbol.typeSignature.toString
       val returnType = methodSymbol.returnType.toString
-      val methodSignature = StringUtils.substringBeforeLast(signature, returnType) + ":" + returnType
+      // Strip any colon the parameter part already ends with before adding one back. 2.12 rendered
+      // a method type as "(params)ReturnType" and 2.13 renders it as "(params): ReturnType", so
+      // appending unconditionally produced "(params): : ReturnType" - which the runtime compiler
+      // rejected with "identifier expected but ':' found", failing every dynamic connector method.
+      val paramsPart = StringUtils.substringBeforeLast(signature, returnType).trim.stripSuffix(":")
+      // No space after the colon: the boxRegx/futureRegx/obpReturnTypeRegx patterns above match
+      // ")\\s*:" immediately followed by the type name.
+      val methodSignature = s"$paramsPart:$returnType"
       methodName -> methodSignature
   }
 }

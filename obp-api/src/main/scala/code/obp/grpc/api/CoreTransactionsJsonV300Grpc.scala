@@ -59,7 +59,7 @@ final case class CoreTransactionsJsonV300Grpc(
     def getField(__field: _root_.scalapb.descriptors.FieldDescriptor): _root_.scalapb.descriptors.PValue = {
       require(__field.containingMessage eq companion.scalaDescriptor)
       (__field.number: @_root_.scala.unchecked) match {
-        case 1 => _root_.scalapb.descriptors.PRepeated(transactions.map(_.toPMessage)(_root_.scala.collection.breakOut))
+        case 1 => _root_.scalapb.descriptors.PRepeated(transactions.iterator.map(_.toPMessage).toVector)
       }
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
@@ -714,8 +714,8 @@ object CoreTransactionsJsonV300Grpc extends scalapb.GeneratedMessageCompanion[co
         (__field.number: @_root_.scala.unchecked) match {
           case 1 => _root_.scalapb.descriptors.PString(id)
           case 2 => bankRouting.map(_.toPMessage).getOrElse(_root_.scalapb.descriptors.PEmpty)
-          case 3 => _root_.scalapb.descriptors.PRepeated(accountRoutings.map(_.toPMessage)(_root_.scala.collection.breakOut))
-          case 4 => _root_.scalapb.descriptors.PRepeated(holders.map(_.toPMessage)(_root_.scala.collection.breakOut))
+          case 3 => _root_.scalapb.descriptors.PRepeated(accountRoutings.iterator.map(_.toPMessage).toVector)
+          case 4 => _root_.scalapb.descriptors.PRepeated(holders.iterator.map(_.toPMessage).toVector)
         }
       }
       def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
@@ -877,7 +877,7 @@ object CoreTransactionsJsonV300Grpc extends scalapb.GeneratedMessageCompanion[co
           case 1 => _root_.scalapb.descriptors.PString(id)
           case 2 => holder.map(_.toPMessage).getOrElse(_root_.scalapb.descriptors.PEmpty)
           case 3 => bankRouting.map(_.toPMessage).getOrElse(_root_.scalapb.descriptors.PEmpty)
-          case 4 => _root_.scalapb.descriptors.PRepeated(accountRoutings.map(_.toPMessage)(_root_.scala.collection.breakOut))
+          case 4 => _root_.scalapb.descriptors.PRepeated(accountRoutings.iterator.map(_.toPMessage).toVector)
         }
       }
       def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)

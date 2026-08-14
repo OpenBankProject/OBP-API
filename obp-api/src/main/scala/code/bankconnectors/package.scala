@@ -335,7 +335,11 @@ package object bankconnectors extends MdcLoggable {
     value match {
       // when method return one of Unit, null, EmptyBox, None, empty Array, empty collection,
       // don't validate fields.
-      case Unit | null => value
+      // BoxedUnit, not `Unit`: the old spelling matched the Unit companion object, which
+      // reflectively invoking a Unit-returning connector method never produces, so this arm
+      // never fired. () cannot be matched against an AnyRef scrutinee, and the boxed value is
+      // what actually arrives here.
+      case _: scala.runtime.BoxedUnit | null => value
       case v @(_: EmptyBox, Some(_:CallContext) | None) => v
       case n @(_:EmptyBox | None |  Array()) => n
       case n : Iterable[_] if n.isEmpty => n

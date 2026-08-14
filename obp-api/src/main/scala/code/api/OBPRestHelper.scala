@@ -151,7 +151,7 @@ object ApiVersionHolder {
   // https://github.com/alibaba/transmittable-thread-local/issues/100
   private val threadLocal: ThreadLocal[ApiVersion] =
     new TransmittableThreadLocal[ApiVersion]() {
-      override protected def childValue(parentValue: ApiVersion): ApiVersion = null
+      override def childValue(parentValue: ApiVersion): ApiVersion = null
     }
 
   def setApiVersion(apiVersion: ApiVersion) = threadLocal.set(apiVersion)

@@ -2031,7 +2031,7 @@ object Http4s400 {
       for {
         (dynamicEndpoints, _) <- NewStyle.function.getDynamicEndpoints(bankId, Some(cc))
       } yield {
-        val resultList = dynamicEndpoints.map[JObject, List[JObject]] { dynamicEndpoint =>
+        val resultList = dynamicEndpoints.map[JObject] { dynamicEndpoint =>
           val swaggerJson = parse(dynamicEndpoint.swaggerString)
           ("user_id", cc.userId) ~ ("dynamic_endpoint_id", dynamicEndpoint.dynamicEndpointId) ~
             ("swagger_string", swaggerJson)
@@ -2425,7 +2425,7 @@ object Http4s400 {
           for {
             (dynamicEndpoints, _) <- NewStyle.function.getDynamicEndpointsByUserId(user.userId, Some(cc))
           } yield {
-            val resultList = dynamicEndpoints.map[JObject, List[JObject]] { dynamicEndpoint =>
+            val resultList = dynamicEndpoints.map[JObject] { dynamicEndpoint =>
               val swaggerJson = parse(dynamicEndpoint.swaggerString)
               ("user_id", user.userId) ~ ("dynamic_endpoint_id", dynamicEndpoint.dynamicEndpointId) ~
                 ("swagger_string", swaggerJson)
@@ -8635,7 +8635,7 @@ object Http4s400 {
         "/management/endpoints/OPERATION_ID/tags",
         "Get System Level Endpoint Tags",
         s"""Get System Level Endpoint Tags.""",
-        EmptyBody, bankLevelEndpointTagResponseJson400 :: Nil,
+        EmptyBody, jArrayBodyOf(bankLevelEndpointTagResponseJson400 :: Nil),
         List($AuthenticatedUserIsRequired, UserHasMissingRoles, UnknownError),
         List(apiTagApi),
         Some(List(canGetSystemLevelEndpointTag)),
@@ -8646,7 +8646,7 @@ object Http4s400 {
         "/management/banks/BANK_ID/endpoints/OPERATION_ID/tags",
         "Get Bank Level Endpoint Tags",
         s"""Get Bank Level Endpoint Tags.""",
-        EmptyBody, bankLevelEndpointTagResponseJson400 :: Nil,
+        EmptyBody, jArrayBodyOf(bankLevelEndpointTagResponseJson400 :: Nil),
         List($AuthenticatedUserIsRequired, $BankNotFound, UserHasMissingRoles, UnknownError),
         List(apiTagApi),
         Some(List(canGetBankLevelEndpointTag)),
@@ -9273,7 +9273,7 @@ object Http4s400 {
         |
         |Please supply allowed authentication types.
         |""",
-        allowedAuthTypes,
+        jArrayBodyOf(allowedAuthTypes),
         JsonAuthTypeValidation("OBPv4.0.0-updateXxx", allowedAuthTypes),
         List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
         List(apiTagAuthenticationTypeValidation),
@@ -9291,7 +9291,7 @@ object Http4s400 {
         |
         |Please supply allowed authentication types.
         |""",
-        allowedAuthTypes,
+        jArrayBodyOf(allowedAuthTypes),
         JsonAuthTypeValidation("OBPv4.0.0-updateXxx", allowedAuthTypes),
         List($AuthenticatedUserIsRequired, UserHasMissingRoles, InvalidJsonFormat, UnknownError),
         List(apiTagAuthenticationTypeValidation),
@@ -10758,7 +10758,7 @@ object Http4s400 {
          |
          |""",
         postCreateUserAccountAccessJsonV400,
-        List(viewJsonV300),
+        jArrayBodyOf(List(viewJsonV300)),
         List($AuthenticatedUserIsRequired, UserLacksPermissionCanGrantAccessToViewForTargetAccount,
         InvalidJsonFormat, SystemViewNotFound, ViewNotFound, CannotGrantAccountAccess, UnknownError),
         List(apiTagAccountAccess, apiTagView, apiTagAccount, apiTagUser, apiTagOwnerRequired, apiTagDAuth),

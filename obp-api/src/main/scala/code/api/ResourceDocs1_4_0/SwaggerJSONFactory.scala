@@ -36,14 +36,24 @@ import net.liftweb.common.Box.tryo
 import net.liftweb.common.{EmptyBox, Full}
 import com.openbankproject.commons.util.json
 
-import scala.collection.compat._
 import scala.reflect.runtime.universe
 
 object SwaggerJSONFactory extends MdcLoggable {
   // GenTraversableLike is gone in 2.13. This alias only ever feeds reflective subtype tests
-  // against declared field types - List[X], Seq[X], Set[X] - and every one of those is an
-  // Iterable[X], so the tests keep selecting the same fields.
-  type Coll[T] = Iterable[T]
+  // against declared field types - List[X], Seq[X], Set[X] - so it needs to be a supertype of all
+  // of them and nothing more; no method is ever called through it.
+  //
+  // IterableOnce, not Iterable, and the difference is not cosmetic. These tests run through
+  // scala-reflect at run time, and 2.13's Iterable carries a deep base-class graph (IterableOps,
+  // IterableFactoryDefaults and friends) that the runtime member search walks for every candidate
+  // field. With Iterable here, SwaggerFactoryUnitTest hangs and then dies with a StackOverflowError
+  // inside FindMembers/AsSeenFromMap. IterableOnce is a two-method trait, which is as shallow as
+  // 2.12's GenTraversableLike was, and it is also the closest match to the GenTraversableOnce the
+  // rest of this migration replaced.
+  //
+  // Runtime pattern matches that go on to call head or nonEmpty match Iterable directly rather
+  // than going through this alias, since IterableOnce has neither.
+  type Coll[T] = IterableOnce[T]
 
   /**
    * Escapes a string value to be safely included in JSON.
@@ -761,7 +771,7 @@ object SwaggerJSONFactory extends MdcLoggable {
         val tp = ReflectUtils.getNestTypeArg(t, 0, 0)
         val value = exampleValue match {
           case v: Array[_] => v.headOption.flatMap(_.asInstanceOf[Option[_]]).orNull
-          case coll: Coll[_]  => coll.headOption.flatMap(_.asInstanceOf[Option[_]]).orNull
+          case coll: Iterable[_]  => coll.headOption.flatMap(_.asInstanceOf[Option[_]]).orNull
           case _ => null
         }
         s""" {"type": "array", "items":${buildSwaggerSchema(tp, value)}}"""
@@ -771,9 +781,9 @@ object SwaggerJSONFactory extends MdcLoggable {
         val tp = ReflectUtils.getNestTypeArg(t, 0, 0)
         val value = exampleValue match {
           case Some(v: Array[_]) if v.nonEmpty => v.head
-          case Some(coll :Coll[_]) if coll.nonEmpty  => coll.head
+          case Some(coll: Iterable[_]) if coll.nonEmpty  => coll.head
           case (v: Array[_]) if v.nonEmpty => v.head
-          case (coll: Coll[_]) if coll.nonEmpty => coll.head
+          case (coll: Iterable[_]) if coll.nonEmpty => coll.head
           case _ => null
         }
         s""" {"type": "array", "items":${buildSwaggerSchema(tp, value)}}"""
@@ -783,7 +793,7 @@ object SwaggerJSONFactory extends MdcLoggable {
         val tp = ReflectUtils.getNestTypeArg(t, 0)
         val value = exampleValue match {
           case v: Array[_] => v.head
-          case coll : Coll[_] if coll.nonEmpty => coll.head
+          case coll: Iterable[_] if coll.nonEmpty => coll.head
           case _ => null
         }
         s""" {"type": "array", "items":${buildSwaggerSchema(tp, value)}}"""
@@ -825,9 +835,14 @@ object SwaggerJSONFactory extends MdcLoggable {
         }
 
       case _ if isTypeOf[JValue] =>
-        Objects.nonNull(exampleValue)
-        val jValue = exampleValue.asInstanceOf[JValue]
-        buildSwaggerSchema(JsonUtils.getType(jValue), exampleValue)
+        // The guard here used to be `Objects.nonNull(exampleValue)`, which returns a Boolean and
+        // discards it - it never stopped anything, and a null example reached JsonUtils.getType,
+        // whose own requireNonNull then threw. The collection branches above hand null down
+        // whenever the example collection is empty, so this was always reachable; it surfaces now
+        // because the array-shaped bodies reworked for 2.13 take that path more often. An unknown
+        // example describes the field as a plain object rather than failing the whole document.
+        if (exampleValue == null) """ {"type":"object"}"""
+        else buildSwaggerSchema(JsonUtils.getType(exampleValue.asInstanceOf[JValue]), exampleValue)
 
       //Single object
       case t                                                    => s""" {"$$ref":"#/definitions/${getRefEntityName(t, exampleValue)}"}"""

@@ -93,7 +93,7 @@ final case class AccountsBalancesV310JsonGrpc(
     def getField(__field: _root_.scalapb.descriptors.FieldDescriptor): _root_.scalapb.descriptors.PValue = {
       require(__field.containingMessage eq companion.scalaDescriptor)
       (__field.number: @_root_.scala.unchecked) match {
-        case 1 => _root_.scalapb.descriptors.PRepeated(accounts.map(_.toPMessage)(_root_.scala.collection.breakOut))
+        case 1 => _root_.scalapb.descriptors.PRepeated(accounts.iterator.map(_.toPMessage).toVector)
         case 2 => overallBalance.map(_.toPMessage).getOrElse(_root_.scalapb.descriptors.PEmpty)
         case 3 => _root_.scalapb.descriptors.PString(overallBalanceDate)
       }
@@ -492,7 +492,7 @@ object AccountsBalancesV310JsonGrpc extends scalapb.GeneratedMessageCompanion[co
           case 1 => _root_.scalapb.descriptors.PString(id)
           case 2 => _root_.scalapb.descriptors.PString(label)
           case 3 => _root_.scalapb.descriptors.PString(bankId)
-          case 4 => _root_.scalapb.descriptors.PRepeated(accountRoutings.map(_.toPMessage)(_root_.scala.collection.breakOut))
+          case 4 => _root_.scalapb.descriptors.PRepeated(accountRoutings.iterator.map(_.toPMessage).toVector)
           case 5 => balance.map(_.toPMessage).getOrElse(_root_.scalapb.descriptors.PEmpty)
         }
       }

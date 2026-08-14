@@ -330,7 +330,7 @@ class AccountTest extends V400ServerSetup {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "management" / "accounts" / "account-routing-regex-query").POST
       val postBody = getAccountByRoutingJson.copy(account_routing = AccountRoutingJsonV121("AccountNumber", "123456789-[A-Z]{3}"))
-      val response400 = makePostRequest(request400, write())
+      val response400 = makePostRequest(request400, write(postBody))
       Then("We should get a 401")
       response400.code should equal(401)
       And("error should be " + AuthenticatedUserIsRequired)

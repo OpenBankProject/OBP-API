@@ -61,7 +61,7 @@ final case class BanksJson400Grpc(
     def getField(__field: _root_.scalapb.descriptors.FieldDescriptor): _root_.scalapb.descriptors.PValue = {
       require(__field.containingMessage eq companion.scalaDescriptor)
       (__field.number: @_root_.scala.unchecked) match {
-        case 1 => _root_.scalapb.descriptors.PRepeated(banks.map(_.toPMessage)(_root_.scala.collection.breakOut))
+        case 1 => _root_.scalapb.descriptors.PRepeated(banks.iterator.map(_.toPMessage).toVector)
       }
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
@@ -359,7 +359,7 @@ object BanksJson400Grpc extends scalapb.GeneratedMessageCompanion[code.obp.grpc.
           case 3 => _root_.scalapb.descriptors.PString(fullName)
           case 4 => _root_.scalapb.descriptors.PString(logo)
           case 5 => _root_.scalapb.descriptors.PString(website)
-          case 6 => _root_.scalapb.descriptors.PRepeated(bankRoutings.map(_.toPMessage)(_root_.scala.collection.breakOut))
+          case 6 => _root_.scalapb.descriptors.PRepeated(bankRoutings.iterator.map(_.toPMessage).toVector)
         }
       }
       def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
