@@ -755,7 +755,6 @@ case class DynamicEntityInfo(definition: String, entityName: String, bankId: Opt
 
   val singleName = StringHelpers.snakify(entityName).replaceFirst("[-_]*$", "")
 
-  val jsonTypeMap: Map[String, Class[_]] = DynamicEntityFieldType.nameToValue.mapValues(_.jValueType)
 
   val definitionJson = json.parse(definition).asInstanceOf[JObject]
   val entity = (definitionJson \ entityName).asInstanceOf[JObject]
@@ -798,10 +797,7 @@ case class DynamicEntityInfo(definition: String, entityName: String, bankId: Opt
       .map(field => (field.name, (field.value \ "type").asInstanceOf[JString].s))
       .toMap
 
-    val fieldNameToType: Map[String, Class[_]] = fieldNameToTypeName
-      .mapValues(jsonTypeMap(_))
-
-    val fields = result.obj.filter(it => fieldNameToType.keySet.contains(it.name))
+    val fields = result.obj.filter(it => fieldNameToTypeName.keySet.contains(it.name))
 
     (id, fields.exists(_.name == idName)) match {
       case (Some(idValue), false) => JObject(JField(idName, JString(idValue)) :: fields)

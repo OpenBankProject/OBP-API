@@ -757,7 +757,7 @@ object Http4s600 {
       case req @ GET -> `prefixPath` / "banks" / _ / "accounts" =>
         EndpointHelpers.withUserAndBank(req) { (user, bank, cc) =>
           val filteredParams: Map[String, List[String]] = req.uri.query.multiParams
-            .filterKeys(k => k != PARAM_TIMESTAMP && k != PARAM_LOCALE)
+            .filter { case (k, _) => k != PARAM_TIMESTAMP && k != PARAM_LOCALE }
             .map { case (k, vs) => k -> vs.toList }
             .toMap
           for {

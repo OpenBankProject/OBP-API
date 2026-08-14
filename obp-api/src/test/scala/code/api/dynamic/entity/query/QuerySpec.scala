@@ -22,7 +22,7 @@ class QuerySpec extends FlatSpec with Matchers {
     "active" -> FieldSpec(DynamicEntityFieldType.boolean, "scalar"),
     "geom"   -> FieldSpec(DynamicEntityFieldType.json, "spatial")
   )
-  private val fieldTypes = indexed.mapValues(_.fieldType).toMap
+  private val fieldTypes = indexed.map { case (name, field) => name -> field.fieldType }
 
   // ----- QueryParamParser -----
 

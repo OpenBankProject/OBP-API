@@ -436,7 +436,7 @@ package object bankconnectors extends MdcLoggable {
     if(lefts.isEmpty) { // all validation passed
       originValue
     } else {
-      val missingFields = lefts.flatMap(_.left.get)
+      val missingFields = lefts.collect { case Left(fields) => fields }.flatten
       val value = missingFieldsToFailure(missingFields, cc)
       if(resultIsBox) value else fullBoxOrException(value)
     }

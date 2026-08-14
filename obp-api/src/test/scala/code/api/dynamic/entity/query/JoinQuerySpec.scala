@@ -85,7 +85,7 @@ class JoinQuerySpec extends FlatSpec with Matchers {
   "QueryPlanner join resolution" should "infer the only reference edge (child -> parent)" in {
     val plan = planJoin(RawJoin(Quantifier.Exists, "Contract", None, Nil), contractSingleEdge)
     plan.isRight shouldBe true
-    plan.right.get.joins shouldBe List(JoinClause(Quantifier.Exists, "Contract", "partner_id", onChild = true, Nil))
+    plan.toOption.get.joins shouldBe List(JoinClause(Quantifier.Exists, "Contract", "partner_id", onChild = true, Nil))
   }
 
   it should "reject an ambiguous join when two edges exist and no via is given" in {
@@ -94,7 +94,7 @@ class JoinQuerySpec extends FlatSpec with Matchers {
 
   it should "resolve the edge when via picks one of several candidates" in {
     val plan = planJoin(RawJoin(Quantifier.Exists, "Contract", Some("seller_id"), Nil), contractTwoEdges)
-    plan.right.get.joins.head.linkField shouldBe "seller_id"
+    plan.toOption.get.joins.head.linkField shouldBe "seller_id"
   }
 
   it should "reject a via that is not a real reference edge" in {
@@ -115,7 +115,7 @@ class JoinQuerySpec extends FlatSpec with Matchers {
     val plan = QueryPlanner.plan(Nil, List(RawJoin(Quantifier.NotExists, "Contract", None, Nil)), Nil, Page.empty,
       "Partner", partnerIndexed, Map("favourite_contract" -> "Contract"),
       childInfoOf(Map("Contract" -> JoinTargetInfo(Map.empty, Map.empty))))
-    plan.right.get.joins shouldBe List(JoinClause(Quantifier.NotExists, "Contract", "favourite_contract", onChild = false, Nil))
+    plan.toOption.get.joins shouldBe List(JoinClause(Quantifier.NotExists, "Contract", "favourite_contract", onChild = false, Nil))
   }
 
   // ----- planner: nested predicate validation against the CHILD -----
