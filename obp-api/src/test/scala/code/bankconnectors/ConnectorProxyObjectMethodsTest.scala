@@ -45,6 +45,41 @@ class ConnectorProxyObjectMethodsTest extends ServerSetupWithTestData {
       noException should be thrownBy proxy.hashCode()
     }
 
+    scenario("the members Connector inherits from MdcLoggable are answered, not compiled", ProxyObjectMethods) {
+      // Connector extends Helper.MdcLoggable, which contributes public abstract interface methods -
+      // logger(), clazzName(), the two _setter_ bridges - and a default initiate(). They are
+      // declared by MdcLoggable, not by Object, so excluding Object's methods does not cover them:
+      // they still reach the handler, and InternalConnector's reads any unrecognised name as a
+      // dynamic connector method to look up and compile.
+      //
+      // They cannot simply be left unintercepted either. Being abstract, something has to implement
+      // them or the generated class cannot be instantiated - which is why the fix belongs in the
+      // handler rather than in the element matcher.
+      val loggerMethod = classOf[Connector].getMethod("logger")
+
+      noException should be thrownBy loggerMethod.invoke(InternalConnector.instance)
+      noException should be thrownBy loggerMethod.invoke(ConnectorUtils.proxyConnector)
+    }
+
+    scenario("every method Connector inherits from outside its own API is answerable", ProxyObjectMethods) {
+      // A shape check rather than a list: anything on the interface that InternalConnector does not
+      // recognise as a connector method must still return rather than throw.
+      val inherited = classOf[Connector].getMethods.toList
+        .filter(m => m.getParameterCount == 0)
+        .filter(m => m.getDeclaringClass != classOf[Connector])
+        .filter(m => m.getDeclaringClass != classOf[Object])
+        .filterNot(_.getName.contains("$default$"))
+
+      inherited should not be empty
+
+      val failures = inherited.flatMap { m =>
+        try { m.invoke(InternalConnector.instance); None }
+        catch { case e: java.lang.reflect.InvocationTargetException => Some(m.getName -> e.getCause.toString) }
+      }
+
+      withClue(s"methods that threw: $failures") { failures shouldBe empty }
+    }
+
     scenario("equality is still reference equality for a proxy", ProxyObjectMethods) {
       // Worth pinning: if Object methods are ever routed to a delegate rather than handled by the
       // proxy itself, two distinct proxies over the same delegate would start comparing equal.

@@ -39,7 +39,12 @@ object InternalConnector {
       val methodName = method.getName
       if(methodName == nameOf(connector.callableMethods)) {
         InternalConnector.this.callableMethods
-      } else if (methodName.contains("$default$")) {
+      } else if (methodName.contains("$default$") || !methodNameToSignature.contains(methodName)) {
+        // Anything outside the Connector API goes to the empty Connector object, which implements
+        // it for real. Connector extends Helper.MdcLoggable, so the interface also carries logger,
+        // clazzName and initiate; dynamic code never defines those, and sending them down the
+        // lookup-and-compile path threw IllegalStateException - which is what happened to anything
+        // that logged or interpolated this proxy. The $default$ accessors take the same route.
         method.invoke(connector, args:_*)
       } else {
         val function = getFunction(methodName)

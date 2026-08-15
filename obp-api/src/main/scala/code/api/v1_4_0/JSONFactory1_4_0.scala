@@ -496,13 +496,23 @@ object JSONFactory1_4_0 extends MdcLoggable{
       // A root-level collection - eg List[Users] - documents the fields of what it holds, not of
       // the collection. Any, rather than scala.Product, because 2.13's List is not a Product: on
       // 2.12 this arrived through productIterator, and `head` was picked out of a Set of two, so
-      // the tail could win the coin toss and the fields came out wrong. Reading .head is both
-      // version-independent and deterministic.
+      // the tail could win the coin toss and the fields came out wrong.
+      //
+      // Every element is folded in, not just the head: a heterogeneous list would otherwise
+      // document only what its first entry declares.
       case coll: Iterable[_] =>
-        coll.headOption.map(getAllFields).getOrElse(Nil)
+        coll.foldLeft(List.empty[Field])((acc, e) => acc ++ getAllFields(e)).distinct
       case JvalueCaseClass(_) => Nil
       case product: scala.Product =>
         loopAllFields(product, product.getClass().getDeclaredFields().toSet.toList)
+      // Nil, deliberately. Rejecting an undescribable value was tried and is wrong: this method
+      // recurses, and it legitimately reaches scalars - the elements of a List[String] field, a
+      // null - which simply have no fields to report. Throwing here took out five existing suites.
+      //
+      // The cost is real though. The parameter is Any so that a list can be documented, and that
+      // gives up the compile-time check the old scala.Product bound applied at every ResourceDoc,
+      // so a body of the wrong type now yields an empty field table rather than a build error.
+      // Catching that belongs at the ResourceDoc call site, not in a recursive field walker.
       case _ => Nil
     }
   }

@@ -1597,8 +1597,11 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
                           var description: String, // Longer description (originally taken from github wiki)
                           // Any rather than scala.Product: 2.12's List was a Product and 2.13's is
                           // not, and a list is a legitimate body here - getAllFields has always had
-                          // a branch for one. The bound never bought type safety anyway; these
-                          // values are reflected over and serialised, never read as products.
+                          // a branch for one. The bound did do something, which is why widening it
+                          // is not free: getAllFields reads these values as products, and the bound
+                          // rejected a non-Product body at compile time across every ResourceDoc.
+                          // getAllFields now throws for a body it cannot describe, so the mistake
+                          // still surfaces - at the first call rather than at compile time.
                           exampleRequestBody: Any, // An example of the request body, any type of: case class, List, JObject, EmptyBody or sub type of PrimaryDataBody, PrimaryDataBody is for primary type
                           successResponseBody: Any, // A successful response body, any type of: case class, List, JObject, EmptyBody or sub type of PrimaryDataBody, PrimaryDataBody is for primary type
                           var errorResponseBodies: List[String], // Possible error responses

@@ -38,9 +38,10 @@ object ObpGrpcServer {
   val port = APIUtil.getPropsAsIntValue("grpc.server.port", 50051)
 }
 
-// The port is a constructor parameter defaulting to the configured one, so a test can bind an
-// ephemeral port instead of the single global. Shards run as parallel JVMs, and two of them
-// starting this server on the same port aborts one run with a BindException.
+// The port is a constructor parameter defaulting to the configured one, so a test can pass 0 and
+// let the OS choose. Shards run as parallel JVMs, and two of them starting this server on the same
+// port aborts one run with a BindException. Read boundPort afterwards - asking for a free port,
+// closing it, then binding leaves a window for another process to take it.
 class ObpGrpcServer(executionContext: ExecutionContext, port: Int = ObpGrpcServer.port) extends MdcLoggable { self =>
   private[this] var server: Server = null
   def start(): Unit = {
@@ -74,13 +75,16 @@ class ObpGrpcServer(executionContext: ExecutionContext, port: Int = ObpGrpcServe
        else withLogCache)
       .asInstanceOf[ServerBuilder[_]]
     server = serverBuilder.build.start;
-    logger.info("Server started, listening on " + port)
+    logger.info("Server started, listening on " + server.getPort)
     sys.addShutdownHook {
       System.err.println("*** shutting down gRPC server since JVM is shutting down")
       self.stop()
       System.err.println("*** server shut down")
     }
   }
+
+  /** The port actually bound, which differs from the requested one when 0 was asked for. */
+  def boundPort: Int = if (server != null) server.getPort else port
 
   def stop(): Unit = {
     code.chat.ChatEventBus.stop()

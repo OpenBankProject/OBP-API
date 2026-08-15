@@ -79,12 +79,21 @@ class JSONFactory1_4_0_LightTest extends FeatureSpec
       fieldNames should contain("string1")
     }
 
-    // The scenario that passed a List to getAllFields is gone. It only ever compiled because
-    // 2.12's List extended Product, and what it pinned was the leak that came with it: its
-    // expected value listed Nil$.MODULE$ and Nil$.serialVersionUID alongside the entity's own
-    // fields, because getAllFields walks a List's product elements, which are head and tl. 2.13
-    // drops List <: Product, so the call no longer typechecks and the leak is unreachable.
-    // ResourceDocs that describe an array-shaped body now use APIUtil.jArrayBodyOf.
+    scenario("getJValueAndAllFields -input is a List of entities") {
+      // Restored. It was removed on the theory that a List documented `head` and `tl` - which was
+      // wrong: getAllFields has always had a branch for a root-level collection, and a non-empty
+      // List is a `::`, a case class, so it is a Product at run time even though 2.13 drops
+      // List <: Product at the type level. What the old expected value did pin was the reflection
+      // noise around it, Nil$.MODULE$ and Nil$.serialVersionUID, so it comes back asserting the
+      // entity's own field names instead of a rendering.
+      val listFields: List[Field] = JSONFactory1_4_0.getAllFields(List(oneObject, oneObject))
+      val fieldNames = listFields.map(_.getName)
+
+      fieldNames should contain ("string1")
+      fieldNames should not contain "tl"
+      fieldNames should not contain "MODULE$"
+    }
+
     
     scenario("getJValueAndAllFields -input it the complexNestedClass") {
       val listFields: List[Field] = JSONFactory1_4_0.getAllFields(complexNestedClass)
