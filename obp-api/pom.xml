@@ -267,7 +267,10 @@
     <dependency>
       <groupId>com.github.dwickern</groupId>
       <artifactId>scala-nameof_${scala.version}</artifactId>
-      <version>2.0.0</version>
+      <!-- 4.x publishes _3 (inline-based) alongside _2.13 (macro) - the flip swaps the
+           suffix only. nameOf feeds ResourceDoc partialFunctionName/operation_id, so the
+           contract surface diff is the change detector for its 3326 call sites. -->
+      <version>4.1.0</version>
     </dependency>
     <!-- https://mvnrepository.com/artifact/com.nimbusds/nimbus-jose-jwt -->
     <dependency>

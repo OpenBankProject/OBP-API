@@ -109,6 +109,18 @@
     and jitpack.io serves the pinned lift-persistence build.
   -->
   <repositories>
+    <!-- Central declared explicitly so it is searched BEFORE the repos below.
+         Maven otherwise appends the super-POM's central entry after pom-declared
+         repositories, which lets jitpack shadow every legitimate com.github.*
+         groupId on Central: jitpack maps the coordinate to a GitHub repo, builds
+         it, and answers with an sbt aggregate pom whose submodules then 401 -
+         observed with com.github.dwickern:scala-nameof_2.13:4.1.0. With central
+         first, jitpack is only consulted for what Central does not have
+         (lift-persistence, OpenBankProject scala-macros). -->
+    <repository>
+      <id>central</id>
+      <url>https://repo.maven.apache.org/maven2</url>
+    </repository>
     <repository>
       <id>git-OpenBankProject</id>
       <name>OpenBankProject Git based repo</name>
