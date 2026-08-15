@@ -787,6 +787,16 @@ object JSONFactory1_4_0 extends MdcLoggable{
       case JArray(List()) =>
         // Empty array
         return """{"type": "array"}"""
+      // A bare Scala collection is the same shape as a JArray and gets the same answer: the element
+      // carries the schema. It is not reflected over - that yields head and tail rather than API
+      // fields, and on 2.13 it does not terminate, because Nil holds a static EmptyUnzip of (Nil,
+      // Nil) and following it returns to Nil for ever. Reading the head, or nothing when there is
+      // no head, touches neither. Falling through instead published "properties": {} for the three
+      // endpoints that return a bare List, which is less than 2.12 said even while leaking head/tl.
+      // Map is excluded deliberately: it is an Iterable but it is not a JSON array.
+      case coll: Iterable[_] if !coll.isInstanceOf[scala.collection.Map[_, _]] =>
+        return if (coll.isEmpty) """{"type": "array"}"""
+               else """{"type": "array", "items": """ + translateEntity(coll.head, false) + "}"
       case _ => // Continue with normal processing
     }
 
@@ -795,12 +805,9 @@ object JSONFactory1_4_0 extends MdcLoggable{
       case ListResult(name, results) => Map((name, results))
       case JObject(jFields) => jFields.map(it => (it.name, it.value)).toMap
       case _: JArray => Map.empty // Don't extract fields from JArray - it has internal "arr" field
-      // Nor from any other collection, for the same reason and then some. Reflecting over a List
-      // yields its head and tail, which are not API fields, and on 2.13 it does not terminate:
-      // Nil carries a static EmptyUnzip: (Nil, Nil), so following it arrives back at Nil for ever
-      // and translateEntity recurses until the stack goes. 2.12's Nil had no such field, which is
-      // why this only appears after the flip. A collection's elements are what matter here, and
-      // the value cases below already take the first one.
+      // Only a Map reaches this now - every other collection returned above as an array. A Map is
+      // not reflected over for the same reason a List is not: what reflection yields is the
+      // collection's own machinery, not API fields.
       case _: Iterable[_] => Map.empty
       case _ => ReflectUtils.getFieldValues(extractedEntity.asInstanceOf[AnyRef])()
     }
