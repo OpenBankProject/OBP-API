@@ -779,6 +779,39 @@
         </configuration>
       </plugin>
 
+      <!-- Empty target/lib before it is refilled below. copy-dependencies only ADDS jars: it
+           never removes one that is no longer a dependency, so on an incremental build the
+           runtime classpath keeps every jar this project has ever depended on. That is not
+           untidiness - the thin jar's manifest puts all of lib/ on the classpath, so a dropped
+           dependency goes on being loaded. Removing avro (CVE-2024-47561, CVSS 9.8) left
+           avro-1.11.4.jar sitting in lib/ exactly like that, and two scalameta versions were
+           there side by side after its upgrade. Runs in the same phase as copy-dependencies and
+           is declared first, which is the order Maven executes them in. -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-clean-plugin</artifactId>
+        <version>3.4.0</version>
+        <executions>
+          <execution>
+            <id>prune-runtime-lib</id>
+            <phase>prepare-package</phase>
+            <goals>
+              <goal>clean</goal>
+            </goals>
+            <configuration>
+              <!-- Only the lib directory: the default directories would wipe target/classes,
+                   which this phase's own build output lives in. -->
+              <excludeDefaultDirectories>true</excludeDefaultDirectories>
+              <filesets>
+                <fileset>
+                  <directory>${project.build.directory}/lib</directory>
+                </fileset>
+              </filesets>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
       <!-- Copy runtime dependencies to target/lib/ (sibling of obp-api.jar) -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
