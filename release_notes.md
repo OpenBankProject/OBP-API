@@ -22,6 +22,15 @@ Date          Commit        Action
                             shapes and error codes are the same; per-version test counts match the
                             2.12 baseline.
 
+                            The DOCUMENTATION of response shapes is corrected in 62 typed response
+                            bodies (resource-docs/swagger). 2.12 described a bare-List response by
+                            reflecting over the cons cell - publishing its head/tl internals - and
+                            described nested collection fields as empty objects. Both now read
+                            {"type":"array", ...} with the element's real schema under items. The
+                            responses themselves are unchanged; only their published description
+                            moved, from wrong to right. Verified against a 2.12 baseline diff:
+                            0 breaking changes, 62 corrections, 0 regressions.
+
 13/08/2026    298e1af87     Added props open_corridor.platform_bank_id.
                             The platform fee accrual endpoints settle to the platform, which is
                             modelled as a bank; this names its BANK_ID. There is no usable default,
