@@ -315,13 +315,12 @@ object Redis extends MdcLoggable {
   // with NOAUTH while the jedisPool-based paths keep working.
   implicit val flags = Flags(readsEnabled = true, writesEnabled = true)
 
-  // scalacache 0.28 types its Cache by the value type, while these wrappers are generic in A, so
-  // the cache is built per call rather than held as one untyped instance. RedisCache is a thin
-  // wrapper over the pool built above - it opens nothing of its own - so the pool, its
-  // authentication and its SSL configuration stay shared.
-  // Built once: RedisCache carries no per-type state, its value type is erased, and the codec below
-  // ignores the Manifest it takes, so every A would get an identical wrapper. Constructing one per
-  // call put two allocations in front of every cache read on the request path.
+  // scalacache 0.28 types its Cache by the value type, while these wrappers are generic in A. One
+  // instance still serves them all: RedisCache carries no per-type state, its value type is erased,
+  // and the codec below ignores the Manifest it takes, so every A would get an identical wrapper -
+  // building one per call only put two allocations in front of every cache read on the request
+  // path. RedisCache is a thin wrapper over the pool built above and opens nothing of its own, so
+  // the pool, its authentication and its SSL configuration stay shared.
   private val sharedCache: Cache[Any] = RedisCache[Any](jedisPool)
   private def cacheFor[A]: Cache[A] = sharedCache.asInstanceOf[Cache[A]]
 

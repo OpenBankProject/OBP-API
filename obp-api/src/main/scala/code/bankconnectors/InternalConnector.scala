@@ -39,6 +39,10 @@ object InternalConnector {
       val methodName = method.getName
       if(methodName == nameOf(connector.callableMethods)) {
         InternalConnector.this.callableMethods
+      // isInheritedMember is subsumed by isDynamicallyImplementable today, and asked anyway: the
+      // second is derived from methodNameToSignature, a map built for rendering signatures whose
+      // exclusion of inherited members is a side effect of how it is filtered rather than something
+      // it promises. Naming the rule directly is what keeps this from depending on that accident.
       } else if (methodName.contains("$default$") || ConnectorProxy.isInheritedMember(method)
                  || !isDynamicallyImplementable(methodName)) {
         // Anything outside the Connector API goes to the empty Connector object, which implements

@@ -112,6 +112,8 @@ object RequestScopeConnection extends MdcLoggable {
    */
   val currentProxy: TransmittableThreadLocal[Connection] =
     new TransmittableThreadLocal[Connection]() {
+      // Public, not protected: TransmittableThreadLocal declares childValue public, and an
+      // override may not narrow that. 2.12 accepted the narrowing; 2.13 rejects it.
       override def childValue(parentValue: Connection): Connection = null
     }
 

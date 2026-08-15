@@ -121,7 +121,7 @@ class ObpGrpcServerSmokeTest extends ServerSetupWithTestData {
 
       val second = new ObpGrpcServer(scala.concurrent.ExecutionContext.global, port = 0)
       second.start()
-      try second.stop() finally second.stop()
+      second.stop()
 
       withClue("the second server stopped a bus it had joined rather than started: ") {
         ChatEventBus.isRunning should equal(true)

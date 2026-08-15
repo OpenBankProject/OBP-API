@@ -51,24 +51,32 @@ class ObpGrpcServer(executionContext: ExecutionContext, port: Int = ObpGrpcServe
   // Which of the process-wide buses this instance actually started. Each is an object holding one
   // subscriber connection, start() is a no-op once it is running, and stop() was not - so a second
   // server's stop() closed the connection the first one was still serving from.
-  private[this] var startedChatBus = false
-  private[this] var startedLogCacheBus = false
-  private[this] var startedMetricsBus = false
-  private[this] var shutdownHook: scala.sys.ShutdownHookThread = null
+  // @volatile for the same reason as actualPort: stop() also runs on the JVM's shutdown-hook
+  // thread, which never synchronised with the thread that ran start().
+  @volatile private[this] var startedChatBus = false
+  @volatile private[this] var startedLogCacheBus = false
+  @volatile private[this] var startedMetricsBus = false
+  @volatile private[this] var shutdownHook: scala.sys.ShutdownHookThread = null
 
   def start(): Unit = {
 
+    // Ownership is read after each start() rather than before: a disabled bus makes start() a
+    // no-op, and "was not running beforehand" alone would claim one this instance never started.
+
     // Start chat event bus for Redis pub/sub streaming
-    startedChatBus = !code.chat.ChatEventBus.isRunning
+    val chatWasRunning = code.chat.ChatEventBus.isRunning
     code.chat.ChatEventBus.start()
+    startedChatBus = !chatWasRunning && code.chat.ChatEventBus.isRunning
 
     // Start log cache event bus (no-op if grpc.log_cache_stream.enabled=false)
-    startedLogCacheBus = !code.logcache.LogCacheEventBus.isRunning
+    val logCacheWasRunning = code.logcache.LogCacheEventBus.isRunning
     code.logcache.LogCacheEventBus.start()
+    startedLogCacheBus = !logCacheWasRunning && code.logcache.LogCacheEventBus.isRunning
 
     // Start metrics event bus (no-op if grpc.metrics_stream.enabled=false)
-    startedMetricsBus = !code.metricsstream.MetricsEventBus.isRunning
+    val metricsWasRunning = code.metricsstream.MetricsEventBus.isRunning
     code.metricsstream.MetricsEventBus.start()
+    startedMetricsBus = !metricsWasRunning && code.metricsstream.MetricsEventBus.isRunning
 
     val baseBuilder = ServerBuilder.forPort(port)
       .addService(ObpServiceGrpc.bindService(ObpServiceImpl, executionContext))

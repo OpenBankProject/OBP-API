@@ -1600,8 +1600,11 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
                           // a branch for one. The bound did do something, which is why widening it
                           // is not free: getAllFields reads these values as products, and the bound
                           // rejected a non-Product body at compile time across every ResourceDoc.
-                          // getAllFields now throws for a body it cannot describe, so the mistake
-                          // still surfaces - at the first call rather than at compile time.
+                          // Nothing replaces that check. Making getAllFields throw on a body it
+                          // cannot describe was tried and reverted - it recurses into scalars, so
+                          // the throw fired on legitimate input and took out five suites. A body of
+                          // the wrong type now yields an empty field table, silently, and the place
+                          // to catch it is a check here rather than in the field walker.
                           exampleRequestBody: Any, // An example of the request body, any type of: case class, List, JObject, EmptyBody or sub type of PrimaryDataBody, PrimaryDataBody is for primary type
                           successResponseBody: Any, // A successful response body, any type of: case class, List, JObject, EmptyBody or sub type of PrimaryDataBody, PrimaryDataBody is for primary type
                           var errorResponseBodies: List[String], // Possible error responses

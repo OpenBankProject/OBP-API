@@ -110,7 +110,16 @@ class ConnectorProxyObjectMethodsTest extends ServerSetupWithTestData {
       // and sends everything else into MethodRouting resolution and invokeMethod - so logger and
       // clazzName, which Connector inherits from MdcLoggable and no connector implements, are
       // looked up as if they were connector calls, and counted as one in the outbound metrics.
-      val inherited = classOf[Connector].getMethods.toList
+      val allMethods = classOf[Connector].getMethods.toList
+
+      // Same guard as the scenario above: the loop invokes what it collects, and initiate() is a
+      // lifecycle hook that Connector currently leaves as MdcLoggable's no-op.
+      withClue("Connector overrides initiate(); invoking it below would run a real lifecycle hook") {
+        allMethods.filter(_.getName == "initiate").map(_.getDeclaringClass) should
+          not contain classOf[Connector]
+      }
+
+      val inherited = allMethods
         .filter(m => m.getParameterCount == 0)
         .filter(m => m.getDeclaringClass != classOf[Connector])
         .filter(m => m.getDeclaringClass != classOf[Object])

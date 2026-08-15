@@ -34,7 +34,10 @@ class RedisDeserializeMissTest extends FlatSpec with Matchers {
     val garbage: Array[Byte] = Array[Byte](-128, -1, -2, -3, 0, 1, 2, 3)
     val outcome = codec[String].decode(garbage)
     outcome.isLeft shouldBe true
-    outcome.right.toOption should not be Some("NONE")
+    // Named explicitly, and asserted on the Either rather than through a projection: after the
+    // line above, `outcome.right.toOption` is None whatever decode did, so that form held for
+    // every possible implementation - including the sentinel this suite exists to rule out.
+    outcome should not be Right("NONE")
   }
 
   it should "round-trip a value encoded by the same codec" in {
