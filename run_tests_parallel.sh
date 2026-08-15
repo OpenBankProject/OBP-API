@@ -283,8 +283,10 @@ run_shard() {
 # others are still using.
 reap_orphaned_test_jvms() {
     local pids pid
-    pids=$(pgrep -f "Drun.mode=test" 2>/dev/null | while read -r pid; do
-        ps -o command= -p "$pid" 2>/dev/null | grep -q -- "$CHECKOUT_ROOT" && echo "$pid"
+    # -F on both: these select what to kill, and a checkout path contains a literal dot (.claude)
+    # that a regex would read as "any character".
+    pids=$(pgrep -f -- "-Drun.mode=test" 2>/dev/null | while read -r pid; do
+        ps -o command= -p "$pid" 2>/dev/null | grep -qF -- "$CHECKOUT_ROOT" && echo "$pid"
     done)
     [[ -z "$pids" ]] && return 0
     echo "Reaping orphaned test JVM(s) left by this run: $(echo $pids | tr '\n' ' ')"
