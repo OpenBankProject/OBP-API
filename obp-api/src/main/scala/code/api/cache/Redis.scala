@@ -319,7 +319,11 @@ object Redis extends MdcLoggable {
   // the cache is built per call rather than held as one untyped instance. RedisCache is a thin
   // wrapper over the pool built above - it opens nothing of its own - so the pool, its
   // authentication and its SSL configuration stay shared.
-  private def cacheFor[A](implicit codec: Codec[A]): Cache[A] = RedisCache[A](jedisPool)
+  // Built once: RedisCache carries no per-type state, its value type is erased, and the codec below
+  // ignores the Manifest it takes, so every A would get an identical wrapper. Constructing one per
+  // call put two allocations in front of every cache read on the request path.
+  private val sharedCache: Cache[Any] = RedisCache[Any](jedisPool)
+  private def cacheFor[A]: Cache[A] = sharedCache.asInstanceOf[Cache[A]]
 
   implicit def anyToByte[T](implicit m: Manifest[T]): Codec[T] = new Codec[T] {
 

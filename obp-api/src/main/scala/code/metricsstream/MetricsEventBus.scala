@@ -117,6 +117,9 @@ object MetricsEventBus extends MdcLoggable {
     logger.info("MetricsEventBus says: Started")
   }
 
+  /** Whether this bus is already subscribed, so a caller can tell whether it started it. */
+  def isRunning: Boolean = running
+
   def stop(): Unit = {
     running = false
     try { if (pubSub != null) pubSub.unsubscribe() } catch { case _: Throwable => }

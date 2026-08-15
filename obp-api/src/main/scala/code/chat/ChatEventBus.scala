@@ -138,6 +138,9 @@ object ChatEventBus extends MdcLoggable {
     logger.info("ChatEventBus says: Started")
   }
 
+  /** Whether this bus is already subscribed, so a caller can tell whether it started it. */
+  def isRunning: Boolean = running
+
   def stop(): Unit = {
     running = false
     try {

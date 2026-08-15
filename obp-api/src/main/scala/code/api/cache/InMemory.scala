@@ -20,8 +20,10 @@ object InMemory extends MdcLoggable {
   val underlyingGuavaCache: GuavaUnderlying[String, Entry[Any]] =
     CacheBuilder.newBuilder().maximumSize(100000L).build[String, Entry[Any]]()
 
-  private def cacheFor[A]: Cache[A] =
-    GuavaCache(underlyingGuavaCache.asInstanceOf[GuavaUnderlying[String, Entry[A]]])
+  // Built once, for the same reason as Redis's: the wrapper holds no per-type state and the cast is
+  // erased, so one instance serves every A instead of one allocation per cache read.
+  private val sharedCache: Cache[Any] = GuavaCache(underlyingGuavaCache)
+  private def cacheFor[A]: Cache[A] = sharedCache.asInstanceOf[Cache[A]]
 
   def memoizeSyncWithInMemory[A](cacheKey: Option[String])(@cacheKeyExclude ttl: Duration)(@cacheKeyExclude f: => A): A = {
     logger.trace(s"InMemory.memoizeSyncWithInMemory.underlyingGuavaCache size ${underlyingGuavaCache.size()}, current cache key is $cacheKey")

@@ -1,6 +1,7 @@
 package code.obp.grpc
 
 import code.bankconnectors.Connector
+import code.chat.ChatEventBus
 import code.obp.grpc.api.ObpServiceGrpc
 import code.setup.ServerSetupWithTestData
 import com.google.protobuf.empty.Empty
@@ -94,13 +95,37 @@ class ObpGrpcServerSmokeTest extends ServerSetupWithTestData {
       // boundPort read server.getPort and fell back to the constructor argument once stop() nulled
       // the field - which is 0 for a server given an ephemeral port, so teardown logging and any
       // reconnect would see 0 rather than where it had been listening.
+      //
+      // try/finally, because a failure of the first assertion would otherwise leave this server
+      // bound for the life of the JVM - beforeAll's server is the only one afterAll knows about.
       val server = new ObpGrpcServer(scala.concurrent.ExecutionContext.global, port = 0)
       server.start()
-      val whileRunning = server.boundPort
-      whileRunning should not equal 0
+      try {
+        val whileRunning = server.boundPort
+        whileRunning should not equal 0
 
-      server.stop()
-      server.boundPort should equal(whileRunning)
+        server.stop()
+        server.boundPort should equal(whileRunning)
+      } finally {
+        server.stop()
+      }
+    }
+
+    scenario("stopping one server leaves another server's event buses alone", GrpcSmoke) {
+      // start() starts ChatEventBus and, when enabled, the log-cache and metrics buses. All three
+      // are objects holding one subscriber connection for the process, and start() is a no-op once
+      // one is running - but stop() was not: it punsubscribed and closed that shared connection
+      // whoever called it. So a second server's stop() silently cut the pub/sub out from under the
+      // server this suite started in beforeAll, which is still serving.
+      ChatEventBus.isRunning should equal(true)
+
+      val second = new ObpGrpcServer(scala.concurrent.ExecutionContext.global, port = 0)
+      second.start()
+      try second.stop() finally second.stop()
+
+      withClue("the second server stopped a bus it had joined rather than started: ") {
+        ChatEventBus.isRunning should equal(true)
+      }
     }
 
     scenario("a call with no credentials is rejected", GrpcSmoke) {

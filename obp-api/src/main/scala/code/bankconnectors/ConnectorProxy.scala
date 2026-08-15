@@ -29,15 +29,32 @@ import net.bytebuddy.matcher.ElementMatchers
  * which is also what makes proxy identity behave - reference equality, and a toString that does not
  * depend on a delegate.
  *
- * One difference between proxy libraries is worth stating, because all three handlers forward with
- * `method.invoke(target, args: _*)` and that expression throws on a null array:
- * `java.lang.reflect.Proxy` passes null for a method that declares no parameters, while cglib
- * passes an empty array. InvocationHandlerAdapter builds the array from the method's parameter
- * list, so a no-argument method gets a zero-length array and the forwarding stays valid.
- * ProxyConnectorTest pins that on the proxy connector, whose synthetic `$default$` accessors are
- * all no-argument methods.
+ * `args` is null, not empty, for a method that declares no parameters - InvocationHandlerAdapter
+ * follows `java.lang.reflect.Proxy` here, where cglib passed a zero-length array. Forwarding with
+ * `method.invoke(target, args: _*)` survives it, because that compiles to Java varargs and
+ * `Method.invoke` reads a null array as no arguments; ProxyConnectorTest pins that on the proxy
+ * connector, whose synthetic `$default$` accessors are all no-argument. Anything that treats `args`
+ * as a collection does not survive it: `args.collectFirst`, `xs.zip(args)` and the like throw NPE.
+ * StarConnector's handler zipped parameter names with `args` for every method it did not recognise,
+ * so `logger` on that proxy threw NullPointerException until isInheritedMember was applied to it.
  */
 private[bankconnectors] object ConnectorProxy {
+
+  /**
+   * Whether the interface carries this method from somewhere other than Connector itself - in
+   * practice MdcLoggable's logger, clazzName, initiate and the two setter bridges.
+   *
+   * No connector implements them, no dynamic code defines them and no MethodRouting names them, so
+   * every handler has to answer them from a real Connector instance instead of treating them as a
+   * connector call. That rule lives here because all three proxies need it and each one had to be
+   * taught it separately otherwise: InternalConnector threw IllegalStateException on them and
+   * StarConnector threw NullPointerException, both discovered one proxy at a time.
+   *
+   * Object's own methods are excluded here as well for symmetry, though create already leaves them
+   * unintercepted so a handler never sees one.
+   */
+  def isInheritedMember(method: java.lang.reflect.Method): Boolean =
+    method.getDeclaringClass != classOf[Connector] && method.getDeclaringClass != classOf[Object]
 
   def create(handler: InvocationHandler): Connector =
     new ByteBuddy()

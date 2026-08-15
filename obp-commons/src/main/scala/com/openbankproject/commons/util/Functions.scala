@@ -137,7 +137,6 @@ object Functions {
            * split collection to tuple of two collections, left is predicate check is true, right is predicate check is false
            * @param predicate check element function
            * @param canBuildFrom
-           * @tparam That to collection's type
            * @return tuple
            */
           def classify(predicate: A => Boolean)(implicit factory: Factory[A, C[A]]): (C[A], C[A]) = {
@@ -153,7 +152,6 @@ object Functions {
            * add one element if coll not exists that element
            * @param ele
            * @param canBuildFrom
-           * @tparam That
            * @return new coll contains given ele
            */
           def ?+ (ele: A)(implicit factory: Factory[A, C[A]]): C[A] = {
@@ -171,7 +169,6 @@ object Functions {
            * remove element if coll exists that element, may remove multiple if exists more than one.
            * @param ele
            * @param canBuildFrom
-           * @tparam That
            * @return a new coll not contains given ele
            */
           def ?- (ele: A)(implicit factory: Factory[A, C[A]]): C[A] = {

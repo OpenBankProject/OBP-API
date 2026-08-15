@@ -48,15 +48,26 @@ class ObpGrpcServer(executionContext: ExecutionContext, port: Int = ObpGrpcServe
   // server given port 0 the constructor argument it would fall back to is 0. @volatile because
   // start() runs on one thread and callers read this from another.
   @volatile private[this] var actualPort: Int = port
+  // Which of the process-wide buses this instance actually started. Each is an object holding one
+  // subscriber connection, start() is a no-op once it is running, and stop() was not - so a second
+  // server's stop() closed the connection the first one was still serving from.
+  private[this] var startedChatBus = false
+  private[this] var startedLogCacheBus = false
+  private[this] var startedMetricsBus = false
+  private[this] var shutdownHook: scala.sys.ShutdownHookThread = null
+
   def start(): Unit = {
 
     // Start chat event bus for Redis pub/sub streaming
+    startedChatBus = !code.chat.ChatEventBus.isRunning
     code.chat.ChatEventBus.start()
 
     // Start log cache event bus (no-op if grpc.log_cache_stream.enabled=false)
+    startedLogCacheBus = !code.logcache.LogCacheEventBus.isRunning
     code.logcache.LogCacheEventBus.start()
 
     // Start metrics event bus (no-op if grpc.metrics_stream.enabled=false)
+    startedMetricsBus = !code.metricsstream.MetricsEventBus.isRunning
     code.metricsstream.MetricsEventBus.start()
 
     val baseBuilder = ServerBuilder.forPort(port)
@@ -81,7 +92,9 @@ class ObpGrpcServer(executionContext: ExecutionContext, port: Int = ObpGrpcServe
     server = serverBuilder.build.start;
     actualPort = server.getPort
     logger.info("Server started, listening on " + actualPort)
-    sys.addShutdownHook {
+    // Kept so stop() can take it down again: without that, every server ever started leaves a hook
+    // behind, and each one calls stop() on an instance that has usually stopped already.
+    shutdownHook = sys.addShutdownHook {
       System.err.println("*** shutting down gRPC server since JVM is shutting down")
       self.stop()
       System.err.println("*** server shut down")
@@ -92,12 +105,17 @@ class ObpGrpcServer(executionContext: ExecutionContext, port: Int = ObpGrpcServe
   def boundPort: Int = actualPort
 
   def stop(): Unit = {
-    code.chat.ChatEventBus.stop()
-    code.logcache.LogCacheEventBus.stop()
-    code.metricsstream.MetricsEventBus.stop()
+    if (startedChatBus) { code.chat.ChatEventBus.stop(); startedChatBus = false }
+    if (startedLogCacheBus) { code.logcache.LogCacheEventBus.stop(); startedLogCacheBus = false }
+    if (startedMetricsBus) { code.metricsstream.MetricsEventBus.stop(); startedMetricsBus = false }
     if (server != null) {
       server.shutdown()
       server = null
+    }
+    if (shutdownHook != null) {
+      // remove() throws once the JVM is already shutting down, which is exactly when the hook runs.
+      try shutdownHook.remove() catch { case _: IllegalStateException => () }
+      shutdownHook = null
     }
   }
 

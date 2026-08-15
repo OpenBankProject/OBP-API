@@ -105,6 +105,25 @@ class ConnectorProxyObjectMethodsTest extends ServerSetupWithTestData {
         InternalConnector.instance.messageDocs
     }
 
+    scenario("StarConnector answers inherited members without routing them", ProxyObjectMethods) {
+      // The same shape check, against the third proxy. Its handler recognises $default$ accessors
+      // and sends everything else into MethodRouting resolution and invokeMethod - so logger and
+      // clazzName, which Connector inherits from MdcLoggable and no connector implements, are
+      // looked up as if they were connector calls, and counted as one in the outbound metrics.
+      val inherited = classOf[Connector].getMethods.toList
+        .filter(m => m.getParameterCount == 0)
+        .filter(m => m.getDeclaringClass != classOf[Connector])
+        .filter(m => m.getDeclaringClass != classOf[Object])
+        .filterNot(_.getName.contains("$default$"))
+
+      val failures = inherited.flatMap { m =>
+        try { m.invoke(StarConnector); None }
+        catch { case e: java.lang.reflect.InvocationTargetException => Some(m.getName -> e.getCause.toString) }
+      }
+
+      withClue(s"methods that threw: $failures") { failures shouldBe empty }
+    }
+
     scenario("equality is still reference equality for a proxy", ProxyObjectMethods) {
       // Worth pinning: if Object methods are ever routed to a delegate rather than handled by the
       // proxy itself, two distinct proxies over the same delegate would start comparing equal.

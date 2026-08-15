@@ -19,7 +19,6 @@ import net.liftweb.common.{Box, Empty, EmptyBox, Failure, Full, ParamFailure}
 import net.liftweb.util.Helpers.now
 import net.liftweb.util.ThreadGlobal
 
-import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
 import scala.reflect.runtime.universe.{MethodSymbol, Type, typeOf}
 import scala.util.{Success => TrySuccess, Failure => TryFailure}
@@ -52,7 +51,10 @@ package object bankconnectors extends MdcLoggable {
         if (method.getReturnType.getName == "scala.concurrent.Future" && !canOpenFuture(method.getName)) {
           throw new RuntimeException(ServiceIsTooBusy + s"Current Service(${method.getName})")
         } else {
-          if (method.getName.contains("$default$")) {
+          if (method.getName.contains("$default$") || ConnectorProxy.isInheritedMember(method)) {
+            // The empty Connector implements both: the $default$ accessors it inherits, and the
+            // members Connector itself does not declare. Routing the latter would look them up as
+            // connector calls - and NPE on the way, since args is null for a no-arg method.
             val connectorMethodResult = method.invoke(StubConnector, args:_*)
             if (connectorMethodResult.isInstanceOf[Future[_]] && canOpenFuture(method.getName)) {
               FutureUtil.futureWithLimits(connectorMethodResult.asInstanceOf[Future[_]], method.getName)
@@ -345,7 +347,9 @@ package object bankconnectors extends MdcLoggable {
       case n : Iterable[_] if n.isEmpty => n
 
       // all the follow return value need do validation of requied fields.
-      case coll @(_:Array[_] | _: ArrayBuffer[_] | _: Iterable[_]) =>
+      // ArrayBuffer used to be listed here beside GenTraversableOnce; it is an Iterable, so it is
+      // covered by the arm below and naming it separately only read as a deliberate special case.
+      case coll @(_:Array[_] | _: Iterable[_]) =>
         val elementTpe = returnType.typeArgs.head
         validate(value, elementTpe, coll, apiVersion, None, false)
 

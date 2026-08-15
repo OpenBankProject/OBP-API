@@ -122,6 +122,9 @@ object LogCacheEventBus extends MdcLoggable {
     logger.info("LogCacheEventBus says: Started")
   }
 
+  /** Whether this bus is already subscribed, so a caller can tell whether it started it. */
+  def isRunning: Boolean = running
+
   def stop(): Unit = {
     running = false
     try { if (pubSub != null) pubSub.punsubscribe() } catch { case _: Throwable => }
