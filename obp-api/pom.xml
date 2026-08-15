@@ -111,20 +111,6 @@
       <artifactId>protobuf-java</artifactId>
       <version>3.25.5</version>
     </dependency>
-    <!-- Pin org.apache.avro:avro to 1.11.4 to override the 1.9.2 pulled in transitively
-         by avro4s 4.1.2. Fixes CVE-2024-47561 (CVSS 9.8 — RCE via schema parsing). -->
-    <dependency>
-      <groupId>org.apache.avro</groupId>
-      <artifactId>avro</artifactId>
-      <version>${apache.avro.version}</version>
-    </dependency>
-    <!-- Pin snappy-java to override older versions pulled in transitively by avro.
-         Fixes CVE-2023-34453, CVE-2023-34454, CVE-2023-34455, CVE-2023-43642. -->
-    <dependency>
-      <groupId>org.xerial.snappy</groupId>
-      <artifactId>snappy-java</artifactId>
-      <version>1.1.10.4</version>
-    </dependency>
     <!-- Pin msal4j to override the older version pulled in transitively by
          mssql-jdbc → azure-identity. Fixes CVE-2024-35255 (elevation of
          privilege, fixed upstream in 1.15.1). Not used directly in source —
@@ -227,11 +213,6 @@
       <version>${pekko.version}</version>
     </dependency>
     <dependency>
-      <groupId>com.sksamuel.avro4s</groupId>
-      <artifactId>avro4s-core_${scala.version}</artifactId>
-      <version>${avro4s.version}</version>
-    </dependency>
-    <dependency>
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-compress</artifactId>
       <version>1.26.0</version>
@@ -286,7 +267,12 @@
     <dependency>
       <groupId>org.scalameta</groupId>
       <artifactId>scalameta_${scala.version}</artifactId>
-      <version>4.1.12</version>
+      <!-- 4.13.6, not 4.1.12: the Scala 3 line does not go back that far, and this is a
+           suffix swap at the flip like every other green-list dependency. Used only by
+           two in-repo lint helpers that parse this project's own sources (ApiRole's
+           name-convention check and ErrorMessages' duplicate-code check, the latter
+           asserted by DuplicatedMessages) - never on a request path. -->
+      <version>4.13.6</version>
     </dependency>
 
     <!-- https://mvnrepository.com/artifact/com.nimbusds/oauth2-oidc-sdk -->

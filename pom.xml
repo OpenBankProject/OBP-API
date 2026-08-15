@@ -15,8 +15,6 @@
     <scala.compiler>2.13.18</scala.compiler>
     <pekko.version>1.1.5</pekko.version>
     <pekko-http.version>1.1.0</pekko-http.version>
-    <avro4s.version>4.1.2</avro4s.version>
-    <apache.avro.version>1.11.4</apache.avro.version>
     <!-- v1.0.5 is the first tag published for both Scala versions. Up to v1.0.4 JitPack ran its
          default `sbt clean publishM2`, which publishes only the default Scala version, so
          lift-persistence_2.13 did not exist however the tag was numbered. -->
