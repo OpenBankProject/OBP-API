@@ -437,9 +437,6 @@ else
     TOTAL_SHARDS=4
 fi
 
-# Every shard has been waited on by here, from either branch, so nothing this matches is still in use.
-reap_orphaned_test_jvms
-
 END=$(date +%s)
 ELAPSED=$(( (END - START) / 60 ))
 SEC=$(( (END - START) % 60 ))
@@ -548,6 +545,12 @@ if [[ "$HAVE_PY3" = "1" ]] && ls "$REPORTS_DIR"/*.xml >/dev/null 2>&1; then
     python3 .github/scripts/test_speed_report.py "$REPORTS_DIR" 2>/dev/null \
         || echo "  (speed report skipped)"
 fi
+
+# Reaped here, not straight after the shards: every shard has been waited on since then, but both
+# the surefire audit and the speed report read those XMLs above, and this script already treats a
+# report truncated by a JVM killed mid-write as a broken suite. Killing before either read could
+# manufacture exactly that failure. By this line nothing left alive can change the verdict.
+reap_orphaned_test_jvms
 
 # Final verdict LAST so `tail -N` always captures it, plus a machine-readable file
 # that survives any piping of stdout (`./run.sh | tail` reports tail's exit code).
