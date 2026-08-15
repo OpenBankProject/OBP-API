@@ -32,7 +32,6 @@ import com.openbankproject.commons.model._
 import com.openbankproject.commons.model.enums.ChallengeType.OBP_TRANSACTION_REQUEST_CHALLENGE
 import com.openbankproject.commons.model.enums.TransactionRequestTypes._
 import com.openbankproject.commons.model.enums.{TransactionRequestStatus, _}
-import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common._
 import org.json4s.JsonAST.JValue
 import org.json4s.native.Serialization.write
@@ -43,7 +42,6 @@ import net.liftweb.util.Helpers.{now, tryo}
 import net.liftweb.util.StringHelpers
 
 import java.time.{LocalDate, ZoneId}
-import java.util.UUID.randomUUID
 import java.util.{Calendar, Date}
 import scala.collection.immutable.{List, Nil}
 import scala.concurrent.Future
@@ -479,17 +477,9 @@ object LocalMappedConnectorInternal extends MdcLoggable {
   }
 
   def getCurrentFxRateCached(bankId: BankId, fromCurrencyCode: String, toCurrencyCode: String, callContext: Option[CallContext]): Box[FXRate] = {
-    /**
-     * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
-     * is just a temporary value field with UUID values in order to prevent any ambiguity.
-     * The real value will be assigned by Macro during compile time at this line of a code:
-     * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
-     */
-    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
-    CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(TTL seconds) {
-        Connector.connector.vend.getCurrentFxRate(bankId, fromCurrencyCode, toCurrencyCode, callContext)
-      }
+    val cacheKey = ("code.bankconnectors.LocalMappedConnectorInternal", "getCurrentFxRateCached", List(bankId, fromCurrencyCode, toCurrencyCode, callContext).mkString("_"))
+    Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(TTL seconds) {
+      Connector.connector.vend.getCurrentFxRate(bankId, fromCurrencyCode, toCurrencyCode, callContext)
     }
   }
   

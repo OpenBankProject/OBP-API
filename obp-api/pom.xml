@@ -282,18 +282,6 @@
       <artifactId>nimbus-jose-jwt</artifactId>
       <version>10.5</version>
     </dependency>
-    <!-- The macros module, not the aggregate com.github.OpenBankProject:scala-macros. Only
-         com.tesobe.CacheKeyFromArguments and com.tesobe.CacheKeyOmit are used from that project and
-         both live here; the aggregate additionally drags in a core module nothing references. The
-         aggregate is also unusable once this build cross-compiles: v1.0.0-alpha.3's pom hardcoded
-         the _2.12 artifacts, and v1.0.0-alpha.4's lists both _2.12 and _2.13, which would put two
-         Scala versions of the same classes on the classpath. Naming the module directly makes the
-         Scala version follow ${scala.version} like every other Scala dependency here. -->
-    <dependency>
-      <groupId>com.github.OpenBankProject.scala-macros</groupId>
-      <artifactId>macros_${scala.version}</artifactId>
-      <version>v1.0.0-alpha.4</version>
-    </dependency>
     <!-- https://mvnrepository.com/artifact/org.scalameta/scalameta -->
     <dependency>
       <groupId>org.scalameta</groupId>

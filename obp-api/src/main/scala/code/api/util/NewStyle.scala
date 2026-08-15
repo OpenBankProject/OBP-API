@@ -53,7 +53,6 @@ import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.SCAStatus
 import com.openbankproject.commons.model.enums.{SuppliedAnswerType, _}
 import com.openbankproject.commons.util.JsonUtils
-import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common._
 import code.api.JsonResponse
 import org.json4s.JsonDSL._
@@ -65,7 +64,6 @@ import org.apache.commons.lang3.StringUtils
 
 import java.security.AccessControlException
 import java.util.Date
-import java.util.UUID.randomUUID
 import scala.concurrent.Future
 import scala.reflect.runtime.universe.MethodSymbol
 
@@ -3330,11 +3328,9 @@ object NewStyle extends MdcLoggable{
     def getMethodRoutings(methodName: Option[String], isBankIdExactMatch: Option[Boolean] = None, bankIdPattern: Option[String] = None): List[MethodRoutingT] = {
       import scala.concurrent.duration._
 
-      var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
-      CacheKeyFromArguments.buildCacheKey {
-        Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(methodRoutingTTL.second) {
-          MethodRoutingProvider.connectorMethodProvider.vend.getMethodRoutings(methodName, isBankIdExactMatch, bankIdPattern)
-        }
+      val cacheKey = ("code.api.util.NewStyle.function", "getMethodRoutings", List(methodName, isBankIdExactMatch, bankIdPattern).mkString("_"))
+      Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(methodRoutingTTL.second) {
+        MethodRoutingProvider.connectorMethodProvider.vend.getMethodRoutings(methodName, isBankIdExactMatch, bankIdPattern)
       }
     }
 
@@ -3383,11 +3379,9 @@ object NewStyle extends MdcLoggable{
 
       validateBankId(bankId, callContext)
 
-      var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
-      CacheKeyFromArguments.buildCacheKey {
-        Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(endpointMappingTTL.second) {
-          {(EndpointMappingProvider.endpointMappingProvider.vend.getAllEndpointMappings(bankId), callContext)}
-        }
+      val cacheKey = ("code.api.util.NewStyle.function", "getEndpointMappings", List(bankId, callContext).mkString("_"))
+      Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(endpointMappingTTL.second) {
+        {(EndpointMappingProvider.endpointMappingProvider.vend.getAllEndpointMappings(bankId), callContext)}
       }
     }
     
@@ -3523,22 +3517,18 @@ object NewStyle extends MdcLoggable{
 
       validateBankId(bankId, None)
 
-      var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
-      CacheKeyFromArguments.buildCacheKey {
-        Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(dynamicEntityTTL.second) {
-          DynamicEntityProvider.connectorMethodProvider.vend.getDynamicEntities(bankId, returnBothBankAndSystemLevel)
-        }
+      val cacheKey = ("code.api.util.NewStyle.function", "getDynamicEntities", List(bankId, returnBothBankAndSystemLevel).mkString("_"))
+      Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(dynamicEntityTTL.second) {
+        DynamicEntityProvider.connectorMethodProvider.vend.getDynamicEntities(bankId, returnBothBankAndSystemLevel)
       }
     }
     
     def getDynamicEntitiesByUserId(userId: String): List[DynamicEntityT] = {
       import scala.concurrent.duration._
 
-      var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
-      CacheKeyFromArguments.buildCacheKey {
-        Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(dynamicEntityTTL.second) {
-          DynamicEntityProvider.connectorMethodProvider.vend.getDynamicEntitiesByUserId(userId: String)
-        }
+      val cacheKey = ("code.api.util.NewStyle.function", "getDynamicEntitiesByUserId", List(userId).mkString("_"))
+      Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(dynamicEntityTTL.second) {
+        DynamicEntityProvider.connectorMethodProvider.vend.getDynamicEntitiesByUserId(userId: String)
       }
     }
     

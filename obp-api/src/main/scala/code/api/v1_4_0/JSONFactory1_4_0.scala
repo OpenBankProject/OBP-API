@@ -25,12 +25,10 @@ import org.json4s.JsonAST.{JArray, JBool, JNothing, JObject, JValue}
 import net.liftweb.util.StringHelpers
 import code.util.Helper.MdcLoggable
 import com.github.dwickern.macros.NameOf.nameOf
-import com.tesobe.{CacheKeyFromArguments, CacheKeyOmit}
 import org.apache.commons.lang3.StringUtils
 
 import java.util.regex.Pattern
 import java.lang.reflect.Field
-import java.util.UUID.randomUUID
 import scala.concurrent.duration._
 import com.openbankproject.commons.util.JsonAliases.RichJField
 

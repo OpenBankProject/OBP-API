@@ -4,7 +4,6 @@ import org.json4s._
 import code.api.cache.{Redis, RedisLogger}
 
 import java.net.{Socket, SocketException, URL}
-import java.util.UUID.randomUUID
 import java.util.Date
 import code.api.util.{APIUtil, CallContext, CallContextLight, CustomJsonFormats}
 import code.api.{APIFailureNewStyle, Constant}
@@ -18,7 +17,6 @@ import org.apache.commons.lang3.StringUtils
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model.{AccountBalance, AccountBalances, AccountHeld, AccountId, CoreAccount, Customer, CustomerId, Transaction, TransactionCore, TransactionId}
 import com.openbankproject.commons.util.{ReflectUtils, RequiredFieldValidation, RequiredInfo}
-import com.tesobe.CacheKeyFromArguments
 
 import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers.tryo
@@ -391,13 +389,11 @@ object Helper extends Loggable {
    * @return RequiredInfo
    */
   def getRequiredFieldInfo(tpe: Type): RequiredInfo = {
-    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
-    CacheKeyFromArguments.buildCacheKey {
-      code.api.cache.Caching.memoizeSyncWithImMemory (Some(cacheKey.toString())) (100000.days) {
+    val cacheKey = ("code.util.Helper", "getRequiredFieldInfo", List(tpe).mkString("_"))
+    code.api.cache.Caching.memoizeSyncWithImMemory (Some(cacheKey.toString())) (100000.days) {
 
-        RequiredFieldValidation.getRequiredInfo(tpe)
+      RequiredFieldValidation.getRequiredInfo(tpe)
 
-      }
     }
   }
 

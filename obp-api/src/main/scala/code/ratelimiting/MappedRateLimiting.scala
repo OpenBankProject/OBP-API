@@ -11,7 +11,6 @@ import net.liftweb.common.{Box, Full, Logger}
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo
 import com.openbankproject.commons.ExecutionContext.Implicits.global
-import com.tesobe.CacheKeyFromArguments
 
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter

@@ -7,13 +7,11 @@ import code.users.Users
 import code.util.Helper.MdcLoggable
 import code.util._
 import com.openbankproject.commons.model._
-import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common.{Box, Failure, Full}
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.StringHelpers
 
-import java.util.UUID.randomUUID
 import java.util.{Date, UUID}
 import scala.concurrent.duration._
 
@@ -27,68 +25,60 @@ object MapperCounterparties extends Counterparties with MdcLoggable {
   val MetadataTTL = 0 // getSecondsCache("getOrCreateMetadata")
   
   override def getOrCreateMetadata(bankId: BankId, accountId: AccountId, counterpartyId: String, counterpartyName:String): Box[CounterpartyMetadata] = {
-    /**
-      * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
-      * is just a temporary value field with UUID values in order to prevent any ambiguity.
-      * The real value will be assigned by Macro during compile time at this line of a code:
-      * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
-      */
-    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
-    CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(MetadataTTL.second) {
+    val cacheKey = ("code.metadata.counterparties.MapperCounterparties", "getOrCreateMetadata", List(bankId, accountId, counterpartyId, counterpartyName).mkString("_"))
+    Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(MetadataTTL.second) {
+
+      /**
+        * Generates a new alias name that is guaranteed not to collide with any existing public alias names
+        * for the account in question
+        */
+      def newPublicAliasName(): String = {
+        val firstAliasAttempt = "ALIAS_" + UUID.randomUUID.toString.toUpperCase.take(6)
+
+        val counterpartyMetadatasPublicAlias = MappedCounterpartyMetadata
+          .findAll(
+            By(MappedCounterpartyMetadata.thisBankId, bankId.value),
+            By(MappedCounterpartyMetadata.thisAccountId, accountId.value))
+          .map(_.addPublicAlias)
+
+        def isDuplicate(publicAlias: String) = counterpartyMetadatasPublicAlias.contains(publicAlias)
 
         /**
-          * Generates a new alias name that is guaranteed not to collide with any existing public alias names
-          * for the account in question
+          * Appends things to @publicAlias until it a unique public alias name within @account
           */
-        def newPublicAliasName(): String = {
-          val firstAliasAttempt = "ALIAS_" + UUID.randomUUID.toString.toUpperCase.take(6)
-
-          val counterpartyMetadatasPublicAlias = MappedCounterpartyMetadata
-            .findAll(
-              By(MappedCounterpartyMetadata.thisBankId, bankId.value),
-              By(MappedCounterpartyMetadata.thisAccountId, accountId.value))
-            .map(_.addPublicAlias)
-
-          def isDuplicate(publicAlias: String) = counterpartyMetadatasPublicAlias.contains(publicAlias)
-
-          /**
-            * Appends things to @publicAlias until it a unique public alias name within @account
-            */
-          def appendUntilUnique(publicAlias: String): String = {
-            val newAlias = publicAlias + UUID.randomUUID.toString.toUpperCase.take(1)
-            // Recursive call.
-            if (isDuplicate(newAlias)) appendUntilUnique(newAlias)
-            else newAlias
-          }
-
-          if (isDuplicate(firstAliasAttempt)) appendUntilUnique(firstAliasAttempt)
-          else firstAliasAttempt
+        def appendUntilUnique(publicAlias: String): String = {
+          val newAlias = publicAlias + UUID.randomUUID.toString.toUpperCase.take(1)
+          // Recursive call.
+          if (isDuplicate(newAlias)) appendUntilUnique(newAlias)
+          else newAlias
         }
 
-        def findMappedCounterpartyMetadataById(counterpartyId: String) = MappedCounterpartyMetadata.find(By(MappedCounterpartyMetadata.counterpartyId, counterpartyId))
+        if (isDuplicate(firstAliasAttempt)) appendUntilUnique(firstAliasAttempt)
+        else firstAliasAttempt
+      }
 
-        findMappedCounterpartyMetadataById(counterpartyId) match {
-          case Full(e) =>
-            logger.debug(s"getOrCreateMetadata--Get MappedCounterpartyMetadata counterpartyId($counterpartyId)")
-            Full(e)
-          // Create it!
-          case _ => {
-            logger.debug(s"getOrCreateMetadata--Create MappedCounterpartyMetadata counterpartyId($counterpartyId)")
-            tryo {
-              MappedCounterpartyMetadata.create
-                .counterpartyId(counterpartyId)
-                .thisBankId(bankId.value)
-                .thisAccountId(accountId.value)
-                .counterpartyName(counterpartyName)
-                .publicAlias(newPublicAliasName())
-                .saveMe
-            } match {
-              case Full(created) => Full(created)
-              case Failure(_, _, _) =>
-                findMappedCounterpartyMetadataById(counterpartyId)
-              case other => other
-            }
+      def findMappedCounterpartyMetadataById(counterpartyId: String) = MappedCounterpartyMetadata.find(By(MappedCounterpartyMetadata.counterpartyId, counterpartyId))
+
+      findMappedCounterpartyMetadataById(counterpartyId) match {
+        case Full(e) =>
+          logger.debug(s"getOrCreateMetadata--Get MappedCounterpartyMetadata counterpartyId($counterpartyId)")
+          Full(e)
+        // Create it!
+        case _ => {
+          logger.debug(s"getOrCreateMetadata--Create MappedCounterpartyMetadata counterpartyId($counterpartyId)")
+          tryo {
+            MappedCounterpartyMetadata.create
+              .counterpartyId(counterpartyId)
+              .thisBankId(bankId.value)
+              .thisAccountId(accountId.value)
+              .counterpartyName(counterpartyName)
+              .publicAlias(newPublicAliasName())
+              .saveMe
+          } match {
+            case Full(created) => Full(created)
+            case Failure(_, _, _) =>
+              findMappedCounterpartyMetadataById(counterpartyId)
+            case other => other
           }
         }
       }

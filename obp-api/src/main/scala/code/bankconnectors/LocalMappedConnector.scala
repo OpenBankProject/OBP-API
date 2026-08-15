@@ -71,7 +71,6 @@ import com.openbankproject.commons.model.enums.StrongCustomerAuthentication.SCA
 import com.openbankproject.commons.model.enums.StrongCustomerAuthenticationStatus.SCAStatus
 import com.openbankproject.commons.model.enums.TransactionRequestTypes._
 import com.openbankproject.commons.model.enums.{TransactionRequestStatus, _}
-import com.tesobe.CacheKeyFromArguments
 import com.tesobe.model.UpdateBankAccount
 import com.twilio.Twilio
 import com.twilio.`type`.PhoneNumber
@@ -753,25 +752,17 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
     def getTransactionsCached(bankId: BankId, accountId: AccountId, optionalParams: Seq[QueryParam[MappedTransaction]]): Box[List[Transaction]]
     = {
-      /**
-        * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
-        * is just a temporary value field with UUID values in order to prevent any ambiguity.
-        * The real value will be assigned by Macro during compile time at this line of a code:
-        * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
-        */
-      var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
-      CacheKeyFromArguments.buildCacheKey {
-        Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(getTransactionsTTL millisecond) {
+      val cacheKey = ("code.bankconnectors.LocalMappedConnector", "getTransactionsCached", List(bankId, accountId, optionalParams).mkString("_"))
+      Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(getTransactionsTTL millisecond) {
 
-          //logger.info("Cache miss getTransactionsCached")
+        //logger.info("Cache miss getTransactionsCached")
 
-          val mappedTransactions = MappedTransaction.findAll(mapperParams: _*)
+        val mappedTransactions = MappedTransaction.findAll(mapperParams: _*)
 
-          updateAccountTransactions(bankId, accountId)
+        updateAccountTransactions(bankId, accountId)
 
-          for ((account, callContext) <- getBankAccountLegacy(bankId, accountId, None))
-            yield mappedTransactions.flatMap(_.toTransaction(account)) //each transaction will be modified by account, here we return the `class Transaction` not a trait.
-        }
+        for ((account, callContext) <- getBankAccountLegacy(bankId, accountId, None))
+          yield mappedTransactions.flatMap(_.toTransaction(account)) //each transaction will be modified by account, here we return the `class Transaction` not a trait.
       }
     }
 
@@ -786,23 +777,15 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
     def getTransactionsCached(bankId: BankId, accountId: AccountId, optionalParams: Seq[QueryParam[MappedTransaction]]): Box[List[TransactionCore]]
     = {
-      /**
-        * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
-        * is just a temporary value field with UUID values in order to prevent any ambiguity.
-        * The real value will be assigned by Macro during compile time at this line of a code:
-        * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
-        */
-      var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
-      CacheKeyFromArguments.buildCacheKey {
-        Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(getTransactionsTTL millisecond) {
+      val cacheKey = ("code.bankconnectors.LocalMappedConnector", "getTransactionsCached", List(bankId, accountId, optionalParams).mkString("_"))
+      Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(getTransactionsTTL millisecond) {
 
-          //logger.info("Cache miss getTransactionsCached")
+        //logger.info("Cache miss getTransactionsCached")
 
-          val mappedTransactions = MappedTransaction.findAll(mapperParams: _*)
+        val mappedTransactions = MappedTransaction.findAll(mapperParams: _*)
 
-          for ((account, callContext) <- getBankAccountLegacy(bankId, accountId, None))
-            yield mappedTransactions.flatMap(_.toTransactionCore(account)) //each transaction will be modified by account, here we return the `class Transaction` not a trait.
-        }
+        for ((account, callContext) <- getBankAccountLegacy(bankId, accountId, None))
+          yield mappedTransactions.flatMap(_.toTransactionCore(account)) //each transaction will be modified by account, here we return the `class Transaction` not a trait.
       }
     }
 

@@ -2,13 +2,11 @@ package code.connectormethod
 
 import code.api.cache.Caching
 import code.api.util.APIUtil
-import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Props
 
-import java.util.UUID.randomUUID
 import scala.concurrent.duration.DurationInt
 
 object MappedConnectorMethodProvider extends ConnectorMethodProvider {
@@ -29,19 +27,17 @@ object MappedConnectorMethodProvider extends ConnectorMethodProvider {
   }
   
   override def getByMethodNameWithCache(methodName: String): Box[JsonConnectorMethod] = {
-    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
-    CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (getConnectorMethodTTL.second) {
-        getByMethodNameWithoutCache(methodName)
-      }}
+    val cacheKey = ("code.connectormethod.MappedConnectorMethodProvider", "getByMethodNameWithCache", List(methodName).mkString("_"))
+    Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (getConnectorMethodTTL.second) {
+      getByMethodNameWithoutCache(methodName)
+    }
   }
   override def getAll(): List[JsonConnectorMethod] = {
-    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
-    CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (getConnectorMethodTTL.second) {
-        ConnectorMethod.findAll()
-          .map(it => JsonConnectorMethod(Some(it.ConnectorMethodId.get), it.MethodName.get, it.MethodBody.get, getLang(it)))
-      }}
+    val cacheKey = ("code.connectormethod.MappedConnectorMethodProvider", "getAll", List().mkString("_"))
+    Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (getConnectorMethodTTL.second) {
+      ConnectorMethod.findAll()
+        .map(it => JsonConnectorMethod(Some(it.ConnectorMethodId.get), it.MethodName.get, it.MethodBody.get, getLang(it)))
+    }
   }
 
   override def create(entity: JsonConnectorMethod): Box[JsonConnectorMethod]=

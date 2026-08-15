@@ -49,7 +49,6 @@ import code.views.Views
 import code.webuiprops.MappedWebUiPropsProvider.getWebUiPropsValue
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import com.openbankproject.commons.model._
-import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common._
 import net.liftweb.mapper._
 import net.liftweb.util._
@@ -411,19 +410,17 @@ import net.liftweb.util.Helpers._
      */
     import scala.concurrent.duration._
     val ttl: Duration = FiniteDuration(60, "second")
-    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
-    CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(ttl) {
-        logger.debug(s"AuthUser.updateComputedLocale(sessionId = $sessionId, computedLocale = $computedLocale)")
-        getCurrentUser.map(_.userPrimaryKey.value) match {
-          case Full(id) =>
-            Users.users.vend.getResourceUserByResourceUserId(id).map {
-              u =>
-                u.LastUsedLocale(computedLocale).save
-                logger.debug(s"ResourceUser.LastUsedLocale is saved for the resource user id: $id")
-            }.isDefined
-          case _ => true// There is no current user
-        }
+    val cacheKey = ("code.model.dataAccess.AuthUser", "updateComputedLocale", List(sessionId, computedLocale).mkString("_"))
+    Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(ttl) {
+      logger.debug(s"AuthUser.updateComputedLocale(sessionId = $sessionId, computedLocale = $computedLocale)")
+      getCurrentUser.map(_.userPrimaryKey.value) match {
+        case Full(id) =>
+          Users.users.vend.getResourceUserByResourceUserId(id).map {
+            u =>
+              u.LastUsedLocale(computedLocale).save
+              logger.debug(s"ResourceUser.LastUsedLocale is saved for the resource user id: $id")
+          }.isDefined
+        case _ => true// There is no current user
       }
     }
   }

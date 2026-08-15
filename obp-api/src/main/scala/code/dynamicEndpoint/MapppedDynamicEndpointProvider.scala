@@ -1,12 +1,10 @@
 package code.DynamicEndpoint
 
 import org.json4s._
-import java.util.UUID.randomUUID
 import code.api.cache.Caching
 import code.api.dynamic.endpoint.helper.DynamicEndpointHelper
 import code.api.util.{APIUtil, CustomJsonFormats}
 import code.util.MappedUUID
-import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common.Box
 import com.openbankproject.commons.util.json
 import org.json4s.JString
@@ -70,14 +68,12 @@ object MappedDynamicEndpointProvider extends DynamicEndpointProvider with Custom
   }
 
   override def getAll(bankId: Option[String]): List[DynamicEndpointT] = {
-    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
-    CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (dynamicEndpointTTL.second) {
-        if (bankId.isEmpty)
-          DynamicEndpoint.findAll()
-        else
-          DynamicEndpoint.findAll(By(DynamicEndpoint.BankId, bankId.getOrElse("")))
-      }
+    val cacheKey = ("code.dynamicEndpoint.MappedDynamicEndpointProvider", "getAll", List(bankId).mkString("_"))
+    Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (dynamicEndpointTTL.second) {
+      if (bankId.isEmpty)
+        DynamicEndpoint.findAll()
+      else
+        DynamicEndpoint.findAll(By(DynamicEndpoint.BankId, bankId.getOrElse("")))
     }
   }
   

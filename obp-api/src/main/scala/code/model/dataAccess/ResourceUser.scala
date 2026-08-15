@@ -27,14 +27,12 @@ TESOBE (http://www.tesobe.com/)
 package code.model.dataAccess
 
 import java.util.Date
-import java.util.UUID.randomUUID
 
 import code.api.Constant
 import code.api.cache.Caching
 import code.api.util.{APIUtil, DoobieQueries}
 import code.util.MappedUUID
 import com.openbankproject.commons.model.{User, UserPrimaryKey}
-import com.tesobe.CacheKeyFromArguments
 import net.liftweb.mapper._
 
 import scala.concurrent.duration._
@@ -139,19 +137,11 @@ object ResourceUser extends ResourceUser with LongKeyedMetaMapper[ResourceUser]{
     override def dbIndexes = UniqueIndex(provider_, providerId) ::super.dbIndexes
   
   def getDistinctProviders: List[String] = {
-    /**
-     * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
-     * is just a temporary value field with UUID values in order to prevent any ambiguity.
-     * The real value will be assigned by Macro during compile time at this line of a code:
-     * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
-     */
-    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
+    val cacheKey = ("code.model.dataAccess.ResourceUser", "getDistinctProviders", List().mkString("_"))
     val cacheTTL = APIUtil.getPropsAsIntValue("getDistinctProviders.cache.ttl.seconds", 3600)
-    CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(cacheTTL.seconds) {
-        // Use Doobie for type-safe query with proper JDBC type handling (including SQL Server NVARCHAR)
-        DoobieQueries.getDistinctProviders
-      }
+    Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(cacheTTL.seconds) {
+      // Use Doobie for type-safe query with proper JDBC type handling (including SQL Server NVARCHAR)
+      DoobieQueries.getDistinctProviders
     }
   }
 }

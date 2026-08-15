@@ -110,7 +110,15 @@ object ConnectorBuilderUtil {
       throw new IllegalArgumentException(s"Some methods not be supported, please check following methods: ${invalidMethodNames.mkString(", \n")}")
     }
 
-    val codeList = nameSignature.map(_.toCode(connectorMethodToResponse, setTopic, doCache))
+    // The cache key the generated code writes must name the connector object it will live in
+    // (the macro that used to build the key read the enclosing class symbol at compile time).
+    // connectorCodePath already points at that file, so the fully qualified name is derivable.
+    val connectorClassName = connectorCodePath
+      .replaceFirst("^src/main/scala/", "")
+      .replaceFirst("\\.scala$", "")
+      .replace('/', '.')
+
+    val codeList = nameSignature.map(_.toCode(connectorMethodToResponse, setTopic, doCache, connectorClassName))
 
     //  private val types: Iterable[ru.Type] = symbols.map(_.typeSignature)
     //  println(symbols)
@@ -206,7 +214,20 @@ object ConnectorBuilderUtil {
       """(\w+\.)+(\w+\.Value)|(\w+\.)+(\w+)""", "$2$4"
     )
 
-    def toCode(responseExpression: String => String, setTopic: Boolean = false, doCache: Boolean = false) = {
+    /**
+     * The arguments that make up a generated method's cache key: every parameter except
+     * callContext, which the macro-era template excluded with @CacheKeyOmit. Kept separate
+     * from parametersNamesString, which rewrites queryParams into the outbound adapter's
+     * limit/offset/from/to quadruple and is about the WIRE message, not the key.
+     */
+    private[this] val cacheKeyArgsString = tp.paramLists(0)
+      .filterNot(_.asTerm.info =:= ru.typeOf[Option[CallContext]])
+      .map(_.name.toString)
+      .map(it => if (it == "type") "`type`" else it)
+      .mkString(", ")
+
+    def toCode(responseExpression: String => String, setTopic: Boolean = false, doCache: Boolean = false,
+               connectorClassName: String = "") = {
       val (outBoundTopic, inBoundTopic) =  setTopic match {
         case true =>
           (s"""Some(Topics.createTopicByClassName("$outBoundName").request)""" ,
@@ -228,22 +249,18 @@ object ConnectorBuilderUtil {
 
 
       if(doCache && methodName.matches("^(get|check|validate).+")) {
-        signature = signature.replaceFirst("""(\b\S+)\s*:\s*Option\[CallContext\]""", "@CacheKeyOmit callContext: Option[CallContext]")
         body =
-          s"""    /**
-             |      * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
-             |      * is just a temporary value field with UUID values in order to prevent any ambiguity.
-             |      * The real value will be assigned by Macro during compile time at this line of a code:
-             |      * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
-             |      */
-             |    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
-             |    CacheKeyFromArguments.buildCacheKey {
-             |      Caching.${cacheMethodName}(Some(cacheKey.toString()))($cacheTimeout seconds) {
+          s"""    // Cache key: (enclosing class, method, arguments joined by "_") - the shape the
+             |    // com.tesobe.CacheKeyFromArguments macro used to generate, now written out. callContext
+             |    // is deliberately absent from the key (it carries per-request identity that would make
+             |    // every call a miss); every other argument IS part of it, because an argument dropped
+             |    // from a cache key serves one caller's data to the next.
+             |    val cacheKey = ("$connectorClassName", "$methodName", List($cacheKeyArgsString).mkString("_"))
+             |    Caching.${cacheMethodName}(Some(cacheKey.toString()))($cacheTimeout seconds) {
              |
              |    ${body.replaceAll("(?m)^ ", "     ")}
              |
              |        }
-             |      }
              |""".stripMargin
       }
       s"""

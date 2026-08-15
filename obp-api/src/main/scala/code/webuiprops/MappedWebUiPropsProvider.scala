@@ -4,11 +4,9 @@ import code.api.cache.Caching
 import code.api.util.APIUtil.{activeBrand, writeMetricEndpointTiming}
 import code.api.util.{APIUtil, ErrorMessages, I18NUtil}
 import code.util.MappedUUID
-import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.mapper._
 
-import java.util.UUID.randomUUID
 
 /**
   * props name start with "webui_" can set in to db, this module just support the webui_ props CRUD
@@ -40,28 +38,26 @@ object MappedWebUiPropsProvider extends WebUiPropsProvider {
   // 4) Get default value
   override def getWebUiPropsValue(requestedPropertyName: String, defaultValue: String, language: String = I18NUtil.currentLocale().toString()): String = writeMetricEndpointTiming {
     import scala.concurrent.duration._
-    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
-    CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeSyncWithImMemory(Some(cacheKey.toString()))(webUiPropsTTL.second) {
-        // If we have an active brand, construct a target property name to look for.
-        val brandSpecificPropertyName = activeBrand() match {
-          case Some(brand) => s"${requestedPropertyName}_FOR_BRAND_${brand}"
-          case _ => requestedPropertyName
-        }
-        
-        // In case there is a translation we must use it
-        val webUiPropsPropertyName = s"${brandSpecificPropertyName}_${language}"
-        val translatedAndOrBrandPropertyName = WebUiProps.find(By(WebUiProps.Name, webUiPropsPropertyName)).isDefined match {
-          case true => webUiPropsPropertyName
-          case false => brandSpecificPropertyName
-        }
-        
-        WebUiProps.find(By(WebUiProps.Name, translatedAndOrBrandPropertyName)).map(_.value) // Get translated and/or brand specific value if any
-          .or(WebUiProps.find(By(WebUiProps.Name, requestedPropertyName)).map(_.value)) // Get requested value if any
-            .openOr {
-              APIUtil.getPropsValue(requestedPropertyName, defaultValue) // Otherwise return the default value 
-            }
+    val cacheKey = ("code.webuiprops.MappedWebUiPropsProvider", "getWebUiPropsValue", List(requestedPropertyName, defaultValue, language).mkString("_"))
+    Caching.memoizeSyncWithImMemory(Some(cacheKey.toString()))(webUiPropsTTL.second) {
+      // If we have an active brand, construct a target property name to look for.
+      val brandSpecificPropertyName = activeBrand() match {
+        case Some(brand) => s"${requestedPropertyName}_FOR_BRAND_${brand}"
+        case _ => requestedPropertyName
       }
+      
+      // In case there is a translation we must use it
+      val webUiPropsPropertyName = s"${brandSpecificPropertyName}_${language}"
+      val translatedAndOrBrandPropertyName = WebUiProps.find(By(WebUiProps.Name, webUiPropsPropertyName)).isDefined match {
+        case true => webUiPropsPropertyName
+        case false => brandSpecificPropertyName
+      }
+      
+      WebUiProps.find(By(WebUiProps.Name, translatedAndOrBrandPropertyName)).map(_.value) // Get translated and/or brand specific value if any
+        .or(WebUiProps.find(By(WebUiProps.Name, requestedPropertyName)).map(_.value)) // Get requested value if any
+          .openOr {
+            APIUtil.getPropsValue(requestedPropertyName, defaultValue) // Otherwise return the default value 
+          }
     }
   }("getWebUiProps")("MappedWebUiPropsProvider")
 

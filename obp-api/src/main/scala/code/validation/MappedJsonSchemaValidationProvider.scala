@@ -1,9 +1,7 @@
 package code.validation
 
-import java.util.UUID.randomUUID
 import code.api.cache.Caching
 import code.api.util.APIUtil
-import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo
@@ -18,12 +16,11 @@ object MappedJsonSchemaValidationProvider extends JsonSchemaValidationProvider {
   }
 
   override def getByOperationId(operationId: String): Box[JsonValidation] = {
-    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
-    CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (getValidationByOperationIdTTL.second) {
-        JsonSchemaValidation.find(By(JsonSchemaValidation.OperationId, operationId))
-          .map(it => JsonValidation(it.operationId, it.jsonSchema))
-      }}
+    val cacheKey = ("code.validation.MappedJsonSchemaValidationProvider", "getByOperationId", List(operationId).mkString("_"))
+    Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (getValidationByOperationIdTTL.second) {
+      JsonSchemaValidation.find(By(JsonSchemaValidation.OperationId, operationId))
+        .map(it => JsonValidation(it.operationId, it.jsonSchema))
+    }
   }
 
   override def getAll(): List[JsonValidation] = JsonSchemaValidation.findAll()

@@ -3,7 +3,6 @@ package code.metrics
 import java.sql.{PreparedStatement, Timestamp}
 import java.text.SimpleDateFormat
 import java.util.{Date, TimeZone}
-import java.util.UUID.randomUUID
 
 import code.api.cache.Caching
 import code.api.util.APIUtil.generateUUID
@@ -12,7 +11,6 @@ import code.model.MappedConsumersProvider
 import code.util.Helper.MdcLoggable
 import code.util.{MappedUUID, UUIDString}
 import com.openbankproject.commons.ExecutionContext.Implicits.global
-import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common.Box
 import net.liftweb.db.DB
 import net.liftweb.mapper.{Index, _}
@@ -324,19 +322,11 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
 
   // TODO Cache this as long as fromDate and toDate are in the past (before now)
   override def getAllMetrics(queryParams: List[OBPQueryParam]): List[APIMetric] = {
-    /**
-      * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
-      * is just a temporary value field with UUID values in order to prevent any ambiguity.
-      * The real value will be assigned by Macro during compile time at this line of a code:
-      * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
-      */
-    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
+    val cacheKey = ("code.metrics.MappedMetrics", "getAllMetrics", List(queryParams).mkString("_"))
       val cacheTTL = determineMetricsCacheTTL(queryParams)
-      CacheKeyFromArguments.buildCacheKey { 
-        Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(cacheTTL.seconds){
-          val optionalParams = getQueryParams(queryParams)
-          MappedMetric.findAll(optionalParams: _*)
-      }
+      Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(cacheTTL.seconds){
+        val optionalParams = getQueryParams(queryParams)
+        MappedMetric.findAll(optionalParams: _*)
     }
   }
   
@@ -379,16 +369,10 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
   // Smart caching applied - uses determineMetricsCacheTTL based on query date range
   def getAllAggregateMetricsBox(queryParams: List[OBPQueryParam], isNewVersion: Boolean): Box[List[AggregateMetrics]] = {
     logger.info(s"getAllAggregateMetricsBox called with ${queryParams.length} query params, isNewVersion=$isNewVersion")
-    /**
-      * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)"
-      * is just a temporary value field with UUID values in order to prevent any ambiguity.
-      * The real value will be assigned by Macro during compile time at this line of a code:
-      * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/tesobe/CacheKeyFromArgumentsMacro.scala#L49
-      */
-    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
+    val cacheKey = ("code.metrics.MappedMetrics", "getAllAggregateMetricsBox", List(queryParams, isNewVersion).mkString("_"))
     val cacheTTL = determineMetricsCacheTTL(queryParams)
     logger.debug(s"getAllAggregateMetricsBox cache key: $cacheKey, TTL: $cacheTTL seconds")
-    CacheKeyFromArguments.buildCacheKey { Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(cacheTTL.seconds){
+    Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(cacheTTL.seconds){
       logger.info(s"getAllAggregateMetricsBox - CACHE MISS - Executing database query for aggregate metrics")
       val startTime = System.currentTimeMillis()
       val fromDate = queryParams.collect { case OBPFromDate(value) => value }.headOption
@@ -486,7 +470,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       val elapsedTime = System.currentTimeMillis() - startTime
       logger.info(s"getAllAggregateMetricsBox - Query completed in ${elapsedTime}ms")
       tryo(result)
-    }}
+    }
   }
   
   override def getAllAggregateMetricsFuture(queryParams: List[OBPQueryParam], isNewVersion: Boolean): Future[Box[List[AggregateMetrics]]] = Future{
@@ -500,15 +484,9 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
   // Smart caching applied - uses determineMetricsCacheTTL based on query date range
   // Uses Doobie for type-safe database queries with proper JDBC type handling (including SQL Server NVARCHAR)
   override def getTopApisFuture(queryParams: List[OBPQueryParam]): Future[Box[List[TopApi]]] = Future{
-  /**
-  * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUU
-  * is just a temporary value field with UUID values in order to prevent any ambiguity.
-  * The real value will be assigned by Macro during compile time at this line of a code:
-  * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/t
-  */
-  var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
+  val cacheKey = ("code.metrics.MappedMetrics", "getTopApisFuture", List(queryParams).mkString("_"))
   val cacheTTL = determineMetricsCacheTTL(queryParams)
-  CacheKeyFromArguments.buildCacheKey {Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(cacheTTL.seconds){
+  Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(cacheTTL.seconds){
     {
       val fromDate = queryParams.collect { case OBPFromDate(value) => value }.headOption
       val toDate = queryParams.collect { case OBPToDate(value) => value }.headOption
@@ -556,19 +534,13 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       }
       result
     }}
-  }}
+  }
 
   // Smart caching applied - uses determineMetricsCacheTTL based on query date range
   override def getTopConsumersFuture(queryParams: List[OBPQueryParam]): Future[Box[List[TopConsumer]]] = Future {
-  /**                                                                                        
-  * Please note that "var cacheKey = (randomUUID().toString, randomUUID().toString, randomUU
-  * is just a temporary value field with UUID values in order to prevent any ambiguity.
-  * The real value will be assigned by Macro during compile time at this line of a code:   
-  * https://github.com/OpenBankProject/scala-macros/blob/master/macros/src/main/scala/com/t
-  */                                                                                       
-  var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
+  val cacheKey = ("code.metrics.MappedMetrics", "getTopConsumersFuture", List(queryParams).mkString("_"))
   val cacheTTL = determineMetricsCacheTTL(queryParams)
-  CacheKeyFromArguments.buildCacheKey {Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(cacheTTL.seconds){
+  Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(cacheTTL.seconds){
   
       val fromDate = queryParams.collect { case OBPFromDate(value) => value }.headOption
       val toDate = queryParams.collect { case OBPToDate(value) => value }.headOption
@@ -641,7 +613,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
       }
       tryo(result)
     }
-  }}
+  }
 
 }
 

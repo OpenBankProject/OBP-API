@@ -2,13 +2,11 @@ package code.dynamicMessageDoc
 
 import code.api.cache.Caching
 import code.api.util.APIUtil
-import com.tesobe.CacheKeyFromArguments
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Props
 
-import java.util.UUID.randomUUID
 import code.util.Helper
 
 import scala.concurrent.duration.DurationInt
@@ -42,15 +40,14 @@ object MappedDynamicMessageDocProvider extends DynamicMessageDocProvider {
 
   
   override def getAll(bankId: Option[String]): List[JsonDynamicMessageDoc] = {
-    var cacheKey = (randomUUID().toString, randomUUID().toString, randomUUID().toString)
-    CacheKeyFromArguments.buildCacheKey {
-      Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (getDynamicMessageDocTTL.second) {
-        if(bankId.isEmpty){
-          DynamicMessageDoc.findAll().map(DynamicMessageDoc.getJsonDynamicMessageDoc)
-        } else {
-          DynamicMessageDoc.findAll(By(DynamicMessageDoc.BankId, bankId.getOrElse(""))).map(DynamicMessageDoc.getJsonDynamicMessageDoc)
-        }
-      }}
+    val cacheKey = ("code.dynamicMessageDoc.MappedDynamicMessageDocProvider", "getAll", List(bankId).mkString("_"))
+    Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (getDynamicMessageDocTTL.second) {
+      if(bankId.isEmpty){
+        DynamicMessageDoc.findAll().map(DynamicMessageDoc.getJsonDynamicMessageDoc)
+      } else {
+        DynamicMessageDoc.findAll(By(DynamicMessageDoc.BankId, bankId.getOrElse(""))).map(DynamicMessageDoc.getJsonDynamicMessageDoc)
+      }
+    }
   }
 
   override def create(bankId: Option[String], entity: JsonDynamicMessageDoc): Box[JsonDynamicMessageDoc]= {
