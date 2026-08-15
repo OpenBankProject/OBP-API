@@ -12,7 +12,6 @@ import Functions.Implicits._
 import org.json4s.{Formats, JValue}
 import org.json4s.JsonDSL._
 
-import scala.collection.mutable.ArrayBuffer
 
 /**
  * Mark given type's field or constructor variable is required for some apiVersion
@@ -186,9 +185,9 @@ case class RequiredInfo(requiredArgs: Seq[RequiredArgs]) extends RequiredFields 
    */
   private def flatten(any: Any): Any = any match {
     case a:Array[_] => Functions.deepFlatten(a)
-    case ab: ArrayBuffer[_] => Functions.deepFlatten(ab.toArray[Any])
-    // Iterable in place of GenTraversableOnce, which 2.13 removes; every collection this test
-    // is meant to catch is an Iterable.
+    // Iterable in place of GenTraversableOnce, which 2.13 removes; every collection reached here
+    // is one. It also absorbed the ArrayBuffer arm that used to sit above: ArrayBuffer is an
+    // Iterable, and the two arms had the same body, so only this one could ever run.
     case coll: Iterable[_] => Functions.deepFlatten(coll.toArray[Any])
     case _ => any
   }

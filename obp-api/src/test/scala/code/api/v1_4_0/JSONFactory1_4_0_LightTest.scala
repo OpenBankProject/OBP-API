@@ -57,12 +57,13 @@ class JSONFactory1_4_0_LightTest extends FeatureSpec
     
     scenario("getJValueAndAllFields -input is the oneObject, basic no nested, no List inside") {
       val listFields: List[Field] = JSONFactory1_4_0.getAllFields(oneObject)
-      
-      val expectedListFieldsString = "List(private final java.lang.String code.api.v1_4_0.JSONFactory1_4_0_LightTest$ClassOne$1.string1, " +
-        "private final code.api.v1_4_0.JSONFactory1_4_0_LightTest code.api.v1_4_0.JSONFactory1_4_0_LightTest$ClassOne$1.$outer)"
 
-      listFields.toString shouldBe (expectedListFieldsString)
-//      println(listFields)
+      // By name, like the scenarios below. This one used to assert the whole rendering, which
+      // named $outer - the capture of the enclosing test instance that declaring ClassOne inside
+      // a scenario produces - and fixed the order two fields come back in, even though
+      // getAllFields builds its result through toSet and only keeps insertion order while the set
+      // is small. Neither is this method's contract.
+      listFields.map(_.getName) should contain("string1")
     }
     
     scenario("getJValueAndAllFields -input it the nestedClass") {

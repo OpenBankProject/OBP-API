@@ -14,14 +14,16 @@ import scala.concurrent.duration._
  * Its own comment says it exists for unit tests, yet nothing referenced it: neither the string
  * "proxy" nor `proxyConnector` appeared anywhere under src/test, and no props file selects it. It
  * is a generated proxy over the `Connector` trait, so a change of proxy library rewrites it
- * wholesale with nothing to catch a mistake. These scenarios pin the three behaviours that a
+ * wholesale with nothing to catch a mistake. These scenarios pin the four behaviours that a
  * rewrite can silently get wrong.
  *
- * The no-argument scenario is the sharpest of the three. The interceptor forwards with
- * `method.invoke(LocalMappedConnector, args: _*)`, which throws if the proxy library hands it a
- * null argument array rather than an empty one for a method that takes no parameters. cglib passes
- * an empty array; `java.lang.reflect.Proxy` passes null, and adapters built on that convention
- * inherit it.
+ * The no-argument scenarios matter because of how the argument array arrives. cglib passed an
+ * empty array for a method that declares no parameters; byte-buddy's InvocationHandlerAdapter
+ * passes null, following `java.lang.reflect.Proxy`. This interceptor forwards with
+ * `method.invoke(LocalMappedConnector, args: _*)`, which survives that - it compiles to Java
+ * varargs and Method.invoke reads a null array as no arguments - so what these scenarios pin is
+ * that the forwarding keeps working, not that the array is non-null. A handler that instead treats
+ * `args` as a collection does not survive it; see ConnectorProxy for the one that did not.
  */
 class ProxyConnectorTest extends ServerSetupWithTestData {
 
@@ -41,7 +43,7 @@ class ProxyConnectorTest extends ServerSetupWithTestData {
     }
 
     scenario("a method that takes no arguments reaches the delegate", ProxyConnectorTag) {
-      // callableMethods has an empty parameter list: this is the null-argument-array trap.
+      // callableMethods has an empty parameter list, so this is the call that receives null args.
       proxy.callableMethods should equal(LocalMappedConnector.callableMethods)
     }
 

@@ -18,8 +18,11 @@ import org.scalatest.{FlatSpec, Matchers}
  *
  * The second is the array-shaped bodies. Six ResourceDocs passed a bare List, which was a Product
  * on 2.12, so getAllFields walked it with productIterator and documented `head` and `tl` as if they
- * were fields of the entity. jArrayBodyOf replaced that. The question here is not whether the old
- * leak is gone - it is - but whether anything still describes what the array contains.
+ * were fields of the entity. What replaced it is the root-collection branch in getAllFields, which
+ * documents what the collection holds instead of the collection itself. (A jArrayBodyOf helper was
+ * tried first and reverted - it described json4s internals rather than the entity - so it is not
+ * the fix, and the name survives nowhere else.) The question here is not whether the old leak is
+ * gone - it is - but whether anything still describes what the array contains.
  */
 class SwaggerPathOrderAndArrayBodyTest extends FlatSpec with Matchers {
 

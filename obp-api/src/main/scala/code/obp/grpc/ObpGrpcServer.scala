@@ -59,6 +59,15 @@ class ObpGrpcServer(executionContext: ExecutionContext, port: Int = ObpGrpcServe
   @volatile private[this] var shutdownHook: scala.sys.ShutdownHookThread = null
 
   def start(): Unit = {
+    // A second start() on the same instance would recompute the ownership flags against buses it
+    // had already started - reading them as someone else's - overwrite `server`, leaking the first
+    // one with its port still bound, and overwrite shutdownHook, orphaning the first with no
+    // reference left to remove it. Guarded rather than made to restart: the buses guard the same
+    // way, and nothing here has a use for a second server on one instance.
+    if (server != null) {
+      logger.warn(s"gRPC server is already started on port $actualPort; ignoring this start()")
+      return
+    }
 
     // Ownership is read after each start() rather than before: a disabled bus makes start() a
     // no-op, and "was not running beforehand" alone would claim one this instance never started.
