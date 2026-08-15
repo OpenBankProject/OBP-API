@@ -1,6 +1,15 @@
 syntax = "proto3";
 package code.obp.grpc.metricsstream.g1;
 
+import "scalapb/scalapb.proto";
+
+// Pins the Scala package onto the checked-in location (previously hand-written
+// there) - see chat.proto for the full rationale. Wire names are unchanged.
+option (scalapb.options) = {
+  package_name: "code.obp.grpc.metricsstream.api"
+  flat_package: true
+};
+
 // Server-side filters. Empty string = no filter on that field.
 // Filters AND together: passing consumer_id + verb = events matching BOTH.
 // url_substring matches if the event's url contains the given substring.

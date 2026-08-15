@@ -390,7 +390,11 @@
     <dependency>
       <groupId>com.thesamet.scalapb</groupId>
       <artifactId>scalapb-runtime-grpc_${scala.version}</artifactId>
-      <version>0.9.0</version>
+      <!-- 0.11 is the first line publishing _3 artifacts (the Scala 3 flip swaps the
+           suffix only). 0.11.17 exactly because scripts/regenerate_grpc.sh fetches the
+           scalapbc zip from GitHub releases, which stop at 0.11.17; generated code and
+           runtime must be the same version. -->
+      <version>0.11.17</version>
     </dependency>
     <dependency>
       <groupId>io.grpc</groupId>
