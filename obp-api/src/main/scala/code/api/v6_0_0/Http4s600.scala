@@ -1213,7 +1213,7 @@ object Http4s600 {
 
 
     val allRoutes: HttpRoutes[IO] =
-      Kleisli[HttpF, Request[IO], Response[IO]] { req: Request[IO] =>
+      Kleisli[HttpF, Request[IO], Response[IO]] { (req: Request[IO]) =>
         root(req)
           .orElse(getScannedApiVersions(req))
           .orElse(getCurrentUser(req))

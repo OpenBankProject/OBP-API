@@ -65,7 +65,7 @@ object MappedEndpointMappingProvider extends EndpointMappingProvider with Custom
 
 class EndpointMapping extends EndpointMappingT with LongKeyedMapper[EndpointMapping] with IdPK with CustomJsonFormats{
 
-  override def getSingleton = EndpointMapping
+  override def getSingleton: code.endpointMapping.EndpointMapping.type = EndpointMapping
 
   object EndpointMappingId extends MappedUUID(this)
   object OperationId extends MappedString(this, 255)

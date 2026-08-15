@@ -3,7 +3,7 @@ package code.fx
 import net.liftweb.mapper._
 
 class MappedCurrency extends Currency with KeyedMapper[String, MappedCurrency]{
-  def getSingleton = MappedCurrency
+  def getSingleton: code.fx.MappedCurrency.type = MappedCurrency
 
   object mCurrencyCode extends MappedStringIndex(this, 3){
     override def dbNotNull_? = true

@@ -35,7 +35,7 @@ object WebhookActor {
                             accountId: String, 
                             amount: String, 
                             balance: String) extends WebhookRequestTrait{
-    def toEventPayload = 
+    def toEventPayload: code.webhook.WebhookActor.EventPayload = 
       EventPayload(
         event_name = this.trigger.toString(),
         event_id = this.eventId, 
@@ -73,7 +73,7 @@ object WebhookActor {
     transactionId: String,
     relatedEntities: List[RelatedEntity]
   ) extends WebhookRequestTrait{
-    override def toEventPayload =
+    override def toEventPayload: code.webhook.WebhookActor.AccountNotificationPayload =
       AccountNotificationPayload(
         event_name = this.trigger.toString(),
         event_id = this.eventId,

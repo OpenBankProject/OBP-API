@@ -1,6 +1,7 @@
 package code.api.v5_1_0
 
 import code.api.Constant.localIdentityProvider
+import org.json4s.jvalue2extractable
 import code.api.util.APIUtil.OAuth
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.{CanLockUser, CanReadUserLockedStatus, CanUnlockUser}

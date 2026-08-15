@@ -1,6 +1,7 @@
 package code.api.v1_3_0
 
 import java.util.Date
+import org.json4s.jvalue2extractable
 import code.api.util.APIUtil.OAuth._
 import code.api.util.{APIUtil, ApiRole, CallContext, OBPQueryParam}
 import code.bankconnectors.Connector
@@ -72,17 +73,17 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers with DefaultConnec
 
   object MockedCardConnector extends Connector with MdcLoggable {
 
-    implicit override val nameOfConnector = "MockedCardConnector"
+    implicit override val nameOfConnector: String = "MockedCardConnector"
 
 
-    override def getBankLegacy(bankId: BankId, callContext: Option[CallContext]) = Full(bank, callContext)
+    override def getBankLegacy(bankId: BankId, callContext: Option[CallContext]): net.liftweb.common.Full[(com.openbankproject.commons.model.Bank, Option[code.api.util.CallContext])] = Full(bank, callContext)
 
-    override def getBank(bankId: BankId, callContext: Option[CallContext]) = Future {
+    override def getBank(bankId: BankId, callContext: Option[CallContext]): scala.concurrent.Future[net.liftweb.common.Full[(com.openbankproject.commons.model.Bank, Option[code.api.util.CallContext])]] = Future {
       getBankLegacy(bankId, callContext)
     }
     
     //these methods are required in this test, there is no need to extends connector.
-    override def getPhysicalCardsForUser(user: User, callContext: Option[CallContext]) = {
+    override def getPhysicalCardsForUser(user: User, callContext: Option[CallContext]): scala.concurrent.Future[(net.liftweb.common.Full[List[com.openbankproject.commons.model.PhysicalCard]], Option[code.api.util.CallContext])] = {
       val cardList = if (user == resourceUser1) {
         user1AllCards
       } else if (user == resourceUser2) {
@@ -93,7 +94,7 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers with DefaultConnec
       Future(Full(cardList), callContext)
     }
 
-    override def getPhysicalCardsForBank(bank: Bank, user: User, queryParams: List[OBPQueryParam], callContext: Option[CallContext]) = Future {
+    override def getPhysicalCardsForBank(bank: Bank, user: User, queryParams: List[OBPQueryParam], callContext: Option[CallContext]): scala.concurrent.Future[(net.liftweb.common.Full[List[com.openbankproject.commons.model.PhysicalCard]], Option[code.api.util.CallContext])] = Future {
       val cardList = if (user == resourceUser1) {
         user1CardsForOneBank
       } else if (user == resourceUser2) {

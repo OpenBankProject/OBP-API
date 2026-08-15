@@ -40,7 +40,7 @@ object MappedUserRefreshesProvider extends UserRefreshesProvider {
 
 class MappedUserRefreshes extends UserRefreshes with LongKeyedMapper[MappedUserRefreshes] with IdPK with CreatedUpdated {
 
-  def getSingleton = MappedUserRefreshes
+  def getSingleton: code.UserRefreshes.MappedUserRefreshes.type = MappedUserRefreshes
 
   object mUserId extends UUIDString(this)
   override def userId: String = mUserId.get

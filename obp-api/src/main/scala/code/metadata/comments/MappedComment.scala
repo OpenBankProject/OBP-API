@@ -71,7 +71,7 @@ object MappedComments extends Comments {
 
 class MappedComment extends Comment with LongKeyedMapper[MappedComment] with IdPK with CreatedUpdated {
 
-  def getSingleton = MappedComment
+  def getSingleton: code.metadata.comments.MappedComment.type = MappedComment
 
   object apiId extends MappedUUID(this)
 

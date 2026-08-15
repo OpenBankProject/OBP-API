@@ -97,7 +97,7 @@ object MappedDynamicEndpointProvider extends DynamicEndpointProvider with Custom
 
 class DynamicEndpoint extends DynamicEndpointT with LongKeyedMapper[DynamicEndpoint] with IdPK with CreatedUpdated {
 
-  override def getSingleton = DynamicEndpoint
+  override def getSingleton: code.DynamicEndpoint.DynamicEndpoint.type = DynamicEndpoint
 
   object DynamicEndpointId extends MappedUUID(this)
 

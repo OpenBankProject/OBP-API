@@ -26,6 +26,7 @@ TESOBE (http://www.tesobe.com/)
 package code.api.v3_1_0
 
 import com.openbankproject.commons.util.ApiVersion
+import org.json4s.jvalue2extractable
 import code.api.v3_0_0.AdapterInfoJsonV300
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.{CanCreateAccountAttributeAtOneBank, canGetAdapterInfo}

@@ -6,7 +6,9 @@ import com.openbankproject.commons.model.TransactionRequestReasonsTrait
 import net.liftweb.mapper._
 
 class TransactionRequestReasons extends TransactionRequestReasonsTrait with LongKeyedMapper[TransactionRequestReasons] with IdPK with CreatedUpdated{
-  def getSingleton = TransactionRequestReasons
+  // Not package-qualified: this class inherits a `code` member (String), which
+  // shadows the `code` root package inside the class body.
+  def getSingleton: TransactionRequestReasons.type = TransactionRequestReasons
 
   object TransactionRequestReasonId extends UUIDString(this) {
     override def defaultValue = APIUtil.generateUUID()

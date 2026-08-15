@@ -68,14 +68,14 @@ object MappedApiCollectionsProvider extends MdcLoggable with ApiCollectionsProvi
   }
   override def getApiCollectionById(
     apiCollectionId: String
-  ) = ApiCollection.find(By(ApiCollection.ApiCollectionId,apiCollectionId))
+  ): net.liftweb.common.Box[code.apicollection.ApiCollection] = ApiCollection.find(By(ApiCollection.ApiCollectionId,apiCollectionId))
 
   override def getAllApiCollections(): List[ApiCollectionTrait] = ApiCollection.findAll()
 
   override def getApiCollectionByUserIdAndCollectionName(
     userId: String,
     apiCollectionName: String
-  ) = ApiCollection.find(By(ApiCollection.UserId, userId), By(ApiCollection.ApiCollectionName, apiCollectionName))
+  ): net.liftweb.common.Box[code.apicollection.ApiCollection] = ApiCollection.find(By(ApiCollection.UserId, userId), By(ApiCollection.ApiCollectionName, apiCollectionName))
   
   override def deleteApiCollectionById(
     apiCollectionId: String,

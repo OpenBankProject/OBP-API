@@ -60,7 +60,7 @@ object MappedAccountApplicationProvider extends AccountApplicationProvider {
 
 class MappedAccountApplication extends AccountApplication with LongKeyedMapper[MappedAccountApplication] with IdPK with CreatedUpdated {
 
-  def getSingleton = MappedAccountApplication
+  def getSingleton: code.accountapplication.MappedAccountApplication.type = MappedAccountApplication
 
   object mAccountApplicationId extends MappedUUID(this)
   object mCode extends MappedString(this, 50)

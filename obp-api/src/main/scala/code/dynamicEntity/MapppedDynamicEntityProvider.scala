@@ -131,7 +131,7 @@ object MappedDynamicEntityProvider extends DynamicEntityProvider with CustomJson
 
 class DynamicEntity extends DynamicEntityT with LongKeyedMapper[DynamicEntity] with IdPK with CreatedUpdated with CustomJsonFormats{
 
-  override def getSingleton = DynamicEntity
+  override def getSingleton: code.dynamicEntity.DynamicEntity.type = DynamicEntity
 
   object DynamicEntityId extends MappedUUID(this)
   object EntityName extends MappedString(this, 255)

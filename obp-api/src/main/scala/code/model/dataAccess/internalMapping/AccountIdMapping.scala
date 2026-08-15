@@ -6,7 +6,7 @@ import net.liftweb.mapper._
 
 class AccountIdMapping extends AccountIdMappingT with LongKeyedMapper[AccountIdMapping] with IdPK with CreatedUpdated {
 
-  def getSingleton = AccountIdMapping
+  def getSingleton: code.model.dataAccess.internalMapping.AccountIdMapping.type = AccountIdMapping
 
   object mAccountId extends MappedUUID(this)
   object mAccountPlainTextReference extends MappedString(this, 255)

@@ -24,7 +24,7 @@ object LogCacheStreamServiceGrpc {
       .build()
 
   trait LogCacheStreamService extends _root_.scalapb.grpc.AbstractService {
-    override def serviceCompanion = LogCacheStreamService
+    override def serviceCompanion: code.obp.grpc.logcache.api.LogCacheStreamServiceGrpc.LogCacheStreamService.type = LogCacheStreamService
 
     /** Server-side stream: pushes new log cache entries for the requested level */
     def streamLogCacheEntries(request: code.obp.grpc.logcache.api.StreamLogCacheRequest,

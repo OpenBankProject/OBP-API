@@ -327,7 +327,7 @@ final case class ChatMessageEvent(
         case 8 => _root_.scalapb.descriptors.PString(senderConsumerName)
         case 9 => _root_.scalapb.descriptors.PString(content)
         case 10 => _root_.scalapb.descriptors.PString(messageType)
-        case 11 => _root_.scalapb.descriptors.PRepeated(mentionedUserIds.iterator.map(_root_.scalapb.descriptors.PString).toVector)
+        case 11 => _root_.scalapb.descriptors.PRepeated(mentionedUserIds.iterator.map(_root_.scalapb.descriptors.PString.apply).toVector)
         case 12 => _root_.scalapb.descriptors.PString(replyToMessageId)
         case 13 => _root_.scalapb.descriptors.PString(threadId)
         case 14 => _root_.scalapb.descriptors.PBoolean(isDeleted)
@@ -336,7 +336,7 @@ final case class ChatMessageEvent(
       }
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
-    def companion = code.obp.grpc.chat.api.ChatMessageEvent
+    def companion: code.obp.grpc.chat.api.ChatMessageEvent.type = code.obp.grpc.chat.api.ChatMessageEvent
 }
 
 object ChatMessageEvent extends scalapb.GeneratedMessageCompanion[code.obp.grpc.chat.api.ChatMessageEvent] {

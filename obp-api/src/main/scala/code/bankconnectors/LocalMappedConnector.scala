@@ -116,7 +116,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
   //This is the implicit parameter for saveConnectorMetric function.
   //eg:  override def getBank(bankId: BankId, callContext: Option[CallContext]) = saveConnectorMetric
-  implicit override val nameOfConnector = LocalMappedConnector.getClass.getSimpleName
+  implicit override val nameOfConnector: String = LocalMappedConnector.getClass.getSimpleName
 
   //
   override def getAdapterInfo(callContext: Option[CallContext]): Future[Box[(InboundAdapterInfoInternal, Option[CallContext])]] = Future {
@@ -2289,7 +2289,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             // If we don't find any corresponding obp account, we debit a bank settlement account
             val settlementAccount = {
               // We first look for a specific settlement account regarding the payment system (SEPA, ...) used and the currency
-              BankAccountX(toAccount.bankId, AccountId(transactionRequestType + "_SETTLEMENT_ACCOUNT_" + fromAccount.currency), callContext)
+              BankAccountX(toAccount.bankId, AccountId(s"${transactionRequestType}_SETTLEMENT_ACCOUNT_${fromAccount.currency}"), callContext)
                 // If it doesn't exist, we look for a default settlement account regarding the currency
                 .or(BankAccountX(toAccount.bankId, AccountId("DEFAULT_SETTLEMENT_ACCOUNT_" + fromAccount.currency), callContext))
                 // If no specific settlement account exist for this currency, we use the default incoming account (EUR)
@@ -2315,7 +2315,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             // If we don't find any corresponding obp account, we credit a bank settlement account
             val settlementAccount =
               // We first look for a specific settlement account regarding the payment system (SEPA, ...) used and the currency
-              BankAccountX(fromAccount.bankId, AccountId(transactionRequestType + "_SETTLEMENT_ACCOUNT_" + toAccount.currency), callContext)
+              BankAccountX(fromAccount.bankId, AccountId(s"${transactionRequestType}_SETTLEMENT_ACCOUNT_${toAccount.currency}"), callContext)
                 // If it doesn't exist, we look for a default settlement account regarding the currency
                 .or(BankAccountX(fromAccount.bankId, AccountId("DEFAULT_SETTLEMENT_ACCOUNT_" + toAccount.currency), callContext))
                 // If no specific settlement account exist for this currency, we use the default outgoing account (EUR)
@@ -2447,7 +2447,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             // If we don't find any corresponding obp account, we debit a bank settlement account
             val settlementAccount =
               // We first look for a specific settlement account regarding the payment system (SEPA, ...) used and the currency
-              BankAccountX(toAccount.bankId, AccountId(transactionRequestType + "_SETTLEMENT_ACCOUNT_" + fromAccount.currency), callContext)
+              BankAccountX(toAccount.bankId, AccountId(s"${transactionRequestType}_SETTLEMENT_ACCOUNT_${fromAccount.currency}"), callContext)
                 // If it doesn't exist, we look for a default settlement account regarding the currency
                 .or(BankAccountX(toAccount.bankId, AccountId("DEFAULT_SETTLEMENT_ACCOUNT_" + fromAccount.currency), callContext))
                 // If no specific settlement account exist for this currency, we use the default incoming account (EUR)
@@ -2472,7 +2472,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
             // If we don't find any corresponding obp account, we credit a bank settlement account
             val settlementAccount =
             // We first look for a specific settlement account regarding the payment system (SEPA, ...) used and the currency
-              BankAccountX(fromAccount.bankId, AccountId(transactionRequestType + "_SETTLEMENT_ACCOUNT_" + toAccount.currency), callContext)
+              BankAccountX(fromAccount.bankId, AccountId(s"${transactionRequestType}_SETTLEMENT_ACCOUNT_${toAccount.currency}"), callContext)
                 // If it doesn't exist, we look for a default settlement account regarding the currency
                 .or(BankAccountX(fromAccount.bankId, AccountId("DEFAULT_SETTLEMENT_ACCOUNT_" + toAccount.currency), callContext))
                 // If no specific settlement account exist for this currency, we use the default outgoing account (EUR)

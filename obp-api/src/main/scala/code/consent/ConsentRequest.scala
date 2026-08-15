@@ -24,13 +24,13 @@ object MappedConsentRequestProvider extends ConsentRequestProvider {
 
 class ConsentRequest extends ConsentRequestTrait with LongKeyedMapper[ConsentRequest] with IdPK with CreatedUpdated {
 
-  def getSingleton = ConsentRequest
+  def getSingleton: code.consent.ConsentRequest.type = ConsentRequest
 
   //the following are the obp consent.
   object ConsentRequestId extends MappedUUID(this)
   object Payload extends MappedText(this)
   object ConsumerId extends MappedString(this, 250) {
-    override def defaultValue = null
+    override def defaultValue: Null = null
   }
   
 

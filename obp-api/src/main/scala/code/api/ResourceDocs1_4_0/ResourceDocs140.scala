@@ -10,7 +10,7 @@ import com.openbankproject.commons.util.{ApiVersion, ApiVersionStatus}
 // They are NOT registered in LiftRules.statelessDispatch.
 
 object ResourceDocs140 extends OBPRestHelper with ResourceDocsAPIMethods with MdcLoggable {
-  val version      = ApiVersion.v1_4_0
+  val version: com.openbankproject.commons.util.ScannedApiVersion      = ApiVersion.v1_4_0
   val versionStatus = ApiVersionStatus.STABLE.toString
   // routes intentionally empty — all traffic served by Http4sResourceDocs
 }

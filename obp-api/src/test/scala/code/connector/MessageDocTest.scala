@@ -26,7 +26,7 @@ class MessageDocTest extends V220ServerSetup with DefaultUsers {
   object VersionOfApi extends Tag(ApiVersion.v2_0_0.toString)
   object ApiEndpoint1 extends Tag(nameOf(Implementations2_2_0.getMessageDocs))
 
-  override implicit val formats = LocalMappedConnector.formats
+  override implicit val formats: org.json4s.Formats = LocalMappedConnector.formats
 
   feature(s"test $ApiEndpoint1 version $VersionOfApi - get all MessageDocs of stored_procedure_vDec2019 connector.") {
     scenario("We will call the endpoint getMessageDocs to get all MessageDocs and deserialize to InBound instances", ApiEndpoint1, VersionOfApi) {

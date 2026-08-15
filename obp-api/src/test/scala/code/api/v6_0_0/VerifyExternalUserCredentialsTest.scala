@@ -40,7 +40,7 @@ class VerifyExternalUserCredentialsTest extends V600ServerSetup with DefaultUser
   // Mock connector that only overrides checkExternalUserCredentials.
   // Accepts one known username+password pair; rejects everything else.
   object MockExternalAuthConnector extends Connector with MdcLoggable {
-    implicit override val nameOfConnector = "MockExternalAuthConnector"
+    implicit override val nameOfConnector: String = "MockExternalAuthConnector"
 
     override def checkExternalUserCredentials(
       username: String,

@@ -1,6 +1,7 @@
 package code.api.v4_0_0
 
 import code.api.util.APIUtil.OAuth._
+import org.json4s.jvalue2extractable
 import code.api.util.ApiRole.{CanGetCorrelatedUsersInfo, CanGetCorrelatedUsersInfoAtAnyBank}
 import code.api.util.ErrorMessages.{UserHasMissingRoles, AuthenticatedUserIsRequired}
 import code.api.v4_0_0.OBPAPI4_0_0.Implementations4_0_0

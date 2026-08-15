@@ -18,7 +18,7 @@ import code.token.Tokens
 object DataBaseCleanerScheduler extends MdcLoggable {
 
   private lazy val actorSystem = ObpActorSystem.localActorSystem
-  implicit lazy val executor = actorSystem.dispatcher
+  implicit lazy val executor: scala.concurrent.ExecutionContextExecutor = actorSystem.dispatcher
   private lazy val scheduler = actorSystem.scheduler
   private val oneDayInMillis: Long = 86400000
   //in scala DataBaseCleanerScheduler.getClass.getSimpleName ==> DataBaseCleanerScheduler$

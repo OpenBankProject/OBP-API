@@ -47,18 +47,18 @@ object MappedApiCollectionEndpointsProvider extends MdcLoggable with ApiCollecti
   override def getApiCollectionEndpointByApiCollectionIdAndOperationId(
     apiCollectionId: String,
     operationId: String,
-  ) = ApiCollectionEndpoint.find(
+  ): net.liftweb.common.Box[code.apicollectionendpoint.ApiCollectionEndpoint] = ApiCollectionEndpoint.find(
     By(ApiCollectionEndpoint.ApiCollectionId, apiCollectionId),
     By(ApiCollectionEndpoint.OperationId,operationId)
   )
   
   override def getApiCollectionEndpoints(
     apiCollectionId: String
-  ) = ApiCollectionEndpoint.findAll(By(ApiCollectionEndpoint.ApiCollectionId,apiCollectionId))
+  ): List[code.apicollectionendpoint.ApiCollectionEndpoint] = ApiCollectionEndpoint.findAll(By(ApiCollectionEndpoint.ApiCollectionId,apiCollectionId))
   
   override def getApiCollectionEndpointById(
     apiCollectionEndpointId: String
-  ) = ApiCollectionEndpoint.find(By(ApiCollectionEndpoint.ApiCollectionEndpointId,apiCollectionEndpointId))
+  ): net.liftweb.common.Box[code.apicollectionendpoint.ApiCollectionEndpoint] = ApiCollectionEndpoint.find(By(ApiCollectionEndpoint.ApiCollectionEndpointId,apiCollectionEndpointId))
 
   override def deleteApiCollectionEndpointById(
     apiCollectionEndpointId: String,

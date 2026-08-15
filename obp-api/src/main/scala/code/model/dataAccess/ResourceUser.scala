@@ -62,8 +62,8 @@ import scala.concurrent.duration._
   *
  */
 class ResourceUser extends LongKeyedMapper[ResourceUser] with User with ManyToMany with OneToMany[Long, ResourceUser]{
-  def getSingleton = ResourceUser
-  def primaryKeyField = id
+  def getSingleton: code.model.dataAccess.ResourceUser.type = ResourceUser
+  def primaryKeyField: ResourceUser.this.id.type = id
 
   object id extends MappedLongIndex(this)
   
@@ -93,13 +93,13 @@ class ResourceUser extends LongKeyedMapper[ResourceUser] with User with ManyToMa
   }
   object LastMarketingAgreementSignedDate extends MappedDate(this)
   object LastUsedLocale extends MappedString(this, 10) {
-    override def defaultValue = null
+    override def defaultValue: Null = null
   }
   object IsNaturalPerson extends MappedBoolean(this) {
     override def defaultValue = true
   }
   object PrincipalUserId extends MappedString(this, 100) {
-    override def defaultValue = null
+    override def defaultValue: Null = null
   }
   
   def emailAddress = {

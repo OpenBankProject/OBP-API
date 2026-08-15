@@ -15,7 +15,7 @@ class BankAccountBalance extends BankAccountBalanceTrait
   with CreatedUpdated
   with MdcLoggable {
 
-  override def getSingleton = BankAccountBalance
+  override def getSingleton: code.bankaccountbalance.BankAccountBalance.type = BankAccountBalance
 
   // Define BalanceId_ as the primary key
   override def primaryKeyField = BalanceId_.asInstanceOf[KeyedMetaMapper[String, BankAccountBalance]].primaryKeyField

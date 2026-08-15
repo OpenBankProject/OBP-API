@@ -31,12 +31,12 @@ object CustomJsonFormats {
 
   val emptyHintFormats = DefaultFormats.withHints(ShortTypeHints(List())) ++ JsonSerializers.serializers
 
-  implicit val nullTolerateFormats = JsonSerializers.nullTolerateFormats
+  implicit val nullTolerateFormats: org.json4s.Formats = JsonSerializers.nullTolerateFormats
 
   lazy val rolesMappedToClassesFormats: Formats = new Formats {
     val dateFormat = org.json4s.DefaultFormats.dateFormat
 
-    override val typeHints = ShortTypeHints(rolesMappedToClasses)
+    override val typeHints: org.json4s.ShortTypeHints = ShortTypeHints(rolesMappedToClasses)
   } ++ JsonSerializers.serializers
 }
 

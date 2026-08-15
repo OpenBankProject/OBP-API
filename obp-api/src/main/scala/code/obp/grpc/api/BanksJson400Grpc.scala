@@ -65,7 +65,7 @@ final case class BanksJson400Grpc(
       }
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
-    def companion = code.obp.grpc.api.BanksJson400Grpc
+    def companion: code.obp.grpc.api.BanksJson400Grpc.type = code.obp.grpc.api.BanksJson400Grpc
 }
 
 object BanksJson400Grpc extends scalapb.GeneratedMessageCompanion[code.obp.grpc.api.BanksJson400Grpc] {
@@ -178,7 +178,7 @@ object BanksJson400Grpc extends scalapb.GeneratedMessageCompanion[code.obp.grpc.
         }
       }
       def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
-      def companion = code.obp.grpc.api.BanksJson400Grpc.BankRoutingJsonV121Grpc
+      def companion: code.obp.grpc.api.BanksJson400Grpc.BankRoutingJsonV121Grpc.type = code.obp.grpc.api.BanksJson400Grpc.BankRoutingJsonV121Grpc
   }
   
   object BankRoutingJsonV121Grpc extends scalapb.GeneratedMessageCompanion[code.obp.grpc.api.BanksJson400Grpc.BankRoutingJsonV121Grpc] {
@@ -363,7 +363,7 @@ object BanksJson400Grpc extends scalapb.GeneratedMessageCompanion[code.obp.grpc.
         }
       }
       def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
-      def companion = code.obp.grpc.api.BanksJson400Grpc.BankJson400Grpc
+      def companion: code.obp.grpc.api.BanksJson400Grpc.BankJson400Grpc.type = code.obp.grpc.api.BanksJson400Grpc.BankJson400Grpc
   }
   
   object BankJson400Grpc extends scalapb.GeneratedMessageCompanion[code.obp.grpc.api.BanksJson400Grpc.BankJson400Grpc] {

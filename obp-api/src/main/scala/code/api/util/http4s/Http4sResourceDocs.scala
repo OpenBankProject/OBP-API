@@ -3,7 +3,7 @@ package code.api.util.http4s
 import org.json4s._
 import cats.effect.IO
 import code.api.Constant.HostName
-import code.api.ResourceDocs1_4_0.{ResourceDocs140, ResourceDocs300, ResourceDocsAPIMethodsUtil}
+import code.api.ResourceDocs1_4_0.{ResourceDocs140, ResourceDocs300, ResourceDocsAPIMethods, ResourceDocsAPIMethodsUtil}
 import code.api.ResponseHeader
 import code.api.cache.Caching
 import code.api.util.ApiRole.{canReadDynamicResourceDocsAtOneBank, canReadResourceDoc}
@@ -66,7 +66,7 @@ object Http4sResourceDocs extends MdcLoggable {
   private val ImplDefault = ResourceDocs140.ImplementationsResourceDocs
   private val ImplV600 = ResourceDocs300.ResourceDocs600.ImplementationsResourceDocs
 
-  private def implForPrefix(prefix: String) = prefix match {
+  private def implForPrefix(prefix: String): ResourceDocsAPIMethods#ImplementationsResourceDocsImpl = prefix match {
     case "v6.0.0" => ImplV600
     case _        => ImplDefault
   }

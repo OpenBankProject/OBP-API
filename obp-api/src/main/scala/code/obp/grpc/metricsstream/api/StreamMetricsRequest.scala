@@ -110,7 +110,7 @@ final case class StreamMetricsRequest(
       }
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
-    def companion = code.obp.grpc.metricsstream.api.StreamMetricsRequest
+    def companion: code.obp.grpc.metricsstream.api.StreamMetricsRequest.type = code.obp.grpc.metricsstream.api.StreamMetricsRequest
 }
 
 object StreamMetricsRequest extends scalapb.GeneratedMessageCompanion[code.obp.grpc.metricsstream.api.StreamMetricsRequest] {

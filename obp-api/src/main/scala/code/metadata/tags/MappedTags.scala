@@ -82,7 +82,7 @@ object MappedTags extends Tags {
 }
 
 class MappedTag extends TransactionTag with LongKeyedMapper[MappedTag] with IdPK with CreatedUpdated {
-  def getSingleton = MappedTag
+  def getSingleton: code.metadata.tags.MappedTag.type = MappedTag
 
   object bank extends UUIDString(this)
   object account extends AccountIdString(this)

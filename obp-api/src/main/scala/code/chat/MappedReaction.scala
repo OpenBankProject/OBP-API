@@ -57,7 +57,7 @@ object MappedReactionProvider extends ReactionProvider {
 
 class Reaction extends ReactionTrait with LongKeyedMapper[Reaction] with IdPK with CreatedUpdated {
 
-  def getSingleton = Reaction
+  def getSingleton: code.chat.Reaction.type = Reaction
 
   object ReactionId extends MappedUUID(this)
   object ChatMessageId extends MappedString(this, 36)

@@ -27,6 +27,7 @@ TESOBE (http://www.tesobe.com/)
 package code.concurrency
 
 import code.api.util.APIUtil.OAuth._
+import org.json4s.jvalue2monadic
 
 import scala.concurrent.duration._
 

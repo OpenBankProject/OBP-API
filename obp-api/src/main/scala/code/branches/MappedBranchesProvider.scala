@@ -32,7 +32,7 @@ object MappedBranchesProvider extends BranchesProvider with MdcLoggable {
 
 class MappedBranch extends BranchT with LongKeyedMapper[MappedBranch] with IdPK {
 
-  override def getSingleton = MappedBranch
+  override def getSingleton: code.branches.MappedBranch.type = MappedBranch
 
 
   object mBankId extends UUIDString(this)
@@ -152,7 +152,7 @@ class MappedBranch extends BranchT with LongKeyedMapper[MappedBranch] with IdPK 
     )
   )
 
-  override def lobbyString = Some(new LobbyStringT {
+  override def lobbyString: Some[com.openbankproject.commons.model.LobbyStringT] = Some(new LobbyStringT {
     override def hours: String = mLobbyHours.get
   })
   override def location =
@@ -163,7 +163,7 @@ class MappedBranch extends BranchT with LongKeyedMapper[MappedBranch] with IdPK 
       None
   )
 
-  override def driveUpString = Some(new DriveUpStringT {
+  override def driveUpString: Some[com.openbankproject.commons.model.DriveUpStringT] = Some(new DriveUpStringT {
     override def hours: String = mDriveUpHours.get
   }
   )
@@ -172,7 +172,7 @@ class MappedBranch extends BranchT with LongKeyedMapper[MappedBranch] with IdPK 
 // Opening / Closing times are expected to have the format 24 hour format e.g. 13:45
 // but could also be 25:44 if we want to represent a time after midnight.
 
-  override def lobby = Some(
+  override def lobby: Some[com.openbankproject.commons.model.Lobby] = Some(
     Lobby(
     monday = List(OpeningTimes(
       openingTime = mLobbyOpeningTimeOnMonday.get,
@@ -206,7 +206,7 @@ class MappedBranch extends BranchT with LongKeyedMapper[MappedBranch] with IdPK 
   )
   // Opening / Closing times are expected to have the format 24 hour format e.g. 13:45
   // but could also be 25:44 if we want to represent a time after midnight.
-  override def driveUp = Some(
+  override def driveUp: Some[com.openbankproject.commons.model.DriveUp] = Some(
     DriveUp(
     monday = OpeningTimes(
       openingTime = mDriveUpOpeningTimeOnMonday.get,
@@ -251,9 +251,9 @@ class MappedBranch extends BranchT with LongKeyedMapper[MappedBranch] with IdPK 
 
   override def accessibleFeatures: Option[String] = Some(mAccessibleFeatures.get)
 
-  override def  branchType = Some(mBranchType.get)
-  override def  moreInfo = Some(mMoreInfo.get)
-  override def  phoneNumber = Some(mPhoneNumber.get)
+  override def  branchType: Some[String] = Some(mBranchType.get)
+  override def  moreInfo: Some[String] = Some(mMoreInfo.get)
+  override def  phoneNumber: Some[String] = Some(mPhoneNumber.get)
 
   override def isDeleted: Option[Boolean] = Some(mIsDeleted.get)
 }

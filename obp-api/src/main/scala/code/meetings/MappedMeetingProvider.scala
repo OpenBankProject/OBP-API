@@ -89,7 +89,7 @@ object MappedMeetingProvider extends MeetingProvider {
 
 class MappedMeeting extends Meeting with LongKeyedMapper[MappedMeeting] with IdPK with CreatedUpdated with OneToMany[Long, MappedMeeting]{
 
-  def getSingleton = MappedMeeting
+  def getSingleton: code.meetings.MappedMeeting.type = MappedMeeting
 
   // Name the objects m* so that we can give the overriden methods nice names.
   // Assume we'll have to override all fields so name them all m*
@@ -142,7 +142,7 @@ object MappedMeeting extends MappedMeeting with LongKeyedMetaMapper[MappedMeetin
 }
 
 class MappedMeetingInvitee extends LongKeyedMapper[MappedMeetingInvitee] with IdPK {
-  def getSingleton = MappedMeetingInvitee
+  def getSingleton: code.meetings.MappedMeetingInvitee.type = MappedMeetingInvitee
 
   object mMappedMeeting extends MappedLongForeignKey(this, MappedMeeting)
   object mName extends MappedString(this, 255)

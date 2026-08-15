@@ -84,7 +84,7 @@ object MappedAccountWebhookProvider extends AccountWebhookProvider {
 }
 
 class MappedAccountWebhook extends AccountWebhook with LongKeyedMapper[MappedAccountWebhook] with IdPK with CreatedUpdated {
-  def getSingleton = MappedAccountWebhook
+  def getSingleton: code.webhook.MappedAccountWebhook.type = MappedAccountWebhook
 
   object mAccountWebhookId extends MappedUUID(this)
   object mBankId extends UUIDString(this)
@@ -104,7 +104,7 @@ class MappedAccountWebhook extends AccountWebhook with LongKeyedMapper[MappedAcc
   def httpMethod: String = mHttpMethod.get
   def httpProtocol: String = mHttpProtocol.get
   def createdByUserId: String = mCreatedByUserId.get
-  def isActive: Boolean = mIsActive.get
+  def isActive(): Boolean = mIsActive.get
 }
 
 object MappedAccountWebhook extends MappedAccountWebhook with LongKeyedMetaMapper[MappedAccountWebhook] {

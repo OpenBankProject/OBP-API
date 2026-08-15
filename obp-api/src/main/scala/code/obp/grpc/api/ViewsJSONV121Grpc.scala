@@ -63,7 +63,7 @@ final case class ViewsJSONV121Grpc(
       }
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
-    def companion = code.obp.grpc.api.ViewsJSONV121Grpc
+    def companion: code.obp.grpc.api.ViewsJSONV121Grpc.type = code.obp.grpc.api.ViewsJSONV121Grpc
 }
 
 object ViewsJSONV121Grpc extends scalapb.GeneratedMessageCompanion[code.obp.grpc.api.ViewsJSONV121Grpc] {

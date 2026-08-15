@@ -65,7 +65,7 @@ final case class StreamLogCacheRequest(
       }
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
-    def companion = code.obp.grpc.logcache.api.StreamLogCacheRequest
+    def companion: code.obp.grpc.logcache.api.StreamLogCacheRequest.type = code.obp.grpc.logcache.api.StreamLogCacheRequest
 }
 
 object StreamLogCacheRequest extends scalapb.GeneratedMessageCompanion[code.obp.grpc.logcache.api.StreamLogCacheRequest] {

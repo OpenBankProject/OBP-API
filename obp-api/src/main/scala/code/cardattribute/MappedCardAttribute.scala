@@ -7,7 +7,7 @@ import net.liftweb.mapper._
 
 class MappedCardAttribute extends CardAttribute with LongKeyedMapper[MappedCardAttribute] with IdPK {
 
-  override def getSingleton = MappedCardAttribute
+  override def getSingleton: code.cardattribute.MappedCardAttribute.type = MappedCardAttribute
 
   object mBankId extends UUIDString(this) // combination of this
   object mCardId extends UUIDString(this) // combination of this
@@ -21,11 +21,11 @@ class MappedCardAttribute extends CardAttribute with LongKeyedMapper[MappedCardA
   object mValue extends MappedString(this, 255)
 
 
-  override def bankId = Some(BankId(mBankId.get))
+  override def bankId: Some[com.openbankproject.commons.model.BankId] = Some(BankId(mBankId.get))
 
-  override def cardId = Some(mCardId.get)
+  override def cardId: Some[String] = Some(mCardId.get)
 
-  override def cardAttributeId = Some(mCardAttributeId.get)
+  override def cardAttributeId: Some[String] = Some(mCardAttributeId.get)
 
   override def name: String = mName.get
 

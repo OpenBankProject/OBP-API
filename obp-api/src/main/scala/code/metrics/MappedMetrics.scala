@@ -647,7 +647,7 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
 
 class MappedMetric extends APIMetric with LongKeyedMapper[MappedMetric] with IdPK {
 
-  override def getSingleton = MappedMetric
+  override def getSingleton: code.metrics.MappedMetric.type = MappedMetric
 
   object userId extends UUIDString(this)
   object url extends MappedString(this, 2000) // TODO Introduce / use class for Mapped URLs
@@ -686,20 +686,20 @@ class MappedMetric extends APIMetric with LongKeyedMapper[MappedMetric] with IdP
   // Set when the request was authenticated via a consent. Null otherwise.
   object consentReferenceId extends MappedString(this, 36) {
     override def dbColumnName = "consent_reference_id"
-    override def defaultValue = null
+    override def defaultValue: Null = null
   }
   // How the caller's certificate was established (PeerTrust.Resolution.mode): "direct",
   // "forwarded" or "none". Null when the request carried no certificate material at all.
   // Not indexed: three values combined with the indexed date range is selective enough.
   object certificateTrust extends MappedString(this, 32) {
     override def dbColumnName = "certificate_trust"
-    override def defaultValue = null
+    override def defaultValue: Null = null
   }
   // The specifics behind certificateTrust (PeerTrust.Resolution.detail): the forwarding proxy's
   // canonical subject DN for "forwarded", the rejection reason for "none". Null for "direct".
   object certificateTrustDetail extends MappedString(this, 255) {
     override def dbColumnName = "certificate_trust_detail"
-    override def defaultValue = null
+    override def defaultValue: Null = null
   }
 
   override def getMetricId(): Long = id.get
@@ -737,7 +737,7 @@ object MappedMetric extends MappedMetric with LongKeyedMetaMapper[MappedMetric] 
 
 
 class MetricArchive extends APIMetric with LongKeyedMapper[MetricArchive] with IdPK {
-  override def getSingleton = MetricArchive
+  override def getSingleton: code.metrics.MetricArchive.type = MetricArchive
 
   object metricId extends MappedLong(this)
   object userId extends UUIDString(this)
@@ -776,17 +776,17 @@ class MetricArchive extends APIMetric with LongKeyedMapper[MetricArchive] with I
   // Set when the request was authenticated via a consent. Null otherwise.
   object consentReferenceId extends MappedString(this, 36) {
     override def dbColumnName = "consent_reference_id"
-    override def defaultValue = null
+    override def defaultValue: Null = null
   }
   // Mirror of Metric.certificateTrust / certificateTrustDetail — same widths, or the archiver
   // fails on copy (see the correlationId width lesson above).
   object certificateTrust extends MappedString(this, 32) {
     override def dbColumnName = "certificate_trust"
-    override def defaultValue = null
+    override def defaultValue: Null = null
   }
   object certificateTrustDetail extends MappedString(this, 255) {
     override def dbColumnName = "certificate_trust_detail"
-    override def defaultValue = null
+    override def defaultValue: Null = null
   }
 
 

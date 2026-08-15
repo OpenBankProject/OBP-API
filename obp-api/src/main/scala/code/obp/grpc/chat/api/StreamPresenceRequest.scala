@@ -64,7 +64,7 @@ final case class StreamPresenceRequest(
       }
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
-    def companion = code.obp.grpc.chat.api.StreamPresenceRequest
+    def companion: code.obp.grpc.chat.api.StreamPresenceRequest.type = code.obp.grpc.chat.api.StreamPresenceRequest
 }
 
 object StreamPresenceRequest extends scalapb.GeneratedMessageCompanion[code.obp.grpc.chat.api.StreamPresenceRequest] {

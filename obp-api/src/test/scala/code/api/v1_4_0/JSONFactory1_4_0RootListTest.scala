@@ -1,6 +1,8 @@
 package code.api.v1_4_0
 
 import org.json4s.JsonAST.{JNothing, JString, JValue}
+import org.json4s.jvalue2monadic
+import org.json4s.string2JsonInput
 import org.json4s.native.JsonMethods.parse
 import org.scalatest.{FlatSpec, Matchers}
 

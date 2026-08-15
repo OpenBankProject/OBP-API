@@ -123,7 +123,7 @@ trait Connector extends MdcLoggable {
   implicit val formats: Formats = CustomJsonFormats.nullTolerateFormats
 
   val messageDocs = ArrayBuffer[MessageDoc]()
-  protected implicit val nameOfConnector = Connector.getClass.getSimpleName
+  protected implicit val nameOfConnector: String = Connector.getClass.getSimpleName
 
   //Move all the cache ttl to Connector, all the sub-connectors share the same cache.
 

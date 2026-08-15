@@ -1,6 +1,7 @@
 package code.api.berlin.group.v1_3
 
 import code.api.berlin.group.ConstantsBG
+import org.json4s.jvalue2extractable
 import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3._
 import code.api.berlin.group.v1_3.model.ScaStatusResponse
 import code.api.util.APIUtil

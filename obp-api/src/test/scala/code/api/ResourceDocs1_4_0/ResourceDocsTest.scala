@@ -83,7 +83,7 @@ class ResourceDocsTest extends ResourceDocsV140ServerSetup with PropsReset with 
       case null => JNull // not need do serialize
     }
   }
-  override implicit val formats = CustomJsonFormats.formats + ProductSerializer + ApiRoleSerializer
+  override implicit val formats: org.json4s.Formats = CustomJsonFormats.formats + ProductSerializer + ApiRoleSerializer
 
   /**
    * API_Explorer side use this method, so it need to be right. 

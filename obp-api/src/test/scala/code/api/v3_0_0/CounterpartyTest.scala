@@ -1,6 +1,7 @@
 package code.api.v3_0_0
 
 import code.api.Constant._
+import org.json4s.jvalue2extractable
 import com.openbankproject.commons.util.ApiVersion
 import code.api.v3_0_0.OBPAPI3_0_0.Implementations3_0_0
 import com.github.dwickern.macros.NameOf.nameOf

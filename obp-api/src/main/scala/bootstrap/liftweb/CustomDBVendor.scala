@@ -64,8 +64,8 @@ class CustomDBVendor(driverName: String,
   }
 
   def createOne: Box[Connection] =  {
-    tryo{t:Throwable => logger.error("Cannot load database driver: %s".format(driverName), t)}{Class.forName(driverName);()}
-    tryo{t:Throwable => logger.error("Unable to get database connection. url=%s".format(dbUrl),t)}(HikariDatasource.ds.getConnection())
+    tryo{(t:Throwable) => logger.error("Cannot load database driver: %s".format(driverName), t)}{Class.forName(driverName);()}
+    tryo{(t:Throwable) => logger.error("Unable to get database connection. url=%s".format(dbUrl),t)}(HikariDatasource.ds.getConnection())
   }
 
   def closeAllConnections_!(): Unit = HikariDatasource.ds.close()

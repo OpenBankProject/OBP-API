@@ -4,7 +4,7 @@ import net.liftweb.mapper._
 
 class AuthenticationTypeValidation extends LongKeyedMapper[AuthenticationTypeValidation] with IdPK {
 
-  override def getSingleton = AuthenticationTypeValidation
+  override def getSingleton: code.authtypevalidation.AuthenticationTypeValidation.type = AuthenticationTypeValidation
 
 
   object OperationId extends MappedString(this, 200)

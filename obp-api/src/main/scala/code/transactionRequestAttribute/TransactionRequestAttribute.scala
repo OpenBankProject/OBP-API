@@ -9,7 +9,7 @@ import scala.collection.immutable.List
 
 
 class TransactionRequestAttribute extends TransactionRequestAttributeTrait with LongKeyedMapper[TransactionRequestAttribute] with IdPK {
-  override def getSingleton = TransactionRequestAttribute
+  override def getSingleton: code.transactionRequestAttribute.TransactionRequestAttribute.type = TransactionRequestAttribute
 
   override def bankId: ModelBankId = ModelBankId(BankId.get)
 

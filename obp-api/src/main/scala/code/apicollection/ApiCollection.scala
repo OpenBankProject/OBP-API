@@ -4,7 +4,7 @@ import code.util.MappedUUID
 import net.liftweb.mapper._
 
 class ApiCollection extends ApiCollectionTrait with LongKeyedMapper[ApiCollection] with IdPK with CreatedUpdated {
-  def getSingleton = ApiCollection
+  def getSingleton: code.apicollection.ApiCollection.type = ApiCollection
 
   object ApiCollectionId extends MappedUUID(this)
   object UserId extends MappedString(this, 100)

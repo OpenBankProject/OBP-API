@@ -51,7 +51,7 @@ trait GrpcConnector_vFeb2026 extends Connector with MdcLoggable {
   //this one import is for implicit convert, don't delete
   import com.openbankproject.commons.model.{AmountOfMoney, CreditLimit, CreditRating, CustomerFaceImage}
 
-  implicit override val nameOfConnector = GrpcConnector_vFeb2026.toString
+  implicit override val nameOfConnector: String = GrpcConnector_vFeb2026.toString
 
   val messageFormat: String = "grpc_vFeb2026"
 

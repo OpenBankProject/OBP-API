@@ -1,6 +1,7 @@
 package code.api.dynamic.entity.query
 
 import com.openbankproject.commons.model.enums.DynamicEntityFieldType
+import org.json4s.jvalue2monadic
 import org.json4s.JsonAST.JObject
 import org.scalatest.{FlatSpec, Matchers}
 

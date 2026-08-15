@@ -99,7 +99,7 @@ final case class AccountsBalancesV310JsonGrpc(
       }
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
-    def companion = code.obp.grpc.api.AccountsBalancesV310JsonGrpc
+    def companion: code.obp.grpc.api.AccountsBalancesV310JsonGrpc.type = code.obp.grpc.api.AccountsBalancesV310JsonGrpc
 }
 
 object AccountsBalancesV310JsonGrpc extends scalapb.GeneratedMessageCompanion[code.obp.grpc.api.AccountsBalancesV310JsonGrpc] {
@@ -218,7 +218,7 @@ object AccountsBalancesV310JsonGrpc extends scalapb.GeneratedMessageCompanion[co
         }
       }
       def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
-      def companion = code.obp.grpc.api.AccountsBalancesV310JsonGrpc.AmountOfMoneyGrpc
+      def companion: code.obp.grpc.api.AccountsBalancesV310JsonGrpc.AmountOfMoneyGrpc.type = code.obp.grpc.api.AccountsBalancesV310JsonGrpc.AmountOfMoneyGrpc
   }
   
   object AmountOfMoneyGrpc extends scalapb.GeneratedMessageCompanion[code.obp.grpc.api.AccountsBalancesV310JsonGrpc.AmountOfMoneyGrpc] {
@@ -332,7 +332,7 @@ object AccountsBalancesV310JsonGrpc extends scalapb.GeneratedMessageCompanion[co
         }
       }
       def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
-      def companion = code.obp.grpc.api.AccountsBalancesV310JsonGrpc.AccountRoutingGrpc
+      def companion: code.obp.grpc.api.AccountsBalancesV310JsonGrpc.AccountRoutingGrpc.type = code.obp.grpc.api.AccountsBalancesV310JsonGrpc.AccountRoutingGrpc
   }
   
   object AccountRoutingGrpc extends scalapb.GeneratedMessageCompanion[code.obp.grpc.api.AccountsBalancesV310JsonGrpc.AccountRoutingGrpc] {
@@ -497,7 +497,7 @@ object AccountsBalancesV310JsonGrpc extends scalapb.GeneratedMessageCompanion[co
         }
       }
       def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
-      def companion = code.obp.grpc.api.AccountsBalancesV310JsonGrpc.AccountBalanceV310Grpc
+      def companion: code.obp.grpc.api.AccountsBalancesV310JsonGrpc.AccountBalanceV310Grpc.type = code.obp.grpc.api.AccountsBalancesV310JsonGrpc.AccountBalanceV310Grpc
   }
   
   object AccountBalanceV310Grpc extends scalapb.GeneratedMessageCompanion[code.obp.grpc.api.AccountsBalancesV310JsonGrpc.AccountBalanceV310Grpc] {

@@ -245,7 +245,7 @@ object MappedDynamicDataProvider extends DynamicDataProvider with CustomJsonForm
 
 class DynamicData extends DynamicDataT with LongKeyedMapper[DynamicData] with IdPK {
 
-  override def getSingleton = DynamicData
+  override def getSingleton: code.DynamicData.DynamicData.type = DynamicData
 
   object DynamicDataId extends MappedUUID(this)
   object DynamicEntityName extends MappedString(this, 255)

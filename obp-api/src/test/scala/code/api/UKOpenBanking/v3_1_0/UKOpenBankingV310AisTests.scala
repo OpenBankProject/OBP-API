@@ -1,6 +1,7 @@
 package code.api.UKOpenBanking.v3_1_0
 
 import code.api.util.APIUtil.{DateWithDayFormat, ResourceDoc, UserOrApplication, buildOperationId}
+import org.json4s.jvalue2extractable
 import code.api.util.ErrorMessages.ConsentNotFound
 import code.consent.Consents
 import com.openbankproject.commons.model.ErrorMessage

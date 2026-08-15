@@ -4,7 +4,7 @@ import net.liftweb.mapper._
 
 class MappedBankAccountData extends LongKeyedMapper[MappedBankAccountData] with IdPK with CreatedUpdated {
 
-  override def getSingleton = MappedBankAccountData
+  override def getSingleton: code.model.dataAccess.MappedBankAccountData.type = MappedBankAccountData
 
   object bankId extends MappedString(this, 255)
   def getBankId = bankId.get

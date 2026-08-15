@@ -50,7 +50,7 @@ object MappedKycDocumentsProvider extends KycDocumentProvider {
 class MappedKycDocument extends KycDocument
 with LongKeyedMapper[MappedKycDocument] with IdPK with CreatedUpdated {
 
-  def getSingleton = MappedKycDocument
+  def getSingleton: code.kycdocuments.MappedKycDocument.type = MappedKycDocument
 
   object user extends MappedLongForeignKey(this, ResourceUser)
   object mBankId extends UUIDString(this)

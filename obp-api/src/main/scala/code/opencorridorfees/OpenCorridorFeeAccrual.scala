@@ -21,7 +21,7 @@ import net.liftweb.mapper._
  * marks a row swept; NULL rows are the bank's open fee balance.
  */
 class OpenCorridorFeeAccrual extends LongKeyedMapper[OpenCorridorFeeAccrual] with IdPK {
-  def getSingleton = OpenCorridorFeeAccrual
+  def getSingleton: code.opencorridorfees.OpenCorridorFeeAccrual.type = OpenCorridorFeeAccrual
 
   /** The bank that OWES the fee — the promise's originating (from) bank. */
   object DebtorBankId extends MappedString(this, 255) {

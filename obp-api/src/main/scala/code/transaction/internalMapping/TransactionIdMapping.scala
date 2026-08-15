@@ -6,7 +6,7 @@ import net.liftweb.mapper._
 
 class TransactionIdMapping extends TransactionIdMappingTrait with LongKeyedMapper[TransactionIdMapping] with IdPK with CreatedUpdated {
 
-  def getSingleton = TransactionIdMapping
+  def getSingleton: code.transaction.internalMapping.TransactionIdMapping.type = TransactionIdMapping
 
   object TransactionId extends MappedUUID(this)
   object TransactionPlainTextReference extends MappedString(this, 255)

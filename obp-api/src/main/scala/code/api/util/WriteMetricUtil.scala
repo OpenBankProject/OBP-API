@@ -17,7 +17,7 @@ import org.json4s.native.Serialization.write
 
 object WriteMetricUtil extends MdcLoggable {
 
-  implicit val formats = CustomJsonFormats.formats
+  implicit val formats: org.json4s.Formats = CustomJsonFormats.formats
 
   private val operationIds: immutable.Seq[String] =
     getPropsValue("metrics_store_response_body_for_operation_ids")

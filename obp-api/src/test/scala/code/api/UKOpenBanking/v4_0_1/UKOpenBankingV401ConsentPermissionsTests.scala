@@ -1,6 +1,8 @@
 package code.api.UKOpenBanking.v4_0_1
 
 import code.api.util.Consent
+import org.json4s.jvalue2extractable
+import org.json4s.jvalue2monadic
 import code.api.util.ErrorMessages.InvalidUKConsentPermissions
 import com.openbankproject.commons.model.ErrorMessage
 import org.scalatest.Tag

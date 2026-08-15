@@ -78,7 +78,7 @@ object MapperWhereTags extends WhereTags {
 
 class MappedWhereTag extends GeoTag with LongKeyedMapper[MappedWhereTag] with IdPK with CreatedUpdated {
 
-  def getSingleton = MappedWhereTag
+  def getSingleton: code.metadata.wheretags.MappedWhereTag.type = MappedWhereTag
 
   object bank extends UUIDString(this)
   object account extends AccountIdString(this)

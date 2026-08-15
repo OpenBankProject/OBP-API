@@ -58,7 +58,7 @@ object MappedCounterpartyLimitProvider extends CounterpartyLimitProviderTrait {
     maxYearlyAmount: BigDecimal,
     maxNumberOfYearlyTransactions: Int,
     maxTotalAmount: BigDecimal,
-    maxNumberOfTransactions: Int)= Future {
+    maxNumberOfTransactions: Int): scala.concurrent.Future[net.liftweb.common.Box[code.counterpartylimit.CounterpartyLimit]]= Future {
 
     def createCounterpartyLimit(counterpartyLimit: CounterpartyLimit)= {
       tryo {
@@ -94,7 +94,7 @@ object MappedCounterpartyLimitProvider extends CounterpartyLimitProviderTrait {
 }
 
 class CounterpartyLimit extends CounterpartyLimitTrait with LongKeyedMapper[CounterpartyLimit] with IdPK with CreatedUpdated {
-  override def getSingleton = CounterpartyLimit
+  override def getSingleton: code.counterpartylimit.CounterpartyLimit.type = CounterpartyLimit
   
   object CounterpartyLimitId extends MappedUUID(this)
   

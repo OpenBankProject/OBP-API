@@ -140,7 +140,7 @@ object MappedRoutingSchemeProvider extends RoutingSchemeProvider {
 }
 
 class RoutingScheme extends RoutingSchemeTrait with LongKeyedMapper[RoutingScheme] with IdPK {
-  def getSingleton = RoutingScheme
+  def getSingleton: code.routingscheme.RoutingScheme.type = RoutingScheme
 
   object Scheme extends MappedString(this, 64)
   object Country extends MappedString(this, 8)            // alpha-2 or "INT" for global allow-list
@@ -185,7 +185,7 @@ object RoutingScheme extends RoutingScheme with LongKeyedMetaMapper[RoutingSchem
 }
 
 class BankSupportedRoutingScheme extends BankSupportedRoutingSchemeTrait with LongKeyedMapper[BankSupportedRoutingScheme] with IdPK {
-  def getSingleton = BankSupportedRoutingScheme
+  def getSingleton: code.routingscheme.BankSupportedRoutingScheme.type = BankSupportedRoutingScheme
 
   object BankId extends MappedString(this, 255)
   object Scheme extends MappedString(this, 64)

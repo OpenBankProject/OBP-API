@@ -4,7 +4,7 @@ import net.liftweb.mapper.{MappedText, _}
 
 class JsonSchemaValidation extends LongKeyedMapper[JsonSchemaValidation] with IdPK {
 
-  override def getSingleton = JsonSchemaValidation
+  override def getSingleton: code.validation.JsonSchemaValidation.type = JsonSchemaValidation
 
 
   object OperationId extends MappedString(this, 200)

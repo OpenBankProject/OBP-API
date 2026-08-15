@@ -76,7 +76,7 @@ object CounterpartyAttributeProvider extends CounterpartyAttributeProviderTrait 
 
 class CounterpartyAttribute extends CounterpartyAttributeTrait with LongKeyedMapper[CounterpartyAttribute] with IdPK {
 
-  override def getSingleton = CounterpartyAttribute
+  override def getSingleton: code.counterpartyattribute.CounterpartyAttribute.type = CounterpartyAttribute
 
   object CounterpartyId_ extends UUIDString(this) {
     override def dbColumnName = "CounterpartyId"

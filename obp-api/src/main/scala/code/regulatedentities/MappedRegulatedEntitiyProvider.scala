@@ -94,7 +94,7 @@ object MappedRegulatedEntityProvider extends RegulatedEntityProvider {
 }
 
 class MappedRegulatedEntity extends RegulatedEntityTrait with LongKeyedMapper[MappedRegulatedEntity] with IdPK {
-  override def getSingleton = MappedRegulatedEntity
+  override def getSingleton: code.regulatedentities.MappedRegulatedEntity.type = MappedRegulatedEntity
   object EntityId extends MappedUUID(this)
   object CertificateAuthorityCaOwnerId extends MappedString(this, 256)
   object EntityName extends MappedString(this, 256)

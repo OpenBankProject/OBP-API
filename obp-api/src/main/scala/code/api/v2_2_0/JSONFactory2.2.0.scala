@@ -844,7 +844,7 @@ object JSONFactory220 {
     MessageDocsJson(messageDocsList.map(createMessageDocJson))
   }
 
-  private implicit val formats = CustomJsonFormats.formats + OptionalFieldSerializer
+  private implicit val formats: org.json4s.Formats = CustomJsonFormats.formats + OptionalFieldSerializer
 
   def createMessageDocJson(md: MessageDoc): MessageDocJson = {
     val inBoundType = ReflectUtils.getType(md.exampleInboundMessage)

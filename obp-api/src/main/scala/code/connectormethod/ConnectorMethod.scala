@@ -5,7 +5,7 @@ import net.liftweb.mapper._
 
 class ConnectorMethod extends LongKeyedMapper[ConnectorMethod] with IdPK {
 
-  override def getSingleton = ConnectorMethod
+  override def getSingleton: code.connectormethod.ConnectorMethod.type = ConnectorMethod
 
   object ConnectorMethodId extends UUIDString(this)
   object MethodName extends MappedString(this, 255)

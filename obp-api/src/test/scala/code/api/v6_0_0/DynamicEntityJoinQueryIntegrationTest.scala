@@ -1,6 +1,7 @@
 package code.api.v6_0_0
 
 import code.api.dynamic.entity.projection.{IndexingCapabilities, ProjectionProvisioner}
+import org.json4s.jvalue2monadic
 import code.api.dynamic.entity.projection.PostgresProjectionBackend
 import code.api.dynamic.entity.query._
 import code.api.util.APIUtil

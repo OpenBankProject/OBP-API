@@ -10,7 +10,7 @@ This stores the link between A User and a View
 A User can't use a View unless it is listed here.
  */
 class AccountAccess extends LongKeyedMapper[AccountAccess] with IdPK with CreatedUpdated {
-  def getSingleton = AccountAccess
+  def getSingleton: code.views.system.AccountAccess.type = AccountAccess
   object user_fk extends MappedLongForeignKey(this, ResourceUser)
   object bank_id extends MappedString(this, 255)
   object account_id extends MappedString(this, 255)

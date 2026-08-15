@@ -69,7 +69,7 @@ object MappedCustomerLinkProvider extends CustomerLinkProvider {
 
 class CustomerLink extends CustomerLinkTrait with LongKeyedMapper[CustomerLink] with IdPK with CreatedUpdated {
 
-  def getSingleton = CustomerLink
+  def getSingleton: code.customerlinks.CustomerLink.type = CustomerLink
 
   object CustomerLinkId extends MappedUUID(this)
   object BankId extends MappedString(this, 255)

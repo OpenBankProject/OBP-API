@@ -119,7 +119,7 @@ object ResourceDocMiddleware extends MdcLoggable {
   def apply(resourceDocs: ArrayBuffer[ResourceDoc]): HttpRoutes[IO] => HttpRoutes[IO] = { routes =>
     // Build the lookup index once per middleware instance (at startup), not per request.
     val resourceDocIndex = ResourceDocMatcher.buildIndex(resourceDocs)
-    Kleisli[HttpF, Request[IO], Response[IO]] { req: Request[IO] =>
+    Kleisli[HttpF, Request[IO], Response[IO]] { (req: Request[IO]) =>
       // Read enable/disable Props per request so runtime changes (e.g. `setPropsValues` in
       // tests or live config reloads) take effect immediately. Cost is a few Lift Props
       // lookups — negligible per request, but lets disabled endpoints be toggled without

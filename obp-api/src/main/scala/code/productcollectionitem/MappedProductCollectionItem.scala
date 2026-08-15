@@ -11,7 +11,7 @@ import com.openbankproject.commons.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 object MappedProductCollectionItemProvider extends ProductCollectionItemProvider {
-  override def getProductCollectionItems(collectionCode: String) = Future {
+  override def getProductCollectionItems(collectionCode: String): scala.concurrent.Future[net.liftweb.common.Box[List[code.productcollectionitem.MappedProductCollectionItem]]] = Future {
     tryo(MappedProductCollectionItem.findAll(By(MappedProductCollectionItem.mCollectionCode, collectionCode)))
   }
 
@@ -61,7 +61,7 @@ object MappedProductCollectionItemProvider extends ProductCollectionItemProvider
 
 class MappedProductCollectionItem extends ProductCollectionItem with LongKeyedMapper[MappedProductCollectionItem] with IdPK with CreatedUpdated {
   
-  def getSingleton = MappedProductCollectionItem
+  def getSingleton: code.productcollectionitem.MappedProductCollectionItem.type = MappedProductCollectionItem
 
   object mCollectionCode extends MappedString(this, 50)
   object mMemberProductCode extends MappedString(this, 50)

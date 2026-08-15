@@ -539,8 +539,8 @@ object MappedConsumersProvider extends ConsumersProvider with MdcLoggable {
 }
 
 class Consumer extends LongKeyedMapper[Consumer] with CreatedUpdated{
-  def getSingleton = Consumer
-  def primaryKeyField = id
+  def getSingleton: code.model.Consumer.type = Consumer
+  def primaryKeyField: Consumer.this.id.type = id
   
   // Note: There are two IDs on Consumer.
   // `id` is the Long primary key (MappedLongIndex).
@@ -583,10 +583,10 @@ class Consumer extends LongKeyedMapper[Consumer] with CreatedUpdated{
     override def defaultValue = APIUtil.generateUUID() 
   }
   object aud extends MappedText(this) {
-    override def defaultValue = null
+    override def defaultValue: Null = null
   }  
   object iss extends MappedString(this, 250) {
-    override def defaultValue = null
+    override def defaultValue: Null = null
   }  
   object sub extends MappedString(this, 250) {
     // because different databases treat unique indexes on NULL values differently.
@@ -734,8 +734,8 @@ object MappedNonceProvider extends NoncesProvider {
 }
 class Nonce extends LongKeyedMapper[Nonce] {
 
-  def getSingleton = Nonce
-  def primaryKeyField = id
+  def getSingleton: code.model.Nonce.type = Nonce
+  def primaryKeyField: Nonce.this.id.type = id
   object id extends MappedLongIndex(this)
   object consumerkey extends MappedString(this, 250) //we store the consumer Key and we don't need to keep a reference to the token consumer as foreign key
   object tokenKey extends MappedString(this, 250){ //we store the token Key and we don't need to keep a reference to the token object as foreign key
@@ -846,8 +846,8 @@ object MappedTokenProvider extends TokensProvider {
 
 
 class Token extends LongKeyedMapper[Token]{
-  def getSingleton = Token
-  def primaryKeyField = id
+  def getSingleton: code.model.Token.type = Token
+  def primaryKeyField: Token.this.id.type = id
   object id extends MappedLongIndex(this)
   object tokenType extends MappedString(this,10)
   object consumerId extends MappedLongForeignKey(this, Consumer)

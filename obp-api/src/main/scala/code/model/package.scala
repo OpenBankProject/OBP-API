@@ -19,15 +19,15 @@ import com.openbankproject.commons.model._
 package object model {
   import scala.language.implicitConversions
 
-  implicit def toBankExtended(bank: Bank) = BankExtended(bank)
+  implicit def toBankExtended(bank: Bank): code.model.BankExtended = BankExtended(bank)
 
-  implicit def toBankAccountExtended(bankAccount: BankAccount) = BankAccountExtended(bankAccount)
+  implicit def toBankAccountExtended(bankAccount: BankAccount): code.model.BankAccountExtended = BankAccountExtended(bankAccount)
 
-  implicit def toCommentExtended(comment: Comment) = CommentExtended(comment)
+  implicit def toCommentExtended(comment: Comment): code.model.CommentExtended = CommentExtended(comment)
 
-  implicit def toUserExtended(user: User) = UserExtended(user)
+  implicit def toUserExtended(user: User): code.model.UserExtended = UserExtended(user)
 
-  implicit def toViewExtended(view: View) = ViewExtended(view)
+  implicit def toViewExtended(view: View): code.model.ViewExtended = ViewExtended(view)
 
   implicit class CounterpartyExtended(counterparty: Counterparty) {
     lazy val metadata: CounterpartyMetadata = Counterparties.counterparties.vend.getOrCreateMetadata(

@@ -9,7 +9,7 @@ import net.liftweb.util.Helpers.tryo
 // Product tags keyed by (bank_id, product_code, tag). No FK to MappedProduct so tags work for
 // connector-sourced products that have no local row.
 class ProductTag extends LongKeyedMapper[ProductTag] with IdPK {
-  override def getSingleton = ProductTag
+  override def getSingleton: code.products.ProductTag.type = ProductTag
 
   object BankId extends UUIDString(this)
   object ProductCode extends MappedString(this, 50)

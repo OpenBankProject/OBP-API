@@ -71,7 +71,7 @@ object MappedOrganisationProvider extends OrganisationProvider {
 
 class Organisation extends OrganisationTrait with LongKeyedMapper[Organisation] with IdPK {
 
-  def getSingleton = Organisation
+  def getSingleton: code.organisation.Organisation.type = Organisation
 
   object OrganisationId extends MappedString(this, 64)
   object Name extends MappedString(this, 255)

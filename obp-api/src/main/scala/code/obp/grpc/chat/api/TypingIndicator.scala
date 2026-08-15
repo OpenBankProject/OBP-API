@@ -136,7 +136,7 @@ final case class TypingIndicator(
       }
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
-    def companion = code.obp.grpc.chat.api.TypingIndicator
+    def companion: code.obp.grpc.chat.api.TypingIndicator.type = code.obp.grpc.chat.api.TypingIndicator
 }
 
 object TypingIndicator extends scalapb.GeneratedMessageCompanion[code.obp.grpc.chat.api.TypingIndicator] {

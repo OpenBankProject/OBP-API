@@ -1,6 +1,7 @@
 package code.api.v1_4_0
 
 import code.api.util.APIUtil.OAuth._
+import org.json4s.jvalue2extractable
 import code.api.util.OBPQueryParam
 import code.api.v1_4_0.JSONFactory1_4_0.{BranchJson, BranchesJson}
 import code.branches.{Branches, BranchesProvider}

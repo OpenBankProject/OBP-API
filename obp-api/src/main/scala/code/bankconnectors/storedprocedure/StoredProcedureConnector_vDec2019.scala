@@ -51,7 +51,7 @@ trait StoredProcedureConnector_vDec2019 extends Connector with MdcLoggable {
   //this one import is for implicit convert, don't delete
   import com.openbankproject.commons.model.{AmountOfMoney, CreditLimit, CreditRating, CustomerFaceImage}
 
-  implicit override val nameOfConnector = StoredProcedureConnector_vDec2019.toString
+  implicit override val nameOfConnector: String = StoredProcedureConnector_vDec2019.toString
 
   // "Versioning" of the messages sent by this or similar connector works like this:
   // Use Case Classes (e.g. Inbound... Outbound... as below to describe the message structures.

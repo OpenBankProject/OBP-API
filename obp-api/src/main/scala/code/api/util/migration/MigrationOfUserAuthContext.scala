@@ -33,7 +33,7 @@ object MigrationOfUserAuthContext {
 
     val result = DB.use(DefaultConnectionIdentifier) { conn =>
       DB.exec(conn, "select count(mkey), muserid, mkey from mappeduserauthcontext group by muserid, mkey having count(mkey) > 1") {
-        rs: ResultSet => {
+        (rs: ResultSet) => {
           Iterator.from(0).takeWhile(_ => rs.next()).map(_ => SqlResult(
             rs.getInt(1),
             rs.getString(2),

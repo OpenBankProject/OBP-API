@@ -117,7 +117,7 @@ final case class BasicAccountJSONGrpc(
       }
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
-    def companion = code.obp.grpc.api.BasicAccountJSONGrpc
+    def companion: code.obp.grpc.api.BasicAccountJSONGrpc.type = code.obp.grpc.api.BasicAccountJSONGrpc
 }
 
 object BasicAccountJSONGrpc extends scalapb.GeneratedMessageCompanion[code.obp.grpc.api.BasicAccountJSONGrpc] {
@@ -253,7 +253,7 @@ object BasicAccountJSONGrpc extends scalapb.GeneratedMessageCompanion[code.obp.g
         }
       }
       def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
-      def companion = code.obp.grpc.api.BasicAccountJSONGrpc.BasicViewJson
+      def companion: code.obp.grpc.api.BasicAccountJSONGrpc.BasicViewJson.type = code.obp.grpc.api.BasicAccountJSONGrpc.BasicViewJson
   }
   
   object BasicViewJson extends scalapb.GeneratedMessageCompanion[code.obp.grpc.api.BasicAccountJSONGrpc.BasicViewJson] {

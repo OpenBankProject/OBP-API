@@ -70,7 +70,7 @@ object MappedEntitlementsProvider extends EntitlementProvider {
     }
   }
 
-  override def getEntitlements: Box[List[MappedEntitlement]] = {
+  override def getEntitlements(): Box[List[MappedEntitlement]] = {
     // Return a Box so we can handle errors later.
     Some(
       MappedEntitlement.findAll(
@@ -204,7 +204,7 @@ class MappedEntitlement
     with IdPK
     with CreatedUpdated {
 
-  def getSingleton = MappedEntitlement
+  def getSingleton: code.entitlement.MappedEntitlement.type = MappedEntitlement
 
   object mEntitlementId extends MappedUUID(this)
   object mBankId extends UUIDString(this)
@@ -224,7 +224,7 @@ class MappedEntitlement
 
   object entitlement_request_id extends MappedUUID(this) {
     override def dbColumnName = "entitlement_request_id"
-    override def defaultValue = null
+    override def defaultValue: Null = null
   }
 
   object mGrantedByUserId extends UUIDString(this) {

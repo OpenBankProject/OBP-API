@@ -22,7 +22,7 @@ import scala.jdk.CollectionConverters._
 
 
 object JwsUtil extends MdcLoggable {
-  implicit val formats = CustomJsonFormats.formats
+  implicit val formats: org.json4s.Formats = CustomJsonFormats.formats
   case class JwsProtectedHeader(b64: Boolean,
                                 `x5t#S256`: Option[String],
                                 x5c: Option[List[String]],

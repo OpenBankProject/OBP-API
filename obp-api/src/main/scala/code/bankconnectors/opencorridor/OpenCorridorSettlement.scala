@@ -20,6 +20,7 @@ import net.liftweb.common.Full
 import net.liftweb.mapper.By
 import org.json4s.NoTypeHints
 import org.json4s.native.Serialization
+import org.json4s.{jvalue2monadic, string2JsonInput}
 
 import scala.concurrent.Future
 
@@ -56,7 +57,7 @@ object OpenCorridorSettlement extends MdcLoggable {
   val AttrSettledByTransactionIds = "settled_by_transaction_ids"
   val AttrSettledByTransactionRequestId = "settled_by_transaction_request_id"
 
-  private implicit val wireFormats = Serialization.formats(NoTypeHints)
+  private implicit val wireFormats: org.json4s.Formats = Serialization.formats(NoTypeHints)
 
   def settlePair(
     user: User,

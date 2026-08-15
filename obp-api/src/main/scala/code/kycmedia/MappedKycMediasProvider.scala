@@ -48,7 +48,7 @@ object MappedKycMediasProvider extends KycMediaProvider {
 class MappedKycMedia extends KycMedia
 with LongKeyedMapper[MappedKycMedia] with IdPK with CreatedUpdated {
 
-  def getSingleton = MappedKycMedia
+  def getSingleton: code.kycmedias.MappedKycMedia.type = MappedKycMedia
 
   object mBankId extends UUIDString(this)
   object mCustomerId extends UUIDString(this)

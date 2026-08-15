@@ -25,7 +25,7 @@ import net.liftweb.mapper.Schemifier
  */
 object StoredProcedureUtils extends MdcLoggable{
 
-  private implicit val formats = code.api.util.CustomJsonFormats.nullTolerateFormats
+  private implicit val formats: org.json4s.Formats = code.api.util.CustomJsonFormats.nullTolerateFormats
 
   // lazy initial DB connection: separate HikariCP pool dedicated to the stored procedure connector
   private lazy val spTransactor: Transactor[IO] = {

@@ -9,7 +9,7 @@ import net.liftweb.mapper._
 
 class MappedExpectedChallengeAnswer extends ChallengeTrait with LongKeyedMapper[MappedExpectedChallengeAnswer] with IdPK with CreatedUpdated {
 
-  def getSingleton = MappedExpectedChallengeAnswer
+  def getSingleton: code.transactionChallenge.MappedExpectedChallengeAnswer.type = MappedExpectedChallengeAnswer
 
   // Unique
   object ChallengeId extends MappedUUID(this)

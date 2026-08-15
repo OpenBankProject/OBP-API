@@ -82,7 +82,7 @@ final case class TypingEvent(
       }
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
-    def companion = code.obp.grpc.chat.api.TypingEvent
+    def companion: code.obp.grpc.chat.api.TypingEvent.type = code.obp.grpc.chat.api.TypingEvent
 }
 
 object TypingEvent extends scalapb.GeneratedMessageCompanion[code.obp.grpc.chat.api.TypingEvent] {

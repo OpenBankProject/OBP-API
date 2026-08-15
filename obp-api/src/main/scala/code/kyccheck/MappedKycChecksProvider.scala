@@ -51,7 +51,7 @@ object MappedKycChecksProvider extends KycCheckProvider {
 class MappedKycCheck extends KycCheck
 with LongKeyedMapper[MappedKycCheck] with IdPK with CreatedUpdated {
 
-  def getSingleton = MappedKycCheck
+  def getSingleton: code.kycchecks.MappedKycCheck.type = MappedKycCheck
 
   object user extends MappedLongForeignKey(this, ResourceUser)
   object mBankId extends UUIDString(this)

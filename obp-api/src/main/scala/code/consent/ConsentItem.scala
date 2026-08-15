@@ -7,7 +7,7 @@ import net.liftweb.mapper._
 // so that bank-scoped queries can be done via a simple indexed SQL join instead of extracting and
 // parsing every JWT. Rows are written at consent creation time alongside JWT generation.
 class ConsentItem extends LongKeyedMapper[ConsentItem] with IdPK {
-  def getSingleton = ConsentItem
+  def getSingleton: code.consent.ConsentItem.type = ConsentItem
 
   object consentItemId extends MappedUUID(this) {
     override def dbColumnName = "consent_item_id"
@@ -23,15 +23,15 @@ class ConsentItem extends LongKeyedMapper[ConsentItem] with IdPK {
   }
   object accountId extends MappedString(this, 255) {
     override def dbColumnName = "account_id"
-    override def defaultValue = null
+    override def defaultValue: Null = null
   }
   object viewId extends MappedString(this, 255) {
     override def dbColumnName = "view_id"
-    override def defaultValue = null
+    override def defaultValue: Null = null
   }
   object roleName extends MappedString(this, 255) {
     override def dbColumnName = "role_name"
-    override def defaultValue = null
+    override def defaultValue: Null = null
   }
 }
 

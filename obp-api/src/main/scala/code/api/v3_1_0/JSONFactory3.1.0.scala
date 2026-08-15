@@ -1302,7 +1302,7 @@ object JSONFactory310{
   }
   
   def getOAuth2ServerJwksUrisJson(): OAuth2ServerJwksUrisJson = {
-    val url = APIUtil.getPropsValue("oauth2.jwk_set.url", "Not set").split(",").toList.map(OAuth2ServerJWKURIJson)
+    val url = APIUtil.getPropsValue("oauth2.jwk_set.url", "Not set").split(",").toList.map(OAuth2ServerJWKURIJson.apply)
     OAuth2ServerJwksUrisJson(url)
   }
   def createPhysicalCardJson(card: PhysicalCardTrait, user : User): PhysicalCardJsonV310 = {

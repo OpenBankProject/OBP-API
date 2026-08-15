@@ -44,7 +44,7 @@ import scala.language.postfixOps
 trait CardanoConnector_vJun2025 extends Connector with MdcLoggable {
   //this one import is for implicit convert, don't delete
 
-  implicit override val nameOfConnector = CardanoConnector_vJun2025.toString
+  implicit override val nameOfConnector: String = CardanoConnector_vJun2025.toString
   
   val messageFormat: String = "Jun2025"
 

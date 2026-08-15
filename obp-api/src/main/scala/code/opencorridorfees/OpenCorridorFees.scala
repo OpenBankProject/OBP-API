@@ -46,7 +46,7 @@ case class OpenCorridorFeeSweepResultJsonV700(
  */
 object OpenCorridorFees extends MdcLoggable {
 
-  private implicit val formats = Serialization.formats(NoTypeHints)
+  private implicit val formats: org.json4s.Formats = Serialization.formats(NoTypeHints)
 
   def sweep(
     debtorBankId: String,

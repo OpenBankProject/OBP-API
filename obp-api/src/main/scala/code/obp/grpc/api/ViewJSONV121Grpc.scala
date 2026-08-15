@@ -1216,7 +1216,7 @@ final case class ViewJSONV121Grpc(
       }
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
-    def companion = code.obp.grpc.api.ViewJSONV121Grpc
+    def companion: code.obp.grpc.api.ViewJSONV121Grpc.type = code.obp.grpc.api.ViewJSONV121Grpc
 }
 
 object ViewJSONV121Grpc extends scalapb.GeneratedMessageCompanion[code.obp.grpc.api.ViewJSONV121Grpc] {

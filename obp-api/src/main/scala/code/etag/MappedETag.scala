@@ -4,7 +4,7 @@ import net.liftweb.mapper._
 
 class MappedETag extends MappedCacheTrait with LongKeyedMapper[MappedETag] with IdPK {
   
-  def getSingleton = MappedETag
+  def getSingleton: code.etag.MappedETag.type = MappedETag
 
   object ETagResource extends MappedString(this, 1000)
   object ETagValue extends MappedString(this, 256)

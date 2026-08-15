@@ -48,7 +48,7 @@ class DynamicUtilTest extends FlatSpec with Matchers {
   private val securityManagerUnavailable =
     "SecurityManager enforcement is not available on JDK 17+ (JEP 411); skip on JDK 21"
 
-  implicit val formats = code.api.util.CustomJsonFormats.formats
+  implicit val formats: org.json4s.Formats = code.api.util.CustomJsonFormats.formats
 
 
   "DynamicUtil.compileScalaCode method" should "return correct function" taggedAs DynamicUtilsTag in {

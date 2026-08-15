@@ -83,7 +83,7 @@ object MappedAttributeDefinitionProvider extends AttributeDefinitionProviderTrai
 }
 
 class AttributeDefinition extends AttributeDefinitionTrait with LongKeyedMapper[AttributeDefinition] with IdPK with CreatedUpdated {
-  override def getSingleton = AttributeDefinition
+  override def getSingleton: code.api.attributedefinition.AttributeDefinition.type = AttributeDefinition
   object AttributeDefinitionId extends MappedUUID(this)
   object BankId extends MappedString(this, 50)
   object Name extends MappedString(this, 50)

@@ -1,6 +1,8 @@
 package code.api.ResourceDocs1_4_0
 
 import java.util.Date
+import org.json4s.jvalue2monadic
+import org.json4s.string2JsonInput
 
 import org.json4s.JsonAST.{JNothing, JString, JValue}
 import org.json4s.native.JsonMethods.parse

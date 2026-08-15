@@ -42,7 +42,7 @@ import scala.concurrent.duration._
  */
 object MessageOutboxRelay extends MdcLoggable {
 
-  private implicit val formats = code.api.util.CustomJsonFormats.nullTolerateFormats
+  private implicit val formats: org.json4s.Formats = code.api.util.CustomJsonFormats.nullTolerateFormats
 
   /** Base backoff between attempts for a row; doubles per attempt, capped. */
   private val baseBackoff = 10.seconds

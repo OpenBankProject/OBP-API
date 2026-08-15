@@ -20,7 +20,7 @@ import net.liftweb.mapper._
  * OBP-INCOMING-SETTLEMENT-ACCOUNT.
  */
 class AmqpBankBroker extends LongKeyedMapper[AmqpBankBroker] with IdPK {
-  def getSingleton = AmqpBankBroker
+  def getSingleton: code.amqpbroker.AmqpBankBroker.type = AmqpBankBroker
 
   object BankId extends MappedString(this, 255) {
     override def dbColumnName = "bank_id"

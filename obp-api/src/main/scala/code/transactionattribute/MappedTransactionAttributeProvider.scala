@@ -173,7 +173,7 @@ object MappedTransactionAttributeProvider extends TransactionAttributeProvider {
 
 class MappedTransactionAttribute extends TransactionAttribute with LongKeyedMapper[MappedTransactionAttribute] with IdPK {
 
-  override def getSingleton = MappedTransactionAttribute
+  override def getSingleton: code.transactionattribute.MappedTransactionAttribute.type = MappedTransactionAttribute
 
   object mBankId extends UUIDString(this) // combination of this
  

@@ -54,7 +54,7 @@ object MappedNarratives extends Narrative {
 }
 
 class MappedNarrative extends LongKeyedMapper[MappedNarrative] with IdPK with CreatedUpdated {
-  def getSingleton = MappedNarrative
+  def getSingleton: code.metadata.narrative.MappedNarrative.type = MappedNarrative
 
   object bank extends UUIDString(this)
   object account extends AccountIdString(this)

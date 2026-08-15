@@ -225,7 +225,7 @@ object MappedTransactionRequestProvider extends TransactionRequestProvider with 
 
 class MappedTransactionRequest extends LongKeyedMapper[MappedTransactionRequest] with IdPK with CreatedUpdated with CustomJsonFormats with MdcLoggable {
 
-  override def getSingleton = MappedTransactionRequest
+  override def getSingleton: code.transactionrequests.MappedTransactionRequest.type = MappedTransactionRequest
 
   //transaction request fields:
   object mTransactionRequestId extends UUIDString(this)

@@ -10,7 +10,7 @@ import scala.collection.immutable.List
 
 class MappedBankAccount extends BankAccount with LongKeyedMapper[MappedBankAccount] with IdPK with CreatedUpdated {
 
-  override def getSingleton = MappedBankAccount
+  override def getSingleton: code.model.dataAccess.MappedBankAccount.type = MappedBankAccount
 
   object bank extends UUIDString(this)
   object theAccountId extends AccountIdString(this)

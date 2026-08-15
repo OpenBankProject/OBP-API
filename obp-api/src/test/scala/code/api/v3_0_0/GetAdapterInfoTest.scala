@@ -26,6 +26,7 @@ TESOBE (http://www.tesobe.com/)
 package code.api.v3_0_0
 
 import code.api.util.ApiRole.canGetAdapterInfoAtOneBank
+import org.json4s.jvalue2extractable
 import code.api.util.ErrorMessages.{UserHasMissingRoles, AuthenticatedUserIsRequired}
 import code.api.v3_0_0.OBPAPI3_0_0.Implementations3_0_0
 import code.api.util.APIUtil.OAuth._

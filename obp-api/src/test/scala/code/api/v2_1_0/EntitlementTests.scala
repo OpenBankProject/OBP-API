@@ -1,6 +1,7 @@
 package code.api.v2_1_0
 
 import code.api.v2_1_0.Http4s210
+import org.json4s.jvalue2extractable
 import com.openbankproject.commons.model.ErrorMessage
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.{CanGetEntitlementsForAnyUserAtAnyBank, CanGetEntitlementsForAnyUserAtOneBank}

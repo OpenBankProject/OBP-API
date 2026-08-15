@@ -409,7 +409,7 @@ class DirectLoginV600Test extends V600ServerSetup with BeforeAndAfter {
         format(username, VALID_PW, KEY))
       
       // Delete the user
-      AuthUser.findAll(By(AuthUser.username, username)).map(_.delete_!())
+      AuthUser.findAll(By(AuthUser.username, username)).map(_.delete_!)
       // Create the user
       AuthUser.create.
         email(EMAIL).

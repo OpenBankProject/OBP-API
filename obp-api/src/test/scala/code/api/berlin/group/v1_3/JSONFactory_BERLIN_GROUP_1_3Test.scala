@@ -38,7 +38,7 @@ import org.scalatest.{FeatureSpec, GivenWhenThen, Matchers}
 
 class JSONFactory_BERLIN_GROUP_1_3Test extends FeatureSpec with Matchers with GivenWhenThen with PropsReset {
 
-    implicit val formats = CustomJsonFormats.formats
+    implicit val formats: org.json4s.Formats = CustomJsonFormats.formats
   
     feature("test createTransactionJSON method") {
     scenario("createTransactionJSON should return a valid JSON object") {

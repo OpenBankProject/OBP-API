@@ -6,7 +6,7 @@ import net.liftweb.mapper._
 
 class MappedCustomerIdMapping extends CustomerIdMapping with LongKeyedMapper[MappedCustomerIdMapping] with IdPK with CreatedUpdated {
 
-  def getSingleton = MappedCustomerIdMapping
+  def getSingleton: code.customer.internalMapping.MappedCustomerIdMapping.type = MappedCustomerIdMapping
 
   object mCustomerId extends MappedUUID(this)
   object mCustomerPlainTextReference extends MappedString(this, 255)

@@ -23,7 +23,7 @@ import org.json4s.JsonAST.JValue
  */
 object LogCacheStreamServiceImpl extends LogCacheStreamServiceGrpc.LogCacheStreamService with MdcLoggable {
 
-  private implicit val formats = json.DefaultFormats
+  private implicit val formats: org.json4s.DefaultFormats.type = json.DefaultFormats
 
   override def streamLogCacheEntries(
     request: StreamLogCacheRequest,

@@ -25,7 +25,7 @@ import net.liftweb.mapper._
  *               GET /management/message-outbox, re-queued via its /retry.
  */
 class MessageOutbox extends LongKeyedMapper[MessageOutbox] with IdPK {
-  def getSingleton = MessageOutbox
+  def getSingleton: code.messageoutbox.MessageOutbox.type = MessageOutbox
 
   /** Message family; decides how the relay publishes the row. */
   object OutboxType extends MappedString(this, 32) {

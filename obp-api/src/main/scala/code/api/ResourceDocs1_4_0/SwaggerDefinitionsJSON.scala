@@ -46,7 +46,7 @@ import java.util.Date
   */
 object SwaggerDefinitionsJSON {
 
-  implicit def convertStringToBoolean(value:String) = value.toBoolean
+  implicit def convertStringToBoolean(value:String): Boolean = value.toBoolean
 
   lazy val regulatedEntitiesJsonV510: RegulatedEntitiesJsonV510 = RegulatedEntitiesJsonV510(List(regulatedEntityJsonV510))
   lazy val regulatedEntityJsonV510: RegulatedEntityJsonV510 = RegulatedEntityJsonV510(

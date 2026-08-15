@@ -64,7 +64,7 @@ final case class StreamMessagesRequest(
       }
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
-    def companion = code.obp.grpc.chat.api.StreamMessagesRequest
+    def companion: code.obp.grpc.chat.api.StreamMessagesRequest.type = code.obp.grpc.chat.api.StreamMessagesRequest
 }
 
 object StreamMessagesRequest extends scalapb.GeneratedMessageCompanion[code.obp.grpc.chat.api.StreamMessagesRequest] {

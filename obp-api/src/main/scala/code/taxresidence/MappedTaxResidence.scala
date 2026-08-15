@@ -43,7 +43,7 @@ object MappedTaxResidenceProvider extends TaxResidenceProvider {
 
 class MappedTaxResidence extends TaxResidence with LongKeyedMapper[MappedTaxResidence] with IdPK with CreatedUpdated {
 
-  def getSingleton = MappedTaxResidence
+  def getSingleton: code.taxresidence.MappedTaxResidence.type = MappedTaxResidence
 
   object mCustomerId extends MappedLongForeignKey(this, MappedCustomer)
   object mTaxResidenceId extends MappedUUID(this)

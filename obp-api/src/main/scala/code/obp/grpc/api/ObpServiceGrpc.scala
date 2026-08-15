@@ -49,7 +49,7 @@ object ObpServiceGrpc {
       .build()
   
   trait ObpService extends _root_.scalapb.grpc.AbstractService {
-    override def serviceCompanion = ObpService
+    override def serviceCompanion: code.obp.grpc.api.ObpServiceGrpc.ObpService.type = ObpService
     def getBanks(request: com.google.protobuf.empty.Empty): scala.concurrent.Future[code.obp.grpc.api.BanksJson400Grpc]
     //def getPrivateAccountsAtOneBank(request: code.obp.grpc.api.BankIdUserIdGrpc): scala.concurrent.Future[code.obp.grpc.api.AccountsGrpc]
     //def getBankAccountsBalances(request: code.obp.grpc.api.BankIdGrpc): scala.concurrent.Future[code.obp.grpc.api.AccountsBalancesV310JsonGrpc]

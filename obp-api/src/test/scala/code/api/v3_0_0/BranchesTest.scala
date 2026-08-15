@@ -1,6 +1,7 @@
 package code.api.v3_0_0
 
 import code.api.util.APIUtil.OAuth._
+import org.json4s.jvalue2extractable
 import code.api.util.ApiRole.CanDeleteBranchAtAnyBank
 import com.openbankproject.commons.util.ApiVersion
 import code.api.util.OBPQueryParam

@@ -11,7 +11,7 @@ import net.liftweb.mapper._
  * Naming follows project convention: no `Mapped` prefix, columns are plain Capitalised objects.
  */
 class DynamicEntityIndex extends LongKeyedMapper[DynamicEntityIndex] with IdPK {
-  def getSingleton = DynamicEntityIndex
+  def getSingleton: code.api.dynamic.entity.projection.DynamicEntityIndex.type = DynamicEntityIndex
 
   object EntityName         extends MappedString(this, 255)
   object BankId             extends MappedString(this, 255)  // "" for system-level entities

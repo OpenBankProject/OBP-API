@@ -1,6 +1,7 @@
 package code.api.v2_1_0
 
 import com.openbankproject.commons.model.ErrorMessage
+import org.json4s.jvalue2extractable
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.CanGetAnyUser
 import code.api.util.ErrorMessages.UserHasMissingRoles

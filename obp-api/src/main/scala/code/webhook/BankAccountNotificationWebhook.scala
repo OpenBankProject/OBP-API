@@ -69,7 +69,7 @@ object MappedBankAccountNotificationWebhookProvider extends BankAccountNotificat
 }
 
 class BankAccountNotificationWebhook extends BankAccountNotificationWebhookTrait with LongKeyedMapper[BankAccountNotificationWebhook] with IdPK with CreatedUpdated {
-  def getSingleton = BankAccountNotificationWebhook
+  def getSingleton: code.webhook.BankAccountNotificationWebhook.type = BankAccountNotificationWebhook
 
   object WebhookId extends MappedUUID(this)
   object BankId extends UUIDString(this)

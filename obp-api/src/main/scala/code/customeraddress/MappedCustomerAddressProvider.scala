@@ -15,7 +15,7 @@ import com.openbankproject.commons.ExecutionContext.Implicits.global
 
 object MappedCustomerAddressProvider extends CustomerAddressProvider {
 
-  override def getAddress(customerId: String) =  Future {
+  override def getAddress(customerId: String): scala.concurrent.Future[net.liftweb.common.Box[List[code.customeraddress.MappedCustomerAddress]]] =  Future {
     val id: Box[MappedCustomer] = MappedCustomer.find(By(MappedCustomer.mCustomerId, customerId))
     id.map(customer => MappedCustomerAddress.findAll(By(MappedCustomerAddress.mCustomerId, customer.id.get)))
   }
@@ -104,7 +104,7 @@ object MappedCustomerAddressProvider extends CustomerAddressProvider {
 
 class MappedCustomerAddress extends CustomerAddress with LongKeyedMapper[MappedCustomerAddress] with IdPK with CreatedUpdated {
 
-  def getSingleton = MappedCustomerAddress
+  def getSingleton: code.customeraddress.MappedCustomerAddress.type = MappedCustomerAddress
 
   object mCustomerId extends MappedLongForeignKey(this, MappedCustomer)
   object mCustomerAddressId extends MappedUUID(this)

@@ -68,7 +68,7 @@ object MappedSigningBasketProvider extends SigningBasketProvider {
 }
 
 class MappedSigningBasket extends SigningBasketTrait with LongKeyedMapper[MappedSigningBasket] with IdPK {
-  override def getSingleton = MappedSigningBasket
+  override def getSingleton: code.signingbaskets.MappedSigningBasket.type = MappedSigningBasket
   object BasketId extends MappedUUID(this)
   object Status extends MappedString(this, 50)
 
@@ -86,7 +86,7 @@ object MappedSigningBasket extends MappedSigningBasket with LongKeyedMetaMapper[
 
 
 class MappedSigningBasketPayment extends SigningBasketPaymentTrait with LongKeyedMapper[MappedSigningBasketPayment] with IdPK {
-  override def getSingleton = MappedSigningBasketPayment
+  override def getSingleton: code.signingbaskets.MappedSigningBasketPayment.type = MappedSigningBasketPayment
   object BasketId extends MappedUUID(this)
   object PaymentId extends MappedUUID(this)
 
@@ -101,7 +101,7 @@ object MappedSigningBasketPayment extends MappedSigningBasketPayment with LongKe
 }
 
 class MappedSigningBasketConsent extends SigningBasketConsentTrait with LongKeyedMapper[MappedSigningBasketConsent] with IdPK {
-  override def getSingleton = MappedSigningBasketConsent
+  override def getSingleton: code.signingbaskets.MappedSigningBasketConsent.type = MappedSigningBasketConsent
   object BasketId extends MappedUUID(this)
   object ConsentId extends MappedUUID(this)
 

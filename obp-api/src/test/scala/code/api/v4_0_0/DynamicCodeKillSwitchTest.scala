@@ -26,6 +26,9 @@ TESOBE (http://www.tesobe.com/)
 package code.api.v4_0_0
 
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON
+import org.json4s.jvalue2extractable
+import org.json4s.jvalue2monadic
+import org.json4s.string2JsonInput
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages.DynamicCodeExecutionDisabled
 import code.api.util.{ApiRole, DynamicUtil}

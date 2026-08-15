@@ -5,7 +5,7 @@ import java.util.Date
 import net.liftweb.mapper._
 
 class MappedBadLoginAttempt extends BadLoginAttempt with LongKeyedMapper[MappedBadLoginAttempt] with IdPK {
-  def getSingleton = MappedBadLoginAttempt
+  def getSingleton: code.loginattempts.MappedBadLoginAttempt.type = MappedBadLoginAttempt
 
   object mUsername extends MappedString(this, 100) {
     override def dbNotNull_? = true

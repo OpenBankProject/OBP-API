@@ -175,7 +175,7 @@ final case class Timestamp(
       }
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
-    def companion = com.google.protobuf.timestamp.Timestamp
+    def companion: com.google.protobuf.timestamp.Timestamp.type = com.google.protobuf.timestamp.Timestamp
 }
 
 object Timestamp extends scalapb.GeneratedMessageCompanion[com.google.protobuf.timestamp.Timestamp] {

@@ -313,7 +313,7 @@ object Redis extends MdcLoggable {
   // optionally SSL-configured connection. The RedisCache(url, port) overload builds its own
   // JedisPool internally with no password and no SSL, so with `requirepass` enabled it fails
   // with NOAUTH while the jedisPool-based paths keep working.
-  implicit val flags = Flags(readsEnabled = true, writesEnabled = true)
+  implicit val flags: scalacache.Flags = Flags(readsEnabled = true, writesEnabled = true)
 
   // scalacache 0.28 types its Cache by the value type, while these wrappers are generic in A. One
   // instance still serves them all: RedisCache carries no per-type state, its value type is erased,

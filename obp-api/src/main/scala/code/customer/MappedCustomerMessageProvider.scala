@@ -16,7 +16,7 @@ object MappedCustomerMessageProvider extends CustomerMessageProvider {
   }
 
 
-  override def addMessage(user: User, bankId: BankId, message: String, fromDepartment: String, fromPerson: String) = {
+  override def addMessage(user: User, bankId: BankId, message: String, fromDepartment: String, fromPerson: String): code.customer.MappedCustomerMessage = {
     MappedCustomerMessage.create
       .mFromDepartment(fromDepartment)
       .mFromPerson(fromPerson)
@@ -25,7 +25,7 @@ object MappedCustomerMessageProvider extends CustomerMessageProvider {
       .bank(bankId.value).saveMe()
   }
 
-  override def createCustomerMessage(customer: Customer, bankId: BankId, transport: String, message: String, fromDepartment: String, fromPerson: String) = {
+  override def createCustomerMessage(customer: Customer, bankId: BankId, transport: String, message: String, fromDepartment: String, fromPerson: String): code.customer.MappedCustomerMessage = {
     val mappedCustomer = MappedCustomer.find(By(MappedCustomer.mCustomerId, customer.customerId)).head
     MappedCustomerMessage.create
       .mFromDepartment(fromDepartment)
@@ -49,7 +49,7 @@ object MappedCustomerMessageProvider extends CustomerMessageProvider {
 class MappedCustomerMessage extends CustomerMessage
   with LongKeyedMapper[MappedCustomerMessage] with IdPK with CreatedUpdated {
 
-  def getSingleton = MappedCustomerMessage
+  def getSingleton: code.customer.MappedCustomerMessage.type = MappedCustomerMessage
 
   @deprecated("We need user customer not user as the foreign key","15-03-2022")
   object user extends MappedLongForeignKey(this, ResourceUser)

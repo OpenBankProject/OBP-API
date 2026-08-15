@@ -26,6 +26,8 @@ TESOBE (http://www.tesobe.com/)
 package code.api.v6_0_0
 
 import code.api.util.APIUtil
+import org.json4s.jvalue2extractable
+import org.json4s.jvalue2monadic
 import code.api.util.APIUtil.OAuth._
 import code.api.v6_0_0.OBPAPI6_0_0.Implementations6_0_0
 import com.github.dwickern.macros.NameOf.nameOf

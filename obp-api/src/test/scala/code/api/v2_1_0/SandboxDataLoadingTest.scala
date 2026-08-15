@@ -62,6 +62,7 @@ import org.json4s.JsonDSL._
 import org.json4s.native.Serialization
 import org.json4s.native.Serialization.write
 import org.json4s.{JField, _}
+import org.json4s.jvalue2monadic
 import com.openbankproject.commons.util.JsonAliases._
 import net.liftweb.mapper.{By, MetaMapper}
 import org.scalatest.{BeforeAndAfterEach, FlatSpec, Matchers}
@@ -363,7 +364,9 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
   }
 
   def addField(json : JValue, fieldName : String, fieldValue : String) = {
-    json.transform{
+    // Explicit conversion: the -Xsource:3 package-prefix-implicits check keeps flagging
+    // the implicit view here even with `import org.json4s.jvalue2monadic` in scope.
+    org.json4s.jvalue2monadic(json).transform{
       case JObject(fields) => JObject(JField(fieldName, fieldValue) :: fields)
     }
   }
@@ -1013,7 +1016,10 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Match
     Connector.connector.vend.getBankAccountLegacy(BankId(accountWithInvalidOwner.bank), AccountId(accountWithInvalidOwner.id), None).isDefined should equal(false)
 
     //a mix of valid an invalid owners should also not work
-    val accountWithSomeValidSomeInvalidOwners = accountWithInvalidOwner.copy(owners = List(accountWithInvalidOwner.owners + user1Import.user_name))
+    // `owners + user_name` always concatenated the List's toString with the user name,
+    // yielding one garbage owner string. Kept byte-identical (explicit toString) rather
+    // than "fixed" to :+ — the scenario only needs an invalid owner and asserts FAILED.
+    val accountWithSomeValidSomeInvalidOwners = accountWithInvalidOwner.copy(owners = List(accountWithInvalidOwner.owners.toString + user1Import.user_name))
     getResponse(List(Extraction.decompose(accountWithSomeValidSomeInvalidOwners))).code should equal(FAILED)
 
     //it should not have been created

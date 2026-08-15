@@ -82,7 +82,7 @@ final case class UnreadCountEvent(
       }
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
-    def companion = code.obp.grpc.chat.api.UnreadCountEvent
+    def companion: code.obp.grpc.chat.api.UnreadCountEvent.type = code.obp.grpc.chat.api.UnreadCountEvent
 }
 
 object UnreadCountEvent extends scalapb.GeneratedMessageCompanion[code.obp.grpc.chat.api.UnreadCountEvent] {

@@ -67,7 +67,11 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
 
   def includeTechnologyInResponse: Boolean = false
 
-  val ImplementationsResourceDocs = new Object() {
+  // A named inner class rather than `new Object() { ... }`: the anonymous form gave the
+  // val an inferred structural type, so every external member access went through
+  // reflection (and Scala 3 refuses to infer structural types at all). Same members,
+  // same behaviour, ordinary virtual dispatch.
+  class ImplementationsResourceDocsImpl {
 
     val localResourceDocs = ArrayBuffer[ResourceDoc]()
 
@@ -283,7 +287,7 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
       List(apiTagDocumentation, apiTagApi)
     )
 
-    implicit val formats = CustomJsonFormats.rolesMappedToClassesFormats
+    implicit val formats: org.json4s.Formats = CustomJsonFormats.rolesMappedToClassesFormats
 
     // avoid repeat execute method getSpecialInstructions, here save the calculate results.
     private val specialInstructionMap = new ConcurrentHashMap[String, Option[String]]()
@@ -1294,6 +1298,8 @@ trait ResourceDocsAPIMethods extends MdcLoggable with APIMethods220 with APIMeth
     }
 
   }
+
+  val ImplementationsResourceDocs = new ImplementationsResourceDocsImpl
 
   private def resourceDocsJsonToJsonResponse(resourceDocsJson: ResourceDocsJson): JValue = {
     /**

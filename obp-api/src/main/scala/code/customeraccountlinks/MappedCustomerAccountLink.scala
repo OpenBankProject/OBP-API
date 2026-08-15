@@ -106,7 +106,7 @@ object MappedCustomerAccountLinkProvider extends CustomerAccountLinkProvider {
 //in OBP, customer and agent share the same customer model. the CustomerAccountLink and AgentAccountLink also share the same model
 class CustomerAccountLink extends CustomerAccountLinkTrait with AgentAccountLinkTrait with LongKeyedMapper[CustomerAccountLink] with IdPK with CreatedUpdated {
 
-  def getSingleton = CustomerAccountLink
+  def getSingleton: code.customeraccountlinks.CustomerAccountLink.type = CustomerAccountLink
 
   object CustomerAccountLinkId extends MappedUUID(this)
   object CustomerId extends UUIDString(this)

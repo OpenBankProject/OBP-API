@@ -272,7 +272,7 @@ object MappedConsentProvider extends ConsentProvider with code.util.Helper.MdcLo
     transactionToDateTime: Option[Date],
     apiStandard: Option[String],
     apiVersion: Option[String]
-  ) ={
+  ): net.liftweb.common.Box[code.consent.MappedConsent] ={
     tryo {
       val consent = MappedConsent
         .create
@@ -471,7 +471,7 @@ object MappedConsentProvider extends ConsentProvider with code.util.Helper.MdcLo
 
 class MappedConsent extends ConsentTrait with LongKeyedMapper[MappedConsent] with IdPK with CreatedUpdated {
 
-  def getSingleton = MappedConsent
+  def getSingleton: code.consent.MappedConsent.type = MappedConsent
 
   //the following are the obp consent.
   object mConsentId extends MappedUUID(this)
@@ -486,10 +486,10 @@ class MappedConsent extends ConsentTrait with LongKeyedMapper[MappedConsent] wit
   }
   object mJsonWebToken extends MappedText(this)
   object mConsumerId extends MappedString(this, 250) {
-    override def defaultValue = null
+    override def defaultValue: Null = null
   }
   object mConsentRequestId extends MappedUUID(this) {
-    override def defaultValue = null
+    override def defaultValue: Null = null
   }
   
   object mApiStandard extends MappedString(this, 50)

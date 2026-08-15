@@ -25,7 +25,7 @@ import com.openbankproject.commons.model.{AccountId, BankId, BankIdAccountId, Tr
 import com.openbankproject.commons.util.{ApiVersion, ScannedApiVersion}
 import com.openbankproject.commons.util.JsonAliases
 import net.liftweb.common.{Box, Full}
-import org.json4s.{Formats, JObject}
+import org.json4s.{Formats, JObject, jvalue2extractable}
 import org.http4s._
 import org.http4s.dsl.io._
 import com.openbankproject.commons.ExecutionContext.Implicits.global

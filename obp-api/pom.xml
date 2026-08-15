@@ -718,6 +718,11 @@
                    inherited. -->
               <!-- Replaces the paradise compiler plugin; enables macro annotations on 2.13. -->
               <arg>-Ymacro-annotations</arg>
+              <!-- Scala 3 outpost, same technique the root pom used with -Xsource:2.13 before
+                   the 2.13 flip: report constructs whose meaning changes (or that disappear)
+                   under Scala 3 while still compiling on 2.13. Only this module gets the flag;
+                   obp-commons stays on 2.13 permanently and must not accrue Scala 3 churn. -->
+              <arg>-Xsource:3</arg>
             </args>
           </configuration>
         </plugin>

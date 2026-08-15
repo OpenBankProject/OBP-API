@@ -160,7 +160,7 @@ object SandboxServer {
         .password(sandboxPassword)
         .validated(true)
         .passwordShouldBeChanged(false)
-      authUser.save()
+      authUser.save
     }
 
     // 2. Get or create the ResourceUser created by AuthUser.save()

@@ -1,6 +1,7 @@
 package code.api.v5_1_0
 
 import code.api.util.APIUtil.OAuth._
+import org.json4s.jvalue2extractable
 import code.api.util.ApiRole.CanReadAggregateMetrics
 import code.api.util.ErrorMessages.{UserHasMissingRoles, AuthenticatedUserIsRequired}
 import code.api.v3_0_0.AggregateMetricJSON

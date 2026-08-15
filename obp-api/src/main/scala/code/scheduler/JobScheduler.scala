@@ -5,7 +5,7 @@ import net.liftweb.mapper._
 
 class JobScheduler extends JobSchedulerTrait with LongKeyedMapper[JobScheduler] with IdPK with CreatedUpdated {
 
-  def getSingleton = JobScheduler
+  def getSingleton: code.scheduler.JobScheduler.type = JobScheduler
 
   object JobId extends MappedUUID(this)
   object Name extends MappedString(this, 100)

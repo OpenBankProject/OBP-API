@@ -38,6 +38,7 @@ import code.api.util.ErrorMessages._
 import code.api.util._
 import code.bankconnectors.Connector
 import code.context.UserAuthContextProvider
+import code.model.toUserExtended
 import code.entitlement.Entitlement
 import code.loginattempts.LoginAttempt
 import code.token.TokensOpenIDConnect
@@ -81,15 +82,18 @@ import scala.xml.{Elem, NodeSeq, Text}
   *
  */
 class AuthUser extends MegaProtoUser[AuthUser] with CreatedUpdated with MdcLoggable {
-  def getSingleton = AuthUser // what's the "meta" server
+  def getSingleton: code.model.dataAccess.AuthUser.type = AuthUser // what's the "meta" server
 
   object user extends MappedLongForeignKey(this, ResourceUser)
   
   object passwordShouldBeChanged extends MappedBoolean(this)
 
-  override lazy val firstName = new MyFirstName
-  
-  protected class MyFirstName extends MappedString(this, 100) {
+  // Renamed from MyFirstName: it shadowed ProtoUser's nested class of the same name,
+  // which Scala 3 rejects. The DB column comes from the val name, so this is invisible
+  // to the schema.
+  override lazy val firstName: AuthUser.this.AuthFirstName = new AuthFirstName
+
+  protected class AuthFirstName extends MappedString(this, 100) {
     def isEmpty(msg: => String)(value: String): List[FieldError] =
       value match {
         case null                  => List(FieldError(this, Text(msg))) // issue 179
@@ -98,13 +102,14 @@ class AuthUser extends MegaProtoUser[AuthUser] with CreatedUpdated with MdcLogga
       }
     
     override def displayName = fieldOwner.firstNameDisplayName
-    override val fieldId = Some(Text("txtFirstName"))
+    override val fieldId: Some[scala.xml.Text] = Some(Text("txtFirstName"))
     override def validations = isEmpty(Helper.i18n("Please.enter.your.first.name")) _ :: super.validations
   }
   
-  override lazy val lastName = new MyLastName
+  // Renamed from MyLastName for the same shadowing reason as AuthFirstName above.
+  override lazy val lastName: AuthUser.this.AuthLastName = new AuthLastName
 
-  protected class MyLastName extends MappedString(this, 100) {
+  protected class AuthLastName extends MappedString(this, 100) {
     def isEmpty(msg: => String)(value: String): List[FieldError] =
       value match {
         case null                  => List(FieldError(this, Text(msg))) // issue 179
@@ -113,7 +118,7 @@ class AuthUser extends MegaProtoUser[AuthUser] with CreatedUpdated with MdcLogga
       }
 
     override def displayName = fieldOwner.lastNameDisplayName
-    override val fieldId = Some(Text("txtLastName"))
+    override val fieldId: Some[scala.xml.Text] = Some(Text("txtLastName"))
     override def validations = isEmpty(Helper.i18n("Please.enter.your.last.name")) _ :: super.validations
   }
   
@@ -162,7 +167,7 @@ class AuthUser extends MegaProtoUser[AuthUser] with CreatedUpdated with MdcLogga
                                valUnique(Helper.i18n("unique.username")) _ ::
                                valUniqueExternally(Helper.i18n("unique.username")) _ ::
                                super.validations
-    override val fieldId = Some(Text("txtUsername"))
+    override val fieldId: Some[scala.xml.Text] = Some(Text("txtUsername"))
 
     /**
      * Make sure that the field is unique in the CBS
@@ -203,7 +208,7 @@ class AuthUser extends MegaProtoUser[AuthUser] with CreatedUpdated with MdcLogga
       
   }
 
-  override lazy val password = new MyPasswordNew
+  override lazy val password: AuthUser.this.MyPasswordNew = new MyPasswordNew
   
   lazy val signupPasswordRepeatText = getWebUiPropsValue("webui_signup_body_password_repeat_text", "repeat")
 
@@ -278,7 +283,7 @@ class AuthUser extends MegaProtoUser[AuthUser] with CreatedUpdated with MdcLogga
   lazy val provider: userProvider = new userProvider()
   class userProvider extends MappedString(this, 100) {
     override def displayName = "provider"
-    override val fieldId = Some(Text("txtProvider"))
+    override val fieldId: Some[scala.xml.Text] = Some(Text("txtProvider"))
     override def validations = validUri(this) _ :: super.validations
     override def defaultValue: String = Constant.localIdentityProvider
   }
@@ -308,7 +313,7 @@ class AuthUser extends MegaProtoUser[AuthUser] with CreatedUpdated with MdcLogga
     Users.users.vend.getUserByProviderAndUsername(provider, username)
   }
 
-  override def save(): Boolean = {
+  override def save: Boolean = {
     if(! (user.defined_?)){
       logger.info("user reference is null. We will create a ResourceUser")
       val resourceUser = createUnsavedResourceUser()
@@ -329,7 +334,7 @@ class AuthUser extends MegaProtoUser[AuthUser] with CreatedUpdated with MdcLogga
     super.save
   }
 
-  override def delete_!(): Boolean = {
+  override def delete_! : Boolean = {
     user.obj.map(u => Users.users.vend.deleteResourceUser(u.id.get))
     super.delete_!
   }
@@ -346,7 +351,7 @@ class AuthUser extends MegaProtoUser[AuthUser] with CreatedUpdated with MdcLogga
 
   // Override the validate method of MappedEmail class
   // There's no way to override the default emailPattern from MappedEmail object
-  override lazy val email = new MyEmail(this, 48) {
+  override lazy val email: AuthUser.this.MyEmail = new MyEmail(this, 48) {
     override def validations = super.validations
     override def dbIndexed_? = false
     override def validate = i_is_! match {
@@ -379,17 +384,17 @@ import net.liftweb.util.Helpers._
   override def emailFrom = Constant.mailUsersUserinfoSenderAddress
 
   // screenWrap removed - API-only mode, no portal pages
-  override def screenWrap = Empty
+  override def screenWrap: net.liftweb.common.Empty.type = Empty
   // define the order fields will appear in forms and output
-  override def fieldOrder = List(id, firstName, lastName, email, username, password, provider)
-  override def signupFields = List(firstName, lastName, email, username, password)
+  override def fieldOrder: List[net.liftweb.mapper.MappedField[_ >: String with Long, code.model.dataAccess.AuthUser]] = List(id, firstName, lastName, email, username, password, provider)
+  override def signupFields: List[net.liftweb.mapper.MappedField[String,code.model.dataAccess.AuthUser]] = List(firstName, lastName, email, username, password)
 
   // To force validation of email addresses set this to false (default as of 29 June 2021)
   override def skipEmailValidation = APIUtil.getPropsAsBoolValue("authUser.skipEmailValidation", false)
 
   // Legacy Lift login UI - no longer used (API-only mode)
   // Login is handled via OIDC/DirectLogin APIs, not HTML forms
-  override def loginXhtml = <div/>
+  override def loginXhtml: scala.xml.Elem = <div/>
   
   // Legacy Lift login method - no longer used (no frontend pages)
   // Authentication is now handled via DirectLogin API endpoints
@@ -528,7 +533,7 @@ import net.liftweb.util.Helpers._
 
   // lostPasswordXhtml simplified - API-only mode, no portal pages
   // Password reset is handled via API endpoints
-  override def lostPasswordXhtml = <div/>
+  override def lostPasswordXhtml: scala.xml.Elem = <div/>
 
   // lostPassword simplified - API-only mode, no portal pages
   override def lostPassword = NodeSeq.Empty
@@ -640,7 +645,7 @@ import net.liftweb.util.Helpers._
 
   // signupXhtml simplified - API-only mode, no portal pages
   // Signup is handled via API endpoints, not HTML forms
-  override def signupXhtml (user:AuthUser) = <div/>
+  override def signupXhtml (user:AuthUser): scala.xml.Elem = <div/>
 
 
   // localForm simplified - API-only mode, no portal pages
@@ -968,7 +973,7 @@ def restoreSomeSessions(): Unit = {
   override protected def capturePreLoginState(): () => Unit = () => {restoreSomeSessions}
 
 
-  override protected def loginMenuLocParams = Nil
+  override protected def loginMenuLocParams: scala.collection.immutable.Nil.type = Nil
 
   /**
    * A Space is an alias for the OBP Bank. Each Bank / Space can contain many Dynamic Endpoints. If a User belongs to a Space,
@@ -1278,7 +1283,7 @@ def restoreSomeSessions(): Unit = {
 
   // passwordResetXhtml simplified - API-only mode, no portal pages
   // Password reset is handled via POST /obp/v6.0.0/users/password API endpoint
-  override def passwordResetXhtml = <div/>
+  override def passwordResetXhtml: scala.xml.Elem = <div/>
   
   /**
     * Find the authUsers by author email(authUser and resourceUser are the same).

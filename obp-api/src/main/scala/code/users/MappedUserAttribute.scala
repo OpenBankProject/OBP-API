@@ -94,7 +94,7 @@ object MappedUserAttributeProvider extends UserAttributeProvider {
 
 class UserAttribute extends UserAttributeTrait with LongKeyedMapper[UserAttribute] with IdPK with CreatedUpdated {
 
-  override def getSingleton = UserAttribute
+  override def getSingleton: code.users.UserAttribute.type = UserAttribute
   object UserAttributeId extends MappedUUID(this)
   object UserId extends MappedUUID(this)
   object Name extends MappedString(this, 255)

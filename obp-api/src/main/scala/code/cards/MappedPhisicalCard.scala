@@ -242,7 +242,7 @@ object MappedPhysicalCardProvider extends PhysicalCardProvider {
     )
   }
 
-  def getPhysicalCardsForBank(bank: Bank, user: User, queryParams: List[OBPQueryParam]) = {
+  def getPhysicalCardsForBank(bank: Bank, user: User, queryParams: List[OBPQueryParam]): List[code.cards.MappedPhysicalCard] = {
     val customerId: Option[Cmp[MappedPhysicalCard, String]] = queryParams.collect { case OBPCustomerId(value) => 
       By(MappedPhysicalCard.mCustomerId ,value)
     }.headOption
@@ -277,7 +277,7 @@ object MappedPhysicalCardProvider extends PhysicalCardProvider {
     cards
   }
 
-  override def getPhysicalCardForBank(bankId: BankId, cardId: String,  callContext:Option[CallContext]) = {
+  override def getPhysicalCardForBank(bankId: BankId, cardId: String,  callContext:Option[CallContext]): net.liftweb.common.Box[code.cards.MappedPhysicalCard] = {
     MappedPhysicalCard.find(
       By(MappedPhysicalCard.mBankId, bankId.value),
       By(MappedPhysicalCard.mCardId, cardId),
@@ -294,7 +294,7 @@ object MappedPhysicalCardProvider extends PhysicalCardProvider {
 }
 
 class MappedPhysicalCard extends PhysicalCardTrait with LongKeyedMapper[MappedPhysicalCard] with IdPK with OneToMany[Long, MappedPhysicalCard] {
-  def getSingleton = MappedPhysicalCard
+  def getSingleton: code.cards.MappedPhysicalCard.type = MappedPhysicalCard
 
   object mCardId extends MappedString(this, 255) {
     override def defaultValue = APIUtil.generateUUID()
@@ -377,7 +377,7 @@ object MappedPhysicalCard extends MappedPhysicalCard with LongKeyedMetaMapper[Ma
 
 
 class PinReset extends LongKeyedMapper[PinReset] with IdPK {
-  def getSingleton = PinReset
+  def getSingleton: code.cards.PinReset.type = PinReset
 
   object card extends MappedLongForeignKey(this, MappedPhysicalCard)
   object mReplacementDate extends MappedDateTime(this)
@@ -387,7 +387,7 @@ object PinReset extends PinReset with LongKeyedMetaMapper[PinReset]{}
 
 
 class CardAction extends LongKeyedMapper[CardAction] with IdPK {
-  def getSingleton = CardAction
+  def getSingleton: code.cards.CardAction.type = CardAction
 
   object post extends MappedLongForeignKey(this, MappedPhysicalCard)
   object cardAction extends MappedString(this, 140)

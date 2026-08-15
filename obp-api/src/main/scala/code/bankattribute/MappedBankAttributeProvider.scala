@@ -67,7 +67,7 @@ object BankAttributeProvider extends BankAttributeProviderTrait {
 
 class BankAttribute extends BankAttributeTrait with LongKeyedMapper[BankAttribute] with IdPK {
 
-  override def getSingleton = BankAttribute
+  override def getSingleton: code.bankattribute.BankAttribute.type = BankAttribute
 
   object BankId_ extends UUIDString(this) // combination of this
   object BankAttributeId extends MappedUUID(this)

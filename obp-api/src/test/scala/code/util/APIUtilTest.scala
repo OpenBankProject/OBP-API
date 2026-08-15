@@ -222,7 +222,7 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with Prop
     }
   }
 
-  implicit val fromDateOrdering = new Ordering[OBPFromDate] {
+  implicit val fromDateOrdering: Ordering[code.api.util.OBPFromDate] = new Ordering[OBPFromDate] {
     override def compare(x: OBPFromDate, y: OBPFromDate): Int = if (x.value.after(y.value)) {
       1
     } else if(y.value.after(x.value)) {
@@ -274,7 +274,7 @@ class APIUtilTest extends FeatureSpec with Matchers with GivenWhenThen with Prop
     }
   }
 
-  implicit val toDateOrdering = new Ordering[OBPToDate] {
+  implicit val toDateOrdering: Ordering[code.api.util.OBPToDate] = new Ordering[OBPToDate] {
     override def compare(x: OBPToDate, y: OBPToDate): Int = if (x.value.after(y.value)) {
       1
     } else if(y.value.after(x.value)) {

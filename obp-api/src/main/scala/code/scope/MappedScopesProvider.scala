@@ -37,7 +37,7 @@ object MappedScopesProvider extends ScopeProvider {
     }
   }
 
-  override def getScopes: Box[List[Scope]] = {
+  override def getScopes(): Box[List[Scope]] = {
     // Return a Box so we can handle errors later.
     Some(MappedScope.findAll(OrderBy(MappedScope.updatedAt, Descending)))
   }
@@ -80,7 +80,7 @@ object MappedScopesProvider extends ScopeProvider {
 class MappedScope extends Scope 
   with LongKeyedMapper[MappedScope] with IdPK with CreatedUpdated {
 
-  def getSingleton = MappedScope
+  def getSingleton: code.scope.MappedScope.type = MappedScope
 
   object mScopeId extends MappedUUID(this)
   object mBankId extends UUIDString(this)

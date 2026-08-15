@@ -100,7 +100,7 @@ final case class BankIdAccountIdAndUserIdGrpc(
       }
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
-    def companion = code.obp.grpc.api.BankIdAccountIdAndUserIdGrpc
+    def companion: code.obp.grpc.api.BankIdAccountIdAndUserIdGrpc.type = code.obp.grpc.api.BankIdAccountIdAndUserIdGrpc
 }
 
 object BankIdAccountIdAndUserIdGrpc extends scalapb.GeneratedMessageCompanion[code.obp.grpc.api.BankIdAccountIdAndUserIdGrpc] {

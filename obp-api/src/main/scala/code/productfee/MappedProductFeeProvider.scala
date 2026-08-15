@@ -88,7 +88,7 @@ object MappedProductFeeProvider extends ProductFeeProvider {
 
 class ProductFee extends ProductFeeTrait with LongKeyedMapper[ProductFee] with IdPK {
 
-  override def getSingleton = ProductFee
+  override def getSingleton: code.productfee.ProductFee.type = ProductFee
 
   object BankId extends UUIDString(this) 
 

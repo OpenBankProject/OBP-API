@@ -73,7 +73,7 @@ object MappedMethodRoutingProvider extends MethodRoutingProvider with CustomJson
 
 class MethodRouting extends MethodRoutingT with LongKeyedMapper[MethodRouting] with IdPK with CustomJsonFormats{
 
-  override def getSingleton = MethodRouting
+  override def getSingleton: code.methodrouting.MethodRouting.type = MethodRouting
 
   object MethodRoutingId extends MappedUUID(this)
   object MethodName extends MappedString(this, 255)

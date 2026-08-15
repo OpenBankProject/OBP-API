@@ -53,7 +53,7 @@ object ChatStreamServiceGrpc {
       .build()
 
   trait ChatStreamService extends _root_.scalapb.grpc.AbstractService {
-    override def serviceCompanion = ChatStreamService
+    override def serviceCompanion: code.obp.grpc.chat.api.ChatStreamServiceGrpc.ChatStreamService.type = ChatStreamService
 
     /** Server-side stream: pushes new/updated/deleted messages for a room */
     def streamMessages(request: code.obp.grpc.chat.api.StreamMessagesRequest,

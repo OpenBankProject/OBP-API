@@ -46,7 +46,7 @@ object MappedEndpointTagProvider extends EndpointTagProvider with CustomJsonForm
 
 class EndpointTag extends EndpointTagT with LongKeyedMapper[EndpointTag] with IdPK with CreatedUpdated with CustomJsonFormats{
 
-  override def getSingleton = EndpointTag
+  override def getSingleton: code.endpointTag.EndpointTag.type = EndpointTag
 
   object EndpointTagId extends MappedUUID(this)
   object OperationId extends MappedString(this, 255)

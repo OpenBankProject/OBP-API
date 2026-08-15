@@ -28,7 +28,7 @@ import scala.collection.mutable.ArrayBuffer
   */
 trait EthereumConnector_vSept2025 extends Connector with MdcLoggable {
 
-  implicit override val nameOfConnector = EthereumConnector_vSept2025.toString
+  implicit override val nameOfConnector: String = EthereumConnector_vSept2025.toString
 
   override val messageDocs = ArrayBuffer[MessageDoc]()
 

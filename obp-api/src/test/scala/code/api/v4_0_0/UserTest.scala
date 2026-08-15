@@ -1,6 +1,7 @@
 package code.api.v4_0_0
 
 import java.util.UUID
+import org.json4s.jvalue2extractable
 
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole.CanGetAnyUser

@@ -66,7 +66,7 @@ object LocalMappedOutInBoundTransfer extends OutInBoundTransfer {
   private lazy val connector: Connector = LocalMappedConnector
   private val queryParamType = universe.typeOf[List[OBPQueryParam]]
   private val callContextType = universe.typeOf[Option[CallContext]]
-  private implicit val formats = CustomJsonFormats.nullTolerateFormats
+  private implicit val formats: org.json4s.Formats = CustomJsonFormats.nullTolerateFormats
 
   override def transfer(outbound: TopicTrait): Future[InBoundTrait[_]] = {
     val connectorMethod: String = outbound.getClass.getSimpleName match {

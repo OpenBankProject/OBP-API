@@ -184,7 +184,7 @@ object MappedAccountAttributeProvider extends AccountAttributeProvider {
 
 class MappedAccountAttribute extends AccountAttribute with LongKeyedMapper[MappedAccountAttribute] with IdPK {
 
-  override def getSingleton = MappedAccountAttribute
+  override def getSingleton: code.accountattribute.MappedAccountAttribute.type = MappedAccountAttribute
 
   object mBankIdId extends UUIDString(this) // combination of this
   object mAccountId extends UUIDString(this) // combination of this

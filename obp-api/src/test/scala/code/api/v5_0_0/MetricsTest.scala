@@ -27,6 +27,7 @@ TESOBE (http://www.tesobe.com/)
 package code.api.v5_0_0
 
 import code.api.util.APIUtil.OAuth._
+import org.json4s.jvalue2extractable
 import code.api.util.ApiRole.CanGetMetricsAtOneBank
 import code.api.util.ErrorMessages.{UserHasMissingRoles, AuthenticatedUserIsRequired}
 import code.api.v2_1_0.MetricsJson

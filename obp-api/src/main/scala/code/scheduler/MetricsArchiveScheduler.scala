@@ -41,7 +41,7 @@ case class RunSkippedAlreadyInProgress(jobId: String, apiInstanceId: String, sta
 object MetricsArchiveScheduler extends MdcLoggable {
 
   private lazy val actorSystem = ObpActorSystem.localActorSystem
-  implicit lazy val executor = actorSystem.dispatcher
+  implicit lazy val executor: scala.concurrent.ExecutionContextExecutor = actorSystem.dispatcher
   private lazy val scheduler = actorSystem.scheduler
   private val oneDayInMillis: Long = 86400000
   private val jobName = "MetricsArchiveScheduler"

@@ -21,7 +21,7 @@ import scala.concurrent.Future
 
 class ServerCallback(val ch: Channel) extends DeliverCallback with MdcLoggable{
 
-  private implicit val formats = code.api.util.CustomJsonFormats.nullTolerateFormats
+  private implicit val formats: org.json4s.Formats = code.api.util.CustomJsonFormats.nullTolerateFormats
 
   override def handle(consumerTag: String, delivery: Delivery): Unit = {
     var response: Future[String] = Future {

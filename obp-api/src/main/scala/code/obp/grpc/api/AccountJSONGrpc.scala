@@ -117,7 +117,7 @@ final case class AccountJSONGrpc(
       }
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
-    def companion = code.obp.grpc.api.AccountJSONGrpc
+    def companion: code.obp.grpc.api.AccountJSONGrpc.type = code.obp.grpc.api.AccountJSONGrpc
 }
 
 object AccountJSONGrpc extends scalapb.GeneratedMessageCompanion[code.obp.grpc.api.AccountJSONGrpc] {

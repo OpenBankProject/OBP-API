@@ -23,7 +23,7 @@ object MetricsStreamServiceGrpc {
       .build()
 
   trait MetricsStreamService extends _root_.scalapb.grpc.AbstractService {
-    override def serviceCompanion = MetricsStreamService
+    override def serviceCompanion: code.obp.grpc.metricsstream.api.MetricsStreamServiceGrpc.MetricsStreamService.type = MetricsStreamService
 
     /** Server-side stream: pushes new API metrics as they are written */
     def streamMetrics(request: code.obp.grpc.metricsstream.api.StreamMetricsRequest,

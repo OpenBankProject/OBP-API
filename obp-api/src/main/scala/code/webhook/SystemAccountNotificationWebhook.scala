@@ -67,7 +67,7 @@ object MappedSystemAccountNotificationWebhookProvider extends SystemAccountNotif
 }
 
 class SystemAccountNotificationWebhook extends SystemAccountNotificationWebhookTrait with LongKeyedMapper[SystemAccountNotificationWebhook] with IdPK with CreatedUpdated {
-  def getSingleton = SystemAccountNotificationWebhook
+  def getSingleton: code.webhook.SystemAccountNotificationWebhook.type = SystemAccountNotificationWebhook
 
   object WebhookId extends MappedUUID(this)
   object TriggerName extends MappedString(this, 64)

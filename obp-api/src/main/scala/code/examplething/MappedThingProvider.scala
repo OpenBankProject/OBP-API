@@ -20,7 +20,7 @@ object MappedThingProvider extends ThingProvider {
 
 class MappedThing extends Thing with LongKeyedMapper[MappedThing] with IdPK {
 
-  override def getSingleton = MappedThing
+  override def getSingleton: code.examplething.MappedThing.type = MappedThing
 
   object bankId_ extends UUIDString(this)
   object name_ extends MappedString(this, 255)

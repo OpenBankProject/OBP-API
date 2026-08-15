@@ -1,6 +1,7 @@
 package code.api.berlin.group.signing
 
 import code.api.berlin.group.v1_3.BerlinGroupServerSetupV1_3
+import org.json4s.jvalue2extractable
 import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.ErrorMessagesBG
 
 class RegulatedEntityTest extends BerlinGroupServerSetupV1_3 with PSD2SigningTestSupport {

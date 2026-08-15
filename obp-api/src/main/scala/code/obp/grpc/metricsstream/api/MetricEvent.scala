@@ -208,7 +208,7 @@ final case class MetricEvent(
       }
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
-    def companion = code.obp.grpc.metricsstream.api.MetricEvent
+    def companion: code.obp.grpc.metricsstream.api.MetricEvent.type = code.obp.grpc.metricsstream.api.MetricEvent
 }
 
 object MetricEvent extends scalapb.GeneratedMessageCompanion[code.obp.grpc.metricsstream.api.MetricEvent] {

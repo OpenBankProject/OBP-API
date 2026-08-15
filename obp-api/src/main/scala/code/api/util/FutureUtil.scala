@@ -24,8 +24,8 @@ object FutureUtil {
   case class EndpointContext(context: Option[CallContext])
   
   implicit val defaultTimeout: EndpointTimeout = EndpointTimeout(Constant.longEndpointTimeoutInMillis)
-  implicit val callContext = EndpointContext(context = None)
-  implicit val formats = CustomJsonFormats.formats
+  implicit val callContext: code.api.util.FutureUtil.EndpointContext = EndpointContext(context = None)
+  implicit val formats: org.json4s.Formats = CustomJsonFormats.formats
 
   /**
    * Returns the result of the provided future within the given time or a timeout exception, whichever is first

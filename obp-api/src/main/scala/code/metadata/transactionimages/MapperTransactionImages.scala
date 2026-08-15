@@ -64,7 +64,7 @@ object MapperTransactionImages extends TransactionImages {
 }
 
 class MappedTransactionImage extends TransactionImage with LongKeyedMapper[MappedTransactionImage] with IdPK with CreatedUpdated {
-  def getSingleton = MappedTransactionImage
+  def getSingleton: code.metadata.transactionimages.MappedTransactionImage.type = MappedTransactionImage
 
   object bank extends UUIDString(this)
   object account extends AccountIdString(this)

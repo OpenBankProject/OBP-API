@@ -27,6 +27,7 @@ TESOBE (http://www.tesobe.com/)
 package code.api.v5_0_0
 
 import code.api.Constant._
+import org.json4s.jvalue2extractable
 import code.api.ResourceDocs1_4_0.SwaggerDefinitionsJSON._
 import code.api.util.APIUtil.OAuth._
 import code.api.v1_2_1.{PermissionJSON, PermissionsJSON}

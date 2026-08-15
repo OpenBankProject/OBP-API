@@ -78,7 +78,7 @@ object AtmAttributeProvider extends AtmAttributeProviderTrait {
 
 class AtmAttribute extends AtmAttributeTrait with LongKeyedMapper[AtmAttribute] with IdPK {
 
-  override def getSingleton = AtmAttribute
+  override def getSingleton: code.atmattribute.AtmAttribute.type = AtmAttribute
 
   object BankId_ extends UUIDString(this) {
     override def dbColumnName = "BankId"

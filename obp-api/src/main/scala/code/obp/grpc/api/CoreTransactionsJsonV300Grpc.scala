@@ -63,7 +63,7 @@ final case class CoreTransactionsJsonV300Grpc(
       }
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
-    def companion = code.obp.grpc.api.CoreTransactionsJsonV300Grpc
+    def companion: code.obp.grpc.api.CoreTransactionsJsonV300Grpc.type = code.obp.grpc.api.CoreTransactionsJsonV300Grpc
 }
 
 object CoreTransactionsJsonV300Grpc extends scalapb.GeneratedMessageCompanion[code.obp.grpc.api.CoreTransactionsJsonV300Grpc] {
@@ -212,7 +212,7 @@ object CoreTransactionsJsonV300Grpc extends scalapb.GeneratedMessageCompanion[co
         }
       }
       def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
-      def companion = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionJsonV300Grpc
+      def companion: code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionJsonV300Grpc.type = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionJsonV300Grpc
   }
   
   object CoreTransactionJsonV300Grpc extends scalapb.GeneratedMessageCompanion[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionJsonV300Grpc] {
@@ -345,7 +345,7 @@ object CoreTransactionsJsonV300Grpc extends scalapb.GeneratedMessageCompanion[co
         }
       }
       def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
-      def companion = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountHolderJSONGrpc
+      def companion: code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountHolderJSONGrpc.type = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountHolderJSONGrpc
   }
   
   object AccountHolderJSONGrpc extends scalapb.GeneratedMessageCompanion[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountHolderJSONGrpc] {
@@ -459,7 +459,7 @@ object CoreTransactionsJsonV300Grpc extends scalapb.GeneratedMessageCompanion[co
         }
       }
       def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
-      def companion = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountRoutingJsonV121Grpc
+      def companion: code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountRoutingJsonV121Grpc.type = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountRoutingJsonV121Grpc
   }
   
   object AccountRoutingJsonV121Grpc extends scalapb.GeneratedMessageCompanion[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AccountRoutingJsonV121Grpc] {
@@ -573,7 +573,7 @@ object CoreTransactionsJsonV300Grpc extends scalapb.GeneratedMessageCompanion[co
         }
       }
       def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
-      def companion = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.BankRoutingJsonV121Grpc
+      def companion: code.obp.grpc.api.CoreTransactionsJsonV300Grpc.BankRoutingJsonV121Grpc.type = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.BankRoutingJsonV121Grpc
   }
   
   object BankRoutingJsonV121Grpc extends scalapb.GeneratedMessageCompanion[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.BankRoutingJsonV121Grpc] {
@@ -719,7 +719,7 @@ object CoreTransactionsJsonV300Grpc extends scalapb.GeneratedMessageCompanion[co
         }
       }
       def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
-      def companion = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.ThisAccountJsonV300Grpc
+      def companion: code.obp.grpc.api.CoreTransactionsJsonV300Grpc.ThisAccountJsonV300Grpc.type = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.ThisAccountJsonV300Grpc
   }
   
   object ThisAccountJsonV300Grpc extends scalapb.GeneratedMessageCompanion[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.ThisAccountJsonV300Grpc] {
@@ -881,7 +881,7 @@ object CoreTransactionsJsonV300Grpc extends scalapb.GeneratedMessageCompanion[co
         }
       }
       def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
-      def companion = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreCounterpartyJsonV300Grpc
+      def companion: code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreCounterpartyJsonV300Grpc.type = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreCounterpartyJsonV300Grpc
   }
   
   object CoreCounterpartyJsonV300Grpc extends scalapb.GeneratedMessageCompanion[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreCounterpartyJsonV300Grpc] {
@@ -1013,7 +1013,7 @@ object CoreTransactionsJsonV300Grpc extends scalapb.GeneratedMessageCompanion[co
         }
       }
       def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
-      def companion = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AmountOfMoneyJsonV121Grpc
+      def companion: code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AmountOfMoneyJsonV121Grpc.type = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AmountOfMoneyJsonV121Grpc
   }
   
   object AmountOfMoneyJsonV121Grpc extends scalapb.GeneratedMessageCompanion[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.AmountOfMoneyJsonV121Grpc] {
@@ -1199,7 +1199,7 @@ object CoreTransactionsJsonV300Grpc extends scalapb.GeneratedMessageCompanion[co
         }
       }
       def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
-      def companion = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionDetailsJSONGrpc
+      def companion: code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionDetailsJSONGrpc.type = code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionDetailsJSONGrpc
   }
   
   object CoreTransactionDetailsJSONGrpc extends scalapb.GeneratedMessageCompanion[code.obp.grpc.api.CoreTransactionsJsonV300Grpc.CoreTransactionDetailsJSONGrpc] {

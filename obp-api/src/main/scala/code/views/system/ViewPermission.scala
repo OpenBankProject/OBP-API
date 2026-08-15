@@ -9,7 +9,7 @@ import net.liftweb.mapper._
 
 
 class ViewPermission extends LongKeyedMapper[ViewPermission] with IdPK with CreatedUpdated {
-  def getSingleton = ViewPermission
+  def getSingleton: code.views.system.ViewPermission.type = ViewPermission
   object bank_id extends MappedString(this, 255)
   object account_id extends MappedString(this, 255)
   object view_id extends UUIDString(this)

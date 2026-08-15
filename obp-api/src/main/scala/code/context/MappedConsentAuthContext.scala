@@ -6,7 +6,7 @@ import net.liftweb.mapper._
 
 class MappedConsentAuthContext extends ConsentAuthContext with LongKeyedMapper[MappedConsentAuthContext] with IdPK with CreatedUpdated {
 
-  def getSingleton = MappedConsentAuthContext
+  def getSingleton: code.context.MappedConsentAuthContext.type = MappedConsentAuthContext
 
   object ConsentAuthContextId extends MappedUUID(this)
   object ConsentId extends UUIDString(this)

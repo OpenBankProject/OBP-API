@@ -1,6 +1,8 @@
 package code.api.v6_0_0
 
 import code.api.util.APIUtil.OAuth._
+import org.json4s.jvalue2extractable
+import org.json4s.jvalue2monadic
 import code.api.util.ApiRole.CanGetViewPermissionsAtAllBanks
 import code.api.util.ErrorMessages
 import code.api.util.ErrorMessages.UserHasMissingRoles

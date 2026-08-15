@@ -111,7 +111,7 @@ object MappedUtilityPaymentCallbackProvider extends UtilityPaymentCallbackProvid
 }
 
 class UtilityPaymentCallback extends UtilityPaymentCallbackTrait with LongKeyedMapper[UtilityPaymentCallback] with IdPK {
-  def getSingleton = UtilityPaymentCallback
+  def getSingleton: code.utilitypayment.UtilityPaymentCallback.type = UtilityPaymentCallback
 
   object CallbackId extends MappedString(this, 64)
   object TransactionRequestId extends MappedString(this, 64)

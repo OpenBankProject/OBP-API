@@ -2309,7 +2309,7 @@ object Http4s500 {
     )
 
     val allRoutes: HttpRoutes[IO] =
-      Kleisli[HttpF, Request[IO], Response[IO]] { req: Request[IO] =>
+      Kleisli[HttpF, Request[IO], Response[IO]] { (req: Request[IO]) =>
         root(req)
           .orElse(getBanks(req))
           .orElse(getBank(req))
@@ -2381,7 +2381,7 @@ object Http4s500 {
   val wrappedRoutesV500ServicesWithJsonNotFound: HttpRoutes[IO] = {
     import code.api.util.APIUtil
     import code.api.util.ErrorMessages
-    Kleisli[HttpF, Request[IO], Response[IO]] { req: Request[IO] =>
+    Kleisli[HttpF, Request[IO], Response[IO]] { (req: Request[IO]) =>
       wrappedRoutesV500Services(req).orElse {
         OptionT.liftF(IO.pure {
           val contentType = req.headers.get(CIString("Content-Type")).map(_.head.value).getOrElse("")

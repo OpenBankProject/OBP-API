@@ -26,7 +26,7 @@ import org.json4s.JsonAST.JValue
  */
 object MetricsStreamServiceImpl extends MetricsStreamServiceGrpc.MetricsStreamService with MdcLoggable {
 
-  private implicit val formats = json.DefaultFormats
+  private implicit val formats: org.json4s.DefaultFormats.type = json.DefaultFormats
 
   override def streamMetrics(
     request: StreamMetricsRequest,

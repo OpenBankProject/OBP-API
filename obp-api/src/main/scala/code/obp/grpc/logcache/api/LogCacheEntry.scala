@@ -116,7 +116,7 @@ final case class LogCacheEntry(
       }
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
-    def companion = code.obp.grpc.logcache.api.LogCacheEntry
+    def companion: code.obp.grpc.logcache.api.LogCacheEntry.type = code.obp.grpc.logcache.api.LogCacheEntry
 }
 
 object LogCacheEntry extends scalapb.GeneratedMessageCompanion[code.obp.grpc.logcache.api.LogCacheEntry] {

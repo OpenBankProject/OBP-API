@@ -405,7 +405,7 @@ class DirectLoginTest extends ServerSetup with BeforeAndAfter {
         format(username, VALID_PW, KEY))
       
       // Delete the user
-      AuthUser.findAll(By(AuthUser.username, username)).map(_.delete_!())
+      AuthUser.findAll(By(AuthUser.username, username)).map(_.delete_!)
       // Create the user
       AuthUser.create.
         email(EMAIL).
@@ -459,7 +459,7 @@ class DirectLoginTest extends ServerSetup with BeforeAndAfter {
       
       Given("A user exists but email is not validated")
       // Delete the user if exists
-      AuthUser.findAll(By(AuthUser.username, username)).map(_.delete_!())
+      AuthUser.findAll(By(AuthUser.username, username)).map(_.delete_!)
       // Create the user with validated = false
       AuthUser.create.
         email(email).
@@ -479,7 +479,7 @@ class DirectLoginTest extends ServerSetup with BeforeAndAfter {
       assertResponse(response, ErrorMessages.UserEmailNotValidated)
       
       // Clean up: delete the test user
-      AuthUser.findAll(By(AuthUser.username, username)).map(_.delete_!())
+      AuthUser.findAll(By(AuthUser.username, username)).map(_.delete_!)
     }
 
 

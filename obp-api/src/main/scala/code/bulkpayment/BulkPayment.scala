@@ -68,7 +68,7 @@ object MappedBulkPaymentProvider extends BulkPaymentProvider {
 }
 
 class BulkPayment extends BulkPaymentTrait with LongKeyedMapper[BulkPayment] with IdPK {
-  def getSingleton = BulkPayment
+  def getSingleton: code.bulkpayment.BulkPayment.type = BulkPayment
 
   object TransactionRequestId extends MappedString(this, 64)
   object ItemIndex extends MappedInt(this)
@@ -108,7 +108,7 @@ object BulkPayment extends BulkPayment with LongKeyedMetaMapper[BulkPayment] {
 /** One row per claimed batch_reference, scoped to a source account.
  *  Existence is checked at submission time for idempotency. */
 class BulkBatchReference extends LongKeyedMapper[BulkBatchReference] with IdPK {
-  def getSingleton = BulkBatchReference
+  def getSingleton: code.bulkpayment.BulkBatchReference.type = BulkBatchReference
 
   object FromBankId extends MappedString(this, 255)
   object FromAccountId extends MappedString(this, 255)

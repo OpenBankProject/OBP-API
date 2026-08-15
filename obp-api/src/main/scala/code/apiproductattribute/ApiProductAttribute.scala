@@ -4,7 +4,7 @@ import code.util.{MappedUUID, UUIDString}
 import net.liftweb.mapper._
 
 class ApiProductAttribute extends ApiProductAttributeTrait with LongKeyedMapper[ApiProductAttribute] with IdPK with CreatedUpdated {
-  def getSingleton = ApiProductAttribute
+  def getSingleton: code.apiproductattribute.ApiProductAttribute.type = ApiProductAttribute
 
   object BankId extends UUIDString(this)
   object ApiProductCode extends MappedString(this, 50)

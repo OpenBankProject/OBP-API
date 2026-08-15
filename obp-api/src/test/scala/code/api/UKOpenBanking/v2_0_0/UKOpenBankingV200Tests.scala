@@ -1,6 +1,7 @@
 package code.api.UKOpenBanking.v2_0_0
 
 import code.api.UKOpenBanking.v2_0_0.JSONFactory_UKOpenBanking_200.{AccountBalancesUKV200, Accounts, TransactionsJsonUKV200}
+import org.json4s.jvalue2extractable
 import code.api.util.APIUtil.OAuth._
 import code.setup.{APIResponse, DefaultUsers}
 import org.scalatest.Tag

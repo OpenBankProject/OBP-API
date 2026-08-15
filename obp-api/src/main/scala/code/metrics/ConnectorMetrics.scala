@@ -70,7 +70,7 @@ object ConnectorMetrics extends ConnectorMetricsProvider {
 }
 
 class MappedConnectorMetric extends ConnectorMetric with LongKeyedMapper[MappedConnectorMetric] with IdPK {
-  override def getSingleton = MappedConnectorMetric
+  override def getSingleton: code.metrics.MappedConnectorMetric.type = MappedConnectorMetric
 
   object connectorName extends MappedString(this, 64) // TODO Enforce max lenght of this when we get the Props connector
   object functionName extends MappedString(this, 64)

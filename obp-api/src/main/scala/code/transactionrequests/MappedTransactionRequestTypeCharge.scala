@@ -5,7 +5,7 @@ import com.openbankproject.commons.model.TransactionRequestTypeCharge
 import net.liftweb.mapper._
 
 class MappedTransactionRequestTypeCharge extends TransactionRequestTypeCharge with LongKeyedMapper[MappedTransactionRequestTypeCharge] with IdPK with CreatedUpdated{
-  def getSingleton = MappedTransactionRequestTypeCharge
+  def getSingleton: code.transactionrequests.MappedTransactionRequestTypeCharge.type = MappedTransactionRequestTypeCharge
 
   object mTransactionRequestTypeId extends UUIDString(this) // Add class for this
   object mBankId extends UUIDString(this)

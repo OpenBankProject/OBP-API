@@ -48,7 +48,7 @@ final case class StreamUnreadCountsRequest(
       }
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
-    def companion = code.obp.grpc.chat.api.StreamUnreadCountsRequest
+    def companion: code.obp.grpc.chat.api.StreamUnreadCountsRequest.type = code.obp.grpc.chat.api.StreamUnreadCountsRequest
 }
 
 object StreamUnreadCountsRequest extends scalapb.GeneratedMessageCompanion[code.obp.grpc.chat.api.StreamUnreadCountsRequest] {

@@ -362,7 +362,7 @@ object MappedCustomerProvider extends CustomerProvider with MdcLoggable {
 //in OBP, customer and agent share the same customer model. the CustomerAccountLink and AgentAccountLink also share the same model
 class MappedCustomer extends Customer with Agent with LongKeyedMapper[MappedCustomer] with IdPK with CreatedUpdated {
 
-  def getSingleton = MappedCustomer
+  def getSingleton: code.customer.MappedCustomer.type = MappedCustomer
 
   // Unique
   object mCustomerId extends MappedUUID(this)

@@ -1538,7 +1538,7 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
   }
 
   case object EmptyBody extends PrimaryDataBody[Any] {
-    val value = null
+    val value: Null = null
 
     /**
      * @return "EmptyBody"

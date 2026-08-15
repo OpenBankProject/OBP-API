@@ -1,6 +1,7 @@
 package code.api.v5_0_0
 
 import org.scalatest.Ignore
+import org.json4s.jvalue2extractable
 import code.api.v4_0_0.{APIInfoJson400, BanksJson400}
 import com.openbankproject.commons.util.ApiVersion
 import org.scalatest.Tag

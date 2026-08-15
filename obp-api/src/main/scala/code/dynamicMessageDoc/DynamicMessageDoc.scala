@@ -8,7 +8,7 @@ import scala.collection.immutable.List
 
 class DynamicMessageDoc extends LongKeyedMapper[DynamicMessageDoc] with IdPK {
 
-  override def getSingleton = DynamicMessageDoc
+  override def getSingleton: code.dynamicMessageDoc.DynamicMessageDoc.type = DynamicMessageDoc
 
   object BankId extends MappedString(this, 255)
   object DynamicMessageDocId extends UUIDString(this)     

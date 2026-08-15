@@ -166,7 +166,7 @@ object MappedAtmsProvider extends AtmsProvider {
 
 class MappedAtm extends AtmT with LongKeyedMapper[MappedAtm] with IdPK with CreatedUpdated {
 
-  override def getSingleton = MappedAtm
+  override def getSingleton: code.atms.MappedAtm.type = MappedAtm
 
   object mBankId extends UUIDString(this)
   object mName extends MappedString(this, 255)
@@ -244,7 +244,7 @@ class MappedAtm extends AtmT with LongKeyedMapper[MappedAtm] with IdPK with Crea
   override def bankId : BankId = BankId(mBankId.get)
   override def name: String = mName.get
 
-  override def address = Address(
+  override def address: com.openbankproject.commons.model.Address = Address(
     line1 = mLine1.get,
     line2 = mLine2.get,
     line3 = mLine3.get,
@@ -255,14 +255,14 @@ class MappedAtm extends AtmT with LongKeyedMapper[MappedAtm] with IdPK with Crea
     postCode = mPostCode.get
   )
 
-  override def meta = Meta (
+  override def meta: com.openbankproject.commons.model.Meta = Meta (
     license = License (
       id = mLicenseId.get,
      name = mLicenseName.get
     )
   )
 
-  override def location = Location(
+  override def location: com.openbankproject.commons.model.Location = Location(
     latitude = mlocationLatitude.get,
     longitude = mlocationLongitude.get,
     None,
@@ -270,26 +270,26 @@ class MappedAtm extends AtmT with LongKeyedMapper[MappedAtm] with IdPK with Crea
   )
 
 
-  override def  OpeningTimeOnMonday = Some(mOpeningTimeOnMonday.get)
-  override def  ClosingTimeOnMonday = Some(mClosingTimeOnMonday.get)
+  override def  OpeningTimeOnMonday: Some[String] = Some(mOpeningTimeOnMonday.get)
+  override def  ClosingTimeOnMonday: Some[String] = Some(mClosingTimeOnMonday.get)
 
-  override def  OpeningTimeOnTuesday = Some(mOpeningTimeOnTuesday.get)
-  override def  ClosingTimeOnTuesday = Some(mClosingTimeOnTuesday.get)
+  override def  OpeningTimeOnTuesday: Some[String] = Some(mOpeningTimeOnTuesday.get)
+  override def  ClosingTimeOnTuesday: Some[String] = Some(mClosingTimeOnTuesday.get)
 
-  override def  OpeningTimeOnWednesday = Some(mOpeningTimeOnWednesday.get)
-  override def  ClosingTimeOnWednesday = Some(mClosingTimeOnWednesday.get)
+  override def  OpeningTimeOnWednesday: Some[String] = Some(mOpeningTimeOnWednesday.get)
+  override def  ClosingTimeOnWednesday: Some[String] = Some(mClosingTimeOnWednesday.get)
 
-  override def  OpeningTimeOnThursday = Some(mOpeningTimeOnThursday.get)
-  override def  ClosingTimeOnThursday = Some(mClosingTimeOnThursday.get)
+  override def  OpeningTimeOnThursday: Some[String] = Some(mOpeningTimeOnThursday.get)
+  override def  ClosingTimeOnThursday: Some[String] = Some(mClosingTimeOnThursday.get)
 
-  override def  OpeningTimeOnFriday = Some(mOpeningTimeOnFriday.get)
-  override def  ClosingTimeOnFriday = Some(mClosingTimeOnFriday.get)
+  override def  OpeningTimeOnFriday: Some[String] = Some(mOpeningTimeOnFriday.get)
+  override def  ClosingTimeOnFriday: Some[String] = Some(mClosingTimeOnFriday.get)
 
-  override def  OpeningTimeOnSaturday = Some(mOpeningTimeOnSaturday.get)
-  override def  ClosingTimeOnSaturday = Some(mClosingTimeOnSaturday.get)
+  override def  OpeningTimeOnSaturday: Some[String] = Some(mOpeningTimeOnSaturday.get)
+  override def  ClosingTimeOnSaturday: Some[String] = Some(mClosingTimeOnSaturday.get)
 
-  override def  OpeningTimeOnSunday = Some(mOpeningTimeOnSunday.get)
-  override def  ClosingTimeOnSunday = Some(mClosingTimeOnSunday.get)
+  override def  OpeningTimeOnSunday: Some[String] = Some(mOpeningTimeOnSunday.get)
+  override def  ClosingTimeOnSunday: Some[String] = Some(mClosingTimeOnSunday.get)
 
 
   // Easy access for people who use wheelchairs etc. "Y"=true "N"=false ""=Unknown
@@ -299,8 +299,8 @@ class MappedAtm extends AtmT with LongKeyedMapper[MappedAtm] with IdPK with Crea
     case _ => None
   }
 
-  override def  locatedAt = Some(mLocatedAt.get)
-  override def  moreInfo = Some(mMoreInfo.get)
+  override def  locatedAt: Some[String] = Some(mLocatedAt.get)
+  override def  moreInfo: Some[String] = Some(mMoreInfo.get)
 
   override def  hasDepositCapability = mHasDepositCapability.get match {
     case "Y" => Some(true)

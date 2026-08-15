@@ -244,7 +244,7 @@ class Boot extends MdcLoggable {
 
 
 
-  def boot {
+  def boot: Unit = {
     implicit val formats = CustomJsonFormats.formats
 
     logger.info("Boot says: Hello from the Open Bank Project API. This is Boot.scala. The gitCommit is : " + APIUtil.gitCommit)
@@ -717,7 +717,7 @@ class Boot extends MdcLoggable {
       if(!validationErrors.isEmpty)
         logger.error(s"createBootstrapSuperUser- Errors: ${validationErrors.map(_.msg)}")
       else {
-        Full(authUser.save()) //this will create/update the resourceUser.
+        Full(authUser.save) //this will create/update the resourceUser.
 
         val userBox = Users.users.vend.getUserByProviderAndUsername(authUser.getProvider(), authUser.username.get)
 
@@ -828,7 +828,7 @@ class Boot extends MdcLoggable {
       if (!validationErrors.isEmpty)
         logger.error(s"createBootstrapOidcOperatorUser- Errors: ${validationErrors.map(_.msg)}")
       else {
-        Full(authUser.save())
+        Full(authUser.save)
 
         val userBox = Users.users.vend.getUserByProviderAndUsername(authUser.getProvider(), authUser.username.get)
 
