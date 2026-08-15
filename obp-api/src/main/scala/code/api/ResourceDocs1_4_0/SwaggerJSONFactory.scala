@@ -728,9 +728,14 @@ object SwaggerJSONFactory extends MdcLoggable {
 
       //String
       case t if isAnyOfType[String, JString, XString] || isEnumeration(t)                                                  => s""" {"type":"string" $example}"""
+      // Option before Coll, as every other scalar block here already has it. Coll is IterableOnce,
+      // which 2.13's Option implements and 2.12's did not, so Coll[String] answers true for
+      // Option[String] and this was the one block whose order let that through - publishing every
+      // optional string as an array of strings. Option[List[String]] is unaffected: it reaches the
+      // Option[Coll[String]] case below, since List[String] is not a subtype of String.
+      case t if isAnyOfType[Option[String], Option[JString], Option[XString]] || isNestEnumeration[Option[_]](t)                   => s""" {"type":"string" $example}"""
       case t if isAnyOfType[Coll[String], Coll[JString], Coll[XString]] || isNestEnumeration[List[_]](t)                         => s""" {"type":"array", "items":{"type": "string"}}"""
       case t if isAnyOfType[Option[Coll[String]], Option[Coll[JString]], Option[Coll[XString]]] || isNestEnumeration[Option[List[_]]](t) => s""" {"type":"array", "items":{"type": "string"}}"""
-      case t if isAnyOfType[Option[String], Option[JString], Option[XString]] || isNestEnumeration[Option[_]](t)                   => s""" {"type":"string" $example}"""
 
       //Int
       case _ if isAnyOfType[Int, JInt, XInt]                                           => s""" {"type":"integer", "format":"int32" $example}"""
@@ -788,8 +793,11 @@ object SwaggerJSONFactory extends MdcLoggable {
         }
         s""" {"type": "array", "items":${buildSwaggerSchema(tp, value)}}"""
 
-      // List or Array data
-      case t if isOneOfType[Coll[_], Array[_]]   =>
+      // List or Array data. Not an Option: Coll is IterableOnce, which 2.13's Option implements, so
+      // without this guard every Option the cases above did not name by type - an Option of a case
+      // class, of a JValue - is published as an array of it. Option[Coll[_]] is already handled
+      // above, so what this excludes falls to the Option case below, which unwraps and recurses.
+      case t if isOneOfType[Coll[_], Array[_]] && !isTypeOf[Option[_]]  =>
         val tp = ReflectUtils.getNestTypeArg(t, 0)
         val value = exampleValue match {
           case v: Array[_] => v.head
