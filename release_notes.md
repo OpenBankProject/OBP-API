@@ -3,8 +3,7 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action
-15/08/2026    build/scala-2.13-migration
-                            BUILD/DEPLOY CHANGE: obp-api and obp-commons are built with Scala 2.13.
+15/08/2026    614e7294e     BUILD/DEPLOY CHANGE: obp-api and obp-commons are built with Scala 2.13.
                             The class files this produces are Java 25, where 2.12 emitted Java 8
                             whatever -release said - 2.13 honours -release fully. Anything loading
                             these artifacts on a JVM below 25 now fails at class load with

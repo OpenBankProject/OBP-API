@@ -255,13 +255,13 @@
               <arg>-deprecation</arg>
               <arg>-explaintypes</arg>
               -->
-              <!-- Kept after the flip to 2.13. It was added to compile the then-2.12 sources
-                   under 2.13 language rules, so constructs that change meaning were reported
-                   before the version moved; now that they have, it pins the source level the
-                   compiler applies rather than leaving it to a future compiler default. It
-                   never covered the collection types 2.13 removes outright - only language
-                   semantics - which is why those had to be found by compiling. -->
-              <arg>-Xsource:2.13</arg>
+              <!-- -Xsource:2.13 was here to compile the then-2.12 sources under 2.13 language
+                   rules, so constructs changing meaning were reported before the version moved.
+                   Removed with the flip: scalac describes the flag as enabling "warnings and
+                   features for a future version", and 2.13 is not a future version of a 2.13
+                   compiler, so it does nothing now. It never covered the collection types 2.13
+                   removes outright either - only language semantics - which is why those had to
+                   be found by compiling. -->
               <!-- Replaces the paradise compiler plugin; enables macro annotations on 2.13. -->
               <arg>-Ymacro-annotations</arg>
               <!-- Parallel compilation optimization -->

@@ -22,6 +22,7 @@ import org.json4s.JsonDSL._
 import org.json4s.{Extraction, JArray}
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.control.NonFatal
 
 /**
  * OBP gRPC server — serves banking RPCs (ObpService) and chat streaming RPCs (ChatStreamService).
@@ -74,7 +75,11 @@ class ObpGrpcServer(executionContext: ExecutionContext, port: Int = ObpGrpcServe
     // rollback below, that retry would find the buses this instance started already running,
     // record them as somebody else's, and leave them up for the life of the process.
     try startInternal() catch {
-      case e: Throwable => stop(); throw e
+      case NonFatal(e) =>
+        // Suppressed rather than swallowed or thrown in its place: a failure while tearing down
+        // must not replace the start failure that is the reason anyone is reading this.
+        try stop() catch { case NonFatal(cleanupFailure) => e.addSuppressed(cleanupFailure) }
+        throw e
     }
   }
 

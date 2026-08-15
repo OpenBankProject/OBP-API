@@ -294,7 +294,25 @@ echo ""
 # race on the shared ~/.m2 write.  The subsequent test-compile writes only to this
 # checkout's own target/ and is safe to run in parallel across checkouts.
 echo "Pre-compile 1/2: install obp-parent + obp-commons -> ~/.m2 ..."
-until mkdir "$OBC_LOCK" 2>/dev/null; do sleep 2; done
+# The lock records its holder's PID, so a run killed before it could clean up does not wedge every
+# later run: the waiter drops a lock whose PID is gone. There is also an absolute ceiling - waiting
+# forever with no message is the worse failure, since the lock only covers one install.
+OBC_LOCK_WAITED=0
+until mkdir "$OBC_LOCK" 2>/dev/null; do
+  OBC_LOCK_PID="$(cat "$OBC_LOCK/pid" 2>/dev/null || true)"
+  if [[ -n "$OBC_LOCK_PID" ]] && ! kill -0 "$OBC_LOCK_PID" 2>/dev/null; then
+    echo "  Lock held by dead PID $OBC_LOCK_PID; removing it."
+    rm -rf "$OBC_LOCK"
+    continue
+  fi
+  if (( OBC_LOCK_WAITED >= 600 )); then
+    echo "Timed out after 10m waiting for $OBC_LOCK (held by PID ${OBC_LOCK_PID:-unknown})." >&2
+    exit 1
+  fi
+  sleep 2
+  OBC_LOCK_WAITED=$(( OBC_LOCK_WAITED + 2 ))
+done
+echo $$ > "$OBC_LOCK/pid"
 trap 'rm -rf "$OBC_LOCK"' EXIT
 # -am so the parent pom is installed alongside obp-commons. Installing the module alone leaves
 # whatever obp-parent is already in ~/.m2, and obp-api resolves its dependencies through that pom -
