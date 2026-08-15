@@ -77,6 +77,8 @@ fi
 # corrupt each other's JARs (torn ZipFile).  We use an atomic mkdir lock to serialise
 # ~/.m2 writes across processes.  The lock is released immediately after the install
 # and cleaned up on exit (including crashes) via an ownership-checked EXIT trap.
+# This checkout's absolute path, used to keep the orphan reaper below to test JVMs from here.
+CHECKOUT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 OBC_LOCK="/tmp/obp-commons-m2-install.lock"
 # Armed here, and ownership-checked: it removes the directory only when the pid recorded inside is
 # this process. Armed unconditionally it would delete a lock another run holds - while waiting for
@@ -266,6 +268,33 @@ run_shard() {
     return $rc
 }
 
+# scalatest-maven-plugin runs with forkMode=once, so a shard is two JVMs: mvn, and the test JVM it
+# forks. Pekko's non-daemon threads keep that fork alive after the tests finish; mvn exits anyway,
+# the fork is reparented and nothing has owned it since. The `timeout` above never sees this - it
+# fires only when mvn itself overruns, and on the ordinary path mvn returns 0.
+#
+# Left alone they accumulate: five were found alive six to ten hours after their runs, one of them
+# holding port 8080, where it answered a verification probe with a build eight commits old and no
+# error anywhere. Matching on both -Drun.mode=test (the plugin's own argLine) and this checkout's
+# basedir keeps this to test JVMs from this worktree - a dev server started by hand has no
+# run.mode=test, and another checkout has another basedir.
+# Called once, after every shard has been waited on - never from run_shard. The shards run in
+# parallel and share this matcher, so reaping from inside one of them would kill the test JVMs the
+# others are still using.
+reap_orphaned_test_jvms() {
+    local pids pid
+    pids=$(pgrep -f "Drun.mode=test" 2>/dev/null | while read -r pid; do
+        ps -o command= -p "$pid" 2>/dev/null | grep -q -- "$CHECKOUT_ROOT" && echo "$pid"
+    done)
+    [[ -z "$pids" ]] && return 0
+    echo "Reaping orphaned test JVM(s) left by this run: $(echo $pids | tr '\n' ' ')"
+    # shellcheck disable=SC2086
+    kill $pids 2>/dev/null
+    sleep 3
+    for pid in $pids; do kill -9 "$pid" 2>/dev/null; done
+    return 0
+}
+
 START=$(date +%s)
 
 # ── Lint (CI compile job's first step): test-isolation static check; abort on fail ──
@@ -307,7 +336,9 @@ until mkdir "$OBC_LOCK" 2>/dev/null; do
   OBC_LOCK_PID="$(cat "$OBC_LOCK/pid" 2>/dev/null || true)"
   OBC_LOCK_STALE=""
   if [[ -n "$OBC_LOCK_PID" ]]; then
-    kill -0 "$OBC_LOCK_PID" 2>/dev/null || OBC_LOCK_STALE="held by dead PID $OBC_LOCK_PID"
+    # ps -p, not kill -0: kill -0 fails with EPERM for a live process owned by another user as
+    # well as with ESRCH for one that is gone, so it reads somebody else's running build as dead.
+    ps -p "$OBC_LOCK_PID" >/dev/null 2>&1 || OBC_LOCK_STALE="held by dead PID $OBC_LOCK_PID"
   elif (( OBC_LOCK_WAITED >= OBC_LOCK_NO_PID_GRACE )); then
     OBC_LOCK_STALE="has recorded no holder for ${OBC_LOCK_NO_PID_GRACE}s"
   fi
@@ -402,6 +433,9 @@ else
     RCS=($RC1 $RC2 $RC3 $RC4)
     TOTAL_SHARDS=4
 fi
+
+# Every shard has been waited on by here, from either branch, so nothing this matches is still in use.
+reap_orphaned_test_jvms
 
 END=$(date +%s)
 ELAPSED=$(( (END - START) / 60 ))
