@@ -20,7 +20,7 @@ import net.liftweb.common.Full
 import net.liftweb.mapper.By
 import org.json4s.NoTypeHints
 import org.json4s.native.Serialization
-import org.json4s.{jvalue2monadic, string2JsonInput}
+import org.json4s.jvalue2monadic
 
 import scala.concurrent.Future
 

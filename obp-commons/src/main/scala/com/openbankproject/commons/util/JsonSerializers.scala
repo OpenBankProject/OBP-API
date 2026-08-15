@@ -21,8 +21,8 @@ object JsonSerializers {
 
   object CustomFormats extends DefaultFormats {
     private val defaultFormats =  org.json4s.DefaultFormats
-    val losslessDate = defaultFormats.losslessDate
-    val UTC = defaultFormats.UTC
+    // losslessDate/UTC re-exports removed on the json4s 4.x bump: they had no
+    // consumers, and 4.x no longer exposes losslessDate on the companion.
 
     /**
      * DefaultFormats#parameterNameReader has bug, when execute fail, cause return Nil, this is not reasonable,

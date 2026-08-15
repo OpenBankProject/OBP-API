@@ -10,7 +10,7 @@ import com.rabbitmq.client.AMQP.BasicProperties
 import com.rabbitmq.client.{CancelCallback, Connection, ConnectionFactory}
 import net.liftweb.common.{Box, Failure, Full}
 import org.json4s.native.Serialization.write
-import org.json4s.{jvalue2extractable, string2JsonInput}
+import org.json4s.jvalue2extractable
 
 import java.util
 import java.util.UUID
