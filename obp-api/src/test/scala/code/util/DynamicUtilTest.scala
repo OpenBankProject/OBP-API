@@ -76,9 +76,6 @@ class DynamicUtilTest extends FlatSpec with Matchers {
       """[new java.net.NetPermission("specifyStreamHandler"),
         |new java.lang.reflect.ReflectPermission("suppressAccessChecks"),
         |new java.lang.RuntimePermission("getenv.*"),
-        |new java.util.PropertyPermission("cglib.useCache", "read"),
-        |new java.util.PropertyPermission("net.sf.cglib.test.stressHashCodes", "read"),
-        |new java.util.PropertyPermission("cglib.debugLocation", "read"),
         |new java.lang.RuntimePermission("accessDeclaredMembers"),
         |new java.lang.RuntimePermission("getClassLoader")]""".stripMargin
 

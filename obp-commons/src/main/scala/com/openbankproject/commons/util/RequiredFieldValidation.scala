@@ -12,7 +12,6 @@ import Functions.Implicits._
 import org.json4s.{Formats, JValue}
 import org.json4s.JsonDSL._
 
-
 /**
  * Mark given type's field or constructor variable is required for some apiVersion
  *

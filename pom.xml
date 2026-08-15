@@ -255,10 +255,12 @@
               <arg>-deprecation</arg>
               <arg>-explaintypes</arg>
               -->
-              <!-- Compile 2.12 sources under 2.13 language rules, so constructs that
-                   change meaning in 2.13 are reported here rather than at the version
-                   flip. Note this covers language semantics only: it does not report
-                   uses of collection types 2.13 removes outright. -->
+              <!-- Kept after the flip to 2.13. It was added to compile the then-2.12 sources
+                   under 2.13 language rules, so constructs that change meaning were reported
+                   before the version moved; now that they have, it pins the source level the
+                   compiler applies rather than leaving it to a future compiler default. It
+                   never covered the collection types 2.13 removes outright - only language
+                   semantics - which is why those had to be found by compiling. -->
               <arg>-Xsource:2.13</arg>
               <!-- Replaces the paradise compiler plugin; enables macro annotations on 2.13. -->
               <arg>-Ymacro-annotations</arg>

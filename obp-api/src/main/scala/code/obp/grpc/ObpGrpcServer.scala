@@ -69,6 +69,16 @@ class ObpGrpcServer(executionContext: ExecutionContext, port: Int = ObpGrpcServe
       return
     }
 
+    // The guard above keys off `server`, which is set last, so a start that fails partway - a
+    // BindException is the ordinary case - leaves it null and lets a retry back in. Without the
+    // rollback below, that retry would find the buses this instance started already running,
+    // record them as somebody else's, and leave them up for the life of the process.
+    try startInternal() catch {
+      case e: Throwable => stop(); throw e
+    }
+  }
+
+  private def startInternal(): Unit = {
     // Ownership is read after each start() rather than before: a disabled bus makes start() a
     // no-op, and "was not running beforehand" alone would claim one this instance never started.
 

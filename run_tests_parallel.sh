@@ -76,9 +76,11 @@ fi
 # Multiple checkouts starting this script simultaneously race on that write and can
 # corrupt each other's JARs (torn ZipFile).  We use an atomic mkdir lock to serialise
 # ~/.m2 writes across processes.  The lock is released immediately after the install
-# and cleaned up on exit (including crashes) via the EXIT trap.
+# and cleaned up on exit (including crashes) via an EXIT trap armed where it is taken.
 OBC_LOCK="/tmp/obp-commons-m2-install.lock"
-trap 'rm -rf "$OBC_LOCK"' EXIT
+# The trap is armed at the mkdir below, not here. Armed at startup it fires on any exit - including
+# one while this run is still waiting for somebody else's lock - and deletes the directory that
+# other run is holding, letting a third run in beside it.
 
 SHARDS=4
 for arg in "$@"; do
@@ -231,7 +233,7 @@ run_shard() {
     OBP_HOSTNAME="http://localhost:${port}" \
     OBP_HTTP4S_TEST_PORT="${http4s_port}" \
     OBP_MAIL_TEST_MODE="true" \
-    OBP_DYNAMIC_CODE_SANDBOX_PERMISSIONS='[new java.net.NetPermission("specifyStreamHandler"), new java.lang.reflect.ReflectPermission("suppressAccessChecks"), new java.lang.RuntimePermission("getenv.*"), new java.util.PropertyPermission("cglib.useCache", "read"), new java.util.PropertyPermission("net.sf.cglib.test.stressHashCodes", "read"), new java.util.PropertyPermission("cglib.debugLocation", "read"), new java.lang.RuntimePermission("accessDeclaredMembers"), new java.lang.RuntimePermission("getClassLoader")]' \
+    OBP_DYNAMIC_CODE_SANDBOX_PERMISSIONS='[new java.net.NetPermission("specifyStreamHandler"), new java.lang.reflect.ReflectPermission("suppressAccessChecks"), new java.lang.RuntimePermission("getenv.*"), new java.lang.RuntimePermission("accessDeclaredMembers"), new java.lang.RuntimePermission("getClassLoader")]' \
     OBP_ALLOW_USER_GENERATED_SCALA_CODE="true" \
     OBP_API_INSTANCE_ID="shard_${n}_${port}" \
     "$TIMEOUT_BIN" 1200 mvn scalatest:test -pl obp-commons,obp-api -DfailIfNoTests=false \
@@ -293,6 +295,7 @@ echo ""
 # checkout's own target/ and is safe to run in parallel across checkouts.
 echo "Pre-compile 1/2: install obp-parent + obp-commons -> ~/.m2 ..."
 until mkdir "$OBC_LOCK" 2>/dev/null; do sleep 2; done
+trap 'rm -rf "$OBC_LOCK"' EXIT
 # -am so the parent pom is installed alongside obp-commons. Installing the module alone leaves
 # whatever obp-parent is already in ~/.m2, and obp-api resolves its dependencies through that pom -
 # scala.version, lift.version and the rest live there. A stale parent therefore pulls _2.12
@@ -303,6 +306,7 @@ MAVEN_OPTS="$MVN_OPTS" \
   mvn install -DskipTests -pl obp-commons -am -q > test-results/parallel/precompile.log 2>&1
 PRECOMPILE_RC=$?
 rm -rf "$OBC_LOCK"
+trap - EXIT
 if [[ $PRECOMPILE_RC -eq 0 ]]; then
   echo "Pre-compile 2/2: test-compile obp-api -> shared target/ ..."
   MAVEN_OPTS="$MVN_OPTS" \

@@ -3,6 +3,26 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action
+15/08/2026    build/scala-2.13-migration
+                            BUILD/DEPLOY CHANGE: obp-api and obp-commons are built with Scala 2.13.
+                            The class files this produces are Java 25, where 2.12 emitted Java 8
+                            whatever -release said - 2.13 honours -release fully. Anything loading
+                            these artifacts on a JVM below 25 now fails at class load with
+                            UnsupportedClassVersionError rather than at first call. The Docker
+                            images and CI already run 25; an operator running the jars on their own
+                            JVM has to be on 25 as well.
+
+                            Two dependency swaps are visible to anyone assembling their own
+                            artifact: cglib is replaced by byte-buddy, which generates the Connector
+                            proxies (cglib bundles ASM 7.1 and cannot read class files this new),
+                            and scalacache moves 0.9.3 to 0.28.0, which changes how a failed Redis
+                            decode is reported - it returns a value rather than throwing, and is
+                            still treated as a cache miss.
+
+                            No API signature changed. Endpoint behaviour, request and response
+                            shapes and error codes are the same; per-version test counts match the
+                            2.12 baseline.
+
 13/08/2026    298e1af87     Added props open_corridor.platform_bank_id.
                             The platform fee accrual endpoints settle to the platform, which is
                             modelled as a bank; this names its BANK_ID. There is no usable default,
