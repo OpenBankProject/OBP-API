@@ -27,7 +27,6 @@ import code.util.Helper.MdcLoggable
 import com.github.dwickern.macros.NameOf.nameOf
 import com.tesobe.{CacheKeyFromArguments, CacheKeyOmit}
 import org.apache.commons.lang3.StringUtils
-import scalacache.memoization.cacheKeyExclude
 
 import java.util.regex.Pattern
 import java.lang.reflect.Field

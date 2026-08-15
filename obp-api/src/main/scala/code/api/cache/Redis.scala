@@ -6,11 +6,6 @@ import code.api.Constant
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.ExecutionContext.Implicits.global
 import redis.clients.jedis.{Jedis, JedisPool, JedisPoolConfig}
-import scalacache.memoization.{cacheKeyExclude, memoizeF, memoizeSync}
-import scalacache.{Cache, Flags}
-import scalacache.redis.RedisCache
-import scalacache.serialization.{Codec, FailedToDecode}
-import redis.clients.jedis.{Jedis, JedisPool, JedisPoolConfig}
 
 import java.net.URI
 import javax.net.ssl.{KeyManagerFactory, SSLContext, TrustManagerFactory}
@@ -309,63 +304,84 @@ object Redis extends MdcLoggable {
     }
   }
 
-  // Reuse the pool built above so the memoize-backed cache shares the same authenticated,
-  // optionally SSL-configured connection. The RedisCache(url, port) overload builds its own
-  // JedisPool internally with no password and no SSL, so with `requirepass` enabled it fails
-  // with NOAUTH while the jedisPool-based paths keep working.
-  implicit val flags: scalacache.Flags = Flags(readsEnabled = true, writesEnabled = true)
+  // ---------------------------------------------------------------------------------------
+  // Memoize layer. scalacache used to provide this; it is dead upstream (no Scala 3 release
+  // since a 2021 milestone), so the same contract is implemented directly on the pool above.
+  // Three things are deliberately byte-compatible with what scalacache 0.28 produced, because
+  // live Redis entries and external tooling depend on them - CacheKeyFormatTest pins all three:
+  //
+  //   1. The stored KEY. scalacache's memoization macro derived it from the enclosing wrapper
+  //      method: "code.api.cache.Redis.<method>(Some(<cacheKey>))" followed by one "()" per
+  //      @cacheKeyExclude'd parameter list (sampled from a live instance). Rate-limit counters
+  //      (S-2: rate limiting is a security control) and NewStyle's "*getMethodRoutings*"
+  //      pattern invalidation both address keys inside this envelope, so a format change would
+  //      silently detach them.
+  //   2. The VALUE bytes: chill/Kryo, unchanged.
+  //   3. The failure semantics: any cache-layer error - unreachable Redis, corrupt bytes, a
+  //      class-shape change across a redeploy - is a MISS: recompute from the source block,
+  //      try to rewrite the key, self-heal on the next call. Never a sentinel value (the
+  //      pre-0.28 codec's "NONE".asInstanceOf[T] bug), never an exception on the request
+  //      path. RedisDeserializeMissTest pins the decode half.
+  //
+  //   TTL: setex(max(1, ttl.toSeconds)) matches scalacache's sub-second rounding; a non-finite
+  //   ttl stores without expiry, as scalacache's ttl=None did.
 
-  // scalacache 0.28 types its Cache by the value type, while these wrappers are generic in A. One
-  // instance still serves them all: RedisCache carries no per-type state, its value type is erased,
-  // and the codec below ignores the Manifest it takes, so every A would get an identical wrapper -
-  // building one per call only put two allocations in front of every cache read on the request
-  // path. RedisCache is a thin wrapper over the pool built above and opens nothing of its own, so
-  // the pool, its authentication and its SSL configuration stay shared.
-  private val sharedCache: Cache[Any] = RedisCache[Any](jedisPool)
-  private def cacheFor[A]: Cache[A] = sharedCache.asInstanceOf[Cache[A]]
+  private[cache] def redisMemoKey(wrapperMethod: String, cacheKey: Option[String], excludedParamLists: Int): String =
+    s"code.api.cache.Redis.$wrapperMethod($cacheKey)" + ("()" * excludedParamLists)
 
-  implicit def anyToByte[T](implicit m: Manifest[T]): Codec[T] = new Codec[T] {
+  import com.twitter.chill.KryoInjection
 
-    import com.twitter.chill.KryoInjection
+  private[cache] def encode(value: Any): Array[Byte] = KryoInjection(value)
 
-    def encode(value: T): Array[Byte] = {
-      logger.debug("KryoInjection started")
-      val bytes: Array[Byte] = KryoInjection(value)
-      logger.debug("KryoInjection finished")
-      bytes
+  private[cache] def decode[A](bytes: Array[Byte]): Option[A] =
+    KryoInjection.invert(bytes) match {
+      case scala.util.Success(v) => Some(v.asInstanceOf[A])
+      case scala.util.Failure(e) =>
+        logger.error("Redis cache decoding failed; treating as a cache miss and recomputing.", e)
+        None
     }
 
-    def decode(data: Array[Byte]): Codec.DecodingResult[T] = {
-      import scala.util.{Failure, Success}
-      KryoInjection.invert(data) match {
-        case Success(v) => Right(v.asInstanceOf[T])
-        case Failure(e) =>
-          // Decoding failed: corrupt bytes, a class-shape change across a redeploy, Kryo
-          // registration drift. Never answer with a sentinel value cast to T - scalacache would
-          // treat that as a HIT and hand e.g. a String to a caller expecting List[MethodRoutingT],
-          // throwing ClassCastException for the whole TTL.
-          //
-          // Reporting the failure is what makes the cache self-heal, though the mechanism moved in
-          // 0.28: the codec returns Left instead of throwing, RedisCacheBase.doGet raises it, and
-          // AbstractCache._caching - the path memoize takes - wraps the read in handleNonFatal and
-          // substitutes None. So a failed decode is still a miss: the source block runs and the key
-          // is rewritten with a valid serialisation. RedisDeserializeMissTest pins this.
-          logger.error("Redis cache decoding failed; treating as a cache miss and recomputing.", e)
-          Left(FailedToDecode(e))
-      }
+  private val utf8 = java.nio.charset.StandardCharsets.UTF_8
+
+  private def cacheGet[A](key: String): Option[A] =
+    try {
+      Option(withJedis(_.get(key.getBytes(utf8)))).flatMap(decode[A])
+    } catch {
+      case scala.util.control.NonFatal(e) =>
+        logger.warn(s"Redis cache read failed; treating as a miss: ${e.getMessage}")
+        None
+    }
+
+  private def cachePut(key: String, value: Any, ttl: Duration): Unit =
+    try {
+      val keyBytes = key.getBytes(utf8)
+      if (ttl.isFinite) withJedis(_.setex(keyBytes, math.max(1L, ttl.toSeconds).toInt, encode(value)))
+      else withJedis(_.set(keyBytes, encode(value)))
+      ()
+    } catch {
+      case scala.util.control.NonFatal(e) =>
+        logger.warn(s"Redis cache write failed; result served uncached: ${e.getMessage}")
+    }
+
+  def memoizeSyncWithRedis[A](cacheKey: Option[String])(ttl: Duration)(f: => A)(implicit m: Manifest[A]): A = {
+    val key = redisMemoKey("memoizeSyncWithRedis", cacheKey, 3)
+    cacheGet[A](key) match {
+      case Some(v) => v
+      case None =>
+        val v = f
+        cachePut(key, v, ttl)
+        v
     }
   }
 
-  def memoizeSyncWithRedis[A](cacheKey: Option[String])(@cacheKeyExclude ttl: Duration)(@cacheKeyExclude f: => A)(implicit @cacheKeyExclude m: Manifest[A]): A = {
-    import scalacache.modes.sync._
-    implicit val cache: Cache[A] = cacheFor[A]
-    memoizeSync(Some(ttl))(f)
-  }
-
-  def memoizeWithRedis[A](cacheKey: Option[String])(@cacheKeyExclude ttl: Duration)(@cacheKeyExclude f: => Future[A])(implicit @cacheKeyExclude m: Manifest[A]): Future[A] = {
-    import scalacache.modes.scalaFuture._
-    implicit val cache: Cache[A] = cacheFor[A]
-    memoizeF(Some(ttl))(f)
+  def memoizeWithRedis[A](cacheKey: Option[String])(ttl: Duration)(f: => Future[A])(implicit m: Manifest[A]): Future[A] = {
+    val key = redisMemoKey("memoizeWithRedis", cacheKey, 3)
+    // The read runs on the pool's thread, not the caller's, matching scalacache's Future mode;
+    // a failed read is a miss (cacheGet already swallows), and only a miss evaluates f.
+    Future(cacheGet[A](key)).flatMap {
+      case Some(v) => Future.successful(v)
+      case None    => f.map { v => cachePut(key, v, ttl); v }
+    }
   }
 
 

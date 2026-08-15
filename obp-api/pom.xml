@@ -246,17 +246,21 @@
       <artifactId>chill-bijection_${scala.version}</artifactId>
       <version>0.9.5</version>
     </dependency>
-    <!-- https://mvnrepository.com/artifact/com.github.cb372/scalacache-redis -->
+    <!-- scalacache (redis + guava) was removed: dead upstream (no Scala 3 release since a
+         2021 milestone), and the memoize layer it provided is implemented in-house in
+         code.api.cache.{Redis,InMemory} with byte-compatible keys, values and TTLs
+         (CacheKeyFormatTest pins the contract). jedis arrived transitively through
+         scalacache-redis, so it becomes a direct dependency at the exact version that
+         was already on the classpath; guava (used by InMemory) keeps arriving via
+         obp-commons, version managed by the parent. -->
     <dependency>
-      <groupId>com.github.cb372</groupId>
-      <artifactId>scalacache-redis_${scala.version}</artifactId>
-      <version>0.28.0</version>
+      <groupId>redis.clients</groupId>
+      <artifactId>jedis</artifactId>
+      <version>2.10.2</version>
     </dependency>
-    <!-- https://mvnrepository.com/artifact/com.github.cb372/scalacache-guava -->
     <dependency>
-      <groupId>com.github.cb372</groupId>
-      <artifactId>scalacache-guava_${scala.version}</artifactId>
-      <version>0.28.0</version>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
     </dependency>
     <dependency>
       <groupId>org.apache.pekko</groupId>
