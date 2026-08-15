@@ -32,6 +32,15 @@ class SwaggerOptionFieldTypeTest extends FlatSpec with Matchers {
     optInner: Option[Inner],
     plainString: String
   )
+  object Colour extends Enumeration { type Colour = Value; val Red, Green = Value }
+
+  case class Enums(
+    oneEnum: Colour.Value,
+    listOfEnum: List[Colour.Value],
+    optListOfEnum: Option[List[Colour.Value]],
+    optEnum: Option[Colour.Value]
+  )
+
   case class RealCollections(
     listOfString: List[String],
     optListOfString: Option[List[String]],
@@ -95,5 +104,32 @@ class SwaggerOptionFieldTypeTest extends FlatSpec with Matchers {
 
   "an Option[List[Date]] field" should "still be documented as an array" in {
     typeOf(schemaOf(collections, "optListOfDate")) should equal(Some("array"))
+  }
+
+  // The String block's cases carry two independent clauses: a type test and an isNestEnumeration
+  // test. Moving the Option case above the Coll case moved both, and the enumeration clauses were
+  // ordered among themselves - isNestEnumeration digs to the innermost type argument, so
+  // Option[List[Colour]] satisfies isNestEnumeration[Option[_]] just as much as
+  // isNestEnumeration[Option[List[_]]]. Whichever is tested first wins, and only one of them is
+  // right. These pin all four shapes so the two orderings cannot be conflated again.
+  private val enums = Enums(Colour.Red, List(Colour.Red), Some(List(Colour.Red)), Some(Colour.Red))
+
+  "an enumeration field" should "be documented as a string" in {
+    typeOf(schemaOf(enums, "oneEnum")) should equal(Some("string"))
+  }
+
+  "a List of enumerations" should "be documented as an array" in {
+    typeOf(schemaOf(enums, "listOfEnum")) should equal(Some("array"))
+  }
+
+  "an Option[List[enumeration]]" should "be documented as an array, not a string" in {
+    withClue("isNestEnumeration digs to the innermost type arg, so an Option case tested before " +
+      "the Option[List[...]] case claims this one too: ") {
+      typeOf(schemaOf(enums, "optListOfEnum")) should equal(Some("array"))
+    }
+  }
+
+  "an Option[enumeration]" should "be documented as a string" in {
+    typeOf(schemaOf(enums, "optEnum")) should equal(Some("string"))
   }
 }

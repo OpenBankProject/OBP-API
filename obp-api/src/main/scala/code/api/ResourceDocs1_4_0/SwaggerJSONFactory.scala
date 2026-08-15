@@ -731,11 +731,18 @@ object SwaggerJSONFactory extends MdcLoggable {
       // Option before Coll, as every other scalar block here already has it. Coll is IterableOnce,
       // which 2.13's Option implements and 2.12's did not, so Coll[String] answers true for
       // Option[String] and this was the one block whose order let that through - publishing every
-      // optional string as an array of strings. Option[List[String]] is unaffected: it reaches the
-      // Option[Coll[String]] case below, since List[String] is not a subtype of String.
-      case t if isAnyOfType[Option[String], Option[JString], Option[XString]] || isNestEnumeration[Option[_]](t)                   => s""" {"type":"string" $example}"""
+      // optional string as an array of strings.
+      //
+      // Only the type test moves. These cases each carry a second, independent clause testing for
+      // an enumeration, and those are ordered among themselves: isNestEnumeration digs to the
+      // innermost type argument, so Option[List[Colour]] satisfies isNestEnumeration[Option[_]]
+      // exactly as well as isNestEnumeration[Option[List[_]]], and only the latter is right for it.
+      // Carrying the Option[_] enumeration clause up here with the type test made every optional
+      // list of enumerations a string. It stays below, after the list forms have had their turn.
+      case t if isAnyOfType[Option[String], Option[JString], Option[XString]]                                            => s""" {"type":"string" $example}"""
       case t if isAnyOfType[Coll[String], Coll[JString], Coll[XString]] || isNestEnumeration[List[_]](t)                         => s""" {"type":"array", "items":{"type": "string"}}"""
       case t if isAnyOfType[Option[Coll[String]], Option[Coll[JString]], Option[Coll[XString]]] || isNestEnumeration[Option[List[_]]](t) => s""" {"type":"array", "items":{"type": "string"}}"""
+      case t if isNestEnumeration[Option[_]](t)                                                                          => s""" {"type":"string" $example}"""
 
       //Int
       case _ if isAnyOfType[Int, JInt, XInt]                                           => s""" {"type":"integer", "format":"int32" $example}"""
