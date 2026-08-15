@@ -100,9 +100,16 @@ fi
 # grpc=true emits the service stubs alongside the messages. The protobuf directory doubles as the
 # include path so the google/ well-known types vendored beside the .proto files resolve.
 # Not mapfile: that is bash 4, and macOS still ships 3.2 as /bin/bash.
+# connector.proto is excluded along with the vendored google/ types. It declares `package
+# code.bankconnectors.grpc` and scalapb appends the file name, so generating from it writes
+# code.bankconnectors.grpc.connector - a second copy of the connector service that nothing imports.
+# GrpcUtils takes those types from code.bankconnectors.grpc.api, which is hand-written and predates
+# this script. The generated copy was committed by accident with the scalapb upgrade (335ace483,
+# 360 lines over 4 files) and removed again; without this exclusion the next regeneration restores
+# it. Reconcile connector.proto with the .api package before dropping the exclusion.
 PROTOS=()
 while IFS= read -r proto; do PROTOS+=("$proto"); done \
-  < <(find "$PROTO_DIR" -name '*.proto' -not -path '*/google/*' | sort)
+  < <(find "$PROTO_DIR" -name '*.proto' -not -path '*/google/*' -not -name 'connector.proto' | sort)
 
 echo "Generating from ${#PROTOS[@]} proto files (protoc $PROTOC_VERSION, scalapb $SCALAPB_VERSION)"
 "$PROTOC" \

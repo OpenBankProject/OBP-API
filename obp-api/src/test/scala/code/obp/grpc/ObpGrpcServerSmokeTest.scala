@@ -90,6 +90,19 @@ class ObpGrpcServerSmokeTest extends ServerSetupWithTestData {
       viaGrpc.banks.map(_.fullName).exists(_.nonEmpty) should equal(true)
     }
 
+    scenario("the bound port is still reportable after the server stops", GrpcSmoke) {
+      // boundPort read server.getPort and fell back to the constructor argument once stop() nulled
+      // the field - which is 0 for a server given an ephemeral port, so teardown logging and any
+      // reconnect would see 0 rather than where it had been listening.
+      val server = new ObpGrpcServer(scala.concurrent.ExecutionContext.global, port = 0)
+      server.start()
+      val whileRunning = server.boundPort
+      whileRunning should not equal 0
+
+      server.stop()
+      server.boundPort should equal(whileRunning)
+    }
+
     scenario("a call with no credentials is rejected", GrpcSmoke) {
       // AuthInterceptor had no coverage either, and this is the branch that decides whether the
       // server is open to the world.

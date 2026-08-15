@@ -498,10 +498,14 @@ object JSONFactory1_4_0 extends MdcLoggable{
       // 2.12 this arrived through productIterator, and `head` was picked out of a Set of two, so
       // the tail could win the coin toss and the fields came out wrong.
       //
-      // Every element is folded in, not just the head: a heterogeneous list would otherwise
-      // document only what its first entry declares.
+      // Every element is read, not just the head: a heterogeneous list would otherwise document
+      // only what its first entry declares. That does mean the collection is forced, so a lazy or
+      // infinite one would not survive here - reading every element is the point of the branch,
+      // and an example body is a literal, so there is nothing to be lazy about.
       case coll: Iterable[_] =>
-        coll.foldLeft(List.empty[Field])((acc, e) => acc ++ getAllFields(e)).distinct
+        // flatMap over the iterator rather than folding with ++, which rebuilt the accumulator per
+        // element. distinct, not toSet.toList: it is equally linear and keeps first-seen order.
+        coll.iterator.flatMap(getAllFields).toList.distinct
       case JvalueCaseClass(_) => Nil
       case product: scala.Product =>
         loopAllFields(product, product.getClass().getDeclaredFields().toSet.toList)

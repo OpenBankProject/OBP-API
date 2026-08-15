@@ -39,7 +39,7 @@ object InternalConnector {
       val methodName = method.getName
       if(methodName == nameOf(connector.callableMethods)) {
         InternalConnector.this.callableMethods
-      } else if (methodName.contains("$default$") || !methodNameToSignature.contains(methodName)) {
+      } else if (methodName.contains("$default$") || !isDynamicallyImplementable(methodName)) {
         // Anything outside the Connector API goes to the empty Connector object, which implements
         // it for real. Connector extends Helper.MdcLoggable, so the interface also carries logger,
         // clazzName and initiate; dynamic code never defines those, and sending them down the
@@ -52,6 +52,16 @@ object InternalConnector {
       }
     }
   }
+
+  /**
+   * Whether dynamic code can supply this method at all. It is the key set of methodNameToSignature,
+   * named separately because the handler asks a different question of it than its builder answers:
+   * that map is decls filtered by `!t.isVal && !t.isVar`, so besides the members Connector inherits
+   * from MdcLoggable it also excludes Connector's own vals - messageDocs among them. Everything it
+   * excludes is answered by the empty stub, which for a val means the stub's own instance.
+   */
+  private def isDynamicallyImplementable(methodName: String): Boolean =
+    methodNameToSignature.contains(methodName)
 
   private def getFunction(methodName: String) = {
     ConnectorMethodProvider.provider.vend.getByMethodNameWithCache(methodName) map {

@@ -64,7 +64,20 @@ class ConnectorProxyObjectMethodsTest extends ServerSetupWithTestData {
     scenario("every method Connector inherits from outside its own API is answerable", ProxyObjectMethods) {
       // A shape check rather than a list: anything on the interface that InternalConnector does not
       // recognise as a connector method must still return rather than throw.
-      val inherited = classOf[Connector].getMethods.toList
+      val allMethods = classOf[Connector].getMethods.toList
+
+      // The check invokes what it collects, so anything collected with side effects runs. One
+      // member qualifies: MdcLoggable's initiate(), a lifecycle hook - `protected def initiate()`,
+      // which a trait compiles to a public interface method, so getMethods returns it. Connector
+      // leaves it as the inherited no-op (Boot is the only overrider in the codebase), and that is
+      // what makes invoking it below safe. Pinned rather than assumed: give Connector a real
+      // initiate() and this fails here, before the loop runs it out of band.
+      withClue("Connector overrides initiate(); invoking it below would run a real lifecycle hook") {
+        allMethods.filter(_.getName == "initiate").map(_.getDeclaringClass) should
+          not contain classOf[Connector]
+      }
+
+      val inherited = allMethods
         .filter(m => m.getParameterCount == 0)
         .filter(m => m.getDeclaringClass != classOf[Connector])
         .filter(m => m.getDeclaringClass != classOf[Object])
@@ -78,6 +91,18 @@ class ConnectorProxyObjectMethodsTest extends ServerSetupWithTestData {
       }
 
       withClue(s"methods that threw: $failures") { failures shouldBe empty }
+    }
+
+    scenario("a public val on Connector is answered rather than compiled", ProxyObjectMethods) {
+      // messageDocs is `val messageDocs = ArrayBuffer[MessageDoc]()` on the Connector trait. The map
+      // that decides what dynamic code may implement is built from decls filtered by
+      // `!t.isVal && !t.isVar`, so a val is absent from it and lands on the stub path with the
+      // MdcLoggable members. Pinning that it answers at all - it used to throw - and that what it
+      // answers is the stub's own buffer, which is worth knowing before someone writes to it.
+      noException should be thrownBy InternalConnector.instance.messageDocs
+
+      InternalConnector.instance.messageDocs should be theSameInstanceAs
+        InternalConnector.instance.messageDocs
     }
 
     scenario("equality is still reference equality for a proxy", ProxyObjectMethods) {

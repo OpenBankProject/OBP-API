@@ -44,6 +44,10 @@ object ObpGrpcServer {
 // closing it, then binding leaves a window for another process to take it.
 class ObpGrpcServer(executionContext: ExecutionContext, port: Int = ObpGrpcServer.port) extends MdcLoggable { self =>
   private[this] var server: Server = null
+  // Recorded at start rather than read back off the server: stop() nulls the field, and for a
+  // server given port 0 the constructor argument it would fall back to is 0. @volatile because
+  // start() runs on one thread and callers read this from another.
+  @volatile private[this] var actualPort: Int = port
   def start(): Unit = {
 
     // Start chat event bus for Redis pub/sub streaming
@@ -75,7 +79,8 @@ class ObpGrpcServer(executionContext: ExecutionContext, port: Int = ObpGrpcServe
        else withLogCache)
       .asInstanceOf[ServerBuilder[_]]
     server = serverBuilder.build.start;
-    logger.info("Server started, listening on " + server.getPort)
+    actualPort = server.getPort
+    logger.info("Server started, listening on " + actualPort)
     sys.addShutdownHook {
       System.err.println("*** shutting down gRPC server since JVM is shutting down")
       self.stop()
@@ -84,7 +89,7 @@ class ObpGrpcServer(executionContext: ExecutionContext, port: Int = ObpGrpcServe
   }
 
   /** The port actually bound, which differs from the requested one when 0 was asked for. */
-  def boundPort: Int = if (server != null) server.getPort else port
+  def boundPort: Int = actualPort
 
   def stop(): Unit = {
     code.chat.ChatEventBus.stop()
