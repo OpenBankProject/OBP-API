@@ -174,6 +174,7 @@ trait ServerSetup extends AnyFeatureSpec with SendServerRequests
     DoobieUtil.runUpdate(sql"DELETE FROM apicollectionendpoint".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM featuredapicollection".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM consentauthcontext".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM mappeduserauthcontext".update.run)
   }
 
   val server = TestServer

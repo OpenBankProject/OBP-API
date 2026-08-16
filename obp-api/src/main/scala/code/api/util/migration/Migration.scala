@@ -981,11 +981,17 @@ object Migration extends MdcLoggable {
       * @param table The table we want to back up
       * @return true in case of success or false otherwise
       */
-    def makeBackUpOfTable(table: BaseMetaMapper): Boolean ={
+    def makeBackUpOfTable(table: BaseMetaMapper): Boolean = makeBackUpOfTableByName(table.dbTableName)
+
+    /**
+     * Same as makeBackUpOfTable, taking a plain table name rather than a Lift MetaMapper. For
+     * tables that have moved off Lift Mapper and no longer have one - the historical migration
+     * scripts that still reference them by name after the entity is deleted.
+     */
+    def makeBackUpOfTableByName(tableName: String): Boolean ={
       DB.use(net.liftweb.util.DefaultConnectionIdentifier) {
         conn =>
           try {
-            val tableName = table.dbTableName
             val sdf = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss_SSS")
             val resultDate = new Date(System.currentTimeMillis())
             val dbDriver = APIUtil.getPropsValue("db.driver","org.h2.Driver")

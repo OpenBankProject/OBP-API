@@ -4,20 +4,28 @@ import java.time.format.DateTimeFormatter
 import java.time.{ZoneId, ZonedDateTime}
 import code.api.util.APIUtil
 import code.api.util.migration.Migration.{DbFunction, saveLog}
-import code.context.MappedUserAuthContext
 import code.util.Helper
 import net.liftweb.common.Full
-import net.liftweb.mapper.{DB, Schemifier}
-import net.liftweb.util.DefaultConnectionIdentifier
+import net.liftweb.mapper.Schemifier
 
+/**
+ * One-time historical migration: widens mKey/mValue to varchar(4000). Originally looked the
+ * table up via the Lift MappedUserAuthContext entity; that entity is gone - the table is now
+ * created by Flyway at that width directly (see
+ * db/migration/h2/V019__mappeduserauthcontext.sql) - so this checks for the table by name
+ * instead. Kept only so migration_script_log stays a complete history; on a fresh Flyway-created
+ * table there is nothing left to widen.
+ */
 object MigrationOfUserAuthContextFieldLength {
+
+  private val tableName = "mappeduserauthcontext"
 
   val oneDayAgo = ZonedDateTime.now(ZoneId.of("UTC")).minusDays(1)
   val oneYearInFuture = ZonedDateTime.now(ZoneId.of("UTC")).plusYears(1)
   val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm'Z'")
 
   def alterColumnKeyAndValueLength(name: String): Boolean = {
-    DbFunction.tableExists(MappedUserAuthContext) match {
+    DbFunction.tableExistsByName(tableName) match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
@@ -61,7 +69,7 @@ object MigrationOfUserAuthContextFieldLength {
         val isSuccessful = false
         val endDate = System.currentTimeMillis()
         val comment: String =
-          s"""${MappedUserAuthContext._dbTableNameLC} table does not exist""".stripMargin
+          s"""$tableName table does not exist""".stripMargin
         saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
         isSuccessful
     }

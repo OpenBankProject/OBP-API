@@ -5,19 +5,30 @@ import java.time.{ZoneId, ZonedDateTime}
 
 import code.api.util.APIUtil
 import code.api.util.migration.Migration.{DbFunction, saveLog}
-import code.context.MappedUserAuthContext
 import net.liftweb.common.Full
-import net.liftweb.mapper.{DB, Schemifier}
-import net.liftweb.util.DefaultConnectionIdentifier
+import net.liftweb.mapper.Schemifier
 
+/**
+ * One-time historical migration: drops a legacy unique index that predates the current
+ * (userId, key, createdAt) one. Originally looked the table up via the Lift
+ * MappedUserAuthContext entity (DbFunction.tableExists(MappedUserAuthContext)); that entity is
+ * gone - the table is now created by Flyway (see
+ * db/migration/h2/V019__mappeduserauthcontext.sql) - so this checks for the table by name
+ * instead. Every environment that had already run this migration has it recorded in
+ * migration_script_log and runOnce skips it; a fresh environment's Flyway-created table never had
+ * the legacy index in the first place, so the drop is a no-op there. Kept only so
+ * migration_script_log stays a complete history.
+ */
 object MigrationOfMappedUserAuthContext {
-  
+
+  private val tableName = "mappeduserauthcontext"
+
   val oneDayAgo = ZonedDateTime.now(ZoneId.of("UTC")).minusDays(1)
   val oneYearInFuture = ZonedDateTime.now(ZoneId.of("UTC")).plusYears(1)
   val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm'Z'")
-  
+
   def dropUniqueIndex(name: String): Boolean = {
-    DbFunction.tableExists(MappedUserAuthContext) match {
+    DbFunction.tableExistsByName(tableName) match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
@@ -48,7 +59,7 @@ object MigrationOfMappedUserAuthContext {
         val isSuccessful = false
         val endDate = System.currentTimeMillis()
         val comment: String =
-          s"""${MappedUserAuthContext._dbTableNameLC} table does not exist""".stripMargin
+          s"""$tableName table does not exist""".stripMargin
         saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
         isSuccessful
     }
