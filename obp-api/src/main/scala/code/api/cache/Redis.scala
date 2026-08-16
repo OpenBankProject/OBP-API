@@ -323,8 +323,9 @@ object Redis extends MdcLoggable {
   //      pre-0.28 codec's "NONE".asInstanceOf[T] bug), never an exception on the request
   //      path. RedisDeserializeMissTest pins the decode half.
   //
-  //   TTL: setex(max(1, ttl.toSeconds)) matches scalacache's sub-second rounding; a non-finite
-  //   ttl stores without expiry, as scalacache's ttl=None did.
+  //   TTL: psetex(max(1, ttl.toMillis)) keeps scalacache's millisecond precision, so a
+  //   sub-second TTL expires when it says it does - see cachePut below for why setex was
+  //   wrong here. A non-finite ttl stores without expiry, as scalacache's ttl=None did.
 
   private[cache] def redisMemoKey(wrapperMethod: String, cacheKey: Option[String], excludedParamLists: Int): String =
     s"code.api.cache.Redis.$wrapperMethod($cacheKey)" + ("()" * excludedParamLists)
