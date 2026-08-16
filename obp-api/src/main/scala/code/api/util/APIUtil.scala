@@ -59,7 +59,7 @@ import code.bankconnectors.Connector
 import code.consumer.Consumers
 import code.customer.CustomerX
 import code.entitlement.Entitlement
-import code.etag.MappedETag
+import code.etag.ETagStore
 import code.metrics._
 import code.model._
 import code.model.dataAccess.AuthUser
@@ -435,22 +435,17 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
       epochTime
     }
 
-    def asyncUpdate(row: MappedETag, hash: String): Future[Boolean] = {
+    // Keyed by the cache key rather than by a row object: the Mapper version saved back the row
+    // it had just read, and the read was by this same unique column.
+    def asyncUpdate(cacheKey: String, hash: String): Future[Boolean] = {
       Future { // Async update
-        row
-          .LastUpdatedMSSinceEpoch(System.currentTimeMillis)
-          .ETagValue(hash)
-          .save
+        ETagStore.updateValue(cacheKey, hash, System.currentTimeMillis)
       }
     }
 
     def asyncCreate(cacheKey: String, hash: String): Future[Boolean] = {
       Future { // Async create
-        tryo(MappedETag.create
-          .ETagResource(cacheKey)
-          .ETagValue(hash)
-          .LastUpdatedMSSinceEpoch(System.currentTimeMillis)
-          .save) match {
+        tryo(ETagStore.create(cacheKey, hash, System.currentTimeMillis)) match {
           case Full(value) => value
           case other =>
             logger.debug(s"checkIfModifiedSinceHeader.asyncCreate($cacheKey, $hash)")
@@ -477,16 +472,16 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
     val eTag = HashUtil.calculateETag(url, httpBody)
 
     if(httpVerb.toUpperCase() == "GET" || httpVerb.toUpperCase() == "HEAD") { // If-Modified-Since can only be used with a GET or HEAD
-      val validETag = MappedETag.find(By(MappedETag.ETagResource, cacheKey)) match {
-        case Full(row) if row.lastUpdatedMSSinceEpoch < headerValueToMillis() =>
+      val validETag = ETagStore.find(cacheKey) match {
+        case Some(row) if row.lastUpdatedMSSinceEpoch < headerValueToMillis() =>
           val modified = row.eTagValue != eTag
           if(modified) {
-            asyncUpdate(row, eTag)
+            asyncUpdate(cacheKey, eTag)
             false // ETAg is outdated
           } else {
             true // ETAg is up to date
           }
-        case Empty =>
+        case None =>
           asyncCreate(cacheKey, eTag)
           false // There is no ETAg at all
         case _ =>

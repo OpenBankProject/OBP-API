@@ -38,7 +38,8 @@ class MigratedTablesExistTest extends ServerSetup {
     "connector_trace",
     "consent_item",
     "jsonschemavalidation",
-    "mappedtransactiontype"
+    "mappedtransactiontype",
+    "etag"
   )
 
   Feature("tables owned by Flyway rather than Schemifier") {

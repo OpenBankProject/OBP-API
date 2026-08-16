@@ -120,6 +120,7 @@ class SandboxDataLoadingTest extends AnyFlatSpec with SendServerRequests with Ma
     DoobieUtil.runUpdate(sql"DELETE FROM consent_item".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM jsonschemavalidation".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM mappedtransactiontype".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM etag".update.run)
 
     //we need to delete the test uses manully here.
     AuthUser.bulkDelete_!!(By(AuthUser.username, user1Import.user_name))

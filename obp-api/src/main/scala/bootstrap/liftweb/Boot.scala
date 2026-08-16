@@ -83,7 +83,6 @@ import code.endpointMapping.EndpointMapping
 import code.endpointTag.EndpointTag
 import code.entitlement.{Entitlement, MappedEntitlement}
 import code.entitlementrequest.MappedEntitlementRequest
-import code.etag.MappedETag
 import code.featuredapicollection.FeaturedApiCollection
 import code.fx.{MappedCurrency, MappedFXRate}
 import code.group.Group
@@ -925,7 +924,6 @@ object ToSchemify extends MdcLoggable {
   val models: List[MetaMapper[_]] = List(
     AuthUser,
     JobScheduler,
-    MappedETag,
     MappedSigningBasket,
     MappedSigningBasketPayment,
     MappedSigningBasketConsent,

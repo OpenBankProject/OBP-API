@@ -167,6 +167,7 @@ trait ServerSetup extends AnyFeatureSpec with SendServerRequests
     DoobieUtil.runUpdate(sql"DELETE FROM consent_item".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM jsonschemavalidation".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM mappedtransactiontype".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM etag".update.run)
   }
 
   val server = TestServer

@@ -36,6 +36,25 @@ import net.liftweb.util.ConnectionIdentifier
  *
  * The target database MUST be empty: Schemifier emits CREATE statements only for
  * objects that do not exist yet, so a non-empty database yields a partial baseline.
+ *
+ * THE EXPORTED INDEXES ARE NOT COMPLETE - CHECK THEM SEPARATELY.
+ *
+ * Unique indexes declared through dbIndexes do not appear in this output, even though the
+ * filter below keeps CREATE UNIQUE INDEX and Schemifier really does create them. A running
+ * instance has them; this dump does not. Absence here is therefore not evidence of absence
+ * in the database, and copying a table's DDL straight out of this file silently drops its
+ * unique constraints - which changes behaviour rather than failing loudly, since inserts
+ * that should have been rejected start succeeding.
+ *
+ * Ask the database instead, against an instance that booted normally:
+ *
+ *   SELECT table_name, index_name, index_type_name
+ *   FROM information_schema.indexes
+ *   WHERE table_name = 'YOUR_TABLE';
+ *
+ * and add by hand every row whose index_type_name is UNIQUE INDEX. Do not use this file to
+ * argue that a declared UniqueIndex "does not really exist" - that reasoning has already
+ * produced one wrong conclusion.
  */
 object FlywayBaselineExport {
 

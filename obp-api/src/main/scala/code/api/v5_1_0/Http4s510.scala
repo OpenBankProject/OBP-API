@@ -472,20 +472,19 @@ object Http4s510 {
         if (consumerId == "None" && userId == "None") "anonymous"
         else s"consumerId${consumerId}::userId${userId}"
       val cacheKey = s"$compositeKey::$hashedRequestPayload"
-      code.etag.MappedETag.find(By(code.etag.MappedETag.ETagResource, cacheKey)) match {
-        case Full(row) if row.lastUpdatedMSSinceEpoch < headerEpoch =>
+      code.etag.ETagStore.find(cacheKey) match {
+        case Some(row) if row.lastUpdatedMSSinceEpoch < headerEpoch =>
           val modified = row.eTagValue != currentETag
           if (modified) {
             // Async update — match Lift's behaviour
-            scala.concurrent.Future(row.LastUpdatedMSSinceEpoch(System.currentTimeMillis).ETagValue(currentETag).save)
+            scala.concurrent.Future(
+              code.etag.ETagStore.updateValue(cacheKey, currentETag, System.currentTimeMillis))
             false
           } else true
-        case Empty =>
+        case None =>
           // Async create
           scala.concurrent.Future(tryo(
-            code.etag.MappedETag.create
-              .ETagResource(cacheKey).ETagValue(currentETag)
-              .LastUpdatedMSSinceEpoch(System.currentTimeMillis).save))
+            code.etag.ETagStore.create(cacheKey, currentETag, System.currentTimeMillis)))
           false
         case _ => false
       }
