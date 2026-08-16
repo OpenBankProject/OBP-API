@@ -265,6 +265,11 @@ class Boot extends MdcLoggable {
      */
     MapperRules.createForeignKeys_? = (_) => APIUtil.getPropsAsBoolValue("mapper_rules.create_foreign_keys", false)
 
+    // Flyway owns the schema for tables whose Lift entity has been removed, and runs before both
+    // the dedup below and schemifyAll() so those tables exist by the time anything reads them.
+    // Gated by flyway.enabled (default false) while Schemifier still owns everything else.
+    code.api.util.flyway.FlywaySchemaSetup.runIfEnabled()
+
     // Pre-Schemifier dedup: drop natural-key duplicate rows in mapperaccountholder /
     // mappedentitlement BEFORE schemifyAll() issues their CREATE UNIQUE INDEX (declared in
     // MapperAccountHolders / MappedEntitlement dbIndexes). On a long-lived DB that still holds

@@ -167,3 +167,7 @@ dynamic_code_sandbox_permissions=[\
     new java.lang.RuntimePermission("accessDeclaredMembers"),\
     new java.lang.RuntimePermission("getClassLoader")\
 ]
+
+# Flyway owns the schema for tables whose Lift Mapper entity has been removed. Default false:
+# Schemifier is still the authority for every entity that remains.
+flyway.enabled=false

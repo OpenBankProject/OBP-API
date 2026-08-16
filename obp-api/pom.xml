@@ -411,6 +411,13 @@
       <artifactId>doobie-hikari_${scala.version}</artifactId>
       <version>1.0.0-RC4</version>
     </dependency>
+    <!-- Schema authority for tables whose Lift entity has been removed. Coexists with
+         Schemifier during the Mapper -> Doobie migration, gated by flyway.enabled. -->
+    <dependency>
+      <groupId>org.flywaydb</groupId>
+      <artifactId>flyway-core</artifactId>
+      <version>${flyway.version}</version>
+    </dependency>
     <dependency>
       <groupId>com.microsoft.sqlserver</groupId>
       <artifactId>mssql-jdbc</artifactId>

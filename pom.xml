@@ -13,6 +13,7 @@
   <properties>
     <scala.version>2.13</scala.version>
     <scala.compiler>2.13.18</scala.compiler>
+    <flyway.version>9.22.3</flyway.version>
     <pekko.version>1.1.5</pekko.version>
     <pekko-http.version>1.1.0</pekko-http.version>
     <!-- v1.0.5 is the first tag published for both Scala versions. Up to v1.0.4 JitPack ran its

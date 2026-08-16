@@ -1933,3 +1933,7 @@ securelogging_mask_email=true
 # ASPSP's own front end apart from a second TPP holding a PSU session, so it has to be declared.
 # Leave empty unless you use Redirect SCA: empty keeps the same-TPP rule applying to every caller.
 # berlin_group_sca_front_end_consumer_ids=
+
+# Flyway owns the schema for tables whose Lift Mapper entity has been removed. Default false:
+# Schemifier is still the authority for every entity that remains.
+# flyway.enabled=false
