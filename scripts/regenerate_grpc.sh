@@ -92,9 +92,14 @@ fi
 # standard stdin/stdout protoc plugin), so synthesize the shim the old zips contained.
 PLUGIN="$SCALAPBC_HOME/bin/protoc-gen-scala"
 if [[ ! -f "$PLUGIN" ]]; then
-  cat > "$PLUGIN" <<SHIM
+  # The shim locates its own lib/ at run time rather than having this machine's absolute path
+  # baked in. Both forms work where they were written, but a baked-in path silently points at
+  # another checkout's jars if target/grpc-codegen is ever copied or the worktree is moved -
+  # and this repository is routinely checked out into several worktrees at once.
+  cat > "$PLUGIN" <<'SHIM'
 #!/bin/sh
-exec java -cp "$SCALAPBC_HOME/lib/*" scalapb.ScalaPbCodeGenerator "\$@"
+DIR="$(cd "$(dirname "$0")/.." && pwd)"
+exec java -cp "$DIR/lib/*" scalapb.ScalaPbCodeGenerator "$@"
 SHIM
 fi
 chmod +x "$PLUGIN"
