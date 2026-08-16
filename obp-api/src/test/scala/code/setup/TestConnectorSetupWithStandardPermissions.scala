@@ -176,6 +176,7 @@ trait TestConnectorSetupWithStandardPermissions extends TestConnectorSetup {
     DoobieUtil.runUpdate(sql"DELETE FROM etag".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM authenticationtypevalidation".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM userlocks".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM connectormethod".update.run)
 
   }
 }

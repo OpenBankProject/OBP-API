@@ -10,7 +10,7 @@ object ConnectorMethodProvider extends SimpleInjector {
 
   val provider = new Inject(() => buildOne) {}
 
-  def buildOne: MappedConnectorMethodProvider.type = MappedConnectorMethodProvider
+  def buildOne: DoobieConnectorMethodProvider.type = DoobieConnectorMethodProvider
 }
 
 case class JsonConnectorMethod(connectorMethodId: Option[String], methodName: String, methodBody: String, programmingLang: String="Scala") extends JsonFieldReName{

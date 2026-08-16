@@ -62,7 +62,6 @@ import code.bankconnectors.{Connector, ConnectorEndpoints}
 import code.branches.MappedBranch
 import code.cardattribute.MappedCardAttribute
 import code.cards.{MappedPhysicalCard, PinReset}
-import code.connectormethod.ConnectorMethod
 import code.consent.{ConsentRequest, MappedConsent}
 import code.consumer.Consumers
 import code.model.Consumer
@@ -980,7 +979,6 @@ object ToSchemify extends MdcLoggable {
     ApiProduct,
     ApiProductAttribute,
     FeaturedApiCollection,
-    ConnectorMethod,
     DynamicResourceDoc,
     DynamicMessageDoc,
     EndpointTag,
