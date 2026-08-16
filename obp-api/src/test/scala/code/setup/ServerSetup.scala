@@ -158,6 +158,7 @@ trait ServerSetup extends AnyFeatureSpec with SendServerRequests
     // AtmTableResetIsolationTest fails if this is forgotten.
     DoobieUtil.runUpdate(sql"DELETE FROM mappedatm".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM mappednarrative".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM mappedcomment".update.run)
   }
 
   val server = TestServer

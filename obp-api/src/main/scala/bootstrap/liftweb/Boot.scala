@@ -98,7 +98,6 @@ import code.kycmedias.MappedKycMedia
 import code.kycstatuses.MappedKycStatus
 import code.loginattempts.{LoginAttempt, MappedBadLoginAttempt}
 import code.meetings.{MappedMeeting, MappedMeetingInvitee}
-import code.metadata.comments.MappedComment
 import code.metadata.counterparties.{MappedCounterparty, MappedCounterpartyBespoke, MappedCounterpartyMetadata, MappedCounterpartyWhereTag}
 import code.metadata.tags.MappedTag
 import code.metadata.transactionimages.MappedTransactionImage
@@ -1010,7 +1009,6 @@ object ToSchemify extends MdcLoggable {
     UserInvitation,
     UserAgreement,
     UserAttribute,
-    MappedComment,
     MappedTag,
     MappedWhereTag,
     MappedTransactionImage,

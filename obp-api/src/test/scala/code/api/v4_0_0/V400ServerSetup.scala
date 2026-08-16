@@ -17,12 +17,11 @@ import code.api.v3_0_0.{CustomerAttributeResponseJsonV300, TransactionJsonV300, 
 import code.api.v3_1_0._
 import code.consumer.Consumers
 import code.entitlement.Entitlement
-import code.metadata.comments.MappedComment
 import code.metadata.transactionimages.MappedTransactionImage
 import code.metadata.wheretags.MappedWhereTag
 import code.setup.{APIResponse, DefaultUsers, ServerSetupWithTestData}
 import code.transactionattribute.MappedTransactionAttribute
-import com.openbankproject.commons.model.{AccountId, AccountRoutingJsonV121, AmountOfMoneyJsonV121, BankId, CreateViewJson, TransactionId, UpdateViewJSON}
+import com.openbankproject.commons.model.{AccountId, AccountRoutingJsonV121, AmountOfMoneyJsonV121, BankId, CreateViewJson, TransactionId, UpdateViewJSON, ViewId}
 import com.openbankproject.commons.util.ApiShortVersions
 import code.setup.OBPReq
 import org.json4s.native.Serialization.write
@@ -333,11 +332,11 @@ trait V400ServerSetup extends ServerSetupWithTestData with DefaultUsers {
       By(MappedTransactionAttribute.mBankId, bankId),
       By(MappedTransactionAttribute.mTransactionId, transactionId)
     ).size == 0
-    val comments = MappedComment.findAll(
-      By(MappedComment.bank, bankId),
-      By(MappedComment.account, accountId),
-      By(MappedComment.transaction, transactionId)
-    ).size == 0
+    // Comments are Doobie-backed now; ask the provider the same question. getComments is scoped
+    // by view, so this checks the views the cascade test posts on.
+    val comments = List("owner", "auditor", "accountant").forall(v =>
+      code.metadata.comments.Comments.comments.vend
+        .getComments(BankId(bankId), AccountId(accountId), TransactionId(transactionId))(ViewId(v)).isEmpty)
     // Narrative is Doobie-backed now, so this asks the provider instead of the entity. Same
     // question: is there no narrative left for this transaction after the cascade.
     val narrative = code.metadata.narrative.Narrative.narrative.vend
