@@ -942,7 +942,6 @@ object ToSchemify extends MdcLoggable {
     TransactionRequestReasons,
     MappedMeeting,
     MappedMeetingInvitee,
-    MappedBankAccountData,
     MappedPhysicalCard,
     PinReset,
     MappedBadLoginAttempt,

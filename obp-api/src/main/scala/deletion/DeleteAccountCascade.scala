@@ -7,11 +7,13 @@ import code.api.util.ErrorMessages.CouldNotDeleteCascade
 import code.bankconnectors.Connector
 import code.cards.MappedPhysicalCard
 import code.entitlement.MappedEntitlement
-import code.model.dataAccess.{BankAccountRouting, MappedBankAccount, MappedBankAccountData}
+import code.api.util.DoobieUtil
+import code.model.dataAccess.{BankAccountRouting, MappedBankAccount}
 import code.views.system.{AccountAccess, ViewDefinition}
 import code.webhook.MappedAccountWebhook
 import com.openbankproject.commons.model.{AccountId, BankId}
 import deletion.DeletionUtil.databaseAtomicTask
+import doobie.implicits._
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.db.DB
 import net.liftweb.mapper.{By, ByList}
@@ -73,10 +75,10 @@ object DeleteAccountCascade {
   }.forall(_ == true)
   
   private def deleteBankAccountData(bankId: BankId, accountId: AccountId): Boolean = {
-    MappedBankAccountData.bulkDelete_!!(
-      By(MappedBankAccountData.bankId, bankId.value),
-      By(MappedBankAccountData.accountId, accountId.value)
-    )
+    DoobieUtil.runUpdate(
+      sql"DELETE FROM mappedbankaccountdata WHERE bankid = ${bankId.value} AND accountid = ${accountId.value}"
+        .update.run)
+    true
   }  
   private def deleteAccountWebhooks(bankId: BankId, accountId: AccountId): Boolean = {
     MappedAccountWebhook.bulkDelete_!!(
