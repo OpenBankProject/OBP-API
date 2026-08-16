@@ -4,8 +4,8 @@ import code.accountapplication.MappedAccountApplication
 import code.api.APIFailureNewStyle
 import code.api.util.APIUtil.fullBoxOrException
 import code.api.util.ErrorMessages.CouldNotDeleteCascade
+import code.api.util.DoobieUtil
 import code.customer.MappedCustomer
-import code.customer.internalMapping.MappedCustomerIdMapping
 import code.customeraccountlinks.CustomerAccountLink
 import code.customeraddress.MappedCustomerAddress
 import code.customerattribute.MappedCustomerAttribute
@@ -17,6 +17,7 @@ import code.taxresidence.MappedTaxResidence
 import code.usercustomerlinks.MappedUserCustomerLink
 import com.openbankproject.commons.model.CustomerId
 import deletion.DeletionUtil.databaseAtomicTask
+import doobie.implicits._
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.db.DB
 import net.liftweb.mapper.By
@@ -108,9 +109,9 @@ object DeleteCustomerCascade {
     )
   }
   private def deleteCustomerIdMapping(customerId: CustomerId): Boolean = {
-    MappedCustomerIdMapping.bulkDelete_!!(
-      By(MappedCustomerIdMapping.mCustomerId, customerId.value)
-    )
+    DoobieUtil.runUpdate(
+      sql"DELETE FROM mappedcustomeridmapping WHERE mcustomerid = ${customerId.value}".update.run)
+    true
   }
 
 }

@@ -67,7 +67,6 @@ import code.model.Consumer
 import code.context.MappedUserAuthContextUpdate
 import code.counterpartylimit.CounterpartyLimit
 import code.crm.MappedCrmEvent
-import code.customer.internalMapping.MappedCustomerIdMapping
 import code.customer.{MappedCustomer, MappedCustomerMessage}
 import code.customeraccountlinks.CustomerAccountLink
 import code.customeraddress.MappedCustomerAddress
@@ -953,7 +952,6 @@ object ToSchemify extends MdcLoggable {
     MappedAccountWebhook,
     SystemAccountNotificationWebhook,
     BankAccountNotificationWebhook,
-    MappedCustomerIdMapping,
     MappedProductAttribute,
     MappedConsent,
     ConsentRequest,
