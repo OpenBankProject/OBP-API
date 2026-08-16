@@ -1,6 +1,6 @@
 package code.sandbox
 
-import code.atms.MappedAtm
+import code.atms.Atms
 import code.branches.MappedBranch
 import code.crm.MappedCrmEvent
 import code.metadata.counterparties.MappedCounterpartyMetadata
@@ -9,7 +9,7 @@ import code.products.MappedProduct
 import code.transaction.MappedTransaction
 import code.views.Views
 import com.openbankproject.commons.model.enums.AccountRoutingScheme
-import com.openbankproject.commons.model.{AccountId, BankId, View}
+import com.openbankproject.commons.model.{AccountId, Address, AtmId, AtmT, BankId, License, Location, Meta, View}
 
 // , MappedDataLicense
 import code.util.Helper.convertToSmallestCurrencyUnits
@@ -21,6 +21,12 @@ case class MappedSaveable[T <: Mapper[_]](value : T) extends Saveable[T] {
   def save() = value.save
 }
 
+// ATM persistence goes through the active AtmsProvider (Doobie): the sandbox import must not
+// write the row with Mapper while every read of it comes back through the provider.
+case class SaveableAtm(value : AtmT) extends Saveable[AtmT] {
+  def save() = Atms.atmsProvider.vend.createOrUpdateAtm(value)
+}
+
 object LocalMappedConnectorDataImport extends OBPDataImport with CreateAuthUsers {
 
   // Rename these types as MappedCrmEventType etc? Else can get confused with other types of same name
@@ -30,7 +36,7 @@ object LocalMappedConnectorDataImport extends OBPDataImport with CreateAuthUsers
   type MetadataType = MappedCounterpartyMetadata
   type TransactionType = MappedTransaction
   type BranchType = MappedBranch
-  type AtmType = MappedAtm
+  type AtmType = AtmT
   type ProductType = MappedProduct
   type CrmEventType = MappedCrmEvent
 
@@ -95,37 +101,36 @@ object LocalMappedConnectorDataImport extends OBPDataImport with CreateAuthUsers
 /////
 
   protected def createSaveableAtms(data : List[SandboxAtmImport]) : Box[List[Saveable[AtmType]]] = {
-    val mappedAtms = data.map(atm => {
+    val atms: List[AtmT] = data.map(atm =>
+      Atms.Atm(
+        atmId  = AtmId(atm.id),
+        bankId = BankId(atm.bank_id),
+        name   = atm.name,
+        // Note: address fields are returned in meta.address but are stored flat as columns in the table
+        address = Address(
+          line1       = atm.address.line_1,
+          line2       = atm.address.line_2,
+          line3       = atm.address.line_3,
+          city        = atm.address.city,
+          county      = Some(atm.address.county),
+          state       = atm.address.state,
+          postCode    = atm.address.post_code,
+          countryCode = atm.address.country_code
+        ),
+        location = Location(atm.location.latitude, atm.location.longitude, None, None),
+        meta     = Meta(License(id = atm.meta.license.id, name = atm.meta.license.name)),
+        OpeningTimeOnMonday = None, ClosingTimeOnMonday = None,
+        OpeningTimeOnTuesday = None, ClosingTimeOnTuesday = None,
+        OpeningTimeOnWednesday = None, ClosingTimeOnWednesday = None,
+        OpeningTimeOnThursday = None, ClosingTimeOnThursday = None,
+        OpeningTimeOnFriday = None, ClosingTimeOnFriday = None,
+        OpeningTimeOnSaturday = None, ClosingTimeOnSaturday = None,
+        OpeningTimeOnSunday = None, ClosingTimeOnSunday = None,
+        isAccessible = None, locatedAt = None, moreInfo = None, hasDepositCapability = None
+      )
+    )
 
-
-      MappedAtm.create
-        .mAtmId(atm.id)
-        .mBankId(atm.bank_id)
-        .mName(atm.name)
-        // Note: address fields are returned in meta.address
-        // but are stored flat as fields / columns in the table
-        .mLine1(atm.address.line_1)
-        .mLine2(atm.address.line_2)
-        .mLine3(atm.address.line_3)
-        .mCity(atm.address.city)
-        .mCounty(atm.address.county)
-        .mState(atm.address.state)
-        .mPostCode(atm.address.post_code)
-        .mCountryCode(atm.address.country_code)
-        .mlocationLatitude(atm.location.latitude)
-        .mlocationLongitude(atm.location.longitude)
-        .mLicenseId(atm.meta.license.id)
-        .mLicenseName(atm.meta.license.name)
-    })
-
-    val validationErrors = mappedAtms.flatMap(_.validate)
-
-    if (validationErrors.nonEmpty) {
-      Failure(s"Errors: ${validationErrors.map(_.msg)}")
-    } else {
-      Full(mappedAtms.map(MappedSaveable(_)))
-    }
-
+    Full(atms.map(SaveableAtm(_)))
   }
 
 
