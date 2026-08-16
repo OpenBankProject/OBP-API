@@ -47,7 +47,6 @@ class MappedClassNameTest extends AnyFeatureSpec {
     "code.taxresidence.MappedTaxResidence",
     "code.atms.MappedAtm",
     "code.meetings.MappedMeetingInvitee",
-    "code.api.pemusage.PemUsage",
     "code.transactionrequests.MappedTransactionRequestTypeCharge",
     "code.usercustomerlinks.MappedUserCustomerLink",
     "code.views.system.ViewDefinition",
