@@ -18,12 +18,11 @@ import code.api.v3_1_0._
 import code.consumer.Consumers
 import code.entitlement.Entitlement
 import code.metadata.comments.MappedComment
-import code.metadata.narrative.MappedNarrative
 import code.metadata.transactionimages.MappedTransactionImage
 import code.metadata.wheretags.MappedWhereTag
 import code.setup.{APIResponse, DefaultUsers, ServerSetupWithTestData}
 import code.transactionattribute.MappedTransactionAttribute
-import com.openbankproject.commons.model.{AccountId, AccountRoutingJsonV121, AmountOfMoneyJsonV121, BankId, CreateViewJson, UpdateViewJSON}
+import com.openbankproject.commons.model.{AccountId, AccountRoutingJsonV121, AmountOfMoneyJsonV121, BankId, CreateViewJson, TransactionId, UpdateViewJSON}
 import com.openbankproject.commons.util.ApiShortVersions
 import code.setup.OBPReq
 import org.json4s.native.Serialization.write
@@ -339,11 +338,10 @@ trait V400ServerSetup extends ServerSetupWithTestData with DefaultUsers {
       By(MappedComment.account, accountId),
       By(MappedComment.transaction, transactionId)
     ).size == 0
-    val narrative = MappedNarrative.findAll(
-      By(MappedNarrative.bank, bankId),
-      By(MappedNarrative.account, accountId),
-      By(MappedNarrative.transaction, transactionId)
-    ).size == 0
+    // Narrative is Doobie-backed now, so this asks the provider instead of the entity. Same
+    // question: is there no narrative left for this transaction after the cascade.
+    val narrative = code.metadata.narrative.Narrative.narrative.vend
+      .getNarrative(BankId(bankId), AccountId(accountId), TransactionId(transactionId))().isEmpty
     val images = MappedTransactionImage.findAll(
       By(MappedTransactionImage.bank, bankId),
       By(MappedTransactionImage.account, accountId),

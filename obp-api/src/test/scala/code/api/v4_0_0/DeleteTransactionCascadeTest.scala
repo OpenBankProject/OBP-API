@@ -8,7 +8,6 @@ import code.api.util.ErrorMessages.{UserHasMissingRoles, AuthenticatedUserIsRequ
 import code.api.v4_0_0.OBPAPI4_0_0.Implementations4_0_0
 import code.entitlement.Entitlement
 import code.metadata.comments.MappedComment
-import code.metadata.narrative.MappedNarrative
 import code.metadata.transactionimages.MappedTransactionImage
 import code.metadata.wheretags.MappedWhereTag
 import code.transactionattribute.MappedTransactionAttribute

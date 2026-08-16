@@ -100,7 +100,6 @@ import code.loginattempts.{LoginAttempt, MappedBadLoginAttempt}
 import code.meetings.{MappedMeeting, MappedMeetingInvitee}
 import code.metadata.comments.MappedComment
 import code.metadata.counterparties.{MappedCounterparty, MappedCounterpartyBespoke, MappedCounterpartyMetadata, MappedCounterpartyWhereTag}
-import code.metadata.narrative.MappedNarrative
 import code.metadata.tags.MappedTag
 import code.metadata.transactionimages.MappedTransactionImage
 import code.metadata.wheretags.MappedWhereTag
@@ -1015,7 +1014,6 @@ object ToSchemify extends MdcLoggable {
     MappedTag,
     MappedWhereTag,
     MappedTransactionImage,
-    MappedNarrative,
     MappedCustomer,
     MappedUserCustomerLink,
     CustomerLink,

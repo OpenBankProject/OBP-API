@@ -163,6 +163,7 @@ trait TestConnectorSetupWithStandardPermissions extends TestConnectorSetup {
     // loop above does not clear them. Each such table needs its own explicit delete here.
     // AtmTableResetIsolationTest fails if this is forgotten.
     DoobieUtil.runUpdate(sql"DELETE FROM mappedatm".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM mappednarrative".update.run)
 
   }
 }

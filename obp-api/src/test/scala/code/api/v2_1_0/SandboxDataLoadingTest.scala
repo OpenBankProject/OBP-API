@@ -110,6 +110,7 @@ class SandboxDataLoadingTest extends AnyFlatSpec with SendServerRequests with Ma
     // loop above does not clear them. Each such table needs its own explicit delete here.
     // AtmTableResetIsolationTest fails if this is forgotten.
     DoobieUtil.runUpdate(sql"DELETE FROM mappedatm".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM mappednarrative".update.run)
 
     //we need to delete the test uses manully here.
     AuthUser.bulkDelete_!!(By(AuthUser.username, user1Import.user_name))
