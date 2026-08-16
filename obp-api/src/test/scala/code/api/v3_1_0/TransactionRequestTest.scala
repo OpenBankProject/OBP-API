@@ -50,9 +50,9 @@ class TransactionRequestTest extends V310ServerSetup {
   object VersionOfApi extends Tag(ApiVersion.v3_1_0.toString)
   object ApiEndpoint1 extends Tag(nameOf(Implementations3_1_0.getTransactionRequests))
 
-  feature("Get Transaction Requests - v3.1.0")
+  Feature("Get Transaction Requests - v3.1.0")
   {
-    scenario("We will Get Transaction Requests - user is NOT logged in", ApiEndpoint1, VersionOfApi) {
+    Scenario("We will Get Transaction Requests - user is NOT logged in", ApiEndpoint1, VersionOfApi) {
       When("We make a request v3.1.0")
       val bankId = randomBankId
       val bankAccount = randomPrivateAccount(bankId)
@@ -64,7 +64,7 @@ class TransactionRequestTest extends V310ServerSetup {
       And("error should be " + AuthenticatedUserIsRequired)
       response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
-    scenario("We will Get Transaction Requests - user is logged in", ApiEndpoint1, VersionOfApi) {
+    Scenario("We will Get Transaction Requests - user is logged in", ApiEndpoint1, VersionOfApi) {
       When("We make a request v3.1.0")
       val bankId = randomBankId
       val bankAccount = randomPrivateAccount(bankId)
@@ -75,7 +75,7 @@ class TransactionRequestTest extends V310ServerSetup {
       response310.code should equal(200)
       response310.body.extract[TransactionRequestWithChargeJSONs210]
     }
-    scenario("We will try to Get Transaction Requests for someone else account - user is logged in", ApiEndpoint1, VersionOfApi) {
+    Scenario("We will try to Get Transaction Requests for someone else account - user is logged in", ApiEndpoint1, VersionOfApi) {
       When("We make a request v3.1.0")
       val bankId = randomBankId
       val account = createAccountRelevantResource(Some(resourceUser1), BankId(bankId), AccountId(APIUtil.generateUUID()), "EUR")

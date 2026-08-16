@@ -43,11 +43,13 @@ WATCH_CALLS = ("setPropsValues(",)
 # - scenario:      ScalaTest test method.
 # - beforeEach/afterEach/beforeAll/afterAll: ScalaTest hooks run at test time.
 # - def <name>:    helper methods, assumed safe (called from scenarios).
+# Scenario/Feature are capitalised since the scalatest 3.2 migration (AnyFeatureSpec's DSL);
+# the lowercase spellings stay listed so this keeps working on any not-yet-migrated file.
 GOOD_KEYWORD_RE = re.compile(
-    r"\b(scenario|beforeEach|afterEach|beforeAll|afterAll|def\s+\w+)\b"
+    r"\b(Scenario|scenario|beforeEach|afterEach|beforeAll|afterAll|def\s+\w+)\b"
 )
 # "BAD" — feature body. setPropsValues at this scope runs at class-init.
-BAD_KEYWORD_RE = re.compile(r"\bfeature\b")
+BAD_KEYWORD_RE = re.compile(r"\b(Feature|feature)\b")
 
 
 def strip_strings_and_comments(src: str) -> str:

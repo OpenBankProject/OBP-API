@@ -64,9 +64,9 @@ import java.util.UUID
  */
 class ConcurrentViewPermissionRaceTest extends ConcurrentRaceSetup {
 
-  feature("Concurrent view-permission mutation must stay graceful and consistent") {
+  Feature("Concurrent view-permission mutation must stay graceful and consistent") {
 
-    scenario("N: concurrent getOrCreateCustomPublicView must not throw and leave exactly one view", ConcurrencyRace) {
+    Scenario("N: concurrent getOrCreateCustomPublicView must not throw and leave exactly one view", ConcurrencyRace) {
       Given("allow_public_views=true and an account with no _public view yet")
       setPropsValues("allow_public_views" -> "true")
       val bank      = createBank("__conc-pubview-bank")
@@ -100,7 +100,7 @@ class ConcurrentViewPermissionRaceTest extends ConcurrentRaceSetup {
       }
     }
 
-    scenario("O: concurrent resetViewPermissions on one view must not throw and must leave one row per permission", ConcurrencyRace) {
+    Scenario("O: concurrent resetViewPermissions on one view must not throw and must leave one row per permission", ConcurrencyRace) {
       Given("a dedicated custom view with a known permission set")
       val bank      = createBank("__conc-viewperm-bank")
       val bankId    = bank.bankId
@@ -155,7 +155,7 @@ class ConcurrentViewPermissionRaceTest extends ConcurrentRaceSetup {
       }
     }
 
-    scenario("R: removeCustomView's empty-check then delete must not orphan a concurrent grant", ConcurrencyRace) {
+    Scenario("R: removeCustomView's empty-check then delete must not orphan a concurrent grant", ConcurrencyRace) {
       Given("a custom view with no AccountAccess, so removeCustomView's emptiness guard would pass")
       val bank      = createBank("__conc-orphan-bank")
       val bankId    = bank.bankId

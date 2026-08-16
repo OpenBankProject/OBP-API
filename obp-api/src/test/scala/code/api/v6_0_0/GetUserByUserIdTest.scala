@@ -18,9 +18,9 @@ class GetUserByUserIdTest extends V600ServerSetup with DefaultUsers {
   object VersionOfApi extends Tag(ApiVersion.v6_0_0.toString)
   object ApiEndpoint extends Tag(nameOf(Implementations6_0_0.getUserByUserId))
 
-  feature(s"Get User by USER_ID - GET /obp/v6.0.0/users/user-id/USER_ID - $VersionOfApi") {
+  Feature(s"Get User by USER_ID - GET /obp/v6.0.0/users/user-id/USER_ID - $VersionOfApi") {
 
-    scenario("Anonymous access should fail with 401", ApiEndpoint, VersionOfApi) {
+    Scenario("Anonymous access should fail with 401", ApiEndpoint, VersionOfApi) {
       When("We make the request without authentication")
       val request = (v6_0_0_Request / "users" / "user-id" / resourceUser1.userId).GET
       val response = makeGetRequest(request)
@@ -31,7 +31,7 @@ class GetUserByUserIdTest extends V600ServerSetup with DefaultUsers {
       response.body.extract[ErrorMessage].message should equal(ErrorMessages.AuthenticatedUserIsRequired)
     }
 
-    scenario("Authenticated user without role should fail with 403", ApiEndpoint, VersionOfApi) {
+    Scenario("Authenticated user without role should fail with 403", ApiEndpoint, VersionOfApi) {
       When("We make the request as an authenticated user without the required role")
       val request = (v6_0_0_Request / "users" / "user-id" / resourceUser1.userId).GET <@ (user1)
       val response = makeGetRequest(request)
@@ -42,7 +42,7 @@ class GetUserByUserIdTest extends V600ServerSetup with DefaultUsers {
       response.body.extract[ErrorMessage].message should equal(UserHasMissingRoles + CanGetAnyUser)
     }
 
-    scenario("Authenticated user with CanGetAnyUser role should succeed", ApiEndpoint, VersionOfApi) {
+    Scenario("Authenticated user with CanGetAnyUser role should succeed", ApiEndpoint, VersionOfApi) {
       val addedEntitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetAnyUser.toString)
 
       When("We make the request with the required role")

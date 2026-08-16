@@ -30,9 +30,9 @@ class ConsentTests extends V400ServerSetup with DefaultUsers {
   object VersionOfApi extends Tag(ApiVersion.v4_0_0.toString)
   object ApiEndpoint1 extends Tag(nameOf(Implementations4_0_0.getConsents))
 
-  feature("Assuring that endpoint createBank works as expected - v4.0.0") {
+  Feature("Assuring that endpoint createBank works as expected - v4.0.0") {
 
-    scenario(s"We try to consume endpoint $ApiEndpoint1 - Anonymous access", ApiEndpoint1, VersionOfApi) {
+    Scenario(s"We try to consume endpoint $ApiEndpoint1 - Anonymous access", ApiEndpoint1, VersionOfApi) {
       When("We make the request")
       val requestGet = (v4_0_0_Request / "banks" / "SOME_BANK" / "my" / "consents").GET
       val responseGet = makeGetRequest(requestGet)
@@ -42,7 +42,7 @@ class ConsentTests extends V400ServerSetup with DefaultUsers {
       responseGet.body.extract[ErrorMessage].message should equal(ErrorMessages.AuthenticatedUserIsRequired)
     }
 
-    scenario(s"We try to consume endpoint $ApiEndpoint1 - Authorized access", ApiEndpoint1, VersionOfApi) {
+    Scenario(s"We try to consume endpoint $ApiEndpoint1 - Authorized access", ApiEndpoint1, VersionOfApi) {
       When("We make the request")
       val requestGet = (v4_0_0_Request / "banks" / "SOME_BANK_WHICH_SHOULD_NOT_EXIST" / "my" / "consents").GET <@ (user1)
       val responseGet = makeGetRequest(requestGet)

@@ -55,8 +55,8 @@ class ResponseHeadersTest extends V510ServerSetup with DefaultUsers {
     makeGetRequest((v5_1_0_Request / "banks" / bankId / "atms").GET <@(consumerAndToken), List((RequestHeader.`If-Modified-Since`, sinceDate)))
   }
   
-  feature(s"Test ETag Header Response") {
-    scenario(s"Test ETag Header Response", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, VersionOfApi) {
+  Feature(s"Test ETag Header Response") {
+    Scenario(s"Test ETag Header Response", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, VersionOfApi) {
       
       val ETag1 = getETagHeader(getAtms())
       
@@ -108,15 +108,15 @@ class ResponseHeadersTest extends V510ServerSetup with DefaultUsers {
    * and if both values match (that is, the resource has not changed), the server sends back a 304 Not Modified status, 
    * without a body, which tells the client that the cached version of the response is still good to use (fresh).
    */
-  feature(s"Test ETag Header Response - If-Not-Match") {
-    scenario(s"Test ETag Header Response", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, VersionOfApi) {
+  Feature(s"Test ETag Header Response - If-Not-Match") {
+    Scenario(s"Test ETag Header Response", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, VersionOfApi) {
       val ETag1 = getETagHeader(getAtms())
       getAtmsWithIfNotMatchHeader(ETag1).code should equal(304)
     }
   }
 
-  feature(s"Test Request Header - If-Modified-Since") {
-    scenario(s"Test ETag Header Response", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, VersionOfApi) {
+  Feature(s"Test Request Header - If-Modified-Since") {
+    Scenario(s"Test ETag Header Response", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, VersionOfApi) {
       val sinceDateString = APIUtil.DateWithSecondsFormat.format(new Date())
       val firstCall = getAtmsWithIfModifiedSinceHeader(sinceDateString)
       firstCall.code should equal(200)
@@ -146,8 +146,8 @@ class ResponseHeadersTest extends V510ServerSetup with DefaultUsers {
   }
 
   
-  feature(s"Test Request Header - If-Modified-Since - Logged In User") {
-    scenario(s"Test ETag Header Response", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, VersionOfApi) {
+  Feature(s"Test Request Header - If-Modified-Since - Logged In User") {
+    Scenario(s"Test ETag Header Response", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, VersionOfApi) {
       val sinceDateString = APIUtil.DateWithSecondsFormat.format(new Date())
       val firstCall = getAtmsWithIfModifiedSinceHeader(sinceDateString, user1)
       firstCall.code should equal(200)

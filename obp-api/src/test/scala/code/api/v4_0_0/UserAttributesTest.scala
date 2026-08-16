@@ -37,8 +37,8 @@ class UserAttributesTest extends V400ServerSetup {
 
   
 
-  feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "my" / "user" / "attributes").POST
       val response400 = makePostRequest(request400, write(postUserAttributeJsonV400))
@@ -48,8 +48,8 @@ class UserAttributesTest extends V400ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint1 version $VersionOfApi - authorized access") {
-    scenario("We will call the endpoint with user credentials", ApiEndpoint2, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1 version $VersionOfApi - authorized access") {
+    Scenario("We will call the endpoint with user credentials", ApiEndpoint2, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "my" / "user" / "attributes").POST <@ (user1)
       val response400 = makePostRequest(request400, write(postUserAttributeJsonV400))
@@ -61,8 +61,8 @@ class UserAttributesTest extends V400ServerSetup {
   }
 
 
-  feature(s"test $ApiEndpoint2 version $VersionOfApi - Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint2, VersionOfApi) {
+  Feature(s"test $ApiEndpoint2 version $VersionOfApi - Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint2, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "my" / "user" / "attributes").GET
       val response400 = makePostRequest(request400, write(postUserAttributeJsonV400))
@@ -71,8 +71,8 @@ class UserAttributesTest extends V400ServerSetup {
       response400.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
-  feature(s"test $ApiEndpoint2 version $VersionOfApi - authorized access") {
-    scenario("We will call the endpoint with user credentials", ApiEndpoint1, ApiEndpoint2, VersionOfApi) {
+  Feature(s"test $ApiEndpoint2 version $VersionOfApi - authorized access") {
+    Scenario("We will call the endpoint with user credentials", ApiEndpoint1, ApiEndpoint2, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "my" / "user" / "attributes").POST <@ (user1)
       val response400 = makePostRequest(request400, write(postUserAttributeJsonV400))
@@ -90,8 +90,8 @@ class UserAttributesTest extends V400ServerSetup {
 
 
 
-  feature(s"test $ApiEndpoint3 version $VersionOfApi - Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint3, VersionOfApi) {
+  Feature(s"test $ApiEndpoint3 version $VersionOfApi - Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint3, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "my" / "user" / "attributes" / "USER_ATTRIBUTE_ID").PUT
       val response400 = makePutRequest(request400, write(putUserAttributeJsonV400))
@@ -100,8 +100,8 @@ class UserAttributesTest extends V400ServerSetup {
       response400.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
   }
-  feature(s"test $ApiEndpoint3 version $VersionOfApi - authorized access") {
-    scenario("We will call the endpoint with user credentials", ApiEndpoint1, ApiEndpoint2, VersionOfApi) {
+  Feature(s"test $ApiEndpoint3 version $VersionOfApi - authorized access") {
+    Scenario("We will call the endpoint with user credentials", ApiEndpoint1, ApiEndpoint2, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "my" / "user" / "attributes").POST <@ (user1)
       val response400 = makePostRequest(request400, write(postUserAttributeJsonV400))

@@ -10,9 +10,9 @@ class ResourceDocsTechnologyTest extends ServerSetup with PropsReset {
   private val v600 = ApiVersion.v6_0_0.toString
   private val v500 = ApiVersion.v5_0_0.toString
 
-  feature("ResourceDocs implemented_by.technology") {
+  Feature("ResourceDocs implemented_by.technology") {
 
-    scenario(s"$v600 resource-docs should include implemented_by.technology") {
+    Scenario(s"$v600 resource-docs should include implemented_by.technology") {
       setPropsValues("resource_docs_requires_role" -> "false")
 
       val request = (baseRequest / "obp" / v600 / "resource-docs" / v600 / "obp").GET
@@ -35,7 +35,7 @@ class ResourceDocsTechnologyTest extends ServerSetup with PropsReset {
       }
     }
 
-    scenario(s"$v500 resource-docs should not include implemented_by.technology") {
+    Scenario(s"$v500 resource-docs should not include implemented_by.technology") {
       setPropsValues("resource_docs_requires_role" -> "false")
 
       val request = (baseRequest / "obp" / v500 / "resource-docs" / v500 / "obp").GET

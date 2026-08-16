@@ -35,22 +35,22 @@ class CacheKeyGoldenTest extends ServerSetup {
     f
   }
 
-  feature("memoize keys survive the macro-to-explicit rewrite byte-identically") {
+  Feature("memoize keys survive the macro-to-explicit rewrite byte-identically") {
 
-    scenario("AuthUser.updateComputedLocale keys by (sessionId, computedLocale) - the session dimension") {
+    Scenario("AuthUser.updateComputedLocale keys by (sessionId, computedLocale) - the session dimension") {
       val session = s"golden-${java.util.UUID.randomUUID().toString}"
       val expected = expectedRedisKey(s"(code.model.dataAccess.AuthUser,updateComputedLocale,${session}_en_GB)")
       afterClearing(expected)(AuthUser.updateComputedLocale(session, "en_GB"))
       Redis.scanKeys(s"*$session*") should contain(expected)
     }
 
-    scenario("ResourceUser.getDistinctProviders keys with an empty argument segment") {
+    Scenario("ResourceUser.getDistinctProviders keys with an empty argument segment") {
       val expected = expectedRedisKey("(code.model.dataAccess.ResourceUser,getDistinctProviders,)")
       afterClearing(expected)(ResourceUser.getDistinctProviders)
       Redis.scanKeys("*getDistinctProviders*") should contain(expected)
     }
 
-    scenario("MappedMetrics.getAllAggregateMetricsBox keys by its full query-parameter list") {
+    Scenario("MappedMetrics.getAllAggregateMetricsBox keys by its full query-parameter list") {
       import code.api.util.{OBPFromDate, OBPLimit, OBPOffset, OBPToDate}
       val marker = 7654321 // an offset value unlikely to collide with other suites' keys
       val from = new java.util.Date(0L)

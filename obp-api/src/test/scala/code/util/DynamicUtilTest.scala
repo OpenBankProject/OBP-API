@@ -35,14 +35,17 @@ import com.openbankproject.commons.model.BankId
 import com.openbankproject.commons.util.{JsonUtils, ReflectUtils}
 import net.liftweb.common.{Box}
 import com.openbankproject.commons.util.json
-import org.scalatest.{FeatureSpec, FlatSpec, GivenWhenThen, Matchers, Tag}
+import org.scalatest.{GivenWhenThen, Tag}
 
 import java.io.File
 import java.security.{AccessControlException}
 import scala.collection.immutable.List
 import scala.io.Source
+import org.scalatest.featurespec.AnyFeatureSpec
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
-class DynamicUtilTest extends FlatSpec with Matchers {
+class DynamicUtilTest extends AnyFlatSpec with Matchers {
   object DynamicUtilsTag extends Tag("DynamicUtil")
 
   private val securityManagerUnavailable =

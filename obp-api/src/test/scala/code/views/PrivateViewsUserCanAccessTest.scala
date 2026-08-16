@@ -45,15 +45,15 @@ class PrivateViewsUserCanAccessTest extends ServerSetup with DefaultUsers {
     }
   }
 
-  feature("privateViewsUserCanAccess") {
+  Feature("privateViewsUserCanAccess") {
 
-    scenario("User with no account access returns empty lists") {
+    Scenario("User with no account access returns empty lists") {
       val (views, accountAccess) = MapperViews.privateViewsUserCanAccess(resourceUser1)
       views should be(empty)
       accountAccess should be(empty)
     }
 
-    scenario("User with one system view access returns that view") {
+    Scenario("User with one system view access returns that view") {
       createSystemViewAndGrantAccess(bankId1, accountId1, Constant.SYSTEM_OWNER_VIEW_ID, resourceUser1)
 
       val (views, accountAccess) = MapperViews.privateViewsUserCanAccess(resourceUser1)
@@ -64,7 +64,7 @@ class PrivateViewsUserCanAccessTest extends ServerSetup with DefaultUsers {
       accountAccess.head.account_id.get should equal(accountId1.value)
     }
 
-    scenario("User with access to multiple accounts returns all views") {
+    Scenario("User with access to multiple accounts returns all views") {
       createSystemViewAndGrantAccess(bankId1, accountId1, Constant.SYSTEM_OWNER_VIEW_ID, resourceUser1)
       createSystemViewAndGrantAccess(bankId1, accountId2, Constant.SYSTEM_OWNER_VIEW_ID, resourceUser1)
       createSystemViewAndGrantAccess(bankId2, accountId3, Constant.SYSTEM_OWNER_VIEW_ID, resourceUser1)
@@ -80,7 +80,7 @@ class PrivateViewsUserCanAccessTest extends ServerSetup with DefaultUsers {
       bankAccountPairs should contain((bankId2.value, accountId3.value))
     }
 
-    scenario("User with multiple view types on the same account") {
+    Scenario("User with multiple view types on the same account") {
       createSystemViewAndGrantAccess(bankId1, accountId1, Constant.SYSTEM_OWNER_VIEW_ID, resourceUser1)
       createSystemViewAndGrantAccess(bankId1, accountId1, "accountant", resourceUser1)
 
@@ -90,7 +90,7 @@ class PrivateViewsUserCanAccessTest extends ServerSetup with DefaultUsers {
       views.map(_.viewId.value).toSet should contain("accountant")
     }
 
-    scenario("Different users have independent access") {
+    Scenario("Different users have independent access") {
       createSystemViewAndGrantAccess(bankId1, accountId1, Constant.SYSTEM_OWNER_VIEW_ID, resourceUser1)
       createSystemViewAndGrantAccess(bankId1, accountId2, Constant.SYSTEM_OWNER_VIEW_ID, resourceUser2)
 
@@ -104,7 +104,7 @@ class PrivateViewsUserCanAccessTest extends ServerSetup with DefaultUsers {
       access2.head.account_id.get should equal(accountId2.value)
     }
 
-    scenario("Views are distinct even when user has access to same view type across accounts") {
+    Scenario("Views are distinct even when user has access to same view type across accounts") {
       createSystemViewAndGrantAccess(bankId1, accountId1, Constant.SYSTEM_OWNER_VIEW_ID, resourceUser1)
       createSystemViewAndGrantAccess(bankId1, accountId2, Constant.SYSTEM_OWNER_VIEW_ID, resourceUser1)
 
@@ -115,7 +115,7 @@ class PrivateViewsUserCanAccessTest extends ServerSetup with DefaultUsers {
       views.size should be >= 1
     }
 
-    scenario("Returned accountAccess entries match returned views") {
+    Scenario("Returned accountAccess entries match returned views") {
       createSystemViewAndGrantAccess(bankId1, accountId1, Constant.SYSTEM_OWNER_VIEW_ID, resourceUser1)
       createSystemViewAndGrantAccess(bankId1, accountId1, "accountant", resourceUser1)
       createSystemViewAndGrantAccess(bankId2, accountId2, Constant.SYSTEM_OWNER_VIEW_ID, resourceUser1)
@@ -131,9 +131,9 @@ class PrivateViewsUserCanAccessTest extends ServerSetup with DefaultUsers {
     }
   }
 
-  feature("privateViewsUserCanAccessAtBank") {
+  Feature("privateViewsUserCanAccessAtBank") {
 
-    scenario("Filters to only the requested bank") {
+    Scenario("Filters to only the requested bank") {
       createSystemViewAndGrantAccess(bankId1, accountId1, Constant.SYSTEM_OWNER_VIEW_ID, resourceUser1)
       createSystemViewAndGrantAccess(bankId2, accountId2, Constant.SYSTEM_OWNER_VIEW_ID, resourceUser1)
 
@@ -142,7 +142,7 @@ class PrivateViewsUserCanAccessTest extends ServerSetup with DefaultUsers {
       accountAccess.head.bank_id.get should equal(bankId1.value)
     }
 
-    scenario("Returns empty for bank with no access") {
+    Scenario("Returns empty for bank with no access") {
       createSystemViewAndGrantAccess(bankId1, accountId1, Constant.SYSTEM_OWNER_VIEW_ID, resourceUser1)
 
       val (views, accountAccess) = MapperViews.privateViewsUserCanAccessAtBank(resourceUser1, bankId2)
@@ -151,9 +151,9 @@ class PrivateViewsUserCanAccessTest extends ServerSetup with DefaultUsers {
     }
   }
 
-  feature("privateViewsUserCanAccessForAccount") {
+  Feature("privateViewsUserCanAccessForAccount") {
 
-    scenario("Returns views for the specific account only") {
+    Scenario("Returns views for the specific account only") {
       createSystemViewAndGrantAccess(bankId1, accountId1, Constant.SYSTEM_OWNER_VIEW_ID, resourceUser1)
       createSystemViewAndGrantAccess(bankId1, accountId1, "accountant", resourceUser1)
       createSystemViewAndGrantAccess(bankId1, accountId2, Constant.SYSTEM_OWNER_VIEW_ID, resourceUser1)
@@ -163,7 +163,7 @@ class PrivateViewsUserCanAccessTest extends ServerSetup with DefaultUsers {
       views.map(_.viewId.value).toSet should equal(Set(Constant.SYSTEM_OWNER_VIEW_ID.toLowerCase(), "accountant"))
     }
 
-    scenario("Returns empty for account with no access") {
+    Scenario("Returns empty for account with no access") {
       createSystemViewAndGrantAccess(bankId1, accountId1, Constant.SYSTEM_OWNER_VIEW_ID, resourceUser1)
 
       val views = MapperViews.privateViewsUserCanAccessForAccount(resourceUser1, BankIdAccountId(bankId1, accountId2))

@@ -69,8 +69,8 @@ class AccountAttributeTest extends V310ServerSetup {
   lazy val updateProductAttributeEndpoint = (v3_1_0_Request / "banks" / testBankId / "accounts" / testAccountId0.value / "products" / "PRODUCT_CODE" / "attributes" / "WHATEVER")
   lazy val parentPostPutProductJsonV310: PostPutProductJsonV310 = SwaggerDefinitionsJSON.postPutProductJsonV310.copy(parent_product_code ="")
   
-  feature(s"Create/Update Account Attribute $VersionOfApi") {
-    scenario("We will call the endpoints with a proper roles", ApiEndpoint1, ApiEndpoint2, VersionOfApi) {
+  Feature(s"Create/Update Account Attribute $VersionOfApi") {
+    Scenario("We will call the endpoints with a proper roles", ApiEndpoint1, ApiEndpoint2, VersionOfApi) {
       val product: ProductJsonV310 = 
         createProduct(
           bankId=testBankId, 
@@ -114,8 +114,8 @@ class AccountAttributeTest extends V310ServerSetup {
     }
   }
 
-  feature(s"Create Account Attribute $VersionOfApi") {
-    scenario("We will call the Create endpoint without a user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature(s"Create Account Attribute $VersionOfApi") {
+    Scenario("We will call the Create endpoint without a user credentials", ApiEndpoint1, VersionOfApi) {
       When(s"We make a request $VersionOfApi")
       val request310 = createAccountAttributeEndpoint.POST
       val response310 = makePostRequest(request310, write(postAccountAttributeJson))
@@ -124,7 +124,7 @@ class AccountAttributeTest extends V310ServerSetup {
       And("error should be " + AuthenticatedUserIsRequired)
       response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
-    scenario("We will call the Create endpoint without a proper role", ApiEndpoint1, VersionOfApi) {
+    Scenario("We will call the Create endpoint without a proper role", ApiEndpoint1, VersionOfApi) {
       When(s"We make a request $VersionOfApi")
       val request310 = createAccountAttributeEndpoint.POST <@(user1)
       val response310 = makePostRequest(request310, write(postAccountAttributeJson))
@@ -137,7 +137,7 @@ class AccountAttributeTest extends V310ServerSetup {
       errorMessage contains (canCreateAccountAttributeAtOneBank.toString()) should be (true)
       
     }
-    scenario("We will call the Create endpoint but wrong `type` ", ApiEndpoint1, VersionOfApi) {
+    Scenario("We will call the Create endpoint but wrong `type` ", ApiEndpoint1, VersionOfApi) {
       When(s"We make a request $VersionOfApi")
       Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, CanCreateAccountAttributeAtOneBank.toString)
       val request310 = createAccountAttributeEndpoint.POST <@(user1)
@@ -149,8 +149,8 @@ class AccountAttributeTest extends V310ServerSetup {
     }
   }
   
-  feature(s"Update Account Attribute $VersionOfApi") {
-    scenario("We will call the endpoint without a user credentials", ApiEndpoint2, VersionOfApi) {
+  Feature(s"Update Account Attribute $VersionOfApi") {
+    Scenario("We will call the endpoint without a user credentials", ApiEndpoint2, VersionOfApi) {
       When(s"We make a request $VersionOfApi")
       val request310 = updateProductAttributeEndpoint.PUT
       val response310 = makePutRequest(request310, write(putAccountAttributeJson))
@@ -159,7 +159,7 @@ class AccountAttributeTest extends V310ServerSetup {
       And("error should be " + AuthenticatedUserIsRequired)
       response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
-    scenario("We will call the Update endpoint without a proper role", ApiEndpoint2, VersionOfApi) {
+    Scenario("We will call the Update endpoint without a proper role", ApiEndpoint2, VersionOfApi) {
       When(s"We make a request $VersionOfApi")
       val request310 = updateProductAttributeEndpoint.PUT <@(user1)
       val response310 = makePutRequest(request310, write(putAccountAttributeJson))

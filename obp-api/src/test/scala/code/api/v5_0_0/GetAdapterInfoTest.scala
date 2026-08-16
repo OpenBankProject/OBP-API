@@ -50,9 +50,9 @@ class GetAdapterInfoTest extends V500ServerSetup with DefaultUsers {
   object VersionOfApi extends Tag(ApiVersion.v5_0_0.toString)
   object ApiEndpoint extends Tag(nameOf(Implementations5_0_0.getAdapterInfo))
 
-  feature("Get Adapter Info v5.0.0")
+  Feature("Get Adapter Info v5.0.0")
   {
-    scenario(s"$AuthenticatedUserIsRequired error case", ApiEndpoint, VersionOfApi) {
+    Scenario(s"$AuthenticatedUserIsRequired error case", ApiEndpoint, VersionOfApi) {
       When("We make a request v5.0.0")
       val request310 = (v5_0_0_Request / "adapter").GET
       val response310 = makeGetRequest(request310)
@@ -61,7 +61,7 @@ class GetAdapterInfoTest extends V500ServerSetup with DefaultUsers {
       And("error should be " + AuthenticatedUserIsRequired)
       response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
-    scenario(s"$UserHasMissingRoles error case", ApiEndpoint, VersionOfApi) {
+    Scenario(s"$UserHasMissingRoles error case", ApiEndpoint, VersionOfApi) {
       When("We make a request v5.0.0")
       val request310 = (v5_0_0_Request / "adapter").GET <@ (user1)
       val response310 = makeGetRequest(request310)
@@ -70,7 +70,7 @@ class GetAdapterInfoTest extends V500ServerSetup with DefaultUsers {
       And("error should be " + UserHasMissingRoles + canGetAdapterInfo)
       response310.body.extract[ErrorMessage].message should equal (UserHasMissingRoles + canGetAdapterInfo)
     }
-    scenario("We will try to get adapter info", ApiEndpoint, VersionOfApi) {
+    Scenario("We will try to get adapter info", ApiEndpoint, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canGetAdapterInfo.toString)
       When("We make a request v5.0.0")
       val request310 = (v5_0_0_Request / "adapter").GET <@ (user1)

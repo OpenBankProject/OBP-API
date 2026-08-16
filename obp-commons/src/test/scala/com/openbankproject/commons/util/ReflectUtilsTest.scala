@@ -1,12 +1,13 @@
 package com.openbankproject.commons.util
 
-import org.scalatest.{FlatSpec, Matchers}
 
 import scala.reflect.runtime.universe._
 import org.scalatest.Tag
 import org.scalatest.matchers.Matcher
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
-class ReflectUtilsTest extends FlatSpec with Matchers {
+class ReflectUtilsTest extends AnyFlatSpec with Matchers {
   object ReflectUtilsTag extends Tag("ReflectUtils")
 
   case class Aperson(id: String, age: Int)

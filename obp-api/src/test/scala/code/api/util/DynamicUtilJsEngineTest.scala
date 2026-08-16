@@ -1,10 +1,11 @@
 package code.api.util
 
 import net.liftweb.common.{Full, Failure}
-import org.scalatest.{FlatSpec, Matchers}
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 /**
  * Verifies that the GraalVM Polyglot JS engine (org.graalvm.polyglot:polyglot 24.x)
@@ -12,7 +13,7 @@ import scala.concurrent.duration._
  * compiled at class-file version 61.0 and throw UnsupportedClassVersionError on JDK 11.
  * If this test fails with that error, the runtime JDK must be upgraded to 17+.
  */
-class DynamicUtilJsEngineTest extends FlatSpec with Matchers {
+class DynamicUtilJsEngineTest extends AnyFlatSpec with Matchers {
 
   private val engineMustLoad = "GraalVM engine must load successfully"
   private val promiseMustResolve = "JS promise must resolve"

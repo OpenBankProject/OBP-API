@@ -225,13 +225,21 @@
       <dependency>
         <groupId>org.scalatest</groupId>
         <artifactId>scalatest_${scala.version}</artifactId>
-        <version>3.0.8</version>
+        <!-- 3.2.20, not 3.0.8: 3.0.8 has no Scala 3 build, so the flip cannot carry it. The
+             upgrade is done here on 2.13, ahead of the flip, because on 2.13 the suite still
+             runs - bundling a test-framework migration into the flip would leave both
+             unverifiable until every Scala 3 compile error was also fixed.
+             3.2.x moved the style traits into per-style packages and removed the old names:
+             org.scalatest.FlatSpec -> flatspec.AnyFlatSpec, FeatureSpec ->
+             featurespec.AnyFeatureSpec, Matchers -> matchers.should.Matchers, and
+             AnyFeatureSpec capitalises its DSL (feature/scenario -> Feature/Scenario). -->
+        <version>3.2.20</version>
         <scope>test</scope>
       </dependency>
       <dependency>
         <groupId>org.scalactic</groupId>
         <artifactId>scalactic_${scala.version}</artifactId>
-        <version>3.0.8</version>
+        <version>3.2.20</version>
         <scope>test</scope>
       </dependency>
 

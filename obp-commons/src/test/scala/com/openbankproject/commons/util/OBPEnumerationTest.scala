@@ -7,6 +7,8 @@ import org.scalatest._
 import scala.reflect.runtime.universe._
 
 import org.scalatest.Tag
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 // to show bad design of scala enumeration
 object Shape extends Enumeration {
@@ -28,7 +30,7 @@ object OBPEnumTag extends Tag("OBPEnumeration")
  * just for demonstrate what problem of scala enumeration, so here just set to ignore
  */
 @Ignore
-class ScalaEnumerationTest extends FlatSpec with Matchers {
+class ScalaEnumerationTest extends AnyFlatSpec with Matchers {
 
   it should "legal to create two overloaded methods with parameter Shape and Color" taggedAs(OBPEnumTag) in {
     // if remove the comment of process method, will can't compile
@@ -91,7 +93,7 @@ object OBPColor extends OBPEnumeration[OBPColor]{
   object Other extends OBPColor
 }
 
-class OBPEnumerationTest extends FlatSpec with Matchers {
+class OBPEnumerationTest extends AnyFlatSpec with Matchers {
   it should "legal to create two overloaded methods with parameter OBPShape and OBPColor" taggedAs(OBPEnumTag) in {
     // first bad: can't overload for different enumeration
     object OverloadTest{

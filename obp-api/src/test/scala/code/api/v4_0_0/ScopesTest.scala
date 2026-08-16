@@ -64,11 +64,11 @@ class ScopesTest extends V400ServerSetup {
    * - require_scopes_for_listed_roles=CanCreateUserAuthContext,CanGetCustomersAtOneBank
    *
    */
-  feature(s"test $ApiEndpoint1 version $VersionOfApi") {
+  Feature(s"test $ApiEndpoint1 version $VersionOfApi") {
 
     // Consumer AND User has the Role
     // require_scopes_for_all_roles=true
-    scenario("We will call the endpoint with require_scopes_for_all_roles=true", ApiEndpoint1, VersionOfApi) {
+    Scenario("We will call the endpoint with require_scopes_for_all_roles=true", ApiEndpoint1, VersionOfApi) {
       setPropsValues("require_scopes_for_all_roles"-> "true")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetAnyUser.toString)
       Scope.scope.vend.addScope("", testConsumer.id.get.toString, CanGetAnyUser.toString)
@@ -79,7 +79,7 @@ class ScopesTest extends V400ServerSetup {
       response400.code should equal(200)
       response400.body.extract[UserJsonV400].user_id should equal(resourceUser3.userId)
     }
-    scenario("We will call the endpoint with require_scopes_for_all_roles=true but without user entitlement", ApiEndpoint1, VersionOfApi) {
+    Scenario("We will call the endpoint with require_scopes_for_all_roles=true but without user entitlement", ApiEndpoint1, VersionOfApi) {
       setPropsValues("require_scopes_for_all_roles"-> "true")
       // Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetAnyUser.toString)
       Scope.scope.vend.addScope("", testConsumer.id.get.toString, CanGetAnyUser.toString)
@@ -89,7 +89,7 @@ class ScopesTest extends V400ServerSetup {
       Then("We get successful response")
       response400.code should equal(403)
     }
-    scenario("We will call the endpoint with require_scopes_for_all_roles=true but without scope", ApiEndpoint1, VersionOfApi) {
+    Scenario("We will call the endpoint with require_scopes_for_all_roles=true but without scope", ApiEndpoint1, VersionOfApi) {
       setPropsValues("require_scopes_for_all_roles"-> "true")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetAnyUser.toString)
       // Scope.scope.vend.addScope("", testConsumer.id.get.toString, CanGetAnyUser.toString)
@@ -99,7 +99,7 @@ class ScopesTest extends V400ServerSetup {
       Then("We get successful response")
       response400.code should equal(403)
     }
-    scenario("We will call the endpoint with require_scopes_for_all_roles=true but without entitlement and scope", ApiEndpoint1, VersionOfApi) {
+    Scenario("We will call the endpoint with require_scopes_for_all_roles=true but without entitlement and scope", ApiEndpoint1, VersionOfApi) {
       setPropsValues("require_scopes_for_all_roles"-> "true")
       // Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetAnyUser.toString)
       // Scope.scope.vend.addScope("", testConsumer.id.get.toString, CanGetAnyUser.toString)
@@ -113,7 +113,7 @@ class ScopesTest extends V400ServerSetup {
     
     // Consumer AND User has the Role
     // require_scopes_for_listed_roles=CanGetAnyUser
-    scenario("We will call the endpoint with require_scopes_for_listed_roles=CanGetAnyUser", ApiEndpoint1, VersionOfApi) {
+    Scenario("We will call the endpoint with require_scopes_for_listed_roles=CanGetAnyUser", ApiEndpoint1, VersionOfApi) {
       setPropsValues("require_scopes_for_listed_roles"-> "CanGetAnyUser")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetAnyUser.toString)
       Scope.scope.vend.addScope("", testConsumer.id.get.toString, CanGetAnyUser.toString)
@@ -124,7 +124,7 @@ class ScopesTest extends V400ServerSetup {
       response400.code should equal(200)
       response400.body.extract[UserJsonV400].user_id should equal(resourceUser3.userId)
     }
-    scenario("We will call the endpoint with require_scopes_for_listed_roles=CanGetAnyUser but without user entitlement", ApiEndpoint1, VersionOfApi) {
+    Scenario("We will call the endpoint with require_scopes_for_listed_roles=CanGetAnyUser but without user entitlement", ApiEndpoint1, VersionOfApi) {
       setPropsValues("require_scopes_for_listed_roles"-> "CanGetAnyUser")
       // Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetAnyUser.toString)
       Scope.scope.vend.addScope("", testConsumer.id.get.toString, CanGetAnyUser.toString)
@@ -134,7 +134,7 @@ class ScopesTest extends V400ServerSetup {
       Then("We get successful response")
       response400.code should equal(403)
     }
-    scenario("We will call the endpoint with require_scopes_for_listed_roles=CanGetAnyUser but without scope", ApiEndpoint1, VersionOfApi) {
+    Scenario("We will call the endpoint with require_scopes_for_listed_roles=CanGetAnyUser but without scope", ApiEndpoint1, VersionOfApi) {
       setPropsValues("require_scopes_for_listed_roles"-> "CanGetAnyUser")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetAnyUser.toString)
       // Scope.scope.vend.addScope("", testConsumer.id.get.toString, CanGetAnyUser.toString)
@@ -144,7 +144,7 @@ class ScopesTest extends V400ServerSetup {
       Then("We get successful response")
       response400.code should equal(403)
     }
-    scenario("We will call the endpoint with require_scopes_for_listed_roles=CanGetAnyUser but without entitlement and scope", ApiEndpoint1, VersionOfApi) {
+    Scenario("We will call the endpoint with require_scopes_for_listed_roles=CanGetAnyUser but without entitlement and scope", ApiEndpoint1, VersionOfApi) {
       setPropsValues("require_scopes_for_listed_roles"-> "CanGetAnyUser")
       // Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetAnyUser.toString)
       // Scope.scope.vend.addScope("", testConsumer.id.get.toString, CanGetAnyUser.toString)
@@ -157,7 +157,7 @@ class ScopesTest extends V400ServerSetup {
 
 
     // Consumer has the Scope but this is not enough
-    scenario("We will call the endpoint without user entitlement but with scope", ApiEndpoint1, VersionOfApi) {
+    Scenario("We will call the endpoint without user entitlement but with scope", ApiEndpoint1, VersionOfApi) {
       // Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanGetAnyUser.toString)
       Scope.scope.vend.addScope("", testConsumer.id.get.toString, ApiRole.CanGetAnyUser.toString)
       When("We make a request v4.0.0")
@@ -168,12 +168,12 @@ class ScopesTest extends V400ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint2 version $VersionOfApi") {
-    scenario("We will try to add scope to a consumer which does not exist", ApiEndpoint2, VersionOfApi) {
+  Feature(s"test $ApiEndpoint2 version $VersionOfApi") {
+    Scenario("We will try to add scope to a consumer which does not exist", ApiEndpoint2, VersionOfApi) {
       val result = addScope("testConsumer.consumerId.get", SwaggerDefinitionsJSON.createScopeJson)
       result.code should equal(404)
     }
-    scenario("We will try to add scope to a consumer which exists", ApiEndpoint2, VersionOfApi) {
+    Scenario("We will try to add scope to a consumer which exists", ApiEndpoint2, VersionOfApi) {
       val result = addScope(
         testConsumer.consumerId.get, 
         SwaggerDefinitionsJSON.createScopeJson.copy(bank_id = "", role_name = CanDeleteScopeAtAnyBank.toString())
@@ -184,7 +184,7 @@ class ScopesTest extends V400ServerSetup {
       scopes.code should equal(200)
       scopes.body.extract[ScopeJsons].list.exists(_.role_name == CanDeleteScopeAtAnyBank.toString())
     }
-    scenario("We will try to add scope to a consumer which exists but with incorrect role name", ApiEndpoint2, VersionOfApi) {
+    Scenario("We will try to add scope to a consumer which exists but with incorrect role name", ApiEndpoint2, VersionOfApi) {
       val result = addScope(
         testConsumer.consumerId.get, 
         SwaggerDefinitionsJSON.createScopeJson.copy(bank_id = "", role_name = "IncorrectRoleName")
@@ -193,7 +193,7 @@ class ScopesTest extends V400ServerSetup {
       val errorMessage = result.body.extract[ErrorMessage].message
       errorMessage contains IncorrectRoleName should be (true)
     }
-    scenario("We will try to add scope to a consumer which exists but with incorrect bank id", ApiEndpoint2, VersionOfApi) {
+    Scenario("We will try to add scope to a consumer which exists but with incorrect bank id", ApiEndpoint2, VersionOfApi) {
       val result = addScope(
         testConsumer.consumerId.get, 
         SwaggerDefinitionsJSON.createScopeJson.copy(bank_id = "InvalidBankId", role_name = CanCreateAnyTransactionRequest.toString())

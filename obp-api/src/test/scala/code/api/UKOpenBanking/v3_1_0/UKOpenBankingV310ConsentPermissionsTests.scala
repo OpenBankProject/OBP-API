@@ -26,9 +26,9 @@ class UKOpenBankingV310ConsentPermissionsTests extends UKOpenBankingV310ServerSe
        |  "Risk": ""
        |}""".stripMargin
 
-  feature("UKOB v3.1 POST /account-access-consents rejects invalid Permissions") {
+  Feature("UKOB v3.1 POST /account-access-consents rejects invalid Permissions") {
 
-    scenario("no account-read permission -> 400 with the OBP error code",
+    Scenario("no account-read permission -> 400 with the OBP error code",
       UKOpenBankingV310ConsentPermissions) {
       val response = postAuthed(
         body("""["ReadBalances", "ReadTransactionsBasic", "ReadTransactionsDebits"]"""),
@@ -37,29 +37,29 @@ class UKOpenBankingV310ConsentPermissionsTests extends UKOpenBankingV310ServerSe
       response.body.extract[ErrorMessage].message should startWith(InvalidUKConsentPermissions)
     }
 
-    scenario("empty Permissions array -> 400", UKOpenBankingV310ConsentPermissions) {
+    Scenario("empty Permissions array -> 400", UKOpenBankingV310ConsentPermissions) {
       postAuthed(body("[]"), "account-access-consents").code should equal(400)
     }
 
-    scenario("transaction depth without a direction -> 400", UKOpenBankingV310ConsentPermissions) {
+    Scenario("transaction depth without a direction -> 400", UKOpenBankingV310ConsentPermissions) {
       postAuthed(
         body("""["ReadAccountsBasic", "ReadTransactionsBasic"]"""),
         "account-access-consents").code should equal(400)
     }
 
-    scenario("a transaction direction without a depth -> 400", UKOpenBankingV310ConsentPermissions) {
+    Scenario("a transaction direction without a depth -> 400", UKOpenBankingV310ConsentPermissions) {
       postAuthed(
         body("""["ReadAccountsBasic", "ReadTransactionsCredits"]"""),
         "account-access-consents").code should equal(400)
     }
 
-    scenario("unknown permission code -> 400", UKOpenBankingV310ConsentPermissions) {
+    Scenario("unknown permission code -> 400", UKOpenBankingV310ConsentPermissions) {
       postAuthed(
         body("""["ReadAccountsBasic", "ReadEverything"]"""),
         "account-access-consents").code should equal(400)
     }
 
-    scenario("a valid combination is still created -> 201", UKOpenBankingV310ConsentPermissions) {
+    Scenario("a valid combination is still created -> 201", UKOpenBankingV310ConsentPermissions) {
       val response = postAuthed(
         body("""["ReadAccountsBasic", "ReadBalances", "ReadTransactionsBasic", "ReadTransactionsCredits"]"""),
         "account-access-consents")

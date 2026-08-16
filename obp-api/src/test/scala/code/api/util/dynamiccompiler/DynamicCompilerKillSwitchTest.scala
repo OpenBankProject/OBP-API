@@ -3,7 +3,8 @@ package code.api.util.dynamiccompiler
 import code.api.util.DynamicUtil
 import code.setup.{EnvVarOverride, PropsReset}
 import net.liftweb.common.Box
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 /**
  * `allow_user_generated_scala_code` is the master kill-switch for run-time compilation of
@@ -16,7 +17,7 @@ import org.scalatest.{FlatSpec, Matchers}
  * the suite ran alone and failed in the full run. PropsReset wipes owned pushes at suite
  * start, so a suite whose only push is "false" gives the same answer either way.
  */
-class DynamicCompilerKillSwitchTest extends FlatSpec with Matchers with PropsReset with EnvVarOverride {
+class DynamicCompilerKillSwitchTest extends AnyFlatSpec with Matchers with PropsReset with EnvVarOverride {
 
   // run_tests_parallel.sh exports OBP_ALLOW_USER_GENERATED_SCALA_CODE=true for every shard
   // (mirroring CI), and that env var beats setPropsValues in APIUtil.getPropsValue - so the

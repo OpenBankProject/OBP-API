@@ -76,8 +76,8 @@
 //
 //
 //
-//  feature("base line URL works"){
-//    scenario("we get the api information", ExternalTest) {
+//  Feature("base line URL works"){
+//    Scenario("we get the api information", ExternalTest) {
 //      Given("We will not use an access token")
 //      When("the request is sent")
 //      val reply = getAPIInfo
@@ -88,11 +88,11 @@
 //    }
 //  }
 //
-//  feature("Information about the hosted banks"){
+//  Feature("Information about the hosted banks"){
 //
 //    var banksIds:List[String] = Nil
 //
-//    scenario("We get the hosted banks information", ExternalTest) {
+//    Scenario("We get the hosted banks information", ExternalTest) {
 //      Given("We will not use an access token")
 //      When("the request is sent")
 //      val reply: APIResponse = getBanksInfo
@@ -143,8 +143,8 @@
 //    }
 //  }
 //
-//  feature("Information about one hosted bank"){
-//    scenario("we don't get the hosted bank information", ExternalTest) {
+//  Feature("Information about one hosted bank"){
+//    Scenario("we don't get the hosted bank information", ExternalTest) {
 //      Given("We will not use an access token and request a random bankId")
 //      When("the request is sent")
 //      val reply = getBankInfo(randomString(10))

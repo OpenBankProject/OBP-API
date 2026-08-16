@@ -6,9 +6,10 @@ import java.security.cert.X509Certificate
 import code.api.CertificateConstants
 import code.api.util.CertificateUtil
 import com.nimbusds.jose.util.X509CertUtils
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
-class Http4sMtlsTest extends FlatSpec with Matchers {
+class Http4sMtlsTest extends AnyFlatSpec with Matchers {
 
   private val ServerJksResource = "/cert/server.jks"
 

@@ -67,9 +67,9 @@ class ConcurrentConsentStatusRaceTest extends ConcurrentRaceSetup {
     MappedUserAuthContextUpdate.find(By(MappedUserAuthContextUpdate.mUserAuthContextUpdateId, id))
       .map(_.status).getOrElse("missing")
 
-  feature("Consent and UserAuthContextUpdate status transitions must be atomic") {
+  Feature("Consent and UserAuthContextUpdate status transitions must be atomic") {
 
-    scenario("H1: two concurrent correct answers to the same consent must not both succeed", ConcurrencyRace) {
+    Scenario("H1: two concurrent correct answers to the same consent must not both succeed", ConcurrencyRace) {
       Given("a consent in INITIATED state with a known challenge answer")
       val (consentId, answer) = mkConsent("test-answer-h1")
 
@@ -94,7 +94,7 @@ class ConcurrentConsentStatusRaceTest extends ConcurrentRaceSetup {
       }
     }
 
-    scenario("H2: two concurrent correct answers to the same UserAuthContextUpdate must not both succeed", ConcurrencyRace) {
+    Scenario("H2: two concurrent correct answers to the same UserAuthContextUpdate must not both succeed", ConcurrencyRace) {
       Given("a UserAuthContextUpdate in INITIATED state with known plain-text challenge")
       // mChallenge is VARCHAR(10) — keep the answer within the column limit.
       val answer = "h2ans"
@@ -118,7 +118,7 @@ class ConcurrentConsentStatusRaceTest extends ConcurrentRaceSetup {
       }
     }
 
-    scenario("H3: a concurrent revoke must not be overwritten by a racing checkAnswer", ConcurrencyRace) {
+    Scenario("H3: a concurrent revoke must not be overwritten by a racing checkAnswer", ConcurrencyRace) {
       Given("a consent in INITIATED state")
       val (consentId, answer) = mkConsent("test-answer-h3")
       val n = 2
@@ -143,7 +143,7 @@ class ConcurrentConsentStatusRaceTest extends ConcurrentRaceSetup {
       }
     }
 
-    scenario("M5: the skip-SCA accept-write must not overwrite a concurrent revoke (shouldSkipConsentSca)", ConcurrencyRace) {
+    Scenario("M5: the skip-SCA accept-write must not overwrite a concurrent revoke (shouldSkipConsentSca)", ConcurrencyRace) {
       Given("a consent in INITIATED state (just created, SCA about to be skipped)")
       val (consentId, _) = mkConsent("m5-unused-answer")
       val n = 2

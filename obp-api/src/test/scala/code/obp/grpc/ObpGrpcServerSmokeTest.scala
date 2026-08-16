@@ -76,9 +76,9 @@ class ObpGrpcServerSmokeTest extends ServerSetupWithTestData {
       .withInterceptors(MetadataUtils.newAttachHeadersInterceptor(metadata))
   }
 
-  feature("The gRPC server answers over a real connection") {
+  Feature("The gRPC server answers over a real connection") {
 
-    scenario("getBanks returns the banks the connector returns", GrpcSmoke) {
+    Scenario("getBanks returns the banks the connector returns", GrpcSmoke) {
       val viaGrpc = authenticatedStub.getBanks(Empty.defaultInstance)
 
       val viaConnector = Await.result(Connector.connector.vend.getBanks(None), 30.seconds)
@@ -91,7 +91,7 @@ class ObpGrpcServerSmokeTest extends ServerSetupWithTestData {
       viaGrpc.banks.map(_.fullName).exists(_.nonEmpty) should equal(true)
     }
 
-    scenario("the bound port is still reportable after the server stops", GrpcSmoke) {
+    Scenario("the bound port is still reportable after the server stops", GrpcSmoke) {
       // boundPort read server.getPort and fell back to the constructor argument once stop() nulled
       // the field - which is 0 for a server given an ephemeral port, so teardown logging and any
       // reconnect would see 0 rather than where it had been listening.
@@ -111,7 +111,7 @@ class ObpGrpcServerSmokeTest extends ServerSetupWithTestData {
       }
     }
 
-    scenario("stopping one server leaves another server's event buses alone", GrpcSmoke) {
+    Scenario("stopping one server leaves another server's event buses alone", GrpcSmoke) {
       // start() starts ChatEventBus and, when enabled, the log-cache and metrics buses. All three
       // are objects holding one subscriber connection for the process, and start() is a no-op once
       // one is running - but stop() was not: it punsubscribed and closed that shared connection
@@ -128,7 +128,7 @@ class ObpGrpcServerSmokeTest extends ServerSetupWithTestData {
       }
     }
 
-    scenario("a call with no credentials is rejected", GrpcSmoke) {
+    Scenario("a call with no credentials is rejected", GrpcSmoke) {
       // AuthInterceptor had no coverage either, and this is the branch that decides whether the
       // server is open to the world.
       val thrown = intercept[StatusRuntimeException] {

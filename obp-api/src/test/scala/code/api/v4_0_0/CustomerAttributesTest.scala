@@ -36,8 +36,8 @@ class CustomerAttributesTest extends V400ServerSetup {
   object ApiEndpoint6 extends Tag(nameOf(Implementations4_0_0.deleteCustomerAttribute))
   
 
-  feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       val bankId = randomBankId
       val postCustomerAttributeJsonV400 = SwaggerDefinitionsJSON.customerAttributeJsonV400
       val putCustomerAttributeJsonV400 = SwaggerDefinitionsJSON.customerAttributeJsonV400.copy(name="test")
@@ -52,8 +52,8 @@ class CustomerAttributesTest extends V400ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint1 version $VersionOfApi - authorized access- missing role") {
-    scenario("We will call the endpoint with user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1 version $VersionOfApi - authorized access- missing role") {
+    Scenario("We will call the endpoint with user credentials", ApiEndpoint1, VersionOfApi) {
       val bankId = randomBankId
       val postCustomerAttributeJsonV400 = SwaggerDefinitionsJSON.customerAttributeJsonV400
       val putCustomerAttributeJsonV400 = SwaggerDefinitionsJSON.customerAttributeJsonV400.copy(name="test")
@@ -68,8 +68,8 @@ class CustomerAttributesTest extends V400ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint1 version $VersionOfApi - authorized access - with role - should be success!") {
-    scenario("We will call the endpoint with user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1 version $VersionOfApi - authorized access - with role - should be success!") {
+    Scenario("We will call the endpoint with user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
       val bankId = randomBankId
       val postCustomerAttributeJsonV400 = SwaggerDefinitionsJSON.customerAttributeJsonV400
@@ -93,7 +93,7 @@ class CustomerAttributesTest extends V400ServerSetup {
       responseWithRole.body.extract[CustomerAttributeResponseJsonV300].`type` equals(postCustomerAttributeJsonV400.`type`) should be (true)
     }
 
-    scenario("We will call the endpoint with user role - canCreateCustomerAttributeAtAnyBank", ApiEndpoint1, VersionOfApi) {
+    Scenario("We will call the endpoint with user role - canCreateCustomerAttributeAtAnyBank", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
       val bankId = randomBankId
       val postCustomerAttributeJsonV400 = SwaggerDefinitionsJSON.customerAttributeJsonV400
@@ -118,8 +118,8 @@ class CustomerAttributesTest extends V400ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint2 version $VersionOfApi - Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint2, VersionOfApi) {
+  Feature(s"test $ApiEndpoint2 version $VersionOfApi - Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint2, VersionOfApi) {
       val bankId = randomBankId
       val postCustomerAttributeJsonV400 = SwaggerDefinitionsJSON.customerAttributeJsonV400
       val putCustomerAttributeJsonV400 = SwaggerDefinitionsJSON.customerAttributeJsonV400.copy(name="test")
@@ -134,8 +134,8 @@ class CustomerAttributesTest extends V400ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint2 version $VersionOfApi - authorized access- missing role") {
-    scenario("We will call the endpoint with user credentials", ApiEndpoint2, VersionOfApi) {
+  Feature(s"test $ApiEndpoint2 version $VersionOfApi - authorized access- missing role") {
+    Scenario("We will call the endpoint with user credentials", ApiEndpoint2, VersionOfApi) {
       val bankId = randomBankId
       val postCustomerAttributeJsonV400 = SwaggerDefinitionsJSON.customerAttributeJsonV400
       val putCustomerAttributeJsonV400 = SwaggerDefinitionsJSON.customerAttributeJsonV400.copy(name="test")
@@ -150,8 +150,8 @@ class CustomerAttributesTest extends V400ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint2 version $VersionOfApi - authorized access - with role - should be success!") {
-    scenario("We will call the endpoint with user credentials", ApiEndpoint2, VersionOfApi) {
+  Feature(s"test $ApiEndpoint2 version $VersionOfApi - authorized access - with role - should be success!") {
+    Scenario("We will call the endpoint with user credentials", ApiEndpoint2, VersionOfApi) {
       val bankId = randomBankId
       val postCustomerAttributeJsonV400 = SwaggerDefinitionsJSON.customerAttributeJsonV400
       val putCustomerAttributeJsonV400 = SwaggerDefinitionsJSON.customerAttributeJsonV400.copy(name="test")
@@ -176,8 +176,8 @@ class CustomerAttributesTest extends V400ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint2 version $VersionOfApi - authorized access - with role - wrong customerAttributeId") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint2, VersionOfApi) {
+  Feature(s"test $ApiEndpoint2 version $VersionOfApi - authorized access - with role - wrong customerAttributeId") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint2, VersionOfApi) {
       val bankId = randomBankId
       val postCustomerAttributeJsonV400 = SwaggerDefinitionsJSON.customerAttributeJsonV400
       val putCustomerAttributeJsonV400 = SwaggerDefinitionsJSON.customerAttributeJsonV400.copy(name="test")
@@ -201,8 +201,8 @@ class CustomerAttributesTest extends V400ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint2 version $VersionOfApi - authorized access - with role - with customerAttributeId") {
-    scenario("We will call the endpoint with user credentials", ApiEndpoint2, VersionOfApi) {
+  Feature(s"test $ApiEndpoint2 version $VersionOfApi - authorized access - with role - with customerAttributeId") {
+    Scenario("We will call the endpoint with user credentials", ApiEndpoint2, VersionOfApi) {
 
       val bankId = randomBankId
       val postCustomerAttributeJsonV400 = SwaggerDefinitionsJSON.customerAttributeJsonV400
@@ -222,7 +222,7 @@ class CustomerAttributesTest extends V400ServerSetup {
       responseWithId.body.extract[CustomerAttributeResponseJsonV300].value  equals(putCustomerAttributeJsonV400.value) should be (true)
       responseWithId.body.extract[CustomerAttributeResponseJsonV300].`type`  equals(putCustomerAttributeJsonV400.`type`) should be (true)
     }
-    scenario("We will call the endpoint with user credentials -canUpdateCustomerAttributeAtAnyBank ", ApiEndpoint2, VersionOfApi) {
+    Scenario("We will call the endpoint with user credentials -canUpdateCustomerAttributeAtAnyBank ", ApiEndpoint2, VersionOfApi) {
 
       val bankId = randomBankId
       val postCustomerAttributeJsonV400 = SwaggerDefinitionsJSON.customerAttributeJsonV400
@@ -244,8 +244,8 @@ class CustomerAttributesTest extends V400ServerSetup {
     }
   }
 
-    feature(s"test $ApiEndpoint3 version $VersionOfApi - authorized access - with role - wrong customerAttributeId") {
-      scenario("We will call the endpoint without user credentials", ApiEndpoint3, VersionOfApi) {
+    Feature(s"test $ApiEndpoint3 version $VersionOfApi - authorized access - with role - wrong customerAttributeId") {
+      Scenario("We will call the endpoint without user credentials", ApiEndpoint3, VersionOfApi) {
         val bankId = randomBankId
         val postCustomerAttributeJsonV400 = SwaggerDefinitionsJSON.customerAttributeJsonV400
         val putCustomerAttributeJsonV400 = SwaggerDefinitionsJSON.customerAttributeJsonV400.copy(name="test")
@@ -271,8 +271,8 @@ class CustomerAttributesTest extends V400ServerSetup {
       }
     }
 
-    feature(s"test $ApiEndpoint4 version $VersionOfApi - authorized access - with role - with customerAttributeId") {
-      scenario("We will call the endpoint with user credentials", ApiEndpoint4, VersionOfApi) {
+    Feature(s"test $ApiEndpoint4 version $VersionOfApi - authorized access - with role - with customerAttributeId") {
+      Scenario("We will call the endpoint with user credentials", ApiEndpoint4, VersionOfApi) {
 
         val bankId = randomBankId
         val postCustomerAttributeJsonV400 = SwaggerDefinitionsJSON.customerAttributeJsonV400
@@ -292,7 +292,7 @@ class CustomerAttributesTest extends V400ServerSetup {
         responseWithId.body.extract[CustomerAttributeResponseJsonV300].value equals(postCustomerAttributeJsonV400.value) should be (true)
         responseWithId.body.extract[CustomerAttributeResponseJsonV300].`type` equals(postCustomerAttributeJsonV400.`type`) should be (true)
       }
-      scenario("We will call the endpoint with user credentials- canGetCustomerAttributeAtAnyBank", ApiEndpoint4, VersionOfApi) {
+      Scenario("We will call the endpoint with user credentials- canGetCustomerAttributeAtAnyBank", ApiEndpoint4, VersionOfApi) {
 
         val bankId = randomBankId
         val postCustomerAttributeJsonV400 = SwaggerDefinitionsJSON.customerAttributeJsonV400
@@ -313,8 +313,8 @@ class CustomerAttributesTest extends V400ServerSetup {
         responseWithId.body.extract[CustomerAttributeResponseJsonV300].`type` equals(postCustomerAttributeJsonV400.`type`) should be (true)
       }
     }
-  feature(s"test $ApiEndpoint5 version $VersionOfApi ") {
-    scenario("We will call the endpoint with user credentials", ApiEndpoint5, VersionOfApi) {
+  Feature(s"test $ApiEndpoint5 version $VersionOfApi ") {
+    Scenario("We will call the endpoint with user credentials", ApiEndpoint5, VersionOfApi) {
 
       val bankId = randomBankId
       val postCustomerAttributeJsonV400 = SwaggerDefinitionsJSON.customerAttributeJsonV400
@@ -338,8 +338,8 @@ class CustomerAttributesTest extends V400ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint5 version $VersionOfApi test the query parameters") {
-    scenario("We will call the endpoint with user credentials", ApiEndpoint5, VersionOfApi) {
+  Feature(s"test $ApiEndpoint5 version $VersionOfApi test the query parameters") {
+    Scenario("We will call the endpoint with user credentials", ApiEndpoint5, VersionOfApi) {
 
       val bankId = randomBankId
       val customerId = createAndGetCustomerIdViaEndpoint(bankId, resourceUser1.userId)
@@ -402,8 +402,8 @@ class CustomerAttributesTest extends V400ServerSetup {
     }
   }
   
-  feature(s"test $ApiEndpoint6 version $VersionOfApi will enforce proper entitlements") {
-      scenario("We will call the endpoint", ApiEndpoint6, VersionOfApi) {
+  Feature(s"test $ApiEndpoint6 version $VersionOfApi will enforce proper entitlements") {
+      Scenario("We will call the endpoint", ApiEndpoint6, VersionOfApi) {
         When("We create an attribute for later deletion")
         val bankId = randomBankId
         val putCustomerAttributeJsonV400 = SwaggerDefinitionsJSON.customerAttributeJsonV400.copy(name="test")
@@ -440,7 +440,7 @@ class CustomerAttributesTest extends V400ServerSetup {
 
       }
     
-      scenario("We will call the endpoint- canDeleteCustomerAttributeAtAnyBank", ApiEndpoint6, VersionOfApi) {
+      Scenario("We will call the endpoint- canDeleteCustomerAttributeAtAnyBank", ApiEndpoint6, VersionOfApi) {
         When("We create an attribute for later deletion - canDeleteCustomerAttributeAtAnyBank")
         val bankId = randomBankId
         val putCustomerAttributeJsonV400 = SwaggerDefinitionsJSON.customerAttributeJsonV400.copy(name="test")

@@ -96,8 +96,8 @@ class ProductTest extends V310ServerSetup {
     product
   }
   
-  feature("Create Product v3.1.0") {
-    scenario("We will call the Add endpoint without a user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature("Create Product v3.1.0") {
+    Scenario("We will call the Add endpoint without a user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "banks" / testBankId / "products" / "CODE").PUT
       val response310 = makePutRequest(request310, write(parentPostPutProductJsonV310))
@@ -106,7 +106,7 @@ class ProductTest extends V310ServerSetup {
       And("error should be " + AuthenticatedUserIsRequired)
       response310.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
-    scenario("We will call the Add endpoint without a proper role", ApiEndpoint1, VersionOfApi) {
+    Scenario("We will call the Add endpoint without a proper role", ApiEndpoint1, VersionOfApi) {
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "banks" / testBankId / "products" / "CODE").PUT <@(user1)
       val response310 = makePutRequest(request310, write(parentPostPutProductJsonV310))
@@ -117,7 +117,7 @@ class ProductTest extends V310ServerSetup {
       And("error should be " + createProductEntitlementsRequiredText)
       response310.body.extract[ErrorMessage].message should equal (createProductEntitlementsRequiredText)
     }
-    scenario("We will call the Add endpoint with user credentials and role", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
+    Scenario("We will call the Add endpoint with user credentials and role", ApiEndpoint1, ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
 
       Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, CanCreateProduct.toString)
 
@@ -153,7 +153,7 @@ class ProductTest extends V310ServerSetup {
       responseGetTree310.code should equal(200)
       val productTree: ProductTreeJsonV310 = responseGetTree310.body.extract[ProductTreeJsonV310]
     }
-    scenario("Test the getProducts by url parameters", ApiEndpoint3, VersionOfApi) {
+    Scenario("Test the getProducts by url parameters", ApiEndpoint3, VersionOfApi) {
 
       When("We need to first create the products ")
       Entitlement.entitlement.vend.addEntitlement(testBankId, resourceUser1.userId, CanCreateProduct.toString)

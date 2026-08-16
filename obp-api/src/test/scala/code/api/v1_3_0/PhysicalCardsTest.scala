@@ -106,9 +106,9 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers with DefaultConnec
     }.map((_, callContext))
   }
 
-  feature("Getting details of physical cards") {
+  Feature("Getting details of physical cards") {
 
-    scenario("A user wants to get details of all their cards across all banks") {
+    Scenario("A user wants to get details of all their cards across all banks") {
       When("A user requests their cards")
 
       val request = (v1_3Request / "cards").GET <@ (user1)
@@ -127,7 +127,7 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers with DefaultConnec
       returnedCardNumbers should equal(expectedCardNumbers)
     }
 
-    scenario("A user wants to get details of all their cards issued by a single bank") {
+    Scenario("A user wants to get details of all their cards issued by a single bank") {
       When("A user requests their cards")
 
       //our dummy connector doesn't care about the value of the bank id, so we can just use "somebank"

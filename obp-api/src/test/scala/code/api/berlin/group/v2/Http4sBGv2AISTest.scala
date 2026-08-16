@@ -6,14 +6,16 @@ import code.api.berlin.group.ConstantsBG
 import code.util.Helper.MdcLoggable
 import org.http4s._
 import org.http4s.implicits._
-import org.scalatest.{FlatSpec, Matchers, Tag}
+import org.scalatest.Tag
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 /**
  * Unit tests for Berlin Group v2 AIS endpoints.
  * Tests each of the 9 AIS endpoints returns correct HTTP status and JSON structure.
  * Validates: Requirements 1.1-1.5, 2.1-2.4
  */
-class Http4sBGv2AISTest extends FlatSpec with Matchers with MdcLoggable {
+class Http4sBGv2AISTest extends AnyFlatSpec with Matchers with MdcLoggable {
 
   object AISTag extends Tag("BerlinGroupV2_AIS")
 

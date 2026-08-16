@@ -1,6 +1,7 @@
 package code.api.cache
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
-import org.scalatest.{FlatSpec, Matchers}
 
 /**
  * Guards the cache self-healing contract of the Redis memoize codec.
@@ -16,7 +17,7 @@ import org.scalatest.{FlatSpec, Matchers}
  * in-house memoize layer that replaced scalacache expresses the same contract as decode
  * returning None. These tests fail if a sentinel ever comes back.
  */
-class RedisDeserializeMissTest extends FlatSpec with Matchers {
+class RedisDeserializeMissTest extends AnyFlatSpec with Matchers {
 
   "Redis codec decode" should "report a miss (None) on undecodable bytes instead of returning a sentinel value" in {
     val garbage: Array[Byte] = Array[Byte](0x7f, 0x00, 0x33, -1, 42, 9, 88, 0x11)

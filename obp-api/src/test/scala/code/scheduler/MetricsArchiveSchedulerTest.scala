@@ -82,9 +82,9 @@ class MetricsArchiveSchedulerTest extends ServerSetup {
       .consentReferenceId("")
       .saveMe()
 
-  feature("MetricsArchiveScheduler.runOnce") {
+  Feature("MetricsArchiveScheduler.runOnce") {
 
-    scenario("Old rows with a valid correlation id are copied to the archive and deleted from metric") {
+    Scenario("Old rows with a valid correlation id are copied to the archive and deleted from metric") {
       val oldRow = seedMetric(daysAgo(800), validUuid())
       val recentRow = seedMetric(daysAgo(10), validUuid())
 
@@ -105,7 +105,7 @@ class MetricsArchiveSchedulerTest extends ServerSetup {
       run.RowsMovedToArchive.get should equal(1)
     }
 
-    scenario("Old rows with an empty correlation id are archived with a synthetic ORIGINALLY_NOT_SET correlation id") {
+    Scenario("Old rows with an empty correlation id are archived with a synthetic ORIGINALLY_NOT_SET correlation id") {
       val noCorr = seedMetric(daysAgo(800), "")
 
       val outcome = MetricsArchiveScheduler.runOnce()
@@ -123,7 +123,7 @@ class MetricsArchiveSchedulerTest extends ServerSetup {
       outcome.asInstanceOf[RunCompleted].run.RowsMovedToArchive.get should equal(1)
     }
 
-    scenario("Outdated archive rows are deleted; recent archive rows are kept") {
+    Scenario("Outdated archive rows are deleted; recent archive rows are kept") {
       val oldArchive = seedArchive(999001L, daysAgo(2000))
       val recentArchive = seedArchive(999002L, daysAgo(100))
 
@@ -138,7 +138,7 @@ class MetricsArchiveSchedulerTest extends ServerSetup {
       outcome.asInstanceOf[RunCompleted].run.RowsDeletedFromArchive.get should equal(1)
     }
 
-    scenario("Each run is recorded in the metricsarchiverun log") {
+    Scenario("Each run is recorded in the metricsarchiverun log") {
       seedMetric(daysAgo(800), validUuid())
       MetricsArchiveRun.count should equal(0L)
 
@@ -150,7 +150,7 @@ class MetricsArchiveSchedulerTest extends ServerSetup {
       last.get.RowsMovedToArchive.get should equal(1)
     }
 
-    scenario("runOnce is skipped (no work, no log row) when a job lock is already present") {
+    Scenario("runOnce is skipped (no work, no log row) when a job lock is already present") {
       seedMetric(daysAgo(800), validUuid())
       // Simulate an in-progress run on this or another node.
       val lockJobId = validUuid()
@@ -167,7 +167,7 @@ class MetricsArchiveSchedulerTest extends ServerSetup {
       MappedMetric.count should equal(1L)
     }
 
-    scenario("The run log is capped to the most recent rows (pruneToMostRecent)") {
+    Scenario("The run log is capped to the most recent rows (pruneToMostRecent)") {
       (1 to 10).foreach { i =>
         MetricsArchiveRun.recordRun(validUuid(), "test", daysAgo(10 - i), daysAgo(10 - i),
           rowsMovedToArchive = i, rowsDeletedFromArchive = 0, success = true, remark = None)

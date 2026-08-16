@@ -55,9 +55,9 @@ import java.util.{Date, UUID}
  */
 class ConcurrentConsentRaceTest extends ConcurrentRaceSetup {
 
-  feature("Consent status finality under scheduler-vs-HTTP concurrent update") {
+  Feature("Consent status finality under scheduler-vs-HTTP concurrent update") {
 
-    scenario("J: a stale scheduler save must not overwrite a terminal consent status", ConcurrencyRace) {
+    Scenario("J: a stale scheduler save must not overwrite a terminal consent status", ConcurrencyRace) {
       Given("a Berlin Group consent with status=valid and validUntil in the past")
       val consentId = UUID.randomUUID.toString
       MappedConsent.create
@@ -102,7 +102,7 @@ class ConcurrentConsentRaceTest extends ConcurrentRaceSetup {
       }
     }
 
-    scenario("U: the unfinished-consents scheduler task must not overwrite a concurrent status change", ConcurrencyRace) {
+    Scenario("U: the unfinished-consents scheduler task must not overwrite a concurrent status change", ConcurrencyRace) {
       Given("a Berlin Group consent with status=received (the unfinished-task selector)")
       val consentId = UUID.randomUUID.toString
       MappedConsent.create

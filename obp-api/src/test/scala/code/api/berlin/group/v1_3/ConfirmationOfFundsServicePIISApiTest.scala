@@ -34,8 +34,8 @@ class ConfirmationOfFundsServicePIISApiTest extends BerlinGroupServerSetupV1_3 w
     }
   
 
-  feature(s"BG v1.3 - ${checkAvailabilityOfFunds.name}") {
-    scenario("Failed Case, invalid Iban", BerlinGroupV1_3, PIIS, checkAvailabilityOfFunds) {
+  Feature(s"BG v1.3 - ${checkAvailabilityOfFunds.name}") {
+    Scenario("Failed Case, invalid Iban", BerlinGroupV1_3, PIIS, checkAvailabilityOfFunds) {
       val requestPost = (V1_3_BG / "funds-confirmations").POST <@ (user1)
       val response: APIResponse = makePostRequest(requestPost, write(checkAvailabilityOfFundsJsonBody))
 
@@ -45,7 +45,7 @@ class ConfirmationOfFundsServicePIISApiTest extends BerlinGroupServerSetupV1_3 w
       response.body.extract[ErrorMessagesBG].tppMessages.head.text should startWith(BankAccountNotFoundByIban)
     }
 
-    scenario("Failed Case, invalid post json", BerlinGroupV1_3, PIIS, checkAvailabilityOfFunds) {
+    Scenario("Failed Case, invalid post json", BerlinGroupV1_3, PIIS, checkAvailabilityOfFunds) {
       val requestPost = (V1_3_BG / "funds-confirmations").POST <@ (user1)
       val response: APIResponse = makePostRequest(requestPost, "")
 
@@ -54,7 +54,7 @@ class ConfirmationOfFundsServicePIISApiTest extends BerlinGroupServerSetupV1_3 w
       response.body.extract[ErrorMessagesBG].tppMessages.head.text should startWith(InvalidJsonFormat)
     }
     
-    scenario("Success case - Enough Funds", BerlinGroupV1_3, PIIS, checkAvailabilityOfFunds) {
+    Scenario("Success case - Enough Funds", BerlinGroupV1_3, PIIS, checkAvailabilityOfFunds) {
       val accountsIban = BankAccountRouting.findAll(By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString))
       val iban = accountsIban.head.accountRouting.address
       
@@ -78,7 +78,7 @@ class ConfirmationOfFundsServicePIISApiTest extends BerlinGroupServerSetupV1_3 w
       (response.body \ "fundsAvailable").extract[Boolean] should be (true)
     }
 
-    scenario("Success case - Not Enough Funds", BerlinGroupV1_3, PIIS, checkAvailabilityOfFunds) {
+    Scenario("Success case - Not Enough Funds", BerlinGroupV1_3, PIIS, checkAvailabilityOfFunds) {
       val accountsIban = BankAccountRouting.findAll(By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString))
       val iban = accountsIban.head.accountRouting.address
       val account = MappedBankAccount.find(

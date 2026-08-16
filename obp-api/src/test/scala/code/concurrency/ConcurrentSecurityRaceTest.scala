@@ -52,9 +52,9 @@ import java.util.{Date, UUID}
  */
 class ConcurrentSecurityRaceTest extends ConcurrentRaceSetup {
 
-  feature("Authentication counter atomicity under concurrency") {
+  Feature("Authentication counter atomicity under concurrency") {
 
-    scenario("H: N concurrent bad-login increments must each land — no lockout bypass", ConcurrencyRace) {
+    Scenario("H: N concurrent bad-login increments must each land — no lockout bypass", ConcurrencyRace) {
       Given("a bad-login record pre-seeded at zero attempts for a dedicated test credential")
       val provider = "__conc_sec_provider_h"
       val username = "__conc_sec_user_h"
@@ -90,7 +90,7 @@ class ConcurrentSecurityRaceTest extends ConcurrentRaceSetup {
       }
     }
 
-    scenario("K: N concurrent wrong challenge answers must each consume one attempt — no brute-force bypass", ConcurrencyRace) {
+    Scenario("K: N concurrent wrong challenge answers must each consume one attempt — no brute-force bypass", ConcurrencyRace) {
       Given("a challenge seeded directly via MappedChallengeProvider with a known expected answer")
       // Raise the attempt limit so the limit-guard never fires early and interferes with the counter test.
       setPropsValues("transactionRequests_challenge_max_allowed_attempts" -> "100")

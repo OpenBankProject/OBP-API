@@ -2,15 +2,16 @@ package code.util
 
 import net.liftweb.mapper.Mapper
 import org.apache.commons.lang3.StringUtils
-import org.scalatest.Matchers._
-import org.scalatest.{FeatureSpec, Tag}
+import org.scalatest.matchers.should.Matchers._
+import org.scalatest.Tag
 
 import java.util.regex.Pattern
+import org.scalatest.featurespec.AnyFeatureSpec
 
 /**
  * Avoid new DB entity type name start with Mapped, and field name start with m.
  */
-class MappedClassNameTest extends FeatureSpec {
+class MappedClassNameTest extends AnyFeatureSpec {
 
   object ClassTag extends Tag("MappedClassName")
   val mapperClazz= classOf[Mapper[_]]
@@ -126,16 +127,16 @@ class MappedClassNameTest extends FeatureSpec {
       !oldMappedTypeNames.contains(typeName) &&
       mapperClazz.isAssignableFrom(clazz)
   }.toSet
-  feature("Validate New Entity name and column name") {
+  Feature("Validate New Entity name and column name") {
 
-    scenario(s"new entity names start with Mapped should be empty", ClassTag) {
+    Scenario(s"new entity names start with Mapped should be empty", ClassTag) {
 
       // the new entity names those name start with Mapped
       val wrongTypes = newMappedTypes.filter(it => StringUtils.substringAfterLast(it, ".").startsWith("Mapped"))
       wrongTypes should equal(Set.empty[String])
     }
 
-    scenario(s"new entity column names should not start with m", ClassTag) {
+    Scenario(s"new entity column names should not start with m", ClassTag) {
       val wrongFileNamePattern = Pattern.compile("m[^a-z].*\\$module")
 
       val typeNameMapWrongFields: Map[String, Array[String]] =

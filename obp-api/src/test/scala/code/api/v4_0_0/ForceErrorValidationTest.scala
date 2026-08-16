@@ -53,8 +53,8 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
     setPropsValues("enable.force_error"->"true")
   }
 
-  feature(s"test Force-Error header - Unauthenticated access") {
-    scenario(s"We will call the endpoint $ApiEndpointCreateFx without authentication", VersionOfApi) {
+  Feature(s"test Force-Error header - Unauthenticated access") {
+    Scenario(s"We will call the endpoint $ApiEndpointCreateFx without authentication", VersionOfApi) {
       When("We make a request v4.0.0")
       val request = (v4_0_0_Request / "banks" / bankId / "fx").PUT
       val response = makePutRequest(request, correctFx, ("Force-Error", "OBP-20006"))
@@ -64,7 +64,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
       response.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
 
-    scenario("We will call the endpoint with user credentials", ApiEndpoint1, VersionOfApi) {
+    Scenario("We will call the endpoint with user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
       val request310 = (v4_0_0_Request / "banks" / bankId / "customers").POST <@ user1
       val response310 = makePostRequest(request310, "", List(("Force-Error", "OBP-20006")))
@@ -78,7 +78,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
       errorMessage contains(canCreateCustomerAtAnyBank.toString()) should be (true)
     }
 
-    scenario("We will call the endpoint without user credentials", ApiEndpoint2, VersionOfApi) {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint2, VersionOfApi) {
       val customerId = createAndGetCustomerIdViaEndpoint(bankId, resourceUser1.userId)
 
       Then("we create the Customer Attribute ")
@@ -93,7 +93,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
       response400.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
 
-    scenario(s"We will call the dynamic entity endpoint without authentication", VersionOfApi) {
+    Scenario(s"We will call the dynamic entity endpoint without authentication", VersionOfApi) {
       addSystemDynamicEntity()
 
       When("We make a request v4.0.0")
@@ -105,7 +105,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
       response.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
 
-    scenario("We will call the endpoint dynamic endpoints without authentication", VersionOfApi) {
+    Scenario("We will call the endpoint dynamic endpoints without authentication", VersionOfApi) {
       addDynamicEndpoints()
 
       When("We make a request v4.0.0")
@@ -119,8 +119,8 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
   }
 
   // old style endpoint
-  feature(s"test Force-Error header $VersionOfApi - old static endpoint, authenticated access") {
-    scenario(s"We will call the endpoint $ApiEndpointCreateFx with Force-Error have wrong format header", VersionOfApi) {
+  Feature(s"test Force-Error header $VersionOfApi - old static endpoint, authenticated access") {
+    Scenario(s"We will call the endpoint $ApiEndpointCreateFx with Force-Error have wrong format header", VersionOfApi) {
       addEntitlement(canCreateFxRate, bankId)
       When("We make a request v4.0.0")
       val request = (v4_0_0_Request / "banks" / bankId / "fx").PUT <@ user1
@@ -133,7 +133,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
       message should include(s"$ForceErrorInvalid Force-Error value not correct:")
     }
 
-    scenario(s"We will call the endpoint $ApiEndpointCreateFx with Force-Error header value not support by current endpoint", VersionOfApi) {
+    Scenario(s"We will call the endpoint $ApiEndpointCreateFx with Force-Error header value not support by current endpoint", VersionOfApi) {
       addEntitlement(canCreateFxRate, bankId)
       When("We make a request v4.0.0")
       val request = (v4_0_0_Request / "banks" / bankId / "fx").PUT <@ user1
@@ -146,7 +146,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
       message should include(s"$ForceErrorInvalid Invalid Force Error Code:")
     }
 
-    scenario(s"We will call the endpoint $ApiEndpointCreateFx with Response-Code header value is not Int", VersionOfApi) {
+    Scenario(s"We will call the endpoint $ApiEndpointCreateFx with Response-Code header value is not Int", VersionOfApi) {
       addEntitlement(canCreateFxRate, bankId)
       When("We make a request v4.0.0")
       val request = (v4_0_0_Request / "banks" / bankId / "fx").PUT <@ user1
@@ -160,7 +160,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
       message should include(s"$ForceErrorInvalid Response-Code value not correct:")
     }
 
-    scenario(s"We will call the endpoint $ApiEndpointCreateFx with correct Force-Error header value", VersionOfApi) {
+    Scenario(s"We will call the endpoint $ApiEndpointCreateFx with correct Force-Error header value", VersionOfApi) {
       addEntitlement(canCreateFxRate, bankId)
       When("We make a request v4.0.0")
       val request = (v4_0_0_Request / "banks" / bankId / "fx").PUT <@ user1
@@ -175,7 +175,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
       code shouldEqual 403
     }
 
-    scenario(s"We will call the endpoint $ApiEndpointCreateFx with correct Force-Error header value and Response-Code value", VersionOfApi) {
+    Scenario(s"We will call the endpoint $ApiEndpointCreateFx with correct Force-Error header value and Response-Code value", VersionOfApi) {
       addEntitlement(canCreateFxRate, bankId)
       When("We make a request v4.0.0")
       val request = (v4_0_0_Request / "banks" / bankId / "fx").PUT <@ user1
@@ -190,7 +190,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
       code shouldEqual 444
     }
 
-    scenario(s"We will call the endpoint $ApiEndpointCreateFx with correct Force-Error header value, but 'enable.force_error=false'", VersionOfApi) {
+    Scenario(s"We will call the endpoint $ApiEndpointCreateFx with correct Force-Error header value, but 'enable.force_error=false'", VersionOfApi) {
       setPropsValues("enable.force_error"->"false")
       addEntitlement(canCreateFxRate, bankId)
       When("We make a request v4.0.0")
@@ -208,8 +208,8 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
   }
 
   //////// not auto validate endpoint
-  feature(s"test Force-Error header $VersionOfApi - not auto validate static endpoint, authenticated access") {
-    scenario(s"We will call the endpoint $ApiEndpoint1 with Force-Error have wrong format header", VersionOfApi) {
+  Feature(s"test Force-Error header $VersionOfApi - not auto validate static endpoint, authenticated access") {
+    Scenario(s"We will call the endpoint $ApiEndpoint1 with Force-Error have wrong format header", VersionOfApi) {
       addEntitlement(canCreateCustomer, bankId)
       When("We make a request v4.0.0")
       val request = (v4_0_0_Request / "banks" / bankId / "customers").POST <@ (user1)
@@ -222,7 +222,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
       message should include(s"$ForceErrorInvalid Force-Error value not correct:")
     }
 
-    scenario(s"We will call the endpoint $ApiEndpoint1 with Force-Error header value not support by current endpoint", VersionOfApi) {
+    Scenario(s"We will call the endpoint $ApiEndpoint1 with Force-Error header value not support by current endpoint", VersionOfApi) {
       addEntitlement(canCreateCustomer, bankId)
       When("We make a request v4.0.0")
       val request = (v4_0_0_Request / "banks" / bankId / "customers").POST <@ (user1)
@@ -235,7 +235,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
       message should include(s"$ForceErrorInvalid Invalid Force Error Code:")
     }
 
-    scenario(s"We will call the endpoint $ApiEndpoint1 with Response-Code header value is not Int", VersionOfApi) {
+    Scenario(s"We will call the endpoint $ApiEndpoint1 with Response-Code header value is not Int", VersionOfApi) {
       addEntitlement(canCreateCustomer, bankId)
       When("We make a request v4.0.0")
       val request = (v4_0_0_Request / "banks" / bankId / "customers").POST <@ (user1)
@@ -248,7 +248,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
       message should include(s"$ForceErrorInvalid Response-Code value not correct:")
     }
 
-    scenario(s"We will call the endpoint $ApiEndpoint1 with correct Force-Error header value", VersionOfApi) {
+    Scenario(s"We will call the endpoint $ApiEndpoint1 with correct Force-Error header value", VersionOfApi) {
       addEntitlement(canCreateCustomer, bankId)
       When("We make a request v4.0.0")
       val request = (v4_0_0_Request / "banks" / bankId / "customers").POST <@ (user1)
@@ -263,7 +263,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
       code shouldEqual 403
     }
 
-    scenario(s"We will call the endpoint $ApiEndpoint1 with correct Force-Error header value and Response-Code value", VersionOfApi) {
+    Scenario(s"We will call the endpoint $ApiEndpoint1 with correct Force-Error header value and Response-Code value", VersionOfApi) {
       addEntitlement(canCreateCustomer, bankId)
       When("We make a request v4.0.0")
       val request = (v4_0_0_Request / "banks" / bankId / "customers").POST <@ (user1)
@@ -278,7 +278,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
       code shouldEqual 444
     }
 
-    scenario(s"We will call the endpoint $ApiEndpoint1 with correct Force-Error header value, but 'enable.force_error=false'", VersionOfApi) {
+    Scenario(s"We will call the endpoint $ApiEndpoint1 with correct Force-Error header value, but 'enable.force_error=false'", VersionOfApi) {
       setPropsValues("enable.force_error"->"false")
       addEntitlement(canCreateCustomer, bankId)
       When("We make a request v4.0.0")
@@ -295,8 +295,8 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
     }
   }
   //////// auto validate endpoint
-  feature(s"test Force-Error header $VersionOfApi - auto validate static endpoint, authenticated access") {
-    scenario(s"We will call the endpoint $ApiEndpoint2 with Force-Error have wrong format header", VersionOfApi) {
+  Feature(s"test Force-Error header $VersionOfApi - auto validate static endpoint, authenticated access") {
+    Scenario(s"We will call the endpoint $ApiEndpoint2 with Force-Error have wrong format header", VersionOfApi) {
       val customerId = createAndGetCustomerIdViaEndpoint(bankId, resourceUser1.userId)
 
       Then("we create the Customer Attribute ")
@@ -315,7 +315,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
       message should include(s"$ForceErrorInvalid Force-Error value not correct:")
     }
 
-    scenario(s"We will call the endpoint $ApiEndpoint2 with Force-Error header value not support by current endpoint", VersionOfApi) {
+    Scenario(s"We will call the endpoint $ApiEndpoint2 with Force-Error header value not support by current endpoint", VersionOfApi) {
       val customerId = createAndGetCustomerIdViaEndpoint(bankId, resourceUser1.userId)
 
       Then("we create the Customer Attribute ")
@@ -333,7 +333,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
       message should include(s"$ForceErrorInvalid Invalid Force Error Code:")
     }
 
-    scenario(s"We will call the endpoint $ApiEndpoint2 with Response-Code header value is not Int", VersionOfApi) {
+    Scenario(s"We will call the endpoint $ApiEndpoint2 with Response-Code header value is not Int", VersionOfApi) {
       val customerId = createAndGetCustomerIdViaEndpoint(bankId, resourceUser1.userId)
 
       Then("we create the Customer Attribute ")
@@ -351,7 +351,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
       message should include(s"$ForceErrorInvalid Response-Code value not correct:")
     }
 
-    scenario(s"We will call the endpoint $ApiEndpoint2 with correct Force-Error header value", VersionOfApi) {
+    Scenario(s"We will call the endpoint $ApiEndpoint2 with correct Force-Error header value", VersionOfApi) {
       val customerId = createAndGetCustomerIdViaEndpoint(bankId, resourceUser1.userId)
 
       Then("we create the Customer Attribute ")
@@ -371,7 +371,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
       code shouldEqual 403
     }
 
-    scenario(s"We will call the endpoint $ApiEndpoint2 with correct Force-Error header value and Response-Code value", VersionOfApi) {
+    Scenario(s"We will call the endpoint $ApiEndpoint2 with correct Force-Error header value and Response-Code value", VersionOfApi) {
       val customerId = createAndGetCustomerIdViaEndpoint(bankId, resourceUser1.userId)
 
       Then("we create the Customer Attribute ")
@@ -391,7 +391,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
       code shouldEqual 444
     }
 
-    scenario(s"We will call the endpoint $ApiEndpoint2 with correct Force-Error header value, but 'enable.force_error=false'", VersionOfApi) {
+    Scenario(s"We will call the endpoint $ApiEndpoint2 with correct Force-Error header value, but 'enable.force_error=false'", VersionOfApi) {
       setPropsValues("enable.force_error"->"false")
       val customerId = createAndGetCustomerIdViaEndpoint(bankId, resourceUser1.userId)
 
@@ -414,8 +414,8 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
   }
 
   ////// dynamic entity
-  feature(s"test dynamic entity endpoints Force-Error, version $VersionOfApi - authenticated access") {
-    scenario(s"We will call the endpoint $ApiEndpoint3 with Force-Error have wrong format header", VersionOfApi) {
+  Feature(s"test dynamic entity endpoints Force-Error, version $VersionOfApi - authenticated access") {
+    Scenario(s"We will call the endpoint $ApiEndpoint3 with Force-Error have wrong format header", VersionOfApi) {
       addSystemDynamicEntity()
       addStringEntitlement("CanCreateDynamicEntity_SystemFooBar", "")
 
@@ -431,7 +431,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
       message should include(s"$ForceErrorInvalid Force-Error value not correct:")
     }
 
-    scenario(s"We will call the endpoint $ApiEndpoint3 with Force-Error header value not support by current endpoint", VersionOfApi) {
+    Scenario(s"We will call the endpoint $ApiEndpoint3 with Force-Error header value not support by current endpoint", VersionOfApi) {
       addSystemDynamicEntity()
       addStringEntitlement("CanCreateDynamicEntity_SystemFooBar", "")
 
@@ -446,7 +446,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
       message should include(s"$ForceErrorInvalid Invalid Force Error Code:")
     }
 
-    scenario(s"We will call the endpoint $ApiEndpoint3 with Response-Code header value is not Int", VersionOfApi) {
+    Scenario(s"We will call the endpoint $ApiEndpoint3 with Response-Code header value is not Int", VersionOfApi) {
       addSystemDynamicEntity()
       addStringEntitlement("CanCreateDynamicEntity_SystemFooBar", "")
 
@@ -461,7 +461,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
       message should include(s"$ForceErrorInvalid Response-Code value not correct:")
     }
 
-    scenario(s"We will call the endpoint $ApiEndpoint3 with correct Force-Error header value", VersionOfApi) {
+    Scenario(s"We will call the endpoint $ApiEndpoint3 with correct Force-Error header value", VersionOfApi) {
       addSystemDynamicEntity()
       addStringEntitlement("CanCreateDynamicEntity_SystemFooBar", "")
 
@@ -478,7 +478,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
       code shouldEqual 403
     }
 
-    scenario(s"We will call the endpoint $ApiEndpoint3 with correct Force-Error header value and Response-Code value", VersionOfApi) {
+    Scenario(s"We will call the endpoint $ApiEndpoint3 with correct Force-Error header value and Response-Code value", VersionOfApi) {
       addSystemDynamicEntity()
       addStringEntitlement("CanCreateDynamicEntity_SystemFooBar", "")
 
@@ -495,7 +495,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
       code shouldEqual 444
     }
 
-    scenario(s"We will call the endpoint $ApiEndpoint3 with correct Force-Error header value, but 'enable.force_error=false'", VersionOfApi) {
+    Scenario(s"We will call the endpoint $ApiEndpoint3 with correct Force-Error header value, but 'enable.force_error=false'", VersionOfApi) {
       setPropsValues("enable.force_error"->"false")
       addSystemDynamicEntity()
       addStringEntitlement("CanCreateDynamicEntity_SystemFooBar", "")
@@ -514,9 +514,9 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
     }
   }
   /////// dynamic endpoints
-  feature(s"test dynamic endpoints Force-Error, version $VersionOfApi - authenticated access") {
+  Feature(s"test dynamic endpoints Force-Error, version $VersionOfApi - authenticated access") {
 
-    scenario(s"We will call the endpoint $ApiEndpoint4 with Force-Error have wrong format header", VersionOfApi) {
+    Scenario(s"We will call the endpoint $ApiEndpoint4 with Force-Error have wrong format header", VersionOfApi) {
       addOneValidation(jsonSchemaDynamicEndpoint, "OBPv4.0.0-dynamicEndpoint_POST_save")
       addDynamicEndpoints()
       addStringEntitlement("CanCreateDynamicEndpoint_User469")
@@ -533,7 +533,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
       message should include(s"$ForceErrorInvalid Force-Error value not correct:")
     }
 
-    scenario(s"We will call the endpoint $ApiEndpoint4 with Force-Error header value not support by current endpoint", VersionOfApi) {
+    Scenario(s"We will call the endpoint $ApiEndpoint4 with Force-Error header value not support by current endpoint", VersionOfApi) {
       addOneValidation(jsonSchemaDynamicEndpoint, "OBPv4.0.0-dynamicEndpoint_POST_save")
       addDynamicEndpoints()
       addStringEntitlement("CanCreateDynamicEndpoint_User469")
@@ -549,7 +549,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
       message should include(s"$ForceErrorInvalid Invalid Force Error Code:")
     }
 
-    scenario(s"We will call the endpoint $ApiEndpoint4 with Response-Code header value is not Int", VersionOfApi) {
+    Scenario(s"We will call the endpoint $ApiEndpoint4 with Response-Code header value is not Int", VersionOfApi) {
       addOneValidation(jsonSchemaDynamicEndpoint, "OBPv4.0.0-dynamicEndpoint_POST_save")
       addDynamicEndpoints()
       addStringEntitlement("CanCreateDynamicEndpoint_User469")
@@ -565,7 +565,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
       message should include(s"$ForceErrorInvalid Response-Code value not correct:")
     }
 
-    scenario(s"We will call the endpoint $ApiEndpoint4 with correct Force-Error header value", VersionOfApi) {
+    Scenario(s"We will call the endpoint $ApiEndpoint4 with correct Force-Error header value", VersionOfApi) {
       addOneValidation(jsonSchemaDynamicEndpoint, "OBPv4.0.0-dynamicEndpoint_POST_save")
       addDynamicEndpoints()
       addStringEntitlement("CanCreateDynamicEndpoint_User469")
@@ -583,7 +583,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
       code shouldEqual 403
     }
 
-    scenario(s"We will call the endpoint $ApiEndpoint4 with correct Force-Error header value and Response-Code value", VersionOfApi) {
+    Scenario(s"We will call the endpoint $ApiEndpoint4 with correct Force-Error header value and Response-Code value", VersionOfApi) {
       addOneValidation(jsonSchemaDynamicEndpoint, "OBPv4.0.0-dynamicEndpoint_POST_save")
       addDynamicEndpoints()
       addStringEntitlement("CanCreateDynamicEndpoint_User469")
@@ -601,7 +601,7 @@ class ForceErrorValidationTest extends V400ServerSetup with PropsReset {
       code shouldEqual 444
     }
 
-    scenario(s"We will call the endpoint $ApiEndpoint4 with correct Force-Error header value, but 'enable.force_error=false'", VersionOfApi) {
+    Scenario(s"We will call the endpoint $ApiEndpoint4 with correct Force-Error header value, but 'enable.force_error=false'", VersionOfApi) {
       setPropsValues("enable.force_error"->"false")
       addOneValidation(jsonSchemaDynamicEndpoint, "OBPv4.0.0-dynamicEndpoint_POST_save")
       addDynamicEndpoints()

@@ -34,8 +34,8 @@ class MappedEntitlementTest extends ServerSetup {
     delete()
   }
 
-  feature("Getting Entitlement data") {
-    scenario("We try to get Entitlement") {
+  Feature("Getting Entitlement data") {
+    Scenario("We try to get Entitlement") {
       Given("There is no entitlements at all but we try to get it")
       Entitlement.entitlement.vend.getEntitlements().openOr(List()).size should equal(0)
 
@@ -47,7 +47,7 @@ class MappedEntitlementTest extends ServerSetup {
     }
   }
 
-  scenario("A Entitlement exists for user and we try to get it") {
+  Scenario("A Entitlement exists for user and we try to get it") {
     Given("Create an entitlement")
     val entitlement1 = createEntitlement(bankId1, userId1, role1.toString)
     Entitlement.entitlement.vend.getEntitlement(bankId1, userId1, role1.toString).isDefined should equal(true)
@@ -67,7 +67,7 @@ class MappedEntitlementTest extends ServerSetup {
   }
 
 
-  scenario("We try to get all Entitlement rows and then delete they"){
+  Scenario("We try to get all Entitlement rows and then delete they"){
     val entitlement1 = createEntitlement(bankId1, userId1, role1.toString)
     val entitlement2 = createEntitlement(bankId2, userId2, role1.toString)
 

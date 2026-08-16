@@ -57,8 +57,8 @@ class ConsumerTest extends V510ServerSetup {
   object GetConsumer extends Tag(nameOf(Implementations5_1_0.getConsumer))
   object CreateMyConsumer extends Tag(nameOf(Implementations5_1_0.createMyConsumer))
 
-  feature("Test all error cases ") {
-    scenario("We test the authentication errors", UpdateConsumerName, GetConsumer, CreateConsumer, GetConsumers, UpdateConsumerRedirectURL, UpdateConsumerLogoURL, UpdateConsumerCertificate,  VersionOfApi) {
+  Feature("Test all error cases ") {
+    Scenario("We test the authentication errors", UpdateConsumerName, GetConsumer, CreateConsumer, GetConsumers, UpdateConsumerRedirectURL, UpdateConsumerLogoURL, UpdateConsumerCertificate,  VersionOfApi) {
       When("We make a request v5.1.0")
       lazy val createConsumerRequestJson = SwaggerDefinitionsJSON.createConsumerRequestJsonV510
       val requestApiEndpoint1 = (v5_1_0_Request / "management" / "consumers").POST
@@ -108,7 +108,7 @@ class ConsumerTest extends V510ServerSetup {
       responseApiEndpoint5.body.toString contains(s"$AuthenticatedUserIsRequired") should be (true)
     }
 
-    scenario("We test the missing roles errors", UpdateConsumerName, GetConsumer, CreateConsumer, GetConsumers, UpdateConsumerRedirectURL, UpdateConsumerLogoURL, UpdateConsumerCertificate, VersionOfApi) {
+    Scenario("We test the missing roles errors", UpdateConsumerName, GetConsumer, CreateConsumer, GetConsumers, UpdateConsumerRedirectURL, UpdateConsumerLogoURL, UpdateConsumerCertificate, VersionOfApi) {
       When("We make a request v5.1.0")
 
       lazy val wrongJsonForTesting = SwaggerDefinitionsJSON.routing
@@ -152,7 +152,7 @@ class ConsumerTest extends V510ServerSetup {
       responseApiEndpoint5.body.toString contains (s"$canGetConsumers") should be(true)
     }
 
-    scenario("We added the proper roles, but wrong json", UpdateConsumerName, CreateConsumer, GetConsumers, UpdateConsumerRedirectURL, UpdateConsumerLogoURL,  VersionOfApi) {
+    Scenario("We added the proper roles, but wrong json", UpdateConsumerName, CreateConsumer, GetConsumers, UpdateConsumerRedirectURL, UpdateConsumerLogoURL,  VersionOfApi) {
       When("we first grant the missing roles:")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canCreateConsumer.toString)
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canUpdateConsumerLogoUrl.toString)
@@ -192,8 +192,8 @@ class ConsumerTest extends V510ServerSetup {
     }
   }
 
-  feature(s"test all successful cases") {
-    scenario("we create, update and get consumers", UpdateConsumerName, GetConsumer, CreateConsumer, GetConsumers, UpdateConsumerRedirectURL, UpdateConsumerLogoURL, VersionOfApi) {
+  Feature(s"test all successful cases") {
+    Scenario("we create, update and get consumers", UpdateConsumerName, GetConsumer, CreateConsumer, GetConsumers, UpdateConsumerRedirectURL, UpdateConsumerLogoURL, VersionOfApi) {
 
       When("we first grant the missing roles:")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, canCreateConsumer.toString)

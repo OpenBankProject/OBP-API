@@ -27,8 +27,8 @@ class AgentTest extends V510ServerSetup {
   object GetAgent extends Tag(nameOf(Implementations5_1_0.getAgent))
   object GetAgents extends Tag(nameOf(Implementations5_1_0.getAgents))
 
-  feature(s"test all endpoints") {
-    scenario(s"We will test all endpoints logins", CreateAgent, UpdateAgentStatus,GetAgent, GetAgents, VersionOfApi) {
+  Feature(s"test all endpoints") {
+    Scenario(s"We will test all endpoints logins", CreateAgent, UpdateAgentStatus,GetAgent, GetAgents, VersionOfApi) {
       val request = (v5_1_0_Request / "banks" / "BANK_ID" / "agents").POST
       val response = makePostRequest(request, write(postAgentJsonV510))
       response.code should equal(401)
@@ -55,7 +55,7 @@ class AgentTest extends V510ServerSetup {
         response.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired) 
       }
     }
-    scenario(s"We will test all endpoints wrong Bankid", CreateAgent, UpdateAgentStatus,GetAgent, GetAgents, VersionOfApi) {
+    Scenario(s"We will test all endpoints wrong Bankid", CreateAgent, UpdateAgentStatus,GetAgent, GetAgents, VersionOfApi) {
       val request = (v5_1_0_Request / "banks" / "BANK_ID" / "agents").POST <@ (user1)
       val response = makePostRequest(request, write(postAgentJsonV510))
       response.code should equal(404)
@@ -83,7 +83,7 @@ class AgentTest extends V510ServerSetup {
       }
     }
     
-    scenario(s"We will test all endpoints roles", UpdateAgentStatus) {
+    Scenario(s"We will test all endpoints roles", UpdateAgentStatus) {
       val bankId =testBankId1.value
       val bankId2 =testBankId2.value
       val request = (v5_1_0_Request / "banks" / bankId / "agents").POST  <@ (user1) 
@@ -121,7 +121,7 @@ class AgentTest extends V510ServerSetup {
       }
     }
     
-    scenario(s"We will test all endpoints successful cases", UpdateAgentStatus) {
+    Scenario(s"We will test all endpoints successful cases", UpdateAgentStatus) {
       val bankId =randomBankId
       val request = (v5_1_0_Request / "banks" / bankId / "agents").POST <@ (user1) 
       val response = makePostRequest(request, write(postAgentJsonV510))

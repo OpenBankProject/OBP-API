@@ -226,8 +226,8 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
   )
   
   
-  feature("Test the refreshUser method") {
-    scenario("we fake the output from getBankAccounts(), and check the functions there") {
+  Feature("Test the refreshUser method") {
+    Scenario("we fake the output from getBankAccounts(), and check the functions there") {
 
       When("We call the method use resourceUser1")
       val result = AuthUser.refreshUserLegacy(resourceUser1, None)
@@ -260,8 +260,8 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
     }
   }
   
-  feature("Test the refreshViewsAccountAccessAndHolders method") {
-    scenario("Test one account views,account access and account holder") {
+  Feature("Test the refreshViewsAccountAccessAndHolders method") {
+    Scenario("Test one account views,account access and account holder") {
       
       When("1st Step: no accounts in the List")
       AuthUser.refreshViewsAccountAccessAndHolders(resourceUser1, accountsHeldEmpty, None)
@@ -320,7 +320,7 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
 
     }
     
-    scenario("Test two accounts views,account access and account holder") {
+    Scenario("Test two accounts views,account access and account holder") {
 
       When("1rd Step: no accounts in the List")
       AuthUser.refreshViewsAccountAccessAndHolders(resourceUser1, accountsHeldEmpty, None)
@@ -415,7 +415,7 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
 
     }
 
-    scenario("Test two users, account views,account access and account holder") {
+    Scenario("Test two users, account views,account access and account holder") {
 
       When("1st Step: no accounts in the List")
       AuthUser.refreshViewsAccountAccessAndHolders(resourceUser1, accountsHeldEmpty, None)
@@ -498,7 +498,7 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
 
     }
     
-    scenario("Test one user, but change the `viewsToGenerate` from `StageOne` to `Owner`, and check all the view accesses. ") {
+    Scenario("Test one user, but change the `viewsToGenerate` from `StageOne` to `Owner`, and check all the view accesses. ") {
 
       When("1st Step: we create the `StageOneView` ")
       net.liftweb.db.DB.use(net.liftweb.util.DefaultConnectionIdentifier) { conn =>

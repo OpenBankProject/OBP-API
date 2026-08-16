@@ -127,15 +127,15 @@ class DynamicEntityFieldRolesTest extends V600ServerSetup {
 
   // ==================== Scenarios ====================
 
-  feature("Field-level write/read role permissions on Dynamic Entities") {
+  Feature("Field-level write/read role permissions on Dynamic Entities") {
 
-    scenario("A definition with field-level keywords can be created", VersionOfApi) {
+    Scenario("A definition with field-level keywords can be created", VersionOfApi) {
       val (code, body) = createSystemEntity(entity)
       try code should equal(201)
       finally deleteSystemEntity((body \ "dynamic_entity_id").extract[String])
     }
 
-    scenario("POST drops a write-restricted field", VersionOfApi) {
+    Scenario("POST drops a write-restricted field", VersionOfApi) {
       val (code, body) = createSystemEntity(entity)
       code should equal(201)
       val dynamicEntityId = (body \ "dynamic_entity_id").extract[String]
@@ -155,7 +155,7 @@ class DynamicEntityFieldRolesTest extends V600ServerSetup {
       } finally deleteSystemEntity(dynamicEntityId)
     }
 
-    scenario("PUT cannot set a write-restricted field", VersionOfApi) {
+    Scenario("PUT cannot set a write-restricted field", VersionOfApi) {
       val (code, body) = createSystemEntity(entity)
       code should equal(201)
       val dynamicEntityId = (body \ "dynamic_entity_id").extract[String]
@@ -176,7 +176,7 @@ class DynamicEntityFieldRolesTest extends V600ServerSetup {
       } finally deleteSystemEntity(dynamicEntityId)
     }
 
-    scenario("PATCH a write-restricted field requires the field write role", VersionOfApi) {
+    Scenario("PATCH a write-restricted field requires the field write role", VersionOfApi) {
       val (code, body) = createSystemEntity(entity)
       code should equal(201)
       val dynamicEntityId = (body \ "dynamic_entity_id").extract[String]
@@ -203,7 +203,7 @@ class DynamicEntityFieldRolesTest extends V600ServerSetup {
       } finally deleteSystemEntity(dynamicEntityId)
     }
 
-    scenario("GET omits a read-restricted field unless the caller holds the read role", VersionOfApi) {
+    Scenario("GET omits a read-restricted field unless the caller holds the read role", VersionOfApi) {
       val (code, body) = createSystemEntity(entity)
       code should equal(201)
       val dynamicEntityId = (body \ "dynamic_entity_id").extract[String]
@@ -228,9 +228,9 @@ class DynamicEntityFieldRolesTest extends V600ServerSetup {
     }
   }
 
-  feature("Per-field PATCH authorisation (no blanket entity-update precondition)") {
+  Feature("Per-field PATCH authorisation (no blanket entity-update precondition)") {
 
-    scenario("Field write role alone (no entity update role) can PATCH the restricted field", VersionOfApi) {
+    Scenario("Field write role alone (no entity update role) can PATCH the restricted field", VersionOfApi) {
       val n = "fr_field_alone"
       val (code, body) = createSystemEntity(fieldRolesEntity(n))   // user1 is the creator (auto-granted entity roles)
       code should equal(201)
@@ -252,7 +252,7 @@ class DynamicEntityFieldRolesTest extends V600ServerSetup {
       } finally deleteSystemEntity(deId)
     }
 
-    scenario("Field write role alone cannot PATCH an unrestricted field", VersionOfApi) {
+    Scenario("Field write role alone cannot PATCH an unrestricted field", VersionOfApi) {
       val n = "fr_unrestricted_denied"
       val (code, body) = createSystemEntity(fieldRolesEntity(n))   // user1 is the creator
       code should equal(201)
@@ -279,7 +279,7 @@ class DynamicEntityFieldRolesTest extends V600ServerSetup {
       } finally deleteSystemEntity(deId)
     }
 
-    scenario("Entity update role alone can PATCH unrestricted fields but not restricted ones", VersionOfApi) {
+    Scenario("Entity update role alone can PATCH unrestricted fields but not restricted ones", VersionOfApi) {
       val n = "fr_baseline_only"
       val (code, body) = createSystemEntity(fieldRolesEntity(n))
       code should equal(201)
@@ -302,7 +302,7 @@ class DynamicEntityFieldRolesTest extends V600ServerSetup {
       } finally deleteSystemEntity(deId)
     }
 
-    scenario("PATCH a restricted field with its current (unchanged) value still requires the role", VersionOfApi) {
+    Scenario("PATCH a restricted field with its current (unchanged) value still requires the role", VersionOfApi) {
       val n = "fr_unchanged_value"
       val (code, body) = createSystemEntity(fieldRolesEntity(n))
       code should equal(201)
@@ -322,7 +322,7 @@ class DynamicEntityFieldRolesTest extends V600ServerSetup {
       } finally deleteSystemEntity(deId)
     }
 
-    scenario("Personal entity without personal_requires_role: unrestricted PATCH needs no role; restricted still needs the field role", VersionOfApi) {
+    Scenario("Personal entity without personal_requires_role: unrestricted PATCH needs no role; restricted still needs the field role", VersionOfApi) {
       val n = "fr_personal"
       val (code, body) = createSystemEntity(fieldRolesEntity(n))   // has_personal_entity=true, personal_requires_role defaults false
       code should equal(201)
@@ -351,7 +351,7 @@ class DynamicEntityFieldRolesTest extends V600ServerSetup {
     // Mirrors the original reproduction: a field declares an EXPLICIT, shareable write_role (rather than the
     // auto-generated CanWriteDynamicEntityField_* role). Granting that role to another user lets them PATCH the
     // field on the field role ALONE — no entity update role required.
-    scenario("Explicit write_role: a named shareable role lets another user PATCH the field alone", VersionOfApi) {
+    Scenario("Explicit write_role: a named shareable role lets another user PATCH the field alone", VersionOfApi) {
       val n = "fr_explicit_role"
       val explicitRole = "CanUpdateWritableExplicit"   // explicit role named in the schema (cf. the ticket's CanUpdateWritable)
       val (code, body) = createSystemEntity(

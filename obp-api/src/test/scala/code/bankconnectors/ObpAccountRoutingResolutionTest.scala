@@ -26,9 +26,9 @@ class ObpAccountRoutingResolutionTest extends ServerSetupWithTestData with Defau
   // "OBP" is the overloaded one, accepted in both bank- and account-routing contexts.
   private val obpScheme = "OBP"
 
-  feature("Resolving an account by an OBP-scheme routing") {
+  Feature("Resolving an account by an OBP-scheme routing") {
 
-    scenario("an address that is the account id resolves, with and without a bank", ObpRouting) {
+    Scenario("an address that is the account id resolves, with and without a bank", ObpRouting) {
       val account = createAccountRelevantResource(Some(resourceUser1), testBankId1, testAccountId1, "EUR")
 
       Connector.connector.vend.getBankAccountByRoutingLegacy(
@@ -37,7 +37,7 @@ class ObpAccountRoutingResolutionTest extends ServerSetupWithTestData with Defau
 
     }
 
-    scenario("without a bank, an account id shared by several banks is reported as ambiguous", ObpRouting) {
+    Scenario("without a bank, an account id shared by several banks is reported as ambiguous", ObpRouting) {
       // The fixture gives more than one bank an account called testAccount1, so with no bank context
       // the address matches several accounts. That has to stay an ambiguity: falling through to the
       // routing table would find nothing there and answer a bare "not found" instead.
@@ -50,7 +50,7 @@ class ObpAccountRoutingResolutionTest extends ServerSetupWithTestData with Defau
       result.toString should include("OBP-31075")
     }
 
-    scenario("a registered OBP routing whose address is not the account id resolves too", ObpRouting) {
+    Scenario("a registered OBP routing whose address is not the account id resolves too", ObpRouting) {
       val account = createAccountRelevantResource(Some(resourceUser1), testBankId2, AccountId("testAccountObpRouting"), "EUR")
       val registeredAddress = "some-bank-chosen-obp-address"
 
@@ -70,7 +70,7 @@ class ObpAccountRoutingResolutionTest extends ServerSetupWithTestData with Defau
       ).map(_._1.accountId) should equal(net.liftweb.common.Full(account.accountId))
     }
 
-    scenario("the plural-routings resolver honours a registered OBP routing too", ObpRouting) {
+    Scenario("the plural-routings resolver honours a registered OBP routing too", ObpRouting) {
       // getBankAccountByRoutings has its own copy of the implicit-OBP shortcut, and had the same
       // blind spot. This is the path the VRP consent-request creation takes.
       val account = createAccountRelevantResource(Some(resourceUser1), testBankId1, AccountId("testAccountPluralRouting"), "EUR")
@@ -93,7 +93,7 @@ class ObpAccountRoutingResolutionTest extends ServerSetupWithTestData with Defau
       resolved.map(_.accountId) should equal(net.liftweb.common.Full(account.accountId))
     }
 
-    scenario("an address that is neither still resolves to nothing", ObpRouting) {
+    Scenario("an address that is neither still resolves to nothing", ObpRouting) {
       Connector.connector.vend.getBankAccountByRoutingLegacy(
         Some(BankId(testBankId1.value)), obpScheme, "no-such-address-anywhere", None
       ).isDefined should equal(false)

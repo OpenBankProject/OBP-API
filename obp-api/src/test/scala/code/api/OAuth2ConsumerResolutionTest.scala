@@ -48,9 +48,9 @@ class OAuth2ConsumerResolutionTest extends ServerSetup {
     oidcProvider.getOrCreateConsumer(token, Empty, Some(description))
       .openOrThrowException("getOrCreateConsumer must return a consumer")
 
-  feature("consumer resolution is per (azp, iss) — one Consumer per OAuth client per issuer") {
+  Feature("consumer resolution is per (azp, iss) — one Consumer per OAuth client per issuer") {
 
-    scenario("two different users of the same client resolve to the same consumer") {
+    Scenario("two different users of the same client resolve to the same consumer") {
       val clientId = freshClientId()
       When("two users with different sub claims log in with the same client and issuer")
       val first = resolve(idToken(clientId, googleIssuer, sub = "user-one", name = Some(s"Alice ${APIUtil.generateUUID()}")))
@@ -62,7 +62,7 @@ class OAuth2ConsumerResolutionTest extends ServerSetup {
       second.sub.get should equal("user-one")
     }
 
-    scenario("the same client ID under a different issuer resolves to a different consumer") {
+    Scenario("the same client ID under a different issuer resolves to a different consumer") {
       val clientId = freshClientId()
       When("the same client ID is presented by two different issuers")
       val googleConsumer = resolve(idToken(clientId, googleIssuer, sub = "user-one"))
@@ -73,9 +73,9 @@ class OAuth2ConsumerResolutionTest extends ServerSetup {
     }
   }
 
-  feature("auto-created consumer metadata") {
+  Feature("auto-created consumer metadata") {
 
-    scenario("the consumer is named from the token's name claim, falling back to the description") {
+    Scenario("the consumer is named from the token's name claim, falling back to the description") {
       val namedUser = s"Alice ${APIUtil.generateUUID()}"
       When("the token carries a name claim")
       val named = resolve(idToken(freshClientId(), googleIssuer, sub = "user-one", name = Some(namedUser)))
@@ -87,7 +87,7 @@ class OAuth2ConsumerResolutionTest extends ServerSetup {
       unnamed.name.get should startWith("OpenID Connect")
     }
 
-    scenario("the consumerId is derived from the client ID") {
+    Scenario("the consumerId is derived from the client ID") {
       Given("a google-style (non-UUID) client ID")
       val clientId = freshClientId()
       resolve(idToken(clientId, googleIssuer, sub = "user-one")).consumerId.get should startWith(s"${clientId}_")
@@ -97,9 +97,9 @@ class OAuth2ConsumerResolutionTest extends ServerSetup {
     }
   }
 
-  feature("a pre-registered consumer whose key is the OAuth2 client ID takes priority") {
+  Feature("a pre-registered consumer whose key is the OAuth2 client ID takes priority") {
 
-    scenario("the token resolves to the pre-registered consumer instead of auto-creating one") {
+    Scenario("the token resolves to the pre-registered consumer instead of auto-creating one") {
       val clientId = freshClientId()
       Given("an operator pre-registered a consumer with key = the Google client ID")
       val registered = Consumers.consumers.vend.createConsumer(
@@ -117,7 +117,7 @@ class OAuth2ConsumerResolutionTest extends ServerSetup {
       Consumer.findAll(By(Consumer.azp, clientId)).size should equal(1)
     }
 
-    scenario("a stale auto-created consumer is displaced by the pre-registered one") {
+    Scenario("a stale auto-created consumer is displaced by the pre-registered one") {
       val clientId = freshClientId()
       Given("a consumer was auto-created before the operator registered the client ID")
       val stale = resolve(idToken(clientId, googleIssuer, sub = "user-one"))

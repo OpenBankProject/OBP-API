@@ -8,7 +8,9 @@ import com.openbankproject.commons.util.OBPRequired
 import com.openbankproject.commons.util.json
 import org.json4s.JsonDSL._
 import org.json4s.{Formats, JObject}
-import org.scalatest.{FeatureSpec, GivenWhenThen, Matchers}
+import org.scalatest.GivenWhenThen
+import org.scalatest.featurespec.AnyFeatureSpec
+import org.scalatest.matchers.should.Matchers
 
 case class FirstTypeForTest(val name: String, age: Option[Int])
 
@@ -18,11 +20,11 @@ case class SecondTypeForTest(val name: String, age: Int) {
   def this(name: String) = this(name, 0)
 }
 
-class CustomJsonFormatsTest extends FeatureSpec with Matchers with GivenWhenThen {
+class CustomJsonFormatsTest extends AnyFeatureSpec with Matchers with GivenWhenThen {
   implicit val formats: Formats = CustomJsonFormats.nullTolerateFormats
 
-  feature("test null value in JValue") {
-    scenario("json have all constructor param values") {
+  Feature("test null value in JValue") {
+    Scenario("json have all constructor param values") {
       val jsonStr =
         """
           |{
@@ -43,7 +45,7 @@ class CustomJsonFormatsTest extends FeatureSpec with Matchers with GivenWhenThen
       wrappedFirstType should  equal (WrappedFirstType(null, expectedFirst))
     }
 
-    scenario("json have missing required constructor param value") {
+    Scenario("json have missing required constructor param value") {
       val jsonStr =
         """
           |{
@@ -58,7 +60,7 @@ class CustomJsonFormatsTest extends FeatureSpec with Matchers with GivenWhenThen
     }
 
 
-    scenario("json have required constructor param value") {
+    Scenario("json have required constructor param value") {
       val jsonStr =
         """
           |{

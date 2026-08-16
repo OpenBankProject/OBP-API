@@ -1,8 +1,9 @@
 package code.api.dynamic.entity.projection
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
-import org.scalatest.{FlatSpec, Matchers}
 
-class ProjectionNamingSpec extends FlatSpec with Matchers {
+class ProjectionNamingSpec extends AnyFlatSpec with Matchers {
 
   "ProjectionNaming.tableName" should "be deterministic and length/charset safe" in {
     val a = ProjectionNaming.tableName(None, "ParcelOwnerVerification")

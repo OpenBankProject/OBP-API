@@ -54,9 +54,9 @@ class MappedCrmEventProviderTest extends ServerSetup with DefaultUsers {
     .mCategory("Category Y")
     .saveMe()
 
-  feature("Getting crm events") {
+  Feature("Getting crm events") {
 
-    scenario("No crm events exist for user and we try to get them") {
+    Scenario("No crm events exist for user and we try to get them") {
       Given("No MappedCrmEvent exists for a user (any bank)")
       MappedCrmEvent.find(By(MappedCrmEvent.mUserId, resourceUser2)).isDefined should equal(false) // (Would find on any bank)
 
@@ -68,7 +68,7 @@ class MappedCrmEventProviderTest extends ServerSetup with DefaultUsers {
       foundList.size should equal(0)
     }
 
-    scenario("A CrmEvent exists for user and we try to get it") {
+    Scenario("A CrmEvent exists for user and we try to get it") {
       val createdThing1 = createCrmEvent1()
       Given("MappedCrmEvent exists for a user on a bank")
       MappedCrmEvent.find(
@@ -88,7 +88,7 @@ class MappedCrmEventProviderTest extends ServerSetup with DefaultUsers {
     }
 
 
-    scenario("No crm events exist for a bank and we try to get them") {
+    Scenario("No crm events exist for a bank and we try to get them") {
       Given("No MappedCrmEvent exists for a bank")
       MappedCrmEvent.find(By(MappedCrmEvent.mBankId, testBankId1.value)).isDefined should equal(false)
 
@@ -103,7 +103,7 @@ class MappedCrmEventProviderTest extends ServerSetup with DefaultUsers {
       foundList.size should equal(0)
     }
 
-    scenario("CrmEvents exist for bank and user and we try to get them") {
+    Scenario("CrmEvents exist for bank and user and we try to get them") {
 
       val createdThing2 = createCrmEvent2()
       val createdThing3 = createCrmEvent3()

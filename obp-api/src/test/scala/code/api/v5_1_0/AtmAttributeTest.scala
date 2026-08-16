@@ -42,8 +42,8 @@ class AtmAttributeTest extends V510ServerSetup with DefaultUsers {
   lazy val bankId = randomBankId
   lazy val atmId = createAtmAtBank(bankId).id.getOrElse("")
 
-  feature(s"Assuring that endpoint $ApiEndpoint1 works as expected - $VersionOfApi") {
-    scenario(s"We try to consume endpoint $ApiEndpoint1 - Anonymous access", ApiEndpoint1, VersionOfApi) {
+  Feature(s"Assuring that endpoint $ApiEndpoint1 works as expected - $VersionOfApi") {
+    Scenario(s"We try to consume endpoint $ApiEndpoint1 - Anonymous access", ApiEndpoint1, VersionOfApi) {
       When("We make the request")
       val requestGet = (v5_1_0_Request / "banks" / bankId / "atms" / atmId / "attributes").POST
       val responseGet = makePostRequest(requestGet, write(atmAttributeJsonV510))
@@ -52,7 +52,7 @@ class AtmAttributeTest extends V510ServerSetup with DefaultUsers {
       responseGet.code should equal(401)
       responseGet.body.extract[ErrorMessage].message should equal(ErrorMessages.AuthenticatedUserIsRequired)
     }
-    scenario(s"We try to consume endpoint $ApiEndpoint1 without proper role - Authorized access", ApiEndpoint1, VersionOfApi) {
+    Scenario(s"We try to consume endpoint $ApiEndpoint1 without proper role - Authorized access", ApiEndpoint1, VersionOfApi) {
       When("We make the request")
       val requestGet = (v5_1_0_Request / "banks" / bankId / "atms" / atmId / "attributes").POST <@ (user1)
       val responseGet = makePostRequest(requestGet, write(atmAttributeJsonV510))
@@ -61,7 +61,7 @@ class AtmAttributeTest extends V510ServerSetup with DefaultUsers {
       responseGet.code should equal(403)
       responseGet.body.extract[ErrorMessage].message should startWith(UserHasMissingRoles + CanCreateAtmAttribute)
     }
-    scenario(s"We try to consume endpoint $ApiEndpoint1 with proper role but invalid ATM - Authorized access", ApiEndpoint1, VersionOfApi) {
+    Scenario(s"We try to consume endpoint $ApiEndpoint1 with proper role but invalid ATM - Authorized access", ApiEndpoint1, VersionOfApi) {
       When("We make the request")
       val entitlement = Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, ApiRole.CanCreateAtmAttribute.toString)
       val requestGet = (v5_1_0_Request / "banks" / bankId / "atms" / "atmId-invalid" / "attributes").POST <@ (user1)
@@ -72,7 +72,7 @@ class AtmAttributeTest extends V510ServerSetup with DefaultUsers {
       responseGet.body.extract[ErrorMessage].message should startWith(AtmNotFoundByAtmId)
       Entitlement.entitlement.vend.deleteEntitlement(entitlement)
     }
-    scenario(s"We try to consume endpoint $ApiEndpoint1 with proper systemm role but invalid ATM - Authorized access", ApiEndpoint1, VersionOfApi) {
+    Scenario(s"We try to consume endpoint $ApiEndpoint1 with proper systemm role but invalid ATM - Authorized access", ApiEndpoint1, VersionOfApi) {
       When("We make the request")
       val entitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanCreateAtmAttributeAtAnyBank.toString)
       val requestGet = (v5_1_0_Request / "banks" / bankId / "atms" / "atmId-invalid" / "attributes").POST <@ (user1)
@@ -86,8 +86,8 @@ class AtmAttributeTest extends V510ServerSetup with DefaultUsers {
   }
 
 
-  feature(s"Assuring that endpoint $ApiEndpoint2 works as expected - $VersionOfApi") {
-    scenario(s"We try to consume endpoint $ApiEndpoint2 - Anonymous access", ApiEndpoint2, VersionOfApi) {
+  Feature(s"Assuring that endpoint $ApiEndpoint2 works as expected - $VersionOfApi") {
+    Scenario(s"We try to consume endpoint $ApiEndpoint2 - Anonymous access", ApiEndpoint2, VersionOfApi) {
       When("We make the request")
       val requestGet = (v5_1_0_Request / "banks" / bankId / "atms" / atmId / "attributes" / "DOES_NOT_MATTER").PUT
       val responseGet = makePutRequest(requestGet, write(atmAttributeJsonV510))
@@ -96,7 +96,7 @@ class AtmAttributeTest extends V510ServerSetup with DefaultUsers {
       responseGet.code should equal(401)
       responseGet.body.extract[ErrorMessage].message should equal(ErrorMessages.AuthenticatedUserIsRequired)
     }
-    scenario(s"We try to consume endpoint $ApiEndpoint2 without proper role - Authorized access", ApiEndpoint2, VersionOfApi) {
+    Scenario(s"We try to consume endpoint $ApiEndpoint2 without proper role - Authorized access", ApiEndpoint2, VersionOfApi) {
       When("We make the request")
       val requestGet = (v5_1_0_Request / "banks" / bankId / "atms" / atmId / "attributes" / "DOES_NOT_MATTER").PUT <@ (user1)
       val responseGet = makePutRequest(requestGet, write(atmAttributeJsonV510))
@@ -105,7 +105,7 @@ class AtmAttributeTest extends V510ServerSetup with DefaultUsers {
       responseGet.code should equal(403)
       responseGet.body.extract[ErrorMessage].message should startWith(UserHasMissingRoles + CanUpdateAtmAttribute)
     }
-    scenario(s"We try to consume endpoint $ApiEndpoint2 with proper role but invalid ATM - Authorized access", ApiEndpoint2, VersionOfApi) {
+    Scenario(s"We try to consume endpoint $ApiEndpoint2 with proper role but invalid ATM - Authorized access", ApiEndpoint2, VersionOfApi) {
       When("We make the request")
       val entitlement = Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, ApiRole.CanUpdateAtmAttribute.toString)
       val requestGet = (v5_1_0_Request / "banks" / bankId / "atms" / "atmId-invalid" / "attributes" / "DOES_NOT_MATTER").PUT <@ (user1)
@@ -116,7 +116,7 @@ class AtmAttributeTest extends V510ServerSetup with DefaultUsers {
       responseGet.body.extract[ErrorMessage].message should startWith(AtmNotFoundByAtmId)
       Entitlement.entitlement.vend.deleteEntitlement(entitlement)
     }
-    scenario(s"We try to consume endpoint $ApiEndpoint2 with proper system role but invalid ATM - Authorized access", ApiEndpoint2, VersionOfApi) {
+    Scenario(s"We try to consume endpoint $ApiEndpoint2 with proper system role but invalid ATM - Authorized access", ApiEndpoint2, VersionOfApi) {
       When("We make the request")
       val entitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanUpdateAtmAttributeAtAnyBank.toString)
       val requestGet = (v5_1_0_Request / "banks" / bankId / "atms" / "atmId-invalid" / "attributes" / "DOES_NOT_MATTER").PUT <@ (user1)
@@ -131,8 +131,8 @@ class AtmAttributeTest extends V510ServerSetup with DefaultUsers {
 
 
 
-  feature(s"Assuring that endpoint $ApiEndpoint3 works as expected - $VersionOfApi") {
-    scenario(s"We try to consume endpoint $ApiEndpoint3 - Anonymous access", ApiEndpoint3, VersionOfApi) {
+  Feature(s"Assuring that endpoint $ApiEndpoint3 works as expected - $VersionOfApi") {
+    Scenario(s"We try to consume endpoint $ApiEndpoint3 - Anonymous access", ApiEndpoint3, VersionOfApi) {
       When("We make the request")
       val request = (v5_1_0_Request / "banks" / bankId / "atms" / atmId / "attributes" / "DOES_NOT_MATTER").DELETE
       val response = makeDeleteRequest(request)
@@ -141,7 +141,7 @@ class AtmAttributeTest extends V510ServerSetup with DefaultUsers {
       response.code should equal(401)
       response.body.extract[ErrorMessage].message should equal(ErrorMessages.AuthenticatedUserIsRequired)
     }
-    scenario(s"We try to consume endpoint $ApiEndpoint3 without proper role - Authorized access", ApiEndpoint3, VersionOfApi) {
+    Scenario(s"We try to consume endpoint $ApiEndpoint3 without proper role - Authorized access", ApiEndpoint3, VersionOfApi) {
       When("We make the request")
       val request = (v5_1_0_Request / "banks" / bankId / "atms" / atmId / "attributes" / "DOES_NOT_MATTER").DELETE <@ (user1)
       val response = makeDeleteRequest(request)
@@ -150,7 +150,7 @@ class AtmAttributeTest extends V510ServerSetup with DefaultUsers {
       response.code should equal(403)
       response.body.extract[ErrorMessage].message should startWith(UserHasMissingRoles + CanDeleteAtmAttribute)
     }
-    scenario(s"We try to consume endpoint $ApiEndpoint3 with proper role but invalid ATM - Authorized access", ApiEndpoint3, VersionOfApi) {
+    Scenario(s"We try to consume endpoint $ApiEndpoint3 with proper role but invalid ATM - Authorized access", ApiEndpoint3, VersionOfApi) {
       When("We make the request")
       val entitlement = Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, ApiRole.CanDeleteAtmAttribute.toString)
       val request = (v5_1_0_Request / "banks" / bankId / "atms" / "atmId-invalid" / "attributes" / "DOES_NOT_MATTER").DELETE <@ (user1)
@@ -161,7 +161,7 @@ class AtmAttributeTest extends V510ServerSetup with DefaultUsers {
       response.body.extract[ErrorMessage].message should startWith(AtmNotFoundByAtmId)
       Entitlement.entitlement.vend.deleteEntitlement(entitlement)
     }
-    scenario(s"We try to consume endpoint $ApiEndpoint3 with proper system role but invalid ATM - Authorized access", ApiEndpoint3, VersionOfApi) {
+    Scenario(s"We try to consume endpoint $ApiEndpoint3 with proper system role but invalid ATM - Authorized access", ApiEndpoint3, VersionOfApi) {
       When("We make the request")
       val entitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanDeleteAtmAttributeAtAnyBank.toString)
       val request = (v5_1_0_Request / "banks" / bankId / "atms" / "atmId-invalid" / "attributes" / "DOES_NOT_MATTER").DELETE <@ (user1)
@@ -175,8 +175,8 @@ class AtmAttributeTest extends V510ServerSetup with DefaultUsers {
   }
 
   
-  feature(s"Assuring that endpoint $ApiEndpoint4 works as expected - $VersionOfApi") {
-    scenario(s"We try to consume endpoint $ApiEndpoint4 - Anonymous access", ApiEndpoint4, VersionOfApi) {
+  Feature(s"Assuring that endpoint $ApiEndpoint4 works as expected - $VersionOfApi") {
+    Scenario(s"We try to consume endpoint $ApiEndpoint4 - Anonymous access", ApiEndpoint4, VersionOfApi) {
       When("We make the request")
       val request = (v5_1_0_Request / "banks" / bankId / "atms" / atmId / "attributes").GET
       val response = makeGetRequest(request)
@@ -185,7 +185,7 @@ class AtmAttributeTest extends V510ServerSetup with DefaultUsers {
       response.code should equal(401)
       response.body.extract[ErrorMessage].message should equal(ErrorMessages.AuthenticatedUserIsRequired)
     }
-    scenario(s"We try to consume endpoint $ApiEndpoint4 without proper role - Authorized access", ApiEndpoint4, VersionOfApi) {
+    Scenario(s"We try to consume endpoint $ApiEndpoint4 without proper role - Authorized access", ApiEndpoint4, VersionOfApi) {
       When("We make the request")
       val request = (v5_1_0_Request / "banks" / bankId / "atms" / atmId / "attributes").GET <@ (user1)
       val response = makeGetRequest(request)
@@ -194,7 +194,7 @@ class AtmAttributeTest extends V510ServerSetup with DefaultUsers {
       response.code should equal(403)
       response.body.extract[ErrorMessage].message should startWith(UserHasMissingRoles + CanGetAtmAttribute)
     }
-    scenario(s"We try to consume endpoint $ApiEndpoint4 with proper role but invalid ATM - Authorized access", ApiEndpoint4, VersionOfApi) {
+    Scenario(s"We try to consume endpoint $ApiEndpoint4 with proper role but invalid ATM - Authorized access", ApiEndpoint4, VersionOfApi) {
       When("We make the request")
       val entitlement = Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, ApiRole.CanGetAtmAttribute.toString)
       val request = (v5_1_0_Request / "banks" / bankId / "atms" / "atmId-invalid" / "attributes").GET <@ (user1)
@@ -205,7 +205,7 @@ class AtmAttributeTest extends V510ServerSetup with DefaultUsers {
       response.body.extract[ErrorMessage].message should startWith(AtmNotFoundByAtmId)
       Entitlement.entitlement.vend.deleteEntitlement(entitlement)
     }
-    scenario(s"We try to consume endpoint $ApiEndpoint4 with proper system role but invalid ATM - Authorized access", ApiEndpoint4, VersionOfApi) {
+    Scenario(s"We try to consume endpoint $ApiEndpoint4 with proper system role but invalid ATM - Authorized access", ApiEndpoint4, VersionOfApi) {
       When("We make the request")
       val entitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanGetAtmAttributeAtAnyBank.toString)
       val request = (v5_1_0_Request / "banks" / bankId / "atms" / "atmId-invalid" / "attributes").GET <@ (user1)
@@ -218,8 +218,8 @@ class AtmAttributeTest extends V510ServerSetup with DefaultUsers {
     }
   }
   
-  feature(s"Assuring that endpoint $ApiEndpoint5 works as expected - $VersionOfApi") {
-    scenario(s"We try to consume endpoint $ApiEndpoint4 - Anonymous access", ApiEndpoint5, VersionOfApi) {
+  Feature(s"Assuring that endpoint $ApiEndpoint5 works as expected - $VersionOfApi") {
+    Scenario(s"We try to consume endpoint $ApiEndpoint4 - Anonymous access", ApiEndpoint5, VersionOfApi) {
       When("We make the request")
       val request = (v5_1_0_Request / "banks" / bankId / "atms" / atmId / "attributes" / "DOES_NOT_MATTER").GET
       val response = makeGetRequest(request)
@@ -228,7 +228,7 @@ class AtmAttributeTest extends V510ServerSetup with DefaultUsers {
       response.code should equal(401)
       response.body.extract[ErrorMessage].message should equal(ErrorMessages.AuthenticatedUserIsRequired)
     }
-    scenario(s"We try to consume endpoint $ApiEndpoint5 without proper role - Authorized access", ApiEndpoint5, VersionOfApi) {
+    Scenario(s"We try to consume endpoint $ApiEndpoint5 without proper role - Authorized access", ApiEndpoint5, VersionOfApi) {
       When("We make the request")
       val request = (v5_1_0_Request / "banks" / bankId / "atms" / atmId / "attributes" / "DOES_NOT_MATTER").GET <@ (user1)
       val response = makeGetRequest(request)
@@ -237,7 +237,7 @@ class AtmAttributeTest extends V510ServerSetup with DefaultUsers {
       response.code should equal(403)
       response.body.extract[ErrorMessage].message should startWith(UserHasMissingRoles + CanGetAtmAttribute)
     }
-    scenario(s"We try to consume endpoint $ApiEndpoint5 with proper role but invalid ATM - Authorized access", ApiEndpoint5, VersionOfApi) {
+    Scenario(s"We try to consume endpoint $ApiEndpoint5 with proper role but invalid ATM - Authorized access", ApiEndpoint5, VersionOfApi) {
       When("We make the request")
       val entitlement = Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, ApiRole.CanGetAtmAttribute.toString)
       val request = (v5_1_0_Request / "banks" / bankId / "atms" / "atmId-invalid" / "attributes" / "DOES_NOT_MATTER").GET <@ (user1)
@@ -248,7 +248,7 @@ class AtmAttributeTest extends V510ServerSetup with DefaultUsers {
       response.body.extract[ErrorMessage].message should startWith(AtmNotFoundByAtmId)
       Entitlement.entitlement.vend.deleteEntitlement(entitlement)
     }
-    scenario(s"We try to consume endpoint $ApiEndpoint5 with proper system role but invalid ATM - Authorized access", ApiEndpoint5, VersionOfApi) {
+    Scenario(s"We try to consume endpoint $ApiEndpoint5 with proper system role but invalid ATM - Authorized access", ApiEndpoint5, VersionOfApi) {
       When("We make the request")
       val entitlement = Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanGetAtmAttributeAtAnyBank.toString)
       val request = (v5_1_0_Request / "banks" / bankId / "atms" / "atmId-invalid" / "attributes" / "DOES_NOT_MATTER").GET <@ (user1)

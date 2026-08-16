@@ -1,8 +1,9 @@
 package code.api.cache
 
-import org.scalatest.{FlatSpec, Matchers}
 
 import scala.concurrent.duration._
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 /**
  * Pins the memoize key format and TTL rounding to what scalacache 0.28 produced.
@@ -23,7 +24,7 @@ import scala.concurrent.duration._
  *  - InMemoryCachingTest asserts countKeys("*<cacheKey>*") matches, i.e. the logical key must
  *    appear verbatim inside the stored key.
  */
-class CacheKeyFormatTest extends FlatSpec with Matchers {
+class CacheKeyFormatTest extends AnyFlatSpec with Matchers {
 
   "Redis memoize keys" should "match the live-sampled scalacache 0.28 format, sync variant" in {
     // Sampled live: a rate-limit counter entry.

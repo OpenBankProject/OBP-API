@@ -57,9 +57,9 @@ class WebhooksTest extends V310ServerSetup {
   val postJson = SwaggerDefinitionsJSON.accountWebhookPostJson
   val postJsonIncorrectTriggerName = SwaggerDefinitionsJSON.accountWebhookPostJson.copy(trigger_name = "I am not a valid trigger name")
 
-  feature("Create an Account Web Hook v3.1.0 - Unauthorized access")
+  Feature("Create an Account Web Hook v3.1.0 - Unauthorized access")
   {
-    scenario("We will try to create the web hook without user credentials", ApiEndpoint2, VersionOfApi) {
+    Scenario("We will try to create the web hook without user credentials", ApiEndpoint2, VersionOfApi) {
       val bankId = randomBankId
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "banks" / bankId / "account-web-hooks").POST
@@ -71,9 +71,9 @@ class WebhooksTest extends V310ServerSetup {
     }
   }
 
-  feature("Create an Account Web Hook v3.1.0 - Authorized access")
+  Feature("Create an Account Web Hook v3.1.0 - Authorized access")
   {
-    scenario("We will try to create the web hook without a proper Role " + canCreateWebhook, ApiEndpoint2, VersionOfApi) {
+    Scenario("We will try to create the web hook without a proper Role " + canCreateWebhook, ApiEndpoint2, VersionOfApi) {
       val bankId = randomBankId
       When("We make a request v3.1.0 without a Role " + canCreateWebhook)
       val request310 = (v3_1_0_Request / "banks" / bankId / "account-web-hooks").POST <@(user1)
@@ -86,7 +86,7 @@ class WebhooksTest extends V310ServerSetup {
       errorMessage contains (CanCreateWebhook.toString()) should be (true)
     }
 
-    scenario("We will try to create the web hook with a proper Role " + canCreateWebhook + " but without proper trigger name", ApiEndpoint2, VersionOfApi) {
+    Scenario("We will try to create the web hook with a proper Role " + canCreateWebhook + " but without proper trigger name", ApiEndpoint2, VersionOfApi) {
       val bankId = randomBankId
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateWebhook.toString)
       When("We make a request v3.1.0 with a Role " + canCreateWebhook)
@@ -99,7 +99,7 @@ class WebhooksTest extends V310ServerSetup {
       response310.body.extract[ErrorMessage].message should include (failMsg)
     }
 
-    scenario("We will try to create the web hook with a proper Role " + canCreateWebhook, ApiEndpoint2, VersionOfApi) {
+    Scenario("We will try to create the web hook with a proper Role " + canCreateWebhook, ApiEndpoint2, VersionOfApi) {
       val bankId = randomBankId
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateWebhook.toString)
       When("We make a request v3.1.0 with a Role " + canCreateWebhook)
@@ -112,8 +112,8 @@ class WebhooksTest extends V310ServerSetup {
 
   }
 
-  feature("Get Account Web Hooks v3.1.0 - Unauthorized access") {
-    scenario("We will try to get web hooks without user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature("Get Account Web Hooks v3.1.0 - Unauthorized access") {
+    Scenario("We will try to get web hooks without user credentials", ApiEndpoint1, VersionOfApi) {
       val bankId = randomBankId
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "management" / "banks" / bankId / "account-web-hooks").GET
@@ -125,8 +125,8 @@ class WebhooksTest extends V310ServerSetup {
     }
   }
 
-  feature("Get Account Web Hooks v3.1.0 - Authorized access") {
-    scenario("We will try to get web hooks without a proper Role " + canGetWebhooks, ApiEndpoint1, VersionOfApi) {
+  Feature("Get Account Web Hooks v3.1.0 - Authorized access") {
+    Scenario("We will try to get web hooks without a proper Role " + canGetWebhooks, ApiEndpoint1, VersionOfApi) {
       val bankId = randomBankId
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "management" / "banks" / bankId / "account-web-hooks").GET <@(user1)
@@ -138,7 +138,7 @@ class WebhooksTest extends V310ServerSetup {
       errorMessage contains (UserHasMissingRoles) should be (true)
       errorMessage contains (CanGetWebhooks.toString()) should be (true)
     }
-    scenario("We will try to get web hooks with a proper Role " + canGetWebhooks, ApiEndpoint1, VersionOfApi) {
+    Scenario("We will try to get web hooks with a proper Role " + canGetWebhooks, ApiEndpoint1, VersionOfApi) {
       val bankId = randomBankId
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanGetWebhooks.toString)
       When("We make a request v3.1.0")
@@ -151,8 +151,8 @@ class WebhooksTest extends V310ServerSetup {
   }
 
 
-  feature("Update an Account Web Hook v3.1.0 - Authorized access") {
-    scenario("We will try to Update an Account Web Hook without a proper Role " + canUpdateWebhook, ApiEndpoint3, VersionOfApi) {
+  Feature("Update an Account Web Hook v3.1.0 - Authorized access") {
+    Scenario("We will try to Update an Account Web Hook without a proper Role " + canUpdateWebhook, ApiEndpoint3, VersionOfApi) {
       val bankId = randomBankId
       When("We make a request v3.1.0")
       val request310 = (v3_1_0_Request / "banks" / bankId / "account-web-hooks").PUT <@(user1)
@@ -164,7 +164,7 @@ class WebhooksTest extends V310ServerSetup {
       errorMessage contains (UserHasMissingRoles) should be (true)
       errorMessage contains (CanUpdateWebhook.toString()) should be (true)
     }
-    scenario("We will try to Update an Account Web Hook with a proper Role " + canUpdateWebhook, ApiEndpoint3, VersionOfApi) {
+    Scenario("We will try to Update an Account Web Hook with a proper Role " + canUpdateWebhook, ApiEndpoint3, VersionOfApi) {
       val bankId = randomBankId
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateWebhook.toString)
       When("We create a web hook with a Role " + canCreateWebhook)

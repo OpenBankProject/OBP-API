@@ -29,13 +29,15 @@ package code.util
 
 import code.api.util.{ApiSession, CallContext}
 import code.util.Helper.MdcLoggable
-import org.scalatest.{FeatureSpec, GivenWhenThen, Matchers}
+import org.scalatest.GivenWhenThen
+import org.scalatest.featurespec.AnyFeatureSpec
+import org.scalatest.matchers.should.Matchers
 
-class ApiSessionTest extends FeatureSpec with Matchers with GivenWhenThen with MdcLoggable  {
+class ApiSessionTest extends AnyFeatureSpec with Matchers with GivenWhenThen with MdcLoggable  {
   
-  feature("test ApiSession.createSessionId method") 
+  Feature("test ApiSession.createSessionId method") 
   {
-    scenario("update the CallContext Session Id") 
+    Scenario("update the CallContext Session Id") 
     {
       val callContext = CallContext() 
       
@@ -45,9 +47,9 @@ class ApiSessionTest extends FeatureSpec with Matchers with GivenWhenThen with M
     }
   }
   
-  feature("test ApiSession.updateCallContextSessionId method") 
+  Feature("test ApiSession.updateCallContextSessionId method") 
   {
-    scenario("update the CallContext Session Id") 
+    Scenario("update the CallContext Session Id") 
     {
       val callContext = CallContext() 
       
@@ -57,9 +59,9 @@ class ApiSessionTest extends FeatureSpec with Matchers with GivenWhenThen with M
     }
   }
   
-  feature("test CallContext toString secure logging masking") 
+  Feature("test CallContext toString secure logging masking") 
   {
-    scenario("toString should mask sensitive data") 
+    Scenario("toString should mask sensitive data") 
     {
       val callContextWithSensitiveData = CallContext(
         directLoginParams = Map("password" -> "supersecret", "client_secret" -> "my_client_secret")

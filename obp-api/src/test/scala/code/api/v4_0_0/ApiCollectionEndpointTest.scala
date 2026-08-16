@@ -52,8 +52,8 @@ class ApiCollectionEndpointTest extends V400ServerSetup {
   object ApiEndpoint6 extends Tag(nameOf(Implementations4_0_0.createMyApiCollectionEndpointById))
   object ApiEndpoint7 extends Tag(nameOf(Implementations4_0_0.getMyApiCollectionEndpointsById))
 
-  feature("Test the apiCollection endpoints") {
-    scenario("We create the apiCollection Endpoint", ApiEndpoint1,ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
+  Feature("Test the apiCollection endpoints") {
+    Scenario("We create the apiCollection Endpoint", ApiEndpoint1,ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
       
       When("First we need to prepare the apiCollection and then test the select endpoints")
       val request = (v4_0_0_Request / "my" / "api-collections").POST <@ (user1)

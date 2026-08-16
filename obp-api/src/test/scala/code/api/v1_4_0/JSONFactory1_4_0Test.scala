@@ -48,14 +48,14 @@ case class AllCases(
 
 class JSONFactory1_4_0Test extends code.setup.ServerSetup {
   override implicit val formats: Formats = CustomJsonFormats.formats
-  feature("Test JSONFactory1_4_0") {
+  Feature("Test JSONFactory1_4_0") {
 
-    scenario("prepareDescription should work well, extract the parameters from URL") {
+    Scenario("prepareDescription should work well, extract the parameters from URL") {
       val description = JSONFactory1_4_0.prepareDescription("BANK_ID", Nil)
       description.contains("[BANK_ID](/glossary#Bank.bank_id): gh.29.uk") should be (true)
     }
     
-    scenario("prepareJsonFieldDescription should work well - users object") {
+    Scenario("prepareJsonFieldDescription should work well - users object") {
       val usersJson = usersJsonV400
       val description = JSONFactory1_4_0.prepareJsonFieldDescription(usersJson, "response", "JSON request body fields:", "JSON response body fields:")
       description.contains(
@@ -90,7 +90,7 @@ class JSONFactory1_4_0Test extends code.setup.ServerSetup {
     }
 
     val urlParameters = "URL Parameters:"
-    scenario("PrepareUrlParameterDescription should work well, extract the parameters from URL") {
+    Scenario("PrepareUrlParameterDescription should work well, extract the parameters from URL") {
       val requestUrl1 = "/obp/v4.0.0/banks/BANK_ID/accounts/account_ids/private"
       val requestUrl1Description = JSONFactory1_4_0.prepareUrlParameterDescription(requestUrl1,urlParameters)
       requestUrl1Description contains ("[BANK_ID]") should be (true)
@@ -106,28 +106,28 @@ class JSONFactory1_4_0Test extends code.setup.ServerSetup {
       requestUrl2Description shouldEqual(requestUrl3Description)
     }
 
-    scenario("getExampleTitleAndValueTuple should work well") {
+    Scenario("getExampleTitleAndValueTuple should work well") {
       val value  = JSONFactory1_4_0.getExampleFieldValue("BANK_ID")
       value should be (ExampleValue.bankIdExample.value)
     }
 
-    scenario("getGlossaryItemTitle should work well") {
+    Scenario("getGlossaryItemTitle should work well") {
       val value  = JSONFactory1_4_0.getGlossaryItemTitle("BANK_ID")
       value should be ("Bank.bank_id")
     }
     
-    scenario("createResourceDocJson should work well,  no exception is good enough") {
+    Scenario("createResourceDocJson should work well,  no exception is good enough") {
       val resourceDoc: ResourceDoc = OBPAPI3_0_0.allResourceDocs(5)
       val result: ResourceDocJson = JSONFactory1_4_0.createLocalisedResourceDocJson(resourceDoc,false, None, 
         includeTechnology = false, urlParameters, "JSON request body fields:", "JSON response body fields:")
     }
 
-    scenario("createResourceDocsJson should work well, no exception is good enough") {
+    Scenario("createResourceDocsJson should work well, no exception is good enough") {
       val resourceDoc: mutable.Seq[ResourceDoc] = OBPAPI3_0_0.allResourceDocs
       val result = JSONFactory1_4_0.createResourceDocsJson(resourceDoc.toList, false, None)
     }
 
-    scenario("Technology field should be None unless includeTechnology=true") {
+    Scenario("Technology field should be None unless includeTechnology=true") {
       // All versions are now on http4s — use any http4s doc.
       val http4sDoc: ResourceDoc = OBPAPI1_2_1.allResourceDocs.head
       val json1 = JSONFactory1_4_0.createLocalisedResourceDocJson(http4sDoc, false, None, includeTechnology = false, urlParameters, "JSON request body fields:", "JSON response body fields:")
@@ -137,13 +137,13 @@ class JSONFactory1_4_0Test extends code.setup.ServerSetup {
       json2.implemented_by.technology shouldBe Some(Constant.TECHNOLOGY_HTTP4S)
     }
 
-    scenario("Technology field should be http4s when includeTechnology=true and doc is http4s") {
+    Scenario("Technology field should be http4s when includeTechnology=true and doc is http4s") {
       val http4sDoc: ResourceDoc = code.api.v7_0_0.Http4s700.resourceDocs.head
       val json = JSONFactory1_4_0.createLocalisedResourceDocJson(http4sDoc, true, None, includeTechnology = true, urlParameters, "JSON request body fields:", "JSON response body fields:")
       json.implemented_by.technology shouldBe Some(Constant.TECHNOLOGY_HTTP4S)
     }
 
-    scenario("createTypedBody should work well, no exception is good enough") {
+    Scenario("createTypedBody should work well, no exception is good enough") {
       val inputCaseClass = AllCases()
       val result = JSONFactory1_4_0.createTypedBody(inputCaseClass)
 //      logger.debug(prettyRender(decompose(inputCaseClass)))
@@ -151,7 +151,7 @@ class JSONFactory1_4_0Test extends code.setup.ServerSetup {
 //      logger.debug(prettyRender(result))
     }
 
-    scenario("validate all the resourceDocs json schema, no exception is good enough") {
+    Scenario("validate all the resourceDocs json schema, no exception is good enough") {
       val resourceDocsRaw= OBPAPI3_0_0.allResourceDocs
       val resourceDocs = JSONFactory1_4_0.createResourceDocsJson(resourceDocsRaw.toList,false, None)
       val mapper = new ObjectMapper()

@@ -29,9 +29,9 @@ class MappedUserCustomerLinkProviderTest extends ServerSetup {
   }
 
 
-  feature("Getting user to customer link data") {
+  Feature("Getting user to customer link data") {
 
-    scenario("We try to get UserCustomerLink") {
+    Scenario("We try to get UserCustomerLink") {
       Given("There is no user to customer link at all but we try to get it")
       UserCustomerLink.userCustomerLink.vend.getUserCustomerLinks.getOrElse(List()).size should equal(0)
 
@@ -43,7 +43,7 @@ class MappedUserCustomerLinkProviderTest extends ServerSetup {
     }
 
 
-    scenario("A UserCustomerLink exists for user and we try to get it") {
+    Scenario("A UserCustomerLink exists for user and we try to get it") {
       val userCustomerLink1 = userCustomerLink(userId1, customerId1)
       Given("Create a user to customer link")
       UserCustomerLink.userCustomerLink.vend.getUserCustomerLink(userId1, customerId1).isDefined should equal(true)
@@ -63,7 +63,7 @@ class MappedUserCustomerLinkProviderTest extends ServerSetup {
       customerId.length should equal(32)
     }
 
-    scenario("We try to get all UserCustomerLink rows"){
+    Scenario("We try to get all UserCustomerLink rows"){
       val userCustomerLink1 = userCustomerLink(userId1, customerId1)
       val userCustomerLink2 = userCustomerLink(userId2, customerId2)
 

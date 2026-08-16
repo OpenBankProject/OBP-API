@@ -32,9 +32,9 @@ class EntitlementRequestsTest extends V300ServerSetup with DefaultUsers {
   object ApiEndpoint4 extends Tag(nameOf(Implementations3_0_0.getEntitlementRequests))
   object ApiEndpoint5 extends Tag(nameOf(Implementations3_0_0.getEntitlementRequestsForCurrentUser))
 
-  feature(s"The CURD endpoints") {
+  Feature(s"The CURD endpoints") {
 
-    scenario("create entitlement request - anonymous user.", VersionOfApi, ApiEndpoint1) {
+    Scenario("create entitlement request - anonymous user.", VersionOfApi, ApiEndpoint1) {
 
       When("We make a request v3.0.0")
       val postJson = """{"bank_id":"xxx", "role_name":"CanCreateBankLevelEndpointTag"}"""
@@ -45,7 +45,7 @@ class EntitlementRequestsTest extends V300ServerSetup with DefaultUsers {
       response300.body.toString contains AuthenticatedUserIsRequired should be (true)
     }
 
-    scenario("create entitlement request - non existing bank", VersionOfApi, ApiEndpoint1) {
+    Scenario("create entitlement request - non existing bank", VersionOfApi, ApiEndpoint1) {
 
       When("We make a request v3.0.0")
       val postJson = """{"bank_id":"xxx", "role_name":"CanCreateBankLevelEndpointTag"}"""
@@ -56,7 +56,7 @@ class EntitlementRequestsTest extends V300ServerSetup with DefaultUsers {
        response300.body.toString contains BankNotFound should be (true)
     }
     
-    scenario("create entitlement request- non existing role name", VersionOfApi, ApiEndpoint1) {
+    Scenario("create entitlement request- non existing role name", VersionOfApi, ApiEndpoint1) {
       When("We make a request v3.0.0")
       val postJson = s"""{"bank_id":"${testBankId1.value}", "role_name":"CanCreateBankLevelEndpointTagXXXX"}"""
       val request300 = (v3_0Request / "entitlement-requests").POST <@(user1)
@@ -67,7 +67,7 @@ class EntitlementRequestsTest extends V300ServerSetup with DefaultUsers {
     }
     
     
-    scenario("create entitlement request- bank level role- but not bank_id", VersionOfApi, ApiEndpoint1) {
+    Scenario("create entitlement request- bank level role- but not bank_id", VersionOfApi, ApiEndpoint1) {
       When("We make a request v3.0.0")
       val postJson = s"""{"bank_id":"", "role_name":"CanCreateBankLevelEndpointTag"}"""
       val request300 = (v3_0Request / "entitlement-requests").POST <@(user1)
@@ -78,7 +78,7 @@ class EntitlementRequestsTest extends V300ServerSetup with DefaultUsers {
     }
     
     
-    scenario("create entitlement request- system level role- but has bank_id", VersionOfApi, ApiEndpoint1) {
+    Scenario("create entitlement request- system level role- but has bank_id", VersionOfApi, ApiEndpoint1) {
       When("We make a request v3.0.0")
       val postJson = s"""{"bank_id":"${testBankId1.value}", "role_name":"CanGetSystemLevelEndpointTag"}"""
       val request300 = (v3_0Request / "entitlement-requests").POST <@(user1)
@@ -88,7 +88,7 @@ class EntitlementRequestsTest extends V300ServerSetup with DefaultUsers {
       response300.body.toString contains EntitlementIsSystemRole should be (true)
     }
     
-    scenario("create entitlement request- successfully", VersionOfApi, ApiEndpoint1) {
+    Scenario("create entitlement request- successfully", VersionOfApi, ApiEndpoint1) {
       When("We make a request v3.0.0")
       val postJson = s"""{"bank_id":"${testBankId1.value}", "role_name":"CanCreateBankLevelEndpointTag"}"""
       val request300 = (v3_0Request / "entitlement-requests").POST <@(user1)
@@ -99,7 +99,7 @@ class EntitlementRequestsTest extends V300ServerSetup with DefaultUsers {
       result.bank_id should be (testBankId1.value)
     }
 
-    scenario("create entitlement request- create same entity twice", VersionOfApi, ApiEndpoint1) {
+    Scenario("create entitlement request- create same entity twice", VersionOfApi, ApiEndpoint1) {
       When("We make a request v3.0.0")
       val postJson = s"""{"bank_id":"${testBankId1.value}", "role_name":"CanCreateBankLevelEndpointTag"}"""
       val request300 = (v3_0Request / "entitlement-requests").POST <@(user1)
@@ -114,7 +114,7 @@ class EntitlementRequestsTest extends V300ServerSetup with DefaultUsers {
       response3002rd.body.toString contains EntitlementRequestAlreadyExists should be (true)
     }
     
-    scenario("CUR entitlement request- ", VersionOfApi, 
+    Scenario("CUR entitlement request- ", VersionOfApi, 
       ApiEndpoint1, ApiEndpoint3, ApiEndpoint4, ApiEndpoint5) {
       When("We make a request v3.0.0")
       val postJson = s"""{"bank_id":"${testBankId1.value}", "role_name":"CanCreateBankLevelEndpointTag"}"""
@@ -179,7 +179,7 @@ class EntitlementRequestsTest extends V300ServerSetup with DefaultUsers {
     }
     
 
-    scenario("create entitlement request- delete entity -missing role ", VersionOfApi, ApiEndpoint1, ApiEndpoint2) {
+    Scenario("create entitlement request- delete entity -missing role ", VersionOfApi, ApiEndpoint1, ApiEndpoint2) {
       When("We make a request v3.0.0")
       val postJson = s"""{"bank_id":"${testBankId1.value}", "role_name":"CanCreateBankLevelEndpointTag"}"""
       val request300 = (v3_0Request / "entitlement-requests").POST <@(user1)
@@ -197,7 +197,7 @@ class EntitlementRequestsTest extends V300ServerSetup with DefaultUsers {
       deleteResponse.body.toString contains UserHasMissingRoles should be (true)
     }
 
-    scenario("create entitlement request- delete entity -with role ", VersionOfApi, ApiEndpoint1, ApiEndpoint2) {
+    Scenario("create entitlement request- delete entity -with role ", VersionOfApi, ApiEndpoint1, ApiEndpoint2) {
 
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanDeleteEntitlementRequestsAtAnyBank.toString)
 
@@ -235,9 +235,9 @@ class EntitlementRequestsTest extends V300ServerSetup with DefaultUsers {
 
   }
 
-  feature(s"Pagination and sorting for entitlement request endpoints") {
+  Feature(s"Pagination and sorting for entitlement request endpoints") {
 
-    scenario("Get my entitlement requests with limit parameter", VersionOfApi, ApiEndpoint5) {
+    Scenario("Get my entitlement requests with limit parameter", VersionOfApi, ApiEndpoint5) {
       // Create 3 entitlement requests
       val roles = List("CanCreateBankLevelEndpointTag", "CanGetSystemLevelEndpointTag", "CanCreateBankLevelDynamicEndpoint")
       val bankIds = List(testBankId1.value, "", testBankId1.value)
@@ -265,7 +265,7 @@ class EntitlementRequestsTest extends V300ServerSetup with DefaultUsers {
       resultWithLimit1.entitlement_requests.length should be (1)
     }
 
-    scenario("Get my entitlement requests with offset parameter", VersionOfApi, ApiEndpoint5) {
+    Scenario("Get my entitlement requests with offset parameter", VersionOfApi, ApiEndpoint5) {
       // Create 3 entitlement requests
       val roles = List("CanCreateBankLevelEndpointTag", "CanGetSystemLevelEndpointTag", "CanCreateBankLevelDynamicEndpoint")
       val bankIds = List(testBankId1.value, "", testBankId1.value)
@@ -293,7 +293,7 @@ class EntitlementRequestsTest extends V300ServerSetup with DefaultUsers {
       resultWithOffset2.entitlement_requests.length should be (1)
     }
 
-    scenario("Get my entitlement requests with sort_direction parameter", VersionOfApi, ApiEndpoint5) {
+    Scenario("Get my entitlement requests with sort_direction parameter", VersionOfApi, ApiEndpoint5) {
       // Create 2 entitlement requests
       val postJson1 = s"""{"bank_id":"${testBankId1.value}", "role_name":"CanCreateBankLevelEndpointTag"}"""
       val request1 = (v3_0Request / "entitlement-requests").POST <@(user1)
@@ -323,7 +323,7 @@ class EntitlementRequestsTest extends V300ServerSetup with DefaultUsers {
       resultDesc.entitlement_requests.length should be (2)
     }
 
-    scenario("Get all entitlement requests with pagination - default behavior still works", VersionOfApi, ApiEndpoint3) {
+    Scenario("Get all entitlement requests with pagination - default behavior still works", VersionOfApi, ApiEndpoint3) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.CanGetEntitlementRequestsAtAnyBank.toString)
 
       // Create 2 entitlement requests

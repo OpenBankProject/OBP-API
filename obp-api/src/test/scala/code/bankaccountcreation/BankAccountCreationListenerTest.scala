@@ -32,7 +32,7 @@ class BankAccountCreationListenerTest extends ServerSetup with DefaultConnectorT
     wipeTestData()
   }
 
-  feature("Bank account creation via AMQP messages") {
+  Feature("Bank account creation via AMQP messages") {
 
     val userProvider = defaultProvider
     val userProviderId = resourceUser1Name
@@ -65,7 +65,7 @@ class BankAccountCreationListenerTest extends ServerSetup with DefaultConnectorT
       ignore("a bank account is created at a bank that already exists", BankAccountCreationListenerTag) {}
     } else {
 
-      scenario("a bank account is created at a bank that does not yet exist", BankAccountCreationListenerTag) {
+      Scenario("a bank account is created at a bank that does not yet exist", BankAccountCreationListenerTag) {
         val bankIdentifier = "qux"
         val user = getTestUser()
 
@@ -93,7 +93,7 @@ class BankAccountCreationListenerTest extends ServerSetup with DefaultConnectorT
 
       }
 
-      scenario("a bank account is created at a bank that already exists", BankAccountCreationListenerTag) {
+      Scenario("a bank account is created at a bank that already exists", BankAccountCreationListenerTag) {
         val user = getTestUser()
         Given("The account doesn't already exist")
         Views.views.vend.getPrivateBankAccounts(user).size should equal(0)

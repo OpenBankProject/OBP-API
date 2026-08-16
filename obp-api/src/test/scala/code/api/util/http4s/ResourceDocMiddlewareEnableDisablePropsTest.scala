@@ -80,9 +80,9 @@ class ResourceDocMiddlewareEnableDisablePropsTest extends ServerSetup with Given
     v4App.run(req).unsafeRunSync().status.code
   }
 
-  feature("ResourceDocMiddleware — Props wiring at request time") {
+  Feature("ResourceDocMiddleware — Props wiring at request time") {
 
-    scenario("Baseline: no Props set → /root returns 200", EnableDisablePropsTag) {
+    Scenario("Baseline: no Props set → /root returns 200", EnableDisablePropsTag) {
       Given("no enable/disable Props are set")
       When("requesting GET /obp/v7.0.0/root")
       val status = get(rootPath)
@@ -90,7 +90,7 @@ class ResourceDocMiddlewareEnableDisablePropsTest extends ServerSetup with Given
       status shouldBe 200
     }
 
-    scenario("api_disabled_endpoints contains the operationId → 404", EnableDisablePropsTag) {
+    Scenario("api_disabled_endpoints contains the operationId → 404", EnableDisablePropsTag) {
       Given(s"api_disabled_endpoints=[$rootOpId]")
       setPropsValues("api_disabled_endpoints" -> s"[$rootOpId]")
 
@@ -104,7 +104,7 @@ class ResourceDocMiddlewareEnableDisablePropsTest extends ServerSetup with Given
       get(versionsPath) shouldBe 200
     }
 
-    scenario("api_enabled_endpoints contains a different operationId → 404 for non-listed", EnableDisablePropsTag) {
+    Scenario("api_enabled_endpoints contains a different operationId → 404 for non-listed", EnableDisablePropsTag) {
       Given(s"api_enabled_endpoints=[$versionsOpId] (root is NOT listed)")
       setPropsValues("api_enabled_endpoints" -> s"[$versionsOpId]")
 
@@ -118,7 +118,7 @@ class ResourceDocMiddlewareEnableDisablePropsTest extends ServerSetup with Given
       get(versionsPath) shouldBe 200
     }
 
-    scenario("api_enabled_endpoints contains the operationId → endpoint serves", EnableDisablePropsTag) {
+    Scenario("api_enabled_endpoints contains the operationId → endpoint serves", EnableDisablePropsTag) {
       Given(s"api_enabled_endpoints=[$rootOpId]")
       setPropsValues("api_enabled_endpoints" -> s"[$rootOpId]")
 
@@ -129,7 +129,7 @@ class ResourceDocMiddlewareEnableDisablePropsTest extends ServerSetup with Given
       status shouldBe 200
     }
 
-    scenario("api_disabled_versions is NOT enforced by the middleware — cascade-friendly", EnableDisablePropsTag) {
+    Scenario("api_disabled_versions is NOT enforced by the middleware — cascade-friendly", EnableDisablePropsTag) {
       Given("api_disabled_versions=[v7.0.0] (would historically have killed every v7 endpoint)")
       setPropsValues("api_disabled_versions" -> "[v7.0.0]")
 
@@ -144,7 +144,7 @@ class ResourceDocMiddlewareEnableDisablePropsTest extends ServerSetup with Given
       banksStatus shouldBe 200
     }
 
-    scenario("Disabled-endpoint wins over enabled-endpoint when same id is in both", EnableDisablePropsTag) {
+    Scenario("Disabled-endpoint wins over enabled-endpoint when same id is in both", EnableDisablePropsTag) {
       Given(s"api_disabled_endpoints=[$rootOpId] AND api_enabled_endpoints=[$rootOpId]")
       setPropsValues(
         "api_disabled_endpoints" -> s"[$rootOpId]",
@@ -158,7 +158,7 @@ class ResourceDocMiddlewareEnableDisablePropsTest extends ServerSetup with Given
       status shouldBe 404
     }
 
-    scenario("api_disabled_versions does NOT override api_enabled_endpoints at the middleware", EnableDisablePropsTag) {
+    Scenario("api_disabled_versions does NOT override api_enabled_endpoints at the middleware", EnableDisablePropsTag) {
       Given(s"api_disabled_versions=[v7.0.0] AND api_enabled_endpoints=[$rootOpId]")
       setPropsValues(
         "api_disabled_versions" -> "[v7.0.0]",
@@ -173,7 +173,7 @@ class ResourceDocMiddlewareEnableDisablePropsTest extends ServerSetup with Given
       status shouldBe 200
     }
 
-    scenario("After Props reset, baseline behavior is restored", EnableDisablePropsTag) {
+    Scenario("After Props reset, baseline behavior is restored", EnableDisablePropsTag) {
       Given("no Props set (afterEach in the prior scenario has reset locked providers)")
       When("requesting GET /obp/v7.0.0/root")
       val status = get(rootPath)
@@ -199,11 +199,11 @@ class ResourceDocMiddlewareEnableDisablePropsTest extends ServerSetup with Given
   // check inside `ResourceDocMiddleware`, the second scenario flips to 404 and
   // a reviewer is forced to revisit the design before merging. That's the
   // safety net that pins the cascade contract end-to-end.
-  feature("ResourceDocMiddleware — cascade reachability survives api_disabled_versions on the middle version") {
+  Feature("ResourceDocMiddleware — cascade reachability survives api_disabled_versions on the middle version") {
 
     val certsViaV4 = "/obp/v4.0.0/certs"
 
-    scenario("Baseline: cascade reaches /certs from /obp/v4.0.0 via v400ToV310Bridge", EnableDisablePropsTag) {
+    Scenario("Baseline: cascade reaches /certs from /obp/v4.0.0 via v400ToV310Bridge", EnableDisablePropsTag) {
       Given("no enable/disable Props set")
       When("requesting GET /obp/v4.0.0/certs against Http4s400.wrappedRoutesV400Services")
       val status = getV4(certsViaV4)
@@ -211,7 +211,7 @@ class ResourceDocMiddlewareEnableDisablePropsTest extends ServerSetup with Given
       status shouldBe 200
     }
 
-    scenario("api_disabled_versions=[v3.1.0] does NOT break the v4→v3.1 cascade", EnableDisablePropsTag) {
+    Scenario("api_disabled_versions=[v3.1.0] does NOT break the v4→v3.1 cascade", EnableDisablePropsTag) {
       Given("api_disabled_versions=[v3.1.0] — at some point during the migration to http4s, the intended design was broken and this would have killed cascaded reachability")
       setPropsValues("api_disabled_versions" -> "[v3.1.0]")
 

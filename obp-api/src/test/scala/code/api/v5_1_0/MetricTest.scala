@@ -24,8 +24,8 @@ class MetricTest extends V510ServerSetup {
   object VersionOfApi extends Tag(ApiVersion.v5_1_0.toString)
   object ApiEndpoint1 extends Tag(nameOf(Implementations5_1_0.getAggregateMetrics))
   
-  feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1 version $VersionOfApi - Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v5.1.0")
       val request = (v5_1_0_Request / "management" / "aggregate-metrics").GET
       val response = makeGetRequest(request)
@@ -35,8 +35,8 @@ class MetricTest extends V510ServerSetup {
     }
   }
 
-  feature(s"test $ApiEndpoint1 version $VersionOfApi - Authorized access") {
-    scenario("We will call the endpoint with user credentials but without a proper entitlement", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1 version $VersionOfApi - Authorized access") {
+    Scenario("We will call the endpoint with user credentials but without a proper entitlement", ApiEndpoint1, VersionOfApi) {
       When("We make a request v5.1.0")
       val request = (v5_1_0_Request / "management" / "aggregate-metrics").GET <@(user1)
       val response = makeGetRequest(request)
@@ -46,8 +46,8 @@ class MetricTest extends V510ServerSetup {
     }
   }
   
-  feature(s"test $ApiEndpoint1 version $VersionOfApi - Authorized access") {
-    scenario("We will call the endpoint with user credentials and a proper entitlement", ApiEndpoint1, VersionOfApi) {
+  Feature(s"test $ApiEndpoint1 version $VersionOfApi - Authorized access") {
+    Scenario("We will call the endpoint with user credentials and a proper entitlement", ApiEndpoint1, VersionOfApi) {
       setPropsValues("write_metrics" -> "true")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanReadAggregateMetrics.toString)
       val requestRoot = (v5_1_0_Request / "users"  / "current" ).GET <@ (user1)

@@ -210,9 +210,9 @@ class AtmsTest extends V140ServerSetup with DefaultUsers {
     Atms.atmsProvider.default.set(Atms.buildOne)
   }
 
-  feature("Getting bank ATMs") {
+  Feature("Getting bank ATMs") {
 
-    scenario("We try to get ATMs for a bank without a data license for ATM information") {
+    Scenario("We try to get ATMs for a bank without a data license for ATM information") {
 
       When("We make a request")
       val request = (v1_4Request / "banks" / bankWithoutLicense.value / "atms").GET <@ user1
@@ -223,7 +223,7 @@ class AtmsTest extends V140ServerSetup with DefaultUsers {
 
     }
 
-    scenario("We try to get ATMs for a bank with a data license for ATM information") {
+    Scenario("We try to get ATMs for a bank with a data license for ATM information") {
       When("We make a request")
       val request = (v1_4Request / "banks" / bankWithLicense.value / "atms").GET <@ user1
       val response = makeGetRequest(request)

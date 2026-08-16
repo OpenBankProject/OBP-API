@@ -42,9 +42,9 @@ class CreateTransactionTypeTest extends V210ServerSetup with DefaultUsers {
     MappedTransactionType.bulkDelete_!!()
   }
 
-  feature("Assuring that endpoint 'Create Transaction Type at bank' works as expected - v2.1.0") {
+  Feature("Assuring that endpoint 'Create Transaction Type at bank' works as expected - v2.1.0") {
 
-    scenario("We try to put data without Authentication - Create Transaction Type...", VersionOfApi210, ApiEndpoint2) {
+    Scenario("We try to put data without Authentication - Create Transaction Type...", VersionOfApi210, ApiEndpoint2) {
       When("We make the request")
       val requestPut = (v2_1Request / "banks" / testBankId1.value / "transaction-types").PUT <@ (user1)
       val responsePut = makePutRequest(requestPut, write(transactionTypeJSON))
@@ -54,7 +54,7 @@ class CreateTransactionTypeTest extends V210ServerSetup with DefaultUsers {
       responsePut.body.extract[ErrorMessage].message should equal (ErrorMessages.InsufficientAuthorisationToCreateTransactionType)
     }
 
-    scenario("We try to get all roles with Authentication - Create Transaction Type...", VersionOfApi, ApiEndpoint1, VersionOfApi210, ApiEndpoint2) {
+    Scenario("We try to get all roles with Authentication - Create Transaction Type...", VersionOfApi, ApiEndpoint1, VersionOfApi210, ApiEndpoint2) {
       Given("The Authentication")
       setCanCreateTransactionType
 
@@ -75,9 +75,9 @@ class CreateTransactionTypeTest extends V210ServerSetup with DefaultUsers {
     }
   }
 
-  feature("Assuring We pass the Authentication - Create Transaction Type... - v2.1.0") {
+  Feature("Assuring We pass the Authentication - Create Transaction Type... - v2.1.0") {
 
-    scenario("We try to insert and update data, call 'Create Transaction Type offered by the bank' correctly ", VersionOfApi210, ApiEndpoint2) {
+    Scenario("We try to insert and update data, call 'Create Transaction Type offered by the bank' correctly ", VersionOfApi210, ApiEndpoint2) {
       Given("The Authentication")
       setCanCreateTransactionType
 
@@ -104,7 +104,7 @@ class CreateTransactionTypeTest extends V210ServerSetup with DefaultUsers {
       responsePut.code should equal(200)
     }
 
-    scenario("We try to insert and update error, call 'Create Transaction Type offered by the bank' correctly ", VersionOfApi210, ApiEndpoint2) {
+    Scenario("We try to insert and update error, call 'Create Transaction Type offered by the bank' correctly ", VersionOfApi210, ApiEndpoint2) {
       Given("The Authentication")
       setCanCreateTransactionType
 

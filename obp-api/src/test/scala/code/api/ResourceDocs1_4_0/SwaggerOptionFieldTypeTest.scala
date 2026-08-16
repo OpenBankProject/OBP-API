@@ -5,7 +5,8 @@ import org.json4s.jvalue2monadic
 
 import org.json4s.JsonAST.{JNothing, JString, JValue}
 import org.json4s.native.JsonMethods.parse
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 /**
  * An Option field must be documented as the thing it holds, not as an array of it.
@@ -25,7 +26,7 @@ import org.scalatest.{FlatSpec, Matchers}
  * These are checks on the published contract, not on internals: the swagger definitions are what
  * clients generate code from, and a string that claims to be an array of strings breaks them.
  */
-class SwaggerOptionFieldTypeTest extends FlatSpec with Matchers {
+class SwaggerOptionFieldTypeTest extends AnyFlatSpec with Matchers {
 
   case class Inner(x: String)
   case class OptionalScalars(

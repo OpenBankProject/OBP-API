@@ -69,8 +69,8 @@ class ViewsTests extends V500ServerSetup {
     persmissionsInfo.permissions(randomPermission)
   }
   
-  feature(s"$ApiEndpoint1 - Get Account access for User. - $VersionOfApi") {
-    scenario("we will Get Account access for User.") {
+  Feature(s"$ApiEndpoint1 - Get Account access for User. - $VersionOfApi") {
+    Scenario("we will Get Account access for User.") {
       Given("Prepare all the parameters:")
       val bankId = randomBankId
       val bankAccountId = randomPrivateAccountId(bankId)

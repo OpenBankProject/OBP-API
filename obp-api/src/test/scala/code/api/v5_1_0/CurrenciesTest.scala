@@ -30,9 +30,9 @@ class CurrenciesTest extends V510ServerSetup with DefaultUsers {
     super.afterAll()
   }
   
-  feature(s"Assuring $ApiEndpoint1 works as expected - $VersionOfApi") {
+  Feature(s"Assuring $ApiEndpoint1 works as expected - $VersionOfApi") {
 
-    scenario(s"We Call $ApiEndpoint1", VersionOfApi, ApiEndpoint1) {
+    Scenario(s"We Call $ApiEndpoint1", VersionOfApi, ApiEndpoint1) {
       setPropsValues("require_scopes_for_all_roles" -> "true")
       val testBank = testBankId1
       val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(user1.get._1.key).map(_.id.get.toString).getOrElse("")
@@ -42,7 +42,7 @@ class CurrenciesTest extends V510ServerSetup with DefaultUsers {
       And("We should get a 200")
       responseGet.code should equal(200)
     }
-    scenario(s"We Call $ApiEndpoint1 without a proper scope", VersionOfApi, ApiEndpoint1) {
+    Scenario(s"We Call $ApiEndpoint1 without a proper scope", VersionOfApi, ApiEndpoint1) {
       setPropsValues("require_scopes_for_all_roles" -> "true")
       val testBank = testBankId1
       val requestGet = (v5_1_0_Request / "banks" / testBank.value / "currencies" ).GET <@ (user1)
@@ -50,7 +50,7 @@ class CurrenciesTest extends V510ServerSetup with DefaultUsers {
       And("We should get a 403")
       responseGet.code should equal(403)
     }
-    scenario(s"We Call $ApiEndpoint1 with anonymous access", VersionOfApi, ApiEndpoint1) {
+    Scenario(s"We Call $ApiEndpoint1 with anonymous access", VersionOfApi, ApiEndpoint1) {
       setPropsValues("require_scopes_for_all_roles" -> "true")
       val testBank = testBankId1
       val requestGet = (v5_1_0_Request / "banks" / testBank.value / "currencies" ).GET

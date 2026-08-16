@@ -86,9 +86,9 @@ class RateLimitingTest extends V510ServerSetup with PropsReset {
   val callLimitJsonMonth: CallLimitPostJsonV400 = callLimitJsonInitial.copy(per_month_call_limit = "100")
     
 
-  feature("Rate Limit - " + ApiCallsLimit + " - " + ApiVersion400) {
+  Feature("Rate Limit - " + ApiCallsLimit + " - " + ApiVersion400) {
 
-    scenario("We will try to get calls limit per minute for a Consumer - unauthorized access", ApiCallsLimit, ApiVersion510) {
+    Scenario("We will try to get calls limit per minute for a Consumer - unauthorized access", ApiCallsLimit, ApiVersion510) {
       When(s"We make a request $ApiVersion510")
       val Some((c, _)) = user1
       val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId.get).getOrElse("")
@@ -99,7 +99,7 @@ class RateLimitingTest extends V510ServerSetup with PropsReset {
       And("error should be " + AuthenticatedUserIsRequired)
       response510.body.extract[ErrorMessage].message should equal(AuthenticatedUserIsRequired)
     }
-    scenario("We will try to get calls limit per minute without a proper Role " + ApiRole.canReadCallLimits, ApiCallsLimit, ApiVersion510) {
+    Scenario("We will try to get calls limit per minute without a proper Role " + ApiRole.canReadCallLimits, ApiCallsLimit, ApiVersion510) {
       When("We make a request v3.1.0 without a Role " + ApiRole.canReadCallLimits)
       val Some((c, _)) = user1
       val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(c.key).map(_.consumerId.get).getOrElse("")
@@ -110,7 +110,7 @@ class RateLimitingTest extends V510ServerSetup with PropsReset {
       And("error should be " + UserHasMissingRoles + CanReadCallLimits)
       response510.body.extract[ErrorMessage].message should equal(UserHasMissingRoles + CanReadCallLimits)
     }
-    scenario("We will try to get calls limit per minute with a proper Role " + ApiRole.canReadCallLimits, ApiCallsLimit, ApiVersion510) {
+    Scenario("We will try to get calls limit per minute with a proper Role " + ApiRole.canReadCallLimits, ApiCallsLimit, ApiVersion510) {
 
       When("We make a request v5.1.0 with a Role " + ApiRole.canUpdateRateLimits)
       val response01 = setRateLimiting(user1, callLimitJsonMonth)

@@ -6,10 +6,12 @@ import code.bankconnectors.Connector
 import com.github.dwickern.macros.NameOf
 import com.openbankproject.commons.model.OutboundAdapterCallContext
 import com.openbankproject.commons.util.ReflectUtils
-import org.scalatest.{FlatSpec, Matchers, Tag}
+import org.scalatest.Tag
 
 import scala.collection.immutable.List
 import scala.reflect.runtime.universe
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 class ConnectorTest extends V510ServerSetup {
   object ConnectorTestTag extends Tag(NameOf.nameOfType[ConnectorTest])
@@ -58,8 +60,8 @@ class ConnectorTest extends V510ServerSetup {
     }
   }
 
-  feature("Make sure connector follow the obp general rules ") {
-    scenario("OutBound case class should have the same param name with connector method", ConnectorTestTag) {
+  Feature("Make sure connector follow the obp general rules ") {
+    Scenario("OutBound case class should have the same param name with connector method", ConnectorTestTag) {
       val wrongOutboundTypes = connectorType.decls.filter(it =>it.isMethod) collect {
         case WrongOutBoundType(tp) => tp
       }
@@ -67,7 +69,7 @@ class ConnectorTest extends V510ServerSetup {
       wrongOutboundTypes shouldBe empty
     }
     
-    scenario("all connector methods should have the callContext parameter", ConnectorTestTag){
+    Scenario("all connector methods should have the callContext parameter", ConnectorTestTag){
       val mappedConnectorObject = Connector.nameToConnector.get("mapped")
 
       val allConnectorMethods = mappedConnectorObject.map(_.callableMethods)
@@ -80,7 +82,7 @@ class ConnectorTest extends V510ServerSetup {
       noCallcontextMethodsNames.size should be(0)
     }
     
-    scenario("all connector methods should return Future ", ConnectorTestTag){
+    Scenario("all connector methods should return Future ", ConnectorTestTag){
       val mappedConnectorObject = Connector.nameToConnector.get("mapped")
 
       val allConnectorMethods = mappedConnectorObject.map(_.callableMethods)

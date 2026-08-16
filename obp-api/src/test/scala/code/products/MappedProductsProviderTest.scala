@@ -69,9 +69,9 @@ class MappedProductsProviderTest extends ServerSetup {
     }
 
 
-  feature("MappedProductsProvider") {
+  Feature("MappedProductsProvider") {
 
-    scenario("We try to get Products") {
+    Scenario("We try to get Products") {
 
       val fixture = defaultSetup()
 
@@ -96,7 +96,7 @@ class MappedProductsProviderTest extends ServerSetup {
       products.sortBy(_.code.value) should equal (expectedProducts.sortBy(_.code.value))
     }
 
-    scenario("We try to get Products for a bank that doesn't have any") {
+    Scenario("We try to get Products for a bank that doesn't have any") {
 
       val fixture = defaultSetup()
 

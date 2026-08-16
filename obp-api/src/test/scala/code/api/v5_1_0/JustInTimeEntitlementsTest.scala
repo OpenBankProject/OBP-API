@@ -34,8 +34,8 @@ class JustInTimeEntitlementsTest extends V510ServerSetup with DefaultUsers {
     super.afterAll()
   }
 
-  feature(s"Assuring Just In Time Entitlements work as expected in case of system roles - $VersionOfApi") {
-    scenario("Test absence of props create_just_in_time_entitlements", ApiEndpoint1, VersionOfApi) {
+  Feature(s"Assuring Just In Time Entitlements work as expected in case of system roles - $VersionOfApi") {
+    Scenario("Test absence of props create_just_in_time_entitlements", ApiEndpoint1, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateEntitlementAtAnyBank.toString)
       When(s"We make a request $VersionOfApi")
       val request = (v5_1_0_Request / "users" / "user_id" / resourceUser3.userId).GET <@(user1)
@@ -44,7 +44,7 @@ class JustInTimeEntitlementsTest extends V510ServerSetup with DefaultUsers {
       response.code should equal(403)
       response.body.extract[ErrorMessage].message should be (UserHasMissingRoles + CanGetAnyUser)
     }
-    scenario("Test create_just_in_time_entitlements=false", ApiEndpoint1, VersionOfApi) {
+    Scenario("Test create_just_in_time_entitlements=false", ApiEndpoint1, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateEntitlementAtAnyBank.toString)
       When(s"We make a request $VersionOfApi")
       val request = (v5_1_0_Request / "users" / "user_id" / resourceUser3.userId).GET <@(user1)
@@ -54,7 +54,7 @@ class JustInTimeEntitlementsTest extends V510ServerSetup with DefaultUsers {
       response.code should equal(403)
       response.body.extract[ErrorMessage].message should be (UserHasMissingRoles + CanGetAnyUser)
     }
-    scenario("Test create_just_in_time_entitlements=true", ApiEndpoint1, VersionOfApi) {
+    Scenario("Test create_just_in_time_entitlements=true", ApiEndpoint1, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateEntitlementAtAnyBank.toString)
       When(s"We make a request $VersionOfApi")
       val request = (v5_1_0_Request / "users" / "user_id" / resourceUser3.userId).GET <@(user1)
@@ -67,13 +67,13 @@ class JustInTimeEntitlementsTest extends V510ServerSetup with DefaultUsers {
   }
   
   
-  feature(s"Assuring Just In Time Entitlements work as expected in case of bank roles - $VersionOfApi") {
+  Feature(s"Assuring Just In Time Entitlements work as expected in case of bank roles - $VersionOfApi") {
     lazy val bankId = testBankId1.value
     def getMetrics(consumerAndToken: Option[(Consumer, Token)], bankId: String): APIResponse = {
       val request = v5_1_0_Request / "management" / "metrics" / "banks" / bankId <@(consumerAndToken)
       makeGetRequest(request)
     }
-    scenario("Test absence of props create_just_in_time_entitlements", ApiEndpoint1, VersionOfApi) {
+    Scenario("Test absence of props create_just_in_time_entitlements", ApiEndpoint1, VersionOfApi) {
       When(s"We make a request $ApiEndpoint1")
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateEntitlementAtOneBank.toString)
       val response = getMetrics(user1, bankId)
@@ -81,7 +81,7 @@ class JustInTimeEntitlementsTest extends V510ServerSetup with DefaultUsers {
       response.code should equal(403)
       response.body.extract[ErrorMessage].message contains (UserHasMissingRoles + CanGetMetricsAtOneBank) should be (true)
     }
-    scenario("Test create_just_in_time_entitlements=false", ApiEndpoint1, VersionOfApi) {
+    Scenario("Test create_just_in_time_entitlements=false", ApiEndpoint1, VersionOfApi) {
       When(s"We make a request $ApiEndpoint1")
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateEntitlementAtOneBank.toString)
       setPropsValues("create_just_in_time_entitlements" -> "false")
@@ -90,7 +90,7 @@ class JustInTimeEntitlementsTest extends V510ServerSetup with DefaultUsers {
       response.code should equal(403)
       response.body.extract[ErrorMessage].message contains (UserHasMissingRoles + CanGetMetricsAtOneBank) should be (true)
     }
-    scenario("Test create_just_in_time_entitlements=true", ApiEndpoint1, VersionOfApi) {
+    Scenario("Test create_just_in_time_entitlements=true", ApiEndpoint1, VersionOfApi) {
       When(s"We make a request $ApiEndpoint1")
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateEntitlementAtOneBank.toString)
       setPropsValues("create_just_in_time_entitlements" -> "true")

@@ -79,9 +79,9 @@ import scala.util.Failure
  */
 class ConcurrentDuplicateCreationTest extends ConcurrentRaceSetup {
 
-  feature("Concurrent check-then-insert must not create duplicate rows") {
+  Feature("Concurrent check-then-insert must not create duplicate rows") {
 
-    scenario("C: concurrent identical entitlement grants must create exactly one row", ConcurrencyRace) {
+    Scenario("C: concurrent identical entitlement grants must create exactly one row", ConcurrencyRace) {
       Given("user1 can grant entitlements at any bank, and a target user without the role")
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.canCreateEntitlementAtAnyBank.toString)
       val targetUserId = resourceUser2.userId
@@ -104,7 +104,7 @@ class ConcurrentDuplicateCreationTest extends ConcurrentRaceSetup {
       }
     }
 
-    scenario("D: concurrent getOrCreateAccountHolder for one (user,account) must create one row", ConcurrencyRace) {
+    Scenario("D: concurrent getOrCreateAccountHolder for one (user,account) must create one row", ConcurrencyRace) {
       Given("an account owned by user1, with user3 not yet a holder")
       val bank      = createBank("__conc-holder-bank")
       val bankId    = bank.bankId
@@ -133,7 +133,7 @@ class ConcurrentDuplicateCreationTest extends ConcurrentRaceSetup {
       }
     }
 
-    scenario("I: concurrent first-time OAuth logins must not throw a constraint violation", ConcurrencyRace) {
+    Scenario("I: concurrent first-time OAuth logins must not throw a constraint violation", ConcurrencyRace) {
       Given("a provider+id pair that has no ResourceUser yet")
       val provider          = "__conc_oauth_provider_i"
       val idGivenByProvider = "__conc_oauth_id_i"
@@ -167,7 +167,7 @@ class ConcurrentDuplicateCreationTest extends ConcurrentRaceSetup {
       }
     }
 
-    scenario("L: concurrent getOCreateUserCustomerLink must not throw and must create exactly one link", ConcurrencyRace) {
+    Scenario("L: concurrent getOCreateUserCustomerLink must not throw and must create exactly one link", ConcurrencyRace) {
       Given("a user-customer pair with no existing link (MappedUserCustomerLink has UniqueIndex(mUserId, mCustomerId))")
       val userId     = resourceUser1.userId
       val customerId = UUID.randomUUID.toString
@@ -194,7 +194,7 @@ class ConcurrentDuplicateCreationTest extends ConcurrentRaceSetup {
       }
     }
 
-    scenario("F: concurrent getOrCreateMetadata must stay graceful and leave exactly one row", ConcurrencyRace) {
+    Scenario("F: concurrent getOrCreateMetadata must stay graceful and leave exactly one row", ConcurrencyRace) {
       Given("a counterparty whose metadata row does not exist yet (UniqueIndex(counterpartyId) backs the table)")
       val bank      = createBank("__conc-cp-bank")
       val bankId    = bank.bankId
@@ -223,7 +223,7 @@ class ConcurrentDuplicateCreationTest extends ConcurrentRaceSetup {
       }
     }
 
-    scenario("W: concurrent getOrCreateConsumer for one (azp,sub) must resolve to the existing row, not a swallowed Failure", ConcurrencyRace) {
+    Scenario("W: concurrent getOrCreateConsumer for one (azp,sub) must resolve to the existing row, not a swallowed Failure", ConcurrencyRace) {
       Given("no consumer with this (azp, sub) yet (Consumer has UniqueIndex(azp, sub))")
       val azp = "__conc_w_azp_" + UUID.randomUUID.toString.take(8)
       val sub = "__conc_w_sub_" + UUID.randomUUID.toString.take(8)

@@ -28,8 +28,8 @@ class AccountsAPITest extends ServerSetupWithTestData with DefaultUsers  with Pr
 
 // internal/v1.0 has been removed.
 
-  feature("Delete an account resource") {
-    scenario("User deletes one of his private accounts", Management, DeleteBankAccount) {
+  Feature("Delete an account resource") {
+    Scenario("User deletes one of his private accounts", Management, DeleteBankAccount) {
       accountTestsSpecificDBSetup()
 
       //get an account
@@ -47,7 +47,7 @@ class AccountsAPITest extends ServerSetupWithTestData with DefaultUsers  with Pr
       Connector.connector.vend.getBankAccount(BankId(account.bank_id), AccountId(account.id)) should equal(Empty)
     }
 
-    scenario("User tries to delete a private account of another user", Management, DeleteBankAccount) {
+    Scenario("User tries to delete a private account of another user", Management, DeleteBankAccount) {
       accountTestsSpecificDBSetup()
 
       //get an account

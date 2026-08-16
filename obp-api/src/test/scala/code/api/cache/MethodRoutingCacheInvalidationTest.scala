@@ -2,9 +2,10 @@ package code.api.cache
 
 import java.util.UUID
 
-import org.scalatest.{FlatSpec, Matchers}
 
 import scala.concurrent.duration._
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 /**
  * Exercises the two cache behaviours the MethodRouting cache relies on, end-to-end
@@ -20,7 +21,7 @@ import scala.concurrent.duration._
  *    must NOT surface a sentinel/ClassCastException on the next read — the codec throws,
  *    scalacache treats the read as a miss, recomputes, and repopulates the key.
  */
-class MethodRoutingCacheInvalidationTest extends FlatSpec with Matchers {
+class MethodRoutingCacheInvalidationTest extends AnyFlatSpec with Matchers {
 
   private def memoize[A](cacheKey: String, ttl: Duration)(f: => A)(implicit m: Manifest[A]): A =
     Caching.memoizeSyncWithProvider(Some(cacheKey))(ttl)(f)

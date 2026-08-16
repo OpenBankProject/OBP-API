@@ -265,9 +265,9 @@ class BranchesTest extends V140ServerSetup with DefaultUsers {
     Branches.branchesProvider.default.set(Branches.buildOne)
   }
 
-  feature("Getting bank branches") {
+  Feature("Getting bank branches") {
 
-    scenario("We try to get bank branches for a bank without a data license for branch information") {
+    Scenario("We try to get bank branches for a bank without a data license for branch information") {
 
       When("We make a request v1.4.0")
       val request = (v1_4Request / "banks" / BankWithoutLicense.value / "branches").GET <@(user1)
@@ -278,7 +278,7 @@ class BranchesTest extends V140ServerSetup with DefaultUsers {
 
     }
 
-    scenario("We try to get bank branches for a bank with a data license for branch information") {
+    Scenario("We try to get bank branches for a bank with a data license for branch information") {
       When("We make a request")
       val request = (v1_4Request / "banks" / BankWithLicense.value / "branches").GET <@(user1)
       val response = makeGetRequest(request)

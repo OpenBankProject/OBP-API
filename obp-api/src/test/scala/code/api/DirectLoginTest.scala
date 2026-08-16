@@ -118,8 +118,8 @@ class DirectLoginTest extends ServerSetup with BeforeAndAfter {
 
   def directLoginRequest = baseRequest / "my" / "logins" / "direct"
 
-  feature("DirectLogin") {
-    scenario("Invalid auth header") {
+  Feature("DirectLogin") {
+    Scenario("Invalid auth header") {
 
       //setupUserAndConsumer
 
@@ -137,7 +137,7 @@ class DirectLoginTest extends ServerSetup with BeforeAndAfter {
       assertResponse(response, ErrorMessages.MissingDirectLoginHeader)
     }
 
-    scenario("Invalid credentials") {
+    Scenario("Invalid credentials") {
 
       //setupUserAndConsumer
 
@@ -154,7 +154,7 @@ class DirectLoginTest extends ServerSetup with BeforeAndAfter {
       assertResponse(response, ErrorMessages.InvalidLoginCredentials)
     }
 
-    scenario("Invalid Characters") {
+    Scenario("Invalid Characters") {
       When("we try to login with an invalid username Characters and invalid password Characters")
       val request = directLoginRequest
       val response = makePostRequestAdditionalHeader(request, "", invalidUsernamePasswordCharaterHeaders)
@@ -164,7 +164,7 @@ class DirectLoginTest extends ServerSetup with BeforeAndAfter {
       assertResponse(response, ErrorMessages.InvalidValueCharacters)
     }
 
-    scenario("valid Username, invalid password, login in too many times. The username will be locked") {
+    Scenario("valid Username, invalid password, login in too many times. The username will be locked") {
       When("login with an valid username and invalid password, failed more than 5 times.")
       val request = directLoginRequest
       var response = makePostRequestAdditionalHeader(request, "", validUsernameInvalidPasswordHeaders)
@@ -190,7 +190,7 @@ class DirectLoginTest extends ServerSetup with BeforeAndAfter {
       LoginAttempt.resetBadLoginAttempts(localIdentityProvider, USERNAME)
     }
 
-    scenario("Consumer API key is disabled") {
+    Scenario("Consumer API key is disabled") {
       Given("The app we are testing is registered and disabled")
       When("We try to login with username/password")
       val request = directLoginRequest
@@ -200,7 +200,7 @@ class DirectLoginTest extends ServerSetup with BeforeAndAfter {
       assertResponse(response, ErrorMessages.InvalidConsumerKey)
     }
 
-    scenario("Missing DirectLogin header") {
+    Scenario("Missing DirectLogin header") {
 
       //setupUserAndConsumer
 
@@ -217,7 +217,7 @@ class DirectLoginTest extends ServerSetup with BeforeAndAfter {
       assertResponse(response, ErrorMessages.MissingDirectLoginHeader)
     }
 
-    scenario("Login without consumer key") {
+    Scenario("Login without consumer key") {
 
       //setupUserAndConsumer
 
@@ -234,7 +234,7 @@ class DirectLoginTest extends ServerSetup with BeforeAndAfter {
       assertResponse(response, ErrorMessages.InvalidConsumerKey)
     }
 
-    scenario("Login with correct everything! - Deprecated Header", ApiEndpoint1, ApiEndpoint2) {
+    Scenario("Login with correct everything! - Deprecated Header", ApiEndpoint1, ApiEndpoint2) {
 
       //setupUserAndConsumer
 
@@ -289,7 +289,7 @@ class DirectLoginTest extends ServerSetup with BeforeAndAfter {
       currentUserNewStyle.username shouldBe currentUserOldStyle.username
     }
     
-    scenario("Login with correct everything!", ApiEndpoint1, ApiEndpoint2) {
+    Scenario("Login with correct everything!", ApiEndpoint1, ApiEndpoint2) {
 
       //setupUserAndConsumer
 
@@ -344,7 +344,7 @@ class DirectLoginTest extends ServerSetup with BeforeAndAfter {
       currentUserNewStyle.username shouldBe currentUserOldStyle.username
     } 
     
-    scenario("Login with correct everything and use props local_identity_provider", ApiEndpoint1, ApiEndpoint2) {
+    Scenario("Login with correct everything and use props local_identity_provider", ApiEndpoint1, ApiEndpoint2) {
 
       setPropsValues("local_identity_provider"-> Constant.HostName)
 
@@ -399,7 +399,7 @@ class DirectLoginTest extends ServerSetup with BeforeAndAfter {
       currentUserNewStyle.username shouldBe currentUserOldStyle.username
     }
 
-    scenario("Login with correct everything but the user is locked", ApiEndpoint1, ApiEndpoint2) {
+    Scenario("Login with correct everything but the user is locked", ApiEndpoint1, ApiEndpoint2) {
       lazy val username = "firstname.lastname"
       lazy val header = ("DirectLogin", "username=%s, password=%s, consumer_key=%s".
         format(username, VALID_PW, KEY))
@@ -451,7 +451,7 @@ class DirectLoginTest extends ServerSetup with BeforeAndAfter {
       responseCurrentUserOldStyle.body.extract[ErrorMessage].message should include(ErrorMessages.UsernameHasBeenLocked)
     }
 
-    scenario("Login with correct credentials but user email is not validated", ApiEndpoint1, ApiEndpoint2) {
+    Scenario("Login with correct credentials but user email is not validated", ApiEndpoint1, ApiEndpoint2) {
       lazy val username = "unvalidated.user"
       lazy val email = randomString(10).toLowerCase + "@example.com"
       lazy val header = ("DirectLogin", "username=%s, password=%s, consumer_key=%s".
@@ -484,7 +484,7 @@ class DirectLoginTest extends ServerSetup with BeforeAndAfter {
 
 
 
-    scenario("Test the last issued token is valid as well as a previous one", ApiEndpoint2) {
+    Scenario("Test the last issued token is valid as well as a previous one", ApiEndpoint2) {
 
       When("The header and credentials are good")
       val request = directLoginRequest
@@ -522,7 +522,7 @@ class DirectLoginTest extends ServerSetup with BeforeAndAfter {
     }
 
 
-    scenario("Test DirectLogin header value is case insensitive", ApiEndpoint2) {
+    Scenario("Test DirectLogin header value is case insensitive", ApiEndpoint2) {
 
       When("The header and credentials are good")
       val request = directLoginRequest

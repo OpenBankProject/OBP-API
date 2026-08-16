@@ -65,8 +65,8 @@ class PasswordRecoverTest extends V400ServerSetup {
   lazy val postUserId = UUID.randomUUID.toString
   lazy val postJson = PostResetPasswordUrlJsonV400("marko", "marko@tesobe.com", postUserId)
 
-  feature("Reset password url v4.0.4- Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature("Reset password url v4.0.4- Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
       val request400 = (v4_0_0_Request / "management" / "user" / "reset-password-url").POST
       val response400 = makePostRequest(request400, write(postJson))
@@ -77,8 +77,8 @@ class PasswordRecoverTest extends V400ServerSetup {
     }
   }
 
-  feature("Reset password url v4.0.0 - Authorized access") {
-    scenario("We will call the endpoint without the proper Role " + canCreateResetPasswordUrl, ApiEndpoint1, VersionOfApi) {
+  Feature("Reset password url v4.0.0 - Authorized access") {
+    Scenario("We will call the endpoint without the proper Role " + canCreateResetPasswordUrl, ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0 without a Role " + canCreateResetPasswordUrl)
       val request400 = (v4_0_0_Request / "management" / "user" / "reset-password-url").POST <@(user1)
       val response400 = makePostRequest(request400, write(postJson))
@@ -88,7 +88,7 @@ class PasswordRecoverTest extends V400ServerSetup {
       response400.body.extract[ErrorMessage].message should equal((UserHasMissingRoles + CanCreateResetPasswordUrl))
     }
 
-    scenario("We will call the endpoint with the proper Role " + canCreateResetPasswordUrl , ApiEndpoint1, VersionOfApi) {
+    Scenario("We will call the endpoint with the proper Role " + canCreateResetPasswordUrl , ApiEndpoint1, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, CanCreateResetPasswordUrl.toString)
       val authUser: AuthUser = AuthUser.create.email(postJson.email).username(postJson.username).validated(true).saveMe()
       val resourceUser: Box[User] = Users.users.vend.getUserByResourceUserId(authUser.user.get)

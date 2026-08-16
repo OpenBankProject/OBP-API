@@ -19,11 +19,11 @@ class UpdateConsumerRedirectUrlTest extends V210ServerSetup with DefaultUsers {
     super.afterAll()
   }
 
-  feature("Assuring that endpoint 'updateConsumerRedirectUrl' works as expected - v2.1.0") {
+  Feature("Assuring that endpoint 'updateConsumerRedirectUrl' works as expected - v2.1.0") {
 
     val consumerRedirectUrlJSON = ConsumerRedirectUrlJSON("x-com.tesobe.helloobp.ios://callback")
 
-    scenario("Try to Update Redirect Url without proper role ") {
+    Scenario("Try to Update Redirect Url without proper role ") {
 
       When("We make the request Update Redirect Url for a Consumer")
       val requestPut = (v2_1Request / "management" / "consumers" / testConsumer.id.get / "consumer" / "redirect_url" ).PUT <@ (user1)
@@ -41,7 +41,7 @@ class UpdateConsumerRedirectUrlTest extends V210ServerSetup with DefaultUsers {
       error should equal(UserHasMissingRoles + CanUpdateConsumerRedirectUrl)
     }
 
-    scenario("Try to Update Redirect Url created by other user ") {
+    Scenario("Try to Update Redirect Url created by other user ") {
 
       Then("We add entitlement to user2")
       addEntitlement("", resourceUser2.userId, CanUpdateConsumerRedirectUrl.toString)
@@ -63,7 +63,7 @@ class UpdateConsumerRedirectUrlTest extends V210ServerSetup with DefaultUsers {
       error.toString contains (UserNoPermissionUpdateConsumer) should be (true)
     }
 
-    scenario("Try to Update Redirect Url successfully ") {
+    Scenario("Try to Update Redirect Url successfully ") {
 
       Then("We add entitlement to user1")
       addEntitlement("", resourceUser1.userId, CanUpdateConsumerRedirectUrl.toString)

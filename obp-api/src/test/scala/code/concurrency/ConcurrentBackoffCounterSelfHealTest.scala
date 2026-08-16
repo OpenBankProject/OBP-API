@@ -1,12 +1,13 @@
 package code.concurrency
 
 import code.api.util.{APIUtil, FutureUtil}
-import org.scalatest.{FlatSpec, Matchers}
 
 import java.util.UUID
 import scala.concurrent.{Await, Future, Promise}
 import scala.concurrent.duration._
 import scala.util.{Failure, Success, Try}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 /**
  * A: futureWithLimits must self-heal the open-futures counter.
@@ -26,7 +27,7 @@ import scala.util.{Failure, Success, Try}
  * not extend ConcurrentRaceSetup/ServerSetupWithTestData (avoids an unnecessary full Lift
  * server boot). Tagged ConcurrencyRace for consistency with the rest of the suite.
  */
-class ConcurrentBackoffCounterSelfHealTest extends FlatSpec with Matchers {
+class ConcurrentBackoffCounterSelfHealTest extends AnyFlatSpec with Matchers {
 
   private implicit val ec: scala.concurrent.ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
 

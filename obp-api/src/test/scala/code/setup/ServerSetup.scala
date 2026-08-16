@@ -42,8 +42,10 @@ import net.liftweb.common.{Empty, Full}
 import org.json4s.JsonDSL._
 import net.liftweb.mapper.MetaMapper
 import org.scalatest._
+import org.scalatest.featurespec.AnyFeatureSpec
+import org.scalatest.matchers.should.Matchers
 
-trait ServerSetup extends FeatureSpec with SendServerRequests
+trait ServerSetup extends AnyFeatureSpec with SendServerRequests
   with BeforeAndAfterEach with GivenWhenThen
   with BeforeAndAfterAll
   with Matchers with MdcLoggable with CustomJsonFormats with PropsReset{

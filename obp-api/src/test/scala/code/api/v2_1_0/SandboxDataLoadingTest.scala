@@ -65,10 +65,12 @@ import org.json4s.{JField, _}
 import org.json4s.jvalue2monadic
 import com.openbankproject.commons.util.JsonAliases._
 import net.liftweb.mapper.{By, MetaMapper}
-import org.scalatest.{BeforeAndAfterEach, FlatSpec, Matchers}
+import org.scalatest.BeforeAndAfterEach
 import code.model._
 import code.model.dataAccess._
 import scala.util.Random
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 /*
 This tests:
@@ -76,7 +78,7 @@ This tests:
 Posting of json to the sandbox creation API endpoint.
 Checking that the various objects were created OK via calling the Mapper.
  */
-class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Matchers with BeforeAndAfterEach with DefaultUsers{
+class SandboxDataLoadingTest extends AnyFlatSpec with SendServerRequests with Matchers with BeforeAndAfterEach with DefaultUsers{
 
   val SUCCESS: Int = 201
   val FAILED: Int = 400

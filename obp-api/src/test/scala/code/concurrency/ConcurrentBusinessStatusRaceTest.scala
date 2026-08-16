@@ -53,9 +53,9 @@ import scala.concurrent.duration._
  */
 class ConcurrentBusinessStatusRaceTest extends ConcurrentRaceSetup {
 
-  feature("Business-object status transitions must be atomic") {
+  Feature("Business-object status transitions must be atomic") {
 
-    scenario("M2: concurrent approve and decline of the same AccountAccessRequest must not both succeed", ConcurrencyRace) {
+    Scenario("M2: concurrent approve and decline of the same AccountAccessRequest must not both succeed", ConcurrencyRace) {
       Given("an AccountAccessRequest in INITIATED state")
       val requestId = UUID.randomUUID.toString
       AccountAccessRequest.create
@@ -98,7 +98,7 @@ class ConcurrentBusinessStatusRaceTest extends ConcurrentRaceSetup {
       }
     }
 
-    scenario("M3: concurrent ACCEPTED and REJECTED transitions to the same AccountApplication must not both proceed", ConcurrencyRace) {
+    Scenario("M3: concurrent ACCEPTED and REJECTED transitions to the same AccountApplication must not both proceed", ConcurrencyRace) {
       Given("an AccountApplication in REQUESTED state")
       val appId = UUID.randomUUID.toString
       MappedAccountApplication.create
@@ -136,7 +136,7 @@ class ConcurrentBusinessStatusRaceTest extends ConcurrentRaceSetup {
       }
     }
 
-    scenario("M3b: a REJECTED AccountApplication must not be silently re-decided as ACCEPTED", ConcurrencyRace) {
+    Scenario("M3b: a REJECTED AccountApplication must not be silently re-decided as ACCEPTED", ConcurrencyRace) {
       Given("an AccountApplication in REQUESTED state")
       val appId = UUID.randomUUID.toString
       MappedAccountApplication.create
@@ -180,7 +180,7 @@ class ConcurrentBusinessStatusRaceTest extends ConcurrentRaceSetup {
     // a barrier test outside request scope uses the fallback transactor, which commits the lock SELECT
     // immediately and cannot serialise a separate save. Documented in CONCURRENCY_HAZARDS.md.
 
-    scenario("M4: concurrent correct challenge answers must flip Successful exactly once — no MFA double-spend", ConcurrencyRace) {
+    Scenario("M4: concurrent correct challenge answers must flip Successful exactly once — no MFA double-spend", ConcurrencyRace) {
       Given("a transaction-request challenge seeded with a known correct answer")
       // Raise the attempt limit so the limit-guard never short-circuits the success path.
       setPropsValues("transactionRequests_challenge_max_allowed_attempts" -> "100")

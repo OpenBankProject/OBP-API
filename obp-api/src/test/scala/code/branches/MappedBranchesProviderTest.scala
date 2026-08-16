@@ -81,9 +81,9 @@ class MappedBranchesProviderTest extends ServerSetup {
     }
 
 
-  feature("MappedBranchesProvider") {
+  Feature("MappedBranchesProvider") {
 
-    scenario("We try to get branches") {
+    Scenario("We try to get branches") {
 
       val fixture = defaultSetup()
 
@@ -107,7 +107,7 @@ class MappedBranchesProviderTest extends ServerSetup {
       branches.sortBy(_.branchId.value) should equal (expectedBranches.sortBy(_.branchId.value))
     }
 
-    scenario("We try to get branches for a bank that doesn't have any") {
+    Scenario("We try to get branches for a bank that doesn't have any") {
 
       val fixture = defaultSetup()
 

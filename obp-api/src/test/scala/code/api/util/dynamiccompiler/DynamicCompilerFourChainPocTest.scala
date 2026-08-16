@@ -3,7 +3,9 @@ package code.api.util.dynamiccompiler
 import code.api.util.DynamicUtil
 import code.setup.PropsReset
 import net.liftweb.common.{Box, Failure, Full}
-import org.scalatest.{FlatSpec, Matchers, Tag}
+import org.scalatest.Tag
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 object DynamicCompilerPocTag extends Tag("DynamicCompilerPoc")
 
@@ -31,7 +33,7 @@ object DynamicCompilerPocTag extends Tag("DynamicCompilerPoc")
  * passed alone and failed in the full suite. PropsReset clears owned pushes per suite, so a
  * suite that only ever pushes "false" is deterministic.
  */
-class DynamicCompilerFourChainPocTest extends FlatSpec with Matchers with PropsReset {
+class DynamicCompilerFourChainPocTest extends AnyFlatSpec with Matchers with PropsReset {
 
   // PropsReset removes what a test pushed once the suite ends, so setting the switch per test
   // is enough here; the off case lives in its own suite for the reason given above.

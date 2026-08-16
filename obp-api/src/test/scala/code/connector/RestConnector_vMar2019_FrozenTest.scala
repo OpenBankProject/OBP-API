@@ -9,15 +9,17 @@ import com.openbankproject.commons.util.ReflectUtils
 import net.liftweb.common.Logger
 import org.apache.commons.io.IOUtils
 import org.scalatest.matchers.{MatchResult, Matcher}
-import org.scalatest.{BeforeAndAfter, FlatSpec, Matchers, Tag}
+import org.scalatest.{BeforeAndAfter, Tag}
 
 import scala.reflect.runtime.universe._
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 
 /**
  * if any test of RestConnector_vMar2019_FrozenTest fail, please check whether it is very sure really need do that change, if yes, run this utl again to re-generate frozen metadata.
  */
-class RestConnector_vMar2019_FrozenTest extends FlatSpec with Matchers with BeforeAndAfter {
+class RestConnector_vMar2019_FrozenTest extends AnyFlatSpec with Matchers with BeforeAndAfter {
   private var connectorMethodNamesPersisted: List[String] = _
   private var typeNameToFieldsInfoPersisted: Map[String, Map[String, String]] = _
   private val logger = Logger(classOf[RestConnector_vMar2019_FrozenTest])

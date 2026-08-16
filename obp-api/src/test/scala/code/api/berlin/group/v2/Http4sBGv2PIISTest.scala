@@ -6,14 +6,16 @@ import code.api.berlin.group.ConstantsBG
 import code.util.Helper.MdcLoggable
 import org.http4s._
 import org.http4s.implicits._
-import org.scalatest.{FlatSpec, Matchers, Tag}
+import org.scalatest.Tag
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 /**
  * Unit tests for Berlin Group v2 PIIS endpoint.
  * Tests POST /v2/funds-confirmations returns correct HTTP status and JSON structure.
  * Validates: Requirements 6.1
  */
-class Http4sBGv2PIISTest extends FlatSpec with Matchers with MdcLoggable {
+class Http4sBGv2PIISTest extends AnyFlatSpec with Matchers with MdcLoggable {
 
   object PIISTag extends Tag("BerlinGroupV2_PIIS")
 

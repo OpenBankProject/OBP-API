@@ -1,13 +1,15 @@
 package code.util
 
 import org.json4s._
-import org.scalatest.{FlatSpec, Matchers, Tag}
+import org.scalatest.Tag
 import com.openbankproject.commons.util.JsonUtils.buildJson
 import com.openbankproject.commons.util.json
 import org.json4s.JBool
 import org.json4s.JsonAST.{JNothing, JValue}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
-class JsonUtilsTest extends FlatSpec with Matchers {
+class JsonUtilsTest extends AnyFlatSpec with Matchers {
   object JsonUtilsTag extends Tag("JsonUtils")
 
   "buildJson" should "generate JValue according schema" taggedAs JsonUtilsTag in {

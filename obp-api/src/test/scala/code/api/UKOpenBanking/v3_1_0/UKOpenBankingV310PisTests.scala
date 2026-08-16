@@ -24,35 +24,35 @@ class UKOpenBankingV310PisTests extends UKOpenBankingV310ServerSetup {
 
   // Helper: assert authed -> 200 and unauthed -> 401 for a GET path.
   private def checkGet(segments: String*): Unit = {
-    scenario(s"GET /${segments.mkString("/")} authenticated -> 200", UKOpenBankingV310Pis) {
+    Scenario(s"GET /${segments.mkString("/")} authenticated -> 200", UKOpenBankingV310Pis) {
       getAuthed(segments: _*).code should equal(200)
     }
-    scenario(s"GET /${segments.mkString("/")} unauthenticated -> 401", UKOpenBankingV310Pis) {
+    Scenario(s"GET /${segments.mkString("/")} unauthenticated -> 401", UKOpenBankingV310Pis) {
       getUnauthed(segments: _*).code should equal(401)
     }
   }
   // Helper: assert authed -> 200 and unauthed -> 401 for a POST path.
   private def checkPost(segments: String*): Unit = {
-    scenario(s"POST /${segments.mkString("/")} authenticated -> 200", UKOpenBankingV310Pis) {
+    Scenario(s"POST /${segments.mkString("/")} authenticated -> 200", UKOpenBankingV310Pis) {
       postAuthed(emptyBody, segments: _*).code should equal(200)
     }
-    scenario(s"POST /${segments.mkString("/")} unauthenticated -> 401", UKOpenBankingV310Pis) {
+    Scenario(s"POST /${segments.mkString("/")} unauthenticated -> 401", UKOpenBankingV310Pis) {
       postUnauthed(emptyBody, segments: _*).code should equal(401)
     }
   }
   // Helper: assert authed -> 204 and unauthed -> 401 for a DELETE path.
   // (UK consent DELETE handlers return HttpCode.`204`.)
   private def checkDelete(segments: String*): Unit = {
-    scenario(s"DELETE /${segments.mkString("/")} authenticated -> 204", UKOpenBankingV310Pis) {
+    Scenario(s"DELETE /${segments.mkString("/")} authenticated -> 204", UKOpenBankingV310Pis) {
       deleteAuthed(segments: _*).code should equal(204)
     }
-    scenario(s"DELETE /${segments.mkString("/")} unauthenticated -> 401", UKOpenBankingV310Pis) {
+    Scenario(s"DELETE /${segments.mkString("/")} unauthenticated -> 401", UKOpenBankingV310Pis) {
       deleteUnauthed(segments: _*).code should equal(401)
     }
   }
 
   // ── DomesticPaymentsApi (5) ────────────────────────────────────────
-  feature("UKOB v3.1 Domestic Payments") {
+  Feature("UKOB v3.1 Domestic Payments") {
     checkPost("domestic-payment-consents")
     checkPost("domestic-payments")
     checkGet("domestic-payment-consents", fakeId)
@@ -61,7 +61,7 @@ class UKOpenBankingV310PisTests extends UKOpenBankingV310ServerSetup {
   }
 
   // ── DomesticScheduledPaymentsApi (4) ───────────────────────────────
-  feature("UKOB v3.1 Domestic Scheduled Payments") {
+  Feature("UKOB v3.1 Domestic Scheduled Payments") {
     checkPost("domestic-scheduled-payment-consents")
     checkPost("domestic-scheduled-payments")
     checkGet("domestic-scheduled-payment-consents", fakeId)
@@ -69,7 +69,7 @@ class UKOpenBankingV310PisTests extends UKOpenBankingV310ServerSetup {
   }
 
   // ── DomesticStandingOrdersApi (4) ──────────────────────────────────
-  feature("UKOB v3.1 Domestic Standing Orders") {
+  Feature("UKOB v3.1 Domestic Standing Orders") {
     checkPost("domestic-standing-order-consents")
     checkPost("domestic-standing-orders")
     checkGet("domestic-standing-order-consents", fakeId)
@@ -77,7 +77,7 @@ class UKOpenBankingV310PisTests extends UKOpenBankingV310ServerSetup {
   }
 
   // ── FilePaymentsApi (7) ────────────────────────────────────────────
-  feature("UKOB v3.1 File Payments") {
+  Feature("UKOB v3.1 File Payments") {
     checkPost("file-payment-consents")
     checkPost("file-payment-consents", fakeId, "file")
     checkPost("file-payments")
@@ -88,7 +88,7 @@ class UKOpenBankingV310PisTests extends UKOpenBankingV310ServerSetup {
   }
 
   // ── FundsConfirmationsApi (4) ──────────────────────────────────────
-  feature("UKOB v3.1 Funds Confirmations") {
+  Feature("UKOB v3.1 Funds Confirmations") {
     checkPost("funds-confirmation-consents")
     checkPost("funds-confirmations")
     checkDelete("funds-confirmation-consents", fakeId)
@@ -96,7 +96,7 @@ class UKOpenBankingV310PisTests extends UKOpenBankingV310ServerSetup {
   }
 
   // ── InternationalPaymentsApi (5) ───────────────────────────────────
-  feature("UKOB v3.1 International Payments") {
+  Feature("UKOB v3.1 International Payments") {
     checkPost("international-payment-consents")
     checkPost("international-payments")
     checkGet("international-payment-consents", fakeId)
@@ -105,7 +105,7 @@ class UKOpenBankingV310PisTests extends UKOpenBankingV310ServerSetup {
   }
 
   // ── InternationalScheduledPaymentsApi (5) ──────────────────────────
-  feature("UKOB v3.1 International Scheduled Payments") {
+  Feature("UKOB v3.1 International Scheduled Payments") {
     checkPost("international-scheduled-payment-consents")
     checkPost("international-scheduled-payments")
     checkGet("international-scheduled-payment-consents", fakeId)
@@ -114,7 +114,7 @@ class UKOpenBankingV310PisTests extends UKOpenBankingV310ServerSetup {
   }
 
   // ── InternationalStandingOrdersApi (4) ─────────────────────────────
-  feature("UKOB v3.1 International Standing Orders") {
+  Feature("UKOB v3.1 International Standing Orders") {
     checkPost("international-standing-order-consents")
     checkPost("international-standing-orders")
     checkGet("international-standing-order-consents", fakeId)

@@ -26,7 +26,7 @@ class RegulatedEntityTest extends BerlinGroupServerSetupV1_3 with PSD2SigningTes
   override protected def tppSignaturePassword: String = "testpassword123"
   override protected def tppSignatureAlias: String = "bnm test"
 
-  scenario("Create signed consent request with dynamically generated certificates") {
+  Scenario("Create signed consent request with dynamically generated certificates") {
     Given("A consent request body")
     val requestBody = """{
       "access": {
@@ -57,7 +57,7 @@ class RegulatedEntityTest extends BerlinGroupServerSetupV1_3 with PSD2SigningTes
     response.body.extract[ErrorMessagesBG].tppMessages.head.code should equal("CERTIFICATE_BLOCKED")
   }
 
-  scenario("Test certificate validation and signing process") {
+  Scenario("Test certificate validation and signing process") {
     Given("A payment initiation request body")
     val paymentRequestBody = """{
       "instructedAmount": {
@@ -91,7 +91,7 @@ class RegulatedEntityTest extends BerlinGroupServerSetupV1_3 with PSD2SigningTes
     response.code should (equal(401) or equal(400) or equal(403))
   }
 
-  scenario("Test custom certificate parameters") {
+  Scenario("Test custom certificate parameters") {
     Given("Custom certificate parameters")
     val customCertData = TestCertificateGenerator.generateTestCertificate(
       commonName = "Custom Test Certificate",

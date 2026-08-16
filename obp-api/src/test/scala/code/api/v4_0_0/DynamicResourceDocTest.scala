@@ -59,8 +59,8 @@ class DynamicResourceDocTest extends V400ServerSetup {
   object ApiEndpoint4 extends Tag(nameOf(Implementations4_0_0.getAllDynamicResourceDocs))
   object ApiEndpoint5 extends Tag(nameOf(Implementations4_0_0.deleteDynamicResourceDoc))
 
-  feature("Test the DynamicResourceDoc endpoints") {
-    scenario("We create my DynamicResourceDoc and get,update", ApiEndpoint1,ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
+  Feature("Test the DynamicResourceDoc endpoints") {
+    Scenario("We create my DynamicResourceDoc and get,update", ApiEndpoint1,ApiEndpoint2, ApiEndpoint3, ApiEndpoint4, VersionOfApi) {
       When("We make a request v4.0.0")
 
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.canCreateDynamicResourceDoc.toString)
@@ -175,8 +175,8 @@ class DynamicResourceDocTest extends V400ServerSetup {
     }
   }
 
-  feature("Test the DynamicResourceDoc endpoints error cases") {
-    scenario("We create my DynamicResourceDoc -- duplicated DynamicResourceDoc Name", ApiEndpoint1, VersionOfApi) {
+  Feature("Test the DynamicResourceDoc endpoints error cases") {
+    Scenario("We create my DynamicResourceDoc -- duplicated DynamicResourceDoc Name", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
 
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.canCreateDynamicResourceDoc.toString)
@@ -199,7 +199,7 @@ class DynamicResourceDocTest extends V400ServerSetup {
 
     }
 
-    scenario("We create/get/getAll/update my DynamicResourceDoc without our proper roles", ApiEndpoint1, VersionOfApi) {
+    Scenario("We create/get/getAll/update my DynamicResourceDoc without our proper roles", ApiEndpoint1, VersionOfApi) {
       When("We make a request v4.0.0")
 
       val request = (v4_0_0_Request / "management" / "dynamic-resource-docs").POST <@ (user1)
@@ -249,9 +249,9 @@ class DynamicResourceDocTest extends V400ServerSetup {
   // Http4sDynamicEndpoint.pieceC -> DynamicEndpoints.findEndpoint -> ResourceDoc.authCheckIO ->
   // the compiled OBPEndpointIO handler -> Sandbox.runInSandboxIO -> OBPReturnType => IO[Response] implicit.
   // The metadata-CRUD scenarios above only prove the doc/template compiles; these prove it RUNS.
-  feature("Native execution of runtime-compiled dynamic endpoints (Piece C)") {
+  Feature("Native execution of runtime-compiled dynamic endpoints (Piece C)") {
 
-    scenario("Call the always-available practise endpoint (anonymous) end-to-end", VersionOfApi) {
+    Scenario("Call the always-available practise endpoint (anonymous) end-to-end", VersionOfApi) {
       When("We POST a valid body to /obp/dynamic-endpoint/test-dynamic-resource-doc/my_user/MY_USER_ID")
       val request = (dynamicEndpoint_Request / "test-dynamic-resource-doc" / "my_user" / "123").POST
       val response = makePostRequest(request, """{"name":"Jhon","age":12,"hobby":["coding"]}""")
@@ -261,7 +261,7 @@ class DynamicResourceDocTest extends V400ServerSetup {
       json.compactRender(response.body) should include("banks")
     }
 
-    scenario("Create a runtime-compiled dynamic resource doc (no roles) and call it end-to-end", ApiEndpoint1, VersionOfApi) {
+    Scenario("Create a runtime-compiled dynamic resource doc (no roles) and call it end-to-end", ApiEndpoint1, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.canCreateDynamicResourceDoc.toString)
 
       When("We create a dynamic resource doc with no roles (anonymous) and a unique URL")
@@ -295,7 +295,7 @@ class DynamicResourceDocTest extends V400ServerSetup {
     // Exercises ResourceDoc.authCheckIO's role-gated path (the native mirror of wrappedWithAuthCheck):
     // a runtime-compiled dynamic-resource-doc declaring a role must enforce 401 (no auth) / 403 (no role)
     // / 200 (role granted). The existing scenario above only covers the no-role (anonymous-ish) path.
-    scenario("Create a role-gated runtime-compiled dynamic resource doc and verify 401 / 403 / 200", ApiEndpoint1, VersionOfApi) {
+    Scenario("Create a role-gated runtime-compiled dynamic resource doc and verify 401 / 403 / 200", ApiEndpoint1, VersionOfApi) {
       val dynamicRole = "CanCallNativePieceCRoleTest" // becomes a system-level dynamic role (requiresBankId = false)
       Entitlement.entitlement.vend.addEntitlement("", resourceUser1.userId, ApiRole.canCreateDynamicResourceDoc.toString)
 

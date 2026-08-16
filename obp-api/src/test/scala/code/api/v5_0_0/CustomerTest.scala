@@ -77,9 +77,9 @@ class CustomerTest extends V500ServerSetup {
   lazy val bankId = testBankId1.value
   val postCustomerJson = SwaggerDefinitionsJSON.postCustomerJsonV310.copy(last_ok_date= new Date())
   
-  feature(s"$ApiEndpoint1 $ApiEndpoint2 $ApiEndpoint3 $ApiEndpoint4 successful cases") {
+  Feature(s"$ApiEndpoint1 $ApiEndpoint2 $ApiEndpoint3 $ApiEndpoint4 successful cases") {
 
-    scenario(s"We will call $ApiEndpoint1 with credentials", ApiEndpoint1, VersionOfApi) {
+    Scenario(s"We will call $ApiEndpoint1 with credentials", ApiEndpoint1, VersionOfApi) {
 
       
       
@@ -150,8 +150,8 @@ class CustomerTest extends V500ServerSetup {
     }
   }
 
-  feature(s"$ApiEndpoint1 $ApiEndpoint2 $ApiEndpoint3 $ApiEndpoint4 error cases") {
-    scenario(s"$ApiEndpoint1 without a user credentials", ApiEndpoint1, VersionOfApi) {
+  Feature(s"$ApiEndpoint1 $ApiEndpoint2 $ApiEndpoint3 $ApiEndpoint4 error cases") {
+    Scenario(s"$ApiEndpoint1 without a user credentials", ApiEndpoint1, VersionOfApi) {
       When("We make a request v5.0.0")
       val requestApiEndpoint1 = (v5_0_0_Request / "my"/ "customers").GET 
       val responseApiEndpoint1 = makeGetRequest(requestApiEndpoint1)
@@ -160,7 +160,7 @@ class CustomerTest extends V500ServerSetup {
       And("error should be " + AuthenticatedUserIsRequired)
       responseApiEndpoint1.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
-    scenario(s"$ApiEndpoint2 without a user credentials", ApiEndpoint2, VersionOfApi) {
+    Scenario(s"$ApiEndpoint2 without a user credentials", ApiEndpoint2, VersionOfApi) {
       When("We make a request v5.0.0")
       val requestApiEndpoint2 = (v5_0_0_Request / "my"/ "customers").GET 
       val responseApiEndpoint2 = makeGetRequest(requestApiEndpoint2)
@@ -170,7 +170,7 @@ class CustomerTest extends V500ServerSetup {
       responseApiEndpoint2.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
 
-    scenario(s"$ApiEndpoint3 without a user credentials", ApiEndpoint3, VersionOfApi) {
+    Scenario(s"$ApiEndpoint3 without a user credentials", ApiEndpoint3, VersionOfApi) {
       When("We make a request v5.0.0")
       val requestApiEndpoint3 = (v5_0_0_Request / "banks"/ bankId /"customers").GET 
       val responseApiEndpoint3 = makeGetRequest(requestApiEndpoint3)
@@ -180,7 +180,7 @@ class CustomerTest extends V500ServerSetup {
       responseApiEndpoint3.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
 
-    scenario(s"$ApiEndpoint3 miss role", ApiEndpoint3, VersionOfApi) {
+    Scenario(s"$ApiEndpoint3 miss role", ApiEndpoint3, VersionOfApi) {
       When("We make a request v5.0.0")
       val requestApiEndpoint3 = (v5_0_0_Request / "banks"/ bankId /"customers").GET  <@(user1)
       val responseApiEndpoint3 = makeGetRequest(requestApiEndpoint3)
@@ -191,7 +191,7 @@ class CustomerTest extends V500ServerSetup {
       responseApiEndpoint3.body.extract[ErrorMessage].message contains (CanGetCustomersAtOneBank.toString()) should be (true)
     }
 
-    scenario(s"$ApiEndpoint4 without a user credentials", ApiEndpoint4, VersionOfApi) {
+    Scenario(s"$ApiEndpoint4 without a user credentials", ApiEndpoint4, VersionOfApi) {
       When("We make a request v5.0.0")
       val requestApiEndpoint4 = (v5_0_0_Request / "banks"/ bankId /"customers-minimal").GET 
       val responseApiEndpoint4 = makeGetRequest(requestApiEndpoint4)
@@ -201,7 +201,7 @@ class CustomerTest extends V500ServerSetup {
       responseApiEndpoint4.body.extract[ErrorMessage].message should equal (AuthenticatedUserIsRequired)
     }
 
-    scenario(s"$ApiEndpoint4 miss role", ApiEndpoint4, VersionOfApi) {
+    Scenario(s"$ApiEndpoint4 miss role", ApiEndpoint4, VersionOfApi) {
       When("We make a request v5.0.0")
       val requestApiEndpoint4 = (v5_0_0_Request / "banks"/ bankId /"customers-minimal").GET <@(user1)
       val responseApiEndpoint4 = makeGetRequest(requestApiEndpoint4)
@@ -214,8 +214,8 @@ class CustomerTest extends V500ServerSetup {
   }
 
 
-  feature(s"Create Customer $VersionOfApi - Unauthorized access") {
-    scenario("We will call the endpoint without user credentials", ApiEndpoint5, VersionOfApi) {
+  Feature(s"Create Customer $VersionOfApi - Unauthorized access") {
+    Scenario("We will call the endpoint without user credentials", ApiEndpoint5, VersionOfApi) {
       When(s"We make a request $VersionOfApi")
       val request = (v5_0_0_Request / "banks" / bankId / "customers").POST
       val response = makePostRequest(request, write(postCustomerJson))
@@ -226,8 +226,8 @@ class CustomerTest extends V500ServerSetup {
     }
   }
 
-  feature(s"Create Customer $VersionOfApi - Authorized access") {
-    scenario("We will call the endpoint with user credentials", ApiEndpoint5, VersionOfApi) {
+  Feature(s"Create Customer $VersionOfApi - Authorized access") {
+    Scenario("We will call the endpoint with user credentials", ApiEndpoint5, VersionOfApi) {
       When(s"We make a request $VersionOfApi")
       val request = (v5_0_0_Request / "banks" / bankId / "customers").POST <@(user1)
       val response = makePostRequest(request, write(postCustomerJson))
@@ -239,7 +239,7 @@ class CustomerTest extends V500ServerSetup {
       errorMessage contains (UserHasMissingRoles) should be (true)
       errorMessage contains (canCreateCustomerAtAnyBank.toString()) should be (true)
     }
-    scenario("We will call the endpoint with a user credentials and a proper role", ApiEndpoint5, VersionOfApi) {
+    Scenario("We will call the endpoint with a user credentials and a proper role", ApiEndpoint5, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
       When(s"We make a request $VersionOfApi")
       val request = (v5_0_0_Request / "banks" / bankId / "customers").POST <@(user1)
@@ -259,7 +259,7 @@ class CustomerTest extends V500ServerSetup {
       And("POST feedback and GET feedback must be the same")
       infoGet should equal(infoPost)
     }
-    scenario("We will call the endpoint with a user credentials and a proper role and minimal POST JSON", ApiEndpoint5, VersionOfApi) {
+    Scenario("We will call the endpoint with a user credentials and a proper role and minimal POST JSON", ApiEndpoint5, VersionOfApi) {
       Entitlement.entitlement.vend.addEntitlement(bankId, resourceUser1.userId, CanCreateCustomer.toString)
       When(s"We make a request $VersionOfApi")
       val request = (v5_0_0_Request / "banks" / bankId / "customers").POST <@(user1)

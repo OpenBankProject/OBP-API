@@ -32,9 +32,9 @@ class ExchangeRateTest extends V220ServerSetup with DefaultUsers {
     super.afterAll()
   }
   
-  feature("Assuring that Get Current FxRate works as expected - v2.2.0") {
+  Feature("Assuring that Get Current FxRate works as expected - v2.2.0") {
 
-    scenario("We Get Current FxRate", VersionOfApi, ApiEndpoint1) {
+    Scenario("We Get Current FxRate", VersionOfApi, ApiEndpoint1) {
       val testBank = testBankId1
       val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(user1.get._1.key).map(_.id.get.toString).getOrElse("")
       Scope.scope.vend.addScope(testBank.value, consumerId, ApiRole.canReadFx.toString())
@@ -44,7 +44,7 @@ class ExchangeRateTest extends V220ServerSetup with DefaultUsers {
       responseGet.code should equal(200)
     }
     
-    scenario("We Get Current FxRate with wrong ISO from currency code", VersionOfApi, ApiEndpoint1) {
+    Scenario("We Get Current FxRate with wrong ISO from currency code", VersionOfApi, ApiEndpoint1) {
       val testBank = testBankId1
       val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(user1.get._1.key).map(_.id.get.toString).getOrElse("")
       Scope.scope.vend.addScope(testBank.value, consumerId, ApiRole.canReadFx.toString())
@@ -55,7 +55,7 @@ class ExchangeRateTest extends V220ServerSetup with DefaultUsers {
       responseGet.body.extract[ErrorMessage].message should startWith (InvalidISOCurrencyCode)
     }
 
-    scenario("We Get Current FxRate with wrong ISO to currency code", VersionOfApi, ApiEndpoint1) {
+    Scenario("We Get Current FxRate with wrong ISO to currency code", VersionOfApi, ApiEndpoint1) {
       val testBank = testBankId1
       val consumerId = Consumers.consumers.vend.getConsumerByConsumerKey(user1.get._1.key).map(_.id.get.toString).getOrElse("")
       Scope.scope.vend.addScope(testBank.value, consumerId, ApiRole.canReadFx.toString())
