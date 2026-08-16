@@ -113,10 +113,34 @@ from the blocker. It converts an unhandled assertion into 42 legible diagnostics
 having — the failure is now describable — but the underlying construct is what Scala 3 rejects
 either way.
 
-Because the 9 declaration-site errors are in Lift's *own* declarations rather than in how OBP uses
-them, this is now a well-formed upstream report: a minimal case where dotty fails on an F-bounded
-mutually-recursive trait pair with a self-type. That is worth filing regardless of which route
-OBP takes, and the repro in this file is already small enough to file as-is.
+### What is NOT reducible (correcting the line above)
+
+An earlier revision of this file said the 9 declaration-site errors make "a well-formed upstream
+report … already small enough to file as-is". That was over-stated, and testing it is what showed
+so. There are two distinct symptoms and only one of them has a small repro:
+
+* **The assertion failure — reducible.** Three lines against the published `_2.13` jar (the v6 row
+  above). Fileable as-is.
+* **The cyclic errors — not reducible so far.** Four synthetic Scala 3 models were built, each
+  adding more of the real shape, and **all four compile clean**:
+
+  | model | shape | result |
+  |---|---|---|
+  | m1 | self-type + F-bound + meta object | OK |
+  | k1 | + meta trait extending the mapper trait | OK |
+  | k2 | + `getSingleton` making the trait pair mutually recursive | OK |
+  | k3 | + concrete entity class and meta object | OK |
+
+  Two candidate fixes were also tried directly on the fork's own sources and **neither moved the
+  count** (79 errors / 42 cyclic before and after): simplifying `KeyedMetaMapper`'s redundant
+  self-type `self: A with MetaMapper[A] with KeyedMapper[Type, A] =>` down to `self: A =>`, and
+  adding explicit result types to the `object By` overloads.
+
+So the cyclic form needs more of the real hierarchy than has been modelled, and the trigger is
+still unidentified. An upstream report today would have to point at the whole fork rather than a
+small case, which makes it much weaker. Anyone continuing this should keep bisecting the real
+sources rather than building up from synthetic models — that direction has been tried and did not
+reach it.
 
 Note what this does to the migration plan's architecture. The plan has lift-mapper staying
 `_2.13` forever and being consumed via `for3Use2_13`. That specific decision is what the evidence
