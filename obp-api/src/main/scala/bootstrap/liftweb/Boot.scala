@@ -89,7 +89,6 @@ import code.kycchecks.MappedKycCheck
 import code.kycdocuments.MappedKycDocument
 import code.kycmedias.MappedKycMedia
 import code.kycstatuses.MappedKycStatus
-import code.loginattempts.{LoginAttempt, MappedBadLoginAttempt}
 import code.meetings.{MappedMeeting, MappedMeetingInvitee}
 import code.metadata.counterparties.{MappedCounterparty, MappedCounterpartyBespoke, MappedCounterpartyMetadata, MappedCounterpartyWhereTag}
 import code.methodrouting.MethodRouting
@@ -943,7 +942,6 @@ object ToSchemify extends MdcLoggable {
     MappedMeetingInvitee,
     MappedPhysicalCard,
     PinReset,
-    MappedBadLoginAttempt,
     MappedFXRate,
     MappedCurrency,
     MappedTransactionRequestTypeCharge,

@@ -5,8 +5,8 @@ import code.api.util.Consent.logger
 import java.util.Date
 import code.api.util._
 import code.entitlement.{Entitlement, MappedEntitlement}
+import code.bankconnectors.DoobieBadLoginAttemptQueries
 import code.loginattempts.LoginAttempt.maxBadLoginAttempts
-import code.loginattempts.MappedBadLoginAttempt
 import code.model.dataAccess.{AuthUser, ResourceUser}
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.ExecutionContext.Implicits.global
@@ -202,18 +202,12 @@ object LiftUsers extends Users with MdcLoggable{
 
     val showUsers: List[ResourceUser] = locked.map(_.toLowerCase()) match {
       case Some("active") =>
-        val lockedUsers: immutable.Seq[MappedBadLoginAttempt] =
-          MappedBadLoginAttempt.findAll(
-            By_>(MappedBadLoginAttempt.mBadAttemptsSinceLastSuccessOrReset, maxBadLoginAttempts.toInt)
-          )
-        val exclude: immutable.Seq[ResourceUser] = ResourceUser.findAll(ByList(ResourceUser.name_, lockedUsers.map(_.username)))
+        val lockedUsernames: List[String] = DoobieBadLoginAttemptQueries.usernamesOverThreshold(maxBadLoginAttempts.toInt)
+        val exclude: immutable.Seq[ResourceUser] = ResourceUser.findAll(ByList(ResourceUser.name_, lockedUsernames))
         getAllResourceUsers() diff exclude
       case Some("locked") =>
-        val lockedUsers: immutable.Seq[MappedBadLoginAttempt] =
-          MappedBadLoginAttempt.findAll(
-            By_>(MappedBadLoginAttempt.mBadAttemptsSinceLastSuccessOrReset, maxBadLoginAttempts.toInt)
-          )
-        val exclude: immutable.Seq[ResourceUser] = ResourceUser.findAll(ByList(ResourceUser.name_, lockedUsers.map(_.username)))
+        val lockedUsernames: List[String] = DoobieBadLoginAttemptQueries.usernamesOverThreshold(maxBadLoginAttempts.toInt)
+        val exclude: immutable.Seq[ResourceUser] = ResourceUser.findAll(ByList(ResourceUser.name_, lockedUsernames))
         getAllResourceUsers() intersect exclude.toList
       case _ =>
         getAllResourceUsers()

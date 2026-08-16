@@ -26,8 +26,11 @@ TESOBE (http://www.tesobe.com/)
   */
 package code.concurrency
 
-import code.loginattempts.{LoginAttempt, MappedBadLoginAttempt}
+import code.api.util.DoobieUtil
+import code.bankconnectors.DoobieBadLoginAttemptQueries
+import code.loginattempts.LoginAttempt
 import code.transactionChallenge.{MappedChallengeProvider, MappedExpectedChallengeAnswer}
+import doobie.implicits._
 import net.liftweb.mapper.By
 import org.mindrot.jbcrypt.BCrypt
 
@@ -59,16 +62,9 @@ class ConcurrentSecurityRaceTest extends ConcurrentRaceSetup {
       val provider = "__conc_sec_provider_h"
       val username = "__conc_sec_user_h"
       // Clean up from any prior run (shared JVM, forkMode=once).
-      MappedBadLoginAttempt.findAll(
-        By(MappedBadLoginAttempt.Provider, provider),
-        By(MappedBadLoginAttempt.mUsername, username)
-      ).foreach(_.delete_!)
-      MappedBadLoginAttempt.create
-        .mUsername(username)
-        .Provider(provider)
-        .mBadAttemptsSinceLastSuccessOrReset(0)
-        .mLastFailureDate(new Date())
-        .saveMe()
+      DoobieUtil.runUpdate(
+        sql"DELETE FROM mappedbadloginattempt WHERE provider = $provider AND musername = $username".update.run)
+      DoobieBadLoginAttemptQueries.create(provider, username, 0)
       val n = 8
 
       When(s"$n bad-login increments are fired concurrently for the same credential")
@@ -77,10 +73,8 @@ class ConcurrentSecurityRaceTest extends ConcurrentRaceSetup {
       }
 
       Then("the counter must equal N — every increment must land, no lost-updates")
-      val finalCounter = MappedBadLoginAttempt.find(
-        By(MappedBadLoginAttempt.Provider, provider),
-        By(MappedBadLoginAttempt.mUsername, username)
-      ).map(_.badAttemptsSinceLastSuccessOrReset).getOrElse(0)
+      val finalCounter = DoobieBadLoginAttemptQueries.find(provider, username)
+        .map(_.badAttemptsSinceLastSuccessOrReset).getOrElse(0)
       withClue(
         s"finalCounter=$finalCounter (expected=$n): each of $n concurrent bad-login attempts must " +
         s"be counted — if fewer land, an attacker can bypass the lockout threshold by sending " +

@@ -243,6 +243,7 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
     DoobieUtil.runUpdate(sql"DELETE FROM mappedcustomeridmapping".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM mappedbankaccountdata".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM apicollection".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM mappedbadloginattempt".update.run)
 
     
     // Delete only THIS shard's namespaced Redis keys. Each parallel shard uses a distinct

@@ -1,22 +1,31 @@
 package code.api.util.migration
 
-import code.api.util.{APIUtil, DBUtil}
+import code.api.util.APIUtil
 import code.api.util.migration.Migration.{DbFunction, saveLog}
-import code.loginattempts.MappedBadLoginAttempt
-import net.liftweb.mapper.{DB, Schemifier}
-import net.liftweb.common.Full
+import net.liftweb.mapper.Schemifier
 import code.util.Helper
 import java.time.format.DateTimeFormatter
 import java.time.{ZoneId, ZonedDateTime}
 
+/**
+ * One-time historical migration: drops a legacy unique index that constrained mUsername alone
+ * and would have rejected the same username logging in under two different providers.
+ * Originally looked the table up via the Lift MappedBadLoginAttempt entity; that entity is gone
+ * - the table is now created by Flyway (see
+ * db/migration/h2/V026__mappedbadloginattempt.sql) - so this checks for the table by name
+ * instead. Kept only so migration_script_log stays a complete history; a fresh environment's
+ * Flyway-created table never had the legacy index in the first place.
+ */
 object MigrationOfMappedBadLoginAttemptDropIndex {
+
+  private val tableName = "mappedbadloginattempt"
 
   val oneDayAgo = ZonedDateTime.now(ZoneId.of("UTC")).minusDays(1)
   val oneYearInFuture = ZonedDateTime.now(ZoneId.of("UTC")).plusYears(1)
   val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm'Z'")
-  
+
   def dropUniqueIndex(name: String): Boolean = {
-    DbFunction.tableExists(MappedBadLoginAttempt) match {
+    DbFunction.tableExistsByName(tableName) match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
@@ -44,7 +53,7 @@ object MigrationOfMappedBadLoginAttemptDropIndex {
         val isSuccessful = false
         val endDate = System.currentTimeMillis()
         val comment: String =
-          s"""${MappedBadLoginAttempt._dbTableNameLC} table does not exist""".stripMargin
+          s"""$tableName table does not exist""".stripMargin
         saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
         isSuccessful
     }

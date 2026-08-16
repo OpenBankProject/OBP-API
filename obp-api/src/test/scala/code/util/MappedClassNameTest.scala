@@ -57,7 +57,6 @@ class MappedClassNameTest extends AnyFeatureSpec {
     "code.standingorders.StandingOrder",
     "code.metrics.MappedConnectorMetric",
     "code.crm.MappedCrmEvent",
-    "code.loginattempts.MappedBadLoginAttempt",
     "code.fx.MappedCurrency",
     "code.api.builder.MappedTemplate_2188356573920200339",
     "code.directdebit.DirectDebit",
