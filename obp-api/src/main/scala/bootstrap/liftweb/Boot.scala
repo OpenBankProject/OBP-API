@@ -99,7 +99,6 @@ import code.kycstatuses.MappedKycStatus
 import code.loginattempts.{LoginAttempt, MappedBadLoginAttempt}
 import code.meetings.{MappedMeeting, MappedMeetingInvitee}
 import code.metadata.counterparties.{MappedCounterparty, MappedCounterpartyBespoke, MappedCounterpartyMetadata, MappedCounterpartyWhereTag}
-import code.metadata.tags.MappedTag
 import code.metadata.transactionimages.MappedTransactionImage
 import code.metadata.wheretags.MappedWhereTag
 import code.methodrouting.MethodRouting
@@ -1009,7 +1008,6 @@ object ToSchemify extends MdcLoggable {
     UserInvitation,
     UserAgreement,
     UserAttribute,
-    MappedTag,
     MappedWhereTag,
     MappedTransactionImage,
     MappedCustomer,
