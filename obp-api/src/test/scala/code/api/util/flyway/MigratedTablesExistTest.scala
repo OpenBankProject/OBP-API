@@ -48,7 +48,8 @@ class MigratedTablesExistTest extends ServerSetup {
     "consentauthcontext",
     "mappeduserauthcontext",
     "userinitaction",
-    "accountidmapping"
+    "accountidmapping",
+    "transactionidmapping"
   )
 
   /**
@@ -84,7 +85,9 @@ class MigratedTablesExistTest extends ServerSetup {
     "MAPPEDUSERAUTHCONTEXT" -> "MAPPEDUSERAUTHCONTEXT_MUSERID_MKEY_CREATEDAT",
     "USERINITACTION" -> "USERINITACTION_USERID_ACTIONNAME_ACTIONVALUE",
     "ACCOUNTIDMAPPING" -> "ACCOUNTIDMAPPING_MACCOUNTID",
-    "ACCOUNTIDMAPPING" -> "ACCOUNTIDMAPPING_MACCOUNTID_MACCOUNTPLAINTEXTREFERENCE"
+    "ACCOUNTIDMAPPING" -> "ACCOUNTIDMAPPING_MACCOUNTID_MACCOUNTPLAINTEXTREFERENCE",
+    "TRANSACTIONIDMAPPING" -> "TRANSACTIONIDMAPPING_TRANSACTIONID",
+    "TRANSACTIONIDMAPPING" -> "TRANSACTIONIDMAPPING_TRANSACTIONID_TRANSACTIONPLAINTEXTREFERENCE"
   )
 
   Feature("tables owned by Flyway rather than Schemifier") {

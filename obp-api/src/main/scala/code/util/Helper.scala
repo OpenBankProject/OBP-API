@@ -10,7 +10,7 @@ import code.api.{APIFailureNewStyle, Constant}
 import code.api.util.APIUtil.fullBoxOrException
 import code.customer.internalMapping.MappedCustomerIdMappingProvider
 import code.model.dataAccess.internalMapping.MappedAccountIdMappingProvider
-import code.transaction.internalMapping.MappedTransactionIdMappingProvider
+import code.transaction.internalMapping.DoobieTransactionIdMappingProvider
 import net.liftweb.common._
 import org.json4s.Extraction._
 import org.apache.commons.lang3.StringUtils
@@ -472,7 +472,7 @@ object Helper extends Loggable {
     def accountIdConverter(accountId: String): String = MappedAccountIdMappingProvider
       .getAccountPlainTextReference(AccountId(accountId))
       .openOrThrowException(s"$InvalidAccountIdFormat the invalid accountId is $accountId")
-    def transactionIdConverter(transactionId: String): String = MappedTransactionIdMappingProvider
+    def transactionIdConverter(transactionId: String): String = DoobieTransactionIdMappingProvider
       .getTransactionPlainTextReference(TransactionId(transactionId))
       .openOrThrowException(s"$InvalidAccountIdFormat the invalid transactionId is $transactionId")
     convertId[T](obj, customerIdConverter, accountIdConverter, transactionIdConverter)
@@ -493,7 +493,7 @@ object Helper extends Loggable {
     def accountIdConverter(accountReference: String): String = MappedAccountIdMappingProvider
       .getOrCreateAccountId(accountReference)
       .map(_.value).openOrThrowException(s"$InvalidAccountIdFormat the invalid accountReference is $accountReference")
-    def transactionIdConverter(transactionReference: String): String = MappedTransactionIdMappingProvider
+    def transactionIdConverter(transactionReference: String): String = DoobieTransactionIdMappingProvider
       .getOrCreateTransactionId(transactionReference)
       .map(_.value).openOrThrowException(s"$InvalidAccountIdFormat the invalid transactionReference is $transactionReference")
     if(obj.isInstanceOf[EmptyBox]) {
