@@ -10,7 +10,7 @@ import code.util.Helper.MdcLoggable
 
 object Thing extends SimpleInjector {
 
-    val thingProvider = new Inject(buildOne _) {}
+    val thingProvider = new Inject(() => buildOne) {}
     def buildOne: ThingProvider = MappedThingProvider
 
   //If you set props `provider.thing`, you can set to different providers

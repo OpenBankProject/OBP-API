@@ -9,7 +9,7 @@ import net.liftweb.common.Box
 import scala.concurrent.Future
 
 object RateLimitingDI extends SimpleInjector {
-  val rateLimiting = new Inject(buildOne _) {}
+  val rateLimiting = new Inject(() => buildOne) {}
   def buildOne: RateLimitingProviderTrait = MappedRateLimitingProvider
 }
 

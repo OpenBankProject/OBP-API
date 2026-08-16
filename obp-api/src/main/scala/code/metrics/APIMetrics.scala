@@ -10,7 +10,7 @@ import scala.concurrent.Future
 
 object APIMetrics extends SimpleInjector {
 
-  val apiMetrics = new Inject(buildOne _) {}
+  val apiMetrics = new Inject(() => buildOne) {}
 
   def buildOne: APIMetrics =
     APIUtil.getPropsAsBoolValue("allow_elasticsearch", false) &&

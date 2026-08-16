@@ -8,7 +8,7 @@ import redis.clients.jedis.{Jedis, JedisPubSub}
 
 import java.util.concurrent.{ArrayBlockingQueue, ConcurrentHashMap, CopyOnWriteArrayList, TimeUnit}
 import java.util.concurrent.atomic.AtomicLong
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 /**
  * Redis pub/sub event bus for metrics streaming.
@@ -116,6 +116,9 @@ object MetricsEventBus extends MdcLoggable {
 
     logger.info("MetricsEventBus says: Started")
   }
+
+  /** Whether this bus is already subscribed, so a caller can tell whether it started it. */
+  def isRunning: Boolean = running
 
   def stop(): Unit = {
     running = false

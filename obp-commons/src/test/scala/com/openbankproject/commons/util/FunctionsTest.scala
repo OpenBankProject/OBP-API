@@ -50,6 +50,45 @@ class FunctionsTest extends FlatSpec with Matchers {
     list.distinctBy(_.name) should contain theSameElementsAs  List(FPerson("foo", 12), FPerson("bar", 15))
   }
 
+  "classify" should "split a collection into the elements that match and those that do not" taggedAs FunctionsTag in {
+    // The production caller is validateRequiredFields in code.bankconnectors, which classifies
+    // validation results by isLeft and then reads only the left half; it had no test.
+    val list = List(FPerson("foo", 12), FPerson("bar", 15), FPerson("baz", 11))
+
+    val (adults, minors) = list.classify(_.age >= 12)
+
+    adults should contain theSameElementsAs List(FPerson("foo", 12), FPerson("bar", 15))
+    minors should contain theSameElementsAs List(FPerson("baz", 11))
+  }
+
+  it should "keep the element order of the source collection within each half" taggedAs FunctionsTag in {
+    val (even, odd) = List(1, 2, 3, 4, 5, 6).classify(_ % 2 == 0)
+
+    even should equal(List(2, 4, 6))
+    odd should equal(List(1, 3, 5))
+  }
+
+  it should "return two empty collections for an empty source" taggedAs FunctionsTag in {
+    val (matched, unmatched) = List.empty[Int].classify(_ > 0)
+
+    matched should be(empty)
+    unmatched should be(empty)
+  }
+
+  "toMapByKey and toMapByValue" should "index a collection either way round" taggedAs FunctionsTag in {
+    val list = List(FPerson("foo", 12), FPerson("bar", 15))
+
+    list.toMapByKey(_.name) should equal(Map("foo" -> FPerson("foo", 12), "bar" -> FPerson("bar", 15)))
+    list.toMapByValue(_.age) should equal(Map(FPerson("foo", 12) -> 12, FPerson("bar", 15) -> 15))
+  }
+
+  "notExists" should "be the negation of exists" taggedAs FunctionsTag in {
+    val list = List(1, 2, 3)
+
+    list.notExists(_ > 5) should equal(true)
+    list.notExists(_ > 2) should equal(false)
+  }
+
   "findByType" should "find one or none element" taggedAs FunctionsTag in {
     val list = List(12, "", new Date(), FPerson("foo", 12), FPerson("bar", 15), FPerson("foo", 16))
     val person = list.findByType[FPerson]

@@ -767,7 +767,7 @@ object JsonUtils {
                 Validate.isTrue(tail.forall(_.isInstanceOf[JObject]), s"All the items of Json $fullFieldName should be object type.")
                 def fieldNameToType(jObject: JObject) = jObject.obj.map(it => it.name -> getType(it.value)).toMap
                 val headFieldNameToType = fieldNameToType(head)
-                val allItemsHaveSameStructure = tail.map(it => fieldNameToType(it.asInstanceOf[JObject])).forall(headFieldNameToType ==)
+                val allItemsHaveSameStructure = tail.map(it => fieldNameToType(it.asInstanceOf[JObject])).forall(headFieldNameToType == _)
                 Validate.isTrue(allItemsHaveSameStructure, s"All the items of Json $fullFieldName should the same structure.")
               case JArray(_) :: tail => Validate.isTrue(tail.forall(_.isInstanceOf[JArray]), s"All the items of Json $fullFieldName should be array type.")
             }
@@ -791,7 +791,9 @@ object JsonUtils {
       case v => v
     }
 
-    val subTypes: List[String] = nestedObjects collect {
+    // Dotted rather than infix: with the postfix `toList` rewritten as `.toList`, an infix
+    // `collect` would bind the call to the block instead of to the collect result.
+    val subTypes: List[String] = nestedObjects.collect {
       case (JField(name, v: JObject), path) =>
         jObjectToCaseClass(v, typeNamePrefix, name, getParentFiledName(path))
       case (JField(name, JArray((v: JObject) :: _)), path) =>
@@ -806,7 +808,7 @@ object JsonUtils {
         jObjectToCaseClass(v, typeNamePrefix, name, getParentFiledName(path))
       case (JField(_, JArray(JArray(JArray(JArray(JArray(JArray(_ :: _) :: _) :: _) :: _) :: _) :: _)), path) =>
         throw new IllegalArgumentException(s"Json field $path have too much nested level, max nested level be supported is 5.")
-    } toList
+    }.toList
 
     subTypes
   }

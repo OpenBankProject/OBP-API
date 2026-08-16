@@ -8,7 +8,7 @@ import scala.collection.immutable.List
 
 object CounterpartyBespokes extends SimpleInjector {
 
-  val counterpartyBespokers = new Inject(buildOne _) {}
+  val counterpartyBespokers = new Inject(() => buildOne) {}
 
   def buildOne: CounterpartyBespokes = MapperCounterpartyBespokes
 

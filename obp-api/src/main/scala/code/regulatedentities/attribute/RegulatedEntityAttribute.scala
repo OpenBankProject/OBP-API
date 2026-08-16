@@ -11,7 +11,7 @@ import scala.concurrent.Future
 
 object RegulatedEntityAttributeX extends SimpleInjector {
 
-  val regulatedEntityAttributeProvider = new Inject(buildOne _) {}
+  val regulatedEntityAttributeProvider = new Inject(() => buildOne) {}
 
   def buildOne: RegulatedEntityAttributeProviderTrait = RegulatedEntityAttributeProvider
 

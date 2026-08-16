@@ -133,7 +133,7 @@ object Http4sDynamicEntity extends MdcLoggable {
   /** Apply a validated plan to the fetched records (Phase 1: in-memory; the SQL backend comes later). */
   private def applyQueryPlan(resultList: JArray, plan: QueryPlan, indexed: Map[String, FieldSpec]): JArray = {
     val records = resultList.arr.collect { case o: JObject => o }
-    val fieldTypes = indexed.mapValues(_.fieldType).toMap
+    val fieldTypes = indexed.map { case (name, field) => name -> field.fieldType }
     JArray(InMemoryQueryExecutor.execute(records, plan, fieldTypes))
   }
 

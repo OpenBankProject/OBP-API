@@ -8,7 +8,7 @@ import java.net.URLDecoder
 
 object ConnectorMethodProvider extends SimpleInjector {
 
-  val provider = new Inject(buildOne _) {}
+  val provider = new Inject(() => buildOne) {}
 
   def buildOne: MappedConnectorMethodProvider.type = MappedConnectorMethodProvider
 }

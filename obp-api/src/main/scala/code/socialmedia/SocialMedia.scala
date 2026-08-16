@@ -7,7 +7,7 @@ import net.liftweb.util.SimpleInjector
 // TODO Rename to SocialMediaHandle
 object SocialMediaHandle extends SimpleInjector {
 
-  val socialMediaHandleProvider = new Inject(buildOne _) {}
+  val socialMediaHandleProvider = new Inject(() => buildOne) {}
 
   def buildOne: SocialMediaHandleProvider = MappedSocialMediasProvider
 

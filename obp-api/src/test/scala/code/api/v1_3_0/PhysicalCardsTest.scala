@@ -22,13 +22,13 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers with DefaultConnec
   lazy val accountCurrency = "EUR"
   lazy val account = createAccount(bank.bankId, AccountId(accId), accountCurrency)
 
-  override def beforeAll() {
+  override def beforeAll(): Unit = {
     super.beforeAll()
     //use the mock connector
     Connector.connector.default.set(MockedCardConnector)
   }
 
-  override def afterAll() {
+  override def afterAll(): Unit = {
     super.afterAll()
     //reset the default connector
     Connector.connector.default.set(Connector.buildOne)

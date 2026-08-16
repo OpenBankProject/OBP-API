@@ -11,7 +11,7 @@ import scala.concurrent.Future
 
 object UserAuthContextProvider extends SimpleInjector {
 
-  val userAuthContextProvider = new Inject(buildOne _) {}
+  val userAuthContextProvider = new Inject(() => buildOne) {}
 
   def buildOne: UserAuthContextProvider = MappedUserAuthContextProvider
   

@@ -112,7 +112,7 @@ final case class AccountJSONGrpc(
       (__field.number: @_root_.scala.unchecked) match {
         case 1 => _root_.scalapb.descriptors.PString(id)
         case 2 => _root_.scalapb.descriptors.PString(label)
-        case 3 => _root_.scalapb.descriptors.PRepeated(viewsAvailable.map(_.toPMessage)(_root_.scala.collection.breakOut))
+        case 3 => _root_.scalapb.descriptors.PRepeated(viewsAvailable.iterator.map(_.toPMessage).toVector)
         case 4 => _root_.scalapb.descriptors.PString(bankId)
       }
     }
@@ -152,7 +152,7 @@ object AccountJSONGrpc extends scalapb.GeneratedMessageCompanion[code.obp.grpc.a
     }
     __out
   }
-  lazy val nestedMessagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_]] = Seq.empty
+  lazy val nestedMessagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_ <: _root_.scalapb.GeneratedMessage]] = Seq.empty
   def enumCompanionForFieldNumber(__fieldNumber: _root_.scala.Int): _root_.scalapb.GeneratedEnumCompanion[_] = throw new MatchError(__fieldNumber)
   lazy val defaultInstance = code.obp.grpc.api.AccountJSONGrpc(
   )

@@ -12,7 +12,7 @@ import com.openbankproject.commons.util.json
 
 object JsonSchemaValidationProvider extends SimpleInjector {
 
-  val validationProvider = new Inject(buildOne _) {}
+  val validationProvider = new Inject(() => buildOne) {}
 
   def buildOne: MappedJsonSchemaValidationProvider.type = MappedJsonSchemaValidationProvider
 }

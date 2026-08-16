@@ -23,6 +23,10 @@ obp-api/src/main/resources/*
 !obp-api/src/main/resources/media/
 obp-api/src/test/resources/**
 !obp-api/src/test/resources/frozen_type_meta_data
+# The blob's text rendering, which FrozenMetaDataTextTest compares it against. It is what
+# makes a regeneration reviewable, and without this line it is silently untracked - the test
+# then passes for whoever generated it and fails on every clean checkout.
+!obp-api/src/test/resources/frozen_type_meta_data.txt
 !obp-api/src/test/resources/logback-test.xml
 # The development certificate set (scripts/generate_dev_certs.sh) is a test fixture and belongs in
 # the repository. Without these two lines a regenerated set is silently untracked and the tests

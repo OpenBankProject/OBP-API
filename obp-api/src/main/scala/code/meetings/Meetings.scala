@@ -16,7 +16,7 @@ case class ContactMedium(
 
 object Meetings extends SimpleInjector {
 
-  val meetingProvider = new Inject(buildOne _) {}
+  val meetingProvider = new Inject(() => buildOne) {}
 
   def buildOne: MeetingProvider = MappedMeetingProvider
 

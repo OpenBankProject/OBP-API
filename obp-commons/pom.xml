@@ -24,6 +24,15 @@
             <scope>compile</scope>
             <version>${scala.compiler}</version>
         </dependency>
+        <!-- Supplies scala.collection.Factory on 2.12, which Functions.Implicits uses to build
+             result collections. 2.13 has it natively; CanBuildFrom, which this module used
+             before, is the 2.12-only spelling and is gone in 2.13. obp-api already declares the
+             same dependency for its own converters. -->
+        <dependency>
+            <groupId>org.scala-lang.modules</groupId>
+            <artifactId>scala-collection-compat_${scala.version}</artifactId>
+            <version>2.1.2</version>
+        </dependency>
         <dependency>
             <groupId>org.scalatest</groupId>
             <artifactId>scalatest_${scala.version}</artifactId>

@@ -5066,7 +5066,7 @@ object Glossary extends MdcLoggable  {
         val conn = resourceUrl.openConnection().asInstanceOf[java.net.JarURLConnection]
         val jar  = conn.getJarFile
         val prefix = conn.getEntryName + "/"
-        import scala.collection.JavaConverters._
+        import scala.jdk.CollectionConverters._
         jar.entries().asScala
           .filter(e => !e.isDirectory && e.getName.startsWith(prefix) && e.getName.endsWith(".md"))
           .map { entry =>

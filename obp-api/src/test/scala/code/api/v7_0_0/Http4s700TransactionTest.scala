@@ -9,7 +9,7 @@ import org.json4s.JsonAST.{JObject, JString}
 import com.openbankproject.commons.util.JsonAliases.parse
 import org.json4s.JValue
 import org.scalatest.Tag
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 /**
  * Integration tests for the v7 request-scoped transaction feature.

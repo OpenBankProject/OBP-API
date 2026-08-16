@@ -73,7 +73,7 @@ import java.text.SimpleDateFormat
 import java.util
 import com.networknt.schema.ValidationMessage
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import code.model._   // implicit BankAccountExtended → moderatedBankAccount
 import code.model.dataAccess.AuthUser
 import code.ratelimiting.RateLimitingDI
@@ -2031,7 +2031,7 @@ object Http4s400 {
       for {
         (dynamicEndpoints, _) <- NewStyle.function.getDynamicEndpoints(bankId, Some(cc))
       } yield {
-        val resultList = dynamicEndpoints.map[JObject, List[JObject]] { dynamicEndpoint =>
+        val resultList = dynamicEndpoints.map[JObject] { dynamicEndpoint =>
           val swaggerJson = parse(dynamicEndpoint.swaggerString)
           ("user_id", cc.userId) ~ ("dynamic_endpoint_id", dynamicEndpoint.dynamicEndpointId) ~
             ("swagger_string", swaggerJson)
@@ -2425,7 +2425,7 @@ object Http4s400 {
           for {
             (dynamicEndpoints, _) <- NewStyle.function.getDynamicEndpointsByUserId(user.userId, Some(cc))
           } yield {
-            val resultList = dynamicEndpoints.map[JObject, List[JObject]] { dynamicEndpoint =>
+            val resultList = dynamicEndpoints.map[JObject] { dynamicEndpoint =>
               val swaggerJson = parse(dynamicEndpoint.swaggerString)
               ("user_id", user.userId) ~ ("dynamic_endpoint_id", dynamicEndpoint.dynamicEndpointId) ~
                 ("swagger_string", swaggerJson)

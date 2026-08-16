@@ -6,7 +6,7 @@ import net.liftweb.util.SimpleInjector
 import scala.concurrent.Future
 
 object GroupTrait extends SimpleInjector {
-  val group = new Inject(buildOne _) {}
+  val group = new Inject(() => buildOne) {}
   
   def buildOne: GroupProvider = MappedGroupProvider
 }

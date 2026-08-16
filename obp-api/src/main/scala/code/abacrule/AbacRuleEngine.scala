@@ -11,7 +11,7 @@ import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.util.Helpers.tryo
 
 import java.util.concurrent.ConcurrentHashMap
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.collection.concurrent
 import scala.concurrent.Future
 

@@ -240,8 +240,8 @@ object DynamicEntityFieldType extends OBPEnumeration[DynamicEntityFieldType]{
         true
       } else {
         val value = jValue.asInstanceOf[JString].s
-        val minLengthValue = if(minLength != JNothing) minLength.asInstanceOf[JInt].num.intValue() else 0
-        val maxLengthValue = if(minLength != JNothing) maxLength.asInstanceOf[JInt].num.intValue() else Int.MaxValue
+        val minLengthValue = if(minLength != JNothing) minLength.asInstanceOf[JInt].num.intValue else 0
+        val maxLengthValue = if(minLength != JNothing) maxLength.asInstanceOf[JInt].num.intValue else Int.MaxValue
         minLengthValue <= value.size && value.size <= maxLengthValue
       }
 

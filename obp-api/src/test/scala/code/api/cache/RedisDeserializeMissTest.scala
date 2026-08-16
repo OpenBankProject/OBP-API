@@ -5,11 +5,16 @@ import org.scalatest.{FlatSpec, Matchers}
 /**
  * Guards the cache self-healing contract of Redis.deserialize.
  *
- * The Kryo codec used for Redis-backed memoization must THROW when the cached
- * bytes cannot be decoded (corrupt entry, class-shape change across a redeploy,
- * Kryo registration drift). scalacache treats a throwing cache read as a MISS:
- * it recomputes the value from the source block and repopulates the key, so the
- * cache self-heals on the next call.
+ * The Kryo codec used for Redis-backed memoization must REPORT A FAILURE when the cached bytes
+ * cannot be decoded (corrupt entry, class-shape change across a redeploy, Kryo registration
+ * drift), and scalacache must turn that into a MISS: recompute from the source block, repopulate
+ * the key, self-heal on the next call.
+ *
+ * How the failure is reported changed with scalacache 0.28. The codec used to throw from
+ * deserialize; it now returns Left(FailedToDecode) from decode. The contract is unchanged, but the
+ * machinery moved: RedisCacheBase.doGet raises the Left, and AbstractCache._caching - the path
+ * memoize goes through - wraps the read in handleNonFatal and substitutes None. Reading only doGet
+ * suggests the error reaches the caller; it does not.
  *
  * The old behaviour returned the sentinel "NONE".asInstanceOf[T] instead, which
  * scalacache treated as a valid HIT — every caller expecting the real type got a
@@ -20,21 +25,24 @@ class RedisDeserializeMissTest extends FlatSpec with Matchers {
 
   private def codec[T](implicit m: Manifest[T]) = Redis.anyToByte[T]
 
-  "Redis codec deserialize" should "throw on undecodable bytes instead of returning a sentinel value" in {
+  "Redis codec decode" should "report a failure on undecodable bytes instead of returning a sentinel value" in {
     val garbage: Array[Byte] = Array[Byte](0x7f, 0x00, 0x33, -1, 42, 9, 88, 0x11)
-    an[Exception] should be thrownBy codec[List[String]].deserialize(garbage)
+    codec[List[String]].decode(garbage).isLeft shouldBe true
   }
 
   it should "never yield the legacy \"NONE\" sentinel for corrupt bytes" in {
     val garbage: Array[Byte] = Array[Byte](-128, -1, -2, -3, 0, 1, 2, 3)
-    val outcome = scala.util.Try(codec[String].deserialize(garbage))
-    outcome.isFailure shouldBe true
-    outcome.toOption should not be Some("NONE")
+    val outcome = codec[String].decode(garbage)
+    outcome.isLeft shouldBe true
+    // Named explicitly, and asserted on the Either rather than through a projection: after the
+    // line above, `outcome.right.toOption` is None whatever decode did, so that form held for
+    // every possible implementation - including the sentinel this suite exists to rule out.
+    outcome should not be Right("NONE")
   }
 
-  it should "round-trip a value serialized by the same codec" in {
+  it should "round-trip a value encoded by the same codec" in {
     val value = List("mapped", "rest_vMar2019", "rabbitmq_vOct2024")
-    val bytes = codec[List[String]].serialize(value)
-    codec[List[String]].deserialize(bytes) shouldBe value
+    val bytes = codec[List[String]].encode(value)
+    codec[List[String]].decode(bytes) shouldBe Right(value)
   }
 }

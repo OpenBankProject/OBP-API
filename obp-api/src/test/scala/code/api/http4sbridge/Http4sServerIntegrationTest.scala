@@ -9,7 +9,7 @@ import org.json4s.JsonAST.JObject
 import com.openbankproject.commons.util.JsonAliases.parse
 import org.scalatest.Tag
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.concurrent.{ExecutionContext, Future, Await}
 import scala.concurrent.duration._
 

@@ -19,11 +19,11 @@ import org.scalatest.Tag
 
 class EntitlementTests extends V400ServerSetup with DefaultUsers {
 
-   override def beforeAll() {
+   override def beforeAll(): Unit = {
      super.beforeAll()
    }
 
-   override def afterAll() {
+   override def afterAll(): Unit = {
      super.afterAll()
    }
 

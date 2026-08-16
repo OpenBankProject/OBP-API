@@ -6,7 +6,7 @@ import net.liftweb.util.SimpleInjector
 
 object DynamicEndpointProvider extends SimpleInjector {
 
-  val connectorMethodProvider = new Inject(buildOne _) {}
+  val connectorMethodProvider = new Inject(() => buildOne) {}
 
   def buildOne: MappedDynamicEndpointProvider.type = MappedDynamicEndpointProvider
 }

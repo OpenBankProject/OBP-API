@@ -76,9 +76,6 @@ class DynamicUtilTest extends FlatSpec with Matchers {
       """[new java.net.NetPermission("specifyStreamHandler"),
         |new java.lang.reflect.ReflectPermission("suppressAccessChecks"),
         |new java.lang.RuntimePermission("getenv.*"),
-        |new java.util.PropertyPermission("cglib.useCache", "read"),
-        |new java.util.PropertyPermission("net.sf.cglib.test.stressHashCodes", "read"),
-        |new java.util.PropertyPermission("cglib.debugLocation", "read"),
         |new java.lang.RuntimePermission("accessDeclaredMembers"),
         |new java.lang.RuntimePermission("getClassLoader")]""".stripMargin
 
@@ -92,7 +89,7 @@ class DynamicUtilTest extends FlatSpec with Matchers {
     
     val dependenciesBox: Box[Map[String, Set[String]]] = DynamicUtil.compileScalaCode(s"${DynamicUtil.importStatements}"+"""
                                                                              |
-                                                                             |Map(
+                                                                             |Map[String, String](
                                                                              |      // companion objects methods
                                                                              |      NewStyle.function.getClass.getTypeName -> "*",
                                                                              |      CompiledObjects.getClass.getTypeName -> "sandbox",
@@ -112,13 +109,13 @@ class DynamicUtilTest extends FlatSpec with Matchers {
                                                                              |      // allow any method of PractiseEndpoint for test
                                                                              |      PractiseEndpoint.getClass.getTypeName + "*" -> "*",
                                                                              |
-                                                                             |    ).mapValues(v => StringUtils.split(v, ',').map(_.trim).toSet)""".stripMargin)
+                                                                             |    ).mapValues(v => StringUtils.split(v, ',').map(_.trim).toSet).toMap""".stripMargin)
     val dependencies = dependenciesBox.openOrThrowException("Can not compile the string to Map")
     dependencies.toString contains ("code.api.util.NewStyle") shouldBe (true)
 
     val dependenciesString = """[NewStyle.function.getClass.getTypeName -> "*",CompiledObjects.getClass.getTypeName -> "sandbox",HttpCode.getClass.getTypeName -> "200",DynamicCompileEndpoint.getClass.getTypeName -> "getPathParams, scalaFutureToBoxedJsonResponse",APIUtil.getClass.getTypeName -> "errorJsonResponse, errorJsonResponse$default$1, errorJsonResponse$default$2, errorJsonResponse$default$3, errorJsonResponse$default$4, scalaFutureToLaFuture, futureToBoxedResponse",ErrorMessages.getClass.getTypeName -> "*",ExecutionContext.Implicits.getClass.getTypeName -> "global",JSONFactory400.getClass.getTypeName -> "createBanksJson",classOf[Sandbox].getTypeName -> "runInSandbox",classOf[CallContext].getTypeName -> "*",classOf[ResourceDoc].getTypeName -> "getPathParams","scala.reflect.runtime.package$" -> "universe",PractiseEndpoint.getClass.getTypeName + "*" -> "*"]""".stripMargin
     
-    val scalaCode2 = s"${DynamicUtil.importStatements}"+dependenciesString.replaceFirst("\\[","Map(").dropRight(1) +").mapValues(v => StringUtils.split(v, ',').map(_.trim).toSet)"
+    val scalaCode2 = s"${DynamicUtil.importStatements}"+dependenciesString.replaceFirst("\\[","Map[String, String](").dropRight(1) +").mapValues(v => StringUtils.split(v, ',').map(_.trim).toSet).toMap"
     val dependenciesBox2: Box[Map[String, Set[String]]] = DynamicUtil.compileScalaCode(scalaCode2)
     val dependencies2 = dependenciesBox2.openOrThrowException("Can not compile the string to Map")
     dependencies2.toString contains ("code.api.util.NewStyle") shouldBe (true)

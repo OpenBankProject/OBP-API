@@ -538,7 +538,7 @@ import net.liftweb.util.Helpers._
   /**
    * Overridden to use the hostname set in the props file
    */
-  override def sendValidationEmail(user: TheUserType) {
+  override def sendValidationEmail(user: TheUserType): Unit = {
     APIUtil.getPropsValue("portal_external_url") match {
       case Full(portalUrl) =>
         // Create a JWT token with the uniqueId as subject and configurable expiry

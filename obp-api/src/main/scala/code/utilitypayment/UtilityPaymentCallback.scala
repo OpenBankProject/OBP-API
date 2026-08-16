@@ -16,7 +16,7 @@ import net.liftweb.util.SimpleInjector
  * a single transaction request.
  */
 object UtilityPaymentCallbacks extends SimpleInjector {
-  val utilityPaymentCallback = new Inject(buildOne _) {}
+  val utilityPaymentCallback = new Inject(() => buildOne) {}
 
   def buildOne: UtilityPaymentCallbackProvider = MappedUtilityPaymentCallbackProvider
 }

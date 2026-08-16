@@ -13,7 +13,7 @@ import net.liftweb.util.SimpleInjector
 
 object EndpointMappingProvider extends SimpleInjector {
 
-  val endpointMappingProvider = new Inject(buildOne _) {}
+  val endpointMappingProvider = new Inject(() => buildOne) {}
 
   def buildOne: MappedEndpointMappingProvider.type = MappedEndpointMappingProvider
 }

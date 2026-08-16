@@ -113,7 +113,7 @@ final case class BasicAccountJSONGrpc(
         case 1 => _root_.scalapb.descriptors.PString(id)
         case 2 => _root_.scalapb.descriptors.PString(label)
         case 3 => _root_.scalapb.descriptors.PString(bankId)
-        case 4 => _root_.scalapb.descriptors.PRepeated(viewsAvailable.map(_.toPMessage)(_root_.scala.collection.breakOut))
+        case 4 => _root_.scalapb.descriptors.PRepeated(viewsAvailable.iterator.map(_.toPMessage).toVector)
       }
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
@@ -152,7 +152,7 @@ object BasicAccountJSONGrpc extends scalapb.GeneratedMessageCompanion[code.obp.g
     }
     __out
   }
-  lazy val nestedMessagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_]] = Seq[_root_.scalapb.GeneratedMessageCompanion[_]](
+  lazy val nestedMessagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_ <: _root_.scalapb.GeneratedMessage]] = Seq[_root_.scalapb.GeneratedMessageCompanion[_ <: _root_.scalapb.GeneratedMessage]](
     _root_.code.obp.grpc.api.BasicAccountJSONGrpc.BasicViewJson
   )
   def enumCompanionForFieldNumber(__fieldNumber: _root_.scala.Int): _root_.scalapb.GeneratedEnumCompanion[_] = throw new MatchError(__fieldNumber)
@@ -280,7 +280,7 @@ object BasicAccountJSONGrpc extends scalapb.GeneratedMessageCompanion[code.obp.g
     def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = code.obp.grpc.api.BasicAccountJSONGrpc.javaDescriptor.getNestedTypes.get(0)
     def scalaDescriptor: _root_.scalapb.descriptors.Descriptor = code.obp.grpc.api.BasicAccountJSONGrpc.scalaDescriptor.nestedMessages(0)
     def messageCompanionForFieldNumber(__number: _root_.scala.Int): _root_.scalapb.GeneratedMessageCompanion[_] = throw new MatchError(__number)
-    lazy val nestedMessagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_]] = Seq.empty
+    lazy val nestedMessagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_ <: _root_.scalapb.GeneratedMessage]] = Seq.empty
     def enumCompanionForFieldNumber(__fieldNumber: _root_.scala.Int): _root_.scalapb.GeneratedEnumCompanion[_] = throw new MatchError(__fieldNumber)
     lazy val defaultInstance = code.obp.grpc.api.BasicAccountJSONGrpc.BasicViewJson(
     )

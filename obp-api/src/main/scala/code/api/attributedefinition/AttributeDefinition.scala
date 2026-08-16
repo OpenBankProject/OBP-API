@@ -10,7 +10,7 @@ import scala.collection.immutable.List
 import scala.concurrent.Future
 
 object AttributeDefinitionDI extends SimpleInjector {
-  val attributeDefinition = new Inject(buildOne _) {}
+  val attributeDefinition = new Inject(() => buildOne) {}
   def buildOne: AttributeDefinitionProviderTrait = MappedAttributeDefinitionProvider 
 }
 

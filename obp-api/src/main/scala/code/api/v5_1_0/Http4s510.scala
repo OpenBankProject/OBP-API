@@ -987,7 +987,7 @@ object Http4s510 {
               case Full(value) =>
                 val wanted = value.split(",").map(_.trim.toLowerCase).filter(_.nonEmpty).toSet
                 if (wanted.contains("none")) Nil
-                else availableProviders.filterKeys(wanted.contains).values.toList
+                else availableProviders.filter { case (name, _) => wanted.contains(name) }.values.toList
               case _ => Nil
             }
             WellKnownUrisJsonV510(providersToShow)

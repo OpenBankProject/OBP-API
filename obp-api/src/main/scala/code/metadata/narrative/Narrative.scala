@@ -5,7 +5,7 @@ import net.liftweb.util.{Props, SimpleInjector}
 
 object Narrative extends SimpleInjector {
 
-  val narrative = new Inject(buildOne _) {}
+  val narrative = new Inject(() => buildOne) {}
 
   def buildOne: Narrative = MappedNarratives
 

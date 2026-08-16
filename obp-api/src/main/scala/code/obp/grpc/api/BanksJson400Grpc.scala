@@ -61,7 +61,7 @@ final case class BanksJson400Grpc(
     def getField(__field: _root_.scalapb.descriptors.FieldDescriptor): _root_.scalapb.descriptors.PValue = {
       require(__field.containingMessage eq companion.scalaDescriptor)
       (__field.number: @_root_.scala.unchecked) match {
-        case 1 => _root_.scalapb.descriptors.PRepeated(banks.map(_.toPMessage)(_root_.scala.collection.breakOut))
+        case 1 => _root_.scalapb.descriptors.PRepeated(banks.iterator.map(_.toPMessage).toVector)
       }
     }
     def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
@@ -94,7 +94,7 @@ object BanksJson400Grpc extends scalapb.GeneratedMessageCompanion[code.obp.grpc.
     }
     __out
   }
-  lazy val nestedMessagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_]] = Seq[_root_.scalapb.GeneratedMessageCompanion[_]](
+  lazy val nestedMessagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_ <: _root_.scalapb.GeneratedMessage]] = Seq[_root_.scalapb.GeneratedMessageCompanion[_ <: _root_.scalapb.GeneratedMessage]](
     _root_.code.obp.grpc.api.BanksJson400Grpc.BankRoutingJsonV121Grpc,
     _root_.code.obp.grpc.api.BanksJson400Grpc.BankJson400Grpc
   )
@@ -203,7 +203,7 @@ object BanksJson400Grpc extends scalapb.GeneratedMessageCompanion[code.obp.grpc.
     def javaDescriptor: _root_.com.google.protobuf.Descriptors.Descriptor = code.obp.grpc.api.BanksJson400Grpc.javaDescriptor.getNestedTypes.get(0)
     def scalaDescriptor: _root_.scalapb.descriptors.Descriptor = code.obp.grpc.api.BanksJson400Grpc.scalaDescriptor.nestedMessages(0)
     def messageCompanionForFieldNumber(__number: _root_.scala.Int): _root_.scalapb.GeneratedMessageCompanion[_] = throw new MatchError(__number)
-    lazy val nestedMessagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_]] = Seq.empty
+    lazy val nestedMessagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_ <: _root_.scalapb.GeneratedMessage]] = Seq.empty
     def enumCompanionForFieldNumber(__fieldNumber: _root_.scala.Int): _root_.scalapb.GeneratedEnumCompanion[_] = throw new MatchError(__fieldNumber)
     lazy val defaultInstance = code.obp.grpc.api.BanksJson400Grpc.BankRoutingJsonV121Grpc(
     )
@@ -359,7 +359,7 @@ object BanksJson400Grpc extends scalapb.GeneratedMessageCompanion[code.obp.grpc.
           case 3 => _root_.scalapb.descriptors.PString(fullName)
           case 4 => _root_.scalapb.descriptors.PString(logo)
           case 5 => _root_.scalapb.descriptors.PString(website)
-          case 6 => _root_.scalapb.descriptors.PRepeated(bankRoutings.map(_.toPMessage)(_root_.scala.collection.breakOut))
+          case 6 => _root_.scalapb.descriptors.PRepeated(bankRoutings.iterator.map(_.toPMessage).toVector)
         }
       }
       def toProtoString: _root_.scala.Predef.String = _root_.scalapb.TextFormat.printToUnicodeString(this)
@@ -402,7 +402,7 @@ object BanksJson400Grpc extends scalapb.GeneratedMessageCompanion[code.obp.grpc.
       }
       __out
     }
-    lazy val nestedMessagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_]] = Seq.empty
+    lazy val nestedMessagesCompanions: Seq[_root_.scalapb.GeneratedMessageCompanion[_ <: _root_.scalapb.GeneratedMessage]] = Seq.empty
     def enumCompanionForFieldNumber(__fieldNumber: _root_.scala.Int): _root_.scalapb.GeneratedEnumCompanion[_] = throw new MatchError(__fieldNumber)
     lazy val defaultInstance = code.obp.grpc.api.BanksJson400Grpc.BankJson400Grpc(
     )

@@ -57,56 +57,63 @@ class JSONFactory1_4_0_LightTest extends FeatureSpec
     
     scenario("getJValueAndAllFields -input is the oneObject, basic no nested, no List inside") {
       val listFields: List[Field] = JSONFactory1_4_0.getAllFields(oneObject)
-      
-      val expectedListFieldsString = "List(private final java.lang.String code.api.v1_4_0.JSONFactory1_4_0_LightTest$ClassOne$1.string1, " +
-        "private final code.api.v1_4_0.JSONFactory1_4_0_LightTest code.api.v1_4_0.JSONFactory1_4_0_LightTest$ClassOne$1.$outer)"
 
-      listFields.toString shouldBe (expectedListFieldsString)
-//      println(listFields)
+      // By name, like the scenarios below. This one used to assert the whole rendering, which
+      // named $outer - the capture of the enclosing test instance that declaring ClassOne inside
+      // a scenario produces - and fixed the order two fields come back in, even though
+      // getAllFields builds its result through toSet and only keeps insertion order while the set
+      // is small. Neither is this method's contract.
+      listFields.map(_.getName) should contain("string1")
     }
     
     scenario("getJValueAndAllFields -input it the nestedClass") {
       val listFields: List[Field] = JSONFactory1_4_0.getAllFields(nestedClass)
-      val expectedListFieldsString = "List(" +
-        "public static final long scala.collection.immutable.Nil$.serialVersionUID, public static scala.collection.immutable.Nil$ scala.collection.immutable.Nil$.MODULE$, " +
-        "private final code.api.v1_4_0.JSONFactory1_4_0_LightTest code.api.v1_4_0.JSONFactory1_4_0_LightTest$ClassOne$1.$outer, " +
-        "private final code.api.v1_4_0.JSONFactory1_4_0_LightTest code.api.v1_4_0.JSONFactory1_4_0_LightTest$NestedClass$1.$outer, " +
-        "private final java.lang.String code.api.v1_4_0.JSONFactory1_4_0_LightTest$ClassOne$1.string1, " +
-        "private final scala.collection.immutable.List code.api.v1_4_0.JSONFactory1_4_0_LightTest$NestedClass$1.classes)"
-      listFields.toString shouldBe (expectedListFieldsString) 
-//      println(listFields)
+
+      // Asserted by the names the entity declares, not by an exact rendering of the whole list.
+      // The old assertion pinned the entire toString, ordering included, and with it the
+      // compiler and library internals that reflection also returns - $outer, Nil$.MODULE$,
+      // Nil$.serialVersionUID. None of that is what getAllFields is for, and all of it moves
+      // between Scala versions: 2.13's Nil adds an EmptyUnzip field and orders members
+      // differently, so the string could not survive the upgrade no matter what the method did.
+      val fieldNames = listFields.map(_.getName)
+      fieldNames should contain("classes")
+      fieldNames should contain("string1")
     }
 
-    scenario("getJValueAndAllFields - input is the List[nestedClass]") {
-      val listFields: List[Field] = JSONFactory1_4_0.getAllFields(List(oneObject))
-//    it should return all the fields in the List
-      val expectedListFieldsString = "List(private final java.lang.String code.api.v1_4_0.JSONFactory1_4_0_LightTest$ClassOne$1.string1, " +
-        "private final code.api.v1_4_0.JSONFactory1_4_0_LightTest code.api.v1_4_0.JSONFactory1_4_0_LightTest$ClassOne$1.$outer, " +
-        "public static scala.collection.immutable.Nil$ scala.collection.immutable.Nil$.MODULE$, " +
-        "public static final long scala.collection.immutable.Nil$.serialVersionUID)"
-      listFields.toString shouldBe (expectedListFieldsString)
-//      println(listFields)
+    scenario("getJValueAndAllFields -input is a List of entities") {
+      // Restored. It was removed on the theory that a List documented `head` and `tl` - which was
+      // wrong: getAllFields has always had a branch for a root-level collection, and a non-empty
+      // List is a `::`, a case class, so it is a Product at run time even though 2.13 drops
+      // List <: Product at the type level. What the old expected value did pin was the reflection
+      // noise around it, Nil$.MODULE$ and Nil$.serialVersionUID, so it comes back asserting the
+      // entity's own field names instead of a rendering.
+      val listFields: List[Field] = JSONFactory1_4_0.getAllFields(List(oneObject, oneObject))
+      val fieldNames = listFields.map(_.getName)
+
+      fieldNames should contain ("string1")
+      fieldNames should not contain "tl"
+      fieldNames should not contain "MODULE$"
     }
+
     
     scenario("getJValueAndAllFields -input it the complexNestedClass") {
       val listFields: List[Field] = JSONFactory1_4_0.getAllFields(complexNestedClass)
+      val fieldNames = listFields.map(_.getName)
+
+      // The assertions that named library and JDK internals - Nil$.MODULE$, None$, Some.value,
+      // $outer, java.lang.String.hash and its serialVersionUID - are gone. They pinned reflection
+      // output that is not this method's contract and that moves between Scala and JDK versions;
+      // one of them even asserted that String.hash appears immediately before the entity's own
+      // field. What remains checks the fields the entities actually declare.
       
-       listFields.toString contains ("private final java.lang.String code.api.v1_4_0.JSONFactory1_4_0_LightTest$ComplexNestedClass$1.complexNestedClassString, ") shouldBe  (true)
-       listFields.toString contains ("private final int code.api.v1_4_0.JSONFactory1_4_0_LightTest$ComplexNestedClass$1.complexNestedClassInt, ") shouldBe (true)
-       listFields.toString contains ("private final code.api.v1_4_0.JSONFactory1_4_0_LightTest code.api.v1_4_0.JSONFactory1_4_0_LightTest$ComplexNestedClass$1.$outer,") shouldBe (true)
-       listFields.toString contains ("public static final long scala.collection.immutable.Nil$.serialVersionUID, ") shouldBe (true)
-       listFields.toString contains ("private final scala.collection.immutable.List code.api.v1_4_0.JSONFactory1_4_0_LightTest$ComplexNestedClass$1.classes2, ") shouldBe (true)
-       listFields.toString contains ("private final java.lang.String code.api.v1_4_0.JSONFactory1_4_0_LightTest$ClassTwo$1.string2, ") shouldBe (true)
-       listFields.toString contains ("public static scala.collection.immutable.Nil$ scala.collection.immutable.Nil$.MODULE$, public static final long scala.None$.serialVersionUID, ") shouldBe (true)
-       listFields.toString contains ("private final code.api.v1_4_0.JSONFactory1_4_0_LightTest code.api.v1_4_0.JSONFactory1_4_0_LightTest$ClassOne$1.$outer, ") shouldBe (true)
-       listFields.toString contains ("private final scala.Option code.api.v1_4_0.JSONFactory1_4_0_LightTest$ComplexNestedClass$1.complexNestedClassOptionSomeInt") shouldBe (true)
-       listFields.toString contains ("public static scala.None$ scala.None$.MODULE$, private final java.lang.Object scala.Some.value, private final scala.collection.immutable.List code.api.v1_4_0.JSONFactory1_4_0_LightTest$ComplexNestedClass$1.classes1, ") shouldBe (true)
-       listFields.toString contains ("private final java.util.Date code.api.v1_4_0.JSONFactory1_4_0_LightTest$ComplexNestedClass$1.complexNestedClassDate, ") shouldBe (true)
-       listFields.toString contains ("private final scala.collection.immutable.List code.api.v1_4_0.JSONFactory1_4_0_LightTest$ClassTwo$1.strings2, ") shouldBe (true)
-       listFields.toString contains ("private int java.lang.String.hash, private final java.lang.String code.api.v1_4_0.JSONFactory1_4_0_LightTest$ClassOne$1.string1, ") shouldBe (true)
-       listFields.toString contains ("private static final long java.lang.String.serialVersionUID,") shouldBe (true)
-       listFields.toString contains ("private final code.api.v1_4_0.JSONFactory1_4_0_LightTest code.api.v1_4_0.JSONFactory1_4_0_LightTest$ClassTwo$1.$outer, ") shouldBe (true)
-       listFields.toString contains ("private final scala.Option code.api.v1_4_0.JSONFactory1_4_0_LightTest$ComplexNestedClass$1.complexNestedClassOptionNoneIn") shouldBe (true)
+       fieldNames should contain ("complexNestedClassString")
+       fieldNames should contain ("complexNestedClassInt")
+       fieldNames should contain ("classes2")
+       fieldNames should contain ("string2")
+       fieldNames should contain ("complexNestedClassOptionSomeInt")
+       fieldNames should contain ("complexNestedClassDate")
+       fieldNames should contain ("strings2")
+       fieldNames should contain ("complexNestedClassOptionNoneInt")
 //      println(listFields)
     }
 

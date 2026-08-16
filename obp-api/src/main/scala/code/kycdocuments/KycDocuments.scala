@@ -9,7 +9,7 @@ import net.liftweb.common.Box
 
 object KycDocuments extends SimpleInjector {
 
-  val kycDocumentProvider = new Inject(buildOne _) {}
+  val kycDocumentProvider = new Inject(() => buildOne) {}
 
   def buildOne: KycDocumentProvider = MappedKycDocumentsProvider
 

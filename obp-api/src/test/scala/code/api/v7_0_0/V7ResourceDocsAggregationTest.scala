@@ -8,7 +8,7 @@ import org.json4s.JsonAST.{JArray, JObject, JString}
 import com.openbankproject.commons.util.JsonAliases.parse
 import org.scalatest.Tag
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import com.openbankproject.commons.util.JsonAliases.RichJField
 
 /**

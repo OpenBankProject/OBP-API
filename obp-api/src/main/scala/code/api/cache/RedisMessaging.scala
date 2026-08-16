@@ -5,7 +5,7 @@ import code.api.util.APIUtil
 import code.util.Helper.MdcLoggable
 import redis.clients.jedis.Jedis
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 object RedisMessaging extends MdcLoggable {
 

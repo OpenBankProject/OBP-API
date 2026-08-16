@@ -769,19 +769,20 @@ object ReflectUtils {
   def toOthers[T: TypeTag](items: List[_]): List[T] = items.map(toOther[T](_))
 
   // the follow four currying function is for implicit usage, to convert trait type to commons case class
-  def toSibling[T, D <% T: TypeTag]: T => D = (t: T) => toOther[D](t)
+  // `D <% T` was view-bound syntax; it desugars to exactly the implicit parameter written out here.
+  def toSibling[T, D: TypeTag](implicit ev: D => T): T => D = (t: T) => toOther[D](t)
 
 
-  def toSiblings[T, D <% T: TypeTag]: List[T] => List[D] = (items: List[T]) => toOthers[D](items)
+  def toSiblings[T, D: TypeTag](implicit ev: D => T): List[T] => List[D] = (items: List[T]) => toOthers[D](items)
 
 
-  def toSiblingBox[T, D <% T: TypeTag]: Box[T] => Box[D] = (box: Box[T]) => box.map(toOther[D](_))
+  def toSiblingBox[T, D: TypeTag](implicit ev: D => T): Box[T] => Box[D] = (box: Box[T]) => box.map(toOther[D](_))
 
-  def toSiblingsBox[T, D <% T: TypeTag]: Box[List[T]] => Box[List[D]] = (boxItems: Box[List[T]]) => boxItems.map(toOthers[D](_))
+  def toSiblingsBox[T, D: TypeTag](implicit ev: D => T): Box[List[T]] => Box[List[D]] = (boxItems: Box[List[T]]) => boxItems.map(toOthers[D](_))
 
-  def toSiblingOption[T, D <% T: TypeTag]: Option[T] => Option[D] = (option: Option[T]) => option.map(toOther[D](_))
+  def toSiblingOption[T, D: TypeTag](implicit ev: D => T): Option[T] => Option[D] = (option: Option[T]) => option.map(toOther[D](_))
 
-  def toSiblingsOption[T, D <% T: TypeTag]: Option[List[T]] => Option[List[D]] = (optionItems: Option[List[T]]) => optionItems.map(toOthers[D](_))
+  def toSiblingsOption[T, D: TypeTag](implicit ev: D => T): Option[List[T]] => Option[List[D]] = (optionItems: Option[List[T]]) => optionItems.map(toOthers[D](_))
 
   /**
    * get the value by the field name, see the usage :

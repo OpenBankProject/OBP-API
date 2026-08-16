@@ -347,8 +347,8 @@ object JSONFactory1_4_0 extends MdcLoggable{
                              summary: String,
                              description: String, //This will be a `HTML` format.
                              description_markdown: String,// This will be a `MARK_DOWN` format.
-                             example_request_body: scala.Product,
-                             success_response_body: scala.Product,
+                             example_request_body: Any,
+                             success_response_body: Any,
                              error_response_bodies: List[String],
                              tags: List[String],
                              typed_request_body: JValue, //JSON Schema --> https://spacetelescope.github.io/understanding-json-schema/index.html
@@ -482,39 +482,52 @@ object JSONFactory1_4_0 extends MdcLoggable{
   }
   }
 
-  def getAllFields(jsonBody: scala.Product): List[Field] = {
-    def loopAllFields(rootFields: List[Field]) = {
+  def getAllFields(jsonBody: Any): List[Field] = {
+    def loopAllFields(product: scala.Product, rootFields: List[Field]) = {
       val fields = for {
-        field <- jsonBody.productIterator.toList if (field.isInstanceOf[scala.Product] && field != jsonBody)
+        field <- product.productIterator.toList if (field.isInstanceOf[scala.Product] && field != product)
         fields = getAllFields(field.asInstanceOf[scala.Product])
       } yield
         fields
       (rootFields ++ fields.flatten).toSet.toList
     }
 
-    //The root level is a list: eg: List[Users]
-    if(jsonBody.isInstanceOf[List[Any]] && jsonBody.productIterator.toList.nonEmpty){
-      val rootFields: List[Field] = jsonBody.productIterator.toSet.head.getClass.getDeclaredFields.toList
-      loopAllFields(rootFields)
-    }else {
-      jsonBody match {
-        case JvalueCaseClass(jValue) =>
-          val types = Nil
-          types
-        case _ =>
-          val rootFields: List[Field] = jsonBody.getClass().getDeclaredFields().toSet.toList
-          loopAllFields(rootFields)
-      }
+    jsonBody match {
+      // A root-level collection - eg List[Users] - documents the fields of what it holds, not of
+      // the collection. Any, rather than scala.Product, because 2.13's List is not a Product: on
+      // 2.12 this arrived through productIterator, and `head` was picked out of a Set of two, so
+      // the tail could win the coin toss and the fields came out wrong.
+      //
+      // Every element is read, not just the head: a heterogeneous list would otherwise document
+      // only what its first entry declares. That does mean the collection is forced, so a lazy or
+      // infinite one would not survive here - reading every element is the point of the branch,
+      // and an example body is a literal, so there is nothing to be lazy about.
+      case coll: Iterable[_] =>
+        // flatMap over the iterator rather than folding with ++, which rebuilt the accumulator per
+        // element. distinct, not toSet.toList: it is equally linear and keeps first-seen order.
+        coll.iterator.flatMap(getAllFields).toList.distinct
+      case JvalueCaseClass(_) => Nil
+      case product: scala.Product =>
+        loopAllFields(product, product.getClass().getDeclaredFields().toSet.toList)
+      // Nil, deliberately. Rejecting an undescribable value was tried and is wrong: this method
+      // recurses, and it legitimately reaches scalars - the elements of a List[String] field, a
+      // null - which simply have no fields to report. Throwing here took out five existing suites.
+      //
+      // The cost is real though. The parameter is Any so that a list can be documented, and that
+      // gives up the compile-time check the old scala.Product bound applied at every ResourceDoc,
+      // so a body of the wrong type now yields an empty field table rather than a build error.
+      // Catching that belongs at the ResourceDoc call site, not in a recursive field walker.
+      case _ => Nil
     }
   }
   
-  def checkFieldOption(jsonBody: scala.Product, rootFields: List[Field]) = {
+  def checkFieldOption(jsonBody: Any, rootFields: List[Field]) = {
     val types = rootFields.map(f => (f.getName(), f.getType().getCanonicalName().contains("Option")))
     (decompose(jsonBody), types)
   }
   
     
-  def prepareJsonFieldDescription(jsonBody: scala.Product, jsonType: String, jsonRequestBodyFieldsI18n: String, jsonResponseBodyFieldsI18n: String): String = {
+  def prepareJsonFieldDescription(jsonBody: Any, jsonType: String, jsonRequestBodyFieldsI18n: String, jsonResponseBodyFieldsI18n: String): String = {
     val allFields = getAllFields(jsonBody)
     val (jsonBodyJValue: json.JValue, allFieldsAndOptionStatus) = checkFieldOption(jsonBody, allFields)
     // Group by is mandatory criteria and sort those 2 groups by name of the field
@@ -742,6 +755,36 @@ object JSONFactory1_4_0 extends MdcLoggable{
     * @return
     *         the OBP type format. 
     */
+  /**
+   * The schema for one element of a bare collection.
+   *
+   * translateEntity only knows how to describe an object - it reflects over constructor arguments -
+   * so handing it a scalar answers {"properties":{},"type":"object"} and the element's real type is
+   * lost. The scalar vocabulary lives in the per-field loop inside translateEntity, keyed by field
+   * name, and cannot be reached from a value alone; these cases mirror it for the kinds a
+   * collection element can be.
+   *
+   * Enumerations are the reason this exists. 2.12 reflected over the cons cell, which made `head` a
+   * field, and a field holding an EnumValue goes through the case that emits {"type":"string",
+   * "enum":[...]}. Describing the list as an array of its head has to keep those members - twelve
+   * published request bodies across createAuthenticationTypeValidation and
+   * updateAuthenticationTypeValidation are lists of them.
+   *
+   * Anything not named here is an object and goes back through translateEntity, as before.
+   */
+  private def elementSchema(element: Any): String = element match {
+    case e: EnumValue =>
+      val enumValues = OBPEnumeration.getValuesByInstance(e).map(it => s""""$it"""").mkString("[", ", ", "]")
+      s"""{"type":"string","enum": $enumValues}"""
+    case _: String | _: JString            => """{"type":"string"}"""
+    case _: Boolean | _: JBool             => """{"type":"boolean"}"""
+    case _: Int | _: Long | _: JInt        => """{"type":"integer"}"""
+    case _: Double | _: Float | _: JDouble => """{"type":"number"}"""
+    case _: BigDecimal                     => """{"type":"string"}"""
+    case _: java.util.Date                 => """{"type": "string","format": "date-time"}"""
+    case other                             => translateEntity(other, false)
+  }
+
   def translateEntity(entity: Any, isArray:Boolean): String = {
     val extractedEntity = entity match {
       case Full(v) => v
@@ -774,6 +817,16 @@ object JSONFactory1_4_0 extends MdcLoggable{
       case JArray(List()) =>
         // Empty array
         return """{"type": "array"}"""
+      // A bare Scala collection is the same shape as a JArray and gets the same answer: the element
+      // carries the schema. It is not reflected over - that yields head and tail rather than API
+      // fields, and on 2.13 it does not terminate, because Nil holds a static EmptyUnzip of (Nil,
+      // Nil) and following it returns to Nil for ever. Reading the head, or nothing when there is
+      // no head, touches neither. Falling through instead published "properties": {} for the three
+      // endpoints that return a bare List, which is less than 2.12 said even while leaking head/tl.
+      // Map is excluded deliberately: it is an Iterable but it is not a JSON array.
+      case coll: Iterable[_] if !coll.isInstanceOf[scala.collection.Map[_, _]] =>
+        return if (coll.isEmpty) """{"type": "array"}"""
+               else """{"type": "array", "items": """ + elementSchema(coll.head) + "}"
       case _ => // Continue with normal processing
     }
 
@@ -782,6 +835,10 @@ object JSONFactory1_4_0 extends MdcLoggable{
       case ListResult(name, results) => Map((name, results))
       case JObject(jFields) => jFields.map(it => (it.name, it.value)).toMap
       case _: JArray => Map.empty // Don't extract fields from JArray - it has internal "arr" field
+      // Only a Map reaches this now - every other collection returned above as an array. A Map is
+      // not reflected over for the same reason a List is not: what reflection yields is the
+      // collection's own machinery, not API fields.
+      case _: Iterable[_] => Map.empty
       case _ => ReflectUtils.getFieldValues(extractedEntity.asInstanceOf[AnyRef])()
     }
 
@@ -903,7 +960,7 @@ object JSONFactory1_4_0 extends MdcLoggable{
     definition
   }
   
-  def createTypedBody(exampleRequestBody: scala.Product): JValue = {
+  def createTypedBody(exampleRequestBody: Any): JValue = {
     def res = translateEntity(exampleRequestBody,false)
     exampleRequestBody match {
       case EmptyBody => JNothing
