@@ -162,6 +162,7 @@ trait ServerSetup extends AnyFeatureSpec with SendServerRequests
     DoobieUtil.runUpdate(sql"DELETE FROM mappedtag".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM mappedwheretag".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM mappedtransactionimage".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM producttag".update.run)
   }
 
   val server = TestServer

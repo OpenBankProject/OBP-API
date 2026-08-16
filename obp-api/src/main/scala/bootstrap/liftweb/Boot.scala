@@ -110,7 +110,7 @@ import code.productAttributeattribute.MappedProductAttribute
 import code.productcollection.MappedProductCollection
 import code.productcollectionitem.MappedProductCollectionItem
 import code.productfee.ProductFee
-import code.products.{MappedProduct, ProductTag}
+import code.products.MappedProduct
 import code.ratelimiting.RateLimiting
 import code.regulatedentities.MappedRegulatedEntity
 import code.regulatedentities.attribute.RegulatedEntityAttribute
@@ -996,7 +996,6 @@ object ToSchemify extends MdcLoggable {
     DynamicMessageDoc,
     EndpointTag,
     ProductFee,
-    ProductTag,
     ViewPermission,
     UserInitAction,
     CounterpartyLimit,
