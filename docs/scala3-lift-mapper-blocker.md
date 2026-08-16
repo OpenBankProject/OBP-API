@@ -58,19 +58,47 @@ That is a lead, not a proof — the model above is five lines and Lift's real hi
 it does not establish that the only relevant difference is the pickling format. It is recorded
 because it points at a cheap, decisive next experiment.
 
-## The next experiment, and what it would settle
+## The cross-build, measured
 
-**Cross-build `lift-persistence` itself for Scala 3 and compile one entity against the `_3`
-artifact.** OBP owns that fork, so this is a change we can make. If it compiles, the blocker
-dissolves and no OBP source has to change. If it does not, the errors are the real cost estimate.
-Either way it is a bounded assessment — clone, set `scalaVersion`, compile, count — and it should
-be run before anyone commits to a larger direction.
+That experiment has now been run: the fork's 63 main sources were compiled with Scala 3.3.8
+against the same dependency set, in a scratch clone (no repository was modified).
+
+**It does not crash.** Compiling Lift's own sources produces ordinary migration errors, not the
+`assertion failure` — so there is no dotty bug to report and nothing to wait for upstream. The
+work is a normal Scala 3 migration of a legacy library.
+
+| | errors |
+|---|---|
+| plain Scala 3 | 162 |
+| `-source:3.0-migration` | 95 |
+
+The 67 that migration mode absorbs are procedure syntax (`def f() { ... }`, 37 sites) and related
+Scala-2-only syntax. What remains splits into one mechanical pile and one real design question:
+
+* **42 cyclic errors — mechanical.** All in the mapper core: `MetaMapper` 13, `MappedForeignKey` 8,
+  `Mapper` 6, `OneToMany` 5, `ManyToMany` 5, `ProtoUser` 3, `ProtoTag` 2. `-explain-cyclic` gives
+  the same reason for each: *"required to type the right hand side of method `apply` since no
+  explicit type was given"*. The fix is the one the message names — add an explicit result type.
+  One line per site.
+* **18 `TypeTag` errors — a design change, and not a new one.** Lift's own fields carry
+  scala-reflect `TypeTag`s (`MappedInt.scala:237`, `def manifest: TypeTag[Int] = typeTag[Int]`;
+  `MappedEnum` takes one implicitly). Scala 3 has no scala-reflect, so these cannot be annotated
+  away — the signature has to change, and it is part of `MappedField`'s public API, so the change
+  reaches consumers.
+
+  This is the **same root cause as the plan's F-1 risk item** (79 `No TypeTag` errors in
+  `SwaggerJSONFactory`). They are one problem in two places, not two problems, and whoever takes
+  F-1 on should take this with it.
+* ~35 assorted not-found / type errors, not yet triaged.
+
+So the cross-build is feasible and the cost is now measured rather than guessed. The remaining
+open question is not *whether* lift-persistence can be Scala 3 — it is what replaces `TypeTag` in
+`MappedField`'s API, which is a decision with a consumer-visible blast radius.
 
 Note what this does to the migration plan's architecture. The plan has lift-mapper staying
-`_2.13` forever and being consumed via `for3Use2_13`. If the pickling format is what breaks this,
-that specific decision is what has to change, and the four routes previously on the table
-(patch the fork's declarations / carve the entity layer into a 2.13 module / do the Doobie
-migration first / report upstream) are all more expensive than trying the cross-build first.
+`_2.13` forever and being consumed via `for3Use2_13`. That specific decision is what the evidence
+now argues against: consuming the 2.13 artifact is what produces the uncompilable assertion, while
+building the same source as `_3` produces a finite, ordinary error list.
 
 ## Reproducing
 
