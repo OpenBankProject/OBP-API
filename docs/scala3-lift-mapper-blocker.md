@@ -118,6 +118,40 @@ from the blocker. It converts an unhandled assertion into 42 legible diagnostics
 having — the failure is now describable — but the underlying construct is what Scala 3 rejects
 either way.
 
+## Consuming entities from Scala 3 works — only defining them fails
+
+Every crash above comes from *defining* a class that extends the keyed hierarchy. Using an
+already-compiled one is a different question, and it was tested separately: a Scala 3 source file
+compiled against obp-api's own 2.13 `target/classes`, reading the meta object, calling a query
+method and touching a field —
+
+```scala
+import code.model.dataAccess.ResourceUser
+object UseEntity {
+  def count(): Long = ResourceUser.count
+  def emailOf(u: ResourceUser): String = u.email.get
+}
+```
+
+— compiles cleanly: exit 0, zero errors, zero assertions, classfiles produced.
+
+**This makes "keep the entity layer on 2.13" a technically viable route**, not a hypothesis. The
+Scala 3 side can call into the entities; it just cannot declare them.
+
+One caveat, which is a warning rather than an error and must not be read as a clean bill:
+
+```
+An existential type that came from a Scala-2 classfile for trait MetaMapper
+cannot be mapped accurately to a Scala-3 equivalent.
+original type: T forSome type T   reduces to: T   type used instead: Any
+This choice can cause follow-on type errors or hide type errors.
+```
+
+So `MetaMapper`-typed values degrade to `Any` across the boundary. Any API that hands a Scala 3
+caller something typed through `MetaMapper` loses its static type there. That is a design
+constraint on where the module boundary is drawn, and it should be measured on the real surface
+before the route is committed to — this test exercised one entity, not the whole entity layer.
+
 ### What is NOT reducible (correcting the line above)
 
 An earlier revision of this file said the 9 declaration-site errors make "a well-formed upstream
