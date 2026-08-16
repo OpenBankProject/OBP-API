@@ -14,6 +14,8 @@ import com.openbankproject.commons.model._
 import net.liftweb.common.{Failure, Full, ParamFailure}
 import net.liftweb.mapper.MetaMapper
 import net.liftweb.util.Helpers._
+import code.api.util.DoobieUtil
+import doobie.implicits._
 
 
 trait TestConnectorSetupWithStandardPermissions extends TestConnectorSetup {
@@ -157,5 +159,10 @@ trait TestConnectorSetupWithStandardPermissions extends TestConnectorSetup {
 
     //empty the relational db tables after each test
     ToSchemify.models.filterNot(exclusion).foreach(_.bulkDelete_!!())
+    // Tables whose Lift entity has been removed are no longer in ToSchemify.models, so the
+    // loop above does not clear them. Each such table needs its own explicit delete here.
+    // AtmTableResetIsolationTest fails if this is forgotten.
+    DoobieUtil.runUpdate(sql"DELETE FROM mappedatm".update.run)
+
   }
 }

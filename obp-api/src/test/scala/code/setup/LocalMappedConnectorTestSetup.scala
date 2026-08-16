@@ -22,6 +22,8 @@ import org.iban4j
 
 import java.util.Date
 import scala.util.Random
+import code.api.util.DoobieUtil
+import doobie.implicits._
 
 trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermissions with MdcLoggable{
   //TODO: replace all these helpers with connector agnostic methods like createRandomBank
@@ -213,6 +215,11 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
 
     //empty the relational db tables after each test
     ToSchemify.models.filterNot(exclusion).foreach(_.bulkDelete_!!())
+    // Tables whose Lift entity has been removed are no longer in ToSchemify.models, so the
+    // loop above does not clear them. Each such table needs its own explicit delete here.
+    // AtmTableResetIsolationTest fails if this is forgotten.
+    DoobieUtil.runUpdate(sql"DELETE FROM mappedatm".update.run)
+
     
     // Delete only THIS shard's namespaced Redis keys. Each parallel shard uses a distinct
     // api_instance_id (OBP_API_INSTANCE_ID) -> distinct getGlobalCacheNamespacePrefix, so a

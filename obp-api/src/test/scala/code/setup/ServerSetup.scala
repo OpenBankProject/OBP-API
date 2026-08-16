@@ -44,6 +44,8 @@ import net.liftweb.mapper.MetaMapper
 import org.scalatest._
 import org.scalatest.featurespec.AnyFeatureSpec
 import org.scalatest.matchers.should.Matchers
+import code.api.util.DoobieUtil
+import doobie.implicits._
 
 trait ServerSetup extends AnyFeatureSpec with SendServerRequests
   with BeforeAndAfterEach with GivenWhenThen
@@ -150,6 +152,11 @@ trait ServerSetup extends AnyFeatureSpec with SendServerRequests
           logger.warn(s"[TEST ISOLATION] Failed to clear table for ${model.getClass.getSimpleName}: ${e.getMessage}")
       }
     }
+
+    // Tables whose Lift entity has been removed are no longer in ToSchemify.models, so the
+    // loop above does not clear them. Each such table needs its own explicit delete here.
+    // AtmTableResetIsolationTest fails if this is forgotten.
+    DoobieUtil.runUpdate(sql"DELETE FROM mappedatm".update.run)
   }
 
   val server = TestServer

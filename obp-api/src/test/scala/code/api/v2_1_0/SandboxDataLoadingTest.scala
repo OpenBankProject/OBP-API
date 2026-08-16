@@ -71,6 +71,8 @@ import code.model.dataAccess._
 import scala.util.Random
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+import code.api.util.DoobieUtil
+import doobie.implicits._
 
 /*
 This tests:
@@ -104,6 +106,11 @@ class SandboxDataLoadingTest extends AnyFlatSpec with SendServerRequests with Ma
     }
     //drop database tables before
     ToSchemify.models.filterNot(exclusion).foreach(_.bulkDelete_!!())
+    // Tables whose Lift entity has been removed are no longer in ToSchemify.models, so the
+    // loop above does not clear them. Each such table needs its own explicit delete here.
+    // AtmTableResetIsolationTest fails if this is forgotten.
+    DoobieUtil.runUpdate(sql"DELETE FROM mappedatm".update.run)
+
     //we need to delete the test uses manully here.
     AuthUser.bulkDelete_!!(By(AuthUser.username, user1Import.user_name))
     AuthUser.bulkDelete_!!(By(AuthUser.username, user2Import.user_name))
