@@ -75,25 +75,48 @@ work is a normal Scala 3 migration of a legacy library.
 The 67 that migration mode absorbs are procedure syntax (`def f() { ... }`, 37 sites) and related
 Scala-2-only syntax. What remains splits into one mechanical pile and one real design question:
 
-* **42 cyclic errors — mechanical.** All in the mapper core: `MetaMapper` 13, `MappedForeignKey` 8,
-  `Mapper` 6, `OneToMany` 5, `ManyToMany` 5, `ProtoUser` 3, `ProtoTag` 2. `-explain-cyclic` gives
-  the same reason for each: *"required to type the right hand side of method `apply` since no
-  explicit type was given"*. The fix is the one the message names — add an explicit result type.
-  One line per site.
-* **18 `TypeTag` errors — a design change, and not a new one.** Lift's own fields carry
-  scala-reflect `TypeTag`s (`MappedInt.scala:237`, `def manifest: TypeTag[Int] = typeTag[Int]`;
-  `MappedEnum` takes one implicitly). Scala 3 has no scala-reflect, so these cannot be annotated
-  away — the signature has to change, and it is part of `MappedField`'s public API, so the change
-  reaches consumers.
+* **18 `TypeTag` errors — mechanical, and already resolved.** Lift's fields carry scala-reflect
+  `TypeTag`s (`MappedInt.scala:237`, `MappedEnum`'s implicit parameter), which Scala 3 does not
+  have. This looked like an API-level design change, but the tag is only ever *stored* — it feeds
+  `SourceFieldMetadataRep` and is never introspected, and OBP-API references neither `.manifest`
+  nor `SourceInfo` at all (it served a lift-webkit-era feature that is gone). Swapping `TypeTag`
+  → `ClassTag` and `typeTag` → `classTag` took the count **95 → 79** and cleared 16 of the 18.
 
-  This is the **same root cause as the plan's F-1 risk item** (79 `No TypeTag` errors in
-  `SwaggerJSONFactory`). They are one problem in two places, not two problems, and whoever takes
-  F-1 on should take this with it.
+  Note this is the **same root cause as the plan's F-1 risk item** (79 `No TypeTag` errors in
+  `SwaggerJSONFactory`) — one problem in two places. F-1 may be similarly mechanical; it has not
+  been checked.
+
+* **42 cyclic errors — NOT mechanical.** `-explain-cyclic` reports *"required to type the right
+  hand side of method `apply` since no explicit type was given"*, which reads like "add a result
+  type". **That was tested and it is wrong**: annotating all four `object By` overloads with
+  explicit `QueryParam[O]` result types changed nothing — 79 errors and 42 cyclic before and
+  after, the same two lines still reported.
+
+  What the 42 actually share: **33 are `primaryKeyField` accesses through an F-bounded keyed
+  type**, and the remaining **9 are the keyed trait declarations themselves** —
+
+  ```scala
+  trait KeyedMetaMapper[Type, A <: KeyedMapper[Type, A]] extends MetaMapper[A] with KeyedMapper[Type, A]
+  trait LongKeyedMetaMapper[A <: LongKeyedMapper[A]] extends KeyedMetaMapper[Long, A] { self: A => }
+  ```
+
+  A trait that is simultaneously the *meta* and the *keyed mapper* of its own F-bounded parameter,
+  under a self-type. That is the same construct as the assertion failure — so the crash when
+  consuming the 2.13 artifact and the cyclic errors when compiling from source are **one problem
+  wearing two faces**, not two problems, and cross-building does not sidestep it.
+
 * ~35 assorted not-found / type errors, not yet triaged.
 
-So the cross-build is feasible and the cost is now measured rather than guessed. The remaining
-open question is not *whether* lift-persistence can be Scala 3 — it is what replaces `TypeTag` in
-`MappedField`'s API, which is a decision with a consumer-visible blast radius.
+So the cost is measured rather than guessed, and one of the two piles turned out to be free. But
+the conclusion of the previous section has to be corrected: cross-building is **not** an escape
+from the blocker. It converts an unhandled assertion into 42 legible diagnostics, which is worth
+having — the failure is now describable — but the underlying construct is what Scala 3 rejects
+either way.
+
+Because the 9 declaration-site errors are in Lift's *own* declarations rather than in how OBP uses
+them, this is now a well-formed upstream report: a minimal case where dotty fails on an F-bounded
+mutually-recursive trait pair with a self-type. That is worth filing regardless of which route
+OBP takes, and the repro in this file is already small enough to file as-is.
 
 Note what this does to the migration plan's architecture. The plan has lift-mapper staying
 `_2.13` forever and being consumed via `for3Use2_13`. That specific decision is what the evidence
