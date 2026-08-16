@@ -752,6 +752,36 @@ object JSONFactory1_4_0 extends MdcLoggable{
     * @return
     *         the OBP type format. 
     */
+  /**
+   * The schema for one element of a bare collection.
+   *
+   * translateEntity only knows how to describe an object - it reflects over constructor arguments -
+   * so handing it a scalar answers {"properties":{},"type":"object"} and the element's real type is
+   * lost. The scalar vocabulary lives in the per-field loop inside translateEntity, keyed by field
+   * name, and cannot be reached from a value alone; these cases mirror it for the kinds a
+   * collection element can be.
+   *
+   * Enumerations are the reason this exists. 2.12 reflected over the cons cell, which made `head` a
+   * field, and a field holding an EnumValue goes through the case that emits {"type":"string",
+   * "enum":[...]}. Describing the list as an array of its head has to keep those members - twelve
+   * published request bodies across createAuthenticationTypeValidation and
+   * updateAuthenticationTypeValidation are lists of them.
+   *
+   * Anything not named here is an object and goes back through translateEntity, as before.
+   */
+  private def elementSchema(element: Any): String = element match {
+    case e: EnumValue =>
+      val enumValues = OBPEnumeration.getValuesByInstance(e).map(it => s""""$it"""").mkString("[", ", ", "]")
+      s"""{"type":"string","enum": $enumValues}"""
+    case _: String | _: JString            => """{"type":"string"}"""
+    case _: Boolean | _: JBool             => """{"type":"boolean"}"""
+    case _: Int | _: Long | _: JInt        => """{"type":"integer"}"""
+    case _: Double | _: Float | _: JDouble => """{"type":"number"}"""
+    case _: BigDecimal                     => """{"type":"string"}"""
+    case _: java.util.Date                 => """{"type": "string","format": "date-time"}"""
+    case other                             => translateEntity(other, false)
+  }
+
   def translateEntity(entity: Any, isArray:Boolean): String = {
     val extractedEntity = entity match {
       case Full(v) => v
@@ -793,7 +823,7 @@ object JSONFactory1_4_0 extends MdcLoggable{
       // Map is excluded deliberately: it is an Iterable but it is not a JSON array.
       case coll: Iterable[_] if !coll.isInstanceOf[scala.collection.Map[_, _]] =>
         return if (coll.isEmpty) """{"type": "array"}"""
-               else """{"type": "array", "items": """ + translateEntity(coll.head, false) + "}"
+               else """{"type": "array", "items": """ + elementSchema(coll.head) + "}"
       case _ => // Continue with normal processing
     }
 
