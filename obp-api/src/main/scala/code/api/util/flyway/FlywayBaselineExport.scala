@@ -8,6 +8,14 @@ import net.liftweb.db.{DB, StandardDBVendor}
 import net.liftweb.util.ConnectionIdentifier
 
 /**
+ * WARNING: this writes V001__initial_schema.sql covering EVERY Schemifier-owned table. During the
+ * per-table migration that file must not be left in db/migration - it collides with the real
+ * V001 (Flyway: "Found more than one migration with version 001") and, if kept, would pre-create
+ * every table from a snapshot. Run it, take the one table you need, then delete the file from
+ * BOTH src/main/resources and target/classes: a stale copy on the runtime classpath fails the
+ * same way even after the source is gone.
+ *
+
  * One-shot tool that exports the DDL Lift's Schemifier would execute against an
  * empty database, as a Flyway baseline migration (V001__initial_schema.sql).
  *
