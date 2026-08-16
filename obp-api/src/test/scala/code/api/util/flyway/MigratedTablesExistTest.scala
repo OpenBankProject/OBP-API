@@ -44,7 +44,8 @@ class MigratedTablesExistTest extends ServerSetup {
     "userlocks",
     "connectormethod",
     "apicollectionendpoint",
-    "featuredapicollection"
+    "featuredapicollection",
+    "consentauthcontext"
   )
 
   /**
@@ -75,7 +76,8 @@ class MigratedTablesExistTest extends ServerSetup {
     "APICOLLECTIONENDPOINT" -> "APICOLLECTIONENDPOINT_APICOLLECTIONENDPOINTID",
     "APICOLLECTIONENDPOINT" -> "APICOLLECTIONENDPOINT_APICOLLECTIONID_OPERATIONID",
     "FEATUREDAPICOLLECTION" -> "FEATUREDAPICOLLECTION_FEATUREDAPICOLLECTIONID",
-    "FEATUREDAPICOLLECTION" -> "FEATUREDAPICOLLECTION_APICOLLECTIONID"
+    "FEATUREDAPICOLLECTION" -> "FEATUREDAPICOLLECTION_APICOLLECTIONID",
+    "CONSENTAUTHCONTEXT" -> "CONSENTAUTHCONTEXT_CONSENTID_KEY_C_CREATEDAT"
   )
 
   Feature("tables owned by Flyway rather than Schemifier") {

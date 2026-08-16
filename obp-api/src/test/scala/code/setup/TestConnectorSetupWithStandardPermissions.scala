@@ -179,6 +179,7 @@ trait TestConnectorSetupWithStandardPermissions extends TestConnectorSetup {
     DoobieUtil.runUpdate(sql"DELETE FROM connectormethod".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM apicollectionendpoint".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM featuredapicollection".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM consentauthcontext".update.run)
 
   }
 }
