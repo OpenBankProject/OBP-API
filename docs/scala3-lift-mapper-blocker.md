@@ -1,5 +1,22 @@
 # The Lift Mapper blocker for the Scala 3 flip
 
+> **Decided (2026-08-16): Doobie first. The Scala 3 flip waits for it.**
+>
+> Of the routes weighed below, the one taken is to remove Lift Mapper rather than to work around
+> it — no 2.13 entity module, no patch to the fork. The flip is not abandoned, it is sequenced
+> after the persistence migration, because that migration deletes the blocker instead of
+> containing it.
+>
+> That work already exists and is underway in the `OBP-API-I` working copy on branch
+> `lift-mapper-remove` (ATMs is the first table fully off Lift; there is also a
+> `feature/doobie-flyway-phase1` remote). This document's job from here is to stop anyone
+> re-litigating the blocker: the four disproved routes below are disproved, and the flip becomes
+> possible when entities no longer extend `KeyedMapper`.
+>
+> Everything this branch delivered — scalatest 3.2.20, the scalacache removal, the dynamic
+> compiler seam, the `-Xsource:3` debt, the avro CVE actually leaving the runtime classpath — is
+> independent of that sequencing and ships on its own.
+
 The Scala 3 flip of `obp-api` stops at one thing: Scala 3 cannot compile a class that extends
 Lift's `KeyedMapper` hierarchy, which is roughly 140 entity classes. The compiler does not
 report a type error in our code; it fails an internal consistency check:
