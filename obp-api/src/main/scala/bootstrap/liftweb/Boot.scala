@@ -64,7 +64,7 @@ import code.branches.MappedBranch
 import code.cardattribute.MappedCardAttribute
 import code.cards.{MappedPhysicalCard, PinReset}
 import code.connectormethod.ConnectorMethod
-import code.consent.{ConsentItem, ConsentRequest, MappedConsent}
+import code.consent.{ConsentRequest, MappedConsent}
 import code.consumer.Consumers
 import code.model.Consumer
 import code.context.{MappedConsentAuthContext, MappedUserAuthContext, MappedUserAuthContextUpdate}
@@ -969,7 +969,6 @@ object ToSchemify extends MdcLoggable {
     MappedCustomerIdMapping,
     MappedProductAttribute,
     MappedConsent,
-    ConsentItem,
     ConsentRequest,
     MigrationScriptLog,
     MethodRouting,
