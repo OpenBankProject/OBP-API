@@ -46,7 +46,8 @@ class MigratedTablesExistTest extends ServerSetup {
     "apicollectionendpoint",
     "featuredapicollection",
     "consentauthcontext",
-    "mappeduserauthcontext"
+    "mappeduserauthcontext",
+    "userinitaction"
   )
 
   /**
@@ -79,7 +80,8 @@ class MigratedTablesExistTest extends ServerSetup {
     "FEATUREDAPICOLLECTION" -> "FEATUREDAPICOLLECTION_FEATUREDAPICOLLECTIONID",
     "FEATUREDAPICOLLECTION" -> "FEATUREDAPICOLLECTION_APICOLLECTIONID",
     "CONSENTAUTHCONTEXT" -> "CONSENTAUTHCONTEXT_CONSENTID_KEY_C_CREATEDAT",
-    "MAPPEDUSERAUTHCONTEXT" -> "MAPPEDUSERAUTHCONTEXT_MUSERID_MKEY_CREATEDAT"
+    "MAPPEDUSERAUTHCONTEXT" -> "MAPPEDUSERAUTHCONTEXT_MUSERID_MKEY_CREATEDAT",
+    "USERINITACTION" -> "USERINITACTION_USERID_ACTIONNAME_ACTIONVALUE"
   )
 
   Feature("tables owned by Flyway rather than Schemifier") {

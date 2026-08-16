@@ -980,7 +980,6 @@ object ToSchemify extends MdcLoggable {
     EndpointTag,
     ProductFee,
     ViewPermission,
-    UserInitAction,
     CounterpartyLimit,
     AccountAccess,
     ViewDefinition,
