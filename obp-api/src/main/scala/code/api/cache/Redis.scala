@@ -355,7 +355,14 @@ object Redis extends MdcLoggable {
   private def cachePut(key: String, value: Any, ttl: Duration): Unit =
     try {
       val keyBytes = key.getBytes(utf8)
-      if (ttl.isFinite) withJedis(_.setex(keyBytes, math.max(1L, ttl.toSeconds).toInt, encode(value)))
+      // psetex, not setex: its unit is milliseconds, so a sub-second TTL expires when it says
+      // it does. setex takes whole seconds, and rounding up to a one-second floor would make
+      // every TTL below a second longer than asked for - a behaviour change from scalacache,
+      // which stored with millisecond precision. No current caller passes a sub-second TTL
+      // (the connector.cache.ttl.seconds.* props are whole seconds, and a zero TTL never
+      // reaches here - Caching forwards it uncached), so this is about not leaving a trap for
+      // the caller who does. RedisTtlPrecisionTest pins it.
+      if (ttl.isFinite) withJedis(_.psetex(keyBytes, math.max(1L, ttl.toMillis), encode(value)))
       else withJedis(_.set(keyBytes, encode(value)))
       ()
     } catch {
