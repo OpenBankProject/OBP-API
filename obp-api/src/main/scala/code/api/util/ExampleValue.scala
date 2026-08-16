@@ -7,7 +7,6 @@ import code.api.Constant._
 import code.api.util.APIUtil.{DateWithMs, DateWithMsExampleString, formatDate, oneYearAgoDate, parseDate}
 import code.api.util.ErrorMessages.{InvalidJsonFormat, UnknownError, UserHasMissingRoles, AuthenticatedUserIsRequired}
 import code.api.util.Glossary.{glossaryItems, makeGlossaryItem}
-import code.apicollection.ApiCollection
 import code.dynamicEntity._
 import com.openbankproject.commons.model.CardAction
 import com.openbankproject.commons.model.enums.{CustomerAttributeType, DynamicEntityFieldType, TransactionRequestStatus, UserInvitationPurpose}
@@ -2428,7 +2427,7 @@ object ExampleValue {
   lazy val indexExample = ConnectorField(NoExampleProvided,NoDescriptionProvided)
   glossaryItems += makeGlossaryItem("index", indexExample)
 
-  lazy val descriptionExample = ConnectorField(s"Description of the object. Maximum length is ${ApiCollection.Description.maxLen}. It can be any characters here.","The human readable description here.")
+  lazy val descriptionExample = ConnectorField(s"Description of the object. Maximum length is 2000. It can be any characters here.","The human readable description here.")
   glossaryItems += makeGlossaryItem("description", descriptionExample)
 
   lazy val paymentServiceExample = ConnectorField("payments", s"The berlin group payment services, eg: payments, periodic-payments and bulk-payments. ")

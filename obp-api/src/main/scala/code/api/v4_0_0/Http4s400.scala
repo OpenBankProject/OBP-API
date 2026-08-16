@@ -5098,7 +5098,7 @@ object Http4s400 {
         EndpointHelpers.withUserAndBodyCreated[PostApiCollectionJson400, Any](req) { (user, postJson, cc) =>
           for {
             apiCollection <- Future {
-              code.apicollection.MappedApiCollectionsProvider
+              code.apicollection.DoobieApiCollectionsProvider
                 .getApiCollectionByUserIdAndCollectionName(user.userId, postJson.api_collection_name)
             }
             _ <- code.util.Helper.booleanToFuture(

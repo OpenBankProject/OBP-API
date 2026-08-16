@@ -11,7 +11,7 @@ import code.api.dynamic.entity.helper.{DynamicEntityHelper, DynamicEntityInfo}
 import code.api.util.APIUtil._
 import code.api.util.ErrorMessages.{InsufficientAuthorisationToCreateTransactionRequest, _}
 import code.api.{APIFailureNewStyle, Constant, JsonResponseException}
-import code.apicollection.{ApiCollectionTrait, MappedApiCollectionsProvider}
+import code.apicollection.{ApiCollectionTrait, DoobieApiCollectionsProvider}
 import code.apiproduct.{ApiProductTrait, MappedApiProductsProvider}
 import code.apiproductattribute.{ApiProductAttributeTrait, MappedApiProductAttributesProvider}
 import code.apicollectionendpoint.{ApiCollectionEndpointTrait, DoobieApiCollectionEndpointsProvider}
@@ -3917,23 +3917,23 @@ object NewStyle extends MdcLoggable{
 
 
     def getApiCollectionById(apiCollectionId : String, callContext: Option[CallContext]) : OBPReturnType[ApiCollectionTrait] = {
-      Future(MappedApiCollectionsProvider.getApiCollectionById(apiCollectionId)) map {
+      Future(DoobieApiCollectionsProvider.getApiCollectionById(apiCollectionId)) map {
         i => (unboxFullOrFail(i, callContext, s"$ApiCollectionNotFound Please specify a valid value for API_COLLECTION_ID. Current API_COLLECTION_ID($apiCollectionId) "), callContext)
       }
     }
 
     def getApiCollectionByUserIdAndCollectionName(userId : String, apiCollectionName : String, callContext: Option[CallContext]) : OBPReturnType[ApiCollectionTrait] = {
-      Future(MappedApiCollectionsProvider.getApiCollectionByUserIdAndCollectionName(userId, apiCollectionName)) map {
+      Future(DoobieApiCollectionsProvider.getApiCollectionByUserIdAndCollectionName(userId, apiCollectionName)) map {
         i => (unboxFullOrFail(i, callContext, s"$ApiCollectionNotFound Please specify a valid value for API_COLLECTION_NAME. Current API_COLLECTION_NAME($apiCollectionName) "), callContext)
       }
     }
 
     def getApiCollectionsByUserId(userId : String, callContext: Option[CallContext]) : OBPReturnType[List[ApiCollectionTrait]] = {
-      Future(MappedApiCollectionsProvider.getApiCollectionsByUserId(userId), callContext) 
+      Future(DoobieApiCollectionsProvider.getApiCollectionsByUserId(userId), callContext) 
     }
 
     def getAllApiCollections(callContext: Option[CallContext]) : OBPReturnType[List[ApiCollectionTrait]] = {
-      Future(MappedApiCollectionsProvider.getAllApiCollections(), callContext) 
+      Future(DoobieApiCollectionsProvider.getAllApiCollections(), callContext) 
     }
 
     def getFeaturedApiCollections(callContext: Option[CallContext]) : OBPReturnType[List[ApiCollectionTrait]] = {
@@ -3943,7 +3943,7 @@ object NewStyle extends MdcLoggable{
 
       // Get actual ApiCollections for database featured entries
       val dbApiCollections = dbFeaturedApiCollections
-        .map(f => MappedApiCollectionsProvider.getApiCollectionById(f.apiCollectionId))
+        .map(f => DoobieApiCollectionsProvider.getApiCollectionById(f.apiCollectionId))
         .filter(_.isDefined)
         .filter(_.head.isSharable)
         .map(_.head)
@@ -3958,7 +3958,7 @@ object NewStyle extends MdcLoggable{
 
       // Get actual ApiCollections for props entries and sort them by name
       val propsApiCollections = propsApiCollectionIds
-        .map(MappedApiCollectionsProvider.getApiCollectionById)
+        .map(DoobieApiCollectionsProvider.getApiCollectionById)
         .filter(_.isDefined)
         .filter(_.head.isSharable)
         .map(_.head)
@@ -3975,7 +3975,7 @@ object NewStyle extends MdcLoggable{
       description: String,
       callContext: Option[CallContext]
     ) : OBPReturnType[ApiCollectionTrait] = {
-      Future(MappedApiCollectionsProvider.createApiCollection(
+      Future(DoobieApiCollectionsProvider.createApiCollection(
         userId: String,
         apiCollectionName: String,
         isSharable: Boolean,
@@ -3991,7 +3991,7 @@ object NewStyle extends MdcLoggable{
                             description: String, 
                             callContext: Option[CallContext]
     ) : OBPReturnType[ApiCollectionTrait] = {
-      Future(MappedApiCollectionsProvider.updateApiCollectionById(
+      Future(DoobieApiCollectionsProvider.updateApiCollectionById(
         apiCollectionId: String,
         apiCollectionName: String,
         description: String,
@@ -4018,7 +4018,7 @@ object NewStyle extends MdcLoggable{
     }
 
     def deleteApiCollectionById(apiCollectionId : String, callContext: Option[CallContext]) : OBPReturnType[Boolean] = {
-      Future(MappedApiCollectionsProvider.deleteApiCollectionById(apiCollectionId)) map {
+      Future(DoobieApiCollectionsProvider.deleteApiCollectionById(apiCollectionId)) map {
         i => (unboxFullOrFail(i, callContext, s"$DeleteApiCollectionError Current API_COLLECTION_ID($apiCollectionId) "), callContext)
       }
     }
