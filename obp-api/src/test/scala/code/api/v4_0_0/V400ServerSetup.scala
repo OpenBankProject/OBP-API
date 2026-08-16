@@ -17,7 +17,6 @@ import code.api.v3_0_0.{CustomerAttributeResponseJsonV300, TransactionJsonV300, 
 import code.api.v3_1_0._
 import code.consumer.Consumers
 import code.entitlement.Entitlement
-import code.metadata.transactionimages.MappedTransactionImage
 import code.setup.{APIResponse, DefaultUsers, ServerSetupWithTestData}
 import code.transactionattribute.MappedTransactionAttribute
 import com.openbankproject.commons.model.{AccountId, AccountRoutingJsonV121, AmountOfMoneyJsonV121, BankId, CreateViewJson, TransactionId, UpdateViewJSON, ViewId}
@@ -340,11 +339,10 @@ trait V400ServerSetup extends ServerSetupWithTestData with DefaultUsers {
     // question: is there no narrative left for this transaction after the cascade.
     val narrative = code.metadata.narrative.Narrative.narrative.vend
       .getNarrative(BankId(bankId), AccountId(accountId), TransactionId(transactionId))().isEmpty
-    val images = MappedTransactionImage.findAll(
-      By(MappedTransactionImage.bank, bankId),
-      By(MappedTransactionImage.account, accountId),
-      By(MappedTransactionImage.transaction, transactionId)
-    ).size == 0
+    // Images are Doobie-backed now; ask the provider per view, as with comments and where tags.
+    val images = List("owner", "auditor", "accountant").forall(v =>
+      code.metadata.transactionimages.TransactionImages.transactionImages.vend
+        .getImagesForTransaction(BankId(bankId), AccountId(accountId), TransactionId(transactionId))(ViewId(v)).isEmpty)
     // Where tags are Doobie-backed now; ask the provider per view, as with comments above.
     val whereTag = List("owner", "auditor", "accountant").forall(v =>
       code.metadata.wheretags.WhereTags.whereTags.vend
