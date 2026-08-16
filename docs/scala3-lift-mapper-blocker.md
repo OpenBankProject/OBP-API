@@ -8,8 +8,13 @@ report a type error in our code; it fails an internal consistency check:
 assertion failure for net.liftweb.mapper.Mapper[...] & OwnerType <:< net.liftweb.mapper.Mapper[...], frozen = true
 ```
 
-Identical on 3.3.8 and 3.7.2. This file records what the failure is and — more usefully — what it
-is *not*, so that nobody re-runs these experiments.
+Identical on **3.3.8 (LTS), 3.7.2 and 3.8.4** — the latest release at the time of writing, six
+versions past the first one tried. Three compiler generations reject it the same way, with the
+same assertion text, so **"wait for a newer compiler" is not a route** and should not be offered
+as one.
+
+This file records what the failure is and — more usefully — what it is *not*, so that nobody
+re-runs these experiments.
 
 ## What was ruled out
 
