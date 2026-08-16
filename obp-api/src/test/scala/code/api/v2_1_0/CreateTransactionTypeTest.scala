@@ -8,12 +8,13 @@ import code.api.v2_0_0.{TransactionTypeJsonV200, TransactionTypesJsonV200}
 import code.api.v2_2_0.OBPAPI2_2_0.Implementations2_0_0
 import code.api.v2_1_0.OBPAPI2_1_0.Implementations2_1_0
 import code.setup.DefaultUsers
-import code.transaction_types.MappedTransactionType
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.{AmountOfMoneyJsonV121, ErrorMessage, TransactionTypeId}
 import com.openbankproject.commons.util.ApiVersion
 import org.json4s.native.Serialization._
 import org.scalatest.Tag
+import code.api.util.DoobieUtil
+import doobie.implicits._
 
 /**
   * Created by zhanghongwei on 17/11/16.
@@ -39,7 +40,8 @@ class CreateTransactionTypeTest extends V210ServerSetup with DefaultUsers {
 
   override def afterAll(): Unit = {
     super.afterAll()
-    MappedTransactionType.bulkDelete_!!()
+    // The Lift entity is gone; the table is Doobie/Flyway-owned now.
+    DoobieUtil.runUpdate(sql"DELETE FROM mappedtransactiontype".update.run)
   }
 
   Feature("Assuring that endpoint 'Create Transaction Type at bank' works as expected - v2.1.0") {
