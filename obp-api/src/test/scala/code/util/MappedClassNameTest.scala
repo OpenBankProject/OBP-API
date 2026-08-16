@@ -33,7 +33,6 @@ class MappedClassNameTest extends AnyFeatureSpec {
     "code.kycchecks.MappedKycCheck",
     "code.metadata.counterparties.MappedCounterpartyWhereTag",
     "code.metadata.counterparties.MappedCounterpartyBespoke",
-    "code.model.dataAccess.internalMapping.AccountIdMapping",
     "code.cards.CardAction",
     "code.cards.PinReset",
     "code.meetings.MappedMeeting",

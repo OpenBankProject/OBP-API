@@ -238,6 +238,7 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
     DoobieUtil.runUpdate(sql"DELETE FROM consentauthcontext".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM mappeduserauthcontext".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM userinitaction".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM accountidmapping".update.run)
 
     
     // Delete only THIS shard's namespaced Redis keys. Each parallel shard uses a distinct

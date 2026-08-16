@@ -99,7 +99,6 @@ import code.metrics.{MappedConnectorMetric, MappedMetric, MetricArchive, Metrics
 import code.migration.MigrationScriptLog
 import code.model._
 import code.model.dataAccess._
-import code.model.dataAccess.internalMapping.AccountIdMapping
 import code.obp.grpc.ObpGrpcServer
 import code.productAttributeattribute.MappedProductAttribute
 import code.productcollection.MappedProductCollection
@@ -968,7 +967,6 @@ object ToSchemify extends MdcLoggable {
     DynamicDataAccess,
     code.api.dynamic.entity.projection.DynamicEntityIndex,
     DynamicEndpoint,
-    AccountIdMapping,
     DirectDebit,
     StandingOrder,
     MappedUserRefreshes,
