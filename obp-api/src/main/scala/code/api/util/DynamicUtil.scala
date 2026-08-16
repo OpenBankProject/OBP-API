@@ -4,6 +4,7 @@ import org.json4s._
 import code.api.Constant.SHOW_USED_CONNECTOR_METHODS
 import code.api.{APIFailureNewStyle, JsonResponseException}
 import code.api.util.ErrorMessages.DynamicResourceDocMethodDependency
+import code.api.util.dynamiccompiler.{DynamicCompileFailure, DynamicScalaCompiler, ToolBoxScalaCompiler}
 import cats.effect.IO
 import code.util.Helper.MdcLoggable
 import com.openbankproject.commons.model.BankId
@@ -28,7 +29,6 @@ import scala.concurrent.{Future, Promise}
 import scala.reflect.runtime.universe
 import scala.reflect.runtime.universe.runtimeMirror
 import scala.runtime.NonLocalReturnControl
-import scala.tools.reflect.{ToolBox, ToolBoxError}
 
 object DynamicUtil extends MdcLoggable{
 
@@ -42,7 +42,10 @@ object DynamicUtil extends MdcLoggable{
       case _ => false
     }
 
-  val toolBox: ToolBox[universe.type] = runtimeMirror(getClass.getClassLoader).mkToolBox()
+  // The Scala-source compiler, behind an interface so the Scala 3 flip swaps the
+  // implementation (Scala 3 has no ToolBox) without touching any caller.
+  private val scalaCompiler: DynamicScalaCompiler = ToolBoxScalaCompiler
+
   private val memoClassPool = new Memo[ClassLoader, ClassPool]
 
   private def getClassPool(classLoader: ClassLoader) = memoClassPool.memoize(classLoader){
@@ -51,9 +54,8 @@ object DynamicUtil extends MdcLoggable{
     cp
   }
 
-  // code -> dynamic method function
-  // the same code should always be compiled once, so here cache them
-  private val dynamicCompileResult = new ConcurrentHashMap[String, Box[Any]]()
+  // The "compile each distinct source once" cache moved into DynamicScalaCompiler, which is
+  // where the compiling happens now.
 
   type DynamicFunction = (Array[AnyRef], Option[CallContext]) => Future[Box[(String, Option[CallContext])]]
 
@@ -71,33 +73,18 @@ object DynamicUtil extends MdcLoggable{
 
   // Used ONLY by DynamicUtil.Validation's props-driven config parsing (operator config,
   // not user-generated code) so the app can still boot with the kill-switch off.
+  //
+  // The compiler itself lives behind DynamicScalaCompiler: Scala 3 has no ToolBox, so the
+  // flip swaps the implementation instead of rewriting this method's callers. Caching and
+  // the compile-error / evaluation-error distinction moved into the implementation with it;
+  // this method only adapts the result back to the Box shape callers expect.
   private def compileScalaCodeUnchecked[T](code: String): Box[T] = {
-    logger.trace(s"code.api.util.DynamicUtil.compileScalaCode.size is ${dynamicCompileResult.size()}")
-    val compiledResult: Box[Any] = dynamicCompileResult.computeIfAbsent(code, _ => {
-      val tree = try {
-        toolBox.parse(code)
-      } catch {
-        case e: ToolBoxError =>
-          return Failure(e.message)
-      }
-
-      try {
-        val func: () => Any = toolBox.compile(tree)
-        Box.tryo(func())
-      } catch {
-        case _: ToolBoxError =>
-          // try compile again
-          try {
-            val func: () => Any = toolBox.compile(tree)
-            Box.tryo(func())
-          } catch {
-            case e: ToolBoxError =>
-              Failure(e.message)
-          }
-      }
-    })
-
-    compiledResult.map(_.asInstanceOf[T])
+    logger.trace(s"code.api.util.DynamicUtil.compileScalaCode.size is ${scalaCompiler.cachedCount}")
+    scalaCompiler.compile(code) match {
+      case Right(value)                                   => Full(value.asInstanceOf[T])
+      case Left(DynamicCompileFailure(message, None))     => Failure(message)
+      case Left(DynamicCompileFailure(message, Some(ex))) => Failure(message, Full(ex), Empty)
+    }
   }
 
   /**
