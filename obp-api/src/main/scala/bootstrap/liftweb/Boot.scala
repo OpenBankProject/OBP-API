@@ -52,7 +52,6 @@ import code.api.util._
 import code.api.util.migration.Migration
 import code.api.util.migration.Migration.DbFunction
 import code.apicollection.ApiCollection
-import code.apicollectionendpoint.ApiCollectionEndpoint
 import code.apiproduct.ApiProduct
 import code.apiproductattribute.ApiProductAttribute
 import code.atmattribute.AtmAttribute
@@ -975,7 +974,6 @@ object ToSchemify extends MdcLoggable {
     StandingOrder,
     MappedUserRefreshes,
     ApiCollection,
-    ApiCollectionEndpoint,
     ApiProduct,
     ApiProductAttribute,
     FeaturedApiCollection,

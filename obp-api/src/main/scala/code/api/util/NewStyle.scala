@@ -14,7 +14,7 @@ import code.api.{APIFailureNewStyle, Constant, JsonResponseException}
 import code.apicollection.{ApiCollectionTrait, MappedApiCollectionsProvider}
 import code.apiproduct.{ApiProductTrait, MappedApiProductsProvider}
 import code.apiproductattribute.{ApiProductAttributeTrait, MappedApiProductAttributesProvider}
-import code.apicollectionendpoint.{ApiCollectionEndpointTrait, MappedApiCollectionEndpointsProvider}
+import code.apicollectionendpoint.{ApiCollectionEndpointTrait, DoobieApiCollectionEndpointsProvider}
 import code.featuredapicollection.{FeaturedApiCollectionTrait, MappedFeaturedApiCollectionsProvider}
 import code.atmattribute.AtmAttribute
 import code.authtypevalidation.{AuthenticationTypeValidationProvider, JsonAuthTypeValidation}
@@ -4122,7 +4122,7 @@ object NewStyle extends MdcLoggable{
       operationId: String,
       callContext: Option[CallContext]
     ) : OBPReturnType[ApiCollectionEndpointTrait] = {
-      Future(MappedApiCollectionEndpointsProvider.createApiCollectionEndpoint(
+      Future(DoobieApiCollectionEndpointsProvider.createApiCollectionEndpoint(
         apiCollectionId: String,
         operationId: String
       )) map {
@@ -4131,24 +4131,24 @@ object NewStyle extends MdcLoggable{
     }
 
     def getApiCollectionEndpointById(apiCollectionEndpointId : String, callContext: Option[CallContext]) : OBPReturnType[ApiCollectionEndpointTrait] = {
-      Future(MappedApiCollectionEndpointsProvider.getApiCollectionEndpointById(apiCollectionEndpointId)) map {
+      Future(DoobieApiCollectionEndpointsProvider.getApiCollectionEndpointById(apiCollectionEndpointId)) map {
         i => (unboxFullOrFail(i, callContext, s"$ApiCollectionEndpointNotFound Please specify a valid value for API_COLLECTION_ENDPOINT_ID. " +
           s"Current API_COLLECTION_ENDPOINT_ID($apiCollectionEndpointId) "), callContext)
       }
     }
 
     def getApiCollectionEndpointByApiCollectionIdAndOperationId(apiCollectionId:String, operationId : String, callContext: Option[CallContext]) : OBPReturnType[ApiCollectionEndpointTrait] = {
-      Future(MappedApiCollectionEndpointsProvider.getApiCollectionEndpointByApiCollectionIdAndOperationId(apiCollectionId, operationId)) map {
+      Future(DoobieApiCollectionEndpointsProvider.getApiCollectionEndpointByApiCollectionIdAndOperationId(apiCollectionId, operationId)) map {
         i => (unboxFullOrFail(i, callContext, s"$ApiCollectionEndpointNotFound Current API_COLLECTION_ID($apiCollectionId) and OPERATION_ID($operationId) "), callContext)
       }
     }
 
     def getApiCollectionEndpoints(apiCollectionId : String, callContext: Option[CallContext]) : OBPReturnType[List[ApiCollectionEndpointTrait]] = {
-      Future(MappedApiCollectionEndpointsProvider.getApiCollectionEndpoints(apiCollectionId), callContext)
+      Future(DoobieApiCollectionEndpointsProvider.getApiCollectionEndpoints(apiCollectionId), callContext)
     }
 
     def deleteApiCollectionEndpointById(apiCollectionEndpointById : String, callContext: Option[CallContext]) : OBPReturnType[Boolean] = {
-      Future(MappedApiCollectionEndpointsProvider.deleteApiCollectionEndpointById(apiCollectionEndpointById)) map {
+      Future(DoobieApiCollectionEndpointsProvider.deleteApiCollectionEndpointById(apiCollectionEndpointById)) map {
         i => (unboxFullOrFail(i, callContext, s"$DeleteApiCollectionEndpointError Current API_COLLECTION_ENDPOINT_ID($apiCollectionEndpointById) "), callContext)
       }
     }

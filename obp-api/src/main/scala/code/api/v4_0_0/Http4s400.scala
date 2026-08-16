@@ -5125,7 +5125,7 @@ object Http4s400 {
             (apiCollection, _) <- NewStyle.function.getApiCollectionByUserIdAndCollectionName(
               user.userId, apiCollectionName, Some(cc))
             existing <- Future {
-              code.apicollectionendpoint.MappedApiCollectionEndpointsProvider
+              code.apicollectionendpoint.DoobieApiCollectionEndpointsProvider
                 .getApiCollectionEndpointByApiCollectionIdAndOperationId(
                   apiCollection.apiCollectionId, postJson.operation_id)
             }
@@ -5151,7 +5151,7 @@ object Http4s400 {
             }
             (apiCollection, _) <- NewStyle.function.getApiCollectionById(apiCollectionIdStr, Some(cc))
             existing <- Future {
-              code.apicollectionendpoint.MappedApiCollectionEndpointsProvider
+              code.apicollectionendpoint.DoobieApiCollectionEndpointsProvider
                 .getApiCollectionEndpointByApiCollectionIdAndOperationId(
                   apiCollection.apiCollectionId, postJson.operation_id)
             }

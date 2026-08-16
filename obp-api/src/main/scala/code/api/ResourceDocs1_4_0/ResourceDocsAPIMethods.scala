@@ -23,7 +23,6 @@ import code.api.v5_0_0.OBPAPI5_0_0
 import code.api.v5_1_0.OBPAPI5_1_0
 import code.api.v6_0_0.OBPAPI6_0_0
 import code.api.berlin.group.ConstantsBG
-import code.apicollectionendpoint.MappedApiCollectionEndpointsProvider
 import code.util.Helper
 import code.util.Helper.{MdcLoggable, ObpS, SILENCE_IS_GOLDEN}
 import com.github.dwickern.macros.NameOf.nameOf
