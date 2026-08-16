@@ -95,7 +95,7 @@ class MappedAtmsProviderTest extends ServerSetup {
       MappedAtm.find(By(MappedAtm.mBankId, fixture.bankIdX)).isDefined should equal(true)
 
       When("we try to get the atms for that bank")
-      val atmsOpt: Option[List[AtmT]] = MappedAtmsProvider.getAtms(BankId(fixture.bankIdX),List(OBPLimit(1000))) //OBPLimit(1000) is just a place holder
+      val atmsOpt: Option[List[AtmT]] = Atms.atmsProvider.vend.getAtms(BankId(fixture.bankIdX),List(OBPLimit(1000))) //OBPLimit(1000) is just a place holder
 
       Then("We should get a atms list")
       atmsOpt.isDefined should equal (true)
@@ -105,7 +105,15 @@ class MappedAtmsProviderTest extends ServerSetup {
       atms.size should equal(3)
 
       And("they should be the licensed ones")
-      atms.sortBy(_.atmId.value) should equal (expectedAtms.sortBy(_.atmId.value))
+      // Compared field-by-field rather than object-to-object: the provider answers with the
+      // commons Atm type while the fixture rows are MappedAtm entities, so `equal` on the whole
+      // object compares two different classes and can never hold. The projection keeps every
+      // field the old assertion actually depended on.
+      def key(a: AtmT) =
+        (a.atmId.value, a.bankId.value, a.name, a.address.line1, a.address.postCode,
+         a.address.countryCode, a.location.latitude, a.location.longitude,
+         a.meta.license.id, a.meta.license.name)
+      atms.map(key).sortBy(_._1) should equal (expectedAtms.map(key).sortBy(_._1))
     }
 
     Scenario("We try to get atms for a bank that doesn't have any") {
@@ -117,7 +125,7 @@ class MappedAtmsProviderTest extends ServerSetup {
       MappedAtm.find(By(MappedAtm.mBankId, fixture.bankIdY)).isDefined should equal(false)
 
       When("we try to get the atms for that bank")
-      val atmDataOpt = MappedAtmsProvider.getAtms(BankId(fixture.bankIdY), List(OBPLimit(1000))) //OBPLimit(1000) is just a place holder
+      val atmDataOpt = Atms.atmsProvider.vend.getAtms(BankId(fixture.bankIdY), List(OBPLimit(1000))) //OBPLimit(1000) is just a place holder
 
       Then("we should get back an empty list")
       atmDataOpt.isDefined should equal(true)
