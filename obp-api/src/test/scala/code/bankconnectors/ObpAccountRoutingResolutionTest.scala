@@ -1,10 +1,10 @@
 package code.bankconnectors
 
 import code.api.Constant
-import code.model.dataAccess.BankAccountRouting
+import code.api.util.DoobieUtil
 import code.setup.{DefaultUsers, ServerSetupWithTestData}
+import doobie.implicits._
 import com.openbankproject.commons.model.{AccountId, AccountRoutingJsonV121, BankAccountRoutings, BankId, BankRoutingJson, BranchRoutingJsonV141}
-import net.liftweb.mapper.By
 import scala.concurrent.Await
 import scala.concurrent.duration._
 import org.scalatest.Tag
@@ -54,12 +54,7 @@ class ObpAccountRoutingResolutionTest extends ServerSetupWithTestData with Defau
       val account = createAccountRelevantResource(Some(resourceUser1), testBankId2, AccountId("testAccountObpRouting"), "EUR")
       val registeredAddress = "some-bank-chosen-obp-address"
 
-      BankAccountRouting.create
-        .BankId(account.bankId.value)
-        .AccountId(account.accountId.value)
-        .AccountRoutingScheme(obpScheme)
-        .AccountRoutingAddress(registeredAddress)
-        .saveMe()
+      DoobieBankAccountRoutingQueries.create(account.bankId, account.accountId, obpScheme, registeredAddress)
 
       Connector.connector.vend.getBankAccountByRoutingLegacy(
         Some(account.bankId), obpScheme, registeredAddress, None
@@ -76,12 +71,7 @@ class ObpAccountRoutingResolutionTest extends ServerSetupWithTestData with Defau
       val account = createAccountRelevantResource(Some(resourceUser1), testBankId1, AccountId("testAccountPluralRouting"), "EUR")
       val registeredAddress = "another-bank-chosen-obp-address"
 
-      BankAccountRouting.create
-        .BankId(account.bankId.value)
-        .AccountId(account.accountId.value)
-        .AccountRoutingScheme(obpScheme)
-        .AccountRoutingAddress(registeredAddress)
-        .saveMe()
+      DoobieBankAccountRoutingQueries.create(account.bankId, account.accountId, obpScheme, registeredAddress)
 
       val routings = BankAccountRoutings(
         bank = BankRoutingJson(obpScheme, account.bankId.value),
@@ -101,10 +91,8 @@ class ObpAccountRoutingResolutionTest extends ServerSetupWithTestData with Defau
   }
 
   override def afterEach(): Unit = {
-    BankAccountRouting.findAll(
-      By(BankAccountRouting.AccountRoutingAddress, "some-bank-chosen-obp-address")).foreach(_.delete_!)
-    BankAccountRouting.findAll(
-      By(BankAccountRouting.AccountRoutingAddress, "another-bank-chosen-obp-address")).foreach(_.delete_!)
+    DoobieUtil.runUpdate(sql"DELETE FROM bankaccountrouting WHERE accountroutingaddress = 'some-bank-chosen-obp-address'".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM bankaccountrouting WHERE accountroutingaddress = 'another-bank-chosen-obp-address'".update.run)
     super.afterEach()
   }
 }

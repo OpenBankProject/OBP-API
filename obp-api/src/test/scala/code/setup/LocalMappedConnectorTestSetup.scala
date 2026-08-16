@@ -68,19 +68,10 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
 
   override protected def createAccount(bankId: BankId, accountId : AccountId, currency : String) : BankAccount = {
     def getOrCreateRouting(scheme: String, address: String): Unit = {
-      val existing = BankAccountRouting.find(
-        By(BankAccountRouting.BankId, bankId.value),
-        By(BankAccountRouting.AccountId, accountId.value),
-        By(BankAccountRouting.AccountRoutingScheme, scheme)
-      )
-      if (!existing.isDefined) {
+      val existing = code.bankconnectors.DoobieBankAccountRoutingQueries.findByBankAccountScheme(bankId, accountId, scheme)
+      if (existing.isEmpty) {
         try {
-          BankAccountRouting.create
-            .BankId(bankId.value)
-            .AccountId(accountId.value)
-            .AccountRoutingScheme(scheme)
-            .AccountRoutingAddress(address)
-            .saveMe
+          code.bankconnectors.DoobieBankAccountRoutingQueries.create(bankId, accountId, scheme, address)
         } catch {
           case _: Throwable =>
         }
@@ -244,6 +235,7 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
     DoobieUtil.runUpdate(sql"DELETE FROM mappedbankaccountdata".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM apicollection".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM mappedbadloginattempt".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM bankaccountrouting".update.run)
 
     
     // Delete only THIS shard's namespaced Redis keys. Each parallel shard uses a distinct

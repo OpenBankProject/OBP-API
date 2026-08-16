@@ -4,11 +4,11 @@ import code.accountattribute.MappedAccountAttribute
 import code.api.APIFailureNewStyle
 import code.api.util.APIUtil.fullBoxOrException
 import code.api.util.ErrorMessages.CouldNotDeleteCascade
-import code.bankconnectors.Connector
+import code.bankconnectors.{Connector, DoobieBankAccountRoutingQueries}
 import code.cards.MappedPhysicalCard
 import code.entitlement.MappedEntitlement
 import code.api.util.DoobieUtil
-import code.model.dataAccess.{BankAccountRouting, MappedBankAccount}
+import code.model.dataAccess.MappedBankAccount
 import code.views.system.{AccountAccess, ViewDefinition}
 import code.webhook.MappedAccountWebhook
 import com.openbankproject.commons.model.{AccountId, BankId}
@@ -105,10 +105,8 @@ object DeleteAccountCascade {
     )
   }
   private def deleteAccountRoutings(bankId: BankId, accountId: AccountId): Boolean = {
-    BankAccountRouting.bulkDelete_!!(
-      By(BankAccountRouting.BankId, bankId.value),
-      By(BankAccountRouting.AccountId, accountId.value)
-    )
+    DoobieBankAccountRoutingQueries.deleteByBankAccount(bankId, accountId)
+    true
   }
 
   private def deleteTransactions(bankId: BankId, accountId: AccountId): Boolean = {

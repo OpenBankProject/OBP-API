@@ -51,7 +51,6 @@ class MappedClassNameTest extends AnyFeatureSpec {
     "code.customeraddress.MappedCustomerAddress",
     "code.kycstatuses.MappedKycStatus",
     "code.consent.MappedConsent",
-    "code.model.dataAccess.BankAccountRouting",
     "code.fx.MappedFXRate",
     "code.webhook.MappedAccountWebhook",
     "code.standingorders.StandingOrder",

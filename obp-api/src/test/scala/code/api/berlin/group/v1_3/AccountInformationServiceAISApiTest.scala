@@ -15,7 +15,8 @@ import code.api.v4_0_0.PostViewJsonV400
 import code.consent.{ConsentStatus, ConsentTrait, Consents}
 import code.model.TokenType.Access
 import code.model.UserX
-import code.model.dataAccess.{BankAccountRouting, ResourceUser}
+import code.bankconnectors.DoobieBankAccountRoutingQueries
+import code.model.dataAccess.ResourceUser
 import code.setup.{APIResponse, DefaultUsers}
 import code.token.Tokens
 import com.github.dwickern.macros.NameOf.nameOf
@@ -560,7 +561,7 @@ class AccountInformationServiceAISApiTest extends BerlinGroupConsentFixtures {
   Feature(s"BG v1.3 - $createConsent") {
     Scenario("Authentication User, test succeed", BerlinGroupV1_3, createConsent) {
       val testBankId = testAccountId1
-      val accountsRoutingIban = BankAccountRouting.findAll(By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString))
+      val accountsRoutingIban = DoobieBankAccountRoutingQueries.findAllByScheme(AccountRoutingScheme.IBAN.toString)
       val acountRoutingIban = accountsRoutingIban.head
       val postJsonBody = PostConsentJson(
         access = ConsentAccessJson(
@@ -597,7 +598,7 @@ class AccountInformationServiceAISApiTest extends BerlinGroupConsentFixtures {
   Feature(s"BG v1.3 - $createConsent and $deleteConsent") {
     Scenario("Authentication User, test succeed", BerlinGroupV1_3, createConsent) {
       val testBankId = testAccountId1
-      val accountsRoutingIban = BankAccountRouting.findAll(By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString))
+      val accountsRoutingIban = DoobieBankAccountRoutingQueries.findAllByScheme(AccountRoutingScheme.IBAN.toString)
       val acountRoutingIban = accountsRoutingIban.head
       val postJsonBody = PostConsentJson(
         access = ConsentAccessJson(
@@ -648,7 +649,7 @@ class AccountInformationServiceAISApiTest extends BerlinGroupConsentFixtures {
   Feature(s"BG v1.3 - $createConsent and $getConsentInformation and $getConsentStatus") {
     Scenario("Authentication User, test succeed", BerlinGroupV1_3, createConsent) {
       val testBankId = testAccountId1
-      val accountsRoutingIban = BankAccountRouting.findAll(By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString))
+      val accountsRoutingIban = DoobieBankAccountRoutingQueries.findAllByScheme(AccountRoutingScheme.IBAN.toString)
       val acountRoutingIban = accountsRoutingIban.head
       val postJsonBody = PostConsentJson(
         access = ConsentAccessJson(
@@ -696,7 +697,7 @@ class AccountInformationServiceAISApiTest extends BerlinGroupConsentFixtures {
 
     Feature(s"BG v1.3 - ${startConsentAuthorisationTransactionAuthorisation.name} ") {
       Scenario("Authentication User, test succeed", BerlinGroupV1_3, startConsentAuthorisationTransactionAuthorisation) {
-        val accountsRoutingIban = BankAccountRouting.findAll(By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString))
+        val accountsRoutingIban = DoobieBankAccountRoutingQueries.findAllByScheme(AccountRoutingScheme.IBAN.toString)
         val acountRoutingIban = accountsRoutingIban.head
         val postJsonBody = PostConsentJson(
           access = ConsentAccessJson(
@@ -754,7 +755,7 @@ class AccountInformationServiceAISApiTest extends BerlinGroupConsentFixtures {
 
     Feature(s"BG v1.3 - ${startConsentAuthorisationTransactionAuthorisation.name} and ${getConsentAuthorisation.name} and ${getConsentScaStatus.name} and ${updateConsentsPsuDataTransactionAuthorisation.name}") {
       Scenario("Authentication User, test succeed", BerlinGroupV1_3, startConsentAuthorisationTransactionAuthorisation) {
-        val accountsRoutingIban = BankAccountRouting.findAll(By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString))
+        val accountsRoutingIban = DoobieBankAccountRoutingQueries.findAllByScheme(AccountRoutingScheme.IBAN.toString)
         val acountRoutingIban = accountsRoutingIban.head
         val postJsonBody = PostConsentJson(
           access = ConsentAccessJson(

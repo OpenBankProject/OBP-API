@@ -17,12 +17,12 @@ import code.views.MapperViews
 import code.views.system.ViewPermission
 import com.openbankproject.commons.model.ViewId
 import code.routingscheme.RoutingSchemes
-import code.model.dataAccess.BankAccountRouting
+import code.bankconnectors.DoobieBankAccountRoutingQueries
 import code.customer.CustomerX
 import code.entitlement.Entitlement
 import code.organisation.Organisations
 import code.metadata.counterparties.Counterparties
-import com.openbankproject.commons.model.{BankId => CommBankId, CreditLimit, CreditRating, CustomerFaceImage}
+import com.openbankproject.commons.model.{AccountId, BankId => CommBankId, CreditLimit, CreditRating, CustomerFaceImage}
 import fs2.Stream
 import org.http4s.{Header, Headers, Method, Request, Uri}
 import org.typelevel.ci.CIString
@@ -1712,12 +1712,7 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
       exampleAddress = address, description = "Test", downstreamRails = Nil,
       status = "ACTIVE", createdByUserId = resourceUser1.userId
     )
-    BankAccountRouting.create
-      .BankId(destBankId)
-      .AccountId(destAccountId)
-      .AccountRoutingScheme(scheme)
-      .AccountRoutingAddress(address)
-      .saveMe()
+    DoobieBankAccountRoutingQueries.create(CommBankId(destBankId), AccountId(destAccountId), scheme, address)
     scheme
   }
 
@@ -2355,18 +2350,14 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
   /** The bank's settlement address is the CARDANO routing on its incoming
     * settlement account; empty address removes the routing. */
   private def setIncomingSettlementCardanoAddress(bankId: String, address: String): Unit = {
-    val existing = BankAccountRouting.find(
-      By(BankAccountRouting.BankId, bankId),
-      By(BankAccountRouting.AccountId, code.api.Constant.INCOMING_SETTLEMENT_ACCOUNT_ID),
-      By(BankAccountRouting.AccountRoutingScheme, "CARDANO"))
-    if (address.isEmpty) existing.foreach(_.delete_!)
-    else existing
-      .getOrElse(BankAccountRouting.create
-        .BankId(bankId)
-        .AccountId(code.api.Constant.INCOMING_SETTLEMENT_ACCOUNT_ID)
-        .AccountRoutingScheme("CARDANO"))
-      .AccountRoutingAddress(address)
-      .saveMe()
+    val incomingAccountId = AccountId(code.api.Constant.INCOMING_SETTLEMENT_ACCOUNT_ID)
+    val existing = DoobieBankAccountRoutingQueries.findByBankAccountScheme(CommBankId(bankId), incomingAccountId, "CARDANO")
+    if (address.isEmpty) {
+      existing.foreach(_ => DoobieBankAccountRoutingQueries.deleteByBankAccountScheme(CommBankId(bankId), incomingAccountId, "CARDANO"))
+    } else existing match {
+      case Some(_) => DoobieBankAccountRoutingQueries.updateAddress(CommBankId(bankId), incomingAccountId, "CARDANO", address)
+      case None => DoobieBankAccountRoutingQueries.create(CommBankId(bankId), incomingAccountId, "CARDANO", address)
+    }
   }
 
   private def promiseStatus(transactionRequestId: String): String =
@@ -2987,12 +2978,7 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
       exampleAddress = address, description = "Test biller", downstreamRails = Nil,
       status = "ACTIVE", createdByUserId = resourceUser1.userId
     )
-    BankAccountRouting.create
-      .BankId(destBankId)
-      .AccountId(destAccountId)
-      .AccountRoutingScheme(scheme)
-      .AccountRoutingAddress(address)
-      .saveMe()
+    DoobieBankAccountRoutingQueries.create(CommBankId(destBankId), AccountId(destAccountId), scheme, address)
     scheme
   }
 

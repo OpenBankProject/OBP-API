@@ -9,7 +9,7 @@ import code.api.berlin.group.v1_3.model.TransactionStatus
 import code.api.berlin.group.v1_3.{Http4sBGv13SigningBaskets => APIMethods_SigningBasketsApi}
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ErrorMessages._
-import code.model.dataAccess.BankAccountRouting
+import code.bankconnectors.DoobieBankAccountRoutingQueries
 import code.setup.{APIResponse, DefaultUsers}
 import code.views.Views
 import com.github.dwickern.macros.NameOf.nameOf
@@ -31,7 +31,7 @@ class SigningBasketServiceSBSApiTest extends BerlinGroupServerSetupV1_3 with Def
 
   // Helper: create a real SEPA payment via BG PIS API and return its paymentId
   private def createRealPaymentId(): String = {
-    val accountsRoutingIban = BankAccountRouting.findAll(By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString))
+    val accountsRoutingIban = DoobieBankAccountRoutingQueries.findAllByScheme(AccountRoutingScheme.IBAN.toString)
     val ibanFrom = accountsRoutingIban.head
     val ibanTo = accountsRoutingIban.last
     Views.views.vend.systemView(ViewId(SYSTEM_INITIATE_PAYMENTS_BERLIN_GROUP_VIEW_ID)).foreach(view =>

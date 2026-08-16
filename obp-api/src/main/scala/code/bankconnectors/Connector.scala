@@ -18,7 +18,6 @@ import code.bankconnectors.grpc.GrpcConnector_vFeb2026
 import code.bankconnectors.rabbitmq.RabbitMQConnector_vOct2024
 import code.bankconnectors.rest.RestConnector_vMar2019
 import code.bankconnectors.storedprocedure.StoredProcedureConnector_vDec2019
-import code.model.dataAccess.BankAccountRouting
 import code.users.UserAttribute
 import code.util.Helper._
 import com.github.dwickern.macros.NameOf.nameOf
@@ -506,8 +505,8 @@ trait Connector extends MdcLoggable {
   def getBankAccountByIban(iban : String, callContext: Option[CallContext]) : OBPReturnType[Box[BankAccount]]= Future{(Failure(setUnimplementedError(nameOf(getBankAccountByIban _))),callContext)}
   def getBankAccountByRoutingLegacy(bankId: Option[BankId], scheme : String, address : String, callContext: Option[CallContext]) : Box[(BankAccount, Option[CallContext])]= Failure(setUnimplementedError(nameOf(getBankAccountByRoutingLegacy _)))
   def getBankAccountByRouting(bankId: Option[BankId], scheme : String, address : String, callContext: Option[CallContext]) : OBPReturnType[Box[BankAccount]]= Future{(Failure(setUnimplementedError(nameOf(getBankAccountByRouting _))), callContext)}
-  def getAccountRoutingsByScheme(bankId: Option[BankId], scheme : String, callContext: Option[CallContext]): OBPReturnType[Box[List[BankAccountRouting]]] = Future{(Failure(setUnimplementedError(nameOf(getAccountRoutingsByScheme _))),callContext)}
-  def getAccountRouting(bankId: Option[BankId], scheme : String, address : String, callContext: Option[CallContext]) : Box[(BankAccountRouting, Option[CallContext])]= Failure(setUnimplementedError(nameOf(getAccountRouting _)))
+  def getAccountRoutingsByScheme(bankId: Option[BankId], scheme : String, callContext: Option[CallContext]): OBPReturnType[Box[List[BankAccountRoutingTrait]]] = Future{(Failure(setUnimplementedError(nameOf(getAccountRoutingsByScheme _))),callContext)}
+  def getAccountRouting(bankId: Option[BankId], scheme : String, address : String, callContext: Option[CallContext]) : Box[(BankAccountRoutingTrait, Option[CallContext])]= Failure(setUnimplementedError(nameOf(getAccountRouting _)))
 
   def getBankAccounts(bankIdAccountIds: List[BankIdAccountId], callContext: Option[CallContext]) : OBPReturnType[Box[List[BankAccount]]]= Future{(Failure(setUnimplementedError(nameOf(getBankAccounts _))), callContext)}
 

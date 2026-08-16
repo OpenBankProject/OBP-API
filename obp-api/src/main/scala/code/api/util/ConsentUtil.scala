@@ -11,7 +11,7 @@ import code.api.util.ErrorMessages._
 import code.api.v3_1_0.{PostConsentBodyCommonJson, PostConsentEntitlementJsonV310, PostConsentViewJsonV310}
 import code.api.v5_0_0.HelperInfoJson
 import code.api.{APIFailure, APIFailureNewStyle, Constant, RequestHeader}
-import code.bankconnectors.Connector
+import code.bankconnectors.{Connector, DoobieBankAccountRoutingQueries}
 import code.consent
 import code.consent.ConsentStatus.ConsentStatus
 import code.loginattempts.LoginAttempt
@@ -21,7 +21,6 @@ import code.consumer.Consumers
 import code.context.{ConsentAuthContextProvider, UserAuthContextProvider}
 import code.entitlement.Entitlement
 import code.model.Consumer
-import code.model.dataAccess.BankAccountRouting
 import code.scheduler.ConsentScheduler.currentDate
 import code.users.Users
 import code.util.Helper
@@ -1583,10 +1582,8 @@ object Consent extends MdcLoggable {
         val heldWithIban: List[ConsentView] = AccountHolders.accountHolders.vend
           .getAccountsHeldByUser(psu).toList
           .filter { held =>
-            BankAccountRouting.find(
-              By(BankAccountRouting.BankId, held.bankId.value),
-              By(BankAccountRouting.AccountId, held.accountId.value),
-              By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString)
+            DoobieBankAccountRoutingQueries.findByBankAccountScheme(
+              held.bankId, held.accountId, AccountRoutingScheme.IBAN.toString
             ).isDefined
           }
           .map { held =>

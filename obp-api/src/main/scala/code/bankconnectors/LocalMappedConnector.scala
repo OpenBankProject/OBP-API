@@ -870,7 +870,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   override def getBankAccountByRoutingLegacy(bankId: Option[BankId], scheme: String, address: String, callContext: Option[CallContext]): Box[(BankAccount, Option[CallContext])] = {
 
     def byRoutingTable: Box[(MappedBankAccount, Option[CallContext])] = {
-      def handleRouting(routing: List[BankAccountRouting]): Box[(MappedBankAccount, Option[CallContext])] = {
+      def handleRouting(routing: List[BankAccountRoutingRow]): Box[(MappedBankAccount, Option[CallContext])] = {
         if (routing.size > 1) { // Handle more than 1 occurrence
           // Routing MUST be unique
           val errorMessage = s"$AccountRoutingNotUnique (scheme: $scheme, address: $address)"
@@ -882,12 +882,10 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
       bankId match {
         case Some(bankId) => // Bank specific routing
-          val routing = BankAccountRouting
-            .findAll(By(BankAccountRouting.BankId, bankId.value), By(BankAccountRouting.AccountRoutingScheme, scheme), By(BankAccountRouting.AccountRoutingAddress, address))
+          val routing = DoobieBankAccountRoutingQueries.findAllByBankSchemeAddress(bankId, scheme, address)
           handleRouting(routing)
         case None => // World wide specific routing (IBAN etc.)
-          val routing = BankAccountRouting
-            .findAll(By(BankAccountRouting.AccountRoutingScheme, scheme), By(BankAccountRouting.AccountRoutingAddress, address))
+          val routing = DoobieBankAccountRoutingQueries.findAllBySchemeAddress(scheme, address)
           handleRouting(routing)
       }
     }
@@ -935,16 +933,16 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   }
 
 
-  override def getAccountRoutingsByScheme(bankId: Option[BankId], scheme: String, callContext: Option[CallContext]): OBPReturnType[Box[List[BankAccountRouting]]] = {
+  override def getAccountRoutingsByScheme(bankId: Option[BankId], scheme: String, callContext: Option[CallContext]): OBPReturnType[Box[List[BankAccountRoutingTrait]]] = {
     Future {
       Full(bankId match {
-        case Some(bankId) => BankAccountRouting.findAll(By(BankAccountRouting.BankId, bankId.value), By(BankAccountRouting.AccountRoutingScheme, scheme))
-        case None => BankAccountRouting.findAll(By(BankAccountRouting.AccountRoutingScheme, scheme))
+        case Some(bankId) => DoobieBankAccountRoutingQueries.findAllByBankScheme(bankId, scheme)
+        case None => DoobieBankAccountRoutingQueries.findAllByScheme(scheme)
       })
     }.map((_, callContext))
   }
 
-  override def getAccountRouting(bankId: Option[BankId], scheme: String, address: String, callContext: Option[CallContext]): Box[(BankAccountRouting, Option[CallContext])] = {
+  override def getAccountRouting(bankId: Option[BankId], scheme: String, address: String, callContext: Option[CallContext]): Box[(BankAccountRoutingTrait, Option[CallContext])] = {
     // OBP-family schemes are never stored as explicit BankAccountRouting rows
     // (account lookups by OBP scheme go through getBankAccountByRouting, not here).
     // This lookup is used as a uniqueness check on routing-row creation, so for
@@ -953,16 +951,11 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     if (isImplicitOBPAccountScheme(scheme)) {
       Empty
     } else {
-      bankId match {
-        case Some(bankId) =>
-          BankAccountRouting
-            .find(By(BankAccountRouting.BankId, bankId.value), By(BankAccountRouting.AccountRoutingScheme, scheme), By(BankAccountRouting.AccountRoutingAddress, address))
-            .map(accountRouting => (accountRouting, callContext))
-        case None =>
-          BankAccountRouting
-            .find(By(BankAccountRouting.AccountRoutingScheme, scheme), By(BankAccountRouting.AccountRoutingAddress, address))
-            .map(accountRouting => (accountRouting, callContext))
+      val found = bankId match {
+        case Some(bankId) => DoobieBankAccountRoutingQueries.findByBankSchemeAddress(bankId, scheme, address)
+        case None => DoobieBankAccountRoutingQueries.findBySchemeAddress(scheme, address)
       }
+      Box(found).map(accountRouting => (accountRouting, callContext))
     }
   }
 
@@ -2540,27 +2533,22 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                   callContext: Option[CallContext]
                                 ): OBPReturnType[Box[BankAccount]] = Future {
 
-    val oldAccountRoutings: List[BankAccountRouting] = BankAccountRouting.findAll(By(BankAccountRouting.BankId, bankId.value),
-      By(BankAccountRouting.AccountId, accountId.value))
+    val oldAccountRoutings: List[BankAccountRoutingRow] =
+      DoobieBankAccountRoutingQueries.findAllByBankAccount(bankId, accountId)
 
     // Add or update new routing schemes
     accountRoutings.foreach(accountRouting =>
       oldAccountRoutings.find(_.accountRouting.scheme == accountRouting.scheme) match {
-        case Some(updatedAccountRouting) =>
-          updatedAccountRouting.AccountRoutingAddress(accountRouting.address).saveMe()
+        case Some(_) =>
+          DoobieBankAccountRoutingQueries.updateAddress(bankId, accountId, accountRouting.scheme, accountRouting.address)
         case None =>
-          BankAccountRouting.create
-            .BankId(bankId.value)
-            .AccountId(accountId.value)
-            .AccountRoutingScheme(accountRouting.scheme)
-            .AccountRoutingAddress(accountRouting.address)
-            .saveMe()
+          DoobieBankAccountRoutingQueries.create(bankId, accountId, accountRouting.scheme, accountRouting.address)
       }
     )
 
     // Delete non-present routing schemes
     oldAccountRoutings.filterNot(accountRouting => accountRoutings.exists(_.scheme == accountRouting.accountRouting.scheme))
-      .foreach(_.delete_!)
+      .foreach(accountRouting => DoobieBankAccountRoutingQueries.deleteByBankAccountScheme(bankId, accountId, accountRouting.accountRouting.scheme))
 
     (for {
       (account, _) <- LocalMappedConnector.getBankAccountCommon(bankId, accountId, callContext)

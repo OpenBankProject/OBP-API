@@ -9,7 +9,8 @@ import code.api.util.{Consent, ConsentJWT, ConsentView, CustomJsonFormats, JwtUt
 import code.consent.{ConsentTrait, Consents}
 import code.model.TokenType.Access
 import code.model.UserX
-import code.model.dataAccess.{BankAccountRouting, ResourceUser}
+import code.bankconnectors.DoobieBankAccountRoutingQueries
+import code.model.dataAccess.ResourceUser
 import code.setup.DefaultUsers
 import code.token.Tokens
 import com.openbankproject.commons.model.User
@@ -42,8 +43,8 @@ trait BerlinGroupConsentFixtures extends BerlinGroupServerSetupV1_3 with Default
 
   /** One account, addressed by the first IBAN routing in the test data. */
   def bgConsentPostBody(): PostConsentJson = {
-    val acountRoutingIban = BankAccountRouting
-      .findAll(By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString)).head
+    val acountRoutingIban = DoobieBankAccountRoutingQueries
+      .findAllByScheme(AccountRoutingScheme.IBAN.toString).head
     PostConsentJson(
       access = ConsentAccessJson(
         accounts = Option(List(ConsentAccessAccountsJson(
@@ -93,10 +94,8 @@ trait BerlinGroupConsentFixtures extends BerlinGroupServerSetupV1_3 with Default
   def ibanAddressableAccountsHeldBy(user: User): Set[(String, String)] =
     AccountHolders.accountHolders.vend.getAccountsHeldByUser(user)
       .filter { held =>
-        BankAccountRouting.find(
-          By(BankAccountRouting.BankId, held.bankId.value),
-          By(BankAccountRouting.AccountId, held.accountId.value),
-          By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString)
+        DoobieBankAccountRoutingQueries.findByBankAccountScheme(
+          held.bankId, held.accountId, AccountRoutingScheme.IBAN.toString
         ).isDefined
       }
       .map(held => (held.bankId.value, held.accountId.value))

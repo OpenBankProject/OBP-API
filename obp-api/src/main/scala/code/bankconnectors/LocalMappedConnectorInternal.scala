@@ -20,7 +20,7 @@ import code.bankconnectors.ethereum.DecodeRawTx
 import code.branches.MappedBranch
 import code.fx.fx
 import code.fx.fx.TTL
-import code.model.dataAccess.{BankAccountRouting, MappedBank, MappedBankAccount}
+import code.model.dataAccess.{MappedBank, MappedBankAccount}
 import code.model.toBankAccountExtended
 import code.transaction.MappedTransaction
 import code.transactionrequests._
@@ -298,12 +298,7 @@ object LocalMappedConnectorInternal extends MdcLoggable {
         Full(a)
       case _ => tryo {
         accountRoutings.map(accountRouting =>
-          BankAccountRouting.create
-            .BankId(bankId.value)
-            .AccountId(accountId.value)
-            .AccountRoutingScheme(accountRouting.scheme)
-            .AccountRoutingAddress(accountRouting.address)
-            .saveMe()
+          DoobieBankAccountRoutingQueries.create(bankId, accountId, accountRouting.scheme, accountRouting.address)
         )
         MappedBankAccount.create
           .bank(bankId.value)

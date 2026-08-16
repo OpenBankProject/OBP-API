@@ -9,7 +9,8 @@ import code.api.berlin.group.v1_3.Http4sBGv13PIS
 import code.api.util.APIUtil.OAuth._
 import code.api.util.APIUtil.extractErrorMessageCode
 import code.api.util.ErrorMessages._
-import code.model.dataAccess.{BankAccountRouting, MappedBankAccount}
+import code.bankconnectors.{BankAccountRoutingRow, DoobieBankAccountRoutingQueries}
+import code.model.dataAccess.MappedBankAccount
 import code.model.TokenType
 import code.setup.{APIResponse, DefaultUsers}
 import code.token.Tokens
@@ -99,7 +100,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
       response.body.extract[ErrorMessagesBG].tppMessages.head.text contains extractErrorMessageCode(NotPositiveAmount) should be (true)
     }
     Scenario("Successful case - small amount -- change the balance", BerlinGroupV1_3, PIS, initiatePayment) {
-      val accountsRoutingIban = BankAccountRouting.findAll(By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString))
+      val accountsRoutingIban = DoobieBankAccountRoutingQueries.findAllByScheme(AccountRoutingScheme.IBAN.toString)
       val acountRoutingIbanFrom = accountsRoutingIban.head
       val acountRoutingIbanTo = accountsRoutingIban.last
 
@@ -152,7 +153,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
       afterPaymentToAccountBalacne-beforePaymentToAccountBalance should be (BigDecimal(12))
     }
     Scenario("Successful case - big amount -- do not change the balance", BerlinGroupV1_3, PIS, initiatePayment) {
-      val accountsRoutingIban = BankAccountRouting.findAll(By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString))
+      val accountsRoutingIban = DoobieBankAccountRoutingQueries.findAllByScheme(AccountRoutingScheme.IBAN.toString)
       val acountRoutingIbanFrom = accountsRoutingIban.head
       val acountRoutingIbanTo = accountsRoutingIban.last
 
@@ -205,7 +206,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
     }
   }
 
-  private def grantAccountAccess(acountRoutingIbanFrom: BankAccountRouting) = {
+  private def grantAccountAccess(acountRoutingIbanFrom: BankAccountRoutingRow) = {
     org.scalameta.logger.elem(Views.views.vend.systemView(ViewId(SYSTEM_INITIATE_PAYMENTS_BERLIN_GROUP_VIEW_ID)))
     Views.views.vend.systemView(ViewId(SYSTEM_INITIATE_PAYMENTS_BERLIN_GROUP_VIEW_ID)).flatMap(view =>
       // Grant account access
@@ -219,7 +220,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
 
   Feature(s"test the BG v1.3 -${getPaymentInformation.name}") {
     Scenario("Successful case ", BerlinGroupV1_3, PIS, initiatePayment) {
-      val accountsRoutingIban = BankAccountRouting.findAll(By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString))
+      val accountsRoutingIban = DoobieBankAccountRoutingQueries.findAllByScheme(AccountRoutingScheme.IBAN.toString)
       val ibanFrom = accountsRoutingIban.head.accountRouting.address
       val ibanTo = accountsRoutingIban.last.accountRouting.address
 
@@ -263,7 +264,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
   }
   Feature(s"test the BG v1.3 -${getPaymentInitiationStatus.name}") {
     Scenario("Successful case ", BerlinGroupV1_3, PIS, initiatePayment) {
-      val accountsRoutingIban = BankAccountRouting.findAll(By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString))
+      val accountsRoutingIban = DoobieBankAccountRoutingQueries.findAllByScheme(AccountRoutingScheme.IBAN.toString)
       val ibanFrom = accountsRoutingIban.head.accountRouting.address
       val ibanTo = accountsRoutingIban.last.accountRouting.address
 
@@ -312,7 +313,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
       response.body.extract[ErrorMessagesBG].tppMessages.head.text should startWith (InvalidTransactionRequestId)
     }
     Scenario(s"Successful Case ", BerlinGroupV1_3, PIS, startPaymentAuthorisationTransactionAuthorisation) {
-      val accountsRoutingIban = BankAccountRouting.findAll(By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString)).filterNot(_.bankId.value == "DEFAULT_BANK_ID_NOT_SET")
+      val accountsRoutingIban = DoobieBankAccountRoutingQueries.findAllByScheme(AccountRoutingScheme.IBAN.toString).filterNot(_.bankId.value == "DEFAULT_BANK_ID_NOT_SET")
       val acountRoutingIbanFrom = accountsRoutingIban.head
       val acountRoutingIbanTo = accountsRoutingIban.last
 
@@ -492,7 +493,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
     
     Scenario(s"${cancelPayment.name} Failed Case - Cannot Cancel Completed Payment", BerlinGroupV1_3, PIS, cancelPayment) {
       
-      val accountsRoutingIban = BankAccountRouting.findAll(By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString))
+      val accountsRoutingIban = DoobieBankAccountRoutingQueries.findAllByScheme(AccountRoutingScheme.IBAN.toString)
       val ibanFrom = accountsRoutingIban.head.accountRouting.address
       val ibanTo = accountsRoutingIban.last.accountRouting.address
 
@@ -551,7 +552,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
     
     Scenario(s"Successful Case - Cancel payment with SCA (HTTP 202)", BerlinGroupV1_3, PIS, cancelPayment) {
 
-      val accountsRoutingIban = BankAccountRouting.findAll(By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString))
+      val accountsRoutingIban = DoobieBankAccountRoutingQueries.findAllByScheme(AccountRoutingScheme.IBAN.toString)
       val ibanFrom = accountsRoutingIban.head.accountRouting.address
       val ibanTo = accountsRoutingIban.last.accountRouting.address
 
@@ -627,7 +628,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
     
     Scenario(s"Successful Case - Direct cancel payment without SCA (HTTP 204)", BerlinGroupV1_3, PIS, cancelPayment) {
       
-      val accountsRoutingIban = BankAccountRouting.findAll(By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString))
+      val accountsRoutingIban = DoobieBankAccountRoutingQueries.findAllByScheme(AccountRoutingScheme.IBAN.toString)
       val ibanFrom = accountsRoutingIban.head.accountRouting.address
       val ibanTo = accountsRoutingIban.last.accountRouting.address
 
@@ -777,11 +778,11 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
   // over the challenge threshold, so it sits awaiting SCA — the state in which a hijacked
   // authorisation would actually move money. Shared rather than repeated because what each scenario
   // is about is what happens *after* this, and three copies of the lodging made that hard to see.
-  private def ibanAccounts = BankAccountRouting
-    .findAll(By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString))
+  private def ibanAccounts = DoobieBankAccountRoutingQueries
+    .findAllByScheme(AccountRoutingScheme.IBAN.toString)
     .filterNot(_.bankId.value == "DEFAULT_BANK_ID_NOT_SET")
 
-  private def balanceOf(routing: BankAccountRouting) = MappedBankAccount.find(
+  private def balanceOf(routing: BankAccountRoutingRow) = MappedBankAccount.find(
     By(MappedBankAccount.bank, routing.bankId.value),
     By(MappedBankAccount.theAccountId, routing.accountId.value))
     .map(_.balance).openOrThrowException("Can not be empty here")
@@ -790,7 +791,7 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
     V1_3_BG / PaymentServiceTypes.payments.toString / TransactionRequestTypes.SEPA_CREDIT_TRANSFERS.toString / paymentId
 
   /** Lodges a payment as user1 and returns its id alongside the two accounts it moves between. */
-  private def lodgePaymentAsUser1(): (String, BankAccountRouting, BankAccountRouting) = {
+  private def lodgePaymentAsUser1(): (String, BankAccountRoutingRow, BankAccountRoutingRow) = {
     val ibanFrom = ibanAccounts.head
     val ibanTo = ibanAccounts.last
     grantAccountAccess(ibanFrom)

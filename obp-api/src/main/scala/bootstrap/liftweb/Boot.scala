@@ -925,7 +925,6 @@ object ToSchemify extends MdcLoggable {
     code.mandate.SignatoryPanel,
     MappedBank,
     MappedBankAccount,
-    BankAccountRouting,
     MappedTransaction,
     DoubleEntryBookTransaction,
     MappedCustomerMessage,

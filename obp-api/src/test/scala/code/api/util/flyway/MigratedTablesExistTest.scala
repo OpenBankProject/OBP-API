@@ -53,7 +53,8 @@ class MigratedTablesExistTest extends ServerSetup {
     "mappedcustomeridmapping",
     "mappedbankaccountdata",
     "apicollection",
-    "mappedbadloginattempt"
+    "mappedbadloginattempt",
+    "bankaccountrouting"
   )
 
   /**
@@ -97,7 +98,9 @@ class MigratedTablesExistTest extends ServerSetup {
     "MAPPEDBANKACCOUNTDATA" -> "MAPPEDBANKACCOUNTDATA_BANKID_ACCOUNTID",
     "APICOLLECTION" -> "APICOLLECTION_APICOLLECTIONID",
     "APICOLLECTION" -> "APICOLLECTION_USERID_APICOLLECTIONNAME",
-    "MAPPEDBADLOGINATTEMPT" -> "MAPPEDBADLOGINATTEMPT_PROVIDER_MUSERNAME"
+    "MAPPEDBADLOGINATTEMPT" -> "MAPPEDBADLOGINATTEMPT_PROVIDER_MUSERNAME",
+    "BANKACCOUNTROUTING" -> "BANKACCOUNTROUTING_BANKID_ACCOUNTID_ACCOUNTROUTINGSCHEME",
+    "BANKACCOUNTROUTING" -> "BANKACCOUNTROUTING_BANKID_ACCOUNTROUTINGSCHEME_ACCOUNTROUTINGADDRESS"
   )
 
   Feature("tables owned by Flyway rather than Schemifier") {

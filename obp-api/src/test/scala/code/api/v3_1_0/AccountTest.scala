@@ -16,7 +16,6 @@ import code.api.v3_0_0.OBPAPI3_0_0.Implementations3_0_0
 import code.api.v3_1_0.OBPAPI3_1_0.Implementations3_1_0
 import code.api.v2_0_0.OBPAPI2_0_0.Implementations2_0_0
 import code.entitlement.Entitlement
-import code.model.dataAccess.BankAccountRouting
 import code.setup.DefaultUsers
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.enums.AccountRoutingScheme

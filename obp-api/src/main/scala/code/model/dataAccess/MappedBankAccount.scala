@@ -2,6 +2,7 @@ package code.model.dataAccess
 
 import java.util.Date
 
+import code.bankconnectors.DoobieBankAccountRoutingQueries
 import code.util.{AccountIdString, Helper, MappedAccountNumber, UUIDString}
 import com.openbankproject.commons.model._
 import net.liftweb.mapper._
@@ -65,8 +66,7 @@ class MappedBankAccount extends BankAccount with LongKeyedMapper[MappedBankAccou
     }
   }
   override def accountRoutings: List[AccountRouting] = {
-    BankAccountRouting.findAll(By(BankAccountRouting.BankId, this.bankId.value),
-      By(BankAccountRouting.AccountId, this.accountId.value))
+    DoobieBankAccountRoutingQueries.findAllByBankAccount(this.bankId, this.accountId)
       .map(_.accountRouting)
   }
   override def accountRules: List[AccountRule] = createAccountRule(accountRuleScheme1.get, accountRuleValue1.get) :::

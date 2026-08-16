@@ -135,6 +135,7 @@ class SandboxDataLoadingTest extends AnyFlatSpec with SendServerRequests with Ma
     DoobieUtil.runUpdate(sql"DELETE FROM mappedbankaccountdata".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM apicollection".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM mappedbadloginattempt".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM bankaccountrouting".update.run)
 
     //we need to delete the test uses manully here.
     AuthUser.bulkDelete_!!(By(AuthUser.username, user1Import.user_name))
@@ -1096,7 +1097,7 @@ class SandboxDataLoadingTest extends AnyFlatSpec with SendServerRequests with Ma
     val banks = standardBanks
 
     def getResponse(accountJsons : List[JValue]) = {
-      BankAccountRouting.bulkDelete_!!()
+      DoobieUtil.runUpdate(sql"DELETE FROM bankaccountrouting".update.run)
       val json = createImportJson(banks.map(Extraction.decompose), users.map(Extraction.decompose), accountJsons, Nil, Nil, Nil, Nil, Nil)
       postImportJson(json)
     }
@@ -1152,7 +1153,7 @@ class SandboxDataLoadingTest extends AnyFlatSpec with SendServerRequests with Ma
   it should "require transactions to have non-empty ids" in {
 
     def getResponse(transactionJsons : List[JValue]) = {
-      BankAccountRouting.bulkDelete_!!()
+      DoobieUtil.runUpdate(sql"DELETE FROM bankaccountrouting".update.run)
       val json = createImportJson(standardBanks.map(Extraction.decompose),
         standardUsers.map(Extraction.decompose), standardAccounts.map(Extraction.decompose), transactionJsons, Nil, Nil, Nil, Nil)
       postImportJson(json)
@@ -1184,7 +1185,7 @@ class SandboxDataLoadingTest extends AnyFlatSpec with SendServerRequests with Ma
   it should "require transactions for a single account do not have the same id" in {
 
     def getResponse(transactionJsons : List[JValue]) = {
-      BankAccountRouting.bulkDelete_!!()
+      DoobieUtil.runUpdate(sql"DELETE FROM bankaccountrouting".update.run)
       val json = createImportJson(standardBanks.map(Extraction.decompose),
         standardUsers.map(Extraction.decompose), standardAccounts.map(Extraction.decompose), transactionJsons, Nil, Nil, Nil, Nil)
       postImportJson(json)
@@ -1253,7 +1254,7 @@ class SandboxDataLoadingTest extends AnyFlatSpec with SendServerRequests with Ma
     val accounts = standardAccounts
 
     def getResponse(transactionJsons : List[JValue]) = {
-      BankAccountRouting.bulkDelete_!!()
+      DoobieUtil.runUpdate(sql"DELETE FROM bankaccountrouting".update.run)
       val json = createImportJson(banks.map(Extraction.decompose),
         users.map(Extraction.decompose), accounts.map(Extraction.decompose), transactionJsons, Nil, Nil, Nil, Nil)
       postImportJson(json)
@@ -1644,7 +1645,7 @@ class SandboxDataLoadingTest extends AnyFlatSpec with SendServerRequests with Ma
     val (banks, users, accounts) = (standardBanks, standardUsers, standardAccounts)
 
     def getResponse(transactionJsons : List[JValue]) = {
-      BankAccountRouting.bulkDelete_!!()
+      DoobieUtil.runUpdate(sql"DELETE FROM bankaccountrouting".update.run)
       val json = createImportJson(banks.map(Extraction.decompose),
         users.map(Extraction.decompose), accounts.map(Extraction.decompose), transactionJsons, Nil, Nil, Nil, Nil)
       postImportJson(json)
@@ -1698,7 +1699,7 @@ class SandboxDataLoadingTest extends AnyFlatSpec with SendServerRequests with Ma
     val (banks, users, accounts) = (standardBanks, standardUsers, standardAccounts)
 
     def getResponse(transactionJsons : List[JValue]) = {
-      BankAccountRouting.bulkDelete_!!()
+      DoobieUtil.runUpdate(sql"DELETE FROM bankaccountrouting".update.run)
       val json = createImportJson(banks.map(Extraction.decompose),
         users.map(Extraction.decompose), accounts.map(Extraction.decompose), transactionJsons, Nil, Nil, Nil, Nil)
       postImportJson(json)

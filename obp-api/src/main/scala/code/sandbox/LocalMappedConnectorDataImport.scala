@@ -4,7 +4,8 @@ import code.atms.Atms
 import code.branches.MappedBranch
 import code.crm.MappedCrmEvent
 import code.metadata.counterparties.MappedCounterpartyMetadata
-import code.model.dataAccess.{BankAccountRouting, MappedBank, MappedBankAccount}
+import code.bankconnectors.DoobieBankAccountRoutingQueries
+import code.model.dataAccess.{MappedBank, MappedBankAccount}
 import code.products.MappedProduct
 import code.transaction.MappedTransaction
 import code.views.Views
@@ -210,12 +211,7 @@ object LocalMappedConnectorDataImport extends OBPDataImport with CreateAuthUsers
       balance <- tryo{BigDecimal(acc.balance.amount)} ?~ s"Invalid balance: ${acc.balance.amount}"
       currency = acc.balance.currency
     } yield {
-      BankAccountRouting.create
-        .BankId(acc.bank)
-        .AccountId(acc.id)
-        .AccountRoutingScheme(AccountRoutingScheme.IBAN.toString)
-        .AccountRoutingAddress(acc.IBAN)
-        .saveMe()
+      DoobieBankAccountRoutingQueries.create(BankId(acc.bank), AccountId(acc.id), AccountRoutingScheme.IBAN.toString, acc.IBAN)
       MappedBankAccount.create
         .theAccountId(acc.id)
         .bank(acc.bank)

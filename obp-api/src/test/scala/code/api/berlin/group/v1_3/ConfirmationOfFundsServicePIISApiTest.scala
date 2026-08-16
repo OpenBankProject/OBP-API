@@ -7,7 +7,8 @@ import code.api.berlin.group.v1_3.{Http4sBGv13PIIS => APIMethods_ConfirmationOfF
 import code.api.util.APIUtil.OAuth._
 import code.api.util.CustomJsonFormats
 import code.api.util.ErrorMessages.{BankAccountNotFound, BankAccountNotFoundByIban, InvalidJsonContent, InvalidJsonFormat}
-import code.model.dataAccess.{BankAccountRouting, MappedBankAccount}
+import code.bankconnectors.DoobieBankAccountRoutingQueries
+import code.model.dataAccess.MappedBankAccount
 import code.setup.{APIResponse, DefaultUsers}
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.enums.AccountRoutingScheme
@@ -55,7 +56,7 @@ class ConfirmationOfFundsServicePIISApiTest extends BerlinGroupServerSetupV1_3 w
     }
     
     Scenario("Success case - Enough Funds", BerlinGroupV1_3, PIIS, checkAvailabilityOfFunds) {
-      val accountsIban = BankAccountRouting.findAll(By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString))
+      val accountsIban = DoobieBankAccountRoutingQueries.findAllByScheme(AccountRoutingScheme.IBAN.toString)
       val iban = accountsIban.head.accountRouting.address
       
       val checkAvailabilityOfFundsJsonBody = json.parse(
@@ -79,7 +80,7 @@ class ConfirmationOfFundsServicePIISApiTest extends BerlinGroupServerSetupV1_3 w
     }
 
     Scenario("Success case - Not Enough Funds", BerlinGroupV1_3, PIIS, checkAvailabilityOfFunds) {
-      val accountsIban = BankAccountRouting.findAll(By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString))
+      val accountsIban = DoobieBankAccountRoutingQueries.findAllByScheme(AccountRoutingScheme.IBAN.toString)
       val iban = accountsIban.head.accountRouting.address
       val account = MappedBankAccount.find(
         By(MappedBankAccount.bank, accountsIban.head.bankId.value),
