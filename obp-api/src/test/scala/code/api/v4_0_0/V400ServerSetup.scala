@@ -18,7 +18,6 @@ import code.api.v3_1_0._
 import code.consumer.Consumers
 import code.entitlement.Entitlement
 import code.metadata.transactionimages.MappedTransactionImage
-import code.metadata.wheretags.MappedWhereTag
 import code.setup.{APIResponse, DefaultUsers, ServerSetupWithTestData}
 import code.transactionattribute.MappedTransactionAttribute
 import com.openbankproject.commons.model.{AccountId, AccountRoutingJsonV121, AmountOfMoneyJsonV121, BankId, CreateViewJson, TransactionId, UpdateViewJSON, ViewId}
@@ -346,11 +345,10 @@ trait V400ServerSetup extends ServerSetupWithTestData with DefaultUsers {
       By(MappedTransactionImage.account, accountId),
       By(MappedTransactionImage.transaction, transactionId)
     ).size == 0
-    val whereTag = MappedWhereTag.find(
-      By(MappedWhereTag.bank, bankId),
-      By(MappedWhereTag.account, accountId),
-      By(MappedWhereTag.transaction, transactionId)
-    ).size == 0
+    // Where tags are Doobie-backed now; ask the provider per view, as with comments above.
+    val whereTag = List("owner", "auditor", "accountant").forall(v =>
+      code.metadata.wheretags.WhereTags.whereTags.vend
+        .getWhereTagForTransaction(BankId(bankId), AccountId(accountId), TransactionId(transactionId))(ViewId(v)).isEmpty)
     List(attributes, comments, narrative, images, whereTag).forall(_ == true)
   }
   

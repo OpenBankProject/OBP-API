@@ -100,7 +100,6 @@ import code.loginattempts.{LoginAttempt, MappedBadLoginAttempt}
 import code.meetings.{MappedMeeting, MappedMeetingInvitee}
 import code.metadata.counterparties.{MappedCounterparty, MappedCounterpartyBespoke, MappedCounterpartyMetadata, MappedCounterpartyWhereTag}
 import code.metadata.transactionimages.MappedTransactionImage
-import code.metadata.wheretags.MappedWhereTag
 import code.methodrouting.MethodRouting
 import code.metrics.{ConnectorTrace, MappedConnectorMetric, MappedMetric, MetricArchive, MetricsArchiveRun}
 import code.migration.MigrationScriptLog
@@ -1008,7 +1007,6 @@ object ToSchemify extends MdcLoggable {
     UserInvitation,
     UserAgreement,
     UserAttribute,
-    MappedWhereTag,
     MappedTransactionImage,
     MappedCustomer,
     MappedUserCustomerLink,

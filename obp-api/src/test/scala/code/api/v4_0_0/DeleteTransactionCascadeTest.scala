@@ -8,7 +8,6 @@ import code.api.util.ErrorMessages.{UserHasMissingRoles, AuthenticatedUserIsRequ
 import code.api.v4_0_0.OBPAPI4_0_0.Implementations4_0_0
 import code.entitlement.Entitlement
 import code.metadata.transactionimages.MappedTransactionImage
-import code.metadata.wheretags.MappedWhereTag
 import code.transactionattribute.MappedTransactionAttribute
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.ErrorMessage

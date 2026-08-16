@@ -160,6 +160,7 @@ trait ServerSetup extends AnyFeatureSpec with SendServerRequests
     DoobieUtil.runUpdate(sql"DELETE FROM mappednarrative".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM mappedcomment".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM mappedtag".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM mappedwheretag".update.run)
   }
 
   val server = TestServer
