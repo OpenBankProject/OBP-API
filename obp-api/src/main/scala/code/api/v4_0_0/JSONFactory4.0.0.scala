@@ -52,7 +52,7 @@ import code.loginattempts.LoginAttempt
 import code.model.dataAccess.ResourceUser
 import code.model.{Consumer, ModeratedBankAccount, ModeratedBankAccountCore}
 import code.ratelimiting.RateLimiting
-import code.userlocks.UserLocks
+import code.userlocks.UserLocksTrait
 import code.users.{UserAgreement, UserAttribute, UserInvitation}
 import code.views.system.AccountAccess
 import code.webhook.{BankAccountNotificationWebhookTrait, SystemAccountNotificationWebhookTrait}
@@ -1600,7 +1600,7 @@ object JSONFactory400 {
     AttributeDefinitionsResponseJsonV400(attributeDefinitions.map(createAttributeDefinitionJson))
   }
 
-  def createUserLockStatusJson(userLock: UserLocks) : UserLockStatusJson = {
+  def createUserLockStatusJson(userLock: UserLocksTrait) : UserLockStatusJson = {
     UserLockStatusJson(
       userLock.userId,
       userLock.typeOfLock,

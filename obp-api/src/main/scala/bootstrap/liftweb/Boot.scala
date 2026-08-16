@@ -131,7 +131,6 @@ import code.messageoutbox.{MessageOutbox, MessageOutboxRelay}
 import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequestTypeCharge, TransactionRequestReasons}
 import code.usercustomerlinks.MappedUserCustomerLink
 import code.customerlinks.CustomerLink
-import code.userlocks.UserLocks
 import code.users._
 import code.util.Helper.MdcLoggable
 import code.views.Views
@@ -953,7 +952,6 @@ object ToSchemify extends MdcLoggable {
     MappedPhysicalCard,
     PinReset,
     MappedBadLoginAttempt,
-    UserLocks,
     MappedFXRate,
     MappedCurrency,
     MappedTransactionRequestTypeCharge,

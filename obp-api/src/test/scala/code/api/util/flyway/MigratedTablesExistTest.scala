@@ -40,7 +40,8 @@ class MigratedTablesExistTest extends ServerSetup {
     "jsonschemavalidation",
     "mappedtransactiontype",
     "etag",
-    "authenticationtypevalidation"
+    "authenticationtypevalidation",
+    "userlocks"
   )
 
   /**
@@ -64,7 +65,8 @@ class MigratedTablesExistTest extends ServerSetup {
     "MAPPEDTRANSACTIONTYPE" -> "MAPPEDTRANSACTIONTYPE_MTRANSACTIONTYPEID",
     "MAPPEDTRANSACTIONTYPE" -> "MAPPEDTRANSACTIONTYPE_MBANKID_MSHORTCODE",
     "ETAG" -> "ETAG_ETAGRESOURCE",
-    "AUTHENTICATIONTYPEVALIDATION" -> "AUTHENTICATIONTYPEVALIDATION_OPERATIONID"
+    "AUTHENTICATIONTYPEVALIDATION" -> "AUTHENTICATIONTYPEVALIDATION_OPERATIONID",
+    "USERLOCKS" -> "USERLOCKS_USERID"
   )
 
   Feature("tables owned by Flyway rather than Schemifier") {

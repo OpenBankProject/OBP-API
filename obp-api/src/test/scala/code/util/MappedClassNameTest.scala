@@ -30,7 +30,6 @@ class MappedClassNameTest extends AnyFeatureSpec {
     "code.model.Token",
     "code.transaction.MappedTransaction",
     "code.metadata.comments.MappedComment",
-    "code.userlocks.UserLocks",
     "code.kycchecks.MappedKycCheck",
     "code.metadata.counterparties.MappedCounterpartyWhereTag",
     "code.metadata.counterparties.MappedCounterpartyBespoke",
