@@ -80,7 +80,6 @@ import code.endpointMapping.EndpointMapping
 import code.endpointTag.EndpointTag
 import code.entitlement.{Entitlement, MappedEntitlement}
 import code.entitlementrequest.MappedEntitlementRequest
-import code.featuredapicollection.FeaturedApiCollection
 import code.fx.{MappedCurrency, MappedFXRate}
 import code.group.Group
 import code.organisation.Organisation
@@ -976,7 +975,6 @@ object ToSchemify extends MdcLoggable {
     ApiCollection,
     ApiProduct,
     ApiProductAttribute,
-    FeaturedApiCollection,
     DynamicResourceDoc,
     DynamicMessageDoc,
     EndpointTag,

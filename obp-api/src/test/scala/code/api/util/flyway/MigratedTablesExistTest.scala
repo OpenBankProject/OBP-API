@@ -43,7 +43,8 @@ class MigratedTablesExistTest extends ServerSetup {
     "authenticationtypevalidation",
     "userlocks",
     "connectormethod",
-    "apicollectionendpoint"
+    "apicollectionendpoint",
+    "featuredapicollection"
   )
 
   /**
@@ -72,7 +73,9 @@ class MigratedTablesExistTest extends ServerSetup {
     "CONNECTORMETHOD" -> "CONNECTORMETHOD_CONNECTORMETHODID",
     "CONNECTORMETHOD" -> "CONNECTORMETHOD_METHODNAME",
     "APICOLLECTIONENDPOINT" -> "APICOLLECTIONENDPOINT_APICOLLECTIONENDPOINTID",
-    "APICOLLECTIONENDPOINT" -> "APICOLLECTIONENDPOINT_APICOLLECTIONID_OPERATIONID"
+    "APICOLLECTIONENDPOINT" -> "APICOLLECTIONENDPOINT_APICOLLECTIONID_OPERATIONID",
+    "FEATUREDAPICOLLECTION" -> "FEATUREDAPICOLLECTION_FEATUREDAPICOLLECTIONID",
+    "FEATUREDAPICOLLECTION" -> "FEATUREDAPICOLLECTION_APICOLLECTIONID"
   )
 
   Feature("tables owned by Flyway rather than Schemifier") {
