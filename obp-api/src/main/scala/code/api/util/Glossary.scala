@@ -3738,6 +3738,47 @@ object Glossary extends MdcLoggable  {
 """.stripMargin)
 
 	glossaryItems += GlossaryItem(
+		title = "Resource Doc",
+		description =
+			s"""
+|A Resource Doc is the machine readable definition / description of an OBP Endpoint.
+|
+|The aim is that as much endpoint definition as possible is *defined first* within the Resource Doc making the Resource Doc the canonical source of truth about the endpoints structure and behaviour.
+|
+|In total Resource Docs form the server registry of the API: every Endpoint, static or dynamic, is registered in the running server with its Resource Doc, and that registry is the source of truth about the API surface.
+|
+|Note that the Resource Docs (like the Glossary) can contain instance variables about the OBP-API instance that is running, so HOSTNAMES and various configuration settings are automatically correct.
+|
+|An OBP API instance only serves resource docs about endpoints that are actually enabled so any client (e.g. the OBP MCP Server or API Explorer) can use them as a capability discovery channel.
+|
+|
+|Each Resource Doc includes:
+|
+|  1) The Operation ID / Scala Partial Function name (the source code / function that runs the endpoint) which uniquely identifies the Endpoint (e.g. getCoreAccountById)
+|  2) The API version the Endpoint is implemented in
+|  3) The request verb (GET, POST, PUT, DELETE etc.) and URL path
+|  4) A summary and a longer description (markdown)
+|  5) An example request body and a successful response body. These are generated from the actual Scala case classes the Endpoint uses, so field names and types reflect the real implementation rather than separately maintained documentation.
+|  6) The possible error responses
+|  7) Tags used to group Endpoints in the API Explorer and filter Resource Docs
+|  8) The Roles (Entitlements) required to call the Endpoint. Roles declared in the Resource Doc are automatically checked by the framework at runtime.
+|  9) Connector methods the Endpoint depends on (linking to the related Message Docs)
+|
+|Because the Resource Doc registry lives inside the running server, it differs from a published OpenAPI file in two important ways:
+|
+|* The arrow of generation points from code to documentation: the Swagger / OpenAPI documents that OBP publishes are generated *from* the Resource Docs, not maintained alongside the code. This avoids documentation drift.
+|
+|* It covers Endpoints created at runtime: Dynamic Endpoints and the auto-generated CRUD Endpoints for Dynamic Entities get Resource Docs when they are created, so per-bank custom APIs are documented by the same mechanism as the static Endpoints - something a static, pre-published API description cannot do.
+|
+|Resource Docs are available over the Resource Doc endpoints in OBP format (which includes OBP specific metadata such as Roles, Tags and Connector methods) and in Swagger / OpenAPI format. They can be filtered by tags, functions and API collections.
+|
+|As mentioned above, Resource Docs power the API Explorer interface and are the natural foundation for programmatic consumers of the API surface: SDK generators, API management tooling and AI assistants (such as [Opey](/glossary#Opey) and [OBP-MCP](/glossary#OBP-MCP)) that need to discover, select and validate calls to Endpoints.
+|
+|See also [Endpoint](/glossary#Endpoint), [Static Endpoint](/glossary#Static-Endpoint), [Dynamic Endpoint Manage](/glossary#Dynamic-Endpoint-Manage), [Message Doc](/glossary#Message-Doc)
+|
+""".stripMargin)
+
+	glossaryItems += GlossaryItem(
 		title = "Message Doc",
 		description =
 			s"""
@@ -5869,7 +5910,7 @@ object Glossary extends MdcLoggable  {
 				 |
 				 |- **Documentation / discovery** — `list_endpoints_by_tag`, `get_endpoint_schema`, glossary tools. Served from local JSON, no network.
 				 |- **Business calls** — `call_obp_api` proxies whatever the endpoint declares: `GET /banks/{BANK_ID}/accounts`, `POST .../transaction-requests/SEPA`, `PUT /accounts/{ACC}/label`, `DELETE /my/consents/{CONSENT_ID}`, etc. Real money / data moves.
-				 |- **Index refresh** — at startup and on a timer, OBP-MCP re-fetches OBP's resource-docs and swagger to rebuild the local indexes, so discovery stays fast and offline.
+				 |- **Index refresh** — at startup and on a timer, OBP-MCP re-fetches OBP's [Resource Docs](/glossary#Resource-Doc) and swagger to rebuild the local indexes, so discovery stays fast and offline.
 				 |
 				 |## Authentication and authorization
 				 |
@@ -5894,7 +5935,7 @@ object Glossary extends MdcLoggable  {
 				 |
 				 |OBP-MCP is the canonical way to make Open Bank Project endpoints **agent-callable**. Instead of teaching every LLM about every endpoint up front, the LLM is given five generic tools and lets the indexes and schemas guide it to the right call at runtime. The same server can serve internal agents (Opey) and external clients (Claude Desktop, IDE plugins, third-party agents) by switching auth providers.
 				 |
-				 |See also: [Opey](/glossary#Opey), [Consent](/glossary#Consent), [Authentication: OAuth 2.0](/glossary#Authentication:-OAuth-2.0).
+				 |See also: [Opey](/glossary#Opey), [Resource Doc](/glossary#Resource-Doc), [Consent](/glossary#Consent), [Authentication: OAuth 2.0](/glossary#Authentication:-OAuth-2.0).
 				 |
 """)
 
@@ -5958,7 +5999,7 @@ object Glossary extends MdcLoggable  {
 				 |
 				 |**OBP-MCP is the *tool surface* over OBP-API. Opey II is the *agent* that drives it.** Before OBP-MCP, Opey had to be both. Now OBP-MCP provides discovery and authenticated calls as a generic, multi-client surface (Claude Desktop, IDE plugins, third-party agents can all use it), and Opey II becomes a thinner, more focused orchestrator: planning, approvals, conversation state, streaming, and the chat UX that OBP-Portal embeds.
 				 |
-				 |See also: [OBP-MCP](/glossary#OBP-MCP), [Consent](/glossary#Consent), [Authentication: OAuth 2.0](/glossary#Authentication:-OAuth-2.0).
+				 |See also: [OBP-MCP](/glossary#OBP-MCP), [Resource Doc](/glossary#Resource-Doc), [Consent](/glossary#Consent), [Authentication: OAuth 2.0](/glossary#Authentication:-OAuth-2.0).
 				 |
 """)
 
