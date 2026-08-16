@@ -3,7 +3,9 @@ package code.api.ResourceDocs1_4_0
 import code.api.v1_4_0.JSONFactory1_4_0
 import org.json4s.JsonAST.{JNothing, JValue}
 import org.json4s.native.JsonMethods.parse
-import org.scalatest.{FlatSpec, Matchers}
+import org.json4s.jvalue2monadic
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 /**
  * Covers OpenAPI31JSONFactory, which had no test of any kind.
@@ -16,7 +18,7 @@ import org.scalatest.{FlatSpec, Matchers}
  *
  * These are unit tests over the factory, not the endpoint: no server, no resource-docs fetch.
  */
-class OpenAPI31FactoryTest extends FlatSpec with Matchers {
+class OpenAPI31FactoryTest extends AnyFlatSpec with Matchers {
 
   private def doc(operationId: String, typedBody: JValue): JSONFactory1_4_0.ResourceDocJson =
     JSONFactory1_4_0.ResourceDocJson(
