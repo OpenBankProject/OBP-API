@@ -137,7 +137,6 @@ import code.customerlinks.CustomerLink
 import code.userlocks.UserLocks
 import code.users._
 import code.util.Helper.MdcLoggable
-import code.validation.JsonSchemaValidation
 import code.views.Views
 import code.views.system.{AccountAccess, ViewDefinition, ViewPermission}
 import code.webhook.{BankAccountNotificationWebhook, MappedAccountWebhook, SystemAccountNotificationWebhook}
@@ -988,7 +987,6 @@ object ToSchemify extends MdcLoggable {
     ApiProduct,
     ApiProductAttribute,
     FeaturedApiCollection,
-    JsonSchemaValidation,
     AuthenticationTypeValidation,
     ConnectorMethod,
     DynamicResourceDoc,
