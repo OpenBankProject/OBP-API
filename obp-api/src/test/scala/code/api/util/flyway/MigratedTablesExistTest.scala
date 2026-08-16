@@ -39,10 +39,48 @@ class MigratedTablesExistTest extends ServerSetup {
     "consent_item",
     "jsonschemavalidation",
     "mappedtransactiontype",
-    "etag"
+    "etag",
+    "authenticationtypevalidation"
+  )
+
+  /**
+   * Unique indexes the migrated tables must still have, as index_name per table.
+   *
+   * These are the ones Schemifier built from dbIndexes-declared UniqueIndex. They need their own
+   * assertion because FlywayBaselineExport does not emit them: a table copied straight out of
+   * that export looks complete and quietly loses its unique constraint, which does not fail -
+   * inserts that should have been rejected simply start succeeding. Only tables that genuinely
+   * have one are listed; most migrated tables have none.
+   *
+   * When a table moves off Mapper, read the truth from a booted instance before writing its
+   * migration:
+   *   SELECT table_name, index_name, index_type_name FROM information_schema.indexes
+   *   WHERE table_name = 'YOUR_TABLE';
+   * and add every UNIQUE INDEX row both to the Flyway script and to this list.
+   */
+  private val expectedUniqueIndexes = List(
+    "PRODUCTTAG" -> "PRODUCTTAG_BANKID_PRODUCTCODE_TAG",
+    "JSONSCHEMAVALIDATION" -> "JSONSCHEMAVALIDATION_OPERATIONID",
+    "MAPPEDTRANSACTIONTYPE" -> "MAPPEDTRANSACTIONTYPE_MTRANSACTIONTYPEID",
+    "MAPPEDTRANSACTIONTYPE" -> "MAPPEDTRANSACTIONTYPE_MBANKID_MSHORTCODE",
+    "ETAG" -> "ETAG_ETAGRESOURCE",
+    "AUTHENTICATIONTYPEVALIDATION" -> "AUTHENTICATIONTYPEVALIDATION_OPERATIONID"
   )
 
   Feature("tables owned by Flyway rather than Schemifier") {
+
+    Scenario("the unique indexes survived the move to Flyway") {
+      val actual = DoobieUtil.runQuery(
+        sql"""SELECT table_name, index_name FROM information_schema.indexes
+              WHERE index_type_name = 'UNIQUE INDEX'"""
+          .query[(String, String)].to[List]).toSet
+
+      expectedUniqueIndexes.foreach { case (table, index) =>
+        withClue(s"unique index $index on $table is missing - its Flyway script does not create it: ") {
+          actual should contain(table -> index)
+        }
+      }
+    }
 
     Scenario("each migrated table exists and is queryable") {
       migratedTables.foreach { table =>

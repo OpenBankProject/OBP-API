@@ -56,7 +56,6 @@ import code.apicollectionendpoint.ApiCollectionEndpoint
 import code.apiproduct.ApiProduct
 import code.apiproductattribute.ApiProductAttribute
 import code.atmattribute.AtmAttribute
-import code.authtypevalidation.AuthenticationTypeValidation
 import code.bankaccountbalance.BankAccountBalance
 import code.bankattribute.BankAttribute
 import code.bankconnectors.{Connector, ConnectorEndpoints}
@@ -983,7 +982,6 @@ object ToSchemify extends MdcLoggable {
     ApiProduct,
     ApiProductAttribute,
     FeaturedApiCollection,
-    AuthenticationTypeValidation,
     ConnectorMethod,
     DynamicResourceDoc,
     DynamicMessageDoc,
