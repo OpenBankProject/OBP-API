@@ -165,15 +165,32 @@ Filtering those leaves three genuine cross-boundary sites:
 Only the generic `MetaMapper[_]` carries the `T forSome` existential; `BaseMetaMapper` has no type
 parameter and nothing to degrade.
 
-And the one affected site does not need the generic type. `ToSchemify.models` is consumed at
-exactly one place — `Schemifier.schemify(true, Schemifier.infoF _, ToSchemify.models: _*)` — and
-`javap` shows `schemify` takes `Seq[BaseMetaMapper]`. So annotating it `List[BaseMetaMapper]`
-removes the existential without changing behaviour.
+It is tempting to conclude the affected site does not need the generic type: `schemify` takes
+`Seq[BaseMetaMapper]` (confirmed by `javap`), so `List[BaseMetaMapper]` would remove the
+existential. **That is wrong, and checking every use is what showed it.**
 
-That change is **not** made here: it is preparation for a route nobody has chosen yet. It is
-recorded so the route can be costed honestly — the caveat is one type annotation, not a
-pervasive soundness problem. Still worth re-measuring against the whole entity layer before
-committing; this measured the declared surface, and one entity's compile.
+`ToSchemify.models` has six consumers, not one. Two call `schemify`; the other four are test
+helpers that call `_.bulkDelete_!!()`:
+
+```
+obp-api/src/test/scala/code/setup/ServerSetup.scala:145
+obp-api/src/test/scala/code/setup/LocalMappedConnectorTestSetup.scala:215
+obp-api/src/test/scala/code/setup/TestConnectorSetupWithStandardPermissions.scala:159
+obp-api/src/test/scala/code/api/v2_1_0/SandboxDataLoadingTest.scala:106
+```
+
+`javap` shows `BaseMetaMapper` declares seven schema members — `beforeSchemifier`,
+`afterSchemifier`, `dbTableName`, `_dbTableNameLC`, `mappedFields`, `dbAddTable`, `dbIndexes` —
+and **no `bulkDelete_!!`**. That method is on `MetaMapper`. So narrowing the annotation would not
+be behaviour-preserving; it would fail to compile those four files.
+
+The honest cost, then: this site genuinely needs the generic type, and under a 2.13-entity-layer
+split those four test helpers sit on the Scala 3 side calling a method on a value whose type has
+degraded to `Any`. That is a real boundary problem affecting real code, not a one-line annotation.
+
+No change is made here — this is preparation for a route nobody has chosen. And this measured the
+declared surface plus one entity's compile; the whole entity layer still needs measuring before
+the route is committed to.
 
 ### What is NOT reducible (correcting the line above)
 
