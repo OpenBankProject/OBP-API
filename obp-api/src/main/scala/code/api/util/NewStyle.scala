@@ -3337,7 +3337,9 @@ object NewStyle extends MdcLoggable{
     def createOrUpdateEndpointMapping(bankId: Option[String], endpointMapping: EndpointMappingT, callContext: Option[CallContext]) = {
       validateBankId(bankId, callContext)
       Future {
-        (EndpointMappingProvider.endpointMappingProvider.vend.createOrUpdate(bankId, endpointMapping), callContext)
+        val result = EndpointMappingProvider.endpointMappingProvider.vend.createOrUpdate(bankId, endpointMapping)
+        invalidateEndpointMappingCache()
+        (result, callContext)
       } map {
         i => (connectorEmptyResponse(i._1, callContext), i._2)
       }
@@ -3346,10 +3348,28 @@ object NewStyle extends MdcLoggable{
     def deleteEndpointMapping(bankId: Option[String], endpointMappingId: String, callContext: Option[CallContext]) = {
       validateBankId(bankId, callContext)
       Future {
-        (EndpointMappingProvider.endpointMappingProvider.vend.delete(bankId, endpointMappingId), callContext)
+        val result = EndpointMappingProvider.endpointMappingProvider.vend.delete(bankId, endpointMappingId)
+        invalidateEndpointMappingCache()
+        (result, callContext)
       } map {
         i => (connectorEmptyResponse(i._1, callContext), i._2)
       }
+    }
+
+    /**
+     * Drop every memoized `getEndpointMappings(...)` entry after a mapping is created,
+     * updated, or deleted, so the change takes effect on the next request instead of waiting
+     * out `endpointMapping.cache.ttl.seconds`. Mirrors invalidateMethodRoutingCache: the
+     * memoize key embeds the literal method name, so one pattern delete clears every bankId
+     * variant. No-op / logged when Redis is unavailable (deleteKeysByPattern swallows and
+     * returns 0).
+     *
+     * This became necessary with the cache key fix above. While callContext was part of the
+     * key nothing could ever hit, so a stale entry was unreachable by construction; now that
+     * the cache works, writes have to publish themselves.
+     */
+    private def invalidateEndpointMappingCache(): Unit = {
+      Redis.deleteKeysByPattern("*getEndpointMappings*")
     }
 
     def getEndpointMappingById(bankId: Option[String], endpointMappingId : String, callContext: Option[CallContext]): OBPReturnType[EndpointMappingT] = {
@@ -3374,15 +3394,29 @@ object NewStyle extends MdcLoggable{
 
     private[this] val endpointMappingTTL = APIUtil.getPropsValue(s"endpointMapping.cache.ttl.seconds", "0").toInt
 
+    // The cache key and the cached value both cover the bankId only - callContext is
+    // deliberately excluded from each, which diverges from the macro-era key format at this
+    // site. CallContext carries per-request state (startTime, correlationId, url, verb,
+    // ipAddress, user), so keying on it made the key unique per request and the cache could
+    // never hit.
+    //
+    // Unlike getCurrentFxRateCached, this site was not also leaking Redis keys: the cached
+    // VALUE was the (mappings, callContext) tuple, and chill/Kryo cannot serialize the lambda
+    // reachable through CallContext.resourceDocument (an HttpRoutes[IO]). Every write failed
+    // and cachePut swallowed it as "result served uncached", so setting
+    // endpointMapping.cache.ttl.seconds bought nothing but a WARN per call. Caching only the
+    // mappings fixes that, and it is also what keeps a hit from handing the caller some
+    // earlier request's CallContext.
     def getEndpointMappings(bankId: Option[String], callContext: Option[CallContext]): OBPReturnType[List[EndpointMappingT]] = Future{
       import scala.concurrent.duration._
 
       validateBankId(bankId, callContext)
 
-      val cacheKey = ("code.api.util.NewStyle.function", "getEndpointMappings", List(bankId, callContext).mkString("_"))
-      Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(endpointMappingTTL.second) {
-        {(EndpointMappingProvider.endpointMappingProvider.vend.getAllEndpointMappings(bankId), callContext)}
+      val cacheKey = ("code.api.util.NewStyle.function", "getEndpointMappings", List(bankId).mkString("_"))
+      val endpointMappings = Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(endpointMappingTTL.second) {
+        EndpointMappingProvider.endpointMappingProvider.vend.getAllEndpointMappings(bankId)
       }
+      (endpointMappings, callContext)
     }
     
     /**

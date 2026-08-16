@@ -476,8 +476,15 @@ object LocalMappedConnectorInternal extends MdcLoggable {
     Full(cardList)
   }
 
+  // The rate depends on the bank and the currency pair only. callContext is deliberately left
+  // out of the key, which diverges from the macro-era key format at this site: it carries
+  // per-request state (startTime, correlationId, url, verb, ipAddress, user), so keying on it
+  // made the key unique per request - the cache could never hit and every call wrote a fresh
+  // Redis entry that lived out code.fx.exchangeRate.cache.ttl.seconds. Excluding it matches
+  // every other cache site, and the connector generator (ConnectorBuilderUtil) already stamps
+  // @CacheKeyOmit onto callContext for the methods it generates.
   def getCurrentFxRateCached(bankId: BankId, fromCurrencyCode: String, toCurrencyCode: String, callContext: Option[CallContext]): Box[FXRate] = {
-    val cacheKey = ("code.bankconnectors.LocalMappedConnectorInternal", "getCurrentFxRateCached", List(bankId, fromCurrencyCode, toCurrencyCode, callContext).mkString("_"))
+    val cacheKey = ("code.bankconnectors.LocalMappedConnectorInternal", "getCurrentFxRateCached", List(bankId, fromCurrencyCode, toCurrencyCode).mkString("_"))
     Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(TTL seconds) {
       Connector.connector.vend.getCurrentFxRate(bankId, fromCurrencyCode, toCurrencyCode, callContext)
     }

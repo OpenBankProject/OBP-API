@@ -14,6 +14,15 @@ import code.setup.ServerSetup
  * while the com.tesobe macro still generated the keys, so the same suite passing before
  * and after the explicitization proves the hand-written keys are byte-identical, argument
  * dimensions included.
+ *
+ * Two sites intentionally NO LONGER match the macro-era format, and neither is covered by a
+ * scenario here: NewStyle.getEndpointMappings and LocalMappedConnectorInternal
+ * .getCurrentFxRateCached have dropped callContext from their key. The macro included it
+ * because neither declared @CacheKeyOmit, but CallContext renders per-request state, so those
+ * keys were unique per request - never a hit, one leaked Redis entry per call. Losing that
+ * "dimension" cannot leak across callers the way the failure mode above describes: it was
+ * request identity, not an argument the result depends on. CacheKeyCallContextTest guards the
+ * invariant going forward.
  */
 class CacheKeyGoldenTest extends ServerSetup {
 
