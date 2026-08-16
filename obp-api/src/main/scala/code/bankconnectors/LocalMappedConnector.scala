@@ -18,7 +18,7 @@ import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJsonV140
 import code.api.v2_1_0._
 import code.api.v4_0_0.{AgentCashWithdrawalJson, PostSimpleCounterpartyJson400, TransactionRequestBodyAgentJsonV400, TransactionRequestBodySimpleJsonV400}
 import code.atmattribute.{AtmAttribute, AtmAttributeX}
-import code.atms.{Atms, MappedAtm}
+import code.atms.Atms
 import code.bankaccountbalance.BankAccountBalanceX
 import code.bankattribute.{BankAttribute, BankAttributeX}
 import code.branches.MappedBranch
@@ -3214,77 +3214,49 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
   override def getAtm(bankId: BankId, atmId: AtmId, callContext: Option[CallContext]): Future[Box[(AtmT, Option[CallContext])]] =
     Future {
-      MappedAtm
-        .find(
-          By(MappedAtm.mBankId, bankId.value),
-          By(MappedAtm.mAtmId, atmId.value))
-        .map(atm => (atm, callContext))
+      Box(Atms.atmsProvider.vend.getAtm(bankId, atmId).map(atm => (atm, callContext)))
     }
 
   override def updateAtmSupportedLanguages(bankId: BankId, atmId: AtmId, supportedLanguages: List[String], callContext: Option[CallContext]): Future[Box[(AtmT, Option[CallContext])]] =
     Future {
-      val supportedLanguagesString = supportedLanguages.mkString(",")
-      MappedAtm
-        .find(
-          By(MappedAtm.mBankId, bankId.value),
-          By(MappedAtm.mAtmId, atmId.value)).map(_.mSupportedLanguages(supportedLanguagesString).saveMe()).map(atm => (atm, callContext))
+      Atms.atmsProvider.vend.updateAtmSupportedLanguages(bankId, atmId, supportedLanguages).map(atm => (atm, callContext))
     }
 
   override def updateAtmSupportedCurrencies(bankId: BankId, atmId: AtmId, supportedCurrencies: List[String], callContext: Option[CallContext]): Future[Box[(AtmT, Option[CallContext])]] =
     Future {
-      val supportedCurrenciesString = supportedCurrencies.mkString(",")
-      MappedAtm
-        .find(
-          By(MappedAtm.mBankId, bankId.value),
-          By(MappedAtm.mAtmId, atmId.value)).map(_.mSupportedCurrencies(supportedCurrenciesString).saveMe()).map(atm => (atm, callContext))
+      Atms.atmsProvider.vend.updateAtmSupportedCurrencies(bankId, atmId, supportedCurrencies).map(atm => (atm, callContext))
     }
 
 
   override def updateAtmAccessibilityFeatures(bankId: BankId, atmId: AtmId, accessibilityFeatures: List[String], callContext: Option[CallContext]): Future[Box[(AtmT, Option[CallContext])]] =
     Future {
-      val accessibilityFeaturesString = accessibilityFeatures.mkString(",")
-      MappedAtm
-        .find(
-          By(MappedAtm.mBankId, bankId.value),
-          By(MappedAtm.mAtmId, atmId.value)).map(_.mAccessibilityFeatures(accessibilityFeaturesString).saveMe()).map(atm => (atm, callContext))
+      Atms.atmsProvider.vend.updateAtmAccessibilityFeatures(bankId, atmId, accessibilityFeatures).map(atm => (atm, callContext))
     }
 
   override def updateAtmServices(bankId: BankId, atmId: AtmId, services: List[String], callContext: Option[CallContext]): Future[Box[(AtmT, Option[CallContext])]] =
     Future {
-      val servicesString = services.mkString(",")
-      MappedAtm
-        .find(
-          By(MappedAtm.mBankId, bankId.value),
-          By(MappedAtm.mAtmId, atmId.value)).map(_.mServices(servicesString).saveMe()).map(atm => (atm, callContext))
+      Atms.atmsProvider.vend.updateAtmServices(bankId, atmId, services).map(atm => (atm, callContext))
     }
 
   override def updateAtmNotes(bankId: BankId, atmId: AtmId, notes: List[String], callContext: Option[CallContext]): Future[Box[(AtmT, Option[CallContext])]] =
     Future {
-      val notesString = notes.mkString(",")
-      MappedAtm
-        .find(
-          By(MappedAtm.mBankId, bankId.value),
-          By(MappedAtm.mAtmId, atmId.value)).map(_.mNotes(notesString).saveMe()).map(atm => (atm, callContext))
+      Atms.atmsProvider.vend.updateAtmNotes(bankId, atmId, notes).map(atm => (atm, callContext))
     }
 
   override def updateAtmLocationCategories(bankId: BankId, atmId: AtmId, locationCategories: List[String], callContext: Option[CallContext]): Future[Box[(AtmT, Option[CallContext])]] =
     Future {
-      val locationCategoriesString = locationCategories.mkString(",")
-      MappedAtm
-        .find(
-          By(MappedAtm.mBankId, bankId.value),
-          By(MappedAtm.mAtmId, atmId.value)).map(_.mLocationCategories(locationCategoriesString).saveMe()).map(atm => (atm, callContext))
+      Atms.atmsProvider.vend.updateAtmLocationCategories(bankId, atmId, locationCategories).map(atm => (atm, callContext))
     }
 
   override def getAtms(bankId: BankId, callContext: Option[CallContext], queryParams: List[OBPQueryParam]): Future[Box[(List[AtmT], Option[CallContext])]] = {
     Future {
-      Full(MappedAtm.findAll(By(MappedAtm.mBankId, bankId.value)), callContext)
+      Full((Atms.atmsProvider.vend.getAtms(bankId, queryParams).getOrElse(Nil), callContext))
     }
   }
 
   override def getAllAtms(callContext: Option[CallContext], queryParams: List[OBPQueryParam]): Future[Box[(List[AtmT], Option[CallContext])]] = {
     Future {
-      Full(MappedAtm.findAll(), callContext)
+      Full((Atms.atmsProvider.vend.getAllAtms(queryParams), callContext))
     }
   }
 
