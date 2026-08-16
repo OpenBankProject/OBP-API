@@ -147,10 +147,33 @@ original type: T forSome type T   reduces to: T   type used instead: Any
 This choice can cause follow-on type errors or hide type errors.
 ```
 
-So `MetaMapper`-typed values degrade to `Any` across the boundary. Any API that hands a Scala 3
-caller something typed through `MetaMapper` loses its static type there. That is a design
-constraint on where the module boundary is drawn, and it should be measured on the real surface
-before the route is committed to — this test exercised one entity, not the whole entity layer.
+So `MetaMapper`-typed values degrade to `Any` across the boundary. That sounds like a design
+constraint on where the module boundary goes, so the real surface was measured rather than left
+as a worry.
+
+**The surface is one line.** Of 163 `MetaMapper` mentions in main sources, 156 are `def
+getSingleton` and nearly all the rest are `object X extends X with LongKeyedMetaMapper[X]` — both
+of which live *inside* entity files and would stay in the 2.13 module, never crossing anything.
+Filtering those leaves three genuine cross-boundary sites:
+
+| site | type | affected? |
+|---|---|---|
+| `Boot.scala:928` `val models: List[MetaMapper[_]]` | generic, existential | **yes** |
+| `Migration.scala:859,984` `tableExists`/`makeBackUpOfTable(table: BaseMetaMapper)` | `BaseMetaMapper` is **non-generic** | no |
+| `AttributeQueryTrait` / `NewAttributeQueryTrait` `self: BaseMetaMapper =>` | mixed into meta objects, stays 2.13 | no |
+
+Only the generic `MetaMapper[_]` carries the `T forSome` existential; `BaseMetaMapper` has no type
+parameter and nothing to degrade.
+
+And the one affected site does not need the generic type. `ToSchemify.models` is consumed at
+exactly one place — `Schemifier.schemify(true, Schemifier.infoF _, ToSchemify.models: _*)` — and
+`javap` shows `schemify` takes `Seq[BaseMetaMapper]`. So annotating it `List[BaseMetaMapper]`
+removes the existential without changing behaviour.
+
+That change is **not** made here: it is preparation for a route nobody has chosen yet. It is
+recorded so the route can be costed honestly — the caveat is one type annotation, not a
+pervasive soundness problem. Still worth re-measuring against the whole entity layer before
+committing; this measured the declared surface, and one entity's compile.
 
 ### What is NOT reducible (correcting the line above)
 
