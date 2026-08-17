@@ -85,7 +85,8 @@ class MigratedTablesExistTest extends ServerSetup {
     "groupofroles",
     "organisation",
     "attributedefinition",
-    "jobscheduler"
+    "jobscheduler",
+    "bankaccountbalance"
   )
 
   /**
