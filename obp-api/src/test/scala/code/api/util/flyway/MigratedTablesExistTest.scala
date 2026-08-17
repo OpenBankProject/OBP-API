@@ -135,7 +135,8 @@ class MigratedTablesExistTest extends ServerSetup {
     "mappedtransactionrequesttypecharge",
     "mappedphysicalcard",
     "pinreset",
-    "doubleentrybooktransaction"
+    "doubleentrybooktransaction",
+    "dynamicendpoint"
   )
 
   /**
@@ -239,7 +240,8 @@ class MigratedTablesExistTest extends ServerSetup {
     "MAPPEDMEETING" -> "MAPPEDMEETING_MMEETINGID",
     "MAPPEDCUSTOMERMESSAGE" -> "MAPPEDCUSTOMERMESSAGE_MMESSAGEID",
     "MAPPEDPHYSICALCARD" -> "MAPPEDPHYSICALCARD_MBANKID_MBANKCARDNUMBER_MISSUENUMBER",
-    "DOUBLEENTRYBOOKTRANSACTION" -> "DOUBLEENTRYBOOKTRANSACTION_DEBITTRANSACTIONBANKID_DEBITTRANSACTIONACCOUNTID_DEBITTRANSACTIONID"
+    "DOUBLEENTRYBOOKTRANSACTION" -> "DOUBLEENTRYBOOKTRANSACTION_DEBITTRANSACTIONBANKID_DEBITTRANSACTIONACCOUNTID_DEBITTRANSACTIONID",
+    "DYNAMICENDPOINT" -> "DYNAMICENDPOINT_DYNAMICENDPOINTID"
   )
 
   Feature("tables owned by Flyway rather than Schemifier") {

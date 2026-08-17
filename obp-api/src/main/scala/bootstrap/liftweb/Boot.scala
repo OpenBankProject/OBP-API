@@ -29,7 +29,6 @@ package bootstrap.liftweb
 import org.json4s._
 import code.DynamicData.DynamicData
 import code.DynamicData.DynamicDataAccess
-import code.DynamicEndpoint.DynamicEndpoint
 import code.accountholders.MapperAccountHolders
 import code.actorsystem.ObpActorSystem
 import code.api.Constant._
@@ -872,7 +871,6 @@ object ToSchemify extends MdcLoggable {
     DynamicEntity,
     DynamicData,
     DynamicDataAccess,
-    DynamicEndpoint,
     DynamicResourceDoc,
     DynamicMessageDoc,
     ViewPermission,
