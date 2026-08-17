@@ -31,7 +31,6 @@ import code.CustomerDependants.MappedCustomerDependant
 import code.DynamicData.DynamicData
 import code.DynamicData.DynamicDataAccess
 import code.DynamicEndpoint.DynamicEndpoint
-import code.UserRefreshes.MappedUserRefreshes
 import code.abacrule.AbacRule
 import code.accountaccessrequest.AccountAccessRequest
 import code.accountapplication.MappedAccountApplication
@@ -934,7 +933,6 @@ object ToSchemify extends MdcLoggable {
     DynamicEndpoint,
     DirectDebit,
     StandingOrder,
-    MappedUserRefreshes,
     ApiProduct,
     DynamicResourceDoc,
     DynamicMessageDoc,

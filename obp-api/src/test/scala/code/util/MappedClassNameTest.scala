@@ -92,7 +92,6 @@ class MappedClassNameTest extends AnyFeatureSpec {
       "code.socialmedia.MappedSocialMedia",
       "code.DynamicData.DynamicData",
       "code.model.dataAccess.MappedBank",
-      "code.UserRefreshes.MappedUserRefreshes",
       "code.DynamicEndpoint.DynamicEndpoint",
       "code.regulatedentities.MappedRegulatedEntity",
       "code.signingbaskets.MappedSigningBasketConsent",
