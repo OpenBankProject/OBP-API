@@ -49,11 +49,9 @@ object ProjectionProvisioner extends MdcLoggable {
 
   /** Field names whose projection column is `ready` (used by backend selection). */
   def readyFields(bankId: Option[String], entityName: String): Set[String] =
-    DynamicEntityIndex.findAll(
-      By(DynamicEntityIndex.EntityName, entityName),
-      By(DynamicEntityIndex.BankId, bankId.getOrElse("")),
-      By(DynamicEntityIndex.State, ProjectionState.Ready)
-    ).map(_.FieldName.get).toSet
+    DynamicEntityIndex
+      .findAllByEntityAndState(entityName, bankId.getOrElse(""), ProjectionState.Ready)
+      .map(_.fieldName).toSet
 
   // ----- internals -----
 
@@ -80,16 +78,14 @@ object ProjectionProvisioner extends MdcLoggable {
 
   private def markReady(bankId: Option[String], entityName: String, fields: List[(String, FieldSpec)]): Unit =
     fields.foreach { case (f, spec) =>
-      val row = DynamicEntityIndex.find(
-        By(DynamicEntityIndex.EntityName, entityName),
-        By(DynamicEntityIndex.BankId, bankId.getOrElse("")),
-        By(DynamicEntityIndex.FieldName, f)
-      ).openOr(DynamicEntityIndex.create)
-      row.EntityName(entityName).BankId(bankId.getOrElse(""))
-        .FieldName(f).FieldType(spec.fieldType.toString).IndexKind(spec.indexKind)
-        .SafeTableName(ProjectionNaming.tableName(bankId, entityName))
-        .SafeColumnName(ProjectionNaming.columnName(f))
-        .State(ProjectionState.Ready)
-        .save
+      DynamicEntityIndex.markState(
+        entityName = entityName,
+        bankId = bankId.getOrElse(""),
+        fieldName = f,
+        fieldType = spec.fieldType.toString,
+        indexKind = spec.indexKind,
+        safeTableName = ProjectionNaming.tableName(bankId, entityName),
+        safeColumnName = ProjectionNaming.columnName(f),
+        state = ProjectionState.Ready)
     }
 }

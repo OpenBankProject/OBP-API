@@ -54,7 +54,6 @@ import code.customer.{MappedCustomer, MappedCustomerMessage}
 import code.dynamicEntity.DynamicEntity
 import code.dynamicMessageDoc.DynamicMessageDoc
 import code.dynamicResourceDoc.DynamicResourceDoc
-import code.endpointMapping.EndpointMapping
 import code.entitlement.{Entitlement, MappedEntitlement}
 import code.meetings.{MappedMeeting, MappedMeetingInvitee}
 import code.metadata.counterparties.{MappedCounterparty, MappedCounterpartyMetadata, MappedCounterpartyWhereTag}
@@ -879,11 +878,9 @@ object ToSchemify extends MdcLoggable {
     MappedTransactionRequestTypeCharge,
     MappedConsent,
     ConsentRequest,
-    EndpointMapping,
     DynamicEntity,
     DynamicData,
     DynamicDataAccess,
-    code.api.dynamic.entity.projection.DynamicEntityIndex,
     DynamicEndpoint,
     DynamicResourceDoc,
     DynamicMessageDoc,
