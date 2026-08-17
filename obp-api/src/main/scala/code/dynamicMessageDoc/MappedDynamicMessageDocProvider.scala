@@ -2,12 +2,10 @@ package code.dynamicMessageDoc
 
 import code.api.cache.Caching
 import code.api.util.APIUtil
+import code.util.Helper
 import net.liftweb.common.{Box, Empty, Full}
-import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.util.Props
-
-import code.util.Helper
 
 import scala.concurrent.duration.DurationInt
 
@@ -19,100 +17,64 @@ object MappedDynamicMessageDocProvider extends DynamicMessageDocProvider {
   }
 
   override def getById(bankId: Option[String], dynamicMessageDocId: String): Box[JsonDynamicMessageDoc] =
-    if(bankId.isEmpty) {
-      DynamicMessageDoc.find(By(DynamicMessageDoc.DynamicMessageDocId, dynamicMessageDocId)).map(DynamicMessageDoc.getJsonDynamicMessageDoc)
-    }else{
-      DynamicMessageDoc.find(
-        By(DynamicMessageDoc.DynamicMessageDocId, dynamicMessageDocId),
-        By(DynamicMessageDoc.BankId, bankId.getOrElse("")
-      )).map(DynamicMessageDoc.getJsonDynamicMessageDoc)
-    }
+    DynamicMessageDoc.findById(bankId, dynamicMessageDocId).map(DynamicMessageDoc.getJsonDynamicMessageDoc)
 
   override def getByProcess(bankId: Option[String], process: String): Box[JsonDynamicMessageDoc] =
-    if(bankId.isEmpty) {
-      DynamicMessageDoc.find(By(DynamicMessageDoc.Process, process)).map(DynamicMessageDoc.getJsonDynamicMessageDoc)
-    }else{
-      DynamicMessageDoc.find(
-        By(DynamicMessageDoc.Process, process),
-        By(DynamicMessageDoc.BankId, bankId.getOrElse("")
-      )).map(DynamicMessageDoc.getJsonDynamicMessageDoc)
-    }
+    DynamicMessageDoc.findByProcess(bankId, process).map(DynamicMessageDoc.getJsonDynamicMessageDoc)
 
-  
   override def getAll(bankId: Option[String]): List[JsonDynamicMessageDoc] = {
     val cacheKey = ("code.dynamicMessageDoc.MappedDynamicMessageDocProvider", "getAll", List(bankId).mkString("_"))
     Caching.memoizeSyncWithProvider (Some(cacheKey.toString())) (getDynamicMessageDocTTL.second) {
-      if(bankId.isEmpty){
-        DynamicMessageDoc.findAll().map(DynamicMessageDoc.getJsonDynamicMessageDoc)
-      } else {
-        DynamicMessageDoc.findAll(By(DynamicMessageDoc.BankId, bankId.getOrElse(""))).map(DynamicMessageDoc.getJsonDynamicMessageDoc)
-      }
+      DynamicMessageDoc.findAll(bankId).map(DynamicMessageDoc.getJsonDynamicMessageDoc)
     }
   }
 
-  override def create(bankId: Option[String], entity: JsonDynamicMessageDoc): Box[JsonDynamicMessageDoc]= {
+  override def create(bankId: Option[String], entity: JsonDynamicMessageDoc): Box[JsonDynamicMessageDoc] =
     tryo {
-      DynamicMessageDoc.create
-        .BankId(bankId.getOrElse(null))
-        .DynamicMessageDocId(APIUtil.generateUUID())
-        .Process(entity.process)
-        .MessageFormat(entity.messageFormat)
-        .Description(entity.description)
-        .OutboundTopic(entity.outboundTopic)
-        .InboundTopic(entity.inboundTopic)
-        .ExampleOutboundMessage(Helper.prettyJson(entity.exampleOutboundMessage))
-        .ExampleInboundMessage(Helper.prettyJson(entity.exampleInboundMessage))
-        .OutboundAvroSchema(entity.outboundAvroSchema)
-        .InboundAvroSchema(entity.inboundAvroSchema)
-        .AdapterImplementation(entity.adapterImplementation)
-        .MethodBody(entity.methodBody)
-        .Lang(entity.programmingLang)
-        .saveMe()
+      DynamicMessageDoc.insert(
+        dynamicMessageDocId = APIUtil.generateUUID(),
+        bankId = bankId,
+        process = entity.process,
+        messageFormat = entity.messageFormat,
+        description = entity.description,
+        outboundTopic = entity.outboundTopic,
+        inboundTopic = entity.inboundTopic,
+        exampleOutboundMessage = Helper.prettyJson(entity.exampleOutboundMessage),
+        exampleInboundMessage = Helper.prettyJson(entity.exampleInboundMessage),
+        outboundAvroSchema = entity.outboundAvroSchema,
+        inboundAvroSchema = entity.inboundAvroSchema,
+        adapterImplementation = entity.adapterImplementation,
+        methodBody = entity.methodBody,
+        programmingLang = entity.programmingLang)
     }.map(DynamicMessageDoc.getJsonDynamicMessageDoc)
-  }
-
 
   override def update(bankId: Option[String], entity: JsonDynamicMessageDoc): Box[JsonDynamicMessageDoc] = {
-    val dynamicMessageDocBox = if(bankId.isDefined){
-      DynamicMessageDoc.find(
-        By(DynamicMessageDoc.DynamicMessageDocId, entity.dynamicMessageDocId.getOrElse("")),
-        By(DynamicMessageDoc.BankId, bankId.head)
-      )
-    } else {
-      DynamicMessageDoc.find(
-        By(DynamicMessageDoc.DynamicMessageDocId, entity.dynamicMessageDocId.getOrElse(""))
-      )
-    }
-    dynamicMessageDocBox match {
-      case Full(v) =>
+    val currentId = entity.dynamicMessageDocId.getOrElse("")
+    DynamicMessageDoc.findById(bankId, currentId) match {
+      case Full(_) =>
         tryo {
-          v.DynamicMessageDocId(entity.dynamicMessageDocId.getOrElse(""))
-            .Process(entity.process)
-            .MessageFormat(entity.messageFormat)
-            .Description(entity.description)
-            .OutboundTopic(entity.outboundTopic)
-            .InboundTopic(entity.inboundTopic)
-            .ExampleOutboundMessage(Helper.prettyJson(entity.exampleOutboundMessage))
-            .ExampleInboundMessage(Helper.prettyJson(entity.exampleInboundMessage))
-            .OutboundAvroSchema(entity.outboundAvroSchema)
-            .InboundAvroSchema(entity.inboundAvroSchema)
-            .AdapterImplementation(entity.adapterImplementation)
-            .MethodBody(entity.methodBody)
-            .Lang(entity.programmingLang)
-            .saveMe()
-        }.map(DynamicMessageDoc.getJsonDynamicMessageDoc)
+          // bankId is not written here — the Mapper update did not set it either, so a doc cannot
+          // move between system and bank scope once created.
+          DynamicMessageDoc.update(
+            currentDynamicMessageDocId = currentId,
+            dynamicMessageDocId = currentId,
+            process = entity.process,
+            messageFormat = entity.messageFormat,
+            description = entity.description,
+            outboundTopic = entity.outboundTopic,
+            inboundTopic = entity.inboundTopic,
+            exampleOutboundMessage = Helper.prettyJson(entity.exampleOutboundMessage),
+            exampleInboundMessage = Helper.prettyJson(entity.exampleInboundMessage),
+            outboundAvroSchema = entity.outboundAvroSchema,
+            inboundAvroSchema = entity.inboundAvroSchema,
+            adapterImplementation = entity.adapterImplementation,
+            methodBody = entity.methodBody,
+            programmingLang = entity.programmingLang)
+        }.flatMap(box => box).map(DynamicMessageDoc.getJsonDynamicMessageDoc)
       case _ => Empty
     }
   }
 
-  override def deleteById(bankId: Option[String], id: String): Box[Boolean] = tryo {
-    if(bankId.isEmpty) {
-      DynamicMessageDoc.bulkDelete_!!(By(DynamicMessageDoc.DynamicMessageDocId, id))
-    }else{
-      DynamicMessageDoc.bulkDelete_!!(
-        By(DynamicMessageDoc.BankId, bankId.getOrElse("")),
-        By(DynamicMessageDoc.DynamicMessageDocId, id)
-      )
-    }
-  }
+  override def deleteById(bankId: Option[String], id: String): Box[Boolean] =
+    tryo(DynamicMessageDoc.delete(bankId, id))
 }

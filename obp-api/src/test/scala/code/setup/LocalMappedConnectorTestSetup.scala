@@ -322,6 +322,7 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
     DoobieUtil.runUpdate(sql"DELETE FROM mappedproduct".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM mappedbranch".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM mapperaccountholders".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM dynamicmessagedoc".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM mappeduserauthcontextupdate".update.run)
 
     

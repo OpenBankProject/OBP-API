@@ -142,7 +142,8 @@ class MigratedTablesExistTest extends ServerSetup {
     "ratelimiting",
     "mappedproduct",
     "mappedbranch",
-    "mapperaccountholders"
+    "mapperaccountholders",
+    "dynamicmessagedoc"
   )
 
   /**
@@ -252,7 +253,8 @@ class MigratedTablesExistTest extends ServerSetup {
     "RATELIMITING" -> "RATELIMITING_RATELIMITINGID",
     "MAPPEDPRODUCT" -> "MAPPEDPRODUCT_MBANKID_MCODE",
     "MAPPEDBRANCH" -> "MAPPEDBRANCH_MBANKID_MBRANCHID",
-    "MAPPERACCOUNTHOLDERS" -> "MAPPERACCOUNTHOLDERS_USER_C_ACCOUNTBANKPERMALINK_ACCOUNTPERMALINK"
+    "MAPPERACCOUNTHOLDERS" -> "MAPPERACCOUNTHOLDERS_USER_C_ACCOUNTBANKPERMALINK_ACCOUNTPERMALINK",
+    "DYNAMICMESSAGEDOC" -> "DYNAMICMESSAGEDOC_PROCESS"
   )
 
   Feature("tables owned by Flyway rather than Schemifier") {
