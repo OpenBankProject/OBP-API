@@ -1216,7 +1216,7 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
     row: code.messageoutbox.MessageOutbox
   ): MessageOutboxRowJsonV700 =
     MessageOutboxRowJsonV700(
-      outbox_id = row.id.get,
+      outbox_id = row.id,
       outbox_type = row.outboxType,
       subject_id = row.subjectId,
       subject_id_type = row.subjectIdType,
@@ -1224,9 +1224,9 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
       target_id = row.targetId,
       status = row.status,
       attempts = row.attempts,
-      last_error = row.LastError.get,
-      created_at = APIUtil.DateWithMsFormat.format(row.CreatedAt.get),
-      updated_at = APIUtil.DateWithMsFormat.format(row.UpdatedAt.get)
+      last_error = row.lastError,
+      created_at = APIUtil.DateWithMsFormat.format(row.createdAt),
+      updated_at = APIUtil.DateWithMsFormat.format(row.updatedAt)
     )
 
   // ─── OPEN_CORRIDOR settlements ─────────────────────────────────────────────

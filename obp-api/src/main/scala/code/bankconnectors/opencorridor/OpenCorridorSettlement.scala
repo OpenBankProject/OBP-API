@@ -380,7 +380,7 @@ object OpenCorridorSettlement extends MdcLoggable {
         target_bank_id = row.targetId,
         delivery_status = row.status,
         attempts = row.attempts,
-        last_error = row.LastError.get
+        last_error = row.lastError
       ))
     ), callContext)
   }
@@ -388,7 +388,7 @@ object OpenCorridorSettlement extends MdcLoggable {
   /** Extract one field of the node's last reply (`data.<field>` of the §4.2
     * envelope recorded on the outbox row); None when no reply is recorded. */
   private def nodeReportedField(row: MessageOutbox, field: String): Option[String] = {
-    Option(row.LastReplyJson.get).filter(_.nonEmpty).flatMap { replyJson =>
+    Option(row.lastReplyJson).filter(_.nonEmpty).flatMap { replyJson =>
       scala.util.Try(org.json4s.native.JsonMethods.parse(replyJson) \ "data" \ field).toOption
     }.flatMap {
       case org.json4s.JString(s) => Some(s)

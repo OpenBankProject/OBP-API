@@ -544,9 +544,13 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
       s"subject-${APIUtil.generateUUID().take(8)}",
       code.messageoutbox.MessageOutbox.SUBJECT_TYPE_TRANSACTION_REQUEST_ID,
       "obp_credit_notification", testBankId2.value, "{}")
-    if (status != code.messageoutbox.MessageOutbox.STATUS_PENDING)
-      row.Status(status).LastError("OBP-BANK-NODE-COMMITMENT-MISMATCH").saveMe()
-    else row
+    if (status != code.messageoutbox.MessageOutbox.STATUS_PENDING) {
+      // The only non-PENDING status these scenarios seed is STICKY, which is what the
+      // operator retry endpoint acts on.
+      code.messageoutbox.MessageOutbox.markSticky(row.id, row.attempts, "OBP-BANK-NODE-COMMITMENT-MISMATCH")
+      code.messageoutbox.MessageOutbox.findById(row.id)
+        .openOrThrowException("the row just seeded must be readable")
+    } else row
   }
 
   Feature("Http4s700 message outbox operator endpoints") {
@@ -572,7 +576,7 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
       statusCode shouldBe 200
       (json \ "rows") match {
         case JArray(rows) =>
-          val row = rows.find(r => (r \ "outbox_id") == JInt(sticky.id.get))
+          val row = rows.find(r => (r \ "outbox_id") == JInt(sticky.id))
             .getOrElse(fail("seeded sticky row should be listed"))
           (row \ "outbox_type") shouldBe JString("OPEN_CORRIDOR")
           (row \ "subject_id_type") shouldBe JString("transaction_request_id")
@@ -592,14 +596,14 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
 
       val sticky = seedOutboxRow(code.messageoutbox.MessageOutbox.STATUS_STICKY)
       val (retryCode, retryJson, _) = makeHttpRequestWithMethod(
-        "POST", s"/obp/v7.0.0/management/message-outbox/${sticky.id.get}/retry", headers)
+        "POST", s"/obp/v7.0.0/management/message-outbox/${sticky.id}/retry", headers)
       retryCode shouldBe 200
       (retryJson \ "status") shouldBe JString("PENDING")
       (retryJson \ "attempts") shouldBe JInt(0)
 
       val pendingRow = seedOutboxRow(code.messageoutbox.MessageOutbox.STATUS_PENDING)
       val (notStickyCode, notStickyJson, _) = makeHttpRequestWithMethod(
-        "POST", s"/obp/v7.0.0/management/message-outbox/${pendingRow.id.get}/retry", headers)
+        "POST", s"/obp/v7.0.0/management/message-outbox/${pendingRow.id}/retry", headers)
       notStickyCode shouldBe 400
       messageOf(notStickyJson) should include(MessageOutboxRowNotSticky)
 

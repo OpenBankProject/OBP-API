@@ -3527,12 +3527,10 @@ object Http4s700 {
             val params = req.uri.query.params
             val limit = params.get("limit").flatMap(l => scala.util.Try(l.toInt).toOption)
               .filter(l => l > 0 && l <= 500).getOrElse(100)
-            val filters: List[net.liftweb.mapper.QueryParam[MessageOutbox]] = List(
-              params.get("status").map(_.trim.toUpperCase).filter(_.nonEmpty).map(s => By(MessageOutbox.Status, s)),
-              params.get("outbox_type").map(_.trim.toUpperCase).filter(_.nonEmpty).map(t => By(MessageOutbox.OutboxType, t))
-            ).flatten
-            val rows = MessageOutbox.findAll(
-              (filters ::: List(OrderBy(MessageOutbox.id, Descending), MaxRows[MessageOutbox](limit))): _*)
+            val rows = MessageOutbox.findAllFiltered(
+              params.get("status").map(_.trim.toUpperCase).filter(_.nonEmpty),
+              params.get("outbox_type").map(_.trim.toUpperCase).filter(_.nonEmpty),
+              limit)
             JSONFactory700.MessageOutboxJsonV700(rows.map(JSONFactory700.createMessageOutboxRowJson))
           }
         }
@@ -3543,7 +3541,7 @@ object Http4s700 {
         EndpointHelpers.withUser(req) { (_, cc) =>
           import code.messageoutbox.MessageOutbox
           val rowOpt: Option[MessageOutbox] = scala.util.Try(outboxIdStr.toLong).toOption
-            .flatMap(id => MessageOutbox.find(By(MessageOutbox.id, id)).toOption)
+            .flatMap(id => MessageOutbox.findById(id).toOption)
           for {
             _ <- Helper.booleanToFuture(s"$MessageOutboxRowNotFound OUTBOX_ID: $outboxIdStr", failCode = 404, cc = Some(cc)) {
               rowOpt.isDefined
@@ -3553,7 +3551,8 @@ object Http4s700 {
               row.status == MessageOutbox.STATUS_STICKY
             }
             updated <- scala.concurrent.Future {
-              row.Status(MessageOutbox.STATUS_PENDING).Attempts(0).LastError("").saveMe()
+              MessageOutbox.resetForRetry(row.id)
+                .openOrThrowException("the row just checked must still be readable")
             }
           } yield JSONFactory700.createMessageOutboxRowJson(updated)
         }

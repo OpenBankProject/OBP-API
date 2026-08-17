@@ -90,7 +90,8 @@ class MigratedTablesExistTest extends ServerSetup {
     "endpointtag",
     "apiproduct",
     "amqp_bank_broker",
-    "productfee"
+    "productfee",
+    "message_outbox"
   )
 
   /**

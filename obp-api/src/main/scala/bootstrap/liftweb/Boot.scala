@@ -90,7 +90,7 @@ import code.token.OpenIDConnectToken
 import code.transaction.MappedTransaction
 import code.transactionChallenge.MappedExpectedChallengeAnswer
 import code.transactionStatusScheduler.TransactionRequestStatusScheduler
-import code.messageoutbox.{MessageOutbox, MessageOutboxRelay}
+import code.messageoutbox.MessageOutboxRelay
 import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequestTypeCharge}
 import code.users._
 import code.util.Helper.MdcLoggable
@@ -939,7 +939,6 @@ object ToSchemify extends MdcLoggable {
     MappedCounterpartyMetadata,
     MappedCounterpartyWhereTag,
     MappedTransactionRequest,
-    MessageOutbox,
     MappedMetric,
     MetricArchive,
     MapperAccountHolders,
