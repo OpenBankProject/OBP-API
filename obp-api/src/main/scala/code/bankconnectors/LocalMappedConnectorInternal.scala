@@ -419,9 +419,8 @@ object LocalMappedConnectorInternal extends MdcLoggable {
    * In Mapped, we will ignore accountId, viewId for now.
    */
   def getTransactionRequestTypeCharge(bankId: BankId, accountId: AccountId, viewId: ViewId, transactionRequestType: TransactionRequestType): Box[TransactionRequestTypeCharge] = {
-    val transactionRequestTypeChargeMapper = MappedTransactionRequestTypeCharge.find(
-      By(MappedTransactionRequestTypeCharge.mBankId, bankId.value),
-      By(MappedTransactionRequestTypeCharge.mTransactionRequestTypeId, transactionRequestType.value))
+    val transactionRequestTypeChargeMapper =
+      MappedTransactionRequestTypeCharge.find(bankId.value, transactionRequestType.value)
 
     val transactionRequestTypeCharge = transactionRequestTypeChargeMapper match {
       case Full(transactionRequestType) => TransactionRequestTypeChargeMock(

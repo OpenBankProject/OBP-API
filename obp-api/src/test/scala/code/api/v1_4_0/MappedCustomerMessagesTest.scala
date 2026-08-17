@@ -92,14 +92,14 @@ class MappedCustomerMessagesTest extends V140ServerSetup with DefaultUsers {
 
   override def beforeAll(): Unit = {
     super.beforeAll()
-    MappedCustomerMessage.bulkDelete_!!()
+    MappedCustomerMessage.deleteAll()
     UserCustomerLink.userCustomerLink.vend.bulkDeleteUserCustomerLinks()
     CustomerX.customerProvider.vend.bulkDeleteCustomers()
   }
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    MappedCustomerMessage.bulkDelete_!!()
+    MappedCustomerMessage.deleteAll()
     UserCustomerLink.userCustomerLink.vend.bulkDeleteUserCustomerLinks()
     CustomerX.customerProvider.vend.bulkDeleteCustomers()
   }

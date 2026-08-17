@@ -50,7 +50,7 @@ import code.cards.{MappedPhysicalCard, PinReset}
 import code.consent.{ConsentRequest, MappedConsent}
 import code.consumer.Consumers
 import code.model.Consumer
-import code.customer.{MappedCustomer, MappedCustomerMessage}
+import code.customer.MappedCustomer
 import code.dynamicEntity.DynamicEntity
 import code.dynamicMessageDoc.DynamicMessageDoc
 import code.dynamicResourceDoc.DynamicResourceDoc
@@ -68,7 +68,7 @@ import code.signingbaskets.{MappedSigningBasket, MappedSigningBasketConsent, Map
 import code.transaction.MappedTransaction
 import code.transactionStatusScheduler.TransactionRequestStatusScheduler
 import code.messageoutbox.MessageOutboxRelay
-import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequestTypeCharge}
+import code.transactionrequests.MappedTransactionRequest
 import code.users._
 import code.util.Helper.MdcLoggable
 import code.views.Views
@@ -867,12 +867,10 @@ object ToSchemify extends MdcLoggable {
     MappedBankAccount,
     MappedTransaction,
     DoubleEntryBookTransaction,
-    MappedCustomerMessage,
     MappedBranch,
     MappedProduct,
     MappedPhysicalCard,
     PinReset,
-    MappedTransactionRequestTypeCharge,
     MappedConsent,
     ConsentRequest,
     DynamicEntity,
