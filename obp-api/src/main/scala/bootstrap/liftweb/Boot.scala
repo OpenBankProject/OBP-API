@@ -27,7 +27,6 @@ TESOBE (http://www.tesobe.com/)
 package bootstrap.liftweb
 
 import org.json4s._
-import code.CustomerDependants.MappedCustomerDependant
 import code.DynamicData.DynamicData
 import code.DynamicData.DynamicDataAccess
 import code.DynamicEndpoint.DynamicEndpoint
@@ -60,7 +59,7 @@ import code.endpointMapping.EndpointMapping
 import code.entitlement.{Entitlement, MappedEntitlement}
 import code.routingscheme.{RoutingScheme, BankSupportedRoutingScheme}
 import code.meetings.{MappedMeeting, MappedMeetingInvitee}
-import code.metadata.counterparties.{MappedCounterparty, MappedCounterpartyBespoke, MappedCounterpartyMetadata, MappedCounterpartyWhereTag}
+import code.metadata.counterparties.{MappedCounterparty, MappedCounterpartyMetadata, MappedCounterpartyWhereTag}
 import code.metrics.{MappedConnectorMetric, MappedMetric, MetricArchive}
 import code.model._
 import code.model.dataAccess._
@@ -72,7 +71,6 @@ import code.scheduler._
 import code.scope.Scope
 import code.signingbaskets.{MappedSigningBasket, MappedSigningBasketConsent, MappedSigningBasketPayment}
 import code.transaction.MappedTransaction
-import code.transactionChallenge.MappedExpectedChallengeAnswer
 import code.transactionStatusScheduler.TransactionRequestStatusScheduler
 import code.messageoutbox.MessageOutboxRelay
 import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequestTypeCharge}
@@ -904,7 +902,6 @@ object ToSchemify extends MdcLoggable {
     Token,
     Nonce,
     MappedCounterparty,
-    MappedCounterpartyBespoke,
     MappedCounterpartyMetadata,
     MappedCounterpartyWhereTag,
     MappedTransactionRequest,
@@ -913,9 +910,7 @@ object ToSchemify extends MdcLoggable {
     MapperAccountHolders,
     MappedEntitlement,
     MappedConnectorMetric,
-    MappedExpectedChallengeAnswer,
     RateLimiting,
-    MappedCustomerDependant,
     RoutingScheme,
     BankSupportedRoutingScheme
   )

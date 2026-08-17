@@ -222,10 +222,12 @@ object MapperCounterparties extends Counterparties with MdcLoggable {
         .mOtherAccountSecondaryRoutingAddress(otherAccountSecondaryRoutingAddress)
         .saveMe()
     
-      // This is especially for OneToMany table, to save a List to database.
+      // The bespoke rows are written by the provider and read back through it (see `bespoke`
+      // below), so they are stored here directly. The former `mBespoke += ...` fed a Lift
+      // OneToMany collection on an already-saved parent that was never saved again and never
+      // read from, so it persisted nothing.
       CounterpartyBespokes.counterpartyBespokers.vend
         .createCounterpartyBespokes(mappedCounterparty.id.get, bespoke)
-        .map(mappedBespoke =>mappedCounterparty.mBespoke += mappedBespoke)
       
       mappedCounterparty
     }
@@ -489,8 +491,6 @@ class MappedCounterparty extends CounterpartyTrait with LongKeyedMapper[MappedCo
   object mDescription extends MappedString(this, 2000)
   object mCurrency extends MappedString(this, 255)
 
-  object mBespoke extends MappedOneToMany(MappedCounterpartyBespoke, MappedCounterpartyBespoke.mCounterparty, OrderBy(MappedCounterpartyBespoke.id, Ascending))
-
   override def createdByUserId = mCreatedByUserId.get
   override def name = mName.get
   override def thisBankId = mThisBankId.get
@@ -515,7 +515,7 @@ class MappedCounterparty extends CounterpartyTrait with LongKeyedMapper[MappedCo
     CounterpartyBespokes.counterpartyBespokers.vend
       .getCounterpartyBespokesByCounterpartyId(this.id.get)
       .map(
-        mappedBespoke=>CounterpartyBespoke(mappedBespoke.mKey.get,mappedBespoke.mVaule.get)
+        mappedBespoke=>CounterpartyBespoke(mappedBespoke.key,mappedBespoke.value)
       )
 }
 

@@ -118,7 +118,10 @@ class MigratedTablesExistTest extends ServerSetup {
     "mappedscope",
     "mappedaccountapplication",
     "mappedcustomeraddress",
-    "mappedentitlementrequest"
+    "mappedentitlementrequest",
+    "mappedcustomerdependant",
+    "mappedcounterpartybespoke",
+    "expectedchallengeanswer"
   )
 
   /**
@@ -214,7 +217,8 @@ class MigratedTablesExistTest extends ServerSetup {
     "MAPPEDSCOPE" -> "MAPPEDSCOPE_MSCOPEID",
     "MAPPEDACCOUNTAPPLICATION" -> "MAPPEDACCOUNTAPPLICATION_MACCOUNTAPPLICATIONID",
     "MAPPEDCUSTOMERADDRESS" -> "MAPPEDCUSTOMERADDRESS_MCUSTOMERADDRESSID",
-    "MAPPEDENTITLEMENTREQUEST" -> "MAPPEDENTITLEMENTREQUEST_MENTITLEMENTREQUESTID"
+    "MAPPEDENTITLEMENTREQUEST" -> "MAPPEDENTITLEMENTREQUEST_MENTITLEMENTREQUESTID",
+    "EXPECTEDCHALLENGEANSWER" -> "EXPECTEDCHALLENGEANSWER_CHALLENGEID"
   )
 
   Feature("tables owned by Flyway rather than Schemifier") {

@@ -418,7 +418,7 @@ class MappedCustomer extends Customer with Agent with LongKeyedMapper[MappedCust
   override def dobOfDependents: List[Date] = 
     CustomerDependants.CustomerDependants.vend
     .getCustomerDependantsByCustomerPrimaryKey(this.id.get)
-    .map(_.mDateOfBirth.get)
+    .map(_.dateOfBirth)
   override def highestEducationAttained: String = mHighestEducationAttained.get
   override def employmentStatus: String = mEmploymentStatus.get
   override def creditRating: CreditRatingTrait = new CreditRatingTrait {

@@ -116,8 +116,8 @@ class ConcurrentSecurityRaceTest extends ConcurrentRaceSetup {
 
       Then("the attempt counter must equal N — each wrong answer must consume exactly one attempt")
       val finalCounter = MappedExpectedChallengeAnswer
-        .find(By(MappedExpectedChallengeAnswer.ChallengeId, challengeId))
-        .map(_.AttemptCounter.get)
+        .findByChallengeId(challengeId)
+        .map(_.attemptCounter)
         .getOrElse(-1)
       withClue(
         s"finalCounter=$finalCounter (expected=$n): each of $n concurrent wrong-answer attempts must " +
