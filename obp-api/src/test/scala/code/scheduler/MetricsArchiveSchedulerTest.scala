@@ -101,8 +101,8 @@ class MetricsArchiveSchedulerTest extends ServerSetup {
 
       And("the run records exactly one moved row and is successful")
       val run = outcome.asInstanceOf[RunCompleted].run
-      run.Success.get should equal(true)
-      run.RowsMovedToArchive.get should equal(1)
+      run.success should equal(true)
+      run.rowsMovedToArchive should equal(1)
     }
 
     Scenario("Old rows with an empty correlation id are archived with a synthetic ORIGINALLY_NOT_SET correlation id") {
@@ -120,7 +120,7 @@ class MetricsArchiveSchedulerTest extends ServerSetup {
       archived.openOrThrowException("expected archived row").correlationId.get should startWith("ORIGINALLY_NOT_SET-")
 
       And("exactly one row was moved")
-      outcome.asInstanceOf[RunCompleted].run.RowsMovedToArchive.get should equal(1)
+      outcome.asInstanceOf[RunCompleted].run.rowsMovedToArchive should equal(1)
     }
 
     Scenario("Outdated archive rows are deleted; recent archive rows are kept") {
@@ -135,7 +135,7 @@ class MetricsArchiveSchedulerTest extends ServerSetup {
       MetricArchive.find(By(MetricArchive.id, recentArchive.id.get)).isDefined should equal(true)
 
       And("the run records exactly one deleted archive row")
-      outcome.asInstanceOf[RunCompleted].run.RowsDeletedFromArchive.get should equal(1)
+      outcome.asInstanceOf[RunCompleted].run.rowsDeletedFromArchive should equal(1)
     }
 
     Scenario("Each run is recorded in the metricsarchiverun log") {
@@ -147,7 +147,7 @@ class MetricsArchiveSchedulerTest extends ServerSetup {
       MetricsArchiveRun.count should equal(1L)
       val last = MetricsArchiveRun.lastRun
       last.isDefined should equal(true)
-      last.get.RowsMovedToArchive.get should equal(1)
+      last.get.rowsMovedToArchive should equal(1)
     }
 
     Scenario("runOnce is skipped (no work, no log row) when a job lock is already present") {

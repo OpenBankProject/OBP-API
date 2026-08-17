@@ -77,7 +77,8 @@ class MigratedTablesExistTest extends ServerSetup {
     "mappedusercustomerlink",
     "mappedcrmevent",
     "mappeduserrefreshes",
-    "payeelookup"
+    "payeelookup",
+    "metricsarchiverun"
   )
 
   /**
@@ -136,7 +137,8 @@ class MigratedTablesExistTest extends ServerSetup {
     "MAPPEDUSERCUSTOMERLINK" -> "MAPPEDUSERCUSTOMERLINK_MUSERID_MCUSTOMERID",
     "MAPPEDCRMEVENT" -> "MAPPEDCRMEVENT_MCRMEVENTID",
     "MAPPEDUSERREFRESHES" -> "MAPPEDUSERREFRESHES_MUSERID",
-    "PAYEELOOKUP" -> "PAYEELOOKUP_LOOKUPID"
+    "PAYEELOOKUP" -> "PAYEELOOKUP_LOOKUPID",
+    "METRICSARCHIVERUN" -> "METRICSARCHIVERUN_RUNID"
   )
 
   Feature("tables owned by Flyway rather than Schemifier") {
