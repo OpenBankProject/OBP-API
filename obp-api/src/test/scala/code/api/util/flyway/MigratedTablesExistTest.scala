@@ -144,7 +144,8 @@ class MigratedTablesExistTest extends ServerSetup {
     "mappedbranch",
     "mapperaccountholders",
     "dynamicmessagedoc",
-    "dynamicresourcedoc"
+    "dynamicresourcedoc",
+    "dynamicdataaccess"
   )
 
   /**
@@ -256,7 +257,8 @@ class MigratedTablesExistTest extends ServerSetup {
     "MAPPEDBRANCH" -> "MAPPEDBRANCH_MBANKID_MBRANCHID",
     "MAPPERACCOUNTHOLDERS" -> "MAPPERACCOUNTHOLDERS_USER_C_ACCOUNTBANKPERMALINK_ACCOUNTPERMALINK",
     "DYNAMICMESSAGEDOC" -> "DYNAMICMESSAGEDOC_PROCESS",
-    "DYNAMICRESOURCEDOC" -> "DYNAMICRESOURCEDOC_REQUESTURL_REQUESTVERB"
+    "DYNAMICRESOURCEDOC" -> "DYNAMICRESOURCEDOC_REQUESTURL_REQUESTVERB",
+    "DYNAMICDATAACCESS" -> "DYNAMICDATAACCESS_DYNAMICDATAID_USERID"
   )
 
   Feature("tables owned by Flyway rather than Schemifier") {

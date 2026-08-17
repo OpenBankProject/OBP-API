@@ -24,12 +24,12 @@ object ProjectionStore {
   val userIdColumn: String    = DynamicData.UserId.dbColumnName
   val personalColumn: String  = DynamicData.IsPersonalEntity.dbColumnName
 
-  // Row-level access ACL table (Lift-mapped), for user-scoped EXISTS / NOT EXISTS join evaluation:
+  // Row-level access ACL table, for user-scoped EXISTS / NOT EXISTS join evaluation:
   // a join onto a row-level child counts only child rows the caller can read.
-  val aclTable: String         = code.DynamicData.DynamicDataAccess.dbTableName
-  val aclDataIdColumn: String  = code.DynamicData.DynamicDataAccess.DynamicDataId.dbColumnName
-  val aclUserIdColumn: String  = code.DynamicData.DynamicDataAccess.UserId.dbColumnName
-  val aclCanReadColumn: String = code.DynamicData.DynamicDataAccess.CanRead.dbColumnName
+  val aclTable: String         = code.DynamicData.DynamicDataAccess.tableName
+  val aclDataIdColumn: String  = code.DynamicData.DynamicDataAccess.dataIdColumn
+  val aclUserIdColumn: String  = code.DynamicData.DynamicDataAccess.userIdColumn
+  val aclCanReadColumn: String = code.DynamicData.DynamicDataAccess.canReadColumn
 
   /** One indexed field's value for a record: safe column, SQL type, coerced text (None => NULL). */
   case class ColumnValue(safeColumn: String, sqlType: String, value: Option[String])
