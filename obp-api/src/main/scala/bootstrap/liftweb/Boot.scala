@@ -59,7 +59,6 @@ import code.model._
 import code.model.dataAccess._
 import code.obp.grpc.ObpGrpcServer
 import code.products.MappedProduct
-import code.ratelimiting.RateLimiting
 import code.scheduler._
 import code.scope.Scope
 import code.signingbaskets.{MappedSigningBasket, MappedSigningBasketConsent, MappedSigningBasketPayment}
@@ -888,7 +887,6 @@ object ToSchemify extends MdcLoggable {
     MappedMetric,
     MetricArchive,
     MapperAccountHolders,
-    RateLimiting
   )
 
   // start grpc server

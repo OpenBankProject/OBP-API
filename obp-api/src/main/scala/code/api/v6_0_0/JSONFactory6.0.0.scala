@@ -1603,8 +1603,8 @@ object JSONFactory600 extends CustomJsonFormats with MdcLoggable {
       per_day_call_limit = rateLimiting.perDayCallLimit.toString,
       per_week_call_limit = rateLimiting.perWeekCallLimit.toString,
       per_month_call_limit = rateLimiting.perMonthCallLimit.toString,
-      created_at = rateLimiting.createdAt.get,
-      updated_at = rateLimiting.updatedAt.get
+      created_at = rateLimiting.createdAt,
+      updated_at = rateLimiting.updatedAt
     )
   }
 
