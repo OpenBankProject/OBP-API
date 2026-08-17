@@ -8,7 +8,7 @@ import code.api.util.{CallContext, NewStyle}
 import code.api.v7_0_0.JSONFactory700.{OpenCorridorSettleResultJsonV700, OpenCorridorSettlementMessageJsonV700, OpenCorridorSettlementStatusJsonV700}
 import code.bankconnectors.DoobieTransactionRequestQueries
 import code.messageoutbox.MessageOutbox
-import code.transactionRequestAttribute.TransactionRequestAttribute
+import code.transactionRequestAttribute.DoobieTransactionRequestAttributeProvider
 import code.transactionrequests.{MappedTransactionRequest, TransactionRequests}
 import code.util.Helper
 import code.util.Helper.MdcLoggable
@@ -319,10 +319,8 @@ object OpenCorridorSettlement extends MdcLoggable {
   /** True once the promise's on-chain evidence was attached (report-back done) —
     * the precondition for the beneficiary having been notified and paid out. */
   private def hasPromiseEvidence(trId: String): Boolean =
-    TransactionRequestAttribute.find(
-      By(TransactionRequestAttribute.Name, OpenCorridorProcessor.PromiseAttributeCommitment),
-      By(TransactionRequestAttribute.TransactionRequestId, trId)
-    ).isDefined
+    DoobieTransactionRequestAttributeProvider.existsByNameAndTransactionRequestIdSync(
+      OpenCorridorProcessor.PromiseAttributeCommitment, trId)
 
   /**
    * The GET view of one settlement (the resource minted by settlePair).
@@ -351,10 +349,8 @@ object OpenCorridorSettlement extends MdcLoggable {
       callContext, OpenCorridorSettlementNotFound, 404)
 
     val outboxRows = MessageOutbox.bySubjectId(settlementId)
-    val coveredTrIds = TransactionRequestAttribute.findAll(
-      By(TransactionRequestAttribute.Name, AttrSettledByTransactionRequestId),
-      By(TransactionRequestAttribute.`Value`, settlementId)
-    ).map(_.TransactionRequestId.get).distinct
+    val coveredTrIds = DoobieTransactionRequestAttributeProvider.transactionRequestIdsByNameAndValueSync(
+      AttrSettledByTransactionRequestId, settlementId)
 
     val instructionRow = outboxRows.find(_.operationName == "obp_settlement_instruction")
     val (settlementStatus, settlementDepth) = instructionRow match {

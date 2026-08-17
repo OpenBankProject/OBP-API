@@ -148,6 +148,7 @@ class SandboxDataLoadingTest extends AnyFlatSpec with SendServerRequests with Ma
     DoobieUtil.runUpdate(sql"DELETE FROM mappedcustomerattribute".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM mappedaccountattribute".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM mappedtransactionattribute".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM transactionrequestattribute".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM mappeduserauthcontextupdate".update.run)
 
     //we need to delete the test uses manully here.

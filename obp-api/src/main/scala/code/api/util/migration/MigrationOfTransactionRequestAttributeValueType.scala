@@ -2,14 +2,15 @@ package code.api.util.migration
 
 import code.api.util.APIUtil
 import code.api.util.migration.Migration.{DbFunction, saveLog}
-import code.transactionRequestAttribute.TransactionRequestAttribute
 import net.liftweb.common.Full
 import net.liftweb.mapper.Schemifier
 
 object MigrationOfTransactionRequestAttributeValueType {
 
+  private val tableName = "transactionrequestattribute"
+
   def alterColumnValueType(name: String): Boolean = {
-    DbFunction.tableExists(TransactionRequestAttribute) match {
+    DbFunction.tableExistsByName(tableName) match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
@@ -48,7 +49,7 @@ object MigrationOfTransactionRequestAttributeValueType {
         val isSuccessful = false
         val endDate = System.currentTimeMillis()
         val comment: String =
-          s"""${TransactionRequestAttribute._dbTableNameLC} table does not exist""".stripMargin
+          s"""$tableName table does not exist""".stripMargin
         saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
         isSuccessful
     }
