@@ -936,11 +936,7 @@ object ToSchemify extends MdcLoggable {
     RateLimiting,
     MappedCustomerDependant,
     RoutingScheme,
-    BankSupportedRoutingScheme,
-    code.chat.ChatRoom,
-    code.chat.Participant,
-    code.chat.ChatMessage,
-    code.chat.Reaction
+    BankSupportedRoutingScheme
   )
 
   // start grpc server

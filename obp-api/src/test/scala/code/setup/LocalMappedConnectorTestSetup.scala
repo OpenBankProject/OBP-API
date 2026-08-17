@@ -283,6 +283,10 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
     DoobieUtil.runUpdate(sql"DELETE FROM mappedkyccheck".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM mappedkycdocument".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM mappedsocialmedia".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM reaction".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM chatmessage".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM participant".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM chatroom".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM mappeduserauthcontextupdate".update.run)
 
     

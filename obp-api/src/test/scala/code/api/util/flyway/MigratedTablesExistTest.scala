@@ -103,7 +103,11 @@ class MigratedTablesExistTest extends ServerSetup {
     "mappedkycmedia",
     "mappedkyccheck",
     "mappedkycdocument",
-    "mappedsocialmedia"
+    "mappedsocialmedia",
+    "chatroom",
+    "chatmessage",
+    "participant",
+    "reaction"
   )
 
   /**
@@ -185,7 +189,11 @@ class MigratedTablesExistTest extends ServerSetup {
     "MAPPEDKYCMEDIA" -> "MAPPEDKYCMEDIA_MID",
     "MAPPEDKYCCHECK" -> "MAPPEDKYCCHECK_MID",
     "MAPPEDKYCDOCUMENT" -> "MAPPEDKYCDOCUMENT_MID",
-    "MAPPEDSOCIALMEDIA" -> "MAPPEDSOCIALMEDIA_MCUSTOMERNUMBER"
+    "MAPPEDSOCIALMEDIA" -> "MAPPEDSOCIALMEDIA_MCUSTOMERNUMBER",
+    "CHATROOM" -> "CHATROOM_BANKID_NAME",
+    "CHATMESSAGE" -> "CHATMESSAGE_CHATMESSAGEID",
+    "PARTICIPANT" -> "PARTICIPANT_CHATROOMID_USERID",
+    "REACTION" -> "REACTION_CHATMESSAGEID_USERID_EMOJI"
   )
 
   Feature("tables owned by Flyway rather than Schemifier") {

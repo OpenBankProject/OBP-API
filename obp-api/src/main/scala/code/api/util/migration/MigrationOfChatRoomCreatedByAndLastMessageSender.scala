@@ -2,7 +2,6 @@ package code.api.util.migration
 
 import code.api.util.APIUtil
 import code.api.util.migration.Migration.{DbFunction, saveLog}
-import code.chat.ChatRoom
 import net.liftweb.common.Full
 import net.liftweb.db.DB
 import net.liftweb.mapper.Schemifier
@@ -21,7 +20,7 @@ object MigrationOfChatRoomCreatedByAndLastMessageSender {
    * If an old column does not exist (fresh install), that half is skipped.
    */
   def migrateColumns(name: String): Boolean = {
-    DbFunction.tableExists(ChatRoom) match {
+    DbFunction.tableExistsByName("chatroom") match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
@@ -64,7 +63,7 @@ object MigrationOfChatRoomCreatedByAndLastMessageSender {
         val isSuccessful = false
         val endDate = System.currentTimeMillis()
         val comment: String =
-          s"""${ChatRoom._dbTableNameLC} table does not exist"""
+          "chatroom table does not exist"
         saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
         isSuccessful
     }
