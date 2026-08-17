@@ -537,6 +537,11 @@ object ApiRole extends MdcLoggable{
   case class CanGetSignalStats(requiresBankId: Boolean = false) extends ApiRole
   lazy val canGetSignalStats = CanGetSignalStats()
 
+  // Deleting a channel destroys other users' in-flight messages, so it is a
+  // management action, not something any authenticated publisher may do.
+  case class CanDeleteSignalChannel(requiresBankId: Boolean = false) extends ApiRole
+  lazy val canDeleteSignalChannel = CanDeleteSignalChannel()
+
   case class CanDeleteEntitlementRequestsAtAnyBank(requiresBankId: Boolean = false) extends ApiRole
   lazy val canDeleteEntitlementRequestsAtAnyBank = CanDeleteEntitlementRequestsAtAnyBank()
 

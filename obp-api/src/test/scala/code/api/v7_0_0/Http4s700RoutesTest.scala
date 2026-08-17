@@ -198,6 +198,41 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
     }
   }
 
+  // ─── password policy ─────────────────────────────────────────────────────────
+
+  feature("Http4s700 getPasswordPolicy endpoint") {
+
+    scenario("Anonymous GET returns the published password policy", Http4s700RoutesTag) {
+      Given("GET /obp/v7.0.0/public/password-config with no auth")
+      val (statusCode, json, _) = makeHttpRequest("/obp/v7.0.0/public/password-config")
+
+      Then("Response is 200 with the two policy branches")
+      statusCode shouldBe 200
+      (json \ "description") shouldBe a[JString]
+      val policies = (json \ "policies").children
+      policies.size shouldBe 2
+
+      And("The composition branch is published with its classes and the exact regex from APIUtil")
+      val compositionPolicy = policies.head
+      (compositionPolicy \ "min_length") shouldBe JInt(10)
+      (compositionPolicy \ "max_length") shouldBe JInt(16)
+      (compositionPolicy \ "required_character_classes").children.size shouldBe 4
+      (compositionPolicy \ "regex") shouldBe JString(APIUtil.passwordCompositionPolicyRegex)
+
+      And("The passphrase branch has no required classes and the exact regex from APIUtil")
+      val passphrasePolicy = policies(1)
+      (passphrasePolicy \ "min_length") shouldBe JInt(17)
+      (passphrasePolicy \ "max_length") shouldBe JInt(512)
+      (passphrasePolicy \ "required_character_classes").children.size shouldBe 0
+      (passphrasePolicy \ "regex") shouldBe JString(APIUtil.passwordPassphrasePolicyRegex)
+
+      And("Both branches publish printable ASCII without space as the allowed characters")
+      val allowedCharacters = JString((0x21 to 0x7e).map(_.toChar).mkString)
+      (compositionPolicy \ "allowed_characters") shouldBe allowedCharacters
+      (passphrasePolicy \ "allowed_characters") shouldBe allowedCharacters
+    }
+  }
+
   // ─── cross-cutting middleware ─────────────────────────────────────────────────
 
   feature("Http4s700 response headers") {

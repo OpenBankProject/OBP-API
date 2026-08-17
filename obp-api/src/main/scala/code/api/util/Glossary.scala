@@ -1273,6 +1273,29 @@ object Glossary extends MdcLoggable  {
 		  """)
 
 	  glossaryItems += GlossaryItem(
+		title = "Password Policy",
+		description =
+		  s"""
+			|The rules a password must satisfy when it is set — at user creation (POST /users) and at password reset.
+			|
+			|A password is valid if it satisfies AT LEAST ONE of the following policies:
+			|
+			|1) **Composition**: 10 to 16 printable ASCII characters (no space), including at least one digit, one lower case letter, one upper case letter and one special character.
+			|
+			|2) **Passphrase**: 17 to 512 printable ASCII characters (no space), with no composition rules.
+			|
+			|The machine-readable policy is published anonymously at `GET /obp/v7.0.0/public/password-config`, including per-policy length bounds, required character classes, allowed characters, and an equivalent regular expression written in a portable subset that behaves identically in Java, JavaScript and Python — so client applications can validate locally, while the user types, using either the structured fields (normative) or the regex (convenience):
+			|
+			|Composition: `${APIUtil.passwordCompositionPolicyRegex}`
+			|
+			|Passphrase: `${APIUtil.passwordPassphrasePolicyRegex}`
+			|
+			|The server remains the final enforcer: a password failing the policy is rejected with error OBP-30207 (InvalidStrongPasswordFormat).
+			|
+			|The policy applies only when a password is set. Already-stored passwords are never re-checked against it, so tightening the policy does not lock out existing users.
+		  """)
+
+	  glossaryItems += GlossaryItem(
 		title = "User Customer Links",
 		description =
 		  """
@@ -5765,6 +5788,46 @@ object Glossary extends MdcLoggable  {
 				 |- Bank-scoped: `/obp/v6.0.0/banks/BANK_ID/chat-rooms/...`
 				 |
 				 |See the API Explorer with the **Chat** tag for the full list.
+				 |
+""")
+
+	glossaryItems += GlossaryItem(
+		title = "Signal Channels",
+		description =
+			s"""
+				 |# Signal Channels
+				 |
+				 |**Signal Channels** are short-lived, Redis-backed message channels for lightweight coordination between AI agents and other OBP consumers — service discovery, task hand-off, presence announcements. They are deliberately minimal: messages are **not** persisted to a database, there is no catch-up or replay, and a channel that goes quiet simply expires. Think of a channel as a real-life meeting: whoever is there hears what is said; a late arrival asks the others.
+				 |
+				 |Not to be confused with [Chat](/glossary#Chat), which is the persistent, human-facing messaging surface (rooms, threads, reactions, read markers).
+				 |
+				 |## Lifecycle
+				 |- Channels are auto-created on first publish; no registration step.
+				 |- On this instance a channel expires ${code.api.cache.RedisMessaging.channelTtlSeconds} seconds after its last publish, and holds at most ${code.api.cache.RedisMessaging.channelMaxMessages} messages (oldest are trimmed).
+				 |- Channel names are 1 to 128 characters from letters, digits, dot, underscore and hyphen.
+				 |
+				 |## Constraints on published messages
+				 |All publishing requires authentication. Beyond that, three server-side checks protect the platform — the envelope, not the meaning, of what agents say:
+				 |
+				 |1. **Size cap** — the whole publish request body may be up to ${code.signal.SignalContentPolicy.maxPayloadLength} characters on this instance (error **OBP-39019** when exceeded). The cap is enforced on the raw body before JSON parsing, so oversized bodies cannot burn parser CPU or Redis memory.
+				 |2. **Dangerous-character rejection** — messages containing control characters or Unicode bidirectional-override characters anywhere in the payload or message_type are rejected with **OBP-39020**. See "Why bidirectional-override characters are rejected" below.
+				 |3. **Verbatim storage** — an accepted message is stored and delivered exactly as sent; nothing is stripped or rewritten. Agents may therefore hash, sign, or byte-compare payloads. This is the deliberate opposite of Chat, which *strips* the same character set: chat content is typed by and rendered to humans (be forgiving, sanitize), signal payloads are machine-consumed data (be strict, reject).
+				 |
+				 |## Privacy and roles
+				 |- A message with **to_user_id** set is visible only to its sender and that recipient; without it, the message is a broadcast visible to all channel readers.
+				 |- **CanGetSignalStats** — read message counts and TTLs across all channels.
+				 |- **CanDeleteSignalChannel** — delete a channel and all its messages immediately. Deletion destroys other users' in-flight messages, so it is a management action rather than something any publisher may do; unneeded channels expire on their own via the TTL.
+				 |
+				 |## Why bidirectional-override characters are rejected
+				 |Unicode includes invisible formatting characters that reverse or reorder how text is *displayed* without changing the bytes a parser sees — the override family U+202A to U+202E, the isolate family U+2066 to U+2069, and the marks U+200E, U+200F and U+061C. The "Trojan Source" research (Boucher and Anderson, 2021, CVE-2021-42574) showed these can make displayed text differ from logical text: a filename can be displayed with a harmless extension while actually ending in a different one, and a URL or name can visually read as something it is not. None of these characters have a legitimate use in structured agent data, so signal messages containing them are refused outright. (The characters are named here by code point on purpose — even quoting them literally in documentation would trip the same scanners that guard source code against them.)
+				 |
+				 |The check runs on the **parsed** JSON, not the raw request body: JSON's backslash-u escape syntax means a body that is pure ASCII on the wire can still parse to a string containing a bidi override, so a wire-level check would miss it.
+				 |
+				 |## Payloads are data, not instructions
+				 |Signal channels are readable and writable by any authenticated consumer on the instance. If your agent feeds received payloads to an LLM, treat them as **untrusted data, never as instructions** — the character checks above stop display-layer trickery, but no server-side check can stop a payload from *saying* something misleading. Prompt-injection defence belongs in the consuming agent.
+				 |
+				 |## Endpoints
+				 |See the API Explorer tags **Signal** / **AI-Agent**: list channels, channel info, channel stats, publish message, get messages (offset/limit polling), delete channel — under `/obp/v6.0.0/signal/channels/...`. For live delivery, each publish also emits a Redis pub/sub event intended for gRPC streaming subscribers.
 				 |
 """)
 
