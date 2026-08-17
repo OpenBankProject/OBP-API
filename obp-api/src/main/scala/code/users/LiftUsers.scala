@@ -281,12 +281,12 @@ object LiftUsers extends Users with MdcLoggable{
 
       // Batch-fetch agreements, then reduce to most-recent per (userId, agreementType).
       val agreementsByUserId: Map[String, List[UserAgreement]] =
-        UserAgreement.findAll(ByList(UserAgreement.UserId, userIds))
+        UserAgreement.findAllByUserIds(userIds)
           .groupBy(_.userId)
           .map { case (uid, all) =>
             uid -> all.groupBy(_.agreementType)
               .values
-              .flatMap(_.sortBy(_.Date.get)(Ordering[Date].reverse).headOption)
+              .flatMap(_.sortBy(_.date)(Ordering[Date].reverse).headOption)
               .toList
           }
 

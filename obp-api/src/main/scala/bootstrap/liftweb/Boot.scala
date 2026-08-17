@@ -926,7 +926,6 @@ object ToSchemify extends MdcLoggable {
     ViewDefinition,
     ResourceUser,
     UserInvitation,
-    UserAgreement,
     UserAttribute,
     MappedCustomer,
     Consumer,
