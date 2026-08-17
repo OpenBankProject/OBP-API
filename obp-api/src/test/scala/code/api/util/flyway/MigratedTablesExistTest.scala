@@ -121,7 +121,9 @@ class MigratedTablesExistTest extends ServerSetup {
     "mappedentitlementrequest",
     "mappedcustomerdependant",
     "mappedcounterpartybespoke",
-    "expectedchallengeanswer"
+    "expectedchallengeanswer",
+    "userattribute",
+    "regulatedentity"
   )
 
   /**

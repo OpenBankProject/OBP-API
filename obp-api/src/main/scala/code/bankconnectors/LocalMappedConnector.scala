@@ -220,11 +220,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     
     //Get the limit from userAttribute, default is 1 
     val userAttributeName = s"TRANSACTION_REQUESTS_PAYMENT_LIMIT_${currency}_" + transactionRequestType.toUpperCase
-    val userAttributes = UserAttribute.findAll(
-      By(UserAttribute.UserId, userId),
-      By(UserAttribute.IsPersonal, false),
-      OrderBy(UserAttribute.createdAt, Descending)
-    )
+    val userAttributes = UserAttribute.findAllByUserIdAndPersonal(userId, isPersonal = false)
     val userAttributeValue = userAttributes.find(_.name == userAttributeName).map(_.value)
     val paymentLimit = APIUtil.getPropsAsIntValue("transactionRequests_payment_limit",100000)
     val paymentLimitBox = tryo (BigDecimal(userAttributeValue.getOrElse(paymentLimit.toString)))

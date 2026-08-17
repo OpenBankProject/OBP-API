@@ -66,7 +66,6 @@ import code.model.dataAccess._
 import code.obp.grpc.ObpGrpcServer
 import code.products.MappedProduct
 import code.ratelimiting.RateLimiting
-import code.regulatedentities.MappedRegulatedEntity
 import code.scheduler._
 import code.scope.Scope
 import code.signingbaskets.{MappedSigningBasket, MappedSigningBasketConsent, MappedSigningBasketPayment}
@@ -865,7 +864,6 @@ object ToSchemify extends MdcLoggable {
     MappedSigningBasket,
     MappedSigningBasketPayment,
     MappedSigningBasketConsent,
-    MappedRegulatedEntity,
     AbacRule,
     code.mandate.Mandate,
     code.mandate.MandateProvision,
@@ -896,7 +894,6 @@ object ToSchemify extends MdcLoggable {
     AccountAccess,
     ViewDefinition,
     ResourceUser,
-    UserAttribute,
     MappedCustomer,
     Consumer,
     Token,
