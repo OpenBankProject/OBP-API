@@ -54,7 +54,13 @@ class MigratedTablesExistTest extends ServerSetup {
     "mappedbankaccountdata",
     "apicollection",
     "mappedbadloginattempt",
-    "bankaccountrouting"
+    "bankaccountrouting",
+    "mappedfxrate",
+    "migrationscriptlog",
+    "transactionrequestreasons",
+    "apiproductattribute",
+    "mappeduserauthcontextupdate",
+    "mappedcardattribute"
   )
 
   /**

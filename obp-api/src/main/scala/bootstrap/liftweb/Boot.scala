@@ -57,7 +57,6 @@ import code.bankaccountbalance.BankAccountBalance
 import code.bankattribute.BankAttribute
 import code.bankconnectors.{Connector, ConnectorEndpoints}
 import code.branches.MappedBranch
-import code.cardattribute.MappedCardAttribute
 import code.cards.{MappedPhysicalCard, PinReset}
 import code.consent.{ConsentRequest, MappedConsent}
 import code.consumer.Consumers
@@ -1001,7 +1000,6 @@ object ToSchemify extends MdcLoggable {
     MappedAccountAttribute,
     MappedCustomerAttribute,
     MappedTransactionAttribute,
-    MappedCardAttribute,
     BankAttribute,
     RateLimiting,
     MappedCustomerDependant,
