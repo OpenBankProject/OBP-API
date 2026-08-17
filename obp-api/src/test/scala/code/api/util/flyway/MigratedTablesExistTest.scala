@@ -96,7 +96,9 @@ class MigratedTablesExistTest extends ServerSetup {
     "useragreement",
     "userinvitation",
     "methodrouting",
-    "accountaccessrequest"
+    "accountaccessrequest",
+    "bulkpayment",
+    "bulkbatchreference"
   )
 
   /**
@@ -172,7 +174,9 @@ class MigratedTablesExistTest extends ServerSetup {
     "AMQP_BANK_BROKER" -> "AMQP_BANK_BROKER_BANK_ID",
     "USERAGREEMENT" -> "USERAGREEMENT_USERAGREEMENTID",
     "USERINVITATION" -> "USERINVITATION_USERINVITATIONID",
-    "METHODROUTING" -> "METHODROUTING_METHODROUTINGID"
+    "METHODROUTING" -> "METHODROUTING_METHODROUTINGID",
+    "BULKPAYMENT" -> "BULKPAYMENT_TRANSACTIONREQUESTID_ITEMINDEX",
+    "BULKBATCHREFERENCE" -> "BULKBATCHREFERENCE_FROMBANKID_FROMACCOUNTID_BATCHREFERENCE"
   )
 
   Feature("tables owned by Flyway rather than Schemifier") {

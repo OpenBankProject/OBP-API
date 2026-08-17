@@ -63,7 +63,6 @@ import code.endpointMapping.EndpointMapping
 import code.entitlement.{Entitlement, MappedEntitlement}
 import code.entitlementrequest.MappedEntitlementRequest
 import code.routingscheme.{RoutingScheme, BankSupportedRoutingScheme}
-import code.bulkpayment.{BulkPayment, BulkBatchReference}
 import code.kycchecks.MappedKycCheck
 import code.kycdocuments.MappedKycDocument
 import code.kycmedias.MappedKycMedia
@@ -948,8 +947,6 @@ object ToSchemify extends MdcLoggable {
     MappedCustomerDependant,
     RoutingScheme,
     BankSupportedRoutingScheme,
-    BulkPayment,
-    BulkBatchReference,
     code.chat.ChatRoom,
     code.chat.Participant,
     code.chat.ChatMessage,

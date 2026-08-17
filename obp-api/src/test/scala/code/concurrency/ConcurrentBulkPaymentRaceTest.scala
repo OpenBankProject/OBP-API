@@ -28,7 +28,6 @@ package code.concurrency
 
 import code.bulkpayment.{BulkBatchReference, MappedBulkPaymentProvider}
 import net.liftweb.common.{Failure, Full}
-import net.liftweb.mapper.By
 
 import java.util.UUID
 
@@ -99,11 +98,7 @@ class ConcurrentBulkPaymentRaceTest extends ConcurrentRaceSetup {
       val batchRef  = "__conc_bulk2_ref_"  + UUID.randomUUID.toString.take(8)
       val n         = 2
 
-      def rowCount: Long = BulkBatchReference.count(
-        By(BulkBatchReference.FromBankId,     bankId),
-        By(BulkBatchReference.FromAccountId,  accountId),
-        By(BulkBatchReference.BatchReference, batchRef)
-      )
+      def rowCount: Long = BulkBatchReference.count(bankId, accountId, batchRef)
 
       When(s"$n threads concurrently check isBatchReferenceUsed then call claimBatchReference")
       // This reproduces the check-then-act window:
