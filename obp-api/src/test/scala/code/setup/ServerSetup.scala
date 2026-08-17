@@ -262,6 +262,8 @@ trait ServerSetup extends AnyFeatureSpec with SendServerRequests
     DoobieUtil.runUpdate(sql"DELETE FROM mappedmeeting".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM mappedcustomermessage".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM mappedtransactionrequesttypecharge".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM pinreset".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM mappedphysicalcard".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM mappeduserauthcontextupdate".update.run)
   }
 

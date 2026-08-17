@@ -132,7 +132,9 @@ class MigratedTablesExistTest extends ServerSetup {
     "mappedmeeting",
     "mappedmeetinginvitee",
     "mappedcustomermessage",
-    "mappedtransactionrequesttypecharge"
+    "mappedtransactionrequesttypecharge",
+    "mappedphysicalcard",
+    "pinreset"
   )
 
   /**
@@ -234,7 +236,8 @@ class MigratedTablesExistTest extends ServerSetup {
     "BANKSUPPORTEDROUTINGSCHEME" -> "BANKSUPPORTEDROUTINGSCHEME_BANKID_SCHEME",
     "ENDPOINTMAPPING" -> "ENDPOINTMAPPING_OPERATIONID",
     "MAPPEDMEETING" -> "MAPPEDMEETING_MMEETINGID",
-    "MAPPEDCUSTOMERMESSAGE" -> "MAPPEDCUSTOMERMESSAGE_MMESSAGEID"
+    "MAPPEDCUSTOMERMESSAGE" -> "MAPPEDCUSTOMERMESSAGE_MMESSAGEID",
+    "MAPPEDPHYSICALCARD" -> "MAPPEDPHYSICALCARD_MBANKID_MBANKCARDNUMBER_MISSUENUMBER"
   )
 
   Feature("tables owned by Flyway rather than Schemifier") {

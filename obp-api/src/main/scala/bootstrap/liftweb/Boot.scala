@@ -46,7 +46,6 @@ import code.api.util.migration.Migration
 import code.api.util.migration.Migration.DbFunction
 import code.bankconnectors.{Connector, ConnectorEndpoints}
 import code.branches.MappedBranch
-import code.cards.{MappedPhysicalCard, PinReset}
 import code.consent.{ConsentRequest, MappedConsent}
 import code.consumer.Consumers
 import code.model.Consumer
@@ -869,8 +868,6 @@ object ToSchemify extends MdcLoggable {
     DoubleEntryBookTransaction,
     MappedBranch,
     MappedProduct,
-    MappedPhysicalCard,
-    PinReset,
     MappedConsent,
     ConsentRequest,
     DynamicEntity,

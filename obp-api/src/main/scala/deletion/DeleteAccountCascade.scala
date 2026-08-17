@@ -68,9 +68,7 @@ object DeleteAccountCascade {
       By(MappedBankAccount.theAccountId, accountId.value)
     ) map (
       account =>
-        MappedPhysicalCard.bulkDelete_!!(
-          By(MappedPhysicalCard.mAccount, account.id.get)
-        )
+        MappedPhysicalCard.deleteByAccountKey(account.id.get)
     )
   }.forall(_ == true)
   
