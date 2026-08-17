@@ -81,7 +81,8 @@ class MigratedTablesExistTest extends ServerSetup {
     "metricsarchiverun",
     "open_corridor_fee_accrual",
     "utilitypaymentcallback",
-    "webuiprops"
+    "webuiprops",
+    "groupofroles"
   )
 
   /**

@@ -261,6 +261,7 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
     DoobieUtil.runUpdate(sql"DELETE FROM open_corridor_fee_accrual".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM utilitypaymentcallback".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM webuiprops".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM groupofroles".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM mappeduserauthcontextupdate".update.run)
 
     
