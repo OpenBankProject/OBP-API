@@ -128,7 +128,9 @@ class MigratedTablesExistTest extends ServerSetup {
     "banksupportedroutingscheme",
     "abacrule",
     "endpointmapping",
-    "dynamicentityindex"
+    "dynamicentityindex",
+    "mappedmeeting",
+    "mappedmeetinginvitee"
   )
 
   /**
@@ -228,7 +230,8 @@ class MigratedTablesExistTest extends ServerSetup {
     "EXPECTEDCHALLENGEANSWER" -> "EXPECTEDCHALLENGEANSWER_CHALLENGEID",
     "ROUTINGSCHEME" -> "ROUTINGSCHEME_SCHEME",
     "BANKSUPPORTEDROUTINGSCHEME" -> "BANKSUPPORTEDROUTINGSCHEME_BANKID_SCHEME",
-    "ENDPOINTMAPPING" -> "ENDPOINTMAPPING_OPERATIONID"
+    "ENDPOINTMAPPING" -> "ENDPOINTMAPPING_OPERATIONID",
+    "MAPPEDMEETING" -> "MAPPEDMEETING_MMEETINGID"
   )
 
   Feature("tables owned by Flyway rather than Schemifier") {

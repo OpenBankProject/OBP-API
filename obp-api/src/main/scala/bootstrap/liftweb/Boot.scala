@@ -55,7 +55,6 @@ import code.dynamicEntity.DynamicEntity
 import code.dynamicMessageDoc.DynamicMessageDoc
 import code.dynamicResourceDoc.DynamicResourceDoc
 import code.entitlement.{Entitlement, MappedEntitlement}
-import code.meetings.{MappedMeeting, MappedMeetingInvitee}
 import code.metadata.counterparties.{MappedCounterparty, MappedCounterpartyMetadata, MappedCounterpartyWhereTag}
 import code.metrics.{MappedConnectorMetric, MappedMetric, MetricArchive}
 import code.model._
@@ -871,8 +870,6 @@ object ToSchemify extends MdcLoggable {
     MappedCustomerMessage,
     MappedBranch,
     MappedProduct,
-    MappedMeeting,
-    MappedMeetingInvitee,
     MappedPhysicalCard,
     PinReset,
     MappedTransactionRequestTypeCharge,
