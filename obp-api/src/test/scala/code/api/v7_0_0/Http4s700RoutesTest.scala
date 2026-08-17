@@ -614,12 +614,12 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
 
   /** Remove every jobscheduler lock row so a scenario starts from a clean table. */
   private def clearJobLocks(): Unit =
-    JobScheduler.findAll().foreach(JobScheduler.delete_!)
+    JobScheduler.deleteAll()
 
   /** Seed one jobscheduler lock row and return its job id. */
   private def seedJobLock(name: String = "MetricsArchiveScheduler", apiInstanceId: String = "test-node"): String = {
     val jobId = APIUtil.generateUUID()
-    JobScheduler.create.JobId(jobId).Name(name).ApiInstanceId(apiInstanceId).saveMe()
+    JobScheduler.createJob(jobId, name, apiInstanceId)
     jobId
   }
 
@@ -760,7 +760,7 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
       Given("canDeleteSchedulerJobLock granted and one seeded lock")
       addEntitlement("", resourceUser1.userId, canDeleteSchedulerJobLock.toString)
       val seededJobId = seedJobLock()
-      JobScheduler.find(By(JobScheduler.JobId, seededJobId)).isDefined shouldBe true
+      JobScheduler.findByJobId(seededJobId).isDefined shouldBe true
 
       When("DELETE /obp/v7.0.0/management/system/scheduler/job-locks/{jobId} with DirectLogin header")
       val headers = Map("DirectLogin" -> s"token=${token1.value}")
@@ -769,7 +769,7 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
 
       Then("Response is 204 and the lock row is gone")
       statusCode shouldBe 204
-      JobScheduler.find(By(JobScheduler.JobId, seededJobId)).isDefined shouldBe false
+      JobScheduler.findByJobId(seededJobId).isDefined shouldBe false
     }
 
     Scenario("Return 204 even when the job id does not exist (idempotent)", Http4s700RoutesTag) {

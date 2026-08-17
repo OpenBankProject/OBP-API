@@ -1589,11 +1589,11 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
   def createSchedulerJobsJsonV700(rows: List[code.scheduler.JobScheduler]): SchedulerJobsJsonV700 = {
     val now = System.currentTimeMillis
     val jobs = rows.map { r =>
-      val startedAt = r.createdAt.get
+      val startedAt = r.createdAt
       SchedulerJobJsonV700(
-        job_id          = r.JobId.get,
-        name            = r.Name.get,
-        api_instance_id = r.ApiInstanceId.get,
+        job_id          = r.jobId,
+        name            = r.name,
+        api_instance_id = r.apiInstanceId,
         started_at      = startedAt,
         age_seconds     = (now - startedAt.getTime) / 1000L
       )

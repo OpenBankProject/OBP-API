@@ -264,6 +264,7 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
     DoobieUtil.runUpdate(sql"DELETE FROM groupofroles".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM organisation".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM attributedefinition".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM jobscheduler".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM mappeduserauthcontextupdate".update.run)
 
     

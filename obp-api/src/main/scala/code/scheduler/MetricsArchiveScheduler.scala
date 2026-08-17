@@ -59,16 +59,16 @@ object MetricsArchiveScheduler extends MdcLoggable {
     // `By(Name, apiInstanceId)` never matched and a redeploy could not self-heal
     // (only the 5-day sweep below would, leaving archiving stalled up to 5 days).
     // Keyed on this instance's own id, so another node's running job is untouched.
-    JobScheduler.findAll(By(JobScheduler.ApiInstanceId, apiInstanceId)).map { i =>
+    JobScheduler.findAllByApiInstanceId(apiInstanceId).map { i =>
       logger.info(s"Deleting leftover Job name: ${i.name}, Date: ${i.createdAt}, api_instance_id: $apiInstanceId")
       i
-    }.map(_.delete_!)
+    }.map(JobScheduler.delete)
     logger.info(s"Delete all Jobs older than 5 days")
     val fiveDaysAgo: Date = new Date(new Date().getTime - (oneDayInMillis * 5))
-    JobScheduler.findAll(By_<=(JobScheduler.createdAt, fiveDaysAgo)).map { i =>
+    JobScheduler.findAllCreatedOnOrBefore(fiveDaysAgo).map { i =>
       println(s"Job name: ${i.name}, Date: ${i.createdAt}, api_instance_id: ${apiInstanceId}")
       i
-    }.map(_.delete_!)
+    }.map(JobScheduler.delete)
     
     scheduler.schedule(
       initialDelay = Duration(intervalInSeconds, TimeUnit.SECONDS),
@@ -93,17 +93,13 @@ object MetricsArchiveScheduler extends MdcLoggable {
    * respects exactly the same checks and retention rules as a scheduled one.
    */
   def runOnce(): RunOutcome = {
-    JobScheduler.find(By(JobScheduler.Name, jobName)) match {
+    JobScheduler.findByName(jobName) match {
       case Full(job) => // There is an ongoing/hanging job
-        logger.info(s"MetricsArchiveScheduler.runOnce skipped due to ongoing job. Job ID: ${job.JobId.get}, started at: ${job.createdAt.get}, api_instance_id: ${job.ApiInstanceId.get}")
-        RunSkippedAlreadyInProgress(job.JobId.get, job.ApiInstanceId.get, job.createdAt.get)
+        logger.info(s"MetricsArchiveScheduler.runOnce skipped due to ongoing job. Job ID: ${job.jobId}, started at: ${job.createdAt}, api_instance_id: ${job.apiInstanceId}")
+        RunSkippedAlreadyInProgress(job.jobId, job.apiInstanceId, job.createdAt)
       case _ => // Start a new job
         val uniqueId = generateUUID()
-        val job = JobScheduler.create
-          .JobId(uniqueId)
-          .Name(jobName)
-          .ApiInstanceId(apiInstanceId)
-          .saveMe()
+        val job = JobScheduler.createJob(uniqueId, jobName, apiInstanceId)
         logger.info(s"Starting Job ID: $uniqueId")
         val startedAt = new Date()
         var rowsMoved = 0
@@ -129,7 +125,7 @@ object MetricsArchiveScheduler extends MdcLoggable {
               rowsMoved, rowsDeleted, success = false, Some(Option(e.getMessage).getOrElse(e.toString)))
             RunCompleted(run)
         } finally {
-          JobScheduler.delete_!(job) // Allow future jobs
+          JobScheduler.delete(job) // Allow future jobs
           logger.info(s"End of Job ID: $uniqueId (rows moved to archive: $rowsMoved, outdated archive rows deleted: $rowsDeleted)")
         }
     }

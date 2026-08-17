@@ -84,7 +84,8 @@ class MigratedTablesExistTest extends ServerSetup {
     "webuiprops",
     "groupofroles",
     "organisation",
-    "attributedefinition"
+    "attributedefinition",
+    "jobscheduler"
   )
 
   /**
@@ -153,7 +154,8 @@ class MigratedTablesExistTest extends ServerSetup {
     "WEBUIPROPS" -> "WEBUIPROPS_WEBUIPROPSID",
     "WEBUIPROPS" -> "WEBUIPROPS_NAME",
     "ORGANISATION" -> "ORGANISATION_ORGANISATIONID",
-    "ATTRIBUTEDEFINITION" -> "ATTRIBUTEDEFINITION_BANKID_NAME_CATEGORY"
+    "ATTRIBUTEDEFINITION" -> "ATTRIBUTEDEFINITION_BANKID_NAME_CATEGORY",
+    "JOBSCHEDULER" -> "JOBSCHEDULER_JOBID"
   )
 
   Feature("tables owned by Flyway rather than Schemifier") {

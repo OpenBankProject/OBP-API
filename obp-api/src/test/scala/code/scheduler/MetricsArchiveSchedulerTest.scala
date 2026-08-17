@@ -34,7 +34,7 @@ class MetricsArchiveSchedulerTest extends ServerSetup {
     MappedMetric.bulkDelete_!!()
     MetricArchive.bulkDelete_!!()
     MetricsArchiveRun.bulkDelete_!!()
-    JobScheduler.findAll(By(JobScheduler.Name, jobName)).foreach(JobScheduler.delete_!)
+    JobScheduler.findAllByName(jobName).foreach(JobScheduler.delete)
   }
 
   private def seedMetric(date: Date, correlationId: String): MappedMetric =
@@ -154,7 +154,7 @@ class MetricsArchiveSchedulerTest extends ServerSetup {
       seedMetric(daysAgo(800), validUuid())
       // Simulate an in-progress run on this or another node.
       val lockJobId = validUuid()
-      JobScheduler.create.JobId(lockJobId).Name(jobName).ApiInstanceId("other-node").saveMe()
+      JobScheduler.createJob(lockJobId, jobName, "other-node")
 
       val outcome = MetricsArchiveScheduler.runOnce()
 
