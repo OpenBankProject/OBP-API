@@ -69,7 +69,8 @@ class MigratedTablesExistTest extends ServerSetup {
     "mappedcustomerattribute",
     "mappedaccountattribute",
     "mappedtransactionattribute",
-    "transactionrequestattribute"
+    "transactionrequestattribute",
+    "mappedtaxresidence"
   )
 
   /**
@@ -117,7 +118,8 @@ class MigratedTablesExistTest extends ServerSetup {
     "BANKACCOUNTROUTING" -> "BANKACCOUNTROUTING_BANKID_ACCOUNTID_ACCOUNTROUTINGSCHEME",
     "BANKACCOUNTROUTING" -> "BANKACCOUNTROUTING_BANKID_ACCOUNTROUTINGSCHEME_ACCOUNTROUTINGADDRESS",
     "MIGRATIONSCRIPTLOG" -> "MIGRATIONSCRIPTLOG_NAME_ISSUCCESSFUL",
-    "APIPRODUCTATTRIBUTE" -> "APIPRODUCTATTRIBUTE_APIPRODUCTATTRIBUTEID"
+    "APIPRODUCTATTRIBUTE" -> "APIPRODUCTATTRIBUTE_APIPRODUCTATTRIBUTEID",
+    "MAPPEDTAXRESIDENCE" -> "MAPPEDTAXRESIDENCE_MCUSTOMERID_MDOMAIN_MTAXNUMBER"
   )
 
   Feature("tables owned by Flyway rather than Schemifier") {

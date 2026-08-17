@@ -41,7 +41,6 @@ class MappedClassNameTest extends AnyFeatureSpec {
     "code.accountholders.MapperAccountHolders",
     "code.metadata.narrative.MappedNarrative",
     "code.dynamicEntity.DynamicEntity",
-    "code.taxresidence.MappedTaxResidence",
     "code.atms.MappedAtm",
     "code.meetings.MappedMeetingInvitee",
     "code.transactionrequests.MappedTransactionRequestTypeCharge",

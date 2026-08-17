@@ -99,7 +99,6 @@ import code.scope.{MappedScope, MappedUserScope, Scope}
 import code.signingbaskets.{MappedSigningBasket, MappedSigningBasketConsent, MappedSigningBasketPayment}
 import code.socialmedia.MappedSocialMedia
 import code.standingorders.StandingOrder
-import code.taxresidence.MappedTaxResidence
 import code.token.OpenIDConnectToken
 import code.transaction.MappedTransaction
 import code.transactionChallenge.MappedExpectedChallengeAnswer
@@ -980,7 +979,6 @@ object ToSchemify extends MdcLoggable {
     MappedEntitlementRequest,
     MappedScope,
     MappedUserScope,
-    MappedTaxResidence,
     MappedCustomerAddress,
     MappedAccountApplication,
     MappedProductCollection,

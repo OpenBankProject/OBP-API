@@ -12,7 +12,6 @@ import code.kycchecks.MappedKycCheck
 import code.kycdocuments.MappedKycDocument
 import code.kycmedias.MappedKycMedia
 import code.kycstatuses.MappedKycStatus
-import code.taxresidence.MappedTaxResidence
 import code.usercustomerlinks.MappedUserCustomerLink
 import com.openbankproject.commons.model.CustomerId
 import deletion.DeletionUtil.databaseAtomicTask
@@ -73,10 +72,10 @@ object DeleteCustomerCascade {
     )
   }
   private def deleteTaxResidence(customerId: CustomerId): Boolean = {
-    MappedCustomer.find(By(MappedCustomer.mCustomerId, customerId.value)).forall(c =>
-      MappedTaxResidence.bulkDelete_!!(
-        By(MappedTaxResidence.mCustomerId, c.id.get)
-      ))
+    MappedCustomer.find(By(MappedCustomer.mCustomerId, customerId.value)).forall { c =>
+      DoobieUtil.runUpdate(sql"DELETE FROM mappedtaxresidence WHERE mcustomerid = ${c.id.get}".update.run)
+      true
+    }
   }
   private def deleteKycStatus(customerId: CustomerId): Boolean = {
     MappedKycStatus.bulkDelete_!!(

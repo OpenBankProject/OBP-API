@@ -202,6 +202,7 @@ trait TestConnectorSetupWithStandardPermissions extends TestConnectorSetup {
     DoobieUtil.runUpdate(sql"DELETE FROM mappedaccountattribute".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM mappedtransactionattribute".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM transactionrequestattribute".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM mappedtaxresidence".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM mappeduserauthcontextupdate".update.run)
 
   }
