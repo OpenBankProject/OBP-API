@@ -5,20 +5,21 @@ import java.time.{ZoneId, ZonedDateTime}
 
 import code.api.util.APIUtil
 import code.api.util.migration.Migration.{DbFunction, saveLog}
-import code.customerattribute.MappedCustomerAttribute
 import code.model.{AppType, Consumer}
 import net.liftweb.common.Full
 import net.liftweb.mapper.{DB, Schemifier}
 import net.liftweb.util.{DefaultConnectionIdentifier, Helpers}
 
 object MigrationOfCustomerAttributes {
-  
+
+  private val customerAttributeTableName = "mappedcustomerattribute"
+
   val oneDayAgo = ZonedDateTime.now(ZoneId.of("UTC")).minusDays(1)
   val oneYearInFuture = ZonedDateTime.now(ZoneId.of("UTC")).plusYears(1)
   val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm'Z'")
-  
+
   def alterColumnValue(name: String): Boolean = {
-    DbFunction.tableExists(MappedCustomerAttribute) match {
+    DbFunction.tableExistsByName(customerAttributeTableName) match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
@@ -51,11 +52,11 @@ object MigrationOfCustomerAttributes {
         val isSuccessful = false
         val endDate = System.currentTimeMillis()
         val comment: String =
-          s"""${MappedCustomerAttribute._dbTableNameLC} table does not exist""".stripMargin
+          s"""$customerAttributeTableName table does not exist""".stripMargin
         saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
         isSuccessful
     }
-  }  
+  }
   def populateAzpAndSub(name: String): Boolean = {
     DbFunction.tableExists(Consumer) match {
       case true =>

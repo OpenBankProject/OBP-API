@@ -85,7 +85,6 @@ class MappedClassNameTest extends AnyFeatureSpec {
       "code.api.attributedefinition.AttributeDefinition",
       "code.token.OpenIDConnectToken",
       "code.transactionattribute.MappedTransactionAttribute",
-      "code.customerattribute.MappedCustomerAttribute",
       "code.cards.MappedPhysicalCard",
       "code.model.dataAccess.ResourceUser",
       "code.views.system.AccountAccess",

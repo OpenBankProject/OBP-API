@@ -64,7 +64,6 @@ import code.crm.MappedCrmEvent
 import code.customer.{MappedCustomer, MappedCustomerMessage}
 import code.customeraccountlinks.CustomerAccountLink
 import code.customeraddress.MappedCustomerAddress
-import code.customerattribute.MappedCustomerAttribute
 import code.directdebit.DirectDebit
 import code.dynamicEntity.DynamicEntity
 import code.dynamicMessageDoc.DynamicMessageDoc
@@ -991,7 +990,6 @@ object ToSchemify extends MdcLoggable {
     MappedProductCollection,
     MappedProductCollectionItem,
     MappedAccountAttribute,
-    MappedCustomerAttribute,
     MappedTransactionAttribute,
     RateLimiting,
     MappedCustomerDependant,

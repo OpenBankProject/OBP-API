@@ -8,7 +8,6 @@ import code.api.util.DoobieUtil
 import code.customer.MappedCustomer
 import code.customeraccountlinks.CustomerAccountLink
 import code.customeraddress.MappedCustomerAddress
-import code.customerattribute.MappedCustomerAttribute
 import code.kycchecks.MappedKycCheck
 import code.kycdocuments.MappedKycDocument
 import code.kycmedias.MappedKycMedia
@@ -58,7 +57,9 @@ object DeleteCustomerCascade {
     )
   }
   private def deleteCustomerAttributes(customerId: CustomerId): Boolean = {
-    MappedCustomerAttribute.bulkDelete_!!(By(MappedCustomerAttribute.mCustomerId, customerId.value))
+    DoobieUtil.runUpdate(
+      sql"DELETE FROM mappedcustomerattribute WHERE mcustomerid = ${customerId.value}".update.run)
+    true
   }
 
   private def deleteCustomer(customerId: CustomerId): Boolean = {
