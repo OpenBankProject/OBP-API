@@ -2643,13 +2643,15 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
       outboxRows.size shouldBe 3
       val adviceRows = outboxRows.filter(_.operationName == "obp_settlement_advice")
       adviceRows.map(_.targetId).sorted shouldBe List(testBankId1.value, testBankId2.value).sorted
-      val bank2Advice = adviceRows.find(_.targetId == testBankId2.value)
-        .map(row => parse(row.payloadJson))
-        .getOrElse(fail("bank2's settlement advice should be enqueued"))
-      (bank2Advice \ "settlement_id") shouldBe JString(settlementId)
-      (bank2Advice \ "covered_transaction_request_ids") match {
-        case JArray(ids) => ids.collect { case JString(id) => id }.toSet shouldBe Set(promise1, promise2)
-        case _ => fail("covered_transaction_request_ids should be an array")
+      // Both party banks get the advice with the FULL covered list (both
+      // directions): each node stamps its credits AND its own promises from it.
+      adviceRows.foreach { row =>
+        val advice = parse(row.payloadJson)
+        (advice \ "settlement_id") shouldBe JString(settlementId)
+        (advice \ "covered_transaction_request_ids") match {
+          case JArray(ids) => ids.collect { case JString(id) => id }.toSet shouldBe Set(promise1, promise2, promise3)
+          case _ => fail("covered_transaction_request_ids should be an array")
+        }
       }
       val instructionRow = outboxRows.filter(_.operationName == "obp_settlement_instruction") match {
         case row :: Nil => row
