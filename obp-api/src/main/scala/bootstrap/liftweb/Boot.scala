@@ -32,7 +32,6 @@ import code.DynamicData.DynamicData
 import code.DynamicData.DynamicDataAccess
 import code.DynamicEndpoint.DynamicEndpoint
 import code.abacrule.AbacRule
-import code.accountaccessrequest.AccountAccessRequest
 import code.accountapplication.MappedAccountApplication
 import code.accountholders.MapperAccountHolders
 import code.actorsystem.ObpActorSystem
@@ -951,7 +950,6 @@ object ToSchemify extends MdcLoggable {
     BankSupportedRoutingScheme,
     BulkPayment,
     BulkBatchReference,
-    AccountAccessRequest,
     code.chat.ChatRoom,
     code.chat.Participant,
     code.chat.ChatMessage,

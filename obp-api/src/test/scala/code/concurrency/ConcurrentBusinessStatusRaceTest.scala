@@ -57,31 +57,22 @@ class ConcurrentBusinessStatusRaceTest extends ConcurrentRaceSetup {
 
     Scenario("M2: concurrent approve and decline of the same AccountAccessRequest must not both succeed", ConcurrencyRace) {
       Given("an AccountAccessRequest in INITIATED state")
-      val requestId = UUID.randomUUID.toString
-      AccountAccessRequest.create
-        .AccountAccessRequestId(requestId)
-        .BankId("__conc_m2_bank")
-        .AccountId("__conc_m2_acc")
-        .ViewId("owner")
-        .IsSystemView(false)
-        .RequestorUserId(resourceUser1.userId)
-        .TargetUserId(resourceUser2.userId)
-        .BusinessJustification("concurrency test")
-        .Status(AccountAccessRequestStatus.INITIATED.toString)
-        .CheckerUserId("")
-        .CheckerComment("")
-        .saveMe()
+      val seeded = AccountAccessRequest.insert(
+        bankId = "__conc_m2_bank", accountId = "__conc_m2_acc", viewId = "owner",
+        isSystemView = false, requestorUserId = resourceUser1.userId,
+        targetUserId = resourceUser2.userId, businessJustification = "concurrency test")
+      val requestIdActual = seeded.accountAccessRequestId
 
       When("two threads concurrently update the request — one to APPROVED, one to DECLINED")
       val n       = 2
       val results = runConcurrentWithBarrier(n) { i =>
         val newStatus = if (i == 0) "APPROVED" else "DECLINED"
-        MappedAccountAccessRequestProvider.updateStatus(requestId, newStatus, resourceUser1.userId, "concurrent-test")
+        MappedAccountAccessRequestProvider.updateStatus(requestIdActual, newStatus, resourceUser1.userId, "concurrent-test")
       }
 
       val finalStatus = AccountAccessRequest
-        .find(By(AccountAccessRequest.AccountAccessRequestId, requestId))
-        .map(_.Status.get).getOrElse("missing")
+        .findByAccountAccessRequestId(requestIdActual)
+        .map(_.status).getOrElse("missing")
 
       Then("the final status must be a deterministic terminal value, not an overwritten intermediate")
       withClue(

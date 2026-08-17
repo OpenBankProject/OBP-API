@@ -95,7 +95,8 @@ class MigratedTablesExistTest extends ServerSetup {
     "openidconnecttoken",
     "useragreement",
     "userinvitation",
-    "methodrouting"
+    "methodrouting",
+    "accountaccessrequest"
   )
 
   /**
