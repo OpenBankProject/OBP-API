@@ -189,6 +189,13 @@ grep -l '^class.*extends.*ServerSetup' obp-api/src/test/scala/code/api/v3_1_0/*.
 ```
 Pipe that into `-DwildcardSuites=`. Add `-DfailIfNoTests=false` so an empty match doesn't fail the build. The `extends.*ServerSetup` filter only keeps real suites (skips the abstract base trait itself and any utility helpers in the directory). Don't generate suite names from `basename` — that silently drops suites with class-vs-file name mismatches, which is exactly how a CI failure can slip past a green local run.
 
+**Verifying a Flyway migration is actually doing something — delete it from `target/classes`, not just `src`**: Flyway loads from `classpath:db/migration/<vendor>`, i.e. `obp-api/target/classes/db/migration/h2/`. Maven's `process-resources` copies new files there but never deletes ones you removed from `src`. So the natural way to prove a migration matters — move the `.sql` out of `src` and re-run the test expecting red — gives a **false green**: the stale copy under `target/classes` is still on the classpath and still applies. Remove both:
+```sh
+rm obp-api/src/main/resources/db/migration/h2/V0NN__*.sql \
+   obp-api/target/classes/db/migration/h2/V0NN__*.sql
+```
+The test DB is `jdbc:h2:mem:` (see `test.default.props`), so it is genuinely fresh per JVM — nothing persists between runs, and if an index still appears after you stashed its migration, the stale `target/classes` copy is why. Confirm with a throwaway probe against `information_schema.indexes` rather than assuming. This bites specifically on SQL-only changes; Scala-side red/green is unaffected because recompilation overwrites the class files.
+
 **Surefire reports beat truncated maven output**: When a `mvn test` invocation has hundreds of failures, the run summary at the tail says e.g. `*** 23 TESTS FAILED ***` but the individual failure messages are scrolled off. Don't re-run; mine `obp-api/target/surefire-reports/TEST-*.xml` instead. Suites with failures have `failures=` or `errors=` >0; per-testcase failures are `<failure message="...">` elements. Quick extract:
 ```sh
 python3 -c "
