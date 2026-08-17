@@ -192,6 +192,7 @@ trait ServerSetup extends AnyFeatureSpec with SendServerRequests
     DoobieUtil.runUpdate(sql"DELETE FROM mappedcardattribute".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM atmattribute".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM bankattribute".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM counterpartyattribute".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM mappeduserauthcontextupdate".update.run)
   }
 

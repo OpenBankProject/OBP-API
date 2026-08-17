@@ -98,7 +98,6 @@ import code.products.MappedProduct
 import code.ratelimiting.RateLimiting
 import code.regulatedentities.MappedRegulatedEntity
 import code.regulatedentities.attribute.RegulatedEntityAttribute
-import code.counterpartyattribute.{CounterpartyAttribute => CounterpartyAttributeMapper}
 import code.scheduler._
 import code.scope.{MappedScope, MappedUserScope, Scope}
 import code.signingbaskets.{MappedSigningBasket, MappedSigningBasketConsent, MappedSigningBasketPayment}
@@ -1002,7 +1001,6 @@ object ToSchemify extends MdcLoggable {
     AttributeDefinition,
     CustomerAccountLink,
     RegulatedEntityAttribute,
-    CounterpartyAttributeMapper,
     BankAccountBalance,
     Group,
     Organisation,

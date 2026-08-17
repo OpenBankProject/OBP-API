@@ -62,7 +62,8 @@ class MigratedTablesExistTest extends ServerSetup {
     "mappeduserauthcontextupdate",
     "mappedcardattribute",
     "atmattribute",
-    "bankattribute"
+    "bankattribute",
+    "counterpartyattribute"
   )
 
   /**
