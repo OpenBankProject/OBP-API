@@ -84,10 +84,9 @@ object DoobieAccountAttributeProvider extends AccountAttributeProvider {
     accountId: AccountId,
     viewId: ViewId
   ): Future[Box[List[AccountAttribute]]] = Future {
-    val attributeDefinitions = AttributeDefinition.findAll(
-      By(AttributeDefinition.BankId, bankId.value),
-      By(AttributeDefinition.Category, AttributeCategory.Account.toString)
-    ).filter(_.canBeSeenOnViews.exists(_ == viewId.value))
+    val attributeDefinitions = AttributeDefinition
+      .findAllByBankIdAndCategory(bankId.value, AttributeCategory.Account.toString)
+      .filter(_.canBeSeenOnViews.exists(_ == viewId.value))
     val accountAttributes = DoobieUtil.runQuery(
       (selectCols ++ fr"WHERE mbankidid = ${bankId.value} AND maccountid = ${accountId.value}")
         .query[(String, String, String, String, String, String, String, String)].to[List]
@@ -107,10 +106,9 @@ object DoobieAccountAttributeProvider extends AccountAttributeProvider {
     if (accounts.isEmpty) {
       Full(Nil)
     } else {
-      val attributeDefinitions = AttributeDefinition.findAll(
-        net.liftweb.mapper.ByList(AttributeDefinition.BankId, accounts.map(_.bankId.value)),
-        By(AttributeDefinition.Category, AttributeCategory.Account.toString)
-      ).filter(_.canBeSeenOnViews.exists(_ == viewId.value))
+      val attributeDefinitions = AttributeDefinition
+        .findAllByBankIdsAndCategory(accounts.map(_.bankId.value), AttributeCategory.Account.toString)
+        .filter(_.canBeSeenOnViews.exists(_ == viewId.value))
       val accountIds = accounts.map(_.accountId.value).distinct
       val inFrag = Fragments.in(fr"maccountid", cats.data.NonEmptyList.fromListUnsafe(accountIds))
       val accountAttributes = DoobieUtil.runQuery(

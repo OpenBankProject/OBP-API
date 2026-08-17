@@ -42,12 +42,9 @@ object DeleteProductCascade {
     DoobieProductAttributeProvider.deleteProductAttributesByBankAndCode(bankId.value, code.value)
   }
   private def deleteProductAttributeDefinitions(bankId: BankId, code: ProductCode): Boolean = {
-    AttributeDefinition.findAll(
-      By(AttributeDefinition.BankId, bankId.value),
-      By(AttributeDefinition.Category, code.value)
-    ) map {
+    AttributeDefinition.findAllByBankIdAndCategory(bankId.value, code.value) map {
       definition =>
-        AttributeDefinition.bulkDelete_!!(By(AttributeDefinition.AttributeDefinitionId, definition.attributeDefinitionId))
+        AttributeDefinition.deleteByAttributeDefinitionId(definition.attributeDefinitionId)
     } forall (_ == true)
   }
   private def deleteAccounts(bankId: BankId, code: ProductCode): Boolean = {

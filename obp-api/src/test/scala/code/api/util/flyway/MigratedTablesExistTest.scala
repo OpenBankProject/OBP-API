@@ -83,7 +83,8 @@ class MigratedTablesExistTest extends ServerSetup {
     "utilitypaymentcallback",
     "webuiprops",
     "groupofroles",
-    "organisation"
+    "organisation",
+    "attributedefinition"
   )
 
   /**
@@ -151,7 +152,8 @@ class MigratedTablesExistTest extends ServerSetup {
     "UTILITYPAYMENTCALLBACK" -> "UTILITYPAYMENTCALLBACK_CALLBACKID",
     "WEBUIPROPS" -> "WEBUIPROPS_WEBUIPROPSID",
     "WEBUIPROPS" -> "WEBUIPROPS_NAME",
-    "ORGANISATION" -> "ORGANISATION_ORGANISATIONID"
+    "ORGANISATION" -> "ORGANISATION_ORGANISATIONID",
+    "ATTRIBUTEDEFINITION" -> "ATTRIBUTEDEFINITION_BANKID_NAME_CATEGORY"
   )
 
   Feature("tables owned by Flyway rather than Schemifier") {

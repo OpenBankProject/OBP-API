@@ -83,10 +83,9 @@ object DoobieTransactionRequestAttributeProvider extends TransactionRequestAttri
     transactionRequestId: TransactionRequestId,
     viewId: ViewId
   ): Future[Box[List[TransactionRequestAttributeTrait]]] = Future {
-    val attributeDefinitions = AttributeDefinition.findAll(
-      By(AttributeDefinition.BankId, bankId.value),
-      By(AttributeDefinition.Category, AttributeCategory.Account.toString)
-    ).filter(_.canBeSeenOnViews.exists(_ == viewId.value))
+    val attributeDefinitions = AttributeDefinition
+      .findAllByBankIdAndCategory(bankId.value, AttributeCategory.Account.toString)
+      .filter(_.canBeSeenOnViews.exists(_ == viewId.value))
     val transactionRequestAttributes = DoobieUtil.runQuery(
       (selectCols ++ fr"WHERE bankid = ${bankId.value} AND transactionrequestid = ${transactionRequestId.value}")
         .query[(String, String, String, String, String, String, Boolean)].to[List]

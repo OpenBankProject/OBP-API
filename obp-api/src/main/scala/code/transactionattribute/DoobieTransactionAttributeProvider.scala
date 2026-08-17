@@ -77,10 +77,9 @@ object DoobieTransactionAttributeProvider extends TransactionAttributeProvider {
     transactionId: TransactionId,
     viewId: ViewId
   ): Future[Box[List[TransactionAttribute]]] = Future {
-    val attributeDefinitions = AttributeDefinition.findAll(
-      By(AttributeDefinition.BankId, bankId.value),
-      By(AttributeDefinition.Category, AttributeCategory.Transaction.toString)
-    ).filter(_.canBeSeenOnViews.exists(_ == viewId.value))
+    val attributeDefinitions = AttributeDefinition
+      .findAllByBankIdAndCategory(bankId.value, AttributeCategory.Transaction.toString)
+      .filter(_.canBeSeenOnViews.exists(_ == viewId.value))
     val transactionAttributes = DoobieUtil.runQuery(
       (selectCols ++ fr"WHERE mbankid = ${bankId.value} AND mtransactionid = ${transactionId.value}")
         .query[(String, String, String, String, String, String)].to[List]
@@ -101,10 +100,9 @@ object DoobieTransactionAttributeProvider extends TransactionAttributeProvider {
     if (transactionIds.isEmpty) {
       Full(Nil)
     } else {
-      val attributeDefinitions = AttributeDefinition.findAll(
-        By(AttributeDefinition.BankId, bankId.value),
-        By(AttributeDefinition.Category, AttributeCategory.Transaction.toString)
-      ).filter(_.canBeSeenOnViews.exists(_ == viewId.value))
+      val attributeDefinitions = AttributeDefinition
+        .findAllByBankIdAndCategory(bankId.value, AttributeCategory.Transaction.toString)
+        .filter(_.canBeSeenOnViews.exists(_ == viewId.value))
       val inFrag = Fragments.in(fr"mtransactionid", cats.data.NonEmptyList.fromListUnsafe(transactionIds.map(_.value)))
       val transactionsAttributes = DoobieUtil.runQuery(
         (selectCols ++ fr"WHERE " ++ inFrag)
