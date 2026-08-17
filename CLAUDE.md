@@ -212,6 +212,20 @@ Columns that a code path treats as a sentinel are the exception and must stay no
 `mappedproduct.mparentproductcode`, where `""` terminates `getProductTree`'s walk and a null would
 break it instead of ending it.
 
+**Audit the callers before writing the store, not after the suite fails.** Three consecutive
+migrations (products, branches, account holders) compiled, passed their targeted suites, and then
+failed the full run on a null that arrived from a call site the store's author had not read. The
+nulls are never in the table's own semantics — they come from the domain above it:
+- a literal in the caller (`Http4s310.createProduct` passes `termsAndConditionsUrl = null`);
+- an identifier that is optional for some rows (`canRevokeOwnerAccess` looks account holders up by a
+  `ViewDefinition`'s `bankId`/`accountId`, and a SYSTEM view has neither);
+- a value reflected out of connector-method arguments (`getMethodRoutings`' `bankId`).
+
+So before writing a store: grep every caller for literal `null` arguments and for `.orNull`, and ask
+of each identifier whether some row in the domain legitimately lacks it. Binding a string as `Option`
+costs nothing when the value is never null; getting it wrong costs a full-suite round trip and a
+stack trace with no OBP frames in it.
+
 **Verifying a Flyway migration is actually doing something — delete it from `target/classes`, not just `src`**: Flyway loads from `classpath:db/migration/<vendor>`, i.e. `obp-api/target/classes/db/migration/h2/`. Maven's `process-resources` copies new files there but never deletes ones you removed from `src`. So the natural way to prove a migration matters — move the `.sql` out of `src` and re-run the test expecting red — gives a **false green**: the stale copy under `target/classes` is still on the classpath and still applies. Remove both:
 ```sh
 rm obp-api/src/main/resources/db/migration/h2/V0NN__*.sql \

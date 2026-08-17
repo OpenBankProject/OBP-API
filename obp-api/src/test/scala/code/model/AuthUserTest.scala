@@ -31,7 +31,7 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
     Connector.connector.default.set(MockedCbsConnector)
     net.liftweb.db.DB.use(net.liftweb.util.DefaultConnectionIdentifier) { conn =>
       ViewDefinition.bulkDelete_!!()
-      MapperAccountHolders.bulkDelete_!!()
+      MapperAccountHolders.deleteAll()
       AccountAccess.bulkDelete_!!()
       DoobieUserRefreshesProvider.bulkDelete()
       conn.connection.commit()
@@ -43,7 +43,7 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
     Connector.connector.default.set(Connector.buildOne)
     net.liftweb.db.DB.use(net.liftweb.util.DefaultConnectionIdentifier) { conn =>
       ViewDefinition.bulkDelete_!!()
-      MapperAccountHolders.bulkDelete_!!()
+      MapperAccountHolders.deleteAll()
       AccountAccess.bulkDelete_!!()
       DoobieUserRefreshesProvider.bulkDelete()
       conn.connection.commit()

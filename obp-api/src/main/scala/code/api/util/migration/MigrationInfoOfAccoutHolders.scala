@@ -19,7 +19,7 @@ object BankAccountHoldersAndOwnerViewAccess {
   val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm'Z'")
   
   def saveInfoBankAccountHoldersAndOwnerViewAccessInfo(name: String): Boolean = {
-    DbFunction.tableExists(MapperAccountHolders) match {
+    DbFunction.tableExistsByName("mapperaccountholders") match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
@@ -27,12 +27,9 @@ object BankAccountHoldersAndOwnerViewAccess {
         val accountHolderInfo =
           for {
             bankAccount <- MappedBankAccount.findAll()
-            accountHolder = MapperAccountHolders.findAll(
-              By(MapperAccountHolders.accountBankPermalink, bankAccount.bankId.value),
-              By(MapperAccountHolders.accountPermalink, bankAccount.accountId.value)
-            )
+            holderCount = MapperAccountHolders.count(bankAccount.bankId.value, bankAccount.accountId.value)
           } yield {
-            (bankAccount.bankId.value, bankAccount.accountId.value, accountHolder.size > 0)
+            (bankAccount.bankId.value, bankAccount.accountId.value, holderCount > 0)
           }
         val isSuccessful = true
         val bankAccountsWithoutAnHolder = accountHolderInfo.filter(_._3 == false)

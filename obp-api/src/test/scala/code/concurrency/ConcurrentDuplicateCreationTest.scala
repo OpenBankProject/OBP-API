@@ -115,9 +115,7 @@ class ConcurrentDuplicateCreationTest extends ConcurrentRaceSetup {
       val user  = resourceUser3
       val biaId = BankIdAccountId(bankId, accountId)
 
-      def holderCount: Long = MapperAccountHolders.count(
-        By(MapperAccountHolders.accountBankPermalink, bankId.value),
-        By(MapperAccountHolders.accountPermalink, accountId.value))
+      def holderCount: Long = MapperAccountHolders.count(bankId.value, accountId.value)
 
       val before = holderCount
       val n      = 8
