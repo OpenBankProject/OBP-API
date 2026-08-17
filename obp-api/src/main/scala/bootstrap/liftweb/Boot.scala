@@ -58,7 +58,6 @@ import code.cards.{MappedPhysicalCard, PinReset}
 import code.consent.{ConsentRequest, MappedConsent}
 import code.consumer.Consumers
 import code.model.Consumer
-import code.counterpartylimit.CounterpartyLimit
 import code.crm.MappedCrmEvent
 import code.customer.{MappedCustomer, MappedCustomerMessage}
 import code.customeraccountlinks.CustomerAccountLink
@@ -946,7 +945,6 @@ object ToSchemify extends MdcLoggable {
     EndpointTag,
     ProductFee,
     ViewPermission,
-    CounterpartyLimit,
     AccountAccess,
     ViewDefinition,
     ResourceUser,

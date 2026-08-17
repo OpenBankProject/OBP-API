@@ -7,7 +7,7 @@ import scala.concurrent.Future
 
 object CounterpartyLimitProvider extends SimpleInjector {
   val counterpartyLimit = new Inject(() => buildOne) {}
-  def buildOne: CounterpartyLimitProviderTrait =  MappedCounterpartyLimitProvider
+  def buildOne: CounterpartyLimitProviderTrait =  DoobieCounterpartyLimitProvider
 }
 
 trait CounterpartyLimitProviderTrait {

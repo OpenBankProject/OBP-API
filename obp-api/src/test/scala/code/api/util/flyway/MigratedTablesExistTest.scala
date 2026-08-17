@@ -71,7 +71,8 @@ class MigratedTablesExistTest extends ServerSetup {
     "mappedtransactionattribute",
     "transactionrequestattribute",
     "mappedtaxresidence",
-    "customerlink"
+    "customerlink",
+    "counterpartylimit"
   )
 
   /**
@@ -121,7 +122,9 @@ class MigratedTablesExistTest extends ServerSetup {
     "MIGRATIONSCRIPTLOG" -> "MIGRATIONSCRIPTLOG_NAME_ISSUCCESSFUL",
     "APIPRODUCTATTRIBUTE" -> "APIPRODUCTATTRIBUTE_APIPRODUCTATTRIBUTEID",
     "MAPPEDTAXRESIDENCE" -> "MAPPEDTAXRESIDENCE_MCUSTOMERID_MDOMAIN_MTAXNUMBER",
-    "CUSTOMERLINK" -> "CUSTOMERLINK_CUSTOMERLINKID"
+    "CUSTOMERLINK" -> "CUSTOMERLINK_CUSTOMERLINKID",
+    "COUNTERPARTYLIMIT" -> "COUNTERPARTYLIMIT_COUNTERPARTYLIMITID",
+    "COUNTERPARTYLIMIT" -> "COUNTERPARTYLIMIT_BANKID_ACCOUNTID_VIEWID_COUNTERPARTYID"
   )
 
   Feature("tables owned by Flyway rather than Schemifier") {
