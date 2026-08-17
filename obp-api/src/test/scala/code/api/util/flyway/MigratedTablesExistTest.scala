@@ -82,7 +82,8 @@ class MigratedTablesExistTest extends ServerSetup {
     "open_corridor_fee_accrual",
     "utilitypaymentcallback",
     "webuiprops",
-    "groupofroles"
+    "groupofroles",
+    "organisation"
   )
 
   /**
@@ -146,7 +147,8 @@ class MigratedTablesExistTest extends ServerSetup {
     "OPEN_CORRIDOR_FEE_ACCRUAL" -> "OPEN_CORRIDOR_FEE_ACCRUAL_TRANSACTION_REQUEST_ID",
     "UTILITYPAYMENTCALLBACK" -> "UTILITYPAYMENTCALLBACK_CALLBACKID",
     "WEBUIPROPS" -> "WEBUIPROPS_WEBUIPROPSID",
-    "WEBUIPROPS" -> "WEBUIPROPS_NAME"
+    "WEBUIPROPS" -> "WEBUIPROPS_NAME",
+    "ORGANISATION" -> "ORGANISATION_ORGANISATIONID"
   )
 
   Feature("tables owned by Flyway rather than Schemifier") {

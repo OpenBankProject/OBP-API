@@ -67,7 +67,6 @@ import code.endpointMapping.EndpointMapping
 import code.endpointTag.EndpointTag
 import code.entitlement.{Entitlement, MappedEntitlement}
 import code.entitlementrequest.MappedEntitlementRequest
-import code.organisation.Organisation
 import code.routingscheme.{RoutingScheme, BankSupportedRoutingScheme}
 import code.bulkpayment.{BulkPayment, BulkBatchReference}
 import code.kycchecks.MappedKycCheck
@@ -968,7 +967,6 @@ object ToSchemify extends MdcLoggable {
     MappedCustomerDependant,
     AttributeDefinition,
     BankAccountBalance,
-    Organisation,
     RoutingScheme,
     BankSupportedRoutingScheme,
     BulkPayment,
