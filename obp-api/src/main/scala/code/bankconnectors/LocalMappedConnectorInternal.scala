@@ -500,33 +500,31 @@ object LocalMappedConnectorInternal extends MdcLoggable {
         Helper.convertToSmallestCurrencyUnits(amount, currency)
       ) ?~! UpdateBankAccountException
 
-      mappedTransaction <- tryo(MappedTransaction.create
+      mappedTransaction <- tryo(MappedTransaction.insert(
         //No matter which type (SANDBOX_TAN,SEPA,FREE_FORM,COUNTERPARTYE), always filled the following nine fields.
-        .bank(fromAccount.bankId.value)
-        .account(fromAccount.accountId.value)
-        .transactionType(transactionRequestType.value)
-        .amount(Helper.convertToSmallestCurrencyUnits(amount, currency))
-        .newAccountBalance(newAccountBalance)
-        .currency(currency)
-        .tStartDate(now)
-        .tFinishDate(now)
-        .description(description)
-        //Old data: other BankAccount(toAccount: BankAccount)simulate counterparty 
-        .counterpartyAccountHolder(toAccount.accountHolder)
-        .counterpartyAccountNumber(toAccount.number)
-        .counterpartyAccountKind(toAccount.accountType)
-        .counterpartyBankName(toAccount.bankName)
-        .counterpartyIban(toAccount.accountRoutings.find(_.scheme == AccountRoutingScheme.IBAN.toString).map(_.address).getOrElse(""))
-        .counterpartyNationalId(toAccount.nationalIdentifier)
+        bank = fromAccount.bankId.value,
+        account = fromAccount.accountId.value,
+        transactionType = transactionRequestType.value,
+        amount = Helper.convertToSmallestCurrencyUnits(amount, currency),
+        newAccountBalance = newAccountBalance,
+        currency = currency,
+        tStartDate = now,
+        tFinishDate = now,
+        description = description,
+        //Old data: other BankAccount(toAccount: BankAccount)simulate counterparty
+        counterpartyAccountHolder = toAccount.accountHolder,
+        counterpartyAccountNumber = toAccount.number,
+        counterpartyAccountKind = toAccount.accountType,
+        counterpartyBankName = toAccount.bankName,
+        counterpartyIban = toAccount.accountRoutings.find(_.scheme == AccountRoutingScheme.IBAN.toString).map(_.address).getOrElse(""),
+        counterpartyNationalId = toAccount.nationalIdentifier,
         //New data: real counterparty (toCounterparty: CounterpartyTrait)
-        //      .CPCounterPartyId(toAccount.accountId.value)
-        .CPOtherAccountRoutingScheme(toAccount.accountRoutings.headOption.map(_.scheme).getOrElse(""))
-        .CPOtherAccountRoutingAddress(toAccount.accountRoutings.headOption.map(_.address).getOrElse(""))
-        .CPOtherBankRoutingScheme(toAccount.bankRoutingScheme)
-        .CPOtherBankRoutingAddress(toAccount.bankRoutingAddress)
-        .chargePolicy(chargePolicy)
-        .status(com.openbankproject.commons.model.enums.TransactionRequestStatus.COMPLETED.toString)
-        .saveMe) ?~! s"$CreateTransactionsException, exception happened when create new mappedTransaction"
+        cpOtherAccountRoutingScheme = toAccount.accountRoutings.headOption.map(_.scheme).getOrElse(""),
+        cpOtherAccountRoutingAddress = toAccount.accountRoutings.headOption.map(_.address).getOrElse(""),
+        cpOtherBankRoutingScheme = toAccount.bankRoutingScheme,
+        cpOtherBankRoutingAddress = toAccount.bankRoutingAddress,
+        chargePolicy = chargePolicy,
+        status = com.openbankproject.commons.model.enums.TransactionRequestStatus.COMPLETED.toString)) ?~! s"$CreateTransactionsException, exception happened when create new mappedTransaction"
     } yield {
       mappedTransaction.theTransactionId
     }

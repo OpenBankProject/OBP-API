@@ -160,7 +160,8 @@ class MigratedTablesExistTest extends ServerSetup {
     "mappedcounterparty",
     "mappedcounterpartymetadata",
     "mappedcounterpartywheretag",
-    "mappedbank"
+    "mappedbank",
+    "mappedtransaction"
   )
 
   /**
@@ -284,7 +285,8 @@ class MigratedTablesExistTest extends ServerSetup {
     "CONSENTREQUEST" -> "CONSENTREQUEST_CONSENTREQUESTID",
     "MAPPEDCOUNTERPARTY" -> "MAPPEDCOUNTERPARTY_MCOUNTERPARTYID",
     "MAPPEDCOUNTERPARTY" -> "MAPPEDCOUNTERPARTY_MNAME_MTHISBANKID_MTHISACCOUNTID_MTHISVIEWID",
-    "MAPPEDCOUNTERPARTYMETADATA" -> "MAPPEDCOUNTERPARTYMETADATA_COUNTERPARTYID"
+    "MAPPEDCOUNTERPARTYMETADATA" -> "MAPPEDCOUNTERPARTYMETADATA_COUNTERPARTYID",
+    "MAPPEDTRANSACTION" -> "MAPPEDTRANSACTION_TRANSACTIONID_BANK_ACCOUNT"
   )
 
   Feature("tables owned by Flyway rather than Schemifier") {

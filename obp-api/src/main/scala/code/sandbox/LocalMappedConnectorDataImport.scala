@@ -138,6 +138,35 @@ case class SaveableBank(bankId: String, fullBankName: String, shortBankName: Str
   }
 }
 
+case class SaveableTransaction(bank: String, account: String, transactionId: String,
+                               transactionType: String, amount: Long, newAccountBalance: Long,
+                               currency: String, tStartDate: java.util.Date,
+                               tFinishDate: java.util.Date, description: String,
+                               counterpartyAccountHolder: String,
+                               counterpartyAccountNumber: String)
+  extends Saveable[MappedTransaction] {
+  // Read both before and after save() runs, so this is the transient row the import is about to
+  // store rather than a row read back - the same thing MappedSaveable handed out. The
+  // transactionUUID the store generates on write is not needed by any importer caller.
+  lazy val value: MappedTransaction = MappedTransaction(bank, account, transactionId,
+    transactionUUID = "", transactionType, amount, newAccountBalance, currency, tStartDate,
+    tFinishDate, description, chargePolicy = "", counterpartyAccountHolder,
+    counterpartyAccountKind = "", counterpartyBankName = "", counterpartyNationalId = "",
+    counterpartyAccountNumber, counterpartyIban = "", CPCounterPartyId = "",
+    CPOtherAccountProvider = "", CPOtherAccountRoutingScheme = "",
+    CPOtherAccountRoutingAddress = "", CPOtherAccountSecondaryRoutingScheme = "",
+    CPOtherAccountSecondaryRoutingAddress = "", CPOtherBankRoutingScheme = "",
+    CPOtherBankRoutingAddress = "", status = "")
+  def save(): Unit = {
+    MappedTransaction.insert(bank = bank, account = account, transactionId = transactionId,
+      transactionType = transactionType, amount = amount, newAccountBalance = newAccountBalance,
+      currency = currency, tStartDate = tStartDate, tFinishDate = tFinishDate,
+      description = description, counterpartyAccountHolder = counterpartyAccountHolder,
+      counterpartyAccountNumber = counterpartyAccountNumber)
+    ()
+  }
+}
+
 object LocalMappedConnectorDataImport extends OBPDataImport with CreateAuthUsers {
 
   // Rename these types as MappedCrmEventType etc? Else can get confused with other types of same name
@@ -341,21 +370,19 @@ object LocalMappedConnectorDataImport extends OBPDataImport with CreateAuthUsers
 
       logger.info(s"About to create the following MappedTransaction: ${t}")
 
-      val mappedTransaction = MappedTransaction.create
-        .bank(t.this_account.bank)
-        .account(t.this_account.id)
-        .transactionId(t.id)
-        .transactionType(t.details.`type`)
-        .amount(convertToSmallestCurrencyUnits(tValueAsBigDecimal, currency))
-        .newAccountBalance(convertToSmallestCurrencyUnits(newBalanceValueAsBigDecimal, currency))
-        .currency(currency)
-        .tStartDate(postedDate)
-        .tFinishDate(completedDate)
-        .description(t.details.description)
-        .counterpartyAccountHolder(t.counterparty.flatMap(_.name).getOrElse(""))
-        .counterpartyAccountNumber(t.counterparty.flatMap(_.account_number).getOrElse(""))
-
-      MappedSaveable(mappedTransaction)
+      SaveableTransaction(
+        bank = t.this_account.bank,
+        account = t.this_account.id,
+        transactionId = t.id,
+        transactionType = t.details.`type`,
+        amount = convertToSmallestCurrencyUnits(tValueAsBigDecimal, currency),
+        newAccountBalance = convertToSmallestCurrencyUnits(newBalanceValueAsBigDecimal, currency),
+        currency = currency,
+        tStartDate = postedDate,
+        tFinishDate = completedDate,
+        description = t.details.description,
+        counterpartyAccountHolder = t.counterparty.flatMap(_.name).getOrElse(""),
+        counterpartyAccountNumber = t.counterparty.flatMap(_.account_number).getOrElse(""))
     }
   }
   protected def createPublicView(bankId : BankId, accountId : AccountId, description: String) : Box[ViewType] = {

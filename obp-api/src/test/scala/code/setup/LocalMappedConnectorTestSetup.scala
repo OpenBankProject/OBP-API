@@ -137,30 +137,29 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
       TransactionRequestStatus.INITIATED.toString
     }
 
-    MappedTransaction.create
-      .bank(account.bankId.value)
-      .account(account.accountId.value)
-      .transactionType(randomString(5))
-      .tStartDate(startDate)
-      .tFinishDate(finishDate)
-      .currency(account.currency)
-      .amount(transactionAmount)
-      .newAccountBalance(accountBalanceAfter)
-      .description(randomString(5))
-      .counterpartyAccountHolder(randomString(5))
-      .counterpartyAccountKind(randomString(5))
-      .counterpartyAccountNumber(randomString(5))
-      .counterpartyBankName(randomString(5))
-      .counterpartyIban(randomString(5))
-      .counterpartyNationalId(randomString(5))
-      .CPOtherAccountRoutingScheme(randomString(5))
-      .CPOtherAccountRoutingAddress(randomString(5))
-      .CPOtherAccountSecondaryRoutingScheme(randomString(5))
-      .CPOtherAccountSecondaryRoutingAddress(randomString(5))
-      .CPOtherBankRoutingScheme(randomString(5))
-      .CPOtherBankRoutingAddress(randomString(5))
-      .status(transactionStatus)  // Use determined transaction status
-      .saveMe
+    MappedTransaction.insert(
+      bank = account.bankId.value,
+      account = account.accountId.value,
+      transactionType = randomString(5),
+      tStartDate = startDate,
+      tFinishDate = finishDate,
+      currency = account.currency,
+      amount = transactionAmount,
+      newAccountBalance = accountBalanceAfter,
+      description = randomString(5),
+      counterpartyAccountHolder = randomString(5),
+      counterpartyAccountKind = randomString(5),
+      counterpartyAccountNumber = randomString(5),
+      counterpartyBankName = randomString(5),
+      counterpartyIban = randomString(5),
+      counterpartyNationalId = randomString(5),
+      cpOtherAccountRoutingScheme = randomString(5),
+      cpOtherAccountRoutingAddress = randomString(5),
+      cpOtherAccountSecondaryRoutingScheme = randomString(5),
+      cpOtherAccountSecondaryRoutingAddress = randomString(5),
+      cpOtherBankRoutingScheme = randomString(5),
+      cpOtherBankRoutingAddress = randomString(5),
+      status = transactionStatus)  // Use determined transaction status
       .toTransaction.orNull
   }
 
@@ -341,6 +340,7 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
     DoobieUtil.runUpdate(sql"DELETE FROM mappedcounterpartymetadata".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM mappedcounterpartywheretag".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM mappedbank".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM mappedtransaction".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM mappeduserauthcontextupdate".update.run)
 
     

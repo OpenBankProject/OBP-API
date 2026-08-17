@@ -52,7 +52,6 @@ import code.model.dataAccess._
 import code.obp.grpc.ObpGrpcServer
 import code.scheduler._
 import code.scope.Scope
-import code.transaction.MappedTransaction
 import code.transactionStatusScheduler.TransactionRequestStatusScheduler
 import code.messageoutbox.MessageOutboxRelay
 import code.transactionrequests.MappedTransactionRequest
@@ -842,7 +841,6 @@ object ToSchemify extends MdcLoggable {
   val models: List[MetaMapper[_]] = List(
     AuthUser,
     MappedBankAccount,
-    MappedTransaction,
     MappedConsent,
     ViewDefinition,
     ResourceUser,

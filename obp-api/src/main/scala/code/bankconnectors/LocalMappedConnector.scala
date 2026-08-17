@@ -51,7 +51,7 @@ import code.products.MappedProduct
 import code.regulatedentities.MappedRegulatedEntityProvider
 import code.standingorders.StandingOrders
 import code.taxresidence.TaxResidenceX
-import code.transaction.MappedTransaction
+import code.transaction.{MappedTransaction, TransactionQuery}
 import code.transactionChallenge.Challenges
 import code.transactionRequestAttribute.TransactionRequestAttributeX
 import code.transactionattribute.TransactionAttributeX
@@ -702,10 +702,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
     updateAccountTransactions(bankId, accountId)
 
-    MappedTransaction.find(
-      By(MappedTransaction.bank, bankId.value),
-      By(MappedTransaction.account, accountId.value),
-      By(MappedTransaction.transactionId, transactionId.value)).flatMap(_.toTransaction)
+    MappedTransaction.find(bankId, accountId, transactionId).flatMap(_.toTransaction)
       .map(transaction => (transaction, callContext))
   }
 
@@ -722,40 +719,22 @@ object LocalMappedConnector extends Connector with MdcLoggable {
    * matching UKAmounts.creditDebitIndicator -- `amount` is signed and in the smallest currency unit,
    * so its sign is all this needs.
    */
-  private def transactionQueryParams(queryParams: List[OBPQueryParam]): Seq[QueryParam[MappedTransaction]] = {
-    val limit = queryParams.collect { case OBPLimit(value) => MaxRows[MappedTransaction](value) }.headOption
-    val offset = queryParams.collect { case OBPOffset(value) => StartAt[MappedTransaction](value) }.headOption
-    val fromDate = queryParams.collect { case OBPFromDate(date) => By_>=(MappedTransaction.tFinishDate, date) }.headOption
-    val toDate = queryParams.collect { case OBPToDate(date) => By_<=(MappedTransaction.tFinishDate, date) }.headOption
-    val direction = queryParams.collect {
-      case OBPTransactionDirection(true) => By_>=(MappedTransaction.amount, OBPTransactionDirection.creditFloorInSmallestUnit)
-      case OBPTransactionDirection(false) => By_<(MappedTransaction.amount, OBPTransactionDirection.creditFloorInSmallestUnit)
-    }.headOption
-    val ordering = queryParams.collect {
-      //we don't care about the intended sort field and only sort on finish date for now
-      case OBPOrdering(_, direction) =>
-        direction match {
-          case OBPAscending => OrderBy(MappedTransaction.tFinishDate, Ascending)
-          case OBPDescending => OrderBy(MappedTransaction.tFinishDate, Descending)
-        }
-    }
-    Seq(limit.toSeq, offset.toSeq, fromDate.toSeq, toDate.toSeq, direction.toSeq, ordering.toSeq).flatten
-  }
+  private def transactionQueryParams(queryParams: List[OBPQueryParam]): TransactionQuery =
+    TransactionQuery.fromQueryParams(queryParams)
 
   override def getTransactionsLegacy(bankId: BankId, accountId: AccountId, callContext: Option[CallContext], queryParams: List[OBPQueryParam]) = {
 
     // TODO Refactor this. No need for database lookups etc.
-    val optionalParams: Seq[QueryParam[MappedTransaction]] = transactionQueryParams(queryParams)
-    val mapperParams = Seq(By(MappedTransaction.bank, bankId.value), By(MappedTransaction.account, accountId.value)) ++ optionalParams
+    val optionalParams: TransactionQuery = transactionQueryParams(queryParams)
 
-    def getTransactionsCached(bankId: BankId, accountId: AccountId, optionalParams: Seq[QueryParam[MappedTransaction]]): Box[List[Transaction]]
+    def getTransactionsCached(bankId: BankId, accountId: AccountId, optionalParams: TransactionQuery): Box[List[Transaction]]
     = {
       val cacheKey = ("code.bankconnectors.LocalMappedConnector", "getTransactionsCached", List(bankId, accountId, optionalParams).mkString("_"))
       Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(getTransactionsTTL millisecond) {
 
         //logger.info("Cache miss getTransactionsCached")
 
-        val mappedTransactions = MappedTransaction.findAll(mapperParams: _*)
+        val mappedTransactions = MappedTransaction.findAll(bankId, accountId, optionalParams)
 
         updateAccountTransactions(bankId, accountId)
 
@@ -770,17 +749,16 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   override def getTransactionsCore(bankId: BankId, accountId: AccountId, queryParams: List[OBPQueryParam], callContext: Option[CallContext]): OBPReturnType[Box[List[TransactionCore]]] = {
 
     // TODO Refactor this. No need for database lookups etc.
-    val optionalParams: Seq[QueryParam[MappedTransaction]] = transactionQueryParams(queryParams)
-    val mapperParams = Seq(By(MappedTransaction.bank, bankId.value), By(MappedTransaction.account, accountId.value)) ++ optionalParams
+    val optionalParams: TransactionQuery = transactionQueryParams(queryParams)
 
-    def getTransactionsCached(bankId: BankId, accountId: AccountId, optionalParams: Seq[QueryParam[MappedTransaction]]): Box[List[TransactionCore]]
+    def getTransactionsCached(bankId: BankId, accountId: AccountId, optionalParams: TransactionQuery): Box[List[TransactionCore]]
     = {
       val cacheKey = ("code.bankconnectors.LocalMappedConnector", "getTransactionsCached", List(bankId, accountId, optionalParams).mkString("_"))
       Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(getTransactionsTTL millisecond) {
 
         //logger.info("Cache miss getTransactionsCached")
 
-        val mappedTransactions = MappedTransaction.findAll(mapperParams: _*)
+        val mappedTransactions = MappedTransaction.findAll(bankId, accountId, optionalParams)
 
         for ((account, callContext) <- getBankAccountLegacy(bankId, accountId, None))
           yield mappedTransactions.flatMap(_.toTransactionCore(account)) //each transaction will be modified by account, here we return the `class Transaction` not a trait.
@@ -2343,31 +2321,29 @@ object LocalMappedConnector extends Connector with MdcLoggable {
           Helper.convertToSmallestCurrencyUnits(amount, currency)
         ) ?~! UpdateBankAccountException
 
-        mappedTransaction <- tryo(MappedTransaction.create
-          .bank(fromAccount.bankId.value)
-          .account(fromAccount.accountId.value)
-          .transactionType(transactionRequestType)
-          .amount(Helper.convertToSmallestCurrencyUnits(amount, currency))
-          .newAccountBalance(newAccountBalance)
-          .currency(currency)
-          .tStartDate(posted)
-          .tFinishDate(completed)
-          .description(description)
-          //Old data: other BankAccount(toAccount: BankAccount)simulate counterparty 
-          .counterpartyAccountHolder(toAccount.accountHolder)
-          .counterpartyAccountNumber(toAccount.number)
-          .counterpartyAccountKind(toAccount.accountType)
-          .counterpartyBankName(toAccount.bankName)
-          .counterpartyIban(toAccount.accountRoutings.find(_.scheme == AccountRoutingScheme.IBAN.toString).map(_.address).getOrElse(""))
-          .counterpartyNationalId(toAccount.nationalIdentifier)
+        mappedTransaction <- tryo(MappedTransaction.insert(
+          bank = fromAccount.bankId.value,
+          account = fromAccount.accountId.value,
+          transactionType = transactionRequestType,
+          amount = Helper.convertToSmallestCurrencyUnits(amount, currency),
+          newAccountBalance = newAccountBalance,
+          currency = currency,
+          tStartDate = posted,
+          tFinishDate = completed,
+          description = description,
+          //Old data: other BankAccount(toAccount: BankAccount)simulate counterparty
+          counterpartyAccountHolder = toAccount.accountHolder,
+          counterpartyAccountNumber = toAccount.number,
+          counterpartyAccountKind = toAccount.accountType,
+          counterpartyBankName = toAccount.bankName,
+          counterpartyIban = toAccount.accountRoutings.find(_.scheme == AccountRoutingScheme.IBAN.toString).map(_.address).getOrElse(""),
+          counterpartyNationalId = toAccount.nationalIdentifier,
           //New data: real counterparty (toCounterparty: CounterpartyTrait)
-          //      .CPCounterPartyId(toAccount.accountId.value)
-          .CPOtherAccountRoutingScheme(toAccount.accountRoutings.headOption.map(_.scheme).getOrElse(""))
-          .CPOtherAccountRoutingAddress(toAccount.accountRoutings.headOption.map(_.address).getOrElse(""))
-          .CPOtherBankRoutingScheme(toAccount.bankRoutingScheme)
-          .CPOtherBankRoutingAddress(toAccount.bankRoutingAddress)
-          .chargePolicy(chargePolicy)
-          .saveMe) ?~! s"$CreateTransactionsException, exception happened when create new mappedTransaction"
+          cpOtherAccountRoutingScheme = toAccount.accountRoutings.headOption.map(_.scheme).getOrElse(""),
+          cpOtherAccountRoutingAddress = toAccount.accountRoutings.headOption.map(_.address).getOrElse(""),
+          cpOtherBankRoutingScheme = toAccount.bankRoutingScheme,
+          cpOtherBankRoutingAddress = toAccount.bankRoutingAddress,
+          chargePolicy = chargePolicy)) ?~! s"$CreateTransactionsException, exception happened when create new mappedTransaction"
       } yield {
         mappedTransaction.theTransactionId
       }
@@ -2483,14 +2459,14 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   override def cancelPaymentV400(transactionId: TransactionId,
                                  callContext: Option[CallContext]): OBPReturnType[Box[CancelPayment]] = Future {
     // Get transaction to determine if SCA is needed based on amount
-    val transaction = MappedTransaction.find(By(MappedTransaction.transactionId, transactionId.value))
+    val transaction = MappedTransaction.findByTransactionId(transactionId)
 
     val startSca = transaction match {
       case Full(t) =>
         // Decide based on amount (similar to real CBS logic)
         // Small amounts (<=100) don't need SCA, large amounts (>100) do
         // Convert from smallest currency unit (cents) to actual decimal amount
-        val amount = Helper.smallestCurrencyUnitToBigDecimal(t.amount.get, t.currency.get).abs
+        val amount = Helper.smallestCurrencyUnitToBigDecimal(t.amount, t.currency).abs
         val threshold = 100
         Some(amount > threshold)
       case _ =>

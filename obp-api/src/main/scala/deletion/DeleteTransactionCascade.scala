@@ -27,7 +27,7 @@ object DeleteTransactionCascade {
     val whereTags = WhereTags.whereTags.vend.bulkDeleteWhereTagsOnTransaction(bankId, accountId, id)
     val transactionAttribute = deleteTransactionAttribute(bankId, id)
     val transactionRequest = MappedTransactionRequestProvider.bulkDeleteTransactionRequestsByTransactionId(id)
-    val transaction = MappedTransaction.bulkDelete_!!(By(MappedTransaction.transactionId, id.value))
+    val transaction = MappedTransaction.deleteByTransactionId(id)
     val doneTasks = List(narrative, comments, tags, images, whereTags, transactionAttribute, transactionRequest, transaction)
     doneTasks.forall(_ == true)
   }

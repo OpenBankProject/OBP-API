@@ -163,8 +163,7 @@ class ConcurrentTransferRaceTest extends ConcurrentRaceSetup {
       Then("the payment must execute exactly once — no double-spend")
       val after         = dbAccountBalance(bankId, fromId)
       val actualDebited = before - after
-      val txnCount = MappedTransaction.count(
-        By(MappedTransaction.bank, bankId.value), By(MappedTransaction.account, fromId.value))
+      val txnCount = MappedTransaction.countByBankAccount(bankId, fromId)
       withClue(s"challengeId=[$challengeId] answer codes=${answers.map(_.code)} " +
         s"firstAnswerBody=${answers.headOption.map(_.body).getOrElse("")} " +
         s"before=$before after=$after actualDebited=$actualDebited (expected=$debit) " +
