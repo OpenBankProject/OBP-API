@@ -86,7 +86,8 @@ class MigratedTablesExistTest extends ServerSetup {
     "organisation",
     "attributedefinition",
     "jobscheduler",
-    "bankaccountbalance"
+    "bankaccountbalance",
+    "endpointtag"
   )
 
   /**
@@ -156,7 +157,8 @@ class MigratedTablesExistTest extends ServerSetup {
     "WEBUIPROPS" -> "WEBUIPROPS_NAME",
     "ORGANISATION" -> "ORGANISATION_ORGANISATIONID",
     "ATTRIBUTEDEFINITION" -> "ATTRIBUTEDEFINITION_BANKID_NAME_CATEGORY",
-    "JOBSCHEDULER" -> "JOBSCHEDULER_JOBID"
+    "JOBSCHEDULER" -> "JOBSCHEDULER_JOBID",
+    "ENDPOINTTAG" -> "ENDPOINTTAG_ENDPOINTTAGID"
   )
 
   Feature("tables owned by Flyway rather than Schemifier") {

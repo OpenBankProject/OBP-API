@@ -62,7 +62,6 @@ import code.dynamicEntity.DynamicEntity
 import code.dynamicMessageDoc.DynamicMessageDoc
 import code.dynamicResourceDoc.DynamicResourceDoc
 import code.endpointMapping.EndpointMapping
-import code.endpointTag.EndpointTag
 import code.entitlement.{Entitlement, MappedEntitlement}
 import code.entitlementrequest.MappedEntitlementRequest
 import code.routingscheme.{RoutingScheme, BankSupportedRoutingScheme}
@@ -927,7 +926,6 @@ object ToSchemify extends MdcLoggable {
     ApiProduct,
     DynamicResourceDoc,
     DynamicMessageDoc,
-    EndpointTag,
     ProductFee,
     ViewPermission,
     AccountAccess,

@@ -216,6 +216,7 @@ trait ServerSetup extends AnyFeatureSpec with SendServerRequests
     DoobieUtil.runUpdate(sql"DELETE FROM attributedefinition".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM jobscheduler".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM bankaccountbalance".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM endpointtag".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM mappeduserauthcontextupdate".update.run)
   }
 

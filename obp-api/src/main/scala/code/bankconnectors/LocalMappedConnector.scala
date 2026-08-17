@@ -2955,11 +2955,11 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   }
 
   override def getEndpointTagById(endpointTagId : String, callContext: Option[CallContext]) : OBPReturnType[Box[EndpointTagT]] = Future(
-    (EndpointTag.find(By(EndpointTag.EndpointTagId, endpointTagId)), callContext)
+    (EndpointTag.findByEndpointTagId(endpointTagId), callContext)
   )
 
   override def deleteEndpointTag(endpointTagId : String, callContext: Option[CallContext]) : OBPReturnType[Box[Boolean]] = Future(
-    (EndpointTag.find(By(EndpointTag.EndpointTagId, endpointTagId)).map(_.delete_!), callContext)
+    (EndpointTag.findByEndpointTagId(endpointTagId).map(_ => EndpointTag.deleteByEndpointTagId(endpointTagId)), callContext)
   )
 
   override def getSystemLevelEndpointTags(operationId : String, callContext: Option[CallContext]) : OBPReturnType[Box[List[EndpointTagT]]] = Future(
@@ -2970,30 +2970,19 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     (tryo{getBankLevelEndpointTagsBox(bankId:String, operationId : String)}, callContext)
   )
 
-   def getAllEndpointTagsBox(operationId : String) : List[EndpointTagT] = EndpointTag.findAll(
-     By(EndpointTag.OperationId, operationId),
-     OrderBy(EndpointTag.TagName, Ascending)
-   )
+   def getAllEndpointTagsBox(operationId : String) : List[EndpointTagT] =
+     EndpointTag.findAllByOperationId(operationId)
   
-   def getSystemLevelEndpointTagsBox(operationId : String) : List[EndpointTagT] = EndpointTag.findAll(
-     By(EndpointTag.OperationId, operationId),
-     OrderBy(EndpointTag.TagName, Ascending)
-   ).filter(_.bankId == None)
+   def getSystemLevelEndpointTagsBox(operationId : String) : List[EndpointTagT] =
+     EndpointTag.findAllByOperationId(operationId).filter(_.bankId == None)
 
-   def getBankLevelEndpointTagsBox(bankId:String, operationId : String) : List[EndpointTagT] = EndpointTag.findAll(
-     By(EndpointTag.BankId, bankId),
-     By(EndpointTag.OperationId, operationId),
-     OrderBy(EndpointTag.TagName, Ascending)
-   )
+   def getBankLevelEndpointTagsBox(bankId:String, operationId : String) : List[EndpointTagT] =
+     EndpointTag.findAllByBankIdAndOperationId(bankId, operationId)
   
    override def createSystemLevelEndpointTag(operationId:String, tagName:String, callContext: Option[CallContext]): OBPReturnType[Box[EndpointTagT]] = Future{
      (
        tryo {
-         EndpointTag.create
-           .BankId(null)
-           .OperationId(operationId)
-           .TagName(tagName)
-           .saveMe()
+         EndpointTag.insert(None, operationId, tagName)
        } ?~! CreateEndpointTagError, 
        callContext
      )
@@ -3001,15 +2990,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   
    override def updateSystemLevelEndpointTag(endpointTagId:String, operationId:String, tagName:String, callContext: Option[CallContext]): OBPReturnType[Box[EndpointTagT]] = Future{
      (
-       EndpointTag.find(
-         By(EndpointTag.EndpointTagId, endpointTagId)
-       ).map(endpointTag =>
-         endpointTag
-           .BankId(null)
-           .OperationId(operationId)
-           .TagName(tagName)
-           .saveMe()
-       )
+       EndpointTag.updateById(endpointTagId, None, operationId, tagName)
        , callContext
      )
   }
@@ -3017,11 +2998,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
    override def createBankLevelEndpointTag(bankId:String, operationId:String, tagName:String, callContext: Option[CallContext]): OBPReturnType[Box[EndpointTagT]] = Future{
      (
        tryo {
-         EndpointTag.create
-           .BankId(bankId)
-           .OperationId(operationId)
-           .TagName(tagName)
-           .saveMe()
+         EndpointTag.insert(Some(bankId), operationId, tagName)
        } ?~! CreateEndpointTagError, 
        callContext
      )
@@ -3029,32 +3006,21 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   
    override def updateBankLevelEndpointTag(bankId:String, endpointTagId:String, operationId:String, tagName:String, callContext: Option[CallContext]): OBPReturnType[Box[EndpointTagT]] = Future{
      (
-       EndpointTag.find(
-         By(EndpointTag.EndpointTagId, endpointTagId)
-       ).map(endpointTag =>
-         endpointTag
-           .BankId(bankId)
-           .OperationId(operationId)
-           .TagName(tagName)
-           .saveMe()
-       )
+       EndpointTag.updateById(endpointTagId, Some(bankId), operationId, tagName)
        , callContext
      )
   }
    
   override def getSystemLevelEndpointTag(operationId: String, tagName:String, callContext: Option[CallContext]): OBPReturnType[Box[EndpointTagT]] = Future{
-     (EndpointTag.find(
-       By(EndpointTag.OperationId, operationId),
-       By(EndpointTag.TagName, tagName),
-     ).filter(_.bankId == None), callContext)
+     (EndpointTag.findByOperationIdAndTagName(operationId, tagName).filter(_.bankId == None), callContext)
   }
 
   override def getBankLevelEndpointTag(bankId: String, operationId: String, tagName:String, callContext: Option[CallContext]): OBPReturnType[Box[EndpointTagT]] = Future{
-    (EndpointTag.find(
-      By(EndpointTag.OperationId, operationId),
-      By(EndpointTag.TagName, tagName),
-      By(EndpointTag.TagName, tagName),
-    ), callContext)
+    // Deliberately does NOT filter by bankId: the Mapper version repeated By(TagName, tagName)
+    // where a By(BankId, bankId) was clearly meant, so a bank-level lookup has always resolved
+    // like a system-level one. Preserved verbatim - fixing it would change which tag callers get
+    // back, under cover of a storage swap.
+    (EndpointTag.findByOperationIdAndTagName(operationId, tagName), callContext)
   }
 
   override def createOrUpdateProductFee(
