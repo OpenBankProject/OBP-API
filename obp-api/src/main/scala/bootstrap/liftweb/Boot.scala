@@ -52,7 +52,6 @@ import code.api.util._
 import code.api.util.migration.Migration
 import code.api.util.migration.Migration.DbFunction
 import code.apiproduct.ApiProduct
-import code.apiproductattribute.ApiProductAttribute
 import code.atmattribute.AtmAttribute
 import code.bankaccountbalance.BankAccountBalance
 import code.bankattribute.BankAttribute
@@ -957,7 +956,6 @@ object ToSchemify extends MdcLoggable {
     StandingOrder,
     MappedUserRefreshes,
     ApiProduct,
-    ApiProductAttribute,
     DynamicResourceDoc,
     DynamicMessageDoc,
     EndpointTag,

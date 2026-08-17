@@ -188,6 +188,7 @@ trait ServerSetup extends AnyFeatureSpec with SendServerRequests
     DoobieUtil.runUpdate(sql"DELETE FROM bankaccountrouting".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM mappedfxrate".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM transactionrequestreasons".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM apiproductattribute".update.run)
   }
 
   val server = TestServer

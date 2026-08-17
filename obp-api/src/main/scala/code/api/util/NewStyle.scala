@@ -13,7 +13,7 @@ import code.api.util.ErrorMessages.{InsufficientAuthorisationToCreateTransaction
 import code.api.{APIFailureNewStyle, Constant, JsonResponseException}
 import code.apicollection.{ApiCollectionTrait, DoobieApiCollectionsProvider}
 import code.apiproduct.{ApiProductTrait, MappedApiProductsProvider}
-import code.apiproductattribute.{ApiProductAttributeTrait, MappedApiProductAttributesProvider}
+import code.apiproductattribute.{ApiProductAttributeTrait, DoobieApiProductAttributesProvider}
 import code.apicollectionendpoint.{ApiCollectionEndpointTrait, DoobieApiCollectionEndpointsProvider}
 import code.featuredapicollection.{FeaturedApiCollectionTrait, DoobieFeaturedApiCollectionsProvider}
 import code.atmattribute.AtmAttribute
@@ -4073,13 +4073,13 @@ object NewStyle extends MdcLoggable{
     }
 
     def getApiProductAttributeById(apiProductAttributeId: String, callContext: Option[CallContext]): OBPReturnType[ApiProductAttributeTrait] = {
-      Future(MappedApiProductAttributesProvider.getApiProductAttributeById(apiProductAttributeId)) map {
+      Future(DoobieApiProductAttributesProvider.getApiProductAttributeById(apiProductAttributeId)) map {
         i => (unboxFullOrFail(i, callContext, s"$ApiProductAttributeNotFound Current API_PRODUCT_ATTRIBUTE_ID($apiProductAttributeId)"), callContext)
       }
     }
 
     def getApiProductAttributesByBankIdAndCode(bankId: String, apiProductCode: String, callContext: Option[CallContext]): OBPReturnType[List[ApiProductAttributeTrait]] = {
-      Future(MappedApiProductAttributesProvider.getApiProductAttributesByBankIdAndCode(bankId, apiProductCode)) map {
+      Future(DoobieApiProductAttributesProvider.getApiProductAttributesByBankIdAndCode(bankId, apiProductCode)) map {
         i => (unboxFullOrFail(i, callContext, s"$ApiProductAttributeNotFound Current BANK_ID($bankId) API_PRODUCT_CODE($apiProductCode)"), callContext)
       }
     }
@@ -4094,7 +4094,7 @@ object NewStyle extends MdcLoggable{
       isActive: Option[Boolean],
       callContext: Option[CallContext]
     ): OBPReturnType[ApiProductAttributeTrait] = {
-      Future(MappedApiProductAttributesProvider.createOrUpdateApiProductAttribute(
+      Future(DoobieApiProductAttributesProvider.createOrUpdateApiProductAttribute(
         bankId, apiProductCode, apiProductAttributeId, name, attributeType, value, isActive
       )) map {
         i => (unboxFullOrFail(i, callContext, CreateApiProductAttributeError), callContext)
@@ -4102,13 +4102,13 @@ object NewStyle extends MdcLoggable{
     }
 
     def deleteApiProductAttribute(apiProductAttributeId: String, callContext: Option[CallContext]): OBPReturnType[Boolean] = {
-      Future(MappedApiProductAttributesProvider.deleteApiProductAttribute(apiProductAttributeId)) map {
+      Future(DoobieApiProductAttributesProvider.deleteApiProductAttribute(apiProductAttributeId)) map {
         i => (unboxFullOrFail(i, callContext, s"$DeleteApiProductAttributeError Current API_PRODUCT_ATTRIBUTE_ID($apiProductAttributeId)"), callContext)
       }
     }
 
     def deleteApiProductAttributesByBankIdAndCode(bankId: String, apiProductCode: String, callContext: Option[CallContext]): OBPReturnType[Boolean] = {
-      Future(MappedApiProductAttributesProvider.deleteApiProductAttributesByBankIdAndCode(bankId, apiProductCode)) map {
+      Future(DoobieApiProductAttributesProvider.deleteApiProductAttributesByBankIdAndCode(bankId, apiProductCode)) map {
         i => (unboxFullOrFail(i, callContext, s"$DeleteApiProductAttributeError Current BANK_ID($bankId) API_PRODUCT_CODE($apiProductCode)"), callContext)
       }
     }
