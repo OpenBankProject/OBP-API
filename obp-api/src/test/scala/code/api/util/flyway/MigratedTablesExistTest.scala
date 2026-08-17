@@ -98,7 +98,12 @@ class MigratedTablesExistTest extends ServerSetup {
     "methodrouting",
     "accountaccessrequest",
     "bulkpayment",
-    "bulkbatchreference"
+    "bulkbatchreference",
+    "mappedkycstatus",
+    "mappedkycmedia",
+    "mappedkyccheck",
+    "mappedkycdocument",
+    "mappedsocialmedia"
   )
 
   /**
@@ -176,7 +181,11 @@ class MigratedTablesExistTest extends ServerSetup {
     "USERINVITATION" -> "USERINVITATION_USERINVITATIONID",
     "METHODROUTING" -> "METHODROUTING_METHODROUTINGID",
     "BULKPAYMENT" -> "BULKPAYMENT_TRANSACTIONREQUESTID_ITEMINDEX",
-    "BULKBATCHREFERENCE" -> "BULKBATCHREFERENCE_FROMBANKID_FROMACCOUNTID_BATCHREFERENCE"
+    "BULKBATCHREFERENCE" -> "BULKBATCHREFERENCE_FROMBANKID_FROMACCOUNTID_BATCHREFERENCE",
+    "MAPPEDKYCMEDIA" -> "MAPPEDKYCMEDIA_MID",
+    "MAPPEDKYCCHECK" -> "MAPPEDKYCCHECK_MID",
+    "MAPPEDKYCDOCUMENT" -> "MAPPEDKYCDOCUMENT_MID",
+    "MAPPEDSOCIALMEDIA" -> "MAPPEDSOCIALMEDIA_MCUSTOMERNUMBER"
   )
 
   Feature("tables owned by Flyway rather than Schemifier") {

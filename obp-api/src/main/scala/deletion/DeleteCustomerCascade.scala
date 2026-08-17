@@ -74,24 +74,16 @@ object DeleteCustomerCascade {
     }
   }
   private def deleteKycStatus(customerId: CustomerId): Boolean = {
-    MappedKycStatus.bulkDelete_!!(
-      By(MappedKycStatus.mCustomerId, customerId.value)
-    )
+    MappedKycStatus.deleteByCustomerId(customerId.value)
   }
   private def deleteKycMedia(customerId: CustomerId): Boolean = {
-    MappedKycMedia.bulkDelete_!!(
-      By(MappedKycMedia.mCustomerId, customerId.value)
-    )
+    MappedKycMedia.deleteByCustomerId(customerId.value)
   }
   private def deleteKycCheck(customerId: CustomerId): Boolean = {
-    MappedKycCheck.bulkDelete_!!(
-      By(MappedKycCheck.mCustomerId, customerId.value)
-    )
+    MappedKycCheck.deleteByCustomerId(customerId.value)
   }
   private def deleteKycDocument(customerId: CustomerId): Boolean = {
-    MappedKycDocument.bulkDelete_!!(
-      By(MappedKycDocument.mCustomerId, customerId.value)
-    )
+    MappedKycDocument.deleteByCustomerId(customerId.value)
   }
   private def deleteCustomerAddress(customerId: CustomerId): Boolean = {
     MappedCustomer.find(By(MappedCustomer.mCustomerId, customerId.value)).forall(c =>

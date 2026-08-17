@@ -63,10 +63,6 @@ import code.endpointMapping.EndpointMapping
 import code.entitlement.{Entitlement, MappedEntitlement}
 import code.entitlementrequest.MappedEntitlementRequest
 import code.routingscheme.{RoutingScheme, BankSupportedRoutingScheme}
-import code.kycchecks.MappedKycCheck
-import code.kycdocuments.MappedKycDocument
-import code.kycmedias.MappedKycMedia
-import code.kycstatuses.MappedKycStatus
 import code.meetings.{MappedMeeting, MappedMeetingInvitee}
 import code.metadata.counterparties.{MappedCounterparty, MappedCounterpartyBespoke, MappedCounterpartyMetadata, MappedCounterpartyWhereTag}
 import code.metrics.{MappedConnectorMetric, MappedMetric, MetricArchive}
@@ -81,7 +77,6 @@ import code.regulatedentities.MappedRegulatedEntity
 import code.scheduler._
 import code.scope.{MappedScope, Scope}
 import code.signingbaskets.{MappedSigningBasket, MappedSigningBasketConsent, MappedSigningBasketPayment}
-import code.socialmedia.MappedSocialMedia
 import code.standingorders.StandingOrder
 import code.transaction.MappedTransaction
 import code.transactionChallenge.MappedExpectedChallengeAnswer
@@ -892,11 +887,6 @@ object ToSchemify extends MdcLoggable {
     MappedCustomerMessage,
     MappedBranch,
     MappedProduct,
-    MappedKycDocument,
-    MappedKycMedia,
-    MappedKycCheck,
-    MappedKycStatus,
-    MappedSocialMedia,
     MappedMeeting,
     MappedMeetingInvitee,
     MappedPhysicalCard,
