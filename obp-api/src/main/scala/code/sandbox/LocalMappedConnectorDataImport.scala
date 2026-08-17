@@ -2,7 +2,7 @@ package code.sandbox
 
 import code.atms.Atms
 import code.branches.MappedBranch
-import code.crm.MappedCrmEvent
+import code.crm.DoobieCrmEventProvider
 import code.metadata.counterparties.MappedCounterpartyMetadata
 import code.bankconnectors.DoobieBankAccountRoutingQueries
 import code.model.dataAccess.{MappedBank, MappedBankAccount}
@@ -28,6 +28,40 @@ case class SaveableAtm(value : AtmT) extends Saveable[AtmT] {
   def save() = Atms.atmsProvider.vend.createOrUpdateAtm(value)
 }
 
+// CrmEvent persistence goes through DoobieCrmEventProvider: the sandbox import must not write
+// the row with Mapper while every read of it comes back through the provider. This is an
+// unsaved, transient representation (mirroring MappedCrmEvent.create before .save()), so `user`
+// throws if accessed - the Mapper version would have thrown too, since mUserId was never set
+// on the sandbox-import path (see the "Note: We are not saving API User..." warning below).
+case class CrmEventCreateParams(
+  bankIdValue: String,
+  crmEventIdValue: String,
+  category: String,
+  detail: String,
+  channel: String,
+  actualDate: java.util.Date,
+  customerName: String,
+  customerNumber: String
+) extends code.crm.CrmEvent.CrmEvent {
+  override def crmEventId: code.crm.CrmEvent.CrmEventId = code.crm.CrmEvent.CrmEventId(crmEventIdValue)
+  override def bankId: BankId = BankId(bankIdValue)
+  override def user: code.model.dataAccess.ResourceUser = throw new UnsupportedOperationException("user is not available before this CrmEvent is saved")
+  override def scheduledDate: java.util.Date = new java.util.Date(0L)
+  override def result: String = ""
+}
+case class SaveableCrmEvent(value : CrmEventCreateParams) extends Saveable[CrmEventCreateParams] {
+  def save() = DoobieCrmEventProvider.createEvent(
+    bankId = value.bankIdValue,
+    crmEventId = value.crmEventIdValue,
+    category = value.category,
+    detail = value.detail,
+    channel = value.channel,
+    actualDate = value.actualDate,
+    customerName = value.customerName,
+    customerNumber = value.customerNumber
+  )
+}
+
 object LocalMappedConnectorDataImport extends OBPDataImport with CreateAuthUsers {
 
   // Rename these types as MappedCrmEventType etc? Else can get confused with other types of same name
@@ -39,7 +73,7 @@ object LocalMappedConnectorDataImport extends OBPDataImport with CreateAuthUsers
   type BranchType = MappedBranch
   type AtmType = AtmT
   type ProductType = MappedProduct
-  type CrmEventType = MappedCrmEvent
+  type CrmEventType = CrmEventCreateParams
 
   protected def createSaveableBanks(data : List[SandboxBankImport]) : Box[List[Saveable[BankType]]] = {
     val mappedBanks = data.map(bank => {
@@ -164,28 +198,26 @@ object LocalMappedConnectorDataImport extends OBPDataImport with CreateAuthUsers
   protected def createSaveableCrmEvents(data : List[SandboxCrmEventImport]) : Box[List[Saveable[CrmEventType]]] = {
 
 
-      val mappedEvents = data.map(event => {
+      val events = data.map(event => {
         // TODO Make so we can return any boxed error as below
         //scheduledDate <- tryo{dateFormat.parse(crmEvent.scheduled_date)} ?~ s"Invalid date format: ${crmEvent.scheduled_date}. Expected pattern $datePattern"
         //actualDate <- tryo{dateFormat.parse(crmEvent.actual_date)} ?~ s"Invalid date format: ${crmEvent.actual_date}. Expected pattern $datePattern"
         //val scheduledDate = dateFormat.parse(event.scheduled_date)
         val actualDate = dateFormat.parse(event.actual_date)
 
-
         logger.warn(s"Note: We are not saving API User, Result or Scheduled Date")
 
-        val crmEvent = MappedCrmEvent.create
-            .mBankId(event.bank_id)
-            .mCrmEventId(event.id)
-            //.mUserId(event.customer.number) // UserId is a long
-            .mActualDate(actualDate)
-            .mCategory(event.category)
-            .mChannel(event.channel)
-            .mDetail(event.detail)
-            .mCustomerName(event.customer.name)
-            .mCustomerNumber(event.customer.number)
-            //.mResult("")
-            //.mScheduledDate(event.scheduled_date)
+        val crmEvent = CrmEventCreateParams(
+          bankIdValue = event.bank_id,
+          crmEventIdValue = event.id,
+          // UserId is a long - not set here, same as the Mapper version
+          category = event.category,
+          detail = event.detail,
+          channel = event.channel,
+          actualDate = actualDate,
+          customerName = event.customer.name,
+          customerNumber = event.customer.number
+        )
 
         logger.debug(s"Saved CrmEvent id: ${crmEvent.crmEventId} customer name: ${crmEvent.customerName}")
 
@@ -193,14 +225,7 @@ object LocalMappedConnectorDataImport extends OBPDataImport with CreateAuthUsers
         }
       )
 
-    val validationErrors = mappedEvents.flatMap(_.validate)
-
-    if (validationErrors.nonEmpty) {
-      logger.error(s"Problem saving ${mappedEvents.flatMap(_.category)}")
-      Failure(s"Errors: ${validationErrors.map(_.msg)}")
-    } else {
-      Full(mappedEvents.map(MappedSaveable(_)))
-    }
+    Full(events.map(SaveableCrmEvent(_)))
 
   }
 

@@ -52,7 +52,6 @@ class MappedClassNameTest extends AnyFeatureSpec {
     "code.webhook.MappedAccountWebhook",
     "code.standingorders.StandingOrder",
     "code.metrics.MappedConnectorMetric",
-    "code.crm.MappedCrmEvent",
     "code.fx.MappedCurrency",
     "code.api.builder.MappedTemplate_2188356573920200339",
     "code.directdebit.DirectDebit",

@@ -58,7 +58,6 @@ import code.cards.{MappedPhysicalCard, PinReset}
 import code.consent.{ConsentRequest, MappedConsent}
 import code.consumer.Consumers
 import code.model.Consumer
-import code.crm.MappedCrmEvent
 import code.customer.{MappedCustomer, MappedCustomerMessage}
 import code.customeraddress.MappedCustomerAddress
 import code.directdebit.DirectDebit
@@ -910,7 +909,6 @@ object ToSchemify extends MdcLoggable {
     MappedCustomerMessage,
     MappedBranch,
     MappedProduct,
-    MappedCrmEvent,
     MappedKycDocument,
     MappedKycMedia,
     MappedKycCheck,

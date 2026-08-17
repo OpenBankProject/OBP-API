@@ -74,7 +74,8 @@ class MigratedTablesExistTest extends ServerSetup {
     "customerlink",
     "counterpartylimit",
     "customeraccountlink",
-    "mappedusercustomerlink"
+    "mappedusercustomerlink",
+    "mappedcrmevent"
   )
 
   /**
@@ -130,7 +131,8 @@ class MigratedTablesExistTest extends ServerSetup {
     "CUSTOMERACCOUNTLINK" -> "CUSTOMERACCOUNTLINK_CUSTOMERACCOUNTLINKID",
     "CUSTOMERACCOUNTLINK" -> "CUSTOMERACCOUNTLINK_ACCOUNTID_CUSTOMERID",
     "MAPPEDUSERCUSTOMERLINK" -> "MAPPEDUSERCUSTOMERLINK_MUSERCUSTOMERLINKID",
-    "MAPPEDUSERCUSTOMERLINK" -> "MAPPEDUSERCUSTOMERLINK_MUSERID_MCUSTOMERID"
+    "MAPPEDUSERCUSTOMERLINK" -> "MAPPEDUSERCUSTOMERLINK_MUSERID_MCUSTOMERID",
+    "MAPPEDCRMEVENT" -> "MAPPEDCRMEVENT_MCRMEVENTID"
   )
 
   Feature("tables owned by Flyway rather than Schemifier") {
