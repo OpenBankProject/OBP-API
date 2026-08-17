@@ -80,7 +80,8 @@ class MigratedTablesExistTest extends ServerSetup {
     "payeelookup",
     "metricsarchiverun",
     "open_corridor_fee_accrual",
-    "utilitypaymentcallback"
+    "utilitypaymentcallback",
+    "webuiprops"
   )
 
   /**
@@ -142,7 +143,9 @@ class MigratedTablesExistTest extends ServerSetup {
     "PAYEELOOKUP" -> "PAYEELOOKUP_LOOKUPID",
     "METRICSARCHIVERUN" -> "METRICSARCHIVERUN_RUNID",
     "OPEN_CORRIDOR_FEE_ACCRUAL" -> "OPEN_CORRIDOR_FEE_ACCRUAL_TRANSACTION_REQUEST_ID",
-    "UTILITYPAYMENTCALLBACK" -> "UTILITYPAYMENTCALLBACK_CALLBACKID"
+    "UTILITYPAYMENTCALLBACK" -> "UTILITYPAYMENTCALLBACK_CALLBACKID",
+    "WEBUIPROPS" -> "WEBUIPROPS_WEBUIPROPSID",
+    "WEBUIPROPS" -> "WEBUIPROPS_NAME"
   )
 
   Feature("tables owned by Flyway rather than Schemifier") {

@@ -68,7 +68,6 @@ class MappedClassNameTest extends AnyFeatureSpec {
       "code.metadata.transactionimages.MappedTransactionImage",
       "code.kycdocuments.MappedKycDocument",
       "code.model.dataAccess.Admin",
-      "code.webuiprops.WebUiProps",
       "code.customer.MappedCustomerMessage",
       "code.entitlementrequest.MappedEntitlementRequest",
       "code.branches.MappedBranch",

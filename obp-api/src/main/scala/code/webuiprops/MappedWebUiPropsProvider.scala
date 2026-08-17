@@ -1,11 +1,11 @@
 package code.webuiprops
 
 import code.api.cache.Caching
-import code.api.util.APIUtil.{activeBrand, writeMetricEndpointTiming}
-import code.api.util.{APIUtil, ErrorMessages, I18NUtil}
-import code.util.MappedUUID
+import code.api.util.APIUtil.{activeBrand, generateUUID, writeMetricEndpointTiming}
+import code.api.util.{APIUtil, DoobieUtil, ErrorMessages, I18NUtil}
+import doobie._
+import doobie.implicits._
 import net.liftweb.common.{Box, Empty, Failure, Full}
-import net.liftweb.mapper._
 
 
 /**
@@ -15,21 +15,48 @@ object MappedWebUiPropsProvider extends WebUiPropsProvider {
   // default webUiProps value cached seconds
   private val webUiPropsTTL = APIUtil.getPropsAsIntValue("webui.props.cache.ttl.seconds", 0)
 
-  override def getAll(): List[WebUiPropsT] =  WebUiProps.findAll()
+  private def fromRow(row: (String, String, String)): WebUiPropsT =
+    row match {
+      case (webUiPropsId, name, value) => WebUiPropsCommons(name, value, Some(webUiPropsId), Some("database"))
+    }
 
-  override def getByName(name: String): Box[WebUiPropsT] = WebUiProps.find(By(WebUiProps.Name, name))
+  override def getAll(): List[WebUiPropsT] =
+    DoobieUtil.runQuery(
+      sql"SELECT webuipropsid, name, value FROM webuiprops".query[(String, String, String)].to[List]
+    ).map(fromRow)
+
+  override def getByName(name: String): Box[WebUiPropsT] =
+    DoobieUtil.runQuery(
+      sql"SELECT webuipropsid, name, value FROM webuiprops WHERE name = $name".query[(String, String, String)].option
+    ) match {
+      case Some(row) => Full(fromRow(row))
+      case None => Empty
+    }
 
   override def createOrUpdate(webUiProps: WebUiPropsT): Box[WebUiPropsT] = {
-      WebUiProps.find(By(WebUiProps.Name, webUiProps.name))
-      .or(Full(WebUiProps.create))
-      .map(_.Name(webUiProps.name.trim()).Value(webUiProps.value).saveMe())
+    val trimmedName = webUiProps.name.trim()
+    getByName(trimmedName) match {
+      case Full(existing) =>
+        DoobieUtil.runUpdate(
+          sql"UPDATE webuiprops SET value = ${webUiProps.value} WHERE name = $trimmedName".update.run)
+        Full(WebUiPropsCommons(trimmedName, webUiProps.value, existing.webUiPropsId, Some("database")))
+      case _ =>
+        val newId = generateUUID()
+        DoobieUtil.runUpdate(
+          sql"INSERT INTO webuiprops (webuipropsid, name, value) VALUES ($newId, $trimmedName, ${webUiProps.value})".update.run)
+        Full(WebUiPropsCommons(trimmedName, webUiProps.value, Some(newId), Some("database")))
+    }
   }
 
-  override def delete(webUiPropsId: String):Box[Boolean] = WebUiProps.find(By(WebUiProps.WebUiPropsId, webUiPropsId)) match {
-    case Full(props) => Full(props.delete_!)
-    case Empty => Failure(ErrorMessages.WebUiPropsNotFound)
-    case Failure(msg, t, c) => Failure(msg, t, c)
-  }
+  override def delete(webUiPropsId: String): Box[Boolean] =
+    DoobieUtil.runQuery(
+      sql"SELECT COUNT(*) FROM webuiprops WHERE webuipropsid = $webUiPropsId".query[Int].unique
+    ) match {
+      case count if count > 0 =>
+        DoobieUtil.runUpdate(sql"DELETE FROM webuiprops WHERE webuipropsid = $webUiPropsId".update.run)
+        Full(true)
+      case _ => Failure(ErrorMessages.WebUiPropsNotFound)
+    }
 
   // Rules to obtain the WebUI props value
   // 1) Get requested + brand + language if any
@@ -45,39 +72,20 @@ object MappedWebUiPropsProvider extends WebUiPropsProvider {
         case Some(brand) => s"${requestedPropertyName}_FOR_BRAND_${brand}"
         case _ => requestedPropertyName
       }
-      
+
       // In case there is a translation we must use it
       val webUiPropsPropertyName = s"${brandSpecificPropertyName}_${language}"
-      val translatedAndOrBrandPropertyName = WebUiProps.find(By(WebUiProps.Name, webUiPropsPropertyName)).isDefined match {
+      val translatedAndOrBrandPropertyName = getByName(webUiPropsPropertyName).isDefined match {
         case true => webUiPropsPropertyName
         case false => brandSpecificPropertyName
       }
-      
-      WebUiProps.find(By(WebUiProps.Name, translatedAndOrBrandPropertyName)).map(_.value) // Get translated and/or brand specific value if any
-        .or(WebUiProps.find(By(WebUiProps.Name, requestedPropertyName)).map(_.value)) // Get requested value if any
-          .openOr {
-            APIUtil.getPropsValue(requestedPropertyName, defaultValue) // Otherwise return the default value 
-          }
+
+      getByName(translatedAndOrBrandPropertyName).map(_.value) // Get translated and/or brand specific value if any
+        .or(getByName(requestedPropertyName).map(_.value)) // Get requested value if any
+        .openOr {
+          APIUtil.getPropsValue(requestedPropertyName, defaultValue) // Otherwise return the default value
+        }
     }
   }("getWebUiProps")("MappedWebUiPropsProvider")
 
 }
-
-class WebUiProps extends WebUiPropsT with LongKeyedMapper[WebUiProps] with IdPK {
-
-  override def getSingleton: code.webuiprops.WebUiProps.type = WebUiProps
-
-  object WebUiPropsId extends MappedUUID(this)
-  object Name extends MappedString(this, 255)
-  object Value extends MappedText(this)
-
-  override def webUiPropsId: Option[String] = Option(WebUiPropsId.get)
-  override def name: String = Name.get
-  override def value: String = Value.get
-  override def source: Option[String] = Some("database")
-}
-
-object WebUiProps extends WebUiProps with LongKeyedMetaMapper[WebUiProps] {
-  override def dbIndexes = UniqueIndex(WebUiPropsId) :: UniqueIndex(Name) :: super.dbIndexes
-}
-

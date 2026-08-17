@@ -105,7 +105,6 @@ import code.util.Helper.MdcLoggable
 import code.views.Views
 import code.views.system.{AccountAccess, ViewDefinition, ViewPermission}
 import code.webhook.{BankAccountNotificationWebhook, MappedAccountWebhook, SystemAccountNotificationWebhook}
-import code.webuiprops.WebUiProps
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.Functions.Implicits._
 import com.openbankproject.commons.util.{ApiVersion, Functions}
@@ -923,7 +922,6 @@ object ToSchemify extends MdcLoggable {
     ConsentRequest,
     MethodRouting,
     EndpointMapping,
-    WebUiProps,
     DynamicEntity,
     DynamicData,
     DynamicDataAccess,
