@@ -13,7 +13,7 @@ object UserCustomerLink extends SimpleInjector {
 
   val userCustomerLink = new Inject(() => buildOne) {}
 
-  def buildOne: UserCustomerLinkProvider = MappedUserCustomerLinkProvider 
+  def buildOne: UserCustomerLinkProvider = DoobieUserCustomerLinkProvider
 
 }
 

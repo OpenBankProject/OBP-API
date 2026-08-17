@@ -104,7 +104,6 @@ import code.transactionStatusScheduler.TransactionRequestStatusScheduler
 import code.amqpbroker.AmqpBankBroker
 import code.messageoutbox.{MessageOutbox, MessageOutboxRelay}
 import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequestTypeCharge}
-import code.usercustomerlinks.MappedUserCustomerLink
 import code.users._
 import code.util.Helper.MdcLoggable
 import code.views.Views
@@ -951,7 +950,6 @@ object ToSchemify extends MdcLoggable {
     UserAgreement,
     UserAttribute,
     MappedCustomer,
-    MappedUserCustomerLink,
     Consumer,
     Token,
     OpenIDConnectToken,

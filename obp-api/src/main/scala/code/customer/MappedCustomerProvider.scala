@@ -6,7 +6,7 @@ import java.util.Date
 import code.CustomerDependants.CustomerDependants
 import code.api.util._
 import code.api.util.migration.Migration.DbFunction
-import code.usercustomerlinks.{MappedUserCustomerLinkProvider, UserCustomerLink}
+import code.usercustomerlinks.{DoobieUserCustomerLinkProvider, UserCustomerLink}
 import code.users.Users
 import code.util.Helper.MdcLoggable
 import code.util.{MappedUUID, UUIDString}
@@ -101,7 +101,7 @@ object MappedCustomerProvider extends CustomerProvider with MdcLoggable {
   }
 
   override def getCustomersByUserId(userId: String): List[Customer] = {
-    val customerIds = MappedUserCustomerLinkProvider.getUserCustomerLinksByUserId(userId).map(_.customerId)
+    val customerIds = DoobieUserCustomerLinkProvider.getUserCustomerLinksByUserId(userId).map(_.customerId)
     MappedCustomer.findAll(ByList(MappedCustomer.mCustomerId, customerIds))
   }
 

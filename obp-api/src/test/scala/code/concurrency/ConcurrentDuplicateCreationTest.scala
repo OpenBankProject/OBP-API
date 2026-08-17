@@ -36,8 +36,10 @@ import code.metadata.counterparties.{Counterparties, MappedCounterpartyMetadata}
 import code.model.Consumer
 import code.model.dataAccess.ResourceUser
 import code.users.LiftUsers
-import code.usercustomerlinks.{MappedUserCustomerLink, MappedUserCustomerLinkProvider}
+import code.api.util.DoobieUtil
+import code.usercustomerlinks.DoobieUserCustomerLinkProvider
 import com.openbankproject.commons.model.{AccountId, BankIdAccountId}
+import doobie.implicits._
 import org.json4s.native.Serialization.write
 import net.liftweb.mapper.By
 
@@ -66,8 +68,8 @@ import scala.util.Failure
  *     than gracefully returning the existing user. Concurrent first-time OAuth logins → one
  *     request gets a 500 instead of the expected login response.
  *
- *  L. UserCustomerLink duplicate — MappedUserCustomerLinkProvider.getOCreateUserCustomerLink
- *     does find-then-create with no surrounding transaction. MappedUserCustomerLink has
+ *  L. UserCustomerLink duplicate — DoobieUserCustomerLinkProvider.getOCreateUserCustomerLink
+ *     does find-then-create with no surrounding transaction. mappedusercustomerlink has
  *     UniqueIndex(mUserId, mCustomerId), so the second concurrent create throws an uncaught
  *     JDBC exception rather than returning the existing link.
  *
@@ -168,20 +170,19 @@ class ConcurrentDuplicateCreationTest extends ConcurrentRaceSetup {
     }
 
     Scenario("L: concurrent getOCreateUserCustomerLink must not throw and must create exactly one link", ConcurrencyRace) {
-      Given("a user-customer pair with no existing link (MappedUserCustomerLink has UniqueIndex(mUserId, mCustomerId))")
+      Given("a user-customer pair with no existing link (mappedusercustomerlink has UniqueIndex(mUserId, mCustomerId))")
       val userId     = resourceUser1.userId
       val customerId = UUID.randomUUID.toString
 
-      def linkCount: Long = MappedUserCustomerLink.count(
-        By(MappedUserCustomerLink.mUserId, userId),
-        By(MappedUserCustomerLink.mCustomerId, customerId)
-      )
+      def linkCount: Long = DoobieUtil.runQuery(
+        sql"SELECT COUNT(*) FROM mappedusercustomerlink WHERE muserid = $userId AND mcustomerid = $customerId"
+          .query[Long].unique)
       val before = linkCount
       val n      = 8
 
       When(s"$n concurrent getOCreateUserCustomerLink calls race for the same (userId, customerId)")
       val results = runConcurrentWithBarrier(n) { _ =>
-        MappedUserCustomerLinkProvider.getOCreateUserCustomerLink(userId, customerId, new Date(), true)
+        DoobieUserCustomerLinkProvider.getOCreateUserCustomerLink(userId, customerId, new Date(), true)
       }
 
       Then("no call may throw and exactly one link row must exist")

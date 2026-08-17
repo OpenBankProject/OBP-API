@@ -203,6 +203,7 @@ trait ServerSetup extends AnyFeatureSpec with SendServerRequests
     DoobieUtil.runUpdate(sql"DELETE FROM customerlink".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM counterpartylimit".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM customeraccountlink".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM mappedusercustomerlink".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM mappeduserauthcontextupdate".update.run)
   }
 
