@@ -62,10 +62,7 @@ object DeleteProductCascade {
     )
   }
   private def deleteProductFee(bankId: BankId, code: ProductCode): Boolean = {
-    ProductFee.bulkDelete_!!(
-      By(ProductFee.BankId, bankId.value),
-      By(ProductFee.ProductCode, code.value)
-    )
+    ProductFee.deleteByBankIdAndProductCode(bankId.value, code.value)
   }
 
 }

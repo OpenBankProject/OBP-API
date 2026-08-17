@@ -89,7 +89,8 @@ class MigratedTablesExistTest extends ServerSetup {
     "bankaccountbalance",
     "endpointtag",
     "apiproduct",
-    "amqp_bank_broker"
+    "amqp_bank_broker",
+    "productfee"
   )
 
   /**

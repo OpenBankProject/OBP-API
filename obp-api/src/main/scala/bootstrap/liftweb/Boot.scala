@@ -78,7 +78,6 @@ import code.model.dataAccess._
 import code.obp.grpc.ObpGrpcServer
 import code.productcollection.MappedProductCollection
 import code.productcollectionitem.MappedProductCollectionItem
-import code.productfee.ProductFee
 import code.products.MappedProduct
 import code.ratelimiting.RateLimiting
 import code.regulatedentities.MappedRegulatedEntity
@@ -923,7 +922,6 @@ object ToSchemify extends MdcLoggable {
     StandingOrder,
     DynamicResourceDoc,
     DynamicMessageDoc,
-    ProductFee,
     ViewPermission,
     AccountAccess,
     ViewDefinition,

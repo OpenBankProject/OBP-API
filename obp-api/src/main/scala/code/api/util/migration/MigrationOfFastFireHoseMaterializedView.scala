@@ -2,7 +2,6 @@ package code.api.util.migration
 
 import code.api.util.APIUtil
 import code.api.util.migration.Migration.{DbFunction, saveLog}
-import code.productfee.ProductFee
 import net.liftweb.common.Full
 import net.liftweb.mapper.{DB, Schemifier}
 import net.liftweb.util.DefaultConnectionIdentifier
@@ -17,7 +16,7 @@ object MigrationOfFastFireHoseMaterializedView {
   val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm'Z'")
 
   def addFastFireHoseMaterializedView(name: String): Boolean = {
-    DbFunction.tableExists(ProductFee) match {
+    DbFunction.tableExistsByName("productfee") match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
@@ -101,7 +100,7 @@ object MigrationOfFastFireHoseMaterializedView {
         val isSuccessful = false
         val endDate = System.currentTimeMillis()
         val comment: String =
-          s"""${ProductFee._dbTableNameLC} table does not exist""".stripMargin
+          s"""productfee table does not exist""".stripMargin
         saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
         isSuccessful
     }
