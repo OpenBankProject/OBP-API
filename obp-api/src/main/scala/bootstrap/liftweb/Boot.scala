@@ -118,7 +118,7 @@ import code.transactionStatusScheduler.TransactionRequestStatusScheduler
 import code.transactionattribute.MappedTransactionAttribute
 import code.amqpbroker.AmqpBankBroker
 import code.messageoutbox.{MessageOutbox, MessageOutboxRelay}
-import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequestTypeCharge, TransactionRequestReasons}
+import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequestTypeCharge}
 import code.usercustomerlinks.MappedUserCustomerLink
 import code.customerlinks.CustomerLink
 import code.users._
@@ -934,7 +934,6 @@ object ToSchemify extends MdcLoggable {
     MappedKycCheck,
     MappedKycStatus,
     MappedSocialMedia,
-    TransactionRequestReasons,
     MappedMeeting,
     MappedMeetingInvitee,
     MappedPhysicalCard,

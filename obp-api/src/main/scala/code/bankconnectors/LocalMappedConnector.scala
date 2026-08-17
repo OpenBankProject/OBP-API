@@ -5023,15 +5023,14 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
   private def saveTransactionRequestReasons(reasons: Option[List[TransactionRequestReason]], transactionRequest: Box[TransactionRequest]) = {
     for (reason <- reasons.getOrElse(Nil)) {
-      TransactionRequestReasons
-        .create
-        .TransactionRequestId(transactionRequest.map(_.id.value).getOrElse(""))
-        .Amount(reason.amount.getOrElse(""))
-        .Code(reason.code)
-        .Currency(reason.currency.getOrElse(""))
-        .DocumentNumber(reason.documentNumber.getOrElse(""))
-        .Description(reason.description.getOrElse(""))
-        .save
+      code.transactionrequests.DoobieTransactionRequestReasonsQueries.create(
+        transactionRequestId = transactionRequest.map(_.id.value).getOrElse(""),
+        code = reason.code,
+        documentNumber = reason.documentNumber.getOrElse(""),
+        amount = reason.amount.getOrElse(""),
+        currency = reason.currency.getOrElse(""),
+        description = reason.description.getOrElse("")
+      )
     }
   }
 

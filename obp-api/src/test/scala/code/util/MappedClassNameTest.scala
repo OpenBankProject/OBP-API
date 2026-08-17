@@ -36,7 +36,6 @@ class MappedClassNameTest extends AnyFeatureSpec {
     "code.cards.CardAction",
     "code.cards.PinReset",
     "code.meetings.MappedMeeting",
-    "code.transactionrequests.TransactionRequestReasons",
     "code.accountapplication.MappedAccountApplication",
     "code.model.dataAccess.MappedBankAccount",
     "code.accountholders.MapperAccountHolders",
