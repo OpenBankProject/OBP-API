@@ -99,6 +99,14 @@ _ <- if (userIdAccountOwner == loggedInUserId) Future.successful(Full(()))
 ```
 But: if the inline check uses the **same** role as the doc (e.g. v5 `createAccount` doc has `Some(List(canCreateAccount))` and the inline check also tests `canCreateAccount`), the inline check is dead code — Lift's `wrappedWithAuthCheck` already enforced the doc role before the handler ran. Mirror Lift exactly: keep the doc role AND keep the inline check (it's a no-op safety net when the doc role passes). Do NOT take the role out of the doc to "match Lift": that flips behaviour from "always required" to "only required when creating-for-another-user", which v5 `AccountTest`'s "user2 without role → 403" scenario will catch.
 
+**A date read back from Doobie must be converted to `java.util.Date`, not just typed as one**: the driver hands back `java.sql.Date` / `java.sql.Timestamp`, both subclasses of `java.util.Date`, so `value.map(ts => ts: Date)` type-checks and looks right. It is not: json4s serializes those subclasses as an **empty JSON object** rather than a date string, so an endpoint that puts the field straight into its response starts emitting `"start_date": {}`. The failure lands in the *test* as a `MappingException: Do not know how to convert JObject(List()) into class java.util.Date`, which points at the reader rather than at the store. Lift's `MappedDate`/`MappedDateTime` handed out a plain `java.util.Date`; convert explicitly on read:
+```scala
+private def readDate(value: Option[java.sql.Timestamp]): Date = value.map(t => new Date(t.getTime)).orNull
+```
+Targeted tests do not catch this — the transaction-request suites passed while the v1.4/v2.x transaction-request *listing* scenarios in another shard failed on it.
+
+**A row that a connector result carries must expose the trait's field names, not the column names**: `ConnectorUtils.proxyConnector` serializes a connector result to JSON and re-extracts it as the matching `InBound*` DTO, so a case class whose field is named after the column (`bankIdValue`) rather than after the trait member (`bankId`) comes back with that field **null** — `ProxyConnectorTest` fails with `NPE ... because the return value of Bank.bankId() is null`. Naming the row's fields after the trait it implements (and giving them the trait's types, e.g. `bankId: BankId`) is what keeps the round-trip working. This only bites entities that appear in a connector method's return type; a store-internal row can be named freely.
+
 **View permissions**: `view.canGetCounterparty` (MappedBoolean) always returns `false` for system views. Use `view.allowed_actions.exists(_ == CAN_GET_COUNTERPARTY)` instead.
 
 **BankExtended**: `privateAccountsFuture`, `privateAccounts`, `publicAccounts` are on `code.model.BankExtended`, not `commons.Bank`. Wrap: `code.model.BankExtended(bank).privateAccountsFuture(...)`.
