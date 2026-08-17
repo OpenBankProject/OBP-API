@@ -1631,7 +1631,7 @@ object Http4s400 {
       if (box.isInstanceOf[Failure]) {
         val failure = box.asInstanceOf[Failure]
         val msg = failure.msg.replace(
-          DynamicData.DynamicDataId.dbColumnName,
+          DynamicData.idColumnName,
           StringUtils.uncapitalize(entityName) + "Id")
         val changedMsgFailure = failure.copy(msg = s"${code.api.util.ErrorMessages.InternalServerError} $msg")
         APIUtil.fullBoxOrException[T](changedMsgFailure)

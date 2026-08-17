@@ -16,13 +16,13 @@ import doobie.implicits._
 object ProjectionStore {
 
   // Real DB identifiers of the canonical blob table (Lift-mapped).
-  val blobTable: String       = DynamicData.dbTableName
-  val idColumn: String        = DynamicData.DynamicDataId.dbColumnName
-  val jsonColumn: String      = DynamicData.DataJson.dbColumnName
-  val entityNameColumn: String = DynamicData.DynamicEntityName.dbColumnName
-  val bankIdColumn: String    = DynamicData.BankId.dbColumnName
-  val userIdColumn: String    = DynamicData.UserId.dbColumnName
-  val personalColumn: String  = DynamicData.IsPersonalEntity.dbColumnName
+  val blobTable: String       = DynamicData.tableName
+  val idColumn: String        = DynamicData.idColumnName
+  val jsonColumn: String      = DynamicData.jsonColumnName
+  val entityNameColumn: String = DynamicData.entityNameColumnName
+  val bankIdColumn: String    = DynamicData.bankIdColumnName
+  val userIdColumn: String    = DynamicData.userIdColumnName
+  val personalColumn: String  = DynamicData.personalColumnName
 
   // Row-level access ACL table, for user-scoped EXISTS / NOT EXISTS join evaluation:
   // a join onto a row-level child counts only child rows the caller can read.

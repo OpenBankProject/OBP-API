@@ -44,7 +44,7 @@ trait APIMethodsDynamicEntity {
       if (box.isInstanceOf[Failure]) {
         val failure = box.asInstanceOf[Failure]
         // change the internal db column name 'dynamicdataid' to entity's id name
-        val msg = failure.msg.replace(DynamicData.DynamicDataId.dbColumnName, StringUtils.uncapitalize(entityName) + "Id")
+        val msg = failure.msg.replace(DynamicData.idColumnName, StringUtils.uncapitalize(entityName) + "Id")
         val changedMsgFailure = failure.copy(msg = s"$InternalServerError $msg")
         fullBoxOrException[T](changedMsgFailure)
       }

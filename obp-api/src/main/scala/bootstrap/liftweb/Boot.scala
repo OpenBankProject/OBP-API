@@ -27,7 +27,6 @@ TESOBE (http://www.tesobe.com/)
 package bootstrap.liftweb
 
 import org.json4s._
-import code.DynamicData.DynamicData
 import code.actorsystem.ObpActorSystem
 import code.api.Constant._
 //import code.api.ResourceDocs1_4_0.ResourceDocs300.{ResourceDocs310, ResourceDocs400, ResourceDocs500, ResourceDocs510, ResourceDocs600}
@@ -858,7 +857,6 @@ object ToSchemify extends MdcLoggable {
     MappedTransaction,
     MappedConsent,
     ConsentRequest,
-    DynamicData,
     ViewPermission,
     AccountAccess,
     ViewDefinition,

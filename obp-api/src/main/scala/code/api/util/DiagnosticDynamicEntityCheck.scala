@@ -169,7 +169,7 @@ object DiagnosticDynamicEntityCheck {
       // Get all data records and group by (entityName, bankId)
       val allDataRecords = DynamicData.findAll()
       val grouped = allDataRecords.groupBy { record =>
-        (record.dynamicEntityName, Option(record.BankId.get).filter(_.nonEmpty))
+        (record.dynamicEntityName, record.bankId.filter(_.nonEmpty))
       }
 
       // Find groups that have no matching definition

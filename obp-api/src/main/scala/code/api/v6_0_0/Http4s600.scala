@@ -311,11 +311,7 @@ object Http4s600 {
           } yield {
             val listCommons: List[DynamicEntityCommons] = dynamicEntities.sortBy(_.entityName)
             val entitiesWithCounts = listCommons.map { entity =>
-              val recordCount = DynamicData.count(
-                By(DynamicData.DynamicEntityName, entity.entityName),
-                By(DynamicData.IsPersonalEntity, false),
-                if (entity.bankId.isEmpty) NullRef(DynamicData.BankId) else By(DynamicData.BankId, entity.bankId.get)
-              )
+              val recordCount = DynamicData.countImpersonal(entity.bankId, entity.entityName)
               (entity, recordCount)
             }
             JSONFactory600.createDynamicEntitiesWithCountJson(entitiesWithCounts)
@@ -333,11 +329,7 @@ object Http4s600 {
           } yield {
             val listCommons: List[DynamicEntityCommons] = dynamicEntities.sortBy(_.entityName)
             val entitiesWithCounts = listCommons.map { entity =>
-              val recordCount = DynamicData.count(
-                By(DynamicData.DynamicEntityName, entity.entityName),
-                By(DynamicData.IsPersonalEntity, false),
-                By(DynamicData.BankId, bankIdStr)
-              )
+              val recordCount = DynamicData.countImpersonal(Some(bankIdStr), entity.entityName)
               (entity, recordCount)
             }
             JSONFactory600.createDynamicEntitiesWithCountJson(entitiesWithCounts)
@@ -1652,11 +1644,13 @@ object Http4s600 {
             val orphaned = code.api.util.DiagnosticDynamicEntityCheck.checkOrphanedRecords(definitions)
             var totalDeleted: Long = 0
             orphaned.foreach { orphan =>
-              val records = if (orphan.bankId.isEmpty)
-                DynamicData.findAll(By(DynamicData.DynamicEntityName, orphan.entityName), NullRef(DynamicData.BankId))
-              else
-                DynamicData.findAll(By(DynamicData.DynamicEntityName, orphan.entityName), By(DynamicData.BankId, orphan.bankId))
-              records.foreach { r => r.delete_!; totalDeleted += 1 }
+              // Community scoping is right here: an orphaned entity's records go regardless of
+              // owner or personal flag.
+              // orphan.bankId is a String where empty means system-level, so it is narrowed to the
+              // Option the store takes.
+              val orphanBankId = if (orphan.bankId.isEmpty) None else Some(orphan.bankId)
+              val records = DynamicData.findAllCommunity(orphanBankId, orphan.entityName)
+              records.foreach { r => DynamicData.delete(r.dynamicDataId.getOrElse("")); totalDeleted += 1 }
             }
             val orphanedJson = orphaned.map(o => JSONFactory600.OrphanedDynamicEntityJsonV600(o.entityName, o.bankId, o.recordCount))
             JSONFactory600.CleanupOrphanedDynamicEntityResponseJsonV600(orphanedJson, totalDeleted)

@@ -44,14 +44,10 @@ object MappedDynamicEntityProvider extends DynamicEntityProvider with CustomJson
     // rows admin-only (no backfill). Warn so the operator grants access deliberately.
     val wasRowLevel = existsDynamicEntity.map(_.useRowLevelAccess).getOrElse(false)
     if (!wasRowLevel && dynamicEntity.useRowLevelAccess) {
-      val existingRowCount = dynamicEntity.bankId match {
-        case Some(b) => code.DynamicData.DynamicData.count(
-          net.liftweb.mapper.By(code.DynamicData.DynamicData.DynamicEntityName, dynamicEntity.entityName),
-          net.liftweb.mapper.By(code.DynamicData.DynamicData.BankId, b))
-        case None => code.DynamicData.DynamicData.count(
-          net.liftweb.mapper.By(code.DynamicData.DynamicData.DynamicEntityName, dynamicEntity.entityName),
-          net.liftweb.mapper.NullRef(code.DynamicData.DynamicData.BankId))
-      }
+      // Every record of the entity in scope, whatever its owner — switching row-level access on
+      // affects them all.
+      val existingRowCount = code.DynamicData.DynamicData
+        .findAllCommunity(dynamicEntity.bankId, dynamicEntity.entityName).size
       if (existingRowCount > 0)
         logger.warn(s"createOrUpdate says: useRowLevelAccess switched on for entity '${dynamicEntity.entityName}' " +
           s"(bankId=${dynamicEntity.bankId.getOrElse("none")}) which already has $existingRowCount row(s); these are now " +

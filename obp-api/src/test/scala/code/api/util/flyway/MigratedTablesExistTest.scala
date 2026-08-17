@@ -146,7 +146,8 @@ class MigratedTablesExistTest extends ServerSetup {
     "dynamicmessagedoc",
     "dynamicresourcedoc",
     "dynamicdataaccess",
-    "dynamicentity"
+    "dynamicentity",
+    "dynamicdata"
   )
 
   /**
@@ -260,7 +261,8 @@ class MigratedTablesExistTest extends ServerSetup {
     "DYNAMICMESSAGEDOC" -> "DYNAMICMESSAGEDOC_PROCESS",
     "DYNAMICRESOURCEDOC" -> "DYNAMICRESOURCEDOC_REQUESTURL_REQUESTVERB",
     "DYNAMICDATAACCESS" -> "DYNAMICDATAACCESS_DYNAMICDATAID_USERID",
-    "DYNAMICENTITY" -> "DYNAMICENTITY_DYNAMICENTITYID"
+    "DYNAMICENTITY" -> "DYNAMICENTITY_DYNAMICENTITYID",
+    "DYNAMICDATA" -> "DYNAMICDATA_DYNAMICDATAID"
   )
 
   Feature("tables owned by Flyway rather than Schemifier") {
