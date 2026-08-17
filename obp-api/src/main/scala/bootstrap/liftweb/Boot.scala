@@ -865,7 +865,6 @@ object ToSchemify extends MdcLoggable {
     MappedBank,
     MappedBankAccount,
     MappedTransaction,
-    DoubleEntryBookTransaction,
     MappedBranch,
     MappedProduct,
     MappedConsent,

@@ -2149,42 +2149,29 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   override def saveDoubleEntryBookTransaction(doubleEntryTransaction: DoubleEntryTransaction,
                                               callContext: Option[CallContext]): OBPReturnType[Box[DoubleEntryTransaction]] = {
   Future(
-    tryo(DoubleEntryBookTransaction.create
-      .TransactionRequestBankId(doubleEntryTransaction.transactionRequestBankId.map(_.value).getOrElse(""))
-      .TransactionRequestAccountId(doubleEntryTransaction.transactionRequestAccountId.map(_.value).getOrElse(""))
-      .TransactionRequestId(doubleEntryTransaction.transactionRequestId.map(_.value).getOrElse(""))
-      .DebitTransactionBankId(doubleEntryTransaction.debitTransactionBankId.value)
-      .DebitTransactionAccountId(doubleEntryTransaction.debitTransactionAccountId.value)
-      .DebitTransactionId(doubleEntryTransaction.debitTransactionId.value)
-      .CreditTransactionBankId(doubleEntryTransaction.creditTransactionBankId.value)
-      .CreditTransactionAccountId(doubleEntryTransaction.creditTransactionAccountId.value)
-      .CreditTransactionId(doubleEntryTransaction.creditTransactionId.value)
-      .saveMe())
+    tryo(DoubleEntryBookTransaction.insert(
+      doubleEntryTransaction.transactionRequestBankId.map(_.value).getOrElse(""),
+      doubleEntryTransaction.transactionRequestAccountId.map(_.value).getOrElse(""),
+      doubleEntryTransaction.transactionRequestId.map(_.value).getOrElse(""),
+      doubleEntryTransaction.debitTransactionBankId.value,
+      doubleEntryTransaction.debitTransactionAccountId.value,
+      doubleEntryTransaction.debitTransactionId.value,
+      doubleEntryTransaction.creditTransactionBankId.value,
+      doubleEntryTransaction.creditTransactionAccountId.value,
+      doubleEntryTransaction.creditTransactionId.value))
   ).map(doubleEntryTransaction => (doubleEntryTransaction, callContext))
   }
 
   override def getDoubleEntryBookTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId,
                                               callContext: Option[CallContext]): OBPReturnType[Box[DoubleEntryTransaction]] = {
     Future(
-      DoubleEntryBookTransaction.find(
-          By(DoubleEntryBookTransaction.DebitTransactionBankId, bankId.value),
-          By(DoubleEntryBookTransaction.DebitTransactionAccountId, accountId.value),
-          By(DoubleEntryBookTransaction.DebitTransactionId, transactionId.value)
-        ).or(DoubleEntryBookTransaction.find(
-        By(DoubleEntryBookTransaction.CreditTransactionBankId, bankId.value),
-        By(DoubleEntryBookTransaction.CreditTransactionAccountId, accountId.value),
-        By(DoubleEntryBookTransaction.CreditTransactionId, transactionId.value)
-      ))
+      DoubleEntryBookTransaction.findByLeg(bankId.value, accountId.value, transactionId.value)
     ).map(doubleEntryTransaction => (doubleEntryTransaction, callContext))
   }
   override def getBalancingTransaction(transactionId: TransactionId,
                                        callContext: Option[CallContext]): OBPReturnType[Box[DoubleEntryTransaction]] = {
     Future(
-      DoubleEntryBookTransaction.find(
-          By(DoubleEntryBookTransaction.DebitTransactionId, transactionId.value)
-        ).or(DoubleEntryBookTransaction.find(
-        By(DoubleEntryBookTransaction.CreditTransactionId, transactionId.value)
-      ))
+      DoubleEntryBookTransaction.findByTransactionId(transactionId.value)
     ).map(doubleEntryTransaction => (doubleEntryTransaction, callContext))
   }
 
