@@ -55,7 +55,6 @@ import code.consumer.Consumers
 import code.model.Consumer
 import code.customer.{MappedCustomer, MappedCustomerMessage}
 import code.customeraddress.MappedCustomerAddress
-import code.directdebit.DirectDebit
 import code.dynamicEntity.DynamicEntity
 import code.dynamicMessageDoc.DynamicMessageDoc
 import code.dynamicResourceDoc.DynamicResourceDoc
@@ -69,15 +68,12 @@ import code.metrics.{MappedConnectorMetric, MappedMetric, MetricArchive}
 import code.model._
 import code.model.dataAccess._
 import code.obp.grpc.ObpGrpcServer
-import code.productcollection.MappedProductCollection
-import code.productcollectionitem.MappedProductCollectionItem
 import code.products.MappedProduct
 import code.ratelimiting.RateLimiting
 import code.regulatedentities.MappedRegulatedEntity
 import code.scheduler._
 import code.scope.{MappedScope, Scope}
 import code.signingbaskets.{MappedSigningBasket, MappedSigningBasketConsent, MappedSigningBasketPayment}
-import code.standingorders.StandingOrder
 import code.transaction.MappedTransaction
 import code.transactionChallenge.MappedExpectedChallengeAnswer
 import code.transactionStatusScheduler.TransactionRequestStatusScheduler
@@ -903,8 +899,6 @@ object ToSchemify extends MdcLoggable {
     DynamicDataAccess,
     code.api.dynamic.entity.projection.DynamicEntityIndex,
     DynamicEndpoint,
-    DirectDebit,
-    StandingOrder,
     DynamicResourceDoc,
     DynamicMessageDoc,
     ViewPermission,
@@ -931,8 +925,6 @@ object ToSchemify extends MdcLoggable {
     MappedScope,
     MappedCustomerAddress,
     MappedAccountApplication,
-    MappedProductCollection,
-    MappedProductCollectionItem,
     RateLimiting,
     MappedCustomerDependant,
     RoutingScheme,

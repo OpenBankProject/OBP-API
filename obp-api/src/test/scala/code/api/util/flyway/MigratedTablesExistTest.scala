@@ -107,7 +107,11 @@ class MigratedTablesExistTest extends ServerSetup {
     "chatroom",
     "chatmessage",
     "participant",
-    "reaction"
+    "reaction",
+    "mappedproductcollection",
+    "mappedproductcollectionitem",
+    "directdebit",
+    "standingorder"
   )
 
   /**
@@ -193,7 +197,10 @@ class MigratedTablesExistTest extends ServerSetup {
     "CHATROOM" -> "CHATROOM_BANKID_NAME",
     "CHATMESSAGE" -> "CHATMESSAGE_CHATMESSAGEID",
     "PARTICIPANT" -> "PARTICIPANT_CHATROOMID_USERID",
-    "REACTION" -> "REACTION_CHATMESSAGEID_USERID_EMOJI"
+    "REACTION" -> "REACTION_CHATMESSAGEID_USERID_EMOJI",
+    "MAPPEDPRODUCTCOLLECTION" -> "MAPPEDPRODUCTCOLLECTION_MCOLLECTIONCODE_MPRODUCTCODE",
+    "MAPPEDPRODUCTCOLLECTIONITEM" -> "MAPPEDPRODUCTCOLLECTIONITEM_MCOLLECTIONCODE_MMEMBERPRODUCTCODE",
+    "DIRECTDEBIT" -> "DIRECTDEBIT_BANKID_ACCOUNTID_CUSTOMERID_COUNTERPARTYID"
   )
 
   Feature("tables owned by Flyway rather than Schemifier") {
