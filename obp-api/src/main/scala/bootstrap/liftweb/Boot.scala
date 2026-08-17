@@ -70,7 +70,6 @@ import code.entitlementrequest.MappedEntitlementRequest
 import code.group.Group
 import code.organisation.Organisation
 import code.routingscheme.{RoutingScheme, BankSupportedRoutingScheme}
-import code.utilitypayment.UtilityPaymentCallback
 import code.bulkpayment.{BulkPayment, BulkBatchReference}
 import code.kycchecks.MappedKycCheck
 import code.kycdocuments.MappedKycDocument
@@ -977,7 +976,6 @@ object ToSchemify extends MdcLoggable {
     Organisation,
     RoutingScheme,
     BankSupportedRoutingScheme,
-    UtilityPaymentCallback,
     BulkPayment,
     BulkBatchReference,
     AccountAccessRequest,

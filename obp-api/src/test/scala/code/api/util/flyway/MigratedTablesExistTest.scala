@@ -79,7 +79,8 @@ class MigratedTablesExistTest extends ServerSetup {
     "mappeduserrefreshes",
     "payeelookup",
     "metricsarchiverun",
-    "open_corridor_fee_accrual"
+    "open_corridor_fee_accrual",
+    "utilitypaymentcallback"
   )
 
   /**
@@ -140,7 +141,8 @@ class MigratedTablesExistTest extends ServerSetup {
     "MAPPEDUSERREFRESHES" -> "MAPPEDUSERREFRESHES_MUSERID",
     "PAYEELOOKUP" -> "PAYEELOOKUP_LOOKUPID",
     "METRICSARCHIVERUN" -> "METRICSARCHIVERUN_RUNID",
-    "OPEN_CORRIDOR_FEE_ACCRUAL" -> "OPEN_CORRIDOR_FEE_ACCRUAL_TRANSACTION_REQUEST_ID"
+    "OPEN_CORRIDOR_FEE_ACCRUAL" -> "OPEN_CORRIDOR_FEE_ACCRUAL_TRANSACTION_REQUEST_ID",
+    "UTILITYPAYMENTCALLBACK" -> "UTILITYPAYMENTCALLBACK_CALLBACKID"
   )
 
   Feature("tables owned by Flyway rather than Schemifier") {
