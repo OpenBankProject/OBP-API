@@ -30,7 +30,6 @@ import org.json4s._
 import code.DynamicData.DynamicData
 import code.DynamicData.DynamicDataAccess
 import code.DynamicEndpoint.DynamicEndpoint
-import code.abacrule.AbacRule
 import code.accountholders.MapperAccountHolders
 import code.actorsystem.ObpActorSystem
 import code.api.Constant._
@@ -57,7 +56,6 @@ import code.dynamicMessageDoc.DynamicMessageDoc
 import code.dynamicResourceDoc.DynamicResourceDoc
 import code.endpointMapping.EndpointMapping
 import code.entitlement.{Entitlement, MappedEntitlement}
-import code.routingscheme.{RoutingScheme, BankSupportedRoutingScheme}
 import code.meetings.{MappedMeeting, MappedMeetingInvitee}
 import code.metadata.counterparties.{MappedCounterparty, MappedCounterpartyMetadata, MappedCounterpartyWhereTag}
 import code.metrics.{MappedConnectorMetric, MappedMetric, MetricArchive}
@@ -864,7 +862,6 @@ object ToSchemify extends MdcLoggable {
     MappedSigningBasket,
     MappedSigningBasketPayment,
     MappedSigningBasketConsent,
-    AbacRule,
     code.mandate.Mandate,
     code.mandate.MandateProvision,
     code.mandate.SignatoryPanel,
@@ -907,9 +904,7 @@ object ToSchemify extends MdcLoggable {
     MapperAccountHolders,
     MappedEntitlement,
     MappedConnectorMetric,
-    RateLimiting,
-    RoutingScheme,
-    BankSupportedRoutingScheme
+    RateLimiting
   )
 
   // start grpc server

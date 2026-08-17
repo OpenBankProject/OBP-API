@@ -123,7 +123,10 @@ class MigratedTablesExistTest extends ServerSetup {
     "mappedcounterpartybespoke",
     "expectedchallengeanswer",
     "userattribute",
-    "regulatedentity"
+    "regulatedentity",
+    "routingscheme",
+    "banksupportedroutingscheme",
+    "abacrule"
   )
 
   /**
@@ -220,7 +223,9 @@ class MigratedTablesExistTest extends ServerSetup {
     "MAPPEDACCOUNTAPPLICATION" -> "MAPPEDACCOUNTAPPLICATION_MACCOUNTAPPLICATIONID",
     "MAPPEDCUSTOMERADDRESS" -> "MAPPEDCUSTOMERADDRESS_MCUSTOMERADDRESSID",
     "MAPPEDENTITLEMENTREQUEST" -> "MAPPEDENTITLEMENTREQUEST_MENTITLEMENTREQUESTID",
-    "EXPECTEDCHALLENGEANSWER" -> "EXPECTEDCHALLENGEANSWER_CHALLENGEID"
+    "EXPECTEDCHALLENGEANSWER" -> "EXPECTEDCHALLENGEANSWER_CHALLENGEID",
+    "ROUTINGSCHEME" -> "ROUTINGSCHEME_SCHEME",
+    "BANKSUPPORTEDROUTINGSCHEME" -> "BANKSUPPORTEDROUTINGSCHEME_BANKID_SCHEME"
   )
 
   Feature("tables owned by Flyway rather than Schemifier") {
