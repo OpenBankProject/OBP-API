@@ -5,7 +5,7 @@ import code.api.APIFailureNewStyle
 import code.api.util.APIUtil.fullBoxOrException
 import code.api.util.ErrorMessages.CouldNotDeleteCascade
 import code.customer.CustomerX
-import code.customeraccountlinks.CustomerAccountLink
+import code.customeraccountlinks.DoobieCustomerAccountLinkProvider
 import code.model.dataAccess.{MappedBank, MappedBankAccount}
 import com.openbankproject.commons.model.{BankId, CustomerId}
 import deletion.DeletionUtil.databaseAtomicTask
@@ -27,7 +27,7 @@ object DeleteBankCascade {
         )
       }
       // Delete customer related to the account
-      CustomerAccountLink.findAll(By(CustomerAccountLink.AccountId, i.accountId.value)).forall(i => 
+      DoobieCustomerAccountLinkProvider.findByAccountIdSync(i.accountId.value).forall(i =>
         DeleteCustomerCascade.delete(CustomerId(i.customerId))
       )
       // Delete account

@@ -60,7 +60,6 @@ import code.consumer.Consumers
 import code.model.Consumer
 import code.crm.MappedCrmEvent
 import code.customer.{MappedCustomer, MappedCustomerMessage}
-import code.customeraccountlinks.CustomerAccountLink
 import code.customeraddress.MappedCustomerAddress
 import code.directdebit.DirectDebit
 import code.dynamicEntity.DynamicEntity
@@ -982,7 +981,6 @@ object ToSchemify extends MdcLoggable {
     RateLimiting,
     MappedCustomerDependant,
     AttributeDefinition,
-    CustomerAccountLink,
     BankAccountBalance,
     Group,
     Organisation,

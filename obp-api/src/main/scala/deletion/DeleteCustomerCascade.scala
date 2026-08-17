@@ -6,7 +6,7 @@ import code.api.util.APIUtil.fullBoxOrException
 import code.api.util.ErrorMessages.CouldNotDeleteCascade
 import code.api.util.DoobieUtil
 import code.customer.MappedCustomer
-import code.customeraccountlinks.CustomerAccountLink
+import code.customeraccountlinks.DoobieCustomerAccountLinkProvider
 import code.customeraddress.MappedCustomerAddress
 import code.kycchecks.MappedKycCheck
 import code.kycdocuments.MappedKycDocument
@@ -51,9 +51,7 @@ object DeleteCustomerCascade {
     }
   }
   private def deleteCustomerAccountLinks(customerId: CustomerId): Boolean = {
-    CustomerAccountLink.bulkDelete_!!(
-      By(CustomerAccountLink.CustomerId, customerId.value)
-    )
+    DoobieCustomerAccountLinkProvider.deleteByCustomerIdSync(customerId.value)
   }
   private def deleteCustomerAttributes(customerId: CustomerId): Boolean = {
     DoobieUtil.runUpdate(

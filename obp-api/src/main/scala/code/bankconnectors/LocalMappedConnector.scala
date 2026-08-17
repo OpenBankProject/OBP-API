@@ -658,7 +658,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       bankIdCustomerPair <- bankIdCustomerNumberPairs
     }yield{
       CustomerX.customerProvider.vend.getCustomerByCustomerNumber(bankIdCustomerPair._2, BankId(bankIdCustomerPair._1)).map(customer => //check if the Customer Number is existing in Customer table.
-        code.customeraccountlinks.MappedCustomerAccountLinkProvider.getCustomerAccountLinkByCustomerId(customer.customerId).map(customerAccountLink => // get the account Customer link from CustomerAccountLink 
+        code.customeraccountlinks.DoobieCustomerAccountLinkProvider.getCustomerAccountLinkByCustomerId(customer.customerId).map(customerAccountLink => // get the account Customer link from CustomerAccountLink
           code.bankconnectors.LocalMappedConnector.getBankAccountCommon(BankId(customerAccountLink.bankId),AccountId(customerAccountLink.accountId), None).map(result => // check the bankAccount from CustomerAccountLink.
             BankIdAccountId(result._1.bankId, result._1.accountId)))).flatten.flatten
     }
