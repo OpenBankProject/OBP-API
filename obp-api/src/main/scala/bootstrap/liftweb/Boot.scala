@@ -86,7 +86,6 @@ import code.scope.{MappedScope, Scope}
 import code.signingbaskets.{MappedSigningBasket, MappedSigningBasketConsent, MappedSigningBasketPayment}
 import code.socialmedia.MappedSocialMedia
 import code.standingorders.StandingOrder
-import code.token.OpenIDConnectToken
 import code.transaction.MappedTransaction
 import code.transactionChallenge.MappedExpectedChallengeAnswer
 import code.transactionStatusScheduler.TransactionRequestStatusScheduler
@@ -932,7 +931,6 @@ object ToSchemify extends MdcLoggable {
     MappedCustomer,
     Consumer,
     Token,
-    OpenIDConnectToken,
     Nonce,
     MappedCounterparty,
     MappedCounterpartyBespoke,

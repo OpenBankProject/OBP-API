@@ -91,7 +91,8 @@ class MigratedTablesExistTest extends ServerSetup {
     "apiproduct",
     "amqp_bank_broker",
     "productfee",
-    "message_outbox"
+    "message_outbox",
+    "openidconnecttoken"
   )
 
   /**

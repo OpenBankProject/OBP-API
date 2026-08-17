@@ -5,7 +5,6 @@ import java.time.{ZoneId, ZonedDateTime}
 
 import code.api.util.APIUtil
 import code.api.util.migration.Migration.{DbFunction, saveLog}
-import code.token.OpenIDConnectToken
 import net.liftweb.common.Full
 import net.liftweb.mapper.{DB, Schemifier}
 import net.liftweb.util.DefaultConnectionIdentifier
@@ -17,7 +16,7 @@ object MigrationOfOpnIDConnectToken {
   val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm'Z'")
   
   def alterColumnAccessToken(name: String): Boolean = {
-    DbFunction.tableExists(OpenIDConnectToken) match {
+    DbFunction.tableExistsByName("openidconnecttoken") match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
@@ -50,13 +49,13 @@ object MigrationOfOpnIDConnectToken {
         val isSuccessful = false
         val endDate = System.currentTimeMillis()
         val comment: String =
-          s"""${OpenIDConnectToken._dbTableNameLC} table does not exist""".stripMargin
+          s"""openidconnecttoken table does not exist""".stripMargin
         saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
         isSuccessful
     }
   }  
   def alterColumnRefreshToken(name: String): Boolean = {
-    DbFunction.tableExists(OpenIDConnectToken) match {
+    DbFunction.tableExistsByName("openidconnecttoken") match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
@@ -89,7 +88,7 @@ object MigrationOfOpnIDConnectToken {
         val isSuccessful = false
         val endDate = System.currentTimeMillis()
         val comment: String =
-          s"""${OpenIDConnectToken._dbTableNameLC} table does not exist""".stripMargin
+          s"""openidconnecttoken table does not exist""".stripMargin
         saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
         isSuccessful
     }
