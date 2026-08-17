@@ -229,6 +229,9 @@ class SandboxDataLoadingTest extends AnyFlatSpec with SendServerRequests with Ma
     DoobieUtil.runUpdate(sql"DELETE FROM dynamicdata".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM viewpermission".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM accountaccess".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM mandate".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM mandateprovision".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM signatorypanel".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM mappeduserauthcontextupdate".update.run)
 
     //we need to delete the test uses manully here.

@@ -149,7 +149,10 @@ class MigratedTablesExistTest extends ServerSetup {
     "dynamicentity",
     "dynamicdata",
     "viewpermission",
-    "accountaccess"
+    "accountaccess",
+    "mandate",
+    "mandateprovision",
+    "signatorypanel"
   )
 
   /**
@@ -266,7 +269,10 @@ class MigratedTablesExistTest extends ServerSetup {
     "DYNAMICENTITY" -> "DYNAMICENTITY_DYNAMICENTITYID",
     "DYNAMICDATA" -> "DYNAMICDATA_DYNAMICDATAID",
     "VIEWPERMISSION" -> "VIEWPERMISSION_BANK_ID_ACCOUNT_ID_VIEW_ID_PERMISSION",
-    "ACCOUNTACCESS" -> "ACCOUNTACCESS_BANK_ID_ACCOUNT_ID_VIEW_ID_USER_FK_CONSUMER_ID"
+    "ACCOUNTACCESS" -> "ACCOUNTACCESS_BANK_ID_ACCOUNT_ID_VIEW_ID_USER_FK_CONSUMER_ID",
+    "MANDATE" -> "MANDATE_MANDATEID",
+    "MANDATEPROVISION" -> "MANDATEPROVISION_PROVISIONID",
+    "SIGNATORYPANEL" -> "SIGNATORYPANEL_PANELID"
   )
 
   Feature("tables owned by Flyway rather than Schemifier") {
