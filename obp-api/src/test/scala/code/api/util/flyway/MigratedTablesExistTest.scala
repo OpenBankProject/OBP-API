@@ -159,7 +159,8 @@ class MigratedTablesExistTest extends ServerSetup {
     "consentrequest",
     "mappedcounterparty",
     "mappedcounterpartymetadata",
-    "mappedcounterpartywheretag"
+    "mappedcounterpartywheretag",
+    "mappedbank"
   )
 
   /**

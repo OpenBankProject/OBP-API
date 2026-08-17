@@ -337,7 +337,7 @@ object Http4s700 {
               // of their consent-agents count toward the same limit — otherwise every
               // new consent would arrive with a fresh quota.
               val creatorUserIds = humanAndAgentUserIds(cc.effectiveHumanUserId)
-              MappedBank.count(ByList(MappedBank.CreatedByUserId, creatorUserIds))
+              MappedBank.countByCreatedByUserIds(creatorUserIds)
             }
             _ <- Helper.booleanToFuture(SelfServiceBankLimitReached, failCode = 403, cc = Some(cc)) {
               banksCreatedByUser < selfServiceBankLimit
@@ -415,7 +415,7 @@ object Http4s700 {
           for {
             banksCreatedByUser <- Future {
               val creatorUserIds = humanAndAgentUserIds(cc.effectiveHumanUserId)
-              MappedBank.findAll(ByList(MappedBank.CreatedByUserId, creatorUserIds))
+              MappedBank.findAllByCreatedByUserIds(creatorUserIds)
             }
           } yield JSONFactory600.createBanksJsonV600(banksCreatedByUser)
         }

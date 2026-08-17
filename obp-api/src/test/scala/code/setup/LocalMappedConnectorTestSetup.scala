@@ -34,14 +34,15 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
     //Note: we do not have the `UniqueIndex` for bank.id(permalink) yet, we but when we have getBankById endpoint,
     //Better set only create one bank for one id.
     MappedBank.findByBankId(BankId(id)).getOrElse(
-        MappedBank.create
-          .fullBankName(randomString(5))
-          .shortBankName(randomString(5))
-          .permalink(id)
-          .national_identifier(randomString(5))
-          .mBankRoutingScheme(randomString(5))
-          .mBankRoutingAddress(randomString(5))
-          .saveMe)
+        MappedBank.insert(
+          bankId = id,
+          fullBankName = randomString(5),
+          shortBankName = randomString(5),
+          logoURL = "", websiteURL = "", swiftBIC = "",
+          nationalIdentifier = randomString(5),
+          bankRoutingScheme = randomString(5),
+          bankRoutingAddress = randomString(5),
+          createdByUserId = ""))
   }
 
   override protected def createCounterparty(bankId: String, accountId: String, counterpartyObpRoutingAddress: String, isBeneficiary: Boolean, createdByUserId:String): CounterpartyTrait = {
@@ -339,6 +340,7 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
     DoobieUtil.runUpdate(sql"DELETE FROM mappedcounterparty".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM mappedcounterpartymetadata".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM mappedcounterpartywheretag".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM mappedbank".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM mappeduserauthcontextupdate".update.run)
 
     

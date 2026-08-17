@@ -116,6 +116,28 @@ case class SaveableCrmEvent(value : CrmEventCreateParams) extends Saveable[CrmEv
   )
 }
 
+case class SaveableBank(bankId: String, fullBankName: String, shortBankName: String,
+                        logoURL: String, websiteURL: String) extends Saveable[MappedBank] {
+  // Read before save() runs - createAccountsAndViews needs the bank ids while the rows are still
+  // unwritten - so this is the transient row the import is about to store, not a row read back.
+  // MappedSaveable handed out the unsaved Mapper entity in exactly the same way.
+  lazy val value: MappedBank = MappedBank(BankId(bankId), fullBankName, shortBankName, logoURL, websiteURL,
+    swiftBic = "", nationalIdentifier = "", bankRoutingScheme = "", bankRoutingAddress = "",
+    createdByUserId = "")
+  def save(): Unit = {
+    MappedBank.findByBankId(BankId(bankId)) match {
+      case Full(_) =>
+        MappedBank.updateByBankId(bankId, fullBankName, shortBankName, logoURL, websiteURL,
+          swiftBIC = "", nationalIdentifier = "", bankRoutingScheme = "", bankRoutingAddress = "")
+      case _ =>
+        MappedBank.insert(bankId, fullBankName, shortBankName, logoURL, websiteURL,
+          swiftBIC = "", nationalIdentifier = "", bankRoutingScheme = "", bankRoutingAddress = "",
+          createdByUserId = "")
+    }
+    ()
+  }
+}
+
 object LocalMappedConnectorDataImport extends OBPDataImport with CreateAuthUsers {
 
   // Rename these types as MappedCrmEventType etc? Else can get confused with other types of same name
@@ -130,22 +152,16 @@ object LocalMappedConnectorDataImport extends OBPDataImport with CreateAuthUsers
   type CrmEventType = CrmEventCreateParams
 
   protected def createSaveableBanks(data : List[SandboxBankImport]) : Box[List[Saveable[BankType]]] = {
-    val mappedBanks = data.map(bank => {
-      MappedBank.create
-        .permalink(bank.id)
-        .fullBankName(bank.full_name)
-        .shortBankName(bank.short_name)
-        .logoURL(bank.logo)
-        .websiteURL(bank.website)
-    })
-
-    val validationErrors = mappedBanks.flatMap(_.validate)
-
-    if(validationErrors.nonEmpty) {
-      Failure(s"Errors: ${validationErrors.map(_.msg)}")
-    } else {
-      Full(mappedBanks.map(MappedSaveable(_)))
-    }
+    // Bank persistence goes through the Doobie store, as with branches, products and ATMs: the
+    // import must not write the row with Mapper while every read comes back through the store.
+    // The importer supplies no BIC, national identifier or routing, and no creating user - the
+    // same fields Mapper left at their defaults.
+    Full(data.map(bank => SaveableBank(
+      bankId = bank.id,
+      fullBankName = bank.full_name,
+      shortBankName = bank.short_name,
+      logoURL = bank.logo,
+      websiteURL = bank.website)))
   }
 
   protected def createSaveableBranches(data : List[SandboxBranchImport]) : Box[List[Saveable[BranchType]]] = {

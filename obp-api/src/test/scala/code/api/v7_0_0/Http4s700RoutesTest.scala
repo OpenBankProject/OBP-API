@@ -3725,12 +3725,13 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
           lastMarketingAgreementSignedDate = None
         ).openOrThrowException("Expected agent user to be created")
         val agentBankId = s"agent-made-${APIUtil.generateUUID().take(8)}"
-        code.model.dataAccess.MappedBank.create
-          .permalink(agentBankId)
-          .fullBankName("Agent Made Bank")
-          .shortBankName("Agent Made")
-          .CreatedByUserId(agentUser.userId)
-          .saveMe()
+        code.model.dataAccess.MappedBank.insert(
+          bankId = agentBankId,
+          fullBankName = "Agent Made Bank",
+          shortBankName = "Agent Made",
+          logoURL = "", websiteURL = "", swiftBIC = "", nationalIdentifier = "",
+          bankRoutingScheme = "", bankRoutingAddress = "",
+          createdByUserId = agentUser.userId)
         agentBankId
       }
 

@@ -554,20 +554,17 @@ class Boot extends MdcLoggable {
     val incomingAccountId= INCOMING_SETTLEMENT_ACCOUNT_ID
     val outgoingAccountId= OUTGOING_SETTLEMENT_ACCOUNT_ID
 
-    MappedBank.find(By(MappedBank.permalink, defaultBankId)) match {
+    MappedBank.findByBankId(com.openbankproject.commons.model.BankId(defaultBankId)) match {
       case Full(b) =>
         logger.debug(s"Bank(${defaultBankId}) is found.")
       case _ =>
-        MappedBank.create
-          .permalink(defaultBankId)
-          .fullBankName("OBP_DEFAULT_BANK")
-          .shortBankName("OBP")
-          .national_identifier("OBP")
-          .mBankRoutingScheme("OBP")
-          .mBankRoutingAddress("obp1")
-          .logoURL("")
-          .websiteURL("")
-          .saveMe()
+        MappedBank.insert(
+          bankId = defaultBankId,
+          fullBankName = "OBP_DEFAULT_BANK",
+          shortBankName = "OBP",
+          logoURL = "", websiteURL = "", swiftBIC = "",
+          nationalIdentifier = "OBP",
+          bankRoutingScheme = "OBP", bankRoutingAddress = "obp1", createdByUserId = "")
         logger.debug(s"creating Bank(${defaultBankId})")
     }
 
@@ -844,7 +841,6 @@ class Boot extends MdcLoggable {
 object ToSchemify extends MdcLoggable {
   val models: List[MetaMapper[_]] = List(
     AuthUser,
-    MappedBank,
     MappedBankAccount,
     MappedTransaction,
     MappedConsent,

@@ -250,19 +250,20 @@ object LocalMappedConnectorInternal extends MdcLoggable {
     callContext: Option[CallContext]
   ): Box[(Bank, BankAccount)] = {
     //don't require and exact match on the name, just the identifier
-    val bank = MappedBank.find(By(MappedBank.national_identifier, bankNationalIdentifier)) match {
+    val bank = MappedBank.findByNationalIdentifier(bankNationalIdentifier) match {
       case Full(b) =>
         logger.debug(s"bank with id ${b.bankId} and national identifier ${b.nationalIdentifier} found")
         b
       case _ =>
         logger.debug(s"creating bank with national identifier $bankNationalIdentifier")
         //TODO: need to handle the case where generatePermalink returns a permalink that is already used for another bank
-        MappedBank.create
-          .permalink(Helper.generatePermalink(bankName))
-          .fullBankName(bankName)
-          .shortBankName(bankName)
-          .national_identifier(bankNationalIdentifier)
-          .saveMe()
+        MappedBank.insert(
+          bankId = Helper.generatePermalink(bankName),
+          fullBankName = bankName,
+          shortBankName = bankName,
+          logoURL = "", websiteURL = "", swiftBIC = "",
+          nationalIdentifier = bankNationalIdentifier,
+          bankRoutingScheme = "", bankRoutingAddress = "", createdByUserId = "")
     }
 
     //TODO: pass in currency as a parameter?

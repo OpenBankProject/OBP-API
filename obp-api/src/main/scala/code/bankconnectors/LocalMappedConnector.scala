@@ -595,13 +595,16 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
   //gets a particular bank handled by this connector
   override def getBankLegacy(bankId: BankId, callContext: Option[CallContext]): Box[(Bank, Option[CallContext])] = {
+    // The routing scheme and address are defaulted on the way out, not stored: an empty scheme
+    // reads back as "OBP" and an empty address as the bank id. Mapper set the fields on the
+    // in-memory entity without saving; copy does the same.
     MappedBank
-      .find(By(MappedBank.permalink, bankId.value))
+      .findByBankId(bankId)
       .map(
         bank =>
-          bank
-            .mBankRoutingScheme(APIUtil.ValueOrOBP(bank.bankRoutingScheme))
-            .mBankRoutingAddress(APIUtil.ValueOrOBPId(bank.bankRoutingAddress, bank.bankId.value))
+          bank.copy(
+            bankRoutingScheme = APIUtil.ValueOrOBP(bank.bankRoutingScheme),
+            bankRoutingAddress = APIUtil.ValueOrOBPId(bank.bankRoutingAddress, bank.bankId.value))
       ).map(bank => (bank, callContext))
   }
 
@@ -615,9 +618,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       .findAll()
       .map(
         bank =>
-          bank
-            .mBankRoutingScheme(APIUtil.ValueOrOBP(bank.bankRoutingScheme))
-            .mBankRoutingAddress(APIUtil.ValueOrOBPId(bank.bankRoutingAddress, bank.bankId.value))
+          bank.copy(
+            bankRoutingScheme = APIUtil.ValueOrOBP(bank.bankRoutingScheme),
+            bankRoutingAddress = APIUtil.ValueOrOBPId(bank.bankRoutingAddress, bank.bankId.value))
       ),
       callContext
     )
@@ -3097,35 +3100,19 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                    callContext: Option[CallContext]
                                  ): Box[Bank] = {
   //check the bank existence and update or insert data
-    val bank = getBankLegacy(BankId(bankId), None).map(_._1.asInstanceOf[MappedBank]) match {
-      case Full(mappedBank) =>
+    val bank = MappedBank.findByBankId(BankId(bankId)) match {
+      case Full(_) =>
         tryo {
-          mappedBank
-            .permalink(bankId)
-            .fullBankName(fullBankName)
-            .shortBankName(shortBankName)
-            .logoURL(logoURL)
-            .websiteURL(websiteURL)
-            .swiftBIC(swiftBIC)
-            .national_identifier(national_identifier)
-            .mBankRoutingScheme(bankRoutingScheme)
-            .mBankRoutingAddress(bankRoutingAddress)
-            .saveMe()
+          MappedBank.updateByBankId(bankId, fullBankName, shortBankName, logoURL, websiteURL,
+            swiftBIC, national_identifier, bankRoutingScheme, bankRoutingAddress)
+            .openOrThrowException("the bank just updated must be readable")
         } ?~! ErrorMessages.CreateBankError
       case _ =>
         tryo {
-          MappedBank.create
-            .permalink(bankId)
-            .fullBankName(fullBankName)
-            .shortBankName(shortBankName)
-            .logoURL(logoURL)
-            .websiteURL(websiteURL)
-            .swiftBIC(swiftBIC)
-            .national_identifier(national_identifier)
-            .mBankRoutingScheme(bankRoutingScheme)
-            .mBankRoutingAddress(bankRoutingAddress)
-            .CreatedByUserId(callContext.map(_.user).flatMap(_.toOption).map(_.userId).getOrElse(""))
-            .saveMe()
+          // Only a create records who made the bank; an update leaves the original creator alone.
+          MappedBank.insert(bankId, fullBankName, shortBankName, logoURL, websiteURL, swiftBIC,
+            national_identifier, bankRoutingScheme, bankRoutingAddress,
+            callContext.map(_.user).flatMap(_.toOption).map(_.userId).getOrElse(""))
         } ?~! ErrorMessages.UpdateBankError
     }
 

@@ -46,9 +46,7 @@ object DeleteBankCascade {
   }
 
   private def deleteBank(bankId: BankId): Boolean = {
-    MappedBank.bulkDelete_!!(
-      By(MappedBank.permalink, bankId.value)
-    )
+    MappedBank.deleteByBankId(bankId.value)
   }
   
   

@@ -140,14 +140,14 @@ class MappedCustomerProviderTest extends V140ServerSetup with DefaultUsers {
 
   override def beforeAll() = {
     super.beforeAll()
-    MappedBank.bulkDelete_!!()
+    MappedBank.deleteAll()
     CustomerX.customerProvider.vend.bulkDeleteCustomers()
     UserCustomerLink.userCustomerLink.vend.bulkDeleteUserCustomerLinks()
   }
 
   override def afterEach() = {
     super.afterEach()
-    MappedBank.bulkDelete_!!()
+    MappedBank.deleteAll()
     CustomerX.customerProvider.vend.bulkDeleteCustomers()
     UserCustomerLink.userCustomerLink.vend.bulkDeleteUserCustomerLinks()
   }
