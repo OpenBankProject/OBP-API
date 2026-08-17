@@ -888,7 +888,6 @@ object ToSchemify extends MdcLoggable {
     MappedMetric,
     MetricArchive,
     MapperAccountHolders,
-    MappedEntitlement,
     RateLimiting
   )
 

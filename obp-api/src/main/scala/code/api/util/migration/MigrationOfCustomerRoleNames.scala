@@ -19,7 +19,7 @@ object MigrationOfCustomerRoleNames {
   )
 
   def renameCustomerRoles(name: String): Boolean = {
-    DbFunction.tableExists(MappedEntitlement) match {
+    DbFunction.tableExistsByName("mappedentitlement") match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
@@ -27,7 +27,7 @@ object MigrationOfCustomerRoleNames {
 
         try {
           // Make back up of entitlement and scope tables
-          DbFunction.makeBackUpOfTable(MappedEntitlement)
+          DbFunction.makeBackUpOfTableByName("mappedentitlement")
           if (DbFunction.tableExistsByName("mappedscope")) {
             DbFunction.makeBackUpOfTableByName("mappedscope")
           }
@@ -43,7 +43,7 @@ object MigrationOfCustomerRoleNames {
             detailedLog.append(s"\n--- Processing: $oldRoleName -> $newRoleName ---\n")
 
             // Process Entitlements
-            val oldEntitlements = MappedEntitlement.findAll(By(MappedEntitlement.mRoleName, oldRoleName))
+            val oldEntitlements = MappedEntitlement.findAllByRoleName(oldRoleName)
             detailedLog.append(s"Found ${oldEntitlements.size} entitlements with role '$oldRoleName'\n")
 
             oldEntitlements.foreach { oldEntitlement =>
@@ -52,23 +52,19 @@ object MigrationOfCustomerRoleNames {
               val createdByProcess = oldEntitlement.createdByProcess
 
               // Check if an entitlement with the new role name already exists for this user/bank combination
-              val existingNewEntitlement = MappedEntitlement.find(
-                By(MappedEntitlement.mBankId, bankId),
-                By(MappedEntitlement.mUserId, userId),
-                By(MappedEntitlement.mRoleName, newRoleName)
-              )
+              val existingNewEntitlement = MappedEntitlement.find(bankId, userId, newRoleName)
 
               existingNewEntitlement match {
                 case Full(_) =>
                   // New role already exists, delete the old one to avoid duplicates
                   detailedLog.append(s"  Entitlement already exists for user=$userId, bank=$bankId, role=$newRoleName - deleting old entitlement\n")
-                  MappedEntitlement.delete_!(oldEntitlement)
+                  MappedEntitlement.deleteByEntitlementId(oldEntitlement.entitlementId)
                   totalEntitlementsDeleted += 1
 
                 case Empty | _ =>
                   // New role doesn't exist, rename the old one
                   detailedLog.append(s"  Renaming entitlement for user=$userId, bank=$bankId: $oldRoleName -> $newRoleName\n")
-                  oldEntitlement.mRoleName(newRoleName).saveMe()
+                  MappedEntitlement.updateRoleName(oldEntitlement.entitlementId, newRoleName)
                   totalEntitlementsUpdated += 1
               }
             }
@@ -140,7 +136,7 @@ object MigrationOfCustomerRoleNames {
         val isSuccessful = false
         val endDate = System.currentTimeMillis()
         val comment: String =
-          s"""${MappedEntitlement._dbTableNameLC} table does not exist""".stripMargin
+          "mappedentitlement table does not exist"
         saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
         isSuccessful
     }

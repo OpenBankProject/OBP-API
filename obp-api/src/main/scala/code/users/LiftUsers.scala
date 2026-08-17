@@ -275,7 +275,7 @@ object LiftUsers extends Users with MdcLoggable{
 
       // Batch-fetch entitlements for all returned users (single IN query).
       val entitlementsByUserId: Map[String, List[Entitlement]] =
-        MappedEntitlement.findAll(ByList(MappedEntitlement.mUserId, userIds))
+        MappedEntitlement.findAllByUserIds(userIds)
           .groupBy(_.userId)
           .map { case (uid, ents) => uid -> ents.sortBy(_.roleName).toList }
 

@@ -16,7 +16,7 @@ object MigrationOfRoleNameFieldLength {
   val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm'Z'")
 
   def alterRoleNameLength(name: String): Boolean = {
-    val entitlementTableExists = DbFunction.tableExists(MappedEntitlement)
+    val entitlementTableExists = DbFunction.tableExistsByName("mappedentitlement")
     val entitlementRequestTableExists = DbFunction.tableExistsByName("mappedentitlementrequest")
     val scopeTableExists = DbFunction.tableExistsByName("mappedscope")
 

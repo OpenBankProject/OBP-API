@@ -129,9 +129,5 @@ trait ConcurrentRaceSetup extends ServerSetupWithTestData with DefaultUsers {
 
   /** Number of entitlement rows for one (bank,user,role) triple, straight from the DB. */
   def dbEntitlementCount(bankId: String, userId: String, roleName: String): Long =
-    MappedEntitlement.count(
-      By(MappedEntitlement.mBankId, bankId),
-      By(MappedEntitlement.mUserId, userId),
-      By(MappedEntitlement.mRoleName, roleName)
-    )
+    MappedEntitlement.count(bankId, userId, roleName)
 }
