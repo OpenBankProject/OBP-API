@@ -43,7 +43,7 @@ object MigrationOfConsentReferenceIdUuid {
       saveLog(name, commitId, true, startDate, endDate, "H2 detected — fresh schema already has the new column shape; nothing to migrate.")
       return true
     }
-    DbFunction.tableExists(MappedConsent) match {
+    DbFunction.tableExistsByName("mappedconsent") match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
@@ -142,7 +142,7 @@ object MigrationOfConsentReferenceIdUuid {
         val commitId: String = APIUtil.gitCommit
         val isSuccessful = false
         val endDate = System.currentTimeMillis()
-        val comment: String = s"""${MappedConsent._dbTableNameLC} table does not exist""".stripMargin
+        val comment: String = s"""mappedconsent table does not exist""".stripMargin
         saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
         isSuccessful
     }

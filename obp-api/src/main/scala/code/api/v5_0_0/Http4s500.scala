@@ -955,7 +955,7 @@ object Http4s500 {
             consent <- Future { Consents.consentProvider.vend.getConsentByConsentRequestId(consentRequestId) }
               .map(unboxFullOrFail(_, callContextOpt, ConsentRequestNotFound))
             _ <- Helper.booleanToFuture(failMsg = ConsentNotFound, failCode = 404, cc = Some(cc)) {
-              consent.mConsumerId.get == cc.consumer.map(_.consumerId.get).getOrElse("None")
+              consent.consumerId == cc.consumer.map(_.consumerId.get).getOrElse("None")
             }
             tuple <- NewStyle.function.tryons(
               failMsg = Oauth2BadJWTException, 400, callContextOpt) {
@@ -1296,7 +1296,7 @@ object Http4s500 {
                 // instead of the skip-SCA write blindly resurrecting it to ACCEPTED.
                 code.bankconnectors.DoobieConsentStatusQueries.conditionalStatusTransitionByConsentId(
                   createdConsent.consentId, ConsentStatus.INITIATED.toString, ConsentStatus.ACCEPTED.toString)
-                MappedConsent.find(By(MappedConsent.mConsentId, createdConsent.consentId))
+                MappedConsent.findByConsentId(createdConsent.consentId)
                   .openOrThrowException(s"Consent ${createdConsent.consentId} not found immediately after creation")
               }
             } else {

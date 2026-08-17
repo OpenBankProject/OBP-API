@@ -4707,7 +4707,7 @@ object Http4s510 {
             consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId))
               .map(unboxFullOrFail(_, Some(cc), ConsentNotFound, 404))
             _ <- Helper.booleanToFuture(failMsg = ConsentNotFound, failCode = 404, cc = Some(cc)) {
-              consent.mConsumerId.get == cc.consumer.map(_.consumerId.get).getOrElse("None")
+              consent.consumerId == cc.consumer.map(_.consumerId.get).getOrElse("None")
             }
           } yield JSONFactory510.getConsentInfoJson(consent)
         }
@@ -4744,7 +4744,7 @@ object Http4s510 {
             consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId))
               .map(unboxFullOrFail(_, Some(cc), ConsentNotFound))
             _ <- Helper.booleanToFuture(failMsg = ConsentNotFound, cc = Some(cc)) {
-              consent.mUserId == user.userId
+              consent.userId == user.userId
             }
             revoked <- Future(Consents.consentProvider.vend.revoke(consentId))
               .map(i => connectorEmptyResponse(i, Some(cc)))
@@ -4890,7 +4890,7 @@ object Http4s510 {
             consent <- Future(Consents.consentProvider.vend.getConsentByConsentId(consentId))
               .map(unboxFullOrFail(_, Some(cc), ConsentNotFound, 404))
             _ <- Helper.booleanToFuture(failMsg = ConsentNotFound, cc = Some(cc)) {
-              consent.mUserId == user.userId
+              consent.userId == user.userId
             }
             revoked <- Future(Consents.consentProvider.vend.revoke(consentId))
               .map(i => connectorEmptyResponse(i, Some(cc)))
@@ -4994,7 +4994,7 @@ object Http4s510 {
                 // instead of the skip-SCA write blindly resurrecting it to ACCEPTED.
                 code.bankconnectors.DoobieConsentStatusQueries.conditionalStatusTransitionByConsentId(
                   createdConsent.consentId, ConsentStatus.INITIATED.toString, ConsentStatus.ACCEPTED.toString)
-                MappedConsent.find(By(MappedConsent.mConsentId, createdConsent.consentId))
+                MappedConsent.findByConsentId(createdConsent.consentId)
                   .openOrThrowException(s"Consent ${createdConsent.consentId} not found immediately after creation")
               }
             } else {

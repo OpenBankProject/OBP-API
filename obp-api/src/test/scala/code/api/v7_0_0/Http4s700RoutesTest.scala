@@ -3712,7 +3712,7 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
 
       /** Simulate a consent granted by the human minting an agent user which creates a bank. */
       def createBankViaNewConsentAgent(humanUserId: String): String = {
-        val consent = code.consent.MappedConsent.create.mUserId(humanUserId).saveMe()
+        val consent = code.consent.MappedConsent.insertWithConsentId(APIUtil.generateUUID(), userId = humanUserId)
         val agentUser = code.users.Users.users.vend.createResourceUser(
           provider = "test-consent-issuer",
           providerId = Some(APIUtil.generateUUID()),

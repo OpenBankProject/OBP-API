@@ -34,7 +34,7 @@ object MigrationOfMappedConsent {
    * Mirrors MigrationOfConsentReferenceIdUuid's drop→alter→recreate pattern.
    */
   private def alterMappedConsentColumnUnderConsentView(name: String, alterSql: => String): Boolean = {
-    DbFunction.tableExists(MappedConsent) match {
+    DbFunction.tableExistsByName("mappedconsent") match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
@@ -69,7 +69,7 @@ object MigrationOfMappedConsent {
         val isSuccessful = false
         val endDate = System.currentTimeMillis()
         val comment: String =
-          s"""${MappedConsent._dbTableNameLC} table does not exist""".stripMargin
+          s"""mappedconsent table does not exist""".stripMargin
         saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
         isSuccessful
     }
@@ -84,7 +84,7 @@ object MigrationOfMappedConsent {
 
   def alterColumnChallenge(name: String): Boolean = {
     // mchallenge is NOT projected by v_consent, so this retype is not blocked by the view.
-    DbFunction.tableExists(MappedConsent) match {
+    DbFunction.tableExistsByName("mappedconsent") match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
@@ -124,7 +124,7 @@ object MigrationOfMappedConsent {
         val isSuccessful = false
         val endDate = System.currentTimeMillis()
         val comment: String =
-          s"""${MappedConsent._dbTableNameLC} table does not exist""".stripMargin
+          s"""mappedconsent table does not exist""".stripMargin
         saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
         isSuccessful
     }

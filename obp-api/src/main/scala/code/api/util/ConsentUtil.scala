@@ -292,8 +292,8 @@ object Consent extends MdcLoggable {
     logger.debug(s"code.api.util.Consent.checkConsent.getConsentByConsentId: consentBox($consentBox)")
     val result = consentBox match {
       case Full(c) =>
-        if (!tppIsConsentHolder(c.mConsumerId.get, callContext)) { // Always check TPP first
-          val consentConsumerId = c.mConsumerId.get
+        if (!tppIsConsentHolder(c.consumerId, callContext)) { // Always check TPP first
+          val consentConsumerId = c.consumerId
           val requestConsumerId = callContext.consumer.map(_.consumerId.get).getOrElse("NONE")
           val consumerValidationMethodForConsent = APIUtil.getPropsValue("consumer_validation_method_for_consent").openOr("")
           if(requestConsumerId == "NONE" || consumerValidationMethodForConsent.isEmpty) {
@@ -321,7 +321,7 @@ object Consent extends MdcLoggable {
               c.status.toLowerCase != ConsentStatus.valid.toString) {
               Failure(s"${ErrorMessages.ConsentStatusIssue}${ConsentStatus.valid.toString}.")
             } else if ((c.apiStandard == ApiStandards.obp.toString || c.apiStandard.isBlank) &&
-              c.mStatus.toString.toUpperCase != ConsentStatus.ACCEPTED.toString) {
+              c.status.toUpperCase != ConsentStatus.ACCEPTED.toString) {
               Failure(s"${ErrorMessages.ConsentStatusIssue}${ConsentStatus.ACCEPTED.toString}.")
             } else {
               logger.debug(s"start code.api.util.Consent.checkConsent.checkConsumerIsActiveAndMatched(consent($consent))")
@@ -2499,7 +2499,7 @@ object Consent extends MdcLoggable {
     boxedConsent match {
       case Full(c) => assertConsentStandard(c, ConsentStandardUK) match {
         case Some(failure) => failure // Wrong standard — reject before status/user checks
-        case None => c.mStatus.toString().toUpperCase() match {
+        case None => c.status.toUpperCase() match {
           case status if status == ConsentStatus.AUTHORISED.toString =>
             System.currentTimeMillis match {
               case currentTimeMillis if currentTimeMillis < c.creationDateTime.getTime =>
@@ -2514,7 +2514,7 @@ object Consent extends MdcLoggable {
               // as the consent's shadow user (applyUKConsentPrincipalFromToken), so compare against
               // the PSU that swap set aside rather than against the principal -- a shadow user's id
               // can never equal mUserId. `user` is the fallback for a request the swap left alone.
-              case _ if c.mUserId.get != calContext.flatMap(_.consenter.toOption).getOrElse(user).userId =>
+              case _ if c.userId != calContext.flatMap(_.consenter.toOption).getOrElse(user).userId =>
                 Failure(ErrorMessages.ConsentDoesNotMatchUser)
               case _ =>
                 val consumerIdOfLoggedInUser: Option[String] = calContext.flatMap(_.consumer.map(_.consumerId.get))
@@ -2576,21 +2576,17 @@ object Consent extends MdcLoggable {
   def expireAllPreviousValidBerlinGroupConsents(consent: MappedConsent, updateToStatus: ConsentStatus): Boolean = {
     if(updateToStatus == ConsentStatus.valid &&
       consent.apiStandard == ConstantsBG.berlinGroupVersion1.apiStandard) {
-      MappedConsent.findAll( // Find all
-          By(MappedConsent.mApiStandard, ConstantsBG.berlinGroupVersion1.apiStandard), // Berlin Group
-          By(MappedConsent.mRecurringIndicator, true), // recurring
-          By(MappedConsent.mStatus, ConsentStatus.valid.toString), // and valid consents
-          By(MappedConsent.mUserId, consent.userId), // for the same PSU
-          By(MappedConsent.mConsumerId, consent.consumerId), // from the same TPP
-        ).filterNot(_.consentId == consent.consentId) // Exclude current consent
+      MappedConsent.findAllRecurringValidForPsuAndTpp( // Find all Berlin Group recurring valid
+          ConstantsBG.berlinGroupVersion1.apiStandard, // consents for the same PSU from the same
+          ConsentStatus.valid.toString, consent.userId, consent.consumerId) // TPP
+        .filterNot(_.consentId == consent.consentId) // Exclude current consent
         .map{ c => // Set to terminatedByTpp
-          val message = s"|---> Changed status from ${c.status} to ${ConsentStatus.terminatedByTpp.toString} for consent ID: ${c.id}"
-          val newNote = s"$currentDate\n$message\n" + Option(consent.note).getOrElse("") // Prepend to existing note if any
-          val changedStatus =
-            c.mStatus(ConsentStatus.terminatedByTpp.toString)
-              .mNote(newNote)
-              .mLastActionDate(new Date())
-              .save
+          val message = s"|---> Changed status from ${c.status} to ${ConsentStatus.terminatedByTpp.toString} for consent ID: ${c.consentPrimaryKey}"
+          // Prepend to existing note if any. NOTE: reads the note of the consent being updated TO
+          // valid, not of the consent being terminated. Preserved verbatim.
+          val newNote = s"$currentDate\n$message\n" + Option(consent.note).getOrElse("")
+          val changedStatus = MappedConsent.terminate(c.consentId,
+            ConsentStatus.terminatedByTpp.toString, newNote, new Date()).isDefined
           if(changedStatus) logger.warn(message)
           changedStatus
         }.forall(_ == true)

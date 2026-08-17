@@ -41,7 +41,6 @@ import code.api.util._
 import code.api.util.migration.Migration
 import code.api.util.migration.Migration.DbFunction
 import code.bankconnectors.{Connector, ConnectorEndpoints}
-import code.consent.MappedConsent
 import code.consumer.Consumers
 import code.model.Consumer
 import code.entitlement.{Entitlement, MappedEntitlement}
@@ -838,7 +837,6 @@ object ToSchemify extends MdcLoggable {
   val models: List[MetaMapper[_]] = List(
     AuthUser,
     MappedBankAccount,
-    MappedConsent,
     ViewDefinition,
     ResourceUser,
     Consumer,

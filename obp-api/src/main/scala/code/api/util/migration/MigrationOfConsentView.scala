@@ -8,7 +8,7 @@ import net.liftweb.mapper.Schemifier
 object MigrationOfConsentView {
 
   def addConsentView(name: String): Boolean = {
-    DbFunction.tableExists(MappedConsent) match {
+    DbFunction.tableExistsByName("mappedconsent") match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
@@ -83,7 +83,7 @@ object MigrationOfConsentView {
         val isSuccessful = false
         val endDate = System.currentTimeMillis()
         val comment: String =
-          s"""${MappedConsent._dbTableNameLC} table does not exist""".stripMargin
+          s"""mappedconsent table does not exist""".stripMargin
         saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
         isSuccessful
     }

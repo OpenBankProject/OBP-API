@@ -80,7 +80,7 @@ class AgentDelegationTest extends ServerSetup {
 
     Scenario("a consent-minted agent resolves to the granting human", AgentDelegationTag) {
       val human = createUser()
-      val consent = MappedConsent.create.mUserId(human.userId).saveMe()
+      val consent = MappedConsent.insertWithConsentId(generateUUID(), userId = human.userId)
       val agent = createUser(createdByConsentId = Some(consent.consentId))
       CallContext(user = Full(agent)).effectiveHumanUserId shouldBe human.userId
     }
@@ -92,7 +92,7 @@ class AgentDelegationTest extends ServerSetup {
 
     Scenario("a populated consenter box wins over the DB chain", AgentDelegationTag) {
       val chainHuman = createUser()
-      val consent = MappedConsent.create.mUserId(chainHuman.userId).saveMe()
+      val consent = MappedConsent.insertWithConsentId(generateUUID(), userId = chainHuman.userId)
       val agent = createUser(createdByConsentId = Some(consent.consentId))
       val consenterHuman = createUser()
       CallContext(user = Full(agent), consenter = Full(consenterHuman))

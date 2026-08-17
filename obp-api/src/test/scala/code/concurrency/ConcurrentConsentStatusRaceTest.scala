@@ -39,12 +39,10 @@ class ConcurrentConsentStatusRaceTest extends ConcurrentRaceSetup {
     val salt      = BCrypt.gensalt()
     val hashed    = BCrypt.hashpw(answer, salt).substring(0, 44)
     val consentId = UUID.randomUUID.toString
-    MappedConsent.create
-      .mConsentId(consentId)
-      .mStatus(ConsentStatus.INITIATED.toString)
-      .mChallenge(hashed)
-      .mSalt(salt)
-      .saveMe()
+    MappedConsent.insertWithConsentId(consentId,
+      status = ConsentStatus.INITIATED.toString,
+      challenge = hashed,
+      salt = salt)
     (consentId, answer)
   }
 
@@ -61,7 +59,7 @@ class ConcurrentConsentStatusRaceTest extends ConcurrentRaceSetup {
   }
 
   private def consentStatus(consentId: String): String =
-    MappedConsent.find(By(MappedConsent.mConsentId, consentId))
+    MappedConsent.findByConsentId(consentId)
       .map(_.status).getOrElse("missing")
 
   private def uacStatus(id: String): String =

@@ -2232,7 +2232,7 @@ object Http4s310 {
               unboxFullOrFail(_, Some(cc), ConsentNotFound)
             }
             _ <- code.util.Helper.booleanToFuture(failMsg = ConsentNotFound, cc = Some(cc)) {
-              consent.mUserId == user.userId
+              consent.userId == user.userId
             }
             revoked <- Future(Consents.consentProvider.vend.revoke(consentIdStr)) map {
               i => connectorEmptyResponse(i, Some(cc))
