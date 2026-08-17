@@ -202,8 +202,7 @@ class ConcurrentDuplicateCreationTest extends ConcurrentRaceSetup {
       val cp             = createCounterparty(bankId.value, accountId.value, java.util.UUID.randomUUID.toString, true, resourceUser1.userId)
       val counterpartyId = cp.counterpartyId
 
-      def metaCount: Long = MappedCounterpartyMetadata.count(
-        By(MappedCounterpartyMetadata.counterpartyId, counterpartyId))
+      def metaCount: Long = MappedCounterpartyMetadata.countByCounterpartyId(counterpartyId)
 
       val before = metaCount
       val n      = 8

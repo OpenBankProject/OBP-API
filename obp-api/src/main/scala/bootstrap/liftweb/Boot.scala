@@ -46,7 +46,6 @@ import code.consumer.Consumers
 import code.model.Consumer
 import code.customer.MappedCustomer
 import code.entitlement.{Entitlement, MappedEntitlement}
-import code.metadata.counterparties.{MappedCounterparty, MappedCounterpartyMetadata, MappedCounterpartyWhereTag}
 import code.metrics.{MappedMetric, MetricArchive}
 import code.model._
 import code.model.dataAccess._
@@ -855,9 +854,6 @@ object ToSchemify extends MdcLoggable {
     Consumer,
     Token,
     Nonce,
-    MappedCounterparty,
-    MappedCounterpartyMetadata,
-    MappedCounterpartyWhereTag,
     MappedTransactionRequest,
     MappedMetric,
     MetricArchive,

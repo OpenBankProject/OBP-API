@@ -1137,7 +1137,7 @@ object Http4s500 {
                 }
                 (vrpView, _) <- ViewNewStyle.createCustomView(fromBankIdAccountId, targetCreateCustomViewJson.toCreateViewJson, callContextOpt)
                 _ <- ViewNewStyle.grantAccessToCustomView(vrpView, user, callContextOpt)
-                _ <- Helper.booleanToFuture(s"$InvalidValueLength. The maximum length of `description` field is ${MappedCounterparty.mDescription.maxLen}", cc = callContextOpt) {
+                _ <- Helper.booleanToFuture(s"$InvalidValueLength. The maximum length of `description` field is ${MappedCounterparty.descriptionMaxLength}", cc = callContextOpt) {
                   postJson.description.length <= 36
                 }
                 (existingCounterparty, _) <- Connector.connector.vend.checkCounterpartyExists(

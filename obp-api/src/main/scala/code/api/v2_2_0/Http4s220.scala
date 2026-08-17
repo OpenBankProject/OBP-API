@@ -996,7 +996,7 @@ object Http4s220 {
             s"COUNTERPARTY_NAME(${postJson.name}) for the BANK_ID(${account.bankId.value}) and ACCOUNT_ID(${account.accountId.value}) and VIEW_ID(${view.viewId.value})"),
           cc = Some(cc)) { existingCp.isEmpty }
         _ <- code.util.Helper.booleanToFuture(
-          s"$InvalidValueLength. The maximum length of `description` field is ${code.metadata.counterparties.MappedCounterparty.mDescription.maxLen}",
+          s"$InvalidValueLength. The maximum length of `description` field is ${code.metadata.counterparties.MappedCounterparty.descriptionMaxLength}",
           cc = Some(cc)) { postJson.description.length <= 36 }
         (_, _) <- if (postJson.other_bank_routing_scheme.equalsIgnoreCase("OBP") && postJson.other_account_routing_scheme.equalsIgnoreCase("OBP"))
                     for {

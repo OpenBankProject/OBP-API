@@ -156,7 +156,10 @@ class MigratedTablesExistTest extends ServerSetup {
     "signingbasket",
     "signingbasketpayment",
     "signingbasketconsent",
-    "consentrequest"
+    "consentrequest",
+    "mappedcounterparty",
+    "mappedcounterpartymetadata",
+    "mappedcounterpartywheretag"
   )
 
   /**
@@ -277,7 +280,10 @@ class MigratedTablesExistTest extends ServerSetup {
     "MANDATE" -> "MANDATE_MANDATEID",
     "MANDATEPROVISION" -> "MANDATEPROVISION_PROVISIONID",
     "SIGNATORYPANEL" -> "SIGNATORYPANEL_PANELID",
-    "CONSENTREQUEST" -> "CONSENTREQUEST_CONSENTREQUESTID"
+    "CONSENTREQUEST" -> "CONSENTREQUEST_CONSENTREQUESTID",
+    "MAPPEDCOUNTERPARTY" -> "MAPPEDCOUNTERPARTY_MCOUNTERPARTYID",
+    "MAPPEDCOUNTERPARTY" -> "MAPPEDCOUNTERPARTY_MNAME_MTHISBANKID_MTHISACCOUNTID_MTHISVIEWID",
+    "MAPPEDCOUNTERPARTYMETADATA" -> "MAPPEDCOUNTERPARTYMETADATA_COUNTERPARTYID"
   )
 
   Feature("tables owned by Flyway rather than Schemifier") {

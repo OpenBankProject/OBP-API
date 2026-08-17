@@ -2826,7 +2826,7 @@ object Http4s400 {
                 s"COUNTERPARTY_NAME(${postJson.name}) for the BANK_ID(${account.bankId.value}) and ACCOUNT_ID(${account.accountId.value}) and VIEW_ID(${view.viewId.value})"),
               cc = Some(cc)) { existingCp.isEmpty }
             _ <- code.util.Helper.booleanToFuture(
-              s"$InvalidValueLength. The maximum length of `description` field is ${code.metadata.counterparties.MappedCounterparty.mDescription.maxLen}",
+              s"$InvalidValueLength. The maximum length of `description` field is ${code.metadata.counterparties.MappedCounterparty.descriptionMaxLength}",
               cc = Some(cc)) { postJson.description.length <= 36 }
             _ <- code.util.Helper.booleanToFuture(
               s"$InvalidISOCurrencyCode Current input is: '${postJson.currency}'",
@@ -10298,7 +10298,7 @@ object Http4s400 {
               com.openbankproject.commons.util.JsonAliases.parse(rawBody).extract[PostCounterpartyJson400]
             }
             _ <- code.util.Helper.booleanToFuture(
-              s"$InvalidValueLength. The maximum length of `description` field is ${MappedCounterparty.mDescription.maxLen}",
+              s"$InvalidValueLength. The maximum length of `description` field is ${MappedCounterparty.descriptionMaxLength}",
               cc = Some(cc)) { postJson.description.length <= 36 }
             (counterparty, callContext) <- Connector.connector.vend.checkCounterpartyExists(
               postJson.name, bankId.value, accountId.value, viewIdStr, Some(cc))
