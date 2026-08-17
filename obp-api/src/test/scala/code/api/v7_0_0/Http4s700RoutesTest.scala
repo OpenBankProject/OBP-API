@@ -2671,8 +2671,7 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
 
       And("The settle accrued a platform fee per covered promise, owed by the originator")
       import code.opencorridorfees.OpenCorridorFeeAccrual
-      def accrualFor(trId: String) = OpenCorridorFeeAccrual.find(
-        net.liftweb.mapper.By(OpenCorridorFeeAccrual.TransactionRequestId, trId))
+      def accrualFor(trId: String) = OpenCorridorFeeAccrual.find(trId)
       def chargeOf(trId: String): BigDecimal = BigDecimal(
         code.transactionrequests.MappedTransactionRequest
           .find(net.liftweb.mapper.By(code.transactionrequests.MappedTransactionRequest.mTransactionRequestId, trId))

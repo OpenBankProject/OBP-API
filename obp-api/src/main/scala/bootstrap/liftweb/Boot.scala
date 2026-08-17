@@ -956,7 +956,6 @@ object ToSchemify extends MdcLoggable {
     MappedTransactionRequest,
     AmqpBankBroker,
     MessageOutbox,
-    code.opencorridorfees.OpenCorridorFeeAccrual,
     MappedMetric,
     MetricArchive,
     MapperAccountHolders,

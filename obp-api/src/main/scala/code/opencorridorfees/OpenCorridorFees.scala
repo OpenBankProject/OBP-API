@@ -97,7 +97,7 @@ object OpenCorridorFees extends MdcLoggable {
             MessageOutbox.TYPE_OPEN_CORRIDOR, feeSettlementId,
             MessageOutbox.SUBJECT_TYPE_SETTLEMENT_ID,
             "obp_settlement_instruction", debtorBankId, Serialization.write(instruction))
-          accruals.foreach(_.FeeSettlementId(feeSettlementId).saveMe())
+          accruals.foreach(a => OpenCorridorFeeAccrual.markSwept(a.transactionRequestId, feeSettlementId))
           logger.info(s"Open Corridor fee sweep: $debtorBankId owes $total $currency " +
             s"(${accruals.size} accruals) -> platform $platformBankId, fee settlement $feeSettlementId")
           OpenCorridorFeeSweepResultJsonV700(
