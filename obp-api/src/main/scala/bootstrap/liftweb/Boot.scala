@@ -91,7 +91,6 @@ import code.token.OpenIDConnectToken
 import code.transaction.MappedTransaction
 import code.transactionChallenge.MappedExpectedChallengeAnswer
 import code.transactionStatusScheduler.TransactionRequestStatusScheduler
-import code.amqpbroker.AmqpBankBroker
 import code.messageoutbox.{MessageOutbox, MessageOutboxRelay}
 import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequestTypeCharge}
 import code.users._
@@ -942,7 +941,6 @@ object ToSchemify extends MdcLoggable {
     MappedCounterpartyMetadata,
     MappedCounterpartyWhereTag,
     MappedTransactionRequest,
-    AmqpBankBroker,
     MessageOutbox,
     MappedMetric,
     MetricArchive,
