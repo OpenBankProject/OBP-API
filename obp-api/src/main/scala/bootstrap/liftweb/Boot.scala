@@ -54,7 +54,6 @@ import code.scheduler._
 import code.scope.Scope
 import code.transactionStatusScheduler.TransactionRequestStatusScheduler
 import code.messageoutbox.MessageOutboxRelay
-import code.transactionrequests.MappedTransactionRequest
 import code.users._
 import code.util.Helper.MdcLoggable
 import code.views.Views
@@ -848,7 +847,6 @@ object ToSchemify extends MdcLoggable {
     Consumer,
     Token,
     Nonce,
-    MappedTransactionRequest,
     MappedMetric,
     MetricArchive,
   )

@@ -791,8 +791,8 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         val fromAccountCurrency = fromBankAccount.currency // eg: the fromAccount currency is EUR, and the 1 GBP  = 1.16278 Euro.
         val allAmounts = for{
           transactionRequest <- transactionRequests
-          transferCurrency = transactionRequest.mBody_Value_Currency.get //eg: if the payment json body currency is GBP.
-          transferAmount= BigDecimal(transactionRequest.mBody_Value_Amount.get) //eg: if the payment json body amount is 1.
+          transferCurrency = transactionRequest.bodyValueCurrency //eg: if the payment json body currency is GBP.
+          transferAmount= BigDecimal(transactionRequest.bodyValueAmount) //eg: if the payment json body amount is 1.
           debitRate = fx.exchangeRate(transferCurrency, fromAccountCurrency, Some(fromBankId.value), callContext) //eg: the rate here is 1.16278.
           transactionAmount = fx.convert(transferAmount, debitRate) // 1.16278 Euro
         }yield{

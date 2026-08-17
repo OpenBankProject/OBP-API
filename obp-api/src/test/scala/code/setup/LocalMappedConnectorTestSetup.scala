@@ -165,35 +165,24 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
 
   override protected def createTransactionRequest(account: BankAccount): List[MappedTransactionRequest] = {
   
-    val firstRequest = MappedTransactionRequest.create
-      .mTransactionRequestId(APIUtil.generateUUID())
-      .mType("SANDBOX_TAN")
-      .mFrom_BankId(account.bankId.value)
-      .mFrom_AccountId(account.accountId.value)
-      .mTo_BankId(randomString(5))
-      .mTo_AccountId(randomString(5))
-      .mBody_Value_Currency(account.currency)
-      .mBody_Value_Amount("10")
-      .mBody_Description("This is a description..")
-      .mStatus("COMPLETED")
-      .mStartDate(now)
-      .mEndDate(now)
-      .saveMe
-  
-    val secondRequest = MappedTransactionRequest.create
-      .mTransactionRequestId(APIUtil.generateUUID())
-      .mType("SANDBOX_TAN")
-      .mFrom_BankId(account.bankId.value)
-      .mFrom_AccountId(account.accountId.value)
-      .mTo_BankId(randomString(5))
-      .mTo_AccountId(randomString(5))
-      .mBody_Value_Currency(account.currency)
-      .mBody_Value_Amount("1001")
-      .mBody_Description("This is a description..")
-      .mStatus("INITIATED")
-      .mStartDate(now)
-      .mEndDate(now)
-      .saveMe
+    def request(amount: String, status: String) = MappedTransactionRequest.insert(
+      MappedTransactionRequest.empty.copy(
+        transactionRequestId = APIUtil.generateUUID(),
+        transactionType = "SANDBOX_TAN",
+        fromBankId = account.bankId.value,
+        fromAccountId = account.accountId.value,
+        toBankId = randomString(5),
+        toAccountId = randomString(5),
+        bodyValueCurrency = account.currency,
+        bodyValueAmount = amount,
+        bodyDescription = "This is a description..",
+        status = status,
+        startDate = now,
+        endDate = now))
+
+    val firstRequest = request("10", "COMPLETED")
+
+    val secondRequest = request("1001", "INITIATED")
     
     List(firstRequest, secondRequest)
   }
@@ -341,6 +330,7 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
     DoobieUtil.runUpdate(sql"DELETE FROM mappedcounterpartywheretag".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM mappedbank".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM mappedtransaction".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM mappedtransactionrequest".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM mappeduserauthcontextupdate".update.run)
 
     

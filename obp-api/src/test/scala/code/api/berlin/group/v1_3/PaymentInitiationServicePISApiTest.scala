@@ -868,8 +868,8 @@ class PaymentInitiationServicePISApiTest extends BerlinGroupServerSetupV1_3 with
       // the column is SQL NULL and MappedString reads a null back out. The overwhelming majority of
       // rows on any long-lived instance are in this state, so whatever the guard does with them it
       // must not be to throw.
-      MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, paymentId))
-        .map(_.mConsumerId(null).saveMe())
+      MappedTransactionRequest.findByTransactionRequestId(paymentId)
+        .map(_ => MappedTransactionRequest.setConsumerId(paymentId, null))
         .openOrThrowException("the payment just lodged must be findable")
 
       Then("the party that lodged it can still read it, its status and its authorisations")

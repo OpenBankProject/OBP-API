@@ -2075,10 +2075,10 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
       // The far bank id is stamped on the row — the settle-pair netting selects
       // promises by mTo_BankId, so a CBS-only beneficiary must still net.
       val row = code.transactionrequests.MappedTransactionRequest
-        .find(By(code.transactionrequests.MappedTransactionRequest.mTransactionRequestId, trId))
+        .findByTransactionRequestId(trId)
         .openOrThrowException("promise TR row should exist")
-      row.mTo_BankId.get shouldBe testBankId2.value
-      row.mTo_AccountId.get shouldBe cbsOnlyAccountId
+      row.toBankId shouldBe testBankId2.value
+      row.toAccountId shouldBe cbsOnlyAccountId
     }
 
     Scenario("Return 404 BankNotFound when the beneficiary bank is not registered", Http4s700RoutesTag) {
@@ -2504,13 +2504,13 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
       And("Three pending promises: A→B 5.00 + 2.00, B→A 3.00")
       def assertPromiseRow(trId: String, fromBank: String, toBank: String): Unit = {
         val row = code.transactionrequests.MappedTransactionRequest
-          .find(By(code.transactionrequests.MappedTransactionRequest.mTransactionRequestId, trId))
+          .findByTransactionRequestId(trId)
           .openOrThrowException("promise TR row should exist")
-        withClue(s"TR $trId row: from=${row.mFrom_BankId.get} to=${row.mTo_BankId.get} " +
-          s"currency=${row.mBody_Value_Currency.get} status=${row.mStatus.get} type=${row.mType.get} — ") {
-          row.mFrom_BankId.get shouldBe fromBank
-          row.mTo_BankId.get shouldBe toBank
-          row.mBody_Value_Currency.get shouldBe currency
+        withClue(s"TR $trId row: from=${row.fromBankId} to=${row.toBankId} " +
+          s"currency=${row.bodyValueCurrency} status=${row.status} type=${row.transactionType} — ") {
+          row.fromBankId shouldBe fromBank
+          row.toBankId shouldBe toBank
+          row.bodyValueCurrency shouldBe currency
         }
       }
       val promise1 = createPendingPromise(amount = "5.00")
@@ -2678,8 +2678,8 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
       def accrualFor(trId: String) = OpenCorridorFeeAccrual.find(trId)
       def chargeOf(trId: String): BigDecimal = BigDecimal(
         code.transactionrequests.MappedTransactionRequest
-          .find(net.liftweb.mapper.By(code.transactionrequests.MappedTransactionRequest.mTransactionRequestId, trId))
-          .map(_.mCharge_Amount.get).openOrThrowException("promise TR row"))
+          .findByTransactionRequestId(trId)
+          .map(_.chargeAmount).openOrThrowException("promise TR row"))
       List(promise1 -> testBankId1.value, promise2 -> testBankId1.value, promise3 -> testBankId2.value)
         .foreach { case (trId, originator) =>
           val accrual = accrualFor(trId).openOrThrowException(s"accrual for $trId should exist")

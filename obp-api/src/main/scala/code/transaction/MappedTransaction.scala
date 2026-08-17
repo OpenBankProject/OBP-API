@@ -275,6 +275,15 @@ object MappedTransaction extends MdcLoggable {
     Option[String], Option[String], Option[String], Option[String], Option[String])
   private type Row = (RowHead, RowMiddle, RowTail)
 
+  /**
+   * A timestamp read back as a plain java.util.Date, which is what MappedDateTime handed out.
+   *
+   * The java.sql.Timestamp the driver returns is a subclass, so it type-checks either way - but it
+   * does not serialize as a date string, and these dates go straight into transaction responses.
+   */
+  private def readDate(value: Option[java.sql.Timestamp]): Date =
+    value.map(t => new Date(t.getTime)).orNull
+
   private def fromRow(row: Row): MappedTransaction = row match {
     case ((bank, account, transactionId, transactionUUID, transactionType, amount,
            newAccountBalance, currency, tStartDate),
@@ -290,7 +299,7 @@ object MappedTransaction extends MdcLoggable {
         transactionType.orNull,
         // A NULL amount or balance reads back as 0, which is what MappedLong did.
         amount.getOrElse(0L), newAccountBalance.getOrElse(0L), currency.orNull,
-        tStartDate.map(ts => ts: Date).orNull, tFinishDate.map(ts => ts: Date).orNull,
+        readDate(tStartDate), readDate(tFinishDate),
         description.orNull, chargePolicy.orNull, counterpartyAccountHolder.orNull,
         counterpartyAccountKind.orNull, counterpartyBankName.orNull, counterpartyNationalId.orNull,
         counterpartyAccountNumber.orNull, counterpartyIban.orNull, cpCounterPartyId.orNull,
