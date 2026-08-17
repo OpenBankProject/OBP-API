@@ -46,7 +46,6 @@ import code.consent.{ConsentRequest, MappedConsent}
 import code.consumer.Consumers
 import code.model.Consumer
 import code.customer.MappedCustomer
-import code.dynamicEntity.DynamicEntity
 import code.entitlement.{Entitlement, MappedEntitlement}
 import code.metadata.counterparties.{MappedCounterparty, MappedCounterpartyMetadata, MappedCounterpartyWhereTag}
 import code.metrics.{MappedMetric, MetricArchive}
@@ -859,7 +858,6 @@ object ToSchemify extends MdcLoggable {
     MappedTransaction,
     MappedConsent,
     ConsentRequest,
-    DynamicEntity,
     DynamicData,
     ViewPermission,
     AccountAccess,

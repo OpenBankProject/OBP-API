@@ -278,6 +278,7 @@ trait TestConnectorSetupWithStandardPermissions extends TestConnectorSetup {
     DoobieUtil.runUpdate(sql"DELETE FROM dynamicmessagedoc".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM dynamicresourcedoc".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM dynamicdataaccess".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM dynamicentity".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM mappeduserauthcontextupdate".update.run)
 
   }
