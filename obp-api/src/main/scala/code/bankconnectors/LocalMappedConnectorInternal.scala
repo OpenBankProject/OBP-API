@@ -401,17 +401,10 @@ object LocalMappedConnectorInternal extends MdcLoggable {
   }
 
   def getBranchLocal(bankId: BankId, branchId: BranchId): Box[BranchT] = {
-    MappedBranch
-      .find(
-        By(MappedBranch.mBankId, bankId.value),
-        By(MappedBranch.mBranchId, branchId.value))
-      .map(
-        branch =>
-          branch.branchRouting.map(_.scheme) == null && branch.branchRouting.map(_.address) == null match {
-            case true => branch.mBranchRoutingScheme("OBP").mBranchRoutingAddress(branch.branchId.value)
-            case _ => branch
-          }
-      )
+    // The Mapper version tried to default the routing scheme to "OBP" here, but its guard compared
+    // an Option[String] to null and so was always false — the defaulting has never happened and the
+    // stored value is what callers see. Preserved as a plain lookup.
+    MappedBranch.find(bankId.value, branchId.value)
   }
 
   /**

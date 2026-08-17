@@ -22,6 +22,45 @@ case class MappedSaveable[T <: Mapper[_]](value : T) extends Saveable[T] {
   def save() = value.save
 }
 
+// Branch persistence goes through the Doobie store, for the same reason as SaveableAtm below.
+case class SaveableBranch(branchId: String, bankId: String, name: String, line1: String,
+                          line2: String, line3: String, city: String, county: String,
+                          state: String, postCode: String, countryCode: String, latitude: Double,
+                          longitude: Double, licenseId: String, licenseName: String,
+                          lobbyHours: String, driveUpHours: String) extends Saveable[MappedBranch] {
+  lazy val value: MappedBranch = MappedBranch.find(bankId, branchId)
+    .openOrThrowException("the branch just saved must be readable")
+  def save(): Unit = {
+    // The importer supplies no opening times, routing, accessibility or contact details. Lobby
+    // times default to "00:00" as the connector does; everything else is left null, which is what
+    // Mapper's untouched fields stored.
+    MappedBranch.createOrUpdate(
+      branchIdRaw = branchId, bankIdRaw = bankId, nameRaw = name,
+      line1 = line1, line2 = line2, line3 = line3, city = city, county = county, state = state,
+      postCode = postCode, countryCode = countryCode, latitude = latitude, longitude = longitude,
+      licenseId = licenseId, licenseName = licenseName,
+      lobbyHours = lobbyHours, driveUpHours = driveUpHours,
+      branchRoutingSchemeRaw = null, branchRoutingAddressRaw = null,
+      lobbyOpenMonday = "00:00", lobbyCloseMonday = "00:00",
+      lobbyOpenTuesday = "00:00", lobbyCloseTuesday = "00:00",
+      lobbyOpenWednesday = "00:00", lobbyCloseWednesday = "00:00",
+      lobbyOpenThursday = "00:00", lobbyCloseThursday = "00:00",
+      lobbyOpenFriday = "00:00", lobbyCloseFriday = "00:00",
+      lobbyOpenSaturday = "00:00", lobbyCloseSaturday = "00:00",
+      lobbyOpenSunday = "00:00", lobbyCloseSunday = "00:00",
+      driveUpOpenMonday = null, driveUpCloseMonday = null,
+      driveUpOpenTuesday = null, driveUpCloseTuesday = null,
+      driveUpOpenWednesday = null, driveUpCloseWednesday = null,
+      driveUpOpenThursday = null, driveUpCloseThursday = null,
+      driveUpOpenFriday = null, driveUpCloseFriday = null,
+      driveUpOpenSaturday = null, driveUpCloseSaturday = null,
+      driveUpOpenSunday = null, driveUpCloseSunday = null,
+      isAccessibleRaw = "", accessibleFeaturesRaw = null, branchTypeRaw = null,
+      moreInfoRaw = null, phoneNumberRaw = null, isDeletedRaw = false)
+    ()
+  }
+}
+
 // Product persistence goes through the Doobie store, for the same reason as SaveableAtm below.
 case class SaveableProduct(bankId: String, code: String, name: String, category: String,
                            family: String, superFamily: String, moreInfoUrl: String,
@@ -110,40 +149,39 @@ object LocalMappedConnectorDataImport extends OBPDataImport with CreateAuthUsers
   }
 
   protected def createSaveableBranches(data : List[SandboxBranchImport]) : Box[List[Saveable[BranchType]]] = {
-    val mappedBranches = data.map(branch => {
+    // Branch persistence goes through the Doobie store, as with products and ATMs: the import must
+    // not write the row with Mapper while every read comes back through the store. The fields the
+    // importer does not supply keep the defaults the store writes for them.
+    val saveableBranches = data.map(branch => {
 
       val lobbyHours =  if (branch.lobby.isDefined) {branch.lobby.get.hours.toString} else ""
       val driveUpHours =  if (branch.driveUp.isDefined) {branch.driveUp.get.hours.toString} else ""
 
-      MappedBranch.create
-        .mBranchId(branch.id)
-        .mBankId(branch.bank_id)
-        .mName(branch.name)
+      SaveableBranch(
+        branchId = branch.id,
+        bankId = branch.bank_id,
+        name = branch.name,
         // Note: address fields are returned in meta.address
         // but are stored flat as fields / columns in the table
-        .mLine1(branch.address.line_1)
-        .mLine2(branch.address.line_2)
-        .mLine3(branch.address.line_3)
-        .mCity(branch.address.city)
-        .mCounty(branch.address.county)
-        .mState(branch.address.state)
-        .mPostCode(branch.address.post_code)
-        .mCountryCode(branch.address.country_code)
-        .mlocationLatitude(branch.location.latitude)
-        .mlocationLongitude(branch.location.longitude)
-        .mLicenseId(branch.meta.license.id)
-        .mLicenseName(branch.meta.license.name)
-        .mLobbyHours(lobbyHours)
-        .mDriveUpHours(driveUpHours)
+        line1 = branch.address.line_1,
+        line2 = branch.address.line_2,
+        line3 = branch.address.line_3,
+        city = branch.address.city,
+        county = branch.address.county,
+        state = branch.address.state,
+        postCode = branch.address.post_code,
+        countryCode = branch.address.country_code,
+        latitude = branch.location.latitude,
+        longitude = branch.location.longitude,
+        licenseId = branch.meta.license.id,
+        licenseName = branch.meta.license.name,
+        lobbyHours = lobbyHours,
+        driveUpHours = driveUpHours)
     })
 
-    val validationErrors = mappedBranches.flatMap(_.validate)
-
-    if(validationErrors.nonEmpty) {
-      Failure(s"Errors: ${validationErrors.map(_.msg)}")
-    } else {
-      Full(mappedBranches.map(MappedSaveable(_)))
-    }
+    // Mapper ran field validation here; no validator was ever declared on the branch entity, so it
+    // always passed and the column widths are what reject an over-long value.
+    Full(saveableBranches)
   }
 
 

@@ -140,7 +140,8 @@ class MigratedTablesExistTest extends ServerSetup {
     "mappedconnectormetric",
     "mappedentitlement",
     "ratelimiting",
-    "mappedproduct"
+    "mappedproduct",
+    "mappedbranch"
   )
 
   /**
@@ -248,7 +249,8 @@ class MigratedTablesExistTest extends ServerSetup {
     "DYNAMICENDPOINT" -> "DYNAMICENDPOINT_DYNAMICENDPOINTID",
     "MAPPEDENTITLEMENT" -> "MAPPEDENTITLEMENT_MBANKID_MUSERID_MROLENAME",
     "RATELIMITING" -> "RATELIMITING_RATELIMITINGID",
-    "MAPPEDPRODUCT" -> "MAPPEDPRODUCT_MBANKID_MCODE"
+    "MAPPEDPRODUCT" -> "MAPPEDPRODUCT_MBANKID_MCODE",
+    "MAPPEDBRANCH" -> "MAPPEDBRANCH_MBANKID_MBRANCHID"
   )
 
   Feature("tables owned by Flyway rather than Schemifier") {
