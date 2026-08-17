@@ -71,7 +71,6 @@ class MappedClassNameTest extends AnyFeatureSpec {
       "code.customer.MappedCustomerMessage",
       "code.entitlementrequest.MappedEntitlementRequest",
       "code.branches.MappedBranch",
-      "code.scope.MappedUserScope",
       "code.metadata.counterparties.MappedCounterpartyMetadata",
       "code.transaction_types.MappedTransactionType",
       "code.scope.MappedScope",

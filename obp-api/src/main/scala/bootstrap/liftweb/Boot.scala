@@ -89,7 +89,7 @@ import code.products.MappedProduct
 import code.ratelimiting.RateLimiting
 import code.regulatedentities.MappedRegulatedEntity
 import code.scheduler._
-import code.scope.{MappedScope, MappedUserScope, Scope}
+import code.scope.{MappedScope, Scope}
 import code.signingbaskets.{MappedSigningBasket, MappedSigningBasketConsent, MappedSigningBasketPayment}
 import code.socialmedia.MappedSocialMedia
 import code.standingorders.StandingOrder
@@ -961,7 +961,6 @@ object ToSchemify extends MdcLoggable {
     MappedExpectedChallengeAnswer,
     MappedEntitlementRequest,
     MappedScope,
-    MappedUserScope,
     MappedCustomerAddress,
     MappedAccountApplication,
     MappedProductCollection,
