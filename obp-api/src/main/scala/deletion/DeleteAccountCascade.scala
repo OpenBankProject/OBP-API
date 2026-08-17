@@ -1,6 +1,6 @@
 package deletion
 
-import code.accountattribute.MappedAccountAttribute
+import code.accountattribute.DoobieAccountAttributeProvider
 import code.api.APIFailureNewStyle
 import code.api.util.APIUtil.fullBoxOrException
 import code.api.util.ErrorMessages.CouldNotDeleteCascade
@@ -87,11 +87,8 @@ object DeleteAccountCascade {
     )
   }   
   private def deleteAccountAttributes(bankId: BankId, accountId: AccountId): Boolean = {
-    MappedAccountAttribute.bulkDelete_!!(
-      By(MappedAccountAttribute.mBankIdId, bankId.value),
-      By(MappedAccountAttribute.mAccountId, accountId.value)
-    )
-  }  
+    DoobieAccountAttributeProvider.deleteAccountAttributesByBankAndAccount(bankId.value, accountId.value)
+  }
   private def deleteCustomViews(bankId: BankId, accountId: AccountId): Boolean = {
     ViewDefinition.bulkDelete_!!(
       By(ViewDefinition.bank_id, bankId.value),

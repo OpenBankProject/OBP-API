@@ -74,7 +74,6 @@ class MappedClassNameTest extends AnyFeatureSpec {
       "code.webuiprops.WebUiProps",
       "code.customer.MappedCustomerMessage",
       "code.entitlementrequest.MappedEntitlementRequest",
-      "code.accountattribute.MappedAccountAttribute",
       "code.branches.MappedBranch",
       "code.scope.MappedUserScope",
       "code.metadata.counterparties.MappedCounterpartyMetadata",

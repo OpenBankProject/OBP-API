@@ -1,6 +1,6 @@
 package deletion
 
-import code.accountattribute.MappedAccountAttribute
+import code.accountattribute.DoobieAccountAttributeProvider
 import code.api.APIFailureNewStyle
 import code.api.util.APIUtil.fullBoxOrException
 import code.api.util.ErrorMessages.CouldNotDeleteCascade
@@ -19,9 +19,8 @@ object DeleteBankCascade {
   def delete(bankId: BankId): Boolean = {
     MappedBankAccount.findAll(By(MappedBankAccount.bank, bankId.value)).forall { i =>
       // Delete customer related to the account via account attribute "customer_number"
-      MappedAccountAttribute.findAll(
-        By(MappedAccountAttribute.mBankIdId, bankId.value)
-      ).filter(_.name == "customer_number").foreach { i =>
+      DoobieAccountAttributeProvider.getAccountAttributesByBankSync(bankId.value)
+        .filter(_.name == "customer_number").foreach { i =>
         val customerNumber = i.value
         CustomerX.customerProvider.vend.getCustomerByCustomerNumber(customerNumber, bankId).map( i =>
           DeleteCustomerCascade.delete(CustomerId(i.customerId))

@@ -35,7 +35,6 @@ import code.UserRefreshes.MappedUserRefreshes
 import code.abacrule.AbacRule
 import code.accountaccessrequest.AccountAccessRequest
 import code.accountapplication.MappedAccountApplication
-import code.accountattribute.MappedAccountAttribute
 import code.accountholders.MapperAccountHolders
 import code.actorsystem.ObpActorSystem
 import code.api.Constant._
@@ -989,7 +988,6 @@ object ToSchemify extends MdcLoggable {
     MappedAccountApplication,
     MappedProductCollection,
     MappedProductCollectionItem,
-    MappedAccountAttribute,
     MappedTransactionAttribute,
     RateLimiting,
     MappedCustomerDependant,
