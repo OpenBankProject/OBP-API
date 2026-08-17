@@ -8,12 +8,14 @@ import code.api.util.ErrorMessages.{AtmNotFoundByAtmId, UserHasMissingRoles}
 import code.api.util.ExampleValue.atmTypeExample
 import code.api.util.{ApiRole, ErrorMessages}
 import code.api.v5_1_0.APIMethods510.Implementations5_1_0
-import code.atmattribute.AtmAttribute
+import code.api.util.DoobieUtil
 import code.entitlement.Entitlement
 import code.setup.DefaultUsers
 import com.github.dwickern.macros.NameOf.nameOf
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.ApiVersion
+import doobie._
+import doobie.implicits._
 import org.json4s.native.Serialization.write
 import org.scalatest.Tag
 
@@ -234,7 +236,8 @@ class AtmTest extends V510ServerSetup with DefaultUsers {
 
       {
         Then("We check the atmAttributes")
-        AtmAttribute.findAll().length shouldBe(0)
+        val count = DoobieUtil.runQuery(sql"SELECT COUNT(*) FROM atmattribute".query[Int].unique)
+        count shouldBe(0)
       }
       
     }

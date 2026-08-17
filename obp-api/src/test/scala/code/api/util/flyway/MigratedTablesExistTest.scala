@@ -60,7 +60,8 @@ class MigratedTablesExistTest extends ServerSetup {
     "transactionrequestreasons",
     "apiproductattribute",
     "mappeduserauthcontextupdate",
-    "mappedcardattribute"
+    "mappedcardattribute",
+    "atmattribute"
   )
 
   /**

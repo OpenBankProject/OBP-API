@@ -2,7 +2,7 @@ package code.atmattribute
 
 /* For ProductAttribute */
 
-import com.openbankproject.commons.model.{AtmId, BankId}
+import com.openbankproject.commons.model.{AtmAttributeTrait, AtmId, BankId}
 import com.openbankproject.commons.model.enums.AtmAttributeType
 import net.liftweb.common.{Box, Logger}
 import net.liftweb.util.SimpleInjector
@@ -14,10 +14,10 @@ object AtmAttributeX extends SimpleInjector {
 
   val atmAttributeProvider = new Inject(() => buildOne) {}
 
-  def buildOne: AtmAttributeProviderTrait = AtmAttributeProvider
+  def buildOne: AtmAttributeProviderTrait = DoobieAtmAttributeProvider
 
   // Helper to get the count out of an option
-  def countOfAtmAttribute(listOpt: Option[List[AtmAttribute]]): Int = {
+  def countOfAtmAttribute(listOpt: Option[List[AtmAttributeTrait]]): Int = {
     val count = listOpt match {
       case Some(list) => list.size
       case None => 0
@@ -30,9 +30,9 @@ object AtmAttributeX extends SimpleInjector {
 
 trait AtmAttributeProviderTrait extends MdcLoggable {
 
-  def getAtmAttributesFromProvider(bankId: BankId, atmId: AtmId): Future[Box[List[AtmAttribute]]]
+  def getAtmAttributesFromProvider(bankId: BankId, atmId: AtmId): Future[Box[List[AtmAttributeTrait]]]
 
-  def getAtmAttributeById(AtmAttributeId: String): Future[Box[AtmAttribute]]
+  def getAtmAttributeById(AtmAttributeId: String): Future[Box[AtmAttributeTrait]]
 
   def createOrUpdateAtmAttribute(bankId : BankId,
                                  atmId: AtmId,
@@ -40,7 +40,7 @@ trait AtmAttributeProviderTrait extends MdcLoggable {
                                  name: String,
                                  attributeType: AtmAttributeType.Value,
                                  value: String,
-                                 isActive: Option[Boolean]): Future[Box[AtmAttribute]]
+                                 isActive: Option[Boolean]): Future[Box[AtmAttributeTrait]]
   def deleteAtmAttribute(AtmAttributeId: String): Future[Box[Boolean]]
 
   def deleteAtmAttributesByAtmId(atmId: AtmId): Future[Box[Boolean]]

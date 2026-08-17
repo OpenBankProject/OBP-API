@@ -48,7 +48,6 @@ import code.entitlement.Entitlement
 import code.model.dataAccess.AuthUser
 import code.users.UserAgreement
 import net.liftweb.mapper.By
-import code.atmattribute.AtmAttribute
 import code.atms.Atms.Atm
 import code.consent.MappedConsent
 import code.metrics.APIMetric
@@ -789,14 +788,14 @@ object JSONFactory510 extends CustomJsonFormats with MdcLoggable {
 
   def waitingForGodot(sleep: Long): WaitingForGodotJsonV510 = WaitingForGodotJsonV510(sleep)
 
-  def createAtmsJsonV510(atmAndAttributesTupleList: List[(AtmT, List[AtmAttribute])] ): AtmsJsonV510 = {
+  def createAtmsJsonV510(atmAndAttributesTupleList: List[(AtmT, List[AtmAttributeTrait])] ): AtmsJsonV510 = {
     AtmsJsonV510(atmAndAttributesTupleList.map(
       atmAndAttributesTuple =>
         createAtmJsonV510(atmAndAttributesTuple._1,atmAndAttributesTuple._2)
     ))
   }
 
-  def createAtmJsonV510(atm: AtmT, atmAttributes:List[AtmAttribute]): AtmJsonV510 = {
+  def createAtmJsonV510(atm: AtmT, atmAttributes:List[AtmAttributeTrait]): AtmJsonV510 = {
     AtmJsonV510(
       id = Some(atm.atmId.value),
       bank_id = atm.bankId.value,
@@ -1103,7 +1102,7 @@ object JSONFactory510 extends CustomJsonFormats with MdcLoggable {
     )
   }
 
-  def createAtmAttributeJson(atmAttribute: AtmAttribute): AtmAttributeResponseJsonV510 =
+  def createAtmAttributeJson(atmAttribute: AtmAttributeTrait): AtmAttributeResponseJsonV510 =
     AtmAttributeResponseJsonV510(
       bank_id = atmAttribute.bankId.value,
       atm_id = atmAttribute.atmId.value,
@@ -1114,7 +1113,7 @@ object JSONFactory510 extends CustomJsonFormats with MdcLoggable {
       is_active = atmAttribute.isActive
     )
 
-  def createAtmAttributesJson(atmAttributes: List[AtmAttribute]): AtmAttributesResponseJsonV510 =
+  def createAtmAttributesJson(atmAttributes: List[AtmAttributeTrait]): AtmAttributesResponseJsonV510 =
     AtmAttributesResponseJsonV510(atmAttributes.map(createAtmAttributeJson))
 
   def createUserAttributeJson(userAttribute: UserAttribute): UserAttributeResponseJsonV510 = {

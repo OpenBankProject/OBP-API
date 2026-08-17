@@ -16,7 +16,6 @@ import code.apiproduct.{ApiProductTrait, MappedApiProductsProvider}
 import code.apiproductattribute.{ApiProductAttributeTrait, DoobieApiProductAttributesProvider}
 import code.apicollectionendpoint.{ApiCollectionEndpointTrait, DoobieApiCollectionEndpointsProvider}
 import code.featuredapicollection.{FeaturedApiCollectionTrait, DoobieFeaturedApiCollectionsProvider}
-import code.atmattribute.AtmAttribute
 import code.authtypevalidation.{AuthenticationTypeValidationProvider, JsonAuthTypeValidation}
 import code.bankattribute.BankAttribute
 import code.bankconnectors.Connector
@@ -1807,7 +1806,7 @@ object NewStyle extends MdcLoggable{
       value: String,
       isActive: Option[Boolean],
       callContext: Option[CallContext]
-    ): OBPReturnType[AtmAttribute] = {
+    ): OBPReturnType[AtmAttributeTrait] = {
       Connector.connector.vend.createOrUpdateAtmAttribute(
         bankId: BankId,
         atmId: AtmId,
@@ -1830,7 +1829,7 @@ object NewStyle extends MdcLoggable{
         i => (connectorEmptyResponse(i._1, callContext), i._2)
       }
     }
-    def getAtmAttributesByAtm(bank: BankId, atm: AtmId, callContext: Option[CallContext]): OBPReturnType[List[AtmAttribute]] = {
+    def getAtmAttributesByAtm(bank: BankId, atm: AtmId, callContext: Option[CallContext]): OBPReturnType[List[AtmAttributeTrait]] = {
       Connector.connector.vend.getAtmAttributesByAtm(
         bank: BankId,
         atm: AtmId,
@@ -1880,7 +1879,7 @@ object NewStyle extends MdcLoggable{
     def getAtmAttributeById(
       atmAttributeId: String,
       callContext: Option[CallContext]
-    ): OBPReturnType[AtmAttribute] = {
+    ): OBPReturnType[AtmAttributeTrait] = {
       Connector.connector.vend.getAtmAttributeById(
         atmAttributeId: String,
         callContext: Option[CallContext]

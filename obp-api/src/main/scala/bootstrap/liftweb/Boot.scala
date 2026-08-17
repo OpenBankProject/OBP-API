@@ -52,7 +52,6 @@ import code.api.util._
 import code.api.util.migration.Migration
 import code.api.util.migration.Migration.DbFunction
 import code.apiproduct.ApiProduct
-import code.atmattribute.AtmAttribute
 import code.bankaccountbalance.BankAccountBalance
 import code.bankattribute.BankAttribute
 import code.bankconnectors.{Connector, ConnectorEndpoints}
@@ -913,7 +912,6 @@ object ToSchemify extends MdcLoggable {
     MappedSigningBasketPayment,
     MappedSigningBasketConsent,
     MappedRegulatedEntity,
-    AtmAttribute,
     AbacRule,
     code.mandate.Mandate,
     code.mandate.MandateProvision,
