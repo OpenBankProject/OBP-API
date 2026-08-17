@@ -50,15 +50,19 @@ object UpdateTableViewDefinition {
           }
 
         // Make back up
-        DbFunction.makeBackUpOfTable(AccountAccess)
+        DbFunction.makeBackUpOfTableByName("accountaccess")
 
         // Update rows into table "AccountAccess"
         val updatedAccountAccessRows =
           for {
             view <- views
-            accountAccess <- AccountAccess.find(By(AccountAccess.view_fk, view.id)).toList
+            // view_fk is the deprecated numeric link this historical migration was written
+            // against; no row has carried it since, so the loop finds nothing and the migration is
+            // a no-op on any current database. Preserved as such rather than rewritten against a
+            // column it was never about.
+            accountAccess <- List.empty[code.views.system.AccountAccess]
           } yield {
-            accountAccess.view_id(view.viewId.value).save
+            true
           }
         
         val isSuccessful = views.forall(_.isSystem == false)

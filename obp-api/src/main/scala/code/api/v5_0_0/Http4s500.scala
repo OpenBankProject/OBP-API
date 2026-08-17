@@ -1234,7 +1234,7 @@ object Http4s500 {
                    _ <- Helper.booleanToFuture(ViewsAllowedInConsent, cc = callContextOpt) {
                      postConsentViewJsons.forall(rv =>
                        assignedViews.exists(e =>
-                         e.view_id == rv.view_id && e.bank_id == rv.bank_id && e.account_id == rv.account_id))
+                         e.viewId == rv.view_id && e.bankId == rv.bank_id && e.accountId == rv.account_id))
                    }
                  } yield ()
             calculatedConsumerId = consentRequestJson.consumer_id.orElse(Some(createdConsentRequest.consumerId))

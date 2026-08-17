@@ -37,11 +37,10 @@ object BankAccountHoldersAndOwnerViewAccess {
         val ownerViewInfo =
           for {
             (bankId, accountId, _) <- bankAccountsWithoutAnHolder
-            ownerViewAccess = AccountAccess.findAll(
-              By(AccountAccess.bank_id, bankId),
-              By(AccountAccess.account_id, accountId),
-              ByList(AccountAccess.view_id, List(Constant.SYSTEM_OWNER_VIEW_ID, "_owner"))
-            )
+            ownerViewAccess = AccountAccess
+              .findAllByBankIdAccountId(com.openbankproject.commons.model.BankId(bankId),
+                com.openbankproject.commons.model.AccountId(accountId))
+              .filter(a => a.viewId == Constant.SYSTEM_OWNER_VIEW_ID || a.viewId == "_owner")
           } yield {
             (bankId, accountId, ownerViewAccess.size > 0)
           }

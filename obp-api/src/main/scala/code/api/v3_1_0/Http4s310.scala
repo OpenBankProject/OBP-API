@@ -4402,7 +4402,7 @@ object Http4s310 {
             (_, assignedViews) <- Future(Views.views.vend.privateViewsUserCanAccess(user))
             _ <- code.util.Helper.booleanToFuture(ViewsAllowedInConsent, cc = Some(cc)) {
               consentJson.views.forall(rv => assignedViews.exists(e =>
-                e.view_id == rv.view_id && e.bank_id == rv.bank_id && e.account_id == rv.account_id))
+                e.viewId == rv.view_id && e.bankId == rv.bank_id && e.accountId == rv.account_id))
             }
             consumerTuple <- consentJson.consumer_id match {
               case Some(id) => NewStyle.function.checkConsumerByConsumerId(id, Some(cc)) map {

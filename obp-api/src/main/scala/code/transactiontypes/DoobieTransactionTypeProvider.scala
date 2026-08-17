@@ -1,6 +1,5 @@
-package code.transactiontypes
+package code.TransactionTypes
 
-import code.TransactionTypes.{TransactionTypeProvider}
 import code.TransactionTypes.TransactionType.TransactionType
 import code.api.util.{DoobieUtil, ErrorMessages}
 import code.api.v2_0_0.TransactionTypeJsonV200

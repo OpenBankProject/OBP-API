@@ -438,10 +438,9 @@ class Http4s500SystemViewsTest extends ServerSetupWithTestData {
       makeHttpRequest("POST", "/obp/v5.0.0/system-views", headers, Some(write(createViewJson)))
       
       // Clean up any account access records
-      AccountAccess.findAll(
-        By(AccountAccess.view_id, viewId),
-        By(AccountAccess.user_fk, resourceUser1.id.get)
-      ).forall(_.delete_!)
+      AccountAccess.findAllBySystemViewId(com.openbankproject.commons.model.ViewId(viewId))
+        .filter(_.userPrimaryKey == resourceUser1.id.get)
+        .forall(a => AccountAccess.deleteRow(a))
       
       // Now delete the view
       addEntitlement("", resourceUser1.userId, CanDeleteSystemView.toString)

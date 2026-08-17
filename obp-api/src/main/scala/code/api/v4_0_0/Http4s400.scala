@@ -1393,7 +1393,7 @@ object Http4s400 {
                   .getAccountIdsByParams(bank.bankId, params.map { case (k, v) => k -> List(v) })
                   .map { boxedAccountIds =>
                     val accountIds = boxedAccountIds.getOrElse(Nil)
-                    privateAccountAccess.filter(aa => accountIds.contains(aa.account_id.get))
+                    privateAccountAccess.filter(aa => accountIds.contains(aa.accountId))
                   }
             (availablePrivateAccounts, _) <- code.model.BankExtended(bank).privateAccountsFuture(
               privateAccountAccess2, Some(cc))

@@ -56,7 +56,12 @@ object DeleteAccountCascade {
     )
   }
   private def deleteEntitlements(bankId: BankId, accountId: AccountId): Boolean = {
-    val userIds = AccountAccess.findAll(By(AccountAccess.account_id, accountId.value)).map(_.user_fk.foreign.map(_.userId).getOrElse(""))
+    // user_fk holds RESOURCEUSER's numeric key; resolve each to the public user id as before, with
+    // an unresolvable key contributing "" exactly as the Lift foreign key did.
+    val userIds = AccountAccess.findAllByAccountId(accountId.value)
+      .map(a => code.model.dataAccess.ResourceUser
+        .find(By(code.model.dataAccess.ResourceUser.id, a.userPrimaryKey))
+        .map(_.userId).getOrElse(""))
     MappedEntitlement.deleteByBankIdAndUserIds(bankId.value, userIds)
   }
   
@@ -88,10 +93,7 @@ object DeleteAccountCascade {
     )
   }  
   private def deleteAccountAccess(bankId: BankId, accountId: AccountId): Boolean = {
-    AccountAccess.bulkDelete_!!(
-      By(AccountAccess.bank_id, bankId.value),
-      By(AccountAccess.account_id, accountId.value)
-    )
+    AccountAccess.deleteByBankIdAccountId(bankId, accountId)
   }
   private def deleteAccountRoutings(bankId: BankId, accountId: AccountId): Boolean = {
     DoobieBankAccountRoutingQueries.deleteByBankAccount(bankId, accountId)

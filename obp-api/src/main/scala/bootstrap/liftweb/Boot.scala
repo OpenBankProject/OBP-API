@@ -857,7 +857,6 @@ object ToSchemify extends MdcLoggable {
     MappedTransaction,
     MappedConsent,
     ConsentRequest,
-    AccountAccess,
     ViewDefinition,
     ResourceUser,
     MappedCustomer,

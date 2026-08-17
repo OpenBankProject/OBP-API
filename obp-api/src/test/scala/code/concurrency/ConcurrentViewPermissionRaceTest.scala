@@ -179,13 +179,8 @@ class ConcurrentViewPermissionRaceTest extends ConcurrentRaceSetup {
       // committing an AccountAccess in the window orphans a permission row. Replay that window deterministically.
       When("the emptiness check passes, then a concurrent grant commits an AccountAccess, then the view is deleted")
       val checkSawEmpty = AccountAccess.findAllByBankIdAccountIdViewId(bankId, accountId, ViewId(viewIdStr)).isEmpty
-      AccountAccess.create
-        .user_fk(resourceUser1.userPrimaryKey.value)
-        .bank_id(bankId.value)
-        .account_id(accountId.value)
-        .view_id(viewIdStr)
-        .consumer_id(ALL_CONSUMERS)
-        .saveMe()
+      AccountAccess.insert(resourceUser1.userPrimaryKey.value, bankId.value, accountId.value,
+        viewIdStr, ALL_CONSUMERS)
       view.delete_!
 
       Then("no AccountAccess may reference the now-deleted view (no orphaned permission row)")

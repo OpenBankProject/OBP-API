@@ -1419,9 +1419,9 @@ object JSONFactory400 {
 
   def createAccountMinimalJson400(accountAccess: AccountAccess): AccountMinimalJson400 = {
     AccountMinimalJson400(
-      bank_id = accountAccess.bank_id.get,
-      account_id = accountAccess.account_id.get,
-      view_id = accountAccess.view_id.get
+      bank_id = accountAccess.bankId,
+      account_id = accountAccess.accountId,
+      view_id = accountAccess.viewId
     )
   }
   def createAccountsMinimalJson400(accountAccesses: List[AccountAccess]): AccountsMinimalJson400 = {

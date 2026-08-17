@@ -5035,11 +5035,11 @@ object APIUtil extends MdcLoggable with CustomJsonFormats{
 
 
   def intersectAccountAccessAndView(accountAccesses: List[AccountAccess], views: List[View]): List[BankIdAccountId] = {
-    val intersectedViewIds = accountAccesses.map(item => item.view_id.get)
+    val intersectedViewIds = accountAccesses.map(item => item.viewId)
       .intersect(views.map(item => item.viewId.value)).distinct // Join view definition and account access via view_id
     accountAccesses
-      .filter(i => intersectedViewIds.contains(i.view_id.get))
-      .map(item => BankIdAccountId(BankId(item.bank_id.get), AccountId(item.account_id.get)))
+      .filter(i => intersectedViewIds.contains(i.viewId))
+      .map(item => BankIdAccountId(BankId(item.bankId), AccountId(item.accountId)))
       .distinct // List pairs (bank_id, account_id)
   }
   

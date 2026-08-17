@@ -2679,7 +2679,7 @@ object Http4s510 {
           for {
             groupedRows: Map[String, List[AccountAccess]] <- Future {
               AccountAccess.findAll().groupBy { a =>
-                s"${a.bank_id.get}-${a.account_id.get}-${a.view_id.get}-${a.user_fk.get}-${a.consumer_id.get}"
+                s"${a.bankId}-${a.accountId}-${a.viewId}-${a.userPrimaryKey}-${a.consumerId}"
               }.filter(_._2.size > 1)
             }
           } yield JSONFactory510.getAccountAccessUniqueIndexCheck(groupedRows)
@@ -2740,7 +2740,7 @@ object Http4s510 {
           val bankId = BankId(bankIdStr)
           for {
             accountAccesses: List[String] <- Future {
-              AccountAccess.findAll(By(AccountAccess.bank_id, bankId.value)).map(_.account_id.get)
+              AccountAccess.findAllByBankId(bankId).map(_.accountId)
             }
             bankAccounts <- Future {
               code.model.dataAccess.MappedBankAccount.findAll(By(code.model.dataAccess.MappedBankAccount.bank, bankId.value)).map(_.accountId.value)
@@ -4958,7 +4958,7 @@ object Http4s510 {
             _ <- Helper.booleanToFuture(ViewsAllowedInConsent, cc = callContextOpt) {
               requestedViews.forall(rv =>
                 assignedViews.exists(e =>
-                  e.view_id == rv.view_id && e.bank_id == rv.bank_id && e.account_id == rv.account_id))
+                  e.viewId == rv.view_id && e.bankId == rv.bank_id && e.accountId == rv.account_id))
             }
             consumerFromBodyTuple <- consentJson.consumer_id match {
               case Some(id) => NewStyle.function.checkConsumerByConsumerId(id, callContextOpt).map(c => (Some(c), c.description))

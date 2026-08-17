@@ -21,7 +21,7 @@ class PrivateViewsUserCanAccessTest extends ServerSetup with DefaultUsers {
     // Without this, HikariCP rollbacks uncommitted writes (autoCommit=false)
     // and the Doobie pool wouldn't see a clean state for the next test.
     DB.use(DefaultConnectionIdentifier) { conn =>
-      AccountAccess.bulkDelete_!!()
+      AccountAccess.deleteAll()
       ViewDefinition.bulkDelete_!!()
       conn.connection.commit()
     }
@@ -60,8 +60,8 @@ class PrivateViewsUserCanAccessTest extends ServerSetup with DefaultUsers {
       views.size should be(1)
       accountAccess.size should be(1)
       views.head.viewId.value should equal(Constant.SYSTEM_OWNER_VIEW_ID.toLowerCase())
-      accountAccess.head.bank_id.get should equal(bankId1.value)
-      accountAccess.head.account_id.get should equal(accountId1.value)
+      accountAccess.head.bankId should equal(bankId1.value)
+      accountAccess.head.accountId should equal(accountId1.value)
     }
 
     Scenario("User with access to multiple accounts returns all views") {
@@ -72,9 +72,9 @@ class PrivateViewsUserCanAccessTest extends ServerSetup with DefaultUsers {
       val (views, accountAccess) = MapperViews.privateViewsUserCanAccess(resourceUser1)
       accountAccess.size should be(3)
       // All three account access records should be for the owner view
-      accountAccess.map(_.view_id.get).distinct should equal(List(Constant.SYSTEM_OWNER_VIEW_ID.toLowerCase()))
+      accountAccess.map(_.viewId).distinct should equal(List(Constant.SYSTEM_OWNER_VIEW_ID.toLowerCase()))
       // Check all bank/account combinations are present
-      val bankAccountPairs = accountAccess.map(a => (a.bank_id.get, a.account_id.get)).toSet
+      val bankAccountPairs = accountAccess.map(a => (a.bankId, a.accountId)).toSet
       bankAccountPairs should contain((bankId1.value, accountId1.value))
       bankAccountPairs should contain((bankId1.value, accountId2.value))
       bankAccountPairs should contain((bankId2.value, accountId3.value))
@@ -98,10 +98,10 @@ class PrivateViewsUserCanAccessTest extends ServerSetup with DefaultUsers {
       val (views2, access2) = MapperViews.privateViewsUserCanAccess(resourceUser2)
 
       access1.size should be(1)
-      access1.head.account_id.get should equal(accountId1.value)
+      access1.head.accountId should equal(accountId1.value)
 
       access2.size should be(1)
-      access2.head.account_id.get should equal(accountId2.value)
+      access2.head.accountId should equal(accountId2.value)
     }
 
     Scenario("Views are distinct even when user has access to same view type across accounts") {
@@ -126,7 +126,7 @@ class PrivateViewsUserCanAccessTest extends ServerSetup with DefaultUsers {
       // Every accountAccess view_id should correspond to a returned view
       val viewIds = views.map(_.viewId.value).toSet
       accountAccess.foreach { aa =>
-        viewIds should contain(aa.view_id.get)
+        viewIds should contain(aa.viewId)
       }
     }
   }
@@ -139,7 +139,7 @@ class PrivateViewsUserCanAccessTest extends ServerSetup with DefaultUsers {
 
       val (views, accountAccess) = MapperViews.privateViewsUserCanAccessAtBank(resourceUser1, bankId1)
       accountAccess.size should be(1)
-      accountAccess.head.bank_id.get should equal(bankId1.value)
+      accountAccess.head.bankId should equal(bankId1.value)
     }
 
     Scenario("Returns empty for bank with no access") {

@@ -267,16 +267,13 @@ object ViewDefinition extends ViewDefinition with LongKeyedMetaMapper[ViewDefini
   override def dbIndexes: List[BaseIndex[ViewDefinition]] = UniqueIndex(composite_unique_key) :: Index(isSystem_, view_id) :: Index(bank_id, account_id, view_id) :: super.dbIndexes
   override def beforeDelete = List(
     vd => {
-      val conditions: Seq[QueryParam[AccountAccess]] =
-        if (vd.isSystem || vd.bank_id.get == null || vd.account_id.get == null)
-          Seq(By(AccountAccess.view_id, vd.view_id.get))
-        else
-          Seq(
-            By(AccountAccess.bank_id, vd.bank_id.get),
-            By(AccountAccess.account_id, vd.account_id.get),
-            By(AccountAccess.view_id, vd.view_id.get)
-          )
-      AccountAccess.bulkDelete_!!(conditions: _*)
+      // A system view (or one whose bank/account is null) is scoped by view id alone; a custom
+      // view by all three. Same split as before.
+      if (vd.isSystem || vd.bank_id.get == null || vd.account_id.get == null)
+        AccountAccess.deleteByViewId(vd.view_id.get)
+      else
+        AccountAccess.deleteByBankIdAccountIdViewId(
+          BankId(vd.bank_id.get), AccountId(vd.account_id.get), ViewId(vd.view_id.get))
     }
   )
 

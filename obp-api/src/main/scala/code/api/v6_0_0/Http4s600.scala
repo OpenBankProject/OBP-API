@@ -762,7 +762,7 @@ object Http4s600 {
                 .getAccountIdsByParams(bank.bankId, filteredParams)
                 .map { boxedAccountIds =>
                   val accountIds = boxedAccountIds.getOrElse(Nil)
-                  privateAccountAccess.filter(aa => accountIds.contains(aa.account_id.get))
+                  privateAccountAccess.filter(aa => accountIds.contains(aa.accountId))
                 }
             (availablePrivateAccounts, _) <- BankExtended(bank).privateAccountsFuture(privateAccountAccess2, Some(cc))
           } yield {
@@ -2169,7 +2169,9 @@ object Http4s600 {
             case Full(aa) => JSONFactory600.HasAccountAccessJsonV600(
               has_account_access = true,
               access_source = "ACCOUNT_ACCESS",
-              account_access_id = aa.id.get.toString,
+              // The row has no surrogate id in the store; the unique index is its identity, so
+              // the five-column tuple stands in for the numeric key the JSON used to carry.
+              account_access_id = s"${aa.bankId}-${aa.accountId}-${aa.viewId}-${aa.userPrimaryKey}-${aa.consumerId}",
               abac_rule_id = "")
             case _ => JSONFactory600.HasAccountAccessJsonV600(
               has_account_access = false, access_source = "",

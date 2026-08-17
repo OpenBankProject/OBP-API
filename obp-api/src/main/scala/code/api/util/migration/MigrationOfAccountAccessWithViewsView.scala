@@ -8,7 +8,7 @@ import net.liftweb.mapper.Schemifier
 object MigrationOfAccountAccessWithViewsView {
 
   def addAccountAccessWithViewsView(name: String): Boolean = {
-    DbFunction.tableExists(AccountAccess) match {
+    DbFunction.tableExistsByName("accountaccess") match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
@@ -135,7 +135,7 @@ object MigrationOfAccountAccessWithViewsView {
         val isSuccessful = false
         val endDate = System.currentTimeMillis()
         val comment: String =
-          s"""${AccountAccess._dbTableNameLC} table does not exist""".stripMargin
+          "accountaccess table does not exist"
         saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
         isSuccessful
     }

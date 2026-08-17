@@ -45,7 +45,7 @@ object TransactionType extends SimpleInjector {
 
   def buildOne: TransactionTypeProvider  =
     APIUtil.getPropsValue("TransactionTypes_connector", "mapped") match {
-      case "mapped" => code.transactiontypes.DoobieTransactionTypeProvider
+      case "mapped" => code.TransactionTypes.DoobieTransactionTypeProvider
       case ttc: String => throw new IllegalArgumentException("No such connector for Transaction Types: " + ttc)
     }
 

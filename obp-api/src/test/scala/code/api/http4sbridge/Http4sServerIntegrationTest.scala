@@ -37,7 +37,7 @@ class Http4sServerIntegrationTest extends ServerSetup with DefaultUsers with Ser
   override def afterAll(): Unit = {
     super.afterAll()
     code.views.system.ViewDefinition.bulkDelete_!!()
-    AccountAccess.bulkDelete_!!()
+    AccountAccess.deleteAll()
   }
 
   private def execOkHttp(req: OBPReq): (Int, String, Map[String, String]) = {

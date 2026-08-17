@@ -32,7 +32,7 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
     net.liftweb.db.DB.use(net.liftweb.util.DefaultConnectionIdentifier) { conn =>
       ViewDefinition.bulkDelete_!!()
       MapperAccountHolders.deleteAll()
-      AccountAccess.bulkDelete_!!()
+      AccountAccess.deleteAll()
       DoobieUserRefreshesProvider.bulkDelete()
       conn.connection.commit()
     }
@@ -44,7 +44,7 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
     net.liftweb.db.DB.use(net.liftweb.util.DefaultConnectionIdentifier) { conn =>
       ViewDefinition.bulkDelete_!!()
       MapperAccountHolders.deleteAll()
-      AccountAccess.bulkDelete_!!()
+      AccountAccess.deleteAll()
       DoobieUserRefreshesProvider.bulkDelete()
       conn.connection.commit()
     }
@@ -53,29 +53,13 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
   val bankIdAccountId1 = MockedCbsConnector.bankIdAccountId
   val bankIdAccountId2 = MockedCbsConnector.bankIdAccountId2
 
-  def account1Access = AccountAccess.findAll(
-    By(AccountAccess.user_fk, resourceUser1.userPrimaryKey.value),
-    By(AccountAccess.bank_id, bankIdAccountId1.bankId.value),
-    By(AccountAccess.account_id, bankIdAccountId1.accountId.value),
-  )
+  def account1Access = AccountAccess.findByBankIdAccountIdUserPrimaryKey(bankIdAccountId1.bankId, bankIdAccountId1.accountId, resourceUser1.userPrimaryKey)
   
-  def account2Access = AccountAccess.findAll(
-    By(AccountAccess.user_fk, resourceUser1.userPrimaryKey.value),
-    By(AccountAccess.bank_id, bankIdAccountId2.bankId.value),
-    By(AccountAccess.account_id, bankIdAccountId2.accountId.value),
-  )
+  def account2Access = AccountAccess.findByBankIdAccountIdUserPrimaryKey(bankIdAccountId2.bankId, bankIdAccountId2.accountId, resourceUser1.userPrimaryKey)
   
-  def account1AccessUser2 = AccountAccess.findAll(
-    By(AccountAccess.user_fk, resourceUser2.userPrimaryKey.value),
-    By(AccountAccess.bank_id, bankIdAccountId1.bankId.value),
-    By(AccountAccess.account_id, bankIdAccountId1.accountId.value),
-  )
+  def account1AccessUser2 = AccountAccess.findByBankIdAccountIdUserPrimaryKey(bankIdAccountId1.bankId, bankIdAccountId1.accountId, resourceUser2.userPrimaryKey)
   
-  def account2AccessUser2 = AccountAccess.findAll(
-    By(AccountAccess.user_fk, resourceUser2.userPrimaryKey.value),
-    By(AccountAccess.bank_id, bankIdAccountId2.bankId.value),
-    By(AccountAccess.account_id, bankIdAccountId2.accountId.value),
-  )
+  def account2AccessUser2 = AccountAccess.findByBankIdAccountIdUserPrimaryKey(bankIdAccountId2.bankId, bankIdAccountId2.accountId, resourceUser2.userPrimaryKey)
 
   def accountholder1 = MapperAccountHolders.getAccountHolders(bankIdAccountId1.bankId, bankIdAccountId1.accountId)
   def accountholder2 = MapperAccountHolders.getAccountHolders(bankIdAccountId2.bankId, bankIdAccountId2.accountId)
@@ -514,7 +498,7 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
 
       Then("We check the AccountAccess")
       account1Access.length should be (1)
-      account1Access.map(_.view_id.get).contains(SYSTEM_STAGE_ONE_VIEW_ID) should be (true)
+      account1Access.map(_.viewId).contains(SYSTEM_STAGE_ONE_VIEW_ID) should be (true)
       
       Then("We check the MappedUserRefreshes table")
       DoobieUserRefreshesProvider.count() should be (1)
@@ -535,7 +519,7 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
 
       Then("We check the AccountAccess")
       account1Access.length should equal(1)
-      account1Access.map(_.view_id.get).contains(SYSTEM_STANDARD_VIEW_ID) should be (true)
+      account1Access.map(_.viewId).contains(SYSTEM_STANDARD_VIEW_ID) should be (true)
 
       Then("We check the MappedUserRefreshes table")
       DoobieUserRefreshesProvider.count() should be (1)
@@ -568,8 +552,8 @@ class AuthUserTest extends ServerSetup with DefaultUsers with PropsReset{
 
       Then("We check the AccountAccess")
       account1Access.length should equal(2)
-      account1Access.map(_.view_id.get).contains(SYSTEM_STANDARD_VIEW_ID) should be (true)
-      account1Access.map(_.view_id.get).contains(SYSTEM_STAGE_ONE_VIEW_ID) should be (true)
+      account1Access.map(_.viewId).contains(SYSTEM_STANDARD_VIEW_ID) should be (true)
+      account1Access.map(_.viewId).contains(SYSTEM_STAGE_ONE_VIEW_ID) should be (true)
 
       Then("We check the MappedUserRefreshes table")
       DoobieUserRefreshesProvider.count() should be (1)
