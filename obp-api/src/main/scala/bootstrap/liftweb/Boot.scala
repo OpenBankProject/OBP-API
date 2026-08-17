@@ -90,7 +90,6 @@ import code.metrics.{MappedConnectorMetric, MappedMetric, MetricArchive, Metrics
 import code.model._
 import code.model.dataAccess._
 import code.obp.grpc.ObpGrpcServer
-import code.productAttributeattribute.MappedProductAttribute
 import code.productcollection.MappedProductCollection
 import code.productcollectionitem.MappedProductCollectionItem
 import code.productfee.ProductFee
@@ -934,7 +933,6 @@ object ToSchemify extends MdcLoggable {
     MappedAccountWebhook,
     SystemAccountNotificationWebhook,
     BankAccountNotificationWebhook,
-    MappedProductAttribute,
     MappedConsent,
     ConsentRequest,
     MethodRouting,

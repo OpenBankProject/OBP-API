@@ -1,6 +1,6 @@
 package code.productcollectionitem
 
-import code.productAttributeattribute.MappedProductAttribute
+import code.productattribute.DoobieProductAttributeProvider
 import code.products.MappedProduct
 import com.openbankproject.commons.model.{ProductAttribute, ProductCollectionItem}
 import net.liftweb.common.Box
@@ -23,10 +23,8 @@ object MappedProductCollectionItemProvider extends ProductCollectionItemProvider
             By(MappedProduct.mBankId, bankId), 
             By(MappedProduct.mCode, productCollectionItem.mMemberProductCode.get)
           ).openOrThrowException("There is no product")
-          val attributes: List[MappedProductAttribute] = MappedProductAttribute.findAll(
-            By(MappedProductAttribute.mBankId, bankId),
-            By(MappedProductAttribute.mCode, product.code.value)
-          )
+          val attributes: List[ProductAttribute] =
+            DoobieProductAttributeProvider.getProductAttributesSync(bankId, product.code.value)
           val xxx: (ProductCollectionItem, MappedProduct, List[ProductAttribute]) = (productCollectionItem, product, attributes)
           xxx
       }

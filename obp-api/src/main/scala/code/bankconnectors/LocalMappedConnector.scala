@@ -43,8 +43,7 @@ import code.meetings.Meetings
 import code.metadata.counterparties.Counterparties
 import code.model._
 import code.model.dataAccess._
-import code.productAttributeattribute.MappedProductAttribute
-import code.productattribute.ProductAttributeX
+import code.productattribute.{DoobieProductAttributeProvider, ProductAttributeX}
 import code.productcollection.ProductCollectionX
 import code.productcollectionitem.ProductCollectionItems
 import code.productfee.ProductFeeX
@@ -2624,18 +2623,11 @@ object LocalMappedConnector extends Connector with MdcLoggable {
         }
       } else {
         val paramList: List[(String, List[String])] = attributeParams.map(it => it.name -> it.value)
-        val parameters: List[String] = MappedProductAttribute.getParameters(paramList)
-        val sqlParametersFilter = MappedProductAttribute.getSqlParametersFilter(paramList)
         val codesFromAttrs: List[String] = paramList.isEmpty match {
           case true =>
-            MappedProductAttribute.findAll(
-              By(MappedProductAttribute.mBankId, bankId.value)
-            ).map(_.productCode.value)
+            DoobieProductAttributeProvider.getProductCodesForBank(bankId.value)
           case false =>
-            MappedProductAttribute.findAll(
-              By(MappedProductAttribute.mBankId, bankId.value),
-              BySql(sqlParametersFilter, IHaveValidatedThisSQL("developer","2020-06-28"), parameters:_*)
-            ).map(_.productCode.value)
+            DoobieProductAttributeProvider.getProductCodesMatchingAnyAttribute(bankId.value, paramList)
         }
         val finalCodes = codesFromTags match {
           case Some(tagSet) => codesFromAttrs.filter(tagSet.contains)

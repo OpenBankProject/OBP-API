@@ -244,6 +244,7 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
     DoobieUtil.runUpdate(sql"DELETE FROM bankattribute".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM counterpartyattribute".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM regulatedentityattribute".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM mappedproductattribute".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM mappeduserauthcontextupdate".update.run)
 
     

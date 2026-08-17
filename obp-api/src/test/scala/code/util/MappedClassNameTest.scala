@@ -66,7 +66,6 @@ class MappedClassNameTest extends AnyFeatureSpec {
       "code.model.Consumer",
       "code.metadata.wheretags.MappedWhereTag",
       "code.database.authorisation.Authorisation",
-      "code.productAttributeattribute.MappedProductAttribute",
       "code.metadata.counterparties.MappedCounterparty",
       "code.metrics.MappedMetric",
       "code.metadata.transactionimages.MappedTransactionImage",

@@ -64,7 +64,8 @@ class MigratedTablesExistTest extends ServerSetup {
     "atmattribute",
     "bankattribute",
     "counterpartyattribute",
-    "regulatedentityattribute"
+    "regulatedentityattribute",
+    "mappedproductattribute"
   )
 
   /**

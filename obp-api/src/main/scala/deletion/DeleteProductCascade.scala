@@ -5,7 +5,7 @@ import code.api.attributedefinition.AttributeDefinition
 import code.api.util.APIUtil.fullBoxOrException
 import code.api.util.ErrorMessages.CouldNotDeleteCascade
 import code.model.dataAccess.MappedBankAccount
-import code.productAttributeattribute.MappedProductAttribute
+import code.productattribute.DoobieProductAttributeProvider
 import code.productfee.ProductFee
 import code.products.MappedProduct
 import com.openbankproject.commons.model.{BankId, ProductCode}
@@ -39,13 +39,7 @@ object DeleteProductCascade {
   }
 
   private def deleteProductAttributes(bankId: BankId, code: ProductCode): Boolean = {
-    MappedProductAttribute.findAll(
-      By(MappedProductAttribute.mBankId, bankId.value),
-      By(MappedProductAttribute.mCode, code.value)
-    ) map {
-      attribute =>
-        MappedProductAttribute.bulkDelete_!!(By(MappedProductAttribute.mProductAttributeId, attribute.productAttributeId))
-    } forall (_ == true)
+    DoobieProductAttributeProvider.deleteProductAttributesByBankAndCode(bankId.value, code.value)
   }
   private def deleteProductAttributeDefinitions(bankId: BankId, code: ProductCode): Boolean = {
     AttributeDefinition.findAll(
