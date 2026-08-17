@@ -9,7 +9,7 @@ import code.metadata.tags.Tags
 import code.metadata.transactionimages.TransactionImages
 import code.metadata.wheretags.WhereTags
 import code.transaction.MappedTransaction
-import code.transactionattribute.MappedTransactionAttribute
+import code.transactionattribute.DoobieTransactionAttributeProvider
 import code.transactionrequests.MappedTransactionRequestProvider
 import com.openbankproject.commons.model.{AccountId, BankId, TransactionId}
 import net.liftweb.db.DB
@@ -43,10 +43,7 @@ object DeleteTransactionCascade {
   }
   
   private def deleteTransactionAttribute(bankId: BankId, id: TransactionId): Boolean = {
-    MappedTransactionAttribute.bulkDelete_!!(
-      By(MappedTransactionAttribute.mBankId, bankId.value),
-      By(MappedTransactionAttribute.mTransactionId, id.value)
-    )
+    DoobieTransactionAttributeProvider.deleteTransactionAttributesByBankAndTransaction(bankId.value, id.value)
   }
   
 }

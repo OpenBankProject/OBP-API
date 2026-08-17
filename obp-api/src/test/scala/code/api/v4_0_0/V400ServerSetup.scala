@@ -18,7 +18,7 @@ import code.api.v3_1_0._
 import code.consumer.Consumers
 import code.entitlement.Entitlement
 import code.setup.{APIResponse, DefaultUsers, ServerSetupWithTestData}
-import code.transactionattribute.MappedTransactionAttribute
+import code.transactionattribute.DoobieTransactionAttributeProvider
 import com.openbankproject.commons.model.{AccountId, AccountRoutingJsonV121, AmountOfMoneyJsonV121, BankId, CreateViewJson, TransactionId, UpdateViewJSON, ViewId}
 import com.openbankproject.commons.util.ApiShortVersions
 import code.setup.OBPReq
@@ -326,10 +326,7 @@ trait V400ServerSetup extends ServerSetupWithTestData with DefaultUsers {
   def checkAllTransactionRelatedData(bankId: String,
                                      accountId: String,
                                      transactionId: String): Boolean = {
-    val attributes = MappedTransactionAttribute.findAll(
-      By(MappedTransactionAttribute.mBankId, bankId),
-      By(MappedTransactionAttribute.mTransactionId, transactionId)
-    ).size == 0
+    val attributes = DoobieTransactionAttributeProvider.countAttributesSync(bankId, transactionId) == 0
     // Comments are Doobie-backed now; ask the provider the same question. getComments is scoped
     // by view, so this checks the views the cascade test posts on.
     val comments = List("owner", "auditor", "accountant").forall(v =>

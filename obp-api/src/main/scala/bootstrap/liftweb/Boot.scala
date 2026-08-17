@@ -105,7 +105,6 @@ import code.transaction.MappedTransaction
 import code.transactionChallenge.MappedExpectedChallengeAnswer
 import code.transactionRequestAttribute.TransactionRequestAttribute
 import code.transactionStatusScheduler.TransactionRequestStatusScheduler
-import code.transactionattribute.MappedTransactionAttribute
 import code.amqpbroker.AmqpBankBroker
 import code.messageoutbox.{MessageOutbox, MessageOutboxRelay}
 import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequestTypeCharge}
@@ -988,7 +987,6 @@ object ToSchemify extends MdcLoggable {
     MappedAccountApplication,
     MappedProductCollection,
     MappedProductCollectionItem,
-    MappedTransactionAttribute,
     RateLimiting,
     MappedCustomerDependant,
     AttributeDefinition,
