@@ -1,17 +1,21 @@
 package code.api.berlin.group.v1_3
 
+import code.accountholders.AccountHolders
 import code.api.berlin.group.ConstantsBG
 import code.api.berlin.group.v1_3.JSONFactory_BERLIN_GROUP_1_3.{ConsentAccessAccountsJson, ConsentAccessJson, PostConsentJson}
 import code.api.util.APIUtil.OAuth._
-import code.api.util.Consent
+import code.api.util.{Consent, ConsentJWT, ConsentView, CustomJsonFormats, JwtUtil}
 import code.consent.{ConsentTrait, Consents}
 import code.model.TokenType.Access
 import code.model.UserX
 import code.model.dataAccess.{BankAccountRouting, ResourceUser}
 import code.setup.DefaultUsers
 import code.token.Tokens
+import com.openbankproject.commons.model.User
 import com.openbankproject.commons.model.enums.AccountRoutingScheme
+import com.openbankproject.commons.util.JsonAliases
 import net.liftweb.mapper.By
+import org.json4s.Formats
 import net.liftweb.util.Helpers.randomString
 import net.liftweb.util.TimeHelpers.TimeSpan
 
@@ -60,6 +64,41 @@ trait BerlinGroupConsentFixtures extends BerlinGroupServerSetupV1_3 with Default
       combinedServiceIndicator = Some(false)
     )
   }
+
+  /**
+   * The views a stored consent's JWT currently grants.
+   *
+   * Read off the JWT rather than the AccountAccess rows because the JWT is the consent's scope:
+   * applyBerlinGroupConsentRulesCommon re-derives the rows from it on every request, so a test that
+   * asserted on the rows would be asserting on a cache of this.
+   */
+  def consentViewsOf(consentId: String): List[ConsentView] = {
+    implicit val formats: Formats = CustomJsonFormats.formats
+    val stored = Consents.consentProvider.vend.getConsentByConsentId(consentId)
+      .openOrThrowException(s"test consent lookup failed for $consentId")
+    JwtUtil.getSignedPayloadAsJson(stored.jsonWebToken)
+      .map(JsonAliases.parse(_).extract[ConsentJWT])
+      .openOrThrowException(s"test consent JWT could not be read for $consentId")
+      .views
+  }
+
+  /**
+   * The accounts a user holds that Berlin Group can address, as (bank_id, account_id).
+   *
+   * Berlin Group names accounts by IBAN throughout, so an account with no IBAN routing is not
+   * reachable through this API however the consent is worded -- this is the set an
+   * "availableAccounts": "allAccounts" consent is expected to resolve to.
+   */
+  def ibanAddressableAccountsHeldBy(user: User): Set[(String, String)] =
+    AccountHolders.accountHolders.vend.getAccountsHeldByUser(user)
+      .filter { held =>
+        BankAccountRouting.find(
+          By(BankAccountRouting.BankId, held.bankId.value),
+          By(BankAccountRouting.AccountId, held.accountId.value),
+          By(BankAccountRouting.AccountRoutingScheme, AccountRoutingScheme.IBAN.toString)
+        ).isDefined
+      }
+      .map(held => (held.bankId.value, held.accountId.value))
 
   /**
    * An unclaimed (PSU-less) consent lodged under testConsumer, built straight through the provider

@@ -240,6 +240,14 @@ jwt.use.ssl=false
 ## Unit is a second
 # obp_expired_consents_interval_in_seconds =
 
+## Expire UK Open Banking consents with status "Authorised"
+## Unlike the three keys above this one HAS a default (601 seconds, a prime near 10 minutes, so the
+## sweep does not settle into step with other periodic schedulers). Set it to 0 to stop the task.
+## Turning it off does not grant access to an expired consent: checkUKConsent rejects one reactively
+## on every request whatever this task's timing. The sweep only keeps the stored status accurate for
+## GET and dashboard purposes.
+# uk_open_banking_expired_consents_interval_in_seconds = 601
+
 
 ## Enable writing API metrics (which APIs are called) to RDBMS
 ## Default lives in code.metrics.MetricsProps (WriteMetricsDefault)
@@ -1196,6 +1204,13 @@ featured_apis=elasticSearchWarehouseV300
 # -- RabbitMQ Adapter --------------------------------------------
 #rabbitmq.adapter.enabled=false
 
+
+# -- Open Corridor ----------------------------------------------
+# The platform is modelled AS a bank, and this is its BANK_ID -- the creditor side of the platform
+# fee settlement instructions raised by the fee-accrual endpoints. There is no usable default: with
+# this unset, sweeping accrued fees fails with OBP-10035 rather than paying an unintended bank.
+# Only relevant on an instance that has Open Corridor turned on and settles platform fees.
+# open_corridor.platform_bank_id=
 
 
 # -- Scopes -----------------------------------------------------

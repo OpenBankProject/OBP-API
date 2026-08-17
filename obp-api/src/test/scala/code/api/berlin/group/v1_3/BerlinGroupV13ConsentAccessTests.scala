@@ -10,6 +10,7 @@ import code.api.util.ErrorMessages.{BerlinGroupPsuNotIdentified, ConsentDoesNotM
 import code.consent.{ConsentStatus, Consents}
 import code.model.TokenType.Access
 import code.token.Tokens
+import code.userlocks.UserLocksProvider
 import code.transactionChallenge.Challenges
 import net.liftweb.common.{Empty, Full}
 import net.liftweb.util.Helpers.randomString
@@ -184,6 +185,39 @@ class BerlinGroupV13ConsentAccessTests extends BerlinGroupConsentFixtures {
     }
   }
 
+  // The PSU-ID header names a person the ASPSP then acts for: it resolves to a user, that user is
+  // checked against the consent's accounts, an SCA challenge is minted for them and an OTP goes out
+  // to them, and the PUT twin binds the consent to them. None of that authenticates the PSU -- under
+  // Berlin Group the caller is the TPP -- so the guard every authenticated request gets from
+  // AfterApiAuth.checkUserIsDeletedOrLocked never runs on this path. A lock says the ASPSP has
+  // decided this user may not authenticate; resolving them here anyway routes around that decision,
+  // and every later check passes because the accounts really are theirs.
+  feature("Consent.findPsuByPsuId only resolves a user who may still act") {
+
+    scenario("a live user resolves", BerlinGroupV13ConsentAccess) {
+      Consent.findPsuByPsuId(resourceUser1.name).map(_.userId) should equal(Full(resourceUser1.userId))
+    }
+
+    scenario("a locked user does not resolve", BerlinGroupV13ConsentAccess) {
+      UserLocksProvider.lockUser(resourceUser2.provider, resourceUser2.name)
+      try {
+        Consent.findPsuByPsuId(resourceUser2.name) should equal(Empty)
+      } finally {
+        UserLocksProvider.unlockUser(resourceUser2.provider, resourceUser2.name)
+      }
+      And("unlocking puts them back")
+      Consent.findPsuByPsuId(resourceUser2.name).map(_.userId) should equal(Full(resourceUser2.userId))
+    }
+
+    // Empty rather than a distinct "this user is locked": resolvePsuIdHeader turns an unresolved
+    // header into UserNotFoundByProviderAndUsername at 401, and a locked user must get that same
+    // answer. Telling the two apart would hand a TPP a way to confirm that a username exists, which
+    // is the oracle the consent reads were unified to close.
+    scenario("the refusal does not say which of the two it was", BerlinGroupV13ConsentAccess) {
+      Consent.findPsuByPsuId("no-such-user-at-all") should equal(Empty)
+    }
+  }
+
   feature("Consent.genuinePsu") {
 
     scenario("a session with no user at all has no PSU", BerlinGroupV13ConsentAccess) {
@@ -309,6 +343,38 @@ class BerlinGroupV13ConsentAccessTests extends BerlinGroupConsentFixtures {
   )
 
   feature("BG v1.3 - the consent reads apply the same ownership rule as the authorisation pair") {
+
+    // A caller not entitled to a consent must not be able to tell "there is no such consent" from
+    // "that one is not yours", or the endpoint confirms which ids are real. Four of these five reads
+    // were unified to a bare ConsentNotFound; getConsentScaStatus kept spelling the id back, because
+    // the replacement matched the default-status-code spelling and this site already passed 403
+    // explicitly. Same status either way, different body -- so the oracle survived at one endpoint.
+    scenario("every read answers a missing consent exactly as it answers a foreign one", BerlinGroupV13ConsentAccess) {
+      val someoneElses = createUnclaimedBerlinGroupConsent().consentId
+      val missing = "no-such-consent-at-all"
+
+      // Status and the tppMessages entry, not the whole body: the Berlin Group error envelope
+      // carries a `path` field holding the request path, so it always contains whichever id the
+      // caller themselves put in the URL. That is not a leak -- they already knew it -- and
+      // comparing it would make this scenario impossible to satisfy for the wrong reason.
+      def answers(consentId: String) = consentReads(consentId, user2).map { case (what, r) =>
+        val message = r.body.extract[ErrorMessagesBG].tppMessages.head
+        what -> (r.code, message.code, message.text)
+      }
+
+      answers(someoneElses).zip(answers(missing)).foreach { case ((what, foreign), (_, absent)) =>
+        withClue(s"'$what' tells a foreign consent from a missing one: ") {
+          foreign should equal(absent)
+        }
+      }
+
+      And("and the message names no consent")
+      answers(missing).foreach { case (what, (_, _, text)) =>
+        withClue(s"'$what' echoed the id: ") {
+          text should not include missing
+        }
+      }
+    }
 
     scenario("the lodging TPP acting for a second PSU cannot read a consent bound to the first", BerlinGroupV13ConsentAccess) {
       val consentId = createUnclaimedBerlinGroupConsent().consentId
@@ -457,6 +523,68 @@ class BerlinGroupV13ConsentAccessTests extends BerlinGroupConsentFixtures {
    * all.
    */
   feature("BG v1.3 - an Embedded SCA challenge belongs to the PSU, not to the TPP relaying it") {
+
+    // The refusal has to land before the challenge is minted, not after. Starting an authorisation
+    // sends an OTP to the person PSU-ID names, out of band -- so a locked user being resolvable here
+    // means the ASPSP messages somebody it has already decided may not authenticate, and the TPP is
+    // one answered code away from binding their accounts to a consent.
+    scenario("A locked PSU named in PSU-ID gets no challenge at all", BerlinGroupV13ConsentAccess) {
+      setPropsValues("suggested_default_sca_method" -> "DUMMY")
+      val consentId = createUnclaimedBerlinGroupConsent().consentId
+
+      UserLocksProvider.lockUser(resourceUser1.provider, resourceUser1Name)
+      val refused =
+        try startAuthorisation(consentId, clientCredentialsSession, psuIdHeader(resourceUser1Name))
+        finally UserLocksProvider.unlockUser(resourceUser1.provider, resourceUser1Name)
+
+      Then("it is refused as an unresolvable PSU-ID, saying nothing about the lock")
+      refused.code should equal(401)
+
+      And("no challenge was minted, so nobody was messaged")
+      Challenges.ChallengeProvider.vend.getChallengesByConsentId(consentId) match {
+        case Full(challenges) => challenges shouldBe empty
+        case _                => // no rows at all is the same answer
+      }
+    }
+
+    // assertBerlinGroupConsentAccountsHeld had no test of its own. These give it one, and the third
+    // is the point: it read a JWT it could not parse as "this consent names no accounts", which is a
+    // legitimate state (the availableAccounts shape) rather than an error, so the guard passed on a
+    // consent it had learned nothing about.
+    //
+    // Reaching that needs a STRUCTURALLY invalid JWT. A well-formed one carrying the wrong payload
+    // throws inside Box.map instead and already fails closed with a 500. An empty string is the
+    // shape a real instance produces: createConsent writes the consent row before computing and
+    // storing the JWT, so a consent whose JWT generation failed persists with none.
+    scenario("the accounts-held guard refuses a PSU who does not hold the consent's accounts", BerlinGroupV13ConsentAccess) {
+      setPropsValues("suggested_default_sca_method" -> "DUMMY")
+      val consentId = createUnclaimedBerlinGroupConsent().consentId
+
+      Then("the PSU who holds the named account may start the authorisation")
+      startAuthorisation(consentId, clientCredentialsSession, psuIdHeader(resourceUser1Name)).code should equal(201)
+
+      And("a PSU who does not hold it may not")
+      val refused = startAuthorisation(consentId, clientCredentialsSession, psuIdHeader(resourceUser2.name))
+      refused.code should equal(403)
+    }
+
+    scenario("a consent whose JWT cannot be read grants nobody the benefit of the doubt", BerlinGroupV13ConsentAccess) {
+      setPropsValues("suggested_default_sca_method" -> "DUMMY")
+      val consentId = createUnclaimedBerlinGroupConsent().consentId
+      Consents.consentProvider.vend.setJsonWebToken(consentId, "")
+
+      When("a PSU who does not hold the consent's accounts starts an authorisation")
+      val response = startAuthorisation(consentId, clientCredentialsSession, psuIdHeader(resourceUser2.name))
+
+      Then("it is refused, rather than passing because the account list came back empty")
+      response.code should not equal 201
+
+      And("no challenge was minted for them")
+      Challenges.ChallengeProvider.vend.getChallengesByConsentId(consentId) match {
+        case Full(challenges) => challenges shouldBe empty
+        case _                => // no rows at all is the same answer
+      }
+    }
 
     scenario("A client-credentials TPP completes SCA for the PSU it names in PSU-ID", BerlinGroupV13ConsentAccess) {
       setPropsValues("suggested_default_sca_method" -> "DUMMY")
