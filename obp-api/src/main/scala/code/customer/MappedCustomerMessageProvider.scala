@@ -97,13 +97,15 @@ object MappedCustomerMessageProvider extends CustomerMessageProvider {
   override def createCustomerMessage(customer: Customer, bankId: BankId, transport: String,
                                      message: String, fromDepartment: String,
                                      fromPerson: String): MappedCustomerMessage = {
-    val mappedCustomer = MappedCustomer.find(By(MappedCustomer.mCustomerId, customer.customerId)).head
-    MappedCustomerMessage.insertForCustomer(mappedCustomer.primaryKeyField.get, bankId.value,
+    val mappedCustomer = MappedCustomer.findByCustomerId(customer.customerId).openOrThrowException(
+      "the customer a message is being created for must exist")
+    MappedCustomerMessage.insertForCustomer(mappedCustomer.customerPrimaryKey, bankId.value,
       transport, message, fromDepartment, fromPerson)
   }
 
   override def getCustomerMessages(customer: Customer, bankId: BankId): List[CustomerMessage] = {
-    val mappedCustomer = MappedCustomer.find(By(MappedCustomer.mCustomerId, customer.customerId)).head
-    MappedCustomerMessage.findAllByCustomerKeyAndBank(mappedCustomer.primaryKeyField.get, bankId.value)
+    val mappedCustomer = MappedCustomer.findByCustomerId(customer.customerId).openOrThrowException(
+      "the customer whose messages are being read must exist")
+    MappedCustomerMessage.findAllByCustomerKeyAndBank(mappedCustomer.customerPrimaryKey, bankId.value)
   }
 }

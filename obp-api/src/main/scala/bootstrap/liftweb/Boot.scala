@@ -44,7 +44,6 @@ import code.bankconnectors.{Connector, ConnectorEndpoints}
 import code.consent.MappedConsent
 import code.consumer.Consumers
 import code.model.Consumer
-import code.customer.MappedCustomer
 import code.entitlement.{Entitlement, MappedEntitlement}
 import code.metrics.{MappedMetric, MetricArchive}
 import code.model._
@@ -843,7 +842,6 @@ object ToSchemify extends MdcLoggable {
     MappedConsent,
     ViewDefinition,
     ResourceUser,
-    MappedCustomer,
     Consumer,
     Token,
     Nonce,

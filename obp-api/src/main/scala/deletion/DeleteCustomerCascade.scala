@@ -59,17 +59,15 @@ object DeleteCustomerCascade {
   }
 
   private def deleteCustomer(customerId: CustomerId): Boolean = {
-    MappedCustomer.bulkDelete_!!(
-      By(MappedCustomer.mCustomerId, customerId.value)
-    )
+    MappedCustomer.deleteByCustomerId(customerId.value)
   }
   private def deleteCustomerUserCustomerLinks(customerId: CustomerId): Boolean = {
     DoobieUtil.runUpdate(sql"DELETE FROM mappedusercustomerlink WHERE mcustomerid = ${customerId.value}".update.run)
     true
   }
   private def deleteTaxResidence(customerId: CustomerId): Boolean = {
-    MappedCustomer.find(By(MappedCustomer.mCustomerId, customerId.value)).forall { c =>
-      DoobieUtil.runUpdate(sql"DELETE FROM mappedtaxresidence WHERE mcustomerid = ${c.id.get}".update.run)
+    MappedCustomer.findByCustomerId(customerId.value).forall { c =>
+      DoobieUtil.runUpdate(sql"DELETE FROM mappedtaxresidence WHERE mcustomerid = ${c.customerPrimaryKey}".update.run)
       true
     }
   }
@@ -86,8 +84,8 @@ object DeleteCustomerCascade {
     MappedKycDocument.deleteByCustomerId(customerId.value)
   }
   private def deleteCustomerAddress(customerId: CustomerId): Boolean = {
-    MappedCustomer.find(By(MappedCustomer.mCustomerId, customerId.value)).forall(c =>
-      MappedCustomerAddress.deleteByCustomerKey(c.id.get)
+    MappedCustomer.findByCustomerId(customerId.value).forall(c =>
+      MappedCustomerAddress.deleteByCustomerKey(c.customerPrimaryKey)
     )
   }
   private def deleteAccountApplication(customerId: CustomerId): Boolean = {

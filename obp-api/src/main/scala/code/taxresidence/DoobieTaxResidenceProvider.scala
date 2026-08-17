@@ -6,7 +6,6 @@ import com.openbankproject.commons.model.TaxResidence
 import doobie._
 import doobie.implicits._
 import net.liftweb.common.{Box, Empty, Failure, Full}
-import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.tryo
 
 import com.openbankproject.commons.ExecutionContext.Implicits.global
@@ -37,7 +36,7 @@ case class TaxResidenceRow(
 object DoobieTaxResidenceProvider extends TaxResidenceProvider {
 
   private def resolveCustomerId(longId: Long): String =
-    MappedCustomer.find(By(MappedCustomer.id, longId)).map(_.mCustomerId.get).getOrElse(longId.toString)
+    MappedCustomer.findByPrimaryKey(longId).map(_.customerId).getOrElse(longId.toString)
 
   private def rowOf(r: (Long, String, String, String)): TaxResidenceRow =
     TaxResidenceRow(
@@ -51,11 +50,11 @@ object DoobieTaxResidenceProvider extends TaxResidenceProvider {
     fr"SELECT mcustomerid, mtaxresidenceid, mdomain, mtaxnumber FROM mappedtaxresidence"
 
   override def getTaxResidence(customerId: String): Future[Box[List[TaxResidence]]] = Future {
-    MappedCustomer.find(By(MappedCustomer.mCustomerId, customerId)) match {
+    MappedCustomer.findByCustomerId(customerId) match {
       case Full(customer) =>
         Full(
           DoobieUtil.runQuery(
-            (selectCols ++ fr"WHERE mcustomerid = ${customer.id.get}")
+            (selectCols ++ fr"WHERE mcustomerid = ${customer.customerPrimaryKey}")
               .query[(Long, String, String, String)].to[List]
           ).map(rowOf)
         )
@@ -65,13 +64,13 @@ object DoobieTaxResidenceProvider extends TaxResidenceProvider {
   }
 
   override def createTaxResidence(customerId: String, domain: String, taxNumber: String): Future[Box[TaxResidence]] = Future {
-    MappedCustomer.find(By(MappedCustomer.mCustomerId, customerId)) match {
+    MappedCustomer.findByCustomerId(customerId) match {
       case Full(customer) =>
         tryo {
           val id = APIUtil.generateUUID()
           DoobieUtil.runUpdate(
             sql"""INSERT INTO mappedtaxresidence (mcustomerid, mtaxresidenceid, mdomain, mtaxnumber, createdat, updatedat)
-                  VALUES (${customer.id.get}, $id, $domain, $taxNumber, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"""
+                  VALUES (${customer.customerPrimaryKey}, $id, $domain, $taxNumber, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)"""
               .update.run)
           TaxResidenceRow(customerId, id, domain, taxNumber)
         }
