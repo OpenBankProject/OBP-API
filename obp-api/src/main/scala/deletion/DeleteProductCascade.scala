@@ -56,10 +56,7 @@ object DeleteProductCascade {
     } forall (_ == true)
   }
   private def deleteProduct(bankId: BankId, code: ProductCode): Boolean = {
-    MappedProduct.bulkDelete_!!(
-      By(MappedProduct.mBankId, bankId.value),
-      By(MappedProduct.mCode, code.value)
-    )
+    MappedProduct.delete(bankId.value, code.value)
   }
   private def deleteProductFee(bankId: BankId, code: ProductCode): Boolean = {
     ProductFee.deleteByBankIdAndProductCode(bankId.value, code.value)

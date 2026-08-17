@@ -9,7 +9,6 @@ import doobie._
 import doobie.implicits._
 import doobie.implicits.javasql._
 import net.liftweb.common.Box
-import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.tryo
 
 import scala.concurrent.Future
@@ -63,10 +62,8 @@ object MappedProductCollectionItemProvider extends ProductCollectionItemProvider
     tryo {
       MappedProductCollectionItem.findAllByCollectionCode(collectionCode) map {
         productCollectionItem =>
-          val product = MappedProduct.find(
-            By(MappedProduct.mBankId, bankId),
-            By(MappedProduct.mCode, productCollectionItem.memberProductCode)
-          ).openOrThrowException("There is no product")
+          val product = MappedProduct.find(bankId, productCollectionItem.memberProductCode)
+            .openOrThrowException("There is no product")
           val attributes: List[ProductAttribute] =
             DoobieProductAttributeProvider.getProductAttributesSync(bankId, product.code.value)
           val xxx: (ProductCollectionItem, MappedProduct, List[ProductAttribute]) = (productCollectionItem, product, attributes)

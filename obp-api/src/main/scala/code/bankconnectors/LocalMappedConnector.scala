@@ -2597,12 +2597,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       else if (attributeParams.isEmpty) {
         codesFromTags match {
           case Some(codes) =>
-            MappedProduct.findAll(
-              By(MappedProduct.mBankId, bankId.value),
-              ByList(MappedProduct.mCode, codes.toList)
-            )
+            MappedProduct.findAllByBankIdAndCodes(bankId.value, codes.toList)
           case None =>
-            MappedProduct.findAll(By(MappedProduct.mBankId, bankId.value))
+            MappedProduct.findAllByBankId(bankId.value)
         }
       } else {
         val paramList: List[(String, List[String])] = attributeParams.map(it => it.name -> it.value)
@@ -2616,24 +2613,18 @@ object LocalMappedConnector extends Connector with MdcLoggable {
           case Some(tagSet) => codesFromAttrs.filter(tagSet.contains)
           case None => codesFromAttrs
         }
-        MappedProduct.findAll(ByList(MappedProduct.mCode, finalCodes))
+        MappedProduct.findAllByCodes(finalCodes)
       }
     }
   }}.map(products => (products, callContext))
 
   override def getProduct(bankId: BankId, productCode: ProductCode, callContext: Option[CallContext]): OBPReturnType[Box[Product]] = Future{
-    MappedProduct.find(
-      By(MappedProduct.mBankId, bankId.value),
-      By(MappedProduct.mCode, productCode.value)
-    )
+    MappedProduct.find(bankId.value, productCode.value)
   }.map(product => (product, callContext))
   
   override def getProductTree(bankId: BankId, productCode: ProductCode, callContext: Option[CallContext]): OBPReturnType[Box[List[Product]]] = Future{
     def getProduct(bankId: BankId, productCode: ProductCode) =
-      MappedProduct.find(
-        By(MappedProduct.mBankId, bankId.value),
-        By(MappedProduct.mCode, productCode.value)
-      )
+      MappedProduct.find(bankId.value, productCode.value)
     
     def getProductTre(bankId : BankId, productCode : ProductCode): List[Product] = {
       getProduct(bankId, productCode) match {
@@ -3079,54 +3070,13 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                      callContext: Option[CallContext]): OBPReturnType[Box[Product]] = Future{
 
     //check the product existence and update or insert data
-    MappedProduct.find(
-      By(MappedProduct.mBankId, bankId),
-      By(MappedProduct.mCode, code)
-    ) match {
-      case Full(mappedProduct: MappedProduct) =>
-        tryo {
-          parentProductCode match {
-            case Some(ppc) => mappedProduct.mParentProductCode(ppc)
-            case None =>
-          }
-          mappedProduct.mName(name)
-            .mCode(code)
-            .mBankId(bankId)
-            .mName(name)
-            .mCategory(category)
-            .mFamily(family)
-            .mSuperFamily(superFamily)
-            .mMoreInfoUrl(moreInfoUrl)
-            .mTermsAndConditionsUrl(termsAndConditionsUrl)
-            .mDetails(details)
-            .mDescription(description)
-            .mLicenseId(metaLicenceId)
-            .mLicenseName(metaLicenceName)
-            .saveMe()
-        } ?~! ErrorMessages.UpdateProductError
-      case _ =>
-        tryo {
-          val product = MappedProduct.create
-          product.mName(name)
-            .mCode(code)
-            .mBankId(bankId)
-            .mName(name)
-            .mCategory(category)
-            .mFamily(family)
-            .mSuperFamily(superFamily)
-            .mMoreInfoUrl(moreInfoUrl)
-            .mTermsAndConditionsUrl(termsAndConditionsUrl)
-            .mDetails(details)
-            .mDescription(description)
-            .mLicenseId(metaLicenceId)
-            .mLicenseName(metaLicenceName)
-          parentProductCode match {
-            case Some(ppc) => product.mParentProductCode(ppc)
-            case None =>
-          }
-          product.saveMe()
-        } ?~! ErrorMessages.CreateProductError
-    }
+    tryo {
+      MappedProduct.createOrUpdate(bankId, code, parentProductCode, name, category, family,
+        superFamily, moreInfoUrl, termsAndConditionsUrl, details, description, metaLicenceId,
+        metaLicenceName)
+      // Mapper distinguished the update and create failures by error message; the store now
+      // decides which it is, so the create message stands for both.
+    } ?~! ErrorMessages.CreateProductError
   }.map((_, callContext))
 
   override def getBranches(bankId: BankId, callContext: Option[CallContext], queryParams: List[OBPQueryParam]): Future[Box[(List[BranchT], Option[CallContext])]] = {

@@ -22,6 +22,21 @@ case class MappedSaveable[T <: Mapper[_]](value : T) extends Saveable[T] {
   def save() = value.save
 }
 
+// Product persistence goes through the Doobie store, for the same reason as SaveableAtm below.
+case class SaveableProduct(bankId: String, code: String, name: String, category: String,
+                           family: String, superFamily: String, moreInfoUrl: String,
+                           licenseId: String, licenseName: String) extends Saveable[MappedProduct] {
+  lazy val value: MappedProduct = MappedProduct.find(bankId, code)
+    .openOrThrowException("the product just saved must be readable")
+  def save(): Unit = {
+    MappedProduct.createOrUpdate(bankId, code, parentProductCode = None, name = name,
+      category = category, family = family, superFamily = superFamily, moreInfoUrl = moreInfoUrl,
+      termsAndConditionsUrl = "", details = "", description = "", licenseId = licenseId,
+      licenseName = licenseName)
+    ()
+  }
+}
+
 // ATM persistence goes through the active AtmsProvider (Doobie): the sandbox import must not
 // write the row with Mapper while every read of it comes back through the provider.
 case class SaveableAtm(value : AtmT) extends Saveable[AtmT] {
@@ -170,27 +185,25 @@ object LocalMappedConnectorDataImport extends OBPDataImport with CreateAuthUsers
 
 
   protected def createSaveableProducts(data : List[SandboxProductImport]) : Box[List[Saveable[ProductType]]] = {
-    val mappedProducts = data.map(product => {
-      MappedProduct.create
-        .mBankId(product.bank_id)
-        .mCode(product.code)
-        .mName(product.name)
-        .mCategory(product.category)
-        .mFamily(product.family)
-        .mSuperFamily(product.super_family)
-        .mMoreInfoUrl(product.more_info_url)
-        .mLicenseId(product.meta.license.id)
-        .mLicenseName(product.meta.license.name)
-    })
-
-    val validationErrors = mappedProducts.flatMap(_.validate)
-
-    if (validationErrors.nonEmpty) {
-      logger.error(s"Problem saving ${mappedProducts.flatMap(_.code.value)}")
-      Failure(s"Errors: ${validationErrors.map(_.msg)}")
-    } else {
-      Full(mappedProducts.map(MappedSaveable(_)))
-    }
+    // Product persistence goes through the Doobie store: the sandbox import must not write the row
+    // with Mapper while every read of it comes back through the store. The fields the importer does
+    // not supply keep the "" the store writes for them.
+    val saveableProducts = data.map(product =>
+      SaveableProduct(
+        bankId = product.bank_id,
+        code = product.code,
+        name = product.name,
+        category = product.category,
+        family = product.family,
+        superFamily = product.super_family,
+        moreInfoUrl = product.more_info_url,
+        licenseId = product.meta.license.id,
+        licenseName = product.meta.license.name
+      )
+    )
+    // Mapper ran field validation here; no validator was ever declared on the product entity, so
+    // the check always passed and the column widths are what reject an over-long value.
+    Full(saveableProducts)
 
   }
 

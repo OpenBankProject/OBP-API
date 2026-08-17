@@ -196,6 +196,22 @@ methodName.map(v => fr"methodname = $v")             // null -> throws at bind t
 ```
 This bites hardest on tables read from a hot path where the null case is rare: the targeted suite passes and only the full suite, running a wider set of argument shapes, hits it.
 
+The same trap exists on the **write** side and is easier to miss, because the null is a literal in the
+caller rather than a value that arrived from data. `Http4s310.createProduct` passes
+`termsAndConditionsUrl = null` directly to the connector; Lift's `MappedString` stored that as SQL
+NULL and read it back as null, while a bare `String` binding throws at bind time. Worse, the throw is
+usually swallowed: these writes sit inside `tryo`, so it becomes a `Failure` and surfaces as whatever
+status the endpoint maps that to — the product case reported **404 instead of 201**, with no mention
+of a null anywhere. When migrating a write, grep the endpoints for literal `null` arguments and bind
+every free-text column as `Option`, reading it back with `.orNull`:
+```scala
+sql"... mtermsandconditionsurl = ${Option(termsAndConditionsUrl)} ..."   // null -> SQL NULL, as Lift did
+sql"... mtermsandconditionsurl = $termsAndConditionsUrl ..."             // null -> throws, caught by tryo, wrong status
+```
+Columns that a code path treats as a sentinel are the exception and must stay non-null — e.g.
+`mappedproduct.mparentproductcode`, where `""` terminates `getProductTree`'s walk and a null would
+break it instead of ending it.
+
 **Verifying a Flyway migration is actually doing something — delete it from `target/classes`, not just `src`**: Flyway loads from `classpath:db/migration/<vendor>`, i.e. `obp-api/target/classes/db/migration/h2/`. Maven's `process-resources` copies new files there but never deletes ones you removed from `src`. So the natural way to prove a migration matters — move the `.sql` out of `src` and re-run the test expecting red — gives a **false green**: the stale copy under `target/classes` is still on the classpath and still applies. Remove both:
 ```sh
 rm obp-api/src/main/resources/db/migration/h2/V0NN__*.sql \
