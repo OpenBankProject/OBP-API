@@ -152,7 +152,10 @@ class MigratedTablesExistTest extends ServerSetup {
     "accountaccess",
     "mandate",
     "mandateprovision",
-    "signatorypanel"
+    "signatorypanel",
+    "signingbasket",
+    "signingbasketpayment",
+    "signingbasketconsent"
   )
 
   /**

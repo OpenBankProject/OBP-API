@@ -53,7 +53,6 @@ import code.model.dataAccess._
 import code.obp.grpc.ObpGrpcServer
 import code.scheduler._
 import code.scope.Scope
-import code.signingbaskets.{MappedSigningBasket, MappedSigningBasketConsent, MappedSigningBasketPayment}
 import code.transaction.MappedTransaction
 import code.transactionStatusScheduler.TransactionRequestStatusScheduler
 import code.messageoutbox.MessageOutboxRelay
@@ -846,9 +845,6 @@ class Boot extends MdcLoggable {
 object ToSchemify extends MdcLoggable {
   val models: List[MetaMapper[_]] = List(
     AuthUser,
-    MappedSigningBasket,
-    MappedSigningBasketPayment,
-    MappedSigningBasketConsent,
     MappedBank,
     MappedBankAccount,
     MappedTransaction,

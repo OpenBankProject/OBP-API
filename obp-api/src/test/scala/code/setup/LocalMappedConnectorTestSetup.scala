@@ -332,6 +332,9 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
     DoobieUtil.runUpdate(sql"DELETE FROM mandate".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM mandateprovision".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM signatorypanel".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM signingbasket".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM signingbasketpayment".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM signingbasketconsent".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM mappeduserauthcontextupdate".update.run)
 
     
