@@ -5013,7 +5013,7 @@ object Http4s400 {
             }
             _ <- code.util.Helper.booleanToFuture(CannotFindUserInvitation, 404, Some(cc)) {
               val validUntil = java.util.Calendar.getInstance
-              validUntil.setTime(invitation.createdAt.get)
+              validUntil.setTime(invitation.createdAt)
               validUntil.add(java.util.Calendar.HOUR, 24)
               validUntil.getTime.after(new java.util.Date())
             }

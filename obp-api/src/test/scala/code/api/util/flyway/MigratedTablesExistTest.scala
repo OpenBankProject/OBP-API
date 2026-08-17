@@ -93,7 +93,8 @@ class MigratedTablesExistTest extends ServerSetup {
     "productfee",
     "message_outbox",
     "openidconnecttoken",
-    "useragreement"
+    "useragreement",
+    "userinvitation"
   )
 
   /**
@@ -167,7 +168,8 @@ class MigratedTablesExistTest extends ServerSetup {
     "ENDPOINTTAG" -> "ENDPOINTTAG_ENDPOINTTAGID",
     "APIPRODUCT" -> "APIPRODUCT_BANKID_APIPRODUCTCODE",
     "AMQP_BANK_BROKER" -> "AMQP_BANK_BROKER_BANK_ID",
-    "USERAGREEMENT" -> "USERAGREEMENT_USERAGREEMENTID"
+    "USERAGREEMENT" -> "USERAGREEMENT_USERAGREEMENTID",
+    "USERINVITATION" -> "USERINVITATION_USERINVITATIONID"
   )
 
   Feature("tables owned by Flyway rather than Schemifier") {
