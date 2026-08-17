@@ -189,6 +189,13 @@ grep -l '^class.*extends.*ServerSetup' obp-api/src/test/scala/code/api/v3_1_0/*.
 ```
 Pipe that into `-DwildcardSuites=`. Add `-DfailIfNoTests=false` so an empty match doesn't fail the build. The `extends.*ServerSetup` filter only keeps real suites (skips the abstract base trait itself and any utility helpers in the directory). Don't generate suite names from `basename` — that silently drops suites with class-vs-file name mismatches, which is exactly how a CI failure can slip past a green local run.
 
+**Lift tolerated `null` query parameters; Doobie throws — bind `Option`, not the bare value**: `By(field, null)` in Lift renders `field = NULL`, which matches nothing and quietly returns an empty list. Doobie's `Put` for a non-nullable type instead throws `oops, null` (`doobie.util.Put.unsafeSetNonNullable`), which surfaces as a 500 far from the cause — the async stack trace contains only doobie frames, no OBP ones, so it does not point at the offending query. Callers really do pass nulls inside a `Some`: `getMethodRoutings(Some(methodName), Some(true), Some(bankId))` gets its `bankId` from a reflective scan of connector-method arguments, which yields `Some(null)` when the argument is absent. When migrating a filter whose value can be null, bind it as `Option` so SQL-NULL semantics are preserved:
+```scala
+methodName.map(v => fr"methodname = ${Option(v)}")   // null -> `= NULL`, matches nothing (as Lift did)
+methodName.map(v => fr"methodname = $v")             // null -> throws at bind time, 500s
+```
+This bites hardest on tables read from a hot path where the null case is rare: the targeted suite passes and only the full suite, running a wider set of argument shapes, hits it.
+
 **Verifying a Flyway migration is actually doing something — delete it from `target/classes`, not just `src`**: Flyway loads from `classpath:db/migration/<vendor>`, i.e. `obp-api/target/classes/db/migration/h2/`. Maven's `process-resources` copies new files there but never deletes ones you removed from `src`. So the natural way to prove a migration matters — move the `.sql` out of `src` and re-run the test expecting red — gives a **false green**: the stale copy under `target/classes` is still on the classpath and still applies. Remove both:
 ```sh
 rm obp-api/src/main/resources/db/migration/h2/V0NN__*.sql \

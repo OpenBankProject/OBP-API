@@ -71,7 +71,6 @@ import code.kycmedias.MappedKycMedia
 import code.kycstatuses.MappedKycStatus
 import code.meetings.{MappedMeeting, MappedMeetingInvitee}
 import code.metadata.counterparties.{MappedCounterparty, MappedCounterpartyBespoke, MappedCounterpartyMetadata, MappedCounterpartyWhereTag}
-import code.methodrouting.MethodRouting
 import code.metrics.{MappedConnectorMetric, MappedMetric, MetricArchive}
 import code.model._
 import code.model.dataAccess._
@@ -910,7 +909,6 @@ object ToSchemify extends MdcLoggable {
     BankAccountNotificationWebhook,
     MappedConsent,
     ConsentRequest,
-    MethodRouting,
     EndpointMapping,
     DynamicEntity,
     DynamicData,

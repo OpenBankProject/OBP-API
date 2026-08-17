@@ -25,7 +25,6 @@ class MappedClassNameTest extends AnyFeatureSpec {
   }
 
   val oldMappedTypeNames = Set("code.transactionrequests.MappedTransactionRequest",
-    "code.methodrouting.MethodRouting",
     "code.metadata.tags.MappedTag",
     "code.model.Token",
     "code.transaction.MappedTransaction",
