@@ -4103,7 +4103,7 @@ object Http4s510 {
           for {
             (viewPermission, _) <- ViewNewStyle.findSystemViewPermission(viewId, permissionName, Some(cc))
             _ <- Helper.booleanToFuture(s"$DeleteViewPermissionError The current value is $permissionName", 400, Some(cc)) {
-              viewPermission.delete_!
+              ViewPermission.deleteRow(viewPermission)
             }
           } yield true
         }

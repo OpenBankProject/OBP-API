@@ -226,6 +226,20 @@ of each identifier whether some row in the domain legitimately lacks it. Binding
 costs nothing when the value is never null; getting it wrong costs a full-suite round trip and a
 stack trace with no OBP frames in it.
 
+**`Option` is not enough on its own: `Some(null)` still throws.** Doobie's `Put` for `Option[A]`
+writes SQL NULL only for `None` — a `Some` is unwrapped and its contents handed to the non-nullable
+`Put`, so `Some(null)` fails exactly like a bare null. This bites when the Option is built from a
+domain value rather than from a literal: `Some(view.bankId.value)` is `Some(null)` for a SYSTEM
+view, and `getMethodRoutings(..., Some(bankId))` is `Some(null)` when the reflected argument is
+absent. Collapse it before binding:
+```scala
+value.flatMap(Option(_)) match {          // Some(null) -> None -> `IS NULL`, as Lift rendered it
+  case Some(v) => column ++ fr" = $v"
+  case None    => column ++ fr" IS NULL"
+}
+```
+Wrapping at the binding site (`${Option(v)}`) does the same job for a bare `String` parameter.
+
 **Verifying a Flyway migration is actually doing something — delete it from `target/classes`, not just `src`**: Flyway loads from `classpath:db/migration/<vendor>`, i.e. `obp-api/target/classes/db/migration/h2/`. Maven's `process-resources` copies new files there but never deletes ones you removed from `src`. So the natural way to prove a migration matters — move the `.sql` out of `src` and re-run the test expecting red — gives a **false green**: the stale copy under `target/classes` is still on the classpath and still applies. Remove both:
 ```sh
 rm obp-api/src/main/resources/db/migration/h2/V0NN__*.sql \

@@ -1291,10 +1291,10 @@ object JSONFactory510 extends CustomJsonFormats with MdcLoggable {
   }
 
   def createViewPermissionJson(viewPermission: ViewPermission): ViewPermissionJson = {
-    val value = viewPermission.extraData.get
+    val value = viewPermission.extraData.orNull
     ViewPermissionJson(
-      viewPermission.view_id.get,
-      viewPermission.permission.get,
+      viewPermission.viewId,
+      viewPermission.permission,
       if(value == null || value.isEmpty) None else Some(value.split(",").toList)
     )
   }

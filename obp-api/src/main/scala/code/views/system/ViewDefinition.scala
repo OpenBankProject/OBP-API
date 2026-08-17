@@ -115,7 +115,7 @@ class ViewDefinition extends View with LongKeyedMapper[ViewDefinition] with Many
   }
   
   def deleteViewPermissions = {
-    ViewPermission.findViewPermissions(this).map(_.delete_!)
+    ViewPermission.findViewPermissions(this).map(ViewPermission.deleteRow)
   }
 
   
@@ -141,7 +141,7 @@ class ViewDefinition extends View with LongKeyedMapper[ViewDefinition] with Many
   def usePublicAliasIfOneExists: Boolean = usePublicAliasIfOneExists_.get
   def hideOtherAccountMetadataIfAlias: Boolean = hideOtherAccountMetadataIfAlias_.get
 
-  override def allowed_actions : List[String] = ViewPermission.findViewPermissions(this).map(_.permission.get).distinct
+  override def allowed_actions : List[String] = ViewPermission.findViewPermissions(this).map(_.permission).distinct
 
   override def canGrantAccessToViews : Option[List[String]] = {
    ViewPermission.findViewPermission(this, CAN_GRANT_ACCESS_TO_VIEWS).flatMap(vp => 

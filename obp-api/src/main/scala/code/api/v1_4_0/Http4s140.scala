@@ -327,7 +327,7 @@ object Http4s140 {
               s"$ViewDoesNotPermitAccess You need the `$CAN_SEE_TRANSACTION_REQUEST_TYPES` permission on the View(${view.viewId.value})",
               cc = Some(cc)
             ) {
-              ViewPermission.findViewPermissions(view).exists(_.permission.get == CAN_SEE_TRANSACTION_REQUEST_TYPES)
+              ViewPermission.findViewPermissions(view).exists(_.permission == CAN_SEE_TRANSACTION_REQUEST_TYPES)
             }
             (transactionRequestTypes, cc2) <- Future {
               connectorEmptyResponse(

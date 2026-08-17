@@ -33,7 +33,7 @@ class MakerCheckerTransactionRequestTest extends V400ServerSetup with DefaultUse
   def removeMakerCheckerPermissionFromOwnerView(): Unit = {
     val viewId = ViewId(SYSTEM_OWNER_VIEW_ID)
     ViewPermission.findSystemViewPermission(viewId, CAN_BYPASS_MAKER_CHECKER_SEPARATION)
-      .foreach(_.delete_!)
+      .foreach(ViewPermission.deleteRow)
   }
 
   /**

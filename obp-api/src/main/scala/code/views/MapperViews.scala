@@ -810,13 +810,15 @@ object MapperViews extends Views with MdcLoggable {
       By(ViewDefinition.bank_id, bankId.value),
       By(ViewDefinition.account_id, accountId.value)
     )
-    ViewPermission.bulkDelete_!!()
+    // Deletes EVERY view permission, not just this account's — pre-existing over-reach, preserved.
+    ViewPermission.deleteAll()
+    true
   }
 
   def bulkDeleteAllViewsAndAccountAccessAndViewPermission() : Boolean = {
     ViewDefinition.bulkDelete_!!()
     AccountAccess.bulkDelete_!!()
-    ViewPermission.bulkDelete_!!()
+    ViewPermission.deleteAll()
     true
   }
 
@@ -977,7 +979,7 @@ object MapperViews extends Views with MdcLoggable {
   def factoryResetSystemView(viewId: ViewId): Box[View] = {
     ViewDefinition.findSystemView(viewId.value) match {
       case Full(existing) =>
-        ViewPermission.findSystemViewPermissions(viewId).foreach(_.delete_!)
+        ViewPermission.findSystemViewPermissions(viewId).foreach(ViewPermission.deleteRow)
         existing
           .isSystem_(true)
           .isFirehose_(false)

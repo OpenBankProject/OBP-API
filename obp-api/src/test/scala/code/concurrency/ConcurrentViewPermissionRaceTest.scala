@@ -129,11 +129,8 @@ class ConcurrentViewPermissionRaceTest extends ConcurrentRaceSetup {
         "can_see_transaction_description"
       )
 
-      def permCount: Long = ViewPermission.count(
-        By(ViewPermission.bank_id, bankId.value),
-        By(ViewPermission.account_id, accountId.value),
-        By(ViewPermission.view_id, viewIdStr)
-      )
+      def permCount: Long =
+        ViewPermission.count(Some(bankId.value), Some(accountId.value), viewIdStr)
 
       val n = 2
 

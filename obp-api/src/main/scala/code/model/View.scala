@@ -44,9 +44,9 @@ case class ViewExtended(val view: View) extends MdcLoggable {
 
   def getViewPermissions: List[String] =
     if (view.isSystem) {
-      ViewPermission.findSystemViewPermissions(view.viewId).map(_.permission.get)
+      ViewPermission.findSystemViewPermissions(view.viewId).map(_.permission)
     } else {
-      ViewPermission.findCustomViewPermissions(view.bankId, view.accountId, view.viewId).map(_.permission.get)
+      ViewPermission.findCustomViewPermissions(view.bankId, view.accountId, view.viewId).map(_.permission)
     }
 
   def moderateTransaction(transaction : Transaction): Box[ModeratedTransaction] = {

@@ -346,7 +346,7 @@ object Http4s220 {
             _ <- code.util.Helper.booleanToFuture(
               s"${NoViewPermission} You need the `${CAN_GET_COUNTERPARTY}` permission on the View(${view.viewId.value})",
               cc = Some(cc)) {
-              ViewPermission.findViewPermissions(view).exists(_.permission.get == CAN_GET_COUNTERPARTY)
+              ViewPermission.findViewPermissions(view).exists(_.permission == CAN_GET_COUNTERPARTY)
             }
             (counterparties, _) <- NewStyle.function.getCounterparties(account.bankId, account.accountId, view.viewId, Some(cc))
             _ <- code.util.Helper.booleanToFuture(CreateOrUpdateCounterpartyMetadataError, 400, cc = Some(cc)) {
@@ -385,7 +385,7 @@ object Http4s220 {
             _ <- code.util.Helper.booleanToFuture(
               s"${NoViewPermission} You need the `${CAN_GET_COUNTERPARTY}` permission on the View(${view.viewId.value})",
               cc = Some(cc)) {
-              ViewPermission.findViewPermissions(view).exists(_.permission.get == CAN_GET_COUNTERPARTY)
+              ViewPermission.findViewPermissions(view).exists(_.permission == CAN_GET_COUNTERPARTY)
             }
             counterpartyMetadata <- NewStyle.function.getMetadata(
               account.bankId, account.accountId, counterparty.counterpartyId, Some(cc))
@@ -987,7 +987,7 @@ object Http4s220 {
         _ <- code.util.Helper.booleanToFuture(
           s"${NoViewPermission} You need the `${CAN_ADD_COUNTERPARTY}` permission on the View(${view.viewId.value})",
           cc = Some(cc)) {
-          ViewPermission.findViewPermissions(view).exists(_.permission.get == CAN_ADD_COUNTERPARTY)
+          ViewPermission.findViewPermissions(view).exists(_.permission == CAN_ADD_COUNTERPARTY)
         }
         (existingCp, _) <- Connector.connector.vend.checkCounterpartyExists(
           postJson.name, account.bankId.value, account.accountId.value, view.viewId.value, Some(cc))

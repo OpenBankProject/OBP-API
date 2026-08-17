@@ -277,6 +277,7 @@ trait ServerSetup extends AnyFeatureSpec with SendServerRequests
     DoobieUtil.runUpdate(sql"DELETE FROM dynamicdataaccess".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM dynamicentity".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM dynamicdata".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM viewpermission".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM mappeduserauthcontextupdate".update.run)
   }
 

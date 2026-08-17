@@ -222,7 +222,7 @@ class MappedViewsTest extends ServerSetup with DefaultUsers{
         withClue(s"$viewId: ") {
           permissionsOf(viewId) should equal(afterFirst(viewId))
           val rows = ViewPermission.findSystemViewPermissions(ViewId(viewId))
-          rows.map(_.permission.get).distinct.size should equal(rows.size)
+          rows.map(_.permission).distinct.size should equal(rows.size)
         }
       }
     }
