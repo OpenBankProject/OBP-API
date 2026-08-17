@@ -1,6 +1,6 @@
 package code.regulatedentities
 
-import code.regulatedentities.attribute.RegulatedEntityAttribute
+import code.regulatedentities.attribute.DoobieRegulatedEntityAttributeProvider
 import code.util.MappedUUID
 import com.openbankproject.commons.model.{RegulatedEntityAttributeSimple, RegulatedEntityTrait}
 import net.liftweb.common.Box
@@ -123,9 +123,8 @@ class MappedRegulatedEntity extends RegulatedEntityTrait with LongKeyedMapper[Ma
   override def services: String = Services.get
   override def attributes: Option[List[RegulatedEntityAttributeSimple]] = {
     Some(
-      RegulatedEntityAttribute.findAll(
-        By(RegulatedEntityAttribute.RegulatedEntityId_, EntityId.get)
-      ).map(i => RegulatedEntityAttributeSimple(i.attributeType.toString, i.name, i.value))
+      DoobieRegulatedEntityAttributeProvider.getRegulatedEntityAttributesSync(EntityId.get)
+        .map(i => RegulatedEntityAttributeSimple(i.attributeType.toString, i.name, i.value))
     )
   }
 
