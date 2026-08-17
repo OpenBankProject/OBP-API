@@ -48,7 +48,6 @@ import code.consumer.Consumers
 import code.model.Consumer
 import code.customer.MappedCustomer
 import code.dynamicEntity.DynamicEntity
-import code.dynamicResourceDoc.DynamicResourceDoc
 import code.entitlement.{Entitlement, MappedEntitlement}
 import code.metadata.counterparties.{MappedCounterparty, MappedCounterpartyMetadata, MappedCounterpartyWhereTag}
 import code.metrics.{MappedMetric, MetricArchive}
@@ -864,7 +863,6 @@ object ToSchemify extends MdcLoggable {
     DynamicEntity,
     DynamicData,
     DynamicDataAccess,
-    DynamicResourceDoc,
     ViewPermission,
     AccountAccess,
     ViewDefinition,
