@@ -4,7 +4,6 @@ import code.api.util.APIUtil
 import code.api.util.migration.Migration.{DbFunction, saveLog}
 import code.entitlement.MappedEntitlement
 import code.entitlementrequest.MappedEntitlementRequest
-import code.scope.MappedScope
 import net.liftweb.common.Full
 import net.liftweb.mapper.Schemifier
 
@@ -20,7 +19,7 @@ object MigrationOfRoleNameFieldLength {
   def alterRoleNameLength(name: String): Boolean = {
     val entitlementTableExists = DbFunction.tableExists(MappedEntitlement)
     val entitlementRequestTableExists = DbFunction.tableExists(MappedEntitlementRequest)
-    val scopeTableExists = DbFunction.tableExists(MappedScope)
+    val scopeTableExists = DbFunction.tableExistsByName("mappedscope")
 
     if (!entitlementTableExists || !entitlementRequestTableExists || !scopeTableExists) {
       val startDate = System.currentTimeMillis()

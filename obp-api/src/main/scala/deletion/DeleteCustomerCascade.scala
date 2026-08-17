@@ -92,9 +92,7 @@ object DeleteCustomerCascade {
     ))
   }
   private def deleteAccountApplication(customerId: CustomerId): Boolean = {
-    MappedAccountApplication.bulkDelete_!!(
-      By(MappedAccountApplication.mCustomerId, customerId.value)
-    )
+    MappedAccountApplication.deleteByCustomerId(customerId.value)
   }
   private def deleteCustomerIdMapping(customerId: CustomerId): Boolean = {
     DoobieUtil.runUpdate(

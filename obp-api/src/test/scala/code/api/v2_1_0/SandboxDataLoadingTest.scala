@@ -191,6 +191,11 @@ class SandboxDataLoadingTest extends AnyFlatSpec with SendServerRequests with Ma
     DoobieUtil.runUpdate(sql"DELETE FROM mappedproductcollectionitem".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM directdebit".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM standingorder".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM mappedaccountwebhook".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM bankaccountnotificationwebhook".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM systemaccountnotificationwebhook".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM mappedscope".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM mappedaccountapplication".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM mappeduserauthcontextupdate".update.run)
 
     //we need to delete the test uses manully here.

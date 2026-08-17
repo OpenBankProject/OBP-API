@@ -81,10 +81,7 @@ object DeleteAccountCascade {
     true
   }  
   private def deleteAccountWebhooks(bankId: BankId, accountId: AccountId): Boolean = {
-    MappedAccountWebhook.bulkDelete_!!(
-      By(MappedAccountWebhook.mBankId, bankId.value),
-      By(MappedAccountWebhook.mAccountId, accountId.value)
-    )
+    MappedAccountWebhook.deleteByBankAccount(bankId.value, accountId.value)
   }   
   private def deleteAccountAttributes(bankId: BankId, accountId: AccountId): Boolean = {
     DoobieAccountAttributeProvider.deleteAccountAttributesByBankAndAccount(bankId.value, accountId.value)

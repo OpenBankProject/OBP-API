@@ -32,7 +32,6 @@ import code.DynamicData.DynamicData
 import code.DynamicData.DynamicDataAccess
 import code.DynamicEndpoint.DynamicEndpoint
 import code.abacrule.AbacRule
-import code.accountapplication.MappedAccountApplication
 import code.accountholders.MapperAccountHolders
 import code.actorsystem.ObpActorSystem
 import code.api.Constant._
@@ -72,7 +71,7 @@ import code.products.MappedProduct
 import code.ratelimiting.RateLimiting
 import code.regulatedentities.MappedRegulatedEntity
 import code.scheduler._
-import code.scope.{MappedScope, Scope}
+import code.scope.Scope
 import code.signingbaskets.{MappedSigningBasket, MappedSigningBasketConsent, MappedSigningBasketPayment}
 import code.transaction.MappedTransaction
 import code.transactionChallenge.MappedExpectedChallengeAnswer
@@ -83,7 +82,6 @@ import code.users._
 import code.util.Helper.MdcLoggable
 import code.views.Views
 import code.views.system.{AccountAccess, ViewDefinition, ViewPermission}
-import code.webhook.{BankAccountNotificationWebhook, MappedAccountWebhook, SystemAccountNotificationWebhook}
 import com.openbankproject.commons.model.ErrorMessage
 import com.openbankproject.commons.util.Functions.Implicits._
 import com.openbankproject.commons.util.{ApiVersion, Functions}
@@ -888,9 +886,6 @@ object ToSchemify extends MdcLoggable {
     MappedPhysicalCard,
     PinReset,
     MappedTransactionRequestTypeCharge,
-    MappedAccountWebhook,
-    SystemAccountNotificationWebhook,
-    BankAccountNotificationWebhook,
     MappedConsent,
     ConsentRequest,
     EndpointMapping,
@@ -922,9 +917,7 @@ object ToSchemify extends MdcLoggable {
     MappedConnectorMetric,
     MappedExpectedChallengeAnswer,
     MappedEntitlementRequest,
-    MappedScope,
     MappedCustomerAddress,
-    MappedAccountApplication,
     RateLimiting,
     MappedCustomerDependant,
     RoutingScheme,

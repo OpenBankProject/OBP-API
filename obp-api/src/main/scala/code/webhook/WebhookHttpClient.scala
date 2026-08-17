@@ -35,12 +35,7 @@ object WebhookHttpClient extends MdcLoggable {
   def startEvent(request: WebhookRequestTrait): List[Unit] = {
     logger.debug(s"Query table MappedAccountWebhook by mIsActive, mBankId, mAccountId, mTriggerName: true, ${request.bankId}, ${request.accountId}, ${request.trigger.toString()}" )
     logger.debug("WebhookHttpClient.startEvent(WebhookRequestTrait).request.eventId: " + request.eventId)
-    MappedAccountWebhook.findAll(
-      By(MappedAccountWebhook.mIsActive, true), 
-      By(MappedAccountWebhook.mBankId, request.bankId), 
-      By(MappedAccountWebhook.mAccountId, request.accountId),
-      By(MappedAccountWebhook.mTriggerName, request.trigger.toString())
-    ) map {
+    MappedAccountWebhook.findActiveFor(request.bankId, request.accountId, request.trigger.toString()) map {
       i =>
         logEvent(request)
         logger.debug("WebhookHttpClient.startEvent(WebhookRequestTrait) i.url: " + i.url)
@@ -56,16 +51,13 @@ object WebhookHttpClient extends MdcLoggable {
 
     val accountWebhooks = {
       logger.debug("Finding BankAccountNotificationWebhook with Triggername = " + request.trigger.toString())
-      val bankLevelWebhooks = BankAccountNotificationWebhook.findAll(
-        By(BankAccountNotificationWebhook.BankId, request.bankId),
-        By(BankAccountNotificationWebhook.TriggerName, request.trigger.toString())
-      )
+      val bankLevelWebhooks = BankAccountNotificationWebhook.findAllByBankIdAndTrigger(
+        request.bankId, request.trigger.toString())
       logger.debug(s"Found ${bankLevelWebhooks.size} BankAccountNotificationWebhook with Triggername = " + request.trigger.toString())
       
       logger.debug("Finding SystemAccountNotificationWebhook with Triggername = " + request.trigger.toString())
-      val systemLevelWebhooks = SystemAccountNotificationWebhook.findAll(
-        By(SystemAccountNotificationWebhook.TriggerName, request.trigger.toString())
-      )
+      val systemLevelWebhooks = SystemAccountNotificationWebhook.findAllByTrigger(
+        request.trigger.toString())
       logger.debug(s"Found ${systemLevelWebhooks.size} SystemAccountNotificationWebhook with Triggername = " + request.trigger.toString())
       
       bankLevelWebhooks ++ systemLevelWebhooks

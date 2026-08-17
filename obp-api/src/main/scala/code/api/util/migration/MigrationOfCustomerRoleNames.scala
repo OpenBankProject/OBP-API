@@ -1,9 +1,9 @@
 package code.api.util.migration
 
+import code.scope.MappedScope
 import code.api.util.APIUtil
 import code.api.util.migration.Migration.{DbFunction, saveLog}
 import code.entitlement.MappedEntitlement
-import code.scope.MappedScope
 import net.liftweb.mapper.By
 import net.liftweb.common.{Box, Empty, Full}
 
@@ -28,8 +28,8 @@ object MigrationOfCustomerRoleNames {
         try {
           // Make back up of entitlement and scope tables
           DbFunction.makeBackUpOfTable(MappedEntitlement)
-          if (DbFunction.tableExists(MappedScope)) {
-            DbFunction.makeBackUpOfTable(MappedScope)
+          if (DbFunction.tableExistsByName("mappedscope")) {
+            DbFunction.makeBackUpOfTableByName("mappedscope")
           }
 
           var totalEntitlementsUpdated = 0
@@ -74,8 +74,8 @@ object MigrationOfCustomerRoleNames {
             }
 
             // Process Scopes (if table exists)
-            if (DbFunction.tableExists(MappedScope)) {
-              val oldScopes = MappedScope.findAll(By(MappedScope.mRoleName, oldRoleName))
+            if (DbFunction.tableExistsByName("mappedscope")) {
+              val oldScopes = MappedScope.findAllByRoleName(oldRoleName)
               detailedLog.append(s"Found ${oldScopes.size} scopes with role '$oldRoleName'\n")
 
               oldScopes.foreach { oldScope =>
@@ -83,23 +83,19 @@ object MigrationOfCustomerRoleNames {
                 val consumerId = oldScope.consumerId
 
                 // Check if a scope with the new role name already exists for this consumer/bank combination
-                val existingNewScope = MappedScope.find(
-                  By(MappedScope.mBankId, bankId),
-                  By(MappedScope.mConsumerId, consumerId),
-                  By(MappedScope.mRoleName, newRoleName)
-                )
+                val existingNewScope = MappedScope.find(bankId, consumerId, newRoleName)
 
                 existingNewScope match {
                   case Full(_) =>
                     // New role already exists, delete the old one to avoid duplicates
                     detailedLog.append(s"  Scope already exists for consumer=$consumerId, bank=$bankId, role=$newRoleName - deleting old scope\n")
-                    MappedScope.delete_!(oldScope)
+                    MappedScope.deleteByScopeId(oldScope.scopeId)
                     totalScopesDeleted += 1
 
                   case Empty | _ =>
                     // New role doesn't exist, rename the old one
                     detailedLog.append(s"  Renaming scope for consumer=$consumerId, bank=$bankId: $oldRoleName -> $newRoleName\n")
-                    oldScope.mRoleName(newRoleName).saveMe()
+                    MappedScope.updateRoleName(oldScope.scopeId, newRoleName)
                     totalScopesUpdated += 1
                 }
               }

@@ -111,7 +111,12 @@ class MigratedTablesExistTest extends ServerSetup {
     "mappedproductcollection",
     "mappedproductcollectionitem",
     "directdebit",
-    "standingorder"
+    "standingorder",
+    "mappedaccountwebhook",
+    "bankaccountnotificationwebhook",
+    "systemaccountnotificationwebhook",
+    "mappedscope",
+    "mappedaccountapplication"
   )
 
   /**
@@ -200,7 +205,12 @@ class MigratedTablesExistTest extends ServerSetup {
     "REACTION" -> "REACTION_CHATMESSAGEID_USERID_EMOJI",
     "MAPPEDPRODUCTCOLLECTION" -> "MAPPEDPRODUCTCOLLECTION_MCOLLECTIONCODE_MPRODUCTCODE",
     "MAPPEDPRODUCTCOLLECTIONITEM" -> "MAPPEDPRODUCTCOLLECTIONITEM_MCOLLECTIONCODE_MMEMBERPRODUCTCODE",
-    "DIRECTDEBIT" -> "DIRECTDEBIT_BANKID_ACCOUNTID_CUSTOMERID_COUNTERPARTYID"
+    "DIRECTDEBIT" -> "DIRECTDEBIT_BANKID_ACCOUNTID_CUSTOMERID_COUNTERPARTYID",
+    "MAPPEDACCOUNTWEBHOOK" -> "MAPPEDACCOUNTWEBHOOK_MACCOUNTWEBHOOKID",
+    "BANKACCOUNTNOTIFICATIONWEBHOOK" -> "BANKACCOUNTNOTIFICATIONWEBHOOK_WEBHOOKID",
+    "SYSTEMACCOUNTNOTIFICATIONWEBHOOK" -> "SYSTEMACCOUNTNOTIFICATIONWEBHOOK_WEBHOOKID",
+    "MAPPEDSCOPE" -> "MAPPEDSCOPE_MSCOPEID",
+    "MAPPEDACCOUNTAPPLICATION" -> "MAPPEDACCOUNTAPPLICATION_MACCOUNTAPPLICATIONID"
   )
 
   Feature("tables owned by Flyway rather than Schemifier") {
