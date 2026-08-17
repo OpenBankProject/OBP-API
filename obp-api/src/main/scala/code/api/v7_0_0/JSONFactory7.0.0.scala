@@ -1655,13 +1655,13 @@ object JSONFactory700 extends MdcLoggable with code.api.util.CustomJsonFormats {
         newest_record_age_days = newest.map(metricsAgeInDays(_, now))
       )
 
-    val metricOldest = MappedMetric.findAll(OrderBy(MappedMetric.date, Ascending), MaxRows(1)).headOption.map(_.getDate())
-    val metricNewest = MappedMetric.findAll(OrderBy(MappedMetric.date, Descending), MaxRows(1)).headOption.map(_.getDate())
-    val metricStats  = statsFor("metric", MappedMetric.count, metricOldest, metricNewest)
+    val metricOldest = MappedMetric.oldestDate()
+    val metricNewest = MappedMetric.newestDate()
+    val metricStats  = statsFor("metric", MappedMetric.count(), metricOldest, metricNewest)
 
-    val archiveOldest = MetricArchive.findAll(OrderBy(MetricArchive.date, Ascending), MaxRows(1)).headOption.map(_.getDate())
-    val archiveNewest = MetricArchive.findAll(OrderBy(MetricArchive.date, Descending), MaxRows(1)).headOption.map(_.getDate())
-    val archiveStats  = statsFor("metricarchive", MetricArchive.count, archiveOldest, archiveNewest)
+    val archiveOldest = MetricArchive.oldestDate()
+    val archiveNewest = MetricArchive.newestDate()
+    val archiveStats  = statsFor("metricarchive", MetricArchive.count(), archiveOldest, archiveNewest)
 
     val graceDays = 7L
     val checks = scala.collection.mutable.ListBuffer[MetricsIntegrityCheckJsonV700]()

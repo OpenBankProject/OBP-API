@@ -163,7 +163,9 @@ class MigratedTablesExistTest extends ServerSetup {
     "mappedbank",
     "mappedtransaction",
     "mappedtransactionrequest",
-    "mappedcustomer"
+    "mappedcustomer",
+    "metric",
+    "metricarchive"
   )
 
   /**

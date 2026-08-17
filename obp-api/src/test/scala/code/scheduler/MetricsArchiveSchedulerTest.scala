@@ -31,56 +31,63 @@ class MetricsArchiveSchedulerTest extends ServerSetup {
     // Clean slate: flush any async metric writes, then wipe the three tables and any
     // leftover scheduler lock so runOnce isn't skipped.
     MetricBatchWriter.flush()
-    MappedMetric.bulkDelete_!!()
-    MetricArchive.bulkDelete_!!()
+    MappedMetric.deleteAll()
+    MetricArchive.deleteAll()
     MetricsArchiveRun.bulkDelete_!!()
     JobScheduler.findAllByName(jobName).foreach(JobScheduler.delete)
   }
 
-  private def seedMetric(date: Date, correlationId: String): MappedMetric =
-    MappedMetric.create
-      .userId("user-1")
-      .url("http://example.com/foo")
-      .date(date)
-      .duration(1L)
-      .userName("uname")
-      .appName("app")
-      .developerEmail("dev@example.com")
-      .consumerId("consumer-1")
-      .implementedByPartialFunction("fn")
-      .implementedInVersion("v7.0.0")
-      .verb("GET")
-      .httpCode(200)
-      .correlationId(correlationId)
-      .responseBody("body")
-      .sourceIp("127.0.0.1")
-      .targetIp("127.0.0.1")
-      .apiInstanceId("test")
-      .consentReferenceId("")
-      .saveMe()
+  private def seedMetric(date: Date, correlationId: String): MappedMetric = {
+    val id = MappedMetric.insert(
+      userId = "user-1",
+      url = "http://example.com/foo",
+      date = date,
+      duration = 1L,
+      userName = "uname",
+      appName = "app",
+      developerEmail = "dev@example.com",
+      consumerId = "consumer-1",
+      implementedByPartialFunction = "fn",
+      implementedInVersion = "v7.0.0",
+      verb = "GET",
+      httpCode = 200,
+      correlationId = correlationId,
+      responseBody = "body",
+      sourceIp = "127.0.0.1",
+      targetIp = "127.0.0.1",
+      apiInstanceId = "test",
+      consentReferenceId = "",
+      certificateTrust = null,
+      certificateTrustDetail = null)
+    MappedMetric.findByPrimaryKey(id).openOrThrowException("the metric just seeded must be readable")
+  }
 
-  private def seedArchive(metricId: Long, date: Date): MetricArchive =
-    MetricArchive.create
-      .metricId(metricId)
-      .userId("user-1")
-      .url("http://example.com/foo")
-      .date(date)
-      .duration(1L)
-      .userName("uname")
-      .appName("app")
-      .developerEmail("dev@example.com")
-      .consumerId("consumer-1")
-      .implementedByPartialFunction("fn")
-      .implementedInVersion("v7.0.0")
-      .verb("GET")
-      .httpCode(200)
-      .correlationId(validUuid())
-      .responseBody("body")
-      .sourceIp("127.0.0.1")
-      .targetIp("127.0.0.1")
-      .apiInstanceId("test")
-      .consentReferenceId("")
-      .saveMe()
+  private def seedArchive(metricId: Long, date: Date): MetricArchive = {
+    MetricArchive.upsertByMetricId(
+      metricId = metricId,
+      userId = "user-1",
+      url = "http://example.com/foo",
+      date = date,
+      duration = 1L,
+      userName = "uname",
+      appName = "app",
+      developerEmail = "dev@example.com",
+      consumerId = "consumer-1",
+      implementedByPartialFunction = "fn",
+      implementedInVersion = "v7.0.0",
+      verb = "GET",
+      httpCode = Some(200),
+      correlationId = validUuid(),
+      responseBody = "body",
+      sourceIp = "127.0.0.1",
+      targetIp = "127.0.0.1",
+      apiInstanceId = "test",
+      consentReferenceId = "",
+      certificateTrust = null,
+      certificateTrustDetail = null)
+    MetricArchive.findByMetricId(metricId)
+      .openOrThrowException("the archive row just seeded must be readable")
+  }
 
   Feature("MetricsArchiveScheduler.runOnce") {
 
@@ -92,12 +99,12 @@ class MetricsArchiveSchedulerTest extends ServerSetup {
       outcome shouldBe a[RunCompleted]
 
       Then("the old row is gone from metric and present in the archive")
-      MappedMetric.find(By(MappedMetric.id, oldRow.id.get)).isDefined should equal(false)
-      MetricArchive.find(By(MetricArchive.metricId, oldRow.id.get)).isDefined should equal(true)
+      MappedMetric.findByPrimaryKey(oldRow.metricPrimaryKey).isDefined should equal(false)
+      MetricArchive.findByMetricId(oldRow.metricPrimaryKey).isDefined should equal(true)
 
       And("the recent row is untouched")
-      MappedMetric.find(By(MappedMetric.id, recentRow.id.get)).isDefined should equal(true)
-      MetricArchive.find(By(MetricArchive.metricId, recentRow.id.get)).isDefined should equal(false)
+      MappedMetric.findByPrimaryKey(recentRow.metricPrimaryKey).isDefined should equal(true)
+      MetricArchive.findByMetricId(recentRow.metricPrimaryKey).isDefined should equal(false)
 
       And("the run records exactly one moved row and is successful")
       val run = outcome.asInstanceOf[RunCompleted].run
@@ -112,12 +119,12 @@ class MetricsArchiveSchedulerTest extends ServerSetup {
       outcome shouldBe a[RunCompleted]
 
       Then("the row is moved out of metric and into the archive")
-      MappedMetric.find(By(MappedMetric.id, noCorr.id.get)).isDefined should equal(false)
-      val archived = MetricArchive.find(By(MetricArchive.metricId, noCorr.id.get))
+      MappedMetric.findByPrimaryKey(noCorr.metricPrimaryKey).isDefined should equal(false)
+      val archived = MetricArchive.findByMetricId(noCorr.metricPrimaryKey)
       archived.isDefined should equal(true)
 
       And("the archived copy was given a generated ORIGINALLY_NOT_SET correlation id")
-      archived.openOrThrowException("expected archived row").correlationId.get should startWith("ORIGINALLY_NOT_SET-")
+      archived.openOrThrowException("expected archived row").correlationId should startWith("ORIGINALLY_NOT_SET-")
 
       And("exactly one row was moved")
       outcome.asInstanceOf[RunCompleted].run.rowsMovedToArchive should equal(1)
@@ -131,8 +138,8 @@ class MetricsArchiveSchedulerTest extends ServerSetup {
       outcome shouldBe a[RunCompleted]
 
       Then("the outdated archive row is deleted and the recent one is kept")
-      MetricArchive.find(By(MetricArchive.id, oldArchive.id.get)).isDefined should equal(false)
-      MetricArchive.find(By(MetricArchive.id, recentArchive.id.get)).isDefined should equal(true)
+      MetricArchive.findByPrimaryKey(oldArchive.archivePrimaryKey).isDefined should equal(false)
+      MetricArchive.findByPrimaryKey(recentArchive.archivePrimaryKey).isDefined should equal(true)
 
       And("the run records exactly one deleted archive row")
       outcome.asInstanceOf[RunCompleted].run.rowsDeletedFromArchive should equal(1)
@@ -164,7 +171,7 @@ class MetricsArchiveSchedulerTest extends ServerSetup {
       skipped.jobId should equal(lockJobId)
       skipped.apiInstanceId should equal("other-node")
       MetricsArchiveRun.count should equal(0L)
-      MappedMetric.count should equal(1L)
+      MappedMetric.count() should equal(1L)
     }
 
     Scenario("The run log is capped to the most recent rows (pruneToMostRecent)") {

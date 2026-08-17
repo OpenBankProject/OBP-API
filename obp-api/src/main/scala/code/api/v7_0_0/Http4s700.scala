@@ -778,11 +778,7 @@ object Http4s700 {
               By(code.model.dataAccess.AuthUser.user, user.userPrimaryKey.value)
             )
             userMetrics <- Future {
-              MappedMetric.findAll(
-                By(MappedMetric.userId, userId),
-                OrderBy(MappedMetric.date, Descending),
-                MaxRows(5)
-              )
+              MappedMetric.findNewestByUserId(userId, 5)
             }
             lastActivityDate = userMetrics.headOption.map(_.getDate())
             recentOperationIds = userMetrics.map(_.getImplementedByPartialFunction()).distinct.take(5)

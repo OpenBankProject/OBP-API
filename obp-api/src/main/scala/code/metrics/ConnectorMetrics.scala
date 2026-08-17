@@ -122,6 +122,7 @@ object ConnectorMetrics extends ConnectorMetricsProvider {
   // untouched — and it is preserved verbatim rather than corrected under a storage swap, because
   // any caller relying on it today is relying on the API metrics being cleared.
   override def bulkDeleteConnectorMetrics(): Boolean = {
-    MappedMetric.bulkDelete_!!()
+    MappedMetric.deleteAll()
+    true
   }
 }

@@ -30,7 +30,7 @@ import net.liftweb.mapper.Schemifier
 object MigrationOfMetricCertificateTrust {
 
   def migrate(name: String): Boolean = {
-    DbFunction.tableExists(MappedMetric) match {
+    DbFunction.tableExistsByName("metric") match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
@@ -78,7 +78,7 @@ object MigrationOfMetricCertificateTrust {
         val commitId: String = APIUtil.gitCommit
         val isSuccessful = false
         val endDate = System.currentTimeMillis()
-        val comment: String = s"""${MappedMetric._dbTableNameLC} table does not exist""".stripMargin
+        val comment: String = s"""metric table does not exist""".stripMargin
         saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
         isSuccessful
     }

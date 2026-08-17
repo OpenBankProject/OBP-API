@@ -4534,10 +4534,7 @@ object Http4s600 {
             authUser = code.model.dataAccess.AuthUser.find(
               By(code.model.dataAccess.AuthUser.user, user.userPrimaryKey.value))
             userMetrics <- Future {
-              code.metrics.MappedMetric.findAll(
-                By(code.metrics.MappedMetric.userId, userId),
-                net.liftweb.mapper.OrderBy(code.metrics.MappedMetric.date, net.liftweb.mapper.Descending),
-                net.liftweb.mapper.MaxRows(5))
+              code.metrics.MappedMetric.findNewestByUserId(userId, 5)
             }
             lastActivityDate = userMetrics.headOption.map(_.getDate())
             recentOperationIds = userMetrics.map(_.getImplementedByPartialFunction()).distinct.take(5)

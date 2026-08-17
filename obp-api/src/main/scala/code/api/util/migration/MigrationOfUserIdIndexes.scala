@@ -81,7 +81,7 @@ object MigrationOfUserIdIndexes {
    * Note: The table name is "Metric" (capital M), not "mappedmetric"
    */
   def addIndexOnMappedMetricUserId(name: String): Boolean = {
-    DbFunction.tableExists(MappedMetric) match {
+    DbFunction.tableExistsByName("metric") match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
@@ -137,7 +137,7 @@ object MigrationOfUserIdIndexes {
         val isSuccessful = false
         val endDate = System.currentTimeMillis()
         val comment: String =
-          s"""${MappedMetric._dbTableNameLC} table does not exist. Skipping index creation.""".stripMargin
+          s"""metric table does not exist. Skipping index creation.""".stripMargin
         saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
         isSuccessful
     }

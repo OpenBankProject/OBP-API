@@ -138,9 +138,9 @@ object MetricsArchiveScheduler extends MdcLoggable {
     val days = MetricsProps.retainArchiveMetricsDays
     val someYearsAgo: Date = new Date(currentTime.getTime - (oneDayInMillis * days))
     // Count before deleting so the run log records how many rows were removed.
-    val outdatedCount = MetricArchive.count(By_<=(MetricArchive.date, someYearsAgo)).toInt
+    val outdatedCount = MetricArchive.countOnOrBefore(someYearsAgo).toInt
     // Delete the outdated rows from the table "MetricArchive"
-    MetricArchive.bulkDelete_!!(By_<=(MetricArchive.date, someYearsAgo))
+    MetricArchive.deleteOnOrBefore(someYearsAgo)
     logger.info(s"Bye from MetricsArchiveScheduler.deleteOutdatedRowsFromMetricsArchive (deleted $outdatedCount rows)")
     outdatedCount
   }
@@ -164,11 +164,8 @@ object MetricsArchiveScheduler extends MdcLoggable {
     // permanently occupying the candidate window and stalling the job. copyRowToMetricsArchive
     // now assigns those rows a synthetic "ORIGINALLY_NOT_SET-<uuid>" correlation id so
     // they archive normally instead of accumulating forever in the live table.
-    val candidateMetricRowsToMove: List[MappedMetric] = MappedMetric.findAll(
-      By_<=(MappedMetric.date, someDaysAgo),
-      OrderBy(MappedMetric.date, Ascending),
-      MaxRows(limit)
-    )
+    val candidateMetricRowsToMove: List[MappedMetric] =
+      MappedMetric.findOldestOnOrBefore(someDaysAgo, limit)
     logger.info(s"MetricsArchiveScheduler.conditionalDeleteMetricsRow: ${candidateMetricRowsToMove.length} candidate rows to move")
 
     var moved = 0
@@ -177,8 +174,8 @@ object MetricsArchiveScheduler extends MdcLoggable {
       // Copy first, then delete the source row only if the archive copy both saved
       // and is verifiably readable back by metricId.
       val copied = copyRowToMetricsArchive(i)
-      if (copied && MetricArchive.find(By(MetricArchive.metricId, i.getMetricId())).isDefined) {
-        MappedMetric.bulkDelete_!!(By(MappedMetric.id, i.getMetricId()))
+      if (copied && MetricArchive.findByMetricId(i.getMetricId()).isDefined) {
+        MappedMetric.deleteByPrimaryKey(i.getMetricId())
         moved += 1
       } else {
         failed += 1

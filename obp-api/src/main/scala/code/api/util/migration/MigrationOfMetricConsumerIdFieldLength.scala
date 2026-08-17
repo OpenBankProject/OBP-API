@@ -27,7 +27,7 @@ import net.liftweb.mapper.Schemifier
 object MigrationOfMetricConsumerIdFieldLength {
 
   def alterColumnConsumerIdLength(name: String): Boolean = {
-    DbFunction.tableExists(MappedMetric) match {
+    DbFunction.tableExistsByName("metric") match {
       case true =>
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
@@ -51,13 +51,13 @@ object MigrationOfMetricConsumerIdFieldLength {
         //    so a 250-char id in metric would later fail the archive insert. No view depends
         //    on metricarchive, so this is a plain ALTER.
         val alterArchiveSql =
-          if (DbFunction.tableExists(MetricArchive)) {
+          if (DbFunction.tableExistsByName("metricarchive")) {
             DbFunction.maybeWrite(true, Schemifier.infoF _) { () =>
               if (isSqlServer) "ALTER TABLE metricarchive ALTER COLUMN consumerid varchar(250);"
               else "ALTER TABLE metricarchive ALTER COLUMN consumerid TYPE character varying(250);"
             }
           } else {
-            s"${MetricArchive._dbTableNameLC} table does not exist; skipped"
+            s"metricarchive table does not exist; skipped"
           }
 
         // 4. Recreate v_metric (keep in sync with MigrationOfMetricView.addMetricView).
@@ -101,7 +101,7 @@ object MigrationOfMetricConsumerIdFieldLength {
         val startDate = System.currentTimeMillis()
         val commitId: String = APIUtil.gitCommit
         val endDate = System.currentTimeMillis()
-        val comment: String = s"""${MappedMetric._dbTableNameLC} table does not exist""".stripMargin
+        val comment: String = s"""metric table does not exist""".stripMargin
         saveLog(name, commitId, isSuccessful = false, startDate, endDate, comment)
         false
     }

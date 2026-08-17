@@ -45,7 +45,6 @@ import code.consent.MappedConsent
 import code.consumer.Consumers
 import code.model.Consumer
 import code.entitlement.{Entitlement, MappedEntitlement}
-import code.metrics.{MappedMetric, MetricArchive}
 import code.model._
 import code.model.dataAccess._
 import code.obp.grpc.ObpGrpcServer
@@ -845,8 +844,6 @@ object ToSchemify extends MdcLoggable {
     Consumer,
     Token,
     Nonce,
-    MappedMetric,
-    MetricArchive,
   )
 
   // start grpc server

@@ -11,9 +11,11 @@ import code.model.MappedConsumersProvider
 import code.util.Helper.MdcLoggable
 import code.util.{MappedUUID, UUIDString}
 import com.openbankproject.commons.ExecutionContext.Implicits.global
-import net.liftweb.common.Box
+import doobie._
+import doobie.implicits._
+import doobie.implicits.javasql._
+import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.db.DB
-import net.liftweb.mapper.{Index, _}
 import net.liftweb.util.Helpers.tryo
 import org.apache.commons.lang3.StringUtils
 
@@ -152,42 +154,17 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
                                   responseBody: String, sourceIp: String, targetIp: String,
                                   apiInstanceId: String, consentReferenceId: String,
                                   certificateTrust: String, certificateTrustDetail: String): Boolean = {
-    // Fix: dedup by the source metric's primary key stored in `metricId`, NOT by the
-    // archive's own auto-increment `id`. The two are unrelated id-spaces; matching on
-    // `id` overwrites an unrelated archived row once the archive's id sequence grows
-    // into the live metric id range.
-    val metric = MetricArchive.find(By(MetricArchive.metricId, primaryKey)).getOrElse(MetricArchive.create)
-
-    metric
-      .metricId(primaryKey)
-      .userId(userId)
-      .url(url)
-      .date(date)
-      .duration(duration)
-      .userName(userName)
-      .appName(appName)
-      .developerEmail(developerEmail)
-      .consumerId(consumerId)
-      .implementedByPartialFunction(implementedByPartialFunction)
-      .implementedInVersion(implementedInVersion)
-      .verb(verb)
-      .correlationId(correlationId)
-      .responseBody(responseBody)
-      .sourceIp(sourceIp)
-      .targetIp(targetIp)
-      .apiInstanceId(apiInstanceId)
-      .consentReferenceId(consentReferenceId)
-      .certificateTrust(certificateTrust)
-      .certificateTrustDetail(certificateTrustDetail)
-
-    httpCode match {
-      case Some(code) => metric.httpCode(code)
-      case None =>
-    }
-    // Fix: Lift's .save returns false (it does NOT throw) on a failed insert.
-    // Returning that result lets the caller skip the source-row delete and mark
-    // the run as failed instead of silently stalling.
-    val saved = metric.save
+    // Dedup by the source metric's primary key stored in `metricId`, NOT by the archive's own
+    // auto-increment `id`. The two are unrelated id-spaces; matching on `id` overwrites an
+    // unrelated archived row once the archive's id sequence grows into the live metric id range.
+    //
+    // A failed write comes back as false rather than as an exception, as Lift's save did: the
+    // caller uses that to skip the source-row delete and mark the run as failed instead of
+    // silently stalling.
+    val saved = MetricArchive.upsertByMetricId(primaryKey, userId, url, date, duration, userName,
+      appName, developerEmail, consumerId, implementedByPartialFunction, implementedInVersion,
+      verb, httpCode, correlationId, responseBody, sourceIp, targetIp, apiInstanceId,
+      consentReferenceId, certificateTrust, certificateTrustDetail)
     if (!saved) {
       logger.error(s"saveMetricsArchive: failed to persist MetricArchive row for metricId=$primaryKey (url=$url, date=$date)")
     }
@@ -245,88 +222,15 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
 //  }
 
   //TODO, maybe move to `APIUtil.scala`
- private def getQueryParams(queryParams: List[OBPQueryParam]) = {
-    val limit = queryParams.collect { case OBPLimit(value) => MaxRows[MappedMetric](value) }.headOption
-    val offset = queryParams.collect { case OBPOffset(value) => StartAt[MappedMetric](value) }.headOption
-    val fromDate = queryParams.collect { case OBPFromDate(date) => By_>=(MappedMetric.date, date) }.headOption
-    val toDate = queryParams.collect { case OBPToDate(date) => By_<=(MappedMetric.date, date) }.headOption
-    val ordering = queryParams.collect {
-      case OBPOrdering(field, dir) =>
-        val direction = dir match {
-          case OBPAscending => Ascending
-          case OBPDescending => Descending
-        }
-        field match {
-          case Some(s) if s == "user_id" => OrderBy(MappedMetric.userId, direction)
-          case Some(s) if s == "username" || s == "user_name" => OrderBy(MappedMetric.userName, direction)
-          case Some(s) if s == "developer_email" => OrderBy(MappedMetric.developerEmail, direction)
-          case Some(s) if s == "app_name" => OrderBy(MappedMetric.appName, direction)
-          case Some(s) if s == "url" => OrderBy(MappedMetric.url, direction)
-          case Some(s) if s == "date" => OrderBy(MappedMetric.date, direction)
-          case Some(s) if s == "consumer_id" => OrderBy(MappedMetric.consumerId, direction)
-          case Some(s) if s == "verb" => OrderBy(MappedMetric.verb, direction)
-          case Some(s) if s == "implemented_in_version" => OrderBy(MappedMetric.implementedInVersion, direction)
-          case Some(s) if s == "implemented_by_partial_function" => OrderBy(MappedMetric.implementedByPartialFunction, direction)
-          case Some(s) if s == "correlation_id" => OrderBy(MappedMetric.correlationId, direction)
-          case Some(s) if s == "duration" => OrderBy(MappedMetric.duration, direction)
-          case Some(s) if s == "http_status_code" => OrderBy(MappedMetric.httpCode, direction)
-          case _ => OrderBy(MappedMetric.date, Descending)
-        }
-    }
-    // he optional variables:
-    val consumerId = queryParams.collect { case OBPConsumerId(value) => By(MappedMetric.consumerId, value)}.headOption
-    val bankId = queryParams.collect { case OBPBankId(value) => Like(MappedMetric.url, s"%banks/$value%") }.headOption
-    val userId = queryParams.collect { case OBPUserId(value) => By(MappedMetric.userId, value) }.headOption
-    val url = queryParams.collect { case OBPUrl(value) => By(MappedMetric.url, value) }.headOption
-    val appName = queryParams.collect { case OBPAppName(value) => By(MappedMetric.appName, value) }.headOption
-    val implementedInVersion = queryParams.collect { case OBPImplementedInVersion(value) => By(MappedMetric.implementedInVersion, value) }.headOption
-    val implementedByPartialFunction = queryParams.collect { case OBPImplementedByPartialFunction(value) => By(MappedMetric.implementedByPartialFunction, value) }.headOption
-    val verb = queryParams.collect { case OBPVerb(value) => By(MappedMetric.verb, value) }.headOption
-    val correlationId = queryParams.collect { case OBPCorrelationId(value) => By(MappedMetric.correlationId, value) }.headOption
-    val duration = queryParams.collect { case OBPDuration(value) => By_>(MappedMetric.duration, value) }.headOption
-    val httpStatusCode = queryParams.collect { case OBPHttpStatusCode(value) => By(MappedMetric.httpCode, value) }.headOption
-    val consentReferenceId = queryParams.collect { case OBPConsentReferenceId(value) => By(MappedMetric.consentReferenceId, value) }.headOption
-    val certificateTrust = queryParams.collect { case OBPCertificateTrust(value) => By(MappedMetric.certificateTrust, value) }.headOption
-    val anon = queryParams.collect {
-      case OBPAnon(true) => By(MappedMetric.userId, "null")
-      case OBPAnon(false) => NotBy(MappedMetric.userId, "null")
-    }.headOption
-    val excludeAppNames = queryParams.collect { 
-      case OBPExcludeAppNames(values) => 
-        values.map(NotBy(MappedMetric.appName, _)) 
-    }.headOption
-
-    Seq(
-      offset.toSeq,
-      fromDate.toSeq,
-      toDate.toSeq,
-      ordering,
-      consumerId.toSeq,
-      userId.toSeq,
-      bankId.toSeq,
-      url.toSeq,
-      appName.toSeq,
-      implementedInVersion.toSeq,
-      implementedByPartialFunction.toSeq,
-      verb.toSeq,
-      limit.toSeq,
-      correlationId.toSeq,
-      duration.toSeq,
-      httpStatusCode.toSeq,
-      consentReferenceId.toSeq,
-      certificateTrust.toSeq,
-      anon.toSeq,
-      excludeAppNames.toSeq.flatten
-    ).flatten
-  }
+  private def getQueryParams(queryParams: List[OBPQueryParam]): MetricQuery =
+    MetricQuery.fromQueryParams(queryParams)
 
   // TODO Cache this as long as fromDate and toDate are in the past (before now)
   override def getAllMetrics(queryParams: List[OBPQueryParam]): List[APIMetric] = {
     val cacheKey = ("code.metrics.MappedMetrics", "getAllMetrics", List(queryParams).mkString("_"))
       val cacheTTL = determineMetricsCacheTTL(queryParams)
       Caching.memoizeSyncWithProvider(Some(cacheKey.toString()))(cacheTTL.seconds){
-        val optionalParams = getQueryParams(queryParams)
-        MappedMetric.findAll(optionalParams: _*)
+        MappedMetric.findAll(getQueryParams(queryParams))
     }
   }
   
@@ -478,7 +382,8 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
   }
   
   override def bulkDeleteMetrics(): Boolean = {
-    MappedMetric.bulkDelete_!!()
+    MappedMetric.deleteAll()
+    true
   }
 
   // Smart caching applied - uses determineMetricsCacheTTL based on query date range
@@ -617,175 +522,456 @@ object MappedMetrics extends APIMetrics with MdcLoggable{
 
 }
 
-class MappedMetric extends APIMetric with LongKeyedMapper[MappedMetric] with IdPK {
+/**
+ * The filters, paging and ordering a metrics read carries.
+ *
+ * Kept as a value rather than as SQL because it also goes into the cache key for the read, so two
+ * requests asking for different pages, ranges or filters cannot share a cached answer.
+ */
+case class MetricQuery(
+  limit: Option[Int],
+  offset: Option[Int],
+  fromDate: Option[Date],
+  toDate: Option[Date],
+  orderBy: Option[(String, Boolean)],
+  consumerId: Option[String],
+  bankId: Option[String],
+  userId: Option[String],
+  url: Option[String],
+  appName: Option[String],
+  implementedInVersion: Option[String],
+  implementedByPartialFunction: Option[String],
+  verb: Option[String],
+  correlationId: Option[String],
+  durationGreaterThan: Option[Long],
+  httpStatusCode: Option[Int],
+  consentReferenceId: Option[String],
+  certificateTrust: Option[String],
+  anon: Option[Boolean],
+  excludeAppNames: Option[List[String]]
+)
 
-  override def getSingleton: code.metrics.MappedMetric.type = MappedMetric
+object MetricQuery {
 
-  object userId extends UUIDString(this)
-  object url extends MappedString(this, 2000) // TODO Introduce / use class for Mapped URLs
-  object date extends MappedDateTime(this)
-  object duration extends MappedLong(this)
-  object userName extends MappedString(this, 64) // TODO constrain source value length / truncate value on insert
-  object appName extends MappedString(this, 64) // TODO constrain source value length / truncate value on insert
-  object developerEmail extends MappedString(this, 64) // TODO constrain source value length / truncate value on insert
+  /** The column an OBPOrdering field name selects; anything unrecognised falls back to date. */
+  private val orderableColumns: Map[String, String] = Map(
+    "user_id" -> "userid",
+    "username" -> "username",
+    "user_name" -> "username",
+    "developer_email" -> "developeremail",
+    "app_name" -> "appname",
+    "url" -> "url",
+    "date" -> "date_c",
+    "consumer_id" -> "consumerid",
+    "verb" -> "verb",
+    "implemented_in_version" -> "implementedinversion",
+    "implemented_by_partial_function" -> "implementedbypartialfunction",
+    "correlation_id" -> "correlationid",
+    "duration" -> "duration",
+    "http_status_code" -> "httpcode")
 
-  //The consumerId, Foreign key to Consumer not key.
-  // 250 to match Consumer.consumerId: OAuth2/OIDC auto-created consumers get a composed
-  // id of the form `${azp}_${uuid}` (OAuth.scala getOrCreateConsumer), which for public
-  // providers (e.g. a ~72-char Google client id) exceeds the old UUIDString(44) width.
-  object consumerId extends MappedString(this, 250)
-  //name of the Scala Partial Function being used for the endpoint
-  object implementedByPartialFunction  extends MappedString(this, 128)
-  //name of version where the call is implemented) -- S.request.get.view
-  object implementedInVersion  extends MappedString(this, 16)
-  //(GET, POST etc.) --S.request.get.requestType
-  object verb extends MappedString(this, 16)
-  object httpCode extends MappedInt(this)
-  // NOT necessarily a UUID, despite the generateUUID default. When the caller sends
-  // an `X-Request-ID` header (mandatory for Berlin Group / PSD2, optional elsewhere)
-  // that value is adopted verbatim as the correlation id (see APIUtil.scala ~2959),
-  // echoed back as the `Correlation-Id` response header. It is client-controlled and
-  // free-form on non-Berlin-Group paths, hence the generous 256 width. The archive
-  // copy (MetricArchive.correlationId) MUST keep the same width or the archiver fails.
-  object correlationId extends MappedString(this, 256) {
-    override def dbNotNull_? = true
-    override def defaultValue = generateUUID()
-  }
-  object responseBody extends MappedText(this)
-  object sourceIp extends MappedString(this, 64)
-  object targetIp extends MappedString(this, 64)
-  object apiInstanceId extends MappedString(this, 255)
-  // Set when the request was authenticated via a consent. Null otherwise.
-  object consentReferenceId extends MappedString(this, 36) {
-    override def dbColumnName = "consent_reference_id"
-    override def defaultValue: Null = null
-  }
-  // How the caller's certificate was established (PeerTrust.Resolution.mode): "direct",
-  // "forwarded" or "none". Null when the request carried no certificate material at all.
-  // Not indexed: three values combined with the indexed date range is selective enough.
-  object certificateTrust extends MappedString(this, 32) {
-    override def dbColumnName = "certificate_trust"
-    override def defaultValue: Null = null
-  }
-  // The specifics behind certificateTrust (PeerTrust.Resolution.detail): the forwarding proxy's
-  // canonical subject DN for "forwarded", the rejection reason for "none". Null for "direct".
-  object certificateTrustDetail extends MappedString(this, 255) {
-    override def dbColumnName = "certificate_trust_detail"
-    override def defaultValue: Null = null
-  }
+  def columnFor(field: Option[String]): Option[String] = field.flatMap(orderableColumns.get)
 
-  override def getMetricId(): Long = id.get
-  override def getUrl(): String = url.get
-  override def getDate(): Date = date.get
-  override def getDuration(): Long = duration.get
-  override def getUserId(): String = userId.get
-  override def getUserName(): String = userName.get
-  override def getAppName(): String = appName.get
-  override def getDeveloperEmail(): String = developerEmail.get
-  override def getConsumerId(): String = consumerId.get
-  override def getImplementedByPartialFunction(): String = implementedByPartialFunction.get
-  override def getImplementedInVersion(): String = implementedInVersion.get
-  override def getVerb(): String = verb.get
-  override def getHttpCode(): Int = httpCode.get
-  override def getCorrelationId(): String = correlationId.get
-  override def getResponseBody(): String = responseBody.get
-  override def getSourceIp(): String = sourceIp.get
-  override def getTargetIp(): String = targetIp.get
-  override def getApiInstanceId(): String = apiInstanceId.get
-  override def getConsentReferenceId(): String = consentReferenceId.get
-  override def getCertificateTrust(): String = certificateTrust.get
-  override def getCertificateTrustDetail(): String = certificateTrustDetail.get
+  def fromQueryParams(queryParams: List[OBPQueryParam]): MetricQuery =
+    MetricQuery(
+      limit = queryParams.collect { case OBPLimit(value) => value }.headOption,
+      offset = queryParams.collect { case OBPOffset(value) => value }.headOption,
+      fromDate = queryParams.collect { case OBPFromDate(date) => date }.headOption,
+      toDate = queryParams.collect { case OBPToDate(date) => date }.headOption,
+      // An unrecognised sort field falls back to date descending regardless of the direction
+      // asked for, which is what the Mapper translation did.
+      orderBy = queryParams.collect {
+        case OBPOrdering(field, direction) =>
+          columnFor(field) match {
+            case Some(column) => (column, direction == OBPAscending)
+            case None => ("date_c", false)
+          }
+      }.headOption,
+      consumerId = queryParams.collect { case OBPConsumerId(value) => value }.headOption,
+      bankId = queryParams.collect { case OBPBankId(value) => value }.headOption,
+      userId = queryParams.collect { case OBPUserId(value) => value }.headOption,
+      url = queryParams.collect { case OBPUrl(value) => value }.headOption,
+      appName = queryParams.collect { case OBPAppName(value) => value }.headOption,
+      implementedInVersion = queryParams.collect { case OBPImplementedInVersion(value) => value }.headOption,
+      implementedByPartialFunction = queryParams.collect { case OBPImplementedByPartialFunction(value) => value }.headOption,
+      verb = queryParams.collect { case OBPVerb(value) => value }.headOption,
+      correlationId = queryParams.collect { case OBPCorrelationId(value) => value }.headOption,
+      durationGreaterThan = queryParams.collect { case OBPDuration(value) => value.toLong }.headOption,
+      httpStatusCode = queryParams.collect { case OBPHttpStatusCode(value) => value }.headOption,
+      consentReferenceId = queryParams.collect { case OBPConsentReferenceId(value) => value }.headOption,
+      certificateTrust = queryParams.collect { case OBPCertificateTrust(value) => value }.headOption,
+      anon = queryParams.collect { case OBPAnon(value) => value }.headOption,
+      excludeAppNames = queryParams.collect { case OBPExcludeAppNames(values) => values }.headOption)
 }
 
-object MappedMetric extends MappedMetric with LongKeyedMetaMapper[MappedMetric] {
-  // Please note that the old table name was "MappedMetric"
-  // Renaming implications:
-  //   - at an existing sandbox the table "MappedMetric" still exists with rows until this change is deployed at it
-  //     and new rows are stored in the table "Metric"
-  //   - at a fresh sandbox there is no the table "MappedMetric", only "Metric" is present
-  override def dbTableName = "Metric" // define the DB table name
-  override def dbIndexes = Index(date) :: Index(consumerId) :: Index(consentReferenceId) :: super.dbIndexes
+/** One request served, as the metrics API reads it back. */
+case class MappedMetric(
+  metricPrimaryKey: Long,
+  userId: String,
+  url: String,
+  date: Date,
+  duration: Long,
+  userName: String,
+  appName: String,
+  developerEmail: String,
+  consumerId: String,
+  implementedByPartialFunction: String,
+  implementedInVersion: String,
+  verb: String,
+  httpCode: Int,
+  correlationId: String,
+  responseBody: String,
+  sourceIp: String,
+  targetIp: String,
+  apiInstanceId: String,
+  consentReferenceId: String,
+  certificateTrust: String,
+  certificateTrustDetail: String
+) extends APIMetric {
+  override def getMetricId(): Long = metricPrimaryKey
+  override def getUrl(): String = url
+  override def getDate(): Date = date
+  override def getDuration(): Long = duration
+  override def getUserId(): String = userId
+  override def getUserName(): String = userName
+  override def getAppName(): String = appName
+  override def getDeveloperEmail(): String = developerEmail
+  override def getConsumerId(): String = consumerId
+  override def getImplementedByPartialFunction(): String = implementedByPartialFunction
+  override def getImplementedInVersion(): String = implementedInVersion
+  override def getVerb(): String = verb
+  override def getHttpCode(): Int = httpCode
+  override def getCorrelationId(): String = correlationId
+  override def getResponseBody(): String = responseBody
+  override def getSourceIp(): String = sourceIp
+  override def getTargetIp(): String = targetIp
+  override def getApiInstanceId(): String = apiInstanceId
+  override def getConsentReferenceId(): String = consentReferenceId
+  override def getCertificateTrust(): String = certificateTrust
+  override def getCertificateTrustDetail(): String = certificateTrustDetail
 }
 
+object MappedMetric extends MetricStore[MappedMetric] {
 
-class MetricArchive extends APIMetric with LongKeyedMapper[MetricArchive] with IdPK {
-  override def getSingleton: code.metrics.MetricArchive.type = MetricArchive
+  // The entity overrode its table name: the live metrics table is `metric`.
+  override protected val tableName: String = "metric"
 
-  object metricId extends MappedLong(this)
-  object userId extends UUIDString(this)
-  object url extends MappedString(this, 2000) // TODO Introduce / use class for Mapped URLs
-  object date extends MappedDateTime(this)
-  object duration extends MappedLong(this)
-  object userName extends MappedString(this, 64) // TODO constrain source value length / truncate value on insert
-  object appName extends MappedString(this, 64) // TODO constrain source value length / truncate value on insert
-  object developerEmail extends MappedString(this, 64) // TODO constrain source value length / truncate value on insert
+  /**
+   * Whether an X-Request-ID has already been used to create something.
+   *
+   * Berlin Group requires a request id to be unique per creating call, and this is what enforces
+   * it: a POST that returned 201 under the same correlation id means the caller is replaying.
+   */
+  def existsCreatedWithCorrelationId(correlationId: String): Boolean =
+    DoobieUtil.runQuery(
+      sql"""SELECT COUNT(*) FROM metric
+            WHERE correlationid = ${Option(correlationId)} AND verb = 'POST' AND httpcode = 201"""
+        .query[Long].unique) > 0
 
-  //The consumerId, Foreign key to Consumer not key.
-  // 250 to match Consumer.consumerId: OAuth2/OIDC auto-created consumers get a composed
-  // id of the form `${azp}_${uuid}` (OAuth.scala getOrCreateConsumer), which for public
-  // providers (e.g. a ~72-char Google client id) exceeds the old UUIDString(44) width.
-  object consumerId extends MappedString(this, 250)
-  //name of the Scala Partial Function being used for the endpoint
-  object implementedByPartialFunction  extends MappedString(this, 128)
-  //name of version where the call is implemented) -- S.request.get.view
-  object implementedInVersion  extends MappedString(this, 16)
-  //(GET, POST etc.) --S.request.get.requestType
-  object verb extends MappedString(this, 16)
-  object httpCode extends MappedInt(this)
-  // Must mirror the source Metric.correlationId width (256), NOT a UUID's 36. The
-  // live correlation id is a free string (client-supplied or upstream trace id) that
-  // routinely exceeds 36 chars; as a MappedUUID (varchar 36) this column rejected the
-  // first such row the archiver copied with "value too long for type character
-  // varying(36)", failing every run — and since the archiver moves oldest-first, the
-  // same un-archivable rows were retried forever, so no run ever succeeded.
-  object correlationId extends MappedString(this, 256){
-    override def dbNotNull_? = true
-  }
-  object responseBody extends MappedText(this)
-  object sourceIp extends MappedString(this, 64)
-  object targetIp extends MappedString(this, 64)
-  object apiInstanceId extends MappedString(this, 255)
-  // Set when the request was authenticated via a consent. Null otherwise.
-  object consentReferenceId extends MappedString(this, 36) {
-    override def dbColumnName = "consent_reference_id"
-    override def defaultValue: Null = null
-  }
-  // Mirror of Metric.certificateTrust / certificateTrustDetail — same widths, or the archiver
-  // fails on copy (see the correlationId width lesson above).
-  object certificateTrust extends MappedString(this, 32) {
-    override def dbColumnName = "certificate_trust"
-    override def defaultValue: Null = null
-  }
-  object certificateTrustDetail extends MappedString(this, 255) {
-    override def dbColumnName = "certificate_trust_detail"
-    override def defaultValue: Null = null
-  }
+  override protected def dateOf(row: MappedMetric): Date = row.date
 
-
-  override def getMetricId(): Long = metricId.get
-  override def getUrl(): String = url.get
-  override def getDate(): Date = date.get
-  override def getDuration(): Long = duration.get
-  override def getUserId(): String = userId.get
-  override def getUserName(): String = userName.get
-  override def getAppName(): String = appName.get
-  override def getDeveloperEmail(): String = developerEmail.get
-  override def getConsumerId(): String = consumerId.get
-  override def getImplementedByPartialFunction(): String = implementedByPartialFunction.get
-  override def getImplementedInVersion(): String = implementedInVersion.get
-  override def getVerb(): String = verb.get
-  override def getHttpCode(): Int = httpCode.get
-  override def getCorrelationId(): String = correlationId.get
-  override def getResponseBody(): String = responseBody.get
-  override def getSourceIp(): String = sourceIp.get
-  override def getTargetIp(): String = targetIp.get
-  override def getApiInstanceId(): String = apiInstanceId.get
-  override def getConsentReferenceId(): String = consentReferenceId.get
-  override def getCertificateTrust(): String = certificateTrust.get
-  override def getCertificateTrustDetail(): String = certificateTrustDetail.get
+  override protected def build(id: Long, row: MetricColumns): MappedMetric =
+    MappedMetric(id, row.userId, row.url, row.date, row.duration, row.userName, row.appName,
+      row.developerEmail, row.consumerId, row.implementedByPartialFunction,
+      row.implementedInVersion, row.verb, row.httpCode, row.correlationId, row.responseBody,
+      row.sourceIp, row.targetIp, row.apiInstanceId, row.consentReferenceId, row.certificateTrust,
+      row.certificateTrustDetail)
 }
-object MetricArchive extends MetricArchive with LongKeyedMetaMapper[MetricArchive] {
-  override def dbIndexes =
-    Index(userId) :: Index(consumerId) :: Index(url) :: Index(date) :: Index(userName) ::
-      Index(appName) :: Index(developerEmail) :: Index(consentReferenceId) :: super.dbIndexes
+
+/**
+ * A metric moved out of the live table by the archive scheduler.
+ *
+ * `metricId` is the primary key the row had in `metric`, and is what the archiver de-duplicates
+ * on - the two tables have unrelated id sequences.
+ */
+case class MetricArchive(
+  archivePrimaryKey: Long,
+  metricId: Long,
+  userId: String,
+  url: String,
+  date: Date,
+  duration: Long,
+  userName: String,
+  appName: String,
+  developerEmail: String,
+  consumerId: String,
+  implementedByPartialFunction: String,
+  implementedInVersion: String,
+  verb: String,
+  httpCode: Int,
+  correlationId: String,
+  responseBody: String,
+  sourceIp: String,
+  targetIp: String,
+  apiInstanceId: String,
+  consentReferenceId: String,
+  certificateTrust: String,
+  certificateTrustDetail: String
+) extends APIMetric {
+  override def getMetricId(): Long = metricId
+  override def getUrl(): String = url
+  override def getDate(): Date = date
+  override def getDuration(): Long = duration
+  override def getUserId(): String = userId
+  override def getUserName(): String = userName
+  override def getAppName(): String = appName
+  override def getDeveloperEmail(): String = developerEmail
+  override def getConsumerId(): String = consumerId
+  override def getImplementedByPartialFunction(): String = implementedByPartialFunction
+  override def getImplementedInVersion(): String = implementedInVersion
+  override def getVerb(): String = verb
+  override def getHttpCode(): Int = httpCode
+  override def getCorrelationId(): String = correlationId
+  override def getResponseBody(): String = responseBody
+  override def getSourceIp(): String = sourceIp
+  override def getTargetIp(): String = targetIp
+  override def getApiInstanceId(): String = apiInstanceId
+  override def getConsentReferenceId(): String = consentReferenceId
+  override def getCertificateTrust(): String = certificateTrust
+  override def getCertificateTrustDetail(): String = certificateTrustDetail
+}
+
+object MetricArchive extends MetricStore[MetricArchive] {
+
+  override protected val tableName: String = "metricarchive"
+  override protected val hasMetricId: Boolean = true
+
+  override protected def dateOf(row: MetricArchive): Date = row.date
+
+  override protected def build(id: Long, row: MetricColumns): MetricArchive =
+    MetricArchive(id, row.metricId.getOrElse(0L), row.userId, row.url, row.date, row.duration,
+      row.userName, row.appName, row.developerEmail, row.consumerId,
+      row.implementedByPartialFunction, row.implementedInVersion, row.verb, row.httpCode,
+      row.correlationId, row.responseBody, row.sourceIp, row.targetIp, row.apiInstanceId,
+      row.consentReferenceId, row.certificateTrust, row.certificateTrustDetail)
+
+  def findByMetricId(metricId: Long): Box[MetricArchive] =
+    query(fr"WHERE metricid = $metricId ORDER BY id ASC LIMIT 1").headOption match {
+      case Some(row) => Full(row)
+      case None => Empty
+    }
+
+  /**
+   * Writes the archive copy of one metric, replacing an existing copy of the same source row.
+   *
+   * Returns whether the row is there afterwards. Mapper's save returned false rather than throwing
+   * on a failed insert, and the caller uses that to skip deleting the source row, so a failure has
+   * to come back as false rather than as an exception.
+   */
+  def upsertByMetricId(metricId: Long, userId: String, url: String, date: Date, duration: Long,
+                       userName: String, appName: String, developerEmail: String,
+                       consumerId: String, implementedByPartialFunction: String,
+                       implementedInVersion: String, verb: String, httpCode: Option[Int],
+                       correlationId: String, responseBody: String, sourceIp: String,
+                       targetIp: String, apiInstanceId: String, consentReferenceId: String,
+                       certificateTrust: String, certificateTrustDetail: String): Boolean =
+    tryo {
+      DoobieUtil.runUpdate(
+        sql"DELETE FROM metricarchive WHERE metricid = $metricId".update.run)
+      DoobieUtil.runUpdate(
+        sql"""INSERT INTO metricarchive
+              (metricid, userid, url, date_c, duration, username, appname, developeremail,
+               consumerid, implementedbypartialfunction, implementedinversion, verb, httpcode,
+               correlationid, responsebody, sourceip, targetip, apiinstanceid,
+               consent_reference_id, certificate_trust, certificate_trust_detail)
+              VALUES ($metricId, ${opt(userId)}, ${opt(url)}, ${timestamp(date)}, $duration,
+               ${opt(userName)}, ${opt(appName)}, ${opt(developerEmail)}, ${opt(consumerId)},
+               ${opt(implementedByPartialFunction)}, ${opt(implementedInVersion)}, ${opt(verb)},
+               ${httpCode.getOrElse(0)}, ${opt(correlationId)}, ${opt(responseBody)},
+               ${opt(sourceIp)}, ${opt(targetIp)}, ${opt(apiInstanceId)},
+               ${opt(consentReferenceId)}, ${opt(certificateTrust)},
+               ${opt(certificateTrustDetail)})"""
+          .update.run)
+      true
+    }.getOrElse(false)
+}
+
+/** The columns both metric tables share, as read back from a row. */
+case class MetricColumns(
+  metricId: Option[Long],
+  userId: String,
+  url: String,
+  date: Date,
+  duration: Long,
+  userName: String,
+  appName: String,
+  developerEmail: String,
+  consumerId: String,
+  implementedByPartialFunction: String,
+  implementedInVersion: String,
+  verb: String,
+  httpCode: Int,
+  correlationId: String,
+  responseBody: String,
+  sourceIp: String,
+  targetIp: String,
+  apiInstanceId: String,
+  consentReferenceId: String,
+  certificateTrust: String,
+  certificateTrustDetail: String
+)
+
+/**
+ * The reads and writes the live metrics table and its archive share.
+ *
+ * They have the same columns bar the archive's metricId, and both are read by the same filters, so
+ * the query building lives here once rather than being written twice.
+ */
+abstract class MetricStore[A] {
+
+  protected val tableName: String
+  /** Only the archive keeps the id its row had in the live table. */
+  protected val hasMetricId: Boolean = false
+  protected def build(id: Long, row: MetricColumns): A
+
+  private def table: Fragment = Fragment.const(tableName)
+
+  // The live table selects a typed NULL in the metricId slot so both tables read through the same
+  // row type.
+  private lazy val selectColumns: Fragment =
+    Fragment.const(
+      List("id", if (hasMetricId) "metricid" else "CAST(NULL AS BIGINT)", "userid", "url",
+        "date_c", "duration", "username", "appname", "developeremail", "consumerid",
+        "implementedbypartialfunction", "implementedinversion", "verb", "httpcode",
+        "correlationid", "responsebody", "sourceip", "targetip", "apiinstanceid",
+        "consent_reference_id", "certificate_trust", "certificate_trust_detail")
+        .mkString("SELECT ", ", ", " FROM " + tableName))
+
+  // 21 or 22 columns, so the row is read as two nested tuples.
+  private type RowHead = (Long, Option[Long], Option[String], Option[String],
+    Option[java.sql.Timestamp], Option[Long], Option[String], Option[String], Option[String],
+    Option[String], Option[String])
+  private type RowTail = (Option[String], Option[String], Option[Int], Option[String],
+    Option[String], Option[String], Option[String], Option[String], Option[String], Option[String],
+    Option[String])
+  private type Row = (RowHead, RowTail)
+
+  /** A timestamp read back as a plain java.util.Date, which is what MappedDateTime handed out. */
+  private def readDate(value: Option[java.sql.Timestamp]): Date =
+    value.map(t => new Date(t.getTime)).orNull
+
+  private def fromRow(row: Row): A = row match {
+    case ((id, metricId, userId, url, date, duration, userName, appName, developerEmail,
+           consumerId, implementedByPartialFunction),
+          (implementedInVersion, verb, httpCode, correlationId, responseBody, sourceIp, targetIp,
+           apiInstanceId, consentReferenceId, certificateTrust, certificateTrustDetail)) =>
+      build(id, MetricColumns(metricId, userId.orNull, url.orNull, readDate(date),
+        // A NULL number reads back as 0, which is what MappedLong and MappedInt did.
+        duration.getOrElse(0L), userName.orNull, appName.orNull, developerEmail.orNull,
+        consumerId.orNull, implementedByPartialFunction.orNull, implementedInVersion.orNull,
+        verb.orNull, httpCode.getOrElse(0), correlationId.orNull, responseBody.orNull,
+        sourceIp.orNull, targetIp.orNull, apiInstanceId.orNull, consentReferenceId.orNull,
+        certificateTrust.orNull, certificateTrustDetail.orNull))
+  }
+
+  protected def query(condition: Fragment): List[A] =
+    DoobieUtil.runQuery((selectColumns ++ condition).query[Row].to[List]).map(fromRow)
+
+  protected def opt(value: String): Option[String] = Option(value)
+
+  protected def timestamp(value: Date): Option[java.sql.Timestamp] =
+    Option(value).map(d => new java.sql.Timestamp(d.getTime))
+
+  def findAll(params: MetricQuery): List[A] = {
+    val filters = List(
+      params.fromDate.map(d => fr"date_c >= ${timestamp(d)}"),
+      params.toDate.map(d => fr"date_c <= ${timestamp(d)}"),
+      params.consumerId.map(v => fr"consumerid = ${opt(v)}"),
+      // A bank id is matched by the shape of the url rather than by a column of its own.
+      params.bankId.map(v => fr"url LIKE ${opt(s"%banks/$v%")}"),
+      params.userId.map(v => fr"userid = ${opt(v)}"),
+      params.url.map(v => fr"url = ${opt(v)}"),
+      params.appName.map(v => fr"appname = ${opt(v)}"),
+      params.implementedInVersion.map(v => fr"implementedinversion = ${opt(v)}"),
+      params.implementedByPartialFunction.map(v => fr"implementedbypartialfunction = ${opt(v)}"),
+      params.verb.map(v => fr"verb = ${opt(v)}"),
+      params.correlationId.map(v => fr"correlationid = ${opt(v)}"),
+      params.durationGreaterThan.map(v => fr"duration > $v"),
+      params.httpStatusCode.map(v => fr"httpcode = $v"),
+      params.consentReferenceId.map(v => fr"consent_reference_id = ${opt(v)}"),
+      params.certificateTrust.map(v => fr"certificate_trust = ${opt(v)}"),
+      // "Anonymous" is the literal four-letter string "null" in the user id column, not SQL NULL.
+      // Preserved: rows written for unauthenticated calls carry that string.
+      params.anon.map {
+        case true => fr"userid = ${Option("null")}"
+        case false => fr"NOT (userid = ${Option("null")})"
+      }
+    ).flatten ++
+      params.excludeAppNames.toList.flatten.map(name => fr"NOT (appname = ${opt(name)})")
+    val where =
+      if (filters.isEmpty) Fragment.empty
+      else fr"WHERE " ++ filters.reduce((a, b) => a ++ fr"AND" ++ b)
+    val ordering = params.orderBy match {
+      case Some((column, ascending)) =>
+        fr"ORDER BY " ++ Fragment.const(column) ++ (if (ascending) fr"ASC" else fr"DESC")
+      case None => Fragment.empty
+    }
+    val paging =
+      params.limit.map(value => fr"LIMIT $value").getOrElse(Fragment.empty) ++
+        params.offset.map(value => fr"OFFSET $value").getOrElse(Fragment.empty)
+    query(where ++ ordering ++ paging)
+  }
+
+  /** The most recent metrics of one user, newest first. */
+  def findNewestByUserId(userId: String, limit: Int): List[A] =
+    query(fr"WHERE userid = ${opt(userId)} ORDER BY date_c DESC LIMIT $limit")
+
+  /** The oldest and newest dates in the table, for the integrity report. */
+  def oldestDate(): Option[Date] =
+    query(fr"ORDER BY date_c ASC LIMIT 1").headOption.map(dateOf)
+
+  def newestDate(): Option[Date] =
+    query(fr"ORDER BY date_c DESC LIMIT 1").headOption.map(dateOf)
+
+  protected def dateOf(row: A): Date
+
+  /** Oldest first, for the archiver's candidate window. */
+  def findOldestOnOrBefore(date: Date, limit: Int): List[A] =
+    query(fr"WHERE date_c <= ${timestamp(date)} ORDER BY date_c ASC LIMIT $limit")
+
+  def countOnOrBefore(date: Date): Long =
+    DoobieUtil.runQuery(
+      (fr"SELECT COUNT(*) FROM " ++ table ++ fr"WHERE date_c <= ${timestamp(date)}")
+        .query[Long].unique)
+
+  def count(): Long =
+    DoobieUtil.runQuery((fr"SELECT COUNT(*) FROM " ++ table).query[Long].unique)
+
+  def findByPrimaryKey(id: Long): Box[A] =
+    query(fr"WHERE id = $id").headOption match {
+      case Some(row) => Full(row)
+      case None => Empty
+    }
+
+  def deleteByPrimaryKey(id: Long): Boolean =
+    DoobieUtil.runUpdate((fr"DELETE FROM " ++ table ++ fr"WHERE id = $id").update.run) > 0
+
+  def deleteOnOrBefore(date: Date): Int =
+    DoobieUtil.runUpdate(
+      (fr"DELETE FROM " ++ table ++ fr"WHERE date_c <= ${timestamp(date)}").update.run)
+
+  def insert(userId: String, url: String, date: Date, duration: Long, userName: String,
+             appName: String, developerEmail: String, consumerId: String,
+             implementedByPartialFunction: String, implementedInVersion: String, verb: String,
+             httpCode: Int, correlationId: String, responseBody: String, sourceIp: String,
+             targetIp: String, apiInstanceId: String, consentReferenceId: String,
+             certificateTrust: String, certificateTrustDetail: String): Long =
+    DoobieUtil.runUpdate(
+      (fr"INSERT INTO " ++ table ++
+        fr"""(userid, url, date_c, duration, username, appname, developeremail, consumerid,
+              implementedbypartialfunction, implementedinversion, verb, httpcode, correlationid,
+              responsebody, sourceip, targetip, apiinstanceid, consent_reference_id,
+              certificate_trust, certificate_trust_detail)
+             VALUES (${opt(userId)}, ${opt(url)}, ${timestamp(date)}, $duration, ${opt(userName)},
+              ${opt(appName)}, ${opt(developerEmail)}, ${opt(consumerId)},
+              ${opt(implementedByPartialFunction)}, ${opt(implementedInVersion)}, ${opt(verb)},
+              $httpCode, ${opt(correlationId)}, ${opt(responseBody)}, ${opt(sourceIp)},
+              ${opt(targetIp)}, ${opt(apiInstanceId)}, ${opt(consentReferenceId)},
+              ${opt(certificateTrust)}, ${opt(certificateTrustDetail)})""")
+        .update.withUniqueGeneratedKeys[Long]("id"))
+
+  def deleteAll(): Unit = {
+    DoobieUtil.runUpdate((fr"DELETE FROM " ++ table).update.run)
+    ()
+  }
 }

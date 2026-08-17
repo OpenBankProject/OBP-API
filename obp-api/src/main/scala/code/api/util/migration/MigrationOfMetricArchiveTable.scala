@@ -30,7 +30,7 @@ object MigrationOfMetricArchiveTable {
   val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm'Z'")
 
   def alterColumnCorrelationidLength(name: String): Boolean = {
-    DbFunction.tableExists(MetricArchive)
+    DbFunction.tableExistsByName("metricarchive")
     match {
       case true =>
         val startDate = System.currentTimeMillis()
@@ -68,7 +68,7 @@ object MigrationOfMetricArchiveTable {
         val isSuccessful = false
         val endDate = System.currentTimeMillis()
         val comment: String =
-          s"""${MetricArchive._dbTableNameLC} table does not exist""".stripMargin
+          s"""metricarchive table does not exist""".stripMargin
         saveLog(name, commitId, isSuccessful, startDate, endDate, comment)
         isSuccessful
     }
