@@ -116,7 +116,9 @@ class MigratedTablesExistTest extends ServerSetup {
     "bankaccountnotificationwebhook",
     "systemaccountnotificationwebhook",
     "mappedscope",
-    "mappedaccountapplication"
+    "mappedaccountapplication",
+    "mappedcustomeraddress",
+    "mappedentitlementrequest"
   )
 
   /**
@@ -210,7 +212,9 @@ class MigratedTablesExistTest extends ServerSetup {
     "BANKACCOUNTNOTIFICATIONWEBHOOK" -> "BANKACCOUNTNOTIFICATIONWEBHOOK_WEBHOOKID",
     "SYSTEMACCOUNTNOTIFICATIONWEBHOOK" -> "SYSTEMACCOUNTNOTIFICATIONWEBHOOK_WEBHOOKID",
     "MAPPEDSCOPE" -> "MAPPEDSCOPE_MSCOPEID",
-    "MAPPEDACCOUNTAPPLICATION" -> "MAPPEDACCOUNTAPPLICATION_MACCOUNTAPPLICATIONID"
+    "MAPPEDACCOUNTAPPLICATION" -> "MAPPEDACCOUNTAPPLICATION_MACCOUNTAPPLICATIONID",
+    "MAPPEDCUSTOMERADDRESS" -> "MAPPEDCUSTOMERADDRESS_MCUSTOMERADDRESSID",
+    "MAPPEDENTITLEMENTREQUEST" -> "MAPPEDENTITLEMENTREQUEST_MENTITLEMENTREQUESTID"
   )
 
   Feature("tables owned by Flyway rather than Schemifier") {

@@ -53,13 +53,11 @@ import code.consent.{ConsentRequest, MappedConsent}
 import code.consumer.Consumers
 import code.model.Consumer
 import code.customer.{MappedCustomer, MappedCustomerMessage}
-import code.customeraddress.MappedCustomerAddress
 import code.dynamicEntity.DynamicEntity
 import code.dynamicMessageDoc.DynamicMessageDoc
 import code.dynamicResourceDoc.DynamicResourceDoc
 import code.endpointMapping.EndpointMapping
 import code.entitlement.{Entitlement, MappedEntitlement}
-import code.entitlementrequest.MappedEntitlementRequest
 import code.routingscheme.{RoutingScheme, BankSupportedRoutingScheme}
 import code.meetings.{MappedMeeting, MappedMeetingInvitee}
 import code.metadata.counterparties.{MappedCounterparty, MappedCounterpartyBespoke, MappedCounterpartyMetadata, MappedCounterpartyWhereTag}
@@ -916,8 +914,6 @@ object ToSchemify extends MdcLoggable {
     MappedEntitlement,
     MappedConnectorMetric,
     MappedExpectedChallengeAnswer,
-    MappedEntitlementRequest,
-    MappedCustomerAddress,
     RateLimiting,
     MappedCustomerDependant,
     RoutingScheme,

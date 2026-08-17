@@ -246,6 +246,8 @@ trait ServerSetup extends AnyFeatureSpec with SendServerRequests
     DoobieUtil.runUpdate(sql"DELETE FROM systemaccountnotificationwebhook".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM mappedscope".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM mappedaccountapplication".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM mappedcustomeraddress".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM mappedentitlementrequest".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM mappeduserauthcontextupdate".update.run)
   }
 

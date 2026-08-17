@@ -87,9 +87,8 @@ object DeleteCustomerCascade {
   }
   private def deleteCustomerAddress(customerId: CustomerId): Boolean = {
     MappedCustomer.find(By(MappedCustomer.mCustomerId, customerId.value)).forall(c =>
-      MappedCustomerAddress.bulkDelete_!!(
-      By(MappedCustomerAddress.mCustomerId, c.id.get)
-    ))
+      MappedCustomerAddress.deleteByCustomerKey(c.id.get)
+    )
   }
   private def deleteAccountApplication(customerId: CustomerId): Boolean = {
     MappedAccountApplication.deleteByCustomerId(customerId.value)
