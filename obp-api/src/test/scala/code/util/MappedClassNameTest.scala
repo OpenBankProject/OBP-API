@@ -62,7 +62,6 @@ class MappedClassNameTest extends AnyFeatureSpec {
     "code.model.Nonce",
     "code.kycmedias.MappedKycMedia",
     "code.transactionChallenge.MappedExpectedChallengeAnswer",
-    "code.migration.MigrationScriptLog",
     "code.productcollection.MappedProductCollection") ++
     Set("code.model.dataAccess.MappedBankAccountData",
       "code.model.Consumer",

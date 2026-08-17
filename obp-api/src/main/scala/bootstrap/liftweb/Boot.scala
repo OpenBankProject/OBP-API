@@ -92,7 +92,6 @@ import code.meetings.{MappedMeeting, MappedMeetingInvitee}
 import code.metadata.counterparties.{MappedCounterparty, MappedCounterpartyBespoke, MappedCounterpartyMetadata, MappedCounterpartyWhereTag}
 import code.methodrouting.MethodRouting
 import code.metrics.{MappedConnectorMetric, MappedMetric, MetricArchive, MetricsArchiveRun}
-import code.migration.MigrationScriptLog
 import code.model._
 import code.model.dataAccess._
 import code.obp.grpc.ObpGrpcServer
@@ -947,7 +946,6 @@ object ToSchemify extends MdcLoggable {
     MappedProductAttribute,
     MappedConsent,
     ConsentRequest,
-    MigrationScriptLog,
     MethodRouting,
     EndpointMapping,
     WebUiProps,

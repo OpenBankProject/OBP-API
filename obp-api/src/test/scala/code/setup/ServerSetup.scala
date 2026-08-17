@@ -33,7 +33,6 @@ import bootstrap.liftweb.ToSchemify
 import code.TestServer
 import code.api.util.APIUtil._
 import code.api.util.{APIUtil, CustomJsonFormats}
-import code.migration.MigrationScriptLog
 import code.model.{Consumer, Nonce, Token}
 import code.model.dataAccess.{AuthUser, ResourceUser}
 import code.util.Helper.MdcLoggable
@@ -135,12 +134,7 @@ trait ServerSetup extends AnyFeatureSpec with SendServerRequests
    */
   protected def resetDatabaseForTestClass(): Unit = {
     def exclusion(m: MetaMapper[_]): Boolean = {
-      // MigrationScriptLog is migration bookkeeping, not test data. Wiping it makes isExecuted always
-      // false, so every fresh `mvn test` JVM re-runs all migrations against a DB that already has the
-      // migration-created views (v_consent, v_metric, …) — and an in-place column retype on a
-      // view-projected column then fails ("cannot alter type of a column used by a view or rule"),
-      // aborting boot until the DB is manually reset. Preserve it so migrations run once per DB.
-      m == Nonce || m == Token || m == Consumer || m == AuthUser || m == ResourceUser || m == MigrationScriptLog
+      m == Nonce || m == Token || m == Consumer || m == AuthUser || m == ResourceUser
     }
 
     logger.info(s"[TEST ISOLATION] Resetting database before test class: ${this.getClass.getSimpleName}")
@@ -156,6 +150,15 @@ trait ServerSetup extends AnyFeatureSpec with SendServerRequests
     // Tables whose Lift entity has been removed are no longer in ToSchemify.models, so the
     // loop above does not clear them. Each such table needs its own explicit delete here.
     // AtmTableResetIsolationTest fails if this is forgotten.
+    //
+    // migrationscriptlog is the one deliberate exception: it must NOT be added here. It is
+    // migration bookkeeping, not test data. Wiping it makes isExecuted always false, so every
+    // fresh `mvn test` JVM re-runs all historical migrations against a database that already has
+    // their effects (e.g. migration-created views) — an in-place column retype on a
+    // view-projected column then fails ("cannot alter type of a column used by a view or rule"),
+    // aborting boot until the database is manually reset. It used to be excluded from the loop
+    // above by identity; now that its entity is gone it is excluded by never appearing in either
+    // place.
     DoobieUtil.runUpdate(sql"DELETE FROM mappedatm".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM mappednarrative".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM mappedcomment".update.run)
