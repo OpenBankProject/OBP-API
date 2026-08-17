@@ -4,7 +4,6 @@ import code.api.util.APIUtil.{getPropsAsBoolValue, getPropsValue}
 import code.api.util.{APIUtil, ApiPropsWithAlias}
 import code.api.v4_0_0.DatabaseInfoJson
 import code.consumer.Consumers
-import code.context.MappedUserAuthContextUpdate
 import code.customer.CustomerX
 import code.migration.MigrationScriptLogProvider
 import code.util.Helper.MdcLoggable
@@ -378,7 +377,10 @@ object Migration extends MdcLoggable {
       }
     }
     private def alterTableMappedUserAuthContextUpdate(): Boolean = {
-      val name = nameOf(MappedUserAuthContextUpdate)
+      // Was nameOf(MappedUserAuthContextUpdate) before that Lift entity was deleted - this is the
+      // literal string the macro produced, kept as-is because it is the key already recorded in
+      // migration_script_log on every environment that has run this migration.
+      val name = "MappedUserAuthContextUpdate"
       runOnce(name) {
         MigrationOfMappedUserAuthContextUpdate.dropUniqueIndex(name)
       }

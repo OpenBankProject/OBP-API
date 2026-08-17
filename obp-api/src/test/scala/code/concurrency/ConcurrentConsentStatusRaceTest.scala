@@ -1,7 +1,10 @@
 package code.concurrency
 
+import code.api.util.DoobieUtil
 import code.consent.{ConsentStatus, MappedConsent, MappedConsentProvider}
-import code.context.{MappedUserAuthContextUpdate, MappedUserAuthContextUpdateProvider}
+import code.context.MappedUserAuthContextUpdateProvider
+import doobie.implicits._
+import doobie.implicits.javasql._
 import net.liftweb.common.Full
 import net.liftweb.mapper.By
 import org.mindrot.jbcrypt.BCrypt
@@ -47,15 +50,13 @@ class ConcurrentConsentStatusRaceTest extends ConcurrentRaceSetup {
 
   private def mkUserAuthContextUpdate(answer: String): String = {
     val id = UUID.randomUUID.toString
-    MappedUserAuthContextUpdate.create
-      .mUserAuthContextUpdateId(id)
-      .mUserId(resourceUser1.userId)
-      .mConsumerId("__conc_consumer")
-      .mKey("__conc_key")
-      .mValue("__conc_value")
-      .mChallenge(answer)
-      .mStatus(com.openbankproject.commons.model.UserAuthContextUpdateStatus.INITIATED.toString)
-      .saveMe()
+    val now = new java.sql.Timestamp(System.currentTimeMillis)
+    DoobieUtil.runUpdate(
+      sql"""INSERT INTO mappeduserauthcontextupdate
+              (muserauthcontextupdateid, muserid, mconsumerid, mkey, mvalue, mchallenge, mstatus, createdat, updatedat)
+            VALUES ($id, ${resourceUser1.userId}, '__conc_consumer', '__conc_key', '__conc_value', $answer,
+                    ${com.openbankproject.commons.model.UserAuthContextUpdateStatus.INITIATED.toString}, $now, $now)"""
+        .update.run)
     id
   }
 
@@ -64,8 +65,10 @@ class ConcurrentConsentStatusRaceTest extends ConcurrentRaceSetup {
       .map(_.status).getOrElse("missing")
 
   private def uacStatus(id: String): String =
-    MappedUserAuthContextUpdate.find(By(MappedUserAuthContextUpdate.mUserAuthContextUpdateId, id))
-      .map(_.status).getOrElse("missing")
+    DoobieUtil.runQuery(
+      sql"SELECT mstatus FROM mappeduserauthcontextupdate WHERE muserauthcontextupdateid = $id"
+        .query[String].option
+    ).getOrElse("missing")
 
   Feature("Consent and UserAuthContextUpdate status transitions must be atomic") {
 

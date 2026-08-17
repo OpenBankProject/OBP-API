@@ -62,7 +62,6 @@ import code.cards.{MappedPhysicalCard, PinReset}
 import code.consent.{ConsentRequest, MappedConsent}
 import code.consumer.Consumers
 import code.model.Consumer
-import code.context.MappedUserAuthContextUpdate
 import code.counterpartylimit.CounterpartyLimit
 import code.crm.MappedCrmEvent
 import code.customer.{MappedCustomer, MappedCustomerMessage}
@@ -996,7 +995,6 @@ object ToSchemify extends MdcLoggable {
     MappedUserScope,
     MappedTaxResidence,
     MappedCustomerAddress,
-    MappedUserAuthContextUpdate,
     MappedAccountApplication,
     MappedProductCollection,
     MappedProductCollectionItem,
