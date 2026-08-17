@@ -31,7 +31,7 @@ import code.dynamicResourceDoc.{DynamicResourceDocProvider, JsonDynamicResourceD
 import code.endpointMapping.{EndpointMappingProvider, EndpointMappingT}
 import code.entitlement.Entitlement
 import code.entitlementrequest.EntitlementRequest
-import code.fx.{MappedFXRate, fx}
+import code.fx.{DoobieFXRateQueries, fx}
 import code.metadata.counterparties.Counterparties
 import code.methodrouting.{MethodRoutingCommons, MethodRoutingProvider, MethodRoutingT}
 import code.model._
@@ -2437,14 +2437,10 @@ object NewStyle extends MdcLoggable{
               val inverseRate = fx.exchangeRate(toCurrencyCode, fromCurrencyCode, None, callContext)
               (rate, inverseRate) match {
                 case (Some(r), Some(ir)) =>
+                  // Not persisted - matches the Mapper version, which built this as an unsaved
+                  // instance purely to satisfy the FXRate return type.
                   Full(
-                    MappedFXRate.create
-                      .mBankId(bankId.value)
-                      .mFromCurrencyCode(fromCurrencyCode)
-                      .mToCurrencyCode(toCurrencyCode)
-                      .mConversionValue(r)
-                      .mInverseConversionValue(ir)
-                      .mEffectiveDate(new Date())
+                    code.fx.FXRateRow(bankId, fromCurrencyCode, toCurrencyCode, r, ir, new Date())
                   )
                 case _ => fallbackFxRate
               }

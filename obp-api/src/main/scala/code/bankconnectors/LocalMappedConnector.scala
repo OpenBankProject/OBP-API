@@ -34,7 +34,7 @@ import code.customeraddress.CustomerAddressX
 import code.customerattribute.CustomerAttributeX
 import code.directdebit.DirectDebits
 import code.endpointTag.EndpointTag
-import code.fx.{MappedFXRate, fx}
+import code.fx.{DoobieFXRateQueries, fx}
 import code.kycchecks.KycChecks
 import code.kycdocuments.KycDocuments
 import code.kycmedias.KycMedias
@@ -3250,39 +3250,20 @@ object LocalMappedConnector extends Connector with MdcLoggable {
 
 
   override def getCurrentCurrencies(bankId: BankId, callContext: Option[CallContext]): OBPReturnType[Box[List[String]]] = Future {
-    val rates = MappedFXRate.findAll(By(MappedFXRate.mBankId, bankId.value))
+    val rates = DoobieFXRateQueries.findAllForBank(bankId.value)
     val result = rates.map(_.fromCurrencyCode) ::: rates.map(_.toCurrencyCode)
     Some(result.distinct)
   } map {
     (_, callContext)
   }
-  
-  
+
+
   /**
     * get the latest record from FXRate table by the fields: fromCurrencyCode and toCurrencyCode.
     * If it is not found by (fromCurrencyCode, toCurrencyCode) order, it will try (toCurrencyCode, fromCurrencyCode) order .
     */
-  override def getCurrentFxRate(bankId: BankId, fromCurrencyCode: String, toCurrencyCode: String, callContext: Option[CallContext]): Box[FXRate] = {
-    /**
-      * find FXRate by (fromCurrencyCode, toCurrencyCode), the normal order
-      */
-    val fxRateFromTo = MappedFXRate.find(
-      By(MappedFXRate.mBankId, bankId.value),
-      By(MappedFXRate.mFromCurrencyCode, fromCurrencyCode),
-      By(MappedFXRate.mToCurrencyCode, toCurrencyCode)
-    )
-    /**
-      * find FXRate by (toCurrencyCode, fromCurrencyCode), the reverse order
-      */
-    val fxRateToFrom = MappedFXRate.find(
-      By(MappedFXRate.mBankId, bankId.value),
-      By(MappedFXRate.mFromCurrencyCode, toCurrencyCode),
-      By(MappedFXRate.mToCurrencyCode, fromCurrencyCode)
-    )
-
-    // if the result of normal order is empty, then return the reverse order result
-    fxRateFromTo.orElse(fxRateToFrom)
-  }
+  override def getCurrentFxRate(bankId: BankId, fromCurrencyCode: String, toCurrencyCode: String, callContext: Option[CallContext]): Box[FXRate] =
+    Box(DoobieFXRateQueries.find(bankId.value, fromCurrencyCode, toCurrencyCode))
 
   override def createOrUpdateFXRate(
                                      bankId: String,
@@ -3293,37 +3274,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                      effectiveDate: Date,
                                      callContext: Option[CallContext]
                                    ): OBPReturnType[Box[FXRate]] = Future{
-    val fxRateFromTo = MappedFXRate.find(
-      By(MappedFXRate.mBankId, bankId),
-      By(MappedFXRate.mFromCurrencyCode, fromCurrencyCode),
-      By(MappedFXRate.mToCurrencyCode, toCurrencyCode)
-    )
-    fxRateFromTo match {
-      case Full(x) =>
-        tryo {
-          x
-            .mBankId(bankId)
-            .mFromCurrencyCode(fromCurrencyCode)
-            .mToCurrencyCode(toCurrencyCode)
-            .mConversionValue(conversionValue)
-            .mInverseConversionValue(inverseConversionValue)
-            .mEffectiveDate(effectiveDate)
-            .saveMe()
-        } ?~! UpdateFxRateError
-      case Empty =>
-        tryo {
-          MappedFXRate.create
-            .mBankId(bankId)
-            .mFromCurrencyCode(fromCurrencyCode)
-            .mToCurrencyCode(toCurrencyCode)
-            .mConversionValue(conversionValue)
-            .mInverseConversionValue(inverseConversionValue)
-            .mEffectiveDate(effectiveDate)
-            .saveMe()
-        } ?~! CreateFxRateError
-      case _ =>
-        Failure("UnknownFxRateError")
-    }
+    val existing = DoobieFXRateQueries.find(bankId, fromCurrencyCode, toCurrencyCode)
+    val errorMsg = if (existing.isDefined) UpdateFxRateError else CreateFxRateError
+    DoobieFXRateQueries.createOrUpdate(bankId, fromCurrencyCode, toCurrencyCode, conversionValue, inverseConversionValue, effectiveDate) ?~! errorMsg
   }.map(fxRate=>(fxRate, callContext))
 
 

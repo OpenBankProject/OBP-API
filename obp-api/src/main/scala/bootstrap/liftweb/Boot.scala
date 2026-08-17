@@ -78,7 +78,6 @@ import code.endpointMapping.EndpointMapping
 import code.endpointTag.EndpointTag
 import code.entitlement.{Entitlement, MappedEntitlement}
 import code.entitlementrequest.MappedEntitlementRequest
-import code.fx.{MappedCurrency, MappedFXRate}
 import code.group.Group
 import code.organisation.Organisation
 import code.routingscheme.{RoutingScheme, BankSupportedRoutingScheme}
@@ -941,8 +940,6 @@ object ToSchemify extends MdcLoggable {
     MappedMeetingInvitee,
     MappedPhysicalCard,
     PinReset,
-    MappedFXRate,
-    MappedCurrency,
     MappedTransactionRequestTypeCharge,
     MappedAccountWebhook,
     SystemAccountNotificationWebhook,
