@@ -53,7 +53,6 @@ import code.api.util.migration.Migration
 import code.api.util.migration.Migration.DbFunction
 import code.apiproduct.ApiProduct
 import code.bankaccountbalance.BankAccountBalance
-import code.bankattribute.BankAttribute
 import code.bankconnectors.{Connector, ConnectorEndpoints}
 import code.branches.MappedBranch
 import code.cards.{MappedPhysicalCard, PinReset}
@@ -998,7 +997,6 @@ object ToSchemify extends MdcLoggable {
     MappedAccountAttribute,
     MappedCustomerAttribute,
     MappedTransactionAttribute,
-    BankAttribute,
     RateLimiting,
     MappedCustomerDependant,
     AttributeDefinition,

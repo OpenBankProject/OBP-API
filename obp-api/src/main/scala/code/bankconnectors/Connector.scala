@@ -8,7 +8,6 @@ import code.api.util.APIUtil.{OBPReturnType, _}
 import code.api.util.ErrorMessages._
 import code.api.util._
 import code.api.{APIFailure, APIFailureNewStyle}
-import code.bankattribute.BankAttribute
 import code.mandate.{MandateTrait, MandateProvisionTrait, SignatoryPanelTrait}
 import code.bankconnectors.akka.AkkaConnector_vDec2018
 import code.bankconnectors.cardano.CardanoConnector_vJun2025
@@ -1327,7 +1326,7 @@ trait Connector extends MdcLoggable {
                                   value: String,
                                   isActive: Option[Boolean],
                                   callContext: Option[CallContext]
-                                 ): OBPReturnType[Box[BankAttribute]] = Future{(Failure(setUnimplementedError(nameOf(createOrUpdateBankAttribute _))), callContext)}
+                                 ): OBPReturnType[Box[BankAttributeTrait]] = Future{(Failure(setUnimplementedError(nameOf(createOrUpdateBankAttribute _))), callContext)}
 
   def createOrUpdateAtmAttribute(bankId: BankId,
                                  atmId: AtmId,
@@ -1347,7 +1346,7 @@ trait Connector extends MdcLoggable {
 
   def getBankAttributeById(bankAttributeId: String,
                            callContext: Option[CallContext]
-                          ): OBPReturnType[Box[BankAttribute]] = Future{(Failure(setUnimplementedError(nameOf(getBankAttributeById _))), callContext)}
+                          ): OBPReturnType[Box[BankAttributeTrait]] = Future{(Failure(setUnimplementedError(nameOf(getBankAttributeById _))), callContext)}
 
   def getAtmAttributeById(atmAttributeId: String, 
                           callContext: Option[CallContext]): OBPReturnType[Box[AtmAttributeTrait]] =

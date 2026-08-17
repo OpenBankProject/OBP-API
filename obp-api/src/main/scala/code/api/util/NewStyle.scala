@@ -17,7 +17,6 @@ import code.apiproductattribute.{ApiProductAttributeTrait, DoobieApiProductAttri
 import code.apicollectionendpoint.{ApiCollectionEndpointTrait, DoobieApiCollectionEndpointsProvider}
 import code.featuredapicollection.{FeaturedApiCollectionTrait, DoobieFeaturedApiCollectionsProvider}
 import code.authtypevalidation.{AuthenticationTypeValidationProvider, JsonAuthTypeValidation}
-import code.bankattribute.BankAttribute
 import code.bankconnectors.Connector
 import code.branches.Branches.{Branch, DriveUpString, LobbyString}
 import code.connectormethod.{ConnectorMethodProvider, JsonConnectorMethod}
@@ -1783,7 +1782,7 @@ object NewStyle extends MdcLoggable{
       value: String,
       isActive: Option[Boolean],
       callContext: Option[CallContext]
-    ): OBPReturnType[BankAttribute] = {
+    ): OBPReturnType[BankAttributeTrait] = {
       Connector.connector.vend.createOrUpdateBankAttribute(
         bankId: BankId,
         bankAttributeId: Option[String],
@@ -1867,7 +1866,7 @@ object NewStyle extends MdcLoggable{
     def getBankAttributeById(
       bankAttributeId: String,
       callContext: Option[CallContext]
-    ): OBPReturnType[BankAttribute] = {
+    ): OBPReturnType[BankAttributeTrait] = {
       Connector.connector.vend.getBankAttributeById(
         bankAttributeId: String,
         callContext: Option[CallContext]

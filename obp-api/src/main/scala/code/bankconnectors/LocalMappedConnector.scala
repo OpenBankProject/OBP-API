@@ -20,7 +20,7 @@ import code.api.v4_0_0.{AgentCashWithdrawalJson, PostSimpleCounterpartyJson400, 
 import code.atmattribute.AtmAttributeX
 import code.atms.Atms
 import code.bankaccountbalance.BankAccountBalanceX
-import code.bankattribute.{BankAttribute, BankAttributeX}
+import code.bankattribute.BankAttributeX
 import code.branches.MappedBranch
 import code.cardattribute.CardAttributeX
 import code.cards.MappedPhysicalCard
@@ -3822,7 +3822,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
                                            value: String,
                                            isActive: Option[Boolean],
                                            callContext: Option[CallContext]
-                                          ): OBPReturnType[Box[BankAttribute]] =
+                                          ): OBPReturnType[Box[BankAttributeTrait]] =
     BankAttributeX.bankAttributeProvider.vend.createOrUpdateBankAttribute(
       bankId: BankId,
       bankAttributeId: Option[String],
@@ -3871,7 +3871,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
       (_, callContext)
     }
 
-  override def getBankAttributeById(bankAttributeId: String, callContext: Option[CallContext]): OBPReturnType[Box[BankAttribute]] =
+  override def getBankAttributeById(bankAttributeId: String, callContext: Option[CallContext]): OBPReturnType[Box[BankAttributeTrait]] =
     BankAttributeX.bankAttributeProvider.vend.getBankAttributeById(bankAttributeId: String) map {
       (_, callContext)
     }
