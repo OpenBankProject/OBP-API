@@ -41,7 +41,7 @@ import code.api.util._
 import code.api.util.migration.Migration
 import code.api.util.migration.Migration.DbFunction
 import code.bankconnectors.{Connector, ConnectorEndpoints}
-import code.consent.{ConsentRequest, MappedConsent}
+import code.consent.MappedConsent
 import code.consumer.Consumers
 import code.model.Consumer
 import code.customer.MappedCustomer
@@ -849,7 +849,6 @@ object ToSchemify extends MdcLoggable {
     MappedBankAccount,
     MappedTransaction,
     MappedConsent,
-    ConsentRequest,
     ViewDefinition,
     ResourceUser,
     MappedCustomer,

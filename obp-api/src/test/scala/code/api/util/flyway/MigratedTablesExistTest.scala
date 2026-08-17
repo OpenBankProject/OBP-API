@@ -155,7 +155,8 @@ class MigratedTablesExistTest extends ServerSetup {
     "signatorypanel",
     "signingbasket",
     "signingbasketpayment",
-    "signingbasketconsent"
+    "signingbasketconsent",
+    "consentrequest"
   )
 
   /**
@@ -275,7 +276,8 @@ class MigratedTablesExistTest extends ServerSetup {
     "ACCOUNTACCESS" -> "ACCOUNTACCESS_BANK_ID_ACCOUNT_ID_VIEW_ID_USER_FK_CONSUMER_ID",
     "MANDATE" -> "MANDATE_MANDATEID",
     "MANDATEPROVISION" -> "MANDATEPROVISION_PROVISIONID",
-    "SIGNATORYPANEL" -> "SIGNATORYPANEL_PANELID"
+    "SIGNATORYPANEL" -> "SIGNATORYPANEL_PANELID",
+    "CONSENTREQUEST" -> "CONSENTREQUEST_CONSENTREQUESTID"
   )
 
   Feature("tables owned by Flyway rather than Schemifier") {
