@@ -48,9 +48,7 @@ object DeleteProductCascade {
     } forall (_ == true)
   }
   private def deleteAccounts(bankId: BankId, code: ProductCode): Boolean = {
-    MappedBankAccount.findAll(
-      By(MappedBankAccount.bank, bankId.value),
-      By(MappedBankAccount.kind, code.value)
+    MappedBankAccount.findAllByBankIdAndKind(bankId.value, code.value
     ) map {
       account => DeleteAccountCascade.delete(account.bankId, account.accountId)
     } forall (_ == true)

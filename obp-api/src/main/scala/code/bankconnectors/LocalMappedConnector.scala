@@ -824,12 +824,12 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     } {
       Future {
         val useMessageQueue = APIUtil.getPropsAsBoolValue("messageQueue.updateBankAccountsTransaction", false)
-        val outDatedTransactions = Box !! account.accountLastUpdate.get match {
+        val outDatedTransactions = Box !! account.accountLastUpdate match {
           case Full(l) => now after time(l.getTime + hours(APIUtil.getPropsAsIntValue("messageQueue.updateTransactionsInterval", 1)))
           case _ => true
         }
         if (outDatedTransactions && useMessageQueue) {
-          UpdatesRequestSender.sendMsg(UpdateBankAccount(account.accountNumber.get, bank.nationalIdentifier))
+          UpdatesRequestSender.sendMsg(UpdateBankAccount(account.accountNumber, bank.nationalIdentifier))
         }
       }
     }
@@ -884,7 +884,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
           getBankAccountCommon(bankId, AccountId(address), callContext)
         case None =>
           // No bank context — accept only when the account_id is globally unique.
-          MappedBankAccount.findAll(By(MappedBankAccount.theAccountId, address)) match {
+          MappedBankAccount.findAllByAccountId(address) match {
             case account :: Nil => Full((account, callContext))
             case Nil            => Empty
             case _              =>
@@ -938,14 +938,13 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   def getBankAccountCommon(bankId: BankId, accountId: AccountId, callContext: Option[CallContext]): Box[(MappedBankAccount, Option[CallContext])] = {
 
     def getByBankAndAccount(): Box[(MappedBankAccount, Option[CallContext])] = {
-      MappedBankAccount
-        .find(By(MappedBankAccount.bank, bankId.value), By(MappedBankAccount.theAccountId, accountId.value))
+      MappedBankAccount.find(bankId.value, accountId.value)
         .map(bankAccount => (bankAccount, callContext))
     }
 
     if(APIUtil.checkIfStringIsUUID(accountId.value)) {
       // Find bank accounts by accountId first
-      val bankAccounts = MappedBankAccount.findAll(By(MappedBankAccount.theAccountId, accountId.value))
+      val bankAccounts = MappedBankAccount.findAllByAccountId(accountId.value)
 
       // If exactly one account is found, return it, else filter by bankId
       bankAccounts match {
@@ -1052,13 +1051,9 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   override def getBankAccountByNumber(bankId : Option[BankId], accountNumber : String, callContext: Option[CallContext]) : OBPReturnType[Box[(BankAccount)]] = 
     Future {
       val bankAccounts: Seq[MappedBankAccount] = if (bankId.isDefined){
-        MappedBankAccount
-          .findAll(
-            By(MappedBankAccount.bank, bankId.head.value),
-            By(MappedBankAccount.accountNumber, accountNumber))
+        MappedBankAccount.findAllByAccountNumber(Some(bankId.head.value), accountNumber)
       }else{
-        MappedBankAccount
-          .findAll(By(MappedBankAccount.accountNumber, accountNumber))
+        MappedBankAccount.findAllByAccountNumber(None, accountNumber)
       }
 
       val errorMessage =
@@ -1484,10 +1479,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   override def getBankSettlementAccounts(bankId: BankId, callContext: Option[CallContext]): OBPReturnType[Box[List[BankAccount]]] = {
     Future {
       Full {
-        MappedBankAccount.findAll(
-          By(MappedBankAccount.bank, bankId.value),
-          By(MappedBankAccount.kind, "SETTLEMENT")
-        )
+        MappedBankAccount.findAllByBankIdAndKind(bankId.value, "SETTLEMENT")
       }
     }.map(account => (account, callContext))
   }
@@ -1539,10 +1531,12 @@ object LocalMappedConnector extends Connector with MdcLoggable {
   def createOrUpdateMappedBankAccount(bankId: BankId, accountId: AccountId, currency: String): Box[BankAccount] = {
 
     val mappedBankAccount = getBankAccountLegacy(bankId, accountId, None).map(_._1).map(_.asInstanceOf[MappedBankAccount]) match {
-      case Full(f) =>
-        f.bank(bankId.value).theAccountId(accountId.value).accountCurrency(currency.toUpperCase).saveMe()
+      case Full(_) =>
+        MappedBankAccount.setCurrency(bankId.value, accountId.value, currency.toUpperCase)
+          .openOrThrowException("the account just updated must be readable")
       case _ =>
-        MappedBankAccount.create.bank(bankId.value).theAccountId(accountId.value).accountCurrency(currency.toUpperCase).saveMe()
+        MappedBankAccount.insert(bankId.value, accountId.value,
+          accountCurrency = currency.toUpperCase)
     }
 
     Full(mappedBankAccount)
@@ -2514,11 +2508,11 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     (for {
       (account, _) <- LocalMappedConnector.getBankAccountCommon(bankId, accountId, callContext)
     } yield {
-      account
-        .kind(accountType)
-        .accountLabel(accountLabel)
-        .mBranchId(branchId)
-        .saveMe
+      MappedBankAccount.update(bankId.value, accountId.value, List(
+        fr"kind = ${Option(accountType)}",
+        fr"accountlabel = ${Option(accountLabel)}",
+        fr"mbranchid = ${Option(branchId)}"))
+        .openOrThrowException("the account just updated must be readable")
     }, callContext)
   }
   
@@ -2554,7 +2548,7 @@ object LocalMappedConnector extends Connector with MdcLoggable {
           _ <- getBankLegacy(bankId, None)
           acc<- getBankAccountLegacy(bankId, accountId, None).map(_._1).map(_.asInstanceOf[MappedBankAccount])
         } yield {
-          acc.accountLabel(label).save
+          MappedBankAccount.setAccountLabel(bankId.value, accountId.value, label).isDefined
         }, 
         callContext
       )
@@ -3093,35 +3087,33 @@ object LocalMappedConnector extends Connector with MdcLoggable {
     }
 
     // Insert the default settlement accounts if they doesn't exist
-    MappedBankAccount.find(By(MappedBankAccount.bank, bankId), By(MappedBankAccount.theAccountId, INCOMING_SETTLEMENT_ACCOUNT_ID)) match {
+    MappedBankAccount.find(bankId, INCOMING_SETTLEMENT_ACCOUNT_ID) match {
       case Full(_) =>
         logger.debug(s"BankAccount(${bankId}, $INCOMING_SETTLEMENT_ACCOUNT_ID) is found.")
       case _ =>
-        MappedBankAccount.create
-          .bank(bankId)
-          .theAccountId(INCOMING_SETTLEMENT_ACCOUNT_ID)
-          .accountCurrency("EUR")
-          .kind("SETTLEMENT")
-          .holder(fullBankName)// TODO Consider to use the table MapperAccountHolder 
-          .accountName("Default incoming settlement account")
-          .accountLabel("Settlement account: Do not delete!")
-          .saveMe()
+        MappedBankAccount.insert(
+          bankId = bankId,
+          accountId = INCOMING_SETTLEMENT_ACCOUNT_ID,
+          accountCurrency = "EUR",
+          kind = "SETTLEMENT",
+          holder = fullBankName, // TODO Consider to use the table MapperAccountHolder
+          accountName = "Default incoming settlement account",
+          accountLabel = "Settlement account: Do not delete!")
         logger.debug(s"creating BankAccount(${bankId}, $INCOMING_SETTLEMENT_ACCOUNT_ID).")
     }
 
-    MappedBankAccount.find(By(MappedBankAccount.bank, bankId), By(MappedBankAccount.theAccountId, OUTGOING_SETTLEMENT_ACCOUNT_ID)) match {
+    MappedBankAccount.find(bankId, OUTGOING_SETTLEMENT_ACCOUNT_ID) match {
       case Full(_) =>
         logger.debug(s"BankAccount(${bankId}, $OUTGOING_SETTLEMENT_ACCOUNT_ID) is found.")
       case _ =>
-        MappedBankAccount.create
-          .bank(bankId)
-          .theAccountId(OUTGOING_SETTLEMENT_ACCOUNT_ID)
-          .accountCurrency("EUR")
-          .kind("SETTLEMENT")
-          .holder(fullBankName)
-          .accountName("Default outgoing settlement account")
-          .accountLabel("Settlement account: Do not delete!")
-          .saveMe()
+        MappedBankAccount.insert(
+          bankId = bankId,
+          accountId = OUTGOING_SETTLEMENT_ACCOUNT_ID,
+          accountCurrency = "EUR",
+          kind = "SETTLEMENT",
+          holder = fullBankName,
+          accountName = "Default outgoing settlement account",
+          accountLabel = "Settlement account: Do not delete!")
         logger.debug(s"creating BankAccount(${bankId}, $OUTGOING_SETTLEMENT_ACCOUNT_ID).")
     }
 

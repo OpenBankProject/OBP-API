@@ -83,36 +83,32 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
     getOrCreateRouting(AccountRoutingScheme.IBAN.toString, iban4j.Iban.random().toString())
     getOrCreateRouting("AccountId", accountId.value)
 
-    val existingAccount = MappedBankAccount.find(
-      By(MappedBankAccount.bank, bankId.value),
-      By(MappedBankAccount.theAccountId, accountId.value)
-    )
+    val existingAccount = MappedBankAccount.find(bankId.value, accountId.value)
     existingAccount.openOr {
       try {
-        MappedBankAccount.create
-          .bank(bankId.value)
-          .theAccountId(accountId.value)
-          .accountCurrency(currency.toUpperCase)
-          .accountBalance(900000000)
-          .holder(randomString(4))
-          .accountLastUpdate(now)
-          .accountName(randomString(4))
-          .accountNumber(randomString(4))
-          .accountLabel(randomString(4))
-          .mBranchId(randomString(4))
-          .saveMe
+        MappedBankAccount.insert(
+          bankId = bankId.value,
+          accountId = accountId.value,
+          accountCurrency = currency.toUpperCase,
+          accountBalance = 900000000,
+          holder = randomString(4),
+          accountLastUpdate = now,
+          accountName = randomString(4),
+          accountNumber = randomString(4),
+          accountLabel = randomString(4),
+          branchId = randomString(4))
       } catch {
+        // A concurrent creator won the unique index; read its row instead.
         case _: Throwable =>
-          MappedBankAccount.find(
-            By(MappedBankAccount.bank, bankId.value),
-            By(MappedBankAccount.theAccountId, accountId.value)
-          ).openOrThrowException(attemptedToOpenAnEmptyBox)
+          MappedBankAccount.find(bankId.value, accountId.value)
+            .openOrThrowException(attemptedToOpenAnEmptyBox)
       }
     }
   }
 
   override protected def updateAccountCurrency(bankId: BankId, accountId : AccountId, currency : String) : BankAccount = {
-     MappedBankAccount.find(By(MappedBankAccount.bank, bankId.value), By(MappedBankAccount.theAccountId, accountId.value)).openOrThrowException(attemptedToOpenAnEmptyBox).accountCurrency(currency.toUpperCase).saveMe()
+     MappedBankAccount.setCurrency(bankId.value, accountId.value, currency.toUpperCase)
+       .openOrThrowException(attemptedToOpenAnEmptyBox)
   }
 
   def addEntitlement(bankId: String, userId: String, roleName: String): Box[Entitlement] = {
@@ -124,11 +120,12 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
     //ugly
     val mappedBankAccount = account.asInstanceOf[MappedBankAccount]
 
-    val accountBalanceBefore = mappedBankAccount.accountBalance.get
+    val accountBalanceBefore = mappedBankAccount.accountBalance
     val transactionAmount = Random.nextInt(1000).toLong
     val accountBalanceAfter = accountBalanceBefore + transactionAmount
 
-    mappedBankAccount.accountBalance(accountBalanceAfter).save
+    MappedBankAccount.setBalance(mappedBankAccount.bank, mappedBankAccount.theAccountId,
+      accountBalanceAfter)
 
     // Determine transaction status based on isCompleted parameter
     val transactionStatus = if (isCompleted) {
@@ -335,6 +332,7 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
     DoobieUtil.runUpdate(sql"DELETE FROM metric".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM metricarchive".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM mappedconsent".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM mappedbankaccount".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM mappeduserauthcontextupdate".update.run)
 
     

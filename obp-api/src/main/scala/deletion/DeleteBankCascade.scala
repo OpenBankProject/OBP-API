@@ -17,7 +17,7 @@ import net.liftweb.util.DefaultConnectionIdentifier
 object DeleteBankCascade {
 
   def delete(bankId: BankId): Boolean = {
-    MappedBankAccount.findAll(By(MappedBankAccount.bank, bankId.value)).forall { i =>
+    MappedBankAccount.findAllByBankId(bankId.value).forall { i =>
       // Delete customer related to the account via account attribute "customer_number"
       DoobieAccountAttributeProvider.getAccountAttributesByBankSync(bankId.value)
         .filter(_.name == "customer_number").foreach { i =>

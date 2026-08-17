@@ -82,9 +82,7 @@ class ConfirmationOfFundsServicePIISApiTest extends BerlinGroupServerSetupV1_3 w
     Scenario("Success case - Not Enough Funds", BerlinGroupV1_3, PIIS, checkAvailabilityOfFunds) {
       val accountsIban = DoobieBankAccountRoutingQueries.findAllByScheme(AccountRoutingScheme.IBAN.toString)
       val iban = accountsIban.head.accountRouting.address
-      val account = MappedBankAccount.find(
-        By(MappedBankAccount.bank, accountsIban.head.bankId.value),
-        By(MappedBankAccount.theAccountId, accountsIban.head.accountId.value)).openOrThrowException("Can not be empty here")
+      val account = MappedBankAccount.find(accountsIban.head.bankId.value, accountsIban.head.accountId.value).openOrThrowException("Can not be empty here")
       val balance = account.balance
       val laggerbalance = balance +1000
 

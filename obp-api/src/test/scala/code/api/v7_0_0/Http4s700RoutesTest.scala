@@ -2345,8 +2345,8 @@ class Http4s700RoutesTest extends ServerSetupWithTestData {
   private def ensureSettlementAccounts(bankId: String, currency: String): Unit = {
     import code.model.dataAccess.MappedBankAccount
     List(code.api.Constant.INCOMING_SETTLEMENT_ACCOUNT_ID, code.api.Constant.OUTGOING_SETTLEMENT_ACCOUNT_ID).foreach { accountId =>
-      if (MappedBankAccount.find(By(MappedBankAccount.bank, bankId), By(MappedBankAccount.theAccountId, accountId)).isEmpty) {
-        MappedBankAccount.create.bank(bankId).theAccountId(accountId).accountCurrency(currency).saveMe()
+      if (MappedBankAccount.find(bankId, accountId).isEmpty) {
+        MappedBankAccount.insert(bankId, accountId, accountCurrency = currency)
       }
     }
   }

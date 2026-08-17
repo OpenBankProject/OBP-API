@@ -2710,7 +2710,7 @@ object Http4s510 {
           val bankId = BankId(bankIdStr)
           for {
             currencies: List[String] <- Future {
-              code.model.dataAccess.MappedBankAccount.findAll().map(_.accountCurrency.get).distinct
+              code.model.dataAccess.MappedBankAccount.findAll().map(_.accountCurrency).distinct
             }
             (bankCurrencies, _) <- NewStyle.function.getCurrentCurrencies(bankId, Some(cc))
           } yield JSONFactory510.getSensibleCurrenciesCheck(bankCurrencies, currencies)
@@ -2743,7 +2743,7 @@ object Http4s510 {
               AccountAccess.findAllByBankId(bankId).map(_.accountId)
             }
             bankAccounts <- Future {
-              code.model.dataAccess.MappedBankAccount.findAll(By(code.model.dataAccess.MappedBankAccount.bank, bankId.value)).map(_.accountId.value)
+              code.model.dataAccess.MappedBankAccount.findAllByBankId(bankId.value).map(_.accountId.value)
             }
           } yield {
             val orphaned = accountAccesses.filterNot(bankAccounts.contains)

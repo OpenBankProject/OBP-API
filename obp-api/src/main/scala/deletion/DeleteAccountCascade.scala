@@ -50,9 +50,7 @@ object DeleteAccountCascade {
   }
 
   private def deleteAccount(bankId: BankId, accountId: AccountId): Boolean = {
-    MappedBankAccount.bulkDelete_!!(
-      By(MappedBankAccount.bank, bankId.value),
-      By(MappedBankAccount.theAccountId, accountId.value)
+    MappedBankAccount.delete(bankId.value, accountId.value
     )
   }
   private def deleteEntitlements(bankId: BankId, accountId: AccountId): Boolean = {
@@ -66,11 +64,10 @@ object DeleteAccountCascade {
   }
   
   private def deleteCards(accountId: AccountId): Boolean = {
-    MappedBankAccount.findAll(
-      By(MappedBankAccount.theAccountId, accountId.value)
+    MappedBankAccount.findAllByAccountId(accountId.value
     ) map (
       account =>
-        MappedPhysicalCard.deleteByAccountKey(account.id.get)
+        MappedPhysicalCard.deleteByAccountKey(account.accountPrimaryKey)
     )
   }.forall(_ == true)
   

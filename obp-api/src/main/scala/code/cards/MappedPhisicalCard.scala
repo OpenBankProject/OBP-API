@@ -66,7 +66,7 @@ case class MappedPhysicalCard(
   }
 
   override def account: BankAccount =
-    MappedBankAccount.find(By(MappedBankAccount.id, accountKey))
+    MappedBankAccount.findByPrimaryKey(accountKey)
       .openOr(throw new Exception("Account is mandatory"))
 
   override def replacement: Option[CardReplacementInfo] = replacementDate match {
@@ -257,9 +257,9 @@ object MappedPhysicalCardProvider extends PhysicalCardProvider {
   /** The numeric MAPPEDBANKACCOUNT key the card's foreign key column holds. */
   private def accountKeyOrThrow(bankId: String, accountId: String): Long =
     MappedBankAccount
-      .find(By(MappedBankAccount.bank, bankId), By(MappedBankAccount.theAccountId, accountId))
+      .find(bankId, accountId)
       .openOrThrowException(s"$accountId do not have Primary key, please contact admin, check the database! ")
-      .id.get
+      .accountPrimaryKey
 
   private def applyPinResets(card: MappedPhysicalCard, pinResets: List[PinResetInfo]): Unit =
     pinResets.foreach { pinReset =>
@@ -392,8 +392,8 @@ object MappedPhysicalCardProvider extends PhysicalCardProvider {
       // An account id that does not resolve becomes Long.MaxValue, which matches no card — the
       // same "no results" Mapper produced rather than an error.
       MappedBankAccount
-        .find(By(MappedBankAccount.bank, bank.bankId.value), By(MappedBankAccount.theAccountId, value))
-        .map(_.id.get).openOr(Long.MaxValue)
+        .find(bank.bankId.value, value)
+        .map(_.accountPrimaryKey).openOr(Long.MaxValue)
     }
     MappedPhysicalCard.findAllForBank(bank.bankId.value, customerId, accountKey)
   }

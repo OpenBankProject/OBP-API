@@ -167,6 +167,23 @@ case class SaveableTransaction(bank: String, account: String, transactionId: Str
   }
 }
 
+case class SaveableAccount(accountId: String, bankId: String, accountLabel: String,
+                           accountNumber: String, kind: String, accountCurrency: String,
+                           accountBalance: Long) extends Saveable[MappedBankAccount] {
+  // Read before save() runs - createTransactions needs the account ids while the rows are still
+  // unwritten - so this is the transient row the import is about to store, as MappedSaveable did.
+  lazy val value: MappedBankAccount = MappedBankAccount(0L, bankId, accountId, accountCurrency,
+    accountNumber, holder = "", accountBalance, accountName = "", kind, accountLabel,
+    accountLastUpdate = null, branchId = "", accountRuleScheme1 = "", accountRuleValue1 = 0L,
+    accountRuleScheme2 = "", accountRuleValue2 = 0L)
+  def save(): Unit = {
+    MappedBankAccount.insert(bankId = bankId, accountId = accountId, accountLabel = accountLabel,
+      accountNumber = accountNumber, kind = kind, accountCurrency = accountCurrency,
+      accountBalance = accountBalance)
+    ()
+  }
+}
+
 object LocalMappedConnectorDataImport extends OBPDataImport with CreateAuthUsers {
 
   // Rename these types as MappedCrmEventType etc? Else can get confused with other types of same name
@@ -333,23 +350,17 @@ object LocalMappedConnectorDataImport extends OBPDataImport with CreateAuthUsers
       currency = acc.balance.currency
     } yield {
       DoobieBankAccountRoutingQueries.create(BankId(acc.bank), AccountId(acc.id), AccountRoutingScheme.IBAN.toString, acc.IBAN)
-      MappedBankAccount.create
-        .theAccountId(acc.id)
-        .bank(acc.bank)
-        .accountLabel(acc.label)
-        .accountNumber(acc.number)
-        .kind(acc.`type`)
-        .accountCurrency(currency.toUpperCase)
-        .accountBalance(convertToSmallestCurrencyUnits(balance, currency))
+      SaveableAccount(
+        accountId = acc.id,
+        bankId = acc.bank,
+        accountLabel = acc.label,
+        accountNumber = acc.number,
+        kind = acc.`type`,
+        accountCurrency = currency.toUpperCase,
+        accountBalance = convertToSmallestCurrencyUnits(balance, currency))
     }
 
-    val validationErrors = mappedAccount.map(_.validate).getOrElse(Nil)
-
-    if(validationErrors.nonEmpty) {
-      Failure(s"Errors: ${validationErrors.map(_.msg)}")
-    } else {
-      mappedAccount.map(MappedSaveable(_))
-    }
+    mappedAccount
   }
 
 

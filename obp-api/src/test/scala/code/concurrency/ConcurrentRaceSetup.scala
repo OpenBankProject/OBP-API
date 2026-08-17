@@ -123,8 +123,8 @@ trait ConcurrentRaceSetup extends ServerSetupWithTestData with DefaultUsers {
   /** Balance persisted on the account row, read straight from the DB (no cache, no HTTP). */
   def dbAccountBalance(bankId: BankId, accountId: AccountId): Long =
     MappedBankAccount
-      .find(By(MappedBankAccount.bank, bankId.value), By(MappedBankAccount.theAccountId, accountId.value))
-      .map(_.accountBalance.get)
+      .find(bankId.value, accountId.value)
+      .map(_.accountBalance)
       .getOrElse(fail(s"account row not found: ${bankId.value}/${accountId.value}"))
 
   /** Number of entitlement rows for one (bank,user,role) triple, straight from the DB. */

@@ -108,10 +108,7 @@ object AfterApiAuth extends MdcLoggable{
   }
   private def sofitInitAction(user: AuthUser): Boolean = applyAction("sofit.logon_init_action.enabled") {
     def getOrCreateBankAccount(bank: Bank, accountId: String, label: String, accountType: String = ""): Box[BankAccount] = {
-      MappedBankAccount.find(
-        By(MappedBankAccount.bank, bank.bankId.value), 
-        By(MappedBankAccount.theAccountId, accountId)
-      ) match {
+      MappedBankAccount.find(bank.bankId.value, accountId) match {
         case Full(bankAccount) => Full(bankAccount)
         case _ => 
           val account = LocalMappedConnectorInternal.createSandboxBankAccount(

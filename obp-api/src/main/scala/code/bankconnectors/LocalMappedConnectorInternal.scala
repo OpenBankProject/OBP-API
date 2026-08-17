@@ -301,17 +301,16 @@ object LocalMappedConnectorInternal extends MdcLoggable {
         accountRoutings.map(accountRouting =>
           DoobieBankAccountRoutingQueries.create(bankId, accountId, accountRouting.scheme, accountRouting.address)
         )
-        MappedBankAccount.create
-          .bank(bankId.value)
-          .theAccountId(accountId.value)
-          .accountNumber(accountNumber)
-          .kind(accountType)
-          .accountLabel(accountLabel)
-          .accountCurrency(currency.toUpperCase)
-          .accountBalance(balanceInSmallestCurrencyUnits)
-          .holder(accountHolderName)
-          .mBranchId(branchId)
-          .saveMe()
+        MappedBankAccount.insert(
+          bankId = bankId.value,
+          accountId = accountId.value,
+          accountNumber = accountNumber,
+          kind = accountType,
+          accountLabel = accountLabel,
+          accountCurrency = currency.toUpperCase,
+          accountBalance = balanceInSmallestCurrencyUnits,
+          holder = accountHolderName,
+          branchId = branchId)
       }
     }
   }
@@ -396,9 +395,7 @@ object LocalMappedConnectorInternal extends MdcLoggable {
 
   //for sandbox use -> allows us to check if we can generate a new test account with the given number
   def accountExists(bankId : BankId, accountNumber : String) : Box[Boolean] = {
-    Full(MappedBankAccount.count(
-      By(MappedBankAccount.bank, bankId.value),
-      By(MappedBankAccount.accountNumber, accountNumber)) > 0)
+    Full(MappedBankAccount.findAllByAccountNumber(Some(bankId.value), accountNumber).nonEmpty)
   }
 
   def getBranchLocal(bankId: BankId, branchId: BranchId): Box[BranchT] = {

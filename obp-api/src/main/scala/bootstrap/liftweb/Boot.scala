@@ -563,27 +563,19 @@ class Boot extends MdcLoggable {
         logger.debug(s"creating Bank(${defaultBankId})")
     }
 
-    MappedBankAccount.find(By(MappedBankAccount.bank, defaultBankId), By(MappedBankAccount.theAccountId, incomingAccountId)) match {
+    MappedBankAccount.find(defaultBankId, incomingAccountId) match {
       case Full(b) =>
         logger.debug(s"BankAccount(${defaultBankId}, $incomingAccountId) is found.")
       case _ =>
-        MappedBankAccount.create
-          .bank(defaultBankId)
-          .theAccountId(incomingAccountId)
-          .accountCurrency("EUR")
-          .saveMe()
+        MappedBankAccount.insert(defaultBankId, incomingAccountId, accountCurrency = "EUR")
         logger.debug(s"creating BankAccount(${defaultBankId}, $incomingAccountId).")
     }
 
-    MappedBankAccount.find(By(MappedBankAccount.bank, defaultBankId), By(MappedBankAccount.theAccountId, outgoingAccountId)) match {
+    MappedBankAccount.find(defaultBankId, outgoingAccountId) match {
       case Full(b) =>
         logger.debug(s"BankAccount(${defaultBankId}, $outgoingAccountId) is found.")
       case _ =>
-        MappedBankAccount.create
-          .bank(defaultBankId)
-          .theAccountId(outgoingAccountId)
-          .accountCurrency("EUR")
-          .saveMe()
+        MappedBankAccount.insert(defaultBankId, outgoingAccountId, accountCurrency = "EUR")
         logger.debug(s"creating BankAccount(${defaultBankId}, $outgoingAccountId).")
     }
   }
@@ -836,7 +828,6 @@ class Boot extends MdcLoggable {
 object ToSchemify extends MdcLoggable {
   val models: List[MetaMapper[_]] = List(
     AuthUser,
-    MappedBankAccount,
     ViewDefinition,
     ResourceUser,
     Consumer,

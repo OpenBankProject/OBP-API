@@ -89,9 +89,7 @@ trait Views {
   
   //the following return list[BankIdAccountId], just use the list[View] method, the View object contains enough data for it.
   final def getAllFirehoseAccounts(bankId: BankId)= {
-    MappedBankAccount.findAll(
-      By(MappedBankAccount.bank, bankId.value)
-    )
+    MappedBankAccount.findAllByBankId(bankId.value)
   }
   final def getPrivateBankAccounts(user : User) : List[BankIdAccountId] =  privateViewsUserCanAccess(user)._2.map(a => BankIdAccountId(BankId(a.bankId), AccountId(a.accountId))).distinct 
   final def getPrivateBankAccounts(user : User, viewIds: List[ViewId]) : List[BankIdAccountId] =  privateViewsUserCanAccess(user, viewIds)._2.map(a => BankIdAccountId(BankId(a.bankId), AccountId(a.accountId))).distinct 
