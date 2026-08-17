@@ -136,7 +136,8 @@ class MigratedTablesExistTest extends ServerSetup {
     "mappedphysicalcard",
     "pinreset",
     "doubleentrybooktransaction",
-    "dynamicendpoint"
+    "dynamicendpoint",
+    "mappedconnectormetric"
   )
 
   /**

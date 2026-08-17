@@ -54,7 +54,7 @@ import code.dynamicMessageDoc.DynamicMessageDoc
 import code.dynamicResourceDoc.DynamicResourceDoc
 import code.entitlement.{Entitlement, MappedEntitlement}
 import code.metadata.counterparties.{MappedCounterparty, MappedCounterpartyMetadata, MappedCounterpartyWhereTag}
-import code.metrics.{MappedConnectorMetric, MappedMetric, MetricArchive}
+import code.metrics.{MappedMetric, MetricArchive}
 import code.model._
 import code.model.dataAccess._
 import code.obp.grpc.ObpGrpcServer
@@ -889,7 +889,6 @@ object ToSchemify extends MdcLoggable {
     MetricArchive,
     MapperAccountHolders,
     MappedEntitlement,
-    MappedConnectorMetric,
     RateLimiting
   )
 
