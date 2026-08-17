@@ -74,11 +74,8 @@ class ConcurrentViewPermissionRaceTest extends ConcurrentRaceSetup {
       val accountId = AccountId("__conc_pubview_acc")
       createAccountRelevantResource(Some(resourceUser1), bankId, accountId, "EUR")
 
-      def viewCount: Long = ViewDefinition.count(
-        By(ViewDefinition.bank_id, bankId.value),
-        By(ViewDefinition.account_id, accountId.value),
-        By(ViewDefinition.view_id, "_public") // CUSTOM_PUBLIC_VIEW_ID
-      )
+      def viewCount: Long = ViewDefinition.countByBankAccountView(
+        bankId.value, accountId.value, "_public") // CUSTOM_PUBLIC_VIEW_ID
       val before = viewCount
       val n      = 2
 
@@ -109,19 +106,18 @@ class ConcurrentViewPermissionRaceTest extends ConcurrentRaceSetup {
 
       // A dedicated custom view row so the (bank,account,view) key is isolated from real test views.
       val viewIdStr = "__conc_o_view_" + UUID.randomUUID.toString.take(8)
-      val view: ViewDefinition = ViewDefinition.create
-        .isSystem_(false)
-        .isFirehose_(false)
-        .bank_id(bankId.value)
-        .account_id(accountId.value)
-        .view_id(viewIdStr)
-        .name_("conc-o-view")
-        .description_("conc-o")
-        .isPublic_(false)
-        .usePrivateAliasIfOneExists_(false)
-        .usePublicAliasIfOneExists_(false)
-        .hideOtherAccountMetadataIfAlias_(false)
-        .saveMe()
+      val view: ViewDefinition = ViewDefinition.insert(ViewDefinition(
+        isSystem_ = false,
+        isFirehose_ = false,
+        bank_id = bankId.value,
+        account_id = accountId.value,
+        view_id = viewIdStr,
+        name_ = "conc-o-view",
+        description_ = "conc-o",
+        isPublic_ = false,
+        usePrivateAliasIfOneExists_ = false,
+        usePublicAliasIfOneExists_ = false,
+        hideOtherAccountMetadataIfAlias_ = false))
 
       val permissionNames = List(
         "can_see_transaction_amount",
@@ -160,19 +156,18 @@ class ConcurrentViewPermissionRaceTest extends ConcurrentRaceSetup {
       createAccountRelevantResource(Some(resourceUser1), bankId, accountId, "EUR")
 
       val viewIdStr = "__conc_r_view_" + UUID.randomUUID.toString.take(8)
-      val view: ViewDefinition = ViewDefinition.create
-        .isSystem_(false)
-        .isFirehose_(false)
-        .bank_id(bankId.value)
-        .account_id(accountId.value)
-        .view_id(viewIdStr)
-        .name_("conc-r-view")
-        .description_("conc-r")
-        .isPublic_(false)
-        .usePrivateAliasIfOneExists_(false)
-        .usePublicAliasIfOneExists_(false)
-        .hideOtherAccountMetadataIfAlias_(false)
-        .saveMe()
+      val view: ViewDefinition = ViewDefinition.insert(ViewDefinition(
+        isSystem_ = false,
+        isFirehose_ = false,
+        bank_id = bankId.value,
+        account_id = accountId.value,
+        view_id = viewIdStr,
+        name_ = "conc-r-view",
+        description_ = "conc-r",
+        isPublic_ = false,
+        usePrivateAliasIfOneExists_ = false,
+        usePublicAliasIfOneExists_ = false,
+        hideOtherAccountMetadataIfAlias_ = false))
 
       // removeCustomView (MapperViews.scala:502-517): (1) checks AccountAccess for the view is empty,
       // (2) then deletes the view. The two steps are not atomic and there is no transaction, so a grant
@@ -181,7 +176,7 @@ class ConcurrentViewPermissionRaceTest extends ConcurrentRaceSetup {
       val checkSawEmpty = AccountAccess.findAllByBankIdAccountIdViewId(bankId, accountId, ViewId(viewIdStr)).isEmpty
       AccountAccess.insert(resourceUser1.userPrimaryKey.value, bankId.value, accountId.value,
         viewIdStr, ALL_CONSUMERS)
-      view.delete_!
+      ViewDefinition.delete(view)
 
       Then("no AccountAccess may reference the now-deleted view (no orphaned permission row)")
       val orphans = AccountAccess.findAllByBankIdAccountIdViewId(bankId, accountId, ViewId(viewIdStr))

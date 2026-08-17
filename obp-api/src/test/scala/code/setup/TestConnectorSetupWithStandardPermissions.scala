@@ -120,20 +120,19 @@ trait TestConnectorSetupWithStandardPermissions extends TestConnectorSetup {
       getExistingCustomView(bankId, accountId, viewId) match {
         case net.liftweb.common.Empty => {
           val view = tryo {
-            ViewDefinition.create.
-              isSystem_(false).
-              isFirehose_(false).
-              name_(viewName).
-              metadataView_(SYSTEM_OWNER_VIEW_ID).
-              description_(description).
-              view_id(viewId).
-              isPublic_(false).
-              bank_id(bankId.value).
-              account_id(accountId.value).
-              usePrivateAliasIfOneExists_(false).
-              usePublicAliasIfOneExists_(false).
-              hideOtherAccountMetadataIfAlias_(false).
-              saveMe
+            ViewDefinition.insert(ViewDefinition(
+              isSystem_ = false,
+              isFirehose_ = false,
+              name_ = viewName,
+              metadataView_ = SYSTEM_OWNER_VIEW_ID,
+              description_ = description,
+              view_id = viewId,
+              isPublic_ = false,
+              bank_id = bankId.value,
+              account_id = accountId.value,
+              usePrivateAliasIfOneExists_ = false,
+              usePublicAliasIfOneExists_ = false,
+              hideOtherAccountMetadataIfAlias_ = false))
           }
           view.map(ViewPermission.resetViewPermissions(
             _,
@@ -300,6 +299,7 @@ trait TestConnectorSetupWithStandardPermissions extends TestConnectorSetup {
     DoobieUtil.runUpdate(sql"DELETE FROM metricarchive".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM mappedconsent".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM mappedbankaccount".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM viewdefinition".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM mappeduserauthcontextupdate".update.run)
 
   }

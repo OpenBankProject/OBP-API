@@ -333,6 +333,7 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
     DoobieUtil.runUpdate(sql"DELETE FROM metricarchive".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM mappedconsent".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM mappedbankaccount".update.run)
+    DoobieUtil.runUpdate(sql"DELETE FROM viewdefinition".update.run)
     DoobieUtil.runUpdate(sql"DELETE FROM mappeduserauthcontextupdate".update.run)
 
     

@@ -22,7 +22,7 @@ class PrivateViewsUserCanAccessTest extends ServerSetup with DefaultUsers {
     // and the Doobie pool wouldn't see a clean state for the next test.
     DB.use(DefaultConnectionIdentifier) { conn =>
       AccountAccess.deleteAll()
-      ViewDefinition.bulkDelete_!!()
+      ViewDefinition.deleteAll()
       conn.connection.commit()
     }
   }

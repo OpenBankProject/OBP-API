@@ -12,12 +12,12 @@ class MappedViewsTest extends ServerSetup with DefaultUsers{
   
   override def beforeAll() = {
     super.beforeAll()
-    ViewDefinition.bulkDelete_!!()
+    ViewDefinition.deleteAll()
   }
   
   override def afterEach() = {
     super.afterEach()
-    ViewDefinition.bulkDelete_!!()
+    ViewDefinition.deleteAll()
   }
   
   val bankIdAccountId = BankIdAccountId(BankId("1"),AccountId("2"))

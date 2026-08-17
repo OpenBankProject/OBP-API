@@ -11,7 +11,7 @@ class AccountHoldersTest extends ServerSetup with DefaultUsers{
   override def beforeAll() = {
     super.beforeAll()
     AccountHolders.accountHolders.vend.bulkDeleteAllAccountHolders()
-    ViewDefinition.bulkDelete_!!()
+    ViewDefinition.deleteAll()
   }
   
   override def afterEach() = {

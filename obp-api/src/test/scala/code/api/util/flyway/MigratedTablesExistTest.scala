@@ -167,7 +167,8 @@ class MigratedTablesExistTest extends ServerSetup {
     "metric",
     "metricarchive",
     "mappedconsent",
-    "mappedbankaccount"
+    "mappedbankaccount",
+    "viewdefinition"
   )
 
   /**
@@ -298,7 +299,8 @@ class MigratedTablesExistTest extends ServerSetup {
     "MAPPEDCUSTOMER" -> "MAPPEDCUSTOMER_MBANK_MNUMBER",
     "MAPPEDCONSENT" -> "MAPPEDCONSENT_MCONSENTID",
     "MAPPEDCONSENT" -> "MAPPEDCONSENT_CONSENT_REFERENCE_ID",
-    "MAPPEDBANKACCOUNT" -> "MAPPEDBANKACCOUNT_BANK_THEACCOUNTID"
+    "MAPPEDBANKACCOUNT" -> "MAPPEDBANKACCOUNT_BANK_THEACCOUNTID",
+    "VIEWDEFINITION" -> "VIEWDEFINITION_COMPOSITE_UNIQUE_KEY"
   )
 
   Feature("tables owned by Flyway rather than Schemifier") {

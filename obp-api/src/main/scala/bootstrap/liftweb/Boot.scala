@@ -828,7 +828,6 @@ class Boot extends MdcLoggable {
 object ToSchemify extends MdcLoggable {
   val models: List[MetaMapper[_]] = List(
     AuthUser,
-    ViewDefinition,
     ResourceUser,
     Consumer,
     Token,

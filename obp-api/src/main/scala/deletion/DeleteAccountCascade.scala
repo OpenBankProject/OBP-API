@@ -84,10 +84,7 @@ object DeleteAccountCascade {
     DoobieAccountAttributeProvider.deleteAccountAttributesByBankAndAccount(bankId.value, accountId.value)
   }
   private def deleteCustomViews(bankId: BankId, accountId: AccountId): Boolean = {
-    ViewDefinition.bulkDelete_!!(
-      By(ViewDefinition.bank_id, bankId.value),
-      By(ViewDefinition.account_id, accountId.value)
-    )
+    ViewDefinition.deleteByBankAccount(bankId.value, accountId.value)
   }  
   private def deleteAccountAccess(bankId: BankId, accountId: AccountId): Boolean = {
     AccountAccess.deleteByBankIdAccountId(bankId, accountId)
