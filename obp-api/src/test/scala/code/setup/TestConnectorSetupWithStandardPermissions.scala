@@ -153,7 +153,7 @@ trait TestConnectorSetupWithStandardPermissions extends TestConnectorSetup {
 
     //returns true if the model should not be wiped after each test
     def exclusion(m : MetaMapper[_]) = {
-      m == Nonce || m == Token || m == Consumer || m == AuthUser || m == ResourceUser
+      m == Token || m == Consumer || m == AuthUser || m == ResourceUser
     }
 
     //empty the relational db tables after each test

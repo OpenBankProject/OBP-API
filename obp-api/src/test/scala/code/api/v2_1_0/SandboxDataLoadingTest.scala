@@ -102,7 +102,7 @@ class SandboxDataLoadingTest extends AnyFlatSpec with SendServerRequests with Ma
   override def beforeEach() = {
     //returns true if the model should not be wiped after each test
     def exclusion(m : MetaMapper[_]) = {
-      m == Nonce || m == code.model.Token || m == code.model.Consumer || m == AuthUser || m == ResourceUser
+      m == code.model.Token || m == code.model.Consumer || m == AuthUser || m == ResourceUser
     }
     //drop database tables before
     ToSchemify.models.filterNot(exclusion).foreach(_.bulkDelete_!!())

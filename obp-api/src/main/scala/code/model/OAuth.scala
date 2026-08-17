@@ -31,6 +31,10 @@ import code.api.util._
 import code.consumer.{Consumers, ConsumersProvider}
 import code.model.AppType.{Confidential, Public, Unknown}
 import code.model.dataAccess.ResourceUser
+import code.api.util.DoobieUtil
+import doobie._
+import doobie.implicits._
+import doobie.implicits.javasql._
 import code.nonce.NoncesProvider
 import code.token.TokensProvider
 import code.users.Users
@@ -682,47 +686,24 @@ object MappedNonceProvider extends NoncesProvider {
                            timestamp: Option[Date],
                            value: Option[String]): Box[Nonce] = {
     tryo {
-      val n = Nonce.create
-      id match {
-        case Some(v) => n.id(v)
-        case None =>
-      }
-      consumerKey match {
-        case Some(v) => n.consumerkey(v)
-        case None =>
-      }
-      tokenKey match {
-        case Some(v) => n.tokenKey(v)
-        case None =>
-      }
-      timestamp match {
-        case Some(v) => n.timestamp(v)
-        case None =>
-      }
-      value match {
-        case Some(v) => n.`value`(v)
-        case None =>
-      }
-      val nonce = n.saveMe()
-      nonce
+      // An absent field keeps the entity's default: "" for the token key, null for the rest.
+      Nonce.insert(
+        id = id,
+        consumerkey = consumerKey.orNull,
+        tokenKey = tokenKey.getOrElse(""),
+        timestamp = timestamp.orNull,
+        value = value.orNull)
     }
   }
 
-  override def deleteExpiredNonces(currentDate: Date): Boolean = {
-    Nonce.findAll(By_<(Nonce.timestamp, currentDate)).forall(_.delete_!)
-  }
+  override def deleteExpiredNonces(currentDate: Date): Boolean =
+    Nonce.deleteOlderThan(currentDate)
 
   override def countNonces(consumerKey: String,
                            tokenKey: String,
                            timestamp: Date,
-                           value: String): Long = {
-    Nonce.count(
-      By(Nonce.`value`, value),
-      By(Nonce.tokenKey, tokenKey),
-      By(Nonce.consumerkey, consumerKey),
-      By(Nonce.timestamp, timestamp)
-    )
-  }
+                           value: String): Long =
+    Nonce.count(consumerKey, tokenKey, timestamp, value)
 
   override def countNoncesFuture(consumerKey: String,
                                  tokenKey: String,
@@ -732,25 +713,90 @@ object MappedNonceProvider extends NoncesProvider {
   }
 
 }
-class Nonce extends LongKeyedMapper[Nonce] {
 
-  def getSingleton: code.model.Nonce.type = Nonce
-  def primaryKeyField: Nonce.this.id.type = id
-  object id extends MappedLongIndex(this)
-  object consumerkey extends MappedString(this, 250) //we store the consumer Key and we don't need to keep a reference to the token consumer as foreign key
-  object tokenKey extends MappedString(this, 250){ //we store the token Key and we don't need to keep a reference to the token object as foreign key
-    override def defaultValue = ""
+/**
+ * One OAuth 1.0a nonce.
+ *
+ * The consumer and the token are held as their keys rather than as foreign keys: a nonce is a
+ * replay guard with its own lifetime and never needs to join to either.
+ */
+case class Nonce(
+  id: Long,
+  consumerkey: String,
+  tokenKey: String,
+  timestamp: Date,
+  `value`: String
+)
+
+object Nonce {
+
+  // timestamp is a reserved word, so Schemifier named the column timestamp_c.
+  private val selectColumns =
+    fr"SELECT id, consumerkey, tokenkey, timestamp_c, value FROM nonce"
+
+  private type Row = (Long, Option[String], Option[String], Option[java.sql.Timestamp],
+    Option[String])
+
+  private def fromRow(row: Row): Nonce = row match {
+    case (id, consumerkey, tokenKey, timestamp, value) =>
+      // A timestamp comes back as a plain java.util.Date, which is what MappedDateTime gave.
+      Nonce(id, consumerkey.orNull, tokenKey.orNull,
+        timestamp.map(t => new Date(t.getTime)).orNull, value.orNull)
   }
-  object timestamp extends MappedDateTime(this){
-  override  def toString = {
-     //returns as a string the time in milliseconds
-      timestamp.get.getTime().toString()
+
+  private def opt(value: String): Option[String] = Option(value)
+
+  private def ts(value: Date): Option[java.sql.Timestamp] =
+    Option(value).map(d => new java.sql.Timestamp(d.getTime))
+
+  def findAll(): List[Nonce] =
+    DoobieUtil.runQuery(selectColumns.query[Row].to[List]).map(fromRow)
+
+  /**
+   * Writes a nonce, letting the caller pin the primary key.
+   *
+   * Only the provider's own callers pass an id, and only ever to reproduce a specific row; every
+   * real request lets the identity column allocate one.
+   */
+  def insert(id: Option[Long], consumerkey: String, tokenKey: String, timestamp: Date,
+             value: String): Nonce = {
+    val newId = id match {
+      case Some(pinned) =>
+        DoobieUtil.runUpdate(
+          sql"""INSERT INTO nonce (id, consumerkey, tokenkey, timestamp_c, value)
+                VALUES ($pinned, ${opt(consumerkey)}, ${opt(tokenKey)}, ${ts(timestamp)},
+                 ${opt(value)})"""
+            .update.run)
+        pinned
+      case None =>
+        DoobieUtil.runUpdate(
+          sql"""INSERT INTO nonce (consumerkey, tokenkey, timestamp_c, value)
+                VALUES (${opt(consumerkey)}, ${opt(tokenKey)}, ${ts(timestamp)}, ${opt(value)})"""
+            .update.withUniqueGeneratedKeys[Long]("id"))
     }
+    Nonce(newId, consumerkey, tokenKey, timestamp, value)
   }
-  object `value` extends MappedString(this,250)
 
+  /** The replay check: an identical nonce inside the window means the request is a replay. */
+  def count(consumerKey: String, tokenKey: String, timestamp: Date, value: String): Long =
+    DoobieUtil.runQuery(
+      sql"""SELECT COUNT(*) FROM nonce
+            WHERE value = ${opt(value)} AND tokenkey = ${opt(tokenKey)}
+              AND consumerkey = ${opt(consumerKey)} AND timestamp_c = ${ts(timestamp)}"""
+        .query[Long].unique)
+
+  /** What the database cleaner sweeps. Mapper deleted row by row; one statement does the same. */
+  def deleteOlderThan(currentDate: Date): Boolean = {
+    DoobieUtil.runUpdate(
+      sql"DELETE FROM nonce WHERE timestamp_c < ${ts(currentDate)}".update.run)
+    true
+  }
+
+  def deleteAll(): Unit = {
+    DoobieUtil.runUpdate(sql"DELETE FROM nonce".update.run)
+    ()
+  }
 }
-object Nonce extends Nonce with LongKeyedMetaMapper[Nonce]{}
 
 object MappedTokenProvider extends TokensProvider {
   override def getTokenByKey(key: String): Box[Token] = {

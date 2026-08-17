@@ -134,7 +134,7 @@ trait ServerSetup extends AnyFeatureSpec with SendServerRequests
    */
   protected def resetDatabaseForTestClass(): Unit = {
     def exclusion(m: MetaMapper[_]): Boolean = {
-      m == Nonce || m == Token || m == Consumer || m == AuthUser || m == ResourceUser
+      m == Token || m == Consumer || m == AuthUser || m == ResourceUser
     }
 
     logger.info(s"[TEST ISOLATION] Resetting database before test class: ${this.getClass.getSimpleName}")

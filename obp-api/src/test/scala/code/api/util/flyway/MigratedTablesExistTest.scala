@@ -168,7 +168,8 @@ class MigratedTablesExistTest extends ServerSetup {
     "metricarchive",
     "mappedconsent",
     "mappedbankaccount",
-    "viewdefinition"
+    "viewdefinition",
+    "nonce"
   )
 
   /**
