@@ -514,6 +514,13 @@ fi
 # Fresh verdict basis: stale surefire XMLs from earlier runs would poison both the
 # surefire audit below and the speed report (observed: test counts drifting across runs).
 rm -rf obp-api/target/surefire-reports obp-commons/target/surefire-reports
+# Recreate them here rather than leaving it to the shards. Having just deleted the directories, all
+# four shards start at once and each asks the scalatest plugin to create the same one; the plugin
+# checks existence and then creates, so two arriving together means one of them fails the build
+# outright with "Cannot create directory .../target/surefire-reports" and runs zero tests. Seen
+# once - shard 3 reported BUILD FAILURE with 0 scenarios while the other three passed - and it is
+# a race, so it is intermittent rather than absent the rest of the time.
+mkdir -p obp-api/target/surefire-reports obp-commons/target/surefire-reports
 
 echo "Pre-compile done, starting shards..." 
 echo ""
