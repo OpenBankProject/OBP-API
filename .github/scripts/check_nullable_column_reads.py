@@ -27,8 +27,8 @@ The fix is to bind the column as Option and collapse it the way Mapper's reader 
     Boolean             -> Option[Boolean]             .getOrElse(false)
     Int / Long / BigDecimal -> Option[...]             .getOrElse(<the Lift field's default>)
 
-A column declared NOT NULL in its Flyway script is fine bound bare, and that is what this check
-uses to tell the two apart.
+A column declared NOT NULL in the changelog is fine bound bare, and that is what this check uses
+to tell the two apart.
 
 Run from the repo root:
     python3 .github/scripts/check_nullable_column_reads.py
@@ -41,31 +41,64 @@ import sys
 from pathlib import Path
 
 SCALA_ROOT = Path("obp-api/src/main/scala")
-DDL_ROOT = Path("obp-api/src/main/resources/db/migration/h2")
+CHANGELOG_ROOT = Path("obp-api/src/main/resources/db/changelog")
 
 # Scala types that cannot hold a SQL NULL through Doobie's Get.
 NON_NULLABLE = ("String", "Boolean", "Int", "Long", "Double", "BigDecimal",
                 "java.sql.Timestamp", "java.sql.Date")
 
 
-def read_ddl(ddl_root):
-    """table -> {column: is_nullable}, from CREATE TABLE and ALTER TABLE ADD COLUMN."""
+def read_ddl(changelog_root):
+    """table -> {column: is_nullable}, from the changelog's createTable changesets.
+
+    Read from the changelog rather than from the H2 CREATE TABLE scripts, and not only because the
+    scripts are on their way out. The regex that parsed them matched a column's type with the
+    character class `[A-Z0-9_ ()]`, which has no comma in it, so `NUMERIC(16, 10)` never matched
+    and five columns - productfee.amount and four of counterpartylimit's - were absent from the map
+    entirely. A column that is not in the map cannot be reported, so those five were exempt from
+    this check without anything saying so; productfee.amount was in fact bound as a bare BigDecimal
+    the whole time, which is a 500 on any row holding a NULL. Structured data does not have that
+    failure mode: a column is either declared or it is not.
+
+    Parsed line by line rather than with a YAML library because the workflows run a bare python3
+    with no pip install step, and the file is machine-generated with fixed indentation by
+    Liquibase's own writer - the shape does not vary. `tableName` follows the column list, since
+    the writer emits keys alphabetically.
+    """
     tables = {}
-    for path in sorted(ddl_root.glob("*.sql")):
-        src = path.read_text()
-        for m in re.finditer(
-                r'CREATE TABLE(?:\s+IF NOT EXISTS)?\s+(?:"PUBLIC"\.)?"?(\w+)"?\s*\((.*?)\n\);',
-                src, re.S | re.I):
-            cols = tables.setdefault(m.group(1).lower(), {})
-            for line in m.group(2).split("\n"):
-                c = re.match(r'\s*"(\w+)"\s+([A-Z0-9_ ()]+?)(\s+NOT NULL)?\s*,?\s*$',
-                             line.strip() + " ", re.I)
-                if c:
-                    cols[c.group(1).lower()] = c.group(3) is None
-        for m in re.finditer(
-                r'ALTER TABLE\s+(?:"PUBLIC"\.)?"?(\w+)"?\s+ADD (?:COLUMN )?(?:IF NOT EXISTS )?'
-                r'"?(\w+)"?\s+([A-Z0-9_ ()]+?)(\s+NOT NULL)?\s*;', src, re.I):
-            tables.setdefault(m.group(1).lower(), {})[m.group(2).lower()] = m.group(4) is None
+    for path in sorted(changelog_root.rglob("*.yaml")):
+        lines = path.read_text().splitlines()
+        i = 0
+        while i < len(lines):
+            if lines[i].strip() != "- createTable:":
+                i += 1
+                continue
+            cols = []
+            j = i + 1
+            while j < len(lines) and not lines[j].strip().startswith("- changeSet:"):
+                stripped = lines[j].strip()
+                if stripped == "- column:":
+                    name, nullable = None, True
+                    k = j + 1
+                    while k < len(lines):
+                        t = lines[k].strip()
+                        if t == "- column:" or t.startswith("tableName:"):
+                            break
+                        if t.startswith("name: "):
+                            name = t[len("name: "):].strip()
+                        elif t == "nullable: false":
+                            nullable = False
+                        k += 1
+                    if name:
+                        cols.append((name.lower(), nullable))
+                    j = k
+                    continue
+                if stripped.startswith("tableName: "):
+                    table = stripped[len("tableName: "):].strip().lower()
+                    tables.setdefault(table, {}).update(dict(cols))
+                    break
+                j += 1
+            i = j + 1
     return tables
 
 
@@ -130,14 +163,14 @@ def find_violations(path, tables):
 def main():
     repo_root = Path(__file__).resolve().parents[2]
     scala_root = repo_root / SCALA_ROOT
-    ddl_root = repo_root / DDL_ROOT
-    if not scala_root.exists() or not ddl_root.exists():
+    changelog_root = repo_root / CHANGELOG_ROOT
+    if not scala_root.exists() or not changelog_root.exists():
         print("ERROR: run this from the repository root", file=sys.stderr)
         return 2
 
-    tables = read_ddl(ddl_root)
+    tables = read_ddl(changelog_root)
     if not tables:
-        print(f"ERROR: no CREATE TABLE found under {DDL_ROOT}", file=sys.stderr)
+        print(f"ERROR: no createTable changeset found under {CHANGELOG_ROOT}", file=sys.stderr)
         return 2
 
     by_file = collections.OrderedDict()

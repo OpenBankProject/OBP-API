@@ -46,16 +46,21 @@ object ProductFee {
          FROM productfee"""
 
   private type Row = (Option[String], Option[String], Option[String], Option[String],
-    Option[Boolean], Option[String], Option[String], BigDecimal, Option[String], Option[String])
+    Option[Boolean], Option[String], Option[String], Option[BigDecimal], Option[String],
+    Option[String])
 
   private def fromRow(row: Row): ProductFee = row match {
     case (bankId, productCode, productFeeId, name, isActive, moreInfo, currency, amount, frequency, typeC) =>
         // MappedBoolean read a NULL column as false - `data openOr false`, with a NULL
         // setting `data = Empty` - so it never failed the read and never returned the
         // field's declared defaultValue. Binding the column as Option keeps both halves.
+        //
+        // MappedDecimal's JDBC setter is `if (isNull) defaultValue`, and its defaultValue is
+        // `zero.setScale(scale)` - so a NULL amount read back as 0 at the column's scale, which
+        // for NUMERIC(34, 2) is two places.
       ProductFee(bankId.orNull, productCode.orNull, productFeeId.orNull, name.orNull,
-        isActive.getOrElse(false), moreInfo.orNull, currency.orNull, amount, frequency.orNull,
-        typeC.orNull)
+        isActive.getOrElse(false), moreInfo.orNull, currency.orNull,
+        amount.getOrElse(BigDecimal(0).setScale(2)), frequency.orNull, typeC.orNull)
   }
 
   private def query(condition: Fragment): List[ProductFee] =
